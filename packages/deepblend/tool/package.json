@@ -1,0 +1,17 @@
+{
+  "name": "@deepblend/dsh-blender-tool",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-preset tool consumer: registers the model-visible DeepBlend Blender tools. Publishes no service.",
+  "main": "lib/index.js",
+  "exports": {
+    ".": { "default": "./lib/index.js" },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@deepblend/dsh-blender-contracts": "0.1.0",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.2"
+  },
+  "license": "UNLICENSED"
+}

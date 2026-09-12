@@ -1,0 +1,18 @@
+# Dependency links into the DSH installation (absolute symlinks, not content).
+node_modules/
+
+# The Blender runtime installed into the workspace during M0 setup (~907 MB).
+# Reproduce with the documented download instead of committing it; see
+# deepblend/docs/dsh-baseline.md §5.
+.tools/
+
+# DeepBlend runtime scratch: per-invocation working directories and, from M1,
+# project storage. Never source.
+.deepblend/
+
+# OS noise
+.DS_Store
+
+# Python bytecode
+__pycache__/
+*.pyc

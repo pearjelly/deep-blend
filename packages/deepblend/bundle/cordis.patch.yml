@@ -1,0 +1,95 @@
+# DeepBlend Studio Host Bundle — the HOST COMPOSITION layer (SPEC §4.1, §18).
+#
+# This patch adds one `insert` over the profile tree. It carries only
+# process-level, cross-session capability:
+#
+#   deepblend-blender-runtime  → publishes `blenderRuntime`  (Blender execution seam)
+#   deepblend-blender-host     → publishes `blenderStudio`   (business facade)
+#   deepblend-blender-ui       → publishes `blenderUi`       (browser-facing host half)
+#
+# The model-visible tool (`blender_capabilities`) deliberately does NOT live
+# here. It belongs to the AGENT PRESET, because a preset decides what one
+# session's model may see (SPEC §4.2, §4.3). Registering it here would expose
+# the tool to every session in the process.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHY THESE VALUES ARE LITERALS AND NOT `!!js` EXPRESSIONS
+#
+# The obvious spelling would be `!!js process.env.X || …`, and it does NOT work.
+# The loader interpolates `!!js` through
+#
+#     new Function('ctx', 'with (ctx) { return eval(expr) }')
+#
+# evaluated against the **Loader context**, not the global object. `process` is
+# not a Loader-context property, so any `!!js … process …` expression throws a
+# ReferenceError at compose time. The failure is silent and deeply confusing:
+# the row still mounts, the config key simply keeps its schema default, and the
+# service then fails later at first use. That is exactly how `blenderPath` came
+# up as the literal `'blender'` instead of the installed binary.
+#
+# `!!js` remains correct for expressions referencing only Loader-context values
+# (which is how the shipped bundles use it). It is not a general escape hatch
+# to Node globals.
+#
+# OVERRIDING THESE VALUES: a row's `config` is replaced wholesale, not merged,
+# so the operator layer ($DSH_HOME/profiles/<name>/cordis.patch.yml) must
+# restate every key it wants to keep:
+#
+#     - id: deepblend-blender-runtime
+#       config:
+#         blenderPath: /path/to/Blender
+#         bootstrapPath: /path/to/bootstrap.py
+#         workspaceRoot: /path/to/workspace
+#         timeoutMs: 180000
+#         maxOutputBytes: 1048576
+#         maxSpillBytes: 67108864
+#         executableAllowlist: []
+#         capabilitiesCacheMs: 60000
+#         keepWorkingDirectory: false
+# ─────────────────────────────────────────────────────────────────────────────
+
+- insert:
+    # Blender execution seam. `ctx.subprocess` is a declared injection, so this
+    # row parks in `waiting` — visibly — rather than failing later at first call.
+    - id: deepblend-blender-runtime
+      name: '@deepblend/dsh-blender-provider-local'
+      config:
+        # Absolute path to the Blender binary installed for this deployment.
+        blenderPath: /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender
+        # Absolute path to the capability-probe script shipped in the provider package.
+        bootstrapPath: /Users/hxb/workspace/deep-blend/packages/deepblend/provider-local/python/bootstrap.py
+        # Per-invocation working directories stay inside the project workspace
+        # (SPEC §15.2 "工作区路径边界").
+        workspaceRoot: /Users/hxb/workspace/deep-blend/.deepblend
+        # A cold Blender launch plus one 64x36 render probe; measured ~0.4 s on
+        # this machine, so 180 s is a generous ceiling rather than a real budget.
+        timeoutMs: 180000
+        maxOutputBytes: 1048576
+        maxSpillBytes: 67108864
+        # Extra executable allowlist roots beyond the built-in defaults
+        # (/Applications, /opt/homebrew/bin, /usr/local/bin, ~/Applications).
+        # An absolute `blenderPath` is trusted as a deliberate operator choice;
+        # this list matters when the path is a bare name resolved through PATH.
+        executableAllowlist:
+          - /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS
+        # Capabilities are stable within a session; re-probe explicitly by
+        # calling the tool with refresh=true.
+        capabilitiesCacheMs: 60000
+        # Retaining temp dirs is a debugging aid; off by default so a probe
+        # leaves no residue behind.
+        keepWorkingDirectory: false
+
+    # Business facade consumed by BOTH planes: the preset tool and the UI host
+    # half read the same authoritative answer (SPEC §14.3).
+    - id: deepblend-blender-host
+      name: '@deepblend/dsh-blender-host'
+      config:
+        projectsRoot: /Users/hxb/workspace/deep-blend/.deepblend/projects
+        serveCachedCapabilities: true
+
+    # Browser-facing host half. M0 serves the settings-card document; the Web
+    # Client Slot half arrives in M4.
+    - id: deepblend-blender-ui
+      name: '@deepblend/dsh-blender-ui'
+      config:
+        serveRoute: true

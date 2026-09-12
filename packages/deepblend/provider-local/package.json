@@ -1,0 +1,18 @@
+{
+  "name": "@deepblend/dsh-blender-provider-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Blender Provider: the BlenderRuntime Service over ctx.subprocess (batch execution).",
+  "main": "lib/index.js",
+  "exports": {
+    ".": { "default": "./lib/index.js" },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@deepblend/dsh-blender-contracts": "0.1.0",
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/schemastery": "3.18.2"
+  },
+  "license": "UNLICENSED"
+}

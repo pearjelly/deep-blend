@@ -1,0 +1,26 @@
+{
+  "name": "@deepblend/dsh-blender-bundle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepBlend Studio Host Bundle: composes the Blender runtime provider, host facade and UI host half, with default configuration.",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@deepblend/dsh-blender-contracts": "0.1.0",
+    "@deepblend/dsh-blender-host": "0.1.0",
+    "@deepblend/dsh-blender-provider-local": "0.1.0",
+    "@deepblend/dsh-blender-ui": "0.1.0"
+  },
+  "license": "UNLICENSED",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  }
+}

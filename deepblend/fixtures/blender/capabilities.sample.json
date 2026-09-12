@@ -1,0 +1,122 @@
+{
+  "protocolVersion": "deepblend.blender/v1",
+  "installed": true,
+  "executable": {
+    "requested": "/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender",
+    "resolved": "/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender",
+    "found": true
+  },
+  "version": "5.2.1 LTS",
+  "versionTuple": [5, 2, 1],
+  "pythonVersion": "3.13.13",
+  "buildHash": "9e2066aef7ef",
+  "binaryPath": "/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender",
+  "engines": {
+    "BLENDER_EEVEE": {
+      "available": true,
+      "readback": "BLENDER_EEVEE",
+      "error": null
+    },
+    "CYCLES": {
+      "available": true,
+      "readback": "CYCLES",
+      "error": null
+    },
+    "BLENDER_WORKBENCH": {
+      "available": true,
+      "readback": "BLENDER_WORKBENCH",
+      "error": null
+    }
+  },
+  "bestAvailableEngine": "CYCLES",
+  "engineEnumItems": ["BLENDER_EEVEE"],
+  "gpu": {
+    "available": true,
+    "backends": ["METAL"],
+    "preferredBackend": "METAL",
+    "devices": ["Apple M5 (GPU - 10 cores)"],
+    "cpuDevices": ["Apple M5"],
+    "backendSupport": {
+      "METAL": {
+        "supported": true,
+        "gpuDevices": ["Apple M5 (GPU - 10 cores)"],
+        "cpuDevices": ["Apple M5"],
+        "error": null
+      },
+      "CUDA": {
+        "supported": false,
+        "gpuDevices": [],
+        "cpuDevices": [],
+        "error": "TypeError: enum \"CUDA\" not found in ('NONE', 'METAL')"
+      }
+    }
+  },
+  "formats": {
+    "import": ["fbx", "gltf"],
+    "export": ["fbx", "gltf"],
+    "unavailable": ["abc", "dae", "obj", "ply", "stl", "usd", "x3d"]
+  },
+  "renderSmokeTest": {
+    "attempted": true,
+    "engine": "CYCLES",
+    "ok": true,
+    "bytes": 2376,
+    "error": null
+  },
+  "cyclesSmokeTest": {
+    "attempted": true,
+    "engine": "CYCLES",
+    "ok": true,
+    "bytes": 2376,
+    "error": null
+  },
+  "api": {
+    "textBlocks": true,
+    "frameRange": true
+  },
+  "hostPlatform": "darwin",
+  "warnings": [
+    {
+      "code": "ENGINE_NOT_IN_STATIC_ENUM",
+      "message": "Render engine CYCLES is assignable but absent from the static engine enum (BLENDER_EEVEE). Availability must be decided behaviorally, never from the enum.",
+      "detail": {
+        "engine": "CYCLES",
+        "enumItems": ["BLENDER_EEVEE"]
+      }
+    },
+    {
+      "code": "FORMAT_UNAVAILABLE",
+      "message": "Import format \"obj\" is not provided by this Blender build and cannot be offered yet.",
+      "detail": {
+        "direction": "import",
+        "format": "obj"
+      }
+    },
+    {
+      "code": "FORMAT_UNAVAILABLE",
+      "message": "Import format \"usd\" is not provided by this Blender build and cannot be offered yet.",
+      "detail": {
+        "direction": "import",
+        "format": "usd"
+      }
+    },
+    {
+      "code": "FORMAT_UNAVAILABLE",
+      "message": "Export format \"obj\" is not provided by this Blender build and cannot be offered yet.",
+      "detail": {
+        "direction": "export",
+        "format": "obj"
+      }
+    },
+    {
+      "code": "FORMAT_UNAVAILABLE",
+      "message": "Export format \"usd\" is not provided by this Blender build and cannot be offered yet.",
+      "detail": {
+        "direction": "export",
+        "format": "usd"
+      }
+    }
+  ],
+  "probedAt": 1787052345678,
+  "durationMs": 4712
+}

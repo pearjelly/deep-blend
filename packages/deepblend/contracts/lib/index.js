@@ -1,0 +1,340 @@
+/**
+ * @deepblend/dsh-blender-contracts
+ *
+ * Service Definition and shared types for DeepBlend Studio (SPEC §5.1).
+ *
+ * This package is the frozen vocabulary shared by every other DeepBlend package:
+ * the `BlenderRuntime` Service interface, the `BlenderStudio` facade interface,
+ * the Blender bootstrap protocol envelope, stable error codes, and the
+ * deepblend-specific artifact boundaries.
+ *
+ * It publishes NO service and registers NO tool — it is pure data, so it is safe
+ * to consume from a Host composition, an Agent preset, or a Web Client half.
+ *
+ * Owner: DeepBlend Studio — M0
+ */
+
+/** Blender bootstrap protocol version. Bumped only on a breaking wire change. */
+export const BLENDER_PROTOCOL_VERSION = 'deepblend.blender/v1'
+
+/** SceneSpec schema version. Defined in M1; declared here so M0 can reference it. */
+export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
+
+/** Settings namespace owned by the DeepBlend host service. */
+export const BLENDER_SETTINGS_NAMESPACE = 'deepblend'
+
+/** Canonical telemetry/log scope marker used in warnings and logs. */
+export const LOG_SCOPE = 'deepblend'
+
+/**
+ * Stable error codes (SPEC §11.1: "每个错误有稳定 errorCode").
+ *
+ * These are part of the wire contract with the model and the UI. Never renumber
+ * or rename one; add a new code instead.
+ */
+export const BlenderErrorCode = Object.freeze({
+  /** No Blender executable could be resolved from config or PATH. */
+  NOT_FOUND: 'BLENDER_NOT_FOUND',
+  /** A configured executable path exists but is not executable / is a directory. */
+  EXECUTABLE_NOT_EXECUTABLE: 'BLENDER_EXECUTABLE_NOT_EXECUTABLE',
+  /** A configured executable path escapes the allowlist (SPEC §15.2). */
+  EXECUTABLE_OUTSIDE_ALLOWLIST: 'BLENDER_EXECUTABLE_OUTSIDE_ALLOWLIST',
+  /** ctx.subprocess.spawn threw before a handle existed. */
+  SPAWN_FAILED: 'BLENDER_SPAWN_FAILED',
+  /** Blender exited with a non-zero code. */
+  NONZERO_EXIT: 'BLENDER_NONZERO_EXIT',
+  /** The probe exceeded its configured deadline. */
+  TIMEOUT: 'BLENDER_TIMEOUT',
+  /** The caller's AbortSignal fired. */
+  ABORTED: 'BLENDER_ABORTED',
+  /** bootstrap.py never wrote its result file. */
+  RESULT_MISSING: 'BLENDER_RESULT_MISSING',
+  /** The result file was not valid JSON. */
+  RESULT_UNPARSEABLE: 'BLENDER_RESULT_UNPARSEABLE',
+  /** bootstrap.py wrote a well-formed error envelope. */
+  SCRIPT_ERROR: 'BLENDER_SCRIPT_ERROR',
+  /** bootstrap.py reported a different protocolVersion. */
+  PROTOCOL_VERSION_MISMATCH: 'BLENDER_PROTOCOL_VERSION_MISMATCH',
+  /** bootstrap.py reported an action it does not implement. */
+  UNSUPPORTED_ACTION: 'BLENDER_UNSUPPORTED_ACTION',
+  /** The collection of capabilities threw unexpectedly inside Blender. */
+  CAPABILITY_PROBE_FAILED: 'BLENDER_CAPABILITY_PROBE_FAILED',
+  /** The configured bootstrap script is missing or unreadable. */
+  BOOTSTRAP_MISSING: 'BLENDER_BOOTSTRAP_MISSING',
+  /** A requested render engine is not available in this runtime (D1/D2). */
+  ENGINE_UNAVAILABLE: 'BLENDER_ENGINE_UNAVAILABLE',
+  /** Reserved: no Blender implementation was injected at all. */
+  RUNTIME_UNAVAILABLE: 'BLENDER_RUNTIME_UNAVAILABLE',
+})
+
+/** Warning codes surface on the successful path, where nothing threw. */
+export const BlenderWarningCode = Object.freeze({
+  /** Detection is unavailable; the caller is looking at a degraded result (D1). */
+  BLENDER_NOT_INSTALLED: 'BLENDER_NOT_INSTALLED',
+  /** A preferred engine IS reachable but is silently absent from the static enum (D1). */
+  ENGINE_NOT_IN_STATIC_ENUM: 'ENGINE_NOT_IN_STATIC_ENUM',
+  /** A configured/likely-required engine is genuinely unavailable (D2). */
+  ENGINE_UNAVAILABLE: 'ENGINE_UNAVAILABLE',
+  /** A render profile was downgraded to a reachable engine (D2). */
+  ENGINE_DOWNGRADED: 'ENGINE_DOWNGRADED',
+  /** CPU-only: no GPU device was detected. */
+  GPU_UNAVAILABLE: 'GPU_UNAVAILABLE',
+  /** A format the product wants is not provided by this Blender build (SPEC §2.2 gap). */
+  FORMAT_UNAVAILABLE: 'FORMAT_UNAVAILABLE',
+  /** An add-on could not be enabled. */
+  ADDON_ENABLE_FAILED: 'ADDON_ENABLE_FAILED',
+  /** A warning passed through verbatim from bootstrap.py. */
+  PROBE_WARNING: 'PROBE_WARNING',
+  /** Result derived from a stale cache entry. */
+  STALE_CAPABILITIES: 'STALE_CAPABILITIES',
+})
+
+/** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
+export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])
+/** Formats the product intends to be able to export. */
+export const EXPECTED_EXPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'usd'])
+
+/** Candidate render engines probed behaviorally. Never assume one exists (D1). */
+export const CANDIDATE_RENDER_ENGINES = Object.freeze([
+  'BLENDER_EEVEE',
+  'CYCLES',
+  'BLENDER_WORKBENCH',
+])
+
+/**
+ * A typed, serializable DeepBlend failure.
+ *
+ * Carries a stable `code` from {@link BlenderErrorCode} so the model, the UI and
+ * the audit log can branch on it without parsing prose.
+ */
+export class BlenderError extends Error {
+  /**
+   * @param {string} code - a {@link BlenderErrorCode} value.
+   * @param {string} message - human-readable, safe to show to the model.
+   * @param {{ detail?: unknown, cause?: unknown }} [options]
+   */
+  constructor(code, message, options = {}) {
+    super(message, options.cause !== undefined ? { cause: options.cause } : undefined)
+    this.name = 'BlenderError'
+    this.code = code
+    if (options.detail !== undefined) this.detail = options.detail
+  }
+
+  /** Canonical JSON form for tool results and API responses. */
+  toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      ...this.detail !== undefined ? { detail: this.detail } : {},
+    }
+  }
+}
+
+/** Narrowing helper for callers that receive unknown thrown values. */
+export function isBlenderError(value) {
+  return value instanceof BlenderError
+}
+
+/**
+ * Build a warning entry. Warnings never throw; they degrade a successful result.
+ * @param {string} code - a {@link BlenderWarningCode} value.
+ * @param {string} message - human-readable explanation.
+ * @param {Record<string, unknown>} [detail]
+ */
+export function warning(code, message, detail) {
+  return { code, message, ...detail !== undefined ? { detail } : {} }
+}
+
+/**
+ * @typedef {object} BlenderExecutableReport
+ * @property {string} requested - exactly what the operator configured.
+ * @property {string|null} resolved - canonical absolute path actually used, or null.
+ * @property {boolean} found - whether a usable executable was resolved.
+ */
+
+/**
+ * @typedef {object} BlenderEngineProbe
+ * @property {boolean} assignable - whether assigning the identifier actually took effect.
+ * @property {string|null} readback - what `scene.render.engine` read back as.
+ * @property {string|null} error - exception text when the probe threw.
+ */
+
+/**
+ * One GPU compute backend's support status.
+ *
+ * An unsupported backend *raises* on assignment rather than returning an empty
+ * device list (`TypeError: enum "OPTIX" not found in ('NONE', 'METAL')`), so
+ * `supported: false` is a normal, expected outcome — never a probe failure.
+ *
+ * @typedef {object} BlenderGpuBackend
+ * @property {boolean} supported
+ * @property {string[]} gpuDevices
+ * @property {string[]} cpuDevices
+ * @property {string|null} error
+ */
+
+/**
+ * The GPU report produced by `bootstrap.py`, normalised by the provider.
+ *
+ * @typedef {object} BlenderGpuReport
+ * @property {string[]} availableBackends - backends that reported at least one GPU device.
+ * @property {string|null} preferredBackend
+ * @property {string[]} gpuDeviceNames - flattened GPU device names across available backends.
+ * @property {string[]} cpuDeviceNames
+ * @property {Record<string, BlenderGpuBackend>} backendSupport
+ */
+
+/**
+ * @typedef {object} BlenderRenderSmokeTest
+ * @property {boolean} attempted
+ * @property {string|null} engine
+ * @property {boolean} ok
+ * @property {number} bytes
+ * @property {string|null} error
+ */
+
+/**
+ * The behavioral capability report produced by `bootstrap.py` (D1).
+ *
+ * `renderEngines` is deliberately a *behavioral* probe result rather than the
+ * static `engine` enum: on Blender 5.2.1 the enum reports only `BLENDER_EEVEE`
+ * even though assigning `CYCLES` succeeds. `renderEngineEnumItems` is retained
+ * as an informational diagnostic and must never be used to gate availability.
+ *
+ * @typedef {object} BlenderCapabilities
+ * @property {string} protocolVersion
+ * @property {boolean} installed
+ * @property {BlenderExecutableReport} executable
+ * @property {string|null} blenderVersion
+ * @property {number[]|null} blenderVersionTuple
+ * @property {string|null} pythonVersion
+ * @property {string|null} buildHash
+ * @property {string|null} binaryPath
+ * @property {Record<string, BlenderEngineProbe>} renderEngines
+ * @property {string|null} bestAvailableEngine - preferred engine per the probe's own ordering.
+ * @property {string[]} renderEngineEnumItems - diagnostic only (D1).
+ * @property {BlenderGpuReport} gpu
+ * @property {boolean} gpuAvailable
+ * @property {string[]} exportFormats
+ * @property {string[]} importFormats
+ * @property {string[]} unavailableFormats - attribute-present but unregistered operators.
+ * @property {BlenderRenderSmokeTest|null} renderSmokeTest
+ * @property {BlenderRenderSmokeTest|null} cyclesSmokeTest
+ * @property {boolean} textBlockApi
+ * @property {boolean} frameApi
+ * @property {string|null} hostPlatform
+ * @property {{ code: string, message: string, detail?: unknown }[]} warnings
+ * @property {number} probedAt - epoch ms.
+ * @property {number} durationMs
+ * @property {string|null} commandLine - for audit; never contains secrets.
+ */
+
+/**
+ * The Blender execution seam (SPEC §7.1).
+ *
+ * Implementations own process launch, protocol framing and result validation.
+ * They hold NO business state machine — orchestration belongs to
+ * `BlenderOrchestrator` and persistence to the project/revision stores.
+ *
+ * M0 implements `getCapabilities` and the shared `runBootstrap` transport.
+ * The remaining methods are declared here as the frozen target shape and are
+ * implemented in M1+. Calling an unimplemented one throws
+ * `BlenderErrorCode.UNSUPPORTED_ACTION`, never silently succeeds.
+ *
+ * @typedef {object} BlenderRuntime
+ * @property {(signal?: AbortSignal) => Promise<BlenderCapabilities>} getCapabilities
+ * @property {(request: BlenderBootstrapRequest, options?: { signal?: AbortSignal }) => Promise<BlenderBootstrapEnvelope>} runBootstrap
+ * @property {() => void} dispose
+ */
+
+/**
+ * @typedef {object} BlenderBootstrapRequest
+ * @property {string} action - bootstrap action name, e.g. `get_capabilities`.
+ * @property {Record<string, unknown>} [payload] - action-specific fields.
+ * @property {string} [jobId] - correlation id for logs and the result envelope.
+ */
+
+/**
+ * The envelope `bootstrap.py` writes to its result file.
+ *
+ * @typedef {object} BlenderBootstrapEnvelope
+ * @property {'success'|'error'} status
+ * @property {string} protocolVersion
+ * @property {string|null} jobId
+ * @property {BlenderCapabilities|null} capabilities
+ * @property {{ code: string, message: string }|null} error
+ * @property {string[]} warnings
+ */
+
+/**
+ * The model- and UI-facing business facade (SPEC §7.2).
+ *
+ * M0 implements `getCapabilities` only. Everything else is the frozen M1+ target
+ * and throws `UNSUPPORTED_ACTION` until implemented, so the model can never
+ * believe a not-yet-built capability worked.
+ *
+ * @typedef {object} BlenderStudio
+ * @property {(request?: { refresh?: boolean }) => Promise<BlenderCapabilities>} getCapabilities
+ */
+
+/**
+ * Project a raw capabilities object into the canonical, stable-order JSON that
+ * the tool returns and the UI renders.
+ *
+ * Key order is fixed so transcripts diff cleanly and tests can compare output
+ * (SPEC §19.5 golden scenes rely on deterministic serialization).
+ *
+ * @param {BlenderCapabilities} capabilities
+ * @returns {Record<string, unknown>}
+ */
+export function toCanonicalCapabilities(capabilities) {
+  return {
+    protocolVersion: capabilities.protocolVersion,
+    installed: capabilities.installed,
+    executable: {
+      requested: capabilities.executable.requested,
+      resolved: capabilities.executable.resolved,
+      found: capabilities.executable.found,
+    },
+    version: capabilities.blenderVersion,
+    versionTuple: capabilities.blenderVersionTuple,
+    pythonVersion: capabilities.pythonVersion,
+    buildHash: capabilities.buildHash,
+    binaryPath: capabilities.binaryPath,
+    // Behavioral availability — the only field a caller may branch on (D1).
+    engines: Object.fromEntries(
+      Object.entries(capabilities.renderEngines).map(([id, probe]) => [
+        id,
+        { available: probe.assignable, readback: probe.readback, error: probe.error },
+      ]),
+    ),
+    bestAvailableEngine: capabilities.bestAvailableEngine,
+    // Diagnostic only. Present so operators can see the enum lie for themselves.
+    engineEnumItems: capabilities.renderEngineEnumItems,
+    gpu: {
+      available: capabilities.gpuAvailable,
+      backends: capabilities.gpu.availableBackends,
+      preferredBackend: capabilities.gpu.preferredBackend,
+      devices: capabilities.gpu.gpuDeviceNames,
+      cpuDevices: capabilities.gpu.cpuDeviceNames,
+      backendSupport: capabilities.gpu.backendSupport,
+    },
+    formats: {
+      import: capabilities.importFormats,
+      export: capabilities.exportFormats,
+      // Attribute-present but unregistered operators: the trap that makes
+      // `hasattr(bpy.ops.export_scene, 'obj')` an unsafe availability test.
+      unavailable: capabilities.unavailableFormats,
+    },
+    renderSmokeTest: capabilities.renderSmokeTest,
+    cyclesSmokeTest: capabilities.cyclesSmokeTest,
+    api: {
+      textBlocks: capabilities.textBlockApi,
+      frameRange: capabilities.frameApi,
+    },
+    hostPlatform: capabilities.hostPlatform,
+    warnings: capabilities.warnings,
+    probedAt: capabilities.probedAt,
+    durationMs: capabilities.durationMs,
+  }
+}
