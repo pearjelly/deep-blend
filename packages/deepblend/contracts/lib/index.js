@@ -20,6 +20,18 @@ export const BLENDER_PROTOCOL_VERSION = 'deepblend.blender/v1'
 /** SceneSpec schema version. Defined in M1; declared here so M0 can reference it. */
 export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
 
+/** ScenePatch document version. */
+export const SCENE_PATCH_VERSION = 'deepblend.scene-patch/v1'
+
+/** Revision manifest version written beside every revision directory. */
+export const REVISION_MANIFEST_VERSION = 'deepblend.revision-manifest/v1'
+
+/** Durable job record version (SPEC §9.3 result.json, §10.2). */
+export const JOB_RECORD_VERSION = 'deepblend.job/v1'
+
+/** Project record version. */
+export const PROJECT_RECORD_VERSION = 'deepblend.project/v1'
+
 /** Settings namespace owned by the DeepBlend host service. */
 export const BLENDER_SETTINGS_NAMESPACE = 'deepblend'
 
@@ -65,6 +77,69 @@ export const BlenderErrorCode = Object.freeze({
   ENGINE_UNAVAILABLE: 'BLENDER_ENGINE_UNAVAILABLE',
   /** Reserved: no Blender implementation was injected at all. */
   RUNTIME_UNAVAILABLE: 'BLENDER_RUNTIME_UNAVAILABLE',
+
+  // ---- M1: project, revision and SceneSpec failures ------------------------
+  //
+  // These are grouped and named so the model can tell apart the three things a
+  // failed write can mean: the input was wrong, the caller's view was stale, or
+  // the machine failed. Only the middle one is worth retrying by re-reading.
+
+  /** The project id does not exist in the project store. */
+  PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
+  /** A project directory exists but its record is missing or unreadable. */
+  PROJECT_CORRUPT: 'PROJECT_CORRUPT',
+  /** A project with this id already exists. */
+  PROJECT_EXISTS: 'PROJECT_EXISTS',
+  /** A project id (or a derived slug) is not usable as a directory name. */
+  PROJECT_ID_INVALID: 'PROJECT_ID_INVALID',
+
+  /** The named revision does not exist in this project. */
+  REVISION_NOT_FOUND: 'REVISION_NOT_FOUND',
+  /** The SceneSpec stored in a revision is missing or no longer parses. */
+  REVISION_CORRUPT: 'REVISION_CORRUPT',
+  /** A checkpoint was required by the requested action but this revision has none. */
+  REVISION_CHECKPOINT_MISSING: 'REVISION_CHECKPOINT_MISSING',
+
+  /**
+   * `baseRevision` is not the current revision. The caller read a stale view;
+   * the write is refused rather than merged, because an implicit merge is how a
+   * concurrent editor silently loses someone else's work (SPEC §8.5).
+   */
+  REVISION_CONFLICT: 'REVISION_CONFLICT',
+  /** No revision could be allocated (clock/sequence guard). */
+  REVISION_ALLOCATION_FAILED: 'REVISION_ALLOCATION_FAILED',
+  /** The requested revision id does not match the `r0001` grammar. */
+  REVISION_ID_INVALID: 'REVISION_ID_INVALID',
+
+  /** The SceneSpec failed structural or semantic validation. */
+  SCENE_SPEC_INVALID: 'SCENE_SPEC_INVALID',
+  /** The ScenePatch failed structural validation. */
+  SCENE_PATCH_INVALID: 'SCENE_PATCH_INVALID',
+  /** The ScenePatch was structurally fine but referenced something absent. */
+  SCENE_PATCH_REJECTED: 'SCENE_PATCH_REJECTED',
+  /** The compiled scene failed technical validation in Blender. */
+  SCENE_VALIDATION_FAILED: 'SCENE_VALIDATION_FAILED',
+  /** No camera could be selected for the requested preview. */
+  SCENE_CAMERA_MISSING: 'SCENE_CAMERA_MISSING',
+
+  /** A generated id, path or key would escape the workspace or project root. */
+  PATH_OUTSIDE_WORKSPACE: 'PATH_OUTSIDE_WORKSPACE',
+  /** A file name or id segment contained a separator or traversal. */
+  PATH_SEGMENT_INVALID: 'PATH_SEGMENT_INVALID',
+
+  /** A referenced asset file is not present in the project. */
+  ASSET_MISSING: 'ASSET_MISSING',
+  /** This Blender build cannot import the asset's format (D10). */
+  ASSET_FORMAT_UNAVAILABLE: 'ASSET_FORMAT_UNAVAILABLE',
+  /** The asset hash does not match the recorded sha256. */
+  ASSET_HASH_MISMATCH: 'ASSET_HASH_MISMATCH',
+
+  /** The requested render profile is not defined in the SceneSpec. */
+  RENDER_PROFILE_MISSING: 'RENDER_PROFILE_MISSING',
+  /** A render was refused because its estimated cost exceeds the configured budget. */
+  RENDER_BUDGET_EXCEEDED: 'RENDER_BUDGET_EXCEEDED',
+  /** Blender rendered but produced no image file. */
+  RENDER_NO_OUTPUT: 'RENDER_NO_OUTPUT',
 })
 
 /** Warning codes surface on the successful path, where nothing threw. */
@@ -87,6 +162,21 @@ export const BlenderWarningCode = Object.freeze({
   PROBE_WARNING: 'PROBE_WARNING',
   /** Result derived from a stale cache entry. */
   STALE_CAPABILITIES: 'STALE_CAPABILITIES',
+
+  // ---- M1 ----------------------------------------------------------------
+
+  /** A write succeeded but changed nothing (the same intent was already applied). */
+  SCENE_PATCH_NO_CHANGE: 'SCENE_PATCH_NO_CHANGE',
+  /** A render profile was downgraded to a reachable engine. */
+  RENDER_ENGINE_DOWNGRADED: 'RENDER_ENGINE_DOWNGRADED',
+  /** Preview rendered at a lower sample count than the profile asked for. */
+  RENDER_SAMPLES_REDUCED: 'RENDER_SAMPLES_REDUCED',
+  /** The compiler made a decision the author did not spell out (see notices). */
+  SCENE_COMPILER_DECISION: 'SCENE_COMPILER_DECISION',
+  /** A referenced asset is declared but its file has not been ingested yet. */
+  SCENE_ASSET_NOT_INGESTED: 'SCENE_ASSET_NOT_INGESTED',
+  /** An animation track targets a property whose keyframes were clamped or dropped. */
+  SCENE_ANIMATION_KEYFRAMES_ADJUSTED: 'SCENE_ANIMATION_KEYFRAMES_ADJUSTED',
 })
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
@@ -338,3 +428,58 @@ export function toCanonicalCapabilities(capabilities) {
     durationMs: capabilities.durationMs,
   }
 }
+
+// ---------------------------------------------------------------------------
+// M1 surface
+//
+// The M0 section above is frozen. Everything this milestone added lives in its
+// own module and is re-exported here, so every consumer keeps importing exactly
+// one package name (SPEC §5.1: contracts is the shared vocabulary) and the
+// dependency graph stays acyclic.
+// ---------------------------------------------------------------------------
+
+export {
+  canonicalStringify,
+  canonicalPretty,
+  sortValue,
+  sha256,
+  sha256Canonical,
+  shortDigest,
+} from './canonical.js'
+
+export {
+  SchemaDefinitionError,
+  compileSchema,
+  compileSchemaText,
+  formatIssues,
+} from './json-schema.js'
+
+export {
+  SCENE_ENGINES,
+  BLENDER_ENGINE_BY_KEY,
+  IMPORT_OPERATOR_BY_ASSET_TYPE,
+  validateSceneSpec,
+  compileSceneSpec,
+  sceneProjection,
+  sceneSpecDigest,
+  specHash,
+  summarizeSceneSpec,
+  sceneSpecCanonicalText,
+} from './scene-spec.js'
+
+export {
+  SCENE_OPERATION_NAMES,
+  validateScenePatch,
+  applyPatchToSpec,
+  buildOperationManifest,
+} from './scene-patch.js'
+
+export {
+  toCanonicalProjectSummary,
+  toCanonicalRevisionSummary,
+  toCanonicalPreviewArtifact,
+  toCanonicalPreviewResult,
+  toCanonicalQAReport,
+  toCanonicalJobRecord,
+  toCanonicalFailure,
+} from './projections.js'

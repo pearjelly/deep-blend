@@ -1,0 +1,1029 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deepblend.local/schemas/scene-patch.schema.json",
+  "title": "DeepBlend ScenePatch v1",
+  "description": "A structured modification intent against one project revision (SPEC §8.3). A patch is never free-form: it carries the revision it was computed against, so a stale call can never silently overwrite newer work (SPEC §8.5, §9.4), and an idempotency key so a retried call can never apply twice. The key is DERIVED from the project, base revision and operations when the caller omits it, which makes an accidental retry safe by default; supply one explicitly only to re-apply the same operations on purpose.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projectId",
+    "baseRevision",
+    "operations"
+  ],
+  "properties": {
+    "projectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "baseRevision": {
+      "type": "string",
+      "pattern": "^r[0-9]{4,}$",
+      "description": "The revision the caller read before computing this patch. A mismatch against currentRevision is rejected — no implicit overwrite."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Caller-chosen key identifying THIS logical intent. OPTIONAL: when omitted, one is derived from {projectId, baseRevision, actor, stage, operations}, so an identical retry returns the recorded outcome without re-applying anything, while a genuinely different patch still applies normally. Supply an explicit key only when you deliberately want the same operations to produce a new revision."
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    },
+    "saveCheckpoint": {
+      "type": "boolean",
+      "default": true,
+      "description": "Compile the patched spec and persist `<revision>/scene.blend` as the revision checkpoint. Required before a preview can be rendered from a checkpoint rather than a fresh compile (SPEC §9.1)."
+    },
+    "renderPreview": {
+      "type": "boolean",
+      "default": false,
+      "description": "Also render the preview profile as part of the same commit, so the first revision of a project already has a viewable artifact."
+    },
+    "actor": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Who asked for the change, for the audit trail: a session id, a stage name such as `visual_review`, or an operator."
+    },
+    "stage": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "Orchestrator stage that produced this patch (SPEC §12.1), recorded in operation-manifest.json."
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Human-readable rationale, stored in the operation manifest so a revision history reads as prose."
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "unitColor": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 4,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "positiveNumber": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nonNegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "transformPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "$ref": "#/$defs/vec3"
+        },
+        "rotationEuler": {
+          "$ref": "#/$defs/vec3"
+        },
+        "scale": {
+          "$ref": "#/$defs/vec3"
+        }
+      },
+      "description": "Only the supplied components change; the rest of the transform is preserved."
+    },
+    "materialParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseColor": {
+          "$ref": "#/$defs/unitColor"
+        },
+        "metallic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "roughness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ior": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 5
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "emissionColor": {
+          "$ref": "#/$defs/unitColor"
+        },
+        "emissionStrength": {
+          "$ref": "#/$defs/nonNegativeNumber"
+        },
+        "coatWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "transmissionWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape"
+      ],
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "cube",
+            "uv_sphere",
+            "cylinder",
+            "cone",
+            "plane",
+            "torus",
+            "rounded_box"
+          ]
+        },
+        "size": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "radius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "depth": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "segments": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 512
+        },
+        "ringCount": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 512
+        },
+        "majorRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "minorRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "bevel": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "width": {
+              "$ref": "#/$defs/positiveNumber"
+            },
+            "segments": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          }
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "asset-instance",
+            "generator",
+            "empty"
+          ]
+        },
+        "assetId": {
+          "type": "string"
+        },
+        "generator": {
+          "$ref": "#/$defs/generator"
+        },
+        "materialId": {
+          "type": "string"
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotationEuler": {
+              "$ref": "#/$defs/vec3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "area",
+            "point",
+            "spot",
+            "sun"
+          ]
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotationEuler": {
+              "$ref": "#/$defs/vec3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        "energy": {
+          "$ref": "#/$defs/nonNegativeNumber"
+        },
+        "color": {
+          "$ref": "#/$defs/unitColor"
+        },
+        "size": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "spotSize": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3.14159265358979
+        },
+        "spotBlend": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "angle": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3.14159265358979
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "lens": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sensorWidth": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "clipping": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/positiveNumber"
+          }
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotationEuler": {
+              "$ref": "#/$defs/vec3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        "targetEntityId": {
+          "type": "string"
+        },
+        "targetPoint": {
+          "$ref": "#/$defs/vec3"
+        },
+        "fStop": {
+          "$ref": "#/$defs/positiveNumber"
+        }
+      }
+    },
+    "animationTrack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "targetEntityId",
+        "property",
+        "keyframes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "targetEntityId": {
+          "type": "string"
+        },
+        "property": {
+          "type": "string",
+          "enum": [
+            "location.x",
+            "location.y",
+            "location.z",
+            "rotationEuler.x",
+            "rotationEuler.y",
+            "rotationEuler.z",
+            "scale.x",
+            "scale.y",
+            "scale.z"
+          ]
+        },
+        "keyframes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "frame",
+              "value"
+            ],
+            "properties": {
+              "frame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "value": {
+                "type": "number"
+              },
+              "interpolation": {
+                "type": "string",
+                "enum": [
+                  "constant",
+                  "linear",
+                  "bezier",
+                  "ease_in",
+                  "ease_out",
+                  "ease_in_out"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "renderProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "eevee",
+            "cycles",
+            "workbench"
+          ]
+        },
+        "resolution": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 16384
+          }
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "filmTransparent": {
+          "type": "boolean"
+        },
+        "colorManagement": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "viewTransform": {
+              "type": "string",
+              "enum": [
+                "Standard",
+                "AgX",
+                "Filmic",
+                "False Color",
+                "Raw"
+              ]
+            },
+            "look": {
+              "type": "string"
+            },
+            "exposure": {
+              "type": "number",
+              "minimum": -10,
+              "maximum": 10
+            }
+          }
+        },
+        "maxSamplesBudget": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "operation": {
+      "title": "ScenePatch operation",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.transform.update"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "location": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotationEuler": {
+              "$ref": "#/$defs/vec3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId",
+            "visible"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.visibility.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entity"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.add"
+            },
+            "entity": {
+              "$ref": "#/$defs/entity"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.remove"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId",
+            "materialId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.material.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "materialId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "material"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "material.add"
+            },
+            "material": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "shader"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/id"
+                },
+                "shader": {
+                  "type": "string",
+                  "enum": [
+                    "principled",
+                    "emission",
+                    "glass"
+                  ]
+                },
+                "parameters": {
+                  "$ref": "#/$defs/materialParameters"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "materialId",
+            "parameter",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "material.parameter.update"
+            },
+            "materialId": {
+              "$ref": "#/$defs/id"
+            },
+            "parameter": {
+              "type": "string",
+              "enum": [
+                "baseColor",
+                "metallic",
+                "roughness",
+                "ior",
+                "alpha",
+                "emissionColor",
+                "emissionStrength",
+                "coatWeight",
+                "transmissionWeight"
+              ]
+            },
+            "value": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/unitColor"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "light"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "light.add"
+            },
+            "light": {
+              "$ref": "#/$defs/light"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "lightId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "light.update"
+            },
+            "lightId": {
+              "$ref": "#/$defs/id"
+            },
+            "transform": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "location": {
+                  "$ref": "#/$defs/vec3"
+                },
+                "rotationEuler": {
+                  "$ref": "#/$defs/vec3"
+                },
+                "scale": {
+                  "$ref": "#/$defs/vec3"
+                }
+              }
+            },
+            "energy": {
+              "$ref": "#/$defs/nonNegativeNumber"
+            },
+            "color": {
+              "$ref": "#/$defs/unitColor"
+            },
+            "size": {
+              "$ref": "#/$defs/positiveNumber"
+            },
+            "spotSize": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 3.14159265358979
+            },
+            "spotBlend": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "angle": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 3.14159265358979
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "lightId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "light.remove"
+            },
+            "lightId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "camera"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "camera.add"
+            },
+            "camera": {
+              "$ref": "#/$defs/camera"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "cameraId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "camera.update"
+            },
+            "cameraId": {
+              "$ref": "#/$defs/id"
+            },
+            "lens": {
+              "$ref": "#/$defs/positiveNumber"
+            },
+            "sensorWidth": {
+              "$ref": "#/$defs/positiveNumber"
+            },
+            "clipping": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "$ref": "#/$defs/positiveNumber"
+              }
+            },
+            "transform": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "location": {
+                  "$ref": "#/$defs/vec3"
+                },
+                "rotationEuler": {
+                  "$ref": "#/$defs/vec3"
+                },
+                "scale": {
+                  "$ref": "#/$defs/vec3"
+                }
+              }
+            },
+            "targetEntityId": {
+              "type": "string"
+            },
+            "targetPoint": {
+              "$ref": "#/$defs/vec3"
+            },
+            "fStop": {
+              "$ref": "#/$defs/positiveNumber"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "cameraId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "camera.remove"
+            },
+            "cameraId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "track"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "animation.track.set"
+            },
+            "track": {
+              "$ref": "#/$defs/animationTrack"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "trackId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "animation.track.remove"
+            },
+            "trackId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "shot"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "shot.set"
+            },
+            "shot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "cameraId"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/id"
+                },
+                "cameraId": {
+                  "type": "string"
+                },
+                "frameRange": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "shotId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "shot.remove"
+            },
+            "shotId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "frameStart",
+            "frameEnd"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "project.frameRange.set"
+            },
+            "frameStart": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frameEnd": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fps": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 240
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "profileName",
+            "profile"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "render.profile.set"
+            },
+            "profileName": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "final"
+              ]
+            },
+            "profile": {
+              "$ref": "#/$defs/renderProfile"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
