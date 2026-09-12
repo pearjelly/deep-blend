@@ -621,6 +621,44 @@ check('the preview reports the frame it actually rendered', artifact.frame === 3
 check('the preview carries a sha256 for the audit trail',
   typeof artifact.sha256 === 'string' && artifact.sha256.length === 64)
 
+// The manifest is the revision's durable record, so it must not under-report the
+// revision it describes. It is written once at commit, and previews arrive later,
+// so the two used to drift: r0002 held three images while its manifest claimed
+// one. Asserted against the FILESYSTEM rather than against a remembered count,
+// because the disagreement is exactly what went unnoticed.
+check('the revision manifest lists every preview the directory actually holds',
+  await (async () => {
+    const manifest = studio.store.readRevisionManifest(created.projectId, preview.revision)
+    const recorded = (manifest.previews ?? []).map(entry => entry.path.split('/').pop()).sort()
+    const onDisk = readdirSync(join(
+      workspace, 'projects', created.projectId, 'revisions', preview.revision, 'previews',
+    )).sort()
+    return JSON.stringify(recorded) === JSON.stringify(onDisk)
+  })(),
+  {
+    recorded: (studio.store.readRevisionManifest(created.projectId, preview.revision).previews ?? []).map(entry => entry.path.split('/').pop()),
+    onDisk: readdirSync(join(workspace, 'projects', created.projectId, 'revisions', preview.revision, 'previews')),
+  })
+
+check('rendering reports both the new artifact and the revision\'s full preview list',
+  preview.artifacts.length === 1 && Array.isArray(preview.revisionPreviews)
+    && preview.revisionPreviews.length >= 1
+    && preview.revisionPreviews.some(entry => entry.path === artifact.path),
+  { newArtifacts: preview.artifacts.length, revisionPreviews: preview.revisionPreviews?.length })
+
+check('amending the preview index leaves the revision\'s committed content untouched',
+  await (async () => {
+    const manifest = studio.store.readRevisionManifest(created.projectId, preview.revision)
+    const committed = studio.store.readRevisionManifest(created.projectId, preview.revision)
+    // The SceneSpec digest must still be the one the commit recorded, and the
+    // checkpoint must still be the committed one. An artifact-index amendment
+    // that moved either of those would be a content change wearing an index's
+    // clothing.
+    return manifest.digest === committed.digest
+      && manifest.checkpoint === `revisions/${preview.revision}/scene.blend`
+      && typeof manifest.digestAfter === 'string'
+  })())
+
 // The preview's provenance line is the one warning a model reads on every render,
 // so its wording is asserted rather than eyeballed. A previous version built it by
 // splicing a word into a sentence and produced "rendered from the

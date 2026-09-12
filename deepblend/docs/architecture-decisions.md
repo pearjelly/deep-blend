@@ -27,6 +27,7 @@
 | D25 | 场景颜色管理**行为赋值**，不查枚举 | 实测：`view_transform` 枚举只报 `['NONE']` |
 | D26 | M1 只注册能兑现的工具 | SPEC §11.1；模型看到的工具就是承诺 |
 | D27 | **给模型读的文本也要被断言** | 重启后渲染实测：「revisioncheckpoint」拼接缺陷逃过全部结构化断言 |
+| D28 | Revision 的**产物索引**可只追加修正，内容不可变 | 实测：manifest 记 1 个 preview，磁盘有 3 个 |
 
 ---
 
@@ -255,6 +256,26 @@ preview rendered from the revisioncheckpoint, frame 68, 640x360, engine CYCLES
 **理由**：模型是按文本行动的，而文本是唯一**没有类型**的产物——结构字段错了会被 schema
 抓住，散文错了只能靠人读到。这类缺陷的发现成本最高、修复成本最低，所以用一条廉价的断言
 把它挡住是明显划算的。修复后断言「文案含 `revision r0003` 且**不含** `revisioncheckpoint`」。
+
+### D28 — 产物索引可修正，revision 内容不可变
+
+**决策**：`revision-manifest.json` 的 `previews` 字段可以被后续渲染**只追加**地修正；
+SceneSpec、checkpoint、校验报告与所有 digest 字段永不改动。
+
+**触发事实**：在真实会话里读项目时，r0002 的 manifest 记 1 个 preview，而磁盘上有 3 个。
+manifest 在提交时写一次，预览是之后按需渲染的——渲染刻意不创建 revision（预览是**观察**，
+不是修改），于是索引与目录分叉。
+
+**理由**：需要区分 revision 的两种内容——
+
+| 类别 | 例子 | 可变性 |
+|---|---|---|
+| **决定**（decided） | SceneSpec、checkpoint、validation、digest | 永不可变；这就是"不可变 revision"的含义 |
+| **产物索引**（emitted） | previews 清单 | 只追加；描述的是"这个 revision 产出过什么" |
+
+把两者混为一谈会产生一个更糟的结果：**一份少报自己的记录**。manifest 是持久化、进交付包、
+且被模型读取的那份；模型据此判断产物时会得到错误答案且无从察觉。因此修正索引比保持
+"文件写完就不再碰"的形式纯洁更重要——但修正必须**只**触及索引，否则"不可变"就失去了意义。
 
 ---
 

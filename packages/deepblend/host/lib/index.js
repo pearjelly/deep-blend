@@ -567,6 +567,25 @@ export default class BlenderStudio extends Service {
         sha256: fileSha256(finalPath),
         mime: 'image/png',
       }
+
+      // Record the new artifact in the revision's own manifest.
+      //
+      // Without this the manifest under-reports its own revision: it is written
+      // once at commit time, so every preview rendered LATER left the
+      // `previews` array listing only the ones that existed then. That made the
+      // audit record disagree with the directory it describes — a caller asking
+      // "what previews does r0002 have?" got one answer from the manifest and
+      // three from the filesystem, and the manifest is the one that gets
+      // persisted, copied into a delivery bundle, and read by the model.
+      //
+      // This is the one WRITE that may touch a published revision, and it is
+      // deliberately an append-only amendment of the artifact index rather than a
+      // change to the revision's content: the SceneSpec, the checkpoint, the
+      // validation report and the manifest's identity/digest fields are all left
+      // exactly as committed. A preview is produced BY a revision and is not part
+      // of what that revision decided, which is why rendering does not create a
+      // revision and why this amendment is not one either.
+      const previews = this.store.recordRevisionPreview(projectId, revision, artifact)
       // What the caller is actually looking at. A preview is the one result whose
       // value depends on facts the numbers do not carry — which checkpoint it came
       // from, which frame, which engine — so all three are stated rather than
@@ -617,7 +636,13 @@ export default class BlenderStudio extends Service {
           samples: artifact.samples,
           filmTransparent: profile.filmTransparent === true,
         },
+        // The artifact just rendered, and — separately — every preview this
+        // revision now has. Both are reported because a caller asking "what did I
+        // just make?" and a caller asking "what does this revision have?" are
+        // different questions, and conflating them is how the manifest drifted in
+        // the first place.
         artifacts: [artifact],
+        revisionPreviews: previews,
         warnings,
         job: toCanonicalJobRecord(job),
       }

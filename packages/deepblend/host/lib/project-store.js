@@ -292,6 +292,47 @@ export class ProjectStore {
   }
 
   /**
+   * Append one preview artifact to a revision's manifest, returning the
+   * revision's complete preview list.
+   *
+   * WHY A PUBLISHED REVISION IS WRITABLE HERE, AND ONLY HERE
+   * -------------------------------------------------------
+   * A revision is immutable in everything it DECIDED: its SceneSpec, its
+   * checkpoint, its validation report, its digests. `revision-manifest.json` is
+   * written once at commit for exactly that reason.
+   *
+   * But the manifest also INDEXES the revision's artifacts, and previews are
+   * produced on demand after the commit — rendering deliberately creates no
+   * revision, because a preview observes a scene rather than changing it. So the
+   * index and the directory drifted apart: a revision holding three rendered
+   * images still claimed one. The manifest is the copy that gets persisted, put
+   * into a delivery bundle and read by the model, and a record that under-reports
+   * itself is worse than no record, because it is trusted.
+   *
+   * This is therefore an append-only amendment of the artifact index. It touches
+   * only `previews`; every other field is carried over byte-for-byte and nothing
+   * else on disk is rewritten. The single {@link writeJsonAtomic} means a reader
+   * sees the old list or the new one, never a half-written manifest.
+   *
+   * @param {string} projectId
+   * @param {string} revision
+   * @param {object} artifact
+   * @returns {object[]} the revision's previews, in render order.
+   */
+  recordRevisionPreview(projectId, revision, artifact) {
+    const path = join(this.revisionDirectory(projectId, revision), 'revision-manifest.json')
+    const manifest = readJson(path)
+    if (manifest === null) {
+      // A revision directory with no manifest did not finish publishing, so there
+      // is nothing to amend and nothing safe to write into it.
+      return [artifact]
+    }
+    const previews = [...(manifest.previews ?? []).filter(entry => entry.path !== artifact.path), artifact]
+    writeJsonAtomic(path, { ...manifest, previews })
+    return previews
+  }
+
+  /**
    * The newest revision at or before `revision` that has a `.blend` checkpoint.
    *
    * A preview must render the scene the caller asked for. Compiling a revision

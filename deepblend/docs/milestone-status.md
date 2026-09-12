@@ -78,17 +78,17 @@ deepblend_validate.py      技术校验（depsgraph、取景、退化几何）
 
 ---
 
-## 4. 测试：640 项断言全部通过
+## 4. 测试：643 项断言全部通过
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
 | 单元 + 契约 | 9 个 `*.test.mjs` | **495** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
-| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 68/68 |
+| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 71/71 |
 | Host composition 激活 | `composition/activation.e2e.mjs` | 11/11 |
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面（全部 7 个工具） | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
-| **合计** | 13 个文件、6 个套件 | **640** |
+| **合计** | 13 个文件、6 个套件 | **643** |
 
 单元 + 契约的 495 项分布：
 
@@ -254,6 +254,25 @@ preview rendered from the revisioncheckpoint, frame 68, 640x360, engine CYCLES
 这条缺陷值得单独记一笔，因为它是本轮唯一一个"只有人读到才会发现"的类别：
 **给人（或模型）看的文本也需要被断言**，否则它永远不会被测试覆盖。
 
+### 5.10 第 10 个缺陷：revision manifest 少报自己的产物
+
+在 `deepblend-dev` 会话里读 `watch-commercial` 时，工具的 revision 历史显示 r0002 有
+**1 个 preview**，而磁盘上是 **3 个**。原因是 `revision-manifest.json` 在提交时写一次，
+而预览是**之后**按需渲染的——渲染刻意不创建 revision（预览是观察，不是修改），于是索引与
+目录从此分叉。
+
+**为什么这次特别值得修**：manifest 是持久化、进交付包、且**被模型读取**的那份记录。
+一份少报自己的记录比没有记录更糟，因为它会被信任。模型据此判断"这个 revision 有哪些产物"
+时会得到错误答案，而它没有任何办法察觉。
+
+**修法**：`recordRevisionPreview()` 对已发布 revision 做**只追加的产物索引修正**——只动
+`previews`，其余字段逐字节保留，单次原子写。revision 在其**决定**的内容上仍然不可变
+（SceneSpec / checkpoint / 校验报告 / digest 全部不动）。同时 `renderPreview` 返回里
+分开给出"本次新增的 artifact"与"该 revision 现有的全部 preview"，因为这是两个不同问题，
+把它们混为一谈正是分叉的起因。
+
+回归测试直接**对着文件系统**断言，而不是对着记下来的数量——分叉本身才是当初没被发现的原因。
+
 ---
 
 ## 9. 用户需要做的一件事
@@ -283,7 +302,7 @@ cd /Users/hxb/workspace/deep-blend && dsh web
 3. 浏览器打开 `http://127.0.0.1:3080/deepblend/capabilities` 应仍返回设置卡 JSON。
 
 真机验证的**等价替代**（无需重启，已在本轮执行）：`deepblend/tests/run-all.sh`
-的 640 项断言中，`tool-plane-m1.e2e.mjs` 的 41 项正是通过**真实 `defineTool` 定义**
+的 643 项断言中，`tool-plane-m1.e2e.mjs` 的 41 项正是通过**真实 `defineTool` 定义**
 调用全部 7 个工具完成的。
 
 ---
