@@ -253,42 +253,59 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 
 | # | 问题 | 影响 | 处置 |
 |---|---|---|---|
-| 1 | **本进程运行的是 M1 代码** | 当前 GUI 会话内看不到 3 个 M2 工具与新服务方法 | 属进程级变更，重启后生效（见 §9） |
+| 1 | ~~本进程运行的是 M1 代码~~ | — | ✅ **已解决**：profile 于 `2026-09-12 23:04:11` 重启，M2 方法面在真实进程内实测存在（见 §9） |
 | 2 | 审查一次的实测成本 | 约 11 000 推理 token + 1 000 输出 token；一个 5 轮循环是 5 次调用 | 视觉 token 本身很便宜（sheet 369）；真钱花在推理上。若成本敏感，降 `visualReviewMaxTokens` 会**首先**牺牲审查质量 |
 | 3 | 4 视角之外的视角不可表达 | 计划只从声明了 role 的相机里取 | 有意为之：未声明的视角无法跨轮比较，也无法在 restore 后复现 |
 | 4 | 射线投射按 stride 采样 | 主体很大时可见比例是估计值 | 上限 4000 次/对象/视角；阈值之间相隔 15 个百分点，估计误差远小于判定间距 |
 | 5 | 磁盘仅余约 13 GiB | 帧序列渲染空间不足 | **M3 前必须规划**（Q1）。M2 的产物很小：一次 review 约 4×150 KB + 一张 sheet 约 380 KB |
 | 6 | 未安装 pnpm | `dsh plugin --profile add` 不可用 | 符号链接装配已验证可用 |
 | 7 | bundle 内路径是字面量绝对路径 | 换机器需改 bundle | 同 M0；M5 可改为 Profile 生成 |
-| 8 | 未在真实会话中人工确认 10 个工具的清单 | SPEC §19.4 第 3 条 | 重启后需人工确认（见 §9） |
+| 8 | 未在**本会话**看到 10 个工具 | 本会话是 `cordis` 模式，preset 作用域的工具不在它的目录里 | 不是故障：换到 DeepBlend 开发模式即可见。已在 §9 记下这个容易误读的点 |
 
 ---
 
-## 9. 用户需要做的一件事
+## 9. 工具清单确认（**已完成**）
 
-M2 是**进程级**变更，需要重启 profile 才生效：
+profile 已于 `2026-09-12 23:04:11` 重启（`dsh web`，PID 60062），**晚于** M2 提交
+（`b0d4bb0`，22:35），因此在**真实进程内**复核如下：
 
-```bash
-cd /Users/hxb/workspace/deep-blend && dsh web
+| 检查 | 结果 | 证据来源 |
+|---|---|---|
+| 运行中的 `blenderStudio` 是否含 M2 方法 | ✅ `renderViews` / `visualReview` / `visualLoop` / `scoreVisualViews` / `createVisualReviewer` / `readSheetPng` 全部存在 | 动态 Cordis 插件在真实进程内读方法面 |
+| profile 是否接受 M2 配置 | ✅ `maxVisualIterations: 5`、`minVisualConfidenceForAutoFix: 0.8`、`stopOnRepeatedIssueCount: 2`、`visualReviewProvider: deepseek-official`、`visualReviewModel: deepseek-flash`、`visualReviewMaxTokens: 24000`、四视角 `visualReviewViews` | `dsh --profile web --dump-config` |
+| `deepblend-dev` preset 是否真实挂载 | ✅ `standingKeyFor('deepblend-dev')` 无错误返回 | 动态 Cordis 插件在真实进程内调用 |
+| 工具行是否激活且未破裂 | ✅ `fiberState: 2`、`broken: null`；roster 5 项，`deepblend-dev` 为唯一 user trust | `compositionInventory()` + `agentPresets.list()` |
+| 注册出的工具是否恰好 10 个 | ✅ 见下 | `tool-plane-m2.e2e.mjs` 29/29 + 一次性清点 |
+
+```
+blender_capabilities      blender_project_create   blender_project_get
+blender_scene_get         blender_scene_patch      blender_preview_render
+blender_scene_validate    blender_preview_views    blender_visual_review
+blender_visual_autofix
 ```
 
-重启后请确认：
+**一个容易误读的地方，记下来避免下次浪费时间**：本会话是 `cordis` 模式，
+preset 作用域内注册的工具**不在**它的工具目录里——`Tool.listTools` 在本会话只会看到
+`cordis` 自己的工具。因此「在这里看不到 `blender_*` 工具」**不是**故障；
+把会话换成 **DeepBlend 开发模式**才会看到那 10 个。这一点已被实测：本会话动态注册
+一个工具后，其目录长度就是 1。
 
-1. 新建一个选择 **DeepBlend 开发模式** 的会话，工具清单应为 **10 个**：
-   M1 的 7 个 + `blender_preview_views`、`blender_visual_review`、`blender_visual_autofix`；
-2. 对一个已存在的项目跑一次 `blender_visual_review`：**工具结果里应当带图**，
-   并且文字里同时给出 `Measured issues:` 与 `What the vision model reported seeing:`；
+仍需人工过一眼的三件事（这一条无法由测试代替）：
+
+1. 新建 **DeepBlend 开发模式** 会话，确认清单是上面那 **10 个**；
+2. 对已存在的项目跑一次 `blender_visual_review`：**工具结果里应当带图**，
+   且文字里同时出现 `Measured issues:` 与 `What the vision model reported seeing:`；
 3. 浏览器打开 `http://127.0.0.1:3080/deepblend/capabilities` 应仍返回设置卡 JSON。
 
-**无需重启的等价验证**（本轮已执行）：`bash deepblend/tests/run-all.sh` 的 717 项断言，
-其中 `tool-plane-m2.e2e.mjs` 的 29 项正是通过**真实 `defineTool` 定义**调用全部 10 个工具完成的，
-而 `e2e/visual-live.e2e.mjs` 的 14 项是**真实模型调用**。
+**无需人工的等价验证**：`bash deepblend/tests/run-all.sh` 的 717 项断言，其中
+`tool-plane-m2.e2e.mjs` 的 29 项通过**真实 `defineTool` 定义**调用全部 10 个工具，
+`e2e/visual-live.e2e.mjs` 的 14 项是**真实模型调用**。
 
 ---
 
 ## 10. M3 前置条件
 
-1. 完成 §9 的重启与人工确认；
+1. §9 的第 1–3 条人工过目（工具已在真实进程内确认挂载，只差人眼一瞥）；
 2. 对 Q1（帧序列/预览存储位置）做出规划——M3 的帧序列会显著增加产物体积；
 3. 决定 Q6（是否评估 `deepseek-v4-flash-vision-exp` 作为审查模型）；
 4. 确认 `blender_job_status` / `blender_job_cancel` 的 Host 服务形态（持久化 Job Store）。
