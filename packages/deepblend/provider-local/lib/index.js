@@ -28,6 +28,7 @@ import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
 import {
+  BLENDER_ENGINE_BY_KEY,
   BLENDER_PROTOCOL_VERSION,
   BlenderError,
   BlenderErrorCode,
@@ -303,7 +304,16 @@ export default class LocalBlenderRuntime extends Service {
    * would be fragile. stdout/stderr are captured only for diagnostics.
    *
    * @param {import('@deepblend/dsh-blender-contracts').BlenderBootstrapRequest} request
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{
+   *   signal?: AbortSignal,
+   *   args?: string[],
+   *   cwd?: string,
+   *   projectRoot?: string,
+   *   onWorkingDirectory?: (info: {
+   *     directory: string, jobId: string, envelope: object,
+   *     requestPath: string, resultPath: string,
+   *   }) => void|Promise<void>,
+   * }} [options]
    * @returns {Promise<BootstrapRunOutcome>}
    */
   async runBootstrap(request, options = {}) {
@@ -355,6 +365,7 @@ export default class LocalBlenderRuntime extends Service {
       requestPath,
       '--result',
       resultPath,
+      ...(options.args ?? []),
     ]
 
     // Compose the caller's signal with our own deadline so either can terminate
@@ -370,7 +381,7 @@ export default class LocalBlenderRuntime extends Service {
     try {
       handle = this.ctx.subprocess.spawn({
         argv,
-        cwd: directory,
+        cwd: options.cwd ?? directory,
         stdio: {
           stdin: 'ignore',
           stdout: { maxBytes: this.config.maxOutputBytes, spill: { maxBytes: this.config.maxSpillBytes } },
@@ -488,6 +499,15 @@ export default class LocalBlenderRuntime extends Service {
     // its own renders in a private temp dir, and the request/result documents
     // are already parsed into memory. Retaining them would make every tool call
     // accumulate residue in the workspace.
+    //
+    // An action that produced real artifacts — a compiled `.blend`, a rendered
+    // frame — needs the opposite: the caller must be able to move those bytes
+    // somewhere durable BEFORE the directory is removed. `onWorkingDirectory` is
+    // that window, and it is awaited so a slow move cannot race the cleanup.
+    if (typeof options.onWorkingDirectory === 'function') {
+      await options.onWorkingDirectory({ directory, jobId, envelope, requestPath, resultPath })
+    }
+
     this._cleanup(directory)
 
     return { envelope, stdout, stderr, exitCode: outcome?.exitCode ?? null, durationMs, workingDirectory: directory }
@@ -623,6 +643,165 @@ export default class LocalBlenderRuntime extends Service {
    */
   invalidateCapabilities() {
     this._capabilitiesCache.clear()
+  }
+
+  // ---------------------------------------------------------------------------
+  // M1: batch scene actions
+  //
+  // Both of these are thin, honest transports. They compose an argv, run one
+  // bootstrap action, and return what Bootstrap.py measured — no business logic,
+  // no revision state, no retries. Orchestration belongs to `blenderStudio`
+  // (SPEC §7.1: "负责具体 Blender 执行，不包含业务状态机").
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Compile a SceneSpec into a `.blend` checkpoint and technically validate it.
+   *
+   * Nothing is published: the checkpoint is written to the caller's working
+   * directory, and `onWorkingDirectory` is the caller's chance to move it into a
+   * revision before the directory is cleaned up. That split is what lets a
+   * compile failure leave no trace anywhere in the project.
+   *
+   * @param {object} request
+   * @param {string} request.sceneSpecPath - absolute path to the SceneSpec JSON.
+   * @param {(info: {directory: string, envelope: object, jobId: string}) => void|Promise<void>} request.onWorkingDirectory
+   * @param {string} [request.profile]
+   * @param {string} [request.projectRoot]
+   * @param {string} [request.jobId]
+   * @param {AbortSignal} [request.signal]
+   * @returns {Promise<{report: object, envelope: object, durationMs: number, stdout: string, stderr: string}>}
+   */
+  async compileScene(request) {
+    const outputBlend = 'result.blend'
+    if (typeof request?.sceneSpecPath !== 'string' || request.sceneSpecPath.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.SCENE_SPEC_INVALID,
+        'compileScene needs an absolute path to a SceneSpec document.',
+      )
+    }
+
+    const args = ['--scene-spec', request.sceneSpecPath, '--output-blend', outputBlend]
+    if (request.profile !== undefined) args.push('--profile', String(request.profile))
+    if (request.projectRoot !== undefined) args.push('--project-root', request.projectRoot)
+
+    const run = await this.runBootstrap(
+      { action: 'compile_scene', jobId: request.jobId },
+      {
+        signal: request.signal,
+        args,
+        projectRoot: request.projectRoot,
+        onWorkingDirectory: request.onWorkingDirectory,
+      },
+    )
+
+    const report = run.envelope.result ?? {}
+    return {
+      report,
+      envelope: run.envelope,
+      durationMs: run.durationMs,
+      stdout: run.stdout,
+      stderr: run.stderr,
+    }
+  }
+
+  /**
+   * Render one preview frame from an existing `.blend` checkpoint.
+   *
+   * @param {object} request
+   * @param {string} request.checkpointPath - absolute path to the `.blend`.
+   * @param {string} request.outputPath - absolute path for the PNG.
+   * @param {string} [request.cameraId]
+   * @param {string} [request.engine] - SceneSpec engine key (`cycles`/`eevee`/`workbench`).
+   * @param {number} [request.width]
+   * @param {number} [request.height]
+   * @param {number} [request.samples]
+   * @param {number} [request.frame]
+   * @param {string} [request.jobId]
+   * @param {AbortSignal} [request.signal]
+   * @returns {Promise<{report: object, envelope: object, durationMs: number, stdout: string, stderr: string}>}
+   */
+  async renderPreview(request) {
+    if (typeof request?.checkpointPath !== 'string' || request.checkpointPath.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
+        'renderPreview needs an absolute path to a .blend checkpoint.',
+      )
+    }
+    if (typeof request?.outputPath !== 'string' || request.outputPath.length === 0) {
+      throw new BlenderError(BlenderErrorCode.RENDER_NO_OUTPUT, 'renderPreview needs an absolute output path.')
+    }
+
+    const args = ['--blend', request.checkpointPath, '--output', request.outputPath]
+    if (request.cameraId !== undefined) args.push('--camera', String(request.cameraId))
+    if (request.engine !== undefined) args.push('--engine', String(request.engine))
+    if (request.width !== undefined) args.push('--width', String(request.width))
+    if (request.height !== undefined) args.push('--height', String(request.height))
+    if (request.samples !== undefined) args.push('--samples', String(request.samples))
+    if (request.frame !== undefined) args.push('--frame', String(request.frame))
+
+    const run = await this.runBootstrap(
+      { action: 'render_preview', jobId: request.jobId },
+      { signal: request.signal, args, onWorkingDirectory: request.onWorkingDirectory },
+    )
+
+    const report = run.envelope.result ?? {}
+    return {
+      report,
+      envelope: run.envelope,
+      durationMs: run.durationMs,
+      stdout: run.stdout,
+      stderr: run.stderr,
+    }
+  }
+
+  /**
+   * The Blender engine identifier that will actually be used for a SceneSpec
+   * engine key, plus a warning when it is not the requested one.
+   *
+   * Kept on the provider because engine availability is a property of the
+   * RUNTIME, not of the request (finding D1). The host asks this before it
+   * spends a render, so a downgrade is a recorded decision rather than a
+   * surprise in the artifact.
+   *
+   * @param {string} engineKey
+   * @param {{ signal?: AbortSignal }} [options]
+   * @returns {Promise<{ blenderEngine: string|null, requested: string|null, downgraded: boolean, warning: object|null }>}
+   */
+  async resolveEngineKey(engineKey, options = {}) {
+    const requested = BLENDER_ENGINE_BY_KEY[engineKey] ?? null
+    if (requested === null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_PROFILE_MISSING,
+        `"${engineKey}" is not a SceneSpec render engine; expected one of ${Object.keys(BLENDER_ENGINE_BY_KEY).join(', ')}.`,
+      )
+    }
+
+    const capabilities = await this.getCapabilities(options)
+    if (capabilities.installed !== true) {
+      return { blenderEngine: null, requested, downgraded: false, warning: null }
+    }
+    if (capabilities.renderEngines[requested]?.assignable === true) {
+      return { blenderEngine: requested, requested, downgraded: false, warning: null }
+    }
+    for (const candidate of CANDIDATE_RENDER_ENGINES) {
+      if (candidate === requested) continue
+      if (capabilities.renderEngines[candidate]?.assignable === true) {
+        return {
+          blenderEngine: candidate,
+          requested,
+          downgraded: true,
+          warning: warning(
+            BlenderWarningCode.ENGINE_DOWNGRADED,
+            `engine "${engineKey}" (${requested}) is not assignable in this Blender build; ${candidate} will be used instead`,
+            { requested, used: candidate },
+          ),
+        }
+      }
+    }
+    throw new BlenderError(
+      BlenderErrorCode.ENGINE_UNAVAILABLE,
+      `none of ${CANDIDATE_RENDER_ENGINES.join(', ')} is assignable in this Blender build.`,
+    )
   }
 
   /** Terminate nothing itself — `ctx.subprocess` owns its managed process range. */

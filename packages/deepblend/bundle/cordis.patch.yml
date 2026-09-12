@@ -84,8 +84,18 @@
     - id: deepblend-blender-host
       name: '@deepblend/dsh-blender-host'
       config:
+        # Project storage. One directory per project; revisions are immutable
+        # once published (SPEC §8.4).
         projectsRoot: /Users/hxb/workspace/deep-blend/.deepblend/projects
+        # MUST equal the runtime row's `workspaceRoot`. The host stages a revision
+        # inside the project and the provider writes its Blender output into a
+        # working directory under the same root; if the two disagreed, the path
+        # guard (SPEC §15.2) would reject the host's own staging path.
+        workspaceRoot: /Users/hxb/workspace/deep-blend/.deepblend
         serveCachedCapabilities: true
+        # Hard ceiling on preview cost, applied on top of the per-profile
+        # `maxSamplesBudget` (SPEC §15.4 render-cost threshold).
+        maxPreviewSamples: 512
 
     # Browser-facing host half. M0 serves the settings-card document; the Web
     # Client Slot half arrives in M4.

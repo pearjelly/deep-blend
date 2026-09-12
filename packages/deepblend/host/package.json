@@ -6,7 +6,18 @@
   "description": "DeepBlend Host service: the blenderStudio business facade over the BlenderRuntime seam.",
   "main": "lib/index.js",
   "exports": {
-    ".": { "default": "./lib/index.js" },
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./paths": {
+      "default": "./lib/paths.js"
+    },
+    "./project-store": {
+      "default": "./lib/project-store.js"
+    },
+    "./revision-transaction": {
+      "default": "./lib/revision-transaction.js"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
