@@ -127,12 +127,19 @@ try {
     'blender_scene_patch',
     'blender_scene_validate',
   ]
-  check('the preset plane registers exactly the M1 tool set',
-    JSON.stringify(names) === JSON.stringify(expected), names)
-
-  check('no M3+ tool is registered ahead of its host service',
+  // The M1 tools must all be PRESENT. "Exactly these seven" was the M1 assertion and
+  // it moved to `tool-plane-m2.e2e.mjs` the moment M2 added three more: a test that the
+  // catalog never grows would fail on every future milestone for the right reason and
+  // be deleted for the wrong one. What stays here is the part that is still M1's to
+  // assert — that these seven exist and are usable — plus the rule that outlives every
+  // milestone: nothing gets registered before its host service does.
+  check('the preset plane registers every M1 tool',
+    expected.every(name => names.includes(name)),
+    names.filter(name => !expected.includes(name)))
+  check('no M2 or M3+ tool is registered ahead of its host service or milestone',
     !names.includes('blender_final_render') && !names.includes('blender_export')
-      && !names.includes('blender_asset_ingest') && !names.includes('blender_job_status'),
+      && !names.includes('blender_asset_ingest') && !names.includes('blender_job_status')
+      && !names.includes('blender_job_cancel'),
     names.filter(name => !expected.includes(name)))
 
   for (const name of expected) {

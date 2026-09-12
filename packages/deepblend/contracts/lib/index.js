@@ -483,3 +483,64 @@ export {
   toCanonicalJobRecord,
   toCanonicalFailure,
 } from './projections.js'
+
+// ---------------------------------------------------------------------------
+// M2 surface
+//
+// The visual loop's vocabulary: how a render is measured into a score, what a
+// finding is, and how repeated findings are detected. Kept in its own module for
+// the same reason as the M1 block above.
+// ---------------------------------------------------------------------------
+
+export {
+  VISUAL_ISSUE_VERSION,
+  VISUAL_REVIEW_VERSION,
+  VISUAL_ISSUE_CATEGORIES,
+  VISUAL_SEVERITIES,
+  VISUAL_PASS_SCORE,
+  LUMINANCE_BUCKETS,
+  COVERAGE_BUCKETS,
+  CENTERING_BUCKETS,
+  quantise,
+  issueFingerprint,
+  scoreView,
+  scoreReview,
+  validateFindings,
+  seedFingerprintCounters,
+  shouldHandOver,
+  updateFingerprintCounters,
+} from './visual-issue.js'
+
+export {
+  decodePng,
+  encodePng,
+  createImage,
+  fillRect,
+  blendInto,
+} from './png.js'
+
+export {
+  GLYPH_WIDTH,
+  GLYPH_HEIGHT,
+  textWidth,
+  drawText,
+} from './bitmap-font.js'
+
+export {
+  CAPTION_BAND_COLOR,
+  composeContactSheet,
+  viewCaption,
+} from './contact-sheet.js'
+
+export {
+  runVisualLoop,
+} from './visual-loop.js'
+
+export {
+  VIEW_ROLES,
+  buildViewPlan,
+  trackedObjects,
+  resolveSubjectId,
+  buildVisualReview,
+  describeMeasurements,
+} from './visual-composition.js'

@@ -97,6 +97,41 @@
         # `maxSamplesBudget` (SPEC §15.4 render-cost threshold).
         maxPreviewSamples: 512
 
+        # ── M2: the visual loop ──────────────────────────────────────────────
+        # SPEC §17 groups these under `agent`; they belong to the HOST because the
+        # loop they bound is host-owned (decision D34): the model asks for a review,
+        # and the host renders, measures, decides what to adopt and when to stop.
+        #
+        # Iteration cap. The reason this is a cap rather than a budget is that the
+        # loop already stops when it stops helping; this is the backstop for "it
+        # keeps finding something new".
+        maxVisualIterations: 5
+        # Findings below this confidence are reported to the model but never
+        # auto-applied (SPEC §15.1 "低置信度问题不自动修复").
+        minVisualConfidenceForAutoFix: 0.8
+        # Consecutive rounds an unchanged finding may recur before the loop stops
+        # (SPEC §12.3 "同一问题两轮未改善则停止自动迭代").
+        stopOnRepeatedIssueCount: 2
+        # Vision reviewer route. Measured in the M2 probe: `deepseek-flash` accepts
+        # images (inputModalities ["text","image"]). The catalog also carries a
+        # text-only `deepseek-v4-flash`, which would silently omit the sheet.
+        visualReviewProvider: deepseek-official
+        visualReviewModel: deepseek-flash
+        # Token budget for one reviewer call. Measured: with the full reviewer prompt
+        # and a 2x2 sheet, this model spends ~11 000 tokens on reasoning BEFORE it emits
+        # any text, so a budget sized for the answer alone ends the stream with no text
+        # at all — which downstream looks exactly like "reviewed it, found nothing".
+        visualReviewMaxTokens: 24000
+        # Views in the standard plan, in reading order. Four is the measured
+        # balance: a 2x2 sheet survives the request pixel budget at roughly 1:1 per
+        # tile, while nine tiles fall below the source resolution and turn a partial
+        # occlusion into an invisible one (`runtime-audit.md` §7.2.3).
+        visualReviewViews:
+          - active-camera
+          - three-quarter
+          - top
+          - detail
+
     # Browser-facing host half. M0 serves the settings-card document; the Web
     # Client Slot half arrives in M4.
     - id: deepblend-blender-ui

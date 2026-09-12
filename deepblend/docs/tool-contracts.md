@@ -1,4 +1,4 @@
-# DeepBlend 工具契约（M1）
+# DeepBlend 工具契约（M0–M2）
 
 > 范围：模型可见工具的**实际**契约，取自 `packages/deepblend/tool/lib/` 与
 > `packages/deepblend/contracts/lib/`。
@@ -19,6 +19,9 @@
 | `blender_scene_patch` | M1 | 自动，受策略约束 | **写**（提交新 revision） |
 | `blender_preview_render` | M1 | 自动 | 读（写产物，不改场景） |
 | `blender_scene_validate` | M1 | 自动 | 读（可 dry-run patch） |
+| `blender_preview_views` | M2 | 自动 | 读（写产物，不改场景） |
+| `blender_visual_review` | M2 | 自动 | 读（**调用视觉模型**，不改场景） |
+| `blender_visual_autofix` | M2 | 自动，受策略约束 | **写**（提交新 revision；未提高则回退指针） |
 
 ### 1.1 刻意**未注册**的工具
 
@@ -26,11 +29,60 @@
 |---|---|---|
 | `blender_final_render` | Host 服务未实现 | M3 |
 | `blender_export` | Host 服务未实现 | M3 |
-| `blender_asset_ingest` | 资产导入与审批策略未实现 | M2/M5 |
+| `blender_asset_ingest` | 资产导入与审批策略未实现 | M5 |
 | `blender_job_status` / `blender_job_cancel` | 可取消的持久化 Job Store 未实现 | M3 |
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m1.e2e.mjs` 断言目录里恰好是上面这 7 个。
+**不注册**，而不是注册后抛错。`tool-plane-m2.e2e.mjs` 断言目录里恰好是上面这 **10** 个
+（M0/M1 的 7 个 + M2 的 3 个），`tool-plane-m1.e2e.mjs` 继续断言 M1 那 7 个各自的可兑现性。
+
+---
+
+## 1.2 M2 的三个工具
+
+### `blender_preview_views`
+
+一次 Blender 启动渲染「主相机 / 45 度 / 俯视 / 主体近景」四个视角，并对每个视角做
+**确定性测量**。不调用模型，因此没有 token 成本，是「看一眼」的廉价入口。
+
+* 视角来自 SceneSpec 的 `cameras[].role`（缺省回落声明顺序），**不合成临时变换**：
+  一个项目没声明的视角既无法被报告，也无法跨轮比较，更无法在 restore 后复现。
+* 测量项：每视角的 mean/p05/p95 显示亮度与裁剪比例；每个被跟踪对象的
+  silhouette 像素数、可见像素数、可见比例（遮挡）、画面占比、bbox、centroid。
+* 被跟踪对象 = **主体 + 体积最大的非 `environment` 实体**（最多 4 个）。
+  `environment` 被排除是测量决定而不是整洁习惯：房间的地板在主体背后覆盖同样的
+  屏幕像素，把它当遮挡物会让「椅子被它自己站的地板挡住」成立。
+* 返回 `score`（0–100），但没有判定，也没有模型意见。
+
+### `blender_visual_review`
+
+在上面基础上**把 contact sheet 交给视觉模型**，并把三件不同的事分开返回：
+
+| 字段 | 谁产出的 | 可否复现 |
+|---|---|---|
+| `score` | Host，从像素测量算出 | ✅ 纯函数 |
+| `issues` | Host，每条带触发它的数字 | ✅ |
+| `reported` | **模型**，它说自己在图上看到了什么 | ❌ 但可校验 |
+
+`reported` 里的每条 finding 都要通过校验：`viewId` 必须是本次 review 真实存在的视角，
+`category` 必须在闭集内，`evidence` 不能是空串。未通过的进 `rejected` 并附原因。
+**模型不能影响 `score`**（决策 D30）。
+
+工具结果里带 **image block**：sheet 先经 `attachments.saveImage` 落盘成引用，
+再由 `output.render` 作为 `{type:'image', attachment: ref}` 返回。字节永不进入 content。
+
+**审查器失败不会让整次 review 失败**：渲染、测量、sheet、分数都还在，只是少了第二意见，
+失败原因进 `reviewer.error` 与 warnings。
+
+### `blender_visual_autofix`
+
+Host 拥有的修复循环：渲染 → 测量 → 问模型 → 提交 patch → 重新渲染 → 重新测量 →
+**只在分数真的提高时采纳**。
+
+* 未提高则**回退指针**（revision 留在历史里，但项目不前进到一个更差的版本）。
+* 停止条件三条：分数达标、达到迭代上限（默认 5）、同一指纹连续未改善 2 次。
+* 停止而未达标时返回 **handover 包**：可继续工作的 revision、仍然存在的问题（带测量）、
+  已经试过且被拒绝的 revision、以及具体下一步。
 
 ---
 
@@ -305,9 +357,32 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 | 断言 | 位置 |
 |---|---|
-| 目录恰好是这 7 个工具，M3+ 一个都没有 | `composition/tool-plane-m1.e2e.mjs` |
+| 目录恰好是这 7 个 M0/M1 工具，M3+ 一个都没有 | `composition/tool-plane-m1.e2e.mjs` |
 | 每个工具都有可据以计划的描述与参数 Schema | 同上 |
 | 拒绝的 patch 是结果而非抛出，且带稳定 code | 同上 |
 | dry-run 能预测失败且不提交任何东西 | 同上 |
 | 重放被解释为 replay 而非错误 | 同上 |
 | 冲突文本明确告诉模型下一步做什么 | 同上 |
+| 目录恰好是这 **10** 个工具（M0+M1+M2） | `composition/tool-plane-m2.e2e.mjs` |
+| `blender_visual_review` 的 `render` 产出真正的 image block | 同上 |
+| 无图时不产出 `image: null` 块 | 同上 |
+| `blender_preview_views` 不花模型调用、不落附件 | 同上 |
+| 审查器缺失时 review 仍返回测量与 sheet，并带上原因 | 同上 |
+| 未配置审查器时 `blender_visual_autofix` 是编码失败而非抛出 | 同上 |
+| 四个视角的测量对照**已知几何**（居中对象量到 0.5，无遮挡量到 1.0） | `blender-integration/visual-loop.e2e.mjs` |
+| 同一 revision 两次渲染测得同一遮挡、同一分数 | 同上 |
+| 三个植入缺陷各被找到一次，且归到植入的那个视角 | 同上 |
+| 真实 patch 让分数从 82 升到 100 | 同上 |
+| 被拒 patch 记为拒绝轮次而不是崩溃；循环自行停止 | 同上 |
+| 一轮预算就是一次 review、一次 patch、一次重测 | 同上 |
+| 循环停在本轮之前 / 之后的审计记录完整 | 同上 |
+| 分数只在测量提高时才被采纳 | `contract/visual-loop.test.mjs` |
+| 迭代上限 5 与重复问题停止 | 同上 |
+| 指纹区间化：部分修好仍是同一个问题 | 同上 |
+| 模型 finding 的校验与丢弃 | 同上 |
+| handover 含干净 revision、开放问题与下一步 | 同上 |
+| **模型真的看见图**（逐字打印它的回答） | `e2e/visual-live.e2e.mjs` |
+| **模型识别出植入的遮挡** | 同上 |
+| **模型选择或改写的修复让分数提高** | 同上 |
+| 接触表每个格子装的确实是它声称的视角 | `contract/png-sheet.test.mjs` |
+| PNG 编解码无损（含 Adam7 与全部 5 种行滤波） | 同上 |

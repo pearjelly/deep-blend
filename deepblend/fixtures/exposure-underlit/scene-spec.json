@@ -1,0 +1,581 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "interior-exposure-underlit",
+    "title": "Interior room — exposure-underlit",
+    "goal": "The interior room with one planted defect (exposure: FRAME_UNDEREXPOSED) used to prove the visual loop can see and fix it. Derived from fixtures/interior-room by tools/make-visual-fixtures.mjs; the defect is described in defect.json beside this file.",
+    "units": "metric",
+    "fps": 30,
+    "frameStart": 1,
+    "frameEnd": 120,
+    "aspectRatio": "16:9",
+    "activeCamera": "camera-main"
+  },
+  "materials": [
+    {
+      "id": "floor-oak",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.32,
+          0.22,
+          0.14,
+          1
+        ],
+        "roughness": 0.55,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "wall-plaster",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.72,
+          0.71,
+          0.68,
+          1
+        ],
+        "roughness": 0.85,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "table-walnut",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.24,
+          0.14,
+          0.08,
+          1
+        ],
+        "roughness": 0.32,
+        "metallic": 0,
+        "coatWeight": 0.4
+      }
+    },
+    {
+      "id": "sofa-linen",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.46,
+          0.47,
+          0.52,
+          1
+        ],
+        "roughness": 0.9,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "screen-rattan",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.58,
+          0.44,
+          0.26,
+          1
+        ],
+        "roughness": 0.7,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "vase-ceramic",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.16,
+          0.26,
+          0.34,
+          1
+        ],
+        "roughness": 0.24,
+        "metallic": 0,
+        "coatWeight": 0.5
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 16
+      },
+      "materialId": "floor-oak",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment"
+      ]
+    },
+    {
+      "id": "back-wall",
+      "type": "generator",
+      "generator": {
+        "shape": "cube",
+        "size": 2
+      },
+      "materialId": "wall-plaster",
+      "transform": {
+        "location": [
+          0,
+          3.4,
+          1.4
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          4.5,
+          0.06,
+          1.4
+        ]
+      },
+      "tags": [
+        "environment"
+      ]
+    },
+    {
+      "id": "sofa-seat",
+      "type": "generator",
+      "generator": {
+        "shape": "rounded_box",
+        "size": 2,
+        "bevel": {
+          "width": 0.06,
+          "segments": 2
+        }
+      },
+      "materialId": "sofa-linen",
+      "transform": {
+        "location": [
+          1.25,
+          2.25,
+          0.32
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.62,
+          0.33,
+          0.16
+        ]
+      }
+    },
+    {
+      "id": "sofa-back",
+      "type": "generator",
+      "generator": {
+        "shape": "rounded_box",
+        "size": 2,
+        "bevel": {
+          "width": 0.06,
+          "segments": 2
+        }
+      },
+      "materialId": "sofa-linen",
+      "transform": {
+        "location": [
+          1.25,
+          2.85,
+          0.62
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.62,
+          0.1,
+          0.3
+        ]
+      }
+    },
+    {
+      "id": "coffee-table",
+      "type": "generator",
+      "generator": {
+        "shape": "rounded_box",
+        "size": 2,
+        "bevel": {
+          "width": 0.05,
+          "segments": 2
+        }
+      },
+      "materialId": "table-walnut",
+      "transform": {
+        "location": [
+          -0.35,
+          0.55,
+          0.4
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.55,
+          0.3,
+          0.045
+        ]
+      },
+      "tags": [
+        "hero-product"
+      ]
+    },
+    {
+      "id": "table-leg-l",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.03,
+        "depth": 0.78,
+        "segments": 24
+      },
+      "materialId": "table-walnut",
+      "transform": {
+        "location": [
+          -0.85,
+          0.55,
+          0.2
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "table-leg-r",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.03,
+        "depth": 0.78,
+        "segments": 24
+      },
+      "materialId": "table-walnut",
+      "transform": {
+        "location": [
+          0.15,
+          0.55,
+          0.2
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "vase",
+      "type": "generator",
+      "generator": {
+        "shape": "uv_sphere",
+        "radius": 0.11,
+        "segments": 40,
+        "ringCount": 20
+      },
+      "materialId": "vase-ceramic",
+      "transform": {
+        "location": [
+          -0.35,
+          0.55,
+          0.52
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1.35
+        ]
+      }
+    },
+    {
+      "id": "screen",
+      "type": "generator",
+      "generator": {
+        "shape": "rounded_box",
+        "size": 2,
+        "bevel": {
+          "width": 0.03,
+          "segments": 2
+        }
+      },
+      "materialId": "screen-rattan",
+      "transform": {
+        "location": [
+          -1.35,
+          -1.15,
+          0.82
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.045,
+          0.55,
+          0.82
+        ]
+      }
+    }
+  ],
+  "lights": [
+    {
+      "id": "window-key",
+      "type": "area",
+      "transform": {
+        "location": [
+          -3.4,
+          -2.6,
+          2.4
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 7.56,
+      "color": [
+        1,
+        0.96,
+        0.9,
+        1
+      ],
+      "size": 2.6
+    },
+    {
+      "id": "room-fill",
+      "type": "area",
+      "transform": {
+        "location": [
+          2.8,
+          -1.2,
+          1.8
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 2.88,
+      "color": [
+        0.86,
+        0.9,
+        1,
+        1
+      ],
+      "size": 3
+    }
+  ],
+  "cameras": [
+    {
+      "id": "camera-main",
+      "role": "active-camera",
+      "lens": 52,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          -0.35,
+          -2.9,
+          1.15
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetPoint": [
+        -0.35,
+        0.55,
+        0.45
+      ]
+    },
+    {
+      "id": "camera-3q",
+      "role": "three-quarter",
+      "lens": 46,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          1.3,
+          -2.2,
+          1.35
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetPoint": [
+        -0.35,
+        0.55,
+        0.45
+      ]
+    },
+    {
+      "id": "camera-top",
+      "role": "top",
+      "lens": 50,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          -0.35,
+          0.7,
+          3.1
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetPoint": [
+        -0.35,
+        0.55,
+        0.45
+      ]
+    },
+    {
+      "id": "camera-detail",
+      "role": "detail",
+      "lens": 66,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          -0.35,
+          -2.05,
+          1.02
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetPoint": [
+        -0.35,
+        0.55,
+        0.36
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-room",
+      "cameraId": "camera-main",
+      "frameRange": [
+        1,
+        120
+      ],
+      "description": "Slow dolly across the living room, holding the coffee table"
+    }
+  ],
+  "animationTracks": [],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        640,
+        360
+      ],
+      "samples": 32,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "Standard",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 128
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "samples": 256,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 1024
+    }
+  }
+}

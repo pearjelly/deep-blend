@@ -36,12 +36,17 @@ export const HOST_BUNDLE = '@deepblend/dsh-blender-bundle'
 /**
  * Resolve the studio service, or describe precisely why it is unavailable.
  *
+ * `attachments` comes back alongside it because a tool that returns an IMAGE has to
+ * persist it before the result is materialized (M2 decision D29: the reference is
+ * the value, the bytes never enter the transcript). It is optional — a deployment
+ * without an attachment store still gets every non-image tool.
+ *
  * @param {import('@deepseek-ai/cordis').Context} ctx
- * @returns {{ studio: any }|{ unavailable: { text: string, data: object } }}
+ * @returns {{ studio: any, attachments: any }|{ unavailable: { text: string, data: object } }}
  */
 export function resolveStudio(ctx) {
   const studio = ctx.get(STUDIO_SERVICE)
-  if (studio !== undefined) return { studio }
+  if (studio !== undefined) return { studio, attachments: ctx.get('attachments') }
   const error = new BlenderError(
     BlenderErrorCode.RUNTIME_UNAVAILABLE,
     'The DeepBlend host half is not composed in this process, so no Blender runtime is available. ' +
@@ -56,6 +61,46 @@ export function resolveStudio(ctx) {
         `message:   ${error.message}`,
       data: error.toJSON(),
     },
+  }
+}
+
+/**
+ * Persist a rendered PNG and shape the attachment reference for a tool result.
+ *
+ * MEASURED CONSTRAINTS THIS FUNCTION ENCODES (M2 probe, `runtime-audit.md` §7.2)
+ * -----------------------------------------------------------------------------
+ * 1. `saveImage` is async IO, so it MUST run here in `execute` — never in
+ *    `output.render`, which `defineTool` declares pure because a UI calls it during
+ *    live streaming AND during a session-log replay.
+ * 2. What goes into the canonical value is a REFERENCE (ids and dimensions), never
+ *    bytes: the result is snapshotted as lossless JSON, and a `Uint8Array` would
+ *    make the whole tool call fail.
+ *
+ * @param {any} attachments - the host attachment service, or undefined.
+ * @param {Buffer|Uint8Array} bytes
+ * @param {string} name
+ * @returns {Promise<{ image: object|null, note: string|null }>}
+ */
+export async function persistImage(attachments, bytes, name) {
+  if (attachments === undefined || typeof attachments.saveImage !== 'function') {
+    return {
+      image: null,
+      note:
+        'The rendered image could not be attached to this result because the host has no attachment store, ' +
+        'so the model cannot see it here. Its path is in the payload; read it with a file-read tool instead.',
+    }
+  }
+  const ref = await attachments.saveImage({ data: bytes, mediaType: 'image/png', name })
+  return {
+    image: {
+      attachmentId: String(ref.attachmentId),
+      mediaType: String(ref.mediaType),
+      bytes: Number(ref.bytes),
+      width: Number(ref.width),
+      height: Number(ref.height),
+      name: typeof ref.name === 'string' ? ref.name : name,
+    },
+    note: null,
   }
 }
 
@@ -136,6 +181,50 @@ export const TOOL_OUTPUT_SCHEMA = {
 export const TOOL_OUTPUT = {
   schema: TOOL_OUTPUT_SCHEMA,
   render: (_args, value) => [{ type: 'text', text: value.text }],
+}
+
+/**
+ * The output contract for a tool whose result carries an IMAGE.
+ *
+ * The `image` field is declared even though the validator does not strip undeclared
+ * keys (measured: `createSuccessResult` validates the value and rejects violations,
+ * it never drops fields). Declaring it is still worth it, because it makes the shape
+ * of an attachment reference checkable at call time instead of discoverable only by
+ * the model that receives it.
+ *
+ * `render` stays pure: it reads the reference out of the canonical value and emits an
+ * image block. That is what lets a cold transcript replay show the same image without
+ * re-rendering anything (M2 probe question 4).
+ */
+export const TOOL_OUTPUT_WITH_IMAGE = {
+  schema: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {
+      ok: { type: 'boolean', required: true },
+      text: { type: 'string', required: true },
+      data: { type: 'object', additionalProperties: true, required: true },
+      image: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          attachmentId: { type: 'string', required: true },
+          mediaType: { type: 'string', required: true },
+          bytes: { type: 'number', required: true },
+          width: { type: 'number', required: true },
+          height: { type: 'number', required: true },
+          name: { type: 'string' },
+        },
+      },
+    },
+  },
+  render: (_args, value) => {
+    const blocks = [{ type: 'text', text: value.text }]
+    if (value.image !== null && value.image !== undefined) {
+      blocks.push({ type: 'image', attachment: value.image })
+    }
+    return blocks
+  },
 }
 
 /**

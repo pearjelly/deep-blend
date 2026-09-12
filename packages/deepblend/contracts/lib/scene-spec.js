@@ -627,6 +627,7 @@ export function summarizeSceneSpec(spec, context = {}) {
       frameEnd: spec.project.frameEnd,
       aspectRatio: spec.project.aspectRatio,
       units: spec.project.units ?? 'metric',
+      activeCamera: spec.project.activeCamera ?? null,
     },
     counts: {
       assets: (spec.assets ?? []).length,
@@ -660,6 +661,7 @@ export function summarizeSceneSpec(spec, context = {}) {
     })),
     cameras: cameras.map(camera => ({
       id: camera.id,
+      role: camera.role ?? null,
       lens: camera.lens ?? 50,
       location: camera.transform.location.map(round4),
       rotationEuler: camera.transform.rotationEuler.map(round4),

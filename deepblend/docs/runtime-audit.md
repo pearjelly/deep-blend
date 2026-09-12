@@ -411,7 +411,7 @@ SPEC 的 P0 等级写「256×144、**Workbench**」。实测 `BLENDER_WORKBENCH`
 | D5 | DeepBlend 包放**工作区 monorepo + 符号链接进 profile** | §5.2 |
 | D6 | preset 经 `copy()` 创建，`standingKeyFor()` 验证 | §3.2 |
 | D7 | 大文件（`.blend`/帧序列/视频）**只传路径与 Hash**，不嵌入 Session | SPEC §13.1 |
-| D8 | M2 图片回传走 **`ctx.attachments.readImageRequest`**，而非自造路径传递 | §2.1 |
+| D8 | M2 图片回传**不必**绕道 `readImageRequest` 的用户消息路径：工具结果可直接携带 image block。`readImageRequest` 只用于**由 Host 自己发起**的模型调用（§7.2） | §7.2.1 |
 | D9 | 引擎可用性一律**行为判定**；`engineEnumItems` 仅作诊断，不得用于 gate | §6.2 |
 | D10 | 资产导入范围以**探测结果**为准（当前 glTF/GLB + FBX）；不得从 `hasattr` 推断 | §6.4 |
 
@@ -438,6 +438,155 @@ API 差异。它们都属于「版本号推不出来、只有运行才会说话�
 **还有一条与 TMPDIR 有关的**：Blender 退出时会清空自己的临时目录。把 `TMPDIR` 指向工作区
 下的目录会让 Blender 在退出时**删掉整个目录**，因此 DeepBlend 的 request/result 文件一律
 放在 `workspaceRoot` 下的自有目录里，不依赖 TMPDIR。
+
+## 7.2 M2 图片回传探针（**先做实验，再写设施**）
+
+M2 的全部形态都押在一个问题上：**工具产出的图片能否真正进入模型的下一轮请求**。
+如果答案是否定的，「模型看到预览 → 视觉审查 → 自动修复」这条链需要重新设计，
+而那时已经写好的 VisualIssue schema、评分器、迭代器全部要改。所以这一节先于任何 M2 代码。
+
+四项问题逐条回答，每条都给出**实测证据**而不是推断。
+
+### 7.2.1 问题一：工具结果能否携带图片，且不被剥掉？
+
+**能。** 实测的完整链路（真实 Blender 渲染产物，非合成图）：
+
+```
+frame22-camera-top.png  193660 字节  640x360  bitdepth 8  colortype 2 (RGB)
+  → attachments.saveImage({data, mediaType:'image/png'})
+  → { attachmentId: 'sha256:778ae443…', mediaType: 'image/jpeg',
+      width: 640, height: 360, bytes: 6210, name: 'probe-preview.png' }
+  → 作为 { type:'image', attachment: <ref> } 放进 ToolResultBlock.content
+```
+
+**注意归一化**：存进去是 193 660 字节的 PNG，读出来是 6 210 字节的 640×360 JPEG，
+`attachmentId` 是**归一化后字节**的 sha256（`sha256:778ae443…` 与
+`~/.dsh/attachments/v1/objects/77/778ae443…` 完全一致，6210 字节，磁盘实测）。
+
+**为什么必须在 `execute` 里保存**：读源码确认了结果被物化**两次**——
+`materializeFinalResult(result)` 与
+`materializeFinalResult(applyFinalContent(exec, materializedResult))`——
+而 `output.render` 被 `defineTool` 声明为 **pure**（「a UI may call it during live
+streaming AND a session-log replay」）。所以 `saveImage` 这种 async IO 只能放 `execute`，
+`render` 只做同步的内容变换。M2 的每个回传图片的工具都按此实现。
+
+**关于「schema 未声明会被剥掉」**：实测结论是 **schema 会校验但不会剥键**。
+`createSuccessResult` 走的是 `snapshotToolValue` + `validateJsonSchemaValue`
+（违规即抛 `ToolOutputError`），不存在「按 schema 静默丢字段」的路径；
+`content` 那一侧也**不经过** output schema，只有 `snapshotJsonValue` 做无损 JSON 快照。
+真正会丢图片的是另一件事：**`content` 必须能无损 JSON 化**——所以 ref 里只能放
+`attachmentId/mediaType/bytes/width/height/name` 这类标量，字节永远不进 content。
+M2 仍然选择**显式声明** `image` 字段，理由是让错误在定义期就暴露，而不是等运行时。
+
+### 7.2.2 问题二：模型真的看见了吗？
+
+**看见了，且说出的是只有像素才知道的事实。**
+
+`read_image` 回传的那张 640×360 渲染图，本会话在下一轮直接读出：
+
+> 俯视视角：浅灰色圆角方形表壳居中偏左，中央一个大的深蓝色椭圆表盘（占画面约中间三分之一），
+> 右侧边缘有一小块金黄色表耳，背景为均匀中灰。
+
+用**独立进程**再问一次同一个模型（`deepblend/tools/visual-review-live-probe.mjs`，
+真实 provider 栈 + 真实 credential store + 真实 attachment store）：
+
+```
+resolved route: deepseek-official/deepseek-flash  inputModalities: ["text","image"]
+elapsedMs: 1617   usage: {inputTokens:345, outputTokens:88, reasoningTokens:60}
+MODEL SAID:
+A light grey/white square panel or box with a dark oval hole in its face,
+sitting roughly at the centre of the frame.
+```
+
+两处独立回答指向同一组事实（浅灰方体、中央深色椭圆、居中）。这是**结论性证据**：
+不是「session log 里存了 ref」，而是「模型读到了字节」。
+
+### 7.2.3 问题三：预算实数——640×360 占多少视觉 token，多视角该用什么形态？
+
+| 项 | 实测值 | 来源 |
+|---|---|---|
+| 每请求总像素预算 | **640 000 px** | `DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET` |
+| 单图编码字节目标 | **1 048 576 B**（1 MiB） | `DEFAULT_REQUEST_IMAGE_MAX_BYTES` |
+| low-detail 预算 | 262 144 px | `DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET` |
+| 每请求图片数量上限 | 600 | `DEFAULT_MAX_IMAGES_PER_REQUEST` |
+| 单图字节上限（attachment） | 20 971 520 B；`maxImagePixels` 64 Mpx；边长 8192 | `attachments.imageLimits` 实测 |
+
+视觉 token 用**运行时自己导出的定价函数**逐一实测（不是查文档）：
+
+| 尺寸 | 视觉 token | 备注 |
+|---|---|---|
+| 640×360 | **177** | 当前预览档 P1 |
+| 960×540 | 341 | |
+| 1280×720 | **369** | 一张 2×2 contact sheet |
+| 1440×810（3×3 tile） | 369 | |
+| 1920×1080 | 369 | 触到 384 上限附近 |
+| 2048×1152 | 369 | |
+
+**结论一：token 不是约束，像素预算是约束。** 1–9 张图的视觉 token 都在 177–369 之间；
+一次「sheet + 一张细节图」约 546 token，5 轮迭代约 2 700 token，可以忽略。
+
+**结论二：真正的约束是 640 000 px 的**下采样**。** 一张 1920×1080 的 sheet 会被压到约
+1066×600——每张 tile 只剩约 533×300，而**原图本来就是 640×360**。也就是说：
+把预览图放大拼 sheet **一点新细节都不会增加**，只会按比例缩回去。
+
+**这直接决定了 M2 的形态（回答 m2-brief §4.2 的取舍）**：
+
+```text
+Contact Sheet  = 一次看全 N 个视角的「关系」（谁挡谁、主体是否偏、整体亮度）
+               → 用 4 视角 1600×900（2×2，tile 800×450），下采样到 1066×600，tile 约 533×300
+单视角高清图   = 定位细节（遮挡边界、材质、边缘）
+               → 命中问题的视角按 640×360 单独回传，177 token
+```
+
+**不做 9 视角 sheet**：9 tile 在 1066×600 里每格约 355×200，低于原图分辨率，
+只会让遮挡从「看不清」变成「看起来没有」。4 视角是「一次看全」与「看得见」的平衡点。
+
+### 7.2.4 问题四：冷 transcript 重放时 render 还能拿到有效的 attachment 吗？
+
+**能。** 直接解压本会话的持久化日志
+（`~/.dsh/sessions/--Users-hxb-workspace-deep-blend--/*/session.v3.jsonl.zstd`，
+178 个 zstd frame、323 个事件）后确认存在如下事件：
+
+```json
+{"type":"tool/result","seq":278,"data":{"message":{"source":{"kind":"tool","callId":"call_00_ck9…"},
+ "content":[{"type":"tool-result","toolCallId":"call_00_ck9…","content":[
+   {"type":"text","text":"<path>…frame22-camera-top.png</path>\n<type>image</type>…"},
+   {"type":"image","attachment":{"attachmentId":"sha256:778ae443…","mediaType":"image/jpeg",
+     "bytes":6210,"width":640,"height":360,"name":"frame22-camera-top.png"}}],
+   "isError":false}]}}}
+```
+
+`attachmentId` 是内容寻址的，对象仍在磁盘上（`objects/77/778ae443…`，6210 字节），
+因此冷重放时 `render` 依然能构造出同一个 image block——**不需要图片字节进入 session log**。
+
+### 7.2.5 一张验收表
+
+| 探针问题 | 结论 | 证据强度 |
+|---|---|---|
+| 1. schema 接受、图片不被剥掉 | ✅ | 工具定义 + 真实入库 ref + 磁盘对象一致 |
+| 2. 模型能描述图中内容 | ✅ | 两次独立回答指向同一组视觉事实 |
+| 3. 预算与成本实数 | ✅ | 定价函数逐一实测 + 源码常量 + `imageLimits` |
+| 4. 冷重放仍有效 | ✅ | 解压持久化日志，直接读到 image block |
+
+**并且额外确认了一件对 M2 架构有决定性意义的事**：Host 可以**自己**发起多模态模型调用。
+`deepblend/tools/visual-review-live-probe.mjs` 在独立进程里组出
+`settings + credentials + attachments + llm + 官方 DeepSeek adapter`，发出真实请求并拿到回答
+（345 input token / 1.6 s）。这使「视觉审查」不必寄生在 Agent 的会话里——
+评分与迭代因此可以**由 Host 拥有**，而不是由模型自述。
+
+### 7.2.6 探针本身踩到的两个坑（已固化）
+
+1. **动态工具注册必须用 `harness.defineTool()`**。直接用普通对象注册会被
+   `dsh-cordis-host-runner` 拒绝：`dynamic tool registration must use a tool returned by
+   harness.defineTool(...)`。
+2. **官方 DeepSeek adapter 是「命名导出 + 模块级 inject」的插件**，两种常见加载方式都错：
+   * `ctx.plugin(deepSeek.apply)` → `cannot get property "llm" without inject`（`inject` 声明在模块命名空间上，`apply` 函数自身没有）；
+   * `ctx.plugin(ctx => deepSeek.apply(ctx, cfg))` → 注册随临时 fiber 一起被回收，`listProviders()` 仍是空数组，且**不报错**。
+
+   正确写法是 `ctx.plugin({ apply: deepSeek.apply, inject: deepSeek.inject }, config)`。
+   第二种错法最危险：它**静默无效**，只在后续调用时报 `NO_ADAPTER`。
+
+---
 
 ## 8. M0 之后的前置条件（阻塞项）
 

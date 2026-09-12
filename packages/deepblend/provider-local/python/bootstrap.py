@@ -27,12 +27,17 @@ protocol failure, bad arguments, a refused action, and an unexpected internal
 exception. A caller may therefore always expect a parseable envelope, and must
 still check the exit code, which is non-zero whenever ``status != "success"``.
 
-ACTIONS (M1)
+ACTIONS (M2)
+------------
+``render_preview``    one frame from one camera out of a checkpoint ``.blend``.
+``render_views``      a PLAN of (camera, frame) views out of one checkpoint, in one
+                      process, each carrying its deterministic measurements.
+
+ACTIONS (M0)
 ------------
 ``get_capabilities``  behavioral capability probe (M0; moved to its own module).
 ``compile_scene``     SceneSpec -> real Blender scene -> ``.blend`` checkpoint,
                       with technical validation of the result.
-``render_preview``    one frame from one camera out of a checkpoint ``.blend``.
 
 WHY ONE DISPATCHER AND NOT THREE SCRIPTS
 ----------------------------------------
@@ -83,7 +88,7 @@ from deepblend_util import (  # noqa: E402  (path set up above)
 #: Actions this dispatcher accepts. Anything else is refused with a stable code
 #: rather than silently doing nothing — a silently no-op action is indistinguishable
 #: from a successful one that produced no output.
-SUPPORTED_ACTIONS = ("get_capabilities", "compile_scene", "render_preview")
+SUPPORTED_ACTIONS = ("get_capabilities", "compile_scene", "render_preview", "render_views")
 
 # Process exit codes. 0 is reserved for a successfully written success envelope.
 EXIT_OK = 0
@@ -271,6 +276,41 @@ def action_render_preview(request, options):
     return payload, guard.warnings, guard.notices
 
 
+def action_render_views(request, options):
+    """Render a plan of views out of one checkpoint, measuring each one.
+
+    The plan travels as a FILE rather than as many ``--flag`` pairs because a plan
+    is a list of records, and a list of records is the one shape a flat argument
+    list expresses badly: an N-view plan would need N parallel arrays that can
+    disagree in length. As a document it is validated once, at the top, and a
+    malformed plan is one error rather than a partially-rendered result.
+    """
+    from deepblend_util import Guard
+    from deepblend_views import render_views
+
+    plan_path = options.get("views")
+    if not plan_path:
+        raise ActionError("BLENDER_SCRIPT_ERROR", "render_views requires --views <plan.json>")
+    if not os.path.isfile(plan_path):
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'the view plan does not exist at "%s"' % (plan_path,),
+            {"views": plan_path},
+        )
+    try:
+        plan = read_json(plan_path)
+    except Exception as exc:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'could not read the view plan at "%s": %s' % (plan_path, error_text(exc)),
+            {"views": plan_path},
+        )
+
+    guard = Guard()
+    payload = render_views({"views": plan}, guard)
+    return payload, guard.warnings, guard.notices
+
+
 def _as_int(value):
     """Parse an optional integer argument, or return ``None``."""
     if value is None or value == "":
@@ -285,6 +325,7 @@ ACTIONS = {
     "get_capabilities": action_get_capabilities,
     "compile_scene": action_compile_scene,
     "render_preview": action_render_preview,
+    "render_views": action_render_views,
 }
 
 
@@ -349,7 +390,7 @@ def main():
         (
             "--request", "--result", "--scene-spec", "--blend", "--output-blend",
             "--output", "--camera", "--engine", "--width", "--height", "--samples",
-            "--frame", "--profile", "--project-root", "--save-on-failure",
+            "--frame", "--profile", "--project-root", "--save-on-failure", "--views",
         ),
     )
 

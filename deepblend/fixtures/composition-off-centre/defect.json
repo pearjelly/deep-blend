@@ -1,0 +1,10 @@
+{
+  "derivedFrom": "deepblend/fixtures/interior-room/scene-spec.json",
+  "generatedBy": "deepblend/tools/make-visual-fixtures.mjs",
+  "category": "composition",
+  "code": "SUBJECT_OFF_CENTER",
+  "objectId": "coffee-table",
+  "viewId": "active-camera",
+  "planted": "the active camera is aimed well to the right of the coffee table, leaving the subject at the edge of frame",
+  "expectedFix": "move camera-main so the table is centred again"
+}

@@ -20,7 +20,8 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { delimiter, isAbsolute, join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
@@ -309,6 +310,7 @@ export default class LocalBlenderRuntime extends Service {
    *   args?: string[],
    *   cwd?: string,
    *   projectRoot?: string,
+   *   prepareDirectory?: (info: { directory: string, jobId: string }) => void|Promise<void>,
    *   onWorkingDirectory?: (info: {
    *     directory: string, jobId: string, envelope: object,
    *     requestPath: string, resultPath: string,
@@ -344,15 +346,22 @@ export default class LocalBlenderRuntime extends Service {
     const requestPath = join(directory, 'request.json')
     const resultPath = join(directory, 'result.json')
 
+    // Some actions need input that is not a flat flag: a view PLAN is a list of
+    // records, and expressing it as parallel `--camera`/`--frame` arrays would let
+    // them disagree in length. `prepareDirectory` writes such a document into the
+    // invocation directory before the process starts, so the action reads it by
+    // relative path and the file dies with the directory.
+    if (typeof options.prepareDirectory === 'function') {
+      await options.prepareDirectory({ directory, jobId })
+    }
+
     const requestDocument = {
       protocolVersion: BLENDER_PROTOCOL_VERSION,
       jobId: correlationId,
       action,
       ...request.payload !== undefined ? { payload: request.payload } : {},
     }
-    await import('node:fs/promises').then(fs =>
-      fs.writeFile(requestPath, JSON.stringify(requestDocument, null, 2), 'utf8'),
-    )
+    writeFileSync(requestPath, JSON.stringify(requestDocument, null, 2), 'utf8')
 
     const argv = [
       resolvedExecutable.resolved,
@@ -751,6 +760,111 @@ export default class LocalBlenderRuntime extends Service {
       durationMs: run.durationMs,
       stdout: run.stdout,
       stderr: run.stderr,
+    }
+  }
+
+  /**
+   * Render a PLAN of views out of one checkpoint, in one Blender process, and
+   * measure each one (SPEC §12.3 "预览默认包含：主相机 / 45 度 / 俯视 / 近景").
+   *
+   * WHY A PLAN AND NOT A LOOP OVER `renderPreview`
+   * ---------------------------------------------
+   * Measured: a Blender cold start is about 0.4 s and a preview render 2-3 s. The
+   * M2 visual loop renders four views per round for up to five rounds, so a launch
+   * per view would spend roughly two minutes on startup alone. One process also
+   * guarantees the views describe ONE scene state — four launches could in
+   * principle open four different files if the checkpoint changed in between.
+   *
+   * The per-view measurements come back inside the same envelope because they are
+   * computed from pixels that only exist in that process (see `deepblend_views.py`).
+   * Re-deriving them later would mean either a second Blender launch or a second
+   * PNG decoder in a second language, and a duplicate decoder is the kind of thing
+   * that drifts.
+   *
+   * @param {object} request
+   * @param {string} request.checkpointPath - absolute path to the `.blend`.
+   * @param {object[]} request.views - `{ id, role?, cameraId?, frame? }`, in reading order.
+   * @param {string[]} [request.track] - object ids to measure by isolation.
+   * @param {string} [request.engine] - SceneSpec engine key.
+   * @param {number} [request.width]
+   * @param {number} [request.height]
+   * @param {number} [request.samples]
+   * @param {string} [request.jobId]
+   * @param {AbortSignal} [request.signal]
+   * @returns {Promise<{report: object, pngs: Record<string, Buffer>, envelope: object, durationMs: number}>}
+   */
+  async renderViews(request) {
+    if (typeof request?.checkpointPath !== 'string' || request.checkpointPath.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
+        'renderViews needs an absolute path to a .blend checkpoint.',
+      )
+    }
+    const views = Array.isArray(request.views) ? request.views : []
+    if (views.length === 0) {
+      throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'renderViews needs at least one view in its plan.')
+    }
+    for (const view of views) {
+      if (typeof view?.id !== 'string' || view.id.length === 0) {
+        throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'every view in a render plan needs an id.')
+      }
+    }
+
+    /** @type {Record<string, Buffer>} */
+    const pngs = {}
+
+    const run = await this.runBootstrap(
+      { action: 'render_views', jobId: request.jobId },
+      {
+        signal: request.signal,
+        args: ['--views', 'views.json'],
+        // The plan names outputs by BARE file name: Blender must write somewhere
+        // that dies with the invocation, or a failed render would leave images
+        // where the host could mistake them for artifact bytes.
+        prepareDirectory: ({ directory }) => {
+          const plan = {
+            checkpoint: request.checkpointPath,
+            engine: request.engine,
+            width: request.width,
+            height: request.height,
+            samples: request.samples,
+            track: Array.isArray(request.track) ? request.track : [],
+            views: views.map(view => ({
+              id: view.id,
+              role: view.role ?? null,
+              cameraId: view.cameraId,
+              frame: view.frame,
+              output: `${view.id}.png`,
+            })),
+          }
+          writeFileSync(join(directory, 'views.json'), JSON.stringify(plan, null, 2), 'utf8')
+        },
+        onWorkingDirectory: async info => {
+          // By the time this runs Blender has finished, so the directory holds the
+          // plan, the renders, the isolation masks and the result document. Read
+          // the PNG bytes out before the cleanup removes all of it: a Buffer is
+          // serializable across this boundary, while a path is not.
+          const result = info.envelope?.result ?? {}
+          for (const entry of Array.isArray(result.views) ? result.views : []) {
+            if (typeof entry?.outputPath !== 'string') continue
+            try {
+              pngs[entry.viewId] = await readFile(entry.outputPath)
+            } catch {
+              // A view whose bytes cannot be read is already reported as missing by
+              // the render report; failing the whole plan here would discard the
+              // views that did render.
+            }
+          }
+        },
+      },
+    )
+
+    const report = run.envelope.result ?? {}
+    return {
+      report,
+      pngs,
+      envelope: run.envelope,
+      durationMs: run.durationMs,
     }
   }
 

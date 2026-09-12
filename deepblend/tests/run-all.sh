@@ -7,6 +7,11 @@
 #
 # M0 delivered the minimal vertical slice (capability detection).
 # M1 added the batch SceneSpec loop (projects, revisions, patch, preview).
+# M2 added the visual loop (multi-view preview, contact sheet, measurements, scoring,
+# automated repair, and the three planted-defect fixtures). `e2e/visual-live.e2e.mjs`
+# is deliberately NOT part of this run: it spends real model calls and needs an API
+# key, so it is run explicitly before a commit that touches the reviewer, the prompt,
+# the sheet compositor or the scorer.
 #
 # Usage: bash deepblend/tests/run-all.sh
 set -uo pipefail
@@ -52,6 +57,12 @@ run_suite "Agent preset tool plane + degradation path (M0)" \
 
 run_suite "Agent preset M1 tool plane (all seven tools)" \
   node deepblend/tests/composition/tool-plane-m1.e2e.mjs
+
+run_suite "Blender visual loop: multi-view, scoring, repair, handover (M2)" \
+  node deepblend/tests/blender-integration/visual-loop.e2e.mjs
+
+run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
+  node deepblend/tests/composition/tool-plane-m2.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

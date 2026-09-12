@@ -5,42 +5,66 @@
   "description": "The structural source of truth for one DeepBlend scene (SPEC §8.1: 'SceneSpec 场景结构事实来源'). A .blend file is a compile artifact of this document, never the authority. Scenes are compiled from a SceneSpec and modified only through ScenePatch operations, so that every revision is diffable, replayable and auditable.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "project", "entities", "cameras", "renderProfiles"],
+  "required": [
+    "schemaVersion",
+    "project",
+    "entities",
+    "cameras",
+    "renderProfiles"
+  ],
   "properties": {
     "schemaVersion": {
       "type": "string",
       "const": "deepblend.scene/v1"
     },
-    "project": { "$ref": "#/$defs/project" },
+    "project": {
+      "$ref": "#/$defs/project"
+    },
     "assets": {
       "type": "array",
-      "items": { "$ref": "#/$defs/asset" }
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
     },
     "materials": {
       "type": "array",
-      "items": { "$ref": "#/$defs/material" }
+      "items": {
+        "$ref": "#/$defs/material"
+      }
     },
     "entities": {
       "type": "array",
-      "items": { "$ref": "#/$defs/entity" }
+      "items": {
+        "$ref": "#/$defs/entity"
+      }
     },
     "lights": {
       "type": "array",
-      "items": { "$ref": "#/$defs/light" }
+      "items": {
+        "$ref": "#/$defs/light"
+      }
     },
     "cameras": {
       "type": "array",
-      "items": { "$ref": "#/$defs/camera" }
+      "items": {
+        "$ref": "#/$defs/camera"
+      }
     },
     "shots": {
       "type": "array",
-      "items": { "$ref": "#/$defs/shot" }
+      "items": {
+        "$ref": "#/$defs/shot"
+      }
     },
     "animationTracks": {
       "type": "array",
-      "items": { "$ref": "#/$defs/animationTrack" }
+      "items": {
+        "$ref": "#/$defs/animationTrack"
+      }
     },
-    "renderProfiles": { "$ref": "#/$defs/renderProfiles" }
+    "renderProfiles": {
+      "$ref": "#/$defs/renderProfiles"
+    }
   },
   "$defs": {
     "id": {
@@ -53,271 +77,583 @@
       "type": "array",
       "minItems": 3,
       "maxItems": 3,
-      "items": { "type": "number" }
+      "items": {
+        "type": "number"
+      }
     },
     "unitColor": {
       "type": "array",
       "minItems": 3,
       "maxItems": 4,
-      "items": { "type": "number", "minimum": 0, "maximum": 1 },
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
       "description": "Linear RGB (3) or RGBA (4). Values are scene-linear, not sRGB display values."
     },
-    "positiveNumber": { "type": "number", "exclusiveMinimum": 0 },
-    "nonNegativeNumber": { "type": "number", "minimum": 0 },
-
+    "positiveNumber": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nonNegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
     "project": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "fps", "frameStart", "frameEnd", "aspectRatio"],
+      "required": [
+        "id",
+        "title",
+        "fps",
+        "frameStart",
+        "frameEnd",
+        "aspectRatio"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "goal": {
           "type": "string",
           "maxLength": 2000,
           "description": "The operator's natural-language brief. Retained verbatim for audit; it never affects compilation."
         },
-        "units": { "type": "string", "enum": ["metric", "imperial"], "default": "metric" },
-        "fps": { "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
-        "frameStart": { "type": "integer", "minimum": 0 },
-        "frameEnd": { "type": "integer", "minimum": 1 },
+        "units": {
+          "type": "string",
+          "enum": [
+            "metric",
+            "imperial"
+          ],
+          "default": "metric"
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 240
+        },
+        "frameStart": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frameEnd": {
+          "type": "integer",
+          "minimum": 1
+        },
         "aspectRatio": {
           "type": "string",
           "pattern": "^[0-9]+:[0-9]+$",
           "description": "Informational for M1. Resolution is owned by the render profiles."
+        },
+        "activeCamera": {
+          "type": "string",
+          "description": "Camera id the animation is seen through. The active-camera view of a view plan renders this one; when absent the first declared camera is used."
         }
       }
     },
-
     "license": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "source": { "type": "string", "maxLength": 200 },
-        "commercialUse": { "type": "boolean" },
-        "attribution": { "type": "string", "maxLength": 500 }
+        "source": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "commercialUse": {
+          "type": "boolean"
+        },
+        "attribution": {
+          "type": "string",
+          "maxLength": 500
+        }
       }
     },
-
     "asset": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "path"],
+      "required": [
+        "id",
+        "type",
+        "path"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "type": { "type": "string", "enum": ["glb", "gltf", "fbx", "obj", "usd", "blend"] },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "glb",
+            "gltf",
+            "fbx",
+            "obj",
+            "usd",
+            "blend"
+          ]
+        },
         "path": {
           "type": "string",
           "minLength": 1,
           "description": "Project-relative POSIX path. Absolute paths and any '..' segment are rejected by the path guard (SPEC §15.2)."
         },
-        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "license": { "$ref": "#/$defs/license" }
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "license": {
+          "$ref": "#/$defs/license"
+        }
       }
     },
-
     "material": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "shader"],
+      "required": [
+        "id",
+        "shader"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "shader": { "type": "string", "enum": ["principled", "emission", "glass"] },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "shader": {
+          "type": "string",
+          "enum": [
+            "principled",
+            "emission",
+            "glass"
+          ]
+        },
         "parameters": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "baseColor": { "$ref": "#/$defs/unitColor" },
-            "metallic": { "type": "number", "minimum": 0, "maximum": 1 },
-            "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
-            "ior": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
-            "alpha": { "type": "number", "minimum": 0, "maximum": 1 },
-            "emissionColor": { "$ref": "#/$defs/unitColor" },
-            "emissionStrength": { "$ref": "#/$defs/nonNegativeNumber" },
-            "coatWeight": { "type": "number", "minimum": 0, "maximum": 1 },
-            "transmissionWeight": { "type": "number", "minimum": 0, "maximum": 1 }
+            "baseColor": {
+              "$ref": "#/$defs/unitColor"
+            },
+            "metallic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "ior": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 5
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "emissionColor": {
+              "$ref": "#/$defs/unitColor"
+            },
+            "emissionStrength": {
+              "$ref": "#/$defs/nonNegativeNumber"
+            },
+            "coatWeight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "transmissionWeight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
           }
         }
       }
     },
-
     "transform": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "location": { "$ref": "#/$defs/vec3" },
+        "location": {
+          "$ref": "#/$defs/vec3"
+        },
         "rotationEuler": {
           "$ref": "#/$defs/vec3",
           "description": "Radians, XYZ Euler order, matching bpy's rotation_euler."
         },
-        "scale": { "$ref": "#/$defs/vec3" }
+        "scale": {
+          "$ref": "#/$defs/vec3"
+        }
       }
     },
-
     "generator": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["shape"],
+      "required": [
+        "shape"
+      ],
       "description": "Procedural proxy geometry. M1 has no asset-ingest action yet, so fixtures build their hero objects from generators; asset-instance entities take over as the primary path once blender_asset_ingest lands (SPEC §11).",
       "properties": {
         "shape": {
           "type": "string",
-          "enum": ["cube", "uv_sphere", "cylinder", "cone", "plane", "torus", "rounded_box"]
+          "enum": [
+            "cube",
+            "uv_sphere",
+            "cylinder",
+            "cone",
+            "plane",
+            "torus",
+            "rounded_box"
+          ]
         },
-        "size": { "$ref": "#/$defs/positiveNumber" },
-        "radius": { "$ref": "#/$defs/positiveNumber" },
-        "depth": { "$ref": "#/$defs/positiveNumber" },
-        "segments": { "type": "integer", "minimum": 3, "maximum": 512 },
-        "ringCount": { "type": "integer", "minimum": 3, "maximum": 512 },
-        "majorRadius": { "$ref": "#/$defs/positiveNumber" },
-        "minorRadius": { "$ref": "#/$defs/positiveNumber" },
+        "size": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "radius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "depth": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "segments": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 512
+        },
+        "ringCount": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 512
+        },
+        "majorRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "minorRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
         "bevel": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "width": { "$ref": "#/$defs/positiveNumber" },
-            "segments": { "type": "integer", "minimum": 1, "maximum": 16 }
+            "width": {
+              "$ref": "#/$defs/positiveNumber"
+            },
+            "segments": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
           }
         }
       }
     },
-
     "entity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type"],
+      "required": [
+        "id",
+        "type"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "type": { "type": "string", "enum": ["asset-instance", "generator", "empty"] },
-        "assetId": { "type": "string", "description": "Required when type is asset-instance." },
-        "generator": { "$ref": "#/$defs/generator" },
-        "materialId": { "type": "string", "description": "Material applied to this entity's generated mesh." },
-        "transform": { "$ref": "#/$defs/transform" },
-        "tags": { "type": "array", "items": { "type": "string", "maxLength": 64 } },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "asset-instance",
+            "generator",
+            "empty"
+          ]
+        },
+        "assetId": {
+          "type": "string",
+          "description": "Required when type is asset-instance."
+        },
+        "generator": {
+          "$ref": "#/$defs/generator"
+        },
+        "materialId": {
+          "type": "string",
+          "description": "Material applied to this entity's generated mesh."
+        },
+        "transform": {
+          "$ref": "#/$defs/transform"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
         "locked": {
           "type": "boolean",
           "description": "A locked entity may still be patched explicitly, but the orchestrator must not propose changes to it autonomously (SPEC §12)."
         },
-        "visible": { "type": "boolean" }
+        "visible": {
+          "type": "boolean"
+        }
       }
     },
-
     "light": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type"],
+      "required": [
+        "id",
+        "type"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "type": { "type": "string", "enum": ["area", "point", "spot", "sun"] },
-        "transform": { "$ref": "#/$defs/transform" },
-        "energy": { "$ref": "#/$defs/nonNegativeNumber" },
-        "color": { "$ref": "#/$defs/unitColor" },
-        "size": { "$ref": "#/$defs/positiveNumber", "description": "area: light radius; point/spot: shadow soft size." },
-        "spotSize": { "type": "number", "exclusiveMinimum": 0, "maximum": 3.14159265358979 },
-        "spotBlend": { "type": "number", "minimum": 0, "maximum": 1 },
-        "angle": { "type": "number", "exclusiveMinimum": 0, "maximum": 3.14159265358979 }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "area",
+            "point",
+            "spot",
+            "sun"
+          ]
+        },
+        "transform": {
+          "$ref": "#/$defs/transform"
+        },
+        "energy": {
+          "$ref": "#/$defs/nonNegativeNumber"
+        },
+        "color": {
+          "$ref": "#/$defs/unitColor"
+        },
+        "size": {
+          "$ref": "#/$defs/positiveNumber",
+          "description": "area: light radius; point/spot: shadow soft size."
+        },
+        "spotSize": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3.14159265358979
+        },
+        "spotBlend": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "angle": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3.14159265358979
+        }
       }
     },
-
     "camera": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "lens": { "$ref": "#/$defs/positiveNumber" },
-        "sensorWidth": { "$ref": "#/$defs/positiveNumber" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "active-camera",
+            "three-quarter",
+            "top",
+            "detail"
+          ],
+          "description": "What this camera is FOR. A view plan assigns roles to cameras by name (active camera, 45-degree, top-down, subject close-up) and falls back to declaration order, so a role is what makes a multi-view plan reproducible rather than positional."
+        },
+        "lens": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sensorWidth": {
+          "$ref": "#/$defs/positiveNumber"
+        },
         "clipping": {
           "type": "array",
           "minItems": 2,
           "maxItems": 2,
-          "items": { "$ref": "#/$defs/positiveNumber" }
+          "items": {
+            "$ref": "#/$defs/positiveNumber"
+          }
         },
         "transform": {
           "$ref": "#/$defs/transform",
           "description": "Camera position. When `targetEntityId` or `targetPoint` is present the rotation is DERIVED by aiming -Z at the target, so a hand-written rotationEuler is ignored (and is reported as a validation notice)."
         },
-        "targetEntityId": { "type": "string" },
-        "targetPoint": { "$ref": "#/$defs/vec3" },
-        "fStop": { "$ref": "#/$defs/positiveNumber" }
+        "targetEntityId": {
+          "type": "string"
+        },
+        "targetPoint": {
+          "$ref": "#/$defs/vec3"
+        },
+        "fStop": {
+          "$ref": "#/$defs/positiveNumber"
+        }
       }
     },
-
     "shot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "cameraId"],
+      "required": [
+        "id",
+        "cameraId"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "cameraId": { "type": "string" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "cameraId": {
+          "type": "string"
+        },
         "frameRange": {
           "type": "array",
           "minItems": 2,
           "maxItems": 2,
-          "items": { "type": "integer", "minimum": 0 }
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
-        "description": { "type": "string", "maxLength": 1000 }
-      }
-    },
-
-    "animationKeyframe": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["frame", "value"],
-      "properties": {
-        "frame": { "type": "integer", "minimum": 0 },
-        "value": { "type": "number" },
-        "interpolation": {
+        "description": {
           "type": "string",
-          "enum": ["constant", "linear", "bezier", "ease_in", "ease_out", "ease_in_out"]
+          "maxLength": 1000
         }
       }
     },
-
+    "animationKeyframe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame",
+        "value"
+      ],
+      "properties": {
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "type": "number"
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "constant",
+            "linear",
+            "bezier",
+            "ease_in",
+            "ease_out",
+            "ease_in_out"
+          ]
+        }
+      }
+    },
     "animationTrack": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "targetEntityId", "property", "keyframes"],
+      "required": [
+        "id",
+        "targetEntityId",
+        "property",
+        "keyframes"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "targetEntityId": { "type": "string" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "targetEntityId": {
+          "type": "string"
+        },
         "property": {
           "type": "string",
           "enum": [
-            "location.x", "location.y", "location.z",
-            "rotationEuler.x", "rotationEuler.y", "rotationEuler.z",
-            "scale.x", "scale.y", "scale.z"
+            "location.x",
+            "location.y",
+            "location.z",
+            "rotationEuler.x",
+            "rotationEuler.y",
+            "rotationEuler.z",
+            "scale.x",
+            "scale.y",
+            "scale.z"
           ]
         },
         "keyframes": {
           "type": "array",
           "minItems": 2,
-          "items": { "$ref": "#/$defs/animationKeyframe" }
+          "items": {
+            "$ref": "#/$defs/animationKeyframe"
+          }
         }
       }
     },
-
     "renderProfile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["engine", "resolution"],
+      "required": [
+        "engine",
+        "resolution"
+      ],
       "properties": {
-        "engine": { "type": "string", "enum": ["eevee", "cycles", "workbench"] },
+        "engine": {
+          "type": "string",
+          "enum": [
+            "eevee",
+            "cycles",
+            "workbench"
+          ]
+        },
         "resolution": {
           "type": "array",
           "minItems": 2,
           "maxItems": 2,
-          "items": { "type": "integer", "minimum": 16, "maximum": 16384 }
+          "items": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 16384
+          }
         },
-        "samples": { "type": "integer", "minimum": 1, "maximum": 8192 },
-        "filmTransparent": { "type": "boolean" },
+        "samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "filmTransparent": {
+          "type": "boolean"
+        },
         "colorManagement": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "viewTransform": { "type": "string", "enum": ["Standard", "AgX", "Filmic", "False Color", "Raw"] },
-            "look": { "type": "string" },
-            "exposure": { "type": "number", "minimum": -10, "maximum": 10 }
+            "viewTransform": {
+              "type": "string",
+              "enum": [
+                "Standard",
+                "AgX",
+                "Filmic",
+                "False Color",
+                "Raw"
+              ]
+            },
+            "look": {
+              "type": "string"
+            },
+            "exposure": {
+              "type": "number",
+              "minimum": -10,
+              "maximum": 10
+            }
           }
         },
         "maxSamplesBudget": {
@@ -327,14 +663,19 @@
         }
       }
     },
-
     "renderProfiles": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["preview"],
+      "required": [
+        "preview"
+      ],
       "properties": {
-        "preview": { "$ref": "#/$defs/renderProfile" },
-        "final": { "$ref": "#/$defs/renderProfile" }
+        "preview": {
+          "$ref": "#/$defs/renderProfile"
+        },
+        "final": {
+          "$ref": "#/$defs/renderProfile"
+        }
       }
     }
   }

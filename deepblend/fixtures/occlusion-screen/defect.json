@@ -1,0 +1,10 @@
+{
+  "derivedFrom": "deepblend/fixtures/interior-room/scene-spec.json",
+  "generatedBy": "deepblend/tools/make-visual-fixtures.mjs",
+  "category": "occlusion",
+  "code": "SUBJECT_OCCLUDED",
+  "objectId": "coffee-table",
+  "viewId": "active-camera",
+  "planted": "the partition screen stands on the camera-main sight line, hiding most of the coffee table from that view",
+  "expectedFix": "move the screen aside, or move camera-main around it"
+}

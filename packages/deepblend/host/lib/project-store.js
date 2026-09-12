@@ -295,24 +295,10 @@ export class ProjectStore {
    * Append one preview artifact to a revision's manifest, returning the
    * revision's complete preview list.
    *
-   * WHY A PUBLISHED REVISION IS WRITABLE HERE, AND ONLY HERE
-   * -------------------------------------------------------
-   * A revision is immutable in everything it DECIDED: its SceneSpec, its
-   * checkpoint, its validation report, its digests. `revision-manifest.json` is
-   * written once at commit for exactly that reason.
-   *
-   * But the manifest also INDEXES the revision's artifacts, and previews are
-   * produced on demand after the commit — rendering deliberately creates no
-   * revision, because a preview observes a scene rather than changing it. So the
-   * index and the directory drifted apart: a revision holding three rendered
-   * images still claimed one. The manifest is the copy that gets persisted, put
-   * into a delivery bundle and read by the model, and a record that under-reports
-   * itself is worse than no record, because it is trusted.
-   *
-   * This is therefore an append-only amendment of the artifact index. It touches
-   * only `previews`; every other field is carried over byte-for-byte and nothing
-   * else on disk is rewritten. The single {@link writeJsonAtomic} means a reader
-   * sees the old list or the new one, never a half-written manifest.
+   * Thin alias for {@link recordRevisionArtifact} under the `previews` index. Kept
+   * as its own name because every M1 caller and test reads it as "the preview
+   * index", and renaming a working call site to make a generalization visible is
+   * churn that hides the change it was meant to advertise.
    *
    * @param {string} projectId
    * @param {string} revision
@@ -320,6 +306,36 @@ export class ProjectStore {
    * @returns {object[]} the revision's previews, in render order.
    */
   recordRevisionPreview(projectId, revision, artifact) {
+    return this.recordRevisionArtifact(projectId, revision, 'previews', artifact)
+  }
+
+  /**
+   * Append one artifact to a revision's **artifact index** (decision D28).
+   *
+   * A revision is immutable in everything it DECIDED: its SceneSpec, its
+   * checkpoint, its validation report, its digests. But it also *emits* things
+   * afterwards — previews, contact sheets, a visual review — and those are produced
+   * on demand, because rendering and reviewing observe a scene rather than change
+   * it (which is why neither creates a revision).
+   *
+   * This is the append-only amendment that keeps the index honest, and it is
+   * deliberately generic over the index key: M1 learned that a manifest claiming
+   * one preview while the directory held three is worse than no manifest at all,
+   * because the manifest is the copy that gets persisted, delivered and READ. A
+   * second kind of emitted artifact would have re-created that bug immediately, in
+   * a place where the M1 regression test could not see it.
+   *
+   * It touches only the named index key; every other field is carried over
+   * byte-for-byte, and the single {@link writeJsonAtomic} means a reader sees the
+   * old list or the new one, never a half-written manifest.
+   *
+   * @param {string} projectId
+   * @param {string} revision
+   * @param {'previews'|'contactSheets'|'reviews'} indexKey
+   * @param {object} artifact
+   * @returns {object[]} the revision's entries under that key, in emission order.
+   */
+  recordRevisionArtifact(projectId, revision, indexKey, artifact) {
     const path = join(this.revisionDirectory(projectId, revision), 'revision-manifest.json')
     const manifest = readJson(path)
     if (manifest === null) {
@@ -327,9 +343,12 @@ export class ProjectStore {
       // is nothing to amend and nothing safe to write into it.
       return [artifact]
     }
-    const previews = [...(manifest.previews ?? []).filter(entry => entry.path !== artifact.path), artifact]
-    writeJsonAtomic(path, { ...manifest, previews })
-    return previews
+    const existing = Array.isArray(manifest[indexKey]) ? manifest[indexKey] : []
+    // Re-emitting the same path replaces its entry rather than duplicating it:
+    // re-rendering a view after a fix must not make the sheet look like two.
+    const next = [...existing.filter(entry => entry.path !== artifact.path), artifact]
+    writeJsonAtomic(path, { ...manifest, [indexKey]: next })
+    return next
   }
 
   /**

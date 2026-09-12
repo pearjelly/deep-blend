@@ -14,6 +14,7 @@
  *   M0  blender_capabilities
  *   M1  blender_project_create, blender_project_get, blender_scene_get,
  *       blender_scene_patch, blender_preview_render, blender_scene_validate
+ *   M2  blender_preview_views, blender_visual_review, blender_visual_autofix
  *
  * The remaining SPEC §11 tools (final render, export, asset ingest, job status,
  * job cancel) are deliberately ABSENT rather than registered-and-throwing: a tool
@@ -21,7 +22,7 @@
  * arrive in M3. `blender_capabilities` stays in this file because it is the M0
  * tool and its behaviour is pinned by the M0 acceptance suite.
  *
- * Owner: DeepBlend Studio — M1
+ * Owner: DeepBlend Studio — M2
  * Plane: Agent preset
  */
 
@@ -31,6 +32,7 @@ import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts
 
 import { TOOL_OUTPUT, resolveStudio } from './shared.js'
 import { apply as applySceneTools } from './tools.js'
+import { applyVisualTools } from './visual-tools.js'
 
 /** Plugin name, surfaced in loader diagnostics. */
 export const name = 'deepblend-blender-tool'
@@ -70,6 +72,7 @@ export function apply(ctx) {
   // would risk double-disposal on reload).
   ctx.tools.register(capabilitiesTool(ctx))
   applySceneTools(ctx)
+  applyVisualTools(ctx)
 }
 
 /**
