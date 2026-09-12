@@ -26,6 +26,7 @@
 | D24 | 失败的 patch 不消耗 Blender 进程 | 实测：验证期拒绝 → jobs 数量不变 |
 | D25 | 场景颜色管理**行为赋值**，不查枚举 | 实测：`view_transform` 枚举只报 `['NONE']` |
 | D26 | M1 只注册能兑现的工具 | SPEC §11.1；模型看到的工具就是承诺 |
+| D27 | **给模型读的文本也要被断言** | 重启后渲染实测：「revisioncheckpoint」拼接缺陷逃过全部结构化断言 |
 
 ---
 
@@ -234,6 +235,26 @@ SCENE_PATCH_INVALID — note: expected string, received undefined
 
 **对应测试**：`tool-plane-m1.e2e.mjs` 断言目录里**恰好**是这 7 个，且 M3+ 工具一个都
 不在。这条断言会在有人「顺手补一个工具」时变红。
+
+### D27 — 给模型读的文本也要被断言
+
+**决策**：凡是会被模型读到的散文（工具 `text`、warning 的 `message`），至少有一条断言
+检查它**说了什么**，而不只是检查结构化字段。
+
+**触发事实**：重启后的一次真实渲染返回
+
+```
+preview rendered from the revisioncheckpoint, frame 68, 640x360, engine CYCLES
+```
+
+`revision` 与 `checkpoint` 之间少了一个词——文案由单词拼接而成，于是**常规路径**（checkpoint
+就是被请求的 revision）产生 `revisioncheckpoint`，只有少见的"继承更早 checkpoint"路径
+才读得通。全部结构化断言看的都是 `frame`/`width`/`height`/`engine`/`path`，
+没有一条看过这句话。
+
+**理由**：模型是按文本行动的，而文本是唯一**没有类型**的产物——结构字段错了会被 schema
+抓住，散文错了只能靠人读到。这类缺陷的发现成本最高、修复成本最低，所以用一条廉价的断言
+把它挡住是明显划算的。修复后断言「文案含 `revision r0003` 且**不含** `revisioncheckpoint`」。
 
 ---
 

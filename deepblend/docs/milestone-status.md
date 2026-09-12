@@ -78,17 +78,17 @@ deepblend_validate.py      技术校验（depsgraph、取景、退化几何）
 
 ---
 
-## 4. 测试：638 项断言全部通过
+## 4. 测试：640 项断言全部通过
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
 | 单元 + 契约 | 9 个 `*.test.mjs` | **495** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
-| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 66/66 |
+| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 68/68 |
 | Host composition 激活 | `composition/activation.e2e.mjs` | 11/11 |
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面（全部 7 个工具） | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
-| **合计** | 13 个文件、6 个套件 | **638** |
+| **合计** | 13 个文件、6 个套件 | **640** |
 
 单元 + 契约的 495 项分布：
 
@@ -235,6 +235,25 @@ SCENE_PATCH_INVALID — note: expected string, received undefined
 | 7 | 未在真实会话中人工确认工具清单 | SPEC §19.4 第 3 条 | 重启后需人工确认（见 §9） |
 | 8 | 预览产物写入 revision 目录 | revision 目录在"发布后不可变"之外多了一类文件 | 有意为之：预览是**该 revision 的**产物，后续 revision 不得覆盖 |
 
+### 5.9 重启后验证发现的第 9 个缺陷（预览溯源文案）
+
+重启后通过动态插件在**真实进程**里渲染了一帧，结果里的 warning 是：
+
+```
+preview rendered from the revisioncheckpoint, frame 68, 640x360, engine CYCLES
+```
+
+`revision` 与 `checkpoint` 之间少了一个词。根因是把一个单词**拼接**进句子中间，于是
+常规路径（checkpoint 就是被请求的 revision）产生 `revisioncheckpoint`，反而只有少见的
+"继承更早 checkpoint" 路径读起来是对的。
+
+**为什么它能活到重启之后**：这条文案是给模型读的散文字段，所有结构化断言都看的是
+`frame`/`width`/`engine`/`path`，没有一条断言看过这句话。修复时把拼接改成两句完整句子，
+并补上回归测试（断言文案含 `revision r0003` 且**不含** `revisioncheckpoint`）。
+
+这条缺陷值得单独记一笔，因为它是本轮唯一一个"只有人读到才会发现"的类别：
+**给人（或模型）看的文本也需要被断言**，否则它永远不会被测试覆盖。
+
 ---
 
 ## 9. 用户需要做的一件事
@@ -245,9 +264,17 @@ M1 是**进程级**变更，需要重启 profile 才生效：
 cd /Users/hxb/workspace/deep-blend && dsh web
 ```
 
-重启后确认三件事：
+**已完成**（重启后经动态 Cordis 插件在真实进程内验证）：
 
-1. 新建一个选择 **DeepBlend 开发模式** 的会话，工具清单应为 **7 个**：
+| 检查 | 结果 |
+|---|---|
+| `blenderRuntime` 方法面 | `getCapabilities` / `runBootstrap` / **`compileScene`** / **`renderPreview`** / **`resolveEngineKey`** / `dispose` |
+| `blenderStudio` 方法面 | 14 个方法全部存在（含 M1 的 6 个） |
+| 组合配置 | `projectsRoot` / `workspaceRoot` / `maxPreviewSamples: 512` 三键齐备 |
+| 真实 store | `watch-commercial` 可见，r0001 + r0002，`isCurrent` 正确 |
+| 真实渲染 | 通过 `ctx.subprocess` 渲染 `frame68-camera-main.png`（640×360，190693 字节，CYCLES，5346 ms） |
+
+**还需你确认的一件事**：新建一个选择 **DeepBlend 开发模式** 的会话，工具清单应为 **7 个**：
    `blender_capabilities`、`blender_project_create`、`blender_project_get`、
    `blender_scene_get`、`blender_scene_patch`、`blender_preview_render`、
    `blender_scene_validate`；
@@ -256,7 +283,7 @@ cd /Users/hxb/workspace/deep-blend && dsh web
 3. 浏览器打开 `http://127.0.0.1:3080/deepblend/capabilities` 应仍返回设置卡 JSON。
 
 真机验证的**等价替代**（无需重启，已在本轮执行）：`deepblend/tests/run-all.sh`
-的 638 项断言中，`tool-plane-m1.e2e.mjs` 的 41 项正是通过**真实 `defineTool` 定义**
+的 640 项断言中，`tool-plane-m1.e2e.mjs` 的 41 项正是通过**真实 `defineTool` 定义**
 调用全部 7 个工具完成的。
 
 ---

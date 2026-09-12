@@ -621,6 +621,21 @@ check('the preview reports the frame it actually rendered', artifact.frame === 3
 check('the preview carries a sha256 for the audit trail',
   typeof artifact.sha256 === 'string' && artifact.sha256.length === 64)
 
+// The preview's provenance line is the one warning a model reads on every render,
+// so its wording is asserted rather than eyeballed. A previous version built it by
+// splicing a word into a sentence and produced "rendered from the
+// revisioncheckpoint" in every ordinary case — invisible in the numbers, obvious
+// in the text.
+const provenance = (preview.warnings ?? []).map(entry => entry.message).find(message => message.includes('preview of'))
+check('the preview states which revision and checkpoint it came from',
+  typeof provenance === 'string' && provenance.includes(`revision ${preview.revision}`)
+    && !provenance.includes('revisioncheckpoint'),
+  provenance)
+check('the preview provenance names the frame, size and engine',
+  typeof provenance === 'string' && provenance.includes('frame 30')
+    && provenance.includes('640x360') && provenance.includes('CYCLES'),
+  provenance)
+
 const previewPath = join(workspace, 'projects', created.projectId, artifact.path)
 check('the preview image exists on disk', existsSync(previewPath), previewPath)
 

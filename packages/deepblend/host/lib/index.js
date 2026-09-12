@@ -567,10 +567,25 @@ export default class BlenderStudio extends Service {
         sha256: fileSha256(finalPath),
         mime: 'image/png',
       }
+      // What the caller is actually looking at. A preview is the one result whose
+      // value depends on facts the numbers do not carry — which checkpoint it came
+      // from, which frame, which engine — so all three are stated rather than
+      // implied.
+      //
+      // The previous spelling of this line had a real defect, caught only by
+      // rendering through the restarted live process: the provenance was built by
+      // splicing a word into the middle of a sentence, so it produced
+      // "rendered from the revisioncheckpoint" in every ORDINARY case (the
+      // checkpoint is the requested revision) and read correctly only in the
+      // rarer inherited-checkpoint case. It is now two whole sentences rather
+      // than one assembled one.
+      const checkpointSource = resolvedCheckpoint.revision === revision
+        ? `revision ${revision}`
+        : `the ${resolvedCheckpoint.revision} checkpoint, because revision ${revision} has none of its own`
       warnings.push(warning(
         BlenderWarningCode.SCENE_COMPILER_DECISION,
-        `preview rendered from the ${resolvedCheckpoint.revision === revision ? 'revision' : `${resolvedCheckpoint.revision} `}checkpoint, ` +
-          `frame ${artifact.frame}, ${artifact.width}x${artifact.height}, engine ${artifact.engine}`,
+        `preview of ${checkpointSource}: frame ${artifact.frame}, ` +
+          `${artifact.width}x${artifact.height}, engine ${artifact.engine}`,
       ))
 
       const job = this.store.writeJob(projectId, {

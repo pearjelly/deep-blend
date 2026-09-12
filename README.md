@@ -69,7 +69,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**6 个套件、13 个文件、638 项断言**全部通过。单跑某一层：
+预期：**6 个套件、13 个文件、640 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -150,6 +150,7 @@ dsh web                                                 # 重启后生效
 
 ## 当前状态与下一步
 
-见 `deepblend/docs/milestone-status.md`。M0 与 M1 验收均已闭环；
-**唯一待办**是重启 profile 后人工确认工具清单（该文件 §9）。
+见 `deepblend/docs/milestone-status.md`。M0 与 M1 验收均已闭环，profile 已重启并
+在真实进程内验证了 host 方法面、真实 store 与一次真实渲染（该文件 §9）。
+**唯一待办**是新开一个 DeepBlend 开发模式会话、人工确认工具清单为 7 个。
 按 SPEC §0.3，M2 应在新的会话中开始。
