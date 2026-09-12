@@ -417,15 +417,37 @@ SPEC 的 P0 等级写「256×144、**Workbench**」。实测 `BLENDER_WORKBENCH`
 
 ---
 
+## 7.1 M1 追加的 Blender 5.2 实测（与 4.x 假设不符）
+
+M1 的编译器第一次真正写入场景与关键帧，于是暴露了三个 M0 的能力探测**不可能**碰到的
+API 差异。它们都属于「版本号推不出来、只有运行才会说话」的那一类。
+
+| 现象 | 4.x 的写法 | 5.2 的实际行为 | M1 处置 |
+|---|---|---|---|
+| **Action 已分层** | `action.fcurves` | 属性**不存在**（`AttributeError`）。曲线在 `action.layers[*].strips[*].channelbags[*].fcurves` | `action_fcurves()` 同时走两种形状；单一代码路径兼容 3.x/4.x/5.x |
+| **`view_transform` 枚举谎报** | 查 `bl_rna.properties['view_transform'].enum_items` | 只返回 `['NONE']`，而 `Standard`/`AgX`/`Filmic`/`Raw`/`False Color` 全部可赋值 | 改为赋值后读回判定（D25）；与 D1/D9 同类 |
+| **`modifier_apply` 静默取消** | 直接调用 | 对象非 active 时返回 `{'CANCELLED'}`（**不抛错**），且选择集会被上一个 primitive 调用留下 | `_select_only()` + 检查返回值 + 断言多边形数真的变化 |
+
+另外两条 M0 遗留判断在 5.2 上得到确认：`addon_utils.enable('cycles')` 是**空操作**
+（Cycles 已在 `addons_CORE` 中加载），而引擎枚举仍然只报 `BLENDER_EEVEE`。
+
+**一个环境陷阱**，与 Blender 无关但代价很高：**不要在 bootstrap 路径里调用
+`preferences.refresh_devices()`**。实测它会让进程在首次渲染前挂起（>40 s，需 SIGKILL），
+而不调用时 `scene.cycles.device = 'GPU'` 无需刷新即可用上 METAL。
+
+**还有一条与 TMPDIR 有关的**：Blender 退出时会清空自己的临时目录。把 `TMPDIR` 指向工作区
+下的目录会让 Blender 在退出时**删掉整个目录**，因此 DeepBlend 的 request/result 文件一律
+放在 `workspaceRoot` 下的自有目录里，不依赖 TMPDIR。
+
 ## 8. M0 之后的前置条件（阻塞项）
 
-| # | 前置条件 | 影响 |
+| # | 前置条件 | 状态 |
 |---|---|---|
-| P1 | **`git init`** 项目根 | SPEC §21.6 的本地 commit 流程当前无法执行 |
-| P2 | 安装 pnpm（或改用 npm 装配） | `dsh plugin --profile add` 不可用；当前用手工装配绕过 |
-| P3 | 决定 OBJ/USD 支持策略（安装官方扩展或收窄 M1 范围） | 影响 M1 资产导入范围 |
-| P4 | 磁盘余量仅 16 GiB | 帧序列渲染必须规划外置存储或清理策略 |
-| P5 | **profile 重启**：Host Bundle 只在下一次 profile 启动时生效 | 见下 |
+| P1 | **`git init`** 项目根 | ✅ M1 已解决：`389bb9d` 为 M0 基线 commit |
+| P2 | 安装 pnpm（或改用 npm 装配） | ⏳ 未解决；符号链接装配已验证可用 |
+| P3 | 决定 OBJ/USD 支持策略 | ✅ M1 已收窄资产范围为 glTF/GLB + FBX；若要 OBJ 需另决 |
+| P4 | 磁盘余量 | ⚠️ 恶化：约 13 GiB。**M3 前必须规划** |
+| P5 | profile 重启：Host Bundle 只在下一次启动时生效 | ⏳ **M1 结束后再次需要**（见 `milestone-status.md` §9） |
 
 ### 8.1 P5：为什么必须重启 profile
 

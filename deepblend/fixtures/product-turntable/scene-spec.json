@@ -1,0 +1,465 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "fixture-product-turntable",
+    "title": "Product turntable — brushed-steel smartwatch",
+    "goal": "A looping 360° turntable of a brushed-steel smartwatch standing on a dark matte stage, three-point lit, camera locked on the product. The watch face reads clearly at the start of the revolution, the specular highlight travels across the case as it rotates, and nothing in the background competes with the subject.",
+    "units": "metric",
+    "fps": 30,
+    "frameStart": 1,
+    "frameEnd": 90,
+    "aspectRatio": "16:9"
+  },
+  "materials": [
+    {
+      "id": "stage-matte",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.012,
+          0.013,
+          0.017,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.85
+      }
+    },
+    {
+      "id": "hero-steel",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.5,
+          0.525,
+          0.56,
+          1
+        ],
+        "metallic": 0.9,
+        "roughness": 0.24
+      }
+    },
+    {
+      "id": "dial-glass",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.008,
+          0.009,
+          0.013,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.05,
+        "coatWeight": 0.8
+      }
+    },
+    {
+      "id": "accent-signal",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.82,
+          0.3,
+          0.09,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.3,
+        "emissionColor": [
+          0.9,
+          0.34,
+          0.11,
+          1
+        ],
+        "emissionStrength": 1.6
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "stage",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 6
+      },
+      "materialId": "stage-matte",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment"
+      ],
+      "locked": true
+    },
+    {
+      "id": "watch-body",
+      "type": "generator",
+      "generator": {
+        "shape": "rounded_box",
+        "size": 0.2,
+        "bevel": {
+          "width": 0.008,
+          "segments": 4
+        }
+      },
+      "materialId": "hero-steel",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.0185
+        ],
+        "rotationEuler": [
+          -1.5707963,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.185,
+          1
+        ]
+      },
+      "tags": [
+        "hero-product"
+      ],
+      "locked": false
+    },
+    {
+      "id": "watch-dial",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.07,
+        "depth": 0.004,
+        "segments": 64
+      },
+      "materialId": "dial-glass",
+      "transform": {
+        "location": [
+          0,
+          0.006,
+          0.0395
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.78,
+          1
+        ]
+      },
+      "tags": [
+        "hero-product",
+        "detail"
+      ],
+      "locked": false
+    },
+    {
+      "id": "watch-crown",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.006,
+        "depth": 0.016,
+        "segments": 24
+      },
+      "materialId": "accent-signal",
+      "transform": {
+        "location": [
+          0.102,
+          0,
+          0.019
+        ],
+        "rotationEuler": [
+          0,
+          1.5707963,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "hero-product",
+        "detail"
+      ],
+      "locked": false
+    }
+  ],
+  "lights": [
+    {
+      "id": "key-light",
+      "type": "area",
+      "transform": {
+        "location": [
+          0.75,
+          -1.05,
+          0.85
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 72,
+      "color": [
+        1,
+        0.97,
+        0.93,
+        1
+      ],
+      "size": 0.9
+    },
+    {
+      "id": "fill-light",
+      "type": "area",
+      "transform": {
+        "location": [
+          -1.1,
+          -0.7,
+          0.45
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 19.2,
+      "color": [
+        0.82,
+        0.88,
+        1,
+        1
+      ],
+      "size": 1.4
+    },
+    {
+      "id": "rim-light",
+      "type": "area",
+      "transform": {
+        "location": [
+          -0.35,
+          1.05,
+          0.7
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 49.2,
+      "color": [
+        0.86,
+        0.92,
+        1,
+        1
+      ],
+      "size": 0.8
+    }
+  ],
+  "cameras": [
+    {
+      "id": "camera-main",
+      "lens": 70,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          0,
+          -0.5,
+          0.2
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetEntityId": "watch-body"
+    },
+    {
+      "id": "camera-top",
+      "lens": 50,
+      "sensorWidth": 36,
+      "clipping": [
+        0.05,
+        100
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.9
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetEntityId": "watch-body"
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-turntable",
+      "cameraId": "camera-main",
+      "frameRange": [
+        1,
+        90
+      ],
+      "description": "One full revolution of the product on the main camera."
+    }
+  ],
+  "animationTracks": [
+    {
+      "id": "watch-turntable",
+      "targetEntityId": "watch-body",
+      "property": "rotationEuler.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 45,
+          "value": 3.14159265,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 90,
+          "value": 6.28318531,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "dial-turntable",
+      "targetEntityId": "watch-dial",
+      "property": "rotationEuler.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 45,
+          "value": 3.14159265,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 90,
+          "value": 6.28318531,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "crown-turntable",
+      "targetEntityId": "watch-crown",
+      "property": "rotationEuler.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 45,
+          "value": 3.14159265,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 90,
+          "value": 6.28318531,
+          "interpolation": "linear"
+        }
+      ]
+    }
+  ],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        640,
+        360
+      ],
+      "samples": 48,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "Standard",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 256
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "samples": 256,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 1024
+    }
+  }
+}

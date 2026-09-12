@@ -9,18 +9,28 @@
  * preset row that provided a process-global service would collide on the second
  * session (SPEC §4.4).
  *
- * M0 registers one tool, `blender_capabilities`. The remaining tools from
- * SPEC §11 arrive with the milestones that implement their host services; they
- * are deliberately absent rather than registered-and-throwing, because a tool
- * the model can see is a promise the runtime must keep.
+ * TOOLS BY MILESTONE
+ * ------------------
+ *   M0  blender_capabilities
+ *   M1  blender_project_create, blender_project_get, blender_scene_get,
+ *       blender_scene_patch, blender_preview_render, blender_scene_validate
  *
- * Owner: DeepBlend Studio — M0
+ * The remaining SPEC §11 tools (final render, export, asset ingest, job status,
+ * job cancel) are deliberately ABSENT rather than registered-and-throwing: a tool
+ * the model can see is a promise the runtime must keep, and their host services
+ * arrive in M3. `blender_capabilities` stays in this file because it is the M0
+ * tool and its behaviour is pinned by the M0 acceptance suite.
+ *
+ * Owner: DeepBlend Studio — M1
  * Plane: Agent preset
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
+
+import { TOOL_OUTPUT, resolveStudio } from './shared.js'
+import { apply as applySceneTools } from './tools.js'
 
 /** Plugin name, surfaced in loader diagnostics. */
 export const name = 'deepblend-blender-tool'
@@ -35,19 +45,32 @@ export const name = 'deepblend-blender-tool'
  * until the host bundle is composed: mount validation fails, and a session on
  * this preset cannot start at all.
  *
- * The Host Bundle is the M0 deliverable that must be installed by the operator
- * (it is a process-level composition change, so it only takes effect on the
- * next profile boot). Making the tool's absence a mount-time failure would mean
- * a half-installed deployment cannot even open a session to diagnose itself.
+ * The Host Bundle is a process-level composition change that must be installed
+ * by the operator, so it only takes effect on the next profile boot. Making the
+ * tools' absence a mount-time failure would mean a half-installed deployment
+ * cannot even open a session to diagnose itself.
  *
- * So the service is resolved per call from `ctx`. The tool is always visible in
- * the catalog and its description says what it does; if the host half is
+ * So the service is resolved per call from `ctx`. Every tool is always visible
+ * in the catalog and its description says what it does; if the host half is
  * missing, calling it returns a stable `BLENDER_RUNTIME_UNAVAILABLE` error
  * explaining exactly which bundle to compose. Nothing fails silently.
  */
 export const inject = ['tools']
-/** No configuration in M0; present so a composition row may carry `config:` later. */
+/** No configuration; present so a composition row may carry `config:` later. */
 export const Config = undefined
+
+/**
+ * Register the DeepBlend tools for the calling agent scope.
+ *
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ */
+export function apply(ctx) {
+  // Registration is fiber-scoped: Cordis disposes these registrations when the
+  // preset's subtree unmounts, so no manual teardown is needed (and adding one
+  // would risk double-disposal on reload).
+  ctx.tools.register(capabilitiesTool(ctx))
+  applySceneTools(ctx)
+}
 
 /**
  * Render the canonical capability report as compact, model-readable text.
@@ -116,16 +139,9 @@ function renderCapabilityText(value) {
   return lines.join('\n')
 }
 
-/**
- * Register the DeepBlend tools for the calling agent scope.
- *
- * @param {import('@deepseek-ai/cordis').Context} ctx
- */
-export function apply(ctx) {
-  // Registration is fiber-scoped: Cordis disposes this registration when the
-  // preset's subtree unmounts, so no manual teardown hook is needed (and adding
-  // one would risk double-disposal on reload).
-  ctx.tools.register(defineTool({
+/** The M0 capability tool, unchanged in behaviour. */
+function capabilitiesTool(ctx) {
+  return defineTool({
     name: 'blender_capabilities',
     description:
       'Report what the local Blender runtime can actually do: version, Python version, which render ' +
@@ -142,43 +158,28 @@ export function apply(ctx) {
           'Blender path or installing a different Blender build.',
       },
     },
-    output: {
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          text: { type: 'string', required: true },
-          data: { type: 'object', additionalProperties: true, required: true },
-        },
-      },
-      render: (_args, value) => [{ type: 'text', text: value.text }],
-    },
+    output: TOOL_OUTPUT,
     /**
      * @param {{ refresh?: boolean }} args
      * @param {import('@deepseek-ai/dsh-tools').ToolRunContext} exec
      */
     async execute(args, exec) {
       // Resolved per call rather than injected — see the `inject` note above.
-      const studio = ctx.get('blenderStudio')
-      if (studio === undefined) {
-        const error = new BlenderError(
-          BlenderErrorCode.RUNTIME_UNAVAILABLE,
-          'The DeepBlend host half is not composed in this process, so no Blender runtime is available. ' +
-            'Add "@deepblend/dsh-blender-bundle" to the profile\'s dsh.profile.bundles and restart the profile.',
-          { detail: { missingService: 'blenderStudio', bundle: '@deepblend/dsh-blender-bundle' } },
-        )
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) {
         return {
-          text: `Blender capability probe unavailable.\nerrorCode: ${error.code}\nmessage:   ${error.message}`,
-          data: error.toJSON(),
+          ok: false,
+          text: `Blender capability probe unavailable.\n${resolved.unavailable.text}`,
+          data: resolved.unavailable.data,
         }
       }
 
       try {
-        const data = await studio.describeCapabilities({
+        const data = await resolved.studio.describeCapabilities({
           refresh: args?.refresh === true,
           signal: exec.signal,
         })
-        return { text: renderCapabilityText(data), data }
+        return { ok: true, text: renderCapabilityText(data), data }
       } catch (cause) {
         // A probe failure must still reach the model as readable text plus a
         // stable code, not as an opaque tool crash (SPEC §11.1).
@@ -190,12 +191,13 @@ export function apply(ctx) {
             { cause },
           )
         return {
+          ok: false,
           text:
             `Blender capability probe failed.\n` +
             `errorCode: ${error.code}\n` +
             `message:   ${error.message}\n` +
             (error.detail !== undefined ? `detail:    ${JSON.stringify(error.detail)}\n` : ''),
-          data: { errorCode: error.code, message: error.message, detail: error.detail ?? null },
+          data: { ok: false, errorCode: error.code, message: error.message, detail: error.detail ?? null },
         }
       }
     },
@@ -203,5 +205,5 @@ export function apply(ctx) {
       args?.refresh === true
         ? { card: 'generic', title: 'Re-probe Blender capabilities', kind: 'other' }
         : { card: 'generic', title: 'Check Blender capabilities', kind: 'read' },
-  }))
+  })
 }

@@ -6,8 +6,14 @@ node_modules/
 # deepblend/docs/dsh-baseline.md §5.
 .tools/
 
-# DeepBlend runtime scratch: per-invocation working directories and, from M1,
-# project storage. Never source.
+# DeepBlend runtime state, never source:
+#   .deepblend/tmp/       per-invocation Blender working directories
+#   .deepblend/projects/  the Project + Revision Store (M1). This is where real
+#                         projects live, including the demo project. It is
+#                         deliberately NOT committed: it is generated state, and
+#                         the two things that make it reproducible ARE committed
+#                         — the fixture SceneSpec and
+#                         `deepblend/tools/create-demo-project.mjs`.
 .deepblend/
 
 # OS noise

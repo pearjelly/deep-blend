@@ -1,0 +1,69 @@
+{
+  "fixtureVersion": "deepblend.fixture/v1",
+  "id": "product-turntable",
+  "specPath": "scene-spec.json",
+  "purpose": "The M1 acceptance fixture (SPEC §2.8/§19.5, §20 M1 '产品转台 Fixture'): one deterministic product-turntable scene that exercises generators, materials, three-point lighting, a targeted camera, a 360° animation track and both render profiles.",
+  "structural": {
+    "digest": "2a453a976931fc1fb98ea50427cea75593feeed84c0088be84d4b3aee35cb43a",
+    "digestNote": "sha256 of the canonical SceneSpec projection (project.goal and project.title excluded). Asserted so any accidental fixture edit is a visible test failure rather than a quietly different golden scene.",
+    "entityCount": 4,
+    "materialCount": 4,
+    "lightCount": 3,
+    "cameraCount": 2,
+    "shotCount": 1,
+    "animationTrackCount": 3,
+    "subjectBounds": {
+      "min": [
+        -0.1732,
+        -0.1732,
+        -0.1547
+      ],
+      "max": [
+        0.1732,
+        0.1732,
+        0.1917
+      ]
+    }
+  },
+  "blender": {
+    "expectedObjectCount": 9,
+    "expectedObjectNote": "4 entities compile to 4 mesh objects; 3 lights compile to 3 light objects. Cameras compile to camera objects and are counted separately, since a camera is not geometry and must never be mistaken for a renderable subject.",
+    "expectedCameraObjectCount": 2,
+    "expectedMeshObjectCount": 4,
+    "expectedLightObjectCount": 3,
+    "expectedMaterialCount": 4,
+    "expectedActionCount": 3,
+    "expectedActionNote": "Three animation tracks (watch-body, watch-dial, watch-crown) become exactly one Blender action each, because the watch is three separate entities that must turn together.",
+    "expectedFrameStart": 1,
+    "expectedFrameEnd": 90,
+    "expectedFps": 30,
+    "expectedTotalVertices": 332,
+    "expectedTotalPolygons": 243,
+    "expectedEngine": "CYCLES",
+    "expectedMaterialNote": "Every entity in this fixture names a material, so the compiler creates no default. The count therefore equals the spec's material list, which is the assertion worth making: an extra material would mean an entity silently fell back to the default."
+  },
+  "expectedQA": {
+    "previewRenderMustSucceed": true,
+    "minPreviewBytes": 2048,
+    "aspectRatioTolerance": 0.01,
+    "brightnessFloor": 0.01,
+    "brightnessCeiling": 0.98,
+    "brightnessNote": "SPEC §19.5 checks brightness distribution rather than pixel equality. A frame that is uniformly black (all zero) or uniformly blown out (all 255) means the lighting or the camera is wrong even though the render 'succeeded', so both extremes are asserted against."
+  },
+  "perceptualTolerance": {
+    "policy": "structural, not pixel equality",
+    "note": "SPEC §19.5: 不要求像素完全一致. The golden comparison asserts object/material/camera counts, the camera's position, the frame range and the animation trajectory. Rendered pixels are checked only for size, aspect ratio and a non-degenerate brightness histogram, because a GPU rasteriser's exact samples are not reproducible across drivers or Blender patch releases.",
+    "brightnessFloor": 0.05,
+    "brightnessCeiling": 0.99,
+    "brightnessNote": "SPEC §19.5 checks brightness distribution rather than pixel equality. A frame that is uniformly black (mean below the floor) or uniformly blown out (mean above the ceiling) means the lighting or the camera is wrong even though the render \"succeeded\". A polished metal case legitimately clips its specular highlights, so the ceiling is about the MEAN, and the blown-pixel share is reported rather than asserted tightly (measured ~11% at the shipped light energies).",
+    "measured": {
+      "meanLuminance": 118.1,
+      "p05": 35.9,
+      "p50": 105.8,
+      "p95": 255,
+      "blownPercent": 11,
+      "blackPercent": 0
+    },
+    "measuredNote": "Measured from frame 1 of the main camera at 640x360, 48 Cycles samples, at the energies committed in scene-spec.json."
+  }
+}

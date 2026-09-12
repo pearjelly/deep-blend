@@ -107,6 +107,12 @@ try {
   )
   root.plugin((await import('@deepblend/dsh-blender-host')).default, {
     projectsRoot: join(PROJECT_ROOT, '.deepblend', 'projects'),
+    // M1 added `workspaceRoot` as a required key: the host stages a revision
+    // inside the project and the provider writes its Blender output under the
+    // same root, so a host row without it could hand out a staging path the
+    // provider's path guard would reject. Composing this row by hand therefore
+    // requires the key, exactly as the bundle patch supplies it.
+    workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
     serveCachedCapabilities: true,
   })
   // ...and the agent-preset row.
@@ -137,10 +143,15 @@ try {
       signal: AbortSignal.timeout(180_000),
     })
     check('tool call succeeds', result.isError === false, result.isError ? JSON.stringify(result.error) : undefined)
+    // M1 added a shared envelope to every DeepBlend tool: `ok` for the verdict,
+    // `text` for the model, `data` for Canonical JSON. `blender_capabilities`
+    // now sets `ok` too, and the canonical document is still `data`.
     check(
       'tool result carries Canonical JSON with real Blender data',
-      result.value?.data?.installed === true && typeof result.value?.data?.version === 'string',
-      { installed: result.value?.data?.installed, version: result.value?.data?.version },
+      result.value?.ok === true
+        && result.value?.data?.installed === true
+        && typeof result.value?.data?.version === 'string',
+      { ok: result.value?.ok, installed: result.value?.data?.installed, version: result.value?.data?.version },
     )
     check(
       'tool text is model-readable and names the usable engines',

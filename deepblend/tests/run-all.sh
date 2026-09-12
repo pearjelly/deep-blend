@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# DeepBlend M0 — the complete acceptance suite.
+# DeepBlend — the complete acceptance suite.
 #
-# Runs the fast unit/contract suites first, then the three end-to-end suites that
-# need a real Blender and a real Cordis process. Every suite must pass for M0 to
-# be considered green.
+# Runs the fast unit/contract suites first, then the end-to-end suites that need
+# a real Blender and a real Cordis process. Every suite must pass for the current
+# milestone to be considered green.
+#
+# M0 delivered the minimal vertical slice (capability detection).
+# M1 added the batch SceneSpec loop (projects, revisions, patch, preview).
 #
 # Usage: bash deepblend/tests/run-all.sh
 set -uo pipefail
@@ -14,7 +17,7 @@ cd "$ROOT"
 BLENDER="$ROOT/.tools/Blender.app/Contents/MacOS/Blender"
 if [ ! -x "$BLENDER" ]; then
   echo "Blender not found at $BLENDER"
-  echo "M0's Blender suites cannot run. See deepblend/docs/dsh-baseline.md §5."
+  echo "The Blender suites cannot run. See deepblend/docs/dsh-baseline.md §5."
   exit 2
 fi
 
@@ -35,20 +38,26 @@ run_suite() {
 run_suite "unit + contract (no Blender required)" \
   node deepblend/tests/run.mjs
 
-run_suite "Blender integration (real binary, real Cordis context)" \
+run_suite "Blender capability probe (M0)" \
   node deepblend/tests/blender-integration/probe.e2e.mjs
+
+run_suite "Blender batch SceneSpec + revision loop (M1)" \
+  node deepblend/tests/blender-integration/fixture.e2e.mjs
 
 run_suite "Host composition activation" \
   node deepblend/tests/composition/activation.e2e.mjs
 
-run_suite "Agent preset tool plane + degradation path" \
+run_suite "Agent preset tool plane + degradation path (M0)" \
   node deepblend/tests/composition/tool-plane.e2e.mjs
+
+run_suite "Agent preset M1 tool plane (all seven tools)" \
+  node deepblend/tests/composition/tool-plane-m1.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"
 if [ "$failed" -eq 0 ]; then
-  echo "M0 acceptance suite: ALL SUITES PASSED"
+  echo "DeepBlend acceptance suite: ALL SUITES PASSED"
   exit 0
 fi
-echo "M0 acceptance suite: $failed suite(s) FAILED"
+echo "DeepBlend acceptance suite: $failed suite(s) FAILED"
 exit 1

@@ -8,6 +8,16 @@
  * literally. Adding a new code is allowed (it is additive and forward
  * compatible); changing or dropping one is not.
  *
+ * M1 EXTENDED THE VOCABULARY, AND THAT FORCED ONE HONEST CHANGE HERE. M0's codes
+ * all describe the Blender toolchain and are `BLENDER_*`. M1's describe the
+ * project and revision model — `PROJECT_NOT_FOUND`, `REVISION_CONFLICT`,
+ * `SCENE_SPEC_INVALID` — and prefixing those with `BLENDER_` would say something
+ * false about which layer failed. So the M0 convention test became a RELATIONSHIP
+ * test: every key must map to either exactly itself or `BLENDER_<key>`, which is
+ * still fully deterministic and greppable, still catches a typo, and no longer
+ * forces a misleading name. The M0 codes themselves are unchanged and still
+ * pinned key-for-key below.
+ *
  * Run standalone: `node deepblend/tests/contract/error-codes.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
  */
@@ -52,7 +62,8 @@ export const M0_WARNING_CODES = Object.freeze({
   STALE_CAPABILITIES: 'STALE_CAPABILITIES',
 })
 
-const ERROR_CODE_PATTERN = /^BLENDER_[A-Z0-9_]+$/
+/** A code is SCREAMING_SNAKE, optionally bearing the toolchain prefix. */
+const ERROR_CODE_PATTERN = /^(BLENDER_)?[A-Z][A-Z0-9_]*$/
 const WARNING_CODE_PATTERN = /^[A-Z][A-Z0-9_]+$/
 
 const FIXTURE_PATH = resolve(
@@ -68,15 +79,36 @@ const FIXTURE_PATH = resolve(
 // Shape of the vocabulary
 // ---------------------------------------------------------------------------
 
-test('every BlenderErrorCode value is a BLENDER_ prefixed SCREAMING_SNAKE string', () => {
+test('every BlenderErrorCode value is a SCREAMING_SNAKE string in lockstep with its key', () => {
   const entries = Object.entries(BlenderErrorCode)
   assert.ok(entries.length > 0, 'BlenderErrorCode is empty')
 
   for (const [key, value] of entries) {
     assert.equal(typeof value, 'string', `${key} is not a string`)
     assert.match(value, ERROR_CODE_PATTERN, `${key} = "${value}" does not match ${ERROR_CODE_PATTERN}`)
-    // The convention is `KEY: 'BLENDER_KEY'`; keep the two in lockstep.
-    assert.equal(value, `BLENDER_${key}`, `${key} disagrees with its value "${value}"`)
+    // `KEY: 'BLENDER_KEY'` for the Blender toolchain (M0), `KEY: 'KEY'` for the
+    // project/revision model (M1). Never a third spelling.
+    assert.ok(
+      value === key || value === `BLENDER_${key}`,
+      `${key} disagrees with its value "${value}": expected "${key}" or "BLENDER_${key}"`,
+    )
+  }
+})
+
+test('the M1 project and revision codes are present and unprefixed', () => {
+  // Named explicitly because a missing code is a runtime surprise rather than a
+  // compile error: the tool would report an undefined `errorCode` to the model.
+  for (const key of [
+    'PROJECT_NOT_FOUND', 'PROJECT_CORRUPT', 'PROJECT_EXISTS', 'PROJECT_ID_INVALID',
+    'REVISION_NOT_FOUND', 'REVISION_CORRUPT', 'REVISION_CHECKPOINT_MISSING',
+    'REVISION_CONFLICT', 'REVISION_ALLOCATION_FAILED', 'REVISION_ID_INVALID',
+    'SCENE_SPEC_INVALID', 'SCENE_PATCH_INVALID', 'SCENE_PATCH_REJECTED',
+    'SCENE_VALIDATION_FAILED', 'SCENE_CAMERA_MISSING',
+    'PATH_OUTSIDE_WORKSPACE', 'PATH_SEGMENT_INVALID',
+    'ASSET_MISSING', 'ASSET_FORMAT_UNAVAILABLE', 'ASSET_HASH_MISMATCH',
+    'RENDER_PROFILE_MISSING', 'RENDER_BUDGET_EXCEEDED', 'RENDER_NO_OUTPUT',
+  ]) {
+    assert.equal(BlenderErrorCode[key], key, `${key} is missing or renamed`)
   }
 })
 
