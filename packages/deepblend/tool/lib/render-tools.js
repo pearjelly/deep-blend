@@ -8,12 +8,12 @@
  * WHY THESE FOUR, AND WHY THEY ARE THE LAST ONES
  * ----------------------------------------------
  * M0/M1/M2 registered ten tools and deliberately left five unregistered, on the
- * rule that **a tool the model can see is a promise the runtime must keep**. Three
+ * rule that **a tool the model can see is a promise the runtime must keep**. Four
  * of the five arrive here, because their host services now exist:
  *
- *   blender_final_render   start (or resume) a delivery render  — §7.2 startFinalRender
- *   blender_export         encode + publish + manifest          — §7.2 exportProject
- *   blender_job_status     read a durable job                   — §7.2 getJob
+ *   blender_final_render   start (or resume) a delivery render   — §7.2 startFinalRender
+ *   blender_export         encode + publish + manifest           — §7.2 exportProject
+ *   blender_job_status     read a durable job                    — §7.2 getJob
  *   blender_job_cancel     stop it and prove the process is gone — §7.2 cancelJob
  *
  * `blender_asset_ingest` stays ABSENT: its host service and its approval boundary
@@ -33,7 +33,7 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { warning } from '@deepblend/dsh-blender-contracts'
+import { BlenderErrorCode, HOST_API_VERSION, warning } from '@deepblend/dsh-blender-contracts'
 
 import {
   TOOL_OUTPUT,
@@ -53,6 +53,71 @@ export function applyRenderTools(ctx) {
   ctx.tools.register(exportDelivery(ctx))
   ctx.tools.register(jobStatus(ctx))
   ctx.tools.register(jobCancel(ctx))
+}
+
+/**
+ * Refuse, in words, when the host half in this process is older than the tools.
+ *
+ * WHY THIS EXISTS, AND WHY IT IS NOT DEFENSIVE PADDING
+ * ----------------------------------------------------
+ * A host SERVICE instance lives in the process that constructed it, and Node's ESM
+ * module cache is process-level: updating the packages on disk does not update the
+ * `blenderStudio` that is already running. So there is a real deployment state where
+ * the tool plane is new and the host plane is not — and in that state every M3 tool
+ * would call a method that does not exist and fail with a `TypeError` wearing a
+ * `BLENDER_SCRIPT_ERROR` label. That is the worst kind of error here: a stable code
+ * that names the wrong problem.
+ *
+ * WHY IT ASKS FOR A VERSION INSTEAD OF LOOKING FOR METHODS
+ * --------------------------------------------------------
+ * The first version of this guard probed for the M3-only methods by `typeof`, and it
+ * was WRONG in a way worth recording. It caught `resumeRenderJob`, `listJobs` and
+ * `reconcileRenderJobs` — those are simply absent on the old host — and it MISSED
+ * `startFinalRender` and `exportProject`, because M1 implemented those as stubs and
+ * so `typeof` is `'function'` on both the old and the new host. The guard therefore
+ * covered four of six entry points and silently let through the two that would have
+ * failed worst. `deepblend/tests/contract/host-plane-staleness.test.mjs` now asserts
+ * all six, which is how the gap was found.
+ *
+ * The missing method is a property of the DEPLOYMENT, not of the request, so it is
+ * reported as one, with the fix.
+ *
+ * @param {object} studio the resolved host service
+ * @param {string[]} methods the M3 methods this tool needs, named in the diagnosis
+ * @returns {{text: string, data: object}|null} a refusal, or null when the host is current
+ */
+function hostPlaneIsCurrent(studio, methods) {
+  const version = typeof studio.hostApiVersion === 'function' ? studio.hostApiVersion() : 0
+  if (Number.isFinite(version) && version >= HOST_API_VERSION) return null
+
+  // Named when they can be named, because "which methods are missing" is the useful
+  // half of the diagnosis for a human deciding whether to restart. Absence is not
+  // always detectable (see above), so this list is evidence, never the test.
+  const missing = methods.filter(name => typeof studio[name] !== 'function')
+  const versionText = Number.isFinite(version) && version > 0 ? `host API ${version}` : 'no host API version'
+  return {
+    text:
+      `DeepBlend host services are present but too OLD for this tool.\n` +
+      `errorCode: ${BlenderErrorCode.RUNTIME_UNAVAILABLE}\n` +
+      `message:   this tool needs host API ${HOST_API_VERSION}, and the running blenderStudio service reports ` +
+      `${versionText}${missing.length > 0 ? ` and has no ${missing.join(', ')}` : ''}. The packages on disk are ` +
+      'newer than the host service in this process, which is expected after an upgrade and before a profile ' +
+      'restart: a Cordis service keeps the code it was constructed from.\n' +
+      'fix:       restart the profile (`dsh web`) and open a new session.',
+    data: {
+      ok: false,
+      errorCode: BlenderErrorCode.RUNTIME_UNAVAILABLE,
+      message:
+        `the running blenderStudio service is host API ${version || 'pre-M3'} and this tool needs ` +
+        `${HOST_API_VERSION}; restart the profile`,
+      detail: {
+        requiredHostApiVersion: HOST_API_VERSION,
+        reportedHostApiVersion: Number.isFinite(version) ? version : null,
+        missingMethods: missing,
+        fix: 'restart the dsh profile',
+      },
+    },
+  }
 }
 
 /**
@@ -152,6 +217,8 @@ function finalRender(ctx) {
       }
       try {
         if (typeof args?.resumeJobId === 'string' && args.resumeJobId.length > 0) {
+          const stale = hostPlaneIsCurrent(resolved.studio, ['resumeRenderJob', 'getJob'])
+          if (stale !== null) return { ok: false, ...stale }
           const { data, canonicalWarnings } = await canonicalCall(
             resolved.studio.resumeRenderJob(definedFields({
               projectId: args.projectId,
@@ -182,6 +249,8 @@ function finalRender(ctx) {
           }
         }
 
+        const stale = hostPlaneIsCurrent(resolved.studio, ['startFinalRender', 'listJobs', 'getJob'])
+        if (stale !== null) return { ok: false, ...stale }
         const { data, canonicalWarnings } = await canonicalCall(
           resolved.studio.startFinalRender(definedFields({
             projectId: args.projectId,
@@ -258,6 +327,8 @@ function exportDelivery(ctx) {
         return { ok: false, text: `Delivery export unavailable.\n${resolved.unavailable.text}`, data: resolved.unavailable.data }
       }
       try {
+        const stale = hostPlaneIsCurrent(resolved.studio, ['exportProject', 'getJob'])
+        if (stale !== null) return { ok: false, ...stale }
         const { data, canonicalWarnings } = await canonicalCall(
           resolved.studio.exportProject(definedFields({
             projectId: args?.projectId,
@@ -314,6 +385,8 @@ function jobStatus(ctx) {
       }
       try {
         if (typeof args?.jobId === 'string' && args.jobId.length > 0) {
+          const stale = hostPlaneIsCurrent(resolved.studio, ['getJob'])
+          if (stale !== null) return { ok: false, ...stale }
           const { data, canonicalWarnings } = await canonicalCall(
             resolved.studio.getJob({ projectId: args.projectId, jobId: args.jobId }),
             warning,
@@ -325,6 +398,8 @@ function jobStatus(ctx) {
             data,
           }
         }
+        const stale = hostPlaneIsCurrent(resolved.studio, ['listJobs'])
+        if (stale !== null) return { ok: false, ...stale }
         const { data, canonicalWarnings } = await canonicalCall(
           resolved.studio.listJobs(definedFields({ projectId: args?.projectId, limit: args?.limit })),
           warning,
@@ -384,6 +459,8 @@ function jobCancel(ctx) {
         return { ok: false, text: `Job cancellation unavailable.\n${resolved.unavailable.text}`, data: resolved.unavailable.data }
       }
       try {
+        const stale = hostPlaneIsCurrent(resolved.studio, ['cancelJob'])
+        if (stale !== null) return { ok: false, ...stale }
         const { data, canonicalWarnings } = await canonicalCall(
           resolved.studio.cancelJob(definedFields({
             projectId: args?.projectId,

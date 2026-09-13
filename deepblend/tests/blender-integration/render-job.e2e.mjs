@@ -462,12 +462,29 @@ check('the cancelled job is recorded as cancelled, with the frames it did render
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status)
 
 // A cancelled job is resumable, and resuming it renders only what is missing.
-const afterCancel = framesIn(join(scratch, 'projects', projectId, 'renders', long.jobId, 'frames'))
+//
+// THE ASSERTIONS ARE ABOUT THE CONTRACT, NOT ABOUT WHERE THE KILL LANDED
+// ---------------------------------------------------------------------
+// The first version of this check asserted `alreadyComplete === <files on disk>` and
+// was FLAKY — it failed once in three runs, and the product was right every time.
+// Cancelling a render lands wherever it lands, and when it lands between `create` and
+// `finish` the directory holds a file that EXISTS and is not a frame. The ledger
+// reports that frame as `corrupt` and re-renders it, which is the whole point of the
+// ledger. So the deterministic contract is: every file on disk is accounted for as
+// either complete or torn, and every frame of the range is scheduled exactly once.
+const afterCancelDirectory = join(scratch, 'projects', projectId, 'renders', long.jobId, 'frames')
+const afterCancel = framesIn(afterCancelDirectory)
 const resumedAfterCancel = await studio.resumeRenderJob({ projectId, jobId: long.jobId })
-check('a cancelled render can be resumed, and resumes from what it already has',
-  resumedAfterCancel.alreadyComplete === afterCancel.length &&
-  resumedAfterCancel.resumed === 210 - afterCancel.length,
-  { alreadyComplete: resumedAfterCancel.alreadyComplete, resumed: resumedAfterCancel.resumed, cancelled: afterCancel.length })
+check('a cancelled render is resumable, and every frame of its range is accounted for exactly once',
+  resumedAfterCancel.alreadyComplete + resumedAfterCancel.resumed === 210,
+  { alreadyComplete: resumedAfterCancel.alreadyComplete, resumed: resumedAfterCancel.resumed })
+check('each file the cancel left behind is reported as either COMPLETE or TORN, and nothing else',
+  resumedAfterCancel.alreadyComplete === afterCancel.length - (resumedAfterCancel.corrupt?.length ?? 0),
+  { files: afterCancel.length, complete: resumedAfterCancel.alreadyComplete, torn: resumedAfterCancel.corrupt })
+check('a frame the cancel left half-written is re-rendered rather than kept',
+  (resumedAfterCancel.corrupt ?? []).every(entry =>
+    resumedAfterCancel.resumedFrames.includes(entry.frame)),
+  { torn: resumedAfterCancel.corrupt, scheduled: resumedAfterCancel.resumedFrames.length })
 await studio.cancelJob({ projectId, jobId: long.jobId, reason: 'integration test cleanup' })
 
 // ---------------------------------------------------------------------------

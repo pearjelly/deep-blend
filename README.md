@@ -41,7 +41,7 @@ deepblend/
                       m3-restart-probe.mjs —— M3 的第一个任务：真实 kill -9 重启探针
                       m3-delivery-acceptance.mjs —— 真实项目上的 1080p 交付（约 30 分钟）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         13 个 *.test.mjs
+    contract/         14 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -79,7 +79,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**11 个套件、21 个文件、1074 项断言**全部通过。单跑某一层：
+预期：**11 个套件、22 个文件、1106 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）

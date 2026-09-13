@@ -371,6 +371,12 @@ check('resuming a COMPLETED job is refused with a coded result pointing at blend
   resumeCompleted.value?.ok === false && resumeCompleted.value.data.errorCode === 'RENDER_JOB_STATE_INVALID' &&
   /blender_export/.test(resumeCompleted.value.data.message), resumeCompleted.value?.data?.errorCode)
 
+// The "host plane older than the tool plane" scenario is NOT tested here. It needs a
+// `blenderStudio` with the OLD surface, and a Cordis service provided from one root
+// context cannot be overridden by a second root in the same process — measured while
+// writing this, and the reason that scenario lives in its own file
+// (`contract/host-plane-staleness.test.mjs`), where nothing else is composed.
+
 // ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------

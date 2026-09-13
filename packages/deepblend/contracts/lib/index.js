@@ -214,6 +214,30 @@ export const BlenderWarningCode = Object.freeze({
   DELIVERY_CLAIM_UNAVAILABLE: 'DELIVERY_CLAIM_UNAVAILABLE',
 })
 
+/**
+ * The host API version the packages in this build implement.
+ *
+ * WHY A NUMBER AND NOT A METHOD PROBE
+ * -----------------------------------
+ * A tool plane newer than the host plane is a REAL deployment state, not a
+ * hypothetical: a Cordis service keeps the code it was constructed from, and Node's
+ * ESM module cache is process-level, so replacing the packages on disk does not
+ * replace the running `blenderStudio`. MEASURED while M3 was written — the `dsh web`
+ * process then running had started five hours before the M3 commit.
+ *
+ * Probing for methods catches that state for `resumeRenderJob`, `listJobs` and
+ * `reconcileRenderJobs` (they are simply absent), and MISSES it for
+ * `startFinalRender` and `exportProject`, because M1 implemented those as stubs and
+ * so `typeof` is `'function'` on both the old and the new host. The failure mode of
+ * the probe is therefore the worst kind: it guards four entry points and silently
+ * lets the other two through. A number answers the question the probe was trying to
+ * answer.
+ *
+ * Bump this when the tool plane starts depending on a host method that did not exist
+ * before. 3 is M3 (the persistent render job).
+ */
+export const HOST_API_VERSION = 3
+
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
 export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])
 /** Formats the product intends to be able to export. */

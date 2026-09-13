@@ -275,9 +275,9 @@ async function commandRun(argv) {
   const deadline = Date.now() + 60 * 60 * 1000
   let landed = 0
   while (Date.now() < deadline) {
-    landed = framesIn(join(STORE, 'projects', PROJECT, 'renders'))
-    // The job directory is not known to this process, so the count is taken from the
-    // newest render job on disk rather than guessed.
+    // The job directory is not known to this process — the Host in the child process
+    // minted it — so the count is taken from the newest render job on disk rather
+    // than guessed from a path this process would have to predict.
     landed = newestJobFrames()
     if (landed >= killAt) break
     if (child.exitCode !== null) throw new Error(`the starting Host exited early with ${child.exitCode}`)

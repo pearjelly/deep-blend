@@ -35,8 +35,18 @@
  * with `--use-ledger-module` so the real module is shown to agree with the
  * evidence this probe produced.
  *
+ * CLEANING UP AFTER ITSELF
+ * ------------------------
+ * The probe renders into the project's REAL `renders/` directory, because that is
+ * where a recovery has to find it. Residue is the price of realism, so the probe
+ * removes its own job directory once it has converged — the run's evidence is its
+ * transcript, not the frames. `--keep` retains the directory for inspection, which
+ * is what the run recorded in `docs/probe-m3-restart.log` was made with. A probe
+ * that leaves 8 MB in a project nobody asked it to touch is the same class of
+ * defect the M0 staging guardrail exists to catch.
+ *
  * Usage:
- *   node deepblend/tools/m3-restart-probe.mjs restart [--frames 8] [--kill-at 3]
+ *   node deepblend/tools/m3-restart-probe.mjs restart [--frames 8] [--kill-at 3] [--keep]
  *   node deepblend/tools/m3-restart-probe.mjs ledger-audit --job <name>
  *
  * Owner: DeepBlend Studio — M3
@@ -360,6 +370,18 @@ async function commandRecover(argv) {
 
   const converged = finalLedger.missing.length === 0 && finalLedger.corrupt.length === 0
   console.log(converged ? 'PROBE_CONVERGED' : 'PROBE_DID_NOT_CONVERGE')
+
+  // Clean up, but only on success and only unless asked to keep: a probe that
+  // removes the evidence of a FAILED run has destroyed the thing someone needs.
+  const keep = argv.includes('--keep') || process.env.DEEPBLEND_PROBE_KEEP === '1'
+  if (converged && !keep) {
+    rmSync(directory, { recursive: true, force: true })
+    say('jobDirectory.removed', directory)
+  } else if (keep) {
+    say('jobDirectory.kept', directory)
+  } else {
+    say('jobDirectory.kept.for.diagnosis', directory)
+  }
   process.exitCode = converged ? 0 : 1
 }
 

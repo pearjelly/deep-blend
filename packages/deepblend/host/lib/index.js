@@ -54,6 +54,7 @@ import {
   validateSceneSpec,
   warning,
   // M3 — the persistent render job
+  HOST_API_VERSION,
   RENDER_JOB_VERSION,
   describeRenderJob,
   estimateRemaining,
@@ -253,6 +254,21 @@ export default class BlenderStudio extends Service {
   /** @returns {import('@deepblend/dsh-blender-provider-local').default} */
   get runtime() {
     return this.ctx.blenderRuntime
+  }
+
+  /**
+   * The host API this service implements.
+   *
+   * A NUMBER, and the reason is a measurement: with M3's tools loaded against a
+   * pre-M3 host, method probing detected `resumeRenderJob`/`listJobs` as missing but
+   * saw `startFinalRender`/`exportProject` as present — because M1 implemented them
+   * as stubs that throw. So `typeof` answered "fine" for the two entry points that
+   * would have failed worst, and the guard would have covered four of six.
+   *
+   * @returns {number}
+   */
+  hostApiVersion() {
+    return HOST_API_VERSION
   }
 
   // ---------------------------------------------------------------------------
@@ -2115,7 +2131,6 @@ export default class BlenderStudio extends Service {
       frameStart: frames[0],
       frameEnd: frames[frames.length - 1],
       frames: frames.length,
-      estimate: null,
       warnings,
       message:
         `Delivery render of ${frames.length} frame(s) started for ${projectId}/${revision}. It runs in the ` +

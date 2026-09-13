@@ -7,7 +7,9 @@
 > 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
 > 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
 > 已完成：**M3（Job、恢复与正式渲染）— ✅ 验收通过**
-> 测试：**1074 项断言、11 个套件、21 个文件全部通过**
+> 测试：**1106 项断言、11 个套件、22 个文件全部通过**
+> ⚠️ **运行中的 `dsh web` 进程仍是 M1/M2 代码**：M3 需要一次 profile 重启才在 GUI 里生效，
+> 依据与步骤见 §12.9（在真实进程内实测，不是推测）。
 > 下一里程碑：M4（工作台 UI，未开始，按 SPEC §0.3 不得提前进入）
 
 ---
@@ -286,7 +288,8 @@ M2.1 的 65 项是**症状级**的：每条断言写的是用户当时看到的�
 一键运行：`bash deepblend/tests/run-all.sh`
 
 **不在 `run-all.sh` 里的一项**：`node deepblend/tests/e2e/visual-live.e2e.mjs`
-（**14/14**）。它花真实模型调用并需要 credential store，所以不进日常套件；但它**不静默跳过**——
+（**13/13**；本文件此前写作 14/14，是错的——套件自己打印 13/13，`m3-brief.md` §1 也记的是 13。
+在 M3 会话里重跑并核对过）。它花真实模型调用并需要 credential store，所以不进日常套件；但它**不静默跳过**——
 没有 API key 或模型不支持图片输入时它立即失败并说明原因，而且逐字打印模型的回答，
 让人可以判断答案质量而不是只看一个绿勾。
 
@@ -475,7 +478,7 @@ preset 作用域内注册的工具**不在**它的工具目录里——`Tool.lis
 
 **无需人工的等价验证**：`bash deepblend/tests/run-all.sh` 的 717 项断言，其中
 `tool-plane-m2.e2e.mjs` 的 29 项通过**真实 `defineTool` 定义**调用全部 10 个工具，
-`e2e/visual-live.e2e.mjs` 的 14 项是**真实模型调用**。
+`e2e/visual-live.e2e.mjs` 的 13 项是**真实模型调用**。
 
 ---
 
@@ -764,8 +767,13 @@ blender_job_status        blender_job_cancel
 这一次的读了回来。修复因此有两半，其中一半（每次 attempt 的 token）把它从一条
 「记得删文件」的约定变成一条被检查的事实。
 
+| 9 | **一个按「方法是否存在」探测的护栏漏掉了它最该拦的两个** | 写护栏时顺手写的测试（把**六个入口全部**跑一遍）。`startFinalRender` / `exportProject` 在旧宿主上是**抛错的存根**，所以 `typeof` 在新旧宿主上都是 `function`——护栏守住了 6 个入口里的 4 个，安静放过了失败后果最严重的 2 个。修法是改成**版本号**（D59） |
+| 10 | **一条断言「偶尔」失败，而产品每次都是对的** | 全量套件里的一次红：取消后「已完成的帧数」与磁盘上的文件数不等。原因是取消**落在了一次写入中间**——那个文件**存在但不是一帧**，账本报 `corrupt` 并重渲它。断言写成了「断言 kill 落在哪里」，改成断言契约：每个文件要么 COMPLETE 要么 TORN，每一帧恰好被安排一次 |
+
 **这就是 M3 为什么必须在真实项目上、真实长任务上验收。** 一个 9 帧的套件可以发现
 前七个缺陷，而第八个只有真实的时间长度能发现——这恰恰是这个里程碑存在的理由。
+第 9、10 条则是另一个方向的教训：**测试写错了也会红**，而这两次红都指向了产品里
+真实的东西（一个漏拦的护栏、一条把时序当契约的断言）。
 
 ### 12.6 三个里程碑断言「过期」的处理
 
@@ -785,27 +793,28 @@ M3 让另外三个套件里的三条断言变成了**假**，而它们当时都�
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 13 个 `*.test.mjs` | **691** |
+| 单元 + 契约 | 14 个 `*.test.mjs` | **721** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
 | Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 77/77 |
 | Blender 视觉闭环（M2） | `blender-integration/visual-loop.e2e.mjs` | 83/83 |
-| **Blender 持久渲染 Job：重启、续渲、取消、交付（M3）** | `blender-integration/render-job.e2e.mjs` | **68/68** |
+| **Blender 持久渲染 Job：重启、续渲、取消、交付（M3）** | `blender-integration/render-job.e2e.mjs` | **70/70** |
 | Host composition 激活 | `composition/activation.e2e.mjs` | 12/12 |
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
 | preset M2 工具面 | `composition/tool-plane-m2.e2e.mjs` | 32/32 |
 | **preset M3 工具面（14 个工具 + 真实交付）** | `composition/tool-plane-m3.e2e.mjs` | **45/45** |
-| **合计** | **21 个文件、11 个套件** | **1074** |
+| **合计** | **22 个文件、11 个套件** | **1106** |
 
 一键运行：`bash deepblend/tests/run-all.sh`
 
-M3 新增的 173 项分布：
+M3 新增的 205 项分布：
 
 | 文件 | 断言 | 覆盖 |
 |---|---|---|
 | `contract/render-job.test.mjs` | **60** | 帧账本（空文件 / 截断 / 无 IEND / 尺寸不符各自的行状）、帧命名与 Python 侧逐字节一致、状态机（含「failed/cancelled 可被重新打开」）、进度与剩余时间、视频属性校验的**每一条**、交付完整性、真实目录上的账本 |
 | `blender-integration/render-job.e2e.mjs` | **68** | 启动不阻塞（4 ms）、`ctx.jobs` 投影真的在册、`final` profile 真的被应用、渲染器死后记为 failed 并保留帧、**续渲只渲缺失帧**、已存在帧字节未变、**fork 一个 Host 再 SIGKILL 它**、孤儿被识别并停掉、账本重建、`recovery.json`、取消后进程实测消失、MP4 属性被独立 ffprobe 复核 |
 | `composition/tool-plane-m3.e2e.mjs` | **45** | 目录恰好 14 个、四个工具的 `projectId` 是必需参数、工具驱动的完整交付、失败是有稳定码的**结果**、续渲一个 `completed` 的 job 被指向 `blender_export` |
+| `contract/host-plane-staleness.test.mjs` | **30** | 工具平面比宿主平面新时的部署诊断：**六个入口**、两个分支、不误伤 M1/M2 工具、不误伤当前宿主（D59） |
 
 **不在 `run-all.sh` 里的两项**：`node deepblend/tests/e2e/visual-live.e2e.mjs`（真实模型调用）
 与 `node deepblend/tools/m3-delivery-acceptance.mjs run`（真实项目上的 1080p 交付，约 30 分钟）。
@@ -818,4 +827,57 @@ M3 新增的 173 项分布：
 | 2 | §10.3 第 8 步「向 UI 和 Session 发布恢复事件」 | 写 `recovery.json` 到 job 目录 | Host 启动时**还没有 session**——reconciler 在任何 agent 存在之前就跑完了，进程内事件在构造上就没有监听者。落盘的记录比一个没人收的事件活得更久 |
 | 3 | §10.2 的 `type: preview \| final-render \| export` | M3 只把 `final-render` 与 `export` 做成持久 job | 预览是秒级的（一次 4 视角约 10 s）且在工具调用内结束；把可取消、可恢复的重型机制套到它上面只会让 M2 已验证的行为变复杂。词表保留了三个值，`preview` 留给确有需要的场景 |
 | 4 | §11 `blender_export` 含 GLB/FBX/USD | M3 只实现视频交付那一半 | M3 的交付项列表里没有场景格式导出，§0.3 禁止越界；视频是 SPEC §10.4 与 §20 M3 点名的那一项 |
+
+### 12.9 运行中的进程仍是 M1/M2 代码（**需要在 profile 重启后才生效**）
+
+M3 已提交并在进程之外全部验证通过，但**当前 GUI 里的工作台还用不了它**。这不是推测，
+是在真实进程里量出来的：`dsh web`（PID 93842）启动于 **11:11:16**，而 M3 提交在 **16:29**。
+Node 的 ESM 模块缓存是**进程级且不可清除**的，所以启动时构造的 `blenderStudio`
+仍然持有它被构造时的那份代码。
+
+用动态 Cordis 插件在**运行中的进程内**直接读活实例的方法面（只读叶子事实）：
+
+```
+m3Methods.startFinalRender    function      ← M1 的 _notImplemented 存根
+m3Methods.exportProject       function      ← 同上
+m3Methods.cancelJob           function      ← M1 实现
+m3Methods.getJob              function      ← M1 实现
+m3Methods.resumeRenderJob     undefined     ← 只有 M3 才有
+m3Methods.listJobs            undefined     ← 只有 M3 才有
+m3Methods.reconcileRenderJobs undefined     ← 只有 M3 才有
+m3Methods.awaitReconciliation undefined     ← 只有 M3 才有
+renderJobStore                null          ← M3 构造函数的持久 store 不存在
+configKeyCount                11            ← M3 的 6 个配置键一个都没有
+m3ConfigKeysPresent           {finalRenderProfile: false, ffmpegPath: false, …, visualReviewModel: true}
+```
+
+`startFinalRender` 是 `function` 恰恰是**旧代码**的特征：M1 里它是个抛
+`UNSUPPORTED_ACTION` 的存根。判定依据是后四行——**M3 独有的方法一个都不存在，
+持久 store 不存在，M3 配置键一个都不存在**。
+
+**要做的事**（按 SPEC §0.3 与仓库惯例，这一步由操作者执行，不由 Agent 代劳）：
+
+```bash
+cd /Users/hxb/workspace/deep-blend && dsh web
+```
+
+重启后建议做的三件事：
+
+1. 新建 **DeepBlend 开发模式** 会话，确认工具清单是 **14 个**（§12.4）；
+2. 用 `blender_job_status {projectId: "watch-commercial"}` 查一次——
+   重启时 reconciler 会扫全部项目，`render-0001` 已是 `completed`，所以
+   `unfinished` 应当为空；`output/final.mp4` 与 `output/delivery-manifest.json` 应当仍在；
+3. `blender_final_render` 起一个小范围（例如 `frameStart: 30, frameEnd: 32`）再取消，
+   确认 `processGone` 为真——这条路径只有在真实进程里才走过 `ctx.jobs` 的投影。
+
+**顺带实测关掉的一个部署风险**：M3 的 `ffmpegPath` / `ffprobePath` 默认是**裸名字**，
+经 `ctx.subprocess.resolveExecutable` 走 PATH 解析。GUI 进程的 PATH **不是 shell 的 PATH**，
+所以实测了 PID 93842 自己的环境：其中含 `/opt/homebrew/bin`，`ffmpeg`（8.0.1）可解析。
+否则重启后 `blender_export` 会在产品里报 `ENCODER_NOT_FOUND`，而在我所有的测试里都是绿的
+——因为测试是 bash 启动的 node，PATH 与 GUI 不同。
+
+**为这个状态加的一道护栏**：`tool-plane` 里的四个 M3 工具现在会先检查宿主方法是否存在，
+缺失时返回 `BLENDER_RUNTIME_UNAVAILABLE` 并**说明是部署问题**（「磁盘上的包比本进程里的
+宿主服务新，重启 profile」）。在此之前它会是一个戴着 `BLENDER_SCRIPT_ERROR` 帽子的
+`TypeError`——一个稳定错误码指着错误的问题，而这正是本仓库反复禁止的形状。
 
