@@ -7,9 +7,9 @@
 > 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
 > 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
 > 已完成：**M3（Job、恢复与正式渲染）— ✅ 验收通过**
-> 测试：**1106 项断言、11 个套件、22 个文件全部通过**
-> ⚠️ **运行中的 `dsh web` 进程仍是 M1/M2 代码**：M3 需要一次 profile 重启才在 GUI 里生效，
-> 依据与步骤见 §12.9（在真实进程内实测，不是推测）。
+> 测试：**1123 项断言、11 个套件、23 个文件全部通过**
+> ✅ **M3 已在运行中的进程里生效**：`dsh web` 于 21:55:33 重启（晚于 M3 提交），
+> 逐项实测见 §12.9。
 > 下一里程碑：M4（工作台 UI，未开始，按 SPEC §0.3 不得提前进入）
 
 ---
@@ -793,7 +793,7 @@ M3 让另外三个套件里的三条断言变成了**假**，而它们当时都�
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 14 个 `*.test.mjs` | **721** |
+| 单元 + 契约 | 15 个 `*.test.mjs` | **738** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
 | Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 77/77 |
 | Blender 视觉闭环（M2） | `blender-integration/visual-loop.e2e.mjs` | 83/83 |
@@ -803,11 +803,11 @@ M3 让另外三个套件里的三条断言变成了**假**，而它们当时都�
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
 | preset M2 工具面 | `composition/tool-plane-m2.e2e.mjs` | 32/32 |
 | **preset M3 工具面（14 个工具 + 真实交付）** | `composition/tool-plane-m3.e2e.mjs` | **45/45** |
-| **合计** | **22 个文件、11 个套件** | **1106** |
+| **合计** | **23 个文件、11 个套件** | **1123** |
 
 一键运行：`bash deepblend/tests/run-all.sh`
 
-M3 新增的 205 项分布：
+M3 新增的 222 项分布：
 
 | 文件 | 断言 | 覆盖 |
 |---|---|---|
@@ -815,6 +815,7 @@ M3 新增的 205 项分布：
 | `blender-integration/render-job.e2e.mjs` | **68** | 启动不阻塞（4 ms）、`ctx.jobs` 投影真的在册、`final` profile 真的被应用、渲染器死后记为 failed 并保留帧、**续渲只渲缺失帧**、已存在帧字节未变、**fork 一个 Host 再 SIGKILL 它**、孤儿被识别并停掉、账本重建、`recovery.json`、取消后进程实测消失、MP4 属性被独立 ffprobe 复核 |
 | `composition/tool-plane-m3.e2e.mjs` | **45** | 目录恰好 14 个、四个工具的 `projectId` 是必需参数、工具驱动的完整交付、失败是有稳定码的**结果**、续渲一个 `completed` 的 job 被指向 `blender_export` |
 | `contract/host-plane-staleness.test.mjs` | **30** | 工具平面比宿主平面新时的部署诊断：**六个入口**、两个分支、不误伤 M1/M2 工具、不误伤当前宿主（D59） |
+| `contract/preset-source.test.mjs` | **17** | preset 源完整、被加载器自己的解析器解析、**不复述工具目录**、已安装副本不漂移（D60） |
 
 **不在 `run-all.sh` 里的两项**：`node deepblend/tests/e2e/visual-live.e2e.mjs`（真实模型调用）
 与 `node deepblend/tools/m3-delivery-acceptance.mjs run`（真实项目上的 1080p 交付，约 30 分钟）。
@@ -828,12 +829,11 @@ M3 新增的 205 项分布：
 | 3 | §10.2 的 `type: preview \| final-render \| export` | M3 只把 `final-render` 与 `export` 做成持久 job | 预览是秒级的（一次 4 视角约 10 s）且在工具调用内结束；把可取消、可恢复的重型机制套到它上面只会让 M2 已验证的行为变复杂。词表保留了三个值，`preview` 留给确有需要的场景 |
 | 4 | §11 `blender_export` 含 GLB/FBX/USD | M3 只实现视频交付那一半 | M3 的交付项列表里没有场景格式导出，§0.3 禁止越界；视频是 SPEC §10.4 与 §20 M3 点名的那一项 |
 
-### 12.9 运行中的进程仍是 M1/M2 代码（**需要在 profile 重启后才生效**）
+### 12.9 M3 在运行中的进程里的落地（**已完成**：重启于 21:55:33，并逐项实测）
 
-M3 已提交并在进程之外全部验证通过，但**当前 GUI 里的工作台还用不了它**。这不是推测，
-是在真实进程里量出来的：`dsh web`（PID 93842）启动于 **11:11:16**，而 M3 提交在 **16:29**。
-Node 的 ESM 模块缓存是**进程级且不可清除**的，所以启动时构造的 `blenderStudio`
-仍然持有它被构造时的那份代码。
+**先记下重启前量到的那个状态**，因为它是加那道护栏的全部理由：M3 提交后，`dsh web`
+（PID 93842）仍启动于 **11:11:16**，比提交早 5 小时。Node 的 ESM 模块缓存是
+**进程级且不可清除**的，所以那个进程里构造的 `blenderStudio` 仍然持有旧代码。
 
 用动态 Cordis 插件在**运行中的进程内**直接读活实例的方法面（只读叶子事实）：
 
@@ -855,20 +855,60 @@ m3ConfigKeysPresent           {finalRenderProfile: false, ffmpegPath: false, …
 `UNSUPPORTED_ACTION` 的存根。判定依据是后四行——**M3 独有的方法一个都不存在，
 持久 store 不存在，M3 配置键一个都不存在**。
 
-**要做的事**（按 SPEC §0.3 与仓库惯例，这一步由操作者执行，不由 Agent 代劳）：
+**重启已经发生**：`dsh web`（PID 98560）启动于 **21:55:33**，晚于 M3 的提交
+（`b907831`，21:46:46）。随后在**真实进程内**用只读探针逐项复核：
 
-```bash
-cd /Users/hxb/workspace/deep-blend && dsh web
+```
+hostApiVersion                       3
+m3Methods                            startFinalRender / resumeRenderJob / exportProject /
+                                     listJobs / reconcileRenderJobs / awaitReconciliation /
+                                     cancelJob / getJob / hostApiVersion —— 全部 function
+m3Config                             finalRenderProfile "final"、maxFinalSamples 4096、
+                                     ffmpegPath "ffmpeg"、ffprobePath "ffprobe"、
+                                     reconcileOnStart true、progressPollMs 1000
+renderJobStore                       存在，read/write/list/listJobIds/unfinished/
+                                     expectedFrames/framesDirectory 全部 function
+reconciliationRan                    true
+recoveryFindings                     []          ← 没有未完成的 job，正确
+jobs["render-0001"]                  completed / attempt 2 / 帧 30..89 / 60 of 60 /
+                                     delivery published + verified / pid null / 无 error
+unfinished                           []
 ```
 
-重启后建议做的三件事：
+三项检查的实际结果：
 
-1. 新建 **DeepBlend 开发模式** 会话，确认工具清单是 **14 个**（§12.4）；
-2. 用 `blender_job_status {projectId: "watch-commercial"}` 查一次——
-   重启时 reconciler 会扫全部项目，`render-0001` 已是 `completed`，所以
-   `unfinished` 应当为空；`output/final.mp4` 与 `output/delivery-manifest.json` 应当仍在；
-3. `blender_final_render` 起一个小范围（例如 `frameStart: 30, frameEnd: 32`）再取消，
-   确认 `processGone` 为真——这条路径只有在真实进程里才走过 `ctx.jobs` 的投影。
+| 检查 | 结果 |
+|---|---|
+| 新建 DeepBlend 开发模式会话、清单 14 个 | ✅ 另一个会话（`session-4299f959`）在重启后列出了这 14 个，与 §12.4 一致 |
+| `blender_job_status {projectId: "watch-commercial"}` | ✅ 见上面的 `jobs` / `unfinished`：`render-0001` 是 `completed`，没有未完成项，`output/final.mp4` 与 `output/delivery-manifest.json` 仍在 |
+| 起一个小范围再取消，确认 `processGone` | ✅ 在**真实组合**里做过：`startFinalRender(30..32)` → 立刻拿到 `jobId`，且 `ctx.jobs` 里真的出现一条 **`blender-render-1`**（kind `blender-render`、status `running`、label 正确）；取消时 pid 98836 实测已消失（`ps` 里 0 个 Blender），job 记为 `cancelled`。这次冒烟用的 `render-0002` **已清理干净**——一个在真实 store 里留残渣的冒烟测试和探针留 8 MB 是同一类问题 |
+
+### 12.10 preset 现在是可复现的，而且不再复述工具清单
+
+修 D60（preset 注释里的过期副本）时顺手关掉了它的**成因**：`deepblend/presets/`
+是 SPEC §5.2 的目录，而它直到 M3 都是**空的**——`deepblend-dev` 只以
+`~/.dsh/.agent-presets/deepblend-dev/` 的形式存在，一个不受版本控制、没有任何东西
+重新生成、也没有任何东西拿它和别的东西比较的文件。两件事由此而来，两件都被观测到：
+
+1. **部署无法从仓库复现**（与 M2 为演示项目关掉的那个缺口同一类）；
+2. **一份没人读的副本漂移了 5 小时**（D60）。
+
+现在的形状与 `.deepblend/` 一致：**仓库是源，脚本是部署步骤**。
+
+```
+deepblend/presets/deepblend-dev/{preset.yml,agent.cordis.yml}   ← 源（入库）
+node deepblend/tools/install-presets.mjs [--check]               ← 部署 / 只报漂移
+$DSH_HOME/.agent-presets/deepblend-dev/                          ← 部署产物
+```
+
+`contract/preset-source.test.mjs`（17 项）钉住三件事：源是完整的、能被**加载器自己的
+patch 解析器**解析、并且**不复述工具目录**（没有注释能声称数量，也没有注释能声称
+哪些工具缺席——这正是烂掉的那一句的形状）。装了 preset 的机器上再比对源与已安装副本，
+漂移即失败。
+
+**这一条也是那道护栏唯一的用处所在**：重启之后它永远不会触发，因为宿主与工具同代。
+它的价值全部在「升级了磁盘上的包但还没重启」这个窗口里——而那个窗口是**真实存在**的，
+不是假想的。
 
 **顺带实测关掉的一个部署风险**：M3 的 `ffmpegPath` / `ffprobePath` 默认是**裸名字**，
 经 `ctx.subprocess.resolveExecutable` 走 PATH 解析。GUI 进程的 PATH **不是 shell 的 PATH**，

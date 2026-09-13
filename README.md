@@ -30,6 +30,7 @@ Persona 与会话级能力。工具行不发布任何服务，因此天然满足
 ```
 deepblend/
   schemas/            权威 JSON Schema（SPEC §5.2）：scene-spec / scene-patch / job-result
+  presets/            agent preset 的**源**：deepblend-dev/（SPEC §5.2 的目录，M3 之前是空的）
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
   docs/               dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief
@@ -40,8 +41,9 @@ deepblend/
                       inspect-checkpoint.py —— 量编译后几何
                       m3-restart-probe.mjs —— M3 的第一个任务：真实 kill -9 重启探针
                       m3-delivery-acceptance.mjs —— 真实项目上的 1080p 交付（约 30 分钟）
+                      install-presets.mjs —— 把 deepblend/presets/ 部署到 $DSH_HOME（--check 只报漂移）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         14 个 *.test.mjs
+    contract/         15 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -79,7 +81,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**11 个套件、22 个文件、1106 项断言**全部通过。单跑某一层：
+预期：**11 个套件、23 个文件、1123 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -127,6 +129,13 @@ Host Bundle 是**进程级组合变更**，只在下一次 profile 启动时生�
 ```bash
 dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合且 config 完整
 dsh web                                                 # 重启后生效
+```
+
+**preset 的部署**（本机无 pnpm，故不用 `dsh plugin --profile add`）：
+
+```bash
+node deepblend/tools/install-presets.mjs --check   # 只报告磁盘与源是否漂移
+node deepblend/tools/install-presets.mjs           # 部署；preset 在 profile 启动时才被读取
 ```
 
 `~/.dsh/profiles/web/package.json` 的 `dsh.profile.bundles` 需包含
