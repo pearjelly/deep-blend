@@ -81,6 +81,35 @@ window.__ModuleLoader__.load({
       return `/deepblend/projects/${encodeURIComponent(projectId)}${suffix || ''}`
     }
 
+    /**
+     * The URL an artifact is displayed from.
+     *
+     * The `v` parameter is the artifact's own content digest, and it is
+     * load-bearing rather than decorative: a preview is an EMITTED artifact, so
+     * re-rendering one replaces the bytes at the SAME path (D28). An `<img>` whose
+     * `src` does not change is not re-fetched by the browser, so a panel keyed on
+     * the path alone keeps showing the previous render — measured, not assumed
+     * (§13.11 of the milestone status: the bytes on disk said red, the panel said
+     * otherwise). The digest changes when the picture does, and the browser then
+     * has no choice but to fetch it.
+     *
+     * @param {string} base - the artifact route prefix for this project
+     * @param {{ path?: string, sha256?: string|null, bytes?: number|null }} artifact
+     */
+    function artifactUrl(base, artifact) {
+      const path = artifact && artifact.path ? artifact.path : ''
+      const version = artifact && artifact.sha256
+        ? String(artifact.sha256).slice(0, 12)
+        : (artifact && artifact.bytes ? `b${artifact.bytes}` : '0')
+      return `${base}${path}?v=${version}`
+    }
+
+    /** Short "when was this produced" for an artifact, or null. */
+    function artifactTime(artifact) {
+      const at = artifact && artifact.at ? artifact.at : null
+      return at === null ? null : formatTime(at)
+    }
+
     // -------------------------------------------------------------------------
     // Styles. Injected once per document, the way the shipped plugins do it: one
     // <style> tagged with this package, deduped by querySelector.
@@ -528,14 +557,22 @@ window.__ModuleLoader__.load({
       const right = pick(props.compareRight)
       const entryOf = id => revisions.find(entry => entry.revision === id) || null
 
+      /**
+       * The newest image to show for a revision.
+       *
+       * The artifact is passed through WHOLE, with a display label added. An
+       * earlier version built a fresh `{ path, kind }` here and thereby threw away
+       * the digest and the timestamp — which is how the panel ended up keyed on the
+       * path alone and showing a stale render (§13.11).
+       */
       const sheetOf = (entry) => {
         if (entry === null) return null
         const sheets = entry.contactSheets || []
         const sheet = sheets[sheets.length - 1]
-        if (sheet && sheet.path) return { path: sheet.path, kind: 'contact sheet' }
+        if (sheet && sheet.path) return { ...sheet, label: 'contact sheet' }
         const list = entry.previews || []
         const preview = list[list.length - 1]
-        if (preview && preview.path) return { path: preview.path, kind: preview.kind || 'preview' }
+        if (preview && preview.path) return { ...preview, label: preview.kind || 'preview' }
         return null
       }
 
@@ -552,9 +589,16 @@ window.__ModuleLoader__.load({
                 : h('img', {
                   key: 'img',
                   'data-artifact': sheet.path,
-                  alt: `${entry.revision} ${sheet.kind}`,
-                  src: `${props.artifactBase}${sheet.path}`,
+                  'data-artifact-digest': sheet.sha256 || '',
+                  alt: `${entry.revision} ${sheet.label}`,
+                  src: artifactUrl(props.artifactBase, sheet),
                 })
+            })(),
+            (() => {
+              const sheet = sheetOf(entry)
+              const when = artifactTime(sheet)
+              return sheet === null ? null : h('div', { className: 'db-muted db-mono', key: 'sheet' },
+                `${sheet.label === 'contact sheet' ? 'sheet' : 'preview'} ${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`)
             })(),
             h('div', { className: 'db-muted db-mono', key: 'counts' }, `previews ${(entry.previews || []).length} · sheets ${(entry.contactSheets || []).length} · reviews ${(entry.reviews || []).length}`),
             (entry.reviews || []).length > 0
@@ -864,7 +908,11 @@ window.__ModuleLoader__.load({
                 const outcome = await postJson(projectRoute(activeProjectId, '/preview'), {})
                 setPreviewBusy(false)
                 setPreviewResult(outcome.ok
-                  ? { ok: true, message: `已渲染 ${outcome.payload.preview.views.length} 个视角` }
+                  ? {
+                    ok: true,
+                    message: `已渲染 ${outcome.payload.preview.views.length} 个视角 → 写进 ${outcome.payload.preview.revision} 的预览`
+                      + '（预览是产物：它替换同一路径上的旧图，不产生新的 revision）',
+                  }
                   : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
                 reload()
               },
@@ -1107,10 +1155,12 @@ window.__ModuleLoader__.load({
         reviewShaped && sheet !== null ? h('div', { style: { marginTop: '6px' } },
           h('img', {
             'data-tool-sheet': sheet.path,
+            'data-artifact-digest': sheet.sha256 || '',
             alt: 'contact sheet',
-            src: `${artifactBase}${sheet.path}`,
+            src: artifactUrl(artifactBase, sheet),
             style: { width: '100%', borderRadius: '6px', background: '#000' },
-          })) : null,
+          }),
+          h('div', { className: 'db-muted db-mono' }, `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${artifactTime(sheet) === null ? '' : ` · 渲染于 ${artifactTime(sheet)}`}`)) : null,
 
         expanded || !settled ? h('pre', { className: 'db-pre' }, (resultText(props.block) || '(运行中…)').slice(0, 4000)) : null,
       )

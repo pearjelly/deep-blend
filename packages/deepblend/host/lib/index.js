@@ -1111,6 +1111,12 @@ export default class BlenderStudio extends Service {
           bytes: png.length,
           sha256: fileSha256(finalPath),
           mime: 'image/png',
+          // WHEN this was produced. A preview is an EMITTED artifact: rendering one
+          // replaces the files at the same paths (D28), so without a timestamp the
+          // only trace of "I just rendered this" is the sha changing — which a
+          // human cannot see, and which a UI that keys its <img> on the path alone
+          // does not even re-fetch. Recorded here rather than inferred by a reader.
+          at: new Date().toISOString(),
         }
         artifacts.push(artifact)
         measurements.push({
@@ -1315,6 +1321,7 @@ export default class BlenderStudio extends Service {
       sha256: fileSha256(sheetFile),
       mime: 'image/png',
       views: built.sheet.placements.map(placement => placement.viewId),
+      at: new Date().toISOString(),
     }
 
     const review = { ...built.review, warnings: rendered.warnings }

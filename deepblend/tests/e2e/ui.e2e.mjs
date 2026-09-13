@@ -34,10 +34,13 @@
  * Run: node deepblend/tests/e2e/ui.e2e.mjs
  */
 
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+
+import { encodePng } from '@deepblend/dsh-blender-contracts'
 
 import { Browser } from '../../tools/browser-driver.mjs'
 import { REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
@@ -92,6 +95,29 @@ function readStoreJson(...segments) {
     return null
   }
 }
+
+/**
+ * A stable number for what the panel is displaying.
+ *
+ * The image is drawn into an 8x8 canvas and its pixels are folded into one
+ * integer, so "did the picture change?" is answered by the rendered bytes rather
+ * than by an attribute the test could be reading wrongly.
+ */
+const DISPLAYED_PIXELS = `(() => {
+  const img = document.querySelector('[data-compare="left"] img')
+  if (!img || !img.complete || img.naturalWidth === 0) return null
+  const canvas = document.createElement('canvas')
+  canvas.width = 8
+  canvas.height = 8
+  const context = canvas.getContext('2d')
+  context.drawImage(img, 0, 0, 8, 8)
+  const data = context.getImageData(0, 0, 8, 8).data
+  let hash = 0
+  for (let index = 0; index < data.length; index += 4) {
+    hash = (hash * 31 + data[index] + data[index + 1] * 7 + data[index + 2] * 13) % 1000000007
+  }
+  return hash
+})()`
 
 /** Switch the panel to one view and wait for that view to render. */
 async function openView(page, name) {
@@ -241,6 +267,56 @@ try {
   check('Preview Compare displays the rendered image, decoded, over the Host artifact route',
     images.length > 0 && images.every(image => image.w > 0 && image.h > 0) && images.every(image => image.src.startsWith('/deepblend/artifacts/')),
     images)
+  check('the rendered pane says WHEN its image was produced, so a re-render is visible',
+    /渲染于/.test((await page.text('[data-compare="left"]')) ?? ''), (await page.text('[data-compare="left"]'))?.slice(0, 90))
+
+  // ── a re-render replaces the bytes at the SAME path ──────────────────────
+  //
+  // This is what "渲染预览" does when the revision already has previews (D28: a
+  // preview is an emitted artifact, not a new revision), and it is what a user
+  // reported as "nothing happened": the revision stayed r0002 and the panel looked
+  // identical. Measured then: the panel was showing the PREVIOUS bytes, because its
+  // <img> was keyed on the path alone and the browser does not re-fetch an
+  // unchanged src. The disk is edited here instead of rendering twice, because a
+  // second render produces exactly this: same paths, new bytes, new digests.
+  const displayedBefore = await page.evaluate(DISPLAYED_PIXELS)
+  const newest = readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json')
+  const previewArtifact = (newest?.previews ?? [])[0]
+  const pixels = Buffer.alloc(64 * 36 * 4)
+  for (let index = 0; index < pixels.length; index += 4) {
+    pixels[index] = 255
+    pixels[index + 3] = 255
+  }
+  const replacement = encodePng({ width: 64, height: 36, data: pixels })
+  const previewPath = join(store, 'projects', projectId, previewArtifact.path)
+  const originalPreview = readFileSync(previewPath)
+  writeFileSync(previewPath, replacement)
+  const replacementDigest = createHash('sha256').update(replacement).digest('hex')
+  writeFileSync(
+    join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
+    JSON.stringify({
+      ...newest,
+      previews: newest.previews.map(entry => entry.path === previewArtifact.path
+        ? { ...entry, sha256: replacementDigest, bytes: replacement.length }
+        : entry),
+    }, null, 2),
+  )
+  await page.click('[data-action="reload"]')
+  await page.waitFor(`${DISPLAYED_PIXELS} !== ${displayedBefore}`, 20000).catch(() => {})
+  const displayedAfter = await page.evaluate(DISPLAYED_PIXELS)
+  check('a re-render at the same path is SHOWN: the panel fetches the new bytes instead of keeping the old image',
+    displayedAfter !== displayedBefore && displayedAfter !== null,
+    { before: displayedBefore, after: displayedAfter })
+  const shownDigest = await page.attributes('[data-compare="left"] img', 'data-artifact-digest')
+  check('and the URL it displays is keyed on the artifact\'s own digest',
+    shownDigest[0] === replacementDigest, { shown: shownDigest[0]?.slice(0, 12), expected: replacementDigest.slice(0, 12) })
+  // Put the real render back, so the rest of the suite (and the delivery state)
+  // describes what Blender actually produced.
+  writeFileSync(previewPath, originalPreview)
+  writeFileSync(
+    join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
+    JSON.stringify(newest, null, 2),
+  )
 
   // -------------------------------------------------------------------------
   // 4. Jobs — start a delivery render and cancel it
