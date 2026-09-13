@@ -477,7 +477,39 @@ preset 作用域内注册的工具**不在**它的工具目录里——`Tool.lis
 
 ---
 
-## 9B. 这一次需要重启 profile
+## 9B. 已完成：重启 + 在真实项目上落地
+
+**已执行。** profile 于 `2026-09-13 11:11:16` 重启（在 `9a19693` 之后），
+并在**真实进程内**用行为探针确认新评分器已生效——同一个测量对在旧代码下得 100 分无问题，
+在新代码下得 **82 分 + `SUBJECT_PART_HIDDEN`**（动态插件在进程内直接调
+`blenderStudio.scoreVisualViews`）。preset 工具行仍为 `fiberState: 2`。
+
+随后把 §9B 要求的两件事写成了 **r0018**（一个 revision，6 个操作）：
+
+```
+entity.tags.set watch-dial  -> [detail, screen, subject-part]   （在原有标签上追加）
+entity.tags.set watch-crown -> [detail, subject-part]
+camera.update camera-main          -> role active-camera
+camera.update camera-three-quarter -> role three-quarter
+camera.update camera-top           -> role top
+camera.update camera-detail        -> role detail
+```
+
+r0018 的审查结果：
+
+| 项 | r0017（修复前） | r0018 |
+|---|---|---|
+| 分数 | 90（表壳被自己的表盘判为被遮挡） | **100** |
+| 主体 | watch-body | watch-body |
+| 表壳可见比例 | 0.44 | **0.96** |
+| 视角计划 | 4 个相机、标着相机 id | **active-camera / three-quarter / top / detail** |
+| sheet 标题 | `CAMERA-MAIN` … | `ACTIVE:CAMERA-MAIN` … |
+
+需要回退时：`blender_revision_restore {projectId: "watch-commercial", revision: "r0017"}`。
+
+### 以下是当时写的操作指引（保留作为记录）
+
+M2.1 与 M2.2 的修复全部在 **contracts / host / tool 模块里**
 
 M2.1 与 M2.2 的修复全部在 **contracts / host / tool 模块里**，而 Node 的 ESM 模块缓存是
 **进程级且不可清除的**（M0 §8.1 已记录）。所以运行中的进程（`09:58:42` 启动）

@@ -224,6 +224,7 @@ function visualReview(ctx) {
           `Revision: ${data.revision}  (rendered from ${data.checkpointRevision})`,
           `Score:    ${data.score}/100 — ${data.pass ? 'PASSES' : 'does NOT pass'} the delivery threshold`,
           `Subject:  ${data.subjectId ?? '(none tagged)'}`,
+          `Parts:    ${(data.parts ?? []).length > 0 ? data.parts.join(', ') + '  (declared subject-part: they ARE the subject, so they cannot be in its way)' : '(none declared; only the subject is judged for occlusion)'}`,
           '',
           'Measured issues:',
         ]

@@ -1262,6 +1262,12 @@ export default class BlenderStudio extends Service {
       ...review,
       subjectId: rendered.subjectId,
       track: rendered.track,
+      // Which tracked entities the SCENE declared part of the subject's own body.
+      // Surfaced because it changes how an occlusion finding should be read: a part in
+      // front of the subject is the product, and a part invisible in every view is a
+      // missing component. A reader that cannot see the declaration cannot tell those
+      // apart from the measurement alone.
+      parts: rendered.parts ?? [],
       profile: rendered.profile,
       checkpointRevision: rendered.checkpointRevision,
       sheetArtifact,
