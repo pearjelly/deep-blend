@@ -136,28 +136,42 @@ try {
     )
   }
 
-  // --- unimplemented M3+ surface must be loud, not silent ------------------
+  // --- the facade surface is complete, and nothing is a stub -----------------
   //
-  // M1 IMPLEMENTED createProject/getScene/applyScenePatch/renderPreview/
-  // validateScene/restoreRevision, so those no longer throw and can no longer
-  // serve as the "not yet built" probe. Two methods are still deliberately
-  // unimplemented — final render and export — and they still must be loud. The
-  // guard is kept rather than deleted because the property it protects is the
-  // one that matters: a caller can never mistake absence for success.
+  // This check has now outlived two milestones, and each time it changed shape
+  // rather than being deleted, because the property it protects is the one that
+  // matters: **a caller can never mistake absence for success.**
+  //
+  //   M0/M1  the unimplemented methods threw `BLENDER_UNSUPPORTED_ACTION`
+  //   M3     there are none left — every method SPEC §7.2 declares is implemented,
+  //          so the assertion inverts: each one is a function, and a method the
+  //          facade does not implement is not on the prototype at all rather than
+  //          silently returning undefined.
   if (studio !== undefined) {
+    const declared = [
+      'createProject', 'getProject', 'getScene', 'applyScenePatch', 'renderPreview',
+      'validateScene', 'startFinalRender', 'exportProject', 'restoreRevision',
+      'getJob', 'cancelJob',
+    ]
+    const missing = declared.filter(method => typeof studio[method] !== 'function')
+    check(
+      'every SPEC §7.2 BlenderStudio method is implemented, so none is a stub',
+      missing.length === 0, missing,
+    )
     const observed = {}
     for (const method of ['startFinalRender', 'exportProject']) {
       try {
-        studio[method]()
+        // Called with no arguments on purpose: an implemented method must refuse a
+        // malformed call with a stable code, never by returning undefined.
+        await studio[method]()
         observed[method] = null
       } catch (cause) {
         observed[method] = cause?.code
       }
     }
     check(
-      'unimplemented M3+ facade methods still throw a stable code',
-      observed.startFinalRender === 'BLENDER_UNSUPPORTED_ACTION'
-        && observed.exportProject === 'BLENDER_UNSUPPORTED_ACTION',
+      'the M3 methods refuse a malformed call with a stable code rather than returning undefined',
+      typeof observed.startFinalRender === 'string' && typeof observed.exportProject === 'string',
       observed,
     )
 

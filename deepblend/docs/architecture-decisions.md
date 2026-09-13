@@ -706,6 +706,245 @@ note 是「contact sheet shows no visual defects」）；`visualLoop` 在已通�
 
 ---
 
+---
+
+## 5E. M3：持久 Job、重启恢复与交付（D49–D58）
+
+M3 的五条验收里有四条是关于**进程消失之后**的事实。所以这一节的每一个决策都来自
+`deepblend/tools/m3-restart-probe.mjs` 的一次真实 `kill -9`，而不是设计时的推理。
+探针的完整记录在 `docs/probe-m3-restart.log`。
+
+### 探针实测到的三件事（这三条决定了整节的设计）
+
+```
+1. Host 被 SIGKILL 之后，它启动的 Blender **活着**——那是 detached 进程组的组长，
+   而且仍在往「恢复流程马上要去描述的那个目录」里写帧。
+2. `ctx.subprocess.spawn` 返回的 handle 没有 pid 字段（对照安装的运行时读出来的形状是
+   {stdin, stdout, stderr, collected, done, terminate, waitForExit}）。
+   所以「哪个进程在渲染」只能由那个进程自己写下来。
+3. macOS 上可用的包含范围是**进程组**：`detached: true` 让子进程成为组长（pgid == pid），
+   `process.kill(-pid, SIGTERM)` 实测确实清空了它（gone=true, groupAlive=false）。
+   运行时自己的警告说逃出进程组的后代不保证被终止——这条边界照实记下。
+```
+
+另外两条顺手测出来的事实：
+
+```
+4. Blender 5.2.1：`scene.render.frame_path(frame=f)` 预测 `<dir>/frame_0001.png`，
+   而 `bpy.ops.render.render(write_still=True)` 写的是 `<dir>/frame_.png`。
+   按预测值去读会永远读不到——而且每一帧都会覆盖同一个文件却报告成功。
+5. ffmpeg 8.0.1：`-frames:v` 是**输出**选项，放在 `-i` 之前整个命令被拒
+   （"Option frames:v ... cannot be applied to input url ..."）。
+```
+
+---
+
+### D49 — 持久渲染 Job 是另一种文档，不是 M1 的 attempt log
+
+**背景**：磁盘上已经有 49 条 `deepblend.job/v1`（`<project>/jobs/*.json`），每条是
+一个 Blender action 的**事后记录**：开始时写一次、结束时写一次，中间什么都没有——
+因为 M1/M2 的每个 action 都在启动它的那次工具调用里结束。
+
+**决策**：SPEC §10.2 的 `BlenderJobRecord` 是**独立文档类型** `deepblend.render-job/v1`，
+放在 `<project>/renders/<jobId>/job.json`。
+
+**为什么不是合并**：合并意味着改写一份已经镜像到 `deepblend/schemas/`、
+且被 `schema-mirror.test.mjs` 逐字节断言的 schema，作废磁盘上已有的 49 条记录，
+并让一份文档同时表示两种东西。而且 `allocateJobId` 是按 `jobs/` 里的 `*.json`
+数量分配 id 的——把渲染 job 写进去会污染那个计数器，并让「列出这个项目的 attempt」
+返回两种形状。两个目录，两种生命周期，各自的读者都很清楚自己在读什么。
+
+**记录里必须有什么**（都是探针逼出来的，不是照抄 SPEC）：`pid`、`processGroupId`、
+`completedFrames`、`missingFrames`、`corruptFrames`、`framesDirectory`、`attempt`、
+`recoveredAt`、`delivery`。`attempt` 计数的是**渲染器被启动过几次**——创建时 0，
+第一次启动 1，每次续渲 +1。
+
+---
+
+### D50 — 帧账本从**帧本身**导出；记录里的 `completedFrames` 只是缓存
+
+**决策**：`"哪些帧完成了"` 的权威是磁盘上的帧文件；`job.json` 里的 `completedFrames`
+是这份权威的缓存，**永远不能覆盖它**。要渲的集合 = `missing + corrupt`。
+
+**依据（探针实测）**：
+
+| 证据来源 | 它说的是什么 | 为什么不能单独信 |
+|---|---|---|
+| `job.json` 的 `completedFrames` | 上一个进程写下的进度 | 进程可能死在写完它之前 |
+| `events.jsonl` | 子进程 fsync 过的逐帧日志 | 日志完整不等于帧完整（两者之间还有一个窗口） |
+| 帧文件**存在** | 有个文件在那儿 | `kill -9` 落在 `create` 与 `write` 之间会留下一个 0 字节或没有 IEND 的文件 |
+| 帧文件的**字节** | 它是不是一个完整的、尺寸正确的 PNG | ✅ 这是权威 |
+
+**所以**：`readFrameLedger` 走的是「stat + 前 33 字节 + 后 12 字节」，不是整文件读取
+（450 帧 ≈ 424 MiB，每次恢复和每次进度心跳都全读一遍会比它描述的渲染还贵），
+而它读的仍然是**工件自己**，不是缓存列表。
+
+探针里那次针对性的实验：把一个完整帧截到 200 字节 → 账本报 `truncated`；
+截到 400000 字节、PNG 头还在但没有 IEND → 账本报 `unterminated`。
+两次都把它算进 `toRender`，也就是**重渲**，而不是当它完成。
+
+---
+
+### D51 — pid 只能由子进程自己写下来
+
+**决策**：`bootstrap.py --proc <path>` 在**碰 bpy 之前**原子地写下
+`process.json`（`deepblend.process/v1`：pid / ppid / pgid / startedAt / jobId）。
+Host 轮询这个文件，把 pid 抄进 job 记录。
+
+**为什么**：`ctx.subprocess.spawn` 的 handle **不暴露 pid**（形状见上）。没有这个文件，
+一个 Host 死掉之后就没有任何东西能把「记录里的 job」和「还在跑的那个进程」连起来——
+这正是「取消后无孤儿进程」和「重启后能识别未完成渲染」两条验收共同依赖的那一环。
+
+**恢复时的身份校验**：只看 `kill(pid, 0)` 是不够的——pid 会被回收，杀掉一个回收来的
+pid 是恢复流程能犯的最坏的错误。所以还要 `ps -p <pid> -o args=` 并**要求命令行里出现
+这个 job 的目录**。用 `-o args=` 而不是 `-o command=`：macOS 上后者会截断长命令行，
+而这个渲染的身份恰恰在 argv 的**末尾**（`--request <jobDir>/request.json`）。
+
+---
+
+### D52 — Reconciler 先停孤儿再读账本；并且**不自动续渲**
+
+**先停孤儿**：探针实测，恢复时那个孤儿**还活着，还在往账本马上要描述的那个目录里写**。
+先读账本会得到一个在返回时就已经过期的答案。所以顺序是证据，不是风格。
+如果孤儿停不掉（15 秒 grace 后仍在），job 被标成 `orphan-survived` 且**拒绝续渲**——
+两个渲染器写同一批帧，产出的是**两个进程都无法担保**的文件。
+
+**不自动续渲**，两个具体理由：
+
+1. SPEC §16.4 把交付渲染并发定为 **1**；
+2. 一个 Host 启动时可能有**多个项目**各有一个被打断的渲染，自动续渲会在开机时
+   在无人值守的情况下启动多个 Blender。
+
+所以恢复把每个 job 留在 `recovering`，账本**已经算好**，续渲只需一次调用
+（`blender_final_render {resumeJobId}`）。这也让「重启后能识别未完成渲染」与
+「可只渲缺失帧」两条验收都可以被**观测**，而不是只能相信。
+
+**SPEC §10.3 第 8 步的偏差，照实记**：SPEC 要求「向 UI 和 Session 发布恢复事件」。
+Host 启动时**还没有 session**——reconciler 在任何 agent 存在之前就跑完了——所以一个
+进程内事件在构造上就没有监听者。它改成写 `recovery.json`（`deepblend.render-recovery/v1`）
+到 job 目录：一份**比发现它的那个进程活得更久**的、可审计的记录。
+
+---
+
+### D53 — 交付渲染不受 `maxPreviewSamples` 约束，而且必须真的应用 `final` profile
+
+M3 brief §3.1① 点名的陷阱。`maxPreviewSamples` 存在是为了阻止模型在预览上花钱
+（SPEC §16.1/§16.2）；把它套到交付上会**悄悄改写交付自己的 profile**。
+交付的上限是 profile 自己的 `maxSamplesBudget`，外加 operator 的 `maxFinalSamples` 兜底。
+
+**实测证据**（集成套件，不是推理）：
+`{"resolution":[640,360],"samples":24,"engine":"cycles","viewTransform":"AgX","fps":30}`
+——`final` profile 的 AgX 真的被应用了，而 preview profile 是 `Standard`；
+探针另外实测到 r0029 的 checkpoint 编译时用的是 preview（`viewTransform: "Standard"`），
+也就是说在 M3 之前 **`final` profile 从未被应用过**，这一点现在有了断言。
+
+**profile 作为一个整体在渲染时应用**，而不是重新编译一份 `.blend`。理由：几何与
+render profile 无关（`configure_scene` 只设渲染设置），重编译会让「revision 的
+checkpoint」变成两个工件，而且每次续渲都要再花一次编译。设置真的生效由
+`apply_profile` **逐项读回校验**（`view_transform` 在某些构建上会被直接拒绝——
+M2 D25 已经踩过一次）。
+
+---
+
+### D54 — "terminal" 的含义是「没有自动工作」，不是「再也不能动」
+
+**决策**：`isTerminalRenderJobStatus` 是 **reconciler 的扫描条件**，`completed` /
+`failed` / `cancelled` 三者都回答「没有」。但状态机的**转移**里，
+`failed` 与 `cancelled` 可以被显式重新打开（`→ running`）。
+
+**为什么**：一个 `failed` 或 `cancelled` 的 job 是**磁盘上有帧、还有工作没做完**的 job。
+拒绝重开它意味着第三个小时的一次 Blender 崩溃（或一次改主意）要花掉整个 3.4 小时重渲——
+而 `attempt` 这个字段存在的意义就是数这个。`completed` 是真正结束的：帧渲完了、视频编码
+并校验过了、包发布了，重新交付它是 `exportProject`，不需要渲染器。
+
+这个区分是在集成套件里被逼出来的：测试先取消一个 job 再续渲它，`cancelled → running`
+当时是非法的。
+
+---
+
+### D55 — 取消必须等进程被**回收**，而不是等信号发出去
+
+**实测**：`cancelJob` 在 `handle.terminate()` 之后立刻检查存活，得到
+`{"alive":true,"groupAlive":true,...,"command":"(Blender)"}`——`ps` 里带括号的
+`(Blender)` 是**僵尸**：进程已经退出，但还没被它的父进程（这个 Node 进程）收走。
+僵尸仍然计为一个进程，所以 `kill(pid, 0)` **成功**，一次取早了的存活检查会把一个
+已经死掉的渲染器报成活的。
+
+**决策**：等 `handle.done`（Node 收走子进程之后才 resolve），有界等待，然后才测量。
+「我发了信号」和「进程没了」是两个不同的断言，验收条件要的是**第二个**。
+
+**并且不谎报信号**：handle 的 `terminate()` 走的是运行时自己的阶梯
+（SIGTERM → grace → SIGKILL），它**不报告**是哪一级停下的。所以报告里写的是
+`via: "subprocess-handle"` + 阶梯本身，**没有**一个编造出来的信号名。
+
+---
+
+### D56 — manifest 必须对**已发布的**视频取摘要；QA 必须随 manifest 一起走
+
+两个都是集成套件抓到的、**看起来完全正常**的错误：
+
+1. `video.sha256` 是 `null`。原因：manifest 先构建、视频后发布，而构建时对它哈希的
+   路径还不存在。一份「无法与自己的字节对照」的交付清单。修复：**先发布、再描述**
+   （写到 `.tmp` 再 rename，保持发布的原子性，读者永远不会看到半个 `final.mp4`）。
+2. `completeness.missing` 里有 `qa`。原因：manifest 写的是
+   `qa: { report: record.qa ?? null }`，而 `record.qa` **从来没有被赋值过**。
+   QA 报告是 revision 的 `validation.json`，它一直在磁盘上。
+
+**决策**：manifest 里带**QA 的判决**（ok / errorCount / counts / frameRange / fps /
+engine / activeCamera），不只是路径。SPEC §19.8 要求最终包含 QA，而 M3 brief 对
+manifest 的判据是「不看磁盘就能判断交付是否完整」——一个路径回答不了「它通过了吗」。
+
+---
+
+### D57 — 两个「检查器与它自己的生产者不一致」的缺陷
+
+这一类缺陷的共同形状是：**两份东西必须描述同一件事，而没有任何东西断言它们一致。**
+
+| 缺陷 | 生产者写的 | 检查器读的 | 后果 |
+|---|---|---|---|
+| 账本把「缺失」报成「空文件」 | `statSync` 失败 → `{size: 0}` | `size === 0` → `reason: "empty"` | 帧**不存在**被报成帧**损坏**。要渲的集合碰巧是对的（两者都重渲），但状态行会撒谎 |
+| 交付完整性 | `manifest.source.sceneSpec` | `manifest.sceneSpec` | 每一份**完整**的交付都被报成缺 SceneSpec 与 checkpoint |
+
+两个都是契约测试抓到的，而且都**不会崩**——它们只是安静地给出错误答案。
+第一个的报错尤其值得记：一个「3 absent」的状态行，真相是「3 corrupt」。
+
+修复：`sampleFrame` 返回显式的 `exists`（`size` 无法区分空文件与不存在的文件），
+`readFrameLedger` 把不存在的帧**留在观测表之外**；`deliveryCompleteness` 读
+manifest **实际写出**的形状，并且专门的契约断言把两边钉在一起。
+
+---
+
+### D58 — 一条只被「真实长任务」暴露的缺陷：pid 必须属于**当前** attempt
+
+前七个 M3 缺陷都在 640×360、9 帧的集成套件里现形了。这一个没有。
+
+**症状**：`watch-commercial` 上真实的 60 帧交付里，记录写着 `pid: 87209`，
+而真正在写帧的进程是 **87455**。
+
+**为什么短测试看不见**：短测试的第二次 attempt 只跑几秒钟就结束了，
+而「记录里的 pid 是错的」这件事只有在**一个 attempt 活着的时候**才能被观测到。
+60 帧的渲染要跑 30 分钟，所以它被观测到了。
+
+**后果有多严重**：`pid` 是恢复流程**唯一**用来找渲染器的线索。一个指向死进程的 pid
+意味着下一次重启会去停一个已经不存在的东西，而**真正在写帧的那个进程永远活着**——
+正是「取消后无孤儿进程」这条验收条件禁止的那个孤儿。
+
+**两半修复，缺一不可**：
+
+1. `_launchRenderer` 在每次 attempt 开始时把 `pid` / `processGroupId` 置空
+   （记录里的旧 pid 是上一次的）；
+2. provider 在 spawn 前删掉上一次的 `process.json`，**并且**每次 attempt 生成一个
+   token：plan 里带着它，子进程把它写进自己的身份文档，Host **只接受 token 相同的**。
+
+第 2 条的第后半段是刻意的：「删掉那个文件」是一条约定，而**约定会在下一个人加一条
+新的续渲路径时失效**。token 把它变成一条被检查的事实。这也正是 D57 的形状——
+两份东西必须描述同一件事，而没有任何东西断言它们一致——所以这次直接给了它一个断言。
+
+**这一条同时也是「为什么必须做真实长任务验收」的答案**。前七个缺陷可以靠一个
+9 帧的套件发现；第八个只有真实的时间长度能发现，而这恰恰就是 M3 存在的理由。
+
+---
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -742,4 +981,5 @@ note 是「contact sheet shows no visual defects」）；`visualLoop` 在已通�
 | 2026-09-13 | M2.1 | D35–D38：一次**真实**视觉审查暴露的四个缺陷（写入前先解析、摘要读已解析形态、主体与视角不许依赖数组顺序、三份词汇表断言一致） |
 | 2026-09-13 | M2.2 | D39–D41：第二次真实审查（`-0` 的可表示性、`subject-part` 不是障碍物、一个尺寸定义两个消费者） |
 | 2026-09-13 | 内容补全 | D42–D46：转台＝旋转＋轨道平移、只能动实体 transform、World 是写死的常量、0.75mm 深度间隙、审查单帧盲点 |
+| 2026-09-13 | M3 | D49–D58：持久渲染 Job 是独立文档（D49）、帧账本以帧为权威（D50）、pid 由子进程自己写（D51）、先停孤儿且不自动续渲（D52）、交付不受预览采样上限约束且真的应用 final profile（D53）、terminal 意为「没有自动工作」（D54）、取消等进程被回收（D55）、manifest 对已发布视频取摘要且携带 QA（D56）、两个「检查器与生产者不一致」的缺陷（D57）、只被真实长任务暴露的「pid 必须属于当前 attempt」（D58） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |

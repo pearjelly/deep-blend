@@ -31,6 +31,7 @@ import z from '@deepseek-ai/schemastery'
 import {
   BLENDER_ENGINE_BY_KEY,
   BLENDER_PROTOCOL_VERSION,
+  FRAME_PLAN_VERSION,
   BlenderError,
   BlenderErrorCode,
   CANDIDATE_RENDER_ENGINES,
@@ -780,6 +781,270 @@ export default class LocalBlenderRuntime extends Service {
    * Re-deriving them later would mean either a second Blender launch or a second
    * PNG decoder in a second language, and a duplicate decoder is the kind of thing
    * that drifts.
+   *
+   * @param {object} request
+   * @param {string} request.checkpointPath - absolute path to the `.blend`.
+   * @param {object[]} request.views - `{ id, role?, cameraId?, frame? }`, in reading order.
+   * @param {string[]} [request.track] - object ids to measure by isolation.
+   * @param {string[]} [request.parts] - object ids that are part of the subject's own
+   *   body, so a ray reaching them has reached the subject rather than been blocked.
+   * @param {string} [request.engine] - SceneSpec engine key.
+   * @param {number} [request.width]
+   * @param {number} [request.height]
+   * @param {number} [request.samples]
+   * @param {string} [request.jobId]
+   * @param {AbortSignal} [request.signal]
+   * @returns {Promise<{report: object, pngs: Record<string, Buffer>, envelope: object, durationMs: number}>}
+   */
+  /**
+   * Start a frame-sequence render and RETURN THE LIVE HANDLE (M3, SPEC §10).
+   *
+   * WHY THIS DOES NOT AWAIT, UNLIKE EVERY OTHER METHOD HERE
+   * ------------------------------------------------------
+   * `renderViews` blocks the caller for the length of a Blender launch, which is
+   * correct for a preview measured in seconds. A delivery render is 19.6-41.4 s
+   * PER FRAME (measured on this machine for `watch-commercial` at 1920x1080 /
+   * Cycles / 256 spp), so 450 frames is ~3.4 hours. Awaiting that inside the tool
+   * call that started it would block the Agent for the whole afternoon, which is
+   * the first M3 acceptance condition ("长任务不阻塞 Agent").
+   *
+   * So this method is split in two: `startFrameSequence` spawns and returns, and
+   * `awaitFrameSequence` does the awaiting. The host owns the handle in between —
+   * and, crucially, owns writing the pid to disk, because a Harness that dies
+   * cannot tell anyone which process it left behind.
+   *
+   * The invocation directory is CALLER-SUPPLIED and PERSISTENT. Everywhere else
+   * in this provider the directory is a per-invocation scratch that dies with the
+   * call; a resumable render's directory is the thing that survives the crash, so
+   * the frames, the plan, the journal and the result all live in one directory the
+   * host names (inside the project, never in the shared scratch root).
+   *
+   * @param {object} request
+   * @param {string} request.checkpointPath - absolute path to the `.blend`.
+   * @param {number[]} request.frames - the frames to render, in order.
+   * @param {string} request.jobDirectory - absolute, persistent, inside the workspace.
+   * @param {string} [request.cameraId]
+   * @param {string} [request.profileName] - the SceneSpec profile the plan came from.
+   * @param {object} [request.profile] - the resolved render profile to apply.
+   * @param {[number, number]} [request.frameRange] - the project's own frame range.
+   * @param {string} [request.jobId]
+   * @returns {Promise<{handle: object, jobDirectory: string, framesDirectory: string,
+   *   requestPath: string, planPath: string, resultPath: string, eventsPath: string,
+   *   processPath: string, argv: string[], startedAt: number, executable: string}>}
+   */
+  async startFrameSequence(request) {
+    if (typeof request?.checkpointPath !== 'string' || request.checkpointPath.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
+        'startFrameSequence needs an absolute path to a .blend checkpoint.',
+      )
+    }
+    const frames = Array.isArray(request.frames) ? request.frames : []
+    if (frames.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.SCRIPT_ERROR,
+        'startFrameSequence needs at least one frame to render; an empty frame list would report ' +
+          'success while writing nothing.',
+      )
+    }
+    if (typeof request.jobDirectory !== 'string' || request.jobDirectory.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.SCRIPT_ERROR,
+        'startFrameSequence needs a persistent job directory to render into.',
+      )
+    }
+    if (!existsSync(this.bootstrapPath)) {
+      throw new BlenderError(
+        BlenderErrorCode.BOOTSTRAP_MISSING,
+        `bootstrap.py not found at ${this.bootstrapPath}.`,
+      )
+    }
+
+    const resolvedExecutable = await this.resolveBlenderExecutable({ signal: request.signal })
+    if (resolvedExecutable.error !== null || resolvedExecutable.resolved === null) {
+      throw resolvedExecutable.error ?? new BlenderError(
+        BlenderErrorCode.NOT_FOUND,
+        `Blender executable could not be resolved from "${this.config.blenderPath}".`,
+      )
+    }
+
+    const jobDirectory = resolve(request.jobDirectory)
+    const framesDirectory = join(jobDirectory, 'frames')
+    mkdirSync(framesDirectory, { recursive: true })
+
+    const requestPath = join(jobDirectory, 'request.json')
+    const planPath = join(jobDirectory, 'plan.json')
+    const resultPath = join(jobDirectory, 'result.json')
+    const eventsPath = join(jobDirectory, 'events.jsonl')
+    const processPath = join(jobDirectory, 'process.json')
+
+    // A resumed attempt must not inherit ANY of the previous attempt's files, and
+    // `process.json` is the one that matters most. MEASURED: without it here, a
+    // resumed render read the dead attempt's pid out of the old file and recorded
+    // THAT as the process doing the work — so a second restart would go looking for
+    // a process that no longer exists and leave the live renderer orphaned, which is
+    // precisely the failure the acceptance condition forbids. The journal is listed
+    // for the same reason: two attempts interleaved into one stream cannot be told
+    // apart. The old `result.json` is listed because reading a stale success envelope
+    // for an attempt that has not finished is how a failed render reports success.
+    for (const stale of [eventsPath, resultPath, processPath]) {
+      if (!existsSync(stale)) continue
+      try {
+        rmSync(stale, { force: true })
+      } catch {
+        // A stale file that cannot be cleared is a diagnostic problem, not a
+        // reason to refuse to render: the ledger is derived from the frames.
+      }
+    }
+
+    const plan = {
+      // One spelling for the document type. The contracts package owns the string
+      // and the contracts test pins it; a second literal here is the shape of
+      // defect that has already cost this repository four times (D38, D43) — a
+      // vocabulary written twice rots in the copy nobody exercises.
+      schemaVersion: FRAME_PLAN_VERSION,
+      jobId: request.jobId ?? null,
+      // The token travels with the plan so the child can stamp its identity document
+      // with it. The host refuses an identity whose token is not the one this attempt
+      // was started with, which turns "the pid is from the current attempt" from a
+      // convention about deleting files into a fact that is checked.
+      attemptToken: request.attemptToken ?? null,
+      checkpoint: request.checkpointPath,
+      cameraId: request.cameraId ?? null,
+      profileName: request.profileName ?? null,
+      profile: request.profile ?? {},
+      frameRange: request.frameRange ?? null,
+      frames: frames.map(frame => Number(frame)),
+      outputDirectory: framesDirectory,
+      filePrefix: request.filePrefix ?? 'frame_',
+      padding: request.padding ?? 4,
+    }
+    writeFileSync(planPath, JSON.stringify(plan, null, 2), 'utf8')
+    writeFileSync(requestPath, JSON.stringify({
+      protocolVersion: BLENDER_PROTOCOL_VERSION,
+      jobId: request.jobId ?? null,
+      action: 'render_frames',
+    }, null, 2), 'utf8')
+
+    const argv = [
+      resolvedExecutable.resolved,
+      '--background',
+      '--factory-startup',
+      '--python',
+      this.bootstrapPath,
+      '--',
+      '--request',
+      requestPath,
+      '--result',
+      resultPath,
+      '--frames',
+      planPath,
+      '--events',
+      eventsPath,
+      '--proc',
+      processPath,
+    ]
+
+    const startedAt = Date.now()
+    let handle
+    try {
+      handle = this.ctx.subprocess.spawn({
+        argv,
+        cwd: jobDirectory,
+        stdio: {
+          stdin: 'ignore',
+          stdout: { maxBytes: this.config.maxOutputBytes, spill: { maxBytes: this.config.maxSpillBytes } },
+          stderr: { maxBytes: this.config.maxOutputBytes, spill: { maxBytes: this.config.maxSpillBytes } },
+        },
+        graceMs: TERMINATE_GRACE_MS,
+        // Deliberately NO AbortSignal here. A frame sequence is not bounded by the
+        // preview deadline, and binding a signal would make the provider's own
+        // timeout indistinguishable from a caller's cancellation in the record.
+        // Cancellation goes through `handle.terminate()`, which the host calls
+        // from `cancelJob`.
+        env: {
+          PATH: process.env.PATH ?? '',
+          HOME: process.env.HOME ?? '',
+          TMPDIR: process.env.TMPDIR ?? '',
+          PYTHONUNBUFFERED: '1',
+          PYTHONDONTWRITEBYTECODE: '1',
+          DEEPBLEND_JOB_ID: String(request.jobId ?? ''),
+        },
+      })
+    } catch (cause) {
+      throw new BlenderError(
+        BlenderErrorCode.SPAWN_FAILED,
+        `Failed to spawn Blender at ${resolvedExecutable.resolved}.`,
+        { cause },
+      )
+    }
+
+    return {
+      handle,
+      jobDirectory,
+      framesDirectory,
+      requestPath,
+      planPath,
+      resultPath,
+      eventsPath,
+      processPath,
+      argv,
+      startedAt,
+      attemptToken: request.attemptToken ?? null,
+      executable: resolvedExecutable.resolved,
+    }
+  }
+
+  /**
+   * Wait for a frame-sequence render started by {@link startFrameSequence}.
+   *
+   * Failure classification mirrors `runBootstrap`, and for the same reason: a
+   * terminated process may still have written a partial result document, so being
+   * killed must never be reported as a successful render. It is returned as data
+   * rather than thrown because a frame sequence legitimately ends two ways — all
+   * frames rendered, or killed mid-sequence with the completed frames intact —
+   * and the caller must record both without losing the evidence.
+   *
+   * @param {Awaited<ReturnType<LocalBlenderRuntime['startFrameSequence']>>} run
+   * @returns {Promise<{envelope: object|null, stdout: string, stderr: string, exitCode: number|null, signal: string|null, durationMs: number, spawnFailure: unknown}>}
+   */
+  async awaitFrameSequence(run) {
+    let outcome = null
+    let spawnFailure = null
+    try {
+      outcome = await run.handle.done
+    } catch (cause) {
+      spawnFailure = cause
+    }
+
+    const stdout = this._readAll(run.handle.collected?.stdout)
+    const stderr = this._readAll(run.handle.collected?.stderr)
+    const durationMs = Date.now() - run.startedAt
+
+    /** @type {object|null} */
+    let envelope = null
+    if (existsSync(run.resultPath)) {
+      try {
+        envelope = JSON.parse(readFileSync(run.resultPath, 'utf8'))
+      } catch {
+        envelope = null
+      }
+    }
+
+    return {
+      envelope,
+      stdout,
+      stderr,
+      exitCode: outcome?.exitCode ?? null,
+      signal: outcome?.signal ?? null,
+      durationMs,
+      spawnFailure,
+    }
+  }
+
+  /**
+   * Render a PLAN of views out of one checkpoint, in one Blender process, and
+   * measure each one (SPEC §12.3 "预览默认包含：主相机 / 45 度 / 俯视 / 近景").
    *
    * @param {object} request
    * @param {string} request.checkpointPath - absolute path to the `.blend`.

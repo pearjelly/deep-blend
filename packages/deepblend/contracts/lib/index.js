@@ -140,6 +140,29 @@ export const BlenderErrorCode = Object.freeze({
   RENDER_BUDGET_EXCEEDED: 'RENDER_BUDGET_EXCEEDED',
   /** Blender rendered but produced no image file. */
   RENDER_NO_OUTPUT: 'RENDER_NO_OUTPUT',
+
+  // ---- M3: persistent render jobs, resumption, delivery -------------------
+
+  /** No durable render job exists under that id in this project. */
+  RENDER_JOB_NOT_FOUND: 'RENDER_JOB_NOT_FOUND',
+  /** A render job already owns this project's delivery slot. */
+  RENDER_JOB_CONFLICT: 'RENDER_JOB_CONFLICT',
+  /** The render job is not in a state from which this operation is legal. */
+  RENDER_JOB_STATE_INVALID: 'RENDER_JOB_STATE_INVALID',
+  /** The requested frame range is empty, inverted, or outside the project's own. */
+  RENDER_RANGE_INVALID: 'RENDER_RANGE_INVALID',
+  /** A frame sequence finished without every frame of its range. */
+  RENDER_FRAMES_INCOMPLETE: 'RENDER_FRAMES_INCOMPLETE',
+  /** The encoder executable could not be resolved. */
+  ENCODER_NOT_FOUND: 'ENCODER_NOT_FOUND',
+  /** ffmpeg ran and failed. */
+  ENCODE_FAILED: 'ENCODE_FAILED',
+  /** The encoded file does not have the properties the manifest claims. */
+  ENCODE_VERIFY_FAILED: 'ENCODE_VERIFY_FAILED',
+  /** ffprobe could not be resolved or could not read the file. */
+  PROBE_FAILED: 'PROBE_FAILED',
+  /** A delivery was requested for a job that has not produced every frame. */
+  DELIVERY_INCOMPLETE: 'DELIVERY_INCOMPLETE',
 })
 
 /** Warning codes surface on the successful path, where nothing threw. */
@@ -177,6 +200,18 @@ export const BlenderWarningCode = Object.freeze({
   SCENE_ASSET_NOT_INGESTED: 'SCENE_ASSET_NOT_INGESTED',
   /** An animation track targets a property whose keyframes were clamped or dropped. */
   SCENE_ANIMATION_KEYFRAMES_ADJUSTED: 'SCENE_ANIMATION_KEYFRAMES_ADJUSTED',
+
+  // ---- M3 ----------------------------------------------------------------
+
+  /**
+   * A render could not be registered as a DSH background job, so it will not
+   * appear in the harness job list. The render itself is unaffected and its
+   * durable record is still authoritative — but the caller must be able to see
+   * why the job it asked for is not where it expected it.
+   */
+  JOB_PROJECTION_UNAVAILABLE: 'JOB_PROJECTION_UNAVAILABLE',
+  /** A delivery had to be verified against a claim the runtime could not re-derive. */
+  DELIVERY_CLAIM_UNAVAILABLE: 'DELIVERY_CLAIM_UNAVAILABLE',
 })
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
@@ -547,6 +582,42 @@ export {
 export {
   runVisualLoop,
 } from './visual-loop.js'
+
+// ---------------------------------------------------------------------------
+// M3 surface
+//
+// The persistent render job: the durable record's vocabulary, the frame ledger
+// that decides what still has to be rendered, and the delivery manifest's own
+// completeness and video-property checks. Pure, like the M1/M2 blocks above, so
+// the acceptance suite can exercise a restart's decision rules with no Blender
+// and no ffmpeg present.
+// ---------------------------------------------------------------------------
+
+export {
+  RENDER_JOB_VERSION,
+  FRAME_PLAN_VERSION,
+  PROCESS_IDENTITY_VERSION,
+  DELIVERY_MANIFEST_VERSION,
+  RENDER_JOB_STATUSES,
+  RENDER_JOB_TERMINAL_STATUSES,
+  RENDER_JOB_TYPES,
+  FRAME_FILE_PREFIX,
+  FRAME_FILE_PADDING,
+  MIN_FRAME_BYTES,
+  isTerminalRenderJobStatus,
+  canTransitionRenderJob,
+  checkTransition,
+  frameFileName,
+  frameNumbers,
+  inspectFrameSample,
+  inspectFrameBytes,
+  resolveFrameLedger,
+  renderProgressPercent,
+  estimateRemaining,
+  verifyVideoProperties,
+  deliveryCompleteness,
+  describeRenderJob,
+} from './render-job.js'
 
 export {
   VIEW_ROLES,

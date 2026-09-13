@@ -1,0 +1,69 @@
+── phase 1: a Host in its own process starts a REAL delivery of watch-commercial/r0029 frames 30-89 ──
+
+── phase 2: wait for 6 frame(s), then SIGKILL the Host (its Blender survives) ──
+ACCEPT_STARTED: {"jobId":"render-0001","dshJobId":"blender-render-1","projectId":"watch-commercial","revision":"r0029","frameStart":30,"frameEnd":89,"frames":60,"profile":"final","jobDirectory":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/render-0001"}
+frames.at.kill: 6
+host.killed: {"pid":87192,"signal":"SIGKILL"}
+
+── phase 3: recovery, resume and delivery, in a new process ──
+
+── a NEW Host, in a NEW process, reading only the store ──
+reconciled: [{"jobId":"render-0001","previousStatus":"running","status":"recovering","process":{"pid":87209,"alive":true,"identity":{"matches":true,"reason":"the command line names this job directory"},"stopped":{"pid":87209,"term":"signalled-group","kill":null,"gone":true}},"ledger":{"expected":60,"present":6,"corrupt":0,"missing":54,"toRender":[36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89],"toRenderCount":54,"corruptFrames":[]},"notes":["an orphaned renderer (pid 87209) survived the previous Host and was stopped: signalled-group, gone=true"]}]
+before.resume: {"jobId":"render-0001","status":"recovering","expected":60,"present":6,"missing":54}
+resumed: {"resumed":54,"alreadyComplete":6,"frames":[36,37,38,39,40,41,42,43,44,45,46,47]}
+  progress: 6/60 (8%) running ~29 min left
+  progress: 7/60 (12%) running ~27 min left
+  progress: 8/60 (13%) running ~28 min left
+  progress: 9/60 (15%) running ~27 min left
+  progress: 10/60 (17%) running ~27 min left
+  progress: 11/60 (18%) running ~26 min left
+  progress: 12/60 (20%) running ~25 min left
+  progress: 13/60 (22%) running ~24 min left
+  progress: 14/60 (23%) running ~24 min left
+  progress: 15/60 (25%) running ~23 min left
+  progress: 16/60 (27%) running ~23 min left
+  progress: 17/60 (28%) running ~23 min left
+  progress: 18/60 (30%) running ~22 min left
+  progress: 19/60 (32%) running ~22 min left
+  progress: 20/60 (33%) running ~21 min left
+  progress: 21/60 (35%) running ~21 min left
+  progress: 22/60 (37%) running ~20 min left
+  progress: 23/60 (38%) running ~20 min left
+  progress: 24/60 (40%) running ~19 min left
+  progress: 25/60 (42%) running ~19 min left
+  progress: 26/60 (43%) running ~18 min left
+  progress: 27/60 (45%) running ~17 min left
+  progress: 28/60 (47%) running ~17 min left
+  progress: 29/60 (48%) running ~16 min left
+  progress: 30/60 (50%) running ~16 min left
+  progress: 31/60 (52%) running ~15 min left
+  progress: 32/60 (53%) running ~15 min left
+  progress: 33/60 (55%) running ~14 min left
+  progress: 34/60 (57%) running ~14 min left
+  progress: 35/60 (58%) running ~13 min left
+  progress: 36/60 (60%) running ~13 min left
+  progress: 37/60 (62%) running ~12 min left
+  progress: 38/60 (63%) running ~11 min left
+  progress: 39/60 (65%) running ~11 min left
+  progress: 40/60 (67%) running ~10 min left
+  progress: 41/60 (68%) running ~10 min left
+  progress: 42/60 (70%) running ~9 min left
+  progress: 43/60 (72%) running ~9 min left
+  progress: 44/60 (73%) running ~8 min left
+  progress: 45/60 (75%) running ~8 min left
+  progress: 46/60 (77%) running ~7 min left
+  progress: 47/60 (78%) running ~7 min left
+  progress: 48/60 (80%) running ~6 min left
+  progress: 49/60 (82%) running ~6 min left
+  progress: 50/60 (83%) running ~5 min left
+  progress: 51/60 (85%) running ~5 min left
+  progress: 52/60 (87%) running ~4 min left
+  progress: 53/60 (88%) running ~4 min left
+  progress: 54/60 (90%) running ~3 min left
+  progress: 55/60 (92%) running ~3 min left
+  progress: 56/60 (93%) running ~2 min left
+  progress: 57/60 (95%) running ~2 min left
+  progress: 58/60 (97%) running ~1 min left
+  progress: 59/60 (98%) running ~0 min left
+  progress: 60/60 (100%) completed
+ACCEPT_RESULT: {"ok":true,"jobId":"render-0001","status":"completed","delivery":{"status":"published","videoPath":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/output/final.mp4","manifestPath":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/output/delivery-manifest.json","renderManifestPath":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/render-0001/manifest.json","bytes":316539,"sha256":"a9182fc3336580644b1e975f8fcb2c455dc1ca838d99a669bc10867712dbac2c","verified":true,"problems":[],"encodeDurationMs":978,"completedAt":1789285496119},"frames":{"expected":60,"rendered":60,"bytesOnDisk":60287763},"video":{"path":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/output/final.mp4","bytes":316539,"width":1920,"height":1080,"codec":"h264","pixFmt":"yuv420p","frameCount":60,"fps":"30/1","durationSeconds":2,"container":"mov,mp4,m4a,3gp,3g2,mj2"},"manifest":{"path":"/Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/output/delivery-manifest.json","verified":true,"problems":[],"completeness":{"complete":true,"missing":[]},"claimed":{"frameStart":30,"frameEnd":89,"frameCount":60,"fps":30,"width":1920,"height":1080},"probed":{"durationSeconds":2,"fps":30,"width":1920,"height":1080,"frameCount":60,"containerClaimedFrameCount":60,"codec":"h264"},"videoSha256":"a9182fc3336580644b1e975f8fcb2c455dc1ca838d99a669bc10867712dbac2c","sceneSpecSha256":"45dafb2e0e9d0a92ff80c18f9eb25fcda60d52e3becee6f71ae7d572a3a31df5"}}

@@ -53,15 +53,37 @@ import {
   validateFindings,
   validateSceneSpec,
   warning,
+  // M3 — the persistent render job
+  RENDER_JOB_VERSION,
+  describeRenderJob,
+  estimateRemaining,
+  frameFileName,
+  frameNumbers,
+  renderProgressPercent,
+  verifyVideoProperties,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
+import { RenderJobStore, UNFINISHED_STATUSES } from './render-job-store.js'
 import { RevisionTransaction } from './revision-transaction.js'
+import { inspectFrameSample, readFrameLedger, sampleFrame } from './frame-ledger.js'
+import { JournalTail } from './render-journal.js'
+import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
+import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
+import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { fileSha256, fileSize, isFile, removeTree, resolveInside, writeJsonAtomic } from './paths.js'
+import {
+  fileSha256,
+  fileSize,
+  isFile,
+  readJson,
+  removeTree,
+  resolveInside,
+  writeJsonAtomic,
+} from './paths.js'
 
 /** Service key registered into the Cordis context. */
 export const BLENDER_STUDIO_SERVICE = 'blenderStudio'
@@ -125,6 +147,60 @@ export const StudioConfig = z.object({
   visualReviewMaxTokens: z.number().default(24_000),
   /** Views in the standard plan, in reading order (SPEC §12.3). */
   visualReviewViews: z.array(z.string()).default(['active-camera', 'three-quarter', 'top', 'detail']),
+
+  // ---- M3: the persistent render job (SPEC §10, §17) ----------------------
+
+  /**
+   * The render profile a delivery uses.
+   *
+   * A NAME into the SceneSpec's own `renderProfiles`, not a copy of its settings:
+   * the spec is the source of truth for how a project renders (SPEC §8.1), and a
+   * second copy of "1920x1080 / 256 samples / AgX" in the Host composition is the
+   * shape of defect this repository has already paid for four times (D38, D43).
+   */
+  finalRenderProfile: z.string().default('final'),
+  /**
+   * Ceiling on the samples a DELIVERY render may use.
+   *
+   * Separate from `maxPreviewSamples` on purpose. That one exists to stop the
+   * model spending money on previews (SPEC §16.1/§16.2); applying it to a delivery
+   * would silently rewrite `watch-commercial`'s 256 samples down to 512-capped —
+   * except the reverse: it would cap a 256-spp delivery at 512 and change nothing,
+   * while capping a legitimate 1024-spp delivery at 512 and changing everything.
+   * The profile's own `maxSamplesBudget` is the intended ceiling (SPEC §17).
+   */
+  maxFinalSamples: z.number().default(4096),
+  /** ffmpeg executable: an absolute path, or a bare PATH name. */
+  ffmpegPath: z.string().default('ffmpeg'),
+  /** ffprobe executable: an absolute path, or a bare PATH name. */
+  ffprobePath: z.string().default('ffprobe'),
+  /** x264 quality knob for the delivery encode. Lower is better and larger. */
+  encodeCrf: z.number().default(18),
+  /** x264 speed/size preset for the delivery encode. */
+  encodePreset: z.string().default('medium'),
+  /**
+   * Delivery renders above this many frames require an approval the caller must
+   * have obtained (SPEC §15.1 "高成本最终渲染达阈值审批", §17
+   * `requireApprovalAboveFrames`). The Host records the requirement; the approval
+   * itself belongs to the harness' approval plane (M5 wires the prompt).
+   */
+  requireApprovalAboveFrames: z.number().default(900),
+  /**
+   * How often a running render folds its journal into the recorded progress.
+   *
+   * One second against frames that take 19.6-41.4 s each: frequent enough that a
+   * reader never sees a stale count, rare enough that the polling is invisible
+   * beside the render it is describing.
+   */
+  progressPollMs: z.number().default(1000),
+  /**
+   * Run the restart reconciler when this Host is constructed (SPEC §10.3).
+   *
+   * On by default. Off only for a test that needs a clean slate, because a
+   * reconciler that has to be remembered is a reconciler that will be forgotten —
+   * and the one time it matters is the one time nobody remembers.
+   */
+  reconcileOnStart: z.boolean().default(true),
 })
 
 export default class BlenderStudio extends Service {
@@ -146,10 +222,33 @@ export default class BlenderStudio extends Service {
 
     this.store = new ProjectStore({ projectsRoot: config.projectsRoot, workspaceRoot: config.workspaceRoot })
     this.transactions = new RevisionTransaction({ store: this.store, runtime: this.runtime, config })
+
+    // ---- M3: the persistent render job (SPEC §10) --------------------------
+    this.renderJobs = new RenderJobStore({
+      projectDirectory: projectId => this.store.projectDirectory(projectId),
+      workspaceRoot: config.workspaceRoot,
+    })
+    /** Live renders, keyed by render job id, so cancel can reach the handle. */
+    this._liveRenders = new Map()
+    /** The reconciliation pass, so a caller (or a test) can await the answer. */
+    this._reconciliation = null
+    /** Findings from the most recent pass, kept for the job surface. */
+    this._recoveryFindings = []
+
+    if (config.reconcileOnStart === true) this._kickReconciliation()
   }
 
   /** @type {Promise<import('@deepblend/dsh-blender-contracts').BlenderCapabilities>|null} */
   _inFlight
+
+  /** @type {Map<string, object>} */
+  _liveRenders
+
+  /** @type {Promise<object[]>|null} */
+  _reconciliation
+
+  /** @type {object[]} */
+  _recoveryFindings
 
   /** @returns {import('@deepblend/dsh-blender-provider-local').default} */
   get runtime() {
@@ -1563,63 +1662,1546 @@ export default class BlenderStudio extends Service {
     }
   }
 
-  /** Read one durable job record. */
-  async getJob(request) {
-    const record = this.store.readJob(request?.projectId, request?.jobId)
-    return toCanonicalJobRecord(record)
-  }
-
-  /**
-   * Cancel a job.
-   *
-   * M1 runs every Blender action to completion inside the tool call that started
-   * it, so there is no live process to cancel. Reporting that plainly is the
-   * honest answer; the persistent, cancellable Job Store is M3 (SPEC §10).
-   */
-  async cancelJob(request) {
-    const record = this.store.readJob(request?.projectId, request?.jobId)
-    if (record.status === 'running') {
-      throw new BlenderError(
-        BlenderErrorCode.UNSUPPORTED_ACTION,
-        `Job ${record.jobId} is recorded as running but M1 has no cancellable background job: ` +
-          'every Blender action finishes within the tool call that started it. Cancellation lands with the ' +
-          'persistent Job Store in M3.',
-        { detail: { jobId: record.jobId, milestone: 'M3' } },
-      )
-    }
-    return { jobId: record.jobId, status: record.status, cancelled: false, reason: `job is already ${record.status}` }
-  }
-
-  /**
-   * Drop cached state after a settings change so a corrected `blenderPath`
-   * takes effect without a restart (SPEC §17 "配置变化时安全重载").
-   */
-  reload() {
-    this.runtime.invalidateCapabilities()
-  }
-
   // ---------------------------------------------------------------------------
-  // Declared-but-unimplemented M3+ surface (SPEC §7.2)
+  // M3: the persistent render job (SPEC §10)
   //
-  // Each of these exists so the package boundary is frozen now, and each throws
-  // a stable code so no caller — model, UI or test — can mistake absence for
-  // success (SPEC §11.1).
+  // The two halves of a delivery live here: RENDERING a frame sequence (long,
+  // resumable, cancellable) and DELIVERING it (encode, verify, publish, manifest).
+  // `startFinalRender` runs both; `exportProject` runs the second half alone, from
+  // frames that already exist.
   // ---------------------------------------------------------------------------
 
-  /** @returns {never} */
-  _notImplemented(operation, milestone) {
+  /**
+   * Start the restart reconciler without blocking composition.
+   *
+   * Deferred by one tick on purpose: the reconciler signs process groups and reads
+   * directories, and a Host that is still mounting rows has no `subprocess`
+   * service for a resume to use. The promise is kept so a caller can await the
+   * answer rather than poll for it.
+   */
+  _kickReconciliation() {
+    this._reconciliation = new Promise((resolvePass) => {
+      setTimeout(() => {
+        resolvePass(this.reconcileRenderJobs().catch((cause) => {
+          // A reconciler that throws must not take the Host down with it: the
+          // failure is recorded and the finding list stays empty, which reads as
+          // "nothing was recovered" rather than as "nothing was checked".
+          this._recoveryError = cause instanceof Error ? cause.message : String(cause)
+          return []
+        }))
+      }, 0)
+    })
+  }
+
+  /** Await the reconciliation pass that started with this Host. */
+  async awaitReconciliation() {
+    if (this._reconciliation === null) return []
+    return this._reconciliation
+  }
+
+  /**
+   * Reconcile every unfinished render job in every project (SPEC §10.3).
+   *
+   * @returns {Promise<object[]>} one finding per unfinished job.
+   */
+  async reconcileRenderJobs() {
+    const unfinished = this.renderJobs.unfinishedAcross(this.store.listProjectIds())
+    /** @type {object[]} */
+    const findings = []
+    for (const entry of unfinished) {
+      const previous = entry.record
+      findings.push(await reconcileRenderJob({
+        store: this.renderJobs,
+        readFrameLedger,
+        projectId: entry.projectId,
+        jobId: entry.jobId,
+        record: previous,
+        write: record => (previous === null
+          ? this.renderJobs.write(record)
+          : this.renderJobs.write(record, { previous })),
+      }))
+    }
+    this._recoveryFindings = findings
+    return findings
+  }
+
+  /** Findings from the most recent reconciliation pass. */
+  get recoveryFindings() {
+    return this._recoveryFindings
+  }
+
+  /**
+   * Attach the DSH job controller, once, if the composition has a job registry.
+   *
+   * `jobs.start` refuses an owner no controller serves, and the DeepBlend render
+   * is an UNOWNED job on purpose: the studio is one host-level service shared by
+   * every session (SPEC §4.4), so a delivery started in one session must be
+   * visible and cancellable from another. `attachController` is effect-scoped and
+   * idempotent, so attaching more than once is harmless.
+   */
+  _attachJobController() {
+    if (this._jobControllerAttached) return this.ctx.get('jobs') ?? null
+    const jobs = this.ctx.get('jobs')
+    if (jobs === undefined || typeof jobs.attachController !== 'function') return null
+    try {
+      this.ctx.effect(() => jobs.attachController('deepblend-render'))
+      this._jobControllerAttached = true
+    } catch (cause) {
+      this.ctx.logger?.warn(`deepblend: could not attach the job controller: ${String(cause)}`)
+      return null
+    }
+    return jobs
+  }
+
+  // ---------------------------------------------------------------------------
+  // The job surface (SPEC §7.2, §11)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Read one job, render job first.
+   *
+   * Two record types can answer to the same id, and a caller asking for `jobId`
+   * should not have to know which store it came from: a render job is looked up in
+   * `renders/`, and an M1 attempt log in `jobs/`. A render job wins because its id
+   * namespace is disjoint (`render-NNNN`), and reporting the richer record is the
+   * useful answer when a caller has both.
+   *
+   * @param {{ projectId: string, jobId: string }} request
+   * @returns {Promise<object>}
+   */
+  async getJob(request) {
+    const projectId = request?.projectId
+    const jobId = request?.jobId
+    // The project is checked FIRST, so a typo in a project id is reported as a
+    // project problem. Falling through to "no such job" would send the caller
+    // looking for a job id that was never the mistake.
+    this.store.readRecord(projectId)
+    const renderRecord = jobId !== undefined ? this.renderJobs.readSafe(projectId, jobId) : null
+    if (renderRecord !== null) {
+      return {
+        ...toCanonicalJobRecord({
+          schemaVersion: RENDER_JOB_VERSION,
+          jobId: renderRecord.jobId,
+          projectId: renderRecord.projectId,
+          action: renderRecord.type,
+          revision: renderRecord.revisionId,
+          status: renderRecord.status,
+          startedAt: new Date(renderRecord.createdAt).toISOString(),
+          finishedAt: renderRecord.finishedAt === null ? null : new Date(renderRecord.finishedAt).toISOString(),
+          durationMs: renderRecord.finishedAt === null ? null : renderRecord.finishedAt - renderRecord.createdAt,
+          errorCode: renderRecord.errorCode ?? null,
+          message: renderRecord.message ?? null,
+        }),
+        kind: 'render-job',
+        renderJob: this._canonicalRenderJob(renderRecord),
+      }
+    }
+    const attempt = this.store.readJobSafe(projectId, jobId)
+    if (attempt !== null) return toCanonicalJobRecord(attempt)
     throw new BlenderError(
-      BlenderErrorCode.UNSUPPORTED_ACTION,
-      `blenderStudio.${operation} is not implemented yet. ${milestone} delivers it; ` +
-        'the implemented surface is the batch SceneSpec loop and the M2 visual review loop.',
-      { detail: { operation, milestone } },
+      BlenderErrorCode.RENDER_JOB_NOT_FOUND,
+      `Project "${projectId}" has no job "${jobId}" in either store (render jobs under renders/, ` +
+        'attempt logs under jobs/).',
+      { detail: { projectId, jobId } },
     )
   }
 
-  /** @returns {never} */
-  startFinalRender() { return this._notImplemented('startFinalRender', 'M3') }
-  /** @returns {never} */
-  exportProject() { return this._notImplemented('exportProject', 'M3') }
+  /**
+   * List a project's jobs: render jobs first (newest last), then attempt logs.
+   *
+   * @param {{ projectId: string, limit?: number }} request
+   * @returns {Promise<object>}
+   */
+  async listJobs(request) {
+    const projectId = request?.projectId
+    // An unknown project must not read as "a project with no jobs": the second is a
+    // true statement about a real project, and a caller cannot tell them apart.
+    this.store.readRecord(projectId)
+    const records = this.renderJobs.list(projectId)
+    const limit = Number.isSafeInteger(request?.limit) ? request.limit : records.length
+    const selected = limit >= records.length ? records : records.slice(records.length - limit)
+    return {
+      projectId,
+      jobs: selected.map(record => this._canonicalRenderJob(record)),
+      unfinished: records.filter(record => !RenderJobStore.isTerminal(record)).map(record => record.jobId),
+      recovery: this._recoveryFindings
+        .filter(finding => finding.projectId === projectId)
+        .map(finding => ({
+          jobId: finding.jobId,
+          status: finding.status,
+          notes: finding.notes,
+          ledger: finding.ledger,
+          reconciledAt: finding.reconciledAt,
+        })),
+      recoveryError: this._recoveryError ?? null,
+    }
+  }
+
+  /**
+   * Cancel a live render job, and prove the process is gone (SPEC §20 M3
+   * "取消后无孤儿进程").
+   *
+   * The report distinguishes three things that are easy to conflate: the cancel was
+   * REQUESTED, the process was SIGNALLED, and the process is GONE. Only the third
+   * is the acceptance condition, so it is measured (`process.kill(-pid, 0)`) after
+   * the signal rather than inferred from having sent one.
+   *
+   * @param {{ projectId: string, jobId: string, reason?: string }} request
+   * @returns {Promise<object>}
+   */
+  async cancelJob(request) {
+    const projectId = request?.projectId
+    const jobId = request?.jobId
+    const renderRecord = projectId !== undefined && jobId !== undefined
+      ? this.renderJobs.readSafe(projectId, jobId)
+      : null
+
+    if (renderRecord === null) {
+      // An M1 attempt log has no live process by construction.
+      const record = this.store.readJob(projectId, jobId)
+      return {
+        jobId: record.jobId,
+        kind: 'attempt-log',
+        status: record.status,
+        cancelled: false,
+        reason: `an M1 attempt log has no cancellable process; job is already ${record.status}`,
+        processGone: true,
+      }
+    }
+
+    if (RenderJobStore.isTerminal(renderRecord)) {
+      return {
+        jobId,
+        kind: 'render-job',
+        status: renderRecord.status,
+        cancelled: false,
+        reason: `the render job is already ${renderRecord.status}`,
+        processGone: true,
+      }
+    }
+
+    const live = this._liveRenders.get(jobId)
+    const reason = request?.reason ?? 'cancelled by a caller'
+
+    // Stop the DSH projection first so the harness stops waiting on it and the
+    // model sees `stopping` immediately; the process work follows.
+    const dshJobId = live?.dshJobId ?? renderRecord.dshJobId ?? null
+    if (dshJobId !== null) {
+      const jobs = this.ctx.get('jobs')
+      try {
+        jobs?.kill(dshJobId, undefined, reason)
+      } catch {
+        // A projection that cannot be killed (already settled, or gone with a
+        // previous Host) must not stop the process cancellation below.
+      }
+    }
+
+    let processReport = { attempted: false }
+    const pid = renderRecord.pid ?? null
+    if (live !== undefined) {
+      live.cancelled = true
+      live.cancelReason = reason
+      // `terminate()` is synchronous and idempotent, and it walks the provider's
+      // documented ladder: SIGTERM to the process group, grace, SIGKILL.
+      if (live.handle !== null) {
+        try {
+          live.handle.terminate()
+          // The ladder is named, and the SIGNAL is deliberately not. `terminate()`
+          // walks the provider's own tiers (SIGTERM to the managed range, a grace
+          // period, then SIGKILL) and does not report which tier stopped the
+          // process; naming one here would be a guess dressed as a measurement.
+          // What IS measured is the thing the acceptance condition asks for: the
+          // process is gone.
+          processReport = {
+            attempted: true,
+            via: 'subprocess-handle',
+            pid,
+            ladder: "the provider's terminate(): SIGTERM to the managed range, grace, then SIGKILL",
+          }
+        } catch (cause) {
+          processReport = { attempted: true, via: 'subprocess-handle', pid, error: String(cause) }
+        }
+      }
+    } else if (pid !== null) {
+      // No live handle in THIS process — the renderer was started by a previous
+      // Host, or by a reconcile that has not adopted it. Signal the group directly
+      // and verify, which is the same thing the reconciler does.
+      processReport = { attempted: true, via: 'process-group', ...(await stopProcessGroup({ pid })) }
+    }
+
+    // Wait for the process to be REAPED, not merely signalled. MEASURED, and it is
+    // the difference between a green test and a true one: immediately after
+    // `terminate()`, `ps` still shows the pid as `(Blender)` — a zombie that has
+    // exited but not yet been collected by this Node process — so `kill(pid, 0)`
+    // SUCCEEDS and a liveness check taken too early reports a live renderer for a
+    // process that is already dead. `handle.done` resolves after the child is
+    // reaped, which is the fact the acceptance condition is actually about.
+    if (live !== undefined && live.handle !== null) {
+      await Promise.race([
+        live.handle.done.catch(() => undefined),
+        new Promise(resolveWait => setTimeout(resolveWait, 15_000)),
+      ])
+    }
+
+    // Verify rather than assume. A cancel that reports success while the renderer
+    // keeps writing frames is the exact failure the acceptance condition names.
+    let processGone = true
+    let after = null
+    if (pid !== null) {
+      after = checkProcessAlive(pid)
+      processGone = after.alive === false
+      if (processGone === false && live === undefined) {
+        // A group that survived a direct signal is escalated once, then reported.
+        const escalated = await stopProcessGroup({ pid })
+        after = checkProcessAlive(pid)
+        processGone = after.alive === false
+        processReport = { ...processReport, escalated }
+      }
+    }
+
+    const next = this.renderJobs.write({
+      ...renderRecord,
+      status: 'cancelled',
+      cancelledAt: Date.now(),
+      finishedAt: Date.now(),
+      errorCode: null,
+      message: `cancelled: ${reason}`,
+    }, { previous: renderRecord })
+
+    // Settle the live work so the DSH projection is released and the render loop
+    // stops touching the record — and WAIT for it. Returning while the render loop
+    // is still unwinding means a caller that cancels and immediately resumes races
+    // its own previous attempt for the same frame files.
+    if (live !== undefined && live.settle !== null) {
+      live.settle({ status: 'killed', detail: reason })
+      await this._awaitLiveGone(jobId, 15_000)
+    }
+
+    return {
+      jobId,
+      kind: 'render-job',
+      status: next.status,
+      cancelled: true,
+      reason,
+      process: { ...processReport, after, gone: processGone },
+      processGone,
+      completedFrames: next.completedFrames?.length ?? 0,
+    }
+  }
+
+  /**
+   * Start a delivery render (SPEC §7.2 `startFinalRender`, §20 M3).
+   *
+   * RETURNS AS SOON AS THE RENDERER IS RUNNING. It does not await the render, the
+   * encode or the manifest — a 450-frame delivery is ~3.4 hours on this machine,
+   * and the first acceptance condition is that a long task does not block the
+   * Agent. What comes back is a job reference; what follows is a filesystem, a DSH
+   * job whose output carries progress, and a durable record that survives the Host
+   * being killed.
+   *
+   * @param {object} request
+   * @param {string} request.projectId
+   * @param {string} [request.revision]
+   * @param {number} [request.frameStart]
+   * @param {number} [request.frameEnd]
+   * @param {string} [request.cameraId]
+   * @param {string} [request.profileName]
+   * @param {number} [request.samples]
+   * @param {number[]} [request.frames]
+   * @returns {Promise<object>}
+   */
+  async startFinalRender(request) {
+    const projectId = request?.projectId
+    const record = this.store.readRecord(projectId)
+    const revision = request?.revision ?? record.currentRevision
+    const spec = this.store.readRevisionSpec(projectId, revision)
+    const profileName = request?.profileName ?? this.config.finalRenderProfile
+    const profile = this._resolveRenderProfile(spec, profileName, revision)
+
+    const range = this._resolveDeliveryRange({ spec, request })
+    const frames = range.frames
+
+    // One delivery render per project. SPEC §16.4 fixes delivery concurrency at 1,
+    // and two renderers writing one project's frames is a race in which neither
+    // process can vouch for the result.
+    const active = this._activeRenderJob(projectId)
+    if (active !== null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_JOB_CONFLICT,
+        `Project "${projectId}" already has ${active.jobId} in state "${active.status}" ` +
+          `(${active.completedFrames?.length ?? 0}/${(active.frameEnd ?? 0) - (active.frameStart ?? 0) + 1} frames). ` +
+          'Resume it with blender_final_render {resumeJobId}, or cancel it first: two renderers writing one ' +
+          'project\'s frames would produce files neither can vouch for.',
+        { detail: { projectId, activeJob: active.jobId, status: active.status } },
+      )
+    }
+
+    const checkpoint = this._resolveDeliveryCheckpoint({ projectId, revision, spec })
+    const cameraId = request?.cameraId ?? this._deliveryCameraId(spec)
+    const requestedSamples = request?.samples ?? profile.samples
+    const effective = this._deliverySamples(profile, requestedSamples, revision)
+
+    const jobId = this.renderJobs.allocateJobId(projectId)
+    const now = Date.now()
+    /** @type {object[]} */
+    const warnings = []
+    for (const notice of range.notices) {
+      warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, notice, { kind: 'delivery-range' }))
+    }
+    if (effective.warning !== null) warnings.push(effective.warning)
+    if (frames.length > this.config.requireApprovalAboveFrames) {
+      warnings.push(warning(
+        BlenderWarningCode.SCENE_COMPILER_DECISION,
+        `this delivery renders ${frames.length} frames, above the configured approval threshold of ` +
+          `${this.config.requireApprovalAboveFrames} (SPEC §15.1 "高成本最终渲染达阈值审批")`,
+        { frames: frames.length, threshold: this.config.requireApprovalAboveFrames },
+      ))
+    }
+
+    const created = this.renderJobs.write({
+      schemaVersion: RENDER_JOB_VERSION,
+      jobId,
+      projectId,
+      revisionId: revision,
+      runId: null,
+      type: 'final-render',
+      status: 'queued',
+      attempt: 0,
+      pid: null,
+      processGroupId: null,
+      frameStart: frames[0],
+      frameEnd: frames[frames.length - 1],
+      expectedFrames: frames.length,
+      completedFrames: [],
+      missingFrames: frames,
+      corruptFrames: [],
+      framesDirectory: this.renderJobs.framesDirectory(projectId, jobId),
+      jobDirectory: this.renderJobs.jobDirectory(projectId, jobId),
+      filePrefix: 'frame_',
+      filePadding: 4,
+      fps: spec.project.fps,
+      sceneFrameRange: [spec.project.frameStart, spec.project.frameEnd],
+      profileName,
+      renderConfig: null,
+      cameraId,
+      checkpointPath: checkpoint.path,
+      sceneSpecDigest: sceneSpecDigest(spec),
+      dshJobId: null,
+      delivery: null,
+      outputManifest: null,
+      errorCode: null,
+      message: null,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: null,
+      finishedAt: null,
+      warnings,
+    })
+
+    const launched = await this._launchRenderer({
+      record: created, spec, profile, profileName, checkpoint, cameraId, frames, reason: 'start',
+    })
+
+    return {
+      jobId,
+      projectId,
+      revision,
+      type: 'final-render',
+      // The projection's id is returned, not just stored: correlating a DeepBlend
+      // render with the harness job list is how a caller finds the progress stream
+      // and how a human finds it in the Jobs panel.
+      dshJobId: launched.dshJobId,
+      status: this.renderJobs.read(projectId, jobId).status,
+      frameStart: frames[0],
+      frameEnd: frames[frames.length - 1],
+      frames: frames.length,
+      estimate: null,
+      warnings,
+      message:
+        `Delivery render of ${frames.length} frame(s) started for ${projectId}/${revision}. It runs in the ` +
+        'background; poll it with blender_job_status. If the harness or Blender is interrupted, the frames ' +
+        'already rendered are kept and blender_final_render {resumeJobId} continues from the missing ones.',
+    }
+  }
+
+  /**
+   * Continue an interrupted delivery render, rendering ONLY the frames that are
+   * not already complete (SPEC §10.3 step 6, §20 M3 "可只渲缺失帧").
+   *
+   * The set to render comes from the frame LEDGER, never from the record's cached
+   * `completedFrames`: the cache is written by a process that may have died, and a
+   * frame file written by a process killed mid-write exists without being a frame.
+   *
+   * @param {{ projectId: string, jobId: string, frameStart?: number, frameEnd?: number, samples?: number }} request
+   * @returns {Promise<object>}
+   */
+  async resumeRenderJob(request) {
+    const projectId = request?.projectId
+    const jobId = request?.jobId
+    const record = this.renderJobs.read(projectId, jobId)
+
+    // A failed or cancelled job IS resumable: its frames are on disk and its work
+    // is unfinished, and refusing would mean a Blender crash in hour three costs
+    // the whole render. Only a completed job is finished — re-delivering it is
+    // `exportProject`, which does not need a renderer at all.
+    if (record.status === 'completed') {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_JOB_STATE_INVALID,
+        `Render job ${jobId} is completed; its delivery is already published. Use blender_export to ` +
+          're-encode it, which spends no Blender time.',
+        { detail: { jobId, status: record.status } },
+      )
+    }
+    const live = this._liveRenders.get(jobId)
+    if (live !== undefined && live.handle !== null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_JOB_CONFLICT,
+        `Render job ${jobId} is already running in this Host.`,
+        { detail: { jobId } },
+      )
+    }
+
+    const spec = this.store.readRevisionSpec(projectId, record.revisionId)
+    const profileName = record.profileName ?? this.config.finalRenderProfile
+    const profile = this._resolveRenderProfile(spec, profileName, record.revisionId)
+    const checkpoint = this._resolveDeliveryCheckpoint({ projectId, revision: record.revisionId, spec })
+
+    const expected = this.renderJobs.expectedFrames(record)
+    const ledger = readFrameLedger({
+      framesDirectory: this.renderJobs.framesDirectory(projectId, jobId),
+      expected,
+      expectedSize: {
+        width: record.renderConfig?.resolution?.[0],
+        height: record.renderConfig?.resolution?.[1],
+        prefix: record.filePrefix,
+        padding: record.filePadding,
+      },
+    })
+
+    const samples = request?.samples ?? profile.samples
+    const effective = this._deliverySamples(profile, samples, record.revisionId)
+
+    await this._launchRenderer({
+      record: {
+        ...record,
+        completedFrames: ledger.present.map(entry => entry.frame),
+        missingFrames: ledger.toRender,
+        corruptFrames: ledger.corrupt,
+        renderConfig: record.renderConfig ?? { resolution: profile.resolution, samples: effective.samples },
+      },
+      spec,
+      profile: effective.profile,
+      profileName,
+      checkpoint,
+      cameraId: record.cameraId ?? this._deliveryCameraId(spec),
+      frames: ledger.toRender,
+      reason: 'resume',
+      expectedFrames: expected,
+    })
+
+    return {
+      jobId,
+      projectId,
+      revision: record.revisionId,
+      status: this.renderJobs.read(projectId, jobId).status,
+      frameStart: record.frameStart,
+      frameEnd: record.frameEnd,
+      alreadyComplete: ledger.presentCount,
+      resumed: ledger.toRender.length,
+      resumedFrames: ledger.toRender,
+      corrupt: ledger.corrupt.map(entry => ({ frame: entry.frame, reason: entry.reason })),
+      warnings: [],
+      message: ledger.toRender.length === 0
+        ? 'Every frame is already present and complete; the job is finishing its delivery instead of re-rendering.'
+        : `Resuming ${ledger.toRender.length} frame(s): ${ledger.missingCount} absent, ${ledger.corruptCount} incomplete.`,
+    }
+  }
+
+  /**
+   * Encode and publish a delivery from frames that already exist (SPEC §7.2
+   * `exportProject`).
+   *
+   * WHY THIS IS SEPARATE FROM `startFinalRender`
+   * --------------------------------------------
+   * It spends no Blender time. Re-encoding after a settings change, re-publishing
+   * a package whose manifest was lost, or producing the video for a render another
+   * session finished are all real, and all of them would otherwise mean rendering
+   * 450 frames again.
+   *
+   * @param {{ projectId: string, jobId?: string, revision?: string }} request
+   * @returns {Promise<object>}
+   */
+  async exportProject(request) {
+    const projectId = request?.projectId
+    const record = request?.jobId !== undefined
+      ? this.renderJobs.read(projectId, request.jobId)
+      : this._newestDeliverableJob(projectId, request?.revision)
+
+    if (record === null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_JOB_NOT_FOUND,
+        `Project "${projectId}" has no render job to export. Start one with blender_final_render first.`,
+        { detail: { projectId } },
+      )
+    }
+
+    const spec = this.store.readRevisionSpec(projectId, record.revisionId)
+    const delivery = await this._deliverJob({ record, spec, reason: 'export' })
+    return {
+      jobId: record.jobId,
+      projectId,
+      revision: record.revisionId,
+      status: delivery.status,
+      video: delivery.video,
+      manifest: delivery.manifest,
+      verified: delivery.verified,
+      problems: delivery.problems,
+      completeness: delivery.completeness,
+      warnings: [],
+      message: delivery.verified
+        ? `Delivery package published: ${delivery.video?.path}. ` +
+          `${delivery.video?.probed?.frameCount} frame(s), ${delivery.video?.probed?.durationSeconds}s, ` +
+          `${delivery.video?.probed?.width}x${delivery.video?.probed?.height} @ ${delivery.video?.probed?.fps} fps.`
+        : `Delivery encoded but its properties do not match the job's own claims: ${JSON.stringify(delivery.problems)}`,
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // M3 internals
+  // ---------------------------------------------------------------------------
+
+  /** The render profile a delivery uses, or a stable refusal. */
+  _resolveRenderProfile(spec, profileName, revision) {
+    const profile = spec?.renderProfiles?.[profileName]
+    if (profile === undefined) {
+      const available = Object.keys(spec?.renderProfiles ?? {})
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_PROFILE_MISSING,
+        `Revision ${revision} declares no "${profileName}" render profile, so there is nothing to render a ` +
+          `delivery with. Declared profiles: ${available.length > 0 ? available.join(', ') : 'none'}.`,
+        { detail: { revision, requested: profileName, available } },
+      )
+    }
+    return profile
+  }
+
+  /** The frame range a delivery covers, with the notices explaining any narrowing. */
+  _resolveDeliveryRange(input) {
+    const project = input.spec.project
+    const { frames: projectFrames, error } = frameNumbers(project.frameStart, project.frameEnd)
+    if (error !== null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_RANGE_INVALID,
+        `the SceneSpec's own frame range is invalid: ${error}`,
+        { detail: { frameStart: project.frameStart, frameEnd: project.frameEnd } },
+      )
+    }
+    const notices = []
+    if (Array.isArray(input.request?.frames) && input.request.frames.length > 0) {
+      const requested = [...new Set(input.request.frames.map(Number))]
+        .filter(frame => Number.isSafeInteger(frame))
+        .sort((left, right) => left - right)
+      const outside = requested.filter(frame => frame < project.frameStart || frame > project.frameEnd)
+      if (requested.length === 0) {
+        throw new BlenderError(
+          BlenderErrorCode.RENDER_RANGE_INVALID,
+          'the requested frame list contains no usable frame numbers',
+          { detail: { frames: input.request.frames } },
+        )
+      }
+      if (outside.length > 0) {
+        notices.push(
+          `${outside.length} requested frame(s) fall outside the project's own range ` +
+          `${project.frameStart}..${project.frameEnd} and were dropped: ${outside.slice(0, 8).join(', ')}`,
+        )
+      }
+      const kept = requested.filter(frame => frame >= project.frameStart && frame <= project.frameEnd)
+      if (kept.length === 0) {
+        throw new BlenderError(
+          BlenderErrorCode.RENDER_RANGE_INVALID,
+          `every requested frame falls outside the project's range ${project.frameStart}..${project.frameEnd}`,
+          { detail: { frames: input.request.frames } },
+        )
+      }
+      return { frames: kept, notices }
+    }
+
+    const start = input.request?.frameStart ?? project.frameStart
+    const end = input.request?.frameEnd ?? project.frameEnd
+    const { frames, error: rangeError } = frameNumbers(start, end)
+    if (rangeError !== null) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_RANGE_INVALID,
+        `the requested delivery range is invalid: ${rangeError}`,
+        { detail: { frameStart: start, frameEnd: end, projectRange: [project.frameStart, project.frameEnd] } },
+      )
+    }
+    if (start !== project.frameStart || end !== project.frameEnd) {
+      notices.push(
+        `this delivery covers frames ${start}..${end}, not the project's own range ` +
+        `${project.frameStart}..${project.frameEnd}; the delivery manifest records both`,
+      )
+    }
+    return { frames, notices }
+  }
+
+  /**
+   * The samples a delivery may use, and the warning when the ceiling bit.
+   *
+   * Deliberately NOT bounded by `maxPreviewSamples`: that ceiling exists to stop a
+   * model spending money on previews, and applying it here would silently rewrite
+   * a delivery's own profile — the M3 brief calls this out as the trap waiting in
+   * the final-render path. The profile's `maxSamplesBudget` is the intended
+   * ceiling, with `maxFinalSamples` as the operator's backstop.
+   */
+  _deliverySamples(profile, requested, revision) {
+    const ceiling = Math.min(
+      profile.maxSamplesBudget ?? this.config.maxFinalSamples,
+      this.config.maxFinalSamples,
+    )
+    if (requested === undefined || requested === null) {
+      return { samples: profile.samples ?? null, profile, warning: null }
+    }
+    const effective = Math.min(requested, ceiling)
+    if (effective === requested) {
+      return { samples: effective, profile: { ...profile, samples: effective }, warning: null }
+    }
+    return {
+      samples: effective,
+      profile: { ...profile, samples: effective },
+      warning: warning(
+        BlenderWarningCode.RENDER_SAMPLES_REDUCED,
+        `delivery samples reduced from ${requested} to ${effective} by the profile budget ` +
+          `(profile budget ${profile.maxSamplesBudget ?? this.config.maxFinalSamples}, host ceiling ` +
+          `${this.config.maxFinalSamples}); the preview ceiling maxPreviewSamples=${this.config.maxPreviewSamples} ` +
+          'deliberately does not apply to a delivery render',
+        { requested, used: effective, revision },
+      ),
+    }
+  }
+
+  /** The checkpoint a delivery renders from, compiled if the revision has none. */
+  _resolveDeliveryCheckpoint(input) {
+    const checkpoint = this.store.findCheckpointAtOrBefore(input.projectId, input.revision)
+    if (checkpoint === null) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
+        `Revision ${input.revision} has no checkpoint to render from, and there is no earlier checkpoint to ` +
+          'fall back on. Commit a revision with saveCheckpoint before rendering a delivery.',
+        { detail: { projectId: input.projectId, revision: input.revision } },
+      )
+    }
+    return checkpoint
+  }
+
+  /**
+   * The camera a delivery renders from: the one the scene declares active, else
+   * the first declared.
+   *
+   * Read from `cameras[].role` rather than from the compiled scene's
+   * `activeCamera`, because the SceneSpec is the source of truth and the role is
+   * the author's own statement (the same reasoning as D37 — an ordering fallback
+   * is a guess, and the view plan already learned what guessing costs).
+   */
+  _deliveryCameraId(spec) {
+    const cameras = Array.isArray(spec?.cameras) ? spec.cameras : []
+    const active = cameras.find(camera => camera.role === 'active-camera')
+    if (active !== undefined) return active.id
+    if (cameras.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.SCENE_CAMERA_MISSING,
+        'this SceneSpec declares no camera, so there is nothing to render a delivery from.',
+      )
+    }
+    return cameras[0].id
+  }
+
+  /** Wait, bounded, for a render loop to release its handle on a job. */
+  async _awaitLiveGone(jobId, timeoutMs) {
+    const deadline = Date.now() + timeoutMs
+    while (Date.now() < deadline) {
+      if (!this._liveRenders.has(jobId)) return true
+      await new Promise(resolveWait => setTimeout(resolveWait, 50))
+    }
+    return !this._liveRenders.has(jobId)
+  }
+
+  /** The non-terminal render job for a project, if any. */
+  _activeRenderJob(projectId) {
+    for (const record of this.renderJobs.list(projectId)) {
+      if (UNFINISHED_STATUSES.includes(record.status)) return record
+    }
+    return null
+  }
+
+  /** The newest render job whose frames are complete, for `exportProject`. */
+  _newestDeliverableJob(projectId, revision) {
+    const candidates = this.renderJobs.list(projectId)
+      .filter(record => revision === undefined || record.revisionId === revision)
+    for (let index = candidates.length - 1; index >= 0; index -= 1) {
+      const record = candidates[index]
+      if (record.delivery?.status === 'published') return record
+      if (record.status === 'completed') return record
+      const expected = record.expectedFrames ?? (record.frameEnd - record.frameStart + 1)
+      if ((record.completedFrames?.length ?? 0) >= expected) return record
+    }
+    return candidates.length > 0 ? candidates[candidates.length - 1] : null
+  }
+
+  /**
+   * Launch a renderer for a record and return once it is RUNNING.
+   *
+   * The record has already been written; everything below happens in the
+   * background, and the returned promise resolves as soon as the child has been
+   * spawned so a tool call can answer with a job id instead of a 3.4-hour wait.
+   */
+  async _launchRenderer(input) {
+    const { record, profile, profileName, checkpoint } = input
+    const projectId = record.projectId
+    const jobId = record.jobId
+    const frames = input.frames
+    const jobs = this._attachJobController()
+
+    /** @type {object} */
+    const live = {
+      jobId,
+      cancelled: false,
+      cancelReason: null,
+      handle: null,
+      run: null,
+      dshJobId: null,
+      output: '',
+      verified: new Set(record.completedFrames ?? []),
+      // Filled in below, from the profile actually being applied. Taking it from
+      // `record.renderConfig` would be null on a FIRST attempt — the record that
+      // carries it is written a few lines later — so the per-frame check would
+      // verify existence and completeness but not dimensions, while the ledger
+      // verifies all three. Two checks of different strength on the same question
+      // is the shape of defect D57.
+      expectedSize: { width: undefined, height: undefined },
+      settle: null,
+      done: null,
+      journal: new JournalTail(join(this.renderJobs.jobDirectory(projectId, jobId), 'events.jsonl')),
+      attemptToken: null,
+      tornReported: false,
+      startedAt: Date.now(),
+    }
+
+    const expected = input.expectedFrames ?? this.renderJobs.expectedFrames(record)
+    const renderConfig = record.renderConfig ?? {
+      resolution: profile.resolution,
+      samples: profile.samples,
+      engine: profile.engine,
+      viewTransform: profile.colorManagement?.viewTransform ?? null,
+      fps: record.fps,
+    }
+    live.expectedSize = { width: renderConfig.resolution?.[0], height: renderConfig.resolution?.[1] }
+
+    let next = this.renderJobs.write({
+      ...record,
+      status: 'running',
+      attempt: (record.attempt ?? 0) + 1,
+      // The pid of the PREVIOUS attempt is dropped here, and this is a measured fix
+      // rather than tidiness. Carrying it forward left a resumed job naming a
+      // process that no longer exists: the record said `pid: 87209` while the
+      // renderer actually writing frames was 87455. Everything that finds a
+      // renderer by pid then looks at the wrong process — a second restart would
+      // "stop" the dead one and leave the live one running forever, which is
+      // exactly the orphan the acceptance condition forbids. It surfaced only in a
+      // real 60-frame delivery that was killed and resumed; every short test had
+      // finished before the second attempt began.
+      pid: null,
+      processGroupId: null,
+      completedFrames: [...live.verified],
+      missingFrames: expected.filter(frame => !live.verified.has(frame)),
+      renderConfig,
+      startedAt: record.startedAt ?? Date.now(),
+      errorCode: null,
+      message: input.reason === 'resume'
+        ? `resumed: rendering ${frames.length} missing frame(s)`
+        : `rendering ${frames.length} frame(s)`,
+    }, { previous: record })
+
+    this._liveRenders.set(jobId, live)
+
+    // The DSH projection, when the composition has a job registry. Absence is
+    // reported, never silent: a caller that asked for a background job and got an
+    // unprojected one must be able to see why.
+    if (jobs !== null) {
+      live.done = new Promise((resolveDone) => { live.settle = resolveDone })
+      try {
+        live.dshJobId = jobs.start({
+          kind: 'blender-render',
+          label: `render ${projectId}/${record.revisionId} frames ${record.frameStart}..${record.frameEnd}`,
+          run: () => ({
+            cancel: (reason) => {
+              if (live.cancelled) return
+              live.cancelled = true
+              live.cancelReason = typeof reason === 'string' && reason.length > 0 ? reason : 'cancelled'
+              try {
+                live.handle?.terminate()
+              } catch {
+                /* the settle path records what happened */
+              }
+            },
+            done: live.done,
+            readOutput: () => {
+              const text = live.output
+              live.output = ''
+              return text
+            },
+          }),
+        })
+        next = this.renderJobs.write({ ...next, dshJobId: live.dshJobId }, { previous: next })
+      } catch (cause) {
+        live.settle = null
+        live.done = null
+        this.ctx.logger?.warn(`deepblend: render job ${jobId} could not be projected into ctx.jobs: ${String(cause)}`)
+        next = this.renderJobs.write({
+          ...next,
+          warnings: [
+            ...(next.warnings ?? []),
+            warning(
+              BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
+              `this render could not be registered as a DSH background job (${String(cause)}), so it will not ` +
+                'appear in the harness job list. The render itself is unaffected and its durable record is ' +
+                'still authoritative.',
+              { jobId },
+            ),
+          ],
+        }, { previous: next })
+      }
+    } else {
+      next = this.renderJobs.write({
+        ...next,
+        warnings: [
+          ...(next.warnings ?? []),
+          warning(
+            BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
+            'no `jobs` service is composed in this process, so this render has no DSH background-job ' +
+              'projection; progress is still recorded durably and readable through blender_job_status.',
+            { jobId },
+          ),
+        ],
+      }, { previous: next })
+    }
+
+    // Spawn, then hand the rest to the background. `startFrameSequence` is the
+    // only await here: it resolves once the child exists, which is what makes the
+    // returned job id true rather than optimistic.
+    const attemptToken = randomUUID()
+    live.attemptToken = attemptToken
+    const run = await this.runtime.startFrameSequence({
+      checkpointPath: record.checkpointPath ?? checkpoint.path,
+      frames,
+      jobDirectory: this.renderJobs.jobDirectory(projectId, jobId),
+      cameraId: input.cameraId,
+      profileName,
+      profile,
+      frameRange: record.sceneFrameRange,
+      jobId,
+      attemptToken,
+    })
+    live.run = run
+    live.handle = run.handle
+
+    if (live.cancelled) {
+      // Cancelled between the record write and the spawn: the child exists and
+      // must not be left behind.
+      try {
+        run.handle.terminate()
+      } catch {
+        /* reported by the settle path */
+      }
+    }
+
+    // Background completion. Nothing awaits this but the record and the DSH job.
+    void this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName })
+
+    return { jobId, dshJobId: live.dshJobId }
+  }
+
+  /**
+   * The background half: watch the render, keep the record true, then deliver.
+   *
+   * Never throws — it settles the record and the DSH projection instead. A
+   * background task that rejects has no caller to catch it, and an unhandled
+   * rejection would take the Host down in the middle of a delivery.
+   */
+  async _driveRender(input) {
+    const { live, run, expected, spec } = input
+    const projectId = input.record.projectId
+    const jobId = input.record.jobId
+    let record = input.record
+
+    let progressFailures = 0
+    const tick = setInterval(() => {
+      this._absorbProgress(live, run, projectId, jobId).catch((cause) => {
+        progressFailures += 1
+        // Reported ONCE, and the render is not stopped for it: a progress tick that
+        // fails does not make the frames wrong, and killing a three-hour render over
+        // a bookkeeping error would be far worse than a stale percentage. What it
+        // must not do is disappear — a swallowed error is indistinguishable from a
+        // tick that had nothing to do.
+        if (progressFailures === 1) {
+          this.ctx.logger?.warn(`deepblend: progress reporting for ${jobId} failed: ${String(cause)}`)
+          this._appendOutput(live, `progress reporting failed: ${String(cause)}\n`)
+        }
+      })
+    }, this.config.progressPollMs ?? 1000)
+    // `unref` so a Host that is tearing down is not held open by a poller for a
+    // render that has already been terminated.
+    tick.unref?.()
+
+    try {
+      const outcome = await this.runtime.awaitFrameSequence(run)
+      clearInterval(tick)
+      await this._absorbProgress(live, run, projectId, jobId)
+
+      // The frames are the authority for what happened, whatever the envelope says
+      // — a killed process writes no envelope, and a successful one can still have
+      // been lied to by a truncated frame.
+      const ledger = this._readJobLedger(record, expected)
+
+      if (live.cancelled) {
+        const already = this.renderJobs.read(projectId, jobId)
+        if (RenderJobStore.isTerminal(already)) {
+          // `cancelJob` settled this record and is waiting for this loop to let go.
+          // Writing again would be a second, possibly disagreeing, account of one
+          // cancellation.
+          this._appendOutput(live, `render job ${jobId} cancelled\n`)
+          live.settle?.({ status: 'killed', detail: live.cancelReason ?? 'cancelled' })
+          return
+        }
+        record = this.renderJobs.write({
+          ...already,
+          status: 'cancelled',
+          pid: null,
+          processGroupId: null,
+          completedFrames: ledger.present.map(entry => entry.frame),
+          missingFrames: ledger.toRender,
+          cancelledAt: Date.now(),
+          finishedAt: Date.now(),
+          message: `cancelled: ${live.cancelReason ?? 'cancelled'}`,
+        }, { previous: this.renderJobs.read(projectId, jobId) })
+        this._appendOutput(live, `render job ${jobId} cancelled after ${ledger.presentCount} frame(s)\n`)
+        live.settle?.({ status: 'killed', detail: `cancelled after ${ledger.presentCount} frame(s)` })
+        return
+      }
+
+      const envelopeStatus = outcome.envelope?.status ?? null
+      if (envelopeStatus !== 'success' && ledger.toRenderCount > 0) {
+        const envelopeError = outcome.envelope?.error ?? null
+        const errorCode = envelopeError?.code ?? (outcome.signal !== null
+          ? BlenderErrorCode.ABORTED
+          : BlenderErrorCode.NONZERO_EXIT)
+        const current = this.renderJobs.read(projectId, jobId)
+        record = this.renderJobs.write({
+          ...current,
+          status: 'failed',
+          pid: null,
+          processGroupId: null,
+          completedFrames: ledger.present.map(entry => entry.frame),
+          missingFrames: ledger.toRender,
+          corruptFrames: ledger.corrupt,
+          errorCode,
+          message:
+            `the renderer exited ${outcome.exitCode ?? 'without a code'} before every frame was written: ` +
+            `${envelopeError?.message ?? 'no error document was produced'}; ${ledger.toRenderCount} frame(s) ` +
+            `remain and can be resumed with blender_final_render {resumeJobId: "${jobId}"}`,
+          finishedAt: Date.now(),
+          renderDurationMs: outcome.durationMs,
+        }, { previous: current })
+        this._appendOutput(live, `render job ${jobId} failed: ${record.message}\n`)
+        live.settle?.({ status: 'failed', detail: record.message })
+        return
+      }
+
+      // Every frame is present AND complete. Now the delivery half.
+      record = this.renderJobs.write({
+        ...this.renderJobs.read(projectId, jobId),
+        status: 'running',
+        pid: null,
+        processGroupId: null,
+        completedFrames: ledger.present.map(entry => entry.frame),
+        missingFrames: [],
+        corruptFrames: [],
+        renderDurationMs: outcome.durationMs,
+        meanMsPerFrame: live.journal.frameDurations().length > 0
+          ? Math.round(live.journal.frameDurations().reduce((total, value) => total + value, 0) /
+              live.journal.frameDurations().length)
+          : null,
+        message: `${ledger.presentCount} frame(s) rendered; encoding`,
+      }, { previous: this.renderJobs.read(projectId, jobId) })
+
+      this._appendOutput(live, `all ${ledger.presentCount} frame(s) rendered; encoding the delivery\n`)
+      const delivery = await this._deliverJob({ record, spec, reason: 'render' })
+
+      if (delivery.status === 'completed') {
+        this._appendOutput(
+          live,
+          `delivery published: ${delivery.video?.path} (${delivery.video?.probed?.frameCount} frames, ` +
+          `${delivery.video?.probed?.durationSeconds}s, ${delivery.video?.probed?.width}x` +
+          `${delivery.video?.probed?.height} @ ${delivery.video?.probed?.fps} fps)\n`,
+        )
+        live.settle?.({
+          status: 'completed',
+          detail: `${delivery.video?.probed?.frameCount} frame(s) delivered to ${delivery.video?.path}`,
+        })
+        return
+      }
+      live.settle?.({ status: 'failed', detail: delivery.message ?? 'the delivery did not complete' })
+    } catch (cause) {
+      clearInterval(tick)
+      const message = cause instanceof Error ? cause.message : String(cause)
+      const current = this.renderJobs.readSafe(projectId, jobId)
+      if (current !== null && !RenderJobStore.isTerminal(current)) {
+        this.renderJobs.write({
+          ...current,
+          status: 'failed',
+          pid: null,
+          processGroupId: null,
+          errorCode: cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR,
+          message,
+          finishedAt: Date.now(),
+        }, { previous: current })
+      }
+      this._appendOutput(live, `render job ${jobId} failed: ${message}\n`)
+      live.settle?.({ status: 'failed', detail: message })
+      this.ctx.logger?.warn(`deepblend: render job ${jobId} failed: ${message}`)
+    } finally {
+      clearInterval(tick)
+      this._liveRenders.delete(jobId)
+    }
+  }
+
+  /**
+   * Fold the child's journal into the record, verifying every frame it claims.
+   *
+   * The claim is checked against the frame's BYTES before it counts: a journal line
+   * says the renderer intended to write a frame, and the ledger is what decides
+   * whether a frame is there. One verification per claimed frame — not a full
+   * directory scan per tick, which on 450 frames would cost more than the render.
+   */
+  async _absorbProgress(live, run, projectId, jobId) {
+    const fresh = live.journal.drain()
+    let changed = fresh.some(event => event?.type === 'frame')
+    for (const event of fresh) {
+      if (event?.type === 'frame' && Number.isSafeInteger(event.frame)) {
+        const sample = sampleFrame(join(this.renderJobs.framesDirectory(projectId, jobId), frameFileName(event.frame)))
+        const verdict = inspectFrameSample(sample, live.expectedSize)
+        if (verdict.ok) live.verified.add(event.frame)
+      }
+    }
+    if (fresh.length > 0) {
+      for (const event of fresh) {
+        if (event?.type === 'frame') {
+          this._appendOutput(live, `frame ${event.frame} rendered (${event.ms ?? '?'} ms)\n`)
+        } else if (event?.type === 'frame_failed') {
+          this._appendOutput(live, `frame ${event.frame} FAILED: ${event.error ?? event.verify?.reason ?? 'unknown'}\n`)
+        } else if (event?.type === 'unparseable-line') {
+          this._appendOutput(live, 'the render journal contained a complete but unparseable line — a defect in the writer, not a torn kill\n')
+        }
+      }
+    }
+    // A torn line is what a kill mid-write looks like, and it must be visible: it
+    // means the journal is not a complete account of what the renderer did, which is
+    // exactly why the ledger is built from the frames instead. Reported once.
+    if (live.journal.tornLineSeen && live.tornReported !== true) {
+      live.tornReported = true
+      this._appendOutput(
+        live,
+        'the render journal was cut mid-line (a kill between write and flush); progress is counted from the ' +
+        'frame files themselves, so the count is unaffected\n',
+      )
+    }
+
+    // The pid arrives from the child, and only the child can supply it (measured:
+    // `ctx.subprocess.spawn` exposes no pid). Recording it is what makes an orphan
+    // findable after this Host dies.
+    const current = this.renderJobs.readSafe(projectId, jobId)
+    if (current === null) return
+    if (current.pid === null && existsSync(run.processPath)) {
+      try {
+        const identity = readJson(run.processPath)
+        // The token is required, not merely preferred. A resumed attempt runs in the
+        // SAME job directory as the attempt it continues, so a leftover identity
+        // document is the normal case rather than a rare one — and reading it would
+        // record a dead process as the live one. Deleting the stale file is the
+        // provider's job; refusing an identity that is not this attempt's is the
+        // host's, so the two together make "the pid is current" a checked fact.
+        const identityIsCurrent = identity?.attemptToken !== undefined &&
+          identity.attemptToken !== null &&
+          identity.attemptToken === live.attemptToken
+        if (identityIsCurrent && Number.isSafeInteger(identity.pid)) {
+          this.renderJobs.write({
+            ...current,
+            pid: identity.pid,
+            processGroupId: identity.processGroupId ?? null,
+            attemptToken: identity.attemptToken,
+          }, { previous: current })
+          changed = true
+        }
+      } catch {
+        // Mid-write; the next tick re-reads it.
+      }
+    }
+
+    if (changed) {
+      const latest = this.renderJobs.readSafe(projectId, jobId)
+      if (latest === null || RenderJobStore.isTerminal(latest)) return
+      const completed = [...live.verified].sort((left, right) => left - right)
+      const expectedCount = latest.expectedFrames ?? (latest.frameEnd - latest.frameStart + 1)
+      const estimate = estimateRemaining({
+        perFrameMs: live.journal.frameDurations(),
+        remainingFrames: Math.max(0, expectedCount - completed.length),
+      })
+      this.renderJobs.write({
+        ...latest,
+        completedFrames: completed,
+        missingFrames: this.renderJobs.expectedFrames(latest).filter(frame => !live.verified.has(frame)),
+        percent: renderProgressPercent({ expected: expectedCount, done: completed.length }),
+        meanMsPerFrame: estimate.meanMsPerFrame === null ? null : Math.round(estimate.meanMsPerFrame),
+        estimatedRemainingMs: estimate.estimatedRemainingMs,
+      }, { previous: latest })
+    }
+  }
+
+  _appendOutput(live, text) {
+    live.output += text
+    // Bounded: a 450-frame render produces one line per frame, and an unbounded
+    // buffer in a process that lives for hours is a leak with a friendly name.
+    if (live.output.length > 256 * 1024) live.output = live.output.slice(-128 * 1024)
+  }
+
+  /** The ledger for a record's own frames, with its own expected size. */
+  _readJobLedger(record, expected) {
+    return readFrameLedger({
+      framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(record.projectId, record.jobId),
+      expected,
+      expectedSize: {
+        width: record.renderConfig?.resolution?.[0],
+        height: record.renderConfig?.resolution?.[1],
+        prefix: record.filePrefix,
+        padding: record.filePadding,
+      },
+    })
+  }
+
+  /**
+   * Encode, verify, publish, and write the delivery manifest.
+   *
+   * Refuses to encode an incomplete frame set. Encoding "whatever is there" is how
+   * a delivery silently ships 447 of 450 frames: ffmpeg would happily produce a
+   * shorter video and every property check downstream would agree with the wrong
+   * number unless the expected count came from the job.
+   */
+  async _deliverJob(input) {
+    const record = input.record
+    const projectId = record.projectId
+    const jobId = record.jobId
+    const expected = this.renderJobs.expectedFrames(record)
+    const ledger = this._readJobLedger(record, expected)
+    const total = expected.length
+
+    if (ledger.presentCount !== total) {
+      const current = this.renderJobs.read(projectId, jobId)
+      const message =
+        `${total - ledger.presentCount} of ${total} frame(s) are not complete ` +
+        `(${ledger.missingCount} absent, ${ledger.corruptCount} incomplete), so there is nothing to encode yet. ` +
+        `Continue with blender_final_render {resumeJobId: "${jobId}"}.`
+      // An EXPORT of an already-terminal job changes nothing. Writing `failed` over
+      // a cancelled or failed record would be an illegal transition (and the store
+      // is right to refuse it) — and it would also destroy the record of what the
+      // job actually is, in order to report a fact the caller can already see.
+      if (input.reason === 'export' || RenderJobStore.isTerminal(current.status)) {
+        if (current.status !== 'completed') {
+          const next = {
+            ...current,
+            completedFrames: ledger.present.map(entry => entry.frame),
+            missingFrames: ledger.toRender,
+            corruptFrames: ledger.corrupt,
+          }
+          this.renderJobs.write(next, { previous: current })
+        }
+        throw new BlenderError(BlenderErrorCode.RENDER_FRAMES_INCOMPLETE, message, {
+          detail: { jobId, expected: total, present: ledger.presentCount, toRender: ledger.toRender },
+        })
+      }
+      this.renderJobs.write({
+        ...current,
+        status: 'failed',
+        completedFrames: ledger.present.map(entry => entry.frame),
+        missingFrames: ledger.toRender,
+        corruptFrames: ledger.corrupt,
+        errorCode: BlenderErrorCode.RENDER_FRAMES_INCOMPLETE,
+        message,
+        finishedAt: Date.now(),
+      }, { previous: current })
+      return { status: 'failed', message, problems: [], verified: false }
+    }
+
+    // Re-delivering a COMPLETED job must not re-open it: `completed` has no
+    // outgoing transition on purpose, and an export that briefly called a finished
+    // delivery "running" would make every reader of the record see a regression.
+    const current = this.renderJobs.read(projectId, jobId)
+    const liveStatus = current.status === 'completed' ? 'completed' : 'running'
+    this.renderJobs.write({
+      ...current,
+      status: liveStatus,
+      delivery: { status: 'encoding', startedAt: Date.now(), attempt: (current.delivery?.attempt ?? 0) + 1 },
+      message: `encoding ${total} frame(s) into MP4`,
+    }, { previous: current })
+
+    const jobDirectory = this.renderJobs.jobDirectory(projectId, jobId)
+    const output = encodedPath(jobDirectory, jobId)
+    mkdirSync(join(jobDirectory, 'encoded'), { recursive: true })
+
+    const encode = await encodeFrameSequence({
+      ctx: this.ctx,
+      ffmpegPath: this.config.ffmpegPath,
+      framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId),
+      firstFrame: record.frameStart,
+      frameCount: total,
+      fps: record.fps,
+      outputPath: output,
+      filePrefix: record.filePrefix,
+      filePadding: record.filePadding,
+      crf: this.config.encodeCrf,
+      preset: this.config.encodePreset,
+    })
+
+    const probed = await probeVideo({ ctx: this.ctx, ffprobePath: this.config.ffprobePath, path: output })
+    const sources = this._deliverySources(projectId, record.revisionId)
+    const publishRoot = join(this.store.projectDirectory(projectId), 'output')
+    mkdirSync(publishRoot, { recursive: true })
+    const videoPath = join(publishRoot, 'final.mp4')
+    const manifestPath = join(publishRoot, 'delivery-manifest.json')
+
+    const verdict = verifyVideoProperties({
+      claimed: {
+        frameStart: record.frameStart,
+        frameEnd: record.frameEnd,
+        frameCount: total,
+        fps: record.fps,
+        width: record.renderConfig?.resolution?.[0],
+        height: record.renderConfig?.resolution?.[1],
+      },
+      probed: {
+        durationSeconds: probed.durationSeconds,
+        fps: probed.fps,
+        width: probed.width,
+        height: probed.height,
+        nbFrames: probed.nbFrames,
+        codec: probed.codec,
+      },
+    })
+
+    if (!verdict.ok) {
+      const message =
+        `the encoded video does not match the job's own claims: ${verdict.problems
+          .map(problem => `${problem.field} claimed ${JSON.stringify(problem.claimed)} but probed ${JSON.stringify(problem.probed)}`)
+          .join('; ')}`
+      const before = this.renderJobs.read(projectId, jobId)
+      this.renderJobs.write({
+        ...before,
+        // A re-export that fails leaves a completed delivery completed; the failure
+        // belongs to the delivery attempt, which is where it is recorded.
+        status: before.status === 'completed' ? 'completed' : 'failed',
+        delivery: {
+          status: 'failed',
+          videoPath: output,
+          problems: verdict.problems,
+          attempt: before.delivery?.attempt ?? 1,
+          completedAt: Date.now(),
+        },
+        errorCode: BlenderErrorCode.ENCODE_VERIFY_FAILED,
+        message,
+        finishedAt: Date.now(),
+      }, { previous: before })
+      if (input.reason === 'export') {
+        throw new BlenderError(BlenderErrorCode.ENCODE_VERIFY_FAILED, message, { detail: { problems: verdict.problems } })
+      }
+      return { status: 'failed', message, problems: verdict.problems, verified: false, video: null }
+    }
+
+    // Publish FIRST, then describe what was published. The manifest carries a
+    // sha256 of the video, and an earlier version hashed `output/final.mp4` before
+    // copying it there — so every manifest recorded `video.sha256: null`, which is
+    // a delivery that cannot be checked against its own bytes. Copying to a
+    // temporary name and renaming keeps the publication atomic, so a reader never
+    // sees a half-written `final.mp4`.
+    copyFileSync(encode.outputPath, `${videoPath}.tmp`)
+    renameSync(`${videoPath}.tmp`, videoPath)
+
+    const manifest = buildDeliveryManifest({
+      record: { ...record, framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId) },
+      ledger,
+      probed,
+      encode,
+      publish: { videoPath, relativeTo: this.store.projectDirectory(projectId) },
+      sources,
+      qa: sources.qaSummary,
+      runtimeIdentity: this._runtimeIdentity(projectId, record.revisionId),
+    })
+
+    writeJsonAtomic(join(jobDirectory, 'manifest.json'), manifest)
+    this.renderJobs.write({
+      ...this.renderJobs.read(projectId, jobId),
+      durationSeconds: probed.durationSeconds,
+      videoFrameCount: probed.nbFrames,
+      fpsProbed: probed.fps,
+      resolution: [probed.width, probed.height],
+    }, { previous: this.renderJobs.read(projectId, jobId) })
+
+    writeJsonAtomic(manifestPath, manifest)
+    const renderManifestPath = join(jobDirectory, 'manifest.json')
+    const recordManifestPath = join(this.store.projectDirectory(projectId), 'renders', 'manifest.json')
+    writeJsonAtomic(recordManifestPath, manifest)
+
+    const before = this.renderJobs.read(projectId, jobId)
+    const delivered = this.renderJobs.write({
+      ...before,
+      status: 'completed',
+      errorCode: null,
+      outputManifest: recordManifestPath,
+      delivery: {
+        status: 'published',
+        videoPath,
+        manifestPath,
+        renderManifestPath,
+        bytes: encode.bytes,
+        sha256: manifest.video.sha256,
+        verified: true,
+        problems: [],
+        encodeDurationMs: encode.durationMs,
+        completedAt: Date.now(),
+      },
+      percent: 100,
+      finishedAt: Date.now(),
+      errorCode: null,
+      message: `delivered ${probed.nbFrames} frame(s) as ${probed.width}x${probed.height} ${probed.codec} @ ${probed.fps} fps`,
+    }, { previous: before })
+
+    return {
+      status: 'completed',
+      verified: true,
+      problems: [],
+      completeness: manifest.completeness,
+      video: {
+        path: videoPath,
+        bytes: encode.bytes,
+        sha256: manifest.video.sha256,
+        probed: manifest.video.probed,
+        expected: manifest.video.expected,
+      },
+      manifest: { path: manifestPath, renderManifestPath, recordManifest: delivered.outputManifest },
+      message: delivered.message,
+    }
+  }
+
+  /**
+   * The SceneSpec, checkpoint and QA artifacts a delivery manifest references.
+   *
+   * The QA report is READ, not merely pointed at: SPEC §19.8 requires the final
+   * package to contain QA, and the M3 brief's test for the manifest is that a reader
+   * can judge completeness WITHOUT opening the package. A path alone fails that test
+   * — the reader cannot tell a passing QA report from a missing one. The full
+   * document is not embedded either: `cameraParameters` alone is thousands of bytes
+   * describing geometry the manifest already digests, so what travels is the
+   * verdict plus the counts that make it checkable.
+   */
+  _deliverySources(projectId, revision) {
+    const revisionDirectory = this.store.revisionDirectory(projectId, revision)
+    const qaPath = join(revisionDirectory, 'validation.json')
+    const qaReport = readJson(qaPath)
+    return {
+      sceneSpec: join(revisionDirectory, 'scene-spec.json'),
+      checkpoint: this.store.checkpointPath(projectId, revision),
+      qa: qaPath,
+      qaSummary: qaReport === null ? null : this._qaSummary(qaReport),
+    }
+  }
+
+  /** The checkable part of a revision's QA report. */
+  _qaSummary(report) {
+    const technical = report?.technical ?? {}
+    const semantic = report?.semantic ?? {}
+    return {
+      schemaVersion: report?.schemaVersion ?? null,
+      revision: report?.revision ?? null,
+      ok: technical.ok === true && semantic.ok !== false,
+      technicalOk: technical.ok === true,
+      semanticOk: semantic.ok !== false,
+      errorCount: Array.isArray(technical.errors) ? technical.errors.length : null,
+      counts: technical.counts ?? null,
+      frameRange: technical.frameRange ?? null,
+      fps: technical.fps ?? null,
+      engine: technical.engine ?? null,
+      activeCamera: technical.activeCamera ?? null,
+      notices: Array.isArray(semantic.notices) ? semantic.notices.length : null,
+    }
+  }
+
+  /**
+   * Runtime identity for the manifest (SPEC §9.5): what rendered this, so the
+   * delivery can be reproduced or explained without guessing.
+   */
+  _runtimeIdentity(projectId, revision) {
+    // Read from the revision's own manifest rather than from a fresh probe: the
+    // identity that matters for reproducing a delivery is the one recorded when
+    // the checkpoint was compiled (SPEC §9.5), and re-probing would report
+    // whatever Blender is installed NOW, which may be a different build.
+    const manifest = this.store.readRevisionManifest(projectId, revision)
+    const runtime = manifest?.runtime ?? null
+    return {
+      source: 'revision-manifest',
+      blenderVersion: runtime?.blenderVersion ?? null,
+      engine: runtime?.engine ?? manifest?.validation?.engine ?? null,
+      requestedEngine: runtime?.requestedEngine ?? null,
+      protocolVersion: runtime?.protocolVersion ?? null,
+    }
+  }
+
+  /** The canonical render-job projection shared by `getJob` and `listJobs`. */
+  _canonicalRenderJob(record) {
+    const completed = Array.isArray(record.completedFrames) ? record.completedFrames : []
+    const expected = record.expectedFrames ?? (record.frameEnd - record.frameStart + 1)
+    return {
+      jobId: record.jobId,
+      projectId: record.projectId,
+      revisionId: record.revisionId,
+      type: record.type,
+      status: record.status,
+      attempt: record.attempt,
+      dshJobId: record.dshJobId ?? null,
+      pid: record.pid ?? null,
+      frameStart: record.frameStart,
+      frameEnd: record.frameEnd,
+      expectedFrames: expected,
+      completedFrames: completed.length,
+      completedFrameList: completed,
+      missingFrames: record.missingFrames ?? [],
+      corruptFrames: record.corruptFrames ?? [],
+      percent: record.percent ?? renderProgressPercent({ expected, done: completed.length }),
+      meanMsPerFrame: record.meanMsPerFrame ?? null,
+      estimatedRemainingMs: record.estimatedRemainingMs ?? null,
+      fps: record.fps,
+      profileName: record.profileName ?? null,
+      renderConfig: record.renderConfig ?? null,
+      framesDirectory: record.framesDirectory ?? null,
+      delivery: record.delivery ?? null,
+      outputManifest: record.outputManifest ?? null,
+      errorCode: record.errorCode ?? null,
+      message: record.message ?? null,
+      recovery: this._recoveryFindings.find(finding => finding.jobId === record.jobId) ?? null,
+      description: describeRenderJob({ ...record, completedFrames: completed }),
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      startedAt: record.startedAt ?? null,
+      finishedAt: record.finishedAt ?? null,
+    }
+  }
 }
 
 /**
@@ -1788,3 +3370,26 @@ export {
   resolveIdempotencyKey,
   defaultSceneSpec,
 } from './revision-transaction.js'
+
+/**
+ * M3 surface, re-exported on the same terms as the M1 store above.
+ *
+ * The frame ledger is deliberately reachable from outside the package: it is the
+ * rule that decides whether a delivery ships short or a three-hour render is
+ * repeated, and a rule that can only be exercised through a running Host is a rule
+ * whose failure modes are only discovered in production. The contract suite drives
+ * it directly against frames whose bytes it controls.
+ */
+export { readFrameLedger, framesOnDisk, sampleFrame } from './frame-ledger.js'
+export { RenderJobStore, formatRenderJobId, UNFINISHED_STATUSES } from './render-job-store.js'
+export {
+  JournalTail,
+} from './render-journal.js'
+export {
+  checkProcessAlive,
+  identifyProcess,
+  reconcileRenderJob,
+  stopProcessGroup,
+} from './render-reconciler.js'
+export { encodeFrameSequence, probeVideo } from './video-encoder.js'
+export { buildDeliveryManifest, relativeTo } from './delivery-manifest.js'

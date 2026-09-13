@@ -27,6 +27,13 @@ protocol failure, bad arguments, a refused action, and an unexpected internal
 exception. A caller may therefore always expect a parseable envelope, and must
 still check the exit code, which is non-zero whenever ``status != "success"``.
 
+ACTIONS (M3)
+------------
+``render_frames``     an explicit LIST of frames of one camera out of one checkpoint,
+                      at a named SceneSpec render profile, into a persistent
+                      directory. Long-running and resumable: the host passes only
+                      the frames the frame ledger says are missing.
+
 ACTIONS (M2)
 ------------
 ``render_preview``    one frame from one camera out of a checkpoint ``.blend``.
@@ -62,6 +69,7 @@ Standard library plus ``bpy``/``addon_utils`` (both shipped inside Blender) only
 import json
 import os
 import sys
+import time
 import traceback
 
 # --------------------------------------------------------------------------------------
@@ -88,7 +96,13 @@ from deepblend_util import (  # noqa: E402  (path set up above)
 #: Actions this dispatcher accepts. Anything else is refused with a stable code
 #: rather than silently doing nothing — a silently no-op action is indistinguishable
 #: from a successful one that produced no output.
-SUPPORTED_ACTIONS = ("get_capabilities", "compile_scene", "render_preview", "render_views")
+SUPPORTED_ACTIONS = (
+    "get_capabilities",
+    "compile_scene",
+    "render_preview",
+    "render_views",
+    "render_frames",
+)
 
 # Process exit codes. 0 is reserved for a successfully written success envelope.
 EXIT_OK = 0
@@ -311,6 +325,100 @@ def action_render_views(request, options):
     return payload, guard.warnings, guard.notices
 
 
+def action_render_frames(request, options):
+    """Render an explicit frame list at a named render profile (M3).
+
+    The plan travels as a FILE for the same reason the view plan does, and the
+    event journal is a SECOND file because of a fact about the runtime that only
+    shows up after a crash: the host's subprocess collector is an in-memory buffer
+    inside the host process, so every progress line this process printed is gone
+    the moment the host dies. The journal is flushed and fsynced per line so the
+    frames that landed before a kill -9 are still knowable.
+    """
+    from deepblend_frames import render_frames
+    from deepblend_util import Guard
+
+    plan_path = options.get("frames")
+    if not plan_path:
+        raise ActionError("BLENDER_SCRIPT_ERROR", "render_frames requires --frames <plan.json>")
+    if not os.path.isfile(plan_path):
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'the frame plan does not exist at "%s"' % (plan_path,),
+            {"frames": plan_path},
+        )
+    try:
+        plan = read_json(plan_path)
+    except Exception as exc:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'could not read the frame plan at "%s": %s' % (plan_path, error_text(exc)),
+            {"frames": plan_path},
+        )
+    if not isinstance(plan, dict):
+        raise ActionError("BLENDER_SCRIPT_ERROR", "the frame plan must be a JSON object")
+    # The journal path is a bootstrap argument, not a plan field: it identifies
+    # where THIS invocation reports, and a plan is a durable document that a
+    # resumed attempt rewrites with a new one.
+    plan["events"] = options.get("events") or plan.get("events")
+
+    guard = Guard()
+    payload = render_frames(plan, guard)
+    return payload, guard.warnings, guard.notices
+
+
+def write_process_identity(path, job_id, action, attempt_token=None):
+    """Record this process's own pid, atomically, before any Blender work.
+
+    WHY A FILE AND WHY FROM THE CHILD
+    ---------------------------------
+    `ctx.subprocess.spawn` returns a handle of `{stdin, stdout, stderr, collected,
+    done, terminate, waitForExit}` — measured against the installed runtime, it
+    exposes no pid. So the only way the HOST can learn which process is rendering
+    is for the process to say so, and the only way that fact survives a crash of
+    the host is for it to be on disk.
+
+    It is written first, before bpy is touched, so a render killed during scene
+    load is still attributable to a pid. On macOS the deepest subprocess
+    containment available is a process GROUP (`detached: true` makes the child its
+    own group leader, so pgid == pid), which is why the recovery path signals
+    `-pid` rather than `pid`: an orphaned Blender may have children of its own.
+    """
+    if not path:
+        return
+    try:
+        write_json_atomic(path, {
+            "schemaVersion": "deepblend.process/v1",
+            "jobId": job_id,
+            "action": action,
+            "pid": os.getpid(),
+            "ppid": os.getppid(),
+            "processGroupId": os.getpgid(0),
+            "startedAt": time.time(),
+            "attemptToken": attempt_token,
+        })
+    except Exception as exc:  # noqa: BLE001
+        eprint("could not write the process identity document: %s" % (error_text(exc),))
+
+
+def _attempt_token_from_plan(action, options):
+    """The attempt token, when the action's input document carries one.
+
+    Only `render_frames` has a plan file; every other action answers None, and the
+    identity document simply records no token. Read here rather than threaded
+    through every action because the token belongs to the PROCESS, not to the work.
+    """
+    if action != "render_frames":
+        return None
+    plan_path = options.get("frames")
+    if not plan_path or not os.path.isfile(plan_path):
+        return None
+    try:
+        return read_json(plan_path).get("attemptToken")
+    except Exception:
+        return None
+
+
 def _as_int(value):
     """Parse an optional integer argument, or return ``None``."""
     if value is None or value == "":
@@ -326,6 +434,7 @@ ACTIONS = {
     "compile_scene": action_compile_scene,
     "render_preview": action_render_preview,
     "render_views": action_render_views,
+    "render_frames": action_render_frames,
 }
 
 
@@ -391,6 +500,7 @@ def main():
             "--request", "--result", "--scene-spec", "--blend", "--output-blend",
             "--output", "--camera", "--engine", "--width", "--height", "--samples",
             "--frame", "--profile", "--project-root", "--save-on-failure", "--views",
+            "--frames", "--events", "--proc",
         ),
     )
 
@@ -475,6 +585,16 @@ def main():
         return finish(envelope, EXIT_UNSUPPORTED_ACTION)
 
     eprint("action=%s job=%s" % (action, job_id))
+    # Claim this process on disk BEFORE the action runs. A render killed during
+    # scene load must still be attributable to a pid, because the recovery path's
+    # only way to stop an orphan is the pid this line recorded (see the docstring
+    # on `write_process_identity`).
+    write_process_identity(
+        options.get("proc"),
+        job_id,
+        action,
+        attempt_token=_attempt_token_from_plan(action, options),
+    )
     try:
         payload, warnings, notices = handler(request, options)
         envelope = build_envelope(job_id, action, payload, None, warnings, notices)

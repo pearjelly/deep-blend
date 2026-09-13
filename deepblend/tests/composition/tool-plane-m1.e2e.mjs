@@ -136,11 +136,13 @@ try {
   check('the preset plane registers every M1 tool',
     expected.every(name => names.includes(name)),
     names.filter(name => !expected.includes(name)))
-  check('no M2 or M3+ tool is registered ahead of its host service or milestone',
-    !names.includes('blender_final_render') && !names.includes('blender_export')
-      && !names.includes('blender_asset_ingest') && !names.includes('blender_job_status')
-      && !names.includes('blender_job_cancel'),
-    names.filter(name => !expected.includes(name)))
+  // The rule that outlives every milestone is "nothing is registered before its host
+  // service exists", and after M3 exactly one SPEC §11 tool still has no host
+  // service: `blender_asset_ingest` (M5). Asserting that M2/M3 tools are absent was
+  // the M1-era spelling of this rule; keeping it would fail on every later milestone
+  // for the right reason and be deleted for the wrong one.
+  check('blender_asset_ingest is still absent, because its host service and approval boundary are M5',
+    !names.includes('blender_asset_ingest'), names.filter(name => name.includes('asset')))
 
   for (const name of expected) {
     const definition = root.get('tools').get(name)

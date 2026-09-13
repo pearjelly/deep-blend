@@ -1,8 +1,8 @@
-# DeepBlend 工具契约（M0–M2）
+# DeepBlend 工具契约（M0–M3）
 
 > 范围：模型可见工具的**实际**契约，取自 `packages/deepblend/tool/lib/` 与
 > `packages/deepblend/contracts/lib/`。
-> 本文件描述**已实现**的行为，不描述计划。SPEC §11 中属于 M3+ 的工具在此明确标为未注册。
+> 本文件描述**已实现**的行为，不描述计划。SPEC §11 中尚未实现的工具在此明确标为未注册。
 > 平面归属：全部工具位于 **Agent preset 平面**（`@deepblend/dsh-blender-tool`），
 > 它们不发布任何服务，只消费 Host 的 `blenderStudio`。
 
@@ -22,19 +22,22 @@
 | `blender_preview_views` | M2 | 自动 | 读（写产物，不改场景） |
 | `blender_visual_review` | M2 | 自动 | 读（**调用视觉模型**，不改场景） |
 | `blender_visual_autofix` | M2 | 自动，受策略约束 | **写**（提交新 revision；未提高则回退指针） |
+| `blender_final_render` | M3 | 达阈值需审批（SPEC §15.1） | **写**（写帧序列并发布交付包；不改场景） |
+| `blender_export` | M3 | 工作区外需审批 | **写**（编码并发布 `output/`） |
+| `blender_job_status` | M3 | 自动 | 读（**从磁盘读**，跨重启） |
+| `blender_job_cancel` | M3 | 自动或确认 | **写**（终止进程组并改 job 状态） |
 
 ### 1.1 刻意**未注册**的工具
 
 | 工具 | 原因 | 归属 |
 |---|---|---|
-| `blender_final_render` | Host 服务未实现 | M3 |
-| `blender_export` | Host 服务未实现 | M3 |
 | `blender_asset_ingest` | 资产导入与审批策略未实现 | M5 |
-| `blender_job_status` / `blender_job_cancel` | 可取消的持久化 Job Store 未实现 | M3 |
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m2.e2e.mjs` 断言目录里恰好是上面这 **10** 个
-（M0/M1 的 7 个 + M2 的 3 个），`tool-plane-m1.e2e.mjs` 继续断言 M1 那 7 个各自的可兑现性。
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **14** 个
+（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个）；`tool-plane-m1/m2.e2e.mjs` 继续断言**它们各自
+那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
+每加一个里程碑都要改前面所有套件。
 
 ---
 
@@ -125,6 +128,89 @@ Host 拥有的修复循环：渲染 → 测量 → 问模型 → 提交 patch �
 * 停止条件三条：分数达标、达到迭代上限（默认 5）、同一指纹连续未改善 2 次。
 * 停止而未达标时返回 **handover 包**：可继续工作的 revision、仍然存在的问题（带测量）、
   已经试过且被拒绝的 revision、以及具体下一步。
+
+---
+
+## 1.3 M3 的四个工具：持久交付渲染
+
+M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都在自己的调用里结束；
+交付渲染实测是 **19.6–41.4 秒/帧**（`watch-commercial`，1920×1080 / Cycles / 256 spp），
+450 帧 = **3.4 小时**。所以这四个工具的全部契约都围着「调用已经返回了，但工作还没结束」
+这件事转，而它们读写的是一份**重启之后仍然成立**的磁盘记录。
+
+### `blender_final_render`
+
+启动一次交付渲染，**立即**返回 jobId。渲染在后台继续，Agent 不被阻塞。
+
+* 渲染 `final` profile（不是 `preview`）：分辨率、采样、`viewTransform`（r0029 是 `AgX`）、
+  `filmTransparent`、fps。**实测断言过**：交付渲染拿到的是 AgX，预览 profile 是 `Standard`。
+* **不受 `maxPreviewSamples` 约束**。那个上限存在是为了阻止模型在预览上花钱；
+  套到交付上会悄悄改写交付自己的 profile。交付的上限是 profile 的 `maxSamplesBudget`
+  与 operator 的 `maxFinalSamples`。
+* 帧的来源有三条：`frameStart`/`frameEnd`、显式 `frames` 列表、或省略两者＝项目自己的范围。
+  落在项目范围之外的帧被**丢弃并报告**，而不是静默渲染。
+* 一个项目同时**只有一个**交付渲染。第二个 `start` 得到 `RENDER_JOB_CONFLICT`，
+  消息里点名那个活跃 job 以及「续渲还是取消」。
+* 超过 `requireApprovalAboveFrames`（默认 900）时，**要求**以 warning 形式写进记录
+  （审批本身属于 harness 的 approval 平面，M5 接线）。
+
+**`resumeJobId`**：续渲一个被打断的渲染。要渲的集合来自**帧账本**
+（`missing + corrupt`），不是记录里的缓存计数。实测：60 帧的渲染在第 6 帧被
+`kill -9` 打断后，续渲只渲了 54 帧，已存在的 6 帧**字节未变**。
+
+### `blender_export`
+
+把**已经渲好**的帧编码、校验、发布成交付包；**不花任何 Blender 时间**。
+
+* 帧不全时以 `RENDER_FRAMES_INCOMPLETE` 拒绝，并说明还欠几帧、怎么续，
+  **不会**编出一个短视频。
+* 产出：`output/final.mp4`、`output/delivery-manifest.json`、
+  `renders/<jobId>/manifest.json`、`renders/manifest.json`。
+* 视频的每一项属性都由 `ffprobe` **实测**（`-count_frames`，所以帧数是解码出来的），
+  再与 job 自己的声明逐条比对；不一致就以 `ENCODE_VERIFY_FAILED` 失败并且**什么都不发布**。
+
+### `blender_job_status`
+
+从**磁盘**读 job，所以对「harness 重启之前启动的渲染」也能正确回答。
+
+* 不带 `jobId`：列出项目最近的 job，并单独列出 `unfinished`——这就是重启之后
+  「发现有一个没渲完」的入口。
+* 带 `jobId`：状态、`completedFrames/expectedFrames`、`percent`、
+  **实测的秒/帧与预计剩余**、缺失帧列表、不完整帧（带原因）、以及已有的交付包。
+* 进度是按**帧文件本身**数的，不是按子进程的自述。
+
+### `blender_job_cancel`
+
+取消一个正在跑的交付渲染，并**终止它的 Blender 进程**，包括上一个 harness 进程留下的孤儿。
+
+* 结果里的 `processGone` 是**信号之后测出来的**，不是从「我发了信号」推出来的。
+  实测的陷阱：`terminate()` 之后立刻测存活会得到 `(Blender)`——一个**僵尸**，
+  已经退出但还没被父进程收走，`kill(pid, 0)` 对它**成功**。所以先等 `handle.done`（回收），再测。
+* 信号名**不谎报**：`terminate()` 走的是运行时的阶梯（SIGTERM → grace → SIGKILL），
+  它不报告是哪一级停下的，所以报告里写 `via` 与阶梯本身，不写一个编造的 `term`。
+* 已渲的帧**保留**，job 记为 `cancelled`。取消一个已经结束的 job 是**说明情况的 no-op**，
+  不是错误。`cancelled`/`failed` 的 job 之后仍然可以 `resumeJobId` 续渲。
+
+### 持久记录的形状
+
+```
+<project>/jobs/<jobId>.json              M1 的 attempt log（不变）
+<project>/renders/<jobId>/job.json       deepblend.render-job/v1   ← M3
+                  plan.json              交给渲染器的帧清单
+                  process.json           子进程自己写的 pid（deepblend.process/v1）
+                  events.jsonl           子进程 fsync 过的逐帧日志
+                  result.json            bootstrap 信封
+                  recovery.json          重启恢复的发现（deepblend.render-recovery/v1）
+                  frames/frame_0001.png  交付帧
+                  encoded/<jobId>.mp4    发布前的视频
+                  manifest.json          这个 job 的交付清单
+<project>/output/final.mp4               已发布的交付视频（SPEC §13）
+<project>/output/delivery-manifest.json  已发布的交付清单
+```
+
+**帧账本是权威，`completedFrames` 只是缓存**（ADR D50）。账本按
+「stat + 前 33 字节 + 后 12 字节」判定一帧：PNG 签名、IHDR 尺寸、尺寸下限、IEND 结尾。
+被 `kill -9` 截断的帧会被判为 `corrupt` 并**重渲**，而不是当它完成。
 
 ---
 
@@ -374,6 +460,24 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `RENDER_NO_OUTPUT` | 渲染报告成功但没出图 | 报告为缺陷 |
 | `BLENDER_RUNTIME_UNAVAILABLE` | Host bundle 未组合 | 提示操作者安装 bundle 并重启 |
 
+M3 新增的：
+
+| 错误码 | 含义 | 模型应做什么 |
+|---|---|---|
+| `RENDER_JOB_NOT_FOUND` | 两个 store 里都没有这个 jobId | 用 `blender_job_status` 不带 jobId 列出 |
+| `RENDER_JOB_CONFLICT` | 该项目已有一个未结束的交付渲染 | 续渲它，或先取消 |
+| `RENDER_JOB_STATE_INVALID` | 该状态下这个操作非法（如续渲一个 `completed` 的 job） | 按 message 改用 `blender_export` |
+| `RENDER_RANGE_INVALID` | 帧范围为空/倒置/全在项目范围之外 | 用项目自己的范围，或给出范围内至少一帧 |
+| `RENDER_FRAMES_INCOMPLETE` | 帧不全，没有东西可以编码 | `blender_final_render {resumeJobId}` |
+| `ENCODER_NOT_FOUND` | ffmpeg 不可解析 | 提示操作者安装 ffmpeg 或配置绝对路径 |
+| `ENCODE_FAILED` | ffmpeg 跑了并且失败 | 报告为缺陷，附 stderr |
+| `ENCODE_VERIFY_FAILED` | 视频属性与 job 自己的声明不符 | 报告为缺陷；**不会发布**任何东西 |
+| `PROBE_FAILED` | ffprobe 不可用或读不了文件 | 报告为缺陷 |
+| `DELIVERY_INCOMPLETE` | 交付包不完整 | 按 `missing` 列表补齐 |
+
+警告码新增 `JOB_PROJECTION_UNAVAILABLE`（渲染没能注册成 DSH 后台 job——
+渲染本身不受影响，但调用者必须能看到它为什么不在 job 列表里）。
+
 **错误码只在末尾追加，永不重命名或改数值**（`error-codes.test.mjs` 逐键钉住）。
 
 ---
@@ -386,7 +490,9 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | 返回 Canonical JSON | `data` 字段，键序稳定 |
 | 不让模型解析终端文本获取 ID | 所有 id 都在 `data` 里结构化返回 |
 | 每个写工具需要 `projectId` 与 `baseRevision` | `blender_scene_patch` 两者皆必需 |
-| 每个长任务返回 `jobId` | 所有 Blender 动作写 `jobs/<id>.json`，结果里带 `job` |
+| 每个长任务返回 `jobId` | M1 的 Blender 动作写 `jobs/<id>.json`；M3 的交付渲染写 `renders/<id>/job.json` 并额外返回 `dshJobId`，两者在 `blender_job_status` 里用同一个 `jobId` 查询 |
+| 长任务不阻塞 | `blender_final_render` 实测 4–5 ms 返回（集成套件断言 < 20 s），工作在后台并经 `ctx.jobs` 投影 |
+| 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
 | 不接受任意 Python | 只接受 20 个固定操作名，无脚本入口 |
@@ -406,8 +512,20 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | dry-run 能预测失败且不提交任何东西 | 同上 |
 | 重放被解释为 replay 而非错误 | 同上 |
 | 冲突文本明确告诉模型下一步做什么 | 同上 |
-| 目录恰好是这 **10** 个工具（M0+M1+M2） | `composition/tool-plane-m2.e2e.mjs` |
+| 目录恰好是这 **10** 个 M0+M1+M2 工具（各自在场） | `composition/tool-plane-m2.e2e.mjs` |
 | `blender_visual_review` 的 `render` 产出真正的 image block | 同上 |
+| 目录恰好是这 **14** 个工具（M0+M1+M2+M3） | `composition/tool-plane-m3.e2e.mjs` |
+| `blender_final_render` 返回 jobId 而不是渲完的结果，且耗时为毫秒级 | 同上 |
+| 四个 M3 工具的 `projectId` 是**必需**参数 | 同上 |
+| 工具驱动的完整交付跑通（渲染 → 编码 → 发布 → manifest 自判完整） | 同上 |
+| 未知项目/未知 job 是带稳定 code 的**结果**而非抛出 | 同上 |
+| 启动调用 4–5 ms 返回，渲染在后台继续 | `blender-integration/render-job.e2e.mjs` |
+| 交付渲染真的用了 `final` profile（AgX）且不被 `maxPreviewSamples` 截断 | 同上 |
+| 渲染器死后被记为 `failed` 并保留已渲帧 | 同上 |
+| 续渲只渲缺失帧，已存在帧字节未变 | 同上 |
+| 取消后 `processGone` 实测为真，且 `ps` 里查不到该渲染 | 同上 |
+| MP4 的属性由独立 ffprobe 复核（帧数、时长、分辨率、编码） | 同上 |
+| 新进程识别未完成渲染、停掉孤儿、重建账本、留下 `recovery.json` | 同上（fork 一个 Host 后 SIGKILL） |
 | 无图时不产出 `image: null` 块 | 同上 |
 | `blender_preview_views` 不花模型调用、不落附件 | 同上 |
 | 审查器缺失时 review 仍返回测量与 sheet，并带上原因 | 同上 |

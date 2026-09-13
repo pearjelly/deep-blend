@@ -8,10 +8,14 @@
 # M0 delivered the minimal vertical slice (capability detection).
 # M1 added the batch SceneSpec loop (projects, revisions, patch, preview).
 # M2 added the visual loop (multi-view preview, contact sheet, measurements, scoring,
-# automated repair, and the three planted-defect fixtures). `e2e/visual-live.e2e.mjs`
-# is deliberately NOT part of this run: it spends real model calls and needs an API
-# key, so it is run explicitly before a commit that touches the reviewer, the prompt,
-# the sheet compositor or the scorer.
+# automated repair, and the three planted-defect fixtures).
+# M3 added the persistent delivery render: the durable job store, the harness job
+# projection, cancellation with a measured process-gone check, the restart reconciler,
+# the frame ledger, resume-from-missing, and the MP4 + delivery manifest. Its two
+# suites render at 1080p for real and encode with real ffmpeg, so they are the slowest
+# in the run. `e2e/visual-live.e2e.mjs` is deliberately NOT part of this run: it spends
+# real model calls and needs an API key, so it is run explicitly before a commit that
+# touches the reviewer, the prompt, the sheet compositor or the scorer.
 #
 # Usage: bash deepblend/tests/run-all.sh
 set -uo pipefail
@@ -63,6 +67,12 @@ run_suite "Blender visual loop: multi-view, scoring, repair, handover (M2)" \
 
 run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
   node deepblend/tests/composition/tool-plane-m2.e2e.mjs
+
+run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)" \
+  node deepblend/tests/blender-integration/render-job.e2e.mjs
+
+run_suite "Agent preset M3 tool plane (all fourteen tools, real delivery)" \
+  node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

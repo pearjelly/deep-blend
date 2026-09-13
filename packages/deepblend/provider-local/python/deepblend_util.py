@@ -75,6 +75,32 @@ def error_text(exc):
         return "unprintable exception"
 
 
+#: Frame-sequence file naming. The host computes expected paths from the same
+#: rule (`frameFileName` in @deepblend/dsh-blender-contracts) to build the frame
+#: ledger, so the two must agree byte for byte — a disagreement makes every frame
+#: read as missing. These live here, in the bpy-free module, so the contract test
+#: can compare the two implementations WITHOUT launching Blender; a naming rule
+#: that can only be checked by a 1-second process launch is a rule that gets
+#: checked by nobody.
+FRAME_FILE_PREFIX = "frame_"
+FRAME_FILE_PADDING = 4
+
+
+def frame_file_name(frame, prefix=FRAME_FILE_PREFIX, padding=FRAME_FILE_PADDING):
+    """The exact file name one frame is written to.
+
+    MEASURED, and the reason the renderer sets its own output path: on Blender
+    5.2.1, `scene.render.frame_path(frame=f)` PREDICTS `<dir>/frame_0001.png`
+    while `bpy.ops.render.render(write_still=True)` writes `<dir>/frame_.png`.
+    """
+    return "%s%0*d.png" % (prefix, int(padding), int(frame))
+
+
+def frame_path(directory, frame, prefix=FRAME_FILE_PREFIX, padding=FRAME_FILE_PADDING):
+    """The absolute path one frame is written to."""
+    return os.path.join(directory, frame_file_name(frame, prefix, padding))
+
+
 def write_json_atomic(path, document):
     """Write ``document`` as pretty JSON, atomically.
 

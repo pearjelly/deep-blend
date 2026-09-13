@@ -6,7 +6,9 @@
 > 已完成：**M2（视觉闭环）— ✅ 验收通过**
 > 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
 > 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
-> 下一里程碑：M3（Job、恢复与正式渲染，未开始，按 SPEC §0.3 不得提前进入）
+> 已完成：**M3（Job、恢复与正式渲染）— ✅ 验收通过**
+> 测试：**1074 项断言、11 个套件、21 个文件全部通过**
+> 下一里程碑：M4（工作台 UI，未开始，按 SPEC §0.3 不得提前进入）
 
 ---
 
@@ -665,5 +667,155 @@ r0028 试抬高粗糙度（无效） r0029 金属加漫反射底 + 三盏灯 11/
 5. ~~决定 D46 怎么修~~ ✅ **已修**：按动画区间采 4 帧，见 §10B。
 6. ~~真实审查器在真实项目上验证~~ ✅ **已完成**：见 §10B 末尾，100 分 / 0 finding / 无 error。
 
-**未开始 M3。** M2 验收、内容补全、以及 D43/D44/D46/D47 四个缺口均已闭环。
+**M3 已完成**，见本文档 §12。M2 验收、内容补全、以及 D43/D44/D46/D47 四个缺口均已闭环。
+
+---
+
+## 12. M3 结论
+
+M3 的五条验收全部在**真实 Blender**、**真实进程**、**真实 `kill -9`**、**真实 ffmpeg** 上闭环。
+入口就是 brief §1.1 指的那个哨兵——`startFinalRender()` 与 `exportProject()` 不再抛
+`UNSUPPORTED_ACTION`，它们现在是一整条交付链路。
+
+### 12.1 在真实项目上跑出的那一份交付
+
+`watch-commercial` 的 **r0029**，`final` profile（1920×1080 / Cycles / 256 spp / AgX / 30 fps），
+帧 30–89（相机环绕段，2.0 秒）：
+
+```
+start  ... 返回 jobId，用时 4 ms
+       ... 渲了 6 帧之后，Host 被 SIGKILL
+recover ... 新进程发现 render-0001 仍是 running，
+            记录里的 pid 87209 还活着且仍是本 job 的渲染器 → 停掉它（gone=true）
+            账本从帧本身重建：present 6 / corrupt 0 / missing 54
+resume ... 只渲 54 帧，已存在的 6 帧字节未变
+deliver ... 60/60 帧，57.5 MiB，编码 978 ms
+```
+
+产物（`deepblend/docs/probe-m3-delivery.log` 是逐行记录）：
+
+| 项 | 值 |
+|---|---|
+| `output/final.mp4` | 316,539 B，sha256 `a9182fc3…` |
+| 独立 ffprobe 复核 | **1920×1080、h264、yuv420p、60 帧、30/1 fps、2.000000 s** |
+| `output/delivery-manifest.json` | `video.verified: true`、`problems: []`、`completeness.complete: true` |
+| 实测渲染成本 | 29,917 ms/帧（与 brief §2.1 的 27.3 s/帧一致） |
+
+从成片里抽出的三帧（0.0 s / 1.0 s / 2.0 s）**看过**：表壳、深色表盘和表冠从正面转到四分之三
+视角，黑背景——是一段真的动画，不是重复的一张图。
+
+### 12.2 验收逐条对照（SPEC §20 M3）
+
+| SPEC 验收条件 | 状态 | 证据 |
+|---|---|---|
+| 长任务不阻塞 Agent | ✅ | 启动调用实测 **4–5 ms** 返回（集成套件断言 < 20 s），渲染在后台；同一次渲染进行中，`blender_capabilities` 与 `project_get` 照常回答；`ctx.jobs` 里真的有一条 `blender-render` 记录且带可读的进度流 |
+| 重启后能识别未完成渲染 | ✅ | **fork 一个独立 Host 进程 → SIGKILL 它 → 第三个进程只读 store**：它不经提示就说出 `render-0005`、记录的 pid 仍活着且确认是本 job 的渲染器、账本 present 2 / missing 7，并把 job 留在 `recovering` 且写下 `recovery.json`。真实项目上同样跑通（见 §12.1） |
+| 可只渲缺失帧 | ✅ | 请求集合 = `missing + corrupt`，来自账本；集成套件断言「续渲请求里没有一帧是已存在的」，且已存在帧的**字节数不变**；真实项目上 6/60 → 续渲恰好 54 帧 |
+| 取消后无孤儿进程 | ✅ | `processGone` 是**信号之后测出来的**；`ps -Ao pid=,args=` 里再也找不到该 job；真实项目与集成套件各验一次。取消后可以续渲（`cancelled → running`） |
+| 最终视频属性正确 | ✅ | `ffprobe -count_frames` 实测的帧数/时长/fps/分辨率/编码与 job 自己的声明逐条比对；**独立**再跑一次 ffprobe 复核；不匹配就以 `ENCODE_VERIFY_FAILED` 失败并且**什么都不发布** |
+
+### 12.3 M3 交付项逐条对照
+
+| SPEC §20 M3 交付项 | 落点 |
+|---|---|
+| Persistent Job Store | `host/lib/render-job-store.js`（`deepblend.render-job/v1`）+ `host/lib/frame-ledger.js` + `host/lib/render-journal.js` |
+| DSH Job 投影 | `host/lib/index.js` 的 `_attachJobController` / `_launchRenderer`（kind `blender-render`，`readOutput` 是模型的进度流） |
+| 进度事件 | 每 1 秒把子进程 fsync 过的 journal 折进记录：`completedFrames` / `missingFrames` / `percent` / `meanMsPerFrame` / `estimatedRemainingMs`；**每一帧都按字节复核过**才算完成 |
+| 取消 | `cancelJob`：停 DSH job → `terminate()` → **等 `handle.done`（回收）** → 再测存活 → 写 `cancelled` |
+| 重启 Reconciler | `host/lib/render-reconciler.js`，Host 构造时对**所有项目**跑一遍；导出 `awaitReconciliation()` 以便测试等待 |
+| 帧序列 | provider 新 action `render_frames` + `python/deepblend_frames.py`（显式帧清单，逐帧 JSONL 进度与 fsync 日志） |
+| 续渲 | `resumeRenderJob`（`blender_final_render {resumeJobId}`） |
+| MP4 编码 | `host/lib/video-encoder.js`（ffmpeg 经 `ctx.subprocess` 的 argv 数组）+ ffprobe 校验 |
+| Delivery Manifest | `host/lib/delivery-manifest.js`（`deepblend.delivery-manifest/v1`） |
+
+### 12.4 模型可见工具：10 → **14**
+
+```
+blender_capabilities      blender_project_create   blender_project_get
+blender_scene_get         blender_scene_patch      blender_preview_render
+blender_scene_validate    blender_preview_views    blender_visual_review
+blender_visual_autofix    blender_final_render     blender_export
+blender_job_status        blender_job_cancel
+```
+
+`blender_asset_ingest` 是 SPEC §11 里**唯一**仍未注册的工具，因为它的 Host 服务与审批边界
+是 M5；一个模型能看到的工具就是运行时要兑现的承诺。
+
+### 12.5 M3 发现并修复的真实缺陷
+
+每一个都是在「测试是绿的」之后才暴露的。清单在 `architecture-decisions.md` 的 **D49–D58**，
+这里只记它们各自的形状：
+
+| # | 缺陷 | 它是怎么被发现的 |
+|---|---|---|
+| 1 | **账本把「帧不存在」报成「空文件」** | 契约测试：`statSync` 失败返回 `{size:0}`，与一个真的 0 字节文件无法区分。要渲的集合碰巧是对的，但状态行会撒谎（「3 absent」其实是「3 corrupt」，或反过来） |
+| 2 | **完整性检查器读 `manifest.sceneSpec`，生产者写 `manifest.source.sceneSpec`** | 集成套件：每一份**完整**的交付都被报成缺 SceneSpec 与 checkpoint。一个只检查自己的测试夹具发现不了 |
+| 3 | **manifest 对还不存在的路径取摘要** | 集成套件：`video.sha256` 全是 `null`——先构建 manifest、后发布视频。修复是先发布再描述 |
+| 4 | **QA 从来没进过 manifest** | `record.qa` 从未被赋值；集成套件报 `completeness.missing: ["qa"]` |
+| 5 | **`-frames:v` 放错了一侧** | 真实 ffmpeg 8.0.1 直接拒绝整个命令；只有真编码才碰得到 |
+| 6 | **取消在僵尸进程上测存活** | 集成套件：`terminate()` 之后 `ps` 仍显示 `(Blender)`，`kill(pid,0)` **成功**。修复是等 `handle.done`（回收）再测 |
+| 7 | **续渲沿用上一次 attempt 的 pid** | **真实 60 帧交付**：记录写着 pid 87209，而真正在写帧的是 87455。后果是**再一次重启会去停一个已经死掉的进程，把活的留下**——正是验收条件禁止的孤儿。短测试在第二次 attempt 开始前就结束了，所以只有长任务暴露了它 |
+| 8 | **续渲从上一次 attempt 的 `process.json` 里读回死掉的 pid** | 修 7 之后集成套件立刻抓到：`_launchRenderer` 清空了记录里的 pid，但 provider 没有删掉上一次的 `process.json`，于是孩子进程的旧身份文档被当成这一次的读走。修复有两半：provider 在 spawn 前删掉它，**并且**每次 attempt 带一个 token、身份文档必须带同一个 token 才被接受——「pid 是这一次的」从一条关于删文件的约定变成了一条被检查的事实 |
+
+第 7、8 条值得单独记：它们是本次**唯一只有真实长任务才能暴露**的缺陷。前六个在
+640×360、9 帧的集成套件里就现形了；这两个需要「一个 attempt 活到能被观测」——
+60 帧的渲染要跑 30 分钟，9 帧的跑 30 秒。第 8 条是修完第 7 条之后被同一批断言立刻抓到的：
+记录里的 pid 清空了，但上一次的 `process.json` 还在，于是孩子进程的**旧身份文档**被当成
+这一次的读了回来。修复因此有两半，其中一半（每次 attempt 的 token）把它从一条
+「记得删文件」的约定变成一条被检查的事实。
+
+**这就是 M3 为什么必须在真实项目上、真实长任务上验收。** 一个 9 帧的套件可以发现
+前七个缺陷，而第八个只有真实的时间长度能发现——这恰恰是这个里程碑存在的理由。
+
+### 12.6 三个里程碑断言「过期」的处理
+
+M3 让另外三个套件里的三条断言变成了**假**，而它们当时都是对的：
+
+| 套件 | 原断言 | 处理 |
+|---|---|---|
+| `composition/activation.e2e.mjs` | `startFinalRender`/`exportProject` 抛 `BLENDER_UNSUPPORTED_ACTION`（M0 时它们是「尚未构建」的探针） | 反转：断言 SPEC §7.2 声明的**每一个**方法都已实现，且两个 M3 方法对畸形调用返回稳定错误码而不是 `undefined` |
+| `composition/tool-plane-m1.e2e.mjs` | M2/M3 工具都还没注册 | 收窄为该套件自己的规则：「M5 之前唯一没有 Host 服务的工具仍然缺席」 |
+| `composition/tool-plane-m2.e2e.mjs` | 目录恰好 10 个工具 | 收窄为「M0+M1+M2 那十个都在场」 |
+
+**共同的形状**：一个「目录永远不会变多」的断言会在**每一个**后续里程碑因为正确的原因失败，
+然后因为错误的原因被删掉。所以每个里程碑的套件断言**自己那批工具的可兑现性**，
+而「目录恰好是 N 个」只由**当时最新**的那个套件断言一次。
+
+### 12.7 测试：1074 项断言全部通过
+
+| 套件 | 文件 | 断言 |
+|---|---|---|
+| 单元 + 契约 | 13 个 `*.test.mjs` | **691** |
+| Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
+| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 77/77 |
+| Blender 视觉闭环（M2） | `blender-integration/visual-loop.e2e.mjs` | 83/83 |
+| **Blender 持久渲染 Job：重启、续渲、取消、交付（M3）** | `blender-integration/render-job.e2e.mjs` | **68/68** |
+| Host composition 激活 | `composition/activation.e2e.mjs` | 12/12 |
+| preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
+| preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
+| preset M2 工具面 | `composition/tool-plane-m2.e2e.mjs` | 32/32 |
+| **preset M3 工具面（14 个工具 + 真实交付）** | `composition/tool-plane-m3.e2e.mjs` | **45/45** |
+| **合计** | **21 个文件、11 个套件** | **1074** |
+
+一键运行：`bash deepblend/tests/run-all.sh`
+
+M3 新增的 173 项分布：
+
+| 文件 | 断言 | 覆盖 |
+|---|---|---|
+| `contract/render-job.test.mjs` | **60** | 帧账本（空文件 / 截断 / 无 IEND / 尺寸不符各自的行状）、帧命名与 Python 侧逐字节一致、状态机（含「failed/cancelled 可被重新打开」）、进度与剩余时间、视频属性校验的**每一条**、交付完整性、真实目录上的账本 |
+| `blender-integration/render-job.e2e.mjs` | **68** | 启动不阻塞（4 ms）、`ctx.jobs` 投影真的在册、`final` profile 真的被应用、渲染器死后记为 failed 并保留帧、**续渲只渲缺失帧**、已存在帧字节未变、**fork 一个 Host 再 SIGKILL 它**、孤儿被识别并停掉、账本重建、`recovery.json`、取消后进程实测消失、MP4 属性被独立 ffprobe 复核 |
+| `composition/tool-plane-m3.e2e.mjs` | **45** | 目录恰好 14 个、四个工具的 `projectId` 是必需参数、工具驱动的完整交付、失败是有稳定码的**结果**、续渲一个 `completed` 的 job 被指向 `blender_export` |
+
+**不在 `run-all.sh` 里的两项**：`node deepblend/tests/e2e/visual-live.e2e.mjs`（真实模型调用）
+与 `node deepblend/tools/m3-delivery-acceptance.mjs run`（真实项目上的 1080p 交付，约 30 分钟）。
+
+### 12.8 与 SPEC 的偏差
+
+| # | SPEC 要求 | 实际做法 | 理由 |
+|---|---|---|---|
+| 1 | §10.3 第 7 步「重新投影为 DSH Job」 | reconciler 停在 `recovering`；DSH job 在**真正开始渲染或续渲时**建立 | 一个 DSH job 是**活的工作**。为一个没有进程在跑的 job 建一条，会让 `job_list` 声称有人正在干活 |
+| 2 | §10.3 第 8 步「向 UI 和 Session 发布恢复事件」 | 写 `recovery.json` 到 job 目录 | Host 启动时**还没有 session**——reconciler 在任何 agent 存在之前就跑完了，进程内事件在构造上就没有监听者。落盘的记录比一个没人收的事件活得更久 |
+| 3 | §10.2 的 `type: preview \| final-render \| export` | M3 只把 `final-render` 与 `export` 做成持久 job | 预览是秒级的（一次 4 视角约 10 s）且在工具调用内结束；把可取消、可恢复的重型机制套到它上面只会让 M2 已验证的行为变复杂。词表保留了三个值，`preview` 留给确有需要的场景 |
+| 4 | §11 `blender_export` 含 GLB/FBX/USD | M3 只实现视频交付那一半 | M3 的交付项列表里没有场景格式导出，§0.3 禁止越界；视频是 SPEC §10.4 与 §20 M3 点名的那一项 |
 

@@ -1,7 +1,7 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.2 已闭环 + 演示项目内容已对齐 SPEC §2.1**
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M3 已闭环**（持久 Job、重启恢复、帧序列、续渲、MP4 交付）
 
 ---
 
@@ -32,15 +32,20 @@ deepblend/
   schemas/            权威 JSON Schema（SPEC §5.2）：scene-spec / scene-patch / job-result
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
   docs/               dsh-baseline / runtime-audit / architecture-decisions
-                      / tool-contracts / milestone-status / m2-brief
+                      / tool-contracts / milestone-status / m2-brief / m3-brief
+                      / probe-m3-restart.log / probe-m3-delivery.log
   tools/              create-demo-project.mjs —— 在真实 store 中生成演示项目
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
                       visual-review-live-probe.mjs —— 直接调用视觉模型的最小探针
+                      inspect-checkpoint.py —— 量编译后几何
+                      m3-restart-probe.mjs —— M3 的第一个任务：真实 kill -9 重启探针
+                      m3-delivery-acceptance.mjs —— 真实项目上的 1080p 交付（约 30 分钟）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         12 个 *.test.mjs
+    contract/         13 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
-    blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环
-    composition/      Host 组合激活 + preset 工具面（M0 / M1 / M2）
+                      m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
+    blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
+    composition/      Host 组合激活 + preset 工具面（M0 / M1 / M2 / M3）
     e2e/              visual-live.e2e.mjs —— 真实模型调用（不进 run-all.sh）
 
 packages/deepblend/
@@ -74,18 +79,22 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**9 个套件、17 个文件、900 项断言**全部通过。单跑某一层：
+预期：**11 个套件、21 个文件、1074 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
 node deepblend/tests/blender-integration/probe.e2e.mjs          # M0 能力探测
 node deepblend/tests/blender-integration/fixture.e2e.mjs        # M1 SceneSpec + revision 回放
 node deepblend/tests/blender-integration/visual-loop.e2e.mjs    # M2 多视角 / 评分 / 修复 / handover
+node deepblend/tests/blender-integration/render-job.e2e.mjs     # M3 重启 / 续渲 / 取消 / 交付
 node deepblend/tests/composition/activation.e2e.mjs             # Host composition 是否真的激活
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 全部 7 个工具
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # M3 全部 14 个工具 + 真实交付
 ```
+
+**M3 的两个套件会真的渲 1080p、真的编码**，所以它们是整个 run 里最慢的（约 5–10 分钟）。
 
 其中 `contract/patch-resolution.test.mjs`（65 项）值得单独知道：它全部来自**在真实项目上
 使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
@@ -124,7 +133,41 @@ dsh web                                                 # 重启后生效
 `@deepblend/dsh-blender-bundle`，且 `~/.dsh/profiles/node_modules/@deepblend/*`
 需指向本仓库的包（等价于 `dsh plugin --profile web add`；本机无 pnpm，故用符号链接装配）。
 
-重启后新建 **DeepBlend 开发模式** 会话，工具清单应为 **10 个**（见 `milestone-status.md` §9）。
+重启后新建 **DeepBlend 开发模式** 会话，工具清单应为 **14 个**（见 `milestone-status.md` §12.4）。
+
+---
+
+## M3 的核心机制
+
+### 帧是事实来源，记录只是它的缓存
+
+一份交付渲染实测 **19.6–41.4 秒/帧**，450 帧 = 3.4 小时。这样的任务**必然**会被打断。
+所以「哪些帧已经渲好」的权威是**磁盘上的帧文件**，而不是 job 记录里的计数：
+
+* 记录里的 `completedFrames` 是缓存，永不覆盖磁盘；
+* 子进程 fsync 的 `events.jsonl` 是佐证，也不是权威；
+* 一段被 `kill -9` 截断的 PNG **存在**，但它不是一帧——账本按
+  「PNG 签名 + IHDR 尺寸 + 尺寸下限 + IEND 结尾」判定，把它算进**重渲**集合。
+
+要渲的集合因此是 `missing + corrupt`。**这就是「可只渲缺失帧」这条验收的全部内容。**
+
+### 一次重启里，真正的证据是那个孤立进程
+
+探针（`tools/m3-restart-probe.mjs`）实测：Host 被 `SIGKILL` 之后，它启动的 Blender
+**活着**——它是 detached 进程组的组长，而且仍在往「恢复流程马上要描述的那个目录」里写。
+所以恢复的顺序是证据而不是风格：**先停孤儿，再读账本**。
+
+而「哪个 pid 是它」这件事**只能由子进程自己写下来**：
+`ctx.subprocess.spawn` 的 handle 实测没有 pid 字段。于是 `bootstrap.py` 在碰 bpy 之前
+先写下 `process.json`，并且每次 attempt 带一个 token——Host 只接受 token 相同的身份文档。
+（这条 token 是修补「续渲读回上一次 attempt 的死 pid」时加的，见 D58。）
+
+### 交付清单要能让人**不看磁盘**就判断完整
+
+`output/delivery-manifest.json` 同时记录**声明**与**实测**：视频路径、字节数、sha256，
+job 声称的帧数/时长/fps/分辨率，`ffprobe -count_frames` 实际量到的，
+两者之间的**全部**不一致，以及 `completeness` 自判。不一致就以 `ENCODE_VERIFY_FAILED`
+失败，并且**什么都不发布**——一份描述着不存在文件的清单，比没有清单更糟。
 
 ---
 
@@ -212,9 +255,17 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 
 ## 当前状态与下一步
 
-见 `deepblend/docs/milestone-status.md`。M0、M1、M2 验收均已闭环。
+见 `deepblend/docs/milestone-status.md`。**M0、M1、M2、M3 验收均已闭环。**
+
 M2 的视觉闭环在**真实模型**上跑通：模型独立指出植入的遮挡（「桌上的蓝色球被隔断挡住」），
 确定性评分器独立给出同一结论，自动修复把分数从 82 提到 100。
 
-**唯一待办**是重启 profile 后新开一个 DeepBlend 开发模式会话、人工确认工具清单为 **10 个**
-（该文件 §9）。按 SPEC §0.3，M3 应在新的会话中开始。
+M3 的交付链路在**真实项目**上跑通：`watch-commercial` r0029 的帧 30–89，
+`final` profile（1920×1080 / Cycles / 256 spp / AgX / 30 fps）。启动调用 4 ms 返回，
+渲到第 6 帧时 Host 被 **SIGKILL**；新进程发现这个 job、停掉活着的孤儿渲染器、
+从帧本身重建账本（present 6 / missing 54）、补渲 54 帧，最终发布了
+**1920×1080 / h264 / 60 帧 / 30 fps / 2.000000 s** 的 `output/final.mp4`，
+以及一份自判完整的 `delivery-manifest.json`。逐行记录在
+`deepblend/docs/probe-m3-delivery.log`。
+
+按 SPEC §0.3，**M4（工作台 UI）应在新的会话中开始**。

@@ -1,0 +1,38 @@
+── phase 1: a Host starts a delivery render ──
+
+── phase 2: wait for 3 frame(s), then SIGKILL the Host ──
+child.pid: 81187
+child.processGroupId: 81187
+jobDirectory: /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart
+frames.requested: [1,2,3,4,5,6,7,8]
+PROBE_STARTED
+frames.present.at.kill: 3
+host.killed: {"pid":81186,"signal":"SIGKILL"}
+
+── phase 3: recovery ──
+
+── recovery, in a fresh process ──
+marker.status: running
+marker.frames: [1,2,3,4,5,6,7,8]
+marker.pid: 81187
+frames.on.disk.before: ["frame_0001.png","frame_0002.png","frame_0003.png"]
+orphan.identity.document: {"pid":81187,"pgid":81187}
+orphan.alive: {"alive":true,"groupAlive":true,"leaderAlive":true,"command":"/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender --background --factory-startup --python /Users/hxb/workspace/deep-blend/packages/deepblend/provider-local/python/bootstrap.py -- --request /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/request.json --result /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/result.json --frames /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/plan.json --events /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/events.jsonl --proc /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/process.json"}
+journal.lines: 3
+journal.types: ["frame"]
+journal.frames: [1,2,3]
+orphan.stopped: {"attempted":true,"pid":81187,"term":"signalled-group","kill":null,"gone":true,"after":{"alive":false,"groupAlive":false,"leaderAlive":false,"command":null}}
+ledger.expected.size: 1920x1080
+ledger.present: [1,2,3]
+ledger.corrupt: []
+ledger.missing: [4,5,6,7,8]
+resume.rendering: [4,5,6,7,8]
+resume.exit: {"exitCode":0,"status":"success"}
+resume.rendered: [4,5,6,7,8]
+assert.rendered.equals.missing: true
+assert.nothing.re-rendered: true
+assert.existing.frames.untouched: 3/3
+ledger.after.present: [1,2,3,4,5,6,7,8]
+ledger.after.missing: []
+ledger.after.corrupt: []
+PROBE_CONVERGED

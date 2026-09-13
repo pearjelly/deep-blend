@@ -15,14 +15,18 @@
  *   M1  blender_project_create, blender_project_get, blender_scene_get,
  *       blender_scene_patch, blender_preview_render, blender_scene_validate
  *   M2  blender_preview_views, blender_visual_review, blender_visual_autofix
+ *   M3  blender_final_render, blender_export, blender_job_status,
+ *       blender_job_cancel
  *
- * The remaining SPEC §11 tools (final render, export, asset ingest, job status,
- * job cancel) are deliberately ABSENT rather than registered-and-throwing: a tool
- * the model can see is a promise the runtime must keep, and their host services
- * arrive in M3. `blender_capabilities` stays in this file because it is the M0
- * tool and its behaviour is pinned by the M0 acceptance suite.
+ * `blender_asset_ingest` is the one SPEC §11 tool still deliberately ABSENT: its
+ * host service and its approval boundary (local automatic, network requires
+ * approval — SPEC §15.1) are M5, and a tool the model can see is a promise the
+ * runtime must keep. Everything registered here can be kept.
  *
- * Owner: DeepBlend Studio — M2
+ * `blender_capabilities` stays in this file because it is the M0 tool and its
+ * behaviour is pinned by the M0 acceptance suite.
+ *
+ * Owner: DeepBlend Studio — M3
  * Plane: Agent preset
  */
 
@@ -32,6 +36,7 @@ import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts
 
 import { TOOL_OUTPUT, resolveStudio } from './shared.js'
 import { apply as applySceneTools } from './tools.js'
+import { applyRenderTools } from './render-tools.js'
 import { applyVisualTools } from './visual-tools.js'
 
 /** Plugin name, surfaced in loader diagnostics. */
@@ -73,6 +78,7 @@ export function apply(ctx) {
   ctx.tools.register(capabilitiesTool(ctx))
   applySceneTools(ctx)
   applyVisualTools(ctx)
+  applyRenderTools(ctx)
 }
 
 /**

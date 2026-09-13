@@ -406,6 +406,16 @@ export class ProjectStore {
   }
 
   /**
+   * Read a job record without throwing, for a lookup that has a fallback.
+   * @param {string} projectId
+   * @param {string} jobId
+   * @returns {object|null}
+   */
+  readJobSafe(projectId, jobId) {
+    return readJson(this.jobPath(projectId, jobId))
+  }
+
+  /**
    * Allocate a job id. Monotonic within the project and readable in a log,
    * because a job id ends up in a tool result the model reasons about.
    * @param {string} projectId

@@ -179,13 +179,15 @@ try {
     'blender_visual_autofix',
     'blender_visual_review',
   ]
-  check('the preset plane registers exactly the M0+M1+M2 tool set',
-    JSON.stringify(names) === JSON.stringify(expected), names)
-  check('no M3+ tool is registered ahead of its host service',
-    !names.includes('blender_final_render') && !names.includes('blender_export')
-      && !names.includes('blender_asset_ingest') && !names.includes('blender_job_status')
-      && !names.includes('blender_job_cancel'),
-    names.filter(name => !expected.includes(name)))
+  // This suite owns the M0+M1+M2 tools, not the catalog's size: M3 added four more
+  // (asserted by `tool-plane-m3.e2e.mjs`), and re-asserting the old total here would
+  // make every later milestone edit this file. What stays this suite's business is
+  // that its own ten are present, and that the ONE tool whose host service still does
+  // not exist is absent — a tool the model can see is a promise the runtime must keep.
+  check('every M0+M1+M2 tool is registered',
+    expected.every(name => names.includes(name)), names)
+  check('blender_asset_ingest is still absent, because its host service is M5',
+    !names.includes('blender_asset_ingest'), names.filter(name => name.includes('asset')))
 
   for (const name of ['blender_preview_views', 'blender_visual_review', 'blender_visual_autofix']) {
     const definition = root.get('tools').get(name)
