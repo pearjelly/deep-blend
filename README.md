@@ -33,7 +33,7 @@ deepblend/
   presets/            agent preset 的**源**：deepblend-dev/（SPEC §5.2 的目录，M3 之前是空的）
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
   docs/               dsh-baseline / runtime-audit / architecture-decisions
-                      / tool-contracts / milestone-status / m2-brief / m3-brief
+                      / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
                       / probe-m3-restart.log / probe-m3-delivery.log
   tools/              create-demo-project.mjs —— 在真实 store 中生成演示项目
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
