@@ -12,8 +12,8 @@
 > ✅ **M3 已在运行中的进程里生效**：`dsh web` 于 21:55:33 重启（晚于 M3 提交），
 > 逐项实测见 §12.9。
 > 下一里程碑：M5（正式 preset 与安全加固，未开始，按 SPEC §0.3 不得提前进入）
-> 运行中的进程：3080 的 `dsh web` 仍是 M3 代码，**要重启一次**才能看到 M4 的工作台
-> （见 §13.8 —— 客户端的「编辑→可见」是 0.6 秒，但第一次声明 `dsh.client` 必须换进程）
+> ✅ **M4 已在运行中的进程里生效**：`dsh web` 于 **06:25:18** 重启（PID 26585），
+> 逐项实测见 §13.9；面板在真实浏览器里渲染真实项目（`watch-commercial` r0029）
 
 ---
 
@@ -1088,26 +1088,66 @@ node deepblend/tools/m3-delivery-acceptance.mjs run   真实项目上的 1080p �
 
 ### 13.8 仍需人工过一眼（以及唯一需要重启的那一件事）
 
-1. **重启 3080 的 `dsh web`**（`cd /Users/hxb/workspace/deep-blend && dsh web`）。
-   这不是「习惯性重启」：这一版给 `packages/deepblend/ui` 第一次声明了 `dsh.client`，
-   而 `dsh-client-modules` 把「这个包是不是客户端包」的判定按进程缓存（§13.1）。
-   重启之后，侧边栏会出现 Blender 入口，Settings 里会出现 Blender 一节。
-   之后改 `lib/client.js` 不再需要重启。
-2. 重启后打开面板，对 `watch-commercial` 点一次「渲染预览」：**应当**在几秒内出现
-   新的 contact sheet（这一步会真的花一次 Blender 机时，且会往 store 里写一个 v2
-   artifact index 条目）。
-3. 刷新一次页面，确认面板从 Host 恢复同一个项目与同一个 revision。
+1. ~~重启 3080 的 `dsh web`~~ ✅ **已完成**（06:25:18，PID 26585），见 §13.9。
+2. **仍然建议人工点一次**：在面板里对 `watch-commercial` 点「渲染预览」，几秒内应当出现
+   新的 contact sheet。这一步会真的花一次 Blender 机时，并往 store 里追加一条 artifact
+   index 条目，所以它留给人点，而不是由套件替人点。
+3. ~~刷新一次页面，确认面板从 Host 恢复同一个项目与同一个 revision~~ ✅ 套件已覆盖
+   （`e2e/ui.e2e.mjs` 的重载断言），重启后的页面也已复核。
 
 **无需人工的等价验证**：`bash deepblend/tests/run-all.sh`（1382 项，其中 54 项是真实
 浏览器、真实 Host、真实 Blender 的端到端验收），以及
 `node deepblend/tests/e2e/ui-live.e2e.mjs`（9 项，真实模型调用）。
 
-### 13.9 运行中的进程：M4 **没有**在 3080 里生效（这一次不需要含糊）
+### 13.9 M4 在运行中的进程里的落地（**已完成**：重启于 06:25:18，逐项实测）
 
-| 检查 | 结果 |
+重启之后在**真实进程**内逐项复核：
+
+```
+3080 的 dsh web           PID 26585，启动于 一 9月/14 06:25:18（晚于 M4 提交 e99bc8b）
+GET /deepblend/state      ok=true, route="state", hostApiVersion=4, panelId="deepblend"
+projectsRoot              /Users/hxb/workspace/deep-blend/.deepblend/projects
+projects                  watch-commercial@r0029（29 个 revision，0 个未完成任务）
+scene.counts              entities 10 / materials 8 / lights 3 / cameras 4 / shots 1 /
+                          animationTracks 14
+qa                        技术错误 0 条；测量问题 0 条；审查器 finding 0 条
+```
+
+**浏览器侧**：操作者重启后在真实页面里打开了工作台，面板逐项与磁盘一致——侧边栏
+「Blender」入口（等轴立方体图标）、六个视图页签、`watch-commercial` 的项目卡片
+（29 revision、目标文案）、当前项目摘要（r0029、digest `fa8ec014ddc1…`、帧范围 1–450 @
+30fps、对象/材质/灯/相机 10/8/3/4）。这与套件在独立进程里验的是同一套东西，只是这一次
+它在开发者的真实 GUI 里。
+
+**五个座位在真实页面里的实测**（`Slots.listSubTree`，重启后的进程）：
+
+| 座位 | occupants |
 |---|---|
-| 3080 的 `dsh web` 是否含 M4 的工作台 | ❌ **不含**：它的 `clientModules` 在启动时把 `@deepblend/dsh-blender-ui` 判定为「不是客户端包」并缓存到进程结束；同一个 session 里 3099（新进程）的 boot 清单里有这个包，3080 页面里 `sidebar.panellist` 的 occupants 是空 |
-| 因此本轮的能力验证在哪 | ✅ 在一个**独立进程**里：真实 Chrome + 真实 Host + 真实 Blender，自带 store（§13.2）；以及在真实项目上的只读复核（§13.7） |
-| 为什么不在本轮里重启 3080 | 3080 就是本会话正在使用的进程；重启会终止本会话。这与 M3 §12.9 的处理一致——**记录状态、把重启留给操作者**，而不是让一次 `kill` 把上下文一起丢掉 |
+| `sidebar.panellist` | `deepblend`（order 100）——该列表原本为空，这是加法 |
+| `main` | `deepblend` + `conversation`（随附的面板没有被顶掉） |
+| `settings.section` | `general` / `models` / `plugins` / `agent-presets` / **`deepblend`**（order 50） |
+| `conversation.session.header.utilities` | `open-in-app` / `session-log-download` / **`deepblend`**（order 60） |
+| `tool.call.toolview` | 随附的 17 个 + **14 个 `blender_*`**，一个不多一个不少 |
 
-重启的方法与重启之后应当看到什么，写在 §13.8 第 1 条。
+**一条容易误读的事，记下来避免下次浪费时间**：这五个座位**不是一次查全的**。第一次查
+`sidebar.panellist` 与 `main` 时，两者的 occupants 都是空的/只有 `conversation`，而
+`settings.section`、`tool.call.toolview` 与头部小控件**同时**都能看到 `deepblend`；把
+同一个查询再发一次，两个座位就出现了。
+
+原因不是「注册失败」——而是**这个账本是按页面回答的，而当时开着不止一个 DSH 标签页**：
+一个在重启前打开、重启后只是把 API 通道重连上的标签页仍然持有**旧的模块表**（`dsh.client`
+的判定与 bundle 都是按 document 加载的），于是同一个问题由不同的页面回答就会得到不同的
+答案。这与 M2 §9 记的「在 cordis 会话里看不到 `blender_*` 工具不是故障」是同一类误读：
+**查的是一个页面，不是能力**。要让那个旧标签页也有工作台，刷新它即可。
+
+**可推广的那条**：把一个「当前页面状态」的账本当成「部署的能力清单」来读，会在多标签页
+下给出两种答案；判断 M4 有没有生效，用的是**页面本身**（截图与 DOM）与 **Host 的路由**，
+而 Inspect 只在能确认它回答的是哪一个页面时才有意义。
+
+### 13.10 M4 之前的状态（重启前，保留作记录）
+
+重启前，3080 跑的是 M3 代码：它的 `clientModules` 在启动时已经把
+`@deepblend/dsh-blender-ui` 判定为「不是客户端包」并缓存到进程结束（§13.1），
+所以那一版进程里既没有工作台，也不会因为磁盘上的包变新而出现。
+本轮的能力验证因此在**独立进程**里完成：真实 Chrome + 真实 Host + 真实 Blender，
+自带 `DSH_HOME` 与项目 store（§13.2），外加在真实项目上的只读复核（§13.7）。
