@@ -11,9 +11,14 @@ node_modules/
 #   .deepblend/projects/  the Project + Revision Store (M1). This is where real
 #                         projects live, including the demo project. It is
 #                         deliberately NOT committed: it is generated state, and
-#                         the two things that make it reproducible ARE committed
-#                         — the fixture SceneSpec and
-#                         `deepblend/tools/create-demo-project.mjs`.
+#                         everything that makes it reproducible IS committed —
+#                         the fixture SceneSpec plus the two tools that build the
+#                         project from it:
+#                           deepblend/tools/create-demo-project.mjs   -> r0001-r0002
+#                           deepblend/tools/apply-brief-content.mjs   -> r0019-r0023
+#                         The second one exists because the generator alone did
+#                         NOT make the store reproducible: the revisions that
+#                         express SPEC.md:150 lived only in one uncommitted store.
 .deepblend/
 
 # OS noise

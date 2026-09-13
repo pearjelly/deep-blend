@@ -1,7 +1,7 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.2（视觉闭环 + 两轮真实使用暴露的缺陷已修）**
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.2 已闭环 + 演示项目内容已对齐 SPEC §2.1**
 
 ---
 
@@ -105,6 +105,11 @@ node deepblend/tools/create-demo-project.mjs
 
 在真实的 `.deepblend/projects/` 下创建 `watch-commercial`：r0001 = 产品转台场景，
 r0002 = 一次灯光/材质调整并带预览。幂等：已存在则报告状态并退出，不做任何修改。
+
+生成器只铺到 r0002；**当前项目已推进到 r0023**，内容对齐 SPEC.md:150 那条需求
+（15 秒、黑背景、产品环绕、表盘逐渐点亮、片尾品牌标）。r0019–r0023 每个 revision 的
+`operation-manifest.json` 都完整记录了操作，可直接重放或 `blender_revision_restore` 回退。
+这一段的决策与被实测挡回来的地方见 `architecture-decisions.md` §5D（D42–D46）。
 
 ### 4. 安装进 DSH profile
 
