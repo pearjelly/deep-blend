@@ -176,7 +176,23 @@ function createStudioStub() {
     },
     async renderViews(request) {
       record('renderViews', request)
-      return { revision: request.revision ?? 'r0002', digest: 'd2', profile: { engine: 'cycles' }, artifacts: [], views: [], warnings: [], durationMs: 1, pngs: {} }
+      return {
+        revision: request.revision ?? 'r0002',
+        digest: 'd2',
+        profile: { engine: 'cycles' },
+        artifacts: [],
+        // The pair the panel compares, plus the buffers it must NOT receive: a JSON
+        // response carrying PNG bytes is not lossless, and the browser displays them
+        // through the artifact route instead.
+        previewSheets: {
+          current: { kind: 'contact-sheet', slot: 'preview-current', path: 'revisions/r0002/contact-sheets/preview-current.png', sha256: 'c0ffee', at: '2026-09-14T00:00:00.000Z' },
+          previous: null,
+        },
+        views: [],
+        warnings: [],
+        durationMs: 1,
+        pngs: { 'active-camera': Buffer.from([1, 2, 3]) },
+      }
     },
     async applyScenePatch(request) {
       record('applyScenePatch', request)
@@ -306,6 +322,15 @@ function sampleUrl(route) {
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
   const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001' } : undefined)
+  if (route.id === 'project.preview') {
+    // The pair reaches the browser; the PNG buffers do not (a JSON body of image
+    // bytes is not lossless, and the panel displays images through the artifact
+    // route).
+    check('the preview route reports the pair the panel compares', json?.preview?.sheets?.current?.slot === 'preview-current', json?.preview?.sheets)
+    check('and it carries no image bytes', JSON.stringify(json).includes('pngs') === false
+      && json?.preview?.pngs === undefined
+      && Object.keys(json?.preview ?? {}).every(key => key !== 'pngs'))
+  }
 
   if (route.id === 'artifacts.open') {
     check(`${route.id} serves bytes, not JSON`,

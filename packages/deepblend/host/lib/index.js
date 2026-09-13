@@ -53,6 +53,9 @@ import {
   validateFindings,
   validateSceneSpec,
   warning,
+  // M4 — the preview pair the workbench compares
+  PREVIEW_SHEET_SLOTS,
+  composeContactSheet,
   // M3 — the persistent render job
   HOST_API_VERSION,
   RENDER_JOB_VERSION,
@@ -1135,6 +1138,75 @@ export default class BlenderStudio extends Service {
         this.store.recordRevisionPreview(projectId, revision, artifact)
       }
 
+      // ── one preview render = one sheet, and one generation kept back ──────
+      //
+      // Why the render composes a sheet at all: the individual views change on disk
+      // but nothing in the panel displayed them, so a person who clicked render saw
+      // "已渲染 7 个视角" and a screen identical to the one before (measured; §13.5B).
+      // Why it keeps the PREVIOUS one: a preview replaces its own image, so without
+      // a kept generation the panel can only ever show the present — and the
+      // question a person has after a render is "what changed?".
+      //
+      // The sheet the REVIEW path writes (`contact-sheets/round-N.png`, the image the
+      // model was shown) is deliberately untouched: it is evidence for a review, and
+      // overwriting it would rewrite what a reviewer looked at.
+      let previewSheets = null
+      if (run.pngs !== undefined && run.pngs !== null && Object.keys(run.pngs).length > 0) {
+        const directory = join(this.store.revisionDirectory(projectId, revision), 'contact-sheets')
+        mkdirSync(directory, { recursive: true })
+        const built = composeContactSheet({
+          views: measurements
+            .filter(view => Buffer.isBuffer(run.pngs[view.viewId]))
+            .map(view => ({ viewId: view.viewId, label: view.caption ?? view.viewId, png: run.pngs[view.viewId] })),
+          title: `${projectId} ${revision} preview ${new Date().toISOString()}`,
+        })
+        const currentFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-current.png'), 'preview sheet')
+        const previousFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-previous.png'), 'previous preview sheet')
+
+        // Rotate FIRST, then write the new one: the file that was current becomes the
+        // comparison, and its digest is recomputed from the bytes that are now there
+        // rather than carried over from the manifest.
+        let previousArtifact = null
+        if (isFile(currentFile)) {
+          copyFileSync(currentFile, previousFile)
+          previousArtifact = {
+            kind: 'contact-sheet',
+            slot: PREVIEW_SHEET_SLOTS.previous,
+            path: `revisions/${revision}/contact-sheets/preview-previous.png`,
+            iteration: null,
+            width: built.width,
+            height: built.height,
+            columns: built.columns,
+            rows: built.rows,
+            bytes: fileSize(previousFile),
+            sha256: fileSha256(previousFile),
+            mime: 'image/png',
+            views: built.placements.map(placement => placement.viewId),
+            at: new Date().toISOString(),
+          }
+        }
+        writeFileSync(currentFile, built.png)
+        const currentArtifact = {
+          kind: 'contact-sheet',
+          slot: PREVIEW_SHEET_SLOTS.current,
+          path: `revisions/${revision}/contact-sheets/preview-current.png`,
+          iteration: null,
+          width: built.width,
+          height: built.height,
+          columns: built.columns,
+          rows: built.rows,
+          bytes: built.png.length,
+          sha256: fileSha256(currentFile),
+          mime: 'image/png',
+          views: built.placements.map(placement => placement.viewId),
+          at: new Date().toISOString(),
+        }
+        if (previousArtifact !== null) this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', previousArtifact)
+        this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', currentArtifact)
+        previewSheets = { current: currentArtifact, previous: previousArtifact }
+        artifacts.push(currentArtifact)
+      }
+
       const job = this.store.writeJob(projectId, {
         schemaVersion: 'deepblend.job/v1',
         jobId,
@@ -1154,8 +1226,13 @@ export default class BlenderStudio extends Service {
       })
 
       return {
+        // Named explicitly: the route that renders a preview reports which revision it
+        // wrote into, and without this field it reported `null` — a message that read
+        // "written into null's previews" while the panel's own label said r0029.
+        revision,
         views: measurements,
         artifacts,
+        previewSheets,
         pngs: run.pngs,
         warnings,
         job: toCanonicalJobRecord(job),

@@ -103,8 +103,10 @@ function readStoreJson(...segments) {
  * integer, so "did the picture change?" is answered by the rendered bytes rather
  * than by an attribute the test could be reading wrongly.
  */
-const DISPLAYED_PIXELS = `(() => {
-  const img = document.querySelector('[data-compare="left"] img')
+/** The same reading, for one named pane. @param {'left'|'right'} side */
+function displayedPixels(side) {
+  return `(() => {
+  const img = document.querySelector('[data-compare="${side}"] img')
   if (!img || !img.complete || img.naturalWidth === 0) return null
   const canvas = document.createElement('canvas')
   canvas.width = 8
@@ -118,6 +120,7 @@ const DISPLAYED_PIXELS = `(() => {
   }
   return hash
 })()`
+}
 
 /** Switch the panel to one view and wait for that view to render. */
 async function openView(page, name) {
@@ -262,57 +265,102 @@ try {
     : []
   check('the preview PNGs are on disk under the revision', previewFiles.some(name => name.endsWith('.png')), previewFiles.slice(0, 4))
 
-  await page.waitFor('document.querySelector("[data-compare=left] img, [data-compare=right] img") !== null', 30000)
-  const images = await page.evaluate(`Array.from(document.querySelectorAll('[data-view=preview] img')).map(img => ({ src: img.getAttribute('src'), w: img.naturalWidth, h: img.naturalHeight }))`)
-  check('Preview Compare displays the rendered image, decoded, over the Host artifact route',
-    images.length > 0 && images.every(image => image.w > 0 && image.h > 0) && images.every(image => image.src.startsWith('/deepblend/artifacts/')),
-    images)
-  check('the rendered pane says WHEN its image was produced, so a re-render is visible',
-    /渲染于/.test((await page.text('[data-compare="left"]')) ?? ''), (await page.text('[data-compare="left"]'))?.slice(0, 90))
-
-  // ── a re-render replaces the bytes at the SAME path ──────────────────────
+  // ── the pair: 上一次渲染 vs 本次渲染, both from real renders ──────────────
   //
-  // This is what "渲染预览" does when the revision already has previews (D28: a
-  // preview is an emitted artifact, not a new revision), and it is what a user
-  // reported as "nothing happened": the revision stayed r0002 and the panel looked
-  // identical. Measured then: the panel was showing the PREVIOUS bytes, because its
-  // <img> was keyed on the path alone and the browser does not re-fetch an
-  // unchanged src. The disk is edited here instead of rendering twice, because a
-  // second render produces exactly this: same paths, new bytes, new digests.
-  const displayedBefore = await page.evaluate(DISPLAYED_PIXELS)
+  // The first render leaves the left pane empty (there is nothing to compare yet);
+  // the second one rotates the previous sheet into place. That rotation is the whole
+  // reason Preview Compare can answer "what changed?" after a render — a preview
+  // replaces its own image, so without a kept generation the panel could only ever
+  // show the present, which is exactly what the operator reported as "没有出现新的条目".
+  await page.waitFor('document.querySelector("[data-compare=right] img") !== null', 30000)
+  const firstSheets = await page.evaluate(`(() => {
+    const right = document.querySelector('[data-compare="right"] img')
+    return {
+      leftKind: document.querySelector('[data-compare="left"]').getAttribute('data-compare-kind'),
+      rightSlot: right.getAttribute('data-artifact-slot'),
+      rightSrc: right.getAttribute('src'),
+      rightWidth: right.naturalWidth,
+      rightHeight: right.naturalHeight,
+    }
+  })()`)
+  check('the first render composes a contact sheet the panel shows', firstSheets.rightWidth > 0 && firstSheets.rightHeight > 0, firstSheets)
+  check('and it is labelled as THIS render, by slot rather than by path',
+    firstSheets.rightSlot === 'preview-current', firstSheets.rightSlot)
+  check('with nothing to compare against yet, the left pane says so',
+    firstSheets.leftKind === 'empty', firstSheets.leftKind)
+  check('the pane states when the image was produced',
+    /渲染于/.test((await page.text('[data-compare="right"]')) ?? ''), (await page.text('[data-compare="right"]'))?.slice(0, 80))
+  check('the rendered image is fetched from a URL keyed on its own digest',
+    /[?&]v=[0-9a-f]{8,}/.test(firstSheets.rightSrc ?? ''), firstSheets.rightSrc)
+
+  // A SECOND real render: this is the operator's second click, and the assertion is
+  // that the panel can now show a before and an after of the same revision.
+  await page.click('[data-action="render-preview"]')
+  await page.waitFor('document.querySelector(\'[data-compare="left"] img[data-artifact-slot="preview-previous"]\') !== null', 300000)
+  const pair = await page.evaluate(`(() => {
+    const read = side => {
+      const img = document.querySelector('[data-compare="' + side + '"] img')
+      return img === null ? null : { slot: img.getAttribute('data-artifact-slot'), digest: img.getAttribute('data-artifact-digest') }
+    }
+    return { left: read('left'), right: read('right') }
+  })()`)
+  check('the second render keeps the previous sheet, so the panes hold a before and an after',
+    pair.left?.slot === 'preview-previous' && pair.right?.slot === 'preview-current', pair)
+  check('the two panes are genuinely different renders, not the same image twice',
+    pair.left?.digest !== pair.right?.digest && Boolean(pair.left?.digest) && Boolean(pair.right?.digest),
+    { left: pair.left?.digest?.slice(0, 10), right: pair.right?.digest?.slice(0, 10) })
+  check('the render result says what it did with the previous sheet',
+    /上一次渲染/.test((await page.text('[data-result="ok"]')) ?? ''), ((await page.text('[data-result="ok"]')) ?? '').slice(0, 120))
+  check('the two axes are both offered', (await page.attributes('[data-compare-mode]', 'data-compare-mode')).join(',') === 'renders,revisions')
+  check('switching to the revision axis shows the revision panes',
+    await (async () => {
+      await page.click('[data-compare-mode="revisions"]')
+      await new Promise(resolve => setTimeout(resolve, 400))
+      const kinds = await page.attributes('[data-compare]', 'data-compare-kind')
+      await page.click('[data-compare-mode="renders"]')
+      await new Promise(resolve => setTimeout(resolve, 400))
+      return kinds.length === 2
+    })())
+
+  // ── the stale-image regression: bytes replaced at the SAME path ──────────
+  //
+  // Measured before this was fixed: the panel kept displaying the previous bytes,
+  // because its <img> was keyed on the path alone and a browser does not re-request
+  // an unchanged src. The disk is edited here rather than rendered a third time,
+  // because replacing a file in place is exactly what a re-render does to it.
+  const displayedBefore = await page.evaluate(displayedPixels('right'))
   const newest = readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json')
-  const previewArtifact = (newest?.previews ?? [])[0]
+  const currentSheet = (newest?.contactSheets ?? []).find(entry => entry.slot === 'preview-current')
   const pixels = Buffer.alloc(64 * 36 * 4)
   for (let index = 0; index < pixels.length; index += 4) {
     pixels[index] = 255
     pixels[index + 3] = 255
   }
   const replacement = encodePng({ width: 64, height: 36, data: pixels })
-  const previewPath = join(store, 'projects', projectId, previewArtifact.path)
-  const originalPreview = readFileSync(previewPath)
-  writeFileSync(previewPath, replacement)
+  const sheetPath = join(store, 'projects', projectId, currentSheet.path)
+  const originalSheet = readFileSync(sheetPath)
+  writeFileSync(sheetPath, replacement)
   const replacementDigest = createHash('sha256').update(replacement).digest('hex')
   writeFileSync(
     join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
     JSON.stringify({
       ...newest,
-      previews: newest.previews.map(entry => entry.path === previewArtifact.path
+      contactSheets: newest.contactSheets.map(entry => entry.path === currentSheet.path
         ? { ...entry, sha256: replacementDigest, bytes: replacement.length }
         : entry),
     }, null, 2),
   )
   await page.click('[data-action="reload"]')
-  await page.waitFor(`${DISPLAYED_PIXELS} !== ${displayedBefore}`, 20000).catch(() => {})
-  const displayedAfter = await page.evaluate(DISPLAYED_PIXELS)
+  await page.waitFor(`${displayedPixels('right')} !== ${displayedBefore}`, 20000).catch(() => {})
+  const displayedAfter = await page.evaluate(displayedPixels('right'))
   check('a re-render at the same path is SHOWN: the panel fetches the new bytes instead of keeping the old image',
     displayedAfter !== displayedBefore && displayedAfter !== null,
     { before: displayedBefore, after: displayedAfter })
-  const shownDigest = await page.attributes('[data-compare="left"] img', 'data-artifact-digest')
+  const shownDigest = await page.attributes('[data-compare="right"] img', 'data-artifact-digest')
   check('and the URL it displays is keyed on the artifact\'s own digest',
     shownDigest[0] === replacementDigest, { shown: shownDigest[0]?.slice(0, 12), expected: replacementDigest.slice(0, 12) })
-  // Put the real render back, so the rest of the suite (and the delivery state)
-  // describes what Blender actually produced.
-  writeFileSync(previewPath, originalPreview)
+  // Put the real render back, so the rest of the suite describes what Blender produced.
+  writeFileSync(sheetPath, originalSheet)
   writeFileSync(
     join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
     JSON.stringify(newest, null, 2),

@@ -431,6 +431,10 @@ export function createHandlers(ctx) {
           digest: result.digest ?? null,
           profile: result.profile ?? null,
           artifacts: result.artifacts ?? [],
+          // The pair the panel compares: the sheet this render composed and the one
+          // the previous render left behind (no `pngs` — the browser displays images
+          // through the artifact route, never as a JSON body).
+          sheets: result.previewSheets ?? null,
           views: (result.views ?? []).map(view => ({
             viewId: view.viewId,
             role: view.role ?? null,

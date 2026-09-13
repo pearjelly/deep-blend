@@ -168,6 +168,25 @@ export const UI_PANEL_VIEWS = Object.freeze([
   { id: 'revisions', label: '版本', summary: 'Revisions, their diffs and restore.' },
 ])
 
+/**
+ * The two slots a preview render writes its contact sheet into.
+ *
+ * A preview render REPLACES its own image (D28/D69), so on its own it can only ever
+ * show you the present. Keeping one generation back is what makes SPEC §14.2's
+ * 「Preview 前后对比」 mean something for a change you just made: the pair is
+ * *上一次渲染 / 本次渲染* of one revision — a different axis from comparing two
+ * revisions, and the one a person reaches for right after clicking render.
+ *
+ * One spelling, read by the Host (which writes the slots), the client (which
+ * displays them) and the suite that asserts the pair exists.
+ */
+export const PREVIEW_SHEET_SLOTS = Object.freeze({
+  /** The sheet this render just composed. */
+  current: 'preview-current',
+  /** The sheet the previous render composed, kept for comparison. */
+  previous: 'preview-previous',
+})
+
 /** The sidebar entry id — also the `main` panel key it selects. */
 export const UI_PANEL_ID = 'deepblend'
 

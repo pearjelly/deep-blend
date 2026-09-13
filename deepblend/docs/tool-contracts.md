@@ -610,6 +610,10 @@ M4 的九个交付项全部由这 19 条路由支撑。**这张表不是手写�
   （`tests/e2e/ui.e2e.mjs` 用真实页面把两条都断言了）。
 * **没有缓存**：每条响应 `cache-control: no-store`，每个值都是当次从 Host 现算的
   （SPEC §14.3「刷新后可从 Host 恢复权威状态」）。
+* **预览渲染合成自己的 contact sheet，并保留上一张**：`contact-sheets/preview-current.png`
+  与 `preview-previous.png`，两条都带 `slot`（`PREVIEW_SHEET_SLOTS`）与 `at`。这样
+  「上一次 vs 本次渲染」才可比——预览不产生 revision，版本轴在渲染完的那一刻是空的
+  （D70）。响应里的 `preview.sheets` 是这一对（**不含** PNG 字节：图片走 artifact 路由）。
 * **产物 URL 由内容决定**：客户端给工件 URL 加上 `?v=<sha256 前 12 位>`。预览是**产物**：
   重渲会替换**同一路径**上的字节（D28/D69），路径不变时浏览器不会重新请求，面板就会一直
   显示旧图——实测缺陷，回归断言在 `e2e/ui.e2e.mjs`。

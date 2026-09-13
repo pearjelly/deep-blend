@@ -8,7 +8,7 @@
 > 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
 > 已完成：**M3（Job、恢复与正式渲染）— ✅ 验收通过**
 > 已完成：**M4（工作台 UI）— ✅ 验收通过（真实浏览器 + 真实 Host + 真实 Blender）**
-> 测试：**1385 项断言、12 个套件、27 个文件全部通过**（另：4 个 `node:test` 文件共 52 个用例）
+> 测试：**1398 项断言、12 个套件、27 个文件全部通过**（另：4 个 `node:test` 文件共 52 个用例）
 > ✅ **M3 已在运行中的进程里生效**：`dsh web` 于 21:55:33 重启（晚于 M3 提交），
 > 逐项实测见 §12.9。
 > 下一里程碑：M5（正式 preset 与安全加固，未开始，按 SPEC §0.3 不得提前进入）
@@ -1071,16 +1071,33 @@ sheet 的产物记录 `at`，面板显示 `preview 5f4cd94495 · 渲染于 06:48
 **可推广的那条**：把「产物」建模成不可变路径 + 可变内容时，显示层的缓存键必须是**内容**，
 不是路径；而任何在显示层重新组装对象的投影，都可能把内容身份丢掉。
 
-### 13.6 测试：1385 项断言全部通过
+### 13.5D 一条 M2 断言因为正确的原因变成假（§12.6 的第 4 次）
+
+`visual-loop.e2e.mjs` 里有一条：
+
+```js
+check('the contact sheet is listed in the revision manifest under its own index',
+  manifest.contactSheets.length === 1)
+```
+
+它用一个**计数**表达了一件**归属**的事：评审写的那张 sheet 进了索引。M4 让
+`contactSheets` 里合法地多了一条（预览渲染自己合成的那张，带 `slot` 区分），于是这条断言
+红了——而产品是对的。
+
+按 §12.6 的规则处理：**收窄成它本来要说的那句话**（按路径断言那张 sheet 在索引里），
+而不是把计数改大或者删掉断言。一个「列表永远不会变长」的断言会在每一个后续里程碑因为
+正确的原因失败，然后因为错误的原因被删掉。
+
+### 13.6 测试：1398 项断言全部通过
 
 **计数的约定**：只有**自己打印 `N/N check(s) passed`** 的套件才计入这一列（M0 起就是
-这个约定，所以 1123 与 1385 可以直接比较）。另有 4 个用 `node:test` 的契约文件
+这个约定，所以 1123 与 1398 可以直接比较）。另有 4 个用 `node:test` 的契约文件
 （`contracts` / `error-codes` / `imports` / `settings-card`）不打印这个计数，它们合计
 **52 个用例**，仍然全部通过，只是不在这张表的数字里。
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 16 个 `*.test.mjs` | **805** |
+| 单元 + 契约 | 16 个 `*.test.mjs` | **807** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
 | Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 77/77 |
 | Blender 视觉闭环（M2） | `blender-integration/visual-loop.e2e.mjs` | 83/83 |
@@ -1090,12 +1107,12 @@ sheet 的产物记录 `at`，面板显示 `preview 5f4cd94495 · 渲染于 06:48
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
 | preset M2 工具面 | `composition/tool-plane-m2.e2e.mjs` | 32/32 |
 | preset M3 工具面 | `composition/tool-plane-m3.e2e.mjs` | 45/45 |
-| **工作台 UI 平面（闭集路由 + 真实客户端 bundle + 座位表）** | `composition/ui-plane.e2e.mjs` | **138/138** |
-| **工作台 UI 真实浏览器验收** | `e2e/ui.e2e.mjs` | **57/57** |
-| **合计** | **27 个文件、12 个套件** | **1385** |
+| **工作台 UI 平面（闭集路由 + 真实客户端 bundle + 座位表）** | `composition/ui-plane.e2e.mjs` | **140/140** |
+| **工作台 UI 真实浏览器验收** | `e2e/ui.e2e.mjs` | **65/65** |
+| **合计** | **27 个文件、12 个套件** | **1398** |
 
-（M3 的 1123 → M4 的 1385：`ui-api.test.mjs` 67 + `ui-plane.e2e.mjs` 138 +
-`ui.e2e.mjs` 57 = 262，其余各套件的数字**一个都没变**。）
+（M3 的 1123 → M4 的 1398：`ui-api.test.mjs` 69 + `ui-plane.e2e.mjs` 140 +
+`ui.e2e.mjs` 65 = 274，其余各套件的数字**一个都没变**。）
 
 M4 新增的 152 项分布：
 
@@ -1134,12 +1151,12 @@ node deepblend/tools/m3-delivery-acceptance.mjs run   真实项目上的 1080p �
 ### 13.8 仍需人工过一眼（以及唯一需要重启的那一件事）
 
 1. ~~重启 3080 的 `dsh web`~~ ✅ **已完成**（06:25:18，PID 26585），见 §13.9。
-2. ~~点一次「渲染预览」~~ ✅ **已由操作者点过**，并因此发现了 §13.5B 的缺陷；修好之后
-   再点一次，图会**当场换成新的那一张**，面板也会标出「渲染于 HH:MM:SS」。
-3. ~~刷新一次页面，确认面板从 Host 恢复同一个项目与同一个 revision~~ ✅ 套件已覆盖
-   （`e2e/ui.e2e.mjs` 的重载断言），重启后的页面也已复核。
+2. ~~点一次「渲染预览」~~ ✅ **已由操作者点过两次**，并因此发现了 §13.5B 的缺陷与 §13.5C 的缺口；现在再点，
+   右侧出现**本次渲染**合成的 contact sheet，**再点一次**左侧就出现**上一次渲染**，两张可直接并排比较
+   （`ui.e2e.mjs` 用两次真实渲染断言了这一对）。
+3. ~~刷新一次页面，确认面板从 Host 恢复同一个项目与同一个 revision~~ ✅ 套件已覆盖（`e2e/ui.e2e.mjs` 的重载断言），重启后的页面也已复核。
 
-**无需人工的等价验证**：`bash deepblend/tests/run-all.sh`（1385 项，其中 57 项是真实
+**无需人工的等价验证**：`bash deepblend/tests/run-all.sh`（1398 项，其中 65 项是真实
 浏览器、真实 Host、真实 Blender 的端到端验收），以及
 `node deepblend/tests/e2e/ui-live.e2e.mjs`（9 项，真实模型调用）。
 

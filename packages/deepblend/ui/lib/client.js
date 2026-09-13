@@ -560,14 +560,18 @@ window.__ModuleLoader__.load({
       /**
        * The newest image to show for a revision.
        *
-       * The artifact is passed through WHOLE, with a display label added. An
-       * earlier version built a fresh `{ path, kind }` here and thereby threw away
-       * the digest and the timestamp — which is how the panel ended up keyed on the
-       * path alone and showing a stale render (§13.11).
+       * Order of preference: the sheet THIS panel's render just composed, then any
+       * contact sheet (a review's), then the newest single view. The artifact is
+       * passed through WHOLE with a display label added: an earlier version built a
+       * fresh `{ path, kind }` here and threw away the digest and the timestamp —
+       * which is how the panel ended up keyed on the path alone and showing a stale
+       * render (§13.5B).
        */
       const sheetOf = (entry) => {
         if (entry === null) return null
         const sheets = entry.contactSheets || []
+        const current = sheets.find(sheet => sheet.slot === 'preview-current')
+        if (current && current.path) return { ...current, label: '本次渲染' }
         const sheet = sheets[sheets.length - 1]
         if (sheet && sheet.path) return { ...sheet, label: 'contact sheet' }
         const list = entry.previews || []
@@ -576,12 +580,48 @@ window.__ModuleLoader__.load({
         return null
       }
 
-      const pane = (entry, side) => h('div', { className: 'db-shot', 'data-compare': side },
+      /** The pair a render leaves behind: what it just composed, and the one before. */
+      const renderPairOf = (entry) => {
+        if (entry === null) return { current: null, previous: null }
+        const sheets = entry.contactSheets || []
+        const current = sheets.find(sheet => sheet.slot === 'preview-current') ?? null
+        const previous = sheets.find(sheet => sheet.slot === 'preview-previous') ?? null
+        return {
+          current: current === null ? null : { ...current, label: '本次渲染' },
+          previous: previous === null ? null : { ...previous, label: '上一次渲染' },
+        }
+      }
+
+      /** One image (or the reason there is none), with its digest and its time. */
+      const imagePane = (side, title, artifact, missing) => {
+        const when = artifactTime(artifact)
+        return h('div', { className: 'db-shot', 'data-compare': side, 'data-compare-kind': artifact === null ? 'empty' : 'image' },
+          h('h5', null, title),
+          artifact === null
+            ? h('div', { className: 'db-muted' }, missing)
+            : [
+              h('img', {
+                key: 'img',
+                'data-artifact': artifact.path,
+                'data-artifact-digest': artifact.sha256 || '',
+                'data-artifact-slot': artifact.slot || '',
+                alt: `${title} ${artifact.path}`,
+                src: artifactUrl(props.artifactBase, artifact),
+              }),
+              h('div', { className: 'db-muted db-mono', key: 'meta' },
+                `${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`),
+            ].filter(Boolean))
+      }
+
+      const revisionMeta = entry => h('div', { className: 'db-muted', key: 'meta' }, `${entry.summary || '（无说明）'} · ${formatTime(entry.createdAt)}`)
+
+      /** The revision axis: two revisions side by side, each one's newest image. */
+      const revisionPane = (entry, side) => h('div', { className: 'db-shot', 'data-compare': side },
         h('h5', null, entry === null ? '—' : `${entry.revision}${entry.isCurrent ? ' (当前)' : ''}`),
         entry === null
           ? h('div', { className: 'db-muted' }, '没有这个 revision')
           : [
-            h('div', { className: 'db-muted', key: 'meta' }, `${entry.summary || '（无说明）'} · ${formatTime(entry.createdAt)}`),
+            revisionMeta(entry),
             (() => {
               const sheet = sheetOf(entry)
               return sheet === null
@@ -590,6 +630,7 @@ window.__ModuleLoader__.load({
                   key: 'img',
                   'data-artifact': sheet.path,
                   'data-artifact-digest': sheet.sha256 || '',
+                  'data-artifact-slot': sheet.slot || '',
                   alt: `${entry.revision} ${sheet.label}`,
                   src: artifactUrl(props.artifactBase, sheet),
                 })
@@ -598,7 +639,7 @@ window.__ModuleLoader__.load({
               const sheet = sheetOf(entry)
               const when = artifactTime(sheet)
               return sheet === null ? null : h('div', { className: 'db-muted db-mono', key: 'sheet' },
-                `${sheet.label === 'contact sheet' ? 'sheet' : 'preview'} ${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`)
+                `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`)
             })(),
             h('div', { className: 'db-muted db-mono', key: 'counts' }, `previews ${(entry.previews || []).length} · sheets ${(entry.contactSheets || []).length} · reviews ${(entry.reviews || []).length}`),
             (entry.reviews || []).length > 0
@@ -606,26 +647,68 @@ window.__ModuleLoader__.load({
               : null,
           ].filter(Boolean))
 
+      // Two axes, because two different questions get asked here:
+      //
+      //   renders   「我刚渲的这一张，和上一张比，变了什么？」 — same revision, one
+      //             generation apart. This is the default, because it is the question
+      //             a person has right after clicking render, and because a preview
+      //             render does not create a revision, so the revision axis could not
+      //             express it at all (§13.5B).
+      //   revisions 「这个版本和那个版本比，变了什么？」 — the axis SPEC §14.2 and the
+      //             M4 brief describe, kept because it is the one that survives a
+      //             scene change.
+      const pair = renderPairOf(entryOf(right))
+      const rendersMode = props.compareMode !== 'revisions'
+      const renderPairPanes = [
+        imagePane('left', pair.previous === null ? '上一次渲染' : `上一次渲染 · ${right}`, pair.previous,
+          '还没有上一次渲染：再点一次「渲染预览」，这里就会出现前后并排。'),
+        imagePane('right', `本次渲染 · ${right}`, pair.current,
+          '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。'),
+      ]
+
       return h('div', { 'data-view': 'preview' },
         h(ErrorBox, { error: props.error }),
         h('div', { className: 'db-tabs' },
           h(Button, { tone: 'primary', action: 'render-preview', disabled: props.busy || props.projectId === null, onClick: props.onRenderPreview }, props.busy ? '渲染中…' : '渲染预览'),
           props.previewResult ? h('span', { 'data-result': props.previewResult.ok ? 'ok' : 'error', className: props.previewResult.ok ? 'db-muted' : 'db-error', style: { border: 0, padding: '0 6px', marginBottom: 0 } }, props.previewResult.message) : null,
-          h('span', { style: { flex: 1 } }),
-          h('span', { className: 'db-muted' }, '对比：'),
-          h('select', {
-            className: 'db-input', 'data-field': 'compare-left', style: { width: 'auto' }, value: left || '',
-            onChange: event => props.onPick('left', event.target.value),
-          }, revisions.map(entry => h('option', { key: entry.revision, value: entry.revision }, entry.revision))),
-          h('span', { className: 'db-muted' }, '↔'),
-          h('select', {
-            className: 'db-input', 'data-field': 'compare-right', style: { width: 'auto' }, value: right || '',
-            onChange: event => props.onPick('right', event.target.value),
-          }, revisions.map(entry => h('option', { key: entry.revision, value: entry.revision }, entry.revision))),
-          props.projectId ? h(Button, { action: 'diff', onClick: () => props.onDiff(left, right) }, '看结构差异') : null,
         ),
-        h('div', { style: { paddingTop: '10px' } },
-          h('div', { className: 'db-grid' }, pane(entryOf(left), 'left'), pane(entryOf(right), 'right')),
+        h('div', { className: 'db-tabs' },
+          h('span', { className: 'db-muted' }, '比较：'),
+          h('button', {
+            type: 'button', className: 'db-btn', 'data-compare-mode': 'renders', 'data-active': String(rendersMode),
+            onClick: () => props.onMode('renders'),
+          }, '上一次 vs 本次渲染'),
+          h('button', {
+            type: 'button', className: 'db-btn', 'data-compare-mode': 'revisions', 'data-active': String(!rendersMode),
+            onClick: () => props.onMode('revisions'),
+          }, '两个 revision'),
+          h('span', { style: { flex: 1 } }),
+          rendersMode
+            ? h('span', { className: 'db-inline' },
+              h('span', { className: 'db-muted' }, '版本'),
+              h('select', {
+                className: 'db-input', 'data-field': 'compare-revision', style: { width: 'auto' }, value: right || '',
+                onChange: event => {
+                  props.onPick('left', event.target.value)
+                  props.onPick('right', event.target.value)
+                },
+              }, revisions.map(entry => h('option', { key: entry.revision, value: entry.revision }, entry.revision))))
+            : h('span', { className: 'db-inline' },
+              h('select', {
+                className: 'db-input', 'data-field': 'compare-left', style: { width: 'auto' }, value: left || '',
+                onChange: event => props.onPick('left', event.target.value),
+              }, revisions.map(entry => h('option', { key: entry.revision, value: entry.revision }, entry.revision))),
+              h('span', { className: 'db-muted' }, '↔'),
+              h('select', {
+                className: 'db-input', 'data-field': 'compare-right', style: { width: 'auto' }, value: right || '',
+                onChange: event => props.onPick('right', event.target.value),
+              }, revisions.map(entry => h('option', { key: entry.revision, value: entry.revision }, entry.revision))),
+              props.projectId ? h(Button, { action: 'diff', onClick: () => props.onDiff(left, right) }, '看结构差异') : null),
+        ),
+        h('div', { style: { paddingTop: '2px' } },
+          h('div', { className: 'db-grid' }, rendersMode
+            ? renderPairPanes
+            : [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
           props.diff ? h('div', { className: 'db-card', 'data-diff': props.diff.identical ? 'identical' : 'changed' },
             h('h4', null, `${props.diff.fromRevision} → ${props.diff.toRevision}：${props.diff.identical ? '结构完全相同' : `${props.diff.totalChanges} 处结构变化`}`),
             props.diff.identical ? null : h('div', null,
@@ -854,6 +937,10 @@ window.__ModuleLoader__.load({
       const [diffError, setDiffError] = react.useState(null)
       const [previewBusy, setPreviewBusy] = react.useState(false)
       const [previewResult, setPreviewResult] = react.useState(null)
+      // Which pair Preview Compare shows. Local UI state, like the rest of this
+      // panel's selections (SPEC §14.3): it decides what is DISPLAYED, never what is
+      // true.
+      const [compareMode, setCompareMode] = react.useState('renders')
       const [tick, setTick] = react.useState(0)
 
       const statePath = projectId === null
@@ -902,6 +989,8 @@ window.__ModuleLoader__.load({
               projectId: activeProjectId,
               busy: previewBusy,
               previewResult,
+              compareMode,
+              onMode: setCompareMode,
               onRenderPreview: async () => {
                 setPreviewBusy(true)
                 setPreviewResult(null)
@@ -910,8 +999,11 @@ window.__ModuleLoader__.load({
                 setPreviewResult(outcome.ok
                   ? {
                     ok: true,
-                    message: `已渲染 ${outcome.payload.preview.views.length} 个视角 → 写进 ${outcome.payload.preview.revision} 的预览`
-                      + '（预览是产物：它替换同一路径上的旧图，不产生新的 revision）',
+                    message: `已渲染 ${outcome.payload.preview.views.length} 个视角 → 合成 ${outcome.payload.preview.revision} 的 contact sheet`
+                      + (outcome.payload.preview.sheets && outcome.payload.preview.sheets.previous
+                        ? '；上一张已留作「上一次渲染」，可以直接并排比较'
+                        : '（这是第一张；再渲染一次就能并排比较前后）')
+                      + '。预览是产物：替换同一路径上的旧图，不产生新的 revision。',
                   }
                   : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
                 reload()

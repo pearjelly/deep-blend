@@ -32,6 +32,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
+  PREVIEW_SHEET_SLOTS,
   UI_PANEL_ID,
   UI_PANEL_LABEL,
   UI_PANEL_VIEWS,
@@ -144,6 +145,17 @@ const panelledDeliverables = ['Scene Tree', 'Preview Compare', 'Jobs', 'QA', 'Re
 check('every deliverable that should be a panel view is one',
   panelledDeliverables.every(name => DELIVERABLE_HOMES[name].startsWith('panel view')),
   panelledDeliverables.map(name => DELIVERABLE_HOMES[name]))
+
+// ---------------------------------------------------------------------------
+// The preview pair's vocabulary
+// ---------------------------------------------------------------------------
+
+check('the two sheet slots are named once, and only these two exist',
+  JSON.stringify(PREVIEW_SHEET_SLOTS) === JSON.stringify({ current: 'preview-current', previous: 'preview-previous' }),
+  PREVIEW_SHEET_SLOTS)
+check('the current slot is the one a panel shows, and the two are distinct',
+  PREVIEW_SHEET_SLOTS.current !== PREVIEW_SHEET_SLOTS.previous
+  && typeof PREVIEW_SHEET_SLOTS.current === 'string')
 
 // ---------------------------------------------------------------------------
 // Scene Tree

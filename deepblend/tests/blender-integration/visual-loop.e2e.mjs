@@ -167,8 +167,15 @@ try {
     review.sheetArtifact.views.join(',') === 'active-camera,three-quarter,top,detail' &&
     review.sheetArtifact.width > 800 && review.sheetArtifact.height > 400,
     review.sheetArtifact)
+  // Asserted by PATH, not by "the index holds exactly one entry". M4 made the second
+  // statement false for a correct reason: a preview render now composes its own sheet
+  // into the same index (with a `slot`, so the two kinds are distinguishable), and an
+  // assertion that a list never grows fails at every later milestone for the right
+  // reason and then gets deleted for the wrong one (`milestone-status.md` §12.6).
   check('the contact sheet is listed in the revision manifest under its own index',
-    (studio.store.readRevisionManifest(room.projectId, room.revision).contactSheets ?? []).length === 1)
+    (studio.store.readRevisionManifest(room.projectId, room.revision).contactSheets ?? [])
+      .some(entry => entry.path === review.sheetArtifact.path),
+    review.sheetArtifact.path)
 
   {
     const { decodePng } = await import('@deepblend/dsh-blender-contracts')
