@@ -314,6 +314,52 @@ const STEPS = [
       return operations
     },
   },
+  {
+    label: 'r0027  rebalance the lights for an orbiting camera',
+    digest: 'facab0061cfe50c616861026a80bbaa7125c2f2b2e8799f37f4560e4ed9d7d3a',
+    note: 'Drop the rim light from 24 to 6. The backdrop plane at y=0.25 used to block it, so it was the strongest light in the scene and lit almost nothing; removing that plane in r0024 unblocked it, and because the camera now orbits a full turn, every fixed light eventually becomes a frontal key. At the sampled frame 151 the camera sits at y=+0.098 and the rim light blew out 21.6% of the subject pixels.',
+    operations: () => [
+      { op: 'light.update', lightId: 'rim-light', energy: 6 },
+    ],
+  },
+  {
+    label: 'r0028  spread the case highlight',
+    digest: '3c40651108fab76f91b2a667fbd87e5b46d44b073cf1758b22963d137cf40753',
+    note: 'Raise hero-steel roughness from 0.22 to 0.38 and ease the dial ramp to 1.9. At the sampled frame 151 the case is nearly edge-on and its mirror-like finish reflected a light straight back as a blown white strip covering 19% of the subject pixels; a brushed-steel watch is not a mirror. The dial ramp keeps its range but gains margin under the clipping limit.',
+    operations: () => [
+      { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'roughness', value: 0.38 },
+      { op: 'animation.track.set', track: {
+        id: 'dial-ramp', targetKind: 'material', targetEntityId: 'dial-glass', property: 'emissionStrength',
+        keyframes: [
+          { frame: 1, value: 0, interpolation: 'linear' },
+          { frame: 300, value: 0, interpolation: 'linear' },
+          { frame: 390, value: 1.9, interpolation: 'ease_in_out' },
+          { frame: HOLD_OUT, value: 1.9, interpolation: 'linear' },
+        ],
+      } },
+    ],
+  },
+  {
+    label: 'r0029  give the metal a diffuse base and calm the lights',
+    digest: 'fa8ec014ddc1743eba15a19c28c6f18531c3457b73b6b62fb311e7779577b758',
+    note: 'hero-steel metallic 0.94 -> 0.55 with roughness 0.25, key/fill/rim 11/4/6 -> 5/1.8/2.7, and the dial ramp eased to 1.4. A near-mirror metal under three large lights has a binary specular band: measured over the four sampled frames, the clipped fraction sat at 0.185-0.188 for every light scale down to 0.45 and only collapsed at 0.30, which would have left frames 1 and 300 at 0.19 - a hair above the 0.18 underexposure floor. Giving the surface a diffuse base instead keeps every frame mid-range with the clipping gone.',
+    operations: () => [
+      { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'metallic', value: 0.55 },
+      { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'roughness', value: 0.25 },
+      { op: 'light.update', lightId: 'key-light', energy: 5 },
+      { op: 'light.update', lightId: 'fill-light', energy: 1.8 },
+      { op: 'light.update', lightId: 'rim-light', energy: 2.7 },
+      { op: 'animation.track.set', track: {
+        id: 'dial-ramp', targetKind: 'material', targetEntityId: 'dial-glass', property: 'emissionStrength',
+        keyframes: [
+          { frame: 1, value: 0, interpolation: 'linear' },
+          { frame: 300, value: 0, interpolation: 'linear' },
+          { frame: 390, value: 1.4, interpolation: 'ease_in_out' },
+          { frame: HOLD_OUT, value: 1.4, interpolation: 'linear' },
+        ],
+      } },
+    ],
+  },
 ]
 
 /**
