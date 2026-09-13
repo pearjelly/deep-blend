@@ -580,15 +580,38 @@ window.__ModuleLoader__.load({
         return null
       }
 
-      /** The pair a render leaves behind: what it just composed, and the one before. */
-      const renderPairOf = (entry) => {
+      /**
+       * The pair a render leaves behind: what it just composed, and what came before.
+       *
+       * "Before" is the previous generation of the SAME revision when there is one.
+       * When there is not — which is the case on the first render after a scene
+       * change, and therefore the case the comparison exists for — it falls back to
+       * the newest render of an older revision. Without that fallback the axis is
+       * empty exactly when a person wants it: they changed something, rendered once,
+       * and the left pane would say "nothing to compare yet" while the picture they
+       * want to compare against is sitting one revision back.
+       *
+       * The pane labels say which revision each side came from, so a cross-revision
+       * pair cannot be mistaken for two renders of one scene.
+       */
+      const renderPairOf = (entry, allRevisions) => {
         if (entry === null) return { current: null, previous: null }
         const sheets = entry.contactSheets || []
         const current = sheets.find(sheet => sheet.slot === 'preview-current') ?? null
-        const previous = sheets.find(sheet => sheet.slot === 'preview-previous') ?? null
+        let previous = sheets.find(sheet => sheet.slot === 'preview-previous') ?? null
+        let previousRevision = entry.revision
+        if (previous === null) {
+          const index = allRevisions.findIndex(candidate => candidate.revision === entry.revision)
+          const older = (index > 0 ? allRevisions.slice(0, index) : []).reverse()
+            .find(candidate => (candidate.contactSheets || []).some(sheet => sheet.slot === 'preview-current'))
+          if (older !== undefined) {
+            previous = (older.contactSheets || []).find(sheet => sheet.slot === 'preview-current')
+            previousRevision = older.revision
+          }
+        }
         return {
-          current: current === null ? null : { ...current, label: '本次渲染' },
-          previous: previous === null ? null : { ...previous, label: '上一次渲染' },
+          current: current === null ? null : { ...current, label: '本次渲染', sourceRevision: entry.revision },
+          previous: previous === null ? null : { ...previous, label: '上一次渲染', sourceRevision: previousRevision },
         }
       }
 
@@ -605,11 +628,13 @@ window.__ModuleLoader__.load({
                 'data-artifact': artifact.path,
                 'data-artifact-digest': artifact.sha256 || '',
                 'data-artifact-slot': artifact.slot || '',
+                'data-artifact-revision': artifact.sourceRevision || '',
+                'data-artifact-at': artifact.at || '',
                 alt: `${title} ${artifact.path}`,
                 src: artifactUrl(props.artifactBase, artifact),
               }),
               h('div', { className: 'db-muted db-mono', key: 'meta' },
-                `${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`),
+                `${artifact.sourceRevision ? `${artifact.sourceRevision} ` : ''}${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`),
             ].filter(Boolean))
       }
 
@@ -631,6 +656,8 @@ window.__ModuleLoader__.load({
                   'data-artifact': sheet.path,
                   'data-artifact-digest': sheet.sha256 || '',
                   'data-artifact-slot': sheet.slot || '',
+                  'data-artifact-revision': entry.revision,
+                  'data-artifact-at': sheet.at || '',
                   alt: `${entry.revision} ${sheet.label}`,
                   src: artifactUrl(props.artifactBase, sheet),
                 })
@@ -657,11 +684,11 @@ window.__ModuleLoader__.load({
       //   revisions 「这个版本和那个版本比，变了什么？」 — the axis SPEC §14.2 and the
       //             M4 brief describe, kept because it is the one that survives a
       //             scene change.
-      const pair = renderPairOf(entryOf(right))
+      const pair = renderPairOf(entryOf(right), revisions)
       const rendersMode = props.compareMode !== 'revisions'
       const renderPairPanes = [
-        imagePane('left', pair.previous === null ? '上一次渲染' : `上一次渲染 · ${right}`, pair.previous,
-          '还没有上一次渲染：再点一次「渲染预览」，这里就会出现前后并排。'),
+        imagePane('left', pair.previous === null ? '上一次渲染' : `上一次渲染 · ${pair.previous.sourceRevision}`, pair.previous,
+          '还没有上一次渲染：再点一次「渲染预览」，或者先在某个更早的 revision 上渲一次。'),
         imagePane('right', `本次渲染 · ${right}`, pair.current,
           '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。'),
       ]

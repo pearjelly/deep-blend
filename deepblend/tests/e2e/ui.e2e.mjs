@@ -309,6 +309,14 @@ try {
   check('the two panes are genuinely different renders, not the same image twice',
     pair.left?.digest !== pair.right?.digest && Boolean(pair.left?.digest) && Boolean(pair.right?.digest),
     { left: pair.left?.digest?.slice(0, 10), right: pair.right?.digest?.slice(0, 10) })
+  const pairTimes = await page.evaluate(`(() => {
+    const at = side => (document.querySelector('[data-compare="' + side + '"] img') || {}).getAttribute?.('data-artifact-at') ?? null
+    return { left: at('left'), right: at('right') }
+  })()`)
+  check('each pane reports the time of ITS OWN render, not the time of the rotation',
+    typeof pairTimes.left === 'string' && typeof pairTimes.right === 'string'
+    && pairTimes.left.length > 0 && pairTimes.left !== pairTimes.right,
+    pairTimes)
   check('the render result says what it did with the previous sheet',
     /上一次渲染/.test((await page.text('[data-result="ok"]')) ?? ''), ((await page.text('[data-result="ok"]')) ?? '').slice(0, 120))
   check('the two axes are both offered', (await page.attributes('[data-compare-mode]', 'data-compare-mode')).join(',') === 'renders,revisions')
@@ -322,6 +330,46 @@ try {
       return kinds.length === 2
     })())
 
+  // ── after a scene change, "before" is the OLDER revision's last render ───
+  //
+  // The workflow this exists for: change something, render once, look at the
+  // difference. On the first render of a new revision there is no previous
+  // generation of THAT revision, so the pair would be empty exactly when it is
+  // wanted — unless "before" reaches one revision back.
+  const patchAgain = JSON.stringify({
+    baseRevision: 'r0002',
+    operations: [{ op: 'entity.transform.update', entityId: 'subject', location: [0, 0, 2.4] }],
+  }, null, 2)
+  await openView(page, 'scene')
+  await page.fill('[data-field="scene-patch"]', patchAgain)
+  await page.click('[data-action="apply-patch"]')
+  await page.waitFor(`document.querySelector('[data-view="scene"] [data-result="ok"]') !== null`, 60000)
+  await openView(page, 'preview')
+  await page.waitFor(`document.querySelector('[data-action="render-preview"]') !== null`, 20000)
+  const beforeThird = await page.attributes('[data-compare="left"] img', 'data-artifact-revision')
+  check('before the third render, the left pane already shows the older revision\'s render',
+    beforeThird[0] === 'r0002', beforeThird)
+  await page.click('[data-action="render-preview"]')
+  await page.waitFor(`document.querySelector('[data-compare="right"] img[data-artifact-revision="r0003"]') !== null`, 300000)
+  const crossPair = await page.evaluate(`(() => {
+    const read = side => {
+      const img = document.querySelector('[data-compare="' + side + '"] img')
+      return img === null ? null : {
+        revision: img.getAttribute('data-artifact-revision'),
+        digest: img.getAttribute('data-artifact-digest'),
+        at: img.getAttribute('data-artifact-at'),
+      }
+    }
+    return { left: read('left'), right: read('right') }
+  })()`)
+  check('after a scene change, 上一次渲染 is the previous revision\'s render and 本次渲染 is this one',
+    crossPair.left?.revision === 'r0002' && crossPair.right?.revision === 'r0003', crossPair)
+  check('and they are different images from different times',
+    crossPair.left?.digest !== crossPair.right?.digest && crossPair.left?.at !== crossPair.right?.at,
+    { left: crossPair.left?.digest?.slice(0, 10), right: crossPair.right?.digest?.slice(0, 10) })
+  check('the left pane names the revision it came from, so a cross-revision pair is not mistaken for one scene',
+    /上一次渲染 · r0002/.test((await page.text('[data-compare="left"]')) ?? ''), (await page.text('[data-compare="left"]'))?.slice(0, 40))
+
   // ── the stale-image regression: bytes replaced at the SAME path ──────────
   //
   // Measured before this was fixed: the panel kept displaying the previous bytes,
@@ -329,7 +377,7 @@ try {
   // an unchanged src. The disk is edited here rather than rendered a third time,
   // because replacing a file in place is exactly what a re-render does to it.
   const displayedBefore = await page.evaluate(displayedPixels('right'))
-  const newest = readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json')
+  const newest = readStoreJson(projectId, 'revisions', 'r0003', 'revision-manifest.json')
   const currentSheet = (newest?.contactSheets ?? []).find(entry => entry.slot === 'preview-current')
   const pixels = Buffer.alloc(64 * 36 * 4)
   for (let index = 0; index < pixels.length; index += 4) {
@@ -342,7 +390,7 @@ try {
   writeFileSync(sheetPath, replacement)
   const replacementDigest = createHash('sha256').update(replacement).digest('hex')
   writeFileSync(
-    join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
+    join(store, 'projects', projectId, 'revisions', 'r0003', 'revision-manifest.json'),
     JSON.stringify({
       ...newest,
       contactSheets: newest.contactSheets.map(entry => entry.path === currentSheet.path
@@ -362,7 +410,7 @@ try {
   // Put the real render back, so the rest of the suite describes what Blender produced.
   writeFileSync(sheetPath, originalSheet)
   writeFileSync(
-    join(store, 'projects', projectId, 'revisions', 'r0002', 'revision-manifest.json'),
+    join(store, 'projects', projectId, 'revisions', 'r0003', 'revision-manifest.json'),
     JSON.stringify(newest, null, 2),
   )
 
@@ -434,8 +482,13 @@ try {
 
   const afterReload = await page.text('[data-deepblend-panel=deepblend]')
   check('after a refresh the panel still shows the project', (afterReload ?? '').includes(PROJECT_TITLE))
+  // Read the revision from the store rather than writing a literal: this suite makes
+  // more than one revision, and a hardcoded id here is the kind of assertion that
+  // fails later for the wrong reason.
+  const hostRevision = readStoreJson(projectId, 'project.json')?.currentRevision
   check('after a refresh the panel shows the revision the Host has, not a cached one',
-    (await page.text('.db-head'))?.includes('r0002'), await page.text('.db-head'))
+    typeof hostRevision === 'string' && (await page.text('.db-head'))?.includes(hostRevision),
+    { hostRevision, header: await page.text('.db-head') })
 
   await openView(page, 'jobs')
   await page.waitFor('document.querySelector("[data-job]") !== null', 30000)

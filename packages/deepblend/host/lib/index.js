@@ -1168,6 +1168,15 @@ export default class BlenderStudio extends Service {
         // rather than carried over from the manifest.
         let previousArtifact = null
         if (isFile(currentFile)) {
+          // WHEN the rotated sheet was produced is the previous render's time, not
+          // this one's. Stamping `now` here made the pane claim a sheet rendered
+          // minutes earlier was "渲染于 <this render's clock>" — measured in the real
+          // GUI, where both panes read 07:11:58 while only one of them was rendered
+          // then. The time comes from the artifact that is being rotated; a store
+          // written before artifacts carried `at` falls back to now, which is wrong
+          // by at most one render.
+          const priorCurrent = (this.store.readRevisionManifest(projectId, revision)?.contactSheets ?? [])
+            .find(entry => entry.slot === PREVIEW_SHEET_SLOTS.current)
           copyFileSync(currentFile, previousFile)
           previousArtifact = {
             kind: 'contact-sheet',
@@ -1182,7 +1191,7 @@ export default class BlenderStudio extends Service {
             sha256: fileSha256(previousFile),
             mime: 'image/png',
             views: built.placements.map(placement => placement.viewId),
-            at: new Date().toISOString(),
+            at: priorCurrent?.at ?? new Date().toISOString(),
           }
         }
         writeFileSync(currentFile, built.png)
