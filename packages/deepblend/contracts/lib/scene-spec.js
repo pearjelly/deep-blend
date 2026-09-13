@@ -593,11 +593,33 @@ export function specHash(spec) {
  * "FullSceneSpec 明确需要时才读取"): counts, framing facts and profiles, never
  * the whole document.
  *
- * @param {object} spec
+ * THE SUMMARY READS THE RESOLVED FORM, ALWAYS
+ * -------------------------------------------
+ * Compiling first is not belt-and-braces; it is what makes this function total. The
+ * fields it reads are the ones compilation MATERIALISES — `entity.transform`, every
+ * generator's shape-specific size, a camera's derived position — and all of them are
+ * optional in the schema, so a legal document can omit any of them.
+ *
+ * Two real defects came from reading the raw document here:
+ *
+ *   - a camera added without a `transform` (also legal) crashed the whole call on
+ *     `camera.transform.location`, so a successful commit returned an error;
+ *   - a generator that omitted its shape's size field made `boundsOf` compute
+ *     `undefined * n`, and NaN becomes `null` in JSON — so the summary carried
+ *     silently wrong bounds and the harness rejected its own result.
+ *
+ * Revisions are immutable, so unresolved documents written by earlier code stay on
+ * disk forever. Repairing them is not an option; reading them correctly is.
+ *
+ * @param {object} document - a SceneSpec as STORED, resolved or not.
  * @param {{ revision?: string|null, revisionNumber?: number|null, digest?: string }} [context]
  * @returns {Record<string, unknown>}
  */
-export function summarizeSceneSpec(spec, context = {}) {
+export function summarizeSceneSpec(document, context = {}) {
+  // Compilation is idempotent and only fills in documented defaults, so for the
+  // resolved documents every writer now produces this is a no-op.
+  const spec = compileSceneSpec(document).spec
+
   const entities = spec.entities ?? []
   const lights = spec.lights ?? []
   const cameras = spec.cameras ?? []
@@ -616,7 +638,12 @@ export function summarizeSceneSpec(spec, context = {}) {
   return {
     revision: context.revision ?? null,
     revisionNumber: context.revisionNumber ?? null,
-    digest: context.digest ?? sceneSpecDigest(spec),
+    // The digest identifies the DOCUMENT — what is on disk and what a manifest
+    // records — so it is taken from the document, not from the resolved projection.
+    // For every resolved document the two are the same value; for an older
+    // unresolved one, reporting the resolved digest would make a reader compare it
+    // against the manifest and conclude the revision was corrupt.
+    digest: context.digest ?? sceneSpecDigest(document),
     schemaVersion: spec.schemaVersion,
     project: {
       id: spec.project.id,

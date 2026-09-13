@@ -344,6 +344,16 @@
         "id": {
           "$ref": "#/$defs/id"
         },
+        "role": {
+          "type": "string",
+          "enum": [
+            "active-camera",
+            "three-quarter",
+            "top",
+            "detail"
+          ],
+          "description": "What this camera is FOR in a multi-view preview. The view plan assigns roles by this field; without it a camera has no role and the plan can only fall back to camera id order, which is not an author statement about anything."
+        },
         "lens": {
           "$ref": "#/$defs/positiveNumber"
         },
@@ -818,6 +828,16 @@
             },
             "cameraId": {
               "$ref": "#/$defs/id"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "active-camera",
+                "three-quarter",
+                "top",
+                "detail"
+              ],
+              "description": "What this camera is FOR in a multi-view preview (see the scene-spec schema)."
             },
             "lens": {
               "$ref": "#/$defs/positiveNumber"

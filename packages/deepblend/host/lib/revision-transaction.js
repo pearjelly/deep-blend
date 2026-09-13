@@ -362,6 +362,35 @@ export class RevisionTransaction {
       )
     }
 
+    // ---- resolve the RESULT before anything reads it -----------------------
+    //
+    // The base was compiled above, but the patch result was not — and every `*.add`
+    // operation inserts the caller's object verbatim. So a patch could store a
+    // document that no other part of the system is prepared to read:
+    //
+    //   `camera.add` without `transform`  → `summarizeSceneSpec` threw a TypeError on
+    //     `camera.transform.location`, taking the whole commit response down with it.
+    //   `entity.add` with a generator that omits its shape's size field — legal, both
+    //     are optional — left `boundsOf` computing `undefined * n` = NaN, and a NaN
+    //     reaches the model as `null` because that is what JSON does to it. The tool
+    //     call SUCCEEDED and the harness rejected its own result as "not lossless
+    //     JSON", which is precisely the symptom of a NaN.
+    //   And the property M1 exists to guarantee — digest(stored) == digest(compile
+    //     (stored)), so a revision can always be re-read and re-derived — was false
+    //     for every revision with an added object.
+    //
+    // Compiling here is the same fix M1 applied to `createProject` (decision D19),
+    // for the same reason: whoever writes the document owns resolving it, because a
+    // reader that has to guess is a reader that will guess differently.
+    //
+    // Compilation materialises DOCUMENTED defaults only, and is idempotent, so a
+    // patch that adds nothing new is unaffected — the digest of an unrelated change
+    // does not move.
+    const resolved = compileSceneSpec(nextSpec)
+    nextSpec = resolved.spec
+    digestAfter = sceneSpecDigest(nextSpec)
+    specHashAfter = specHash(nextSpec)
+
     const validation = validateSceneSpec(nextSpec)
     if (!validation.ok) {
       throw new BlenderError(
@@ -387,7 +416,7 @@ export class RevisionTransaction {
       digestBefore,
       digestAfter,
       operationRecords,
-      notices: [...validation.notices, ...compiled.notices],
+      notices: [...validation.notices, ...compiled.notices, ...resolved.notices],
       derivedIdempotencyKey: derived,
       jobId: options.jobId,
       signal: options.signal,

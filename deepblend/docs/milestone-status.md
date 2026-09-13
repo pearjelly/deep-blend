@@ -3,7 +3,8 @@
 > 更新日期：2026-09-13
 > 已完成：**M0（DSH 基线与最小链路）— ✅ 验收通过**
 > 已完成：**M1（Batch SceneSpec MVP）— ✅ 验收通过**
-> 本轮完成：**M2（视觉闭环）— ✅ 验收通过**
+> 已完成：**M2（视觉闭环）— ✅ 验收通过**
+> 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
 > 下一里程碑：M3（Job、恢复与正式渲染，未开始，按 SPEC §0.3 不得提前进入）
 
 ---
@@ -96,11 +97,95 @@ centroid `[0.49875, 0.540034]`、可见比例 `1.0`、占比 `0.0728`；把隔�
 
 ---
 
-## 4. 测试：717 项断言全部通过
+## 3B. M2.1：一次真实视觉审查暴露的四个缺陷
+
+M2 的 717 项断言全绿之后，用户在 `watch-commercial` 上跑了一次**真实**
+`blender_visual_review`（会话 `d89c590f`，13 个 revision）。它发现了四个缺陷，
+**每一个都在这 717 项断言的覆盖之外**——因为现有套件只走它们各自写的那些路径，
+而这四个都在 `camera.add`、省略形状尺寸的 `entity.add`、以及**没有任何相机声明 role 的场景**上。
+
+四条决策记在 `architecture-decisions.md` 的 **D35–D38**。以下只记症状与验证。
+
+### 3B.1 一个原因，三个症状：patch 结果没有被解析
+
+`applyScenePatch` 编译了 base，却把**结果原样落盘**；而每个 `*.add` 都把调用方的对象原样插入。
+
+| 症状 | 用户看到什么 |
+|---|---|
+| `camera.add` 不带 `transform` | 提交**中途**抛 `TypeError: reading 'location'`——一次成功的提交返回错误 |
+| `entity.add` 用 `{shape:'uv_sphere'}` 不给 `radius`（两者都可选） | `boundsOf` 得 `undefined * n` = NaN，**NaN 经 JSON 变 null**，于是 harness 以 `invalid output: value is not lossless JSON` 拒绝一次**已经成功**的调用 |
+| 所有含新增对象的 revision | `digest(stored) != digest(compile(stored))`，即 M1 存在的意义被破坏 |
+
+**复现方式（已写成回归测试）**：对 `applyPatchToSpec` 的结果算
+`sceneSpecDigest(stored) === sceneSpecDigest(compileSceneSpec(stored).spec)`。
+在修复前它是 `false`；一个断言就覆盖了全部三个症状。
+
+### 3B.2 主体被判成一个 2.5mm 的刻度
+
+`resolveSubjectId` 用 `entities.find(hero-product)`。而存储把集合按 id 排序，
+于是 "find" 的意思是「字母序第一个」。真实项目把**表壳、表盘、表冠和四个刻度**都打了
+`hero-product`，`index-nine` 因此胜出。**连续两次审查**都在给这个刻度打分，
+并提议把它放大 **5 倍**、把所有相机对准它。
+
+算术上完全正确，意义上完全荒谬，而且**没有任何东西崩溃**——
+findings 格式良好、通过了校验、分数也是真的。只有人去看那张 sheet 才会发现。
+
+修复后：主体是 `watch-body`（当前相机瞄准的对象），歧义会作为 warning 报出来。
+
+### 3B.3 「top」视角其实是别的相机，而且 4 个视角只渲了 2 个
+
+`buildViewPlan` 用相机**数组位置**兜底填角色。真实项目排序后是
+`camera-detail, camera-main, camera-three-quarter, camera-top`，于是标着 "top" 的
+视角是另一个相机。**审查器自己发现了这个不一致**（0.62 置信度）并正确地拒绝「修」它。
+
+修复后（对真实项目的 r0015 副本实测，未触碰用户 store）：
+
+```
+views rendered: 4 (was 2 of 4, one mislabelled "top")
+  camera-detail         -> camera-detail         | role: null
+  camera-main           -> camera-main           | role: null
+  camera-three-quarter  -> camera-three-quarter  | role: null
+  camera-top            -> camera-top            | role: null
+subject: watch-body
+warning: no camera in this scene declares a `role`, and no activeCamera is set, so the
+         plan renders 4 of 4 camera(s) named after the cameras themselves. Set `role`
+         on each camera to get the standard four-view plan.
+```
+
+**一个视角只在场景能确定它时才存在**：声明了 `role`、有 `activeCamera`、或场景只有一台相机。
+否则按**相机自身 id** 命名——id 是事实，按字母序猜出来的角色不是。
+
+### 3B.4 `role` 曾经只能读、不能写
+
+`role` 只加进了 `$defs.camera`（供 `camera.add`），而 `camera.update` 有自己的属性表、
+语义校验还有第三份字段清单。于是：
+
+1. `camera.update` 的 schema 分支拒绝 `role`（`matches none of the 19 allowed operation shapes`）；
+2. 补上之后，语义校验仍以 `camera.update must supply at least one field to change`
+   拒绝一个**确实提供了字段**的 patch——**一个指错了问题的拒绝**，来自第三份没人记得的副本。
+
+修复后三份由一条测试断言其逐项相同，并且端到端验证：**对 role-less 场景逐台相机
+patch 上 role，就能重建标准四视角计划**（回归测试里有这一条）。
+
+### 3B.5 顺手清理：上一会话留在 provider 暂存区的文件
+
+M0 的 `no per-invocation temp directories left behind` 护栏变红，抓到的是
+**上一会话**写在 `.deepblend/tmp/` 的临时文件（它的 patch 构建脚本与 21 张中间渲染）。
+护栏是对的，处理如下：
+
+* `rebuild-patch.mjs`（该会话在总结里点名为 r0003–r0015 的可复现路径）**移到**
+  `.deepblend/projects/watch-commercial/rebuild/`，与它重建的项目放在一起；
+* `probe/` 下 21 张被 r0015 取代的中间渲染删除。
+
+**没有**修改护栏去迁就残留：一个能容忍垃圾的暂存区护栏，抓不到真正的泄漏。
+
+---
+
+## 4. 测试：843 项断言全部通过
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 11 个 `*.test.mjs` | **524** |
+| 单元 + 契约 | 12 个 `*.test.mjs` | **589** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
 | Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 71/71 |
 | **Blender 视觉闭环（M2）** | `blender-integration/visual-loop.e2e.mjs` | **77/77** |
@@ -108,7 +193,11 @@ centroid `[0.49875, 0.540034]`、可见比例 `1.0`、占比 `0.0728`；把隔�
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
 | **preset M2 工具面（10 个工具 + 图片回传）** | `composition/tool-plane-m2.e2e.mjs` | **29/29** |
-| **合计** | 16 个文件、8 个套件 | **717** |
+| **合计** | 17 个文件、9 个套件 | **843** |
+
+M2.1 的 65 项是**症状级**的：每条断言写的是用户当时看到的现象
+（`digest(stored) != digest(compile(stored))`、NaN 经 JSON 变 null、
+`index-nine` 成为主体、标着 "top" 的视角是另一个相机），而不是修复后的实现细节。
 
 一键运行：`bash deepblend/tests/run-all.sh`
 
@@ -117,12 +206,13 @@ centroid `[0.49875, 0.540034]`、可见比例 `1.0`、占比 `0.0728`；把隔�
 没有 API key 或模型不支持图片输入时它立即失败并说明原因，而且逐字打印模型的回答，
 让人可以判断答案质量而不是只看一个绿勾。
 
-单元 + 契约的 524 项分布（M2 新增）：
+单元 + 契约的 589 项分布（M2 与 M2.1 新增）：
 
 | 文件 | 断言 | 覆盖 |
 |---|---|---|
 | `contract/png-sheet.test.mjs` | 24 | PNG 编解码无损、Adam7 七遍重建、5 种行滤波、**每个格子装的确实是它声称的视角** |
-| `contract/visual-loop.test.mjs` | 56 | 评分规则逐条、指纹区间化、上限与重复停止、**只采纳提高的补丁**、handover |
+| `contract/visual-loop.test.mjs` | 57 | 评分规则逐条、指纹区间化、上限与重复停止、**只采纳提高的补丁**、handover |
+| `contract/patch-resolution.test.mjs` | **65** | 真实使用暴露的四个缺陷：patch 结果必须可重导出、bare generator 不得产生 NaN、主体/视角不得依赖数组顺序、`role` 必须可写且三份词汇表一致 |
 
 ---
 
@@ -261,6 +351,8 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 6 | 未安装 pnpm | `dsh plugin --profile add` 不可用 | 符号链接装配已验证可用 |
 | 7 | bundle 内路径是字面量绝对路径 | 换机器需改 bundle | 同 M0；M5 可改为 Profile 生成 |
 | 8 | 未在**本会话**看到 10 个工具 | 本会话是 `cordis` 模式，preset 作用域的工具不在它的目录里 | 不是故障：换到 DeepBlend 开发模式即可见。已在 §9 记下这个容易误读的点 |
+| 9 | **评分器看不到语义** | r0015 得 100 分而表盘偏亮；「表盘应像屏幕」这类判断超出了构图/曝光/遮挡的测量范围 | D30 的已知代价：分数可复现优先于分数更聪明。语义判断留给模型 finding 与人工，见 §9B 第 3 条 |
+| 10 | `upsertById` 仍按 id 排序 | 声明顺序在存储中丢失 | **保留**（M1 的 digest 稳定性）。M2.1 改为让消费者**不依赖顺序**（D37），并给 `role` 提供了显式通路——比改存储语义风险小得多 |
 
 ---
 
@@ -300,6 +392,27 @@ preset 作用域内注册的工具**不在**它的工具目录里——`Tool.lis
 **无需人工的等价验证**：`bash deepblend/tests/run-all.sh` 的 717 项断言，其中
 `tool-plane-m2.e2e.mjs` 的 29 项通过**真实 `defineTool` 定义**调用全部 10 个工具，
 `e2e/visual-live.e2e.mjs` 的 14 项是**真实模型调用**。
+
+---
+
+## 9B. 这一次需要重启 profile
+
+M2.1 的修复全部在 **contracts / host 模块里**，而 Node 的 ESM 模块缓存是**进程级且不可清除的**
+（M0 §8.1 已记录）。所以运行中的进程（`23:04:11` 启动）**仍然是修复前的代码**：
+
+```bash
+cd /Users/hxb/workspace/deep-blend && dsh web
+```
+
+重启后：
+
+1. 对 `watch-commercial` 跑一次 `blender_visual_review`——**应当渲出 4 个视角**，
+   每个以相机自身 id 命名，并带一条「没有相机声明 role」的 warning；
+2. 想拿到标准四视角计划，按 warning 的提示给每台相机 patch 一个 `role`
+   （`camera.update {cameraId, role}` 现在真的能用了）；
+3. 已知的**评分器边界**（不是缺陷）：r0015 的 score 是 100，但表盘在画面里偏亮。
+   评分器量的是构图/曝光/遮挡，**看不到「表盘应该像一块屏幕」**。
+   这是 D30 的已知代价，记在 §8。
 
 ---
 

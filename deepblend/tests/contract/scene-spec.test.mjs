@@ -61,10 +61,13 @@ const FIXTURE_PATH = resolve(
  * They are pinned deliberately: the digest is the identity of a scene, so a
  * change to `canonical.js` or to the projection re-labels **every** revision
  * ever stored. Editing the fixture on purpose means updating these two values
- * on purpose.
+ * on purpose — which is what happened in M2, when the fixture's two cameras were
+ * given explicit `role`s so the shipped example of a scene is one whose views a
+ * reviewer can name. Without roles the plan has to fall back to camera-id labels,
+ * which is honest but is not what the product wants to teach.
  */
-const FIXTURE_DIGEST = '49116882e680ae4a2f555509b8174f94c4630bff1adbeba426e98268fe64b70b'
-const FIXTURE_COMPILED_DIGEST = '2a453a976931fc1fb98ea50427cea75593feeed84c0088be84d4b3aee35cb43a'
+const FIXTURE_DIGEST = 'ec92577fce87896d151bfb11c59520f1f1f5194ec74af4e238e763fd679f08f3'
+const FIXTURE_COMPILED_DIGEST = 'a9cff78996d47a6edb3de9939782141158cc273f7390015ba340d703fcf879c2'
 
 // ---------------------------------------------------------------------------
 // Harness — a `results` array, `[PASS]`/`[FAIL]` lines, a summary, and a

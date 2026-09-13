@@ -31,8 +31,10 @@ const MAX_TRACKED_OCCLUDERS = 3
 
 /**
  * @typedef {object} PlannedView
- * @property {string} id - the view id used everywhere downstream.
- * @property {string} role - one of {@link VIEW_ROLES}.
+ * @property {string} id - the view id used everywhere downstream. A role name when
+ *   the scene determines one, otherwise the camera's own id.
+ * @property {string|null} role - one of {@link VIEW_ROLES}, or null when the scene
+ *   assigns this camera no role and the view is named after the camera instead.
  * @property {string} cameraId - the SceneSpec camera this view renders from.
  * @property {string|null} frame
  * @property {string} label - what the contact sheet draws on the cell.
@@ -54,9 +56,14 @@ const MAX_TRACKED_OCCLUDERS = 3
  * @param {number} [input.frame] - the frame for animated views; defaults to the
  *   middle of the range, because a turntable's first frame is its least
  *   informative angle.
- * @param {string[]} [input.roles] - subset of {@link VIEW_ROLES}; order is honoured.
+ * @param {string[]} [input.roles] - roles the CALLER asked for. Strict: if none can be
+ *   filled the plan is empty and the caller reports why.
+ * @param {string[]} [input.preferredRoles] - the product's standard set, used when the
+ *   caller named none. Advisory: a scene with no roles falls back to camera-id views.
  * @param {number} [input.maxViews]
- * @returns {PlannedView[]}
+ * @returns {{ views: PlannedView[], notices: string[] }} the plan, plus what could
+ *   NOT be planned — an unfilled role or a missing one — because a review that
+ *   silently covers two views instead of four reads as a clean four-view review.
  */
 export function buildViewPlan(input) {
   const spec = input?.spec
@@ -67,69 +74,138 @@ export function buildViewPlan(input) {
   const frames = frameRange(spec)
   const frame = normalizeFrame(input.frame, frames)
   const subjectId = input.subjectId ?? null
+  // TWO KINDS OF "WHICH ROLES", and conflating them cost a real project its review.
+  //
+  //   `roles`          the CALLER asked for these. If none can be filled, that is an
+  //                    error: answering "give me the top view" with four views named
+  //                    after cameras is the same lie as guessing a role from the alphabet.
+  //   `preferredRoles` the PRODUCT's standard set. It is a preference, so a scene that
+  //                    declares no roles still gets reviewed — by camera-id views.
+  //
+  // Treating the configured preference as an explicit request made
+  // `blender_visual_review` throw "needs at least one view" on any role-less project,
+  // which is every project built before roles existed.
+  const explicitRoles = Array.isArray(input.roles) && input.roles.length > 0 ? input.roles : null
+  const preferredRoles = Array.isArray(input.preferredRoles) && input.preferredRoles.length > 0
+    ? input.preferredRoles
+    : VIEW_ROLES
+  const requestedRoles = explicitRoles ?? preferredRoles
 
-  // Camera selection is by ROLE where the scene names one, and by ORDER otherwise.
-  // Order is the honest fallback: the compiler preserves declaration order, so
-  // "the second camera" at least means the same thing across rounds of one project.
-  const byRole = (role, position) => cameras.find(camera => camera.role === role) ?? cameras[position] ?? null
-  const active = cameras.find(camera => camera.id === spec.activeCamera) ?? cameras[0]
-  const threeQuarter = byRole('three-quarter', 1)
-  const top = byRole('top', 2)
-  const detail = byRole('detail', 1)
+  // ---------------------------------------------------------------------------
+  // Camera selection is by ROLE. There is no positional fallback, and that took a
+  // real defect to learn.
+  //
+  // The first version fell back to array position ("the second camera is the
+  // three-quarter view"). That was defensible only while declaration order survived
+  // storage — and it does not: `upsertById` keeps every collection sorted by id, so
+  // after the first patch the array is alphabetical. A four-camera project therefore
+  // got its views assigned to whatever the alphabet produced, and the plan handed the
+  // reviewer a view LABELLED "top" that was actually the three-quarter camera. The
+  // reviewer itself flagged the mismatch at 0.62 confidence and correctly declined to
+  // "fix" it — a mislabelled view is worse than an unlabelled one, because the label
+  // is what the finding gets attached to.
+  //
+  // So a view exists only when the scene determines it: an explicit `role`, or
+  // `project.activeCamera` for the active view, or a scene with exactly one camera.
+  // Anything else falls back to one view per camera labelled by CAMERA ID — which is
+  // true whatever the order — and says so.
+  // ---------------------------------------------------------------------------
 
-  const candidates = [
-    {
-      role: 'active-camera',
-      camera: active,
-      frame,
-      purpose: 'what the animation is actually seen through',
-    },
-    {
-      role: 'three-quarter',
-      camera: threeQuarter === active ? cameras[1] ?? null : threeQuarter,
-      frame,
-      purpose: 'a 45-degree reading of the subject where depth, silhouette and contact shadows are visible',
-    },
-    {
-      role: 'top',
-      camera: top,
-      frame,
-      purpose: 'top-down placement: what is beside, behind or on top of the subject',
-    },
-    {
-      role: 'detail',
-      camera: detail,
-      frame,
-      purpose: subjectId === null
-        ? 'a closer angle on the subject'
-        : `a closer angle on "${subjectId}" for surface, edge and material detail`,
-    },
-  ]
+  const determined = []
+  const claimed = new Set()
 
-  const requestedRoles = Array.isArray(input.roles) && input.roles.length > 0 ? input.roles : VIEW_ROLES
-  const views = []
-  const usedCameras = new Set()
-  for (const candidate of candidates) {
-    if (!requestedRoles.includes(candidate.role)) continue
-    if (candidate.camera === null || candidate.camera === undefined) continue
-    // One camera can legitimately serve two roles, but only when the roles ask for
-    // different things — a plan of four copies of the same view would spend four
-    // renders and four tiles to say one thing. The active camera therefore claims
-    // its id first and later roles yield.
-    if (usedCameras.has(candidate.camera.id) && views.length > 0) continue
-    usedCameras.add(candidate.camera.id)
-    views.push({
-      id: candidate.role,
-      role: candidate.role,
-      cameraId: candidate.camera.id,
-      frame: candidate.frame,
-      label: viewCaption({ role: candidate.role, cameraId: candidate.camera.id, frame: candidate.frame }),
-      purpose: candidate.purpose,
-    })
+  // A camera already used by a stronger role cannot fill a second one — four tiles of
+  // one camera would spend four renders to say one thing. But when SEVERAL cameras claim
+  // the same role (an author who retagged one), the first is not necessarily free, and
+  // stopping at it silently DROPS the role from the plan. So every candidate is tried.
+  const claim = (role, purpose, candidates) => {
+    if (!requestedRoles.includes(role)) return
+    for (const camera of candidates) {
+      if (camera === undefined || camera === null) continue
+      if (claimed.has(camera.id)) continue
+      claimed.add(camera.id)
+      determined.push({ role, camera, purpose })
+      return
+    }
   }
 
+  // The active view is the one statement a role-less scene can still make about
+  // itself, so it is resolved first and from the strongest source available.
+  const activeByName = cameras.find(camera => camera.id === spec.project?.activeCamera)
+  const activeByRole = cameras.find(camera => camera.role === 'active-camera')
+  const soloCamera = cameras.length === 1 ? cameras[0] : undefined
+  const active = activeByName ?? activeByRole ?? soloCamera
+
+  claim('active-camera', 'what the animation is actually seen through', [active])
+  for (const role of requestedRoles) {
+    if (role === 'active-camera') continue
+    claim(role, rolePurpose(role, subjectId), cameras.filter(candidate => candidate.role === role))
+  }
+
+  /** @type {{ views: object[], notices: string[] }} */
+  const notices = []
+  let views = determined.map(entry => ({
+    id: entry.role,
+    role: entry.role,
+    cameraId: entry.camera.id,
+    frame,
+    label: viewCaption({ role: entry.role, cameraId: entry.camera.id, frame }),
+    purpose: entry.purpose,
+  }))
+
+  if (soloCamera !== undefined && activeByName === undefined && activeByRole === undefined) {
+    notices.push('the scene declares one camera and no roles, so it is used as the active view')
+  }
+
+  // The camera-id fallback exists for a scene that declares no roles — NOT for a
+  // caller who asked for specific roles and named ones the scene cannot fill. Answering
+  // "render me the top view" with four views called `camera-main` and friends would be
+  // the same class of lie as the alphabetical role guess this replaced, so an explicit
+  // request that cannot be honoured produces an EMPTY plan and the caller raises.
+  const askedForRoles = explicitRoles !== null
+  if (views.length === 0 && askedForRoles) {
+    notices.push(
+      `the requested role(s) ${requestedRoles.join(', ')} are not filled by any camera in this scene, and the ` +
+      `scene declares ${cameras.length} camera(s): ${cameras.map(camera => camera.id).join(', ')}`,
+    )
+  } else if (views.length === 0) {
+    // No role anywhere. Render the cameras the scene HAS, labelled with their own
+    // ids: a camera id is a fact, and a role invented from alphabetical order is not.
+    const fallback = [...cameras].sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+    const cap = Number.isInteger(input.maxViews) && input.maxViews > 0 ? input.maxViews : VIEW_ROLES.length
+    for (const camera of fallback.slice(0, cap)) {
+      views.push({
+        id: camera.id,
+        role: null,
+        cameraId: camera.id,
+        frame,
+        label: viewCaption({ role: null, cameraId: camera.id, frame }),
+        purpose: 'a camera this scene declares; the scene assigns it no role, so the view is named after the camera',
+      })
+    }
+    notices.push(
+      `no camera in this scene declares a \`role\`, and no activeCamera is set, so the plan renders ` +
+      `${views.length} of ${cameras.length} camera(s) named after the cameras themselves. Set \`role\` on each ` +
+      `camera (active-camera / three-quarter / top / detail) to get the standard four-view plan.`,
+    )
+    if (fallback.length > cap) {
+      notices.push(`the remaining ${fallback.length - cap} camera(s) were left out to keep the review affordable: ` +
+        `${fallback.slice(cap).map(camera => camera.id).join(', ')}`)
+    }
+  } else if (views.length < requestedRoles.length) {
+    const missing = requestedRoles.filter(role => !views.some(view => view.role === role))
+    notices.push(
+      `no camera fills ${missing.length === 1 ? 'the role' : 'the roles'} ${missing.join(', ')}, so ` +
+      `${missing.length === 1 ? 'that view was' : 'those views were'} left out of this plan; ` +
+      `the review covers ${views.length} view(s) instead of ${requestedRoles.length}`,
+    )
+  }
+  // An explicit activeCamera or an explicit `role` gets no notice: the author already
+  // said it, and a plan that reports decisions the caller made on purpose trains
+  // everyone reading warnings to skip them.
+
   const limit = Number.isInteger(input.maxViews) && input.maxViews > 0 ? input.maxViews : views.length
-  return views.slice(0, limit)
+  return { views: views.slice(0, limit), notices }
 }
 
 /**
@@ -167,23 +243,84 @@ export function trackedObjects(spec, subjectId) {
 }
 
 /**
- * The subject of a shot: the entity the animation is about.
+ * The subject of a shot: the entity the animation is about, and WHY it was chosen.
  *
- * `tags` is the authored statement of intent and wins when present. The fallback
- * prefers whichever tracked object the measurements say fills the frame most,
- * because "the thing the camera is looking at" is a fact about the render rather
- * than about the file — and a spec that never tagged a hero still has one.
+ * THE CHOICE MUST NOT DEPEND ON ARRAY ORDER
+ * -----------------------------------------
+ * The first version took `entities.find(hero-product)`. Since `upsertById` keeps
+ * collections sorted by id, "find" means "alphabetically first", and a scene that
+ * tagged its case, dial, crown and four indices as `hero-product` resolved its
+ * subject to **`index-nine`** — a 2.5 mm marker. Two consecutive reviews then scored
+ * that marker's occlusion and proposed scaling it 5x and pointing every camera at it:
+ * arithmetically correct, and completely meaningless. Nothing crashed, and the
+ * findings were well-formed, which is exactly why it took a human reading the sheet
+ * to notice.
+ *
+ * The rule now has a stated order of evidence, and every step of it is a fact about
+ * the file rather than a fact about the alphabet:
+ *
+ *   1. what the ACTIVE camera aims at — a camera exists to frame something, and
+ *      `targetEntityId` is the author saying what;
+ *   2. a `hero-product` tag when exactly one entity carries it;
+ *   3. among several, the largest by volume, ties broken by id;
+ *   4. with no tag at all, the largest visible entity, ties broken by id.
+ *
+ * Step 3 is deliberately "largest" rather than "first": a scene that tags four things
+ * hero is ambiguous, and the biggest of them is the only defensible reading.
+ *
+ * @param {object} spec
+ * @returns {{ id: string|null, source: string, candidates: string[] }}
+ */
+export function resolveSubject(spec) {
+  const entities = Array.isArray(spec?.entities) ? spec.entities : []
+  const visible = entities.filter(entity => entity.visible !== false)
+
+  // 1. What the shot is actually framed on.
+  const cameras = Array.isArray(spec?.cameras) ? spec.cameras : []
+  const active = cameras.find(camera => camera.id === spec?.project?.activeCamera)
+    ?? cameras.find(camera => camera.role === 'active-camera')
+  if (active?.targetEntityId !== undefined) {
+    const aimed = visible.find(entity => entity.id === active.targetEntityId)
+    if (aimed !== undefined) {
+      return { id: aimed.id, source: `the active camera "${active.id}" aims at it`, candidates: [aimed.id] }
+    }
+  }
+
+  const tagged = visible.filter(entity => Array.isArray(entity.tags) && entity.tags.includes('hero-product'))
+  if (tagged.length === 1) {
+    return { id: tagged[0].id, source: 'it is the only entity tagged hero-product', candidates: [tagged[0].id] }
+  }
+
+  const pool = tagged.length > 1 ? tagged : visible.filter(entity => entityVolume(entity) > 0)
+  if (pool.length === 0) return { id: null, source: 'this scene has no entity to be the subject of', candidates: [] }
+
+  // Descending volume, and the id only breaks exact ties — so two entities of equal
+  // size resolve the same way on every machine and after every re-sort.
+  const ranked = [...pool].sort((left, right) => {
+    const byVolume = entityVolume(right) - entityVolume(left)
+    if (byVolume !== 0) return byVolume
+    return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  })
+  const candidates = ranked.map(entity => entity.id)
+  return {
+    id: ranked[0].id,
+    source: tagged.length > 1
+      ? `${tagged.length} entities are tagged hero-product, so the largest was taken; the ambiguity is reported`
+      : 'it is the largest visible entity and nothing is tagged hero-product',
+    candidates,
+  }
+}
+
+/**
+ * The subject's id alone. Kept because most callers want only the id; use
+ * {@link resolveSubject} when the reason for the choice matters — which is whenever
+ * the answer is going to be shown to someone.
  *
  * @param {object} spec
  * @returns {string|null}
  */
 export function resolveSubjectId(spec) {
-  const entities = Array.isArray(spec?.entities) ? spec.entities : []
-  const tagged = entities.find(entity => Array.isArray(entity.tags) && entity.tags.includes('hero-product'))
-  if (tagged !== undefined) return tagged.id
-  const geometric = entities.filter(entity => entity.visible !== false && entityVolume(entity) > 0)
-  if (geometric.length === 0) return null
-  return [...geometric].sort((left, right) => entityVolume(right) - entityVolume(left))[0].id
+  return resolveSubject(spec).id
 }
 
 /**
@@ -268,6 +405,30 @@ export function describeMeasurements(review) {
     lines.push(`    [${issue.severity}] ${issue.code} (${issue.category}) ${issue.evidence}`)
   }
   return lines.join('\n')
+}
+
+/**
+ * Why one standard role is in the plan, phrased for the model that reads it.
+ *
+ * @param {string} role
+ * @param {string|null} subjectId
+ * @returns {string}
+ */
+function rolePurpose(role, subjectId) {
+  switch (role) {
+    case 'three-quarter':
+      return 'a 45-degree reading of the subject where depth, silhouette and contact shadows are visible'
+    case 'top':
+      return 'top-down placement: what is beside, behind or on top of the subject'
+    case 'detail':
+      return subjectId === null
+        ? 'a closer angle on the subject'
+        : `a closer angle on "${subjectId}" for surface, edge and material detail`
+    case 'active-camera':
+      return 'what the animation is actually seen through'
+    default:
+      return `the scene's "${role}" view`
+  }
 }
 
 /** The declared frame range of a compiled spec. */

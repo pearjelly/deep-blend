@@ -468,6 +468,7 @@ export {
 } from './scene-spec.js'
 
 export {
+  CAMERA_UPDATE_FIELDS,
   SCENE_OPERATION_NAMES,
   validateScenePatch,
   applyPatchToSpec,
@@ -540,6 +541,7 @@ export {
   VIEW_ROLES,
   buildViewPlan,
   trackedObjects,
+  resolveSubject,
   resolveSubjectId,
   buildVisualReview,
   describeMeasurements,

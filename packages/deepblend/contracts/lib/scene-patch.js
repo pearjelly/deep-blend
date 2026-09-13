@@ -118,13 +118,18 @@ export function validateScenePatch(patch) {
       }
     }
     if (op === 'camera.update') {
-      const supplied = ['lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'fStop']
-        .filter(key => operation[key] !== undefined)
+      // This field list is the THIRD copy of `camera.update`'s vocabulary — the JSON
+      // Schema's `$defs.camera` (which `camera.add` uses), the `camera.update` branch's
+      // own property list, and here. Adding `role` to the first two and not this one
+      // produced a rejection that named the wrong problem ("must supply at least one
+      // field to change" for a patch that supplied one) from a copy nobody remembered
+      // existed. It is now a named constant that a test asserts against the schema.
+      const supplied = CAMERA_UPDATE_FIELDS.filter(key => operation[key] !== undefined)
       if (supplied.length === 0) {
         errors.push({
           code: 'PATCH_OPERATION_EMPTY',
           path: at,
-          message: 'camera.update must supply at least one field to change',
+          message: `camera.update must supply at least one field to change: ${CAMERA_UPDATE_FIELDS.join(', ')}`,
         })
       }
       if (operation.targetEntityId !== undefined && operation.targetPoint !== undefined) {
@@ -149,6 +154,17 @@ export function validateScenePatch(patch) {
 
   return { ok: errors.length === 0, errors, summary: errors.length === 0 ? 'valid' : errors.map(entry => `${entry.path}: ${entry.message}`).join('\n') }
 }
+
+/**
+ * Every field `camera.update` may change.
+ *
+ * Exported so a test can assert it against the JSON Schema's own property list. Three
+ * copies of one vocabulary is two too many, and the failure mode when they disagree is
+ * not a crash — it is a rejection that names the wrong problem.
+ */
+export const CAMERA_UPDATE_FIELDS = Object.freeze([
+  'lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'fStop', 'role',
+])
 
 /** Build an anchored error for a failed operation. */
 function operationError(index, code, message) {

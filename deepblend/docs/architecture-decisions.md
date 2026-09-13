@@ -34,6 +34,10 @@
 | D32 | 自动修复只接受**分数提高**的补丁；低置信度不自动修 | SPEC §15.1；这是「自动修复」与「自动破坏」的分界 |
 | D33 | 一次 Blender 启动渲 N 视角；4 视角 sheet + 命中视角单独回传 | 探针问题三：640k px 预算使放大拼 sheet 不增加细节 |
 | D34 | 视觉循环归 Host；审查器是可替换端口 | 探针：Host 能自己发起多模态调用；使验收可分两层 |
+| D35 | 写文档的人负责解析完整：patch 结果先 compile 再校验/摘要/落盘 | 真实项目：`camera.add` 崩溃、bare generator 产出 NaN |
+| D36 | 摘要读已解析形态；不可变旧文档必须仍可读 | 同上；r0002–r0015 已落盘且不可改 |
+| D37 | 主体与视角都不许依赖数组顺序（`upsertById` 会排序） | 真实项目：主体被判成 2.5mm 刻度；"top" 视角其实是别的相机 |
+| D38 | 三份词汇表要断言一致 | `role` 只加进一份，于是被两份以**指错问题**的理由拒绝 |
 
 ---
 
@@ -369,6 +373,79 @@ contact sheet 用 4 视角 1600×900（2×2，tile 800×450），
 **验收判据可以分成两层**——循环语义（上限、重复停止、只接受提高、失败可接管）
 用 stub 做**确定性**断言；"模型真的看得见"由一次 live 测试断言。
 没有端口，这两层只能混在一锅里，而混在一起的那一层必然只测到其中一半。
+
+---
+
+## 5B. M2.1：一次真实视觉审查暴露的四个缺陷（D35–D38）
+
+这四条都不是被 717 项断言发现的，而是**在真实项目上使用产品**发现的。
+共同形状：**写入方把未解析的文档交给读取方**，而读取方按「字段一定存在」去读。
+
+### D35 — 写入文档的人负责把它解析完整（`createProject` 的教训推广到 patch）
+
+**决策**：`applyScenePatch` 在**校验、算 digest、落盘之前**先 `compileSceneSpec` 结果文档。
+
+**触发事实（三个症状，一个原因）**：
+
+| 操作 | 症状 |
+|---|---|
+| `camera.add` 不带 `transform`（schema 不要求） | 提交中途 `summarizeSceneSpec` 抛 `TypeError: reading 'location'`，一次**成功**的提交返回错误 |
+| `entity.add` 用 `{shape:'uv_sphere'}` 而不给 `radius`（两者都可选） | `boundsOf` 算出 `undefined * n` = NaN；**NaN 经 JSON 变成 null**，于是调用**成功**、而 harness 以 `invalid output: value is not lossless JSON` 拒绝自己的结果 |
+| 任何 `*.add` | `digest(stored) != digest(compile(stored))`，即 M1 存在的意义——「revision 永远可重读重导出」——对所有含新增对象的 revision 都不成立 |
+
+**为什么只有 `*.add` 中招**：base 是被编译过的，所以既有对象都已解析；而每个 `*.add`
+都把调用方的对象**原样**插入。M1 只修了 `createProject`（D19），patch 这条路漏了。
+
+**修法**：与 D19 同一句话——**写文档的人负责解析它**，因为需要猜的读者一定会猜错。
+
+### D36 — 摘要读**已解析**形态；revision 不可变，所以旧文档必须仍可读
+
+**决策**：`summarizeSceneSpec` 内部先 `compileSceneSpec`，再投影；`digest` 仍取**文档本身**。
+
+**理由**：它读的字段（`entity.transform`、generator 的形状尺寸、相机位置）**全部是可选的**，
+所以一份合法文档可以缺任何一个。D35 之后新文档都完整，但 r0002–r0015 已经落盘且**不可变**——
+修不了它们，只能读对它们。
+
+**为什么 digest 不用解析后的**：digest 标识的是**磁盘上那份文档**，也是 manifest 记录的值。
+对旧文档返回解析后的 digest，会让读者拿去和 manifest 比，然后判定 revision 损坏。
+
+### D37 — 主体与视角都**不许**依赖数组顺序
+
+**决策**：`resolveSubject` 按固定顺序的证据取值（**当前相机瞄准的对象** → 唯一的
+`hero-product` → 体积最大者，同体积按 id）；`buildViewPlan` 只认 `role`，
+没有 `role` 就**按相机自身 id 命名视角**并明确说明。
+
+**触发事实**：`upsertById` 把每个集合按 id 排序（M1 有意为之，为了 digest 稳定）。
+M1 时没有任何东西依赖顺序，所以那是个安全的选择；M2 引入了两个依赖，于是它变成真缺陷：
+
+* `resolveSubjectId` 用 `entities.find(hero-product)`。真实项目把**表壳、表盘、表冠和四个刻度
+  都**打了 `hero-product`，`find` 于是返回**字母序第一个**：`index-nine`——一个 2.5mm 的刻度。
+  随后**连续两次审查**都在给这个刻度打分，并提议把它放大 **5 倍**、把所有相机对准它。
+  算术上完全正确，意义上完全荒谬。
+* `buildViewPlan` 用相机**数组位置**兜底填角色。真实项目的四个相机排序后是
+  `camera-detail, camera-main, camera-three-quarter, camera-top`，于是标着 "top" 的
+  视角其实是另一个相机。**审查器自己发现了这个不一致**（0.62 置信度）并正确地拒绝
+  「修」它。4 个视角只渲了 2 个。
+
+**为什么 R1 是「当前相机瞄准的对象」而不是标签**：相机存在的意义就是取景，
+`targetEntityId` 是作者在说「这个镜头是关于什么的」。标签是第二强的信号，体积是第三。
+
+**显式请求 vs 配置偏好**：`roles`（调用方点名）是**严格**的——点名而无法满足时返回空计划并说明；
+`preferredRoles`（产品标准集）只是偏好，所以一个没有任何 role 的场景仍会被审查，
+只是视角以相机 id 命名。把两者混为一谈，会让每一个「在 role 出现之前建的」项目
+直接抛 `renderViews needs at least one view`——真实项目正是如此。
+
+### D38 — 一份词汇表出现三次，就要断言它们一致
+
+**决策**：`CAMERA_UPDATE_FIELDS` 成为具名常量并导出，测试断言它与 JSON Schema 的
+`$defs.camera`（`camera.add` 用）和 `camera.update` 分支的属性表**逐项相同**。
+
+**触发事实**：`role` 只加进了 `$defs.camera`，于是：
+1. `camera.update` 的 schema 分支拒绝它（`matches none of the 19 allowed operation shapes`）；
+2. 补上之后，手写的语义校验仍以 `camera.update must supply at least one field to change`
+   拒绝一个**确实提供了字段**的 patch——**一个指错了问题的拒绝**，来自第三份没人记得的副本。
+
+三次副本里先腐烂的那份永远是没人运行的那份；这里「运行」的意思是被 schema 校验跑到。
 
 ---
 

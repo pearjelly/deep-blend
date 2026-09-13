@@ -37,6 +37,7 @@ import {
   buildViewPlan,
   buildVisualReview,
   compileSceneSpec,
+  resolveSubject,
   resolveSubjectId,
   sceneSpecDigest,
   scoreReview,
@@ -796,21 +797,37 @@ export default class BlenderStudio extends Service {
       )
     }
 
-    const subjectId = resolveSubjectId(spec)
-    const plan = Array.isArray(request.views) && request.views.length > 0
-      ? request.views
+    const subject = resolveSubject(spec)
+    const planned = Array.isArray(request.views) && request.views.length > 0
+      ? { views: request.views, notices: [] }
       : buildViewPlan({
         spec,
-        subjectId,
+        subjectId: subject.id,
         frame: request.frame,
-        roles: Array.isArray(request.roles) && request.roles.length > 0
-          ? request.roles
-          : this.config.visualReviewViews,
+        // The caller's roles are strict; the configured set is only a preference.
+        roles: request.roles,
+        preferredRoles: this.config.visualReviewViews,
         maxViews: request.maxViews,
       })
 
+    // Why the subject is what it is, and what the plan could not cover, are both
+    // warnings rather than silence: a review that quietly scored a 2.5 mm marker, or
+    // that covered two views of four, reads downstream as a clean review of the shot.
+    const warnings = []
+    if (subject.candidates.length > 1) {
+      warnings.push(warning(
+        BlenderWarningCode.SCENE_COMPILER_DECISION,
+        `the subject was resolved to "${subject.id}" because ${subject.source}`,
+        { subjectId: subject.id, candidates: subject.candidates.slice(0, 8), source: subject.source },
+      ))
+    }
+    for (const notice of planned.notices) {
+      warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, notice, { kind: 'view-plan' }))
+    }
+
     return this._renderViewPlan({
-      projectId, revision, spec, digest, profile, plan, subjectId,
+      projectId, revision, spec, digest, profile, plan: planned.views, subjectId: subject.id,
+      initialWarnings: warnings,
       track: request.track,
       engine: request.engine,
       width: request.width,
@@ -836,7 +853,10 @@ export default class BlenderStudio extends Service {
   async _renderViewPlan(input) {
     const { projectId, revision, spec, digest, profile, plan, subjectId } = input
     /** @type {object[]} */
-    const warnings = []
+    // Warnings raised by the CALLER's own decisions (which subject, which views) come
+    // first, so a reader sees "this review covers two views of four" before it sees
+    // "samples were reduced".
+    const warnings = [...(input.initialWarnings ?? [])]
 
     const requestedSamples = input.samples ?? profile.samples
     const ceiling = Math.min(profile.maxSamplesBudget ?? this.config.maxPreviewSamples, this.config.maxPreviewSamples)

@@ -1,7 +1,7 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2（视觉闭环）**
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.1（视觉闭环 + 真实使用暴露的缺陷已修）**
 
 ---
 
@@ -37,7 +37,7 @@ deepblend/
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
                       visual-review-live-probe.mjs —— 直接调用视觉模型的最小探针
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         11 个 *.test.mjs
+    contract/         12 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环
     composition/      Host 组合激活 + preset 工具面（M0 / M1 / M2）
@@ -74,7 +74,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**8 个套件、16 个文件、717 项断言**全部通过。单跑某一层：
+预期：**9 个套件、17 个文件、843 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -86,6 +86,10 @@ node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工�
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 全部 7 个工具
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
 ```
+
+其中 `contract/patch-resolution.test.mjs`（65 项）值得单独知道：它全部来自**在真实项目上
+使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
+主体与视角依赖了会被排序破坏的数组顺序。每条断言写的是**用户当时看到的现象**。
 
 **需要真实模型调用的一项，不在上面**（它花 token，需要 credential store）：
 
