@@ -61,7 +61,7 @@ const fixtureSpec = JSON.parse(readFileSync(join(FIXTURE_DIR, 'scene-spec.json')
 // ---------------------------------------------------------------------------
 
 const {
-  validateSceneSpec, compileSceneSpec, sceneSpecDigest, summarizeSceneSpec,
+  DEFAULT_WORLD, validateSceneSpec, compileSceneSpec, sceneSpecDigest, summarizeSceneSpec,
 } = await import('@deepblend/dsh-blender-contracts')
 
 const workspace = mkdtempSync(join(tmpdir(), 'deepblend-m1-'))
@@ -795,6 +795,140 @@ check('a job record carries a status, a revision and a duration',
   compileJob.status === 'succeeded' && typeof compileJob.revision === 'string' && compileJob.durationMs > 0,
   { status: compileJob.status, revision: compileJob.revision, ms: compileJob.durationMs })
 
+
+// ---------------------------------------------------------------------------
+// 11. World and animation targets — asserted through a compiled artifact
+//
+// These two capabilities exist because the M2 content could not be expressed
+// without them: the background was a constant inside the compiler, and animation
+// could only move entity geometry, so "the camera orbits the product" and "the dial
+// lights up" both had to be faked. Asserting them on the in-memory scene would only
+// prove the compiler agreed with itself, so everything below opens the SAVED
+// `.blend` in a separate Blender process and reads the datablocks back.
+// ---------------------------------------------------------------------------
+
+/** World, camera and material-socket state, read out of one saved checkpoint. */
+const TARGETS_SNIPPET = `
+def surface_node(material):
+    tree = getattr(material, 'node_tree', None)
+    if tree is None:
+        return None
+    for node in tree.nodes:
+        if node.type == 'OUTPUT_MATERIAL':
+            links = node.inputs['Surface'].links if 'Surface' in node.inputs else []
+            if links:
+                return links[0].from_node
+    return None
+
+background = None
+world = scene.world
+if world is not None and getattr(world, 'use_nodes', True) and world.node_tree is not None:
+    node = world.node_tree.nodes.get('Background')
+    if node is not None:
+        background = {
+            'color': [round(float(v), 6) for v in node.inputs[0].default_value],
+            'strength': round(float(node.inputs[1].default_value), 6),
+        }
+
+camera = bpy.data.objects.get('db_camera__camera-main')
+material = bpy.data.materials.get('db_mat__dial-glass')
+node = surface_node(material) if material is not None else None
+socket = None
+if node is not None:
+    socket = node.inputs.get('Emission Strength') or node.inputs.get('Emission')
+socket_path = socket.path_from_id('default_value') if socket is not None else None
+camera_action = camera.animation_data.action if (camera is not None and camera.animation_data) else None
+material_action = material.node_tree.animation_data.action if (material is not None and material.node_tree.animation_data) else None
+
+def at(frame):
+    scene.frame_set(frame)
+    bpy.context.view_layer.update()
+    return {
+        'frame': frame,
+        'cameraRotationZ': round(float(camera.rotation_euler[2]), 6) if camera is not None else None,
+        'emissionStrength': round(float(socket.default_value), 6) if socket is not None else None,
+    }
+
+write({
+    'background': background,
+    'socketPath': socket_path,
+    'samples': [at(f) for f in (1, 30, 90, 180)],
+    'cameraAction': camera_action.name if camera_action is not None else None,
+    'materialAction': material_action.name if material_action is not None else None,
+    'materialFcurves': len(fcurves_of(material_action)) if material_action is not None else 0,
+})
+`
+
+const animated = await studio.createProject({
+  projectId: 'targets-probe',
+  title: 'Animation targets and world',
+  goal: 'prove a camera can turn and a material can ramp',
+  sceneSpec: {
+    ...fixtureSpec,
+    world: { color: [0, 0, 0, 1], strength: 0 },
+    animationTracks: [
+      ...fixtureSpec.animationTracks.filter(track => track.id !== 'watch-turntable'),
+      { id: 'camera-turn', targetKind: 'camera', targetEntityId: 'camera-main', property: 'rotationEuler.z',
+        keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 180, value: 1.5707963, interpolation: 'linear' }] },
+      { id: 'dial-ignite', targetKind: 'material', targetEntityId: 'dial-glass', property: 'emissionStrength',
+        keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 90, value: 6, interpolation: 'linear' }] },
+    ],
+  },
+  saveCheckpoint: true,
+})
+
+const targets = inspectBlend(
+  join(workspace, 'projects', 'targets-probe', 'revisions', 'r0001', 'scene.blend'),
+  TARGETS_SNIPPET,
+)
+
+check('a declared world reaches the compiled Background node',
+  targets.background !== null
+    && JSON.stringify(targets.background.color) === JSON.stringify([0, 0, 0, 1])
+    && targets.background.strength === 0,
+  targets.background)
+
+check('a camera target kind really keyframes the camera object',
+  targets.cameraAction === 'db_anim__camera-turn'
+    && targets.samples[0].cameraRotationZ === 0
+    && Math.abs(targets.samples[3].cameraRotationZ - 1.5707963) < 0.001,
+  targets.samples.map(sample => `${sample.frame}:${sample.cameraRotationZ}`))
+
+check('a material target kind really keyframes the emission socket',
+  targets.materialAction === 'db_anim__dial-ignite'
+    && targets.materialFcurves === 1
+    && targets.samples[0].emissionStrength === 0
+    && targets.samples[2].emissionStrength === 6
+    && targets.socketPath !== null,
+  { action: targets.materialAction, path: targets.socketPath, values: targets.samples.map(sample => sample.emissionStrength) })
+
+check('the two tracks animate independently, on their own datablocks',
+  targets.cameraAction !== targets.materialAction,
+  { camera: targets.cameraAction, material: targets.materialAction })
+
+// The camera must actually MOVE between frames: a track that compiles but evaluates
+// to a constant is exactly the failure this section exists to rule out.
+check('the camera track evaluates to different values at different frames',
+  targets.samples[0].cameraRotationZ !== targets.samples[2].cameraRotationZ,
+  targets.samples.map(sample => `${sample.frame}:${sample.cameraRotationZ}`))
+
+// A scene that declares no world must still compile, using the documented default.
+await studio.createProject({
+  projectId: 'world-default-probe',
+  title: 'World default',
+  goal: 'prove the documented default is what gets compiled',
+  sceneSpec: fixtureSpec,
+  saveCheckpoint: true,
+})
+const defaulted = inspectBlend(
+  join(workspace, 'projects', 'world-default-probe', 'revisions', 'r0001', 'scene.blend'),
+  TARGETS_SNIPPET,
+)
+check('a scene that declares no world compiles to the documented default',
+  defaulted.background !== null
+    && defaulted.background.color.every((channel, index) => Math.abs(channel - DEFAULT_WORLD.color[index]) < 1e-6)
+    && Math.abs(defaulted.background.strength - DEFAULT_WORLD.strength) < 1e-6,
+  { compiled: defaulted.background, contract: { color: [...DEFAULT_WORLD.color], strength: DEFAULT_WORLD.strength } })
 
 // ---------------------------------------------------------------------------
 // Cleanup and summary

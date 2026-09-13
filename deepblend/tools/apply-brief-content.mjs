@@ -19,6 +19,7 @@
  */
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
+import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..', '..')
@@ -237,12 +238,127 @@ const STEPS = [
     note: 'Move the four index markers 1.05 mm forward, from y=-0.00655 to y=-0.0076. They are only 0.3 mm thick and sat directly on the dial face at y=-0.00625, so the lit screen had nowhere to go behind them and covered them instead.',
     operations: () => turntableOps(rotatingParts(MARKER_Y_AT_R0023).slice(3), { withShot: false }),
   },
+  // ---------------------------------------------------------------------------
+  // The three steps below exercise the capabilities that did NOT exist when the
+  // revisions above were written (ADRs D43/D44). A mechanism nothing uses is a
+  // defect by this repository's own rule, so the project stops working around them:
+  // the background becomes the scene world, the dial ramps on its own material, and
+  // the camera orbits instead of the product turning.
+  // ---------------------------------------------------------------------------
+  {
+    label: 'r0024  the world is the background, not a plane',
+    digest: '51f62906e0c342190b7e865a15ef50db22502821f0ad9a97dc9fc27ccf4ccbdd',
+    note: 'The background is the scene world now, not a backdrop plane. r0019 could only make it black by zeroing the plane material, because the World was a constant inside the compiler and no operation could reach it.',
+    operations: () => [
+      { op: 'world.set', world: { color: [0, 0, 0, 1], strength: 0 } },
+      // The plane existed to be the background. With the world doing that job it is an
+      // invisible surface between the product and the environment the metal reflects.
+      { op: 'entity.remove', entityId: 'backdrop' },
+    ],
+  },
+  {
+    label: 'r0025  the dial ramps on its own material',
+    digest: 'f3d76072517ec284fd9b7e12c76d7fafd1406dae369eb44a0734a30f43821895',
+    note: 'The dial lights up by ramping emissionStrength on dial-glass, which is what the brief asks for and what was inexpressible before: a track could only move entity transforms, so the screen had to be a disc that grew. The disc is removed with its tracks.',
+    operations: () => [
+      { op: 'animation.track.set', track: {
+        id: 'dial-ramp', targetKind: 'material', targetEntityId: 'dial-glass', property: 'emissionStrength',
+        keyframes: [
+          { frame: 1, value: 0, interpolation: 'linear' },
+          { frame: 300, value: 0, interpolation: 'linear' },
+          { frame: 390, value: 2.4, interpolation: 'ease_in_out' },
+          { frame: HOLD_OUT, value: 2.4, interpolation: 'linear' },
+        ],
+      } },
+      // Tracks first: an entity an animation still targets cannot be removed, and that
+      // refusal is the point.
+      ...['dial-screen-scale-x', 'dial-screen-scale-y', 'dial-screen-scale-z',
+        'dial-screen-orbit-x', 'dial-screen-orbit-y', 'dial-screen-turntable']
+        .map(trackId => ({ op: 'animation.track.remove', trackId })),
+      { op: 'entity.remove', entityId: 'dial-screen' },
+    ],
+  },
+  {
+    label: 'r0026  the camera orbits, the product stands still',
+    digest: '950ff84c9ec2bc128efbaa5fcb6a288010f224584d7e0847f35a8644f793fde1',
+    note: 'The brief asks for the camera to orbit the product. That is expressible now, so the product turntable is retired: the part motion goes and the hero camera orbits instead, which also keeps the lighting fixed relative to the product.',
+    operations: () => {
+      const turning = []
+      for (const part of rotatingParts(MARKER_Y_AT_R0023)) {
+        turning.push(part.trackId)
+        if (part.x === 0 && part.y === 0) continue
+        turning.push(`${part.trackId}-orbit-x`, `${part.trackId}-orbit-y`)
+      }
+      const operations = [
+        // Removing a track restores the entity's AUTHORED rotation, and for two markers
+        // the authored value is not what the track was rendering: the turntable had
+        // overridden their `z` to 0, so it has to be authored explicitly or they would
+        // swing a quarter turn the moment the track disappeared.
+        { op: 'entity.transform.update', entityId: 'index-three', rotationEuler: [0, Math.PI / 2, 0] },
+        { op: 'entity.transform.update', entityId: 'index-nine', rotationEuler: [0, Math.PI / 2, 0] },
+        ...turning.map(trackId => ({ op: 'animation.track.remove', trackId })),
+      ]
+      // The camera orbits the radius it already sits at, so the framing is unchanged
+      // and only the angle moves.
+      const radius = 0.19
+      const orbit = (property, valueAt) => ({ op: 'animation.track.set', track: {
+        id: `camera-orbit-${property.replace('.', '-')}`,
+        targetKind: 'camera',
+        targetEntityId: 'camera-main',
+        property,
+        keyframes: FRAMES.map(frame => ({ frame, value: R(valueAt(THETA_AT(frame))), interpolation: 'linear' })),
+      } })
+      operations.push(orbit('location.x', angle => radius * Math.sin(angle)))
+      operations.push(orbit('location.y', angle => -radius * Math.cos(angle)))
+      operations.push(orbit('rotationEuler.z', angle => angle))
+      return operations
+    },
+  },
 ]
 
+/**
+ * Which step a project at `digest` should continue from.
+ *
+ * Resumable rather than "r0018 or nothing": the later steps were added after the
+ * project had already reached r0023, and a tool that can only replay the whole chain
+ * would force a rebuild to add one revision. A step whose recorded digest IS the
+ * current digest has been applied, so the next one is where to start.
+ */
+function firstPendingStep(currentDigest) {
+  const at = STEPS.findIndex(step => step.digest !== null && step.digest === currentDigest)
+  return at + 1
+}
+
 if (DRY_RUN) {
-  for (const step of STEPS) console.log(`${step.label.padEnd(46)} ${step.operations().length} operations -> ${step.digest.slice(0, 16)}`)
-  console.log('\n(dry run: nothing was written; digests are the ones the live store recorded)')
-  process.exit(0)
+  // Validate offline, against the real spec, before anything touches the store. A dry
+  // run that only counted operations would still let a schema error through.
+  const { validateScenePatch, applyPatchToSpec } = await import('@deepblend/dsh-blender-contracts')
+  const base = JSON.parse(readFileSync(join(WORK, 'projects', PROJECT, 'revisions', 'r0018', 'scene-spec.json'), 'utf8'))
+  let spec = base
+  let failed = 0
+  for (const step of STEPS) {
+    const operations = step.operations()
+    const patch = { projectId: PROJECT, baseRevision: 'r0018', operations }
+    const structural = validateScenePatch(patch)
+    let detail = `${String(operations.length).padStart(2)} operations`
+    if (!structural.ok) {
+      detail += `  INVALID: ${structural.errors.map(error => `${error.code} ${error.path}`).join(', ')}`
+      failed += 1
+    } else {
+      try {
+        spec = applyPatchToSpec(spec, patch).spec
+        detail += `  valid  digest ${step.digest === null ? '(not recorded yet)' : step.digest.slice(0, 16)}`
+      } catch (cause) {
+        detail += `  REFUSED: ${cause.patchIssue?.code ?? 'throw'} ${cause.message}`
+        failed += 1
+      }
+    }
+    console.log(`${step.label.padEnd(46)} ${detail}`)
+  }
+  console.log(failed === 0
+    ? '\n(dry run: every step validates; nothing was written)'
+    : `\n(dry run: ${failed} step(s) would fail)`)
+  process.exit(failed === 0 ? 0 : 1)
 }
 
 const ctx = new Context()
@@ -265,16 +381,27 @@ const project = await studio.getProject(PROJECT)
 let current = project.currentRevision
 console.log(`${PROJECT} is at ${current}`)
 
-if (current !== BASE_REVISION) {
-  const already = STEPS.some(step => step.digest === project.revision?.digest)
-  console.log(already
-    ? 'this project already carries the brief content — nothing to do.'
-    : `refusing to run: the recorded operations were computed against ${BASE_REVISION}, and this project is at ${current}.`)
+// `getProject` reports the digest under `scene`, not `revision`: the revision is a
+// string there, and reading `.revision.digest` off it silently yields undefined —
+// which made the resume check refuse every project, for the wrong reason.
+const start = firstPendingStep(project.scene?.digest)
+if (start >= STEPS.length) {
+  console.log('this project already carries every recorded step — nothing to do.')
   await ctx.stop?.()
-  process.exit(already ? 0 : 1)
+  process.exit(0)
 }
+if (start === 0 && current !== BASE_REVISION) {
+  console.log(
+    `refusing to run: the chain starts from ${BASE_REVISION}, and this project is at ${current} ` +
+    'with a digest that matches no recorded step. Rebuild it from the fixture, or restore the revision ' +
+    'the chain expects.',
+  )
+  await ctx.stop?.()
+  process.exit(1)
+}
+if (start > 0) console.log(`resuming from ${STEPS[start].label}`)
 
-for (const step of STEPS) {
+for (const step of STEPS.slice(start)) {
   const committed = await studio.applyScenePatch({
     projectId: PROJECT,
     baseRevision: current,
@@ -282,8 +409,11 @@ for (const step of STEPS) {
     note: step.note,
   })
   const digest = committed.digest
-  const ok = digest === step.digest
-  console.log(`${step.label.padEnd(46)} ${committed.revision}  ${digest.slice(0, 16)}  ${ok ? 'digest OK' : 'DIGEST MISMATCH'}`)
+  // A step with no recorded digest yet is the one being recorded right now; asserting
+  // it would compare the fresh digest against the placeholder.
+  const ok = step.digest === null || digest === step.digest
+  console.log(`${step.label.padEnd(46)} ${committed.revision}  ${digest.slice(0, 16)}  ${step.digest === null ? 'digest recorded below' : ok ? 'digest OK' : 'DIGEST MISMATCH'}`)
+  if (step.digest === null) console.log(`      record it: digest: '${digest}',`)
   if (!ok) {
     console.error(`\nexpected ${step.digest}\n     got ${digest}`)
     console.error('The store no longer reproduces the recorded content. Stopping rather than continuing on a diverged base.')

@@ -358,12 +358,13 @@ const OPERATION_SUMMARY = [
   'camera.add                   {camera}',
   'camera.update                {cameraId, lens?, transform?, targetEntityId?, targetPoint?, clipping?, fStop?}',
   'camera.remove                {cameraId}',
-  'animation.track.set          {track}                                        — {id, targetEntityId, property, keyframes[]}',
+  'animation.track.set          {track}                                        — {id, targetEntityId, targetKind?, property, keyframes[]}',
   'animation.track.remove       {trackId}',
   'shot.set                     {shot}                                         — {id, cameraId, frameRange?, description?}',
   'shot.remove                  {shotId}',
   'project.frameRange.set       {frameStart, frameEnd, fps?}',
   'render.profile.set           {profileName, profile}                         — profileName is "preview" or "final"',
+  'world.set                    {world}                                        — {color?, strength?}; the environment behind the product',
 ].join('\n  ')
 
 function scenePatch(ctx) {

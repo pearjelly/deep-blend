@@ -76,6 +76,21 @@
         "type": "number"
       }
     },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The scene's environment illumination, replacing the whole block.",
+      "properties": {
+        "color": {
+          "$ref": "#/$defs/unitColor"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
     "unitColor": {
       "type": "array",
       "minItems": 3,
@@ -407,8 +422,15 @@
         "id": {
           "$ref": "#/$defs/id"
         },
+        "targetKind": {
+          "type": "string",
+          "enum": ["entity", "camera", "material"],
+          "default": "entity",
+          "description": "What `targetEntityId` names: an entity (default), a camera, or a material. Only entity tracks existed before, which is why \"the camera orbits the product\" and \"the dial lights up\" both had to be faked with entity transforms."
+        },
         "targetEntityId": {
-          "type": "string"
+          "type": "string",
+          "description": "The id of the target named by `targetKind`. The field name says Entity because every track written before target kinds existed used it and revisions are immutable; renaming it would make r0001-r0023 unreadable. Resolution is against the collection `targetKind` names, which matters because ids are unique per collection, not globally."
         },
         "property": {
           "type": "string",
@@ -421,8 +443,22 @@
             "rotationEuler.z",
             "scale.x",
             "scale.y",
-            "scale.z"
-          ]
+            "scale.z",
+            "emissionStrength",
+            "roughness",
+            "metallic",
+            "ior",
+            "alpha",
+            "coatWeight",
+            "transmissionWeight",
+            "baseColor.r",
+            "baseColor.g",
+            "baseColor.b",
+            "emissionColor.r",
+            "emissionColor.g",
+            "emissionColor.b"
+          ],
+          "description": "The channel to animate. Transform channels apply to entities and cameras; material parameters apply to materials and use the same names `material.parameter.update` takes."
         },
         "keyframes": {
           "type": "array",
@@ -1066,6 +1102,23 @@
             },
             "profile": {
               "$ref": "#/$defs/renderProfile"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "world"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "world.set"
+            },
+            "world": {
+              "$ref": "#/$defs/world"
             }
           }
         }

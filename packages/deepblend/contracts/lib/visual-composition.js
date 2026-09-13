@@ -27,6 +27,16 @@ import { entityBoundingRadius } from './scene-spec.js'
 /** Roles a generated view plan can contain, in reading order. */
 export const VIEW_ROLES = Object.freeze(['active-camera', 'three-quarter', 'top', 'detail'])
 
+/**
+ * How many frames an animated scene is sampled at.
+ *
+ * Four, not three, and the difference is not academic: a turntable is at its most
+ * obviously broken at a QUARTER turn, so three samples across a full rotation land on
+ * 0/180/360 degrees — every one of them an angle where a part-by-part rotation looks
+ * correct. Four samples land on 0/120/240/360 and the quarter turn is visible.
+ */
+export const ANIMATED_SAMPLE_FRAMES = 4
+
 /** Cap on how many extra objects are tracked for occlusion, beyond the subject. */
 const MAX_TRACKED_OCCLUDERS = 3
 
@@ -145,14 +155,67 @@ export function buildViewPlan(input) {
 
   /** @type {{ views: object[], notices: string[] }} */
   const notices = []
-  let views = determined.map(entry => ({
-    id: entry.role,
+
+  // ---------------------------------------------------------------------------
+  // HOW MANY FRAMES A REVIEW NEEDS. One frame is not enough, and the way it failed
+  // is worth stating exactly.
+  //
+  // A real project (r0018) had a completely broken "turntable": all seven tracks
+  // wrote `rotationEuler.z` only, so every part rotated about its OWN origin and at
+  // a quarter turn the case went edge-on while the markers and the crown stayed put
+  // and read as detached debris. A real vision review scored it 100 — because the
+  // review rendered ONE frame, at the MIDDLE of the range, and the middle of 1..90 is
+  // frame 45 = 180 degrees, the one angle where every part of a symmetric assembly
+  // maps onto itself.
+  //
+  // So the sample frames are spread EVENLY, endpoints included, and deliberately not
+  // taken from the keyframes: a linear track's keyframes are exactly where such a
+  // defect is invisible.
+  //
+  // Sampling every view at every frame would be the thorough answer and is the wrong
+  // one: the request image budget is 640 000 px (measured, runtime-audit §7.2) and the
+  // harness DOWNSAMPLES to fit it, so sixteen tiles arrive blurrier than four. Motion
+  // is most legible from the hero angle, so the active view is the one that carries
+  // the extra frames and the other roles keep their single, comparable pose.
+  // ---------------------------------------------------------------------------
+  const animatedSpan = animationSpan(spec)
+  const sampleFrames = input.frame !== undefined
+    ? [normalizeFrame(input.frame, frames)]
+    : animatedSpan === null
+      ? [frame]
+      : evenlySpaced(animatedSpan, ANIMATED_SAMPLE_FRAMES)
+  const poseFrame = sampleFrames[Math.floor((sampleFrames.length - 1) / 2)]
+  const heroIndex = determined.findIndex(entry => entry.role === 'active-camera')
+
+  /** The frames one planned view is rendered at. */
+  const framesFor = (entry, index) => {
+    // No animation, or the caller named the frame: one frame, exactly as before.
+    if (sampleFrames.length === 1) return [sampleFrames[0]]
+    // With roles, the active view carries the motion. Without them, the first entry
+    // does — the plan still has to sample something rather than go back to one frame.
+    const carries = heroIndex >= 0 ? index === heroIndex : index === 0
+    return carries ? sampleFrames : [poseFrame]
+  }
+
+  let views = determined.flatMap((entry, index) => framesFor(entry, index).map(sample => ({
+    // A view that appears once keeps its bare role as the id, because that id is what
+    // findings, sheets and `blender_preview_views` text have always keyed on.
+    id: framesFor(entry, index).length > 1 ? `${entry.role}@${sample}` : entry.role,
     role: entry.role,
     cameraId: entry.camera.id,
-    frame,
-    label: viewCaption({ role: entry.role, cameraId: entry.camera.id, frame }),
+    frame: sample,
+    label: viewCaption({ role: entry.role, cameraId: entry.camera.id, frame: sample }),
     purpose: entry.purpose,
-  }))
+  })))
+
+  if (sampleFrames.length > 1) {
+    notices.push(
+      `this scene animates, so the review samples ${sampleFrames.length} frames ` +
+      `(${sampleFrames.join(', ')}) spread evenly across frames ${animatedSpan[0]}–${animatedSpan[1]}: ` +
+      `the active view is rendered at each, the other views at frame ${poseFrame} so they stay comparable. ` +
+      'A single frame cannot tell a working animation from one that only looks right at that frame.',
+    )
+  }
 
   if (soloCamera !== undefined && activeByName === undefined && activeByRole === undefined) {
     notices.push('the scene declares one camera and no roles, so it is used as the active view')
@@ -453,9 +516,48 @@ function rolePurpose(role, subjectId) {
   }
 }
 
+/**
+ * The frame span a scene actually animates over, or null when it does not animate.
+ *
+ * Taken from the tracks rather than from the project range on purpose: a project may
+ * declare 1..450 with motion only in 30..390, and sampling the declared range would
+ * spend three of four frames on frames that hold still.
+ */
+function animationSpan(spec) {
+  const tracks = Array.isArray(spec?.animationTracks) ? spec.animationTracks : []
+  const frames = []
+  for (const track of tracks) {
+    for (const keyframe of track.keyframes ?? []) {
+      if (Number.isInteger(keyframe?.frame)) frames.push(keyframe.frame)
+    }
+  }
+  if (frames.length === 0) return null
+  const declared = frameRange(spec)
+  const start = Math.max(declared.start, Math.min(...frames))
+  const end = Math.min(declared.end, Math.max(...frames))
+  return end > start ? [start, end] : null
+}
+
+/**
+ * `count` whole frames spread evenly across [start, end], endpoints included.
+ *
+ * Endpoints included is deliberate: the first and last frame of a commercial are the
+ * two a human will judge, so a plan that skipped them would trade one blind spot for
+ * another. Interior samples are what catch a defect that hides at the extremes.
+ */
+function evenlySpaced([start, end], count) {
+  if (count <= 1 || end <= start) return [start]
+  const step = (end - start) / (count - 1)
+  const out = []
+  for (let index = 0; index < count; index += 1) {
+    const value = Math.round(start + index * step)
+    if (!out.includes(value)) out.push(value)
+  }
+  return out
+}
+
 /** The declared frame range of a compiled spec. */
-function frameRange(spec) {
-  const start = Number.isFinite(spec?.project?.frameStart) ? spec.project.frameStart : 1
+function frameRange(spec) {  const start = Number.isFinite(spec?.project?.frameStart) ? spec.project.frameStart : 1
   const end = Number.isFinite(spec?.project?.frameEnd) ? spec.project.frameEnd : start
   return { start, end }
 }

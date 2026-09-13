@@ -3,8 +3,8 @@
   "generatedBy": "deepblend/tools/make-visual-fixtures.mjs",
   "category": "exposure",
   "code": "FRAME_UNDEREXPOSED",
-  "objectId": null,
+  "objectId": "coffee-table",
   "viewId": "active-camera",
-  "planted": "both area lights are reduced to about 2% energy, so the whole frame reads dark",
-  "expectedFix": "raise light energy (or lower the exposure compensation) until the frame is lit"
+  "planted": "both area lights are reduced to about 2% energy, so the subject reads dark",
+  "expectedFix": "raise light energy (or lower the exposure compensation) until the product is lit"
 }

@@ -521,6 +521,61 @@ try {
       parseReviewerAnswer('The render looks fine to me.').findings.length === 0 &&
       parseReviewerAnswer('').operations.length === 0)
   }
+
+  // =========================================================================
+  // 9. An animated scene is sampled across its range, not at one convenient frame
+  //
+  // The defect this pins, in the words of the milestone record: a project whose
+  // "turntable" rotated every part about ITS OWN origin scored 100 from a real
+  // review, because the review rendered one frame and the middle of 1..90 is frame
+  // 45 = 180 degrees — the one angle where every part of a symmetric assembly maps
+  // onto itself.
+  //
+  // The product-turntable fixture carries exactly that shape: three tracks that
+  // write `rotationEuler.z` only, over frames 1..90. So it is the real defect, not a
+  // scene built to fail.
+  // =========================================================================
+
+  {
+    const { projectId, revision } = await projectFrom('product-turntable', 'Broken turntable')
+
+    // What the review used to do: one frame, and the middle one.
+    const single = await studio.visualReview({ projectId, revision, frame: 45, ...PREVIEW })
+    const singleFrames = new Set(single.views.map(view => view.frame))
+
+    // What it does now, with no frame named.
+    const sampled = await studio.visualReview({ projectId, revision, ...PREVIEW })
+    const sampledFrames = [...new Set(sampled.views.map(view => view.frame))].sort((a, b) => a - b)
+
+    check('a named frame still wins, and renders exactly that frame',
+      singleFrames.size === 1 && [...singleFrames][0] === 45,
+      single.views.map(view => `${view.viewId}@${view.frame}`))
+
+    check('an animated scene is sampled at several frames without being asked',
+      sampledFrames.length >= 3,
+      sampledFrames)
+
+    check('the samples spread across the animated range rather than clustering',
+      sampledFrames[0] === 1 && sampledFrames[sampledFrames.length - 1] === 90
+        && sampledFrames.some(frame => frame > 1 && frame < 90),
+      sampledFrames)
+
+    // THE POINT OF THE WHOLE SECTION. Sampling has to make the review strictly
+    // harder to pass; a wider plan that produced the same score would be cost with
+    // no benefit, and this asserts the benefit rather than the mechanism.
+    check('sampling the animation scores the scene strictly lower than one convenient frame',
+      sampled.score < single.score,
+      { oneFrame: single.score, sampled: sampled.score })
+
+    check('sampling surfaces a problem the single frame did not report',
+      sampled.issues.length > single.issues.length,
+      { oneFrame: single.issues.map(issue => issue.code), sampled: sampled.issues.map(issue => issue.code) })
+
+    check('the contact sheet carries one placement per sampled view, and tiles them',
+      sampled.sheet.placements.length === sampled.views.length
+        && sampled.sheetArtifact.columns * sampled.sheetArtifact.rows >= sampled.views.length,
+      { views: sampled.views.length, columns: sampled.sheetArtifact.columns, rows: sampled.sheetArtifact.rows })
+  }
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }

@@ -74,7 +74,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**9 个套件、17 个文件、874 项断言**全部通过。单跑某一层：
+预期：**9 个套件、17 个文件、900 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）

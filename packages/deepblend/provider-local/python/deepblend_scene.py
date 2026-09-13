@@ -70,6 +70,16 @@ PRINCIPLED_SOCKETS = {
 #: Layer-weight socket name for the Mix Shader node.
 MIX_FACTOR_SOCKET = "Factor"
 
+#: An `emission` shader is a different node with two sockets of its own, so it gets
+#: its own table rather than being forced through a Principled one. The KEYS are the
+#: same SceneSpec parameter names, which is the point: `material.parameter.update`
+#: and a material animation track accept exactly the same vocabulary.
+EMISSION_SHADER_SOCKETS = {
+    "baseColor": ["Color"],
+    "emissionColor": ["Color"],
+    "emissionStrength": ["Strength"],
+}
+
 #: Object name prefixes, so a compiled scene is readable in Blender's outliner
 #: and so validation can tell an entity object from a light by name alone.
 ENTITY_PREFIX = "db_entity__"
@@ -88,6 +98,14 @@ TAU = 6.283185307179586
 # ---------------------------------------------------------------------------
 
 
+#: What a SceneSpec that declares no `world` is lit by. Mirrors `DEFAULT_WORLD` in
+#: `contracts/lib/scene-spec.js`, which mirrors the schema's `default` keywords; the
+#: contract suite asserts the JS and schema copies agree, and the Blender integration
+#: suite asserts this copy produces them.
+DEFAULT_WORLD_COLOR = (0.02, 0.021, 0.026, 1.0)
+DEFAULT_WORLD_STRENGTH = 0.6
+
+
 def reset_scene():
     """Empty the current Blender file, leaving a pristine scene.
 
@@ -101,27 +119,48 @@ def reset_scene():
     ``bpy.data``, so any reference captured before it is dead.
     """
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    scene = bpy.context.scene
-    # A brand-new file still carries the default world; make it deterministic and
-    # dark-ish rather than whatever the factory default happens to be, so lighting
-    # comes from the scene's own lights and is reproducible.
+    return bpy.context.scene
+
+
+def build_world(scene, spec):
+    """Apply the SceneSpec's `world` block, or the documented default.
+
+    The background a viewer sees behind the product is the World, and until this
+    existed the values were literals in this file: a brief asking for a black
+    background could not be honoured through the spec at all, and the workaround
+    (a near-black backdrop plane) still rendered mid-grey because a 0-albedo
+    Principled surface keeps ~4% Fresnel specular. A `world` block with
+    `strength: 0` is now the actual answer, and it is reachable from ScenePatch
+    through `world.set`.
+    """
     world = scene.world
     if world is None:
         world = bpy.data.worlds.new("db_world")
         scene.world = world
+
+    declared = spec.get("world") if isinstance(spec.get("world"), dict) else None
+    color = declared.get("color") if declared else None
+    color = tuple(list(color)[:4]) if color is not None else DEFAULT_WORLD_COLOR
+    if len(color) < 4:
+        color = tuple(list(color) + [1.0] * (4 - len(color)))
+    strength = declared.get("strength") if declared else None
+    strength = float(strength) if strength is not None else DEFAULT_WORLD_STRENGTH
+
     # `World.use_nodes` is deprecated in 5.x and already defaults to True. Its
     # node tree is read rather than forced, so no deprecation warning reaches
     # stdout (which the provider captures as diagnostics) and an older build
     # without the default still gets a deterministic world.
-    try:
-        if getattr(world, "use_nodes", True) and world.node_tree is not None:
-            background = world.node_tree.nodes.get("Background")
-            if background is not None:
-                background.inputs[0].default_value = (0.02, 0.021, 0.026, 1.0)
-                background.inputs[1].default_value = 0.6
-    except Exception:
-        pass
-    return scene
+    if getattr(world, "use_nodes", True) and world.node_tree is not None:
+        background = world.node_tree.nodes.get("Background")
+        if background is not None:
+            background.inputs[0].default_value = color
+            background.inputs[1].default_value = strength
+            return {"declared": declared is not None, "color": list(color), "strength": strength}
+    raise ActionError(
+        "BLENDER_SCRIPT_ERROR",
+        "the scene world has no addressable Background node, so the declared world "
+        "cannot be applied; the render would silently use Blender's default",
+    )
 
 
 def available_engines():
@@ -668,6 +707,154 @@ INTERPOLATION_BY_NAME = {
 }
 
 
+def _surface_node(material):
+    """The node feeding a material's output, or None.
+
+    Animation addresses the socket on the node that actually shades the surface, so
+    this follows the same link `build_material` created rather than guessing a node
+    name: an `emission` material has no Principled BSDF at all.
+    """
+    tree = getattr(material, "node_tree", None)
+    if tree is None:
+        return None
+    for node in tree.nodes:
+        if node.type != "OUTPUT_MATERIAL":
+            continue
+        links = node.inputs["Surface"].links if "Surface" in node.inputs else []
+        if links:
+            return links[0].from_node
+    return None
+
+
+def _material_socket(material, parameter):
+    """Resolve a SceneSpec material parameter to (node, socket), or (node, None).
+
+    One vocabulary for parameter names: the socket table below is the SAME one
+    `material.parameter.update` goes through, so an animation cannot address a
+    parameter a static set could not.
+    """
+    node = _surface_node(material)
+    if node is None:
+        return None, None
+    if node.type == "EMISSION":
+        names = EMISSION_SHADER_SOCKETS.get(parameter)
+    else:
+        names = PRINCIPLED_SOCKETS.get(parameter)
+    if names is None:
+        return node, None
+    return node, _find_socket(node, names)
+
+
+def build_material_animation(material, track, guard):
+    """Key one material parameter onto its node socket.
+
+    ``emissionStrength`` is why this exists: "the dial gradually lights up" is a ramp
+    on one socket, and before animation could target a material the only way to
+    express it was emissive geometry that scaled in.
+
+    Keyframes are inserted through the SOCKET's own ``keyframe_insert`` rather than by
+    naming a data path, because a socket's path embeds its index in the node's input
+    list (``nodes["Principled BSDF"].inputs[29].default_value``) and that index moves
+    whenever Blender reorders its sockets.
+    """
+    property_name = track.get("property", "")
+    parameter, _, component = property_name.partition(".")
+    node, socket = _material_socket(material, parameter)
+    if node is None:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'animation track "%s" targets material "%s", which has no surface node to animate'
+            % (track.get("id"), material.get("deepblend_id") or material.name),
+        )
+    if socket is None:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'animation track "%s" animates "%s", which is not a parameter of material "%s"'
+            % (track.get("id"), property_name, material.get("deepblend_id") or material.name),
+            {"supported": sorted(set(PRINCIPLED_SOCKETS) | set(EMISSION_SHADER_SOCKETS))},
+        )
+
+    axis = None
+    if component:
+        if component not in ("r", "g", "b", "a"):
+            raise ActionError(
+                "BLENDER_SCRIPT_ERROR",
+                'animation track "%s" names component "%s"; expected r, g, b or a'
+                % (track.get("id"), component),
+            )
+        axis = "rgba".index(component)
+        if not hasattr(socket.default_value, "__len__"):
+            raise ActionError(
+                "BLENDER_SCRIPT_ERROR",
+                'animation track "%s" names component "%s" of "%s", which is a single value, not a colour'
+                % (track.get("id"), component, parameter),
+            )
+
+    keyframes = track.get("keyframes") or []
+    if len(keyframes) < 2:
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" has %d keyframe(s); at least 2 are required to describe motion'
+            % (track.get("id"), len(keyframes)),
+        )
+
+    data_path = socket.path_from_id("default_value")
+    for keyframe in keyframes:
+        frame = int(keyframe["frame"])
+        value = float(keyframe["value"])
+        if axis is None:
+            socket.default_value = value
+            socket.keyframe_insert("default_value", frame=frame)
+        else:
+            current = list(socket.default_value)
+            while len(current) <= axis:
+                current.append(1.0)
+            current[axis] = value
+            socket.default_value = tuple(current)
+            socket.keyframe_insert("default_value", index=axis, frame=frame)
+
+    tree = material.node_tree
+    action = tree.animation_data.action if tree.animation_data is not None else None
+    if action is None:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'animation track "%s" inserted keyframes but produced no action' % (track.get("id"),),
+        )
+
+    _apply_interpolation(action, data_path, axis, keyframes, track, guard)
+    action.name = "db_anim__%s" % (track.get("id"),)
+    action["deepblend_id"] = track.get("id")
+    return action
+
+
+def _apply_interpolation(action, data_path, axis, keyframes, track, guard):
+    """Set each keyframe point's interpolation from the track, and say if none could be."""
+    interpolations = set()
+    for fcurve in action_fcurves(action):
+        if fcurve.data_path != data_path:
+            continue
+        if axis is not None and fcurve.array_index != axis:
+            continue
+        for point in fcurve.keyframe_points:
+            wanted = None
+            for keyframe in keyframes:
+                if int(round(point.co[0])) == int(keyframe["frame"]):
+                    wanted = keyframe.get("interpolation")
+                    break
+            if wanted is None:
+                continue
+            point.interpolation = INTERPOLATION_BY_NAME.get(wanted, "BEZIER")
+            interpolations.add(point.interpolation)
+
+    if not interpolations:
+        guard.warn(
+            "SCENE_ANIMATION_KEYFRAMES_ADJUSTED",
+            'animation track "%s" produced no addressable fcurve for %s; interpolation was left '
+            "at Blender's default" % (track.get("id"), data_path),
+            {"trackId": track.get("id"), "property": track.get("property")},
+        )
+
+
 def build_animation(obj, track, guard):
     """Key one animation track onto an object, returning the action name.
 
@@ -723,31 +910,10 @@ def build_animation(obj, track, guard):
             'animation track "%s" inserted keyframes but produced no action' % (track.get("id"),),
         )
 
-    interpolations = set()
-    for fcurve in action_fcurves(action):
-        if fcurve.data_path != bpy_attr:
-            continue
-        for point in fcurve.keyframe_points:
-            wanted = None
-            for keyframe in keyframes:
-                if int(round(point.co[0])) == int(keyframe["frame"]):
-                    wanted = keyframe.get("interpolation")
-                    break
-            if wanted is None:
-                continue
-            point.interpolation = INTERPOLATION_BY_NAME.get(wanted, "BEZIER")
-            interpolations.add(point.interpolation)
-
-    if not interpolations:
-        # Keyframes were inserted but no curve could be addressed. Reporting beats
-        # assuming: the action still animates, but with Blender's default curve
-        # shape rather than the one the spec asked for.
-        guard.warn(
-            "SCENE_ANIMATION_KEYFRAMES_ADJUSTED",
-            'animation track "%s" produced no addressable fcurve for %s; interpolation was left '
-            "at Blender's default" % (track.get("id"), bpy_attr),
-            {"trackId": track.get("id"), "property": property_name},
-        )
+    # One implementation of "apply the track's interpolation", shared with material
+    # tracks: the two used to be the same twelve lines, and the copy that rots is the
+    # one nothing runs.
+    _apply_interpolation(action, bpy_attr, None, keyframes, track, guard)
 
     action.name = "db_anim__%s" % (track.get("id"),)
     action["deepblend_id"] = track.get("id")
@@ -938,6 +1104,9 @@ def build_scene(spec, options, guard):
     report_progress("reset_scene", 5)
     scene = reset_scene()
 
+    report_progress("build_world", 10)
+    world_report = build_world(scene, spec)
+
     report_progress("configure_scene", 12)
     profile_name = options.get("profile") or "preview"
     profiles = spec.get("renderProfiles") or {}
@@ -1053,15 +1222,28 @@ def build_scene(spec, options, guard):
     actions = []
     for track in spec.get("animationTracks") or []:
         target_id = track.get("targetEntityId")
-        target = entity_objects.get(target_id)
+        # `targetKind` decides WHICH collection the id resolves against. Ids are unique
+        # per collection, not globally, so the kind is the only thing that says whether
+        # "watch-dial" means the mesh or the material. Absent means `entity`, which is
+        # what every track written before kinds existed meant.
+        kind = track.get("targetKind") or "entity"
+        if kind == "camera":
+            target = cameras.get(target_id)
+        elif kind == "material":
+            target = materials.get(target_id)
+        else:
+            target = entity_objects.get(target_id)
         if target is None:
             raise ActionError(
                 "SCENE_VALIDATION_FAILED",
-                'animation track "%s" targets entity "%s", which produced no object'
-                % (track.get("id"), target_id),
+                'animation track "%s" targets %s "%s", which this scene does not contain'
+                % (track.get("id"), kind, target_id),
             )
-        action = build_animation(target, track, guard)
-        actions.append({"id": track.get("id"), "targetEntityId": target_id, "action": action.name})
+        if kind == "material":
+            action = build_material_animation(target, track, guard)
+        else:
+            action = build_animation(target, track, guard)
+        actions.append({"id": track.get("id"), "targetKind": kind, "targetEntityId": target_id, "action": action.name})
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)
@@ -1081,6 +1263,7 @@ def build_scene(spec, options, guard):
     return {
         "objects": describe_objects(),
         "actions": actions,
+        "world": world_report,
         "renderConfig": render_config,
         "engine": engine,
         "requestedEngine": requested_engine,

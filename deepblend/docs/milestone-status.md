@@ -263,19 +263,19 @@ data.validation.cameraParameters[1].rotationEuler[1] = -0
 
 ---
 
-## 4. 测试：874 项断言全部通过
+## 4. 测试：900 项断言全部通过
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 12 个 `*.test.mjs` | **617** |
+| 单元 + 契约 | 12 个 `*.test.mjs` | **631** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
-| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 71/71 |
-| **Blender 视觉闭环（M2）** | `blender-integration/visual-loop.e2e.mjs` | **77/77** |
+| Blender 批量 SceneSpec + revision 回放（M1，含 world／相机／材质动画的真机验证） | `blender-integration/fixture.e2e.mjs` | 77/77 |
+| **Blender 视觉闭环（M2，含「动画必须被采样」的回归）** | `blender-integration/visual-loop.e2e.mjs` | **83/83** |
 | Host composition 激活 | `composition/activation.e2e.mjs` | 11/11 |
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
 | **preset M2 工具面（10 个工具 + 图片回传 + 真实 lossless 规则）** | `composition/tool-plane-m2.e2e.mjs` | **32/32** |
-| **合计** | 17 个文件、9 个套件 | **874** |
+| **合计** | 17 个文件、9 个套件 | **900** |
 
 M2.1 的 65 项是**症状级**的：每条断言写的是用户当时看到的现象
 （`digest(stored) != digest(compile(stored))`、NaN 经 JSON 变 null、
@@ -611,6 +611,40 @@ mean       27.3 s/frame  →  450 帧 = 3.4 小时，约 424 MiB
 
 ---
 
+## 10B. 三个能力缺口的修复（**已完成**）
+
+补完内容之后，ADR D43/D44/D46 记下的三件事不是「已知限制」，而是**规格表达不出来**。
+它们已经修掉，并且都在真实项目上用上了——本仓库自己的规则是「声明了但没人用的机制就是缺陷」。
+
+| 缺口 | 修法 | 真机证据 |
+|---|---|---|
+| **D43** 动画只能动实体 transform | `animationTrack` 增加可选 `targetKind`（entity/camera/material）；`property` 并入材质参数；编译器按 kind 分派，材质走 socket 自己的 `keyframe_insert` | 集成套件读回保存后的 `.blend`：相机轨道逐帧 0 → 0.254 → 0.781 → 1.571；材质轨道落在 `inputs[29]`，取值 0 → 1.955 → 6 |
+| **D44** World 是编译器里写死的常量 | SceneSpec 增加 `world: {color, strength}`，新增第 **21** 个操作 `world.set`；缺省值写进 schema 的 `default` 关键字 | 声明黑 world → Background 节点 `[0,0,0,1]×0`；不声明 → `[0.02,0.021,0.026]×0.6` |
+| **D46** 审查只渲一帧且取中点 | `buildViewPlan` 对有动画的场景采 **4 帧**（含首尾、均匀铺开，**不取关键帧**）；主视角逐帧，其余视角同一帧，共 7 视角 | 用本身就是坏形状的 product-turntable fixture：单帧 **90 分/2 视角**，新计划 **72 分/5 视角**，并多报一条 `SUBJECT_PART_HIDDEN` (critical) |
+
+**修 D44 之后又浮出一条缺陷（D47）**：背景真变黑以后，对 r0026 的审查七个视角**全部**
+`FRAME_UNDEREXPOSED` (critical)，总分 82 不通过——而黑背景正是需求里点名要的。
+原因是曝光判的是**整帧**平均亮度。这不只是误报：**修复循环只接受提高分数的补丁**，
+所以它会去「修」一个本来就对的场景。现在判的是**主体自己像素**的亮度，
+真实项目由 **82 分不通过 → 90 分通过**。
+
+**r0026 仍留一条真实问题**（不是度量问题）：`active-camera@151` 的 `FRAME_OVEREXPOSED`
+(major)，主体 21.6% 的像素顶到上限——背对主光时的镜面高光，预览的 `Standard`
+view transform 比最终的 AgX 更容易削顶。属于打光收尾。
+
+### 项目当前状态
+
+`watch-commercial` 现在到 **r0026**，八个 revision 全部由
+`deepblend/tools/apply-brief-content.mjs` 从 r0018 可复现，每步断言当时记录的 digest：
+
+```
+r0019 黑背景（材质）      r0020 15 秒 + 真转台      r0021 表盘点亮 + 品牌标
+r0022 屏幕重新落位        r0023 刻度前移            r0024 world 取代背景板
+r0025 表盘改成材质 ramp   r0026 相机环绕、产品静止
+```
+
+---
+
 ## 11. M3 前置条件
 
 1. ~~§9 的人工过目~~ ✅ **已完成**：真实项目上跑通了 M2 全链路，并逐帧看了渲染结果；
@@ -618,8 +652,7 @@ mean       27.3 s/frame  →  450 帧 = 3.4 小时，约 424 MiB
    真正的约束是机时（3.4 h/遍），不是磁盘；
 3. 决定 Q6（是否评估 `deepseek-v4-flash-vision-exp` 作为审查模型）；
 4. 确认 `blender_job_status` / `blender_job_cancel` 的 Host 服务形态（持久化 Job Store）；
-5. **决定 D46 怎么修**：视觉审查只渲一帧且默认取中点，对动画镜头是盲点
-   （r0018 的坏动画拿了 100 分）。这属于 M2 的视角计划，建议在 M3 之前定。
+5. ~~决定 D46 怎么修~~ ✅ **已修**：按动画区间采 4 帧，见 §10B。
 
-**未开始 M3。** M2 验收与内容补全均已闭环。
+**未开始 M3。** M2 验收、内容补全、以及 D43/D44/D46/D47 四个缺口均已闭环。
 

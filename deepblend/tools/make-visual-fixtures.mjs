@@ -75,10 +75,15 @@ function underExposed(base) {
     defect: {
       category: 'exposure',
       code: 'FRAME_UNDEREXPOSED',
-      objectId: null,
+      // The SUBJECT is what the finding names, not the frame. Exposure is judged on the
+      // subject's own pixels, because a frame-wide floor reports a correctly lit product
+      // on the black background the brief asks for as underexposed — and the repair loop
+      // accepts only patches that raise the score, so it would lighten the background to
+      // "fix" a scene that was already right.
+      objectId: 'coffee-table',
       viewId: 'active-camera',
-      planted: 'both area lights are reduced to about 2% energy, so the whole frame reads dark',
-      expectedFix: 'raise light energy (or lower the exposure compensation) until the frame is lit',
+      planted: 'both area lights are reduced to about 2% energy, so the subject reads dark',
+      expectedFix: 'raise light energy (or lower the exposure compensation) until the product is lit',
     },
   }
 }

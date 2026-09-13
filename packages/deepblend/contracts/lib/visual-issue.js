@@ -210,13 +210,13 @@ export function scoreView(view, options = {}) {
     score -= SEVERITY_POINTS[issue.severity]
   }
 
-  const exposure = assessExposure(metrics, viewId)
-  if (exposure !== null) add(exposure)
-
   const objects = Array.isArray(metrics.objects) ? metrics.objects : []
   const subjects = options.subjectId === undefined || options.subjectId === null
     ? objects
     : objects.filter(entry => entry.id === options.subjectId)
+
+  const exposure = assessExposure(metrics, viewId, subjects[0] ?? null)
+  if (exposure !== null) add(exposure)
 
   for (const object of subjects) {
     const composition = assessComposition(object)
@@ -317,19 +317,39 @@ export function scoreReview(views, options = {}) {
 }
 
 /**
- * Frame-wide exposure findings.
+ * Exposure findings.
+ *
+ * JUDGED ON THE SUBJECT'S OWN PIXELS when the view measured them, and on the frame
+ * only as a fallback. The difference is not a refinement; it is the difference
+ * between the metric agreeing with the brief and fighting it.
+ *
+ * A product brief asks for a black background — the ordinary way to photograph a
+ * product. The frame's mean luminance then sits near zero however well the product is
+ * lit, so a frame-wide floor reports `FRAME_UNDEREXPOSED` (critical) on a correct
+ * shot. The repair loop accepts only patches that RAISE the score, so it would have
+ * answered that finding by lightening the background: "fixing" the scene away from
+ * what the brief asked for.
  *
  * @param {object} metrics
  * @param {string} viewId
+ * @param {object|null} subject - the scored subject's own measurement, when there is one.
  * @returns {VisualIssue|null}
  */
-function assessExposure(metrics, viewId) {
-  const luminance = metrics.luminance
+function assessExposure(metrics, viewId, subject = null) {
+  const own = subject?.luminance
+  const measuredOn = own !== undefined && typeof own.mean === 'number' ? 'subject' : 'frame'
+  const luminance = measuredOn === 'subject' ? own : metrics.luminance
   if (luminance === undefined || typeof luminance.mean !== 'number') return null
 
   const bucket = quantise(luminance.mean, LUMINANCE_EDGES, LUMINANCE_BUCKETS)
   const clippedDark = numberOr(luminance.clippedDarkFraction, 0)
   const clippedBright = numberOr(luminance.clippedBrightFraction, 0)
+  // Phrased as a noun so the sentence reads the same for one subject and for a frame:
+  // "the subject's own pixels is blown out" was the first attempt.
+  // `measuredOn` in the measurements carries the WHY; the sentence stays a sentence.
+  const where = measuredOn === 'subject'
+    ? `exposure measured on the subject's own pixels ("${subject.id}")`
+    : 'exposure measured on the whole frame'
 
   if (luminance.mean < LUMINANCE_MIN || clippedDark > CLIPPED_DARK_MAX) {
     const severity = luminance.mean < LUMINANCE_MIN / 2 || clippedDark > CLIPPED_DARK_MAX * 2
@@ -340,12 +360,18 @@ function assessExposure(metrics, viewId) {
       code: 'FRAME_UNDEREXPOSED',
       severity,
       viewId,
-      objectId: null,
+      objectId: measuredOn === 'subject' ? subject.id : null,
+      // The sentence names the condition that ACTUALLY fired. The first version asserted
+      // that the mean had crossed the floor, which read as nonsense whenever the clipping
+      // rule was the one that triggered: "mean luminance 0.65 exceeds the 0.82 ceiling".
       evidence:
-        `the frame is dark: mean display luminance ${format(luminance.mean)} is below the ` +
-        `${LUMINANCE_MIN} floor for a lit scene, and ${format(clippedDark)} of pixels sit at the ` +
-        `bottom of the range`,
+        `${where} is too dark: ` +
+        (luminance.mean < LUMINANCE_MIN
+          ? `mean display luminance ${format(luminance.mean)} is below the ${LUMINANCE_MIN} floor for a lit scene`
+          : `mean display luminance ${format(luminance.mean)} is acceptable, but ${format(clippedDark)} of ` +
+            `those pixels sit at the bottom of the range (limit ${CLIPPED_DARK_MAX})`),
       measurements: {
+        measuredOn,
         meanLuminance: round(luminance.mean),
         clippedDarkFraction: round(clippedDark),
         p05: round(numberOr(luminance.p05, 0)),
@@ -364,12 +390,15 @@ function assessExposure(metrics, viewId) {
       code: 'FRAME_OVEREXPOSED',
       severity,
       viewId,
-      objectId: null,
+      objectId: measuredOn === 'subject' ? subject.id : null,
       evidence:
-        `the frame is blown out: mean display luminance ${format(luminance.mean)} exceeds the ` +
-        `${LUMINANCE_MAX} ceiling, and ${format(clippedBright)} of pixels are clipped at the top of ` +
-        `the range`,
+        `${where} is blown out: ` +
+        (luminance.mean > LUMINANCE_MAX
+          ? `mean display luminance ${format(luminance.mean)} exceeds the ${LUMINANCE_MAX} ceiling`
+          : `mean display luminance ${format(luminance.mean)} is acceptable, but ${format(clippedBright)} of ` +
+            `those pixels are clipped at the top of the range (limit ${CLIPPED_BRIGHT_MAX})`) + '.',
       measurements: {
+        measuredOn,
         meanLuminance: round(luminance.mean),
         clippedBrightFraction: round(clippedBright),
         p05: round(numberOr(luminance.p05, 0)),

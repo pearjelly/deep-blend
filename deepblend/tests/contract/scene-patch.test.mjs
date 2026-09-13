@@ -32,11 +32,13 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import {
+  DEFAULT_WORLD,
   SCENE_OPERATION_NAMES,
   applyPatchToSpec,
   buildOperationManifest,
   compileSceneSpec,
   sceneSpecDigest,
+  summarizeSceneSpec,
   validateScenePatch,
   validateSceneSpec,
 } from '@deepblend/dsh-blender-contracts'
@@ -746,10 +748,76 @@ check(
   JSON.stringify(profileSet.next.renderProfiles.final) === JSON.stringify(profileSet.spec.renderProfiles.final),
 )
 
+// ---- world.set ------------------------------------------------------------
+// The background a viewer sees behind the product used to be a constant inside the
+// Blender compiler, so a brief asking for a black background could not be honoured
+// through the spec at all. These assert the reachable version.
+
+const blackWorld = applied('world.set on a scene that declares none', [
+  { op: 'world.set', world: { color: [0, 0, 0, 1], strength: 0 } },
+])
+check(
+  'world.set makes a background reachable from a SceneSpec',
+  JSON.stringify(blackWorld.next.world) === JSON.stringify({ color: [0, 0, 0, 1], strength: 0 }),
+  blackWorld.next.world,
+)
+check(
+  'world.set changes the scene digest, because the render changes',
+  blackWorld.result.digestAfter !== blackWorld.result.digestBefore,
+)
+check(
+  'a scene with no world keeps the digest it was recorded with',
+  sceneSpecDigest(blackWorld.spec) === blackWorld.result.digestBefore,
+)
+check(
+  'the world is summarised with its effective values, and says whether it was declared',
+  (() => {
+    const undeclared = summarizeSceneSpec(blackWorld.spec)
+    const declared = summarizeSceneSpec(blackWorld.next)
+    return undeclared.world.declared === false
+      && undeclared.world.strength === 0.6
+      && declared.world.declared === true
+      && declared.world.strength === 0
+      && declared.world.color[0] === 0
+  })(),
+  summarizeSceneSpec(blackWorld.next).world,
+)
+
+const replacedWorld = applied('world.set replaces rather than merges', [
+  { op: 'world.set', world: { strength: 0 } },
+])
+check(
+  'world.set does not leave the previous colour behind',
+  replacedWorld.next.world.color === undefined && replacedWorld.next.world.strength === 0,
+  replacedWorld.next.world,
+)
+
+// The vocabulary exists in three places — this module, the JSON schema's `default`
+// keywords, and the Blender compiler's constants — and the one that rots is the one
+// nothing runs. These two assertions pin the pair that can be compared in-process;
+// the Blender integration suite asserts the third.
+{
+  const schema = JSON.parse(readFileSync(
+    resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+    'utf8',
+  ))
+  const worldSchema = schema.$defs.world
+  check(
+    'the schema documents the same world defaults the contract module exports',
+    JSON.stringify(worldSchema.properties.color.default) === JSON.stringify([...DEFAULT_WORLD.color])
+      && worldSchema.properties.strength.default === DEFAULT_WORLD.strength,
+    worldSchema.properties,
+  )
+  check(
+    'the schema default for a world colour is a legal unitColor',
+    worldSchema.properties.color.default.every(channel => channel >= 0 && channel <= 1),
+    worldSchema.properties.color.default,
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Purity and open-item coverage — one valid patch per declared operation
 // ---------------------------------------------------------------------------
-
 /** One valid patch per operation name in the declared-vocabulary order. */
 const PURE_CASES = [
   { op: 'entity.transform.update', operations: [{ op: 'entity.transform.update', entityId: 'watch-dial', location: [0, 0.01, 0] }] },
@@ -771,6 +839,7 @@ const PURE_CASES = [
   { op: 'shot.remove', operations: [{ op: 'shot.remove', shotId: 'shot-turntable' }] },
   { op: 'project.frameRange.set', operations: [{ op: 'project.frameRange.set', frameStart: 5, frameEnd: 200 }] },
   { op: 'render.profile.set', operations: [{ op: 'render.profile.set', profileName: 'final', profile: { engine: 'cycles', resolution: [960, 540] } }] },
+  { op: 'world.set', operations: [{ op: 'world.set', world: { color: [0, 0, 0, 1], strength: 0 } }] },
 ]
 
 for (const pureCase of PURE_CASES) {
@@ -795,11 +864,12 @@ for (const pureCase of PURE_CASES) {
 
 check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 check(
-  'SCENE_OPERATION_NAMES lists the 20 v1 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 20
+  'SCENE_OPERATION_NAMES lists the 21 v1 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 21
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
-    && SCENE_OPERATION_NAMES[19] === 'render.profile.set',
+    && SCENE_OPERATION_NAMES[19] === 'render.profile.set'
+    && SCENE_OPERATION_NAMES[20] === 'world.set',
   SCENE_OPERATION_NAMES,
 )
 check(

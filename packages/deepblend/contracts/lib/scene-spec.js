@@ -27,11 +27,103 @@ import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'jso
 /** The one schema version this module understands. */
 export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
 
+/**
+ * What a scene with no `world` block is lit by.
+ *
+ * These numbers used to exist ONLY as literals inside the Blender compiler
+ * (`deepblend_scene.py`), which made "the background stays grey whatever the brief
+ * asks for" unreachable from a SceneSpec. They are still the default, but they are
+ * now contract: the schema declares the same values under `default`, and a test
+ * asserts the two agree, so the copies cannot drift apart silently.
+ *
+ * They are deliberately NOT materialised into the compiled spec. The scene digest
+ * is taken over the compiled document, so filling in `world: {...}` for a scene that
+ * never mentioned it would change the digest of every revision ever recorded and
+ * the store would look corrupt against its own manifests.
+ */
+export const DEFAULT_WORLD = Object.freeze({
+  color: Object.freeze([0.02, 0.021, 0.026, 1]),
+  strength: 0.6,
+})
+
 /** `id` grammar, mirrored from the schema so semantic messages can name it. */
 const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
 
-/** Render engines the spec vocabulary allows. */
-export const SCENE_ENGINES = Object.freeze(['eevee', 'cycles', 'workbench'])
+/**
+ * What an animation track can be pointed at.
+ *
+ * `entity` is the default and the only kind that existed before: an animation could
+ * only move generated geometry, so "the camera orbits the product" had to be faked
+ * by rotating the product instead, and "the dial lights up" had to be faked by
+ * scaling emissive geometry instead of ramping a material.
+ */
+export const ANIMATION_TARGET_KINDS = Object.freeze(['entity', 'camera', 'material'])
+
+/** Transform channels, shared by every target that has a `transform`. */
+export const TRANSFORM_ANIMATION_PROPERTIES = Object.freeze([
+  'location.x', 'location.y', 'location.z',
+  'rotationEuler.x', 'rotationEuler.y', 'rotationEuler.z',
+  'scale.x', 'scale.y', 'scale.z',
+])
+
+/**
+ * Material parameters that can be ramped.
+ *
+ * These are the same names `material.parameter.update` takes, so a reader has one
+ * vocabulary rather than two. Which Blender socket each one addresses is the
+ * compiler's business (`PRINCIPLED_SOCKETS`).
+ */
+export const MATERIAL_ANIMATION_PROPERTIES = Object.freeze([
+  'emissionStrength', 'roughness', 'metallic', 'ior', 'alpha', 'coatWeight', 'transmissionWeight',
+  'baseColor.r', 'baseColor.g', 'baseColor.b',
+  'emissionColor.r', 'emissionColor.g', 'emissionColor.b',
+])
+
+/** The property vocabulary, per target kind. */
+export const ANIMATION_PROPERTIES_BY_KIND = Object.freeze({
+  entity: TRANSFORM_ANIMATION_PROPERTIES,
+  camera: TRANSFORM_ANIMATION_PROPERTIES,
+  material: MATERIAL_ANIMATION_PROPERTIES,
+})
+
+/**
+ * Which collection an animation track's `targetKind` resolves against.
+ *
+ * ONE definition of the branch. The patch transaction and `validateSceneSpec` each
+ * spelled out `entities` on their own, and they disagreed the moment kinds existed:
+ * the schema accepted a legal camera track while the transaction still resolved it
+ * against `entities` and refused the patch with a message about a missing entity.
+ * The name form exists because the validator indexes collections by key.
+ */
+export function collectionNameForKind(kind) {
+  if (kind === 'camera') return 'cameras'
+  if (kind === 'material') return 'materials'
+  return 'entities'
+}
+
+/** The entries themselves, for a caller holding the document rather than an index. */
+export function collectionForKind(spec, kind) {
+  return spec[collectionNameForKind(kind)] ?? []
+}
+
+/** Every legal `property` value, in one list, for the JSON Schema enum. */
+export const ANIMATION_PROPERTIES = Object.freeze([
+  ...TRANSFORM_ANIMATION_PROPERTIES,
+  ...MATERIAL_ANIMATION_PROPERTIES,
+])
+
+/** Material parameters that must not go negative; a negative emission is a black one. */
+const NON_NEGATIVE_MATERIAL_PROPERTIES = Object.freeze([
+  'emissionStrength', 'emissionColor.r', 'emissionColor.g', 'emissionColor.b',
+])
+
+/** Material parameters that are only meaningful inside [0, 1]. */
+const UNIT_MATERIAL_PROPERTIES = Object.freeze([
+  'roughness', 'metallic', 'alpha', 'coatWeight', 'transmissionWeight',
+  'baseColor.r', 'baseColor.g', 'baseColor.b',
+])
+
+/** Render engines the spec vocabulary allows. */export const SCENE_ENGINES = Object.freeze(['eevee', 'cycles', 'workbench'])
 
 /** Engine identifier used inside Blender, keyed by the spec's vocabulary. */
 export const BLENDER_ENGINE_BY_KEY = Object.freeze({
@@ -261,7 +353,48 @@ export function validateSceneSpec(spec) {
 
   ;(document.animationTracks ?? []).forEach((track, position) => {
     const at = `animationTracks[${position}]`
-    requiresId('entities', track.targetEntityId, `${at}.targetEntityId`, 'entity')
+    // The target kind decides WHICH collection the id resolves against — ids are
+    // unique per collection, not globally, so "watch-dial" could name an entity and
+    // a material at once and only the kind says which. Absent means `entity`, which
+    // is what every track written before kinds existed meant.
+    const kind = track.targetKind ?? 'entity'
+    requiresId(collectionNameForKind(kind), track.targetEntityId, `${at}.targetEntityId`, kind)
+
+    // A property that does not belong to the target's kind is not a typo the
+    // compiler can shrug off: `emissionStrength` on an entity, or `location.x` on a
+    // material, addresses nothing, and the track would then animate in the report
+    // while the render showed no motion at all.
+    const allowed = ANIMATION_PROPERTIES_BY_KIND[kind]
+    if (allowed !== undefined && !allowed.includes(track.property)) {
+      errors.push({
+        severity: 'error', code: 'SCENE_ANIMATION_PROPERTY_INVALID', path: `${at}.property`,
+        message:
+          `property "${track.property}" cannot be animated on a ${kind}; ` +
+          `${kind} tracks support: ${allowed.join(', ')}`,
+      })
+    }
+
+    // Ranges the schema cannot express, because they depend on WHICH parameter the
+    // property names. A negative emission strength is a black emitter and a
+    // metallic of 3 is a typo; both would otherwise compile and render silently.
+    for (const [index, keyframe] of (track.keyframes ?? []).entries()) {
+      const value = keyframe?.value
+      if (typeof value !== 'number') continue
+      const path = `${at}.keyframes[${index}].value`
+      if (kind === 'material' && NON_NEGATIVE_MATERIAL_PROPERTIES.includes(track.property) && value < 0) {
+        errors.push({
+          severity: 'error', code: 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE', path,
+          message: `"${track.property}" cannot be negative, but keyframe ${index} is ${value}`,
+        })
+      }
+      if (kind === 'material' && UNIT_MATERIAL_PROPERTIES.includes(track.property) && (value < 0 || value > 1)) {
+        errors.push({
+          severity: 'error', code: 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE', path,
+          message: `"${track.property}" must be within [0, 1], but keyframe ${index} is ${value}`,
+        })
+      }
+    }
+
     const frames = track.keyframes.map(keyframe => keyframe.frame)
     for (let index = 1; index < frames.length; index += 1) {
       if (frames[index] <= frames[index - 1]) {
@@ -566,6 +699,11 @@ export function sceneProjection(spec) {
     shots: spec.shots ?? [],
     animationTracks: spec.animationTracks ?? [],
     renderProfiles: spec.renderProfiles ?? {},
+    // ABSENCE IS PRESERVED, for the same reason `applyPatchToSpec` preserves it: a
+    // scene that never mentions a world must keep the digest it was recorded with.
+    // `world: spec.world ?? null` here would silently re-digest every revision in
+    // every store.
+    ...(spec.world === undefined ? {} : { world: spec.world }),
   }
 }
 
@@ -722,6 +860,10 @@ export function summarizeSceneSpec(document, context = {}) {
     })),
     animationTracks: tracks.map(track => ({
       id: track.id,
+      // Only when the document states one. Materialising `targetKind: 'entity'` for a
+      // track written before kinds existed would make the summary disagree with the
+      // bytes on disk, which is the same trap the world block avoids.
+      ...(track.targetKind === undefined ? {} : { targetKind: track.targetKind }),
       targetEntityId: track.targetEntityId,
       property: track.property,
       keyframeCount: track.keyframes.length,
@@ -731,6 +873,15 @@ export function summarizeSceneSpec(document, context = {}) {
       ],
     })),
     renderProfiles: spec.renderProfiles,
+    // The world the render will actually use, with the schema's defaults filled in
+    // for a scene that never stated one. `declared` says whether the author asked
+    // for it, because "black because I said so" and "black because that is the
+    // default" are different facts about a scene.
+    world: {
+      declared: spec.world !== undefined,
+      color: spec.world?.color ?? DEFAULT_WORLD.color,
+      strength: spec.world?.strength ?? DEFAULT_WORLD.strength,
+    },
     bounds: enclosing,
     subjectBounds,
   }

@@ -17,7 +17,7 @@
  */
 
 import { compileSchema, formatIssues } from './json-schema.js'
-import { sceneSpecDigest, specHash } from './scene-spec.js'
+import { collectionForKind, sceneSpecDigest, specHash } from './scene-spec.js'
 import scenePatchSchema from './schemas/scene-patch.schema.json' with { type: 'json' }
 
 const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patch.schema.json' })
@@ -44,10 +44,10 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'shot.remove',
   'project.frameRange.set',
   'render.profile.set',
+  'world.set',
 ])
 
-/** The `id` grammar shared with SceneSpec. */
-const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
+/** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
 
 /**
  * @typedef {object} PatchIssue
@@ -617,8 +617,18 @@ export function applyPatchToSpec(spec, patch) {
 
       // ---- animation ------------------------------------------------------
       case 'animation.track.set': {
-        if (indexOfId(next.entities, operation.track.targetEntityId) < 0) {
-          fail('PATCH_REFERENCE_MISSING', `animation track "${operation.track.id}" targets entity "${operation.track.targetEntityId}", which does not exist`)
+        // The target's collection comes from `targetKind`, and this is the SECOND
+        // place that has to know the rule — `validateSceneSpec` is the other, and
+        // the compiler is the third. They disagreed the moment kinds existed: the
+        // schema accepted a camera track and this branch still resolved it against
+        // `entities`, so a legal patch was refused with a message about a missing
+        // entity. Resolution goes through one helper for exactly that reason.
+        const kind = operation.track.targetKind ?? 'entity'
+        if (indexOfId(collectionForKind(next, kind), operation.track.targetEntityId) < 0) {
+          fail(
+            'PATCH_REFERENCE_MISSING',
+            `animation track "${operation.track.id}" targets ${kind} "${operation.track.targetEntityId}", which does not exist`,
+          )
         }
         const replacing = indexOfId(next.animationTracks, operation.track.id) >= 0
         next.animationTracks = upsertById(next.animationTracks, operation.track)
@@ -626,7 +636,8 @@ export function applyPatchToSpec(spec, patch) {
           op,
           target: operation.track.id,
           summary: `${replacing ? 'replaced' : 'added'} animation track "${operation.track.id}" ` +
-            `(${operation.track.property}, ${operation.track.keyframes.length} keyframes)`,
+            `(${kind} ${operation.track.targetEntityId}, ${operation.track.property}, ` +
+            `${operation.track.keyframes.length} keyframes)`,
           changedPaths: [`animationTracks.${operation.track.id}`],
         })
         break
@@ -731,6 +742,23 @@ export function applyPatchToSpec(spec, patch) {
             : `updated the ${operation.profileName} render profile` +
               `${operation.profile.resolution === undefined ? ' (kept its resolution)' : ` (${resolution.join('x')})`}`,
           changedPaths: [`renderProfiles.${operation.profileName}`],
+        })
+        break
+      }
+
+      case 'world.set': {
+        // The world REPLACES rather than merges, matching how a caller thinks about
+        // "make the background black": a half-updated world is how the hidden grey
+        // constant survived this long in the first place.
+        const previous = next.world
+        next.world = { ...operation.world }
+        applied.push({
+          op,
+          target: 'world',
+          summary: previous === undefined
+            ? `set the scene world (color ${JSON.stringify(next.world.color)}, strength ${next.world.strength ?? 'default'})`
+            : 'replaced the scene world',
+          changedPaths: ['world'],
         })
         break
       }

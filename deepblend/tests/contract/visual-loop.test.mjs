@@ -73,6 +73,19 @@ function view(overrides = {}) {
     bbox: overrides.bbox ?? [0.25, 0.25, 0.75, 0.75],
     centroid: overrides.centroid ?? [0.5, 0.5],
     inFrame: overrides.inFrame ?? true,
+    // Only when the caller asks for it: a subject with no region luminance is the older
+    // measurement shape, and exposure then falls back to the frame.
+    ...(overrides.subjectLuminance === undefined ? {} : {
+      luminance: {
+        mean: overrides.subjectLuminance,
+        median: overrides.subjectLuminance,
+        p05: overrides.subjectLuminance * 0.6,
+        p95: overrides.subjectLuminance * 1.3,
+        clippedDarkFraction: overrides.subjectClippedDark ?? 0,
+        clippedBrightFraction: overrides.subjectClippedBright ?? 0,
+        pixels: 5000,
+      },
+    }),
   }
   return {
     viewId: overrides.viewId ?? 'active-camera',
@@ -176,6 +189,39 @@ check('a dark frame with clipped shadows is MORE severe than one that is merely 
   ])
 check('a normally lit frame produces no exposure finding',
   scoreView(view({ mean: 0.45 })).issues.length === 0)
+
+// ---- exposure is the PRODUCT's exposure, not the background's ---------------
+//
+// A product brief asks for a black background — it is the ordinary way to photograph a
+// product, and SPEC.md:150 asks for exactly that. The frame's mean luminance then sits
+// near zero however well the product is lit. Judging the frame reported a correctly lit
+// watch as FRAME_UNDEREXPOSED and scored it 82; worse, the repair loop accepts only
+// patches that RAISE the score, so it would have lightened the background to "fix" a
+// scene that already matched the brief.
+
+check('a correctly lit product on a black background is NOT reported as underexposed',
+  scoreView(view({ mean: 0.03, clippedDark: 0.55, subjectLuminance: 0.46 })).issues.length === 0,
+  scoreView(view({ mean: 0.03, clippedDark: 0.55, subjectLuminance: 0.46 })).issues.map(issue => issue.code))
+
+check('the finding says which measurement it used, so the two cannot be confused',
+  scoreView(view({ mean: 0.08, clippedDark: 0.12 })).issues[0].measurements.measuredOn === 'frame' &&
+  scoreView(view({ mean: 0.03, clippedDark: 0.55, subjectLuminance: 0.02 })).issues[0]
+    .measurements.measuredOn === 'subject',
+  scoreView(view({ mean: 0.08, clippedDark: 0.12 })).issues[0].measurements)
+
+check('a genuinely dark SUBJECT is still reported, and names the subject',
+  (() => {
+    const scored = scoreView(view({ mean: 0.03, clippedDark: 0.55, subjectLuminance: 0.02 }))
+    return scored.issues.length === 1
+      && scored.issues[0].code === 'FRAME_UNDEREXPOSED'
+      && scored.issues[0].objectId === 'subject'
+  })(),
+  scoreView(view({ mean: 0.03, clippedDark: 0.55, subjectLuminance: 0.02 })).issues[0])
+
+check('a blown-out product is reported even when the frame mean looks unremarkable',
+  scoreView(view({ mean: 0.45, subjectLuminance: 0.99, subjectClippedBright: 0.4 }))
+    .issues[0]?.code === 'FRAME_OVEREXPOSED',
+  scoreView(view({ mean: 0.45, subjectLuminance: 0.99, subjectClippedBright: 0.4 })).issues.map(issue => issue.code))
 
 // ---- the review-level score ------------------------------------------------
 

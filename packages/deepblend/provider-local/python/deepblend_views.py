@@ -359,6 +359,30 @@ def _measure_object(scene, luminance, object_id, tracked, parts, index, guard, v
     entry["visibleFraction"] = round(min(1.0, agrees), 6)
     entry["occludedFraction"] = round(max(0.0, 1.0 - min(1.0, agrees)), 6)
     entry["occludedBy"] = behind
+
+    # The exposure of THIS object's own pixels, measured over its silhouette.
+    #
+    # The frame's mean luminance cannot judge a product shot: a brief that asks for a
+    # black background — the ordinary way to photograph a product — drives the frame
+    # mean down, and a scorer reading only the frame reports a correctly lit subject as
+    # `FRAME_UNDEREXPOSED`. That is not cosmetic: the repair loop accepts only patches
+    # that RAISE the score, so it would have brightened the background to "fix" a scene
+    # that was already right.
+    #
+    # The silhouette is used rather than the visible region because the visible region
+    # is counted by ray casting and has no mask; for a subject standing in front of its
+    # own background the two are nearly the same set of pixels.
+    region = luminance[mask > 0]
+    if region.size > 0:
+        entry["luminance"] = {
+            "mean": round(float(region.mean()), 6),
+            "median": round(float(np.median(region)), 6),
+            "p05": round(float(np.percentile(region, 5)), 6),
+            "p95": round(float(np.percentile(region, 95)), 6),
+            "clippedDarkFraction": round(float(np.count_nonzero(region <= 0.02)) / float(region.size), 6),
+            "clippedBrightFraction": round(float(np.count_nonzero(region >= 0.98)) / float(region.size), 6),
+            "pixels": int(region.size),
+        }
     return entry
 
 

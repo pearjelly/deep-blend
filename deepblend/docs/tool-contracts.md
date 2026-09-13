@@ -81,6 +81,41 @@
 在加入这个操作之前，改一个标签只能重建项目——与 `role` 当初的处境一模一样。
 空数组**删除**该键，而不是存 `tags: []`：未声明只有一种表示。
 
+### 关于 `world.set`（第 21 个操作）
+
+背景在此之前**不是可表达的**：World 是编译器里的字面量常量，`world.set` 之前没有任何操作
+碰得到它，于是「黑色背景」只能靠一块背景板绕过去——而那块板子自己也会被灯光照亮成中灰
+（实测 (96,96,104)）。`world.set` 取代整个 `world` 块而不是合并，理由和 `role` 一样：
+**半更新正是这种隐藏常量能活这么久的原因**。
+
+`world` 的缺省值写在 schema 的 `default` 里，且**不进编译结果**——scene digest 是对编译后
+文档取的，给从没提过 world 的场景补上默认值会改掉每一个已记录 revision 的 digest，
+store 会看起来与自己的 manifest 不一致。
+
+### 关于 `animation.track.set` 的 `targetKind`
+
+`targetKind` 是可选字段（`entity` | `camera` | `material`，缺省 `entity`），目标 id 仍写在
+`targetEntityId` 里。**字段名没有改**：r0001–r0023 都用它，而 revision 不可变，
+改名会让整个 store 读不出来。resolve 的集合由 kind 决定——id 只在**集合内**唯一，
+所以 `watch-dial` 可以同时是一个实体和一个材质，只有 kind 说得清是哪个。
+
+| kind | 可动属性 | 落到哪里 |
+|---|---|---|
+| `entity`（缺省） | `location` / `rotationEuler` / `scale` 各分量 | 实体对象 |
+| `camera` | 同上 | 相机对象——「镜头环绕产品」由此可表达 |
+| `material` | `emissionStrength` / `roughness` / `metallic` / `ior` / `alpha` / `coatWeight` / `transmissionWeight` / `baseColor.r/g/b` / `emissionColor.r/g/b` | 材质表面节点的 socket |
+
+材质属性名与 `material.parameter.update` **同一套**。语义层拒绝 kind 与属性不匹配的组合
+（`emissionStrength` 放在实体上、`location.x` 放在材质上都会静默地什么都不动），
+并补上 schema 表达不了的取值域：负的 `emissionStrength` 是纯黑发光体。
+
+### 视觉审查采几帧
+
+有动画轨道的场景，`buildViewPlan` 采 **4 帧**（含首尾、均匀铺开，**不取关键帧**）：
+线性轨道的关键帧正好是对称件看不出问题的地方。主视角逐帧渲染，其余视角保持同一帧以便
+互相比较。曝光判的是**主体自己像素**的亮度，不是整帧——黑底产品照的帧均值天然贴近 0，
+判整帧会把一个符合需求的场景报成欠曝，而修复循环只接受提高分数的补丁（决策 D47）。
+
 ### `blender_visual_autofix`
 
 Host 拥有的修复循环：渲染 → 测量 → 问模型 → 提交 patch → 重新渲染 → 重新测量 →
