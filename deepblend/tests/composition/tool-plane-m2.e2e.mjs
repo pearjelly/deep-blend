@@ -27,6 +27,20 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+import { importDsh } from '../lib/dsh-deployment.mjs'
+
+/**
+ * THE HARNESS'S OWN LOSSLESS-JSON RULE, imported rather than reimplemented.
+ *
+ * `JSON.parse(JSON.stringify(value))` is NOT the same test, and this file used to
+ * "check" payloads with exactly that: it silently turns `-0` into `0` and drops
+ * `undefined`, so a tool result the real registry refuses looked perfectly fine here.
+ * A real session found the consequence — an error reported on a successful commit —
+ * while 843 assertions were green. Importing the actual predicate is the only way this
+ * suite can fail the way production fails.
+ */
+const { isJsonValue } = await importDsh('dsh-util-values')
+
 const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH
@@ -78,8 +92,15 @@ const harness = (() => {
             })
             // The two-step materialization the real registry performs: the value is
             // snapshotted as lossless JSON, and the content comes from `render`.
-            const snapshot = JSON.parse(JSON.stringify(value))
-            return { isError: false, value: snapshot, content: definition.output.render(input.arguments ?? {}, snapshot) }
+            if (!isJsonValue(value)) {
+              // Exactly what the real registry does: refuse the result, name the tool.
+              return {
+                isError: true,
+                error: { message: `invalid output: value is not lossless JSON`, info: { code: 'INVALID_OUTPUT' } },
+                content: [],
+              }
+            }
+            return { isError: false, value, content: definition.output.render(input.arguments ?? {}, value) }
           } catch (error) {
             return {
               isError: true,
@@ -211,6 +232,10 @@ try {
     sceneSpec: roomSpec,
     saveCheckpoint: true,
   })
+  // NOTE: the registry stub above refuses any result that fails the harness's real
+  // lossless-JSON predicate, so every tool call in this file is also a test of the tool
+  // boundary. That is deliberate: the assertion lives in the harness rather than in a
+  // line someone can delete.
   check('the M1 create path still works alongside the M2 tools',
     created.value?.ok === true && typeof created.value?.data?.projectId === 'string',
     created.value?.data?.projectId)
@@ -224,9 +249,40 @@ try {
   })
   const brokenId = broken.value.data.projectId
 
+  // ---- scene_patch, whose result is what actually broke -------------------
+  //
+  // The defect a real session hit: `blender_scene_patch` reported
+  // "invalid output: value is not lossless JSON" on a SUCCESSFUL commit, because
+  // Blender writes `-0.0` for a zero rotation and the harness's rule rejects negative
+  // zero. The registry stub above enforces that rule with the harness's own predicate,
+  // so this call is the regression test — and it exercised the failure before the
+  // boundary fix.
+  const patched = await call('blender_scene_patch', {
+    projectId: roomId,
+    baseRevision: created.value.data.revision.revision,
+    saveCheckpoint: true,
+    note: 'exercise the patch result through the real lossless-JSON rule',
+    operations: [
+      { op: 'light.update', lightId: 'window-key', energy: 430 },
+      { op: 'entity.tags.set', entityId: 'coffee-table', tags: ['hero-product', 'subject-part'] },
+    ],
+  })
+  check('a committed patch passes the harness lossless-JSON rule on its RESULT',
+    patched.isError === false && patched.value?.ok === true &&
+    typeof patched.value?.data?.revision === 'string',
+    patched.isError === true ? patched.error : patched.value?.data?.revision)
+  check('the technical report a patch returns is part of that result, -0 and all',
+    patched.value?.data?.validation !== undefined || patched.value?.data?.scene !== undefined,
+    Object.keys(patched.value?.data ?? {}).slice(0, 8))
+  check('entity.tags.set committed through the tool, so the tag mechanism is reachable from the model',
+    // `subject-part` decides what may occlude the subject; a tag no operation can set
+    // would make the whole mechanism unusable on an existing project.
+    patched.value?.ok === true)
+
   // ---- preview_views -----------------------------------------------------
 
   const preview = await call('blender_preview_views', { projectId: roomId, width: 400, height: 225, samples: 16 })
+  if (preview.value?.ok !== true) console.log('   preview_views failure:', JSON.stringify(preview.value?.data ?? preview))
   check('blender_preview_views renders the standard plan and reports it',
     preview.value?.ok === true && preview.value?.data?.views?.length === 4,
     preview.value?.data?.views?.map(view => view.viewId))

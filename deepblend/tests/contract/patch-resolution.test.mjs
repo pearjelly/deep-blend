@@ -42,17 +42,26 @@ import { dirname, join } from 'node:path'
 
 import {
   CAMERA_UPDATE_FIELDS,
+  SUBJECT_PART_TAG,
+  subjectParts as subjectPartsOf,
+  trackedObjects,
   applyPatchToSpec,
   buildViewPlan,
   compileSceneSpec,
   resolveSubject,
   resolveSubjectId,
   sceneSpecDigest,
+  scoreReview,
   summarizeSceneSpec,
   validateScenePatch,
   validateSceneSpec,
 } from '@deepblend/dsh-blender-contracts'
 import { readFile } from 'node:fs/promises'
+
+import { importDsh } from '../lib/dsh-deployment.mjs'
+
+// The harness's own predicate, not a reimplementation of it.
+const { isJsonValue } = await importDsh('dsh-util-values')
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..', '..', '..')
@@ -401,6 +410,182 @@ for (const generator of [
     { validator: asFields([...CAMERA_UPDATE_FIELDS]), schema: updateFields })
   check('role is in that shared set, so it is settable by both operations',
     addFields.includes('role') && updateFields.includes('role'))
+}
+
+// ---------------------------------------------------------------------------
+// 6c. A result must survive the harness's lossless-JSON rule
+// ---------------------------------------------------------------------------
+
+{
+  // THE DEFECT THIS CATCHES, in the words of the session that hit it: "both
+  // blender_scene_patch calls returned `invalid output: value is not lossless JSON`,
+  // but both commits landed."
+  //
+  // The harness's rule (`dsh-util-values`) rejects `undefined`, non-finite numbers AND
+  // NEGATIVE ZERO. Blender's Python writes `-0.0` for a rotation that is exactly zero,
+  // Node parses it as `-0`, and JSON.stringify(-0) is "0" — so a number that means the
+  // same thing on both sides makes the round trip "lossy" and the whole call is refused.
+  // Reproduced before the fix at
+  // `data.validation.cameraParameters[1].rotationEuler[1] = -0`.
+  //
+  // Why 843 assertions missed it: this suite's own snapshot used
+  // `JSON.parse(JSON.stringify(x))`, which NORMALIZES -0 to 0. A check that is weaker
+  // than the thing it checks cannot fail.
+
+  check('the predicate really does reject -0 (so the tests below mean something)',
+    !isJsonValue(-0) && isJsonValue(0) && !isJsonValue(NaN) && !isJsonValue(undefined))
+
+  const { losslessJson } = await import('../../../packages/deepblend/tool/lib/shared.js')
+
+  check('a payload carrying -0 from Blender is rejected by the raw rule',
+    !isJsonValue({ validation: { cameraParameters: [{ rotationEuler: [0, -0, 0] }] } }))
+
+  const cleaned = losslessJson({ validation: { cameraParameters: [{ rotationEuler: [0, -0, 0] }] } })
+  check('the boundary turns it into something the harness accepts',
+    isJsonValue(cleaned.value), cleaned.value)
+  check('and -0 becomes 0, which is the same number and loses nothing',
+    Object.is(cleaned.value.validation.cameraParameters[0].rotationEuler[1], 0) &&
+    !Object.is(cleaned.value.validation.cameraParameters[0].rotationEuler[1], -0))
+  check('-0 alone is not reported as a repair, because nothing was lost',
+    cleaned.repairs.length === 0, cleaned.repairs)
+
+  const withRubbish = losslessJson({ ok: true, missing: undefined, broken: NaN, huge: Infinity, fine: 3 })
+  check('undefined keys are dropped and counted, not silently swallowed',
+    isJsonValue(withRubbish.value) && withRubbish.value.missing === undefined &&
+    withRubbish.repairs.some(repair => repair.kind === 'undefined' && repair.path === 'missing'),
+    withRubbish.repairs)
+  check('a non-finite number is replaced AND reported, because it means something computed nothing',
+    withRubbish.value.broken === null && withRubbish.value.huge === null &&
+    withRubbish.repairs.filter(repair => repair.kind !== 'undefined').length === 2,
+    withRubbish.repairs)
+
+  // The value that actually broke it, taken from the real project's stored technical
+  // report: a camera rotation of exactly zero, written by Blender as -0.0.
+  const realShape = {
+    projectId: 'watch-commercial',
+    revision: 'r0018',
+    validation: { cameraParameters: [
+      { id: 'camera-main', rotationEuler: [-0, 1.5708, -0] },
+      { id: 'camera-top', rotationEuler: [0, -0, -0] },
+    ] },
+    scene: { bounds: { min: [-0.2426, -0.2426, -0], max: [0.2426, 0.2426, 0] } },
+  }
+  check('the real failing payload is now lossless',
+    !isJsonValue(realShape) && isJsonValue(losslessJson(realShape).value))
+}
+
+// ---------------------------------------------------------------------------
+// 6d. A product's own parts are not obstructions, and an absent part is a defect
+// ---------------------------------------------------------------------------
+
+{
+  // The two readings that were inverted on a real watch:
+  //   r0015  the dial sat INSIDE the case, invisible in every view  -> scored 100
+  //   r0017  the dial stood proud and covers 56% of the case        -> scored  90
+  // The measurement was right both times; the interpretation was backwards, because
+  // nothing could say "this dial IS the watch".
+  const aView = (objects, overrides = {}) => ({
+    viewId: overrides.viewId ?? 'active-camera',
+    metrics: {
+      width: 400, height: 225,
+      luminance: {
+        mean: overrides.mean ?? 0.45, median: 0.45, p05: 0.15, p95: 0.75, stdDev: 0.2,
+        clippedDarkFraction: 0.01, clippedBrightFraction: 0.01, histogram: new Array(64).fill(10),
+      },
+      objects,
+    },
+  })
+  const body = (overrides = {}) => ({
+    id: 'watch-body', viewId: 'active-camera',
+    visiblePixels: 5000, silhouettePixels: 5000, visibleFraction: 1, occludedFraction: 0,
+    frameCoverage: 0.25, silhouetteCoverage: 0.25, bbox: [0.25, 0.25, 0.75, 0.75],
+    centroid: [0.5, 0.5], inFrame: true, occludedBy: [], part: false, ...overrides,
+  })
+  const dial = (overrides = {}) => ({
+    id: 'watch-dial', viewId: 'active-camera',
+    visiblePixels: 3000, silhouettePixels: 3000, visibleFraction: 1, occludedFraction: 0,
+    frameCoverage: 0.12, silhouetteCoverage: 0.12, bbox: [0.3, 0.3, 0.7, 0.7],
+    centroid: [0.5, 0.5], inFrame: true, occludedBy: [], part: true, ...overrides,
+  })
+
+  // r0017: the dial is in front of the case. The renderer excludes part-hits from the
+  // case's occlusion count, so the case reads as fully visible — which is the truth.
+  const proud = scoreReview([aView([body(), dial()])], { subjectId: 'watch-body' })
+  check('a correct watch whose dial stands proud of its case is NOT reported as occluded',
+    proud.issues.length === 0 && proud.score === 100, { score: proud.score, issues: proud.issues.map(i => i.code) })
+
+  // r0015: the dial is buried. The case is fully visible (nothing is in front of it),
+  // so the OLD rule had nothing to say — and the watch had no face.
+  const buried = scoreReview([
+    aView([
+      body(),
+      dial({ visiblePixels: 0, visibleFraction: 0, occludedFraction: 1, occludedBy: [{ entityId: 'watch-body', samples: 300, fraction: 1 }] }),
+    ]),
+  ], { subjectId: 'watch-body' })
+  check('a watch whose dial is buried invisibly inside the case FAILS the review',
+    buried.score < 90, { score: buried.score, issues: buried.issues.map(i => `${i.code}/${i.severity}`) })
+  check('and the finding names the component that is missing, as a declared part',
+    buried.issues.some(issue => issue.code === 'SUBJECT_PART_HIDDEN' && issue.objectId === 'watch-dial'),
+    buried.issues.map(issue => `${issue.code}:${issue.objectId}`))
+  check('a completely absent component is critical, not merely major',
+    buried.issues.find(issue => issue.code === 'SUBJECT_PART_HIDDEN').severity === 'critical')
+  check('the evidence names what it is behind, which is what a fix needs',
+    /behind "watch-body"/.test(buried.issues.find(issue => issue.code === 'SUBJECT_PART_HIDDEN').evidence),
+    buried.issues.find(issue => issue.code === 'SUBJECT_PART_HIDDEN').evidence)
+
+  check('the ranking between the two is now the right way round',
+    buried.score < proud.score, { correctWatch: proud.score, facelessWatch: buried.score })
+
+  // A part that merely faces away from ONE camera is not a defect. A watch dial is on
+  // the front face: the top-down view cannot see it, and neither can a view from behind.
+  // The bar is "visible in at least one view", which is the weakest statement that is
+  // still true of a component that is genuinely missing.
+  const topside = [
+    aView([body(), dial({ visibleFraction: 0, visiblePixels: 0, occludedBy: [{ entityId: 'watch-body', samples: 300, fraction: 1 }] })], { viewId: 'top' }),
+    aView([body(), dial({ visibleFraction: 0.9, visiblePixels: 2700 })], { viewId: 'active-camera' }),
+  ]
+  check('a component visible in ONE view is not reported as missing, even if other views cannot see it',
+    scoreReview(topside, { subjectId: 'watch-body' }).issues.length === 0,
+    scoreReview(topside, { subjectId: 'watch-body' }).issues.map(i => `${i.code}:${i.viewId}`))
+  const everywhereHidden = [
+    aView([body(), dial({ visibleFraction: 0, visiblePixels: 0 })], { viewId: 'top' }),
+    aView([body(), dial({ visibleFraction: 0.05, visiblePixels: 150 })], { viewId: 'active-camera' }),
+  ]
+  const absent = scoreReview(everywhereHidden, { subjectId: 'watch-body' })
+  check('a component invisible in every view is reported exactly once for the whole review',
+    absent.issues.filter(issue => issue.code === 'SUBJECT_PART_HIDDEN').length === 1,
+    absent.issues.map(issue => `${issue.code}:${issue.viewId}`))
+  check('and it is critical, because a required component is not in the shot at all',
+    absent.issues.find(issue => issue.code === 'SUBJECT_PART_HIDDEN').severity === 'critical')
+
+  // A part too small on screen cannot be judged present or absent.
+  check('a component too small to judge is not reported as missing',
+    scoreReview([aView([body(), dial({ silhouettePixels: 40, visiblePixels: 0, visibleFraction: 0 })])], { subjectId: 'watch-body' }).issues.length === 0)
+
+  // THE INTERIOR ROOM MUST STILL FAIL: the screen is not part of the table.
+  const room = scoreReview([
+    aView([
+      { ...body(), id: 'coffee-table', visiblePixels: 2000, visibleFraction: 0.55, occludedFraction: 0.45, occludedBy: [{ entityId: 'screen', samples: 90, fraction: 0.45 }], part: false },
+      { ...dial(), id: 'screen', part: false },
+    ]),
+  ], { subjectId: 'coffee-table' })
+  check('an untagged obstruction in front of the subject is STILL reported',
+    room.issues.some(issue => issue.code === 'SUBJECT_OCCLUDED' && issue.objectId === 'coffee-table'),
+    room.issues.map(issue => `${issue.code}:${issue.objectId}`))
+  check('and its evidence names the obstruction and offers the tag as the remedy',
+    /mostly behind "screen"/.test(room.issues.find(issue => issue.code === 'SUBJECT_OCCLUDED').evidence) &&
+    new RegExp(SUBJECT_PART_TAG).test(room.issues.find(issue => issue.code === 'SUBJECT_OCCLUDED').evidence),
+    room.issues.find(issue => issue.code === 'SUBJECT_OCCLUDED').evidence)
+
+  // The tag is what declares a part, and it is carried by the fixture.
+  const spec = JSON.parse(await readFile(join(ROOT, 'deepblend', 'fixtures', 'product-turntable', 'scene-spec.json'), 'utf8'))
+  const compiled = compileSceneSpec(spec).spec
+  check('the shipped fixture declares its product parts, so the example shows the mechanism',
+    JSON.stringify(subjectPartsOf(compiled)) === JSON.stringify(['watch-crown', 'watch-dial']),
+    subjectPartsOf(compiled))
+  check('declared parts are tracked even when they are too small to rank',
+    trackedObjects(compiled, 'watch-body').includes('watch-crown'),
+    trackedObjects(compiled, 'watch-body'))
 }
 
 // ---------------------------------------------------------------------------

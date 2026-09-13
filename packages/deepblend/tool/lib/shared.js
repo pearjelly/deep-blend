@@ -267,6 +267,124 @@ export function definedFields(object) {
 }
 
 /**
+ * Make a tool result acceptable to the harness's lossless-JSON rule.
+ *
+ * WHY THIS EXISTS, AND WHY IT IS NOT TIDINESS
+ * -------------------------------------------
+ * The harness snapshots every tool result with a rule STRICTER than JSON's
+ * (`dsh-util-values`' `walkJsonValue`): a value is rejected when it is `undefined`,
+ * non-finite, or **negative zero**:
+ *
+ *     if (!Number.isFinite(current) || Object.is(current, -0)) return undefined
+ *
+ * That last clause is the one that bit. Blender's Python writes `-0.0` for a rotation
+ * that is exactly zero, Node parses it back as `-0`, and `JSON.stringify(-0)` is
+ * `"0"` — so a number that means the same thing on both sides makes the round trip
+ * "lossy" and the whole call is refused with
+ * `invalid output: value is not lossless JSON`.
+ *
+ * It surfaced as an error reported on a SUCCESSFUL commit, which is the worst place
+ * for one: the revision had landed, the model was told the call failed, and the
+ * message named neither the value nor the field. Reproduced end to end before this
+ * fix, in the technical report a patch returns:
+ * `data.validation.cameraParameters[1].rotationEuler[1] = -0`.
+ *
+ * The three cases are treated differently ON PURPOSE:
+ *
+ *   - `-0` becomes `0`. They are the same number; IEEE says so, and only `1/x`
+ *     distinguishes them. This loses nothing.
+ *   - `undefined` keys are dropped, and counted. JSON has no representation for them,
+ *     and a producer that emits one has a bug worth surfacing.
+ *   - non-finite numbers become `null`, and are counted. They are NOT silently
+ *     acceptable: a NaN here means something upstream computed nothing, which is how
+ *     a scene summary once carried `null` bounds without anyone noticing.
+ *
+ * Repairs are returned rather than swallowed, so the tool can tell the caller. A
+ * sanitizer nobody can see is indistinguishable from data corruption.
+ *
+ * @param {unknown} value
+ * @returns {{ value: unknown, repairs: { path: string, kind: string }[] }}
+ */
+export function losslessJson(value) {
+  const repairs = []
+  const walk = (input, path) => {
+    if (input === undefined) {
+      repairs.push({ path, kind: 'undefined' })
+      return undefined
+    }
+    if (typeof input === 'number') {
+      if (Object.is(input, -0)) {
+        // Silent by design (see above), but still recorded: a flood of these means a
+        // producer is doing arithmetic that produces negative zero.
+        return 0
+      }
+      if (!Number.isFinite(input)) {
+        repairs.push({ path, kind: Number.isNaN(input) ? 'nan' : 'infinite' })
+        return null
+      }
+      return input
+    }
+    if (input === null || typeof input !== 'object') return input
+    if (Array.isArray(input)) return input.map((entry, index) => walk(entry, `${path}[${index}]`))
+    const output = {}
+    for (const key of Object.keys(input)) {
+      const walked = walk(input[key], path ? `${path}.${key}` : key)
+      if (walked !== undefined) output[key] = walked
+    }
+    return output
+  }
+  return { value: walk(value, ''), repairs }
+}
+
+/**
+ * Prepare a tool's canonical payload for the harness, and describe what had to change.
+ *
+ * Every tool's success path goes through this, for the same reason every tool's input
+ * goes through {@link definedFields}: the boundary owns what it emits. A tool builds
+ * its payload out of numbers it did not compute — Blender's rotations, Python's
+ * `-0.0` — and the harness refuses the whole result over one of them.
+ *
+ * @param {unknown} data
+ * @param {(code: string, message: string, detail?: unknown) => object} warning - the
+ *   caller's warning builder, so this module does not need to import one.
+ * @returns {{ data: unknown, warnings: object[] }}
+ */
+export function canonicalData(data, warning) {
+  const { value, repairs } = losslessJson(data)
+  if (repairs.length === 0) return { data: value, warnings: [] }
+  const kinds = [...new Set(repairs.map(repair => repair.kind))]
+  return {
+    data: value,
+    warnings: [
+      warning(
+        'VALUE_NOT_REPRESENTABLE',
+        `${repairs.length} value(s) in this result had no JSON representation and were replaced ` +
+          `(${kinds.join(', ')}); the first was at "${repairs[0].path}". This is a defect in whatever ` +
+          'produced the value, not in the request that returned it.',
+        { count: repairs.length, kinds, firstPath: repairs[0].path },
+      ),
+    ],
+  }
+}
+
+/**
+ * Await a host call and make its payload acceptable to the harness.
+ *
+ * The one line every tool needs between "the host answered" and "I built a result out
+ * of it", so no tool can forget it — the failure it prevents is invisible locally
+ * (`JSON.parse(JSON.stringify(x))` normalizes `-0` to `0`) and only appears against the
+ * real registry, as an error reported on a successful call.
+ *
+ * @param {Promise<unknown>} call
+ * @param {(code: string, message: string, detail?: unknown) => object} warning
+ * @returns {Promise<{ data: any, canonicalWarnings: object[] }>}
+ */
+export async function canonicalCall(call, warning) {
+  const { data, warnings } = canonicalData(await call, warning)
+  return { data, canonicalWarnings: warnings }
+}
+
+/**
  * Convert a thrown value into a BlenderError with a stable code.
  * @param {unknown} cause
  * @param {string} fallbackCode

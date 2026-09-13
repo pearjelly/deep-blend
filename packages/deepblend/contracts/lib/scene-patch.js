@@ -26,6 +26,7 @@ const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patc
 export const SCENE_OPERATION_NAMES = Object.freeze([
   'entity.transform.update',
   'entity.visibility.set',
+  'entity.tags.set',
   'entity.add',
   'entity.remove',
   'entity.material.set',
@@ -317,6 +318,38 @@ export function applyPatchToSpec(spec, patch) {
           target: entity.id,
           summary: `entity "${entity.id}" is now ${operation.visible ? 'visible' : 'hidden'}`,
           changedPaths: [`entities.${entity.id}.visible`],
+        })
+        break
+      }
+
+      case 'entity.tags.set': {
+        const at = indexOfId(next.entities, operation.entityId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no entity "${operation.entityId}" exists in this scene`)
+        const entity = next.entities[at]
+        const tags = operation.tags
+        // Tags are how a scene states intent that geometry cannot, so setting them is a
+        // real scene change and not metadata: `environment` decides what may occlude,
+        // `hero-product` marks the subject, `subject-part` says an entity is part of the
+        // subject's own body. Until this operation existed, the only way to change a tag
+        // was to recreate the project — the same gap `role` had for cameras.
+        //
+        // An EMPTY list removes the key rather than storing `tags: []`. Absent means
+        // "this entity declares no intent", and an empty array would be a second way to
+        // say the same thing — which is how two documents that mean the same thing end
+        // up serializing differently (D21, and the digest that follows from it).
+        next.entities = [...next.entities]
+        next.entities[at] = tags.length === 0
+          ? withoutKey(entity, 'tags')
+          : { ...entity, tags: [...tags] }
+        const before = Array.isArray(entity.tags) ? entity.tags : []
+        applied.push({
+          op,
+          target: entity.id,
+          summary: tags.length === 0
+            ? `entity "${entity.id}" no longer declares any tags (was ${before.join(', ') || 'none'})`
+            : `entity "${entity.id}" tags are now ${tags.join(', ')}` +
+              (before.length > 0 ? ` (were ${before.join(', ')})` : ''),
+          changedPaths: [`entities.${entity.id}.tags`],
         })
         break
       }

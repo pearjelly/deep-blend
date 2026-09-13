@@ -48,6 +48,7 @@ import {
   toCanonicalQAReport,
   toCanonicalRevisionSummary,
   runVisualLoop,
+  subjectParts,
   trackedObjects,
   validateFindings,
   validateSceneSpec,
@@ -875,6 +876,10 @@ export default class BlenderStudio extends Service {
     const track = Array.isArray(input.track) && input.track.length > 0
       ? input.track
       : trackedObjects(spec, subjectId)
+    // Entities the scene declared part of the subject's own body. Sent to the renderer
+    // because only a ray cast can tell what is in front of the subject, and only the
+    // scene can say whether that thing IS the subject (see `_visibility`).
+    const parts = subjectParts(spec)
 
     const jobId = this.store.allocateJobId(projectId, 'render_views')
     const startedAt = new Date().toISOString()
@@ -909,6 +914,7 @@ export default class BlenderStudio extends Service {
           frame: view.frame,
         })),
         track,
+        parts,
         engine: engineInfo.blenderEngine === null ? undefined : (input.engine ?? profile.engine),
         width: input.width ?? profile.resolution?.[0],
         height: input.height ?? profile.resolution?.[1],
@@ -1009,6 +1015,7 @@ export default class BlenderStudio extends Service {
         warnings,
         job: toCanonicalJobRecord(job),
         subjectId,
+        parts,
         digest,
         profile: {
           engine: profile.engine,

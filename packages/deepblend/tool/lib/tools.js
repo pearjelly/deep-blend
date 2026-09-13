@@ -28,10 +28,11 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { SCENE_OPERATION_NAMES } from '@deepblend/dsh-blender-contracts'
+import { SCENE_OPERATION_NAMES, BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
 
 import {
   TOOL_OUTPUT,
+  canonicalCall,
   definedFields,
   describeRevision,
   renderFailure,
@@ -134,7 +135,7 @@ function projectCreate(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.createProject({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.createProject({
           ...definedFields({
             title: args.title,
             goal: args.goal,
@@ -144,7 +145,7 @@ function projectCreate(ctx) {
           }),
           renderPreview: args.renderPreview === true,
           signal: exec.signal,
-        })
+        }), warning)
         const notes = [
           `Project:  ${data.projectId}  "${data.title}"`,
           `Revision: ${describeRevision(data.revision)}`,
@@ -162,7 +163,7 @@ function projectCreate(ctx) {
           ok: true,
           text: renderSuccess(`Created project "${data.projectId}" at revision ${data.revision.revision}.`, data, {
             notes,
-            warnings: [],
+            warnings: canonicalWarnings,
           }),
           data,
         }
@@ -204,7 +205,9 @@ function projectGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.getProject(args.projectId, definedFields({ revision: args.revision }))
+        const { data, canonicalWarnings } = await canonicalCall(
+          resolved.studio.getProject(args.projectId, definedFields({ revision: args.revision })), warning,
+        )
         const scene = data.scene ?? {}
         const notes = [
           `Project:  ${data.projectId}  "${data.title}"`,
@@ -228,7 +231,7 @@ function projectGet(ctx) {
         }
         return {
           ok: true,
-          text: renderSuccess(`Project "${data.projectId}" at ${data.currentRevision}.`, data, { notes }),
+          text: renderSuccess(`Project "${data.projectId}" at ${data.currentRevision}.`, data, { notes, warnings: canonicalWarnings }),
           data,
         }
       } catch (cause) {
@@ -268,10 +271,10 @@ function sceneGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.getScene(args.projectId, {
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
           ...definedFields({ revision: args.revision }),
           full: args.full === true,
-        })
+        }), warning)
         const counts = data.counts ?? {}
         const notes = [
           `Revision ${data.revision}${data.isCurrent ? ' (current)' : ' (NOT current — patches against it will be refused)'}`,
@@ -320,7 +323,7 @@ function sceneGet(ctx) {
         if (data.checkpoint !== null) notes.push(`Checkpoint: ${data.checkpoint}`)
         return {
           ok: true,
-          text: renderSuccess(`Scene ${data.revision} of project "${args.projectId}".`, data, { notes }),
+          text: renderSuccess(`Scene ${data.revision} of project "${args.projectId}".`, data, { notes, warnings: canonicalWarnings }),
           data,
         }
       } catch (cause) {
@@ -343,6 +346,7 @@ function sceneGet(ctx) {
 const OPERATION_SUMMARY = [
   'entity.transform.update      {entityId, location?, rotationEuler?, scale?}  — only supplied components change',
   'entity.visibility.set        {entityId, visible}',
+  'entity.tags.set              {entityId, tags}                                    — replaces the whole tag list; [] clears it',
   'entity.add                   {entity}                                       — full entity object',
   'entity.remove                {entityId}',
   'entity.material.set          {entityId, materialId|null}                    — null restores the default material',
@@ -443,7 +447,7 @@ function scenePatch(ctx) {
         // `note: undefined` puts an own `note` key on the patch document, and the
         // host's schema validation rejects that as a wrong TYPE. A correct call
         // with an omitted optional argument was being refused for exactly this.
-        const data = await resolved.studio.applyScenePatch({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.applyScenePatch({
           ...definedFields({
             projectId: args.projectId,
             baseRevision: args.baseRevision,
@@ -456,7 +460,7 @@ function scenePatch(ctx) {
           }),
           renderPreview: args.renderPreview === true,
           signal: exec.signal,
-        })
+        }), warning)
         const notes = [
           `Revision: ${describeRevision(data)}`,
           `Digest:   ${data.revision ? data.revision : data.digest}`,
@@ -485,7 +489,7 @@ function scenePatch(ctx) {
           text: renderSuccess(
             `${data.idempotentReplay === true ? 'Reused' : 'Committed'} revision ${data.revision}.`,
             data,
-            { notes, warnings: data.warnings },
+            { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] },
           ),
           data,
         }
@@ -544,7 +548,7 @@ function previewRender(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.renderPreview({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderPreview({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -555,7 +559,7 @@ function previewRender(ctx) {
             height: args.height,
           }),
           signal: exec.signal,
-        })
+        }), warning)
         const notes = [
           `Revision: ${data.revision}`,
           `Engine:   ${data.profile?.blenderEngine ?? data.profile?.engine}`,
@@ -571,7 +575,7 @@ function previewRender(ctx) {
         notes.push('The path is relative to the project directory. Open it to see what the scene actually looks like.')
         return {
           ok: true,
-          text: renderSuccess(`Rendered a preview of ${data.revision}.`, data, { notes, warnings: data.warnings }),
+          text: renderSuccess(`Rendered a preview of ${data.revision}.`, data, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
           data,
         }
       } catch (cause) {
@@ -620,12 +624,12 @@ function sceneValidate(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.validateScene({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.validateScene({
           projectId: args.projectId,
           revision: args.revision,
           patch: args.patch === undefined ? undefined : { projectId: args.projectId, ...args.patch },
           signal: exec.signal,
-        })
+        }), warning)
         const notes = [
           `Revision: ${data.revision}`,
           `Result:   ${data.ok ? 'VALID' : `INVALID — ${data.errorCount} error(s)`}`,
@@ -664,7 +668,7 @@ function sceneValidate(ctx) {
               ? `Revision ${data.revision} validates.`
               : `Revision ${data.revision} has ${data.errorCount} error(s).`,
             data,
-            { notes },
+            { notes, warnings: canonicalWarnings },
           ),
           data,
         }

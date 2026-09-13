@@ -45,6 +45,44 @@ export const VISUAL_ISSUE_CATEGORIES = Object.freeze([
   'occlusion',
 ])
 
+/**
+ * The tag that says "this entity is part of the subject's own body".
+ *
+ * WHY THIS TAG HAS TO EXIST
+ * -------------------------
+ * A real watch exposed the limit of measuring occlusion without it. The dial stands
+ * proud of the case, so the dial covers 56% of the case's silhouette — and every view
+ * reported the case as occluded by its own face, scoring a CORRECT watch 10 points
+ * below a watch whose dial was buried invisibly inside the case. Both readings were
+ * arithmetically right and the ranking between them was backwards.
+ *
+ * The measurement cannot tell a product's own face from a wall: the two are the same
+ * geometry. So the scene has to say it, exactly as `environment` says "this is
+ * backdrop, not a participant". With this tag:
+ *
+ *   - a part in front of the subject is not an obstruction (it IS the subject);
+ *   - a part that is itself invisible IS a defect, because a required component
+ *     that cannot be seen is missing from the shot.
+ *
+ * `environment` and `subject-part` are the two ends of one axis — backdrop, body,
+ * and (untagged) everything that can genuinely stand in the way.
+ */
+export const SUBJECT_PART_TAG = 'subject-part'
+
+/**
+ * Whether a measurement entry belongs to the subject's own body.
+ *
+ * Read from the measurement, not from the spec: the renderer knows which entities the
+ * scene tagged and stamps each one, so the scorer never re-derives scene semantics
+ * from a document it was not given.
+ *
+ * @param {object} object - one object entry from a view's measurements.
+ * @returns {boolean}
+ */
+export function isSubjectPart(object) {
+  return object?.part === true
+}
+
 /** Severity vocabulary, ordered by how much a finding is allowed to deduct. */
 export const VISUAL_SEVERITIES = Object.freeze(['minor', 'major', 'critical'])
 
@@ -66,8 +104,21 @@ const CENTERED_TOLERANCE = 0.10
 const CENTERED_MAX = 0.40
 /** Below this visible fraction of its own silhouette, a subject is materially hidden. */
 const OCCLUSION_MIN_VISIBLE = 0.75
+/**
+ * The same floor for an entity the scene declared part of the subject's own body.
+ *
+ * Lower on purpose. A product's parts are EXPECTED to overlap each other and the body
+ * they sit on — a bezel around a dial, a crown against a case — so 0.75 would fire on
+ * every correctly assembled object. What is not expected is a declared component that
+ * is substantially or entirely absent, which is the defect this catches.
+ */
+const PART_VISIBLE_FLOOR = 0.5
+/** Below this, a declared component is effectively not in the shot at all. */
+const PART_VISIBLE_ABSENT = 0.15
 /** Below this, it is effectively not in the shot. */
 const OCCLUSION_CRITICAL_VISIBLE = 0.35
+/** A declared part smaller than this on screen cannot be judged present or absent. */
+const PART_SILHOUETTE_MIN_PIXELS = 200
 /** Mean display luminance band. Below the floor, the frame reads dark; above the
  *  ceiling, it reads washed out. Both are measured luminance, not exposure stops. */
 const LUMINANCE_MIN = 0.18
@@ -174,6 +225,11 @@ export function scoreView(view, options = {}) {
     if (occlusion !== null) add(occlusion)
   }
 
+  // Declared components are NOT judged per view. A watch dial faces the viewer in three
+  // of four standard views and is legitimately invisible in the top-down one, so a
+  // per-view rule reports geometry as a defect. `scoreReview` judges them across the
+  // whole review instead, where "invisible" can mean "invisible everywhere".
+
   // One bad view should not be hidden by averaging it against good ones: the sheet
   // is reviewed as a set, and the set is as good as its worst framing.
   return { score: Math.max(0, Math.min(100, score)), issues }
@@ -201,7 +257,63 @@ export function scoreReview(views, options = {}) {
     issues.push(...scored.issues)
     if (scored.score < worst) worst = scored.score
   }
-  return { score: worst, issues, perView }
+
+  // ---- declared components, judged across the whole review ------------------
+  //
+  // THE GAP THIS CLOSES, in the words of the session that found it: a review "scored
+  // 100/100 while the render shows no face at all, because the scorer has no metric for
+  // a required component being completely hidden". The 36 mm dial sat entirely INSIDE
+  // the case, measured 0.0 visible pixels in every view, and nothing looked at it —
+  // because only the subject was judged, and the subject (the case) was framed fine.
+  //
+  // The bar is deliberately the weakest defensible one: a component has to be visible
+  // in AT LEAST ONE view. Anything stronger reports a part that merely faces away from
+  // one camera, and over-reporting is how a scorer stops being believed.
+  const best = new Map()
+  for (const view of views) {
+    for (const object of view.metrics?.objects ?? []) {
+      if (!isSubjectPart(object)) continue
+      if (object.id === options.subjectId) continue
+      const current = best.get(object.id)
+      if (current === undefined || numberOr(object.visibleFraction, 1) > current.visibleFraction) {
+        best.set(object.id, { object, visibleFraction: numberOr(object.visibleFraction, 1), viewId: view.viewId })
+      }
+    }
+  }
+
+  let reviewDeduction = 0
+  for (const [objectId, entry] of best) {
+    if (numberOr(entry.object.silhouettePixels, 0) < PART_SILHOUETTE_MIN_PIXELS) continue
+    if (entry.visibleFraction >= PART_VISIBLE_ABSENT) continue
+    const behind = Array.isArray(entry.object.occludedBy) ? entry.object.occludedBy : []
+    const culprit = behind.length > 0 ? `, behind "${behind[0].entityId}"` : ''
+    const issue = buildIssue({
+      category: 'occlusion',
+      code: 'SUBJECT_PART_HIDDEN',
+      severity: 'critical',
+      viewId: entry.viewId,
+      objectId,
+      evidence:
+        `"${objectId}" is declared part of the subject, and the most visible it gets in any of the ` +
+        `${views.length} views is ${format(entry.visibleFraction)}${culprit} — a required component of the ` +
+        'product is not in the shot',
+      measurements: {
+        bestVisibleFraction: round(entry.visibleFraction),
+        viewsChecked: views.length,
+        silhouettePixels: numberOr(entry.object.silhouettePixels, 0),
+        ...behind.length > 0 ? { occludedBy: behind[0].entityId } : {},
+      },
+      buckets: [quantise(entry.visibleFraction, [PART_VISIBLE_ABSENT], ['absent', 'present'])],
+    })
+    issues.push(issue)
+    reviewDeduction += SEVERITY_POINTS[issue.severity]
+  }
+
+  return {
+    score: Math.max(0, Math.min(100, worst - reviewDeduction)),
+    issues,
+    perView,
+  }
 }
 
 /**
@@ -375,6 +487,15 @@ function assessOcclusion(object) {
 
   const severity = visible < OCCLUSION_CRITICAL_VISIBLE ? 'critical' : 'major'
   const covered = 1 - visible
+  const behind = Array.isArray(object.occludedBy) ? object.occludedBy : []
+  const culprit = behind.length > 0 ? `, mostly behind "${behind[0].entityId}"` : ''
+  // The remedy is stated when it is knowable, because the alternative is a reader
+  // concluding the score is wrong — which is exactly what happened on a real watch
+  // whose own face covers its case.
+  const hint = behind.length > 0
+    ? ` If "${behind[0].entityId}" is part of the same object rather than something standing in the way, ` +
+      `tag it "${SUBJECT_PART_TAG}" and it stops counting as an obstruction.`
+    : ''
   return buildIssue({
     category: 'occlusion',
     code: 'SUBJECT_OCCLUDED',
@@ -383,12 +504,13 @@ function assessOcclusion(object) {
     objectId: object.id,
     evidence:
       `only ${format(visible)} of "${object.id}"'s own silhouette survives in this view ` +
-      `(${format(covered)} is hidden), against a ${OCCLUSION_MIN_VISIBLE} visibility floor`,
+      `(${format(covered)} is hidden)${culprit}, against a ${OCCLUSION_MIN_VISIBLE} visibility floor.${hint}`,
     measurements: {
       visibleFraction: round(visible),
       occludedFraction: round(covered),
       silhouettePixels: silhouette,
       visiblePixels: numberOr(object.visiblePixels, 0),
+      ...behind.length > 0 ? { occludedBy: behind[0].entityId, occludedByFraction: behind[0].fraction } : {},
     },
     buckets: [
       quantise(visible, [OCCLUSION_CRITICAL_VISIBLE, OCCLUSION_MIN_VISIBLE], ['hidden', 'partlyHidden', 'visible']),

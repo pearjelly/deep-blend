@@ -354,6 +354,48 @@ check(
   hidden.result.operations[0].changedPaths,
 )
 
+// ---- entity.tags.set ----------------------------------------------------
+//
+// The operation exists because tags are LOAD-BEARING, not metadata: `environment`
+// decides what may occlude the subject, `hero-product` marks it, and `subject-part`
+// says an entity is part of the subject's own body. Until this existed, a mistagged
+// scene could only be fixed by recreating the project — the same gap `role` had.
+const tagged = applied('entity.tags.set', [
+  { op: 'entity.tags.set', entityId: 'watch-body', tags: ['hero-product', 'subject-part'] },
+])
+check(
+  'entity.tags.set replaces the whole tag list',
+  JSON.stringify(entity(tagged.next, 'watch-body').tags) === JSON.stringify(['hero-product', 'subject-part']),
+  entity(tagged.next, 'watch-body').tags,
+)
+check(
+  'entity.tags.set records the tags path and reports what it replaced',
+  JSON.stringify(tagged.result.operations[0].changedPaths) === JSON.stringify(['entities.watch-body.tags'])
+    && /were/.test(tagged.result.operations[0].summary),
+  tagged.result.operations[0].summary,
+)
+check(
+  'entity.tags.set touches exactly one entity and leaves the rest byte-identical',
+  JSON.stringify(tagged.next.entities.filter(candidate => candidate.id !== 'watch-body'))
+  === JSON.stringify(compiledFixture().entities.filter(candidate => candidate.id !== 'watch-body')),
+  tagged.next.entities.map(candidate => candidate.id),
+)
+
+const untagged = applied('entity.tags.set with an empty list', [
+  { op: 'entity.tags.set', entityId: 'watch-body', tags: [] },
+])
+check(
+  'an empty tag list REMOVES the key rather than storing tags: []',
+  // Absent means "declares no intent"; an empty array would be a second way to say the
+  // same thing, and two documents that mean the same thing must serialize identically
+  // (D21, and the digest that follows from it).
+  untagged.next.entities.find(candidate => candidate.id === 'watch-body').tags === undefined
+    && !Object.prototype.hasOwnProperty.call(
+      untagged.next.entities.find(candidate => candidate.id === 'watch-body'), 'tags',
+    ),
+  untagged.next.entities.find(candidate => candidate.id === 'watch-body'),
+)
+
 // ---- entity.add / entity.remove -----------------------------------------
 const added = applied('entity.add', [{
   op: 'entity.add',
@@ -753,10 +795,11 @@ for (const pureCase of PURE_CASES) {
 
 check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 check(
-  'SCENE_OPERATION_NAMES lists the 19 v1 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 19
+  'SCENE_OPERATION_NAMES lists the 20 v1 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 20
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
-    && SCENE_OPERATION_NAMES[18] === 'render.profile.set',
+    && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
+    && SCENE_OPERATION_NAMES[19] === 'render.profile.set',
   SCENE_OPERATION_NAMES,
 )
 check(
@@ -777,6 +820,7 @@ check(
 const FAILURE_CASES = [
   { label: 'entity.transform.update against a missing entity', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'entity.transform.update', entityId: 'ghost', location: [0, 0, 0] }] },
   { label: 'entity.visibility.set against a missing entity', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'entity.visibility.set', entityId: 'ghost', visible: false }] },
+  { label: 'entity.tags.set against a missing entity', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'entity.tags.set', entityId: 'ghost', tags: ['x'] }] },
   { label: 'entity.remove of a missing entity', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'entity.remove', entityId: 'ghost' }] },
   { label: 'entity.remove of an entity a camera targets', code: 'PATCH_TARGET_IN_USE', operations: [{ op: 'entity.remove', entityId: 'watch-body' }] },
   { label: 'entity.remove of an entity an animation track targets', code: 'PATCH_TARGET_IN_USE', operations: [{ op: 'entity.remove', entityId: 'watch-dial' }] },

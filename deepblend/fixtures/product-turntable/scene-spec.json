@@ -171,7 +171,8 @@
       },
       "tags": [
         "hero-product",
-        "detail"
+        "detail",
+        "subject-part"
       ],
       "locked": false
     },
@@ -204,7 +205,8 @@
       },
       "tags": [
         "hero-product",
-        "detail"
+        "detail",
+        "subject-part"
       ],
       "locked": false
     }

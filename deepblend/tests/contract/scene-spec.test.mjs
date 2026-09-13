@@ -66,8 +66,8 @@ const FIXTURE_PATH = resolve(
  * reviewer can name. Without roles the plan has to fall back to camera-id labels,
  * which is honest but is not what the product wants to teach.
  */
-const FIXTURE_DIGEST = 'ec92577fce87896d151bfb11c59520f1f1f5194ec74af4e238e763fd679f08f3'
-const FIXTURE_COMPILED_DIGEST = 'a9cff78996d47a6edb3de9939782141158cc273f7390015ba340d703fcf879c2'
+const FIXTURE_DIGEST = '5e56f6e1fbe608cc8ca74823792f71bf8bc2b1a1865066d56a0df6a4a6da7305'
+const FIXTURE_COMPILED_DIGEST = '32b4a1da5de821637adc3fdbcc8cea7fb053bf5c70d1573c179cf6cb24ec61a4'
 
 // ---------------------------------------------------------------------------
 // Harness — a `results` array, `[PASS]`/`[FAIL]` lines, a summary, and a

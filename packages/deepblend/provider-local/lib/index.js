@@ -785,6 +785,8 @@ export default class LocalBlenderRuntime extends Service {
    * @param {string} request.checkpointPath - absolute path to the `.blend`.
    * @param {object[]} request.views - `{ id, role?, cameraId?, frame? }`, in reading order.
    * @param {string[]} [request.track] - object ids to measure by isolation.
+   * @param {string[]} [request.parts] - object ids that are part of the subject's own
+   *   body, so a ray reaching them has reached the subject rather than been blocked.
    * @param {string} [request.engine] - SceneSpec engine key.
    * @param {number} [request.width]
    * @param {number} [request.height]
@@ -829,6 +831,9 @@ export default class LocalBlenderRuntime extends Service {
             height: request.height,
             samples: request.samples,
             track: Array.isArray(request.track) ? request.track : [],
+            // Entities that are part of the subject's own body rather than things in
+            // front of it. The renderer needs them to decide what counts as occlusion.
+            parts: Array.isArray(request.parts) ? request.parts : [],
             views: views.map(view => ({
               id: view.id,
               role: view.role ?? null,

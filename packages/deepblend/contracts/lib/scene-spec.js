@@ -471,10 +471,30 @@ function defaultEnergyFor(type) {
  * compilation reproducible.
  */
 function boundsOf(entity) {
-  const location = entity.transform.location
-  const scale = entity.transform.scale
+  return { location: [...entity.transform.location], radius: entityBoundingRadius(entity) }
+}
+
+/**
+ * How big an entity is, as one bounding radius, from its generator footprint.
+ *
+ * ONE DEFINITION, TWO CONSUMERS. The camera aiming uses it to decide where to stand,
+ * and the visual review uses it to rank which entities are big enough to matter. Those
+ * need to agree: a scene where the camera frames "the big thing" and the review tracks
+ * "the big thing" and the two disagree is a scene with two half-answers.
+ *
+ * They did disagree, and it cost a real project its subject. The review had its own
+ * `entityVolume` that dispatched on which FIELDS were present rather than on `shape`,
+ * so a cylinder — which has both `radius` and `depth` — matched the radius branch first
+ * and was scored as a SPHERE. A 36 mm watch dial then outranked the 44 mm case it sits
+ * in, and the review scored the dial as the subject of the shot.
+ *
+ * @param {object} entity
+ * @returns {number}
+ */
+export function entityBoundingRadius(entity) {
+  const scale = entity?.transform?.scale ?? [1, 1, 1]
   let radius = 1
-  const generator = entity.generator
+  const generator = entity?.generator
   if (generator !== undefined) {
     switch (generator.shape) {
       case 'cube': radius = (generator.size / 2) * Math.sqrt(3); break
@@ -487,8 +507,7 @@ function boundsOf(entity) {
       default: radius = 1
     }
   }
-  const scaled = radius * Math.max(Math.abs(scale[0]), Math.abs(scale[1]), Math.abs(scale[2]))
-  return { location: [...location], radius: scaled }
+  return radius * Math.max(Math.abs(scale[0]), Math.abs(scale[1]), Math.abs(scale[2]))
 }
 
 /** Fill in an identity transform for every component the author omitted. */

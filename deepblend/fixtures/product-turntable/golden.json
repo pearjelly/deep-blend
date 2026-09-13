@@ -4,7 +4,7 @@
   "specPath": "scene-spec.json",
   "purpose": "The M1 acceptance fixture (SPEC §2.8/§19.5, §20 M1 '产品转台 Fixture'): one deterministic product-turntable scene that exercises generators, materials, three-point lighting, a targeted camera, a 360° animation track and both render profiles.",
   "structural": {
-    "digest": "a9cff78996d47a6edb3de9939782141158cc273f7390015ba340d703fcf879c2",
+    "digest": "32b4a1da5de821637adc3fdbcc8cea7fb053bf5c70d1573c179cf6cb24ec61a4",
     "digestNote": "sha256 of the canonical SceneSpec projection (project.goal and project.title excluded). Asserted so any accidental fixture edit is a visible test failure rather than a quietly different golden scene. Updated once, deliberately, in M2: the two cameras gained explicit roles so the shipped example is one whose views a reviewer can name.",
     "entityCount": 4,
     "materialCount": 4,
@@ -28,7 +28,11 @@
       "camera-main": "active-camera",
       "camera-top": "top"
     },
-    "activeCameraNote": "project.activeCamera names camera-main, so the active view is a property of the project rather than of camera array order — which storage sorts alphabetically."
+    "activeCameraNote": "project.activeCamera names camera-main, so the active view is a property of the project rather than of camera array order — which storage sorts alphabetically.",
+    "subjectParts": [
+      "watch-crown",
+      "watch-dial"
+    ]
   },
   "blender": {
     "expectedObjectCount": 9,

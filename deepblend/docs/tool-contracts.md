@@ -74,6 +74,13 @@
 **审查器失败不会让整次 review 失败**：渲染、测量、sheet、分数都还在，只是少了第二意见，
 失败原因进 `reviewer.error` 与 warnings。
 
+### 关于 `entity.tags.set`（第 20 个操作）
+
+标签不是元数据而是**语义**：`environment` 决定谁可以遮挡主体，`hero-product` 标记主体，
+`subject-part` 声明某个实体是**主体自身的一部分**而不是挡在它前面的东西。
+在加入这个操作之前，改一个标签只能重建项目——与 `role` 当初的处境一模一样。
+空数组**删除**该键，而不是存 `tags: []`：未声明只有一种表示。
+
 ### `blender_visual_autofix`
 
 Host 拥有的修复循环：渲染 → 测量 → 问模型 → 提交 patch → 重新渲染 → 重新测量 →
@@ -347,7 +354,8 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | 每个长任务返回 `jobId` | 所有 Blender 动作写 `jobs/<id>.json`，结果里带 `job` |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
-| 不接受任意 Python | 只接受 19 个固定操作名，无脚本入口 |
+| 不接受任意 Python | 只接受 20 个固定操作名，无脚本入口 |
+| 结果必须**可无损表示** | 工具边界把 `-0` 归一为 `0`，丢 `undefined`、换非有限数并报告 |
 | 不接受任意 Shell | 全部经 `ctx.subprocess` 的 argv 数组 |
 | 不写入项目工作区之外 | `paths.js` 的 `resolveInside()` 在 realpath 上强制 |
 

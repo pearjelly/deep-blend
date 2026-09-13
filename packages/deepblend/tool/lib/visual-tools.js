@@ -41,9 +41,12 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
+import { BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
+
 import {
   TOOL_OUTPUT,
   TOOL_OUTPUT_WITH_IMAGE,
+  canonicalCall,
   definedFields,
   describeRevision,
   persistImage,
@@ -115,7 +118,7 @@ function previewViews(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.renderViews({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderViews({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -126,7 +129,7 @@ function previewViews(ctx) {
             samples: args.samples,
           }),
           signal: exec.signal,
-        })
+        }), warning)
         const scored = resolved.studio.scoreVisualViews({ views: data.views, subjectId: data.subjectId })
         const notes = [
           `Revision: ${data.revision}`,
@@ -149,7 +152,7 @@ function previewViews(ctx) {
         notes.push('model sees on the contact sheet.')
         return {
           ok: true,
-          text: renderSuccess(`Rendered ${data.views.length} view(s) of ${data.revision}.`, { ...data, score: scored.score, issues: scored.issues }, { notes, warnings: data.warnings }),
+          text: renderSuccess(`Rendered ${data.views.length} view(s) of ${data.revision}.`, { ...data, score: scored.score, issues: scored.issues }, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
           data: { ...data, score: scored.score, issues: scored.issues, sheet },
         }
       } catch (cause) {
@@ -200,7 +203,7 @@ function visualReview(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable, image: null }
       try {
-        const data = await resolved.studio.visualReview({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.visualReview({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -211,7 +214,7 @@ function visualReview(ctx) {
           }),
           consultReviewer: true,
           signal: exec.signal,
-        })
+        }), warning)
 
         const sheetPath = data.sheetArtifact?.path
         const bytes = await resolved.studio.readSheetPng(args.projectId, data)
@@ -272,7 +275,7 @@ function visualReview(ctx) {
 
         return {
           ok: true,
-          text: renderSuccess(`Visual review of ${data.revision}: ${data.score}/100.`, data, { notes, warnings: data.warnings }),
+          text: renderSuccess(`Visual review of ${data.revision}: ${data.score}/100.`, data, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
           data,
           image: persisted.image,
         }
@@ -322,7 +325,7 @@ function visualAutofix(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const data = await resolved.studio.visualLoop({
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.visualLoop({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -330,7 +333,7 @@ function visualAutofix(ctx) {
             minConfidenceForAutoFix: args.minConfidenceForAutoFix,
           }),
           signal: exec.signal,
-        })
+        }), warning)
         const notes = [
           `Score:    ${data.startScore} -> ${data.finalScore}  (${data.passed ? 'PASSES' : 'still below the threshold'})`,
           `Revision: ${data.startRevision} -> ${data.finalRevision}`,
@@ -375,7 +378,7 @@ function visualAutofix(ctx) {
               ? `Visual repair reached ${data.finalScore}/100 on ${data.finalRevision}.`
               : `Visual repair stopped at ${data.finalScore}/100 on ${data.finalRevision}; it needs a human decision.`,
             data,
-            { notes },
+            { notes, warnings: canonicalWarnings },
           ),
           data,
         }

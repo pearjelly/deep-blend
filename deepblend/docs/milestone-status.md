@@ -5,6 +5,7 @@
 > 已完成：**M1（Batch SceneSpec MVP）— ✅ 验收通过**
 > 已完成：**M2（视觉闭环）— ✅ 验收通过**
 > 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
+> 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
 > 下一里程碑：M3（Job、恢复与正式渲染，未开始，按 SPEC §0.3 不得提前进入）
 
 ---
@@ -181,19 +182,100 @@ M0 的 `no per-invocation temp directories left behind` 护栏变红，抓到的
 
 ---
 
-## 4. 测试：843 项断言全部通过
+## 3C. M2.2：评分器把对错判反了
+
+M2.1 修完后，用户又在同一个项目上跑了一次真实审查（会话 `49f3a04f`）。
+这一轮发现的不是崩溃，而是**评分器给出的排序是反的**：
+
+| revision | 几何 | 当时的分数 | 事实 |
+|---|---|---|---|
+| r0015 | 表盘**整个埋在表壳里**，四个视角全是 0 可见像素 | **100** | 一块没有表盘的手表通过了 |
+| r0017 | 表盘正确凸出，遮住表壳 56% 的轮廓 | **90** | 正确的手表被扣了 10 分 |
+
+两次的**测量都是对的**，是解释反了。三条决策见 `architecture-decisions.md` 的 D39–D41。
+
+### 3C.1 一个「不可能失败」的检查：`-0`
+
+会话原话：*"both `blender_scene_patch` calls returned `invalid output: value is not
+lossless JSON`, but both commits landed."*
+
+根因与 M2.1 修的 NaN **无关**，是独立的一条：harness 的 lossless 规则拒绝
+`NaN`、`undefined` **和 `-0`**。Blender 的 Python 对恰好为 0 的旋转写 `-0.0`，
+Node 读回 `-0`，而 `JSON.stringify(-0)` 是 `"0"` —— 同一个数在往返中"有损"，整次调用被拒。
+修复前在真实项目上复现到确切字段：
+
+```
+data.validation.cameraParameters[1].rotationEuler[1] = -0
+```
+
+**为什么 843 项断言看不见**：本项目测试替身的快照是
+`JSON.parse(JSON.stringify(value))`，而它**会把 `-0` 归一成 `0`**。
+**一个比被测对象更弱的检查永远不会失败。** 所以现在测试替身改为
+**导入 harness 自己的 `isJsonValue`**（按绝对路径加载运行中的部署），
+`tool-plane-m2` 里每一次工具调用都因此成为一道真实的边界检查。
+
+### 3C.2 产品的零件不是障碍物
+
+遮挡规则原本默认「有东西在主体前面＝坏事」，但真实产品**就是由零件组成的**。
+测量分不清「产品自己的表面」和「一堵墙」——它们是同样的几何。所以由场景声明：
+新增标签 **`subject-part`**（与 `environment` 同一条轴的两端）。
+射线打到目标**或它的零件**都算到达本体；而声明为零件、**在所有视角都看不见**的实体
+是 `SUBJECT_PART_HIDDEN`（critical）。
+
+判据刻意取**最弱可辩护的那一条**：「至少在一个视角可见」。
+更强的规则会把「表盘背对俯视相机」这种正常几何报成缺陷，而过度报警的评分器会失去可信度。
+
+### 3C.3 一个尺寸定义，两个消费者
+
+排序用的 `entityVolume` 按**字段是否存在**分派而不是按 `shape`，
+于是圆柱（同时有 `radius` 与 `depth`）先命中 radius 分支、被当成**球**算体积：
+36mm 表盘排到 44mm 表壳之前，**成为"最大的 hero 实体"也就是镜头的主体**。
+现在统一到 `entityBoundingRadius()`——相机取景早就用的那个定义——
+并且从「体积」改为「包围半径」：一个很薄的大隔断体积很小却能挡住一切。
+
+### 3C.4 标签曾经只能读、不能写（与 `role` 同一个形状）
+
+`subject-part` 是修复的关键，但**没有任何操作能设置它**：`entity.add` 之外的标签
+只能来自创建时的 spec，改错只能重建项目。新增 **`entity.tags.set`**（第 20 个操作），
+空数组**删除**该键而不是存 `tags: []`——「未声明」只有一种表示（沿用 D21）。
+
+### 3C.5 真实项目上的验证（在**副本**上，未触碰用户 store）
+
+| revision | 几何 | 标签 | 分数 | 结论 |
+|---|---|---|---|---|
+| r0015 | 表盘埋在里面 | 无 | 100 | 旧代码看不见它（标签是**该 revision 的**事实，无法追溯） |
+| r0017 | 表盘凸出 | 无 | **90** | 假阳性：表壳被自己的表盘判为"被遮挡" |
+| r0018 | 表盘凸出 | 声明零件 | **100** | ✅ 假阳性消失（表壳可见比例 0.44 → 0.95） |
+| r0019 | 表盘埋在里面 | 声明零件 | **82** | ✅ `SUBJECT_PART_HIDDEN` critical |
+
+### 3C.6 顺手：把两个会话各自重写的量测工具收编
+
+两次审查会话都从零写了一遍「量编译后几何」的脚本，而两次都是它找到了缺陷
+（埋在壳里的表盘；被 `scale` 压成 36×2mm 薄片）。所以那份脚本收编为
+`deepblend/tools/inspect-checkpoint.py`，并注明 `depsgraph.update()` 的必要性——
+不更新依赖图读到的 `bound_box` 是**上一次**变换，那正是"看起来像测量"的错误答案。
+
+实测它对 r0017 给出 `watch-body 44×12×42mm`、`watch-dial 36×4×36mm, y=[-6.25,-2.25]`，
+与用户会话自己的测量**逐项一致**——独立复核了 r0017 的几何确实是对的。
+
+另：M0 的暂存区护栏又抓到上一会话留在 `.deepblend/tmp/` 的 `probe_dims.py`。
+护栏照旧不放宽，文件按上面的方式收编而不是删除。
+
+---
+
+## 4. 测试：874 项断言全部通过
 
 | 套件 | 文件 | 断言 |
 |---|---|---|
-| 单元 + 契约 | 12 个 `*.test.mjs` | **589** |
+| 单元 + 契约 | 12 个 `*.test.mjs` | **617** |
 | Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
 | Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 71/71 |
 | **Blender 视觉闭环（M2）** | `blender-integration/visual-loop.e2e.mjs` | **77/77** |
 | Host composition 激活 | `composition/activation.e2e.mjs` | 11/11 |
 | preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
 | preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
-| **preset M2 工具面（10 个工具 + 图片回传）** | `composition/tool-plane-m2.e2e.mjs` | **29/29** |
-| **合计** | 17 个文件、9 个套件 | **843** |
+| **preset M2 工具面（10 个工具 + 图片回传 + 真实 lossless 规则）** | `composition/tool-plane-m2.e2e.mjs` | **32/32** |
+| **合计** | 17 个文件、9 个套件 | **874** |
 
 M2.1 的 65 项是**症状级**的：每条断言写的是用户当时看到的现象
 （`digest(stored) != digest(compile(stored))`、NaN 经 JSON 变 null、
@@ -206,13 +288,13 @@ M2.1 的 65 项是**症状级**的：每条断言写的是用户当时看到的�
 没有 API key 或模型不支持图片输入时它立即失败并说明原因，而且逐字打印模型的回答，
 让人可以判断答案质量而不是只看一个绿勾。
 
-单元 + 契约的 589 项分布（M2 与 M2.1 新增）：
+单元 + 契约的 617 项分布（M2 起新增）：
 
 | 文件 | 断言 | 覆盖 |
 |---|---|---|
 | `contract/png-sheet.test.mjs` | 24 | PNG 编解码无损、Adam7 七遍重建、5 种行滤波、**每个格子装的确实是它声称的视角** |
 | `contract/visual-loop.test.mjs` | 57 | 评分规则逐条、指纹区间化、上限与重复停止、**只采纳提高的补丁**、handover |
-| `contract/patch-resolution.test.mjs` | **65** | 真实使用暴露的四个缺陷：patch 结果必须可重导出、bare generator 不得产生 NaN、主体/视角不得依赖数组顺序、`role` 必须可写且三份词汇表一致 |
+| `contract/patch-resolution.test.mjs` | **87** | 真实使用暴露的七个缺陷：patch 结果必须可重导出、bare generator 不得产生 NaN、主体/视角不得依赖数组顺序、`role` 必须可写且三份词汇表一致、`-0` 必须被边界归一、零件不是障碍物而缺失的零件是缺陷 |
 
 ---
 
@@ -397,22 +479,46 @@ preset 作用域内注册的工具**不在**它的工具目录里——`Tool.lis
 
 ## 9B. 这一次需要重启 profile
 
-M2.1 的修复全部在 **contracts / host 模块里**，而 Node 的 ESM 模块缓存是**进程级且不可清除的**
-（M0 §8.1 已记录）。所以运行中的进程（`23:04:11` 启动）**仍然是修复前的代码**：
+M2.1 与 M2.2 的修复全部在 **contracts / host / tool 模块里**，而 Node 的 ESM 模块缓存是
+**进程级且不可清除的**（M0 §8.1 已记录）。所以运行中的进程（`09:58:42` 启动）
+**仍然是修复前的代码**：
 
 ```bash
 cd /Users/hxb/workspace/deep-blend && dsh web
 ```
 
-重启后：
+重启后建议做的四件事：
 
-1. 对 `watch-commercial` 跑一次 `blender_visual_review`——**应当渲出 4 个视角**，
-   每个以相机自身 id 命名，并带一条「没有相机声明 role」的 warning；
-2. 想拿到标准四视角计划，按 warning 的提示给每台相机 patch 一个 `role`
-   （`camera.update {cameraId, role}` 现在真的能用了）；
-3. 已知的**评分器边界**（不是缺陷）：r0015 的 score 是 100，但表盘在画面里偏亮。
-   评分器量的是构图/曝光/遮挡，**看不到「表盘应该像一块屏幕」**。
-   这是 D30 的已知代价，记在 §8。
+1. **给 `watch-commercial` 声明产品零件**（这正是 r0017 被扣分的原因）：
+
+   ```
+   blender_scene_patch {
+     projectId: "watch-commercial", baseRevision: "<当前>",
+     operations: [
+       { op: "entity.tags.set", entityId: "watch-dial",  tags: ["hero-product", "detail", "subject-part"] },
+       { op: "entity.tags.set", entityId: "watch-crown", tags: ["hero-product", "detail", "subject-part"] }
+     ]
+   }
+   ```
+   之后表壳不再被自己的表盘判为「被遮挡」，而表盘若再次被藏起来会得到
+   `SUBJECT_PART_HIDDEN`（critical）。
+
+2. **给四个相机声明 role**（可选，但能让 sheet 读作 `ACTIVE`/`3Q`/`TOP`/`DETAIL`
+   而不是相机 id）：`camera.update {cameraId, role}`。
+
+3. 再跑一次 `blender_visual_review`——**工具结果里应当带图**，
+   且**不再出现** `invalid output: value is not lossless JSON`。
+
+4. 需要量几何时用收编后的工具，不要再手写一遍：
+
+   ```bash
+   .tools/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+     .deepblend/projects/watch-commercial/revisions/<rev>/scene.blend \
+     --python deepblend/tools/inspect-checkpoint.py
+   ```
+
+**已知的评分器边界**（不是缺陷，见 §8）：评分器量的是构图/曝光/遮挡/零件可见性，
+**看不到「表盘应该像一块屏幕」这类语义**。这是 D30 的已知代价。
 
 ---
 

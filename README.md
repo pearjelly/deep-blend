@@ -1,7 +1,7 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.1（视觉闭环 + 真实使用暴露的缺陷已修）**
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M2.2（视觉闭环 + 两轮真实使用暴露的缺陷已修）**
 
 ---
 
@@ -74,7 +74,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**9 个套件、17 个文件、843 项断言**全部通过。单跑某一层：
+预期：**9 个套件、17 个文件、874 项断言**全部通过。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）

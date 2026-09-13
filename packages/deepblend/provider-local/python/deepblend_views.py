@@ -104,6 +104,10 @@ def render_views(options, guard):
 
     tracked = plan.get("track")
     tracked = [str(entry) for entry in tracked] if isinstance(tracked, list) else []
+    # Entities that are part of the subject's own body rather than things standing in
+    # front of it (see `_visibility`). Authored, never inferred.
+    parts = plan.get("parts")
+    parts = set(str(entry) for entry in parts) if isinstance(parts, list) else set()
 
     report_progress("open_checkpoint", 5)
     scene = open_checkpoint(checkpoint)
@@ -134,7 +138,7 @@ def render_views(options, guard):
         for position, entry in enumerate(entries):
             base = 8.0 + (position / float(total)) * 84.0
             measurements.append(
-                _render_one(scene, entry, tracked, object_index, guard, base, scratch)
+                _render_one(scene, entry, tracked, parts, object_index, guard, base, scratch)
             )
     finally:
         _remove_tree(scratch)
@@ -147,10 +151,11 @@ def render_views(options, guard):
         "renderConfig": _render_config(scene),
         "objects": describe_objects(),
         "tracked": tracked,
+        "parts": sorted(parts),
     }
 
 
-def _render_one(scene, entry, tracked, object_index, guard, base_percent, scratch):
+def _render_one(scene, entry, tracked, parts, object_index, guard, base_percent, scratch):
     """Render one view, then measure it. Returns the view's report entry."""
     if not isinstance(entry, dict):
         raise ActionError("BLENDER_SCRIPT_ERROR", "every view in the plan must be an object")
@@ -215,12 +220,12 @@ def _render_one(scene, entry, tracked, object_index, guard, base_percent, scratc
         "cameraName": camera.name,
         "lens": round(float(camera.data.lens), 6),
         "engine": scene.render.engine,
-        "metrics": measure_view(scene, output, tracked, object_index, guard, view_id, scratch),
+        "metrics": measure_view(scene, output, tracked, parts, object_index, guard, view_id, scratch),
     }
     return entry_report
 
 
-def measure_view(scene, image_path, tracked, object_index, guard, view_id, scratch):
+def measure_view(scene, image_path, tracked, parts, object_index, guard, view_id, scratch):
     """Compute the deterministic measurements for one rendered frame.
 
     Split out from ``_render_one`` because it is the part that must be *testable
@@ -261,13 +266,13 @@ def measure_view(scene, image_path, tracked, object_index, guard, view_id, scrat
 
     for object_id in tracked:
         metrics["objects"].append(
-            _measure_object(scene, luminance, object_id, tracked, object_index, guard, view_id, scratch)
+            _measure_object(scene, luminance, object_id, tracked, parts, object_index, guard, view_id, scratch)
         )
 
     return metrics
 
 
-def _measure_object(scene, luminance, object_id, tracked, index, guard, view_id, scratch_dir):
+def _measure_object(scene, luminance, object_id, tracked, parts, index, guard, view_id, scratch_dir):
     """Measure one tracked object's visibility in this view.
 
     ``silhouettePixels`` is how large the object would be with nothing in the way;
@@ -286,6 +291,11 @@ def _measure_object(scene, luminance, object_id, tracked, index, guard, view_id,
         "bbox": None,
         "centroid": None,
         "inFrame": False,
+        "occludedBy": [],
+        # Whether the SCENE declared this entity part of the subject's own body. The
+        # measurement carries the flag so the scorer stays a pure function of the
+        # measurements and never has to re-read the spec to interpret one.
+        "part": object_id in parts,
     }
 
     target = index.get(object_id)
@@ -322,7 +332,7 @@ def _measure_object(scene, luminance, object_id, tracked, index, guard, view_id,
     entry["silhouettePixels"] = silhouette
     entry["silhouetteCoverage"] = round(float(silhouette) / float(luminance.size), 6)
 
-    visible_pixels, agrees = _visibility(scene, target, mask, tracked, index)
+    visible_pixels, agrees, behind = _visibility(scene, target, mask, tracked, index, parts)
     entry["visiblePixels"] = visible_pixels
 
     if silhouette > 0:
@@ -348,10 +358,11 @@ def _measure_object(scene, luminance, object_id, tracked, index, guard, view_id,
 
     entry["visibleFraction"] = round(min(1.0, agrees), 6)
     entry["occludedFraction"] = round(max(0.0, 1.0 - min(1.0, agrees)), 6)
+    entry["occludedBy"] = behind
     return entry
 
 
-def _visibility(scene, target, mask, tracked, index):
+def _visibility(scene, target, mask, tracked, index, parts):
     """How much of the target's silhouette is actually VISIBLE in the frame, and the ratio.
 
     WHY A RAY CAST AND NOT A MASK COMPARISON
@@ -379,31 +390,55 @@ def _visibility(scene, target, mask, tracked, index):
     a subject filling a third of a 640x360 frame would be tens of thousands of BVH
     queries in Python.
 
-    @returns {[number, number]} visible pixel count and the visible fraction.
+    WHOSE BODY IS IT
+    ---------------
+    "The nearest thing is not the target, so the target is occluded" is still too
+    simple, and a real watch showed why: a dial standing proud of its case covers 56%
+    of the case's silhouette, so every view reported the case as occluded by its own
+    dial. Arithmetically right, semantically backwards — and it scored a CORRECT watch
+    10 points below a watch whose dial was buried invisibly inside the case.
+
+    `parts` is the author's answer to "which entities are this same object". A ray that
+    lands on the target or on one of its parts has still reached the object; only
+    something outside the body can be in its way. Which entities those are is authored
+    intent (`subject-part`), for the same reason `environment` is: no measurement can
+    tell a product's own face from a wall.
+
+    @returns {(number, number, list)} visible pixel count, the visible fraction, and
+      who the rest of the silhouette is behind — most-covered first, because that is
+      the name a fix needs.
     """
     silhouette = int(np.count_nonzero(mask))
     if silhouette == 0:
-        return 0, 1.0
+        return 0, 1.0, []
 
     actors = [
         candidate for candidate in (_tracked_objects(target, tracked, index))
         if candidate is not target and not candidate.hide_render
     ]
     if not actors:
-        return silhouette, 1.0
+        return silhouette, 1.0, []
 
-    sample = _visible_samples(scene, target, mask, actors)
+    sample = _visible_samples(scene, target, mask, actors, parts)
     if sample is None:
         # No camera or no usable grid: report full visibility. That is the optimistic
         # direction and it is deliberate — an unavailable comparison must not
         # manufacture an occlusion finding that the loop would then "fix".
-        return silhouette, 1.0
+        return silhouette, 1.0, []
 
-    sampled, visible = sample
+    sampled, visible, occluders = sample
     if sampled == 0:
-        return silhouette, 1.0
+        return silhouette, 1.0, []
     fraction = float(visible) / float(sampled)
-    return int(round(fraction * silhouette)), fraction
+    behind = [
+        {
+            "entityId": entity_id,
+            "samples": count,
+            "fraction": round(count / float(sampled), 6),
+        }
+        for entity_id, count in sorted(occluders.items(), key=lambda pair: (-pair[1], pair[0]))
+    ]
+    return int(round(fraction * silhouette)), fraction, behind
 
 
 def _tracked_objects(target, tracked, index):
@@ -417,11 +452,11 @@ def _tracked_objects(target, tracked, index):
     return found
 
 
-def _visible_samples(scene, target, mask, actors):
-    """Cast one ray per sampled silhouette pixel and count how many hit the target.
+def _visible_samples(scene, target, mask, actors, parts):
+    """Cast one ray per sampled silhouette pixel and count how many reach the object.
 
-    @returns {[number, number]|null} (sampled, visible) or null when there is no
-      usable camera or the silhouette is empty.
+    @returns {(number, number, dict)|None} (sampled, visible, occluder counts) or null
+      when there is no usable camera or the silhouette is empty.
     """
     camera = scene.camera
     if camera is None or camera.type != "CAMERA":
@@ -447,8 +482,15 @@ def _visible_samples(scene, target, mask, actors):
     # linear in normalized device coordinates.
     top_right, bottom_right, bottom_left, top_left = frame
 
+    # The target plus the parts it is made of: one body, for occlusion purposes.
+    body = {id(target)}
+    for candidate in actors:
+        if candidate.get("deepblend_id") in parts:
+            body.add(id(candidate))
+
     sampled = 0
     visible = 0
+    occluders = {}
     for index in range(0, total, stride):
         row = int(rows[index])
         column = int(columns[index])
@@ -466,7 +508,7 @@ def _visible_samples(scene, target, mask, actors):
         cast = scene.ray_cast(depsgraph, origin, direction.normalized(), distance=direction.length * 1.5)
         hit = bool(cast[0])
         hit_object = cast[4] if len(cast) >= 6 else cast[3]
-        if hit and hit_object is target:
+        if hit and id(hit_object) in body:
             visible += 1
         elif not hit:
             # Nothing along the line of sight: the pixel is background, which for a
@@ -474,8 +516,14 @@ def _visible_samples(scene, target, mask, actors):
             # (a moving object, a modifier). Counting it as visible keeps the reading
             # optimistic rather than inventing an occluder from a mismatch.
             visible += 1
+        else:
+            # Something outside the body is in the way. Naming it is what turns the
+            # finding from "the subject is 44% hidden" into "the subject is 44% hidden
+            # by the partition screen" — which is the sentence a fix can act on.
+            name = hit_object.get("deepblend_id") or hit_object.name
+            occluders[str(name)] = occluders.get(str(name), 0) + 1
 
-    return sampled, visible
+    return sampled, visible, occluders
 
 
 def _bilinear(top_left, bottom_left, bottom_right, top_right, u, v):

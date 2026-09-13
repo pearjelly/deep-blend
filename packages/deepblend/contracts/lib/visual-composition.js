@@ -21,7 +21,8 @@
  */
 
 import { composeContactSheet, viewCaption } from './contact-sheet.js'
-import { scoreReview, VISUAL_REVIEW_VERSION } from './visual-issue.js'
+import { SUBJECT_PART_TAG, scoreReview, VISUAL_REVIEW_VERSION } from './visual-issue.js'
+import { entityBoundingRadius } from './scene-spec.js'
 
 /** Roles a generated view plan can contain, in reading order. */
 export const VIEW_ROLES = Object.freeze(['active-camera', 'three-quarter', 'top', 'detail'])
@@ -224,6 +225,10 @@ export function buildViewPlan(input) {
  */
 export function trackedObjects(spec, subjectId) {
   const entities = Array.isArray(spec?.entities) ? spec.entities : []
+  // Every declared PART is tracked regardless of size. The volume ranking below is a
+  // guess about what might hide the subject; a declaration is not a guess, and a small
+  // component that is missing is exactly the defect that a size ranking would skip.
+  const declared = subjectParts(spec)
   // `environment` geometry is excluded, and that is a measurement decision rather than
   // a tidiness one: the floor of a room occupies the subject's screen pixels from
   // behind, and a wall does the same from the side. Tracking them would report a
@@ -231,15 +236,32 @@ export function trackedObjects(spec, subjectId) {
   // is authored intent, so the spec's own tag decides it.
   const visible = entities.filter(entity =>
     entity.visible !== false && !(entity.tags ?? []).includes('environment'))
-  const ranked = [...visible].sort((left, right) => entityVolume(right) - entityVolume(left))
+  const ranked = [...visible].sort((left, right) => entityExtent(right) - entityExtent(left))
   const tracked = []
   if (subjectId !== null && subjectId !== undefined) tracked.push(subjectId)
+  for (const entityId of declared) {
+    if (!tracked.includes(entityId)) tracked.push(entityId)
+  }
   for (const entity of ranked) {
-    if (tracked.length >= MAX_TRACKED_OCCLUDERS + 1) break
+    if (tracked.length >= declared.length + MAX_TRACKED_OCCLUDERS + 1) break
     if (tracked.includes(entity.id)) continue
     tracked.push(entity.id)
   }
   return tracked
+}
+
+/**
+ * The entities the scene declared part of the subject's own body.
+ *
+ * @param {object} spec
+ * @returns {string[]} ids, sorted so the set is stable across storage reordering.
+ */
+export function subjectParts(spec) {
+  const entities = Array.isArray(spec?.entities) ? spec.entities : []
+  return entities
+    .filter(entity => (entity.tags ?? []).includes(SUBJECT_PART_TAG))
+    .map(entity => entity.id)
+    .sort()
 }
 
 /**
@@ -291,13 +313,13 @@ export function resolveSubject(spec) {
     return { id: tagged[0].id, source: 'it is the only entity tagged hero-product', candidates: [tagged[0].id] }
   }
 
-  const pool = tagged.length > 1 ? tagged : visible.filter(entity => entityVolume(entity) > 0)
+  const pool = tagged.length > 1 ? tagged : visible.filter(entity => entityExtent(entity) > 0)
   if (pool.length === 0) return { id: null, source: 'this scene has no entity to be the subject of', candidates: [] }
 
   // Descending volume, and the id only breaks exact ties — so two entities of equal
   // size resolve the same way on every machine and after every re-sort.
   const ranked = [...pool].sort((left, right) => {
-    const byVolume = entityVolume(right) - entityVolume(left)
+    const byVolume = entityExtent(right) - entityExtent(left)
     if (byVolume !== 0) return byVolume
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
   })
@@ -447,23 +469,24 @@ function normalizeFrame(requested, range) {
 }
 
 /**
- * A comparable size for an entity: its generator's declared extent, scaled.
+ * How big an entity is, for ranking and for measuring.
  *
- * Deliberately approximate. It only has to rank candidates for extra measurement,
- * and a precise bounding box would have to come from Blender — which is a whole
- * launch to answer a question about which of two boxes is bigger.
+ * THE SHARED DEFINITION, not a local one. This file used to compute its own volume,
+ * and that copy dispatched on which FIELDS a generator happened to have rather than on
+ * its shape — so a cylinder matched the `radius` branch and was scored as a sphere. A
+ * 36 mm watch dial then outranked the 44 mm case it sits in and became "the largest
+ * hero-tagged entity", i.e. the subject of the shot. The measurement was fine; the
+ * thing deciding what to point it at was not.
+ *
+ * `entityBoundingRadius` is the definition the camera aiming already uses, so the two
+ * agree by construction rather than by review.
+ *
+ * @param {object} entity
+ * @returns {number}
  */
-function entityVolume(entity) {
-  const scale = entity?.transform?.scale ?? [1, 1, 1]
-  const scaleFactor = Math.abs(scale[0] ?? 1) * Math.abs(scale[1] ?? 1) * Math.abs(scale[2] ?? 1)
-  if (entity?.type === 'asset-instance') return scaleFactor
-  const generator = entity?.generator ?? {}
-  const size = generator.size
-  if (Array.isArray(size) && size.length === 3) {
-    return Math.abs(size[0]) * Math.abs(size[1]) * Math.abs(size[2]) * scaleFactor
-  }
-  if (Number.isFinite(size)) return size ** 3 * scaleFactor
-  if (Number.isFinite(generator.radius)) return (4 / 3) * Math.PI * generator.radius ** 3 * scaleFactor
-  if (Number.isFinite(generator.depth)) return Math.PI * (generator.radius ?? 1) ** 2 * generator.depth * scaleFactor
-  return scaleFactor
+function entityExtent(entity) {
+  // A bounding radius, not a volume: what makes an object worth tracking is how much
+  // of the FRAME it can cover. A thin partition has almost no volume and hides
+  // everything, which is exactly the occluder this ranking must not skip.
+  return entityBoundingRadius(entity)
 }

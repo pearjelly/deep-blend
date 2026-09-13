@@ -573,6 +573,32 @@
           "additionalProperties": false,
           "required": [
             "op",
+            "entityId",
+            "tags"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.tags.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "description": "The entity's complete tag list, replacing whatever it had. Tags are how a scene states intent that geometry cannot: \"environment\" excludes backdrop from occlusion tracking, \"hero-product\" marks the subject, and \"subject-part\" says this entity is part of the subject's own body rather than something standing in front of it. An empty array removes the tags key entirely."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
             "entity"
           ],
           "properties": {
