@@ -73,8 +73,8 @@ import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './rende
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { extname, isAbsolute, join } from 'node:path'
 
 import {
   fileSha256,
@@ -88,6 +88,30 @@ import {
 
 /** Service key registered into the Cordis context. */
 export const BLENDER_STUDIO_SERVICE = 'blenderStudio'
+
+/**
+ * Content type of a project artifact, from its extension.
+ *
+ * A closed map rather than a library: the browser displays previews and reads
+ * manifests, and anything else is served as bytes so a mistake cannot become a
+ * script the UI is tricked into running.
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+export function contentTypeForArtifact(path) {
+  switch (extname(path).toLowerCase()) {
+    case '.png': return 'image/png'
+    case '.jpg':
+    case '.jpeg': return 'image/jpeg'
+    case '.webp': return 'image/webp'
+    case '.json': return 'application/json; charset=utf-8'
+    case '.txt':
+    case '.log': return 'text/plain; charset=utf-8'
+    case '.mp4': return 'video/mp4'
+    default: return 'application/octet-stream'
+  }
+}
 
 /** The runtime service this facade consumes. */
 const RUNTIME_SERVICE = 'blenderRuntime'
@@ -1853,6 +1877,240 @@ export default class BlenderStudio extends Service {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // M4 — the read plane the workbench UI is built on (SPEC §14.3, §14.4)
+  //
+  // These return DOMAIN data, not view models. The browser-facing projection
+  // (`buildSceneTree`, `buildQaView`, …) lives in the UI package, so this facade
+  // stays what the tools already consume and the two planes cannot drift into
+  // two different definitions of "the current revision".
+  //
+  // They are also, deliberately, the ONLY things a UI route may call: every one
+  // of them reads (or, for the M3 job methods, coordinates) — none of them
+  // executes anything the browser chose.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Every project in the store, most recently touched first.
+   *
+   * @returns {Promise<{ projects: object[], count: number, projectsRoot: string }>}
+   */
+  async listProjects() {
+    const projects = this.store.listProjectIds().map(projectId => {
+      const record = this.store.readRecord(projectId)
+      const specs = record.currentRevision === null
+        ? null
+        : (() => {
+          try {
+            return summarizeSceneSpec(this.store.readRevisionSpec(projectId, record.currentRevision), {
+              revision: record.currentRevision,
+              revisionNumber: parseRevisionId(record.currentRevision),
+            })
+          } catch {
+            // A project whose current revision cannot be read is still a project.
+            // Dropping it from the list would make the UI silently lose work.
+            return null
+          }
+        })()
+      return {
+        projectId,
+        title: record.title,
+        goal: record.goal ?? null,
+        currentRevision: record.currentRevision,
+        revisionCount: record.revisionCount ?? this.store.listRevisions(projectId).length,
+        createdAt: record.createdAt ?? null,
+        updatedAt: record.updatedAt ?? null,
+        unreadable: specs === null && record.currentRevision !== null,
+        scene: specs,
+        jobs: this.renderJobs.list(projectId).map(job => ({
+          jobId: job.jobId,
+          type: job.type,
+          status: job.status,
+          revisionId: job.revisionId,
+        })),
+      }
+    })
+    projects.sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))
+    return { projects, count: projects.length, projectsRoot: this.config.projectsRoot }
+  }
+
+  /**
+   * One revision in full: what it decided, what it emitted, and how it validated.
+   *
+   * @param {{ projectId: string, revision?: string }} request
+   * @returns {Promise<object>}
+   */
+  async getRevisionDetail(request) {
+    const projectId = request?.projectId
+    const record = this.store.readRecord(projectId)
+    const revision = request?.revision ?? record.currentRevision
+    if (revision === null || revision === undefined) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_NOT_FOUND,
+        `Project "${projectId}" has no revisions yet, so there is no revision to read.`,
+        { detail: { projectId } },
+      )
+    }
+    const manifest = this.store.readRevisionManifest(projectId, revision)
+    if (manifest === null) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_NOT_FOUND,
+        `Project "${projectId}" has no revision "${revision}".`,
+        { detail: { projectId, revision } },
+      )
+    }
+    const directory = this.store.revisionDirectory(projectId, revision)
+    const spec = this.store.readRevisionSpec(projectId, revision)
+    return {
+      projectId,
+      revision,
+      isCurrent: revision === record.currentRevision,
+      manifest,
+      scene: summarizeSceneSpec(spec, {
+        revision,
+        revisionNumber: parseRevisionId(revision),
+        digest: manifest.digest ?? sceneSpecDigest(spec),
+      }),
+      validation: readJson(join(directory, 'validation.json')),
+      operations: readJson(join(directory, 'operation-manifest.json')),
+      request: readJson(join(directory, 'request.json')),
+      checkpoint: this.store.checkpointPath(projectId, revision) === null ? null : `revisions/${revision}/scene.blend`,
+      previews: manifest.previews ?? [],
+      contactSheets: manifest.contactSheets ?? [],
+      reviews: manifest.reviews ?? [],
+    }
+  }
+
+  /**
+   * Two revisions' specs, for a structural diff.
+   *
+   * The diff itself is computed by the caller (the UI projects it with
+   * `buildRevisionDiff`), so this stays a read of two documents rather than a
+   * third definition of what "changed" means.
+   *
+   * @param {{ projectId: string, from?: string, to?: string }} request
+   * @returns {Promise<object>}
+   */
+  async readRevisionPair(request) {
+    const projectId = request?.projectId
+    const detail = await this.getRevisionDetail({ projectId, revision: request?.to })
+    const fromRevision = request?.from ?? detail.manifest.baseRevision ?? null
+    if (fromRevision === null || fromRevision === undefined) {
+      throw new BlenderError(
+        BlenderErrorCode.REVISION_NOT_FOUND,
+        `Revision "${detail.revision}" records no base revision, so there is nothing to compare it against.`,
+        { detail: { projectId, revision: detail.revision } },
+      )
+    }
+    return {
+      projectId,
+      fromRevision,
+      toRevision: detail.revision,
+      from: this.store.readRevisionSpec(projectId, fromRevision),
+      to: this.store.readRevisionSpec(projectId, detail.revision),
+      fromManifest: this.store.readRevisionManifest(projectId, fromRevision),
+      toManifest: detail.manifest,
+    }
+  }
+
+  /**
+   * The QA record of a revision: the stored technical validation plus the newest
+   * visual review, both unmerged (they are different evidence — M2 §3).
+   *
+   * @param {{ projectId: string, revision?: string }} request
+   * @returns {Promise<object>}
+   */
+  async getQaRecord(request) {
+    const detail = await this.getRevisionDetail({ projectId: request?.projectId, revision: request?.revision })
+    const reviews = Array.isArray(detail.reviews) ? detail.reviews : []
+    const newest = reviews.length === 0
+      ? null
+      : reviews.reduce((best, entry) => ((entry?.iteration ?? 0) >= (best?.iteration ?? 0) ? entry : best), reviews[0])
+    const directory = this.store.projectDirectory(detail.projectId)
+    const record = newest?.path === undefined || newest?.path === null
+      ? null
+      : readJson(resolveInside(directory, newest.path, 'visual review record'))
+    return {
+      projectId: detail.projectId,
+      revision: detail.revision,
+      validation: detail.validation,
+      review: record === null ? null : (record.review ?? null),
+      reviewViews: record === null ? [] : (record.views ?? []),
+      reviewArtifact: newest,
+      reviewCount: reviews.length,
+    }
+  }
+
+  /**
+   * Every preview-ish artifact a project has emitted, grouped by revision.
+   *
+   * Preview Compare needs both ends of a comparison to be *renderable*, which
+   * means the project-relative path is the important field here: the browser is
+   * handed a route that serves that path, never the path itself as something to
+   * open (SPEC §14.3).
+   *
+   * @param {{ projectId: string }} request
+   * @returns {Promise<object>}
+   */
+  async listPreviewSets(request) {
+    const projectId = request?.projectId
+    const record = this.store.readRecord(projectId)
+    const revisions = this.store.listRevisions(projectId).map(revision => {
+      const manifest = this.store.readRevisionManifest(projectId, revision)
+      return {
+        revision,
+        isCurrent: revision === record.currentRevision,
+        createdAt: manifest?.createdAt ?? null,
+        summary: manifest?.summary ?? null,
+        digest: manifest?.digest ?? null,
+        previews: manifest?.previews ?? [],
+        contactSheets: manifest?.contactSheets ?? [],
+        reviews: manifest?.reviews ?? [],
+      }
+    })
+    return { projectId, currentRevision: record.currentRevision, revisions }
+  }
+
+  /**
+   * Read one artifact of one project, for the browser to display.
+   *
+   * The path MUST be project-relative and resolve inside the project directory:
+   * this is the one method a URL parameter reaches, so the path guard is the
+   * security boundary (SPEC §15.2 "工作区路径边界", "软链接逃逸防护"). A project
+   * id and a path are both required, and neither can escape.
+   *
+   * @param {{ projectId: string, path: string }} request
+   * @returns {Promise<{ path: string, bytes: Buffer, contentType: string, size: number }>}
+   */
+  async readArtifact(request) {
+    const projectId = request?.projectId
+    const relative = request?.path
+    if (typeof relative !== 'string' || relative.length === 0) {
+      throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'readArtifact needs a project-relative path.', { detail: { projectId } })
+    }
+    if (isAbsolute(relative)) {
+      throw new BlenderError(
+        BlenderErrorCode.PATH_OUTSIDE_WORKSPACE,
+        `"${relative}" is absolute; artifacts are addressed relative to the project directory (SPEC §14.3).`,
+        { detail: { projectId, path: relative } },
+      )
+    }
+    const directory = this.store.projectDirectory(projectId)
+    const resolved = resolveInside(directory, relative, 'artifact path')
+    if (!isFile(resolved)) {
+      throw new BlenderError(BlenderErrorCode.ARTIFACT_NOT_FOUND, `There is no artifact at "${relative}" in project "${projectId}".`, {
+        detail: { projectId, path: relative },
+      })
+    }
+    const bytes = readFileSync(resolved)
+    return {
+      path: relative,
+      bytes,
+      contentType: contentTypeForArtifact(relative),
+      size: bytes.byteLength,
+    }
+  }
+
   /**
    * Cancel a live render job, and prove the process is gone (SPEC §20 M3
    * "取消后无孤儿进程").
@@ -3209,6 +3467,11 @@ export default class BlenderStudio extends Service {
       outputManifest: record.outputManifest ?? null,
       errorCode: record.errorCode ?? null,
       message: record.message ?? null,
+      // The warnings were already stored with the record; M4 surfaces them
+      // because one of them IS the approval requirement (SPEC §15.1 "高成本最终
+      // 渲染达阈值审批"). Recomputing that judgement in the UI from a threshold
+      // would be a second opinion about a fact the job already recorded.
+      warnings: record.warnings ?? [],
       recovery: this._recoveryFindings.find(finding => finding.jobId === record.jobId) ?? null,
       description: describeRenderJob({ ...record, completedFrames: completed }),
       createdAt: record.createdAt,

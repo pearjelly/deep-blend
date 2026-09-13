@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "DeepBlend workbench UI: Host half (settings card data source) in M0; Web Client half in M4.",
+  "description": "DeepBlend workbench UI: Host half (typed HTTP API) and Web Client half (sidebar, panels, tool cards).",
   "main": "lib/index.js",
   "exports": {
     ".": { "default": "./lib/index.js" },
+    "./client": { "default": "./lib/client.js" },
     "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
   },
   "dependencies": {
     "@deepblend/dsh-blender-contracts": "0.1.0",

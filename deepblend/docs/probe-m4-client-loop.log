@@ -1,0 +1,134 @@
+# M4 client-plane probe — raw evidence
+
+> Command: `node deepblend/tools/ui-loop-probe.mjs --url "http://127.0.0.1:3099/?token=…"`
+> Process: a second `dsh web` (port 3099) started from this checkout, so the
+> running GUI on 3080 and this session were left untouched.
+> Date: 2026-09-13
+
+## 1. The measurement that decides the development loop
+
+```
+[PASS] the client bundle registered a sidebar entry in a real page — aria-label="Blender"
+[PASS] the icon the plugin drew is in the DOM
+[PASS] selecting the entry renders the main panel — panel text="Blender 5.2.1 LTS"
+[PASS] the panel shows a fact fetched from the Host over HTTP, same origin — Blender 5.2.1 LTS
+[PASS] editing one line reaches an OPEN page with no refresh and no restart — 610ms after the write
+[PASS] the update happened in the SAME document — a swap, not a silent reload — window marker survived (set at 1789311690032)
+
+verdict: A-never-happens: the client-plugin reload chain swaps the fiber with no refresh and no restart
+```
+
+A second run measured **713 ms**. The one line edited was
+`const PROBE_LABEL = 'Blender'` → `'Blender edit-1'` in
+`packages/deepblend/ui/lib/client.js`; the page was a real (headless) Chrome
+holding a real session against the real Host.
+
+Why this is the right question and not a curiosity: with a bundler, every later
+UI iteration would have cost a build; with a restart, ~10 s each; this is ~0.6 s
+against a page that is already open, so the M4 UI is written the same way the
+rest of this repository is written — source is the artifact — and no build step
+was introduced.
+
+A third run — after the probe was hardened (see §5) — measured **723 ms**, and the same
+six facts held:
+
+```
+[PASS] the client bundle registered a sidebar entry in a real page — aria-label="Blender"
+[PASS] the icon the plugin drew is in the DOM
+[PASS] selecting the entry renders the workbench panel
+[PASS] the panel reads the Host over HTTP, same origin, on a declared route
+[PASS] editing one line reaches an OPEN page with no refresh and no restart — 723ms after the write
+[PASS] the update happened in the SAME document — a swap, not a silent reload — window marker survived
+[PASS] the swap closes a panel that was selected (the shell drops an id that is briefly unregistered)
+
+verdict: A-never-happens: the client-plugin reload chain swaps the fiber with no refresh and no restart
+```
+
+The seventh check is a consequence worth knowing before it is mistaken for a bug: after a
+swap the workbench **panel** closes (the sidebar entry stays). The shell's layout
+deselects a `main` key that is momentarily unregistered, so a one-line edit while the
+panel is open sends you back to the conversation column. One click reopens it.
+
+## 2. What makes that work (read from the deployment, not assumed)
+
+* `dsh-client-hmr` (node half) is mounted unconditionally by the shipped
+  `dsh-web-app` bundle. Every 500 ms it `stat`s each graph row's client bundle
+  (`dsh-client-hmr/lib/index.js`, `pollIntervalMs` default 500) and on an
+  mtime/size change calls `clientModules.rebuilt(id)`.
+* `rebuilt()` re-reads the file, recomputes the content revision, recomposes the
+  graph, and notifies `onRebuilt` listeners.
+* The same row serves `GET /plugins/events` (SSE) and pushes a `rebuilt` frame;
+  the browser half invalidates, prefetches, and swaps the fiber **without
+  navigating**. That is what the surviving `window` marker above proves.
+
+## 3. The two changes that are NOT free (measured, same session)
+
+**3.1 Declaring `dsh.client` for the first time needs one restart.**
+`dsh-client-modules` caches each loader row's package verdict — including the
+negative "not a client package" verdict — per `(baseUrl, specifier)` until
+restart. Measured against the process that was already running: after
+`packages/deepblend/ui/package.json` gained `dsh.client` + `./client`:
+
+```
+Slots.listSubTree { root: "sidebar.panellist" }  →  occupants: []      (live page, port 3080)
+curl -s http://127.0.0.1:3099/ | grep -o 'deepblend[^"]*'
+  @deepblend/dsh-blender-ui
+  @deepblend/dsh-blender-ui/client.js                                    (fresh process, port 3099)
+```
+
+**3.2 A Host-half edit needs a restart.** `packages/deepblend/ui/lib/index.js`
+was edited to serve `card.title = 'Blender HOST-EDIT-PROBE'`, then:
+
+```
+served title now: Blender
+```
+
+The running process kept serving the old bytes. Node's ESM module cache is
+process-level and not clearable, which is the same fact M0 §8.1 and
+`milestone-status.md` §12.9 recorded — re-measured here because the whole M4
+loop depends on which half you are editing.
+
+## 4. What this means for M4
+
+| Edited | To see it |
+|---|---|
+| `packages/deepblend/ui/lib/client.js` (the UI) | save — it is live in every open page in about half a second |
+| `packages/deepblend/ui/package.json` (`dsh.client`, exports) | restart once |
+| any Host-half module (`ui/lib/index.js`, `host/…`, `contracts/…`) | restart `dsh web` |
+
+Consequence for verification, and the reason the M4 acceptance suite is shaped
+the way it is: the client half can be verified by a browser that reloads nothing,
+while the Host half has to be verified in a process that was started *after* the
+change. Both are automated — see `deepblend/tests/e2e/ui.e2e.mjs`, which boots
+its own `dsh web` for exactly this reason.
+
+## 5. What the probe itself got wrong first (and why that matters)
+
+The first hardened version of this tool reported `verdict: B: the running process must be
+restarted` — three times in a row, against a deployment where the loop demonstrably worked.
+The page said why, once the probe started listening to its console:
+
+```
+[page exception] ReferenceError: PANEL_LABEL is not defined
+[page error]     locale subscriber crashed: ReferenceError: PANEL_LABEL is not defined
+[page error]     Error: failed to apply loader entry … (@deepseek-ai/dsh-client-ui-sidebar):
+                 PANEL_LABEL is not defined
+```
+
+The cause was the probe's own write, not the deployment: it saved the file with
+`writeFileSync`, which truncates first. `dsh-client-hmr` polls that exact file every 500 ms,
+so every so often it read the file **mid-save** and rebuilt the bundle from a short read —
+and the page then swapped to a bundle whose entry did not apply.
+
+Two things follow, and both are recorded rather than smoothed over:
+
+1. **A save must be atomic.** The probe now writes a temporary file and renames it, which is
+   what editors do and what the dev chain needs. With that change the measurement is stable
+   (three consecutive runs, 610 / 713 / 723 ms). A truncating save is a real hazard for the
+   loop, and its symptom is not "a stale label" — it is the panel and the sidebar entry
+   disappearing together.
+2. **A probe that reports its own bug as a product verdict is worse than no probe.** The
+   first failure was reported as "the running process must be restarted", which is exactly
+   the kind of confident wrong answer this repository keeps refusing. The tool now listens to
+   the page's console and says when the page lost the plugin to a failed swap, separately
+   from "HMR did not happen".

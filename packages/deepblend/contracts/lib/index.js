@@ -163,6 +163,31 @@ export const BlenderErrorCode = Object.freeze({
   PROBE_FAILED: 'PROBE_FAILED',
   /** A delivery was requested for a job that has not produced every frame. */
   DELIVERY_INCOMPLETE: 'DELIVERY_INCOMPLETE',
+
+  // ---- M4 ----------------------------------------------------------------
+
+  /** A path the browser asked for belongs to no DeepBlend route. */
+  UI_ROUTE_NOT_FOUND: 'UI_ROUTE_NOT_FOUND',
+  /**
+   * An artifact the UI asked to display does not exist.
+   *
+   * Separate from `REVISION_CORRUPT` on purpose: a preview that was never
+   * rendered is a normal state the panel renders as "nothing to show yet", while
+   * a revision whose files are inconsistent is a real fault. One code for both
+   * would make the UI unable to tell them apart.
+   */
+  ARTIFACT_NOT_FOUND: 'ARTIFACT_NOT_FOUND',
+  /** A UI request failed inside the Host for a reason with no more specific code. */
+  UI_REQUEST_FAILED: 'UI_REQUEST_FAILED',
+  /**
+   * The running Host service is older than the UI half asking for it.
+   *
+   * The same half-upgraded deployment M3 taught the tools to name (D59): the
+   * packages on disk are newer than the `blenderStudio` the process constructed.
+   * The panel must say so, because the alternative is a blank panel over a
+   * `TypeError` that names neither the cause nor the fix.
+   */
+  UI_HOST_API_STALE: 'UI_HOST_API_STALE',
 })
 
 /** Warning codes surface on the successful path, where nothing threw. */
@@ -234,9 +259,12 @@ export const BlenderWarningCode = Object.freeze({
  * answer.
  *
  * Bump this when the tool plane starts depending on a host method that did not exist
- * before. 3 is M3 (the persistent render job).
+ * before. 3 is M3 (the persistent render job). 4 is M4, which added the UI plane's
+ * read/aggregate methods — the browser half faces the same half-upgraded deployment
+ * the tools do, and it has to say so instead of painting a blank panel over a
+ * `TypeError` (D59).
  */
-export const HOST_API_VERSION = 3
+export const HOST_API_VERSION = 4
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
 export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])
@@ -653,3 +681,29 @@ export {
   buildVisualReview,
   describeMeasurements,
 } from './visual-composition.js'
+
+// The workbench UI's contract (M4): the HTTP route table, the panel vocabulary
+// and every view model the browser renders. Pure data and pure functions, so the
+// UI's own rules are covered by contract tests rather than by clicking.
+export {
+  UI_ROUTE_PREFIX,
+  UI_REST_MARKER,
+  UI_ROUTES,
+  UI_ROUTE_IDS,
+  UI_PANEL_VIEWS,
+  UI_PANEL_ID,
+  UI_PANEL_LABEL,
+  UI_TOOL_CARD_KEYS,
+  matchUiRoute,
+  writeRouteIds,
+  buildRevisionDiff,
+  buildSceneTree,
+  buildQaView,
+  buildApprovalView,
+  buildJobView,
+  buildProjectView,
+  buildSettingsCard,
+  describeJobForHuman,
+  formatDuration,
+  parseToolCallTarget,
+} from './ui-api.js'

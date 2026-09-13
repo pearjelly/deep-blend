@@ -1,7 +1,7 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M3 已闭环**（持久 Job、重启恢复、帧序列、续渲、MP4 交付）
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M4 已闭环**（工作台 UI：侧边栏、场景树、预览对比、任务、QA、版本、工具卡、设置、审批显示）
 
 ---
 
@@ -34,7 +34,7 @@ deepblend/
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
   docs/               dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
-                      / probe-m3-restart.log / probe-m3-delivery.log
+                      / probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
   tools/              create-demo-project.mjs —— 在真实 store 中生成演示项目
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
                       visual-review-live-probe.mjs —— 直接调用视觉模型的最小探针
@@ -42,13 +42,17 @@ deepblend/
                       m3-restart-probe.mjs —— M3 的第一个任务：真实 kill -9 重启探针
                       m3-delivery-acceptance.mjs —— 真实项目上的 1080p 交付（约 30 分钟）
                       install-presets.mjs —— 把 deepblend/presets/ 部署到 $DSH_HOME（--check 只报漂移）
+                      browser-driver.mjs —— 无依赖的 CDP 驱动（M4 的浏览器验收用它开真实 Chrome）
+                      dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
+                      ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         15 个 *.test.mjs
+    contract/         16 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
-    composition/      Host 组合激活 + preset 工具面（M0 / M1 / M2 / M3）
-    e2e/              visual-live.e2e.mjs —— 真实模型调用（不进 run-all.sh）
+    composition/      Host 组合激活 + preset 工具面（M0–M3）+ UI 平面（座位表与闭集路由）
+    e2e/              ui.e2e.mjs —— 真实浏览器验收（自带 dsh web 与项目 store）
+                      visual-live.e2e.mjs / ui-live.e2e.mjs —— 真实模型调用（不进 run-all.sh）
 
 packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
@@ -56,8 +60,9 @@ packages/deepblend/
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
     python/           bootstrap.py 分派器 + 6 个动作模块
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               10 个模型可见工具（Agent preset 平面，不发布服务）
-  ui/                 工作台 UI 的 Host 半（Client 半属 M4）
+  tool/               14 个模型可见工具（Agent preset 平面，不发布服务）
+  ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
+                      手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
 ```
 
@@ -81,7 +86,8 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**11 个套件、23 个文件、1123 项断言**全部通过。单跑某一层：
+预期：**12 个套件、27 个文件、1382 项断言**全部通过（另有 4 个 `node:test` 契约文件合计
+52 个用例，它们不打印这个计数）。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -94,9 +100,13 @@ node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工�
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 全部 7 个工具
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
 node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # M3 全部 14 个工具 + 真实交付
+node deepblend/tests/composition/ui-plane.e2e.mjs               # M4 UI 平面：闭集路由 + 座位表
+node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏览器验收（自带 Host）
 ```
 
-**M3 的两个套件会真的渲 1080p、真的编码**，所以它们是整个 run 里最慢的（约 5–10 分钟）。
+**M3 的两个套件会真的渲 1080p、真的编码**，所以它们是整个 run 里最慢的（约 5–10 分钟）；
+**M4 的 `e2e/ui.e2e.mjs` 会启动自己的 `dsh web`、开一个真实 Chrome，并真的渲一次预览、
+起一次渲染再取消**（约 1–2 分钟，全程在自己的临时 store 里，不碰开发者的数据）。
 
 其中 `contract/patch-resolution.test.mjs`（65 项）值得单独知道：它全部来自**在真实项目上
 使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
@@ -256,7 +266,7 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 所有错误归入 `BlenderErrorCode` 稳定表；工具返回 `ok:false` + `errorCode` + `message`。
 只有**没有**稳定码的意外才附带堆栈——那说明是 bug，此时堆栈才是唯一有用的信息。
 
-完整决策记录与理由见 `deepblend/docs/architecture-decisions.md`（D11–D34），
+完整决策记录与理由见 `deepblend/docs/architecture-decisions.md`（D11–D68），
 运行时实测（含 M2 图片回传探针）见 `deepblend/docs/runtime-audit.md` §7.2，
 工具契约见 `deepblend/docs/tool-contracts.md`。
 
@@ -264,7 +274,7 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 
 ## 当前状态与下一步
 
-见 `deepblend/docs/milestone-status.md`。**M0、M1、M2、M3 验收均已闭环。**
+见 `deepblend/docs/milestone-status.md`。**M0、M1、M2、M3、M4 验收均已闭环。**
 
 M2 的视觉闭环在**真实模型**上跑通：模型独立指出植入的遮挡（「桌上的蓝色球被隔断挡住」），
 确定性评分器独立给出同一结论，自动修复把分数从 82 提到 100。
@@ -277,4 +287,11 @@ M3 的交付链路在**真实项目**上跑通：`watch-commercial` r0029 的帧
 以及一份自判完整的 `delivery-manifest.json`。逐行记录在
 `deepblend/docs/probe-m3-delivery.log`。
 
-按 SPEC §0.3，**M4（工作台 UI）应在新的会话中开始**。
+M4 的工作台在**真实浏览器**里跑通：一个真实 Chrome 点击完成「建项目 → 改场景 →
+渲预览 → 起渲染 → 取消」，每一步都在磁盘上被复核；刷新页面后从 Host 恢复同一个项目与
+同一个 job；正在渲染的 Blender 的**父进程就是 Host 进程**，取消后同一 store 里一个不剩。
+四条验收（不进入文件系统即可管理项目、刷新后恢复权威状态、浏览器不直接启动 Blender、
+所有写操作经过 Host）各有浏览器侧与磁盘侧两份证据。原始测量见
+`deepblend/docs/probe-m4-client-loop.log`。
+
+按 SPEC §0.3，**M5（正式 preset 与安全加固）应在新的会话中开始**。

@@ -7,10 +7,13 @@
 > 已完成：**M2.1（真实使用暴露的四个缺陷）— ✅ 已修复并回归**
 > 已完成：**M2.2（评分器把对错判反了）— ✅ 已修复并回归**
 > 已完成：**M3（Job、恢复与正式渲染）— ✅ 验收通过**
-> 测试：**1123 项断言、11 个套件、23 个文件全部通过**
+> 已完成：**M4（工作台 UI）— ✅ 验收通过（真实浏览器 + 真实 Host + 真实 Blender）**
+> 测试：**1382 项断言、12 个套件、27 个文件全部通过**（另：4 个 `node:test` 文件共 52 个用例）
 > ✅ **M3 已在运行中的进程里生效**：`dsh web` 于 21:55:33 重启（晚于 M3 提交），
 > 逐项实测见 §12.9。
-> 下一里程碑：M4（工作台 UI，未开始，按 SPEC §0.3 不得提前进入）
+> 下一里程碑：M5（正式 preset 与安全加固，未开始，按 SPEC §0.3 不得提前进入）
+> 运行中的进程：3080 的 `dsh web` 仍是 M3 代码，**要重启一次**才能看到 M4 的工作台
+> （见 §13.8 —— 客户端的「编辑→可见」是 0.6 秒，但第一次声明 `dsh.client` 必须换进程）
 
 ---
 
@@ -921,3 +924,190 @@ patch 解析器**解析、并且**不复述工具目录**（没有注释能声�
 宿主服务新，重启 profile」）。在此之前它会是一个戴着 `BLENDER_SCRIPT_ERROR` 帽子的
 `TypeError`——一个稳定错误码指着错误的问题，而这正是本仓库反复禁止的形状。
 
+
+---
+
+## 13. M4 结论
+
+M4 的四条验收全部是关于**浏览器**的，所以结论的每一条都有两份独立证据：一侧是真实
+Chrome 里真实页面的事实（DOM、fetch 日志、`ps`），另一侧是**磁盘**上的事实（store 里
+真的多了什么）。原始探针记录在 `docs/probe-m4-client-loop.log`，验收套件是
+`deepblend/tests/e2e/ui.e2e.mjs`（52 项断言，一键可跑）。
+
+### 13.1 先量再写：改一行客户端代码，怎样才能在浏览器里看到
+
+这是 M4 唯一无法从文档推断、且决定整个开发节奏的问题（brief §3）。量出来的答案与
+三个候选都不同：
+
+```
+[PASS] editing one line reaches an OPEN page with no refresh and no restart — 610ms after the write
+[PASS] the update happened in the SAME document — a swap, not a silent reload — window marker survived
+
+verdict: A-never-happens: the client-plugin reload chain swaps the fiber with no refresh and no restart
+```
+
+机制（从**装好的** `dsh-client-hmr` 逐行读出，不是推断）：它以 500 ms 的间隔 `stat`
+每个 graph row 的客户端 bundle，mtime/size 变了就调 `clientModules.rebuilt(id)`，重算内容
+revision、重组 graph，并通过 `/plugins/events`（SSE）推给浏览器半边；浏览器半边
+invalidate → prefetch → **fiber swap**。上一条断言里的 `window` 标记存活，正是「不是导航」
+的证据。
+
+同一 session 里还量了另外两条边界：
+
+| 改了什么 | 怎么才能看见 | 证据 |
+|---|---|---|
+| `lib/client.js`（UI 本体） | 存盘即可，~0.6 s 后**已打开的页面**自己变 | 上面两条 |
+| `package.json` 第一次声明 `dsh.client` + `./client` | **重启一次** | 同一时刻：新进程（3099）的 `__DSH_BOOT__` 里有 `@deepblend/dsh-blender-ui`，而运行中的 3080 页面里 `sidebar.panellist` 的 occupants 仍是空 |
+| 任何 Host 半边模块（`ui/lib/index.js`、`host/`、`contracts/`） | **重启 `dsh web`** | 把设置卡标题改成 `'Blender HOST-EDIT-PROBE'` 后 curl 那条路由，运行中的进程继续返回旧字节 |
+
+**顺手量出来的两条**（都记在探针文件的 §5）：
+
+* 存盘必须**原子**（临时文件 + rename）。用 `writeFileSync` 直接截断重写时，500 ms 一次的
+  文件轮询有时会读到**写了一半**的内容，于是重建出来的 bundle 应用失败、页面上的面板与
+  侧边栏入口一起消失。探针第一版把这个**自己的 bug** 报成了「必须重启进程」——正是本仓库
+  一直在拒绝的那种自信的错答案，所以它现在会听页面控制台，并把「页面因为一次失败的 swap
+  丢了插件」与「HMR 没发生」分开说。
+* swap 之后**已选中的面板会关闭**（侧边栏入口还在）：shell 会把一个瞬间未注册的 `main`
+  key 取消选中。点一下即可重新打开——知道这一点，就不会把它当成缺陷。
+
+**这条测量直接决定了 D61**：既然一次改动只要 0.6 秒，就没有理由引入打包步骤；而
+测试也因此可以在 Node 里**加载真实的客户端 bundle**（`composition/ui-plane.e2e.mjs`
+用假的 `window.__ModuleLoader__` + 记录用的 Slot 注册表读回整张座位表）。
+
+### 13.2 验收逐条对照（SPEC §20 M4）
+
+| SPEC 验收条件 | 状态 | 证据（浏览器侧 / 磁盘侧） |
+|---|---|---|
+| 不进入文件系统即可管理项目 | ✅ | 页面的 fetch 日志里 DeepBlend 请求**全部**是声明过的路由，且包含 5 类写（create / patch / preview / render / cancel）；磁盘上真的出现了 `project.json`、`revisions/r0001·r0002/revision-manifest.json`、`previews/views/*.png`、`renders/render-0001/job.json` |
+| UI 刷新后可从 Host 恢复权威状态 | ✅ | 刷新后 DOM 显示 `r0002` 与 `cancelled` 的 job；新文档里重新拉过 `/deepblend/state`；页面里没有任何派生缓存（每条响应 `no-store`，每个值当次现算） |
+| 浏览器不直接启动 Blender | ✅ | 页面里没有 `require`/`process`/`spawn`；路由表是**闭集**（19 条，无执行入口）；渲染中的 Blender 的**父进程就是测试启动的那个 Host 进程**（`ps` 实测 pid/ppid），取消后同一 store 的 Blender 一个不剩 |
+| 所有写操作经过 Host | ✅ | 6 条写路由是闭集，`ui-plane.e2e.mjs` 用记录桩断言每条**只**调一个 facade 方法；每一次写都在 store 里留下只有 Host 才会写的文件 |
+
+四条里没有一条是靠「代码看起来对」成立的。
+
+### 13.3 九个交付项与它们的座位
+
+| SPEC §20 M4 交付项 | 座位 | 说明 |
+|---|---|---|
+| Blender Sidebar | `sidebar.panellist` id `deepblend` | 加法（该列表原本为空）；图标是 `{size, active}` 画出的等轴立方体 |
+| Scene Tree | `main[key=deepblend]` 的「场景树」视图 | 按 Blender 集合名分组（编译后的 `.blend` 里就是这些名字）；附 ScenePatch 编辑器 |
+| Preview Compare | 同上「预览对比」视图 | 两个 revision 的 contact sheet 并排 + 结构差异（`diffRevisions`） |
+| Jobs | 同上「任务」视图 + `conversation.session.header.utilities` 小控件 | 进度、预计剩余、取消、续渲、交付路径 |
+| QA | 同上「QA」视图 | 技术校验与视觉评审**并列不合并**（测量与模型 finding 是两个来源） |
+| Revisions | 同上「版本」视图 | 列表、恢复（写成新 revision）、跳到对比 |
+| Tool Cards | `tool.call.toolview`（14 个 wire 名各一张卡） | 不解析文本：从调用参数里取 `projectId`/`jobId`，其余回 Host 取权威状态 |
+| Settings | `settings.section` id `deepblend` | M0 的能力卡终于有了座位 |
+| Approval | 任务视图 + `blender_final_render` 卡 + 会话小控件 | **只显示**阈值事实并自我声明（D64）；真正的审批平面是 M5 |
+
+**九个交付项都有唯一落点**，`contract/ui-api.test.mjs` 里那张表就是这条性质的断言。
+
+### 13.4 与 SPEC 的偏差
+
+| # | SPEC 要求 | 实际做法 | 理由 |
+|---|---|---|---|
+| 1 | §14.4 `blenderApproval.respond` | **未注册** | 能阻止启动的审批平面是 M5；一个记录了决定却没人遵守的写接口会让 UI 暗示一次它没有做到的拦截（D64） |
+| 2 | §14.4 的 `blenderProject.*` 等示意 API | HTTP 路由（`/deepblend/...`，一张闭集表） | brief §2.4 已排除 `ctx.remote.$on` 带自定义事件；路由同源、M0 已验证、天然满足「写操作经 Host」（D62） |
+| 3 | §14.2 的「Preview」 | 预览在「预览对比」视图里，可对当前 revision 渲染一次多视角预览 | 一个面板 + 视图切换；`sidebar.right.pane.tab` 是**可选**的并排形态，留给 Q8 |
+| 4 | §14.2 的「错误和日志」 | 错误以带稳定 code 的框渲染（含 `UI_HOST_API_STALE` 部署诊断）；日志未做独立视图 | 日志已在 Jobs/QA/Tool Card 的正文里；独立日志视图没有消费者 |
+| 5 | §15.1 高成本渲染需审批 | M4 **显示**阈值事实（M3 已写进 job 记录） | 见偏差 1（D64） |
+
+### 13.5 M4 发现并修复的真实缺陷
+
+每一个都是「测试是绿的」之后才暴露的，每个都留下了回归断言。
+
+| # | 缺陷 | 它是怎么被发现的 |
+|---|---|---|
+| 1 | **场景树对整个项目渲染出「0 个实体」**：`getScene` 默认只给摘要素，UI 半边没传 `full: true`，`buildSceneTree(undefined)` 于是安静地给出全零 | **浏览器套件**里那条「Scene Tree 不是空的」断言（对一个 17 对象的项目读到了 `实体 entities（0）`）。单元测试喂不进 `undefined`，所以永远绿（D65） |
+| 2 | **续渲会在一个「就在列表里」的 job 上返回 `RENDER_JOB_NOT_FOUND`**：UI 把 `resumeJobId` 透传，而 `resumeRenderJob` 读的是 `jobId` | `ui-plane.e2e.mjs` 的记录桩断言「resume 收到的是 jobId」时抓到（D67）。形状与 D59 同类：稳定错误码指着错误的问题 |
+| 3 | **一个不存在的工件被报成 500 而不是 404**，而且 `readArtifact` 复用了 `REVISION_CORRUPT`——「还没渲过预览」与「revision 损坏」被同一个码表示 | 平面套件的「不存在的工件是带码的拒绝」断言；修法是给缺失工件**自己的码** `ARTIFACT_NOT_FOUND` |
+| 4 | **路径守卫收到的是百分号编码的文本**：`*` 捕获的尾部未解码，于是 `%2e%2e%2f` 既不逃逸也不被认作逃逸——结论对、理由错 | 平面套件把三种逃逸形状分开断言时抓到（D66） |
+| 5 | **`statusForError` 里有一个凭空写出的码**（`ARTIFACT_NOT_FOUND` 在枚举里并不存在，于是那条 `case` 永远匹配不上 `undefined`） | 写缺陷 3 的修复时对照枚举发现；现在这个码真实存在，且被断言 |
+
+第 1 条值得单独记：它是本项目**第 4 次**「安静地给出错误数字」（前三次是遮挡测量的三个版本），
+而这一次的发现者是浏览器，不是单元测试。
+
+### 13.6 测试：1382 项断言全部通过
+
+**计数的约定**：只有**自己打印 `N/N check(s) passed`** 的套件才计入这一列（M0 起就是
+这个约定，所以 1123 与 1382 可以直接比较）。另有 4 个用 `node:test` 的契约文件
+（`contracts` / `error-codes` / `imports` / `settings-card`）不打印这个计数，它们合计
+**52 个用例**，仍然全部通过，只是不在这张表的数字里。
+
+| 套件 | 文件 | 断言 |
+|---|---|---|
+| 单元 + 契约 | 16 个 `*.test.mjs` | **805** |
+| Blender 能力探测（M0） | `blender-integration/probe.e2e.mjs` | 15/15 |
+| Blender 批量 SceneSpec + revision 回放（M1） | `blender-integration/fixture.e2e.mjs` | 77/77 |
+| Blender 视觉闭环（M2） | `blender-integration/visual-loop.e2e.mjs` | 83/83 |
+| Blender 持久渲染 Job（M3） | `blender-integration/render-job.e2e.mjs` | 70/70 |
+| Host composition 激活 | `composition/activation.e2e.mjs` | 12/12 |
+| preset 工具面 + 降级（M0） | `composition/tool-plane.e2e.mjs` | 10/10 |
+| preset M1 工具面 | `composition/tool-plane-m1.e2e.mjs` | 41/41 |
+| preset M2 工具面 | `composition/tool-plane-m2.e2e.mjs` | 32/32 |
+| preset M3 工具面 | `composition/tool-plane-m3.e2e.mjs` | 45/45 |
+| **工作台 UI 平面（闭集路由 + 真实客户端 bundle + 座位表）** | `composition/ui-plane.e2e.mjs` | **138/138** |
+| **工作台 UI 真实浏览器验收** | `e2e/ui.e2e.mjs` | **54/54** |
+| **合计** | **27 个文件、12 个套件** | **1382** |
+
+（M3 的 1123 → M4 的 1382：`ui-api.test.mjs` 67 + `ui-plane.e2e.mjs` 138 +
+`ui.e2e.mjs` 54 = 259，其余各套件的数字**一个都没变**。）
+
+M4 新增的 152 项分布：
+
+| 文件 | 断言 | 覆盖 |
+|---|---|---|
+| `contract/ui-api.test.mjs` | **67** | 路由表自匹配与闭集、写集合按名字钉死、面板视图与九个交付项的落点、Scene Tree/差异/QA/任务/审批/设置卡的每个视图模型、工具卡参数提取、**文档里的路由表与代码逐条相同**、每个响应都是 lossless JSON |
+| `composition/ui-plane.e2e.mjs` | **138** | 每条路由的 200/`route`/`hostApiVersion`/lossless、每条写路由**只**调一个 facade 方法、未知路由 404 且列出surface、畸形 body 400、缺失项目 404、三种路径逃逸形态、resume 的 `jobId` 映射、模块内没有 fs/进程导入；客户端 bundle 被真实加载后的**座位表**（5 个槽、18 个注册）与「每个 wire 工具名都有卡、且没有多余的卡」 |
+| `e2e/ui.e2e.mjs` | **54** | 上面 §13.2 的四条验收，每条都是浏览器 + 磁盘两条证据 |
+
+**不在 `run-all.sh` 里的三项**（都会花真实模型调用或几十分钟机时）：
+
+```
+node deepblend/tests/e2e/visual-live.e2e.mjs     真实视觉审查（13/13）
+node deepblend/tests/e2e/ui-live.e2e.mjs         真实会话里的 Tool Card 与头部控件（9/9）
+node deepblend/tools/m3-delivery-acceptance.mjs run   真实项目上的 1080p 交付（约 30 分钟）
+```
+
+`ui-live.e2e.mjs` 是 M4 新加的：Tool Card 是唯一一个「证据本身就是一次模型调用」的交付项。
+它**不静默跳过**——没有 credential store、没有 Blender、没有装 `deepblend-dev` preset 时
+它立刻失败并说明缺哪一样。
+
+### 13.7 「在真实项目上」的那一遍（未触碰用户 store 的写）
+
+除套件之外，本节的事实都在**真实项目** `watch-commercial`（r0029，29 个 revision）上
+用**独立进程**（3099，自带 `DSH_HOME`，与开发者的 3080 互不影响）看过：
+
+* 项目列表、当前 revision、29 个 revision 的 digest 与说明、`validation.json` 的
+  4 条 notices、视觉评分 100 / 0 issue —— 面板逐项与磁盘一致；
+* 预览对比真的把 `revisions/r0029/contact-sheets/round-0.png`（1992×1272）解码显示出来
+  （`naturalWidth` 实测），走的是 `/deepblend/artifacts/watch-commercial/...`；
+* 结构差异对 `r0029 → r0029` 报「结构完全相同」，这是可复现的正确答案；
+* 在一个**真实会话**里（DeepBlend 开发模式）让模型调用 `blender_project_get`，
+  工具卡按 wire 名渲染、状态 `ok`、显示的就是调用参数里的 `projectId`；会话头部的小控件
+  同时显示「无渲染任务」（`ui-live.e2e.mjs` 把这一遍固化成了 9 条断言）。
+
+### 13.8 仍需人工过一眼（以及唯一需要重启的那一件事）
+
+1. **重启 3080 的 `dsh web`**（`cd /Users/hxb/workspace/deep-blend && dsh web`）。
+   这不是「习惯性重启」：这一版给 `packages/deepblend/ui` 第一次声明了 `dsh.client`，
+   而 `dsh-client-modules` 把「这个包是不是客户端包」的判定按进程缓存（§13.1）。
+   重启之后，侧边栏会出现 Blender 入口，Settings 里会出现 Blender 一节。
+   之后改 `lib/client.js` 不再需要重启。
+2. 重启后打开面板，对 `watch-commercial` 点一次「渲染预览」：**应当**在几秒内出现
+   新的 contact sheet（这一步会真的花一次 Blender 机时，且会往 store 里写一个 v2
+   artifact index 条目）。
+3. 刷新一次页面，确认面板从 Host 恢复同一个项目与同一个 revision。
+
+**无需人工的等价验证**：`bash deepblend/tests/run-all.sh`（1382 项，其中 54 项是真实
+浏览器、真实 Host、真实 Blender 的端到端验收），以及
+`node deepblend/tests/e2e/ui-live.e2e.mjs`（9 项，真实模型调用）。
+
+### 13.9 运行中的进程：M4 **没有**在 3080 里生效（这一次不需要含糊）
+
+| 检查 | 结果 |
+|---|---|
+| 3080 的 `dsh web` 是否含 M4 的工作台 | ❌ **不含**：它的 `clientModules` 在启动时把 `@deepblend/dsh-blender-ui` 判定为「不是客户端包」并缓存到进程结束；同一个 session 里 3099（新进程）的 boot 清单里有这个包，3080 页面里 `sidebar.panellist` 的 occupants 是空 |
+| 因此本轮的能力验证在哪 | ✅ 在一个**独立进程**里：真实 Chrome + 真实 Host + 真实 Blender，自带 store（§13.2）；以及在真实项目上的只读复核（§13.7） |
+| 为什么不在本轮里重启 3080 | 3080 就是本会话正在使用的进程；重启会终止本会话。这与 M3 §12.9 的处理一致——**记录状态、把重启留给操作者**，而不是让一次 `kill` 把上下文一起丢掉 |
+
+重启的方法与重启之后应当看到什么，写在 §13.8 第 1 条。

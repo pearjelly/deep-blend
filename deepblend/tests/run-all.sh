@@ -13,7 +13,12 @@
 # projection, cancellation with a measured process-gone check, the restart reconciler,
 # the frame ledger, resume-from-missing, and the MP4 + delivery manifest. Its two
 # suites render at 1080p for real and encode with real ffmpeg, so they are the slowest
-# in the run. `e2e/visual-live.e2e.mjs` is deliberately NOT part of this run: it spends
+# in the run.
+# M4 adds the workbench UI. `composition/ui-plane.e2e.mjs` drives the Host half and
+# loads the real client bundle; `e2e/ui.e2e.mjs` starts its OWN `dsh web` (a client
+# package is only recognised by a process started after it declared `dsh.client`),
+# drives a real Chrome over the DevTools protocol, and checks the disk after every
+# click. It uses its own project store, so it can run while a real GUI is up. `e2e/visual-live.e2e.mjs` is deliberately NOT part of this run: it spends
 # real model calls and needs an API key, so it is run explicitly before a commit that
 # touches the reviewer, the prompt, the sheet compositor or the scorer.
 #
@@ -73,6 +78,12 @@ run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)
 
 run_suite "Agent preset M3 tool plane (all fourteen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
+
+run_suite "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)" \
+  node deepblend/tests/composition/ui-plane.e2e.mjs
+
+run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)" \
+  node deepblend/tests/e2e/ui.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

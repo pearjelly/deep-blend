@@ -1,4 +1,4 @@
-# DeepBlend 工具契约（M0–M3）
+# DeepBlend 工具契约（M0–M4）
 
 > 范围：模型可见工具的**实际**契约，取自 `packages/deepblend/tool/lib/` 与
 > `packages/deepblend/contracts/lib/`。
@@ -558,3 +558,70 @@ M3 新增的：
 | **模型选择或改写的修复让分数提高** | 同上 |
 | 接触表每个格子装的确实是它声称的视角 | `contract/png-sheet.test.mjs` |
 | PNG 编解码无损（含 Adam7 与全部 5 种行滤波） | 同上 |
+
+---
+
+## 2. M4：工作台 UI 的 Host API（HTTP 路由，**不是**模型可见工具）
+
+> 范围：`packages/deepblend/ui/lib/index.js` 实际注册的路由。
+> 平面归属：**Host composition**（`@deepblend/dsh-blender-ui` 的 Host 半边）。网页半边
+> 只有 `fetch`，没有任何执行入口。
+
+M4 的九个交付项全部由这 19 条路由支撑。**这张表不是手写的**：它由
+`packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES` 生成，并由
+`deepblend/tests/contract/ui-api.test.mjs` 断言本文件里的行与那份表**逐条相同**
+（本仓库第 6 次遇到「同一份词表写两遍」，所以这次让文档漂移直接让测试变红）。
+
+### 2.1 路由表
+
+| 路由 | 语义 | 说明 |
+|---|---|---|
+| `GET /deepblend/capabilities` | 读 | Blender capabilities and the settings card. |
+| `GET /deepblend/state` | 读 | Everything the panel needs to render itself from scratch. |
+| `GET /deepblend/projects` | 读 | Every project in the store. |
+| `POST /deepblend/projects` | **写** | Create a project (title, optional seed scene). |
+| `GET /deepblend/projects/:projectId` | 读 | One project: summary, revisions, current digest. |
+| `GET /deepblend/projects/:projectId/scene` | 读 | The Scene Tree of a revision. |
+| `GET /deepblend/projects/:projectId/revisions` | 读 | Every revision with its manifest and QA verdict. |
+| `GET /deepblend/projects/:projectId/revisions/:revision` | 读 | One revision in full: manifest, QA, previews, operations. |
+| `GET /deepblend/projects/:projectId/diff` | 读 | Structural diff between two revisions (?from=&to=). |
+| `GET /deepblend/projects/:projectId/qa` | 读 | The QA view of a revision (?revision=). |
+| `GET /deepblend/projects/:projectId/previews` | 读 | Preview sets per revision, for Preview Compare. |
+| `POST /deepblend/projects/:projectId/preview` | **写** | Render the low-cost multi-view preview (and its contact sheet). |
+| `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
+| `POST /deepblend/projects/:projectId/restore` | **写** | Restore an earlier revision as a new revision. |
+| `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
+| `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |
+| `POST /deepblend/projects/:projectId/jobs/:jobId/cancel` | **写** | Cancel a running job and verify the process is gone. |
+| `POST /deepblend/projects/:projectId/render` | **写** | Start a delivery render (or resume one). |
+| `GET /deepblend/artifacts/:projectId/*` | 读 | Serve one project-relative artifact (a preview PNG). |
+
+### 2.2 契约要点
+
+* **写操作只有 6 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` /
+  `applyScenePatch` / `restoreRevision` / `startFinalRender`+`resumeRenderJob` /
+  `cancelJob`）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
+  那一个方法，且没有任何 handler 在表外存在（闭集，两个方向都断言）。
+* **响应永远带 `route` 与 `hostApiVersion`**。这不是装饰：M0 的 prefix 路由注册在
+  `/deepblend/capabilities` 上，所以一个更旧的宿主对该路径返回 **200 + 设置卡（没有
+  `route`）**，而对 `/deepblend/state` 返回 **404 + 0 字节**——「宿主比 UI 旧」因此有
+  两种形状：一个成功的错答案，和一个不是 JSON 的响应。客户端把两种都归到
+  `UI_HOST_API_STALE`，并把观察到的状态码/字节数写进诊断
+  （`tests/e2e/ui.e2e.mjs` 用真实页面把两条都断言了）。
+* **没有缓存**：每条响应 `cache-control: no-store`，每个值都是当次从 Host 现算的
+  （SPEC §14.3「刷新后可从 Host 恢复权威状态」）。
+* **`artifacts` 是唯一碰文件系统的路由**，路径交给 `blenderStudio.readArtifact`，由它
+  用 `resolveInside` 把项目目录当作边界（SPEC §15.2）。路由器会**先解码** `*` 捕获的
+  尾部：一个收到 `%2e%2e%2f` 的路径守卫无法把它认成 `..`。
+* **`resumeJobId` → `jobId` 的映射在 UI 半边的 handler 里**（工具半边同样映射）。
+  两个名字不同是有意的：调用方表达的是意图（续渲哪个 job），Host 读的是参数
+  （`jobId`）。映射写在一处，并由套件断言。
+
+### 2.3 刻意**未注册**的一条
+
+| SPEC §14.4 | 原因 | 归属 |
+|---|---|---|
+| `blenderApproval.respond` | M4 只**显示**阈值事实；能阻止启动的审批平面（harness approval prompt）是 M5。一个记录了决定却没有任何东西遵守的写接口，就是「声明了但没人用的机制」 | M5 |
+
+`conversation.approval.detail` 是 **single** 且**已被随附审批 UI 占用**，注册它等于顶掉
+随附行为（并连带其子树）——与 brief §2.3 的规则冲突，因此 M4 不动它，见 D64。
