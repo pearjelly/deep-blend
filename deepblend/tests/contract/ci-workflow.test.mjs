@@ -205,3 +205,31 @@ test('the contract layer the workflow runs is the one this repository has', () =
   assert.ok(files.length >= 20, `only ${files.length} contract files found; the discovery rule or the directory changed`)
   assert.match(workflow, /node deepblend\/tests\/run\.mjs/, 'ci.yml no longer runs the contract layer at all')
 })
+
+test('the install path is walked on every push, not when somebody remembers', () => {
+  // THE SHAPE OF EVERY FINDING THIS SESSION HAS PRODUCED: a claim whose only owner is
+  // somebody's memory. `npm run verify:clone` walks the four documented steps in order, from
+  // a clone, against a `$DSH_HOME` that has never seen DeepBlend — it is the single claim an
+  // open-source project is judged on, it was measured by hand when it was written, and then
+  // nobody ran it for six rounds of changes. It reaches the workflow as a `node <path>` step,
+  // so the "every external command is declared" rule above keeps it honest about what it
+  // needs; this test keeps it from being dropped again.
+  assert.ok(
+    /verify-clean-clone\.mjs/.test(workflow),
+    'ci.yml no longer runs `npm run verify:clone`, so "a stranger can install this" is a claim with no owner again',
+  )
+  assert.ok(
+    existsSync(join(ROOT, 'deepblend', 'tools', 'verify-clean-clone.mjs')),
+    'ci.yml runs verify-clean-clone.mjs, which does not exist',
+  )
+
+  // And it must come AFTER the direct contract run: the walkthrough runs the same suite
+  // inside the clone, so a broken contract layer should fail once, early and legibly,
+  // rather than twice with the second failure buried in a nested report.
+  const workflowOrder = workflow.indexOf('tests/run.mjs')
+  const walkthrough = workflow.indexOf('verify-clean-clone.mjs')
+  assert.ok(
+    workflowOrder !== -1 && walkthrough > workflowOrder,
+    'the clean-clone walkthrough runs before the contract suite it contains',
+  )
+})

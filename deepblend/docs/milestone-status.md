@@ -2771,3 +2771,61 @@ DeepBlend tests: 27/27 file(s) passed        830 项自计断言 + 171 个 node:
 不再点名支持路径）全部变红——其中「换成无关的 pnpm 词」是**第一版断言抓不到**的：
 `install.md` 里本来就有 `pnpm-workspace.yaml`，所以「文件里出现过 pnpm」什么都证明不了，
 必须要求它出现在**那一段**里。
+
+---
+
+## 28. 「陌生人也能装上」这句话，此前只有人记得才会被验证
+
+`npm run verify:clone` 把安装手册的四步**按顺序、在一个全新的 clone 加一个全新的
+`DSH_HOME` 上**走一遍，然后在那个 clone 里跑契约层。它是开源项目被judged的那一条断言，
+写它的那一次（§21）量过——**之后六个轮次的改动，没有任何人再跑过它**。
+
+这一轮先跑了一遍：**它仍然是绿的**（四步、三个 DeepBlend row 都组合出来、clone 里
+27/27 契约文件）。所以这一轮的产物不是修一个坏掉的东西，而是**给这条断言找一个所有者**：
+
+```yaml
+- name: The documented install path, from a clean clone
+  run: node deepblend/tools/verify-clean-clone.mjs --source .
+```
+
+### 28.1 先量它能不能进 CI：不需要 pnpm，也不需要网络
+
+第 14 轮刚量过 `dsh plugin` **需要** pnpm 在 PATH 上，所以「这条走查能不能在 runner 上跑」
+是一个真问题，不是形式问题。量法是把 pnpm 从 PATH 上拿掉再跑整条：
+
+```
+$ env PATH="$DSH_BIN:/usr/bin:/bin" node deepblend/tools/verify-clean-clone.mjs --source .
+pnpm on PATH: NO
+✓ the documented install path works from a clean clone against a clean DSH_HOME
+```
+
+四步里三步是纯 Node，`dsh --profile web --dump-config`（创建 profile 的那一步）
+在没有 pnpm 时**照样成功**。网络也不需要：clone 的是 runner 上那份 checkout 本身。
+
+然后在 Linux 容器里把**整个 job 照抄着跑了一遍**（Node 22、`python3`、`git`、没有 pnpm）：
+links ✓、presets ✓、契约层 27/27 ✓、**走查 ✓**（clone 里的契约层也是 27/27）。
+
+### 28.2 顺带把它变成一条不会再次被忘掉的断言
+
+`ci-workflow.test.mjs` 多了一条：CI 必须跑这个走查，而且必须在**直接跑契约层之后**
+——走查内部会再跑一次同一个套件，坏掉的契约层应该在早的那一次大声失败，
+而不是埋在嵌套报告的第二份里。两种变异（把这一步删掉、把它换成别的命令）都变红。
+
+### 28.3 这一轮没有发现产品缺陷，而这是第一次
+
+前几轮每次都从「从没被执行过的东西」里挖出真问题（CI 自己、`presets --check` 的第三态、
+技能的覆盖面、安装器指的键）。这一轮同样去看了从没被跑过的东西，**它是对的**。
+值得记下来，因为它说明前几轮的修理真的在起作用：
+这一轮唯一要做的事，是不再让这条断言依赖某个人的记性。
+
+### 28.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 27/27 file(s) passed        830 项自计断言 + 172 个 node:test 用例
+
+# 容器里，ci.yml 的全部步骤（Linux / Node 22 / 无 pnpm）
+result: the workspace resolves all 12 package(s) from the deployment
+DeepBlend tests: 27/27 file(s) passed
+✓ the documented install path works from a clean clone against a clean DSH_HOME
+```

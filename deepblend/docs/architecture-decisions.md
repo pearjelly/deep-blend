@@ -2046,6 +2046,30 @@ D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本*
 
 ---
 
+### D99 — 一条「只有人记得才会被验证」的断言，要交给 CI
+
+**决策**：`npm run verify:clone`（安装手册四步的完整走查）**在 CI 里每次 push 都跑**，
+并且 `ci-workflow.test.mjs` 断言它在那里、且排在直接跑契约层之后。
+
+**触发它的事实**：这是开源项目被 judged 的那一条断言——「陌生人也能装上」——
+而它此前**没有任何所有者**：写它的那一次（§21）由人手跑过一次，之后六个轮次的改动
+（资产策略、审批平面、三个安装器的语义、preset 的 skill）没有一个人再跑过它。
+**它仍然是对的**，但「它是对的」和「有人知道它是对的」是两件事。
+
+**先量它能不能进 CI**，因为第 14 轮刚量出 `dsh plugin` 需要 pnpm，而 CI 上没有 pnpm：
+
+* 把 pnpm 从 PATH 上拿掉再跑整条走查 → **通过**。四步里三步是纯 Node，
+  `dsh --profile web --dump-config`（建 profile 的那一步）在没有 pnpm 时照样成功；
+* 网络也不需要——clone 的是 runner 上那份 checkout 本身；
+* 然后在 Linux 容器里把整个 job 照抄着跑了一遍（Node 22、无 pnpm）：全部绿。
+
+**为什么这算一条决策而不是一次配置改动**：它把「需要一个所有者」这件事从**人**挪到了
+**机器**。这一轮没有发现产品缺陷——**这是本次会话第一次**——因为前几轮修的东西
+（CI 自己、`--check` 的第三态、技能的覆盖面、报错指的键）正是让这一轮「看了一遍、
+什么都没坏」的原因。
+
+---
+
 
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
@@ -2094,6 +2118,7 @@ D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本*
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（把装得上交给 CI） | D99：「陌生人也能装上」此前是一条只有人记得才会被验证的断言——写它的那一次量过，之后六个轮次的改动没人再跑过。先量出它进 CI 的条件（拿掉 pnpm 后整条走查仍通过，四步里三步是纯 Node；也不需要网络），再把它加进 `ci.yml`，并用 `ci-workflow.test.mjs` 断言它在、且排在直接跑契约层之后。走查本身是绿的：这一轮**没有发现产品缺陷**，是本次会话的第一次 |
 | 2026-09-14 | M5（安装的两条路，Q10 关闭） | D98：Q10 的前提（「`dsh plugin` 需要 pnpm，本机没有」）是关于一台机器的，不是关于产品的。整条路在临时 `DSH_HOME` 上真的走了一遍：`dsh plugin --profile web add <六个本地路径>` 今天就能把 DeepBlend 装起来并服务（HTTP 200 / hostApiVersion 4），bundle 自动进 `dsh.profile.bundles`；它唯一不做的是钉存储，`projectsRoot` 落在 `<DSH_HOME>/deepblend` 而非 checkout 的 `.deepblend`——那正是 `install-plugin.mjs` 仍然存在的理由。产出是 `tools/dsh-plugin-install-probe.mjs`、`docs/probe-dsh-plugin-install.log`、README 与 install.md 的双路说明，以及「安装器必须说清它比支持路径多做了什么」的断言。附带记下一条差点记错的结论：`dsh plugin --help` 里那句「bundled Node.js」是 pnpm 在描述自己，不是 `dsh` 自带 pnpm |
 | 2026-09-14 | M5（对模型与用户说的话） | D97：给模型的技能必须覆盖工具面（16 个里少了 `blender_asset_ingest` 与 `blender_job_cancel`，而前者是全套里契约最反直觉的一个——ingest 不改场景）；被平台挡住的报错必须点到产品真的读的键（守卫让人设 `DEEPBLEND_BLENDER_PATH`，而那个变量只有本仓库的测试读，产品读的是 operator layer 的 `blenderPath`，`install.md` 一直这么写）。产出是 SKILL.md 的资产一节与取消语义、`preset-surface.test.mjs` 的双向覆盖断言、`setup-steps.test.mjs` 的「建议点到真键」与「平台边界写在讲前提处」 |
 | 2026-09-14 | M5（验证 CI） | D96：把 CI 的每一步照抄进 Linux 容器跑一遍，两个此前从未被执行的产物都坏了——`install-presets --check` 把「本机没装」报成「5 file(s) drifted」并退出 1（标签对、旁边的计数器错：`if (!same) drift += 1`），而这一家里 `plugin --check` 早就把第三个状态（没有 profile → 退出 2）做对了；`render-job.test.mjs` 需要 Python 3 却没人知道，缺依赖的机器在第 15 条断言吃到堆栈、后 45 条一起消失。规则统一为「整个不存在是一个状态，存在一部分才是漂移」。产出是 `contract/ci-workflow.test.mjs`（9 项，含「CI 不许写计数」与 `EXTERNAL_COMMANDS` 表）、`setup-steps.test.mjs` 的五态实测（+2 项）、README 的前置条件表 |

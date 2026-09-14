@@ -87,3 +87,16 @@ jobs:
 
       - name: Unit + contract suites
         run: node deepblend/tests/run.mjs
+
+      # THE ONE CLAIM AN OPEN-SOURCE PROJECT IS JUDGED ON, on every push.
+      #
+      # "A stranger can install this" was verified by `npm run verify:clone`, a command
+      # somebody had to remember to run — measured once by hand when it was written, and
+      # then for six rounds of changes nobody ran it at all. Everything above proves the
+      # parts work in THIS checkout; this proves the documented four steps work in ORDER,
+      # from a clone, against a `$DSH_HOME` that has never seen DeepBlend. It clones the
+      # checkout itself, so it needs no network of its own, and it needs no pnpm: measured
+      # with pnpm removed from PATH, `dsh --profile web --dump-config` still composes and
+      # the walkthrough still passes (three of the four steps are plain Node).
+      - name: The documented install path, from a clean clone
+        run: node deepblend/tools/verify-clean-clone.mjs --source .
