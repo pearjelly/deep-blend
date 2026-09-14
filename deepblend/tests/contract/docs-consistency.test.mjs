@@ -40,13 +40,17 @@ import { join } from 'node:path'
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
+import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The manuals SPEC §23.5 asks for, and the README's own name for each. */
 const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepblend/docs/recovery.md']
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
-const scripts = new Set(Object.keys(manifest.scripts ?? {}))
+// A plain object, because that is what the shared checker reads: `scripts[name] === undefined`.
+// (It used to be a Set, and passing a Set to a checker that indexes by name reported every script
+// as missing — caught the moment the two were put together, which is the whole point of doing it.)
+const scripts = manifest.scripts ?? {}
 const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
 /** The other document a person reads before running anything. */
 const mergePolicy = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf8')
@@ -68,15 +72,17 @@ test('every manual SPEC asks for is present and linked from the README', () => {
   }
 })
 
-test('every `npm run <script>` a manual names actually exists', () => {
-  const named = new Set()
-  for (const { text } of documents) {
-    for (const match of text.matchAll(/npm run ([a-z][a-z:-]*)/g)) named.add(match[1])
-  }
-  assert.ok(named.size > 0, 'the manuals name no commands at all, which would make this assertion vacuous')
+test('every command a manual names can actually be run', () => {
+  // The rule lives in ONE module now (`tests/lib/command-claims.mjs`), because it had three copies:
+  // this one, the README's in `setup-steps.test.mjs`, and the templates'. Round 34 consolidated them —
+  // and the shared version is STRICTER than the two older ones, which only looked at `npm run <x>`:
+  // it resolves repository paths too, so a manual that says `node deepblend/tools/gone.mjs` is caught.
+  const commands = documents.flatMap(({ text }) => commandsIn(text))
+  assert.ok(commands.length > 0, 'the manuals name no commands at all, which would make this assertion vacuous')
 
-  for (const name of named) {
-    assert.ok(scripts.has(name), `a manual says \`npm run ${name}\`, which package.json does not define`)
+  for (const { text, path } of documents) {
+    const missing = missingCommands(text, { scripts, root: ROOT })
+    assert.deepEqual(missing, [], `${path} tells a reader to run ${missing.join(', ')}, which cannot be run`)
   }
 })
 

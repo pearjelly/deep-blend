@@ -4220,3 +4220,72 @@ DeepBlend tests: 37/37 file(s) passed        848 项自计断言 + 249 个 node:
 新增 `tests/lib/command-claims.mjs`（从 `contributor-surface` 里抽出来，两处共用）、
 `contract/probe-logs.test.mjs`（6 项）；四条没有可复现头部的日志补齐了头部与日期；
 `probe-coverage.log` 补上日期。**产品代码一行没改。**
+
+---
+
+## 47. 同一条规则的三份副本：合并之后，两份立刻露馅
+
+第 33 轮把「文档点名的命令是否存在」抽成了一个模块（模板与证据日志共用）。
+这一轮去数了一下：**这条规则当时有三份**——`docs-consistency`（手册）、`setup-steps`（README）、
+以及新抽出来的那份。三份的实现还各不相同：
+
+| 副本 | 查什么 |
+|---|---|
+| `docs-consistency` | 手册里的 `npm run <script>` |
+| `setup-steps` | README 里的 `npm run <script>` |
+| `command-claims.mjs` | `npm run <script>` **与** `node/bas h deepblend/...` 路径（反引号/裸写/`#`/`>` 前缀） |
+
+合并成一份之后，**两份旧副本覆盖不到的东西立刻被覆盖**：
+手册与 README 里写死的脚本路径（`node deepblend/tests/run.mjs`）现在也会被解析。
+
+### 47.1 合并当场就抓到一个「同一个事实的两种形状」
+
+`docs-consistency` 里那份用的是 `Set`（`scripts.has(name)`），而共用模块按名字索引
+（`scripts[name] === undefined`）。把 `Set` 传进去的结果是**每一个脚本都报成不存在**——
+契约层立刻红，报错内容是「`install.md` 让读者跑 npm run setup，而它跑不了」，
+而 `setup` 明明就在 `package.json` 里。**两份实现对于「脚本清单是什么形状」这件事的看法不一致**，
+而这正是「两份副本」会带来的东西：它们不会一起错，但会各自对。
+
+### 47.2 变异（其中一条是我自己搞错的）
+
+```
+C1  手册里的 npm 脚本改名                      → 红 ✓（旧副本也能抓）
+C2a 手册里指向一个不存在的工具路径（字符串写错，文件里没有那句）→ 无操作 ✗ 我改错了地方
+C2b 手册里的 `node deepblend/tests/run.mjs` 改名 → 红 ✓（旧副本抓不到：它只看 npm 脚本）
+C3  README 里的 `node deepblend/tools/create-demo-project.mjs` 改名 → 红 ✓（README 此前完全没有路径检查）
+```
+
+C2a 记在这里而不是删掉：**一条没改到东西的变异，是最容易骗过自己的一种「验证」**——
+它「通过」了，但它什么都没证明。
+
+### 47.3 顺带：那次 1080p 交付跑不动，原因量清了，所以停掉
+
+第 33 轮在后台启动的 60 帧 1080p 交付（用来刷新被引用的日志）这一轮还在跑，
+而它的速度是 **约 2.6 分钟/帧**，文档里承诺的是 **19.6–41.4 秒/帧**。先去量机器：
+
+```
+$ uptime
+21:00  up 5 days, load averages: 45.85 48.65 42.67        # 10 核
+$ ps -Ao pcpu=,args= | sort -rn | head -3
+719.2  …/.tools/Blender.app/Contents/MacOS/Blender …
+ 76.3  /Applications/WorkBuddy.app/Contents/MacOS/Electron …
+ 75.3  /Applications/WorkBuddy.app/Contents/MacOS/Electron …
+```
+
+**与本仓库无关的应用把机器压到 load 45/10 核**，所以今天量到的帧时间是「这台机器今天」的事实，
+不是产品的事实——**不发布**。这次运行因此停掉（它还要约两小时），
+留下的状态正是工具自己的文档描述的那种：job `recovering`、14/60 帧、`output/final.mp4` 不存在，
+随时可以用 `recover` 接着跑（下次在空闲机器上做，顺带把 `probe-m3-delivery.log` 刷新）。
+
+它顺便第三次演示了同一件事：**把工具杀掉，渲染器还活着**——协调器在 `status` 里认出并停掉了它
+（进程组，实测 gone），这正是 `recovery.md` §1 的那一套。
+
+### 47.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 37/37 file(s) passed
+```
+
+`docs-consistency` 与 `setup-steps` 改用共用模块（三份 → 一份），两份旧副本因此升级到
+「命令与路径都查」；**产品代码一行没改**，测试文件数不变。

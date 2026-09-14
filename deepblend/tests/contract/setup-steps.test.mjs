@@ -42,6 +42,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
+import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
 
 /** A file in `tools/` that changes the machine rather than describing it. */
 const SETUP_STEP_PATTERN = /^(install|link)-[a-z-]+\.mjs$/
@@ -115,19 +116,16 @@ test('every setup step exposes a --check mode, because running is not inspecting
   }
 })
 
-test('the documented npm scripts are the ones package.json actually defines', () => {
-  // The README is the front door. A renamed script that the README still names
-  // breaks the documented path without breaking any other assertion here.
+test('the commands the README documents are ones a reader can run', () => {
+  // The README is the front door. A renamed script it still names breaks the documented path without
+  // breaking any other assertion here — and since round 34 the check is the shared one
+  // (`tests/lib/command-claims.mjs`), which also resolves the repository paths it names.
   const readme = documentation.find(document => document.name === 'README.md').text
-  const documented = [...readme.matchAll(/npm run ([a-z:-]+)/g)].map(match => match[1])
+  const documented = commandsIn(readme)
   assert.ok(documented.length > 0, 'the README no longer tells anyone to run anything')
 
-  for (const name of new Set(documented)) {
-    assert.ok(
-      Object.hasOwn(scripts, name),
-      `README.md says \`npm run ${name}\` but package.json defines no such script`,
-    )
-  }
+  const missing = missingCommands(readme, { scripts, root: ROOT })
+  assert.deepEqual(missing, [], `README.md tells a reader to run ${missing.join(', ')}, which cannot be run`)
 })
 
 // ---------------------------------------------------------------------------
