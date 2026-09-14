@@ -3857,3 +3857,85 @@ tool/render-tools.js  54            →  33          ← 失败态那 21 行全�
 
 新增：`render-job.test.mjs` §9c（7 项，失败态文案）、`tool-plane-m3.e2e.mjs` 的续渲块（6 项）。
 产品代码**一行没改**——这一轮补的是「已经被写出来、却没人读过」的那部分产品的断言。
+
+---
+
+## 42. 量具第五次错：这次不是合并规则，是**测试自己把服务器杀了**
+
+`docs/probe-coverage.log` 里有一段「这个量具看不见什么」，从第 23 轮起就写着：
+`dsh web` 进程**一个 coverage 报告都不写**，所以只从 UI 到达的路径全部读成黑暗——
+`listProjects` / `getRevisionDetail` / `readArtifact` / `getQaRecord` 四个方法
+「浏览器套件明明端到端跑通了，这里却是 0」。
+
+第 23 轮量的是「有没有报告」，这一轮量的是**为什么没有**。
+
+### 42.1 假设与实测：服务器愿意停，是测试不等它
+
+```
+$ NODE_V8_COVERAGE=/tmp/cov-web-before node deepblend/tests/e2e/ui.e2e.mjs
+M4 UI acceptance: 70/70 check(s) passed
+coverage 报告总数：2       其中提到产品包的：0
+
+$ NODE_V8_COVERAGE=/tmp/cov-web-probe node /tmp/web-shutdown-probe.mjs     # 自己发 SIGTERM，等它
+GET /deepblend/state -> 404
+SIGTERM -> exited after 717 ms with code=0 signal=null
+coverage reports: 1 -> 2
+```
+
+`dsh` **装了 SIGTERM 处理器**（`profile-boot` 里 `process.on('SIGTERM')` → dispose app fiber → 退出 0），
+它老老实实停下来了——用了 **717 毫秒**。而 `dsh-web-harness.mjs` 的 `stop()` 等 **300 毫秒**
+就 `SIGKILL`。**进程被杀死在自己的关闭过程中间，于是 V8 报告从来没被写出来。**
+
+而这份报告里有什么，也量了：`dsh web` 进程那一份含 **28 个产品模块**。
+
+**这不是合并规则错，是测试错。** 五次了，这次是第一次错在「怎么收集」而不是「怎么读」。
+一个杀掉愿意停的服务器的测试，量的其实是 kill 路径而不是关闭路径——
+顺手也把一个平面的产品变成了「没有测试」。
+
+### 42.2 修法与断言
+
+`stop()` 现在：先 `SIGTERM`，**轮询等它自己退出**（上限 `SHUTDOWN_GRACE_MS = 15_000`，
+是实测 717 ms 的二十倍），只有超时才升级到 `SIGKILL`，并且**回报走的是哪条路**
+（`{via: 'sigterm' | 'sigkill' | 'already-exited', ms}`）。
+
+浏览器套件据此多了一条断言——**服务器是自己关掉的，而不是被杀在半路**：
+
+```
+[PASS] the server finished its own shutdown rather than being killed mid-way — {"via":"sigterm","ms":777}
+M4 UI acceptance: 71/71 check(s) passed
+```
+
+`via: 'sigkill'` 意味着宽限期用完了：那是真的有人把关闭变慢了，值得红。
+
+### 42.3 收益：整个 UI 平面第一次进入读数
+
+同一个 `ui.e2e.mjs` 的覆盖率，用同一份合并规则读，四个「UI 只从浏览器到达」的方法都亮了。
+整套重测（`docs/probe-coverage.log` 已刷新）：
+
+```
+                              第 28 轮        本轮
+产品可执行行黑暗              1637 (13.5%)    1497 (12.4%)      −140
+host/lib/index.js             649             526               −123   ← UI-only 门面方法在此
+contracts/lib/ui-api.js       61 (第 24 轮)   13                −48
+ui/lib/index.js               36              25                −11
+
+四个方法（`listProjects` / `getRevisionDetail` / `readArtifact` / `getQaRecord`）
+的签名行全部不再黑暗，函数体里剩下的 1–3 行是它们各自的稀疏错误分支。
+```
+
+盲区那一段也随之改写：不再是「`dsh web` 不写报告」，而是
+「**曾经**不写——因为测试在它关闭的半路把它杀了。第 29 轮起它会写完再走。」
+
+### 42.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 34/34 file(s) passed
+$ node deepblend/tests/e2e/ui.e2e.mjs
+M4 UI acceptance: 71/71 check(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+产品代码一行没改：改的是**测具**（`tools/dsh-web-harness.mjs`）与它的一条断言。
+这也是这个仓库里第一次，「量具的错」不在探针里，而在**喂给探针的东西**上。

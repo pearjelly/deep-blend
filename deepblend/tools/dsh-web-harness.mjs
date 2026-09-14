@@ -39,6 +39,15 @@ const LOCAL_SCOPE = '@deepblend'
 /** The real home, which is where profiles, credentials and presets live. */
 export const REAL_HOME = process.env.DEEPBLEND_DSH_HOME ?? join(homedir(), '.dsh')
 
+/**
+ * How long `stop()` waits for `dsh web` to finish its own shutdown before escalating to SIGKILL.
+ *
+ * MEASURED: 717 ms on this machine (round 29). Fifteen seconds is twenty times that, because the cost
+ * of waiting is a slower teardown and the cost of not waiting is a killed process, no coverage report,
+ * and — before this constant existed — a whole plane of the product reading as untested.
+ */
+export const SHUTDOWN_GRACE_MS = 15_000
+
 function sleep(ms) {
   return new Promise(resolve => { setTimeout(resolve, ms) })
 }
@@ -223,11 +232,40 @@ export async function startWeb(options) {
     await sleep(200)
   }
 
+  /**
+   * Stop the server, and let it stop ITSELF first.
+   *
+   * MEASURED, round 29: `dsh` installs a SIGTERM handler that disposes the app fiber and exits with
+   * code 0 — and it takes about 700 ms. This function used to wait 300 ms and then SIGKILL, so the
+   * process was killed in the middle of its own shutdown. The browser suite passed either way, which
+   * is why nobody noticed: what was lost silently was the process's V8 COVERAGE REPORT. That single
+   * number is the whole reason the UI plane reads as dark in `docs/probe-coverage.log` — zero reports
+   * for the host package, measured twice — and it made four UI-only methods (`listProjects`,
+   * `getRevisionDetail`, `readArtifact`, `getQaRecord`) look unreachable when the browser suite
+   * exercises all four.
+   *
+   * Killing a server that is willing to stop is also just a worse test: it measures the kill path
+   * instead of the shutdown path. The grace period is generous on purpose — a suite that goes red
+   * because a shutdown got slower is telling us something real, and `via` says which path was taken.
+   *
+   * @returns {Promise<{via: 'already-exited'|'sigterm'|'sigkill', ms: number}>}
+   */
   const stop = async () => {
+    const startedAt = Date.now()
+    if (child.exitCode !== null || child.signalCode !== null) return { via: 'already-exited', ms: 0 }
+
+    let exited = false
+    const exitedOnce = new Promise(resolve => child.once('exit', () => { exited = true; resolve() }))
     child.kill('SIGTERM')
-    await sleep(300)
-    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-    await sleep(200)
+    const deadline = Date.now() + SHUTDOWN_GRACE_MS
+    while (!exited && Date.now() < deadline) await sleep(50)
+
+    const via = exited ? 'sigterm' : 'sigkill'
+    if (!exited) {
+      child.kill('SIGKILL')
+      await exitedOnce
+    }
+    const ms = Date.now() - startedAt
     if (options.keepHome !== true) {
       try {
         rmSync(home, { recursive: true, force: true })
@@ -235,6 +273,7 @@ export async function startWeb(options) {
         // A locked temp home is not worth failing a test over.
       }
     }
+    return { via, ms }
   }
 
   return { url: info.url, token: info.token, port: info.port, home, child, output: info.output, stop }

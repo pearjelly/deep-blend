@@ -660,7 +660,19 @@ try {
 } finally {
   if (page !== null) await page.screenshot('/tmp/deepblend-m4-ui-e2e.png').catch(() => {})
   if (browser !== null) await browser.close().catch(() => {})
-  if (server !== null) await server.stop().catch(() => {})
+  if (server !== null) {
+    // WHETHER THE SERVER STOPPED ON ITS OWN IS PART OF THIS SUITE'S VERDICT, not housekeeping.
+    //
+    // MEASURED (round 29): `dsh web` handles SIGTERM, disposes its app fiber and exits with code 0 —
+    // in about 700 ms. The harness used to wait 300 ms and SIGKILL, so the process died mid-shutdown
+    // and never wrote its V8 coverage report. The suite passed either way; what it lost was the whole
+    // UI plane in `docs/probe-coverage.log`, where `listProjects`, `getRevisionDetail`, `readArtifact`
+    // and `getQaRecord` read as never-executed although this file drives all four in a real browser.
+    // `via: 'sigkill'` means the grace period expired: something made the shutdown slower or stuck.
+    const stopped = await server.stop().catch(cause => ({ via: `failed: ${String(cause)}`, ms: 0 }))
+    check('the server finished its own shutdown rather than being killed mid-way',
+      stopped.via === 'sigterm', stopped)
+  }
   const leftovers = blenderProcesses()
   if (leftovers.length > 0) {
     console.error(`WARNING: Blender processes survived the suite: ${leftovers.join(' | ')}`)

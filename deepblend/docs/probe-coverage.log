@@ -2,7 +2,7 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# PROVENANCE: collected by the suite run of round 28 (`suite exit code: 0` below) and read with the
+# PROVENANCE: collected by the suite run of round 29 (`suite exit code: 0` below) and read with the
 # merge rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first
 # code character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces
 # every number on this page.
@@ -22,16 +22,23 @@ coverage files: 94 (94 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19907, never executed: 2950 (14.8%)   [every line]
-product CODE lines:      12098, never executed: 1637 (13.5%)   [blank + comment-only excluded]
+product lines seen:      19907, never executed: 2808 (14.1%)   [every line]
+product CODE lines:      12098, never executed: 1497 (12.4%)   [blank + comment-only excluded]
 
-── WHAT THE LAST THREE ROUNDS CHANGED, MEASURED ──
-                               §36 (every line)   §37-38       §41 (this run)
-product code lines dark        —                  1658 (13.7%)  1637 (13.5%)
-files with dark lines          —                  28            28
-tool/render-tools.js           89                 54            33
-host/render-journal.js         28                 3             3
-host/frame-ledger.js           10                 1             1
+── WHAT THE LAST FOUR ROUNDS CHANGED, MEASURED ──
+                               §36 (every line)   §37-38   §41 (r28)     §42 (this run)
+product code lines dark        —                  1658     1637 (13.5%)  1497 (12.4%)
+files with dark lines          —                  28       28            28
+host/lib/index.js              (951 raw)          872      649           526
+contracts/lib/ui-api.js        61 (r24)           —        —             13
+ui/lib/index.js                68 (r24)           64       36            25
+tool/render-tools.js           89                 54       33            33
+host/render-journal.js         28                 3        3             3
+host/frame-ledger.js           10                 1        1             1
+
+Round 29 is the one that changed the COLLECTION rather than the reading: `dsh web` was being SIGKILLed
+by the test harness 300 ms into a shutdown that takes ~700 ms, so the process never wrote its coverage
+report — and an entire plane of the product (everything reached through the browser) read as untested.
 
 Round 27 corrected the merge rule that produced the middle column: a line was judged by its whole
 SPAN, so V8's zero-count range for an untaken sub-expression — `? studio.hostApiVersion()`, starting
@@ -47,9 +54,9 @@ through the tool that documents it. The lines that remain are guards for states 
 that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (28) ──
-   packages/deepblend/host/lib/index.js                        649/2904  code lines dark
+   packages/deepblend/host/lib/index.js                        526/2904  code lines dark
    packages/deepblend/provider-local/lib/index.js              264/910
-   packages/deepblend/host/lib/revision-transaction.js          75/682
+   packages/deepblend/host/lib/revision-transaction.js          71/682
    packages/deepblend/tool/lib/visual-tools.js                  69/330
    packages/deepblend/contracts/lib/scene-spec.js               68/561
    packages/deepblend/host/lib/video-encoder.js                 56/210
@@ -57,7 +64,7 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/host/lib/project-store.js                 53/263
    packages/deepblend/tool/lib/tools.js                         51/810
    packages/deepblend/host/lib/render-reconciler.js             48/189
-   packages/deepblend/ui/lib/index.js                           36/369
+   packages/deepblend/ui/lib/index.js                           25/369
    packages/deepblend/tool/lib/shared.js                        31/230
    packages/deepblend/contracts/lib/png.js                      27/289
    packages/deepblend/tool/lib/index.js                         24/128
@@ -78,22 +85,33 @@ That keeps everything the block tree was for, and drops the false dark lines:
 IT IS NOT BRANCH COVERAGE, and that price is stated rather than hidden: an untaken arm on a line that
 ran is invisible here. What stays visible is any body or branch with a line of its own.
 
-── WHAT THIS INSTRUMENT CANNOT SEE, MEASURED (in §36's run; the blind spot is a property of
-   `dsh web`, not of that run) ──
-Running deepblend/tests/e2e/ui.e2e.mjs with NODE_V8_COVERAGE produces ZERO reports for the host
-package: the `dsh web` process it starts does not write them. So every path reached only through the
-UI reads as dark here. That is why listProjects, getRevisionDetail, getQaRecord and readArtifact
-report count 0 — the browser suite exercises all four end to end (the panel lists projects, opens a
-revision, shows QA, and fetches artifact bytes), and the routes that call them are served by that
-invisible process.
+── THE BLIND SPOT THAT WAS NOT ONE, AND HOW IT WAS FOUND (§42) ──
+From round 23 this file said: "`dsh web` writes ZERO coverage reports, so every path reached only
+through the UI reads as dark — that is why listProjects, getRevisionDetail, getQaRecord and
+readArtifact report count 0 although the browser suite exercises all four." Every clause of that was
+measured and true. The CAUSE was never measured, and it was the test:
 
-    listProjects        0        getScene      6
-    getRevisionDetail   0        listJobs      8
-    readArtifact        0        getQaRecord   0
+    $ NODE_V8_COVERAGE=… node deepblend/tests/e2e/ui.e2e.mjs     # the harness's 300 ms grace
+    coverage reports: 2, mentioning a product package: 0
 
-Read a dark line as "no test I can see executes this", not as "nothing executes this".
+    $ … send SIGTERM yourself and WAIT
+    SIGTERM -> exited after 717 ms with code=0 signal=null        # it stops willingly
+    coverage reports: 1 -> 2                                     # 28 product modules in that one
 
-── WHAT THE TOOL NOW REFUSES TO DO (each one learned by getting it wrong, §37 and §40) ──
+`dsh` installs a SIGTERM handler that disposes the app fiber and exits cleanly; the harness waited
+300 ms and then SIGKILLed, killing the process in the middle of its own shutdown. Killing a server
+that is willing to stop measures the kill path, not the shutdown path — and what it silently threw
+away was the testability of a whole plane.
+
+What the four methods look like now (this reading): their signature lines are covered, and 1-3 lines
+each remain dark inside their sparser error branches. `ui-api.js` went from 61 dark lines (round 24)
+to 13. The UI suite now asserts the server stopped on its own (`via: 'sigterm'`), so a shutdown that
+gets slower goes red instead of quietly costing coverage again.
+
+Read a dark line as "no test I can see executes this", not as "nothing executes this" — and when a
+reading says "I cannot see this", ask what ended the process before filing it as permanent.
+
+── WHAT THE TOOL NOW REFUSES TO DO (each one learned by getting it wrong, §37, §40 and §42) ──
 It exits non-zero and keeps its evidence when the SUITE exited non-zero, echoing the failing lines: a
 reading of a red tree is not a reading, and the version that threw the suite's output away left
 `suite exit code: 1` as the only trace of a 15-minute failure with no way to see which suite it was.
@@ -105,4 +123,5 @@ executed", and listed comment lines as the dark ones.
 
 And it no longer reports a line as dark because one arm of it was not taken — the four wrong merge
 rules are listed in `tools/coverage-merge.mjs`, and a fifth is now a test failure rather than a
-reading nobody audits.
+reading nobody audits. The fifth was not in the merge at all: it was the harness killing the server
+it had started (§42).
