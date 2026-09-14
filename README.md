@@ -1,8 +1,30 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M5 进行中**（正式 preset 与安全加固；
-> M0–M4 已闭环，工作台 UI 见下）
+> 主规格：`SPEC.md`（V2.0）　逐里程碑的结论与验收数字：`deepblend/docs/milestone-status.md`
+
+---
+
+## 看一眼
+
+下面三张图不是画出来的，是**从跑着的产品里截出来的**：一个真实的 `dsh web`、一个真实的
+Chrome、一份真实的 Blender，项目由**点**工作台上的控件建起来（和 `usage.md` 教的是同一批
+控件）。生成它们的工具是 `deepblend/tools/capture-docs-images.mjs`（`npm run docs:images`），
+重跑它就能更新这三张图；`contract/docs-images.test.mjs` 盯着它们是否还在、是否还是截图。
+
+工作台：项目头 + 当前 revision，以及 Host 现算的场景树。
+
+![Blender 工作台：项目名、当前 revision r0003、六个视图页签，以及实体/材质/灯光/相机/镜头/动画轨道六张场景卡片](deepblend/docs/images/workbench-scene.png)
+
+预览对比：一次预览渲七个视角合成一张 contact sheet；改一次材质再渲一次，左右就是
+「上一次渲染」和「本次渲染」，各自带自己的 digest 与渲染时间。
+
+![预览对比：两张 contact sheet 并排，左为上一次渲染、右为本次渲染，各自带 digest 与时间戳](deepblend/docs/images/preview-compare.png)
+
+上面那次渲染的产物本身 —— 七个视角（主动相机在动画的四个采样帧，加上四分之三、俯视、特写
+三个机位）拼成的一张图：
+
+![Blender 渲出的 contact sheet：七格，四格是主动相机在动画不同帧的画面，另外三格是另外三个机位](deepblend/docs/images/render-contact-sheet.png)
 
 ---
 
@@ -38,6 +60,7 @@ deepblend/
                       **规格与记录**：dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
+  docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）
   tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
                       workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
                       dsh-baseline.json —— DSH 兼容性锚点（版本号）的机器可读来源
@@ -55,8 +78,9 @@ deepblend/
                       browser-driver.mjs —— 无依赖的 CDP 驱动（M4 的浏览器验收用它开真实 Chrome）
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
+                      capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         25 个 *.test.mjs
+    contract/         26 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
                       spec-tools.mjs —— 从 SPEC.md §11 读出工具清单（三个套件共用这一份）
@@ -133,15 +157,15 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 这条命令是一次真的走查逼出来的：四步各自都对，缺的是**它们之间的那个前提**
 （`milestone-status.md` §21）。
 
-预期：**16 个套件、40 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**25 个文件 = 830 项自计断言（12 个文件打印计数）+ 149 个 `node:test` 用例（13 个文件）**。
+预期：**16 个套件、41 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**26 个文件 = 830 项自计断言（12 个文件打印计数）+ 156 个 `node:test` 用例（14 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 149 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 156 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**

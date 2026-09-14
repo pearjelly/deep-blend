@@ -29,7 +29,8 @@
     "presets:check": "node deepblend/tools/install-presets.mjs --check",
     "verify:clone": "node deepblend/tools/verify-clean-clone.mjs",
     "test": "node deepblend/tests/run.mjs",
-    "test:acceptance": "bash deepblend/tests/run-all.sh"
+    "test:acceptance": "bash deepblend/tests/run-all.sh",
+    "docs:images": "node deepblend/tools/capture-docs-images.mjs"
   },
   "repository": {
     "type": "git",

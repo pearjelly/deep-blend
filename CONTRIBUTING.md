@@ -99,11 +99,16 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 | 改 preset 的行集合 | `preset-surface.test.mjs`（**相等**断言，多一行少一行都红） |
 | 新增一句 import | `workspace-links.test.mjs` |
 | 改 bundle 里的配置 | `plugin:check` 会报 operator layer 漂移（那一层是推导出来的） |
+| 改工作台 UI 的**可见**部分 | **没有断言**。README 的三张图不会自己更新，也没人会发现它们过时了——跑 `npm run docs:images` 重新截（`docs-images.test.mjs` 只能保证它们还在、还是截图，保证不了它们是新版） |
 
 **手册是唯一一类不会被执行的产物**，所以它的可验证部分被单独查住（D82）：
 改完 `deepblend/docs/{install,usage,recovery}.md` 之后跑 `node deepblend/tests/run.mjs`，
 命名错的工具、命令或路径立刻会红。
 `contract/workspace-links.test.mjs` 会盯住这件事——漏了会在契约层失败并点名是哪个文件要的它。
+
+**README 里的图同理，而且更弱一层**：截图是手工触发的产物，不是构建的一部分。
+`docs-images.test.mjs` 查的是「它还在、还是截图、还被引用」，查不到「它还像今天的产品」。
+这一条写在表里而不是留给读者猜。
 
 ---
 

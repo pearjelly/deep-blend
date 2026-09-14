@@ -1,0 +1,43 @@
+{
+  "note": "Produced by deepblend/tools/capture-docs-images.mjs. Checked by deepblend/tests/contract/docs-images.test.mjs — do not edit these files by hand; re-run the tool.",
+  "tool": "deepblend/tools/capture-docs-images.mjs",
+  "viewport": {
+    "width": 1500,
+    "height": 950,
+    "deviceScaleFactor": 2
+  },
+  "project": {
+    "id": "product-turntable",
+    "goal": "一把钢制小物件的产品转台：深色台面、一圈发光环、四视角预览。",
+    "revision": "r0003"
+  },
+  "images": [
+    {
+      "file": "preview-compare.png",
+      "kind": "preview-compare",
+      "note": "the Preview view after two renders: 本次渲染 beside 上一次渲染, each pane keyed on its own digest",
+      "width": 3000,
+      "height": 1900,
+      "bytes": 496920,
+      "sha256": "5d1db9b130dc36a419856e272653282f83624dd6626558f280b088c019af780c"
+    },
+    {
+      "file": "workbench-scene.png",
+      "kind": "workbench-scene",
+      "note": "the workbench: the project header with its current revision, and the Scene tree the Host serves",
+      "width": 3000,
+      "height": 1900,
+      "bytes": 371407,
+      "sha256": "39ae346e3f72ae860433ebae02325c530423203853074a72124bbd747dfd27d0"
+    },
+    {
+      "file": "render-contact-sheet.png",
+      "kind": "render-contact-sheet",
+      "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
+      "width": 1476,
+      "height": 906,
+      "bytes": 597486,
+      "sha256": "412f65762c7206b63c6bd6a6db645d2f376e7a5b359c559fe4433e4fdbaa066f"
+    }
+  ]
+}
