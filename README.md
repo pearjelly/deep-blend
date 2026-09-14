@@ -59,6 +59,7 @@ deepblend/
   docs/               **手册（使用视角）**：install / usage / recovery —— 见上面「三份手册」
                       **规格与记录**：dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
+                      **安全**：security.md —— SPEC §15 的逐条对照表（含**没做到的那几条**）
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
                       / probe-dsh-plugin-install.log（两条装法各自测到什么，见「5. 安装进 DSH profile」）
   docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）
@@ -82,7 +83,7 @@ deepblend/
                       capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
                       dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         27 个 *.test.mjs
+    contract/         28 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
                       spec-tools.mjs —— 从 SPEC.md §11 读出工具清单（三个套件共用这一份）
@@ -183,15 +184,15 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**16 个套件、42 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**27 个文件 = 830 项自计断言（12 个文件打印计数）+ 172 个 `node:test` 用例（15 个文件）**。
+预期：**16 个套件、43 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**28 个文件 = 830 项自计断言（12 个文件打印计数）+ 178 个 `node:test` 用例（16 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 172 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 178 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
@@ -438,6 +439,13 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 怎么判断，设计的理由留在 `deepblend/docs/` 的其余文档里，两边不重复。
 
 ---
+
+## 安全
+
+SPEC §15 列的每一条安全要求，都在 `deepblend/docs/security.md` 里查到**它由哪一行代码负责、
+被哪一条断言盯着**，或者写着**它没做**——这份表由 `contract/security-controls.test.mjs` 盯住：
+SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺口没有在
+`milestone-status.md` §7 里编号，都会变红。报告漏洞见根目录的 `SECURITY.md`。
 
 ## 许可与参与
 

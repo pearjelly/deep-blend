@@ -21,13 +21,13 @@
  *
  * WHAT IT DELIBERATELY DOES NOT CHECK
  * -----------------------------------
- * The assertion TOTALS (the 830-checks / 172-cases pair in the README). Those cannot be
+ * The assertion TOTALS (the 830-checks / 178-cases pair in the README). Those cannot be
  * known without running every suite, and this test runs inside that set — a check that
  * ran the others to count them would double the suite's cost to restate a number the
  * reader can get by running one command. They stay in the README as a **snapshot**,
  * labelled as one, and that label is what a reader is owed instead of a guarantee
  * nobody can keep. The README said 811 and 139 while this file was being written; the
- * measured values are 830 and 172. No single commit made that wrong — each one added
+ * measured values are 830 and 178. No single commit made that wrong — each one added
  * assertions and none of them re-read the sentence — which is precisely the drift a
  * snapshot label survives and an assertion does not.
  *
