@@ -149,6 +149,16 @@ export const BlenderErrorCode = Object.freeze({
   /** A remote source could not be fetched, or exceeded the byte cap mid-download. */
   ASSET_FETCH_FAILED: 'ASSET_FETCH_FAILED',
   /**
+   * The bytes do not match the extension (SPEC §15.2 "MIME 与扩展名双重校验").
+   *
+   * Refused only when the content POSITIVELY CONTRADICTS the name — a known signature for
+   * another format, a NUL in a format that must be text, or an empty file. A file whose
+   * shape this gate cannot read passes, because deciding what a model file really is stays
+   * Blender's job (D10) and this only refuses the ones that say out loud that they are
+   * something else. See `contracts/lib/asset-content.js`.
+   */
+  ASSET_CONTENT_MISMATCH: 'ASSET_CONTENT_MISMATCH',
+  /**
    * The compiled scene carries more polygons than `maxMeshPolygons` (SPEC §15.2
    * "Mesh 面数限制").
    *
@@ -607,6 +617,8 @@ export {
   summarizeSceneSpec,
   sceneSpecCanonicalText,
 } from './scene-spec.js'
+
+export { ASSET_HEAD_BYTES, assetContentVerdict, describeAssetContent } from './asset-content.js'
 
 export {
   CAMERA_UPDATE_FIELDS,

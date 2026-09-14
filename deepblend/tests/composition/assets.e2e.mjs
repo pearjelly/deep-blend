@@ -164,6 +164,16 @@ const oversized = join(scratch, 'Huge.fbx')
 writeFileSync(oversized, Buffer.alloc(MAX_BYTES + 1, 0x62))
 const wrongFormat = join(scratch, 'notes.txt')
 writeFileSync(wrongFormat, 'not a model')
+// A PNG wearing a .glb name. The extension check cannot see this: the type is importable, so
+// only the content gate added in M5 (SPEC §15.2 "MIME 与扩展名双重校验") refuses it.
+const mislabeled = join(scratch, 'Actually a picture.glb')
+writeFileSync(mislabeled, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]))
+// …and its mirror image: a real glTF that is CALLED something else. The content gate must not
+// refuse this one, or the check would be rejecting files that are exactly what they need to be.
+const emptyFile = join(scratch, 'Empty.glb')
+writeFileSync(emptyFile, Buffer.alloc(0))
+const misnamed = join(scratch, 'model-with-no-extension')
+writeFileSync(misnamed, Buffer.concat([Buffer.from('glTF'), Buffer.alloc(60, 0x20)]))
 
 // ---------------------------------------------------------------------------
 // 1. Local: automatic, and the descriptor it returns is the one a patch accepts
@@ -200,6 +210,19 @@ try {
     check('ingesting does NOT commit a revision — the scene changes through one path only',
       (await session.studio.getProject('local')).revisions.length === 1,
       (await session.studio.getProject('local')).revisions.map(entry => entry.revision))
+
+    // THE OTHER DIRECTION OF THE CONTENT GATE, and the one that matters more: it must not
+    // refuse a file that is exactly what it needs to be. This glTF is called something with
+    // no extension at all, so the caller states the type — and the bytes agree with it.
+    const renamed = await callTool(session.registry, 'blender_asset_ingest', {
+      projectId: 'local',
+      sourcePath: misnamed,
+      type: 'glb',
+      assetId: 'model-with-no-extension',
+    })
+    check('a real glTF called something else is accepted once its type is stated',
+      renamed.value?.ok === true,
+      renamed.value?.data?.errorCode ?? String(renamed.value?.text ?? '').split('\n').slice(0, 2).join(' '))
 
     // And the descriptor is usable exactly as reported.
     const declared = await session.studio.applyScenePatch({
@@ -242,6 +265,8 @@ try {
       ['a source above assetMaxBytes', { projectId: 'policy', sourcePath: oversized }, 'ASSET_TOO_LARGE'],
       ['a source that does not exist', { projectId: 'policy', sourcePath: join(scratch, 'ghost.glb') }, 'ASSET_SOURCE_NOT_FOUND'],
       ['a format this project cannot carry', { projectId: 'policy', sourcePath: wrongFormat }, 'ASSET_FORMAT_UNAVAILABLE'],
+      ['a .glb whose bytes are a PNG', { projectId: 'policy', sourcePath: mislabeled, type: 'glb' }, 'ASSET_CONTENT_MISMATCH'],
+      ['an empty .glb', { projectId: 'policy', sourcePath: emptyFile }, 'ASSET_CONTENT_MISMATCH'],
       ['neither source', { projectId: 'policy' }, 'ASSET_REQUEST_INVALID'],
       ['both sources at once', { projectId: 'policy', sourcePath: localSource, sourceUrl: url('/model.glb') }, 'ASSET_REQUEST_INVALID'],
       ['an assetId that is a path segment', { projectId: 'policy', sourcePath: localSource, assetId: '../escape' }, 'PATH_SEGMENT_INVALID'],

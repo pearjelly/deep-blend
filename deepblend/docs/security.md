@@ -62,7 +62,7 @@
 | 5 | 工作区路径边界 | `packages/deepblend/host/lib/paths.js` 「resolveInside」 | `deepblend/tests/composition/hardening.e2e.mjs` 「a project id containing a traversal token is refused as a segment」 | ✅ |
 | 6 | 软链接逃逸防护 | `packages/deepblend/host/lib/paths.js` 「symlink」 | `deepblend/tests/composition/hardening.e2e.mjs` 「symlinked project directory that points outside the workspace is refused」 | ✅ |
 | 7 | 压缩包目录穿越防护 | ➖ 压缩包不是可导入的资产类型（`IMPORT_OPERATOR_BY_ASSET_TYPE` 只认 glb/gltf/fbx/obj/usd/blend），没有解包路径可穿越 | `deepblend/tests/composition/assets.e2e.mjs` 「a format this project cannot carry」 | ➖ |
-| 8 | MIME 与扩展名双重校验 | 只有扩展名一半：`packages/deepblend/contracts/lib/scene-spec.js` 「IMPORT_OPERATOR_BY_ASSET_TYPE」，内容不嗅探 | `deepblend/tests/composition/assets.e2e.mjs` 「a format this project cannot carry」 | ⚠️ 偏差 §7 #6 |
+| 8 | MIME 与扩展名双重校验 | 扩展名选导入算子（`packages/deepblend/contracts/lib/scene-spec.js` 「IMPORT_OPERATOR_BY_ASSET_TYPE」），**内容**再看前 512 字节：`packages/deepblend/contracts/lib/asset-content.js` 「assetContentVerdict」，拷贝进项目**之前**判，只有**正面矛盾**才拒绝 | `deepblend/tests/composition/assets.e2e.mjs` 「a .glb whose bytes are a PNG」 | ✅ |
 | 9 | 文件大小限制 | `packages/deepblend/host/lib/index.js` 「assetMaxBytes」，本地复制前与网络流式下载中都检查 | `deepblend/tests/composition/assets.e2e.mjs` 「a source above assetMaxBytes」 | ✅ |
 | 10 | 纹理尺寸限制 | ❌ 没有：纹理尺寸既不测量也不设限 | —— | ❌ 偏差 §7 #7 |
 | 11 | Mesh 面数限制 | `packages/deepblend/host/lib/revision-transaction.js` 「SCENE_TOO_HEAVY」，上限是 `maxMeshPolygons`（默认 200 万），比较的是编译报告里**已经测出来**的面数 | `deepblend/tests/composition/hardening.e2e.mjs` 「a scene above maxMeshPolygons is refused」 | ✅ |
@@ -74,7 +74,7 @@
 | 17 | 日志脱敏 | 一半：秘密**根本不进子进程**（环境变量白名单），但没有日志过滤器 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」 | ⚠️ 偏差 §7 #10 |
 | 18 | 完整 Tool 审计 | 每次 Blender 动作留 durable job 记录；每次成功的 patch 留 operation manifest；每个 revision 留 manifest | `deepblend/tests/blender-integration/fixture.e2e.mjs` 「every Blender action left a durable job record」 | ✅ |
 
-统计：**13 条 ✅、2 条 ➖、2 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
+统计：**14 条 ✅、2 条 ➖、1 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
 
 ## 4. 已知偏差
 

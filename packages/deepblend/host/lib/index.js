@@ -69,6 +69,9 @@ import {
   resolveProjectsRoot,
   resolveWorkspaceRoot,
   IMPORT_OPERATOR_BY_ASSET_TYPE,
+  ASSET_HEAD_BYTES,
+  assetContentVerdict,
+  describeAssetContent,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
@@ -80,7 +83,7 @@ import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './rende
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 
 import {
@@ -1925,6 +1928,33 @@ export default class BlenderStudio extends Service {
         `"${name}" is a ${type === '' ? 'file with no extension' : `.${type} file`}; this project can carry ` +
           `${Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE).join(', ')}.`,
         { detail: { name, type, supported: Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE) } },
+      )
+    }
+
+    // ---- and what its BYTES are ---------------------------------------------
+    //
+    // SPEC §15.2 "MIME 与扩展名双重校验": the extension picked the import operator, and this
+    // is the second half — 512 bytes read off the STAGED file, before anything is copied into
+    // the project, so a refusal costs nothing and leaves nothing. It reads the head with
+    // `readSync` rather than `readFileSync` because a legitimate asset can be a gigabyte.
+    //
+    // Only a POSITIVE contradiction is refused (see `contracts/lib/asset-content.js`): a
+    // known signature for another format, a NUL in a format that must be text, or an empty
+    // file. The alternative — a matcher sure enough to accept as well as refuse — is also a
+    // matcher sure enough to reject somebody's legitimate model, and deciding what a file
+    // really is stays Blender's job (D10).
+    const head = readFileHead(staged, ASSET_HEAD_BYTES)
+    if (assetContentVerdict(head, type) === 'contradicts') {
+      const described = describeAssetContent(head)
+      const looksLike = described.empty
+        ? 'an empty file'
+        : (described.signature?.label ?? 'binary content, not text')
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_CONTENT_MISMATCH,
+        `"${name}" is named as a .${type} file, but its first bytes are ${looksLike}. ` +
+          'This is checked before the bytes are copied anywhere, so nothing was written. ' +
+          'Rename the file if the extension is wrong, or pass sourcePath for the file that really holds the model.',
+        { detail: { name, type, headBytes: head.length, signature: described.signature?.format ?? null, empty: described.empty } },
       )
     }
 
@@ -4179,3 +4209,24 @@ export {
 } from './render-reconciler.js'
 export { encodeFrameSequence, probeVideo } from './video-encoder.js'
 export { buildDeliveryManifest, relativeTo } from './delivery-manifest.js'
+
+/**
+ * The first `length` bytes of a file, without reading the rest of it.
+ *
+ * `readFileSync` would be the obvious call and the wrong one: an ingested asset is allowed to
+ * be a gigabyte (SPEC §15's example ceiling), and the content check needs 512 bytes of it.
+ *
+ * @param {string} path
+ * @param {number} length
+ * @returns {Buffer}
+ */
+function readFileHead(path, length) {
+  const descriptor = openSync(path, 'r')
+  try {
+    const buffer = Buffer.alloc(length)
+    const read = readSync(descriptor, buffer, 0, length, 0)
+    return buffer.subarray(0, read)
+  } finally {
+    closeSync(descriptor)
+  }
+}
