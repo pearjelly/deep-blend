@@ -98,9 +98,13 @@ for (const preset of presets) {
 }
 
 if (checkOnly) {
-  say('result', drift === 0 ? 'the installed presets match the repository' : `${drift} file(s) drifted`)
+  if (drift === 0) {
+    say('result', 'the installed presets match the repository')
+    process.exit(0)
+  }
+  say('result', `${drift} file(s) drifted`)
   say('fix', 'node deepblend/tools/install-presets.mjs')
-  process.exit(drift === 0 ? 0 : 1)
+  process.exit(1)
 }
 
 say('installed files', installed)

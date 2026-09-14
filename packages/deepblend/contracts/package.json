@@ -11,5 +11,9 @@
     },
     "./package.json": "./package.json"
   },
-  "license": "UNLICENSED"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pearjelly/deep-blend.git"
+  }
 }

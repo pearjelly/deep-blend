@@ -1271,3 +1271,188 @@ qa                        技术错误 0 条；测量问题 0 条；审查器 fi
 所以那一版进程里既没有工作台，也不会因为磁盘上的包变新而出现。
 本轮的能力验证因此在**独立进程**里完成：真实 Chrome + 真实 Host + 真实 Blender，
 自带 `DSH_HOME` 与项目 store（§13.2），外加在真实项目上的只读复核（§13.7）。
+
+---
+
+## 14. M5 开始：把「优秀开源项目 / 优秀 DSH 插件」当成验收标准（本轮）
+
+M0–M4 的验收标准一直写在 `SPEC.md` 里，而 SPEC 是本项目**自己的**规格。本轮换了一个
+外部标准：**一个陌生人 clone 这个仓库，能不能装上、跑起来、看懂。** 用这个标准量，第一个
+量到的不是缺功能，是**这个仓库当时跑不了自己的测试**。
+
+### 14.1 实测：profile 重装后，16 个契约套件全部死于 import
+
+`.gitignore` 里 `node_modules/` 被忽略是对的——它没有任何内容，只有 12 个指向**已安装的
+DSH 部署**与本仓库 `packages/` 的绝对符号链接。但「怎么把它造出来」只存在于文档的散落
+描述里，**没有任何一步可以执行**。2026-09-14 DSH profile 被重装之后：
+
+```
+$ node deepblend/tests/run.mjs
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
+...
+DeepBlend tests: 0/16 file(s) passed
+```
+
+16 个绿色套件变成 16 个 import 错误，而且**一条断言都没跑**——这不是「测试挂了」，
+是「测试没运行」，两者在 CI 里的含义完全不同。
+
+### 14.2 修法：把清单从源码里读出来，而不是抄一份
+
+新增 `deepblend/tools/workspace-layout.mjs`（扫描器）+ `deepblend/tools/link-workspace.mjs`
+（链接器）：
+
+* 要链接哪些包**不写死在脚本里**，而是扫描 `packages/` 与 `deepblend/` 下的真实 import
+  （含 JSDoc 的 `import('…')` 类型引用），所以新增一句 `import '@deepseek-ai/dsh-xxx'`
+  只需要重跑命令，**不需要改脚本**——抄一份清单就会烂（D38、D60）；
+* 链接目标从**运行中的部署**解析（`resolveDshScope()`），而不是从 npm registry：
+  在仓库里装第二份 harness 会让套件对着一份**产品并不加载的 cordis** 变绿；
+* 建完链接后**逐个真的 `import()` 一遍**再报成功——符号链接存在不等于能解析，
+  而那正是套件失败时的状态；
+* `--check` 只报告不改动，退出码区分「漂移」（1）与「部署里根本没有这个包」（2）。
+
+同时补上根 `package.json`（`npm run setup` / `npm test` / `npm run setup:check`），
+并删掉根目录两份与 `SPEC.md` **逐字节相同**（md5 `f818c58c…`）的技术方案副本——
+三份 60 KB 的同名规格并列，只会让人不知道哪一份是真的。
+
+### 14.3 让这条不变式被测住，而不是被文档描述
+
+`deepblend/tests/contract/workspace-links.test.mjs`（30 个 `node:test` 用例）断言四件事：
+
+1. 源码里出现的**每一个** scoped specifier 都能从仓库根解析，失败时点名是哪个文件要的它；
+2. 每个链接**确实是指向部署内部的符号链接**，不是拷贝——拷贝能过第 1 条，却正好造出
+   `tests/lib/dsh-deployment.mjs` 要防的那份会漂移的第二副本；
+3. 链接器本身**被 git 跟踪**（被 `.gitignore` 吞掉的链接器对需要它的 clone 毫无用处）；
+4. `npm run setup` 与 `npm test` 两个入口存在，且 **README 真的写了 `npm run setup`**——
+   「文档里有」和「能执行」是两件事，这一条把两者钉在一起。
+
+### 14.4 实测结果
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 19/19 file(s) passed
+```
+
+契约层现在的实测计数（本轮逐项加出来的）：
+
+| | 文件 | 计数 |
+|---|---|---|
+| 自己打印计数的套件 | 12 | **807** 项 |
+| `node:test` 套件（不打印计数） | 7 | **103** 个用例 |
+
+**§13.6 那张表里 `16 个 *.test.mjs / 807` 的那个 807 现在对上了**，而且顺带解释了一件
+本轮差点当成悬案的事。14.1 时我量到的是 **806**，差 1，当时记下「不假装它不存在」。
+原因在 `preset-source.test.mjs` 的最后一段：
+
+```js
+if (!existsSync(installedDirectory)) {
+  check(`… is installed …`, true, …)   //  未安装：1 项
+  continue
+}
+for (const file of ['preset.yml', 'agent.cordis.yml']) {
+  check(`the INSTALLED … matches …`)   //  已安装：2 项
+}
+```
+
+**同一个套件的断言总数会随手边有没有装 preset 而变**：806 是「没装」，807 是「装了」
+（本轮 §14.5 把 preset 装上了）。两数都对，`§13.6` 的 807 也是对的。
+
+这条本身值得记一笔：一个**计数会随环境漂移**的套件，让「上一轮多少项」这种对比变得
+不可靠——而 §13.6 的表正是靠这种对比来说明「其余各套件的数字一个都没变」的。
+处置：不改这个套件（那条分支的理由是清楚的），但在这一节把它的计数口径写明白。
+
+### 14.5 同一条标准的另外四处，本轮一并修掉
+
+按「陌生人能不能装上」继续量，另外四条都是同一类——**可执行的一步 vs 一段描述**：
+
+| # | 缺口 | 处置 |
+|---|---|---|
+| 2 | 没有 `LICENSE`，所有 `package.json` 写 `UNLICENSED` | ✅ 用户选定 **MIT**：新增 `LICENSE`，全部 manifest 改为 `license: MIT`，并补上 repository/homepage/bugs |
+| 3 | 没有 CI | ✅ `.github/workflows/ci.yml`：装**钉住的** DSH → `link-workspace` → `--check` → 跑契约层。**只跑不需要 Blender 的那一层**，并在文件头写明为什么不假装覆盖其余层 |
+| 4 | profile 装配只有 README 里的手工步骤 | ✅ `deepblend/tools/install-plugin.mjs`（+`--check`）。这不是洁癖：M4 浏览器套件就是被这一条打挂的，见 §14.7 |
+| 6 | Blender 只有「见 `dsh-baseline.md` §5」 | ✅ `deepblend/tools/install-blender.mjs`（+`--check`）：下载 → 校验字节数 → 算 `sha256` → 挂载（**挂载点在 `.tools/` 内**，不写 `/Volumes`、不要 sudo）→ 复制 → **真的跑一次 `--version`**。本轮用它装好了 5.2.1，pin 落在 `tools/blender-release.json` |
+
+**第 6 条附带一个诚实性问题**：README 一直写「来源与校验和见 §5」，而 §5 里
+**没有校验和**。实测 Blender 对 5.2.1 **没有发布任何 checksum**（`.dmg.sha256`、
+`release.sha256`、`SHA256SUMS` 全部 404）。所以 pin 只能由**第一次校验下载**建立，
+而它只能检测「这个 URL 上的东西变了」，**不能**让第一次下载变得可信——安装器把这句话
+印在自己的输出里，而不是把自检说成验证。
+
+### 14.6 同一条标准的第五处：一个「三个地方各写一遍」的版本号
+
+同一个事实活在三处，没有任何东西比对它们：`docs/dsh-baseline.md` 的锚点、CI workflow
+里 `npm install -g` 的版本、以及开发者**实际装的那个**。这正是 D38 的形状（`role` 只加进
+三份词汇表之一，另外两份于是以**指错问题**的理由拒绝一个正确输入）。
+
+处置：新增机器可读的 `deepblend/tools/dsh-baseline.json`，并由
+`contract/toolchain-pins.test.mjs`（6 项）断言**四处一致**——含最后也最强的一条：
+**链接到的那个部署本身**就是钉住的版本。Blender 的 pin 同样被断言与文档一致。
+
+顺带修掉一处过时事实：§1 的安装路径写着 `v26.7.0`，而本机已是 `v26.8.2`。
+**路径里的 Node 版本不是锚点**——照抄它等于把「nvm 装的是哪个小版本」也变成兼容性要求。
+§1 已改为记录当前路径并写明这一点。
+
+### 14.7 完整验收第一次真正跑完，它抓到两处真问题
+
+Blender 装好之后 `bash deepblend/tests/run-all.sh` 才第一次可能跑完（§14.5 第 6 条本身
+就是为了让这件事可能）。12 个套件里 **10 个一次通过**，另外 2 个各暴露了一处缺陷：
+
+**① M3 重渲套件：一个读不到的探针，用一条堆栈把后面约 30 项断言全埋了。**
+套件里唯一一条**独立于产品自述**的证据是 `ps -Ao pid=,args=`——「取消之后进程表里一个
+都不剩」。它当时被内联调用，于是在受限沙箱里 `ps` 的 `EPERM` 直接抛出，套件崩在那一行。
+修法不是让它静默跳过（**静默跳过的套件就是因为错误的原因变绿的套件**），而是拆成两条：
+「进程表可读吗」（读不到就是**失败**，并印出命令与 errno）与「进程表里干净吗」
+（读不到时显示 `NOT CHECKED`）。修完实测 **71/71**。
+
+**② M4 浏览器套件：工作台永远不出现，而没有任何一句话说明为什么。**
+`dsh web never served /deepblend/capabilities`。根因就是 §14.5 第 4 条：M4 的 harness 起
+一个自带 DSH home 的 `dsh web`，并把**真实 profile 的 `node_modules`** 链进去
+（`dsh-web-harness.mjs` 的设计如此）；profile 重装后 `profiles/node_modules/@deepblend/*`
+与 `dsh.profile.bundles` 里那一行都没了，bundle 解析不到，那条路由自然不存在。
+**这条失败从失败信息里几乎诊断不出来**——`install-plugin.mjs` 就是为了把这段诊断时间
+变成一条命令。装完后实测 **70/70**。
+
+### 14.8 本轮之后仍然挡在「别人也能装」前面的东西
+
+| # | 缺口 | 为什么它挡路 |
+|---|---|---|
+| 1 | `packages/deepblend/bundle/cordis.patch.yml` 里是**字面量绝对路径**（`/Users/hxb/…`） | 换一台机器，bundle 组合出来的行指向不存在的 Blender 与目录。**这是下一轮的第一件事**，也是已知问题 §8 第 7 条 |
+| 5 | 正式 `deepblend` preset 尚未创建 | M5 的另一半。现在只有 `deepblend-dev`，它带 Shell 与完整编码能力，不是给用户的 |
+| 7 | 没有人**真的从零 clone 一遍** | `npm run setup` 已经可执行，但「在一个空目录里 clone 再跑」这件事本身还没有被谁做过。CI 会做，而 CI 还没在 GitHub 上跑过一次 |
+
+### 14.9 本轮的收口证据：12 个套件全绿
+
+上面每一条修完之后的收口跑，是**本机第一次**把完整验收跑完（此前 Blender 缺失，
+需要渲染的六个套件一步都跑不了）：
+
+```
+$ bash deepblend/tests/run-all.sh
+✓ unit + contract (no Blender required)              19 个文件
+✓ Blender capability probe (M0)
+✓ Blender batch SceneSpec + revision loop (M1)
+✓ Host composition activation
+✓ Agent preset tool plane + degradation path (M0)
+✓ Agent preset M1 tool plane (all seven tools)
+✓ Blender visual loop: multi-view, scoring, repair, handover (M2)
+✓ Agent preset M2 tool plane (all ten tools, image return)
+✓ Blender persistent render job: restart, resume, cancel, delivery (M3)     71/71
+✓ Agent preset M3 tool plane (all fourteen tools, real delivery)
+✓ Workbench UI plane: closed route set, writes through the Host, client seat table (M4)   140/140
+✓ Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)  70/70
+
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+本轮新增的四个装配脚本各自的 `--check` 也都是绿的：
+
+```
+$ npm run setup:check     result: the workspace resolves all 12 package(s) from the deployment
+$ npm run blender:check   result: the pinned Blender 5.2.1 is installed
+$ npm run plugin:check    result: DeepBlend is installed in the "web" profile at /Users/hxb/.dsh
+$ npm run presets:check   result: the installed presets match the repository
+```
+
+**还有一件事没有做，记在这里**：`dsh web`（3080）里跑的仍是**旧进程**——它的
+`clientModules` 在启动时就把「哪些包是客户端包」判定并缓存到进程结束（§13.1），
+而 profile 是刚装回去的。所以本轮**没有**去动那个进程，也没有声称工作台已经在
+那个页面里生效。要让它生效只需要重启一次；而「重启之后是不是真的生效」应当用
+§13.9 那一套（页面本身 + Host 路由）去验，不要用 Inspect 的座位表代替。

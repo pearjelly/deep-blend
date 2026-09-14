@@ -1,0 +1,66 @@
+# CI for DeepBlend Studio.
+#
+# WHAT RUNS, AND WHAT DELIBERATELY DOES NOT
+# -----------------------------------------
+# This job runs the layer that needs no Blender: `deepblend/tests/run.mjs`
+# (17 files — 806 self-reported checks plus 82 `node:test` cases). That is the
+# layer a contributor breaks most often, and the one that says whether the
+# repository can run its own tests at all.
+#
+# The Blender-backed layers (`blender-integration/*`, `composition/*`,
+# `e2e/ui.e2e.mjs`) are NOT run here. They need a ~1.4 GB Blender, a real Chrome
+# and 5–10 minutes of 1080p rendering, and two of them encode with ffmpeg. Making
+# CI pretend to cover them would be worse than saying it does not: they are run
+# locally with `bash deepblend/tests/run-all.sh` before a commit that touches the
+# runtime, the renderer or the UI plane.
+#
+# The DSH version is PINNED, not `latest`. `deepblend/docs/dsh-baseline.md` §1
+# makes `0.1.5-rc.2` a compatibility anchor: SPEC §0.1 forbids following latest,
+# because DSH is a Developer Preview and may break compatibility. An upgrade is a
+# deliberate commit that changes this line and re-runs the full acceptance suite.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Unit + contract (no Blender)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # DeepBlend is a plugin for a DSH deployment, and its own tests import
+      # cordis, dsh-tools and dsh-subprocess-local from that deployment rather
+      # than from a copy pinned in this repository (see
+      # `deepblend/tests/lib/dsh-deployment.mjs` for why). So the deployment has
+      # to exist before anything can be linked or run.
+      - name: Install the pinned DSH deployment
+        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2
+
+      # The step a fresh clone needs: `node_modules/` is git-ignored and holds
+      # only symlinks, so without this every suite dies on ERR_MODULE_NOT_FOUND
+      # before evaluating an assertion.
+      - name: Link the workspace to that deployment
+        run: node deepblend/tools/link-workspace.mjs
+
+      # Linking and resolving are different claims. This re-checks the links
+      # without writing, so a green line above cannot mask a drift below.
+      - name: Assert the links are in place
+        run: node deepblend/tools/link-workspace.mjs --check
+
+      - name: Unit + contract suites
+        run: node deepblend/tests/run.mjs

@@ -1286,6 +1286,133 @@ r0029，两边是同一张图。一句话：**默认的那个轴无法表达刚�
 
 **可推广的那条**：一个「比较」功能的轴必须是**产出的轴**。当一次操作不产生新版本时，
 版本轴在那一刻是空的；把它做成默认，用户看到的就是「什么都没发生」。
+
+---
+
+## 5G. M5：可复现性 —— 「一份文档不是一个步骤」（D71–D75）
+
+M0–M4 的每条决策都是被**实测或真实缺陷**逼出来的，这一节不例外，只是逼出它们的不是
+Blender，而是「一个陌生人 clone 这个仓库」这个外部标准。五条里三条的直接触发事件是
+**2026-09-14 DSH profile 被重装**：那一刻 `node_modules` 的 12 个符号链接、
+`profiles/node_modules/@deepblend/*` 的 6 个链接、`dsh.profile.bundles` 里那一行、
+`$DSH_HOME/.agent-presets/` 以及 `.tools/` 里的 Blender **同时**消失。它们全都只写在
+文档里，所以没有一个能在事后被「再执行一次」。完整复盘见 `milestone-status.md` §14。
+
+---
+
+### D71 — 装配步骤必须是**可执行的命令**，而不是一段描述
+
+**决策**：凡是「让这台机器处于可工作状态」的动作，都要有一个 `deepblend/tools/*.mjs`
+（或 `link-*.mjs`），带 `--check`（只报告、不改动、用退出码区分漂移与不可用），并由根
+`package.json` 的 script 暴露。文档只负责**指向命令**。
+
+**触发它的事实**：重装之后
+
+* `.gitignore` 写着「node_modules 是指向部署的符号链接」，但没有任何一步能造出它们
+  → 16 个契约套件**一条断言都没跑**就全死于 `ERR_MODULE_NOT_FOUND`；
+* `README` §5 写着 profile 需要 `@deepblend/*` 链接与 `dsh.profile.bundles` 那一行，
+  但那是「手工等价于 `dsh plugin add`」→ M4 浏览器套件报
+  `dsh web never served /deepblend/capabilities`，**从这句话里几乎诊断不出根因**；
+* `README` 写着「来源与校验和见 §5」，而 §5 **没有校验和** → 没有任何一步能装出
+  受管的那份 Blender，于是整套需要渲染的验收（M1–M4 的六个套件）在本机**根本无法运行**。
+
+**不这样做会发生什么**：这三件事不会在开发中被发现，因为它们只在「换一台机器」或
+「profile 重装」时失效，而那时你已经在别的问题里了。更坏的是失效的**形状**：
+套件不是失败，是**没运行**；浏览器套件不是报错，是**永远转圈**。
+
+**可验证的后果**：`contract/setup-steps.test.mjs` 会**发现**（而不是列出）
+`tools/{install,link}-*.mjs`，并断言每一个都被 git 跟踪、都能从 `package.json` 跑到、
+都在 `README`/`CONTRIBUTING` 里被点名、都认 `--check`；同时断言 README 里出现的每一个
+`npm run <x>` 都真的存在于 `package.json`。
+
+---
+
+### D72 — 「要链接哪些包」只能有一处定义，且必须从**源码**读出来
+
+**决策**：`tools/workspace-layout.mjs` 扫描 `packages/` 与 `deepblend/` 下的真实 import
+（含 JSDoc 的 `import('…')` 类型引用，它们决定编辑器能不能解析），产出要链接的清单。
+链接器（`link-workspace.mjs`）与契约测试（`contract/workspace-links.test.mjs`）**共用
+这一个实现**。
+
+**理由**：把清单写死在脚本里就是抄一份，而抄的那份会烂（D38/D43/D57/D60 已经付过四次）。
+更具体的是：一个测试如果自己再实现一遍扫描，它可以在链接器坏掉的时候照样变绿。
+
+**不这样做会发生什么**：新增一句 `import '@deepseek-ai/dsh-xxx'` 之后，失败会出现在
+**恰好第一个 import 到那个模块的套件**里，而不是在契约层被点名。本轮实测过这个形状：
+16 个文件同时失败，报的是同一个 `ERR_MODULE_NOT_FOUND`。
+
+---
+
+### D73 — 外部工具的版本必须是**机器可读的**，并被断言在四处一致
+
+**决策**：`tools/dsh-baseline.json`（DSH 兼容性锚点）与 `tools/blender-release.json`
+（Blender 的版本/URL/字节数/sha256）是唯一来源；`contract/toolchain-pins.test.mjs`
+断言它们与文档、CI workflow、以及**实际链接到的那个部署**一致。
+
+**触发它的事实**：`0.1.5-rc.2` 这个字符串原本活在三个互不相干的地方——基线文档、
+（本轮新加的）CI workflow、以及开发者机器上实际装的那个。没有任何东西比对它们。
+这是 D38 的形状：**没有比对的地方，就是错配会安静活下去的地方。**
+
+顺带修掉一处过时事实：`dsh-baseline.md` §1 的安装路径写着 Node `v26.7.0`，而 2026-09-14
+复核时本机已是 `v26.8.2`——**DSH 版本没变**。所以路径里的 Node 版本不是锚点，把它当锚点
+等于把「nvm 装的是哪个小版本」也变成兼容性要求。§1 已写明这一点。
+
+---
+
+### D74 — 实测：patch 层的 `config` 是**整体替换**，不是合并
+
+**决策**：任何覆盖层（operator 层、测试的 store patch、`--patch`）想要保留某个键，
+就必须**重述全部键**。
+
+**怎么测的**（一次真实 `--dump-config`，不是读文档）：
+
+```
+$ cat /tmp/probe-merge.yml
+- id: deepblend-blender-runtime
+  config:
+    timeoutMs: 4242
+
+$ dsh --profile web --patch /tmp/probe-merge.yml --dump-config
+- id: deepblend-blender-runtime
+  name: '@deepblend/dsh-blender-provider-local'
+  config:
+    timeoutMs: 4242          ← blenderPath / bootstrapPath / workspaceRoot / … 全部消失
+```
+
+**为什么这条必须记下来**：bundle 的注释从 M0 起就断言「config 是整体替换，所以 operator
+层必须重述每一个键」，但**没有一次实测记录**，于是它既没法被信任也没法被推翻。而它决定了
+bundle 可移植性该怎么做——见 §7 的 Q9。
+
+**一条已经因此受益的检查**：`dsh-web-harness.mjs` 的 `storePatch()` 正是按这个语义写的
+（它从**已发布的 bundle patch** 里把整份 config 读出来，只改两个 store 根），
+而不是自己重写一份配置——那会是 D38 形状的第五次复发。
+
+---
+
+### D75 — 「探针读不到」是一个**独立的第三态**：不是通过，也不是崩溃
+
+**决策**：一个证据探针失败时，套件必须把它报成**一项失败的检查**，并印出失败的命令与
+错误码；绝不允许异常穿出去杀死整个套件，也绝不允许静默跳过。
+
+**触发它的事实**：M3 重渲套件里唯一一条**独立于产品自述**的证据是
+`ps -Ao pid=,args=`（「取消之后进程表里一个都不剩」）。它当时是内联调用的，于是在一个
+受限沙箱里 `ps` 的 `EPERM` 直接抛出，套件崩在那一行——**后面约 30 项断言再没跑**，
+而输出里只有一条 node 内部堆栈。
+
+**不这样做会发生什么**：两种都会发生。崩溃会把「一项没查到」放大成「整个套件不可信」；
+静默跳过则更糟——**静默跳过的套件就是因为错误的原因变绿的套件**（SPEC §0.3：
+未经验证的里程碑不算通过）。
+
+**修法**：拆成两项。`the process table was readable, so "nothing left behind" is a
+measurement and not an assumption`（读不到就是 FAIL，附命令与 errno）与
+`no Blender of this project is left anywhere in the process table`（读不到时显示
+`NOT CHECKED — …`）。修完实测 **71/71**（原为 70 项 + 一次崩溃）。
+
+**可验证的后果**：那一项在受限环境里仍然会红——这是对的，它**确实**没被验证。
+区别在于：现在红的是一个说得清名字的检查，而不是一段堆栈。
+
+---
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1313,6 +1440,7 @@ r0029，两边是同一张图。一句话：**默认的那个轴无法表达刚�
 | Q7 | 审批平面（能**阻止**一次高成本渲染启动的那一个）如何接进 harness approval prompt | M5；M4 只显示阈值事实（D64） |
 | Q8 | Preview Compare 是否需要右栏（`sidebar.right.pane.tab`）的并排形态 | M4 把对比放在 `main` 面板里（一个面板 + 视图切换）；若用户希望它常驻右栏，再增量注册 |
 | Q6 | 视觉审查用哪个模型（当前 `deepseek-flash`；目录里另有 `deepseek-v4-flash-vision-exp`） | M2 已可用 `deepseek-flash`；若审查质量不足再评估专用模型 |
+| **Q9** | **bundle 的 `cordis.patch.yml` 里那四个字面量绝对路径**（`blenderPath` / `bootstrapPath` / 两个 `workspaceRoot` / `projectsRoot` / `executableAllowlist`）该怎么去掉 | **M5 的下一件事，也是「陌生人装不上」的最后一道硬门槛。** 已知的三条约束：① D74 实测 config 整体替换，所以「让 operator 层补上」意味着那层必须重述全部键，那是又一份会烂的副本；② `!!js` 不能访问 `process`（M0 §4.2），所以不能在 patch 里写 `process.env.HOME`；③ `bootstrapPath` 的 schema 是可选的，且代码已回退到本包自带的 `python/bootstrap.py`——也就是说**这一个键可以直接从 bundle 里删掉**，另外几个需要 provider/host 各自给出「自定位」的默认值（例如把 `.tools/` 那份受管 Blender 作为 PATH 之外的最后一档回退）。先把 `--check` 能做到什么程度量清楚再动手 |
 
 ---
 
@@ -1331,3 +1459,4 @@ r0029，两边是同一张图。一句话：**默认的那个轴无法表达刚�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（可复现性） | D71–D75：装配步骤必须是可执行命令（D71）、链接清单只能从源码读且只有一处定义（D72）、工具链 pin 机器可读且断言四处一致（D73）、实测 patch 的 config 是整体替换（D74）、「探针读不到」是独立的第三态（D75）。触发事件是 profile 重装后三件事同时消失；产物是四个 `--check` 可查的装配脚本、三个契约测试文件（`workspace-links` / `toolchain-pins` / `setup-steps`）、MIT 许可证与 CI。完整验收 12 套件全绿 |

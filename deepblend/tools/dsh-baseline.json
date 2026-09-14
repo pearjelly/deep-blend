@@ -1,0 +1,25 @@
+{
+  "version": "0.1.5-rc.2",
+  "_comment": [
+    "The DSH compatibility anchor — the one version of the harness this repository's",
+    "suites and its `!!js`-free bundle patch are known to work against.",
+    "",
+    "SPEC §0.1 forbids following `latest`: DSH is a Developer Preview and may break",
+    "compatibility. SPEC asks for a pinned Git commit; this deployment has no source",
+    "checkout, so the published version number is the anchor instead (approved in M0,",
+    "recorded in deepblend/docs/dsh-baseline.md §1).",
+    "",
+    "WHY THIS FILE EXISTS AS A MACHINE-READABLE PIN:",
+    "Before it, the same version string lived in three unrelated places — the baseline",
+    "document, the CI workflow, and whatever the developer happened to have installed.",
+    "Nothing compared them, which is the failure mode this repository keeps paying for",
+    "(architecture-decisions D38: one vocabulary added to one of three lists, and the",
+    "other two then reject a correct input for the wrong reason).",
+    "`deepblend/tests/contract/toolchain-pins.test.mjs` now asserts that all four agree:",
+    "this file, deepblend/docs/dsh-baseline.md, .github/workflows/ci.yml, and the",
+    "deployment the workspace is actually linked against.",
+    "",
+    "To upgrade DSH: change this file, the baseline doc and the CI workflow in ONE",
+    "commit, then run the full acceptance suite before pushing."
+  ]
+}

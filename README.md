@@ -1,7 +1,8 @@
 # DeepBlend Studio
 
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M4 已闭环**（工作台 UI：侧边栏、场景树、预览对比、任务、QA、版本、工具卡、设置、审批显示）
+> 主规格：`SPEC.md`（V2.0）　当前里程碑：**M5 进行中**（正式 preset 与安全加固；
+> M0–M4 已闭环，工作台 UI 见下）
 
 ---
 
@@ -35,7 +36,12 @@ deepblend/
   docs/               dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
                       / probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
-  tools/              create-demo-project.mjs —— 在真实 store 中生成演示项目
+  tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
+                      workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
+                      dsh-baseline.json —— DSH 兼容性锚点（版本号）的机器可读来源
+                      install-blender.mjs —— 下载/校验/安装受管 Blender 到 .tools/（免 sudo）
+                      blender-release.json —— Blender 的 pin：版本、URL、字节数、sha256
+                      create-demo-project.mjs —— 在真实 store 中生成演示项目
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
                       visual-review-live-probe.mjs —— 直接调用视觉模型的最小探针
                       inspect-checkpoint.py —— 量编译后几何
@@ -46,7 +52,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         16 个 *.test.mjs
+    contract/         19 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -70,7 +76,37 @@ packages/deepblend/
 
 ## 快速开始
 
-### 1. Blender
+### 1. 装配工作区（全新 clone 的第一步）
+
+本仓库的 `node_modules/` **不在版本控制里**：它没有任何内容，只有 12 个指向
+**已安装的 DSH 部署**与本仓库 `packages/` 的绝对符号链接（见 `.gitignore`）。
+所以刚 clone 下来的仓库**解析不了自己写的任何一句 import**，16 个契约套件会在跑第一条
+断言之前全部死于 `ERR_MODULE_NOT_FOUND`：
+
+```
+$ node deepblend/tests/run.mjs
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
+DeepBlend tests: 0/16 file(s) passed
+```
+
+这不是假设——2026-09-14 DSH profile 被重装后，本仓库就是这个状态。补上这一步：
+
+```bash
+npm run setup          # = node deepblend/tools/link-workspace.mjs
+npm run setup:check    # 只报告漂移，不改动任何文件
+```
+
+它**不写 DSH 安装目录，也不写 `$DSH_HOME`**：只在仓库根建 `node_modules/@deepseek-ai/*`
+与 `node_modules/@deepblend/*` 两组符号链接，然后**逐个真的 import 一遍**来验证。
+要链接哪些包不是写死的清单，而是**从本仓库源码里读出来的**——新增一句
+`import '@deepseek-ai/dsh-xxx'` 只需重跑本命令，不需要改任何脚本。
+
+为什么不直接写进 `package.json` 的 `dependencies`：那会在仓库里装下**第二份 harness**，
+它可以和真正运行 DeepBlend 的那个部署各自漂移，于是契约套件会对着一份产品并不加载的
+cordis 变绿。理由与实测见 `deepblend/tests/lib/dsh-deployment.mjs`；这条不变式由
+`deepblend/tests/contract/workspace-links.test.mjs` 守住。
+
+### 2. Blender
 
 Blender 安装在工作区内（免 sudo、免系统目录写入）：
 
@@ -80,14 +116,20 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 
 来源与校验和见 `deepblend/docs/dsh-baseline.md` §5。`.tools/` 已被 git 忽略。
 
-### 2. 运行全部验收测试
+### 3. 运行全部验收测试
 
 ```bash
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、27 个文件、1400 项断言**全部通过（另有 4 个 `node:test` 契约文件合计
-52 个用例，它们不打印这个计数）。单跑某一层：
+预期：**12 个套件、30 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**19 个文件 = 807 项自计断言（12 个文件打印计数）+ 103 个 `node:test` 用例（7 个文件）**。
+需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
+M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
+
+**一个会咬人的计数口径**：`preset-source.test.mjs` 的断言总数取决于**本机装没装 preset**
+——没装时它只报一项「未安装」，装了之后报两项「已安装副本与源一致」。所以拿两个不同机器
+（或同一台机器装 preset 前后）的总数直接相减，会凭空多出或少掉一项。单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -118,7 +160,7 @@ node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏�
 node deepblend/tests/e2e/visual-live.e2e.mjs      # 模型真的看图、识别缺陷、修好并提高分数
 ```
 
-### 3. 生成演示项目
+### 4. 生成演示项目
 
 ```bash
 node deepblend/tools/create-demo-project.mjs
@@ -132,25 +174,34 @@ r0002 = 一次灯光/材质调整并带预览。幂等：已存在则报告状�
 `operation-manifest.json` 都完整记录了操作，可直接重放或 `blender_revision_restore` 回退。
 这一段的决策与被实测挡回来的地方见 `architecture-decisions.md` §5D（D42–D46）。
 
-### 4. 安装进 DSH profile
+### 5. 安装进 DSH profile
 
-Host Bundle 是**进程级组合变更**，只在下一次 profile 启动时生效：
+两个平面各装一次。**两者都会在 profile 下次启动时才生效。**
+
+```bash
+npm run plugin:check     # 只报告漂移：六个包链接 + dsh.profile.bundles 里那一行
+npm run plugin:install   # 把 @deepblend/* 链接进 profiles/node_modules，并注册 Host Bundle
+
+npm run presets:check    # 只报告漂移
+npm run presets:install  # 把 deepblend/presets/ 部署到 $DSH_HOME/.agent-presets/
+```
+
+`install-plugin.mjs` 做的是 `dsh plugin --profile add` 的等价动作（本机无 pnpm，故用
+**符号链接装配**，见 `runtime-audit.md` §5.4）：在 `$DSH_HOME/profiles/node_modules/@deepblend/`
+建立指向本仓库包的链接，并把 `@deepblend/dsh-blender-bundle` 加进
+`$DSH_HOME/profiles/<profile>/package.json` 的 `dsh.profile.bundles`。它**不改**
+`cordis.patch.yml`（那是操作者层），也不碰 DSH 安装目录。
+
+这两步以前只写在文档里。2026-09-14 profile 被重装后它们都没了，代价不是理论上的：
+M4 的浏览器套件起了自己的 `dsh web`，而它链接真实 profile 的 `node_modules`——
+bundle 解析不到，工作台就永远不出现，报错只有一句 `never served /deepblend/capabilities`。
+
+重启后复核：
 
 ```bash
 dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合且 config 完整
 dsh web                                                 # 重启后生效
 ```
-
-**preset 的部署**（本机无 pnpm，故不用 `dsh plugin --profile add`）：
-
-```bash
-node deepblend/tools/install-presets.mjs --check   # 只报告磁盘与源是否漂移
-node deepblend/tools/install-presets.mjs           # 部署；preset 在 profile 启动时才被读取
-```
-
-`~/.dsh/profiles/web/package.json` 的 `dsh.profile.bundles` 需包含
-`@deepblend/dsh-blender-bundle`，且 `~/.dsh/profiles/node_modules/@deepblend/*`
-需指向本仓库的包（等价于 `dsh plugin --profile web add`；本机无 pnpm，故用符号链接装配）。
 
 重启后新建 **DeepBlend 开发模式** 会话，工具清单应为 **14 个**（见 `milestone-status.md` §12.4）。
 
@@ -272,6 +323,14 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 
 ---
 
+## 许可与参与
+
+本项目采用 **MIT 许可证**（见 `LICENSE`）。想改点什么，先看 `CONTRIBUTING.md`：
+里面有三条不知道就会白干几小时的规则——`npm run setup` 不是可选的、改动只能落在三个
+平面中的一个、以及新增 import 之后不需要改任何脚本（清单是从源码读出来的）。
+
+---
+
 ## 当前状态与下一步
 
 见 `deepblend/docs/milestone-status.md`。**M0、M1、M2、M3、M4 验收均已闭环。**
@@ -295,3 +354,9 @@ M4 的工作台在**真实浏览器**里跑通：一个真实 Chrome 点击完�
 `deepblend/docs/probe-m4-client-loop.log`。
 
 按 SPEC §0.3，**M5（正式 preset 与安全加固）应在新的会话中开始**。
+
+M5 已经开始，但它换了一个验收标准：不是「SPEC 里的条目是否打勾」，而是**一个陌生人
+clone 这个仓库，能不能装上、跑起来、看懂**。用这个标准量，第一个量到的不是缺功能——
+是这个仓库当时**跑不了自己的测试**（16 个契约套件全部死于 `ERR_MODULE_NOT_FOUND`，
+这正是 §1「装配工作区」存在的原因）。已修好并测住的部分、以及仍然挡在「别人也能装」
+前面的五条，逐条记在 `deepblend/docs/milestone-status.md` **§14**。

@@ -16,10 +16,22 @@
 | 安装形态 | npm 全局安装的**编译产物**，非源码工作区 |
 | 包名 | `@deepseek-ai/dsh` |
 | **版本（基线锚点）** | **`0.1.5-rc.2`** |
-| 安装路径 | `/Users/hxb/.nvm/versions/node/v26.7.0/lib/node_modules/@deepseek-ai/dsh/` |
+| 安装路径 | `/Users/hxb/.nvm/versions/node/v26.8.2/lib/node_modules/@deepseek-ai/dsh/` |
 | 入口 | `lib/bin.js` |
 | 模块格式 | ESM（`"type": "module"`） |
 | 包内布局 | `lib/`（编译 JS + `.d.ts`），**无 `src/`、无 `package.json.workspaces`、无 `packages/`** |
+
+**安装路径里的 Node 版本不是锚点。** 上面那行在 M0 写的是 `v26.7.0`，2026-09-14 复核时
+本机已是 `v26.8.2`，而 DSH **版本没变**——所以路径会随 Node 升级而变，锚点只有版本号。
+把路径当成固定值，等于把「nvm 装的是哪个小版本」也变成了兼容性要求。想知道本机的实际路径：
+
+```bash
+realpath "$(which dsh)"        # …/<node>/lib/node_modules/@deepseek-ai/dsh/lib/bin.js
+```
+
+**这条锚点现在是机器可读的**：`deepblend/tools/dsh-baseline.json`。以前同一个版本号活在
+三个互不相干的地方（本文件、CI workflow、开发者实际装的那个），没有任何东西比对它们；
+`deepblend/tests/contract/toolchain-pins.test.mjs` 现在断言四处一致。
 
 `@deepseek-ai/dsh` 的依赖树版本全部同为 `0.1.5-rc.2`（抽查 `dsh-agent-presets`、`dsh-tool-jobs`、
 `dsh-base`、`dsh-web-app` 一致）。
@@ -35,13 +47,13 @@
 | 项目 | 实际值 |
 |---|---|
 | 操作系统 | macOS 26.6.2（Build 25G83），arm64（Apple Silicon） |
-| Node.js | v26.7.0 |
+| Node.js | v26.8.2（M0 时是 v26.7.0；见 §1 的说明） |
 | npm | 12.0.2 |
-| pnpm | **未安装**（影响见「偏差」） |
+| pnpm | **未安装**（影响见「偏差」；`npm run setup` 是等价路径） |
 | corepack | **未安装** |
 | Homebrew | 6.0.22，但 `/opt/homebrew` 属主为 root，执行 `brew install` 报权限错误 |
-| 磁盘可用 | **16 GiB**（`/System/Volumes/Data`，已用 97%） |
-| 工作区 | `/Users/hxb/workspace/deep-blend`，**不是 Git 仓库（无 `.git`）** |
+| 磁盘可用 | **31 GiB**（`/System/Volumes/Data`，已用 93%；M0 时是 16 GiB） |
+| 工作区 | `/Users/hxb/workspace/deep-blend`，Git 仓库，远端 `github.com/pearjelly/deep-blend` |
 
 ---
 

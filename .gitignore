@@ -1,9 +1,19 @@
 # Dependency links into the DSH installation (absolute symlinks, not content).
+# Twelve of them, derived from what the source imports. Reproduce with:
+#   npm run setup          (node deepblend/tools/link-workspace.mjs)
+#   npm run setup:check    (report drift, change nothing)
+# Ignoring this directory is right; having NO step that creates it was not, and
+# on 2026-09-14 it cost the repository all sixteen of its contract suites at
+# once — no assertion ran, they died on ERR_MODULE_NOT_FOUND. The step and the
+# test that keeps it true (tests/contract/workspace-links.test.mjs) are M5.
 node_modules/
 
-# The Blender runtime installed into the workspace during M0 setup (~907 MB).
-# Reproduce with the documented download instead of committing it; see
-# deepblend/docs/dsh-baseline.md §5.
+# The Blender runtime installed into the workspace (~1.4 GB extracted, plus the
+# 346 MB image under downloads/). Reproduce with:
+#   npm run blender:install   (node deepblend/tools/install-blender.mjs)
+#   npm run blender:check
+# The pin — version, URL, byte size, sha256 — is committed in
+# deepblend/tools/blender-release.json; only the 1.4 GB is not.
 .tools/
 
 # DeepBlend runtime state, never source:

@@ -1,0 +1,41 @@
+{
+  "name": "deepblend-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepBlend Studio — a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "blender",
+    "bpy",
+    "3d-animation",
+    "agent",
+    "scene-spec"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "node deepblend/tools/link-workspace.mjs",
+    "setup:check": "node deepblend/tools/link-workspace.mjs --check",
+    "blender:install": "node deepblend/tools/install-blender.mjs",
+    "blender:check": "node deepblend/tools/install-blender.mjs --check",
+    "plugin:install": "node deepblend/tools/install-plugin.mjs",
+    "plugin:check": "node deepblend/tools/install-plugin.mjs --check",
+    "presets:install": "node deepblend/tools/install-presets.mjs",
+    "presets:check": "node deepblend/tools/install-presets.mjs --check",
+    "test": "node deepblend/tests/run.mjs",
+    "test:acceptance": "bash deepblend/tests/run-all.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pearjelly/deep-blend.git"
+  },
+  "homepage": "https://github.com/pearjelly/deep-blend#readme",
+  "bugs": {
+    "url": "https://github.com/pearjelly/deep-blend/issues"
+  }
+}

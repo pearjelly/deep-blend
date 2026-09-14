@@ -15,12 +15,16 @@
     "@deepblend/dsh-blender-provider-local": "0.1.0",
     "@deepblend/dsh-blender-ui": "0.1.0"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "lib/index.js",
   "exports": {
     ".": {
       "default": "./lib/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pearjelly/deep-blend.git"
   }
 }

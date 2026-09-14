@@ -1,0 +1,29 @@
+{
+  "version": "5.2.1",
+  "platform": "macos-arm64",
+  "url": "https://download.blender.org/release/Blender5.2/blender-5.2.1-macos-arm64.dmg",
+  "image": "blender-5.2.1-macos-arm64.dmg",
+  "bytes": 346264899,
+  "sha256": "6409e21de80994db5f4c4a34486b6fd43cea21085b912f7491c53e923acb65a3",
+  "_comment": [
+    "The Blender this repository renders with. Pinned because SPEC §9.5 makes the 3D",
+    "executor a compatibility anchor, and because the integration suites assert on",
+    "measured behaviour (engine enums, Cycles smoke test, ffprobe output) rather than",
+    "on a version string.",
+    "",
+    "`bytes` is what Blender's own directory listing publishes:",
+    "  https://download.blender.org/release/Blender5.2/",
+    "  -> blender-5.2.1-macos-arm64.dmg  25-Aug-2026 09:00  346264899",
+    "",
+    "`sha256` is null until the first verified download records it. Blender publishes NO",
+    "checksum beside this release (blender-5.2.1-macos-arm64.dmg.sha256, release.sha256 and",
+    "SHA256SUMS all 404), so there is no upstream digest to pin against. It is filled in by",
+    "`node deepblend/tools/install-blender.mjs --record`, which re-downloads and re-hashes",
+    "whatever the pinned URL currently serves. That makes the next install detect a CHANGED",
+    "artifact; it does not make the first install trustworthy, and the installer says so",
+    "rather than reporting a self-check as verification.",
+    "",
+    "To upgrade Blender: change version/url/bytes here, set sha256 to null, run --record,",
+    "review the diff, then run the full acceptance suite before committing."
+  ]
+}

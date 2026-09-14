@@ -453,10 +453,31 @@ check('the process really is gone, checked independently of the cancel report', 
     return error.code === 'ESRCH'
   }
 })(), { pid: livePid })
-check('no Blender of this project is left anywhere in the process table', (() => {
-  const listing = execFileSync('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', timeout: 20_000 })
-  return !listing.split('\n').some(line => line.includes(long.jobId))
-})(), long.jobId)
+// The process table is the only INDEPENDENT evidence that the cancel left nothing
+// behind — every other assertion here reads the product's own report of what it
+// did. It is also the one probe in this suite the ENVIRONMENT can refuse: under a
+// restrictive sandbox `ps` fails with EPERM.
+//
+// The first version called `execFileSync` inline, so that refusal propagated as an
+// exception and took the remaining ~30 checks of the suite down with it — one
+// unreadable probe, reported as a stack trace, hiding everything after it. A probe
+// that could not run is a FAILED check that names the command and the errno, never
+// a silent pass and never a crash (SPEC §0.3: an unverified milestone is not a
+// passed milestone).
+const processTable = (() => {
+  try {
+    return { ok: true, listing: execFileSync('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', timeout: 20_000 }) }
+  } catch (error) {
+    return { ok: false, reason: `${error?.code ?? 'error'}: ${String(error?.message ?? error).split('\n')[0]}` }
+  }
+})()
+
+check('the process table was readable, so "nothing left behind" is a measurement and not an assumption',
+  processTable.ok, processTable.ok ? 'ps -Ao pid=,args= ran' : processTable.reason)
+
+check('no Blender of this project is left anywhere in the process table',
+  processTable.ok && !processTable.listing.split('\n').some(line => line.includes(long.jobId)),
+  processTable.ok ? long.jobId : `NOT CHECKED — the process table could not be read (${processTable.reason})`)
 check('the cancelled job is recorded as cancelled, with the frames it did render kept',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status === 'cancelled',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status)
