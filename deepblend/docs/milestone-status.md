@@ -3069,3 +3069,70 @@ M5 assets: 34/34 check(s) passed
 文件里并不存在这个字面量——`security-controls.test.mjs` 立刻报
 「that text is not there any more」。引文必须是**字面存在**的片段，这一点被强制执行，
 而不是靠自觉。
+
+---
+
+## 32. 十六张工具卡：断言它们**存在**了四个里程碑，却从来没有**渲染**过一次
+
+`ui-plane.e2e.mjs` 的文件头自己写着：
+
+> A fake loader and a fake React are enough to run `apply` and read back the seat table, which is
+> the part of the client half a Node test can honestly check. **The rendering is checked in a real
+> browser instead** (`e2e/ui.e2e.mjs`).
+
+问题在于那个浏览器套件打开的是**工作台面板**，它里面没有对话、也就没有工具调用；
+唯一会渲染工具卡的是 `e2e/ui-live.e2e.mjs`，而它要花一次真实的模型调用。
+于是四个月下来：**16 个组件被断言「注册了」「有组件」，从来没有一个被调用过**。
+一张在渲染时抛错的卡——少一个字段、对一个不是数组的东西 `.map`、遇到一个映射里没有的
+status——会通过这个仓库里的每一条检查，然后在**对话里**（这个插件最显眼的那一面）炸掉。
+
+### 32.1 一个小渲染器，够用就好
+
+新模块 `tests/lib/client-bundle.mjs` 提供三样东西：假 loader、React 替身、
+以及一个**递归渲染器**——它直接调用函数组件并遍历返回的元素树。它不是 React：
+没有协调、没有状态更新、没有副作用、没有事件。
+
+它证明的是**每条渲染路径都能扛住自己的 props**，这恰好是没有任何断言看得见的那一类缺陷。
+
+`createElement` 从 `() => null` 换成返回 `{ type, props }` 的节点，是这次能渲染的关键；
+`useState` 返回初始值，于是每张卡渲染的是它的**初始状态**——对卡来说就是「还没问过宿主」
+的那一版。这不是缺点，是被写下来的边界：它到不了轮询之后的样子。
+
+### 32.2 断言，以及**证明断言能失败**
+
+`contract/ui-cards.test.mjs`（9 项）：
+
+* 16 张卡 × **7 种入参形状**（已结结果 / 失败 / 未结 / 带 `jobId` / 带 `resumeJobId` /
+  带 `operations` / **`callArgs: null`**）全部渲染成功，每张卡只有一个根、并且标着自己那个工具名；
+* `data-tool-state` 跟着 block 走（running / ok / **error**）——
+  这个属性是 CSS 的键，一张对失败报 `ok` 的卡就是错误旁边一个绿点；
+* 面板与设置页渲染出内容，而**会话 chip 在初始状态下什么都不渲染**——
+  第一版断言写的是「渲染出东西」，**它错了，产品是对的**：一个猜的 chip 会在问之前闪一句
+  「无渲染任务」。现在断言的是那个决定；
+* **一条阴性对照**：渲染一个必然抛错的组件，断言渲染器**点名报错**，
+  以及一个自渲染的组件会被 `levels deep` 挡住而不是挂住套件。
+  **一个「不抛错」的断言，在一个吞掉一切的渲染器上全都会通过**；
+* 渲染器本身的一点直接测试（宿主元素与文本）。
+
+三种变异（一个未加保护的参数字段、去掉 `null` block 的守卫、把状态属性写反）**全部变红**，
+而且是被对应的那一条抓住的。
+
+### 32.3 顺手把「怎么加载这个 bundle」收成一处
+
+`ui-plane.e2e.mjs` 里的 loader 与 `applyClient` 现在调用 `tests/lib/client-bundle.mjs`，
+自己只留两条**只有它会做**的源码形状检查。两份「怎么加载这个 bundle」正是这个仓库付过
+多次代价的缺陷形状（D38/D43/D57/D60）——第二个调用者一出现就把它收掉，
+而不是等第三个。改动之后 `ui-plane.e2e.mjs` 仍是 **140/140**。
+
+### 32.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 30/30 file(s) passed        830 项自计断言 + 195 个 node:test 用例
+
+$ node deepblend/tests/composition/ui-plane.e2e.mjs
+ui plane: 140/140 check(s) passed
+```
+
+这一轮没有发现产品缺陷——**16 张卡今天都是好的**。发现的是**一条四年里没人问过的问题**：
+它们存在，但它们能用吗。

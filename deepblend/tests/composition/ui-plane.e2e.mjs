@@ -33,7 +33,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { runInNewContext } from 'node:vm'
 
 import {
   UI_PANEL_ID,
@@ -45,6 +44,7 @@ import {
 import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
 
 import { importDsh } from '../lib/dsh-deployment.mjs'
+import { loadClientBundle as sharedLoadClientBundle, mountClient } from '../lib/client-bundle.mjs'
 
 /** The harness's OWN lossless-JSON rule, imported rather than reimplemented (M2.2). */
 const { isJsonValue } = await importDsh('dsh-util-values')
@@ -451,13 +451,13 @@ for (const route of UI_ROUTES) {
 // ---------------------------------------------------------------------------
 
 /**
- * Load `lib/client.js` through its real entry point.
+ * Load `lib/client.js` through its real entry point, with this suite's two source-shape
+ * checks in front of it.
  *
- * The bundle is a script that calls `window.__ModuleLoader__.load({ id, factory })`
- * and nothing else — the same shape `dsh-client-modules` executes in the page. A
- * fake loader and a fake React are enough to run `apply` and read back the seat
- * table, which is the part of the client half a Node test can honestly check. The
- * rendering is checked in a real browser instead (`e2e/ui.e2e.mjs`).
+ * The loading itself lives in `tests/lib/client-bundle.mjs`, because a second caller appeared
+ * in M5: `contract/ui-cards.test.mjs` RENDERS the sixteen tool cards, which needs the same fake
+ * module loader and the same React stand-in. Two copies of "how do you load this bundle" is the
+ * defect this repository has paid for repeatedly (D38/D43/D57/D60).
  */
 function loadClientBundle() {
   const source = readFileSync(join(UI_PACKAGE, 'lib', 'client.js'), 'utf8')
@@ -466,59 +466,23 @@ function loadClientBundle() {
   check('the client bundle registers itself through the module loader',
     source.includes('window.__ModuleLoader__.load(') && source.includes("id: '@deepblend/dsh-blender-ui'"))
 
-  let captured = null
-  const window = { __ModuleLoader__: { load: entry => { captured = entry } } }
-  runInNewContext(source, { window, document: undefined, JSON, Object, Array, String, Number, Boolean, Math, Error, Set, Map, Promise, console })
-  check('loading the bundle registers exactly one module', captured !== null && typeof captured.factory === 'function')
+  const { moduleId, exports } = sharedLoadClientBundle()
+  check('loading the bundle registers exactly one module', typeof exports.apply === 'function' && typeof exports.inject !== 'undefined')
   check('the module id is the package name, which is what the graph dispatches on',
-    captured.id === '@deepblend/dsh-blender-ui', captured.id)
-
-  /** A React stand-in: the components are never invoked here, only handed over. */
-  const reactStub = {
-    createElement: () => null,
-    useState: value => [typeof value === 'function' ? value() : value, () => {}],
-    useEffect: () => {},
-    useRef: () => ({ current: null }),
-  }
-  const exports = captured.factory(specifier => {
-    if (specifier === 'react' || specifier === 'react/jsx-runtime') return reactStub
-    throw new Error(`the client bundle required an unexpected module: ${specifier}`)
-  })
+    moduleId === '@deepblend/dsh-blender-ui', moduleId)
   return exports
 }
-
 const clientExports = loadClientBundle()
 check('the client half exports apply and inject (CJS shape, not export default)',
   typeof clientExports.apply === 'function' && Array.isArray(clientExports.inject), Object.keys(clientExports))
 check('the client half declares the Slot registry as its one hard dependency',
   clientExports.inject.includes('slots') && clientExports.inject.length === 1, clientExports.inject)
 
-/** Run `apply` against a recording Slot registry. */
+/** Run `apply` against a recording Slot registry — the shared one, so the seat table is read
+ * the same way in both callers. */
 function applyClient() {
-  const registrations = []
-  const injected = []
-  const effects = []
-  const context = {
-    effect(callback, label) {
-      effects.push(label ?? 'effect')
-      return callback()
-    },
-    slots: {
-      inject(key, callback) {
-        injected.push(key)
-        callback()
-        return () => {}
-      },
-      register(options, component) {
-        registrations.push({ options, component })
-        return () => {}
-      },
-    },
-  }
-  clientExports.apply(context)
-  return { registrations, injected, effects }
+  return mountClient(clientExports)
 }
-
 const client = applyClient()
 const seats = client.registrations.map(entry => entry.options)
 const seat = (name, key) => seats.find(entry => entry.name === name && (key === undefined || (key === 'key' ? entry.key !== undefined : entry[key] !== undefined)))
