@@ -1725,3 +1725,86 @@ DeepBlend tests: 22/22 file(s) passed              811 项自计断言 + 127 个
 preset 在**新会话**里才会被用户看到（`list()` 是每次重读的，所以 roster 里已经有了，
 但页面要在 profile 启动时才会重新组装）。这一条要等一次重启，并且按 §13.9 的规矩，
 是否生效要用页面本身去验。
+
+---
+
+## 17. M5 收尾：三份手册，以及「全部 Fixture 通过」变成可检查的东西
+
+SPEC §23.5 的 M5 交付项里还剩两件与代码无关、因此最容易飘的：**安装、使用与恢复文档**，
+以及**最终 Fixture 验收**。本节把这两件都做成**有东西在检查**的形态。
+
+### 17.1 手册是谎言概率最高的产物，因为它不被任何东西执行
+
+这个仓库已经为此付过两次代价：`README.md` 与 `milestone-status.md` 让用户去调
+`blender_revision_restore` 而那个工具不存在（§16.6），README 的「来源与校验和见 §5」
+指向一个**没有校验和**的小节（§14.5 第 6 条）。两句读起来都很对的话，没有任何一行代码
+必须与它们一致。
+
+所以三份手册里**机器能查的部分**被查住了 —— `contract/docs-consistency.test.mjs`（6 项）：
+
+| 断言 | 它挡住的 |
+|---|---|
+| 三份手册都存在，且 README **都**链到 | 一份没人被指向的手册等于没有（与 `install-presets.mjs` 曾经漏掉 skill 同一形状） |
+| 手册里出现的每个 `npm run <x>` 都真实存在 | 命令改名后手册变成死路 |
+| 手册里出现的每个 `blender_*` 都在**工具卡词表**里 | **这就是 D80 的形状**：散文承诺一个模型没有的能力 |
+| 手册里出现的每个仓库路径都存在 | 改名留下死链 |
+| 手册引用的每份实测日志都存在 | 一条读起来像证据的死引用，比没有引用更糟 |
+| `install.md` 必须指向 README | 安装步骤不能有第二份会飘的副本 |
+
+**并且验证了这条测试本身会失败**：把 `usage.md` 里的 `blender_revision_restore` 改成
+`blender_revision_snapback`，测试立刻红；改回来立刻绿。一条不可能失败的检查，
+正是这个仓库反复在防的东西（D81）。
+
+### 17.2 三份手册各自回答什么
+
+| 手册 | 一句话 | 它特意写了什么 |
+|---|---|---|
+| `install.md` | 从 clone 到「新建会话里能选到 DeepBlend Studio」，四步各有 `--check` | **每一步「不」验证什么**——例如 `blender:install` 的 `sha256` 只能检测「那个 URL 上的东西变了」，**不能**让第一次下载变得可信 |
+| `usage.md` | 一次会话长什么样、十五个工具的分工、成本模型、工作台六个页签、一个完整例子 | 成本表（预览秒级 vs 单帧 19.6–41.4 秒）与「测量看不到语义，那个判断是你的」 |
+| `recovery.md` | 九种实测过的故障，每种都写「怎么看出来」 | 每条都标出它来自哪份日志；以及第 8 条**承认审批平面目前确实不拦**，因为「读起来像保护、实际只是显示」比没有更危险 |
+
+### 17.3 「全部 Fixture 通过」：从一句话变成一张清单
+
+Fixture 本身一直被跑（M1 跑产品转台，M2 跑正确房间与三个缺陷场景，M3 从房间出帧）。
+没有人管的是**清单**：一个 fixture 可以躺在 `deepblend/fixtures/` 里而**没有任何套件打开它**，
+所有套件照样绿。这与 D79（preset 的行没人断言）、D80（工具没人调用）是同一个形状。
+
+`contract/fixture-inventory.test.mjs`（6 项）断言的是清单本身：
+
+* 每个场景 fixture 都有一份能解析、带版本号的 SceneSpec；
+* **每个 fixture 都至少被一个套件打开**（拿套件源码全文比对目录名）——没人读的 fixture
+  要么是死重量，要么是一个有人忘了写的测试；
+* 每个植入缺陷都声明了**评分器真的会产出**的类别与代码，加上对象、视角、描述与建议修法
+  （写错一个字母，fixture 就在描述一个测不出来的问题，而套件会在离原因很远的地方失败）；
+* 每个派生 fixture 的 `derivedFrom` / `generatedBy` 都还存在，所以
+  `make-visual-fixtures.mjs` 的派生仍然可重放；
+* 两个**正确**参考（`interior-room`、`product-turntable`）没有 `defect.json`——
+  它们被悄悄改成缺陷场景之后，「工具能报出问题」就不再意味着任何事。
+
+它**不**检查的是「fixture 量出来的结果与 `defect.json` 说的一致」——那需要 Blender，
+在 `blender-integration/visual-loop.e2e.mjs` 里，那一条它一直在断言。
+
+### 17.4 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      12 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个 node:test 用例
+```
+
+### 17.5 M5 还剩什么
+
+| 项 | 状态 |
+|---|---|
+| 正式 `deepblend` preset | ✅ §16 |
+| 移除 Shell / 任意文件写入 / Creator Tool / 非必要 Web | ✅ §16，由 `preset-surface.test.mjs` 以**相等**断言钉住 |
+| mount validation | ✅ §16.5，在真实进程里做 |
+| 安装 / 使用 / 恢复文档 | ✅ §17.1–17.2 |
+| 全部 Fixture 通过 | ✅ 清单在这一节，测量在 M2 套件 |
+| **双会话并发验证** | ❌ 未做。要证明两个 `deepblend` 会话不冲突服务——结构上由 `isolate` realm 保证，但**没有实测过** |
+| **安全测试** | 🟡 部分。路径逃逸（`PATH_OUTSIDE_WORKSPACE`）、可执行文件白名单、preset 的负向行集合都有了；缺一份把它们收在一起的对抗性用例 |
+| **资源限制** | 🟡 部分。`maxPreviewSamples`、`requireApprovalAboveFrames`、`maxOutputBytes`/`maxSpillBytes` 都有默认值；缺「超限时真的被拒绝」的断言 |
+| **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11），它的审批边界与规格是同一件事 |
+| Q7：能**阻止**启动的审批平面 | ❌ 目前只显示阈值事实；§17.2 的 `recovery.md` 第 8 条把这一点写在了用户看得到的地方 |

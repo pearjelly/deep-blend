@@ -34,9 +34,10 @@ deepblend/
   presets/            agent preset 的**源**（SPEC §5.2）：deepblend/（正式，最小权限）与
                       deepblend-dev/（开发）；preset 自带的 skills/ 随目录一起部署
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
-  docs/               dsh-baseline / runtime-audit / architecture-decisions
+  docs/               **手册（使用视角）**：install / usage / recovery —— 见上面「三份手册」
+                      **规格与记录**：dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
-                      / probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
+                      **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
   tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
                       workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
                       dsh-baseline.json —— DSH 兼容性锚点（版本号）的机器可读来源
@@ -55,7 +56,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         22 个 *.test.mjs
+    contract/         24 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -125,8 +126,8 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、33 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**22 个文件 = 811 项自计断言（12 个文件打印计数）+ 127 个 `node:test` 用例（10 个文件）**。
+预期：**12 个套件、35 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**24 个文件 = 811 项自计断言（12 个文件打印计数）+ 139 个 `node:test` 用例（12 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -337,6 +338,19 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 完整决策记录与理由见 `deepblend/docs/architecture-decisions.md`（D11–D68），
 运行时实测（含 M2 图片回传探针）见 `deepblend/docs/runtime-audit.md` §7.2，
 工具契约见 `deepblend/docs/tool-contracts.md`。
+
+---
+
+## 三份手册
+
+| 想做什么 | 看哪一份 |
+|---|---|
+| **装上它**——从 clone 到「新建会话里能选到 DeepBlend Studio」，四步各有 `--check`，以及每一步**不**验证什么 | `deepblend/docs/install.md` |
+| **用它**——一次会话长什么样、十五个工具的分工、成本模型、工作台六个页签、一个完整例子 | `deepblend/docs/usage.md` |
+| **救它**——渲染被 `kill -9`、半张帧、帧齐了没视频、改错想回退、宿主比包旧、项目列表是空的 | `deepblend/docs/recovery.md` |
+
+上面「快速开始」是同一套命令的**开发视角**，三份手册是**使用视角**：手册只讲怎么用与
+怎么判断，设计的理由留在 `deepblend/docs/` 的其余文档里，两边不重复。
 
 ---
 

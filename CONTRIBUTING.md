@@ -85,6 +85,24 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 
 新增一句 `import '@deepseek-ai/dsh-xxx'` 之后**不需要改任何脚本**：链接清单是从源码里
 读出来的（`deepblend/tools/workspace-layout.mjs`），重跑 `npm run setup` 即可。
+
+### 动了这些东西，契约层会告诉你哪里还没跟上
+
+这个仓库里有几处「一处改动、多处必须一致」的耦合，它们**全部由测试盯着**，
+所以你不需要记住它们——只需要在契约层变红时相信它：
+
+| 你改了什么 | 会被哪条断言抓到 |
+|---|---|
+| 加/删一个模型可见工具 | `ui-plane.e2e.mjs`（每个工具都要有卡，且没有多余的卡）、`tool-plane-m3.e2e.mjs`（目录恰好是那 15 个） |
+| 改一个命令名或一条工具名并写进手册 | `docs-consistency.test.mjs` |
+| 加一个 fixture | `fixture-inventory.test.mjs`（没人打开的 fixture 会让它红） |
+| 改 preset 的行集合 | `preset-surface.test.mjs`（**相等**断言，多一行少一行都红） |
+| 新增一句 import | `workspace-links.test.mjs` |
+| 改 bundle 里的配置 | `plugin:check` 会报 operator layer 漂移（那一层是推导出来的） |
+
+**手册是唯一一类不会被执行的产物**，所以它的可验证部分被单独查住（D82）：
+改完 `deepblend/docs/{install,usage,recovery}.md` 之后跑 `node deepblend/tests/run.mjs`，
+命名错的工具、命令或路径立刻会红。
 `contract/workspace-links.test.mjs` 会盯住这件事——漏了会在契约层失败并点名是哪个文件要的它。
 
 ---
