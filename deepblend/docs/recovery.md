@@ -66,6 +66,16 @@ blender_final_render {projectId, resumeJobId: "render-0001"}
 
 要渲的集合因此是 `missing + corrupt`。这就是「可只渲缺失帧」这条验收的全部内容。
 
+**同一个 `kill -9` 也会把日志截断，而那不是帧的问题**：被杀在「写完一行」与「刷出去」
+之间时，`renders/<job>/events.jsonl` 的最后一行是半行。任务输出里会出现一句
+`the render journal ends mid-line …`，说的就是这个。它不是故障，是**证据的边界**：
+日志少了最后一个事件，而账本**从不读日志来计数**（它读的是每一帧的字节），
+所以 `present / corrupt / missing` 三个数字不受影响。
+
+这条诊断自己有一条规则，测试在 `deepblend/tests/contract/render-journal.test.mjs`：
+**只在渲染器确实停下之后**才说，而且只说一次。轮询是每秒一次，一个活着的渲染器
+「最后一行还没写完」是常态——把它报成被杀，就是每次渲染都来一次的假警报。
+
 ---
 
 ## 3. 帧都渲完了，但没有视频

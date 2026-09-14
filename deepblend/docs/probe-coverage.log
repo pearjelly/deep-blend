@@ -4,42 +4,50 @@
 #
 # Instrument: NODE_V8_COVERAGE on every process the suite spawns, merged per process and then
 # unioned (see the tool's header for the three wrong merges that came before it).
+#
+# TWO READINGS ARE PRINTED, and they have different denominators:
+#   [every line]  every line of the file, comments included — comparable with §36's 13.7%
+#   [code lines]  blank and comment-only lines removed — "code that was never executed"
+# The second is the one to read. A comment cannot be unexecuted, and a metric whose tail is prose
+# sends people after a gap that does not exist. §36 was written against the first.
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 92
+coverage files: 93 (93 parsed)
 product files seen: 34
 product files never loaded: 0
-product lines seen: 19725
-product lines never executed: 2695 (13.7%)
 
-── the darkest of the files that were loaded ──
-   packages/deepblend/host/lib/index.js                        951/4317  lines dark
-   packages/deepblend/provider-local/lib/index.js              376/1534
-   packages/deepblend/host/lib/revision-transaction.js         134/992
-   packages/deepblend/contracts/lib/scene-spec.js              113/910
-   packages/deepblend/tool/lib/tools.js                         98/982
-   packages/deepblend/host/lib/video-encoder.js                 96/346
-   packages/deepblend/tool/lib/visual-tools.js                  95/405
-   packages/deepblend/tool/lib/render-tools.js                  90/543
-   packages/deepblend/host/lib/render-reconciler.js             75/338
-   packages/deepblend/host/lib/project-store.js                 73/529
-   packages/deepblend/ui/lib/index.js                           68/596
-   packages/deepblend/contracts/lib/ui-api.js                   62/696
-   packages/deepblend/tool/lib/shared.js                        45/473
-   packages/deepblend/host/lib/render-journal.js                28/130
+product lines seen:      19809, never executed: 2663 (13.4%)   [every line]
+product CODE lines:      12066, never executed: 2519 (20.9%)   [blank + comment-only excluded]
 
-── the largest contiguous dark blocks (whole bodies, not single branches) ──
-   78 lines  host/lib/index.js:1625-1702
-   54 lines  host/lib/index.js:3596-3649     the render driver's tail
-   40 lines  host/lib/index.js:2402-2441     async listProjects()          ← see below
-   40 lines  host/lib/index.js:2449-2488     async getRevisionDetail()
-   36 lines  provider-local/lib/index.js:703-738   _absentCapabilities()
-   35 lines  tool/lib/visual-tools.js:346-380
-   28 lines  host/lib/index.js:2591-2618     async readArtifact()
-   26 lines  provider-local/lib/index.js:926-951
+── the darkest of the files that were loaded (32) ──
+   packages/deepblend/host/lib/index.js                        872/2895  code lines dark
+   packages/deepblend/provider-local/lib/index.js              368/910
+   packages/deepblend/host/lib/revision-transaction.js         132/682
+   packages/deepblend/contracts/lib/scene-spec.js              112/561
+   packages/deepblend/tool/lib/tools.js                         97/810
+   packages/deepblend/tool/lib/visual-tools.js                  94/330
+   packages/deepblend/host/lib/video-encoder.js                 92/210
+   packages/deepblend/tool/lib/render-tools.js                  89/420
+   packages/deepblend/host/lib/project-store.js                 66/263
+   packages/deepblend/host/lib/render-reconciler.js             66/189
+   packages/deepblend/ui/lib/index.js                           64/369
+   packages/deepblend/contracts/lib/ui-api.js                   61/427
 
-── WHAT THIS INSTRUMENT CANNOT SEE, MEASURED ──
+── THE TWO FILES §37 WORKED ON ──
+                              §36's reading (every line)     this reading (code lines)
+render-journal.js             28 / 130 dark                  4 / 75
+frame-ledger.js               10 / 180 dark                  2 / 76
+                              ↑ whole rules were dark        ↑ 4 are the two `closeSync` "already
+                                (drain's three hard            closed" catches (only a mock reaches
+                                branches, sampleFrame's        them) and 2 are the `statSync` that
+                                entire unreadable catch)       fails after `existsSync` said yes
+
+render-journal.js is 197 lines, 122 of them blank or comment. Those 122 were counted as "never
+executed" by §36's reading of the same file.
+
+── WHAT THIS INSTRUMENT CANNOT SEE, MEASURED (in §36's run; the blind spot is a property of
+   `dsh web`, not of that run) ──
 Running deepblend/tests/e2e/ui.e2e.mjs with NODE_V8_COVERAGE produces ZERO reports for the host
 package: the `dsh web` process it starts does not write them. So every path reached only through
 the UI reads as dark here. That is why listProjects, getRevisionDetail, getQaRecord and readArtifact
@@ -54,12 +62,22 @@ invisible process.
 Read a dark line as "no test I can see executes this", not as "nothing executes this".
 
 ── WHAT THE READING SAYS ──
-Of the 13.7%, most is error handling: catch blocks, "the encoder is missing" fallbacks, the
-unreadable-record branch of the reconciler, the torn-journal-line branch. That is the expected
-shape — an error path runs only when something goes wrong, and a suite that made every error path
-run would be a suite that breaks things on purpose (which is what the round-22 disk probe did, by
-hand, for one of them).
+Most of the dark lines are error handling: catch blocks, "the encoder is missing" fallbacks, the
+unreadable-record branch of the reconciler. That is the expected shape — an error path runs only
+when something goes wrong, and a suite that made every error path run would be a suite that breaks
+things on purpose (which is what the round-22 disk probe did, by hand, for one of them).
 
-The interesting rows are the whole bodies that are dark for a different reason: they are reachable
-only from a process this instrument cannot see. That is a fact about the measurement, and it is
-written down here rather than left to be inferred from a number.
+The whole bodies that are dark for a different reason — `listProjects`, `getRevisionDetail`,
+`readArtifact`, `getQaRecord` — are reachable only from a process this instrument cannot see. That
+is a fact about the measurement, and it is written down here rather than left to be inferred from a
+number.
+
+── WHAT THE TOOL NOW REFUSES TO DO (both learned the hard way, §37) ──
+It exits non-zero and keeps its evidence when the SUITE exited non-zero, echoing the failing lines:
+a reading of a red tree is not a reading, and the version that threw the suite's output away left
+`suite exit code: 1` as the only trace of a 15-minute failure with no way to see which suite it was.
+
+It also exits non-zero and names the files when a PRODUCT SOURCE FILE CHANGED while the suite ran.
+Coverage is line numbers from the processes read against source text from disk, and those are two
+different moments: a run that overlapped an edit reported a function called seven times by a test as
+"never executed", and listed comment lines as the dark ones.

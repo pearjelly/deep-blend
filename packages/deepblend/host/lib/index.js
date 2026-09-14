@@ -78,7 +78,7 @@ import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store
 import { RenderJobStore, UNFINISHED_STATUSES } from './render-job-store.js'
 import { RevisionTransaction } from './revision-transaction.js'
 import { inspectFrameSample, readFrameLedger, sampleFrame } from './frame-ledger.js'
-import { JournalTail } from './render-journal.js'
+import { JournalTail, isFrameClaim } from './render-journal.js'
 import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
@@ -3321,7 +3321,6 @@ export default class BlenderStudio extends Service {
       done: null,
       journal: new JournalTail(join(this.renderJobs.jobDirectory(projectId, jobId), 'events.jsonl')),
       attemptToken: null,
-      tornReported: false,
       startedAt: Date.now(),
     }
 
@@ -3500,7 +3499,10 @@ export default class BlenderStudio extends Service {
     try {
       const outcome = await this.runtime.awaitFrameSequence(run)
       clearInterval(tick)
-      await this._absorbProgress(live, run, projectId, jobId)
+      // The final absorb is also the only one that may call the journal torn: the
+      // writer has stopped, so an incomplete last line is evidence rather than a
+      // line still arriving.
+      await this._absorbProgress(live, run, projectId, jobId, { final: true })
 
       // The frames are the authority for what happened, whatever the envelope says
       // — a killed process writes no envelope, and a successful one can still have
@@ -3660,20 +3662,24 @@ export default class BlenderStudio extends Service {
    * whether a frame is there. One verification per claimed frame — not a full
    * directory scan per tick, which on 450 frames would cost more than the render.
    */
-  async _absorbProgress(live, run, projectId, jobId) {
+  async _absorbProgress(live, run, projectId, jobId, options = {}) {
     const fresh = live.journal.drain()
-    let changed = fresh.some(event => event?.type === 'frame')
+    let changed = fresh.some(event => isFrameClaim(event))
     for (const event of fresh) {
-      if (event?.type === 'frame' && Number.isSafeInteger(event.frame)) {
+      if (isFrameClaim(event)) {
         const sample = sampleFrame(join(this.renderJobs.framesDirectory(projectId, jobId), frameFileName(event.frame)))
         const verdict = inspectFrameSample(sample, live.expectedSize)
         if (verdict.ok) live.verified.add(event.frame)
       }
     }
     if (fresh.length > 0) {
+      // The log reports what the writer SAID; only the counting above needs a claim
+      // to be well-formed. So a frame event with no usable number still gets a line —
+      // with a `?` where the number should be, rather than the word "undefined",
+      // which reads like a frame that exists.
       for (const event of fresh) {
         if (event?.type === 'frame') {
-          this._appendOutput(live, `frame ${event.frame} rendered (${event.ms ?? '?'} ms)\n`)
+          this._appendOutput(live, `frame ${event.frame ?? '?'} rendered (${event.ms ?? '?'} ms)\n`)
         } else if (event?.type === 'frame_failed') {
           this._appendOutput(live, `frame ${event.frame} FAILED: ${event.error ?? event.verify?.reason ?? 'unknown'}\n`)
         } else if (event?.type === 'unparseable-line') {
@@ -3683,13 +3689,15 @@ export default class BlenderStudio extends Service {
     }
     // A torn line is what a kill mid-write looks like, and it must be visible: it
     // means the journal is not a complete account of what the renderer did, which is
-    // exactly why the ledger is built from the frames instead. Reported once.
-    if (live.journal.tornLineSeen && live.tornReported !== true) {
-      live.tornReported = true
+    // exactly why the ledger is built from the frames instead. `tornLineIsEvidence`
+    // holds the two conditions — the file ends mid-line AND the writer has stopped —
+    // and the once-only rule, so this stays one line instead of three conditions the
+    // host cannot exercise without a real kill.
+    if (live.journal.tornLineIsEvidence({ stopped: options.final === true })) {
       this._appendOutput(
         live,
-        'the render journal was cut mid-line (a kill between write and flush); progress is counted from the ' +
-        'frame files themselves, so the count is unaffected\n',
+        'the render journal ends mid-line, so its last event never completed — what a kill between the write and ' +
+        'the flush leaves behind; progress is counted from the frame files themselves, so the count is unaffected\n',
       )
     }
 
@@ -4266,6 +4274,7 @@ export { readFrameLedger, framesOnDisk, sampleFrame } from './frame-ledger.js'
 export { RenderJobStore, formatRenderJobId, UNFINISHED_STATUSES } from './render-job-store.js'
 export {
   JournalTail,
+  isFrameClaim,
 } from './render-journal.js'
 export {
   checkProcessAlive,

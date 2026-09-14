@@ -161,6 +161,12 @@ export function readFrameLedger(input) {
  * tell a complete frame from a torn one, and it cannot tell a frame of THIS job
  * from a leftover of another.
  *
+ * Directory ENTRIES are skipped, which is a measured fix: a directory named
+ * `frame_0004.png` was listed here as a frame on disk, and the listing is the one
+ * place a reader looks to see whether the frames are really there. What the entry
+ * RESOLVES to is a question for the ledger (`sampleFrame` follows links and reads
+ * bytes), so a symlink to a PNG is still listed — it is a usable frame.
+ *
  * @param {string} framesDirectory
  * @param {{prefix?: string}} [options]
  * @returns {number[]}
@@ -169,7 +175,9 @@ export function framesOnDisk(framesDirectory, options = {}) {
   if (!existsSync(framesDirectory)) return []
   const prefix = options.prefix ?? 'frame_'
   const found = []
-  for (const name of readdirSync(framesDirectory)) {
+  for (const entry of readdirSync(framesDirectory, { withFileTypes: true })) {
+    if (entry.isDirectory()) continue
+    const name = entry.name
     if (!name.startsWith(prefix) || !name.endsWith('.png')) continue
     const digits = name.slice(prefix.length, -4)
     if (!/^\d+$/.test(digits)) continue

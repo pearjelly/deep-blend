@@ -372,6 +372,57 @@ try {
 }
 
 // ---------------------------------------------------------------------------
+// 11. An entry whose bytes cannot be read is CORRUPT, never MISSING
+// ---------------------------------------------------------------------------
+
+// Why a directory: it is the one name whose `stat` succeeds and whose bytes cannot be
+// read (`openSync` on a directory succeeds on POSIX, `readSync` fails with EISDIR), so
+// it is the only way to reach `sampleFrame`'s unreadable branch with a real filesystem
+// and no permissions tricks — `chmod 000` is defeated by running as root, which CI does.
+//
+// MEASURED, and the reason for the filler files: a directory's `stat` size is an inode
+// detail, 64 bytes for an empty one on APFS and ~40 on tmpfs, both below
+// MIN_FRAME_BYTES (512) — so an empty directory would take the `truncated` branch and
+// never reach the unreadable one. Filling it past 512 bytes takes the branch the render
+// path actually produces (a frame replaced by something unreadable).
+const unreadableScratch = mkdtempSync(join(tmpdir(), 'deepblend-m3-unreadable-'))
+try {
+  const framesDirectory = join(unreadableScratch, 'frames')
+  const squatter = join(framesDirectory, 'frame_0004.png')
+  mkdirSync(squatter, { recursive: true })
+  for (let index = 0; index < 64; index += 1) writeFileSync(join(squatter, `filler-${index}`), 'x')
+
+  const { readFrameLedger, framesOnDisk, sampleFrame } = await import('@deepblend/dsh-blender-host')
+
+  const sample = sampleFrame(squatter)
+  check('a name whose bytes cannot be read still reports that it EXISTS',
+    sample.exists === true && sample.size > 0, sample)
+  check('and says so by having no header, rather than by pretending it read one',
+    sample.header === undefined && sample.tail === undefined, sample)
+
+  const unreadableLedger = readFrameLedger({
+    framesDirectory,
+    expected: [4, 5],
+    expectedSize: { width: 1920, height: 1080 },
+  })
+  check('a frame whose name is occupied but unreadable is CORRUPT, not MISSING',
+    JSON.stringify(unreadableLedger.corrupt.map(entry => entry.frame)) === '[4]' &&
+    JSON.stringify(unreadableLedger.missing) === '[5]',
+  { corrupt: unreadableLedger.corrupt, missing: unreadableLedger.missing })
+  check('and the reason names the read failure rather than blaming the frame\'s bytes',
+    unreadableLedger.corrupt[0]?.reason === 'unreadable', unreadableLedger.corrupt[0])
+  check('so it is scheduled for re-render like any other unusable frame',
+    JSON.stringify([...unreadableLedger.toRender].sort((left, right) => left - right)) === JSON.stringify([4, 5]),
+    unreadableLedger.toRender)
+  check('and a directory is NOT reported as a frame present on disk, which is what a reader checks first',
+    JSON.stringify(framesOnDisk(framesDirectory)) === '[]', framesOnDisk(framesDirectory))
+  check('a frames directory that does not exist yet reads as no frames, not as a failure',
+    JSON.stringify(framesOnDisk(join(unreadableScratch, 'never-created'))) === '[]')
+} finally {
+  rmSync(unreadableScratch, { recursive: true, force: true })
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 

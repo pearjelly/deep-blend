@@ -24,6 +24,21 @@
  * that skipped it would lose an event permanently. So the offset advances only to
  * the end of the last COMPLETE, parsed line.
  *
+ * `tornLineSeen` says "the file ended mid-line as of the last read that reached the
+ * end of it", and it is recomputed on every such read rather than latched: a tail
+ * that completes on the next poll means the journal is whole, and a latched flag
+ * would go on accusing the renderer of losing an event that arrived.
+ *
+ * That flag is what a kill between two writes leaves behind — and it is ALSO what a
+ * line still being written looks like, so at read time the two are indistinguishable.
+ * The flag is a fact about the file; `tornLineIsEvidence({stopped})` is where the
+ * fact becomes reportable, and it takes the one thing only the caller knows: whether
+ * the writer has stopped for good.
+ *
+ * A COMPLETE line that does not parse is a different fact — a writer bug, not a
+ * torn kill — so it gets its own `unparseable-line` marker and does NOT raise the
+ * torn flag. Reporting one as the other would name the wrong cause.
+ *
  * Owner: DeepBlend Studio — M3
  * Plane: Host composition
  */
@@ -40,7 +55,35 @@ export class JournalTail {
     this.offset = 0
     /** Events already returned, so a caller can ask for the whole set. */
     this.events = []
+    /** The file ended mid-line as of the last read that reached the end of it. */
     this.tornLineSeen = false
+    /** The torn tail has already been reported, so it is not reported again. */
+    this.tornReported = false
+  }
+
+  /**
+   * Is the torn tail EVIDENCE yet — that is, should the caller report it?
+   *
+   * `tornLineSeen` is a fact about the file; this is where the fact becomes
+   * reportable, and it needs one thing only the caller knows: whether the writer has
+   * stopped. Mid-render an incomplete last line is the ordinary state of a line being
+   * written, and a reader that called every one of those a kill would put a false
+   * accusation in the log of every healthy render. Once the process is gone, the same
+   * bytes mean the last event never arrived.
+   *
+   * True at most once per journal: a poll repeats every second, and a diagnostic that
+   * repeats is noise. A `false` answer is not final, though — the caller asks again on
+   * the next read, which is how a tail that is still being written gets its chance to
+   * complete, and how one that never does gets reported once the writer is gone.
+   *
+   * @param {{stopped: boolean}} input - whether the writer has stopped for good.
+   * @returns {boolean}
+   */
+  tornLineIsEvidence(input) {
+    if (this.tornReported === true || this.tornLineSeen !== true) return false
+    if (input?.stopped !== true) return false
+    this.tornReported = true
+    return true
   }
 
   /**
@@ -76,14 +119,29 @@ export class JournalTail {
       }
     }
 
+    // Did this read reach the end of the FILE, or stop at the cap? Only a read that
+    // reached the end can say anything about the tail: with bytes still unread, an
+    // incomplete line here is the cap, not a torn write.
+    const readToEnd = this.offset + length === size
+
     const text = buffer.toString('utf8')
     const lastNewline = text.lastIndexOf('\n')
     if (lastNewline < 0) {
       // Nothing complete yet. The offset stays put so the partial line is re-read
       // once it is finished — skipping it would lose the event for good.
-      if (text.length > 0) this.tornLineSeen = true
+      if (readToEnd) this.tornLineSeen = text.length > 0
       return []
     }
+    // The flag describes the file as it stands NOW, so it is recomputed rather than
+    // latched — and the ordinary torn case is a NON-EMPTY TAIL after the last newline,
+    // which is what a kill between two writes leaves behind. Missing that case was a
+    // real defect: the flag was raised only for a buffer with no complete line at all,
+    // so a journal cut after frame 30 of 450 looked intact, and the host's "the journal
+    // ends mid-line" line could not fire for the case it exists for. Recomputing also
+    // keeps the opposite lie out: a tail that completes on the next poll means the
+    // journal is whole, and a latched flag would still be accusing the renderer of
+    // losing an event that arrived.
+    if (readToEnd) this.tornLineSeen = lastNewline < text.length - 1
 
     const complete = text.slice(0, lastNewline + 1)
     const consumedBytes = Buffer.byteLength(complete, 'utf8')
@@ -96,26 +154,14 @@ export class JournalTail {
         // A line that is complete AND unparseable is not a torn write; it is a
         // writer bug. Recorded as a marker rather than dropped, because a journal
         // that silently loses an event is indistinguishable from one that never
-        // had it.
-        this.tornLineSeen = true
+        // had it. Deliberately NOT `tornLineSeen`: the two have different causes,
+        // and the caller says different things about them.
         fresh.push({ type: 'unparseable-line' })
       }
     }
     this.offset += consumedBytes
     this.events.push(...fresh)
     return fresh
-  }
-
-  /**
-   * The frames the renderer has claimed, from the events read so far.
-   * @returns {number[]}
-   */
-  claimedFrames() {
-    const frames = []
-    for (const event of this.events) {
-      if (event?.type === 'frame' && Number.isSafeInteger(event.frame)) frames.push(event.frame)
-    }
-    return frames
   }
 
   /** Per-frame durations the renderer reported, for the remaining-time estimate. */
@@ -126,4 +172,25 @@ export class JournalTail {
     }
     return durations
   }
+}
+
+/**
+ * Does this event claim that a frame landed?
+ *
+ * "Claims" is the operative word: the renderer says frame N is done, and the caller
+ * verifies that against the frame's BYTES before counting it (see `frame-ledger.js`).
+ * The rule lives here, next to the format, because it had two copies in the host and
+ * a copy in a test — three places to drift.
+ *
+ * (This replaces a `claimedFrames()` collector that handed back a list of unverified
+ * frame numbers. Nothing called it, which is the only reason it was harmless: the
+ * architecture says a claim is never the authority, so the collection of claims is
+ * exactly the value no caller may act on. A predicate cannot be mistaken for a
+ * ledger.)
+ *
+ * @param {unknown} event
+ * @returns {boolean}
+ */
+export function isFrameClaim(event) {
+  return event?.type === 'frame' && Number.isSafeInteger(event.frame)
 }
