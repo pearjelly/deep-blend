@@ -429,7 +429,7 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | ~~6~~ | ~~SPEC §15.2「MIME 与扩展名双重校验」~~ | ✅ **M5 已补（D102）**：扩展名之后再看前 512 字节（`contracts/lib/asset-content.js`），在**拷贝进项目之前**判定，只有**正面矛盾**（另一个格式的签名、文本格式里的二进制、空文件）才拒绝 | 当初的理由（Blender 会行为式分类，D10）仍然成立，但它只说明「最终会被发现」，不说明「要等一次 Blender 启动才发现」。现在改扩展名的文件在拷贝之前就被拒，而读不出形状的文件照旧放行 |
 | 7 | SPEC §15.2「纹理尺寸限制」 | **未实现**：纹理尺寸既不测量也不设限 | 受管 Blender 只导入**几何**（glTF/FBX/OBJ/USD/blend），场景里没有纹理贴图通道——`material` 只有 baseColor/metallic/roughness 这类参数（SPEC §5.2）。限一个不存在的通道没有意义；等贴图进入 SceneSpec 时再补 |
 | ~~8~~ | ~~SPEC §15.2「Mesh 面数限制」~~ | ✅ **M5 已补（D101）**：`maxMeshPolygons`（默认 200 万），比较编译报告里已经测出来的 `totalPolygons`，超出时以 `SCENE_TOO_HEAVY` 拒绝且不提交 revision | 写这张表时发现「兜住它的是超时」只对**单次调用**成立——一个五倍重的场景每次调用都能在超时内跑完，然后在这个项目的余生里每次都贵五倍。已实现并有断言（`hardening.e2e.mjs` §G，双向） |
-| 9 | SPEC §15.2「CPU、内存、磁盘、GPU 配额」 | 只有**字节与时间**：`maxOutputBytes` / `maxSpillBytes` / `assetMaxBytes` / `timeoutMs`，以及交付渲染的既有磁盘事实（450 帧 ≈ 424 MiB，Q1 实测）。没有 CPU、内存、GPU 配额，帧序列的磁盘占用也没有上限 | 这些都是**操作系统级**的隔离：SPEC §15.3 把「进程资源限制」明确放在「容器或 Bubblewrap」那一层，而 M5 的交付环境是 macOS 开发版（`--factory-startup` + 工作区边界 + 环境变量白名单）。写一个假的限额比没有更糟：它会让「受控」这句话变成装饰 |
+| 9 | SPEC §15.2「CPU、内存、磁盘、GPU 配额」 | 只有**字节与时间**：`maxOutputBytes` / `maxSpillBytes` / `assetMaxBytes` / `maxMeshPolygons` / `timeoutMs`。**磁盘**那一半现在是量过的：卷满时渲染器停下、已渲的帧全在、job 在腾出空间后的下一次协调里变成可续渲的 `recovering`，而**在卷仍然满的时候记录会停在旧状态**（§35）。没有 CPU、内存、GPU 配额 | CPU/内存/GPU 是**操作系统级**隔离：SPEC §15.3 把「进程资源限制」放在「容器或 Bubblewrap」那一层，而 M5 的交付环境是 macOS 开发版。写一个假的限额比没有更糟。**磁盘那一半不属于那一层**——那些帧是本产品自己写的数据——所以它单独量了，顺带量出两个会把宿主带走的缺陷（§35） |
 | 10 | SPEC §15.2「日志脱敏」 | 只有**一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），但没有日志过滤器 | 这一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。反过来说，加一个正则过滤器只会让人以为还有别的泄漏渠道。真正需要脱敏的是**用户自己**贴进对话的秘密，那属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
 
@@ -3264,3 +3264,88 @@ DeepBlend tests: 31/31 file(s) passed        830 项自计断言 + 202 个 node:
 
 覆盖率的说法现在有了确切的含义：**17 个码有用户可以照着做的一页，44 个码有理由**，
 而不是"手册里提过一些码"。
+
+---
+
+## 35. 卷满了会怎样：量出来两个会把宿主带走的缺陷
+
+SPEC §15.2 要求「CPU、内存、磁盘、GPU 配额」。§7 的偏差条目写着只有字节与时间，
+理由借的是 SPEC §15.3——**进程资源限制属于容器那一层**。那句话对 CPU/内存/GPU 成立，
+对**磁盘不成立**：那些帧是本产品自己写的数据。所以这一轮把它量了：
+一个真的 24 MiB 卷（`hdiutil` 建的真实 APFS 镜像）、一次真的交付渲染、一次真的写满。
+
+探针是 `tools/disk-full-probe.mjs`，逐行记录在 `docs/probe-disk-full.log`。
+
+### 35.1 第一次跑：**宿主进程直接死了**
+
+```
+Error: ENOSPC: no space left on device, open '.../renders/render-0001/job.json.tmp-...'
+    at writeFileSync (.../paths.js:160:5)
+    at RenderJobStore.write (.../render-job-store.js:157:5)
+    at Proxy._driveRender (.../index.js:3570:25)
+```
+
+渲染驱动 `_driveRender` 的**失败处理本身**要写一份 job 记录，而那份记录写不进一个满了的卷。
+那个异常从 catch 里逃出去，而调用点是 `void this._driveRender(...)` ——于是它是一个
+**未处理的 rejection，Node 因此结束进程**。
+
+**一个装满的磁盘杀死了 Harness 进程和它里面的每一个会话，而不是让一次渲染失败。**
+
+而 `_driveRender` 的文档注释里写着相反的话：
+
+> **Never throws** — it settles the record and the DSH projection instead. A background task that
+> rejects has no caller to catch it, and an unhandled rejection would take the Host down in the
+> middle of a delivery.
+
+**注释是对的，代码是错的**，而「磁盘满」恰恰是那份记录写不出来的那一种情况。
+
+处置三处：失败处理里的两次写都变成尽力而为（写不进去就记日志，让 live job 说话）；
+errno 为 `ENOSPC` 时失败码是新的 `DISK_FULL`（「腾出空间再续」）而不是兜底的 `SCRIPT_ERROR`
+（「这是个 bug」）；调用点补上 `.catch()`，让「绝不抛出」成为**调用的属性**而不是注释里的承诺。
+同时那个 catch 里补上了**停掉渲染器**——一个已经放弃的宿主配一个还在写的渲染器，
+正是 M3 验收要排除的那个孤儿。
+
+### 35.2 第二次跑：宿主活下来了，但**恢复整趟停摆**
+
+修完之后：宿主活着、已渲的 31 帧都在、渲染器没了，但 **job 记录仍然是 `running`**——
+因为记录写不进去。重启之后也一样，于是去看**协调器**：
+
+```
+startup pass: ["unwritable (1 note(s))"]
+```
+
+协调器找到了那个 job，试着把 `recovering` 写下去，**写不进去，异常从整趟里逃出去**。
+在真实宿主里这个异常会被 `_kickReconciliation` 的 catch 吞掉——于是
+**一个卷满的项目会让整个 store 上每一个项目的恢复都停摆**，而且什么都不说。
+
+处置：`reconcileRenderJobs` 现在是**逐个 job 隔离**的，写不下去的那个变成一条
+`status: 'unwritable'` 的 finding（finding 列表本来就是干这个的），这一趟继续往下走。
+
+### 35.3 第三次跑：腾出空间之后，恢复真的发生
+
+卷满之后**把镜像离线扩容**（在线 `hdiutil resize` 会以 35 退出，这是第一版的失败）：
+
+```
+volume after growing it: 72 MiB available (resize exit 0)
+frames after detach and re-attach: 31          ← 一帧没丢
+reconciliation findings: [{"previous":"running","status":"recovering","missing":369,"notes":1}]
+after a restart: recovering
+result: a full volume leaves the Host alive, the frames on disk, and a job a restart can pick up
+```
+
+**这就是磁盘那一半的答案**：没有配额，但也不是「写到死」——卷满时渲染器停下、帧保住、
+job 在**腾出空间之后的下一次协调**里变成可续渲的 `recovering`。
+代价写在偏差条目里：**在卷仍然是满的时候，记录会停在旧状态**，因为没有任何地方可以记。
+
+### 35.4 这一轮抓到的是「宿主会不会死」，不是一个缺失的配额
+
+值得单独记的是这条缺陷的形状：它不是「少了一个配额」，而是**一个失败处理路径本身会失败**。
+凡是「出了事就写一条记录」的地方，都要问一句：**如果记录写不下去呢？**
+这一轮问了两处（渲染驱动、协调器），两处都答错了，而两处都有测试盯着——
+只是没有一个测试让磁盘满过。
+
+### 35.5 本轮收口
+
+`error-documentation.test.mjs` 在第 21 轮的规则下**立刻**红了：新加的 `DISK_FULL`
+没有归属。这正是那条规则存在的意义——**第 62 个码不会悄悄溜过去**。
+现在它在 `recovery.md` §10 里有了一行，在 `security.md` 与 §7 的偏差里有了实测结论。

@@ -214,6 +214,7 @@ a smaller range first to check the scene.
 | `RENDER_APPROVAL_REQUIRED` | 这次渲染超过帧数阈值，**一帧都还没开始**。批了才会跑 | §8 |
 | `RENDER_FRAMES_INCOMPLETE` | 帧还没齐，所以没有东西可以编码。用 `resumeJobId` 接着渲，而不是重开 | §3 |
 | `RENDER_JOB_CONFLICT` | 一个项目同时只能有一个交付渲染。先 `blender_job_status` 看那个在跑的 | — |
+| `DISK_FULL` | 卷满了。已渲出的帧都还在，渲染器已停；腾出空间后用 `resumeJobId` 接着渲 | §9 |
 | `ENCODE_VERIFY_FAILED` | 帧齐了但编码产物没通过自检。交付清单里写着哪一条不过 | §3 |
 | `REVISION_CONFLICT` | 你的 `baseRevision` 过期了：**没有被合并**。重新读场景再重发 | §4 |
 | `REVISION_CHECKPOINT_MISSING` | 这个 revision 没有 `.blend` 可以渲。用一个带 `saveCheckpoint` 的 revision 再交付 | — |

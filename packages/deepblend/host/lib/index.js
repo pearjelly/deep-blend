@@ -2227,16 +2227,43 @@ export default class BlenderStudio extends Service {
     const findings = []
     for (const entry of unfinished) {
       const previous = entry.record
-      findings.push(await reconcileRenderJob({
-        store: this.renderJobs,
-        readFrameLedger,
-        projectId: entry.projectId,
-        jobId: entry.jobId,
-        record: previous,
-        write: record => (previous === null
-          ? this.renderJobs.write(record)
-          : this.renderJobs.write(record, { previous })),
-      }))
+      try {
+        findings.push(await reconcileRenderJob({
+          store: this.renderJobs,
+          readFrameLedger,
+          projectId: entry.projectId,
+          jobId: entry.jobId,
+          record: previous,
+          write: record => (previous === null
+            ? this.renderJobs.write(record)
+            : this.renderJobs.write(record, { previous })),
+        }))
+      } catch (cause) {
+        // ONE UNWRITABLE JOB MUST NOT STOP THE PASS. MEASURED with a full volume
+        // (`tools/disk-full-probe.mjs`): recording a recovery means writing a record, and a record
+        // cannot be written to a disk that has no room — so the reconciler threw, and a Host whose
+        // volume is full would recover NOTHING, including the unfinished jobs of every other
+        // project on the same store. The failure is reported as a finding like any other, which is
+        // what the finding list is for, and the pass moves on.
+        //
+        // The job stays unfinished on disk, which is the honest state: nothing here can record an
+        // answer. The frames are intact, the renderer is not running, and the next pass with room
+        // recovers it.
+        findings.push({
+          schemaVersion: 'deepblend.render-recovery/v1',
+          jobId: entry.jobId,
+          projectId: entry.projectId,
+          reconciledAt: new Date().toISOString(),
+          previousStatus: previous?.status ?? null,
+          status: 'unwritable',
+          process: null,
+          ledger: null,
+          notes: [
+            `the recovery could not be recorded (${cause instanceof Error ? cause.message : String(cause)}), ` +
+              'so this job keeps its previous status on disk and is reported again on the next pass',
+          ],
+        })
+      }
     }
     this._recoveryFindings = findings
     return findings
@@ -3426,8 +3453,14 @@ export default class BlenderStudio extends Service {
       }
     }
 
-    // Background completion. Nothing awaits this but the record and the DSH job.
-    void this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName })
+    // Background completion. Nothing awaits this but the record and the DSH job — so a
+    // rejection here has no caller, and Node turns an unhandled rejection into process death.
+    // `_driveRender` promises never to throw and now survives a full disk doing it; this catch
+    // is what makes that a property of the CALL rather than a promise in a comment.
+    void this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName }).catch(cause => {
+      this.ctx.logger?.error(`deepblend: the render driver for ${jobId} threw: ${cause?.stack ?? cause}`)
+      live.settle?.({ status: 'failed', detail: cause instanceof Error ? cause.message : String(cause) })
+    })
 
     return { jobId, dshJobId: live.dshJobId }
   }
@@ -3565,19 +3598,52 @@ export default class BlenderStudio extends Service {
     } catch (cause) {
       clearInterval(tick)
       const message = cause instanceof Error ? cause.message : String(cause)
-      const current = this.renderJobs.readSafe(projectId, jobId)
-      if (current !== null && !RenderJobStore.isTerminal(current)) {
-        this.renderJobs.write({
-          ...current,
-          status: 'failed',
-          pid: null,
-          processGroupId: null,
-          errorCode: cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR,
-          message,
-          finishedAt: Date.now(),
-        }, { previous: current })
+      const code = isStorageExhausted(cause)
+        ? BlenderErrorCode.DISK_FULL
+        : (cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR)
+
+      // STOP THE RENDERER FIRST. Whatever went wrong here, this process owns a Blender that is
+      // still writing frames, and a Host that has given up while a renderer has not is exactly
+      // the orphan the M3 acceptance forbids.
+      try {
+        run.handle.terminate()
+      } catch {
+        // Already gone, or a handle that refuses a second terminate. Either way the
+        // process-gone question belongs to the job record, not to this handler.
       }
-      this._appendOutput(live, `render job ${jobId} failed: ${message}\n`)
+
+      // BEST-EFFORT BOOKKEEPING, AND THIS BLOCK IS THE POINT OF THE WHOLE FIX. MEASURED with a
+      // full volume (`tools/disk-full-probe.mjs`): the write below threw ENOSPC *from inside this
+      // catch*, escaped `_driveRender`, and — because the caller is `void this._driveRender(...)`
+      // — became an unhandled rejection that killed the Host process. A full disk took down the
+      // harness and every session in it, rather than failing one render. The doc comment above
+      // this function already promised it never throws; a full disk is precisely the case where
+      // the record cannot be written, so the record must not be the thing that fails.
+      try {
+        const current = this.renderJobs.readSafe(projectId, jobId)
+        if (current !== null && !RenderJobStore.isTerminal(current)) {
+          this.renderJobs.write({
+            ...current,
+            status: 'failed',
+            pid: null,
+            processGroupId: null,
+            errorCode: code,
+            message,
+            finishedAt: Date.now(),
+          }, { previous: current })
+        }
+      } catch (writeCause) {
+        this.ctx.logger?.warn(
+          `deepblend: render job ${jobId} failed (${code}) and the failure could not be recorded on disk ` +
+            `(${writeCause?.message ?? writeCause}); the live job is settled below instead`,
+        )
+      }
+
+      try {
+        this._appendOutput(live, `render job ${jobId} failed: ${message}\n`)
+      } catch {
+        // The journal lives on the same volume the frames do.
+      }
       live.settle?.({ status: 'failed', detail: message })
       this.ctx.logger?.warn(`deepblend: render job ${jobId} failed: ${message}`)
     } finally {
@@ -4209,6 +4275,24 @@ export {
 } from './render-reconciler.js'
 export { encodeFrameSequence, probeVideo } from './video-encoder.js'
 export { buildDeliveryManifest, relativeTo } from './delivery-manifest.js'
+
+/**
+ * Is this failure the filesystem being full?
+ *
+ * A volume with no room left is an operational event rather than a bug, and it deserves its own
+ * code: `DISK_FULL` says "free space and resume", where the fallback `SCRIPT_ERROR` says "this is
+ * a DeepBlend bug". The errno is read where there is one, with the text as a fallback because
+ * Blender's own stderr arrives as a string.
+ *
+ * @param {unknown} cause
+ * @returns {boolean}
+ */
+function isStorageExhausted(cause) {
+  const code = cause?.code ?? cause?.errno
+  if (code === 'ENOSPC' || code === -28) return true
+  const text = cause instanceof Error ? cause.message : String(cause ?? '')
+  return /ENOSPC|no space left on device|not enough space/i.test(text)
+}
 
 /**
  * The first `length` bytes of a file, without reading the rest of it.

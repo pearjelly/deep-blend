@@ -53,6 +53,7 @@ const manuals = new Map(MANUALS.map(path => [path, readFileSync(join(ROOT, path)
 const EXPLAINED = new Map([
   // The two the last two rounds added, and the reason this file exists.
   ['SCENE_TOO_HEAVY', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
+  ['DISK_FULL', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['ASSET_CONTENT_MISMATCH', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   // The ones a user can fix without knowing anything about the internals.
   ['ASSET_TOO_LARGE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],

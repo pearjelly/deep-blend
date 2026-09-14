@@ -1,0 +1,58 @@
+date: 2026-09-14T08:51:36.741Z
+scratch: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-disk-probe-kfy5ek
+volume: 23 MiB total, 23 MiB available at /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-disk-probe-kfy5ek/mnt
+project: disk-full at r0001
+job: render-0001, frames 1..400 at 1280x720
+   2026-09-14T08:51:39.437Z running 0 frame(s) on disk, renderer alive
+   2026-09-14T08:51:42.570Z running 1 frame(s) on disk, renderer alive
+   2026-09-14T08:51:44.213Z running 2 frame(s) on disk, renderer alive
+   2026-09-14T08:51:45.803Z running 3 frame(s) on disk, renderer alive
+   2026-09-14T08:51:47.393Z running 4 frame(s) on disk, renderer alive
+   2026-09-14T08:51:48.982Z running 5 frame(s) on disk, renderer alive
+   2026-09-14T08:51:50.571Z running 6 frame(s) on disk, renderer alive
+   2026-09-14T08:51:52.220Z running 7 frame(s) on disk, renderer alive
+   2026-09-14T08:51:53.852Z running 8 frame(s) on disk, renderer alive
+   2026-09-14T08:51:55.500Z running 9 frame(s) on disk, renderer alive
+   2026-09-14T08:51:57.134Z running 10 frame(s) on disk, renderer alive
+   2026-09-14T08:51:58.775Z running 11 frame(s) on disk, renderer alive
+   2026-09-14T08:52:00.443Z running 12 frame(s) on disk, renderer alive
+   2026-09-14T08:52:02.147Z running 13 frame(s) on disk, renderer alive
+   2026-09-14T08:52:03.771Z running 14 frame(s) on disk, renderer alive
+   2026-09-14T08:52:05.389Z running 15 frame(s) on disk, renderer alive
+   2026-09-14T08:52:07.018Z running 16 frame(s) on disk, renderer alive
+   2026-09-14T08:52:08.642Z running 17 frame(s) on disk, renderer alive
+   2026-09-14T08:52:10.280Z running 18 frame(s) on disk, renderer alive
+   2026-09-14T08:52:13.452Z running 19 frame(s) on disk, renderer alive
+   2026-09-14T08:52:15.079Z running 20 frame(s) on disk, renderer alive
+   2026-09-14T08:52:16.664Z running 21 frame(s) on disk, renderer alive
+   2026-09-14T08:52:18.257Z running 22 frame(s) on disk, renderer alive
+   2026-09-14T08:52:19.845Z running 23 frame(s) on disk, renderer alive
+   2026-09-14T08:52:21.436Z running 24 frame(s) on disk, renderer alive
+   2026-09-14T08:52:23.027Z running 25 frame(s) on disk, renderer alive
+   2026-09-14T08:52:24.613Z running 26 frame(s) on disk, renderer alive
+   2026-09-14T08:52:26.204Z running 27 frame(s) on disk, renderer alive
+   2026-09-14T08:52:27.792Z running 28 frame(s) on disk, renderer alive
+   2026-09-14T08:52:29.383Z running 29 frame(s) on disk, renderer alive
+   2026-09-14T08:52:30.970Z running 30 frame(s) on disk, renderer alive
+   2026-09-14T08:52:32.558Z running 31 frame(s) on disk, renderer GONE
+stalled: the record still says "running" while no renderer exists and no frame has landed for 45 s
+elapsed: 99 s
+final status: running
+errorCode: (none)
+message: rendering 400 frame(s)
+progress: undefined
+frames on disk: 31 files, 21.6 MiB
+average frame: 713 KiB
+volume after: 1 MiB available
+blender still running: none
+resumable: no
+job record on disk: yes
+startup pass: ["unwritable (1 note(s))"]
+volume after growing it: 72 MiB available (resize exit 0)
+frames after detach and re-attach: 31
+reconciliation findings: [{"previous":"running","status":"recovering","missing":369,"notes":1}]
+after a restart: recovering
+missing frames after the restart: (not reported)
+result: a full volume leaves the Host alive, the frames on disk, and a job a restart can pick up
+
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-disk-probe-kfy5ek

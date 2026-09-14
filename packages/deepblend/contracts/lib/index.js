@@ -159,6 +159,15 @@ export const BlenderErrorCode = Object.freeze({
    */
   ASSET_CONTENT_MISMATCH: 'ASSET_CONTENT_MISMATCH',
   /**
+   * The volume holding the project ran out of room.
+   *
+   * Its own code rather than `SCRIPT_ERROR`, because it is an operational event and not a bug:
+   * the frames already written are kept, the renderer is stopped, and the job resumes once there
+   * is space. MEASURED with `tools/disk-full-probe.mjs` on a 24 MiB volume — before this code
+   * existed, the full disk killed the HOST process instead (milestone-status.md §35).
+   */
+  DISK_FULL: 'DISK_FULL',
+  /**
    * The compiled scene carries more polygons than `maxMeshPolygons` (SPEC §15.2
    * "Mesh 面数限制").
    *
