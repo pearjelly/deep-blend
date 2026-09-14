@@ -211,14 +211,25 @@ SPEC §7 的 Service 接口形状。
 | Agent preset | `${DSH_HOME}/.agent-presets/deepblend-dev/`（由 `copy()` 创建） |
 | `dsh plugin --profile web add <pkg>` | 手工等价装配（无 pnpm）；见 §5.4 |
 
-### 5.4 `dsh plugin` 的等价手工步骤
+### 5.4 `dsh plugin` 的等价步骤（M5 起是一条命令）
 
 `dsh plugin --profile <name> add <pkg>` 在 `bin.js` 中转发 pnpm 到 profile 目录。无 pnpm 时等价于：
 
 1. 把包实体放到工作区；
-2. 在 `/Users/hxb/.dsh/profiles/node_modules/@deepblend/` 建立符号链接；
-3. 若为 bundle，加入 `profiles/web/package.json` 的 `dsh.profile.bundles`；
+2. 在 `$DSH_HOME/profiles/node_modules/@deepblend/` 建立符号链接；
+3. 若为 bundle，加入 `profiles/<name>/package.json` 的 `dsh.profile.bundles`；
 4. 重启 profile（或依赖 `patchReload: live` 热重载）。
+
+**M5 起 1–3 是 `node deepblend/tools/install-plugin.mjs`，第 4 步仍然是人做的。**
+这两件事以前只写在这一节里，而 2026-09-14 profile 重装后它们一起消失，
+代价是 M4 浏览器套件报出 `dsh web never served /deepblend/capabilities`——
+一句几乎指不到根因的话。一条命令和一个 `--check` 取代了这段散文（D71）。
+
+第 2 步的路径在 M5 之后还多了一层：bundle 本身不再写任何绝对路径（D76），
+所以这个部署的存储位置由 `install-plugin.mjs` **推导出来的** operator layer 指定，
+而不是由 bundle 里的字面量指定（D77）。`profiles/<name>/cordis.patch.yml` 因此
+在装配后不再是 `[]`；`--portable` 会让它回到 `[]` 并把存储交还给产品的默认值
+（`<DSH_HOME>/deepblend`）。
 
 ### 5.5 四个只有真实部署才会暴露的坑（M0 重启验证中发现）
 

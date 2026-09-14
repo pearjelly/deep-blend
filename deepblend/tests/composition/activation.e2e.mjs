@@ -22,16 +22,13 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 
 const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const PATCH_FILE = join(PROJECT_ROOT, 'packages', 'deepblend', 'bundle', 'cordis.patch.yml')
-const PROVIDER = join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local')
-const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH
-  ?? join(PROJECT_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
 
 const results = []
 function check(name, ok, detail) {
@@ -70,8 +67,28 @@ function resolveJs(value) {
 }
 
 // ---------------------------------------------------------------------------
-// Boot a real context and mount the composed rows verbatim.
+// Boot a real context and mount the composed rows VERBATIM.
+//
+// This test used to override `blenderPath`, `bootstrapPath`, `workspaceRoot` and
+// `executableAllowlist` before mounting, with a comment saying those were "the
+// two machine-specific values the bundle computes from cwd". They were not: they
+// were four literal absolute paths belonging to one developer's home directory
+// (M5 / architecture-decisions Q9). Overriding them meant the test proved the
+// rows mount with config the SHIPPING FILE DID NOT CONTAIN — which is the one
+// thing a composition test must not do.
+//
+// They are gone from the bundle now, replaced by defaults computed inside the
+// packages. So this mounts exactly what ships, and the assertions below are
+// therefore about the shipped composition rather than about the test's opinion.
+//
+// `DSH_HOME` is redirected to a scratch directory first so the provider's
+// working directory lands there instead of in the developer's real store: the
+// DEFAULT is what is under test, not the developer's disk.
 // ---------------------------------------------------------------------------
+const realDshHome = process.env.DSH_HOME
+const scratchHome = mkdtempSync(join(tmpdir(), 'deepblend-activation-'))
+process.env.DSH_HOME = scratchHome
+
 const root = new Context()
 
 try {
@@ -83,17 +100,7 @@ try {
   for (const row of rows) {
     const loaded = await import(row.name)
     const plugin = loaded.default ?? loaded
-    const config = resolveJs(row.config ?? {})
-    // Override the two machine-specific values the bundle computes from cwd,
-    // because this test runs from the project root while the assertions must
-    // target the real installed Blender.
-    if (row.id === 'deepblend-blender-runtime') {
-      config.blenderPath = BLENDER_PATH
-      config.bootstrapPath = join(PROVIDER, 'python', 'bootstrap.py')
-      config.workspaceRoot = join(PROJECT_ROOT, '.deepblend')
-      config.executableAllowlist = [join(PROJECT_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS')]
-    }
-    root.plugin(plugin, config)
+    root.plugin(plugin, resolveJs(row.config ?? {}))
   }
 
   await new Promise(resolveTick => setTimeout(resolveTick, 400))
@@ -120,8 +127,32 @@ try {
   // --- the facade must answer with real data -------------------------------
   const studio = root.get('blenderStudio')
   if (studio !== undefined) {
+    // Both roots were left unset in the bundle, so these are the DEFAULTS the
+    // shipping composition resolves — asserted here rather than only in a unit
+    // test, because "the default is right" and "the mounted row uses it" are
+    // different claims and only the second one is what a user experiences.
+    check(
+      'the unset workspaceRoot resolved under DSH_HOME, per SPEC §17',
+      studio.workspaceRoot === join(scratchHome, 'deepblend'),
+      { resolved: studio.workspaceRoot, dshHome: scratchHome },
+    )
+    check(
+      'the unset projectsRoot followed the workspace root, per SPEC §13',
+      studio.projectsRoot === join(scratchHome, 'deepblend', 'projects'),
+      { resolved: studio.projectsRoot },
+    )
+
     const canonical = await studio.describeCapabilities({ refresh: true })
     check('blenderStudio reports Blender installed', canonical.installed === true)
+    // `blenderPath` is 'auto' in the bundle, so this is the managed-install probe
+    // finding the Blender that `tools/install-blender.mjs` put in `.tools/` —
+    // computed from the provider package's own location, not from configuration.
+    check(
+      'the unset blenderPath found the managed install without being told where it is',
+      typeof canonical.executable?.resolved === 'string'
+        && canonical.executable.resolved.includes(`${join('.tools', 'Blender.app')}`),
+      { requested: canonical.executable?.requested, resolved: canonical.executable?.resolved },
+    )
     check('canonical projection has the declared shape', (
       typeof canonical.engines === 'object'
       && typeof canonical.gpu === 'object'
@@ -194,6 +225,12 @@ try {
   check('composition activation completed without an unexpected throw', false, cause?.stack ?? String(cause))
 } finally {
   await root.stop?.()
+  // The scratch home existed only so the DEFAULT store location could be
+  // asserted without writing into the developer's real one; leaving it behind
+  // would make this test a source of the residue it was avoiding.
+  if (realDshHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = realDshHome
+  rmSync(scratchHome, { recursive: true, force: true })
 }
 
 const failed = results.filter(entry => !entry.ok)

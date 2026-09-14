@@ -35,19 +35,37 @@
  *   $DSH_HOME/profiles/node_modules/@deepblend/<pkg>   ->  packages/deepblend/<dir>
  *   $DSH_HOME/profiles/<profile>/package.json          (adds ONE entry to
  *                                                       dsh.profile.bundles)
+ *   $DSH_HOME/profiles/<profile>/cordis.patch.yml      (the operator layer; see
+ *                                                       step 3 below)
  *
- * It does NOT touch the DSH installation, the shipped agent presets, or
- * `cordis.patch.yml`. An operator layer that overrides bundle config is the
- * operator's file, and `deepblend/tools/dsh-web-harness.mjs` writes a temporary
- * one for its own runs.
+ * It does NOT touch the DSH installation, the shipped agent presets, or an
+ * operator layer that somebody else wrote — that last one is refused rather than
+ * overwritten, because "the installer replaced my config" is not a failure a user
+ * can diagnose from the result.
+ *
+ * WHERE STORAGE ENDS UP
+ * ---------------------
+ * Since M5 the bundle names no path: unset, the product stores under
+ * `<DSH_HOME>/deepblend` (SPEC §17). That is right for an installation and wrong
+ * for a checkout — this repository's tools all work on `<repo>/.deepblend`, so a
+ * deployment reading `~/.dsh/deepblend` would show an empty project list beside a
+ * project that plainly exists on disk.
+ *
+ * So by default this script also writes the operator layer that pins the
+ * deployment to `<repo>/.deepblend`. `--portable` skips it (and removes one it
+ * wrote earlier), leaving the deployment on the product default. The layer is
+ * DERIVED from the shipped bundle patch every run — never retyped — and `--check`
+ * re-derives and compares, so a bundle change that never reached the deployment
+ * is reported instead of silently ignored.
  *
  * Usage:
  *   node deepblend/tools/install-plugin.mjs                   # install into the `web` profile
  *   node deepblend/tools/install-plugin.mjs --profile <name>
+ *   node deepblend/tools/install-plugin.mjs --portable        # keep the $DSH_HOME default
  *   node deepblend/tools/install-plugin.mjs --check           # report drift, change nothing
  *
  * Exit codes: 0 = installed and in sync, 1 = drift (with --check), 2 = nothing to
- *             install into.
+ *             install into, or an operator layer that is not ours.
  *
  * Owner: DeepBlend Studio — M5 (reproducibility)
  */
@@ -56,7 +74,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, sym
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { linkTarget, localPackages } from './workspace-layout.mjs'
+import { linkTarget, localPackages, ROOT } from './workspace-layout.mjs'
+import { BUNDLE_PATCH, buildStoreOverride, devStoreRoot, renderOperatorLayer } from './operator-layer.mjs'
 
 /** The npm scope DeepBlend's own packages live under. */
 const LOCAL_SCOPE = '@deepblend'
@@ -64,8 +83,41 @@ const LOCAL_SCOPE = '@deepblend'
 /** The bundle whose patch composes the three DeepBlend host rows. */
 const BUNDLE_PACKAGE = '@deepblend/dsh-blender-bundle'
 
+/** First line of an operator layer this tool generated; how it recognises its own. */
+const OPERATOR_LAYER_MARKER = '# DeepBlend Studio — operator layer (GENERATED).'
+
+/**
+ * What `--portable` leaves behind: the empty patch list a profile ships with.
+ *
+ * Not an absent file. `dsh` creates `cordis.patch.yml` as part of every profile,
+ * and an installer that deletes one of a deployment's own files is doing
+ * something the user cannot see and did not ask for.
+ */
+const EMPTY_OPERATOR_LAYER = [
+  '# Your patch layer for this dsh profile, applied after every bundle layer:',
+  '# a top-level YAML array of loader patch entries (id-targeted config',
+  '# overrides, disables, and insert lists; `!!js` expressions allowed).',
+  '#',
+  '# Emptied by `node deepblend/tools/install-plugin.mjs --portable`: this',
+  '# deployment keeps DeepBlend\'s product default storage (<DSH_HOME>/deepblend).',
+  '[]',
+  '',
+].join('\n')
+
 const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
 const checkOnly = process.argv.includes('--check')
+
+/**
+ * `--portable` leaves the deployment on the product defaults (`<DSH_HOME>/deepblend`)
+ * and removes an operator layer this tool wrote earlier.
+ *
+ * It exists because the two answers are both legitimate and the difference is
+ * invisible afterwards: a developer wants the store beside the checkout so the
+ * repository's tools and the workbench name the same directory, while anyone
+ * installing DeepBlend as a plugin wants its state under `DSH_HOME`. Making that
+ * a flag rather than a guess means a reader can tell which one a machine has.
+ */
+const portable = process.argv.includes('--portable')
 
 function say(label, value) {
   console.log(`${label}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
@@ -178,6 +230,90 @@ if (bundles.includes(BUNDLE_PACKAGE)) {
     manifest.dsh.profile.bundles = [BUNDLE_PACKAGE, ...bundles]
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
     say(`profiles/${profile}/package.json`, `registered ${BUNDLE_PACKAGE}`)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3. The operator layer: where this deployment's storage lives.
+//
+// The bundle names no path any more, so an installed deployment stores under
+// `<DSH_HOME>/deepblend` (SPEC §17) unless something says otherwise. This
+// repository's own tools all work on `<repo>/.deepblend`, so without this step
+// the workbench and the tools would name two different directories and the
+// project list would be empty for a project that plainly exists on disk.
+//
+// The layer is DERIVED from the shipped bundle patch, never retyped, because a
+// patch layer's `config` replaces the bundle's wholesale (D74). `--check`
+// re-derives it and compares, so a bundle change that never reached the
+// deployment is reported instead of being silently ignored.
+// ---------------------------------------------------------------------------
+const operatorLayerPath = join(profileDirectory, 'cordis.patch.yml')
+const desiredStoreRoot = portable ? undefined : devStoreRoot(ROOT)
+
+/** Whether the operator layer on disk is one this tool wrote, or nothing at all. */
+function operatorLayerIsOurs() {
+  if (!existsSync(operatorLayerPath)) return true
+  const text = readFileSync(operatorLayerPath, 'utf8')
+  if (text.includes(OPERATOR_LAYER_MARKER)) return true
+  // An untouched profile ships a comment header and an empty patch list. Anything
+  // that is not empty belongs to whoever wrote it, and is not ours to replace.
+  const body = text.split('\n').filter(line => line.trim().length > 0 && !line.trimStart().startsWith('#')).join('\n')
+  return body.trim() === '[]'
+}
+
+if (desiredStoreRoot !== undefined) {
+  const expected = renderOperatorLayer(
+    await buildStoreOverride({ storeRoot: desiredStoreRoot, bundlePatch: join(ROOT, BUNDLE_PATCH) }),
+    desiredStoreRoot,
+  )
+  const current = existsSync(operatorLayerPath) ? readFileSync(operatorLayerPath, 'utf8') : null
+
+  if (current === expected) {
+    say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
+  } else if (!operatorLayerIsOurs()) {
+    // Refusing beats clobbering. Someone's own operator layer may hold settings
+    // this tool knows nothing about, and "the installer overwrote my config" is
+    // not a failure a user can diagnose from the result.
+    //
+    // This exits immediately rather than falling through, because `--check` would
+    // otherwise reach its own `process.exit(0)` and report the workspace healthy
+    // while the storage it was asked about is not pinned at all — a green line
+    // describing the opposite of what just happened.
+    say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
+    console.error(
+      `${operatorLayerPath} already contains patch entries that this tool did not write.\n` +
+      `DeepBlend's storage will follow the product default (<DSH_HOME>/deepblend) instead of ${desiredStoreRoot}.\n` +
+      'Merge the layers by hand, or move that file aside and re-run.',
+    )
+    process.exit(2)
+  } else {
+    drift += 1
+    if (checkOnly) {
+      say(`profiles/${profile}/cordis.patch.yml`, current === null
+        ? `missing (storage would be the product default, not ${desiredStoreRoot})`
+        : 'DRIFTED — the bundle changed and this layer was not regenerated')
+    } else {
+      writeFileSync(operatorLayerPath, expected)
+      say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
+    }
+  }
+} else if (existsSync(operatorLayerPath) && operatorLayerIsOurs()) {
+  // `--portable`: the deployment keeps the product default, so an operator layer
+  // this tool wrote earlier is now the only thing overriding it.
+  //
+  // The file is EMPTIED rather than deleted. `cordis.patch.yml` is a standard
+  // part of a profile — `dsh` creates it, and "the installer removed one of my
+  // profile's files" is not a state a user should have to reason about. An empty
+  // patch list is exactly what a profile ships with, so this restores it to that.
+  const text = readFileSync(operatorLayerPath, 'utf8')
+  if (text.includes(OPERATOR_LAYER_MARKER)) {
+    drift += 1
+    if (checkOnly) {
+      say(`profiles/${profile}/cordis.patch.yml`, 'pins a store this run did not ask for')
+    } else {
+      writeFileSync(operatorLayerPath, EMPTY_OPERATOR_LAYER)
+      say(`profiles/${profile}/cordis.patch.yml`, 'emptied — storage follows the product default')
+    }
   }
 }
 

@@ -38,6 +38,8 @@ import {
   EXPECTED_EXPORT_FORMATS,
   EXPECTED_IMPORT_FORMATS,
   BlenderWarningCode,
+  managedBlenderCandidates,
+  resolveWorkspaceRoot,
   warning,
 } from '@deepblend/dsh-blender-contracts'
 
@@ -51,6 +53,18 @@ const DEFAULT_MAX_SPILL_BYTES = 64 * 1024 * 1024
 
 /** Grace period between SIGTERM and SIGKILL when terminating Blender. */
 const TERMINATE_GRACE_MS = 10_000
+
+/**
+ * The `blenderPath` value meaning "find one": managed install first, then PATH.
+ * @see ProviderConfig.blenderPath
+ */
+const AUTO_BLENDER_PATH = 'auto'
+
+/** What `'auto'` falls back to when no managed install exists. */
+const FALLBACK_BLENDER_NAME = 'blender'
+
+/** How far up from `lib/` the managed-install search walks before giving up. */
+const MANAGED_ROOT_SEARCH_DEPTH = 6
 
 /**
  * Directories a resolved Blender executable is permitted to live in.
@@ -84,18 +98,37 @@ function defaultAllowlist() {
  */
 export const ProviderConfig = z.object({
   /**
-   * Absolute path to the Blender executable, or a bare PATH name.
-   * SPEC §17 configures an absolute path; a bare name is accepted so a
-   * PATH-installed Blender works without reconfiguration.
+   * Where to find Blender, in one of three forms:
+   *
+   *   `'auto'` (the default) — the workspace-managed install that
+   *            `deepblend/tools/install-blender.mjs` produces, if one exists,
+   *            otherwise a bare `blender` resolved through PATH;
+   *   an absolute path — trusted as a deliberate operator choice (SPEC §15.2),
+   *            with the allowlist bypassed;
+   *   a bare name — resolved through the scrubbed PATH and required to land
+   *            inside the allowlist.
+   *
+   * The managed install is tried FIRST because it is the build the integration
+   * suites measured; preferring whatever happens to be on PATH would let the
+   * product run a different Blender from the one the tests verified.
    */
-  blenderPath: z.string().default('blender'),
-  /** Absolute path to bootstrap.py. Defaults to the copy shipped in this package. */
-  bootstrapPath: z.string(),
+  blenderPath: z.string().default('auto'),
+  /**
+   * Absolute path to bootstrap.py. Left unset, the copy shipped inside THIS
+   * package is used (`lib/` → `../python/bootstrap.py`), which is why the bundle
+   * patch no longer needs to name a machine's path here.
+   */
+  bootstrapPath: z.string().default(''),
   /**
    * Workspace root. Per-invocation working directories are created here, keeping
    * every write inside the project workspace (SPEC §15.2 "工作区路径边界").
+   *
+   * Unset, it defaults to `<DSH_HOME>/deepblend` (SPEC §17). It must be the SAME
+   * root the host row resolves, or a staging path the host hands out is one this
+   * provider refuses; both resolve it through `resolveWorkspaceRoot`, so they
+   * agree by construction rather than by an operator remembering to set both.
    */
-  workspaceRoot: z.string(),
+  workspaceRoot: z.string().default(''),
   /** Deadline for a single bootstrap invocation, in ms. */
   timeoutMs: z.number().default(180_000),
   /** Cap on captured stdout bytes before spilling to a file. */
@@ -145,6 +178,53 @@ export default class LocalBlenderRuntime extends Service {
     super(ctx, BLENDER_RUNTIME_SERVICE)
     this.config = config
     this.bootstrapPath = this._resolveBootstrapPath(config.bootstrapPath)
+    /** Resolved once: the host must be configured with the same value. */
+    this.workspaceRoot = resolveWorkspaceRoot(config.workspaceRoot)
+  }
+
+  /**
+   * The `blenderPath` request to hand to `ctx.subprocess.resolveExecutable`.
+   *
+   * `'auto'` means "the managed install if there is one, else PATH" — and the
+   * CHOICE is made here, once, because two other places need to agree with it:
+   * `_assertAllowed` decides whether the allowlist applies from this string, and
+   * `getCapabilities` keys its cache on it. Resolving it twice is how a probe
+   * reports one binary while a render launches another.
+   *
+   * @returns {string} an absolute path, or a bare name for PATH resolution
+   */
+  _requestedBlenderPath() {
+    const configured = this.config.blenderPath
+    if (configured !== AUTO_BLENDER_PATH) return configured
+    for (const candidate of managedBlenderCandidates(this._managedRoots())) {
+      if (existsSync(candidate)) return candidate
+    }
+    return FALLBACK_BLENDER_NAME
+  }
+
+  /**
+   * Directories that might contain the `.tools` managed install.
+   *
+   * Derived from THIS package's location rather than configured, because a
+   * package can always find its own repository and no configuration can be
+   * correct on a machine it was not written on. Walking up a bounded number of
+   * levels covers both a plain checkout (`packages/deepblend/provider-local/lib`)
+   * and a profile symlink pointing into one; the first level that has a `.tools`
+   * directory wins, and a published package outside any repository simply finds
+   * nothing and falls back to PATH.
+   *
+   * @returns {string[]}
+   */
+  _managedRoots() {
+    const roots = []
+    let directory = import.meta.dirname
+    for (let level = 0; level < MANAGED_ROOT_SEARCH_DEPTH; level += 1) {
+      const parent = resolve(directory, '..')
+      if (parent === directory) break
+      roots.push(parent)
+      directory = parent
+    }
+    return roots
   }
 
   /**
@@ -168,13 +248,13 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<{ resolved: string|null, requested: string, error: BlenderError|null }>}
    */
   async resolveBlenderExecutable(options = {}) {
-    const requested = this.config.blenderPath
+    const requested = this._requestedBlenderPath()
     try {
       // `ctx.subprocess.resolveExecutable` verifies absolute paths and resolves
       // bare names against the provider's scrubbed PATH. Relative paths with
       // separators are rejected by the service itself.
       const resolved = await this.ctx.subprocess.resolveExecutable(requested, undefined, options.signal)
-      const canonical = this._assertAllowed(resolved)
+      const canonical = this._assertAllowed(resolved, requested)
       return { resolved: canonical, requested, error: null }
     } catch (cause) {
       if (cause instanceof BlenderError) return { resolved: null, requested, error: cause }
@@ -184,7 +264,8 @@ export default class LocalBlenderRuntime extends Service {
         error: new BlenderError(
           BlenderErrorCode.NOT_FOUND,
           `Blender executable could not be resolved from "${requested}". ` +
-            `Install Blender or set deepblend.blenderPath to its absolute path.`,
+            `Run deepblend/tools/install-blender.mjs, install Blender, or set ` +
+            `deepblend.blenderPath to its absolute path.`,
           { cause },
         ),
       }
@@ -194,12 +275,19 @@ export default class LocalBlenderRuntime extends Service {
   /**
    * Enforce the executable allowlist against the real (symlink-resolved) path.
    *
-   * An operator-supplied absolute `blenderPath` is trusted as a deliberate
-   * choice; anything resolved from a bare name must land inside the allowlist.
+   * The rule depends on WHAT WAS ASKED FOR, not on what the config literally
+   * says. `'auto'` is not what gets resolved — `_requestedBlenderPath()` turns it
+   * into either the managed install's absolute path (a deliberate choice, like an
+   * operator's) or the bare name `blender` (a PATH lookup, which must satisfy the
+   * allowlist). Reading `this.config.blenderPath` here instead would test the
+   * string `'auto'`, find it is not absolute, and then refuse the managed install
+   * the repository ships — the exact failure this distinction exists to avoid.
+   *
    * @param {string} candidate
+   * @param {string} requested - what `_requestedBlenderPath()` produced
    * @returns {string} the canonical path
    */
-  _assertAllowed(candidate) {
+  _assertAllowed(candidate, requested) {
     if (!isAbsolute(candidate)) {
       throw new BlenderError(
         BlenderErrorCode.NOT_FOUND,
@@ -236,12 +324,14 @@ export default class LocalBlenderRuntime extends Service {
     }
 
     // A bare name was resolved through PATH, so it must satisfy the allowlist.
-    const configuredIsAbsolute = isAbsolute(this.config.blenderPath)
-    if (!configuredIsAbsolute && !this._insideAllowlist(canonical)) {
+    // An absolute request — the operator's or the managed install's — is trusted.
+    const requestedIsAbsolute = isAbsolute(requested)
+    if (!requestedIsAbsolute && !this._insideAllowlist(canonical)) {
       throw new BlenderError(
         BlenderErrorCode.EXECUTABLE_OUTSIDE_ALLOWLIST,
         `Blender resolved from PATH to ${canonical}, which is outside the configured allowlist. ` +
-          `Add its directory to deepblend.executableAllowlist to permit it.`,
+          `Add its directory to deepblend.executableAllowlist to permit it, or set ` +
+          `deepblend.blenderPath to its absolute path.`,
       )
     }
     return canonical
@@ -274,7 +364,7 @@ export default class LocalBlenderRuntime extends Service {
    */
   _createWorkingDirectory() {
     const jobId = `m0-${randomUUID()}`
-    const root = resolve(this.config.workspaceRoot, 'tmp')
+    const root = resolve(this.workspaceRoot, 'tmp')
     mkdirSync(root, { recursive: true })
     const directory = join(root, jobId)
     mkdirSync(directory, { recursive: true })
@@ -336,7 +426,7 @@ export default class LocalBlenderRuntime extends Service {
     if (resolvedExecutable.error !== null || resolvedExecutable.resolved === null) {
       throw resolvedExecutable.error ?? new BlenderError(
         BlenderErrorCode.NOT_FOUND,
-        `Blender executable could not be resolved from "${this.config.blenderPath}".`,
+        `Blender executable could not be resolved from "${resolvedExecutable.requested}".`,
       )
     }
 
@@ -547,7 +637,7 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<import('@deepblend/dsh-blender-contracts').BlenderCapabilities>}
    */
   async getCapabilities(options = {}) {
-    const cacheKey = this.config.blenderPath
+    const cacheKey = this._requestedBlenderPath()
     const cached = this._capabilitiesCache.get(cacheKey)
     const now = Date.now()
     if (options.refresh !== true && cached && now - cached.probedAt < this.config.capabilitiesCacheMs) {
@@ -864,7 +954,7 @@ export default class LocalBlenderRuntime extends Service {
     if (resolvedExecutable.error !== null || resolvedExecutable.resolved === null) {
       throw resolvedExecutable.error ?? new BlenderError(
         BlenderErrorCode.NOT_FOUND,
-        `Blender executable could not be resolved from "${this.config.blenderPath}".`,
+        `Blender executable could not be resolved from "${resolvedExecutable.requested}".`,
       )
     }
 

@@ -27,7 +27,7 @@ import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { importDsh } from '../tests/lib/dsh-deployment.mjs'
+import { buildStoreOverride } from './operator-layer.mjs'
 
 /** Repository root, for locating the shipped bundle patch. */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -245,32 +245,30 @@ export async function dismissFirstRunDialogs(page) {
  * Build the operator patch that redirects the DeepBlend store into scratch space.
  *
  * The values come from the SHIPPED bundle patch, parsed with the deployment's own
- * patch parser, and only the two store roots are rewritten. Restating the whole
+ * patch parser, and only the store roots are rewritten. Restating the whole
  * configuration here would create a second copy of it — the shape this repository
  * has paid for five times (D38, D43, D57, D60) — and the copy in a test is exactly
  * the one that would rot first.
  *
- * The patch is written as JSON: YAML accepts a JSON document, and that keeps the
- * harness free of a YAML dependency it would otherwise need only to re-emit what
- * it just parsed.
+ * Since M5 that derivation lives in `operator-layer.mjs`, because the installer
+ * needs the same thing for the opposite reason: a test redirects the store to a
+ * scratch directory, and `install-plugin.mjs` pins it to the checkout. Both must
+ * restate every key (a patch layer's `config` replaces the bundle's — D74) and
+ * both must get that restatement from the bundle rather than from a table here.
+ *
+ * The `if ('projectsRoot' in config)` guards that used to be inline are now the
+ * `STORE_ROOT_KEYS` table in that module: the bundle no longer carries the roots
+ * at all, so a guard keyed on their presence would have produced an override with
+ * NO roots in it — a test that silently stopped redirecting its store and started
+ * writing into the developer's own. The patch is written as JSON; YAML accepts a
+ * JSON document.
  *
  * @param {string} storeRoot - directory the test may write into
- * @param {{ bundlePatch?: string, ids?: string[] }} [options]
+ * @param {{ bundlePatch?: string }} [options]
  * @returns {Promise<string>} the patch layer's text
  */
 export async function storePatch(storeRoot, options = {}) {
   const bundlePatch = options.bundlePatch ?? join(REPO_ROOT, 'packages', 'deepblend', 'bundle', 'cordis.patch.yml')
-  const ids = options.ids ?? ['deepblend-blender-runtime', 'deepblend-blender-host']
-  const { loadOverlayPatches } = await importDsh('dsh-app-boot')
-  const rows = loadOverlayPatches('deepblend-ui-e2e', bundlePatch).flatMap(patch => patch.insert ?? [])
-  const overrides = []
-  for (const id of ids) {
-    const row = rows.find(candidate => candidate.id === id)
-    if (row === undefined) throw new Error(`the bundle patch declares no row "${id}"`)
-    const config = { ...(row.config ?? {}) }
-    if ('projectsRoot' in config) config.projectsRoot = join(storeRoot, 'projects')
-    if ('workspaceRoot' in config) config.workspaceRoot = storeRoot
-    overrides.push({ id, config })
-  }
+  const overrides = await buildStoreOverride({ storeRoot, bundlePatch })
   return `${JSON.stringify(overrides, null, 2)}\n`
 }

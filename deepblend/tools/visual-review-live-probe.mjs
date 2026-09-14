@@ -25,6 +25,7 @@
 import { Context } from '@deepseek-ai/cordis'
 
 import { importDsh, resolveDshHome } from '../tests/lib/dsh-deployment.mjs'
+import { devStoreRoot } from './operator-layer.mjs'
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -32,7 +33,7 @@ import { join, resolve } from 'node:path'
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..')
 const DSH_HOME = resolveDshHome()
 const DEFAULT_PNG = join(
-  PROJECT_ROOT, '.deepblend', 'projects', 'watch-commercial',
+  devStoreRoot(PROJECT_ROOT), 'projects', 'watch-commercial',
   'revisions', 'r0002', 'previews', 'frame22-camera-top.png',
 )
 const PNG = process.argv[2] ?? DEFAULT_PNG

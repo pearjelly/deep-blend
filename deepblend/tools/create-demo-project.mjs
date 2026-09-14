@@ -19,9 +19,14 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { devStoreRoot } from './operator-layer.mjs'
+
 // deepblend/tools/ -> deepblend/ -> repository root
 const ROOT = resolve(import.meta.dirname, '..', '..')
-const WORK = join(ROOT, '.deepblend')
+// The store the RUNNING deployment uses, from the one module that defines it:
+// install-plugin.mjs pins the profile to this same root, so a project this tool
+// writes is one the workbench actually lists (see operator-layer.mjs).
+const WORK = devStoreRoot(ROOT)
 
 const ctx = new Context()
 ctx.plugin(LocalSubprocess)

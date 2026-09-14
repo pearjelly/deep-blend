@@ -1413,6 +1413,73 @@ measurement and not an assumption`（读不到就是 FAIL，附命令与 errno�
 
 ---
 
+### D76 — bundle 不写路径；默认值属于**拥有它的那个包**
+
+**决策**：`bundle/cordis.patch.yml` 里**一个绝对路径都没有**，也不是靠 operator 层补上的。
+机器相关的默认值写在各自的包里，是普通 Node 代码，可以读 `DSH_HOME`、也可以看自己的位置：
+
+| 键 | 不配置时的默认值 | 由谁决定 |
+|---|---|---|
+| `blenderPath` | `'auto'` → 受管安装（从包位置向上找 `.tools/`），找不到再走 PATH | provider |
+| `bootstrapPath` | 本包自带的 `python/bootstrap.py` | provider |
+| `workspaceRoot` | `<DSH_HOME>/deepblend`（SPEC §17） | provider 与 host **共用同一个函数** |
+| `projectsRoot` | `<workspaceRoot>/projects`（SPEC §13） | host |
+
+**触发它的事实**：Q9。那五个字面量绝对路径不是配置，是**一个开发者的家目录**；
+在别的机器上产品会挂载成功、报告健康、然后在第一次渲染时失败，而 `--dump-config`
+全程看起来是对的——因为文件里写的确实是那个值。`!!js` 修不了（M0 §4.2 实测：
+它对 Loader context 求值，那里没有 `process`）。
+
+**不这样做会发生什么**：这个插件永远只能在一个人的机器上工作，而它的文档会一直说它
+可以工作在别人的机器上。这正是「优秀开源插件」这条标准上最后一道硬门槛。
+
+**一条附带修掉的重复**：`workspaceRoot` 以前在 bundle 里写了两遍（provider 一行、host 一行），
+上面还压着一句注释「MUST equal the runtime row's workspaceRoot」。**一句注释不是一条约束**；
+现在两行都调 `resolveWorkspaceRoot`，它们**由构造保证**相等。
+
+---
+
+### D77 — operator layer 必须被**推导**，不能被手写或抄写
+
+**决策**：`tools/operator-layer.mjs` 从**已发布的 bundle patch** 里把整份 config 读出来，
+只改那几个命名位置的键，产出 operator layer。`install-plugin.mjs` 写它，`dsh-web-harness.mjs`
+用它把测试的 store 重定向到临时目录——**同一个实现，两个消费者**。
+`install-plugin.mjs --check` 每次重新推导并逐字节比对。
+
+**为什么不能手写**：D74 实测 patch 层的 `config` 是**整体替换**，所以覆盖一个键就必须重述
+全部键。手抄一份 = 又一份会烂的副本（D38 第 7 次），而且它的腐烂方式是**安静**的：
+bundle 改了超时或视角表，部署继续用旧的快照，没有任何东西会报错。
+
+**为什么 `--check` 要重新推导而不是存摘要**：重新推导能发现「bundle 变了而这一层没跟上」，
+存摘要只能发现「这一层的字节变了」。前者才是真正的失效模式。
+
+**顺带修掉一个已经发生的静默失效**：`dsh-web-harness.mjs` 的 `storePatch()` 原本用
+`if ('projectsRoot' in config)` 判断要不要重定向——而 bundle 现在**不带**这两个键了，
+那个判断会让它产出一份**不含任何根路径**的覆盖，于是 M4 的浏览器套件会**静默地**不再使用
+自己的临时 store，转而写进开发者的真实 store。改成共用 `STORE_ROOT_KEYS` 之后，
+「哪个行拥有哪个键」这件事只有一处。
+
+---
+
+### D78 — 一个用自己的配置去覆盖被测对象的套件，证明的不是被测对象
+
+**决策**：composition 套件必须**逐字挂载发布出去的东西**；测试需要的隔离要通过环境
+（`DSH_HOME` 指向临时目录）实现，而不是通过改掉被测的配置值。
+
+**触发它的事实**：`activation.e2e.mjs` 挂载 bundle 的每一行之前，会把
+`blenderPath` / `bootstrapPath` / `workspaceRoot` / `executableAllowlist` 四个键替换成自己的，
+注释还写着这是「the two machine-specific values the bundle computes from cwd」——
+bundle 从来没有从 cwd 算过任何东西，那四个是写死的家目录（Q9）。
+于是这个套件证明的是**「这些行能用测试提供的配置挂载」**，而它要证明的是
+**「发布出去的那份组合能挂载」**。两者在 bundle 有绝对路径时恰好都会通过。
+
+**修法**：删掉全部覆盖，把 `DSH_HOME` 指到临时目录再逐字挂载。修完 **15/15**
+（原 12/12）——多出来的三项正是「没配置时 `workspaceRoot` 落在 `DSH_HOME` 下」、
+「`projectsRoot` 跟着 `workspaceRoot` 走」、以及「`'auto'` 自己找到了受管安装」。
+**这三条以前一条都测不到，因为测试把要测的东西替换掉了。**
+
+---
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1440,7 +1507,8 @@ measurement and not an assumption`（读不到就是 FAIL，附命令与 errno�
 | Q7 | 审批平面（能**阻止**一次高成本渲染启动的那一个）如何接进 harness approval prompt | M5；M4 只显示阈值事实（D64） |
 | Q8 | Preview Compare 是否需要右栏（`sidebar.right.pane.tab`）的并排形态 | M4 把对比放在 `main` 面板里（一个面板 + 视图切换）；若用户希望它常驻右栏，再增量注册 |
 | Q6 | 视觉审查用哪个模型（当前 `deepseek-flash`；目录里另有 `deepseek-v4-flash-vision-exp`） | M2 已可用 `deepseek-flash`；若审查质量不足再评估专用模型 |
-| **Q9** | **bundle 的 `cordis.patch.yml` 里那四个字面量绝对路径**（`blenderPath` / `bootstrapPath` / 两个 `workspaceRoot` / `projectsRoot` / `executableAllowlist`）该怎么去掉 | **M5 的下一件事，也是「陌生人装不上」的最后一道硬门槛。** 已知的三条约束：① D74 实测 config 整体替换，所以「让 operator 层补上」意味着那层必须重述全部键，那是又一份会烂的副本；② `!!js` 不能访问 `process`（M0 §4.2），所以不能在 patch 里写 `process.env.HOME`；③ `bootstrapPath` 的 schema 是可选的，且代码已回退到本包自带的 `python/bootstrap.py`——也就是说**这一个键可以直接从 bundle 里删掉**，另外几个需要 provider/host 各自给出「自定位」的默认值（例如把 `.tools/` 那份受管 Blender 作为 PATH 之外的最后一档回退）。先把 `--check` 能做到什么程度量清楚再动手 |
+| ~~Q9~~ | ~~bundle 的 `cordis.patch.yml` 里那四个字面量绝对路径该怎么去掉~~ | ✅ **M5 已决：D76–D78**。默认值移进各自的包（`'auto'` + 自定位 + `DSH_HOME`），bundle 一个路径都不写，本仓库的部署由**推导出来的** operator layer 钉在 `<repo>/.deepblend`；`contract/bundle-portability.test.mjs` 把「文件里不出现机器路径」变成了一条断言 |
+| **Q10** | 换一个用户来装：`dsh plugin --profile add` 需要 pnpm，本机没有，所以走的是符号链接装配（D71）。发布到 npm 之后这条路是否仍然需要 | 不是本轮的阻塞项；但它决定了「别人怎么装」的最终形态，M5 收尾前应量一次 |
 
 ---
 

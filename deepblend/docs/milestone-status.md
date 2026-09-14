@@ -1456,3 +1456,108 @@ $ npm run presets:check   result: the installed presets match the repository
 而 profile 是刚装回去的。所以本轮**没有**去动那个进程，也没有声称工作台已经在
 那个页面里生效。要让它生效只需要重启一次；而「重启之后是不是真的生效」应当用
 §13.9 那一套（页面本身 + Host 路由）去验，不要用 Inspect 的座位表代替。
+
+---
+
+## 15. M5 续：把最后一道「别人装不上」的门拆掉（Q9 → D76–D78）
+
+第 14 节结束时列了三件仍然挡在「陌生人也能装」前面的东西。本节解决第 1 件，
+也是唯一一件**技术上**的阻塞：bundle 里的字面量绝对路径。
+
+### 15.1 那五个路径为什么不是「配置」
+
+```
+blenderPath:         /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender
+bootstrapPath:       /Users/hxb/workspace/deep-blend/packages/…/python/bootstrap.py
+workspaceRoot:       /Users/hxb/workspace/deep-blend/.deepblend
+executableAllowlist: [/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS]
+projectsRoot:        /Users/hxb/workspace/deep-blend/.deepblend/projects
+```
+
+它们不是配置，是**一个开发者的家目录**。别的机器上，产品会挂载成功、报告健康，
+然后在第一次渲染时失败——而 `dsh --dump-config` 全程看起来是对的，因为文件里写的
+确实是那个值。`!!js` 修不了：M0 §4.2 实测它只对 Loader context 求值，那里没有 `process`。
+
+### 15.2 修法：默认值回到**拥有它的那个包**
+
+| 键 | 不配置时 | 由谁决定 |
+|---|---|---|
+| `blenderPath` | `'auto'` → 受管安装（从包位置向上找 `.tools/`），找不到再走 PATH | provider |
+| `bootstrapPath` | 本包自带的 `python/bootstrap.py` | provider |
+| `workspaceRoot` | `<DSH_HOME>/deepblend`（SPEC §17） | provider 与 host **共用同一个函数** |
+| `projectsRoot` | `<workspaceRoot>/projects`（SPEC §13） | host |
+
+**顺带修掉一处重复**：`workspaceRoot` 原本在 bundle 里写了两遍（provider 一行、host 一行），
+上面压着一句注释「MUST equal the runtime row's workspaceRoot」。**一句注释不是一条约束。**
+现在两行都调 `resolveWorkspaceRoot`，相等由构造保证——这正是本轮实测的那三条新断言
+（`activation.e2e.mjs` 12→15 项，见 §15.5）。
+
+### 15.3 那这个仓库自己的存储怎么办：**推导出来的** operator layer
+
+bundle 不写路径之后，默认值变成了 `$DSH_HOME/deepblend`。这对一次**安装**是对的，
+对一个 **clone** 是错的：本仓库的工具全部在 `<repo>/.deepblend` 上工作，产品若去读
+`~/.dsh/deepblend`，工作台会对着一个明明存在于磁盘上的项目显示空列表。
+
+所以存储位置由 DSH 自己的机制表达——operator layer
+（`$DSH_HOME/profiles/<profile>/cordis.patch.yml`），由 `install-plugin.mjs` 写。
+关键在于它是**推导出来的**：`tools/operator-layer.mjs` 从**已发布的 bundle patch** 里
+把整份 config 读出来，只改命名位置的键。
+
+**为什么必须推导而不能手写**：D74 实测 patch 层的 `config` 是整体替换，所以覆盖一个键
+就要重述全部键。手抄一份 = 又一份会烂的副本，而且它腐烂的方式是安静的：bundle 改了超时
+或视角表，部署继续用旧快照，没有任何东西会报错。`--check` 每次**重新推导并逐字节比对**，
+于是「bundle 改了但没传导到部署」会被报出来。
+
+### 15.4 三个被这次改动顺手揪出来的真缺陷
+
+| # | 缺陷 | 它本来会怎样 |
+|---|---|---|
+| 1 | `provider-local` 的两处错误文本引用了作用域里不存在的 `requested` | 只在**失败路径**上抛 `ReferenceError`，把「Blender 找不到」变成「变量未定义」。`node --check` 查不出（ESM 严格模式下是运行期错误），而当时代码刚被改过 |
+| 2 | `dsh-web-harness.mjs` 的 `storePatch()` 用 `if ('projectsRoot' in config)` 决定要不要重定向 | bundle 不再带这两个键之后，它会产出**不含任何根路径**的覆盖 —— M4 浏览器套件会**静默地**不再使用自己的临时 store，转而写进开发者的真实 store。「测试开始写用户数据」这种事不会报错，只会发生 |
+| 3 | `activation.e2e.mjs` 挂载前替换了四个键，注释说那是「bundle 从 cwd 计算出的机器相关值」 | bundle 从来没从 cwd 算过任何东西。这个套件证明的是**「这些行能用测试给的配置挂载」**，而不是**「发布出去的那份组合能挂载」**——而它要证明的是后者 |
+
+第 3 条的修法是把覆盖**全部删掉**，改用 `DSH_HOME` 指向临时目录来实现隔离。
+修完 **15/15**（原 12/12）：
+
+```
+[PASS] the unset workspaceRoot resolved under DSH_HOME, per SPEC §17
+[PASS] the unset projectsRoot followed the workspace root, per SPEC §13
+[PASS] the unset blenderPath found the managed install without being told where it is
+       — {"requested":"/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender"}
+```
+
+**这三条以前一条都测不到，因为测试把要测的东西替换掉了。**
+
+### 15.5 让「不出现机器路径」成为一条断言
+
+新增 `contract/bundle-portability.test.mjs`（10 项）。它检查三件事：
+
+1. patch 文件里**不出现**任何机器相关路径——**注释也算**，因为注释里的一条绝对路径
+   就是下一条被粘贴进来的真路径的入口（这条规则第一次运行就抓到了我自己写下的一条）；
+2. 那两行**确实不再声明**那几个键（不声明才会落到包默认值）；
+3. 解析规则本身：`DSH_HOME` 优先、空 `DSH_HOME` 不等于 `/deepblend`、
+   `projectsRoot` 跟着 `workspaceRoot` 走、`~` 展开、受管安装候选与安装器写的位置一致。
+
+外加两项针对 operator layer 的：它必须**重述 bundle 的每一个键**（少一个就是部署静默
+丢掉一个超时），且**只准改那两个根**。
+
+### 15.6 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED     12 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 20/20 file(s) passed             807 项自计断言 + 113 个 node:test 用例
+```
+
+四种装配模式的 `--check` 全绿（`setup` / `blender` / `plugin` / `presets`），
+另有在**临时 DSH home** 上对 `install-plugin.mjs` 三种行为的实测：
+正常安装会把存储钉到 `<repo>/.deepblend`；`--portable` 把 operator layer 清空
+（**清空，不是删除**——`cordis.patch.yml` 是 `dsh` 自己创建的 profile 文件，
+安装器删掉它属于用户看不见也不曾要求的事）；遇到不是自己写的 operator layer 时
+**拒绝覆盖并退出 2**，原文件逐字节保留。
+
+**仍然没有做，也不假装做了**：3080 上跑着的 `dsh web` 还是旧进程。`--dump-config` 与
+真实 Cordis 挂载都证明了新配置会组合成什么，但**运行中的那个页面**要等一次重启。
+按 §13.9 的规矩，它是否生效要用页面本身与 Host 路由去验，不能用 Inspect 的座位表代替。

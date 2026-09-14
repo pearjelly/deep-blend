@@ -41,6 +41,8 @@ deepblend/
                       dsh-baseline.json —— DSH 兼容性锚点（版本号）的机器可读来源
                       install-blender.mjs —— 下载/校验/安装受管 Blender 到 .tools/（免 sudo）
                       blender-release.json —— Blender 的 pin：版本、URL、字节数、sha256
+                      install-plugin.mjs —— 装配 profile：包链接 + bundle 注册 + operator layer
+                      operator-layer.mjs —— 从 bundle 推导存储位置；安装器与测试 harness 共用
                       create-demo-project.mjs —— 在真实 store 中生成演示项目
                       make-visual-fixtures.mjs —— 从室内房间派生三个缺陷场景
                       visual-review-live-probe.mjs —— 直接调用视觉模型的最小探针
@@ -52,7 +54,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         19 个 *.test.mjs
+    contract/         20 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -122,8 +124,8 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、30 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**19 个文件 = 807 项自计断言（12 个文件打印计数）+ 103 个 `node:test` 用例（7 个文件）**。
+预期：**12 个套件、31 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**20 个文件 = 807 项自计断言（12 个文件打印计数）+ 113 个 `node:test` 用例（8 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -189,17 +191,30 @@ npm run presets:install  # 把 deepblend/presets/ 部署到 $DSH_HOME/.agent-pre
 `install-plugin.mjs` 做的是 `dsh plugin --profile add` 的等价动作（本机无 pnpm，故用
 **符号链接装配**，见 `runtime-audit.md` §5.4）：在 `$DSH_HOME/profiles/node_modules/@deepblend/`
 建立指向本仓库包的链接，并把 `@deepblend/dsh-blender-bundle` 加进
-`$DSH_HOME/profiles/<profile>/package.json` 的 `dsh.profile.bundles`。它**不改**
-`cordis.patch.yml`（那是操作者层），也不碰 DSH 安装目录。
+`$DSH_HOME/profiles/<profile>/package.json` 的 `dsh.profile.bundles`。它不碰 DSH 安装目录，
+也**不会覆盖别人写的** `cordis.patch.yml`（见下）。
 
 这两步以前只写在文档里。2026-09-14 profile 被重装后它们都没了，代价不是理论上的：
 M4 的浏览器套件起了自己的 `dsh web`，而它链接真实 profile 的 `node_modules`——
 bundle 解析不到，工作台就永远不出现，报错只有一句 `never served /deepblend/capabilities`。
 
+#### 存储放在哪里（`--portable`）
+
+M5 之后 bundle 里**没有任何路径**：不配置时产品把项目存在 `$DSH_HOME/deepblend`
+（SPEC §17）。这对一次**安装**是对的，对一个 **clone** 是错的——本仓库的工具全部在
+`<repo>/.deepblend` 上工作，产品若去读 `~/.dsh/deepblend`，工作台会对着一个明明存在于
+磁盘上的项目显示空列表。
+
+所以 `install-plugin.mjs` 默认还会写一层 **operator layer**，把这个部署的存储钉在
+`<repo>/.deepblend`；`--portable` 则跳过它（并删掉自己以前写的那个），让部署留在产品默认值上。
+那一层是**每次从 bundle patch 推导出来的**，不是手抄的：patch 层的 `config` 是整体替换而不是
+合并（实测，D74），所以覆盖必须重述全部键，而重述的唯一安全做法就是推导。
+`--check` 会重新推导并比对，于是「bundle 改了但没传导到部署」会被报出来而不是被忽略。
+
 重启后复核：
 
 ```bash
-dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合且 config 完整
+dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合；路径只应来自 operator layer
 dsh web                                                 # 重启后生效
 ```
 

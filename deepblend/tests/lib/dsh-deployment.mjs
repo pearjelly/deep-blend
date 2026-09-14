@@ -79,7 +79,16 @@ function candidateScopes() {
   candidates.push(resolve(import.meta.dirname, '..', '..', '..', 'node_modules', SCOPE))
 
   try {
-    const globalRoot = execFileSync('npm', ['root', '-g'], { encoding: 'utf8', timeout: 20_000 }).trim()
+    // stderr is discarded on purpose. `npm root -g` is only asked for a
+    // directory, but npm prints config warnings to stderr, and `execFileSync`
+    // forwards a child's stderr to the parent's unless told otherwise — so every
+    // tool that locates the deployment (all four installers, every suite) used to
+    // print an npm warning in the middle of its own report.
+    const globalRoot = execFileSync('npm', ['root', '-g'], {
+      encoding: 'utf8',
+      timeout: 20_000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
     if (globalRoot.length > 0) candidates.push(join(globalRoot, '@deepseek-ai', 'dsh', 'node_modules', SCOPE))
   } catch {
     // npm is not always present; PATH already covered the normal case.

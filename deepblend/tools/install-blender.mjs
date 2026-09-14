@@ -54,14 +54,28 @@ import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSyn
 import { createReadStream } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { MANAGED_BLENDER_RELATIVE_PATHS, MANAGED_TOOLS_DIRECTORY } from '@deepblend/dsh-blender-contracts'
+
+/** The app bundle name, derived from the relative path the provider probes for. */
+const MANAGED_BLENDER_APP = MANAGED_BLENDER_RELATIVE_PATHS[0].split('/')[0]
+
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
-const TOOLS = join(ROOT, '.tools')
+const TOOLS = join(ROOT, MANAGED_TOOLS_DIRECTORY)
 const PIN_FILE = join(HERE, 'blender-release.json')
 
-/** Where the app and the downloaded image live. Both are inside the workspace. */
-const INSTALL_PATH = join(TOOLS, 'Blender.app')
-const BINARY_PATH = join(INSTALL_PATH, 'Contents', 'MacOS', 'Blender')
+/**
+ * Where the app and the downloaded image live. Both are inside the workspace.
+ *
+ * The two names come from `@deepblend/dsh-blender-contracts` rather than being
+ * written again here: `blenderPath: 'auto'` finds the managed install by walking
+ * up from the provider package and trying `MANAGED_BLENDER_RELATIVE_PATHS`, and an
+ * installer that placed the binary anywhere else would leave that probe finding
+ * nothing — silently, since a miss just falls back to PATH. One definition, two
+ * consumers, and `contract/bundle-portability.test.mjs` asserts they agree.
+ */
+const INSTALL_PATH = join(TOOLS, MANAGED_BLENDER_APP)
+const BINARY_PATH = join(TOOLS, MANAGED_BLENDER_RELATIVE_PATHS[0])
 const DOWNLOAD_DIR = join(TOOLS, 'downloads')
 const MOUNT_POINT = join(TOOLS, 'mnt')
 

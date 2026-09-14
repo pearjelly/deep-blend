@@ -38,9 +38,11 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { devStoreRoot } from './operator-layer.mjs'
+
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
-const STORE = join(ROOT, '.deepblend')
+const STORE = devStoreRoot(ROOT)
 const BLENDER = process.env.DEEPBLEND_BLENDER_PATH
   ?? join(ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
 const BOOTSTRAP = join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py')

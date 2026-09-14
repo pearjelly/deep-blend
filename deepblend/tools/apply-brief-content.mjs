@@ -22,8 +22,10 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { devStoreRoot } from './operator-layer.mjs'
+
 const ROOT = resolve(import.meta.dirname, '..', '..')
-const WORK = join(ROOT, '.deepblend')
+const WORK = devStoreRoot(ROOT)
 const PROJECT = 'watch-commercial'
 const DRY_RUN = process.argv.includes('--dry-run')
 

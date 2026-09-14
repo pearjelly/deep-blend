@@ -708,3 +708,19 @@ export {
   formatDuration,
   parseToolCallTarget,
 } from './ui-api.js'
+
+// Where a deployment keeps its state and finds its managed Blender (M5).
+// Shared by the plugin schemas and by the repository's own tools, so that "the
+// project create-demo-project.mjs writes is the one a restarted profile finds"
+// is true by construction rather than by a comment claiming it (see the module).
+export {
+  DEEPBLEND_STATE_DIRECTORY,
+  MANAGED_TOOLS_DIRECTORY,
+  MANAGED_BLENDER_RELATIVE_PATHS,
+  expandHome,
+  resolveDshHome,
+  resolveDefaultWorkspaceRoot,
+  resolveWorkspaceRoot,
+  resolveProjectsRoot,
+  managedBlenderCandidates,
+} from './deployment-paths.js'

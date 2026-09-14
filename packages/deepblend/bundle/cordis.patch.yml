@@ -13,10 +13,11 @@
 # the tool to every session in the process.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# WHY THESE VALUES ARE LITERALS AND NOT `!!js` EXPRESSIONS
+# WHY THERE IS NOT ONE `!!js` EXPRESSION HERE
 #
-# The obvious spelling would be `!!js process.env.X || …`, and it does NOT work.
-# The loader interpolates `!!js` through
+# The obvious spelling for a machine-dependent value would be
+# `!!js process.env.X || …`, and it does NOT work. The loader interpolates `!!js`
+# through
 #
 #     new Function('ctx', 'with (ctx) { return eval(expr) }')
 #
@@ -31,38 +32,84 @@
 # (which is how the shipped bundles use it). It is not a general escape hatch
 # to Node globals.
 #
-# OVERRIDING THESE VALUES: a row's `config` is replaced wholesale, not merged,
-# so the operator layer ($DSH_HOME/profiles/<name>/cordis.patch.yml) must
-# restate every key it wants to keep:
+# So this file cannot compute a path at all, and the answer M5 arrived at is that
+# it should not try: every machine-dependent value is now a DEFAULT inside the
+# package that owns it, computed from `DSH_HOME` or from the package's own
+# location. See the note above the first row.
+#
+# OVERRIDING THESE VALUES: a row's `config` is replaced wholesale, not merged
+# (measured — architecture-decisions D74), so the operator layer
+# ($DSH_HOME/profiles/<name>/cordis.patch.yml) must restate every key it wants to
+# keep. To pin storage to a directory of your own:
 #
 #     - id: deepblend-blender-runtime
 #       config:
-#         blenderPath: /path/to/Blender
-#         bootstrapPath: /path/to/bootstrap.py
-#         workspaceRoot: /path/to/workspace
 #         timeoutMs: 180000
 #         maxOutputBytes: 1048576
 #         maxSpillBytes: 67108864
 #         executableAllowlist: []
 #         capabilitiesCacheMs: 60000
 #         keepWorkingDirectory: false
+#         workspaceRoot: /path/to/workspace
+#
+#     - id: deepblend-blender-host
+#       config:
+#         serveCachedCapabilities: true
+#         maxPreviewSamples: 512
+#         maxVisualIterations: 5
+#         minVisualConfidenceForAutoFix: 0.8
+#         stopOnRepeatedIssueCount: 2
+#         visualReviewProvider: deepseek-official
+#         visualReviewModel: deepseek-flash
+#         visualReviewMaxTokens: 24000
+#         visualReviewViews: [active-camera, three-quarter, top, detail]
+#         finalRenderProfile: final
+#         maxFinalSamples: 4096
+#         ffmpegPath: ffmpeg
+#         ffprobePath: ffprobe
+#         encodeCrf: 18
+#         encodePreset: medium
+#         requireApprovalAboveFrames: 900
+#         progressPollMs: 1000
+#         reconcileOnStart: true
+#         workspaceRoot: /path/to/workspace
 # ─────────────────────────────────────────────────────────────────────────────
 
 - insert:
     # Blender execution seam. `ctx.subprocess` is a declared injection, so this
     # row parks in `waiting` — visibly — rather than failing later at first call.
+    #
+    # THIS ROW NAMES NO PATH, AND THAT IS THE POINT. Until M5 it carried five
+    # literal absolute paths — an absolute Blender binary, an absolute
+    # bootstrap.py, an absolute workspace root, that root's projects directory,
+    # and an allowlist entry — which meant the bundle composed rows pointing at
+    # one developer's home directory. On any other machine the product mounted,
+    # reported healthy, and then failed at first render; `--dump-config` looked
+    # correct throughout, because the values WERE what the file said.
+    #
+    # `!!js` could not be used to fix it: it is evaluated against the Loader
+    # context, where `process` does not exist (M0 §4.2, verified). So the defaults
+    # moved into the packages, where they are ordinary Node code that can look at
+    # its own location and at `DSH_HOME`:
+    #
+    #   blenderPath   'auto'  -> the managed install if present, else PATH
+    #   bootstrapPath ''      -> the copy shipped inside the provider package
+    #   workspaceRoot ''      -> <DSH_HOME>/deepblend            (SPEC §17)
+    #   projectsRoot  ''      -> <workspaceRoot>/projects        (SPEC §13)
+    #
+    # An operator who wants a different location sets it in the operator layer
+    # ($DSH_HOME/profiles/<name>/cordis.patch.yml). Note that a layer's `config`
+    # REPLACES this one wholesale rather than merging into it — measured, see
+    # architecture-decisions D74 — so such a layer must restate every key it wants
+    # to keep.
+    #
+    # The portability of this file is asserted, not assumed:
+    # `contract/bundle-portability.test.mjs` fails on any absolute path here.
     - id: deepblend-blender-runtime
       name: '@deepblend/dsh-blender-provider-local'
       config:
-        # Absolute path to the Blender binary installed for this deployment.
-        blenderPath: /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender
-        # Absolute path to the capability-probe script shipped in the provider package.
-        bootstrapPath: /Users/hxb/workspace/deep-blend/packages/deepblend/provider-local/python/bootstrap.py
-        # Per-invocation working directories stay inside the project workspace
-        # (SPEC §15.2 "工作区路径边界").
-        workspaceRoot: /Users/hxb/workspace/deep-blend/.deepblend
         # A cold Blender launch plus one 64x36 render probe; measured ~0.4 s on
-        # this machine, so 180 s is a generous ceiling rather than a real budget.
+        # the M0 machine, so 180 s is a generous ceiling rather than a real budget.
         timeoutMs: 180000
         maxOutputBytes: 1048576
         maxSpillBytes: 67108864
@@ -70,8 +117,7 @@
         # (/Applications, /opt/homebrew/bin, /usr/local/bin, ~/Applications).
         # An absolute `blenderPath` is trusted as a deliberate operator choice;
         # this list matters when the path is a bare name resolved through PATH.
-        executableAllowlist:
-          - /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS
+        executableAllowlist: []
         # Capabilities are stable within a session; re-probe explicitly by
         # calling the tool with refresh=true.
         capabilitiesCacheMs: 60000
@@ -84,14 +130,12 @@
     - id: deepblend-blender-host
       name: '@deepblend/dsh-blender-host'
       config:
-        # Project storage. One directory per project; revisions are immutable
-        # once published (SPEC §8.4).
-        projectsRoot: /Users/hxb/workspace/deep-blend/.deepblend/projects
-        # MUST equal the runtime row's `workspaceRoot`. The host stages a revision
-        # inside the project and the provider writes its Blender output into a
-        # working directory under the same root; if the two disagreed, the path
-        # guard (SPEC §15.2) would reject the host's own staging path.
-        workspaceRoot: /Users/hxb/workspace/deep-blend/.deepblend
+        # `projectsRoot` and `workspaceRoot` are deliberately absent for the same
+        # reason as the paths above; both rows resolve them from `DSH_HOME`, and
+        # because they resolve them through ONE helper they cannot disagree —
+        # which is what the paragraph that used to sit here asked a human to
+        # arrange ("MUST equal the runtime row's workspaceRoot"). A comment is not
+        # a constraint; a shared function is.
         serveCachedCapabilities: true
         # Hard ceiling on preview cost, applied on top of the per-profile
         # `maxSamplesBudget` (SPEC §15.4 render-cost threshold).

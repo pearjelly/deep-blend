@@ -65,6 +65,9 @@ import {
   frameNumbers,
   renderProgressPercent,
   verifyVideoProperties,
+  // M5 — the two roots the host and the provider must agree on
+  resolveProjectsRoot,
+  resolveWorkspaceRoot,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
@@ -131,14 +134,21 @@ const RUNTIME_SERVICE = 'blenderRuntime'
  * tests, which is why the runtime install check caught it.
  */
 export const StudioConfig = z.object({
-  /** Directory holding DeepBlend projects. */
-  projectsRoot: z.string(),
+  /**
+   * Directory holding DeepBlend projects. Unset, it is `<workspaceRoot>/projects`
+   * (SPEC §13's `workspace/projects/…`), so overriding one root moves the other
+   * with it instead of leaving the two disagreeing.
+   */
+  projectsRoot: z.string().default(''),
   /**
    * Workspace root that staging and provider scratch directories must stay
    * inside (SPEC §15.2). Must be the SAME root the provider is configured with,
    * or a staging path the host hands out would be one the provider refuses.
+   *
+   * Unset, it defaults to `<DSH_HOME>/deepblend` (SPEC §17). Both rows resolve it
+   * through the same `resolveWorkspaceRoot`, which is what makes them agree.
    */
-  workspaceRoot: z.string(),
+  workspaceRoot: z.string().default(''),
   /** Serve a cached capabilities document without re-probing during a page load. */
   serveCachedCapabilities: z.boolean().default(true),
   /** Refuse a preview whose sample count exceeds this, however it was asked for. */
@@ -248,13 +258,23 @@ export default class BlenderStudio extends Service {
     /** In-flight probe, so N concurrent callers share one Blender launch. */
     this._inFlight = null
 
-    this.store = new ProjectStore({ projectsRoot: config.projectsRoot, workspaceRoot: config.workspaceRoot })
+    // Resolved ONCE, here, and every consumer below uses these two values rather
+    // than `config.*`. An unresolved `projectsRoot` must follow the resolved
+    // `workspaceRoot`, or overriding one would leave the other pointing at a
+    // different deployment's directory — and the provider, which resolves its own
+    // copy through the same helper, would then refuse the host's staging paths.
+    const workspaceRoot = resolveWorkspaceRoot(config.workspaceRoot)
+    const projectsRoot = resolveProjectsRoot(config.projectsRoot, workspaceRoot)
+    this.workspaceRoot = workspaceRoot
+    this.projectsRoot = projectsRoot
+
+    this.store = new ProjectStore({ projectsRoot, workspaceRoot })
     this.transactions = new RevisionTransaction({ store: this.store, runtime: this.runtime, config })
 
     // ---- M3: the persistent render job (SPEC §10) --------------------------
     this.renderJobs = new RenderJobStore({
       projectDirectory: projectId => this.store.projectDirectory(projectId),
-      workspaceRoot: config.workspaceRoot,
+      workspaceRoot,
     })
     /** Live renders, keyed by render job id, so cancel can reach the handle. */
     this._liveRenders = new Map()
@@ -2024,7 +2044,9 @@ export default class BlenderStudio extends Service {
       }
     })
     projects.sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))
-    return { projects, count: projects.length, projectsRoot: this.config.projectsRoot }
+    // The RESOLVED root, not the row's possibly-empty value: the workbench shows
+    // this string to a user who is looking for their projects on disk.
+    return { projects, count: projects.length, projectsRoot: this.projectsRoot }
   }
 
   /**
