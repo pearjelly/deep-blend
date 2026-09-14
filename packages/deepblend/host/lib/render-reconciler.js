@@ -200,6 +200,9 @@ async function waitForGone(pid, timeoutMs) {
  * @param {string} input.jobId
  * @param {object|null} input.record
  * @param {(record: object) => object} input.write - persists the updated record.
+ * @param {number} [input.orphanGraceMs] - how long to wait for a signalled orphan to die. Defaults to
+ *   `ORPHAN_GRACE_MS` (10 s), which is what a real recovery uses; a test that has to reach the
+ *   "survived" branch otherwise spends twenty seconds proving a refusal.
  * @returns {Promise<object>} the finding, which is also what `recovery.json` holds.
  */
 export async function reconcileRenderJob(input) {
@@ -246,7 +249,7 @@ export async function reconcileRenderJob(input) {
       : { matches: false, reason: 'the process is gone' }
     finding.process = { pid: recordedPid, alive: alive.alive, identity: identityVerdict }
     if (alive.alive && identityVerdict.matches) {
-      const stopped = await stopProcessGroup({ pid: recordedPid })
+      const stopped = await stopProcessGroup({ pid: recordedPid, graceMs: input.orphanGraceMs })
       finding.process.stopped = stopped
       finding.notes.push(
         `an orphaned renderer (pid ${recordedPid}) survived the previous Host and was stopped: ` +

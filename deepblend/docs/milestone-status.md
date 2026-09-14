@@ -4019,3 +4019,67 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 产品改了一处：`host/lib/index.js` 的 `_deliverJob` 记住交付尝试的结局；
 文档改了三处：README 前置表、`install.md` §0、`recovery.md` §3；
 测试加了一个「这台机器没有 ffmpeg」的端到端段落（8 项），两条变异全红。
+
+---
+
+## 44. 恢复流程里三条**安全**规则，从没被执行过
+
+第 29 轮点亮 UI 平面之后，读数的重心回到了主机自己：`render-reconciler.js`（48 行黑暗）。
+那是每次 Host 启动时跑的恢复流程——「发现一个没人在看的渲染」之后该怎么办。
+它最危险的三个分支，覆盖率说**一次都没跑过**：
+
+| 分支 | 规则 | 弄错的代价 |
+|---|---|---|
+| pid 活着、但**不是这个 job 的渲染器** | 绝不发信号（只报告） | 杀掉用户机器上一个无关的进程——pid 重启后会被回收 |
+| 记录读不出来 | 报告，**绝不原地修** | 那份坏文件可能是「这个 job 当时在做什么」的唯一证据 |
+| 孤儿**杀不掉** | **不可续渲** | 两个渲染器往同一批帧上写，产出谁都担保不了的文件 |
+
+三条都是安全规则，三条都是黑暗的——而它们之所以能被驱动，是因为这个模块把 store、账本读取器
+和写入器都作为参数收进来。于是这一轮用**真实的子进程**把它们逐条跑通，
+而不是等一台碰巧遇到这事的机器（`contract/render-reconciler.test.mjs`，4 项）：
+
+1. **路人不能被误杀**：起一个真实进程，命令行里**没有** job 目录（`identifyProcess` 正是这么判的）
+   → 恢复跑完，断言那条 note 写着「is not this job's renderer … left alone」，
+   并且**那个进程还活着**（这一条就是「永不误杀」的断言）。
+2. **孤儿杀不掉时拒绝续渲**：起一个命令行**含** job 目录的进程，把 `process.kill` 对这个 pid
+   打成 `EPERM`（这正是 `checkProcessAlive` 认定的「活着但不属于你」）→ 断言
+   `status === 'orphan-survived'`、**没有** `resumable`、note 给出「两个写者」的理由，
+   而且**job 记录一个字节都没被改写**。
+3. **不可解析的记录**：往记录路径写半截 JSON → `status === 'unreadable'`、
+   note 说「left untouched」、**磁盘上仍是原来那串字节**、`recovery.json` 写在旁边。
+4. **顺序**：「先停孤儿，再读账本」是一句注释里的规则。这里用一个包装过的账本读取器，
+   在真正读之前记下那个 pid 还活着没有 → 断言读到的是**已经死掉的**（`gone` 是实测的，不是假设的）。
+
+### 44.1 顺手补的一个可测性缺口
+
+第 2 条要走到「杀不掉」，就得把两次等待跑满：`ORPHAN_GRACE_MS = 10_000`，
+SIGTERM 等 10 秒、SIGKILL 再等 10 秒——4 项测试里 3 项不到 1 秒，这一项 **20 秒**。
+`stopProcessGroup` 本来就收 `graceMs`，只是 `reconcileRenderJob` 没有把它传下去。
+现在传下去了（默认仍是 10 秒，Host 不传）：这一项从 **20 秒降到 0.67 秒**，
+而「等待」这件事本身仍然是产品行为，不是测试的耐心。
+
+另一处同形的坑：`spawn` 出来的睡眠进程**握住事件循环**，于是 4 项合计不到 1 秒的文件
+要跑 **120 秒**才退出（那是睡眠进程自己的定时器）。`unref()` 之后 0.9 秒。
+两处都写在注释里——**测试慢下来时，先问是谁在等。**
+
+### 44.2 变异
+
+5 条全部变红，而且每条红的都不是同一项：
+
+* 把 `identityVerdict.matches` 从条件里去掉 → 路人被杀，第 1 项红；
+* 让幸存者被标成可续渲 → 第 2 项红；
+* 原地修那份坏记录 → 第 3 项红；
+* 把「发过信号」当成「它没了」（跳过 gone 的实测）→ 第 2 项红；
+* 把账本读到停孤儿**之前**（真正的顺序反转）→ 第 4 项红。
+
+### 44.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 35/35 file(s) passed        848 项自计断言 + 238 个 node:test 用例
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+产品改了一处：`reconcileRenderJob` 把 `orphanGraceMs` 透传给 `stopProcessGroup`（默认不变）。
+新增 `contract/render-reconciler.test.mjs`（4 项，用真实子进程）。产品行为一行没改。
