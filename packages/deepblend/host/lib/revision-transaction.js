@@ -537,6 +537,24 @@ export class RevisionTransaction {
         for (const entry of run.envelope.notices ?? []) {
           warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, entry.message, { code: entry.code }))
         }
+
+        // SPEC §15.2 "Mesh 面数限制". The number is already here — the compile report carries
+        // it for the revision manifest — so this compares a measurement rather than estimating
+        // one. Thrown INSIDE the try on purpose: the existing catch removes the staging tree,
+        // writes a failed job and refuses the revision, which is exactly what a scene that is
+        // too heavy should produce. Nothing below this line runs, so no manifest is written and
+        // no checkpoint is published.
+        const polygons = compileReport?.sceneFingerprint?.totalPolygons
+        if (typeof polygons === 'number' && polygons > this.config.maxMeshPolygons) {
+          throw new BlenderError(
+            BlenderErrorCode.SCENE_TOO_HEAVY,
+            `the compiled scene carries ${polygons.toLocaleString('en-US')} polygons, above the ` +
+              `${this.config.maxMeshPolygons.toLocaleString('en-US')} this deployment accepts ` +
+              '(deepblend.maxMeshPolygons, SPEC §15.2). Nothing was committed. Reduce the geometry — ' +
+              'a denser object is usually an imported asset, and blender_asset_ingest reports what it brought in.',
+            { detail: { polygons, maxMeshPolygons: this.config.maxMeshPolygons, projectId, revision } },
+          )
+        }
       } catch (cause) {
         const failure = toCanonicalFailure(cause, {
           isBlenderError: value => value instanceof BlenderError,
@@ -550,6 +568,26 @@ export class RevisionTransaction {
           message: failure.message,
         })
         this.recordFailedAttempt(projectId, { revision, baseRevision: plan.baseRevision, job, failure, plan })
+
+        // A FIRST COMPILE THAT FAILS LEAVES NO PROJECT BEHIND. `createProject` writes the
+        // skeleton and the record before it compiles, so a failure — a timeout, a refused
+        // import, a scene over `maxMeshPolygons` — used to leave a project with
+        // `currentRevision: r0000, revisionCount: 0` on disk. MEASURED: reading it back threw
+        // `REVISION_ID_INVALID` (not a "no revisions yet" answer), and retrying the same id
+        // threw `PROJECT_EXISTS`, so the id was burned and the project list showed a project
+        // that errors when opened. Both halves are worse than the failure itself, and both
+        // contradict the rule the rest of this file keeps: a refusal costs a message, not your
+        // work.
+        //
+        // The guard is `revisionCount === 0` rather than "this was a project_create", because
+        // that is the property that matters: once a revision exists the project is real and
+        // must survive a failed LATER compile exactly as it does today. What is not kept is the
+        // failed job record — it lives inside the project directory, and a job record for a
+        // project that does not exist is not something anyone can read.
+        if (plan.kind === 'project_create' && this.store.readRecord(projectId)?.revisionCount === 0) {
+          removeTree(this.store.projectDirectory(projectId))
+        }
+
         throw new BlenderError(
           failure.code === 'BLENDER_SCRIPT_ERROR' ? BlenderErrorCode.SCRIPT_ERROR : failure.code,
           `Compiling revision ${revision} failed, so the project is unchanged (current revision ${record.currentRevision}): ${failure.message}`,

@@ -164,6 +164,27 @@ export const StudioConfig = z.object({
    * already happened rather than a control on it.
    */
   assetMaxBytes: z.number().default(1_073_741_824),
+  /**
+   * Ceiling on the polygons one compiled scene may carry (SPEC §15.2 "Mesh 面数限制").
+   *
+   * THE COUNT IS MEASURED, NOT GUESSED AT: the provider's compile report already carries
+   * `sceneFingerprint.totalPolygons` for the revision manifest, so this compares a number
+   * that exists rather than estimating one from the SceneSpec. A scene over the ceiling is
+   * refused with `SCENE_TOO_HEAVY`, before the revision is published.
+   *
+   * WHY IT IS NOT REDUNDANT WITH THE TIMEOUT. `timeoutMs` bounds ONE Blender invocation; a
+   * scene five times heavier than intended usually finishes each invocation inside it and
+   * then costs that much on every compile, every preview and every delivery render for the
+   * rest of the project's life — including a three-hour final render nobody wants any more.
+   * The two failures also read differently: a timeout says "try again or raise the
+   * deadline", and this says "this asset brought 8,412,004 polygons".
+   *
+   * The default is generous on purpose. A product turntable is a few hundred polygons and
+   * the golden fixture is 243; two million is the point at which a scene stops being a
+   * product shot and becomes a scan, which is a decision an operator should make by raising
+   * this number rather than by discovering it as a timeout.
+   */
+  maxMeshPolygons: z.number().default(2_000_000),
 
   // ---- M2: the visual loop (SPEC §12.3, §17 `agent`) ------------------------
   //

@@ -202,8 +202,12 @@ test('every gap the matrix admits is numbered in the deviation register', () => 
   }
 
   // And the other way: a numbered deviation about §15 that no row admits is a gap the matrix
-  // is hiding. The register's rows are read for the section reference so this stays narrow.
+  // is hiding. The register's rows are read for the section reference so this stays narrow —
+  // and a row the register has STRUCK THROUGH is resolved, which is how §7 records a
+  // deviation that has since been fixed (`~~8~~`). Reading a resolved deviation as still-open
+  // would make fixing something turn this test red, which is the wrong direction entirely.
   const securityDeviations = [...register.matchAll(/^\|\s*(\d+)\s*\|([^|]*)\|/gm)]
+    .filter(match => !match[2].includes('~~'))
     .filter(match => /§15|安全|配额|纹理|面数|MIME|脱敏|Worker/.test(match[2]))
     .map(match => Number(match[1]))
   const admitted = new Set(rows152.map(row => Number(/§7\s*#(\d+)/.exec(row.status)?.[1] ?? -1)))

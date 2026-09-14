@@ -149,6 +149,17 @@ export const BlenderErrorCode = Object.freeze({
   /** A remote source could not be fetched, or exceeded the byte cap mid-download. */
   ASSET_FETCH_FAILED: 'ASSET_FETCH_FAILED',
   /**
+   * The compiled scene carries more polygons than `maxMeshPolygons` (SPEC §15.2
+   * "Mesh 面数限制").
+   *
+   * A separate code from the timeout, because they are different facts with different
+   * fixes: a timeout says "this took too long — try again, or raise the deadline", while
+   * this says "this scene is this heavy, and it will be this heavy every time". The count
+   * comes from the compile report the provider already produces for the revision manifest,
+   * so the refusal names the number instead of guessing at it.
+   */
+  SCENE_TOO_HEAVY: 'SCENE_TOO_HEAVY',
+  /**
    * A REMOTE ingest needs a grant first (SPEC §11 "本地自动，网络需审批").
    *
    * Enforced in the host for the same reason the render threshold is: every caller

@@ -454,6 +454,108 @@ const PREVIEW_CEILING = 64
 }
 
 // ---------------------------------------------------------------------------
+// G. The mesh ceiling (SPEC §15.2 "Mesh 面数限制"), on geometry that really is heavy
+// ---------------------------------------------------------------------------
+//
+// The count is MEASURED by the compile the revision would have been built from, so this
+// case needs a real Blender and a scene whose geometry is genuinely large — a UV sphere
+// with 128 segments and 64 rings is about 8 000 faces, which is over a ceiling of 5 000
+// and far under the default two million. Both directions are asserted, because a ceiling
+// that cannot be satisfied is not a ceiling, it is an outage.
+{
+  const heavy = JSON.parse(readFileSync(join(PROJECT_ROOT, 'deepblend', 'fixtures', 'interior-room', 'scene-spec.json'), 'utf8'))
+  heavy.project = { ...heavy.project, id: 'hardening-heavy', title: 'Hardening heavy', goal: 'A scene with too much geometry.' }
+  heavy.entities = [
+    {
+      id: 'dense-subject',
+      type: 'generator',
+      generator: { shape: 'uv_sphere', radius: 0.5, segments: 128, ringCount: 64 },
+      materialId: heavy.materials[0].id,
+      transform: { location: [0, 0, 0.5], rotationEuler: [0, 0, 0], scale: [1, 1, 1] },
+      tags: ['hero-product'],
+    },
+  ]
+  heavy.cameras = [heavy.cameras[0]]
+  heavy.animationTracks = []
+  heavy.shots = []
+  heavy.renderProfiles = {
+    preview: { ...heavy.renderProfiles.preview, resolution: [64, 36], samples: 4, maxSamplesBudget: 64 },
+    final: { ...heavy.renderProfiles.final, resolution: [64, 36], samples: 4, maxSamplesBudget: 64 },
+  }
+
+  /** Mount a host with one ceiling, over the real Blender. */
+  const hostWith = async ceiling => {
+    const root = new Context()
+    root.plugin(LocalSubprocess)
+    root.plugin((await import('@deepblend/dsh-blender-provider-local')).default, {
+      blenderPath: process.env.DEEPBLEND_BLENDER_PATH
+        ?? join(PROJECT_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender'),
+      bootstrapPath: BOOTSTRAP,
+      workspaceRoot: workspace,
+      timeoutMs: 300_000,
+    })
+    root.plugin((await import('@deepblend/dsh-blender-host')).default, {
+      workspaceRoot: workspace,
+      projectsRoot: join(workspace, 'weight-projects'),
+      maxMeshPolygons: ceiling,
+      serveCachedCapabilities: true,
+    })
+    await new Promise(settle => setTimeout(settle, 400))
+    return root
+  }
+
+  const tight = await hostWith(5_000)
+  try {
+    const studio = tight.get('blenderStudio')
+    let refusal = null
+    try {
+      await studio.createProject({ projectId: 'hardening-heavy', title: 'Heavy', goal: 'too much geometry', sceneSpec: heavy, saveCheckpoint: true })
+    } catch (error) {
+      refusal = error
+    }
+
+    check('a scene above maxMeshPolygons is refused with a coded result, not a crash',
+      refusal?.code === 'SCENE_TOO_HEAVY', refusal?.code ?? 'the project was created anyway')
+    check('and the refusal names the measured count and the ceiling it broke',
+      /polygons/.test(refusal?.message ?? '') && /5,000|5000/.test(refusal?.message ?? ''),
+      (refusal?.message ?? 'no message').slice(0, 140))
+
+    // ON DISK, not through the facade. The first version of this check called `getProject`
+    // and treated any throw as absence — which it was not: MEASURED, the refused create had
+    // left a skeleton behind whose record said `revisionCount: 0`, reading it threw
+    // `REVISION_ID_INVALID`, and recreating the id threw `PROJECT_EXISTS`. The check PASSED
+    // while the claim in its own name was false. A directory listing cannot be satisfied by
+    // the wrong exception.
+    const directory = join(workspace, 'weight-projects', 'hardening-heavy')
+    check('and nothing was left behind: the refused create removed the project it had begun',
+      !existsSync(directory), existsSync(directory) ? readdirSync(directory).join(', ') : 'absent')
+  } catch (cause) {
+    check('the weight section completed without an unexpected throw', false, cause?.stack ?? String(cause))
+  } finally {
+    await tight.stop?.()
+  }
+
+  const generous = await hostWith(2_000_000)
+  try {
+    const studio = generous.get('blenderStudio')
+    const created = await studio.createProject({
+      projectId: 'hardening-heavy',
+      title: 'Heavy',
+      goal: 'the same geometry, under a ceiling it fits',
+      sceneSpec: heavy,
+      saveCheckpoint: false,
+    })
+    check('the same geometry commits unchanged under a ceiling it fits under',
+      created?.project?.projectId === 'hardening-heavy' || created?.projectId === 'hardening-heavy',
+      JSON.stringify(created).slice(0, 120))
+  } catch (cause) {
+    check('the weight section completed without an unexpected throw', false, cause?.stack ?? String(cause))
+  } finally {
+    await generous.stop?.()
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 

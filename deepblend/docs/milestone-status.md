@@ -428,7 +428,7 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 5 | 视觉审查用「DeepSeek 视觉理解」 | 用当前默认路由的 `deepseek-flash`（目录中另有 `deepseek-v4-flash-vision-exp`） | 实测该路由已支持图片输入；专用模型作为 Q6 留待评估 |
 | 6 | SPEC §15.2「MIME 与扩展名双重校验」 | 只有**扩展名**一半：`IMPORT_OPERATOR_BY_ASSET_TYPE` 是一张白名单，`.glb` 的内容不做嗅探 | 资产类型决定了导入算子，而算子由 Blender 自己按内容判定并**行为式**分类（D10）；把一个改了扩展名的文件交进去，结果是「导入失败」这条可分支的结果，而不是一个被信任的对象。加嗅探需要引入 MIME 库，收益是更早失败一步 |
 | 7 | SPEC §15.2「纹理尺寸限制」 | **未实现**：纹理尺寸既不测量也不设限 | 受管 Blender 只导入**几何**（glTF/FBX/OBJ/USD/blend），场景里没有纹理贴图通道——`material` 只有 baseColor/metallic/roughness 这类参数（SPEC §5.2）。限一个不存在的通道没有意义；等贴图进入 SceneSpec 时再补 |
-| 8 | SPEC §15.2「Mesh 面数限制」 | **未实现**：技术报告记录面数，但不设上限、不拒绝 | 面数上限的唯一现实用途是防「一个 800 万面的资产把渲染拖死」，而真正兜住这件事的是**超时**（§15.2 第 15 条，已实现并有断言）与预览/交付的采样预算。加一个静态上限会先挡住合法的重资产；留作 M6 的资产规范化（`assets/normalized/`）一起做 |
+| ~~8~~ | ~~SPEC §15.2「Mesh 面数限制」~~ | ✅ **M5 已补（D101）**：`maxMeshPolygons`（默认 200 万），比较编译报告里已经测出来的 `totalPolygons`，超出时以 `SCENE_TOO_HEAVY` 拒绝且不提交 revision | 写这张表时发现「兜住它的是超时」只对**单次调用**成立——一个五倍重的场景每次调用都能在超时内跑完，然后在这个项目的余生里每次都贵五倍。已实现并有断言（`hardening.e2e.mjs` §G，双向） |
 | 9 | SPEC §15.2「CPU、内存、磁盘、GPU 配额」 | 只有**字节与时间**：`maxOutputBytes` / `maxSpillBytes` / `assetMaxBytes` / `timeoutMs`，以及交付渲染的既有磁盘事实（450 帧 ≈ 424 MiB，Q1 实测）。没有 CPU、内存、GPU 配额，帧序列的磁盘占用也没有上限 | 这些都是**操作系统级**的隔离：SPEC §15.3 把「进程资源限制」明确放在「容器或 Bubblewrap」那一层，而 M5 的交付环境是 macOS 开发版（`--factory-startup` + 工作区边界 + 环境变量白名单）。写一个假的限额比没有更糟：它会让「受控」这句话变成装饰 |
 | 10 | SPEC §15.2「日志脱敏」 | 只有**一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），但没有日志过滤器 | 这一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。反过来说，加一个正则过滤器只会让人以为还有别的泄漏渠道。真正需要脱敏的是**用户自己**贴进对话的秘密，那属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
@@ -2912,3 +2912,93 @@ DeepBlend tests: 28/28 file(s) passed        830 项自计断言 + 178 个 node:
 
 写完这张表之后，「全部高风险操作受控 ✅」（§18 的结论）第一次有了**可以逐条核对**的含义：
 它现在是 12 条 ✅、2 条不适用、2 条部分、2 条没做，而不是一句结论。
+
+---
+
+## 30. 把「Mesh 面数限制」补上，顺手挖出一个**失败的第一次编译会留下一个死项目**
+
+上一轮把 SPEC §15 逐条对照完之后，18 条里有一条是**能补而且值得补**的：Mesh 面数限制。
+剩下的几条要么不适用（纹理通道不存在、压缩包不可导入），要么属于别的层（容器里的资源配额）。
+这一轮把它补上，而补的过程里发现了第二个、更严重的问题。
+
+### 30.1 上限比较的是**已经测出来的**数字
+
+provider 的编译报告里早就有 `sceneFingerprint.totalPolygons`——它本来是为 revision manifest
+算的。所以这条限制不需要估算：拿现成的测量值比一下就行。
+
+* 配置：`maxMeshPolygons`，默认 **200 万**（产品转台是几百面，golden fixture 是 **243**；
+  200 万是「这已经不是产品照而是扫描件」的那个点，运营者应该**主动**抬这个数字，
+  而不是以超时的形式发现它）；
+* 拒绝：新错误码 `SCENE_TOO_HEAVY`，消息里带着**实测面数与上限**；
+* 位置：放在编译之后、写 manifest 之前，**故意放在已有的 try 里面**——于是
+  「删掉 staging、写一条失败 job、不提交 revision」全部沿用同一条既有路径，
+  没有第二套失败处理。
+
+**它不是超时的重复品**，这一点值得写下来：`timeoutMs` 约束的是**单次** Blender 调用，
+而一个五倍重的场景通常每次调用都能在超时内跑完，然后在这个项目的余生里**每次都贵五倍**
+——包括那次没人再想要的、三个半小时的正式渲染。两者的读法也不同：超时说「重试或抬deadline」，
+它说「这个资产带进来 8,412,004 个面」。
+
+断言在 `hardening.e2e.mjs` §G，**双向**：128×64 的 UV 球（实测 8,192 面）在 5 000 的上限下
+被拒、不留任何东西；同样的几何在 200 万的上限下正常提交。**一个满足不了的上限不是上限，
+是故障。**
+
+### 30.2 顺手挖到的：一次失败的**首次**编译会留下一个打不开、也重建不了的项目
+
+写第二条断言（「同样的几何在上限之内应当提交」）时它立刻失败了：
+
+```
+BlenderError: A project named "hardening-heavy" already exists.
+```
+
+于是量了一遍被拒之后磁盘上到底剩了什么：
+
+```
+refused with SCENE_TOO_HEAVY
+project directory exists: true
+files: assets, jobs, operations, project.json, revisions, staging
+record: currentRevision = r0000 | revisionCount = 0
+getProject threw: REVISION_ID_INVALID
+retry threw: PROJECT_EXISTS
+```
+
+**`createProject` 先建骨架再编译**，所以首次编译失败会留下一个 `revisionCount: 0` 的项目：
+读它抛 `REVISION_ID_INVALID`（不是「还没有 revision」），重建同一个 id 抛 `PROJECT_EXISTS`
+——**id 被烧掉了**，而项目列表里会多出一个一打开就报错的项目。
+
+它和这一轮的新上限**无关**：任何首次编译失败（超时、导入被拒、Blender 崩）都会这样，
+此前没有人量过。处置是删掉那个半成品——**只有当 `revisionCount === 0` 时**，
+因为一旦有了 revision 这个项目就是真的，之后任何一次编译失败都必须像今天一样保住它。
+
+代价写在注释里而不是藏着：失败 job 的记录也随之消失。它存在项目目录**里面**，
+而一个不存在的项目的 job 记录，没有人读得到；失败本身仍然以带码的结果返回给调用者。
+
+### 30.3 一条**通过了、但名字是假的**断言
+
+这一节的第二条断言第一版是这么写的：
+
+```js
+let published = null
+try { published = await studio.getProject('hardening-heavy') } catch { published = null }
+check('and nothing was published: the project does not exist', published === null, ...)
+```
+
+它**通过了**——因为 `getProject` 抛的是 `REVISION_ID_INVALID`，不是「不存在」。
+一个把「任何异常」当成「不存在」的检查，可以用**错误的异常**满足。
+现在它直接列目录：`!existsSync(join(projectsRoot, 'hardening-heavy'))`。
+**一个检查的判据比它的名字弱的时候，通过的那一次是最危险的一次。**
+
+### 30.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 28/28 file(s) passed
+
+$ node deepblend/tests/composition/hardening.e2e.mjs
+M5 hardening: 26/26 check(s) passed
+```
+
+`security.md` 的统计从「12 ✅ / 2 ➖ / 2 ⚠️ / 2 ❌」变成
+「**13 ✅ / 2 ➖ / 2 ⚠️ / 1 ❌**」；§7 的第 8 条被划掉并标注 D101。
+`security-controls.test.mjs` 也一并学会读「划掉的偏差 = 已解决」——
+否则修好一条偏差会让那个测试变红，方向正好相反。

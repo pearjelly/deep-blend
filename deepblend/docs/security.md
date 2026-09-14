@@ -65,7 +65,7 @@
 | 8 | MIME 与扩展名双重校验 | 只有扩展名一半：`packages/deepblend/contracts/lib/scene-spec.js` 「IMPORT_OPERATOR_BY_ASSET_TYPE」，内容不嗅探 | `deepblend/tests/composition/assets.e2e.mjs` 「a format this project cannot carry」 | ⚠️ 偏差 §7 #6 |
 | 9 | 文件大小限制 | `packages/deepblend/host/lib/index.js` 「assetMaxBytes」，本地复制前与网络流式下载中都检查 | `deepblend/tests/composition/assets.e2e.mjs` 「a source above assetMaxBytes」 | ✅ |
 | 10 | 纹理尺寸限制 | ❌ 没有：纹理尺寸既不测量也不设限 | —— | ❌ 偏差 §7 #7 |
-| 11 | Mesh 面数限制 | ❌ 没有：技术报告会记录面数，但没有任何上限或拒绝 | —— | ❌ 偏差 §7 #8 |
+| 11 | Mesh 面数限制 | `packages/deepblend/host/lib/revision-transaction.js` 「SCENE_TOO_HEAVY」，上限是 `maxMeshPolygons`（默认 200 万），比较的是编译报告里**已经测出来**的面数 | `deepblend/tests/composition/hardening.e2e.mjs` 「a scene above maxMeshPolygons is refused」 | ✅ |
 | 12 | 资产 Hash | `sha256` 写进 manifest，并被 `asset.add` 与场景一起钉住 | `deepblend/tests/composition/assets.e2e.mjs` 「it reports a sha256 the scene can pin」 | ✅ |
 | 13 | 禁用未知 Add-on | `--factory-startup` | `deepblend/tests/contract/security-controls.test.mjs` 「the provider starts Blender with the flags the policy depends on」 | ✅ |
 | 14 | 禁用 Auto Run 未知脚本 | `--factory-startup`：不执行启动脚本，bootstrap 由 `--python` 显式指定 | `deepblend/tests/contract/security-controls.test.mjs` 「the provider starts Blender with the flags the policy depends on」 | ✅ |
@@ -74,7 +74,7 @@
 | 17 | 日志脱敏 | 一半：秘密**根本不进子进程**（环境变量白名单），但没有日志过滤器 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」 | ⚠️ 偏差 §7 #10 |
 | 18 | 完整 Tool 审计 | 每次 Blender 动作留 durable job 记录；每次成功的 patch 留 operation manifest；每个 revision 留 manifest | `deepblend/tests/blender-integration/fixture.e2e.mjs` 「every Blender action left a durable job record」 | ✅ |
 
-统计：**12 条 ✅、2 条 ➖、2 条 ⚠️、2 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
+统计：**13 条 ✅、2 条 ➖、2 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
 
 ## 4. 已知偏差
 
