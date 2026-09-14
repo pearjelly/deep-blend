@@ -2008,6 +2008,44 @@ D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本*
 
 ---
 
+### D98 — 「别人怎么装」有两条路，差别只有一处，而且是**量出来的**（Q10 关闭）
+
+**决策**：`dsh plugin --profile web add <六个包的路径>` 是**用户**的装法；
+`npm run plugin:install` 是**改代码的人**的装法。两者不是等价物，
+所以 `install.md` 必须把两条都写出来并说清哪条是谁的，而 `install-plugin.mjs` 的头部
+必须说出**它比前者多做了什么**。
+
+**触发它的事实**：Q10 从 M5 开头挂到现在，前提是「`dsh plugin --profile add` 需要 pnpm，
+本机没有」，而这句话**是关于一台机器的，不是关于产品的**。这一轮在临时 `DSH_HOME` 上
+把整条路真的走了一遍（`tools/dsh-plugin-install-probe.mjs`，日志
+`probe-dsh-plugin-install.log`）：
+
+| 量到的东西 | 结果 |
+|---|---|
+| PATH 上没有 pnpm 时 | `exit 127`，`dsh: pnpm not found on PATH — install pnpm to manage profile plugins` |
+| `dsh plugin add` 六个本地路径 | `exit 0`，5 条「plain dependency」警告，bundle 自动进 `dsh.profile.bundles` |
+| 六个包解析到哪 | `profiles/web/node_modules/@deepblend/`（**不是** `profiles/node_modules/`） |
+| `dsh web` 真的服务吗 | `/deepblend/capabilities` → **HTTP 200，route=capabilities，hostApiVersion=4** |
+| 项目存储落在哪 | `<DSH_HOME>/deepblend/projects` —— **产品默认**，不是 checkout 的 `.deepblend` |
+
+**结论**：npm 发布**会**把用户那条缩成 `dsh plugin --profile web add @deepblend/dsh-blender-bundle`
+一条命令，但**不会**取消 `install-plugin.mjs`——后者存在的唯一理由是最后一行：
+本仓库的工具全都工作在 `<repo>/.deepblend`，而默认值在 `$DSH_HOME`，于是磁盘上明明有项目、
+面板里却是空列表。D76–D78 早就把这条写成了「本仓库的部署由推导出来的 operator layer 钉住」，
+但**从来没有人量过不钉会怎样**；现在量了。
+
+**一个差点记错的结论，值得单独记**：`dsh plugin --help` 的输出里有
+「Version 10.28.2 (compiled to binary; bundled Node.js v26.8.2)」，我一度据此认为 pnpm
+是 `dsh` 自带的——那是 **pnpm 在描述它自己**。把 pnpm 从 PATH 上拿掉之后，真相立刻出现
+（`exit 127`）。**工具的自我介绍不是关于宿主的证据。**
+
+**可验证的后果**：`setup-steps.test.mjs` 断言 `install-plugin.mjs` 的头部同时说出
+「它被拿来和哪条命令比过」与「那条命令留下了什么没做」，并且断言 `install.md` 里
+**贴着** `dsh plugin --profile` 的那一段必须提到 pnpm 在 PATH 上
+——「文件里某处出现过 pnpm」不算，这份手册里另有一处 `pnpm-workspace.yaml`。
+
+---
+
 
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
@@ -2037,7 +2075,7 @@ D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本*
 | Q8 | Preview Compare 是否需要右栏（`sidebar.right.pane.tab`）的并排形态 | M4 把对比放在 `main` 面板里（一个面板 + 视图切换）；若用户希望它常驻右栏，再增量注册 |
 | Q6 | 视觉审查用哪个模型（当前 `deepseek-flash`；目录里另有 `deepseek-v4-flash-vision-exp`） | M2 已可用 `deepseek-flash`；若审查质量不足再评估专用模型 |
 | ~~Q9~~ | ~~bundle 的 `cordis.patch.yml` 里那四个字面量绝对路径该怎么去掉~~ | ✅ **M5 已决：D76–D78**。默认值移进各自的包（`'auto'` + 自定位 + `DSH_HOME`），bundle 一个路径都不写，本仓库的部署由**推导出来的** operator layer 钉在 `<repo>/.deepblend`；`contract/bundle-portability.test.mjs` 把「文件里不出现机器路径」变成了一条断言 |
-| **Q10** | 换一个用户来装：`dsh plugin --profile add` 需要 pnpm，本机没有，所以走的是符号链接装配（D71）。发布到 npm 之后这条路是否仍然需要 | 不是本轮的阻塞项；但它决定了「别人怎么装」的最终形态，M5 收尾前应量一次 |
+| ~~Q10~~ | ~~换一个用户来装：`dsh plugin --profile add` 需要 pnpm，本机没有，所以走的是符号链接装配（D71）。发布到 npm 之后这条路是否仍然需要~~ | ✅ **M5 已决：D98（实测）**。**量出来的答案**：`dsh plugin --profile web add <六个包的路径>` **今天就能用**，不需要 npm 发布——它把 bundle 自动写进 `dsh.profile.bundles`，产出的 profile 真的服务 `/deepblend/capabilities`（HTTP 200 / `hostApiVersion 4`）。但它**不钉存储**：`projectsRoot` 落在 `<DSH_HOME>/deepblend`，而本仓库的工具都在 `<repo>/.deepblend`。所以发布到 npm 之后，用户那条缩成一条命令，而 `install-plugin.mjs` 仍然要做**改代码的人**那一条——两条路的差别就是那个存储位置。日志：`probe-dsh-plugin-install.log` |
 
 ---
 
@@ -2056,6 +2094,7 @@ D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本*
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（安装的两条路，Q10 关闭） | D98：Q10 的前提（「`dsh plugin` 需要 pnpm，本机没有」）是关于一台机器的，不是关于产品的。整条路在临时 `DSH_HOME` 上真的走了一遍：`dsh plugin --profile web add <六个本地路径>` 今天就能把 DeepBlend 装起来并服务（HTTP 200 / hostApiVersion 4），bundle 自动进 `dsh.profile.bundles`；它唯一不做的是钉存储，`projectsRoot` 落在 `<DSH_HOME>/deepblend` 而非 checkout 的 `.deepblend`——那正是 `install-plugin.mjs` 仍然存在的理由。产出是 `tools/dsh-plugin-install-probe.mjs`、`docs/probe-dsh-plugin-install.log`、README 与 install.md 的双路说明，以及「安装器必须说清它比支持路径多做了什么」的断言。附带记下一条差点记错的结论：`dsh plugin --help` 里那句「bundled Node.js」是 pnpm 在描述自己，不是 `dsh` 自带 pnpm |
 | 2026-09-14 | M5（对模型与用户说的话） | D97：给模型的技能必须覆盖工具面（16 个里少了 `blender_asset_ingest` 与 `blender_job_cancel`，而前者是全套里契约最反直觉的一个——ingest 不改场景）；被平台挡住的报错必须点到产品真的读的键（守卫让人设 `DEEPBLEND_BLENDER_PATH`，而那个变量只有本仓库的测试读，产品读的是 operator layer 的 `blenderPath`，`install.md` 一直这么写）。产出是 SKILL.md 的资产一节与取消语义、`preset-surface.test.mjs` 的双向覆盖断言、`setup-steps.test.mjs` 的「建议点到真键」与「平台边界写在讲前提处」 |
 | 2026-09-14 | M5（验证 CI） | D96：把 CI 的每一步照抄进 Linux 容器跑一遍，两个此前从未被执行的产物都坏了——`install-presets --check` 把「本机没装」报成「5 file(s) drifted」并退出 1（标签对、旁边的计数器错：`if (!same) drift += 1`），而这一家里 `plugin --check` 早就把第三个状态（没有 profile → 退出 2）做对了；`render-job.test.mjs` 需要 Python 3 却没人知道，缺依赖的机器在第 15 条断言吃到堆栈、后 45 条一起消失。规则统一为「整个不存在是一个状态，存在一部分才是漂移」。产出是 `contract/ci-workflow.test.mjs`（9 项，含「CI 不许写计数」与 `EXTERNAL_COMMANDS` 表）、`setup-steps.test.mjs` 的五态实测（+2 项）、README 的前置条件表 |
 | 2026-09-14 | M5（图与说法） | D95：图是一条断言，所以它要由工具从跑着的产品里产生（真实 `dsh web` + Chrome + Blender，控件靠点击），并且「它是不是图」必须能被测出来。第一版把 `project_create` 的 2 米立方体脚手架当成产品，拍出七张白墙而**没有任何断言能抓**；第二版改用 golden fixture 的比例与布光，patch 提交前干跑。产出是 `tools/capture-docs-images.mjs`、`docs/images/`（3 张，1.4 MiB）与 `contract/docs-images.test.mjs`（7 项，含一条纯色 PNG 的阴性对照） |

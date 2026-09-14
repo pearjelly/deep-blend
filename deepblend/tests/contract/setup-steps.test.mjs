@@ -279,3 +279,57 @@ test('the platform the managed Blender is pinned for is stated where prerequisit
     )
   }
 })
+
+test('the profile installer says why it still exists, and it is not pnpm', () => {
+  // A STEP THAT CANNOT SAY WHY IT EXISTS IS THE ONE SOMEBODY DELETES.
+  //
+  // `install-plugin.mjs` used to justify itself as "the manual equivalent of
+  // `dsh plugin --profile add`, because this machine has no pnpm". That is a statement about
+  // one machine, not about the product: `dsh plugin` needs pnpm on PATH and pnpm is
+  // installable, and with it the supported path works from a checkout today (measured end to
+  // end in `docs/probe-dsh-plugin-install.log` — the profile it produces serves
+  // `/deepblend/capabilities` with HTTP 200). What the supported path does NOT do is pin the
+  // store: it leaves it at `<DSH_HOME>/deepblend`, so a checkout would show an empty project
+  // list beside a project that exists on disk. That difference is the reason this script is
+  // still here, and it has to be the reason its own header gives.
+  const installer = readFileSync(join(TOOLS_DIRECTORY, 'install-plugin.mjs'), 'utf8')
+  const header = installer.slice(0, installer.indexOf('*/'))
+
+  // The REASON, not the word: the header mentions "operator layer" in three other places
+  // (what it touches, what --portable skips, what it refuses to overwrite), so an assertion on
+  // that phrase survives the deletion of the sentence that justifies the script.
+  // The reason as a COMPARISON — both halves have to be there. A header that mentions the
+  // supported command without saying what it leaves undone reads as "this script is
+  // redundant"; one that mentions the storage without the command reads as "we never checked".
+  assert.match(
+    header,
+    /dsh plugin --profile web add/,
+    'the installer no longer names the supported command it was measured against',
+  )
+  assert.match(
+    header,
+    /product default/,
+    'the installer no longer states the difference that keeps it alive: the supported path leaves the store at the product default',
+  )
+  assert.match(
+    header,
+    /probe-dsh-plugin-install\.log/,
+    'the installer does not point at the measurement that decided its own fate (Q10 → D98)',
+  )
+
+  // And the manual a user reads has to name BOTH paths, because they are not equivalent and
+  // the reader is the one who has to choose.
+  const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
+  assert.match(install, /dsh plugin --profile/, 'install.md does not mention the supported install path at all')
+  assert.match(install, /plugin:install/, 'install.md does not mention the repository installer')
+  // The claim has to be ATTACHED to that path, not merely present in the file: install.md
+  // already names `pnpm-workspace.yaml` in a list of files the launcher writes, so a bare
+  // /pnpm/ passes while saying nothing about the install path.
+  const at = install.indexOf('dsh plugin --profile')
+  const window = install.slice(Math.max(0, at - 400), at + 400)
+  assert.match(
+    window,
+    /pnpm[^\n]{0,24}(在 PATH|on PATH)/,
+    'install.md names the supported path without saying it needs pnpm ON PATH — a bare mention of pnpm elsewhere in the file is not the prerequisite a reader following it hits',
+  )
+})

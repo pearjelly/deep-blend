@@ -48,6 +48,25 @@ npm run plugin:install   # 3. 装配 profile：包链接 + bundle 注册 + 存�
 npm run presets:install  # 4. 部署 agent preset 与它自带的 skill
 ```
 
+> **第 3 步有两条路，先确认你走的是哪条。** 上面这条是**改代码的人**走的路：
+> 它多做的唯一一件事是把项目存储钉在 `<repo>/.deepblend`，因为本仓库的工具全都
+> 工作在那里，而部署的默认值是 `<DSH_HOME>/deepblend`——不钉的话，磁盘上明明有项目、
+> 面板里却是空列表。
+>
+> **只想把它跑起来的用户**走 DSH 自己的那条：
+>
+> ```bash
+> dsh plugin --profile web add \
+>   /path/to/deep-blend/packages/deepblend/{contracts,provider-local,host,ui,tool,bundle}
+> ```
+>
+> 它需要 **pnpm 在 PATH 上**（`dsh plugin` 不内置它，缺了会退出 127 并直说），
+> 会把 bundle 自动加进 `dsh.profile.bundles`，装完一样能服务
+> （实测：`/deepblend/capabilities` HTTP 200 / `hostApiVersion 4`，
+> 见 `probe-dsh-plugin-install.log`）。发布到 npm 之后这条会缩成
+> `dsh plugin --profile web add @deepblend/dsh-blender-bundle` 一条命令——
+> 那正是它比第 3 步更接近「用户的装法」的原因。
+
 每一步的期望输出：
 
 ```

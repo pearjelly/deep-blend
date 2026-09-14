@@ -1,0 +1,21 @@
+date: 2026-09-14T06:42:08.883Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-J4ouzG
+dsh: 0.1.5-rc.2
+dsh directory: /Users/hxb/.nvm/versions/node/v26.8.2/bin
+pnpm on PATH: 10.28.2
+`dsh plugin add` with no pnpm on PATH: exit 127 — dsh: pnpm not found on PATH — install pnpm to manage profile plugins
+profile created by `dsh`: yes
+bundles before: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app"]
+`dsh plugin add` (6 local paths): exit 0, 5 warning(s) about plain dependencies
+bundles after: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app","@deepblend/dsh-blender-bundle"]
+dependencies after: {"@deepblend/dsh-blender-bundle":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/bundle","@deepblend/dsh-blender-contracts":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/contracts","@deepblend/dsh-blender-host":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/host","@deepblend/dsh-blender-provider-local":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/provider-local","@deepblend/dsh-blender-tool":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/tool","@deepblend/dsh-blender-ui":"link:/Users/hxb/workspace/deep-blend/packages/deepblend/ui"}
+packages resolvable in the profile: ["dsh-blender-bundle","dsh-blender-contracts","dsh-blender-host","dsh-blender-provider-local","dsh-blender-tool","dsh-blender-ui"]
+shared profiles/node_modules created: no
+dsh web: port 60334
+capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
+projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-J4ouzG/deepblend/projects
+projectsRoot is under the scratch DSH_HOME: yes — the product default
+checkout store untouched: a <repo>/.deepblend store exists and was NOT used
+result: the supported path installs and serves DeepBlend from a checkout; what it does not do is pin the store to that checkout
+
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-J4ouzG

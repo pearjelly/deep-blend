@@ -60,6 +60,7 @@ deepblend/
                       **规格与记录**：dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
+                      / probe-dsh-plugin-install.log（两条装法各自测到什么，见「5. 安装进 DSH profile」）
   docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）
   tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
                       workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
@@ -79,6 +80,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
                       capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
+                      dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
     contract/         27 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
@@ -176,14 +178,14 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 （`milestone-status.md` §21）。
 
 预期：**16 个套件、42 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**27 个文件 = 830 项自计断言（12 个文件打印计数）+ 170 个 `node:test` 用例（15 个文件）**。
+**27 个文件 = 830 项自计断言（12 个文件打印计数）+ 171 个 `node:test` 用例（15 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 170 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 171 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
@@ -250,11 +252,28 @@ npm run presets:check    # 只报告漂移（本机没装过则报「未安装�
 npm run presets:install  # 把 deepblend/presets/ 部署到 $DSH_HOME/.agent-presets/
 ```
 
-`install-plugin.mjs` 做的是 `dsh plugin --profile add` 的等价动作（本机无 pnpm，故用
-**符号链接装配**，见 `runtime-audit.md` §5.4）：在 `$DSH_HOME/profiles/node_modules/@deepblend/`
-建立指向本仓库包的链接，并把 `@deepblend/dsh-blender-bundle` 加进
-`$DSH_HOME/profiles/<profile>/package.json` 的 `dsh.profile.bundles`。它不碰 DSH 安装目录，
-也**不会覆盖别人写的** `cordis.patch.yml`（见下）。
+**有两条装法，而且它们不是等价的**——选哪条取决于你是**用**它还是**改**它：
+
+| | `dsh plugin --profile web add <六个包的路径>` | `npm run plugin:install` |
+|---|---|---|
+| 谁用 | 只想把它跑起来的用户 | 在本仓库里改代码的人 |
+| 认证 | DSH 自己的路径 | 自己写的，**不经过 DSH** |
+| 需要 | pnpm 在 PATH 上（`dsh plugin` 不内置它） | 只要 Node |
+| `dsh.profile.bundles` | 自动加 | 自动加 |
+| 包落在哪 | `profiles/web/node_modules/@deepblend/` | `profiles/node_modules/@deepblend/` |
+| 项目存储在哪 | `<DSH_HOME>/deepblend`（产品默认） | `<repo>/.deepblend`（写 operator layer 钉住） |
+| `--check` | 无 | 有 |
+
+**第二条存在的唯一理由是最后两行**：本仓库的工具全都工作在 `<repo>/.deepblend`，
+而部署默认读 `<DSH_HOME>/deepblend`——于是磁盘上明明有项目，面板里却是空列表。
+实测见 `deepblend/docs/probe-dsh-plugin-install.log`（`tools/dsh-plugin-install-probe.mjs`
+在临时 `DSH_HOME` 上跑完整条路）：装完能服务，`/deepblend/capabilities` 返回
+**HTTP 200 / hostApiVersion 4**，但 `projectsRoot` 落在那个临时的 `DSH_HOME` 下。
+
+`install-plugin.mjs` 于是做三件事：把 `@deepblend/*` 链接进
+`$DSH_HOME/profiles/node_modules/`，把 `@deepblend/dsh-blender-bundle` 加进
+`dsh.profile.bundles`，以及**推导出**那一层 operator layer 把存储钉在本仓库上。
+它不碰 DSH 安装目录，也**不会覆盖别人写的** `cordis.patch.yml`（见下）。
 
 这两步以前只写在文档里。2026-09-14 profile 被重装后它们都没了，代价不是理论上的：
 M4 的浏览器套件起了自己的 `dsh web`，而它链接真实 profile 的 `node_modules`——

@@ -2703,3 +2703,71 @@ DeepBlend tests: 27/27 file(s) passed
 顺带被自己抓到一次：改完 SKILL.md 后 `presets:check` 立刻报 `SKILL.md: DRIFTED`——
 第 25 轮那个「装了但对不上才是漂移」的检查，第一次在真实改动上生效，
 而 `presets:install` 之后又回到 in sync。
+
+---
+
+## 27. 「别人怎么装」：两条路，差别只有一处，而且是量出来的（Q10 关闭）
+
+Q10 是 `architecture-decisions.md` §7 里最后一个没关的问题，从 M5 开头挂到现在：
+
+> 换一个用户来装：`dsh plugin --profile add` 需要 pnpm，本机没有，所以走的是符号链接装配
+> （D71）。发布到 npm 之后这条路是否仍然需要
+
+**这句话的前提是关于一台机器的，不是关于产品的**，而它从来没有被量过——所以这一轮在
+一个临时 `DSH_HOME` 上把整条 DSH 自己的路真的走了一遍，并把它做成一个可重跑的探针：
+`tools/dsh-plugin-install-probe.mjs`，日志在 `docs/probe-dsh-plugin-install.log`。
+
+### 27.1 量到的东西
+
+| 量到的东西 | 结果 |
+|---|---|
+| PATH 上没有 pnpm 时 | `exit 127`，`dsh: pnpm not found on PATH — install pnpm to manage profile plugins` |
+| `dsh plugin --profile web add` 六个本地路径 | `exit 0`，5 条「plain dependency」警告 |
+| `dsh.profile.bundles` | 自动多出 `@deepblend/dsh-blender-bundle`（不需要手改 package.json） |
+| 六个包解析到哪 | `profiles/web/node_modules/@deepblend/` —— **不是** `profiles/node_modules/` |
+| `dsh web` 真的服务吗 | `/deepblend/capabilities` → **HTTP 200，route=capabilities，hostApiVersion=4** |
+| 项目存储落在哪 | `<DSH_HOME>/deepblend/projects` —— **产品默认** |
+
+最后一行是全部的关键：**支持路径今天就能把 DeepBlend 装起来并服务**，不需要 npm 发布，
+也不需要符号链接装配。它唯一不做的事，是把存储钉在这个 checkout 上。
+
+### 27.2 于是 Q10 的答案是「两条路，差别一处」
+
+* **用户的装法**：`dsh plugin --profile web add <六个包的路径>`（发布到 npm 之后缩成
+  一条 `... add @deepblend/dsh-blender-bundle`）。存储留在产品默认值
+  `<DSH_HOME>/deepblend` —— 对用户来说这是**对的**，他没在一个 checkout 里工作。
+* **改代码的人的装法**：`npm run plugin:install`。唯一的差别是它**推导出**那层 operator
+  layer，把存储钉在 `<repo>/.deepblend`。不钉的后果是具体的：本仓库的工具全都工作在那里，
+  于是磁盘上明明有项目、面板里却是空列表。D76–D78 早就把这件事写成了设计，
+  **但从来没有人量过不钉会怎样**——现在量了。
+
+所以 `install-plugin.mjs` 不是「本机没有 pnpm 时的替代品」，而是**另一类使用者的装法**。
+README 与 `install.md` 现在把两条并排列出来，并在安装器的头部写清它比支持路径多做了什么。
+
+### 27.3 一个差点被记错的结论
+
+`dsh plugin --help` 的输出里有这么一行：
+
+```
+Version 10.28.2 (compiled to binary; bundled Node.js v26.8.2)
+```
+
+我一度据此在笔记里写下「`dsh plugin` 自带 pnpm，所以 D71 的前提是错的」——**那是 pnpm 在
+描述它自己**。把 pnpm 从 PATH 上拿掉之后，真相立刻出现：`exit 127`，
+`dsh: pnpm not found on PATH`。**工具的自我介绍不是关于宿主的证据**，
+而这一步只花了三十秒。差一点，这一轮就会以一个反过来的结论收尾并且写进文档。
+
+### 27.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 27/27 file(s) passed        830 项自计断言 + 171 个 node:test 用例
+```
+
+新增 `setup-steps.test.mjs` 的一条断言，它管住的是**「解释」本身**：安装器的头部必须同时
+说出「它被拿来和哪条命令比过」和「那条命令留下了什么没做」，`install.md` 里**贴着**
+`dsh plugin --profile` 的那一段必须提到 pnpm 在 PATH 上。五种变异（删掉整段理由、
+删掉指向实测的链接、把 pnpm 换成文件里另一处无关的 pnpm 词、删掉 pnpm 这个前提、
+不再点名支持路径）全部变红——其中「换成无关的 pnpm 词」是**第一版断言抓不到**的：
+`install.md` 里本来就有 `pnpm-workspace.yaml`，所以「文件里出现过 pnpm」什么都证明不了，
+必须要求它出现在**那一段**里。

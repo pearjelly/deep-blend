@@ -30,6 +30,26 @@
  * the workbench never appear — with no message anywhere saying why. Diagnosing
  * that from the failure takes far longer than running this command.
  *
+ * WHY THIS STILL EXISTS NOW THAT `dsh plugin add` HAS BEEN MEASURED (Q10 → D98)
+ * ---------------------------------------------------------------------------
+ * It is NOT because pnpm is missing — `dsh plugin` needs pnpm on PATH, and pnpm is
+ * installable, so that was never a property of the product. `dsh plugin --profile web add
+ * <the six package paths>` works, from a checkout, today: measured end to end on a scratch
+ * `$DSH_HOME`, the profile it produces serves `/deepblend/capabilities` with HTTP 200 and
+ * `hostApiVersion 4` (`docs/probe-dsh-plugin-install.log`, tool:
+ * `tools/dsh-plugin-install-probe.mjs`).
+ *
+ * What that path does NOT do is the one thing this script is for: it leaves the store at the
+ * product default, `<DSH_HOME>/deepblend`. A checkout's tools all work on `<repo>/.deepblend`,
+ * so a deployment installed that way shows an empty project list beside a project that
+ * plainly exists on disk — the same measurement, `projectsRoot` under the scratch home. The
+ * operator layer below is derived from the shipped bundle patch on every run and `--check`
+ * re-derives and compares it, which `dsh plugin add` has no equivalent of either.
+ *
+ * So: `dsh plugin add` is the USER's path (and the one npm publishing would turn into a
+ * single command); this script is the CONTRIBUTOR's, and the difference between them is
+ * exactly the storage pin.
+ *
  * WHAT IT TOUCHES
  * ---------------
  *   $DSH_HOME/profiles/node_modules/@deepblend/<pkg>   ->  packages/deepblend/<dir>
