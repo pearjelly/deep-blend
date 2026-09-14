@@ -3616,3 +3616,83 @@ M3 render job integration: 73/73 check(s) passed
 `tool/index.js`（那一处 re-export，附理由）。文档三处：`recovery.md` §2、
 `tool-contracts.md` 的 `blender_job_status` 一节、以及这一节。
 
+---
+
+## 39. 陌生人那一侧：入口有了，而且入口自己也被查着
+
+前 25 轮修的都是「跑起来之后」的事。这一轮去了另一个位置：一个**还没跑过任何东西**的人
+看到的那些文件。它们当时只有 `CONTRIBUTING.md`——一份写满了硬规则、却没有入口的文档：
+没有 issue 模板（而这是一个**对环境极度敏感**的插件：Blender 版本、DSH 版本、平台
+三者任一不同，答案就不同），也没有 PR 模板。
+
+写这两样东西的过程本身撞出一个**陈旧的数字**，它就是这一轮的主题。
+
+### 39.1 `CONTRIBUTING.md` 自己抄了一份断言总数，然后漂了 25 个提交
+
+```
+$ grep -n "项自计断言" CONTRIBUTING.md      # 写这一轮时
+npm test   # 单元 + 契约，806 项自计断言 + 82 个 node:test 用例，不需要 Blender
+
+$ node deepblend/tests/run.mjs              # 同一条命令今天打印的
+DeepBlend tests: 33/33 file(s) passed        841 项自计断言 + 224 个 node:test 用例
+```
+
+它是在 `8bed046`（25 个提交之前）写下的，从那以后**没有任何一次提交让它变错**——
+每一次都只是加了几条断言，而没有一次回头读那句话。**806/82 究竟曾经对不对，已经无法复原**，
+这恰恰是重点：一个放在没人复查的文档里的总数，连「它曾经是真的」都无法证明。
+
+README 里那份快照活了下来，靠的是两个性质：它被**标注**为快照，而且读者有一条命令可以
+把它换成新的（D93）。第二份副本两个性质都没有。所以规则是：**总数只有一份**，
+留在 README，别处指过去。这条规则现在是断言（`documented-counts.test.mjs`），
+而且它抓的正是那句原话——把这句抄回去，契约层立刻红（变异 T10）。
+
+### 39.2 入口：一份表单，和一份「你已经答应过的事」清单
+
+* `.github/ISSUE_TEMPLATE/bug_report.yml` —— 表单化的 issue 模板。它**要求**三样东西：
+  `dsh --version`、`npm run blender:check` 的输出、以及平台。理由写在字段说明里而不是这里：
+  本仓库每一个数字都是对着 pin 住的版本量出来的（`dsh-baseline.json` /
+  `blender-release.json`），缺了它们，报告只能靠猜。开头的 markdown 先把
+  `recovery.md` 与 `install.md` 推到读者面前——「渲染被 kill 了」「一帧只写了一半」
+  「宿主比磁盘上的包旧」都已经有页面了。
+* `.github/ISSUE_TEMPLATE/config.yml` —— 关掉空白 issue，并把上面两份文档做成入口链接。
+* `.github/PULL_REQUEST_TEMPLATE.md` —— `CONTRIBUTING.md` §3 的四条规则加上两条，
+  写成一张勾选清单：每条新断言都要能红、散文里的数字要么被断言要么标注为快照、
+  同一个事实不许有两份、由实测驱动的改动要进 `architecture-decisions.md`、
+  失败是编码结果不是堆栈、以及**不许复述里程碑状态**。
+
+### 39.3 模板是「没有人执行的散文」，所以它的可验证部分被查住了
+
+这是本仓库对**手册**（D82）用过的同一条规则的延伸，而模板比手册更危险一层：
+它会告诉读者去跑命令，而那些命令可能已经改名。`contract/contributor-surface.test.mjs`
+（11 项）查四件事：
+
+1. **表单能不能被 GitHub 渲染**。未知的 `type`、缺 `id`、重复 `id`、缺 `label`、
+   `dropdown` 没有 `options`、markdown 没有 `value` —— 其中任何一条都会让**整张表单**
+   变成 404，而本仓库里没有任何东西会注意到。GitHub 的 schema 在这里被逐条实现，
+   而**读表单的那个小读取器自己也被查着**：末尾五项喂给它的是每种坏法各一份的表单，
+   外加一份好的，要求它逐条点名、并且对好表单闭嘴（否则「表单是合法的」这句话
+   可能只是因为读取器什么都没读）。
+2. **模板点名的每条命令与每个路径都真的存在**。`npm run <script>` 必须能在
+   `package.json` 里找到，`node|bash <path>` 必须真的在磁盘上——一条死命令，
+   在一个陌生人唯一会信的文档里，比没有文档更糟。反方向也查（存在的命令必须通过），
+   否则「拒绝一切」的检查器也能满足它。
+3. **pin 与链接指向真的东西**：表单点名的两个 pin 文件存在，`config.yml` 的链接都在
+   本仓库内、且指向存在的文件、且其中一条是 `recovery.md`。
+4. **不许复述里程碑状态**：和 README / CONTRIBUTING 同一条规则，
+   模式**只存一份**（`tests/lib/milestone-claims.mjs`）——两份模式就是本条规则要治的病。
+
+10 条变异全部变红：未知组件类型、必填变可选、把 PR 模板里的命令改名、把 pin 文件改名、
+打开空白 issue、链接出仓、`recovery.md` 链接被换掉、模板里写一句里程碑状态、
+把验收套件那句话删掉、以及把断言总数抄回 CONTRIBUTING。
+
+### 39.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 33/33 file(s) passed        841 项自计断言 + 224 个 node:test 用例
+```
+
+新增：`.github/ISSUE_TEMPLATE/{bug_report.yml,config.yml}`、`.github/PULL_REQUEST_TEMPLATE.md`、
+`deepblend/tests/lib/milestone-claims.mjs`（README / CONTRIBUTING / 两份模板共用的模式）、
+`deepblend/tests/contract/contributor-surface.test.mjs`（11 项）。
+`CONTRIBUTING.md` 拿掉了那份会漂的总数、加上了两条入口的说明与两行耦合表。

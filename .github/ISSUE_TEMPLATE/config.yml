@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Something in a render broke — read recovery.md first
+    url: https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/recovery.md
+    about: Interrupted renders, half-written frames, a full disk, a stale workbench and every documented error code, each with the next step.
+  - name: Installing it, or a tool says the runtime is unavailable
+    url: https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/install.md
+    about: The host bundle, the preset, the Blender pin, and what each missing piece reports.

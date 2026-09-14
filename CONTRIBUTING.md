@@ -13,7 +13,7 @@ git clone https://github.com/pearjelly/deep-blend.git
 cd deep-blend
 
 npm run setup            # 把 node_modules 链接到本机已安装的 DSH 部署（必须先做）
-npm test                 # 单元 + 契约，806 项自计断言 + 82 个 node:test 用例，不需要 Blender
+npm test                 # 单元 + 契约，不需要 Blender（当前读数是 README 里那张快照，这里不抄第二份）
 
 npm run blender:check    # 本机有没有跑验收套件所需的那个 Blender
 npm run blender:install  # 没有就装一个（工作区内的 .tools/，免 sudo）
@@ -123,6 +123,8 @@ docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
 | 新增一句 import | `workspace-links.test.mjs` |
 | 改 bundle 里的配置 | `plugin:check` 会报 operator layer 漂移（那一层是推导出来的） |
 | 改工作台 UI 的**可见**部分 | **没有断言**。README 的三张图不会自己更新，也没人会发现它们过时了——跑 `npm run docs:images` 重新截（`docs-images.test.mjs` 只能保证它们还在、还是截图，保证不了它们是新版） |
+| 改 `.github/` 里的 issue / PR 模板 | `contributor-surface.test.mjs`（表单能不能被 GitHub 渲染、点名的命令与路径是否存在、pin 与链接指向真的东西、以及模板里不许写里程碑状态） |
+| 在**别处**再抄一份断言总数 | `documented-counts.test.mjs`。总数只有 README 那一份，而且是**标注过的快照**；`CONTRIBUTING.md` 里那第二份漂了 25 个提交（写它时 806/82，今天 841/224），而且无法复原它当年是否曾经是对的（D111） |
 
 **手册是唯一一类不会被执行的产物**，所以它的可验证部分被单独查住（D82）：
 改完 `deepblend/docs/{install,usage,recovery}.md` 之后跑 `node deepblend/tests/run.mjs`，
@@ -134,6 +136,19 @@ docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
 这一条写在表里而不是留给读者猜。
 
 ---
+
+### 遇到问题、或准备提交一个改动
+
+两条入口都在 `.github/`，而且它们**自己**也被契约层查着（`contract/contributor-surface.test.mjs`）：
+issue 表单必须能被 GitHub 渲染（未知的 `type`、缺 `id`、重复 `id`、`dropdown` 没有 `options`
+都会让**整张表单**变成 404），表单里点名的每一条命令与每一个路径必须真的存在，
+而两份模板都不许复述里程碑状态（和 README / 本文件同一条规则，
+模式只在 `tests/lib/milestone-claims.mjs` 里存一份）。
+
+* `.github/ISSUE_TEMPLATE/bug_report.yml` —— 报 bug 时**必须**给出 Blender、DSH 与平台：
+  本仓库的每一次测量都是对着 pin 住的版本做的，缺了这三样，报告只能靠猜。
+* `.github/PULL_REQUEST_TEMPLATE.md` —— 提交前那张清单就是本文件 §3 的四条规则，
+  外加「每条新断言都要能红」和「不许复述里程碑状态」。
 
 ## 5. 记录决策
 

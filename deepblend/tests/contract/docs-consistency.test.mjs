@@ -38,6 +38,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+
+import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The manuals SPEC §23.5 asks for, and the README's own name for each. */
@@ -192,35 +194,24 @@ test('the README does not assert milestone status, because it cannot keep it tru
   // per-milestone conclusions, the deviations and the gaps — and the README points at it. What
   // the README may state is what a command prints, and that is checked where the numbers live
   // (`documented-counts.test.mjs`).
-  // THE SHAPES THAT ACTUALLY ROTTED, written down as they rotted rather than as a general
-  // principle. A loose "a milestone near the word 闭环" pattern flags 「M2 视觉闭环」 — the
-  // name of a capability, in the directory listing, and correct — so each pattern below asks
-  // for the CLAIM: a verdict about verification, a milestone list with a verdict, a plan
-  // stated as the present, or a progress report.
-  const claims = [
-    // "M0、M1、M2、M3、M4 验收均已闭环" — a list of milestones with a verdict on the end.
-    /M\d(?:\s*[、,和]\s*M\d)+[^\n。]{0,16}(闭环|完成|验收)/,
-    // "M5 验收已闭环" / "M3 已完成" — one milestone, its verification, and a verdict.
-    /M\d[^\n。]{0,8}验收[^\n。]{0,8}(闭环|完成|通过)/,
-    /M\d[^\n。]{0,6}(已闭环|已完成|已验收)/,
-    // "按 SPEC §0.3，M5 应在新的会话中开始" — a plan stated as the present.
-    /M\d[^\n。]{0,24}(应在|将在|尚未开始|即将开始|还没有开始)/,
-    // "M5 已经开始" — progress, which the register owns.
-    /M\d[^\n。]{0,12}(已经开始|正在进行|仍未完成)/,
-  ]
-  // The README and CONTRIBUTING are the two documents a person reads before running anything,
-  // and both are covered: a status claim is not more acceptable one file over.
+  //
+  // THE PATTERNS MOVED to `tests/lib/milestone-claims.mjs` in round 26, when the issue and pull
+  // request templates became two more documents a contributor reads before running anything. Each
+  // pattern there asks for a CLAIM rather than matching the word "milestone", because a loose rule
+  // flags 「M2 视觉闭环」 — the name of a capability, and correct.
+  //
+  // The README and CONTRIBUTING are the two documents a person reads before running anything, and
+  // both are covered: a status claim is not more acceptable one file over. The templates are covered
+  // by `contributor-surface.test.mjs`.
   for (const [name, text] of [['README.md', readme], ['CONTRIBUTING.md', mergePolicy]]) {
-    for (const pattern of claims) {
-      const found = pattern.exec(text)
-      assert.equal(
-        found,
-        null,
-        `${name} states a milestone's status (${JSON.stringify(found?.[0])}). That is what ` +
-          'milestone-status.md is for — a status written twice rots in the copy nobody reads, and ' +
-          'this one did: it said the last milestone had not started, six rounds after it finished.',
-      )
-    }
+    const claim = findMilestoneStatusClaim(text)
+    assert.equal(
+      claim,
+      null,
+      `${name} states a milestone's status (${JSON.stringify(claim)}). That is what ` +
+        'milestone-status.md is for — a status written twice rots in the copy nobody reads, and ' +
+        'this one did: it said the last milestone had not started, six rounds after it finished.',
+    )
   }
 
   // And the pointer has to be there, because the rule above is only safe if the register is

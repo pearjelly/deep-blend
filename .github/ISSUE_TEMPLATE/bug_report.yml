@@ -1,0 +1,89 @@
+name: Bug report
+description: Something in DeepBlend Studio did the wrong thing — a tool, a render, the workbench, or an install step
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filling this in, two documents answer a lot of what looks like a bug:
+
+        - `deepblend/docs/recovery.md` — the failures this plugin knows about, by symptom and by
+          error code. A render interrupted by a `kill -9`, a half-written frame, a full disk and a
+          stale workbench all have pages there, and each page says what to do next.
+        - `deepblend/docs/install.md` — if a tool reports `BLENDER_RUNTIME_UNAVAILABLE`, the host
+          bundle is probably not composed in this profile; that page names the step.
+
+        If neither covers it, the fields below are the ones this project cannot reproduce without.
+        Blender, DSH and the OS each change the answer, and the version pins in the repository are
+        what every measurement here was taken against.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, in your own words. If a tool returned text, paste it whole — the coded line at the top is usually the answer.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: The honest version is useful even when it is "I do not know" — it tells us whether the tool description misled you.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: The exact tool call or command, with the project, revision and job ids if there are any (`render-0001` and `r0029` are real shapes). A screenshot of the workbench helps for UI reports.
+      placeholder: |
+        blender_final_render {projectId: "watch-commercial", revision: "r0029", frameStart: 1, frameEnd: 450}
+        → RENDER_JOB_CONFLICT ... (paste the whole result)
+    validations:
+      required: true
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH version
+      description: The output of `dsh --version`. This repository pins one in deepblend/tools/dsh-baseline.json and every measurement was taken against it; a different version is a real candidate cause.
+      placeholder: 0.1.5-rc.2
+    validations:
+      required: true
+  - type: textarea
+    id: blender
+    attributes:
+      label: Blender
+      description: The output of `npm run blender:check`. It reports the executable it resolved, its version, and whether it matches the build this repository pins (deepblend/tools/blender-release.json).
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: The pinned managed Blender exists for macOS arm64 only. Every other platform is "install Blender 5.2.1, then set blenderPath in the operator layer" (deepblend/docs/install.md).
+      options:
+        - macOS arm64
+        - macOS x64
+        - Linux x64
+        - Linux arm64
+        - Windows
+        - Other (say so in the description)
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: What the repository's own checks say
+      description: Paste the output of `node deepblend/tests/run.mjs`. It is fast, needs no Blender, and a red contract layer usually names the component that is out of step.
+      render: text
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I read `deepblend/docs/recovery.md` for this symptom.
+          required: true
+        - label: I am reporting this against the DSH version this repository pins, or I have said which one I am on above.
+          required: true

@@ -222,6 +222,46 @@ test('every per-file check count the README quotes is the count that file prints
   }
 })
 
+test('no document other than the README carries its own copy of the assertion totals', () => {
+  // THE DEFECT THIS FINDS, MEASURED: `CONTRIBUTING.md`'s quick start said
+  // `npm test  # 单元 + 契约，806 项自计断言 + 82 个 node:test 用例` for twenty-five commits. The same
+  // command printed 841 and 215. Whether 806/82 was ever right is not recoverable — no commit made it
+  // wrong, because nothing ever re-read it — and that is the point: a total in a document nobody
+  // checks cannot even be shown to have been true.
+  //
+  // The README's snapshot survives by being LABELLED as a snapshot and read by a human who runs one
+  // command to replace it (D93). A second copy has neither property, so the rule is: one document
+  // carries the totals, and the rest point at it. The check is deliberately about the SHAPE — a
+  // number next to "断言" or "node:test 用例" — because a rule that listed the two stale figures would
+  // be the same rot one round later.
+  const documents = [
+    'CONTRIBUTING.md',
+    'deepblend/docs/usage.md',
+    'deepblend/docs/install.md',
+    'deepblend/docs/recovery.md',
+    // The templates a contributor reads before running anything: the same rule, one file over.
+    '.github/PULL_REQUEST_TEMPLATE.md',
+    '.github/ISSUE_TEMPLATE/bug_report.yml',
+  ]
+  const totals = /\d+\s*(?:项自计断言|项?自计断言|个\s*`?node:test`?\s*用例)/
+  for (const name of documents) {
+    const path = join(ROOT, name)
+    if (!existsSync(path)) continue
+    const text = readFileSync(path, 'utf8')
+    const found = text.match(totals)
+    assert.equal(
+      found,
+      null,
+      `${name} carries its own copy of the assertion totals (${JSON.stringify(found?.[0])}). ` +
+        'The README owns that snapshot and labels it as one; a second copy is a number nothing re-reads.',
+    )
+  }
+  // The rule has to be able to fail, so it is exercised on the sentence that was actually there.
+  assert.notEqual('npm test   # 单元 + 契约，806 项自计断言 + 82 个 node:test 用例'.match(totals), null)
+  // ...and must not fire on the README's own labelled snapshot, which stays where it is.
+  assert.notEqual(readme.match(totals), null, 'the README no longer carries the snapshot this rule is an exception for')
+})
+
 test('the tool count is derived from the list the UI draws cards from, not a second list', () => {
   // The number in the docs has to come from ONE place. `UI_TOOL_CARD_KEYS` is that
   // place, and `ui-plane.e2e.mjs` already asserts it equals what the preset actually
