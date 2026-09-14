@@ -1,6 +1,6 @@
 ---
 name: deepblend-studio
-description: Use when planning or producing a 3D animation with DeepBlend Studio — setting up a shot or product scene, changing a Blender scene through SceneSpec patches, rendering and judging a preview, repairing a scene that measures badly, running or resuming a long final render, or delivering a finished video. Also use when a render job needs checking, cancelling or resuming, or when a previous session's revision has to be restored.
+description: Use when planning or producing a 3D animation with DeepBlend Studio — setting up a shot or product scene, bringing the user's own 3D model into a project, changing a Blender scene through SceneSpec patches, rendering and judging a preview, repairing a scene that measures badly, running, checking, cancelling or resuming a long final render, or delivering a finished video. Also use when a previous session's revision has to be restored.
 ---
 
 # DeepBlend Studio
@@ -27,7 +27,13 @@ not a way to make one. If you catch yourself wanting "just one frame to check", 
 is a preview.
 
 A final render is also the one operation that may need approval (SPEC §15.1), and it
-is the one that can outlive the process. Treat starting it as a commitment.
+is the one that can outlive the process. Treat starting it as a commitment — and know
+the way out: **`blender_job_cancel`** stops it and *measures* that the renderer is gone
+rather than assuming the signal landed. Cancelling keeps every frame already written, so
+a cancelled render is resumable with `blender_final_render {resumeJobId}`, and a partially
+written frame is re-rendered rather than kept. Cancel a render you no longer want; never
+start a second one beside it, because a project can only have one delivery render at a
+time (`RENDER_JOB_CONFLICT`).
 
 ## The order that works
 
@@ -36,25 +42,45 @@ is the one that can outlive the process. Treat starting it as a commitment.
    data (`installed: false` plus a warning), never as a crash.
 2. **`blender_project_create`** — a project owns a SceneSpec, a revision history and
    the render output. The first revision is `r0001`.
-3. **`blender_scene_get`** — read before writing. Patching without reading is how a
+3. **`blender_asset_ingest`** — only if the user brought a model file. It is a two-step
+   contract and the second step is easy to forget; see "Bringing in a model" below.
+4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
-4. **`blender_scene_patch`** — the ONLY way to change a scene. There is no free-form
+5. **`blender_scene_patch`** — the ONLY way to change a scene. There is no free-form
    edit and no script. See "Revision discipline" below.
-5. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
+6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns a contact sheet.
-6. **`blender_visual_review`** — ask for a measured judgement (see "Who decides what").
-7. **`blender_visual_autofix`** — hand the loop a goal and let it iterate, when the
+7. **`blender_visual_review`** — ask for a measured judgement (see "Who decides what").
+8. **`blender_visual_autofix`** — hand the loop a goal and let it iterate, when the
    problem is one the measurements can see.
-8. **`blender_final_render`** — only once the preview is right. It returns as soon as
+9. **`blender_final_render`** — only once the preview is right. It returns as soon as
    the job is durable, not when it finishes.
-9. **`blender_job_status`** — poll it, or come back to it in a later turn. A render
-   that outlives the process is still there: the store is on disk.
-10. **`blender_export`** — publish the delivery package when you want it verified and
+10. **`blender_job_status`** — poll it, or come back to it in a later turn. A render
+    that outlives the process is still there: the store is on disk.
+11. **`blender_export`** — publish the delivery package when you want it verified and
     described rather than merely finished.
 
 `blender_scene_validate` fits anywhere: it checks a scene, or a patch you have not
 committed yet (`dryRun`), without touching the project. Use it when a patch is refused
 and the reason is not obvious.
+
+## Bringing in a model the user already has
+
+`blender_asset_ingest` copies a file into the project; it **does not touch the scene**.
+Two steps follow it, and a scene that skips the second one has an asset nobody uses:
+
+1. `blender_asset_ingest {projectId, sourcePath}` — a local file, no approval. Pass
+   `sourceUrl` instead and the call **pauses to ask the operator**, because it leaves
+   the machine. Use `sourcePath` whenever the file is already there.
+2. `blender_scene_patch {op: "asset.add", asset: {id, type, path, sha256}}` — declare it,
+   using the `assetId`, project-relative `path` and `sha256` the ingest returned. This is
+   what commits it: one accepted patch, one new revision, like every other change.
+3. `blender_scene_patch {op: "entity.add", …}` with `type: "asset-instance"` and that
+   `assetId` — now something in the scene uses it.
+
+`blender_scene_validate` is the check that the format is one this Blender build can
+import. Setting `license` on anything you downloaded is worth the argument: an asset
+whose provenance is unrecorded is one nobody can safely ship.
 
 ## Revision discipline
 
@@ -70,6 +96,8 @@ and the reason is not obvious.
   `resumeJobId` renders only the frames that are missing or corrupt. The frames on disk
   are the authority, not the job record, so a render killed mid-frame resumes correctly.
   Never start a fresh render of a job that already has frames.
+- **A render you no longer want is cancelled, not abandoned.** `blender_job_cancel` takes
+  the job id, stops the renderer and reports whether the process is actually gone.
 
 ## Who decides what
 

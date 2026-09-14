@@ -40,6 +40,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+
 import { ROOT } from '../../tools/workspace-layout.mjs'
 import { importDsh } from '../lib/dsh-deployment.mjs'
 
@@ -203,6 +205,43 @@ test('the skill the persona tells the model to load is shipped inside the preset
   assert.ok(
     composition.includes(name),
     `the persona does not name the "${name}" skill, so the model has no reason to load it`,
+  )
+})
+
+test('the skill names every tool the preset registers, and invents none', () => {
+  // THE REVERSE OF THE CHECK THE MANUALS GET (D94), applied to the MODEL-facing document.
+  //
+  // The skill is what the model loads to become competent at this workbench, so a tool it
+  // never mentions is a capability the model may never reach for — and a tool it names that
+  // does not exist is worse: an instruction to call something that will fail. Both
+  // happened. `blender_asset_ingest` and `blender_job_cancel` were registered and absent
+  // from the skill, and the asset one is the tool with the least obvious contract in the
+  // whole set: ingesting copies bytes and does NOT change the scene, so a model that never
+  // reads about it will ingest a model and then wonder why nothing appeared.
+  //
+  // The comparison is against `UI_TOOL_CARD_KEYS` — the same list the docs are checked
+  // against — and `ui-plane.e2e.mjs` asserts that list equals what the preset actually
+  // registers. So this cannot go green over a skill that describes a catalog nobody has.
+  const skill = readFileSync(join(PRESET_DIR, 'skills', 'deepblend-studio', 'SKILL.md'), 'utf8')
+  const named = new Set(skill.match(/\bblender_[a-z_]+/g) ?? [])
+  const registered = new Set(UI_TOOL_CARD_KEYS)
+
+  assert.ok(named.size > 0, 'the skill names no tool at all, so this assertion would be vacuous')
+
+  const invented = [...named].filter(name => !registered.has(name))
+  assert.deepEqual(
+    invented,
+    [],
+    `the skill tells the model to call ${invented.join(', ')}, which is not a registered tool`,
+  )
+
+  const undescribed = [...registered].filter(name => !named.has(name))
+  assert.deepEqual(
+    undescribed,
+    [],
+    `the preset registers ${undescribed.join(', ')} and the skill never mentions ${
+      undescribed.length === 1 ? 'it' : 'them'
+    } — a tool the model must discover from a schema alone is one it will not plan with`,
   )
 })
 

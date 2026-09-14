@@ -132,11 +132,24 @@ const pin = JSON.parse(readFileSync(PIN_FILE, 'utf8'))
 // ---------------------------------------------------------------------------
 // Platform guard. This is a macOS arm64 DMG; saying so beats a curl that
 // succeeds and an `hdiutil` that does not exist.
+//
+// AND THE ADVICE HAS TO NAME THE PRODUCT'S OWN KNOB. This used to end with "set
+// DEEPBLEND_BLENDER_PATH to its binary" — a variable that only THIS repository's tests and
+// probes read (`grep -rn DEEPBLEND_BLENDER_PATH deepblend/tests`). The installed product
+// reads `blenderPath` on the `deepblend-blender-runtime` row, which an operator sets in the
+// operator layer; a user who followed the old line would set a variable nothing consults and
+// have no way to find out why. `install.md` said `blenderPath` all along, so the script and
+// the manual disagreed at exactly the moment the user needed them to agree. Measured in a
+// Linux container; `milestone-status.md` §26.
+//
+// The env var is still worth naming, because a CONTRIBUTOR will meet it in the test suite
+// and the two are easy to confuse — but it has to be named as what it is.
 // ---------------------------------------------------------------------------
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   say('platform', `${process.platform}/${process.arch}`)
   say('result', `this installer only knows the pinned ${pin.platform} build`)
-  say('manual', `install Blender ${pin.version} yourself, then set DEEPBLEND_BLENDER_PATH to its binary`)
+  say('manual', `install Blender ${pin.version} yourself, then set blenderPath on the deepblend-blender-runtime row in $DSH_HOME/profiles/<profile>/cordis.patch.yml`)
+  say('note', 'DEEPBLEND_BLENDER_PATH is what THIS repository\'s tests read; the installed product does not')
   process.exit(2)
 }
 

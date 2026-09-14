@@ -1974,6 +1974,40 @@ this machine`**，其中第三种**退出 0**；规则是「**整个不存在是
 
 ---
 
+### D97 — **对模型和用户说话的那一层**也要被查：技能要覆盖工具面，报错要点到产品真的读的键
+
+**决策**：两条规则，都加断言。
+
+1. **模型加载的技能必须提到预设注册的每一个工具**（且不许提到不存在的）。
+2. **一条被平台挡住的报错，必须点到产品真的读的那个键，并说出在哪里设它**；
+   如果它提到一个只有本仓库测试读的环境变量，必须同时说明那不是产品的键。
+
+**触发它的事实**（两处，同一形状）：
+
+* `deepblend-studio` 的 `SKILL.md` 列了 10 步工作顺序，**16 个工具里少了两个**：
+  `blender_asset_ingest` 与 `blender_job_cancel`。前者是全套里契约最反直觉的一个
+  ——**ingest 不改场景**，之后还要 `asset.add` + `entity.add {type:"asset-instance"}`
+  才真的进场景；一个只从 schema 认识它的模型会导完文件然后发现场景里什么都没有。
+  后者缺的是**出路**：技能里反复强调正式渲染是「三个数量级」的承诺，
+  却没写怎么停。手册有两个方向的检查（D94），**模型-facing 的文档一个方向都没有**。
+* `install-blender.mjs` 的平台守卫建议用户
+  `set DEEPBLEND_BLENDER_PATH to its binary`。而这个变量**只被本仓库的测试与探针读**
+  （`grep -rn DEEPBLEND_BLENDER_PATH deepblend/tests` 就是全部）；产品读的是
+  `deepblend-blender-runtime` 行的 `blenderPath`，操作者在 operator layer 里设它——
+  `install.md` 一直就是这么写的。于是**脚本与手册在用户最需要它们一致的那一刻说了两句
+  不同的话**，而照着报错做的用户没有任何办法知道为什么没用。
+
+**为什么这是一个决策而不是两条修补**：D93–D94 修的是**散文里的数字**与**手册的方向性**，
+D96 修的是**检查机器的那一层**。这一轮修的是**第三类文本**：给模型的说明书、
+以及失败时对用户说的话。这三类此前的共同点是——**没有消费者**。技能由模型读，
+报错由用户读，而两者都不在任何断言里。
+
+**被写下来的边界**：技能的断言比的是 `UI_TOOL_CARD_KEYS`，也就是文档在比的那一份，
+而 `ui-plane.e2e.mjs` 断言它等于预设**真的**注册的东西。所以这条断言不能多、不能少，
+但它**也只能管到「提到了」**——提得对不对是人的判断，与 D95 里「图是不是好图」同一类。
+
+---
+
 
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
@@ -2022,6 +2056,7 @@ this machine`**，其中第三种**退出 0**；规则是「**整个不存在是
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（对模型与用户说的话） | D97：给模型的技能必须覆盖工具面（16 个里少了 `blender_asset_ingest` 与 `blender_job_cancel`，而前者是全套里契约最反直觉的一个——ingest 不改场景）；被平台挡住的报错必须点到产品真的读的键（守卫让人设 `DEEPBLEND_BLENDER_PATH`，而那个变量只有本仓库的测试读，产品读的是 operator layer 的 `blenderPath`，`install.md` 一直这么写）。产出是 SKILL.md 的资产一节与取消语义、`preset-surface.test.mjs` 的双向覆盖断言、`setup-steps.test.mjs` 的「建议点到真键」与「平台边界写在讲前提处」 |
 | 2026-09-14 | M5（验证 CI） | D96：把 CI 的每一步照抄进 Linux 容器跑一遍，两个此前从未被执行的产物都坏了——`install-presets --check` 把「本机没装」报成「5 file(s) drifted」并退出 1（标签对、旁边的计数器错：`if (!same) drift += 1`），而这一家里 `plugin --check` 早就把第三个状态（没有 profile → 退出 2）做对了；`render-job.test.mjs` 需要 Python 3 却没人知道，缺依赖的机器在第 15 条断言吃到堆栈、后 45 条一起消失。规则统一为「整个不存在是一个状态，存在一部分才是漂移」。产出是 `contract/ci-workflow.test.mjs`（9 项，含「CI 不许写计数」与 `EXTERNAL_COMMANDS` 表）、`setup-steps.test.mjs` 的五态实测（+2 项）、README 的前置条件表 |
 | 2026-09-14 | M5（图与说法） | D95：图是一条断言，所以它要由工具从跑着的产品里产生（真实 `dsh web` + Chrome + Blender，控件靠点击），并且「它是不是图」必须能被测出来。第一版把 `project_create` 的 2 米立方体脚手架当成产品，拍出七张白墙而**没有任何断言能抓**；第二版改用 golden fixture 的比例与布光，patch 提交前干跑。产出是 `tools/capture-docs-images.mjs`、`docs/images/`（3 张，1.4 MiB）与 `contract/docs-images.test.mjs`（7 项，含一条纯色 PNG 的阴性对照） |
 | 2026-09-14 | M5（资产的尾巴） | D93–D94：散文里的数字分两类——结构量能被断言，总量只能被标注（README 的 811/24/39 在五次提交里悄悄变成 830/25/40，而**没有一次提交是错的**）；一个承诺要从写出它的那份文档里读出来（`SPEC_11_TOOLS` 被抄了三遍且都没与 `SPEC.md` 比过），并且文档检查要两个方向都查（`usage.md` 的分工表漏掉了 `blender_asset_ingest`，而 README 那句「十五个工具的分工」是真话）。产出是 `contract/documented-counts.test.mjs`、`tests/lib/spec-tools.mjs`、`docs-consistency.test.mjs` 的反方向断言，以及四处用户可见的修正 |

@@ -49,6 +49,9 @@ const SETUP_STEP_PATTERN = /^(install|link)-[a-z-]+\.mjs$/
 const TOOLS_DIRECTORY = join(ROOT, 'deepblend', 'tools')
 const PRESETS_DIRECTORY = join(ROOT, 'deepblend', 'presets')
 
+/** The Blender pin: version, platform, image and digest. */
+const blenderPin = JSON.parse(readFileSync(join(TOOLS_DIRECTORY, 'blender-release.json'), 'utf8'))
+
 const setupSteps = existsSync(TOOLS_DIRECTORY)
   ? readdirSync(TOOLS_DIRECTORY).filter(name => SETUP_STEP_PATTERN.test(name)).sort()
   : []
@@ -209,5 +212,70 @@ test('a partly installed, drifted or stale deployment is still drift', () => {
       encoding: 'utf8',
     })
     assert.equal(outcome.status, 0, `installing into a throwaway home failed: ${outcome.stderr}`)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// The advice a blocked step gives
+// ---------------------------------------------------------------------------
+
+test('the platform guard tells the user about a knob the PRODUCT has', () => {
+  // `install-blender.mjs` refuses on any platform its pinned DMG cannot serve, and its
+  // advice used to be "set DEEPBLEND_BLENDER_PATH to its binary". That variable is read by
+  // this repository's tests and probes and by NOTHING ELSE — `grep -rn DEEPBLEND_BLENDER_PATH
+  // deepblend/tests` is the whole list. The installed product reads `blenderPath` on the
+  // `deepblend-blender-runtime` row, which an operator sets in the operator layer. So a user
+  // who followed the advice would set a variable nothing consults, at the one moment they
+  // had already hit a wall, and `install.md` said `blenderPath` all along: the script and
+  // the manual disagreed exactly when they needed to agree. Found by running this file's
+  // subject in a Linux container; `milestone-status.md` §26.
+  const installer = readFileSync(join(TOOLS_DIRECTORY, 'install-blender.mjs'), 'utf8')
+  const guardStart = installer.indexOf('if (process.platform !==')
+  const guardEnd = installer.indexOf('const present =')
+  assert.ok(guardStart !== -1 && guardEnd > guardStart, 'install-blender.mjs no longer has the platform guard this test describes')
+  const guard = installer.slice(guardStart, guardEnd)
+
+  assert.match(guard, /blenderPath/, 'the advice does not name the knob the product reads')
+  assert.match(
+    guard,
+    /cordis\.patch\.yml/,
+    'the advice names a knob without saying where to set it — the operator layer is the "where", and a user who is already stuck will not guess it',
+  )
+
+  // And if it mentions the test-only variable at all, it has to say what it is. The two are
+  // easy to confuse precisely because the tests are where a contributor meets the other one.
+  if (guard.includes('DEEPBLEND_BLENDER_PATH')) {
+    assert.match(
+      guard,
+      /does not/,
+      'the guard mentions DEEPBLEND_BLENDER_PATH without saying that the installed product does not read it',
+    )
+  }
+
+  // The key is real. `imports.test.mjs` asserts the provider's whole config schema against a
+  // declared key list; this pins only the spelling the advice uses, so that a rename cannot
+  // leave the advice pointing at a key that no longer exists.
+  const provider = readFileSync(join(ROOT, 'packages', 'deepblend', 'provider-local', 'lib', 'index.js'), 'utf8')
+  assert.match(
+    provider,
+    /blenderPath:\s*z\.string\(\)\.default\('auto'\)/,
+    'the advice names `blenderPath`, but the provider no longer declares it with its documented default',
+  )
+})
+
+test('the platform the managed Blender is pinned for is stated where prerequisites are', () => {
+  // A boundary nobody can find is not a boundary. The pin records `platform`, and both
+  // documents that list prerequisites have to say it — in the pin's own terms rather than in
+  // a paraphrase that can drift from it. Normalised, so "macOS arm64" and "macos-arm64" are
+  // the same claim.
+  const wanted = blenderPin.platform.replace(/[^a-z0-9]/gi, '').toLowerCase()
+  assert.ok(wanted.length > 0, 'the Blender pin no longer records a platform')
+
+  for (const name of ['README.md', 'deepblend/docs/install.md']) {
+    const text = readFileSync(join(ROOT, name), 'utf8')
+    assert.ok(
+      text.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(wanted),
+      `${name} states prerequisites without stating that the managed Blender is ${blenderPin.platform}`,
+    )
   }
 })

@@ -11,7 +11,7 @@
 
 | 项目 | 要求 | 怎么确认 |
 |---|---|---|
-| 操作系统 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`tools/blender-release.json` 里的 `platform`），别的平台要自己装 Blender 并设 `blenderPath` |
+| 操作系统 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`tools/blender-release.json` 里的 `platform`）。别的平台要自己装 Blender 5.2.1，再把 `blenderPath` 设在 **operator layer**（`$DSH_HOME/profiles/<profile>/cordis.patch.yml` 的 `deepblend-blender-runtime` 行）。`npm run blender:check` 在没有受管 Blender 的平台上就是这么说的，并退出 2 |
 | Node.js | ≥ 22（开发机是 v26.8.2） | `node --version` |
 | DSH | **`0.1.5-rc.2`**，钉住的版本 | `dsh --version`；它是兼容性锚点，别的版本未必能装（见 §4） |
 | git | 任意 | `git --version` |

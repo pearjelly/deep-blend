@@ -2610,3 +2610,96 @@ DeepBlend tests: 27/27 file(s) passed
 
 **这一轮的产品代码一行没改**——两处改动都在**验证机器自己的那一侧**：
 一个检查缺了依赖时怎么说话，一个检查在东西不存在时怎么说话。
+
+---
+
+## 26. 模型的说明书漏了两个工具，而安装器指了一个产品不读的键
+
+第 25 轮把 CI 搬进容器之后，这一轮接着问同一类问题，只是问的对象换成了**模型和用户**：
+**给模型看的那份说明书，和给用户看的那条报错，说的是真话吗。**
+
+### 26.1 SKILL.md 少了两个工具，其中一个的契约最容易被误解
+
+`deepblend/presets/deepblend/skills/deepblend-studio/SKILL.md` 是模型加载的「这一行怎么干」，
+它列了一条 10 步的工作顺序。它**没有提到 `blender_asset_ingest`，也没有提到
+`blender_job_cancel`**——16 个工具里少两个。
+
+两个都不是可有可无的漏字：
+
+* **资产那一个的契约是全套里最反直觉的**：`blender_asset_ingest` **不改场景**。
+  它把字节拷进项目、返回 assetId / 相对路径 / sha256，然后必须**再用两次 patch**
+  才真的进了场景（`asset.add` 声明，`entity.add {type: "asset-instance"}` 使用）。
+  一个只从 schema 认识这个工具的模型，会把模型文件导进去，然后发现场景里什么都没有。
+* **取消那一个缺的是出路**：技能里写着「正式渲染是三个数量级的承诺」「4 毫秒返回 jobId」，
+  却没写怎么停。一次 3.4 小时的渲染没有任何被写下来的取消方式。
+
+补的方式不是加两行名字，而是**把那条两步契约写出来**（新增一节 "Bringing in a model the
+user already has"），并给「取消」补上它真正的语义：取消**保留已写出的帧**，所以取消过的
+渲染仍然可以 `resumeJobId` 续；一个项目同时只能有一个交付渲染（`RENDER_JOB_CONFLICT`），
+所以「再开一个」永远不是答案。
+
+**顺带把这一类漏法变成断言**。手册有两个方向（D94），而**模型-facing 的文档一个方向都没有**：
+
+```
+the skill names every tool the preset registers, and invents none
+```
+
+比的是 `UI_TOOL_CARD_KEYS`——文档也在比的那一份，而 `ui-plane.e2e.mjs` 断言它等于预设**真的**
+注册的东西。所以这条断言既不会放过「技能里写了个不存在的工具」（模型会去调一个会失败的东西），
+也不会放过「注册了一个技能从不提的工具」。三种变异（改名一个、删掉一个、再删一个）全红。
+
+### 26.2 平台守卫指了一个**产品不读**的键
+
+受管 Blender 是钉死的 macOS arm64 DMG，所以 `install-blender.mjs` 有一个平台守卫，
+在别的平台上报清楚的话并退出 2。这一轮在 Linux 容器里把它跑了一遍——守卫本身是对的：
+
+```
+platform: linux/arm64
+result: this installer only knows the pinned macos-arm64 build
+manual: install Blender 5.2.1 yourself, then set DEEPBLEND_BLENDER_PATH to its binary
+exit=2
+```
+
+**最后一行是错的。** `DEEPBLEND_BLENDER_PATH` 只被**本仓库自己的测试与探针**读
+（`grep -rn DEEPBLEND_BLENDER_PATH deepblend/tests` 就是全部）。产品读的是
+`deepblend-blender-runtime` 那一行的 `blenderPath`，操作者在 operator layer 里设它——
+而 `install.md` 从头到尾就是这么写的。
+
+于是：**脚本和手册在用户最需要它们一致的那一刻说了两句不同的话**。一个照着报错做的用户
+会设一个没人读的环境变量，然后没有任何办法知道为什么没用。这正是本仓库反复在防的形状
+（D60/D80/D94），只不过这一次它出现在**失败信息**里，而不是文档里。
+
+修法是让报错说产品的语言，并把那个**容易和它混淆**的变量点名说清是什么：
+
+```
+manual: install Blender 5.2.1 yourself, then set blenderPath on the deepblend-blender-runtime row in $DSH_HOME/profiles/<profile>/cordis.patch.yml
+note: DEEPBLEND_BLENDER_PATH is what THIS repository's tests read; the installed product does not
+```
+
+并加两条断言：守卫的建议必须点到 `blenderPath` **并且说出在哪里设**（只给键不给位置，
+是同一类缺陷低一层）；`blenderPath` 必须是 provider 真的声明的那个键。
+另一条断言把**平台边界**钉在「讲前提的那两处」：`blender-release.json` 的 `platform`
+是唯一来源，README 与 `install.md` 都必须以它自己的措辞说出这件事
+（归一化比较，所以「macOS arm64」和「macos-arm64」是同一句话）。
+
+### 26.3 同样一件事，出现在第三个地方
+
+这两条发现是同一个问题的两个面：**第 25 轮修的是「检查机器的那一层」，这一轮修的是
+「对模型和用户说话的那一层」**。三份手册有人查了（D82/D94），工具的 schema 有人查了，
+而**技能和报错**此前谁都没查。
+
+### 26.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 27/27 file(s) passed        830 项自计断言 + 170 个 node:test 用例
+
+# 容器里（Linux / Node 22）
+manual: install Blender 5.2.1 yourself, then set blenderPath on the deepblend-blender-runtime row in $DSH_HOME/profiles/<profile>/cordis.patch.yml
+note: DEEPBLEND_BLENDER_PATH is what THIS repository's tests read; the installed product does not
+DeepBlend tests: 27/27 file(s) passed
+```
+
+顺带被自己抓到一次：改完 SKILL.md 后 `presets:check` 立刻报 `SKILL.md: DRIFTED`——
+第 25 轮那个「装了但对不上才是漂移」的检查，第一次在真实改动上生效，
+而 `presets:install` 之后又回到 in sync。
