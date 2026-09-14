@@ -126,7 +126,7 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、35 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+预期：**13 个套件、36 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
 **24 个文件 = 811 项自计断言（12 个文件打印计数）+ 139 个 `node:test` 用例（12 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
@@ -146,6 +146,7 @@ node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工�
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 全部 7 个工具
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
 node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 15 个工具 + 真实交付
+node deepblend/tests/composition/hardening.e2e.mjs              # M5 安全加固：白名单/截止时间/输出上限/采样预算/工作区边界
 node deepblend/tests/composition/ui-plane.e2e.mjs               # M4 UI 平面：闭集路由 + 座位表
 node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏览器验收（自带 Host）
 ```

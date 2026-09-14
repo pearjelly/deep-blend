@@ -1808,3 +1808,76 @@ DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个
 | **资源限制** | 🟡 部分。`maxPreviewSamples`、`requireApprovalAboveFrames`、`maxOutputBytes`/`maxSpillBytes` 都有默认值；缺「超限时真的被拒绝」的断言 |
 | **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11），它的审批边界与规格是同一件事 |
 | Q7：能**阻止**启动的审批平面 | ❌ 目前只显示阈值事实；§17.2 的 `recovery.md` 第 8 条把这一点写在了用户看得到的地方 |
+
+---
+
+## 18. M5 安全加固：把「受控」量在**产品边界**上
+
+SPEC §20 的 M5 验收有四条是限制性的，其中三条（无 Shell / 无任意 Python / 无 Creator Tool）
+由 `preset-surface.test.mjs` 从**行集合**上断言——那是文件的静态属性。第四条
+**「全部高风险操作受控」不能静态检查**：一个被**配置**的限制不等于一个被**执行**的限制。
+
+### 18.1 每个控制都成对断言，否则无法归因
+
+`composition/hardening.e2e.mjs`（22 项）。每一对里的第二条，是为了让第一条可归因：
+
+| 控制 | 断言的两面 |
+|---|---|
+| **可执行文件白名单** | PATH 上的裸名 `sh` 被拒（`EXECUTABLE_OUTSIDE_ALLOWLIST`）；把 `/bin` 加进白名单后**同一个名字**就通过了——否则「被拒」可能只是别的东西先失败了。外加：绝对路径作为操作者的明示选择**不**受白名单约束 |
+| **截止时间** | 一个挂 30 秒的「Blender」+ `timeoutMs: 1500` → `BLENDER_TIMEOUT`，**实测 1524 ms**（不是 30 秒，也不是瞬间失败）；之后**进程表**里没有它——不是「发了信号所以应该没了」 |
+| **输出上限** | 一个打印 820 KB 的子进程，`maxOutputBytes: 4096` → 保留的字节是 **2000**，由上限决定而**不是**由子进程打印了多少决定 |
+| **工作目录** | `keepWorkingDirectory:false` 什么都不留（失败路径上也不留）；`:true` 留下——**第二半才让第一半有意义** |
+| **采样预算** | 预览请求 100000 → 压到 host 上限 64 并**报告**（警告里写明 requested/used）；profile 自己的 `maxSamplesBudget` 更紧时取更紧的那个；交付渲染**不**受预览上限约束 |
+| **工作区边界** | 不是纯函数版（那只在 `store.test.mjs` 里），而是**产品边界**版：projects root 里一个指向外部的 symlink 项目目录 → `PATH_OUTSIDE_WORKSPACE`；带 `../` 的 projectId → `PATH_SEGMENT_INVALID` |
+
+**一处测量方法上的教训也记在这里**：检查「进程有没有留下」时，我先用 `ps | grep` ——
+它报了 2 个，看起来像截止时间把子进程丢下了。那是**检查管道匹配到了自己的命令行**。
+进程表现在在 JS 里读，理由写在文件里。
+
+### 18.2 它抓到的真缺陷：一条被算出来、被报告、然后被丢掉的限制
+
+断言写的不是 job 记录，而是渲染器**真正被交给**的那份 profile——provider 在 spawn 之前
+写下的 `plan.json`。**记录是 Host 认为的，plan 是子进程被告知的，两者是不同的声明。**
+
+```
+blender_final_render {samples: 100000}  →  警告说「已降到 128」，渲染器被告知 8
+blender_final_render {samples: 4}       →  完全没有警告，渲染器被告知 8
+```
+
+`_deliverySamples` 算对了、也把警告推进了 `warnings`，然后那一行传下去的是 `profile`
+而不是它返回的 `effective.profile`。**resume 路径一直传的是 `effective.profile`**
+（它要读回上一次的 `renderConfig`，那处的作者必须想清楚）；只有 start 路径漏了。
+
+**第二个方向才是钱**：调用者要求**更低**的采样时没有任何警告——因为没有东西被「降低」——
+所以一次 4 采样的交付渲染会以 profile 声明的 8 采样安静地跑完：**比要求的贵，且完全沉默**。
+第一个方向至少还说了一句不准确的话。
+
+修完两条断言都绿：`{handed: 128}` 与 `{handed: 4}`。
+
+**可推广的那条**（D84）：一条限制有三处可能说谎——**算它的地方**（这里是对的）、
+**报告它的地方**（这里说了 128）、**执行它的地方**（这里用了 8）。
+**只断言其中一处的测试会全绿。**
+
+### 18.3 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      13 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个 node:test 用例
+```
+
+### 18.4 M5 还剩什么（更新版）
+
+| 项 | 状态 |
+|---|---|
+| 正式 `deepblend` preset（§16） | ✅ |
+| mount validation（§16.5） | ✅ 真实进程里做 |
+| 安装 / 使用 / 恢复文档（§17） | ✅ |
+| 全部 Fixture 通过（§17.3） | ✅ 清单 + M2 的测量 |
+| **安全测试** | ✅ §18.1：白名单、截止时间、输出上限、工作区边界都在**产品边界**上量过 |
+| **资源限制** | ✅ §18.1 + §18.2：三个预算都断言了「执行处」，并修掉一个真实缺陷 |
+| **双会话并发验证** | ❌ 仍未做。结构上由 `isolate` realm 保证（两个 preset 的同名服务行已在同一进程里共存过，见 §16.5），但**没有一条断言盯着它** |
+| **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11），它的审批边界与规格是同一件事 |
+| Q7：能**阻止**启动的审批平面 | ❌ 目前只显示阈值事实；`recovery.md` §8 把这一点写在了用户看得到的地方 |

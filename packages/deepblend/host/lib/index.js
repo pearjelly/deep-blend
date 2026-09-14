@@ -2488,7 +2488,23 @@ export default class BlenderStudio extends Service {
     })
 
     const launched = await this._launchRenderer({
-      record: created, spec, profile, profileName, checkpoint, cameraId, frames, reason: 'start',
+      // `effective.profile`, NOT `profile`. MEASURED by
+      // `composition/hardening.e2e.mjs`: this line used to pass the spec's profile,
+      // so `_deliverySamples` computed the clamped sample count, pushed a warning
+      // saying so, and then the renderer was handed the UNCLAMPED profile. Both
+      // directions were wrong and only one of them was loud:
+      //
+      //   blender_final_render {samples: 100000}  ->  warning "reduced to 128",
+      //                                               renderer told 8 (the profile's)
+      //   blender_final_render {samples: 4}       ->  no warning at all,
+      //                                               renderer told 8 — four times the
+      //                                               cost the caller asked for, silently
+      //
+      // The resume path below already passed `effective.profile`; the start path did
+      // not. The suite asserts what the renderer was handed, read from the `plan.json`
+      // the provider writes before spawning, because the job record is what the HOST
+      // believes and the plan is what the child was told.
+      record: created, spec, profile: effective.profile, profileName, checkpoint, cameraId, frames, reason: 'start',
     })
 
     return {
