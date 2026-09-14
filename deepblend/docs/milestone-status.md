@@ -2493,3 +2493,120 @@ DeepBlend tests: 26/26 file(s) passed        830 项自计断言 + 156 个 node:
 
 **这一轮也没有发现产品缺陷**，但它发现了一件更基础的事：**一条从来没有被展示过的断言，
 即使它是真的，也没有为这个项目赢得任何信任。**
+
+---
+
+## 25. 在 Linux 容器里跑了一遍 CI：两个此前没人跑过的东西
+
+`README.md` 里写着「16 个套件全绿」，CI 里写着「这个 job 跑不需要 Blender 的那一层」。
+**这两句话谁都没有在它们描述的那个环境里验证过**：CI 只在 GitHub 的 runner 上跑，
+而本机是 macOS + Node 26，与 `ubuntu-latest` + Node 22 不是一个环境。
+
+这一轮把 CI 的步骤**照抄进一个 Linux 容器**跑了一遍（`node:22-bookworm-slim`，
+装了 `git` 与 `python3` 以对齐 runner 镜像）。两个东西因此第一次被真的执行：
+**CI 自己**，和 **`install-presets.mjs --check`**。
+
+### 25.1 第一大发现：这一层需要 Python，而没人知道
+
+容器里第一次运行的结果是一行堆栈：
+
+```
+Error: spawnSync python3 ENOENT
+```
+
+`contract/render-job.test.mjs` 拿普通 CPython 跑 `deepblend_util.py`，比对两边算出的
+帧文件名——这是「同一份规则写了两遍」的那类断言里最有价值的一条，而且**故意**放在不
+import bpy 的模块里，好让它不必启动 Blender。代价是它成了这一层唯一的 Python 依赖，
+而**这个依赖没有被写在任何地方**。
+
+后果比「缺个依赖」更糟，而且是本仓库反复在防的那两种形状：
+
+1. **一个堆栈，不是一个结果。** 产品侧的规矩是 SPEC §9.4：每个失败都是可分支的结果，
+   不许是堆栈。而检查产品的那个文件违反了它。
+2. **它落在第 15 条断言上。** 后面 **45 条**根本没跑，而且没有汇总——
+   一个缺 Python 的机器被告知「这个文件崩了」，而不是「有 45 条断言今天没验」。
+
+修法分两处：文件自己解析 `$DEEPBLEND_PYTHON` → `python3` → `python`，
+一个都不是 Python 3 时**报一条点名的失败**（不是跳过——「两种语言算得一样」正是那条
+没被验证的断言），其余 59 条照跑；CI 里加一步 `python3 --version`，把那句隐含的
+「runner 上正好有 Python」变成文件里能读到的一行。
+
+**测过了**：没有 Python 时这个文件报 `59/60`，汇总里点名缺什么；
+`run.mjs` 也只把这一个文件标红。
+
+### 25.2 第二大发现：一个把「没装」报成「漂移」的检查
+
+CI 里本来没有 `presets:check`。这一轮想把它加进去，先在容器里试了一下——
+**它退出了 1**：
+
+```
+deepblend/agent.cordis.yml: not installed
+...
+result: 5 file(s) drifted
+fix: node deepblend/tools/install-presets.mjs
+```
+
+「这台机器上没装」是**每个全新 clone、每个 CI runner 的常态**，而 `--check` 把它算成
+漂移，还附了一条让读者去装一个他从没要过的东西的 `fix:`。逐行读代码：**标签是对的**
+（`'DRIFTED' : 'not installed'`），**紧挨着的计数器是错的**（`if (!same) drift += 1`）。
+一个字面对了，它旁边那行没对。
+
+值得注意的是这不是新问题，而是**同一个仓库里已经被命名过的第三个状态**：
+D75 给能力探针定下「探针读不到是独立的第三态」，而 `plugin --check` 一直是这么做的
+——没有 profile 就退出 2 并解释 profile 是谁建的。`presets --check` 是这一家里唯一
+把第三态折叠掉的成员。
+
+**规则**：**整个不存在是一个状态；存在一部分才是漂移。** 五种状态现在逐个实测：
+
+| 状态 | 输出 | 退出码 |
+|---|---|---|
+| 装了且一致 | `in sync` | 0 |
+| 本机完全没装 | `not installed on this machine — nothing to drift` | **0** |
+| 装了一半 | `MISSING` × N | 1 |
+| 装了但被改过 | `DRIFTED` | 1 |
+| 装过又被删掉的文件 | `STALE` | 1 |
+
+三条 exit 1 的路径各自被 `setup-steps.test.mjs` 真的造出来跑一遍（临时 `DSH_HOME`，
+真装一次、真改一个字节、真丢一个文件），所以「第三态不会把真问题藏起来」这句话
+**是被测过的，不是被声明的**。把第三态改回去（`if (false)`）会让它立刻变红。
+
+### 25.3 第三件事：CI 文件自己也进了契约层
+
+`.github/workflows/ci.yml` 是仓库里**唯一一个没有任何东西运行过**的产物。它的注释写着
+「17 files — 806 checks plus 82 node:test cases」，而真值早已是 26、830、156——
+**两个里程碑没人回头看过它**，和 §23 修的那些句子是同一个形状，只是这份连"跑"都没有过。
+
+新的 `contract/ci-workflow.test.mjs`（9 项）管住四件事：
+
+1. **它点到的每个仓库路径都存在**——改名不会留下一句「跑了个不存在的东西」；
+2. **它钉的 DSH 版本与 `dsh-baseline.json` 一致**（`toolchain-pins.test.mjs` 从另一边也查，
+   两边都查是因为先改哪个文件都可能）；
+3. **它不许写任何计数**——数字要么从一次运行里读，要么在契约层里被断言，
+   写在没人执行的文件里就是没人重读的数字（这条断言第一次运行就抓到了我自己写进去的
+   历史数字，只能改成不带数字的描述）；
+4. **它不跑的层必须在文件里点名**，且 `run-all.sh` 里每个套件要么被 CI 跑、要么被点名
+   ——**没有一个套件可以同时落在两者之外**。
+
+外加两条小的：`EXTERNAL_COMMANDS` 把「这一步依赖 runner 镜像而不是本仓库」这件事变成
+一张必须写理由的表（`python3` 那行就是这么来的，`python3.9` 之类的笔误会被抓住），
+以及权限只读、有 `timeout`、不用 `pull_request_target`。
+
+### 25.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 27/27 file(s) passed        830 项自计断言 + 167 个 node:test 用例
+
+# 容器里，照抄 ci.yml 的每一步（Linux / Node 22 / python3 / git）
+result: the workspace resolves all 12 package(s) from the deployment
+result: the presets are not installed on this machine, so there is nothing to drift
+DeepBlend tests: 27/27 file(s) passed
+```
+
+**这一层真的是跨平台的**——这是本轮唯一一条此前完全靠推测的结论，现在有了一次真运行。
+（顺带确认：容器里没有 `git` 时，`workspace-links` 与 `setup-steps` 的两条 git 断言会
+**报 "not a git checkout" 并跳过**，退出码仍是 0。这句话现在写在 README 的前置表里，
+因为「跳过」和「通过」在输出里长得太像了。）
+
+**这一轮的产品代码一行没改**——两处改动都在**验证机器自己的那一侧**：
+一个检查缺了依赖时怎么说话，一个检查在东西不存在时怎么说话。

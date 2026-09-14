@@ -23,10 +23,12 @@
  *
  * THE OTHER HALF IS THE AGREEMENT WITH PYTHON
  * -------------------------------------------
- * `frameFileName` here must equal `frame_file_name` in `deepblend_frames.py`, byte
- * for byte, or every frame reads as missing. The naming was MEASURED on Blender
- * 5.2.1 (`frame_path()` predicts `frame_0001.png`, `write_still` writes
- * `frame_.png`), so the test pins the string rather than deriving it twice.
+ * `frameFileName` here must equal `frame_file_name` in `deepblend_util.py`, byte for
+ * byte, or every frame reads as missing. The naming was MEASURED on Blender 5.2.1
+ * (`frame_path()` predicts `frame_0001.png`, `write_still` writes `frame_.png`), so the
+ * test pins the string rather than deriving it twice. That comparison is the one thing in
+ * this layer that needs a Python 3 on PATH, and the file says so in a check of its own
+ * rather than dying on `ENOENT` halfway through.
  *
  * Run standalone: `node deepblend/tests/contract/render-job.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
@@ -142,19 +144,46 @@ check('a non-default prefix and padding are honoured',
   frameFileName(7, 'shot_', 3) === 'shot_007.png', frameFileName(7, 'shot_', 3))
 
 // The Python side is the other half of this contract. The naming helper lives in
-// `deepblend_util.py` — the module that imports no bpy — precisely so this
-// comparison can run in a plain CPython instead of costing a Blender launch. A
-// naming rule checkable only by starting Blender is a rule nobody checks.
-const pythonNaming = execFileSync('python3', ['-c', [
-  'import json, sys',
-  `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'))})`,
-  'from deepblend_util import frame_file_name',
-  'print(json.dumps([frame_file_name(1), frame_file_name(450), frame_file_name(12345), frame_file_name(7, "shot_", 3)]))',
-].join('\n')], { encoding: 'utf8' }).trim()
-check('deepblend_util.py names frames identically to contracts',
-  JSON.stringify(JSON.parse(pythonNaming)) ===
-    JSON.stringify(['frame_0001.png', 'frame_0450.png', 'frame_12345.png', 'shot_007.png']),
-  pythonNaming)
+// `deepblend_util.py` — the module that imports no bpy — precisely so this comparison can
+// run in a plain CPython instead of costing a Blender launch. A naming rule checkable only
+// by starting Blender is a rule nobody checks.
+//
+// IT IS ALSO THE ONLY REASON THIS FILE NEEDS PYTHON, and that prerequisite used to be an
+// uncaught `spawnSync python3 ENOENT`. The throw happened at check 15 of 60, so a machine
+// without Python lost the 45 checks after it AND got a stack instead of a summary — the
+// two failure shapes SPEC §9.4 bans for the product, in the file that checks the product.
+// A missing prerequisite is a named result like any other failure, and it is a FAILURE
+// rather than a skip: "the two languages agree" is precisely the claim that did not get
+// verified. Found by running this layer in a Linux container for the first time
+// (milestone-status.md §25); CI installs Python for the same reason.
+const python = ['DEEPBLEND_PYTHON', 'python3', 'python']
+  .map(name => (name === 'DEEPBLEND_PYTHON' ? process.env.DEEPBLEND_PYTHON : name))
+  .filter(name => typeof name === 'string' && name.length > 0)
+  .find(candidate => {
+    try {
+      const version = execFileSync(candidate, ['-c', 'import sys; print(sys.version_info[0])'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+      return version === '3'
+    } catch {
+      return false
+    }
+  })
+
+if (python === undefined) {
+  check('a Python 3 interpreter is available for the cross-language frame-naming check', false,
+    'none of $DEEPBLEND_PYTHON, python3 or python is a Python 3. Install Python 3, or point ' +
+    '$DEEPBLEND_PYTHON at one: this file is in the layer CI runs, so that layer needs Python as well as Node.')
+} else {
+  const pythonNaming = execFileSync(python, ['-c', [
+    'import json, sys',
+    `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'))})`,
+    'from deepblend_util import frame_file_name',
+    'print(json.dumps([frame_file_name(1), frame_file_name(450), frame_file_name(12345), frame_file_name(7, "shot_", 3)]))',
+  ].join('\n')], { encoding: 'utf8' }).trim()
+  check('deepblend_util.py names frames identically to contracts',
+    JSON.stringify(JSON.parse(pythonNaming)) ===
+      JSON.stringify(['frame_0001.png', 'frame_0450.png', 'frame_12345.png', 'shot_007.png']),
+    `${pythonNaming} via ${python}`)
+}
 
 // ---------------------------------------------------------------------------
 // 4. Frame ranges

@@ -80,7 +80,7 @@ deepblend/
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
                       capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         26 个 *.test.mjs
+    contract/         27 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
                       spec-tools.mjs —— 从 SPEC.md §11 读出工具清单（三个套件共用这一份）
@@ -104,6 +104,23 @@ packages/deepblend/
 ---
 
 ## 快速开始
+
+### 0. 这台机器上得有什么
+
+| 需要 | 用在哪 | 没有它会怎样 |
+|---|---|---|
+| **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
+| **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
+| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 59 条照跑 |
+| **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
+| **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
+| **Google Chrome** | 只有 `npm run docs:images` 与 M4 的浏览器验收 | 那两件事不跑，其余不受影响 |
+
+**Python 3 这一行是 2026-09-14 才写下的**（`milestone-status.md` §25）：在那之前它是一条
+谁也不知道的依赖，而缺了它的机器看到的是 `spawnSync python3 ENOENT` 的堆栈——
+它落在 60 条断言里的**第 15 条**，于是后面 45 条一起消失，还没有汇总。同一个仓库里，
+产品侧早就把「每个失败都必须是可分支的结果、不许是堆栈」写成了规矩（SPEC §9.4），
+而这条规矩此前没有用在**检查产品的那个文件**上。
 
 ### 1. 装配工作区（全新 clone 的第一步）
 
@@ -157,15 +174,15 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 这条命令是一次真的走查逼出来的：四步各自都对，缺的是**它们之间的那个前提**
 （`milestone-status.md` §21）。
 
-预期：**16 个套件、41 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**26 个文件 = 830 项自计断言（12 个文件打印计数）+ 156 个 `node:test` 用例（14 个文件）**。
+预期：**16 个套件、42 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**27 个文件 = 830 项自计断言（12 个文件打印计数）+ 167 个 `node:test` 用例（15 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 156 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 167 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
@@ -228,7 +245,7 @@ r0002 = 一次灯光/材质调整并带预览。幂等：已存在则报告状�
 npm run plugin:check     # 只报告漂移：六个包链接 + dsh.profile.bundles 里那一行
 npm run plugin:install   # 把 @deepblend/* 链接进 profiles/node_modules，并注册 Host Bundle
 
-npm run presets:check    # 只报告漂移
+npm run presets:check    # 只报告漂移（本机没装过则报「未安装」，那不是漂移）
 npm run presets:install  # 把 deepblend/presets/ 部署到 $DSH_HOME/.agent-presets/
 ```
 

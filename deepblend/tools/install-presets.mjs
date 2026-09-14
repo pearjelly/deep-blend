@@ -31,6 +31,19 @@
  *   node deepblend/tools/install-presets.mjs            # install every preset
  *   node deepblend/tools/install-presets.mjs --check    # report drift, change nothing
  *
+ * `--check` HAS THREE OUTCOMES, NOT TWO
+ * -------------------------------------
+ * `in sync` / `drifted` / **`not installed on this machine`**. The third one is the state of
+ * every fresh clone and every CI runner, and until 2026-09-14 it was counted as drift: the
+ * per-file label already said "not installed", and the counter beside it said `drift += 1`,
+ * so `--check` exited 1 with the summary "5 file(s) drifted" on a machine where nothing was
+ * wrong and nothing could be fixed except by installing something the user never asked for.
+ * (Measured in a Linux container; `milestone-status.md` §25. The sibling `plugin --check`
+ * had it right all along: a missing profile is exit 2 with an explanation, the same third
+ * state D75 named for the capability probe.)
+ *
+ * The rule is: **absent entirely is a state; partly present is drift.**
+ *
  * Owner: DeepBlend Studio — M3
  */
 
@@ -96,6 +109,7 @@ if (presets.length === 0) {
 
 let drift = 0
 let installed = 0
+let absent = 0
 
 for (const preset of presets) {
   const sourceDirectory = join(SOURCE, preset)
@@ -112,10 +126,23 @@ for (const preset of presets) {
   const sourceFiles = filesUnder(sourceDirectory)
   const targetFiles = existsSync(targetDirectory) ? filesUnder(targetDirectory) : []
 
+  // THE THIRD STATE (see the header). Nothing of this preset is on this machine and
+  // nothing is left over from an older release: there is no deployment here to be wrong,
+  // so there is nothing to report as drift. Anything else — one file missing, one file
+  // different, one stale file — is drift, because a half-present preset is broken rather
+  // than absent.
+  const staleFiles = targetFiles.filter(file => !sourceFiles.includes(file))
+  const missingFiles = sourceFiles.filter(file => !existsSync(join(targetDirectory, file)))
+  if (checkOnly && staleFiles.length === 0 && missingFiles.length === sourceFiles.length) {
+    say(preset, 'not installed on this machine — nothing to drift')
+    absent += 1
+    continue
+  }
+
   // A file left behind by an earlier version of this preset is drift too: it is
   // what a renamed skill or a deleted document becomes, and nothing would ever
   // read it again except the model, which would.
-  for (const stale of targetFiles.filter(file => !sourceFiles.includes(file))) {
+  for (const stale of staleFiles) {
     drift += 1
     if (checkOnly) {
       say(`${preset}/${stale}`, 'STALE — installed but no longer in the repository copy')
@@ -131,7 +158,7 @@ for (const preset of presets) {
     const same = existsSync(to) && readFileSync(from, 'utf8') === readFileSync(to, 'utf8')
 
     if (checkOnly) {
-      say(`${preset}/${file}`, same ? 'in sync' : existsSync(to) ? 'DRIFTED' : 'not installed')
+      say(`${preset}/${file}`, same ? 'in sync' : existsSync(to) ? 'DRIFTED' : 'MISSING')
       if (!same) drift += 1
       continue
     }
@@ -148,7 +175,12 @@ for (const preset of presets) {
 
 if (checkOnly) {
   if (drift === 0) {
-    say('result', 'the installed presets match the repository')
+    if (absent === presets.length) {
+      say('result', 'the presets are not installed on this machine, so there is nothing to drift')
+      say('note', 'deploy them here with: node deepblend/tools/install-presets.mjs')
+    } else {
+      say('result', 'the installed presets match the repository')
+    }
     process.exit(0)
   }
   say('result', `${drift} file(s) drifted`)

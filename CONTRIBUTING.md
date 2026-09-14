@@ -86,6 +86,29 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 新增一句 `import '@deepseek-ai/dsh-xxx'` 之后**不需要改任何脚本**：链接清单是从源码里
 读出来的（`deepblend/tools/workspace-layout.mjs`），重跑 `npm run setup` 即可。
 
+### 改了 `.github/workflows/ci.yml`：**在容器里跑一遍**
+
+CI 是本仓库唯一一个**没有一个套件运行它**的产物，而它跑在 `ubuntu-latest` + Node 22 上，
+和你本机通常不是一个环境。D96 就是这么来的：把 CI 的每一步照抄进一个 Linux 容器之后，
+两个此前从未被执行的产物同时坏了（一个把「本机没装」报成「漂移」，一个缺 Python 就崩）。
+照抄它，比读它有用：
+
+```bash
+WORK=$(mktemp -d); git clone --quiet . "$WORK"
+docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
+  apt-get update -qq && apt-get install -y -qq python3 git
+  npm install --global @deepseek-ai/dsh@0.1.5-rc.2
+  node deepblend/tools/link-workspace.mjs
+  node deepblend/tools/link-workspace.mjs --check
+  node deepblend/tools/install-presets.mjs --check
+  node deepblend/tests/run.mjs'
+```
+
+`python3` 与 `git` 是**手动装上的**：runner 镜像里有，`-slim` 里没有，而 README 的前置表
+说了缺了它们分别会怎样。`contract/ci-workflow.test.mjs` 会盯住「每一步点到的路径存在」
+「pin 与 `dsh-baseline.json` 一致」「不跑的层被点名」「没有任何套件同时落在 CI 与 not-run
+之外」，但它**没法**知道 GitHub 的镜像今天有没有 Python——那件事只能这样跑一次。
+
 ### 动了这些东西，契约层会告诉你哪里还没跟上
 
 这个仓库里有几处「一处改动、多处必须一致」的耦合，它们**全部由测试盯着**，

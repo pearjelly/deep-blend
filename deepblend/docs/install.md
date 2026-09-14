@@ -62,6 +62,9 @@ result: DeepBlend is installed in the "web" profile at /Users/<you>/.dsh
 
 $ npm run presets:check
 result: the installed presets match the repository
+# 本机没装过 preset 时它会说：
+# result: the presets are not installed on this machine, so there is nothing to drift
+# 退出码仍是 0 —— 「没装」是一个状态，「装了但对不上」才是漂移（§25）
 ```
 
 四条全绿之后**重启 `dsh web`**，然后新建一个会话，在模式里选 **DeepBlend Studio**。

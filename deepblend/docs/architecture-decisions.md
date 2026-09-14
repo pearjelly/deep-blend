@@ -1937,6 +1937,43 @@ README 里那句「十五个工具的分工」是**真话**——它准确描述
 
 ---
 
+### D96 — 「没装」是第三个状态，而且**验证机器自己**的那一层也要被验证
+
+**决策**：`--check` 一家的语义统一为三种——`in sync` / `drifted` / **`not installed on
+this machine`**，其中第三种**退出 0**；规则是「**整个不存在是一个状态，存在一部分才是
+漂移**」。同时按 D75，`python3` 缺失这类**依赖缺失**也必须是点名的失败，不是堆栈、不是跳过。
+
+**触发它的事实**：本轮把 `.github/workflows/ci.yml` 的每一步照抄进一个 Linux 容器跑了一遍
+（此前 CI 只在 GitHub runner 上跑过，本机是 macOS + Node 26）。两个东西第一次被真的执行，
+两个都坏了：
+
+1. `install-presets.mjs --check` 在**全新 clone / CI runner 的常态**下退出 1，说
+   「5 file(s) drifted」，并给出一条让读者去装他从来没要过的东西的 `fix:`。
+   逐行看：标签是对的（`'DRIFTED' : 'not installed'`），**紧挨着的计数器是错的**
+   （`if (!same) drift += 1`）。同一个仓库里 D75 早就命名过第三个状态，
+   `plugin --check` 也一直这么做（没有 profile → 退出 2 并解释 profile 是谁建的），
+   `presets --check` 是这一家里唯一把它折叠掉的成员。
+2. `contract/render-job.test.mjs` 需要 Python 3 来跑跨语言的帧命名比对，而这件事
+   **没写在任何地方**。缺依赖的机器看到 `spawnSync python3 ENOENT` 的堆栈，落在
+   60 条断言的第 15 条，**后面 45 条一起消失且没有汇总**。
+
+**为什么这两条是同一个决策**：它们都是**验证机器的那一层在说错话**。产品的失败形状早就
+被 SPEC §9.4 定死（可分支的结果、不许堆栈、不许静默跳过），而**检查产品的那些文件**此前
+不受这条约束。一个缺依赖就崩、一个把常态报成故障，都是同一条规矩没有往回走。
+
+**被写下来的边界**（都在 README 的前置表里，因为「跳过」和「通过」在输出里长得太像）：
+没有 `git` 时 `workspace-links` 与 `setup-steps` 的两条断言会**报 "not a git checkout"
+并跳过，退出码仍是 0**——这一条没有改成失败，因为一个从 tarball 解出来的目录确实没有
+仓库状态可查，而**说出来**比假装查过要好。
+
+**顺带补上的**：`.github/workflows/ci.yml` 是仓库里唯一一个**没有任何东西运行过**的产物，
+它的注释写着「17 files — 806 checks plus 82 cases」两个里程碑没人回头看过。
+`contract/ci-workflow.test.mjs` 因此管住四件事（路径存在、pin 一致、**不许写计数**、
+不跑的层必须点名且没有任何套件同时落在两者之外），外加一张 `EXTERNAL_COMMANDS` 表把
+「这一步依赖 runner 镜像」变成必须写理由的一行。
+
+---
+
 
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
@@ -1985,6 +2022,7 @@ README 里那句「十五个工具的分工」是**真话**——它准确描述
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（验证 CI） | D96：把 CI 的每一步照抄进 Linux 容器跑一遍，两个此前从未被执行的产物都坏了——`install-presets --check` 把「本机没装」报成「5 file(s) drifted」并退出 1（标签对、旁边的计数器错：`if (!same) drift += 1`），而这一家里 `plugin --check` 早就把第三个状态（没有 profile → 退出 2）做对了；`render-job.test.mjs` 需要 Python 3 却没人知道，缺依赖的机器在第 15 条断言吃到堆栈、后 45 条一起消失。规则统一为「整个不存在是一个状态，存在一部分才是漂移」。产出是 `contract/ci-workflow.test.mjs`（9 项，含「CI 不许写计数」与 `EXTERNAL_COMMANDS` 表）、`setup-steps.test.mjs` 的五态实测（+2 项）、README 的前置条件表 |
 | 2026-09-14 | M5（图与说法） | D95：图是一条断言，所以它要由工具从跑着的产品里产生（真实 `dsh web` + Chrome + Blender，控件靠点击），并且「它是不是图」必须能被测出来。第一版把 `project_create` 的 2 米立方体脚手架当成产品，拍出七张白墙而**没有任何断言能抓**；第二版改用 golden fixture 的比例与布光，patch 提交前干跑。产出是 `tools/capture-docs-images.mjs`、`docs/images/`（3 张，1.4 MiB）与 `contract/docs-images.test.mjs`（7 项，含一条纯色 PNG 的阴性对照） |
 | 2026-09-14 | M5（资产的尾巴） | D93–D94：散文里的数字分两类——结构量能被断言，总量只能被标注（README 的 811/24/39 在五次提交里悄悄变成 830/25/40，而**没有一次提交是错的**）；一个承诺要从写出它的那份文档里读出来（`SPEC_11_TOOLS` 被抄了三遍且都没与 `SPEC.md` 比过），并且文档检查要两个方向都查（`usage.md` 的分工表漏掉了 `blender_asset_ingest`，而 README 那句「十五个工具的分工」是真话）。产出是 `contract/documented-counts.test.mjs`、`tests/lib/spec-tools.mjs`、`docs-consistency.test.mjs` 的反方向断言，以及四处用户可见的修正 |
 | 2026-09-14 | M5（资产） | D91–D92：「消费侧完整」让「生产侧缺失」隐形（`assets` 从 M1 就有，而没有任何 patch 操作能加一个）；一个宽 catch 加兜底码就是一个 bug 变成错答案的路径（`BlenderErrorCode` 没被导入 → 每个编码错误都变成 `ASSET_INGEST_FAILED`）。产出是 `asset.add`/`asset.remove`、`ingestAsset`、`blender_asset_ingest`（SPEC §11 表第一次全部实现，16 个）、`composition/assets.e2e.mjs`（31 项），并修掉三个 add 操作在最小场景上抛未编码 `TypeError` |

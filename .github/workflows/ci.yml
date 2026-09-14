@@ -2,10 +2,16 @@
 #
 # WHAT RUNS, AND WHAT DELIBERATELY DOES NOT
 # -----------------------------------------
-# This job runs the layer that needs no Blender: `deepblend/tests/run.mjs`
-# (17 files — 806 self-reported checks plus 82 `node:test` cases). That is the
-# layer a contributor breaks most often, and the one that says whether the
-# repository can run its own tests at all.
+# This job runs the layer that needs no Blender: `deepblend/tests/run.mjs`. That is the
+# layer a contributor breaks most often, and the one that says whether the repository can
+# run its own tests at all.
+#
+# It carries NO COUNT of that layer, on purpose. This paragraph used to state how many
+# files the layer had and how many checks and cases they reported, and it went on stating
+# those figures for two milestones after they had all grown, because a figure in a comment
+# nothing executes is a figure nothing re-reads. The run prints its own totals, and
+# README.md keeps the snapshot with its caveats; a second copy here would only be a second
+# thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
 # The Blender-backed layers (`blender-integration/*`, `composition/*`,
 # `e2e/ui.e2e.mjs`) are NOT run here. They need a ~1.4 GB Blender, a real Chrome
@@ -18,6 +24,8 @@
 # makes `0.1.5-rc.2` a compatibility anchor: SPEC §0.1 forbids following latest,
 # because DSH is a Developer Preview and may break compatibility. An upgrade is a
 # deliberate commit that changes this line and re-runs the full acceptance suite.
+# `contract/toolchain-pins.test.mjs` asserts that this line, the baseline document
+# and `tools/dsh-baseline.json` all state the same version.
 
 name: CI
 
@@ -43,6 +51,15 @@ jobs:
         with:
           node-version: '22'
 
+      # NOT DECORATION. `contract/render-job.test.mjs` compares the contracts' frame naming
+      # against `deepblend_util.py` in a plain CPython — that module imports no bpy on
+      # purpose, so the rule is checkable without launching Blender. Without Python the
+      # file used to die on `spawnSync python3 ENOENT` at check 15 of 60 and lose the other
+      # 45 (it now reports one named failure instead), so the prerequisite is stated here
+      # rather than left to whichever image the runner happens to use.
+      - name: Assert the Python 3 the contract layer needs
+        run: python3 --version
+
       # DeepBlend is a plugin for a DSH deployment, and its own tests import
       # cordis, dsh-tools and dsh-subprocess-local from that deployment rather
       # than from a copy pinned in this repository (see
@@ -61,6 +78,12 @@ jobs:
       # without writing, so a green line above cannot mask a drift below.
       - name: Assert the links are in place
         run: node deepblend/tools/link-workspace.mjs --check
+
+      # The preset tree and its installer are exercised without touching `$DSH_HOME`: a
+      # preset that is not installed is reported and passes, so this fails only when the
+      # repository's own preset source is broken.
+      - name: Assert the preset source is installable
+        run: node deepblend/tools/install-presets.mjs --check
 
       - name: Unit + contract suites
         run: node deepblend/tests/run.mjs
