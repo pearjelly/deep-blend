@@ -3784,3 +3784,76 @@ DeepBlend tests: 34/34 file(s) passed        841 项自计断言 + 234 个 node:
 新增 `tools/coverage-merge.mjs` 与 `contract/probe-merge.test.mjs`（10 项，7 条变异全红）、
 重写 `docs/probe-coverage.log`、更新探针头部。产品代码**一行没改**——
 这一轮修的是「怎么读」。
+
+---
+
+## 41. 模型在失败之后读到的那段话，从来没有人写过
+
+第 27 轮修好量具之后，读数指向了一个具体的空白：`tool/render-tools.js` 里**失败态**的每一行都是黑暗。
+那些行不是冷门代码——`describeJobLines()` 是模型问「这个 job 怎么了」时**唯一**看到的文本，
+而它存在的理由正是「渲染出事了」和「重启之后把它找回来」。工具面套件只见过两种 job：
+running 和 completed。
+
+### 41.1 第一半：四种状态，两种从没被组合过
+
+契约层现在把这段文本与它要描述的四种 job 组合一遍（`render-job.test.mjs` §9c，7 项）：
+
+| job 的状态 | 读者应当拿到 | 从前 |
+|---|---|---|
+| 失败 + 不完整帧 | 哪几帧不完整、**每一帧的原因**、以及停止的编码原因 | 全黑 |
+| 不完整帧超过 8 条 | 截断成 `+N more`，不把 450 帧灌进结果 | 全黑 |
+| 已发布交付 | 视频在哪 | 已有（工具面见过 completed） |
+| 重启后找回 | 逐条 recovery note | 全黑 |
+| 速度已知、剩余时间未知 | `~unknown remaining`，而不是 `~null remaining` | 全黑 |
+| 恢复但没有任何 note | 仍然说清发生了什么，且不打印空条目 | 全黑 |
+
+**「模型在失败之后读到的那段话」是一个产品界面**，而它此前没有任何一条断言。
+
+### 41.2 第二半：写进工具描述与 skill 的恢复路径，从没被工具走过
+
+`blender_final_render` 的描述和随 preset 发布的 SKILL 都告诉模型：
+渲染被打断之后，用 `resumeJobId` 再调一次它。**没有任何套件从工具这一侧走过这条路**——
+M3 验收套件续渲走的是 Host facade，于是那段给模型看的 note（`already complete: …` /
+`resuming: … -> …` / `re-rendering: …`）一行都没有被组合过，连它用的 `summarizeFrames` 都是冷的。
+
+「工具描述是一个承诺」这条规则一直写在 `tool-contracts.md` 里；这一轮补的是它的另一半：
+**承诺要真的被兑现过一次**。工具面套件现在自己取消一个渲染、再自己续渲它（6 项）：
+
+* 续渲的是**同一个 job id**（帧和记录留在一处，而不是分裂成第二个 job）；
+* 文本同时给出「已经有多少」与「这次渲多少」；
+* **cancel 已经写下的帧被保留**，并作为 `already complete` 报出来——
+  这一条是量出来的：一开始套件在**第一帧落下之前**就取消了，于是 `already complete: 0`
+  成了唯一被组合过的情形；现在先等一帧再取消（`already complete: 1, resumed: 15`）；
+* 帧列表**被摘要而不是灌满**：取消的范围为此从 7 帧放宽到 16 帧，
+  否则 `summarizeFrames` 的截断分支永远走不到（实测输出 `31, 32, … +9 more`）；
+* 只有 cancel 真的留下半帧时才有 `re-rendering:` 那一行；
+* 续渲之后 job 真的在跑。
+
+顺手把上面那个 `expectedFrames === 7` 收回一个 `CANCELLED_RANGE` 常量：**范围写在两处就是两份事实**。
+
+### 41.3 变异
+
+6 条全部变红：删掉「不完整帧」那一行、不截断长列表、删掉恢复块、把 `unknown` 写成 `null`、
+把每帧的原因丢掉、以及**让续渲把 15 帧全列出来**（最后这条只有端到端套件能抓到，
+契约层看不到 `summarizeFrames` 被绕过）。
+
+### 41.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 34/34 file(s) passed        848 项自计断言 + 234 个 node:test 用例
+$ node deepblend/tests/composition/tool-plane-m3.e2e.mjs
+M3 tool plane: 65/65 check(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      （这一次的绿由 coverage-probe 自己跑出来，suite exit code: 0）
+```
+
+读数（同一套 16 个套件，`probe-coverage.log` 已刷新）：
+
+```
+产品可执行行黑暗      1658 (13.7%)  →  1637 (13.5%)
+tool/render-tools.js  54            →  33          ← 失败态那 21 行全亮了
+```
+
+新增：`render-job.test.mjs` §9c（7 项，失败态文案）、`tool-plane-m3.e2e.mjs` 的续渲块（6 项）。
+产品代码**一行没改**——这一轮补的是「已经被写出来、却没人读过」的那部分产品的断言。

@@ -248,7 +248,10 @@ const revision = created.value.data.revision.revision
 // ---------------------------------------------------------------------------
 
 const startedAt = Date.now()
-const started = await call('blender_final_render', { projectId, revision, frameStart: 30, frameEnd: 36 })
+// The cancelled job's range lives in one place: the resume block below renders the frames a cancel
+// leaves behind, and `expectedFrames` is asserted against it.
+const CANCELLED_RANGE = { frameStart: 30, frameEnd: 45 }
+const started = await call('blender_final_render', { projectId, revision, ...CANCELLED_RANGE })
 const startMs = Date.now() - startedAt
 check('blender_final_render answers with a job id instead of a finished render',
   started.isError === false && started.value.ok === true && typeof started.value.data.jobId === 'string',
@@ -275,7 +278,7 @@ check('blender_job_status reports the running job',
   statusWhileRunning.value.ok === true && statusWhileRunning.value.data.renderJob.status === 'running',
   statusWhileRunning.value?.data?.renderJob?.status)
 check('it reports frames complete out of expected, not just a status word',
-  statusWhileRunning.value.data.renderJob.expectedFrames === 7, statusWhileRunning.value.data.renderJob.expectedFrames)
+  statusWhileRunning.value.data.renderJob.expectedFrames === CANCELLED_RANGE.frameEnd - CANCELLED_RANGE.frameStart + 1, statusWhileRunning.value.data.renderJob.expectedFrames)
 check('it reports the measured speed and the time remaining once frames have landed',
   statusWhileRunning.value.data.renderJob.meanMsPerFrame === null ||
   typeof statusWhileRunning.value.data.renderJob.meanMsPerFrame === 'number')
@@ -304,6 +307,14 @@ check('a refusal is a RESULT, not a thrown error', earlyExport.isError === false
 // blender_job_cancel — and the process really stops
 // ---------------------------------------------------------------------------
 
+// Wait for a frame BEFORE cancelling: a cancel that lands before the first frame leaves nothing to
+// keep, and the resume block below is about what a cancel saved. Measured: without this wait the job
+// was cancelled with 0 frames, so "already complete: 0" was the only case any suite ever composed.
+await waitFor('the first frame of the interrupted render to land', async () => {
+  const status = await call('blender_job_status', { projectId, jobId })
+  return status.value.data.renderJob.completedFrames >= 1
+}, 300_000, 250)
+
 const running = (await call('blender_job_status', { projectId, jobId })).value.data.renderJob
 const cancelled = await call('blender_job_cancel', { projectId, jobId, reason: 'M3 tool plane' })
 check('blender_job_cancel reports the cancel as requested',
@@ -326,6 +337,44 @@ const again = await call('blender_job_cancel', { projectId, jobId })
 check('cancelling again reports it was already finished rather than throwing',
   again.isError === false && again.value.data.cancelled === false && again.value.data.processGone === true,
   again.value?.data?.reason)
+
+// ---------------------------------------------------------------------------
+// blender_final_render {resumeJobId} — the documented way out of an interruption
+// ---------------------------------------------------------------------------
+
+// WHY THIS BLOCK EXISTS (round 28). `blender_final_render`'s own description and the shipped skill
+// both tell a model to continue an interrupted render by calling this tool with `resumeJobId`, and no
+// suite had ever done it: the M3 acceptance suite resumes through the HOST facade, which composes none
+// of the notes a model actually reads. The coverage reading showed every line of the tool's resume
+// block dark, including the frame-list summariser it uses.
+const resumed = await call('blender_final_render', { projectId, resumeJobId: jobId })
+check('blender_final_render continues an interrupted job when given resumeJobId',
+  resumed.isError === false && resumed.value?.ok === true, resumed.value?.data ?? resumed.error)
+check('and continues the SAME job, so its frames and its record stay in one place',
+  resumed.value.data.jobId === jobId, { resumed: resumed.value.data.jobId, interrupted: jobId })
+check('its text says how much was already complete and how much it is rendering now',
+  /already complete: \d+ frame\(s\)/.test(resumed.value.text) && /resuming:\s+\d+ frame\(s\)/.test(resumed.value.text),
+  resumed.value.text)
+check('the frames the cancel had already written are KEPT and reported as already complete',
+  resumed.value.data.alreadyComplete >= 1 &&
+  resumed.value.text.includes(`already complete: ${resumed.value.data.alreadyComplete} frame(s)`) &&
+  resumed.value.data.resumed === CANCELLED_RANGE.frameEnd - CANCELLED_RANGE.frameStart + 1 - resumed.value.data.alreadyComplete,
+  { alreadyComplete: resumed.value.data.alreadyComplete, resumed: resumed.value.data.resumed })
+check('the frames it lists are summarised rather than flooded — a 450-frame resume must not paste 450 numbers',
+  resumed.value.data.resumedFrames.length > 8
+    ? /… \+\d+ more/.test(resumed.value.text)
+    : resumed.value.text.includes(resumed.value.data.resumedFrames.join(', ')),
+  { frames: resumed.value.data.resumedFrames.length, text: resumed.value.text })
+check('and it says which frames it is re-rendering only when the cancel left torn ones',
+  /re-rendering:/.test(resumed.value.text) === ((resumed.value.data.corrupt ?? []).length > 0),
+  { corrupt: resumed.value.data.corrupt, text: resumed.value.text })
+check('a resumed job is running again, and its record is the one being updated',
+  (await call('blender_job_status', { projectId, jobId })).value.data.renderJob.status === 'running',
+  (await call('blender_job_status', { projectId, jobId })).value.data.renderJob.status)
+// The host service is reachable in this process, which is how the suite cleanly stops a render it
+// started through the tools (the tools themselves expose cancel, but this block is about the resume
+// path and one cancel is enough).
+await root.get('blenderStudio').cancelJob({ projectId, jobId, reason: 'resume path checked' })
 
 // ---------------------------------------------------------------------------
 // The whole delivery, through the tools: render, wait, export

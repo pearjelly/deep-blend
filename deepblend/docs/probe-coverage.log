@@ -2,10 +2,9 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# PROVENANCE, stated because the merge rule changed underneath this reading (round 27, D112):
-# the coverage was collected by the suite run of round 27 (`suite exit code: 0` below) and is read
-# here with the CORRECTED rule — a line is judged by the innermost range covering its first code
-# character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces
+# PROVENANCE: collected by the suite run of round 28 (`suite exit code: 0` below) and read with the
+# merge rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first
+# code character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces
 # every number on this page.
 #
 # Instrument: NODE_V8_COVERAGE on every process the suite spawns, merged per process and then
@@ -23,27 +22,29 @@ coverage files: 94 (94 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19907, never executed: 2971 (14.9%)   [every line]
-product CODE lines:      12098, never executed: 1658 (13.7%)   [blank + comment-only excluded]
+product lines seen:      19907, never executed: 2950 (14.8%)   [every line]
+product CODE lines:      12098, never executed: 1637 (13.5%)   [blank + comment-only excluded]
 
-── THE SAME DATA, BEFORE AND AFTER THE MERGE WAS FIXED ──
-The reading above is of the SAME coverage reports as the numbers below; only the rule that turns
-V8's ranges into "was this line executed" changed. Round 27 measured why it had to.
+── WHAT THE LAST THREE ROUNDS CHANGED, MEASURED ──
+                               §36 (every line)   §37-38       §41 (this run)
+product code lines dark        —                  1658 (13.7%)  1637 (13.5%)
+files with dark lines          —                  28            28
+tool/render-tools.js           89                 54            33
+host/render-journal.js         28                 3             3
+host/frame-ledger.js           10                 1             1
 
-                              old rule        corrected       what the old rule got wrong
-product code lines dark       2521 (20.8%)    1658 (13.7%)    lines that already ran, reported dark
-files with dark lines         32              28
-tool/render-tools.js          89              54              35 false entries, measured
-host/render-journal.js        4               3
-host/frame-ledger.js          2               1
+Round 27 corrected the merge rule that produced the middle column: a line was judged by its whole
+SPAN, so V8's zero-count range for an untaken sub-expression — `? studio.hostApiVersion()`, starting
+62 characters into line 92 — reported as never-executed a line that thirteen processes had executed.
+35 of `render-tools.js`'s 89 "dark" lines were false, and the dark list was sending a reader to write
+tests for code that runs on every tool call.
 
-MEASURED, the case that exposed it: `tool/render-tools.js` line 92 is
-`const version = typeof studio.hostApiVersion === 'function' ? studio.hostApiVersion() : 0`.
-Raw reports from thirteen processes contain a positive range covering that line, and V8 also emits a
-ZERO-count range for the untaken arm starting 62 characters into it (`? studio.hostApiVersion()`).
-The old rule judged a line by its whole span, so the zero range blackened the line; the `if (…) return
-null` on the next line went the same way (its zero range covered only `return null`, 63 characters in).
-The dark list was sending a reader to write tests for code that runs on every tool call.
+Round 28 closed the failure-state half of that file (54 → 33): the block a model reads AFTER a failure
+(`incomplete frames:` with each reason, `recovery:` notes, `~unknown remaining`) had never been
+composed with the jobs it exists for, and the documented `resumeJobId` path had never been driven
+through the tool that documents it. The lines that remain are guards for states no suite reaches
+(the tool called with no host service, an encode that disagrees with the job's own claims, a cancel
+that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (28) ──
    packages/deepblend/host/lib/index.js                        649/2904  code lines dark
@@ -52,7 +53,7 @@ The dark list was sending a reader to write tests for code that runs on every to
    packages/deepblend/tool/lib/visual-tools.js                  69/330
    packages/deepblend/contracts/lib/scene-spec.js               68/561
    packages/deepblend/host/lib/video-encoder.js                 56/210
-   packages/deepblend/tool/lib/render-tools.js                  54/426
+   packages/deepblend/tool/lib/render-tools.js                  33/426
    packages/deepblend/host/lib/project-store.js                 53/263
    packages/deepblend/tool/lib/tools.js                         51/810
    packages/deepblend/host/lib/render-reconciler.js             48/189

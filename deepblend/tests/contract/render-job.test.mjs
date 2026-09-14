@@ -376,6 +376,72 @@ check('a job whose warnings field is absent entirely is not a crash, and prints 
   })())
 
 // ---------------------------------------------------------------------------
+// 9c. The block a model reads AFTER a failure — the states it exists for
+// ---------------------------------------------------------------------------
+
+// WHY THIS SECTION IS SEPARATE FROM 9b. The coverage reading (round 28) showed every line of the
+// failure branches in `describeJobLines` still dark after four milestones: no suite had ever composed
+// this block with a job that FAILED, that was found unfinished, or that had a published delivery —
+// the tool-plane suites see a running job and a completed one, and nothing else. This is the text a
+// model reads to decide what to do next, and it is the only place `corruptFrames`, `errorCode`,
+// `delivery` and `recovery` reach a reader at all.
+
+const failedJob = {
+  ...reportedJob,
+  errorCode: 'BLENDER_NONZERO_EXIT',
+  corruptFrames: [
+    { frame: 31, reason: 'unterminated' },
+    { frame: 32, reason: 'wrong-dimensions 1920x1080, expected 1280x720' },
+  ],
+}
+const failedLines = describeJobLines(failedJob)
+check('a failed job tells the reader which frames are incomplete, and WHY each one is',
+  failedLines.some(entry => entry.includes('incomplete frames:') && entry.includes('31 (unterminated)') &&
+    entry.includes('32 (wrong-dimensions 1920x1080, expected 1280x720)')), failedLines)
+check('and it names the coded reason it stopped, not just the word "failed"',
+  failedLines.some(entry => entry.includes('errorCode: BLENDER_NONZERO_EXIT')), failedLines)
+
+const manyCorrupt = describeJobLines({
+  ...failedJob,
+  corruptFrames: Array.from({ length: 11 }, (unused, index) => ({ frame: 100 + index, reason: 'truncated' })),
+})
+check('a long list of incomplete frames is truncated rather than flooded into the result',
+  manyCorrupt.some(entry => entry.includes('+3 more')), manyCorrupt.find(entry => entry.includes('incomplete frames:')))
+
+const deliveredJob = describeJobLines({
+  ...reportedJob,
+  status: 'completed',
+  delivery: { status: 'published', videoPath: 'output/final.mp4' },
+})
+check('a job with a published delivery says where the video is',
+  deliveredJob.some(entry => entry.includes('delivery: published -> output/final.mp4')), deliveredJob)
+
+const recoveredJob = describeJobLines({
+  ...reportedJob,
+  status: 'recovering',
+  recovery: { notes: ['the orphaned renderer was stopped', 'the ledger was rebuilt from 3 frame(s)'] },
+})
+check('a job found unfinished after a restart explains itself, note by note',
+  recoveredJob.some(entry => entry.startsWith('recovery:')) &&
+  recoveredJob.some(entry => entry.trim() === '- the orphaned renderer was stopped') &&
+  recoveredJob.some(entry => entry.trim() === '- the ledger was rebuilt from 3 frame(s)'), recoveredJob)
+
+const timedJob = describeJobLines({
+  ...reportedJob,
+  status: 'running',
+  pid: 81187,
+  meanMsPerFrame: 4200,
+  estimatedRemainingMs: null,
+})
+check('a job that has measured its speed but not yet its remaining time says "unknown", not "null"',
+  timedJob.some(entry => entry.startsWith('speed:') && entry.includes('4.2 s/frame') && entry.includes('~unknown remaining')), timedJob)
+
+const noRecoveryNotes = describeJobLines({ ...reportedJob, recovery: { notes: [] } })
+check('a recovery with no notes still says what happened, and prints no empty bullets',
+  noRecoveryNotes.some(entry => entry.startsWith('recovery:')) &&
+  !noRecoveryNotes.some(entry => entry.trim() === '-'), noRecoveryNotes)
+
+// ---------------------------------------------------------------------------
 // 10. The host's ledger reads a real directory, and calls a torn frame missing
 // ---------------------------------------------------------------------------
 
