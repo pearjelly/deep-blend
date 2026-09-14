@@ -14,7 +14,7 @@
 DSH Host Composition        →  packages/deepblend/bundle/cordis.patch.yml
   共享服务：Blender 执行、Project/Revision Store、原子提交事务、UI Host 半
 
-DeepBlend Agent Preset      →  ~/.dsh/.agent-presets/deepblend-dev/
+DeepBlend Agent Presets     →  ~/.dsh/.agent-presets/{deepblend,deepblend-dev}/
   单个会话模型可见的 10 个工具与提示词
 
 Blender Runtime             →  packages/deepblend/provider-local/python/
@@ -31,7 +31,8 @@ Persona 与会话级能力。工具行不发布任何服务，因此天然满足
 ```
 deepblend/
   schemas/            权威 JSON Schema（SPEC §5.2）：scene-spec / scene-patch / job-result
-  presets/            agent preset 的**源**：deepblend-dev/（SPEC §5.2 的目录，M3 之前是空的）
+  presets/            agent preset 的**源**（SPEC §5.2）：deepblend/（正式，最小权限）与
+                      deepblend-dev/（开发）；preset 自带的 skills/ 随目录一起部署
   fixtures/           产品转台 golden 场景；室内房间（正确参考 + 三个植入缺陷的派生场景）
   docs/               dsh-baseline / runtime-audit / architecture-decisions
                       / tool-contracts / milestone-status / m2-brief / m3-brief / m4-brief
@@ -54,7 +55,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         21 个 *.test.mjs
+    contract/         22 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -68,7 +69,7 @@ packages/deepblend/
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
     python/           bootstrap.py 分派器 + 6 个动作模块
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               14 个模型可见工具（Agent preset 平面，不发布服务）
+  tool/               15 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
                       手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
@@ -124,8 +125,8 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、32 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**21 个文件 = 807 项自计断言（12 个文件打印计数）+ 118 个 `node:test` 用例（9 个文件）**。
+预期：**12 个套件、33 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**22 个文件 = 811 项自计断言（12 个文件打印计数）+ 127 个 `node:test` 用例（10 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -143,7 +144,7 @@ node deepblend/tests/composition/activation.e2e.mjs             # Host compositi
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 全部 7 个工具
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
-node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # M3 全部 14 个工具 + 真实交付
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 15 个工具 + 真实交付
 node deepblend/tests/composition/ui-plane.e2e.mjs               # M4 UI 平面：闭集路由 + 座位表
 node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏览器验收（自带 Host）
 ```
@@ -218,7 +219,8 @@ dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合�
 dsh web                                                 # 重启后生效
 ```
 
-重启后新建 **DeepBlend 开发模式** 会话，工具清单应为 **14 个**（见 `milestone-status.md` §12.4）。
+重启后新建 **DeepBlend 开发模式** 会话时工具清单为 **15 个**；**DeepBlend Studio**（正式 preset）
+少得多，且没有 Shell、没有文件写入、没有 Web、没有 Creator Tool（见 `milestone-status.md` §16）。
 
 ---
 

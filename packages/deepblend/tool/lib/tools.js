@@ -81,6 +81,7 @@ export function apply(ctx) {
   ctx.tools.register(scenePatch(ctx))
   ctx.tools.register(previewRender(ctx))
   ctx.tools.register(sceneValidate(ctx))
+  ctx.tools.register(revisionRestore(ctx))
 }
 
 // ---------------------------------------------------------------------------
@@ -684,6 +685,125 @@ function sceneValidate(ctx) {
         ? `Validate "${args?.projectId ?? ''}"`
         : `Dry-run a patch against "${args?.projectId ?? ''}"`,
       kind: 'read',
+    }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// revision_restore
+// ---------------------------------------------------------------------------
+
+/**
+ * Put the project back on an earlier revision.
+ *
+ * WHY THIS TOOL EXISTS, AND WHY IT WAS MISSING
+ * --------------------------------------------
+ * SPEC §11 lists `blender_revision_restore` among the model-visible tools, with
+ * "需确认" as its permission. It was never implemented — while two of this
+ * repository's own documents told a user to call it:
+ * `README.md` ("可直接重放或 `blender_revision_restore` 回退") and
+ * `milestone-status.md` §10B ("需要回退时：`blender_revision_restore {…}`").
+ * Both were written by an earlier session that assumed the tool followed from the
+ * facade method. The facade method did exist and did work — the workbench's own
+ * Revisions panel calls it — so nothing failed, and nothing noticed.
+ *
+ * That is the whole shape of the defect: a promise in prose, a working
+ * implementation one layer down, and no line of code that had to agree with
+ * either. `composition/tool-plane-m3.e2e.mjs` now calls this tool, which is the
+ * line of code that would have caught it.
+ *
+ * WHAT IT IS NOT
+ * --------------
+ * It is not destructive. Restore MOVES THE POINTER to a revision that already
+ * exists; every later revision stays in the history, and the revision it left is
+ * still there to come back to. That is why the guard below is an explicit
+ * `confirm` rather than an approval prompt: the expensive and irreversible
+ * operations are the renders, and SPEC's approval plane (§15.1, Q7) is about
+ * those. A caller who has to write `confirm: true` has stated an intent; a caller
+ * who forgot to read the history has not.
+ *
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ */
+function revisionRestore(ctx) {
+  return defineTool({
+    name: 'blender_revision_restore',
+    description:
+      'Move a project back to an earlier revision. Read blender_project_get first and pass the exact ' +
+      'revision id from its history — this does not take an index, a timestamp or "the previous one". ' +
+      'Nothing is deleted: the revisions after the target stay in the history, and the revision you ' +
+      'leave is still there to restore again. Requires confirm:true, because the scene the model is ' +
+      'reasoning about changes underneath it — after a restore, re-read with blender_scene_get before ' +
+      'proposing any further patch, or the baseRevision you pass will be a conflict.',
+    parameters: {
+      projectId: { type: 'string', required: true, description: 'The project id.' },
+      revision: {
+        type: 'string',
+        required: true,
+        description: 'The revision to move the project to, exactly as blender_project_get reports it (e.g. "r0003").',
+      },
+      confirm: {
+        type: 'boolean',
+        required: true,
+        description: 'Must be true. A restore changes which revision later patches must be based on, so it is ' +
+          'never something to do as a side effect of another call.',
+      },
+    },
+    output: TOOL_OUTPUT,
+    async execute(args, exec) {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+
+      // NOTE ON THE ABSENT `confirm` CHECK. An earlier version of this tool ran a
+      // hand-written refusal when `args.confirm !== true`. It was unreachable: the
+      // parameter is declared `required`, so the harness rejects a call that omits it
+      // with `INVALID_ARGS` before `execute` is entered — measured while writing this
+      // suite, and it is why the branch is gone. A guard that cannot fire reads like
+      // protection and is not, which is the same defect as a test that cannot fail.
+      // The confirmation this tool offers IS the schema requirement, and
+      // `composition/tool-plane-m3.e2e.mjs` asserts both halves: that it is declared,
+      // and that omitting it never reaches the host.
+      try {
+        const { data, canonicalWarnings } = await canonicalCall(
+          resolved.studio.restoreRevision(definedFields({
+            projectId: args.projectId,
+            revision: args.revision,
+          })),
+          warning,
+        )
+
+        // `restored:false` is a success, not a no-op to hide: the target was
+        // already current, and saying so beats reporting a change that did not
+        // happen (D54's rule, one layer down).
+        const alreadyThere = data.restored !== true
+        const notes = alreadyThere
+          ? [`${args.revision} was already the current revision; nothing moved.`]
+          : [
+              `Moved  ${data.from}  ->  ${data.revision}`,
+              'The revisions in between are still in the history — this only moved the pointer.',
+              'Re-read with blender_scene_get before the next patch: its baseRevision must now be ' +
+                `${data.revision}.`,
+            ]
+
+        return {
+          ok: true,
+          text: renderSuccess(
+            alreadyThere
+              ? `Project "${data.projectId}" is already on ${data.revision}.`
+              : `Project "${data.projectId}" is now on ${data.revision} (was ${data.from}).`,
+            data,
+            { notes, warnings: canonicalWarnings },
+          ),
+          data,
+        }
+      } catch (cause) {
+        const failure = renderFailure(cause, 'REVISION_RESTORE_FAILED')
+        return { ok: false, ...failure }
+      }
+    },
+    presentCall: args => ({
+      card: 'generic',
+      title: `Restore "${args?.projectId ?? ''}" to ${args?.revision ?? '?'}`,
+      kind: 'edit',
     }),
   })
 }

@@ -34,9 +34,9 @@
  * Owner: DeepBlend Studio — M3
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
@@ -44,13 +44,43 @@ const SOURCE = join(ROOT, 'deepblend', 'presets')
 const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
 const TARGET = join(DSH_HOME, '.agent-presets')
 
-/** Files a preset directory is made of. Anything else is not shipped. */
-const PRESET_FILES = ['preset.yml', 'agent.cordis.yml']
+/**
+ * The files a preset directory cannot be without.
+ *
+ * The rest of the directory travels too — a preset's `skills/` directory is
+ * loaded through `customSkillDirs`, resolved against the composition's own
+ * `baseUrl`, which is how the deployment's shipped `cordis` preset carries its
+ * own two skills. Copying a fixed file list silently dropped them: the preset
+ * would mount, the model would get every tool, and the skill the persona tells it
+ * to load would simply not be in the catalog.
+ */
+const REQUIRED_FILES = ['preset.yml', 'agent.cordis.yml']
+
+/** Directories inside a preset that are not shipped (editor and VCS noise). */
+const IGNORED_DIRECTORIES = new Set(['node_modules', '.git'])
 
 const checkOnly = process.argv.includes('--check')
 
 function say(label, value) {
   console.log(`${label}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+}
+
+/**
+ * Every file under `directory`, as paths relative to it, in a stable order.
+ * @param {string} directory
+ * @returns {string[]}
+ */
+function filesUnder(directory) {
+  const found = []
+  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (entry.isDirectory()) {
+      if (IGNORED_DIRECTORIES.has(entry.name)) continue
+      for (const nested of filesUnder(join(directory, entry.name))) found.push(join(entry.name, nested))
+    } else if (entry.isFile()) {
+      found.push(entry.name)
+    }
+  }
+  return found
 }
 
 if (!existsSync(SOURCE)) {
@@ -71,13 +101,32 @@ for (const preset of presets) {
   const sourceDirectory = join(SOURCE, preset)
   const targetDirectory = join(TARGET, preset)
 
-  for (const file of PRESET_FILES) {
-    const from = join(sourceDirectory, file)
-    if (!existsSync(from)) {
+  for (const required of REQUIRED_FILES) {
+    if (!existsSync(join(sourceDirectory, required))) {
       // A preset without its composition is not a preset; refusing beats writing half.
-      console.error(`${preset}: missing ${file} in the repository copy`)
+      console.error(`${preset}: missing ${required} in the repository copy`)
       process.exit(1)
     }
+  }
+
+  const sourceFiles = filesUnder(sourceDirectory)
+  const targetFiles = existsSync(targetDirectory) ? filesUnder(targetDirectory) : []
+
+  // A file left behind by an earlier version of this preset is drift too: it is
+  // what a renamed skill or a deleted document becomes, and nothing would ever
+  // read it again except the model, which would.
+  for (const stale of targetFiles.filter(file => !sourceFiles.includes(file))) {
+    drift += 1
+    if (checkOnly) {
+      say(`${preset}/${stale}`, 'STALE — installed but no longer in the repository copy')
+    } else {
+      rmSync(join(targetDirectory, stale), { force: true })
+      say(`${preset}/${stale}`, 'removed — no longer in the repository copy')
+    }
+  }
+
+  for (const file of sourceFiles) {
+    const from = join(sourceDirectory, file)
     const to = join(targetDirectory, file)
     const same = existsSync(to) && readFileSync(from, 'utf8') === readFileSync(to, 'utf8')
 
@@ -90,7 +139,7 @@ for (const preset of presets) {
       say(`${preset}/${file}`, 'already in sync')
       continue
     }
-    mkdirSync(targetDirectory, { recursive: true })
+    mkdirSync(join(to, '..'), { recursive: true })
     copyFileSync(from, to)
     installed += 1
     say(`${preset}/${file}`, `installed -> ${to}`)
@@ -110,3 +159,4 @@ if (checkOnly) {
 say('installed files', installed)
 // A preset is mounted once at profile boot, so this is the honest closing line.
 say('note', 'a preset is read when the profile starts; restart `dsh web` for a change to take effect')
+say('next', `check it mounts: the roster reports each preset's standing mount state`)

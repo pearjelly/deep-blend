@@ -1,0 +1,218 @@
+# The `deepblend` agent preset: DeepBlend Studio's PRODUCT mode.
+#
+# `deepblend-dev` is the mode this repository is developed in: a full coding agent
+# with a shell, a filesystem and the ability to run the test suite. This file is
+# what a USER runs, and its whole design is what it does NOT contain.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SPEC §6.4 is the specification for this row set, and it is a CLOSED list:
+#
+#   keep    Persona · Agent Instructions · Plan · Ask User · Jobs Control ·
+#           DeepBlend Tool · DeepBlend Skill · Compaction · Present ·
+#           optionally read-only file tools
+#   remove  any shell · any file write · any web download · any code execution ·
+#           the creator's `tool-cordis` · any Python execution tool
+#
+# Every row below is on that list, and every absence is a decision. The
+# acceptance criteria M5 is checked against (`SPEC §20`) are all about absence:
+# no shell, no arbitrary Python, no creator tool, all high-risk operations
+# controlled. So the interesting content of this file is the comment explaining
+# each row that is NOT here.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHY `tool-fs` IS ABSENT, AND `tool-fs-search` IS NOT
+#
+# SPEC calls for "optionally read-only file tools". `@deepseek-ai/dsh-tool-fs`
+# registers FOUR tools in one row — `read`, `write`, `edit` and `read_image` —
+# and its config surface is read limits only. There is no read-only subset to
+# configure, so mounting it would hand this preset arbitrary file WRITE, which is
+# the first thing SPEC §6.4 removes. Measured, not assumed:
+#
+#     $ grep -ohE 'name: "[a-z_]+"' …/dsh-tool-fs/lib/index.js | sort -u
+#     name: "edit"   name: "read"   name: "read_image"   name: "write"
+#
+# `@deepseek-ai/dsh-tool-fs-search` registers exactly `glob` and `grep` — listing
+# paths and searching contents, both read-only — so THAT is the read-only file
+# capability, and the model reaches every artifact it needs through the blender_*
+# tools in any case: previews and contact sheets come back inside tool results as
+# images (M2's whole design), not through a file reader.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHAT IS DELIBERATELY MISSING, AND WHY
+#
+#   tool-bash / tool-pwsh          arbitrary shell            (SPEC §6.4, §11.1)
+#   tool-fs                        arbitrary file write        (see above)
+#   tool-web                       arbitrary web download      (SPEC §6.4)
+#   tool-cordis                    creator mode, mounts model-written JS
+#   tool-todo / tool-goal /
+#   command-goal                   not on the list. A goal is a
+#                                  long-running-objective feature; SPEC's closed
+#                                  set does not include it, and the least-surprise
+#                                  reading of "keep only these" is to keep only
+#                                  these. `command-compact` stays because it is
+#                                  part of the Compaction group SPEC requires.
+#   delegation / workflow / ralph  subagents and workflows are not on the list
+#                                  either, and every one of them would be a way
+#                                  to reach a capability this preset just removed
+#                                  (a subagent runs a preset too).
+#
+# The last line is the one worth keeping in mind: this file is a permissions
+# boundary, and a delegation row is a hole in it unless the delegated preset is
+# equally narrow.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# THE SKILL TRAVELS INSIDE THIS DIRECTORY
+#
+# `skills/deepblend-studio/SKILL.md` is loaded by the `skill-filesystem` row
+# below, which points at `skills/` resolved against `baseUrl` — the preset
+# composition's own directory, per `@deepseek-ai/dsh-agent-presets`. That is the
+# shipped convention (the deployment's `cordis` preset does exactly this for its
+# two skills) and it means deploying this preset deploys its documentation: no
+# second location to keep in step.
+#
+# `install-presets.mjs` copies the whole directory rather than a fixed file list
+# for that reason.
+
+# ── identity ────────────────────────────────────────────────────────────────
+
+# The product persona. `{{model}}` and `{{cwd}}` resolve from the agent's own
+# route and workspace.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    prefix: >-
+      You are DeepBlend Studio, a 3D animation agent powered by the {{model}} model.
+      You plan, inspect and control Blender through the blender_* tools: a scene is
+      a SceneSpec document, every accepted change is an immutable revision, and you
+      look at a scene with previews before you commit hours to a final render.
+      Load the deepblend-studio skill before starting real work.
+    suffix: Your working directory is {{cwd}}.
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ── plan mode (SPEC §6.4 "Plan") ─────────────────────────────────────────────
+#
+# Plan state is per-agent by nature, so the entry-local realm is the correct
+# lifetime rather than a workaround: without it a row would publish into the root
+# realm and `dsh-agent-presets` would reject the mount.
+- id: planning
+  name: cordis:group
+  group: true
+  isolate:
+    planMode: true
+  config:
+    - id: plan-mode
+      name: '@deepseek-ai/dsh-plan-mode'
+      config:
+        section: |
+              You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+              Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+              The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+              Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+              Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+              When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+
+# ── the questions a person must answer (SPEC §6.4 "Ask User") ────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+# ── background work (SPEC §6.4 "Jobs Control") ───────────────────────────────
+#
+# Only the model-facing controls. The task REGISTRY stays in the host composition,
+# where `tool-bash` and the render reconciler resolve it — an entry-local realm
+# here would be invisible to them, and the tools would answer "background jobs
+# unavailable" while sitting in the catalog. A long final render is exactly the
+# work this preset must be able to collect and stop.
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── the DeepBlend skill (SPEC §6.4 "DeepBlend Skill") ────────────────────────
+
+# The skill REGISTRY is a host service layered per scope; these rows register
+# into THIS preset's layer, so they need no realm. `customSkillDirs` is the one
+# `!!js` expression in this file, and it works here — unlike in the bundle patch,
+# which is composed by a loader whose context has no `process` (M0 §4.2, and the
+# header of `bundle/cordis.patch.yml`). A preset composition IS read by `Include`,
+# which rewrites `baseUrl` to the composition's own directory; the deployment's
+# shipped `cordis` preset uses the same expression for its own two skills.
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    customSkillDirs:
+      - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── read-only file access (SPEC §6.4 "可选只读文件工具") ──────────────────────
+#
+# `glob` and `grep` only — see the header for why `tool-fs` cannot be narrowed
+# and is therefore absent altogether.
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── compaction (SPEC §6.4 "Compaction") ──────────────────────────────────────
+#
+# `compaction-basic` reads `toolResultPruner` through `ctx.get`, so the pruner
+# must share this realm rather than sit outside it. `tokenMeter` is deliberately
+# NOT here: the meter stays on the host plane and owns the context-meter units the
+# browser reads for every session, so it must not come and go with a preset.
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024
+
+# ── deliverables (SPEC §6.4 "Present/Deliverable") ───────────────────────────
+#
+# How a user receives an artifact the agent produced. It needs `fs` and
+# `sessionProjections` from the host; it registers into `tools` and provides
+# nothing, so it needs no realm.
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'
+
+# ── DeepBlend Studio ────────────────────────────────────────────────────────
+
+# The model-visible DeepBlend tools. This row CONSUMES the `blenderStudio`
+# service published by the `@deepblend/dsh-blender-bundle` HOST composition — it
+# publishes nothing, so it needs no realm and is safe to mount per session
+# (SPEC §4.3/§4.4).
+#
+# WHAT THE CATALOG IS IS NOT WRITTEN HERE. The tool names, the count and the
+# per-milestone groupings live in `packages/deepblend/tool/lib/`, and
+# `composition/tool-plane-m3.e2e.mjs` owns the current total. This block used to
+# be the kind of comment that goes on stating a count after the next milestone
+# changed it — the copy nobody runs is the one that rots (D38, D43, D60) — so it
+# points at the package instead.
+#
+# `blender_asset_ingest` is still absent: its host service and approval boundary
+# are M5 work (SPEC §11). So is `blender_revision_restore`, which SPEC §11 lists
+# and two of this repository's own documents tell a user to call — see
+# `milestone-status.md` §16 for the measured gap.
+- id: deepblend-tool
+  name: '@deepblend/dsh-blender-tool'

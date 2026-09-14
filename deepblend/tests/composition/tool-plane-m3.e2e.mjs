@@ -5,7 +5,7 @@
  *
  * WHAT THIS SUITE UNIQUELY PROVES
  * -------------------------------
- *  1. The catalog is EXACTLY the fourteen tools that exist. Each milestone's suite
+ *  1. The catalog is EXACTLY the fifteen tools that exist. Each milestone's suite
  *     asserted the exact total while it was current; this one owns the total now, so
  *     the count lives in one place and cannot drift into two.
  *  2. `blender_final_render` RETURNS WITH A JOB ID rather than blocking — the first
@@ -30,7 +30,7 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -175,13 +175,14 @@ const EXPECTED = [
   'blender_preview_views',
   'blender_project_create',
   'blender_project_get',
+  'blender_revision_restore',
   'blender_scene_get',
   'blender_scene_patch',
   'blender_scene_validate',
   'blender_visual_autofix',
   'blender_visual_review',
 ]
-check('the preset plane registers exactly the fourteen tools that exist',
+check('the preset plane registers exactly the fifteen tools that exist',
   JSON.stringify(names) === JSON.stringify(EXPECTED), names)
 check('blender_asset_ingest is the one SPEC §11 tool still absent, and it is absent because its host service is M5',
   !names.includes('blender_asset_ingest'), names.filter(name => name.includes('asset')))
@@ -376,6 +377,89 @@ check('resuming a COMPLETED job is refused with a coded result pointing at blend
 // context cannot be overridden by a second root in the same process — measured while
 // writing this, and the reason that scenario lives in its own file
 // (`contract/host-plane-staleness.test.mjs`), where nothing else is composed.
+
+// ---------------------------------------------------------------------------
+// blender_revision_restore — SPEC §11's tool that did not exist
+// ---------------------------------------------------------------------------
+//
+// These checks are why the tool exists at all. Two of this repository's own
+// documents told a user to call `blender_revision_restore` for four milestones
+// (`README.md`, `milestone-status.md` §10B) while no such tool was registered. The
+// facade method it wraps had been implemented since M1 and the workbench's own
+// Revisions panel called it, so nothing failed and nothing noticed. A suite that
+// CALLS the tool is what makes that class of promise impossible to leave broken.
+
+// First the guard. SPEC §11 gives this tool "需确认" as its permission, and the
+// confirmation is the SCHEMA requirement rather than a branch inside `execute`: the
+// harness refuses a call that omits a required parameter before the tool runs, which
+// is both earlier and impossible to forget. Both halves are asserted, because
+// "declared required" and "actually refused" are different claims.
+const restoreDefinition = root.get('tools').get('blender_revision_restore')
+check('blender_revision_restore declares confirm as a REQUIRED parameter',
+  Array.isArray(restoreDefinition?.parameters?.required)
+  && restoreDefinition.parameters.required.includes('confirm')
+  && restoreDefinition.parameters.properties?.confirm?.type === 'boolean',
+  restoreDefinition?.parameters?.required)
+check('and its description says why the confirmation is required, not merely that it is',
+  /Requires confirm:true/.test(restoreDefinition.description)
+  && /re-read with blender_scene_get/.test(restoreDefinition.description))
+
+const unconfirmed = await call('blender_revision_restore', { projectId, revision })
+check('a call that omits confirm never reaches the host, so the confirmation cannot be skipped',
+  unconfirmed.isError === true && /confirm/.test(String(unconfirmed.error?.message ?? '')),
+  unconfirmed.error?.message ?? unconfirmed.value)
+check('and the refusal is reported as a coded argument error, not as an unhandled crash',
+  unconfirmed.error?.info?.code === 'INVALID_ARGS', unconfirmed.error?.info ?? null)
+
+// A second revision to come back from: one patch that changes one thing.
+const patched = await call('blender_scene_patch', {
+  projectId,
+  baseRevision: revision,
+  operations: [{ op: 'camera.update', cameraId: 'camera-main', lens: 42 }],
+  note: 'M3 tool plane: a second revision so a restore has somewhere to go',
+  saveCheckpoint: false,
+})
+check('a second revision exists for the restore to return to',
+  patched.value?.ok === true && patched.value.data.revision !== revision,
+  patched.value?.ok === true ? patched.value.data.revision : (patched.value?.data ?? patched.error))
+const secondRevision = patched.value?.data?.revision
+
+// Restoring to the revision that is already current is a SUCCESS reporting no
+// change, not an error — the rule the job surface already follows for a job that is
+// already finished (D54).
+const alreadyThere = await call('blender_revision_restore', { projectId, revision: secondRevision, confirm: true })
+check('restoring to the current revision succeeds and says nothing moved',
+  alreadyThere.value?.ok === true && alreadyThere.value.data.restored === false,
+  { restored: alreadyThere.value?.data?.restored, reason: alreadyThere.value?.data?.reason })
+check('and it does not claim a from/to transition that did not happen',
+  alreadyThere.value.data.from === undefined && !/Moved/.test(alreadyThere.value.text))
+
+const restored = await call('blender_revision_restore', { projectId, revision, confirm: true })
+check('a confirmed restore moves the project back',
+  restored.value?.ok === true && restored.value.data.restored === true
+  && restored.value.data.revision === revision,
+  { revision: restored.value?.data?.revision, from: restored.value?.data?.from })
+check('it reports where it came FROM, so the history is not silently rewritten',
+  restored.value.data.from === secondRevision, restored.value.data.from)
+check('its text tells the model to re-read before the next patch',
+  /blender_scene_get/.test(restored.value.text) && /baseRevision/.test(restored.value.text))
+
+// The property that makes this tool safe: nothing was deleted. The revision it left
+// is still readable and still in the history.
+const afterRestore = await call('blender_project_get', { projectId })
+check('the revision the restore moved away from is still in the history',
+  afterRestore.value?.ok === true
+  && afterRestore.value.data.revisions.some(entry => entry.revision === secondRevision),
+  afterRestore.value?.data?.revisions?.map(entry => entry.revision))
+check('so the restore is itself undoable by the same tool',
+  afterRestore.value.data.revisions.length >= 2, afterRestore.value.data.revisions.length)
+
+// An unknown revision is a coded refusal, the same shape every other read uses.
+const missing = await call('blender_revision_restore', { projectId, revision: 'r9999', confirm: true })
+check('restoring an unknown revision is a coded result naming the ones that exist',
+  missing.isError === false && missing.value.ok === false
+  && missing.value.data.errorCode === 'REVISION_NOT_FOUND',
+  missing.value?.data?.errorCode ?? missing.error)
 
 // ---------------------------------------------------------------------------
 // Summary

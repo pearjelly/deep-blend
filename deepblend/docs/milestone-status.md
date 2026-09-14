@@ -1576,3 +1576,152 @@ DeepBlend tests: 21/21 file(s) passed             807 项自计断言 + 118 个 
 `deepblend/tests/contract/install-plugin-modes.test.mjs`（5 项）全部在**临时 DSH home** 上跑真实的
 安装器进程，因为安装器写的是 `$DSH_HOME`——这正是不可能拿开发者的真实 home 去验的原因。
 另有一项断言「bundle 多出一个键时 `--check` 会报漂移」：那是手抄配置唯一不会被发现的腐烂方式。
+
+---
+
+## 16. M5 的另一半：正式 preset，以及一个「文档里有、实现里没有」的工具
+
+第 15 节拆掉的是**安装**的门槛。本节做 M5 的正面交付：SPEC §6.4 的正式
+`deepblend` preset，以及顺着它找出来的、比它更值得记的一件事。
+
+### 16.1 `deepblend`：一个几乎全部由**缺席**定义的 preset
+
+`deepblend-dev` 是这个仓库开发时用的模式——完整编码 Agent，有 Shell、有文件系统、
+能跑测试。`deepblend` 是**用户**跑的模式，它的正确性几乎全在「没有什么」上。
+SPEC §6.4 给的是一张闭集，SPEC §20 的 M5 验收也全是负向的：
+
+```
+正式 preset 无 Shell / 无任意 Python / 无 Creator Tool / 全部高风险操作受控
+```
+
+**缺席没有天然的测试。** 加一行 Shell 不会有任何东西失败：preset 照常挂载、现有套件
+全绿，唯一的差别是驱动 Blender 的模型从此能执行任意命令。所以
+`contract/preset-surface.test.mjs` 断言的是**行集合本身**（相等，不是包含），
+这样「没人加过危险的东西」从一句指望变成一条语句，而且**两个方向都会失败**：
+多一行、少一行。
+
+13 行，逐个对应 SPEC §6.4 的保留项：Persona、Agent Instructions、Plan、Ask User、
+Jobs Control、DeepBlend Skill、可选只读文件工具、Compaction、Present、DeepBlend Tool。
+
+### 16.2 一条被实测逼出来的缺席：`tool-fs` 不能只读
+
+SPEC 允许「可选只读文件工具」。实测 `@deepseek-ai/dsh-tool-fs`：
+
+```
+$ grep -ohE 'name: "[a-z_]+"' …/dsh-tool-fs/lib/index.js | sort -u
+name: "edit"   name: "read"   name: "read_image"   name: "write"
+```
+
+**四个工具在同一行里注册，config 只有读取上限，没有只读子集。** 挂上它等于给这个
+preset 任意文件写入——恰恰是 SPEC §6.4 第一条要移除的东西。所以它整体缺席，
+只读能力由 `@deepseek-ai/dsh-tool-fs-search`（恰好 `glob` 与 `grep`）提供。
+模型需要的每一件产物本来也都经由 `blender_*` 工具的结果回来：预览与 contact sheet
+是作为 **tool result 里的 image** 回来的（M2 的整个设计），不经过文件读取器。
+
+### 16.3 skill 装在 preset 目录里，而安装器以前会把它丢掉
+
+`skills/deepblend-studio/SKILL.md` 与 composition 放在同一个目录，由
+`skill-filesystem` 的 `customSkillDirs` 指向 `skills/`——这是随附 `cordis` preset 的
+做法（`new URL('skills/', baseUrl)`），也是唯一一种「部署 preset 就部署了它的文档」
+的方式。
+
+**而 `install-presets.mjs` 以前只复制 `['preset.yml', 'agent.cordis.yml']` 两个文件。**
+它会复制出一份挂载正常、工具齐全、而 persona 让模型去加载的那个 skill 根本不存在的
+preset——静默地。安装器现在走整棵目录树，并且会**报告并清除**已安装但源里没有的文件
+（一个改名后的 skill 会永远留在那里，而唯一会读它的东西正是模型）。
+`preset-surface.test.mjs` 断言安装器仍在走目录树，而不是又回到一份固定文件清单。
+
+### 16.4 那唯一一个 `!!js`：在 preset 里能用，在 bundle 里不能
+
+两个 compose 路径的作用域不同，值得写清楚，因为第 15 节刚说过 bundle 里不能用 `!!js`：
+
+| | 谁在读 | 作用域里有 `process` 吗 |
+|---|---|---|
+| bundle / profile patch | profile 的 patch 层 | **没有**（M0 §4.2 实测）→ 任何 `!!js … process …` 静默回落默认值 |
+| **agent preset composition** | `Include`，它把 `baseUrl` 改写成 composition 自己的目录 | **有**——随附的 `cordis` preset 就是这么带上自己那两个 skill 的 |
+
+这条表达式的失败方式也是静默的：`skill-filesystem` 收的是一个目录，目录不存在就只是
+一个「没有 skill 的根」。preset 照常挂载、每一行都报 active、工具齐全，而 skill 不在目录里。
+所以 `preset-surface.test.mjs` 用**加载器自己的求值方式**把它算一遍
+（`new Function('ctx','expr','with (ctx) { return eval(expr) }')`，`baseUrl` 指向这个
+composition 的目录），断言它落下的是本 preset 的 `skills/`。
+
+### 16.5 挂载验证：在**运行中的**进程里逐项实测
+
+按 SPEC §6.2 的规矩，不用 roster 的 `broken` 字段替代 mount validation。用一个动态
+Cordis 插件在 3080 那个真实进程里调 `agentPresets` 的三个方法：
+
+```
+roster            6 个 preset；deepblend: trust=user, name="DeepBlend Studio", broken=null
+                  （standard / ptc / minimal / cordis / deepblend / deepblend-dev）
+standingKeyFor    'deepblend' 与 'deepblend-dev' 都无错误返回  ← SPEC §6.2 要求的验证
+compositionInventory('deepblend')
+                  13 行，enabled 全为 yes、condition 全为 null、fiberState 全为 2
+                  （2 = 已激活）；broken = null
+```
+
+**顺手量到一条做不到的事，记下来免得下次再试。** 我原本想用
+`tools.schemas(standingKeyFor(id))` 与 `tools.get(name, standingKeyFor(id))`
+把该 preset 的**工具目录**也数出来，那是比静态清单强得多的证据。两种调用都只返回
+**调用者自己作用域**里的东西（返回的目录里只有我刚注册的那个探针工具，
+`blender_capabilities` 与 `bash` 都不在其中）——动态插件的受限上下文里，
+`ctx.get('tools')` 是绑定到本 agent 作用域的，`scope` 参数到不了真正的注册表。
+
+**所以本节的工具面结论只来自两处**：composition 的逐行激活状态，
+以及仓库内可重复的 `contract/preset-surface.test.mjs`。要真正数出那个目录，
+需要一个**真的跑在 `deepblend` preset 上的会话**——那是下一页的事，不是这里假装做过的事。
+
+### 16.6 顺着 §16.1 找到的东西：SPEC §11 的工具，文档写了两处，实现是零处
+
+写 preset 时要决定「DeepBlend Tool 行到底给出哪些工具」，于是去数了一遍：
+
+**`blender_revision_restore` 不存在。** SPEC §11 把它列为模型可见工具（权限「需确认」），
+`README.md` 告诉用户「可直接重放或 `blender_revision_restore` 回退」，
+`milestone-status.md` §10B 写着「需要回退时：`blender_revision_restore {projectId: …}`」——
+而工具面里从来没有这个工具，整整四个里程碑。
+
+它包住的 facade 方法 `restoreRevision` 从 M1 起就实现了，工作台的 Revisions 面板也确实
+在调它，**所以没有任何东西失败，也没有任何东西发现**。这就是「散文里的承诺」的完整形状：
+一层之下有能跑的实现，两处文档告诉用户去用它，而没有任何一行代码必须与两者一致。
+
+**修法有三部分，缺一不可**：
+
+1. 实现工具（15 个了）；
+2. 让 `tool-plane-m3.e2e.mjs` **真的调用它**——那一行代码就是本来会发现这件事的东西：
+   没有 `confirm` 时被 schema 拦住、`confirm` 后指针真的移动、报告 `from`、
+   **回退到当前 revision 是成功而不是错误**（`restored:false`，与「已完成的任务」同一条规则 D54）、
+   离开的那个 revision 仍在历史里、未知 revision 是一个带码的结果；
+3. 把 `contract/ui-api.test.mjs` 里那句 `UI_TOOL_CARD_KEYS.length === 14` 换成一条**性质**断言。
+
+第 3 条值得单独说：一个字面量计数会被「加工具的人顺手改掉」，于是那条检查是**被编辑通过的**，
+而不是被满足的。真正的相等（每个注册的工具都有卡、没有多余的卡）由
+`composition/ui-plane.e2e.mjs` 用**真实的客户端 bundle** 与**真实的注册表**比对——
+它这次也确实抓到了：`{"tools":15,"missing":["blender_revision_restore"]}`。
+
+### 16.7 补工具时又抓到一条：一个永远不会触发的守卫
+
+`blender_revision_restore` 的第一版在 `execute` 里手写了一段「没给 `confirm` 就拒绝」。
+它在套件里立刻失败了——`confirm` 是 schema 的必填参数，harness 在**进入 `execute` 之前**
+就以 `INVALID_ARGS` 拒绝了调用。那段分支**永远不会执行**。
+
+处置是删掉它，而不是留着当文档：**一个不会触发的守卫读起来像保护，实际不是**——
+与「一个不可能失败的测试」是同一种缺陷。这个工具提供的「确认」就是 schema 的必填要求，
+套件现在断言两件事：它确实被声明为必填，以及漏掉它时**根本到不了 host**。
+
+### 16.8 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      12 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 22/22 file(s) passed              811 项自计断言 + 127 个 node:test 用例
+```
+
+新增两个契约测试文件：`preset-surface.test.mjs`（9 项）与上一轮的
+`bundle-portability` / `install-plugin-modes`；`tool-plane-m3.e2e.mjs` 从 45 项涨到 **58 项**。
+
+**仍然没有做，也不假装做了**：3080 上跑着的 `dsh web` 还是旧进程——`deepblend` 这个
+preset 在**新会话**里才会被用户看到（`list()` 是每次重读的，所以 roster 里已经有了，
+但页面要在 profile 启动时才会重新组装）。这一条要等一次重启，并且按 §13.9 的规矩，
+是否生效要用页面本身去验。

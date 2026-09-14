@@ -26,16 +26,25 @@
 | `blender_export` | M3 | 工作区外需审批 | **写**（编码并发布 `output/`） |
 | `blender_job_status` | M3 | 自动 | 读（**从磁盘读**，跨重启） |
 | `blender_job_cancel` | M3 | 自动或确认 | **写**（终止进程组并改 job 状态） |
+| `blender_revision_restore` | M5 | 需确认（`confirm:true` 是 schema 必填参数） | **写**（移动 current 指针；不删除任何 revision） |
 
 ### 1.1 刻意**未注册**的工具
 
 | 工具 | 原因 | 归属 |
 |---|---|---|
 | `blender_asset_ingest` | 资产导入与审批策略未实现 | M5 |
+| `blender_debug_run_script` | 任意脚本执行；SPEC §11.2 要求它只存在于 `deepblend-dev`，且每次执行需审批 | 不进正式 preset |
+
+> **关于 `blender_revision_restore`（M5 补上，值得记一笔）**：SPEC §11 把它列为模型可见工具，
+> `README.md` 与 `milestone-status.md` §10B 都告诉用户去调用它——而它既不在上面那张工具表里，
+> 也不在实现里，整整四个里程碑。它包住的 facade 方法 `restoreRevision` 从 M1 起就实现了，
+> 工作台的 Revisions 面板也确实在调它，所以**没有任何东西失败，也没有任何东西发现**。
+> 这正是「散文里的承诺」的形状：一层之下有能跑的实现，而没有任何一行代码必须与两者一致。
+> M5 补上了工具，并让 `tool-plane-m3.e2e.mjs` **真的调用它**——那一行代码就是本来会发现这件事的东西。
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **14** 个
-（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个）；`tool-plane-m1/m2.e2e.mjs` 继续断言**它们各自
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **15** 个
+（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 1 个）；`tool-plane-m1/m2.e2e.mjs` 继续断言**它们各自
 那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
 每加一个里程碑都要改前面所有套件。
 

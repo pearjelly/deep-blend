@@ -345,7 +345,22 @@ check('arguments that are still streaming, or broken, yield nulls rather than th
   JSON.stringify(parseToolCallTarget('{"projectId":')) === JSON.stringify({ projectId: null, jobId: null, revision: null, operationCount: null })
   && parseToolCallTarget('').projectId === null
   && parseToolCallTarget(undefined).projectId === null)
-check('every registered DeepBlend wire tool name has a card', UI_TOOL_CARD_KEYS.length === 14 && UI_TOOL_CARD_KEYS.every(name => name.startsWith('blender_')), UI_TOOL_CARD_KEYS.length)
+// The COUNT used to be spelled out here, and that is the wrong shape for this
+// assertion: a literal gets updated by whoever adds a tool, so the check passes by
+// being edited rather than by being satisfied — and the tool this list was missing
+// (`blender_revision_restore`, SPEC §11) had been documented for four milestones
+// while no card, and no tool, existed for it.
+//
+// The equality that matters — every tool the preset actually registers has a card,
+// and no card exists for a tool that does not — is asserted by
+// `composition/ui-plane.e2e.mjs`, which loads the real client bundle and compares
+// against the real registration list. What belongs here is the property a pure
+// contract test can own on its own: a set of distinct `blender_*` names.
+check('the card key list is a distinct set of blender wire names',
+  UI_TOOL_CARD_KEYS.length > 0
+  && new Set(UI_TOOL_CARD_KEYS).size === UI_TOOL_CARD_KEYS.length
+  && UI_TOOL_CARD_KEYS.every(name => typeof name === 'string' && name.startsWith('blender_')),
+  UI_TOOL_CARD_KEYS.length)
 
 // ---------------------------------------------------------------------------
 // The documented route table must be the implemented one

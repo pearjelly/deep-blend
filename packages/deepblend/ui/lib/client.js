@@ -65,7 +65,8 @@ window.__ModuleLoader__.load({
     const TOOL_CARD_KEYS = [
       'blender_capabilities', 'blender_project_create', 'blender_project_get',
       'blender_scene_get', 'blender_scene_patch', 'blender_preview_render',
-      'blender_scene_validate', 'blender_preview_views', 'blender_visual_review',
+      'blender_scene_validate', 'blender_revision_restore', 'blender_preview_views',
+      'blender_visual_review',
       'blender_visual_autofix', 'blender_final_render', 'blender_export',
       'blender_job_status', 'blender_job_cancel',
     ]

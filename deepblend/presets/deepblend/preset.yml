@@ -1,0 +1,2 @@
+name: DeepBlend Studio
+description: 用 DeepSeek-Flash 规划、检查并控制 Blender 产出 3D 动画的专用 Agent：只会看场景、改场景、渲预览、判读测量并交付视频，没有 Shell、没有任意文件写入、没有任意 Python。
