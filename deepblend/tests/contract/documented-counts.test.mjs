@@ -21,15 +21,20 @@
  *
  * WHAT IT DELIBERATELY DOES NOT CHECK
  * -----------------------------------
- * The assertion TOTALS (the 830-checks / ignored-cases pair in the README). Those cannot be
- * known without running every suite, and this test runs inside that set — a check that
- * ran the others to count them would double the suite's cost to restate a number the
- * reader can get by running one command. They stay in the README as a **snapshot**,
- * labelled as one, and that label is what a reader is owed instead of a guarantee
- * nobody can keep. The README said 811 and 139 while this file was being written; the
- * measured values are 830 and ignored. No single commit made that wrong — each one added
- * assertions and none of them re-read the sentence — which is precisely the drift a
- * snapshot label survives and an assertion does not.
+ * The assertion TOTALS — how many checks and how many `node:test` cases the layer reports.
+ * Those cannot be known without running every suite, and this test runs inside that set: a
+ * check that ran the others to count them would double the suite's cost to restate a number
+ * the reader can get by running one command. They stay in the README as a **snapshot**,
+ * labelled as one, and that label is what a reader is owed instead of a guarantee nobody can
+ * keep. The README said 811 and 139 while this file was being written, and 830 and 186 two
+ * rounds later. No single commit made either wrong — each one added assertions and none of
+ * them re-read the sentence — which is precisely the drift a snapshot label survives and an
+ * assertion does not.
+ *
+ * AND THIS PARAGRAPH DOES NOT PRINT THE TOTALS EITHER, for the same reason it exists: it did,
+ * briefly, and a maintenance script left a placeholder word in both places. A number in a
+ * comment nothing reads is the defect this whole file is about, so the comment stopped
+ * carrying one (§34). The README is where the snapshot lives; this is the reason.
  *
  * Run: node deepblend/tests/contract/documented-counts.test.mjs
  *

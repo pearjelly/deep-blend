@@ -200,3 +200,47 @@ a smaller range first to check the scene.
 一次 1080p 交付的帧序列实测约 **424 MiB**（450 帧 × 0.94 MiB）。真正的约束是机时
 （3.4 小时/遍），不是磁盘。但 `.tools/` 里的 Blender 约占 1.4 GB，加上 346 MB 的镜像；
 `rm -rf .tools/downloads` 可以先释放镜像（重装时会重新下载并校验）。
+
+---
+
+## 10. 按错误码查：你看到的是一个码，不是一个症状
+
+前面九节是**按症状**组织的，因为你通常是从「它不对」开始的。但你也可能是从一个**错误码**
+开始的——模型把它贴给你，或者工具卡上就写着它。这张表是同一本手册的另一个入口，
+一行一个码，一句话说清该怎么办，以及哪一节展开了它。
+
+| 码 | 一句话 | 详见 |
+|---|---|---|
+| `RENDER_APPROVAL_REQUIRED` | 这次渲染超过帧数阈值，**一帧都还没开始**。批了才会跑 | §8 |
+| `RENDER_FRAMES_INCOMPLETE` | 帧还没齐，所以没有东西可以编码。用 `resumeJobId` 接着渲，而不是重开 | §3 |
+| `RENDER_JOB_CONFLICT` | 一个项目同时只能有一个交付渲染。先 `blender_job_status` 看那个在跑的 | — |
+| `ENCODE_VERIFY_FAILED` | 帧齐了但编码产物没通过自检。交付清单里写着哪一条不过 | §3 |
+| `REVISION_CONFLICT` | 你的 `baseRevision` 过期了：**没有被合并**。重新读场景再重发 | §4 |
+| `REVISION_CHECKPOINT_MISSING` | 这个 revision 没有 `.blend` 可以渲。用一个带 `saveCheckpoint` 的 revision 再交付 | — |
+| `UI_HOST_API_STALE` | 工作台里那个 Host 比磁盘上的包旧。重启 profile | §5 |
+| `SCENE_TOO_HEAVY` | 编译出来的场景面数超过 `maxMeshPolygons`（默认 200 万），**没有提交 revision** | 见下 |
+| `SCENE_VALIDATION_FAILED` | 场景编译出来了，但技术校验没过。错误清单在消息里 | — |
+| `SCENE_PATCH_REJECTED` | patch 被拒，**当前 revision 一个字节都没变**。消息里说要改哪一条 | — |
+| `ASSET_CONTENT_MISMATCH` | 文件的字节不是它扩展名说的那种。**还没拷进项目** | 见下 |
+| `ASSET_FORMAT_UNAVAILABLE` | 这个格式这条流水线不带。能带的是 glb / gltf / fbx / obj / usd / blend | — |
+| `ASSET_TOO_LARGE` | 超过 `assetMaxBytes`（默认 1 GiB）。本地在拷贝**之前**拒，网络在下载**当中**断 | — |
+| `ASSET_APPROVAL_REQUIRED` | 从网络地址导入需要你点一次批准。本地路径不需要 | §8 |
+| `PROJECT_EXISTS` | 这个 id 已经有项目了。换一个，或者先看那个项目 | §6 |
+| `PATH_OUTSIDE_WORKSPACE` | 路径跑出工作区了，被按 realpath 拦下。检查软链接 | — |
+| `RUNTIME_UNAVAILABLE` | 这个进程里没有可用的 Blender 运行时 | `install.md` §0 |
+| `ENGINE_UNAVAILABLE` | 这一版 Blender 装不出你要求的引擎。先 `blender_capabilities` | — |
+
+**两条值得单独说的：**
+
+* **`SCENE_TOO_HEAVY`**：编译出来的场景比 `maxMeshPolygons`（默认 200 万）重，所以 host 拒绝
+  提交这个 revision——项目停在原来的地方，什么都没坏。它和「超时」不是一回事：超时约束的是
+  **一次** Blender 调用，而一个五倍重的场景每次调用都能跑完，然后在你这个项目的余生里
+  每次都贵五倍。要抬这个上限就在 operator layer 里改 `deepblend.maxMeshPolygons`；
+  多数情况下真正的答案是那个资产太重了，而 `blender_asset_ingest` 的返回里写着它带进来多少字节。
+* **`ASSET_CONTENT_MISMATCH`**：文件的内容和扩展名对不上（一个叫 `.glb` 的 PNG、一个空的
+  `.glb`、或者一个文本格式里塞了二进制）。检查发生在**拷贝进项目之前**，所以没有东西被写下来。
+  扩展名写错了就改名；文件本来就不是模型就换一个。
+
+**一句贯穿全表的话**：上面每一条被拒的操作，项目都停在它原来的 revision 上。
+这不是安慰——它是这套东西的设计（一次成功的 patch = 一个不可变 revision，
+失败的 patch 什么都不改）。

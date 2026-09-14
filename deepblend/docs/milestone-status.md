@@ -3195,3 +3195,72 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 ```
 
 README 从 492 行变成 483 行，其中**少了 30 行会过期的叙述，多了 21 行不会过期的指路**。
+
+---
+
+## 34. 六十一个错误码，四个出现在用户会读的地方
+
+`BlenderErrorCode` 有 **61** 个成员。上一轮之前，出现在手册里的有 **4 个**
+（`REVISION_CONFLICT`、`ENCODE_VERIFY_FAILED`、`RENDER_APPROVAL_REQUIRED`、`UI_HOST_API_STALE`）。
+
+这本身不算错——大多数码是 host 和 Blender 之间的内部协议，没人需要被告知
+`RESULT_UNPARSEABLE` 是什么意思。**错的是没有任何东西区分这两类**：
+前两轮新增的两个码（`SCENE_TOO_HEAVY`、`ASSET_CONTENT_MISMATCH`）都是**用户会撞上、
+而且有明确下一步**的拒绝，它们到达时在任何一个用户会看的地方都没有条目。
+
+这正是这个仓库对文档的那条规则（D94，以及 §23 那张漏了一行的分工表）：
+**存在的东西要能被找到**，而错误码也是"存在的东西"。
+
+### 34.1 recovery.md 多了第十节：**按错误码查**
+
+前九节是**按症状**组织的——你通常是从"它不对"开始的。但你也可能是从一个**错误码**
+开始的：模型把它贴给你，或者工具卡上就写着它。新的 §10 是同一本手册的另一个入口，
+一行一个码：一句话说清怎么办，以及哪一节展开了它（已经有自己一节的那几个是**指过去**，
+不是复述——一份事实只写一处）。
+
+它顺带把这几个码第一次写给了用户：`SCENE_TOO_HEAVY`、`ASSET_CONTENT_MISMATCH`、
+`ASSET_TOO_LARGE`、`ASSET_FORMAT_UNAVAILABLE`、`ASSET_APPROVAL_REQUIRED`、
+`RENDER_FRAMES_INCOMPLETE`、`RENDER_JOB_CONFLICT`、`PROJECT_EXISTS`、
+`PATH_OUTSIDE_WORKSPACE`、`SCENE_VALIDATION_FAILED`、`SCENE_PATCH_REJECTED`、
+`RUNTIME_UNAVAILABLE`、`ENGINE_UNAVAILABLE`、`REVISION_CHECKPOINT_MISSING`。
+
+### 34.2 把"分类"变成**完备**的断言
+
+`contract/error-documentation.test.mjs`（6 项）。关键的一条不是"手册提到了若干码"，
+而是**每一个码都被决定过**：
+
+* 每个码要么在 `EXPLAINED`（码 → 哪一份手册的哪一节），要么在 `NOT_EXPLAINED`
+  的某一组里，而每一组写着**为什么读者不需要它**（"名字本身就是说明"、
+  "这是 host 与 Blender 之间的协议，修法在部署而不在项目"）。
+  **第 62 个码落在两者之外就变红**，失败信息直接说缺哪一个决定；
+* 反过来也查：分类里留着一个已经不再发布的码，会被指出来——
+  一份给不存在的东西的分类读起来像覆盖；
+* 手册里出现的每一个码必须是**真的**（改个名字就会在手册里留下一条死引文）；
+* 每一个 `EXPLAINED` 的码必须**真的在它声称的那一节里面**。
+
+最后那条第一版是错的，而且是**变异测试抓到的**：原来只要求"在那个标题之后出现过"，
+于是一个把 `ENCODE_VERIFY_FAILED` 指到 §9 的变异**通过了**——因为文件末尾的索引
+§10 列出了每一个被解释的码，**索引满足了任何在它之前的标题**。
+现在锚点是"标题到下一个 `## ` 之间"，一条被文档自己的附录满足的引文不算引文。
+
+六个变异（新增一个没有决定的码、指错手册、指错节、索引少一行、索引行丢失建议、
+手册引用一个改过名的码）**全部变红**。
+
+### 34.3 一条关于自己的注记
+
+给 `documented-counts.test.mjs` 更新计数时，我自己的维护脚本把 `ignored` 这个词落在了
+它文件头的说明里，而**那里正是"断言总数只能是快照、不能是断言"这句话所在的地方**——
+两轮没人发现，因为它是注释。
+
+处置不是把那两个数字改对，而是**把这个文件头里的数字删掉**：README 才是快照的所在，
+这个文件是"为什么"。**"没有人读的数字会烂"这条规则，对它自己同样成立**（D104）。
+
+### 34.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 31/31 file(s) passed        830 项自计断言 + 202 个 node:test 用例
+```
+
+覆盖率的说法现在有了确切的含义：**17 个码有用户可以照着做的一页，44 个码有理由**，
+而不是"手册里提过一些码"。
