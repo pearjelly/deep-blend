@@ -16,6 +16,7 @@
 | DSH | **`0.1.5-rc.2`**，钉住的版本 | `dsh --version`；它是兼容性锚点，别的版本未必能装（见 §4） |
 | git | 任意 | `git --version` |
 | **一个已初始化的 profile** | 第 3 步会改它，所以它必须先存在 | `ls $DSH_HOME/profiles/web`。**profile 是 `dsh` 建的，不是这个安装器建的**，所以先跑一次 `dsh web`（或 `dsh --profile web --dump-config`）把它创建出来 |
+| **ffmpeg 与 ffprobe** | 任意近期版本（macOS：`brew install ffmpeg`）。**这一步不装它**——渲染不需要它，只有把帧编成 MP4 的**交付**需要 | `ffmpeg -version` 与 `ffprobe -version`。缺了它渲染照跑、帧一帧不丢，编码会以 `ENCODER_NOT_FOUND` 失败并在消息里点名（`recovery.md` §3）；也可以在 operator layer 里把绝对路径写进 `ffmpegPath` / `ffprobePath` |
 
 DSH 不在机器上时：
 

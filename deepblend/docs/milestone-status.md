@@ -3939,3 +3939,83 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 产品代码一行没改：改的是**测具**（`tools/dsh-web-harness.mjs`）与它的一条断言。
 这也是这个仓库里第一次，「量具的错」不在探针里，而在**喂给探针的东西**上。
+
+---
+
+## 43. 一台没有 ffmpeg 的机器：一个从没被量过的状态，藏着一个会骗人的记录
+
+第 29 轮把 UI 平面点亮之后，读数里剩下的最大块是 `video-encoder.js`（56 行黑暗），
+而那些行几乎全是**外部工具不在**时的分支：ffmpeg 解析不出来、ffprobe 读不了刚编出来的文件、
+编码超时。这一轮问了一个更实际的问题：**这些分支里，哪一个是一台真实的机器会遇到的？**
+
+答案是「没有 ffmpeg」——而它有多真实，查文档就知道了：**`ffmpeg` 这个词在 README 的前置表
+和 `install.md` 的「前提」里都不存在**（只在讲验收的那一节出现过一次）。
+一个陌生人可以照文档把整套装起来、渲完 450 帧、然后在最后一步失败，
+而文档从头到尾没提过它需要什么。
+
+### 43.1 先量：把一个不存在的 ffmpeg 指给整套工具面
+
+```
+$ DEEPBLEND_FFMPEG_PATH=/nonexistent/ffmpeg-timeout node deepblend/tests/composition/tool-plane-m3.e2e.mjs
+[FAIL] a delivery driven entirely through the tools completes — failed
+[FAIL] and reports its published package — {"status":"encoding","startedAt":…,"attempt":1}
+```
+
+第二行是这一轮真正找到的东西：**job 已经是 `failed`，而它的 `delivery` 还写着 `encoding`。**
+
+渲染是好的、帧是全的，编码那一步抛了异常，调用方的 catch 把 job 标成 `failed`——
+**没有任何一处把 delivery 那次尝试的结局写下去**。于是 `blender_job_status` 同一段里
+既印着「这个 job 停了」，又印着「正在编码」。相信后一行的人会去等一个永远不会结束的东西。
+这是这个仓库反复修过的同一类东西：**记录下来的状态在说谎**。
+
+### 43.2 修：写下了尝试，就要写下它的结局
+
+`_deliverJob` 在开始编码前会把 `delivery: {status: 'encoding', attempt}` 写进记录——
+这本身是对的（中途来看的人应当看到「在编码」），所以**记录它的结局就是这个函数的责任**，
+包括编码抛异常的那条路。现在编码与探测被 try/catch 包住，抛出时先写
+
+```js
+delivery: { status: 'failed', attempt, errorCode, message, videoPath, completedAt }
+```
+
+再把异常原样抛出（job 的状态仍由调用方决定：一次失败的**重导**不该把一个已完成的 job 重新打开）。
+两条断言钉住它，两条变异都变红——把 catch 去掉，第一条立刻复现
+`{"status":"encoding",…}` 这个原始缺陷。
+
+### 43.3 被文档承诺过、但从没被走过的恢复路径
+
+`recovery.md` §3 写的是「帧都渲完了，但没有视频 → 调 `blender_export`」。
+这一轮第一次真的走了它，而且是**跨两台机器状态**走的：同一个 store 上，
+先用一个没有 ffmpeg 的 composition 渲 2 帧（渲染成功、编码失败、帧保留），
+再用一个**有** ffmpeg 的 composition 调 `blender_export`——
+
+```
+[PASS] after the encoder is installed, the documented recovery publishes the kept frames
+       {"ok":true,"verified":true,"videoPath":"…/output/final.mp4"}
+[PASS] and the video the manifest describes is really on disk — and the manifest now describes THIS job
+```
+
+三件事因此第一次被同时证明：**缺编码器不丢帧**、**失败会以 `ENCODER_NOT_FOUND` 点名并给出装法**、
+**装上之后同一批帧可以交付**。§3 现在按 `errorCode` 分成三种情况（缺工具 / 读不了 / 属性不符），
+README 的前置表与 `install.md` 的前提表都补上了 ffmpeg 与 ffprobe 这一行。
+
+### 43.4 一条写测试时的教训
+
+第一版断言写的是 `recovered.value.data.path.endsWith(…)`——而导出返回的是 `video.path`。
+它**抛异常，把后面所有断言一起带走了**。这与第 22 轮那条「探针读不到就是检查失败，
+既不是静默通过也不是崩溃」是同一条规则：**断言里的属性链要先能不存在**。
+
+### 43.5 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 34/34 file(s) passed
+$ node deepblend/tests/composition/tool-plane-m3.e2e.mjs
+M3 tool plane: 73/73 check(s) passed          （第 28 轮是 65）
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+产品改了一处：`host/lib/index.js` 的 `_deliverJob` 记住交付尝试的结局；
+文档改了三处：README 前置表、`install.md` §0、`recovery.md` §3；
+测试加了一个「这台机器没有 ffmpeg」的端到端段落（8 项），两条变异全红。

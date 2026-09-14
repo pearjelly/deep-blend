@@ -33,7 +33,7 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -124,34 +124,56 @@ function harness() {
   }
 }
 
-const driver = harness()
-const root = new Context()
-root.plugin(driver)
-root.plugin(LocalSubprocess)
-root.plugin(LocalJobRegistry)
-root.plugin((await import('@deepblend/dsh-blender-provider-local')).default, {
-  blenderPath: BLENDER_PATH,
-  bootstrapPath: join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
-  workspaceRoot: join(workspace, 'runtime'),
-  timeoutMs: 1_800_000,
-  capabilitiesCacheMs: 60_000,
-})
-root.plugin((await import('@deepblend/dsh-blender-host')).default, {
-  projectsRoot: join(workspace, 'projects'),
-  workspaceRoot: workspace,
-  serveCachedCapabilities: true,
-  maxPreviewSamples: 64,
-  ffmpegPath: FFMPEG_PATH,
-  ffprobePath: process.env.DEEPBLEND_FFPROBE_PATH ?? 'ffprobe',
-  progressPollMs: 200,
-  encodePreset: 'ultrafast',
-})
-root.plugin(await import('@deepblend/dsh-blender-tool'))
+const [providerLocal, hostPlugin, toolPlugin] = await Promise.all([
+  import('@deepblend/dsh-blender-provider-local'),
+  import('@deepblend/dsh-blender-host'),
+  import('@deepblend/dsh-blender-tool'),
+])
 
-await new Promise(settle => setTimeout(settle, 500))
+/**
+ * One composed Host on this suite's store.
+ *
+ * `ffmpegPath` is a parameter because the last section of this file drives a delivery on a machine
+ * that does not HAVE ffmpeg — the state a fresh install is in, and one this repository's README did
+ * not name until round 30. Every other test in here runs on a machine that has it, which is exactly
+ * why that state had never been measured.
+ */
+async function buildRoot({ ffmpegPath = FFMPEG_PATH, ffprobePath = process.env.DEEPBLEND_FFPROBE_PATH ?? 'ffprobe' } = {}) {
+  const composed = new Context()
+  composed.plugin(harness())
+  composed.plugin(LocalSubprocess)
+  composed.plugin(LocalJobRegistry)
+  composed.plugin(providerLocal.default, {
+    blenderPath: BLENDER_PATH,
+    bootstrapPath: join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+    workspaceRoot: join(workspace, 'runtime'),
+    timeoutMs: 1_800_000,
+    capabilitiesCacheMs: 60_000,
+  })
+  composed.plugin(hostPlugin.default, {
+    projectsRoot: join(workspace, 'projects'),
+    workspaceRoot: workspace,
+    serveCachedCapabilities: true,
+    maxPreviewSamples: 64,
+    ffmpegPath,
+    ffprobePath,
+    progressPollMs: 200,
+    encodePreset: 'ultrafast',
+  })
+  composed.plugin(toolPlugin)
+  await new Promise(settle => setTimeout(settle, 500))
+  return composed
+}
+
+const root = await buildRoot()
 
 async function call(name, args) {
   return root.get('tools').execute({ name, arguments: args, callId: `call-${name}`, signal: undefined })
+}
+
+/** The same call against a DIFFERENT composition — used by the missing-encoder section. */
+async function callOn(composed, name, args) {
+  return composed.get('tools').execute({ name, arguments: args, callId: `call-${name}`, signal: undefined })
 }
 
 const sleep = ms => new Promise(settle => setTimeout(settle, ms))
@@ -516,6 +538,66 @@ check('restoring an unknown revision is a coded result naming the ones that exis
   missing.isError === false && missing.value.ok === false
   && missing.value.data.errorCode === 'REVISION_NOT_FOUND',
   missing.value?.data?.errorCode ?? missing.error)
+
+// ---------------------------------------------------------------------------
+// A delivery on a machine WITHOUT ffmpeg — and the recovery the manual documents
+// ---------------------------------------------------------------------------
+
+// WHY THIS SECTION EXISTS (round 30). ffmpeg and ffprobe are prerequisites that appeared NOWHERE in
+// this repository's install steps until this round, and every suite ran on a machine that has them.
+// So the state a fresh install is in had never been measured, and measuring it found a defect: the
+// render finished frame by frame, the encode threw, the job was marked `failed` by the caller's catch
+// — and the job's own `delivery` stayed at `encoding` for ever. `blender_job_status` printed a job
+// that had stopped and an encode that was still running, in the same block.
+const brokenRoot = await buildRoot({ ffmpegPath: join(workspace, 'no-such-ffmpeg') })
+const brokenRender = await callOn(brokenRoot, 'blender_final_render', { projectId, revision, frameStart: 50, frameEnd: 51 })
+check('a render starts even where ffmpeg is missing — rendering and encoding are separate prerequisites',
+  brokenRender.value?.ok === true, brokenRender.value?.data ?? brokenRender.error)
+const brokenJobId = brokenRender.value.data.jobId
+await waitFor('the delivery to fail at the encode', async () => {
+  const status = await callOn(brokenRoot, 'blender_job_status', { projectId, jobId: brokenJobId })
+  return ['completed', 'failed'].includes(status.value.data.renderJob.status)
+}, 600_000, 500)
+
+const broken = (await callOn(brokenRoot, 'blender_job_status', { projectId, jobId: brokenJobId })).value.data.renderJob
+check('a delivery whose encoder is missing ends FAILED, with the code that names the missing tool',
+  broken.status === 'failed' && broken.errorCode === 'ENCODER_NOT_FOUND',
+  { status: broken.status, errorCode: broken.errorCode })
+check('its failure text names the tool and how to install it, rather than only that it broke',
+  /ffmpeg/.test(broken.message ?? '') && /brew install ffmpeg/.test(broken.message ?? ''), broken.message)
+check('and the delivery attempt is recorded as FAILED rather than left saying "encoding"',
+  broken.delivery?.status === 'failed' && broken.delivery?.errorCode === 'ENCODER_NOT_FOUND', broken.delivery)
+check('the frames are KEPT — hours of rendering must not be lost to a missing encoder',
+  broken.completedFrames === 2 &&
+  readdirSync(join(workspace, 'projects', projectId, 'renders', brokenJobId, 'frames')).length === 2,
+  { completed: broken.completedFrames })
+// An earlier section of this suite published a delivery for a DIFFERENT job, so "nothing is on disk"
+// would be false for a reason that has nothing to do with this one. What must be true is that the
+// published manifest still describes that other job: a failed encode must not have rewritten the
+// description of a video that does not exist.
+const publishedManifest = JSON.parse(readFileSync(join(workspace, 'projects', projectId, 'output', 'delivery-manifest.json'), 'utf8'))
+check('and it did NOT publish: the manifest on disk still describes the earlier delivery, not this one',
+  publishedManifest.jobId !== brokenJobId, { manifestJob: publishedManifest.jobId, brokenJobId })
+
+// The recovery the manual documents (`recovery.md` §3, "frames are all there but there is no video"):
+// install the encoder, then export the job again. Driven here on a composition that HAS ffmpeg, on the
+// same store — which is the only way to show that the frames left behind are actually deliverable.
+const fixedRoot = await buildRoot()
+const recovered = await callOn(fixedRoot, 'blender_export', { projectId, jobId: brokenJobId })
+// The assertion is written without property chains that can throw: a check that dies takes the rest of
+// the suite with it (measured in the first version of this block, which crashed on `data.path` because
+// the export reports `video.path`, not `path`).
+check('after the encoder is installed, the documented recovery publishes the kept frames',
+  recovered.isError === false && recovered.value?.ok === true &&
+  recovered.value?.data?.verified === true &&
+  (recovered.value?.data?.video?.path ?? '').endsWith('final.mp4'),
+  { ok: recovered.value?.ok, verified: recovered.value?.data?.verified, videoPath: recovered.value?.data?.video?.path,
+    errorCode: recovered.value?.data?.errorCode, message: recovered.value?.data?.message })
+const recoveredManifest = JSON.parse(readFileSync(join(workspace, 'projects', projectId, 'output', 'delivery-manifest.json'), 'utf8'))
+check('and the video the manifest describes is really on disk — and the manifest now describes THIS job',
+  existsSync(join(workspace, 'projects', projectId, 'output', 'final.mp4')) &&
+  recoveredManifest.jobId === brokenJobId,
+  { manifestJob: recoveredManifest.jobId, brokenJobId })
 
 // ---------------------------------------------------------------------------
 // Summary

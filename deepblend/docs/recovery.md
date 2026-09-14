@@ -112,6 +112,18 @@ blender_export {projectId, revision, jobId}
 有不一样就以 `ENCODE_VERIFY_FAILED` 失败，并且**什么都不发布**——
 一份描述着不存在文件的清单，比没有清单更糟。
 
+**先看 `errorCode`，它决定你该做什么：**
+
+| 码 | 意思 | 你该做的 |
+|---|---|---|
+| `ENCODER_NOT_FOUND` | 这台机器上没有 ffmpeg（或配置里的路径指错了）——**渲染没事，是编码没开始** | 装上：macOS `brew install ffmpeg`，或在 DeepBlend 配置里给出绝对路径 `ffmpegPath`；然后对同一个 job 再调一次 `blender_export` |
+| `PROBE_FAILED` | ffprobe 读不了刚编出来的文件 | 同样先确认 ffprobe 在 PATH 上；装好后再 `blender_export` |
+| `ENCODE_VERIFY_FAILED` | 编码成功，但**量到的属性与 job 声称的不一致** | 不要发布它。看消息里的 `field claimed … but probed …`：帧数不符通常是帧目录被动过，分辨率/fps 不符通常是 SceneSpec 与 profile 不一致 |
+
+这些失败**都不会丢帧**：帧目录里已经渲好的帧保持原样，job 记录里也有它们。
+缺编码器时 job 的 `delivery` 会记成 `failed`（附带同一个码），
+不会留下一个「还在编码」的假状态。
+
 ---
 
 ## 4. 改错了，想回去

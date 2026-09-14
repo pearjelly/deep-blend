@@ -3848,10 +3848,11 @@ export default class BlenderStudio extends Service {
     // delivery "running" would make every reader of the record see a regression.
     const current = this.renderJobs.read(projectId, jobId)
     const liveStatus = current.status === 'completed' ? 'completed' : 'running'
+    const deliveryAttempt = (current.delivery?.attempt ?? 0) + 1
     this.renderJobs.write({
       ...current,
       status: liveStatus,
-      delivery: { status: 'encoding', startedAt: Date.now(), attempt: (current.delivery?.attempt ?? 0) + 1 },
+      delivery: { status: 'encoding', startedAt: Date.now(), attempt: deliveryAttempt },
       message: `encoding ${total} frame(s) into MP4`,
     }, { previous: current })
 
@@ -3859,21 +3860,49 @@ export default class BlenderStudio extends Service {
     const output = encodedPath(jobDirectory, jobId)
     mkdirSync(join(jobDirectory, 'encoded'), { recursive: true })
 
-    const encode = await encodeFrameSequence({
-      ctx: this.ctx,
-      ffmpegPath: this.config.ffmpegPath,
-      framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId),
-      firstFrame: record.frameStart,
-      frameCount: total,
-      fps: record.fps,
-      outputPath: output,
-      filePrefix: record.filePrefix,
-      filePadding: record.filePadding,
-      crf: this.config.encodeCrf,
-      preset: this.config.encodePreset,
-    })
+    // RECORDING THE ATTEMPT IS WHAT MAKES RECORDING ITS OUTCOME THIS FUNCTION'S JOB — including when
+    // the encode THROWS, which is the state a machine without ffmpeg is in. MEASURED (round 30, the
+    // M3 tool plane run with a bogus `ffmpegPath`): the job was marked `failed` by the caller's catch
+    // while its `delivery` stayed at `encoding`, so `blender_job_status` printed a job that had
+    // stopped and an encode that was still running in the same block. A reader who believes the
+    // second line waits for something that will never finish.
+    //
+    // The job's own STATUS is left alone here: the caller decides it (a failed RE-export of a
+    // completed job must not reopen it). What this records is the delivery attempt, which is exactly
+    // the thing that failed.
+    let encode
+    let probed
+    try {
+      encode = await encodeFrameSequence({
+        ctx: this.ctx,
+        ffmpegPath: this.config.ffmpegPath,
+        framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId),
+        firstFrame: record.frameStart,
+        frameCount: total,
+        fps: record.fps,
+        outputPath: output,
+        filePrefix: record.filePrefix,
+        filePadding: record.filePadding,
+        crf: this.config.encodeCrf,
+        preset: this.config.encodePreset,
+      })
 
-    const probed = await probeVideo({ ctx: this.ctx, ffprobePath: this.config.ffprobePath, path: output })
+      probed = await probeVideo({ ctx: this.ctx, ffprobePath: this.config.ffprobePath, path: output })
+    } catch (cause) {
+      const failedFrom = this.renderJobs.read(projectId, jobId)
+      this.renderJobs.write({
+        ...failedFrom,
+        delivery: {
+          status: 'failed',
+          attempt: deliveryAttempt,
+          errorCode: cause instanceof BlenderError ? cause.code : BlenderErrorCode.ENCODE_FAILED,
+          message: cause instanceof Error ? cause.message : String(cause),
+          videoPath: existsSync(output) ? output : null,
+          completedAt: Date.now(),
+        },
+      }, { previous: failedFrom })
+      throw cause
+    }
     const sources = this._deliverySources(projectId, record.revisionId)
     const publishRoot = join(this.store.projectDirectory(projectId), 'output')
     mkdirSync(publishRoot, { recursive: true })

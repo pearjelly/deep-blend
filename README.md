@@ -124,6 +124,7 @@ packages/deepblend/
 | **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 77 条照跑 |
 | **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
 | **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
+| **ffmpeg + ffprobe**（macOS：`brew install ffmpeg`） | **只有交付的编码那一步**：`blender_final_render` 渲完最后一帧之后把它编成 MP4，`blender_export` 同理 | **渲染照跑、帧一帧不丢**，只有编码以 `ENCODER_NOT_FOUND` 失败，消息里点名 ffmpeg 与装法。装上之后对同一个 job 调 `blender_export` 即可补上交付（`recovery.md` §3；第 30 轮实测：2 帧的 job 渲完、编码失败、帧保留、装好编码器后导出并发布成功） |
 | **Google Chrome** | 只有 `npm run docs:images` 与 M4 的浏览器验收 | 那两件事不跑，其余不受影响 |
 
 **Python 3 这一行是 2026-09-14 才写下的**（`milestone-status.md` §25）：在那之前它是一条
