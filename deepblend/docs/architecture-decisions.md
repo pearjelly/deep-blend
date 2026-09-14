@@ -1777,6 +1777,57 @@ known profiles: (none)
 ---
 
 
+## 5N. M5 资产：词汇表与生产者是同一个功能（D91–D92）
+
+---
+
+### D91 — 「消费侧完整」会让「生产侧缺失」变得不可见
+
+**决策**：`asset.add` / `asset.remove` 进 ScenePatch 词汇表（21 → 23 个操作），
+host 的 `ingestAsset` 与工具 `blender_asset_ingest` 是同一个功能的另外两半。
+
+**触发它的事实**：M1 把**消费者**建齐了——SceneSpec 校验 asset、`asset-instance` 引用它、
+编译器按类型选导入算子并按结果行为式分类（D10）。缺的是**生产者**，而它一直写不出来
+的原因很具体：**`assets` 没有 patch 操作**。场景只能在「创建项目的那份文档本来就带着
+assets」时才拥有它们，所以一次 ingest **没有任何东西可以挂靠**。
+
+**为什么四个里程碑没人发现**：每一个读 SceneSpec 的地方都能正确处理 assets，
+所以没有任何东西看起来是坏的。**一个功能的消费侧完整，会让生产侧的缺失隐形。**
+
+**可推广的那条**：判断一个能力是否真的存在，要看**它能不能被产生**，不能只看
+**它能不能被使用**。这一条与 D80（散文里的承诺）是同一个问题的两个方向：
+那边是「文档说有、实现没有」，这边是「用得挺好、却造不出来」。
+
+---
+
+### D92 — 一个宽 catch 加一个兜底码，就是**一个 bug 变成错答案**的路径
+
+**决策**：兜底码必须能区分「这是一个未知失败」并**把堆栈交给能看见它的人**；
+测试的失败详情必须带**消息**，不能只有一个错误码。
+
+**触发它的事实**：`blender_asset_ingest` 的第一版把所有 host 错误都报成
+`ASSET_INGEST_FAILED`。host 的每一个拒绝码都是对的（直接调它全对），所以问题在工具里：
+
+```js
+if (cause?.code !== BlenderErrorCode.ASSET_APPROVAL_REQUIRED) throw cause
+```
+
+`tools.js` **没有导入 `BlenderErrorCode`**（它只导入了 `BlenderWarningCode`）。
+这一行抛 `ReferenceError`，被外层 catch 吞掉，变成兜底码。`node --check` 查不出
+——与 §15.2 里 provider 的 `requested` 是同一类：**错误路径上的未声明标识符**。
+
+**它怎么被找到的**：不是靠断言，而是靠两件事同时成立——
+① M0 定下的兜底文本对**未编码**失败**附带堆栈**（「This failure has no stable code —
+it is a bug」），② 本轮把测试的失败详情从「一个错误码」改成「错误码**或消息的前三行**」。
+只报一个兜底码的话，13 条断言只会说「它失败了」，而真话是「它抛出过一个
+`ReferenceError`，堆栈就在旁边」。
+
+**可推广的那条**：兜底码本身没错，错的是**它成了终点**。一个未知失败应该被
+**转交**（堆栈给读得懂的人），而不是被**归类**（一个看起来像答案的码）。
+
+---
+
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1824,6 +1875,7 @@ known profiles: (none)
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（资产） | D91–D92：「消费侧完整」让「生产侧缺失」隐形（`assets` 从 M1 就有，而没有任何 patch 操作能加一个）；一个宽 catch 加兜底码就是一个 bug 变成错答案的路径（`BlenderErrorCode` 没被导入 → 每个编码错误都变成 `ASSET_INGEST_FAILED`）。产出是 `asset.add`/`asset.remove`、`ingestAsset`、`blender_asset_ingest`（SPEC §11 表第一次全部实现，16 个）、`composition/assets.e2e.mjs`（31 项），并修掉三个 add 操作在最小场景上抛未编码 `TypeError` |
 | 2026-09-14 | M5（走查） | D89–D90：安装路径要有一条命令而不是一段说明（`npm run verify:clone`）；一个悄悄用了别人代码的验证是在**全绿**的时候被发现的。产出是一次真实的从零 clone 走查——发现 `install.md` 少写了一个前提（profile 是 `dsh` 建的），以及 clone 里的 M4 套件其实在测开发者的包 |
 | 2026-09-14 | M5（审批） | D87–D88：阈值装在每个调用者都经过的地方（Host），提问的能力留在工具里（它才有 agent 与打开的 turn）；「问不到」不是「同意」。产出是 M3 遗留的 `display-only` 阈值变成真正的门（`RENDER_APPROVAL_REQUIRED`，不分配 job）、`composition/approval.e2e.mjs`（25 项），以及 Q7 的关闭 |
 | 2026-09-14 | M5（并发） | D85–D86：并发下的幂等承诺要按实测写（顺序重试重放、同时重试冲突，两者都成立且不是同一件事）；一条「检查了文件但没搬它」的回退路径让 `saveCheckpoint:false` 的 revision 永远无法预览，而工具描述把缺陷当特性写着。产出是 `composition/concurrency.e2e.mjs`（19 项）与走通那条路径的 `tool-plane-m1`（41 → 44 项） |

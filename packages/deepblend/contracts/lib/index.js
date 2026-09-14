@@ -134,6 +134,29 @@ export const BlenderErrorCode = Object.freeze({
   /** The asset hash does not match the recorded sha256. */
   ASSET_HASH_MISMATCH: 'ASSET_HASH_MISMATCH',
 
+  // ---- M5: the producer side of an asset (SPEC §11 blender_asset_ingest) -----
+  //
+  // The four above describe a DECLARED asset the consumer cannot use; these describe
+  // a source the producer was asked to bring in. They are separate on purpose: "the
+  // file you pointed me at is not there" and "the file this scene declares is not
+  // there" are different problems with different fixes.
+  /** The ingest request itself is malformed — both sources given, or neither. */
+  ASSET_REQUEST_INVALID: 'ASSET_REQUEST_INVALID',
+  /** The local source path does not name an existing file. */
+  ASSET_SOURCE_NOT_FOUND: 'ASSET_SOURCE_NOT_FOUND',
+  /** The source is larger than `assetMaxBytes` (SPEC §15). */
+  ASSET_TOO_LARGE: 'ASSET_TOO_LARGE',
+  /** A remote source could not be fetched, or exceeded the byte cap mid-download. */
+  ASSET_FETCH_FAILED: 'ASSET_FETCH_FAILED',
+  /**
+   * A REMOTE ingest needs a grant first (SPEC §11 "本地自动，网络需审批").
+   *
+   * Enforced in the host for the same reason the render threshold is: every caller
+   * passes through the host, and only the tool plane can ask. A local path needs no
+   * approval — it is already inside the machine the operator controls.
+   */
+  ASSET_APPROVAL_REQUIRED: 'ASSET_APPROVAL_REQUIRED',
+
   /** The requested render profile is not defined in the SceneSpec. */
   RENDER_PROFILE_MISSING: 'RENDER_PROFILE_MISSING',
   /** A render was refused because its estimated cost exceeds the configured budget. */

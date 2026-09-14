@@ -17,11 +17,15 @@
  *   M2  blender_preview_views, blender_visual_review, blender_visual_autofix
  *   M3  blender_final_render, blender_export, blender_job_status,
  *       blender_job_cancel
+ *   M5  blender_revision_restore, blender_asset_ingest
  *
- * `blender_asset_ingest` is the one SPEC §11 tool still deliberately ABSENT: its
- * host service and its approval boundary (local automatic, network requires
- * approval — SPEC §15.1) are M5, and a tool the model can see is a promise the
- * runtime must keep. Everything registered here can be kept.
+ * As of M5 the SPEC §11 inventory is COMPLETE: every tool that section names is
+ * registered here. The rule that produced the earlier absences still holds and is why
+ * it took this long — a tool the model can see is a promise the runtime must keep, so
+ * `blender_revision_restore` waited for a suite that calls it and
+ * `blender_asset_ingest` waited for `asset.add` to exist in the ScenePatch vocabulary
+ * and for an approval plane to gate a network fetch. Everything registered here can be
+ * kept.
  *
  * `blender_capabilities` stays in this file because it is the M0 tool and its
  * behaviour is pinned by the M0 acceptance suite.

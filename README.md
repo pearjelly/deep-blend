@@ -70,7 +70,7 @@ packages/deepblend/
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
     python/           bootstrap.py 分派器 + 6 个动作模块
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               15 个模型可见工具（Agent preset 平面，不发布服务）
+  tool/               16 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
                       手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
@@ -132,7 +132,7 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 这条命令是一次真的走查逼出来的：四步各自都对，缺的是**它们之间的那个前提**
 （`milestone-status.md` §21）。
 
-预期：**15 个套件、38 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+预期：**16 个套件、39 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
 **24 个文件 = 811 项自计断言（12 个文件打印计数）+ 139 个 `node:test` 用例（12 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
@@ -151,10 +151,11 @@ node deepblend/tests/composition/activation.e2e.mjs             # Host compositi
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 的 7 个工具 + 无 checkpoint 的 revision 仍然可预览
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
-node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 15 个工具 + 真实交付
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 16 个工具 + 真实交付
 node deepblend/tests/composition/hardening.e2e.mjs              # M5 安全加固：白名单/截止时间/输出上限/采样预算/工作区边界
 node deepblend/tests/composition/concurrency.e2e.mjs            # M5 并发：两个会话打同一个 store，以及把它们隔开的 realm
 node deepblend/tests/composition/approval.e2e.mjs               # M5 审批：阈值以上没有授权就一帧都不渲
+node deepblend/tests/composition/assets.e2e.mjs                 # M5 资产：本地自动、网络需审批、以及两者之间的上限
 node deepblend/tests/composition/ui-plane.e2e.mjs               # M4 UI 平面：闭集路由 + 座位表
 node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏览器验收（自带 Host）
 ```
@@ -229,7 +230,7 @@ dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合�
 dsh web                                                 # 重启后生效
 ```
 
-重启后新建 **DeepBlend 开发模式** 会话时工具清单为 **15 个**；**DeepBlend Studio**（正式 preset）
+重启后新建 **DeepBlend 开发模式** 会话时工具清单为 **16 个**；**DeepBlend Studio**（正式 preset）
 少得多，且没有 Shell、没有文件写入、没有 Web、没有 Creator Tool（见 `milestone-status.md` §16）。
 
 ---

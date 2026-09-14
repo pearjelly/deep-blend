@@ -45,6 +45,8 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'project.frameRange.set',
   'render.profile.set',
   'world.set',
+  'asset.add',
+  'asset.remove',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
@@ -175,9 +177,32 @@ function operationError(index, code, message) {
   return error
 }
 
+/**
+ * The optional collections, as arrays.
+ *
+ * EVERY collection except `entities` and `cameras` may be ABSENT rather than empty —
+ * `applyPatchToSpec` is careful to keep it that way, because an absent key is a
+ * different document from `[]` (see `collection()` below). The cost of that care is
+ * that a lookup has to tolerate absence, and MEASURED, it did not:
+ *
+ *     material.add  on a spec with no Materials -> TypeError: Cannot read
+ *     light.add     on a spec with no Lights    ->   properties of undefined
+ *     asset.add     on a spec with no Assets    ->   (reading 'findIndex')
+ *
+ * An uncoded `TypeError` reaching the model is the one failure shape SPEC §9.4 rules
+ * out — every refusal is supposed to be a branchable result with a stable code, and a
+ * stack trace means "this is a bug". It was a bug, and a reachable one: the minimal
+ * scaffold `blender_project_create` starts from declares no lights and no materials, so
+ * the FIRST `light.add` on a fresh project hit it.
+ *
+ * Fixed at the helpers rather than at the three call sites, because the next operation
+ * added would otherwise have to remember.
+ */
+const asCollection = collection => (Array.isArray(collection) ? collection : [])
+
 /** Find an entry by id inside a collection, or `-1`. */
 function indexOfId(collection, id) {
-  return collection.findIndex(entry => entry.id === id)
+  return asCollection(collection).findIndex(entry => entry.id === id)
 }
 
 /** Insert or replace by id, keeping the collection sorted by id for a stable diff. */
@@ -186,13 +211,30 @@ function upsertById(collection, entry) {
   // found convenient, and an author-controlled array order would make two
   // documents that describe the same scene serialize differently — which the
   // digest and every golden fixture would then disagree about.
-  return [...collection.filter(candidate => candidate.id !== entry.id), entry]
+  return [...asCollection(collection).filter(candidate => candidate.id !== entry.id), entry]
     .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
 }
 
 /** Remove by id. */
 function removeById(collection, id) {
-  return collection.filter(entry => entry.id !== id)
+  return asCollection(collection).filter(entry => entry.id !== id)
+}
+
+/**
+ * Assign a collection back, keeping ABSENCE where it belonged.
+ *
+ * `removeById` on the last entry yields `[]`, and writing that back would turn "this
+ * project declares no assets" into "this project declares an empty list of assets" —
+ * the distinction `collection()` above exists to preserve, and the one that makes a
+ * no-op patch leave the document canonically identical.
+ *
+ * @param {any} target
+ * @param {string} key
+ * @param {object[]} remaining
+ */
+function assignCollection(target, key, remaining) {
+  if (remaining.length === 0) delete target[key]
+  else target[key] = remaining
 }
 
 /**
@@ -759,6 +801,66 @@ export function applyPatchToSpec(spec, patch) {
             ? `set the scene world (color ${JSON.stringify(next.world.color)}, strength ${next.world.strength ?? 'default'})`
             : 'replaced the scene world',
           changedPaths: ['world'],
+        })
+        break
+      }
+
+      // ---- assets ---------------------------------------------------------
+      //
+      // WHY THESE TWO EXIST. `assets` has been part of the SceneSpec since M1 —
+      // validated, digest-stable, compiled by the right importer per type — and there
+      // was no way to ADD one after the project was created. A spec could carry assets
+      // only if the document that created the project already had them, so
+      // `blender_asset_ingest` would have had nothing to attach its result to. The
+      // vocabulary and the producer are one feature, and this is the half that was
+      // missing.
+      case 'asset.add': {
+        if (indexOfId(next.assets, operation.asset.id) >= 0) {
+          fail('PATCH_TARGET_EXISTS', `asset "${operation.asset.id}" already exists in this scene`)
+        }
+        // The path guard lives in the SceneSpec's semantic validator and runs again on
+        // the committed document, but a patch that would be refused there is refused
+        // HERE with a patch code, so the caller learns which operation was wrong
+        // instead of getting a whole-document verdict.
+        const assetPath = operation.asset.path
+        if (assetPath.startsWith('/') || assetPath.split('/').includes('..')) {
+          fail(
+            'PATCH_OPERATION_INVALID',
+            `asset "${operation.asset.id}" names the path "${assetPath}"; asset paths are relative to the ` +
+              'project root and may not contain ".." (SPEC §15.2)',
+          )
+        }
+        next.assets = upsertById(next.assets, { ...operation.asset })
+        applied.push({
+          op,
+          target: operation.asset.id,
+          summary: `added ${operation.asset.type} asset "${operation.asset.id}" at ${assetPath}`,
+          changedPaths: [`assets.${operation.asset.id}`],
+        })
+        break
+      }
+
+      case 'asset.remove': {
+        if (indexOfId(next.assets, operation.assetId) < 0) {
+          fail('PATCH_TARGET_MISSING', `no asset "${operation.assetId}" exists in this scene`)
+        }
+        // The rule `entity.remove` follows, for the same reason: an entity that
+        // instantiates this asset would be left pointing at nothing, and the compiler
+        // would then refuse a scene the patch claimed to have produced.
+        const dependents = next.entities.filter(entity => entity.assetId === operation.assetId)
+        if (dependents.length > 0) {
+          fail(
+            'PATCH_TARGET_IN_USE',
+            `asset "${operation.assetId}" is still instantiated by ${dependents.map(entity => `"${entity.id}"`).join(', ')}; ` +
+              'remove those entities in the same patch, before this operation',
+          )
+        }
+        assignCollection(next, 'assets', removeById(next.assets, operation.assetId))
+        applied.push({
+          op,
+          target: operation.assetId,
+          summary: `removed asset "${operation.assetId}"`,
+          changedPaths: [`assets.${operation.assetId}`],
         })
         break
       }

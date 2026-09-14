@@ -76,7 +76,7 @@ run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
 run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)" \
   node deepblend/tests/blender-integration/render-job.e2e.mjs
 
-run_suite "Agent preset M3 tool plane (all fourteen tools, real delivery)" \
+run_suite "Agent preset M3 tool plane (all sixteen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary" \
@@ -87,6 +87,9 @@ run_suite "M5 concurrency: two sessions on one store, and the realms that keep t
 
 run_suite "M5 approval: the threshold refuses an unapproved expensive render" \
   node deepblend/tests/composition/approval.e2e.mjs
+
+run_suite "M5 assets: local automatic, network approved, and the caps in between" \
+  node deepblend/tests/composition/assets.e2e.mjs
 
 run_suite "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)" \
   node deepblend/tests/composition/ui-plane.e2e.mjs

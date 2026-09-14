@@ -398,3 +398,75 @@ export function asBlenderError(cause, fallbackCode) {
     { cause },
   )
 }
+
+/**
+ * Ask the operator to approve one expensive operation, through the harness's own
+ * approval plane.
+ *
+ * TWO CALLERS, ONE IMPLEMENTATION. `blender_final_render` asks before spending hours
+ * of machine time; `blender_asset_ingest` asks before reaching off this machine. Both
+ * need the same three things — the composed answerers, an agent identity, an open
+ * turn — and both must fail the same way when any of them is missing.
+ *
+ * WHY THIS IS A SEPARATE FUNCTION, AND WHY IT FAILS CLOSED
+ * -------------------------------------------------------
+ * `ctx.approval.request` is the harness's own approval plane: it asks every composed
+ * answerer (the browser prompt, in a normal deployment), logs the ask and the outcome
+ * to the session, and returns one of `'allowed-once' | 'rejected' | 'cancelled' |
+ * 'unavailable'`. **`'allowed-once'` is the only grant**, and the service documents
+ * its own failure direction: a missing or throwing answerer yields `'unavailable'`.
+ *
+ * So every path that is not `'allowed-once'` refuses, including "there is no approval
+ * service in this deployment at all". That is the right direction for a control whose
+ * purpose is to prevent spending hours of machine time: an unanswered question is not
+ * a yes. It does mean a headless composition cannot start a 900-frame render without
+ * raising the threshold — which is a deliberate trade, and the refusal text says so.
+ *
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ * @param {{ agent?: unknown, callId?: unknown, signal?: AbortSignal }} exec
+ * @param {{ detail?: { frames?: number, threshold?: number, frameStart?: number|null, frameEnd?: number|null }, message?: string }} refusal
+ * @returns {Promise<{ granted: true, outcome: string } | { granted: false, refusal: { text: string, data: object } }>}
+ */
+export async function requestApproval(ctx, exec, ask) {
+  // What to ask, and what to say when the answer is not yes, both come from the
+  // caller: only it knows whether the cost being approved is machine time or a
+  // network fetch.
+  const { toolName, reason, refusal, detail = {} } = ask
+  const approval = ctx.get('approval')
+  const agent = exec?.agent
+
+  const refuse = (outcome, note) => ({
+    granted: false,
+    refusal: {
+      text: [`Refused: this needs approval, and it was not granted (${outcome}).`, '', note, '', refusal].join('\n'),
+      data: { errorCode: ask.refusalCode ?? 'APPROVAL_REFUSED', outcome, ...detail },
+    },
+  })
+
+  if (approval === undefined) {
+    return refuse('unavailable', 'This deployment composes no approval service, so there was no one to ask.')
+  }
+  if (agent === undefined) {
+    return refuse('unavailable', 'This call carries no agent identity, and an approval must be logged against one.')
+  }
+
+  let outcome
+  try {
+    outcome = await approval.request({
+      agent,
+      toolName,
+      callId: exec?.callId,
+      reason,
+      signal: exec?.signal,
+    })
+  } catch (cause) {
+    // The service rejects when no turn is open, or when an audit append fails. Both
+    // mean the decision could not be recorded, and an unrecorded grant is not a grant.
+    return refuse('unavailable', `The approval could not be requested: ${cause?.message ?? String(cause)}`)
+  }
+
+  if (outcome !== 'allowed-once') {
+    return refuse(String(outcome), 'The operator declined, cancelled, or the prompt was unavailable.')
+  }
+  return { granted: true, outcome }
+}

@@ -278,7 +278,8 @@
 # The copy nobody runs is always the one that rots (architecture-decisions D38,
 # D43, D60), so it is pointed at rather than restated. What DOES belong here is
 # the rule that outlives every milestone: a tool the model can see is a promise
-# the runtime must keep, which is why `blender_asset_ingest` is still absent (its
-# host service and approval boundary are M5).
+# the runtime must keep. As of M5 that list is COMPLETE — every tool SPEC §11 names is
+# registered — so the rule no longer has an example of something held back, which is
+# the state it was written to reach.
 - id: deepblend-tool
   name: '@deepblend/dsh-blender-tool'

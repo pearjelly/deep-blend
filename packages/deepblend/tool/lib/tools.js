@@ -28,7 +28,12 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { SCENE_OPERATION_NAMES, BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
+import {
+  SCENE_OPERATION_NAMES,
+  BlenderErrorCode,
+  BlenderWarningCode,
+  warning,
+} from '@deepblend/dsh-blender-contracts'
 
 import {
   TOOL_OUTPUT,
@@ -37,6 +42,7 @@ import {
   describeRevision,
   renderFailure,
   renderSuccess,
+  requestApproval,
   resolveStudio,
 } from './shared.js'
 
@@ -82,6 +88,7 @@ export function apply(ctx) {
   ctx.tools.register(previewRender(ctx))
   ctx.tools.register(sceneValidate(ctx))
   ctx.tools.register(revisionRestore(ctx))
+  ctx.tools.register(assetIngest(ctx))
 }
 
 // ---------------------------------------------------------------------------
@@ -805,6 +812,169 @@ function revisionRestore(ctx) {
     presentCall: args => ({
       card: 'generic',
       title: `Restore "${args?.projectId ?? ''}" to ${args?.revision ?? '?'}`,
+      kind: 'edit',
+    }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// asset_ingest
+// ---------------------------------------------------------------------------
+
+/**
+ * Bring a model file into a project so a scene can declare it.
+ *
+ * THE LAST SPEC §11 TOOL, AND WHY IT NEEDED TWO HALVES
+ * ----------------------------------------------------
+ * SPEC §11 lists `blender_asset_ingest` with the permission "本地自动，网络需审批", and
+ * SPEC §13's project tree has carried `assets/{raw,normalized,textures,manifest.json}`
+ * since M1. The CONSUMER half was built then: the SceneSpec validates an `asset`
+ * (id, type, project-relative path, sha256), `asset-instance` entities reference one,
+ * and the compiler imports each with the right operator and classifies the result
+ * behaviourally (D10).
+ *
+ * What was missing was the producer, and the reason it could not have been written
+ * earlier is worth stating: `assets` had no patch operation. A scene could declare
+ * assets only if the document that CREATED the project already had them, so an ingest
+ * would have had nothing to attach its result to. M5 added `asset.add` and
+ * `asset.remove` to the vocabulary, and this tool is the other half of that feature.
+ *
+ * WHY IT DOES NOT COMMIT A REVISION
+ * ---------------------------------
+ * It puts bytes on disk and returns the descriptor; the model then declares that
+ * descriptor with `blender_scene_patch {op: "asset.add", …}`. Keeping those separate
+ * means the scene still changes through exactly one path — so an ingest that is never
+ * declared leaves an unreferenced file rather than a scene nobody validated.
+ *
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ */
+function assetIngest(ctx) {
+  return defineTool({
+    name: 'blender_asset_ingest',
+    description:
+      'Bring a 3D model file into a project, so a scene can instantiate it. Give EITHER sourcePath (a ' +
+      'file already on this machine) OR sourceUrl (an http/https address); a local file is imported ' +
+      'directly, a remote one needs the operator\'s approval first, so it will pause and ask. ' +
+      '\n\nThis does NOT change the scene. It copies the bytes into the project\'s assets/raw/, records ' +
+      'them in assets/manifest.json, and returns an assetId, a project-relative path and a sha256. ' +
+      'Declare it with blender_scene_patch {op: "asset.add", asset: {...}} and then add an entity of ' +
+      'type "asset-instance" with that assetId — those two steps are what put it in the scene, and ' +
+      'blender_scene_validate will tell you if the format cannot be imported by this Blender build. ' +
+      '\n\nSupported formats: glb, gltf, fbx, obj, usd, blend. The size ceiling is the deployment\'s ' +
+      'assetMaxBytes (SPEC §15).',
+    parameters: {
+      projectId: { type: 'string', required: true, description: 'The project to bring the asset into.' },
+      sourcePath: {
+        type: 'string',
+        description: 'Absolute path to a local file. No approval needed. Use this whenever the file is ' +
+          'already on the machine — it is faster and it does not leave the machine.',
+      },
+      sourceUrl: {
+        type: 'string',
+        description: 'An http or https URL. Requires the operator\'s approval, which this tool asks for ' +
+          'automatically; the call pauses until they answer.',
+      },
+      assetId: {
+        type: 'string',
+        description: 'Id to record the asset under. Defaults to a slug of the file name. Must start with a ' +
+          'letter and use only letters, digits, ".", "_" and "-".',
+      },
+      type: {
+        type: 'string',
+        description: 'Asset type, when the file extension does not say it. One of glb, gltf, fbx, obj, usd, blend.',
+      },
+      license: {
+        type: 'string',
+        description: 'Licence string recorded with the asset. Worth setting for anything downloaded: an ' +
+          'asset whose provenance is unrecorded is one nobody can safely ship.',
+      },
+    },
+    output: TOOL_OUTPUT,
+    async execute(args, exec) {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+
+      const ingestRequest = {
+        projectId: args.projectId,
+        sourcePath: args.sourcePath,
+        sourceUrl: args.sourceUrl,
+        assetId: args.assetId,
+        type: args.type,
+      }
+      if (ingestRequest.sourcePath === undefined && ingestRequest.sourceUrl === undefined) {
+        return {
+          ok: false,
+          text: 'Give either sourcePath (a local file) or sourceUrl (a remote one); neither was supplied.',
+          data: { errorCode: 'ASSET_REQUEST_INVALID' },
+        }
+      }
+
+      try {
+        let result
+        try {
+          result = await canonicalCall(resolved.studio.ingestAsset(definedFields(ingestRequest)), warning)
+        } catch (cause) {
+          // The same split the render gate uses, for the same reason: the HOST decides
+          // whether a grant is needed, because every caller passes through it, and the
+          // TOOL is the only place that can ask — `ctx.approval.request` needs a live
+          // agent and an open turn.
+          if (cause?.code !== BlenderErrorCode.ASSET_APPROVAL_REQUIRED) throw cause
+
+          const approval = await requestApproval(ctx, exec, {
+            toolName: 'blender_asset_ingest',
+            refusalCode: 'ASSET_APPROVAL_REFUSED',
+            detail: { sourceUrl: cause.detail?.sourceUrl ?? null },
+            reason:
+              `Download ${cause.detail?.sourceUrl ?? 'a remote file'} into a DeepBlend project. ` +
+              `This reaches off this machine and may write up to ${cause.detail?.maxBytes ?? '?'} bytes ` +
+              'into the project\'s assets/.',
+            refusal:
+              'Nothing was downloaded and nothing was written. Options: ask the operator again, or use ' +
+              'sourcePath with a file that is already on this machine, which needs no approval.',
+          })
+          if (approval.granted !== true) return { ok: false, ...approval.refusal }
+
+          result = await canonicalCall(
+            resolved.studio.ingestAsset(definedFields({ ...ingestRequest, approved: true })),
+            warning,
+          )
+        }
+
+        const { data, canonicalWarnings } = result
+        return {
+          ok: true,
+          text: renderSuccess(
+            `Ingested ${data.type} asset "${data.assetId}" (${data.bytes} bytes) at ${data.path}.`,
+            data,
+            {
+              notes: [
+                data.source?.kind === 'url'
+                  ? `Downloaded from ${data.source.url}`
+                  : `Copied from ${data.source?.path}`,
+                `sha256: ${data.sha256}`,
+                '',
+                'The scene has NOT changed. Declare it, then instantiate it:',
+                `  1. blender_scene_patch {op: "asset.add", asset: {id: "${data.assetId}", type: "${data.type}", ` +
+                  `path: "${data.path}", sha256: "${data.sha256}"}}`,
+                `  2. blender_scene_patch {op: "entity.add", entity: {id: "<a name>", type: "asset-instance", ` +
+                  `assetId: "${data.assetId}", transform: {…}}}`,
+                'blender_scene_validate then reports whether this Blender build can import it.',
+              ],
+              warnings: canonicalWarnings,
+            },
+          ),
+          data,
+        }
+      } catch (cause) {
+        const failure = renderFailure(cause, 'ASSET_INGEST_FAILED')
+        return { ok: false, ...failure }
+      }
+    },
+    presentCall: args => ({
+      card: 'generic',
+      title: args?.sourceUrl !== undefined
+        ? `Ingest asset from ${args.sourceUrl}`
+        : `Ingest asset "${args?.sourcePath ?? ''}"`,
       kind: 'edit',
     }),
   })

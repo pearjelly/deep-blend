@@ -2158,3 +2158,120 @@ $ node -e "…createHome()…"   # 在 /tmp/db-clone 里
 **一条值得单独记下来的**：那条错误是在**一个全绿的运行**里发现的，靠的不是断言，
 而是输出里一个**不该出现绝对路径的地方出现了绝对路径**。
 如果当时只看了「ALL SUITES PASSED」，这一条就漏了。
+
+---
+
+## 22. M5 收尾：资产策略——一个「消费者早就建好了」的功能
+
+`blender_asset_ingest` 是 SPEC §11 表里最后一个没实现的工具，也是 M5 最后一项验收。
+它比预想的更能说明问题。
+
+### 22.1 词汇表和生产者是**同一个**功能，而缺的那一半看不出来
+
+M1 就把**消费者**那一半建齐了：SceneSpec 校验 `asset`（id / type / 项目相对 path /
+sha256），`asset-instance` 实体引用它，编译器按类型选对的导入算子，并按调用结果
+**行为式**分类（D10）。
+
+缺的是**生产者**，而它一直不能被写出来的原因是具体的：**`assets` 没有 patch 操作**。
+一个场景只能在「创建项目的那份文档里本来就带着 assets」时才拥有它们，所以一次 ingest
+**没有任何东西可以挂靠**。本轮的处置因此是两半，缺一不可：
+
+1. `asset.add` / `asset.remove` 进 ScenePatch 词汇表（21 → 23 个操作），
+   含路径守卫与「还有实体在用就不许删」——与 `entity.remove` 同一条规则、同一个理由；
+2. host 的 `ingestAsset`（本地与远程）、工具 `blender_asset_ingest`（16 个工具了）。
+
+**可推广的那条**：一个功能的「消费侧完整」会让「生产侧缺失」变得不可见——每一个读
+SceneSpec 的地方都能正确处理 assets，所以没有任何东西看起来是坏的。
+
+### 22.2 顺手挖到的：三个 add 操作在最小场景上抛**未编码的** `TypeError`
+
+给 `asset.add` 找模板时试了同类操作在「没有那个集合」的 spec 上的行为：
+
+```
+material.add  →  TypeError: Cannot read properties of undefined (reading 'findIndex')
+light.add     →  同上
+asset.add     →  同上（我自己的新代码）
+```
+
+`entities` 与 `cameras` 是必填数组，其余集合**允许缺席**（`applyPatchToSpec` 特意维持
+这一点：缺席的键与 `[]` 是不同的文档）。而查找没有容忍缺席。
+
+**这是可达的**：`blender_project_create` 的最小脚手架不声明任何灯与材质，
+所以一个全新项目上的**第一次** `light.add` 就会撞上它。而一个未编码的 `TypeError`
+交给模型，正是 SPEC §9.4 唯一排除的失败形状——「每个拒绝都是可分支的结果」，
+堆栈的含义是「这是个 bug」。
+
+修在**辅助函数**上（`indexOfId` / `upsertById` / `removeById` 一律容忍缺席），
+而不是三个调用点：下一个加进来的操作不必记得这件事。
+
+### 22.3 一段**六个地方**记录的缺席，和它同时失效的那一刻
+
+「`blender_asset_ingest` 是唯一还没实现的 SPEC §11 工具」这句话写在六个地方：
+三个 tool-plane 套件的断言、两个包的注释、一个 preset 的注释。
+工具一旦存在，**五处变成假话，一处变成失败**。
+
+三处断言都换成了同一条更持久的性质：「SPEC §11 表里点名的每一个工具都已注册」，
+并且**按名字列出缺的那个**而不是报一个计数——未来 SPEC §11 加一个工具而这里没加，
+失败信息会直接给出名字。
+
+**这是「没人运行的副本会烂」的第 N 次**，也是第一次它以**六个**副本的形式出现。
+值得注意的是：五个注释里没有一个被任何测试读过，而唯一被读的那个（
+`preset-source.test.mjs` 断言 dev preset 的注释提到那个缺席的工具）**正是唯一一个
+在工具补上时立刻变红的**。
+
+### 22.4 一个把 bug 变成错答案的 catch
+
+工具的第一版把所有 host 错误都报成 `ASSET_INGEST_FAILED`。原因不在 host——
+它的每一个拒绝码都是对的，直接调它全都对。原因在工具里：
+
+```js
+if (cause?.code !== BlenderErrorCode.ASSET_APPROVAL_REQUIRED) throw cause
+```
+
+`tools.js` **没有导入 `BlenderErrorCode`**（它只导入了 `BlenderWarningCode`）。
+于是这一行抛 `ReferenceError`，被外层 catch 吞掉，变成 `ASSET_INGEST_FAILED`。
+`node --check` 查不出——与第 15 节 provider 里那个 `requested` 是同一类：
+**错误路径上的未声明标识符**。
+
+**它是怎么被找到的**：不是靠断言，而是靠两件设计好但当时没意识到价值的事——
+① 未编码失败的兜底文本里**带着堆栈**（「This failure has no stable code — it is a bug」），
+② 我把测试的失败详情从「一个错误码」改成了「错误码或消息的前三行」。
+只报 `ASSET_INGEST_FAILED` 的话，13 条断言只会告诉我「它失败了」。
+
+**可推广的那条**：一个宽 catch 加一个兜底码，就是**一个 bug 变成错答案**的路径。
+兜底码要能区分「这是未知失败」并**把它交给能看见堆栈的人**，而测试的失败详情
+本身就是测试的一部分。
+
+### 22.5 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      16 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个 node:test 用例
+```
+
+新增 `composition/assets.e2e.mjs`（31 项）：本地 ingest 的完整往返（ingest → 描述符 →
+`asset.add` → `asset-instance` → 提交）、七种本地拒绝（超大/不存在/不支持的格式/
+两个来源/路径段/未知项目）、远程在**真 HTTP 服务器**上的三条路径（授权后下载、
+不断流式直到超过上限被中断、HTTP 404），以及三种「问不到」的应答者各自**什么都没写**。
+
+### 22.6 M5 完成了吗
+
+SPEC §23.5 的 M5 交付项：正式 preset ✅、mount validation ✅、双会话并发 ✅、
+安全测试 ✅、资源限制 ✅、资产策略 ✅、最终 Fixture 验收 ✅、安装/使用/恢复文档 ✅。
+SPEC §20 的 M5 验收：无 Shell ✅、无任意 Python ✅、无 Creator Tool ✅、
+全部高风险操作受控 ✅、全部 Fixture 通过 ✅、可生成安装 Bundle 与 Profile ✅。
+
+**SPEC §11 那张表里点名的 13 个工具第一次全部实现**（工具面总共 **16** 个：多出的三个是
+M2 的 `blender_preview_views` / `blender_visual_review` / `blender_visual_autofix`，
+它们在该表之外）。
+
+「全部高风险操作受控」仍是一句**判断**，所以下面是它现在具体的依据，而不是一句结论：
+白名单、截止时间、输出上限、工作区边界在 §18 逐个实测；采样预算在 §18 与 §18.2 断言在
+**执行处**；两个会话打同一个 store 在 §19；审批平面在 §20（含四种「问不到」的应答者）；
+资产的网络路径在 §22（含一个不停流式直到超过上限的服务器）。
+
+剩下的是 §7 的 Q10（发布到 npm 之后符号链接装配是否还需要）与 M6 的扩展项——
+它们不在 M5 的范围里。

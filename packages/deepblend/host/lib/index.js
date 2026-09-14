@@ -68,6 +68,7 @@ import {
   // M5 — the two roots the host and the provider must agree on
   resolveProjectsRoot,
   resolveWorkspaceRoot,
+  IMPORT_OPERATOR_BY_ASSET_TYPE,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
@@ -79,15 +80,17 @@ import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './rende
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { extname, isAbsolute, join } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 
 import {
   fileSha256,
   fileSize,
   isFile,
   readJson,
+  readJsonSafe,
   removeTree,
+  requireSafeSegment,
   resolveInside,
   writeJsonAtomic,
 } from './paths.js'
@@ -153,6 +156,14 @@ export const StudioConfig = z.object({
   serveCachedCapabilities: z.boolean().default(true),
   /** Refuse a preview whose sample count exceeds this, however it was asked for. */
   maxPreviewSamples: z.number().default(512),
+  /**
+   * Ceiling on one ingested asset, in bytes. SPEC §15's example is 1 GiB.
+   *
+   * Checked against the source BEFORE it is copied, and again while a remote one
+   * streams, because a limit applied after the transfer is a description of what
+   * already happened rather than a control on it.
+   */
+  assetMaxBytes: z.number().default(1_073_741_824),
 
   // ---- M2: the visual loop (SPEC §12.3, §17 `agent`) ------------------------
   //
@@ -1773,6 +1784,287 @@ export default class BlenderStudio extends Service {
   // ---------------------------------------------------------------------------
   // Revisions and jobs
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Assets (SPEC §11 "导入用户资产": local automatic, network requires approval)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Bring one file into a project's `assets/raw/` and describe it.
+   *
+   * WHY THE HOST OWNS THIS AND NOT THE TOOL
+   * ---------------------------------------
+   * Three of the four things that can go wrong here are policy, and policy belongs
+   * where every caller passes:
+   *
+   *   - the DESTINATION is a path inside the project, so it goes through the same
+   *     `resolveInside` guard as every other write (SPEC §15.2);
+   *   - the SIZE is capped by `assetMaxBytes` (SPEC §15);
+   *   - a REMOTE source needs a grant, and the host refuses one that arrives without
+   *     it — the tool plane is simply the only place that can ask.
+   *
+   * The fourth, the format, is checked here for a fast, precise refusal and checked
+   * again behaviourally by the compiler (D10): `hasattr` cannot tell whether an
+   * importer works in this build, so the definitive answer is the one that comes from
+   * trying it.
+   *
+   * This does NOT commit a revision. It puts bytes on disk and returns the descriptor
+   * a `scene-patch` `asset.add` operation then declares — so the scene still changes
+   * through exactly one path, and an ingest that is never declared leaves a file
+   * nobody references rather than a scene nobody checked.
+   *
+   * @param {object} request
+   * @param {string} request.projectId
+   * @param {string} [request.sourcePath] - absolute path to a local file
+   * @param {string} [request.sourceUrl] - http(s) URL; requires `approved: true`
+   * @param {string} [request.assetId] - defaults to a slug of the file name
+   * @param {string} [request.type] - defaults to the extension
+   * @param {boolean} [request.approved] - the caller's assertion that a person agreed
+   * @param {AbortSignal} [request.signal]
+   * @returns {Promise<Record<string, unknown>>}
+   */
+  async ingestAsset(request) {
+    const projectId = requireSafeSegment(request?.projectId, 'project id')
+    const record = this.store.readRecord(projectId)
+
+    const sourcePath = typeof request?.sourcePath === 'string' && request.sourcePath.length > 0
+      ? request.sourcePath
+      : null
+    const sourceUrl = typeof request?.sourceUrl === 'string' && request.sourceUrl.length > 0
+      ? request.sourceUrl
+      : null
+    if (sourcePath === null && sourceUrl === null) {
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
+        'ingestAsset needs either sourcePath (a local file) or sourceUrl (a remote one).',
+      )
+    }
+    if (sourcePath !== null && sourceUrl !== null) {
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_REQUEST_INVALID,
+        'ingestAsset takes a local source or a remote one, not both.',
+      )
+    }
+
+    // A remote source is the one that reaches off this machine, so it is the one that
+    // needs a person. Refused BEFORE anything is fetched or written.
+    if (sourceUrl !== null && request?.approved !== true) {
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_APPROVAL_REQUIRED,
+        `Importing ${sourceUrl} fetches bytes from the network, which needs approval (SPEC §11 ` +
+          '"本地自动，网络需审批"). Nothing has been downloaded. Ask the operator, then re-issue with ' +
+          'approved:true — or point at a local file with sourcePath, which needs no approval.',
+        { detail: { projectId, sourceUrl, maxBytes: this.config.assetMaxBytes } },
+      )
+    }
+
+    // ---- where it comes from ------------------------------------------------
+    let staged = null
+    let name = null
+    if (sourcePath !== null) {
+      const resolvedSource = resolve(sourcePath)
+      let stats
+      try {
+        stats = statSync(resolvedSource)
+      } catch {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
+          `no file at ${resolvedSource}.`,
+          { detail: { sourcePath: resolvedSource } },
+        )
+      }
+      if (!stats.isFile()) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
+          `${resolvedSource} is not a regular file.`,
+          { detail: { sourcePath: resolvedSource } },
+        )
+      }
+      if (stats.size > this.config.assetMaxBytes) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_TOO_LARGE,
+          `${resolvedSource} is ${stats.size} bytes, above the configured assetMaxBytes of ` +
+            `${this.config.assetMaxBytes} (SPEC §15).`,
+          { detail: { sourcePath: resolvedSource, bytes: stats.size, maxBytes: this.config.assetMaxBytes } },
+        )
+      }
+      staged = resolvedSource
+      name = basename(resolvedSource)
+    } else {
+      staged = await this._fetchAssetToScratch(sourceUrl, request?.signal)
+      name = decodeURIComponent(new URL(sourceUrl).pathname.split('/').filter(Boolean).pop() ?? 'asset')
+    }
+
+    // ---- what it is ---------------------------------------------------------
+    const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : ''
+    const type = typeof request?.type === 'string' && request.type.length > 0 ? request.type : extension
+    if (!(type in IMPORT_OPERATOR_BY_ASSET_TYPE)) {
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_FORMAT_UNAVAILABLE,
+        `"${name}" is a ${type === '' ? 'file with no extension' : `.${type} file`}; this project can carry ` +
+          `${Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE).join(', ')}.`,
+        { detail: { name, type, supported: Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE) } },
+      )
+    }
+
+    const assetId = typeof request?.assetId === 'string' && request.assetId.length > 0
+      ? request.assetId
+      : (() => {
+          // The file name without its extension, reduced to the id grammar. A name that
+          // cannot become an id is not guessed at: the caller is told to pass one,
+          // because a silently different id is how a scene ends up declaring an asset
+          // nobody can find.
+          const stem = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name
+          return stem
+            .replace(/[^a-zA-Z0-9._-]+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^[^a-zA-Z]+/, '')
+            .replace(/[-._]+$/, '')
+        })()
+    if (!/^[a-zA-Z][a-zA-Z0-9._-]*$/.test(assetId)) {
+      throw new BlenderError(
+        BlenderErrorCode.PATH_SEGMENT_INVALID,
+        `"${assetId}" cannot be an asset id: ids start with a letter and use letters, digits, ".", "_" and "-". ` +
+          'Pass assetId explicitly.',
+        { detail: { assetId, name } },
+      )
+    }
+
+    // ---- where it goes ------------------------------------------------------
+    //
+    // `assets/raw/` keeps the ingested bytes distinguishable from anything a later
+    // step derives from them (SPEC §13's tree has `raw/`, `normalized/` and
+    // `textures/`), and it is the directory the SceneSpec's asset paths are written
+    // against.
+    const relativePath = `assets/raw/${requireSafeSegment(name, 'asset file name')}`
+    const destination = resolveInside(
+      this.store.projectDirectory(projectId),
+      relativePath,
+      'asset destination',
+    )
+    mkdirSync(dirname(destination), { recursive: true })
+    copyFileSync(staged, destination)
+
+    const bytes = statSync(destination).size
+    if (bytes > this.config.assetMaxBytes) {
+      removeTree(destination)
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_TOO_LARGE,
+        `the ingested asset is ${bytes} bytes, above the configured assetMaxBytes of ${this.config.assetMaxBytes}.`,
+        { detail: { bytes, maxBytes: this.config.assetMaxBytes } },
+      )
+    }
+    const sha256 = fileSha256(destination)
+
+    // The manifest is a ledger beside the bytes, not a second source of truth: a file
+    // whose entry is missing is still usable, and an entry whose file is missing is
+    // what `SCENE_ASSET_NOT_INGESTED` warns about. It is written after the copy so it
+    // never describes something that is not there.
+    const manifestPath = join(this.store.projectDirectory(projectId), 'assets', 'manifest.json')
+    const manifest = readJsonSafe(manifestPath) ?? { schemaVersion: 'deepblend.assets/v1', assets: [] }
+    const entry = {
+      assetId,
+      type,
+      path: relativePath,
+      sha256,
+      bytes,
+      source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath },
+      ingestedAt: new Date().toISOString(),
+    }
+    const assets = [...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId), entry]
+      .sort((left, right) => (left.assetId < right.assetId ? -1 : left.assetId > right.assetId ? 1 : 0))
+    writeJsonAtomic(manifestPath, { schemaVersion: 'deepblend.assets/v1', assets })
+
+    return {
+      projectId,
+      assetId,
+      type,
+      path: relativePath,
+      sha256,
+      bytes,
+      source: entry.source,
+      manifestPath: 'assets/manifest.json',
+      currentRevision: record.currentRevision,
+      nextStep:
+        `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
+        `path: "${relativePath}", sha256: "${sha256}"}}`,
+    }
+  }
+
+  /**
+   * Fetch a remote asset into scratch space, with a byte cap enforced WHILE reading.
+   *
+   * The cap is applied to the stream rather than to `Content-Length`, because a header
+   * is a claim and the bytes are the fact — a response that lies about its length, or
+   * declares none and streams forever, must stop at the same place. The scratch file
+   * is removed on every failure path: a half-downloaded asset is not an asset, and
+   * leaving one behind would make the next attempt's "does it exist" answer wrong.
+   *
+   * @param {string} url
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<string>} absolute path to the fetched file
+   */
+  async _fetchAssetToScratch(url, signal) {
+    let parsed
+    try {
+      parsed = new URL(url)
+    } catch {
+      throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `"${url}" is not a URL.`)
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_FETCH_FAILED,
+        `"${parsed.protocol}" is not a protocol this will fetch; use http or https.`,
+        { detail: { protocol: parsed.protocol } },
+      )
+    }
+
+    const scratchDirectory = resolveInside(
+      this.store.workspaceRoot,
+      join(this.store.workspaceRoot, 'tmp', `asset-${randomUUID()}`),
+      'asset scratch directory',
+    )
+    mkdirSync(scratchDirectory, { recursive: true })
+    const target = join(scratchDirectory, 'download')
+
+    try {
+      const response = await fetch(parsed, { redirect: 'follow', signal })
+      if (!response.ok) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_FETCH_FAILED,
+          `${url} answered HTTP ${response.status}.`,
+          { detail: { url, status: response.status } },
+        )
+      }
+      const chunks = []
+      let received = 0
+      for await (const chunk of response.body ?? []) {
+        received += chunk.byteLength
+        if (received > this.config.assetMaxBytes) {
+          throw new BlenderError(
+            BlenderErrorCode.ASSET_TOO_LARGE,
+            `${url} exceeds the configured assetMaxBytes of ${this.config.assetMaxBytes}; the download was ` +
+              'stopped rather than completed.',
+            { detail: { url, received, maxBytes: this.config.assetMaxBytes } },
+          )
+        }
+        chunks.push(chunk)
+      }
+      if (received === 0) {
+        throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `${url} answered with no bytes.`)
+      }
+      writeFileSync(target, Buffer.concat(chunks))
+      return target
+    } catch (cause) {
+      removeTree(scratchDirectory)
+      if (cause instanceof BlenderError) throw cause
+      throw new BlenderError(
+        BlenderErrorCode.ASSET_FETCH_FAILED,
+        `${url} could not be fetched: ${cause instanceof Error ? cause.message : String(cause)}`,
+        { cause, detail: { url } },
+      )
+    }
+  }
 
   /**
    * Move a project's current pointer to an existing revision.

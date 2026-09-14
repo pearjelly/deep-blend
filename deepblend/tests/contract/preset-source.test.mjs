@@ -140,8 +140,8 @@ check('the composition describes THIS preset, not the one it was copied from',
   commentLines[0])
 check('it DOES carry the rule that survives every milestone — a visible tool is a promise',
   /promise the runtime must keep/.test(commentText), commentText.slice(0, 120))
-check('and names the one tool that is still absent',
-  /blender_asset_ingest/.test(commentText))
+check('and states that the SPEC §11 inventory is now complete',
+  /COMPLETE/.test(commentText))
 check('and points at the package rather than listing names itself',
   /packages\/deepblend\/tool\/lib/.test(commentText))
 

@@ -424,7 +424,11 @@
         },
         "targetKind": {
           "type": "string",
-          "enum": ["entity", "camera", "material"],
+          "enum": [
+            "entity",
+            "camera",
+            "material"
+          ],
           "default": "entity",
           "description": "What `targetEntityId` names: an entity (default), a camera, or a material. Only entity tracks existed before, which is why \"the camera orbits the product\" and \"the dial lights up\" both had to be faked with entity transforms."
         },
@@ -1119,6 +1123,74 @@
             },
             "world": {
               "$ref": "#/$defs/world"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "asset"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "asset.add"
+            },
+            "asset": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "type",
+                "path"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/id"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "glb",
+                    "gltf",
+                    "fbx",
+                    "obj",
+                    "usd",
+                    "blend"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Project-relative POSIX path, exactly as blender_asset_ingest reports it. Absolute paths and any \"..\" segment are rejected by the path guard (SPEC §15.2)."
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "license": {
+                  "$ref": "#/$defs/license"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "assetId"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "asset.remove"
+            },
+            "assetId": {
+              "$ref": "#/$defs/id"
             }
           }
         }

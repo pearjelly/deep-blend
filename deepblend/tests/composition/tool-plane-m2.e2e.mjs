@@ -166,6 +166,24 @@ try {
 
   // ---- the catalog -------------------------------------------------------
 
+
+/** Every tool SPEC §11's table names, in the order that table lists them. */
+const SPEC_11_TOOLS = [
+  'blender_capabilities',
+  'blender_project_create',
+  'blender_project_get',
+  'blender_scene_get',
+  'blender_scene_patch',
+  'blender_asset_ingest',
+  'blender_preview_render',
+  'blender_scene_validate',
+  'blender_final_render',
+  'blender_export',
+  'blender_revision_restore',
+  'blender_job_status',
+  'blender_job_cancel',
+]
+
   const names = root.get('tools').schemas().map(entry => entry.name).sort()
   const expected = [
     'blender_capabilities',
@@ -186,8 +204,9 @@ try {
   // not exist is absent — a tool the model can see is a promise the runtime must keep.
   check('every M0+M1+M2 tool is registered',
     expected.every(name => names.includes(name)), names)
-  check('blender_asset_ingest is still absent, because its host service is M5',
-    !names.includes('blender_asset_ingest'), names.filter(name => name.includes('asset')))
+check('every tool SPEC §11 names is registered, so that inventory is complete',
+  SPEC_11_TOOLS.every(name => names.includes(name)),
+  SPEC_11_TOOLS.filter(name => !names.includes(name)))
 
   for (const name of ['blender_preview_views', 'blender_visual_review', 'blender_visual_autofix']) {
     const definition = root.get('tools').get(name)

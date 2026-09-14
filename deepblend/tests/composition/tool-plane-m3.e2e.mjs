@@ -5,7 +5,7 @@
  *
  * WHAT THIS SUITE UNIQUELY PROVES
  * -------------------------------
- *  1. The catalog is EXACTLY the fifteen tools that exist. Each milestone's suite
+ *  1. The catalog is EXACTLY the sixteen tools that exist. Each milestone's suite
  *     asserted the exact total while it was current; this one owns the total now, so
  *     the count lives in one place and cannot drift into two.
  *  2. `blender_final_render` RETURNS WITH A JOB ID rather than blocking — the first
@@ -164,8 +164,27 @@ async function waitFor(label, predicate, timeoutMs, intervalMs = 250) {
 // The catalog
 // ---------------------------------------------------------------------------
 
+
+/** Every tool SPEC §11's table names, in the order that table lists them. */
+const SPEC_11_TOOLS = [
+  'blender_capabilities',
+  'blender_project_create',
+  'blender_project_get',
+  'blender_scene_get',
+  'blender_scene_patch',
+  'blender_asset_ingest',
+  'blender_preview_render',
+  'blender_scene_validate',
+  'blender_final_render',
+  'blender_export',
+  'blender_revision_restore',
+  'blender_job_status',
+  'blender_job_cancel',
+]
+
 const names = root.get('tools').schemas().map(entry => entry.name).sort()
 const EXPECTED = [
+  'blender_asset_ingest',
   'blender_capabilities',
   'blender_export',
   'blender_final_render',
@@ -182,10 +201,11 @@ const EXPECTED = [
   'blender_visual_autofix',
   'blender_visual_review',
 ]
-check('the preset plane registers exactly the fifteen tools that exist',
+check('the preset plane registers exactly the sixteen tools that exist',
   JSON.stringify(names) === JSON.stringify(EXPECTED), names)
-check('blender_asset_ingest is the one SPEC §11 tool still absent, and it is absent because its host service is M5',
-  !names.includes('blender_asset_ingest'), names.filter(name => name.includes('asset')))
+check('every tool SPEC §11 names is registered, so that inventory is complete',
+  SPEC_11_TOOLS.every(name => names.includes(name)),
+  SPEC_11_TOOLS.filter(name => !names.includes(name)))
 
 for (const name of ['blender_final_render', 'blender_export', 'blender_job_status', 'blender_job_cancel']) {
   const definition = root.get('tools').get(name)

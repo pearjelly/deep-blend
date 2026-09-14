@@ -840,6 +840,11 @@ const PURE_CASES = [
   { op: 'project.frameRange.set', operations: [{ op: 'project.frameRange.set', frameStart: 5, frameEnd: 200 }] },
   { op: 'render.profile.set', operations: [{ op: 'render.profile.set', profileName: 'final', profile: { engine: 'cycles', resolution: [960, 540] } }] },
   { op: 'world.set', operations: [{ op: 'world.set', world: { color: [0, 0, 0, 1], strength: 0 } }] },
+  { op: 'asset.add', operations: [{ op: 'asset.add', asset: { id: 'pure-asset', type: 'glb', path: 'assets/raw/pure.glb' } }] },
+  { op: 'asset.remove', operations: [
+    { op: 'asset.add', asset: { id: 'pure-asset', type: 'fbx', path: 'assets/raw/pure.fbx' } },
+    { op: 'asset.remove', assetId: 'pure-asset' },
+  ] },
 ]
 
 for (const pureCase of PURE_CASES) {
@@ -862,14 +867,35 @@ for (const pureCase of PURE_CASES) {
   }
 }
 
+{
+  // Removing the LAST asset must leave the key ABSENT rather than `[]`: an absent key
+  // is "this project declares no assets" and an empty list is a different document that
+  // happens to mean the same thing today — the distinction `collection()` exists to
+  // preserve, and the reason a no-op patch can leave the spec canonically identical.
+  const withOne = runPatch([{ op: 'asset.add', asset: { id: 'only-asset', type: 'glb', path: 'assets/raw/only.glb' } }])
+  check('asset.add materialises the assets collection', withOne.error === undefined && (withOne.next.assets ?? []).length === 1, withOne.next?.assets)
+  const emptied = runPatch([
+    { op: 'asset.add', asset: { id: 'only-asset', type: 'glb', path: 'assets/raw/only.glb' } },
+    { op: 'asset.remove', assetId: 'only-asset' },
+  ])
+  check('removing the last asset leaves the key absent, not an empty list',
+    emptied.error === undefined && !Object.hasOwn(emptied.next, 'assets'), Object.keys(emptied.next ?? {}).includes('assets'))
+  check('and the round trip is canonically identical to where it started',
+    emptied.error === undefined && sceneSpecDigest(emptied.next) === sceneSpecDigest(compiledFixture()))
+}
+
 check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 check(
-  'SCENE_OPERATION_NAMES lists the 21 v1 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 21
+  'SCENE_OPERATION_NAMES lists the 23 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 23
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
     && SCENE_OPERATION_NAMES[19] === 'render.profile.set'
-    && SCENE_OPERATION_NAMES[20] === 'world.set',
+    && SCENE_OPERATION_NAMES[20] === 'world.set'
+    // Appended by M5, which is why they are last: the existing twenty-one are quoted
+    // in this order by the docs and by blender_scene_patch's own description.
+    && SCENE_OPERATION_NAMES[21] === 'asset.add'
+    && SCENE_OPERATION_NAMES[22] === 'asset.remove',
   SCENE_OPERATION_NAMES,
 )
 check(
@@ -912,6 +938,23 @@ const FAILURE_CASES = [
   { label: 'shot.set using a camera that does not exist', code: 'PATCH_REFERENCE_MISSING', operations: [{ op: 'shot.set', shot: { id: 'shot-new', cameraId: 'ghost' } }] },
   { label: 'shot.remove of a missing shot', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'shot.remove', shotId: 'ghost' }] },
   { label: 'project.frameRange.set with an inverted range', code: 'PATCH_FRAME_RANGE_INVALID', operations: [{ op: 'project.frameRange.set', frameStart: 10, frameEnd: 5 }] },
+  // ---- M5: the two asset operations, and the three ways to get one wrong -----
+  { label: 'asset.remove of a missing asset', code: 'PATCH_TARGET_MISSING', operations: [{ op: 'asset.remove', assetId: 'ghost' }] },
+  { label: 'asset.add of an asset that already exists', code: 'PATCH_TARGET_EXISTS', operations: [
+    { op: 'asset.add', asset: { id: 'dup-asset', type: 'glb', path: 'assets/raw/a.glb' } },
+    { op: 'asset.add', asset: { id: 'dup-asset', type: 'glb', path: 'assets/raw/b.glb' } },
+  ] },
+  { label: 'asset.add naming an ABSOLUTE path', code: 'PATCH_OPERATION_INVALID', operations: [
+    { op: 'asset.add', asset: { id: 'abs-asset', type: 'glb', path: '/etc/passwd' } },
+  ] },
+  { label: 'asset.add naming a path with a traversal segment', code: 'PATCH_OPERATION_INVALID', operations: [
+    { op: 'asset.add', asset: { id: 'escape-asset', type: 'glb', path: '../outside.glb' } },
+  ] },
+  { label: 'asset.remove of an asset an entity still instantiates', code: 'PATCH_TARGET_IN_USE', operations: [
+    { op: 'asset.add', asset: { id: 'used-asset', type: 'glb', path: 'assets/raw/used.glb' } },
+    { op: 'entity.add', entity: { id: 'asset-user', type: 'asset-instance', assetId: 'used-asset' } },
+    { op: 'asset.remove', assetId: 'used-asset' },
+  ] },
   { label: 'an operation name this version does not implement', code: 'PATCH_OPERATION_UNKNOWN', operations: [{ op: 'scene.wipe' }] },
 ]
 

@@ -41,6 +41,7 @@ import {
   definedFields,
   renderFailure,
   renderSuccess,
+  requestApproval,
   resolveStudio,
 } from './shared.js'
 
@@ -55,86 +56,6 @@ export function applyRenderTools(ctx) {
   ctx.tools.register(jobCancel(ctx))
 }
 
-/**
- * Ask the operator to approve one over-threshold delivery render.
- *
- * WHY THIS IS A SEPARATE FUNCTION, AND WHY IT FAILS CLOSED
- * -------------------------------------------------------
- * `ctx.approval.request` is the harness's own approval plane: it asks every composed
- * answerer (the browser prompt, in a normal deployment), logs the ask and the outcome
- * to the session, and returns one of `'allowed-once' | 'rejected' | 'cancelled' |
- * 'unavailable'`. **`'allowed-once'` is the only grant**, and the service documents
- * its own failure direction: a missing or throwing answerer yields `'unavailable'`.
- *
- * So every path that is not `'allowed-once'` refuses, including "there is no approval
- * service in this deployment at all". That is the right direction for a control whose
- * purpose is to prevent spending hours of machine time: an unanswered question is not
- * a yes. It does mean a headless composition cannot start a 900-frame render without
- * raising the threshold — which is a deliberate trade, and the refusal text says so.
- *
- * @param {import('@deepseek-ai/cordis').Context} ctx
- * @param {{ agent?: unknown, callId?: unknown, signal?: AbortSignal }} exec
- * @param {{ detail?: { frames?: number, threshold?: number, frameStart?: number|null, frameEnd?: number|null }, message?: string }} refusal
- * @returns {Promise<{ granted: true, outcome: string } | { granted: false, refusal: { text: string, data: object } }>}
- */
-async function requestRenderApproval(ctx, exec, refusal) {
-  const detail = refusal?.detail ?? {}
-  const frames = detail.frames ?? null
-  const threshold = detail.threshold ?? null
-  const reason =
-    `Start a DELIVERY render of ${frames ?? 'an unknown number of'} frame(s)` +
-    `${detail.frameStart !== null && detail.frameEnd !== null ? ` (${detail.frameStart}..${detail.frameEnd})` : ''}, ` +
-    `above the configured approval threshold of ${threshold ?? '?'}. ` +
-    'Measured cost on the reference machine: 19.6-41.4 s per frame at 1920x1080 / Cycles / 256 samples, ' +
-    'so this is hours of machine time.'
-
-  const approval = ctx.get('approval')
-  const agent = exec?.agent
-
-  const refuse = (outcome, note) => ({
-    granted: false,
-    refusal: {
-      text: [
-        `Refused: this delivery render needs approval, and it was not granted (${outcome}).`,
-        '',
-        note,
-        '',
-        `Nothing was started — no job, no frames. The request was for ${frames ?? '?'} frame(s), ` +
-          `above the threshold of ${threshold ?? '?'}.`,
-        'Options: ask the operator again, render a smaller range to check the scene first, or have the ' +
-          'operator raise `requireApprovalAboveFrames` for this deployment.',
-      ].join('\n'),
-      data: { errorCode: 'RENDER_APPROVAL_REFUSED', outcome, frames, threshold },
-    },
-  })
-
-  if (approval === undefined) {
-    return refuse('unavailable', 'This deployment composes no approval service, so there was no one to ask.')
-  }
-  if (agent === undefined) {
-    return refuse('unavailable', 'This call carries no agent identity, and an approval must be logged against one.')
-  }
-
-  let outcome
-  try {
-    outcome = await approval.request({
-      agent,
-      toolName: 'blender_final_render',
-      callId: exec?.callId,
-      reason,
-      signal: exec?.signal,
-    })
-  } catch (cause) {
-    // The service rejects when no turn is open, or when an audit append fails. Both
-    // mean the decision could not be recorded, and an unrecorded grant is not a grant.
-    return refuse('unavailable', `The approval could not be requested: ${cause?.message ?? String(cause)}`)
-  }
-
-  if (outcome !== 'allowed-once') {
-    return refuse(String(outcome), 'The operator declined, cancelled, or the prompt was unavailable.')
-  }
-  return { granted: true, outcome }
-}
 
 /**
  * Refuse, in words, when the host half in this process is older than the tools.
@@ -358,7 +279,23 @@ function finalRender(ctx) {
           // that has both.
           if (cause?.code !== BlenderErrorCode.RENDER_APPROVAL_REQUIRED) throw cause
 
-          const approval = await requestRenderApproval(ctx, exec, cause)
+          const approval = await requestApproval(ctx, exec, {
+            toolName: 'blender_final_render',
+            refusalCode: 'RENDER_APPROVAL_REFUSED',
+            detail: { frames: cause.detail?.frames ?? null, threshold: cause.detail?.threshold ?? null },
+            reason:
+              `Start a DELIVERY render of ${cause.detail?.frames ?? 'an unknown number of'} frame(s)` +
+              `${cause.detail?.frameStart != null && cause.detail?.frameEnd != null
+                ? ` (${cause.detail.frameStart}..${cause.detail.frameEnd})`
+                : ''}, above the configured approval threshold of ${cause.detail?.threshold ?? '?'}. ` +
+              'Measured cost on the reference machine: 19.6-41.4 s per frame at 1920x1080 / Cycles / 256 ' +
+              'samples, so this is hours of machine time.',
+            refusal:
+              `Nothing was started — no job, no frames. The request was for ${cause.detail?.frames ?? '?'} ` +
+              `frame(s), above the threshold of ${cause.detail?.threshold ?? '?'}. Options: ask the operator ` +
+              'again, render a smaller range to check the scene first, or have the operator raise ' +
+              '`requireApprovalAboveFrames` for this deployment.',
+          })
           if (approval.granted !== true) return { ok: false, ...approval.refusal }
 
           // `approved` is set HERE and nowhere else. It is deliberately NOT a tool
