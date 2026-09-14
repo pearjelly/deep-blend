@@ -1,9 +1,11 @@
 # M4 client-plane probe — raw evidence
-
-> Command: `node deepblend/tools/ui-loop-probe.mjs --url "http://127.0.0.1:3099/?token=…"`
-> Process: a second `dsh web` (port 3099) started from this checkout, so the
-> running GUI on 3080 and this session were left untouched.
-> Date: 2026-09-13
+#
+# Command: `node deepblend/tools/ui-loop-probe.mjs --url "http://127.0.0.1:3099/?token=…"`
+# Process: a second `dsh web` (port 3099) started from this checkout, so the
+# running GUI on 3080 and this session were left untouched.
+# Taken 2026-09-13. (The provenance lines were one block separated by a blank line until 2026-09-14,
+# when `contract/probe-logs.test.mjs` started requiring a leading block that says how to take the
+# reading again; the text is unchanged.)
 
 ## 1. The measurement that decides the development loop
 

@@ -40,6 +40,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
+import { missingCommands, namedPaths } from '../lib/command-claims.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUG_FORM = join(ROOT, '.github', 'ISSUE_TEMPLATE', 'bug_report.yml')
@@ -129,52 +130,6 @@ function issueFormFaults(text) {
   return faults
 }
 
-/**
- * Every command a document tells a reader to run.
- *
- * Only the two shapes this repository uses: `npm run <script>` and `node|bash <repo-relative path>`.
- * A bare `dsh ...` is deliberately not resolved — the DSH binary is the prerequisite, not a file
- * this repository owns, and pretending to check it would be a check that cannot fail.
- *
- * @param {string} text
- * @returns {{kind: string, target: string}[]}
- */
-function commandsIn(text) {
-  const found = []
-  for (const match of text.matchAll(/`npm run ([\w:-]+)`/g)) found.push({ kind: 'npm', target: match[1] })
-  for (const match of text.matchAll(/`(?:node|bash) ((?:deepblend|packages)\/[\w./-]+)`/g)) {
-    found.push({ kind: 'path', target: match[1] })
-  }
-  // Unbackticked, which is how CONTRIBUTING's quick start is written.
-  for (const match of text.matchAll(/^\s*npm run ([\w:-]+)\s*$/gm)) found.push({ kind: 'npm', target: match[1] })
-  return found
-}
-
-/**
- * The commands in this text that cannot be run, as human-readable strings.
- *
- * @param {string} text
- * @param {{scripts: Record<string, string>}} context
- * @returns {string[]}
- */
-function missingCommands(text, context) {
-  const missing = []
-  for (const { kind, target } of commandsIn(text)) {
-    if (kind === 'npm' && context.scripts[target] === undefined) missing.push(`npm run ${target}`)
-    if (kind === 'path' && !existsSync(join(ROOT, target))) missing.push(target)
-  }
-  return missing
-}
-
-/** Every repository path a document names in backticks. */
-function namedPaths(text) {
-  const named = new Set()
-  for (const match of text.matchAll(/`((?:deepblend|packages|\.github)\/[\w./-]+|CONTRIBUTING\.md|SPEC\.md)`/g)) {
-    named.add(match[1])
-  }
-  return named
-}
-
 // ---------------------------------------------------------------------------
 // The templates exist, and are where GitHub looks for them
 // ---------------------------------------------------------------------------
@@ -211,7 +166,7 @@ test('the bug form requires the three things this project cannot reproduce witho
 
 test('every command the templates name exists — a dead command is worse than no document', () => {
   for (const path of [BUG_FORM, PR_TEMPLATE, CONTRIBUTING]) {
-    const missing = missingCommands(read(path), { scripts: packageJson.scripts })
+    const missing = missingCommands(read(path), { scripts: packageJson.scripts, root: ROOT })
     assert.deepEqual(missing, [], `${path} tells a reader to run ${missing.join(', ')}, which does not exist`)
   }
   // The rule has to be able to fail, so the extractor and the resolver are exercised on text that is
@@ -219,13 +174,14 @@ test('every command the templates name exists — a dead command is worse than n
   assert.deepEqual(
     missingCommands('run `npm run script-that-was-renamed` and `node deepblend/tests/gone.mjs` here', {
       scripts: packageJson.scripts,
+      root: ROOT,
     }),
     ['npm run script-that-was-renamed', 'deepblend/tests/gone.mjs'],
     'the checker cannot see a dead command, so its clean verdict means nothing',
   )
   // ...and the resolution direction is checked too: a command that DOES exist must come back clean,
   // or the rule above would hold for a checker that rejects everything.
-  assert.deepEqual(missingCommands('run `npm test` and `node deepblend/tests/run.mjs`', { scripts: packageJson.scripts }), [])
+  assert.deepEqual(missingCommands('run `npm test` and `node deepblend/tests/run.mjs`', { scripts: packageJson.scripts, root: ROOT }), [])
 })
 
 test('every repository path the templates name exists', () => {

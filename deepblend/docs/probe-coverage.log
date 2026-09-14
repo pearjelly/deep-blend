@@ -2,6 +2,10 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
+# Taken 2026-09-14 (round 29 of this session's review). Its provenance is the next line because the
+# merge rule changed underneath it once already; the numbers below are reproducible from the kept
+# coverage directory with `--from`.
+#
 # PROVENANCE: collected by the suite run of round 29 (`suite exit code: 0` below) and read with the
 # merge rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first
 # code character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces

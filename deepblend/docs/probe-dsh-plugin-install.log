@@ -1,3 +1,11 @@
+# DSH plugin-install probe — what `dsh plugin --profile add` actually does
+#
+#   node deepblend/tools/dsh-plugin-install-probe.mjs    (the run this log came from)
+#
+# Taken 2026-09-14 (M5, Q10 closed); this header was added on 2026-09-14 when
+# `contract/probe-logs.test.mjs` started requiring one, and the date is the file's own git history.
+# What it is evidence for: `install.md`'s second install path — the one command that works without
+# publishing to npm, and the storage decision it leaves to the operator layer. Body is the tool's output.
 date: 2026-09-14T06:42:08.883Z
 scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-J4ouzG
 dsh: 0.1.5-rc.2
