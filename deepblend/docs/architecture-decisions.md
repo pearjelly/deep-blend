@@ -2620,6 +2620,34 @@ job 已经是 `failed`，而 `delivery` 还写着 `encoding`。`_deliverJob` 在
 
 ---
 
+### D117 — 被文档当作**证据**引用的工具，必须能被复现；一个写死的 revision id 让它不能
+
+`recovery.md` §1 引用 `docs/probe-m3-restart.log` 作为「Host 被杀之后 Blender 还活着」这件事的证据。
+照着文档跑一遍，得到的是：
+
+```
+Error: ENOENT: no such file or directory, open '…/revisions/r0029/scene-spec.json'
+```
+
+**探针里写死了一个 revision id**，而 demo 项目早已推进到别的 revision。失败的形状是最糟的一种：
+不是「这个工具过期了」，而是「照文档做，得到一个找不到的文件」——一份被当作证据引用的产物，
+任何人都复现不了，而它已经这样过了十二轮（没有任何套件能跑它：它会 SIGKILL 一个 Host 并渲染）。
+
+修法不是换一个 id（那只是把同一个错误推到下一轮），而是**把目标从 store 里读出来**：
+`project.json` 的 `currentRevision`，可以用环境变量覆盖（一份已发布的日志必须能按当时的 revision
+复现），而没有项目时给的是**该做什么**而不是一条路径。
+`m3-delivery-acceptance.mjs` 有同一个写死的 id，一并改掉，两者共用 `tools/probe-target.mjs`。
+
+规则写下来：**能被引用的测量，必须能被重跑**。挑选默认值的时候，
+问一句「这个值是关于谁的事实」——`'r0029'` 是关于 2026-09-13 那台机器那个 store 的事实，
+不是关于这个仓库的事实。重跑之后 M3 的结论依然成立（`PROBE_CONVERGED`），
+日志换成今天的读数，头部写清命令、revision 与它为哪条文档做证据。
+
+顺带量到：超时把**探针**杀掉之后，它 fork 的 Host 与 Host 启动的 Blender 都留了下来
+（`ppid` 已是 1，还在往 job 目录写）——`recovery.md` §1 描述的现象，由测试工具自己制造了一次。
+
+---
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -2667,6 +2695,7 @@ job 已经是 `failed`，而 `delivery` 还写着 `encoding`。`_deliverJob` 在
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（被引用的证据） | D117：`recovery.md` §1 引用 `probe-m3-restart.log` 作为「Host 被杀后 Blender 还活着」的证据，而照着文档跑会得到 **ENOENT：r0029**——探针里写死了一个 revision id，demo 项目早已推进，于是**一份被当作证据的产物任何人都复现不了**，而且它已经这样十二轮（没有任何套件能跑它：它 SIGKILL 一个 Host 并渲染）。修法不是换一个 id，而是把目标从 store 读出来：新增 `tools/probe-target.mjs`（`currentRevision`，可被环境变量覆盖，缺项目时报「该做什么」而不是一条路径），两个被引用的探针共用它（`m3-delivery-acceptance.mjs` 有同一个写死的 id），`visual-review-live-probe.mjs` 早就有 preflight 因此未改。规则：**能被引用的测量必须能被重跑**；重跑后 M3 结论仍成立（`PROBE_CONVERGED`，十二轮后），日志换成今天的读数并写明命令/revision/它为哪条文档作证。顺带量到：超时杀掉**探针**会留下它 fork 的 Host 与 Host 启动的 Blender（ppid=1，仍在写帧）。新增 `contract/probe-target.test.mjs`（5 项，4 条变异全红）；契约层 35 → **36** 个文件；产品代码未改 |
 | 2026-09-14 | M5（恢复流程的安全规则） | D116：第 29 轮之后读数回到主机，`render-reconciler.js` 的 48 行黑暗里藏着恢复流程**最危险的三个分支**，而它们**一次都没被执行过**：pid 活着却不是这个 job 的渲染器（绝不发信号——弄错就是杀掉用户机器上一个无关进程）、记录读不出来（报告而绝不原地修，那可能是唯一证据）、孤儿杀不掉（不可续渲——两个写者产出谁都担保不了的文件）。模块把 store / 账本读取器 / 写入器都作为参数收进来，于是用**真实子进程**逐条驱动：命令行不含 job 目录的路人必须活到最后、`process.kill` 抛 `EPERM` 的幸存孤儿必须 `orphan-survived`且记录一字节未改、半截 JSON 的记录必须在磁盘上原样保留、以及「先停孤儿再读账本」这句注释里的顺序（用记账本读取器证明读到的是已经死掉的）。顺手补两个可测性缺口：`reconcileRenderJob` 现在把 `orphanGraceMs` 透传下去（默认仍 10 秒），那一项 20 秒 → 0.67 秒；`spawn` 的睡眠进程要 `unref()`，否则合计不到 1 秒的 4 项测试要 120 秒才退出。**测试慢下来时先问是谁在等。** 5 条变异全红且各红一项；契约层 34 → **35** 个文件 |
 | 2026-09-14 | M5（没有 ffmpeg 的机器） | D115：第 29 轮之后 `video-encoder.js` 的 56 行黑暗几乎全是「外部工具不在」的分支，于是问哪一条真实机器会遇到——答案是「没有 ffmpeg」，而 **README 的前置表与 `install.md` 的前提表里都没有 ffmpeg 这个词**：陌生人能照文档装完、渲完 450 帧、在最后一步失败。把一个不存在的 ffmpeg 指给工具面，量到缺陷：**job 已 `failed`，而 `delivery` 还写着 `encoding`**（`_deliverJob` 写下尝试却没写结局），于是 `blender_job_status` 同段里既说「停了」又说「在编码」。修法：编码与探测包进 try/catch，抛出前写下 `delivery: {status:'failed', errorCode, message, …}` 再原样抛出（job 状态仍由调用方决定）。第二半是「文档承诺过、从没被走过」的第二次（第一次是第 28 轮续渲）：`recovery.md` §3 的恢复路径第一次真的被走——同一 store 上先在**没有** ffmpeg 的 composition 渲 2 帧（渲染成功、编码失败、帧保留），再在**有** ffmpeg 的 composition 导出并发布成功，证明「缺编码器不丢帧 / 失败点名 ENCODER_NOT_FOUND 与装法 / 装好后同一批帧可交付」。文档三处：README 前置表、`install.md` §0、`recovery.md` §3（按 errorCode 分三种情况）；M3 工具面 65 → **73** 项，2 条变异全红（去掉 catch 立刻复现 `{"status":"encoding"}` 原始缺陷） |
 | 2026-09-14 | M5（量具第五次错） | D114：`probe-coverage.log` 从第 23 轮起写着「`dsh web` 一个报告都不写」，四个 UI-only 方法因此一直是「浏览器端到端跑通了、这里却是 0」。第 23 轮量的是**有没有**报告，这一轮量的是**为什么没有**：`dsh` 装了 SIGTERM 处理器、愿意干净退出（实测 717 ms，报告里含 28 个产品模块），而 `dsh-web-harness.mjs` 的 `stop()` 等 **300 ms** 就 `SIGKILL`——**进程被杀在自己关闭的半路，报告从没写出来**。五次里第一次错在「怎么收集」而不是「怎么读」；被丢掉的不是数字而是**整个 UI 平面的可测性**，而那份读数自洽、可复现、还被当成已知盲区写进了工具头部。修法：SIGTERM 后轮询等它自己退出（`SHUTDOWN_GRACE_MS = 15_000`，实测的二十倍），超时才 SIGKILL，并回报走的是哪条路；浏览器套件据此多一条断言（服务器是自己关的，`via: 'sigkill'` 意味着关闭变慢，值得红）。收益实测：产品可执行行黑暗 1637 (13.5%) → **1497 (12.4%)**，`host/lib/index.js` 649 → **526**，`contracts/lib/ui-api.js` 61 → **13**，`ui/lib/index.js` 36 → **25**，四个方法的签名行全部点亮；产品代码一行未改 |

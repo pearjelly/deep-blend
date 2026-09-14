@@ -39,6 +39,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import { devStoreRoot } from './operator-layer.mjs'
+import { resolveProbeRevision } from './probe-target.mjs'
 
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
@@ -98,7 +99,12 @@ const sleep = ms => new Promise(settle => setTimeout(settle, ms))
 const framesIn = directory => (existsSync(directory) ? readdirSync(directory).filter(name => name.endsWith('.png')).length : 0)
 
 const PROJECT = process.env.DEEPBLEND_ACCEPTANCE_PROJECT ?? 'watch-commercial'
-const REVISION = process.env.DEEPBLEND_ACCEPTANCE_REVISION ?? 'r0029'
+const REVISION = resolveProbeRevision({
+  projectsRoot: join(STORE, 'projects'),
+  projectId: PROJECT,
+  explicit: process.env.DEEPBLEND_ACCEPTANCE_REVISION,
+  hint: 'run `node deepblend/tools/create-demo-project.mjs` first (the acceptance run needs its own project)',
+})
 
 /* -------------------------------------------------------------------------- */
 /* start                                                                       */

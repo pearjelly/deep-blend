@@ -1,38 +1,56 @@
+# M3 restart probe — what survives a `kill -9` of the process that started a render.
+#
+# HOW TO REPRODUCE (a stranger, from a clean clone):
+#
+#   node deepblend/tools/create-demo-project.mjs        # if .deepblend/ has no project yet
+#   node deepblend/tools/m3-restart-probe.mjs restart   # ~15 min at 1920x1080; --frames 4 --kill-at 2 for ~2
+#
+# RE-MEASURED 2026-09-14 (round 32), against revision r0002 — the store's CURRENT revision. This probe
+# used to default to the literal 'r0029' and died with `ENOENT … /revisions/r0029/scene-spec.json` once
+# the demo project moved on, which is why the target is now derived from `project.json` and why the
+# revision it used is recorded here (re-run with DEEPBLEND_PROBE_REVISION=rXXXX to reproduce an older
+# reading).
+#
+# WHAT IT IS EVIDENCE FOR (`recovery.md` §1): the Blender child OUTLIVES the Host that started it, the
+# fsynced journal survives, the ledger rebuilt from the frame files is right, and resuming renders
+# exactly the missing set without touching a frame that was already there. Unchanged from the M3 run;
+# the frame count differs only because the demo project's current revision is shorter.
+
 ── phase 1: a Host starts a delivery render ──
 
 ── phase 2: wait for 3 frame(s), then SIGKILL the Host ──
-child.pid: 92031
-child.processGroupId: 92031
+child.pid: 93397
+child.processGroupId: 93397
 jobDirectory: /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart
-frames.requested: [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+frames.requested: [1,2,3,4,5,6,7,8]
 PROBE_STARTED
 frames.present.at.kill: 3
-host.killed: {"pid":92030,"signal":"SIGKILL"}
+host.killed: {"pid":93396,"signal":"SIGKILL"}
 
 ── phase 3: recovery ──
 
 ── recovery, in a fresh process ──
 marker.status: running
-marker.frames: [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
-marker.pid: 92031
+marker.frames: [1,2,3,4,5,6,7,8]
+marker.pid: 93397
 frames.on.disk.before: ["frame_0001.png","frame_0002.png","frame_0003.png"]
-orphan.identity.document: {"pid":92031,"pgid":92031}
+orphan.identity.document: {"pid":93397,"pgid":93397}
 orphan.alive: {"alive":true,"groupAlive":true,"leaderAlive":true,"command":"/Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender --background --factory-startup --python /Users/hxb/workspace/deep-blend/packages/deepblend/provider-local/python/bootstrap.py -- --request /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/request.json --result /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/result.json --frames /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/plan.json --events /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/events.jsonl --proc /Users/hxb/workspace/deep-blend/.deepblend/projects/watch-commercial/renders/probe-m3-restart/process.json"}
 journal.lines: 3
 journal.types: ["frame"]
 journal.frames: [1,2,3]
-orphan.stopped: {"attempted":true,"pid":92031,"term":"signalled-group","kill":null,"gone":true,"after":{"alive":false,"groupAlive":false,"leaderAlive":false,"command":null}}
+orphan.stopped: {"attempted":true,"pid":93397,"term":"signalled-group","kill":null,"gone":true,"after":{"alive":false,"groupAlive":false,"leaderAlive":false,"command":null}}
 ledger.expected.size: 1920x1080
 ledger.present: [1,2,3]
 ledger.corrupt: []
-ledger.missing: [4,5,6,7,8,9,10,11,12,13,14]
-resume.rendering: [4,5,6,7,8,9,10,11,12,13,14]
+ledger.missing: [4,5,6,7,8]
+resume.rendering: [4,5,6,7,8]
 resume.exit: {"exitCode":0,"status":"success"}
-resume.rendered: [4,5,6,7,8,9,10,11,12,13,14]
+resume.rendered: [4,5,6,7,8]
 assert.rendered.equals.missing: true
 assert.nothing.re-rendered: true
 assert.existing.frames.untouched: 3/3
-ledger.after.present: [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+ledger.after.present: [1,2,3,4,5,6,7,8]
 ledger.after.missing: []
 ledger.after.corrupt: []
 PROBE_CONVERGED

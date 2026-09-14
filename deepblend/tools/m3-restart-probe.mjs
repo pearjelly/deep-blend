@@ -49,6 +49,12 @@
  *   node deepblend/tools/m3-restart-probe.mjs restart [--frames 8] [--kill-at 3] [--keep]
  *   node deepblend/tools/m3-restart-probe.mjs ledger-audit --job <name>
  *
+ * It probes the project's CURRENT revision (`.deepblend/projects/<id>/project.json`), because a
+ * revision id in a default is a fact about one machine's store on one afternoon — the version that
+ * hard-coded `r0029` died with ENOENT once the demo project moved on. Override with
+ * DEEPBLEND_PROBE_PROJECT / DEEPBLEND_PROBE_REVISION, and create a project first if the store is
+ * empty: `node deepblend/tools/create-demo-project.mjs`.
+ *
  * Owner: DeepBlend Studio — M3
  */
 
@@ -60,6 +66,8 @@ import {
 } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { resolveProbeRevision } from './probe-target.mjs'
+
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
 const BLENDER = process.env.DEEPBLEND_BLENDER_PATH
@@ -69,9 +77,15 @@ const PROJECTS = join(ROOT, '.deepblend', 'projects')
 
 const PROJECT_ID = process.env.DEEPBLEND_PROBE_PROJECT ?? 'watch-commercial'
 const PROJECT_ROOT = join(PROJECTS, PROJECT_ID)
-const REVISION = process.env.DEEPBLEND_PROBE_REVISION ?? 'r0029'
 /** The probe's job directory. Named, not timestamped, so a `recover` can find it. */
 const JOB_NAME = process.env.DEEPBLEND_PROBE_JOB ?? 'probe-m3-restart'
+
+const REVISION = resolveProbeRevision({
+  projectsRoot: PROJECTS,
+  projectId: PROJECT_ID,
+  explicit: process.env.DEEPBLEND_PROBE_REVISION,
+  hint: 'run `node deepblend/tools/create-demo-project.mjs` first',
+})
 
 /** A frame is only "done" if it is a complete PNG, not merely a file. */
 const MIN_FRAME_BYTES = 512

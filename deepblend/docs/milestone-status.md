@@ -4083,3 +4083,82 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 产品改了一处：`reconcileRenderJob` 把 `orphanGraceMs` 透传给 `stopProcessGroup`（默认不变）。
 新增 `contract/render-reconciler.test.mjs`（4 项，用真实子进程）。产品行为一行没改。
+
+---
+
+## 45. 被文档当作**证据**引用的探针，自己坏了
+
+这一轮去查「没有人运行的副本」这条规则的另一面：`docs/probe-*.log` 有六份，
+其中三份是 M3/M4 时代的——而 `recovery.md` §1 引用 `probe-m3-restart.log` 作为
+「Host 被杀之后 Blender 还活着」这件事的**证据**。照着文档跑一遍：
+
+```
+$ node deepblend/tools/m3-restart-probe.mjs restart
+Error: ENOENT: no such file or directory, open
+  '…/.deepblend/projects/watch-commercial/revisions/r0029/scene-spec.json'
+```
+
+**探针里写死了一个 revision id。** demo 项目早就推进到别的 revision 了，
+于是那份被引用的证据**任何人都无法复现**——而它的失败方式恰好是最糟的一种：
+不是「这个工具过期了」，而是「你按文档做，得到一个找不到的文件」。
+
+### 45.1 修法：目标从 store 里**读**，不从记忆里**取**
+
+新模块 `tools/probe-target.mjs`（两个探针共用一份）：默认取 `project.json` 的 `currentRevision`，
+显式给出 `DEEPBLEND_PROBE_REVISION` 时以它为准（**一份已发布的日志必须能被复现**，
+所以「当时用的那个 revision」要能覆盖回去），而没有项目、或项目里没有 `currentRevision` 时，
+报错说的是**该做什么**而不是一条路径：
+
+```
+Error: no project "watch-commercial" at … (no readable project.json). This probe renders against a
+REAL revision, so it needs one: run `node deepblend/tools/create-demo-project.mjs` first, or point
+the project environment variable at a project of your own.
+```
+
+`m3-delivery-acceptance.mjs`（README 引用的那份 30 分钟 1080p 交付日志）有**同一个**写死的 `r0029`，
+一并改掉；`visual-review-live-probe.mjs` 检查过，它早就有 preflight（缺图时告诉你去渲一张或传路径）。
+
+### 45.2 照文档走一遍，并把日志换成今天的读数
+
+```
+$ node deepblend/tools/create-demo-project.mjs     # store 是空的，先建一个（文档里的那条命令）
+$ node deepblend/tools/m3-restart-probe.mjs restart
+…
+orphan.alive: {"alive":true,"groupAlive":true,"leaderAlive":true,"command":"…/Blender --background …"}
+orphan.stopped: {"attempted":true,"pid":93397,"term":"signalled-group","kill":null,"gone":true}
+ledger.present: [1,2,3]   ledger.missing: [4,5,6,7,8]
+resume.rendering: [4,5,6,7,8]
+assert.rendered.equals.missing: true
+assert.nothing.re-rendered: true
+assert.existing.frames.untouched: 3/3
+ledger.after.present: [1,2,3,4,5,6,7,8]   ledger.after.missing: []   ledger.after.corrupt: []
+PROBE_CONVERGED
+```
+
+**M3 的结论十二轮之后仍然成立**：Blender 活得比它的父进程久、fsync 的 journal 活着、
+按帧文件重建的账本是对的、续渲只渲缺失集且一个已存在的帧都没碰。
+`probe-m3-restart.log` 已换成这一份读数，头部写清**怎么复现**、用的**哪个 revision**、
+以及它为哪一条文档做证据。
+
+### 45.3 一件顺手量到的事：被 kill 的探针自己会留下孤儿
+
+第一次跑默认参数时我给超时给了 10 分钟，1080p × 8 帧 + 续渲跑不完——超时把**探针**杀了，
+而它 fork 出来的 Host 与 Host 启动的 Blender **留了下来**（`ppid` 已经是 1，
+仍在往那个 job 目录里写帧）。这正是 `recovery.md` §1 描述的东西，只是这次是**测试工具**
+自己制造的；清掉的方式也正是文档里的那条：先停进程组，再读账本。
+
+### 45.4 变异
+
+4 条全部变红：把「想不起来的默认值」放回去（`currentRevision ?? 'r0029'`）、
+忽略显式覆盖、用字面量顶替 store 的答案、以及让失败重新只报一条路径。
+
+### 45.5 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 36/36 file(s) passed        848 项自计断言 + 243 个 node:test 用例
+```
+
+新增 `tools/probe-target.mjs` 与 `contract/probe-target.test.mjs`（5 项）；
+两个被引用的探针改成从 store 推导目标；`probe-m3-restart.log` 用今天的读数重写。
+**产品代码一行没改。**
