@@ -49,6 +49,16 @@
  * lines that can execute raises the SHARE substantially while barely moving the dark count, because
  * a large share of this codebase is comments. The reading in `docs/probe-coverage.log` carries both.
  *
+ * HOW A LINE IS JUDGED lives in `coverage-merge.mjs`, which is a module for a measured reason: the
+ * merge has been wrong four times, and every one of those was caught by a number looking odd rather
+ * than by a test — because a rule reachable only through the whole acceptance suite is a rule nobody
+ * checks. The fourth (round 27) is the one that cost a round: a line was judged by its whole SPAN, so
+ * V8's zero-count range for an untaken sub-expression — `? studio.hostApiVersion()`, starting 62
+ * characters into the line — reported the line as never executed although thirteen processes had
+ * executed it. The rule is now "the innermost range covering the line's FIRST CODE CHARACTER decides",
+ * and `deepblend/tests/contract/probe-merge.test.mjs` drives it on synthetic reports, one case per
+ * historical defect plus the direction that must not change (a never-run body stays dark).
+ *
  * Usage:
  *   node deepblend/tools/coverage-probe.mjs                 # the contract layer (fast)
  *   node deepblend/tools/coverage-probe.mjs --all           # the whole acceptance suite (slow)
@@ -59,6 +69,8 @@
  */
 
 import { spawnSync } from 'node:child_process'
+
+import { cannotExecute, mergeReports } from './coverage-merge.mjs'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
@@ -83,116 +95,6 @@ const TOP = topIndex === -1 ? 12 : Number(process.argv[topIndex + 1])
 
 /** Only the product. The suites and the tooling are not what this probe is about. */
 const IN_SCOPE = /\/packages\/deepblend\/[\w./-]+\.(js|mjs)$/
-
-/**
- * A character offset to a 1-based line number.
- * @param {string} text
- * @param {number} offset
- */
-function lineAt(text, offset) {
-  let line = 1
-  for (let index = 0; index < offset && index < text.length; index += 1) {
-    if (text.charCodeAt(index) === 10) line += 1
-  }
-  return line
-}
-
-/**
- * Nest V8's flat range list into the block tree it describes.
- *
- * The first range of a function is its body; every other range is a block nested somewhere inside
- * it, and a nesting range's count is never higher than its parent's. Sorting by start-then-widest
- * and keeping a stack rebuilds that tree, one tree per script: the module wrapper is the root and
- * every function body hangs off it.
- *
- * @param {{startOffset: number, endOffset: number, count: number}[]} ranges
- */
-function rangesToTree(ranges) {
-  const sorted = [...ranges].sort((left, right) => left.startOffset - right.startOffset || right.endOffset - left.endOffset)
-  const roots = []
-  const stack = []
-  for (const range of sorted) {
-    if (range.endOffset <= range.startOffset) continue
-    const node = { startOffset: range.startOffset, endOffset: range.endOffset, count: range.count, children: [] }
-    while (stack.length > 0) {
-      const parent = stack[stack.length - 1]
-      if (parent.startOffset <= node.startOffset && parent.endOffset >= node.endOffset) break
-      stack.pop()
-    }
-    if (stack.length === 0) roots.push(node)
-    else stack[stack.length - 1].children.push(node)
-    stack.push(node)
-  }
-  return roots
-}
-
-/**
- * Can this line ever be EXECUTED?
- *
- * A comment or a blank line has no execution to be missing, so counting it as "never executed" is a
- * category error — and it was not a small one. The first reading (§36) reported comment-only lines
- * as dark, and after a test was written for `render-journal.js` most of what stayed "dark" in it was
- * prose. A metric whose tail is prose invites a hunt for a gap that does not exist, which is the
- * same defect as one that hides a gap.
- *
- * The approximation is deliberately simple — trim, then `//`, `*`, `/*` — because a real lexer here
- * would be a second parser kept in step with the source for a number that is a question, not a
- * verdict. Its known error is a comment-only line inside a template literal, which does not exist in
- * this repository and would be reported as covered-but-not-executed rather than the reverse.
- *
- * @param {string} text
- * @returns {boolean}
- */
-function cannotExecute(text) {
-  const trimmed = text.trim()
-  return trimmed.length === 0 || trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')
-}
-
-/**
- * The line numbers one process executed in one file.
- *
- * V8's semantics are "the innermost block that mentions this byte wins": a block with a positive
- * count is covered, and a nested block with a zero count punches a hole in it. Walking the tree and
- * overwriting each span with its own verdict reproduces that exactly.
- *
- * THREE WRONG VERSIONS CAME BEFORE THIS ONE, all of them caught by the numbers looking wrong rather
- * than by a test: (1) pushing every report's ranges into one list made a range covered by one
- * process and not by another count as dark, so the contract layer and the whole suite reported the
- * SAME 63.6%; (2) filtering zero ranges by containment alone reported `JournalTail.drain` as 56
- * dark lines although it had run 101 times, because one process contributed a whole-body
- * `count: 0` range; (3) dropping any zero range that contained a positive one reported every file
- * as 0% dark, because the module wrapper contains everything. A coverage tool that is wrong in
- * either direction is worse than none, so the merged answer is computed per process — where the
- * tree is unambiguous — and unioned.
- *
- * @param {{startOffset: number, endOffset: number, count: number}[]} ranges
- * @param {number[]} lineStarts
- * @returns {Set<number>}
- */
-function executedLines(ranges, lineStarts) {
-  const lineOf = offset => {
-    let low = 0
-    let high = lineStarts.length - 1
-    while (low < high) {
-      const middle = Math.ceil((low + high) / 2)
-      if (lineStarts[middle] <= offset) low = middle
-      else high = middle - 1
-    }
-    return low + 1
-  }
-
-  const covered = new Set()
-  const apply = (node, marked) => {
-    const state = node.count > 0
-    for (let line = lineOf(node.startOffset); line <= lineOf(Math.max(node.startOffset, node.endOffset - 1)); line += 1) {
-      if (state) covered.add(line)
-      else if (marked) covered.delete(line)
-    }
-    for (const child of node.children) apply(child, state)
-  }
-  for (const root of rangesToTree(ranges)) apply(root, false)
-  return covered
-}
 
 /**
  * Every product source file, with the size and mtime that decide "did this change?".
@@ -280,8 +182,8 @@ try {
   // Merge every process's report
   // -------------------------------------------------------------------------
   const reports = readdirSync(coverageDirectory).filter(name => name.endsWith('.json'))
-  /** @type {Map<string, {text: string, lineStarts: number[], executed: Set<number>, seen: boolean}>} */
-  const byFile = new Map()
+  /** @type {object[]} */
+  const scripts = []
   let parsed = 0
 
   for (const name of reports) {
@@ -293,26 +195,15 @@ try {
     }
     parsed += 1
     for (const script of json.result ?? []) {
-      if (!IN_SCOPE.test(script.url)) continue
-      const path = script.url.replace('file://', '')
-      if (!existsSync(path)) continue
-
-      let entry = byFile.get(path)
-      if (entry === undefined) {
-        const text = readFileSync(path, 'utf8')
-        const lineStarts = [0]
-        for (let index = 0; index < text.length; index += 1) if (text.charCodeAt(index) === 10) lineStarts.push(index + 1)
-        entry = { text, lineStarts, executed: new Set(), seen: false }
-        byFile.set(path, entry)
-      }
-
-      const ranges = []
-      for (const fn of script.functions ?? []) ranges.push(...(fn.ranges ?? []))
-      if (ranges.length === 0) continue
-      entry.seen = true
-      for (const line of executedLines(ranges, entry.lineStarts)) entry.executed.add(line)
+      if (typeof script?.url !== 'string' || !IN_SCOPE.test(script.url)) continue
+      scripts.push(script)
     }
   }
+
+  // The merge lives in its own module because it has been wrong four times, and a rule that can only
+  // be exercised by running the whole suite is a rule nobody checks
+  // (`deepblend/tests/contract/probe-merge.test.mjs` drives it on synthetic reports).
+  const byFile = mergeReports(scripts, path => (existsSync(path) ? readFileSync(path, 'utf8') : null))
 
   console.log(`coverage files: ${reports.length} (${parsed} parsed), product files seen: ${byFile.size}\n`)
 

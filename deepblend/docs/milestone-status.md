@@ -3696,3 +3696,91 @@ DeepBlend tests: 33/33 file(s) passed        841 项自计断言 + 224 个 node:
 `deepblend/tests/lib/milestone-claims.mjs`（README / CONTRIBUTING / 两份模板共用的模式）、
 `deepblend/tests/contract/contributor-surface.test.mjs`（11 项）。
 `CONTRIBUTING.md` 拿掉了那份会漂的总数、加上了两条入口的说明与两行耦合表。
+
+---
+
+## 40. 量具第四次错，这次是它把人送去修**已经跑过的代码**
+
+这一轮原本只是照例重测一次覆盖率。读数出来先看了一眼自己上两轮写的代码：
+`render-journal.js` 4 行黑暗（和上一轮一样，都是到不了的 catch）、`render-tools.js` **89 行**。
+89 行里有几句很眼熟——`hostPlaneIsCurrent` 的开头几行、`describeJobLines` 的前几行。
+
+那几行**每次调用工具都会跑**。于是去查原始报告：
+
+```
+line 92 | positive ranges: 13 | zero ranges: 10   const version = typeof studio.hostApiVersion === 'function' …
+line 93 | positive ranges: 13 | zero ranges: 10   if (Number.isFinite(version) && version >= HOST_API_VERSION) …
+```
+
+13 个进程的报告里有**正计数区间覆盖这一行**，而量具说它从没被执行过。
+
+### 40.1 原因：零计数区间可以只盖住**一行里的一小段**
+
+把一个进程的区间按行位置摊开，答案就在眼前：
+
+```
+line 92: zero range starts 62 chars into the line :: "? studio.hostApiVersion()"
+line 93: zero range starts 63 chars into the line :: "return null"
+```
+
+V8 为**没有走到的子表达式**发一个零计数区间——三元表达式的另一臂、`if` 的 then 分支——
+而这个区间只盖住那一行的一段。旧规则按**整行的跨度**归属：谁的区间盖住这一行谁说话，
+最内层说了算。于是「62 个字符之后有一个没走到的臂」被记成了「这一行没被执行过」。
+
+`render-tools.js` 的 89 行里 **35 行是这么来的**。这一轮差一点就去给这些行补测试了——
+这正是这个量具存在的意义的反面：**一个会把已经跑过的代码报成黑暗的量具，
+会让人花一整轮去修不存在的东西。**
+
+### 40.2 修法：判据是**这一行的第一个代码字符**
+
+新规则一句话：**一行由「盖住它第一个非空白字符的那个最内层区间」判决**，正计数即已执行。
+它保住了块树当初存在的全部理由，同时去掉了假黑暗：
+
+| 情形 | 判决 | 为什么 |
+|---|---|---|
+| 从没被调用的函数体 | 仍然黑暗 | 它自己的零计数区间是每个行首的最内层 |
+| 没走到的分支、**自己占一行** | 仍然黑暗 | 那个零区间盖住该行的第一个代码字符 |
+| 没走到的三元臂（同一行内） | **已执行** | 零区间从语句开始之后才起算 |
+| 模块外壳（count 1、整文件） | 不覆盖函数内部 | 它是最外层区间（否则每个加载过的文件都是 0% 黑暗——第 3 号旧缺陷） |
+
+**它不是分支覆盖率，这一点写在工具头部和读数里而不是藏起来**：
+一行里没走到的臂看不见了；看得见的仍然是任何**独占一行**的函数体或分支。
+
+### 40.3 规则搬进模块，因为「只有跑完整套才验得了的规则」等于没人验
+
+四次错误全部是**合并规则**，四次都是靠「数字看起来不对」发现的——没有一次是靠测试。
+所以合并本身现在是 `tools/coverage-merge.mjs`，由 `contract/probe-merge.test.mjs`（10 项）
+用**合成的 V8 报告**驱动：每个历史缺陷各一项（跨进程抵消、包含关系筛选、外壳覆盖一切、
+整行跨度判决），外加**不许改变的那个方向**（没跑过的函数体必须仍然黑暗）与两条阴性对照
+（全零报告必须零覆盖；源码读不到的文件不能算成全黑）。
+
+写这项测试时自己踩了一个坑，也记在注释里：第一版**用被测函数本身**去构造区间
+（`firstCodeOffset` 既当判据又当夹具），于是「判据挪到行首」这个变异**测不出来**——
+测试和实现用的是同一个计算。现在夹具用行首加缩进的**算术**算，另有一条断言直接钉住
+`firstCodeOffset` 自己的定义。7 条变异全部变红。
+
+### 40.4 同一份数据，修好之后
+
+```
+                              旧规则            修正后
+产品可执行行黑暗              2521 (20.8%)      1658 (13.7%)
+有黑暗行的文件                32                28
+tool/render-tools.js          89                54
+host/render-journal.js        4                 3
+host/frame-ledger.js          2                 1
+```
+
+`docs/probe-coverage.log` 里写清了改动经过、两种口径、以及「这不是分支覆盖率」。
+读数本身与套件运行无关（原始报告没变，变的是怎么读它），所以没有重跑整套——
+`--from` 那个目录可以逐字复现这一页上的每个数字。
+
+### 40.5 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 34/34 file(s) passed        841 项自计断言 + 234 个 node:test 用例
+```
+
+新增 `tools/coverage-merge.mjs` 与 `contract/probe-merge.test.mjs`（10 项，7 条变异全红）、
+重写 `docs/probe-coverage.log`、更新探针头部。产品代码**一行没改**——
+这一轮修的是「怎么读」。

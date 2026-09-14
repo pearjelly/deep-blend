@@ -86,8 +86,10 @@ deepblend/
                       dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
                       disk-full-probe.mjs —— 在一个真的 24 MiB 卷上把磁盘写满，看宿主怎么收场
                       coverage-probe.mjs —— 跑整套并列出产品里从没被执行过的行（含它自己的盲区）
+                      coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
+                                            （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         33 个 *.test.mjs
+    contract/         34 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
                       spec-tools.mjs —— 从 SPEC.md §11 读出工具清单（三个套件共用这一份）
@@ -188,15 +190,15 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**16 个套件、48 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**33 个文件 = 841 项自计断言（12 个文件打印计数）+ 224 个 `node:test` 用例（21 个文件）**。
+预期：**16 个套件、49 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**34 个文件 = 841 项自计断言（12 个文件打印计数）+ 234 个 `node:test` 用例（22 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 841 和 224 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 841 和 234 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**

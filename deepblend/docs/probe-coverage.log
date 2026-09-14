@@ -2,8 +2,14 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
+# PROVENANCE, stated because the merge rule changed underneath this reading (round 27, D112):
+# the coverage was collected by the suite run of round 27 (`suite exit code: 0` below) and is read
+# here with the CORRECTED rule — a line is judged by the innermost range covering its first code
+# character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces
+# every number on this page.
+#
 # Instrument: NODE_V8_COVERAGE on every process the suite spawns, merged per process and then
-# unioned (see the tool's header for the three wrong merges that came before it).
+# unioned. The merge is `tools/coverage-merge.mjs`, driven by `tests/contract/probe-merge.test.mjs`.
 #
 # TWO READINGS ARE PRINTED, and they have different denominators:
 #   [every line]  every line of the file, comments included — comparable with §36's 13.7%
@@ -13,44 +19,69 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 93 (93 parsed)
+coverage files: 94 (94 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19809, never executed: 2663 (13.4%)   [every line]
-product CODE lines:      12066, never executed: 2519 (20.9%)   [blank + comment-only excluded]
+product lines seen:      19907, never executed: 2971 (14.9%)   [every line]
+product CODE lines:      12098, never executed: 1658 (13.7%)   [blank + comment-only excluded]
 
-── the darkest of the files that were loaded (32) ──
-   packages/deepblend/host/lib/index.js                        872/2895  code lines dark
-   packages/deepblend/provider-local/lib/index.js              368/910
-   packages/deepblend/host/lib/revision-transaction.js         132/682
-   packages/deepblend/contracts/lib/scene-spec.js              112/561
-   packages/deepblend/tool/lib/tools.js                         97/810
-   packages/deepblend/tool/lib/visual-tools.js                  94/330
-   packages/deepblend/host/lib/video-encoder.js                 92/210
-   packages/deepblend/tool/lib/render-tools.js                  89/420
-   packages/deepblend/host/lib/project-store.js                 66/263
-   packages/deepblend/host/lib/render-reconciler.js             66/189
-   packages/deepblend/ui/lib/index.js                           64/369
-   packages/deepblend/contracts/lib/ui-api.js                   61/427
+── THE SAME DATA, BEFORE AND AFTER THE MERGE WAS FIXED ──
+The reading above is of the SAME coverage reports as the numbers below; only the rule that turns
+V8's ranges into "was this line executed" changed. Round 27 measured why it had to.
 
-── THE TWO FILES §37 WORKED ON ──
-                              §36's reading (every line)     this reading (code lines)
-render-journal.js             28 / 130 dark                  4 / 75
-frame-ledger.js               10 / 180 dark                  2 / 76
-                              ↑ whole rules were dark        ↑ 4 are the two `closeSync` "already
-                                (drain's three hard            closed" catches (only a mock reaches
-                                branches, sampleFrame's        them) and 2 are the `statSync` that
-                                entire unreadable catch)       fails after `existsSync` said yes
+                              old rule        corrected       what the old rule got wrong
+product code lines dark       2521 (20.8%)    1658 (13.7%)    lines that already ran, reported dark
+files with dark lines         32              28
+tool/render-tools.js          89              54              35 false entries, measured
+host/render-journal.js        4               3
+host/frame-ledger.js          2               1
 
-render-journal.js is 197 lines, 122 of them blank or comment. Those 122 were counted as "never
-executed" by §36's reading of the same file.
+MEASURED, the case that exposed it: `tool/render-tools.js` line 92 is
+`const version = typeof studio.hostApiVersion === 'function' ? studio.hostApiVersion() : 0`.
+Raw reports from thirteen processes contain a positive range covering that line, and V8 also emits a
+ZERO-count range for the untaken arm starting 62 characters into it (`? studio.hostApiVersion()`).
+The old rule judged a line by its whole span, so the zero range blackened the line; the `if (…) return
+null` on the next line went the same way (its zero range covered only `return null`, 63 characters in).
+The dark list was sending a reader to write tests for code that runs on every tool call.
+
+── the darkest of the files that were loaded (28) ──
+   packages/deepblend/host/lib/index.js                        649/2904  code lines dark
+   packages/deepblend/provider-local/lib/index.js              264/910
+   packages/deepblend/host/lib/revision-transaction.js          75/682
+   packages/deepblend/tool/lib/visual-tools.js                  69/330
+   packages/deepblend/contracts/lib/scene-spec.js               68/561
+   packages/deepblend/host/lib/video-encoder.js                 56/210
+   packages/deepblend/tool/lib/render-tools.js                  54/426
+   packages/deepblend/host/lib/project-store.js                 53/263
+   packages/deepblend/tool/lib/tools.js                         51/810
+   packages/deepblend/host/lib/render-reconciler.js             48/189
+   packages/deepblend/ui/lib/index.js                           36/369
+   packages/deepblend/tool/lib/shared.js                        31/230
+   packages/deepblend/contracts/lib/png.js                      27/289
+   packages/deepblend/tool/lib/index.js                         24/128
+
+── WHAT THE RULE DOES AND DOES NOT SAY ──
+A line is COVERED when the innermost range covering its FIRST CODE CHARACTER has a positive count.
+That keeps everything the block tree was for, and drops the false dark lines:
+
+  - a never-called function's body: its own range (count 0) is innermost at every line start inside it,
+    so those lines stay dark — this is the case the probe exists for;
+  - a branch that never ran and has a line of its own: the branch's zero range covers that line's
+    first code character, so it stays dark;
+  - a line whose ternary arm was never taken: the zero range starts after the statement start, so the
+    line reads as executed — which it was;
+  - the module wrapper (count 1, the whole file) is the OUTERMOST range and never wins inside a
+    function, or every loaded file would read as fully covered.
+
+IT IS NOT BRANCH COVERAGE, and that price is stated rather than hidden: an untaken arm on a line that
+ran is invisible here. What stays visible is any body or branch with a line of its own.
 
 ── WHAT THIS INSTRUMENT CANNOT SEE, MEASURED (in §36's run; the blind spot is a property of
    `dsh web`, not of that run) ──
 Running deepblend/tests/e2e/ui.e2e.mjs with NODE_V8_COVERAGE produces ZERO reports for the host
-package: the `dsh web` process it starts does not write them. So every path reached only through
-the UI reads as dark here. That is why listProjects, getRevisionDetail, getQaRecord and readArtifact
+package: the `dsh web` process it starts does not write them. So every path reached only through the
+UI reads as dark here. That is why listProjects, getRevisionDetail, getQaRecord and readArtifact
 report count 0 — the browser suite exercises all four end to end (the panel lists projects, opens a
 revision, shows QA, and fetches artifact bytes), and the routes that call them are served by that
 invisible process.
@@ -61,23 +92,16 @@ invisible process.
 
 Read a dark line as "no test I can see executes this", not as "nothing executes this".
 
-── WHAT THE READING SAYS ──
-Most of the dark lines are error handling: catch blocks, "the encoder is missing" fallbacks, the
-unreadable-record branch of the reconciler. That is the expected shape — an error path runs only
-when something goes wrong, and a suite that made every error path run would be a suite that breaks
-things on purpose (which is what the round-22 disk probe did, by hand, for one of them).
-
-The whole bodies that are dark for a different reason — `listProjects`, `getRevisionDetail`,
-`readArtifact`, `getQaRecord` — are reachable only from a process this instrument cannot see. That
-is a fact about the measurement, and it is written down here rather than left to be inferred from a
-number.
-
-── WHAT THE TOOL NOW REFUSES TO DO (both learned the hard way, §37) ──
-It exits non-zero and keeps its evidence when the SUITE exited non-zero, echoing the failing lines:
-a reading of a red tree is not a reading, and the version that threw the suite's output away left
+── WHAT THE TOOL NOW REFUSES TO DO (each one learned by getting it wrong, §37 and §40) ──
+It exits non-zero and keeps its evidence when the SUITE exited non-zero, echoing the failing lines: a
+reading of a red tree is not a reading, and the version that threw the suite's output away left
 `suite exit code: 1` as the only trace of a 15-minute failure with no way to see which suite it was.
 
-It also exits non-zero and names the files when a PRODUCT SOURCE FILE CHANGED while the suite ran.
-Coverage is line numbers from the processes read against source text from disk, and those are two
-different moments: a run that overlapped an edit reported a function called seven times by a test as
-"never executed", and listed comment lines as the dark ones.
+It exits non-zero and names the files when a PRODUCT SOURCE FILE CHANGED while the suite ran. Coverage
+is line numbers from the processes read against source text from disk, and those are two different
+moments: a run that overlapped an edit reported a function called seven times by a test as "never
+executed", and listed comment lines as the dark ones.
+
+And it no longer reports a line as dark because one arm of it was not taken — the four wrong merge
+rules are listed in `tools/coverage-merge.mjs`, and a fifth is now a test failure rather than a
+reading nobody audits.
