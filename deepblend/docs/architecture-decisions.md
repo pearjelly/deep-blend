@@ -1626,6 +1626,59 @@ blender_final_render {samples: 4}       →  完全没有警告，渲染器被�
 ---
 
 
+## 5K. M5 并发：两个会话、一个 store（D85–D86）
+
+---
+
+### D85 — 幂等性在**并发**下的承诺，必须按实测的写法写，不能按好听的写法写
+
+**决策**：`composition/concurrency.e2e.mjs` 断言的是三段实测事实，而不是一句话：
+
+1. 同一个 key **同时**提交两次 → **一个 revision** + 一个 `REVISION_CONFLICT`；
+2. 那个冲突之后的**顺序重试** → 返回首次结果（`idempotentReplay: true`）；
+3. 因此「三次提交、三个 revision」—— **key 守住了它真正要守的东西**。
+
+**为什么这个区分重要**：README 与 D16 说的是「完全相同的重试返回首次结果」。
+那对一个**顺序**重试成立，对一个**同时**的重试不成立——后者会拿到冲突。
+把两者混为一谈，就会写出一条**实现并不提供的保证**的断言，而它在顺序场景下会绿。
+
+**可推广的那条**：并发把「同一个 API 的两条路径」变成两个不同的问题。
+一条关于并发的断言必须说清自己测的是哪一条，否则它测的是容易的那条。
+
+---
+
+### D86 — 一条**永远走不通**的回退路径：检查了文件，但没有搬它
+
+**决策**：`compileRevisionForRender` 在 provider 给的窗口里**真的复制** `result.blend`。
+
+**触发它的事实**：provider 的 `onWorkingDirectory` 是一段**窗口**——
+「调用者必须能在目录被删除之前把字节搬走」。而 host 的回调只做了两件事：
+检查 `result.blend` 存在，然后**记录一个目标路径**（`scratch/scene.blend`），
+从来没有写那个文件。于是紧跟着的 `isFile(produced)` 永远为假，
+整条「为一个没有 checkpoint 的 revision 编译一份 .blend 再渲」的路径**永远抛错**。
+
+**实测**（在修之前）：在一个**上一个 revision 有 checkpoint** 的项目上渲一个
+`saveCheckpoint:false` 的 revision：
+
+```
+ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but produced no checkpoint.
+```
+
+**为什么没有任何东西发现**：仓库里其它每一个套件建 revision 时都带 `saveCheckpoint:true`，
+所以这条路径从来没有被走到。而 `blender_project_create` 的工具描述把这个缺陷**当特性写了下来**
+（「该 revision 没有 .blend 可以预览，直到之后某个带 checkpoint 的 revision」）——
+**一句描述 bug 的文档，读起来和一句描述设计的话一模一样。**
+
+**修完的后果**：`saveCheckpoint:false` 从陷阱变回快速路径：提交时省下的编译，
+改在该 revision 第一次渲染时付；工具描述也改成了事实。
+`tool-plane-m1.e2e.mjs` 现在**走这条路**（41 → 44 项）。
+
+**可推广的那条**：一个回调如果是「窗口」而不是「通知」，那么它的测试必须检查
+**字节有没有被搬走**，而不是**回调有没有被调用**。前者才是有后果的那个事实。
+
+---
+
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1673,6 +1726,7 @@ blender_final_render {samples: 4}       →  完全没有警告，渲染器被�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（并发） | D85–D86：并发下的幂等承诺要按实测写（顺序重试重放、同时重试冲突，两者都成立且不是同一件事）；一条「检查了文件但没搬它」的回退路径让 `saveCheckpoint:false` 的 revision 永远无法预览，而工具描述把缺陷当特性写着。产出是 `composition/concurrency.e2e.mjs`（19 项）与走通那条路径的 `tool-plane-m1`（41 → 44 项） |
 | 2026-09-14 | M5（安全加固） | D84：一条限制有三处可能说谎——算它的地方、报告它的地方、执行它的地方；只断言其中一处的测试会全绿。产出是 `composition/hardening.e2e.mjs`（22 项：白名单、截止时间、输出上限、工作目录、采样预算、工作区边界，每条都成对出现），并修掉「交付渲染的采样上限被算出来、被报告、然后被丢掉」这个真实缺陷 |
 | 2026-09-14 | M5（收尾） | D82–D83：手册里机器能查的部分必须被查住（D82），内容的清单本身要有一条断言（D83）。产出是 SPEC §23.5 要求的三份手册（`install` / `usage` / `recovery`）与两个清单套件（`docs-consistency` / `fixture-inventory`） |
 | 2026-09-14 | M5（正式 preset） | D79–D81：一个由缺席定义的产物只能断言行集合本身（D79）、只写在散文里的承诺需要一行必须与它一致的代码（D80）、不可达的守卫读起来像保护实际不是（D81）。产出是 SPEC §6.4 的正式 `deepblend` preset、随 preset 目录部署的 skill、以及补上的 `blender_revision_restore`（SPEC §11 列了它四个里程碑，而实现是零） |

@@ -901,14 +901,35 @@ export default class BlenderStudio extends Service {
     writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`, 'utf8')
 
     let produced = null
+    const compiledPath = join(scratch, 'scene.blend')
     await this.runtime.compileScene({
       sceneSpecPath: specPath,
       projectRoot: this.store.projectDirectory(projectId),
       jobId: input.jobId,
       signal: input.signal,
+      // THIS CALLBACK IS A WINDOW, NOT A NOTIFICATION. The provider removes the
+      // per-invocation directory as soon as it returns, so an artifact that matters
+      // has to MOVE here — which is what the provider's own contract says
+      // ("the caller must be able to move those bytes somewhere durable BEFORE the
+      // directory is removed").
+      //
+      // This callback used to only CHECK for `result.blend` and record a destination
+      // path, without ever writing it. `produced` then named a file nothing had
+      // created, the `isFile(produced)` check below failed, and the whole
+      // compile-for-render path threw `REVISION_CHECKPOINT_MISSING` — always, for
+      // every revision. MEASURED by rendering a revision committed with
+      // `saveCheckpoint:false` on a project whose previous revision HAD a checkpoint:
+      // "Revision r0002 was compiled for rendering but produced no checkpoint."
+      //
+      // The visible consequence was that `saveCheckpoint:false` was a trap rather
+      // than a fast path: the commit skipped the compile, and every later preview of
+      // that revision was impossible — even though SceneSpec is the source of truth
+      // (SPEC §8.1) and a `.blend` is by design a rebuildable artifact.
       onWorkingDirectory: info => {
         const candidate = join(info.directory, 'result.blend')
-        if (isFile(candidate)) produced = join(scratch, 'scene.blend')
+        if (!isFile(candidate)) return
+        copyFileSync(candidate, compiledPath)
+        produced = compiledPath
       },
     })
 

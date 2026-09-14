@@ -97,8 +97,10 @@ function projectCreate(ctx) {
       'Give it the operator\'s brief as `goal`: it is stored with the project and never parsed, so write it ' +
       'in full. Omit `sceneSpec` to start from a minimal renderable scaffold and build up with ' +
       'blender_scene_patch; pass one only when you already know the whole scene. ' +
-      'Set saveCheckpoint:false to skip the Blender compile and store the SceneSpec alone (fast, but the ' +
-      'revision then has no .blend to preview from until a later checkpointed revision).',
+      'Set saveCheckpoint:false to skip the Blender compile and store the SceneSpec alone. The revision then ' +
+      'has no .blend of its own, and the first render of it compiles one from the spec — which costs a few ' +
+      'extra seconds on that render instead of on the commit, and is exactly why the SceneSpec, not the ' +
+      '.blend, is the source of truth.',
     parameters: {
       title: {
         type: 'string',

@@ -1881,3 +1881,101 @@ DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个
 | **双会话并发验证** | ❌ 仍未做。结构上由 `isolate` realm 保证（两个 preset 的同名服务行已在同一进程里共存过，见 §16.5），但**没有一条断言盯着它** |
 | **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11），它的审批边界与规格是同一件事 |
 | Q7：能**阻止**启动的审批平面 | ❌ 目前只显示阈值事实；`recovery.md` §8 把这一点写在了用户看得到的地方 |
+
+---
+
+## 19. M5 并发：两个会话、一个 store
+
+SPEC §20 的完成定义里还剩一条没有东西盯着：**「两个并发 deepblend 会话无服务冲突」**。
+本节把它做完，并且顺手挖出一个比它更严重的缺陷。
+
+### 19.1 服务的那一半是结构性的——那就断言结构
+
+预设的服务行必须坐在带 `isolate` realm 的 group 里，否则它发布到 **root realm**，
+第二个预设发布同名服务就会碰撞，而 `dsh-agent-presets` 会在挂载时拒绝。
+这条规则是**结构性**的，所以断言也写成结构性的（对两个 preset 各查一遍）：
+
+```
+deepblend      planning:planMode · compaction:compaction+toolResultPruner
+deepblend-dev  planning:planMode · compaction:compaction+toolResultPruner · delegation:workflowEngine
+```
+
+加上「工具行不发布任何服务」——那正是同一个 preset 的两个会话可以安全并行的原因：
+它们**共享**同一个 standing mount（`isolate` 是给不同 realm 用的，不是给会话用的；
+会话按 scope 父子关系 join 进同一个挂载）。
+
+### 19.2 真正需要证明的是**共享状态**：两个调用者打同一个项目
+
+`composition/concurrency.e2e.mjs`（19 项）。每个场景都用 `Promise.allSettled` 让两个调用
+**真的同时在飞**，并且**两边都断言**——「其中一个成功了」单独存在时，
+在「store 悄悄接受了两者、输家只是丢了回答」的情况下也会通过：
+
+| 场景 | 实测 |
+|---|---|
+| 同一个 base revision 的两个 patch | 恰好一个提交（`r0002`），另一个 `REVISION_CONFLICT`，且冲突文本点名「要基于 r0002 重提」 |
+| 之后的 store | `r0001,r0002` —— **没有幽灵 revision**，指针是赢家而不是混合体 |
+| 同时启动两个交付渲染 | 恰好一个拿到 job，另一个 `RENDER_JOB_CONFLICT`，文本指向**正在跑的那个 job**（resume 或 cancel），而不是让调用者盲目重试 |
+| 两个不同 revision 的预览 | **都成功**。交付渲染按项目独占（两个渲染器写一个帧目录会产出谁都不能担保的文件），预览写进各自 revision 的 `previews/`，把它们也做成独占会把「边渲边看」变成排队 |
+
+### 19.3 幂等性在并发下的承诺：按**实测**写，不按好听的写
+
+这是本节最值得记的一条。README 与 D16 说「完全相同的重试返回首次结果」。
+实测把它分成两件事：
+
+```
+同一个 key 同时提交两次   →  一个 revision + 一个 REVISION_CONFLICT
+那个冲突之后的顺序重试    →  返回首次结果（idempotentReplay: true）
+三次提交 → 三个 revision（r0001,r0002,r0003）—— key 守住了它真正要守的东西
+```
+
+**同时**的那次不重放，它冲突。断言就按这个写（D85）。把两者混为一谈，
+就会写出一条**实现并不提供的保证**的断言，而它在顺序场景下会绿。
+
+### 19.4 顺手挖到的：一条**永远走不通**的回退路径
+
+写并发用例时需要一个「没有 checkpoint 的 revision」来测预览，于是撞上了这个：
+
+```
+ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but produced no checkpoint.
+```
+
+**在一个上一个 revision 有 checkpoint 的项目上**，渲一个 `saveCheckpoint:false` 的 revision 会失败。
+根因在 `compileRevisionForRender`：provider 的 `onWorkingDirectory` 是一段**窗口**
+（「调用者必须能在目录被删除之前把字节搬走」），而 host 的回调只**检查**了 `result.blend`
+存在、然后**记录一个目标路径**（`scratch/scene.blend`），从来没有写那个文件。
+于是紧跟着的 `isFile(produced)` 永远为假，整条「为没有 checkpoint 的 revision 编译一份
+`.blend` 再渲」的路径**永远抛错**。
+
+**为什么四个里程碑都没人发现**：仓库里其它每一个套件建 revision 时都带
+`saveCheckpoint:true`。而 `blender_project_create` 的工具描述把这个缺陷**当特性写了下来**：
+「该 revision 没有 .blend 可以预览，直到之后某个带 checkpoint 的 revision」——
+**一句描述 bug 的文档，读起来和一句描述设计的话一模一样**（这是 D80 的同一个形状，
+只是这次「散文」写在工具描述里，而工具描述是模型唯一会读的那份文档）。
+
+修完：`saveCheckpoint:false` 从陷阱变回快速路径——提交时省下的编译改在该 revision
+**第一次渲染**时付，这正是「SceneSpec 是事实来源、`.blend` 是可重建产物」（SPEC §8.1）
+该有的样子。工具描述改成了事实，`tool-plane-m1.e2e.mjs` 现在**真的走这条路**（41 → 44 项）。
+
+### 19.5 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      14 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个 node:test 用例
+```
+
+### 19.6 M5 还剩什么（更新版）
+
+| 项 | 状态 |
+|---|---|
+| 正式 preset / mount validation / 三份手册 / Fixture 清单 | ✅ §16、§17 |
+| 安全测试 / 资源限制 | ✅ §18 |
+| **双会话并发验证** | ✅ §19：服务那半是结构断言，共享状态那半是 19 项运行时断言 |
+| **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11）。它的**审批边界**与规格是同一件事，而那又依赖 Q7 |
+| Q7：能**阻止**启动的审批平面 | ❌ 目前只显示阈值事实；`recovery.md` §8 把这一点写在了用户看得到的地方 |
+
+**M5 的验收项只剩下一件半**：资产策略，以及它依赖的审批平面。两件都是「新增能力」而不是
+「把已有的东西做扎实」，而本轮与上一轮的价值恰恰来自后者——四个里程碑里，
+`saveCheckpoint:false` 的渲染路径一次都没有被走过。

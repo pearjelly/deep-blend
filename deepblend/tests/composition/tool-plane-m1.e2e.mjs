@@ -281,6 +281,39 @@ try {
       && validation.value.data.technical.counts?.meshObjects === 4,
     validation.value?.data?.technical?.counts)
 
+  // ---- a revision with NO checkpoint of its own -----------------------------
+  //
+  // `saveCheckpoint:false` is the fast path: the commit stores the SceneSpec and skips
+  // the Blender compile. The revision then has no `.blend`, and the FIRST render of it
+  // has to compile one — which is the whole reason SceneSpec, not `.blend`, is the
+  // source of truth (SPEC §8.1).
+  //
+  // That path was DEAD. `compileRevisionForRender` checked for the provider's
+  // `result.blend` and recorded a destination path WITHOUT EVER WRITING IT, while the
+  // provider deletes the working directory as soon as the callback returns — so the
+  // check that followed always failed with `REVISION_CHECKPOINT_MISSING`, for every
+  // revision, always. Nothing noticed because every other suite commits with
+  // `saveCheckpoint:true`. MEASURED before the fix: "Revision r0002 was compiled for
+  // rendering but produced no checkpoint."
+  const noCheckpoint = await call('blender_scene_patch', {
+    projectId,
+    baseRevision: 'r0002',
+    operations: [{ op: 'camera.update', cameraId: 'camera-top', lens: 52 }],
+    note: 'M1 tool plane: a revision with no checkpoint of its own',
+    saveCheckpoint: false,
+  })
+  check('a patch can commit a revision without a checkpoint',
+    noCheckpoint.value?.ok === true && noCheckpoint.value.data.revision === 'r0003',
+    noCheckpoint.value?.data?.revision ?? noCheckpoint.error)
+
+  const compiledPreview = await call('blender_preview_render', { projectId, revision: 'r0003', cameraId: 'camera-top', frame: 45 })
+  check('and that revision can still be previewed: the render compiles a .blend from its SceneSpec',
+    compiledPreview.value?.ok === true && compiledPreview.value?.data?.artifacts?.length === 1,
+    compiledPreview.value?.data?.errorCode ?? compiledPreview.value?.data?.artifacts?.[0]?.path)
+  check('the compiled preview is recorded against the revision it was compiled FROM',
+    compiledPreview.value?.data?.artifacts?.[0]?.path?.startsWith('revisions/r0003/previews/'),
+    compiledPreview.value?.data?.artifacts?.[0]?.path)
+
   // ---- failure paths that must never throw ------------------------------
   const unknownProject = await call('blender_scene_get', { projectId: 'no-such-project' })
   check('reading an unknown project is a coded result, not a crash',
