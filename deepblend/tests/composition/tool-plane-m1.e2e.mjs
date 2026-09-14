@@ -24,6 +24,8 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+import { SPEC_11_TOOLS } from '../lib/spec-tools.mjs'
+
 const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH
@@ -118,23 +120,6 @@ try {
 
   // ---- the catalog ------------------------------------------------------
 
-/** Every tool SPEC §11's table names, in the order that table lists them. */
-const SPEC_11_TOOLS = [
-  'blender_capabilities',
-  'blender_project_create',
-  'blender_project_get',
-  'blender_scene_get',
-  'blender_scene_patch',
-  'blender_asset_ingest',
-  'blender_preview_render',
-  'blender_scene_validate',
-  'blender_final_render',
-  'blender_export',
-  'blender_revision_restore',
-  'blender_job_status',
-  'blender_job_cancel',
-]
-
   const names = root.get('tools').schemas().map(entry => entry.name).sort()
   const expected = [
     'blender_capabilities',
@@ -149,14 +134,19 @@ const SPEC_11_TOOLS = [
   // it moved to `tool-plane-m2.e2e.mjs` the moment M2 added three more: a test that the
   // catalog never grows would fail on every future milestone for the right reason and
   // be deleted for the wrong one. What stays here is the part that is still M1's to
-  // assert — that these seven exist and are usable — plus the rule that outlives every
-  // milestone: nothing gets registered before its host service does.
+  // assert — that these seven exist and are usable — plus SPEC §11's inventory, which
+  // is read from `SPEC.md` rather than retyped here.
+  //
+  // This header used to add "plus the rule that outlives every milestone: nothing gets
+  // registered before its host service does". That rule was M1's `!names.includes(...)`
+  // check on the M2+ tools, and it died the day the last of them was implemented — so
+  // for three milestones this comment described an assertion the file no longer made.
   check('the preset plane registers every M1 tool',
     expected.every(name => names.includes(name)),
     names.filter(name => !expected.includes(name)))
-check('every tool SPEC §11 names is registered, so that inventory is complete',
-  SPEC_11_TOOLS.every(name => names.includes(name)),
-  SPEC_11_TOOLS.filter(name => !names.includes(name)))
+  check('every tool SPEC §11 names is registered, so that inventory is complete',
+    SPEC_11_TOOLS.every(name => names.includes(name)),
+    SPEC_11_TOOLS.filter(name => !names.includes(name)))
 
   for (const name of expected) {
     const definition = root.get('tools').get(name)

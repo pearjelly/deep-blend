@@ -15,7 +15,7 @@ DSH Host Composition        →  packages/deepblend/bundle/cordis.patch.yml
   共享服务：Blender 执行、Project/Revision Store、原子提交事务、UI Host 半
 
 DeepBlend Agent Presets     →  ~/.dsh/.agent-presets/{deepblend,deepblend-dev}/
-  单个会话模型可见的 10 个工具与提示词
+  单个会话自己的模型可见工具与提示词
 
 Blender Runtime             →  packages/deepblend/provider-local/python/
   受控 bpy 执行、确定性 JSON 协议、SceneSpec 编译器
@@ -56,9 +56,10 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         24 个 *.test.mjs
+    contract/         25 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
+                      spec-tools.mjs —— 从 SPEC.md §11 读出工具清单（三个套件共用这一份）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
     composition/      Host 组合激活 + preset 工具面（M0–M3）+ UI 平面（座位表与闭集路由）
     e2e/              ui.e2e.mjs —— 真实浏览器验收（自带 dsh web 与项目 store）
@@ -132,14 +133,21 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 这条命令是一次真的走查逼出来的：四步各自都对，缺的是**它们之间的那个前提**
 （`milestone-status.md` §21）。
 
-预期：**16 个套件、39 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**24 个文件 = 811 项自计断言（12 个文件打印计数）+ 139 个 `node:test` 用例（12 个文件）**。
+预期：**16 个套件、40 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**25 个文件 = 830 项自计断言（12 个文件打印计数）+ 149 个 `node:test` 用例（13 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**一个会咬人的计数口径**：`preset-source.test.mjs` 的断言总数取决于**本机装没装 preset**
-——没装时它只报一项「未安装」，装了之后报两项「已安装副本与源一致」。所以拿两个不同机器
-（或同一台机器装 preset 前后）的总数直接相减，会凭空多出或少掉一项。单跑某一层：
+**这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
+`contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
+里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 830 和 149 是
+快照，不是承诺；你机器上的数字以你自己的 run 为准。
+
+**一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
+——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的
+总数直接相减，会凭空多出或少掉两项。上面那个 830 是**装了** preset 的读数，没装是 828。
+单跑某一层：
 
 ```bash
 node deepblend/tests/run.mjs                                    # 单元 + 契约（不需要 Blender）
@@ -164,7 +172,7 @@ node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏�
 **M4 的 `e2e/ui.e2e.mjs` 会启动自己的 `dsh web`、开一个真实 Chrome，并真的渲一次预览、
 起一次渲染再取消**（约 1–2 分钟，全程在自己的临时 store 里，不碰开发者的数据）。
 
-其中 `contract/patch-resolution.test.mjs`（65 项）值得单独知道：它全部来自**在真实项目上
+其中 `contract/patch-resolution.test.mjs`（87 项）值得单独知道：它全部来自**在真实项目上
 使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
 主体与视角依赖了会被排序破坏的数组顺序。每条断言写的是**用户当时看到的现象**。
 
@@ -356,7 +364,7 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 | 想做什么 | 看哪一份 |
 |---|---|
 | **装上它**——从 clone 到「新建会话里能选到 DeepBlend Studio」，四步各有 `--check`，以及每一步**不**验证什么 | `deepblend/docs/install.md` |
-| **用它**——一次会话长什么样、十五个工具的分工、成本模型、工作台六个页签、一个完整例子 | `deepblend/docs/usage.md` |
+| **用它**——一次会话长什么样、每个工具的分工、成本模型、工作台六个页签、一个完整例子 | `deepblend/docs/usage.md` |
 | **救它**——渲染被 `kill -9`、半张帧、帧齐了没视频、改错想回退、宿主比包旧、项目列表是空的 | `deepblend/docs/recovery.md` |
 
 上面「快速开始」是同一套命令的**开发视角**，三份手册是**使用视角**：手册只讲怎么用与

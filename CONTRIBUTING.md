@@ -93,8 +93,8 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 
 | 你改了什么 | 会被哪条断言抓到 |
 |---|---|
-| 加/删一个模型可见工具 | `ui-plane.e2e.mjs`（每个工具都要有卡，且没有多余的卡）、`tool-plane-m3.e2e.mjs`（目录恰好是那 15 个） |
-| 改一个命令名或一条工具名并写进手册 | `docs-consistency.test.mjs` |
+| 加/删一个模型可见工具 | `ui-plane.e2e.mjs`（每个工具都要有卡，且没有多余的卡）、`tool-plane-m3.e2e.mjs`（目录**恰好**是注册表里那几件，不写数字）、`documented-counts.test.mjs`（README 与 `tool-contracts.md` 里的数字） |
+| 改一个工具名并写进手册 | `docs-consistency.test.mjs`（两个方向：手册不许提没实现的，`usage.md` 的分工表也不许漏掉任何一个） |
 | 加一个 fixture | `fixture-inventory.test.mjs`（没人打开的 fixture 会让它红） |
 | 改 preset 的行集合 | `preset-surface.test.mjs`（**相等**断言，多一行少一行都红） |
 | 新增一句 import | `workspace-links.test.mjs` |

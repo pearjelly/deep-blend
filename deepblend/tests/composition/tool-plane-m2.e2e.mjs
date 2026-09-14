@@ -8,8 +8,13 @@
  *
  * WHAT THIS SUITE UNIQUELY PROVES
  * -------------------------------
- *  1. The tool catalog is EXACTLY the ten tools that exist — no M3+ tool registered
- *     ahead of its host service, and no M2 tool quietly missing.
+ *  1. Every M0+M1+M2 tool is registered, and every tool SPEC §11's table names is
+ *     registered too. It deliberately does NOT assert the catalog's size — M3 added
+ *     four more tools and `tool-plane-m3.e2e.mjs` owns the total, so a size assertion
+ *     here would make every later milestone edit this file, and a check that is kept
+ *     green by editing it is not a check. This header used to claim the catalog was
+ *     "EXACTLY the ten tools that exist", which stopped being what the code did the
+ *     day the eleventh tool arrived.
  *  2. `blender_visual_review` returns an IMAGE, and the image arrives through the
  *     tool's own `output.render` as a content block with a durable attachment
  *     reference. That is the M2 probe's finding turned into a regression test: the
@@ -28,6 +33,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import { importDsh } from '../lib/dsh-deployment.mjs'
+import { SPEC_11_TOOLS } from '../lib/spec-tools.mjs'
 
 /**
  * THE HARNESS'S OWN LOSSLESS-JSON RULE, imported rather than reimplemented.
@@ -166,24 +172,11 @@ try {
 
   // ---- the catalog -------------------------------------------------------
 
-
-/** Every tool SPEC §11's table names, in the order that table lists them. */
-const SPEC_11_TOOLS = [
-  'blender_capabilities',
-  'blender_project_create',
-  'blender_project_get',
-  'blender_scene_get',
-  'blender_scene_patch',
-  'blender_asset_ingest',
-  'blender_preview_render',
-  'blender_scene_validate',
-  'blender_final_render',
-  'blender_export',
-  'blender_revision_restore',
-  'blender_job_status',
-  'blender_job_cancel',
-]
-
+  /**
+   * The names in this suite's own envelope. SPEC §11's inventory is imported, not
+   * retyped: two copies of the same thirteen names is two things to keep in step
+   * with `SPEC.md`, and neither copy could tell if the table itself changed.
+   */
   const names = root.get('tools').schemas().map(entry => entry.name).sort()
   const expected = [
     'blender_capabilities',
@@ -197,16 +190,17 @@ const SPEC_11_TOOLS = [
     'blender_visual_autofix',
     'blender_visual_review',
   ]
-  // This suite owns the M0+M1+M2 tools, not the catalog's size: M3 added four more
-  // (asserted by `tool-plane-m3.e2e.mjs`), and re-asserting the old total here would
-  // make every later milestone edit this file. What stays this suite's business is
-  // that its own ten are present, and that the ONE tool whose host service still does
-  // not exist is absent — a tool the model can see is a promise the runtime must keep.
+  // This suite owns the M0+M1+M2 tools, not the catalog's SIZE. M3 added four more and
+  // `tool-plane-m3.e2e.mjs` asserts the total, so re-asserting a total here would make
+  // every later milestone edit this file — and a check satisfied by being edited is not
+  // a check. What stays this suite's business is that all ten of its own tools are
+  // registered, and that the SPEC §11 inventory the product promises is a subset of
+  // what the model can actually call.
   check('every M0+M1+M2 tool is registered',
     expected.every(name => names.includes(name)), names)
-check('every tool SPEC §11 names is registered, so that inventory is complete',
-  SPEC_11_TOOLS.every(name => names.includes(name)),
-  SPEC_11_TOOLS.filter(name => !names.includes(name)))
+  check('every tool SPEC §11 names is registered, so that inventory is complete',
+    SPEC_11_TOOLS.every(name => names.includes(name)),
+    SPEC_11_TOOLS.filter(name => !names.includes(name)))
 
   for (const name of ['blender_preview_views', 'blender_visual_review', 'blender_visual_autofix']) {
     const definition = root.get('tools').get(name)

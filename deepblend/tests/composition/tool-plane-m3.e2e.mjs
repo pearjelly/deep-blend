@@ -6,8 +6,11 @@
  * WHAT THIS SUITE UNIQUELY PROVES
  * -------------------------------
  *  1. The catalog is EXACTLY the sixteen tools that exist. Each milestone's suite
- *     asserted the exact total while it was current; this one owns the total now, so
- *     the count lives in one place and cannot drift into two.
+ *     asserted the exact total while it was current; this one owns the total now. The
+ *     only other list of the same size is the package's `UI_TOOL_CARD_KEYS`, and
+ *     `ui-plane.e2e.mjs` compares that against this same runtime — so the two cannot
+ *     drift apart, because the runtime is what both are measured against. The names
+ *     SPEC §11's table promises are imported from `SPEC.md` rather than retyped.
  *  2. `blender_final_render` RETURNS WITH A JOB ID rather than blocking — the first
  *     M3 acceptance condition, seen from the model's side of the boundary.
  *  3. `blender_job_status` reads the job back, `blender_job_cancel` stops it, and
@@ -35,6 +38,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import { importDsh } from '../lib/dsh-deployment.mjs'
+import { SPEC_11_TOOLS } from '../lib/spec-tools.mjs'
 
 /** The harness's OWN lossless-JSON rule, imported rather than reimplemented. */
 const { isJsonValue } = await importDsh('dsh-util-values')
@@ -164,23 +168,6 @@ async function waitFor(label, predicate, timeoutMs, intervalMs = 250) {
 // The catalog
 // ---------------------------------------------------------------------------
 
-
-/** Every tool SPEC §11's table names, in the order that table lists them. */
-const SPEC_11_TOOLS = [
-  'blender_capabilities',
-  'blender_project_create',
-  'blender_project_get',
-  'blender_scene_get',
-  'blender_scene_patch',
-  'blender_asset_ingest',
-  'blender_preview_render',
-  'blender_scene_validate',
-  'blender_final_render',
-  'blender_export',
-  'blender_revision_restore',
-  'blender_job_status',
-  'blender_job_cancel',
-]
 
 const names = root.get('tools').schemas().map(entry => entry.name).sort()
 const EXPECTED = [

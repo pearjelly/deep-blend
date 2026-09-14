@@ -34,7 +34,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 
 ---
 
-## 2. 十五个工具的分工
+## 2. 工具的分工
 
 | 工具 | 读/写 | 一句话 |
 |---|---|---|
@@ -43,6 +43,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `blender_project_get` | 读 | 当前 revision、场景摘要、完整版本历史 |
 | `blender_scene_get` | 读 | 场景摘要，或 `full:true` 拿整份 SceneSpec |
 | `blender_scene_patch` | **写** | **唯一**改场景的途径。一次成功 = 一个不可变 revision |
+| `blender_asset_ingest` | 写文件 | 把素材收进项目。本地路径直接收，网络地址要你批准；**它不提交 revision**，收完还要用 `asset.add` 声明 |
 | `blender_scene_validate` | 读 | 校验当前场景，或 `dryRun` 校验一个还没提交的 patch |
 | `blender_preview_render` | 读 | 渲一张预览（写产物，不改场景） |
 | `blender_preview_views` | 读 | 一次 Blender 启动渲多个视角，回一张 contact sheet |

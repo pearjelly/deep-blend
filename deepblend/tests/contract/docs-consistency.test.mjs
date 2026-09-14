@@ -93,6 +93,46 @@ test('every blender tool a manual names is a tool that exists', () => {
   )
 })
 
+test('usage.md\u2019s roster names every tool, so nothing ships undescribed', () => {
+  // The check above is one direction: a manual may not name a tool that does not
+  // exist. This is the other one, and it is the direction that actually failed —
+  // `blender_asset_ingest` shipped in M5, the roster went on listing fifteen tools,
+  // and every suite stayed green because a manual that mentions NOTHING is never
+  // wrong about what it mentions. The README pointed readers at this manual for
+  // 「十五个工具的分工」, so the sentence was true and the manual was not.
+  //
+  // The heading is parsed rather than the whole file on purpose: a passing mention in
+  // an example is not a description of what the tool does for you.
+  const usage = documents.find(document => document.path.endsWith('usage.md')).text
+  const usageLines = usage.split('\n')
+  const headingLine = usageLines.find(line => line.includes('工具的分工'))
+  assert.ok(headingLine !== undefined, 'usage.md no longer has a "工具的分工" section, so the roster below cannot be located')
+
+  const rows = usageLines.filter(line => /^\| `blender_[a-z_]+` \|/.test(line))
+  assert.ok(
+    rows.length >= 10,
+    `usage.md\u2019s roster parsed ${rows.length} rows, too few to be the table this check describes — ` +
+      'the table was reshaped or the \u201c| `blender_x` | \u201d row format changed, and passing vacuously is worse than failing',
+  )
+
+  const listed = rows.map(row => /`(blender_[a-z_]+)`/.exec(row)[1])
+  assert.deepEqual(
+    [...new Set(listed)].sort(),
+    [...UI_TOOL_CARD_KEYS].sort(),
+    'usage.md\u2019s roster and the registered tool set are not the same set; ' +
+      'a tool the model has and the manual does not describe is the M5 asset-ingest gap',
+  )
+
+  // And the section must not carry a COUNT as well, because that would be a second
+  // copy of the number this table already settles. It said 「十五个工具」 while listing
+  // fifteen, then listed sixteen — the numeral was the thing that would have gone
+  // stale first, and nothing could check it.
+  assert.ok(
+    !/[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+\u4e2a\u5de5\u5177/.test(headingLine),
+    `usage.md's roster heading spells a count (${headingLine.trim()}); the table is the count`,
+  )
+})
+
 test('every repository path a manual names exists', () => {
   const named = new Set()
   for (const { text } of documents) {
