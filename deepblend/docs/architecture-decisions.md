@@ -1679,6 +1679,52 @@ ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but 
 ---
 
 
+## 5L. M5 审批：把「描述成本」换成「控制成本」（D87–D88）
+
+---
+
+### D87 — 阈值必须装在**每一个调用者都经过的地方**，而提问的能力留在工具里
+
+**决策**：超过 `requireApprovalAboveFrames` 的交付渲染由 **Host** 拒绝
+（`RENDER_APPROVAL_REQUIRED`，且**在分配 job 之前**）；**工具**负责去问
+`ctx.approval` 并在拿到授权后带 `approved: true` 重提。
+
+**触发它的事实**：SPEC §11 给 `blender_final_render` 的权限是「达阈值需审批」，
+而 M3 实现的是**在已经启动的任务上挂一条警告**。工作台照实写着 `plane: "display-only"`
+——一个读起来像保护、实际只是显示的东西，比没有更危险，所以当时把它写了出来（M4 的
+`ui-api.js` 与 `recovery.md` §8 都留着那句话）。
+
+**为什么门在 Host**：工作台自己也会启动渲染（`POST /deepblend/.../render`）。
+一个只有模型这条路径遵守的控制不叫控制。从面板启动时，**用户点那一下就是批准**。
+
+**为什么提问在工具**：`ctx.approval.request` 需要两样东西，而工具调用是唯一同时具备它们的
+地方——一个活的 `Agent`（`exec.agent`）和一个**打开的 turn**（服务文档写明：
+没有打开的 turn 会 reject，因为审计对必须被会话日志的提交/重放边界包住）。
+
+**`approved` 刻意不是工具参数。** 一个能写 `approved:true` 的模型就是在批准自己的开销，
+而阈值的全部意义就是让别人来决定。工具 schema 里没有这个字段，这条本身也被断言。
+
+---
+
+### D88 — 「问不到」不是「同意」：fail closed 是这类控制的唯一正确方向
+
+**决策**：`ctx.approval.request` 返回的任何**非** `'allowed-once'` 结果都拒绝，
+包括「这个部署根本没有装配审批服务」与「应答者抛错」两条最容易读成「那就继续吧」的路径。
+
+**依据**：服务自己的文档写着它的失败方向——缺失或抛错的应答者得到 `'unavailable'`，
+而 `'allowed-once'` 是唯一的授权。当问题是「我可以花掉你四小时机时吗」时，
+**一个没人回答的问题不是同意**。
+
+**代价，写清楚而不是藏起来**：一个没有装配审批服务的无头部署，渲 900 帧以上会被拒绝。
+出路是把阈值调高，或者先渲一小段——拒绝文本把这两条都写出来了。
+「拒绝但不说下一步」是调用者反复重试同一个调用的原因。
+
+**可推广的那条**：一个控制的失败方向要么是「拒绝」（挡住了不该发生的），
+要么是「放行」（漏掉了不该发生的），**没有第三种**。「我查不到，所以照做」永远属于后者。
+
+---
+
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1703,7 +1749,7 @@ ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but 
 | ~~Q3~~ | ~~视觉审查的图片回传路径~~ | ✅ **M2 已决：D29** |
 | ~~Q4~~ | ~~多视角预览与 Contact Sheet 的成本预算~~ | ✅ **M2 已决：D33**（640k px 是约束，token 不是） |
 | Q5 | `blender_asset_ingest` 的审批边界（本地自动、网络需审批） | M5 安全加固 |
-| Q7 | 审批平面（能**阻止**一次高成本渲染启动的那一个）如何接进 harness approval prompt | M5；M4 只显示阈值事实（D64） |
+| ~~Q7~~ | ~~审批平面（能**阻止**一次高成本渲染启动的那一个）如何接进 harness approval prompt~~ | ✅ **M5 已决：D87–D88**。门装在 Host（`RENDER_APPROVAL_REQUIRED`，不分配 job），提问在工具（它才有 `exec.agent` 与打开的 turn）；非 `'allowed-once` 一律拒绝。M4 的 `plane: "display-only"` 变成 `"enforced"` |
 | Q8 | Preview Compare 是否需要右栏（`sidebar.right.pane.tab`）的并排形态 | M4 把对比放在 `main` 面板里（一个面板 + 视图切换）；若用户希望它常驻右栏，再增量注册 |
 | Q6 | 视觉审查用哪个模型（当前 `deepseek-flash`；目录里另有 `deepseek-v4-flash-vision-exp`） | M2 已可用 `deepseek-flash`；若审查质量不足再评估专用模型 |
 | ~~Q9~~ | ~~bundle 的 `cordis.patch.yml` 里那四个字面量绝对路径该怎么去掉~~ | ✅ **M5 已决：D76–D78**。默认值移进各自的包（`'auto'` + 自定位 + `DSH_HOME`），bundle 一个路径都不写，本仓库的部署由**推导出来的** operator layer 钉在 `<repo>/.deepblend`；`contract/bundle-portability.test.mjs` 把「文件里不出现机器路径」变成了一条断言 |
@@ -1726,6 +1772,7 @@ ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but 
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（审批） | D87–D88：阈值装在每个调用者都经过的地方（Host），提问的能力留在工具里（它才有 agent 与打开的 turn）；「问不到」不是「同意」。产出是 M3 遗留的 `display-only` 阈值变成真正的门（`RENDER_APPROVAL_REQUIRED`，不分配 job）、`composition/approval.e2e.mjs`（25 项），以及 Q7 的关闭 |
 | 2026-09-14 | M5（并发） | D85–D86：并发下的幂等承诺要按实测写（顺序重试重放、同时重试冲突，两者都成立且不是同一件事）；一条「检查了文件但没搬它」的回退路径让 `saveCheckpoint:false` 的 revision 永远无法预览，而工具描述把缺陷当特性写着。产出是 `composition/concurrency.e2e.mjs`（19 项）与走通那条路径的 `tool-plane-m1`（41 → 44 项） |
 | 2026-09-14 | M5（安全加固） | D84：一条限制有三处可能说谎——算它的地方、报告它的地方、执行它的地方；只断言其中一处的测试会全绿。产出是 `composition/hardening.e2e.mjs`（22 项：白名单、截止时间、输出上限、工作目录、采样预算、工作区边界，每条都成对出现），并修掉「交付渲染的采样上限被算出来、被报告、然后被丢掉」这个真实缺陷 |
 | 2026-09-14 | M5（收尾） | D82–D83：手册里机器能查的部分必须被查住（D82），内容的清单本身要有一条断言（D83）。产出是 SPEC §23.5 要求的三份手册（`install` / `usage` / `recovery`）与两个清单套件（`docs-consistency` / `fixture-inventory`） |

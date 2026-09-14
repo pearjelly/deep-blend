@@ -285,8 +285,12 @@ check('progress is frames complete out of expected', jobView.progress.percent ==
 check('a live job is cancelable and not resumable in the same breath', jobView.cancelable === true && jobView.resumable === false)
 check('the approval threshold is reported with the frame count it applies to',
   jobView.approval.required === false && jobView.approval.threshold === 900 && jobView.approval.frames === 60)
-check('the approval view says it is display-only, so the UI cannot imply it gated anything',
-  jobView.approval.plane === 'display-only' && jobView.approval.note.includes('M5'))
+// M5 made this true rather than aspirational. Through M4 the view said
+// `display-only` BECAUSE the threshold was only a note on a job that had already
+// started; the honest assertion now is the opposite one, and it is the same
+// question asked of the new behaviour: does the panel describe a gate that exists?
+check('the approval view reports an ENFORCED threshold, because M5 made it one',
+  jobView.approval.plane === 'enforced' && /RENDER_APPROVAL_REQUIRED/.test(jobView.approval.note))
 
 const BIG = { ...RUNNING, jobId: 'render-0008', status: 'queued', expectedFrames: 1200, completedFrames: 0, warnings: [{ code: 'SCENE_COMPILER_DECISION', message: 'above the approval threshold', detail: { frames: 1200, threshold: 900 } }] }
 const bigView = buildJobView(BIG, { threshold: 900 })

@@ -1979,3 +1979,89 @@ DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个
 **M5 的验收项只剩下一件半**：资产策略，以及它依赖的审批平面。两件都是「新增能力」而不是
 「把已有的东西做扎实」，而本轮与上一轮的价值恰恰来自后者——四个里程碑里，
 `saveCheckpoint:false` 的渲染路径一次都没有被走过。
+
+---
+
+## 20. M5 审批：把「描述成本」换成「控制成本」（Q7 关闭）
+
+SPEC §11 给 `blender_final_render` 的权限是「**达阈值需审批**」。M3 实现的是
+**在已经启动的任务上挂一条警告**——描述成本，不控制成本。M4 的工作台照实写着
+`plane: "display-only"`，`recovery.md` §8 也照实写着「因为目前它确实不拦」。
+
+一个读起来像保护、实际只是显示的东西比没有更危险，所以那两句话当时就写出来了。
+本节把门装上，并把那两句话改成现在的事实。
+
+### 20.1 门装在 Host，提问留在工具
+
+**Host 拒绝**超过 `requireApprovalAboveFrames`（默认 900 帧）且没有授权的交付渲染：
+
+```
+RENDER_APPROVAL_REQUIRED: This delivery renders 1200 frames, above the configured
+approval threshold of 900 (SPEC §15.1). Nothing has been started. Ask the operator … 
+```
+
+而且**在分配 job 之前**拒绝——「什么都没发生」是字面意思，断言里查的是
+`listJobs().length === 0` 与 `currentRevision` 没动。
+
+**为什么门不能只装在工具里**：工作台自己也会启动渲染（`POST /deepblend/.../render`）。
+**只有模型那一条路径遵守的控制不叫控制。** 从面板启动时，用户点那一下就是批准。
+
+**为什么提问只能在工具里**：`ctx.approval.request` 需要两样东西，而工具调用是唯一同时
+具备它们的地方——一个活的 `Agent`（`exec.agent`）和一个**打开的 turn**（服务文档写明：
+没有打开的 turn 会 reject，因为审计对必须被会话日志的提交/重放边界包住）。
+
+**`approved` 刻意不是工具参数**，这条本身也被断言：schema 的属性列表里没有它。
+一个能写 `approved:true` 的模型就是在批准自己的开销。
+
+### 20.2 「问不到」不是「同意」
+
+`ctx.approval.request` 返回 `'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'`，
+**只有 `'allowed-once'` 是授权**；服务自己的文档还写明缺失或抛错的应答者得到
+`'unavailable'`。所以下面每一条都拒绝，而且每一条都断言了**没有 job 被创建**：
+
+| 应答者 | 结果 |
+|---|---|
+| `'allowed-once'` | ✅ 启动，且 job 记录里写着这次渲染**被批准过**（`detail.approval: 'granted'`） |
+| `'rejected'` / `'cancelled'` / `'unavailable'` | ❌ `RENDER_APPROVAL_REFUSED`，零 job |
+| 应答者抛错 | ❌ 同上（`'unavailable'` 的读法） |
+| **这个部署根本没有装配审批服务** | ❌ 同上 |
+
+最后一条是代价，写在文档里而不是藏起来：一个无头部署渲 900 帧以上会被拒绝，
+出路是把阈值调高或先渲一小段——拒绝文本把两条都写出来了，
+因为「拒绝但不说下一步」正是调用者反复重试同一个调用的原因。
+
+**可推广的那条**（D88）：一个控制的失败方向要么是「拒绝」，要么是「放行」，
+**没有第三种**。「我查不到，所以照做」永远属于后者。
+
+### 20.3 一句话从「不拦」改成「拦」——两处都改了
+
+| 位置 | M4 时 | 现在 |
+|---|---|---|
+| `ui-api.js` 的审批视图 | `plane: 'display-only'` | `plane: 'enforced'` |
+| `recovery.md` §8 | 「因为目前它确实不拦」 | 「它现在真的会拦」+ 怎么走完这道门 |
+
+两处的断言也一起改了，而且改的是**同一个问题的另一种问法**：
+`ui-api.test.mjs` 原来断言「面板不能暗示它拦住了什么」，现在断言「面板报告的是一个
+存在的门」。M4 的真实浏览器套件也复跑通过，页面上的 `plane` 已经是 `enforced`。
+
+### 20.4 本轮收口
+
+```
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED      15 套件 / 0 项 FAIL
+
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个 node:test 用例
+```
+
+### 20.5 M5 还剩什么
+
+| 项 | 状态 |
+|---|---|
+| 正式 preset / mount validation / 三份手册 / Fixture 清单 | ✅ §16、§17 |
+| 安全测试 / 资源限制 | ✅ §18 |
+| 双会话并发验证 | ✅ §19 |
+| **Q7：能阻止启动的审批平面** | ✅ §20 |
+| **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11）。**它的审批边界现在有着落了**——「本地自动，网络需审批」可以直接用同一套 `ctx.approval`，所以它从「依赖一个还不存在的东西」变成了「一个有先例可循的新能力」 |
+
+**M5 的验收项只剩资产策略一件**，而且本轮把它的前置条件解掉了。

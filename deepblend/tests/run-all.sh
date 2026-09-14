@@ -85,6 +85,9 @@ run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace bo
 run_suite "M5 concurrency: two sessions on one store, and the realms that keep them apart" \
   node deepblend/tests/composition/concurrency.e2e.mjs
 
+run_suite "M5 approval: the threshold refuses an unapproved expensive render" \
+  node deepblend/tests/composition/approval.e2e.mjs
+
 run_suite "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)" \
   node deepblend/tests/composition/ui-plane.e2e.mjs
 

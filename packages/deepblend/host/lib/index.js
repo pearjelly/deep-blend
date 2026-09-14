@@ -2431,9 +2431,9 @@ export default class BlenderStudio extends Service {
     const range = this._resolveDeliveryRange({ spec, request })
     const frames = range.frames
 
-    // One delivery render per project. SPEC §16.4 fixes delivery concurrency at 1,
-    // and two renderers writing one project's frames is a race in which neither
-    // process can vouch for the result.
+    // An open project may hold only one delivery render at a time, and the check
+    // comes before everything below for the same reason as the approval gate: a
+    // refusal must not have allocated anything.
     const active = this._activeRenderJob(projectId)
     if (active !== null) {
       throw new BlenderError(
@@ -2443,6 +2443,45 @@ export default class BlenderStudio extends Service {
           'Resume it with blender_final_render {resumeJobId}, or cancel it first: two renderers writing one ' +
           'project\'s frames would produce files neither can vouch for.',
         { detail: { projectId, activeJob: active.jobId, status: active.status } },
+      )
+    }
+
+    // ── the approval gate (SPEC §15.1, architecture-decisions Q7) ────────────
+    //
+    // Above the configured threshold, a delivery render is REFUSED unless the
+    // caller presents a grant. Until M5 this was only a warning attached after the
+    // job had started, which is a description of the cost rather than a control on
+    // it — and the panel said so out loud ("display-only") because saying nothing
+    // would have implied a guarantee that did not exist.
+    //
+    // The refusal is where the enforcement belongs rather than in the tool: the
+    // tool plane is not the only caller (the workbench starts renders too), and a
+    // control that only one of two callers respects is not a control. What the tool
+    // plane adds is the means to ANSWER it — it holds the agent and the open turn
+    // that `ctx.approval.request` needs — so it asks and re-issues with the grant.
+    //
+    // `approved` is the caller's assertion that a person said yes. The host cannot
+    // verify it, and the honest reading is that it is a deliberate act either way:
+    // the model may only set it after `approval.request` returned `'allowed-once'`,
+    // and a human clicking "render" in the panel has approved it by clicking.
+    const approvalRequired = frames.length > this.config.requireApprovalAboveFrames
+    if (approvalRequired && request?.approved !== true) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_APPROVAL_REQUIRED,
+        `This delivery renders ${frames.length} frames, above the configured approval threshold of ` +
+          `${this.config.requireApprovalAboveFrames} (SPEC §15.1). Nothing has been started. ` +
+          'Ask the operator (the approval prompt in the workbench), then re-issue with approved:true — ' +
+          'or render a smaller range first to check the scene.',
+        {
+          detail: {
+            projectId,
+            revision,
+            frames: frames.length,
+            threshold: this.config.requireApprovalAboveFrames,
+            frameStart: frames[0] ?? null,
+            frameEnd: frames[frames.length - 1] ?? null,
+          },
+        },
       )
     }
 
@@ -2459,12 +2498,16 @@ export default class BlenderStudio extends Service {
       warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, notice, { kind: 'delivery-range' }))
     }
     if (effective.warning !== null) warnings.push(effective.warning)
-    if (frames.length > this.config.requireApprovalAboveFrames) {
+    if (approvalRequired) {
+      // Reached only with a grant, because the gate above refuses otherwise. Recorded
+      // as a fact about THIS job rather than as a standing note, so the workbench can
+      // show that this particular render was approved and by which path.
       warnings.push(warning(
         BlenderWarningCode.SCENE_COMPILER_DECISION,
         `this delivery renders ${frames.length} frames, above the configured approval threshold of ` +
-          `${this.config.requireApprovalAboveFrames} (SPEC §15.1 "高成本最终渲染达阈值审批")`,
-        { frames: frames.length, threshold: this.config.requireApprovalAboveFrames },
+          `${this.config.requireApprovalAboveFrames} (SPEC §15.1 "高成本最终渲染达阈值审批"); ` +
+          'the caller presented an approval before it was started',
+        { frames: frames.length, threshold: this.config.requireApprovalAboveFrames, approval: 'granted' },
       ))
     }
 

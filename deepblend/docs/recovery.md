@@ -163,14 +163,35 @@ M4 浏览器套件的验收里有一条正是这个：取消后**同一 store �
 
 ---
 
-## 8. 正式渲染为什么没有拦住我
+## 8. 正式渲染要批准——它现在真的会拦
 
-**因为目前它确实不拦。** 超过阈值（默认 900 帧）时 Host **记录**这个要求并显示在工作台上，
-但**能阻止启动的审批平面还没接进 harness 的 approval prompt**（SPEC §15.1；这是
-`architecture-decisions.md` 的 Q7，M5 的工作）。
+超过阈值（默认 900 帧）的交付渲染**不会启动**，除非有人批准。这不是提示，是一道门：
 
-这一条写在文档里而不是省略，是因为一个读起来像保护、实际只是显示的东西，比没有更危险。
-工作台的审批视图自己也会说明「仅显示阈值事实」，面板不会暗示它拦住了什么。
+```
+RENDER_APPROVAL_REQUIRED: This delivery renders 1200 frames, above the configured
+approval threshold of 900 (SPEC §15.1). Nothing has been started. Ask the operator
+(the approval prompt in the workbench), then re-issue with approved:true — or render
+a smaller range first to check the scene.
+```
+
+**怎么走完这道门**：模型调 `blender_final_render` 时，工具会向 harness 的审批平面
+（工作台里的审批提示）问你一次，把**帧数、帧范围与实测成本**写进请求理由。
+你说「允许」→ 渲染开始；你说「拒绝」→ 什么都没发生。
+**`'allowed-once'` 是唯一的授权。**
+
+**门装在 Host 上，不在工具里**，因为工作台自己也会启动渲染，而只有一条路径遵守的
+控制不叫控制。结果是：从面板启动时，你**点那一下**就是批准。
+
+**「什么都没发生」是字面意思**：不分配 job、不写一帧，项目仍然停在原来的 revision。
+
+**没人可问的时候会拒绝**（fail closed）。审批服务对「没有应答者」和「应答者抛错」的
+定义就是 `'unavailable'`，而我们的读法是：**一个没人回答的问题不是同意**——
+当问题是「我可以花掉你四小时机时吗」。所以一个没有装配审批服务的无头部署，
+渲 900 帧以上会被拒绝；出路是把 `requireApprovalAboveFrames` 调高，或者先渲一小段。
+
+> 这一节在 M4 时写的是反面：「因为目前它确实不拦。」那时阈值只是挂在已经启动的任务上的
+> 一条注记，工作台的审批视图也照实写着 `display-only`。一个读起来像保护、实际只是显示的
+> 东西比没有更危险，所以当时把它写了出来；M5 把门装上之后，同一节改成了现在这样。
 
 ---
 

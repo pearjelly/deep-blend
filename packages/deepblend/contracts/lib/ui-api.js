@@ -490,8 +490,15 @@ export function buildApprovalView({ record, threshold }) {
     // UI reports the same fact rather than recomputing an opinion about it.
     recorded: recorded !== null,
     recordedMessage: recorded?.message ?? null,
-    plane: 'display-only',
-    note: 'M4 只显示阈值事实；能阻止启动的审批平面（harness approval prompt）是 M5。',
+    // M5 changed what this word means. Through M4 the threshold was a NOTE attached
+    // to a job that had already started, and the view said `display-only` so that a
+    // panel could not imply it had gated anything. The gate now exists and lives in
+    // the host: an over-threshold render that arrives without a grant is refused with
+    // `RENDER_APPROVAL_REQUIRED` before a job is allocated, and the model obtains the
+    // grant through the harness's own approval plane.
+    plane: 'enforced',
+    note: '阈值以上，Host 会拒绝没有授权的渲染（RENDER_APPROVAL_REQUIRED，且不分配任何 job）；' +
+      '模型侧经 harness 审批平面取得授权后才会重提。',
   }
 }
 

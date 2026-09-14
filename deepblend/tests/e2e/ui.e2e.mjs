@@ -464,8 +464,8 @@ try {
   check('the job carries the Host\'s approval threshold and its own frame count',
     approval?.threshold === 900 && approval?.frames === 3 && approval?.required === false,
     approval)
-  check('the approval view states that it only displays, so the panel cannot imply it gated the render',
-    approval?.plane === 'display-only')
+  check('the approval view reports an enforced threshold rather than a displayed one',
+    approval?.plane === 'enforced')
 
   // -------------------------------------------------------------------------
   // 5. 刷新后可从 Host 恢复权威状态

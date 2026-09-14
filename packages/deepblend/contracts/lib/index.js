@@ -163,6 +163,17 @@ export const BlenderErrorCode = Object.freeze({
   PROBE_FAILED: 'PROBE_FAILED',
   /** A delivery was requested for a job that has not produced every frame. */
   DELIVERY_INCOMPLETE: 'DELIVERY_INCOMPLETE',
+  /**
+   * A delivery render is large enough that the operator must approve it first
+   * (SPEC §15.1 "高成本最终渲染达阈值审批").
+   *
+   * Reported as a branchable refusal rather than started-and-warned, because the
+   * whole point of a threshold is to PREVENT the cost, not to describe it
+   * afterwards. The caller asks the approval service and re-issues with
+   * `approved: true`; the detail carries `{frames, threshold}` so the request can
+   * state the actual size.
+   */
+  RENDER_APPROVAL_REQUIRED: 'RENDER_APPROVAL_REQUIRED',
 
   // ---- M4 ----------------------------------------------------------------
 
