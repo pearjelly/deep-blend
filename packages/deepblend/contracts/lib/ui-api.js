@@ -587,6 +587,11 @@ export function buildSettingsCard(data) {
     rows: [
       { label: '可执行文件', value: data?.executable?.resolved ?? '未解析到' },
       { label: '配置路径', value: data?.executable?.requested ?? '—' },
+      // What to do about it, when the host has something to say. It is omitted rather than rendered
+      // empty when there is no advice, because a blank row in a status card reads as a missing field.
+      ...(typeof data?.executable?.advice === 'string' && data.executable.advice.length > 0
+        ? [{ label: '下一步', value: data.executable.advice }]
+        : []),
       { label: '版本', value: data?.version ?? '—' },
       { label: '内嵌 Python', value: data?.pythonVersion ?? '—' },
       { label: '可用引擎', value: engines.length > 0 ? engines.join(', ') : '无' },

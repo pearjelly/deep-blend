@@ -114,6 +114,11 @@ function renderCapabilityText(value) {
     lines.push('Blender: NOT INSTALLED')
     lines.push(`Configured path: ${value.executable?.requested ?? '<unset>'}`)
     lines.push('No Blender executable could be resolved. DeepBlend cannot build or render until one is available.')
+    // The same sentence the settings card shows, composed once in the provider: a human and a model
+    // looking at the same broken install must not be told different things to do.
+    if (typeof value.executable?.advice === 'string' && value.executable.advice.length > 0) {
+      lines.push(`Fix:     ${value.executable.advice}`)
+    }
   } else {
     lines.push(`Blender: ${value.version ?? 'unknown version'}`)
     lines.push(`Python:  ${value.pythonVersion ?? 'unknown'}`)

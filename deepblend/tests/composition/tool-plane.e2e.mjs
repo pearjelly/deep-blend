@@ -166,6 +166,56 @@ try {
     )
   }
 
+  // --- a machine whose configured Blender path does not work ------------------
+  //
+  // MEASURED, round 35: the settings card showed `可执行文件: 未解析到` and nothing else, while this
+  // tool's text carried an instruction — two readers of one broken install, two different amounts of
+  // help. The sentence is now composed once in the provider (`blenderPathAdvice`) and travels with the
+  // failure, so both readers show it. This composition is the only place that can prove the WIRING:
+  // provider -> capabilities payload -> tool text. The path is bogus on purpose, so the probe stops at
+  // resolution and never needs a real Blender.
+  const brokenPath = join(PROJECT_ROOT, '.nonexistent-blender-for-this-test')
+  const broken = new Context()
+  broken.plugin(toolRegistryStub())
+  broken.plugin(LocalSubprocess)
+  broken.plugin((await import('@deepblend/dsh-blender-provider-local')).default, {
+    blenderPath: brokenPath,
+    bootstrapPath: join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+    workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
+    timeoutMs: 60_000,
+    capabilitiesCacheMs: 60_000,
+  })
+  broken.plugin((await import('@deepblend/dsh-blender-host')).default, {
+    projectsRoot: join(PROJECT_ROOT, '.deepblend', 'projects'),
+    workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
+    serveCachedCapabilities: false,
+  })
+  broken.plugin(await import('@deepblend/dsh-blender-tool'))
+  await new Promise(resolveTick => setTimeout(resolveTick, 300))
+
+  const brokenResult = await broken.get('tools').execute({
+    callId: 'm0-tool-plane-broken-path',
+    name: 'blender_capabilities',
+    arguments: { refresh: true },
+    signal: AbortSignal.timeout(60_000),
+  })
+  const brokenData = brokenResult.value?.data ?? {}
+  check('a configured Blender path that does not exist reports absence as data, not as a throw',
+    brokenResult.isError === false && brokenData.installed === false,
+    { installed: brokenData.installed, error: brokenResult.error?.message })
+  check('and names the path the operator configured',
+    brokenData.executable?.requested === brokenPath, brokenData.executable)
+  check('the host composes what to DO about it — the path, the reason, and the installer',
+    typeof brokenData.executable?.advice === 'string' &&
+    brokenData.executable.advice.includes(brokenPath) &&
+    brokenData.executable.advice.includes('install-blender.mjs') &&
+    /not usable/.test(brokenData.executable.advice),
+    brokenData.executable?.advice)
+  check('and the model reads the same sentence, not a different one',
+    brokenResult.value.text.includes(brokenData.executable.advice),
+    { text: brokenResult.value.text?.slice(-200), advice: brokenData.executable.advice })
+  await broken.stop?.()
+
   // --- degradation path: no host bundle composed -----------------------------
   const orphan = new Context()
   orphan.plugin(toolRegistryStub())

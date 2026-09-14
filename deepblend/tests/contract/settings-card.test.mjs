@@ -243,3 +243,24 @@ test('defensive rendering: undefined, null, empty and partial payloads never thr
   // `undefined` and `{}` must be indistinguishable to the card.
   assert.deepEqual(buildSettingsCard(undefined), buildSettingsCard({}))
 })
+
+test('the card tells the operator what to do when the executable was not resolved', () => {
+  // MEASURED, round 35: the card showed `可执行文件: 未解析到` and stopped there — a dead end on the one
+  // screen whose job is to say what is wrong with the install — while the model's capability text
+  // carried the instruction. The host now composes the sentence once and both readers show it.
+  const advice = 'The configured path "/opt/blender/blender" is not usable: path is a directory. Run deepblend/tools/install-blender.mjs, or point deepblend.blenderPath at a real Blender executable.'
+  const card = buildSettingsCard({ installed: false, executable: { requested: '/opt/blender/blender', resolved: null, found: false, advice } })
+
+  assert.equal(rowValue(card, '下一步'), advice, 'the card must show the host\'s sentence verbatim')
+  assert.equal(rowValue(card, '可执行文件'), '未解析到', 'and still say what it could not resolve')
+})
+
+test('and shows no 下一步 row at all when the host has no advice — an empty row reads as a missing field', () => {
+  const withNothing = buildSettingsCard({ installed: false, executable: { requested: 'blender', resolved: null, found: false } })
+  assert.equal(withNothing.rows.some(row => row.label === '下一步'), false)
+  const withEmpty = buildSettingsCard({ installed: false, executable: { requested: 'blender', resolved: null, found: false, advice: '' } })
+  assert.equal(withEmpty.rows.some(row => row.label === '下一步'), false, 'an empty string is not advice')
+  // A healthy install must not grow the row either: the advice belongs to the broken state.
+  const ready = buildSettingsCard({ installed: true, executable: { requested: 'auto', resolved: '/usr/local/bin/blender', found: true, advice: 'ignored' } })
+  assert.equal(typeof rowValue(ready, '下一步'), 'string', 'a host that sends advice about a RESOLVED path is shown it (the host decides)')
+})

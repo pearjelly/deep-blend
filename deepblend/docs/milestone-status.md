@@ -4289,3 +4289,83 @@ DeepBlend tests: 37/37 file(s) passed
 
 `docs-consistency` 与 `setup-steps` 改用共用模块（三份 → 一份），两份旧副本因此升级到
 「命令与路径都查」；**产品代码一行没改**，测试文件数不变。
+
+---
+
+## 48. 两个「为设置卡而导出」的函数，没有任何调用者；而设置卡本身是一句死胡同
+
+第 35 轮从「剩下最多的黑暗行」往下看，落在 `provider-local` 的**可执行文件解析**上——
+那里有几条从没被执行过的分支：路径不是绝对路径、文件不存在、stat 不了、是个目录。
+顺着它们读代码，看到两个导出的函数：
+
+```js
+/** … Exposed for the settings card's "test path" affordance and for unit tests that must not require Blender. */
+export function inspectExecutablePath(candidate) { … }
+export function discoverBlenderOnPath() { … }
+```
+
+`grep` 全仓库：**产品里没有任何调用者**（只有 `imports.test.mjs` 要求它们存在）。
+而它们声称服务的那个「测试路径」入口**并不存在**。与此同时，设置卡在 Blender 没装时显示的是：
+
+```
+可执行文件   未解析到
+配置路径     /opt/blender/blender
+```
+
+——**到此为止**。同一个坏掉的安装，模型拿到的工具文本写着「跑 `install-blender.mjs`，
+或设 `deepblend.blenderPath`」，而操作者盯着的那个屏幕（设置卡的职责就是告诉他哪里不对）
+什么也没说。**两个读者，一份坏安装，两种帮助。**
+
+### 48.1 修法：一句话由生产者合成，跟着失败一起走
+
+`resolveBlenderExecutable()` 现在把 `advice` 与 `error` 一起返回，内容由 `blenderPathAdvice()`
+合成（`provider-local` 导出）。三个分支，**顺序是产品决定**：
+
+1. 配置了路径而它不可用 → 报**那条路径与原因**（最具体的一条，优先于「去 PATH 上找找」）；
+2. PATH 上有一个没被配置的 Blender → 给出它的绝对路径与要改的那个键；
+3. 哪儿都没有 → 给出安装命令。
+
+两个已存在的助手终于有了调用者：`inspectExecutablePath` 给出「为什么不可用」，
+`discoverBlenderOnPath` 给出「PATH 上那个在哪」。两个查找都是**参数**（默认就是那两个助手），
+所以三个分支都能被手工驱动——只有分支 1 能靠配置一台机器走到。
+
+两个读者现在显示**同一句话**：设置卡多一行 `下一步`（没有建议时**不渲染这一行**——
+状态卡里的空行读起来像一个缺失的字段），工具文本多一行 `Fix:`。
+
+### 48.2 写在投影里的字段才是字段
+
+第一版改完，provider 的返回值里有 `advice`，工具文本里没有——因为
+`toCanonicalCapabilities()` 是一个**白名单投影**：它只声明 `requested` / `resolved` / `found`。
+值存在而契约里没有它的位置，于是它在半路消失。这不是 bug，是设计：
+**投影就是「一个字段被声明」的地方**，而断言（M0 套件里那条「模型读到的是同一句话吗」）
+立刻把它抓了出来。
+
+补进去时又被另一条断言纠正一次：`contracts.test.mjs` 的「fixture 精确往返」与
+「声明键的顺序」要求**健康载荷的形状不变**，所以 `advice` 是**缺席**而不是 `null`——
+「一切都好」本身没有「该怎么办」，不该为此在每一份健康载荷里加一个非事实。
+
+### 48.3 变异
+
+4 条全部变红，而且**其中一条不是人造的**：A2「投影把 advice 丢掉」就是我在写这一轮时
+真实踩到的那次。
+
+```
+A1  建议忽略配置的路径，一律劝去装          → 契约测试红（分支 1 的两个断言）
+A2  投影把 advice 丢掉（真实发生过）        → M0 套件的接线断言红
+A3  没有建议也渲染那一行                    → 设置卡阴性对照红
+A4  工具文本不再给出下一步                  → M0 套件「模型读到同一句话」红
+```
+
+### 48.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 38/38 file(s) passed
+$ node deepblend/tests/composition/tool-plane.e2e.mjs
+M0 preset tool plane: 14/14 checks passed          （第 34 轮是 10）
+```
+
+改了四处产品代码：`provider-local`（`blenderPathAdvice` + 解析失败带建议）、
+`contracts`（投影声明该字段、typedef）、`tool`（`NOT INSTALLED` 分支多一行 `Fix:`）、
+`contracts/ui-api`（卡片渲染 `下一步`）。新增 `contract/blender-path-advice.test.mjs`（6 项）、
+设置卡 2 项、M0 接线 4 项。

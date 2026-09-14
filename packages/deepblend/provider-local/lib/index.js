@@ -257,10 +257,16 @@ export default class LocalBlenderRuntime extends Service {
       const canonical = this._assertAllowed(resolved, requested)
       return { resolved: canonical, requested, error: null }
     } catch (cause) {
-      if (cause instanceof BlenderError) return { resolved: null, requested, error: cause }
+      // The ADVICE travels with the failure, because two readers need the same sentence: the settings
+      // card a human opens and the capability text a model reads. Composing it in either of them would
+      // be a second copy of "what to do when there is no Blender", and this repository has paid for
+      // that shape often enough (see `_blenderPathAdvice`).
+      const advice = blenderPathAdvice({ requested, fallbackName: FALLBACK_BLENDER_NAME })
+      if (cause instanceof BlenderError) return { resolved: null, requested, error: cause, advice }
       return {
         resolved: null,
         requested,
+        advice,
         error: new BlenderError(
           BlenderErrorCode.NOT_FOUND,
           `Blender executable could not be resolved from "${requested}". ` +
@@ -704,7 +710,7 @@ export default class LocalBlenderRuntime extends Service {
     return {
       protocolVersion: BLENDER_PROTOCOL_VERSION,
       installed: false,
-      executable: { requested: resolved.requested, resolved: null, found: false },
+      executable: { requested: resolved.requested, resolved: null, found: false, advice: resolved.advice ?? null },
       blenderVersion: null,
       blenderVersionTuple: null,
       pythonVersion: null,
@@ -1509,6 +1515,52 @@ export function inspectExecutablePath(candidate) {
   } catch (cause) {
     return { ok: false, reason: cause instanceof Error ? cause.message : String(cause) }
   }
+}
+
+/**
+ * What to DO about a Blender that could not be resolved, as one sentence.
+ *
+ * This is where the package's two previously-uncalled helpers finally have a caller, and where the
+ * comment above them ("exposed for the settings card's test path affordance") becomes true. MEASURED,
+ * round 35: `inspectExecutablePath` and `discoverBlenderOnPath` were exported — and required by
+ * `contract/imports.test.mjs` — with NO caller anywhere in the product, while the settings card showed
+ * `可执行文件: 未解析到` and nothing else: a dead end for the human, on the one screen whose job is to
+ * say what is wrong with the install. The tool text told the model what to do; the card told the
+ * operator nothing.
+ *
+ * The two lookups arrive as parameters because the branches have to be drivable without arranging the
+ * machine: "a configured path that does not work", "a Blender on PATH that was not configured" and
+ * "nothing anywhere" are three different sentences, and only the first is reachable by configuration.
+ * Same trade as `reconcileRenderJob`'s injectable store.
+ *
+ * Order matters and is deliberate: a path the operator CONFIGURED and that does not work is the most
+ * specific thing to report, so it wins over a suggestion to go looking on PATH.
+ *
+ * @param {{ requested: string, fallbackName?: string }} input
+ * @param {{ inspect?: (candidate: string) => {ok: boolean, reason?: string}, discover?: () => string|null }} [deps]
+ * @returns {string}
+ */
+export function blenderPathAdvice(input, deps = {}) {
+  const inspect = deps.inspect ?? inspectExecutablePath
+  const discover = deps.discover ?? discoverBlenderOnPath
+  const requested = typeof input?.requested === 'string' ? input.requested : ''
+  const fallback = input?.fallbackName ?? FALLBACK_BLENDER_NAME
+  const configured = requested.length > 0 && requested !== fallback ? requested : null
+
+  if (configured !== null) {
+    const verdict = inspect(configured)
+    if (verdict.ok !== true) {
+      return `The configured path "${configured}" is not usable: ${verdict.reason}. ` +
+        'Run deepblend/tools/install-blender.mjs, or point deepblend.blenderPath at a real Blender executable.'
+    }
+  }
+  const found = discover()
+  if (found !== null) {
+    return `A Blender was found on PATH at ${found}. Set deepblend.blenderPath to that absolute path ` +
+      '(or add its directory to deepblend.executableAllowlist if a bare name should resolve).'
+  }
+  return 'No Blender was found. Run deepblend/tools/install-blender.mjs to install the managed build, ' +
+    'or set deepblend.blenderPath to an absolute path.'
 }
 
 /**

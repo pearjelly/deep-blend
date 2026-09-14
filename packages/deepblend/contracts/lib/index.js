@@ -404,6 +404,9 @@ export function warning(code, message, detail) {
  * @property {string} requested - exactly what the operator configured.
  * @property {string|null} resolved - canonical absolute path actually used, or null.
  * @property {boolean} found - whether a usable executable was resolved.
+ * @property {string|null} [advice] - what to do about it when `found` is false: the sentence the
+ *   settings card and the capability text both show, composed once in the provider so the two cannot
+ *   disagree. Null when there is nothing to advise.
  */
 
 /**
@@ -549,6 +552,17 @@ export function toCanonicalCapabilities(capabilities) {
       requested: capabilities.executable.requested,
       resolved: capabilities.executable.resolved,
       found: capabilities.executable.found,
+      // What to DO when it was not found — composed once by the provider, read by the settings card
+      // (a human) and by the capability text (a model). A canonical projection is where a field is
+      // DECLARED, which is exactly why the first version of this change worked in the provider and
+      // vanished here: the value existed and the contract had no room for it.
+      //
+      // ABSENT rather than null when there is nothing to advise: a healthy install has no "what to do
+      // about it", and the fixture round-trip in `contract/contracts.test.mjs` pins the canonical shape
+      // exactly — a null field would change the shape of every healthy payload to carry a non-fact.
+      ...(typeof capabilities.executable.advice === 'string' && capabilities.executable.advice.length > 0
+        ? { advice: capabilities.executable.advice }
+        : {}),
     },
     version: capabilities.blenderVersion,
     versionTuple: capabilities.blenderVersionTuple,
