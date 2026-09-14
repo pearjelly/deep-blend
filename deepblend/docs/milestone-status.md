@@ -1548,7 +1548,7 @@ $ bash deepblend/tests/run-all.sh
 DeepBlend acceptance suite: ALL SUITES PASSED     12 套件 / 0 项 FAIL
 
 $ node deepblend/tests/run.mjs
-DeepBlend tests: 20/20 file(s) passed             807 项自计断言 + 113 个 node:test 用例
+DeepBlend tests: 21/21 file(s) passed             807 项自计断言 + 118 个 node:test 用例
 ```
 
 四种装配模式的 `--check` 全绿（`setup` / `blender` / `plugin` / `presets`），
@@ -1561,3 +1561,18 @@ DeepBlend tests: 20/20 file(s) passed             807 项自计断言 + 113 个 
 **仍然没有做，也不假装做了**：3080 上跑着的 `dsh web` 还是旧进程。`--dump-config` 与
 真实 Cordis 挂载都证明了新配置会组合成什么，但**运行中的那个页面**要等一次重启。
 按 §13.9 的规矩，它是否生效要用页面本身与 Host 路由去验，不能用 Inspect 的座位表代替。
+
+### 15.7 安装器的三种行为，现在是被断言住的
+
+`install-plugin.mjs` 决定了一件**事后看不见**的事：这个部署的项目存在哪里。
+它有三种行为，其中两种的差别在 diff 里是看不出来的：
+
+| 行为 | 断言 |
+|---|---|
+| 正常安装 | bundle 被注册且**排在第一位**（后面的部署 bundle 仍可覆盖它的行）；operator layer 把存储钉在 checkout 上；第二次运行是 no-op |
+| `--portable` | operator layer 被**清空而不是删除**——`cordis.patch.yml` 是 `dsh` 随每个 profile 创建的文件，安装器删掉它属于用户看不见也不曾要求的事 |
+| 遇到别人的 operator layer | **逐字节保留**、退出 2、并说明怎么合并。`--check` 同样退出 2——否则它会走到自己的 `process.exit(0)`，在「你问的那个存储根本没被钉住」的时候报一句健康 |
+
+`deepblend/tests/contract/install-plugin-modes.test.mjs`（5 项）全部在**临时 DSH home** 上跑真实的
+安装器进程，因为安装器写的是 `$DSH_HOME`——这正是不可能拿开发者的真实 home 去验的原因。
+另有一项断言「bundle 多出一个键时 `--check` 会报漂移」：那是手抄配置唯一不会被发现的腐烂方式。

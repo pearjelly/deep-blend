@@ -54,7 +54,7 @@ deepblend/
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         20 个 *.test.mjs
+    contract/         21 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       m3-host-child.mjs —— 独立进程里的 Host（供重启套件 fork）
     blender-integration/  M0 能力探测 + M1 批量 SceneSpec + M2 视觉闭环 + M3 持久渲染
@@ -124,8 +124,8 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 bash deepblend/tests/run-all.sh
 ```
 
-预期：**12 个套件、31 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**20 个文件 = 807 项自计断言（12 个文件打印计数）+ 113 个 `node:test` 用例（8 个文件）**。
+预期：**12 个套件、32 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**21 个文件 = 807 项自计断言（12 个文件打印计数）+ 118 个 `node:test` 用例（9 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
