@@ -46,6 +46,8 @@ const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepbl
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 const scripts = new Set(Object.keys(manifest.scripts ?? {}))
 const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+/** The other document a person reads before running anything. */
+const mergePolicy = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf8')
 
 /** One document's text plus the name to report it by. */
 const documents = MANUALS.map(path => ({ path, text: readFileSync(join(ROOT, path), 'utf8') }))
@@ -173,4 +175,55 @@ test('the manuals do not restate the install commands as a second source of trut
     /README\.md/.test(install),
     'install.md does not point at the README, so it is presenting itself as the only install path',
   )
+})
+
+test('the README does not assert milestone status, because it cannot keep it true', () => {
+  // THE ONE SECTION OF THE README THAT ROTS FASTEST, and the one nothing was watching.
+  //
+  // "当前状态与下一步" said `M0、M1、M2、M3、M4 验收均已闭环` and, eleven lines later,
+  // `按 SPEC §0.3，M5 应在新的会话中开始` — six rounds after M5 had finished, in the section
+  // whose entire job is to describe the present. Round 11 had already removed the milestone
+  // line from the README's header for this reason; this section kept a much longer version of
+  // the same claim, and it is the shape this repository keeps paying for: prose that was true
+  // when it was written and that nothing re-reads.
+  //
+  // There is no machine-readable "current milestone" to compare against, so the rule is the
+  // other one: DO NOT RESTATE IT. `milestone-status.md` is the register — it carries the
+  // per-milestone conclusions, the deviations and the gaps — and the README points at it. What
+  // the README may state is what a command prints, and that is checked where the numbers live
+  // (`documented-counts.test.mjs`).
+  // THE SHAPES THAT ACTUALLY ROTTED, written down as they rotted rather than as a general
+  // principle. A loose "a milestone near the word 闭环" pattern flags 「M2 视觉闭环」 — the
+  // name of a capability, in the directory listing, and correct — so each pattern below asks
+  // for the CLAIM: a verdict about verification, a milestone list with a verdict, a plan
+  // stated as the present, or a progress report.
+  const claims = [
+    // "M0、M1、M2、M3、M4 验收均已闭环" — a list of milestones with a verdict on the end.
+    /M\d(?:\s*[、,和]\s*M\d)+[^\n。]{0,16}(闭环|完成|验收)/,
+    // "M5 验收已闭环" / "M3 已完成" — one milestone, its verification, and a verdict.
+    /M\d[^\n。]{0,8}验收[^\n。]{0,8}(闭环|完成|通过)/,
+    /M\d[^\n。]{0,6}(已闭环|已完成|已验收)/,
+    // "按 SPEC §0.3，M5 应在新的会话中开始" — a plan stated as the present.
+    /M\d[^\n。]{0,24}(应在|将在|尚未开始|即将开始|还没有开始)/,
+    // "M5 已经开始" — progress, which the register owns.
+    /M\d[^\n。]{0,12}(已经开始|正在进行|仍未完成)/,
+  ]
+  // The README and CONTRIBUTING are the two documents a person reads before running anything,
+  // and both are covered: a status claim is not more acceptable one file over.
+  for (const [name, text] of [['README.md', readme], ['CONTRIBUTING.md', mergePolicy]]) {
+    for (const pattern of claims) {
+      const found = pattern.exec(text)
+      assert.equal(
+        found,
+        null,
+        `${name} states a milestone's status (${JSON.stringify(found?.[0])}). That is what ` +
+          'milestone-status.md is for — a status written twice rots in the copy nobody reads, and ' +
+          'this one did: it said the last milestone had not started, six rounds after it finished.',
+      )
+    }
+  }
+
+  // And the pointer has to be there, because the rule above is only safe if the register is
+  // reachable from the front door.
+  assert.match(readme, /milestone-status\.md/, 'the README no longer points at the milestone register')
 })
