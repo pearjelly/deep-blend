@@ -201,6 +201,28 @@ a smaller range first to check the scene.
 （3.4 小时/遍），不是磁盘。但 `.tools/` 里的 Blender 约占 1.4 GB，加上 346 MB 的镜像；
 `rm -rf .tools/downloads` 可以先释放镜像（重装时会重新下载并校验）。
 
+### 卷满了，渲染到一半（实测，`probe-disk-full.log`）
+
+上面的账目说的是「够不够用」。真的写满会发生什么，是量过的：一个 24 MiB 的卷、
+一次真的交付渲染。结论是**一帧都不会丢，而且它会自己接上**——
+
+1. 卷满 → 渲染器停下（Host 会把它停掉，不会留下一个还在往满盘里写的进程）；
+2. **已经渲出来的帧全在**，一帧都没坏；
+3. **job 记录会停在旧状态**（通常还是 `running`）：记录本身也要写进那个卷，写不进去就没得写。
+   这是这套东西在满盘时的真实代价，写在这里而不是假装没有；
+4. 腾出空间之后**下一次启动**，协调器把它变成 `recovering`，并报出还缺多少帧；
+   用 `blender_final_render {resumeJobId}` 接着渲即可。
+
+所以遇到 `DISK_FULL` 的顺序是：腾空间 → 重启（或等下一次协调）→ 看 `blender_job_status`
+报缺多少帧 → 续渲。**不要重开一个渲染**：那会从头再渲一遍已经在那里的帧。
+
+```bash
+df -h .deepblend                    # 先看还有多少
+# 腾出空间（.tools/downloads 是一份 346 MB 的镜像，可以删，重装时会重新下载并校验）
+blender_job_status {projectId}      # 看 missing 有多少
+blender_final_render {projectId, resumeJobId: "render-0001"}
+```
+
 ---
 
 ## 10. 按错误码查：你看到的是一个码，不是一个症状
@@ -226,7 +248,7 @@ a smaller range first to check the scene.
 | `ASSET_FORMAT_UNAVAILABLE` | 这个格式这条流水线不带。能带的是 glb / gltf / fbx / obj / usd / blend | — |
 | `ASSET_TOO_LARGE` | 超过 `assetMaxBytes`（默认 1 GiB）。本地在拷贝**之前**拒，网络在下载**当中**断 | — |
 | `ASSET_APPROVAL_REQUIRED` | 从网络地址导入需要你点一次批准。本地路径不需要 | §8 |
-| `PROJECT_EXISTS` | 这个 id 已经有项目了。换一个，或者先看那个项目 | §6 |
+| `PROJECT_EXISTS` | 这个 id 已经有项目了。换一个，或者先看那个项目 | — |
 | `PATH_OUTSIDE_WORKSPACE` | 路径跑出工作区了，被按 realpath 拦下。检查软链接 | — |
 | `RUNTIME_UNAVAILABLE` | 这个进程里没有可用的 Blender 运行时 | `install.md` §0 |
 | `ENGINE_UNAVAILABLE` | 这一版 Blender 装不出你要求的引擎。先 `blender_capabilities` | — |

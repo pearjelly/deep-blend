@@ -63,6 +63,7 @@ deepblend/
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
                       / probe-dsh-plugin-install.log（两条装法各自测到什么，见「5. 安装进 DSH profile」）
                       / probe-disk-full.log（卷写满时会发生什么：一帧不丢、可续渲）
+                      / probe-coverage.log（整套验收执行了产品的哪些行，以及量具看不见什么）
   docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）
   tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
                       workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
@@ -84,6 +85,7 @@ deepblend/
                       capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
                       dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
                       disk-full-probe.mjs —— 在一个真的 24 MiB 卷上把磁盘写满，看宿主怎么收场
+                      coverage-probe.mjs —— 跑整套并列出产品里从没被执行过的行（含它自己的盲区）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
     contract/         31 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署

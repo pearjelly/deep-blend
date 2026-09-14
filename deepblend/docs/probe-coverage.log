@@ -1,0 +1,65 @@
+# Coverage probe — what the acceptance suite executes, and what it never touches
+#
+#   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
+#
+# Instrument: NODE_V8_COVERAGE on every process the suite spawns, merged per process and then
+# unioned (see the tool's header for the three wrong merges that came before it).
+
+suite: bash deepblend/tests/run-all.sh
+suite exit code: 0
+coverage files: 92
+product files seen: 34
+product files never loaded: 0
+product lines seen: 19725
+product lines never executed: 2695 (13.7%)
+
+── the darkest of the files that were loaded ──
+   packages/deepblend/host/lib/index.js                        951/4317  lines dark
+   packages/deepblend/provider-local/lib/index.js              376/1534
+   packages/deepblend/host/lib/revision-transaction.js         134/992
+   packages/deepblend/contracts/lib/scene-spec.js              113/910
+   packages/deepblend/tool/lib/tools.js                         98/982
+   packages/deepblend/host/lib/video-encoder.js                 96/346
+   packages/deepblend/tool/lib/visual-tools.js                  95/405
+   packages/deepblend/tool/lib/render-tools.js                  90/543
+   packages/deepblend/host/lib/render-reconciler.js             75/338
+   packages/deepblend/host/lib/project-store.js                 73/529
+   packages/deepblend/ui/lib/index.js                           68/596
+   packages/deepblend/contracts/lib/ui-api.js                   62/696
+   packages/deepblend/tool/lib/shared.js                        45/473
+   packages/deepblend/host/lib/render-journal.js                28/130
+
+── the largest contiguous dark blocks (whole bodies, not single branches) ──
+   78 lines  host/lib/index.js:1625-1702
+   54 lines  host/lib/index.js:3596-3649     the render driver's tail
+   40 lines  host/lib/index.js:2402-2441     async listProjects()          ← see below
+   40 lines  host/lib/index.js:2449-2488     async getRevisionDetail()
+   36 lines  provider-local/lib/index.js:703-738   _absentCapabilities()
+   35 lines  tool/lib/visual-tools.js:346-380
+   28 lines  host/lib/index.js:2591-2618     async readArtifact()
+   26 lines  provider-local/lib/index.js:926-951
+
+── WHAT THIS INSTRUMENT CANNOT SEE, MEASURED ──
+Running deepblend/tests/e2e/ui.e2e.mjs with NODE_V8_COVERAGE produces ZERO reports for the host
+package: the `dsh web` process it starts does not write them. So every path reached only through
+the UI reads as dark here. That is why listProjects, getRevisionDetail, getQaRecord and readArtifact
+report count 0 — the browser suite exercises all four end to end (the panel lists projects, opens a
+revision, shows QA, and fetches artifact bytes), and the routes that call them are served by that
+invisible process.
+
+    listProjects        0        getScene      6
+    getRevisionDetail   0        listJobs      8
+    readArtifact        0        getQaRecord   0
+
+Read a dark line as "no test I can see executes this", not as "nothing executes this".
+
+── WHAT THE READING SAYS ──
+Of the 13.7%, most is error handling: catch blocks, "the encoder is missing" fallbacks, the
+unreadable-record branch of the reconciler, the torn-journal-line branch. That is the expected
+shape — an error path runs only when something goes wrong, and a suite that made every error path
+run would be a suite that breaks things on purpose (which is what the round-22 disk probe did, by
+hand, for one of them).
+
+The interesting rows are the whole bodies that are dark for a different reason: they are reachable
+only from a process this instrument cannot see. That is a fact about the measurement, and it is
+written down here rather than left to be inferred from a number.
