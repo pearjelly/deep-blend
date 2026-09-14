@@ -78,7 +78,7 @@ import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store
 import { RenderJobStore, UNFINISHED_STATUSES } from './render-job-store.js'
 import { RevisionTransaction } from './revision-transaction.js'
 import { inspectFrameSample, readFrameLedger, sampleFrame } from './frame-ledger.js'
-import { JournalTail, isFrameClaim } from './render-journal.js'
+import { JournalTail, incompleteJournalWarning, isFrameClaim } from './render-journal.js'
 import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
@@ -3687,13 +3687,24 @@ export default class BlenderStudio extends Service {
         }
       }
     }
-    // A torn line is what a kill mid-write looks like, and it must be visible: it
-    // means the journal is not a complete account of what the renderer did, which is
-    // exactly why the ledger is built from the frames instead. `tornLineIsEvidence`
-    // holds the two conditions — the file ends mid-line AND the writer has stopped —
-    // and the once-only rule, so this stays one line instead of three conditions the
-    // host cannot exercise without a real kill.
-    if (live.journal.tornLineIsEvidence({ stopped: options.final === true })) {
+    // A torn line is what a kill mid-write looks like, and it must be visible: it means the
+    // journal is not a complete account of what the renderer did, which is exactly why the ledger
+    // is built from the frames instead. The four conditions that decide it — the file ends
+    // mid-line, the writer has stopped, the kill was not one the caller asked for, and it has not
+    // been said before — live in `incompleteJournalWarning`, because the contract suite can drive
+    // them by hand there and a real `SIGKILL` almost always lands on a line boundary.
+    //
+    // Said twice, in the two places a reader actually looks, and the second one is DURABLE: the
+    // output line goes to the harness job, which is drained by whoever reads it first and is gone
+    // after a restart, while the warning lands on the job record and is what `blender_job_status`
+    // shows after the process that watched the render is dead.
+    const tornWarning = incompleteJournalWarning(live.journal, {
+      stopped: options.final === true,
+      cancelled: live.cancelled === true,
+      jobId,
+      attemptToken: live.attemptToken,
+    })
+    if (tornWarning !== null) {
       this._appendOutput(
         live,
         'the render journal ends mid-line, so its last event never completed — what a kill between the write and ' +
@@ -3732,7 +3743,7 @@ export default class BlenderStudio extends Service {
       }
     }
 
-    if (changed) {
+    if (changed || tornWarning !== null) {
       const latest = this.renderJobs.readSafe(projectId, jobId)
       if (latest === null || RenderJobStore.isTerminal(latest)) return
       const completed = [...live.verified].sort((left, right) => left - right)
@@ -3741,14 +3752,20 @@ export default class BlenderStudio extends Service {
         perFrameMs: live.journal.frameDurations(),
         remainingFrames: Math.max(0, expectedCount - completed.length),
       })
-      this.renderJobs.write({
+      // A torn journal alone changes no number, so it is `changed` for the record's sake: the write
+      // below is the only way this fact survives the process that watched the render. The wording is
+      // attempt-scoped on purpose — a resumed attempt appends to the SAME journal, so by the time the
+      // job is complete the file may no longer end mid-line while an earlier attempt still did.
+      const next = {
         ...latest,
+        ...(tornWarning === null ? {} : { warnings: [...(latest.warnings ?? []), tornWarning] }),
         completedFrames: completed,
         missingFrames: this.renderJobs.expectedFrames(latest).filter(frame => !live.verified.has(frame)),
         percent: renderProgressPercent({ expected: expectedCount, done: completed.length }),
         meanMsPerFrame: estimate.meanMsPerFrame === null ? null : Math.round(estimate.meanMsPerFrame),
         estimatedRemainingMs: estimate.estimatedRemainingMs,
-      }, { previous: latest })
+      }
+      this.renderJobs.write(next, { previous: latest })
     }
   }
 
@@ -4274,6 +4291,7 @@ export { readFrameLedger, framesOnDisk, sampleFrame } from './frame-ledger.js'
 export { RenderJobStore, formatRenderJobId, UNFINISHED_STATUSES } from './render-job-store.js'
 export {
   JournalTail,
+  incompleteJournalWarning,
   isFrameClaim,
 } from './render-journal.js'
 export {

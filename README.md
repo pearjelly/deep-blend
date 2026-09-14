@@ -119,7 +119,7 @@ packages/deepblend/
 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） |
 | **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
 | **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
-| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 66 条照跑 |
+| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 70 条照跑 |
 | **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
 | **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
 | **Google Chrome** | 只有 `npm run docs:images` 与 M4 的浏览器验收 | 那两件事不跑，其余不受影响 |
@@ -189,19 +189,19 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 照样成功（容器里跑过整条 job）。
 
 预期：**16 个套件、47 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**32 个文件 = 837 项自计断言（12 个文件打印计数）+ 214 个 `node:test` 用例（20 个文件）**。
+**32 个文件 = 841 项自计断言（12 个文件打印计数）+ 215 个 `node:test` 用例（20 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 837 和 214 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 841 和 215 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
 ——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的
-总数直接相减，会凭空多出或少掉两项。上面那个 837 是**装了** preset 的读数，没装是 835。
+总数直接相减，会凭空多出或少掉两项。上面那个 841 是**装了** preset 的读数，没装是 839。
 单跑某一层：
 
 ```bash

@@ -45,6 +45,8 @@
 
 import { closeSync, existsSync, openSync, readSync, statSync } from 'node:fs'
 
+import { BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
+
 /** Cap on one read, so a pathological journal cannot be read in one allocation. */
 const MAX_READ_BYTES = 4 * 1024 * 1024
 
@@ -193,4 +195,40 @@ export class JournalTail {
  */
 export function isFrameClaim(event) {
   return event?.type === 'frame' && Number.isSafeInteger(event.frame)
+}
+
+/**
+ * The warning this attempt earns when its journal was cut off mid-line, or `null`.
+ *
+ * WHY THE WHOLE DECISION IS HERE AND NOT AT THE CALL SITE
+ * ------------------------------------------------------
+ * It is four conditions in a row — the file ends mid-line, the writer has stopped, the kill was not
+ * one the caller asked for, and it has not been said before — and the only place that can call it is
+ * a background absorb inside a running Host. MEASURED, round 25: the end-to-end suite settles it
+ * against the FILE, but a `SIGKILL` lands on a line boundary in practice (two runs, both clean), so
+ * "torn, therefore recorded" is not reachable on demand there, and the branch that writes the warning
+ * would never be exercised. A rule whose only exercise is luck is a rule nobody has checked, so it
+ * lives where the contract suite can drive all four conditions by hand.
+ *
+ * A kill the caller ASKED for is not a finding: `cancelJob` terminates the process group on purpose,
+ * and a journal cut in half is the expected consequence of that. That check comes FIRST so a
+ * cancelled absorb does not consume the once-only flag of a journal that is genuinely torn.
+ *
+ * @param {JournalTail} journal
+ * @param {{stopped: boolean, cancelled?: boolean, jobId?: string, attemptToken?: string|null}} input
+ * @returns {{code: string, message: string, detail?: object}|null}
+ */
+export function incompleteJournalWarning(journal, input) {
+  if (input?.cancelled === true) return null
+  if (journal?.tornLineIsEvidence({ stopped: input?.stopped === true }) !== true) return null
+  const detail = {}
+  if (input?.jobId !== undefined) detail.jobId = input.jobId
+  if (input?.attemptToken !== undefined && input.attemptToken !== null) detail.attemptToken = input.attemptToken
+  return warning(
+    BlenderWarningCode.JOURNAL_INCOMPLETE,
+    'an attempt at this job was cut off mid-line in its event journal (a kill between the write and the ' +
+      'flush), so the last event the renderer sent never arrived. Frame progress and the resumed frame ' +
+      'set are read from the frame files themselves, so no count here is affected.',
+    Object.keys(detail).length > 0 ? detail : undefined,
+  )
 }

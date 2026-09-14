@@ -39,6 +39,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+import { describeJobLines } from '@deepblend/dsh-blender-tool'
+
 import {
   DELIVERY_MANIFEST_VERSION,
   MIN_FRAME_BYTES,
@@ -337,6 +339,41 @@ const line = describeRenderJob({
 check('a render job reads as one line naming job, status, range and progress',
   line.includes('render-0001') && line.includes('recovering') && line.includes('1..450') &&
   line.includes('(3/450)') && line.includes('attempt 2') && line.includes('pid 81187'), line)
+
+// ---------------------------------------------------------------------------
+// 9b. The block a model reads when it asks about a job — warnings included
+// ---------------------------------------------------------------------------
+
+const reportedJob = {
+  jobId: 'render-0001', projectId: 'watch-commercial', revisionId: 'r0029', status: 'failed',
+  completedFrames: 30, expectedFrames: 450, percent: 7, frameStart: 1, frameEnd: 450,
+  pid: null, meanMsPerFrame: null, estimatedRemainingMs: null, corruptFrames: [], errorCode: null,
+  message: 'the renderer exited before every frame was written',
+}
+const plainLines = describeJobLines(reportedJob)
+check('a job with no warnings prints no warning line — the negative control for the check below',
+  !plainLines.some(entry => entry.startsWith('warning:')), plainLines)
+
+const warnedLines = describeJobLines({
+  ...reportedJob,
+  warnings: [
+    { code: 'JOB_PROJECTION_UNAVAILABLE', message: 'this render is not in the harness job list' },
+    { code: 'JOURNAL_INCOMPLETE', message: 'an attempt was cut off mid-line in its event journal' },
+  ],
+})
+check('every warning on the record reaches the reader, with its code',
+  warnedLines.filter(entry => entry.startsWith('warning:  [')).length === 2 &&
+  warnedLines.some(entry => entry.includes('[JOURNAL_INCOMPLETE]')) &&
+  warnedLines.some(entry => entry.includes('[JOB_PROJECTION_UNAVAILABLE]')), warnedLines)
+check('and the job\'s own numbers still come first, because a warning changes none of them',
+  warnedLines[0].startsWith('job:') && warnedLines.indexOf(warnedLines.find(entry => entry.startsWith('warning:'))) >
+  warnedLines.indexOf(warnedLines.find(entry => entry.startsWith('frames:'))), warnedLines)
+check('a job whose warnings field is absent entirely is not a crash, and prints no line',
+  (() => {
+    const { warnings, ...withoutWarnings } = reportedJob
+    const lines = describeJobLines(withoutWarnings)
+    return Array.isArray(lines) && !lines.some(entry => entry.startsWith('warning:'))
+  })())
 
 // ---------------------------------------------------------------------------
 // 10. The host's ledger reads a real directory, and calls a torn frame missing

@@ -124,10 +124,18 @@ function hostPlaneIsCurrent(studio, methods) {
 
 /**
  * Render the shared body of a job report as prose a model can act on.
+ *
+ * WHY IT IS EXPORTED: it is the block a model reads when it asks about a job, so it is where a
+ * recorded fact either reaches the reader or dies. The alternative to exporting it is a rule whose
+ * only exercise is a real render through a running Host — the same trade `frame-ledger.js` records
+ * for `sampleFrame`, and the same failure mode: a rule that can only fail in production is a rule
+ * nobody has checked. `contract/render-job.test.mjs` drives it directly, including the negative
+ * control (a job with no warnings prints no warning line).
+ *
  * @param {object} job
  * @returns {string[]}
  */
-function describeJobLines(job) {
+export function describeJobLines(job) {
   const lines = [
     `job:      ${job.jobId}${job.dshJobId !== null && job.dshJobId !== undefined ? ` (DSH job ${job.dshJobId})` : ''}`,
     `project:  ${job.projectId} @ ${job.revisionId}`,
@@ -157,6 +165,14 @@ function describeJobLines(job) {
   if (job.recovery !== null && job.recovery !== undefined) {
     lines.push('recovery: this job was found unfinished when the host started; its ledger was rebuilt from the frames on disk')
     for (const note of job.recovery.notes ?? []) lines.push(`  - ${note}`)
+  }
+  // The record's own warnings, shown HERE because this list is the only place a human or a model reads
+  // a job's state. MEASURED defect: `JOB_PROJECTION_UNAVAILABLE` has been written onto job records
+  // since M3 and nothing ever displayed it — a fact recorded and never read is a fact not recorded,
+  // minus the disk space. Appended last, after the numbers, because a warning does not change what
+  // the job did.
+  if (Array.isArray(job.warnings) && job.warnings.length > 0) {
+    for (const entry of job.warnings) lines.push(`warning:  [${entry.code}] ${entry.message}`)
   }
   return lines
 }
@@ -415,7 +431,10 @@ function jobStatus(ctx) {
       'of how many, the measured seconds per frame and the estimated time remaining, the frames that are ' +
       'missing or were left incomplete, and the delivery package once one exists. ' +
       '\n\nThis reads from DISK, not from the current process, so it answers correctly for a render started ' +
-      'before the harness restarted. Progress is counted from the frame files themselves.',
+      'before the harness restarted. Progress is counted from the frame files themselves. ' +
+      '\n\nAny warnings recorded on the job are printed with it. They are NOT errors and none of them ' +
+      'changes the numbers: JOURNAL_INCOMPLETE means an attempt was cut off mid-line in its event journal, ' +
+      'which is why the progress above is counted from the frame files rather than from that journal.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project to inspect.' },
       jobId: { type: 'string', description: 'One render job id. Omit to list the project\'s jobs.' },

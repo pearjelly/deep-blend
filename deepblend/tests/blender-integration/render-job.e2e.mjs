@@ -227,6 +227,14 @@ const DELIVERY_FRAMES = 9
 const projectDirectory = realpathSync(join(scratch, 'projects', projectId))
 
 const deliveryFramesDirectory = jobId => join(projectDirectory, 'renders', jobId, 'frames')
+const jobJournalPath = jobId => join(projectDirectory, 'renders', jobId, 'events.jsonl')
+/** Does the renderer's event journal end in the middle of a line right now? */
+const journalIsTorn = jobId => {
+  const path = jobJournalPath(jobId)
+  if (!existsSync(path)) return false
+  const text = readFileSync(path, 'utf8')
+  return text.length > 0 && !text.endsWith('\n')
+}
 
 const startedAt = Date.now()
 const started = await studio.startFinalRender({
@@ -311,6 +319,25 @@ check('the failure tells the caller how to continue rather than only that it bro
   typeof crashedJob.message === 'string' && crashedJob.message.includes('resumeJobId'), crashedJob.message)
 check('the frames already rendered were KEPT — a crash must not discard hours of work',
   framesIn(deliveryFramesDirectory(started.jobId)).length >= beforeCrash.length)
+
+// ---------------------------------------------------------------------------
+// 2b. The journal's tail — settled against the FILE, because only the file knows
+// ---------------------------------------------------------------------------
+
+// A SIGKILL lands wherever it lands: the journal may end on a line boundary or halfway through one,
+// so "torn" is not assertable and would be flaky either way. What IS assertable, in both directions,
+// is AGREEMENT between the file and the durable record — and it is the record that matters, because
+// the harness job output that used to carry this fact is drained by whoever reads it first and is
+// gone after a restart.
+const crashJournalTorn = journalIsTorn(started.jobId)
+const crashWarnings = (crashedJob.warnings ?? []).filter(entry => entry.code === 'JOURNAL_INCOMPLETE')
+check('a journal left cut mid-line is recorded ON THE JOB, and a clean one is not',
+  crashWarnings.length === (crashJournalTorn ? 1 : 0),
+  {
+    journalEndsMidLine: crashJournalTorn,
+    recorded: crashWarnings.length,
+    tail: JSON.stringify(readFileSync(jobJournalPath(started.jobId), 'utf8').slice(-70)),
+  })
 
 // ---------------------------------------------------------------------------
 // 3. "可只渲缺失帧" — the resume renders exactly the missing set
@@ -481,6 +508,15 @@ check('no Blender of this project is left anywhere in the process table',
 check('the cancelled job is recorded as cancelled, with the frames it did render kept',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status === 'cancelled',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status)
+
+// A kill the caller ASKED for is not a finding: `cancelJob` terminates the process on purpose and a
+// journal cut in half is the expected consequence. If that SIGKILL happened to land on a line
+// boundary this check is vacuous — which is exactly why the crashed case above is settled against the
+// file, and this one states the RULE instead.
+const cancelledRecord = (await studio.getJob({ projectId, jobId: long.jobId })).renderJob
+check('a kill the caller ASKED for is not recorded as a journal defect, even when its tail is torn',
+  !(cancelledRecord.warnings ?? []).some(entry => entry.code === 'JOURNAL_INCOMPLETE'),
+  { journalEndsMidLine: journalIsTorn(long.jobId), warnings: cancelledRecord.warnings })
 
 // A cancelled job is resumable, and resuming it renders only what is missing.
 //

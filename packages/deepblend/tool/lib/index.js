@@ -71,6 +71,16 @@ export const inject = ['tools']
 export const Config = undefined
 
 /**
+ * The per-job prose block, re-exported for the contract layer.
+ *
+ * This package's job is to REGISTER tools, not to publish an API, so this is the one deliberate
+ * exception and it is narrow: `describeJobLines` is where a job record's facts reach a model, and a
+ * rule reachable only through a real render is a rule nobody has checked (the same reasoning
+ * `host/lib/frame-ledger.js` records for `sampleFrame`). `contract/render-job.test.mjs` drives it.
+ */
+export { describeJobLines } from './render-tools.js'
+
+/**
  * Register the DeepBlend tools for the calling agent scope.
  *
  * @param {import('@deepseek-ai/cordis').Context} ctx

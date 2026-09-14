@@ -187,6 +187,10 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
 * 带 `jobId`：状态、`completedFrames/expectedFrames`、`percent`、
   **实测的秒/帧与预计剩余**、缺失帧列表、不完整帧（带原因）、以及已有的交付包。
 * 进度是按**帧文件本身**数的，不是按子进程的自述。
+* 记录上的 `warnings` **会逐条打出来**（`warning:  [CODE] …`）。它们一直是记录的一部分，
+  却从来没有被显示过——`JOB_PROJECTION_UNAVAILABLE` 从 M3 起就写在 job 记录上，
+  四个里程碑里没有任何东西读过它。现在这一行是它唯一的出口，
+  也是 `JOURNAL_INCOMPLETE`（某次尝试的日志被截断，见 `recovery.md` §2）的出口。
 
 ### `blender_job_cancel`
 

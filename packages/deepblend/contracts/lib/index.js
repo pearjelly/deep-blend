@@ -301,6 +301,19 @@ export const BlenderWarningCode = Object.freeze({
   JOB_PROJECTION_UNAVAILABLE: 'JOB_PROJECTION_UNAVAILABLE',
   /** A delivery had to be verified against a claim the runtime could not re-derive. */
   DELIVERY_CLAIM_UNAVAILABLE: 'DELIVERY_CLAIM_UNAVAILABLE',
+  /**
+   * An attempt at this job was cut off mid-line in its event journal, so the LAST event the renderer
+   * sent never arrived.
+   *
+   * It is not an error and not a reason to distrust any number in the record: progress and the resumed
+   * frame set are read from the frame FILES, byte by byte (`frame-ledger.js`), and the journal was
+   * never the authority for either. What it means is that the journal is not a complete account of
+   * what the renderer did — which is the whole reason the ledger does not count from it.
+   *
+   * Recorded on the job because the alternative is silence: the same fact used to be only a line in
+   * the harness job output, which is drained by whoever reads it first and is gone after a restart.
+   */
+  JOURNAL_INCOMPLETE: 'JOURNAL_INCOMPLETE',
 })
 
 /**

@@ -3544,3 +3544,75 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 跟它一起做的应该是「让 journal 不完整这件事**落到 job 记录上**（一条 warning）」，
 那时它才有一条不经过 harness 输出的、可读的通道。
 
+---
+
+## 38. 给那条诊断一条会留下来的通道——顺手发现另一条 warning 四个里程碑没人读过
+
+第 24 轮把「没被断言到的那一处」写进了 D108 而不是藏进注释：宿主里那句
+`{ stopped: options.final === true }` 没有任何套件到得了，因为它要么需要一个真的 kill，
+要么需要把宿主私有方法拿出来在假状态上跑。这一轮把那个前提做掉：
+**给这条诊断一条不经过 harness 输出的通道**——它落在 job 记录上，
+于是「文件断了」和「记录里说了」变成两件可以互相对照的事实。
+
+### 38.1 只存在于流里的诊断，等于没有诊断
+
+原来的写法只有一句 `_appendOutput`，而 `_appendOutput` 进的是 harness job 的 `readOutput`，
+由**先读到它的人取走**（这一轮又量了一遍：`jobs.read()` 的语义就是 drain，读完清空）。
+也就是说：这条诊断在**跨重启**的语义下不存在——而「重启之后还知道发生过什么」
+恰恰是这个里程碑存在的理由（§10.3、`recovery.md` §1）。
+
+现在同一件事说两遍，在两个读者真正会看的地方：
+
+| | 通道 | 寿命 |
+|---|---|---|
+| 一句进展输出 | harness job 的文本 | 被读到就没了 |
+| `JOURNAL_INCOMPLETE` warning | job 记录 → `blender_job_status` | 跟着记录，重启后还在 |
+
+### 38.2 顺手发现：记录了四个里程碑，没有任何东西读过
+
+写这一半时必须回答「warning 到底谁会看到」，答案是没有：`describeJobLines()`
+——`blender_job_status` 打给模型看的那一块——只打状态、帧数、速度、不完整帧、
+`errorCode`、`message`、交付与恢复信息，**从不打 `warnings`**。
+于是 `JOB_PROJECTION_UNAVAILABLE`（「这次渲染没能注册成 DSH 后台任务」）
+从 M3 起就写在记录上，而**没有任何一行代码读过它**：
+记录了没人读的事实，和没记录的区别只有磁盘占用。
+
+现在它逐条打出来。这条规则有**阴性对照**（没有 warning 的 job 一行都不打），
+以及一条顺序断言（数字在前、warning 在后——warning 不改变这个 job 做了什么）。
+三种变异全红：不打、只打第一条、没有也打。
+
+### 38.3 实测：真的 SIGKILL 几乎总是落在行边界上
+
+端到端那一半按**文件**裁定：杀掉 Blender 之后，`events.jsonl` 是不是断在半行，
+和记录里有没有那一行**必须一致**（两个方向都会红）。写的时候想当然地以为「被杀一定撕裂」，
+量了三次——**三次都干净**（`journalEndsMidLine: false, recorded: 0`）。
+日志行是一次 `write` 的小块，落点要么在写之前、要么在写之后。
+
+所以「断了因而被记下」这个方向在端到端套件里**碰不出来**；如果只留那一半，
+把写 warning 的那段删掉，套件照样全绿。四个条件（文件断在半行 × 渲染器已停 ×
+不是主动取消 × 还没说过）因此搬进 `incompleteJournalWarning()`，
+由契约层逐个驱动：五种变异全红（取消的也算发现、活着的写者也算已停、说完了还说、
+码写错、把「计数不受影响」那句保证删掉），外加 code / 措辞 / detail 里点出是哪一次尝试。
+
+### 38.4 「你主动取消的」不是发现
+
+`cancelJob` 故意杀进程组，日志断在半行是那个动作的**预期结果**。
+这条排除放在**第一个**条件上，于是取消的那次 absorb 不会把「还没说过」这个额度花掉——
+否则一次取消就会把同一此尝试后面一次真正的崩溃静音掉（这一条也变异过）。
+
+### 38.5 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 32/32 file(s) passed        841 项自计断言 + 215 个 node:test 用例
+$ node deepblend/tests/blender-integration/render-job.e2e.mjs
+M3 render job integration: 73/73 check(s) passed
+```
+
+产品改了五处：`contracts`（新码 `JOURNAL_INCOMPLETE`）、`render-journal.js`
+（`incompleteJournalWarning()` 四个条件一处定义）、`host/index.js`（两行接线：
+记录 + 那句输出）、`tool/render-tools.js`（`describeJobLines` 打印记录上的 warnings、
+`blender_job_status` 的描述里说明它不是错误、并把 `describeJobLines` 导出给契约层驱动）、
+`tool/index.js`（那一处 re-export，附理由）。文档三处：`recovery.md` §2、
+`tool-contracts.md` 的 `blender_job_status` 一节、以及这一节。
+

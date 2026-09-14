@@ -39,7 +39,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { JournalTail, isFrameClaim } from '@deepblend/dsh-blender-host'
+import { JournalTail, incompleteJournalWarning, isFrameClaim } from '@deepblend/dsh-blender-host'
 
 /** A scratch journal path, removed when the test file finishes. */
 const scratch = mkdtempSync(join(tmpdir(), 'deepblend-journal-'))
@@ -196,6 +196,44 @@ test('a journal path whose bytes cannot be read yields no events, and does not t
   const journal = new JournalTail(directoryPath)
   assert.deepEqual(journal.drain(), [], 'an unreadable journal reads as nothing')
   assert.equal(journal.events.length, 0)
+})
+
+test('the incomplete-journal warning needs all four conditions, and is spent once', () => {
+  // WHY THIS IS HERE AND NOT ONLY IN THE END-TO-END SUITE. That suite settles the warning against the
+  // journal FILE — the right way to check agreement — but a SIGKILL lands on a line boundary in
+  // practice (measured twice in round 25), so "torn, therefore recorded" is not reachable on demand
+  // there, and the branch that writes the warning would never be exercised by it. The rule is four
+  // conditions in a row, and all four are drivable here.
+  const torn = journalWith(line({ type: 'frame', frame: 1 }) + '{"type": "frame", "fra')
+  torn.drain()
+  assert.equal(torn.tornLineSeen, true)
+
+  // (1) the writer is still alive — a line being written is not a finding.
+  assert.equal(incompleteJournalWarning(torn, { stopped: false, jobId: 'render-0001' }), null)
+  // ...and asking did not spend the evidence.
+  const entry = incompleteJournalWarning(torn, { stopped: true, jobId: 'render-0001', attemptToken: 'token-1' })
+  assert.ok(entry !== null, 'once the writer has stopped, the torn tail is a finding')
+  assert.equal(entry.code, 'JOURNAL_INCOMPLETE', 'the code a reader filters on')
+  assert.match(entry.message, /cut off mid-line/, 'the message says what happened')
+  assert.match(entry.message, /frame files themselves/, 'and says the counts are unaffected, which is the question a reader has')
+  assert.equal(entry.detail.jobId, 'render-0001')
+  assert.equal(entry.detail.attemptToken, 'token-1', 'the attempt is named, because a job can have several')
+  // (2) spent once: the poll runs every second and a diagnostic that repeats is noise.
+  assert.equal(incompleteJournalWarning(torn, { stopped: true, jobId: 'render-0001' }), null)
+
+  // (3) a kill the caller ASKED for is not a finding — and it must not spend the evidence either, so
+  // a later unexpected kill of the same attempt is still recorded.
+  const cancelledJournal = journalWith(`${line({ type: 'frame', frame: 1 })}\n{"type": "fra`)
+  cancelledJournal.drain()
+  assert.equal(incompleteJournalWarning(cancelledJournal, { stopped: true, cancelled: true }), null)
+  assert.equal(cancelledJournal.tornLineSeen, true, 'the flag survives a cancelled absorb, unconsumed')
+  assert.ok(incompleteJournalWarning(cancelledJournal, { stopped: true }) !== null, 'so a real kill later is still recorded')
+
+  // (4) a whole journal is not a finding, however often it is asked.
+  const whole = journalWith(`${line({ type: 'frame', frame: 1 })}\n`)
+  whole.drain()
+  assert.equal(incompleteJournalWarning(whole, { stopped: true, jobId: 'render-0002' }), null)
+  assert.equal(incompleteJournalWarning(whole, { stopped: true, jobId: 'render-0002' }), null)
 })
 
 test('blank lines are skipped, and do not stall the reader', () => {
