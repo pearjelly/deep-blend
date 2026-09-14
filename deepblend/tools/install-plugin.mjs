@@ -153,8 +153,19 @@ const profile = requestedProfile()
 const profileDirectory = join(DSH_HOME, 'profiles', profile)
 
 if (!existsSync(profileDirectory)) {
+  // A profile is dsh's to create, not this installer's: it is a directory of files
+  // (`cordis.yml`, `pnpm-workspace.yaml`, a manifest) that the launcher writes and
+  // composes, and hand-building a half of one would leave a deployment that boots
+  // differently from every other. Refusing is the honest answer — and the message has
+  // to say the fix, because the reader reached this by following a manual whose
+  // prerequisites did not mention it. MEASURED on a clean clone and a fresh DSH_HOME:
+  // `dsh --profile web --dump-config` creates the profile as a side effect.
   console.error(`no profile at ${profileDirectory}`)
   console.error(`known profiles: ${existingProfiles().join(', ') || '(none)'}`)
+  console.error(
+    `A profile is created by \`dsh\`, not by this installer. Run \`dsh --profile ${profile} --dump-config\` ` +
+    `(or start \`dsh web\` once) to initialise it, then re-run this command.`,
+  )
   process.exit(2)
 }
 

@@ -1725,6 +1725,58 @@ ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but 
 ---
 
 
+## 5M. M5 走查：四步各自成立 ≠ 四步按顺序走一遍（D89–D90）
+
+---
+
+### D89 — 安装路径要有一条命令，而不是一段可以照做的说明
+
+**决策**：`deepblend/tools/verify-clean-clone.mjs`（`npm run verify:clone`）做一件事：
+一个全新的 `git clone` 加一个全新的 `DSH_HOME`，按 `install.md` 的顺序执行四步，
+最后**在那个 clone 里**跑契约层。它绝不碰开发者的 `$DSH_HOME`，失败时**保留**临时目录。
+
+**触发它的事实**：四步各自被证明过——从**这个**仓库、在**这台**机器上、
+用一个**已经装着 DeepBlend** 的 home。没有人按顺序走过一遍。走一遍才发现第 3 步会失败：
+
+```
+no profile at /tmp/db-freshhome/profiles/web
+known profiles: (none)
+```
+
+**profile 是 `dsh` 建的**（`dsh --profile web --dump-config` 会顺带创建它），
+而安装器拒绝替你造一个——手工拼半个 profile 会得到一个启动方式与其它每个部署都不同的部署。
+每个脚本都是对的，**错的是它们之间那个没人写下来的前提**。
+
+**可推广的那条**（与 D71 同源）：只要安装路径里还有「第 N 步假设第 N-1 步做过什么」，
+就该有人真的从零走一遍——而且这件事本身应该是一条命令，不是一段说明。
+
+---
+
+### D90 — 一个悄悄用了别人代码的验证，是在**全绿**的时候被发现的
+
+**决策**：`dsh-web-harness.mjs` 的 `createHome()` 逐项链接 profile 的 `node_modules`：
+`@deepblend` 之外的都来自真实 profile，`@deepblend` 由 **harness 自己所在的那个仓库**现搭。
+
+**触发它的事实**：那次 10 分钟的完整验收在 clone 里**全绿**，但输出里有一行不对——
+
+```
+可执行文件 /Users/hxb/workspace/deep-blend/.tools/Blender.app/…
+          ^ 开发者的工作区，而这是一个 /tmp 下的 clone
+```
+
+`createHome()` 原本把 `$DSH_HOME/profiles/node_modules` **整个目录**链接进测试 home。
+这对**部署的包**是对的，对本仓库自己的包是错的：`@deepblend/*` 指向最后一次跑
+`install-plugin.mjs` 的那个检出，于是 clone 里的 M4 套件加载的是**开发者的包**，
+并且对着**不是被测代码的代码**变绿。修完之后在 clone 里复跑，
+设置卡上的路径变成 `/private/tmp/db-clone/.tools/…`，70/70 仍然通过。
+
+**最值得记的一点**：这条缺陷不是被某条断言抓到的，而是在一个**全绿**的运行里，
+靠**一个不该出现绝对路径的地方出现了绝对路径**看出来的。
+只读「ALL SUITES PASSED」就会漏掉它。
+
+---
+
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -1772,6 +1824,7 @@ ERR REVISION_CHECKPOINT_MISSING | Revision r0002 was compiled for rendering but 
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（走查） | D89–D90：安装路径要有一条命令而不是一段说明（`npm run verify:clone`）；一个悄悄用了别人代码的验证是在**全绿**的时候被发现的。产出是一次真实的从零 clone 走查——发现 `install.md` 少写了一个前提（profile 是 `dsh` 建的），以及 clone 里的 M4 套件其实在测开发者的包 |
 | 2026-09-14 | M5（审批） | D87–D88：阈值装在每个调用者都经过的地方（Host），提问的能力留在工具里（它才有 agent 与打开的 turn）；「问不到」不是「同意」。产出是 M3 遗留的 `display-only` 阈值变成真正的门（`RENDER_APPROVAL_REQUIRED`，不分配 job）、`composition/approval.e2e.mjs`（25 项），以及 Q7 的关闭 |
 | 2026-09-14 | M5（并发） | D85–D86：并发下的幂等承诺要按实测写（顺序重试重放、同时重试冲突，两者都成立且不是同一件事）；一条「检查了文件但没搬它」的回退路径让 `saveCheckpoint:false` 的 revision 永远无法预览，而工具描述把缺陷当特性写着。产出是 `composition/concurrency.e2e.mjs`（19 项）与走通那条路径的 `tool-plane-m1`（41 → 44 项） |
 | 2026-09-14 | M5（安全加固） | D84：一条限制有三处可能说谎——算它的地方、报告它的地方、执行它的地方；只断言其中一处的测试会全绿。产出是 `composition/hardening.e2e.mjs`（22 项：白名单、截止时间、输出上限、工作目录、采样预算、工作区边界，每条都成对出现），并修掉「交付渲染的采样上限被算出来、被报告、然后被丢掉」这个真实缺陷 |

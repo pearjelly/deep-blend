@@ -15,12 +15,21 @@
 | Node.js | ≥ 22（开发机是 v26.8.2） | `node --version` |
 | DSH | **`0.1.5-rc.2`**，钉住的版本 | `dsh --version`；它是兼容性锚点，别的版本未必能装（见 §4） |
 | git | 任意 | `git --version` |
+| **一个已初始化的 profile** | 第 3 步会改它，所以它必须先存在 | `ls $DSH_HOME/profiles/web`。**profile 是 `dsh` 建的，不是这个安装器建的**，所以先跑一次 `dsh web`（或 `dsh --profile web --dump-config`）把它创建出来 |
 
 DSH 不在机器上时：
 
 ```bash
 npm install -g @deepseek-ai/dsh@0.1.5-rc.2
+dsh web                # 首次运行会创建 profile；装完之后再重启一次它
 ```
+
+> **为什么 profile 必须是 `dsh` 建的**：一个 profile 是它自己的一目录文件
+> （`cordis.yml`、`pnpm-workspace.yaml`、manifest），由 launcher 写入并组合。
+> 手工拼半个出来会得到一个**启动方式与其它每个部署不同**的部署，所以
+> `install-plugin.mjs` 在 profile 不存在时**拒绝并说明怎么创建**，而不是替你造一个。
+> 这一条是**从一个全新 clone 加一个全新 `DSH_HOME` 走一遍**才发现的——
+> 四步本身一直是好的，缺的是「第 3 步假设了一个前面没人创建的东西」。
 
 ---
 
@@ -133,6 +142,24 @@ DSH 版本也是：`toolchain-pins.test.mjs` 会断言**链接到的那个部署
 ---
 
 ## 5. 验收：怎么知道整套东西是好的
+
+### 先确认「文档里的这条路」本身能走通
+
+```bash
+npm run verify:clone                 # clone 到临时目录 + 全新 DSH_HOME，走完上面四步
+npm run verify:clone -- --with-blender   # 连 Blender 一起（346 MB）
+```
+
+它做的是一件**四步各自被证明过、但没人按顺序走过**的事：一个全新的 `git clone`
+加一个全新的 `DSH_HOME`，按本文的顺序执行，最后在**那个 clone 里**跑契约层。
+它**绝不碰你自己的 `$DSH_HOME`**——每一步都跑在临时目录里，所以一次运行不可能把
+一个正在用的部署重新指向一个用完就删的 clone。失败时它会**保留**那个临时目录，
+因为失败的意义就是有人要去看那个装了一半的状态。
+
+> 这条命令是被一次真的走查逼出来的：四步都好的，缺的是**它们之间的那个前提**——
+> profile 是 `dsh` 建的，不是安装器建的，而本文之前没写。见 `milestone-status.md` §21。
+
+### 再跑完整的验收
 
 ```bash
 node deepblend/tests/run.mjs        # 契约层，不需要 Blender，约 30 秒

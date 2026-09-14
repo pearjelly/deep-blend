@@ -2065,3 +2065,96 @@ DeepBlend tests: 24/24 file(s) passed              811 项自计断言 + 139 个
 | **资产策略** | ❌ `blender_asset_ingest` 仍未实现（SPEC §11）。**它的审批边界现在有着落了**——「本地自动，网络需审批」可以直接用同一套 `ctx.approval`，所以它从「依赖一个还不存在的东西」变成了「一个有先例可循的新能力」 |
 
 **M5 的验收项只剩资产策略一件**，而且本轮把它的前置条件解掉了。
+
+---
+
+## 21. 从零 clone 一遍：把「陌生人也能装」这句话真的走一遍
+
+第 14 节把验收标准换成「一个陌生人 clone 这个仓库，能不能装上、跑起来、看懂」，
+之后每一轮都在往这个标准上加东西——但**这句话本身从来没有被走一遍**。
+§14.8 与 §19.6 一直挂着「没有人真的从零 clone 一遍」。本节走完它。
+
+### 21.1 走法
+
+一个**全新的 clone**（`git clone` 到 `/tmp`）加一个**全新的 `DSH_HOME`**
+（这台机器上从来没有过 DeepBlend 的部署），按 `install.md` 的四步顺序执行。
+
+```
+$ git clone … /tmp/db-clone && cd /tmp/db-clone
+$ npm run setup            →  linked: 12 / resolved: 12/12
+$ npm test                 →  DeepBlend tests: 24/24 file(s) passed
+$ npm run blender:install  →  Blender 5.2.1 is installed and runs
+$ dsh --profile web --dump-config     # 先创建 profile（见 §21.2）
+$ DSH_HOME=… npm run plugin:install   →  installed (8 change(s))
+$ DSH_HOME=… npm run presets:install  →  installed files: 5
+$ DSH_HOME=… dsh --profile web --dump-config | grep -A8 deepblend-blender-runtime
+                           →  bundle 的三行已组合，config 里没有任何绝对路径
+```
+
+四个 `--check` 在全新 home 上也全绿。
+
+**顺带得到的一条证据**：这一次的 Blender 下载是**第二次独立校验那个 pin**——
+`verified: the image matches the pinned digest`。第 15 节记过「Blender 对 5.2.1 没有发布
+checksum，所以 pin 只能由第一次校验下载建立」，现在它至少被验证过**一次真的对得上**，
+而不是只能检测「URL 上的东西变了」。
+
+### 21.2 走一遍才发现的那一件事：第 3 步假设了一个前面没人创建的东西
+
+在全新 `DSH_HOME` 上直接跑第 3 步：
+
+```
+$ DSH_HOME=/tmp/db-freshhome npm run plugin:install
+no profile at /tmp/db-freshhome/profiles/web
+known profiles: (none)
+```
+
+**profile 是 `dsh` 建的，不是安装器建的。** 而 `install.md` 的前提表里没有这一条——
+读者从上往下照做，会在第 3 步撞上一个它没有预告过的失败。四步本身一直是好的，
+缺的是「第 3 步依赖一个前面没有任何一步创建出来的东西」。
+
+处置两处：
+
+1. `install.md` §0 的前提表加上「一个已初始化的 profile」，并写明**为什么**：
+   一个 profile 是 launcher 写入并组合的一目录文件，手工拼半个出来会得到一个
+   **启动方式与其它每个部署不同**的部署，所以安装器拒绝而不是替你造一个；
+2. `install-plugin.mjs` 的失败信息补上怎么创建它——**这条信息本身是修复的一部分**，
+   因为读者是照着文档走到这里的。
+
+实测确认了创建方式：`dsh --profile web --dump-config` 会**顺带把 profile 建出来**
+（在 `/tmp` 的一个空 home 上验证过）。
+
+### 21.3 一条给「下一轮」的规则
+
+**四步各自被证明过，不等于四步按顺序在空机器上被走过一遍。** 这两件事的差别正是本节
+唯一的那条发现：每个脚本单独都对，缺的是它们之间的那个前提。
+只要安装路径还有「第 N 步假设第 N-1 步做过什么」，就该有人真的从零走一遍。
+
+### 21.4 走一遍还发现：clone 里的浏览器套件**测的不是 clone**
+
+那条 10 分钟的完整验收在 clone 里跑完了，**全绿**——但输出里有一行不对：
+
+```
+Blender 可用  探测于 12:06:43  可执行文件 /Users/hxb/workspace/deep-blend/.tools/Blender.app/…
+              ^ 这是开发者的工作区，而这是一个 /tmp 下的 clone
+```
+
+根因在 `dsh-web-harness.mjs` 的 `createHome()`：它把 `$DSH_HOME/profiles/node_modules`
+**整个目录**链接进测试 home。这对**部署的包**是对的，对本仓库自己的包是错的——
+`profiles/node_modules/@deepblend/*` 指向的是**最后一次跑 `install-plugin.mjs` 的那个检出**，
+所以在 clone 里跑 `run-all.sh` 时，M4 套件加载的是**开发者的包**，
+而它对着**不是被测代码的代码**变绿了。
+
+**这正是本仓库一直在写测试去防的那件事**：一个悄悄用了别人代码的验证。
+修法是把作用域拆开——其余一切仍来自真实 profile，`@deepblend` 则由**harness 自己所在的那个
+仓库**现搭：
+
+```
+$ node -e "…createHome()…"   # 在 /tmp/db-clone 里
+@deepblend/dsh-blender-bundle         -> /private/tmp/db-clone/packages/deepblend/bundle
+@deepblend/dsh-blender-provider-local -> /private/tmp/db-clone/packages/deepblend/provider-local
+… 六个包全部指向 clone
+```
+
+**一条值得单独记下来的**：那条错误是在**一个全绿的运行**里发现的，靠的不是断言，
+而是输出里一个**不该出现绝对路径的地方出现了绝对路径**。
+如果当时只看了「ALL SUITES PASSED」，这一条就漏了。

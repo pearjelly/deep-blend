@@ -22,15 +22,19 @@
  */
 
 import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { buildStoreOverride } from './operator-layer.mjs'
+import { localPackages } from './workspace-layout.mjs'
 
 /** Repository root, for locating the shipped bundle patch. */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/** The npm scope this repository's own packages live under. */
+const LOCAL_SCOPE = '@deepblend'
 
 /** The real home, which is where profiles, credentials and presets live. */
 export const REAL_HOME = process.env.DEEPBLEND_DSH_HOME ?? join(homedir(), '.dsh')
@@ -114,7 +118,38 @@ export function createHome(options = {}) {
     const source = join(REAL_HOME, name)
     if (existsSync(source)) linkDirectory(source, join(home, name))
   }
-  linkDirectory(join(REAL_HOME, 'profiles', 'node_modules'), join(home, 'profiles', 'node_modules'))
+
+  // The profile's `node_modules`, entry by entry rather than as one directory link.
+  //
+  // WHAT THE ONE-LINK VERSION GOT WRONG, MEASURED
+  // --------------------------------------------
+  // It linked the whole directory, which is right for the DEPLOYMENT's packages and
+  // wrong for this repository's own. `$DSH_HOME/profiles/node_modules/@deepblend/*`
+  // points at whichever checkout `install-plugin.mjs` was last run from — so running
+  // the acceptance suite in a CLONE loaded the developer's packages, and the suite
+  // went green against code that was not the code under test. It was visible in the
+  // clone's own output: the workbench settings card named the developer's
+  // `.tools/Blender.app`, because the provider that answered was the developer's.
+  //
+  // A verification that silently uses someone else's code is the exact defect this
+  // repository keeps writing tests to avoid, so the scope is now split: everything
+  // else comes from the real profile, and `@deepblend` is built from the repository
+  // this harness lives in.
+  const realProfilesNodeModules = join(REAL_HOME, 'profiles', 'node_modules')
+  const testProfilesNodeModules = join(home, 'profiles', 'node_modules')
+  mkdirSync(testProfilesNodeModules, { recursive: true })
+  if (existsSync(realProfilesNodeModules)) {
+    for (const entry of readdirSync(realProfilesNodeModules)) {
+      if (entry === LOCAL_SCOPE) continue
+      symlinkSync(join(realProfilesNodeModules, entry), join(testProfilesNodeModules, entry))
+    }
+  }
+  const localScope = join(testProfilesNodeModules, LOCAL_SCOPE)
+  mkdirSync(localScope, { recursive: true })
+  for (const [name, directory] of localPackages()) {
+    symlinkSync(directory, join(localScope, name.split('/')[1]))
+  }
+
   const realProfile = join(REAL_HOME, 'profiles', profile)
   for (const name of ['cordis.yml', 'cordis.patch.yml', 'package.json', 'pnpm-workspace.yaml']) {
     const source = join(realProfile, name)

@@ -124,7 +124,13 @@ Blender 安装在工作区内（免 sudo、免系统目录写入）：
 
 ```bash
 bash deepblend/tests/run-all.sh
+npm run verify:clone          # 换一台「从没见过这个项目」的机器，也能装上吗？
 ```
+
+`verify:clone` 把上面那四步**按顺序、在一个全新的 clone 加一个全新的 `DSH_HOME` 上**
+走一遍，然后**在那个 clone 里**跑契约层；它不碰你自己的 `$DSH_HOME`。
+这条命令是一次真的走查逼出来的：四步各自都对，缺的是**它们之间的那个前提**
+（`milestone-status.md` §21）。
 
 预期：**15 个套件、38 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
 **24 个文件 = 811 项自计断言（12 个文件打印计数）+ 139 个 `node:test` 用例（12 个文件）**。
@@ -394,3 +400,9 @@ clone 这个仓库，能不能装上、跑起来、看懂**。用这个标准量
 是这个仓库当时**跑不了自己的测试**（16 个契约套件全部死于 `ERR_MODULE_NOT_FOUND`，
 这正是 §1「装配工作区」存在的原因）。已修好并测住的部分、以及仍然挡在「别人也能装」
 前面的五条，逐条记在 `deepblend/docs/milestone-status.md` **§14**。
+
+那句标准在 `milestone-status.md` **§21** 被真的走了一遍：一个全新的 `git clone`
+加一个全新的 `DSH_HOME`，按 `install.md` 的四步执行，然后在那个 clone 里跑完整验收。
+四步各自被证明过，**不等于四步按顺序在一台空机器上被走过一遍**——走一遍才发现
+`install.md` 少写了一个前提（profile 是 `dsh` 建的，不是安装器建的），
+而那条失败信息本身也是修复的一部分。
