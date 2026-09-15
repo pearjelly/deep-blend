@@ -5308,3 +5308,50 @@ DeepBlend tests: 49/49 file(s) passed        1142 项自计断言 + 271 个 node
 ```
 
 新增 `contract/provider-actions.test.mjs`（20 项）；**产品代码未改**，16 条变异全红。
+
+## 64. 取消一次渲染，与「拒绝发布一段会撒谎的视频」
+
+M3 剩下的是交付链路的两个末端，两件事都是**记录不许说谎**：
+
+**`cancelJob`** 回答三类 job——M1 的尝试日志（没有可取消的进程）、句柄就在**本进程**里的渲染
+（走 provider 自己的 terminate 阶梯）、进程属于**上一个 Host** 的渲染（直接对进程组发信号）——
+并且区分「取消被请求了」「进程被发信号了」「进程**没了**」三件事，**只测第三件**。
+测试用一个真实的子进程当「上一个 Host 留下的渲染」：对进程组发信号、再测量它是否真的没了
+（`process: { via: 'process-group', gone: true }`）。
+
+**`_deliverJob`** 拒绝编码不完整的帧集（「把现有的编进去」正是交付悄悄发 447/450 帧的方式），
+也拒绝发布**探测属性与 job 自己的声明不符**的视频；两种情况的记录都落到 `failed` 并带码，
+因为**一段会撒谎的交付比一次失败的交付更糟**。另外钉住一条容易写错的语义：
+**已经 `completed` 的 job 在失败的再导出之后仍然是 `completed`**（失败属于**这次尝试**，
+记在 `delivery` 上）——`completed` 没有出边是故意的。
+
+`contract/host-cancel-and-delivery.test.mjs`：**14 项，14 条变异全红，产品代码未改**。
+`_deliverJob` 的黑暗**归零**，`host/lib/index.js` **220 → 167**。
+
+### 64.1 三条「fixture 又一次记错」的记录（这次是格式，不是字段）
+
+1. **帧必须是一张真的图，不是一个文件**：`MIN_FRAME_BYTES = 512`，而我第一版用 16×16 的 PNG（82 字节）
+   ——ledger 判定它是 `truncated`，于是「少了 1 帧」变成「2 帧都不完整」。
+   检查因此红了，而**红得对**：那条规则问的是「这一帧是不是一张完整的图」。
+2. **stub 必须说它所替代的那个外部工具的语言**：我第一版给 ffprobe 编了一份自己的文档
+   （`fps`、`nbFrames`、`durationSeconds`），而真 ffprobe 说的是 `avg_frame_rate`、
+   `nb_read_frames`、`format.duration`——于是**拒绝的理由变成了 `fps: null`**，
+   而不是这一轮要测的帧数不符。改成 ffprobe 的真实形状之后，问题列表里就只剩 `frameCount`。
+3. **断言要用产品的词汇，而不是外部工具的词汇**：校验器把那个字段叫 `frameCount`（job 自己的说法），
+   ffprobe 叫 `nb_frames`。两者混用会让断言红在名字上，而不是红在行为上。
+
+### 64.2 一条只有 CI/runner 才能抓到的错误：cwd
+
+这个文件单跑是 **14/14 绿**，而 `run.mjs` 里红：我用 `process.cwd()` 拼 fixture 路径，
+而 contract runner **从每个文件自己的目录**启动它。仓库里早有 `tools/workspace-layout.mjs` 的 `ROOT`
+就是为这件事存在的（其它文件都用它）。**一个只在某个目录下才通过的测试，是会在 CI 里红的测试。**
+
+### 64.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 50/50 file(s) passed        1156 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-cancel-and-delivery.test.mjs`（14 项）；**产品代码未改**，14 条变异全红。
+读数：产品可执行行黑暗 **601 (5.0%) → 543 (4.5%)**，`host/lib/index.js` **220 → 167**。
