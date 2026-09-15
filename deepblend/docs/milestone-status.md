@@ -5055,3 +5055,60 @@ DeepBlend tests: 44/44 file(s) passed        1040 项自计断言 + 271 个 node
 `cancelJob`(21)、`_driveRender`(21)、`reconcileRenderJobs`(19)、`ingestAsset`(18)、
 `_fetchAssetToScratch`(13)、`_absorbProgress`(11)。它们要的是 **render job 那套接缝**
 （进程存活、帧账本、交付范围），与这一轮同形，是下一块目标。
+
+## 59. 交付帧范围与恢复遍历：两段「壳层」，和又一条把 `null` 变成帧 0 的强制转换
+
+这两块都是宿主包的**壳层**：下层早已被测过（契约层的 `frameNumbers`、`contract/render-reconciler.test.mjs`
+的 `reconcileRenderJob`），而壳层恰恰是「拒绝被翻译成码」「请求被收窄并且**说明**收窄」
+「一个坏掉的 job 不能拦住对其它 job 的遍历」发生的地方。读数里它们合计 48 行黑暗。
+
+`contract/host-render-jobs.test.mjs`：**19 项**，14 条变异全红。不需要 Blender、不需要子进程——
+帧范围是对 SceneSpec 的纯读，恢复遍历读的是测试自己写进去的 job 记录。
+
+### 59.1 一条缺陷：`Number(null)` 是 0，于是调用者从没写过的「第 0 帧」出现了
+
+第 45 轮那条是 `r0000`（内部哨兵被当成 revision id 传给 store）；这一轮同形：
+帧列表里有一个 `null` 时，`[...new Set(frames.map(Number))]` 会得到 `[0]`，
+于是拒绝变成「每个请求的帧都落在项目范围之外」——**一个调用者从没写过的帧号**，
+而它真正要回答的是「这个列表里没有可用的帧号」。`Number('')` 与 `Number([])` 同样是 0。
+现在强制转换显式区分「真的是数字 / 非空数字串」与别的值，后者在这里就被丢掉，
+由下面那条守卫报成「no usable frame numbers」。检查里另有一条专门钉这件事：
+`frames: [null]` 的拒绝**不许**出现 `frame 0`，也不许说 `falls outside`。
+
+### 59.2 恢复遍历：`recovering` 是**故意**的非终态
+
+第一版断言写的是「一次遍历之后那个 job 不再是 unfinished」——错的，而且错得有价值：
+`recovering` 是四种 `UNFINISHED_STATUSES` 之一，它表示**没有人在看这次渲染，但它可以续渲**。
+所以正确的断言是「它读起来是 `recovering`，而不是 `running`」，以及「再遍历一次是幂等的」。
+另外 `RenderJobStore` 的状态机拒绝了 `recovering → succeeded`（只允许 `running`/`completed`/`failed`/`cancelled`），
+测试因此**用被拒绝的那一次**学到了转移表——这条也写进注释。
+
+真正要钉的是那条 catch：记录恢复结果意味**写一条记录**，而写不进磁盘时（实测：
+`tools/disk-full-probe.mjs` 把卷写满）整个遍历会抛，于是**一台卷满的机器一个 job 都恢复不了**，
+包括同一 store 上其它项目的 job。检查让**第一次写**失败，断言那条 job 报 `unwritable`、
+而**另一条仍然被恢复**、并且它自己在磁盘上**保持原状态**（因为没有任何东西能记录答案）。
+
+### 59.3 两行死代码，点名而不是假装覆盖
+
+* `renderPreview` 的「这张图来自继承来的 checkpoint」那句（第 46 轮记下）；
+* 恢复遍历里 `previous === null` 的那条写分支——`unfinishedAcross` 只会返回**带记录**的条目，
+  所以那个分支产生不出来。
+
+### 59.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 45/45 file(s) passed        1061 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-render-jobs.test.mjs`（19 项）；产品代码改 1 处（帧号强制转换），14 条变异全红。
+
+### 59.5 读数：宿主 291 → **244**，产品可执行行黑暗 6.6%
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **853 (7.1%) → 804 (6.6%)**，`host/lib/index.js` **291 → 244**。
+两个簇各自只剩一行死代码（见 §59.3），逐行确认过 3169–3230 已无黑暗、2243–2310 只剩 2268。
+
+宿主剩下的簇就是 M3 渲染机器的其余部分：`_deliverJob`(36)、`_launchRenderer`(26)、
+`cancelJob`(21)、`_driveRender`(21)、`ingestAsset`(18)、`_fetchAssetToScratch`(13)、
+`_absorbProgress`(11)——它们的接缝是 `ctx.subprocess` 与进程存活，与第 46 轮同形。

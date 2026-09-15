@@ -2822,6 +2822,24 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D132 — 强转出来的「调用者从没写过的值」：`Number(null)` 是 0
+
+第 45 轮记下 `readRevisionPair` 把内部哨兵 `r0000` 传给 store，于是拒绝里出现了一个调用者从没写过的 id。
+同一轮之后又量到同形的第二次：交付帧范围里 `[...new Set(frames.map(Number))]` 会把 `null` 变成 `0`
+（`Number('')`、`Number([])` 也是 0），于是「这个列表里没有可用的帧号」被答成
+「每个请求的帧都落在项目范围之外」——**一个调用者从没写过的帧号**。
+修法是让强制转换显式区分「真的是数字 / 非空数字串」，别的值在这里就丢掉，
+由下面那条守卫报成 `no usable frame numbers`；测试另有一条钉住 `frames: [null]` 的拒绝里
+**不许**出现 `frame 0`。
+
+一般化：**任何 `Number(x)`／`String(x)`／布尔化的强制转换，都是在替调用者写一个他没写的值。**
+当那个值随后出现在拒绝消息里，人就会去找一个不存在的东西。校验层要区分「形状不对」与「值不在范围内」。
+
+同一轮还确认了一条容易写错的断言：恢复遍历后的 job 读起来是 `recovering`——
+它是 `UNFINISHED_STATUSES` 之一，表示**没有人在看，但可以续渲**，不是终态。
+第一版断言「遍历后不再 unfinished」是错的；`RenderJobStore` 的状态机也让测试
+**用被拒绝的那一次**学到了 `recovering` 的合法转移（`running`/`completed`/`failed`/`cancelled`）。
+
 ### D131 — 一条「写了但没人读得到」的记录，和一句承诺了代码没做的事的注释
 
 `renderPreview` 的失败路径先写一条 `status: 'failed'` 的 job 记录再抛错，注释也写明它的用途是
@@ -3032,6 +3050,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（两段壳层） | D132：交付帧范围与恢复遍历这两段壳层（48 行黑暗）搬进契约层：`_resolveDeliveryRange` 是对 SceneSpec 的纯读，`reconcileRenderJobs` 读的是测试写进去的 job 记录，`contract/host-render-jobs.test.mjs` 19 项、14 条变异全红。**又抓到同形缺陷**：`[...new Set(frames.map(Number))]` 把 `null` 变成帧 0（`Number('')`、`Number([])` 同样是 0），于是「列表里没有可用帧号」被答成「每个请求的帧都落在项目范围之外」——拒绝里出现调用者从没写过的帧号（与第 45 轮的 `r0000` 同族）；强制转换现在显式区分数字与非空数字串，并有检查钉住 `frames: [null]` 的拒绝不许出现 `frame 0`。另确认一条易写错的断言：遍历后的 job 是 `recovering`——`UNFINISHED_STATUSES` 之一，意思是**没人在看但可续渲**；`RenderJobStore` 的状态机还让测试**用被拒绝的那一次**学到了合法转移。恢复遍历要钉的是那条 catch：写不进磁盘时整个遍历会抛（disk-full 实测），于是卷满的机器一个 job 都恢复不了；检查让第一次写失败，断言那条报 `unwritable`、另一条仍被恢复、且它保持原状态。读数：产品可执行行黑暗 **853 (7.1%) → 804 (6.6%)**，`host/lib/index.js` **291 → 244**；两个簇各剩一行死代码（已点名），宿主余下的簇是 M3 渲染机器的其余部分，接缝是 `ctx.subprocess` 与进程存活 |
 | 2026-09-14 | M5（渲染之外的那一圈） | D131：`renderPreview` / `renderViews` 有真实套件在跑，所以 84 行黑暗全是渲染**周围**的决定：没有 preview profile 要报 `RENDER_PROFILE_MISSING`、采样被预算削减必须说出来（静默降采样等于 review 了另一张图）、主体是从多候选里猜出来的必须是警告、渲染器说成功却没有字节是 `RENDER_NO_OUTPUT`、失败的渲染要先写失败记录再抛。runtime 是接缝所以它是 stub（store 与 revision 都是真的，stub 交回**真 PNG**——因为宿主会合成 contact sheet），`contract/host-render-orchestration.test.mjs` 27 项、14 条变异全红。**抓到一条「写了但没人读得到」的写**：失败记录落在 `jobs/` 而 `listJobs` 只列 `renders/`，`getJob` 读得到却没人把 id 给调用者——现在 id 挂在错误上，并纠正了 `listJobs` 那句「then attempt logs」的注释（**注释承诺了代码没做的事**）。另修一句给人看的 `nullxnull, engine null`（provenance 由渲染器 report 拼出，缺字段时说「size not reported」，且不拿 profile 的分辨率冒充测量值）。读数：产品可执行行黑暗 **938 (7.8%) → 853 (7.1%)**，`host/lib/index.js` **374 → 291**；`renderViews` 整簇归零，`renderPreview` 只剩一行**死代码**（provenance 的「继承 checkpoint」那句永远走不到，因为解析出的 checkpoint 总会被本次渲染编译的那个替换），检查钉的是让它成为死代码的那个事实而不是假装覆盖 |
 | 2026-09-14 | M5（宿主的三条读路径） | D130：宿主里不需要 Blender 的那一组读路径（`getRevisionDetail` / `readRevisionPair` / 带 patch 的 `validateScene` 干跑）合计 55 行黑暗，靠 `saveCheckpoint: false` 的 spec-only revision 全部变得可达（宿主自己的 transaction 建 fixture，runtime 一被碰就抛），`contract/host-revision-reads.test.mjs` 28 项、14 条变异全红。**抓到一条真缺陷**：`readRevisionPair({to:'r0001'})` 把内部哨兵 `GENESIS_REVISION='r0000'` 原样传给 store，于是「首个 revision 没有可比基准」被答成 `REVISION_ID_INVALID: "r0000" is not a revision id`——报错里出现调用者从没写过的 id；修法是折成 `null` 让既有的 `REVISION_NOT_FOUND: records no base revision` 说话（工作台 diff 路由正是调用者）。另一件更一般的量测：变异「去掉 `manifest.previews ?? []`」**活了下来**（写入方总是写它），与 D125 那条被 schema 遮住的规则同形但结论相反——那条是两份同一条规则可撤回，这个兜底守的是**旧版本写下的 store**，所以不删而是把那个状态造出来（删掉 manifest 里的产物列表再读，断言三个列表都是 `[]`）；判据是「那个状态今天还存在吗」。干跑的四种答案也分别钉住，其中 `catch` 的 `issue?.code ?? 兜底码` 第一版只断言「码非空」，变异存活，改成断言拒绝自身的码。读数：产品可执行行黑暗 **993 (8.2%) → 938 (7.8%)**，`host/lib/index.js` **429 → 374**（三条读路径整簇归零）；宿主剩下十簇全是流水线，其中 `renderViews` / `renderPreview` / `_renderViewPlan` 走 `ctx.blenderRuntime`，是下一块可用 stub runtime 搬进契约层的目标 |
 | 2026-09-14 | M5（模型面自己的一段） | D129：`host/lib/index.js` 最大的一簇黑暗是 `createVisualReviewer()`——产品写给视觉模型的那一段，55 行从没被执行过（要走到它需要一次真模型调用）。它只依赖两个每次调用解析的服务，于是 stub 掉 `llm` / `attachments` 之后每一道护栏都确定可达：`contract/visual-reviewer.test.mjs`（**23 项**，20 条变异全红，**产品代码未改**）。最值钱的一条是**空回答护栏**：「模型看了没问题」是结果，「模型什么也没说」意味着根本没审，而下游两者都是零 findings——把后者当前者报告等于让坏掉的审查器安静地批准每个场景，所以这是安全属性；断言同时钉住诊断（finish 原因 / chunk 数 / chunk 类型 / usage）。提示词里两段同样黑暗的分支（有问题清单的版本、回答不是合法 JSON 的解析）一并驱动，断言它**必须说出什么**（cell 对应视角/相机/帧、测量值标为 facts not estimates、未知 viewId 会被丢弃、七种操作、空列表合法）。一条写法记下来：提示词里**只允许一个 `null`**（它教模型 JSON 形状时写的那行可空 `objectId`）——「不许漏出值」的检查必须分清**被引用的值**与**被泄漏的值**。另：两条变异不是红在断言上而是让产品抛堆栈，正好指出这些护栏的用途。读数：产品可执行行黑暗 **1057 (8.7%) → 993 (8.2%)**，`host/lib/index.js` **493 → 429**（审查器整簇归零）；宿主剩下的十三簇是 M1–M3 流水线本身，各需一台 Blender 或一个 job store，已在日志里逐一点名 |

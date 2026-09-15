@@ -3178,7 +3178,15 @@ export default class BlenderStudio extends Service {
     }
     const notices = []
     if (Array.isArray(input.request?.frames) && input.request.frames.length > 0) {
-      const requested = [...new Set(input.request.frames.map(Number))]
+      // `Number(null)`, `Number('')` and `Number([])` are all 0 — so a frame list with a null in it
+      // used to acquire a frame the caller never wrote, and the refusal that followed named frame 0
+      // as "outside the range". Only values that really are numbers (or non-blank numeric strings)
+      // are candidates; anything else is dropped HERE, where the guard below reports it as "no usable
+      // frame numbers" rather than as a frame that was out of range.
+      const asFrame = frame => (frame === null || frame === undefined || (typeof frame === 'string' && frame.trim() === '')
+        ? Number.NaN
+        : Number(frame))
+      const requested = [...new Set(input.request.frames.map(asFrame))]
         .filter(frame => Number.isSafeInteger(frame))
         .sort((left, right) => left - right)
       const outside = requested.filter(frame => frame < project.frameStart || frame > project.frameEnd)

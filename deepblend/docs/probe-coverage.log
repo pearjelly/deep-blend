@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 46 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 47 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 46 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 47 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -29,18 +29,18 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 106 (106 parsed)
+coverage files: 107 (107 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20020, never executed: 2128 (10.6%)   [every line]
-product CODE lines:      12095, never executed: 853 (7.1%)   [blank + comment-only excluded]
+product lines seen:      20028, never executed: 2069 (10.3%)   [every line]
+product CODE lines:      12098, never executed: 804 (6.6%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           this run (r46)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)
-files with dark lines           —        28            28            28            28            26            24            24            24            24
-host/lib/index.js               (951 raw) 649          526           493           493           493           493           429           374           291
+                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           this run (r47)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)
+files with dark lines           —        28            28            28            28            26            24            24            24            24            24
+host/lib/index.js               (951 raw) 649          526           493           493           493           493           429           374           291           244
 provider-local/lib/index.js     376 raw   368           264           168           168           168           168
 contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13            13
 ui/lib/index.js                 68 (r24) 36            25            25            25            25            25
@@ -52,6 +52,8 @@ host/index.js · createVisualReviewer 55  —        —             —        
 host/index.js · revision reads (r45)  55  —        —             —             —             —             —             —             0
 host/index.js · render views (r46)    54  —        —             —             —             —             —             —             —             0
 host/index.js · renderPreview (r46)   30  —        —             —             —             —             —             —             —             1
+host/index.js · delivery range (r47)  29  —        —             —             —             —             —             —             —             —             0
+host/index.js · recovery pass (r47)   19  —        —             —             —             —             —             —             —             —             1
 host/render-journal.js          28       3             3             3             3             3             3
 host/frame-ledger.js            10       1             1             1             1             1             1
 
@@ -79,7 +81,7 @@ through the tool that documents it. The lines that remain are guards for states 
 that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (24) ──
-   packages/deepblend/host/lib/index.js                        291/2928  code lines dark
+   packages/deepblend/host/lib/index.js                        244/2928  code lines dark
    packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
    packages/deepblend/host/lib/project-store.js                 53/263
@@ -91,6 +93,22 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
    packages/deepblend/contracts/lib/json-schema.js              15/242
+
+── ROUND 47: THE DELIVERY RANGE AND THE RECOVERY PASS (§59) ──
+Both are host-level wrappers around logic that is already tested one layer down — `frameNumbers` in the
+contracts, `reconcileRenderJob` in `contract/render-reconciler.test.mjs` — and a wrapper is where a
+refusal becomes a CODE, where a request is narrowed and the narrowing is REPORTED, and where one broken
+job must not stop the pass over the others. `host/lib/index.js` 291 → 244.
+
+Writing them found a defect of the same family as round 45's `r0000`: a frame list containing `null`
+acquired a frame the caller never wrote, because `Number(null)` is `0` — and the refusal that followed
+said frame 0 was "outside the project's range" instead of "there were no usable frame numbers".
+`Number('')` and `Number([])` are 0 as well, so the coercion is now explicit about what counts.
+
+Two lines are left in these two clusters and both are DEAD rather than dark, named rather than implied:
+`renderPreview`'s "rendered from an inherited checkpoint" sentence (the resolved checkpoint is always
+replaced by the one compiled for the requested revision) and the recovery pass's
+`previous === null` writer arm (`unfinishedAcross` only yields entries that HAVE a record).
 
 ── ROUND 46: WHAT HAPPENS AROUND A RENDER (§58) ──
 `renderPreview` and `renderViews` HAVE real suites — which is exactly why 84 of their lines had never
