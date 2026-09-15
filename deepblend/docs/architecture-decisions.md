@@ -2822,6 +2822,23 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D136 — fixture 是一份关于产品的**断言**：这一轮我记错了四处，四处都是检查抓出来的
+
+写 `contract/provider-actions.test.mjs` 时，我凭记忆写下了四个字段名与取值，四个全错：
+`outputDirectory` 实际叫 `jobDirectory`；SceneSpec 的引擎键是小写 `cycles`（`CYCLES` 是它映射到的
+Blender 标识符）；**警告码没有 `BLENDER_` 前缀**（只有错误码有那个家族）；
+`gpuDevices.devices` / `diagnostics.identifiers` 实际是 `gpuDeviceNames` /
+`engineEnumItemsInformational.identifiers`。
+
+四次都是同一类：**把「我记得的形状」当成契约**。抓住它们的是断言**产品自己写出来的那句话或那个键**
+（`outcome.message === '…'`、`entry.code === 'GPU_UNAVAILABLE'`、`detail.format === 'usd'`）——
+如果只断言「失败了」，这四处会一路绿下去，而测试量为零。
+
+一般化：**fixture 不是背景，它是断言的一部分。** 每个字段名、每个枚举值、每个码，
+在写进测试的那一刻都是一条关于产品的声明；能把它变成一次失败的写法（断言产品的原文），
+比断言「我的调用有没有报错」值钱得多。同族：D128（比较一个可能不存在的常量）、
+D132（`Number(null)`）、D135（发明一个契约里没有的码）——都是「假设」与「契约」之间没有东西相扣。
+
 ### D135 — 用一个例子论证的规则，会在它不适用的那一族上**发明新值**
 
 `normaliseErrorCode()` 给 bootstrap.py 报的每个裸码加 `BLENDER_` 前缀。注释里举的例子是
@@ -3102,6 +3119,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（action 面） | D136：`provider-local` 剩下的黑暗是每个 action 顶部的输入校验与 `resolveEngineKey`（这次渲染**到底用哪个引擎**）加能力警告，都不需要 Blender（拒绝在 spawn 之前、引擎决策读 stub 写的能力文档）。`contract/provider-actions.test.mjs` 20 项、16 条变异全红、**产品代码未改**（这轮是读不是改），文件 **124 → 38**。三道拒绝最值钱：空帧列表被拒绝且消息说清「would report success while writing nothing」（空交付与错交付的区别）、不可用引擎降级时警告点名两个引擎、Blender 5.2.1 的「可赋值但不在静态枚举」单独告警（可用性按行为判定，D1）。**本轮最值得记的是我自己的 fixture 记错了四处**：`outputDirectory` 实为 `jobDirectory`、SceneSpec 引擎键是小写 `cycles`（`CYCLES` 是 Blender 标识符）、**警告码没有 `BLENDER_` 前缀**、`gpuDevices`/`diagnostics` 形状记错——四次都是「把记得的形状当契约」，抓住它们的是断言产品**自己写出来的那句话或那个键**；若只断言「失败了」，这四处会一路绿而测试量为零。**fixture 是断言的一部分。** 读数：产品可执行行黑暗 **687 (5.7%) → 601 (5.0%)**，表格补齐到 15 列 |
 | 2026-09-14 | M5（bootstrap 通道） | D135：`runBootstrap` 是全部 Blender 调用的唯一入口，46 行黑暗的原因是「驱动它要真 Blender，而能工作的 Blender 只产生一支」——另外九支（缺 bootstrap.py / 可执行文件解析不出 / spawn 抛错 / **超时** / **调用者取消** / 没有结果文档（退出 0 与非零是**两个**码）/ 结果不是 JSON / 协议版本不符 / envelope 报错）现在用 stub `subprocess` + 磁盘真实文件驱动，`contract/provider-bootstrap.test.mjs` 25 项、14 条变异全红。**抓到一条码空间缺陷**：`normaliseErrorCode()` 给每个裸码加 `BLENDER_` 前缀——对 Blender 家族对（注释举的就是它），对**领域家族**错：Python 最常见失败 `SCENE_VALIDATION_FAILED`（27 处）、`REVISION_CHECKPOINT_MISSING`、`SCENE_CAMERA_MISSING` 在契约里本就没有前缀，于是模型读到 `BLENDER_SCENE_VALIDATION_FAILED` 这个**不存在的码**：无法分支、`recovery.md` 索引查不到、同一失败因「谁先发现」带两个码。修法是前缀只在契约真的有该形式时才加，已知裸码原样通过，都不认识落到 `SCRIPT_ERROR`，并新增 `CONTRACT_ERROR_CODES` 作为唯一允许映射进去的空间。**一般化：用一个例子论证的全体规则，会在不适用的那一族上发明新值**——而「发明一个不存在的码」比「少一个码」更糟，前者看起来可分支。同一轮还修掉 `probe-coverage.log` 那张行与列对不上的对照表（每轮只给碰过的行补格子），现在一行一列对应、缺的写 `—`。读数：产品可执行行黑暗 **731 (6.0%) → 687 (5.7%)**，`provider-local` **168 → 124** |
 | 2026-09-14 | M5（交付编码器） | D134：`video-encoder.js` 的 49 行黑暗全是「一个正常工作的 ffmpeg 不可能产生」的状态——exit 0 但没有文件、文件是空的、输出不是 JSON、没有视频流、进程是被杀的；真实套件会真的编码，所以只看得到成功路径（第 30 轮那类缺口的来源）。接缝是 `ctx.get('subprocess')`，stub 之后每个分支只隔一个对象，`contract/host-video-encoder.test.mjs` 18 项、12 条变异全红、**产品代码未改**，文件 **49 → 0**。钉住两条代码自己论证过的规则：ffprobe 的 `nb_read_frames`（量出来的）赢过 `nb_frames`（容器声明的）、argv 的位置关系（`-framerate`/`-start_number` 在 `-i` 前、`-frames:v` 在 `-i` 后，ffmpeg 8.0.1 不接受另一种顺序）。三条小教训：`exit 0` 不是「文件存在」（三条检查分开钉）；`done` 被 reject（进程被杀，没有 exit code）与 spawn 抛错（机器拒绝启动，原样传播）是两件事；测试里提前构造的 `Promise.reject` 是延迟炸弹（第一版让文件打印 17/17 后再非零退出）。读数：产品可执行行黑暗 **780 (6.4%) → 731 (6.0%)**，「每一行」首次低于 2000 |
 | 2026-09-14 | M5（资产导入的远程那一半） | D133：`_fetchAssetToScratch` 的 13 行黑暗理由是「它用全局 `fetch`，失败分支在契约层够不着；而需要联网的测试没人跑」——这个理由是错的：绑在随机回环端口上的 `node:http` 服务器就够真（真实 socket、真实流式 body、真实 HTTP 与大小分支，没有 mock、没有出网），六个分支一次驱动（不是 URL / 非 http(s) 协议 / 非 2xx / 空 body / 边流边超上限 / 连不上）。同轮还驱动本地那侧的三个拒绝（什么都不给 / 给目录 / 本地文件超上限）与成功路径的收尾句（**可直接照抄的 ScenePatch 片段**），`contract/host-asset-ingest.test.mjs` 18 项、12 条变异全红、**产品代码未改**。一条量测：`ingestAsset` 有**两处**上限（拷贝前按 `stat`、拷贝后按落盘字节），变异删掉前一条会让后一条的消息出现而检查变红，说明检查分得清两处；后一条只能在两次 `stat` 之间文件长大时触发，是**竞态护栏**，测试头部与文档点名「故意不覆盖」并写明理由。读数：产品可执行行黑暗 **804 (6.6%) → 780 (6.4%)**，`host/lib/index.js` **244 → 220** |

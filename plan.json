@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "deepblend.frame-plan/v1",
+  "jobId": null,
+  "attemptToken": null,
+  "checkpoint": "/var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-actions-QChxvG/scene.blend",
+  "cameraId": null,
+  "profileName": null,
+  "profile": {},
+  "frameRange": null,
+  "frames": [
+    1
+  ],
+  "outputDirectory": "/Users/hxb/workspace/deep-blend/frames",
+  "filePrefix": "frame_",
+  "padding": 4
+}

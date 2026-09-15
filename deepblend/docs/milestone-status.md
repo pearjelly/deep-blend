@@ -5259,3 +5259,52 @@ DeepBlend tests: 48/48 file(s) passed        1122 项自计断言 + 271 个 node
 新增 `contract/provider-bootstrap.test.mjs`（25 项）；产品代码改 1 处（`normaliseErrorCode`，
 并新增 `CONTRACT_ERROR_CODES` 作为「唯一允许映射进去的空间」），14 条变异全红。
 读数：产品可执行行黑暗 **731 (6.0%) → 687 (5.7%)**，`provider-local/lib/index.js` **168 → 124**。
+
+## 63. 提供者的 action 面：十道「发射前」的拒绝，与一次「fixture 也会记错」的量测
+
+第 50 轮把 `runBootstrap` 打通之后，`provider-local` 剩下的黑暗集中在**每个 action 顶部的输入校验**
+（缺 checkpoint 路径、空帧列表、没有 id 的 view、不是路径的 SceneSpec 路径）与
+`resolveEngineKey`（**这次渲染到底会用哪个引擎**），外加能力探测派生出的警告。
+它们都不需要 Blender：拒绝发生在 spawn **之前**，引擎决策读的是 stub 写出来的能力文档。
+`contract/provider-actions.test.mjs`：**20 项，16 条变异全红，产品代码未改**（这一轮是读，不是改）。
+`provider-local/lib/index.js` **124 → 38**。
+
+三道拒绝比其他更值钱：
+
+* **空帧列表被拒绝**，而且消息说了为什么——「would report success while writing nothing」：
+  这是「空交付」与「错交付」的区别；
+* **不可用的引擎会被降级，并带一条点名两个引擎的警告**；一个都不可用时是 `ENGINE_UNAVAILABLE`，
+  而不是「先渲了再说」；
+* **Blender 5.2.1 的陷阱**（可赋值但不在静态枚举里）单独告警，因为可用性必须**按行为判定**（D1）。
+
+### 63.1 量测：这一轮我自己的 fixture 记错了四处
+
+写这个文件时，我凭记忆写了四个字段/名字，**四个都是错的**，而且是检查把它们逐个抓出来的：
+
+| 我写的 | 产品实际的 |
+|---|---|
+| `outputDirectory` | `jobDirectory`（于是那道「需要一个持久 job 目录」的拒绝反复出现） |
+| 引擎键 `CYCLES` | SceneSpec 的键是**小写** `cycles`，`CYCLES` 是它映射到的 Blender 标识符 |
+| 警告码 `BLENDER_GPU_UNAVAILABLE` | 警告词表**没有前缀**：`GPU_UNAVAILABLE`（错误码才有 `BLENDER_` 家族） |
+| `gpuDevices.devices` / `diagnostics.identifiers` | `gpuDevices.gpuDeviceNames` / `renderEngineDiagnostics.engineEnumItemsInformational.identifiers` |
+
+四次都是**同一类错误**：把「我记得的形状」当成契约。抓住它们的不是「有没有报错」，而是
+**断言产品自己写出来的那句话/那个键**——`outcome.message === '…'`、`entry.code === 'GPU_UNAVAILABLE'`、
+`detail.format === 'usd'`。**如果只断言「失败了」，这四处会一路绿下去，而测试量为零。**
+
+### 63.2 读数：产品可执行行黑暗首次到 5.0%
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **687 (5.7%) → 601 (5.0%)**，`provider-local/lib/index.js` **168 → 38**
+（本轮之后该文件只剩：`startFrameSequence` 的 spawn 侧 10 行、第 38 轮点名的可执行文件竞态 8 行、
+`awaitFrameSequence` 4 行、路径探测里的 `spawnSync` 4 行、`runBootstrap` 那条死代码 3 行）。
+表格同时补齐到 15 列（新增 r51）。
+
+### 63.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 49/49 file(s) passed        1142 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/provider-actions.test.mjs`（20 项）；**产品代码未改**，16 条变异全红。
