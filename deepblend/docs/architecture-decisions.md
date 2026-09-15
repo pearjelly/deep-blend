@@ -2822,6 +2822,23 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D140 — 「一次无人看管的渲染」是可测的：把 runtime 换成 stub，底下留真的 store
+
+`_launchRenderer` + `_driveRender` 是渲染循环的两半，M3 套件用真 Blender 端到端跑它们，
+于是**只有健康机器的那一支**被读过。这一轮把 runtime 换成 stub（`startFrameSequence` 返回 handle 并把
+journal 写进 job 目录、`awaitFrameSequence` 决定结果），底下保留真实 store、真实帧文件与真实记录，
+十二个分支一次可达：没有 `jobs` 服务、`jobs.start` 抛错、spawn 前被取消、journal 里的失败帧与
+非 JSON 行、帧没写完就死、交付与声明不符、磁盘满。
+
+三条注释里写下的承诺因此第一次被断言：**缺席必须被报告**（无投影时记录里就有那条警告）、
+**投影失败不影响渲染**（渲染仍然完成 + 记录说明）、**给不出答案时先杀进程再记账**
+（失败路径上必须有 `terminate`，否则就留下 M3 验收条件禁止的孤儿）。
+
+两处**故意不断言**：投影失败时的 `ctx.logger.warn`（logger 是 harness 自己的属性、不是可 provide 的
+服务——真正该读的是记录上那条警告，已断言），以及撕裂 journal 的四个条件
+（`incompleteJournalWarning` 把它们全做成参数就是**为了让契约层按手驱动**，那件事属于
+`render-journal.test.mjs`；搬到这里就是第二份）。
+
 ### D139 — 只在「依赖不在」时才出现的分支，怎么测：有意加宽包面，并写清为什么
 
 `tool/lib/shared.js` 里那些句子只有在一台**缺服务**的机器上才会产生：没有 attachment store、
@@ -3172,6 +3189,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（渲染循环） | D140：`_launchRenderer` + `_driveRender` 此前只有「健康机器」那一支被执行过；把 runtime 换成 stub（`startFrameSequence` 写 journal、`awaitFrameSequence` 决定结果）、底下保留真实 store/帧文件/记录之后，十二个分支一次可达：没有 `jobs` 服务、`jobs.start` 抛错（渲染不受影响）、spawn 前被取消（必须杀掉刚起的子进程）、journal 的失败帧与非 JSON 行、帧没写完就死（点名欠几帧 + `resumeJobId`）、交付与声明不符、磁盘满（分类 `DISK_FULL` 且先杀渲染器）。三条注释里的承诺第一次被断言：缺席必须被报告、投影失败不影响渲染、给不出答案时先杀进程再记账。两处**故意不断言**并写进测试头部：投影失败时的 `ctx.logger.warn`（logger 是 harness 自身属性，不可 provide；记录上那条警告已断言）与撕裂 journal 的四个条件（属于 `render-journal.test.mjs`，搬来即第二份）。`contract/host-render-loop.test.mjs` 12 项、**产品代码未改**；`host/lib/index.js` **167 → 132**。读数：产品可执行行黑暗 **412 (3.4%) → 377 (3.1%)** |
 | 2026-09-14 | M5（依赖不在时说什么） | D139：三个平面在「依赖不在」时的句子（没有 attachment store 就点名图片路径、没有审批服务就说没人可问、探测失败返回**结构化**错误让设置卡渲染理由、没装 host bundle 时四个 M3 工具描述**部署**而不是请求）全部驱动：`contract/dependency-absent-answers.test.mjs` 30 项、15 条变异全红；`tool/lib/shared.js` **22 → 0**、`tool/render-tools.js` **19 → 11**、`ui/lib/index.js` **25 → 13**。三处故意不覆盖并写进测试头部（过大的 body、不是 JSON 对象的 body、HTTP 层的 `UI_REQUEST_FAILED` 包装——都在 HTTP 分发之后，只有浏览器套件够得着）。为让这些分支可测，tool barrel **又加宽四行导出**（`persistImage`/`losslessJson`/`canonicalData`/`requestApproval`），理由写清：**只在「缺少依赖」时出现的分支，另一个到达方式就是一台真缺服务的机器**。两次 fixture 记错形状：`persistImage` 的引用用服务自己的字段名（`{id}` stub 让 `attachmentId` 变成 `"undefined"` 却仍 `image !== null`，只有断言字段值才抓住）、工具不可用的 `data` 是错误自己的 JSON（`data.code`）而非信封的 `errorCode`。读数：产品可执行行黑暗 **454 (3.8%) → 412 (3.4%)** |
 | 2026-09-14 | M5（store 的错误路径） | D138：三个 store 文件 125 行黑暗全是「健康 store 不会产生的状态」（项目目录无记录、别的 build 写的记录、revision 目录无 spec、非法 job 迁移、会让场景非法的 patch、编译没产出 checkpoint 却要预览），每个用例写出引发该分支的文档；`contract/store-error-paths.test.mjs` 25 项、18 条变异全红、**产品代码未改**，`project-store` **47 → 12**、`revision-transaction` **71 → 39**、`render-job-store` **22 → 0**。两条设计被钉住：`unfinished()` 把「没有记录」报成 `{jobId, record: null}`（被看见而非跳过），记录存在但坏了则整个扫描抛错（"Refusing to treat corruption as absence"）——都不能读成「没有未完成的 job」；render job store 拒绝非法状态迁移。**一条被层数搞混的教训**：我断言 `parseRevisionId('r0000')` 抛错——那句话真的存在但来自 **store**，解析器是安全的（返回 `null`）；**一句话不是它的出处，而层决定「抛错」还是「返回 null」**。同族：标题冲突被加数字后缀（`healthy-2`），只有显式给已占用 id 才是 `PROJECT_EXISTS`。读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)** |
 | 2026-09-14 | M5（取消与交付的末端） | D137：`cancelJob` 回答三类 job（M1 尝试日志 / 句柄在本进程的渲染 / 进程属于上一个 Host 的渲染），且区分「请求了」「发了信号」「进程没了」——只测第三件；测试用真实子进程当「上一个 Host 的渲染」并测量它真的没了。`_deliverJob` 拒绝编码不完整的帧集、拒绝发布探测属性与声明不符的视频（记录落 `failed` + 码），并钉住「已 `completed` 的 job 在失败的再导出后仍是 `completed`」（失败属于这次尝试，记在 `delivery`）。`contract/host-cancel-and-delivery.test.mjs` 14 项、14 条变异全红、**产品代码未改**；`_deliverJob` 黑暗归零，`host/lib/index.js` **220 → 167**。三条「fixture 又记错」：帧必须是一张真的图（`MIN_FRAME_BYTES=512`，16×16 PNG 被判定 truncated）、stub 要说被替代工具的语言（ffprobe 的 `avg_frame_rate`/`nb_read_frames`，否则拒绝理由变成 `fps: null`）、断言要用产品词汇（校验器叫 `frameCount`，ffprobe 叫 `nb_frames`）。另一条只有 runner 能抓到：文件单跑 14/14 绿而 `run.mjs` 红——路径用了 `process.cwd()`，而 runner 从每个文件自己的目录启动它（`ROOT` 就是为这件事存在的）。读数：产品可执行行黑暗 **601 (5.0%) → 543 (4.5%)** |

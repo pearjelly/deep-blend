@@ -5435,3 +5435,47 @@ DeepBlend tests: 52/52 file(s) passed        1211 项自计断言 + 271 个 node
 
 新增 `contract/dependency-absent-answers.test.mjs`（30 项）；产品代码改 1 处（tool barrel 加宽四行导出），
 15 条变异全红。读数：产品可执行行黑暗 **454 (3.8%) → 412 (3.4%)**。
+
+## 67. 渲染循环：一次无人看管的渲染会说什么
+
+`_launchRenderer` 启动渲染器、把剩下的交给 `_driveRender`；M3 套件用**真的 Blender** 端到端驱动它，
+所以只看得到一台健康机器会产生的东西。把 runtime 换成 stub、底下仍是真实 store 之后，
+它周围的每一支都够得着了：
+
+| 走到的东西 | 记录里留下什么 |
+|---|---|
+| 组合里**没有 `jobs` 服务** | 渲染照常跑，并记下「没有投影」以及进度仍可从 `blender_job_status` 读 |
+| `jobs.start` **抛错** | 渲染**不受影响**；记录里是一条 `JOB_PROJECTION_UNAVAILABLE`，含原因与「记录仍是权威」 |
+| 在「写完记录」与「spawn」之间被取消 | 刚起出来的子进程**必须被杀掉**（哪怕 handle 拒绝第二次 terminate） |
+| 子进程的 journal | 帧、**失败的帧**、以及「完整但不是 JSON 的一行 = 写方的缺陷，不是撕裂的 kill」 |
+| 帧没写完就死了 | 记录成 `failed`，点名还欠几帧与 `resumeJobId` 提示 |
+| 交付的视频与 job 声明不符 | 交付失败落在 `delivery` 上，job 仍是 `failed` |
+| 磁盘满 | 分类成 `DISK_FULL`，并且**先把渲染器杀干净** |
+
+`contract/host-render-loop.test.mjs`：**12 项**。`host/lib/index.js` **167 → 132**。
+
+### 67.1 三处「产品自己说了答案」的注释，这一轮验证了
+
+1. **没有投影不是静默的**：注释写着「Absence is reported, never silent」，检查钉的就是那句话的原文。
+2. **投影失败不影响渲染**：注释写着「The render itself is unaffected and its durable record is still
+   authoritative」，检查同时断言**渲染仍然完成**与那句话。
+3. **给不出答案时先杀进程再记账**：注释写着「STOP THE RENDERER FIRST … a Host that has given up while a
+   renderer has not is exactly the orphan the M3 acceptance forbids」，检查断言 `terminated` 出现在
+   失败路径上。
+
+### 67.2 两处**故意不断言**，都写在测试头部
+
+* 投影失败时那句 `ctx.logger.warn`：logger 是 harness 自己的属性，不是一个测试能 provide 的服务；
+  真正该读的是**记录上那条警告**，它已经被断言（同一条信息两处出现，其中一处是给机器的）。
+* 撕裂 journal 的四个条件：`incompleteJournalWarning` 把它们全做成参数，**就是为了让契约层按手驱动**，
+  而那件事在 `render-journal.test.mjs` 里做——放到这里会变成第二份。
+
+### 67.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 53/53 file(s) passed        1223 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-render-loop.test.mjs`（12 项）；**产品代码未改**。
+读数：产品可执行行黑暗 **412 (3.4%) → 377 (3.1%)**。
