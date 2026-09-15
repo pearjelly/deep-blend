@@ -2822,6 +2822,25 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D138 — 一句话不是它的出处：同一句拒绝可以来自两层，而层决定「抛错」还是「返回 null」
+
+我第一版断言 `parseRevisionId('r0000')` 抛 `"r0000" is not a revision id; expected the form r0001.`——
+**这句话真的存在**（第 45 轮见过），但它来自 **store**：`parseRevisionId` 是**安全**的解析器
+（不是 revision id 就返回 `null`），抛错的是 `store.readRevisionSpec(projectId, 'r0000')`。
+**记住了那句话，不等于记住了哪一层说的**；而层决定了调用方要分支的东西是「异常」还是「null」。
+
+同轮另一条同族：标题冲突**不会**报 `PROJECT_EXISTS`，它被加数字后缀（`healthy-2`）；
+只有**显式给出已被占用的 id** 才是拒绝。我第一版拿标题去撞，撞出的是另一个错误
+（编译失败），而那条红色只说明「我记错了产品的行为」。
+
+两条都指向同一件事：**fixture 里的每个字段、每个码、每条消息，都是关于产品的一条断言**；
+写得越具体（断原文、断层、断 `null` vs 抛错），越能把「我以为」变成一次失败。
+
+另外把 store 的两条设计钉住了：`unfinished()` 把「没有记录」报成 `{jobId, record: null}`
+（被看见而不是被跳过），而记录**存在但坏了**时整个扫描抛错（"Refusing to treat corruption as
+absence"）——两者都不能读成「没有未完成的 job」；以及 render job store 对非法状态迁移的拒绝
+（第 47 轮是被拒绝才学到转移表的）。
+
 ### D137 — fixture 要说**外部工具的语言**，断言要用**产品的词汇**；还有一条只有 runner 能抓到的错
 
 三件小事，都是「测试自己写错」而检查红得对：
@@ -3137,6 +3156,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（store 的错误路径） | D138：三个 store 文件 125 行黑暗全是「健康 store 不会产生的状态」（项目目录无记录、别的 build 写的记录、revision 目录无 spec、非法 job 迁移、会让场景非法的 patch、编译没产出 checkpoint 却要预览），每个用例写出引发该分支的文档；`contract/store-error-paths.test.mjs` 25 项、18 条变异全红、**产品代码未改**，`project-store` **47 → 12**、`revision-transaction` **71 → 39**、`render-job-store` **22 → 0**。两条设计被钉住：`unfinished()` 把「没有记录」报成 `{jobId, record: null}`（被看见而非跳过），记录存在但坏了则整个扫描抛错（"Refusing to treat corruption as absence"）——都不能读成「没有未完成的 job」；render job store 拒绝非法状态迁移。**一条被层数搞混的教训**：我断言 `parseRevisionId('r0000')` 抛错——那句话真的存在但来自 **store**，解析器是安全的（返回 `null`）；**一句话不是它的出处，而层决定「抛错」还是「返回 null」**。同族：标题冲突被加数字后缀（`healthy-2`），只有显式给已占用 id 才是 `PROJECT_EXISTS`。读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)** |
 | 2026-09-14 | M5（取消与交付的末端） | D137：`cancelJob` 回答三类 job（M1 尝试日志 / 句柄在本进程的渲染 / 进程属于上一个 Host 的渲染），且区分「请求了」「发了信号」「进程没了」——只测第三件；测试用真实子进程当「上一个 Host 的渲染」并测量它真的没了。`_deliverJob` 拒绝编码不完整的帧集、拒绝发布探测属性与声明不符的视频（记录落 `failed` + 码），并钉住「已 `completed` 的 job 在失败的再导出后仍是 `completed`」（失败属于这次尝试，记在 `delivery`）。`contract/host-cancel-and-delivery.test.mjs` 14 项、14 条变异全红、**产品代码未改**；`_deliverJob` 黑暗归零，`host/lib/index.js` **220 → 167**。三条「fixture 又记错」：帧必须是一张真的图（`MIN_FRAME_BYTES=512`，16×16 PNG 被判定 truncated）、stub 要说被替代工具的语言（ffprobe 的 `avg_frame_rate`/`nb_read_frames`，否则拒绝理由变成 `fps: null`）、断言要用产品词汇（校验器叫 `frameCount`，ffprobe 叫 `nb_frames`）。另一条只有 runner 能抓到：文件单跑 14/14 绿而 `run.mjs` 红——路径用了 `process.cwd()`，而 runner 从每个文件自己的目录启动它（`ROOT` 就是为这件事存在的）。读数：产品可执行行黑暗 **601 (5.0%) → 543 (4.5%)** |
 | 2026-09-14 | M5（action 面） | D136：`provider-local` 剩下的黑暗是每个 action 顶部的输入校验与 `resolveEngineKey`（这次渲染**到底用哪个引擎**）加能力警告，都不需要 Blender（拒绝在 spawn 之前、引擎决策读 stub 写的能力文档）。`contract/provider-actions.test.mjs` 20 项、16 条变异全红、**产品代码未改**（这轮是读不是改），文件 **124 → 38**。三道拒绝最值钱：空帧列表被拒绝且消息说清「would report success while writing nothing」（空交付与错交付的区别）、不可用引擎降级时警告点名两个引擎、Blender 5.2.1 的「可赋值但不在静态枚举」单独告警（可用性按行为判定，D1）。**本轮最值得记的是我自己的 fixture 记错了四处**：`outputDirectory` 实为 `jobDirectory`、SceneSpec 引擎键是小写 `cycles`（`CYCLES` 是 Blender 标识符）、**警告码没有 `BLENDER_` 前缀**、`gpuDevices`/`diagnostics` 形状记错——四次都是「把记得的形状当契约」，抓住它们的是断言产品**自己写出来的那句话或那个键**；若只断言「失败了」，这四处会一路绿而测试量为零。**fixture 是断言的一部分。** 读数：产品可执行行黑暗 **687 (5.7%) → 601 (5.0%)**，表格补齐到 15 列 |
 | 2026-09-14 | M5（bootstrap 通道） | D135：`runBootstrap` 是全部 Blender 调用的唯一入口，46 行黑暗的原因是「驱动它要真 Blender，而能工作的 Blender 只产生一支」——另外九支（缺 bootstrap.py / 可执行文件解析不出 / spawn 抛错 / **超时** / **调用者取消** / 没有结果文档（退出 0 与非零是**两个**码）/ 结果不是 JSON / 协议版本不符 / envelope 报错）现在用 stub `subprocess` + 磁盘真实文件驱动，`contract/provider-bootstrap.test.mjs` 25 项、14 条变异全红。**抓到一条码空间缺陷**：`normaliseErrorCode()` 给每个裸码加 `BLENDER_` 前缀——对 Blender 家族对（注释举的就是它），对**领域家族**错：Python 最常见失败 `SCENE_VALIDATION_FAILED`（27 处）、`REVISION_CHECKPOINT_MISSING`、`SCENE_CAMERA_MISSING` 在契约里本就没有前缀，于是模型读到 `BLENDER_SCENE_VALIDATION_FAILED` 这个**不存在的码**：无法分支、`recovery.md` 索引查不到、同一失败因「谁先发现」带两个码。修法是前缀只在契约真的有该形式时才加，已知裸码原样通过，都不认识落到 `SCRIPT_ERROR`，并新增 `CONTRACT_ERROR_CODES` 作为唯一允许映射进去的空间。**一般化：用一个例子论证的全体规则，会在不适用的那一族上发明新值**——而「发明一个不存在的码」比「少一个码」更糟，前者看起来可分支。同一轮还修掉 `probe-coverage.log` 那张行与列对不上的对照表（每轮只给碰过的行补格子），现在一行一列对应、缺的写 `—`。读数：产品可执行行黑暗 **731 (6.0%) → 687 (5.7%)**，`provider-local` **168 → 124** |

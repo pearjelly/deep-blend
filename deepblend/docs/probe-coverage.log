@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 52 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 53 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 52 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 53 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -29,31 +29,31 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 112 (112 parsed)
+coverage files: 113 (113 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20049, never executed: 1800 (9.0%)   [every line]
-product CODE lines:      12103, never executed: 543 (4.5%)   [blank + comment-only excluded]
+product lines seen:      20049, never executed: 1711 (8.5%)   [every line]
+product CODE lines:      12103, never executed: 454 (3.8%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52
-product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)
-files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23
-host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167
-provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —
-contracts/lib/ui-api.js         61 (r24)      —             —             13            13            13            13            13            13            13            13            13            13            13            13   —
-ui/lib/index.js                 68 (r24)      36            25            25            25            25            25            25            25            25            25            25            25            25            25   —
-tool/lib/tools.js               —             —             —             —             51            51            0             0             0             0             0             0             0             0             0   —
-tool/lib/render-tools.js        89            33            33            33            33            33            19            19            19            19            19            19            19            19            19   —
-tool/lib/visual-tools.js        —             —             —             69            69            69            0             0             0             0             0             0             0             0             0   —
-tool/lib/index.js               20            20            20            20            20            20            0             0             0             0             0             0             0             0             0   —
-host/lib/video-encoder.js       49            49            49            49            49            49            49            49            49            49            49            49            2             0             0   —
-host/index.js · createVisualReviewer55            —             —             —             —             —             —             —             —             —             —             —             0             0             0   —
-host/index.js · revision reads  55            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —
-host/lib/index.js · render views54            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —
-host/index.js · asset ingest + fetch31            —             —             —             —             —             —             —             —             —             —             —             7             7             7   —
-provider-local/lib/index.js · actions50            —             —             —             —             —             —             —             —             —             —             —             —             —             0   —
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53
+product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)
+files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22
+host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167
+provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —   —
+contracts/lib/ui-api.js         61 (r24)      —             —             13            13            13            13            13            13            13            13            13            13            13            13   —   —
+ui/lib/index.js                 68 (r24)      36            25            25            25            25            25            25            25            25            25            25            25            25            25   —   —
+tool/lib/tools.js               —             —             —             —             51            51            0             0             0             0             0             0             0             0             0   —   —
+tool/lib/render-tools.js        89            33            33            33            33            33            19            19            19            19            19            19            19            19            19   —   —
+tool/lib/visual-tools.js        —             —             —             69            69            69            0             0             0             0             0             0             0             0             0   —   —
+tool/lib/index.js               20            20            20            20            20            20            0             0             0             0             0             0             0             0             0   —   —
+host/lib/video-encoder.js       49            49            49            49            49            49            49            49            49            49            49            49            2             0             0   —   —
+host/index.js · createVisualReviewer55            —             —             —             —             —             —             —             —             —             —             —             0             0             0   —   —
+host/index.js · revision reads  55            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —
+host/lib/index.js · render views54            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —
+host/index.js · asset ingest + fetch31            —             —             —             —             —             —             —             —             —             —             —             7             7             7   —   —
+provider-local/lib/index.js · actions50            —             —             —             —             —             —             —             —             —             —             —             —             —             0   —   —
 
 Round 30 recorded a delivery that failed to encode while its record still said "encoding"; round 31
 drove the reconciler's three safety rules with real processes; round 32 made a cited probe reproducible;
@@ -98,6 +98,23 @@ the header — a reader lining up "r44" against a short row was reading a DIFFER
 now one cell per column, with `—` where a round did not record that file, and the per-file cells come
 from the kept reading of the round named in the column (r46 and r49 use their FINAL reading, which is
 what the prose quotes). A table nobody re-reads is the same defect as a number nobody re-reads.
+
+── ROUND 53: THE STORE'S ERROR PATHS (§65) ──
+Three files, 125 dark lines, and they are all the state a HEALTHY store never produces: a project
+directory with no record ("it was never completed"), a record written by a build from the future, a
+revision directory with no spec, a job whose status transition is illegal, a patch that would produce
+an invalid scene, a preview requested on a revision whose compile produced no checkpoint. Each case
+writes the document that provokes the branch — including documents a correct writer would never
+produce, because "what does this build do with a store another build wrote" is a question only an
+artificially broken store can answer. `project-store.js` 47 → 12, `revision-transaction.js` 71 → 39,
+`render-job-store.js` 22 → **0**; the product total went 543 → 454.
+
+Two behaviours are worth more than the rest. `unfinished()` distinguishes ABSENT from CORRUPT: a job
+directory with no record is surfaced as `{jobId, record: null}`, while a record that exists but is not
+JSON makes the whole scan throw ("Refusing to treat corruption as absence") — neither may read as
+"nothing unfinished", which is the one answer restart recovery must never give. And the render job store
+REFUSES an illegal status transition: round 47 learned the table by being refused, and a record in a
+state no reader can act on is worse than an error.
 
 ── ROUND 52: CANCELLING A RENDER, AND REFUSING TO PUBLISH A VIDEO THAT LIES (§64) ──
 The two ends of a delivery that went wrong. `cancelJob` answers three kinds of job — an M1 attempt log

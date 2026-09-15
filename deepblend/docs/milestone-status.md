@@ -5355,3 +5355,45 @@ DeepBlend tests: 50/50 file(s) passed        1156 项自计断言 + 271 个 node
 
 新增 `contract/host-cancel-and-delivery.test.mjs`（14 项）；**产品代码未改**，14 条变异全红。
 读数：产品可执行行黑暗 **601 (5.0%) → 543 (4.5%)**，`host/lib/index.js` **220 → 167**。
+
+## 65. store 的错误路径：健康 store 永远不会产生的那些状态
+
+三个文件、125 行黑暗，全是**一个健康的 store 不会产生的状态**：项目目录里没有记录
+（「it was never completed」）、另一个 build 写下、版本对不上的记录、revision 目录里没有 spec、
+非法的 job 状态迁移、会让场景变得非法的 patch、在一个「编译没有产出 checkpoint」的 revision 上要求预览。
+每个用例都**写出那个能引发该分支的文档**——包括正确的写入方永远不会产生的文档，
+因为「这个 build 拿到另一个 build 写的 store 会怎样」只有人为弄坏的 store 才能回答。
+
+`contract/store-error-paths.test.mjs`：**25 项，18 条变异全红，产品代码未改**。
+`project-store.js` **47 → 12**、`revision-transaction.js` **71 → 39**、`render-job-store.js` **22 → 0**。
+
+### 65.1 两条比其它更值钱的行为
+
+1. **`unfinished()` 把「没有」与「坏了」分开**：job 目录里**没有**记录 → 报成 `{jobId, record: null}`
+   （被**看见**而不是被跳过）；记录**存在但不是 JSON** → 整个扫描**抛错**
+   （"Refusing to treat corruption as absence"）。两者都不能读成「没有未完成的 job」——
+   那正是重启恢复最不能给出的答案。
+2. **render job store 拒绝非法的状态迁移**：第 47 轮是**被拒绝**才学到那张转移表的
+   （`recovering → completed` 合法、`recovering → succeeded` 不合法）；
+   一条「读者无法据以行动」的记录比一个错误更糟。
+
+### 65.2 一条被层数搞混的教训：**同一句话可以来自两层**
+
+我第一版写的是「`parseRevisionId('r0000')` 抛 `"r0000" is not a revision id`」——
+**这句话确实存在**（第 45 轮见过），但它来自 **store**，不是解析器：
+`parseRevisionId` 是**安全**的（`'r0000'` → `null`），而 `store.readRevisionSpec(projectId, 'r0000')`
+才抛。检查因此红了，红得对。
+
+**一句话不是它的出处。** 记住了一句话，不等于记住了哪一层说的；而层决定了它是**抛错**还是**返回 null**
+——这正是调用方要分支的东西。同类的还有：标题冲突会被加数字后缀（`healthy-2`），
+只有**显式给 id** 才是 `PROJECT_EXISTS`；我第一版拿标题去撞，于是撞出了另一个错误。
+
+### 65.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 51/51 file(s) passed        1181 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/store-error-paths.test.mjs`（25 项）；**产品代码未改**，18 条变异全红。
+读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)**。
