@@ -5195,3 +5195,67 @@ DeepBlend tests: 47/47 file(s) passed        1097 项自计断言 + 271 个 node
 新增 `contract/host-video-encoder.test.mjs`（18 项）；**产品代码未改**，12 条变异全红。
 读数：产品可执行行黑暗 **780 (6.4%) → 731 (6.0%)**（「每一行」的读数首次低于 2000），
 `host/lib/video-encoder.js` **49 → 0**。
+
+## 62. 提供者的 bootstrap 通道：一个**契约里不存在**的错误码
+
+`runBootstrap` 是本产品所有 Blender 调用的唯一入口，46 行黑暗的原因是老问题：
+驱动它的套件需要**真的 Blender**，而一个能工作的 Blender 只会产生其中一支。
+另外九支各自带着自己的稳定码，现在都用 stub 的 `subprocess`（配合磁盘上**真实**的目录与文件）驱动了：
+
+| 走到的东西 | 码 |
+|---|---|
+| 没有 action / bootstrap.py 不存在 / 可执行文件解析不出来 | `UNSUPPORTED_ACTION` / `BOOTSTRAP_MISSING` / `NOT_FOUND` |
+| spawn 抛错 / 进程起不来（`done` 被 reject） | `SPAWN_FAILED`（带 cause） |
+| **超时** / **调用者取消** | `TIMEOUT` / `ABORTED`——两者**必须**分得开 |
+| 没有结果文档：退出 0 / 非零退出 | `RESULT_MISSING` / `NONZERO_EXIT`（带 stderr 尾） |
+| 结果不是 JSON / 协议版本不对 / envelope 报错 | `RESULT_UNPARSEABLE` / `PROTOCOL_VERSION_MISMATCH` / bootstrap.py 自己的码 |
+
+`contract/provider-bootstrap.test.mjs`：**25 项，14 条变异全红**。另外钉住两条顺序：
+`prepareDirectory` 在请求文档写盘**之前**、`onWorkingDirectory` 在清理**之前**（且此时目录还在）。
+
+### 62.1 一条真缺陷：`BLENDER_SCENE_VALIDATION_FAILED` 这个码**不存在**
+
+`normaliseErrorCode()` 原本给**每一个**裸码加上 `BLENDER_` 前缀。这对 Blender 家族是对的
+（`UNSUPPORTED_ACTION` → `BLENDER_UNSUPPORTED_ACTION`），对**领域家族**是错的：
+Python 那边最常见的失败 `SCENE_VALIDATION_FAILED`（**27 处**）、`REVISION_CHECKPOINT_MISSING`（5 处）、
+`SCENE_CAMERA_MISSING`（3 处）在契约里的拼写**本来就没有前缀**。
+
+于是模型读到的是 `BLENDER_SCENE_VALIDATION_FAILED`——一个 `BlenderErrorCode` 里根本没有的码：
+
+* 任何按码分支的调用方都认不出它；
+* `docs/recovery.md` 的「按错误码查的索引」查不到它；
+* **同一个失败会因为「谁先发现」而带两个不同的码**（host 自己的校验报 `SCENE_VALIDATION_FAILED`，
+  Blender 报的却是带前缀那个）。
+
+修法是让前缀只在契约**真的有**那个带前缀的形式时才加；已知的裸码原样通过；
+都不认识（比如比本构建更新的 bootstrap.py 报的新码）则落到 `SCRIPT_ERROR`——
+那正是「没有可分支的码」的意思。检查因此逐个驱动 Python 真的会报的四个码。
+
+**一般化**：那条注释用一个 **Blender 家族**的例子（`UNSUPPORTED_ACTION`）论证了一条**对全体**生效的规则。
+**用一个例子论证的规则，会在它不适用的那一族上悄悄发明新值**——而「发明一个契约里没有的码」
+比「少一个码」更糟：前者看起来可分支。
+
+### 62.2 一行死代码
+
+`runBootstrap` 里 `resolvedExecutable.error !== null || resolved === null` 之后的
+`?? new BlenderError(NOT_FOUND, …)` 兜底永远走不到：解析器**要么**给 error **要么**给 resolved。
+已点名，不假装覆盖。
+
+### 62.3 顺手修掉那张表：行与列对不上的「读数表」
+
+`probe-coverage.log` 里那张逐轮对照表，每一轮只给「这一轮碰过的行」补一格，
+于是**大部分行的格子数比表头少**——读者把 r44 那一列对齐到短行时，读到的是**另一轮**的数字。
+现在每行与表头一一对应，没记录过的格子写 `—`，每个逐文件数字都取自该列那一轮**留在磁盘上的读数**
+（r46 与 r49 用它们的**最终**读数，与正文引用的数字一致）。
+**一张没人再读的表，与一个没人再读的数字，是同一种缺陷。**
+
+### 62.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 48/48 file(s) passed        1122 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/provider-bootstrap.test.mjs`（25 项）；产品代码改 1 处（`normaliseErrorCode`，
+并新增 `CONTRACT_ERROR_CODES` 作为「唯一允许映射进去的空间」），14 条变异全红。
+读数：产品可执行行黑暗 **731 (6.0%) → 687 (5.7%)**，`provider-local/lib/index.js` **168 → 124**。

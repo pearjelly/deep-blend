@@ -1406,18 +1406,39 @@ function normaliseEngineEnumItems(diagnostics) {
 /**
  * Map a bootstrap error code onto the stable contract code space.
  *
- * bootstrap.py reports bare codes (`UNSUPPORTED_ACTION`); the contract exposes
- * them prefixed (`BLENDER_UNSUPPORTED_ACTION`) so a model or UI can tell a
- * DeepBlend failure apart from any other tool's code.
+ * bootstrap.py reports BARE codes, and they are of two kinds:
+ *
+ *   - the Blender-runtime family, whose contract spelling IS the bare name with a
+ *     `BLENDER_` prefix (`UNSUPPORTED_ACTION` -> `BLENDER_UNSUPPORTED_ACTION`);
+ *   - the DOMAIN family, whose contract spelling has NO prefix at all
+ *     (`SCENE_VALIDATION_FAILED`, `REVISION_CHECKPOINT_MISSING`, `SCENE_CAMERA_MISSING`, ...).
+ *
+ * The version of this function that prefixed EVERYTHING invented codes for the second kind: the
+ * Python side's most common failure (`SCENE_VALIDATION_FAILED`, 27 sites) reached the model as
+ * `BLENDER_SCENE_VALIDATION_FAILED`, which is not in `BlenderErrorCode` at all — so nothing could
+ * branch on it, `docs/recovery.md`'s index by code could not find it, and the SAME failure carried a
+ * different code depending on whether the host's own validation or Blender's reported it.
+ *
+ * So the prefix is applied only when the contract actually exposes that prefixed form, a bare code
+ * that the contract defines is passed through unchanged, and anything else — an unknown code from a
+ * NEWER bootstrap.py than this build knows — becomes `SCRIPT_ERROR`, which is exactly what "this
+ * failure has no code I can branch on" means.
  *
  * @param {unknown} code
  * @returns {string}
  */
 function normaliseErrorCode(code) {
   if (typeof code !== 'string' || code.length === 0) return BlenderErrorCode.SCRIPT_ERROR
-  if (code.startsWith('BLENDER_')) return code
-  return `BLENDER_${code}`
+  const known = CONTRACT_ERROR_CODES
+  if (code.startsWith('BLENDER_')) return known.has(code) ? code : BlenderErrorCode.SCRIPT_ERROR
+  const prefixed = `BLENDER_${code}`
+  if (known.has(prefixed)) return prefixed
+  if (known.has(code)) return code
+  return BlenderErrorCode.SCRIPT_ERROR
 }
+
+/** The contract's whole error space, as a set: the one place this file may map INTO. */
+const CONTRACT_ERROR_CODES = new Set(Object.values(BlenderErrorCode))
 
 /**
  * Derive operator-visible warnings from a probe result (D1, D2, SPEC §2.2 gap).
