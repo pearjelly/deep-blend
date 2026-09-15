@@ -589,6 +589,102 @@ check(
 // Summary
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// 9. The semantic refusals a MODEL meets — every branch, and the words it reads
+// ---------------------------------------------------------------------------
+
+// WHY THIS SECTION EXISTS (round 39). The coverage reading showed every one of these branches dark:
+// a model that writes an asset-instance without an assetId, both camera targets, a shot range that
+// runs backwards, a keyframe out of its property's range or out of order, a material track animating
+// a transform channel — none of those refusals had ever been produced by a test. They are the product's
+// TEACHING surface (the message is what the model reads before rewriting the spec), so each case below
+// asserts the code, the path, and that the message says what would fix it.
+
+// AN ID THAT FAILS THE PATTERN NEVER REACHES THE SEMANTIC LAYER, and that is asserted rather than
+// assumed: the JSON Schema's `pattern` is the same expression the validator uses
+// (`^[a-zA-Z][a-zA-Z0-9._-]*$`, checked while writing this), so `SCENE_ID_INVALID` is DEFENSIVE — it
+// fires only if the schema is ever relaxed. Pinning the behaviour here means loosening the schema turns
+// this check red instead of quietly making the message below it dead.
+{
+  const shadowed = validateSceneSpec(fixtureWith(spec => { spec.entities[0].id = '-not-an-id' }))
+  check('an id that fails the pattern is refused STRUCTURALLY, before any semantic rule can speak',
+    shadowed.ok === false && shadowed.errors.length === 1 && shadowed.errors[0].code === 'SCENE_SCHEMA_INVALID',
+    { codes: codes(shadowed.errors) })
+}
+checkSemantic('an asset-instance that names no asset', spec => {
+  spec.entities[0] = { id: 'hero', type: 'asset-instance' }
+}, 'SCENE_ENTITY_ASSET_REQUIRED', 'entities[0].assetId')
+checkSemantic('an asset-instance that ALSO declares a generator', spec => {
+  spec.entities[0] = { id: 'hero', type: 'asset-instance', assetId: 'watch', generator: { shape: 'cube', size: 1 } }
+}, 'SCENE_ENTITY_GENERATOR_CONFLICT', 'entities[0].generator')
+checkSemantic('a generator entity with no generator block', spec => { delete spec.entities[0].generator },
+  'SCENE_ENTITY_GENERATOR_REQUIRED', 'entities[0].generator')
+checkSemantic('an assetId on an entity that is not an asset-instance', spec => { spec.entities[0].assetId = 'watch' },
+  'SCENE_ENTITY_ASSET_UNUSED', 'entities[0].assetId')
+checkSemantic('a camera aiming at a point AND an entity', spec => { spec.cameras[0].targetPoint = [0, 0, 0] },
+  'SCENE_CAMERA_TARGET_AMBIGUOUS', 'cameras[0]')
+checkSemantic('a camera whose clip start is beyond its clip end', spec => { spec.cameras[0].clipping = [10, 1] },
+  'SCENE_CAMERA_CLIPPING_INVALID', 'cameras[0].clipping')
+checkSemantic('a shot whose frame range runs backwards', spec => { spec.shots[0].frameRange = [90, 1] },
+  'SCENE_SHOT_FRAME_RANGE_INVALID', 'shots[0].frameRange')
+checkSemantic('a material track animating a transform channel', spec => {
+  spec.animationTracks[0].targetKind = 'material'
+}, 'SCENE_ANIMATION_PROPERTY_INVALID', 'animationTracks[0].property')
+checkSemantic('a keyframe below a property that cannot go negative', spec => {
+  spec.animationTracks[0] = {
+    id: 'ramp', targetKind: 'material', targetEntityId: 'stage-matte', property: 'emissionStrength',
+    keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 30, value: -1, interpolation: 'linear' }],
+  }
+}, 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE', 'animationTracks[0].keyframes[1].value')
+checkSemantic('a keyframe above the unit range', spec => {
+  spec.animationTracks[0] = {
+    id: 'ramp', targetKind: 'material', targetEntityId: 'stage-matte', property: 'roughness',
+    keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 30, value: 2, interpolation: 'linear' }],
+  }
+}, 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE', 'animationTracks[0].keyframes[1].value')
+checkSemantic('keyframes that do not strictly increase', spec => {
+  spec.animationTracks[0].keyframes[2].frame = spec.animationTracks[0].keyframes[1].frame
+}, 'SCENE_KEYFRAMES_UNORDERED', 'animationTracks[0].keyframes[2].frame')
+
+// The messages are the part a model acts on, so two of them are pinned by what they must SAY.
+{
+  const negative = validateSceneSpec(fixtureWith(spec => {
+    spec.animationTracks[0] = {
+      id: 'ramp', targetKind: 'material', targetEntityId: 'stage-matte', property: 'emissionStrength',
+      // Two keyframes, because the schema requires at least two — a single one is refused structurally
+      // and this case would then be asserting nothing about the VALUE rule (measured while writing it).
+      keyframes: [
+        { frame: 1, value: 0, interpolation: 'linear' },
+        { frame: 30, value: -2, interpolation: 'linear' },
+      ],
+    }
+  }))
+  const message = negative.errors.find(error => error.code === 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE')?.message ?? ''
+  check('the negative-value refusal quotes the property and the value it saw',
+    message.includes('emissionStrength') && message.includes('-2'), message)
+
+  const wrongKind = validateSceneSpec(fixtureWith(spec => { spec.animationTracks[0].targetKind = 'material' }))
+  const kindMessage = wrongKind.errors.find(error => error.code === 'SCENE_ANIMATION_PROPERTY_INVALID')?.message ?? ''
+  check('the wrong-property refusal names the kind AND lists what that kind does support, so a fix needs no second lookup',
+    kindMessage.includes('material') && kindMessage.includes('emissionStrength') && kindMessage.includes('roughness'),
+    kindMessage)
+}
+
+// A spec that is valid in every one of these respects must stay clean — the negative control for the
+// whole section, without which every case above could be passing for the wrong reason.
+{
+  const clean = validateSceneSpec(fixtureWith(spec => {
+    spec.animationTracks.push({
+      id: 'dial-ramp', targetKind: 'material', targetEntityId: 'stage-matte', property: 'roughness',
+      keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 30, value: 0.5, interpolation: 'linear' }],
+    })
+    spec.cameras[0].clipping = [0.1, 100]
+    spec.shots[0].frameRange = [1, 45]
+  }))
+  check('a spec with a legal material ramp, clipping and shot range is still valid — the negative control',
+    clean.ok === true, { ok: clean.ok, errors: clean.errors.map(error => `${error.code}@${error.path}`) })
+}
+
 console.log('')
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {

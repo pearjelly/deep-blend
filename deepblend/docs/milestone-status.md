@@ -4566,3 +4566,55 @@ DeepBlend acceptance suite: ALL SUITES PASSED
    `1320×820` 通过。**产品两次都是对的，检查在量机器有多快。**
    改成「等到图片真的解码出来」（`naturalWidth > 0`，上限 120 秒）：仍然会因为「永远不解码」而红，
    但那时它红的是自己的理由。
+
+---
+
+## 52. 模型写错场景时读到的那 12 句话，之前一句都没被执行过
+
+读数里 `contracts/lib/scene-spec.js` 有 68 行黑暗，逐行看下去，它们**全是语义校验的拒绝**——
+`errors.push({ code, path, message })`，也就是**模型写错 SceneSpec 时读到的那句话**：
+
+| 代码 | 什么时候出现 |
+|---|---|
+| `SCENE_ENTITY_ASSET_REQUIRED` | 声明了 asset-instance 却没给 `assetId` |
+| `SCENE_ENTITY_GENERATOR_CONFLICT` | asset-instance 又声明了程序化生成器 |
+| `SCENE_ENTITY_GENERATOR_REQUIRED` | generator 实体没有 `generator` 块 |
+| `SCENE_ENTITY_ASSET_UNUSED` | 不是 asset-instance 的实体声明了 `assetId` |
+| `SCENE_CAMERA_TARGET_AMBIGUOUS` | 相机同时给 `targetEntityId` 与 `targetPoint` |
+| `SCENE_CAMERA_CLIPPING_INVALID` | clip start ≥ clip end |
+| `SCENE_SHOT_FRAME_RANGE_INVALID` | shot 的帧区间倒过来 |
+| `SCENE_ANIMATION_PROPERTY_INVALID` | 材质轨道去动 `rotationEuler.z` |
+| `SCENE_KEYFRAME_VALUE_OUT_OF_RANGE` ×2 | 该非负的给了负数；该在 [0,1] 的给了 2 |
+| `SCENE_KEYFRAMES_UNORDERED` | 关键帧不严格递增 |
+
+**这些是产品的「教学面」**：模型读到的就是这句话，然后据此重写。而它们此前没有任何断言。
+现在逐个驱动（用既有的 fixture 变异手法），共 **90 项**（原 74），并且三条不是机械的：
+
+* **两条消息按「必须说出什么」来钉**：负值拒绝要引用属性名与它看到的值；
+  属性不匹配的拒绝要**列出该 kind 支持哪些属性**——否则模型要再查一次才敢改；
+* **一条阴性对照**：一份合法的材质渐变动画 + 合法 clipping + 合法 shot 区间**必须仍然是 valid**——
+  没有它，上面每一条都可能因为别的原因而通过。
+
+### 52.1 顺手量到的一件事：一条规则被另一条**遮住**了
+
+`SCENE_ID_INVALID`（id 不匹配 `^[a-zA-Z][a-zA-Z0-9._-]*$`）永远走不到：**JSON Schema 里的 `pattern`
+是同一个表达式**，而结构层先跑并提前返回。这不是 bug，是**两份同一条规则**——
+schema 的那份会先说话。测试因此不假装覆盖它，而是把「被遮住」这件事本身钉住：
+`-not-an-id` 必须是 `SCENE_SCHEMA_INVALID` 且**只有一条**错误。
+哪天有人放松了 schema，这条检查会红，而不是让下面那句话悄悄变成死代码。
+
+### 52.2 变异
+
+6 条全部变红（去掉 asset 必填 / 去掉生成器冲突 / 去掉相机二义 / 去掉关键帧递增 /
+去掉非负规则 / 去掉单位区间）。其中一条我第一版写成了**没有改到东西的变异**，
+脚本主动报 `NO-OP` 而不是算通过——第 34 轮记下的毛病，这次被工具拦住了。
+
+### 52.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 40/40 file(s) passed        863 项自计断言 + 271 个 node:test 用例
+```
+
+只改了 `contract/scene-spec.test.mjs`（74 → 90 项）与 README 的读数快照；
+**产品代码一行没改**——这一轮补的是「产品已经会说的话，有没有人读过」。
