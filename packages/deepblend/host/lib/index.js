@@ -30,6 +30,8 @@ import z from '@deepseek-ai/schemastery'
 
 import {
   BLENDER_SETTINGS_NAMESPACE,
+  JOB_RECORD_VERSION,
+  LOG_SCOPE,
   BlenderError,
   BlenderErrorCode,
   BlenderWarningCode,
@@ -126,7 +128,10 @@ export function contentTypeForArtifact(path) {
 }
 
 /** The runtime service this facade consumes. */
-const RUNTIME_SERVICE = 'blenderRuntime'
+/** The runtime service this host resolves. Exported so `contract/export-usage.test.mjs` can tie it
+ * to the provider's own constant: two literals for one service name is how a rename becomes a
+ * "the host bundle is missing" error at runtime. */
+export const RUNTIME_SERVICE = 'blenderRuntime'
 
 /**
  * Host-level configuration. Mirrors SPEC §17.
@@ -715,7 +720,7 @@ export default class BlenderStudio extends Service {
     const startedAt = new Date().toISOString()
     const startedMs = Date.now()
     this.store.writeJob(projectId, {
-      schemaVersion: 'deepblend.job/v1',
+      schemaVersion: JOB_RECORD_VERSION,
       jobId,
       projectId,
       action: 'render_preview',
@@ -848,7 +853,7 @@ export default class BlenderStudio extends Service {
       ))
 
       const job = this.store.writeJob(projectId, {
-        schemaVersion: 'deepblend.job/v1',
+        schemaVersion: JOB_RECORD_VERSION,
         jobId,
         projectId,
         action: 'render_preview',
@@ -896,7 +901,7 @@ export default class BlenderStudio extends Service {
           { cause },
         )
       this.store.writeJob(projectId, {
-        schemaVersion: 'deepblend.job/v1',
+        schemaVersion: JOB_RECORD_VERSION,
         jobId,
         projectId,
         action: 'render_preview',
@@ -1103,7 +1108,7 @@ export default class BlenderStudio extends Service {
     const startedAt = new Date().toISOString()
     const startedMs = Date.now()
     this.store.writeJob(projectId, {
-      schemaVersion: 'deepblend.job/v1',
+      schemaVersion: JOB_RECORD_VERSION,
       jobId,
       projectId,
       action: 'render_views',
@@ -1293,7 +1298,7 @@ export default class BlenderStudio extends Service {
       }
 
       const job = this.store.writeJob(projectId, {
-        schemaVersion: 'deepblend.job/v1',
+        schemaVersion: JOB_RECORD_VERSION,
         jobId,
         projectId,
         action: 'render_views',
@@ -1343,7 +1348,7 @@ export default class BlenderStudio extends Service {
           { cause },
         )
       this.store.writeJob(projectId, {
-        schemaVersion: 'deepblend.job/v1',
+        schemaVersion: JOB_RECORD_VERSION,
         jobId,
         projectId,
         action: 'render_views',
@@ -2291,7 +2296,7 @@ export default class BlenderStudio extends Service {
       this.ctx.effect(() => jobs.attachController('deepblend-render'))
       this._jobControllerAttached = true
     } catch (cause) {
-      this.ctx.logger?.warn(`deepblend: could not attach the job controller: ${String(cause)}`)
+      this.ctx.logger?.warn(`${LOG_SCOPE}: could not attach the job controller: ${String(cause)}`)
       return null
     }
     return jobs
@@ -3393,7 +3398,7 @@ export default class BlenderStudio extends Service {
       } catch (cause) {
         live.settle = null
         live.done = null
-        this.ctx.logger?.warn(`deepblend: render job ${jobId} could not be projected into ctx.jobs: ${String(cause)}`)
+        this.ctx.logger?.warn(`${LOG_SCOPE}: render job ${jobId} could not be projected into ctx.jobs: ${String(cause)}`)
         next = this.renderJobs.write({
           ...next,
           warnings: [
@@ -3457,7 +3462,7 @@ export default class BlenderStudio extends Service {
     // `_driveRender` promises never to throw and now survives a full disk doing it; this catch
     // is what makes that a property of the CALL rather than a promise in a comment.
     void this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName }).catch(cause => {
-      this.ctx.logger?.error(`deepblend: the render driver for ${jobId} threw: ${cause?.stack ?? cause}`)
+      this.ctx.logger?.error(`${LOG_SCOPE}: the render driver for ${jobId} threw: ${cause?.stack ?? cause}`)
       live.settle?.({ status: 'failed', detail: cause instanceof Error ? cause.message : String(cause) })
     })
 
@@ -3487,7 +3492,7 @@ export default class BlenderStudio extends Service {
         // must not do is disappear — a swallowed error is indistinguishable from a
         // tick that had nothing to do.
         if (progressFailures === 1) {
-          this.ctx.logger?.warn(`deepblend: progress reporting for ${jobId} failed: ${String(cause)}`)
+          this.ctx.logger?.warn(`${LOG_SCOPE}: progress reporting for ${jobId} failed: ${String(cause)}`)
           this._appendOutput(live, `progress reporting failed: ${String(cause)}\n`)
         }
       })
@@ -3636,7 +3641,7 @@ export default class BlenderStudio extends Service {
         }
       } catch (writeCause) {
         this.ctx.logger?.warn(
-          `deepblend: render job ${jobId} failed (${code}) and the failure could not be recorded on disk ` +
+          `${LOG_SCOPE}: render job ${jobId} failed (${code}) and the failure could not be recorded on disk ` +
             `(${writeCause?.message ?? writeCause}); the live job is settled below instead`,
         )
       }
@@ -3647,7 +3652,7 @@ export default class BlenderStudio extends Service {
         // The journal lives on the same volume the frames do.
       }
       live.settle?.({ status: 'failed', detail: message })
-      this.ctx.logger?.warn(`deepblend: render job ${jobId} failed: ${message}`)
+      this.ctx.logger?.warn(`${LOG_SCOPE}: render job ${jobId} failed: ${message}`)
     } finally {
       clearInterval(tick)
       this._liveRenders.delete(jobId)

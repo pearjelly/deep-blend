@@ -384,20 +384,6 @@ export async function canonicalCall(call, warning) {
   return { data, canonicalWarnings: warnings }
 }
 
-/**
- * Convert a thrown value into a BlenderError with a stable code.
- * @param {unknown} cause
- * @param {string} fallbackCode
- * @returns {BlenderError}
- */
-export function asBlenderError(cause, fallbackCode) {
-  if (cause instanceof BlenderError) return cause
-  return new BlenderError(
-    fallbackCode,
-    cause instanceof Error ? cause.message : String(cause),
-    { cause },
-  )
-}
 
 /**
  * Ask the operator to approve one expensive operation, through the harness's own

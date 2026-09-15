@@ -395,10 +395,3 @@ function visualAutofix(ctx) {
     }),
   })
 }
-
-/** Re-exported so the index can report what it registered without duplicating names. */
-export const VISUAL_TOOL_NAMES = Object.freeze([
-  'blender_preview_views',
-  'blender_visual_review',
-  'blender_visual_autofix',
-])

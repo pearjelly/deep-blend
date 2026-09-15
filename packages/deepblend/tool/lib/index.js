@@ -81,6 +81,15 @@ export const Config = undefined
 export { describeJobLines } from './render-tools.js'
 
 /**
+ * The service name this plane binds to, re-exported so the cross-plane tie is CHECKABLE.
+ *
+ * The tool resolves `blenderStudio` through `ctx.get()`, and the host registers it. Two literals in two
+ * packages with nothing comparing them is how a rename turns into "the host bundle is missing" at
+ * runtime; `contract/export-usage.test.mjs` now compares them, which needs this name on the surface.
+ */
+export { STUDIO_SERVICE } from './shared.js'
+
+/**
  * Register the DeepBlend tools for the calling agent scope.
  *
  * @param {import('@deepseek-ai/cordis').Context} ctx

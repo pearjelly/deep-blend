@@ -4369,3 +4369,73 @@ M0 preset tool plane: 14/14 checks passed          （第 34 轮是 10）
 `contracts`（投影声明该字段、typedef）、`tool`（`NOT INSTALLED` 分支多一行 `Fix:`）、
 `contracts/ui-api`（卡片渲染 `下一步`）。新增 `contract/blender-path-advice.test.mjs`（6 项）、
 设置卡 2 项、M0 接线 4 项。
+
+---
+
+## 49. 把第 35 轮那次「碰巧发现」变成一条规则：导出面要么被用，要么撤回
+
+第 35 轮是**碰巧**发现两个导出函数没有调用者的。这一轮把它变成机械的：
+遍历五个包的 `lib/**`，取出每一个导出名，问「这个名字在全仓库的**代码**里还出现过吗」。
+第一次跑就列出 13 个候选，逐个核对之后：
+
+| 名字 | 判定 | 处置 |
+|---|---|---|
+| `JOB_RECORD_VERSION` | **不是死的**：host 里六处手写了它的字面量 `'deepblend.job/v1'` | 接上（六处改用常量），并把那条说自己是 `§10.2` 的注释改成它真正描述的那份文档 |
+| `LOG_SCOPE` | 同上：六处日志前缀手写 `'deepblend: '` | 接上 |
+| `asBlenderError` | 真的没人用，而且 `renderFailure` 已经做了这件事 | 删掉 |
+| `VISUAL_TOOL_NAMES` | 真的没人用；注释还声称「re-exported so the index can report…」，而 index 并没有 | 删掉（工具清单已由套件从注册表断言——第二份清单正是这个仓库反复付学费的形状） |
+
+**另一处更值钱的重复**：服务的**名字**在两个包里各写了一遍，而且没有任何东西把它们对上——
+provider 注册 `'blenderRuntime'`，host 又用一个私有字面量去取它；host 注册 `'blenderStudio'`，
+tool 再写一份常量去绑它。改一处的名字，运行时表现是「host bundle 缺失」这种**指错方向**的报错。
+现在 `contract/export-usage.test.mjs` 把三件事钉住：两侧的名字相等、两个服务名互不相同、
+以及每个服务都是**通过常量**注册的（`super(ctx, CONST)`，否则常量还能和注册悄悄漂开）。
+
+### 49.1 这条规则自己错了四次，每次都是「假死名单」
+
+写它的过程本身就是这一轮最值得记的部分——**每一次都是靠名单里出现了明显的活名字发现的**：
+
+1. 逐行过滤 import：多行 `import {\n A,\n} from 'x'` 的名字单独占一行，于是「撤回接线」读成「还在用」；
+2. 整段正则：`export default class …` 也匹配「以 export 开头」，于是它一路吃到文件**末尾**
+   的 re-export 块——189k 字符的文件被删掉 186k；
+3. 加上「声明」判断之后，`import x from 'y.json' with { type: 'json' }` 又不匹配「以 from '…' 结尾」，
+   扫描器从那一行起把整个文件吃光（只剩头部 18 行注释）；
+4. 最后还有一个自指：**这个检查器自己**在注释、原因表和报错信息里写着这些名字 ✗ ——
+   于是「把六处接线撤回」它依然认为「用过」。现在它把自己的文件排除在扫描之外：
+   **审计者不是调用者**。
+
+四种形状都进了自测（`the import scanner … the three shapes that fooled it` + 审计者自身排除）。
+**一份「谁没被用过」的名单，只有在你亲手把它弄错四次之后才知道它有多容易错。**
+
+### 49.2 还没决断的 15 个，列出来而不是藏起来
+
+规则跑通之后，`contracts` 里还有 **15 个**导出确实没人调用（其中两条甚至是测试文件里
+**导入了却没用**的常量）。每一个都需要一次与上面四个同样的判断——接上，还是撤回——
+而这是一次关于 contracts 面的判断，不是机械编辑，所以它们进了 `ACCEPTED_UNUSED`，
+**每一条都带一句具体的理由**（"the UI declares its routes separately — a second copy, not a tie" 等），
+下一轮决定去向。这正是那张表存在的意义：让规则对**其余所有**名字保持绿色，同时让债务可见。
+
+### 49.3 变异
+
+```
+E1'  新加一个没人用的导出           → 红（规则本身）
+E2   host 的 runtime 名字漂开        → 红（跨平面相等）
+E3   服务改用字面量注册              → 红（注册必须走常量）
+E4'  把六处接线撤回（常量变死）      → 红（同一个规则，方向相反）
+```
+
+顺带修掉自己写变异时的老毛病：第 34 轮那条「没改到东西的变异」这次被脚本**主动拦下**了
+（`cmp` 之后报 `NO-OP`），所以 E1 第一版那种「什么都没改却算通过」不会再出现。
+
+### 49.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 39/39 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+改的四处产品代码：`host`（六处版本字面量、六处日志前缀改用常量，导出 `RUNTIME_SERVICE`）、
+`contracts`（`JOB_RECORD_VERSION` 的注释纠正）、`tool`（删两个死助手、re-export 绑定名）、
+`tool/visual-tools`（删第二份工具清单）。新增 `contract/export-usage.test.mjs`（4 项）。

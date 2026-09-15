@@ -26,7 +26,11 @@ export const SCENE_PATCH_VERSION = 'deepblend.scene-patch/v1'
 /** Revision manifest version written beside every revision directory. */
 export const REVISION_MANIFEST_VERSION = 'deepblend.revision-manifest/v1'
 
-/** Durable job record version (SPEC §9.3 result.json, §10.2). */
+/**
+ * The job document a revision TRANSACTION writes (SPEC §9.3 result.json). NOT the durable render-job
+ * record, which is `RENDER_JOB_VERSION` — this comment said §10.2 for years while six call sites wrote
+ * this string by hand, which is how the two were mistaken for each other.
+ */
 export const JOB_RECORD_VERSION = 'deepblend.job/v1'
 
 /** Project record version. */
