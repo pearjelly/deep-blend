@@ -2822,6 +2822,25 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D134 — 「一个正常工作的工具不可能产生的状态」，才是失败分支里最该被读的那些
+
+`video-encoder.js` 的 49 行黑暗全是成功路径的反面：exit 0 但没有文件、文件是空的、
+输出不是 JSON、没有视频流、进程是被杀的。真实套件会真的编码一段视频，
+而**一个能工作的 ffmpeg 产生不出这些状态**——第 30 轮记录的正是这类缺口
+（一次编码失败的交付，而记录仍写着 "encoding"）。接缝是 `ctx.get('subprocess')`，
+stub 掉它之后每个分支只隔一个对象，文件 49 → **0**。
+
+同一轮钉住两条代码自己论证过的规则：ffprobe 的 `nb_read_frames`（量出来的）必须赢过
+`nb_frames`（容器声明的），以及 argv 的位置关系——`-framerate`/`-start_number` 在 `-i` 之前
+（image2 的输入选项）、`-frames:v` 在 `-i` 之后（ffmpeg 8.0.1 对另一种顺序直接拒绝整条命令）。
+检查断言的是**位置关系**而不是「参数在不在」。
+
+三条小教训，都值得复用：**`exit 0` 不是「文件存在」**（三条检查分开钉住，因为它们对操作者
+意味着不同的下一步）；**`done` 被 reject 与 spawn 抛错是两件事**（前者是进程被杀、没有 exit code，
+后者是机器拒绝启动，必须原样传播）；**测试里提前构造的 `Promise.reject` 是延迟炸弹**——
+第一版 stub 在构造时就造好 rejected promise，于是在「spawn 抛错」那条用例里没人 await 它，
+文件打印 17/17 之后**再以非零退出**，改成 getter 并写明理由。
+
 ### D133 — 「测它要联网」不是「跑不到」，而是「没这么测」
 
 `_fetchAssetToScratch` 用了全局 `fetch`，于是它的失败分支在契约层里看起来够不着，
@@ -3065,6 +3084,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（交付编码器） | D134：`video-encoder.js` 的 49 行黑暗全是「一个正常工作的 ffmpeg 不可能产生」的状态——exit 0 但没有文件、文件是空的、输出不是 JSON、没有视频流、进程是被杀的；真实套件会真的编码，所以只看得到成功路径（第 30 轮那类缺口的来源）。接缝是 `ctx.get('subprocess')`，stub 之后每个分支只隔一个对象，`contract/host-video-encoder.test.mjs` 18 项、12 条变异全红、**产品代码未改**，文件 **49 → 0**。钉住两条代码自己论证过的规则：ffprobe 的 `nb_read_frames`（量出来的）赢过 `nb_frames`（容器声明的）、argv 的位置关系（`-framerate`/`-start_number` 在 `-i` 前、`-frames:v` 在 `-i` 后，ffmpeg 8.0.1 不接受另一种顺序）。三条小教训：`exit 0` 不是「文件存在」（三条检查分开钉）；`done` 被 reject（进程被杀，没有 exit code）与 spawn 抛错（机器拒绝启动，原样传播）是两件事；测试里提前构造的 `Promise.reject` 是延迟炸弹（第一版让文件打印 17/17 后再非零退出）。读数：产品可执行行黑暗 **780 (6.4%) → 731 (6.0%)**，「每一行」首次低于 2000 |
 | 2026-09-14 | M5（资产导入的远程那一半） | D133：`_fetchAssetToScratch` 的 13 行黑暗理由是「它用全局 `fetch`，失败分支在契约层够不着；而需要联网的测试没人跑」——这个理由是错的：绑在随机回环端口上的 `node:http` 服务器就够真（真实 socket、真实流式 body、真实 HTTP 与大小分支，没有 mock、没有出网），六个分支一次驱动（不是 URL / 非 http(s) 协议 / 非 2xx / 空 body / 边流边超上限 / 连不上）。同轮还驱动本地那侧的三个拒绝（什么都不给 / 给目录 / 本地文件超上限）与成功路径的收尾句（**可直接照抄的 ScenePatch 片段**），`contract/host-asset-ingest.test.mjs` 18 项、12 条变异全红、**产品代码未改**。一条量测：`ingestAsset` 有**两处**上限（拷贝前按 `stat`、拷贝后按落盘字节），变异删掉前一条会让后一条的消息出现而检查变红，说明检查分得清两处；后一条只能在两次 `stat` 之间文件长大时触发，是**竞态护栏**，测试头部与文档点名「故意不覆盖」并写明理由。读数：产品可执行行黑暗 **804 (6.6%) → 780 (6.4%)**，`host/lib/index.js` **244 → 220** |
 | 2026-09-14 | M5（两段壳层） | D132：交付帧范围与恢复遍历这两段壳层（48 行黑暗）搬进契约层：`_resolveDeliveryRange` 是对 SceneSpec 的纯读，`reconcileRenderJobs` 读的是测试写进去的 job 记录，`contract/host-render-jobs.test.mjs` 19 项、14 条变异全红。**又抓到同形缺陷**：`[...new Set(frames.map(Number))]` 把 `null` 变成帧 0（`Number('')`、`Number([])` 同样是 0），于是「列表里没有可用帧号」被答成「每个请求的帧都落在项目范围之外」——拒绝里出现调用者从没写过的帧号（与第 45 轮的 `r0000` 同族）；强制转换现在显式区分数字与非空数字串，并有检查钉住 `frames: [null]` 的拒绝不许出现 `frame 0`。另确认一条易写错的断言：遍历后的 job 是 `recovering`——`UNFINISHED_STATUSES` 之一，意思是**没人在看但可续渲**；`RenderJobStore` 的状态机还让测试**用被拒绝的那一次**学到了合法转移。恢复遍历要钉的是那条 catch：写不进磁盘时整个遍历会抛（disk-full 实测），于是卷满的机器一个 job 都恢复不了；检查让第一次写失败，断言那条报 `unwritable`、另一条仍被恢复、且它保持原状态。读数：产品可执行行黑暗 **853 (7.1%) → 804 (6.6%)**，`host/lib/index.js` **291 → 244**；两个簇各剩一行死代码（已点名），宿主余下的簇是 M3 渲染机器的其余部分，接缝是 `ctx.subprocess` 与进程存活 |
 | 2026-09-14 | M5（渲染之外的那一圈） | D131：`renderPreview` / `renderViews` 有真实套件在跑，所以 84 行黑暗全是渲染**周围**的决定：没有 preview profile 要报 `RENDER_PROFILE_MISSING`、采样被预算削减必须说出来（静默降采样等于 review 了另一张图）、主体是从多候选里猜出来的必须是警告、渲染器说成功却没有字节是 `RENDER_NO_OUTPUT`、失败的渲染要先写失败记录再抛。runtime 是接缝所以它是 stub（store 与 revision 都是真的，stub 交回**真 PNG**——因为宿主会合成 contact sheet），`contract/host-render-orchestration.test.mjs` 27 项、14 条变异全红。**抓到一条「写了但没人读得到」的写**：失败记录落在 `jobs/` 而 `listJobs` 只列 `renders/`，`getJob` 读得到却没人把 id 给调用者——现在 id 挂在错误上，并纠正了 `listJobs` 那句「then attempt logs」的注释（**注释承诺了代码没做的事**）。另修一句给人看的 `nullxnull, engine null`（provenance 由渲染器 report 拼出，缺字段时说「size not reported」，且不拿 profile 的分辨率冒充测量值）。读数：产品可执行行黑暗 **938 (7.8%) → 853 (7.1%)**，`host/lib/index.js` **374 → 291**；`renderViews` 整簇归零，`renderPreview` 只剩一行**死代码**（provenance 的「继承 checkpoint」那句永远走不到，因为解析出的 checkpoint 总会被本次渲染编译的那个替换），检查钉的是让它成为死代码的那个事实而不是假装覆盖 |

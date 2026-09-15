@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 48 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 49 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 48 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 49 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -29,16 +29,16 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 108 (108 parsed)
+coverage files: 109 (109 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20028, never executed: 2045 (10.2%)   [every line]
-product CODE lines:      12098, never executed: 780 (6.4%)   [blank + comment-only excluded]
+product lines seen:      20028, never executed: 1993 (10.0%)   [every line]
+product CODE lines:      12098, never executed: 731 (6.0%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           this run (r48)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)
+                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           this run (r49)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)
 files with dark lines           —        28            28            28            28            26            24            24            24            24            24
 host/lib/index.js               (951 raw) 649          526           493           493           493           493           429           374           291           244           220
 provider-local/lib/index.js     376 raw   368           264           168           168           168           168
@@ -56,6 +56,7 @@ host/index.js · delivery range (r47)  29  —        —             —       
 host/index.js · recovery pass (r47)   19  —        —             —             —             —             —             —             —             —             1
 host/index.js · asset ingest (r48)    18  —        —             —             —             —             —             —             —             —             —             7
 host/index.js · asset fetch (r48)     13  —        —             —             —             —             —             —             —             —             —             0
+host/video-encoder.js (r49)           49  —        —             —             —             —             —             —             —             —             —             —             0
 host/render-journal.js          28       3             3             3             3             3             3
 host/frame-ledger.js            10       1             1             1             1             1             1
 
@@ -95,6 +96,19 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
    packages/deepblend/contracts/lib/json-schema.js              15/242
+
+── ROUND 49: THE DELIVERY ENCODER, DRIVEN BY A STUB SUBPROCESS (§61) ──
+`video-encoder.js` was 49 dark lines, and every one of them is a state a WORKING ffmpeg cannot
+produce: "exit 0 but no file", "an empty file", "output that is not JSON", "no video stream", "the
+process was killed instead of exiting". A real encode suite can only ever see the happy path — which is
+how round 30 shipped a delivery that failed to encode while its record still said "encoding". The seam
+is `ctx.get('subprocess')`, so it is a stub here: the encoder's own logic is real, the files it stats
+are real, and each branch is one object away. The file is now at **zero**.
+
+Two rules got pinned while doing it, both of which the code argues for in its own comments: ffprobe's
+`nb_read_frames` (a measurement, from `-count_frames`) must beat `nb_frames` (the container's claim),
+and the argv is an ARRAY with the input options before `-i` and `-frames:v` after it — the placement
+ffmpeg 8.0.1 refuses to accept any other way.
 
 ── ROUND 48: THE REMOTE HALF OF ASSET INGEST (§60) ──
 `_fetchAssetToScratch` (13 lines) was dark for a reason worth stating: it uses the global `fetch`, so
