@@ -108,19 +108,32 @@ const IN_SCOPE = /\/packages\/deepblend\/[\w./-]+\.(js|mjs)$/
  */
 function sourceFingerprints() {
   const fingerprints = new Map()
+  const record = path => {
+    const stat = statSync(path)
+    fingerprints.set(path, `${stat.size}:${stat.mtimeMs}`)
+  }
   const walk = directory => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules') continue
+        if (entry.name === 'node_modules' || entry.name === '.git') continue
         walk(path)
-      } else if (entry.isFile() && entry.name.endsWith('.js')) {
-        const stat = statSync(path)
-        fingerprints.set(path, `${stat.size}:${stat.mtimeMs}`)
+      } else if (entry.isFile() && /\.(js|mjs|json|ya?ml|md)$/.test(entry.name)) {
+        record(path)
       }
     }
   }
+  // THE SUITE READS MORE THAN THE PRODUCT. The first version of this guard watched `packages/**` only,
+  // and that is exactly the assumption that broke it: a README edit during a run turned the contract
+  // layer red (documented counts), the probe reported "THE SUITE FAILED", and the drift guard stayed
+  // silent — because the file that moved was documentation, which the suite reads as DATA.
+  // Measured, round 38. Everything the suite can read is now fingerprinted.
   walk(join(ROOT, 'packages'))
+  walk(join(ROOT, 'deepblend'))
+  for (const name of ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SPEC.md', 'package.json']) {
+    const path = join(ROOT, name)
+    if (existsSync(path)) record(path)
+  }
   return fingerprints
 }
 
@@ -154,9 +167,16 @@ try {
     sourceDrift = [...after].filter(([path, fingerprint]) => before.get(path) !== fingerprint).map(([path]) => relative(ROOT, path))
     for (const path of before.keys()) if (!after.has(path)) sourceDrift.push(`${relative(ROOT, path)} (deleted)`)
     if (sourceDrift.length > 0) {
-      console.log(`SOURCE CHANGED DURING THE RUN (${sourceDrift.length} file(s)) — line numbers below are suspect:`)
-      for (const path of sourceDrift) console.log(`   ${path}`)
-      console.log('   re-run the probe on a frozen tree before quoting any of this\n')
+      // A file with no lines in the reading cannot have suspect line numbers — but it CAN turn the
+      // suite red (the round-38 README edit did), and the suite's verdict is half of this tool's
+      // answer. So the two kinds of drift are named separately rather than lumped into one warning.
+      const covered = sourceDrift.filter(path => /\.(js|mjs|py)$/.test(path))
+      const data = sourceDrift.filter(path => !/\.(js|mjs|py)$/.test(path))
+      console.log(`SOURCE CHANGED DURING THE RUN (${sourceDrift.length} file(s)):`)
+      for (const path of covered) console.log(`   ${path}   <- has lines in this reading; its numbers are suspect`)
+      for (const path of data) console.log(`   ${path}   <- read as DATA by the suite; the reading's line numbers are unaffected`)
+      if (covered.length > 0) console.log('   re-run the probe on a frozen tree before quoting any line numbers\n')
+      else console.log('   no file with coverage moved, so the numbers below stand — but the suite ran across an edit, so re-run before quoting the verdict\n')
     }
     suiteStatus = run.status ?? 1
     suiteFailed = suiteStatus !== 0

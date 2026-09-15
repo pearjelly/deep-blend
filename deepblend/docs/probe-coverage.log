@@ -6,10 +6,13 @@
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 29 (`suite exit code: 0` below) and read with the
-# merge rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first
-# code character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces
-# every number on this page.
+# PROVENANCE: collected by the suite run of round 38 (`suite exit code: 0`) and read with the merge
+# rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
+# character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
+# number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
+# `architecture-decisions.md`), which the suite reads as data and which carry no lines here, so the
+# numbers stand; from this round the drift guard says which kind of file moved instead of one warning
+# for both (D124).
 #
 # Instrument: NODE_V8_COVERAGE on every process the suite spawns, merged per process and then
 # unioned. The merge is `tools/coverage-merge.mjs`, driven by `tests/contract/probe-merge.test.mjs`.
@@ -29,16 +32,23 @@ product files never loaded: 0
 product lines seen:      19907, never executed: 2808 (14.1%)   [every line]
 product CODE lines:      12098, never executed: 1497 (12.4%)   [blank + comment-only excluded]
 
-── WHAT THE LAST FOUR ROUNDS CHANGED, MEASURED ──
-                               §36 (every line)   §37-38   §41 (r28)     §42 (this run)
-product code lines dark        —                  1658     1637 (13.5%)  1497 (12.4%)
-files with dark lines          —                  28       28            28
-host/lib/index.js              (951 raw)          872      649           526
-contracts/lib/ui-api.js        61 (r24)           —        —             13
-ui/lib/index.js                68 (r24)           64       36            25
-tool/render-tools.js           89                 54       33            33
-host/render-journal.js         28                 3        3             3
-host/frame-ledger.js           10                 1        1             1
+── WHAT THE LAST SEVEN ROUNDS CHANGED, MEASURED ──
+                                §36      §41 (r28)     §42 (r29)     this run (r38)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)
+files with dark lines           —        28            28            28
+host/lib/index.js               (951 raw) 649          526           493
+provider-local/lib/index.js     376 raw   368           264           168
+contracts/lib/ui-api.js         61 (r24)  —             —             13
+ui/lib/index.js                 68 (r24) 36            25            25
+tool/render-tools.js            89       33            33            33
+host/render-journal.js          28       3             3             3
+host/frame-ledger.js            10       1             1             1
+
+Round 30 recorded a delivery that failed to encode while its record still said "encoding"; round 31
+drove the reconciler's three safety rules with real processes; round 32 made a cited probe reproducible;
+round 35 gave a broken install the same advice for the operator and the model; round 37 withdrew eight
+exports nothing called. None of that was aimed at this number, and it fell by 223 lines anyway — because
+each round's test drove a branch that had never run.
 
 Round 29 is the one that changed the COLLECTION rather than the reading: `dsh web` was being SIGKILLed
 by the test harness 300 ms into a shutdown that takes ~700 ms, so the process never wrote its coverage
@@ -58,16 +68,16 @@ through the tool that documents it. The lines that remain are guards for states 
 that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (28) ──
-   packages/deepblend/host/lib/index.js                        526/2904  code lines dark
-   packages/deepblend/provider-local/lib/index.js              264/910
+   packages/deepblend/host/lib/index.js                        493/2925  code lines dark
+   packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
-   packages/deepblend/tool/lib/visual-tools.js                  69/330
-   packages/deepblend/contracts/lib/scene-spec.js               68/561
+   packages/deepblend/tool/lib/visual-tools.js                  69/325
+   packages/deepblend/contracts/lib/scene-spec.js               68/556
    packages/deepblend/host/lib/video-encoder.js                 56/210
    packages/deepblend/tool/lib/render-tools.js                  33/426
    packages/deepblend/host/lib/project-store.js                 53/263
    packages/deepblend/tool/lib/tools.js                         51/810
-   packages/deepblend/host/lib/render-reconciler.js             48/189
+   packages/deepblend/host/lib/render-reconciler.js             21/189
    packages/deepblend/ui/lib/index.js                           25/369
    packages/deepblend/tool/lib/shared.js                        31/230
    packages/deepblend/contracts/lib/png.js                      27/289

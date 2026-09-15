@@ -4492,3 +4492,77 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 `ACCEPTED_UNUSED` 现在是**空的**——表还在，因为「没人用」有时是有意的，
 下一个这样的名字需要有个地方连理由一起声明。
+
+---
+
+## 51. 五条「拒绝」从没被执行过——其中两条是安全规则
+
+读数里 `provider-local` 的 264 行黑暗集中在**可执行文件解析**上：`_assertAllowed` 有五个出口，
+四个是拒绝，而覆盖率说这四条**一次都没跑过**。它们只有在「某个人的安装以特定方式坏掉」时才会走到，
+而那正是那些错误文本存在的理由：
+
+| 分支 | 判定 | 为什么值钱 |
+|---|---|---|
+| 解析结果**不是绝对路径** | `BLENDER_NOT_FOUND` | 下游没有任何东西能 spawn 它 |
+| 路径**不存在** | `BLENDER_NOT_FOUND` | 消息里带**操作者写的那个拼法**（不是 realpath 后的） |
+| 路径是**目录** | `EXECUTABLE_NOT_EXECUTABLE` | macOS 的受管安装是 `.app` **目录**，所以「名字像 Blender 的目录」是这个问题最可能的错答案 |
+| 裸名解析到**白名单之外** | `EXECUTABLE_OUTSIDE_ALLOWLIST` | **安全规则**：只有绝对路径请求才被信任（SPEC §15.2） |
+| 同一个文件、操作者用**绝对路径**要求 | **接受** | 上一条的对照：策略取决于**被要求的是什么**，而不是文件在哪 |
+
+### 51.1 用一个 stub 的 `subprocess` 把「坏掉的安装」搬进契约层
+
+这些分支原本要「把机器布置成某个样子」才能走到。但 provider 自己用的接缝就是
+`ctx.subprocess.resolveExecutable` ✓ —— 所以契约层直接 `ctx.provide('subprocess', { resolveExecutable })`，
+让假解析器返回每个用例需要的那条路径：**每条拒绝由规则本身产生，而不是由机器布置产生**。
+七个用例、**0.47 秒**，不需要 Blender，也不需要动 PATH。
+
+一条分支**故意不覆盖**并写在文件头部：`realpath` 成功而 `stat` 失败——那是同一路径上相隔微秒的竞态，
+没有测试能拥有它。
+
+### 51.2 顺手量到一个测试陷阱
+
+第一版比较的是 `join(scratch, 'blender')`，而 macOS 上 `/var` 会被 realpath 成 `/private/var` ✗——
+**同一个路径的两种拼法**（M3 验收套件为同一个原因写过同一条注释）。
+修法不是把期望值改成 realpath 版就完了：**消息里那句必须保留操作者写的拼法**，
+因为那是他们要去照着看的那串字符；只有**解析结果**才比较 real-path。
+
+### 51.3 变异
+
+```
+R1  相对路径被接受            → 红
+R2  目录被接受                → 红
+R3  白名单放行一切            → 红（这一条就是安全规则本身）
+R4  解析器抛错时改为向外抛    → 红（契约是「描述缺席」，不是「拒绝」）
+```
+
+R3 值得单独说：那条检查是**一个布尔式**（`!requestedIsAbsolute && !insideAllowlist`），
+符号写反就等于**全放行**——而只有一条**断言拒绝**的测试能抓住它。
+
+### 51.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 40/40 file(s) passed
+$ node deepblend/tests/e2e/ui.e2e.mjs
+M4 UI acceptance: 71/71 check(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+新增 `contract/blender-executable-resolution.test.mjs`（7 项，4 条变异全红）。
+**产品代码一行没改**：这一轮补的是「别人的安装坏成什么样」这些状态的断言。
+
+### 51.5 顺带：两次跑出来的东西比这一轮的计划更值钱
+
+这一轮的读数跑了三次才落地，两次失败的收获都记在这里：
+
+1. **第一次红在 `documented-counts`**：我在探针运行**期间**改了 README ✗。探针的漂移守卫只盯
+   `packages/**`，于是它没说话——而契约层把 README 当**数据**读。守卫的覆盖面因此扩到
+   「套件真正会读的一切」（`packages/`、`deepblend/`、README/CONTRIBUTING/SECURITY/SPEC/package.json）。
+   探针自己报出了「哪个套件红了」，这一次它省下的是一整轮排查。
+2. **第二次红在浏览器套件**，而工作树是**冻结的**：探针的失败回显把它点出来了——
+   `{"rightWidth":0,"rightHeight":0}`，即面板里的 contact sheet **没有解码**。
+   当时 `load average: 45.85`（10 核）；同一棵树、几分钟后 load 3 时单独跑，同一个断言
+   `1320×820` 通过。**产品两次都是对的，检查在量机器有多快。**
+   改成「等到图片真的解码出来」（`naturalWidth > 0`，上限 120 秒）：仍然会因为「永远不解码」而红，
+   但那时它红的是自己的理由。

@@ -272,7 +272,17 @@ try {
   // reason Preview Compare can answer "what changed?" after a render — a preview
   // replaces its own image, so without a kept generation the panel could only ever
   // show the present, which is exactly what the operator reported as "没有出现新的条目".
-  await page.waitFor('document.querySelector("[data-compare=right] img") !== null', 30000)
+  // WAIT FOR THE IMAGE TO BE DECODED, not merely present. `naturalWidth` is 0 until the browser has
+  // the bytes and has decoded them, so a single sample after the element appears is a check on how
+  // fast the machine is. MEASURED, round 38: this suite failed in a full acceptance run at load
+  // average 45 on 10 cores ("rightWidth":0, "rightHeight":0) and passed alone minutes later at load 3
+  // with the same tree — the product was right both times. The wait is bounded: a sheet that never
+  // decodes still fails, and now it fails for its own reason.
+  await page.waitFor(
+    'document.querySelector("[data-compare=right] img") !== null && ' +
+    'document.querySelector("[data-compare=right] img").naturalWidth > 0',
+    120000,
+  )
   const firstSheets = await page.evaluate(`(() => {
     const right = document.querySelector('[data-compare="right"] img')
     return {
