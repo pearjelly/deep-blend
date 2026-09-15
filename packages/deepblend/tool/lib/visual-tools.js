@@ -438,7 +438,7 @@ function visualAutofix(ctx) {
     presentCall: args => ({
       card: 'generic',
       title: `Auto-fix visuals of "${args?.projectId ?? ''}"`,
-      kind: 'write',
+      kind: 'edit',
     }),
   })
 }

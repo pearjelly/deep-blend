@@ -4695,3 +4695,68 @@ DeepBlend tests: 40/40 file(s) passed        903 项自计断言 + 271 个 node:
 顺手修掉日志里的一个**同源缺陷**：那两行「本次读数」从 §42 起就没再更新过
 （表里已写到 r38 的 1274，抬头还写着 1497），而它们正是读者最先看到的第一对数字。
 现在抬头与表来自同一次 run。
+
+## 54. 工具面交给模型与 UI 的那 51 行：一半是失败分支，另一半是一张词表里不存在的词
+
+读数里 `tool/lib/tools.js` 有 51 行从没被执行过，形状很整齐：
+
+| 形状 | 行数 | 为什么没有套件能跑到 |
+|---|---|---|
+| 6 个 `catch`（`PROJECT_CREATE_FAILED` / `PROJECT_READ_FAILED` / `SCENE_READ_FAILED` / `SCENE_PATCH_FAILED` / `PREVIEW_RENDER_FAILED` / `SCENE_VALIDATE_FAILED`） | ~24 | 唯一驱动这些工具的套件（`composition/tool-plane-m1.e2e.mjs`）要一个**能用的** Host，所以它只能产生成功的调用 |
+| 8 个 `presentCall` 的卡片标题（M1）+ 另外 8 个工具的 | ~21 | 同一个原因：卡片标题只在**调用**时被问，而契约层此前从没执行过工具 |
+| 3 条只在特定状态出现的散文（没存 checkpoint、读到的是旧 revision、没有技术报告） | ~6 | 同上 |
+
+新增 `contract/tool-plane-output.test.mjs`（**54 项**）：Host 换成测试自己控制的 stub，
+`kind` 词表从**装好的 DSH 那一份 `.d.ts`** 里读出来。24 条变异全红。
+
+### 54.1 一条真的缺陷：`kind: 'write'` 不在这张词表里
+
+`presentCall()` 返回的 `ToolCallView.kind` 是 `@deepseek-ai/dsh-tools` 拥有的**闭集**：
+`read | edit | delete | move | search | execute | fetch | other`。而工具面里有 **6 处**写着
+`kind: 'write'`（`tools.js` 2 处、`render-tools.js` 3 处、`visual-tools.js` 1 处）——
+**产品在用一个它自己的契约里不存在的词描述自己的调用**。改成 `edit`（最接近的合法值），
+并让检查去读那份 `.d.ts` 而不是在仓库里再抄一份词表：抄一份的话，DSH 改了词表这里不会红。
+
+写这条检查的第一版还有第二个收获：`blender_project_create` 标题里的 `?? 'project'` 兜底
+**永远走不到**——`title` 是必填参数，缺了它 DSH 直接不调用 `presentCall`。
+这是第 39 轮那条「被遮住的规则」的第二次出现，同样不假装覆盖，而是把「被遮住」钉住。
+
+### 54.2 顺手量到的两条工具面契约（都是写检查时才发现的）
+
+1. **`defineTool` 在 `execute` 与 `presentCall` 之前都校验参数，但两者的失败方式不同**：
+   `presentCall` 对不合格的参数返回 `undefined`（因为展示层可能重放旧 schema 的日志，
+   所以它**绝不能抛**），`execute` 抛 `ToolArgsError`。这个文件的第一版给每个工具都传
+   `{ projectId }`，于是三个「还需要 revision / baseRevision / source」的工具拿到 `undefined` 卡片——
+   现在参数集中在一张表里，并有一条检查证明这张表覆盖了每个注册工具的**每一个必填项**。
+2. **成功与失败的结果形状是不对称的**：成功文本里嵌一段 `Canonical JSON:`，失败文本里**没有**
+   ——失败的 canonical 部分是结果自己的 `data`（调用方据它分支），散文里只写码与消息。
+   第一版把「每段文本都能解析出 JSON」写成断言，被这条不对称当场证伪。
+   同理，「散文里不许漏出 null」这条检查也必须只盯 `Canonical JSON:` **之前**的部分：
+   那份 JSON 里的 `checkpoint: null` 是数据，不是泄漏。
+
+### 54.3 一份 stub 注册表，两个调用者
+
+`host-plane-staleness.test.mjs` 里那段「记录注册的 tools 注册表 + 组装 Context」的代码
+本来就是这一轮要的同一段，于是抽到 `tests/lib/tool-plane-harness.mjs`，两个套件共用
+（前者 30 项、后者 54 项都仍是绿的）。差别只在传进去的 `blenderStudio`：
+一个是「缺 M3 方法的旧 Host」，一个是「按用例抛错或返回固定数据的新 Host」。
+轮询等待注册（而不是固定 sleep）也写在里面——固定 sleep 是一场比赛，快的机器赢、忙的机器输。
+
+### 54.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 41/41 file(s) passed        957 项自计断言 + 271 个 node:test 用例
+```
+
+产品代码改了 8 行（6 处 `kind: 'write'` → `'edit'`，其余未动）；新增契约文件 1 个、
+共用 harness 1 个；24 条变异全红。
+
+### 54.5 读数：`tool/tools.js` 51 行黑暗 → **0**
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **1158 (9.6%) → 1077 (8.9%)**，有黑暗行的文件 28 → **26**，
+`tool/tools.js` **51 → 0**、`tool/render-tools.js` 33 → **19**、`tool/visual-tools.js` 11 → **3**、
+`tool/index.js` 20 → **17**。工具平面剩两种形状，都点名写进日志：
+审查工具自己的失败分支（`VISUAL_REVIEW_FAILED`，3 行）与能力探测的失败分支（`CAPABILITY_PROBE_FAILED`，17 行）
+——两者都要一个「在某个位置抛错」的 Host，而目前没有任何用例让它在那些位置抛。

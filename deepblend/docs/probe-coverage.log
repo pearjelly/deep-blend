@@ -2,18 +2,18 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 40 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 41 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 40 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 41 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
 # `architecture-decisions.md`), which the suite reads as data and which carry no lines here, so the
 # numbers stand — the drift guard said exactly that, naming both files and the kind (D124).
 #
-# THE TWO LINES BELOW ARE THIS RUN'S VERBATIM OUTPUT, and until this round they were not: round 38
+# THE TWO LINES BELOW ARE THIS RUN'S VERBATIM OUTPUT, and until round 40 they were not: round 38
 # refreshed the table further down and left the headline pair at §42's reading (2808 / 1497) while the
 # table already said 1274. Nothing re-read them. They are the first two numbers a reader sees, which is
 # exactly the rot this file exists to find — so they are now taken from the run that produced the table.
@@ -29,25 +29,26 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 102 (102 parsed)
+coverage files: 103 (103 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19983, never executed: 2452 (12.3%)   [every line]
-product CODE lines:      12092, never executed: 1158 (9.6%)   [blank + comment-only excluded]
+product lines seen:      19983, never executed: 2369 (11.9%)   [every line]
+product CODE lines:      12092, never executed: 1077 (8.9%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           this run (r40)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)
-files with dark lines           —        28            28            28            28
-host/lib/index.js               (951 raw) 649          526           493           493
-provider-local/lib/index.js     376 raw   368           264           168           168
-contracts/lib/ui-api.js         61 (r24)  —             —             13            13
-ui/lib/index.js                 68 (r24) 36            25            25            25
-tool/render-tools.js            89       33            33            33            33
-tool/visual-tools.js            —        —             —             69            11
-host/render-journal.js          28       3             3             3             3
-host/frame-ledger.js            10       1             1             1             1
+                                §36      §41 (r28)     §42 (r29)     r38           r40           this run (r41)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)
+files with dark lines           —        28            28            28            28            26
+host/lib/index.js               (951 raw) 649          526           493           493           493
+provider-local/lib/index.js     376 raw   368           264           168           168           168
+contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13
+ui/lib/index.js                 68 (r24) 36            25            25            25            25
+tool/tools.js                   —        —             —             —             51            0
+tool/render-tools.js            89       33            33            33            33            19
+tool/visual-tools.js            —        —             —             69            11            3
+host/render-journal.js          28       3             3             3             3             3
+host/frame-ledger.js            10       1             1             1             1             1
 
 Round 30 recorded a delivery that failed to encode while its record still said "encoding"; round 31
 drove the reconciler's three safety rules with real processes; round 32 made a cited probe reproducible;
@@ -72,29 +73,45 @@ through the tool that documents it. The lines that remain are guards for states 
 (the tool called with no host service, an encode that disagrees with the job's own claims, a cancel
 that throws) plus every `presentCall` card title.
 
-── the darkest of the files that were loaded (28) ──
+── the darkest of the files that were loaded (26) ──
    packages/deepblend/host/lib/index.js                        493/2925  code lines dark
    packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
    packages/deepblend/host/lib/project-store.js                 53/263
-   packages/deepblend/tool/lib/tools.js                         51/810
    packages/deepblend/host/lib/video-encoder.js                 49/210
-   packages/deepblend/tool/lib/render-tools.js                  33/426
    packages/deepblend/contracts/lib/png.js                      27/289
    packages/deepblend/ui/lib/index.js                           25/369
-   packages/deepblend/tool/lib/shared.js                        24/222
+   packages/deepblend/tool/lib/shared.js                        22/222
    packages/deepblend/host/lib/render-job-store.js              22/131
-   packages/deepblend/tool/lib/index.js                         20/134
+   packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
+   packages/deepblend/tool/lib/index.js                         17/134
    packages/deepblend/contracts/lib/json-schema.js              15/242
+   packages/deepblend/host/lib/visual-loop.js                   13/243
+
+── ROUND 41: THE TOOL PLANE'S FAILURE PATHS, AND A WORD THE CONTRACT DOES NOT CONTAIN (§54) ──
+`tool/lib/tools.js` was 51 dark lines with a very regular shape: six `catch` blocks that turn a host
+failure into a stable code, eight `presentCall` card titles, and three notes only one state produces.
+The reason was structural — the only suite that drives these tools needs a WORKING host, so it can
+only ever produce successful calls. `contract/tool-plane-output.test.mjs` puts a stub host under them
+instead (103 coverage files now, one more suite), and the file went 51 → 0.
+
+The check on those card titles found a real defect the moment it ran: `presentCall()`'s `kind` is a
+CLOSED vocabulary owned by `@deepseek-ai/dsh-tools`, and six call sites in this package said
+`kind: 'write'` — a word that vocabulary does not contain. The check now PARSES the vocabulary out of
+the installed `presentation.d.ts`, so the list cannot rot into our own copy of someone else's contract.
+
+What remains in the tool plane is two shapes, named rather than implied: the review tool's own failure
+catch (`VISUAL_REVIEW_FAILED`, visual-tools.js 3 lines) and the capability probe's failure catch
+(index.js 17 lines). Both need a host that throws in a place no current case makes it throw.
 
 ── ROUND 40: THREE PROSE BLOCKS A MODEL READS, AND THE BUG THE MUTATION ANCHOR FOUND (§53) ──
-`tool/lib/visual-tools.js` was third on this list at 69 dark lines, and the reason was structural: the
+`tool/lib/visual-tools.js` was third on that list at 69 dark lines, and the reason was structural: the
 three blocks the tool HANDS A MODEL (a review's notes, a repair loop's round log, the two lines that
 describe one measured issue) were written inline in `execute` bodies, where the only way to reach a
 branch that has content is a real render PLUS a real model call. Extracting them into pure functions
 and driving them from the REAL `scoreReview` / `validateFindings` / `runVisualLoop` results took the
-file from 69 dark lines to 11, and the contract layer from 61 to 101 checks.
+file from 69 dark lines to 11 (and to 3 this round), and the contract layer from 61 to 101 checks.
 
 The 11 that remain are two shapes, both named rather than implied:
 

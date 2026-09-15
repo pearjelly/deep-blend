@@ -2822,6 +2822,33 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D127 — 工具面交给 UI 的 `kind` 是一张**别人的**闭集：要么去读它，要么在仓库里再抄一份
+
+`ToolDefinition.presentCall()` 返回的 `ToolCallView.kind` 由 `@deepseek-ai/dsh-tools` 拥有，
+取值是闭集 `read | edit | delete | move | search | execute | fetch | other`。而工具面里有 **6 处**
+写着 `kind: 'write'`——**产品用自己契约里不存在的词描述自己的调用**（没有一个套件读过它，
+因为这些 `presentCall` 从没被执行过）。改成 `edit`，并把检查写成**读装好的那份
+`presentation.d.ts`**、从中解析词表：在仓库里抄一份的话，DSH 改了词表这里不会红，
+而「同一张词表两份、无人相扣」正是本仓库反复付账的缺陷（D38/D43/D57/D60）。
+
+同一轮把工具面的失败路径搬进契约层（`contract/tool-plane-output.test.mjs`，54 项）：
+stub 的 `tools` 注册表 + stub 的 `blenderStudio`，于是每个 `catch`、每条只在特定状态出现的散文、
+每个卡片标题都能被执行。三条一般化结论：
+
+1. **`presentCall` 与 `execute` 对坏参数的失败方式不同**，而且必须不同：`presentCall` 返回
+   `undefined`（展示层可能重放旧 schema 的日志，它**绝不能抛**），`execute` 抛 `ToolArgsError`。
+   第一版给每个工具都传 `{ projectId }`，三个还需要别的必填项的工具就拿到了 `undefined` 卡片——
+   于是参数集中成一张表，并加一条检查证明它覆盖每个注册工具的每一个必填项。
+2. **成功与失败的形状不对称**：成功的散文里嵌 `Canonical JSON:`，失败没有——失败的 canonical
+   部分是结果自己的 `data`。「每段文本都能解析出 JSON」是被这条不对称当场证伪的断言。
+   同理「散文里不许漏出 null」只能盯那段 JSON **之前**：JSON 里的 `checkpoint: null` 是数据。
+3. **一条兜底被 schema 遮住**：`blender_project_create` 标题里的 `?? 'project'` 走不到，
+   `title` 是必填参数。与 D125 同形，处理方式相同：把「被遮住」钉住，而不是假装覆盖。
+
+一份 stub 组装（注册表 + Context + 轮询等待注册）抽到 `tests/lib/tool-plane-harness.mjs`，
+两个套件共用（`host-plane-staleness` 的 30 项与新的 54 项）；轮询而不是固定 sleep，
+因为固定 sleep 是「快的机器赢、忙的机器输」的那类比赛。
+
 ### D126 — 模型要读的散文是产品面：抽成纯函数，用**真实上游结果**驱动；而一次提取的等价性只能**跑**出来
 
 `tool/lib/visual-tools.js` 里那三段交给模型的散文（一次审查读到的、一次自动修复读到的、
@@ -2920,6 +2947,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（工具面交给 UI 的那张词表） | D127：`tool/lib/tools.js` 的 51 行黑暗形状整齐——6 个 `catch`、8 个 M1 卡片标题、3 条只在特定状态出现的散文，而唯一驱动这些工具的套件要一个**能用的** Host，所以它只能产生成功的调用。新增 `contract/tool-plane-output.test.mjs`（**54 项**，stub 的 tools 注册表 + stub 的 `blenderStudio`，24 条变异全红）。**当场抓到一条真缺陷**：`presentCall()` 的 `kind` 是 `@deepseek-ai/dsh-tools` 拥有的闭集（`read \| edit \| delete \| move \| search \| execute \| fetch \| other`），而工具面有 **6 处**写着 `kind: 'write'`——产品在用一个契约里不存在的词描述自己的调用；检查因此去**读装好的 `.d.ts`** 并解析词表，而不是在仓库里再抄一份。另外量到三条契约：`presentCall` 对坏参数返回 `undefined` 而 `execute` 抛 `ToolArgsError`（展示层可能重放旧日志，绝不能抛），于是参数集中成一张有检查兜底的必填项表；成功文本嵌 `Canonical JSON:` 而失败**没有**（失败的 canonical 部分是 `data`），「每段文本都能解析 JSON」当场被证伪；`?? 'project'` 兜底被必填参数遮住（D125 同形）。stub 组装抽成 `tests/lib/tool-plane-harness.mjs`，两个套件共用。同一轮读数：产品可执行行黑暗 **1158 (9.6%) → 1077 (8.9%)**，`tool/tools.js` **51 → 0**、`render-tools.js` 33 → **19**、`visual-tools.js` 11 → **3**；工具平面只剩两种形状并已点名（审查工具的失败分支与能力探测的失败分支，都需要一个在那些位置抛错的 Host） |
 | 2026-09-14 | M5（模型读到的三段散文） | D126：`visual-tools.js` 交给模型的三段散文此前只写在 `execute` 里——要走到任何一个「有内容」的分支都得一次真渲染加一次真模型调用，于是七个问题里六个的答案永远是「不在」。抽成纯函数（`describeReviewNotes` / `describeLoopNotes` / `describeIssueLines`）并导出，断言由**真实上游结果**驱动：审查两段用 `scoreReview` + `validateFindings` 合成（连拒绝理由都是产品写的），循环那段用文件里的 harness 真跑 `runVisualLoop`。61 → **101 项**，契约层 863 → **903**。三条教训：**提取的等价性要用行为证明**（第一版字面量对比因嵌套模板字符串误报 DIFFERENT，改成同一批 payload 新旧各跑一遍比输出，5+3 个 payload 覆盖 13 个分支）；**变异脚本报 `ANCHOR x2` 是一次发现**——查下去抓到 `blender_visual_autofix` 抽取后仍追加一份 handover（函数一份、工具一份，真跑显示两遍），而当时没有任何检查能看见它，因为本文件从不执行工具，于是补了一段**真的执行工具**的检查（`Context` + stub 注册表 + stub studio，断言 handover 恰好一次、builder 每一行按序出现）；**活下来的变异指向 fixture**——唯一存活的一条改的是成功标题而 fixture 的 `passed` 恒为假，补上「一次通过的循环」后变红。37 条变异全红。顺带结清一条老账：两行问题格式原先在两处各写一遍，现为共用的 `describeIssueLines`；同一轮刷新 `probe-coverage.log`：产品可执行行黑暗 **1274 (10.5%) → 1158 (9.6%)**，`tool/visual-tools.js` **69 → 11**（余下 11 行是三个 `presentCall` 与审查工具自己的失败分支，都已点名），并修掉日志抬头两行自 §42 起没再更新、而表里已写到 r38 的同源缺陷 |
 | 2026-09-14 | M5（模型读到的那 12 句话） | D125：`scene-spec.js` 的 68 行黑暗全是**语义拒绝**——模型写错 SceneSpec 时读到的消息（asset-instance 缺 assetId、相机二义、关键帧不递增、材质属性越界……），也就是产品的教学面，而它们此前没有任何断言。逐个用 fixture 变异驱动，74 → **90 项**；两条按「消息必须说出什么」钉住（负值拒绝引用属性与取值；属性不匹配要列出该 kind 支持什么），外加一条阴性对照（合法的材质渐变 + clipping + shot 区间必须仍 valid）。**顺手量到一条规则被另一条遮住**：`SCENE_ID_INVALID` 永远走不到，因为 JSON Schema 的 `pattern` 是同一个表达式而结构层先跑并提前返回——不是 bug，是同一规则的两份副本；测试不假装覆盖，而是钉住「被遮住」这件事（`-not-an-id` 必须是 SCENE_SCHEMA_INVALID 且只有一条），schema 一旦被放松这条就会红。6 条变异全红（其中一条第一版是 NO-OP，被脚本拦下并报出来）。**「没跑到」和「跑不到」是两件事，只有后者不算债务。** 产品代码未改 |
 | 2026-09-14 | M5（读数跑了三次） | D124：本轮读数三次才落地。第一次红在 `documented-counts`——在探针运行期间改了 README，而**漂移守卫只盯 `packages/**`**，契约层却把 README 当数据读；守卫因此扩到「套件真正会读的一切」。第二次红在浏览器套件而工作树已冻结：`{"rightWidth":0,"rightHeight":0}`（contact sheet 未解码），当时 `load average 45.85`（10 核），同一棵树在 load 3 时单独跑读到 `1320×820`——**产品两次都对，检查在量机器有多快**。改成等 `naturalWidth > 0`（上限 120 秒），仍会因「永远不解码」而红，但那时红的是自己的理由。两条都由探针的**失败回显**（第 27 轮的修复）直接指出，省掉一整轮排查。同一轮刷新了 `probe-coverage.log`：可执行行黑暗 **1497 (12.4%) → 1274 (10.5%)**（第 29 轮至今，七轮里每轮补的都是「从没跑过的分支」），`provider-local` 264 → **168**、`render-reconciler` 48 → **21**，契约层 39 → **40** 个文件 |

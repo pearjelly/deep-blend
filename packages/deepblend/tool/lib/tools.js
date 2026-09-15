@@ -185,7 +185,7 @@ function projectCreate(ctx) {
     presentCall: args => ({
       card: 'generic',
       title: `Create project "${args?.title ?? 'project'}"`,
-      kind: 'write',
+      kind: 'edit',
     }),
   })
 }
@@ -512,7 +512,7 @@ function scenePatch(ctx) {
     presentCall: args => ({
       card: 'generic',
       title: `Patch scene of "${args?.projectId ?? ''}" (${Array.isArray(args?.operations) ? args.operations.length : 0} ops)`,
-      kind: 'write',
+      kind: 'edit',
     }),
   })
 }

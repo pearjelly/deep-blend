@@ -35,9 +35,9 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
-import { Context } from '@deepseek-ai/cordis'
-
 import { HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
+
+import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 
 const results = []
 function check(name, ok, detail) {
@@ -78,53 +78,15 @@ function olderStudio() {
   }
 }
 
-/** The minimum registry the tool package registers into. */
-function toolRegistry() {
-  const registered = new Map()
-  return {
-    registered,
-    name: 'stale-host-harness',
-    apply(ctx) {
-      ctx.provide('tools', {
-        register(definition) {
-          registered.set(definition.name, definition)
-          return () => registered.delete(definition.name)
-        },
-        get: name => registered.get(name),
-        schemas: () => [...registered.values()].map(({ name, description, parameters }) => ({ name, description, parameters })),
-        async execute(input) {
-          const definition = registered.get(input.name)
-          if (definition === undefined) throw new Error(`UNKNOWN_TOOL ${input.name}`)
-          try {
-            const value = await definition.execute(input.arguments ?? {}, {
-              ...input,
-              def: definition,
-              deferContext() {},
-              concludeTurn() {},
-            })
-            return { isError: false, value, content: definition.output.render(input.arguments ?? {}, value) }
-          } catch (error) {
-            return { isError: true, error: { message: error?.message ?? String(error), info: { code: error?.code ?? 'UNKNOWN' } }, content: [] }
-          }
-        },
-      })
-    },
-  }
-}
+// The registry and the composition both come from `../lib/tool-plane-harness.mjs`: the second
+// caller of that harness is `contract/tool-plane-output.test.mjs`, which needs the same stub
+// registry with a DIFFERENT studio. One copy, two callers (D127).
 
-const driver = toolRegistry()
-const root = new Context()
-root.plugin(driver)
-root.plugin({
-  name: 'stale-host-fixture',
-  apply(ctx) {
-    ctx.provide('blenderStudio', olderStudio())
-  },
+const { tools } = await composeToolPlane({
+  studio: olderStudio(),
+  label: 'stale-host-harness',
+  expectAtLeast: 7,
 })
-root.plugin(await import('@deepblend/dsh-blender-tool'))
-await new Promise(settle => setTimeout(settle, 300))
-
-const tools = root.get('tools')
 check('the tool plane registers every DeepBlend tool even against an older host',
   ['blender_capabilities', 'blender_final_render', 'blender_export', 'blender_job_status', 'blender_job_cancel',
     'blender_preview_views', 'blender_visual_review']

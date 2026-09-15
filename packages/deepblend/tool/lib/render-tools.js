@@ -350,7 +350,7 @@ function finalRender(ctx) {
       title: args?.resumeJobId !== undefined
         ? `Resume delivery render ${args.resumeJobId}`
         : `Render delivery for "${args?.projectId ?? ''}"`,
-      kind: 'write',
+      kind: 'edit',
     }),
   })
 }
@@ -412,7 +412,7 @@ function exportDelivery(ctx) {
     presentCall: args => ({
       card: 'generic',
       title: `Package the delivery for "${args?.projectId ?? ''}"`,
-      kind: 'write',
+      kind: 'edit',
     }),
   })
 }
@@ -549,7 +549,7 @@ function jobCancel(ctx) {
         return { ok: false, ...renderFailure(cause, 'BLENDER_SCRIPT_ERROR') }
       }
     },
-    presentCall: args => ({ card: 'generic', title: `Cancel job ${args?.jobId ?? ''}`, kind: 'write' }),
+    presentCall: args => ({ card: 'generic', title: `Cancel job ${args?.jobId ?? ''}`, kind: 'edit' }),
   })
 }
 
