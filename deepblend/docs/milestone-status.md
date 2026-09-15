@@ -5112,3 +5112,44 @@ DeepBlend tests: 45/45 file(s) passed        1061 项自计断言 + 271 个 node
 宿主剩下的簇就是 M3 渲染机器的其余部分：`_deliverJob`(36)、`_launchRenderer`(26)、
 `cancelJob`(21)、`_driveRender`(21)、`ingestAsset`(18)、`_fetchAssetToScratch`(13)、
 `_absorbProgress`(11)——它们的接缝是 `ctx.subprocess` 与进程存活，与第 46 轮同形。
+
+## 60. 资产导入的远程那一半：借口是「测它要联网」，而它并不需要联网
+
+`_fetchAssetToScratch`（13 行）此前是黑暗的，理由听起来很正当：它用的是**全局 `fetch`**，
+所以它的失败分支看起来在契约层里够不着；而**需要联网的测试就是没人跑的测试**。
+
+这个理由是错的。一个绑在**随机回环端口**上的 `node:http` 服务器就是真东西：
+宿主通过真实 socket 去取、真实地流式读取、撞上真实的 HTTP 与大小分支——
+**没有 mock `fetch`，也没有一个字节离开这台机器**。这一轮把六个分支全驱动了：
+
+| 输入 | 得到的拒绝 |
+|---|---|
+| `not a url at all` | `ASSET_FETCH_FAILED`「is not a URL」，并引用调用者给的那串字 |
+| `file:///etc/passwd` | 「is not a protocol this will fetch」，带 `detail.protocol` |
+| 服务器 404 | 「answered HTTP 404」，带 `detail.status`（不是笼统的「取失败了」） |
+| 200 + 空 body | 「answered with no bytes」，而不是导入一个空模型 |
+| 200 + 边流边超上限 | `ASSET_TOO_LARGE`，带**已经收到多少字节**，并说明「stopped rather than completed」 |
+| 连不上的端口 | 「could not be fetched: …」，把网络自己说的话留下来 |
+
+外加本地那一侧的三个（什么都不给 / 给了一个**目录** / 本地文件超过上限），
+以及成功路径的收尾：字节落进 `assets/raw/`、sha256 与磁盘上的字节一致、
+并以**一句可直接照抄的 ScenePatch 片段**结束（模型读的就是它）。
+`contract/host-asset-ingest.test.mjs`：**18 项**，12 条变异全红。
+
+### 60.1 两条上限不是同一条，检查能分辨
+
+`ingestAsset` 里有两处大小检查：拷贝**之前**按源文件 `stat` 判（消息带 `(SPEC §15)`），
+拷贝**之后**再按落盘字节判（消息不带）。变异「删掉前一条」让**后一条**的消息出现——
+检查因此变红，证明它分得清这两处，而不是只看「有没有报错」。
+而这后一条本身**只能**在源文件于两次 `stat` 之间长大时触发，所以它是**竞态护栏而不是规则**：
+测试头部与这里都点名「故意不覆盖」，理由写在旁边（复现它等于跟这台机器赛跑，量的是机器）。
+
+### 60.2 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 46/46 file(s) passed        1079 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-asset-ingest.test.mjs`（18 项）；**产品代码未改**（这一轮读的是产品已有的拒绝），
+12 条变异全红。读数：产品可执行行黑暗 **804 (6.6%) → 780 (6.4%)**，`host/lib/index.js` **244 → 220**。

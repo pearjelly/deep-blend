@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 47 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 48 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 47 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 48 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -29,18 +29,18 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 107 (107 parsed)
+coverage files: 108 (108 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20028, never executed: 2069 (10.3%)   [every line]
-product CODE lines:      12098, never executed: 804 (6.6%)   [blank + comment-only excluded]
+product lines seen:      20028, never executed: 2045 (10.2%)   [every line]
+product CODE lines:      12098, never executed: 780 (6.4%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           this run (r47)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)
+                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           this run (r48)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)
 files with dark lines           —        28            28            28            28            26            24            24            24            24            24
-host/lib/index.js               (951 raw) 649          526           493           493           493           493           429           374           291           244
+host/lib/index.js               (951 raw) 649          526           493           493           493           493           429           374           291           244           220
 provider-local/lib/index.js     376 raw   368           264           168           168           168           168
 contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13            13
 ui/lib/index.js                 68 (r24) 36            25            25            25            25            25
@@ -54,6 +54,8 @@ host/index.js · render views (r46)    54  —        —             —       
 host/index.js · renderPreview (r46)   30  —        —             —             —             —             —             —             —             1
 host/index.js · delivery range (r47)  29  —        —             —             —             —             —             —             —             —             0
 host/index.js · recovery pass (r47)   19  —        —             —             —             —             —             —             —             —             1
+host/index.js · asset ingest (r48)    18  —        —             —             —             —             —             —             —             —             —             7
+host/index.js · asset fetch (r48)     13  —        —             —             —             —             —             —             —             —             —             0
 host/render-journal.js          28       3             3             3             3             3             3
 host/frame-ledger.js            10       1             1             1             1             1             1
 
@@ -81,7 +83,7 @@ through the tool that documents it. The lines that remain are guards for states 
 that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (24) ──
-   packages/deepblend/host/lib/index.js                        244/2928  code lines dark
+   packages/deepblend/host/lib/index.js                        220/2928  code lines dark
    packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
    packages/deepblend/host/lib/project-store.js                 53/263
@@ -93,6 +95,19 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
    packages/deepblend/contracts/lib/json-schema.js              15/242
+
+── ROUND 48: THE REMOTE HALF OF ASSET INGEST (§60) ──
+`_fetchAssetToScratch` (13 lines) was dark for a reason worth stating: it uses the global `fetch`, so
+its failures look unreachable from a contract test — and a test that needs the network is a test nobody
+runs. It is not unreachable. A `node:http` server on a random loopback port is the real thing: the host
+fetches over a real socket, streams a real body, and hits its real HTTP and size branches, with nothing
+mocked and nothing leaving the machine. `host/lib/index.js` 244 → 220, and the fetch half is at zero.
+
+What remains in `ingestAsset` is its POST-COPY size check, which can only fire if the source file grows
+between the two `stat` calls — a race guard, named in the test header as deliberately uncovered rather
+than left to look like a gap. The rest of the refusals (nothing to import, a path that is a DIRECTORY,
+a local file above the cap) are now driven too, and a mutation proved the checks tell the two cap sites
+apart: removing the pre-copy one makes the POST-copy message appear, which the assertion rejects.
 
 ── ROUND 47: THE DELIVERY RANGE AND THE RECOVERY PASS (§59) ──
 Both are host-level wrappers around logic that is already tested one layer down — `frameNumbers` in the
