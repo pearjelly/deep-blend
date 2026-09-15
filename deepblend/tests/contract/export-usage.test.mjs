@@ -59,28 +59,14 @@ const LOADER_CONVENTION = new Set(['apply', 'name', 'inject', 'Config', 'default
  * @type {Record<string, string>}
  */
 const ACCEPTED_UNUSED = {
-  // FOUND BY THIS RULE (round 36), NOT YET DECIDED. Each of these is exported and called nowhere in
-  // this repository; the audit that produced the rule found them, and each needs the same decision the
-  // first four got (wire it to a caller, or withdraw it). They are listed rather than fixed in one
-  // round because each is a judgement about the contracts surface, not a mechanical edit — and listing
-  // them is what keeps the rule green for everything ELSE while the debt stays visible.
-  'contracts/index.js::compileSchemaText': 'barrel-only; nothing calls it',
-  'contracts/index.js::ANIMATION_TARGET_KINDS': 'not even used inside its own module',
-  'contracts/index.js::ANIMATION_PROPERTIES': 'not even used inside its own module',
-  'contracts/index.js::SCENE_ENGINES': 'imported by scene-spec.test.mjs and never referenced there',
-  'contracts/index.js::toCanonicalPreviewResult': 'nothing builds a preview result through it',
-  'contracts/index.js::VISUAL_ISSUE_VERSION': 'the visual-issue documents do not carry a version field',
-  'contracts/index.js::describeMeasurements': 'nothing renders a measurement summary',
-  'contracts/index.js::UI_ROUTE_IDS': 'the UI declares its routes separately — a second copy, not a tie',
-  'contracts/json-schema.js::compileSchemaText': 'nothing compiles a schema from text',
-  'contracts/projections.js::toCanonicalPreviewResult': 'nothing builds a preview result through it',
-  'contracts/scene-spec.js::ANIMATION_TARGET_KINDS': 'not even used inside its own module',
-  'contracts/scene-spec.js::ANIMATION_PROPERTIES': 'not even used inside its own module',
-  'contracts/ui-api.js::UI_ROUTE_IDS': 'the UI declares its routes separately — a second copy, not a tie',
-  'contracts/visual-composition.js::describeMeasurements': 'nothing renders a measurement summary',
-  'contracts/visual-issue.js::VISUAL_ISSUE_VERSION': 'the visual-issue documents do not carry a version field',
+  // EMPTIED IN ROUND 37. Every name that was listed here was withdrawn: `compileSchemaText`,
+  // `ANIMATION_TARGET_KINDS`, `ANIMATION_PROPERTIES`, `SCENE_ENGINES`, `toCanonicalPreviewResult`,
+  // `VISUAL_ISSUE_VERSION`, `describeMeasurements` and `UI_ROUTE_IDS` are gone, together with the
+  // barrel lines that re-exported them. Three of them documented a use that did not exist — the same
+  // defect round 35 found in the provider — and two were second copies of vocabularies the JSON Schema
+  // really enforces. The table stays, EMPTY, because "used nowhere" is sometimes deliberate and the
+  // next such name needs somewhere to be declared with its reason.
 }
-
 const TEXT_FILE = /\.(js|mjs|json|ya?ml|md|py)$/
 /** Files whose contents can be a call site. Markdown and prose are not. */
 const CODE_FILE = /\.(js|mjs|py|ya?ml|json)$/
@@ -145,7 +131,12 @@ export function codeWithoutImports(text) {
     const trimmed = line.trim()
     if (!insideStatement) {
       const declaration = /^export\s+(?:default|async\s+function|function|class|const|let|var)\b/.test(trimmed)
-      const importLike = /^import\b/.test(trimmed) || /^export\s*(?:\{|\*)/.test(trimmed)
+      // `import.meta.dirname` is an EXPRESSION, not a statement — and it is indented mid-file, so
+      // matching a bare `^import` swallowed the rest of every file that uses it (measured: 35 of 599
+      // lines survived in `scene-spec.test.mjs`, which is why `SCENE_ENGINES` was reported dead while
+      // two checks in that very file pin it).
+      const importLike = /^import\s+(?![.=(])\S/.test(trimmed) || /^import\s*['"]/.test(trimmed) ||
+        /^export\s*(?:\{|\*)/.test(trimmed)
       if (!declaration && importLike) {
         const completesHere = ENDS_IMPORT.test(trimmed) || /^import\s*['"]/.test(trimmed)
         insideStatement = !completesHere
@@ -226,6 +217,7 @@ test('the import scanner removes statements and keeps code — the three shapes 
     "export { ReExported } from './three.js'",
     "export * from './four.js'",
     'export default class Service {}',
+    'const here = import.meta.dirname',
     'export function kept() { return MULTI + LINE + attributes + ReExported }',
     'const alsoKept = A + B',
   ].join('\n')
@@ -234,7 +226,8 @@ test('the import scanner removes statements and keeps code — the three shapes 
   for (const gone of ['A, B', 'MULTI,', "from './two.js'", "with { type: 'json' }", "export * from './four.js'"]) {
     assert.equal(stripped.includes(gone), false, `the scanner kept "${gone}"`)
   }
-  for (const kept of ['export default class Service {}', 'export function kept()', 'const alsoKept = A + B']) {
+  for (const kept of ['export default class Service {}', 'export function kept()', 'const alsoKept = A + B',
+    'const here = import.meta.dirname']) {
     assert.equal(stripped.includes(kept), true, `the scanner removed "${kept}"`)
   }
   // The USES inside kept code stay, which is the whole point: `MULTI` and `attributes` are references.

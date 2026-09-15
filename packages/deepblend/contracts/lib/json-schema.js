@@ -328,23 +328,6 @@ export function compileSchema(schema, options = {}) {
 }
 
 /**
- * Parse, then compile, a schema document.
- *
- * @param {string} jsonText
- * @param {{ id?: string }} [options]
- * @returns {(value: unknown) => SchemaIssue[]}
- */
-export function compileSchemaText(jsonText, options = {}) {
-  let parsed
-  try {
-    parsed = JSON.parse(jsonText)
-  } catch (cause) {
-    throw new SchemaDefinitionError(`${options.id ?? '<schema>'}: not valid JSON — ${cause.message}`)
-  }
-  return compileSchema(parsed, options)
-}
-
-/**
  * Render issues as a compact, model-readable list.
  * @param {SchemaIssue[]} issues
  * @returns {string}

@@ -2749,6 +2749,30 @@ Error: ENOENT: no such file or directory, open '…/revisions/r0029/scene-spec.j
 
 ---
 
+### D122 — 「没人用」的名单要清空，而清空的过程要有测试兜底
+
+第 36 轮的规则列出了 15 条没人调用的导出。第 37 轮逐条判断，结果是**两类而不是一类**：
+
+**真的没人用，撤回**：`ANIMATION_TARGET_KINDS`、`ANIMATION_PROPERTIES`（后者的注释说它「for the JSON
+Schema enum」，而枚举真正由 schema 自己持有——第二份词汇表）、`compileSchemaText`（schema 现在直接
+import）、`toCanonicalPreviewResult`（host 内联构造）、`VISUAL_ISSUE_VERSION`（VisualIssue 不带版本字段）、
+`describeMeasurements`（注释说它是「reviewer 提示词携带的紧凑形式」，而提示词携带的是**另一种更丰富**的形式
+——第三份渲染，而且是更弱的那一份）、`UI_ROUTE_IDS`（`UI_ROUTES` 才是闭集）。八条定义连同 barrel 行撤掉。
+
+**不是死的，恢复**：`SCENE_ENGINES`。清理时 `scene-spec.test.mjs` 直接崩了——它 import 了这个常量，
+而规则说它「被 import 后从未被引用」。真相是**规则错了**：`import.meta.dirname` 是表达式而不是 import
+语句，扫描器用 `^import` 判断，于是从文件中间那一行起把后 564 行全部当 import 语句丢掉，
+那两条钉住它的检查也随之不可见（`kept lines: 35 of 599`）。这是这个扫描器的**第五个形状**，
+前四次（多行 import、`export default class`、`with { type: 'json' }`、审计者自指）都是靠眼睛在名单里
+看见活名字才发现的，**这一次是「撤掉一个还有人用的导出 → 套件立刻红」**。
+
+两条方法上的结论：其一，**清理要一条一条来**——第一版写的自动删除器在没有分号的代码库里越删越远，
+把相邻声明一起吃掉了；判断要人做，机械部分越少越好。其二，**「撤回」这个动作本身要被测试兜底**：
+规则的假阳性不体现在名单上，而体现在「删掉之后套件红」——所以每一次撤回都必须跑完整层。
+`ACCEPTED_UNUSED` 现在空着，因为「没人用」有时是有意的，下一个名字需要连理由一起声明。
+
+---
+
 ## 6. 沿用自 M0 的约束（不再是新决策，但仍在生效）
 
 | 约束 | 来源 | M1 中的体现 |
@@ -2796,6 +2820,7 @@ Error: ENOENT: no such file or directory, open '…/revisions/r0029/scene-spec.j
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（清空那张名单） | D122：把第 36 轮列出的 15 条「没人调用」逐条判断——**八条真的没人用**（`ANIMATION_TARGET_KINDS`/`ANIMATION_PROPERTIES`（后者注释说它喂 JSON Schema enum，而枚举由 schema 自己持有）、`compileSchemaText`、`toCanonicalPreviewResult`、`VISUAL_ISSUE_VERSION`、`describeMeasurements`（注释说它是 reviewer 提示词的形式，而提示词携带的是另一种更丰富的形式——第三份渲染）、`UI_ROUTE_IDS`），定义与 barrel 行一并撤回；**一条不是死的**：`SCENE_ENGINES` —— 清理时 `scene-spec.test.mjs` 直接崩，因为规则第五次报错：`import.meta.dirname` 是表达式而非 import 语句，扫描器从文件中间那一行起把后 564 行全丢掉（`kept lines: 35 of 599`），钉住该常量的两条检查随之不可见。前四次假阳性都是眼睛发现的，**这一次是「撤回一个还有人用的导出 → 套件立刻红」**。方法结论：清理要一条条来（第一版自动删除器在没有分号的代码库里越删越远，吃掉相邻声明），且每次撤回都要跑完整层——规则的假阳性不体现在名单上，而体现在删除之后。`ACCEPTED_UNUSED` 现为空表 |
 | 2026-09-14 | M5（导出面） | D121：把第 35 轮那次「碰巧发现两个导出没有调用者」变成规则——遍历五个包的导出名，问它在全仓库**代码**里还出现过吗（`contract/export-usage.test.mjs`）。结果分四类：`JOB_RECORD_VERSION` / `LOG_SCOPE` **不是死的**（host 里各有六处手写字面量/前缀）→ 接上，并纠正前者的注释（它描述的是 revision 事务的 job 文档，不是持久渲染记录）；`asBlenderError` / `VISUAL_TOOL_NAMES` 真的没人用 → 撤回（后者是第二份工具清单，已由套件从注册表断言）；更值钱的是**服务名在两处各写一遍且无物相扣**（provider 注册 `blenderRuntime` 而 host 用私有字面量取，host 注册 `blenderStudio` 而 tool 另写常量绑）——改一处会得到「host bundle 缺失」这种指错方向的报错，现在断言两侧相等、两名互不相同、且都**通过常量**注册；最后 15 个确实无人调用者进 `ACCEPTED_UNUSED` 并各带理由。**规则自己错了四次，四次都是「假死名单」**：逐行过滤漏多行 import；整段正则把 `export default class` 当 re-export 吃到文件末尾（189k 删掉 186k）；`with { type: 'json' }` 让扫描器吞掉整个文件；以及**检查器自己**在注释/原因表/报错信息里写着这些名字（自指）——四种形状都进了自测。教训：**审计者不是调用者**。4 条变异全红，且变异脚本现在会主动拦下「没改到东西」的变异。契约层 38 → **39** 个文件 |
 | 2026-09-14 | M5（设置卡的死胡同） | D120：`provider-local` 导出 `inspectExecutablePath` 与 `discoverBlenderOnPath`，注释说它们服务于设置卡的「test path」入口，`imports.test.mjs` 也要求它们存在——而**产品里没有任何调用者**，那个入口**并不存在**；与此同时设置卡在 Blender 缺失时只显示 `可执行文件: 未解析到`（死胡同），而同一份坏安装，模型拿到的工具文本写着「跑 install-blender.mjs，或设 deepblend.blenderPath」。修法：`blenderPathAdvice()` 合成一句话（配置路径不可用→报路径与原因；PATH 上有→报路径与要改的键；都没有→给安装命令），随 `resolveBlenderExecutable()` 的失败一起返回，设置卡（多一行 `下一步`，无建议时不渲染）与工具文本（多一行 `Fix:`）显示**同一句**；两个查找作为参数注入以便三个分支都能被驱动。两条契约教训：**投影就是字段被声明的地方**（provider 里有值、白名单投影里没位置，值就在半路消失，被 M0 的接线断言当场抓住），以及健康载荷的形状不变因此该字段**缺席而非 null**。4 条变异全红，其中 A2（投影丢掉 advice）**不是人造的**，是写的时候真实踩到的那次。M0 套件 10 → **14** 项；契约层 37 → **38** 个文件 |
 | 2026-09-14 | M5（规则的第三份副本） | D119：「文档点名的命令是否存在」这条规则当时有**三份**（`docs-consistency` 的手册、`setup-steps` 的 README、第 33 轮抽出的共用模块），实现还各不相同——只有共用模块会解析仓库路径。合并成一份后，手册与 README 里的 `node deepblend/…` 路径第一次被检查（变异 C2b/C3 证明旧副本抓不到），并且**合并当场抓到一个「同一事实的两种形状」**：旧副本用 `Set.has()`，共用模块按名字索引，传 Set 进去的结果是每个脚本都报成不存在。另记一条方法上的教训：变异 C2a 改的是文档里并不存在的字符串，「什么都没改」却算作通过——**没有改到东西的变异是最容易骗过自己的验证**。同轮量到但**不发布**的数字：后台那次 1080p 交付约 2.6 分钟/帧（文档承诺 19.6–41.4 秒/帧），而机器 `load average 45.85`（10 核，Electron/Chrome 占满），因此停掉运行、保留可 `recover` 的状态，留待空闲机器刷新被引用的日志。产品代码未改 |

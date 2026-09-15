@@ -63,11 +63,6 @@ export const UI_ROUTES = Object.freeze([
   { id: 'artifacts.open', method: 'GET', path: '/deepblend/artifacts/:projectId/*', write: false, summary: 'Serve one project-relative artifact (a preview PNG).' },
 ])
 
-/** Route ids by name, so a caller never repeats a path or an id. */
-export const UI_ROUTE_IDS = Object.freeze(
-  Object.fromEntries(UI_ROUTES.map(route => [route.id, route.id])),
-)
-
 /**
  * Decode the tail a `*` captured.
  *

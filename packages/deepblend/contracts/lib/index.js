@@ -632,14 +632,11 @@ export {
 export {
   SchemaDefinitionError,
   compileSchema,
-  compileSchemaText,
   formatIssues,
 } from './json-schema.js'
 
 export {
   DEFAULT_WORLD,
-  ANIMATION_TARGET_KINDS,
-  ANIMATION_PROPERTIES,
   ANIMATION_PROPERTIES_BY_KIND,
   TRANSFORM_ANIMATION_PROPERTIES,
   MATERIAL_ANIMATION_PROPERTIES,
@@ -672,7 +669,6 @@ export {
   toCanonicalProjectSummary,
   toCanonicalRevisionSummary,
   toCanonicalPreviewArtifact,
-  toCanonicalPreviewResult,
   toCanonicalQAReport,
   toCanonicalJobRecord,
   toCanonicalFailure,
@@ -687,7 +683,6 @@ export {
 // ---------------------------------------------------------------------------
 
 export {
-  VISUAL_ISSUE_VERSION,
   VISUAL_REVIEW_VERSION,
   VISUAL_ISSUE_CATEGORIES,
   VISUAL_SEVERITIES,
@@ -776,7 +771,6 @@ export {
   resolveSubject,
   resolveSubjectId,
   buildVisualReview,
-  describeMeasurements,
 } from './visual-composition.js'
 
 // The workbench UI's contract (M4): the HTTP route table, the panel vocabulary
@@ -786,7 +780,6 @@ export {
   UI_ROUTE_PREFIX,
   UI_REST_MARKER,
   UI_ROUTES,
-  UI_ROUTE_IDS,
   UI_PANEL_VIEWS,
   PREVIEW_SHEET_SLOTS,
   UI_PANEL_ID,

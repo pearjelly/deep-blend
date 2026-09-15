@@ -4439,3 +4439,56 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 改的四处产品代码：`host`（六处版本字面量、六处日志前缀改用常量，导出 `RUNTIME_SERVICE`）、
 `contracts`（`JOB_RECORD_VERSION` 的注释纠正）、`tool`（删两个死助手、re-export 绑定名）、
 `tool/visual-tools`（删第二份工具清单）。新增 `contract/export-usage.test.mjs`（4 项）。
+
+---
+
+## 50. 把那张「没人用」的名单清空——以及这条规则第五次报错，这次是测试抓住的
+
+第 36 轮把 15 个「确实没人调用」的导出列进了 `ACCEPTED_UNUSED`，每条带理由，
+并写明「每个都需要和前面四个同样的判断：接上，还是撤回」。这一轮把它们清空。
+
+逐条判断的结果是**两类**，而不是一类：
+
+* **真的没人用**（撤回）：`ANIMATION_TARGET_KINDS` 与 `ANIMATION_PROPERTIES`
+  （后者的注释写着「for the JSON Schema enum」，而枚举真正由 JSON Schema 自己持有——第二份词汇表）、
+  `compileSchemaText`（schema 现在以 `with { type: 'json' }` 直接 import）、
+  `toCanonicalPreviewResult`（host 自己内联构造 preview 结果）、
+  `VISUAL_ISSUE_VERSION`（VisualIssue 文档根本不带版本字段）、
+  `describeMeasurements`（注释说「reviewer 提示词携带的紧凑形式」，而提示词里携带的是**另一种、更丰富**的形式
+  ——第三份渲染，且这一份更弱）、`UI_ROUTE_IDS`（`UI_ROUTES` 才是那个闭集）。
+  八条定义 + 八行 barrel 一并撤掉，`contracts` 的对外面缩到真正被用的那些。
+* **不是死的**：`SCENE_ENGINES` —— 见下。
+
+### 50.1 规则第五次报错，而且这次不是我发现的
+
+清理过程中 `scene-spec.test.mjs` 直接**崩了**：它 import 了 `SCENE_ENGINES`，
+而规则说这个名字「被测试 import 之后从未被引用」。真相是**规则错了**：
+
+```
+$ 扫描器在 scene-spec.test.mjs 上留下的行数
+kept lines: 35 of 599
+$ 它为什么停在第 50 行
+  50:  import.meta.dirname,
+```
+
+`import.meta.dirname` 是**表达式**而不是 import 语句，而它在文件中间、且带缩进——
+扫描器用 `^import` 判断，于是从那一行起把整个文件（599 行的后 564 行）都当成 import 语句丢掉，
+那两条**钉住 `SCENE_ENGINES` 的检查**也随之不可见。修正之后（`import.meta` 有了自测用例，
+这是这个扫描器第五个形状），`SCENE_ENGINES` 被**恢复**，真正该撤的只剩两个。
+
+**这次是测试抓住的，不是眼睛。** 前四次（多行 import、`export default class`、`with { type: 'json' }`、
+审计者自指）都是我看出名单里有活名字才发现；这一次是「撤掉一个还有人用的导出 → 套件立刻红」。
+这也解释了为什么这一轮**没有**把「撤回」做成一键脚本：判断要人做，机械部分越少越好——
+我第一版写过一个自动删除器，它在没有分号的代码库里**越删越远**，把相邻的声明一起吃掉了。
+
+### 50.2 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 39/39 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+`ACCEPTED_UNUSED` 现在是**空的**——表还在，因为「没人用」有时是有意的，
+下一个这样的名字需要有个地方连理由一起声明。

@@ -32,9 +32,6 @@
  * Owner: DeepBlend Studio — M2
  */
 
-/** VisualIssue schema version. */
-export const VISUAL_ISSUE_VERSION = 'deepblend.visual-issue/v1'
-
 /** Visual review document version. */
 export const VISUAL_REVIEW_VERSION = 'deepblend.visual-review/v1'
 

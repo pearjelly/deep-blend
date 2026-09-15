@@ -102,37 +102,6 @@ export function toCanonicalPreviewArtifact(artifact) {
 }
 
 /**
- * The preview render result (SPEC §7.1 `PreviewRenderResult`).
- *
- * @param {object} input
- * @param {string} input.projectId
- * @param {string} input.revision
- * @param {string} input.digest
- * @param {object} input.profile - the render profile actually used.
- * @param {object[]} input.artifacts
- * @param {object[]} [input.warnings]
- * @param {object} [input.job]
- * @returns {Record<string, unknown>}
- */
-export function toCanonicalPreviewResult({ projectId, revision, digest, profile, artifacts, warnings = [], job = null }) {
-  return {
-    projectId,
-    revision,
-    digest,
-    profile: {
-      engine: profile.engine,
-      blenderEngine: profile.blenderEngine,
-      resolution: profile.resolution,
-      samples: profile.samples,
-      filmTransparent: profile.filmTransparent === true,
-    },
-    artifacts: artifacts.map(toCanonicalPreviewArtifact),
-    warnings,
-    job,
-  }
-}
-
-/**
  * Normalize one validation finding.
  *
  * @param {object} issue

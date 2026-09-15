@@ -468,31 +468,6 @@ export function buildVisualReview(input) {
 }
 
 /**
- * The measured facts, in the compact form the reviewer prompt carries.
- *
- * Prose, not JSON, because it is read by a model: a JSON blob of nested numbers
- * costs tokens and invites the model to quote fields rather than reason about them.
- *
- * @param {object} review
- * @returns {string}
- */
-export function describeMeasurements(review) {
-  const lines = [`Measured facts for ${review.projectId} ${review.revision} (score ${review.score}/100):`]
-  for (const view of review.perView) {
-    lines.push(`  view "${view.viewId}" scored ${view.score}`)
-  }
-  if (review.issues.length === 0) {
-    lines.push('  no measured problem.')
-    return lines.join('\n')
-  }
-  lines.push('  measured problems:')
-  for (const issue of review.issues) {
-    lines.push(`    [${issue.severity}] ${issue.code} (${issue.category}) ${issue.evidence}`)
-  }
-  return lines.join('\n')
-}
-
-/**
  * Why one standard role is in the plan, phrased for the model that reads it.
  *
  * @param {string} role

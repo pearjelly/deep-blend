@@ -57,8 +57,6 @@ const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
  * by rotating the product instead, and "the dial lights up" had to be faked by
  * scaling emissive geometry instead of ramping a material.
  */
-export const ANIMATION_TARGET_KINDS = Object.freeze(['entity', 'camera', 'material'])
-
 /** Transform channels, shared by every target that has a `transform`. */
 export const TRANSFORM_ANIMATION_PROPERTIES = Object.freeze([
   'location.x', 'location.y', 'location.z',
@@ -105,12 +103,6 @@ export function collectionNameForKind(kind) {
 export function collectionForKind(spec, kind) {
   return spec[collectionNameForKind(kind)] ?? []
 }
-
-/** Every legal `property` value, in one list, for the JSON Schema enum. */
-export const ANIMATION_PROPERTIES = Object.freeze([
-  ...TRANSFORM_ANIMATION_PROPERTIES,
-  ...MATERIAL_ANIMATION_PROPERTIES,
-])
 
 /** Material parameters that must not go negative; a negative emission is a black one. */
 const NON_NEGATIVE_MATERIAL_PROPERTIES = Object.freeze([
