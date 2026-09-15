@@ -846,10 +846,18 @@ export default class BlenderStudio extends Service {
       const checkpointSource = resolvedCheckpoint.revision === revision
         ? `revision ${revision}`
         : `the ${resolvedCheckpoint.revision} checkpoint, because revision ${revision} has none of its own`
+      // The renderer's report is not guaranteed to carry the size or the engine — the provider sets
+      // both, but a report that omits them used to print "nullxnull, engine null" into a warning a
+      // person reads. Saying that the renderer did not report them is the honest version, and it
+      // never invents a measurement: the numbers here are the ones the report carried, not the ones
+      // the profile asked for.
+      const measuredSize = artifact.width === null || artifact.height === null
+        ? 'size not reported'
+        : `${artifact.width}x${artifact.height}`
       warnings.push(warning(
         BlenderWarningCode.SCENE_COMPILER_DECISION,
         `preview of ${checkpointSource}: frame ${artifact.frame}, ` +
-          `${artifact.width}x${artifact.height}, engine ${artifact.engine}`,
+          `${measuredSize}, engine ${artifact.engine ?? 'not reported'}`,
       ))
 
       const job = this.store.writeJob(projectId, {
@@ -893,13 +901,7 @@ export default class BlenderStudio extends Service {
       }
     } catch (cause) {
       removeTree(join(this.store.revisionDirectory(projectId, revision), '.render-staging'))
-      const failure = cause instanceof BlenderError
-        ? cause
-        : new BlenderError(
-          BlenderErrorCode.SCRIPT_ERROR,
-          cause instanceof Error ? cause.message : String(cause),
-          { cause },
-        )
+      const failure = this._failedRenderError(cause, jobId)
       this.store.writeJob(projectId, {
         schemaVersion: JOB_RECORD_VERSION,
         jobId,
@@ -1340,13 +1342,7 @@ export default class BlenderStudio extends Service {
         checkpointRevision: checkpoint.revision,
       }
     } catch (cause) {
-      const failure = cause instanceof BlenderError
-        ? cause
-        : new BlenderError(
-          BlenderErrorCode.SCRIPT_ERROR,
-          cause instanceof Error ? cause.message : String(cause),
-          { cause },
-        )
+      const failure = this._failedRenderError(cause, jobId)
       this.store.writeJob(projectId, {
         schemaVersion: JOB_RECORD_VERSION,
         jobId,
@@ -1368,6 +1364,35 @@ export default class BlenderStudio extends Service {
     } finally {
       if (checkpoint.compiled !== null) removeTree(checkpoint.compiled)
     }
+  }
+
+  /**
+   * The error a failed render throws, after its job record exists.
+   *
+   * WHY THE JOB ID IS ATTACHED HERE. Both render entry points write a failed job record before they
+   * throw, and that record is the only trace of an attempt whose process is gone. But `listJobs`
+   * returns RENDER jobs (`renders/`), not these attempt logs (`jobs/`), so the id is the caller's only
+   * handle on it — and the caller never had one: the coded error named the failure and said nothing
+   * about the record that describes it. MEASURED by writing this round's contract test: a failed
+   * preview left a perfectly good record that no assertion could find through the public surface.
+   *
+   * The cause's own detail is MERGED rather than replaced: a coded failure often carries the fields
+   * that explain it, and the job id is one more field, not a substitute.
+   *
+   * @param {unknown} cause
+   * @param {string} jobId
+   * @returns {BlenderError}
+   */
+  _failedRenderError(cause, jobId) {
+    const failure = cause instanceof BlenderError
+      ? cause
+      : new BlenderError(
+        BlenderErrorCode.SCRIPT_ERROR,
+        cause instanceof Error ? cause.message : String(cause),
+        { cause },
+      )
+    failure.detail = { ...(failure.detail ?? {}), jobId }
+    return failure
   }
 
   /**
@@ -2356,7 +2381,13 @@ export default class BlenderStudio extends Service {
   }
 
   /**
-   * List a project's jobs: render jobs first (newest last), then attempt logs.
+   * List a project's RENDER jobs, newest last.
+   *
+   * The comment here used to add "then attempt logs", which the body never did — and the difference
+   * matters, because the failed record of a preview or a patch is an ATTEMPT log under `jobs/`, while
+   * this lists `renders/`. Reading one of those is `getJob`, which checks both stores by id; an error
+   * that leaves a record now carries that id (`_failedRenderError`), so the record is reachable from
+   * the failure itself rather than only from a directory listing nobody shows a user.
    *
    * @param {{ projectId: string, limit?: number }} request
    * @returns {Promise<object>}

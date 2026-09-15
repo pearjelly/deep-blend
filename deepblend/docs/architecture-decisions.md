@@ -2822,6 +2822,24 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D131 — 一条「写了但没人读得到」的记录，和一句承诺了代码没做的事的注释
+
+`renderPreview` 的失败路径先写一条 `status: 'failed'` 的 job 记录再抛错，注释也写明它的用途是
+「进程没了以后操作者还能看到试过什么」。可是 `listJobs` 只列 `renders/` 下的渲染 job，
+而这条记录是 `jobs/` 下的**尝试日志**；`getJob(jobId)` 读得到，但**没有任何东西把 id 给调用者**。
+于是这条记录对模型与操作者都不可达——**一次「写了但没人读得到」的写**。
+
+修法：把 job id 挂到抛出的错误上（`_failedRenderError`，两处渲染失败共用一处实现，
+并把 cause 自己的 detail **合并**而不是替换）。这样测试可以断言完整链路：
+错误给出 id → 用这个 id 读回那条失败记录。顺带纠正 `listJobs` 的注释——它写着
+「render jobs first, then attempt logs」，而代码从来没有列过 attempt logs：
+**一句注释承诺了代码没做的事**，与「文档里的数字停止为真」是同一族缺陷。
+
+同一轮还量到一句会给人看的 `nullxnull, engine null`：预览的 provenance 那句话由渲染器的 report
+拼出，而 report 不保证带尺寸与引擎。改成「size not reported / engine not reported」，
+并且**不拿 profile 的分辨率冒充测量值**——那句话里的数字必须是报告带来的，不是请求时想要的。
+一句给人读的话里出现 `null`，与第 8 轮那句 `rendered from the revisioncheckpoint` 同形。
+
 ### D130 — 「兜底被遮住」有两种：该撤回的那种，和该补一个状态的另一种
 
 宿主的 `readRevisionPair` 把 `r0001` 的 manifest 里那个内部哨兵 `GENESIS_REVISION = 'r0000'`
@@ -3014,6 +3032,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（渲染之外的那一圈） | D131：`renderPreview` / `renderViews` 有真实套件在跑，所以 84 行黑暗全是渲染**周围**的决定：没有 preview profile 要报 `RENDER_PROFILE_MISSING`、采样被预算削减必须说出来（静默降采样等于 review 了另一张图）、主体是从多候选里猜出来的必须是警告、渲染器说成功却没有字节是 `RENDER_NO_OUTPUT`、失败的渲染要先写失败记录再抛。runtime 是接缝所以它是 stub（store 与 revision 都是真的，stub 交回**真 PNG**——因为宿主会合成 contact sheet），`contract/host-render-orchestration.test.mjs` 27 项、14 条变异全红。**抓到一条「写了但没人读得到」的写**：失败记录落在 `jobs/` 而 `listJobs` 只列 `renders/`，`getJob` 读得到却没人把 id 给调用者——现在 id 挂在错误上，并纠正了 `listJobs` 那句「then attempt logs」的注释（**注释承诺了代码没做的事**）。另修一句给人看的 `nullxnull, engine null`（provenance 由渲染器 report 拼出，缺字段时说「size not reported」，且不拿 profile 的分辨率冒充测量值）。读数：产品可执行行黑暗 **938 (7.8%) → 853 (7.1%)**，`host/lib/index.js` **374 → 291**；`renderViews` 整簇归零，`renderPreview` 只剩一行**死代码**（provenance 的「继承 checkpoint」那句永远走不到，因为解析出的 checkpoint 总会被本次渲染编译的那个替换），检查钉的是让它成为死代码的那个事实而不是假装覆盖 |
 | 2026-09-14 | M5（宿主的三条读路径） | D130：宿主里不需要 Blender 的那一组读路径（`getRevisionDetail` / `readRevisionPair` / 带 patch 的 `validateScene` 干跑）合计 55 行黑暗，靠 `saveCheckpoint: false` 的 spec-only revision 全部变得可达（宿主自己的 transaction 建 fixture，runtime 一被碰就抛），`contract/host-revision-reads.test.mjs` 28 项、14 条变异全红。**抓到一条真缺陷**：`readRevisionPair({to:'r0001'})` 把内部哨兵 `GENESIS_REVISION='r0000'` 原样传给 store，于是「首个 revision 没有可比基准」被答成 `REVISION_ID_INVALID: "r0000" is not a revision id`——报错里出现调用者从没写过的 id；修法是折成 `null` 让既有的 `REVISION_NOT_FOUND: records no base revision` 说话（工作台 diff 路由正是调用者）。另一件更一般的量测：变异「去掉 `manifest.previews ?? []`」**活了下来**（写入方总是写它），与 D125 那条被 schema 遮住的规则同形但结论相反——那条是两份同一条规则可撤回，这个兜底守的是**旧版本写下的 store**，所以不删而是把那个状态造出来（删掉 manifest 里的产物列表再读，断言三个列表都是 `[]`）；判据是「那个状态今天还存在吗」。干跑的四种答案也分别钉住，其中 `catch` 的 `issue?.code ?? 兜底码` 第一版只断言「码非空」，变异存活，改成断言拒绝自身的码。读数：产品可执行行黑暗 **993 (8.2%) → 938 (7.8%)**，`host/lib/index.js` **429 → 374**（三条读路径整簇归零）；宿主剩下十簇全是流水线，其中 `renderViews` / `renderPreview` / `_renderViewPlan` 走 `ctx.blenderRuntime`，是下一块可用 stub runtime 搬进契约层的目标 |
 | 2026-09-14 | M5（模型面自己的一段） | D129：`host/lib/index.js` 最大的一簇黑暗是 `createVisualReviewer()`——产品写给视觉模型的那一段，55 行从没被执行过（要走到它需要一次真模型调用）。它只依赖两个每次调用解析的服务，于是 stub 掉 `llm` / `attachments` 之后每一道护栏都确定可达：`contract/visual-reviewer.test.mjs`（**23 项**，20 条变异全红，**产品代码未改**）。最值钱的一条是**空回答护栏**：「模型看了没问题」是结果，「模型什么也没说」意味着根本没审，而下游两者都是零 findings——把后者当前者报告等于让坏掉的审查器安静地批准每个场景，所以这是安全属性；断言同时钉住诊断（finish 原因 / chunk 数 / chunk 类型 / usage）。提示词里两段同样黑暗的分支（有问题清单的版本、回答不是合法 JSON 的解析）一并驱动，断言它**必须说出什么**（cell 对应视角/相机/帧、测量值标为 facts not estimates、未知 viewId 会被丢弃、七种操作、空列表合法）。一条写法记下来：提示词里**只允许一个 `null`**（它教模型 JSON 形状时写的那行可空 `objectId`）——「不许漏出值」的检查必须分清**被引用的值**与**被泄漏的值**。另：两条变异不是红在断言上而是让产品抛堆栈，正好指出这些护栏的用途。读数：产品可执行行黑暗 **1057 (8.7%) → 993 (8.2%)**，`host/lib/index.js` **493 → 429**（审查器整簇归零）；宿主剩下的十三簇是 M1–M3 流水线本身，各需一台 Blender 或一个 job store，已在日志里逐一点名 |
 | 2026-09-14 | M5（两次 `undefined` 的比较） | D128：工具面最后两种没被跑到的形状（审查工具的 `VISUAL_REVIEW_FAILED` 与能力探测的 `CAPABILITY_PROBE_FAILED`，各自手写码与文本而不走 `renderFailure`）补上用例，`contract/tool-plane-output.test.mjs` 54 → **59 项**，9 条变异全红，**产品代码未改**。过程中写出一条**假通过**：stub 抛的 `BlenderError` 用了错键（词表里叫 `NOT_FOUND`，`BLENDER_NOT_FOUND` 是它的值），于是 `code` 是 `undefined`，而断言拿它和同一个不存在的常量比较——两边都是 `undefined`，通过；抓住它的是同文件里最泛的那条「散文里不许漏出 JavaScript 值」（报出 `errorCode: undefined`），**泛检查抓到具体断言的假通过**。修法是把查找变成守卫（`code(name)` 在常量缺失时抛错并加一条检查把依赖点名），变异证明：换回写错键的那一版，改前绿、改后红。另记一条方法：**变异必须先是合法的程序**——第一条「去掉 detail 行」的变异删出了语法错误，被脚本记成 KILLED，重写成可解析形态后红的才是断言。同一轮读数：产品可执行行黑暗 **1077 (8.9%) → 1057 (8.7%)**，有黑暗行的文件 26 → **24**，工具平面 `tools.js` / `visual-tools.js` / `index.js` **三个文件归零**（只剩 `render-tools.js` 的 M3 job 护栏 19 行与 `shared.js` 的审批/附件助手 22 行，两者都需要这一层不组的 composition） |

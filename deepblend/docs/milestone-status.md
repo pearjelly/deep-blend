@@ -4988,3 +4988,70 @@ DeepBlend tests: 43/43 file(s) passed        1013 项自计断言 + 271 个 node
 `_renderViewPlan`(18)、`ingestAsset`(18)、`renderViews`(13)。它们要的是 runtime 或 render job
 两个接缝——**其中 `renderViews`/`renderPreview`/`_renderViewPlan` 走的是 `ctx.blenderRuntime`，
 是下一块可以用 stub runtime 搬进契约层的目标**（78 行）。
+
+## 58. 渲染编排：Blender 之外的那一圈，以及一条「记录写了但没人能读到」
+
+`renderPreview` 与 `renderViews` 是「把 revision 变成像素」的两个入口。它们**有**真实套件在跑
+（组合层 + M3 e2e），而那正是 84 行黑暗的原因：有 Blender 的套件只会看到成功路径。
+黑暗的是渲染**周围**的每一个决定，而每一个都有人依赖：
+
+| 那条线 | 为什么它必须被读过 |
+|---|---|
+| 没有 preview profile 的 revision | 报 `RENDER_PROFILE_MISSING`（带 revision），不是崩溃 |
+| 采样被预算削减 | **必须说出来**——静默降采样等于「review 的是另一张图」 |
+| 主体是从多个候选里猜出来的 | 必须是警告：**「我们挑了最大的那个」会改变 findings 该怎么读** |
+| 渲染器说成功却没有字节 | `RENDER_NO_OUTPUT`，不是一张空预览 |
+| 失败的渲染 | 先写一条**失败 job 记录**再抛，否则进程没了就什么都不剩 |
+
+runtime 是这个接缝（`ctx.blenderRuntime`），所以它是 stub：store 是真的、revision 是真的
+（`saveCheckpoint:false` 不启 Blender）、stub 交回的 PNG 也是真的——因为宿主会**合成 contact sheet**。
+`contract/host-render-orchestration.test.mjs`：**27 项**，14 条变异全红。
+
+### 58.1 一条缺陷：失败记录写下来了，但公开接口里**没有任何路径能读到它**
+
+`renderPreview` 的失败路径会写一条 `status: 'failed'` 的 job 记录（这正是它的价值：进程没了以后，
+操作者还能看到「试过什么」）。可是：
+
+* `listJobs` 返回的是 `renders/` 下的**渲染 job**，而这条失败记录是 `jobs/` 下的**尝试日志**；
+* `getJob(jobId)` 能读它——但**没有任何东西告诉调用者那个 id**：错误里没有，列表里没有。
+
+于是那条记录对模型与操作者都是不可达的。修法是把 job id 挂到抛出的错误上
+（`_failedRenderError`，两处渲染失败共用一处实现，并把 cause 自己的 detail **合并**而不是替换），
+测试因此能断言「错误里给出 id → 用这个 id 读回那条失败记录」这条完整链路。
+顺带纠正了 `listJobs` 的注释：它写着「然后还有 attempt logs」，而代码从来没有列过——
+**一句注释承诺了代码没做的事**，正是本仓库反复付账的那类缺陷。
+
+### 58.2 一条「值泄漏」：`nullxnull, engine null`
+
+预览成功时会写一句 provenance：「这张图来自哪个 checkpoint、哪一帧、什么引擎」。
+它由渲染器的 report 拼出来，而 report 不保证带尺寸与引擎——不带时那句话会打印
+`nullxnull, engine null` 给**人**看。现在说「size not reported / engine not reported」，
+并且**不去拿 profile 的分辨率冒充测量值**：这句话里的数字必须是报告带来的，
+不是请求时想要的。历史同形缺陷记在第 8 轮（`rendered from the revisioncheckpoint`）。
+
+### 58.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 44/44 file(s) passed        1040 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-render-orchestration.test.mjs`（29 项）；产品代码改 3 处
+（`_failedRenderError` 共用实现 + 两处失败路径调用它、`listJobs` 注释、provenance 那句话），
+16 条变异全红。
+
+### 58.4 读数：宿主 374 → **291**，产品可执行行黑暗 7.1%
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **938 (7.8%) → 853 (7.1%)**，`host/lib/index.js` **374 → 291**。
+
+`renderViews` 与它背后的 `_renderViewPlan` **整簇归零**；`renderPreview` 只剩**一行**，而它是
+**死代码而不是黑暗**：provenance 里那句「这张图来自 r0001 的 checkpoint，因为 r0002 自己没有」
+永远走不到——解析出来的 checkpoint 总会被「为本次渲染编译出来的那个」替换掉，
+所以 `resolvedCheckpoint.revision === revision` 恒成立。检查因此钉的是**让它成为死代码的那个事实**
+（渲染上报的 revision 永远是它打开的那个），而不是假装覆盖它。
+
+宿主剩下的十簇仍是流水线：`_deliverJob`(36)、`_resolveDeliveryRange`(29)、`_launchRenderer`(26)、
+`cancelJob`(21)、`_driveRender`(21)、`reconcileRenderJobs`(19)、`ingestAsset`(18)、
+`_fetchAssetToScratch`(13)、`_absorbProgress`(11)。它们要的是 **render job 那套接缝**
+（进程存活、帧账本、交付范围），与这一轮同形，是下一块目标。
