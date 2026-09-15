@@ -4840,3 +4840,78 @@ DeepBlend tests: 41/41 file(s) passed        962 项自计断言 + 271 个 node:
 （工具在没有 host service 时被调用、编码结果与 job 自己的声明不一致、取消失败），
 `shared.js` 的 22 行是审批与附件助手——它们需要一个这一层不组的 composition
 （真的审批平面 / 真的附件存储），不是「没人看过」。
+
+## 56. 视觉审查器：产品自己的「模型面」，55 行从没被执行过
+
+`host/lib/index.js` 里最大的一簇黑暗是 `createVisualReviewer()`——**产品自己写给视觉模型的那一段**：
+它把「有一张 contact sheet」变成「关于这次渲染的第二意见」，评分说不出口的东西全走它。
+55 行从没被执行过，原因和前面几轮同形：要走到它需要一个**真的模型调用**（以及一次真渲染）。
+
+但它是一段闭包，只依赖两个**每次调用时解析的服务**（`llm` 与 `attachments`）。于是这一轮把这两个
+换成 stub：`llm.stream` 返回测试指定的 chunk 序列，`attachments.saveImage` 记录收到的字节。
+**每一道护栏都变成确定可达的**（`contract/visual-reviewer.test.mjs`，**23 项**，20 条变异全红）：
+
+| 走到的东西 | 为什么它值得被读一遍 |
+|---|---|
+| 缺 `llm` / 缺 `attachments` | 报的是稳定码 + **哪个服务缺**，不是 TypeError |
+| sheet 先落盘再提问 | 名字里带 revision 与轮次（人要按名字找回那张图） |
+| 一条消息 = 文本 + 图片 | 模型看到的是**同一张**图，而不是「请自己去看文件」 |
+| provider / model / token 预算 | 预算要盖住推理，否则空回答（见下） |
+| 模型调用失败（`finish.reason.kind === 'error'`） | 报出 provider 自己的话与码 |
+| **空回答是失败，不是「没什么可说」** | 见下 |
+| 回答解析（围栏、散文、坏 JSON） | 模型不听话时产品的行为 |
+
+### 56.1 这一轮最值钱的一条：空回答 ≠ 没有问题的场景
+
+```
+The vision reviewer returned an empty answer, so no review took place.
+finish=length, chunks=2, types=usage/finish
+```
+
+「模型看了，没发现问题」是一个**结果**；「模型什么也没说」意味着**根本没审**。
+下游两者长得一模一样（都是零 findings），把后者当前者报告，就等于让一个坏掉的审查器
+**安静地批准每一个它看到的场景**。所以这一条不是错误处理，是**安全属性**，
+而它此前没有任何断言。检查同时钉住那句诊断（finish 原因、chunk 数、chunk 类型、usage）——
+没有它，一次「预算被推理吃光」的空回答只能靠猜。
+
+### 56.2 提示词：模型读到的唯一「说明书」
+
+提示词里有两段此前从没被跑过：**有测量问题时的问题清单**（7 行）与
+**回答不是合法 JSON 时**的解析分支（2 行）。现在都驱动了，并且断言的是**它必须说出的内容**：
+
+* 每个 cell 对应哪个视角、哪台相机、哪一帧、这个视角是干什么用的（否则模型只能瞎猜 view 2）；
+* 测量值被明确标为 **facts, not estimates**（模型不许复述数字，要补充数字说不出的东西）；
+* 命名了不存在的 viewId 的发现会被**丢弃**（这条规则决定模型怎么写）；
+* 允许的七种 ScenePatch 操作逐个列出，并明说**空列表是合法答案**。
+
+一条检查因此写得很具体：提示词里**只允许出现一个 `null`**，就是它在教模型 JSON 形状时写的
+那行可空 `objectId`。一刀切地禁掉这个词，等于断言产品不许描述自己的格式。
+
+### 56.3 两条变异是「让产品抛异常」——那正是这些护栏要消除的失败方式
+
+20 条变异里两条不是红在断言上，而是**进程带着堆栈退出**：
+去掉「图片附件」那一条（测试随即读到 `undefined.type`）与让解析器在坏 JSON 上 `throw`。
+这恰好说明这些护栏的作用：**它们存在的意义就是把一次堆栈变成一条可分支的结果**。
+其余 18 条红在具名断言上。
+
+### 56.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 42/42 file(s) passed        985 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/visual-reviewer.test.mjs`（23 项）；**产品代码未改**——
+这一轮读的是产品已经会说的话，缺的只是有人真的问过它。
+
+### 56.4 读数：审查器整簇归零，产品可执行行黑暗跌破 1000
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **1057 (8.7%) → 993 (8.2%)**，`host/lib/index.js` **493 → 429**
+（`createVisualReviewer` 的 55 行、提示词与解析的 9 行全部转亮）。
+
+宿主里剩下的十三簇就是 M1–M3 流水线本身，也都点了名：`renderPreview`(43)、`_deliverJob`(36)、
+`_resolveDeliveryRange`(29)、`_launchRenderer`(26)、`validateScene`(22)、`cancelJob`(21)、
+`_driveRender`(21)、`readRevisionPair`(20)、`reconcileRenderJobs`(19)、`_renderViewPlan`(18)、
+`ingestAsset`(18)、`renderViews`(13)。它们要的不是一个服务接缝，而是一台 Blender 或一个 job store，
+所以还留在黑暗里——**这是「跑不到/还没跑到」的区分，不是一句「待办」。**

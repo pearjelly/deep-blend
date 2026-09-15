@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 43 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 44 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 43 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 44 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -29,18 +29,18 @@
 
 suite: bash deepblend/tests/run-all.sh
 suite exit code: 0
-coverage files: 103 (103 parsed)
+coverage files: 104 (104 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19983, never executed: 2347 (11.7%)   [every line]
-product CODE lines:      12092, never executed: 1057 (8.7%)   [blank + comment-only excluded]
+product lines seen:      19983, never executed: 2267 (11.3%)   [every line]
+product CODE lines:      12092, never executed: 993 (8.2%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           this run (r43)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)
-files with dark lines           —        28            28            28            28            26            24
-host/lib/index.js               (951 raw) 649          526           493           493           493           493
+                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           r43           this run (r44)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)
+files with dark lines           —        28            28            28            28            26            24            24
+host/lib/index.js               (951 raw) 649          526           493           493           493           493           429
 provider-local/lib/index.js     376 raw   368           264           168           168           168           168
 contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13            13
 ui/lib/index.js                 68 (r24) 36            25            25            25            25            25
@@ -48,6 +48,7 @@ tool/tools.js                   —        —             —             —  
 tool/render-tools.js            89       33            33            33            33            19            19
 tool/visual-tools.js            —        —             —             69            11            3             0
 tool/index.js                   12       12            12            20            17            17            0
+host/index.js · createVisualReviewer 55  —        —             —             —             —             —             0
 host/render-journal.js          28       3             3             3             3             3             3
 host/frame-ledger.js            10       1             1             1             1             1             1
 
@@ -75,7 +76,7 @@ through the tool that documents it. The lines that remain are guards for states 
 that throws) plus every `presentCall` card title.
 
 ── the darkest of the files that were loaded (24) ──
-   packages/deepblend/host/lib/index.js                        493/2925  code lines dark
+   packages/deepblend/host/lib/index.js                        429/2925  code lines dark
    packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
    packages/deepblend/host/lib/project-store.js                 53/263
@@ -87,6 +88,23 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
    packages/deepblend/contracts/lib/json-schema.js              15/242
+
+── ROUND 44: THE PRODUCT'S OWN MODEL-FACING COMPONENT (§56) ──
+The single largest cluster left in `host/lib/index.js` was `createVisualReviewer()` — 55 lines, and not
+one of them had run: reaching it needed a real model call on a real render. It resolves `llm` and
+`attachments` per call, so stubbing those two makes every guard deterministic, and the guards are the
+reason it mattered: a missing service, a failed model call, a persisted sheet, one message carrying the
+prompt AND the image, and above all **an empty answer, which is a FAILURE and not "a scene with nothing
+wrong"** — the two look identical downstream, and reporting the second as the first would let a broken
+reviewer silently approve every scene it was shown.
+
+`host/lib/index.js` went 493 → 429; the whole reviewer, including the prompt builder and the answer
+parser (both of which had dark branches of their own), is now at zero. What is left in the host is
+thirteen methods, and they are the M1–M3 pipeline itself: `renderPreview` (43), `_deliverJob` (36),
+`_resolveDeliveryRange` (29), `_launchRenderer` (26), `validateScene` (22), `cancelJob` (21),
+`_driveRender` (21), `readRevisionPair` (20), `reconcileRenderJobs` (19), `_renderViewPlan` (18),
+`ingestAsset` (18), `renderViews` (13). Each needs a Blender or a job store rather than a service seam,
+which is why they are still here.
 
 ── ROUNDS 41–43: THE TOOL PLANE WENT TO ZERO (§54, §55) ──
 `tool/tools.js` 51 → **0**, `tool/visual-tools.js` 11 → **0**, `tool/index.js` 17 → **0**,
