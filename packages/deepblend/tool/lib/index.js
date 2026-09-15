@@ -101,6 +101,17 @@ export { describeReviewNotes } from './visual-tools.js'
 export { describeLoopNotes, describeIssueLines } from './visual-tools.js'
 
 /**
+ * The four boundary helpers whose answer CHANGES when a dependency is missing.
+ *
+ * Same narrow exception as the prose blocks above, and the reason is the same: each of these has a
+ * branch that a fully-equipped machine never produces — an attachment store that is not composed, an
+ * approval service that is not composed, a value with no JSON representation crossing the harness
+ * boundary — and the only other way to reach one is a real deployment that lacks the service. Finding
+ * out what the model is told THEN is exactly what a contract test is for.
+ */
+export { canonicalData, losslessJson, persistImage, requestApproval } from './shared.js'
+
+/**
  * The service name this plane binds to, re-exported so the cross-plane tie is CHECKABLE.
  *
  * The tool resolves `blenderStudio` through `ctx.get()`, and the host registers it. Two literals in two

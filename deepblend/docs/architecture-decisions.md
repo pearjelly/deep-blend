@@ -2822,6 +2822,22 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D139 — 只在「依赖不在」时才出现的分支，怎么测：有意加宽包面，并写清为什么
+
+`tool/lib/shared.js` 里那些句子只有在一台**缺服务**的机器上才会产生：没有 attachment store、
+没有审批服务、一个值过不了 JSON 边界。第 40/41 轮为「模型读到的散文」加宽过一次 tool barrel，
+这一轮为这四个边界助手再加宽一次（`persistImage` / `losslessJson` / `canonicalData` / `requestApproval`），
+理由写在导出处：**它们各自的那个分支，另一个到达方式就是一台真的缺服务的机器**。
+
+**规则**：当一条分支只在「缺少依赖」时出现，不要为了测它去伪造整个运行时——
+把那个函数放到包面上，在导出点写清「为什么它可以被外面调用」，然后让契约层直接驱动它。
+这也是 `export-usage.test.mjs` 存在的意义：加宽的每一行都必须有人用，否则它就是新的死代码。
+
+同轮两次「fixture 记错形状」，都红得对：`persistImage` 的引用用**服务自己的字段名**
+（`attachmentId`/`bytes`/`width`/`height`；我第一版的 `{id}` stub 让 `attachmentId` 变成字符串
+`"undefined"` 却仍然 `image !== null`——只有断言**字段的值**才抓住它）；工具「不可用」时的 `data`
+是**错误自己的 JSON**（`data.code`），不是工具信封的 `errorCode`——**同一个概念在两个地方有两种形状**。
+
 ### D138 — 一句话不是它的出处：同一句拒绝可以来自两层，而层决定「抛错」还是「返回 null」
 
 我第一版断言 `parseRevisionId('r0000')` 抛 `"r0000" is not a revision id; expected the form r0001.`——
@@ -3156,6 +3172,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（依赖不在时说什么） | D139：三个平面在「依赖不在」时的句子（没有 attachment store 就点名图片路径、没有审批服务就说没人可问、探测失败返回**结构化**错误让设置卡渲染理由、没装 host bundle 时四个 M3 工具描述**部署**而不是请求）全部驱动：`contract/dependency-absent-answers.test.mjs` 30 项、15 条变异全红；`tool/lib/shared.js` **22 → 0**、`tool/render-tools.js` **19 → 11**、`ui/lib/index.js` **25 → 13**。三处故意不覆盖并写进测试头部（过大的 body、不是 JSON 对象的 body、HTTP 层的 `UI_REQUEST_FAILED` 包装——都在 HTTP 分发之后，只有浏览器套件够得着）。为让这些分支可测，tool barrel **又加宽四行导出**（`persistImage`/`losslessJson`/`canonicalData`/`requestApproval`），理由写清：**只在「缺少依赖」时出现的分支，另一个到达方式就是一台真缺服务的机器**。两次 fixture 记错形状：`persistImage` 的引用用服务自己的字段名（`{id}` stub 让 `attachmentId` 变成 `"undefined"` 却仍 `image !== null`，只有断言字段值才抓住）、工具不可用的 `data` 是错误自己的 JSON（`data.code`）而非信封的 `errorCode`。读数：产品可执行行黑暗 **454 (3.8%) → 412 (3.4%)** |
 | 2026-09-14 | M5（store 的错误路径） | D138：三个 store 文件 125 行黑暗全是「健康 store 不会产生的状态」（项目目录无记录、别的 build 写的记录、revision 目录无 spec、非法 job 迁移、会让场景非法的 patch、编译没产出 checkpoint 却要预览），每个用例写出引发该分支的文档；`contract/store-error-paths.test.mjs` 25 项、18 条变异全红、**产品代码未改**，`project-store` **47 → 12**、`revision-transaction` **71 → 39**、`render-job-store` **22 → 0**。两条设计被钉住：`unfinished()` 把「没有记录」报成 `{jobId, record: null}`（被看见而非跳过），记录存在但坏了则整个扫描抛错（"Refusing to treat corruption as absence"）——都不能读成「没有未完成的 job」；render job store 拒绝非法状态迁移。**一条被层数搞混的教训**：我断言 `parseRevisionId('r0000')` 抛错——那句话真的存在但来自 **store**，解析器是安全的（返回 `null`）；**一句话不是它的出处，而层决定「抛错」还是「返回 null」**。同族：标题冲突被加数字后缀（`healthy-2`），只有显式给已占用 id 才是 `PROJECT_EXISTS`。读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)** |
 | 2026-09-14 | M5（取消与交付的末端） | D137：`cancelJob` 回答三类 job（M1 尝试日志 / 句柄在本进程的渲染 / 进程属于上一个 Host 的渲染），且区分「请求了」「发了信号」「进程没了」——只测第三件；测试用真实子进程当「上一个 Host 的渲染」并测量它真的没了。`_deliverJob` 拒绝编码不完整的帧集、拒绝发布探测属性与声明不符的视频（记录落 `failed` + 码），并钉住「已 `completed` 的 job 在失败的再导出后仍是 `completed`」（失败属于这次尝试，记在 `delivery`）。`contract/host-cancel-and-delivery.test.mjs` 14 项、14 条变异全红、**产品代码未改**；`_deliverJob` 黑暗归零，`host/lib/index.js` **220 → 167**。三条「fixture 又记错」：帧必须是一张真的图（`MIN_FRAME_BYTES=512`，16×16 PNG 被判定 truncated）、stub 要说被替代工具的语言（ffprobe 的 `avg_frame_rate`/`nb_read_frames`，否则拒绝理由变成 `fps: null`）、断言要用产品词汇（校验器叫 `frameCount`，ffprobe 叫 `nb_frames`）。另一条只有 runner 能抓到：文件单跑 14/14 绿而 `run.mjs` 红——路径用了 `process.cwd()`，而 runner 从每个文件自己的目录启动它（`ROOT` 就是为这件事存在的）。读数：产品可执行行黑暗 **601 (5.0%) → 543 (4.5%)** |
 | 2026-09-14 | M5（action 面） | D136：`provider-local` 剩下的黑暗是每个 action 顶部的输入校验与 `resolveEngineKey`（这次渲染**到底用哪个引擎**）加能力警告，都不需要 Blender（拒绝在 spawn 之前、引擎决策读 stub 写的能力文档）。`contract/provider-actions.test.mjs` 20 项、16 条变异全红、**产品代码未改**（这轮是读不是改），文件 **124 → 38**。三道拒绝最值钱：空帧列表被拒绝且消息说清「would report success while writing nothing」（空交付与错交付的区别）、不可用引擎降级时警告点名两个引擎、Blender 5.2.1 的「可赋值但不在静态枚举」单独告警（可用性按行为判定，D1）。**本轮最值得记的是我自己的 fixture 记错了四处**：`outputDirectory` 实为 `jobDirectory`、SceneSpec 引擎键是小写 `cycles`（`CYCLES` 是 Blender 标识符）、**警告码没有 `BLENDER_` 前缀**、`gpuDevices`/`diagnostics` 形状记错——四次都是「把记得的形状当契约」，抓住它们的是断言产品**自己写出来的那句话或那个键**；若只断言「失败了」，这四处会一路绿而测试量为零。**fixture 是断言的一部分。** 读数：产品可执行行黑暗 **687 (5.7%) → 601 (5.0%)**，表格补齐到 15 列 |

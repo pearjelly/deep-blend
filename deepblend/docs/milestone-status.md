@@ -5397,3 +5397,41 @@ DeepBlend tests: 51/51 file(s) passed        1181 项自计断言 + 271 个 node
 
 新增 `contract/store-error-paths.test.mjs`（25 项）；**产品代码未改**，18 条变异全红。
 读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)**。
+
+## 66. 三个平面在「依赖不在」时说什么
+
+这一轮读的全是**一台不是开发者本人的机器**上会读到的句子：没有 attachment store（图回不来，
+于是点名它的路径）、没有审批服务（没人可问）、探测失败（返回**结构化**错误，让设置卡把理由渲染出来）、
+以及**根本没装 host bundle**（四个 M3 工具描述的是**部署**，不是请求）。
+`contract/dependency-absent-answers.test.mjs`：**30 项，15 条变异全红**。
+`tool/lib/shared.js` **22 → 0**、`tool/lib/render-tools.js` **19 → 11**、`ui/lib/index.js` **25 → 13**。
+
+三处故意不覆盖并写进测试头部：过大的请求体、不是 JSON 对象的请求体、以及 HTTP 层的
+`UI_REQUEST_FAILED` 包装——三者都在 HTTP 分发之后，只有浏览器套件够得着；
+为了测一个三行的包装去起一台服务器不划算。
+
+### 66.1 为了让这些分支可测，包的导出面**又**加宽了四行
+
+`persistImage` / `losslessJson` / `canonicalData` / `requestApproval` 被加进 tool barrel，
+沿用第 40/41 轮那条「窄例外」的理由，而且这次的理由更直接：**它们各自有一个只有「依赖不在」时才产生的分支**
+（没有 attachment store、没有审批服务、值无法过 JSON 边界），而另一个到达方式就是一台真的缺服务的机器。
+
+**当一条分支只在「缺少依赖」时出现，测试它的方式就是有意加宽包面并写清为什么。**
+
+### 66.2 又是两次「fixture 记错形状」
+
+1. `persistImage` 交回的**引用**用的是服务自己的字段名：`attachmentId` / `bytes` / `width` / `height`
+   （我第一版的 stub 返回 `{id}`，于是 `attachmentId` 变成字符串 `"undefined"` 却仍然 `image !== null`
+   ——只有断言**字段的值**才把它抓住）。变异「读错字段」也是靠这一点被杀的。
+2. 工具「不可用」时的 `data` 是**错误自己的 JSON**（`data.code`），不是工具信封的 `errorCode`。
+   同一个概念在两个地方有两种形状，我第一版按 `errorCode` 断言，红了。
+
+### 66.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 52/52 file(s) passed        1211 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/dependency-absent-answers.test.mjs`（30 项）；产品代码改 1 处（tool barrel 加宽四行导出），
+15 条变异全红。读数：产品可执行行黑暗 **454 (3.8%) → 412 (3.4%)**。
