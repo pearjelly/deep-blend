@@ -48,6 +48,25 @@ import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
+/**
+ * A code from the vocabulary, refusing to hand back `undefined`.
+ *
+ * WHY THIS EXISTS: the first version of the capability-probe case threw
+ * `new BlenderError(BlenderErrorCode.BLENDER_NOT_FOUND, …)` — a key that does not exist (the
+ * vocabulary spells it `NOT_FOUND`). Every assertion comparing a result's code to that constant
+ * then passed by comparing `undefined` to `undefined`, and the only check that noticed was the
+ * generic "no prose leaks a JavaScript value" one, which reported `errorCode: undefined`. A
+ * comparison against a constant that might not exist is a comparison that can pass vacuously, so
+ * the lookup itself is now the guard (D128).
+ */
+function code(name) {
+  const value = BlenderErrorCode[name]
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`BlenderErrorCode.${name} is not a code this build defines — the expectation would be undefined`)
+  }
+  return value
+}
+
 const results = []
 function check(name, ok, detail) {
   results.push({ name, ok })
@@ -163,6 +182,10 @@ const KIND_VOCABULARY = vocabularyMatch === null
   ? []
   : [...vocabularyMatch[1].matchAll(/'([a-z]+)'/g)].map(entry => entry[1])
 
+const DEPENDED_ON_CODES = ['CAPABILITY_PROBE_FAILED', 'NOT_FOUND', 'REVISION_CONFLICT']
+check('every error code this file compares against is a code this build really defines',
+  DEPENDED_ON_CODES.every(name => Object.values(BlenderErrorCode).includes(code(name))),
+  DEPENDED_ON_CODES.map(name => `${name} = ${code(name)}`))
 check('the kind vocabulary was read from the installed harness rather than remembered',
   KIND_VOCABULARY.length >= 6 && KIND_VOCABULARY.includes('other') && KIND_VOCABULARY.includes('edit'),
   KIND_VOCABULARY)
@@ -270,16 +293,48 @@ for (const [name, method, code] of failures) {
 
 // A coded failure keeps its own code: the tool's fallback is for failures that have none.
 studio.applyScenePatch = async () => {
-  throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'the scene changed since r0001', { detail: { baseRevision: 'r0001' } })
+  throw new BlenderError(code('REVISION_CONFLICT'), 'the scene changed since r0001', { detail: { baseRevision: 'r0001' } })
 }
 const conflict = await execute('blender_scene_patch', MINIMAL_ARGS.blender_scene_patch)
 check('a coded failure keeps its own code, and the tool does not overwrite it with its fallback',
-  conflict.ok === false && conflict.data?.errorCode === BlenderErrorCode.REVISION_CONFLICT,
+  conflict.ok === false && conflict.data?.errorCode === code('REVISION_CONFLICT'),
   conflict.data)
 check('a coded failure carries its detail through to the model',
   /detail:/.test(conflict.text ?? '') && /r0001/.test(conflict.text ?? ''))
 check('and a revision conflict tells the model what to do about it',
   /Call blender_scene_get, then re-issue the patch with the revision it returns\./.test(conflict.text ?? ''))
+
+// The two failures that are NOT the shared `renderFailure` shape: each of these tools builds its
+// own result, so each needs its own case (and each was dark for the same reason as the six above).
+
+studio.describeCapabilities = async () => { throw new Error('the probe could not start Blender') }
+const probeFailed = await execute('blender_capabilities', MINIMAL_ARGS.blender_capabilities)
+check('a capability probe that throws becomes CAPABILITY_PROBE_FAILED, with the cause as the message',
+  probeFailed.ok === false && probeFailed.data?.errorCode === code('CAPABILITY_PROBE_FAILED') &&
+  probeFailed.data.message === 'the probe could not start Blender',
+  probeFailed.data ?? probeFailed.error)
+check('and its text names the code, so a model reads the same diagnosis the canonical result carries',
+  (probeFailed.text ?? '').startsWith(
+    `Blender capability probe failed.\nerrorCode: ${code('CAPABILITY_PROBE_FAILED')}\nmessage:   the probe could not start Blender`,
+  ),
+  (probeFailed.text ?? '').split('\n').slice(0, 3))
+
+studio.describeCapabilities = async () => {
+  throw new BlenderError(code('NOT_FOUND'), 'no Blender at the configured path', { detail: { configured: '/nope/Blender' } })
+}
+const probeCoded = await execute('blender_capabilities', MINIMAL_ARGS.blender_capabilities)
+check('a coded probe failure keeps its own code and carries its detail into the text',
+  probeCoded.data?.errorCode === code('NOT_FOUND') &&
+  /detail:    \{"configured":"\/nope\/Blender"\}/.test(probeCoded.text ?? ''),
+  probeCoded.data)
+
+studio.describeCapabilities = async () => ({ installed: true, hostApiVersion: 4 })
+studio.visualReview = async () => { throw new Error('the render died before the sheet existed') }
+const reviewFailed = await execute('blender_visual_review', MINIMAL_ARGS.blender_visual_review)
+check('a visual review that throws becomes VISUAL_REVIEW_FAILED with no image, not with a stale one',
+  reviewFailed.ok === false && reviewFailed.data?.errorCode === 'VISUAL_REVIEW_FAILED' &&
+  reviewFailed.image === null && /no stable code/.test(reviewFailed.text ?? ''),
+  reviewFailed.data ?? reviewFailed.error)
 
 // ---------------------------------------------------------------------------
 // The notes only some states produce
@@ -325,7 +380,7 @@ check('a validation with no recorded technical report says why it is missing',
  * part a model reads as sentences, which is everything before that block.
  */
 const prose = text => (text ?? '').split('\nCanonical JSON:')[0]
-const produced = [noCheckpoint.text, readOld.text, conflict.text]
+const produced = [noCheckpoint.text, readOld.text, conflict.text, probeFailed.text, probeCoded.text, reviewFailed.text]
 check('no prose these paths produce leaks undefined, null or NaN into sentences',
   produced.every(text => !/undefined|\bnull\b|NaN|\[object Object\]/.test(prose(text))),
   produced.map(text => prose(text).split('\n').find(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)))
@@ -346,7 +401,7 @@ check('a successful result embeds its canonical JSON, so a caller never has to p
 // canonical part as the result's own `data` (which is what a caller branches on) and puts only the
 // code and the message in the prose. Asserting "every text has a JSON block" would have been wrong.
 check('a failed result carries its canonical part as data, and says so in prose instead of embedding JSON',
-  conflict.data?.errorCode === BlenderErrorCode.REVISION_CONFLICT &&
+  conflict.data?.errorCode === code('REVISION_CONFLICT') &&
   canonical(conflict.text) === undefined &&
   /^DeepBlend call failed\.\nerrorCode: REVISION_CONFLICT/.test(conflict.text ?? ''))
 

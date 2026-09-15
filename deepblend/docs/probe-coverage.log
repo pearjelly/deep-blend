@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 41 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 43 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 41 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 43 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -33,22 +33,23 @@ coverage files: 103 (103 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      19983, never executed: 2369 (11.9%)   [every line]
-product CODE lines:      12092, never executed: 1077 (8.9%)   [blank + comment-only excluded]
+product lines seen:      19983, never executed: 2347 (11.7%)   [every line]
+product CODE lines:      12092, never executed: 1057 (8.7%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36      §41 (r28)     §42 (r29)     r38           r40           this run (r41)
-product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)
-files with dark lines           —        28            28            28            28            26
-host/lib/index.js               (951 raw) 649          526           493           493           493
-provider-local/lib/index.js     376 raw   368           264           168           168           168
-contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13
-ui/lib/index.js                 68 (r24) 36            25            25            25            25
-tool/tools.js                   —        —             —             —             51            0
-tool/render-tools.js            89       33            33            33            33            19
-tool/visual-tools.js            —        —             —             69            11            3
-host/render-journal.js          28       3             3             3             3             3
-host/frame-ledger.js            10       1             1             1             1             1
+                                §36      §41 (r28)     §42 (r29)     r38           r40           r41           this run (r43)
+product code lines dark         —        1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)
+files with dark lines           —        28            28            28            28            26            24
+host/lib/index.js               (951 raw) 649          526           493           493           493           493
+provider-local/lib/index.js     376 raw   368           264           168           168           168           168
+contracts/lib/ui-api.js         61 (r24)  —             —             13            13            13            13
+ui/lib/index.js                 68 (r24) 36            25            25            25            25            25
+tool/tools.js                   —        —             —             —             51            0             0
+tool/render-tools.js            89       33            33            33            33            19            19
+tool/visual-tools.js            —        —             —             69            11            3             0
+tool/index.js                   12       12            12            20            17            17            0
+host/render-journal.js          28       3             3             3             3             3             3
+host/frame-ledger.js            10       1             1             1             1             1             1
 
 Round 30 recorded a delivery that failed to encode while its record still said "encoding"; round 31
 drove the reconciler's three safety rules with real processes; round 32 made a cited probe reproducible;
@@ -73,7 +74,7 @@ through the tool that documents it. The lines that remain are guards for states 
 (the tool called with no host service, an encode that disagrees with the job's own claims, a cancel
 that throws) plus every `presentCall` card title.
 
-── the darkest of the files that were loaded (26) ──
+── the darkest of the files that were loaded (24) ──
    packages/deepblend/host/lib/index.js                        493/2925  code lines dark
    packages/deepblend/provider-local/lib/index.js              168/933
    packages/deepblend/host/lib/revision-transaction.js          71/682
@@ -85,9 +86,24 @@ that throws) plus every `presentCall` card title.
    packages/deepblend/host/lib/render-job-store.js              22/131
    packages/deepblend/tool/lib/render-tools.js                  19/426
    packages/deepblend/host/lib/paths.js                         18/176
-   packages/deepblend/tool/lib/index.js                         17/134
    packages/deepblend/contracts/lib/json-schema.js              15/242
-   packages/deepblend/host/lib/visual-loop.js                   13/243
+
+── ROUNDS 41–43: THE TOOL PLANE WENT TO ZERO (§54, §55) ──
+`tool/tools.js` 51 → **0**, `tool/visual-tools.js` 11 → **0**, `tool/index.js` 17 → **0**,
+`tool/render-tools.js` 33 → 19. The tool plane is the surface a model actually touches, and three of
+its four files now have no unexecuted line at all: the failure paths that a working host can never
+produce are driven by a stub host instead (`contract/tool-plane-output.test.mjs`).
+
+What is left in the plane is two files and both are named: `render-tools.js`'s remaining 19 lines are
+the M3 JOB guards (a tool called with no host service, an encode that disagrees with the job's own
+claims, a cancel that throws) and `shared.js`'s 22 are the approval-and-attachment helpers reached only
+by tools that need a real approval plane. Neither is dark because nobody looked; both need a
+composition this layer does not build.
+
+The other finding of the pair is recorded in §55/D128: one of the new assertions compared a result's
+error code against a constant that does not exist, so it compared `undefined` to `undefined` and
+passed. The check that caught it was the broadest one in the file — "no prose leaks a JavaScript
+value" — which is worth remembering the next time a specific assertion looks convincing.
 
 ── ROUND 41: THE TOOL PLANE'S FAILURE PATHS, AND A WORD THE CONTRACT DOES NOT CONTAIN (§54) ──
 `tool/lib/tools.js` was 51 dark lines with a very regular shape: six `catch` blocks that turn a host

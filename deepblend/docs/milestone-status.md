@@ -4760,3 +4760,83 @@ DeepBlend tests: 41/41 file(s) passed        957 项自计断言 + 271 个 node:
 `tool/index.js` 20 → **17**。工具平面剩两种形状，都点名写进日志：
 审查工具自己的失败分支（`VISUAL_REVIEW_FAILED`，3 行）与能力探测的失败分支（`CAPABILITY_PROBE_FAILED`，17 行）
 ——两者都要一个「在某个位置抛错」的 Host，而目前没有任何用例让它在那些位置抛。
+
+## 55. 工具面最后两种形状：两个自己写结果的失败分支——以及一条**比较了两个 `undefined`** 的断言
+
+第 54 轮之后，工具平面只剩两种没被任何套件跑到的形状，都在日志里点了名：
+审查工具自己的失败分支（`VISUAL_REVIEW_FAILED`，3 行）与能力探测的失败分支
+（`CAPABILITY_PROBE_FAILED`，17 行）。两者都不走 `renderFailure`，各自手写码与文本，
+所以各需要一条用例。加进 `contract/tool-plane-output.test.mjs`（54 → **59 项**），
+9 条变异全红。
+
+**产品代码这一轮一行没改**：这两条路径本来就是对的，缺的是有人读过它们。
+
+### 55.1 顺手抓到的一次「假通过」——也是最值钱的一条
+
+写能力探测那条用例时，我让 stub 抛
+`new BlenderError(BlenderErrorCode.BLENDER_NOT_FOUND, …)`。这个键**不存在**——
+词表里它叫 `NOT_FOUND`，`BLENDER_NOT_FOUND` 是它的**值**。于是：
+
+* 抛出去的 `BlenderError` 的 `code` 是 `undefined`；
+* 断言写的是 `data.errorCode === BlenderErrorCode.BLENDER_NOT_FOUND`，
+  两边都是 `undefined`，**通过**；
+* 第二条断言（文本里必须出现那个码）本该也一起假通过，但它写的是**字面量**，
+  于是红了。
+
+真正抓住它的是这个文件里那条最泛的检查：**「散文里不许漏出 JavaScript 值」**，
+它报出 `errorCode: undefined`。**一条泛检查抓到了两条具体断言的假通过。**
+
+修法不是改对那个键就完事（那只修了这一次），而是**把查找本身变成守卫**：
+
+```js
+function code(name) {
+  const value = BlenderErrorCode[name]
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`BlenderErrorCode.${name} is not a code this build defines — the expectation would be undefined`)
+  }
+  return value
+}
+```
+
+并加一条把这份依赖点名的检查（这个文件比较过的三个码必须都在词表的**值**里）。
+证明它有用的是变异：把断言换回写成错键的那一版，**这一轮它是红的，上一轮它是绿的**。
+
+一般化：**与一个可能不存在的常量比较，就是一次可能与 `undefined` 相等的比较。**
+凡「期望值」来自常量表/词表/映射的断言，都要先证明那个期望本身存在——
+否则它会在产品出错的时候安静地通过。
+
+### 55.2 一条变异因为**语法错误**而不是行为变化被算成「红」
+
+第一条「去掉 detail 行」的变异把整段三元表达式删掉，得到的文件**不解析**——
+进程带着语法错误退出，脚本把它记为 KILLED。那不是证据。重写成仍能解析的形态
+（把那个表达式替换成 `''`）再跑，这一次红的是**断言**：
+`a coded probe failure keeps its own code and carries its detail into the text`。
+**变异必须先是合法的程序，才谈得上「行为变了」。**
+
+### 55.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 41/41 file(s) passed        962 项自计断言 + 271 个 node:test 用例
+```
+
+只改了 `contract/tool-plane-output.test.mjs`（54 → 59）与文档；产品代码未改。
+
+### 55.4 读数：工具平面三个文件归零
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **1077 (8.9%) → 1057 (8.7%)**，有黑暗行的文件 26 → **24**：
+
+| 文件 | r40 | r41 | 本轮 |
+|---|---|---|---|
+| `tool/tools.js` | 51 | 0 | **0** |
+| `tool/visual-tools.js` | 11 | 3 | **0** |
+| `tool/index.js` | 17 | 17 | **0** |
+| `tool/render-tools.js` | 33 | 19 | 19 |
+| `tool/shared.js` | 24 | 22 | 22 |
+
+**工具平面（模型真正触碰的那一面）四分之三已经没有一行没被执行过。**
+剩下的两个文件也都点了名：`render-tools.js` 的 19 行是 M3 的 job 护栏
+（工具在没有 host service 时被调用、编码结果与 job 自己的声明不一致、取消失败），
+`shared.js` 的 22 行是审批与附件助手——它们需要一个这一层不组的 composition
+（真的审批平面 / 真的附件存储），不是「没人看过」。
