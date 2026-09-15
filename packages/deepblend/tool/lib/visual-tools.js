@@ -220,52 +220,7 @@ function visualReview(ctx) {
         const bytes = await resolved.studio.readSheetPng(args.projectId, data)
         const persisted = await persistImage(resolved.attachments, bytes, `contact-sheet-${data.revision}.png`)
 
-        const notes = [
-          `Revision: ${data.revision}  (rendered from ${data.checkpointRevision})`,
-          `Score:    ${data.score}/100 — ${data.pass ? 'PASSES' : 'does NOT pass'} the delivery threshold`,
-          `Subject:  ${data.subjectId ?? '(none tagged)'}`,
-          `Parts:    ${(data.parts ?? []).length > 0 ? data.parts.join(', ') + '  (declared subject-part: they ARE the subject, so they cannot be in its way)' : '(none declared; only the subject is judged for occlusion)'}`,
-          '',
-          'Measured issues:',
-        ]
-        if (data.issues.length === 0) {
-          notes.push('  (none)')
-        } else {
-          for (const issue of data.issues) {
-            notes.push(`  [${issue.severity}] ${issue.code} in view "${issue.viewId}"${issue.objectId ? ` on "${issue.objectId}"` : ''}`)
-            notes.push(`      ${issue.evidence}`)
-          }
-        }
-        notes.push('')
-        if (data.reviewer?.error !== null && data.reviewer?.error !== undefined) {
-          notes.push('The vision reviewer could NOT be consulted, so this result has the measurements and the')
-          notes.push(`sheet but no second opinion: [${data.reviewer.error.code}] ${data.reviewer.error.message}`)
-          notes.push('')
-        }
-        notes.push('What the vision model reported seeing on the sheet:')
-        if ((data.reported ?? []).length === 0) {
-          notes.push(data.reviewer?.error !== null && data.reviewer?.error !== undefined
-            ? '  (no reviewer was available)'
-            : '  (nothing that survived validation)')
-        } else {
-          for (const finding of data.reported) {
-            notes.push(
-              `  [${finding.severity}] ${finding.category} in view "${finding.viewId}"` +
-              `${finding.objectId ? ` on "${finding.objectId}"` : ''} (confidence ${finding.confidence})`,
-            )
-            notes.push(`      ${finding.evidence}`)
-          }
-        }
-        if ((data.rejected ?? []).length > 0) {
-          notes.push('')
-          notes.push(`Discarded findings (${data.rejected.length}) — they named something the review does not contain:`)
-          for (const entry of data.rejected) notes.push(`  - ${entry.reason}`)
-        }
-        if ((data.suggestedOperations ?? []).length > 0) {
-          notes.push('')
-          notes.push(`The reviewer proposed ${data.suggestedOperations.length} ScenePatch operation(s); apply them with`)
-          notes.push('blender_scene_patch if you agree, or run blender_visual_autofix to let the host try them.')
-        }
+        const notes = describeReviewNotes(data)
         notes.push('')
         notes.push(MEASUREMENT_GLOSSARY)
         notes.push(
@@ -287,6 +242,134 @@ function visualReview(ctx) {
     },
     presentCall: args => ({ card: 'generic', title: `Review "${args?.projectId ?? ''}" visually`, kind: 'read' }),
   })
+}
+
+/**
+ * The two lines that describe ONE measured issue: the finding, then the number behind it.
+ *
+ * Extracted (round 40) because this pair was written out TWICE — in the review's issue list and in the
+ * open-issue list of `blender_visual_autofix` — and a format with two copies drifts silently: the day
+ * one gains a clause, the two tools describe the same measurement differently and nothing fails. The
+ * mutation run that found it is recorded in `docs/architecture-decisions.md` (D126).
+ *
+ * @param {{severity: string, code: string, viewId: string, objectId?: string|null, evidence: string}} issue
+ * @returns {string[]} the two lines, in reading order
+ */
+export function describeIssueLines(issue) {
+  return [
+    `  [${issue.severity}] ${issue.code} in view "${issue.viewId}"${issue.objectId ? ` on "${issue.objectId}"` : ''}`,
+    `      ${issue.evidence}`,
+  ]
+}
+
+/**
+ * The block a model reads after a review: the measurement, the measured issues, and what the vision
+ * model claimed — with the claims that were DISCARDED named as such.
+ *
+ * Exported and pure (round 40) for the same reason `describeJobLines` is: this is the text a model
+ * acts on, and the coverage reading showed every branch that needs a review WITH findings to be
+ * dark, because no suite had ever composed one. A rule reachable only through a real render PLUS a
+ * real model call is a rule nobody has checked.
+ *
+ * @param {object} data - the canonical review result
+ * @returns {string[]} the note lines, in reading order
+ */
+export function describeReviewNotes(data) {
+  const reviewerError = data.reviewer?.error
+  const reviewerUnavailable = reviewerError !== null && reviewerError !== undefined
+  const notes = [
+    `Revision: ${data.revision}  (rendered from ${data.checkpointRevision})`,
+    `Score:    ${data.score}/100 — ${data.pass ? 'PASSES' : 'does NOT pass'} the delivery threshold`,
+    `Subject:  ${data.subjectId ?? '(none tagged)'}`,
+    `Parts:    ${(data.parts ?? []).length > 0 ? data.parts.join(', ') + '  (declared subject-part: they ARE the subject, so they cannot be in its way)' : '(none declared; only the subject is judged for occlusion)'}`,
+    '',
+    'Measured issues:',
+  ]
+  if (data.issues.length === 0) {
+    notes.push('  (none)')
+  } else {
+    for (const issue of data.issues) notes.push(...describeIssueLines(issue))
+  }
+  notes.push('')
+  if (reviewerUnavailable) {
+    notes.push('The vision reviewer could NOT be consulted, so this result has the measurements and the')
+    notes.push(`sheet but no second opinion: [${reviewerError.code}] ${reviewerError.message}`)
+    notes.push('')
+  }
+  notes.push('What the vision model reported seeing on the sheet:')
+  if ((data.reported ?? []).length === 0) {
+    notes.push(reviewerUnavailable ? '  (no reviewer was available)' : '  (nothing that survived validation)')
+  } else {
+    for (const finding of data.reported) {
+      notes.push(
+        `  [${finding.severity}] ${finding.category} in view "${finding.viewId}"` +
+        `${finding.objectId ? ` on "${finding.objectId}"` : ''} (confidence ${finding.confidence})`,
+      )
+      notes.push(`      ${finding.evidence}`)
+    }
+  }
+  if ((data.rejected ?? []).length > 0) {
+    notes.push('')
+    notes.push(`Discarded findings (${data.rejected.length}) — they named something the review does not contain:`)
+    for (const entry of data.rejected) notes.push(`  - ${entry.reason}`)
+  }
+  if ((data.suggestedOperations ?? []).length > 0) {
+    notes.push('')
+    notes.push(`The reviewer proposed ${data.suggestedOperations.length} ScenePatch operation(s); apply them with`)
+    notes.push('blender_scene_patch if you agree, or run blender_visual_autofix to let the host try them.')
+  }
+  return notes
+}
+
+/**
+ * The block a model reads after `blender_visual_autofix`: what each round did, what is still open,
+ * and — when the loop stopped short — the handover it must work from.
+ *
+ * Extracted and exported (round 40) for the same reason as `describeReviewNotes`: it is the text a
+ * model acts on, it has six branches (a round with and without a new revision, a round with and
+ * without a reason, rounds that saw findings, open issues, and a handover with and without tried
+ * revisions), and before this extraction no suite could reach one of them without a real repair loop,
+ * a real render per round, and a real model call per round.
+ *
+ * @param {object} data - the canonical loop result
+ * @returns {string[]} the note lines, in reading order
+ */
+export function describeLoopNotes(data) {
+  const notes = [
+    `Score:    ${data.startScore} -> ${data.finalScore}  (${data.passed ? 'PASSES' : 'still below the threshold'})`,
+    `Revision: ${data.startRevision} -> ${data.finalRevision}`,
+    `Rounds:   ${data.iterations} of ${data.maxIterations} used`,
+    `Stopped:  ${data.stopReason}`,
+    '',
+    'Round log:',
+  ]
+  for (const round of data.rounds) {
+    const detail = round.newRevision !== null ? ` -> ${round.newRevision}` : ''
+    notes.push(
+      `  round ${round.round}: ${round.outcome}${detail} — score ${round.score}` +
+      `${round.reason !== null ? `, ${round.reason}` : ''}`,
+    )
+    for (const finding of round.reported ?? []) {
+      notes.push(`      saw: [${finding.category}] ${finding.evidence}`)
+    }
+  }
+  if ((data.openIssues ?? []).length > 0) {
+    notes.push('')
+    notes.push('Still open:')
+    for (const issue of data.openIssues) notes.push(...describeIssueLines(issue))
+  }
+  if (data.handover !== null) {
+    notes.push('')
+    notes.push('HUMAN/SESSION HANDOVER — the loop stopped short of passing:')
+    notes.push(`  reason:   ${data.handover.reason}`)
+    notes.push(`  work from: ${data.handover.revision}`)
+    if ((data.handover.attemptedRevisions ?? []).length > 0) {
+      notes.push(`  tried:     ${data.handover.attemptedRevisions.join(', ')} (kept in the history, not adopted)`)
+    }
+    notes.push('  next steps:')
+    for (const suggestion of data.handover.suggestions) notes.push(`    - ${suggestion}`)
+  }
+  return notes
 }
 
 // ---------------------------------------------------------------------------
@@ -335,43 +418,7 @@ function visualAutofix(ctx) {
           }),
           signal: exec.signal,
         }), warning)
-        const notes = [
-          `Score:    ${data.startScore} -> ${data.finalScore}  (${data.passed ? 'PASSES' : 'still below the threshold'})`,
-          `Revision: ${data.startRevision} -> ${data.finalRevision}`,
-          `Rounds:   ${data.iterations} of ${data.maxIterations} used`,
-          `Stopped:  ${data.stopReason}`,
-          '',
-          'Round log:',
-        ]
-        for (const round of data.rounds) {
-          const detail = round.newRevision !== null ? ` -> ${round.newRevision}` : ''
-          notes.push(
-            `  round ${round.round}: ${round.outcome}${detail} — score ${round.score}` +
-            `${round.reason !== null ? `, ${round.reason}` : ''}`,
-          )
-          for (const finding of round.reported ?? []) {
-            notes.push(`      saw: [${finding.category}] ${finding.evidence}`)
-          }
-        }
-        if ((data.openIssues ?? []).length > 0) {
-          notes.push('')
-          notes.push('Still open:')
-          for (const issue of data.openIssues) {
-            notes.push(`  [${issue.severity}] ${issue.code} in view "${issue.viewId}"${issue.objectId ? ` on "${issue.objectId}"` : ''}`)
-            notes.push(`      ${issue.evidence}`)
-          }
-        }
-        if (data.handover !== null) {
-          notes.push('')
-          notes.push('HUMAN/SESSION HANDOVER — the loop stopped short of passing:')
-          notes.push(`  reason:   ${data.handover.reason}`)
-          notes.push(`  work from: ${data.handover.revision}`)
-          if ((data.handover.attemptedRevisions ?? []).length > 0) {
-            notes.push(`  tried:     ${data.handover.attemptedRevisions.join(', ')} (kept in the history, not adopted)`)
-          }
-          notes.push('  next steps:')
-          for (const suggestion of data.handover.suggestions) notes.push(`    - ${suggestion}`)
-        }
+        const notes = describeLoopNotes(data)
         return {
           ok: true,
           text: renderSuccess(

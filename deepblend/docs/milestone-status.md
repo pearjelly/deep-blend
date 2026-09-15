@@ -4618,3 +4618,80 @@ DeepBlend tests: 40/40 file(s) passed        863 项自计断言 + 271 个 node:
 
 只改了 `contract/scene-spec.test.mjs`（74 → 90 项）与 README 的读数快照；
 **产品代码一行没改**——这一轮补的是「产品已经会说的话，有没有人读过」。
+
+## 53. 模型读到的那三段散文，此前只有一段能被测到——现在三段都能，而且顺手抓到一个真的重复
+
+工具平面交给模型的散文有三段，都在 `tool/lib/visual-tools.js` 的 `execute` 体里：
+读完一次视觉审查读到的、跑完一次自动修复读到的、以及它们共用的「一条测量问题两行字」。
+第 31 轮把 M3 的那一段（`describeJobLines`）抽成过纯函数，M2 这三段没抽——
+读数里 `visual-tools.js` 也因此一直是「黑暗行最多的小文件」。
+
+| 块 | 谁读它 | 它有几个分支 |
+|---|---|---|
+| `describeReviewNotes` | `blender_visual_review` 的结果 | **7** 个独立的「这段在不在」 |
+| `describeLoopNotes` | `blender_visual_autofix` 的结果 | **6** 个（含「某一轮没有新 revision」与「handover 没有 tried」） |
+| `describeIssueLines` | 上面两段**共用** | `objectId` 有 / 无 |
+
+**为什么以前没人读它们**：要走到其中任何一个「有内容」的分支，需要**一次真渲染 + 一次真模型调用**；
+只跑契约层的话，7 个问题里 6 个的答案永远是「不在」。所以这一轮的做法不是「再写一份像样的假数据」，
+而是**让上游真的算一遍**：审查那两段用真实的 `scoreReview` + `validateFindings` 合成 review 文档，
+循环那一段用本文件里那个 `harness()` 真跑一次 `runVisualLoop`。
+于是断言里出现的证据句、拒绝理由（`unknown category "nonsense"`）都是**产品自己写出来的**，
+不是抄的。
+
+`contract/visual-loop.test.mjs` 从 **61 项 → 101 项**（+40，契约层自计断言 863 → 903）。
+
+### 53.1 「提取前后等价」是**跑出来**的，不是看出来的
+
+第一版我用字符串字面量列表对比新旧代码，报告「DIFFERENT」——因为模板字符串里嵌着模板字符串，
+朴素的 `` `[^`]*` `` 抓不出一对。改成**行为对比**：把 HEAD 里那段原文抽成一个临时模块，
+抽出的函数和它**在同一批 payload 上各跑一遍，比输出**。审查那段 5 个 payload、
+循环那段 3 个 payload（覆盖上面那 13 个分支），逐字节相同，才继续。
+
+**教训**：一次重构的证据是「同一个输入给新旧两边，输出相同」；能不能用文本 diff 只是运气。
+那个对比脚本是一次性的（`/tmp`，不进仓库）——**它验的是「这次提取没改行为」**，
+而提取之后的输出已被 101 项断言逐行钉住，下次改动由套件来抓。
+
+### 53.2 变异脚本的 `ANCHOR x2` 抓到了一个**真的重复**
+
+变异驱动要求每个锚点在文件里只出现一次，出现两次就报 `ANCHOR x2` 并跳过。
+这一轮有三条报了这个——去查为什么，发现 `blender_visual_autofix` 里
+**handover 块我自己没删干净**：抽出 `describeLoopNotes` 之后，
+函数里生成一份、工具里又追加一份，真跑一次会把同一段 handover 显示两遍。
+而**当时没有任何检查能看见它**：本文件此前从不执行工具，只执行被抽出来的函数。
+
+修法之外补了一条检查：用 `Context` + stub 的 `tools` 注册表 + stub 的 `blenderStudio`
+**真的执行一次 `blender_visual_autofix`**，断言 handover 与 `Still open:` 各出现**恰好一次**、
+建议行数等于 `handover.suggestions.length`、以及 builder 的每一行都按序出现在工具文本里。
+这是契约层第一次执行 M2 的工具平面（此前只有 M3 的 stale-host 套件执行工具）。
+
+### 53.3 一条**活下来**的变异，和它指出的缺口
+
+37 条变异里 36 条变红，唯一活下来的是「把工具的成功标题换掉」——因为我的 fixture
+`passed: false`，那条 `? :` 的**另一支从没被走到**。缺口在 fixture 不在断言：
+补上「一次通过的循环」（100/100、无 handover）再跑，这一条也红了。
+**活下来的变异要么说明断言不够，要么说明 fixture 不够；两种都不该删掉了事。**
+
+### 53.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 40/40 file(s) passed        903 项自计断言 + 271 个 node:test 用例
+```
+
+产品代码这一轮**改了**（与前一轮不同）：三段散文抽成纯函数并导出（`describeReviewNotes` /
+`describeLoopNotes` / `describeIssueLines`），去掉一份重复的 issue 行格式（原先审查一段、
+修复的 open-issues 一段各写一遍），并删掉上面那个真的重复块。
+37 条变异全红，0 条存活；契约层 40 个文件不变。
+
+### 53.5 读数：`visual-tools.js` 69 行黑暗 → **11**
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **1274 (10.5%) → 1158 (9.6%)**，其中 `tool/lib/visual-tools.js`
+**69 → 11**（333 个可执行行）。剩下这 11 行是两种形状，都点名写进日志：
+三个 `presentCall`（工具交给 UI 平面的卡片标题，要一次真会话渲染那张卡才会走到）
+与审查工具自己的失败分支（`VISUAL_REVIEW_FAILED`，要一次真的渲染失败）。
+
+顺手修掉日志里的一个**同源缺陷**：那两行「本次读数」从 §42 起就没再更新过
+（表里已写到 r38 的 1274，抬头还写着 1497），而它们正是读者最先看到的第一对数字。
+现在抬头与表来自同一次 run。

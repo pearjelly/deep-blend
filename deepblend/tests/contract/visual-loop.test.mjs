@@ -29,6 +29,9 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
+import { Context } from '@deepseek-ai/cordis'
+
+import { describeIssueLines, describeLoopNotes, describeReviewNotes } from '@deepblend/dsh-blender-tool'
 import {
   VISUAL_PASS_SCORE,
   issueFingerprint,
@@ -579,6 +582,365 @@ function harness(options) {
   check('a run that passes reports NO handover, because there is nothing to hand over',
     run.handover === null, run.handover)
 }
+
+// ---------------------------------------------------------------------------
+// The prose a model reads after a review
+// ---------------------------------------------------------------------------
+
+/**
+ * Why this section exists when the loop above is already tested.
+ *
+ * `describeReviewNotes` is the text that becomes the `blender_visual_review` result — what a model
+ * reads before it decides whether to touch the scene. It is branchier than it looks: seven
+ * independent "is this part of the review present" questions, and every branch that needs a review
+ * WITH findings was dark in the coverage reading until round 40, because reaching one for real takes
+ * a render AND a vision-model call. So the review document below is composed from the REAL scorer
+ * and the REAL findings validator, and only the prose is asserted.
+ */
+function reviewDocument({
+  views,
+  subjectId = 'subject',
+  parts = [],
+  reviewerError = null,
+  omittedReviewer = false,
+  findings = null,
+  operations = [],
+}) {
+  const scored = scoreReview(views, { subjectId })
+  const context = {
+    viewIds: new Set(scored.perView.map(entry => entry.viewId)),
+    objectIds: new Set(scored.issues.map(issue => issue.objectId).filter(Boolean)),
+  }
+  const verified = findings === null
+    ? { accepted: [], rejected: [] }
+    : validateFindings(findings, context)
+  const document = {
+    revision: 'r0001',
+    checkpointRevision: 'r0000',
+    score: scored.score,
+    pass: scored.score >= VISUAL_PASS_SCORE,
+    subjectId,
+    parts,
+    issues: scored.issues,
+    reported: verified.accepted,
+    rejected: verified.rejected,
+    suggestedOperations: operations,
+  }
+  // A host that never consulted a reviewer omits the field entirely, which is a different code path
+  // from one that tried and failed (`data.reviewer?.error` is `undefined`, not `null`).
+  if (!omittedReviewer) document.reviewer = { error: reviewerError }
+  return document
+}
+
+/** The index of the first line that starts with `prefix`, or -1. */
+const lineIndex = (notes, prefix) => notes.findIndex(line => line.startsWith(prefix))
+
+// A review that does NOT pass, and the three issues it must report: an occlusion that names the
+// object it measured, a framing problem on the same object, and a frame-level exposure finding with
+// NO object at all.
+const blockedViews = [
+  view({ viewId: 'three-quarter', visibleFraction: 0.2, occludedFraction: 0.8 }),
+  view({ viewId: 'top', frameCoverage: 0.02, silhouetteCoverage: 0.02 }),
+  view({ viewId: 'front', mean: 0.05 }),
+]
+const cleanViews = [view()]
+
+const findings = [
+  { category: 'composition', viewId: 'three-quarter', evidence: 'the subject sits too close to the left edge of the frame', confidence: 0.7 },
+  { category: 'exposure', viewId: 'front', objectId: 'subject', evidence: 'the dial reads as a flat grey disc with no specular highlight' },
+  { category: 'nonsense', viewId: 'top', evidence: 'this category is not in the closed set' },
+  { category: 'occlusion', viewId: 'ghost-view', evidence: 'this view was never rendered' },
+]
+const operations = [{ op: 'setCamera', cameraId: 'front' }, { op: 'setLighting', lightId: 'key' }]
+
+const blocked = reviewDocument({ views: blockedViews, findings, operations, parts: ['watch-dial'] })
+const blockedNotes = describeReviewNotes(blocked)
+
+// ---- the header ------------------------------------------------------------
+
+check('the fixture is not vacuous: the review really does fail, and it really has measured issues',
+  blocked.score < VISUAL_PASS_SCORE && blocked.issues.length === 3,
+  { score: blocked.score, codes: blocked.issues.map(issue => issue.code) })
+check('the header gives the revision, the checkpoint it was rendered from, and the verdict',
+  blockedNotes[0] === 'Revision: r0001  (rendered from r0000)' &&
+  blockedNotes[1] === `Score:    ${blocked.score}/100 — does NOT pass the delivery threshold`,
+  blockedNotes.slice(0, 2))
+check('a review that passes says PASSES',
+  describeReviewNotes(reviewDocument({ views: cleanViews }))[1].includes('PASSES'))
+check('a subject that was never tagged reads as "(none tagged)", not as null',
+  describeReviewNotes(reviewDocument({ views: cleanViews, subjectId: null }))[2] === 'Subject:  (none tagged)')
+check('declared subject parts are listed WITH the reason they are exempt from the occlusion rule',
+  blockedNotes[3].includes('watch-dial') && blockedNotes[3].includes('ARE the subject'),
+  blockedNotes[3])
+check('with no declared parts the header says only the subject is judged for occlusion',
+  describeReviewNotes(reviewDocument({ views: cleanViews })).some(line =>
+    line.startsWith('Parts:') && line.includes('(none declared; only the subject is judged for occlusion)')))
+
+// ---- the measured issues ---------------------------------------------------
+
+check('a review with no measured issues says "(none)" instead of printing an empty list',
+  describeReviewNotes(reviewDocument({ views: cleanViews })).includes('  (none)') &&
+  lineIndex(describeReviewNotes(reviewDocument({ views: cleanViews })), '  [') === -1)
+check('every measured issue reaches the model with its severity, code, view and the number behind it',
+  blocked.issues.every(issue => {
+    const index = lineIndex(blockedNotes, `  [${issue.severity}] ${issue.code} in view "${issue.viewId}"`)
+    return index !== -1 && blockedNotes[index + 1] === `      ${issue.evidence}`
+  }),
+  blocked.issues.map(issue => issue.code))
+check('an issue about a named object says which object, and a frame-level issue names none',
+  blockedNotes.some(line => line.includes('SUBJECT_OCCLUDED') && line.endsWith('on "subject"')) &&
+  !blockedNotes.find(line => line.includes('FRAME_UNDEREXPOSED')).includes(' on "'),
+  blockedNotes.filter(line => line.startsWith('  [')))
+
+// ---- a reviewer that could not be consulted --------------------------------
+
+const reviewerDown = reviewDocument({
+  views: blockedViews,
+  reviewerError: { code: 'RUNTIME_UNAVAILABLE', message: 'the vision route returned 503' },
+})
+const reviewerDownNotes = describeReviewNotes(reviewerDown)
+
+check('a reviewer that could not be consulted is stated, with its code and message',
+  reviewerDownNotes.some(line => line.includes('[RUNTIME_UNAVAILABLE] the vision route returned 503')))
+check('that warning comes BEFORE the findings section, so the empty list is not read as "nothing to see"',
+  lineIndex(reviewerDownNotes, 'The vision reviewer could NOT be consulted') <
+  lineIndex(reviewerDownNotes, 'What the vision model reported seeing on the sheet:'))
+check('with no reviewer available the reported section says why it is empty',
+  reviewerDownNotes.includes('  (no reviewer was available)') &&
+  !reviewerDownNotes.includes('  (nothing that survived validation)'))
+check('a review document with no reviewer field at all behaves like one whose reviewer errored',
+  describeReviewNotes(reviewDocument({ views: blockedViews, omittedReviewer: true })).includes('  (nothing that survived validation)'))
+
+// ---- what the vision model reported ---------------------------------------
+
+check('a reported finding carries its confidence, the object when it named one, and its evidence',
+  blocked.reported.length === 2 && blocked.reported.every(finding => {
+    const index = blockedNotes.indexOf(
+      `  [${finding.severity}] ${finding.category} in view "${finding.viewId}"` +
+      `${finding.objectId ? ` on "${finding.objectId}"` : ''} (confidence ${finding.confidence})`,
+    )
+    return index !== -1 && blockedNotes[index + 1] === `      ${finding.evidence}`
+  }),
+  blockedNotes.filter(line => line.startsWith('  [')))
+check('a reported finding that named no object omits the clause rather than printing "on null"',
+  blockedNotes.includes('  [major] composition in view "three-quarter" (confidence 0.7)'))
+const survived = reviewDocument({ views: blockedViews, findings: findings.slice(0, 2) })
+check('a review whose findings all survived validation does not claim anything was discarded',
+  survived.reported.length === 2 && survived.rejected.length === 0 &&
+  !describeReviewNotes(survived).some(line => line.startsWith('Discarded findings')))
+
+// ---- what was thrown away, and what was proposed ---------------------------
+
+check('discarded findings are named as discarded, counted, and each carries the reason it was refused',
+  blocked.rejected.length === 2 &&
+  blockedNotes.includes('Discarded findings (2) — they named something the review does not contain:') &&
+  blocked.rejected.every(entry => blockedNotes.includes(`  - ${entry.reason}`)),
+  blocked.rejected.map(entry => entry.reason))
+check('proposed ScenePatch operations are counted, and both ways to apply them are named',
+  blockedNotes.includes('The reviewer proposed 2 ScenePatch operation(s); apply them with') &&
+  blockedNotes.includes('blender_scene_patch if you agree, or run blender_visual_autofix to let the host try them.'))
+check('a review with no proposal says nothing at all about patching',
+  !describeReviewNotes(reviewDocument({ views: cleanViews })).some(line => line.includes('ScenePatch')))
+
+// ---- the builder itself ----------------------------------------------------
+
+check('the builder is pure: it does not mutate the review it is handed, and two calls agree',
+  JSON.stringify(describeReviewNotes(blocked)) === JSON.stringify(blockedNotes) &&
+  blocked.issues.length === 3 && blocked.reported.length === 2 && blocked.rejected.length === 2)
+check('no line leaks a JavaScript value into the prose',
+  !blockedNotes.some(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)) &&
+  !reviewerDownNotes.some(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)) &&
+  !describeReviewNotes(reviewDocument({ views: cleanViews, subjectId: null })).some(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)),
+  blockedNotes.filter(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)))
+
+// ---------------------------------------------------------------------------
+// The prose a model reads after an automated repair loop
+// ---------------------------------------------------------------------------
+
+/**
+ * `describeLoopNotes` is the third of the three model-facing blocks in the tool plane, and this one
+ * is fed a REAL loop result: the two runs below come out of `runVisualLoop` through the harness above,
+ * so the round outcomes, the open issues and the handover in the notes are the ones the loop actually
+ * produced rather than a hand-written imitation of them.
+ */
+const cappedWorld = harness({
+  scores: { r0001: 30 },
+  scoreAfterPatch: attempt => 30 + attempt,
+  issueFor: (revision, score) => [{
+    id: `measured-${revision}-${score}`,
+    category: 'composition',
+    code: `SUBJECT_OFF_CENTER_${score}`,
+    severity: 'major',
+    viewId: 'active-camera',
+    objectId: 'subject',
+    evidence: `round ${score} is off centre`,
+    measurements: {},
+    confidence: 1,
+    suggestedOperations: [],
+    fingerprint: `composition|SUBJECT_OFF_CENTER|subject|round-${score}`,
+  }],
+})
+const cappedRun = await runVisualLoop({
+  projectId: 'p', revision: 'r0001',
+  review: cappedWorld.review, patch: cappedWorld.patch, restore: cappedWorld.restore, reviewer: cappedWorld.reviewer,
+  maxIterations: 5,
+})
+const cappedNotes = describeLoopNotes(cappedRun)
+
+const passingWorld = harness({ scores: { r0001: 100 } })
+const passingRun = await runVisualLoop({
+  projectId: 'p', revision: 'r0001',
+  review: passingWorld.review, patch: passingWorld.patch, restore: passingWorld.restore, reviewer: passingWorld.reviewer,
+  maxIterations: 5,
+})
+const passingNotes = describeLoopNotes(passingRun)
+
+// ---- the header ------------------------------------------------------------
+
+check('the header gives the score it started from and reached, and the verdict',
+  cappedNotes[0] === `Score:    ${cappedRun.startScore} -> ${cappedRun.finalScore}  (still below the threshold)` &&
+  passingNotes[0] === `Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES)`,
+  [cappedNotes[0], passingNotes[0]])
+check('the header gives the revisions, the rounds spent out of the cap, and why it stopped',
+  cappedNotes[1] === `Revision: ${cappedRun.startRevision} -> ${cappedRun.finalRevision}` &&
+  cappedNotes[2] === `Rounds:   ${cappedRun.iterations} of ${cappedRun.maxIterations} used` &&
+  cappedNotes[3] === `Stopped:  ${cappedRun.stopReason}`,
+  cappedNotes.slice(1, 4))
+
+// ---- the round log ---------------------------------------------------------
+
+const expectedRoundLines = cappedRun.rounds.flatMap(round => [
+  `  round ${round.round}: ${round.outcome}${round.newRevision !== null ? ` -> ${round.newRevision}` : ''} — score ${round.score}` +
+  `${round.reason !== null ? `, ${round.reason}` : ''}`,
+  ...(round.reported ?? []).map(finding => `      saw: [${finding.category}] ${finding.evidence}`),
+])
+check('every round is reported, including the ones that changed nothing',
+  cappedRun.rounds.length === 6 && cappedNotes.slice(6, 6 + expectedRoundLines.length).join('\n') === expectedRoundLines.join('\n'),
+  cappedNotes.slice(6, 12))
+check('the log names the round that did NOT produce a new revision, rather than printing "-> null"',
+  cappedRun.rounds.some(round => round.newRevision === null) &&
+  cappedNotes.some(line => line.startsWith('  round ') && !line.includes(' -> null')) &&
+  cappedNotes.some(line => line.includes(' -> r0002')),
+  cappedNotes.filter(line => line.startsWith('  round ')))
+check('a round that saw something says what the model saw, in the round it saw it',
+  cappedRun.rounds.reduce((total, round) => total + (round.reported ?? []).length, 0) > 0 &&
+  cappedNotes.filter(line => line.startsWith('      saw: ')).length ===
+  cappedRun.rounds.reduce((total, round) => total + (round.reported ?? []).length, 0),
+  cappedNotes.filter(line => line.startsWith('      saw: ')))
+
+// ---- what is still open, and the handover ----------------------------------
+
+check('the open issues are listed under a header, with the same two lines the review uses',
+  cappedRun.openIssues.length > 0 && cappedNotes.includes('Still open:') &&
+  cappedRun.openIssues.every(issue => {
+    const pair = describeIssueLines(issue)
+    const index = cappedNotes.indexOf(pair[0])
+    return index !== -1 && cappedNotes[index + 1] === pair[1]
+  }),
+  cappedRun.openIssues.map(issue => issue.code))
+check('a loop that passes lists no open issues, because it has none',
+  passingRun.openIssues.length === 0 && !passingNotes.includes('Still open:'))
+check('the handover names the reason, the revision to work from, and the ones that were tried',
+  cappedNotes.includes('HUMAN/SESSION HANDOVER — the loop stopped short of passing:') &&
+  cappedNotes.includes(`  reason:   ${cappedRun.handover.reason}`) &&
+  cappedNotes.includes(`  work from: ${cappedRun.handover.revision}`) &&
+  cappedNotes.includes(`  tried:     ${cappedRun.handover.attemptedRevisions.join(', ')} (kept in the history, not adopted)`),
+  cappedRun.handover)
+check('the handover carries the next steps the loop decided on, one line each',
+  cappedRun.handover.suggestions.length > 0 &&
+  cappedRun.handover.suggestions.every(suggestion => cappedNotes.includes(`    - ${suggestion}`)) &&
+  cappedNotes.filter(line => line.startsWith('    - ')).length === cappedRun.handover.suggestions.length)
+check('a loop that reached a passing score reports NO handover, because there is nothing to hand over',
+  passingRun.handover === null && !passingNotes.some(line => line.includes('HUMAN/SESSION HANDOVER')))
+
+// ---- the shared issue line -------------------------------------------------
+
+check('one measured issue is two lines: the finding, then the evidence behind it',
+  JSON.stringify(describeIssueLines({ severity: 'critical', code: 'SUBJECT_OCCLUDED', viewId: 'top', objectId: 'watch-body', evidence: 'only 0.200 survives' })) ===
+  JSON.stringify(['  [critical] SUBJECT_OCCLUDED in view "top" on "watch-body"', '      only 0.200 survives']))
+check('an issue about no particular object omits the clause rather than printing "on null"',
+  describeIssueLines({ severity: 'major', code: 'FRAME_UNDEREXPOSED', viewId: 'front', objectId: null, evidence: 'the frame is dark' })[0] ===
+  '  [major] FRAME_UNDEREXPOSED in view "front"')
+
+// ---- the builder itself ----------------------------------------------------
+
+check('the loop builder is pure and two calls agree',
+  JSON.stringify(describeLoopNotes(cappedRun)) === JSON.stringify(cappedNotes) &&
+  cappedRun.rounds.length === 6 && cappedRun.openIssues.length > 0)
+check('no line of the loop report leaks a JavaScript value into the prose',
+  !cappedNotes.some(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)) &&
+  !passingNotes.some(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)),
+  cappedNotes.filter(line => /undefined|\bnull\b|NaN|\[object Object\]/.test(line)))
+
+// ---------------------------------------------------------------------------
+// The text the tool actually assembles
+// ---------------------------------------------------------------------------
+
+/**
+ * The builder's output is not the model's input: the tool appends its own tail to it. Round 40 is the
+ * revision that needed this check — extracting the handover block into `describeLoopNotes` left the
+ * block BEHIND in `blender_visual_autofix`, so the builder produced it and the tool appended it again.
+ * A real run would have shown the same handover twice, and no check in this file could see it, because
+ * nothing here executed the tool. It was found by a mutation run whose anchor turned out to appear
+ * twice; this section makes the next one fail on its own.
+ */
+const toolHarness = new Context()
+const registeredTools = new Map()
+// What the stubbed host will answer with next: the failing run first, then a passing one.
+let loopAnswer = cappedRun
+toolHarness.plugin({
+  name: 'visual-tool-harness',
+  apply(ctx) {
+    ctx.provide('tools', {
+      register(definition) {
+        registeredTools.set(definition.name, definition)
+        return () => registeredTools.delete(definition.name)
+      },
+      get: name => registeredTools.get(name),
+      schemas: () => [],
+      execute: async () => { throw new Error('this harness calls the definition directly') },
+    })
+    // The loop is stubbed with the run the harness above already produced, so the assembled text is
+    // built from a real result without a render, a model call or a project on disk.
+    ctx.provide('blenderStudio', { visualLoop: async () => loopAnswer })
+  },
+})
+toolHarness.plugin(await import('@deepblend/dsh-blender-tool'))
+for (let attempt = 0; attempt < 40 && !registeredTools.has('blender_visual_autofix'); attempt += 1) {
+  await new Promise(settle => setTimeout(settle, 25))
+}
+
+const autofix = registeredTools.get('blender_visual_autofix')
+const autofixResult = autofix === undefined
+  ? { ok: false, text: '', error: 'blender_visual_autofix was never registered' }
+  : await autofix.execute({ projectId: 'p' }, { signal: undefined })
+const autofixText = autofixResult.text ?? ''
+const occurrences = needle => autofixText.split(needle).length - 1
+
+check('the tool runs against a stub host and reports the loop it was handed',
+  autofixResult.ok === true && autofixText.startsWith(`Visual repair stopped at ${cappedRun.finalScore}/100 on ${cappedRun.finalRevision}; it needs a human decision.`),
+  autofixResult.error ?? autofixText.split('\n')[0])
+check('the handover the builder produced reaches the model exactly ONCE',
+  occurrences('HUMAN/SESSION HANDOVER') === 1 && occurrences('Still open:') === 1,
+  { handover: occurrences('HUMAN/SESSION HANDOVER'), stillOpen: occurrences('Still open:') })
+check('the next steps are listed once each, not once per copy of the block',
+  autofixText.split('\n').filter(line => line.startsWith('    - ')).length === cappedRun.handover.suggestions.length,
+  autofixText.split('\n').filter(line => line.startsWith('    - ')).length)
+loopAnswer = passingRun
+const passingResult = await (registeredTools.get('blender_visual_autofix') ?? { execute: async () => ({ ok: false, text: '' }) })
+  .execute({ projectId: 'p' }, { signal: undefined })
+check('a run that passes says which revision reached which score, and carries no handover at all',
+  passingResult.ok === true &&
+  passingResult.text.startsWith(`Visual repair reached ${passingRun.finalScore}/100 on ${passingRun.finalRevision}.`) &&
+  passingResult.text.includes(`Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES)`) &&
+  !passingResult.text.includes('HUMAN/SESSION HANDOVER'),
+  passingResult.text?.split('\n')[0])
+
+check('every line the builder produced survives into the tool text, in order',
+  describeLoopNotes(cappedRun).every((line, index, all) => {
+    const at = autofixText.indexOf(all.slice(0, index + 1).join('\n'))
+    return at !== -1
+  }))
 
 // ---------------------------------------------------------------------------
 

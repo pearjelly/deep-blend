@@ -81,6 +81,26 @@ export const Config = undefined
 export { describeJobLines } from './render-tools.js'
 
 /**
+ * The per-review prose block, re-exported for the same reason and with the same narrow scope.
+ *
+ * `describeReviewNotes` is the other place where a fact a model acts on is turned into English, and
+ * it is the branchier of the two: seven independent "is this part of the review present" questions.
+ * Reaching any of those branches for real needs a render AND a vision-model call, so before this
+ * export existed the coverage reading had every finding-bearing branch dark (round 40).
+ */
+export { describeReviewNotes } from './visual-tools.js'
+
+/**
+ * The other two prose blocks of the visual plane: the repair loop's round log, and the two lines that
+ * describe one measured issue.
+ *
+ * `describeLoopNotes` travels with the review notes for the same reason. `describeIssueLines` is here
+ * because it is SHARED — the review's issue list and the loop's open-issue list both use it, and while
+ * it had two copies a change to one of them would have silently disagreed with the other (D126).
+ */
+export { describeLoopNotes, describeIssueLines } from './visual-tools.js'
+
+/**
  * The service name this plane binds to, re-exported so the cross-plane tie is CHECKABLE.
  *
  * The tool resolves `blenderStudio` through `ctx.get()`, and the host registers it. Two literals in two
