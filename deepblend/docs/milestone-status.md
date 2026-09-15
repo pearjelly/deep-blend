@@ -4915,3 +4915,76 @@ DeepBlend tests: 42/42 file(s) passed        985 项自计断言 + 271 个 node:
 `_driveRender`(21)、`readRevisionPair`(20)、`reconcileRenderJobs`(19)、`_renderViewPlan`(18)、
 `ingestAsset`(18)、`renderViews`(13)。它们要的不是一个服务接缝，而是一台 Blender 或一个 job store，
 所以还留在黑暗里——**这是「跑不到/还没跑到」的区分，不是一句「待办」。**
+
+## 57. 宿主的三条读路径：一条真的缺陷，和一次「守卫被写入方遮住」的量测
+
+第 44 轮的读数把宿主里剩下的黑暗分了簇，前四名都在流水线里。这一轮挑了**不需要 Blender 就能跑的那一组**：
+`getRevisionDetail`（一个 revision 的全部）、`readRevisionPair`（两个，给 diff 用）、
+`validateScene` 带 patch 的**干跑**（「这个 patch 会不会apply」）。合计 55 行黑暗。
+
+关键是 fixture：`saveCheckpoint: false` 的 revision 是**合法状态**（SceneSpec 是真相，.blend 是派生的），
+它在提交时**根本不启动 Blender**。于是用宿主**自己的** transaction 建两个 revision，
+再给一个「一被碰到就抛」的 runtime，整组读路径就在不到一秒里全部可达。
+`contract/host-revision-reads.test.mjs`：**28 项**，14 条变异全红。
+
+### 57.1 一条真缺陷：`r0000` 是内部哨兵，不是「上一个 revision」
+
+`readRevisionPair({ to: 'r0001' })`（首个 revision）此前会走成这样：
+
+```
+REVISION_ID_INVALID: "r0000" is not a revision id; expected the form r0001.
+```
+
+因为 r0001 的 manifest 里 `baseRevision` 记的是内部哨兵 `GENESIS_REVISION = 'r0000'`，
+而方法的守卫只判 `null`/`undefined`，于是哨兵被原样传给了 store——**报错里出现一个调用者从没写过的 id**，
+而它真正要回答的是「这是第一个 revision，前面没有东西可比」。修法是把哨兵折成 `null`，
+让已经写好的那条 `REVISION_NOT_FOUND: records no base revision` 说话。
+工作台（`ui/lib/index.js` 的 diff 路由）正是这条路径的调用者。
+
+### 57.2 一次「守卫被写入方遮住」的量测——以及怎么让它重新活过来
+
+变异「去掉 `manifest.previews ?? []` 的兜底」**活了下来**：manifest 的写入方总是写这个数组，
+所以兜底从来不会生效。这与第 39 轮那条被 JSON Schema 遮住的规则同形，但**处理方式不同**：
+那条规则是死代码（两份同一条规则），而这个兜底守的是**旧版本写下的 store**——
+一个今天仍然可能被打开的状态。所以不删它，而是**把那个状态造出来**：
+建好 revision 之后，把 `revision-manifest.json` 里的产物列表删掉再读一次，
+断言三个列表都读成 `[]`。这让兜底重新变成活的，也让变异重新变红。
+
+**教训**：「兜底被遮住」有两种，一种该撤回，一种该补上产生那个状态的用例——区别在于**那个状态今天还存在吗**。
+
+### 57.3 干跑的四个分支，四种不同的答案
+
+`validateScene` 带 patch 时会回答四类互不相同的结果，而它们此前只有一类被执行过：
+
+| 输入 | 答案 |
+|---|---|
+| 结构不合法的 patch（未知 op） | `PATCH_SCHEMA_INVALID@operations[0]`，且**不应用**任何东西 |
+| baseRevision 不是被验证的那个 revision | `REVISION_CONFLICT@baseRevision`，拒绝而不是合并 |
+| 能应用、但结果不是合法场景（`roughness: 5`） | `applying the patch — ...`，**同时**给出 `PATCH_OPERATION_WOULD_APPLY` |
+| 场景拒绝的操作（实体不存在） | 保留**拒绝自身的码**（`PATCH_TARGET_MISSING`），不是兜底码 |
+
+最后一条尤其值得钉：`catch` 里写的是 `issue?.code ?? SCENE_PATCH_REJECTED`，
+第一版检查只断言「码是个非空字符串」——变异把 `??` 换成兜底码，它照样通过。
+现在断言的是**那个具体的码**，因为「保留拒绝自己的码」正是模型据以分支的东西。
+
+### 57.4 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 43/43 file(s) passed        1013 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/host-revision-reads.test.mjs`（28 项）；产品代码改 2 行
+（`readRevisionPair` 把 `GENESIS_REVISION` 折成 `null`），14 条变异全红。
+
+### 57.5 读数：宿主 429 → **374**，产品可执行行黑暗 7.8%
+
+完整验收（`run-all.sh`，`suite exit code: 0`）之后刷新了 `probe-coverage.log`：
+产品可执行行黑暗 **993 (8.2%) → 938 (7.8%)**，`host/lib/index.js` **429 → 374**
+（三条读路径整簇归零，逐行确认过 585–650、2440–2530 两段已无黑暗行）。
+
+宿主里剩下的十簇仍然全是流水线：`renderPreview`(43)、`_deliverJob`(36)、`_resolveDeliveryRange`(29)、
+`_launchRenderer`(26)、`cancelJob`(21)、`_driveRender`(21)、`reconcileRenderJobs`(19)、
+`_renderViewPlan`(18)、`ingestAsset`(18)、`renderViews`(13)。它们要的是 runtime 或 render job
+两个接缝——**其中 `renderViews`/`renderPreview`/`_renderViewPlan` 走的是 `ctx.blenderRuntime`，
+是下一块可以用 stub runtime 搬进契约层的目标**（78 行）。

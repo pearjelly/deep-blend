@@ -2505,7 +2505,13 @@ export default class BlenderStudio extends Service {
   async readRevisionPair(request) {
     const projectId = request?.projectId
     const detail = await this.getRevisionDetail({ projectId, revision: request?.to })
-    const fromRevision = request?.from ?? detail.manifest.baseRevision ?? null
+    // `GENESIS_REVISION` is an internal sentinel for "the revision before the first one", and the
+    // first revision's manifest legitimately records it as its base. Passing it on would make the
+    // store answer `REVISION_ID_INVALID: "r0000" is not a revision id` — an error about an id the
+    // caller never wrote, for a question whose real answer is "there is nothing before this one".
+    // So it is folded into `null` here and the guard below answers in those terms (D130).
+    const recordedBase = detail.manifest.baseRevision ?? null
+    const fromRevision = request?.from ?? (recordedBase === GENESIS_REVISION ? null : recordedBase)
     if (fromRevision === null || fromRevision === undefined) {
       throw new BlenderError(
         BlenderErrorCode.REVISION_NOT_FOUND,
