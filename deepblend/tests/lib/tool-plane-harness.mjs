@@ -96,7 +96,7 @@ export function toolRegistryStub(label = 'tool-plane-harness') {
  * @param {number} [input.expectAtLeast] - how many definitions to wait for before returning.
  * @returns {Promise<{ tools: object, registered: Map<string, object>, ctx: object }>}
  */
-export async function composeToolPlane({ studio, label = 'tool-plane-harness', expectAtLeast = 1 }) {
+export async function composeToolPlane({ studio, label = 'tool-plane-harness', expectAtLeast = 1, services = {} }) {
   const driver = toolRegistryStub(label)
   const root = new Context()
   root.plugin(driver)
@@ -104,6 +104,11 @@ export async function composeToolPlane({ studio, label = 'tool-plane-harness', e
     name: `${label}-fixture`,
     apply(ctx) {
       ctx.provide('blenderStudio', studio)
+      // OPTIONAL COMPOSED SERVICES, so a caller can drive a tool's dependency rather than only its
+      // absence. The first caller is the approval gate: whether the operator is ASKED is a different
+      // question from what the prompt says when nobody can be asked (`dependency-absent-answers.test.mjs`
+      // owns the second), and answering the first used to mean building a second composition recipe here.
+      for (const [name, value] of Object.entries(services)) ctx.provide(name, value)
     },
   })
   root.plugin(await import('@deepblend/dsh-blender-tool'))

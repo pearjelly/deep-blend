@@ -43,7 +43,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -65,6 +65,38 @@ function code(name) {
     throw new Error(`BlenderErrorCode.${name} is not a code this build defines — the expectation would be undefined`)
   }
   return value
+}
+
+/**
+ * The M3 host: the four tools that run, watch, cancel and export a DELIVERY render.
+ *
+ * WHY A SECOND STUB RATHER THAN ONE BIGGER ONE. The stub above exists for the M1 tools, and it has no
+ * notion of a render job at all — which is exactly why the M3 tools' failure and empty-state text had never
+ * been executed by anything in this layer: the composition suite that drives them needs a real Blender host
+ * and therefore only ever reaches success. These four tools are where a model learns what happened to hours
+ * of machine time, so their sentences are asserted here, on a host the test dictates.
+ */
+function stubRenderHost(overrides = {}) {
+  const job = {
+    jobId: 'render-0001', projectId: 'watch-commercial', revisionId: 'r0002', type: 'final-render',
+    status: 'running', frameStart: 30, frameEnd: 89, expectedFrames: 60, completedFrames: [30, 31],
+    missingFrames: [45], corruptFrames: [], fps: 30, delivery: null, warnings: [],
+  }
+  return {
+    // The staleness handshake every M3 tool performs before it calls anything (`hostPlaneIsCurrent`): a stub
+    // without it is read as a host from before the upgrade, which is a diagnosis rather than a bypass.
+    hostApiVersion: () => HOST_API_VERSION,
+    listJobs: async () => ({ projectId: 'watch-commercial', jobs: [job], unfinished: ['render-0001'], recovery: [], recoveryError: null }),
+    getJob: async () => ({ renderJob: job }),
+    resumeRenderJob: async () => ({
+      jobId: 'render-0001', projectId: 'watch-commercial', revision: 'r0002',
+      alreadyComplete: 2, resumed: 1, resumedFrames: [45], corrupt: [], warnings: [],
+    }),
+    startFinalRender: async () => ({ jobId: 'render-0002', dshJobId: null, projectId: 'watch-commercial', revision: 'r0002' }),
+    exportProject: async () => ({ projectId: 'watch-commercial', revision: 'r0002', verified: true, video: { path: 'output/final.mp4' }, problems: [] }),
+    cancelJob: async () => ({ jobId: 'render-0001', status: 'cancelled', cancelled: true, reason: 'asked', processGone: true, completedFrames: 2, process: { term: 'signalled-group' } }),
+    ...overrides,
+  }
 }
 
 const results = []
@@ -408,6 +440,165 @@ check('a failed result carries its canonical part as data, and says so in prose 
 // ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// WHAT THE MODEL IS TOLD ABOUT A RENDER: the four M3 tools, state by state
+// ---------------------------------------------------------------------------
+
+const renderHost = stubRenderHost()
+const renderPlane = await composeToolPlane({ studio: renderHost, label: 'm3-tool-output', expectAtLeast: 16 })
+const runRenderTool = async (name, args) => {
+  const definition = renderPlane.registered.get(name)
+  if (definition === undefined) return { ok: false, text: '', error: `${name} is not registered` }
+  return definition.execute(args, { signal: undefined })
+}
+
+// An empty job list is a TRUE statement about a real project, and the tool has to say what to do next
+// rather than print an empty list and let the model guess.
+const emptyPlane = await composeToolPlane({
+  studio: stubRenderHost({
+    listJobs: async () => ({ projectId: 'watch-commercial', jobs: [], unfinished: [], recovery: [], recoveryError: null }),
+  }),
+  label: 'm3-tool-empty',
+  expectAtLeast: 16,
+})
+const emptyJobs = await emptyPlane.registered.get('blender_job_status').execute({ projectId: 'watch-commercial' }, { signal: undefined })
+check('a project with no render jobs is told so, with the tool that starts one',
+  emptyJobs.ok !== false && emptyJobs.text.includes('This project has no render jobs yet. Start one with blender_final_render.'),
+  emptyJobs.text?.split('\n').slice(0, 3))
+
+const unfinished = await runRenderTool('blender_job_status', { projectId: 'watch-commercial' })
+check('an unfinished job is named with the tool that continues it, instead of only being listed',
+  unfinished.ok !== false && unfinished.text.includes('Unfinished: render-0001 — continue with blender_final_render {resumeJobId}.'),
+  unfinished.text?.split('\n').filter(line => line.includes('Unfinished')))
+
+// The reconciler's own failure rides on the SAME answer: "nothing was recovered" and "nothing was checked"
+// must not read alike, and the second one is the difference between a quiet project and a broken index.
+// Round 67 gave this field a real producer; this is the sentence the model reads because of it.
+const brokenRecoveryPlane = await composeToolPlane({
+  studio: stubRenderHost({
+    listJobs: async () => ({
+      projectId: 'watch-commercial', jobs: [], unfinished: [], recovery: [],
+      recoveryError: 'the render journal index is unreadable',
+    }),
+  }),
+  label: 'm3-tool-recovery',
+  expectAtLeast: 16,
+})
+const brokenRecovery = await brokenRecoveryPlane.registered.get('blender_job_status').execute({ projectId: 'watch-commercial' }, { signal: undefined })
+check('a job list whose reconciliation could not READ says so, and does not read as an empty project',
+  brokenRecovery.ok !== false &&
+  brokenRecovery.text.includes('Restart reconciliation reported an error: the render journal index is unreadable') &&
+  brokenRecovery.text.includes('This project has no render jobs yet.'),
+  brokenRecovery.text?.split('\n').filter(line => line.includes('reconciliation') || line.includes('no render jobs')))
+
+// A resume where some frames are INCOMPLETE says which frames and why: "resuming 1 frame" alone would hide
+// that one of them is being re-rendered because its bytes were short.
+const resumableHost = stubRenderHost({
+  resumeRenderJob: async () => ({
+    jobId: 'render-0001', projectId: 'watch-commercial', revision: 'r0002',
+    alreadyComplete: 2, resumed: 1, resumedFrames: [45], warnings: [],
+    corrupt: [{ frame: 45, reason: 'byte count below the floor' }],
+  }),
+})
+const resumePlane = await composeToolPlane({ studio: resumableHost, label: 'm3-tool-resume', expectAtLeast: 16 })
+const resumed = await resumePlane.registered.get('blender_final_render').execute({ projectId: 'watch-commercial', resumeJobId: 'render-0001' }, { signal: undefined })
+check('a resume that has to re-render an incomplete frame says which frame and why',
+  resumed.ok !== false && resumed.text.includes('re-rendering:     1 incomplete frame(s): 45 (byte count below the floor)'),
+  resumed.text?.split('\n').filter(line => line.includes('re-rendering')))
+
+// The approval gate: the host refuses, the PLANE answers the refusal, and the reason it shows names the
+// threshold it crossed — a refusal that says "not allowed" without the number is unanswerable.
+const approvalHost = stubRenderHost({
+  startFinalRender: async () => {
+    throw new BlenderError(BlenderErrorCode.RENDER_APPROVAL_REQUIRED, 'Render job render-0002 needs an approval grant before it starts.', {
+      detail: { frames: 1200, threshold: 900, frameStart: 1, frameEnd: 1200 },
+    })
+  },
+})
+let asked = null
+const approvalPlane = await composeToolPlane({
+  studio: approvalHost,
+  label: 'm3-tool-approval',
+  expectAtLeast: 16,
+  services: {
+    approval: {
+      async request(request) {
+        asked = request
+        return 'rejected'
+      },
+    },
+  },
+})
+const gated = await approvalPlane.registered.get('blender_final_render').execute(
+  { projectId: 'watch-commercial' },
+  { signal: undefined, agent: { id: 'contract-test-agent' }, callId: 'call-1' },
+)
+// The prompt is the other half: what the OPERATOR reads before saying yes or no. It names the frame
+// count, the range and the threshold it is about to cross, plus the measured cost per frame — the numbers
+// a person needs to answer, not a request to trust the tool.
+check('an over-threshold render asks the operator, naming the cost it is about to spend',
+  asked !== null && asked.toolName === 'blender_final_render' && asked.agent?.id === 'contract-test-agent' &&
+  asked.reason.includes('Start a DELIVERY render of 1200 frame(s) (1..1200), above the configured approval threshold of 900.') &&
+  asked.reason.includes('19.6-41.4 s per frame at 1920x1080 / Cycles / 256 samples'),
+  asked?.reason?.split('. ').slice(0, 2))
+check('and a declined approval leaves the model with the number it crossed and what was NOT started',
+  gated.ok === false && /Nothing was started — no job, no frames\./.test(gated.text) &&
+  /above the threshold of 900\./.test(gated.text) && gated.data?.errorCode === 'RENDER_APPROVAL_REFUSED' &&
+  gated.data?.outcome === 'rejected' && gated.data?.threshold === 900,
+  { code: gated.data?.errorCode, outcome: gated.data?.outcome, text: gated.text?.split('\n').slice(0, 3) })
+
+// The same prompt when the host reports a frame COUNT but no range: the sentence must drop the range rather
+// than print "undefined..undefined" — this is the last line of the file's approval text, and the one a host
+// that only counts frames would produce.
+let askedWithoutRange = null
+const countedOnlyPlane = await composeToolPlane({
+  studio: stubRenderHost({
+    startFinalRender: async () => {
+      throw new BlenderError(BlenderErrorCode.RENDER_APPROVAL_REQUIRED, 'needs a grant', { detail: { frames: 1200, threshold: 900 } })
+    },
+  }),
+  label: 'm3-tool-approval-no-range',
+  expectAtLeast: 16,
+  services: { approval: { async request(request) { askedWithoutRange = request; return 'allowed-once' } } },
+})
+const countedOnly = await countedOnlyPlane.registered.get('blender_final_render').execute(
+  { projectId: 'watch-commercial' },
+  { signal: undefined, agent: { id: 'contract-test-agent' }, callId: 'call-2' },
+)
+check('an approval prompt with a frame count but no range omits the range instead of printing undefined',
+  askedWithoutRange !== null && countedOnly !== undefined &&
+  askedWithoutRange.reason.startsWith('Start a DELIVERY render of 1200 frame(s), above the configured approval threshold of 900.') &&
+  !askedWithoutRange.reason.includes('undefined'),
+  askedWithoutRange?.reason?.split('Measured cost')[0])
+
+// An export that ENCODED but could not publish is the one outcome where the video exists and must not be
+// called a delivery: the tool says exactly that, and hands back the problems that made it refuse.
+const unverifiedHost = stubRenderHost({
+  exportProject: async () => ({
+    projectId: 'watch-commercial', revision: 'r0002', verified: false,
+    problems: [{ field: 'frameCount', claimed: 60, probed: 59 }],
+    video: { path: 'output/final.mp4' },
+  }),
+})
+const unverifiedPlane = await composeToolPlane({ studio: unverifiedHost, label: 'm3-tool-export', expectAtLeast: 16 })
+const unverified = await unverifiedPlane.registered.get('blender_export').execute({ projectId: 'watch-commercial' }, { signal: undefined })
+check('an export that encoded but did not verify says NOT published, and shows the disagreement',
+  unverified.ok === false && unverified.text.startsWith('Delivery encoded but NOT published: its properties disagree with the job\'s own claims.') &&
+  unverified.text.includes('"claimed": 60') && unverified.text.includes('"probed": 59'),
+  unverified.text?.split('\n').slice(0, 2))
+
+// A cancel that fails for a reason nobody classified is still a coded failure: the model gets a stable code
+// and the message, never a stack.
+const brokenCancel = stubRenderHost({
+  cancelJob: async () => { throw new Error('the process table is unreadable') },
+})
+const cancelPlane = await composeToolPlane({ studio: brokenCancel, label: 'm3-tool-cancel', expectAtLeast: 16 })
+const cancelFailure = await cancelPlane.registered.get('blender_job_cancel').execute({ projectId: 'watch-commercial', jobId: 'render-0001' }, { signal: undefined })
+check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR with the message, not a stack',
+  cancelFailure.ok === false && cancelFailure.data?.errorCode === code('SCRIPT_ERROR') &&
+  cancelFailure.text.includes('the process table is unreadable'),
+  { code: cancelFailure.data?.errorCode, text: cancelFailure.text?.split('\n')[0] })
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nM1 tool output contract: ${passed}/${results.length} check(s) passed`)

@@ -6184,3 +6184,62 @@ scene-patch contract: 261/261 check(s) passed
 要么被执行，要么被证明到不了。
 
 契约层快照 1315 → **1320**（`scene-patch.test.mjs` 256 → 261）。
+
+## 81. 模型读到的「渲染怎么了」：四个 M3 工具，逐个状态
+
+`tool-plane-output.test.mjs` 一直在驱动 M1 的八个工具，而它的 stub **没有 render job 这个概念**——
+这正是 M3 四个工具的失败文本与空状态从没在这一层被执行过的原因：唯一驱动它们的那套 composition 套件
+需要真的 Blender，因此只会走到成功那一支。而 M3 的四个工具，恰恰是模型用来了解「几小时机器时间
+发生了什么」的地方。
+
+### 81.1 新增一个只讲 render 的宿主 stub
+
+`stubRenderHost()` 提供 `hostApiVersion`（**每一个 M3 工具在调用任何东西之前都会做的手握**）、
+`listJobs` / `getJob` / `resumeRenderJob` / `startFinalRender` / `exportProject` / `cancelJob`，
+再用 overrides 让每个用例只改一件事实。第一次写时漏了 `hostApiVersion`，六个用例里的四个立刻答
+「host services are present but too OLD」——那条**陈旧宿主守卫**先于一切，是正确的拒绝，也提醒
+「stub 少一个方法」和「宿主真的旧」在读数上长得一样，必须靠补全 stub 而不是放宽断言。
+
+### 81.2 六个状态，六句话
+
+* **一个 job 都没有** → 说「还没有渲染任务，用 blender_final_render 起一个」，而不是印一个空列表让模型猜；
+* **有未完成的 job** → 点名它，并给出继续它的工具（`Unfinished: render-0001 — continue with
+  blender_final_render {resumeJobId}.`）；
+* **重启调协连索引都读不出来** → 与上一条**同一次回答**里说明「restart reconciliation reported an error:
+  …」——「没恢复出东西」和「没检查过」不能读起来一样（第 67 轮才给这个字段真正的生产者）；
+* **续渲里有不完整的帧** → 指出是哪些帧、为什么（`re-rendering: 1 incomplete frame(s): 45 (byte count
+  below the floor)`）：只说「续渲 1 帧」会藏起「其中一帧要重渲」；
+* **超过审批阈值的渲染** → 去问操作者，而**问的那段话本身**也被断言（帧数、区间、越过的阈值、
+  参考机器上每帧 19.6–41.4 秒的实测成本）；被拒之后模型拿到的是数字和「什么都没启动」，
+  不是一句「不允许」；
+* **导出编码成功但没通过校验** → 说「NOT published」并把不一致的字段摊开（`claimed 60 / probed 59`）；
+* **取消抛了一个没人分类的错** → 变成 `BLENDER_SCRIPT_ERROR` 加消息，不是一段堆栈。
+
+### 81.3 共享 harness 加了一个可选的 `services`
+
+审批那一格需要**有人可问**，而 `composeToolPlane` 此前只认 `studio`。加一个可选 `services` 映射，
+理由写在 harness 里：**「操作者被问到了吗」与「没人可问时那句话是什么」是两个问题**（后者属于
+`dependency-absent-answers.test.mjs`），而回答前者本来要在第三个文件里再造一份「怎么把工具面立起来」——
+这正是本仓库反复付账的那种缺陷形状（D127）。
+
+### 81.4 变异与收口
+
+六条变异全红（空列表不说话、调协失败不报、不完整的帧不当回事、审批提示不写阈值、未校验的导出不点名、
+取消失败丢码）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1329
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 133 (1.1%) → **122 (1.0%)**，
+**有黑暗行的文件数 20 → 19**，`tool/lib/render-tools.js` **11 → 0**。
+
+归零分了两步，而中间那一步是本轮最值得写下来的一句：第一次读数只到 **1**——剩下的是审批那句话里
+**没有帧区间**时的分支（` : ''}`），因为我的审批用例给了区间，只有「有区间」那一半被执行过；
+补上「只有帧数、没有区间」的用例（断言提示词里**不出现 `undefined`**）之后才归零。
+**一条读数的尾巴往往就是下一个用例**，这也是为什么每轮都要真的去读那份读数，而不是只看总数。
+
+契约层快照 1320 → **1329**（`tool-plane-output.test.mjs` 59 → 68）。
