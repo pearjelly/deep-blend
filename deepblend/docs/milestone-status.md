@@ -6137,3 +6137,50 @@ contracts/lib/ui-api.js 13 → **0**，有黑暗行的文件数 21 → 20
 
 契约层快照 1309 → **1315**（`ui-api.test.mjs` 69 → 75）。一个文件从「第三暗」变成**全亮**：这一类工作
 每次都是同一句话——**能被读到的文本也是产品界面**。
+
+## 80. 同一份补丁里的两种事实：一个「替换了世界」，一个「变了但不重渲」
+
+`scene-patch.js` 的 13 行黑暗里有四处是**同一个补丁的第二个用例**——fixture 自带的那份场景没有世界、
+没有资产、也只删过「最后一个」东西，于是那些分支从来没有第二个输入。
+
+### 80.1 第二件事才是要说的那件
+
+* `world.set` **替换**而不是合并：第一个 op 的摘要是「set the scene world (color …, strength …)」，
+  第二个（世界里已经有东西了）说的是 **`replaced the scene world`**。两种事实对看审查记录的人不一样，
+  所以两句都断言；
+* `asset.remove` 只删掉**两个里的一个**时，集合必须留着另一个（`assets` 长度 1、剩下的是 `asset-b`），
+  而不是把整个键删掉——「这部分空了」和「这个项目没有资产」是两件事，`assignCollection` 的名字就来自这里；
+* `entity.add` 引用了一个**这份场景没有声明的资产** → `PATCH_REFERENCE_MISSING`，两边的 id 都点出来；
+* `camera.remove` 一个**从没加过**的相机 → `PATCH_TARGET_MISSING`，点名它找的是哪一台。
+  两条拒绝都同时断言**原 spec 逐字节未变**（补丁要么整份生效，要么什么都不动）。
+
+### 80.2 D20 用一条断言说完
+
+`project.frameRange.set` 改的是 `project.frameStart/frameEnd`：**帧范围变化必须可见，但不该触发重渲**。
+一条断言把两个问题分开答：
+
+```
+specChanged: true   sceneChanged: false   specHashBefore !== specHashAfter
+```
+
+两条变异分别打这两半（把 `specChanged` 钉死成 false、把 `sceneChanged` 钉死成 true）都变红——
+后者还顺手打红了仓库里旧的那条「未变的场景报告 sceneChanged === false」。
+
+### 80.3 变异与收口
+
+六条变异全红（M4 是崩溃型：把部分清空的集合整个删键，后面的用例在解引用时崩掉）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1320
+scene-patch contract: 261/261 check(s) passed
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 140 (1.2%) → **133 (1.1%)**，
+`scene-patch.js` **13 → 6**——剩下的 6 行**全部**是第 57 轮已经点名的那条被 schema 遮住的分支
+（`PATCH_ID_INVALID`：schema 的 `pattern` 先拒绝），也就是说这个文件是**跑完的**：
+要么被执行，要么被证明到不了。
+
+契约层快照 1315 → **1320**（`scene-patch.test.mjs` 256 → 261）。

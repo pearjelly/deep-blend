@@ -1310,6 +1310,76 @@ check(
 )
 
 // ---------------------------------------------------------------------------
+// The refusals and the summaries that only fire in the SECOND case
+// ---------------------------------------------------------------------------
+//
+// Every branch below needs a shape the fixture does not have by itself: a reference to something the scene
+// does not declare, a camera that was never added, a world that already exists, and a collection that is
+// emptied only PARTLY. Each is a state the model can reach in one patch, and each answers with a sentence
+// somebody has to read — which is why the message is asserted and not just the code.
+
+const ghostAsset = runPatch([{ op: 'entity.add', entity: { id: 'ghost-user', type: 'asset-instance', assetId: 'never-declared' } }])
+check('an entity that references an asset this scene does not declare is refused, naming both ids',
+  ghostAsset.errorCode === 'PATCH_REFERENCE_MISSING' &&
+  ghostAsset.error?.patchIssue?.message === 'entity "ghost-user" references asset "never-declared", which this scene does not declare' &&
+  ghostAsset.specUnchanged === true,
+  ghostAsset.error?.patchIssue ?? ghostAsset.error?.message)
+
+const ghostCamera = runPatch([{ op: 'camera.remove', cameraId: 'ghost-camera' }])
+check('removing a camera that was never added is refused with the camera it looked for',
+  ghostCamera.errorCode === 'PATCH_TARGET_MISSING' &&
+  ghostCamera.error?.patchIssue?.message === 'no camera "ghost-camera" exists in this scene',
+  ghostCamera.error?.patchIssue ?? ghostCamera.error?.message)
+
+// `world.set` REPLACES, and the summary says which of the two things happened: "made a world exist" and
+// "replaced the one that was there" are different facts about the scene a reviewer is looking at.
+const secondWorld = runPatch([
+  { op: 'world.set', world: { color: [0, 0, 0, 1], strength: 0 } },
+  { op: 'world.set', world: { color: [1, 1, 1, 1], strength: 1 } },
+])
+check('the FIRST world.set describes setting a world and the second describes REPLACING one',
+  secondWorld.error === undefined &&
+  /^set the scene world/.test(secondWorld.result.operations[0].summary) &&
+  secondWorld.result.operations[1].summary === 'replaced the scene world',
+  secondWorld.result.operations.map(entry => entry.summary))
+
+const partlyEmptied = runPatch([
+  { op: 'asset.add', asset: { id: 'asset-a', type: 'mesh', path: 'a.glb' } },
+  { op: 'asset.add', asset: { id: 'asset-b', type: 'mesh', path: 'b.glb' } },
+  { op: 'asset.remove', assetId: 'asset-a' },
+])
+check('removing ONE of two assets leaves the collection with the other, rather than dropping the key',
+  partlyEmptied.error === undefined && partlyEmptied.next.assets.length === 1 &&
+  partlyEmptied.next.assets[0].id === 'asset-b',
+  partlyEmptied.next?.assets)
+
+// ---- one patch, two different questions --------------------------------
+//
+// D20 in one assertion: the frame range lives in `project`, so changing it is visible in the SPEC hash and
+// invisible in the SCENE digest — and those two answers drive two different decisions downstream (whether a
+// reader sees a change at all, and whether the render has to happen again).
+const frameRange = runPatch([{ op: 'project.frameRange.set', frameStart: 1, frameEnd: 240 }])
+const frameManifest = frameRange.error === undefined
+  ? buildOperationManifest({
+    operations: frameRange.result.operations,
+    request: frameRange.patch,
+    revision: {
+      revision: 'r0002',
+      baseRevision: 'r0001',
+      digestBefore: frameRange.result.digestBefore,
+      digestAfter: frameRange.result.digestAfter,
+      specHashBefore: frameRange.result.specHashBefore,
+      specHashAfter: frameRange.result.specHashAfter,
+    },
+    notices: [],
+  })
+  : null
+check('a frame-range change is a SPEC change but not a SCENE change: visible, and no reason to re-render',
+  frameManifest !== null && frameManifest.specChanged === true && frameManifest.sceneChanged === false &&
+  frameManifest.specHashBefore !== frameManifest.specHashAfter,
+  frameManifest === null ? frameRange.error?.message : { specChanged: frameManifest.specChanged, sceneChanged: frameManifest.sceneChanged })
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 
