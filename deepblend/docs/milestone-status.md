@@ -5683,3 +5683,86 @@ $ node deepblend/tools/count-assertions.mjs
 total self-counted assertions: 1259
 读数：产品可执行行黑暗 305 (2.5%) → 272 (2.2%)
 ```
+
+## 73. 一个 job 上的两个结算者，和最后一处「够不到」
+
+第 58–59 轮把宿主里「不需要 Blender 的拒绝」扫了一遍，文件里留下一句话：`resumeRenderJob` 的
+「已在本 Host 运行」**故意没覆盖**，因为它的后面接着渲染器接缝，那份 fixture 没有。这句话是诚实的，
+但它把**fixture 的局限**写成了**产品的形状**。本轮证明它不是：换一份有接缝的 fixture，这个分支就在手边。
+
+### 73.1 「够不到」是关于 fixture 的判断，不是关于产品的判断
+
+第 55 轮的渲染循环 fixture 本来就有那个接缝——`startFrameSequence` 返回 handle、`awaitFrameSequence`
+决定结果。给它加一个 `holdUntilCancel`（把 `awaitFrameSequence` 停在一个由测试 resolve 的 promise 上），
+渲染就停在「子进程已经起来、结果还没回来」的状态里：`_liveRenders` 里那条记录在，handle 非 null。
+此时 `resumeRenderJob` 必须拒绝——**同一个 job 起第二个渲染器会让两个进程往同一批帧文件里写**。
+
+于是第 58 轮那句注释被改写成指针：拒绝本身在 `host-render-loop.test.mjs` 断言，因为**接缝在那里**。
+D145 的教训在这里的形态是：写「够不到」的时候必须同时写**缺的是哪个接缝**，否则下一轮没人知道该换什么。
+
+### 73.2 两个结算者：谁后到，谁不许写第二份账
+
+一个被取消的 job 有**两个**结算者：`cancelJob` 直接写终态记录（并等渲染循环撒手），渲染循环自己
+也在它驱动的记录上收尾。产品里那句注释说得清楚——后到的那个如果照写，就是「同一次取消的两份、
+可能互相矛盾的账」。这段代码此前没人执行过。
+
+**用竞速去够它是抛硬币**：谁先跑到写记录取决于微任务顺序。所以本轮**把交错排出来**而不是赌它：
+按 `cancelJob` 的方式置 `live.cancelled` 与 `live.cancelReason`，再按它的形状写一条终态记录，
+然后让渲染器报 success。循环醒来后看到「记录已经终态」，于是只把 `render job … cancelled` 追加到
+输出、释放 DSH 投影、**不动记录**。
+
+判别式写在**变异能改动的那个字段**上：排出来的记录 `completedFrames` 是 `[]`，而循环若真的写了
+第二份，它会从 ledger 填上 `[1, 2]`（变异 M2 实测：红，读数正是 `{"status":"cancelled",
+"message":"cancelled: the operator closed the laptop","completedFrames":[1,2]}`）。
+
+### 73.3 两处小拒绝，和两个把测试写死的形状
+
+* `readSheetPng` 在没有 contact sheet 记录时给 `RENDER_NO_OUTPUT` 与一句人话，
+  而不是拿空路径去 `readFile`（变异 M4 实测：红，读数退化成 Node 的
+  `The "path" argument must be of type string`——**测试原本就会替产品说出这句错**）；
+* `compileRevisionForRender`：渲染器**成功退出但没写出 checkpoint** 时必须点名拒绝，否则后面会
+  拿着一个不存在的文件去渲染，失败离原因更远。这里量到一件 fixture 层面的事：
+  `startFinalRender` **永远到不了**这条路径——它先要一个能「从之渲染」的交付 checkpoint 并因此更早拒绝；
+  真正会调用编译的是**预览**（`renderPreview`），即「本 revision 自己没有 checkpoint」时。
+
+两个把测试写死的形状，各记一句：
+
+1. **Cordis 的 service 不能 provide 两次**。第一版想在文件末尾换掉 `blenderRuntime`，于是整个测试进程
+   死在 `Error: service "blenderRuntime" has been registered at <root>` —— **不是一条红断言，而是一次
+   崩溃**。改成 fixture 的 runtime 自带一个「这次编译写不写 .blend」的开关（与第 55 轮那份
+   `plan` 同一个形状）。
+2. `cancelJob` 对一个已经取消的 job 是 no-op，但仍然回答 `processGone: true`；`resumeRenderJob`
+   对「帧已经全在」的 job 回答的是**没有活可干**（`alreadyComplete: 2`、`resumed: 0`），
+   而不是再渲一遍。这两条都是模型会真实走到的状态，因此断言的是**答案**，不是内部字段。
+
+### 73.4 本轮变异
+
+六条，全红（每条都只让**目标断言**变红，读数见上）：
+
+| 变异 | 目标 |
+| --- | --- |
+| M1 去掉 `resumeRenderJob` 的 live 判断 | 拒绝断言（读数变成「帧已全在」，即产品继续往下走了） |
+| M2 去掉 `_driveRender` 里的终态提前返回 | 第二份账断言（`completedFrames: [1,2]`） |
+| M3 `cancelJob` 的 no-op 谎报 `cancelled: true` | no-op 断言 |
+| M4 `readSheetPng` 接受空路径 | 拒绝断言 |
+| M5 `compileRevisionForRender` 什么都不拒 | 拒绝断言（读数变成 `resolveEngineKey is not a function`，即已经走到渲染器） |
+| M6 「没活可干」的答案改成「还有活」 | 答案断言 |
+
+### 73.5 本轮收口
+
+契约层与数数：
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1267
+```
+
+README 的快照因此从 1259 改到 **1267**（`host-render-loop.test.mjs` 12 → 18、
+`host-read-and-job-refusals.test.mjs` 9 → 11），同时把那句会自己发霉的「没装 preset 是 1247」
+改成**关系**而不是第二个绝对数字——两个数一起维护，迟早会有一个先烂掉。
+
+读数（`--all --keep`，`suite exit code: 0`）：产品可执行行黑暗 **272 (2.2%) → 251 (2.1%)**，
+有黑暗行的文件数 21 不变，`host/lib/index.js` **88 → 67**。**产品代码未改**——21 行是被两份
+fixture 点亮的，不是被改掉的。

@@ -38,11 +38,16 @@ function code(name) {
 
 const workspaceRoot = mkdtempSync(join(tmpdir(), 'deepblend-host-refusals-'))
 const ctx = new Context()
+let compileProducesBlend = true
 ctx.provide('blenderRuntime', {
   async compileScene(request) {
     const { mkdirSync, writeFileSync } = await import('node:fs')
     const directory = join(request.projectRoot, 'stub-compile')
     mkdirSync(directory, { recursive: true })
+    // The last check needs a renderer that exits successfully WITHOUT writing a checkpoint, and a
+    // Cordis service cannot be provided twice — so the runtime is one object with a recorded mode
+    // rather than two services.
+    if (compileProducesBlend === false) return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
     writeFileSync(join(directory, 'result.blend'), 'a blend file')
     request.onWorkingDirectory?.({ directory })
     return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
@@ -127,10 +132,9 @@ check('and a published delivery is preferred wherever it sits in the order',
   studio._newestDeliverableJob(projectId)?.jobId)
 
 // ---- job entry points that refuse before they act -------------------------
-// DELIBERATELY NOT COVERED: `resumeRenderJob`'s "already running in this Host" refusal. A job reaches
-// it only after the status and checkpoint checks, and the path then continues into
-// `runtime.startFrameSequence` — this fixture has no renderer, so the refusal is behind a seam this
-// file does not build. Named here rather than left looking covered.
+// `resumeRenderJob`'s "already running in this Host" refusal is NOT here: this fixture has no renderer,
+// and that refusal sits behind the runtime seam. It is covered where the seam exists —
+// `host-render-loop.test.mjs`, which parks a render inside `awaitFrameSequence` and resumes it.
 
 const finished = await studio.resumeRenderJob({ projectId, jobId: 'render-0001' }).catch(cause => cause)
 check('and a job that already finished is refused with the advice that costs no Blender time',
@@ -141,6 +145,24 @@ const noJob = await studio.exportProject({ projectId: 'never-created' }).catch(c
 check('exporting a project that does not exist is refused before any job lookup',
   noJob instanceof BlenderError && Object.values(BlenderErrorCode).includes(noJob.code),
   noJob?.code ?? noJob?.message)
+
+// ---- a review with nothing to show, and a compile that produced nothing ----
+const noSheet = await studio.readSheetPng(projectId, { revisionId: revision }).catch(cause => cause)
+check('a visual review with no contact sheet recorded says so instead of reading an empty path',
+  noSheet instanceof BlenderError && noSheet.code === code('RENDER_NO_OUTPUT') &&
+  noSheet.message === 'The visual review has no contact sheet recorded, so there is nothing to show the reviewer.',
+  noSheet?.message ?? noSheet)
+
+// A renderer that exits successfully and produces NO checkpoint is the failure the compile step exists
+// to catch: rendering from a file that was never written fails later, further from the cause. A preview
+// of a revision with no checkpoint of its own is what asks for that compile (`startFinalRender` never
+// gets here — it refuses earlier, on the delivery checkpoint it needs to render FROM).
+compileProducesBlend = false
+const noBlend = await studio.renderPreview({ projectId, revision }).catch(cause => cause)
+check('a revision compiled for rendering that produced no checkpoint is refused by name, not rendered from nothing',
+  noBlend instanceof BlenderError && noBlend.code === code('REVISION_CHECKPOINT_MISSING') &&
+  noBlend.message === `Revision ${revision} was compiled for rendering but produced no checkpoint.`,
+  noBlend?.message ?? noBlend)
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

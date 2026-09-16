@@ -350,6 +350,77 @@ async function fixture(plan) {
 }
 
 // ---------------------------------------------------------------------------
+// Resuming a job that is mid-render, and a cancellation that settled first
+// ---------------------------------------------------------------------------
+
+{
+  // `holdUntilCancel` parks the render inside `awaitFrameSequence`, so the live handle is non-null and
+  // stays non-null until this test lets go. That is the state `resumeRenderJob` has to refuse: a second
+  // renderer for one job would write the same frame files twice.
+  const world = await fixture({ holdUntilCancel: true })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const conflict = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: started.jobId }).catch(cause => cause)
+  check('resuming a job whose renderer is running in THIS Host is refused by name rather than raced',
+    conflict instanceof BlenderError && conflict.code === code('RENDER_JOB_CONFLICT') &&
+    conflict.message === `Render job ${started.jobId} is already running in this Host.` &&
+    conflict.detail?.jobId === started.jobId,
+    conflict?.message ?? conflict)
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 12 })
+  const settled = await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  check('and the render that refused to be resumed still finishes on its own',
+    settled && world.studio.renderJobs.read(world.projectId, started.jobId).status === 'completed',
+    world.studio.renderJobs.read(world.projectId, started.jobId).status)
+  world.dispose()
+}
+
+{
+  // TWO SETTLERS, ONE CANCELLATION. `cancelJob` writes the terminal record and the render loop settles
+  // the record it is driving; whichever arrives second must not write a second, possibly disagreeing,
+  // account. Which one arrives second is a race, so it is ARRANGED here instead of gambled: the record
+  // is settled as `cancelJob` settles it and the live flag is set as `cancelJob` sets it, and only then
+  // does the renderer report success.
+  const world = await fixture({
+    holdUntilCancel: true,
+    jobs: { attachController: () => () => {}, start: request => { world.runHandle = request.run(); return 'dsh-job-cancel' } },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const live = world.studio._liveRenders.get(started.jobId)
+  live.cancelled = true
+  live.cancelReason = 'the operator closed the laptop'
+  const preSettled = world.studio.renderJobs.write({
+    ...world.studio.renderJobs.read(world.projectId, started.jobId),
+    status: 'cancelled', cancelledAt: Date.now(), finishedAt: Date.now(), errorCode: null,
+    message: 'cancelled: the operator closed the laptop',
+  }, { previous: world.studio.renderJobs.read(world.projectId, started.jobId) })
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 40 })
+  let output = ''
+  await waitFor(() => {
+    output += world.runHandle?.readOutput() ?? ''
+    return world.studio._liveRenders.has(started.jobId) === false
+  })
+  const after = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a cancellation that already settled the record is not rewritten when the renderer then reports success',
+    after.status === 'cancelled' && after.message === preSettled.message &&
+    JSON.stringify(after.completedFrames) === JSON.stringify(preSettled.completedFrames),
+    { status: after.status, message: after.message, completedFrames: after.completedFrames })
+  check('and the loop still says out loud that the render it was driving was cancelled',
+    output.includes(`render job ${started.jobId} cancelled`), output.split('\n').filter(Boolean))
+  const again = await world.studio.cancelJob({ projectId: world.projectId, jobId: started.jobId })
+  check('cancelling an already cancelled job answers as a no-op, and still reports the process gone',
+    again.cancelled === false && again.processGone === true && again.reason === 'the render job is already cancelled',
+    again)
+  // The frames this cancelled render wrote are complete, so resuming it is not a re-render: the honest
+  // answer is that there is nothing left to walk. It is a real state a model reaches by cancelling a
+  // render whose frames had all landed.
+  const resume = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: started.jobId })
+  check('resuming a cancelled job whose frames all landed says there is nothing left to render',
+    resume.resumed === 0 && resume.alreadyComplete === 2 &&
+    resume.message === 'Every frame is already present and complete; the job is finishing its delivery instead of re-rendering.',
+    { resumed: resume.resumed, alreadyComplete: resume.alreadyComplete, message: resume.message })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 
