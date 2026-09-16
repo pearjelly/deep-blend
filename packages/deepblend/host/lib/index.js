@@ -81,7 +81,7 @@ import { RenderJobStore, UNFINISHED_STATUSES } from './render-job-store.js'
 import { RevisionTransaction } from './revision-transaction.js'
 import { inspectFrameSample, readFrameLedger, sampleFrame } from './frame-ledger.js'
 import { JournalTail, incompleteJournalWarning, isFrameClaim } from './render-journal.js'
-import { checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
+import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
@@ -279,6 +279,17 @@ export const StudioConfig = z.object({
    * and the one time it matters is the one time nobody remembers.
    */
   reconcileOnStart: z.boolean().default(true),
+  /**
+   * How long a cancellation waits for an orphaned renderer to die before escalating to SIGKILL, and
+   * how long it then waits again before REPORTING it as not gone.
+   *
+   * The default is the reconciler's own grace (`ORPHAN_GRACE_MS`), and it is configurable for the
+   * reason every other bound here is: "the process did not die" has a cost, and how long a Host is
+   * willing to spend on that question is an operator's decision, not a constant's. Passing it through
+   * also makes the escalation ladder REACHABLE — with the default ten seconds per rung, the only way
+   * to stand on the escalation is to wait twenty of them, which is why that branch had never run.
+   */
+  orphanGraceMs: z.number().default(ORPHAN_GRACE_MS),
 })
 
 export default class BlenderStudio extends Service {
@@ -2276,6 +2287,7 @@ export default class BlenderStudio extends Service {
           projectId: entry.projectId,
           jobId: entry.jobId,
           record: previous,
+          orphanGraceMs: this.config.orphanGraceMs,
           write: record => (previous === null
             ? this.renderJobs.write(record)
             : this.renderJobs.write(record, { previous })),
@@ -2761,7 +2773,7 @@ export default class BlenderStudio extends Service {
       // No live handle in THIS process — the renderer was started by a previous
       // Host, or by a reconcile that has not adopted it. Signal the group directly
       // and verify, which is the same thing the reconciler does.
-      processReport = { attempted: true, via: 'process-group', ...(await stopProcessGroup({ pid })) }
+      processReport = { attempted: true, via: 'process-group', ...(await stopProcessGroup({ pid, graceMs: this.config.orphanGraceMs })) }
     }
 
     // Wait for the process to be REAPED, not merely signalled. MEASURED, and it is
@@ -2787,7 +2799,7 @@ export default class BlenderStudio extends Service {
       processGone = after.alive === false
       if (processGone === false && live === undefined) {
         // A group that survived a direct signal is escalated once, then reported.
-        const escalated = await stopProcessGroup({ pid })
+        const escalated = await stopProcessGroup({ pid, graceMs: this.config.orphanGraceMs })
         after = checkProcessAlive(pid)
         processGone = after.alive === false
         processReport = { ...processReport, escalated }

@@ -11,7 +11,10 @@
  *      render job with a live handle in THIS process, and a render job whose process belongs to a
  *      previous Host — and the report distinguishes "the cancel was REQUESTED" from "the process was
  *      SIGNALLED" from "the process is GONE". Only the last is the acceptance condition, so it is
- *      measured rather than inferred.
+ *      measured rather than inferred. The LAST rung of that ladder — a pid that answers `kill(pid, 0)`
+ *      and cannot be killed, escalated once and then reported as still there — is driven too, with a
+ *      real zombie whose parent never reaps it, because a live renderer can never reach that rung:
+ *      the rung below it already ends in SIGKILL.
  *   2. `_deliverJob` refuses to encode an incomplete frame set (encoding "whatever is there" is how a
  *      delivery silently ships 447 of 450 frames) and refuses to publish a video whose PROBED
  *      properties disagree with the job's own claims. Both leave the record saying `failed` with a
@@ -25,13 +28,13 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
-import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
+import BlenderStudio, { StudioConfig, checkProcessAlive } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const results = []
@@ -237,6 +240,80 @@ check('a render whose process belongs to a previous Host is signalled as a proce
   byPid.process ?? byPid)
 try { process.kill(-sleeper.pid, 'SIGKILL') } catch { /* already gone */ }
 try { sleeper.kill('SIGKILL') } catch { /* already gone */ }
+
+// ---------------------------------------------------------------------------
+// The escalation: a pid that answers `kill(pid, 0)` and cannot be killed
+// ---------------------------------------------------------------------------
+//
+// MEASURED AT LAST, and it needed a process that cannot die rather than a slow one: the escalation is
+// the rung ABOVE `stopProcessGroup`, which already ends in SIGKILL, so a live renderer never reaches it.
+// A ZOMBIE does — it has exited, its parent has not reaped it, `kill(pid, 0)` succeeds and no signal can
+// change anything. The keeper below is a Node process that spawns a child and then blocks the thread
+// forever (`Atomics.wait`, so it burns no CPU): a parent that never returns to its event loop never
+// reaps, which is the whole trick, and the pid it reports on stdout is the zombie.
+//
+// The grace is configured to 200 ms for this case. With the default ten seconds per rung the only way to
+// stand on this branch is to wait twenty of them — which is why it had never run, and why the bound is a
+// configuration the operator owns (a "did the process die" question with a cost is not a constant).
+const ZOMBIE_KEEPER = [
+  "const { spawn } = require('child_process')",
+  "const fs = require('fs')",
+  "const child = spawn(process.execPath, ['-e', '0'])",
+  'fs.writeSync(1, String(child.pid))',
+  'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0)',
+].join(';')
+const keeper = spawn(process.execPath, ['-e', ZOMBIE_KEEPER], { stdio: ['ignore', 'pipe', 'ignore'] })
+const zombiePid = Number(await new Promise(resolve => {
+  keeper.stdout.once('data', chunk => resolve(String(chunk).trim()))
+}))
+// The pid arrives while its process is still starting, so the fixture WAITS for the state the case is
+// about instead of assuming it: `Z` is a process that has exited and whose parent has not reaped it.
+const psState = () => execFileSync('ps', ['-o', 'stat=', '-p', String(zombiePid)], { encoding: 'utf8' }).trim()
+const zombieState = await (async () => {
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    const state = psState()
+    if (state.startsWith('Z')) return state
+    await new Promise(resolveWait => setTimeout(resolveWait, 25))
+  }
+  return psState()
+})()
+check('the fixture has a ZOMBIE before the cancel is asked for, because a killable pid cannot reach the escalation',
+  zombieState.startsWith('Z'), { pid: zombiePid, state: zombieState })
+const quick = new BlenderStudio(new Context(), StudioConfig({
+  workspaceRoot,
+  projectsRoot: join(workspaceRoot, 'projects'),
+  reconcileOnStart: false,
+  orphanGraceMs: 200,
+}))
+quick.renderJobs.write(jobRecord('render-0004', { status: 'running', pid: zombiePid }))
+const escalationStartedMs = Date.now()
+const unkillable = await quick.cancelJob({ projectId, jobId: 'render-0004', reason: 'the renderer is a zombie' })
+const escalationMs = Date.now() - escalationStartedMs
+check('a pid that cannot be killed is escalated ONCE and then reported as still there, never claimed gone',
+  unkillable.cancelled === true && unkillable.processGone === false && unkillable.process?.gone === false &&
+  unkillable.process?.escalated !== undefined && unkillable.process.escalated.kill !== null &&
+  unkillable.process?.escalated?.gone === false && quick.renderJobs.read(projectId, 'render-0004').status === 'cancelled',
+  { state: zombieState, process: unkillable.process, processGone: unkillable.processGone })
+// The bound is the configuration, not a constant: two rungs at 200 ms each, where the default grace
+// would spend twenty seconds on the same answer. The margin is deliberately huge (5 s against ~0.5 s
+// measured, and ~20 s for the unbounded version) because this machine's load swings by an order of
+// magnitude — a tight timing assertion here would be a flake, not a measurement.
+check('and the time it spends on that question is the CONFIGURED grace, not a constant nobody can lower',
+  escalationMs < 5_000, { escalationMs, configuredGraceMs: 200 })
+// The reading is only evidence because the pid was a ZOMBIE: once its parent is killed the pid is gone
+// immediately, so the "still alive" answer above was about a process that had already exited.
+keeper.kill('SIGKILL')
+const reaped = await (async () => {
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    if (checkProcessAlive(zombiePid).alive === false) return true
+    await new Promise(resolveWait => setTimeout(resolveWait, 50))
+  }
+  return checkProcessAlive(zombiePid).alive === false
+})()
+check('and the pid was a zombie rather than a renderer: reaping its parent makes it answer `gone` at once',
+  reaped, { pid: zombiePid, state: zombieState })
 
 // ---------------------------------------------------------------------------
 // Delivery: an incomplete frame set is not encoded

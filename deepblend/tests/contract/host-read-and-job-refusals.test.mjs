@@ -18,6 +18,11 @@
  * The "already running in THIS Host" refusal moved out: it sits behind the runtime seam, and
  * `host-render-loop.test.mjs` is the file that has one.
  *
+ * AND THE TWO RULES A DELIVERY RENDERS BY: its samples are the PROFILE's own (the preview ceiling
+ * deliberately does not apply), and its camera is chosen by role first and declaration order second.
+ * Plus `listProjects` on a project whose current revision cannot be read — listed, flagged, never
+ * dropped.
+ *
  * Run standalone: `node deepblend/tests/contract/host-read-and-job-refusals.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
  */
@@ -174,6 +179,47 @@ check('a revision compiled for rendering that produced no checkpoint is refused 
   noBlend.message === `Revision ${revision} was compiled for rendering but produced no checkpoint.`,
   noBlend?.message ?? noBlend)
 
+// ---- what a delivery renders from: its samples, and the camera it needs -----
+//
+// DELIVERY SAMPLES ARE NOT PREVIEW SAMPLES. `maxPreviewSamples` exists to stop a model spending money on
+// previews; applying it here would silently rewrite the profile a delivery was asked to render with, which
+// is the trap the M3 brief names. A Host whose two ceilings DIFFER (4 vs 64) is the only place the claim
+// "the preview ceiling deliberately does not apply to a delivery render" can be checked rather than read.
+const deliveryStudio = new BlenderStudio(new Context(), StudioConfig({
+  workspaceRoot,
+  projectsRoot: join(workspaceRoot, 'projects'),
+  reconcileOnStart: false,
+  maxPreviewSamples: 4,
+  maxFinalSamples: 64,
+}))
+const deliveryProfile = { name: 'final', samples: 32, resolution: [16, 16], maxSamplesBudget: null }
+const noRequest = deliveryStudio._deliverySamples(deliveryProfile, undefined, revision)
+check('a delivery with no explicit sample request keeps the PROFILE\'s own samples, untouched by the preview ceiling',
+  noRequest.samples === 32 && noRequest.warning === null && noRequest.profile === deliveryProfile,
+  { samples: noRequest.samples, warning: noRequest.warning, sameProfileObject: noRequest.profile === deliveryProfile })
+const clamped = deliveryStudio._deliverySamples(deliveryProfile, 128, revision)
+check('and an explicit request is reduced by the FINAL ceiling, with the warning naming the ceiling that did it',
+  clamped.samples === 64 && clamped.warning?.code === 'RENDER_SAMPLES_REDUCED' &&
+  /by the profile budget \(profile budget 64, host ceiling 64\); the preview ceiling maxPreviewSamples=4/.test(clamped.warning.message) &&
+  /deliberately does not apply to a delivery render$/.test(clamped.warning.message),
+  { samples: clamped.samples, message: clamped.warning?.message })
+
+const noCamera = (() => {
+  try {
+    return deliveryStudio._deliveryCameraId({ cameras: [] })
+  } catch (cause) {
+    return cause
+  }
+})()
+check('a SceneSpec with no camera is refused by name, because a delivery has nothing to render from',
+  noCamera instanceof BlenderError && noCamera.code === code('SCENE_CAMERA_MISSING') &&
+  noCamera.message === 'this SceneSpec declares no camera, so there is nothing to render a delivery from.',
+  noCamera?.message ?? noCamera)
+check('and the camera is chosen by ROLE first and by declaration order second, never by array order alone',
+  deliveryStudio._deliveryCameraId({ cameras: [{ id: 'b' }, { id: 'a' }] }) === 'b' &&
+  deliveryStudio._deliveryCameraId({ cameras: [{ id: 'b' }, { id: 'a', role: 'active-camera' }] }) === 'a',
+  { firstDeclared: deliveryStudio._deliveryCameraId({ cameras: [{ id: 'b' }, { id: 'a' }] }) })
+
 // ---- the recovery findings, as the job surface reports them ----------------
 //
 // `listJobs` carries what the restart reconciliation found, because "this job was interrupted" is a fact
@@ -215,6 +261,24 @@ check('a cancel with no job id is refused by name rather than answered as a no-o
   nameless instanceof BlenderError && nameless.code === code('PATH_SEGMENT_INVALID') &&
   nameless.message === 'job id must be a non-empty string.',
   { code: nameless?.code, message: nameless?.message })
+
+// ---- a project whose current revision cannot be read is still a project -----
+//
+// The two failure modes this guards against are opposite and both bad: dropping the project makes the UI
+// silently lose someone's work, and reporting it as an ordinary project hides that its scene cannot be
+// shown. The row carries `unreadable` for exactly that reason.
+const stillHere = await studio.transactions.createProject({ title: 'still-here', sceneSpec: spec, saveCheckpoint: false })
+rmSync(join(studio.store.revisionDirectory(stillHere.projectId, stillHere.revision.revision), 'scene-spec.json'), { force: true })
+const rows = await studio.listProjects()
+const brokenRow = rows.projects.find(entry => entry.projectId === stillHere.projectId)
+const healthyRow = rows.projects.find(entry => entry.projectId === projectId)
+check('a project whose current revision cannot be read is still listed, flagged unreadable, and not dropped',
+  rows.count === 2 && brokenRow !== undefined && brokenRow.unreadable === true && brokenRow.scene === null &&
+  brokenRow.currentRevision === stillHere.revision.revision,
+  { count: rows.count, unreadable: brokenRow?.unreadable, scene: brokenRow?.scene })
+check('and the projects that CAN be read still carry their scene summary',
+  healthyRow !== undefined && healthyRow.unreadable === false && healthyRow.scene?.revision === revision,
+  { unreadable: healthyRow?.unreadable, revision: healthyRow?.scene?.revision })
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

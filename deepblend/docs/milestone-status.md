@@ -5844,3 +5844,78 @@ host/lib/index.js 67 → 40（其中 7 行是本轮新增的产品代码）
 
 契约层快照 1267 → **1278**（`host-render-loop.test.mjs` 18 → 26、`host-read-and-job-refusals.test.mjs`
 11 → 14）。
+
+## 75. 最后一条取消阶梯：一个「杀不死」的进程
+
+### 75.1 这条分支需要的是「杀不死」，不是「很慢」
+
+`cancelJob` 的升级级（`processGone === false && live === undefined` 时才走）上面那一级
+`stopProcessGroup` **本身已经是 SIGTERM → 宽限 → SIGKILL**，所以一个活着的渲染器永远走不到升级级。
+能站上去的 pid 只有一种：`kill(pid, 0)` 回答「在」，而任何信号都改变不了它——**僵尸**。
+
+fixture 用纯 Node 造出来（不引入 python，因为契约层的承诺是「只需要 Node」）：keeper 进程 fork 一个
+子进程，然后立刻用 `Atomics.wait` 把线程**永久阻塞**（不烧 CPU）。一个永不回到事件循环的父进程永不回收
+子进程，于是子进程成为僵尸；keeper 用 `fs.writeSync(1, …)` 把子 pid 同步写到管道上（异步 `write` 在
+阻塞的线程里可能永远 flush 不出去）。测试**先等 `ps -o stat=` 报 `Z`**——把 fixture 证据本身也断言掉，
+而不是假设它——再让取消去面对它。
+
+读数（pass 的 detail 就是证据）：`term`/`kill` 两级都试过、`gone: false`、`escalated` 在、
+`after.command === '<defunct>'`。产品说的是「升级一次，然后**照实报告**」，而不是「已确认消失」。
+最后杀掉 keeper，僵尸被回收，同一个 pid 立刻回答 gone——**这才证明刚才那个「在」是僵尸，不是渲染器**。
+
+### 75.2 一条谁也降不下来的常数，就是这条分支一直没跑的原因
+
+两级各等 10 秒（`ORPHAN_GRACE_MS`），要站上升级级得先等 20 秒。reconciler 早就接受 `orphanGraceMs`
+参数（`render-reconciler.test.mjs` 用 250ms 驱动过它），但 **host 从来没有把它接出来**：`cancelJob`
+的两处 `stopProcessGroup` 用的是常数。于是本轮把「问一句『进程死了吗』愿意花多久」变成
+`StudioConfig.orphanGraceMs`（默认仍是 reconciler 的 10 秒），既接进 `cancelJob` 的两级，也接进重启调协。
+这条改动是那句话的实例化：**一条只能靠等 20 秒到达的分支，就是一条不会被执行的分支**。
+
+### 75.3 交付渲染的样本数不是预览的
+
+`_deliverySamples` 的「没有显式请求」一支从没跑过，而它旁边写着一句承诺：`maxPreviewSamples` 是给模型
+省钱用的，**故意不适用于交付渲染**——把它套上去会静默改写调用者要求的 profile。要**检查**这句话而不是
+读它，需要一个两级上限**不同**的 Host（4 vs 64）：读数 `samples: 32`、`warning: null`、`profile` 是
+**同一个对象**（不是复制品）；显式要 128 时降到 64，警告文案里点名
+`maxPreviewSamples=4 deliberately does not apply to a delivery render`。
+
+### 75.4 一个读不出来的 revision 仍然是一个项目
+
+`listProjects` 的两支里，「`currentRevision === null`」那一支在本仓库够不到（产品不会留下这种项目，
+**已点名**），而「读 spec 失败」是真实状态（文件损坏或被删），它有两件必须同时成立的事：项目
+**不能被丢掉**（UI 会静默丢工作），也**不能被当成正常项目**（场景读不出来）。读数：`count: 2`、
+坏项目 `unreadable: true` 且 `scene: null`、好项目照旧带摘要。
+
+### 75.5 变异与收口
+
+七条变异全红：
+
+| 变异 | 目标 |
+| --- | --- |
+| M1 升级级永不进入 | 升级断言 |
+| M2 升级结果不报告 | 升级断言 |
+| M3 第一级不传配置的 grace | **时间**断言（20 秒 > 5 秒阈值） |
+| M4 交付样本回落到预览上限 | 75.3 的 `samples: 32` |
+| M5 选交付相机时忽略 role | 相机选择断言 |
+| M6 不可读的 revision 不标记 | `unreadable` 断言 |
+| M7 不可读的 revision 把项目丢掉 | 「仍然列出」（红的方式是**崩溃**：`listProjects` 直接抛） |
+
+M3 的红是一条**时间断言**，它的边距是刻意留大的：本机负载会在 3 到 45 之间摆动，阈值 5 秒对
+「~0.5 秒」与「~20 秒」两种情况都够分（测的是「配置生效」，不是「机器快」）。
+
+一处诚实的缺口写在测试旁边：`orphanGraceMs` 传给 `reconcileRenderJob` 的那一段**没有单独的断言**——
+reconciler 自己的测试已经用 250ms 驱动过同一条路径，在宿主这层再断言一遍就是第二份。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1288
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 224 (1.8%) → 210 (1.7%)，
+host/lib/index.js 40 → 26（其中 15 行是本轮新增的产品代码）
+```
+
+契约层快照 1278 → **1288**（`host-cancel-and-delivery.test.mjs` 14 → 18、
+`host-read-and-job-refusals.test.mjs` 14 → 20）。第一次跑探针时我改了一份**测试文件**的头部注释，漂移
+守卫据此拒绝为读数背书（它是对的：一个动过的树上的读数不是读数），于是**在冻结的树上重跑了一遍**，
+上面两个数字来自第二次。
