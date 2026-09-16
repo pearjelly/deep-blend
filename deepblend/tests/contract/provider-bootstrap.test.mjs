@@ -16,6 +16,12 @@
  * The seam is `ctx.subprocess`, so it is a stub: the provider's own logic is real, the working
  * directory is a real directory on disk, and the result document is a real file the stub writes.
  *
+ * ONE THING HERE NEEDS NO SEAM AT ALL, and it is a suggestion rather than a run: `discoverBlenderOnPath`,
+ * the lookup behind the settings card's "found a Blender here" hint. A file NAMED blender is not an
+ * answer — it is run (`--version`) before it is offered, and a directory whose blender cannot run must not
+ * hide a working one further along PATH. A wrong suggestion costs more than no suggestion: the operator
+ * pastes the path, the provider refuses it, and the card has taught them to distrust it.
+ *
  * THE TWO CLASSIFICATIONS THAT MATTER MOST, and both are asserted here:
  *
  *   - a TIMEOUT is not a cancellation. `timedOut` requires OUR deadline to have fired and the
@@ -29,12 +35,12 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, BLENDER_PROTOCOL_VERSION } from '@deepblend/dsh-blender-contracts'
-import LocalBlenderRuntime, { ProviderConfig } from '@deepblend/dsh-blender-provider-local'
+import LocalBlenderRuntime, { ProviderConfig, discoverBlenderOnPath } from '@deepblend/dsh-blender-provider-local'
 
 const results = []
 function check(name, ok, detail) {
@@ -165,6 +171,38 @@ check('an executable that cannot be resolved keeps the code the resolver chose, 
   unresolvable instanceof BlenderError && unresolvable.code === code('NOT_FOUND') &&
   /could not be resolved/.test(unresolvable.message),
   unresolvable?.code ?? unresolvable?.message)
+
+// ---------------------------------------------------------------------------
+// Finding a Blender on PATH: a file with the right NAME is not an answer
+// ---------------------------------------------------------------------------
+//
+// The settings card offers this lookup as a SUGGESTION, which makes a wrong suggestion worse than none:
+// the operator pastes the path, the provider then refuses it, and the card has taught them to distrust it.
+// `existsSync` alone is what a wrong suggestion looks like, so the candidate is RUN (`--version`) before it
+// is offered — and a directory whose `blender` exits nonzero must not hide a working one further along PATH.
+const brokenDirectory = join(workspaceRoot, 'path-broken')
+const workingDirectory = join(workspaceRoot, 'path-working')
+mkdirSync(brokenDirectory, { recursive: true })
+mkdirSync(workingDirectory, { recursive: true })
+writeFileSync(join(brokenDirectory, 'blender'), '#!/bin/sh\nexit 3\n')
+chmodSync(join(brokenDirectory, 'blender'), 0o755)
+writeFileSync(join(workingDirectory, 'blender'), '#!/bin/sh\nexit 0\n')
+chmodSync(join(workingDirectory, 'blender'), 0o755)
+const realPath = process.env.PATH
+try {
+  process.env.PATH = [brokenDirectory, workingDirectory].join(delimiter)
+  const found = discoverBlenderOnPath()
+  check('a file named blender that cannot answer `--version` is skipped, and the next directory is tried',
+    found === join(workingDirectory, 'blender'), { found })
+  process.env.PATH = brokenDirectory
+  check('and a PATH whose only blender cannot run answers null rather than suggesting it',
+    discoverBlenderOnPath() === null)
+  process.env.PATH = ''
+  check('an empty PATH answers null instead of scanning the filesystem',
+    discoverBlenderOnPath() === null)
+} finally {
+  process.env.PATH = realPath
+}
 
 // ---------------------------------------------------------------------------
 // The spawn itself

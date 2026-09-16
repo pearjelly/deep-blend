@@ -22,6 +22,13 @@
  *     about separately, because availability must be decided behaviorally (D1).
  *   - every refusal here is a CODE, because the caller is a model deciding what to do next.
  *
+ * AND THE ENDS OF A RENDER, which the M3 acceptance only ever sees from a healthy machine: a spawn that
+ * throws (`SPAWN_FAILED`, naming the executable that was never started), a child that dies without leaving
+ * a usable result document and captured no output at all (reported as DATA — `envelope: null`, empty
+ * streams, the rejection kept — because the caller has to fold all three into one job record), the
+ * capability cache and what `dispose()` does to it, and a diagnostics document of the wrong SHAPE, where
+ * the rule is "answer an empty list" rather than letting a string decide `gpuAvailable`.
+ *
  * Run standalone: `node deepblend/tests/contract/provider-actions.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
  */
@@ -71,7 +78,10 @@ mkdirSync(jobDirectory, { recursive: true })
  * `capabilities` is what bootstrap.py would report under `envelope.capabilities`; `undefined` means the
  * probe answers an empty document. Everything else about the provider is the real thing.
  */
-function makeProvider({ capabilities = {}, unresolvable = false, spawned } = {}) {
+function makeProvider({
+  capabilities = {}, unresolvable = false, spawned, spawnThrows,
+  doneRejects, resultText, withCollected = true,
+} = {}) {
   const ctx = new Context()
   ctx.provide('subprocess', {
     async resolveExecutable(requested) {
@@ -80,20 +90,29 @@ function makeProvider({ capabilities = {}, unresolvable = false, spawned } = {})
     },
     spawn(request) {
       spawned?.push(request)
+      if (spawnThrows !== undefined) throw new Error(spawnThrows)
       // A stub that spawns but writes nothing is refused by `runBootstrap` with RESULT_MISSING — which
       // is the guard doing its job: the process reported success and produced no answer. This one
       // writes the envelope where the provider asked for it, as bootstrap.py does.
       writeFileSync(
         request.argv[request.argv.indexOf('--result') + 1],
-        JSON.stringify({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' }),
+        resultText ?? JSON.stringify({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' }),
         'utf8',
       )
       return {
-        get done() { return Promise.resolve({ exitCode: 0, signal: null }) },
-        collected: {
-          stdout: { readFrom: () => ({ text: '' }) },
-          stderr: { readFrom: () => ({ text: '' }) },
+        get done() {
+          return doneRejects === undefined
+            ? Promise.resolve({ exitCode: 0, signal: null })
+            : Promise.reject(new Error(doneRejects))
         },
+        // `withCollected: false` is a handle that captured NOTHING — no readers at all, which is what a
+        // stub (or a spawn that failed after handing back a handle) looks like.
+        collected: withCollected
+          ? {
+              stdout: { readFrom: () => ({ text: '' }) },
+              stderr: { readFrom: () => ({ text: '' }) },
+            }
+          : undefined,
       }
     },
   })
@@ -252,6 +271,68 @@ check('warnings bootstrap.py reports are passed through verbatim under one gener
   reported.filter(entry => entry.code === 'PROBE_WARNING').length === 1 &&
   reported.find(entry => entry.code === 'PROBE_WARNING').message === 'the addon could not be enabled',
   codesOf(reported))
+
+// ---------------------------------------------------------------------------
+// A spawn that never happens, a child that dies silently, and the cache
+// ---------------------------------------------------------------------------
+
+const refusedSpawn = makeProvider({ spawnThrows: 'ENOMEM: cannot allocate the process', spawned: [] })
+const spawnFailure = await refusedSpawn
+  .startFrameSequence({ checkpointPath, frames: [1], jobDirectory, jobId: 'spawn-failure' })
+  .catch(cause => cause)
+check('a spawn that throws becomes SPAWN_FAILED, naming the executable that was never started',
+  spawnFailure instanceof BlenderError && spawnFailure.code === code('SPAWN_FAILED') &&
+  spawnFailure.message === `Failed to spawn Blender at ${resolvedBlenderPath}.` &&
+  String(spawnFailure.cause?.message ?? '') === 'ENOMEM: cannot allocate the process',
+  { code: spawnFailure?.code, message: spawnFailure?.message })
+
+// A child that dies without leaving a usable document AND captured no output: what the Host has to fold
+// into a job record afterwards. Three facts at once — the rejection is data, the unreadable result is
+// "no envelope" rather than a parse error, and missing readers answer empty rather than throwing.
+const silent = makeProvider({
+  doneRejects: 'the child was killed before it reported',
+  resultText: 'this is not json at all',
+  withCollected: false,
+  spawned: [],
+})
+const silentRun = await silent.startFrameSequence({ checkpointPath, frames: [1], jobDirectory, jobId: 'silent-child' })
+const silentOutcome = await silent.awaitFrameSequence(silentRun)
+check('a child that dies silently is reported as data: no envelope, no output, and the failure kept',
+  silentOutcome.envelope === null && silentOutcome.exitCode === null && silentOutcome.signal === null &&
+  silentOutcome.stdout === '' && silentOutcome.stderr === '' &&
+  String(silentOutcome.spawnFailure?.message ?? '') === 'the child was killed before it reported',
+  { envelope: silentOutcome.envelope, exitCode: silentOutcome.exitCode, spawnFailure: String(silentOutcome.spawnFailure?.message ?? null) })
+
+// The capability cache is what keeps a probe from launching Blender on every tool call, and `dispose()`
+// is how a Host that is going away drops it. Both directions are measured by counting spawns.
+const probeSpawns = []
+const cached = makeProvider({ spawned: probeSpawns })
+const firstProbe = await cached.getCapabilities({ refresh: true })
+const afterFirstProbe = probeSpawns.length
+await cached.getCapabilities({})
+const afterCachedRead = probeSpawns.length
+cached.dispose()
+const afterDispose = await cached.getCapabilities({})
+check('a probed capability is served from the cache, and dispose() empties it so the next call probes again',
+  afterFirstProbe === 1 && afterCachedRead === 1 && probeSpawns.length === 2 &&
+  afterDispose.probedAt >= firstProbe.probedAt && afterDispose.installed === true,
+  { spawnsAfterFirstProbe: afterFirstProbe, spawnsAfterCachedRead: afterCachedRead, spawnsAfterDispose: probeSpawns.length })
+
+// A diagnostics document of the wrong SHAPE is a real possibility across Blender builds. The rule is
+// "answer an empty list", never "pass the nonsense through": a string where a device list belongs would
+// otherwise reach `gpuAvailable`, and "has a GPU" would be decided by the truthiness of a word.
+const oddShape = makeProvider({
+  capabilities: {
+    gpuDevices: { availableBackends: 'gpu', gpuDeviceNames: 'Apple M1 Max', cpuDeviceNames: 8 },
+    renderEngineDiagnostics: { engineEnumItemsInformational: { identifiers: 'CYCLES' } },
+  },
+})
+const oddCapabilities = await oddShape.getCapabilities({ refresh: true })
+check('a diagnostics document of the wrong shape answers empty lists instead of passing the nonsense through',
+  oddCapabilities.gpu.gpuDeviceNames.length === 0 && oddCapabilities.gpu.cpuDeviceNames.length === 0 &&
+  oddCapabilities.gpu.availableBackends.length === 0 && oddCapabilities.renderEngineEnumItems.length === 0 &&
+  oddCapabilities.gpuAvailable === false,
+  { gpu: oddCapabilities.gpu, enumItems: oddCapabilities.renderEngineEnumItems, gpuAvailable: oddCapabilities.gpuAvailable })
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

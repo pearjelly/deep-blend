@@ -5981,3 +5981,59 @@ contracts/lib/png.js 27 → **2**
 
 契约层快照 1288 → **1296**（`png-sheet.test.mjs` 24 → 32）。**产品代码未改**——这 20 行是被测试点亮的，
 不是被删掉的。
+
+## 77. 渲染的「结束」：没起来的进程、没留下话的进程、以及一份形状不对的诊断
+
+`provider-local` 是这个仓库里现在最暗的文件（38 行）。本轮的切片是它的三处「结束」与两处边界：
+一处从没跑过的 spawn 失败路径、一个死了却没留下可用文档的子进程、能力缓存的生死，以及一份**形状不对**
+的诊断文档，另加一个根本不需要接缝的函数（PATH 上的 Blender 发现）。
+
+### 77.1 同一句话出现在两处：变异必须带上下文瞄准
+
+M1/M2 第一次跑**活了下来**——不是断言有洞，而是我把变异打偏了：`SPAWN_FAILED` 那句话在
+`runBootstrap` 与 `startFrameSequence` 里**各有一份**（514 与 1072），`spawnFailure = cause` 也是
+（527 与 1113），`replace(..., 1)` 命中的是前一处，而我的新断言测的是后一处。加上前后文重新瞄准后两条
+立刻变红。第 55 轮记过「同一个锚点出现两次是一个发现」；这一轮补上一句：**变异要带上下文**，否则
+「全红」里会混进「打偏了的红」。
+
+### 77.2 一个子进程可以三种坏事同时发生
+
+`awaitFrameSequence` 的契约是**返回数据而不是抛错**（一次帧序列合法地有两种结局），所以它必须同时处理：
+`done` reject（进程被杀）、结果文档读不出来（不是 JSON），以及**根本没有采集到输出**（handle 没有
+readers）。三条一起测：`envelope: null`、`exitCode: null`、`stdout === ''`、`stderr === ''`，而
+`spawnFailure` 带着**原因本身**。产品在这里的承诺是「把三件事都交给上层记账」，不是「挑一件最像的报」。
+
+### 77.3 能力缓存的生与死
+
+`getCapabilities` 的缓存决定「一次工具调用要不要再启动一次 Blender」，而 `dispose()` 是 Host 离开时
+丢掉它的方式。两个方向都用**数 spawn 次数**来量：第一次 probe 1 次、紧接着的读 0 次（命中缓存）、
+`dispose()` 之后再读 1 次。这条断言的价值不在实现，而在**成本**：缓存失效意味着一次多余的真实启动。
+
+### 77.4 形状不对的诊断：答空表，不是把胡话传下去
+
+Blender 版本的差异会让诊断文档的字段类型变掉（这里是字符串而不是数组）。规则是**答空表**，理由是
+`gpuAvailable` 就是从 `gpuDeviceNames.length` 推出来的——把 `'Apple M1 Max'` 放过去，等于让一个词的
+真值决定「这台机器有没有 GPU」。读数：三个设备列表与 enum 列表都是 `[]`，`gpuAvailable === false`。
+
+### 77.5 PATH 上的发现：存在不等于能用
+
+`discoverBlenderOnPath` 是设置卡那句「在 PATH 上找到了一个 Blender」的来源，而**错误的建议比没有建议更贵**：
+操作者粘上路径，provider 拒绝它，这张卡就教会了他们不要信它。所以候选要先跑一次 `--version`：一个
+退出码非 0 的 `blender` 被跳过，后面目录里能跑的那个被发现；只有一个跑不起来的 `blender` 时答 `null`；
+`PATH` 为空也答 `null`（不去扫文件系统）。
+
+### 77.6 变异与收口
+
+八条变异全红（分类、丢掉失败原因、把读不出来的文档当空信封、缺 readers 时答占位符、`dispose` 不清缓存、
+字符串设备表透传、字符串 enum 表透传、候选不跑就建议），其中两条**第一次打偏**、带上下文后变红（77.1）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1303
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 185 (1.5%) → 167 (1.4%)，
+provider-local/lib/index.js 38 → 20
+```
+
+契约层快照 1296 → **1303**（`provider-actions.test.mjs` 20 → 24、`provider-bootstrap.test.mjs` 25 → 28）。
