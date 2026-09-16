@@ -30,7 +30,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -406,6 +406,80 @@ rmSync(workspaceRoot, { recursive: true, force: true })
 // ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// The store's OWN guards: the ones that keep a broken input from becoming a throw
+// ---------------------------------------------------------------------------
+
+// `exists()` is asked about ids that came from a request, so it must answer false for an id that cannot even
+// be turned into a path — a `PATH_SEGMENT_INVALID` thrown at the caller would turn "does this exist?" into a
+// crash. The contrast is in the same check: a real project still answers true.
+const realProject = await new RevisionTransaction({ store, runtime: {}, config: { maxMeshPolygons: 250_000 } })
+  .createProject({ title: 'exists-probe', sceneSpec: productSpec, saveCheckpoint: false })
+check('exists() answers false for an id that cannot be a path, and true for a project that exists',
+  store.exists('..') === false && store.exists('') === false && store.exists(realProject.projectId) === true,
+  { traversal: store.exists('..'), empty: store.exists(''), real: store.exists(realProject.projectId) })
+
+// A job id is allocated from the jobs that exist, and a project with NO jobs directory counts from zero
+// rather than throwing on the missing directory. (`createProject` writes an attempt log, so the first id a
+// real project ever gets is 002 — this is the branch for a project whose jobs were never recorded, which is
+// why it is driven through the allocator itself rather than by arranging an older store.)
+const firstJobId = store.allocateJobId('a-project-with-no-jobs-directory', 'render_preview')
+check('a project with no jobs directory allocates its first job id from zero instead of failing',
+  /^render_preview-\d{14}-001$/.test(firstJobId), firstJobId)
+
+// A revision directory with no manifest did not finish publishing: recording an artifact into it must not
+// invent a manifest, and must still hand the caller back the artifact it recorded.
+const unpublished = store.revisionDirectory(realProject.projectId, 'r0002')
+mkdirSync(unpublished, { recursive: true })
+const recorded = store.recordRevisionArtifact(realProject.projectId, 'r0002', 'previews', {
+  kind: 'preview', path: 'revisions/r0002/previews/a.png', at: new Date().toISOString(),
+})
+check('an artifact recorded into a revision with no manifest is returned, and no manifest is invented',
+  recorded.length === 1 && recorded[0].path === 'revisions/r0002/previews/a.png' &&
+  !existsSync(join(unpublished, 'revision-manifest.json')),
+  { recorded: recorded.length, manifest: existsSync(join(unpublished, 'revision-manifest.json')) })
+
+// An idempotency key that hashes to a file holding a DIFFERENT key means a collision or a copied file. The
+// safe answer is "no record" — never "reuse that outcome", which is how a retry gets a stranger's answer.
+const collided = join(store.projectDirectory(realProject.projectId), 'operations')
+mkdirSync(collided, { recursive: true })
+writeFileSync(store.idempotencyPath(realProject.projectId, 'the-key-i-asked-for'), JSON.stringify({
+  idempotencyKey: 'somebody-elses-key', outcome: { status: 'applied' },
+}), 'utf8')
+check('an idempotency record holding a different key reads as NO record rather than as a reusable outcome',
+  store.readIdempotencyRecord(realProject.projectId, 'the-key-i-asked-for') === null &&
+  store.readIdempotencyRecord(realProject.projectId, 'never-written') === null,
+  store.readIdempotencyRecord(realProject.projectId, 'the-key-i-asked-for'))
+
+// A title that cannot be made unique is refused rather than looping forever: 1000 attempts, then a coded
+// error. `exists` is replaced for this case on purpose — creating a thousand projects to prove it would
+// prove the same thing much more slowly.
+const exhausted = new ProjectStore({ projectsRoot, workspaceRoot })
+let attempts = 0
+exhausted.exists = () => { attempts += 1; return true }
+const noId = (() => {
+  try {
+    return exhausted.allocateProjectId('watch commercial')
+  } catch (cause) {
+    return cause
+  }
+})()
+// The NUMBER OF ATTEMPTS is asserted as well as the sentence that names it: a message that says "after 1000
+// attempts" while the loop gave up after one is a sentence nobody can trust, and the first version of this
+// check could not tell the two apart.
+check('a title whose ids are all taken is refused by name, and the sentence matches the attempts it made',
+  noId instanceof BlenderError && noId.code === code('PROJECT_EXISTS') && attempts === 1000 &&
+  noId.message === 'Could not allocate an unused project id derived from "watch commercial" after 1000 attempts.',
+  { attempts, message: noId?.message ?? noId })
+
+// NAMED, NOT PRETENDED COVERED: the `catch {}` around the derived index write (`#refreshIndex`) is not
+// reachable from a test without a seam. The write is `writeFileAtomic`, and the only cheap way to fail it —
+// a directory standing where `projects.json` belongs — fails the READ first (`readJson` throws its own
+// "Could not read …" before the write is ever attempted, MEASURED here). A read-only projects root would
+// fail the project directory alongside it, and the index cannot be redirected. So the promise this branch
+// keeps ("a successful project write is not failed by a cache") has no driver in this layer; it is recorded
+// here rather than left looking covered.
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nStore error paths: ${passed}/${results.length} check(s) passed`)

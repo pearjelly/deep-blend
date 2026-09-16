@@ -299,6 +299,42 @@ check('a well-formed finding survives with its confidence, and a missing one def
   })())
 check('a finding that is not an array at all is reported, not silently dropped',
   validateFindings('looks fine', { viewIds: new Set(), objectIds: new Set() }).rejected.length === 1)
+// The remaining two reasons a model finding is thrown away: it is not even an object, or it names a subject
+// the review does not contain. Both are the same rule as the unknown view — a finding is a CLAIM ABOUT
+// something that exists, and the second half of that sentence is checked here.
+check('an entry that is not an object is rejected by name instead of being read for fields',
+  (() => {
+    const { accepted, rejected } = validateFindings(
+      ['looks a bit dark to me', null, { category: 'exposure', viewId: 'a', evidence: 'the frame is underexposed' }],
+      { viewIds: new Set(['a']), objectIds: new Set() },
+    )
+    return accepted.length === 1 && rejected.length === 2 &&
+      rejected.every(entry => entry.reason === 'a finding must be an object')
+  })())
+check('a finding about a subject the review does not contain is rejected, naming the object id',
+  (() => {
+    const { accepted, rejected } = validateFindings(
+      [{ category: 'occlusion', viewId: 'a', objectId: 'ghost-part', evidence: 'the dial is hidden behind the case' }],
+      { viewIds: new Set(['a']), objectIds: new Set(['subject']) },
+    )
+    return accepted.length === 0 && rejected[0].reason === 'unknown objectId "ghost-part"'
+  })())
+
+// ---- the exposure sentence when the MEAN is fine ---------------------------
+//
+// `assessExposure` has two doors, and only one of them had ever been walked through: a mean below the floor.
+// The other one — a perfectly reasonable mean with too many pixels piled up at the bottom of the range — is
+// the case a dark-but-lit product produces, and the sentence has to say THAT instead of claiming the mean
+// crossed a line it did not. (The first version of this sentence did exactly that, which is why it is
+// asserted word for word.)
+const clippedOnly = scoreView(view({ mean: 0.2, clippedDark: 0.3 }))
+check('an acceptable mean with too many dark pixels is reported as CLIPPING, not as an under-exposed mean',
+  clippedOnly.issues.length === 1 && clippedOnly.issues[0].code === 'FRAME_UNDEREXPOSED' &&
+  clippedOnly.issues[0].severity === 'major' &&
+  clippedOnly.issues[0].evidence === 'exposure measured on the whole frame is too dark: mean display luminance 0.200 is ' +
+    'acceptable, but 0.300 of those pixels sit at the bottom of the range (limit 0.25)' &&
+  clippedOnly.issues[0].measurements.clippedDarkFraction === 0.3,
+  clippedOnly.issues[0]?.evidence)
 
 // ---------------------------------------------------------------------------
 // The loop, through its ports

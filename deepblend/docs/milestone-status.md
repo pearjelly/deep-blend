@@ -6243,3 +6243,64 @@ total self-counted assertions: 1329
 **一条读数的尾巴往往就是下一个用例**，这也是为什么每轮都要真的去读那份读数，而不是只看总数。
 
 契约层快照 1320 → **1329**（`tool-plane-output.test.mjs` 59 → 68）。
+
+## 82. finding 的另外两条拒绝理由，和 store 自己的五个守卫
+
+### 82.1 「一个 finding 是关于存在的东西的断言」——后半句
+
+`validateFindings` 在 `visual-loop.test.mjs` 里已经被驱动过三条拒绝理由（未知 viewId、未知 category、
+证据太短），剩下的两条是本轮补的：
+
+* **连对象都不是**（`'looks a bit dark to me'`、`null`）→ `a finding must be an object`，而不是去读它的字段
+  （读 `null.category` 会崩）；
+* **点名了这次评审里不存在的被测对象** → `unknown objectId "ghost-part"`。
+
+配合第 71 轮在宿主那层驱动的那条（未知 viewId），现在这句话的四个格都亮了：**一个 finding 必须是关于
+存在的东西的断言，而「存在」是被检查过的**。
+
+### 82.2 曝光那句话的第二个门
+
+`assessExposure` 有两扇门，此前只走过一扇（均值低于地板）。另一扇是**均值完全合理、但太多像素堆在
+范围底部**——这正是「深色布景里的产品」会产生的读数，句子必须说的是**这一件**，而不是声称均值越了
+一条它没越过的线（第一版就是那么写的，所以现在逐字断言）：
+
+```
+exposure measured on the whole frame is too dark: mean display luminance 0.200 is acceptable,
+but 0.300 of those pixels sit at the bottom of the range (limit 0.25)
+```
+
+### 82.3 store 自己的五个守卫
+
+* `exists()` 对**不能变成路径**的 id（`'..'`、`''`）答 `false`：一个从请求里来的 id 不该让「它存在吗」
+  变成一次崩溃（对照：真项目答 `true`）；
+* `allocateJobId` 在**没有 jobs 目录**时从 0 数起（读到 `002` 是因为 `createProject` 会写一条尝试记录，
+  所以真项目的第一个 id 是 002；这一支是「jobs 从未被记录过」的项目，因此直接用分配器驱动）；
+* 往一个**没有 manifest** 的 revision 目录记录工件：`return [artifact]`，而且**不许造一份 manifest**
+  （那份目录没有发布完成，写进去等于伪造历史）；
+* 幂等键哈希撞上**另一个键**的记录：答「没有记录」而不是复用别人的结果；
+* 标题的所有 id 都被占用 → 1000 次尝试后按名字拒绝。这条断言**同时数了尝试次数**：一句写着
+  「after 1000 attempts」而实际只试了一次的话，是没人能信的话（M9 就是打这一点的变异）。
+
+### 82.4 一处点名而非假装的覆盖
+
+`#refreshIndex` 里那个吞掉索引写入失败的 `catch {}` **在本层没有驱动方式**：唯一的廉价失败法（在
+`projects.json` 的位置放一个目录）会先让**读**失败（`readJson` 在写之前就抛「Could not read …」，
+本轮实测），只读的 projects 根会连项目目录一起挡住，而索引路径不可重定向。所以这条承诺
+（「项目写成功不该被缓存拖垮」）被**写在文件里**，而不是留着一个看起来被覆盖的分支。
+
+### 82.5 变异与收口
+
+九条变异全红（4 条打在 `visual-issue.js`、5 条打在 `project-store.js`）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1337
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 122 (1.0%) → **103 (0.9%)**、
+**有黑暗行的文件数 19 → 18**，`contracts/lib/visual-issue.js` **8 → 0**、`host/lib/project-store.js`
+**12 → 0**——两个文件都从名单上消失。
+
+契约层快照 1329 → **1337**（`visual-loop.test.mjs` 101 → 104、`store-error-paths.test.mjs` 25 → 30）。
