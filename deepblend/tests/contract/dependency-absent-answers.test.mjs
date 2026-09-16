@@ -17,11 +17,13 @@
  *     deployment state: the host bundle is not installed and the model must be told exactly that;
  *   - the UI plane's error mapping and its settings card when the probe throws.
  *
- * DELIBERATELY NOT COVERED, and named so nobody assumes it runs: the two `readRequestBody` refusals
- * (an oversized body, a body that is not a JSON object) and the HTTP-level wrap that turns an unknown
- * throw into `UI_REQUEST_FAILED`. All three sit behind the HTTP dispatch, which only the browser suite
- * (`e2e/ui.e2e.mjs`) reaches; reproducing them here would mean standing up a server to test a
- * three-line wrapper.
+ * MOVED, NOT DELIBERATELY UNCOVERED ANY MORE: this file used to say that the two `readRequestBody`
+ * refusals (an oversized body, a body that is not a JSON object) and the HTTP-level wrap that turns an
+ * unknown throw into `UI_REQUEST_FAILED` sit behind the dispatch, "which only the browser suite reaches".
+ * That was a statement about the SUITE and not about the code: `composition/ui-plane.e2e.mjs` already
+ * drives the registered handler with Node-shaped requests and responses, so all three have been asserted
+ * there since round 80 — no browser and no server needed. The claim is kept here, corrected, because a
+ * stale "cannot be reached" is how a branch stays untested for another twenty rounds.
  *
  * Run standalone: `node deepblend/tests/contract/dependency-absent-answers.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`

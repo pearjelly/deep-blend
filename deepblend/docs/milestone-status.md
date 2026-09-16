@@ -6473,3 +6473,40 @@ total self-counted assertions: 1356
 四个文件（`scene-patch` 6、`scene-spec` 5、`png` 2、`json-schema` 1）是**已点名证明到不了**的分支，
 两个（`render-journal`、`project-store`、`frame-ledger`）是**已点名且写了理由**的竞态/防御守卫——
 剩下的三条主线是 `host/lib/index.js` 20、`provider-local` 14、`ui/lib/index.js` 13。
+
+## 86. 「只有浏览器套件够得着」是一句关于套件的话
+
+### 86.1 一句写在第 54 轮的「够不到」，第 80 轮被推翻
+
+`dependency-absent-answers.test.mjs` 的文件头写着：两个 `readRequestBody` 拒绝（过大的 body、不是 JSON 对象的
+body）与「未知抛出包装成 `UI_REQUEST_FAILED`」**都躲在 HTTP 分发后面，只有浏览器套件够得着**。
+这是一句**关于套件**的话，不是关于代码的话：`composition/ui-plane.e2e.mjs` 早就在用 **Node 形状的
+request/response** 驱动那个注册进去的 handler（「no browser, no Blender」写在它自己的文件头里），
+所以这三条**一直**可达——只是没有人去驱动它们。
+
+修法与第 66 轮那次同形：**不新增接缝、只补用例**，然后把那句「够不到」改写成「已经在哪里被断言」。
+本轮加的四条：
+
+* 一个**没被分类的抛出**（studio 抛普通 `Error`）→ `UI_REQUEST_FAILED`、消息原样带过去、状态 500、
+  `route` 是真实的路由 id。面板需要能渲染的东西，「这条路由用没人命名过的方式炸了」是可以照着做的信息，
+  堆栈不是；
+* **超过上限的 body**（4 MiB + 16）→ `SCENE_PATCH_INVALID`、消息点名它越过的那个数、状态 4xx
+  （不是 500：服务器不会读的请求是调用方的问题，而一个把 500 当「稍后重试」的面板永远学不会这件事）；
+* **是 JSON 但不是对象**（`[]`）→ 在任何 handler 看到它之前就按名字拒绝；
+* `BlenderUiHost.buildCard(data)` **就是** `buildSettingsCard(data)`：设置卡只有一份实现，
+  面板和设备能力文本不会对同一台机器讲两个故事。
+
+### 86.2 变异与收口
+
+四条变异全红（不包装未知错误、不执行 body 上限、接受非对象 body、设置卡变成第二份实现）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+composition/ui-plane.e2e.mjs: 144/144 check(s) passed
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 66 (0.5%) → **53 (0.4%)**、
+**有黑暗行的文件数 10 → 9**，`ui/lib/index.js` **13 → 0**。
+
+（契约层快照不变：本轮的四条断言在 **composition** 套件里，不在契约层的计数口径内。）

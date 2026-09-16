@@ -549,6 +549,56 @@ check('every card registration has a component, so keying it cannot silently ren
 }
 
 // ---------------------------------------------------------------------------
+// The failure paths of the HTTP dispatch itself
+// ---------------------------------------------------------------------------
+//
+// Round 54 recorded three branches as "behind the HTTP dispatch, which only the browser suite can reach".
+// That was a statement about the SUITE, not about the code: this file already drives the registered handler
+// with Node-shaped requests and responses, so the dispatch's own failure paths have always been reachable
+// here. What they cover is the difference between a UI that can render a failure and a browser that gets a
+// transport error: a handler that throws something unclassified, a body that is too large, and a body that is
+// JSON but not an object.
+
+// An unclassified throw becomes UI_REQUEST_FAILED with the message carried through: the panel needs
+// something to show, and "the route blew up in a way nobody named" is a fact a reader can act on (restart,
+// report) where a stack is not.
+const unclassifiedStudio = studio.getProject
+studio.getProject = async () => {
+  throw new Error('the store answered with a shape nobody expected')
+}
+const unclassified = await request('GET', '/deepblend/projects/demo')
+studio.getProject = unclassifiedStudio
+check('a handler that throws an unclassified error answers UI_REQUEST_FAILED with the message, not a stack',
+  unclassified.response.statusCode === 500 && unclassified.json?.ok === false &&
+  unclassified.json?.error?.code === BlenderErrorCode.UI_REQUEST_FAILED &&
+  unclassified.json.error.message === 'the store answered with a shape nobody expected' &&
+  unclassified.json.route === 'project.overview',
+  unclassified.json ?? unclassified.response.body)
+
+// The body cap is a real refusal with its own code (not a 500): a request the server will not read is the
+// caller's problem, and a panel that retries a 500 forever would never learn that.
+const oversized = await request('POST', '/deepblend/projects/demo/patch', `"${'x'.repeat(4 * 1024 * 1024 + 16)}"`)
+check('a body over the cap is refused as SCENE_PATCH_INVALID, naming the limit it crossed',
+  oversized.response.statusCode >= 400 && oversized.response.statusCode < 500 &&
+  oversized.json?.error?.code === BlenderErrorCode.SCENE_PATCH_INVALID &&
+  oversized.json.error.message === `The request body exceeded ${4 * 1024 * 1024} bytes.`,
+  { status: oversized.response.statusCode, message: oversized.json?.error?.message })
+
+// JSON that is not an object: `[]` parses, and would reach a handler that destructures fields off an array.
+const arrayBody = await request('POST', '/deepblend/projects/demo/patch', '[]')
+check('a body that is JSON but not an object is refused by name before any handler sees it',
+  arrayBody.json?.error?.code === BlenderErrorCode.SCENE_PATCH_INVALID &&
+  arrayBody.json.error.message === 'The request body is not a JSON object.',
+  arrayBody.json ?? arrayBody.response.body)
+
+// The settings card has ONE implementation: the class delegates to the contracts builder, so the panel and
+// the model's `blender_capabilities` text cannot drift into two different stories about one machine.
+const cardData = { installed: true, version: '5.2.1 LTS', gpu: { available: false, devices: [] }, renderSmokeTest: null, warnings: [] }
+check('the UI class builds its settings card with the contracts builder, not a second copy',
+  JSON.stringify(uiModule.default.buildCard(cardData)) === JSON.stringify(buildSettingsCard(cardData)),
+  uiModule.default.buildCard(cardData))
+
+// ---------------------------------------------------------------------------
 
 const failed = results.filter(entry => !entry.ok)
 console.log(`\nui plane: ${results.length - failed.length}/${results.length} check(s) passed`)
