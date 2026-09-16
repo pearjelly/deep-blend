@@ -47,6 +47,7 @@ import {
   buildSceneTree,
   buildSettingsCard,
   describeJobForHuman,
+  formatDuration,
   matchUiRoute,
   parseToolCallTarget,
   writeRouteIds,
@@ -310,6 +311,37 @@ check('a zero-frame job reports 0% rather than NaN or Infinity',
 check('every status gets a sentence a human can read',
   ['queued', 'running', 'stopping', 'recovering', 'completed', 'failed', 'cancelled'].every(status => describeJobForHuman({ ...RUNNING, status }).length > 8),
   ['queued', 'running', 'stopping', 'recovering', 'completed', 'failed', 'cancelled'].map(status => describeJobForHuman({ ...RUNNING, status })))
+// ---- the sentences an operator reads, including the ones about TIME ---------
+//
+// `describeJobForHuman` had only ever been called for a job with NO estimate, so the branch that says how
+// long is left — and the duration formatter underneath it — had never produced a single character. This is
+// operator-facing text: a wrong 预计还剩 is a promise about the next hour of somebody's day.
+
+check('a running job with an estimate says how long is left, in units a person reads',
+  describeJobForHuman({ ...RUNNING, estimatedRemainingMs: 90_000 }) === '渲染中：15/60 帧，预计还剩 1 分 30 秒' &&
+  describeJobForHuman({ ...RUNNING, estimatedRemainingMs: null }) === '渲染中：15/60 帧',
+  [90_000, null].map(estimatedRemainingMs => describeJobForHuman({ ...RUNNING, estimatedRemainingMs })))
+check('durations change unit at the boundaries, and a missing one is a dash rather than a number',
+  formatDuration(-1) === '—' && formatDuration(Number.NaN) === '—' && formatDuration(0) === '0 秒' &&
+  formatDuration(59_400) === '59 秒' && formatDuration(60_000) === '1 分 0 秒' &&
+  formatDuration(3_599_000) === '59 分 59 秒' && formatDuration(3_600_000) === '1 小时 0 分' &&
+  formatDuration(5_400_000) === '1 小时 30 分',
+  [-1, Number.NaN, 0, 59_400, 60_000, 3_599_000, 3_600_000, 5_400_000].map(formatDuration))
+check('a status this build does not know is still DESCRIBED rather than dropped from the panel',
+  describeJobForHuman({ ...RUNNING, status: 'interrupted' }) === 'interrupted：15/60 帧',
+  describeJobForHuman({ ...RUNNING, status: 'interrupted' }))
+
+// A track with no keyframes is a track that animates nothing: reporting a frame range built from the first
+// and last keyframe of an empty list would put a range in the panel that no frame corresponds to.
+const trackless = buildSceneTree({
+  ...SPEC,
+  animationTracks: [{ id: 'hold', targetEntityId: 'body', property: 'rotationEuler.z', keyframes: [] }],
+}, { revision: 'r0001' })
+check('a track with no keyframes reports no frame range rather than one built from nothing',
+  trackless.nodes.animationTracks[0].keyframes === 0 && trackless.nodes.animationTracks[0].frameRange === null &&
+  trackless.nodes.animationTracks[0].targetId === 'body',
+  trackless.nodes.animationTracks[0])
+
 check('an unfinished job count comes from the state machine, not from a second list in the browser',
   buildProjectView({ projectId: 'demo', title: 'Demo', currentRevision: 'r0001', revisionCount: 1 }, {
     jobs: [{ jobId: 'a', status: 'running', type: 'final-render', revisionId: 'r0001' }, { jobId: 'b', status: 'completed', type: 'final-render', revisionId: 'r0001' }],
@@ -334,8 +366,25 @@ const card = buildSettingsCard({
 })
 check('the card reports the version and the resolved executable', card.rows.some(row => row.label === '版本' && row.value === '5.2.1 LTS') && card.statusLabel === '可用')
 check('only available engines are listed', card.rows.find(row => row.label === '可用引擎').value === 'BLENDER_EEVEE, CYCLES')
+// The smoke test is the one row that says whether this machine can render AT ALL, so its failure has to
+// carry the reason when there is one — and not print the word "undefined" when there is not.
+const smokeFailed = buildSettingsCard({ installed: true, renderSmokeTest: { ok: false, error: 'EGL not available' } })
+const smokeSilent = buildSettingsCard({ installed: true, renderSmokeTest: { ok: false } })
+check('a failed smoke test says WHY, and a failed one with no reason says only that it failed',
+  smokeFailed.rows.find(row => row.label === '无头渲染自检').value === '失败：EGL not available' &&
+  smokeSilent.rows.find(row => row.label === '无头渲染自检').value === '失败',
+  [smokeFailed, smokeSilent].map(card => card.rows.find(row => row.label === '无头渲染自检').value))
+
 const missingCard = buildSettingsCard({ installed: false, warnings: [{ code: 'BLENDER_NOT_FOUND', message: 'no blender' }] })
 check('a machine with no Blender renders a card, not an error', missingCard.status === 'missing' && missingCard.warnings.length === 1)
+
+// A MALFORMED percent-escape names no file either way: decoding is what lets the path guard see what the
+// request actually names, and the escape that cannot be decoded must therefore be kept VERBATIM — the
+// router has to answer (404 from the guard) rather than throw before a response exists. Round 39 recorded
+// the first half of that rule (decode before guarding); this is the second half.
+check('a malformed percent-escape is kept verbatim instead of making the router throw',
+  matchUiRoute('GET', '/deepblend/artifacts/x/revisions/r0001/%E0%A4%A.png')?.params.rest === 'revisions/r0001/%E0%A4%A.png',
+  matchUiRoute('GET', '/deepblend/artifacts/x/revisions/r0001/%E0%A4%A.png')?.params.rest ?? null)
 
 // ---------------------------------------------------------------------------
 // Tool cards
