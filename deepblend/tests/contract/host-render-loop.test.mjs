@@ -13,6 +13,15 @@
  * and must not be left behind), the child's journal (frames, failed frames, and a line that is not
  * JSON), a render cancelled mid-flight, and a failure that is classified.
  *
+ * LATER ROUNDS ADDED THE FAILURES AROUND THE BOOKKEEPING ITSELF, which is where the expensive defects
+ * live: a job registry whose `attachController` throws (the render must not care, and the warning must
+ * name THAT reason rather than "no `jobs` service is composed"), a renderer that exits nonzero with no
+ * error document at all (classified from the exit code), a progress tick whose write fails (reported
+ * once, and the render keeps going), the write that would record the failure failing too (the renderer
+ * still stops, the failure is still said out loud, the record keeps the status it had), resuming a job
+ * whose renderer is running in THIS Host, cancelling a job whose record another settler already
+ * settled, and a cancel whose DSH projection refuses to be killed.
+ *
  * The runtime is the seam, so it is a stub: `startFrameSequence` returns a handle and writes the
  * journal exactly as the provider's child would, and `awaitFrameSequence` decides the outcome. The
  * store, the frames and the job records are real, and the delivery half uses the same stub subprocess
@@ -28,7 +37,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -90,15 +99,23 @@ function harness(plan = {}) {
       // document it writes. The FRAMES have to be written here rather than in the fixture: the job id
       // (and with it the frames directory) is allocated by `startFinalRender`, and a fixture that
       // guessed it also made the product allocate a different one.
+      //
+      // The directory is recorded on the plan as well, because a test that wants a SECOND journal line
+      // (to make a progress tick fail twice) has to append to the file the child is writing.
+      plan.jobDirectory = request.jobDirectory
       const framesDirectory = join(request.jobDirectory, 'frames')
       mkdirSync(framesDirectory, { recursive: true })
       for (const frame of plan.renderFrames ?? request.frames) {
         writeFileSync(join(framesDirectory, `frame_${String(frame).padStart(4, '0')}.png`), framePng)
       }
       writeFileSync(join(request.jobDirectory, 'events.jsonl'), plan.journal ?? '', 'utf8')
-      writeFileSync(join(request.jobDirectory, 'process.json'), JSON.stringify({
-        pid: process.pid, attemptToken: request.attemptToken, command: 'stub renderer',
-      }), 'utf8')
+      // The identity document is what lets a later tick record the child's pid. A test that wants to
+      // count PROGRESS failures separately from that pid write leaves it out.
+      if (plan.writeProcessIdentity !== false) {
+        writeFileSync(join(request.jobDirectory, 'process.json'), JSON.stringify({
+          pid: process.pid, attemptToken: request.attemptToken, command: 'stub renderer',
+        }), 'utf8')
+      }
       return {
         handle: {
           terminate() {
@@ -150,6 +167,9 @@ function harness(plan = {}) {
     workspaceRoot,
     projectsRoot: join(workspaceRoot, 'projects'),
     progressPollMs: plan.progressPollMs ?? 20,
+    // A test that patches the record store needs a Host that is not ALSO running its startup
+    // reconciliation, which writes a reconciled record for the very render being measured.
+    ...(plan.config ?? {}),
   }))
   return { studio, workspaceRoot, stdout, spawned, resolveOutcome, dispose: () => rmSync(workspaceRoot, { recursive: true, force: true }) }
 }
@@ -417,6 +437,179 @@ async function fixture(plan) {
     resume.resumed === 0 && resume.alreadyComplete === 2 &&
     resume.message === 'Every frame is already present and complete; the job is finishing its delivery instead of re-rendering.',
     { resumed: resume.resumed, alreadyComplete: resume.alreadyComplete, message: resume.message })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// A job registry that cannot attach, and a failure classification with no error document
+// ---------------------------------------------------------------------------
+
+{
+  // `attachController` is the registry's own handshake, and it can throw (a composition whose
+  // controller comes from a service that is not up yet). The render must not care — and the warning
+  // must not tell the model that no `jobs` service is composed, because there is one.
+  const world = await fixture({
+    jobs: { attachController() { throw new Error('the job registry is not accepting controllers yet') } },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const settled = await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a job registry whose controller refuses to attach does not fail the render, and the record names THAT reason',
+    started.dshJobId === null && settled && record.status === 'completed' &&
+    record.warnings.some(entry => entry.code === 'JOB_PROJECTION_UNAVAILABLE' &&
+      entry.message === 'this render could not be registered as a DSH background job (the job controller could not ' +
+        'be attached: the job registry is not accepting controllers yet), so it will not appear in the harness job ' +
+        'list. The render itself is unaffected and its durable record is still authoritative.'),
+    { dshJobId: started.dshJobId, status: record.status, warnings: record.warnings.map(entry => entry.message) })
+  world.dispose()
+}
+
+{
+  // No error document at all, a nonzero exit, and frames still owed: the code has to be classified from
+  // what IS there (a death by exit code) rather than from a document the renderer never wrote.
+  const world = await fixture({
+    journal: '{"type":"frame","frame":1,"ms":5}\n',
+    renderFrames: [1],
+    outcome: { envelope: { status: 'error', error: null }, exitCode: 1, signal: null, durationMs: 30 },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  await waitFor(() => world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status === 'failed')
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a renderer that exits nonzero with no error document is classified NONZERO_EXIT, and the message says so',
+    record.status === 'failed' && record.errorCode === code('NONZERO_EXIT') &&
+    record.message === 'the renderer exited 1 before every frame was written: no error document was produced; ' +
+      `1 frame(s) remain and can be resumed with blender_final_render {resumeJobId: "${started.jobId}"}`,
+    { code: record.errorCode, message: record.message })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// Bookkeeping that fails: a progress tick, and the failure record itself
+// ---------------------------------------------------------------------------
+
+{
+  // A progress tick that fails must not stop the render, and it must be said ONCE: a swallowed error is
+  // indistinguishable from a tick with nothing to do, and one line per tick would bury the render.
+  // Two failures are arranged (a second journal line, so the second tick has something to write) and the
+  // count of failed writes is measured, so "reported once" is a claim with evidence rather than a hope.
+  const plan = {
+    progressPollMs: 20,
+    holdUntilCancel: true,
+    // No identity document: the pid write is swallowed by its own `catch` ("mid-write; the next tick
+    // re-reads it"), so leaving it in would let ONE tick fail twice and make `failedWrites >= 2` true
+    // before a second PROGRESS failure had happened — which is how the first version of this check
+    // passed without ever exercising the "reported once" guard.
+    writeProcessIdentity: false,
+    config: { reconcileOnStart: false },
+    journal: '{"type":"frame","frame":1,"ms":5}\n',
+    jobs: { attachController: () => () => {}, start: request => { world.runHandle = request.run(); return 'dsh-job-progress' } },
+  }
+  const world = await fixture(plan)
+  // The render is parked inside `awaitFrameSequence`, so the poller is the only thing running and its
+  // writes are the only ones this patch can affect. It is installed AFTER `startFinalRender` because
+  // that call writes the job's own record first: a patch installed before it fails the render before
+  // anything can be measured.
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const store = world.studio.renderJobs
+  const realWrite = store.write.bind(store)
+  let failing = true
+  // Counted by CALL SITE, not by total: the first version counted every failed write, and a
+  // reconciliation record written by the Host itself made the count reach two before a second progress
+  // tick had failed — so the check passed without ever exercising the guard it was written for.
+  let progressWritesFailed = 0
+  store.write = (...args) => {
+    if (failing) {
+      if ((new Error('write').stack ?? '').includes('_absorbProgress')) progressWritesFailed += 1
+      throw new Error('ENOSPC: no space left on device')
+    }
+    return realWrite(...args)
+  }
+  let output = ''
+  const sawFirstFailure = await waitFor(() => {
+    output += world.runHandle?.readOutput() ?? ''
+    return output.includes('progress reporting failed:')
+  })
+  appendFileSync(join(plan.jobDirectory, 'events.jsonl'), '{"type":"frame","frame":2,"ms":7}\n')
+  const sawSecondFailure = await waitFor(() => progressWritesFailed >= 2)
+  world.output = output
+  check('a progress tick that cannot write the record is reported, and the render keeps going',
+    sawFirstFailure && sawSecondFailure && progressWritesFailed === 2 &&
+    world.output.includes('progress reporting failed: Error: ENOSPC: no space left on device') &&
+    world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status === 'running',
+    { progressWritesFailed, lines: world.output.split('\n').filter(line => line.includes('progress reporting')) })
+  // The count is taken AFTER the render is over, and that is the point: sampled the moment the second
+  // write failed, the second report may not have been appended yet — which is exactly how the first
+  // version of this check passed with the "report it once" guard deleted.
+  failing = false
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 12 })
+  const finished = await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  world.output = (world.output ?? '') + (world.runHandle?.readOutput() ?? '')
+  check('and two failed writes are reported ONCE, because one line per tick would bury the render',
+    progressWritesFailed === 2 && (world.output.match(/progress reporting failed:/g) ?? []).length === 1,
+    { progressWritesFailed, lines: world.output.split('\n').filter(line => line.includes('progress reporting')) })
+  check('and the render that lost its bookkeeping still finishes and delivers',
+    finished && world.studio.renderJobs.read(world.projectId, started.jobId).status === 'completed',
+    world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status)
+  world.dispose()
+}
+
+{
+  // THE CASE THE DOC COMMENT ON `_driveRender` IS ABOUT. A full disk is exactly when the record cannot
+  // be written, so the record must not be the thing that fails: the renderer is stopped, the failure is
+  // said out loud on the job's output, and the live job is settled. The record keeps its previous status,
+  // which is the honest state — nothing here can record an answer.
+  const world = await fixture({
+    progressPollMs: 10_000,
+    holdUntilCancel: true,
+    journal: '{"type":"frame","frame":1,"ms":5}\n',
+    renderFrames: [1],
+    jobs: { attachController: () => () => {}, start: request => { world.runHandle = request.run(); return 'dsh-job-unwritable' } },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const store = world.studio.renderJobs
+  const realWrite = store.write.bind(store)
+  store.write = () => { throw new Error('ENOSPC: no space left on device') }
+  world.resolveOutcome({ envelope: { status: 'error', error: { code: 'BLENDER_SCRIPT_ERROR', message: 'killed' } }, exitCode: 137, signal: null, durationMs: 30 })
+  const said = await waitFor(() => {
+    world.output = (world.output ?? '') + (world.runHandle?.readOutput() ?? '')
+    return world.output.includes(`render job ${started.jobId} failed:`)
+  })
+  const left = world.studio.renderJobs.readSafe(world.projectId, started.jobId)
+  // The FULL-DISK story, and the order it happens in: the tick's own write fails first (the frame that
+  // just landed cannot be recorded), that failure reaches the driver's catch, `isStorageExhausted` calls it
+  // DISK_FULL, and then the write that would RECORD the failure fails too. What is left is the process
+  // stopped, the harness told, and a record that still says what it said before.
+  check('a failure that cannot be recorded is still said out loud, and the live job is settled anyway',
+    said && world.output.includes(`render job ${started.jobId} failed: ENOSPC: no space left on device`) &&
+    world.stdout.includes('terminated'),
+    world.output?.split('\n').filter(Boolean))
+  check('and the record keeps the status it had, because nothing could record the failure',
+    left !== null && left.status === 'running' && left.errorCode === null && world.studio._liveRenders.has(started.jobId) === false,
+    { status: left?.status, errorCode: left?.errorCode, live: world.studio._liveRenders.has(started.jobId) })
+  store.write = realWrite
+  world.dispose()
+}
+
+{
+  // `cancelJob` kills the DSH projection FIRST, and a projection that refuses to be killed (already
+  // settled, or gone with a previous Host) must not stop the process cancellation.
+  const world = await fixture({
+    holdUntilCancel: true,
+    jobs: {
+      attachController: () => () => {},
+      start: request => { world.runHandle = request.run(); return 'dsh-job-kill-refused' },
+      kill() { throw new Error('the projection is already gone') },
+    },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  const cancelling = world.studio.cancelJob({ projectId: world.projectId, jobId: started.jobId, reason: 'the operator went home' })
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 40 })
+  const report = await cancelling
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a projection that refuses to be killed does not stop the process cancellation',
+    report.cancelled === true && report.processGone === true && report.process?.via === 'subprocess-handle' &&
+    record.status === 'cancelled' && record.message === 'cancelled: the operator went home' && world.stdout.includes('terminated'),
+    { report, status: record.status, stdout: world.stdout })
   world.dispose()
 }
 

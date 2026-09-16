@@ -322,6 +322,15 @@ export default class BlenderStudio extends Service {
     this._reconciliation = null
     /** Findings from the most recent pass, kept for the job surface. */
     this._recoveryFindings = []
+    /**
+     * Why the job controller could not be attached, when it could not be.
+     *
+     * Kept because the alternative is a message that names the WRONG REASON: a `jobs` service
+     * whose `attachController` threw is not the same fact as a composition without a `jobs`
+     * service, and the model reads this warning to decide whether a missing background job is
+     * its own mistake, a deployment's, or nobody's.
+     */
+    this._jobControllerError = null
 
     if (config.reconcileOnStart === true) this._kickReconciliation()
   }
@@ -337,6 +346,9 @@ export default class BlenderStudio extends Service {
 
   /** @type {object[]} */
   _recoveryFindings
+
+  /** @type {string|null} */
+  _jobControllerError
 
   /** @returns {import('@deepblend/dsh-blender-provider-local').default} */
   get runtime() {
@@ -2321,6 +2333,7 @@ export default class BlenderStudio extends Service {
       this.ctx.effect(() => jobs.attachController('deepblend-render'))
       this._jobControllerAttached = true
     } catch (cause) {
+      this._jobControllerError = cause instanceof Error ? cause.message : String(cause)
       this.ctx.logger?.warn(`${LOG_SCOPE}: could not attach the job controller: ${String(cause)}`)
       return null
     }
@@ -3459,14 +3472,23 @@ export default class BlenderStudio extends Service {
         }, { previous: next })
       }
     } else {
+      // TWO DIFFERENT FACTS, TWO DIFFERENT SENTENCES. "no `jobs` service is composed in this
+      // process" is a true statement about a composition and a false one about a deployment whose
+      // registry threw while attaching its controller. The model reads this warning to decide
+      // whether the missing background job is its own mistake, so the reason is carried from the
+      // place that knows it (`_jobControllerError`) instead of being assumed here.
       next = this.renderJobs.write({
         ...next,
         warnings: [
           ...(next.warnings ?? []),
           warning(
             BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
-            'no `jobs` service is composed in this process, so this render has no DSH background-job ' +
-              'projection; progress is still recorded durably and readable through blender_job_status.',
+            this._jobControllerError === null
+              ? 'no `jobs` service is composed in this process, so this render has no DSH background-job ' +
+                'projection; progress is still recorded durably and readable through blender_job_status.'
+              : `this render could not be registered as a DSH background job (the job controller could not be ` +
+                `attached: ${this._jobControllerError}), so it will not appear in the harness job list. The ` +
+                'render itself is unaffected and its durable record is still authoritative.',
             { jobId },
           ),
         ],

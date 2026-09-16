@@ -11,6 +11,13 @@
  * that decides which finished job a caller means by "the delivery". Each is a refusal a caller meets
  * with a wrong request rather than a broken machine, and none needs Blender.
  *
+ * LATER ROUNDS ADDED THE ANSWERS THAT ARE NOT REFUSALS: a visual review with no contact sheet, a
+ * compile that exits successfully without producing a checkpoint, the recovery findings a restart
+ * reconciliation left behind (and the error that must NOT read like "nothing was found"), a cancel
+ * with no job id named, and the two answers for a job that is already cancelled or already complete.
+ * The "already running in THIS Host" refusal moved out: it sits behind the runtime seam, and
+ * `host-render-loop.test.mjs` is the file that has one.
+ *
  * Run standalone: `node deepblend/tests/contract/host-read-and-job-refusals.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
  */
@@ -39,7 +46,9 @@ function code(name) {
 const workspaceRoot = mkdtempSync(join(tmpdir(), 'deepblend-host-refusals-'))
 const ctx = new Context()
 let compileProducesBlend = true
-ctx.provide('blenderRuntime', {
+// Named rather than inline: the last check builds a SECOND Host over the same workspace, and a Cordis
+// service cannot be provided twice on one context — so the runtime is one object passed to both.
+const runtimeStub = {
   async compileScene(request) {
     const { mkdirSync, writeFileSync } = await import('node:fs')
     const directory = join(request.projectRoot, 'stub-compile')
@@ -52,7 +61,8 @@ ctx.provide('blenderRuntime', {
     request.onWorkingDirectory?.({ directory })
     return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
   },
-})
+}
+ctx.provide('blenderRuntime', runtimeStub)
 const studio = new BlenderStudio(ctx, StudioConfig({ workspaceRoot, projectsRoot: join(workspaceRoot, 'projects') }))
 const spec = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'fixtures', 'product-turntable', 'scene-spec.json'), 'utf8'))
 const project = await studio.transactions.createProject({ title: 'refusals', sceneSpec: spec, saveCheckpoint: false })
@@ -163,6 +173,48 @@ check('a revision compiled for rendering that produced no checkpoint is refused 
   noBlend instanceof BlenderError && noBlend.code === code('REVISION_CHECKPOINT_MISSING') &&
   noBlend.message === `Revision ${revision} was compiled for rendering but produced no checkpoint.`,
   noBlend?.message ?? noBlend)
+
+// ---- the recovery findings, as the job surface reports them ----------------
+//
+// `listJobs` carries what the restart reconciliation found, because "this job was interrupted" is a fact
+// a caller has to be able to read — and a finding that exists only in the Host's memory is a finding the
+// model cannot see. A record that is not terminal and has no process behind it is exactly what the pass
+// is for.
+studio.renderJobs.write(job('render-0007', { status: 'running', pid: null }))
+const findings = await studio.reconcileRenderJobs()
+const listed = await studio.listJobs({ projectId })
+check('every recovery finding for this project is reported with the ledger, the notes and the time it was found',
+  findings.length === 1 && listed.recovery.length === 1 &&
+  typeof findings[0].status === 'string' && (findings[0].notes ?? []).length > 0 &&
+  listed.recovery[0].jobId === findings[0].jobId &&
+  listed.recovery[0].status === findings[0].status &&
+  JSON.stringify(listed.recovery[0].notes) === JSON.stringify(findings[0].notes) &&
+  listed.recovery[0].reconciledAt === findings[0].reconciledAt &&
+  listed.recovery[0].ledger === findings[0].ledger &&
+  Object.keys(listed.recovery[0]).sort().join(',') === 'jobId,ledger,notes,reconciledAt,status' &&
+  listed.recoveryError === null,
+  { findings: findings.length, listed: listed.recovery, error: listed.recoveryError })
+
+// A pass that cannot even list its input has found nothing AND checked nothing; the two must not read
+// alike, which is what `recoveryError` is for. The Host kicks its own pass one tick after composition, so
+// a second Host over the same workspace has its input replaced before the pass runs.
+const ctx2 = new Context()
+ctx2.provide('blenderRuntime', runtimeStub)
+const studio2 = new BlenderStudio(ctx2, StudioConfig({ workspaceRoot, projectsRoot: join(workspaceRoot, 'projects') }))
+studio2.renderJobs.unfinishedAcross = () => { throw new Error('the render journal index is unreadable') }
+await studio2.awaitReconciliation()
+const listed2 = await studio2.listJobs({ projectId })
+check('a recovery pass that threw says "nothing was checked", not "nothing was recovered"',
+  listed2.recoveryError === 'the render journal index is unreadable' && listed2.recovery.length === 0,
+  { recoveryError: listed2.recoveryError, recovery: listed2.recovery.length })
+
+// A cancel with no job named cannot answer like a job that is already finished: `renderRecord` is null
+// because the caller did not say WHICH job, and the M1 attempt-log path then has no id to look up.
+const nameless = await studio.cancelJob({ projectId }).catch(cause => cause)
+check('a cancel with no job id is refused by name rather than answered as a no-op',
+  nameless instanceof BlenderError && nameless.code === code('PATH_SEGMENT_INVALID') &&
+  nameless.message === 'job id must be a non-empty string.',
+  { code: nameless?.code, message: nameless?.message })
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

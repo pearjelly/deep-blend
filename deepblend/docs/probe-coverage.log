@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 66 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 67 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 66 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 67 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The run overlapped two edits to DOCUMENTS (`milestone-status.md`,
@@ -33,28 +33,28 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20085, never executed: 1501 (7.5%)   [every line]
-product CODE lines:      12108, never executed: 251 (2.1%)   [blank + comment-only excluded]
+product lines seen:      20107, never executed: 1464 (7.3%)   [every line]
+product CODE lines:      12115, never executed: 224 (1.8%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66
-product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)
-files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21
-host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67
-provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —   —   —   —   —   —   —   38
-contracts/lib/ui-api.js         61 (r24)      —             —             13            13            13            13            13            13            13            13            13            13            13            13   —   —   —   —   —   —   —   13
-ui/lib/index.js                 68 (r24)      36            25            25            25            25            25            25            25            25            25            25            25            25            25   —   —   13   —   —   —   —   13
-tool/lib/tools.js               —             —             —             —             51            51            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0
-tool/lib/render-tools.js        89            33            33            33            33            33            19            19            19            19            19            19            19            19            19   —   —   11   —   —   —   —   11
-tool/lib/visual-tools.js        —             —             —             69            69            69            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0
-tool/lib/index.js               20            20            20            20            20            20            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0
-host/lib/video-encoder.js       49            49            49            49            49            49            49            49            49            49            49            49            2             0             0   —   —   —   —   —   —   —   0
-host/index.js · createVisualReviewer55            —             —             —             —             —             —             —             —             —             —             —             0             0             0   —   —   —   —   —   —   —   —
-host/index.js · revision reads  55            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —   —   —   —   —   —   —
-host/lib/index.js · render views54            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —   —   —   —   —   —   —
-host/index.js · asset ingest + fetch31            —             —             —             —             —             —             —             —             —             —             —             7             7             7   —   —   —   —   —   —   —   —
-provider-local/lib/index.js · actions50            —             —             —             —             —             —             —             —             —             —             —             —             —             0   —   —   —   —   —   —   —   —
-contracts/lib/png.js              —             —             —             —             —             —             —             —             —             —             —             —             —             —             —   —   —   —   —   —   —   —   27
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67
+product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)
+files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21
+host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40
+provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —   —   —   —   —   —   —   38   38
+contracts/lib/ui-api.js         61 (r24)      —             —             13            13            13            13            13            13            13            13            13            13            13            13   —   —   —   —   —   —   —   13   13
+ui/lib/index.js                 68 (r24)      36            25            25            25            25            25            25            25            25            25            25            25            25            25   —   —   13   —   —   —   —   13   13
+tool/lib/tools.js               —             —             —             —             51            51            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0   0
+tool/lib/render-tools.js        89            33            33            33            33            33            19            19            19            19            19            19            19            19            19   —   —   11   —   —   —   —   11   11
+tool/lib/visual-tools.js        —             —             —             69            69            69            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0   0
+tool/lib/index.js               20            20            20            20            20            20            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0   0
+host/lib/video-encoder.js       49            49            49            49            49            49            49            49            49            49            49            49            2             0             0   —   —   —   —   —   —   —   0   0
+host/index.js · createVisualReviewer55            —             —             —             —             —             —             —             —             —             —             —             0             0             0   —   —   —   —   —   —   —   —   —
+host/index.js · revision reads  55            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —   —   —   —   —   —   —   —
+host/lib/index.js · render views54            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —   —   —   —   —   —   —   —
+host/index.js · asset ingest + fetch31            —             —             —             —             —             —             —             —             —             —             —             7             7             7   —   —   —   —   —   —   —   —   —
+provider-local/lib/index.js · actions50            —             —             —             —             —             —             —             —             —             —             —             —             —             0   —   —   —   —   —   —   —   —   —
+contracts/lib/png.js              —             —             —             —             —             —             —             —             —             —             —             —             —             —             —   —   —   —   —   —   —   —   27   27
 
 ── ROUND 66: the last "cannot reach", and both answers for a settled job (product code unchanged) ──
 Round 66 closed 21 dark lines in `host/lib/index.js` (88 → 67) with two test files and no product edit.
@@ -76,6 +76,28 @@ number to move from rather than a verdict about the code — are `contracts/lib/
 `contracts/lib/scene-spec.js` 10, `contracts/lib/visual-issue.js` 10, `host/lib/project-store.js` 12,
 `host/lib/revision-transaction.js` 8, `host/lib/render-reconciler.js` 8, `contracts/lib/visual-loop.js` 5
 and `contracts/lib/visual-composition.js` 5.
+
+── ROUND 67: a warning that named the wrong reason, and bookkeeping that cannot be written ──
+The `_attachJobController` catch had never run, and driving it turned up a SENTENCE rather than a branch: a
+registry whose `attachController` throws was reported to the model as "no `jobs` service is composed in this
+process" — a true statement about a composition and a false one about this machine, with different next
+steps for whoever reads it. The reason is now carried from the place that knows it (`_jobControllerError`),
+and the no-`jobs` sentence is unchanged character for character, because a round-55 assertion pins it
+verbatim and must keep passing. That is the round's only product edit (7 code lines) — `host/lib/index.js`
+fell 67 → 40 because the rest of the round's fixtures execute the bookkeeping failures around a render: a
+progress tick whose write fails (reported ONCE, render unaffected), the failure record itself failing to be
+written (renderer stopped, failure said out loud on the job's output, live job settled, record left at the
+status it had), a nonzero exit with no error document at all (`NONZERO_EXIT` classified from the exit code),
+a controller that refuses to attach, and a projection that refuses to be killed during a cancel.
+`provider-local/lib/index.js` (38) and the mid-sized files were re-measured and unchanged.
+
+One surviving mutation earned its place in that count: `if (progressFailures === 1)` → `true` stayed green
+through TWO attempts, and both times the assertion was fine while the MEASUREMENT was wrong — one tick
+fails twice (the pid write is swallowed by its own "mid-write" catch, so a naive write counter reaches two
+after a single progress failure), the count was sampled before the second report could be appended, and the
+Host's own startup reconciliation was writing a record for the live render on top of it. The fixture now
+turns `reconcileOnStart` off, counts `_absorbProgress` call sites only, and takes the line count after the
+render is over; the mutation is then red with two lines.
 
 Round 30 recorded a delivery that failed to encode while its record still said "encoding"; round 31
 drove the reconciler's three safety rules with real processes; round 32 made a cited probe reproducible;
