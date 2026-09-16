@@ -384,6 +384,77 @@ runtime.renderPreview = previewStub()
 rmSync(workspaceRoot, { recursive: true, force: true })
 
 // ---------------------------------------------------------------------------
+// A whole review round: the reviewer port, and what is kept of its answer
+// ---------------------------------------------------------------------------
+//
+// `visualReview` is the M2 loop's entry point: render the views, measure them, compose and persist the
+// contact sheet, score, and — only when asked — consult the vision reviewer. Its doc says the port is
+// injectable "for tests", and that is what makes the interesting half drivable: not the render, but what
+// the product DOES with an answer, including the parts it refuses to believe. A finding that names a view
+// the render never produced must be REJECTED rather than counted, because a reviewer's word is only worth
+// as much as the evidence under it.
+
+const reviewedProject = await studio.transactions.createProject({
+  title: 'review-round', sceneSpec: productSpec, saveCheckpoint: true,
+})
+let consulted = null
+const reviewRound = await studio.visualReview({
+  projectId: reviewedProject.projectId,
+  iteration: 2,
+  consultReviewer: true,
+  reviewer: async request => {
+    consulted = request
+    const firstView = request.review.perView[0]?.viewId ?? 'none'
+    return {
+      model: 'stub-vision', provider: 'stub-provider', note: 'the subject is centred',
+      raw: 'the model said so',
+      findings: [
+        { category: 'composition', viewId: firstView, severity: 'major', evidence: 'the backdrop is clipped at the left edge' },
+        { category: 'composition', viewId: 'no-such-view', severity: 'critical', evidence: 'a view that was never rendered' },
+      ],
+      operations: [{ op: 'camera.update', cameraId: 'x', patch: {} }],
+    }
+  },
+})
+check('the reviewer port is handed the review, the sheet BYTES, the views and the iteration',
+  consulted !== null && Buffer.isBuffer(consulted.sheetPng) &&
+  consulted.sheetPng.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) &&
+  Array.isArray(consulted.views) && consulted.views.length === reviewRound.perView.length &&
+  consulted.iteration === 2 && consulted.review.score === reviewRound.score,
+  { views: consulted?.views?.length, iteration: consulted?.iteration, sheetBytes: consulted?.sheetPng?.length })
+check('a finding that names a view the render never produced is REJECTED with its reason, and the rest are kept',
+  reviewRound.reported.length === 1 && reviewRound.reported[0].viewId === consulted.review.perView[0].viewId &&
+  reviewRound.reported[0].code === 'COMPOSITION_REPORTED' && reviewRound.rejected.length === 1 &&
+  reviewRound.rejected[0].reason === 'unknown viewId "no-such-view"',
+  { reported: reviewRound.reported.map(entry => entry.viewId), rejected: reviewRound.rejected.map(entry => entry.reason) })
+check('what the reviewer SAID is kept as its own record, with the model, the note and the operations counted',
+  reviewRound.reviewer?.model === 'stub-vision' && reviewRound.reviewer?.provider === 'stub-provider' &&
+  reviewRound.reviewer?.note === 'the subject is centred' && reviewRound.reviewer?.raw === 'the model said so' &&
+  reviewRound.reviewer?.proposedOperations === 1 && reviewRound.reviewer?.error === null &&
+  reviewRound.suggestedOperations.length === 1,
+  reviewRound.reviewer)
+
+// The default is "do not spend a model call", and the way to check a promise about NOT doing something is
+// a port that would fail loudly if it were consulted.
+let consultedByDefault = false
+const unconsulted = await studio.visualReview({
+  projectId: reviewedProject.projectId,
+  reviewer: async () => { consultedByDefault = true; throw new Error('the reviewer must not be called') },
+})
+check('a review that was not asked for a second opinion does not consult the reviewer at all',
+  consultedByDefault === false && unconsulted.reviewer === undefined && unconsulted.score === reviewRound.score,
+  { consultedByDefault, reviewer: unconsulted.reviewer ?? null })
+
+// The sheet is an artifact OF the revision — it is what THIS scene state looked like — so it is written
+// into the revision and indexed there, and the review record lands beside it.
+const revisionDirectory = studio.store.revisionDirectory(reviewedProject.projectId, reviewedProject.revision.revision)
+check('the sheet and the review record are persisted under the revision they belong to',
+  existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')) &&
+  existsSync(join(revisionDirectory, 'visual-reviews', 'round-2.json')) &&
+  existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')),
+  { round2Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')), round0Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')) })
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 

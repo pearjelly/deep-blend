@@ -273,6 +273,29 @@ check('warnings bootstrap.py reports are passed through verbatim under one gener
   codesOf(reported))
 
 // ---------------------------------------------------------------------------
+// A resolver that answers "no path, no error" — the port's own contract
+// ---------------------------------------------------------------------------
+//
+// `resolveBlenderExecutable` documents `{ resolved: string|null, requested, error: BlenderError|null }` and
+// does not promise that the two are linked. Both entry points therefore carry the same defensive sentence:
+// "no path AND no error" is refused with a NAMED code rather than by dereferencing `null` somewhere later.
+// The real method never produces it (its catch always builds an error), which is why this is driven through
+// the port itself — the same technique as injecting a store or a reviewer, and the only way to stand on a
+// branch whose whole job is to survive an answer the current implementation does not give.
+const inconsistent = makeProvider({ spawned: [] })
+inconsistent.resolveBlenderExecutable = async () => ({ resolved: null, requested: 'blender', error: null })
+const unresolvedBootstrap = await inconsistent.runBootstrap({ action: 'probe' }).catch(cause => cause)
+const unresolvedFrames = await inconsistent
+  .startFrameSequence({ checkpointPath, frames: [1], jobDirectory, jobId: 'no-path' })
+  .catch(cause => cause)
+check('both entry points refuse "no path and no error" by name instead of dereferencing nothing',
+  unresolvedBootstrap instanceof BlenderError && unresolvedBootstrap.code === code('NOT_FOUND') &&
+  unresolvedBootstrap.message === 'Blender executable could not be resolved from "blender".' &&
+  unresolvedFrames instanceof BlenderError && unresolvedFrames.code === code('NOT_FOUND') &&
+  unresolvedFrames.message === 'Blender executable could not be resolved from "blender".',
+  { bootstrap: unresolvedBootstrap?.message, frames: unresolvedFrames?.message })
+
+// ---------------------------------------------------------------------------
 // A spawn that never happens, a child that dies silently, and the cache
 // ---------------------------------------------------------------------------
 

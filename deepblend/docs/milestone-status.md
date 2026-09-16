@@ -6037,3 +6037,53 @@ provider-local/lib/index.js 38 → 20
 ```
 
 契约层快照 1296 → **1303**（`provider-actions.test.mjs` 20 → 24、`provider-bootstrap.test.mjs` 25 → 28）。
+
+## 78. 一个「第二意见」的回答：哪些留下、哪些必须拒绝
+
+### 78.1 端口可以注入，这才让「产品怎么对待一个回答」可测
+
+`visualReview` 的文档自己写着：reviewer 端口是注入的（"tests inject a stub"）。驱动它之后，产品对一份
+回答的处理第一次被断言，而不是被阅读：
+
+* 端口拿到的是 `{review, sheetPng, views, iteration, signal}`，其中 **sheetPng 是真的 PNG 字节**——
+  一个看不见图的「视觉」审查者不是审查者；
+* findings 要被 `validateFindings` 拿**这次渲染自己的** view/object 集合验一遍：点名了一个**从没渲染过**
+  的视角的 finding 会被**带理由拒绝**（`unknown viewId "no-such-view"`），而不是被计进去。
+  一句话概括产品的立场：**审查者的话，只值它底下那份证据**；
+* 审查者**说过什么**单独成一条记录（model / provider / note / raw，operations 只计数），
+  `suggestedOperations` 与 `reported` **分开**——提议不是发现。
+
+### 78.2 「不花钱」的承诺，要用一个会喊的端口来测
+
+默认 `consultReviewer: false`，产品文档里的理由是「一次只需要测量分数的评审不该花一次模型调用」。
+**测「没有做某事」的唯一办法**是让那个端口一旦被调用就大声失败：注入一个会抛错并把标志位置真的
+reviewer，然后断言它没被碰过、且 `reviewer` 字段整条不存在。
+
+### 78.3 端口契约里的一处防御性分支
+
+`resolveBlenderExecutable` 的签名是 `{ resolved: string|null, requested, error: BlenderError|null }`，
+**没有承诺两者联动**；两处入口（`runBootstrap` 与 `startFrameSequence`）因此都带着同一句防御：
+`error ?? new BlenderError(NOT_FOUND, 'Blender executable could not be resolved from …')`。
+真实实现永远不会产出「无路径且无错误」（它的 catch 一定造一个 error），所以这 6 行是**真·防御代码**。
+
+驱动它的办法是**替掉那个端口本身**（与注入 store、注入 reviewer 同一种技术）：一个返回
+`{ resolved: null, error: null }` 的解析器，让两个入口都按名字拒绝，而不是在后面某处解引用 `null`。
+两条变异（删掉两处的 `?? fallback`）都变红——证明这两句话是承重的，而不是装饰。
+
+### 78.4 变异与收口
+
+九条变异全红（注入端口被忽略、回答被原样信任、上下文不带真实 view id、记录里丢掉 model、
+operations 不计数、不管有没有被请求都去咨询、建议操作被丢掉、两处防御分支各删一条）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1309
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 167 (1.4%) → 153 (1.3%)，
+host/lib/index.js 26 → 20
+```
+
+契约层快照 1303 → **1309**（`host-render-orchestration.test.mjs` 30 → 34、
+`provider-actions.test.mjs` 24 → 25，另有 1 项来自 `preset-source.test.mjs` 的本机 preset 口径——
+README 早就记过这个会咬人的计数口径）。
