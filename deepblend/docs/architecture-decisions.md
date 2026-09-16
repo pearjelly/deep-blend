@@ -2822,6 +2822,21 @@ contact sheet 没有解码。当时 `load average: 45.85`（10 核）；同一�
 
 ---
 
+### D141 — 要让一行「善后」跑起来，失败必须发生在它之后；以及「活下来的变异」有两种
+
+`writeFileAtomic` 的 `catch` 里那行 `rmSync(temporary)` 一开始**测不到**：我让「创建临时文件」本身失败
+（父路径是文件 → ENOTDIR），那时临时文件还不存在，所以删不删都一样——变异因此活了下来。
+改成让失败发生在**临时文件写完之后**（rename 的目标是个目录 → EISDIR），那一支才真的被执行。
+
+**一般化**：测一条善后路径，失败必须发生在**它要善后的那件事之后**；失败得太早，
+被断言的行为根本没有机会发生，而测试会显示绿色。
+
+同一轮还有一条「活下来的变异」是另一种：把 `PATCH_ID_INVALID` 换成别的码，检查照样绿——
+因为对本文件驱动的形状，**schema 的 `pattern` 先拒绝**（同一规则的两份副本，D125 的形状），
+id 语法那一支走不到。这时检查的正确写法是把「**这一形状由 schema 回答**」写成断言，
+并在注释里点名那一支被遮住——**活下来的变异有两种：断言有洞（要补断言），
+或者还没找到能让它发生的形状（要继续找形状）。两者的下一步不同，别混。**
+
 ### D140 — 「一次无人看管的渲染」是可测的：把 runtime 换成 stub，底下留真的 store
 
 `_launchRenderer` + `_driveRender` 是渲染循环的两半，M3 套件用真 Blender 端到端跑它们，
@@ -3189,6 +3204,7 @@ schema 那份先说话。测试因此不假装覆盖它，而是把「被遮住�
 | 2026-09-14 | M4 修 | D69：产物是「同一路径 + 新内容」，显示层必须按**内容**取键（操作者在真实 GUI 里点「渲染预览」后发现面板显示旧图） |
 | 2026-09-13 | M4 | D61–D68：客户端半边手写不打包（D61）、闭集路由表与单一词表（D62）、陈旧宿主是**成功的错答案**所以响应自证身份（D63）、Approval 只显示且不顶随附审批槽（D64）、`getScene` 默认摘要导致空场景树（D65）、工件路由必须先解码再交给路径守卫（D66）、`resumeJobId`→`jobId` 映射一处（D67）、验收自带 Host 与 store（D68） |
 | 2026-09-13 | D43/D44/D46 修复 | 动画目标扩展到 camera/material（D43）、world 进入 SceneSpec（D44）、审查按动画区间采 4 帧（D46）；修完 D44 又浮出曝光量错对象（D47，82 分不通过 → 90 分通过）与背景板的遮挡身份（D48，r0029 后 100 分 0 issue） |
+| 2026-09-14 | M5（最底下那几层） | D141：`paths.js` / `json-schema.js` / `scene-patch.js` 的最后几行黑暗（写失败要删临时文件、缺失文档在 allowMissing:false 下要报码、读不出来要带码、发布到已存在目录要拒、`exclusiveMinimum`/`exclusiveMaximum` 与 `additionalProperties` 子 schema 递归、需要场景才能回答的 ScenePatch 拒绝）由 `contract/thin-layers.test.mjs` 17 项驱动，9 条变异里 8 条红，**产品代码未改**；读数 377 (3.1%) → **349 (2.9%)**。两条教训：**测善后路径时失败必须发生在它之后**（第一版让创建临时文件本身失败，`rmSync` 永远不需要跑，变异存活）；**「活下来的变异」有两种**——断言有洞（补断言）或还没找到能触发的形状（继续找），`PATCH_ID_INVALID` 那条属于后者（schema 的 `pattern` 先拒绝，检查改为断言「这一形状由 schema 回答」并点名被遮住的分支）。另测到：未知 `type` 在**编译期**抛 `SchemaDefinitionError`，所以无法执行的 schema 不会静默放行 |
 | 2026-09-14 | M5（渲染循环） | D140：`_launchRenderer` + `_driveRender` 此前只有「健康机器」那一支被执行过；把 runtime 换成 stub（`startFrameSequence` 写 journal、`awaitFrameSequence` 决定结果）、底下保留真实 store/帧文件/记录之后，十二个分支一次可达：没有 `jobs` 服务、`jobs.start` 抛错（渲染不受影响）、spawn 前被取消（必须杀掉刚起的子进程）、journal 的失败帧与非 JSON 行、帧没写完就死（点名欠几帧 + `resumeJobId`）、交付与声明不符、磁盘满（分类 `DISK_FULL` 且先杀渲染器）。三条注释里的承诺第一次被断言：缺席必须被报告、投影失败不影响渲染、给不出答案时先杀进程再记账。两处**故意不断言**并写进测试头部：投影失败时的 `ctx.logger.warn`（logger 是 harness 自身属性，不可 provide；记录上那条警告已断言）与撕裂 journal 的四个条件（属于 `render-journal.test.mjs`，搬来即第二份）。`contract/host-render-loop.test.mjs` 12 项、**产品代码未改**；`host/lib/index.js` **167 → 132**。读数：产品可执行行黑暗 **412 (3.4%) → 377 (3.1%)** |
 | 2026-09-14 | M5（依赖不在时说什么） | D139：三个平面在「依赖不在」时的句子（没有 attachment store 就点名图片路径、没有审批服务就说没人可问、探测失败返回**结构化**错误让设置卡渲染理由、没装 host bundle 时四个 M3 工具描述**部署**而不是请求）全部驱动：`contract/dependency-absent-answers.test.mjs` 30 项、15 条变异全红；`tool/lib/shared.js` **22 → 0**、`tool/render-tools.js` **19 → 11**、`ui/lib/index.js` **25 → 13**。三处故意不覆盖并写进测试头部（过大的 body、不是 JSON 对象的 body、HTTP 层的 `UI_REQUEST_FAILED` 包装——都在 HTTP 分发之后，只有浏览器套件够得着）。为让这些分支可测，tool barrel **又加宽四行导出**（`persistImage`/`losslessJson`/`canonicalData`/`requestApproval`），理由写清：**只在「缺少依赖」时出现的分支，另一个到达方式就是一台真缺服务的机器**。两次 fixture 记错形状：`persistImage` 的引用用服务自己的字段名（`{id}` stub 让 `attachmentId` 变成 `"undefined"` 却仍 `image !== null`，只有断言字段值才抓住）、工具不可用的 `data` 是错误自己的 JSON（`data.code`）而非信封的 `errorCode`。读数：产品可执行行黑暗 **454 (3.8%) → 412 (3.4%)** |
 | 2026-09-14 | M5（store 的错误路径） | D138：三个 store 文件 125 行黑暗全是「健康 store 不会产生的状态」（项目目录无记录、别的 build 写的记录、revision 目录无 spec、非法 job 迁移、会让场景非法的 patch、编译没产出 checkpoint 却要预览），每个用例写出引发该分支的文档；`contract/store-error-paths.test.mjs` 25 项、18 条变异全红、**产品代码未改**，`project-store` **47 → 12**、`revision-transaction` **71 → 39**、`render-job-store` **22 → 0**。两条设计被钉住：`unfinished()` 把「没有记录」报成 `{jobId, record: null}`（被看见而非跳过），记录存在但坏了则整个扫描抛错（"Refusing to treat corruption as absence"）——都不能读成「没有未完成的 job」；render job store 拒绝非法状态迁移。**一条被层数搞混的教训**：我断言 `parseRevisionId('r0000')` 抛错——那句话真的存在但来自 **store**，解析器是安全的（返回 `null`）；**一句话不是它的出处，而层决定「抛错」还是「返回 null」**。同族：标题冲突被加数字后缀（`healthy-2`），只有显式给已占用 id 才是 `PROJECT_EXISTS`。读数：产品可执行行黑暗 **543 (4.5%) → 454 (3.8%)** |

@@ -5479,3 +5479,36 @@ DeepBlend tests: 53/53 file(s) passed        1223 项自计断言 + 271 个 node
 
 新增 `contract/host-render-loop.test.mjs`（12 项）；**产品代码未改**。
 读数：产品可执行行黑暗 **412 (3.4%) → 377 (3.1%)**。
+
+## 68. 最底下那几层：写坏了要收拾、读不到要有码、schema 里两个没人用过的关键字
+
+第 56–57 轮收掉了散在三个文件里的最后几行黑暗，它们都是**别的测试都依赖**的薄层：
+
+* `paths.js`：写失败时**临时文件要被删掉**（先在已经存在的临时文件之后失败一次，才能测到这一支——
+  第一版让「创建临时文件」本身失败，于是那行 `rmSync` 永远不需要执行）；文档缺失而调用方说
+  **不许缺失**时是 `REVISION_CORRUPT`；文档存在但读不出来是**带码的错误**而不是堆栈；
+  发布到一个**已存在**的目录要被拒绝。
+* `json-schema.js`：`exclusiveMinimum` / `exclusiveMaximum`（本仓库没有一份 spec 用到过它们）与
+  `additionalProperties` 的**子 schema 递归**；另外测到一件比预期更好的事：**未知的 `type` 在编译期就抛**
+  （`SchemaDefinitionError`），所以一个「本构建无法执行」的 schema 不会静默放行一切。
+* `scene-patch.js`：需要**场景**才能回答的拒绝（不存在的相机、未导入的资产、不能作为 id 的 id）。
+
+`contract/thin-layers.test.mjs`：**17 项，9 条变异里 8 条红**。读数：产品可执行行黑暗
+**377 (3.1%) → 349 (2.9%)**。
+
+### 68.1 一条活下来的变异，和它说明的事
+
+「把 `PATCH_ID_INVALID` 改成别的码」这条变异**活了下来**：对本文件驱动的那个形状，
+**schema 先拒绝**（它自己的 `pattern` 覆盖了 id 语法），所以 id 语法那一支根本走不到——
+检查因此把「**这一形状由 schema 回答**」写成断言，而不是假装覆盖了那一支。
+**活下来的变异在这里说明的是「我还没找到能让它发生的形状」，不是「断言有洞」**——
+两者的下一步不同：前者要继续找形状，后者要补断言。
+
+### 68.2 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 54/54 file(s) passed        1240 项自计断言 + 271 个 node:test 用例
+```
+
+新增 `contract/thin-layers.test.mjs`（17 项）；**产品代码未改**。
