@@ -86,11 +86,13 @@ deepblend/
                       dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
                       disk-full-probe.mjs —— 在一个真的 24 MiB 卷上把磁盘写满，看宿主怎么收场
                       coverage-probe.mjs —— 跑整套并列出产品里从没被执行过的行（含它自己的盲区）
+                      count-assertions.mjs —— 契约层断言总数怎么数出来的（README 那组快照的命令；
+                                              规则自己有测试，因为它写错过一次，D143）
                       probe-target.mjs —— 探针该测哪个 revision：从 store 的 currentRevision 读，而不是记住一个 id
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         55 个 *.test.mjs
+    contract/         56 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -196,16 +198,21 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**16 个套件、70 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**55 个文件 = 1249 项自计断言（27 个文件打印计数）+ 271 个 `node:test` 用例（28 个文件）**。
+预期：**16 个套件、71 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**56 个文件 = 1249 项自计断言（27 个文件打印计数）+ 278 个 `node:test` 用例（29 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1249 和 271 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1249 和 278 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
+**取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
+跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
+因为它的规则写错过一次：`\(s\)?` 让「）」可选而「（」仍是必需的，
+于是 `store.test.mjs` 的 `47/47 checks passed` 没被数进去，审计因此报出 1202（真值是 1249，
+D143）。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
 ——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的

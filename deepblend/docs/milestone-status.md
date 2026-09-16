@@ -5554,3 +5554,44 @@ host/lib/index.js: 132 → 89
 
 顺带记下这条正则本身的形状：`X?` 只让紧邻的那个字符可选，`\(s\)?` 里可选的是 `)`，
 `(` 仍然是必需的。**一个正则的「可选」作用在哪个字符上，是它最容易读错的地方。**
+
+## 70. 把「怎么数出来的」变成一条命令：断言计数器，和它自己的测试
+
+第 61–62 轮暴露的问题不是数字错，而是**取快照的方式**错：那是一次性的 shell 脚本，
+正则里 `\(s\)?` 让「）」可选而「（」仍然必需，于是 `store.test.mjs` 的
+`47/47 checks passed` 没被数进去。第 63 轮把那件事收进仓库：
+
+* `deepblend/tools/count-assertions.mjs`：按 `run.mjs` 的规则发现文件、跑那些**会打印计数**的、
+  取每份输出的**最后一行**摘要（失败的文件先打印失败、最后才打印摘要）再求和；
+  导出 `parseSummaryLine` / `parseSummary` / `PRINTS_A_COUNT`，**规则本身可被测试驱动**。
+  它把「打印不出可解析摘要」的文件报成 `null` 并**以非零退出**，而不是当成 0。
+* `contract/assertion-counter.test.mjs`：7 项——两种摘要形状、**不能**被当成断言数的
+  `55/55 file(s) passed`、混合通过/失败的读数、最后的摘要获胜、无摘要读成 `null`、
+  以及**用真实文件**驱动「哪些文件算打印计数」（`store.test.mjs` 要算、node:test 文件不算、
+  **这个测试文件自己不算**）。
+
+最后那条不是形式主义：第一版把模式**拼**进测试字符串里，结果**拼出来的东西不再匹配**；
+改成读真实文件之后，规则才真的被钉住。
+
+### 70.1 顺带修掉一处分身：一个「包含模式」的文件会被数两次
+
+新测试文件的源码里若出现 `console.log(` 与 `check(s) passed` 的**连续文本**，
+它就会被「哪些文件打印计数」这条规则算进去——于是 README 的拆分（27 个文件）
+与现实（28 个）不符，`documented-counts` 立刻变红。
+`documented-counts.test.mjs` 的注释早就记过这个坑（「查找的是 PRINT，不是这句话」），
+这次是**第二次**踩到：现在这条规则由一个工具持有、由一个测试驱动，
+而测试自己用「读真实文件」的方式避免了成为第 28 个。
+
+### 70.2 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 56/56 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+27 file(s) print a count; 0 of them printed nothing parseable
+total self-counted assertions: 1249
+```
+
+契约层 **56 个文件**（1249 项自计断言 / 27 个打印计数 + 278 个 `node:test` 用例 / 29 个文件），
+README 的快照现在**有一条命令可复现**。**产品代码未改**，覆盖率读数不变（305 行 / 2.5%，
+本轮没有触碰 `packages/**`，因此不需要重测）。
