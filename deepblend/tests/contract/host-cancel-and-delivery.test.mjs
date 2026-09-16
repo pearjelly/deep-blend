@@ -34,7 +34,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
-import BlenderStudio, { StudioConfig, checkProcessAlive } from '@deepblend/dsh-blender-host'
+import BlenderStudio, { StudioConfig, checkProcessAlive, relativeTo } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const results = []
@@ -240,6 +240,22 @@ check('a render whose process belongs to a previous Host is signalled as a proce
   byPid.process ?? byPid)
 try { process.kill(-sleeper.pid, 'SIGKILL') } catch { /* already gone */ }
 try { sleeper.kill('SIGKILL') } catch { /* already gone */ }
+
+// ---------------------------------------------------------------------------
+// A manifest path that is NOT under the delivery root stays absolute
+// ---------------------------------------------------------------------------
+//
+// The manifest records paths relative to the delivery root so it can be moved with the project, and a path
+// that is not under that root cannot be made relative at all. The alternative — chopping it into something
+// that LOOKS relative — produces a manifest that silently points at the wrong file, which is worse than one
+// that points at an absolute path a reader can see is absolute.
+check('a path outside the delivery root stays absolute in the manifest, rather than being made to look relative',
+  relativeTo('/store/projects/demo', '/store/projects/demo/output/final.mp4') === 'output/final.mp4' &&
+  relativeTo('/store/projects/demo', '/Volumes/external/final.mp4') === '/Volumes/external/final.mp4' &&
+  relativeTo('/store/projects/demo', '/store/projects/demo-other/final.mp4') === '/store/projects/demo-other/final.mp4',
+  [relativeTo('/store/projects/demo', '/store/projects/demo/output/final.mp4'),
+    relativeTo('/store/projects/demo', '/Volumes/external/final.mp4'),
+    relativeTo('/store/projects/demo', '/store/projects/demo-other/final.mp4')])
 
 // ---------------------------------------------------------------------------
 // The escalation: a pid that answers `kill(pid, 0)` and cannot be killed

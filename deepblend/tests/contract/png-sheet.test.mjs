@@ -631,6 +631,26 @@ check('blendInto scales a tile to fill its box exactly',
     return [...target.data].every((value, index) => value === [200, 100, 50, 255][index % 4])
   })())
 
+// A sheet with no title has no caption band for the sheet itself: the height is computed from the views and
+// their captions only. Getting this wrong is invisible in the pixels (the tiles still land) and shows up as a
+// band of background at the top of the image, which is why the height is asserted rather than eyeballed.
+{
+  const views = [
+    { viewId: 'a', png: encodePng(createImage(20, 10, [255, 0, 0, 255])) },
+    { viewId: 'b', png: encodePng(createImage(20, 10, [0, 255, 0, 255])) },
+  ]
+  const untitled = composeContactSheet({ views, columns: 2 })
+  const titled = composeContactSheet({ views, columns: 2, title: 'round 1' })
+  // The band is measured, not assumed: the first tile sits lower by exactly as much as the sheet grew, in
+  // PIXELS (the boxes are fractions of the sheet's own height, so comparing the fractions would compare two
+  // different denominators and look like a 20 px band on a 30 px sheet).
+  const grew = titled.height - untitled.height
+  const shifted = titled.placements[0].box[1] * titled.height - untitled.placements[0].box[1] * untitled.height
+  check('a sheet with no title reserves no title band, and a title pushes every tile down by exactly that band',
+    grew > 0 && Math.abs(shifted - grew) < 1.5,
+    { untitledHeight: untitled.height, titledHeight: titled.height, grew, shifted })
+}
+
 // ---- summary ---------------------------------------------------------------
 
 const failed = results.filter(entry => !entry.ok).length

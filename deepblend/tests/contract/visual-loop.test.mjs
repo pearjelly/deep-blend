@@ -533,6 +533,35 @@ function harness(options) {
     { iterations: run.iterations, stop: run.stopReason })
 }
 
+// ---- the reviewer proposes something UNUSABLE ------------------------------
+//
+// A different branch from "proposed nothing": the reviewer DID answer with operations, and every one of them
+// is dropped by `normaliseOperation` (a bare string, a `null`, an object with a non-string `op`). The loop
+// must not call `patch` with an empty operation list — that is a request the project layer would refuse, and
+// the round would be recorded as a failure instead of as "the model had no usable fix".
+{
+  const world = harness({
+    scores: { r0001: 70 },
+    reviewer: () => ({
+      findings: [{ category: 'exposure', viewId: 'active-camera', severity: 'major', confidence: 0.9, evidence: 'the whole frame reads dark on the sheet' }],
+      operations: ['camera.update', null, { op: 42 }, { notAnOperation: true }],
+      note: null,
+    }),
+  })
+  const run = await runVisualLoop({
+    projectId: 'p', revision: 'r0001',
+    review: world.review, patch: world.patch, restore: world.restore, reviewer: world.reviewer,
+    maxIterations: 5,
+  })
+  check('proposals that cannot be normalised into operations stop the loop before it patches anything',
+    run.iterations === 1 && run.stopReason === 'NO_FIX_PROPOSED' && world.applied.length === 0,
+    { iterations: run.iterations, stop: run.stopReason, applied: world.applied.length })
+  check('and the round still records what the reviewer SAID, so the dropped proposal is auditable',
+    run.rounds[1].reported.length === 1 && run.rounds[1].reason === 'NO_FIX_PROPOSED' &&
+    (run.rounds[1].proposed ?? 0) >= 0,
+    run.rounds[1])
+}
+
 // ---- the reviewer proposes nothing -----------------------------------------
 
 {

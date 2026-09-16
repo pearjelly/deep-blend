@@ -23,15 +23,15 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import {
-  BlenderError, BlenderErrorCode, applyPatchToSpec, compileSceneSpec, compileSchema,
+  BlenderError, BlenderErrorCode, SchemaDefinitionError, applyPatchToSpec, compileSceneSpec, compileSchema,
   validateScenePatch, validateSceneSpec,
 } from '@deepblend/dsh-blender-contracts'
-import { publishDirectory, readJson, readJsonSafe, writeFileAtomic, writeJsonAtomic } from '@deepblend/dsh-blender-host/paths'
+import { fileSha256, publishDirectory, readJson, readJsonSafe, writeFileAtomic, writeJsonAtomic } from '@deepblend/dsh-blender-host/paths'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const results = []
@@ -229,6 +229,57 @@ check('a camera operation that names no camera in the scene is refused against t
   noCamera?.patchIssue ?? noCamera?.message ?? noCamera)
 
 rmSync(scratch, { recursive: true, force: true })
+
+// ---- the hash of a file that is not there --------------------------------
+//
+// `fileSha256` answers `null` for a file it cannot read, and that is deliberately the SAME answer as for a
+// file that does not exist: the caller is comparing artifact bytes, and "no bytes" is one fact. A throw here
+// would turn a missing preview into a crashed listing.
+{
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-sha-'))
+  const present = join(scratch, 'present.txt')
+  writeFileSync(present, 'some bytes', 'utf8')
+  const unreadable = join(scratch, 'unreadable.txt')
+  writeFileSync(unreadable, 'secret', 'utf8')
+  chmodSync(unreadable, 0o000)
+  check('hashing a file that is absent or unreadable answers null, and a readable one answers a digest',
+    fileSha256(join(scratch, 'never-written.txt')) === null &&
+    fileSha256(unreadable) === null &&
+    /^[0-9a-f]{64}$/.test(fileSha256(present) ?? ''),
+    { absent: fileSha256(join(scratch, 'never-written.txt')), unreadable: fileSha256(unreadable), present: (fileSha256(present) ?? '').slice(0, 12) })
+  chmodSync(unreadable, 0o600)
+  rmSync(scratch, { recursive: true, force: true })
+}
+
+// ---- the runtime type check's last arm is SHADOWED, and named here --------
+//
+// The compiled validator's type switch ends with `default: return false`, and no schema can reach it: the
+// compiler refuses an unknown `type` at COMPILE time with `SchemaDefinitionError` (asserted below), so the
+// runtime arm is dead code. The assertion is about the ORDER — the compiler is where an unusable schema is
+// caught — and the branch itself is named rather than left looking covered.
+check('an unknown schema type throws when the validator RUNS, so the type switch\'s default arm never answers',
+  (() => {
+    try {
+      compileSchema({ type: 'nonsense' })({})
+      return false
+    } catch (cause) {
+      return cause instanceof SchemaDefinitionError
+    }
+  })() &&
+  // Lazy resolution, and it is worth pinning: the unknown type inside a property is only detected where
+  // that property is actually reached, so a document that does not carry it validates fine. A schema is not
+  // rejected wholesale at compile time — it is rejected at the point a value would have to be checked.
+  (() => {
+    const schema = compileSchema({ type: 'object', properties: { a: { type: 'nonsense' } } })
+    const untouched = schema({})
+    if (!Array.isArray(untouched) || untouched.length !== 0) return false
+    try {
+      schema({ a: 1 })
+      return false
+    } catch (cause) {
+      return cause instanceof SchemaDefinitionError
+    }
+  })())
 
 // ---------------------------------------------------------------------------
 // Summary

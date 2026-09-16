@@ -35,7 +35,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -303,3 +303,25 @@ test('the frames an event stream claims are never trusted on their own', () => {
   assert.equal(isFrameClaim(null), false, 'and a partial line that never parsed claims nothing')
   assert.equal(isFrameClaim({ type: 'frame', frame: 0 }), true, 'frame 0 is a legal Blender frame, so it is a claim')
 })
+
+test('a journal that exists but cannot be READ drains as nothing, without throwing', () => {
+  // A renderer's journal lives on the volume the frames do, and a reader that throws on an unreadable file
+  // would take the progress path down with it — during a render, which is exactly when nobody can intervene.
+  // The answer is the same empty list the caller gets for a file that is not there yet: "nothing new to read".
+  const path = join(scratch, 'unreadable.jsonl')
+  writeFileSync(path, '{"type":"frame","frame":1,"ms":5}\n', 'utf8')
+  chmodSync(path, 0o000)
+  const journal = new JournalTail(path)
+  let drained
+  try {
+    drained = journal.drain()
+  } finally {
+    chmodSync(path, 0o600)
+  }
+  assert.deepEqual(drained, [])
+})
+
+// NAMED, NOT PRETENDED COVERED: the `statSync` guard above the read (its own `catch { return [] }`) cannot
+// be reached from a test. `existsSync` is a `stat` too, so anything that makes the second stat throw makes
+// the first one answer false — the branch is a TOCTOU race between two syscalls, and the only driver is a
+// file that disappears in between. Recorded here so the line does not read as untested-but-reachable.

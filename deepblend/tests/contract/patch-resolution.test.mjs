@@ -257,6 +257,22 @@ for (const generator of [
 // 4. View roles must come from the scene, never from array position
 // ---------------------------------------------------------------------------
 
+// Every planned view carries a PURPOSE, and the reasons are what a reviewer reads when it decides what to
+// look for: the active camera is not "another angle", it is what the animation is actually seen through.
+{
+  const plan = buildViewPlan({ spec: WITH_ROLES })
+  const byRole = new Map(plan.views.map(view => [view.role, view.purpose]))
+  check('the active-camera view says what it is FOR, not just that it exists',
+    byRole.get('active-camera') === 'what the animation is actually seen through',
+    [...byRole.entries()])
+  // The generic fallback (`the scene's "x" view`) is what a MISSED standard role looks like, and the four
+  // standard roles must all be answered by their own case rather than by it.
+  check('every standard role has its own reason, and none of them falls through to the generic one',
+    byRole.size === 4 && [...byRole.values()].every(purpose => !purpose.startsWith('the scene\'s "')) &&
+    new Set(byRole.values()).size === 4,
+    [...byRole.entries()])
+}
+
 {
   const plan = buildViewPlan({ spec: ROLELESS })
   check('a role-less scene produces one view per camera rather than inventing roles',
@@ -267,6 +283,18 @@ for (const generator of [
     plan.views.every(view => view.id === view.cameraId), plan.views.map(view => `${view.id}/${view.cameraId}`))
   check('the plan says why it could not do better, and how to fix it',
     plan.notices.some(line => /role/.test(line) && /active-camera/.test(line)), plan.notices)
+
+  // The cap is what keeps a review affordable, and a scene with more cameras than the cap must SAY which
+  // ones it left out — a plan that silently renders four of seven teaches the model that three cameras do
+  // not exist.
+  const capped = buildViewPlan({ spec: ROLELESS, maxViews: 2 })
+  check('a role-less scene with more cameras than the cap names the ones it left out',
+    capped.views.length === 2 &&
+    capped.notices.some(line => line === 'the remaining 2 camera(s) were left out to keep the review affordable: camera-three-quarter, camera-top'),
+    capped.notices.filter(line => line.includes('left out')))
+  check('and the two it kept are the first two the scene declares, in declaration order',
+    JSON.stringify(capped.views.map(view => view.cameraId)) === JSON.stringify(['camera-detail', 'camera-main']),
+    capped.views.map(view => view.cameraId))
 
   // And an explicit request that cannot be honoured is refused, not answered with junk.
   const explicit = buildViewPlan({ spec: ROLELESS, roles: ['top'] })

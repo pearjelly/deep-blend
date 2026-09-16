@@ -6363,3 +6363,57 @@ total self-counted assertions: 1341
 
 契约层快照 1337 → **1341**（`scene-spec.test.mjs` 90 → 94），`node:test` 用例 278 → **283**
 （`render-reconciler.test.mjs` 4 → 9；两个数字都是本轮实测，不是推算）。
+
+## 84. 九条小尾巴，和一条写了两遍的句子
+
+### 84.1 一条「不该活」的变异，找到了重复的句子
+
+本轮先从散在九个文件里的小尾巴开始。其中 `visual-composition.js` 的一行是计划里每个视角的
+**purpose**（「这个角度是干什么用的」），我断言了 active 视角的那句；把 `rolePurpose` 里的
+`case 'active-camera'` 改写成的通用兜底句**变异活了下来**。追下去才发现：那句 purpose 在
+**调用点硬写了一遍**（`claim('active-camera', 'what the animation is actually seen through', [active])`），
+而 `rolePurpose` 里那个 case **永远跑不到**——它下面的循环明确跳过 `active-camera`（该角色已经在上面
+从最强的来源认领过了）。**一句话两份，而 `rolePurpose` 里那份是死的。**
+
+修法只有一行：调用点改成 `claim('active-camera', rolePurpose('active-camera', subjectId), [active])`，
+句子只剩一处定义，而那条变异立刻变红（读数正是兜底句 `the scene's "active-camera" view`）。
+这正是 D38/D43 的形状（**写了两遍的词汇会在没人跑的那一份里烂掉**），而这一次它是被**一条活下来的
+变异**找出来的——如果没有第 70 轮那条「变异必须带上下文瞄准、活下来要追问为什么」的规矩，它会被记成
+「不可达」而留在那里。
+
+### 84.2 其余八条小尾巴
+
+* `isBlenderError`：**长得像** BlenderError 的对象（从序列化边界过来的 `{name, code, message}`）不许通过
+  ——后面的代码会去读它的 `patchIssue`；
+* `fileSha256`：文件不存在与读不出来**答同一个 `null`**（调用方在比工件字节，「没有字节」是一件事），
+  而一个真能读的文件答一个 64 位十六进制摘要；
+* schema 的未知 `type`：**在验证器真正跑的时候**抛 `SchemaDefinitionError`（编译是惰性的——藏在属性里的
+  未知类型，只有那个属性被读到才抛）。因此类型分派里那句 `default: return false` 是**死代码**，
+  断言测的是**顺序**，分支被点名（变异 M3 改写它的返回值，什么都不影响——这恰好证明它到不了）；
+* 无标题的接触表**不预留标题带**：这条在**像素**上量（`grew` 与首块下移量相等），因为 box 是自身高度的
+  分数——比较两个分数的差会拿两个不同的分母，第一版就是这么写的，读出「30 像素的带子上移了 20 像素」；
+* 交付清单里**不在交付根之下**的路径保持绝对（切成一个「看起来相对」的路径，会让清单静静指向别的文件）；
+* 读不出来的 journal **排空为空**而不是抛错（渲染进行中没人能介入），而 `statSync` 那道守卫是
+  **两次系统调用之间的竞态**，被点名；
+* 提了操作但**一条都规范化不出来**时，循环必须在**打补丁之前**停下（空操作列表是一次注定被拒的请求）；
+* 相机上限**要点名它排除了哪几台**（悄悄渲四台会让模型以为另外三台不存在）。
+
+### 84.3 变异与收口
+
+九条变异：八条红，**M3 是「按设计存活」**（它证明那条 `default` 到不了），M9 起初存活并**找出了一处真缺陷**
+（84.1），修完变红。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1351
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 90 (0.7%) → **74 (0.6%)**、
+**有黑暗行的文件数 17 → 11**——`visual-loop.js`、`visual-composition.js`、`paths.js`、`delivery-manifest.js`、
+`contracts/index.js`、`contact-sheet.js` 六个文件一次归零。
+
+契约层快照 1341 → **1351**，`node:test` 用例 283 → **285**（都是本轮实测）。顺带记一条：README 里
+**逐文件的计数**（`contract/patch-resolution.test.mjs` 87 项）也被 `documented-counts` 盯着——本轮它先红了，
+提醒「总数对了不等于引用对了」。

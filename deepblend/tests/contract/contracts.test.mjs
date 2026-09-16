@@ -30,6 +30,7 @@ import {
   EXPECTED_IMPORT_FORMATS,
   BlenderError,
   BlenderErrorCode,
+  isBlenderError,
   toCanonicalCapabilities,
   warning,
 } from '@deepblend/dsh-blender-contracts'
@@ -391,4 +392,17 @@ test('the candidate engine list is frozen and matches the captured probe', () =>
     Object.keys(loadFixture().engines),
     [...CANDIDATE_RENDER_ENGINES],
   )
+})
+
+test('isBlenderError narrows a thrown value without trusting its shape', () => {
+  // The helper exists because callers catch `unknown`: a plain Error, a string, a `null` and an object that
+  // merely LOOKS like a BlenderError (a code and a message, copied by a serialization boundary) are all
+  // things that reach a catch block. Only the real class may pass, because the code path that follows reads
+  // `patchIssue` and `detail` off it.
+  const real = new BlenderError(BlenderErrorCode.NOT_FOUND, 'no blender')
+  const impostor = { name: 'BlenderError', code: 'BLENDER_NOT_FOUND', message: 'no blender', detail: null }
+  assert.equal(isBlenderError(real), true)
+  for (const value of [new Error('plain'), 'a string', null, undefined, impostor]) {
+    assert.equal(isBlenderError(value), false, `${String(value)} must not narrow to a BlenderError`)
+  }
 })

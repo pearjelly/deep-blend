@@ -147,7 +147,12 @@ export function buildViewPlan(input) {
   const soloCamera = cameras.length === 1 ? cameras[0] : undefined
   const active = activeByName ?? activeByRole ?? soloCamera
 
-  claim('active-camera', 'what the animation is actually seen through', [active])
+  // ONE COPY OF THE SENTENCE. This call site used to spell the purpose out, and `rolePurpose`'s
+  // `case 'active-camera'` spelled it again — while the loop below SKIPS that role (it is claimed here,
+  // first, from the strongest source), so the copy inside `rolePurpose` could never run. A mutation that
+  // rewrote that case changed nothing at all, which is how the duplicate was found: a vocabulary written
+  // twice rots in the copy nobody exercises (D38/D43), and here the rotting copy was already dead.
+  claim('active-camera', rolePurpose('active-camera', subjectId), [active])
   for (const role of requestedRoles) {
     if (role === 'active-camera') continue
     claim(role, rolePurpose(role, subjectId), cameras.filter(candidate => candidate.role === role))
