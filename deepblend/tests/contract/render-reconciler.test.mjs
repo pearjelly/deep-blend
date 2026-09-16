@@ -321,6 +321,11 @@ test('a recovery report that cannot be written does not abort the recovery it de
   assert.equal(store.read('demo', jobId).status, 'recovering', 'the record is the authority and it was written')
 })
 
+// NAMED, NOT PRETENDED COVERED: `sampleFrame` has the same unreachable `closeSync` guard in its `finally`
+// that `render-journal.js` has — the descriptor comes from the `openSync` two lines above it, so nothing can
+// close it first. The branch a test CAN drive is the one beside it (a file whose bytes cannot be read), which
+// the ledger reports as present-but-unreadable rather than as missing; that distinction is what the frame
+// ledger is for, and this note is where the difference between "unreadable" and "absent" is recorded.
 test('a process identity document that is not JSON counts as no identity at all', async () => {
   // A half-written `process.json` is what a kill between the write and the flush leaves behind. Reading it
   // as "no pid recorded" is the honest answer; throwing would take the whole reconciliation pass down.

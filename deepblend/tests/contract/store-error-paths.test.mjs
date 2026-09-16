@@ -30,11 +30,11 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, PROJECT_RECORD_VERSION } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, PROJECT_RECORD_VERSION, specHash } from '@deepblend/dsh-blender-contracts'
 import BlenderStudio, {
   ProjectStore, RenderJobStore, RevisionTransaction, formatRevisionId, parseRevisionId, StudioConfig,
 } from '@deepblend/dsh-blender-host'
@@ -480,6 +480,169 @@ check('a title whose ids are all taken is refused by name, and the sentence matc
 // fail the project directory alongside it, and the index cannot be redirected. So the promise this branch
 // keeps ("a successful project write is not failed by a cache") has no driver in this layer; it is recorded
 // here rather than left looking covered.
+
+// ---------------------------------------------------------------------------
+// The staging sweep, the audit record, and a manifest with no "before"
+// ---------------------------------------------------------------------------
+
+// `sweepStaging(projectId, keep)` clears leftovers from crashed transactions — except the one the RUNNING
+// transaction owns. Sweeping that one would delete the directory the commit is still writing into, which is
+// how a green transaction turns into a missing revision.
+const swept = new RevisionTransaction({ store, runtime: {}, config: { maxMeshPolygons: 250_000 } })
+const sweptProject = await swept.createProject({ title: 'staging sweep', sceneSpec: productSpec, saveCheckpoint: false })
+const stagingRoot = join(store.projectDirectory(sweptProject.projectId), 'staging')
+mkdirSync(join(stagingRoot, 'left-over-from-a-crash'), { recursive: true })
+mkdirSync(join(stagingRoot, 'r0002'), { recursive: true })
+swept.sweepStaging(sweptProject.projectId, 'r0002')
+check('a staging sweep clears the debris and keeps the directory the caller says is its own',
+  existsSync(join(stagingRoot, 'r0002')) && !existsSync(join(stagingRoot, 'left-over-from-a-crash')),
+  readdirSync(stagingRoot))
+
+// `readdirSafe` is what makes the sweep safe on a staging directory that cannot be LISTED (permissions):
+// the answer is "nothing to sweep" rather than a throw in the middle of a commit.
+const unreadableStaging = new RevisionTransaction({ store, runtime: {}, config: { maxMeshPolygons: 250_000 } })
+const blockedProject = await unreadableStaging.createProject({ title: 'blocked staging', sceneSpec: productSpec, saveCheckpoint: false })
+const blockedRoot = join(store.projectDirectory(blockedProject.projectId), 'staging')
+mkdirSync(blockedRoot, { recursive: true })
+chmodSync(blockedRoot, 0o000)
+let sweptAnyway = null
+try {
+  unreadableStaging.sweepStaging(blockedProject.projectId)
+  sweptAnyway = 'no throw'
+} catch (cause) {
+  sweptAnyway = cause.message
+} finally {
+  chmodSync(blockedRoot, 0o700)
+}
+check('a staging directory that cannot even be listed sweeps as nothing instead of throwing mid-commit',
+  sweptAnyway === 'no throw', sweptAnyway)
+
+// The audit record is written BESIDE the real error: a directory where the attempt file belongs makes that
+// write fail, and the failure the caller sees must still be the real one.
+const audited = new RevisionTransaction({ store, runtime: {}, config: { maxMeshPolygons: 250_000 } })
+const auditedProject = await audited.createProject({ title: 'audit', sceneSpec: productSpec, saveCheckpoint: false })
+const attemptPath = join(store.projectDirectory(auditedProject.projectId), 'jobs', 'apply_scene_patch-audit.attempt.json')
+mkdirSync(attemptPath, { recursive: true })
+let auditOutcome = null
+try {
+  audited.recordFailedAttempt(auditedProject.projectId, {
+    jobId: 'apply_scene_patch-audit',
+    failure: { code: 'SCENE_PATCH_INVALID', message: 'the attempt that must survive a broken audit trail' },
+    plan: { operations: [{ op: 'entity.remove', summary: 'remove the stage' }], summary: null },
+  })
+  auditOutcome = 'no throw'
+} catch (cause) {
+  auditOutcome = cause.message
+}
+check('an audit record that cannot be written does not replace the error it was describing',
+  auditOutcome === 'no throw', auditOutcome)
+
+// A manifest whose plan carries no `specHashBefore` reports `specChanged: true`: "I cannot prove the document
+// is unchanged" must never read as "it is unchanged", because the flag is what a reader uses to decide
+// whether anything needs re-rendering.
+// A successful patch COMPILES the spec, so any transaction that must succeed needs a renderer stub: the
+// provider's contract is "call back with the directory while it still exists", which is all `commit` uses it
+// for. Shared by the two transactions below rather than copied.
+const compileRuntimeStub = {
+  async compileScene(request) {
+    const directory = join(request.projectRoot, 'stub-compile')
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(join(directory, 'result.blend'), 'a blend file')
+    request.onWorkingDirectory?.({ directory })
+    return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+  },
+}
+const committed = new RevisionTransaction({ store, runtime: compileRuntimeStub, config: { maxMeshPolygons: 250_000 } })
+const committedProject = await committed.createProject({ title: 'no before hash', sceneSpec: productSpec, saveCheckpoint: false })
+const currentSpec = store.readRevisionSpec(committedProject.projectId, committedProject.revision.revision)
+const committedRevision = await committed.commit({
+  projectId: committedProject.projectId,
+  kind: 'scene_patch',
+  baseRevision: committedProject.revision.revision,
+  spec: currentSpec,
+  operations: [{ op: 'entity.visibility.set', summary: 'hid the stage' }],
+  digestBefore: store.readRevisionManifest(committedProject.projectId, committedProject.revision.revision).digest,
+  summary: null,
+  saveCheckpoint: false,
+  renderPreview: false,
+})
+const noBeforeHash = committedRevision.revision
+check('a manifest that has no before-hash reports the spec as CHANGED rather than as provably unchanged',
+  noBeforeHash.specHashBefore === null && noBeforeHash.specChanged === true && noBeforeHash.sceneChanged === false &&
+  store.readRevisionManifest(committedProject.projectId, noBeforeHash.revision)?.specChanged === true,
+  { specHashBefore: noBeforeHash.specHashBefore, specChanged: noBeforeHash.specChanged, sceneChanged: noBeforeHash.sceneChanged })
+
+// A patch with exactly ONE operation and no note describes itself with that operation's own words — the
+// branch above it (`records.length === 0`) and below it (`n operations: …`) are both exercised elsewhere,
+// and this is the one a model-authored single-op patch takes.
+const described = await committed.applyScenePatch({
+  projectId: committedProject.projectId,
+  baseRevision: noBeforeHash.revision,
+  operations: [{ op: 'entity.visibility.set', entityId: currentSpec.entities[0].id, visible: false }],
+})
+const describedSummary = described.revision?.summary
+check('a one-operation patch is summarised by that operation, not by a count',
+  typeof describedSummary === 'string' && !/^1 operations/.test(describedSummary) &&
+  describedSummary.includes(currentSpec.entities[0].id),
+  describedSummary)
+
+// The OTHER arm of the same question: when a before-hash IS recorded, `specChanged` is the comparison
+// itself — a patch that rewrites the document byte for byte differently is a change, and one that produces
+// the identical document is not. `specHashAfter` is what the commit computed, so passing it back verbatim is
+// the "no change" case and passing a different hash is the "changed" case.
+const comparable = new RevisionTransaction({ store, runtime: compileRuntimeStub, config: { maxMeshPolygons: 250_000 } })
+const comparableProject = await comparable.createProject({ title: 'with before hash', sceneSpec: productSpec, saveCheckpoint: false })
+const comparableSpec = store.readRevisionSpec(comparableProject.projectId, comparableProject.revision.revision)
+const beforeHash = specHash(comparableSpec)
+const unchangedCommit = await comparable.commit({
+  projectId: comparableProject.projectId,
+  kind: 'scene_patch',
+  baseRevision: comparableProject.revision.revision,
+  spec: comparableSpec,
+  operations: [{ op: 'entity.visibility.set', summary: 'hid the stage' }],
+  digestBefore: store.readRevisionManifest(comparableProject.projectId, comparableProject.revision.revision).digest,
+  specHashBefore: beforeHash,
+  specHashAfter: beforeHash,
+  summary: null,
+  saveCheckpoint: false,
+  renderPreview: false,
+})
+// BOTH ANSWERS, because a `specChanged` that is always false passes a one-sided check: the same commit is
+// repeated with a before-hash taken from a DIFFERENT document, which is what a real edit looks like from the
+// manifest's point of view. (The first version of this check only asserted the matching case — and the
+// mutation that pins the comparison to `false` survived it.)
+const otherDocument = { ...comparableSpec, project: { ...comparableSpec.project, title: 'a different document' } }
+const changedCommit = await comparable.commit({
+  projectId: comparableProject.projectId,
+  kind: 'scene_patch',
+  baseRevision: unchangedCommit.revision.revision,
+  spec: comparableSpec,
+  operations: [{ op: 'entity.visibility.set', summary: 'hid the stage' }],
+  digestBefore: unchangedCommit.revision.digest,
+  specHashBefore: specHash(otherDocument),
+  summary: null,
+  saveCheckpoint: false,
+  renderPreview: false,
+})
+check('a manifest WITH a before-hash answers unchanged for the same document and CHANGED for another',
+  unchangedCommit.revision.specChanged === false && unchangedCommit.revision.specHashBefore === beforeHash &&
+  unchangedCommit.revision.specHashAfter === beforeHash &&
+  changedCommit.revision.specChanged === true && changedCommit.revision.specHashAfter === beforeHash,
+  { unchanged: unchangedCommit.revision.specChanged, changed: changedCommit.revision.specChanged })
+
+// And the many-operation description: a patch with more than one operation is described by COUNT and by each
+// operation's own words, because "3 operations" alone would not tell a reader what changed.
+const many = await comparable.applyScenePatch({
+  projectId: comparableProject.projectId,
+  baseRevision: changedCommit.revision.revision,
+  operations: [
+    { op: 'entity.visibility.set', entityId: comparableSpec.entities[0].id, visible: false },
+    { op: 'entity.tags.set', entityId: comparableSpec.entities[0].id, tags: ['hero-product', 'edited'] },
+  ],
+})
+check('a patch with several operations is summarised by the count AND by each operation',
+  /^2 operations: /.test(many.revision?.summary ?? '') && many.revision.summary.includes('; '),
+  many.revision?.summary)
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nStore error paths: ${passed}/${results.length} check(s) passed`)

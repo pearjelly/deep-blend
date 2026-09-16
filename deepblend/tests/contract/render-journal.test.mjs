@@ -321,7 +321,10 @@ test('a journal that exists but cannot be READ drains as nothing, without throwi
   assert.deepEqual(drained, [])
 })
 
-// NAMED, NOT PRETENDED COVERED: the `statSync` guard above the read (its own `catch { return [] }`) cannot
-// be reached from a test. `existsSync` is a `stat` too, so anything that makes the second stat throw makes
+// NAMED, NOT PRETENDED COVERED: the TWO guards inside `drain` that no test can reach are the `statSync`
+// catch above the read and the `closeSync` catch in the `finally` below it. The file descriptor comes from
+// `openSync` in the same function, so a second close cannot happen; the guard is there for the case where a
+// future caller hands the tail a descriptor it already closed, and it is written down rather than left
+// looking tested. What the `statSync` guard protects against is a TOCTOU race between two syscalls. `existsSync` is a `stat` too, so anything that makes the second stat throw makes
 // the first one answer false — the branch is a TOCTOU race between two syscalls, and the only driver is a
 // file that disappears in between. Recorded here so the line does not read as untested-but-reachable.

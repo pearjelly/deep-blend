@@ -6417,3 +6417,59 @@ total self-counted assertions: 1351
 契约层快照 1341 → **1351**，`node:test` 用例 283 → **285**（都是本轮实测）。顺带记一条：README 里
 **逐文件的计数**（`contract/patch-resolution.test.mjs` 87 项）也被 `documented-counts` 盯着——本轮它先红了，
 提醒「总数对了不等于引用对了」。
+
+## 85. 事务自己的目录、自己的审计、自己的「我不知道」
+
+`revision-transaction.js` 剩下的 8 行黑暗全是同一类：**事务在照顾自己**。它们不在任何人写补丁的路径上，
+而在「上一次崩溃留下东西」「审计写不下去」「我不知道该不该说没变」这些地方——正是没人会手动去试的状态。
+
+### 85.1 清扫不能把正在写的目录一起扫掉
+
+`sweepStaging(projectId, keep)` 清掉崩溃留下的 staging，**除了调用者说「这个是我的」的那一个**：
+扫掉它等于删掉本次提交正在写入的目录，一次本来会成功的提交会变成「revision 不见了」。读数：留下的那个还在，
+`left-over-from-a-crash` 没了。而 staging 目录**连列都列不出来**时（权限），`readdirSafe` 答「没有东西要扫」
+而不是在提交中途抛错——变异把那个 catch 去掉，立刻红。
+
+### 85.2 写不下去的审计，不能替换它正在记录的那个错误
+
+`recordFailedAttempt` 把失败写进 `jobs/<jobId>.attempt.json`。当一个**目录**站在那里时，这次写入失败，
+而调用者看到的必须仍然是**真正的那个错误**（「丢失审计不能替换错误」这句话写在那段 catch 里，本轮第一次
+被执行）。变异让 catch 重新抛出，红。
+
+### 85.3 「我没有 before-hash」必须读作「变了」
+
+清单里的 `specChanged` 是给读者判断「要不要重渲」用的。没有 before-hash 时它答 **true**：**「我无法证明
+它没变」绝不能被读成「它没变」**。同一条断言顺带钉住 `sceneChanged === false`——一个不改场景的补丁，
+两个答案必须分开（D20）。
+
+### 85.4 一条操作的补丁用那条操作自己的话描述
+
+`describeOperations` 的三个分支里，`records.length === 1` 那一支此前没跑过：一条操作的补丁应该用那条操作
+自己的摘要（读数：`entity "stage" is now hidden`），而不是「1 operations: …」——后者是模型读到的
+revision 摘要，它决定「这次改了什么」这句话好不好读。
+
+### 85.5 两处点名：`closeSync` 的 catch
+
+`frame-ledger.js` 与 `render-journal.js` 各有一个 `finally` 里的 `closeSync` catch（`/* already closed */`），
+两者都**到不了**：描述符就是上两行 `openSync` 开出来的，没有东西能先关掉它。两处都按规矩点名，
+并说明它防的是「将来的调用者交进来一个已经关掉的描述符」；`render-journal` 那段还顺带把
+`statSync` 那道守卫（两次系统调用之间的 TOCTOU）写清楚。
+
+### 85.6 变异与收口
+
+五条变异全红。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1356
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 74 (0.6%) → **66 (0.5%)**、
+**有黑暗行的文件数 11 → 10**，`revision-transaction.js` **8 → 0**。
+
+契约层快照 1351 → **1358**（`store-error-paths.test.mjs` 30 → 37）。剩下 10 个文件里的 66 行中，
+四个文件（`scene-patch` 6、`scene-spec` 5、`png` 2、`json-schema` 1）是**已点名证明到不了**的分支，
+两个（`render-journal`、`project-store`、`frame-ledger`）是**已点名且写了理由**的竞态/防御守卫——
+剩下的三条主线是 `host/lib/index.js` 20、`provider-local` 14、`ui/lib/index.js` 13。
