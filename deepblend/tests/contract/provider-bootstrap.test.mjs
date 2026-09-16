@@ -35,7 +35,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 
@@ -82,7 +82,10 @@ function makeProvider(plan = {}, config = {}) {
   ctx.provide('subprocess', {
     async resolveExecutable(requested) {
       if (plan.unresolvable === true) throw new Error(`no executable named "${requested}"`)
-      return plan.resolved ?? requested
+      // `resolveTo` is what the real service does for a BARE name: the PATH lookup answers an absolute path.
+      // Without it a bare-name case can only ever answer the bare name, which `_assertAllowed` refuses one
+      // step earlier — the allowlist branch would be unreachable through this harness.
+      return plan.resolveTo ?? plan.resolved ?? requested
     },
     spawn(request) {
       plan.spawnCalls?.push(request)
@@ -171,6 +174,105 @@ check('an executable that cannot be resolved keeps the code the resolver chose, 
   unresolvable instanceof BlenderError && unresolvable.code === code('NOT_FOUND') &&
   /could not be resolved/.test(unresolvable.message),
   unresolvable?.code ?? unresolvable?.message)
+
+// ---------------------------------------------------------------------------
+// Which Blender was ASKED for, and what happens to the directory afterwards
+// ---------------------------------------------------------------------------
+
+// `blenderPath: 'auto'` means "the managed install if there is one, otherwise whatever `blender` on PATH is".
+// With no managed install anywhere, what the resolver is ASKED for is the bare name — not the string 'auto',
+// which would resolve to a file literally called `auto` and fail in a way nobody could explain.
+{
+  // The state is a machine WITHOUT the managed install (a published package, or a checkout that never ran
+  // `blender:install`). This checkout has one, so the provider is told it has no managed roots — the same
+  // technique as overriding `resolveBlenderExecutable`, and the only way to stand on this branch here.
+  const provider = makeProvider({ spawn: () => { throw new Error('this case never spawns') } }, { blenderPath: 'auto' })
+  provider._managedRoots = () => []
+  await provider.runBootstrap({ action: 'probe' }).catch(() => undefined)
+  check('an "auto" path with no managed install asks for the bare name "blender", not for "auto"',
+    provider._requestedBlenderPath() === 'blender', provider._requestedBlenderPath())
+}
+
+// NAMED, NOT PRETENDED COVERED: three lines above the allowlist check, `_assertAllowed` has a `statSync`
+// guard inside a `try` ("Blender executable is not stat-able") whose catch cannot be reached from a test. The
+// line before it is a `realpathSync` that SUCCEEDS, so the only way to make the `stat` fail is for the file to
+// disappear between the two syscalls — a TOCTOU race, and the honest driver would be deleting the executable
+// in that window. (A dangling symlink does not do it: `realpathSync` fails first, on the check above.)
+//
+// The allowlist is a list of DIRECTORIES, and a configured one that does not exist permits nothing rather
+// than aborting the check: the loop `continue`s past it. The refusal that follows still names the allowlist,
+// because that is the thing the operator has to change.
+{
+  const outsideShim = join(workspaceRoot, 'somewhere-else', 'blender')
+  mkdirSync(join(workspaceRoot, 'somewhere-else'), { recursive: true })
+  writeFileSync(outsideShim, '#!/bin/sh\nexit 0\n')
+  chmodSync(outsideShim, 0o755)
+  const junkRoot = join(workspaceRoot, 'a-directory-that-does-not-exist')
+  const refused = await makeProvider({ resolveTo: outsideShim }, {
+    blenderPath: 'blender', executableAllowlist: [junkRoot],
+  }).resolveBlenderExecutable({})
+  check('an allowlist root that does not exist is skipped, and the refusal still names the allowlist',
+    refused.resolved === null && refused.error?.code === code('EXECUTABLE_OUTSIDE_ALLOWLIST') &&
+    /outside the configured allowlist/.test(refused.error.message),
+    refused.error?.code ?? refused.resolved)
+  // AND THE SKIP IS NOT FATAL — which is the whole observable content of that `continue`: with the junk root
+  // listed FIRST and the real directory second, a check that stopped at the junk root would refuse a path the
+  // operator explicitly permitted. (The first version of this case asserted only the refusal, and the mutation
+  // that turns the `continue` into `return false` survived it.)
+  const allowed = await makeProvider({ resolveTo: outsideShim }, {
+    blenderPath: 'blender', executableAllowlist: [junkRoot, join(workspaceRoot, 'somewhere-else')],
+  }).resolveBlenderExecutable({})
+  check('and a permitted directory listed AFTER a junk root is still honoured',
+    allowed.resolved === realpathSync(outsideShim) && allowed.error === null,
+    { resolved: allowed.resolved, error: allowed.error?.code ?? null })
+}
+
+// `_readAll` reads a captured stream, and BOTH ways it can fail answer the empty string: no reader at all
+// (a handle from a stub, or a spawn that failed after handing one back) and a reader that throws. A bootstrap
+// classification must survive either — the outcome is what the caller acts on.
+{
+  const throwingReader = handleFor({ stdout: 'irrelevant' })
+  const original = throwingReader.handle.collected.stdout.readFrom
+  throwingReader.handle.collected.stdout = { readFrom: () => { throw new Error('the pipe was closed early') } }
+  const outcome = await runCase(throwingReader, { onSpawn: () => { throwingReader.writeResult({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' }) } })
+  throwingReader.handle.collected.stdout.readFrom = original
+  check('a captured stream that cannot be read answers the empty string instead of failing the call',
+    !(outcome.outcome instanceof Error) && outcome.outcome?.stdout === '' &&
+    outcome.outcome?.envelope?.status === 'ok',
+    { stdout: outcome.outcome?.stdout, envelope: outcome.outcome?.envelope?.status })
+}
+
+// The working directory is removed when the call returns — and a machine that will not let it be removed
+// (a locked parent, a held file) must not turn a classified failure into an unclassified one. The cleanup
+// swallows its own error, which is the branch this case drives: the directory is made unremovable by taking
+// the write bit off its PARENT, and the call still answers.
+{
+  const tmpRoot = join(workspaceRoot, 'tmp')
+  mkdirSync(tmpRoot, { recursive: true })
+  const caseHandle = handleFor({ stdout: 'x' })
+  // The write bit comes off the tmp root DURING the call (inside the spawn callback), so the working
+  // directory has already been created and only its removal can fail.
+  const provider = makeProvider({
+    spawn: spawned => {
+      caseHandle.attach(spawned)
+      lastRequest = spawned
+      caseHandle.writeResult({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' })
+      chmodSync(tmpRoot, 0o500)
+      return caseHandle.handle
+    },
+  })
+  let outcome = null
+  try {
+    outcome = await provider.runBootstrap({ action: 'probe' }).catch(cause => cause)
+  } finally {
+    chmodSync(tmpRoot, 0o700)
+  }
+  const leftBehind = readdirSync(tmpRoot).length > 0
+  for (const entry of readdirSync(tmpRoot)) rmSync(join(tmpRoot, entry), { recursive: true, force: true })
+  check('a working directory that cannot be removed does not turn a classified answer into a crash',
+    !(outcome instanceof Error) && outcome?.envelope?.status === 'ok' && leftBehind === true,
+    { envelope: outcome?.envelope?.status ?? outcome?.message, leftBehind })
+}
 
 // ---------------------------------------------------------------------------
 // Finding a Blender on PATH: a file with the right NAME is not an answer

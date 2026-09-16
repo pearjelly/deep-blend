@@ -6510,3 +6510,68 @@ composition/ui-plane.e2e.mjs: 144/144 check(s) passed
 **有黑暗行的文件数 10 → 9**，`ui/lib/index.js` **13 → 0**。
 
 （契约层快照不变：本轮的四条断言在 **composition** 套件里，不在契约层的计数口径内。）
+
+## 87. provider 的六处「尽力而为」：每一条都是一句「不因为这件事失败」
+
+`provider-local` 剩下的 14 行里，六处是同一个主题：**一件次要的事失败了，不能因此让主要的事失败**。
+这种句子很容易写，也很容易在重构里被删掉而没人发现——所以每一条都要有一个能让它失败的输入。
+
+### 87.1 「auto」在没有托管安装时要问的是 `blender`，不是 `auto`
+
+`_requestedBlenderPath()` 在 `blenderPath: 'auto'` 时的顺序是：托管安装 → PATH 上的 `blender`。
+**没有托管安装**（发布出去的包、或从没跑过 `blender:install` 的 checkout）时它必须返回裸名 `blender`，
+而不是把字符串 `auto` 交给解析器——那会去找一个真的叫 `auto` 的文件，失败方式没人能解释。
+这个 check 用「告诉 provider 它没有托管根」来代表那台机器（与替掉 `resolveBlenderExecutable` 同一种技术）。
+
+### 87.2 一个不存在的白名单根只是「什么都不允许」，不是「检查中止」
+
+`continue // A non-existent allowlist root simply permits nothing.` 的**可观测内容**是：夹在中间的垃圾根
+**不能**让后面那个明确允许的目录失效。第一版检查只断言了「仍然按名字拒绝」，而把 `continue` 改成
+`return false` 的变异**活了下来**——补上「垃圾根在前、真正允许的目录在后时仍然放行」之后才变红。
+**一个「跳过」的可观测内容，是它后面的东西仍然被看到。**
+
+### 87.3 读不出来的捕获流答空串
+
+`_readAll` 的两条路（没有 reader、reader 抛错）都答 `''`：一次 bootstrap 的分类（超时、被杀、结果缺失）
+才是调用方要的东西，而「管道提前关了」不该把它顶掉。
+
+### 87.4 删不掉的工作目录不能让一个「已分类的答案」变成崩溃
+
+`_cleanup` 的 catch：机器不让删（锁住的父目录、被持有的文件）时吞掉——**一个留下的临时目录，不值得
+把一个已经分类好的错误换成未分类的**。测试在 spawn 回调里把 tmp 根的写位摘掉，于是目录已经建好、
+只有删除会失败；读数是「调用照常返回 + 目录确实留下了」。
+
+### 87.5 清不掉的陈旧文件不能让这次续渲失败
+
+续渲前要清掉上一次尝试的 `events.jsonl` / `result.json` / `process.json`，而清除是尽力而为的：
+账本是从**帧文件**推出来的，一个清不掉的陈旧身份文档是诊断问题，不是正确性问题。驱动方式是把一个
+**非空目录**放在 `process.json` 的位置——那正是 `rmSync(..., { force: true })` 不带 `recursive` 时唯一
+拒绝的形状。
+
+### 87.6 读不回来的视图不能让整份计划报废
+
+`renderViews` 里逐个读回视图字节，读不到的跳过：渲染报告已经说过哪个视图缺失，把整份计划丢掉等于
+**连渲出来的那些也一起丢**。读数：`pngs` 里有那个读得到的，缺的那个没有，而报告仍列着两个视图。
+
+### 87.7 一处点名 + 变异与收口
+
+`_assertAllowed` 里 `statSync` 那道守卫（「Blender executable is not stat-able」）**到不了**：它上面一行的
+`realpathSync` 必须成功，而让 stat 失败的唯一办法是文件在两次系统调用之间消失——一个 TOCTOU 竞态；
+悬空符号链接不算（`realpathSync` 会先在更上面那一关失败）。已点名。
+
+六条变异全红（M2 是修好「跳过」的另一侧之后才红的）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1365
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 53 (0.4%) → **45 (0.4%)**，
+`provider-local/lib/index.js` **14 → 6**——剩下的 6 行**正是**87.7 点名的那段 TOCTOU 竞态，
+也就是说这个文件也「跑完了」：每一行要么被执行、要么被证明到不了。
+
+契约层快照 1358 → **1365**（`provider-bootstrap.test.mjs` 28 → 33、`provider-actions.test.mjs` 25 → 27）。
+现在 9 个文件里的 45 行中，**8 个文件（25 行）全部是已点名的「到不了」或「竞态/防御守卫」**，
+唯一还剩真活的是 `host/lib/index.js` 的 20 行。

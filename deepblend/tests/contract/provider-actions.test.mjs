@@ -34,7 +34,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -69,7 +69,6 @@ writeFileSync(checkpointPath, 'not really a blend file')
 const specPath = join(workspaceRoot, 'scene-spec.json')
 writeFileSync(specPath, '{}')
 const jobDirectory = join(workspaceRoot, 'job')
-const { mkdirSync } = await import('node:fs')
 mkdirSync(jobDirectory, { recursive: true })
 
 /**
@@ -80,7 +79,7 @@ mkdirSync(jobDirectory, { recursive: true })
  */
 function makeProvider({
   capabilities = {}, unresolvable = false, spawned, spawnThrows,
-  doneRejects, resultText, withCollected = true,
+  doneRejects, resultText, withCollected = true, writeProcessIdentity = true,
 } = {}) {
   const ctx = new Context()
   ctx.provide('subprocess', {
@@ -99,6 +98,16 @@ function makeProvider({
         resultText ?? JSON.stringify({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' }),
         'utf8',
       )
+      if (writeProcessIdentity === false) {
+        // The stub writes an identity document by default (`writeProcessIdentity: false` is how a case opts
+        // out). It must not THROW when the path is a directory: one case deliberately puts a non-empty
+        // directory where the file belongs, which is the shape the provider's own best-effort clear refuses.
+        try {
+          rmSync(join(request.jobDirectory, 'process.json'), { force: true })
+        } catch {
+          /* the case that needs this is the one where it cannot be removed */
+        }
+      }
       return {
         get done() {
           return doneRejects === undefined
@@ -127,6 +136,56 @@ function makeProvider({
     return run
   }
   return provider
+}
+
+// ---------------------------------------------------------------------------
+// Two stale/partial states a resumed render really meets
+// ---------------------------------------------------------------------------
+
+// A RESUMED attempt must not inherit the previous one's files, and the clearing of them is best-effort: a
+// `process.json` that cannot be removed (here a non-empty DIRECTORY standing where the file belongs — the one
+// shape `rmSync(..., { force: true })` refuses without `recursive`) must not refuse the render. The ledger is
+// derived from the frames, so a stale identity document is a diagnostic problem, not a correctness one.
+{
+  const staleDirectory = join(jobDirectory, 'process.json')
+  mkdirSync(staleDirectory, { recursive: true })
+  writeFileSync(join(staleDirectory, 'still-here.txt'), 'not a file the provider can unlink', 'utf8')
+  const provider = makeProvider({ writeProcessIdentity: false, spawned: [] })
+  const run = await provider.startFrameSequence({
+    checkpointPath, frames: [1], jobDirectory, jobId: 'stale-process-identity',
+  }).catch(cause => cause)
+  const survived = run?.handle !== undefined && run?.jobDirectory === jobDirectory
+  rmSync(staleDirectory, { recursive: true, force: true })
+  check('a stale identity document that cannot be cleared does not refuse the render',
+    survived, run instanceof BlenderError ? `${run.code}: ${run.message}` : Object.keys(run ?? {}).slice(0, 4))
+}
+
+// A render report may name a view whose bytes cannot be read back (a file removed between the render and the
+// read, or a path the renderer never wrote). The other views must survive: discarding the whole plan would
+// throw away the views that DID render, and the report already says which one is missing.
+{
+  const presentView = join(workspaceRoot, 'view-present.png')
+  writeFileSync(presentView, 'the bytes of one view', 'utf8')
+  const provider = makeProvider({
+    spawned: [],
+    resultText: JSON.stringify({
+      protocolVersion: BLENDER_PROTOCOL_VERSION,
+      status: 'ok',
+      result: {
+        views: [
+          { viewId: 'present', outputPath: presentView },
+          { viewId: 'missing', outputPath: join(workspaceRoot, 'never-written.png') },
+        ],
+      },
+    }),
+  })
+  const rendered = await provider.renderViews({
+    checkpointPath, views: [{ id: 'present', role: 'three-quarter' }, { id: 'missing', role: 'top' }], jobDirectory,
+  }).catch(cause => cause)
+  check('a view whose bytes cannot be read is skipped, and the views that DID render survive',
+    rendered?.pngs?.present?.toString('utf8') === 'the bytes of one view' &&
+    rendered.pngs.missing === undefined && rendered.report.views.length === 2,
+    rendered instanceof BlenderError ? `${rendered.code}: ${rendered.message}` : Object.keys(rendered?.pngs ?? {}))
 }
 
 // ---------------------------------------------------------------------------
