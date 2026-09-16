@@ -19,6 +19,13 @@
  *   - a composed sheet really contains its views at the placements it reports, so a
  *     reviewer told "cell (row 2, column 1) is the detail view" is telling the truth.
  *
+ * AND THE CODEC'S OTHER CAPABILITIES, which nothing else exercises: this product writes RGBA and reads
+ * its own renders, so greyscale, palette (with and without tRNS), grey+alpha and 16-bit samples are
+ * claims that would rot unnoticed. They are driven by PNGs the test builds itself, and the refusals —
+ * a colour type PNG does not define, a bit depth the codec does not do, a filter that does not exist,
+ * image data that stops before the last scanline, a palette shorter than three bytes per entry — are
+ * pinned by their messages.
+ *
  * Run standalone: `node deepblend/tests/contract/png-sheet.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
  */
@@ -287,6 +294,174 @@ for (const filterType of [0, 1, 2, 3, 4]) {
 }
 check('all five PNG scanline filters decode to the same image',
   filterMismatches === 0, { mismatches: filterMismatches })
+
+// ---- the other colour types: capabilities nothing else exercises ------------
+//
+// The decoder's contract is "8-bit PNG in the FIVE colour types Blender emits", plus 16-bit samples and
+// Adam7 — but this product only ever writes one of them (RGBA, type 6) and only ever reads its own
+// renders, so the arithmetic for greyscale, palette and grey+alpha is a claim nothing ran. A claim that
+// nothing runs is exactly what rots quietly: the branch is one `sample()` index away from being wrong and
+// no test in this repository would notice. The bytes below are built by the test, not by the codec.
+
+/**
+ * A PNG of any colour type. `samplesAt(x, y)` returns the samples in the FILE's own channel order, and
+ * `claimedHeight` lets a case promise more scanlines than the IDAT actually carries.
+ */
+function typedPng(input) {
+  const { width, colorType, channels, samplesAt } = input
+  const bitDepth = input.bitDepth ?? 8
+  const height = input.height
+  const bytesPerSample = bitDepth / 8
+  const stride = width * channels * bytesPerSample
+  const raw = Buffer.alloc((stride + 1) * height)
+  for (let y = 0; y < height; y += 1) {
+    const rowStart = y * (stride + 1)
+    raw[rowStart] = input.filter ?? 0
+    for (let x = 0; x < width; x += 1) {
+      const samples = samplesAt(x, y)
+      for (let index = 0; index < channels; index += 1) {
+        const offset = rowStart + 1 + x * channels * bytesPerSample + index * bytesPerSample
+        if (bitDepth === 16) raw.writeUInt16BE(samples[index] & 0xffff, offset)
+        else raw[offset] = samples[index] & 0xff
+      }
+    }
+  }
+  const ihdr = headerChunk(input.claimedHeight ?? height, { width, bitDepth, colorType })
+  const chunks = [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), handmadeChunk('IHDR', ihdr)]
+  if (input.palette !== undefined) chunks.push(handmadeChunk('PLTE', Buffer.from(input.palette)))
+  if (input.transparency !== undefined) chunks.push(handmadeChunk('tRNS', Buffer.from(input.transparency)))
+  chunks.push(handmadeChunk('IDAT', deflateSync(raw)))
+  chunks.push(handmadeChunk('IEND', Buffer.alloc(0)))
+  return Buffer.concat(chunks)
+}
+
+/** The 13 IHDR bytes, non-interlaced. */
+function headerChunk(height, { width, bitDepth, colorType }) {
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = bitDepth
+  ihdr[9] = colorType
+  return ihdr
+}
+
+/** A PNG whose IHDR claims a header the decoder must refuse before it ever looks at pixels. */
+function headerOnlyPng({ width, height, bitDepth, colorType }) {
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    handmadeChunk('IHDR', headerChunk(height, { width, bitDepth, colorType })),
+    handmadeChunk('IDAT', deflateSync(Buffer.alloc(16))),
+    handmadeChunk('IEND', Buffer.alloc(0)),
+  ])
+}
+
+const grey = decodePng(typedPng({
+  width: 3, height: 1, colorType: 0, channels: 1, samplesAt: x => [[0, 128, 255][x]],
+}))
+check('greyscale (colour type 0) becomes RGBA with the grey in every channel and an opaque alpha',
+  pixelAt(grey, 0, 0).join(',') === '0,0,0,255' && pixelAt(grey, 1, 0).join(',') === '128,128,128,255' &&
+  pixelAt(grey, 2, 0).join(',') === '255,255,255,255',
+  { pixels: [0, 1, 2].map(x => pixelAt(grey, x, 0)) })
+
+const greyAlpha = decodePng(typedPng({
+  width: 2, height: 1, colorType: 4, channels: 2, samplesAt: x => (x === 0 ? [200, 0] : [10, 128]),
+}))
+check('greyscale+alpha (type 4) keeps BOTH halves, so a fully transparent pixel stays transparent',
+  pixelAt(greyAlpha, 0, 0).join(',') === '200,200,200,0' && pixelAt(greyAlpha, 1, 0).join(',') === '10,10,10,128',
+  { pixels: [0, 1].map(x => pixelAt(greyAlpha, x, 0)) })
+
+const PALETTE = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+const paletted = decodePng(typedPng({
+  width: 3, height: 1, colorType: 3, channels: 1, palette: PALETTE, samplesAt: x => [[1, 2, 9][x]],
+}))
+check('palette (type 3) indexes PLTE, and an index past the palette answers black instead of reading past its end',
+  pixelAt(paletted, 0, 0).join(',') === '40,50,60,255' && pixelAt(paletted, 1, 0).join(',') === '70,80,90,255' &&
+  pixelAt(paletted, 2, 0).join(',') === '0,0,0,255',
+  { pixels: [0, 1, 2].map(x => pixelAt(paletted, x, 0)) })
+
+// A PLTE whose length is not a multiple of three is malformed, and that is the ONLY input that tells the
+// bounds guard apart from an unchecked read: with a well-formed palette, `palette[i]` past the end is
+// `undefined`, `writePixel` coerces it to 0, and the guard's `[0, 0, 0, 255]` is indistinguishable from the
+// bug. Here the two answers differ — the unchecked read would return the palette's fourth byte as red
+// (`40,0,0,255`) — so this case is what makes the guard observable rather than decorative.
+const truncatedPalette = decodePng(typedPng({
+  width: 2, height: 1, colorType: 3, channels: 1, palette: [10, 20, 30, 40], samplesAt: x => [[0, 1][x]],
+}))
+check('a palette shorter than three bytes per entry answers black instead of half a colour',
+  pixelAt(truncatedPalette, 0, 0).join(',') === '10,20,30,255' &&
+  pixelAt(truncatedPalette, 1, 0).join(',') === '0,0,0,255',
+  { pixels: [0, 1].map(x => pixelAt(truncatedPalette, x, 0)) })
+
+const transparentPalette = decodePng(typedPng({
+  width: 3, height: 1, colorType: 3, channels: 1, palette: PALETTE, transparency: [0, 77], samplesAt: x => [[0, 1, 2][x]],
+}))
+check('a palette with tRNS carries per-index alpha, and an index past tRNS is opaque',
+  pixelAt(transparentPalette, 0, 0).join(',') === '10,20,30,0' &&
+  pixelAt(transparentPalette, 1, 0).join(',') === '40,50,60,77' &&
+  pixelAt(transparentPalette, 2, 0).join(',') === '70,80,90,255',
+  { pixels: [0, 1, 2].map(x => pixelAt(transparentPalette, x, 0)) })
+
+const deepGrey = decodePng(typedPng({
+  width: 2, height: 1, colorType: 0, bitDepth: 16, channels: 1, samplesAt: x => [[0xab12, 0x00ff][x]],
+}))
+check('a 16-bit sample is narrowed to its HIGH byte — pinned here because nothing else says so',
+  pixelAt(deepGrey, 0, 0).join(',') === '171,171,171,255' && pixelAt(deepGrey, 1, 0).join(',') === '0,0,0,255',
+  { pixels: [0, 1].map(x => pixelAt(deepGrey, x, 0)) })
+
+const refusals = [
+  ['a colour type PNG does not define',
+    headerOnlyPng({ width: 1, height: 1, bitDepth: 8, colorType: 5 }), /unsupported PNG colour type 5/],
+  ['a bit depth the codec does not do',
+    headerOnlyPng({ width: 1, height: 1, bitDepth: 4, colorType: 0 }), /unsupported PNG bit depth 4/],
+  ['a scanline filter that does not exist',
+    typedPng({ width: 1, height: 1, colorType: 0, channels: 1, samplesAt: () => [7], filter: 5 }),
+    /unknown PNG filter type 5 on scanline 0/],
+  ['image data that ends before the last scanline',
+    typedPng({ width: 2, height: 2, claimedHeight: 3, colorType: 6, channels: 4, samplesAt: () => [1, 2, 3, 4] }),
+    /PNG image data ended before the last scanline/],
+]
+check('each refusal names the thing it refused, and the header checks answer before any pixel is read',
+  refusals.every(([, buffer, pattern]) => {
+    try {
+      decodePng(buffer)
+      return false
+    } catch (cause) {
+      return pattern.test(String(cause.message))
+    }
+  }),
+  refusals.map(([why, buffer]) => {
+    try {
+      decodePng(buffer)
+      return `${why}: NO REFUSAL`
+    } catch (cause) {
+      return `${why}: ${cause.message}`
+    }
+  }))
+// SHADOWED, AND NAMED RATHER THAN PRETENDED COVERED: `readPixel` has a `default:` that throws
+// "unsupported PNG colour type", and no input can reach it — the header check above refuses the same
+// colour type before a single pixel is read (the check just above proves the ORDER by refusing a header
+// whose IDAT is meaningless). Two guards for one rule is one guard too many, but deleting the inner one
+// would make `readPixel` answer `undefined` if the outer check ever moved; this comment is where that
+// trade is recorded, since no assertion can stand on the branch itself.
+
+const encodeRefusals = (() => {
+  const messageOf = run => {
+    try {
+      run()
+      return 'NO REFUSAL'
+    } catch (cause) {
+      return String(cause.message)
+    }
+  }
+  return {
+    zero: messageOf(() => encodePng({ width: 0, height: 5, data: new Uint8Array(0) })),
+    short: messageOf(() => encodePng({ width: 2, height: 2, data: new Uint8Array(4) })),
+  }
+})()
+check('the encoder refuses an empty dimension and a buffer too small to fill the pixels, by name',
+  encodeRefusals.zero === 'cannot encode a 0x5 image' &&
+  encodeRefusals.short === 'pixel buffer is 4 bytes, need 16',
+  encodeRefusals)
 
 // ---- primitives ------------------------------------------------------------
 
