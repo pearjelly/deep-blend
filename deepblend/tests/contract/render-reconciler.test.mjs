@@ -33,6 +33,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { createImage, encodePng } from '@deepblend/dsh-blender-contracts'
 import {
   RenderJobStore,
   checkProcessAlive,
@@ -40,6 +41,17 @@ import {
   readFrameLedger,
   reconcileRenderJob,
 } from '@deepblend/dsh-blender-host'
+
+/**
+ * A real PNG at the resolution the records below declare, because the ledger judges frames by their BYTES
+ * and their HEADER: a solid 32x32 image compresses to ~100 bytes and is read as `truncated` (round 52 paid
+ * for that one), so the pixels are made incompressible and the size matches `renderConfig.resolution`.
+ */
+const frameImage = createImage(320, 180, [10, 20, 30, 255])
+for (let index = 0; index < frameImage.data.length; index += 1) {
+  frameImage.data[index] = (index * 7 + (index >> 3)) & 0xff
+}
+const framePng = encodePng(frameImage)
 
 const scratch = mkdtempSync(join(tmpdir(), 'deepblend-reconciler-'))
 const projects = join(scratch, 'projects')
@@ -247,4 +259,80 @@ test('the orphan is stopped BEFORE the ledger is read, which is the documented o
   assert.equal(finding.resumable, true, 'a job whose orphan was stopped IS resumable')
   assert.equal(finding.process.stopped.gone, true, 'and the stop is verified, not assumed')
   assert.equal(checkProcessAlive(child.pid).alive, false, 'the orphan is really gone')
+})
+
+// ---------------------------------------------------------------------------
+// The answers that are not about a live process at all
+// ---------------------------------------------------------------------------
+
+test('a pid that cannot be a process is answered as INVALID rather than probed', () => {
+  // `checkProcessAlive` is the function every "is it still running?" question goes through, and its guard
+  // exists so that a nonsense pid cannot be turned into a signal later. "There is no such process" and
+  // "that is not a pid" are different facts, and the second one is reported as `invalid` instead of being
+  // folded into the first.
+  for (const value of [0, -1, 1.5, Number.NaN, '123']) {
+    const answer = checkProcessAlive(value)
+    assert.equal(answer.alive, false, `${String(value)} must not read as alive`)
+    assert.equal(answer.invalid, true, `${String(value)} must read as an invalid pid`)
+  }
+})
+
+test('a process whose command line cannot be read is NOT claimed as this job\'s renderer', () => {
+  // The identity check exists because pids are recycled: an alive pid is not evidence of anything until its
+  // argv names this job's directory. An empty command line means the identity cannot be established at all,
+  // and the answer has to say exactly that rather than match on the pid.
+  for (const command of [null, '']) {
+    const verdict = identifyProcess({ pid: 12345, jobDirectory: '/tmp/jobs/render-0001', command })
+    assert.equal(verdict.matches, false)
+    assert.equal(verdict.reason, 'the process has no readable command line')
+  }
+})
+
+test('a job whose frames all landed is still NOT complete: it owes its video, and the record says so', async () => {
+  // "All frames are present" is where a delivery silently ships without a video if the reconciler reads it
+  // as `completed`. The record goes to `recovering` with nothing missing, and the message names the debt.
+  const jobId = 'render-0010'
+  const record = runningRecord({ jobId, pid: null })
+  const framesDirectory = store.framesDirectory('demo', jobId)
+  mkdirSync(framesDirectory, { recursive: true })
+  for (const frame of [1, 2, 3]) {
+    writeFileSync(join(framesDirectory, `frame_${String(frame).padStart(4, '0')}.png`), framePng)
+  }
+  const { finding } = await reconcile(record)
+  const stored = store.read('demo', jobId)
+  assert.equal(finding.status, 'recovering')
+  assert.equal(finding.resumable, true)
+  assert.deepEqual(stored.missingFrames, [])
+  assert.equal(stored.status, 'recovering')
+  assert.equal(
+    stored.message,
+    'all frames are present; the job still owes its encoded video and delivery manifest',
+  )
+})
+
+test('a recovery report that cannot be written does not abort the recovery it describes', async () => {
+  // `recovery.json` is the audit trail BESIDE the record, and the record is the authority. A directory
+  // standing where the report belongs makes the write fail for real; the recovery must still finish.
+  const jobId = 'render-0011'
+  const record = runningRecord({ jobId, pid: null })
+  mkdirSync(join(store.jobDirectory('demo', jobId), 'recovery.json'), { recursive: true })
+  const { finding } = await reconcile(record)
+  assert.equal(finding.status, 'recovering')
+  assert.equal(store.read('demo', jobId).status, 'recovering', 'the record is the authority and it was written')
+})
+
+test('a process identity document that is not JSON counts as no identity at all', async () => {
+  // A half-written `process.json` is what a kill between the write and the flush leaves behind. Reading it
+  // as "no pid recorded" is the honest answer; throwing would take the whole reconciliation pass down.
+  const jobId = 'render-0012'
+  const record = runningRecord({ jobId, pid: null })
+  mkdirSync(store.jobDirectory('demo', jobId), { recursive: true })
+  writeFileSync(join(store.jobDirectory('demo', jobId), 'process.json'), '{"pid": 12', 'utf8')
+  const { finding } = await reconcile(record)
+  assert.equal(finding.process, null)
+  assert.equal(finding.status, 'recovering')
+  assert.ok(
+    finding.notes.some(note => note.includes('no pid')),
+    `the finding must say there was no pid to check: ${JSON.stringify(finding.notes)}`,
+  )
 })

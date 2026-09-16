@@ -6304,3 +6304,62 @@ total self-counted assertions: 1337
 **12 → 0**——两个文件都从名单上消失。
 
 契约层快照 1329 → **1337**（`visual-loop.test.mjs` 101 → 104、`store-error-paths.test.mjs` 25 → 30）。
+
+## 83. 「不发明字段」的另一半，和守卫自己的守卫
+
+### 83.1 一次真的安装走查（本轮先跑的四件事）
+
+在继续读黑暗行之前，先把「陌生人能不能装上」这条**最重要的承诺**重新量了一遍：
+
+```
+$ npm run setup:check     → the workspace resolves all 12 package(s) from the deployment
+$ npm run blender:check   → the pinned Blender 5.2.1 is installed
+$ npm run plugin:check    → DeepBlend is installed in the "web" profile at ~/.dsh
+$ npm run presets:check   → the installed presets match the repository
+$ npm run verify:clone    → ✓ the documented install path works from a clean clone against a clean DSH_HOME
+                            （clone 里契约层 57/57 文件通过；Blender 那一段按设计跳过）
+```
+
+四条 check 全绿、`verify:clone` 在**全新 clone + 全新 `DSH_HOME`** 上走完四步并在 clone 里跑通契约层。
+这正是「优秀开源项目」这一半最该被反复量的一条，而它此前只在 CI 里被量过（README §28）。
+
+### 83.2 「没有发明字段」要在**会覆盖**的输入上测
+
+编译器的 `default: return { ...generator }`（未知生成器形状原样透传）第一次的断言**没能抓住变异**：
+我的 fixture 写的是 `{ shape: 'dodecahedron', size: 1 }`，而「悄悄填上 `size: 1`」的变异在这种输入上
+**什么都没改变**——于是检查通过了，变异活了下来。把输入改成 `size: 7` 之后，同一断言立刻变红
+（读数正是被覆盖后的 `{"shape":"dodecahedron","size":1}`）。
+
+**这是「pass-through」类断言的通用形状**：要证明「我什么都没做」，输入必须带一个**默认值不会等于它**
+的值。同一轮另外三条：未知形状的包围半径默认 1（乘最大缩放，不是 0、也不是猜）、point/spot 灯的默认
+瓦数 100/200。
+
+### 83.3 守卫自己的守卫
+
+`render-reconciler` 里四条「不是关于活进程」的答案：**不是一个 pid 的值**（`0`、负数、小数、`NaN`、
+字符串）答 `invalid: true` 而不是去探测；**命令行为空**时不许靠 pid 认定身份（pid 会被回收，这正是
+身份检查存在的理由）；**帧全到齐**仍然不是完成（还欠视频与交付清单——把它读成 completed 正是
+「交付悄悄没有视频」的来路）；**recovery.json 写不下去**不能中止它所描述的恢复（记录才是权威，
+那份报告是旁边的审计线索）；**process.json 是半截 JSON** 时按「没有 pid」处理，而不是让整趟调协崩掉。
+
+后两条要真造出失败：一个**目录**站在 `recovery.json` 的位置；一份**被截断的** `process.json`。
+而「帧全到齐」这一条又踩了一次第 52 轮的坑——**纯色小图会被压成 100 字节**，被账本读成 `truncated`：
+帧必须是**声明分辨率上的、不可压缩的**真 PNG。
+
+### 83.4 变异与收口
+
+八条变异全红（M1 修好输入后才红，见 83.2）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1341
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 103 (0.9%) → **90 (0.7%)**、
+**有黑暗行的文件数 18 → 17**，`render-reconciler.js` **8 → 0**、`scene-spec.js` **10 → 5**
+（剩下的 5 行**正是**83.2 里点名的那条被 schema 遮住的分支）。
+
+契约层快照 1337 → **1341**（`scene-spec.test.mjs` 90 → 94），`node:test` 用例 278 → **283**
+（`render-reconciler.test.mjs` 4 → 9；两个数字都是本轮实测，不是推算）。

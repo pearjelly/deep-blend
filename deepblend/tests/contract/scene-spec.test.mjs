@@ -38,6 +38,7 @@ import {
   SCENE_SCHEMA_VERSION,
   canonicalStringify,
   compileSceneSpec,
+  entityBoundingRadius,
   sceneProjection,
   sceneSpecCanonicalText,
   sceneSpecDigest,
@@ -684,6 +685,63 @@ checkSemantic('keyframes that do not strictly increase', spec => {
   check('a spec with a legal material ramp, clipping and shot range is still valid — the negative control',
     clean.ok === true, { ok: clean.ok, errors: clean.errors.map(error => `${error.code}@${error.path}`) })
 }
+
+// ---------------------------------------------------------------------------
+// The compiler's defaults, and the one branch the SCHEMA answers first
+// ---------------------------------------------------------------------------
+//
+// A SceneSpec that names a generator this build does not know is not an error: the shape is passed through
+// untouched for the Python side to refuse, and the ONLY thing the Node side may do with it is leave it alone.
+// "Invent nothing" is the rule the whole file is built on, so the check asserts both halves — the shape
+// arrives unchanged AND no default fields appeared beside it.
+
+const oddShape = {
+  ...compileSceneSpec(loadFixture()).spec,
+  // `size: 7` rather than the schema's default, so that "nothing was added" and "nothing was OVERWRITTEN"
+  // are the same assertion: a default branch that quietly filled in `size: 1` would pass on an input whose
+  // size was already 1 (which is how the first version of this check let that mutation live).
+  entities: [{ id: 'weird', type: 'generator', generator: { shape: 'dodecahedron', size: 7 }, transform: { location: [0, 0, 0], rotationEuler: [0, 0, 0], scale: [2, 1, 1] } }],
+}
+const oddCompiled = compileSceneSpec(oddShape)
+check('a generator shape this build does not know is passed through UNTOUCHED, with no fields invented or overwritten',
+  JSON.stringify(oddCompiled.spec?.entities?.[0]?.generator) === JSON.stringify({ shape: 'dodecahedron', size: 7 }),
+  oddCompiled.spec?.entities?.[0]?.generator)
+// The bounding radius is what the visual review ranks subjects by (D46's defect was a cylinder scored as a
+// sphere), so an unknown shape must fall back to a NAMED 1 rather than to 0 or to a guess: the scale is
+// still applied, which is what makes the fallback defensible instead of arbitrary.
+check('an unknown shape has a bounding radius of 1 × the largest scale, not 0 and not a guess',
+  entityBoundingRadius({ generator: { shape: 'dodecahedron' }, transform: { scale: [2, 1, 1] } }) === 2 &&
+  entityBoundingRadius({ generator: { shape: 'cube', size: 2 }, transform: { scale: [1, 1, 1] } }) === Math.sqrt(3),
+  { unknown: entityBoundingRadius({ generator: { shape: 'dodecahedron' }, transform: { scale: [2, 1, 1] } }),
+    cube: entityBoundingRadius({ generator: { shape: 'cube', size: 2 }, transform: { scale: [1, 1, 1] } }) })
+
+// Every light type has a defensible default in watts, and the two that were never exercised are the ones a
+// MOVEABLE rig uses: a point light and a spot. Unfilled, they would compile to `energy: undefined` and the
+// renderer would receive a light with no intensity.
+const rigged = {
+  ...compileSceneSpec(loadFixture()).spec,
+  lights: [
+    { id: 'key-point', type: 'point', transform: { location: [1, 0, 2] } },
+    { id: 'key-spot', type: 'spot', transform: { location: [0, 0, 3] } },
+  ],
+}
+const riggedCompiled = compileSceneSpec(rigged)
+check('a point light and a spot get their own default wattage instead of compiling with no energy',
+  JSON.stringify(riggedCompiled.spec?.lights?.map(light => light.energy)) === JSON.stringify([100, 200]),
+  riggedCompiled.spec?.lights?.map(light => light.energy))
+
+// SHADOWED, AND NAMED RATHER THAN PRETENDED COVERED: the validator's `SCENE_ID_INVALID` check (a collection
+// entry whose id does not match the id grammar) cannot fire, because the JSON schema rejects the same id
+// first — measured on all seven collections (entities, materials, lights, cameras, shots, animationTracks,
+// assets and render-profile names all answer SCENE_SCHEMA_INVALID). The check below therefore asserts the
+// ORDER, which is the fact a reader needs; the branch itself is dead code the schema has made unreachable.
+const invalidIdSpec = compileSceneSpec(loadFixture()).spec
+invalidIdSpec.entities[0].id = 'Bad Id!'
+const invalidId = validateSceneSpec(invalidIdSpec)
+check('an id the grammar forbids is refused by the SCHEMA, so the validator\'s own id check never fires',
+  invalidId.errors.some(error => error.code === 'SCENE_SCHEMA_INVALID') &&
+  !invalidId.errors.some(error => error.code === 'SCENE_ID_INVALID'),
+  invalidId.errors.map(error => `${error.code}@${error.path}`))
 
 console.log('')
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
