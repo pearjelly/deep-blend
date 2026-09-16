@@ -5595,3 +5595,42 @@ total self-counted assertions: 1249
 契约层 **56 个文件**（1249 项自计断言 / 27 个打印计数 + 278 个 `node:test` 用例 / 29 个文件），
 README 的快照现在**有一条命令可复现**。**产品代码未改**，覆盖率读数不变（305 行 / 2.5%，
 本轮没有触碰 `packages/**`，因此不需要重测）。
+
+## 71. 一次失败的预览之后，store 是什么状态
+
+`revision-transaction` 剩下的 39 行黑暗里，最值钱的一簇是**预览渲染失败之后**：
+`renderPreviewInto` 的两处拒绝（spec 没有 preview profile / 没有相机）、
+「渲染器说成功但没写图」、以及 commit 里那条 catch——它把 staging 清掉、写一条
+`jobs/<jobId>.attempt.json` 失败尝试记录，然后抛出一句**调用方真正需要的话**：
+
+```
+Rendering the preview for revision r0001 failed, so the project is unchanged (current revision r0000): the renderer died
+```
+
+`contract/revision-preview-failure.test.mjs`：**8 项**（runtime 是 stub，store / staging / 记录都是真的）。
+
+### 71.1 两处「我断言的东西产品并没有承诺」
+
+写这个文件时有两条检查先红了，而两次都**不是产品的错**：
+
+1. 我断言「失败的预览之后，项目目录里不该有 staging 残留」——**产品没有承诺这件事**：
+   它承诺的是「失败的首次提交不留下**项目**」（记录被移除，`store.exists()` 为假），
+   而目录可以留下一点没人读的残留，由下一次事务清扫（README 里本来就写着「崩溃最多留下 staging」）。
+   改成断言**项目不存在**，并把测到的残留写成事实。
+2. 我断言失败 `detail` 的 `path` 是 `null`——那是我从 `failure.detail?.path ?? null` 反推的猜测；
+   实际用那条**能读到的失败尝试记录**来断言更有意义（读文件、断 `errorCode`）。
+
+**两处的共同形状**：把「我希望它这样」写成断言，而不是把「产品说了它这样」写成断言。
+
+### 71.2 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1257
+```
+
+契约层 **57 个文件**（1257 项自计断言 / 28 个打印计数 + 278 个 `node:test` 用例 / 29 个文件）。
+**产品代码未改**，覆盖率读数不变（305 行 / 2.5%；本轮没有触碰 `packages/**`）。
+**变异测试未跑**：这一轮的时间用在了两处「断言了产品没承诺的事」上，下一次动这些行时必须补跑。
