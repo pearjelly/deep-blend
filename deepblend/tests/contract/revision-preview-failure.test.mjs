@@ -122,21 +122,54 @@ async function studioWith(preview) {
     failed instanceof BlenderError && failed.code === code('SCRIPT_ERROR') &&
     /^Rendering the preview for revision r0001 failed, so the project is unchanged \(current revision r0000\): the renderer died$/.test(failed.message),
     failed?.message ?? failed)
-  const projectDirectory = world.store.projectDirectory('preview-failure')
-  const attemptPath = join(projectDirectory, 'jobs', `${failed.detail.jobId}.attempt.json`)
-  check('and the failed attempt is recorded where a person can find it afterwards, before the project is swept',
-    existsSync(attemptPath) &&
-    JSON.parse(readFileSync(attemptPath, 'utf8')).errorCode === code('SCRIPT_ERROR'),
-    existsSync(attemptPath) ? JSON.parse(readFileSync(attemptPath, 'utf8')).errorCode : 'no attempt record')
   // MEASURED, and kept as a fact rather than a wish: a failed first commit removes the project's
   // RECORD (and the job log with it, because a job record for a project that does not exist is
   // unreadable), while some directories can remain on disk. The project is gone — `store.exists()` is
   // the question that decides that — and the residue is a directory nothing reads, which the next
   // transaction sweeps. Asserting "the tree is empty" would be asserting something the product does
   // not promise.
-  check('and the project record still points at the genesis revision, so nothing was published',
-    world.store.exists('preview-failure') === false || world.store.readRecord('preview-failure').revisionCount === 0,
-    world.store.exists('preview-failure') ? world.store.readRecord('preview-failure').revisionCount : 'removed')
+  // The promise is exact: "a first compile that fails leaves no project behind", which is
+  // `store.exists()` — the presence of `project.json` — and NOT "the record still says revisionCount 0"
+  // (an OR of the two would pass with the cleanup removed; a mutation proved it).
+  check('and no project is left behind at all, because a first commit that fails costs a message and not the id',
+    world.store.exists('preview-failure') === false,
+    world.store.exists('preview-failure') ? world.store.readRecord('preview-failure') : 'no project')
+
+  // What the failure must NOT leave is anything that blocks the next attempt: "a refusal costs a
+  // message, not your work" is the rule this file keeps, and the retry is how it is measured.
+  const retried = await world.transactions.createProject({
+    title: 'preview-failure', projectId: 'preview-failure', sceneSpec: spec, saveCheckpoint: true,
+  }).catch(cause => cause)
+  check('and the same project id can be retried immediately, which is what "nothing was left behind" means',
+    retried instanceof Error === false && retried.revision?.revision === 'r0001',
+    retried instanceof Error ? retried.message : retried.revision?.revision)
+}
+
+{
+  // The other half of the same rule: once a revision EXISTS the project is real and must survive a
+  // failed later commit — and the failed attempt is then readable, because it is not swept away with a
+  // project that is not going anywhere.
+  const failing = await studioWith(async () => { throw new Error('the renderer died again') })
+  const first = await failing.transactions.createProject({ title: 'second-attempt', sceneSpec: spec, saveCheckpoint: true })
+  const second = await failing.transactions.createProject({
+    title: 'second-attempt-patch', projectId: 'second-attempt', sceneSpec: spec, saveCheckpoint: true,
+  }).then(() => null, cause => cause)
+  check('a repeat commit under the SAME id is refused as an existing project, which is the answer that keeps the id honest',
+    second instanceof BlenderError && second.code === code('PROJECT_EXISTS'),
+    second?.code ?? second)
+
+  const attempt = await failing.transactions.applyScenePatch({
+    projectId: first.projectId, baseRevision: first.revision.revision, saveCheckpoint: true, renderPreview: true,
+    operations: [{ op: 'entity.transform.update', entityId: 'watch-body', location: [0, -0.4, 0.02] }],
+  }).catch(cause => cause)
+  const attemptPath = join(failing.store.projectDirectory(first.projectId), 'jobs', `${attempt.detail?.jobId}.attempt.json`)
+  check('a preview that fails on an EXISTING project leaves the project, and a readable failed-attempt record',
+    attempt instanceof BlenderError &&
+    /failed, so the project is unchanged \(current revision r0001\): the renderer died again$/.test(attempt.message) &&
+    failing.store.exists(first.projectId) === true &&
+    existsSync(attemptPath) &&
+    JSON.parse(readFileSync(attemptPath, 'utf8')).errorCode === code('SCRIPT_ERROR'),
+    { message: attempt?.message, exists: failing.store.exists(first.projectId), record: existsSync(attemptPath) })
 }
 
 // ---------------------------------------------------------------------------

@@ -5634,3 +5634,52 @@ total self-counted assertions: 1257
 契约层 **57 个文件**（1257 项自计断言 / 28 个打印计数 + 278 个 `node:test` 用例 / 29 个文件）。
 **产品代码未改**，覆盖率读数不变（305 行 / 2.5%；本轮没有触碰 `packages/**`）。
 **变异测试未跑**：这一轮的时间用在了两处「断言了产品没承诺的事」上，下一次动这些行时必须补跑。
+
+## 72. 一次失败的预览：一条被断言「承诺」找出来的真缺陷
+
+第 64 轮把 `revision-transaction` 那簇黑暗驱动起来（无 preview profile / 无相机 /
+「渲染器说成功但没写图」/ commit 的 catch），第 65 轮补跑变异时暴露出**两条断言写得太松**
+（一个 `||` 让「项目不存在」永远成立、一个把「我希望」当「产品承诺」）——修紧之后，它们立刻
+**变红并指出一条真缺陷**：
+
+`commit` 的**编译**失败路径有一条守卫，注释里写着它被量出来的理由——
+「首次提交失败必须不留下项目」，否则 id 被烧掉（`store.exists()` 仍为真、读它抛 `REVISION_ID_INVALID`、
+重试同 id 抛 `PROJECT_EXISTS`，项目列表里出现一个打不开的项目）。
+而**预览**失败路径（编译成功、渲染死掉）没有这条守卫——它只存在于另一个 catch 里。
+
+于是「一次失败的预览」会留下那个半成品项目。修法是把规则收进一个方法
+`_discardEmptyProject(projectId)`，两条失败路径都调用它（判据仍是 `revisionCount === 0`：
+一旦有 revision，项目就是真的，后续失败不许把它删掉）。
+
+### 72.1 断言要写在**承诺**上，不是写在**代码形状**上
+
+两条新断言：
+
+* `store.exists(projectId) === false`——**承诺的原文**（不是「记录里 revisionCount 是 0」，
+  那个 `||` 让删不删都通过）；
+* **同一个 project id 立刻可以重试**且拿到 `r0001`——「a refusal costs a message, not your work」。
+
+后者尤其值钱：它不描述任何实现细节，只描述**用户能不能继续干活**，因此既抓到了缺陷，
+也不会因为重构而误报。
+
+同时补上另一半：**已有 revision 的项目**上预览失败 → 项目留下、`jobs/<jobId>.attempt.json`
+可读（这就是那条失败尝试记录的用途）。两条路径的差别，正是「项目是否已经是真的」。
+
+### 72.2 两条活下来的变异，都是「不可达」而不是「有洞」
+
+* 把 `_discardEmptyProject` 的 `revisionCount === 0` 改成 `true`：**在任何可达输入上等价**——
+  它只在 `plan.kind === 'project_create'` 时被调用，而 `createProject` 不会在一个已存在的 id 上跑；
+* 删掉预览 catch 里的 `removeTree(staging)`：**产品的契约不依赖它**——
+  残留 staging 由下一次事务清扫（README 的「崩溃最多留下 staging」）。
+
+按 D141 的分类，这两条属于「还没找到能让它发生的形状」那一类，**不补断言，只记下来**。
+
+### 72.3 本轮收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1259
+读数：产品可执行行黑暗 305 (2.5%) → 272 (2.2%)
+```

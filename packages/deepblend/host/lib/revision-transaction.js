@@ -584,9 +584,7 @@ export class RevisionTransaction {
         // must survive a failed LATER compile exactly as it does today. What is not kept is the
         // failed job record — it lives inside the project directory, and a job record for a
         // project that does not exist is not something anyone can read.
-        if (plan.kind === 'project_create' && this.store.readRecord(projectId)?.revisionCount === 0) {
-          removeTree(this.store.projectDirectory(projectId))
-        }
+        if (plan.kind === 'project_create') this._discardEmptyProject(projectId)
 
         throw new BlenderError(
           failure.code === 'BLENDER_SCRIPT_ERROR' ? BlenderErrorCode.SCRIPT_ERROR : failure.code,
@@ -637,6 +635,7 @@ export class RevisionTransaction {
         removeTree(staging)
         const job = writeJob({ status: 'failed', revision: null, errorCode: failure.code, message: failure.message })
         this.recordFailedAttempt(projectId, { revision, baseRevision: plan.baseRevision, job, failure, plan })
+        if (plan.kind === 'project_create') this._discardEmptyProject(projectId)
         throw new BlenderError(
           failure.code === 'BLENDER_SCRIPT_ERROR' ? BlenderErrorCode.SCRIPT_ERROR : failure.code,
           `Rendering the preview for revision ${revision} failed, so the project is unchanged ` +
@@ -866,6 +865,32 @@ export class RevisionTransaction {
    * Written to `jobs/`, NOT to `revisions/`: a failure must be visible and must
    * never look like a version of the project.
    */
+  /**
+   * Discard a project whose FIRST commit failed, so the id is not burned.
+   *
+   * WHY THIS IS A METHOD AND NOT TWO COPIES: it was written for the COMPILE failure path, with a
+   * measured reason — `createProject` writes the skeleton and the record before it compiles, so a
+   * failure used to leave `currentRevision: r0000, revisionCount: 0` on disk; reading it back threw
+   * `REVISION_ID_INVALID` (not a "no revisions yet" answer), retrying the same id threw
+   * `PROJECT_EXISTS`, and the project list showed a project that errors when opened.
+   *
+   * The PREVIEW failure path — a render that dies after a successful compile — kept the half-project,
+   * because the guard only existed in the other catch. MEASURED by asserting the promise ("a refused
+   * first commit costs a message, not your work") instead of the code's shape: `store.exists()` was
+   * still true and retrying the id failed. The rule is one fact, so it lives here and both paths call
+   * it.
+   *
+   * `revisionCount === 0` is the guard rather than "this was a project_create": once a revision
+   * exists the project is real and must survive a failed later commit.
+   *
+   * @param {string} projectId
+   */
+  _discardEmptyProject(projectId) {
+    if (this.store.readRecord(projectId)?.revisionCount === 0) {
+      removeTree(this.store.projectDirectory(projectId))
+    }
+  }
+
   recordFailedAttempt(projectId, input) {
     try {
       writeJsonAtomic(
