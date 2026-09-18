@@ -36,6 +36,7 @@ import { join } from 'node:path'
 
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
+import { declaredTools } from '../lib/tool-definitions.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const results = []
@@ -48,90 +49,10 @@ const TOOL_DIR = join(ROOT, 'packages', 'deepblend', 'tool', 'lib')
 const SOURCES = ['index.js', 'tools.js', 'render-tools.js', 'visual-tools.js']
   .map(name => ({ name, text: readFileSync(join(TOOL_DIR, name), 'utf8') }))
 
-/** Every `defineTool({ … })` block, found by brace matching so a nested object does not end it early. */
-function defineToolBlocks(text) {
-  const blocks = []
-  let at = text.indexOf('defineTool({')
-  while (at !== -1) {
-    const open = text.indexOf('{', at)
-    let depth = 0
-    let index = open
-    for (; index < text.length; index += 1) {
-      if (text[index] === '{') depth += 1
-      else if (text[index] === '}') {
-        depth -= 1
-        if (depth === 0) break
-      }
-    }
-    blocks.push(text.slice(open, index + 1))
-    at = text.indexOf('defineTool({', index)
-  }
-  return blocks
-}
-
-/**
- * The `parameters` object of a block: its TOP-LEVEL keys, at brace depth 1.
- *
- * Depth matters rather than indentation: the first version matched any `word: {` at four to eight spaces,
- * which swept up `items:` from the JSON-Schema spelling of an array parameter and reported four tools as
- * declaring a parameter their handler never read. A schema keyword is not a parameter.
- */
-function declaredParameters(block) {
-  const start = block.indexOf('parameters:')
-  if (start === -1) return []
-  if (block.slice(start, start + 40).includes('undefined')) return []
-  const open = block.indexOf('{', start)
-  const keys = []
-  let depth = 0
-  for (let index = open; index < block.length; index += 1) {
-    const char = block[index]
-    if (char === '{') {
-      depth += 1
-      continue
-    }
-    if (char === '}') {
-      depth -= 1
-      if (depth === 0) break
-      continue
-    }
-    if (depth !== 1) continue
-    const rest = block.slice(index)
-    const match = /^([a-zA-Z][a-zA-Z0-9_]*):\s*(?:\{|[A-Z][A-Z0-9_]*[,}])/.exec(rest)
-    if (match === null) continue
-    // Only a key that starts a line: `{ id: x }` on one line is a value, not a declaration.
-    const before = block.slice(0, index)
-    const lineStart = before.lastIndexOf('\n') + 1
-    if (!/^\s*$/.test(before.slice(lineStart))) continue
-    keys.push(match[1])
-  }
-  return keys
-}
-
-const tools = []
-for (const source of SOURCES) {
-  for (const block of defineToolBlocks(source.text)) {
-    const name = /name: '([a-z_]+)'/.exec(block)?.[1]
-    if (name === undefined) continue
-    // `args?.x` and `args.x` are both reads; the optional-chaining spelling is used where the caller may
-    // omit the whole object.
-    const read = [...new Set([...block.matchAll(/\bargs\?\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1])
-      .concat([...block.matchAll(/\bargs\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1])))]
-    // A parameter may also arrive by DESTRUCTURING (`const { limit } = args`), which is a read even though no
-    // `args.limit` appears anywhere.
-    for (const match of block.matchAll(/const\s*\{([^}]*)\}\s*=\s*args\b/g)) {
-      for (const piece of match[1].split(',')) {
-        const key = piece.split(':').pop().split('=')[0].trim()
-        if (/^[a-zA-Z][a-zA-Z0-9_]*$/.test(key)) read.push(key)
-      }
-    }
-    // NO WHOLE-ARGS ALLOWANCE. The first version had one, and it flagged all sixteen tools — because every
-    // handler passes `args` to a helper somewhere, so an allowance that admits everybody is not an allowance
-    // but a hole. The unread direction below is applied to every tool instead, and it is safe to do so: the
-    // measurement that found the real defect (`license`, declared and never passed on) also showed no tool
-    // reading a declared parameter ONLY through a helper.
-    tools.push({ source: source.name, name, declared: declaredParameters(block), read: [...new Set(read)] })
-  }
-}
+// The parser lives in `tests/lib/tool-definitions.mjs` now, because a second checker needs the same facts
+// (`docs-consistency.test.mjs` holds these parameters against the manual's tables) — and a copied parser is the
+// worst kind of copy: the two drift silently, and a test that parses nothing looks exactly like one that passes.
+const tools = declaredTools(ROOT)
 
 check('every tool the product ships was parsed (a check over fewer tools than exist proves less)',
   tools.length === UI_TOOL_CARD_KEYS.length,

@@ -41,6 +41,7 @@ import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
 import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
+import { declaredTools } from '../lib/tool-definitions.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The manuals SPEC §23.5 asks for, and the README's own name for each. */
@@ -143,6 +144,41 @@ test('the demo section describes what the TOOLS produce, and names the tool that
     !/当前项目已推进到\s*r\d{4}/.test(demo),
     'the demo section states which revision the store is at NOW; that is operator state and cannot be kept true',
   )
+})
+
+test('every parameter table in tool-contracts.md is the tool\u2019s real parameter set', () => {
+  // The manual's tables and the tool definitions are two descriptions of one surface, and only one of them can
+  // be wrong without anybody noticing: a parameter added to a tool is invisible in the manual (the model reads
+  // the SCHEMA, so nothing breaks), and a row for a parameter that no longer exists reads as a capability.
+  // MEASURED before writing this: the tables were ACCURATE — but the first parser written for the measurement
+  // read only the FIRST table in each section and reported two tools as missing parameters, which is how a
+  // measurement error looks from the inside.
+  const contracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
+  const sections = [...contracts.matchAll(/^### [\d.]+ `(blender_[a-z_]+)`[^\n]*\n([\s\S]*?)(?=^### |^## |\Z)/gm)]
+  assert.ok(sections.length >= 5, `tool-contracts.md parsed ${sections.length} tool sections, too few to check`)
+
+  const declared = new Map(declaredTools(ROOT).map(tool => [tool.name, tool.declared]))
+  const compared = []
+  for (const [, tool, body] of sections) {
+    const rows = [...body.matchAll(/^\| `([a-zA-Z][a-zA-Z0-9_]*)`(?:\s*\/\s*`([a-zA-Z][a-zA-Z0-9_]*)`)?\s*\|/gm)]
+    if (rows.length === 0) continue // a section may describe a tool in prose (project_get does)
+    const documented = [...new Set(rows.flatMap(match => [match[1], match[2]].filter(Boolean)))].sort()
+    const real = [...(declared.get(tool) ?? [])].sort()
+    assert.deepEqual(
+      documented,
+      real,
+      `${tool}'s table in tool-contracts.md and the tool's own parameters are not the same set`,
+    )
+    compared.push(tool)
+  }
+  assert.ok(compared.length >= 5, `only ${compared.length} tables were compared, so this check is nearly vacuous`)
+
+  // THE LIMITATION, MEASURED RATHER THAN LEFT TO BE DISCOVERED: only sections that HAVE a table are compared, so
+  // adding a parameter to a tool the manual describes in prose (`blender_job_status`, and the ten tools §3 does
+  // not reach at all) is not caught here. A mutation that added one to `job_status` stayed green. That is a
+  // deliberate editorial line — §1's roster names every tool, §3 expands the ones whose contract is subtle, and
+  // the model reads the schema rather than this file — but it is written down, because "the check passed" and
+  // "the check looked" are different statements.
 })
 
 test('every blender tool a manual names is a tool that exists', () => {

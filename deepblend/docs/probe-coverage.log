@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 96 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 97 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 96 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 97 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,15 +33,15 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20355, never executed: 1269 (6.2%)   [every line]
-product CODE lines:      12172, never executed: 32 (0.3%)   [blank + comment-only excluded]
+product lines seen:      20377, never executed: 1291 (6.3%)   [every line]
+product CODE lines:      12193, never executed: 53 (0.4%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96
-product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)   32 (0.3%)
-files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9   8
-host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13   13
-provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —   —   —   —   —   —   —   38   38   38   38   20   14   14   14   14   14   14   14   14   14   6   6   6   6   6   6   6   6
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96   —   r97   —   r98
+product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)   32 (0.3%)   53 (0.4%)
+files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9   8   9
+host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13   13   13
+provider-local/lib/index.js     376 raw       368           264           168           168           168           168           168           168           168           168           168           168           124           38   —   —   —   —   —   —   —   38   38   38   38   20   14   14   14   14   14   14   14   14   14   6   6   6   6   6   6   6   6   6
 contracts/lib/ui-api.js         61 (r24)      —             —             13            13            13            13            13            13            13            13            13            13            13            13   —   —   —   —   —   —   —   13   13   13   13   13   13   0   0   0   0   0   0   0   0   0   0   0   0   0   0
 ui/lib/index.js                 68 (r24)      36            25            25            25            25            25            25            25            25            25            25            25            25            25   —   —   13   —   —   —   —   13   13   13   13   13   13   13   13   13   13   13   13   13   0   0   0   0   0   0   0
 tool/lib/tools.js               —             —             —             —             51            51            0             0             0             0             0             0             0             0             0   —   —   —   —   —   —   —   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
@@ -54,7 +54,7 @@ host/index.js · revision reads  55            —             —             �
 host/lib/index.js · render views54            —             —             —             —             —             —             —             —             —             —             0             0             0             0   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   13
 host/index.js · asset ingest + fetch31            —             —             —             —             —             —             —             —             —             —             —             7             7             7   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —
 provider-local/lib/index.js · actions50            —             —             —             —             —             —             —             —             —             —             —             —             —             0   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —   —
-contracts/lib/png.js              —             —             —             —             —             —             —             —             —             —             —             —             —             —             —   —   —   —   —   —   —   —   27   27   27   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2
+contracts/lib/png.js              —             —             —             —             —             —             —             —             —             —             —             —             —             —             —   —   —   —   —   —   —   —   27   27   27   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2
 
 ── ROUND 66: the last "cannot reach", and both answers for a settled job (product code unchanged) ──
 Round 66 closed 21 dark lines in `host/lib/index.js` (88 → 67) with two test files and no product edit.
@@ -225,6 +225,37 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 98: the reading went UP, and not because of this round ──
+The dark total rose from 32 to 53 (0.4%) in this reading, and the attribution matters more than the number: this
+round touched only test libraries and checks, while a PARALLEL contributor is working in the same repository
+(recorded in round 97's session) and added 21 lines to `contracts/lib/scene-patch.js` (lines 513-533) with no
+tests yet. Per file, `scene-patch.js` went from 6/638 to 21/659 and every other file is identical to the previous
+reading. A reading that moves because somebody else is mid-feature is still a true reading — of the tree, not of
+one person's round — which is why the per-file list is recorded alongside the total.
+
+── ROUND 97: a measurement that was wrong, and a parser that was in the wrong place ──
+`tool-contracts.md`'s per-tool tables and the tool definitions are two descriptions of one surface, and only one
+of them can be wrong without anybody noticing: a parameter added to a tool is invisible in the manual (the model
+reads the schema), while a row for a parameter that no longer exists reads as a capability.
+
+The first measurement was WRONG: it took only the FIRST table in each section and reported `scene_patch` as
+missing `actor`/`stage` and `preview_render` as missing `width`/`height` — all four are in the SECOND table of the
+same section. Reading every table, the five documented tables match the tool definitions exactly. That is the
+fourth time this session that the ruler needed calibrating before the thing it measured, which is why the check
+added here matters less for what it found today than for what it will find tomorrow.
+
+The parser for `defineTool` blocks lived inside `tool-parameters.test.mjs`, and the new check needed the same
+facts — and a copied parser is the worst kind of copy, because the two drift silently and a test that parses
+nothing looks exactly like one that passes. It now lives in `tests/lib/tool-definitions.mjs` and both checks use
+it. The new check requires every parameter table in §3 to equal its tool's declared set (only sections that HAVE
+a table; at least five tables must be compared or the check is nearly vacuous).
+
+A mutation that added a parameter to `blender_job_status` stayed GREEN, and that is by design rather than a hole:
+that tool is described in prose, and §3 expands only the tools whose contract is subtle. The limitation is now
+written next to the check, because "the check passed" and "the check looked" are different statements.
+
+Three mutations, two red; the one that was not is the limitation, recorded.
+
 ── ROUND 96: a drift that would have stopped the plugin mounting ──
 The round started by timing the four install checks (all fast: 294 / 483 / 244 / 142 ms) and found `plugin:check`
 reporting DRIFT: `profiles/web/cordis.patch.yml` was stale, because round 96 had deleted
