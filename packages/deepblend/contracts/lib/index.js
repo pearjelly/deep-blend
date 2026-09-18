@@ -656,6 +656,7 @@ export {
 } from './scene-spec.js'
 
 export { ASSET_HEAD_BYTES, assetContentVerdict, describeAssetContent } from './asset-content.js'
+export { redactUrl } from './redact.js'
 
 export {
   CAMERA_UPDATE_FIELDS,

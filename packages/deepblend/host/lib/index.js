@@ -74,6 +74,7 @@ import {
   ASSET_HEAD_BYTES,
   assetContentVerdict,
   describeAssetContent,
+  redactUrl,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
@@ -1933,7 +1934,7 @@ export default class BlenderStudio extends Service {
     if (sourceUrl !== null && request?.approved !== true) {
       throw new BlenderError(
         BlenderErrorCode.ASSET_APPROVAL_REQUIRED,
-        `Importing ${sourceUrl} fetches bytes from the network, which needs approval (SPEC §11 ` +
+        `Importing ${redactUrl(sourceUrl)} fetches bytes from the network, which needs approval (SPEC §11 ` +
           '"本地自动，网络需审批"). Nothing has been downloaded. Ask the operator, then re-issue with ' +
           'approved:true — or point at a local file with sourcePath, which needs no approval.',
         { detail: { projectId, sourceUrl, maxBytes: this.config.assetMaxBytes } },
@@ -2109,6 +2110,9 @@ export default class BlenderStudio extends Service {
    * is removed on every failure path: a half-downloaded asset is not an asset, and
    * leaving one behind would make the next attempt's "does it exist" answer wrong.
    *
+   * THE URL IS FETCHED AS GIVEN AND QUOTED ONLY AFTER `redactUrl`, because the raw one is very often a
+   * presigned link and every message here also lands in a job record and in the model's transcript.
+   *
    * @param {string} url
    * @param {AbortSignal} [signal]
    * @returns {Promise<string>} absolute path to the fetched file
@@ -2118,7 +2122,7 @@ export default class BlenderStudio extends Service {
     try {
       parsed = new URL(url)
     } catch {
-      throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `"${url}" is not a URL.`)
+      throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `"${redactUrl(url)}" is not a URL.`)
     }
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       throw new BlenderError(
@@ -2141,8 +2145,8 @@ export default class BlenderStudio extends Service {
       if (!response.ok) {
         throw new BlenderError(
           BlenderErrorCode.ASSET_FETCH_FAILED,
-          `${url} answered HTTP ${response.status}.`,
-          { detail: { url, status: response.status } },
+          `${redactUrl(url)} answered HTTP ${response.status}.`,
+          { detail: { url: redactUrl(url), status: response.status } },
         )
       }
       const chunks = []
@@ -2152,15 +2156,15 @@ export default class BlenderStudio extends Service {
         if (received > this.config.assetMaxBytes) {
           throw new BlenderError(
             BlenderErrorCode.ASSET_TOO_LARGE,
-            `${url} exceeds the configured assetMaxBytes of ${this.config.assetMaxBytes}; the download was ` +
-              'stopped rather than completed.',
-            { detail: { url, received, maxBytes: this.config.assetMaxBytes } },
+            `${redactUrl(url)} exceeds the configured assetMaxBytes of ${this.config.assetMaxBytes}; the download ` +
+              'was stopped rather than completed.',
+            { detail: { url: redactUrl(url), received, maxBytes: this.config.assetMaxBytes } },
           )
         }
         chunks.push(chunk)
       }
       if (received === 0) {
-        throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `${url} answered with no bytes.`)
+        throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, `${redactUrl(url)} answered with no bytes.`)
       }
       writeFileSync(target, Buffer.concat(chunks))
       return target
@@ -2169,8 +2173,8 @@ export default class BlenderStudio extends Service {
       if (cause instanceof BlenderError) throw cause
       throw new BlenderError(
         BlenderErrorCode.ASSET_FETCH_FAILED,
-        `${url} could not be fetched: ${cause instanceof Error ? cause.message : String(cause)}`,
-        { cause, detail: { url } },
+        `${redactUrl(url)} could not be fetched: ${cause instanceof Error ? cause.message : String(cause)}`,
+        { cause, detail: { url: redactUrl(url) } },
       )
     }
   }

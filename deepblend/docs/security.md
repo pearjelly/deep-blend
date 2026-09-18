@@ -71,7 +71,7 @@
 | 14 | 禁用 Auto Run 未知脚本 | `--factory-startup`：不执行启动脚本，bootstrap 由 `--python` 显式指定 | `deepblend/tests/contract/security-controls.test.mjs` 「the provider starts Blender with the flags the policy depends on」 | ✅ |
 | 15 | 超时与进程组终止 | `timeoutMs` + `terminate()` 的 SIGTERM→grace→SIGKILL 阶梯，整组终止 | `deepblend/tests/composition/hardening.e2e.mjs` 「stopped with a stable timeout code」 | ✅ |
 | 16 | CPU、内存、磁盘、GPU 配额 | 只有字节与时间：`maxOutputBytes`/`maxSpillBytes`/`assetMaxBytes`/`timeoutMs`。**没有** CPU、内存、GPU 配额，帧序列的磁盘占用也没有上限 | `deepblend/tests/composition/hardening.e2e.mjs` 「a child that floods stdout is reported without keeping what it printed」 | ⚠️ 偏差 §7 #9 |
-| 17 | 日志脱敏 | 一半：秘密**根本不进子进程**（环境变量白名单），但没有日志过滤器 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」 | ⚠️ 偏差 §7 #10 |
+| 17 | 日志脱敏 | 两半，各管一边：秘密**根本不进子进程**（环境变量白名单），而且**本插件自己产出的 URL 一律先脱敏**——凭据、查询串、片段被移除并在文本里**说明移除了什么**（预签名的模型链接是常态，不是特例）。仍然没有的是「用户自己贴进对话的秘密」的日志过滤器，那属于 DSH 的凭据平面 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」＋`contract/url-redaction.test.mjs` 与 `contract/host-asset-ingest.test.mjs`「a failed fetch of a PRESIGNED url quotes it with the signature removed」 | ⚠️ 偏差 §7 #10 |
 | 18 | 完整 Tool 审计 | 每次 Blender 动作留 durable job 记录；每次成功的 patch 留 operation manifest；每个 revision 留 manifest | `deepblend/tests/blender-integration/fixture.e2e.mjs` 「every Blender action left a durable job record」 | ✅ |
 
 统计：**14 条 ✅、2 条 ➖、1 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。

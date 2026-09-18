@@ -168,6 +168,24 @@ check('a remote source that is not a URL is refused as ASSET_FETCH_FAILED, quoti
   notAUrl.message === '"not a url at all" is not a URL.',
   notAUrl?.message ?? notAUrl)
 
+// A PRESIGNED URL IS THE ORDINARY CASE, not the exotic one: the link a model is handed for a model file
+// usually carries its own signature in the query. Every message this path produces also lands in a job record
+// and in the model's transcript, so the raw URL is a credential being copied around. The check asserts BOTH
+// that the secret is absent and that the removal is visible — a reader comparing the message with what they
+// pasted has to be able to tell a cleaned URL from one that never had a query.
+const presigned = await ingestError({
+  projectId,
+  sourceUrl: `${base}/missing.glb?X-Amz-Signature=deadbeefcafe&X-Amz-Credential=AKIAEXAMPLE`,
+  approved: true,
+})
+check('a failed fetch of a PRESIGNED url quotes it with the signature removed, and says so',
+  presigned instanceof BlenderError && presigned.code === code('ASSET_FETCH_FAILED') &&
+  !presigned.message.includes('deadbeefcafe') && !presigned.message.includes('AKIAEXAMPLE') &&
+  presigned.message.includes(`${base}/missing.glb (query removed)`) &&
+  !String(presigned.detail?.url ?? '').includes('deadbeefcafe') &&
+  presigned.detail?.url === `${base}/missing.glb (query removed)`,
+  { message: presigned?.message, url: presigned?.detail?.url })
+
 const wrongProtocol = await ingestError({ projectId, sourceUrl: 'file:///etc/passwd', approved: true })
 check('a protocol this will not fetch is refused by name, because "file://" is a real thing to try',
   wrongProtocol instanceof BlenderError && wrongProtocol.code === code('ASSET_FETCH_FAILED') &&
