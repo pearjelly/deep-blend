@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 91 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 92 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 91 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 92 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -37,7 +37,7 @@ product lines seen:      20339, never executed: 1267 (6.2%)   [every line]
 product CODE lines:      12170, never executed: 38 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13
@@ -225,6 +225,33 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 92: the practice this repository runs on was missing from its contributor guide ──
+`milestone-status.md` mentions mutation testing 174 times; `CONTRIBUTING.md` mentioned it ZERO times, and the
+coverage probe not at all. A stranger reading the contributor guide would never learn how this project decides
+what to test next — which is the practice the last six rounds have been running on, and which found a real
+defect in every one of them.
+
+Two sections were added: how to read the coverage probe (the three commands, what "product CODE lines" means,
+that a dark line is a QUESTION rather than a defect, that the tree must not move during a probe, and that the
+instrument has a known blind spot — a multi-line ternary buys a false dark line, so confirm with a
+`process.stderr.write` before believing one), and the mutation discipline (a surviving mutation is a question,
+aim mutations with context, one-sided checks of two-sided questions are invisible, and to prove "I did nothing"
+the input must carry a value the default cannot equal).
+
+CONTRIBUTING.md was also added to the list of manuals whose commands are checked — a contributor guide that
+names a command which cannot be run is the same defect as an install manual doing it.
+
+AND THEN A MUTATION DID NOT GO RED, pointing at a hole in the checker itself: renaming a documented command to
+`npm run test:gone                     # 必须绿` was not caught, because the extractor's pattern for
+`npm run <script>` ended with `\s*$` — a whole line of nothing else. This repository's manuals habitually put a
+comment after a command, so ANY command with a trailing comment was unchecked, and a guide could name a script
+that does not exist and stay green. The pattern now allows a trailing comment (the safer direction: naming a
+command is a claim that it exists, and a false positive is a line the author can reword), and the extractor got
+its own test — the checker is checked — which the mutation that restores `\s*$` turns red.
+
+Four mutations, all red. Contract layer 61 files, 1424 assertions, 288 node:test cases (+1); run-all.sh 16/16
+suites green.
+
 ── ROUND 91: a published contract that described something else ──
 The round started by measuring which files nothing references — one hit, and it was the ruler's fault (Python's
 `from deepblend_capabilities import …` omits the extension). Following that habit to `job-result.schema.json`:

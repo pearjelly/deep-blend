@@ -41,7 +41,12 @@ export function commandsIn(text) {
   for (const match of text.matchAll(new RegExp(`^\\s*${linePrefix}(?:node|bash) ((?:deepblend|packages)/[\\w./-]+)`, 'gm'))) {
     found.push({ kind: 'path', target: match[1] })
   }
-  for (const match of text.matchAll(new RegExp(`^\\s*${linePrefix}npm run ([\\w:-]+)\\s*$`, 'gm'))) {
+  // A TRAILING COMMENT IS ALLOWED, and that is a hole this pattern used to have: `npm run x  # 必须绿` was
+  // not matched by `\s*$`, so a manual could name a script that does not exist and pass — MEASURED by a
+  // mutation that renamed a documented command to `npm run test:gone` in CONTRIBUTING.md and was not caught.
+  // The safer direction is to catch more: naming a command is a claim that it exists, and a false positive
+  // (prose that merely starts with `npm run`) is a line the author can reword.
+  for (const match of text.matchAll(new RegExp(`^\\s*${linePrefix}npm run ([\\w:-]+)`, 'gm'))) {
     found.push({ kind: 'npm', target: match[1] })
   }
   return found

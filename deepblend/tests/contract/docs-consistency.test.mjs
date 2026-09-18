@@ -44,7 +44,11 @@ import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The manuals SPEC §23.5 asks for, and the README's own name for each. */
-const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepblend/docs/recovery.md']
+// CONTRIBUTING.md is in this list because it is a manual too: it tells a contributor which commands to run
+// before submitting, and a contributor guide naming a command that does not exist is the same defect as an
+// install manual doing it. Adding it here is what makes the new "how to decide what to test" section's
+// commands checked rather than merely written.
+const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepblend/docs/recovery.md', 'CONTRIBUTING.md']
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 // A plain object, because that is what the shared checker reads: `scripts[name] === undefined`.
@@ -70,6 +74,28 @@ test('every manual SPEC asks for is present and linked from the README', () => {
       `README.md never points at ${path}; a manual nobody is linked to is a manual nobody reads`,
     )
   }
+})
+
+test('the command extractor reads the forms the manuals actually use', () => {
+  // The extractor is a CHECKER, so it gets its own check — and this one exists because a mutation found the
+  // hole rather than because anybody thought of it: renaming a documented command in CONTRIBUTING.md to
+  // `npm run test:gone                     # 必须绿` was NOT caught, because the pattern ended with `\\s*$`
+  // and the line has a trailing comment. A manual could name a script that does not exist and stay green.
+  const samples = [
+    ['npm run setup', 'npm'], ['`npm run setup:check`', 'npm'],
+    ['npm run setup            # 把 node_modules 链接到本机已安装的 DSH 部署', 'npm'],
+    ['node deepblend/tests/run.mjs', 'path'], ['bash deepblend/tests/run-all.sh', 'path'],
+    ['# node deepblend/tools/link-workspace.mjs --check', 'path'],
+  ]
+  for (const [line, kind] of samples) {
+    const found = commandsIn(line)
+    assert.ok(
+      found.some(entry => entry.kind === kind),
+      `the extractor reads nothing from ${JSON.stringify(line)}, so a manual written that way is unchecked`,
+    )
+  }
+  // And it must not invent commands out of prose that names no script.
+  assert.deepEqual(commandsIn('这一节讲的是 npm 与它的 run 子命令。'), [])
 })
 
 test('every command a manual names can actually be run', () => {
