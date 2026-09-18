@@ -7268,3 +7268,57 @@ total self-counted assertions: 1424
 契约层 61 文件 / **1424** 项不变，`node:test` 用例 287 → **288**（提取器自己那条测试 ✓）。
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变
 （本轮只动文档、测试库与检查）。
+
+## 100. 一条被解释成「到不了」的黑暗行，其实是**能到的**
+
+### 100.1 触发它的动作：复查那些「已点名」的说法
+
+第 99 轮把探针与变异纪律写进了贡献者指南 ✓，本轮就去**复查仓库里那些「这一行到不了」的说法**是否还成立 ✓
+（本会话里「守卫先找到我」发生过两次，所以这次主动去问它们）。
+
+从 `scene-patch.js` 剩下的 6 行黑暗开始——第 57 轮把它们命名为「被 schema 的 `pattern` 遮住的 `PATCH_ID_INVALID`」，
+D154 甚至写着「**这个文件算跑完了**：每一行要么被执行、要么被证明到不了」✓。
+
+### 100.2 量它：把十种形状逐个喂进 `validateScenePatch`
+
+```
+shadowed asset.remove assetId            -> ["PATCH_SCHEMA_INVALID"]
+REACHES  entity.material.set materialId  -> ["PATCH_ID_INVALID"]
+shadowed material.parameter.update …     -> ["PATCH_SCHEMA_INVALID"]
+shadowed light.remove / camera.remove / shot.remove / animation.track.remove …
+shadowed entity.add entity.id / material.add material.id / shot.set shot.id
+```
+
+**`entity.material.set` 的 `materialId` 在 schema 里没有 `pattern`** ✓，所以这一形状由**语义层**回答 ✓——
+那 6 行**不是**死代码，它们**可达**，而且**一条测试都没有** ✗✗。也就是说：
+
+> **一条被解释成「到不了」的黑暗行，是唯一一种会真的藏住缺陷的黑暗行。**
+
+（同一次复查也确认了 `scene-spec.js` 那边的说法是**对的**：七种集合逐个量过，全部由 `SCENE_SCHEMA_INVALID` 先回答 ✓。）
+
+### 100.3 修法：写那条测试，并顺手把「两面只测一面」的那条收紧
+
+* 新增断言：`entity.material.set` 带一个非法 `materialId` → `PATCH_ID_INVALID`，**path 点名 `operations[0].materialId`**、
+  消息里带 `^[a-zA-Z][a-zA-Z0-9._-]*$` ✓（6 行黑暗因此变亮 ✓）；
+* 顺手收紧旧的那条：它写的是 `every(code === 'PATCH_SCHEMA_INVALID' || code === 'PATCH_ID_INVALID')` ✗——
+  **允许两个答案**，于是这条分支即使变成可达也不会红 ✓（又是「两面问题只测一面」的形状）。现在断言**只**是
+  `PATCH_SCHEMA_INVALID` 且**不含** `PATCH_ID_INVALID` ✓。
+
+### 100.4 变异与收口
+
+三条变异全红：把语法检查改成永假、把 `materialId` 从检查列表里删掉、让 `path` 不再点名是哪一列。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1425
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%) → 32 (0.3%)**——
+`scene-patch.js` 的 6 行**全部变亮** ✓，`scene-patch.js` 现在是**真的**跑完了（`0/638` ✓）。
+契约层 61 文件 / 1424 → **1425** 项。
+
+**一条历史更正**：D154 与第 57 轮都写着「剩下的 6 行全部是被 schema 遮住的分支，这个文件算跑完了」✗——
+那句话对**当时测的那个形状**成立，对 `entity.material.set` 不成立 ✓。更正记在 D174 里，历史行不改写 ✓
+（本仓库的日志是「当时的读数」，更正要有自己的编号 ✓）。

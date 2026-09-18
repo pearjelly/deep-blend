@@ -196,14 +196,34 @@ const badId = validateScenePatch({
   projectId: 'p', baseRevision: 'r0001',
   operations: [{ op: 'asset.add', asset: { id: '-not-an-id', type: 'glb', path: 'assets/raw/x.glb', sha256: 'a'.repeat(64) } }],
 })
-// For THIS shape the schema refuses first (its own `pattern` covers the id), so the id-grammar branch
-// is shadowed — the D125 shape, pinned rather than pretended. What matters is that a bad id never
-// reaches a scene: whichever layer answers, the patch is refused.
+// For THIS shape the schema refuses first (its own `pattern` covers the id), so the id-grammar branch is
+// shadowed — the D125 shape, pinned rather than pretended. What matters is that a bad id never reaches a
+// scene: whichever layer answers, the patch is refused.
+//
+// AND THE OTHER SHAPE IS ASSERTED RIGHT BELOW, because "shadowed" was only ever true of SOME fields. MEASURED
+// while checking whether the dark lines in `scene-patch.js` were really unreachable: `entity.material.set`'s
+// `materialId` has no `pattern` in the schema, so the semantic branch IS what answers for it — the branch was
+// reachable, and it had no test at all. A line explained away as dead code is the one kind of dark line that
+// costs a real defect.
 check('an operation naming something that cannot be an ID is refused, and for this shape the SCHEMA is what answers',
   badId.ok === false && badId.errors.length > 0 &&
-  badId.errors.every(issue => issue.code === 'PATCH_SCHEMA_INVALID' || issue.code === 'PATCH_ID_INVALID') &&
+  badId.errors.every(issue => issue.code === 'PATCH_SCHEMA_INVALID') &&
+  !badId.errors.some(issue => issue.code === 'PATCH_ID_INVALID') &&
   badId.errors.some(issue => issue.code === 'PATCH_SCHEMA_INVALID' && issue.path === 'operations[0]'),
   badId.errors.map(issue => `${issue.code}@${issue.path}`))
+
+// The other shape: a field the schema does NOT pattern (`materialId`), where the grammar check is the only
+// thing standing between a bad id and the scene. This is the assertion that makes those lines covered.
+const badMaterialId = validateScenePatch({
+  projectId: 'p', baseRevision: 'r0001',
+  operations: [{ op: 'entity.material.set', entityId: 'watch-body', materialId: '-not-an-id' }],
+})
+check('an id the schema does not pattern is caught by the grammar check, and it says which field',
+  badMaterialId.ok === false && badMaterialId.errors.length === 1 &&
+  badMaterialId.errors[0].code === 'PATCH_ID_INVALID' &&
+  badMaterialId.errors[0].path === 'operations[0].materialId' &&
+  /"-not-an-id" is not a valid id \(must match \^\[a-zA-Z\]\[a-zA-Z0-9\._-\]\*\$\)/.test(badMaterialId.errors[0].message),
+  badMaterialId.errors.map(issue => `${issue.code}@${issue.path}`))
 
 const brokenScene = { ...spec, entities: spec.entities.map(entity => (entity.id === 'watch-dial' ? { ...entity, type: 'asset-instance', assetId: 'never-ingested' } : entity)) }
 const referenceCheck = validateSceneSpec(brokenScene)
