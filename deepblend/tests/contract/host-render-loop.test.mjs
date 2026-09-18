@@ -350,6 +350,15 @@ async function fixture(plan) {
     record.status === 'failed' && record.delivery?.status === 'failed' &&
     record.delivery?.problems?.some(problem => problem.field === 'frameCount'),
     { status: record.status, delivery: record.delivery?.status, problems: record.delivery?.problems?.map(problem => problem.field) })
+  // The record keeps the DISAGREEMENT itself, both numbers included: a reader who opens the job after the
+  // process is gone has to be able to see what the verifier saw, not just that something failed. (The
+  // sentence that names the problems as JSON belongs to `exportProject`'s answer, which is a DIFFERENT
+  // message — `_deliverJob`'s own line here spells out each problem in words instead.)
+  check('and the record keeps the disagreement with both numbers, so it outlives the process that found it',
+    record.errorCode === code('ENCODE_VERIFY_FAILED') &&
+    record.delivery?.problems?.some(problem => problem.field === 'frameCount' && problem.claimed === 2 && problem.probed === 1) &&
+    /claimed 2 but probed 1/.test(record.message ?? ''),
+    { code: record.errorCode, problems: record.delivery?.problems, message: record.message })
   world.dispose()
 }
 

@@ -6575,3 +6575,53 @@ total self-counted assertions: 1365
 契约层快照 1358 → **1365**（`provider-bootstrap.test.mjs` 28 → 33、`provider-actions.test.mjs` 25 → 27）。
 现在 9 个文件里的 45 行中，**8 个文件（25 行）全部是已点名的「到不了」或「竞态/防御守卫」**，
 唯一还剩真活的是 `host/lib/index.js` 的 20 行。
+
+## 88. 宿主的「我不知道」：三处回答，一处死掉的分支
+
+`host/lib/index.js` 的 20 行是本轮唯一的真活。这一轮切的是**「产品在没有东西可给时说什么」**。
+
+### 88.1 恢复一个没有 checkpoint 的 revision
+
+一个用 `saveCheckpoint: false` 提交的 revision 没有 `.blend`，恢复到它时必须报
+**`checkpoint: null`**，而不是一个从没写出来的路径——面板显示这个字段，而那里的路径就是一句
+「从这里渲染能成功」的承诺。驱动方式：提交第二个 revision，再恢复回第一个（无 checkpoint）✓
+读数 `{restored: true, from: 'r0002', checkpoint: null}`。
+
+### 88.2 一个「还没有任何 revision」的项目
+
+`currentRevision: null` 是项目在第一次提交完成**之前**的状态（也是 `_discardEmptyProject` 在失败后清理的
+那个状态）。列出它既不能抛错、也不能编造一个场景：行里 `scene: null`，而且**不能**被标成 `unreadable`
+——「没有东西可读」和「读失败了」是两件事。
+
+### 88.3 一个没有记录的 job：报告，而不是补一份
+
+一个有帧、但 `job.json` 读不出来的 job 目录，被调协报告为 **`unreadable`**，而且**不会**被补写一份记录
+（「损坏不等于不存在」，D138）。这条断言顺带回答了一个本轮想问的问题：**调协的 write 闭包里
+`previous === null` 那一支永远走不到**——调协在那种输入上根本不写，所以那一支是防御性的，这里就是证明。
+
+### 88.4 一处死掉的分支（点名）
+
+`exportProject` 的答案里有个三元：第二个分支写着「Delivery encoded but its properties do not match the
+job's own claims: …」。**它到不了**：`_deliverJob` 在 `reason === 'export'` 且视频没通过校验时**直接抛**
+`ENCODE_VERIFY_FAILED`（本轮实测：同一个 job 用 `reason: 'deliver'` 走会**返回**，用 export 走会**抛**）。
+不删它的理由写在测试里：删掉之后剩下的那句话会声称一次失败的交付「已发布」——一句假话比一段死代码更糟。
+
+### 88.5 变异与收口
+
+三条变异全红（恢复时总是给一个 checkpoint 路径、给没有 revision 的项目编一个场景、把无记录的 job
+当成可恢复的）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1369
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 45 (0.4%) → **43 (0.4%)**，
+`host/lib/index.js` **20 → 18**。
+
+契约层快照 1365 → **1369**（`host-read-and-job-refusals.test.mjs` 20 → 23、`host-render-loop.test.mjs`
+26 → 27）。顺带记一条本轮的自我纠错：我最初在 render-loop 里断言的是 `record.delivery.message`，
+而那个字段**不存在**（那段句子属于 `exportProject` 的答案）——读数里 `undefined` 直接把它揭穿，
+改成断言记录真正保留的东西（`errorCode` + 两个数字 + `_deliverJob` 自己那句话）。

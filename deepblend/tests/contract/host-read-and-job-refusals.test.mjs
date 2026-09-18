@@ -28,7 +28,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -262,6 +262,45 @@ check('a cancel with no job id is refused by name rather than answered as a no-o
   nameless.message === 'job id must be a non-empty string.',
   { code: nameless?.code, message: nameless?.message })
 
+// ---- restoring a revision that has no checkpoint of its own -----------------
+//
+// A revision committed with `saveCheckpoint: false` has no `.blend`, and restoring to it must report
+// `checkpointPath: null` rather than a path to a file that was never written — the panel shows that field, and
+// a path there is a promise that rendering from it will work.
+const patched = await studio.transactions.applyScenePatch({
+  projectId,
+  baseRevision: revision,
+  operations: [{ op: 'entity.visibility.set', entityId: spec.entities[0].id, visible: false }],
+})
+const restored = await studio.restoreRevision({ projectId, revision })
+check('restoring a revision with no checkpoint reports a NULL checkpoint instead of a path to nothing',
+  restored.restored === true && restored.checkpoint === null && restored.from === patched.revision.revision &&
+  restored.revision === revision,
+  { restored: restored.restored, from: restored.from, checkpoint: restored.checkpoint, revision: restored.revision })
+
+// ---- a job directory with NO record at all ---------------------------------
+//
+// The reconciler's input is every unfinished job, and "unfinished" includes a job whose directory exists with
+// frames in it and no record — what a Host killed between the frame write and the record write leaves behind.
+// The pass must WRITE a record for it (`previous === null`), not skip it: a job nobody has a record of is
+// exactly the one a reader needs to be told about.
+const orphanJobId = 'render-0042'
+const orphanFrames = studio.renderJobs.framesDirectory(projectId, orphanJobId)
+mkdirSync(orphanFrames, { recursive: true })
+writeFileSync(join(orphanFrames, 'frame_0001.png'), Buffer.alloc(2048, 7))
+writeFileSync(join(orphanFrames, 'frame_0002.png'), Buffer.alloc(2048, 7))
+const orphanFindings = await studio.reconcileRenderJobs()
+const orphanFinding = orphanFindings.find(entry => entry.jobId === orphanJobId)
+const orphanRecord = studio.renderJobs.readSafe(projectId, orphanJobId)
+// MEASURED, and it settles a question this round asked: a job directory with frames and NO readable record is
+// reported as `unreadable` and its record is NOT rewritten. The pass refuses to invent a record for a job it
+// cannot read — "corruption is not absence" (D138) — which also means the reconciliation's write closure is
+// never called with `previous === null`: that arm is defensive, and this is the case that proves it.
+check('a job with frames but no readable record is REPORTED as unreadable, and no record is invented for it',
+  orphanFinding !== undefined && orphanFinding.status === 'unreadable' && orphanRecord === null &&
+  (orphanFinding.notes ?? []).some(note => /record/i.test(note)),
+  { finding: orphanFinding?.status, record: orphanRecord, notes: orphanFinding?.notes })
+
 // ---- a project whose current revision cannot be read is still a project -----
 //
 // The two failure modes this guards against are opposite and both bad: dropping the project makes the UI
@@ -279,6 +318,24 @@ check('a project whose current revision cannot be read is still listed, flagged 
 check('and the projects that CAN be read still carry their scene summary',
   healthyRow !== undefined && healthyRow.unreadable === false && healthyRow.scene?.revision === revision,
   { unreadable: healthyRow?.unreadable, revision: healthyRow?.scene?.revision })
+
+// ---- a project that has no revisions yet -----------------------------------
+//
+// `currentRevision: null` is the state a project is in BEFORE its first commit finishes (and the one
+// `_discardEmptyProject` cleans up after a failure). Listing it must not throw and must not invent a scene:
+// the row says `scene: null` and — importantly — is NOT flagged `unreadable`, because there is nothing to read
+// rather than something that failed to read.
+studio.store.writeRecord(stillHere.projectId, {
+  ...studio.store.readRecord(stillHere.projectId),
+  currentRevision: null,
+  revisionCount: 0,
+})
+const withEmptyProject = await studio.listProjects()
+const emptyRow = withEmptyProject.projects.find(entry => entry.projectId === stillHere.projectId)
+check('a project with no revisions is listed with no scene and is NOT flagged unreadable',
+  emptyRow !== undefined && emptyRow.scene === null && emptyRow.unreadable === false &&
+  emptyRow.currentRevision === null,
+  { scene: emptyRow?.scene, unreadable: emptyRow?.unreadable, current: emptyRow?.currentRevision })
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

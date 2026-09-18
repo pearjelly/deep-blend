@@ -398,6 +398,15 @@ check('and nothing was published under output/: a rejected video does not become
   !existsSync(join(studio.store.projectDirectory(projectId), 'output', 'delivery-manifest.json')),
   existsSync(join(studio.store.projectDirectory(projectId), 'output')))
 
+// NAMED, NOT PRETENDED COVERED: `exportProject` builds its answer with a ternary whose second arm says
+// "Delivery encoded but its properties do not match the job's own claims: …", and that arm cannot be reached.
+// MEASURED here: `exportProject` on render-0006 (a job whose video does not verify) throws
+// `ENCODE_VERIFY_FAILED` with `detail.problems`, while the check above runs the SAME job through `_deliverJob`
+// with `reason: 'deliver'` and gets a RETURNED body. `_deliverJob` is where the difference lives: it throws for
+// `reason === 'export'` before the caller can build its answer. The arm is left in place rather than deleted because
+// deleting it would make the remaining sentence claim a failed delivery was published; it is written down here
+// so the next reader does not spend a round trying to produce an answer the product refuses to give.
+
 writeFrames('render-0007', [1, 2])
 studio.renderJobs.write(jobRecord('render-0007', { status: 'running' }))
 const lyingExport = await studio._deliverJob({
