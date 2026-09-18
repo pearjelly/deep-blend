@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 94 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 95 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 94 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 95 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,11 +33,11 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20347, never executed: 1269 (6.2%)   [every line]
+product lines seen:      20348, never executed: 1269 (6.2%)   [every line]
 product CODE lines:      12170, never executed: 32 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)   32 (0.3%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9   8
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13   13
@@ -225,6 +225,31 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 95: a sentence about OPERATOR STATE, which this repository cannot keep true ──
+The README's demo section said "当前项目已推进到 r0023" and pointed a reader at r0019–r0023's operation
+manifests. The store says otherwise: `watch-commercial` holds r0001 and r0002, and the promised revisions are
+not on disk at all. `render-job.js`'s header had the same shape ("49 of them are already on disk in the demo
+project") where the measured number was four.
+
+The root cause is not a stale number, it is the KIND of sentence: `.deepblend/projects/` is OPERATOR STATE, not
+repository content — what it holds depends on which commands have been run — so "what it holds right now" is a
+claim this repository has no way to keep true. It is the same rule the README already follows for milestone
+status (there is a check for that one), applied to the store.
+
+The fix is to state what the TOOLS do, because that IS checkable: the README now names
+`apply-brief-content.mjs` and the range it walks (r0018 → r0023), and a new check requires the demo section to
+name the tool and its range while the TOOL'S OWN HEADER must contain both ids in that order — plus a guard that
+the store-state sentence cannot come back at all (a quotation of it is refused too, which is why the explanation
+in the README has to talk around it).
+
+The first version of that check searched the whole tool source and a mutation walked straight through it:
+changing the README's range to `r0018 → r0029` stayed green because `r0029` appears in a label comment
+somewhere else in the file. Searching the header, in order, turned both that mutation and a reversed range red.
+Searching broadly is the same as not searching.
+
+Five mutations, all red. Contract layer 61 files, 1427 assertions, 289 node:test cases (+1); product code lines
+dark 32 (0.3%).
+
 ── ROUND 94: re-measuring the unreachability claims, second pass ──
 The round went over the standing claims in the files that had not been re-measured, and three of the four
 came back with something worth changing.

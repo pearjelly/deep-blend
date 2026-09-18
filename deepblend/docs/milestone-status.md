@@ -7372,3 +7372,52 @@ total self-counted assertions: 1427
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **32 (0.3%)** 不变
 （本轮改的是措辞与断言，产品代码只动了 `png.js` 那句消息与两处注释 ✓），有黑暗行的文件仍是 8 个。
 契约层 61 文件 / 1425 → **1427** 项。
+
+## 102. 一句关于 **operator 状态**的话，仓库没有任何办法让它保持为真
+
+### 102.1 读数：README 在说一个已经不存在的项目状态
+
+README 的「生成演示项目」一节写着「**当前项目已推进到 r0023**」✓，还让读者去看 r0019–r0023 每个 revision 的
+`operation-manifest.json` ✓。而 store 的真实状态：
+
+```
+crayon-plane:     revisions=10 jobs=16
+protoss-nexus:    revisions=15 jobs=26
+watch-commercial: revisions=2  jobs=4      ← README 说它在 r0023
+```
+
+**`watch-commercial` 只有 r0001 与 r0002** ✓——那句话承诺的 revision 根本不在磁盘上 ✓。同一类的还有
+`render-job.js` 头部的「**49 of them are already on disk in the demo project**」✗（实测 4 个 ✓）。
+
+**根因不是数字过期，而是这一类句子本身**：`.deepblend/projects/` 是 **operator 状态**，不是仓库内容 ✓——
+它现在的样子取决于跑过哪些命令 ✓，所以「它现在是什么」是一句**仓库无法保持为真**的话 ✓
+（与 README 不许复述里程碑状态是同一条规则 ✓，那条已有检查器 ✓）。
+
+### 102.2 修法：写**工具会做什么**，那是可检查的
+
+* README 改成：`create-demo-project.mjs` → r0001–r0002 ✓；`apply-brief-content.mjs` → **r0018 → r0023** ✓，
+  并明说「这里唯一能承诺的是**工具各自的产物**」✓；
+* `render-job.js` 的注释改成「每个 action 一条、写在 `<project>/jobs/` 下」✓，并写清为什么不写数量 ✓；
+* **新增检查器**：README 的演示一节**必须点名工具与它走的区间** ✓，而**那个工具的头部注释里必须真的有这两个 id、
+  且顺序一致** ✓；同时**禁止**出现「当前项目已推进到 rXXXX」这种句子 ✓（引文也不行 ✓——所以这条说明只能绕着说 ✓）。
+
+### 102.3 变异：第一条检查起初太松
+
+把 README 的区间改成 `r0018 → r0029`，检查**全绿** ✗——因为它搜的是**整个工具源码**，而 `r0029` 恰好出现在
+源码别处的注释里 ✓（一个 label ✓）。改成搜**工具自己的头部注释**（并且顺序要对 ✓）之后，
+「改成 r0029」与「把区间写反」两条变异都红 ✓。**搜得宽，等于没搜。**
+
+### 102.4 收口
+
+五条变异全红：区间改成工具不走的 `r0029`、区间写反、把「当前项目停在某个 revision」的句子写回来、
+演示一节不再点名工具（各一条），以及第一条检查**起初太松**那条 ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1427
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **32 (0.3%)** 不变
+（本轮只动文档、注释与检查 ✓）。契约层 61 文件 / **1427** 项不变，`node:test` 用例 288 → **289**。

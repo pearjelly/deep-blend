@@ -112,6 +112,39 @@ test('every command a manual names can actually be run', () => {
   }
 })
 
+test('the demo section describes what the TOOLS produce, and names the tool that produces it', () => {
+  // The README used to say "当前项目已推进到 r0023" — a claim about the OPERATOR'S STORE, which this repository
+  // has no way to keep true (measured: the store was back at r0002 while the sentence still promised r0023, and
+  // a reader following it would look for revisions that are not there). The fix is not a fresher number: it is
+  // to state what the tools do, because THAT is checkable — and this is the check. Every revision range the
+  // demo section promises must be one the tool it names actually walks.
+  // The README is read directly: it is not in `documents` (that list is the manuals), and the sibling check
+  // below — "the README does not assert milestone status, because it cannot keep it true" — reads it the same
+  // way. This check is that same rule applied to the OPERATOR'S STORE rather than to the milestone log.
+  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const demoAt = readme.indexOf('### 4. 生成演示项目')
+  assert.notEqual(demoAt, -1, 'the README no longer has the demo-project section, so this check has no subject')
+  const demo = readme.slice(demoAt, readme.indexOf('### 5.', demoAt))
+
+  const toolAt = /node (deepblend\/tools\/[\w-]+\.mjs)\s+#\s*(r\d{4})\s*→\s*(r\d{4})/.exec(demo)
+  assert.notEqual(toolAt, null, 'the demo section no longer names the tool and the range it walks')
+  const [, toolPath, from, to] = toolAt
+  const source = readFileSync(join(ROOT, toolPath), 'utf8')
+  // The TOOL'S OWN HEADER, not the whole file: the first version of this check searched the file, so a range
+  // invented in the README (`r0018 → r0029`) passed because `r0029` happens to appear in a comment somewhere
+  // else in the source — a surviving mutation showed it. The header is where the tool states what it walks.
+  const header = /\/\*\*([\s\S]*?)\*\//.exec(source)?.[1] ?? ''
+  assert.ok(
+    header.includes(from) && header.includes(to) && header.indexOf(from) < header.indexOf(to),
+    `${toolPath}'s header does not walk ${from} → ${to}, which the README says it does — one of the two moved`,
+  )
+  // And the section must not promise a CURRENT revision, which is the claim that rotted.
+  assert.ok(
+    !/当前项目已推进到\s*r\d{4}/.test(demo),
+    'the demo section states which revision the store is at NOW; that is operator state and cannot be kept true',
+  )
+})
+
 test('every blender tool a manual names is a tool that exists', () => {
   const known = new Set(UI_TOOL_CARD_KEYS)
   const named = new Set()

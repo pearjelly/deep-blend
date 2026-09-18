@@ -199,14 +199,14 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 照样成功（容器里跑过整条 job）。
 
 预期：**16 个套件、76 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**61 个文件 = 1427 项自计断言（32 个文件打印计数）+ 288 个 `node:test` 用例（29 个文件）**。
+**61 个文件 = 1427 项自计断言（32 个文件打印计数）+ 289 个 `node:test` 用例（29 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1427 和 288 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1427 和 289 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
@@ -262,10 +262,21 @@ node deepblend/tools/create-demo-project.mjs
 在真实的 `.deepblend/projects/` 下创建 `watch-commercial`：r0001 = 产品转台场景，
 r0002 = 一次灯光/材质调整并带预览。幂等：已存在则报告状态并退出，不做任何修改。
 
-生成器只铺到 r0002；**当前项目已推进到 r0023**，内容对齐 SPEC.md:150 那条需求
-（15 秒、黑背景、产品环绕、表盘逐渐点亮、片尾品牌标）。r0019–r0023 每个 revision 的
-`operation-manifest.json` 都完整记录了操作，可直接重放或 `blender_revision_restore` 回退。
-这一段的决策与被实测挡回来的地方见 `architecture-decisions.md` §5D（D42–D46）。
+生成器只铺到 r0002。对齐 SPEC.md:150 那条需求（15 秒、黑背景、产品环绕、表盘逐渐点亮、片尾品牌标）的是
+**另一条命令**：
+
+```bash
+node deepblend/tools/apply-brief-content.mjs     # r0018 → r0023，走真实的 Host 事务
+```
+
+它把项目从 r0018 推到 r0023，每个 revision 的 `operation-manifest.json` 都完整记录了操作，可直接重放或
+`blender_revision_restore` 回退；这一段的决策与被实测挡回来的地方见 `architecture-decisions.md` §5D（D42–D46）。
+
+**这两条命令各自的产物**（r0001–r0002、r0018–r0023）是这里唯一能承诺的东西 ✓：`.deepblend/projects/` 是
+**operator 状态**而不是仓库内容 ✓，它现在的样子取决于你跑过哪些命令——所以这份文档写的是**工具会做什么**，
+而不是**你的 store 里现在有什么**（早先这里写着一个「项目现在停在某个 revision」的句子，而 store 早就不是那样了：
+一句关于 operator 状态的话，仓库没有任何办法让它保持为真——所以现在连那样一句话本身都被检查器挡着，
+引文也不行，这条说明只能绕着说）。
 
 ### 5. 安装进 DSH profile
 

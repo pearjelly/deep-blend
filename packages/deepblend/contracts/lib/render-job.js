@@ -7,8 +7,9 @@
  * `<project>/jobs/`. That record is an ATTEMPT LOG: written once when the action
  * starts, once when it ends, and nothing in between, because every M1/M2 action
  * finishes inside the tool call that started it. Its schema mirrors to
- * `deepblend/schemas/job-result.schema.json` and 49 of them are already on disk in
- * the demo project.
+ * `deepblend/schemas/job-result.schema.json`, and one is written per action under
+ * `<project>/jobs/` — the number on disk depends on what has been run, so it is not
+ * stated here (a count of operator state is a claim this repository cannot keep true).
  *
  * SPEC §10.2 describes a different object: a record with `attempt`, `pid`,
  * `completedFrames[]`, `jobDirectory`, `outputManifest` and the statuses
