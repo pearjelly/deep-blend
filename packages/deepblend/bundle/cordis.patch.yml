@@ -54,7 +54,6 @@
 #
 #     - id: deepblend-blender-host
 #       config:
-#         serveCachedCapabilities: true
 #         maxPreviewSamples: 512
 #         maxVisualIterations: 5
 #         minVisualConfidenceForAutoFix: 0.8
@@ -136,7 +135,6 @@
         # which is what the paragraph that used to sit here asked a human to
         # arrange ("MUST equal the runtime row's workspaceRoot"). A comment is not
         # a constraint; a shared function is.
-        serveCachedCapabilities: true
         # Hard ceiling on preview cost, applied on top of the per-profile
         # `maxSamplesBudget` (SPEC §15.4 render-cost threshold).
         maxPreviewSamples: 512

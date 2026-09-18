@@ -63,7 +63,6 @@ try {
   root.plugin((await import('@deepblend/dsh-blender-host')).default, {
     workspaceRoot: scratch,
     projectsRoot: join(scratch, 'projects'),
-    serveCachedCapabilities: true,
   })
   await new Promise(settle => setTimeout(settle, 400))
 

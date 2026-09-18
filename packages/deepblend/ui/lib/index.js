@@ -40,6 +40,7 @@ import {
   buildSceneTree,
   buildSettingsCard,
   matchUiRoute,
+  assertKnownConfigKeys,
 } from '@deepblend/dsh-blender-contracts'
 
 /** Route path serving the settings card document (M0's surface, kept verbatim). */
@@ -90,6 +91,9 @@ export default class BlenderUiHost extends Service {
    */
   constructor(ctx, config) {
     super(ctx, BLENDER_UI_SERVICE)
+    // Same rule as the other two rows (SPEC §17's nested shape is accepted by the schema and read by
+    // nobody): a key this row does not read stops the composition instead of doing nothing.
+    assertKnownConfigKeys(UiConfig, config, 'deepblend-blender-ui')
     this.config = config
     this._routeDisposer = null
 

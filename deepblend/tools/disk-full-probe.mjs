@@ -93,7 +93,6 @@ try {
   root.plugin((await import('@deepblend/dsh-blender-host')).default, {
     workspaceRoot: workspace,
     projectsRoot,
-    serveCachedCapabilities: true,
   })
   await new Promise(settle => setTimeout(settle, 400))
 
@@ -198,7 +197,6 @@ try {
   second.plugin((await import('@deepblend/dsh-blender-host')).default, {
     workspaceRoot: workspace,
     projectsRoot,
-    serveCachedCapabilities: true,
   })
   await new Promise(settle => setTimeout(settle, 400))
   root = second

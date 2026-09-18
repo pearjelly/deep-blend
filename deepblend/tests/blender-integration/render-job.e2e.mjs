@@ -118,7 +118,6 @@ async function makeHost(options = {}) {
   ctx.plugin(Studio, {
     projectsRoot: join(scratch, 'projects'),
     workspaceRoot: scratch,
-    serveCachedCapabilities: true,
     maxPreviewSamples: 512,
     ffmpegPath: ffmpeg,
     ffprobePath: process.env.DEEPBLEND_FFPROBE_PATH ?? 'ffprobe',

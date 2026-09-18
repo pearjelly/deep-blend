@@ -657,6 +657,7 @@ export {
 
 export { ASSET_HEAD_BYTES, assetContentVerdict, describeAssetContent } from './asset-content.js'
 export { redactUrl } from './redact.js'
+export { assertKnownConfigKeys, declaredConfigKeys, describeUnknownConfigKeys } from './config-surface.js'
 
 export {
   CAMERA_UPDATE_FIELDS,

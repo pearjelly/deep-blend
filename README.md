@@ -92,7 +92,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         58 个 *.test.mjs
+    contract/         59 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -198,15 +198,15 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**16 个套件、73 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**58 个文件 = 1388 项自计断言（29 个文件打印计数）+ 287 个 `node:test` 用例（29 个文件）**。
+预期：**16 个套件、74 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**59 个文件 = 1405 项自计断言（30 个文件打印计数）+ 287 个 `node:test` 用例（29 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1388 和 287 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1405 和 287 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
@@ -216,7 +216,7 @@ D143）。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
 ——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的
-总数直接相减，会凭空多出或少掉两项。上面那个 1388 是**装了** preset 的读数；同一份快照在没有装
+总数直接相减，会凭空多出或少掉两项。上面那个 1405 是**装了** preset 的读数；同一份快照在没有装
 preset 的机器上会少掉 `preset-source.test.mjs` 的那两项。
 单跑某一层：
 

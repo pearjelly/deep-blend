@@ -432,6 +432,8 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 9 | SPEC §15.2「CPU、内存、磁盘、GPU 配额」 | 只有**字节与时间**：`maxOutputBytes` / `maxSpillBytes` / `assetMaxBytes` / `maxMeshPolygons` / `timeoutMs`。**磁盘**那一半现在是量过的：卷满时渲染器停下、已渲的帧全在、job 在腾出空间后的下一次协调里变成可续渲的 `recovering`，而**在卷仍然满的时候记录会停在旧状态**（§35）。没有 CPU、内存、GPU 配额 | CPU/内存/GPU 是**操作系统级**隔离：SPEC §15.3 把「进程资源限制」放在「容器或 Bubblewrap」那一层，而 M5 的交付环境是 macOS 开发版。写一个假的限额比没有更糟。**磁盘那一半不属于那一层**——那些帧是本产品自己写的数据——所以它单独量了，顺带量出两个会把宿主带走的缺陷（§35） |
 | 10 | SPEC §15.2「日志脱敏」 | **一半 + 一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），且**本插件自己产出的 URL 一律先脱敏**（`contracts/lib/redact.js`：凭据/查询串/片段被移除并说明移除了什么；`contract/url-redaction.test.mjs` 7 项 + `host-asset-ingest.test.mjs` 用一条**预签名** URL 断言签名不出现在消息与记录里）。**仍然没有**日志过滤器 | 第一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。第二半是本轮补的：五处资产抓取消息此前把 URL 原样写进**模型读到的话**和**操作者读到的记录**，而模型拿到的模型文件链接**通常就是预签名的**——「URL 不是秘密」是一句本产品不能做的断言。脱敏**只删不掩**：掩码需要一个「可信参数名」清单，而那份清单正是会烂掉的东西（没人想到的签名参数就是泄漏），删掉查询串最坏只是消息少一点信息。真正需要脱敏的**用户自己**贴进对话的秘密属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
+| 12 | SPEC §17 的配置形状（`finalRender.*` / `security.*` / `jobs.*` / `agent.*` 分组） | **平铺的键**：每个键属于**执行它的那个包**（`requireApprovalAboveFrames`、`assetMaxBytes`、`timeoutMs`…），而不是属于一个分组 | 分组会藏起「谁在执行这个键」这个事实：`security.*` 里一半的键**根本没有实现者**，因为那些「开关」对应的是**从不发生的事**（不装 add-on、不跑任意 Python、不放开工作区）。键与执行者一对一之后，schema 才能被拿去和读它的代码逐条对照（`contract/config-surface.test.mjs` 两个方向都查）。**而且分组写法曾经是静默失效的**：schema 接受它、当成不认识的属性留下、一声不吭——照 SPEC 抄配置的操作者会得到一个「审批阈值还是默认值」的部署。现在三个 row 在构造时拒绝不认识的键并列出真正读的键（`install.md` §3.1 是完整的对照表） |
+| 13 | SPEC §17 `finalRender.requireApprovalAboveResolution` | **未实现**：审批阈值只有**帧数**一个维度 | 分辨率是**成本的一个因子**而不是成本的度量：同一个 1920×1080 的项目，渲 3 帧和渲 3000 帧差三个数量级，而 4K 的 3 帧仍然便宜。加第二个阈值会造出一个「两把尺子」的问题（哪个先触发？超了其中一个算不算批过？），而帧数已经能把「小时级」和「秒级」分开。真要按分辨率管，答案是把成本估算做成一个数（SPEC §16 的方向），而不是再加一个开关 |
 
 ---
 
@@ -6985,3 +6987,64 @@ total self-counted assertions: 1388
 
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变（本轮只动文档与检查），
 `node:test` 用例 286 → **287**（README 已同步）。
+
+## 95. 一个骗人的旋钮，和一张必须对上的配置表
+
+### 95.1 SPEC §17 画的是分组，实现读的是平铺——而且**一声不吭**
+
+SPEC §17 把配置画成分组的（`finalRender.requireApprovalAboveFrames`、`security.assetMaxBytes`、
+`jobs.*`、`agent.*`），实现读的是**平铺**的键。实测：
+
+```js
+StudioConfig({ finalRender: { requireApprovalAboveFrames: 900 }, maxPreviewSamples: 256 })
+// → 接受，finalRender 原样留下，没有任何报错
+```
+
+也就是说：**照 SPEC 抄一份配置的操作者，会得到一个「审批阈值还是默认值」的部署，而没有任何地方报错。**
+这正是本仓库在配置上唯一不能容忍的失败方式——**静默失效**。
+
+### 95.2 修法：把「这一行到底读哪些键」变成启动时的检查
+
+新增 `contracts/lib/config-surface.js`：从 schema 的 `toJSON()` 里读出这一行声明的键
+（`dict` 在**根节点**上，而根节点是 `refs[uid]`——第一版只读 `json.dict`，于是每个键都被判成不认识的，
+**被自己的用例当场抓住**），三个 row（host / provider / ui）在构造时检查自己的配置，
+读到不认识的键就拒绝并**列出它真正读的键** ✓。
+
+`install.md` 新增 **§3.1 SPEC §17 名字 → 真正读的名字**的完整对照表（26 个键逐个落到
+「同名 / 平铺的哪个键 / 未实现（带 §7 编号）」）✓，偏差表补 **#12**（配置形状）与 **#13**
+（`requireApprovalAboveResolution` 未实现，理由：帧数是成本的度量，分辨率只是因子之一）。
+
+### 95.3 这个检查第一次上班，就抓到两个东西
+
+* **一个骗人的旋钮**：`serveCachedCapabilities` 在 host 的 schema 里声明着，而**没有任何代码读它**——
+  它描述的缓存是 provider 的（`capabilitiesCacheMs` + `getCapabilities({refresh})`），
+  host 里再来一个就是**同一个决定的两份拷贝**。删掉 ✓。删的时候它自己在**十个**测试与工具文件里
+  还留着（`serveCachedCapabilities: true`），每一个都会在新的检查下**当场报错**——检查先把清理工作
+  变成了**可验证的**，而不是靠 grep 的运气 ✓。
+* **一处检查自己的形状**：`maxMeshPolygons` 被判成「没人读」✗，因为它是在**同一个包的另一个文件**
+  （`revision-transaction.js`）里读的——于是检查的范围从 `index.js` 改成**整个包** ✓。
+
+### 95.4 变异：一条活了下来，而它指出的是真缺口
+
+四条变异里 **M1 起初活了下来**：删掉 host 里那句 `assertKnownConfigKeys(...)` 调用，用例全绿 ✗——
+因为我的用例是**直接调用 helper**，从来没有真的构造过一个 row。**这就是本会话反复遇到的那个形状：
+工具被测了，工具的用法没有被测。** 补上「用一个坏配置真的构造这三个服务、断言它抛错」之后，
+M1（以及 provider、ui 的同款变异）全部变红 ✓。
+
+### 95.5 收口
+
+六条变异全红（删掉三个 row 各自的检查各一条、helper 恒返回 null、`dict` 读错位置、往 schema 里加一个
+没人读的旋钮）；**M1 系列起初活着，补上「真的构造一个 row」之后才红**。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 59/59 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1405
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%) → 38 (0.3%)**
+（新增的 `config-surface.js` 由新用例全部走过），契约层 **58 → 59 文件**、1388 → **1405** 项，
+总文件数 73 → **74**（README 三处已同步）。

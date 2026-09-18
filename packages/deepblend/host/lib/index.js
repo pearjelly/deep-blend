@@ -75,6 +75,7 @@ import {
   assetContentVerdict,
   describeAssetContent,
   redactUrl,
+  assertKnownConfigKeys,
 } from '@deepblend/dsh-blender-contracts'
 
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
@@ -161,8 +162,11 @@ export const StudioConfig = z.object({
    * through the same `resolveWorkspaceRoot`, which is what makes them agree.
    */
   workspaceRoot: z.string().default(''),
-  /** Serve a cached capabilities document without re-probing during a page load. */
-  serveCachedCapabilities: z.boolean().default(true),
+  // `serveCachedCapabilities` USED TO BE DECLARED HERE AND NOTHING READ IT. The caching it described is
+  // the provider's (`capabilitiesCacheMs`, plus `getCapabilities({refresh: true})`), so a second flag in
+  // the host would have been a second copy of one decision — and while it existed it was a knob that
+  // LIED: setting it changed nothing and said nothing. Found by
+  // `contract/config-surface.test.mjs`, which holds each schema against the code that reads it.
   /** Refuse a preview whose sample count exceeds this, however it was asked for. */
   maxPreviewSamples: z.number().default(512),
   /**
@@ -306,6 +310,10 @@ export default class BlenderStudio extends Service {
    */
   constructor(ctx, config) {
     super(ctx, BLENDER_STUDIO_SERVICE)
+    // A key this row does not read is a startup error, not a silent no-op: SPEC §17 illustrates the
+    // configuration as nested groups (`finalRender: {requireApprovalAboveFrames: 900}`) while the
+    // implementation reads flat keys, and Schemastery accepts the nested document without a word.
+    assertKnownConfigKeys(StudioConfig, config, 'deepblend-blender-host')
     this.config = config
     /** In-flight probe, so N concurrent callers share one Blender launch. */
     this._inFlight = null

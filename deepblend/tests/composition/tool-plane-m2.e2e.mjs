@@ -163,7 +163,6 @@ try {
   root.plugin((await import('@deepblend/dsh-blender-host')).default, {
     projectsRoot: join(workspace, 'projects'),
     workspaceRoot: workspace,
-    serveCachedCapabilities: true,
     maxPreviewSamples: 64,
   })
   root.plugin(await import('@deepblend/dsh-blender-tool'))

@@ -74,7 +74,6 @@ ctx.plugin(Provider, ProviderConfig({
 ctx.plugin(Studio, {
   projectsRoot: join(scratch, 'projects'),
   workspaceRoot: scratch,
-  serveCachedCapabilities: true,
   maxPreviewSamples: 512,
   ffmpegPath: process.env.DEEPBLEND_FFMPEG_PATH ?? 'ffmpeg',
   ffprobePath: process.env.DEEPBLEND_FFPROBE_PATH ?? 'ffprobe',

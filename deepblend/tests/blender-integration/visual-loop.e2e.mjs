@@ -81,7 +81,6 @@ ctx.plugin(Provider, ProviderConfig({
 ctx.plugin(Studio, {
   projectsRoot: join(workspace, 'projects'),
   workspaceRoot: workspace,
-  serveCachedCapabilities: true,
   maxPreviewSamples: 64,
 })
 await new Promise(settle => setTimeout(settle, 250))

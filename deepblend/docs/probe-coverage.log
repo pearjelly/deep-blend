@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 87 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 88 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 87 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 88 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,11 +33,11 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20219, never executed: 1263 (6.2%)   [every line]
-product CODE lines:      12134, never executed: 38 (0.3%)   [blank + comment-only excluded]
+product lines seen:      20318, never executed: 1267 (6.2%)   [every line]
+product CODE lines:      12163, never executed: 38 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13
@@ -225,6 +225,33 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 88: a knob that lied, and a config table that had to be reconciled ──
+SPEC §17 illustrates the configuration as NESTED groups (`finalRender: { requireApprovalAboveFrames: 900 }`,
+`security: { assetMaxBytes: … }`, `jobs.*`, `agent.*`) while the implementation reads FLAT keys. MEASURED:
+Schemastery ACCEPTS the nested document, keeps the group as an unknown property, and reports nothing — so an
+operator who follows the spec gets a deployment whose approval threshold is whatever the default was, with no
+error anywhere. Silent failure is the one failure mode a configuration must not have.
+
+`contracts/lib/config-surface.js` reads a row's declared keys out of the schema (`dict` sits on the ROOT node,
+which is `refs[uid]` — the first version read `json.dict` and declared every key unknown, caught by its own
+case) and the three rows (host, provider, ui) now check their own config at construction, refusing an unknown
+key and LISTING the keys they do read. `install.md` §3.1 maps all 26 SPEC §17 keys to the real names, the two
+unimplemented ones carrying §7 numbers (12: the config shape; 13: `requireApprovalAboveResolution`, whose reason
+is that frames are the measure of cost and resolution is only one factor of it).
+
+THE CHECK'S FIRST DAY ON THE JOB CAUGHT TWO THINGS. `serveCachedCapabilities` was declared in the host's schema
+and read by NOBODY — the caching it described is the provider's (`capabilitiesCacheMs` plus
+`getCapabilities({refresh})`), so a second flag would have been two copies of one decision. It was deleted, and
+it turned out to be set in TEN test and tool files, each of which now fails loudly rather than silently doing
+nothing: the check turned the cleanup into something verifiable instead of a grep's luck. And `maxMeshPolygons`
+was reported as unread because it is read by a COLLABORATOR file in the same package, so the check's scope
+became the whole package.
+
+One mutation survived at first and pointed at a real hole: deleting the host's call to the guard changed
+nothing, because the case called the helper DIRECTLY and never composed a row — the same shape this session
+keeps meeting, where the tool is tested and its use is not. Composing each service with a bad config (and
+asserting it throws) turned that mutation, and its provider and ui twins, red.
+
 ── ROUND 87: eighteen sentences on the success path, none of them in a manual ──
 The same measurement as the round before, one plane over: `recovery.md` has an index by ERROR code, but the
 WARNING codes — what a caller reads when the tool returned `ok` — had never been checked. 15 of the 18 appeared

@@ -145,6 +145,45 @@ result: the installed presets match the repository
 那一层是**每次从 bundle patch 推导出来的**，不是手抄的（patch 层的 `config` 是整体替换
 而不是合并，实测见 D74）。`--check` 会重新推导并逐字节比对。
 
+
+---
+
+## 3.1 配置键：SPEC §17 的名字 → 这一版真正读的名字
+
+SPEC §17 把配置画成**分组**的（`finalRender.requireApprovalAboveFrames`、`security.assetMaxBytes`、
+`jobs.*`、`agent.*`），而实现读的是**平铺**的键——每个键属于**执行它的那个包**，而不是属于一个分组。
+两种写法都合理，但不能两种都当真：**schema 会接受分组写法、把它当成一个不认识的属性留下、并且一声不吭**
+（实测）。也就是说照 SPEC 抄一份配置，你得到的是一个「审批阈值还是默认值」的部署，而没有任何地方报错。
+
+从 M5 起这是**启动错误**：三个 row 在构造时检查自己的配置，读到不认识的键就拒绝并**列出它真正读的键**。
+下表是 SPEC §17 的每个键落到哪里（「未实现」的那些在 `milestone-status.md` §7 里有编号）。
+
+| SPEC §17 | 这一版实际读的 | 说明 |
+|---|---|---|
+| `blenderPath` | `blenderPath` | 同一个名字（provider row）。`'auto'` = 受管安装，否则 PATH |
+| `workspaceRoot` | `workspaceRoot` | 同一个名字；空值 = `$DSH_HOME/deepblend` |
+| `executionMode` | —— | 只有 `batch` 一种执行方式，没有可选项 |
+| `preview.engine` / `width` / `height` / `samples` | —— | 预览规格来自 **SceneSpec 的 `render.profiles`**，不是部署配置：同一个项目在不同机器上应该渲出同一张图 |
+| `preview.views` | `visualReviewViews` | 视觉审查用哪几个视角（host row） |
+| `finalRender.engine` | —— | 同上，来自 SceneSpec 的 profile |
+| `finalRender.requireApprovalAboveFrames` | `requireApprovalAboveFrames` | host row |
+| `finalRender.renderFramesFirst` / `resumeExistingFrames` | —— | 这两件事**总是**做：先渲帧再编码、续渲复用已有帧，没有开关 |
+| `finalRender.requireApprovalAboveResolution` | —— | 阈值只有**帧数**一个维度（§7 #13） |
+| `jobs.previewTimeoutSeconds` / `finalRenderTimeoutSeconds` | `timeoutMs` | provider row：**一次 Blender 调用**的上限，不分预览/正式 |
+| `jobs.maxConcurrentPreview` / `maxConcurrentFinalRender` | —— | 并发由**项目**决定：一个项目同时只能有一个交付渲染（`RENDER_JOB_CONFLICT`），预览不排队 |
+| `security.workspaceOnly` | —— | 不是开关：路径检查**总是**执行（`PATH_OUTSIDE_WORKSPACE`） |
+| `security.allowNetworkInBlender` / `allowArbitraryPython` / `allowAddonInstall` | —— | 不是开关：这三件事**从不**发生（`--factory-startup`，argv 数组，见 `security.md`） |
+| `security.assetMaxBytes` | `assetMaxBytes` | host row |
+| `security.textureMaxDimension` | —— | 未实现：场景里没有纹理通道（§7 #7） |
+| `agent.maxVisualIterations` | `maxVisualIterations` | host row |
+| `agent.minVisualConfidenceForAutoFix` | `minVisualConfidenceForAutoFix` | host row |
+| `agent.stopOnRepeatedIssueCount` | `stopOnRepeatedIssueCount` | host row |
+
+**为什么这些键是平铺的**：一个键只有放在**执行它的那个包**里，才可能被那个包自己校验、自己用；
+分组会把这个事实藏起来（`security.*` 里一半的键根本没有实现者，因为那些「开关」对应的是**从不发生的事**）。
+`contract/config-surface.test.mjs` 盯着这张表的两头：schema 里声明了却没人读的键（一个骗人的旋钮）、
+以及代码里读了却没声明的键（一个永远到不了的值）。
+
 ---
 
 ## 4. 每一步**不**验证什么

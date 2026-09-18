@@ -153,7 +153,6 @@ async function buildRoot({ ffmpegPath = FFMPEG_PATH, ffprobePath = process.env.D
   composed.plugin(hostPlugin.default, {
     projectsRoot: join(workspace, 'projects'),
     workspaceRoot: workspace,
-    serveCachedCapabilities: true,
     maxPreviewSamples: 64,
     ffmpegPath,
     ffprobePath,

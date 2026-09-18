@@ -38,6 +38,7 @@ import {
   EXPECTED_EXPORT_FORMATS,
   EXPECTED_IMPORT_FORMATS,
   BlenderWarningCode,
+  assertKnownConfigKeys,
   managedBlenderCandidates,
   resolveWorkspaceRoot,
   warning,
@@ -176,6 +177,9 @@ export default class LocalBlenderRuntime extends Service {
    */
   constructor(ctx, config) {
     super(ctx, BLENDER_RUNTIME_SERVICE)
+    // See the host's constructor: a key this row does not read is a startup error, because the schema
+    // accepts it silently (SPEC §17's nested groups versus this package's flat keys).
+    assertKnownConfigKeys(ProviderConfig, config, 'deepblend-blender-runtime')
     this.config = config
     this.bootstrapPath = this._resolveBootstrapPath(config.bootstrapPath)
     /** Resolved once: the host must be configured with the same value. */

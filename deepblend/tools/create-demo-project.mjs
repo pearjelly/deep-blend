@@ -38,7 +38,6 @@ ctx.plugin((await import('@deepblend/dsh-blender-provider-local')).default, {
 ctx.plugin((await import('@deepblend/dsh-blender-host')).default, {
   projectsRoot: join(WORK, 'projects'),
   workspaceRoot: WORK,
-  serveCachedCapabilities: true,
   maxPreviewSamples: 512,
 })
 await new Promise(r => setTimeout(r, 250))

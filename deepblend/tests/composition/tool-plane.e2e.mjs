@@ -113,7 +113,6 @@ try {
     // provider's path guard would reject. Composing this row by hand therefore
     // requires the key, exactly as the bundle patch supplies it.
     workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
-    serveCachedCapabilities: true,
   })
   // ...and the agent-preset row.
   root.plugin(await import('@deepblend/dsh-blender-tool'))
@@ -188,7 +187,6 @@ try {
   broken.plugin((await import('@deepblend/dsh-blender-host')).default, {
     projectsRoot: join(PROJECT_ROOT, '.deepblend', 'projects'),
     workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
-    serveCachedCapabilities: false,
   })
   broken.plugin(await import('@deepblend/dsh-blender-tool'))
   await new Promise(resolveTick => setTimeout(resolveTick, 300))

@@ -64,7 +64,7 @@ const PACKAGES = [
     kind: 'service',
     inject: ['blenderRuntime'],
     requires: ['StudioConfig', 'BLENDER_SETTINGS_NAMESPACE'],
-    configKeys: ['projectsRoot', 'serveCachedCapabilities', 'maxMeshPolygons'],
+    configKeys: ['projectsRoot', 'maxMeshPolygons'],
   },
   {
     name: '@deepblend/dsh-blender-ui',

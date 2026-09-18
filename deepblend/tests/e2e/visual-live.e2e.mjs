@@ -118,7 +118,6 @@ try {
   ctx.plugin(Studio, {
     projectsRoot: join(workspace, 'projects'),
     workspaceRoot: workspace,
-    serveCachedCapabilities: true,
     maxPreviewSamples: 64,
     visualReviewProvider: PROVIDER,
     visualReviewModel: MODEL,

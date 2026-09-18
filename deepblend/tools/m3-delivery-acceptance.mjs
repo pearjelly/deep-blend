@@ -82,7 +82,6 @@ async function makeHost() {
   ctx.plugin(Studio, {
     projectsRoot: join(STORE, 'projects'),
     workspaceRoot: STORE,
-    serveCachedCapabilities: true,
     maxPreviewSamples: 512,
     ffmpegPath: FFMPEG,
     ffprobePath: FFPROBE,

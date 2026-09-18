@@ -275,7 +275,6 @@ const PREVIEW_CEILING = 64
     projectsRoot: join(workspace, 'projects'),
     maxPreviewSamples: PREVIEW_CEILING,
     maxFinalSamples: 128,
-    serveCachedCapabilities: true,
   })
   await new Promise(settle => setTimeout(settle, 400))
 
@@ -498,7 +497,6 @@ const PREVIEW_CEILING = 64
       workspaceRoot: workspace,
       projectsRoot: join(workspace, 'weight-projects'),
       maxMeshPolygons: ceiling,
-      serveCachedCapabilities: true,
     })
     await new Promise(settle => setTimeout(settle, 400))
     return root
