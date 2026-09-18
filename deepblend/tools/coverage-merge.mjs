@@ -41,6 +41,26 @@
  * The price is stated rather than hidden: THIS IS NOT BRANCH COVERAGE. An untaken arm on a line that
  * ran is invisible here; what stays visible is any body or branch that has a line of its own.
  *
+ * THE FIFTH WRONG ANSWER, MEASURED IN ROUND 91 AND NOT YET FIXED BY A RULE
+ * -----------------------------------------------------------------------
+ * V8 gives the ALTERNATE OF A MULTI-LINE TERNARY a zero-count range whose span runs PAST the expression
+ * — over the statements that follow it. Because this rule judges a line by the innermost range covering
+ * its first code character, those following statements are reported as never executed although the
+ * function ran. MEASURED on `resumeRenderJob`'s checkpoint preference: the range `3083-3092` had count 0
+ * while the enclosing function `3049-3136` had count 3, so lines 3087-3092 read dark — and a temporary
+ * `process.stderr.write` on line 3088 printed twice, which is what a false dark line looks like from the
+ * inside.
+ *
+ * No span heuristic separates this from a TRUE dark line, and both alternatives were measured rather than
+ * assumed: judging a line by ANY positive covering range calls every named dead branch covered (the body
+ * range of `errors.push({ … })` is inside a function that ran), and "the blackening zero range starts on
+ * an earlier line" is true of 42 of the 48 dark lines in that reading, including all the true ones.
+ *
+ * So the rule stands, and the COST IS PAID AT THE SOURCE: a multi-line ternary alternate in product code
+ * buys the reading a false dark line. Write it as an `if`/`else` — which is what round 91 did to the code
+ * above, after which those five lines read as executed — and check a suspect by instrumentation before
+ * writing a test for it.
+ *
  * Owner: DeepBlend Studio — M5
  */
 

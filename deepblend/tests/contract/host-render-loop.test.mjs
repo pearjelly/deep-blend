@@ -107,6 +107,9 @@ function harness(plan = {}) {
       // The directory is recorded on the plan as well, because a test that wants a SECOND journal line
       // (to make a progress tick fail twice) has to append to the file the child is writing.
       plan.jobDirectory = request.jobDirectory
+      // The checkpoint the renderer was actually told to open: the whole point of resolving one for a record
+      // that predates the field is that a REAL path reaches the renderer, not `null`.
+      plan.lastCheckpointPath = request.checkpointPath
       const framesDirectory = join(request.jobDirectory, 'frames')
       mkdirSync(framesDirectory, { recursive: true })
       for (const frame of plan.renderFrames ?? request.frames) {
@@ -717,6 +720,40 @@ async function fixture(plan) {
     cancelled.status === 'cancelled' && resumed.resumed === 1 && afterStart - compilesBefore === 1 &&
     afterResume === afterStart,
     { launchesForStart: afterStart - compilesBefore, launchesForResume: afterResume - afterStart, resumed: resumed.resumed })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// Resuming a job whose record predates `checkpointPath`
+// ---------------------------------------------------------------------------
+//
+// The field was added when the delivery path learned to compile; a record written before it (or by a Host that
+// predates the change) has none, and the resume must still work: it resolves a checkpoint for itself. That is
+// the `else` arm, and without a case like this one it is code nobody runs — which is exactly what the coverage
+// reading said about it before this case existed.
+{
+  const plan = {}
+  const world = await fixture(plan)
+  const framesDirectory = world.studio.renderJobs.framesDirectory(world.projectId, 'render-0009')
+  mkdirSync(framesDirectory, { recursive: true })
+  // ONE frame of two: the resume has work to do, so it really launches a renderer — and the project HAS a
+  // checkpoint (the fixture commits one), so the resolution needs no compile. The `else` arm is what runs.
+  writeFileSync(join(framesDirectory, 'frame_0001.png'), framePng)
+  world.studio.renderJobs.write({
+    projectId: world.projectId, jobId: 'render-0009', type: 'final-render', status: 'cancelled',
+    revisionId: world.revision, frameStart: 1, frameEnd: 2, expectedFrames: 2,
+    completedFrames: [], missingFrames: [1, 2], corruptFrames: [], fps: 30, pid: null,
+    attempt: 1, attemptToken: 'token-a', dshJobId: null, delivery: null, warnings: [],
+    filePrefix: 'frame_', filePadding: 4, renderConfig: { resolution: [1920, 1080], samples: 8 },
+  })
+  const compilesBefore = world.compiles()
+  const resumed = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: 'render-0009' })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, 'render-0009')?.status))
+  check('a job record with NO checkpointPath still resumes: a REAL checkpoint is resolved and handed over',
+    resumed.resumed === 1 && world.compiles() - compilesBefore === 0 &&
+    plan.lastCheckpointPath === world.studio.store.checkpointPath(world.projectId, world.revision) &&
+    world.studio.renderJobs.read(world.projectId, 'render-0009').status === 'completed',
+    { resumed: resumed.resumed, handedOver: plan.lastCheckpointPath, expected: world.studio.store.checkpointPath(world.projectId, world.revision) })
   world.dispose()
 }
 

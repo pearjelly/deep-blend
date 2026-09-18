@@ -3078,11 +3078,21 @@ export default class BlenderStudio extends Service {
     // The checkpoint the RENDER used, when the record carries one (it does for anything `startFinalRender`
     // produced): re-resolving here would compile a second scratch copy for a revision that has no checkpoint of
     // its own. An EXPORT of a job whose record predates that field still resolves for itself.
-    const checkpoint = record.checkpointPath !== undefined && record.checkpointPath !== null
-      ? { revision: record.revisionId, path: record.checkpointPath, compiled: null }
-      : await this._resolveCheckpointForRender({
+    //
+    // AN `if`/`else`, NOT A TERNARY, and the reason is measurable: V8 gives the alternate of a multi-line
+    // ternary a zero-count range whose span runs PAST the expression — over the statements that follow it — and
+    // the coverage merge judges a line by the innermost range covering its first code character, so those
+    // following lines read as never executed although the function ran (MEASURED on this very code: lines
+    // 3087-3092 were reported dark while a temporary `process.stderr.write` on 3088 printed twice). A statement
+    // has no such range, so the reading stays true.
+    let checkpoint
+    if (record.checkpointPath !== undefined && record.checkpointPath !== null) {
+      checkpoint = { revision: record.revisionId, path: record.checkpointPath, compiled: null }
+    } else {
+      checkpoint = await this._resolveCheckpointForRender({
         projectId, revision: record.revisionId, spec, jobId, warnings: [], signal: undefined,
       })
+    }
 
     const expected = this.renderJobs.expectedFrames(record)
     const ledger = readFrameLedger({
