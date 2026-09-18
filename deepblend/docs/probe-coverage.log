@@ -225,6 +225,23 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 102: still no probe — a check on the docs' own examples ──
+No product code changed, so no new reading: the previous column still describes this tree (the parallel
+contributor's files are byte-identical, md5), and the 53 dark lines are the same 32 named plus their 21.
+
+What the round added is a check rather than a measurement: every ```json block in the documentation must be
+JSON, and a block shaped like a ScenePatch must be a patch the product ACCEPTS. Two of the ten blocks are
+intentional elisions (a job record with `...`, an NDJSON stream) and are skipped by name, with a guard that the
+allowance is still exercised. SPEC §8.3's patch example validates as written — which is the property worth
+pinning rather than a defect worth fixing, and the same rule the tool advice follows: something a reader is
+told to write has to be something the product takes.
+
+Two pits were hit while writing it. The scope was too narrow (only the four manuals plus README and SPEC), so a
+mutation that removed an elision marker from a BRIEF's example stayed green — a check that skips a directory is
+one whose scope cannot be seen from its name. And two of the mutations turned out not to be mutations at all:
+one removed a single `...` from a block that has several, and the other removed them all, which made the block
+VALID JSON.
+
 ── ROUND 101: still no probe — the same product code, two more assertions ──
 Round 108 found that a delivery render's compiled scene was never deleted, and fixed it. This round counted the
 remaining cleanup sites and finished asserting them: the VIEWS path's own `finally` (a different line from the

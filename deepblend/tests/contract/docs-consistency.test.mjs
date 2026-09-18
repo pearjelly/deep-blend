@@ -34,10 +34,10 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS, validateScenePatch } from '@deepblend/dsh-blender-contracts'
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
 import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
@@ -179,6 +179,59 @@ test('every parameter table in tool-contracts.md is the tool\u2019s real paramet
   // deliberate editorial line — §1's roster names every tool, §3 expands the ones whose contract is subtle, and
   // the model reads the schema rather than this file — but it is written down, because "the check passed" and
   // "the check looked" are different statements.
+})
+
+test('a JSON example in the docs is JSON, and a ScenePatch example is a patch the product accepts', () => {
+  // A manual's example is copied by a reader, so an example the product would REFUSE is worse than no example —
+  // the same rule the tool advice follows (`host-asset-ingest.test.mjs` feeds its own `nextStep` back through the
+  // validator). MEASURED when this was written: SPEC §8.3's patch example validates as-is, which is the property
+  // worth keeping rather than a defect worth fixing.
+  //
+  // A block containing `...` is an ELISION and is skipped by name rather than silently: two of them exist (a job
+  // record with elided fields, and an NDJSON stream), and pretending they are JSON would be a lie in the other
+  // direction.
+  // EVERY document, not only the manuals: a brief or an audit is read too, and the first version of this check
+  // covered only `documents` plus the README and SPEC — so a mutation that removed an elision marker from a
+  // brief's job-record example (making it invalid JSON) stayed green. A check that skips a directory is a check
+  // whose scope nobody can see from its name.
+  const sources = [
+    { path: 'README.md', text: readFileSync(join(ROOT, 'README.md'), 'utf8') },
+    { path: 'SPEC.md', text: readFileSync(join(ROOT, 'SPEC.md'), 'utf8') },
+    ...readdirSync(join(ROOT, 'deepblend', 'docs'))
+      .filter(name => name.endsWith('.md'))
+      .map(name => ({ path: `deepblend/docs/${name}`, text: readFileSync(join(ROOT, 'deepblend', 'docs', name), 'utf8') })),
+  ]
+  let parsedBlocks = 0
+  let validatedPatches = 0
+  const elided = []
+  for (const source of sources) {
+    for (const match of source.text.matchAll(/```json\n([\s\S]*?)\n```/g)) {
+      const body = match[1]
+      if (body.includes('...')) {
+        elided.push(source.path)
+        continue
+      }
+      let value
+      try {
+        value = JSON.parse(body)
+      } catch (cause) {
+        assert.fail(`${source.path} has a \`json\` block that is not JSON: ${cause.message}`)
+      }
+      parsedBlocks += 1
+      if (Array.isArray(value.operations) && typeof value.projectId === 'string') {
+        const verdict = validateScenePatch(value)
+        assert.ok(
+          verdict.ok === true,
+          `${source.path}'s ScenePatch example is one the product REFUSES: ` +
+            `${(verdict.errors ?? []).slice(0, 2).map(issue => `${issue.code}@${issue.path}`).join(', ')}`,
+        )
+        validatedPatches += 1
+      }
+    }
+  }
+  assert.ok(parsedBlocks >= 5, `only ${parsedBlocks} JSON blocks were parsed, so this check is nearly vacuous`)
+  assert.ok(validatedPatches >= 1, 'no ScenePatch example was validated, so the interesting half is unchecked')
+  assert.ok(elided.length >= 1, 'the elision allowance is no longer exercised, so it should be removed')
 })
 
 test('every blender tool a manual names is a tool that exists', () => {
