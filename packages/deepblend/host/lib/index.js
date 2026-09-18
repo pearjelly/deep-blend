@@ -1936,6 +1936,14 @@ export default class BlenderStudio extends Service {
         'ingestAsset takes a local source or a remote one, not both.',
       )
     }
+    // The licence is CARRIED, not interpreted: this product does not decide what a licence means, it makes
+    // sure the string the caller supplied survives into the two places a later reader looks — the asset
+    // manifest beside the bytes, and the `asset.add` declaration the caller is told to write. It used to be
+    // a declared parameter of `blender_asset_ingest` that nothing passed and nothing recorded, which is a
+    // promise to the model that no reader could keep.
+    const license = typeof request?.license === 'string' && request.license.trim().length > 0
+      ? request.license.trim().slice(0, 512)
+      : null
 
     // A remote source is the one that reaches off this machine, so it is the one that
     // needs a person. Refused BEFORE anything is fetched or written.
@@ -2087,6 +2095,9 @@ export default class BlenderStudio extends Service {
       sha256,
       bytes,
       source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath },
+      // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
+      // are different statements, and only the first one is true here.
+      license,
       ingestedAt: new Date().toISOString(),
     }
     const assets = [...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId), entry]
@@ -2101,11 +2112,13 @@ export default class BlenderStudio extends Service {
       sha256,
       bytes,
       source: entry.source,
+      license,
       manifestPath: 'assets/manifest.json',
       currentRevision: record.currentRevision,
       nextStep:
         `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
-        `path: "${relativePath}", sha256: "${sha256}"}}`,
+        `path: "${relativePath}", sha256: "${sha256}"` +
+        `${license === null ? '' : `, license: ${JSON.stringify(license)}`}}}`,
     }
   }
 

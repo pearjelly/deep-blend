@@ -7048,3 +7048,56 @@ total self-counted assertions: 1405
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%) → 38 (0.3%)**
 （新增的 `config-surface.js` 由新用例全部走过），契约层 **58 → 59 文件**、1388 → **1405** 项，
 总文件数 73 → **74**（README 三处已同步）。
+
+## 96. 一个说给模型听、而没人兑现的参数
+
+### 96.1 同一类缺陷，换到**面向模型**的那一面
+
+第 95 轮在配置里抓到一个「声明了却没人读」的键。这一轮把同一把尺子放到工具上：
+**每个工具声明的参数，它的 handler 真的读了吗？**（以及反过来：handler 读了却没人声明的参数？）
+
+读数（解析 `defineTool({...})` 块、按花括号配对取参数对象、把 `args.x` / `args?.x` / 解构都算作「读」）：
+
+```
+blender_asset_ingest  unread: ['license']
+```
+
+`blender_asset_ingest` 声明了 `license`，描述写着「**Licence string recorded with the asset.** 下载来的东西值得设——
+一份来历没有记录的资产，是没人敢发布的资产」——而 handler 拼 `ingestRequest` 时**根本没有把它带上** ✗，
+host 那边也**没有 license 这个字段** ✗。而 SceneSpec 的 asset schema **本来就有 `license`** ✓——
+也就是说这个字符串一直有地方可去，只是没有人送。
+
+**这是比配置键更坏的一种**：读那句描述的是一个**模型**，而模型没有任何办法发现自己在被骗 ✗。
+
+### 96.2 修法：把承诺兑现，而不是把承诺删掉
+
+`ingestAsset` 现在接受可选的 `license`：**trim 后**（截到 512 字符）写进字节旁边的
+`assets/manifest.json` 条目、随答案返回、并且**出现在它让模型去写的那条 `asset.add` 声明里** ✓
+（所以许可会一路进 SceneSpec——那才是后来的读者真正会看的地方）。
+
+没有给许可时记的是 **`null` 而不是缺字段**：「没人说过许可」与「这份资产没有许可」是两句不同的话，
+而这里只有第一句是真的。
+
+### 96.3 那个检查自己踩了三次坑，每一次都被守卫抓住
+
+1. 声明参数的形状有两种（`name: {…}` 与 `name: SHARED_SHAPE`），只认第一种时把 `sceneSpec` 报成「读了却没声明」✗；
+2. 「整个 `args` 交给 helper」的豁免起初**匹配到了 `(args, exec)` 函数签名**，于是 16 个工具全部被豁免 ✗
+   ——**一个谁都能进的豁免不是豁免，是洞**，所以它被整个删掉，改成「每个工具都必须至少声明一个、至少读一个」
+   的守卫（读不到的解析器不能靠「没东西可查」通过 ✓）；
+3. 按缩进取参数名会把数组参数里的 JSON-Schema 关键字 `items` 当成参数 ✗，于是改成**按花括号深度取顶层键** ✓。
+
+### 96.4 变异与收口
+
+四条变异全红：把 `license: args.license` 删掉（**就是那个真缺陷**）、声明一个没人读的参数、
+handler 读一个没声明的参数、以及 host 那边不再把许可写进清单。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 60/60 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1412
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%) → 38 (0.3%)**，
+`host/lib/index.js` 13 行不变；契约层 **59 → 60 文件**、1405 → **1412** 项，总文件数 74 → **75**
+（README 三处已同步）。

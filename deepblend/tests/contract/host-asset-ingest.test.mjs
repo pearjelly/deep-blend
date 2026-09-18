@@ -168,6 +168,30 @@ check('a remote source that is not a URL is refused as ASSET_FETCH_FAILED, quoti
   notAUrl.message === '"not a url at all" is not a URL.',
   notAUrl?.message ?? notAUrl)
 
+// THE LICENCE IS CARRIED, and this is the case that proves the parameter is not decoration: the model sets
+// it, the manifest beside the bytes keeps it, the answer returns it, and the `nextStep` declaration it is told
+// to write carries it into the SceneSpec — which is the only place a later reader looks for provenance.
+const licensedSource = join(outsideRoot, 'licensed.glb')
+writeFileSync(licensedSource, glbBytes)
+const licensed = await studio.ingestAsset({
+  projectId, sourcePath: licensedSource, assetId: 'licensed-asset', license: '  CC-BY-4.0  ',
+})
+const licensedManifest = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
+const licensedEntry = licensedManifest.assets.find(entry => entry.assetId === 'licensed-asset')
+check('an ingested licence is TRIMMED, recorded in the manifest and returned, because the tool promised it',
+  licensed.license === 'CC-BY-4.0' && licensedEntry?.license === 'CC-BY-4.0' &&
+  licensed.nextStep.includes('license: "CC-BY-4.0"'),
+  { returned: licensed.license, manifest: licensedEntry?.license })
+const unlicensed = await studio.ingestAsset({
+  projectId, sourcePath: licensedSource, assetId: 'unlicensed-asset',
+})
+const unlicensedEntry = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
+  .assets.find(entry => entry.assetId === 'unlicensed-asset')
+check('and an asset nobody licensed records `null` rather than a missing field, so the two facts stay apart',
+  unlicensed.license === null && unlicensedEntry?.license === null &&
+  !unlicensed.nextStep.includes('license:'),
+  { returned: unlicensed.license, manifest: unlicensedEntry?.license })
+
 // A PRESIGNED URL IS THE ORDINARY CASE, not the exotic one: the link a model is handed for a model file
 // usually carries its own signature in the query. Every message this path produces also lands in a job record
 // and in the model's transcript, so the raw URL is a credential being copied around. The check asserts BOTH

@@ -900,6 +900,10 @@ function assetIngest(ctx) {
         sourceUrl: args.sourceUrl,
         assetId: args.assetId,
         type: args.type,
+        // PASSED THROUGH, because the parameter exists and its description promises it is recorded. It used
+        // to be declared here and dropped on the floor: the model set a licence, the manifest had none, and
+        // nothing anywhere said so.
+        license: args.license,
       }
       if (ingestRequest.sourcePath === undefined && ingestRequest.sourceUrl === undefined) {
         return {
