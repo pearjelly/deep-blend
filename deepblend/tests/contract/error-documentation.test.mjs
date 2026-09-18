@@ -37,6 +37,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
+import { BlenderWarningCode } from '@deepblend/dsh-blender-contracts'
+
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The documents a user reads when something was refused. */
@@ -105,6 +107,30 @@ const notExplainedCodes = [...NOT_EXPLAINED.values()].flat()
 const declared = new Set([...EXPLAINED.keys(), ...notExplainedCodes])
 const shipped = Object.keys(BlenderErrorCode)
 
+test('every WARNING code a caller can read is explained, and no phantom warning is taught', () => {
+  // The classification above is about errors. Warnings are the other half of the same surface and they had
+  // never been checked at all: MEASURED before this was written, 15 of the 18 warning codes appeared in NO
+  // manual — including `SCENE_COMPILER_DECISION`, which is the one a caller needs most (it says the pixels
+  // came from a spec compiled for this render rather than from the revision's own `.blend`).
+  //
+  // A warning is not decoration: each one says "what you got is not what you asked for", and the next step
+  // differs per code. So the same two-directional rule applies, one section further down the manual.
+  const warnings = Object.values(BlenderWarningCode)
+  const recovery = manuals.get('deepblend/docs/recovery.md')
+  const heading = '## 11. 按警告码查'
+  const index = recovery.indexOf(heading)
+  assert.notEqual(index, -1, 'recovery.md no longer has a "按警告码查" section, so warnings have no home')
+  const section = recovery.slice(index)
+  const missing = warnings.filter(code => !section.includes(`\`${code}\``))
+  assert.deepEqual(missing, [], `recovery.md §11 does not explain: ${missing.join(', ')}`)
+
+  // The other direction: a code the table teaches that the product cannot emit reads as a capability.
+  const taught = [...section.matchAll(/^\| `([A-Z][A-Z0-9_]+)` \|/gm)].map(match => match[1])
+  const phantom = taught.filter(code => !warnings.includes(code))
+  assert.deepEqual(phantom, [], `recovery.md §11 teaches codes this build does not emit: ${phantom.join(', ')}`)
+  assert.ok(taught.length >= warnings.length, `§11 parsed ${taught.length} rows for ${warnings.length} warning codes`)
+})
+
 test('the classification covers exactly the codes that ship', () => {
   // THE PROPERTY THAT MAKES THIS FILE WORTH HAVING. Not "the manuals mention some codes" but
   // "every code has been decided about, and the decision is written down".
@@ -172,7 +198,10 @@ test('the index by code is an index, and it is reachable from the manual that ha
   // The index is how a reader who HAS a code finds the section organized by symptom. It has to
   // name the code, say one thing, and hand off — a row with no code is a paragraph.
   const recovery = manuals.get('deepblend/docs/recovery.md')
-  const index = recovery.slice(recovery.indexOf('## 10. 按错误码查'))
+  // THE SECTION, NOT THE REST OF THE FILE: `slice(from the heading)` used to run to EOF, which was fine
+  // while §10 was last — and wrong the moment §11 (the warning index) was added below it, because that
+  // table's rows are codes too and §10's checks started reading them as their own.
+  const index = sectionOf(recovery, '## 10. 按错误码查')
   assert.ok(index.length > 0, 'recovery.md no longer has the index by code')
 
   const rows = index.split('\n').filter(line => /^\|\s*`[A-Z_]+`\s*\|/.test(line))
@@ -188,13 +217,22 @@ test('the index by code is an index, and it is reachable from the manual that ha
   }
 })
 
+/** One `## `-delimited section of a manual, so a table cannot leak into the next one's checks. */
+function sectionOf(text, heading) {
+  const start = text.indexOf(heading)
+  if (start === -1) return ''
+  const rest = text.slice(start + heading.length)
+  const next = rest.search(/\n## /)
+  return next === -1 ? rest : rest.slice(0, next)
+}
+
 test('every code the index lists is one EXPLAINED also knows about', () => {
   // Two places listing codes is the drift this repository keeps paying for, so they are held
   // against each other: an index row for a code that EXPLAINED does not carry is a code whose
   // section nobody promised, and a code EXPLAINED carries but the index omits is one a reader
   // cannot find by code.
   const recovery = manuals.get('deepblend/docs/recovery.md')
-  const index = recovery.slice(recovery.indexOf('## 10. 按错误码查'))
+  const index = sectionOf(recovery, '## 10. 按错误码查')
   const listed = new Set([...index.matchAll(/^\|\s*`([A-Z_]+)`\s*\|/gm)].map(match => match[1]))
   const explained = new Set(EXPLAINED.keys())
 

@@ -306,3 +306,36 @@ blender_final_render {projectId, resumeJobId: "render-0001"}
 **一句贯穿全表的话**：上面每一条被拒的操作，项目都停在它原来的 revision 上。
 这不是安慰——它是这套东西的设计（一次成功的 patch = 一个不可变 revision，
 失败的 patch 什么都不改）。
+
+---
+
+## 11. 按警告码查：它没抛错，但它说了什么
+
+上面那张表是**失败**。这张是**成功路径上的话**——工具返回 `ok`，而记录或结果里带一条 `warnings`。
+它们不是装饰：每一条都在说「你拿到的不是你以为的那个东西」，而这一步的下一步动作各不相同。
+
+| 码 | 一句话 |
+|---|---|
+| `BLENDER_NOT_INSTALLED` | 这台机器上没有探测到 Blender，能力报告是**降级**的结果（`installed: false`），不是「什么都没有」 |
+| `ENGINE_NOT_IN_STATIC_ENUM` | 引擎**能**用，只是没出现在这份 Blender 的静态枚举里。以**行为**为准，不要以枚举为准 |
+| `ENGINE_UNAVAILABLE` | 你要求的引擎这一版装不出来。先 `blender_capabilities`，再换引擎或装对应的构建 |
+| `ENGINE_DOWNGRADED` | 渲染 profile 被降级到另一个能用的引擎。**画面会不一样** |
+| `GPU_UNAVAILABLE` | 没检测到 GPU，走 CPU。能出图，只是慢得多 |
+| `FORMAT_UNAVAILABLE` | 这份 Blender 构建不带某个格式（导入或导出）。换格式或换构建 |
+| `ADDON_ENABLE_FAILED` | 某个 add-on 没启用成功；依赖它的功能会缺失 |
+| `PROBE_WARNING` | 从 `bootstrap.py` **原样透传**的一句话。它不分类，只转述 |
+| `STALE_CAPABILITIES` | 这次的能力报告来自**缓存**，可能不是当下的事实。要当下的事实就 `refresh` |
+| `SCENE_PATCH_NO_CHANGE` | patch 成功了，但**什么都没变**（同样的意图之前已经生效）。它仍然是一次 revision |
+| `RENDER_ENGINE_DOWNGRADED` | 同 `ENGINE_DOWNGRADED`，出现在渲染结果上 |
+| `RENDER_SAMPLES_REDUCED` | 预览的采样数被预算压低。**预览与你要的不是同一张图**（正式渲染的样本数不受预览上限约束） |
+| `SCENE_COMPILER_DECISION` | 编译器替你做了一个决定（默认值、把某个 revision 从 SceneSpec 现场编译、帧范围的收窄）。理由在同一条警告的消息里 |
+| `SCENE_ASSET_NOT_INGESTED` | 场景**声明**了这个资产，但它的文件还没被带进来。先 `blender_asset_ingest` |
+| `SCENE_ANIMATION_KEYFRAMES_ADJUSTED` | 某条动画轨道的属性被夹取或丢弃了关键帧。动画与你要的不完全一样 |
+| `JOB_PROJECTION_UNAVAILABLE` | 这次渲染没能注册成 DSH 后台 job（**没有 `jobs` 服务**，或注册表拒绝挂载控制器）。渲染本身不受影响，持久记录仍然是权威；`blender_job_status` 能读它 |
+| `DELIVERY_CLAIM_UNAVAILABLE` | 交付自检有一项**无法复核**（运行时拿不到那个声明）。视频在，但这一项没有被验证过 |
+| `JOURNAL_INCOMPLETE` | 渲染日志的最后一行是**断的**（进程在写与刷之间被杀）。它不是错误，也**不影响任何一个数字**——进度与待渲帧集是从**帧文件本身**逐字节读出来的；它只说明日志不是一份完整记录 |
+
+**怎么读它们**：警告出现在 `blender_*` 工具结果的 `warnings` 数组里（每条有 `code`、`message`，
+有的还有 `detail`），也在 job 记录的 `warnings` 里。**看 `message`，不要只看码**——同一码在不同情况下
+说的是不同的事（`SCENE_COMPILER_DECISION` 就是典型：它可能是在说「用了默认值」，也可能是在说
+「这个 revision 没有自己的 `.blend`，这次渲染是现场编译的」）。

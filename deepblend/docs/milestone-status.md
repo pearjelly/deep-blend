@@ -6937,3 +6937,51 @@ total self-counted assertions: 1388
 
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变
 （本轮只动文档与检查），`node:test` 用例 285 → **286**（README 已同步）。
+
+## 94. 成功路径上的 18 句话，手册里一句都没有
+
+### 94.1 又一次「量一个平面，然后给它配一个检查器」
+
+`recovery.md` 有一张**按错误码查**的表 ✓，但**警告码**（成功路径上、工具返回 `ok` 时带在 `warnings` 里的那些）
+从来没被检查过。读数：
+
+```
+warning codes: 18   missing from all manuals: 15
+```
+
+**18 个警告码里 15 个在任何一本手册里都不存在**——包括 `SCENE_COMPILER_DECISION`（第 83 轮刚让它变重要的那条：
+「这次的像素来自现场编译的 spec，而不是这个 revision 自己的 `.blend`」）。
+
+警告不是装饰：每一条都在说「**你拿到的不是你以为的那个东西**」，而下一步动作各不相同
+（`RENDER_SAMPLES_REDUCED` → 预览与你要的不是同一张图；`GPU_UNAVAILABLE` → 能出图但慢得多；
+`SCENE_ASSET_NOT_INGESTED` → 先跑 `blender_asset_ingest`；`JOB_PROJECTION_UNAVAILABLE` → 后台 job 没有，
+但持久记录仍然是权威）。
+
+修法：`recovery.md` 新增 **§11 按警告码查**（18 行：码 + 一句话），并写清**怎么读**——看 `message` 不要只看码，
+因为同一个码在不同情况下说的是不同的事。
+
+### 94.2 加这张表时，撞坏了两个已有检查——而那是它们的毛病
+
+`error-documentation.test.mjs` 里有两条检查解析 §10 的表，写法是
+`recovery.slice(recovery.indexOf('## 10. 按错误码查'))`——**从那个标题一直读到文件末尾** ✓。
+§10 原本是最后一节，所以一直没出问题；本轮在它下面加了 §11 之后，那两条检查开始把 §11 的警告行
+**当成自己的行**，于是报「索引里有 `BLENDER_NOT_INSTALLED`，而这不是一个存在的码」✗。
+
+修法不是改表，而是**让检查按节解析**（新增 `sectionOf(text, heading)`，切到下一个 `## ` 为止）✓。
+M3 变异（把 `sectionOf` 改回「读到文件末尾」）会让那两条检查重新变红——**这条修法本身是承重的** ✓。
+
+### 94.3 变异与收口
+
+三条变异全红：**删掉一行警告**（手册没讲全）、**加一个产品发不出的警告码**（读起来像能力）、
+以及 **M3：把 `sectionOf` 改回「读到文件末尾」**——最后这条让那两条旧的索引检查重新变红，
+说明「按节解析」这个修法本身是**承重的**，不是顺手改的。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 58/58 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1388
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变（本轮只动文档与检查），
+`node:test` 用例 286 → **287**（README 已同步）。
