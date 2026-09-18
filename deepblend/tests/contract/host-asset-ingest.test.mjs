@@ -36,7 +36,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, w
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, validateScenePatch } from '@deepblend/dsh-blender-contracts'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -180,13 +180,39 @@ const licensedManifest = JSON.parse(readFileSync(join(studio.store.projectDirect
 const licensedEntry = licensedManifest.assets.find(entry => entry.assetId === 'licensed-asset')
 check('an ingested licence is TRIMMED, recorded in the manifest and returned, because the tool promised it',
   licensed.license === 'CC-BY-4.0' && licensedEntry?.license === 'CC-BY-4.0' &&
-  licensed.nextStep.includes('license: "CC-BY-4.0"'),
+  licensed.nextStep.includes('license: {"source":"CC-BY-4.0"}'),
   { returned: licensed.license, manifest: licensedEntry?.license })
 const unlicensed = await studio.ingestAsset({
   projectId, sourcePath: licensedSource, assetId: 'unlicensed-asset',
 })
 const unlicensedEntry = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
   .assets.find(entry => entry.assetId === 'unlicensed-asset')
+// THE ADVICE IS PUT BACK THROUGH THE VALIDATOR. A sentence that tells the model to write something the
+// schema refuses is worse than no sentence: the model follows it, gets `SCENE_PATCH_INVALID`, and has no way
+// to know which of the two is wrong. The first version of this advice printed `license: "CC-BY-4.0"` — a bare
+// string where the schema wants `{source, commercialUse, attribution}` — and the patch schema ALSO had a
+// dangling `$ref` for that field, so following the advice threw a schema-definition error from inside the
+// validator. Both are fixed; this is the assertion that keeps the pair fixed together, built from the
+// answer's own fields rather than by parsing the prose.
+const expectedDeclaration =
+  `{op: "asset.add", asset: {id: "${licensed.assetId}", type: "${licensed.type}", ` +
+  `path: "${licensed.path}", sha256: "${licensed.sha256}", license: {"source":"CC-BY-4.0"}}}`
+const adviceVerdict = validateScenePatch({
+  projectId,
+  baseRevision: 'r0001',
+  operations: [{
+    op: 'asset.add',
+    asset: {
+      id: licensed.assetId, type: licensed.type, path: licensed.path, sha256: licensed.sha256,
+      license: { source: licensed.license },
+    },
+  }],
+})
+check('the declaration the answer TELLS the caller to write is the one it can actually write',
+  licensed.nextStep.includes(expectedDeclaration), { nextStep: licensed.nextStep })
+check('and that declaration is one the patch schema accepts (advice that cannot be followed is worse than none)',
+  adviceVerdict.ok === true, adviceVerdict.errors?.slice(0, 2) ?? null)
+
 check('and an asset nobody licensed records `null` rather than a missing field, so the two facts stay apart',
   unlicensed.license === null && unlicensedEntry?.license === null &&
   !unlicensed.nextStep.includes('license:'),

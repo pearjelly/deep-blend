@@ -7101,3 +7101,62 @@ total self-counted assertions: 1412
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%) → 38 (0.3%)**，
 `host/lib/index.js` 13 行不变；契约层 **59 → 60 文件**、1405 → **1412** 项，总文件数 74 → **75**
 （README 三处已同步）。
+
+## 97. 一个悬空的 `$ref`，和一条**照做就会报错**的建议
+
+### 97.1 量具：SceneSpec schema 里有没有「谁都不读」的字段
+
+上一轮把「声明了却没人读」的尺子放在工具参数上，这一轮放到**场景文档的字段**上：把 schema 里每个对象的
+字段名拿去对**编译器（Python 那五个模块）与契约层**的源码。读数三条：
+
+```
+license: commercialUse attribution
+asset:    license
+renderProfile: maxSamplesBudget
+```
+
+顺着 `asset.license` 查下去，撞到两件事——**都不是「没人读」那么简单**：
+
+1. `scene-patch.schema.json` 里 `asset.add.asset.license` 是 `{"$ref": "#/$defs/license"}`，而**那个文档里
+   根本没有 `license` 这个定义** ✗。于是任何带许可的资产声明**不是在验证时被拒，而是让验证器抛
+   `SchemaDefinitionError`** ✗——一个调用者无法分支的异常，而不是一个码。
+2. 上一轮我刚给 `blender_asset_ingest` 的答案加的那句建议写的是 `license: "CC-BY-4.0"`（**字符串**），
+   而 `asset.license` 是一个**对象**（`source` / `commercialUse` / `attribution`）✗。**模型照做会拿到
+   `SCENE_PATCH_INVALID`——因为它做了被告知要做的事。**
+
+### 97.2 两处都修，并且让「建议」自己过一遍验证器
+
+* 把 `license` 定义**照抄进** `scene-patch.schema.json`（验证器只在**单个文档内**解析引用），
+  并加一条**两份定义必须逐字节相同**的检查——**两份拷贝、一个检查器**；
+* `nextStep` 改成 schema 的形状：`license: {"source":"CC-BY-4.0"}` ✓；
+* 新增 `contract/schema-refs.test.mjs`：**每个 schema 里的每个 `$ref` 都必须能解析**（悬空引用这一类
+  缺陷的通用守卫）+ 两份 `license` 定义相同 + 带许可的 `asset.add` 被接受 + **裸字符串拼法被拒绝**
+  （把「为什么改」钉在测试里）；
+* `host-asset-ingest.test.mjs` 里加一条**闭环**断言：把答案**告诉调用者去写的那条声明**再喂回
+  `validateScenePatch`，必须通过 ✓——**一条无法照做的建议比没有建议更糟**。
+
+### 97.3 加这条检查时，撞上了仓库里**已有的**那条守卫
+
+`run-all.sh` 里有一个我没先去找的检查：`contract/schema-mirror.test.mjs` ✗——它断言
+`deepblend/schemas/*.json`（**权威副本**，SPEC §5.2 指向的那一份、人读的那一份）与
+`packages/deepblend/contracts/lib/schemas/` 里的**打包镜像**逐字节相同 ✓。我只改了镜像，
+于是它当场报出「两份差了 357 字节」✓✓——**这正是它存在的理由**（头部写着：「一个漂移的镜像是
+最坏的一种缺陷，因为运行时的验证器会静默地执行一套不同的规则」）。
+
+修法：把 `license` 定义同样加进**权威副本**，再逐字节镜像过去 ✓。同时**删掉我新写的文件里那条
+「两份 license 定义相同」的检查**——`schema-mirror` 的逐字节相同是更强的陈述，**一件事一个检查器** ✓。
+（这一轮因此有了两次「先量、再去找已有的守卫」的教训，两次都是守卫先找到我。）
+
+### 97.4 变异与收口
+
+三条变异全红：悬空 `$ref` 回来、两份 `license` 定义漂移、建议改回裸字符串。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1421
+```
+
+契约层 **60 → 61 文件**、1412 → **1421** 项，总文件数 75 → **76**（README 三处已同步）。
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变。

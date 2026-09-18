@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-14 (round 89 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-14 (round 90 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 89 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 90 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,11 +33,11 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20335, never executed: 1267 (6.2%)   [every line]
+product lines seen:      20339, never executed: 1267 (6.2%)   [every line]
 product CODE lines:      12170, never executed: 38 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13
@@ -225,6 +225,38 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 90: a dangling $ref, and advice that could not be followed ──
+The same ruler as the two rounds before, moved down a plane: does every field the SceneSpec schema declares
+get read by the compiler or the contracts? Three came back — `license.commercialUse`, `license.attribution`,
+`asset.license` — and following `asset.license` found two defects that were worse than "nobody reads it":
+
+  1. `scene-patch.schema.json` declared `asset.add.asset.license` as `{"$ref": "#/$defs/license"}` while that
+     document had NO such definition. So a patch declaring an asset's licence did not get REFUSED — the
+     validator threw `SchemaDefinitionError` from inside itself. An exception a caller cannot branch on, where
+     the contract promises a code.
+  2. The advice the round before had just added to `blender_asset_ingest`'s answer printed
+     `license: "CC-BY-4.0"` (a bare string), while `asset.license` is an OBJECT (`source`, `commercialUse`,
+     `attribution`). A model that did what it was told got `SCENE_PATCH_INVALID` — for doing what it was told.
+
+Both are fixed: the `license` definition was copied into the patch schema (the validator resolves references
+within one document), the advice now spells `license: {"source":"CC-BY-4.0"}`, and `contract/schema-refs.test.mjs`
+asserts every `$ref` in every shipped schema RESOLVES — the general form of the defect — plus that a licensed
+declaration is accepted, that the bare-string spelling is rejected, and that the advice sentence still uses the
+schema's shape. The loop that matters most is in `host-asset-ingest.test.mjs`: the declaration the answer TELLS
+the caller to write is fed back through `validateScenePatch` and must pass. Advice that cannot be followed is
+worse than no advice.
+
+ADDING THAT CHECK RAN INTO A GUARD THIS REPOSITORY ALREADY HAD, which is the second time this round the guard
+found me first: `contract/schema-mirror.test.mjs` asserts the packaged schemas are byte-identical to the
+authoritative ones under `deepblend/schemas/`, and I had edited only the mirror — it reported a 357-byte
+difference immediately, which is exactly the defect its header describes (a drifted mirror means the runtime
+enforces a different rule set than the project believes in). The authoritative copy was patched and mirrored,
+and the redundant "the two licence definitions match" check was DELETED from the new file: byte-identity is a
+stronger statement, and one fact gets one checker.
+
+Three mutations, all red (restore the dangling ref; drift the two definitions; put the bare string back).
+Contract layer 60 → 61 files, 1412 → 1421 assertions; run-all.sh 16/16 green.
+
 ── ROUND 89: a parameter promised to the model and never passed on ──
 The same ruler as the round before, moved to the surface that faces the MODEL: does every parameter a tool
 declares actually get read by its handler, and does every parameter a handler reads actually get declared?

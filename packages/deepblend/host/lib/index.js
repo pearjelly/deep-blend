@@ -2118,7 +2118,11 @@ export default class BlenderStudio extends Service {
       nextStep:
         `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
         `path: "${relativePath}", sha256: "${sha256}"` +
-        `${license === null ? '' : `, license: ${JSON.stringify(license)}`}}}`,
+        // THE SCHEMA'S SHAPE, NOT A BARE STRING: `asset.license` is an object (`source`, `commercialUse`,
+        // `attribution`), and the first version of this advice printed `license: "CC-BY-4.0"` — which the
+        // patch schema REJECTS, so a model that followed the advice would get `SCENE_PATCH_INVALID` for doing
+        // what it was told. The advice is asserted to validate (`contract/schema-refs.test.mjs`).
+        `${license === null ? '' : `, license: ${JSON.stringify({ source: license })}`}}}`,
     }
   }
 

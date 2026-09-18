@@ -68,6 +68,23 @@
       "maxLength": 64,
       "pattern": "^[a-zA-Z][a-zA-Z0-9._-]*$"
     },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "commercialUse": {
+          "type": "boolean"
+        },
+        "attribution": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
     "vec3": {
       "type": "array",
       "minItems": 3,
