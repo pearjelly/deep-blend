@@ -231,6 +231,67 @@
         }
       }
     },
+    "proceduralTexture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "scale"
+      ],
+      "description": "A procedural surface texture. A material with only scalar parameters renders as one flat colour, which is what makes paper, wood and glazed ceramic all read as plastic; this block adds the surface relief and variation that distinguishes them. It is built as a real node graph (texture coordinate -> mapping -> pattern -> bump / roughness / base colour), not a baked image, so it needs no asset ingest and stays resolution-independent.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "noise",
+            "wave",
+            "voronoi"
+          ]
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Pattern density in object space. Larger is finer."
+        },
+        "detail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "distortion": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stretch": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "description": "Per-axis multiplier on the mapping, so a grain can run along one direction (wood) instead of being isotropic."
+        },
+        "bump": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Strength of the normal perturbation. 0 leaves the surface smooth."
+        },
+        "roughnessVariation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How far the pattern swings roughness around its authored value, which is what breaks a highlight up instead of letting it read as plastic."
+        },
+        "colorVariation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How strongly the pattern darkens the base colour."
+        }
+      }
+    },
     "material": {
       "type": "object",
       "additionalProperties": false,
@@ -294,6 +355,9 @@
               "maximum": 1
             }
           }
+        },
+        "texture": {
+          "$ref": "#/$defs/proceduralTexture"
         }
       }
     },
@@ -672,6 +736,10 @@
         },
         "filmTransparent": {
           "type": "boolean"
+        },
+        "raytracing": {
+          "type": "boolean",
+          "description": "EEVEE only: enable the raytracing pipeline (screen-space GI, ambient occlusion and reflections). EEVEE defaults this OFF, which renders every surface lit only by direct light - objects lose their contact shadow and appear to float. Ignored by engines that have no such switch."
         },
         "colorManagement": {
           "type": "object",

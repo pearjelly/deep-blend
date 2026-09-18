@@ -507,6 +507,145 @@ def _set_socket(node, key, value, guard, material_id):
         )
 
 
+#: Pattern node per SceneSpec texture `type`, with every name its scalar output has
+#: carried. Blender renamed Noise's `Fac` to `Factor`, and Voronoi has no scalar
+#: `Fac` at all (its scalar is `Distance`), so the output is resolved by trying the
+#: historical spellings rather than by assuming one.
+TEXTURE_PATTERN_NODES = {
+    "noise": ("ShaderNodeTexNoise", ["Factor", "Fac"]),
+    "wave": ("ShaderNodeTexWave", ["Factor", "Fac"]),
+    "voronoi": ("ShaderNodeTexVoronoi", ["Distance", "Fac", "Factor"]),
+}
+
+
+def _pattern_value_output(pattern, names):
+    """The scalar output of a pattern node, by any of its historical names."""
+    for name in names:
+        socket = pattern.outputs.get(name)
+        if socket is not None:
+            return socket
+    return None
+
+
+def _build_texture_graph(material, principled, texture, guard, material_id):
+    """Wire a procedural pattern into a Principled BSDF.
+
+    A material carrying only scalar parameters shades as one flat colour, which is
+    why paper, wood and glazed ceramic all read as the same plastic. This builds the
+    relief and variation that tells them apart, in OBJECT space so the pattern
+    travels with the object and no image has to be ingested.
+
+    Every socket is looked up by name and every stage is optional: a build missing
+    one node degrades to a plainer material and says so, rather than failing the
+    whole compile over a cosmetic detail.
+    """
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+
+    entry = TEXTURE_PATTERN_NODES.get(texture.get("type"))
+    if entry is None:
+        guard.warn(
+            "ADDON_ENABLE_FAILED",
+            'material "%s" asks for texture type "%s", which this compiler cannot build'
+            % (material_id, texture.get("type")),
+            {"materialId": material_id, "textureType": texture.get("type")},
+        )
+        return
+    node_id, output_names = entry
+    try:
+        pattern = nodes.new(node_id)
+    except Exception as exc:
+        guard.warn(
+            "ADDON_ENABLE_FAILED",
+            'material "%s": this Blender build has no %s node: %s'
+            % (material_id, node_id, error_text(exc)),
+            {"materialId": material_id, "node": node_id},
+        )
+        return
+
+    coord = nodes.new("ShaderNodeTexCoord")
+    coord.location = (-1080, -240)
+    mapping = nodes.new("ShaderNodeMapping")
+    mapping.location = (-900, -240)
+    pattern.location = (-700, -240)
+    links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    links.new(mapping.outputs["Vector"], pattern.inputs["Vector"])
+
+    stretch = texture.get("stretch") or [1.0, 1.0, 1.0]
+    scale = float(texture["scale"])
+    mapping.inputs["Scale"].default_value = (
+        scale * float(stretch[0]),
+        scale * float(stretch[1]),
+        scale * float(stretch[2]),
+    )
+
+    if pattern.inputs.get("Detail") is not None and texture.get("detail") is not None:
+        pattern.inputs["Detail"].default_value = float(texture["detail"])
+    if pattern.inputs.get("Distortion") is not None and texture.get("distortion") is not None:
+        pattern.inputs["Distortion"].default_value = float(texture["distortion"])
+
+    value = _pattern_value_output(pattern, output_names)
+    if value is None:
+        guard.warn(
+            "ADDON_ENABLE_FAILED",
+            'material "%s": %s exposes none of %s, so its texture was skipped'
+            % (material_id, node_id, output_names),
+            {"materialId": material_id, "node": node_id},
+        )
+        return
+
+    # 1) Surface relief. This is what breaks a highlight up across a surface
+    #    instead of letting it slide over like glass.
+    bump_strength = float(texture.get("bump") or 0.0)
+    normal_socket = _find_socket(principled, ["Normal"])
+    if bump_strength > 0 and normal_socket is not None:
+        bump = nodes.new("ShaderNodeBump")
+        bump.location = (-260, -560)
+        bump.inputs["Strength"].default_value = min(1.0, bump_strength)
+        links.new(value, bump.inputs["Height"])
+        links.new(bump.outputs["Normal"], normal_socket)
+
+    # 2) Roughness variation, swung around whatever the material authored, so the
+    #    authored value stays the centre of the range.
+    variation = float(texture.get("roughnessVariation") or 0.0)
+    roughness_socket = _find_socket(principled, PRINCIPLED_SOCKETS["roughness"])
+    if variation > 0 and roughness_socket is not None:
+        authored = float(roughness_socket.default_value)
+        span = nodes.new("ShaderNodeMapRange")
+        span.location = (-460, -160)
+        span.inputs["From Min"].default_value = 0.0
+        span.inputs["From Max"].default_value = 1.0
+        span.inputs["To Min"].default_value = max(0.0, authored - variation * 0.5)
+        span.inputs["To Max"].default_value = min(1.0, authored + variation * 0.5)
+        links.new(value, span.inputs["Value"])
+        links.new(span.outputs["Result"], roughness_socket)
+
+    # 3) Colour variation, as a multiplicative tint centred on 1.0 so the authored
+    #    base colour still decides the hue. Vector maths is used rather than a Mix
+    #    node because Mix's A/B sockets are only distinguishable by index.
+    color_variation = float(texture.get("colorVariation") or 0.0)
+    base_socket = _find_socket(principled, PRINCIPLED_SOCKETS["baseColor"])
+    if color_variation > 0 and base_socket is not None:
+        tint = nodes.new("ShaderNodeMapRange")
+        tint.location = (-460, 160)
+        tint.inputs["From Min"].default_value = 0.0
+        tint.inputs["From Max"].default_value = 1.0
+        tint.inputs["To Min"].default_value = max(0.0, 1.0 - color_variation)
+        tint.inputs["To Max"].default_value = 1.0
+        links.new(value, tint.inputs["Value"])
+        combine = nodes.new("ShaderNodeCombineXYZ")
+        combine.location = (-260, 160)
+        links.new(tint.outputs["Result"], combine.inputs["X"])
+        links.new(tint.outputs["Result"], combine.inputs["Y"])
+        links.new(tint.outputs["Result"], combine.inputs["Z"])
+        multiply = nodes.new("ShaderNodeVectorMath")
+        multiply.location = (-80, 160)
+        multiply.operation = "MULTIPLY"
+        links.new(combine.outputs["Vector"], multiply.inputs[0])
+        multiply.inputs[1].default_value = tuple(list(base_socket.default_value)[:3])
+        links.new(multiply.outputs["Vector"], base_socket)
+
+
 def build_material(spec, guard):
     """Create one Blender material from a SceneSpec material entry."""
     material_id = spec["id"]
@@ -546,6 +685,12 @@ def build_material(spec, guard):
 
         for key, value in parameters.items():
             _set_socket(principled, key, value, guard, material_id)
+
+        # After the scalars, so the pattern varies around the authored values
+        # rather than replacing them.
+        texture = spec.get("texture")
+        if isinstance(texture, dict):
+            _build_texture_graph(material, principled, texture, guard, material_id)
 
     alpha = parameters.get("alpha")
     if isinstance(alpha, (int, float)) and float(alpha) < 1.0:
@@ -1017,6 +1162,46 @@ def configure_scene(scene, spec, profile, guard):
                 "SCENE_COMPILER_DECISION",
                 "sample count %d was not applied to engine %s (that engine exposes no sample attribute)"
                 % (samples, scene.render.engine),
+            )
+
+    if profile.get("raytracing") is not None:
+        # EEVEE only. Its raytracing pipeline defaults OFF, which leaves every
+        # surface lit by direct light alone: objects lose their contact shadow and
+        # read as floating, which is exactly the flatness the flag exists to fix.
+        # Cycles has real global illumination and no such switch, so the key is
+        # reported as ignored there rather than treated as an error.
+        if scene.render.engine == "BLENDER_EEVEE":
+            try:
+                scene.eevee.use_raytracing = bool(profile["raytracing"])
+                options = getattr(scene.eevee, "ray_tracing_options", None)
+                if options is not None:
+                    # The stock defaults trade quality for speed. A delivery wants
+                    # the screen trace at full resolution and still applied to
+                    # rougher surfaces than the default cutoff allows.
+                    for attribute, value in (
+                        ("resolution_scale", 1),
+                        ("screen_trace_quality", 0.5),
+                        ("trace_max_roughness", 0.9),
+                        ("use_denoise", True),
+                    ):
+                        if hasattr(options, attribute):
+                            setattr(options, attribute, value)
+                guard.note(
+                    "SCENE_COMPILER_DECISION",
+                    "render profile %s: EEVEE raytracing %s"
+                    % (profile_name_of(spec, profile), "enabled" if profile["raytracing"] else "disabled"),
+                )
+            except Exception as exc:
+                guard.warn(
+                    "ADDON_ENABLE_FAILED",
+                    "could not set EEVEE raytracing on profile %s: %s"
+                    % (profile_name_of(spec, profile), error_text(exc)),
+                )
+        else:
+            guard.note(
+                "SCENE_COMPILER_DECISION",
+                "render profile %s sets raytracing, which engine %s has no switch for; ignored"
+                % (profile_name_of(spec, profile), scene.render.engine),
             )
 
     color = profile.get("colorManagement") or {}

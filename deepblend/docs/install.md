@@ -89,6 +89,12 @@ result: the installed presets match the repository
 
 四条全绿之后**重启 `dsh web`**，然后新建一个会话，在模式里选 **DeepBlend Studio**。
 
+**拉了新代码之后先跑 `npm run plugin:check`。** profile 里那一层 operator layer 是从 bundle **推导生成**的
+（`plugin:install` 生成它，patch 层的 `config` 是整体替换而不是合并，D74），所以**bundle 改了、那一层就旧了**——
+而它的表现是**下一次重启时插件装不起来**，离你改的那一行很远 ✓。实测过一次：bundle 里删掉一个配置键之后，
+已装的那层还带着它，新加的配置检查在重启时拒绝装载，而**只有手动跑一次 `plugin:check` 才会说出来** ✓。
+`plugin:check` 的 `DRIFTED` 行会直接给修复命令；照它跑一次、再重启即可。
+
 > **为什么必须重启**：bundle 是**进程级**组合——`dsh web` 在启动时读一次 profile 的
 > bundle 列表，之后磁盘上的包再新也不会被它发现（`milestone-status.md` §13.1 记了这件事
 > 的真实代价）。preset 同理，它在 profile 启动时被挂载一次。

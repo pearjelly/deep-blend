@@ -64,6 +64,13 @@ export function describeUnknownConfigKeys(schema, config, label) {
     `It reads: ${known.join(', ')}. ` +
     'Note that a key with the wrong shape is NOT rejected by the schema — a nested object like SPEC §17\u2019s ' +
     '`finalRender: {…}` is accepted and simply never read, so this check is what makes that loud. ' +
+    // THE MOST LIKELY CAUSE IS NOT A TYPO, and the message has to say so: an operator layer is GENERATED from
+    // the bundle (`npm run plugin:install`), so a bundle that dropped a key leaves every existing layer
+    // carrying it — and this refusal then fires at the next restart, which is a long way from the edit that
+    // caused it. MEASURED: exactly that happened in this repository when `serveCachedCapabilities` was
+    // deleted, and the only thing that surfaced it was `npm run plugin:check` being run by hand.
+    'If this config came from a generated operator layer, the layer is stale rather than wrong: ' +
+    'run `npm run plugin:install` to regenerate it from the bundle, then restart the profile. ' +
     'See `deepblend/docs/install.md` for the SPEC §17 name \u2192 real name table.'
   )
 }

@@ -7421,3 +7421,55 @@ total self-counted assertions: 1427
 
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **32 (0.3%)** 不变
 （本轮只动文档、注释与检查 ✓）。契约层 61 文件 / **1427** 项不变，`node:test` 用例 288 → **289**。
+
+## 103. 一个**会让插件装不起来**的漂移，是「顺手跑一下检查」才发现的
+
+### 103.1 起因：给四个 `--check` 计时
+
+本轮想把「一条命令告诉你哪里不对」这件事做得更好，于是先给四个安装检查计时（都很快：294 / 483 / 244 / 142 ms ✓）。
+其中 `plugin:check` 的输出是：
+
+```
+profiles/web/cordis.patch.yml: DRIFTED — the bundle changed and this layer was not regenerated
+result: 1 thing(s) are not installed in the "web" profile
+```
+
+**这是本会话第 96 轮改 `bundle/cordis.patch.yml`（删掉 `serveCachedCapabilities`）留下的** ✗：
+profile 里那一层 operator layer 是从 bundle **推导生成**的 ✓（D74：patch 层的 `config` 是整体替换 ✓），
+而**已装的那一层还带着那个被删掉的键** ✓ —— 于是第 96 轮新加的配置检查会在**下一次重启时拒绝装载这个插件** ✗✗。
+
+**这是我这一轮改动造成的、用户可见的破坏** ✓：不是测试红，而是「重启 `dsh web` 之后插件不见了」✗。
+（当前进程不受影响 ✓——patch 层是启动时读的 ✓。）
+
+### 103.2 修法：先把环境修好，再让**这个失败自己说清楚怎么修**
+
+* 跑 `npm run plugin:install` 重新生成那一层 ✓（`serveCachedCapabilities` 计数归零 ✓，`plugin:check` 报
+  `DeepBlend is installed in the "web" profile` ✓）；
+* 把拒绝信息补上一句 ✓：**它多半不是打错字，而是那一层旧了** ✓——「run `npm run plugin:install` to
+  regenerate it from the bundle, then restart the profile」✓。这是本轮真正的产品改动：**一个在重启时才炸的
+  失败，必须自己带上修复命令** ✓（否则它离造成它的那一行太远了 ✓）。断言与两条变异（把这句话删掉 /
+  把命令名写错）都红 ✓；
+* `install.md` 补一节：**拉了新代码之后先跑 `plugin:check`** ✓，并写清为什么（bundle 改了、那一层就旧了，
+  表现是下一次重启装不起来 ✓）。
+
+### 103.3 教训：这是「operator 状态」的第三次现身
+
+第 102 轮的教训是「不要承诺 operator 状态」✓，第 103 轮是同一件事的另一面：**生成出来的 operator 状态会过期** ✓，
+而过期的表现发生在**很远的地方**（改 bundle 的那一行 → 下一次重启）✓。仓库能做的两件事都做了：
+`plugin:check` 能看出来 ✓（已有 ✓），拒绝信息现在直接给出修复命令 ✓（本轮 ✓）。
+
+### 103.4 收口
+
+两条变异全红（把「跑 `plugin:install` 重新生成」这句话删掉、把命令名写成不存在的 `plugin:reinstall`）✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1428
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **32 (0.3%)** 不变
+（本轮产品改动只有那句拒绝信息 ✓）。契约层 61 文件 / 1427 → **1428** 项。
+另外：本轮的**环境修复**（重新生成 operator layer）不在仓库里 ✓——它是 operator 状态 ✓，
+`plugin:check` 现在报 `installed` ✓。

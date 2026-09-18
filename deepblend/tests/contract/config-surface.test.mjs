@@ -91,6 +91,14 @@ check('and the refusal names the keys the row DOES read, so the fix is in the me
   refused?.message?.slice(0, 200))
 check('and it says WHY this is a check at all: the schema accepts the nested shape without a word',
   refused !== null && /accepted and simply never read/.test(refused.message))
+// AND IT NAMES THE MOST LIKELY CAUSE, which is not a typo: the operator layer is GENERATED from the bundle, so
+// a bundle that dropped a key leaves every existing layer carrying it — and this refusal then fires at the next
+// restart, a long way from the edit. MEASURED in this repository: deleting `serveCachedCapabilities` from the
+// bundle left the installed layer stale, and nothing but a hand-run `npm run plugin:check` surfaced it.
+check('and the refusal names the stale-generated-layer fix, because that is what it usually is',
+  refused !== null && /npm run plugin:install/.test(refused.message) &&
+  /stale rather than wrong/.test(refused.message),
+  refused?.message?.slice(-160))
 
 // ---- 2. a typo is the same failure, so the check is about names ------------
 
