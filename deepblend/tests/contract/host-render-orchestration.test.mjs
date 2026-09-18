@@ -28,7 +28,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -393,13 +393,37 @@ check('a preview that reports success without writing an image is RENDER_NO_OUTP
   noImage?.detail ?? noImage?.message)
 
 runtime.renderPreview = async () => { throw new Error('the preview process was killed') }
+// `second` was committed WITHOUT a checkpoint, so this failing preview is also the case that compiles the
+// revision into scratch first — and the compile's directory has to be removed on the FAILURE path too. That
+// cleanup lives in a `finally` and was verified by READING it until now: a refactor that moved it out of the
+// `finally` would leave a compiled `.blend` behind on every failed render, which is exactly the shape of the
+// leak found in the asset path (`ingestAsset`'s happy path never cleaned up, D179).
+const scratchBefore = existsSync(join(workspaceRoot, 'tmp')) ? readdirSync(join(workspaceRoot, 'tmp')) : []
 const failed = await studio.renderPreview({ projectId, revision: second, cameraId: 'camera-main', frame: 60 }).catch(cause => cause)
+const scratchAfter = existsSync(join(workspaceRoot, 'tmp')) ? readdirSync(join(workspaceRoot, 'tmp')) : []
+check('a FAILED preview leaves no compile scratch behind, because the cleanup is in a `finally`',
+  scratchAfter.filter(name => name.startsWith('render-')).length === 0,
+  { before: scratchBefore.length, after: scratchAfter })
 // Through the id the FAILURE carries, because that is the only handle a caller has: this record is an
 // attempt log under `jobs/`, and `listJobs` lists render jobs under `renders/`. Writing this check is
 // what found that the record was unreachable — the error named the failure and not the record.
 const failedJob = failed?.detail?.jobId === undefined
   ? null
   : await studio.getJob({ projectId, jobId: failed.detail.jobId }).catch(() => null)
+// THE SCRATCH ASSERTION ABOVE IS ONLY WORTH ANYTHING IF THE COMPILE REALLY RAN, and a failure path is exactly
+// where that could quietly stop happening: if a future change made a failed preview skip the compile, the
+// "no scratch left behind" check would pass over an empty directory and prove nothing. The compile's own
+// warning is the evidence that it did.
+// (Read from DISK: `getJob` returns a projection, and the first version of this check asked the projection for
+// `warnings` — which it does not carry, so the check failed with `null` and the reason was the accessor rather
+// than the fact. Same trap as the job-record schema check in this file.)
+const failedAttemptRecord = failedJob === null
+  ? null
+  : JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'jobs', `${failedJob.jobId}.json`), 'utf8'))
+check('and the compile really happened for that failed preview, so the scratch check is not vacuous',
+  (failedAttemptRecord?.warnings ?? []).some(entry => entry.code === 'SCENE_COMPILER_DECISION'),
+  failedAttemptRecord?.warnings?.map(entry => entry.code) ?? null)
+
 check('a failed preview leaves a FAILED JOB RECORD, and the error names it so it can be read back',
   failedJob !== null && failedJob.jobId === failed.detail.jobId &&
   failedJob.status === 'failed' && failedJob.errorCode === code('SCRIPT_ERROR') &&

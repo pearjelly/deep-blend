@@ -3815,7 +3815,37 @@ export default class BlenderStudio extends Service {
     } finally {
       clearInterval(tick)
       this._liveRenders.delete(jobId)
+      // THE COMPILE THIS RENDER PAID FOR IS REMOVED ONLY WHEN THE JOB IS FINISHED, and that word is doing
+      // real work here. The preview and views paths each remove their own compiled scratch in a `finally`;
+      // the DELIVERY path had none, and nothing else owns this directory — MEASURED: a delivery of a revision
+      // with no checkpoint left `tmp/render-r0002-…` behind, holding a compiled `.blend`.
+      //
+      // It cannot simply be removed on every path, because a FAILED or CANCELLED job is RESUMABLE
+      // (`resumeRenderJob` says so, and it reuses `record.checkpointPath`) — deleting the scratch there would
+      // turn "continue this render" into "the renderer cannot open its scene". So: `completed` is the one
+      // status from which nothing resumes, and that is exactly when the bytes stop being live state.
+      if (this.renderJobs.readSafe(projectId, jobId)?.status === 'completed') {
+        this._removeCompiledScratch(record.checkpointPath)
+      }
     }
+  }
+
+  /**
+   * Remove a COMPILE SCRATCH directory, and never a revision's own checkpoint.
+   *
+   * The two are told apart by where they live: a compile writes into `<workspaceRoot>/tmp/render-<revision>-…`
+   * (`compileRevisionForRender`), while a revision's checkpoint is `<project>/revisions/<id>/scene.blend`.
+   * Anything that is not exactly the former is left alone — the cost of a wrong guess here is somebody's
+   * committed scene.
+   *
+   * @param {string|null|undefined} checkpointPath
+   */
+  _removeCompiledScratch(checkpointPath) {
+    if (typeof checkpointPath !== 'string' || checkpointPath.length === 0) return
+    const directory = dirname(checkpointPath)
+    if (dirname(directory) !== join(this.store.workspaceRoot, 'tmp')) return
+    if (!basename(directory).startsWith('render-')) return
+    removeTree(directory)
   }
 
   /**

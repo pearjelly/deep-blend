@@ -7651,3 +7651,62 @@ total self-counted assertions: 1434
 读数：产品代码**改了**（`ingestAsset` 的尾部包进 `finally` ✓），所以这一轮跑了一次新探针 ✓——
 见 `probe-coverage.log` 的 `r99` 列 ✓。契约层 61 文件 / 1431 → **1434** 项
 （`host-asset-ingest.test.mjs` 21 → 26 ✓）。
+
+## 108. 交付渲染编译出来的场景，**永远不会被删掉**
+
+### 108.1 起因：一条「靠读代码确认」的清理
+
+第 107 轮修掉资产抓取的暂存泄漏之后 ✓，顺着同一根线查了**所有**清理点 ✓：`removeTree(` 在 host 里一共 8 处 ✓，
+其中两处是「编译出来的场景」——预览/多视角各有一处 `finally` ✓（`compiledForThisRender.directory` ✓），
+交付路径有一处 ✓（`checkpoint.compiled` ✓）。
+
+**但读一遍不算断言** ✓——于是给「失败的预览不留编译暂存」写了断言 ✓（`host-render-orchestration.test.mjs` ✓，
+并附一条**防空过**的守卫：证明编译真的发生过 ✓，否则目录本来就是空的 ✓）。然后轮到交付路径 ✓。
+
+### 108.2 第一版断言**挂错了地方**，于是它什么都没证明
+
+我给「失败交付」写的第一条断言挂在了一个 revision **有** checkpoint 的用例上 ✗——那里根本没有编译 ✓，
+`tmp/` 是空的 ✓，断言**空过** ✓。这正是我自己在另一个文件里刚写的那条守卫要防的事 ✓。
+
+把它挪到真正会编译的用例上（`saveCheckpoint: false` ✓ + 交付因帧数不符而失败 ✓ + `world.compiles()` 作为守卫 ✓），
+读数立刻变成：
+
+```
+[FAIL] … — {"compiles":1,"status":"failed","leftovers":["render-r0002-mu6uvld2"]}
+```
+
+**交付路径编译出来的场景，从来没有人删过** ✗✗——`grep removeTree` 里那处 `checkpoint.compiled` 属于
+`_renderViewPlan`（多视角）✓，**不是**交付路径 ✓。
+
+### 108.3 但「直接删掉」是错的：失败的任务**可以被续渲**
+
+第一次修法想当然地「在 `_driveRender` 的 `finally` 里删掉」✗——而 `resumeRenderJob` 会用
+`record.checkpointPath` ✓，删了它「继续这个渲染」就变成「渲染器打不开它的场景」✗。
+
+正确的规则是：**`completed` 是唯一一个不能再续的状态** ✓——那一刻之前，编译出来的 `.blend` 是**活的状态** ✓；
+那一刻之后，它是垃圾 ✓。于是清理放在 `_driveRender` 的 `finally` 里，并且**只在任务已 `completed` 时**执行 ✓。
+
+### 108.4 三条断言 + 一条「只准删暂存」的守卫
+
+* 失败的编译交付**保留**暂存 ✓，而且**续渲复用它、不再编译**（`compiles()` 不变 ✓）；
+* 完成的编译交付**删掉**暂存 ✓；
+* `_removeCompiledScratch` **只删** `<workspace>/tmp/render-*` ✓：交给它一个 revision 自己的 checkpoint 时**必须原样留下** ✓，
+  一个「长得像暂存但不在 tmp 下」的目录也必须留下 ✓（两条守卫各自需要自己的输入 ✓——只去掉 tmp 那条时，
+  别的用例全绿 ✓，补上这条「像暂存但不是」的输入才红 ✓）。
+
+### 108.5 收口
+
+五条变异：四条红（跳过 completed 的清理 → 泄漏回来 ✓；每个状态都清理 → 失败任务的续渲暂存没了 ✓；
+两条守卫一起去掉 → checkpoint 会被删 ✓；只去掉 tmp 守卫 → 被「像暂存但不是」的输入红 ✓），
+**一条是等价变异** ✓（只去掉名字守卫 ✓：所有输入要么在 tmp 下、要么名字不是 `render-` ✓，行为不变 ✓——
+所以它没有被杀掉，而这是「变异要带上下文瞄准」的又一例 ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1442
+```
+
+产品代码改了（新增 `_removeCompiledScratch` ✓ 与 `finally` 里的条件清理 ✓），所以这一轮跑新探针 ✓（`r100` 列 ✓）。
+契约层 61 文件 / 1434 → **1442** 项（`host-render-loop.test.mjs` 39 → 44、`host-render-orchestration.test.mjs` 40 → 42 ✓）。

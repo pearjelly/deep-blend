@@ -37,7 +37,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -341,6 +341,89 @@ async function fixture(plan) {
     /1 frame\(s\) remain and can be resumed with blender_final_render \{resumeJobId: "render-0001"\}/.test(record.message ?? '') &&
     JSON.stringify(record.missingFrames) === JSON.stringify([2]),
     { status: record.status, code: record.errorCode, message: record.message })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// A FAILED delivery of a COMPILED revision: the scratch has to go
+// ---------------------------------------------------------------------------
+//
+// The first version of this assertion was attached to the case above, whose revision HAS a checkpoint — so no
+// compile happened, `tmp/` was empty, and the check passed over nothing. That is the vacuity the guard below
+// exists for: `world.compiles()` has to show the compiler really ran. The preview path's own `finally` is
+// asserted in `host-render-orchestration.test.mjs`; this is the delivery path's, a separate line of code, and
+// the reason it gets its own case rather than the benefit of the doubt.
+{
+  const world = await fixture({ probedFrames: '1' })
+  const second = await world.studio.transactions.applyScenePatch({
+    projectId: world.projectId,
+    baseRevision: world.revision,
+    operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+    saveCheckpoint: false,
+  })
+  const compilesBefore = world.compiles()
+  const started = await world.studio.startFinalRender({
+    projectId: world.projectId, revision: second.revision.revision, frames: [1, 2],
+  })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  const leftovers = existsSync(join(world.workspaceRoot, 'tmp'))
+    ? readdirSync(join(world.workspaceRoot, 'tmp')).filter(name => name.startsWith('render-'))
+    : []
+  // KEPT, NOT REMOVED — and the first version of this case asserted the opposite, which is why it failed and
+  // why the fix is not the one it first looked like. A FAILED job is resumable (`resumeRenderJob` reuses
+  // `record.checkpointPath`), so its compiled scratch is LIVE STATE: deleting it would turn "continue this
+  // render" into "the renderer cannot open its scene". The resume below is the proof that keeping it matters.
+  check('a FAILED delivery of a COMPILED revision KEEPS its compile scratch, because a resume needs it',
+    world.compiles() - compilesBefore === 1 && record.status === 'failed' &&
+    leftovers.some(name => name.startsWith(`render-${second.revision.revision}-`)),
+    { compiles: world.compiles() - compilesBefore, status: record.status, leftovers })
+  // The resume of THIS job fails again (the fixture's probe still reports one frame where the job claims two),
+  // so what is asserted is not that it succeeds but that it did not COMPILE AGAIN: `compiles()` is unchanged,
+  // which is only possible if the renderer opened the scratch this case just insisted on keeping.
+  const compilesBeforeResume = world.compiles()
+  const resumed = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: started.jobId })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const afterResume = existsSync(join(world.workspaceRoot, 'tmp'))
+    ? readdirSync(join(world.workspaceRoot, 'tmp')).filter(name => name.startsWith('render-'))
+    : []
+  check('and a resume of that job reuses the kept scratch instead of compiling the revision again',
+    resumed.resumed >= 0 && world.compiles() === compilesBeforeResume &&
+    afterResume.some(name => name.startsWith(`render-${second.revision.revision}-`)),
+    { launches: world.compiles() - compilesBeforeResume, afterResume })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// The cleanup must not touch a REVISION'S checkpoint
+// ---------------------------------------------------------------------------
+//
+// `_removeCompiledScratch` tells a compile scratch from a committed scene by WHERE it lives, and the cost of a
+// wrong guess is somebody's revision. That half of the rule had no assertion — dropping both path guards left
+// every other case green, because no test ever hands it a path that is not a scratch. So this one does, by
+// calling the private helper directly (poked on purpose, and named here as such): the mutation that removes the
+// guards has to fail somewhere, and this is the somewhere.
+{
+  const world = await fixture({})
+  const checkpoint = world.studio.store.checkpointPath(world.projectId, world.revision)
+  const before = readFileSync(checkpoint)
+  world.studio._removeCompiledScratch(checkpoint)
+  check('a revision\u2019s own checkpoint is NEVER removed by the scratch cleanup, whatever it is handed',
+    existsSync(checkpoint) && readFileSync(checkpoint).equals(before),
+    { checkpoint, stillThere: existsSync(checkpoint) })
+  // EACH GUARD NEEDS ITS OWN INPUT. Dropping only the `tmp` guard left every case green, because the paths
+  // they hand in are either under `tmp` or named `r0001` — so a directory that LOOKS like a scratch but lives
+  // somewhere else is the input that makes that guard load-bearing.
+  const lookalike = join(world.studio.store.projectDirectory(world.projectId), 'render-lookalike')
+  mkdirSync(lookalike, { recursive: true })
+  writeFileSync(join(lookalike, 'scene.blend'), 'not a scratch')
+  world.studio._removeCompiledScratch(join(lookalike, 'scene.blend'))
+  check('and a directory that only LOOKS like a scratch is left alone, because the guard is the path',
+    existsSync(join(lookalike, 'scene.blend')), { stillThere: existsSync(join(lookalike, 'scene.blend')) })
+  world.studio._removeCompiledScratch(null)
+  world.studio._removeCompiledScratch('')
+  check('and nothing at all is removed for a missing or empty path',
+    existsSync(checkpoint), { stillThere: existsSync(checkpoint) })
   world.dispose()
 }
 
@@ -680,6 +763,13 @@ async function fixture(plan) {
   check('and the delivery launched the compiler ONCE: the encode reuses the checkpoint the render recorded',
     world.compiles() - compilesBeforeRender === 1,
     { launches: world.compiles() - compilesBeforeRender })
+  // AND A COMPLETED JOB'S SCRATCH IS GONE, which is the one status from which nothing resumes: the compiled
+  // `.blend` was live state while the job could still be continued, and it is garbage the moment it cannot.
+  const leftoversAfterCompletion = existsSync(join(world.workspaceRoot, 'tmp'))
+    ? readdirSync(join(world.workspaceRoot, 'tmp')).filter(name => name.startsWith('render-'))
+    : []
+  check('and the compile scratch is removed once the job is COMPLETED, because nothing resumes from there',
+    leftoversAfterCompletion.length === 0, leftoversAfterCompletion)
   check('and the manifest points at the SceneSpec it compiled rather than at a scratch file that is already gone',
     manifest !== null && manifest.source?.checkpoint?.path === null &&
     manifest.source?.sceneSpec?.path === `revisions/${second.revision.revision}/scene-spec.json` &&
