@@ -6886,3 +6886,54 @@ total self-counted assertions: 1388
 新模块 `contracts/lib/redact.js` **一行不暗**（新测试把它全部走过），产品代码行数 12115 → 12134。
 契约层快照 1380 → **1388**（新文件 7 项 + `host-asset-ingest.test.mjs` 1 项），**文件数 57 → 58**、
 总文件数 72 → 73（README 的套件/文件/断言三处都已同步）。
+
+## 93. 一个 23 个词的词汇表，手册里只有 1 个
+
+### 93.1 先纠正一次自己的测量
+
+本轮先去量「错误码有没有文档」：62 个码里 43 个没出现在 `recovery.md` 里——**看起来是个大洞** ✗。
+但仓库里已经有 `error-documentation.test.mjs`，它维护的是一张**分类表**：每个码要么在 `EXPLAINED`
+（指向手册里解释它的那一节），要么在 `NOT_EXPLAINED` 的某一组里（「名字本身就是指令」/「发生在宿主与
+Blender 之间，修法是部署而不是项目」）。**62 个码全部已被分类，且有测试盯着**——我量错了东西
+（第 91 轮那条「先确认你量的是你以为的那件事」的又一次现身）。**没有洞，不改。**
+
+### 93.2 真正的洞：patch 词汇表
+
+接着量另一条：`usage.md` 有没有把 `blender_scene_patch` 的**操作词汇**写出来。读数：
+
+```
+ops: 23   in usage.md: 1   missing: 22
+```
+
+**23 个操作名里 22 个在手册里一个字都没出现** ✗。工具 schema 里当然有（模型看得到），但
+`usage.md` 是**人读的那本**——而「一次改一件事」的整个语义都建立在这 23 个词上。
+
+修法：在 §2 之后加一张 **23 行的操作表**（操作 | 必填字段 | 一句话），字段名直接从
+`scene-patch.schema.json` 的 `oneOf` 里抽出来（不是手抄的 ✓），一句话写的是**它做什么**、
+以及几个会咬人的地方（`camera.remove` 被 shot 用着会被拒、`world.set` 是**替换**、
+`project.frameRange.set` **不改场景**所以不影响重渲判定、`asset.remove` 移掉最后一个时键会消失）。
+
+### 93.3 两份词汇表要有一个检查器
+
+`docs-consistency.test.mjs` 里加一条**双向**检查：手册的操作表与 `SCENE_OPERATION_NAMES`
+**集合相等** ✓——少一个（手册没讲全）红，多一个（手册教了一个产品会拒的词）也红，后者更坏，
+因为它读起来像一个能力。
+
+写这条检查时自己先踩了一次：正则写的是 `[a-z.]`，于是 `project.frameRange.set`（带大写）
+被静默漏掉，解析出 22 行——**被「少于 23 行就不算通过」的那道守卫当场抓住** ✓
+（这正是那条守卫存在的理由：**空过的检查比失败的检查更糟**）。
+
+### 93.4 变异与收口
+
+两条变异都红，而且方向相反：**删掉一行操作**（手册没讲全）与**加一个产品会拒的词**
+（`shot.delete`——手册教了一个不存在的能力）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 58/58 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1388
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变
+（本轮只动文档与检查），`node:test` 用例 285 → **286**（README 已同步）。

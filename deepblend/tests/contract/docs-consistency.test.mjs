@@ -37,7 +37,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
 import { commandsIn, missingCommands } from '../lib/command-claims.mjs'
@@ -100,6 +100,33 @@ test('every blender tool a manual names is a tool that exists', () => {
     [],
     `a manual names ${unknown.join(', ')}, which is not a registered tool. ` +
       'This is the D80 defect: prose promising a capability nothing implements.',
+  )
+})
+
+test('usage.md spells out the whole ScenePatch vocabulary, and invents none of it', () => {
+  // The roster above settles which TOOLS exist. This is the same question one level down: a patch is
+  // the only way to change a scene, and the 23 operation names are its whole vocabulary — so a manual
+  // that describes `blender_scene_patch` without them leaves a reader (or a model reading the docs
+  // instead of the schema) guessing at the words.
+  //
+  // MEASURED before this was written: 22 of the 23 names appeared NOWHERE in usage.md. The direction
+  // that matters most is the second one — a name the manual teaches that the product does not accept is
+  // worse than a missing row, because it reads as a capability.
+  const usage = documents.find(document => document.path.endsWith('usage.md')).text
+  // `[a-zA-Z]` and not `[a-z]`: `project.frameRange.set` carries a capital, and the first version of
+  // this pattern silently dropped that row — 22 parsed of 23 shipped, which the guard below caught.
+  const rows = usage.split('\n').filter(line => /^\| `[a-z][a-zA-Z.]*\.[a-zA-Z.]+` \|/.test(line))
+  assert.ok(
+    rows.length >= SCENE_OPERATION_NAMES.length,
+    `usage.md's operation table parsed ${rows.length} rows, fewer than the ${SCENE_OPERATION_NAMES.length} operations ` +
+      'that ship — the table was reshaped or its row format changed, and passing vacuously is worse than failing',
+  )
+  const listed = rows.map(row => /`([a-z][a-zA-Z.]*\.[a-zA-Z.]+)`/.exec(row)[1])
+  assert.deepEqual(
+    [...new Set(listed)].sort(),
+    [...SCENE_OPERATION_NAMES].sort(),
+    'usage.md\u2019s operation table and SCENE_OPERATION_NAMES are not the same set: a word the manual teaches ' +
+      'that the product refuses, or an operation the manual never names',
   )
 })
 

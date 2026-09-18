@@ -65,6 +65,41 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 * **回退不删东西。** `blender_revision_restore` 只是把指针移回去，中间那些 revision 仍在
   历史里，你离开的那个也还在。
 
+### 2.1 `blender_scene_patch` 的操作表
+
+一个 patch 是**一组操作**，要么全部生效、要么什么都不改（失败时当前 revision 一个字节都没动）。
+下面 23 个操作名就是全部词汇——工具 schema 里有同样的表，这里写的是**它做什么**：
+
+| 操作 | 必填 | 一句话 |
+|---|---|---|
+| `entity.transform.update` | `entityId` | 移动/旋转/缩放，给哪一项就改哪一项 |
+| `entity.visibility.set` | `entityId`、`visible` | 隐藏或显示（不是删除） |
+| `entity.tags.set` | `entityId`、`tags` | 整份替换标签，`hero-product` 这类标签会影响「谁是主体」 |
+| `entity.add` | `entity` | 新增实体；引用场景里没有的资产或材质会被拒（`PATCH_REFERENCE_MISSING`） |
+| `entity.remove` | `entityId` | 删掉实体 |
+| `entity.material.set` | `entityId`、`materialId` | 换材质 |
+| `material.add` | `material` | 新增材质 |
+| `material.parameter.update` | `materialId`、`parameter`、`value` | 改一个材质参数（metallic / roughness 这类） |
+| `light.add` | `light` | 新增灯 |
+| `light.update` | `lightId` | 改灯（类型、能量、位置……） |
+| `light.remove` | `lightId` | 删灯 |
+| `camera.add` | `camera` | 新增相机 |
+| `camera.update` | `cameraId` | 改相机（`role`、目标、镜头……） |
+| `camera.remove` | `cameraId` | 删相机；**被某个 shot 用着会被拒**（`PATCH_TARGET_IN_USE`），要先在同一个 patch 里删那个 shot |
+| `animation.track.set` | `track` | 写一条动画轨道（同名覆盖） |
+| `animation.track.remove` | `trackId` | 删一条轨道 |
+| `shot.set` | `shot` | 写一个镜头（相机 + 帧范围） |
+| `shot.remove` | `shotId` | 删一个镜头 |
+| `project.frameRange.set` | `frameStart`、`frameEnd` | 改项目帧范围。**它不改场景**，所以「要不要重渲」的判定不受影响 |
+| `render.profile.set` | `profileName`、`profile` | 写一个渲染 profile；分辨率是**整份替换**，省略则保留原来的 |
+| `world.set` | `world` | 设置世界背景。**替换**而不是合并——「把背景改黑」是一次写完的 |
+| `asset.add` | `asset` | 声明一个资产（路径、类型、sha256） |
+| `asset.remove` | `assetId` | 移除资产声明；移除**最后一个**时这个键会消失，而不是留一个空表 |
+
+**失败时读消息里的码**：`SCENE_PATCH_INVALID`（结构不对）、`SCENE_PATCH_REJECTED`（结构对但指向了
+不存在的东西）、`REVISION_CONFLICT`（你的 `baseRevision` 过期了，**没有被合并**）。三个码的下一步
+在 `recovery.md` §4 与 §10。
+
 ---
 
 ## 3. 成本：唯一必须先懂的一件事
