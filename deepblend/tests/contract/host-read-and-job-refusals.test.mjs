@@ -109,16 +109,19 @@ check('a delivery for a profile the revision does not declare lists the profiles
   JSON.stringify(noProfile.detail?.available) === JSON.stringify(['preview', 'final']),
   noProfile?.message ?? noProfile)
 
-const noCheckpoint = (() => {
-  try {
-    return studio._resolveDeliveryCheckpoint({ projectId, revision, spec })
-  } catch (cause) {
-    return cause
-  }
-})()
-check('a delivery with no checkpoint to render from says so AND says what to do about it',
+// A delivery of a revision with NO checkpoint of its own used to be REFUSED here ("has no checkpoint to render
+// from, and there is no earlier checkpoint to fall back on"), and the resolver behind that refusal looked only
+// BACKWARDS: with an earlier checkpoint present it silently rendered the PREVIOUS revision's `.blend` and
+// published those frames under this revision's name. The delivery path now resolves its checkpoint the way the
+// preview path always has — the SceneSpec is the source of truth (SPEC §8.1), so the revision is COMPILED — and
+// the disabled stub below is what makes the difference visible: it writes no `.blend`, so the compile fails
+// loudly instead of quietly rendering somebody else's scene.
+compileProducesBlend = false
+const noCheckpoint = await studio.startFinalRender({ projectId, revision, frames: [1] }).catch(cause => cause)
+compileProducesBlend = true
+check('a delivery of a revision with no checkpoint compiles it from the spec, and refuses when that produces nothing',
   noCheckpoint instanceof BlenderError && noCheckpoint.code === code('REVISION_CHECKPOINT_MISSING') &&
-  /has no checkpoint to render from, and there is no earlier checkpoint to fall back on\. Commit a revision with saveCheckpoint/.test(noCheckpoint.message),
+  noCheckpoint.message === `Revision ${revision} was compiled for rendering but produced no checkpoint.`,
   noCheckpoint?.message ?? noCheckpoint)
 
 // ---- the "newest deliverable" rule ----------------------------------------

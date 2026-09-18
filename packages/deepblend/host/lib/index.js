@@ -2871,17 +2871,7 @@ export default class BlenderStudio extends Service {
     // An open project may hold only one delivery render at a time, and the check
     // comes before everything below for the same reason as the approval gate: a
     // refusal must not have allocated anything.
-    const active = this._activeRenderJob(projectId)
-    if (active !== null) {
-      throw new BlenderError(
-        BlenderErrorCode.RENDER_JOB_CONFLICT,
-        `Project "${projectId}" already has ${active.jobId} in state "${active.status}" ` +
-          `(${active.completedFrames?.length ?? 0}/${(active.frameEnd ?? 0) - (active.frameStart ?? 0) + 1} frames). ` +
-          'Resume it with blender_final_render {resumeJobId}, or cancel it first: two renderers writing one ' +
-          'project\'s frames would produce files neither can vouch for.',
-        { detail: { projectId, activeJob: active.jobId, status: active.status } },
-      )
-    }
+    this._assertNoActiveRender(projectId)
 
     // ── the approval gate (SPEC §15.1, architecture-decisions Q7) ────────────
     //
@@ -2922,15 +2912,23 @@ export default class BlenderStudio extends Service {
       )
     }
 
-    const checkpoint = this._resolveDeliveryCheckpoint({ projectId, revision, spec })
+    const jobId = this.renderJobs.allocateJobId(projectId)
+    /** @type {object[]} */
+    const warnings = []
+    // THE SAME RESOLUTION A PREVIEW USES, and it is the same rule: the SceneSpec is the source of truth
+    // (SPEC §8.1), so a revision committed with `saveCheckpoint: false` is COMPILED for this render instead of
+    // silently rendering an earlier revision's `.blend`. MEASURED before this was fixed: a delivery of such a
+    // revision used the nearest earlier checkpoint, published frames of the PREVIOUS scene under the new
+    // revision's name, and said nothing — the preview path had been fixed for exactly this trap and the
+    // delivery path had kept a resolver that only looks backwards (`_resolveDeliveryCheckpoint`).
+    const checkpoint = await this._resolveCheckpointForRender({
+      projectId, revision, spec, jobId, warnings, signal: request.signal,
+    })
     const cameraId = request?.cameraId ?? this._deliveryCameraId(spec)
     const requestedSamples = request?.samples ?? profile.samples
     const effective = this._deliverySamples(profile, requestedSamples, revision)
 
-    const jobId = this.renderJobs.allocateJobId(projectId)
     const now = Date.now()
-    /** @type {object[]} */
-    const warnings = []
     for (const notice of range.notices) {
       warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, notice, { kind: 'delivery-range' }))
     }
@@ -2947,6 +2945,14 @@ export default class BlenderStudio extends Service {
         { frames: frames.length, threshold: this.config.requireApprovalAboveFrames, approval: 'granted' },
       ))
     }
+
+    // THE RULE IS CHECKED AGAIN HERE, and it has to be: everything between the check above and this write is
+    // fast EXCEPT the compile, which launches Blender for a revision with no checkpoint of its own. MEASURED
+    // by the M5 concurrency suite: with the resolution awaited between the two, two simultaneous deliveries
+    // both passed the first check and both wrote a job — the second one under the same allocated id, so the
+    // store ended up holding one job where the acceptance condition says exactly one caller must win and the
+    // other must be refused. Re-checking costs a directory listing and closes that window.
+    this._assertNoActiveRender(projectId)
 
     const created = this.renderJobs.write({
       schemaVersion: RENDER_JOB_VERSION,
@@ -3069,7 +3075,14 @@ export default class BlenderStudio extends Service {
     const spec = this.store.readRevisionSpec(projectId, record.revisionId)
     const profileName = record.profileName ?? this.config.finalRenderProfile
     const profile = this._resolveRenderProfile(spec, profileName, record.revisionId)
-    const checkpoint = this._resolveDeliveryCheckpoint({ projectId, revision: record.revisionId, spec })
+    // The checkpoint the RENDER used, when the record carries one (it does for anything `startFinalRender`
+    // produced): re-resolving here would compile a second scratch copy for a revision that has no checkpoint of
+    // its own. An EXPORT of a job whose record predates that field still resolves for itself.
+    const checkpoint = record.checkpointPath !== undefined && record.checkpointPath !== null
+      ? { revision: record.revisionId, path: record.checkpointPath, compiled: null }
+      : await this._resolveCheckpointForRender({
+        projectId, revision: record.revisionId, spec, jobId, warnings: [], signal: undefined,
+      })
 
     const expected = this.renderJobs.expectedFrames(record)
     const ledger = readFrameLedger({
@@ -3190,6 +3203,28 @@ export default class BlenderStudio extends Service {
     return profile
   }
 
+  /**
+   * Refuse a delivery render while the project already holds one.
+   *
+   * Called TWICE by `startFinalRender` — once before anything is allocated, and once immediately before the job
+   * record is written — because the compile in between is slow enough for a second caller to get through the
+   * first check. One copy of the sentence, so both refusals read the same.
+   *
+   * @param {string} projectId
+   */
+  _assertNoActiveRender(projectId) {
+    const active = this._activeRenderJob(projectId)
+    if (active === null) return
+    throw new BlenderError(
+      BlenderErrorCode.RENDER_JOB_CONFLICT,
+      `Project "${projectId}" already has ${active.jobId} in state "${active.status}" ` +
+        `(${active.completedFrames?.length ?? 0}/${(active.frameEnd ?? 0) - (active.frameStart ?? 0) + 1} frames). ` +
+        'Resume it with blender_final_render {resumeJobId}, or cancel it first: two renderers writing one ' +
+        'project\'s frames would produce files neither can vouch for.',
+      { detail: { projectId, activeJob: active.jobId, status: active.status } },
+    )
+  }
+
   /** The frame range a delivery covers, with the notices explaining any narrowing. */
   _resolveDeliveryRange(input) {
     const project = input.spec.project
@@ -3291,20 +3326,6 @@ export default class BlenderStudio extends Service {
         { requested, used: effective, revision },
       ),
     }
-  }
-
-  /** The checkpoint a delivery renders from, compiled if the revision has none. */
-  _resolveDeliveryCheckpoint(input) {
-    const checkpoint = this.store.findCheckpointAtOrBefore(input.projectId, input.revision)
-    if (checkpoint === null) {
-      throw new BlenderError(
-        BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
-        `Revision ${input.revision} has no checkpoint to render from, and there is no earlier checkpoint to ` +
-          'fall back on. Commit a revision with saveCheckpoint before rendering a delivery.',
-        { detail: { projectId: input.projectId, revision: input.revision } },
-      )
-    }
-    return checkpoint
   }
 
   /**

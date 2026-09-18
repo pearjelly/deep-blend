@@ -397,6 +397,20 @@ rmSync(workspaceRoot, { recursive: true, force: true })
 const reviewedProject = await studio.transactions.createProject({
   title: 'review-round', sceneSpec: productSpec, saveCheckpoint: true,
 })
+// THIS REVIEW RUNS FIRST, and that is the point: it is round 0, so the revision's artifact index holds
+// [round 0, round 2] in that order. A QA record that returned `reviews[0]` would answer with the OLDER round —
+// and the first version of this case reviewed round 2 first, which made the two implementations
+// indistinguishable (the mutation survived it).
+//
+// The default is "do not spend a model call", and the way to check a promise about NOT doing something is
+// a port that would fail loudly if it were consulted.
+let consultedByDefault = false
+const unconsulted = await studio.visualReview({
+  projectId: reviewedProject.projectId,
+  reviewer: async () => { consultedByDefault = true; throw new Error('the reviewer must not be called') },
+})
+// (its assertion waits until round 2 has been rendered, so the two scores can be compared)
+
 let consulted = null
 const reviewRound = await studio.visualReview({
   projectId: reviewedProject.projectId,
@@ -427,23 +441,16 @@ check('a finding that names a view the render never produced is REJECTED with it
   reviewRound.reported[0].code === 'COMPOSITION_REPORTED' && reviewRound.rejected.length === 1 &&
   reviewRound.rejected[0].reason === 'unknown viewId "no-such-view"',
   { reported: reviewRound.reported.map(entry => entry.viewId), rejected: reviewRound.rejected.map(entry => entry.reason) })
+check('a review that was not asked for a second opinion does not consult the reviewer at all',
+  consultedByDefault === false && unconsulted.reviewer === undefined && unconsulted.score === reviewRound.score,
+  { consultedByDefault, reviewer: unconsulted.reviewer ?? null, round0: unconsulted.score, round2: reviewRound.score })
+
 check('what the reviewer SAID is kept as its own record, with the model, the note and the operations counted',
   reviewRound.reviewer?.model === 'stub-vision' && reviewRound.reviewer?.provider === 'stub-provider' &&
   reviewRound.reviewer?.note === 'the subject is centred' && reviewRound.reviewer?.raw === 'the model said so' &&
   reviewRound.reviewer?.proposedOperations === 1 && reviewRound.reviewer?.error === null &&
   reviewRound.suggestedOperations.length === 1,
   reviewRound.reviewer)
-
-// The default is "do not spend a model call", and the way to check a promise about NOT doing something is
-// a port that would fail loudly if it were consulted.
-let consultedByDefault = false
-const unconsulted = await studio.visualReview({
-  projectId: reviewedProject.projectId,
-  reviewer: async () => { consultedByDefault = true; throw new Error('the reviewer must not be called') },
-})
-check('a review that was not asked for a second opinion does not consult the reviewer at all',
-  consultedByDefault === false && unconsulted.reviewer === undefined && unconsulted.score === reviewRound.score,
-  { consultedByDefault, reviewer: unconsulted.reviewer ?? null })
 
 // The sheet is an artifact OF the revision — it is what THIS scene state looked like — so it is written
 // into the revision and indexed there, and the review record lands beside it.
@@ -453,6 +460,44 @@ check('the sheet and the review record are persisted under the revision they bel
   existsSync(join(revisionDirectory, 'visual-reviews', 'round-2.json')) &&
   existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')),
   { round2Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')), round0Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')) })
+
+// ---------------------------------------------------------------------------
+// The QA record picks the NEWEST review, and a preview says where its checkpoint came from
+// ---------------------------------------------------------------------------
+//
+// Two reviews of one revision is the normal case — the loop renders a round, patches, renders another — and the
+// QA record is supposed to answer "how does this revision look NOW". It therefore has to select by ITERATION
+// rather than by whatever order the artifact index happens to list, and then read that record from disk.
+const qaRecord = await studio.getQaRecord({ projectId: reviewedProject.projectId, revision: reviewedProject.revision.revision })
+check('the QA record carries the NEWEST round of a revision that was reviewed twice',
+  qaRecord.review !== null && qaRecord.review?.iteration === 2 &&
+  qaRecord.review?.score === reviewRound.score,
+  { iteration: qaRecord.review?.iteration, score: qaRecord.review?.score, expected: reviewRound.score })
+check('and it reports the review’s own record rather than a summary built from the artifact index',
+  Array.isArray(qaRecord.review?.perView) && qaRecord.review.perView.length > 0 &&
+  qaRecord.review?.reported !== undefined,
+  Object.keys(qaRecord.review ?? {}))
+
+// A revision with no checkpoint of its own is COMPILED for the render, and when an earlier revision HAS one the
+// warning has to say which one it fell back to — that sentence is the only place a reader learns that the
+// pixels came from a spec compiled now rather than from the `.blend` the revision was committed with.
+const previewProject = await studio.transactions.createProject({
+  title: 'compiled-for-preview', sceneSpec: productSpec, saveCheckpoint: true,
+})
+const secondRevision = await studio.transactions.applyScenePatch({
+  projectId: previewProject.projectId,
+  baseRevision: previewProject.revision.revision,
+  operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+  saveCheckpoint: false,
+})
+const compiledPreview = await studio.renderPreview({
+  projectId: previewProject.projectId, revision: secondRevision.revision.revision,
+})
+check('a preview of a revision with no checkpoint says which earlier checkpoint it fell back to',
+  compiledPreview.warnings.some(entry => entry.code === 'SCENE_COMPILER_DECISION' &&
+    entry.message === `revision ${secondRevision.revision.revision} has no checkpoint of its own; it was compiled from its ` +
+      `SceneSpec for this render (the nearest earlier checkpoint is ${previewProject.revision.revision})`),
+  compiledPreview.warnings.map(entry => entry.message))
 
 // ---------------------------------------------------------------------------
 // Summary

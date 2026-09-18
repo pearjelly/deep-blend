@@ -6625,3 +6625,96 @@ total self-counted assertions: 1369
 26 → 27）。顺带记一条本轮的自我纠错：我最初在 render-loop 里断言的是 `record.delivery.message`，
 而那个字段**不存在**（那段句子属于 `exportProject` 的答案）——读数里 `undefined` 直接把它揭穿，
 改成断言记录真正保留的东西（`errorCode` + 两个数字 + `_deliverJob` 自己那句话）。
+
+## 89. QA 记录要的是「现在长什么样」，不是「清单里的第一条」
+
+### 89.1 一个「取最新」的选择，第一次测不出差别
+
+`getQaRecord` 要在多轮评审里选**最新**的一轮（按 `iteration`），再去磁盘上读那份记录。第一版用例先渲了
+第 2 轮、再渲第 0 轮，于是制品索引里的顺序恰好是 `[2, 0]`——**`reviews[0]` 和「按 iteration 取最大」
+在同一个输入上答案相同**，把 reduce 换成 `reviews[0]` 的变异**活了下来**。
+
+修法不是改断言，而是**改输入**：把第 0 轮放到前面渲，索引变成 `[0, 2]`，两种实现立刻分道扬镳
+（读数：改成 `reviews[0]` 后断言红，`iteration: 0` vs 期望的 `2`）。这与第 77 轮 `size: 1`、第 79 轮
+「只断言相同那一侧」是同一条规矩的第 N 次现身：**要证明一个选择，输入必须让两种选择给出不同答案。**
+
+### 89.2 一次预览要说清它的 checkpoint 是从哪儿来的
+
+一个自己没有 checkpoint 的 revision 会在渲染前被编译，而**当更早的 revision 有** checkpoint 时，
+警告必须点名它退回到了哪一个——那句话是读者唯一能知道「像素来自刚刚编译的 spec，而不是这个 revision
+提交时的那份 `.blend`」的地方。读数：
+
+```
+revision r0002 has no checkpoint of its own; it was compiled from its SceneSpec for this render
+(the nearest earlier checkpoint is r0001)
+```
+
+### 89.3 两处 terminate 抛错，各有各的理由
+
+* **DSH 取消**路径：句柄拒绝被终止时，取消仍然是取消（记录落终态、输出里有一行、**不向 harness 抛**）；
+* **失败**路径：句柄已经死掉时，它不能替换掉它本来在收拾的那个失败（读数：仍然是 `DISK_FULL`）。
+
+两处都补了用例（`terminateThrows` + 后置取消 / `terminateThrows` + `ENOSPC`），M3/M4 两条变异分别让
+它们红——M3 的红是**崩溃型**（异常从取消路径逃到 harness），照实记下。
+
+### 89.4 两处点名
+
+* `ingestAsset` 的**第二次**尺寸检查（复制落地后再 stat 一次）只能在源文件于两次调用之间**长大**时触发，
+  是与写入方赛跑——与 provider 的 `_assertAllowed` 同形，已点名；第一次检查有用例；
+* `_appendOutput` 的 `try/catch`（「journal 和帧在同一个卷上」）**没有失败方式**：给字符串属性做 `+=`
+  不会抛，除非内存耗尽——它是给「缓冲区某天变成文件」准备的安全带，已点名。
+
+### 89.5 一个真缺陷：交付渲染悄悄渲了**上一个** revision 的场景
+
+写 89.1 的用例时（一个自己没有 checkpoint 的 revision 的交付），断言先红了——不是断言写错，而是产品错了：
+`startFinalRender` 用的是 `_resolveDeliveryCheckpoint`，它只**向后找**最近的 checkpoint，**从不编译**。
+于是 `saveCheckpoint: false` 提交的 r0002 会拿 **r0001 的 `.blend`** 渲出帧，然后以 r0002 的名义发布，
+**而且什么都不说**。预览路径早就为同一个陷阱修好了（`compileRevisionForRender` 上面那段长注释写的就是
+「`saveCheckpoint:false` 是陷阱而不是快路径」），交付路径却留着一个只向后看的解析器。
+
+修法（本轮的产品改动）：交付路径改用预览路径一直在用的 `_resolveCheckpointForRender`——spec 是事实来源
+（SPEC §8.1），没有自己的 checkpoint 就**编译**，并带上 `SCENE_COMPILER_DECISION` 警告。同一句规则也用在
+`resumeRenderJob` 上（续渲必须渲同一个场景）。只向后看的 `_resolveDeliveryCheckpoint` 随之删除，
+`host-read-and-job-refusals.test.mjs` 里那条断言（「没有 checkpoint 就拒绝」）改成新的承诺：
+**编译它；编译产不出东西时才拒绝**。
+
+读数（修好后的用例）：记录里 `checkpointPath` 指向 `<workspace>/tmp/render-r0002-…/scene.blend`（**不是** r0001 的），
+警告点名 `(the nearest earlier checkpoint is r0001)`，而交付清单里 `source.checkpoint.path` 是 **null**——
+那是刻意的：编译产物在渲染后就被删掉，记一个已经不在的路径比不记更糟，清单里真正的事实来源是带摘要的 SceneSpec。
+
+### 89.6 修这一处，撞倒了并发套件（而它是对的）
+
+改动把「解析 checkpoint」变成了一次 **await**（编译要启动 Blender）。于是「一个项目同时只能有一个交付渲染」
+的检查与**写记录**之间多了一段慢路径：M5 并发套件立刻红——两个同时发起的交付**都**通过了第一次检查、
+都写了记录，甚至分到同一个 job id。**它是对的**：验收条件要求恰好一个调用者胜出、另一个按名字被拒。
+
+修法是把同一条规则在**写记录之前再检查一次**（`_assertNoActiveRender`，一句话只有一份），
+理由是编译是两步之间唯一慢的步骤。变异 M2（去掉这次复查）会让并发套件的那两条断言重新变红——
+这条规则现在是**被并发套件钉住的**，而不是靠时序的运气。
+
+### 89.7 变异与收口
+
+四条变异：三条红，**一条是「打偏了」**。M1（把交付解析改回只向后看）红了——正是本轮修的缺陷；
+M2（去掉写记录前的复查）红了，红在并发套件上；M3（把 `resumeRenderJob` 里「复用记录里的 checkpoint」的偏好
+去掉）起初**没有红**，因为它打的不是那条用例走的路：我的改动落在了 `resumeRenderJob`，而那条用例走的是
+`startFinalRender` → `_deliverJob`（编码那半边**根本不解 checkpoint**）。这是第 70 轮那条「变异要带上下文
+瞄准」的又一次现身——而它同时暴露了一处真缺口：**续渲一个编译过的渲染**没有用例。补上之后（读数：
+`launchesForStart: 1, launchesForResume: 0, resumed: 1`）M3 变红，缺口关上。**一条打偏的变异，指出的往往
+不是变异错了，而是那里真的没人看着。**
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # 全部 16 个套件，exit 0
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1378
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 39 (0.4%) → **48 (0.4%)**——
+**这个数字上升了，而且是诚实的**：修复本身加了一处新的分支（`resumeRenderJob` 的「记录里有 checkpoint 就用它」），
+而它旁边那 5 行（同一个方法里第二处 `readFrameLedger`）本轮的新用例没有走到，是下一轮的问题；
+`_resolveDeliveryCheckpoint` 的删除也让产品代码行数从 12117 变成 12114。
+
+契约层快照 1369 → **1379**（`host-render-orchestration.test.mjs` 34 → 37、`host-render-loop.test.mjs`
+27 → 34）。全部 **16 个套件**（`run-all.sh`）在本轮结束时是绿的。

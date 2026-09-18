@@ -37,7 +37,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -86,8 +86,12 @@ function harness(plan = {}) {
   let resolveOutcome = null
   const outcome = new Promise(resolve => { resolveOutcome = resolve })
 
+  let compileCount = 0
   const runtime = {
     async compileScene(request) {
+      // Counted because a compile is a real Blender launch: a delivery that re-resolves its checkpoint instead of
+      // reusing the one the render recorded pays for a SECOND one, and the cost is the point of the assertion.
+      compileCount += 1
       const directory = join(request.projectRoot, 'stub-compile')
       mkdirSync(directory, { recursive: true })
       writeFileSync(join(directory, 'result.blend'), 'a blend file, honest')
@@ -171,7 +175,7 @@ function harness(plan = {}) {
     // reconciliation, which writes a reconciled record for the very render being measured.
     ...(plan.config ?? {}),
   }))
-  return { studio, workspaceRoot, stdout, spawned, resolveOutcome, dispose: () => rmSync(workspaceRoot, { recursive: true, force: true }) }
+  return { studio, workspaceRoot, stdout, spawned, resolveOutcome, compiles: () => compileCount, dispose: () => rmSync(workspaceRoot, { recursive: true, force: true }) }
 }
 
 /** A project with a real checkpoint, two frames on disk, and a job ready to run. */
@@ -619,6 +623,147 @@ async function fixture(plan) {
     report.cancelled === true && report.processGone === true && report.process?.via === 'subprocess-handle' &&
     record.status === 'cancelled' && record.message === 'cancelled: the operator went home' && world.stdout.includes('terminated'),
     { report, status: record.status, stdout: world.stdout })
+  world.dispose()
+}
+
+// NAMED, NOT PRETENDED COVERED: `_appendOutput` is a string concatenation with a cap, and its own `try/catch`
+// ("the journal lives on the same volume the frames do") cannot be made to throw from a test: `live.output +=
+// text` on a string property has no failure mode short of running out of memory. It is a belt for the day the
+// buffer becomes a file, and it is written down rather than left looking covered.
+
+// ---------------------------------------------------------------------------
+// A delivery that was COMPILED for this render, and says so
+// ---------------------------------------------------------------------------
+//
+// The preview path has one copy of this sentence and the delivery path has another; the delivery one is the
+// more consequential, because a delivery that silently rendered from an EARLIER revision's `.blend` would be a
+// delivery of the wrong scene. The fixture project is created WITH a checkpoint, so `r0002` — committed without
+// one — has to be compiled, and the warning names the checkpoint it did not use.
+{
+  const world = await fixture({ probedFrames: '1' })
+  const second = await world.studio.transactions.applyScenePatch({
+    projectId: world.projectId,
+    baseRevision: world.revision,
+    operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+    saveCheckpoint: false,
+  })
+  // The patch itself compiles once (the commit validates and digests the document it stores), so the render's
+  // own launches are counted as a DELTA: one for the checkpoint this render needs, and none for the encode.
+  const compilesBeforeRender = world.compiles()
+  const started = await world.studio.startFinalRender({
+    projectId: world.projectId, revision: second.revision.revision, frames: [1],
+  })
+  await waitFor(() => world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status === 'completed')
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a DELIVERY of a revision with no checkpoint says which earlier checkpoint it was compiled instead of',
+    record.status === 'completed' && record.warnings.some(entry => entry.code === 'SCENE_COMPILER_DECISION' &&
+      entry.message === `revision ${second.revision.revision} has no checkpoint of its own; it was compiled from its ` +
+        `SceneSpec for this render (the nearest earlier checkpoint is ${world.revision})`),
+    { status: record.status, message: record.message, warnings: record.warnings.map(entry => entry.message) })
+  // AND THE FRAMES CAME FROM THAT COMPILE, not from the checkpoint it named as a fallback. This is the assertion
+  // that the defect would have failed: the old resolver returned the EARLIER revision's `.blend`, so the delivery
+  // published the previous scene under this revision's name — and the manifest is where that choice is recorded.
+  const earlierCheckpoint = world.studio.store.checkpointPath(world.projectId, world.revision)
+  check('and the record names the checkpoint it really rendered from — the COMPILE, not the earlier revision’s',
+    typeof record.checkpointPath === 'string' && record.checkpointPath !== earlierCheckpoint &&
+    /tmp[\\/]render-/.test(record.checkpointPath),
+    { renderedFrom: record.checkpointPath, earlier: earlierCheckpoint })
+  // The manifest records NO checkpoint for a compiled render (`path: null`), and that is deliberate: the compile
+  // lives in a scratch directory that is removed after the render, so naming it would be a path a reader could
+  // follow to nothing. The immutable source of truth for this delivery is the SceneSpec, which IS recorded —
+  // with its digest, which is what makes "these frames were rendered from this scene document" checkable.
+  const manifestPath = join(world.studio.store.projectDirectory(world.projectId), 'output', 'delivery-manifest.json')
+  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null
+  check('and the delivery launched the compiler ONCE: the encode reuses the checkpoint the render recorded',
+    world.compiles() - compilesBeforeRender === 1,
+    { launches: world.compiles() - compilesBeforeRender })
+  check('and the manifest points at the SceneSpec it compiled rather than at a scratch file that is already gone',
+    manifest !== null && manifest.source?.checkpoint?.path === null &&
+    manifest.source?.sceneSpec?.path === `revisions/${second.revision.revision}/scene-spec.json` &&
+    typeof manifest.source?.sceneSpecDigest === 'string',
+    { checkpoint: manifest?.source?.checkpoint, sceneSpec: manifest?.source?.sceneSpec?.path })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// Resuming a render that was COMPILED: it must render the same scene
+// ---------------------------------------------------------------------------
+//
+// A resumed attempt continues the frames of the render it resumes, so it has to open the SAME `.blend` — the one
+// that render compiled, not a fresh compile of the revision's spec (which would be a second Blender launch for
+// the same answer) and not the earlier revision's checkpoint (which would be a different scene). The record
+// carries that path, and this case is what makes the preference observable: the compile counter must not move.
+{
+  const world = await fixture({ holdUntilCancel: true, progressPollMs: 10_000, renderFrames: [1] })
+  const second = await world.studio.transactions.applyScenePatch({
+    projectId: world.projectId,
+    baseRevision: world.revision,
+    operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+    saveCheckpoint: false,
+  })
+  const compilesBefore = world.compiles()
+  const started = await world.studio.startFinalRender({
+    projectId: world.projectId, revision: second.revision.revision, frames: [1, 2],
+  })
+  const afterStart = world.compiles()
+  const cancelling = world.studio.cancelJob({ projectId: world.projectId, jobId: started.jobId, reason: 'stop for the resume case' })
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 30 })
+  await cancelling
+  const cancelled = world.studio.renderJobs.read(world.projectId, started.jobId)
+  const resumed = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: started.jobId })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const afterResume = world.compiles()
+  check('resuming a compiled render reuses the checkpoint that render recorded, without compiling again',
+    cancelled.status === 'cancelled' && resumed.resumed === 1 && afterStart - compilesBefore === 1 &&
+    afterResume === afterStart,
+    { launchesForStart: afterStart - compilesBefore, launchesForResume: afterResume - afterStart, resumed: resumed.resumed })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// Two cancels/terminations whose HANDLE refuses to die quietly
+// ---------------------------------------------------------------------------
+//
+// `terminate()` is the provider's own ladder and it can throw (an already-released handle). Both call sites that
+// reach for it swallow that on purpose, and each has a different reason: the DSH cancel path must not let a
+// projection failure escape into the harness, and the failure path must not let a dead handle replace the
+// failure it was cleaning up after.
+
+{
+  // The harness cancels the run AFTER the renderer exists, and the handle refuses to be terminated. The cancel
+  // is still a cancel: the record settles, the output says so, and nothing is thrown at the caller.
+  let lateHandle = null
+  const world = await fixture({
+    terminateThrows: true,
+    holdUntilCancel: true,
+    jobs: { attachController: () => () => {}, start: request => { lateHandle = request.run(); return 'dsh-job-late-cancel' } },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  lateHandle.cancel('the operator stopped it from the harness')
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 40 })
+  const settled = await waitFor(() => ['cancelled', 'failed', 'completed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a DSH cancel whose handle refuses to be terminated still settles the job, without throwing at the harness',
+    settled && record.status === 'cancelled' && record.message === 'cancelled: the operator stopped it from the harness' &&
+    world.stdout.includes('terminated'),
+    { status: record.status, message: record.message })
+  world.dispose()
+}
+
+{
+  // A render that FAILS while its handle refuses to be terminated: the failure classification is what the
+  // caller needs, so the dead handle must not replace it. The renderer is still stopped (the fixture records
+  // the attempt) and the record keeps the real error.
+  const world = await fixture({
+    terminateThrows: true,
+    outcomeThrows: Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' }),
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  await waitFor(() => world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status === 'failed')
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('a failure path whose handle refuses to be terminated still records the REAL failure',
+    record.status === 'failed' && record.errorCode === code('DISK_FULL') && world.stdout.includes('terminated'),
+    { status: record.status, code: record.errorCode, stdout: world.stdout })
   world.dispose()
 }
 

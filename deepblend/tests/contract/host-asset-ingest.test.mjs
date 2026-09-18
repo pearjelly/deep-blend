@@ -40,6 +40,12 @@ import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
+// NAMED, NOT PRETENDED COVERED: `ingestAsset` checks the size TWICE — once on the staged copy and once after
+// the bytes land in the project (`statSync(destination).size > assetMaxBytes`, which removes the file and throws
+// `ASSET_TOO_LARGE`). The second check cannot be driven from a test: it fires only when the file GREW between
+// the pre-copy stat and the copy, which is a race against whoever is writing the source — the same shape as the
+// `statSync` guard in the provider's `_assertAllowed`. The first check is asserted below, and the second is a
+// belt for a source that is still being written while it is ingested.
 const results = []
 function check(name, ok, detail) {
   results.push({ name, ok })
