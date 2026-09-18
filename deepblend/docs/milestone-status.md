@@ -6786,3 +6786,57 @@ total self-counted assertions: 1380
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **48 (0.4%) → 39 (0.3%)**——
 **那 5 行假的黑暗行消失了**（改 `if`/`else` 的直接效果），`else` 分支本身也被新用例点亮，
 `host/lib/index.js` **17 → 14**。契约层快照 1379 → **1380**（`host-render-loop.test.mjs` 34 → 35）。
+
+## 91. 一句「两个分支」的话，其中一个分支已经到不了
+
+### 91.1 一个三元，第二支是编译路径引入后的化石
+
+`renderPreview` 里有一行 `checkpointSource`，它区分「checkpoint 就是这个 revision 的」与「这个 revision 继承了
+更早的 checkpoint」——而**编译路径让它不可能发生**：当最近的 checkpoint 不属于本 revision 时，本 revision 会被
+**编译**，`resolvedCheckpoint` 就是编译结果、其 revision 正是请求的那个。也就是说那个三元**永远走第一支**。
+它旁边那段注释记着一个真缺陷（拼接出来的词让普通情况印成 `rendered from the revisioncheckpoint`），
+而那句「更罕见的情况」如今已经不存在了。
+
+修法：删掉第二支，句子保持**完整**（不是拼出来的）✓。删它的理由写在原处：**一个读者会以为继承的情况还会走到这里。**
+
+### 91.2 顺手把这句话本身也钉住
+
+那句话此前只被「有 SCENE_COMPILER_DECISION 警告」间接覆盖过，没有被断言**原文**。现在断言
+`preview of revision r0002: frame 1, size not reported, engine not reported`，并显式断言**不出现**
+`revisioncheckpoint`——把那个真缺陷的形态钉死。
+
+### 91.3 一次真的「陌生人 + Blender」走查
+
+```
+$ npm run verify:clone -- --with-blender
+   ✓ the documented install path works from a clean clone against a clean DSH_HOME
+   ── the full acceptance suite, in the clone ──
+   DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+全新 clone + 全新 `DSH_HOME` + **装上 pin 住的 Blender**，四步安装、契约层 57/57、以及**整套验收在 clone 里全绿**。
+
+### 91.4 验收输出里唯一的告警来自 harness，不是本插件
+
+`--with-blender` 那次跑出一个 `MaxListenersExceededWarning`（11 个 exit listener）。`--trace-warnings` 指出注册点是
+`@deepseek-ai/dsh-subprocess-local` 的 `process.prependListener('exit', …)`——**每个组合出来的 Fiber 一个**，
+而 hardening 套件在一个进程里组合了 11 个。本仓库自己的代码没有泄漏（`process.on('exit')` 只在四个测试文件里各注册一次）。
+所以这一条**照实记为上游观察**，而不是用 `setMaxListeners(0)` 把它按下去。
+
+### 91.5 一条 .gitignore
+
+工作区里出现 `.tmp-*` 的手工测量脚本与渲染目录（**不是本会话留下的**）。给它们一条
+`.tmp-*` 忽略规则，理由写在 .gitignore 里：**一个每次实验后都喊狼来了的 `git status`，正是漏掉真杂物的方式。**
+
+### 91.6 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 57/57 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1380
+```
+
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **39 (0.3%) → 38 (0.3%)**
+（删掉的那一支），`host/lib/index.js` **14 → 13**。契约层快照不变（那条检查是被**改写**的，
+断言数仍是 1380；被钉住的东西变多了：警告原文 + provenance 原文 + 不出现拼接缺陷）。

@@ -866,9 +866,14 @@ export default class BlenderStudio extends Service {
       // checkpoint is the requested revision) and read correctly only in the
       // rarer inherited-checkpoint case. It is now two whole sentences rather
       // than one assembled one.
-      const checkpointSource = resolvedCheckpoint.revision === revision
-        ? `revision ${revision}`
-        : `the ${resolvedCheckpoint.revision} checkpoint, because revision ${revision} has none of its own`
+      // ONE SENTENCE, NOT TWO, and the second one is gone because it became unreachable: the ternary here
+      // used to distinguish "the checkpoint IS this revision" from "this revision inherited an earlier
+      // checkpoint", and the compile path above makes the second case impossible — when the nearest checkpoint
+      // is not this revision's, the revision is COMPILED and `resolvedCheckpoint` is the compiled result, whose
+      // revision is the requested one. MEASURED before deleting it: every preview through this line reports
+      // `resolvedCheckpoint.revision === revision`. (The sentence is kept whole rather than assembled — the
+      // defect this comment block records was a spliced word, "rendered from the revisioncheckpoint".)
+      const checkpointSource = `revision ${revision}`
       // The renderer's report is not guaranteed to carry the size or the engine — the provider sets
       // both, but a report that omits them used to print "nullxnull, engine null" into a warning a
       // person reads. Saying that the renderer did not report them is the honest version, and it

@@ -493,10 +493,16 @@ const secondRevision = await studio.transactions.applyScenePatch({
 const compiledPreview = await studio.renderPreview({
   projectId: previewProject.projectId, revision: secondRevision.revision.revision,
 })
-check('a preview of a revision with no checkpoint says which earlier checkpoint it fell back to',
+// The provenance sentence itself is asserted, not only the compiler warning: it is the line whose earlier
+// version spliced a word into the middle and printed "rendered from the revisioncheckpoint" in the ordinary
+// case, and it is now one whole sentence with no unreachable second arm.
+check('the preview’s own provenance line names the revision it rendered, as one whole sentence',
   compiledPreview.warnings.some(entry => entry.code === 'SCENE_COMPILER_DECISION' &&
     entry.message === `revision ${secondRevision.revision.revision} has no checkpoint of its own; it was compiled from its ` +
       `SceneSpec for this render (the nearest earlier checkpoint is ${previewProject.revision.revision})`),
+  compiledPreview.warnings.some(entry => entry.message === `preview of revision ${secondRevision.revision.revision}: ` +
+    'frame 1, size not reported, engine not reported') &&
+  !compiledPreview.warnings.some(entry => entry.message.includes('revisioncheckpoint')),
   compiledPreview.warnings.map(entry => entry.message))
 
 // ---------------------------------------------------------------------------

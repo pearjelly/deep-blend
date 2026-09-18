@@ -31,6 +31,11 @@ node_modules/
 #                         express SPEC.md:150 lived only in one uncommitted store.
 .deepblend/
 
+# Scratch files a person leaves while measuring by hand (a speed probe, a render sweep). They are
+# untracked by accident and named `.tmp-*` on purpose, so one rule covers them — the alternative is a
+# `git status` that cries wolf after every experiment, which is how a real stray file gets missed.
+.tmp-*
+
 # OS noise
 .DS_Store
 
