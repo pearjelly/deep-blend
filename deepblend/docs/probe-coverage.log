@@ -225,6 +225,19 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 101: still no probe — the same product code, two more assertions ──
+Round 108 found that a delivery render's compiled scene was never deleted, and fixed it. This round counted the
+remaining cleanup sites and finished asserting them: the VIEWS path's own `finally` (a different line from the
+preview's) and the preview's `.render-staging` on the failure path. No product code changed, so there is no new
+reading — the parallel contributor's files are byte-identical to the previous probe (md5), and the 53 dark lines
+are the same 32 named plus their 21.
+
+The round's lesson is about the assertion, not the code: "a failed preview leaves no `.render-staging` behind"
+PASSED, and so did the mutation that deletes the failure `catch` — because the staging directory is created by
+the PROVIDER, and the contract layer stubs the provider, so the directory never existed and the check proved
+nothing. Creating it first (a directory with a half-written frame in it, the way a real renderer leaves it) and
+then failing turned the mutation red. To prove that a cleanup happens, the thing to be cleaned has to exist.
+
 ── ROUND 100: the compiled scene of a delivery render was never deleted ──
 Following the previous round's leak, every `removeTree(` in the host was checked. Two of them remove a COMPILED
 SCENE (preview and views, each in a `finally`), and the third — `checkpoint.compiled` — belongs to

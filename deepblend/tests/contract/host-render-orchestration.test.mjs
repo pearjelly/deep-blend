@@ -261,6 +261,17 @@ check('an unrecognized failure from the renderer becomes a coded SCRIPT_ERROR ca
   wrapped instanceof BlenderError && wrapped.code === code('SCRIPT_ERROR') &&
   wrapped.message === 'the renderer died without a code',
   wrapped?.code ?? wrapped?.message)
+// The VIEWS path has its own compile cleanup — a different line of code from the preview's (`_renderViewPlan`
+// rather than `renderPreview`), and it is the third of the three places a compiled scene is removed. Asserted
+// here on the failure side, where a missing `finally` is invisible until the disk fills up.
+const viewsScratch = existsSync(join(workspaceRoot, 'tmp'))
+  ? readdirSync(join(workspaceRoot, 'tmp')).filter(name => name.startsWith('render-'))
+  : []
+check('a FAILED multi-view render leaves no compile scratch behind either, and no staging directory',
+  viewsScratch.length === 0 &&
+  !existsSync(join(studio.store.revisionDirectory(projectId, second), '.render-staging')),
+  { scratch: viewsScratch })
+
 const wrappedJob = wrapped?.detail?.jobId === undefined
   ? null
   : await studio.getJob({ projectId, jobId: wrapped.detail.jobId }).catch(() => null)
@@ -404,6 +415,18 @@ const scratchAfter = existsSync(join(workspaceRoot, 'tmp')) ? readdirSync(join(w
 check('a FAILED preview leaves no compile scratch behind, because the cleanup is in a `finally`',
   scratchAfter.filter(name => name.startsWith('render-')).length === 0,
   { before: scratchBefore.length, after: scratchAfter })
+// The other directory a preview stages into is the revision's own `.render-staging`, and it is created by the
+// PROVIDER — so with a stubbed runtime it never exists and a check for its absence passes over nothing. The
+// first version of this assertion did exactly that, and the mutation that deletes the failure `catch` survived
+// it. The staging directory is therefore created HERE, the way a real renderer leaves it, before the failure
+// that the `catch` is supposed to clean up after.
+const stagingOfFailed = join(studio.store.revisionDirectory(projectId, second), '.render-staging')
+mkdirSync(stagingOfFailed, { recursive: true })
+writeFileSync(join(stagingOfFailed, 'frame60-camera-main.png'), 'a half-written frame')
+runtime.renderPreview = async () => { throw new Error('the preview process was killed, mid-write') }
+await studio.renderPreview({ projectId, revision: second, cameraId: 'camera-main', frame: 60 }).catch(() => null)
+check('and a failure cleans up the staging directory a real renderer had already written into',
+  !existsSync(stagingOfFailed), { staging: existsSync(stagingOfFailed) })
 // Through the id the FAILURE carries, because that is the only handle a caller has: this record is an
 // attempt log under `jobs/`, and `listJobs` lists render jobs under `renders/`. Writing this check is
 // what found that the record was unreachable — the error named the failure and not the record.
