@@ -30,6 +30,11 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { ROOT } from '../../tools/workspace-layout.mjs'
+
 import { deflateSync } from 'node:zlib'
 
 import {
@@ -437,12 +442,29 @@ check('each refusal names the thing it refused, and the header checks answer bef
       return `${why}: ${cause.message}`
     }
   }))
-// SHADOWED, AND NAMED RATHER THAN PRETENDED COVERED: `readPixel` has a `default:` that throws
-// "unsupported PNG colour type", and no input can reach it — the header check above refuses the same
-// colour type before a single pixel is read (the check just above proves the ORDER by refusing a header
-// whose IDAT is meaningless). Two guards for one rule is one guard too many, but deleting the inner one
-// would make `readPixel` answer `undefined` if the outer check ever moved; this comment is where that
-// trade is recorded, since no assertion can stand on the branch itself.
+// SHADOWED, AND NAMED RATHER THAN PRETENDED COVERED: `readPixel` has a `default:` that throws, and no input
+// can reach it — the header check refuses an unsupported colour type before a single pixel is read (the check
+// just above proves the ORDER by refusing a header whose IDAT is meaningless). Two guards for one rule is one
+// guard too many, but deleting the inner one would make `readPixel` answer `undefined` if the outer check ever
+// moved; this comment is where that trade is recorded, since no assertion can stand on the branch itself.
+//
+// IT USED TO THROW THE SAME SENTENCE AS THE HEADER CHECK ("unsupported PNG colour type N"), which this comment
+// then quoted — and that was two copies of one message in a file whose rule is one copy. It now says what it
+// actually means: the decoder refused this type before reading any pixel, so reaching here is an internal bug
+// rather than a user-facing refusal. The quote in this comment rotted the moment the sentence changed, which is
+// why it no longer quotes one.
+
+// The branch above is unreachable, so NO behavioural assertion can stand on it — a mutation that puts the
+// duplicate message back survives every one of them, measured. What CAN be asserted is the property that made
+// the duplicate worth fixing: the file states the refusal once. This is a source-level check, and it is the
+// right kind here — the claim is about the code's vocabulary rather than about anything it does.
+const decoderSource = readFileSync(join(ROOT, 'packages', 'deepblend', 'contracts', 'lib', 'png.js'), 'utf8')
+check('the decoder says "unsupported PNG colour type" once as CODE, so the inner guard does not restate it',
+  // Only the THROWN sentences count: the comment above the inner guard quotes the outer one on purpose, to
+  // say that it is deliberately NOT repeating it.
+  (decoderSource.match(/throw new Error\(`unsupported PNG colour type/g) ?? []).length === 1 &&
+  /which the decoder refuses before reading any pixel/.test(decoderSource),
+  { thrown: (decoderSource.match(/throw new Error\(`unsupported PNG colour type/g) ?? []).length })
 
 const encodeRefusals = (() => {
   const messageOf = run => {

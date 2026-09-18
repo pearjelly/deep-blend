@@ -186,6 +186,24 @@ check('a schema type the validator does not know is refused at COMPILE time, so 
   unknownType instanceof Error && /unknown type "not-a-type"/.test(unknownType.message),
   unknownType?.message ?? unknownType)
 
+// The other half of that fact, and the reason `matchesType`'s `default: return false` is unreachable: every
+// type name the validator accepts is HANDLED, so the fallback is only reachable if the compile-time check
+// above is bypassed. Asserted through the public validator rather than by reading the switch, because "the
+// switch has seven cases" is a fact about today's source and "these seven values validate" is the promise.
+const JSON_TYPES = [
+  ['object', { a: 1 }], ['array', [1, 2]], ['string', 'x'], ['number', 1.5],
+  ['integer', 3], ['boolean', true], ['null', null],
+]
+const typeVerdicts = JSON_TYPES.map(([name, value]) => {
+  const validate = compileSchema({ type: name })
+  const accepted = validate(value).length === 0
+  // and a value of a DIFFERENT type must still be refused, or the case would be "accept everything"
+  const other = name === 'null' ? 'x' : name === 'array' ? 'x' : name === 'object' ? 'x' : null
+  return { name, accepted, refusedOther: validate(other).length > 0 }
+})
+check('every JSON type name the validator accepts is handled, which is what makes its fallback unreachable',
+  typeVerdicts.every(entry => entry.accepted && entry.refusedOther), typeVerdicts)
+
 // ---------------------------------------------------------------------------
 // ScenePatch: the rules that need the scene
 // ---------------------------------------------------------------------------

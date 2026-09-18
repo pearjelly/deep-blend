@@ -86,7 +86,9 @@ export function sampleFrame(path) {
       try {
         closeSync(descriptor)
       } catch {
-        /* already closed */
+        // Not for "already closed" — the descriptor was opened here and nothing else closes it. It is here
+        // because a throw inside `finally` REPLACES the error being propagated, and the caller needs the read
+        // failure rather than a close failure.
       }
     }
   }

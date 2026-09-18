@@ -116,7 +116,9 @@ export class JournalTail {
         try {
           closeSync(descriptor)
         } catch {
-          /* already closed */
+          // The descriptor was opened here and nothing else closes it, so this catch is not for "already
+          // closed" — it is because a throw inside `finally` REPLACES the error being propagated, and the
+          // caller needs the read failure rather than a close failure.
         }
       }
     }

@@ -428,7 +428,11 @@ function readPixel(line, offset, colorType, bitDepth, palette, transparency) {
     case 6:
       return [sample(0), sample(1), sample(2), sample(3)]
     default:
-      throw new Error(`unsupported PNG colour type ${colorType}`)
+      // NOT the same sentence the decoder throws for an unsupported type (`unsupported PNG colour type N`,
+      // raised before any pixel is read): this one is unreachable unless that check is bypassed, so saying
+      // the same thing here would be a second copy of a message nobody can reach — and would read as if this
+      // were the place that decides which types are supported.
+      throw new Error(`readPixel was called with colour type ${colorType}, which the decoder refuses before reading any pixel`)
   }
 }
 

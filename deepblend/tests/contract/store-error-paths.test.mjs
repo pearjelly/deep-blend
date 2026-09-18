@@ -474,12 +474,19 @@ check('a title whose ids are all taken is refused by name, and the sentence matc
   { attempts, message: noId?.message ?? noId })
 
 // NAMED, NOT PRETENDED COVERED: the `catch {}` around the derived index write (`#refreshIndex`) is not
-// reachable from a test without a seam. The write is `writeFileAtomic`, and the only cheap way to fail it —
-// a directory standing where `projects.json` belongs — fails the READ first (`readJson` throws its own
-// "Could not read …" before the write is ever attempted, MEASURED here). A read-only projects root would
-// fail the project directory alongside it, and the index cannot be redirected. So the promise this branch
-// keeps ("a successful project write is not failed by a cache") has no driver in this layer; it is recorded
-// here rather than left looking covered.
+// reachable from a test without a seam. The write is `writeFileAtomic`, and the cheap ways to fail it were
+// MEASURED rather than assumed:
+//
+//   - a directory standing where `projects.json` belongs fails the READ first (`readJson` throws its own
+//     "Could not read …" before the write is attempted);
+//   - a READ-ONLY `projects.json` does not fail the write at all: the write is a rename, and POSIX lets a
+//     rename replace a read-only file when its DIRECTORY is writable — measured with `chmod 0444` on the
+//     index, after which the write succeeded and the index gained the second project;
+//   - a read-only projects root fails the project directory alongside the index, and the index cannot be
+//     redirected.
+//
+// So the promise this branch keeps ("a successful project write is not failed by a cache") has no driver in
+// this layer; it is recorded here rather than left looking covered.
 
 // ---------------------------------------------------------------------------
 // The staging sweep, the audit record, and a manifest with no "before"
