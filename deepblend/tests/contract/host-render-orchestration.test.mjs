@@ -32,7 +32,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, compileSchema, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -316,6 +316,41 @@ check('a preview renders, publishes the image into the revision, and reports whi
   preview.revisionPreviews.some(entry => entry.path === `revisions/${second}/previews/frame60-camera-main.png`) &&
   existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', 'frame60-camera-main.png')),
   { revision: preview.revision, artifacts: preview.artifacts.map(entry => entry.path) })
+// THE RECORD IS PUT THROUGH THE SCHEMA THIS PRODUCT PUBLISHES. `deepblend/schemas/job-result.schema.json`
+// is mirrored, documented and referenced by SPEC — and until this check existed, NOTHING validated anything
+// against it. MEASURED before the schema was corrected: all 45 attempt-log records in the demo stores FAILED
+// it (the `artifacts[]` definition did not permit `viewId`/`role`/`at`/`iteration`, `kind` had no `view` or
+// `contact-sheet`, the `action` enum had no `render_views`, and the top-level `warnings` array was missing
+// entirely). A published contract that describes something other than what the product writes is worse than
+// no contract, because a reader trusts it.
+const publishedJobSchema = compileSchema(
+  JSON.parse(readFileSync(join(ROOT, 'deepblend', 'schemas', 'job-result.schema.json'), 'utf8')),
+  'job-result.schema.json',
+)
+// The RAW record, not `getJob`'s projection: the schema describes the document on disk, and the projection
+// is a view of it with fields dropped (the first version of this check fed the projection in and failed on a
+// missing `schemaVersion`, which is exactly the difference).
+const readJobRecord = jobId => {
+  const path = join(studio.store.projectDirectory(projectId), 'jobs', `${jobId}.json`)
+  return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
+}
+const succeededJob = preview.job === undefined ? null : readJobRecord(preview.job.jobId)
+check('the job record this product writes validates against the schema it publishes',
+  succeededJob !== null && publishedJobSchema(succeededJob).length === 0,
+  publishedJobSchema(succeededJob ?? {}).slice(0, 3))
+const failedRecord = wrappedJob === null ? null : readJobRecord(wrappedJob.jobId)
+check('and so does a FAILED one, which carries the fields a success never has',
+  failedRecord !== null && publishedJobSchema(failedRecord).length === 0,
+  publishedJobSchema(failedRecord ?? {}).slice(0, 3))
+// A VIEW artifact is a different `kind` with fields the other two do not have (`viewId`, `role`, `at`), and
+// the first version of these checks never fed the schema one — so renaming `viewId` in the schema left them
+// all green. The record that carries view artifacts is the one to validate.
+const viewsRecord = named.job === undefined ? null : readJobRecord(named.job.jobId)
+check('and a record carrying VIEW artifacts does too, which is the kind with the most fields',
+  viewsRecord !== null && viewsRecord.artifacts.some(artifact => artifact.kind === 'view') &&
+  publishedJobSchema(viewsRecord).length === 0,
+  { issues: publishedJobSchema(viewsRecord ?? {}).slice(0, 3),
+    kinds: viewsRecord?.artifacts?.map(artifact => artifact.kind) ?? null })
 check('and it records the render as a succeeded job too',
   preview.job?.status === 'succeeded' && preview.job?.action === 'render_preview',
   { status: preview.job?.status, action: preview.job?.action })

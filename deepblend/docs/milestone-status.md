@@ -7160,3 +7160,55 @@ total self-counted assertions: 1421
 
 契约层 **60 → 61 文件**、1412 → **1421** 项，总文件数 75 → **76**（README 三处已同步）。
 读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变。
+
+## 98. 一份发布出去的契约，描述的不是这个产品写的东西
+
+### 98.1 起因：一个「没有检查器在跑」的 schema
+
+先量「哪些文件没有任何地方引用」：读数只有一个 `deepblend_capabilities.py`——**而那是我的量具错了** ✗
+（Python 的 `from deepblend_capabilities import …` 不带扩展名 ✓）。顺手去量 `job-result.schema.json`：
+它被镜像测试引用 ✓、被 SPEC 引用 ✓、被 `render-job.js` 的注释引用 ✓——**但没有任何代码或测试拿它验证过任何东西** ✓。
+
+于是拿**真实记录**去验它：`.deepblend/projects/` 下三个项目共 **45 份 attempt log** ✓。
+
+```
+records: 45   failing the shipped schema: 45
+```
+
+**全部失败** ✗✗。原因逐条量出来：`artifacts[]` 的定义不允许 `viewId` / `role` / `at` / `iteration` / `columns` /
+`rows` / `slot` / `views`，`kind` 的枚举里没有 `view` 与 `contact-sheet`，`action` 的枚举里没有 `render_views`，
+而记录里一直写着的顶层 `warnings` 数组在 schema 里**根本不存在** ✓。也就是说：**一份被镜像、被文档、被 SPEC
+引用的契约，描述的是别的东西**——而**没有任何检查器在跑它**，所以谁都没发现 ✓。
+
+### 98.2 修法：让 schema 描述现实，并给现实配一个检查器
+
+* schema 按**实测**补齐（不是猜）：`action` 枚举、`kind` 枚举、每种 kind 的字段、顶层 `warnings` 数组
+  （`{code, message, detail?}` ✓）；`slot` 一开始被我写成整数 ✗，实测是**视图 id 字符串** ✓——又一次
+  「先量再写」✓。补齐后 **45/45 通过** ✓。
+* `host-render-orchestration.test.mjs` 里加**三条**检查：产品写出来的记录（成功的一条、失败的一条、
+  带 **view + contact-sheet** 制品的一条）都要通过**它发布的那个 schema** ✓。
+  读的是**磁盘上的原始记录**而不是 `getJob` 的投影 ✓——第一版喂了投影进去，报「缺 `schemaVersion`」，
+  正好说明两者不是一个东西 ✓。
+
+### 98.3 变异：一条活了下来，暴露了「验证的样本不够」
+
+三条变异里 **M1 起初活着** ✗：把 schema 里的 `viewId` 改名，我的检查全绿——因为那条记录里
+**没有 view 制品** ✓（只有 preview ✓）。补上「带 view + contact-sheet 的那条记录」之后，
+M1、M1b（`iteration` 消失）、M1c（`view` 离开枚举）全部变红 ✓。**验证一个 schema，要拿它字段最多的那种样本去验。**
+
+### 98.4 收口
+
+六条变异全红（`viewId` 改名、`iteration` 消失、`view` 离开枚举、`action` 少了 `render_views`、
+顶层 `warnings` 消失、以及上一轮那条悬空引用）——其中三条是补上「字段最多的那种样本」之后才红的 ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1424
+```
+
+契约层 61 文件不变、1421 → **1424** 项（三条新检查）；总文件数 76 不变。
+读数（--all --keep，suite exit code: 0，树已冻结）：产品可执行行黑暗 **38 (0.3%)** 不变（本轮只改 schema 与测试）。

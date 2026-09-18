@@ -5,36 +5,115 @@
   "description": "The durable record of one Blender batch attempt (SPEC §9.3 result.json, §10.2). M1 writes one job record per apply/render attempt beneath `<project>/jobs/`; M3 promotes this to the persistent, restart-recovered Job Store, so the on-disk shape is fixed here now.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "jobId", "projectId", "action", "status", "startedAt"],
+  "required": [
+    "schemaVersion",
+    "jobId",
+    "projectId",
+    "action",
+    "status",
+    "startedAt"
+  ],
   "properties": {
-    "schemaVersion": { "type": "string", "const": "deepblend.job/v1" },
-    "jobId": { "type": "string", "minLength": 1 },
-    "projectId": { "type": "string", "minLength": 1 },
+    "schemaVersion": {
+      "type": "string",
+      "const": "deepblend.job/v1"
+    },
+    "jobId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
     "revision": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "The revision this job produced (apply) or read (preview/validate). Null when the job failed before a revision existed."
     },
     "action": {
       "type": "string",
-      "enum": ["compile_scene", "render_preview", "apply_scene_patch", "validate_scene", "restore_revision"]
+      "enum": [
+        "compile_scene",
+        "render_preview",
+        "render_views",
+        "apply_scene_patch",
+        "validate_scene",
+        "restore_revision",
+        "visual_review"
+      ]
     },
-    "status": { "type": "string", "enum": ["running", "succeeded", "failed"] },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "succeeded",
+        "failed"
+      ]
+    },
     "errorCode": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "A BlenderErrorCode value. Present only when status is failed."
     },
-    "message": { "type": ["string", "null"] },
-    "startedAt": { "type": "string", "description": "ISO-8601 UTC." },
-    "finishedAt": { "type": ["string", "null"], "description": "ISO-8601 UTC." },
-    "durationMs": { "type": ["integer", "null"], "minimum": 0 },
-    "idempotencyKey": { "type": ["string", "null"] },
-    "baseRevision": { "type": ["string", "null"] },
+    "message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "description": "ISO-8601 UTC."
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISO-8601 UTC."
+    },
+    "durationMs": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "idempotencyKey": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "baseRevision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "artifacts": {
       "type": "array",
-      "items": { "$ref": "#/$defs/artifact" }
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Warnings the action produced on its SUCCESS path, each with a stable code.",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
     },
     "blender": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": true,
       "description": "Runtime identity recorded for reproducibility: version, engine, device, protocol version (SPEC §9.5)."
     }
@@ -43,18 +122,173 @@
     "artifact": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "path", "bytes"],
+      "required": [
+        "kind",
+        "path",
+        "bytes"
+      ],
       "properties": {
-        "kind": { "type": "string", "enum": ["blend", "preview", "validation", "scene-spec", "log"] },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "blend",
+            "preview",
+            "view",
+            "contact-sheet",
+            "validation",
+            "scene-spec",
+            "log"
+          ]
+        },
         "path": {
           "type": "string",
           "description": "Path relative to the PROJECT root, never absolute — a stored manifest must survive the workspace being moved."
         },
-        "bytes": { "type": "integer", "minimum": 0 },
-        "sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
-        "width": { "type": ["integer", "null"], "minimum": 1 },
-        "height": { "type": ["integer", "null"], "minimum": 1 },
-        "mime": { "type": ["string", "null"] }
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cameraId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The camera a preview was rendered from. Present on preview artifacts, absent on a `.blend`."
+        },
+        "frame": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "The scene frame a preview shows."
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The render engine the preview actually used, as Blender reported it (e.g. \"CYCLES\")."
+        },
+        "samples": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "The sample count the preview actually used — which may be below the profile asked for."
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "mime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "viewId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The declared view this image answers (view artifacts)."
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The camera role the view was rendered from (view artifacts)."
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When this artifact was produced, for the artifacts of one action that happen at different moments."
+        },
+        "iteration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "The visual-loop round a contact sheet belongs to."
+        },
+        "columns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "rows": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "slot": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The contact-sheet slot a view occupies — the view id, so a reader can tell which cell is which."
+        },
+        "views": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "The view ids a contact sheet contains, in slot order."
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "detail": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
       }
     }
   }
