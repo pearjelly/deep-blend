@@ -724,6 +724,77 @@ async function fixture(plan) {
 }
 
 // ---------------------------------------------------------------------------
+// A restore that happens WHILE a delivery render is running
+// ---------------------------------------------------------------------------
+//
+// Two things a project can do at once, and the question is which one wins. The render pins the revision it was
+// started for (its record names it, its frames are its own), so moving the CURRENT POINTER back to an earlier
+// revision while it runs must not disturb it — and, just as important, the render finishing must not quietly
+// move the pointer forward again. A render that re-pointed the project at its own revision on completion would
+// undo the operator's restore, and the operator would find out much later.
+{
+  const world = await fixture({ holdUntilCancel: true, probedFrames: '1' })
+  const second = await world.studio.transactions.applyScenePatch({
+    projectId: world.projectId,
+    baseRevision: world.revision,
+    operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+    saveCheckpoint: true,
+  })
+  const started = await world.studio.startFinalRender({
+    projectId: world.projectId, revision: second.revision.revision, frames: [1],
+  })
+  // ...the operator moves the pointer back to the first revision while that render is in flight
+  const restored = await world.studio.restoreRevision({
+    projectId: world.projectId, revision: world.revision, confirm: true,
+  })
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 20 })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  const pointer = world.studio.store.readRecord(world.projectId).currentRevision
+  check('a restore during a delivery render is honoured, and the render still delivers its OWN revision',
+    restored.restored === true && restored.from === second.revision.revision &&
+    record.status === 'completed' && record.revisionId === second.revision.revision &&
+    pointer === world.revision,
+    { restored: restored.restored, jobRevision: record.revisionId, pointer, expectedPointer: world.revision })
+  // The record's own account of the restore survives the render finishing too: `restorations` is how a reader
+  // learns the pointer moved, and a delivery that rewrote the record wholesale would erase it.
+  const after = world.studio.store.readRecord(world.projectId)
+  check('and the record still carries the restoration, so the move is readable afterwards',
+    (after.restorations ?? []).some(entry => entry.to === world.revision && entry.from === second.revision.revision),
+    after.restorations ?? null)
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// A PATCH during a delivery render — the other half of the same question
+// ---------------------------------------------------------------------------
+//
+// The restore case above moves the pointer BACKWARDS while a render runs. This one moves it FORWARDS by
+// committing a new revision, which is the ordinary way a project advances: the running render must still
+// deliver the revision it was started for, and the new revision must survive it.
+{
+  const world = await fixture({ holdUntilCancel: true, probedFrames: '1' })
+  const started = await world.studio.startFinalRender({
+    projectId: world.projectId, revision: world.revision, frames: [1],
+  })
+  const third = await world.studio.transactions.applyScenePatch({
+    projectId: world.projectId,
+    baseRevision: world.revision,
+    operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+    saveCheckpoint: true,
+  })
+  world.resolveOutcome({ envelope: { status: 'success' }, exitCode: 0, signal: null, durationMs: 20 })
+  await waitFor(() => ['completed', 'failed'].includes(world.studio.renderJobs.readSafe(world.projectId, started.jobId)?.status))
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  const pointer = world.studio.store.readRecord(world.projectId).currentRevision
+  check('a patch committed during a delivery render does not hijack it: the job delivers its own revision',
+    record.status === 'completed' && record.revisionId === world.revision &&
+    pointer === third.revision.revision,
+    { jobRevision: record.revisionId, pointer, expectedPointer: third.revision.revision })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
 // Resuming a job whose record predates `checkpointPath`
 // ---------------------------------------------------------------------------
 //

@@ -225,6 +225,17 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 100: still no probe, for the same reason ──
+This round added three assertions and no product code, so there is nothing new for a probe to measure: the
+previous reading already describes this tree's product code (its 53 dark lines are 32 that earlier rounds
+named and verified, plus the 21 belonging to the parallel contributor's half-finished feature). Two cases were
+added instead, asking a question no assertion had asked before: what happens when a project does TWO things at
+once. A delivery render pins the revision it started for, and the current pointer can move underneath it — a
+restore during the render must be honoured and must not be undone when the render finishes, and a patch
+committed during a render must not be hijacked by it. Both directions are asserted (readings: `{restored:
+true, jobRevision: r0002, pointer: r0001}` and `{jobRevision: r0001, pointer: r0002}`), and the mutation that
+makes a finished delivery re-point the project at its own revision goes red.
+
 ── ROUND 99: no probe, and why that is the honest entry ──
 This round changed NO product code: it re-ran the stranger path instead (`npm run verify:clone
 -- --with-blender`), because the four things changed since the last such run all live on that path — the
