@@ -7519,3 +7519,40 @@ total self-counted assertions: 1428
 他们往 `contracts/lib/scene-patch.js` 加了 21 行新代码（`513-533` ✓）而还没有测试 ✓。
 按文件看：`scene-patch.js` `6/638` → **`21/659`** ✓，其余文件与上一轮完全一致 ✓。
 契约层 61 文件 / **1428** 项不变，`node:test` 用例 289 → **290**。
+
+## 105. 把「陌生人 + Blender」这条路**再走一遍**——因为我改的正是这条路
+
+### 105.1 为什么要重跑
+
+第 92 轮跑过一次 `verify:clone --with-blender` ✓（当时全绿 ✓）。此后我改了四类东西，
+而它们**恰好都在这条路上**：
+
+* 第 96 轮：**配置检查**——三个 row 在构造时拒绝不认识的键 ✓（一个**装载时**的拒绝 ✓，正是全新安装会走的路径 ✓）；
+* 第 98/99 轮：**两份 schema**（`job-result` 与 `scene-patch` 的 `license` 定义 ✓）；
+* 第 102/103 轮：README 与 `install.md` ✓（手册本身就是这条路的一部分 ✓）；
+* 第 104 轮：手册的表与工具定义的一致性检查 ✓。
+
+所以这一轮不写新东西，**把那条路重走一遍** ✓——这是唯一能回答「我这些改动有没有把陌生人挡在门外」的测量 ✓。
+
+### 105.2 读数
+
+```
+$ npm run verify:clone -- --with-blender
+   ✓ the documented install path works from a clean clone against a clean DSH_HOME
+   ── the contract suite, in the clone ──
+   DeepBlend tests: 61/61 file(s) passed
+   ── the full acceptance suite, in the clone ──
+   DeepBlend acceptance suite: ALL SUITES PASSED
+```
+
+全新 clone（**提交后的 HEAD** ✓，所以并行贡献者那些未提交的改动不在里面 ✓）+ 全新 `DSH_HOME` +
+pin 住的 Blender ✓：四步安装 ✓、clone 里契约层 61/61 ✓、**整套验收在 clone 里全绿** ✓。
+
+输出里唯一的告警仍然是那个 `MaxListenersExceededWarning` ✓——第 92 轮已经 `--trace-warnings` 追到
+**harness 自己的** `dsh-subprocess-local`（每个 Fiber 一个 exit listener ✓，hardening 套件在一个进程里组合 11 个 ✓），
+不是本插件泄漏 ✓。
+
+### 105.3 这一轮没有产品改动
+
+没有产品改动，也就没有新的决策号 ✓——一次**验证**属于里程碑日志，不属于决策表 ✓。
+唯一要记住的是这条路的**用法**：**改到安装路径上的任何东西之后，重跑它** ✓，而不是相信单元测试的绿色 ✓。

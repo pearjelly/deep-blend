@@ -225,6 +225,19 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 99: no probe, and why that is the honest entry ──
+This round changed NO product code: it re-ran the stranger path instead (`npm run verify:clone
+-- --with-blender`), because the four things changed since the last such run all live on that path — the
+mount-time configuration check, two shipped schemas, the manuals, and the check that holds the manuals'
+tables against the tools. A fresh clone of the committed HEAD, a fresh DSH_HOME and the pinned Blender: the
+four install steps pass, the contract suite is 61/61 IN the clone, and the FULL acceptance suite passes
+there. The only warning is still the harness's own exit-listener count, traced in an earlier entry.
+
+NO COLUMN IS ADDED, because no probe was taken: this file records probe runs, and inventing a column that
+copies the previous reading would make the table look like evidence it is not. The previous reading still
+describes the tree's product code exactly — nothing on the product side changed — while the working tree's
+only edits belong to the parallel contributor whose half-finished feature round 98 already records.
+
 ── ROUND 98: the reading went UP, and not because of this round ──
 The dark total rose from 32 to 53 (0.4%) in this reading, and the attribution matters more than the number: this
 round touched only test libraries and checks, while a PARALLEL contributor is working in the same repository
