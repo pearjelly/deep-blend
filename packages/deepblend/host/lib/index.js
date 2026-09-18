@@ -1918,6 +1918,8 @@ export default class BlenderStudio extends Service {
     const projectId = requireSafeSegment(request?.projectId, 'project id')
     const record = this.store.readRecord(projectId)
 
+    /** The scratch directory this call fetched into, or null when the source was a local file. */
+    let fetchedScratch = null
     const sourcePath = typeof request?.sourcePath === 'string' && request.sourcePath.length > 0
       ? request.sourcePath
       : null
@@ -1991,138 +1993,151 @@ export default class BlenderStudio extends Service {
       name = basename(resolvedSource)
     } else {
       staged = await this._fetchAssetToScratch(sourceUrl, request?.signal)
+      // Remembered so the `finally` below can remove it, and left null for a local source: the caller's own
+      // file is not ours to delete.
+      fetchedScratch = dirname(staged)
       name = decodeURIComponent(new URL(sourceUrl).pathname.split('/').filter(Boolean).pop() ?? 'asset')
     }
 
-    // ---- what it is ---------------------------------------------------------
-    const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : ''
-    const type = typeof request?.type === 'string' && request.type.length > 0 ? request.type : extension
-    if (!(type in IMPORT_OPERATOR_BY_ASSET_TYPE)) {
-      throw new BlenderError(
-        BlenderErrorCode.ASSET_FORMAT_UNAVAILABLE,
-        `"${name}" is a ${type === '' ? 'file with no extension' : `.${type} file`}; this project can carry ` +
-          `${Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE).join(', ')}.`,
-        { detail: { name, type, supported: Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE) } },
+    try {
+      // ---- what it is ---------------------------------------------------------
+      const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : ''
+      const type = typeof request?.type === 'string' && request.type.length > 0 ? request.type : extension
+      if (!(type in IMPORT_OPERATOR_BY_ASSET_TYPE)) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_FORMAT_UNAVAILABLE,
+          `"${name}" is a ${type === '' ? 'file with no extension' : `.${type} file`}; this project can carry ` +
+            `${Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE).join(', ')}.`,
+          { detail: { name, type, supported: Object.keys(IMPORT_OPERATOR_BY_ASSET_TYPE) } },
+        )
+      }
+
+      // ---- and what its BYTES are ---------------------------------------------
+      //
+      // SPEC §15.2 "MIME 与扩展名双重校验": the extension picked the import operator, and this
+      // is the second half — 512 bytes read off the STAGED file, before anything is copied into
+      // the project, so a refusal costs nothing and leaves nothing. It reads the head with
+      // `readSync` rather than `readFileSync` because a legitimate asset can be a gigabyte.
+      //
+      // Only a POSITIVE contradiction is refused (see `contracts/lib/asset-content.js`): a
+      // known signature for another format, a NUL in a format that must be text, or an empty
+      // file. The alternative — a matcher sure enough to accept as well as refuse — is also a
+      // matcher sure enough to reject somebody's legitimate model, and deciding what a file
+      // really is stays Blender's job (D10).
+      const head = readFileHead(staged, ASSET_HEAD_BYTES)
+      if (assetContentVerdict(head, type) === 'contradicts') {
+        const described = describeAssetContent(head)
+        const looksLike = described.empty
+          ? 'an empty file'
+          : (described.signature?.label ?? 'binary content, not text')
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_CONTENT_MISMATCH,
+          `"${name}" is named as a .${type} file, but its first bytes are ${looksLike}. ` +
+            'This is checked before the bytes are copied anywhere, so nothing was written. ' +
+            'Rename the file if the extension is wrong, or pass sourcePath for the file that really holds the model.',
+          { detail: { name, type, headBytes: head.length, signature: described.signature?.format ?? null, empty: described.empty } },
+        )
+      }
+
+      const assetId = typeof request?.assetId === 'string' && request.assetId.length > 0
+        ? request.assetId
+        : (() => {
+            // The file name without its extension, reduced to the id grammar. A name that
+            // cannot become an id is not guessed at: the caller is told to pass one,
+            // because a silently different id is how a scene ends up declaring an asset
+            // nobody can find.
+            const stem = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name
+            return stem
+              .replace(/[^a-zA-Z0-9._-]+/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^[^a-zA-Z]+/, '')
+              .replace(/[-._]+$/, '')
+          })()
+      if (!/^[a-zA-Z][a-zA-Z0-9._-]*$/.test(assetId)) {
+        throw new BlenderError(
+          BlenderErrorCode.PATH_SEGMENT_INVALID,
+          `"${assetId}" cannot be an asset id: ids start with a letter and use letters, digits, ".", "_" and "-". ` +
+            'Pass assetId explicitly.',
+          { detail: { assetId, name } },
+        )
+      }
+
+      // ---- where it goes ------------------------------------------------------
+      //
+      // `assets/raw/` keeps the ingested bytes distinguishable from anything a later
+      // step derives from them (SPEC §13's tree has `raw/`, `normalized/` and
+      // `textures/`), and it is the directory the SceneSpec's asset paths are written
+      // against.
+      const relativePath = `assets/raw/${requireSafeSegment(name, 'asset file name')}`
+      const destination = resolveInside(
+        this.store.projectDirectory(projectId),
+        relativePath,
+        'asset destination',
       )
-    }
+      mkdirSync(dirname(destination), { recursive: true })
+      copyFileSync(staged, destination)
 
-    // ---- and what its BYTES are ---------------------------------------------
-    //
-    // SPEC §15.2 "MIME 与扩展名双重校验": the extension picked the import operator, and this
-    // is the second half — 512 bytes read off the STAGED file, before anything is copied into
-    // the project, so a refusal costs nothing and leaves nothing. It reads the head with
-    // `readSync` rather than `readFileSync` because a legitimate asset can be a gigabyte.
-    //
-    // Only a POSITIVE contradiction is refused (see `contracts/lib/asset-content.js`): a
-    // known signature for another format, a NUL in a format that must be text, or an empty
-    // file. The alternative — a matcher sure enough to accept as well as refuse — is also a
-    // matcher sure enough to reject somebody's legitimate model, and deciding what a file
-    // really is stays Blender's job (D10).
-    const head = readFileHead(staged, ASSET_HEAD_BYTES)
-    if (assetContentVerdict(head, type) === 'contradicts') {
-      const described = describeAssetContent(head)
-      const looksLike = described.empty
-        ? 'an empty file'
-        : (described.signature?.label ?? 'binary content, not text')
-      throw new BlenderError(
-        BlenderErrorCode.ASSET_CONTENT_MISMATCH,
-        `"${name}" is named as a .${type} file, but its first bytes are ${looksLike}. ` +
-          'This is checked before the bytes are copied anywhere, so nothing was written. ' +
-          'Rename the file if the extension is wrong, or pass sourcePath for the file that really holds the model.',
-        { detail: { name, type, headBytes: head.length, signature: described.signature?.format ?? null, empty: described.empty } },
-      )
-    }
+      const bytes = statSync(destination).size
+      if (bytes > this.config.assetMaxBytes) {
+        removeTree(destination)
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_TOO_LARGE,
+          `the ingested asset is ${bytes} bytes, above the configured assetMaxBytes of ${this.config.assetMaxBytes}.`,
+          { detail: { bytes, maxBytes: this.config.assetMaxBytes } },
+        )
+      }
+      const sha256 = fileSha256(destination)
 
-    const assetId = typeof request?.assetId === 'string' && request.assetId.length > 0
-      ? request.assetId
-      : (() => {
-          // The file name without its extension, reduced to the id grammar. A name that
-          // cannot become an id is not guessed at: the caller is told to pass one,
-          // because a silently different id is how a scene ends up declaring an asset
-          // nobody can find.
-          const stem = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name
-          return stem
-            .replace(/[^a-zA-Z0-9._-]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^[^a-zA-Z]+/, '')
-            .replace(/[-._]+$/, '')
-        })()
-    if (!/^[a-zA-Z][a-zA-Z0-9._-]*$/.test(assetId)) {
-      throw new BlenderError(
-        BlenderErrorCode.PATH_SEGMENT_INVALID,
-        `"${assetId}" cannot be an asset id: ids start with a letter and use letters, digits, ".", "_" and "-". ` +
-          'Pass assetId explicitly.',
-        { detail: { assetId, name } },
-      )
-    }
+      // The manifest is a ledger beside the bytes, not a second source of truth: a file
+      // whose entry is missing is still usable, and an entry whose file is missing is
+      // what `SCENE_ASSET_NOT_INGESTED` warns about. It is written after the copy so it
+      // never describes something that is not there.
+      const manifestPath = join(this.store.projectDirectory(projectId), 'assets', 'manifest.json')
+      const manifest = readJsonSafe(manifestPath) ?? { schemaVersion: 'deepblend.assets/v1', assets: [] }
+      const entry = {
+        assetId,
+        type,
+        path: relativePath,
+        sha256,
+        bytes,
+        source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath },
+        // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
+        // are different statements, and only the first one is true here.
+        license,
+        ingestedAt: new Date().toISOString(),
+      }
+      const assets = [...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId), entry]
+        .sort((left, right) => (left.assetId < right.assetId ? -1 : left.assetId > right.assetId ? 1 : 0))
+      writeJsonAtomic(manifestPath, { schemaVersion: 'deepblend.assets/v1', assets })
 
-    // ---- where it goes ------------------------------------------------------
-    //
-    // `assets/raw/` keeps the ingested bytes distinguishable from anything a later
-    // step derives from them (SPEC §13's tree has `raw/`, `normalized/` and
-    // `textures/`), and it is the directory the SceneSpec's asset paths are written
-    // against.
-    const relativePath = `assets/raw/${requireSafeSegment(name, 'asset file name')}`
-    const destination = resolveInside(
-      this.store.projectDirectory(projectId),
-      relativePath,
-      'asset destination',
-    )
-    mkdirSync(dirname(destination), { recursive: true })
-    copyFileSync(staged, destination)
-
-    const bytes = statSync(destination).size
-    if (bytes > this.config.assetMaxBytes) {
-      removeTree(destination)
-      throw new BlenderError(
-        BlenderErrorCode.ASSET_TOO_LARGE,
-        `the ingested asset is ${bytes} bytes, above the configured assetMaxBytes of ${this.config.assetMaxBytes}.`,
-        { detail: { bytes, maxBytes: this.config.assetMaxBytes } },
-      )
-    }
-    const sha256 = fileSha256(destination)
-
-    // The manifest is a ledger beside the bytes, not a second source of truth: a file
-    // whose entry is missing is still usable, and an entry whose file is missing is
-    // what `SCENE_ASSET_NOT_INGESTED` warns about. It is written after the copy so it
-    // never describes something that is not there.
-    const manifestPath = join(this.store.projectDirectory(projectId), 'assets', 'manifest.json')
-    const manifest = readJsonSafe(manifestPath) ?? { schemaVersion: 'deepblend.assets/v1', assets: [] }
-    const entry = {
-      assetId,
-      type,
-      path: relativePath,
-      sha256,
-      bytes,
-      source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath },
-      // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
-      // are different statements, and only the first one is true here.
-      license,
-      ingestedAt: new Date().toISOString(),
-    }
-    const assets = [...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId), entry]
-      .sort((left, right) => (left.assetId < right.assetId ? -1 : left.assetId > right.assetId ? 1 : 0))
-    writeJsonAtomic(manifestPath, { schemaVersion: 'deepblend.assets/v1', assets })
-
-    return {
-      projectId,
-      assetId,
-      type,
-      path: relativePath,
-      sha256,
-      bytes,
-      source: entry.source,
-      license,
-      manifestPath: 'assets/manifest.json',
-      currentRevision: record.currentRevision,
-      nextStep:
-        `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
-        `path: "${relativePath}", sha256: "${sha256}"` +
-        // THE SCHEMA'S SHAPE, NOT A BARE STRING: `asset.license` is an object (`source`, `commercialUse`,
-        // `attribution`), and the first version of this advice printed `license: "CC-BY-4.0"` — which the
-        // patch schema REJECTS, so a model that followed the advice would get `SCENE_PATCH_INVALID` for doing
-        // what it was told. The advice is asserted to validate (`contract/schema-refs.test.mjs`).
-        `${license === null ? '' : `, license: ${JSON.stringify({ source: license })}`}}}`,
+      return {
+        projectId,
+        assetId,
+        type,
+        path: relativePath,
+        sha256,
+        bytes,
+        source: entry.source,
+        license,
+        manifestPath: 'assets/manifest.json',
+        currentRevision: record.currentRevision,
+        nextStep:
+          `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
+          `path: "${relativePath}", sha256: "${sha256}"` +
+          // THE SCHEMA'S SHAPE, NOT A BARE STRING: `asset.license` is an object (`source`, `commercialUse`,
+          // `attribution`), and the first version of this advice printed `license: "CC-BY-4.0"` — which the
+          // patch schema REJECTS, so a model that followed the advice would get `SCENE_PATCH_INVALID` for doing
+          // what it was told. The advice is asserted to validate (`contract/schema-refs.test.mjs`).
+          `${license === null ? '' : `, license: ${JSON.stringify({ source: license })}`}}}`,
+      }
+    } finally {
+      // THE FETCHED SCRATCH IS REMOVED ON EVERY PATH, including the happy one. It used to be removed
+      // only when the FETCH failed, so every successful remote ingest left the downloaded bytes behind
+      // under `<workspace>/tmp/asset-<uuid>/` — a second copy of a file that is already in
+      // `assets/raw/`, growing without bound. MEASURED with one ingest against a loopback server:
+      // `tmp/` still held `asset-<uuid>` afterwards. The caller's OWN file is never touched:
+      // `fetchedScratch` is null for a local source.
+      if (fetchedScratch !== null) removeTree(fetchedScratch)
     }
   }
 

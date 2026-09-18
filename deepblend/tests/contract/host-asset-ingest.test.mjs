@@ -106,6 +106,13 @@ const server = createServer((request, response) => {
     response.end()
     return
   }
+  if (request.url === '/race.glb') {
+    // A second URL serving the same bytes: the concurrency case below must not disturb the counter that
+    // proves `/model.glb` was fetched exactly once.
+    response.writeHead(200, { 'content-type': 'model/gltf-binary' })
+    response.end(glbBytes)
+    return
+  }
   if (request.url === '/model.glb') {
     response.writeHead(200, { 'content-type': 'model/gltf-binary' })
     bodiesServed += 1
@@ -217,6 +224,44 @@ check('and an asset nobody licensed records `null` rather than a missing field, 
   unlicensed.license === null && unlicensedEntry?.license === null &&
   !unlicensed.nextStep.includes('license:'),
   { returned: unlicensed.license, manifest: unlicensedEntry?.license })
+
+// TWO REMOTE INGESTS AT ONCE, which is the only way this path can interleave: a remote source awaits the
+// network, so two calls can be in flight together and both reach the manifest's read-modify-write. The
+// manifest is read, modified and written with NO `await` in between — which is what makes the pair safe, and
+// which is a property rather than an accident: inserting an `await` there (making the hash async, say) would
+// turn one of these two entries into a silent lost update, and nothing else in this file would notice.
+const concurrent = await Promise.all([
+  studio.ingestAsset({ projectId, sourceUrl: `${base}/race.glb`, assetId: 'race-one', approved: true }),
+  studio.ingestAsset({ projectId, sourceUrl: `${base}/race.glb`, assetId: 'race-two', approved: true }),
+])
+const afterRace = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
+// THE HAPPY PATH'S SCRATCH, which nothing had ever asked about: the existing check below is named "of every
+// FAILED fetch", and it was telling the truth — but a successful remote ingest left its scratch directory
+// behind, holding a second copy of bytes already in `assets/raw/`. MEASURED with one ingest against a loopback
+// server: `tmp/asset-<uuid>/` was still there afterwards. The fix is a `finally`; this is the assertion that
+// keeps it.
+const scratchAfterSuccess = existsSync(join(workspaceRoot, 'tmp'))
+  ? readdirSync(join(workspaceRoot, 'tmp'))
+  : []
+// AND THE OTHER SIDE OF THE SAME CLEANUP, which is the dangerous one: the scratch removal must never touch a
+// LOCAL source, because that file belongs to the caller. The mutation that sets `fetchedScratch` for a local
+// source is caught by the whole file falling over, but the property deserves its own sentence.
+const localSource = join(outsideRoot, 'keep-me.glb')
+writeFileSync(localSource, glbBytes)
+await studio.ingestAsset({ projectId, sourcePath: localSource, assetId: 'kept-local' })
+check('a LOCAL source is never deleted by the scratch cleanup, because that file is the caller\u2019s',
+  existsSync(localSource) && readFileSync(localSource).equals(glbBytes),
+  { exists: existsSync(localSource) })
+
+check('a SUCCESSFUL remote ingest leaves no scratch behind either, because the bytes are already copied',
+  scratchAfterSuccess.length === 0,
+  scratchAfterSuccess)
+
+check('two ingests in flight at once both land in the manifest, because its read-modify-write has no await',
+  concurrent.every(entry => entry.assetId !== undefined) &&
+  afterRace.assets.filter(entry => entry.assetId.startsWith('race-')).length === 2 &&
+  afterRace.assets.every(entry => existsSync(join(studio.store.projectDirectory(projectId), entry.path))),
+  { manifestIds: afterRace.assets.map(entry => entry.assetId) })
 
 // A PRESIGNED URL IS THE ORDINARY CASE, not the exotic one: the link a model is handed for a model file
 // usually carries its own signature in the query. Every message this path produces also lands in a job record
