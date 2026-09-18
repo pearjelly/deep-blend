@@ -7798,3 +7798,47 @@ total self-counted assertions: 1444
 
 **产品代码未改** ✓（本轮只加检查 ✓），所以读数沿用上一轮 ✓：产品可执行行黑暗 **53 (0.4%)** ✓，
 并行贡献者的两个文件与上一轮逐字节相同 ✓。契约层 61 文件 / **1444** 项不变，`node:test` 用例 290 → **291**。
+
+## 111. 一份安全文档里的「五个变量」，而代码里是**六个**
+
+### 111.1 量它：`SECURITY.md` 的每一句可检查的话
+
+`SECURITY.md`（54 行）是给**外面的人**读的，它的话都该能被检查。逐句看下来，四句是真的
+（十六个工具、preset 行按**相等**断言、argv 数组 + `--factory-startup`、只有两件事离开本机或花真钱），
+**一句是错的**：
+
+```
+SECURITY.md:  the child's environment is a five-variable whitelist
+provider:     PATH, HOME, TMPDIR, PYTHONUNBUFFERED, PYTHONDONTWRITEBYTECODE, DEEPBLEND_JOB_ID
+```
+
+**六个**——而 `deepblend/docs/security.md` 里一直列着六个（那份是对的）。一份**安全文档**里的计数过期，
+正是那种「读者会信它」的句子。
+
+### 111.2 修法：不写计数，写清单在哪；并把清单本身钉住
+
+`SECURITY.md` 改成「一个**固定**的白名单，变量名在 `docs/security.md` 里列出**而不是在这里计数**——
+**计数正是句子里会烂掉的那部分**（这句原来写『五个』，而代码白名单是六个）」。
+
+同时给已有的那条白名单检查补上**两条它没有的不变量**：
+
+* **两条 spawn 路径必须白名单同一组名字**——原来的检查只查「每个键都在允许表内」（子集，这是安全的方向），
+  但**一条路径比另一条少一个键**它不会说话；而少了 `DEEPBLEND_JOB_ID` 的子进程就是没有 correlation id 的
+  子进程——「开始一次渲染」与「续渲」之间的行为差异，别的地方不会发现；
+* **文档里的清单必须等于代码里的集合**（`docs/security.md` 那行按 `/` 拆开比对），
+  并且**顶层 `SECURITY.md` 不许出现计数**（五/六/5/6 + variable 都不行——引文也不行）。
+
+### 111.3 收口
+
+四条变异全红：续渲路径不再传 `DEEPBLEND_JOB_ID`（两条路径分叉）、某条路径多带一个密钥、
+文档清单少一个变量、`SECURITY.md` 里的计数回来。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1444
+```
+
+**产品代码未改**（本轮只改 `SECURITY.md` 与一条检查），所以读数沿用上一轮：产品可执行行黑暗 **53 (0.4%)**。
+契约层 61 文件 / **1444** 项不变，`node:test` 用例仍 **291**（扩展的是已有用例，没有新增）。

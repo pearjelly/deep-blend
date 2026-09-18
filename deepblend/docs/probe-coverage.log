@@ -225,6 +225,19 @@ answered "host services are present but too OLD" — the staleness handshake run
 loosen the assertion. The shared tool-plane harness gained an optional `services` map for the same round's
 approval case, because "was the operator asked" and "what is said when nobody can be asked" are two
 questions, and answering the first should not require a third copy of how to stand up the tool plane.
+── ROUND 103: still no probe — a security claim held against the code ──
+No product code changed, so the previous column still describes this tree (the parallel contributor's files are
+byte-identical, md5). What the round did was read `SECURITY.md` as a list of checkable claims: four of its
+sentences are true and one was wrong — "the child's environment is a five-variable whitelist" while the provider
+whitelists SIX names (and `deepblend/docs/security.md` had listed all six correctly the whole time). A count
+inside a security document is exactly the kind of sentence a reader trusts and nobody re-measures.
+
+`SECURITY.md` now names where the list lives instead of counting it ("a count is the part of a sentence that
+rots"), and the existing whitelist check gained two invariants it did not have: the two spawn paths must
+whitelist the SAME names (the old check only required each key to be on the allowed list — a subset, which is the
+safe direction, but a path missing `DEEPBLEND_JOB_ID` would have gone unremarked), and the documented list must
+equal the code's set while the top-level file may not state a count at all. Four mutations, all red.
+
 ── ROUND 102: still no probe — a check on the docs' own examples ──
 No product code changed, so no new reading: the previous column still describes this tree (the parallel
 contributor's files are byte-identical, md5), and the 53 dark lines are the same 32 named plus their 21.

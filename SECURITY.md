@@ -11,8 +11,10 @@ The model driving a DeepBlend session can call sixteen tools. It cannot run a sh
 file, fetch a URL, run arbitrary Python, or install anything: the product preset's row set is
 asserted by **equality**, so a row that should not be there fails the suite as loudly as one
 that should. Blender is started as an argv array (never through a shell) with
-`--background --factory-startup`, and the child's environment is a five-variable whitelist, so
-neither your Blender add-ons nor your API keys travel into it. Two operations leave the machine
+`--background --factory-startup`, and the child's environment is a FIXED whitelist — named in
+[`deepblend/docs/security.md`](deepblend/docs/security.md) rather than counted here, because a count is the
+part of a sentence that rots (this one said "five" while the code whitelisted six) — so neither your Blender
+add-ons nor your API keys travel into it. Two operations leave the machine
 or cost real money — a final render above the configured frame threshold, and importing an
 asset from a URL — and both **ask you first**; nothing else does. Everything the tool writes
 lives inside the project directory, and the path guards compare realpaths, so a symlink is not

@@ -289,7 +289,7 @@ test('the provider never reaches a shell, and hands the child no secret', () => 
   const envBlocks = [...provider.matchAll(/env: \{([\s\S]*?)\n {8}\},/g)].map(match => match[1])
   assert.ok(envBlocks.length >= 2, `the provider composes ${envBlocks.length} child environments, not the two this test describes`)
 
-  for (const block of envBlocks) {
+  const parsed = envBlocks.map((block) => {
     const keys = [...block.matchAll(/^\s*([A-Z_][A-Z0-9_]*)\s*:/gm)].map(match => match[1])
     assert.ok(keys.length > 0, 'a child environment parsed no keys, so this assertion would be vacuous')
     const extra = keys.filter(key => !ALLOWED.includes(key))
@@ -299,5 +299,34 @@ test('the provider never reaches a shell, and hands the child no secret', () => 
       `the child environment carries ${extra.join(', ')}, which is not on the whitelist — ` +
         'anything not listed there is a value that reaches Blender, and SPEC §15.5 says secrets must not',
     )
+    return keys.slice().sort()
+  })
+
+  // BOTH SPAWN PATHS MUST WHITELIST THE SAME NAMES. The subset check above lets one path carry fewer keys than
+  // the other without a word, and a child that is missing `DEEPBLEND_JOB_ID` is a child whose correlation id is
+  // absent — a behavioural difference between "start a render" and "resume one" that nothing else would notice.
+  for (const keys of parsed.slice(1)) {
+    assert.deepEqual(
+      keys,
+      parsed[0],
+      'the two spawn paths whitelist different environments; a value that reaches one Blender does not reach the other',
+    )
   }
+
+  // AND THE DOCUMENTED LIST IS THE SAME LIST. `docs/security.md` names the variables (the canonical copy), and
+  // `SECURITY.md` used to state a COUNT — "a five-variable whitelist" — while the code whitelisted six. A count
+  // is the part of a sentence that rots, so the top-level file points at the list instead, and this check holds
+  // the list itself against the code.
+  const securityDoc = readFileSync(join(ROOT, 'deepblend', 'docs', 'security.md'), 'utf8')
+  const documented = /环境只有\s*([A-Z_/]+)/.exec(securityDoc)?.[1]?.split('/').sort()
+  assert.deepEqual(
+    documented,
+    ALLOWED.slice().sort(),
+    'the whitelist in docs/security.md and the child environment in the provider are not the same set',
+  )
+  const topLevel = readFileSync(join(ROOT, 'SECURITY.md'), 'utf8')
+  assert.ok(
+    !/\b(?:five|six|seven|5|6|7)[- ]variable/i.test(topLevel) && !/[五六七八]\s*个变量/.test(topLevel),
+    'SECURITY.md states how many variables the whitelist has; the list is the fact, and a count is what rots',
+  )
 })
