@@ -255,6 +255,16 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 103: still no probe — a property that was already true, now asserted ──
+No product code changed, so the previous column still describes this tree. What the round did was measure a
+read-modify-write that nobody had asked about: the attempt-log job id is minted by COUNTING the records in
+`jobs/`, and two concurrent patches were measured to get distinct ordinals (readings: `["r0002",
+"REVISION_CONFLICT"]`, two records on disk). They are safe for the same reason the asset manifest is —
+everything before the allocation is await-free, so two calls cannot interleave there — and that property had
+no assertion: inserting an `await` above the allocation would make both calls mint the same name, the second
+write would erase the first attempt's record, and no check would go red. The mutation that does exactly that
+now fails.
+
 ── ROUND 102: the same reading, with one more fact derived instead of restated ──
 The dark total is unchanged at 32 (0.3%), and so is the file list: the product change this round was a
 DERIVATION, not new code — `UNFINISHED_STATUSES` in the render-job store was a fourth hand-written copy of the

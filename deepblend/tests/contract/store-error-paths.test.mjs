@@ -428,6 +428,34 @@ const firstJobId = store.allocateJobId('a-project-with-no-jobs-directory', 'rend
 check('a project with no jobs directory allocates its first job id from zero instead of failing',
   /^render_preview-\d{14}-001$/.test(firstJobId), firstJobId)
 
+// TWO PATCHES AT ONCE MUST NOT GET THE SAME ATTEMPT-LOG ID, and the reason they do not is a property worth
+// stating: the allocator COUNTS the records in `jobs/` — a read-modify-write — and it is safe only because
+// everything before it in the transaction is await-free, so two calls cannot interleave there. MEASURED: two
+// concurrent patches with different idempotency keys and the SAME baseRevision produce two records with
+// distinct ordinals, and the loser is refused with REVISION_CONFLICT. Insert an `await` above the allocation
+// and both would mint the same name, so the second write would erase the first attempt's record — the same
+// "atomic by construction" shape the asset manifest's read-modify-write has, and the same reason it needs an
+// assertion rather than a comment.
+// A project of its own for this, because `createProject` is what writes the first attempt log — the
+// `healthy` fixture above was made by the STORE, so it has no `jobs/` directory at all.
+const raceProject = await transactions.createProject({ title: 'job-id race', sceneSpec: productSpec, saveCheckpoint: false })
+const raceA = await transactions.applyScenePatch({
+  projectId: raceProject.projectId, baseRevision: raceProject.revision.revision, idempotencyKey: 'race-a',
+  operations: [{ op: 'entity.visibility.set', entityId: productSpec.entities[0].id, visible: false }],
+  saveCheckpoint: false,
+}).catch(cause => cause)
+const raceB = await transactions.applyScenePatch({
+  projectId: raceProject.projectId, baseRevision: raceProject.revision.revision, idempotencyKey: 'race-b',
+  operations: [{ op: 'entity.tags.set', entityId: productSpec.entities[0].id, tags: ['race'] }],
+  saveCheckpoint: false,
+}).catch(cause => cause)
+const raceIds = readdirSync(join(store.projectDirectory(raceProject.projectId), 'jobs'))
+  .filter(name => name.endsWith('.json'))
+check('two patches at once get DISTINCT attempt-log ids, because the allocator cannot interleave',
+  raceIds.length >= 2 && new Set(raceIds).size === raceIds.length &&
+  [raceA, raceB].every(entry => entry instanceof Error || typeof entry.revision?.revision === 'string'),
+  { records: raceIds.length, distinct: new Set(raceIds).size })
+
 // A revision directory with no manifest did not finish publishing: recording an artifact into it must not
 // invent a manifest, and must still hand the caller back the artifact it recorded.
 const unpublished = store.revisionDirectory(realProject.projectId, 'r0002')
