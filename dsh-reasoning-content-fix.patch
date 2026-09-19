@@ -1,0 +1,116 @@
+# Fix: DeepSeek thinking mode — "The `reasoning_content` in the thinking mode must
+# be passed back to the API." (HTTP 400 on tool-call continuations)
+#
+# Target: @deepseek-ai/dsh-llm-deepseek/lib/index.js
+#         (installed DSH: <global npm prefix>/@deepseek-ai/dsh/node_modules/...)
+# Verified against: dsh 0.1.5-rc.2
+#
+# Rule (measured against the upstream API): in thinking mode, every assistant
+# message that carries tool_calls must carry reasoning_content; "" is accepted.
+# DSH omitted the field whenever the turn produced no reasoning text — which
+# happens routinely behind gateways whose backends ignore `thinking`.
+#
+# Apply:  patch -p0 < dsh-reasoning-content-fix.patch   (from the adapter dir)
+# Revert: restore lib/index.js.orig-reasoning-fix, or patch -R
+#
+--- a/@deepseek-ai/dsh-llm-deepseek/lib/index.js
++++ b/@deepseek-ai/dsh-llm-deepseek/lib/index.js
+@@ -105,7 +105,7 @@
+ 	return text.join("");
+ }
+ /** Serialize one assistant message (text + reasoning + tool calls). */
+-function serializeAssistant(message) {
++function serializeAssistant(message, thinkingEnabled) {
+ 	const text = flattenText(message.content);
+ 	const reasoning = message.content.filter((block) => block.type === "reasoning").map((block) => block.text).join("");
+ 	const toolCalls = message.content.filter((block) => block.type === "tool-call").map((block) => ({
+@@ -116,10 +116,11 @@
+ 			arguments: block.arguments
+ 		}
+ 	}));
++	const reasoningContent = reasoning.length > 0 ? reasoning : thinkingEnabled === true && toolCalls.length > 0 ? "" : void 0;
+ 	return {
+ 		role: "assistant",
+ 		content: text,
+-		...reasoning.length > 0 ? { reasoning_content: reasoning } : {},
++		...reasoningContent === void 0 ? {} : { reasoning_content: reasoningContent },
+ 		...toolCalls.length > 0 ? { tool_calls: toolCalls } : {}
+ 	};
+ }
+@@ -131,7 +132,7 @@
+ * @param messages - the harness conversation, in order.
+ * @returns the wire messages; order preserved, each tool result expanded into its own entry.
+ */
+-function serializeMessages(messages) {
++function serializeMessages(messages, thinkingEnabled) {
+ 	const wire = [];
+ 	for (const message of messages) {
+ 		assertTextOnly(message.content);
+@@ -143,7 +144,7 @@
+ 			continue;
+ 		}
+ 		if (message.role === "assistant") {
+-			wire.push(serializeAssistant(message));
++			wire.push(serializeAssistant(message, thinkingEnabled));
+ 			continue;
+ 		}
+ 		const toolResults = message.content.filter((block) => block.type === "tool-result");
+@@ -168,7 +169,7 @@
+ * @param images - prepared request versions, one provider representation, and its budget.
+ * @returns ordered DeepSeek wire messages.
+ */
+-async function serializeMessagesWithImages(messages, images) {
++async function serializeMessagesWithImages(messages, images, thinkingEnabled) {
+ 	assertSupportedImageRoles(messages);
+ 	const wire = [];
+ 	let pendingToolImages = [];
+@@ -195,7 +196,7 @@
+ 		}
+ 		if (message.role === "assistant") {
+ 			flushToolImages();
+-			wire.push(serializeAssistant(message));
++			wire.push(serializeAssistant(message, thinkingEnabled));
+ 			continue;
+ 		}
+ 		const regular = message.content.filter((block) => block.type !== "tool-result");
+@@ -224,7 +225,7 @@
+ 	return wire;
+ }
+ /** Assemble request fields shared by text-only and image-capable conversion. */
+-function requestWithMessages(options, messages, defaults) {
++function requestWithMessages(options, messages, defaults, resolvedThinking = resolveThinking(options, defaults)) {
+ 	const tools = options.tools?.map((tool) => ({
+ 		type: "function",
+ 		function: {
+@@ -233,7 +234,6 @@
+ 			parameters: tool.parameters
+ 		}
+ 	}));
+-	const resolvedThinking = resolveThinking(options, defaults);
+ 	return {
+ 		model: options.model,
+ 		messages,
+@@ -261,8 +261,9 @@
+ 		role: "system",
+ 		content: options.system
+ 	});
+-	messages.push(...serializeMessages(options.messages));
+-	return requestWithMessages(options, messages, defaults);
++	const resolvedThinking = resolveThinking(options, defaults);
++	messages.push(...serializeMessages(options.messages, resolvedThinking.thinking === "enabled"));
++	return requestWithMessages(options, messages, defaults, resolvedThinking);
+ }
+ /**
+ * Build one image-capable request while keeping durable bytes out of session
+@@ -293,8 +294,9 @@
+ 		role: "system",
+ 		content: options.system
+ 	});
+-	messages.push(...await serializeMessagesWithImages(requestMessages, images));
+-	return requestWithMessages(options, messages, defaults);
++	const resolvedThinking = resolveThinking(options, defaults);
++	messages.push(...await serializeMessagesWithImages(requestMessages, images, resolvedThinking.thinking === "enabled"));
++	return requestWithMessages(options, messages, defaults, resolvedThinking);
+ }
+ //#endregion
+ //#region lib/types/image-tokens.js

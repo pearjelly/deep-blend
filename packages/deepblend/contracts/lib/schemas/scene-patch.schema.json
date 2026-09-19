@@ -187,6 +187,62 @@
         }
       }
     },
+    "proceduralTexture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "scale"
+      ],
+      "description": "A procedural surface texture. Duplicated from scene-spec.schema.json because this schema is deliberately self-contained (it never $refs across files), so the two copies are kept in step by hand.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "noise",
+            "wave",
+            "voronoi"
+          ]
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "detail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "distortion": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stretch": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "bump": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "roughnessVariation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "colorVariation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
     "generator": {
       "type": "object",
       "additionalProperties": false,
@@ -572,6 +628,9 @@
         "maxSamplesBudget": {
           "type": "integer",
           "minimum": 1
+        },
+        "raytracing": {
+          "type": "boolean"
         }
       }
     },
@@ -714,6 +773,34 @@
           "additionalProperties": false,
           "required": [
             "op",
+            "materialId",
+            "texture"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "material.texture.set"
+            },
+            "materialId": {
+              "$ref": "#/$defs/id"
+            },
+            "texture": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/proceduralTexture"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
             "material"
           ],
           "properties": {
@@ -742,6 +829,9 @@
                 },
                 "parameters": {
                   "$ref": "#/$defs/materialParameters"
+                },
+                "texture": {
+                  "$ref": "#/$defs/proceduralTexture"
                 }
               }
             }

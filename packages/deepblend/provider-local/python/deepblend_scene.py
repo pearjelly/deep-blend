@@ -827,6 +827,23 @@ def build_camera(spec, entity_positions):
         if rotation is not None:
             obj.rotation_euler = (float(rotation[0]), float(rotation[1]), float(rotation[2]))
 
+    if data.dof.use_dof:
+        # An f-stop on its own is NOT depth of field. Blender's focus_distance
+        # defaults to 10 m, so a desk-sized scene sits far outside the field and
+        # the whole frame comes back uniformly soft — every plane blurred, nothing
+        # in focus, which reads as a mistake rather than as a shallow depth of
+        # field. Focus on whatever the camera is already aimed at.
+        focus_object = None
+        if target_entity is not None:
+            focus_object = bpy.data.objects.get("%s%s" % (ENTITY_PREFIX, target_entity))
+        if focus_object is not None:
+            # Focusing the object rather than a distance keeps a MOVING subject
+            # sharp for the whole shot instead of only at the frame it was
+            # measured on.
+            data.dof.focus_object = focus_object
+        elif target_point is not None:
+            data.dof.focus_distance = max(1e-4, (Vector(target_point) - obj.location).length)
+
     return obj
 
 

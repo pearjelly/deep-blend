@@ -510,6 +510,28 @@ export function applyPatchToSpec(spec, patch) {
         break
       }
 
+      case 'material.texture.set': {
+        const at = indexOfId(next.materials, operation.materialId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no material "${operation.materialId}" exists in this scene`)
+        const material = next.materials[at]
+        const previous = material.texture
+        const describe = (texture) => (texture ? `${texture.type}@${texture.scale}` : '(none)')
+        next.materials = [...next.materials]
+        if (operation.texture === null) {
+          const { texture, ...rest } = material
+          next.materials[at] = rest
+        } else {
+          next.materials[at] = { ...material, texture: operation.texture }
+        }
+        applied.push({
+          op,
+          target: material.id,
+          summary: `material "${material.id}" texture: ${describe(previous)} → ${describe(operation.texture)}`,
+          changedPaths: [`materials.${material.id}.texture`],
+        })
+        break
+      }
+
       // ---- lights ---------------------------------------------------------
       case 'light.add': {
         if (indexOfId(next.lights, operation.light.id) >= 0) {

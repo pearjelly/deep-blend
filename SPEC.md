@@ -744,6 +744,13 @@ materials:
       baseColor: [0.02, 0.02, 0.025, 1]
       metallic: 0.92
       roughness: 0.18
+    texture:                      # 可选：程序化表面纹理
+      type: noise                 # noise | wave | voronoi
+      scale: 180                  # 物体空间中的图案密度，越大越细
+      stretch: [40, 1, 1]         # 逐轴缩放，让图案沿一个方向拉伸（拉丝金属、木纹）
+      bump: 0.12                  # 法线扰动强度；0 表示表面保持光滑
+      roughnessVariation: 0.25    # 粗糙度围绕上面的 roughness 摆动的幅度
+      colorVariation: 0.06        # 基础色被图案压暗的幅度
 
 lights:
   - id: key-light
@@ -786,6 +793,7 @@ renderProfiles:
     engine: cycles
     resolution: [1920, 1080]
     samples: 256
+    raytracing: true              # 仅 EEVEE：开启屏幕空间光线追踪（GI / AO / 反射）
 ```
 
 ### 8.3 ScenePatch
