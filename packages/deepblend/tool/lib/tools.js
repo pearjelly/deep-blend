@@ -375,6 +375,9 @@ const OPERATION_SUMMARY = [
   'project.frameRange.set       {frameStart, frameEnd, fps?}',
   'render.profile.set           {profileName, profile}                         — profileName is "preview" or "final"',
   'world.set                    {world}                                        — {color?, strength?}; the environment behind the product',
+  'asset.add                    {asset}                                        — {id, type, path, sha256, license?}; the file must be ingested first',
+  'asset.remove                 {assetId}                                      — removing the last one makes the key disappear, not an empty list',
+  'material.texture.set         {materialId, texture}                          — {type: noise|wave|voronoi, scale, …}, or null to remove it',
 ].join('\n  ')
 
 function scenePatch(ctx) {

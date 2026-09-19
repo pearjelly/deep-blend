@@ -206,9 +206,14 @@ test('every gap the matrix admits is numbered in the deviation register', () => 
   // and a row the register has STRUCK THROUGH is resolved, which is how §7 records a
   // deviation that has since been fixed (`~~8~~`). Reading a resolved deviation as still-open
   // would make fixing something turn this test red, which is the wrong direction entirely.
+  // THE KEYWORDS ARE PHRASES FROM §15.2, NOT TOPIC WORDS, and the difference cost a false positive: a new §7
+  // entry about `material.texture` (a capability gap in SPEC §5.2, nothing to do with security) matched the bare
+  // word 「纹理」 and this check demanded a matching row in the security matrix. `纹理尺寸` is what §15.2 actually
+  // requires, and the row that deviates from it (§7 #7) says exactly that, so the narrower phrase still catches
+  // the case this filter exists for.
   const securityDeviations = [...register.matchAll(/^\|\s*(\d+)\s*\|([^|]*)\|/gm)]
     .filter(match => !match[2].includes('~~'))
-    .filter(match => /§15|安全|配额|纹理|面数|MIME|脱敏|Worker/.test(match[2]))
+    .filter(match => /§15|安全|配额|纹理尺寸|面数|MIME|脱敏|Worker/.test(match[2]))
     .map(match => Number(match[1]))
   const admitted = new Set(rows152.map(row => Number(/§7\s*#(\d+)/.exec(row.status)?.[1] ?? -1)))
   const unadmitted = securityDeviations.filter(number => !admitted.has(number))

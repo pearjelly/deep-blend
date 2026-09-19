@@ -47,6 +47,12 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'world.set',
   'asset.add',
   'asset.remove',
+  // APPENDED, like the two above and for the same reason: the twenty-one before them are quoted in this order
+  // by the manual and by `blender_scene_patch`'s own description, so inserting a name in the middle would
+  // renumber every index the checks below assert. This one arrived with the operation itself — the schema
+  // accepted `material.texture.set` while this list (and therefore the manual and the tool's description) still
+  // had 23 names, which `scene-patch.test.mjs`'s schema-vs-constant check is the only check able to see.
+  'material.texture.set',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/

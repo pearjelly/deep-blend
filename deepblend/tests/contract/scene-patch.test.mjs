@@ -29,6 +29,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { resolve } from 'node:path'
 
 import {
@@ -525,6 +526,44 @@ function materialUpdatedValue(next, id, parameter) {
 }
 
 // ---- light.add / light.update / light.remove -----------------------------
+// ---- the procedural texture (SPEC §5.2) ------------------------------------
+//
+// The operation arrived with the schema and nothing exercised it — `SCENE_OPERATION_NAMES`'s coverage check
+// caught that, which is what it is for. What is asserted here is the half this product DOES today: the op is
+// applied, the texture lands on the material, and the SCENE DIGEST changes so the re-render decision follows.
+// The other half is a deviation and is written down rather than implied: `deepblend_scene.py` reads no texture
+// at all (measured: zero occurrences of the name), so a texture set today changes the document and NOT the
+// pixels — `milestone-status.md` §7 #14.
+const textured = applied('material.texture.set', [
+  { op: 'material.texture.set', materialId: 'hero-steel', texture: { type: 'noise', scale: 12.5, detail: 4 } },
+])
+check(
+  'material.texture.set stores the texture on the material',
+  JSON.stringify(textured.next.materials.find(material => material.id === 'hero-steel').texture)
+    === JSON.stringify({ type: 'noise', scale: 12.5, detail: 4 }),
+  textured.next.materials.find(material => material.id === 'hero-steel').texture,
+)
+check(
+  'material.texture.set changes the SCENE digest, so a re-render decision follows it',
+  textured.result.digestAfter !== textured.result.digestBefore,
+  { before: textured.result.digestBefore?.slice(0, 12), after: textured.result.digestAfter?.slice(0, 12) },
+)
+check(
+  'material.texture.set records the material path, and its summary says what it replaced',
+  JSON.stringify(textured.result.operations[0].changedPaths) === JSON.stringify(['materials.hero-steel.texture'])
+    && /texture: \(none\) → noise@12\.5/.test(textured.result.operations[0].summary),
+  textured.result.operations[0],
+)
+const textureCleared = applied('material.texture.set', [
+  { op: 'material.texture.set', materialId: 'hero-steel', texture: null },
+])
+check(
+  'material.texture.set with null REMOVES the key rather than storing a null',
+  textureCleared.next.materials.find(material => material.id === 'hero-steel').texture === undefined
+    && !('texture' in textureCleared.next.materials.find(material => material.id === 'hero-steel')),
+  Object.keys(textureCleared.next.materials.find(material => material.id === 'hero-steel')),
+)
+
 const lightAdded = applied('light.add', [{
   op: 'light.add',
   light: {
@@ -885,9 +924,46 @@ for (const pureCase of PURE_CASES) {
 }
 
 check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
+
+// THE CONSTANT AND THE SCHEMA ARE TWO COPIES OF ONE VOCABULARY, and only one of them is what a caller is
+// actually allowed to send. Every other check in this file holds the constant against the IMPLEMENTATION and
+// against this file's own cases — both directions that stay green when a new operation is added to the schema
+// alone. MEASURED: `material.texture.set` was implemented and schema-declared, while the constant (and
+// therefore the manual's table and the tool's description) still listed 23 operations. A vocabulary constant
+// that trails the schema is a capability the model is never told about.
+{
+  const patchSchema = JSON.parse(readFileSync(
+    resolve(import.meta.dirname, '..', '..', '..', 'deepblend', 'schemas', 'scene-patch.schema.json'), 'utf8',
+  ))
+  const declared = (patchSchema.$defs.operation.oneOf ?? [])
+    .map(variant => variant.properties?.op?.const)
+    .filter(name => typeof name === 'string')
+  check('the operation vocabulary in the SCHEMA and in SCENE_OPERATION_NAMES are the same set',
+    declared.length > 0 && JSON.stringify([...declared].sort()) === JSON.stringify([...SCENE_OPERATION_NAMES].sort()),
+    { inSchemaOnly: declared.filter(name => !SCENE_OPERATION_NAMES.includes(name)),
+      inConstantOnly: SCENE_OPERATION_NAMES.filter(name => !declared.includes(name)) })
+}
+// THE THIRD COPY, AND THE ONE THE MODEL ACTUALLY READS. `blender_scene_patch`'s description carries a
+// hand-written `OPERATION_SUMMARY`, and nothing tied it to the vocabulary — MEASURED when this was written: it
+// listed 22 of the 24 operations (missing `asset.add`, `asset.remove` and the texture op). A model that reads
+// the description of the only tool that can change a scene learns a smaller language than the one it is allowed
+// to speak, and the two operations it was never told about are the two the ingest tool's own answer points at.
+{
+  const toolSource = readFileSync(
+    resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'tool', 'lib', 'tools.js'), 'utf8',
+  )
+  const summaryBlock = /const OPERATION_SUMMARY = \[([\s\S]*?)\]\.join/.exec(toolSource)?.[1] ?? ''
+  const summarised = [...summaryBlock.matchAll(/^\s*'([a-z][a-zA-Z.]*\.[a-zA-Z.]+)\s/gm)].map(match => match[1])
+  check('the tool description summarises EVERY operation in the vocabulary, and invents none',
+    summarised.length > 0 &&
+    JSON.stringify([...summarised].sort()) === JSON.stringify([...SCENE_OPERATION_NAMES].sort()),
+    { missingFromSummary: SCENE_OPERATION_NAMES.filter(name => !summarised.includes(name)),
+      inSummaryOnly: summarised.filter(name => !SCENE_OPERATION_NAMES.includes(name)) })
+}
+
 check(
-  'SCENE_OPERATION_NAMES lists the 23 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 23
+  'SCENE_OPERATION_NAMES lists the 24 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 24
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
     && SCENE_OPERATION_NAMES[19] === 'render.profile.set'
@@ -895,7 +971,9 @@ check(
     // Appended by M5, which is why they are last: the existing twenty-one are quoted
     // in this order by the docs and by blender_scene_patch's own description.
     && SCENE_OPERATION_NAMES[21] === 'asset.add'
-    && SCENE_OPERATION_NAMES[22] === 'asset.remove',
+    && SCENE_OPERATION_NAMES[22] === 'asset.remove'
+    // ...and the one after them, appended for the same reason (see the constant's own comment).
+    && SCENE_OPERATION_NAMES[23] === 'material.texture.set',
   SCENE_OPERATION_NAMES,
 )
 check(

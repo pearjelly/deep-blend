@@ -95,6 +95,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `world.set` | `world` | 设置世界背景。**替换**而不是合并——「把背景改黑」是一次写完的 |
 | `asset.add` | `asset` | 声明一个资产（路径、类型、sha256） |
 | `asset.remove` | `assetId` | 移除资产声明；移除**最后一个**时这个键会消失，而不是留一个空表 |
+| `material.texture.set` | `materialId`、`texture` | 给材质设一个**程序化纹理**（`{type: noise\|wave\|voronoi, scale, …}`），`texture: null` 则移除。**注意**：它写进 SceneSpec、也让「要不要重渲」判定为变化，但**编译器目前不读它**——也就是说今天的渲染结果还不会变（偏差 §7 #14） |
 
 **失败时读消息里的码**：`SCENE_PATCH_INVALID`（结构不对）、`SCENE_PATCH_REJECTED`（结构对但指向了
 不存在的东西）、`REVISION_CONFLICT`（你的 `baseRevision` 过期了，**没有被合并**）。三个码的下一步
