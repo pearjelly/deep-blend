@@ -7903,3 +7903,54 @@ total self-counted assertions: 1450
 
 产品代码改了（常量补一个名字 ✓、工具描述补两行 ✓），所以这一轮跑新探针 ✓（`r101` 列 ✓）。
 契约层 61 文件 / 1444 → **1450** 项（`scene-patch.test.mjs` 261 → 267 ✓）。
+
+## 113. 「这个事实有几份拷贝？」——渲染任务状态词的第四份
+
+### 113.1 用第 112 轮那把尺子量下一个事实
+
+上一轮的教训是**问一个事实有几份拷贝** ✓。这一轮量渲染任务的状态词（`queued|running|stopping|recovering|
+completed|failed|cancelled` ✓）——它散在**五处** ✓：
+
+| 拷贝 | 位置 | 状况 |
+|---|---|---|
+| 权威表 `RENDER_JOB_STATUSES` | `contracts/lib/render-job.js` | 被断言逐字钉住 ✓ |
+| `RENDER_JOB_TERMINAL_STATUSES` | 同上 | 被断言钉住 ✓（而且它**不是**「没有出边」的意思 ✓——`failed` 可以被显式续渲 ✓，注释写清了 ✓） |
+| `UNFINISHED_STATUSES` | `host/lib/render-job-store.js` | **手写的第四份** ✗——而它正好等于「权威表减终止表」✓ |
+| 浏览器包里的 `statusTone` | `ui/lib/client.js` | 手写的第五份 ✗ |
+| `describeJobForHuman` 的 `case` | `contracts/lib/ui-api.js` | 每个状态一句 ✓（必要 ✓，不是重复 ✓） |
+
+### 113.2 手写那一份的后果不是美观问题
+
+`UNFINISHED_STATUSES` 决定**一个项目是否已经有交付渲染在跑** ✓（`_activeRenderJob` ✓）——
+少一个状态 ✓，就意味着**交付名额被交给第二个渲染器** ✓，两个进程往同一个帧目录里写 ✓。
+于是把它**改成推导** ✓（`RENDER_JOB_STATUSES.filter(s => !TERMINAL.includes(s))` ✓），
+并加一条断言钉住这个推导 ✓——**变异「改回手写列表」在加这条断言之前是活的** ✓（实测 ✓）。
+
+### 113.3 顺手抓出一条**不可能失败**的检查
+
+`ui-api.test.mjs` 里已经有一条「每个状态都有一句人话」✓——但它**手打了七个状态** ✗，
+判据是 `.length > 8` ✗——而**兜底分支**（`"weird：0/0 帧"` ✓）也长于 8 ✓✓：
+**把每一个 `case` 都删掉，它照样是绿的** ✓。改成由 `RENDER_JOB_STATUSES` 驱动 ✓、
+并要求那句**不是兜底**（兜底会以 `<status>：` 开头 ✓）✓——现在删掉一个 `case` 就红 ✓。
+
+### 113.4 浏览器包那一份只能**源码级**钉住
+
+`client.js` 是**自注册的 CJS 工厂** ✓（外壳当脚本加载 ✓，没有顶层 `import` ✓，唯一的 `require` 是 React ✓），
+所以它**拿不到 contracts** ✓——推导不了 ✓。与第 109 轮那个不可达分支同一个结论 ✓：
+**这种地方只能用源码级断言** ✓，而且写成**相等**而不是子集 ✓
+（一个客户端**自己发明**的状态也会红 ✓）。
+
+### 113.5 收口
+
+三条变异全红，分别打在三份非权威拷贝上 ✓：客户端发明一个状态 ✓、store 改回手写列表 ✓（**加断言之前是活的** ✓）、
+某个状态丢掉自己的句子 ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1452
+```
+
+产品代码改了（`UNFINISHED_STATUSES` 改为推导 ✓），所以这一轮跑新探针 ✓（`r102` 列 ✓）。
+契约层 61 文件 / 1450 → **1452** 项，`node:test` 用例仍 **291**（新增的两条在 `node:test` 文件里 ✓）。

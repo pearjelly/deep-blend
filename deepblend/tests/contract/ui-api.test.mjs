@@ -46,6 +46,7 @@ import {
   buildRevisionDiff,
   buildSceneTree,
   buildSettingsCard,
+  RENDER_JOB_STATUSES,
   describeJobForHuman,
   formatDuration,
   matchUiRoute,
@@ -308,9 +309,15 @@ check('a failed job is resumable, because its frames are still on disk',
   buildJobView({ ...RUNNING, status: 'failed', errorCode: 'BLENDER_EXIT_NONZERO' }, { threshold: 900 }).resumable === true)
 check('a zero-frame job reports 0% rather than NaN or Infinity',
   buildJobView({ ...RUNNING, expectedFrames: 0, completedFrames: 0 }, { threshold: 900 }).progress.percent === 0)
-check('every status gets a sentence a human can read',
-  ['queued', 'running', 'stopping', 'recovering', 'completed', 'failed', 'cancelled'].every(status => describeJobForHuman({ ...RUNNING, status }).length > 8),
-  ['queued', 'running', 'stopping', 'recovering', 'completed', 'failed', 'cancelled'].map(status => describeJobForHuman({ ...RUNNING, status })))
+// DRIVEN BY THE VOCABULARY, AND ABLE TO FAIL. The first version of this check typed the seven statuses out and
+// accepted any string longer than eight characters — which the FALLBACK also satisfies (`"weird：0/0 帧"` is
+// longer than eight), so deleting every `case` would have left it green. It now walks `RENDER_JOB_STATUSES` and
+// requires a sentence that is NOT the fallback, which prints the raw status followed by a colon.
+const statusSentences = RENDER_JOB_STATUSES.map(status => ({ status, text: describeJobForHuman({ ...RUNNING, status }) }))
+check('every status in the vocabulary gets a sentence of its own, not the fallback',
+  statusSentences.length === RENDER_JOB_STATUSES.length &&
+  statusSentences.every(entry => entry.text.length > 8 && !entry.text.startsWith(`${entry.status}：`)),
+  statusSentences.map(entry => `${entry.status}: ${entry.text}`))
 // ---- the sentences an operator reads, including the ones about TIME ---------
 //
 // `describeJobForHuman` had only ever been called for a job with NO estimate, so the branch that says how

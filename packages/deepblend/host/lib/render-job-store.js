@@ -46,6 +46,7 @@ import {
   BlenderError,
   BlenderErrorCode,
   RENDER_JOB_VERSION,
+  RENDER_JOB_STATUSES,
   RENDER_JOB_TERMINAL_STATUSES,
   canTransitionRenderJob,
   checkTransition,
@@ -74,7 +75,17 @@ export function formatRenderJobId(ordinal) {
 }
 
 /** The statuses that mean "this job still owes the project frames". */
-export const UNFINISHED_STATUSES = Object.freeze(['queued', 'running', 'stopping', 'recovering'])
+/**
+ * Statuses in which a job is still LIVE — derived, not restated.
+ *
+ * This was a fourth hand-written copy of the vocabulary (`['queued', 'running', 'stopping', 'recovering']`),
+ * which is one fact in two places: a status added to `RENDER_JOB_STATUSES` and not to this list would make
+ * `_activeRenderJob` answer "no render is running" for a job that is running, and the delivery slot would be
+ * handed to a second renderer. The complement of the terminal statuses IS this list, so it is computed.
+ */
+export const UNFINISHED_STATUSES = Object.freeze(
+  RENDER_JOB_STATUSES.filter(status => !RENDER_JOB_TERMINAL_STATUSES.includes(status)),
+)
 
 export class RenderJobStore {
   /**

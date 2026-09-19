@@ -35,10 +35,11 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+import { UNFINISHED_STATUSES } from '@deepblend/dsh-blender-host'
 import { describeJobLines } from '@deepblend/dsh-blender-tool'
 
 import {
@@ -205,6 +206,36 @@ check('the SPEC §10.2 status vocabulary is exactly what is declared',
   JSON.stringify(RENDER_JOB_STATUSES) ===
     JSON.stringify(['queued', 'running', 'stopping', 'recovering', 'completed', 'failed', 'cancelled']),
   RENDER_JOB_STATUSES)
+// THE FOURTH COPY, AND IT LIVES IN A BROWSER BUNDLE. `ui/lib/client.js` decides a job's tone with its own
+// hand-written list of the live statuses (`status === 'queued' || 'running' || 'stopping' || 'recovering'`) and
+// falls back to `muted` for anything it does not recognise — so a status added to the vocabulary would render
+// as a greyed-out job with no complaint from anywhere. It cannot be DERIVED: that file is a self-registering
+// CJS factory the shell loads as a script, with no top-level imports (its only `require` is React), so the
+// contracts are not reachable from it. A source-level check is the honest tie — the same conclusion the
+// unreachable `readPixel` branch reached in round 109 — and it is written as an equality, not a subset, so a
+// status the client INVENTED would fail too.
+{
+  const client = readFileSync(join(ROOT, 'packages', 'deepblend', 'ui', 'lib', 'client.js'), 'utf8')
+  const liveLine = client.split('\n').find(line => line.includes("return 'live'")) ?? ''
+  const liveInClient = [...liveLine.matchAll(/status === '([a-z]+)'/g)].map(match => match[1]).sort()
+  const liveInContracts = RENDER_JOB_STATUSES.filter(status => !RENDER_JOB_TERMINAL_STATUSES.includes(status)).sort()
+  check('the browser bundle\u2019s idea of a LIVE job is the vocabulary\u2019s complement of terminal, exactly',
+    liveInClient.length > 0 && JSON.stringify(liveInClient) === JSON.stringify(liveInContracts),
+    { inClient: liveInClient, inContracts: liveInContracts })
+}
+
+// AND THE HOST'S "STILL LIVE" LIST IS THE COMPLEMENT OF TERMINAL, not a fifth hand-written copy of it. The
+// consequence is not cosmetic: `_activeRenderJob` uses this list to decide whether a project already has a
+// delivery render, so a status missing from it hands the delivery slot to a second renderer writing into the
+// same frames directory. It is computed from the vocabulary now; this is the assertion that keeps it computed
+// (a mutation that puts the hand-written list back is invisible without it — measured).
+{
+  const live = RENDER_JOB_STATUSES.filter(status => !RENDER_JOB_TERMINAL_STATUSES.includes(status))
+  check('the host\u2019s UNFINISHED_STATUSES is exactly the vocabulary minus the terminal statuses',
+    JSON.stringify([...UNFINISHED_STATUSES]) === JSON.stringify(live),
+    { store: [...UNFINISHED_STATUSES], vocabulary: live })
+}
+
 check('the SPEC §10.2 type vocabulary is exactly what is declared',
   JSON.stringify(RENDER_JOB_TYPES) === JSON.stringify(['preview', 'final-render', 'export']), RENDER_JOB_TYPES)
 check('terminal statuses are exactly completed, failed and cancelled',
