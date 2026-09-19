@@ -463,6 +463,38 @@ mkdirSync(unpublished, { recursive: true })
 const recorded = store.recordRevisionArtifact(realProject.projectId, 'r0002', 'previews', {
   kind: 'preview', path: 'revisions/r0002/previews/a.png', at: new Date().toISOString(),
 })
+// RE-EMITTING THE SAME PATH REPLACES ITS ENTRY, and the promise lives in a comment on the writer with no
+// assertion under it until now. It is the rule that keeps an index honest when a thing is produced twice:
+// re-rendering a view after a fix, or re-running a review of the same round, writes the same path — and an
+// index that appended would then claim two artifacts where the directory holds one, which is the M1 bug this
+// index exists to prevent ("a manifest claiming one preview while the directory held three"). It is also why a
+// second review at a round is legitimate rather than a conflict: the round is the identity, and the newest
+// write is the review.
+{
+  const project = await transactions.createProject({ title: 'artifact identity', sceneSpec: productSpec, saveCheckpoint: false })
+  const artifact = { kind: 'view', path: `revisions/${project.revision.revision}/previews/views/top.png`, viewId: 'top' }
+  const first = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', artifact)
+  const second = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
+    ...artifact, role: 'top', at: new Date().toISOString(),
+  })
+  const onDisk = JSON.parse(readFileSync(
+    join(store.revisionDirectory(project.projectId, project.revision.revision), 'revision-manifest.json'), 'utf8',
+  )).previews
+  check('re-emitting the same artifact path REPLACES its entry instead of appending a second one',
+    first.length === 1 && second.length === 1 && onDisk.length === 1 &&
+    onDisk[0].role === 'top',
+    { first: first.length, second: second.length, onDisk: onDisk.length })
+  // AND A DIFFERENT PATH IS A DIFFERENT ARTIFACT, even of the same kind: the identity is the PATH, and a rule
+  // that de-duplicated on `kind` would keep one view out of two — which the mutation that does exactly that
+  // survived until this second view existed.
+  const other = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
+    kind: 'view', path: `revisions/${project.revision.revision}/previews/views/detail.png`, viewId: 'detail',
+  })
+  check('and two artifacts of the same kind at DIFFERENT paths are both kept',
+    other.length === 2 && other.map(entry => entry.viewId).join(',') === 'top,detail',
+    other.map(entry => entry.viewId))
+}
+
 check('an artifact recorded into a revision with no manifest is returned, and no manifest is invented',
   recorded.length === 1 && recorded[0].path === 'revisions/r0002/previews/a.png' &&
   !existsSync(join(unpublished, 'revision-manifest.json')),

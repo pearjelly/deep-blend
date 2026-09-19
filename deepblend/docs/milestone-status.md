@@ -8054,3 +8054,63 @@ total self-counted assertions: 1454
 
 产品代码改了（暂存目录改为按渲染 ✓、两处清理 ✓），所以这一轮跑新探针 ✓（`r104` 列 ✓）。
 契约层 61 文件 / 1453 → **1454** 项（`host-render-orchestration.test.mjs` 42 → 45 ✓）。
+
+## 116. 一个假设，被仓库自己的注释和 M2 套件一起否掉
+
+### 116.1 假设：同一个 round 的第二份评审会**覆盖**第一份，而索引留下两条
+
+从第 117 轮那把尺子（**同一个资源被两个调用者同时碰**）出发，我盯上了评审的命名：
+两样产物都按轮次命名（`contact-sheets/round-N.png`、`visual-reviews/round-N.json`），而 `iteration` **默认 0**——
+于是「不带 iteration 调用两次」看起来会**覆盖**第一份，而 `manifest.reviews` 里**两条都在**，
+即「索引里两条评审指向同一个文件」。
+
+### 116.2 我按这个假设改了产品，而 **M2 套件把它挡了回来**
+
+我加了一个错误码 `VISUAL_REVIEW_EXISTS`、在花 Blender 时间之前拒绝重复轮次，还配了消息、分类与用例。
+契约层全绿——然后 `run-all.sh` **红了**：
+
+```
+✗ Blender visual loop: multi-view, scoring, repair, handover (M2)
+BlenderError: Revision r0001 already has a visual review for round 0 …
+    at visual-loop.e2e.mjs:279
+```
+
+M2 套件**故意**对同一个 revision 的同一个 round 反复评审（那是在检查**确定性**：
+「同一个缺陷每一次都报出来、且从不凭空发明」）。也就是说：**重复评审是合法操作**，
+我的拒绝是错的。于是把拒绝、错误码、分类与那段用例**全部撤回**。
+
+### 116.3 真相在写者自己的注释里
+
+回到 `recordRevisionArtifact`，它的注释写着：
+
+> Re-emitting the same path replaces its entry rather than duplicating it:
+> re-rendering a view after a fix must not make the sheet look like two.
+
+**索引本来就按 path 去重**——所以「两条指向一个文件」从一开始就不成立：第二份评审**替换**那条索引，
+round 是身份，最后写入的那份就是这一轮的评审。**我从字段名推断行为，而没有读写入者**——
+这是本会话第九次量具/推断出错，而这一次是**验收套件**（M2）替我抓住的。
+
+### 116.4 这一轮真正留下的东西：把那条注释变成断言
+
+那条「按 path 替换」的承诺**只有注释、没有断言**（正是我一直在修的那一类）。补上两条：
+
+* **同一 path 再次写入 → 替换而不是追加**（变异「改成追加」红）；
+* **同 kind 不同 path 的两条都要留住**——这一条是必要的：只按 `kind` 去重的变异在第一条断言下**活着**
+  （我的输入里两条 kind 相同、path 也相同），补上第二个视角（`detail.png`）之后它才红。
+
+### 116.5 收口
+
+两条变异都红（把索引改回**追加**、把去重键从 `path` 换成 `kind`）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1456
+```
+
+**产品代码未改**（这一轮撤回的比留下的多），所以读数沿用上一轮：产品可执行行黑暗 **32 (0.3%)**。
+契约层 61 文件 / 1454 → **1456** 项（`store-error-paths.test.mjs` 38 → 40）。
+
