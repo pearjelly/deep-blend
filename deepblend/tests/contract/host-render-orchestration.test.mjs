@@ -383,6 +383,43 @@ const previewStub = ({ writeImage = true, envelope = {}, report = {} } = {}) => 
   return { envelope, report: { frame: request.frame ?? 1, ...report } }
 }
 
+// TWO PREVIEWS OF ONE REVISION AT ONCE. The artifact index is a read-modify-write
+// (`recordRevisionArtifact` reads `revision-manifest.json`, appends, and writes it back), and what keeps two
+// appends from losing one is that the function is SYNCHRONOUS: no `await` can sit between the read and the
+// write, so the two cannot interleave. That is the same "atomic by construction" property as the asset
+// manifest (round 108) and the attempt-log id (round 116) — and the manifest is, in this repository's own
+// words, "the copy that gets persisted, delivered and READ", which is why a lost entry is the M1 bug this
+// index exists to prevent. Making the append async (hashing the file, say) would lose one silently.
+{
+  // Its own stub rather than `previewStub`: this block sits above that helper's other uses, and depending on
+  // one defined nearby would make the case fail for a reason that has nothing to do with what it asserts.
+  const previousStub = runtime.renderPreview
+  runtime.renderPreview = async request => {
+    mkdirSync(join(request.outputPath, '..'), { recursive: true })
+    writeFileSync(request.outputPath, VIEW_PNG)
+    return { envelope: {}, report: { frame: request.frame ?? 1, width: 16, height: 16, engine: 'BLENDER_EEVEE_NEXT' } }
+  }
+  const [left, right] = await Promise.all([
+    studio.renderPreview({ projectId, revision: second, cameraId: 'camera-main', frame: 61 }).catch(cause => cause),
+    studio.renderPreview({ projectId, revision: second, cameraId: 'camera-top', frame: 62 }).catch(cause => cause),
+  ])
+  if (left instanceof Error || right instanceof Error) {
+    console.log('DEBUG preview race:', JSON.stringify({
+      left: left instanceof Error ? `${left.code}: ${left.message}` : left.artifacts?.[0]?.path,
+      right: right instanceof Error ? `${right.code}: ${right.message}` : right.artifacts?.[0]?.path,
+    }))
+  }
+  runtime.renderPreview = previousStub
+  const manifest = JSON.parse(readFileSync(
+    join(studio.store.revisionDirectory(projectId, second), 'revision-manifest.json'), 'utf8',
+  ))
+  const paths = (manifest.previews ?? []).map(entry => entry.path)
+  check('two previews of one revision at once BOTH land in the artifact index, because the append is synchronous',
+    !(left instanceof Error) && !(right instanceof Error) &&
+    paths.includes(left.artifacts[0].path) && paths.includes(right.artifacts[0].path),
+    { left: left?.artifacts?.[0]?.path ?? String(left), right: right?.artifacts?.[0]?.path ?? String(right), indexed: paths })
+}
+
 runtime.renderPreview = previewStub({
   envelope: { notices: [{ code: 'RENDER_NOTICE', message: 'the renderer moved the camera to fit the subject' }] },
   report: { width: 16, height: 16, engine: 'BLENDER_EEVEE_NEXT' },
@@ -418,15 +455,22 @@ check('a FAILED preview leaves no compile scratch behind, because the cleanup is
 // The other directory a preview stages into is the revision's own `.render-staging`, and it is created by the
 // PROVIDER — so with a stubbed runtime it never exists and a check for its absence passes over nothing. The
 // first version of this assertion did exactly that, and the mutation that deletes the failure `catch` survived
-// it. The staging directory is therefore created HERE, the way a real renderer leaves it, before the failure
-// that the `catch` is supposed to clean up after.
-const stagingOfFailed = join(studio.store.revisionDirectory(projectId, second), '.render-staging')
-mkdirSync(stagingOfFailed, { recursive: true })
-writeFileSync(join(stagingOfFailed, 'frame60-camera-main.png'), 'a half-written frame')
-runtime.renderPreview = async () => { throw new Error('the preview process was killed, mid-write') }
+// it. So the half-written frame is written by the STUB, at the path the host handed it — which is what a real
+// renderer does before it dies. (It used to be created by hand at `<revision>/.render-staging`; since this
+// round that directory holds one subdirectory PER RENDER, so the only honest way to place a leftover is to
+// write it where the render was told to write.)
+const stagingParentOfFailed = join(studio.store.revisionDirectory(projectId, second), '.render-staging')
+const halfWritten = []
+runtime.renderPreview = async (request) => {
+  mkdirSync(join(request.outputPath, '..'), { recursive: true })
+  writeFileSync(request.outputPath, 'a half-written frame')
+  halfWritten.push(request.outputPath)
+  throw new Error('the preview process was killed, mid-write')
+}
 await studio.renderPreview({ projectId, revision: second, cameraId: 'camera-main', frame: 60 }).catch(() => null)
 check('and a failure cleans up the staging directory a real renderer had already written into',
-  !existsSync(stagingOfFailed), { staging: existsSync(stagingOfFailed) })
+  halfWritten.length === 1 && !existsSync(halfWritten[0]) && !existsSync(stagingParentOfFailed),
+  { wrote: halfWritten, staging: existsSync(stagingParentOfFailed) })
 // Through the id the FAILURE carries, because that is the only handle a caller has: this record is an
 // attempt log under `jobs/`, and `listJobs` lists render jobs under `renders/`. Writing this check is
 // what found that the record was unreachable — the error named the failure and not the record.
@@ -459,7 +503,8 @@ check('and it still throws the coded error, so the caller branches on a code and
   failed instanceof BlenderError && failed.code === code('SCRIPT_ERROR'),
   failed?.code)
 check('the failed render leaves no half-written artifact behind',
-  !existsSync(join(studio.store.revisionDirectory(projectId, second), '.render-staging')))
+  !existsSync(join(studio.store.revisionDirectory(projectId, second), '.render-staging')),
+  readdirSync(studio.store.revisionDirectory(projectId, second)))
 
 runtime.renderPreview = previewStub()
 

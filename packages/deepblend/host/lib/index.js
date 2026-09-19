@@ -87,7 +87,7 @@ import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGrou
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { randomUUID } from 'node:crypto'
-import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readSync, renameSync, rmdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 
 import {
@@ -785,7 +785,15 @@ export default class BlenderStudio extends Service {
         }
       }
 
-      const staging = join(this.store.revisionDirectory(projectId, revision), '.render-staging')
+      // PER RENDER, NOT PER REVISION. This was `<revision>/.render-staging`, shared by every preview of that
+      // revision — and the cleanup removes the whole directory, so two previews of ONE revision at once made
+      // whichever finished first delete the other's image, and the other reported `RENDER_NO_OUTPUT` for a
+      // render that had worked. MEASURED by the concurrency case in `host-render-orchestration.test.mjs`
+      // (two cameras, one revision, `Promise.all`): one of the two failed with "the renderer reported success
+      // but wrote no image", and the artifact index lost it. The job id is minted and written in one
+      // synchronous block above, so it is unique per call and can name the staging directory.
+      const stagingParent = join(this.store.revisionDirectory(projectId, revision), '.render-staging')
+      const staging = join(stagingParent, jobId)
       const engineInfo = await this.runtime.resolveEngineKey(profile.engine, { signal: request.signal })
       if (engineInfo.warning !== null) warnings.push(engineInfo.warning)
 
@@ -830,6 +838,14 @@ export default class BlenderStudio extends Service {
       )
       renameSync(outputPath, finalPath)
       removeTree(staging)
+      // The parent is shared, so it goes only when this render was the last one using it: `rmdirSync` refuses a
+      // non-empty directory, which is exactly the check wanted — no listing, no race, and a failure here means
+      // another preview is still working.
+      try {
+        rmdirSync(stagingParent)
+      } catch {
+        /* another preview is still staging into it */
+      }
 
       const artifact = {
         kind: 'preview',
@@ -937,7 +953,12 @@ export default class BlenderStudio extends Service {
         job: toCanonicalJobRecord(job),
       }
     } catch (cause) {
-      removeTree(join(this.store.revisionDirectory(projectId, revision), '.render-staging'))
+      removeTree(join(this.store.revisionDirectory(projectId, revision), '.render-staging', jobId))
+      try {
+        rmdirSync(join(this.store.revisionDirectory(projectId, revision), '.render-staging'))
+      } catch {
+        /* another preview is still staging into it */
+      }
       const failure = this._failedRenderError(cause, jobId)
       this.store.writeJob(projectId, {
         schemaVersion: JOB_RECORD_VERSION,

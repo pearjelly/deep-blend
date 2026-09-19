@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-19 (round 102 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-19 (round 104 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 102 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 104 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,11 +33,11 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20442, never executed: 1271 (6.2%)   [every line]
-product CODE lines:      12216, never executed: 32 (0.3%)   [blank + comment-only excluded]
+product lines seen:      20463, never executed: 1271 (6.2%)   [every line]
+product CODE lines:      12225, never executed: 32 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96   —   r97   —   r98   —   r99   —   r100   —   r101   —   r102
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96   —   r97   —   r98   —   r99   —   r100   —   r101   —   r102   —   r104
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)   32 (0.3%)   53 (0.4%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9   8   9
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13   13   13
@@ -254,6 +254,23 @@ mutation that removed an elision marker from a BRIEF's example stayed green — 
 one whose scope cannot be seen from its name. And two of the mutations turned out not to be mutations at all:
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
+
+── ROUND 104: two previews of one revision used to delete each other's image ──
+The dark total is unchanged at 32 (0.3%): the fix added product code (a per-render staging directory plus two
+cleanups) and the nine new lines are covered by the case that found the defect.
+
+WHAT THE CASE FOUND, and it was a real one: `renderPreview` staged into `<revision>/.render-staging/<camera>.png`
+— one directory per REVISION — and the cleanup removed the whole directory. Two previews of one revision at once
+therefore made whichever finished first delete the other's image, and the other reported `RENDER_NO_OUTPUT` for
+a render that had worked (reading: `{"left":"…frame61-camera-main.png","right":"RENDER_NO_OUTPUT: The Blender
+renderer reported success but wrote no image."}`), with the artifact index missing the entry. The concurrency
+suite's preview case used two DIFFERENT revisions, which is why it never saw this.
+
+The staging is now per RENDER (`<revision>/.render-staging/<jobId>/` — the job id is minted and written as a
+`running` record inside one synchronous block, so it is unique per call), the cleanup removes only its own
+layer, and `rmdirSync` on the parent is the emptiness check (it refuses a non-empty directory, so no listing and
+no race). One assertion from round 109 was moved to the new reality rather than relaxed: the half-written frame
+is now written by the STUB at the path the host handed it, which is what a real renderer does before it dies.
 
 ── ROUND 103: still no probe — a property that was already true, now asserted ──
 No product code changed, so the previous column still describes this tree. What the round did was measure a

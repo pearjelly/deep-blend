@@ -7998,3 +7998,59 @@ total self-counted assertions: 1453
 **产品代码未改** ✓（分配器本来就是对的 ✓——这一轮补的是「它为什么对」的断言 ✓），
 所以读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。契约层 61 文件 / 1452 → **1453** 项
 （`store-error-paths.test.mjs` 37 → 38 ✓）。
+
+## 115. 同一个 revision 的两个预览会**互相删掉对方的图**
+
+### 115.1 起因：一条「靠构造保证」的断言，顺带撞出一个真缺陷
+
+第 116 轮那把尺子（**读—改—写靠什么保证原子性** ✓）指向了 revision 的**制品索引** ✓：
+`recordRevisionArtifact` 读 `revision-manifest.json` ✓、追加 ✓、写回 ✓——而它之所以安全，
+是因为**整个函数是同步的** ✓（读与写之间不可能插入 `await` ✓）。这正是那份文档自己说的
+「manifest 是会被持久化、被交付、被**读**的那一份」✓，所以丢一条就是 M1 那个 bug 的翻版 ✓。
+
+于是写了一条用例：**同一个 revision 的两个预览同时发起**（两个相机 ✓、`Promise.all` ✓），
+断言**两条都进索引** ✓。结果**当场红** ✗：
+
+```
+DEBUG preview race: {"left":"revisions/r0002/previews/frame61-camera-main.png",
+                     "right":"RENDER_NO_OUTPUT: The Blender renderer reported success but wrote no image."}
+```
+
+### 115.2 缺陷：暂存目录是**按 revision** 的，而清理删掉整个目录
+
+`renderPreview` 把图先渲染到 `<revision>/.render-staging/<camera>.png` ✓，成功时
+`removeTree(staging)` ✓、失败时 `removeTree(<revision>/.render-staging)` ✓——
+**目录是共享的** ✗，所以两个预览同时跑时，**先完成的那个把另一个的图删掉了** ✓✓，
+另一个于是报 `RENDER_NO_OUTPUT`（「渲染器说成功却没写图」）✗——**一次成功的渲染被报成失败** ✓，
+而且制品索引里少了它 ✓（面板与磁盘不一致 ✓）。
+
+（`run-all.sh` 的并发套件里有「两个预览**在不同 revision 上**并发」✓——**同一个 revision** 从来没测过 ✗✓。）
+
+### 115.3 修法：暂存**按一次渲染**，而不是按 revision
+
+job id 在同一个同步块里铸造并写成 `running` 记录 ✓（所以它**每次调用唯一** ✓——这一点第 116 轮的
+性质保证了 ✓，我另跑了一次实测确认 ✓），于是用它命名暂存目录 ✓：`<revision>/.render-staging/<jobId>/` ✓。
+清理改成只删**自己那一层** ✓，然后用 `rmdirSync` 尝试删父目录 ✓——**非空时它会拒绝** ✓，
+这正好是想要的那个判断 ✓（不需要列目录、也没有竞态 ✓；删不掉说明还有别的预览在用 ✓）。
+
+### 115.4 连带更新两条旧断言（不是放宽，是改到新的现实）
+
+第 109 轮那条「失败会清掉渲染器已经写进去的暂存目录」原本是**手工**在 `<revision>/.render-staging`
+下造一个半写的文件 ✓——现在那一层是**每次渲染一个子目录** ✓，手工造的位置已经不对了 ✗。
+改成**让 stub 在它被告知的那个路径上写一个半写文件然后抛错** ✓✓——这才是真实渲染器的行为 ✓，
+而且它让断言更强 ✓：既证明「写进去过」✓（`halfWritten.length === 1` ✓），又证明它被清掉 ✓。
+
+### 115.5 收口
+
+三条变异全红 ✓：**把暂存改回按 revision**（就是那个缺陷 ✓，两条断言同时红 ✓）、
+失败路径不再清自己的暂存 ✓、成功路径不再清 ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1454
+```
+
+产品代码改了（暂存目录改为按渲染 ✓、两处清理 ✓），所以这一轮跑新探针 ✓（`r104` 列 ✓）。
+契约层 61 文件 / 1453 → **1454** 项（`host-render-orchestration.test.mjs` 42 → 45 ✓）。
