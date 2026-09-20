@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 140: no probe — every count the README states, not just the anchored one ──
+── ROUND 141: no probe — the model-facing document stated the operation vocabulary twice wrong ──
+No product code changed. Round 140 applied the "check every count, not the anchored one" ruler to the README; this
+round applied it to the other live documents, by sweeping them for counted statements and measuring each.
+
+The worst find is in the document a MODEL is pointed at. `usage.md` says "24 个操作名就是全部词汇" — correct, the
+contract declares 24 — while `tool-contracts.md` says "共 19 个操作" and "只接受 20 个固定操作名". Two sentences in
+one file disagreed with each other's neighbour and with the code, and nothing read either of them. The ordinal
+beside them was right and is now asserted too: `world.set` sits at index 20, so "第 21 个操作" is accurate — an
+ordinal is a count with a position attached.
+
+The rule now covers the three phrasings that mean the total (`共 N 个操作`, `N 个固定操作名`,
+`N 个操作名就是全部词汇`) plus the ordinal.
+
+Writing it produced the second over-wide pattern in two rounds: a bare `N 个操作` also matched the ordinal and
+"至少 1 个操作" — how many operations one patch carries — and failed on a correct document. Matching the words that
+mean the total fixed it, and four mutations were then run in both directions: the two size statements and the
+ordinal go red, while the unrelated "1 个操作" stays green.
+
+── ROUND 140: no probe — every count the README states, not just the anchored one ──── ROUND 140: no probe — every count the README states, not just the anchored one ──
 No product code changed. Rounds 138 and 139 dealt with a second copy of the TOTALS; this round asked about the
 other counts. The README states the suite count in four places (the expectations paragraph, the layout block, a
 command-block comment, the quick start) and `documented-counts` anchored one of them.

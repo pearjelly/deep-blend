@@ -399,7 +399,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 ## 5. ScenePatch v1 操作词汇表
 
-共 19 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
+共 24 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
 
 ### 5.1 实体
 
@@ -519,7 +519,7 @@ M3 新增的：
 | 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
-| 不接受任意 Python | 只接受 20 个固定操作名，无脚本入口 |
+| 不接受任意 Python | 只接受 24 个固定操作名，无脚本入口 |
 | 结果必须**可无损表示** | 工具边界把 `-0` 归一为 `0`，丢 `undefined`、换非有限数并报告 |
 | 不接受任意 Shell | 全部经 `ctx.subprocess` 的 argv 数组 |
 | 不写入项目工作区之外 | `paths.js` 的 `resolveInside()` 在 realpath 上强制 |

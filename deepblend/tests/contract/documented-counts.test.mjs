@@ -47,7 +47,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const RUN_ALL = join(ROOT, 'deepblend', 'tests', 'run-all.sh')
@@ -393,4 +393,47 @@ test('every suite and tool count the README states is the declared one', () => {
   const wrongTools = toolStatements.filter(value => value !== UI_TOOL_CARD_KEYS.length)
   assert.deepEqual(wrongTools, [],
     `the README states ${wrongTools.join(', ')} model-visible tools; the contract declares ${UI_TOOL_CARD_KEYS.length}`)
+})
+
+// ---------------------------------------------------------------------------
+// The operation vocabulary's size, wherever a live document states it
+// ---------------------------------------------------------------------------
+//
+// MEASURED by sweeping the live documents for counted statements: `usage.md` said "24 个操作名就是全部词汇" —
+// correct — while `tool-contracts.md`, the document a model is pointed at, said "共 19 个操作" and "只接受 20 个
+// 固定操作名". The contract declares 24. Two statements in the same file disagreed with each other's neighbour and
+// with the code, and nothing read either of them.
+//
+// The ordinal beside them was checked at the same time and is right: `world.set` is the 21st name, which is what
+// "第 21 个操作" says. That one is asserted here too, because an ordinal is a count with an index attached.
+test('every statement of the operation vocabulary’s size is the declared size', () => {
+  const live = ['deepblend/docs/usage.md', 'deepblend/docs/tool-contracts.md', 'deepblend/docs/recovery.md']
+  const size = SCENE_OPERATION_NAMES.length
+  const wrong = []
+  let inspected = 0
+  for (const path of live) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    // THREE PHRASINGS MEAN THE SIZE, and two look like it without being it: "第 21 个操作" is an ORDINAL (asserted
+    // below, against the name at that position) and "1 个操作" says how many operations one patch carries. A bare
+    // `N 个操作` pattern matched all three, and this is the second round in a row where an over-wide pattern failed
+    // on a correct document — the fix is the same both times: match the words that mean the total.
+    const sizePhrasings = [
+      /共\s*(\d+)\s*个操作/g,
+      /(\d+)\s*个固定操作名/g,
+      /(\d+)\s*个操作名就是全部词汇/g,
+    ]
+    for (const phrasing of sizePhrasings) {
+      for (const match of text.matchAll(phrasing)) {
+        inspected += 1
+        if (Number(match[1]) !== size) wrong.push(`${path}: ${match[0]}`)
+      }
+    }
+  }
+  assert.ok(inspected >= 3, `expected the documents to state the vocabulary size, found ${inspected}`)
+  assert.deepEqual(wrong, [], `the contract declares ${size} operation names`)
+
+  const ordinal = /第 (\d+) 个操作/.exec(readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8'))
+  assert.ok(ordinal !== null, 'the ordinal paragraph is gone — re-anchor this check rather than deleting it')
+  assert.equal(SCENE_OPERATION_NAMES[Number(ordinal[1]) - 1], 'world.set',
+    `the document calls world.set the ${ordinal[1]}st operation; the contract puts it elsewhere`)
 })
