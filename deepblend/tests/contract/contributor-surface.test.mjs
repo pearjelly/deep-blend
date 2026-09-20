@@ -425,3 +425,29 @@ test('the installable package declares the fields an ecosystem install reads, an
   })
   assert.deepEqual(unresolvable, [], 'the patch imports packages that do not exist in this repository')
 })
+
+// ---------------------------------------------------------------------------
+// The bundle is a PLUGIN, not a meta-package — and that is a checkable property
+// ---------------------------------------------------------------------------
+//
+// The listing checklist rejects meta-packages in as many words: "a bundle whose only content is a dependency list
+// is not listed — list the plugins, not the bundle", while "a bundle that does something itself (composes
+// configuration, adds a settings surface, coordinates parts at runtime) IS a plugin". A reviewer asks that
+// question (§A7.7), so the answer should be a property of the file rather than an opinion about it.
+//
+// MEASURED: this bundle's patch inserts three rows and every one of them carries a `config:` block — the Blender
+// seam's timeout and capture caps, the host's facade settings, the UI's host half. That is what makes it a plugin
+// rather than a wrapper, and it is also what its own `description` claims ("with default configuration"), which
+// the checklist says is read as a claim about the code.
+test('the bundle composes configuration rather than only listing dependencies', () => {
+  const bundle = JSON.parse(read(join(ROOT, 'packages', 'deepblend', 'bundle', 'package.json')))
+  const patch = read(join(ROOT, 'packages', 'deepblend', 'bundle', bundle.dsh.bundle.patch))
+  // The rows are `- id: …` blocks; each one must carry configuration of its own.
+  const rows = patch.split(/\n\s*- id: /).slice(1)
+  assert.ok(rows.length >= 2, `the patch inserts ${rows.length} row(s), which is a wrapper rather than a plugin`)
+  const withoutConfig = rows.filter(row => !/\n\s+config:/.test(row)).map(row => row.split('\n')[0].trim())
+  assert.deepEqual(withoutConfig, [],
+    'these inserted rows carry no configuration, so the package would be a dependency list rather than a plugin')
+  assert.match(bundle.description ?? '', /configur/i,
+    'the package description does not mention the configuration it composes, and descriptions are checked against the code')
+})

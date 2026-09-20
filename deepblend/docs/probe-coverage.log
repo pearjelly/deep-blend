@@ -255,7 +255,31 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 120: no probe — the installable package's manifest, field by field ──
+── ROUND 121: no probe — the question a reviewer asks, turned into a property of the file ──
+No product code changed. The listing checklist rejects meta-packages in as many words: a bundle whose only content
+is a dependency list is not listed, while one that "does something itself (composes configuration, adds a settings
+surface, coordinates parts at runtime)" IS a plugin and is judged normally. The bundle's own header reads like the
+rejected shape — "patch-only: it contributes no runtime plugin, no service and no tool of its own" — and §A7.7 is
+exactly the question a reviewer asks.
+
+Measured by reading the patch: it inserts three rows and EVERY one carries its own `config:` block — the Blender
+seam's timeout and capture caps, the host facade's settings, the UI's host half. That is composing configuration,
+which is the checklist's own example of doing something, and it is also what the package's `description` claims
+("with default configuration") — and the checklist says descriptions are read as claims and checked against the
+code.
+
+So the package qualifies, but that was an opinion about the file rather than a property of it. The check in
+`contributor-surface.test.mjs` now asserts that every inserted row carries its own `config:` block (naming the
+rows that do not) and that the description mentions the configuration it composes. Two mutations go red: a row
+losing its config block, and the description dropping the claim.
+
+That closes the checklist item by item: A4.1 (a bundle is declared), A4.2 (age), A4.3 (real code), A4.6/7
+(accurate description — this repository derives every number it states), A4.8 (this round), A6 (screenshots,
+round 119), §C's field table (round 120) and A8 (the peer rule, round 118). The four remaining blockers still
+need decisions this session cannot make: the repository is private, the topic is missing, the root has no
+`dsh.bundle` (so the entry uses the monorepo form), and the four siblings are unpublished.
+
+── ROUND 120: no probe — the installable package's manifest, field by field ──── ROUND 120: no probe — the installable package's manifest, field by field ──
 No product code changed. The listing checklist has a field-level table for the INSTALLABLE package, and walking it
 against this repository's bundle found two gaps.
 
