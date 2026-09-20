@@ -340,3 +340,47 @@ test('the issue-form reader names every fault, including the ones that void a wh
 // "which revision it wrote into", and `tool-plane-output.test.mjs` requires the approval prompt to name the
 // revision and the granted retry to render that one. A source-level check that keeps reporting false positives
 // is worse than the measurement it was meant to preserve.
+
+// ---------------------------------------------------------------------------
+// The peer-dependency rule that silently breaks every user who installs this
+// ---------------------------------------------------------------------------
+//
+// The DSH plugin ecosystem's contributing guide is explicit: official `@deepseek-ai/*` packages are
+// `peerDependencies`, never `dependencies` — a plugin that ships its own copy of cordis can load a harness that
+// differs from the one running it. It is also explicit that the RANGE must carry an explicit prerelease branch,
+// because node-semver only lets a prerelease satisfy a range that has a comparator on the same tuple carrying a
+// prerelease tag of its own: a broad-looking `>=0.0.1-rc.1 <0.2.0` silently excludes every `0.1.0-rc.*`.
+//
+// MEASURED before this was written: four packages declared these as dependencies, which is a named rejection
+// cause in the listing checklist. The workspace's own links are unaffected either way — `link-workspace.mjs`
+// derives them from the repository's SOURCE imports, not from these manifests — which is why the fix is safe and
+// why nothing else in the suite noticed it.
+test('the peer-dependency rule the plugin ecosystem rejects submissions for', () => {
+  const packages = ['bundle', 'contracts', 'host', 'provider-local', 'tool', 'ui']
+  const offenders = []
+  const peersWithoutPrereleaseBranch = []
+  for (const name of packages) {
+    const manifest = JSON.parse(read(join(ROOT, 'packages', 'deepblend', name, 'package.json')))
+    for (const [dependency, range] of Object.entries(manifest.dependencies ?? {})) {
+      if (dependency.startsWith('@deepseek-ai/')) offenders.push(`${name}: ${dependency}@${range} in dependencies`)
+    }
+    for (const [dependency, range] of Object.entries(manifest.peerDependencies ?? {})) {
+      if (!dependency.startsWith('@deepseek-ai/')) continue
+      // THE RULE ONLY BITES WHEN THE VERSION THIS REPO RUNS IS A PRERELEASE: node-semver lets a prerelease satisfy
+      // a range only if some comparator shares its tuple AND carries a prerelease tag, so a plain `>=3.18.0 <4`
+      // is perfectly correct for a released 3.18.2 while the same shape silently excludes `0.1.5-rc.2`. The
+      // installed version is therefore read from the deployment rather than guessed from the range.
+      const installed = join(ROOT, 'node_modules', ...dependency.split('/'), 'package.json')
+      const version = existsSync(installed) ? JSON.parse(read(installed)).version : null
+      if (version === null || !version.includes('-')) continue
+      if (!/\d+\.\d+\.\d+-[a-z]/.test(range)) {
+        peersWithoutPrereleaseBranch.push(`${name}: ${dependency}@${range} (installed ${version})`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [],
+    'these declare an official @deepseek-ai package as a dependency, so a user could load a harness other than the one running them')
+  assert.deepEqual(peersWithoutPrereleaseBranch, [],
+    'these peer ranges carry no prerelease branch, so node-semver excludes every -rc. version silently')
+})
+

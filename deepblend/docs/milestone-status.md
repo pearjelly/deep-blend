@@ -9447,3 +9447,75 @@ DeepBlend tests: 62/62 file(s) passed
 ```
 
 **产品代码未改** ✓（改的是我自己的用例与那条偏差记录 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+
+## 146. 插件生态的**硬性清单**：`@deepseek-ai/*` 必须是 peerDependencies
+
+### 146.1 起因：仓库里出现了一份**插件上架研究**
+
+工作区里新出现了一份 `DSH-PLUGIN-LISTING-RESEARCH.md` ✓（850 行 ✓，别人写的 ✓，未跟踪 ✓）——
+它把 DSH 插件生态的**上架要求**逐条查证了一遍 ✓（官方 `publish.md` ✓、`awesome-dsh-plugin` 的
+`contributing.md` 与 **CI 闸门** `check-submission.mjs` ✓、以及八个真实插件的清单 ✓）。
+它列出**五个阻断项** ✓，其中第 5 条**完全在我的道上** ✓：
+
+> Official `@deepseek-ai/*` packages must be `peerDependencies`, not `dependencies`.
+> 这是清单里**点名的拒绝原因** ✓。
+
+而实测：`host` ✓、`provider-local` ✓、`ui` ✓ 把 `@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery`
+声明成了 `dependencies` ✗，`tool` 把 `@deepseek-ai/dsh-tools` 声明成了 `dependencies` ✗✓。
+
+**为什么这是硬伤** ✓：一个插件自带一份 cordis ✓，就可能加载**与正在运行它的那个不同的** harness ✓——
+契约测试会对着产品根本不加载的那份 cordis 变绿 ✓。
+
+### 146.2 修法：搬到 peerDependencies，并带上**预发布分支**
+
+`contributing.md` 还有一条容易踩的细节 ✓：**范围必须带显式的预发布分支** ✓——
+node-semver 只有在「某个比较符与预发布版本**同一 tuple** 且**自己也带预发布标记**」时才让预发布版本满足范围 ✓，
+所以看起来更宽的 `>=0.0.1-rc.1 <0.2.0` 会**静默排除**每一个 `0.1.0-rc.*` ✓。
+
+于是 ✓：`cordis` → `>=4.0.0 <5` ✓、`schemastery` → `>=3.18.0 <4` ✓（它们装的是正式版 ✓，
+普通范围就是对的 ✓），而 `dsh-tools` 装的是 **`0.1.5-rc.2`** ✓ → 用文档给出的显式分支形式 ✓：
+`>=0.0.1-rc.1 <0.1.0 || >=0.1.0-rc.1 <0.2.0-0` ✓✓。
+
+**为什么这样改是安全的** ✓：工作区的 12 条链接**不是**从这些清单读的 ✓——
+`link-workspace.mjs` 的注释写着它们**从源码里的 import 推导** ✓（正是为了避免仓库里出现第二份 harness ✓）。
+实测：`setup:check` 仍然 `resolves all 12 package(s)` ✓、契约层 62/62 ✓。
+
+### 146.3 新增检查（两条，各自带变异）
+
+`contributor-surface.test.mjs` 现在断言 ✓：
+
+1. **没有任何 `@deepseek-ai/*` 出现在 `dependencies` 里** ✓（六个包全查 ✓）；
+2. **凡是「这个仓库装的版本本身是预发布」的 peer，其范围必须带预发布分支** ✓——
+   而且**版本是从部署里读的** ✓（`node_modules/@deepseek-ai/<pkg>/package.json` ✓），
+   不是从范围猜的 ✓✓：这正是我第一版检查**过宽**的原因 ✗（它把正式版的 `cordis` 也报成违规 ✓），
+   改成按实测版本判断之后才对 ✓。
+
+两条变异全红 ✓：把一个官方包放回 `dependencies` ✓、把一个预发布 peer 的分支去掉 ✓。
+
+### 146.4 还有四条**不是我的判断能定的**，如实列出
+
+那份研究的另外四个阻断项 ✓，每一条都需要**你**来决定 ✓：
+
+1. **仓库是私有的** ✗——`gh api` 显示 `"private": true` ✓，而 pnpm 用**匿名** codeload tarball 解析
+   `github:` ✓ → 私有仓库 404 ✓ → 安装直接失败 ✓。**必须把仓库设为公开** ✓，否则清单里其余一切都不成立 ✓；
+2. **缺 `dsh-plugin` 这个 GitHub topic** ✗（`topics: []` ✓）——一句话就能加 ✓，但那是**公开动作** ✓；
+3. **仓库根目录没有 `dsh.bundle`** ✗（根 `package.json` 是 `deepblend-studio` ✓ 且 `private: true` ✓）——
+   `dsh plugin add github:pearjelly/deep-blend` 会装上根包 ✓、找不到 bundle ✓、**什么都不挂载** ✓
+   （dsh 会打印一行警告 ✓）。允许 ✓（CI 会走整棵树 ✓），但条目必须用**monorepo 形式** ✓（指向子目录 ✓）；
+4. **四个兄弟包没有发布** ✗（`@deepblend/dsh-blender-*` 在 npm 上不存在 ✓，而 bundle 精确依赖它们 ✓）——
+   这是**真正的打包工作** ✓，三条路（全部发 npm ✓ / 合并成一个自包含包 ✓ / 把兄弟包 vendor 进 bundle ✓）
+   各有取舍 ✓，属于**产品方向决策** ✓。
+
+### 146.5 收口
+
+```
+$ npm run setup:check
+result: the workspace resolves all 12 package(s) from the deployment
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1489
+```
+
+**产品代码未改** ✓（改的是四个包的清单 ✓ + 两条检查 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+`node:test` 用例 302 → **303** ✓（README 已按实测更新 ✓）。

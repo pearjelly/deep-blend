@@ -255,7 +255,40 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 117: no probe — a correction: the texture WAS wired, my case asked for no effect ──
+── ROUND 118: no probe — the plugin ecosystem's hard checklist, and one item that was ours ──
+No product code changed. A research document appeared in the working tree (`DSH-PLUGIN-LISTING-RESEARCH.md`,
+850 lines, untracked, not mine) that checked the DSH plugin ecosystem's listing requirements against the official
+`publish.md`, `awesome-dsh-plugin`'s `contributing.md` and its CI gate `check-submission.mjs`, and eight real
+plugins' manifests. It lists five blockers, and item 5 is squarely in this lane: official `@deepseek-ai/*`
+packages must be `peerDependencies`, never `dependencies` — a named rejection cause.
+
+Measured: host, provider-local and ui declared `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` as
+dependencies, and tool declared `@deepseek-ai/dsh-tools` the same way. A plugin that ships its own cordis can load
+a harness other than the one running it, and a contract suite would then be green against a cordis the product
+never loads.
+
+They are peers now, with the guide's second rule applied: the range must carry an explicit prerelease branch,
+because node-semver only lets a prerelease satisfy a range whose comparator shares its tuple AND carries a
+prerelease tag — so a broad-looking `>=0.0.1-rc.1 <0.2.0` silently excludes every `0.1.0-rc.*`. cordis and
+schemastery are released versions, so plain ranges are correct for them; `dsh-tools` is installed as `0.1.5-rc.2`,
+so its peer range is the documented explicit-branch form.
+
+The change is safe because the workspace's twelve links are NOT read from these manifests: `link-workspace.mjs`
+derives them from the repository's source imports, precisely so no second harness can appear inside the repo.
+Measured after the change: `setup:check` still resolves all twelve, and the contract layer is 62/62.
+
+Two assertions went in, both with a mutation that goes red: no `@deepseek-ai` package may be a dependency, and
+every peer whose INSTALLED version is a prerelease must carry a prerelease branch — the version read from the
+deployment rather than guessed from the range, which is what made the first version of the check too broad (it
+flagged released cordis as a violation).
+
+The other four blockers need decisions this session cannot make: the GitHub repository is PRIVATE (pnpm resolves
+`github:` specs through anonymous codeload tarballs, so a private repo 404s and the install dies), the
+`dsh-plugin` topic is missing, the repository root has no `dsh.bundle` (so `dsh plugin add github:owner/repo`
+mounts nothing and says so), and the four `@deepblend/dsh-blender-*` siblings are unpublished while the bundle
+pins them exactly — the real packaging work, with three options and no obvious winner.
+
+── ROUND 117: no probe — a correction: the texture WAS wired, my case asked for no effect ──── ROUND 117: no probe — a correction: the texture WAS wired, my case asked for no effect ──
 No product code changed. Round 115 measured the node graph the compiler builds for a textured material and found
 the pattern's output connected to nothing, which was written up as "it reads it, builds it, and does not connect
 it" and folded into deviation §7 #14. That conclusion was WRONG.

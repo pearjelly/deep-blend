@@ -12,12 +12,14 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@deepblend/dsh-blender-contracts": "0.1.0",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.2"
+    "@deepblend/dsh-blender-contracts": "0.1.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pearjelly/deep-blend.git"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc.1 <0.1.0 || >=0.1.0-rc.1 <0.2.0-0"
   }
 }

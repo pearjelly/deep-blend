@@ -20,13 +20,15 @@
     }
   },
   "dependencies": {
-    "@deepblend/dsh-blender-contracts": "0.1.0",
-    "@deepseek-ai/cordis": "4.0.2",
-    "@deepseek-ai/schemastery": "3.18.2"
+    "@deepblend/dsh-blender-contracts": "0.1.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pearjelly/deep-blend.git"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0 <5",
+    "@deepseek-ai/schemastery": ">=3.18.0 <4"
   }
 }
