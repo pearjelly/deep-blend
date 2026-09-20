@@ -36,7 +36,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { findMilestoneStatusClaim } from '../lib/milestone-claims.mjs'
@@ -450,4 +450,55 @@ test('the bundle composes configuration rather than only listing dependencies', 
     'these inserted rows carry no configuration, so the package would be a dependency list rather than a plugin')
   assert.match(bundle.description ?? '', /configur/i,
     'the package description does not mention the configuration it composes, and descriptions are checked against the code')
+})
+
+// ---------------------------------------------------------------------------
+// Every @deepseek-ai package the code IMPORTS must be declared
+// ---------------------------------------------------------------------------
+//
+// `dsh-market` does its host-contract preflight by analysing `peerDependencies` — it decides whether a plugin is
+// compatible with the harness a user has installed by reading the versions the plugin declares, not by running it.
+// So a package this code imports and the manifest does not declare is invisible to that verdict: the market can
+// call the plugin compatible while it needs a piece of the harness the user does not have.
+//
+// MEASURED: every one of them is declared. Two per package is the expected number — `cordis` and `schemastery` —
+// because the rest of the harness arrives by INJECTION (`ctx.subprocess`, `ctx.jobs`, `ctx.attachments`), which is
+// a declared dependency on a service rather than an import of a package. That is why this check reads imports and
+// not the injection list: injection is already asserted by the composition suites, and the market cannot see it.
+test('every @deepseek-ai package the code imports is declared in its manifest', () => {
+  const packages = ['bundle', 'contracts', 'host', 'provider-local', 'tool', 'ui']
+  const undeclared = []
+  let inspected = 0
+  for (const name of packages) {
+    const directory = join(ROOT, 'packages', 'deepblend', name)
+    const imported = new Set()
+    const walk = current => {
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const path = join(current, entry.name)
+        if (entry.isDirectory()) { walk(path); continue }
+        if (!entry.name.endsWith('.js')) continue
+        const text = readFileSync(path, 'utf8')
+        // Three shapes, and the first version of this knew only the first two: a bare `import 'x'` has no
+        // `from`, so the mutation that added one to the host — a side-effect import, the most surprising kind —
+        // survived. The specifier may also be double-quoted.
+        for (const match of text.matchAll(/from\s+['"](@deepseek-ai\/[^'"]+)['"]/g)) imported.add(match[1])
+        for (const match of text.matchAll(/import\s+['"](@deepseek-ai\/[^'"]+)['"]/g)) imported.add(match[1])
+        for (const match of text.matchAll(/require\(\s*['"](@deepseek-ai\/[^'"]+)['"]\s*\)/g)) imported.add(match[1])
+      }
+    }
+    walk(directory)
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
+    const declared = new Set([
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.peerDependencies ?? {}),
+    ])
+    for (const specifier of imported) {
+      inspected += 1
+      if (!declared.has(specifier)) undeclared.push(`${name}: ${specifier}`)
+    }
+  }
+  assert.ok(inspected >= 5,
+    `expected to find @deepseek-ai imports to check, found ${inspected} — the walk has stopped matching`)
+  assert.deepEqual(undeclared, [],
+    'these packages are imported but not declared, so a compatibility preflight cannot see them')
 })

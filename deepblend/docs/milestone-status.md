@@ -10244,3 +10244,49 @@ DeepBlend tests: 64/64 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
 `node:test` 用例 319 → **320** ✓（README 已按实测更新 ✓）。
+
+## 163. 市场做兼容性预检时读的是 `peerDependencies`——所以**导入的**都得**声明**
+
+### 163.1 起因：第二个店面，用另一套规则
+
+研究文档量清了 ✓：`dsh-market` 的兼容性预检（`compatibility.ts` ✓）是**按 `peerDependencies` 做 semver 分析** ✓——
+它判断「这个插件与用户装的 harness 是否兼容」靠的是**插件声明的版本** ✓，而不是**运行它** ✓。
+于是**代码导入了、而清单没声明的包**，在那套判断里是**看不见**的 ✗：
+市场可以说「兼容」 ✓，而这个插件需要用户没有的某块 harness ✓。
+
+### 163.2 量它：**全部已声明**
+
+逐包对比「代码里 import 的 `@deepseek-ai/*`」与「清单里声明的」 ✓：
+`bundle` 0/4 ✓、`contracts` 0/0 ✓、`host` 2/3 ✓、`provider-local` 2/3 ✓、`tool` 1/2 ✓、`ui` 2/3 ✓
+——**未声明的：零** ✓✓。
+
+**每包 2 个是预期值** ✓（`cordis` ✓ 与 `schemastery` ✓）：harness 的其余部分是通过**注入**来的 ✓
+（`ctx.subprocess` ✓、`ctx.jobs` ✓、`ctx.attachments` ✓）——那是**对服务的声明式依赖** ✓，不是对包的导入 ✓。
+这也正是这条检查读 **import** 而不是注入清单的原因 ✓：注入由组合套件断言 ✓，而**市场看不见它** ✓。
+
+### 163.3 检查，与一个**活下来的变异**
+
+`contributor-surface.test.mjs` 新增 ✓：六个包各自走一遍源码 ✓，收集 import 的 `@deepseek-ai/*` ✓，
+要求它们**都在** `dependencies` 或 `peerDependencies` 里 ✓（带守卫：至少找到 5 处 ✓）。
+
+**第一次变异活了下来** ✗：我往 host 里加了一句 `import '@deepseek-ai/dsh-tools'` ✓——
+**裸导入没有 `from`** ✗，而我的正则只认 `from '…'` 与 `require('…')` ✗✓。
+于是补上**三种形状** ✓（`from '…'` ✓、`import '…'` ✓、`require('…')` ✓，且引号可以是单或双 ✓），
+再跑同一个变异 → **红** ✓✓。**裸导入正是最「让人意外」的那一种** ✓（它只为副作用而存在 ✓），
+而我的检查当时看不见它 ✓。
+
+### 163.4 收口
+
+```
+$ node deepblend/tests/contract/contributor-surface.test.mjs
+ℹ tests 15   ℹ pass 15   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+`node:test` 用例 320 → **321** ✓（README 已按实测更新 ✓）。
+
+（另：`SECURITY.md` 那句「安装器拒绝覆盖不是它写的 operator layer」也量了 ✓——
+实测 **exit 2** ✓、文件**原样未动** ✓、消息点名「Merge the layers by hand」 ✓，
+而且 `install-plugin-modes.test.mjs` **已经在断言**它 ✓✓。又一个「声明与实现一致」的干净结果 ✓。）

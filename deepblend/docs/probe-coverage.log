@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 132: no probe — the same stale claim in two more tables ──
+── ROUND 133: no probe — the second storefront's compatibility rule ──
+No product code changed. The research document measured how `dsh-market` does its host-contract preflight:
+`compatibility.ts` analyses `peerDependencies` by semver, deciding whether a plugin fits the harness a user has
+installed from the versions the plugin DECLARES rather than by running it. A package the code imports and the
+manifest does not declare is therefore invisible to that verdict — the market can call the plugin compatible while
+it needs a piece of the harness the user does not have.
+
+Measured per package: bundle 0 imported/4 declared, contracts 0/0, host 2/3, provider-local 2/3, tool 1/2, ui 2/3
+— nothing undeclared. Two per package is the expected number (cordis and schemastery), because the rest of the
+harness arrives by INJECTION (`ctx.subprocess`, `ctx.jobs`, `ctx.attachments`), which is a declared dependency on a
+service rather than an import of a package. That is also why the check reads imports and not the injection list:
+injection is asserted by the composition suites, and the market cannot see it.
+
+The check in `contributor-surface.test.mjs` walks all six packages and requires every imported `@deepseek-ai/*` to
+be declared, with a guard so a failed walk cannot silently pass. Its first mutation SURVIVED: adding
+`import '@deepseek-ai/dsh-tools'` to the host — a bare import has no `from`, and the check knew only `from '…'` and
+`require('…')`. Three shapes now, single or double quoted, and the same mutation goes red. A bare import is the
+most surprising kind there is, since it exists only for its side effect, and the check could not see it.
+
+Also measured, and clean: `SECURITY.md`'s promise that the installer refuses to overwrite an operator layer it did
+not write — exit 2, the file untouched, a message saying to merge by hand, and `install-plugin-modes.test.mjs`
+already asserting it.
+
+── ROUND 132: no probe — the same stale claim in two more tables ──── ROUND 132: no probe — the same stale claim in two more tables ──
 No product code changed. Round 131's ruler — "accurate when written, never revisited" — was applied to the rest of
 the milestone log: every row claiming something is ABSENT was collected (twelve) and classified by the heading of
 the table it sits in. Four rows in §7's deviation register hold up (deliberate trade-offs, read one by one); five
