@@ -418,10 +418,12 @@ test('the four --check outputs quoted in install.md are what the checks print', 
   const run = (name) => spawnSync(process.execPath, [join(ROOT, ...CHECKS[name]), '--check'], {
     cwd: ROOT, encoding: 'utf8', timeout: 300_000,
   })
+  // NO `result:` LINE IS A LEGITIMATE ANSWER: with a DSH_HOME that has no profile at all, `plugin:check` exits 2
+  // and says "known profiles: (none)" instead. MEASURED with `DSH_HOME` pointed at an empty directory — which is
+  // exactly what `verify:clone` does for its clone — and this helper turned that state into an assertion failure.
   const actual = (name, result) => {
     const line = (result.stdout + result.stderr).split('\n').reverse().find(l => l.startsWith('result: '))
-    assert.ok(line !== undefined, `${name}:check printed no result line:\n${result.stdout}${result.stderr}`)
-    return line.trim()
+    return line === undefined ? '' : line.trim()
   }
 
   const problems = []
@@ -446,7 +448,12 @@ test('the four --check outputs quoted in install.md are what the checks print', 
   const plugin = run('plugin')
   const pluginLine = actual('plugin', plugin)
   const normalized = pluginLine.replace(/at \/\S+\/\.dsh/, 'at /Users/<you>/.dsh')
-  const installedHere = !/thing\(s\) are not installed/.test(pluginLine)
+  // TWO STATES MEAN "this tree is not the installed one", and the first version knew only one of them. With a
+  // DSH_HOME that has no profile at all — which is what `verify:clone` gives its clone — `plugin:check` exits 2
+  // with "known profiles: (none)" and no `result:` line about drift, so the check below failed on a state that is
+  // not drift at all. MEASURED by running the clone's layer: that is what failed the documented install path.
+  const installedHere = pluginLine !== '' &&
+    !/thing\(s\) are not installed/.test(pluginLine) && !/known profiles: \(none\)/.test(pluginLine)
   if (!installedHere) {
     // The deployment's profile points somewhere else, so the manual's lines for plugin and presets describe a state
     // this tree is not in. Said out loud rather than silently skipped: the comparison runs on the machine the
