@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 159: no probe — two more rows of the contributor's map ──
+── ROUND 160: no probe — the contributor's map, all nine rows measured ──
+No product code changed. The last four rows of CONTRIBUTING's "change this, and this assertion catches the rest"
+table were sampled by making the change, which completes the sweep: eight rows hold and one was wrong, corrected in
+round 193.
+
+Adding a tool to the roster alone reddens both named suites — `documented-counts` ("the README says 16
+model-visible tools; the contract declares 17") and `ui-plane.e2e.mjs` ("one per seat plus one per tool card — 20").
+Renaming a tool in the manual reddens `docs-consistency` with "a manual names blender_scene_fetch, which is not a
+registered tool". And changing what the operator layer is DERIVED from makes `plugin:check` report drift, which is
+what that row claims — "1 thing(s) are not installed".
+
+Two of my mutations missed again, and neither was the table's fault. Changing `maxPreviewSamples` in the bundle
+patch left `plugin:check` green, because that row is about the derived operator layer and the value is not in it;
+and renaming the derivation function produced a SyntaxError, which is red on a crash rather than on the assertion.
+That is the fifth and sixth time in this stretch that a mutation was too weak rather than the check too loose.
+
+Row six of the table claims there is NO assertion for a change to the workbench's visible UI, and that is the one
+row mutation cannot verify — a documented gap is not testable by making the change. It is worth noting that the
+table says so itself, which is the honest form.
+
+── ROUND 159: no probe — two more rows of the contributor's map ──── ROUND 159: no probe — two more rows of the contributor's map ──
 No product code changed. Two more rows of CONTRIBUTING's "change this, and this assertion catches the rest" table
 were sampled by making the change: a second copy of the assertion totals in another document reddens
 `documented-counts`, and a real milestone-status claim in the PR template reddens `contributor-surface`. Both hold.

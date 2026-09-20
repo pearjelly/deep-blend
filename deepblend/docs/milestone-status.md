@@ -11568,3 +11568,43 @@ DeepBlend tests: 65/65 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
 `node:test` 用例 **339** ✓、契约层 **65** 个文件 ✓。
+
+## 191. 贡献者那张表**九行全部量完**：八行成立、一行错（已修）
+
+### 191.1 逐行实测
+
+| # | 表里的行 | 实测 |
+|---|---|---|
+| 1 | 加/删一个模型可见工具 → `ui-plane.e2e.mjs` + `tool-plane-m3.e2e.mjs` + `documented-counts.test.mjs` | **成立** ✓✓——往名册里加一个工具 ✓，`documented-counts` 报「README says 16 … contract declares 17」✓、`ui-plane.e2e.mjs` 报「one per seat plus one per tool card — 20」✓✓ |
+| 2 | 改一个工具名并写进手册 → `docs-consistency.test.mjs` | **成立** ✓——报「a manual names `blender_scene_fetch`, which is not a registered tool」✓✓ |
+| 3 | 改 preset 的行集合 → `preset-surface.test.mjs` | **成立** ✓（第 193 轮 ✓） |
+| 4 | **新增一句 import → `workspace-links.test.mjs`** | **不成立** ✗——**已在第 193 轮改正** ✓ |
+| 5 | 改 bundle 里的配置 → `plugin:check` 报 **operator layer 漂移**（那一层是推导出来的） | **成立** ✓✓——把 `devStoreRoot` 的返回值改掉 ✓ → `result: 1 thing(s) are not installed` ✓✓ |
+| 6 | 改工作台 UI 的**可见**部分 → **没有断言** | **诚实的空缺** ✓（「没有」这件事**无法用变异证明** ✓——而表里**写明了它** ✓✓） |
+| 7 | 改 `.github/` 的模板 → `contributor-surface.test.mjs` | **成立** ✓——但**只在括号里写明的那四件事上** ✓（第 194 轮 ✓） |
+| 8 | 在别处再抄一份断言总数 → `documented-counts.test.mjs` | **成立** ✓（第 194 轮 ✓） |
+| 9 | 加一个 fixture → `fixture-inventory.test.mjs` | **成立** ✓（第 193 轮 ✓） |
+
+**八行成立 ✓、一行错并已修 ✓**——贡献者手上的那张地图，现在每一行都被**真的改过一次**验证过 ✓✓。
+
+### 191.2 两次**越界的变异**（这一轮又两次）
+
+第 5 行我先改了 **bundle patch 里的 `maxPreviewSamples`** ✗ → `plugin:check` **exit 0** ✗——
+因为那一行说的是「**operator layer 是推导出来的**」✓，而那个值**不在**那一层里 ✓；
+改成动**推导本身**（`devStoreRoot` 的返回值 ✓）才红 ✓✓。
+
+接着我**改名**了那个函数 ✗ → `SyntaxError: … does not provide an export named 'devStoreRoot'` ✓✓——
+**红在崩溃上不是红在断言上** ✓（第 182 轮同一条 ✓）。
+
+**两次都不是表错** ✓——是**变异没落在检查管的那件事上** ✓✓。
+这已是这一段的**第五、第六次** ✓：**变异之前先读检查** ✓。
+
+### 191.3 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
+`node:test` 用例 **339** ✓、契约层 **65** 个文件 ✓。
