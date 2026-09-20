@@ -545,6 +545,24 @@ export class RevisionTransaction {
         // too heavy should produce. Nothing below this line runs, so no manifest is written and
         // no checkpoint is published.
         const polygons = compileReport?.sceneFingerprint?.totalPolygons
+        // A REPORT THAT DOES NOT CARRY THE COUNT IS REFUSED, not skipped. The guard below is the only thing
+        // standing between a five-times-too-heavy scene and a project that pays for it on every later compile,
+        // and `typeof polygons === 'number'` alone made a report with a RENAMED or missing field look like a
+        // scene that is fine — the check would pass by not running. The provider emits this field on every
+        // compile (`bootstrap.py`'s `scene_fingerprint`), so its absence means the two sides disagree about the
+        // protocol rather than that the scene is light. MEASURED: the field-name agreement between
+        // `scene_fingerprint`'s output and this reader was asserted nowhere before `render-job.test.mjs` gained
+        // the cross-language check; this is the other half — the guard fails loudly instead of silently.
+        if (compileReport !== null && compileReport !== undefined && typeof polygons !== 'number') {
+          throw new BlenderError(
+            BlenderErrorCode.PROTOCOL_VERSION_MISMATCH,
+            'the compile report carries no sceneFingerprint.totalPolygons, so this deployment cannot tell ' +
+              'whether the scene is within maxMeshPolygons and will not commit it. The report and this Host ' +
+              'disagree about the protocol — check that the provider package and the host package are the ' +
+              'same version.',
+            { detail: { projectId, revision, fingerprint: compileReport.sceneFingerprint ?? null } },
+          )
+        }
         if (typeof polygons === 'number' && polygons > this.config.maxMeshPolygons) {
           throw new BlenderError(
             BlenderErrorCode.SCENE_TOO_HEAVY,

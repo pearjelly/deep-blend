@@ -61,10 +61,14 @@ const runtimeStub = {
     // The last check needs a renderer that exits successfully WITHOUT writing a checkpoint, and a
     // Cordis service cannot be provided twice — so the runtime is one object with a recorded mode
     // rather than two services.
-    if (compileProducesBlend === false) return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+    // The fingerprint is part of the report's contract (`sceneFingerprint.totalPolygons` is what the host's
+    // polygon guard reads), so the stub carries it — a report without it is refused now rather than silently
+    // skipping that guard.
+    const report = { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }
+    if (compileProducesBlend === false) return { report, envelope: { warnings: [], notices: [] } }
     writeFileSync(join(directory, 'result.blend'), 'a blend file')
     request.onWorkingDirectory?.({ directory })
-    return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+    return { report, envelope: { warnings: [], notices: [] } }
   },
 }
 ctx.provide('blenderRuntime', runtimeStub)

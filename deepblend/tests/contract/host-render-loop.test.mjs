@@ -96,7 +96,10 @@ function harness(plan = {}) {
       mkdirSync(directory, { recursive: true })
       writeFileSync(join(directory, 'result.blend'), 'a blend file, honest')
       request.onWorkingDirectory?.({ directory })
-      return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+      // The report carries the fingerprint the host reads (`sceneFingerprint.totalPolygons`), because a stub
+      // that omits it is a report from a DIFFERENT protocol — which the host now refuses rather than
+      // silently skipping its polygon guard.
+      return { report: { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }, envelope: { warnings: [], notices: [] } }
     },
     async startFrameSequence(request) {
       // The child's own artifacts: the frames it rendered, the journal it appends to, and the identity

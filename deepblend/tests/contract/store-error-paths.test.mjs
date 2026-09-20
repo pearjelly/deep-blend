@@ -259,10 +259,21 @@ check('a patch that would produce an invalid scene is refused BEFORE a revision 
  * for `renderPreview` on a spec-only revision, which is a DIFFERENT path (it compiles for the render);
  * this one produces the state the branch is about.
  */
+let compileReportMode = 'full'
 const silentRuntime = {
   async compileScene(request) {
     request.onWorkingDirectory?.({ directory: request.projectRoot })
-    return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+    // A report with NO fingerprint is a report from a different protocol: the host reads
+    // `sceneFingerprint.totalPolygons` for its polygon guard, and skipping the guard because the field is
+    // absent is a check that passes by not running. This mode exists to drive that refusal — without it the
+    // branch has no case, which is how the mutation that removes it survived.
+    if (compileReportMode === 'without-fingerprint') {
+      return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+    }
+    // The report carries the fingerprint the host reads (`sceneFingerprint.totalPolygons`), because a stub
+      // that omits it is a report from a DIFFERENT protocol — which the host now refuses rather than
+      // silently skipping its polygon guard.
+      return { report: { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }, envelope: { warnings: [], notices: [] } }
   },
 }
 const studio = new BlenderStudio(
@@ -275,6 +286,27 @@ const noCheckpoint = await studio.transactions.createProject({
   saveCheckpoint: true,
   renderPreview: true,
 }).catch(cause => cause)
+// ---- a compile report that does not carry the field the guard reads ----
+//
+// The provider emits `sceneFingerprint` on every compile, so its absence means the two packages disagree about
+// the protocol rather than that the scene is light. Refused BEFORE anything is committed, and the project is
+// left exactly where it was.
+compileReportMode = 'without-fingerprint'
+const noFingerprint = await studio.transactions.createProject({
+  title: 'report without a fingerprint',
+  sceneSpec: productSpec,
+  saveCheckpoint: true,
+}).catch(cause => cause)
+compileReportMode = 'full'
+check('a compile report with no sceneFingerprint is REFUSED, not treated as a scene that is light enough',
+  // The transaction WRAPS a compile failure, keeping its code (the wrapper is what names the revision), so the
+  // code is the protocol mismatch and the sentence carries the reason.
+  noFingerprint instanceof BlenderError && noFingerprint.code === code('PROTOCOL_VERSION_MISMATCH') &&
+  /cannot tell whether the scene is within maxMeshPolygons/.test(noFingerprint.message) &&
+  /the project is unchanged/.test(noFingerprint.message) &&
+  !existsSync(join(projectsRoot, 'report-without-a-fingerprint')),
+  { code: noFingerprint?.code ?? null, message: String(noFingerprint?.message ?? noFingerprint).slice(0, 80) })
+
 check('a preview requested on a revision whose compile produced no checkpoint is refused by name',
   noCheckpoint instanceof BlenderError && noCheckpoint.code === code('REVISION_CHECKPOINT_MISSING') &&
   /^A preview was requested for r0001, but the compile produced no checkpoint to render from\.$/.test(noCheckpoint.message) &&
@@ -616,7 +648,10 @@ const compileRuntimeStub = {
     mkdirSync(directory, { recursive: true })
     writeFileSync(join(directory, 'result.blend'), 'a blend file')
     request.onWorkingDirectory?.({ directory })
-    return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+    // The report carries the fingerprint the host reads (`sceneFingerprint.totalPolygons`), because a stub
+      // that omits it is a report from a DIFFERENT protocol — which the host now refuses rather than
+      // silently skipping its polygon guard.
+      return { report: { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }, envelope: { warnings: [], notices: [] } }
   },
 }
 const committed = new RevisionTransaction({ store, runtime: compileRuntimeStub, config: { maxMeshPolygons: 250_000 } })

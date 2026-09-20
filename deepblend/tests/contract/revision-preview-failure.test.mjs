@@ -52,7 +52,10 @@ function runtimeWith(preview) {
       mkdirSync(directory, { recursive: true })
       writeFileSync(join(directory, 'result.blend'), 'a blend file')
       request.onWorkingDirectory?.({ directory })
-      return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
+      // The report carries the fingerprint the host reads (`sceneFingerprint.totalPolygons`), because a stub
+      // that omits it is a report from a DIFFERENT protocol — which the host now refuses rather than
+      // silently skipping its polygon guard.
+      return { report: { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }, envelope: { warnings: [], notices: [] } }
     },
     async resolveEngineKey() {
       return { blenderEngine: 'BLENDER_EEVEE', requested: 'BLENDER_EEVEE', downgraded: false, warning: null }

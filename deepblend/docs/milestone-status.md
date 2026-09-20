@@ -8224,3 +8224,61 @@ total self-counted assertions: 1460
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 61 文件 / 1459 → **1460** 项。
+
+## 120. 一个「靠字段名跨语言对齐」的守卫，两边都能悄悄改名
+
+### 120.1 量它
+
+宿主的多边形守卫读 `compileReport.sceneFingerprint.totalPolygons` ✓——那个报告是 **Python** 造的 ✓
+（`bootstrap.py` 的 `scene_fingerprint` ✓）。而它的判断写的是：
+
+```js
+const polygons = compileReport?.sceneFingerprint?.totalPolygons
+if (typeof polygons === 'number' && polygons > this.config.maxMeshPolygons) { … }
+```
+
+**字段名两边任何一侧改了名，`polygons` 就是 `undefined`** ✓ → 条件为假 ✓ → **守卫不报错，它只是不运行** ✓✓——
+一个五倍重的场景就这样被提交 ✓，而这正是 D101 修掉的那个缺陷 ✓。字段名的对齐**从来没有被断言过** ✓
+（唯一提到它的地方是一句注释 ✓）。
+
+### 120.2 修法：两半
+
+* **让守卫拒绝**：报告**存在**却没有那个计数 → 抛 `PROTOCOL_VERSION_MISMATCH` ✓
+  （「两份包对协议的理解不一致」✓），并且**什么都不提交** ✓——一个看不见输入的检查不允许通过 ✓；
+* **把字段名钉住**：新增跨语言断言 ✓——跑 Python 的 `scene_fingerprint` ✓，把它的键与宿主**实际读的字段**
+  （从源码里抽 `sceneFingerprint.X` ✓）对照 ✓。读数：
+
+```
+pythonEmits: [objectCounts, specSchemaVersion, totalPolygons, totalVertices]
+hostReads:   [totalPolygons]
+```
+
+### 120.3 这一改动立刻暴露出：四个测试桩**都不带** fingerprint
+
+改完之后契约层红了四个文件 ✓——因为它们的 `compileScene` 桩返回 `{ report: { validation: {} } }` ✗，
+**没有 `sceneFingerprint`** ✓。也就是说：那些用例一直在走「字段缺失 → 跳过守卫」这条分支 ✓✓——
+**它们从来没有碰过守卫真正运行的那一半** ✓。给四个桩补上真实的报告形状 ✓（`totalPolygons: 1200` ✓）之后，
+它们才真的覆盖守卫 ✓。
+
+### 120.4 我自己也踩了一次「枚举的键 vs 值」
+
+新代码里我先写成 `BlenderErrorCode.BLENDER_PROTOCOL_VERSION_MISMATCH` ✗——那是枚举的**值** ✓，
+**键**是 `PROTOCOL_VERSION_MISMATCH` ✓ → 抛出的错误 `code` 是 `undefined` ✗✓，而**是测试的读数把它揭穿的** ✓
+（我把错误的 `keys` 打出来才看见 `code` 是 undefined ✓）。现在有一条变异专门钉住这件事 ✓
+（把键换回值 → 红 ✓）。
+
+### 120.5 收口
+
+四条变异全红 ✓：Python 改名 ✓、宿主读一个 Python 不产出的字段 ✓、守卫改回「缺失就跳过」✓、
+以及**把枚举的键换回值** ✓（`code` 变成 undefined ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1462
+```
+
+产品代码改了（守卫的拒绝 ✓），所以这一轮跑新探针 ✓（`r106` 列 ✓）。
+契约层 61 文件 / 1460 → **1462** 项（`store-error-paths.test.mjs` 40 → 41 ✓、
+`render-job.test.mjs` 多一条 `node:test` 用例 ✓）。

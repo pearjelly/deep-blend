@@ -189,6 +189,33 @@ if (python === undefined) {
 }
 
 // ---------------------------------------------------------------------------
+// 1b. The compile report's field names, across the language boundary
+// ---------------------------------------------------------------------------
+//
+// The host's polygon guard reads `sceneFingerprint.totalPolygons` out of the provider's compile report, and the
+// report is built by Python (`bootstrap.py`'s `scene_fingerprint`). A renamed field on either side would make
+// the guard compare `undefined` — a check that passes by not running, which is how a five-times-too-heavy scene
+// gets committed. The field names are therefore held against each other here, and the host refuses a report
+// that does not carry the count (`BLENDER_PROTOCOL_VERSION_MISMATCH`), so neither side can drift silently.
+if (python !== undefined) {
+  const fingerprintKeys = JSON.parse(execFileSync(python, ['-c', [
+    'import json, sys, types',
+    'for name in ("bpy", "mathutils"):',
+    '    module = types.ModuleType(name); module.ops = types.SimpleNamespace(); module.data = types.SimpleNamespace()',
+    '    sys.modules[name] = module',
+    'sys.modules["mathutils"].Vector = lambda *a, **k: None',
+    `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'))})`,
+    'from bootstrap import scene_fingerprint',
+    'print(json.dumps(sorted(scene_fingerprint({"schemaVersion": "deepblend.scene/v1"}, [{"type": "mesh", "vertexCount": 8, "polygonCount": 6}]).keys())))',
+  ].join('\n')], { encoding: 'utf8' }).trim())
+  const hostSource = readFileSync(join(ROOT, 'packages', 'deepblend', 'host', 'lib', 'revision-transaction.js'), 'utf8')
+  const readFields = [...new Set([...hostSource.matchAll(/sceneFingerprint\??\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(match => match[1]))]
+  check('the compile report carries every field the host reads out of its fingerprint',
+    readFields.length > 0 && readFields.every(field => fingerprintKeys.includes(field)),
+    { pythonEmits: fingerprintKeys, hostReads: readFields })
+}
+
+// ---------------------------------------------------------------------------
 // 4. Frame ranges
 // ---------------------------------------------------------------------------
 
