@@ -369,3 +369,44 @@ test('the §15.2 tally sentence is derived from the table, not trusted', () => {
     `security.md's tally line and its own table disagree: quoted ${JSON.stringify(quoted)}, table ${JSON.stringify(counted)}`,
   )
 })
+
+// ---------------------------------------------------------------------------
+// SECURITY.md's out-of-scope claims each name a control, and each has evidence
+// ---------------------------------------------------------------------------
+//
+// The policy's last section says what a report should NOT be, and every bullet names the control that makes it out
+// of scope. A claim like "the tool plane validates every argument against a schema and every result against the
+// harness's own lossless-JSON rule" is the kind that quietly stops being true — and MEASURED, all four are backed,
+// one of them unusually well: the lossless half is asserted with the HARNESS'S OWN predicate
+// (`importDsh('dsh-util-values').isJsonValue`, not a copy) and guarded against vacuity by a case that first proves
+// the predicate rejects `-0`.
+//
+// This case pins the EVIDENCE each bullet rests on, so a bullet whose evidence is deleted fails here rather than
+// sitting in a policy document nobody re-reads. It is a pointer check: it proves the evidence exists, and the
+// suites themselves prove the evidence holds.
+test('every out-of-scope bullet in SECURITY.md still has its evidence', () => {
+  // The policy WRAPS ITS LINES and capitalizes its bullets, so the comparison is made against a normalized copy:
+  // MEASURED, comparing the phrases literally reported three claims missing from a document that contains all of
+  // them ("A malicious Blender build" split across two lines, "the harness's own lossless-JSON rule" likewise).
+  const policy = readFileSync(join(ROOT, 'SECURITY.md'), 'utf8').replace(/\s+/g, ' ')
+  const evidence = [
+    ['A malicious Blender build', 'deepblend/tools/blender-release.json'],
+    ['the harness’s own lossless-JSON rule', 'deepblend/tests/contract/patch-resolution.test.mjs'],
+    ['refuses to overwrite an operator layer', 'deepblend/tools/install-plugin.mjs'],
+    ['CPU, memory and GPU quotas are NOT implemented', 'deepblend/docs/milestone-status.md'],
+  ]
+  const missing = []
+  for (const [claim, path] of evidence) {
+    // Apostrophes too: the policy uses the straight form and this file was written with the curly one. Normalizing
+    // both sides is cheaper than remembering which, and the claim is what matters.
+    const normalize = (text) => text.toLowerCase().replace(/[\u2018\u2019]/g, "'")
+    if (!normalize(policy).includes(normalize(claim))) missing.push(`SECURITY.md no longer claims: ${claim}`)
+    if (!existsSync(join(ROOT, path))) missing.push(`the evidence for "${claim}" is gone: ${path}`)
+  }
+  // And the lossless claim's evidence must be the harness's own predicate, not a re-implementation.
+  const suite = readFileSync(join(ROOT, 'deepblend', 'tests', 'contract', 'patch-resolution.test.mjs'), 'utf8')
+  if (!/importDsh\('dsh-util-values'\)/.test(suite)) {
+    missing.push('the lossless rule is no longer checked with the harness’s own predicate')
+  }
+  assert.deepEqual(missing, [], 'an out-of-scope claim lost its backing')
+})

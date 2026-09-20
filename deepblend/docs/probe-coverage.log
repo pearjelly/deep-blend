@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 156: no probe — the fourth member of the name family, and four corrections ──
+── ROUND 157: no probe — the security policy's out-of-scope bullets, each naming a control ──
+No product code changed. SECURITY.md's last section says what a report should NOT be, and every bullet names the
+control that makes it out of scope. All four are backed, and one is backed unusually well: the claim that the tool
+plane validates "every result against the harness's own lossless-JSON rule" is asserted with the HARNESS'S OWN
+predicate — `importDsh('dsh-util-values').isJsonValue`, not a copy — and guarded against vacuity by a case that
+first proves the predicate rejects `-0`. The comment beside it records why 843 assertions missed the defect: the
+suite's own snapshot used `JSON.parse(JSON.stringify(x))`, which NORMALIZES `-0` to `0`, and "a check that is weaker
+than the thing it checks cannot fail".
+
+The new case pins the evidence each bullet rests on — the release manifest, that suite, the installer, the deviation
+register — and requires the lossless evidence to keep using the harness's predicate. The mutation that rewords a
+bullet so its pointer no longer matches goes red. It is a pointer check: it proves the evidence exists, and the
+suites prove the evidence holds.
+
+Two mistakes of my own, both about text rather than meaning: the policy WRAPS its lines, so phrases spanning a break
+compared unequal, and then an apostrophe differed (the policy uses the straight form, this file was written with the
+curly one). Both sides are normalized now.
+
+── ROUND 156: no probe — the fourth member of the name family, and four corrections ──── ROUND 156: no probe — the fourth member of the name family, and four corrections ──
 No product code changed. The rule "a name a document shows must be a name the product has" got its fourth member:
 service names. The product declares three of them in five places, because the layering forces the duplication (the
 tool package cannot import the host's constant, the provider cannot import the host's).

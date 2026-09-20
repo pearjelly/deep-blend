@@ -11446,3 +11446,44 @@ DeepBlend tests: 65/65 file(s) passed
 
 **家族四条齐了** ✓：引用的键 ✓、示例的键 ✓、文档的参数名 ✓、文档的 `blenderXxx` 名 ✓——
 **规则一句话** ✓：**文档里出现的名字，产品里必须有** ✓✓。
+
+## 188. `SECURITY.md` 的**四条「不在范围内」**：每条都点名一个控制
+
+### 188.1 量它
+
+安全策略最后一节说的是「**什么样的报告不该提**」✓，而**每一条都点名让那件事「不在范围内」的控制** ✓：
+
+| 声明 | 证据 | 状态 |
+|---|---|---|
+| 受管 Blender 按**字节数与 sha256** 核对 `blender-release.json` ✓ | `blender:check` ✓ | **已有检查** ✓（第 105 轮 ✓） |
+| 工具面**按 schema 校验每个参数** ✓、**并按 harness 自己的 lossless-JSON 规则校验每个结果** ✓ | `patch-resolution.test.mjs` §6c ✓ | **已有检查，而且是最强的那种** ✓✓ |
+| 安装器**拒绝覆盖不是它写的 operator layer** ✓ | `install-plugin-mjs` ✓ | **已有检查** ✓（第 167 轮 ✓） |
+| CPU/内存/GPU 配额**未实现**——见偏差 §7 #9 ✓ | 登记表 ✓ | **已有检查** ✓ |
+
+**第二条值得单独说** ✓：lossless 那一半用的是 **harness 自己的谓词** ✓✓——
+`importDsh('dsh-util-values').isJsonValue` ✓，**不是抄一份** ✓——
+而且带一条**反空洞守卫** ✓：「the predicate really does reject -0 (so the tests below mean something)」 ✓✓。
+那条用例的注释还写着为什么 843 条断言**漏过**了它 ✓：
+「这个套件自己的快照用 `JSON.parse(JSON.stringify(x))` ✓，而它**把 `-0` 规范化成 `0`** ✗——
+**一条比它所检查的东西更弱的检查，不可能失败**」✓✓。
+
+### 188.2 修法：把「声明 → 证据」钉住
+
+`security-controls.test.mjs` 新增 ✓：四条声明各自的**证据文件**必须在 ✓✓，
+并额外断言 lossless 那条的检查**必须仍然用 harness 自己的谓词** ✓（不是重新实现 ✓）。
+**变异**：把某条声明的措辞改掉 ✓（让指针失配 ✓）→ **红** ✓。
+
+**两次我自己的错** ✓：策略文档**会折行** ✓、而我的短语跨了行 ✗ →
+改成**归一化空白**后比 ✓；接着又栽在**撇号**上 ✗（文档用直撇号 ✓、我写的是弯的 ✓）→ 两边都归一化 ✓✓。
+
+### 188.3 收口
+
+```
+$ node deepblend/tests/contract/security-controls.test.mjs
+ℹ pass 8   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
+`node:test` 用例 338 → **339** ✓（README 的更新仍然只落在一处 ✓）。
