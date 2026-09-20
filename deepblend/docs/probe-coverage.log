@@ -255,7 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 117 (probe): the uninstall path the manual gives did not uninstall ──
+── ROUND 126: no probe — the manuals' cross-references, and two wrong extractions before a right one ──
+No product code changed. The manuals cross-reference by name and section number ("SPEC §15.2",
+"`milestone-status.md` §14") rather than by link — six relative links exist in the whole documentation set, and all
+six resolve — which reads well and cannot break a build, and which means a stale number sends a reader nowhere
+with no complaint from anything. Two things make it checkable: the referent is named in the citation, and both
+documents are in this repository.
+
+Getting there took two wrong extractions, both exposed by their own output. The first compared every `§N` against
+the milestone log's sections and reported twelve missing — most of which were SPEC sections (the same "read which
+document the citation names" mistake as round 113). The second read the SPEC properly but reported seventy-one
+missing, because the SPEC numbers its TOP-LEVEL sections in Chinese: `## 十五、安全与权限` IS §15. With the mapping
+in place, all 92 SPEC citations and all 20 milestone citations resolve.
+
+The check reads both tables (Arabic sub-sections plus the Chinese top-level headings; the milestone log's `##`
+sections), then checks only the citations that NAME their referent, with guards so that a failed parse cannot
+silently become "everything passes": both documents must yield more than fifty sections and the check must compare
+more than fifty citations. Two mutations go red: a SPEC citation pointing at §99.9, and a milestone citation
+pointing at §999.
+
+── ROUND 117 (probe): the uninstall path the manual gives did not uninstall ──── ROUND 117 (probe): the uninstall path the manual gives did not uninstall ──
 The probe's number is unchanged (35 dark lines, 0.3%) because the change is in a TOOL rather than in the product's
 libraries — the coverage probe measures the product packages.
 

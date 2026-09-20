@@ -429,3 +429,55 @@ test('the README does not assert milestone status, because it cannot keep it tru
   // reachable from the front door.
   assert.match(readme, /milestone-status\.md/, 'the README no longer points at the milestone register')
 })
+
+// ---------------------------------------------------------------------------
+// A citation must point at a section that exists
+// ---------------------------------------------------------------------------
+//
+// The manuals cross-reference by NAME and SECTION rather than by link — "SPEC §15.2", "`milestone-status.md`
+// §14" — which is readable and cannot break a build, and which means a stale number sends a reader nowhere with
+// no complaint from anything. Two things make it checkable: the referent is named in the citation, and both
+// documents are in this repository.
+//
+// THE SPEC'S TOP-LEVEL SECTIONS ARE NUMBERED IN CHINESE — `## 十五、安全与权限` is §15 — so a check that reads
+// only Arabic headings reports every `SPEC §15` as broken. MEASURED: the first extraction did exactly that, and
+// reported 71 missing sections that all exist. The mapping below is what makes the check describe the documents
+// rather than one spelling of them.
+test('every SPEC and milestone section a document cites exists', () => {
+  const spec = readFileSync(join(ROOT, 'SPEC.md'), 'utf8')
+  const milestone = readFileSync(join(ROOT, 'deepblend', 'docs', 'milestone-status.md'), 'utf8')
+  const CHINESE = {
+    一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10,
+    十一: 11, 十二: 12, 十三: 13, 十四: 14, 十五: 15, 十六: 16, 十七: 17, 十八: 18, 十九: 19, 二十: 20,
+    二十一: 21, 二十二: 22, 二十三: 23,
+  }
+  const specSections = new Set([...spec.matchAll(/^#+ (\d+(?:\.\d+)?)/gm)].map(match => match[1]))
+  for (const match of spec.matchAll(/^## ([一二三四五六七八九十]+)、/gm)) {
+    const number = CHINESE[match[1]]
+    if (number !== undefined) specSections.add(String(number))
+  }
+  const milestoneSections = new Set(
+    [...milestone.matchAll(/^##+ (\d+(?:\.\d+)?)/gm)].map(match => match[1]),
+  )
+  assert.ok(specSections.size > 50 && milestoneSections.size > 50,
+    `the documents were not parsed (SPEC ${specSections.size} sections, milestone ${milestoneSections.size})`)
+
+  const documents = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md',
+    ...MANUALS, 'deepblend/docs/security.md', 'deepblend/docs/tool-contracts.md',
+    'deepblend/docs/architecture-decisions.md']
+  const missing = []
+  let checked = 0
+  for (const path of documents) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/SPEC\s*§(\d+(?:\.\d+)?)/g)) {
+      checked += 1
+      if (!specSections.has(match[1])) missing.push(`${path}: SPEC §${match[1]}`)
+    }
+    for (const match of text.matchAll(/milestone-status\.md`?\s*§(\d+(?:\.\d+)?)/g)) {
+      checked += 1
+      if (!milestoneSections.has(match[1])) missing.push(`${path}: milestone-status.md §${match[1]}`)
+    }
+  }
+  assert.ok(checked >= 50, `expected to check many citations, checked ${checked}`)
+  assert.deepEqual([...new Set(missing)], [], 'these citations point at a section that does not exist')
+})
