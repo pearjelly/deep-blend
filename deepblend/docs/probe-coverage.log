@@ -255,6 +255,23 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 121: no probe — a seven-sided sentence with a one-sided check ──
+No product code changed. `scene-spec.test.mjs` carried a comment claiming the schema shadows the validator's id
+check "on all seven collections", above an assertion that rigged exactly one (`entities[0]`). That is the gap this
+session keeps finding: the sentence stays true (whoever wrote it did measure all seven by hand) while the check
+holds one of them, so a collection added without the id reference would make the sentence quietly false.
+
+Working on it turned up a second thing: the DARK line is `if (typeof id !== 'string') return` — a TYPE error —
+while the old assertion used `'Bad Id!'`, a grammar violation that takes the OTHER branch (which is reachable).
+Proving why the dark line is dark needed a type case, and now both cases drive all seven collections.
+
+The fixture declares no assets, so one is injected rather than the collection being skipped: an undriven
+collection is exactly how a seven-sided claim ends up with a one-sided check.
+
+Two mutations: relaxing `$defs.id` to `number` goes red (on the fixture-validity check first, a crash rather than
+a statement), and relaxing it to `["string","number"]` — which keeps the fixture valid while letting a numeric id
+reach the semantic layer — goes red on the new case, which is the point.
+
 ── ROUND 120: no probe — a dark line explained by a property instead of an observation ──
 No product code changed. `json-schema.js` ends its type switch with `default: return false`, and that line is dark
 in every reading — the claim being that no bundled schema asks for an unknown type. That claim is worth asserting

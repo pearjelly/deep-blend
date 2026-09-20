@@ -8804,3 +8804,50 @@ total self-counted assertions: 1472
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓
 （其中 `json-schema.js` 那一行现在有了一条**性质**断言解释它为什么黑 ✓）。
 契约层 62 文件 / 1469 → **1472** 项 ✓。
+
+## 133. 一句**七面**的注释，配一条**一面**的断言
+
+### 133.1 量它
+
+`scene-spec.test.mjs` 里有一段注释写着（第 132 轮之前就在）✓：
+
+> …measured on all seven collections (entities, materials, lights, cameras, shots, animationTracks,
+> assets and render-profile names all answer SCENE_SCHEMA_INVALID)
+
+而它下面那条断言只改了 **`entities[0].id`** ✗✓——**七个面的话，一个面的检查** ✓。
+这类差距正是本会话一直在找的东西 ✓：句子会一直是真的 ✓（写它的人当时确实手量了七个 ✓），
+而代码只钉住其中一个 ✓——**新增一个集合、却忘了让它带 id 引用** ✓，这句话就悄悄变成假的 ✓。
+
+### 133.2 顺带发现：那条**黑线**和这条断言问的不是同一件事
+
+覆盖读数里黑着的是 `if (typeof id !== 'string') return` ✓——**类型**错误 ✓；
+而那条旧断言用的是 `'Bad Id!'` ✓——一个**违反语法**的字符串 ✓，它走的是**另一个**分支（`!ID_PATTERN.test(id)` ✓，
+那条**是可达的** ✓）。所以「为什么这条是黑的」需要一个**类型**用例 ✓✓。
+
+### 133.3 做法：两个用例，各走**七个**集合
+
+* **语法**用例 ✓：七个集合各来一次 `'Bad Id!'` ✓ → 都必须是 `SCENE_SCHEMA_INVALID` ✓、都不许出现
+  `SCENE_ID_INVALID` ✓；
+* **类型**用例 ✓：七个集合各来一次 `42` ✓ → 同上 ✓✓——**这才是那条黑线为什么黑的证明** ✓；
+* fixture 里**没有 `assets`** ✗ → 不跳过 ✓，而是**注入一个** ✓（一个没被驱动的集合，
+  正是「七面的话、一面的检查」的成因 ✓✓）。
+
+### 133.4 两条变异
+
+* 把 `$defs.id` 从 `string` 改成 `number` ✓ → 红 ✓（但先被「fixture 本身是合法 SceneSpec」那条抓住 ✓
+  ——**crash 型** ✓）；
+* 把它改成 `["string","number"]` ✓（fixture 仍合法 ✓，而数字 id 从此能走到语义层 ✓）→ **正是我这条**红 ✓✓
+  （`a NON-STRING id is refused by the schema in every collection` ✓）。
+
+### 133.5 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1473
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓
+（`scene-spec.js` 那 5 行现在有一条**七面**的性质断言解释它们为什么黑 ✓）。
+契约层 62 文件 / 1472 → **1473** 项 ✓。

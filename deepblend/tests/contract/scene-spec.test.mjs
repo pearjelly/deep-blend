@@ -735,13 +735,58 @@ check('a point light and a spot get their own default wattage instead of compili
 // first — measured on all seven collections (entities, materials, lights, cameras, shots, animationTracks,
 // assets and render-profile names all answer SCENE_SCHEMA_INVALID). The check below therefore asserts the
 // ORDER, which is the fact a reader needs; the branch itself is dead code the schema has made unreachable.
-const invalidIdSpec = compileSceneSpec(loadFixture()).spec
-invalidIdSpec.entities[0].id = 'Bad Id!'
-const invalidId = validateSceneSpec(invalidIdSpec)
-check('an id the grammar forbids is refused by the SCHEMA, so the validator\'s own id check never fires',
-  invalidId.errors.some(error => error.code === 'SCENE_SCHEMA_INVALID') &&
-  !invalidId.errors.some(error => error.code === 'SCENE_ID_INVALID'),
-  invalidId.errors.map(error => `${error.code}@${error.path}`))
+// AND THE COMMENT SAYS SEVEN COLLECTIONS WHILE THE CODE DROVE ONE. The sentence above was true when it was
+// written (somebody measured all seven by hand) but the assertion only ever rigged `entities[0]` — a claim with
+// seven sides and a check with one. This drives every collection the uniqueness pass walks, so a collection that
+// stopped being schema-checked would show up here instead of in a sentence.
+const collectionsWithIds = ['entities', 'materials', 'lights', 'cameras', 'shots', 'animationTracks', 'assets']
+const grammarViolations = []
+for (const collection of collectionsWithIds) {
+  const rigged = compileSceneSpec(loadFixture()).spec
+  // The fixture declares no assets, so one is injected rather than the collection being skipped: a collection
+  // that is not driven is a side of this claim nobody checked, which is the whole reason the sentence above was
+  // seven-sided while the code was one-sided.
+  if (collection === 'assets' && (rigged.assets ?? []).length === 0) {
+    rigged.assets = [{ id: 'rigged-asset', type: 'mesh', path: 'assets/rigged.glb', sha256: 'a'.repeat(64) }]
+  }
+  const entries = rigged[collection]
+  if (!Array.isArray(entries) || entries.length === 0 || typeof entries[0]?.id !== 'string') {
+    grammarViolations.push(`${collection}: the fixture has no entry with a string id to rig`)
+    continue
+  }
+  entries[0].id = 'Bad Id!'
+  const outcome = validateSceneSpec(rigged)
+  const codes = outcome.errors.map(error => error.code)
+  if (!codes.includes('SCENE_SCHEMA_INVALID') || codes.includes('SCENE_ID_INVALID')) {
+    grammarViolations.push(`${collection}: ${outcome.errors.map(e => `${e.code}@${e.path}`).join(' ')}`)
+  }
+}
+check('an id the grammar forbids is refused by the SCHEMA in EVERY collection, so the validator never fires',
+  grammarViolations.length === 0, grammarViolations)
+
+// AND THE DARK LINE ITSELF: `if (typeof id !== 'string') return` in the uniqueness pass. It is unreachable
+// because the schema declares `$defs.id` as a string, so a NUMBER never reaches the semantic layer — the schema
+// answers first. That is the property this asserts, on every collection, because "the schema covers it" is
+// exactly the kind of claim that rots when a collection is added without the id reference.
+const typeViolations = []
+for (const collection of collectionsWithIds) {
+  const rigged = compileSceneSpec(loadFixture()).spec
+  if (collection === 'assets' && (rigged.assets ?? []).length === 0) {
+    rigged.assets = [{ id: 'rigged-asset', type: 'mesh', path: 'assets/rigged.glb', sha256: 'a'.repeat(64) }]
+  }
+  const entries = rigged[collection]
+  if (!Array.isArray(entries) || entries.length === 0) {
+    typeViolations.push(`${collection}: nothing to rig`)
+    continue
+  }
+  entries[0].id = 42
+  const codes = validateSceneSpec(rigged).errors.map(error => error.code)
+  if (!codes.includes('SCENE_SCHEMA_INVALID') || codes.includes('SCENE_ID_INVALID')) {
+    typeViolations.push(`${collection}: ${codes.join(' ')}`)
+  }
+}
+check('a NON-STRING id is refused by the schema in every collection, which is why that branch is dark',
+  typeViolations.length === 0, typeViolations)
 
 console.log('')
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
