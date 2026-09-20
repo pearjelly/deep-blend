@@ -579,6 +579,14 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
         scale * float(stretch[2]),
     )
 
+    # The pattern node carries a Scale of its own (Blender's default is 5.0) which
+    # MULTIPLIES the mapping. Left alone the two compound, so an authored scale of
+    # 60 renders as 300 cycles across the object - about three pixels per cycle at
+    # 1080p, which aliases into flat shading and looks like no texture at all.
+    # Pinning it to 1 makes the mapping the single, readable frequency control.
+    if pattern.inputs.get("Scale") is not None:
+        pattern.inputs["Scale"].default_value = 1.0
+
     if pattern.inputs.get("Detail") is not None and texture.get("detail") is not None:
         pattern.inputs["Detail"].default_value = float(texture["detail"])
     if pattern.inputs.get("Distortion") is not None and texture.get("distortion") is not None:
@@ -602,6 +610,11 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
         bump = nodes.new("ShaderNodeBump")
         bump.location = (-260, -560)
         bump.inputs["Strength"].default_value = min(1.0, bump_strength)
+        # Distance is the virtual relief in object units and defaults to 1.0 - a
+        # full metre of height on a 30 cm desk. Pinned to a few millimetres, which
+        # is the scale of the grain actually being described.
+        if bump.inputs.get("Distance") is not None:
+            bump.inputs["Distance"].default_value = 0.005
         links.new(value, bump.inputs["Height"])
         links.new(bump.outputs["Normal"], normal_socket)
 
@@ -1190,29 +1203,46 @@ def configure_scene(scene, spec, profile, guard):
         if scene.render.engine == "BLENDER_EEVEE":
             try:
                 scene.eevee.use_raytracing = bool(profile["raytracing"])
-                options = getattr(scene.eevee, "ray_tracing_options", None)
-                if options is not None:
-                    # The stock defaults trade quality for speed. A delivery wants
-                    # the screen trace at full resolution and still applied to
-                    # rougher surfaces than the default cutoff allows.
-                    for attribute, value in (
-                        ("resolution_scale", 1),
-                        ("screen_trace_quality", 0.5),
-                        ("trace_max_roughness", 0.9),
-                        ("use_denoise", True),
-                    ):
-                        if hasattr(options, attribute):
-                            setattr(options, attribute, value)
-                guard.note(
-                    "SCENE_COMPILER_DECISION",
-                    "render profile %s: EEVEE raytracing %s"
-                    % (profile_name_of(spec, profile), "enabled" if profile["raytracing"] else "disabled"),
-                )
             except Exception as exc:
                 guard.warn(
                     "ADDON_ENABLE_FAILED",
                     "could not set EEVEE raytracing on profile %s: %s"
                     % (profile_name_of(spec, profile), error_text(exc)),
+                )
+            else:
+                options = getattr(scene.eevee, "ray_tracing_options", None)
+                if options is not None:
+                    # The stock defaults trade quality for speed. A delivery wants
+                    # the screen trace at full resolution and still applied to
+                    # rougher surfaces than the default cutoff allows.
+                    #
+                    # Each option is set on its own: `resolution_scale` is an ENUM
+                    # of the strings "1"/"2"/"4"/"8"/"16", not a number, and when
+                    # one bad value was raised inside a shared try block it aborted
+                    # the whole loop silently - the render still had raytracing on,
+                    # so nothing looked wrong, but every quality setting below the
+                    # failure was quietly skipped.
+                    for attribute, value in (
+                        ("resolution_scale", "1"),
+                        ("screen_trace_quality", 0.5),
+                        ("trace_max_roughness", 0.9),
+                        ("use_denoise", True),
+                    ):
+                        if not hasattr(options, attribute):
+                            continue
+                        try:
+                            setattr(options, attribute, value)
+                        except Exception as exc:
+                            guard.warn(
+                                "ADDON_ENABLE_FAILED",
+                                'EEVEE raytracing option "%s" rejected %r: %s'
+                                % (attribute, value, error_text(exc)),
+                                {"option": attribute},
+                            )
+                guard.note(
+                    "SCENE_COMPILER_DECISION",
+                    "render profile %s: EEVEE raytracing %s"
+                    % (profile_name_of(spec, profile), "enabled" if profile["raytracing"] else "disabled"),
                 )
         else:
             guard.note(
