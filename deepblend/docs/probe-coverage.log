@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 139: no probe — D93's rule applied to the document that owns the totals ──
+── ROUND 140: no probe — every count the README states, not just the anchored one ──
+No product code changed. Rounds 138 and 139 dealt with a second copy of the TOTALS; this round asked about the
+other counts. The README states the suite count in four places (the expectations paragraph, the layout block, a
+command-block comment, the quick start) and `documented-counts` anchored one of them.
+
+Measured by mutation, which is the only instrument that answers this: changing the command block's "# 16 个套件" to
+17 left the suite GREEN, while changing the layout block's tool count went red. A reader who trusts the command
+block would run the suite expecting a number nothing was checking.
+
+The rule is now general — every `N 个套件` in the README must be the declared suite count, and every statement of
+the CURRENT roster size must be the contract's — and writing it produced one over-wide version worth recording: a
+bare `全部 N 个工具` pattern also matched "M2 全部 10 个工具", which is that suite's own scope, asserted by that
+suite ("all ten") and a record rather than a copy of the roster. The check then failed on a correct README.
+Anchoring the pattern at the comment marker fixed it, and both directions were then tested: changing the
+current-total line goes red, changing the M1 scope line stays green. Both directions matter because a check that is
+too wide and one that is too narrow are the same mistake wearing different clothes.
+
+The totals moved 1488 → 1489 and 324 → 325 for the new case, and — as round 139's rule requires — the README
+update landed in exactly one place, which is itself now checked.
+
+── ROUND 139: no probe — D93's rule applied to the document that owns the totals ──── ROUND 139: no probe — D93's rule applied to the document that owns the totals ──
 No product code changed. Round 138 found a second copy of the totals inside the README and removed it, per D93.
 This round asked the next question: who enforces D93 on the document that OWNS the totals? `documented-counts`
 enforces it on the OTHER documents by shape — a number next to "断言" or "node:test 用例" — and nothing enforced it

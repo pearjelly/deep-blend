@@ -355,3 +355,42 @@ test('the README names each of its totals exactly once', () => {
       `the README states ${total} ${occurrences} times — the totals belong in one sentence, and a second copy is what rotted for nineteen rounds`)
   }
 })
+
+// ---------------------------------------------------------------------------
+// EVERY count statement in the README, not just the anchored one
+// ---------------------------------------------------------------------------
+//
+// The checks above anchor one phrasing each — `**N 个套件` in the expectations paragraph, `N 个模型可见工具` in the
+// layout block — and the README states the suite count in more places than that. MEASURED by mutation: changing
+// the command block's `# 16 个套件` to `# 17 个套件` left the suite green, because the anchor matched a different
+// sentence, while changing the layout's tool count went red. A reader who trusts the command block would run the
+// suite expecting a number nothing was checking.
+//
+// The rule here is the general one: EVERY `N 个套件` in the README must be the declared suite count, and every
+// `N 个模型可见工具` must be the roster's size. The phrasings are scoped deliberately — the README says `N 个文件`
+// about a package's own file count as well as about the run, so that one keeps its single anchored assertion.
+test('every suite and tool count the README states is the declared one', () => {
+  const suiteStatements = [...readme.matchAll(/(\d+)\s*个套件/g)].map(match => Number(match[1]))
+  assert.ok(suiteStatements.length >= 2,
+    `expected the README to state the suite count in more than one place, found ${suiteStatements.length}`)
+  const wrongSuites = suiteStatements.filter(value => value !== declaredSuites.length)
+  assert.deepEqual(wrongSuites, [],
+    `the README states ${wrongSuites.join(', ')} suites; run-all.sh declares ${declaredSuites.length}`)
+
+  // TWO PHRASINGS MEAN THE CURRENT TOTAL, and a third does not. "N 个模型可见工具" (the layout block) and
+  // "全部 N 个工具" (the quick-start comment) both state the roster's size; "M1 的 7 个工具" and "M2 全部 10 个
+  // 工具" state what those suites' planes contained, which their own suites assert ("all seven", "all ten") and
+  // which this file must not touch — they are records of a scope, not copies of the roster.
+  const toolStatements = [
+    ...[...readme.matchAll(/(\d+)\s*个模型可见工具/g)].map(match => Number(match[1])),
+    // Anchored at the comment marker: the current-total line reads "# 全部 16 个工具 + 真实交付", while the
+    // scoped one reads "# M2 全部 10 个工具 + 图片回传". A bare `全部 N 个工具` pattern matches both, and the first
+    // version of this did — it then failed on a correct README by reading M2's scope as the roster.
+    ...[...readme.matchAll(/#\s*全部\s*(\d+)\s*个工具/g)].map(match => Number(match[1])),
+  ]
+  assert.ok(toolStatements.length >= 2,
+    `expected the README to state the roster size in both phrasings, found ${toolStatements.length}`)
+  const wrongTools = toolStatements.filter(value => value !== UI_TOOL_CARD_KEYS.length)
+  assert.deepEqual(wrongTools, [],
+    `the README states ${wrongTools.join(', ')} model-visible tools; the contract declares ${UI_TOOL_CARD_KEYS.length}`)
+})
