@@ -155,6 +155,22 @@ test('the suite count in the README is what run-all.sh declares', () => {
   )
 })
 
+test('the "N 条照跑" count in the README is the number of lines run-all.sh prints', () => {
+  // The README tells a reader that without Python "其余 N 条照跑", and N is the number of `✓` lines the
+  // acceptance suite prints: one per contract file plus one per other suite. It is derived from the two counts
+  // the cases above already compute, which is how this was caught — adding one contract file made the run print
+  // 78 while the sentence still said 77.
+  const stated = readme.match(/其余 (\d+) 条照跑/)
+  assert.ok(stated !== null, 'the README no longer states "其余 N 条照跑" — re-anchor this check')
+  // `coveredFiles` already counts the files the other suites name, so the only extra line is the CONTRACT
+  // suite's own (it covers many files and prints one line for the layer). That asymmetry is the same one the
+  // file-count case documents; getting it wrong here is what the first version of this check did, reporting 93.
+  const lines = coveredFiles + (declaredSuites.length - namedSuiteFiles.length)
+  assert.equal(Number(stated[1]), lines,
+    `the README says ${stated[1]} checks keep running; ${coveredFiles} files plus the contract suite's own ` +
+    `line = ${lines}`)
+})
+
 test('the file count in the README is what the run actually covers', () => {
   // The contract layer is ONE suite that covers many files; every other suite names a
   // single file. That asymmetry is why this is computed rather than counted from the

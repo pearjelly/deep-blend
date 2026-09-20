@@ -255,6 +255,29 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 118: no probe — three of the four `--check` scripts had never been run by a test ──
+No product code changed. The repository's operator-facing guarantees are four `--check` scripts, and only
+`setup:check` was exercised by anything (and only since the previous round, to tie the link count). The comment
+beside the one that bit somebody says so in as many words: "nothing but a hand-run `npm run plugin:check`
+surfaced it". A check that cannot fail is worse than no check, and the only way to know which kind you have is to
+break the thing it looks at.
+
+`installer-drift.test.mjs` does that inside a THROWAWAY `$DSH_HOME` (both installers resolve the operator layer
+from `process.env.DSH_HOME ?? ~/.dsh`), driving the whole lifecycle — nothing to install into, install, break,
+re-install — and the last case proves the real home was never written by running the real `plugin:check` and
+requiring it to still report "in sync".
+
+What it pins is not just "it fails" but the exit-code contract: the plugin layer's 0/1/2 (with the "no profile"
+case having to name the profile it looked for), and the preset layer's rule that absent-entirely is a STATE (0)
+while partly present is drift (1) — the second half being a real defect until 2026-09-14, when a fresh clone's
+`--check` exited 1 with "5 file(s) drifted" on a machine where nothing was wrong. The test reaches it by deleting
+exactly one of the five installed files.
+
+Three mutations go red: the plugin reporting drift but exiting 0, the presets treating a never-installed machine
+as drift, and the presets reporting drift but exiting 0. The new file also made `documented-counts` fail
+immediately — the README's file counts, contract count and node:test count all had to follow, which is what those
+derivations exist for.
+
 ── ROUND 117: no probe — the last derivable number in the manuals ──
 No product code changed. `install.md` tells a reader that `node_modules/` holds twelve absolute symlinks into the
 installed deployment and this repository's packages, and the number is the linker's own output (`setup:check`
