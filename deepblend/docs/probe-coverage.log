@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 157: no probe — the security policy's out-of-scope bullets, each naming a control ──
+── ROUND 158: no probe — three rows of the contributor's map, and one of them was wrong ──
+No product code changed. CONTRIBUTING.md carries a table of "change this, and this assertion catches the rest",
+which round 161 confirmed names files that exist. This round measured the stronger claim — that the named suite
+actually reddens — by making the change, since mutation is the only instrument that answers it.
+
+Two of the three sampled rows hold. Adding a fixture reddens `fixture-inventory.test.mjs` on exactly the sentence
+the table promises ("no suite opens nobody-opens-this. A fixture nothing reads is a claim nothing checks"), and
+changing the preset's row set reddens `preset-surface.test.mjs`.
+
+The third does not. Adding `import '@deepseek-ai/dsh-llm'` to the host leaves `link-workspace.mjs --check` saying
+"resolves all 12 package(s)" and exiting 0, and leaves `workspace-links.test.mjs` green. What catches it is any
+suite that LOADS the package: `run.mjs` reports ERR_MODULE_NOT_FOUND and exits 1. The linker does not derive its
+links from every import — it links a fixed set — which is narrower than the comment in round 105 suggested.
+
+That is worse than a missing file: the row promises a CHEAP check (run one suite and you will know), and that check
+stays silent, so a contributor adding an import would believe the link check had them covered. The row now says what
+was measured, names the real catcher, and records that the table is verified by sampling.
+
+── ROUND 157: no probe — the security policy's out-of-scope bullets, each naming a control ──── ROUND 157: no probe — the security policy's out-of-scope bullets, each naming a control ──
 No product code changed. SECURITY.md's last section says what a report should NOT be, and every bullet names the
 control that makes it out of scope. All four are backed, and one is backed unusually well: the claim that the tool
 plane validates "every result against the harness's own lossless-JSON rule" is asserted with the HARNESS'S OWN

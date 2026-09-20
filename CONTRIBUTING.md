@@ -120,7 +120,7 @@ docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
 | 改一个工具名并写进手册 | `docs-consistency.test.mjs`（两个方向：手册不许提没实现的，`usage.md` 的分工表也不许漏掉任何一个） |
 | 加一个 fixture | `fixture-inventory.test.mjs`（没人打开的 fixture 会让它红） |
 | 改 preset 的行集合 | `preset-surface.test.mjs`（**相等**断言，多一行少一行都红） |
-| 新增一句 import | `workspace-links.test.mjs` |
+| 新增一句 import（指向一个**工作区没有链接**的包） | **契约层会红，但不是 `workspace-links.test.mjs`** ✗——第 193 轮实测：给 host 加一句 `import '@deepseek-ai/dsh-llm'` 之后 ✓，`link-workspace.mjs --check` 仍然说「resolves all **12** package(s)」并 exit 0 ✗，`workspace-links.test.mjs` 也**不红** ✗——真正抓住它的是**任何加载这个包的套件** ✓：`run.mjs` 报 `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm'` 并 exit 1 ✓✓。**链接器不按「每一句 import」推导链接** ✓（它链接的是一组固定的包 ✓） |
 | 改 bundle 里的配置 | `plugin:check` 会报 operator layer 漂移（那一层是推导出来的） |
 | 改工作台 UI 的**可见**部分 | **没有断言**。README 的三张图不会自己更新，也没人会发现它们过时了——跑 `npm run docs:images` 重新截（`docs-images.test.mjs` 只能保证它们还在、还是截图，保证不了它们是新版） |
 | 改 `.github/` 里的 issue / PR 模板 | `contributor-surface.test.mjs`（表单能不能被 GitHub 渲染、点名的命令与路径是否存在、pin 与链接指向真的东西、以及模板里不许写里程碑状态） |

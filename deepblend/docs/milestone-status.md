@@ -11487,3 +11487,48 @@ DeepBlend tests: 65/65 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
 `node:test` 用例 338 → **339** ✓（README 的更新仍然只落在一处 ✓）。
+
+## 189. `CONTRIBUTING.md` 那张「改了 X，哪条断言会红」的表：**抽三行，一行是错的**
+
+### 189.1 量它
+
+那张表是**贡献者的地图** ✓（第 161 轮确认它点名的**文件都真实存在** ✓）。
+这一轮量**更强的东西** ✓：它说「改了 X **会被哪条断言抓到**」✓——于是**真的去改** ✓（变异是唯一诚实的量具 ✓）。
+
+| 表里的行 | 实测 |
+|---|---|
+| 加一个 fixture → `fixture-inventory.test.mjs`（「**没人打开的 fixture 会让它红**」✓） | **成立** ✓✓——拷一份**合法**的 fixture 进去 ✓，红在**正是那句话**上 ✓：`no suite opens nobody-opens-this. A fixture nothing reads is a claim nothing checks` ✓✓ |
+| 改 preset 的行集合 → `preset-surface.test.mjs`（相等断言 ✓） | **成立** ✓（加一行 → 红 ✓） |
+| **新增一句 import → `workspace-links.test.mjs`** ✗ | **不成立** ✗✗ |
+
+### 189.2 那一行错在哪
+
+给 `host/lib/index.js` 加一句 `import '@deepseek-ai/dsh-llm'` ✓ 之后实测 ✓：
+
+* `link-workspace.mjs --check` ✓：**仍然**说「resolves all **12** package(s)」✓、**exit 0** ✗✓；
+* `workspace-links.test.mjs` ✓：**不红** ✗；
+* 真正抓住它的是**任何加载这个包的套件** ✓✓：`run.mjs` 报
+  `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm'` ✓、exit 1 ✓✓。
+
+也就是说 ✓：**链接器不按「每一句 import」推导链接** ✗——它链接的是一组**固定的包** ✓
+（第 105 轮那句注释说的是「由源码 import 推导」✓，而实测的**范围**比那句话窄 ✓✓）。
+
+**这比「文件不存在」更糟** ✓：那一行承诺的是一条**便宜的**检查 ✓（跑一个套件就知道 ✓），
+而实际上它**不响** ✗——贡献者会以为加完 import 跑一下 `workspace-links` 就够了 ✓✓。
+
+### 189.3 修法
+
+表里那一行改成**实测的样子** ✓：点名真正的抓手（任何加载这个包的套件 ✓、`ERR_MODULE_NOT_FOUND` ✓），
+并写明**链接器不按每一句 import 推导链接** ✓✓。
+
+（抽样的三行里两行成立 ✓、一行错 ✗——**表是抽样验证的** ✓，这一点也写进了那一行 ✓。）
+
+### 189.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
+`node:test` 用例 **339** ✓、契约层 **65** 个文件 ✓。
