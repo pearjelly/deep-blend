@@ -255,6 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 107: an approval a redirect could walk around ──
+The remote-asset fetch validated only the ORIGINAL url's protocol and then used `redirect: 'follow'`, which hands
+the decision to the network. So the URL a human approves is not necessarily the URL the request reaches: a server
+answering `302 Location: http://127.0.0.1:3080/…` moves it to this machine's own services, and neither the host's
+rule nor the operator's eyes were on that hop. The approval gate itself is real — it refused the first version of
+these very cases — but the redirect made its subject a lie.
+
+Redirects are followed one hop at a time now, each hop under the same protocol rule, bounded at five hops, and the
+chain is part of the result (`redirectedFrom: { hops, chain }`), so where the bytes came from is visible again.
+Loopback is deliberately NOT refused, and the comment says why: the approval gate is the control for "fetch this
+URL", local asset servers are legitimate, and this suite's own remote cases serve from 127.0.0.1. What was missing
+was not a ban but the ability to see.
+
+Four mutations go red: handing redirects back to the network, removing the hop limit, removing the per-hop
+protocol check, and not reporting the chain.
+
+The first reading of this round was 41 dark lines — the new code's error arms. Two of them are drivable and got
+cases (a 3xx with no `Location`; a `Location` that is not a URL — relative values are legal and resolve, so only a
+genuinely broken header reaches that arm), and the third is named at the site (cancelling a body this process owns
+does not fail; it is a catch because an unhandled rejection would take the process down). The second reading is
+back to 32.
+
 ── ROUND 122: no probe — a sweep that came back negative, and a fresh clone ──
 No product code changed. The previous two rounds each caught one instance of a shape worth hunting: a comment
 claiming N sides above an assertion driving one. So this round swept for it deliberately — enumerating comments

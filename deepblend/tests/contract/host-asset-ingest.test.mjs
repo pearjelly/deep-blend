@@ -88,6 +88,39 @@ const ingestError = request => studio.ingestAsset(request).catch(cause => cause)
 
 let bodiesServed = 0
 const server = createServer((request, response) => {
+  if (request.url === '/redirect-once.glb') {
+    // A redirect is normal (an S3 region mismatch does it), and the point of the case below is that the host
+    // FOLLOWS it while keeping the chain visible rather than handing the decision to the network.
+    response.writeHead(302, { location: '/model.glb' })
+    response.end()
+    return
+  }
+  if (request.url === '/redirect-forever.glb') {
+    response.writeHead(302, { location: '/redirect-forever.glb' })
+    response.end()
+    return
+  }
+  if (request.url === '/redirect-nowhere.glb') {
+    // A 3xx with no `Location` at all: nothing to follow, and the status is not `ok`, so the caller's own
+    // refusal is what answers. Without a case, that arm is dark and nobody knows whether it returns or hangs.
+    response.writeHead(302)
+    response.end()
+    return
+  }
+  if (request.url === '/redirect-unparseable.glb') {
+    // `Location` that is not a URL at all (an unterminated IPv6 host). Relative values are legal and resolve
+    // against the current URL, so this is the arm that only a genuinely broken header reaches.
+    response.writeHead(302, { location: 'http://[' })
+    response.end()
+    return
+  }
+  if (request.url === '/redirect-elsewhere.glb') {
+    // The hop nobody approved: a protocol the first check refuses. With `redirect: 'follow'` this never reached
+    // the host's own rule; now every hop is checked against it.
+    response.writeHead(302, { location: 'ftp://example.invalid/model.glb' })
+    response.end()
+    return
+  }
   if (request.url === '/missing.glb') {
     response.writeHead(404, { 'content-type': 'text/plain' })
     response.end('no such asset')
@@ -348,6 +381,60 @@ check('a local ingest produces the same record shape, with a local source',
   local.assetId === 'local-model' && local.sha256 === fetched.sha256 &&
   local.source?.kind === 'local' && local.source?.path === localCopy,
   { assetId: local.assetId, source: local.source, sameHash: local.sha256 === fetched.sha256 })
+
+// ---------------------------------------------------------------------------
+// Redirects: followed, bounded, and VISIBLE
+// ---------------------------------------------------------------------------
+//
+// MEASURED before this round: the only URL check was the protocol of the ORIGINAL url, and the fetch used
+// `redirect: 'follow'` — so a server answering `302 Location: …` moved the request wherever it liked, including
+// to this machine's own services, and the human who approved the URL never saw it. The approval gate is the
+// control for "fetch this URL"; a redirect made that control's subject a lie.
+{
+  const redirected = await studio.ingestAsset({
+    projectId, sourceUrl: `${base}/redirect-once.glb`, assetId: 'redirected', approved: true,
+  })
+  check('a redirect is FOLLOWED (an S3 region mismatch is normal) and where it went is part of the result',
+    typeof redirected.sha256 === 'string' && redirected.redirectedFrom?.hops === 1 &&
+    redirected.redirectedFrom.chain.length === 2 &&
+    /redirect-once\.glb$/.test(redirected.redirectedFrom.chain[0]) &&
+    /model\.glb$/.test(redirected.redirectedFrom.chain[1]),
+    redirected.redirectedFrom ?? redirected)
+
+  const endless = await studio.ingestAsset({
+    projectId, sourceUrl: `${base}/redirect-forever.glb`, assetId: 'endless', approved: true,
+  }).catch(cause => cause)
+  check('a server that redirects forever is REFUSED after a bounded number of hops, not followed',
+    endless instanceof BlenderError && endless.code === code('ASSET_FETCH_FAILED') &&
+    /redirected more than \d+ times/.test(endless.message) &&
+    Array.isArray(endless.detail?.chain) && endless.detail.chain.length > 1,
+    endless?.code === undefined ? endless : { code: endless.code, hops: endless.detail?.chain?.length })
+
+  const nowhere = await studio.ingestAsset({
+    projectId, sourceUrl: `${base}/redirect-nowhere.glb`, assetId: 'nowhere', approved: true,
+  }).catch(cause => cause)
+  check('a 3xx with no Location is not a redirect: it is answered by the caller\u2019s own HTTP-status refusal',
+    nowhere instanceof BlenderError && nowhere.code === code('ASSET_FETCH_FAILED') &&
+    /answered HTTP 302/.test(nowhere.message),
+    nowhere?.code === undefined ? nowhere : { code: nowhere.code, message: nowhere.message.slice(0, 60) })
+
+  const unparseable = await studio.ingestAsset({
+    projectId, sourceUrl: `${base}/redirect-unparseable.glb`, assetId: 'unparseable', approved: true,
+  }).catch(cause => cause)
+  check('a Location that is not a URL is refused with the value it could not read',
+    unparseable instanceof BlenderError && unparseable.code === code('ASSET_FETCH_FAILED') &&
+    /which is not a URL/.test(unparseable.message) && unparseable.detail?.location === 'http://[',
+    unparseable?.code === undefined ? unparseable : { code: unparseable.code, location: unparseable.detail?.location })
+
+  const elsewhere = await studio.ingestAsset({
+    projectId, sourceUrl: `${base}/redirect-elsewhere.glb`, assetId: 'elsewhere', approved: true,
+  }).catch(cause => cause)
+  check('a redirect to a protocol the FIRST check refuses is refused at the hop too',
+    elsewhere instanceof BlenderError && elsewhere.code === code('ASSET_FETCH_FAILED') &&
+    /only http and https are followed, on the first URL and on every hop after it/.test(elsewhere.message) &&
+    elsewhere.detail?.protocol === 'ftp:',
+    elsewhere?.code === undefined ? elsewhere : { code: elsewhere.code, protocol: elsewhere.detail?.protocol })
+}
 
 await new Promise(resolve => server.close(resolve))
 rmSync(workspaceRoot, { recursive: true, force: true })

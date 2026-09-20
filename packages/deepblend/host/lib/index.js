@@ -103,6 +103,14 @@ import {
 } from './paths.js'
 
 /** Service key registered into the Cordis context. */
+/**
+ * How many redirects a remote asset URL may take before this refuses to follow it.
+ *
+ * Bounded because the chain is followed one hop at a time so that every hop can be checked (see
+ * `_fetchFollowingRedirects`); a server that redirects forever must cost a refusal, not an endless loop.
+ */
+const MAX_ASSET_REDIRECTS = 5
+
 export const BLENDER_STUDIO_SERVICE = 'blenderStudio'
 
 /**
@@ -1941,6 +1949,8 @@ export default class BlenderStudio extends Service {
 
     /** The scratch directory this call fetched into, or null when the source was a local file. */
     let fetchedScratch = null
+    // Where the redirects went, filled by `_fetchAssetToScratch` (empty for a local source).
+    const fetchedChain = []
     const sourcePath = typeof request?.sourcePath === 'string' && request.sourcePath.length > 0
       ? request.sourcePath
       : null
@@ -2013,7 +2023,9 @@ export default class BlenderStudio extends Service {
       staged = resolvedSource
       name = basename(resolvedSource)
     } else {
-      staged = await this._fetchAssetToScratch(sourceUrl, request?.signal)
+      staged = await this._fetchAssetToScratch(sourceUrl, request?.signal, fetchedChain)
+      // (the redirect chain is reported in the RESULT below — this path has no warnings array, and the approval's
+      // subject is worth stating where the caller reads the outcome rather than inventing a second channel)
       // Remembered so the `finally` below can remove it, and left null for a local source: the caller's own
       // file is not ours to delete.
       fetchedScratch = dirname(staged)
@@ -2142,6 +2154,11 @@ export default class BlenderStudio extends Service {
         license,
         manifestPath: 'assets/manifest.json',
         currentRevision: record.currentRevision,
+        // The approval showed a URL; a redirect moves the request somewhere else. Where it ended up is part of
+        // the outcome, and it is null for a local source rather than an empty chain.
+        redirectedFrom: fetchedChain.length > 1
+          ? { hops: fetchedChain.length - 1, chain: fetchedChain.map(redactUrl) }
+          : null,
         nextStep:
           `declare it with blender_scene_patch: {op: "asset.add", asset: {id: "${assetId}", type: "${type}", ` +
           `path: "${relativePath}", sha256: "${sha256}"` +
@@ -2178,7 +2195,75 @@ export default class BlenderStudio extends Service {
    * @param {AbortSignal} [signal]
    * @returns {Promise<string>} absolute path to the fetched file
    */
-  async _fetchAssetToScratch(url, signal) {
+  /**
+   * Fetch a URL, following redirects one hop at a time under the same rule as the first.
+   *
+   * The chain is written into `chainOut` rather than attached to the Response: a `Response` is not extensible,
+   * and `Object.defineProperty` on one throws — which the first version of this did, surfacing as the unhelpful
+   * "could not be fetched: fetch failed".
+   *
+   * @param {URL} first - the URL the caller asked for (already protocol-checked).
+   * @param {AbortSignal} [signal]
+   * @param {string[]} [chainOut] - filled with every URL the request passed through, in order.
+   * @returns {Promise<Response>}
+   */
+  async _fetchFollowingRedirects(first, signal, chainOut = []) {
+    const chain = [first.toString()]
+    let current = first
+    for (let hop = 0; hop <= MAX_ASSET_REDIRECTS; hop += 1) {
+      const response = await fetch(current, { redirect: 'manual', signal })
+      if (response.status < 300 || response.status >= 400) {
+        chainOut.push(...chain)
+        return response
+      }
+      const location = response.headers.get('location')
+      if (location === null || location === '') {
+        chainOut.push(...chain)
+        return response
+      }
+      if (hop === MAX_ASSET_REDIRECTS) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_FETCH_FAILED,
+          `"${redactUrl(first.toString())}" redirected more than ${MAX_ASSET_REDIRECTS} times; ` +
+            'this stops rather than following a chain of unknown length.',
+          { detail: { url: redactUrl(first.toString()), hops: chain.length, chain: chain.map(redactUrl) } },
+        )
+      }
+      // The redirect's own body has to be released before the next request: an unconsumed body keeps the socket,
+      // and reusing it answers ECONNRESET — which the first version of this surfaced as "fetch failed" on a
+      // perfectly healthy server.
+      //
+      // The `catch` here is unreachable in practice and stays dark: cancelling a response body this process owns
+      // does not fail, and if it somehow did there is nothing useful to do about it — the next hop is still the
+      // right move. It is written as a catch rather than an ignore because an unhandled rejection would take the
+      // process down, which is a worse answer than continuing.
+      await response.body?.cancel().catch(() => {})
+      let next
+      try {
+        next = new URL(location, current)
+      } catch {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_FETCH_FAILED,
+          `"${redactUrl(current.toString())}" redirected to "${redactUrl(location)}", which is not a URL.`,
+          { detail: { from: redactUrl(current.toString()), location: redactUrl(location) } },
+        )
+      }
+      if (next.protocol !== 'https:' && next.protocol !== 'http:') {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_FETCH_FAILED,
+          `"${redactUrl(current.toString())}" redirected to "${next.protocol}", which this will not fetch; ` +
+            'only http and https are followed, on the first URL and on every hop after it.',
+          { detail: { from: redactUrl(current.toString()), protocol: next.protocol, chain: chain.map(redactUrl) } },
+        )
+      }
+      chain.push(next.toString())
+      current = next
+    }
+    /* c8 ignore next -- the loop returns or throws on every path; this is the compiler's floor. */
+    throw new BlenderError(BlenderErrorCode.ASSET_FETCH_FAILED, 'unreachable: the redirect loop always returns')
+  }
+
+  async _fetchAssetToScratch(url, signal, chainOut = []) {
     let parsed
     try {
       parsed = new URL(url)
@@ -2202,7 +2287,17 @@ export default class BlenderStudio extends Service {
     const target = join(scratchDirectory, 'download')
 
     try {
-      const response = await fetch(parsed, { redirect: 'follow', signal })
+      // REDIRECTS ARE FOLLOWED BY HAND, because `redirect: 'follow'` hands the decision to the network. The URL a
+      // human approves is the one they are shown, and a server answering `302 Location: http://127.0.0.1:3080/…`
+      // moves the request somewhere nobody approved — including this machine's own services. MEASURED before this
+      // change: the only validation was the protocol of the ORIGINAL url, and every hop after it was unexamined.
+      // So each hop is checked against the same rule, the chain is bounded, and the final URL is carried back to
+      // the caller (and into the tool's warnings) so the approval's subject stays visible.
+      //
+      // Loopback is deliberately NOT refused: the approval gate is the control for "fetch this URL", local asset
+      // servers are a legitimate use, and the test suite's own remote-ingest cases serve from 127.0.0.1. What was
+      // missing was not a ban but the ability to SEE where the request ended up.
+      const response = await this._fetchFollowingRedirects(parsed, signal, chainOut)
       if (!response.ok) {
         throw new BlenderError(
           BlenderErrorCode.ASSET_FETCH_FAILED,
