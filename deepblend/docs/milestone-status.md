@@ -10907,3 +10907,49 @@ DeepBlend tests: 64/64 file(s) passed
 **两轮连着同一个形状** ✓：**文档写的失败模式**（退出码 ✓、缺依赖时的行为 ✓）
 **比成功路径更难被跑** ✓——因为它们需要**故意把环境弄坏** ✓。
 把环境弄坏的方法现在写进了用例里 ✓✓。
+
+## 177. 「没有 `.git` 会怎样」：一条写给**tarball 用户**的承诺
+
+### 177.1 量它
+
+前置条件表写着 ✓：没有 `.git` 目录时，读仓库状态的那**两条**断言报「not a git checkout」并**跳过** ✓，
+而**退出码仍然是 0** ✓✓。这正是**下载 tarball** 的人会遇到的情形 ✓——而那**正是清单接受的第三条安装路线** ✓✓
+（第 167 轮 ✓）——而**没有任何东西跑过它** ✗：本 checkout 有 `.git` ✓，`verify:clone` 是 **clone** ✓（也有 ✓）。
+
+### 177.2 修法：造一份**没有 `.git`** 的树
+
+`setup-steps.test.mjs` 新增 ✓：用 **`rsync`** 拷一份**发布归档形状**的树 ✓
+（排除 `.git` ✓、`.tools` ✓、`node_modules` ✓、`.deepblend` ✓——正是 tarball 不带的东西 ✓），
+跑 `link-workspace.mjs` 建**它自己的**链接 ✓，然后跑那两个文件 ✓，
+断言 **exit 0** ✓、输出里有 **`not a git checkout`** ✓、并且**确实跳过了**（`skipped N` ✓）✓。
+
+### 177.3 三次**我自己的**错，每次都被读数揭穿
+
+1. **链接**：第一版把本 checkout 的 `node_modules` **符号链接**过去 ✗ → 那些链接指向**原仓库**的包 ✓，
+   于是 `workspace-links.test.mjs` **正确地**报「指向的不是声明它的那个包」✓✓——**一份拷贝要有自己的链接** ✓；
+2. **文件清单**：第二版只拷「看起来需要」的目录 ✗ → `ENOENT: … README.md` ✓——
+   **一个测试需要哪些文件，不是可以猜的** ✓✓；改成 **rsync 整棵树** ✓；
+3. **递归**：拷进来的树里**也有这个用例** ✗ → 它又拷一份 ✓ → **自己生成自己** ✓，
+   整轮跑满**五分钟超时**才报错 ✓✓。加了环境变量守卫 ✓（拷贝里那条**跳过**并说明原因 ✓）——
+   加完 **1.8 秒** ✓。
+
+### 177.4 变异
+
+把 `workspace-links.test.mjs` 的 git 检测从 `existsSync(join(ROOT, '.git'))` 改成 `true` ✓
+（即：让拷贝**以为**自己是 checkout ✓）→ **红** ✓
+（`workspace-links.test.mjs exited 1 without a .git directory, and the README says the exit code stays 0` ✓✓）。
+
+### 177.5 收口
+
+```
+$ node deepblend/tests/contract/setup-steps.test.mjs
+ℹ tests 21   ℹ pass 21   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
+`node:test` 用例 329 → **330** ✓（README 的更新仍然只落在一处 ✓）。
+
+**三轮连着同一个形状** ✓：文档里的**失败模式**（退出码 ✓、缺依赖 ✓、缺 `.git` ✓）
+比成功路径更难被跑 ✓——**而这三条恰好都是「陌生人先遇到」的那些** ✓✓。

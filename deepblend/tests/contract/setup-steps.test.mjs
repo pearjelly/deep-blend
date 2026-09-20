@@ -37,7 +37,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
@@ -330,4 +330,58 @@ test('the profile installer says why it still exists, and it is not pnpm', () =>
     /pnpm[^\n]{0,24}(在 PATH|on PATH)/,
     'install.md names the supported path without saying it needs pnpm ON PATH — a bare mention of pnpm elsewhere in the file is not the prerequisite a reader following it hits',
   )
+})
+
+// ---------------------------------------------------------------------------
+// The documented shape of "no .git" — a SKIP that keeps the exit code at 0
+// ---------------------------------------------------------------------------
+//
+// The prerequisites table says that without a `.git` directory, the two assertions that read repository state
+// report "not a git checkout" and SKIP, and the exit code stays 0. That is the shape a tarball download meets —
+// which is one of the three install routes the plugin list accepts — and nothing exercised it: this checkout has
+// `.git`, and `verify:clone` clones, so it has one too.
+//
+// The detection is `existsSync(join(ROOT, '.git'))`, not a git subprocess, so the only way to reach the branch is a
+// tree with no `.git` in it. This case builds one: the source directories are copied, `node_modules` is symlinked
+// (the tests import from the deployment through it), and the two files are run there.
+// THE COPY RUNS THIS FILE TOO, so the case has to know when it is the copy. Without the guard it recursed —
+// spawning itself, which spawned itself — and the run took the full five-minute timeout before reporting anything.
+// The guard is an environment variable rather than a file check because the copy is otherwise indistinguishable.
+test('without .git the repository-state assertions skip and the exit code stays 0',
+  { skip: process.env.DEEPBLEND_NO_GIT_CASE === '1' ? 'this is the copy the case made' : false }, () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-no-git-'))
+  try {
+    // A TARBALL, not a hand-picked file list: the first version copied the directories this case seemed to need,
+    // and `workspace-links.test.mjs` failed with ENOENT on README.md — the file list a test needs is not something
+    // to guess. `rsync` excludes exactly what a release archive would not carry: the history, the managed Blender,
+    // the linked modules and the generated store.
+    execFileSync('rsync', [
+      '-a', '--exclude', '.git', '--exclude', '.tools', '--exclude', 'node_modules', '--exclude', '.deepblend',
+      `${ROOT}/`, `${scratch}/`,
+    ], { cwd: ROOT })
+    // The copy needs ITS OWN links. Symlinking this checkout's `node_modules` was the first attempt and it failed
+    // correctly: those links point at the ORIGINAL packages, and `workspace-links.test.mjs` reported every one of
+    // them as pointing somewhere else. A tarball user runs the linker, so the copy does too.
+    const linked = spawnSync(process.execPath, [join(scratch, 'deepblend', 'tools', 'link-workspace.mjs')], {
+      cwd: scratch, encoding: 'utf8', timeout: 120_000,
+    })
+    assert.equal(linked.status, 0, `linking the copy failed:\n${linked.stdout}${linked.stderr}`)
+    assert.ok(!existsSync(join(scratch, '.git')), 'the copy must not carry a .git directory')
+
+    const files = ['deepblend/tests/contract/workspace-links.test.mjs', 'deepblend/tests/contract/setup-steps.test.mjs']
+    for (const file of files) {
+      const probe = spawnSync(process.execPath, [join(scratch, file)], {
+        cwd: scratch, encoding: 'utf8', timeout: 300_000,
+        env: { ...process.env, DEEPBLEND_NO_GIT_CASE: '1' },
+      })
+      const output = `${probe.stdout ?? ''}${probe.stderr ?? ''}`
+      assert.equal(probe.status, 0,
+        `${file} exited ${probe.status} without a .git directory, and the README says the exit code stays 0:\n${output.slice(-600)}`)
+      assert.match(output, /not a git checkout/,
+        `${file} did not report the documented skip reason without a .git directory`)
+      assert.match(output, /skipped [1-9]/, `${file} skipped nothing, so the branch under test was not reached`)
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
 })

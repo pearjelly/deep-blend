@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 145: no probe — the documented failure mode for a missing interpreter ──
+── ROUND 146: no probe — the promise made to a tarball user ──
+No product code changed. The prerequisites table says that without a `.git` directory the two assertions reading
+repository state report "not a git checkout" and SKIP, with the exit code staying 0. That is the shape a tarball
+download meets — one of the three install routes the plugin list accepts — and nothing exercised it: this checkout
+has `.git`, and `verify:clone` clones, so it has one too. Three rounds in a row now, the documented failure mode is
+the one path nobody runs.
+
+The case builds a release-archive-shaped tree with `rsync` (excluding exactly what a tarball would not carry: the
+history, the managed Blender, the linked modules and the generated store), links it, and runs both files there,
+asserting exit 0, the documented skip reason, and that something really was skipped.
+
+Three mistakes of mine, each caught by a reading. The first version symlinked THIS checkout's `node_modules` into
+the copy, and `workspace-links.test.mjs` correctly reported that every link pointed at a package that did not
+declare it — a copy needs its own links. The second copied the directories the case seemed to need and hit
+`ENOENT: … README.md`, because the file list a test needs is not something to guess; `rsync` copies the tree now.
+The third recursed: the copy contains this very file, so it made another copy, and the run took the full five-minute
+timeout before reporting anything. An environment-variable guard makes the copy skip the case, and the whole thing
+runs in 1.8 seconds.
+
+The mutation that makes the copy believe it IS a checkout goes red. That closes the third documented failure mode:
+an exit code, a missing interpreter, and a missing `.git` — all of them things a stranger meets first and none of
+which had ever been run.
+
+── ROUND 145: no probe — the documented failure mode for a missing interpreter ──── ROUND 145: no probe — the documented failure mode for a missing interpreter ──
 No product code changed. The prerequisites table promises something specific: without Python, ONE check fails and
 says what is missing, and the rest of the file keeps running. MEASURED by running `render-job.test.mjs` under a
 PATH built to hold node and sh and nothing else: exit 1, exactly one `[FAIL]`, a message naming
