@@ -255,7 +255,33 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 128: no probe — the test files the documentation names ──
+── ROUND 129: no probe — the decision numbers the documents cite ──
+No product code changed. The documents cite decisions by number everywhere — 664 citations across nine documents —
+and those numbers are the repository's memory, so a citation to a number nobody wrote down sends a reader nowhere
+with no complaint from anything.
+
+Finding out what "written down" means here took six wrong readings of this repository's own prose, and every one
+of them was the same mistake in a different coat: ask which document and which spelling the mark refers to before
+asking whether it exists. The decisions are defined in three shapes across two documents — `### D82 — title`
+headings up to about D141, change-log rows `| … | D142：…` with a colon, and `runtime-audit.md`'s table rows
+`| D1 | …` WITHOUT a colon — and the earliest ten are not in the architecture file at all: its own header says
+"M0 的 D1–D10 见 runtime-audit.md §7", which is exactly the referent a shape-only check misses.
+
+The intermediate readings are worth keeping: treating every `DNNN` as a definition reported zero dangling
+(circular); row prefixes alone, 151; headings alone, 82; both, 8; both plus the second document, still 8 — because
+that document's rows carry no colon. All three shapes and both documents: 197 decisions defined (D1 through D197
+with no gap) and all 664 citations resolving.
+
+The check lives in `docs-consistency.test.mjs`, with guards so a failed parse cannot silently become "everything
+passes" (more than 100 definitions, at least 200 citations). Two mutations go red: a manual citing D999, and the
+`D1` row in `runtime-audit.md` being renumbered.
+
+It also taught itself one exclusion: the round that added it wrote, IN `milestone-status.md`, the sentence "cite a
+D999 in a manual" — describing the mutation it had just run — and the check read its own documentation as a
+dangling citation. The narrative is excluded now, for the same reason the test-file check excludes it: a record may
+legitimately name a number that was never defined, while a manual may not, because a reader follows it.
+
+── ROUND 128: no probe — the test files the documentation names ──── ROUND 128: no probe — the test files the documentation names ──
 No product code changed. CONTRIBUTING.md keeps a table of "change this, and this assertion will catch the rest",
 and each of its nine rows names the suite that does the catching. Those names are how a contributor finds the
 check without running the whole suite, and a renamed or deleted suite leaves the table pointing at nothing — with

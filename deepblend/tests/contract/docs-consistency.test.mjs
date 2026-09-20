@@ -519,3 +519,49 @@ test('every test file the manuals name exists', () => {
   assert.ok(seen.size >= 20, `expected the manuals to name many suites, found ${seen.size}`)
   assert.deepEqual(missing, [], 'these documents name a test file that does not exist')
 })
+
+// ---------------------------------------------------------------------------
+// A decision citation must point at a decision that is written down
+// ---------------------------------------------------------------------------
+//
+// The documents cite decisions by number everywhere — "决策 D1/D9", "D82", "（D111）" — and the numbers are the
+// repository's memory: 664 citations across nine documents. A citation to a number nobody ever wrote sends a
+// reader nowhere and nothing complains, because a document is not executed.
+//
+// "WRITTEN DOWN" HAS THREE SHAPES IN TWO DOCUMENTS, and finding that out took six wrong readings of this
+// repository's own prose:
+//   - `### D82 — title`                 the architecture file's headings, up to about D141;
+//   - `| … | D142：…`                    the architecture file's change-log rows, with a colon;
+//   - `| D1 | …`                         `runtime-audit.md`'s table, WITHOUT a colon — and the architecture
+//                                        file's own header says the first ten live there ("M0 的 D1–D10 见
+//                                        runtime-audit.md §7"), which is the referent a shape-only check misses.
+// MEASURED with all three: 197 decisions defined, D1 through D197 with no gap, and all 664 citations resolve.
+test('every decision number a document cites is defined somewhere', () => {
+  const defined = new Set()
+  for (const path of ['deepblend/docs/architecture-decisions.md', 'deepblend/docs/runtime-audit.md']) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/^#{2,4} ?D(\d{1,3})\b/gm)) defined.add(match[1])
+    for (const match of text.matchAll(/\|\s*\**D(\d{1,3})\**\s*[:：|]/g)) defined.add(match[1])
+  }
+  assert.ok(defined.size > 100, `expected the decision register to define many decisions, found ${defined.size}`)
+
+  // THE NARRATIVE IS EXCLUDED, and this check learned that the hard way: the round that added it wrote, IN
+  // `milestone-status.md`, the sentence "cite a D999 in a manual" — describing the mutation it had just run — and
+  // the check read its own documentation as a dangling citation. A record may legitimately name a number that was
+  // never defined (a hypothetical, a mutation, a decision that was withdrawn); a manual may not, because a reader
+  // follows it. Same distinction as the test-file check above.
+  const documents = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', ...MANUALS,
+    'deepblend/docs/security.md', 'deepblend/docs/tool-contracts.md',
+    'deepblend/docs/architecture-decisions.md']
+  const missing = []
+  let cited = 0
+  for (const path of documents) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/\bD(\d{1,3})\b/g)) {
+      cited += 1
+      if (!defined.has(match[1])) missing.push(`${path}: D${match[1]}`)
+    }
+  }
+  assert.ok(cited >= 200, `expected many citations, found ${cited}`)
+  assert.deepEqual([...new Set(missing)], [], 'these citations name a decision nobody wrote down')
+})
