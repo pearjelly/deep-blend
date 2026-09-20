@@ -384,3 +384,44 @@ test('the peer-dependency rule the plugin ecosystem rejects submissions for', ()
     'these peer ranges carry no prerelease branch, so node-semver excludes every -rc. version silently')
 })
 
+// ---------------------------------------------------------------------------
+// The installable package's manifest, against the ecosystem's field requirements
+// ---------------------------------------------------------------------------
+//
+// The listing checklist is explicit about which fields the INSTALLABLE package must carry, and each one has a
+// failure mode: `dsh.bundle.patch` missing means "not a bundle" and a rejection; a patch path that does not exist
+// installs nothing; a `files` list that omits the patch ships a package that mounts nothing; and `dsh.client` on a
+// DEPENDENCY is not read by an install — the field describes the package being installed, so a plugin whose
+// browser half is declared one level down installs a host with no workbench.
+//
+// MEASURED before this was written: the bundle declared only `dsh.bundle`, had no `files` list at all, and the
+// client was declared on the `ui` package. The operator-layer path this repository actually uses was unaffected
+// (`install-plugin.mjs` writes the profile patch directly), which is why nothing noticed — and the ecosystem path
+// is the one the listing is for.
+test('the installable package declares the fields an ecosystem install reads, and they resolve', () => {
+  const bundle = JSON.parse(read(join(ROOT, 'packages', 'deepblend', 'bundle', 'package.json')))
+  assert.ok(bundle.dsh?.bundle?.patch !== undefined, 'the bundle declares no dsh.bundle.patch, so it is not a bundle')
+  assert.ok(existsSync(join(ROOT, 'packages', 'deepblend', 'bundle', bundle.dsh.bundle.patch)),
+    `the declared patch ${bundle.dsh?.bundle?.patch} does not exist next to package.json`)
+  assert.equal(bundle.dsh?.client?.platform, 'web',
+    'the installable package declares no dsh.client, so an install mounts the host with no workbench')
+  const files = bundle.files ?? []
+  // The two spell the same file differently: `dsh.bundle.patch` is a path relative to the package directory
+  // (`./cordis.patch.yml`) while `files` entries are bare (`cordis.patch.yml`). Comparing them raw fails on a
+  // manifest that is correct, which is how this assertion first reported itself.
+  const patchEntry = bundle.dsh.bundle.patch.replace(/^\.\//, '')
+  assert.ok(files.includes(patchEntry),
+    'the files list omits the patch, so the published package mounts nothing')
+  assert.ok(files.includes('screenshots.json'), 'the files list omits the storefront declaration')
+  // Every package the patch's rows name must exist in this repository, or the install mounts a row that cannot
+  // resolve. The rows spell it `name: '@deepblend/…'` (the field is the package, not an import specifier).
+  const patch = read(join(ROOT, 'packages', 'deepblend', 'bundle', bundle.dsh.bundle.patch))
+  const imports = [...patch.matchAll(/name:\s*'([^']+)'/g)].map(match => match[1])
+  const own = imports.filter(specifier => specifier.startsWith('@deepblend/'))
+  assert.ok(own.length > 0, 'the patch imports nothing of this project, which cannot be right')
+  const unresolvable = own.filter((specifier) => {
+    const directory = specifier.replace('@deepblend/dsh-blender-', '')
+    return !existsSync(join(ROOT, 'packages', 'deepblend', directory, 'package.json'))
+  })
+  assert.deepEqual(unresolvable, [], 'the patch imports packages that do not exist in this repository')
+})

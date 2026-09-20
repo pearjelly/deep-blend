@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 119: no probe — the one checklist item that was mine to do ──
+── ROUND 120: no probe — the installable package's manifest, field by field ──
+No product code changed. The listing checklist has a field-level table for the INSTALLABLE package, and walking it
+against this repository's bundle found two gaps.
+
+`dsh.client` was declared on the `ui` DEPENDENCY. The field describes the package being installed — an installer
+does not read it one level down — so the ecosystem path (`dsh plugin add`) would have mounted a host with no
+workbench. This repository's own path is the operator layer (`install-plugin.mjs` writes the profile patch
+directly), which is why everything worked locally and nothing noticed. The reference manifests in the research
+document carry `dsh.bundle` and `dsh.client` on the SAME package, and the bundle does now.
+
+`files` was absent entirely. The requirement is that it include the patch and every runtime entry point; omitting
+the patch publishes a package that mounts nothing. It lists `lib`, `cordis.patch.yml` and `screenshots.json` now.
+
+Measured after both changes: `plugin:check` still exits 0 and the contract layer is 62/62 — the operator-layer path
+is unaffected, which is what makes the fix safe.
+
+The check in `contributor-surface.test.mjs` asserts four field rules and one resolution rule: the patch is
+declared, the file it names exists beside `package.json`, the installable package declares the client itself, the
+files list contains the patch and the storefront declaration, and every package the patch's rows name exists in
+this repository. Four mutations go red. Two false failures of my own were fixed on the way: the patch path is
+spelled `./cordis.patch.yml` while `files` entries are bare, and the patch rows spell the field `name:`, not
+`from:`.
+
+── ROUND 119: no probe — the one checklist item that was mine to do ──── ROUND 119: no probe — the one checklist item that was mine to do ──
 No product code changed. Round 118 fixed the peer-dependency rule the listing checklist names as a rejection
 cause; this round walked the rest of the checklist (§A1–A8) against this repository. Most of it is already
 satisfied — a `dsh.bundle` exists in the bundle subpackage (CI walks the tree), the repository is older than the

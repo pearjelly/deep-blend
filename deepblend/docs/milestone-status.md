@@ -9567,3 +9567,54 @@ total self-counted assertions: 1489
 
 **清单里仍然需要你决定的四条**（第 150 轮已列 ✓）：仓库私有 ✗、缺 `dsh-plugin` topic ✗、
 根目录没有 `dsh.bundle`（条目要用 monorepo 形式 ✓）、四个兄弟包未发布（真正的打包工作 ✓）。
+
+## 148. 可安装包的清单：**客户端半边声明在了依赖上**
+
+### 148.1 量它（对照清单的**字段级**要求）
+
+研究文档 §C 的字段表逐条列出了**可安装包**必须带什么 ✓，以及每一栏的失败方式 ✓。对照本仓库的 bundle ✓：
+
+| 字段 | 要求 | 本仓库（改前） |
+|---|---|---|
+| `dsh.bundle.patch` | **必需** ✓，缺了就是「不是 bundle」→ 拒绝 ✓ | 有 ✓ |
+| patch 文件存在于 `package.json` 旁 ✓ | ✓ | ✓ |
+| `dsh.client` | 可选 ✓，**但只有它一个也不行** ✓；参考清单里两者**同时**出现在同一个包上 ✓ | **缺** ✗——它声明在 **`ui` 依赖**上 ✓ |
+| `files` | **必须包含 patch 与所有运行时入口** ✓，漏了 patch 就是「装了但什么都不挂载」 ✓ | **完全没有** ✗ |
+| `exports` | 必须暴露 patch 行 import 的模块 ✓ | 有 ✓ |
+
+**为什么 `dsh.client` 在依赖上等于没有** ✓：这个字段描述的是**被安装的那个包** ✓——
+安装器不会去读依赖里的它 ✓。于是走生态路径（`dsh plugin add`）装出来的会是一个**没有工作台的宿主** ✗✓。
+本仓库自己走的是**操作者层**路径 ✓（`install-plugin.mjs` 直接写 profile 补丁 ✓），
+所以**本地一切正常** ✓——这也是它一直没被注意到的原因 ✓。
+
+### 148.2 修法
+
+bundle 的 `dsh` 现在**两个键都有** ✓（`bundle.patch` ✓ + `client.platform: 'web'` ✓——与生态的参考清单一致 ✓），
+并补上 `files` ✓（`lib` ✓、`cordis.patch.yml` ✓、`screenshots.json` ✓）。实测：`plugin:check` 仍 exit 0 ✓、
+契约层 62/62 ✓——**操作者层那条路径没有受到影响** ✓。
+
+### 148.3 检查：四条字段规则 + 一条解析规则，四条变异全红
+
+`contributor-surface.test.mjs` 新增 ✓：`dsh.bundle.patch` 存在 ✓、**它指向的文件真的在旁边** ✓、
+**可安装包自己声明 `dsh.client`** ✓、**`files` 里含 patch 与店面声明** ✓、
+以及**patch 的每一行 `name:` 指向的包在本仓库里都存在** ✓（漏一个就是「挂载一行解析不了的东西」✓）。
+
+变异 ✓：patch 指向不存在的文件 ✓、去掉 client 声明 ✓、`files` 漏掉 patch ✓、patch 指向不存在的补丁文件 ✓
+——**四条全红** ✓。
+
+（过程中修掉两处**我自己**的假失败 ✓：`dsh.bundle.patch` 写作 `./cordis.patch.yml` ✓ 而 `files` 里是
+`cordis.patch.yml` ✓（同一个文件的两种写法 ✓）；以及 patch 的行用的是 `name:` 而不是 `from:` ✓。）
+
+### 148.4 收口
+
+```
+$ npm run plugin:check
+result: DeepBlend is installed in the "web" profile at /Users/hxb/.dsh
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 78 ✓ lines
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+`node:test` 用例 304 → **305** ✓（README 已按实测更新 ✓）。
