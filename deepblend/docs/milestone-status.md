@@ -8410,3 +8410,45 @@ total self-counted assertions: 1465
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 61 文件 / 1463 → **1465** 项（`render-job.test.mjs` 是**自计**文件 ✓，
 所以这两条进的是自计总数 ✓，`node:test` 用例仍是 **291** ✓）。
+
+## 124. 技术校验的**投影**：每个读取都有 `?? null` 兜底，所以改名只会让字段悄悄变空
+
+### 124.1 量它
+
+编译报告里的 `validation` 由 `deepblend_validate.py` 写 ✓，而 revision manifest 装的是它的**投影** ✓：
+`ok` / `errors` / `counts` / `geometry` / `frameRange` / `fps` / `engine` / `activeCamera` /
+`animatedObjects` / `cameraParameters` ✓——**每一个读取都带 `?? null`** ✗。
+于是字段改名**不会报错** ✓：manifest 里变成 `null` ✓，面板上那条 revision 的技术校验就是**部分空白** ✓。
+
+### 124.2 修法：两半，且第二半比第一半更强
+
+* **源码级绑定** ✓：从 `deepblend_validate.py` 的 `validate_scene` **函数体内**抽出它返回的键 ✓，
+  与宿主**实际投影的字段**（从 `revision-transaction.js` 抽 `technical.X` ✓）对照 ✓。
+  读数：`pythonEmits` 13 个键 ✓、`hostProjects` 10 个 ✓、`missing: []` ✓。
+* **行为级透传** ✓：让桩返回**真实字段名 + 默认值不可能产生的值** ✓（`fps: 24` ✓、`engine: 'CYCLES'` ✓、
+  `frameRange: [1,48]` ✓、`cameraParameters[0].cameraId` ✓）→ 断言 manifest 里**原样带着它们** ✓
+  （第 107 轮那条教训 ✓：要证明「透传」，输入必须带一个默认值不会等于它的值 ✓）。
+
+### 124.3 三次「量具先骗了我」
+
+* 第一次抽取抓到的是 `validate_scene` **内部嵌套函数**的 `return {` ✗（7 个键 ✓，一个都不是报告的 ✓，
+  于是把**全部**投影字段报成 missing ✓）。改成**按函数体**截断（到下一个顶层 `def` ✓）之后才对 ✓。
+* 我第一版用例用了 `saveCheckpoint: false` ✗——那条路径**不编译** ✓，manifest 的 validation 本来就是 `null` ✓
+  （是**另一个分支** ✓）；改成 `true` 才有报告可投影 ✓。
+* **最重要的一条**：第一版检查只对照「读取的字段」✗——于是变异「把投影的**输出键**改名」
+  （`cameraParametersX: technical.cameraParameters` ✓）**活着** ✓✓。补上**成对**断言
+  （每个键必须与它读取的字段同名 ✓）之后它才红 ✓。**读取没变、输出键变了**，正是只测一面看不见的东西 ✓。
+
+### 124.4 收口
+
+三条变异全红 ✓（校验器改名 ✓、投影丢掉一个字段 ✓、投影写出改过名的输出键 ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1469
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 61 文件 / 1465 → **1469** 项（`render-job.test.mjs` 两条 + `store-error-paths.test.mjs` 一条 ✓）。

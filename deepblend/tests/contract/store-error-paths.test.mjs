@@ -270,6 +270,29 @@ const silentRuntime = {
     if (compileReportMode === 'without-fingerprint') {
       return { report: { validation: {} }, envelope: { warnings: [], notices: [] } }
     }
+    // The real validator's fields, with values no default can produce: every read in the host's projection is
+    // `?? null`, so a renamed or dropped field shows up as `null` and nothing fails — the passthrough needs an
+    // input whose values differ from that default (round 107's lesson).
+    if (compileReportMode === 'rich-validation') {
+      return {
+        report: {
+          validation: {
+            ok: true,
+            errors: [],
+            counts: { objects: 7, specEntities: 7 },
+            geometry: { min: [-1, 0, -1], max: [1, 2, 1] },
+            frameRange: [1, 48],
+            fps: 24,
+            engine: 'CYCLES',
+            activeCamera: 'camera-main',
+            animatedObjects: 3,
+            cameraParameters: [{ cameraId: 'camera-main', objectsInFrame: 7 }],
+          },
+          sceneFingerprint: { totalPolygons: 1200 },
+        },
+        envelope: { warnings: [], notices: [] },
+      }
+    }
     // The report carries the fingerprint the host reads (`sceneFingerprint.totalPolygons`), because a stub
       // that omits it is a report from a DIFFERENT protocol — which the host now refuses rather than
       // silently skipping its polygon guard.
@@ -306,6 +329,24 @@ check('a compile report with no sceneFingerprint is REFUSED, not treated as a sc
   /the project is unchanged/.test(noFingerprint.message) &&
   !existsSync(join(projectsRoot, 'report-without-a-fingerprint')),
   { code: noFingerprint?.code ?? null, message: String(noFingerprint?.message ?? noFingerprint).slice(0, 80) })
+
+// ---- the technical validation the manifest carries is a PASSTHROUGH, field by field ----
+compileReportMode = 'rich-validation'
+const richProject = await studio.transactions.createProject({
+  // `saveCheckpoint: true`, because the compile is what produces the report this case is about: with the
+  // checkpoint skipped the manifest's validation is null, which is the OTHER branch and not this one.
+  title: 'rich validation', sceneSpec: productSpec, saveCheckpoint: true,
+})
+compileReportMode = 'full'
+const richValidation = store.readRevisionManifest(richProject.projectId, richProject.revision.revision).validation
+check('the revision manifest carries every technical field the compile report had, not a nulled-out shell',
+  richValidation?.ok === true && richValidation.errorCount === 0 &&
+  richValidation.fps === 24 && JSON.stringify(richValidation.frameRange) === JSON.stringify([1, 48]) &&
+  richValidation.engine === 'CYCLES' && richValidation.activeCamera === 'camera-main' &&
+  richValidation.animatedObjects === 3 && richValidation.counts?.objects === 7 &&
+  richValidation.geometry?.max?.[1] === 2 &&
+  richValidation.cameraParameters?.[0]?.cameraId === 'camera-main',
+  richValidation)
 
 check('a preview requested on a revision whose compile produced no checkpoint is refused by name',
   noCheckpoint instanceof BlenderError && noCheckpoint.code === code('REVISION_CHECKPOINT_MISSING') &&

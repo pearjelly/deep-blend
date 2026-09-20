@@ -114,6 +114,50 @@ check('a torn frame keeps the dimensions it did have, so the report is useful',
   inspectFrameBytes(torn).width === 1920 && inspectFrameBytes(torn).height === 1080)
 
 // ---------------------------------------------------------------------------
+// 1d. The technical validation the host PROJECTS, against what Python emits
+// ---------------------------------------------------------------------------
+//
+// The compile report's `validation` is written by `deepblend_validate.py`, and the revision manifest carries a
+// projection of it (`technical.ok`, `.errors`, `.counts`, `.geometry`, `.frameRange`, `.fps`, `.engine`,
+// `.activeCamera`, `.animatedObjects`, `.cameraParameters`). Every one of those reads is `?? null`-guarded, so
+// a renamed field does not fail — it puts `null` in the manifest and the panel shows a revision whose technical
+// validation is partly empty. The names are therefore held against the validator's own returned dictionary.
+//
+// The validator itself needs a live `bpy.context.scene`, so this tie is SOURCE-level: the keys of its `return`
+// literal, read out of the file. The extraction is guarded — a pattern that stops matching would make the check
+// pass over nothing, which is exactly the failure mode a source-level check has to defend against.
+{
+  const validator = readFileSync(
+    join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_validate.py'), 'utf8',
+  )
+  // Bounded by the function itself: `validate_scene` contains nested helpers with their own `return {`, and the
+  // first version of this slice started at one of THOSE — it found seven keys, none of them the report's, and
+  // reported every projected field as missing. The body runs to the next top-level `def`.
+  const bodyStart = validator.indexOf('def validate_scene')
+  const nextDef = validator.indexOf('\ndef ', bodyStart + 10)
+  const body = validator.slice(bodyStart, nextDef === -1 ? undefined : nextDef)
+  const emitted = [...new Set([...body.matchAll(/^ {8}"([a-zA-Z][a-zA-Z0-9_]*)":/gm)].map(m => m[1]))]
+  const transaction = readFileSync(
+    join(ROOT, 'packages', 'deepblend', 'host', 'lib', 'revision-transaction.js'), 'utf8',
+  )
+  const projected = [...new Set([...transaction.matchAll(/technical\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1]))]
+  // The PAIRS matter, not just the reads: the projection writes `counts: technical.counts ?? null`, so a
+  // renamed OUTPUT key keeps the read intact and the field silently disappears from the manifest under a name
+  // nobody looks for. The mutation that does exactly that (`cameraParametersX: technical.cameraParameters`)
+  // survived the read-only version of this check.
+  const pairs = [...transaction.matchAll(/([a-zA-Z][a-zA-Z0-9_]*): technical\.([a-zA-Z][a-zA-Z0-9_]*) \?\? null/g)]
+    .map(match => ({ key: match[1], reads: match[2] }))
+  check('the validator\u2019s own extraction is not empty (a source-level check must be able to see its input)',
+    emitted.length >= 5 && pairs.length >= 5, { emitted: emitted.length, pairs: pairs.length })
+  check('every field the host projects out of the technical validation is one the validator emits',
+    projected.length > 0 && projected.every(field => emitted.includes(field)),
+    { pythonEmits: emitted, hostProjects: projected, missing: projected.filter(f => !emitted.includes(f)) })
+  check('and every projected key is named after the field it reads, so a rename cannot hide a field',
+    pairs.length > 0 && pairs.every(pair => pair.key === pair.reads),
+    pairs.filter(pair => pair.key !== pair.reads))
+}
+
+// ---------------------------------------------------------------------------
 // 2. The ledger: which frames are still owed
 // ---------------------------------------------------------------------------
 

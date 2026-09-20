@@ -255,6 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 112: no probe — a projection whose every read is `?? null`-guarded ──
+No product code changed. The revision manifest carries a projection of the compile report's technical validation
+(`ok`, `errors`, `counts`, `geometry`, `frameRange`, `fps`, `engine`, `activeCamera`, `animatedObjects`,
+`cameraParameters`), and every one of those reads ends in `?? null` — so a renamed field does not fail, it puts
+`null` in the manifest and the panel shows a revision whose technical validation is partly blank.
+
+Two halves, and the second is the stronger one. A source-level tie holds the validator's returned keys (13 of
+them, extracted from `validate_scene`'s own body) against the fields the host projects (10, extracted from
+`technical.X` reads) — nothing projected that the validator does not emit. And a behavioural case drives the
+passthrough with values no default can produce (`fps: 24`, `engine: 'CYCLES'`, `frameRange: [1, 48]`), because
+"it passes the field through" cannot be shown by an input whose value equals the fallback (round 107's lesson).
+
+Three times the instrument misled me first: the extraction caught a NESTED helper's `return {` (seven keys, none
+of them the report's) until it was bounded by the function body; the case used `saveCheckpoint: false`, which
+skips the compile altogether, so the manifest's validation is legitimately null there; and — the one worth
+keeping — the first version of the tie compared only the READ fields, so the mutation that renames the projected
+OUTPUT key (`cameraParametersX: technical.cameraParameters`) survived it. Adding the pair assertion (every key
+must be named after the field it reads) is what made it fail. A renamed output key with an unchanged read is
+exactly what a one-sided check cannot see.
+
 ── ROUND 111: no probe — the result envelope's VERSION was checked, its field names were not ──
 No product code changed. Every action's answer travels as one document written by `bootstrap.py` and read by the
 provider and the host (`envelope.warnings`, `notices`, `result`, `status`, `capabilities`). What the runtime
