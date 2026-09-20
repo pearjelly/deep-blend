@@ -114,7 +114,7 @@ test('the link count in install.md is what the linker resolves', () => {
   // prints the number and exits non-zero when the workspace is out of sync.
   const stated = install.match(/(\d+) 个指向\*\*已安装的 DSH 部署/)
   assert.ok(stated !== null, 'install.md no longer states "N 个指向已安装的 DSH 部署" — re-anchor this check')
-  const check = spawnSync('npm', ['run', '--silent', 'setup:check'], { cwd: ROOT, encoding: 'utf8' })
+  const check = spawnSync(process.execPath, [join(ROOT, 'deepblend', 'tools', 'link-workspace.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
   assert.equal(check.status, 0, `setup:check failed, so the link count cannot be compared:\n${check.stdout}${check.stderr}`)
   const resolved = /resolves all (\d+) package\(s\)/.exec(check.stdout)
   assert.ok(resolved !== null, `setup:check no longer prints "resolves all N package(s)":\n${check.stdout}`)

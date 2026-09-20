@@ -405,7 +405,17 @@ test('the four --check outputs quoted in install.md are what the checks print', 
     .map(match => [match[1], match[2].trim()]))
   assert.equal(quoted.size, 4, `expected four quoted check outputs, found ${quoted.size}`)
 
-  const run = (name) => spawnSync('npm', ['run', '--silent', `${name}:check`], {
+  // THE TOOLS DIRECTLY, not through `npm run`. MEASURED: three suites spawn `npm run` for these checks, and
+  // `run.mjs` runs files CONCURRENTLY, so two npm processes can collide on npm's own cache — which is how this
+  // suite passed alone and failed inside the clone's `run.mjs`, failing the documented install path at its last
+  // step. The commands are exactly what the npm scripts run, minus the wrapper.
+  const CHECKS = {
+    setup: ['deepblend', 'tools', 'link-workspace.mjs'],
+    blender: ['deepblend', 'tools', 'install-blender.mjs'],
+    plugin: ['deepblend', 'tools', 'install-plugin.mjs'],
+    presets: ['deepblend', 'tools', 'install-presets.mjs'],
+  }
+  const run = (name) => spawnSync(process.execPath, [join(ROOT, ...CHECKS[name]), '--check'], {
     cwd: ROOT, encoding: 'utf8', timeout: 300_000,
   })
   const actual = (name, result) => {
