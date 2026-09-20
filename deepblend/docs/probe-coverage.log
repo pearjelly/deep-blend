@@ -255,6 +255,32 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 109: the approval's subject drifted in TIME rather than across a redirect ──
+The same shape as round 107 and 108, one step further out. The delivery render's approval gate refuses above a
+threshold, and the tool plane answers it by asking the operator and then re-issuing the same request with
+`approved: true`. Two details made that approval's subject movable: the prompt's sentence named the frame count and
+range but NOT the revision, and `revision` is optional in the schema ("defaults to the project's current
+revision") — so a patch landing while a human read the prompt meant the retry could render a revision nobody
+approved.
+
+The prompt names the revision now (only when the host reported one, matching the same sentence's existing rule
+about the range), and the retry is PINNED to the revision the refusal measured: `cause.detail?.revision ??
+startRequest.revision`. Measured along the way: `requestApproval` sends only `{ agent, toolName, callId, reason,
+signal }` to the operator — no structured detail — so the sentence is the channel, which is where a person reads it
+anyway. Three mutations go red: not pinning, not naming, and pinning the request's own revision instead of the
+approved one.
+
+── ROUND 108: the provenance record still named the URL that did not answer ──
+One rung further along round 107's ladder. That round made the redirect chain visible in the TOOL RESULT
+(`redirectedFrom`); this one asked what the record a later reader trusts says — and `assets/manifest.json` stored
+only the approved URL (`source: { kind: 'url', url: sourceUrl }`). The tool result is gone when the conversation
+ends, so after a redirect the manifest could not answer the very question a provenance record exists for.
+
+The entry carries both now: `url` is what was asked for, `resolvedUrl` is what answered, and the second appears
+only when the chain actually moved. Two mutations go red: dropping `resolvedUrl`, and setting it to the approved
+URL so it looks present while saying nothing. `assets/manifest.json` has no published schema — it is a store
+artifact, unlike scene-spec, scene-patch and job-result — so nothing needed syncing there.
+
 ── ROUND 107: an approval a redirect could walk around ──
 The remote-asset fetch validated only the ORIGINAL url's protocol and then used `redirect: 'follow'`, which hands
 the decision to the network. So the URL a human approves is not necessarily the URL the request reaches: a server

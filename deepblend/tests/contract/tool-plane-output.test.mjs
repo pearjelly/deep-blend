@@ -548,6 +548,52 @@ check('and a declined approval leaves the model with the number it crossed and w
   gated.data?.outcome === 'rejected' && gated.data?.threshold === 900,
   { code: gated.data?.errorCode, outcome: gated.data?.outcome, text: gated.text?.split('\n').slice(0, 3) })
 
+// THE REVISION IS PART OF WHAT IS BEING APPROVED, and the re-issue is pinned to it. The refusal computed its
+// frame plan for one revision; the schema documents `revision` as optional ("defaults to the project's current
+// revision"), so re-issuing the same request after a human took time to answer could render a DIFFERENT revision
+// — a patch landing in between is enough. The prompt says which revision, and the retry carries it.
+let askedWithRevision = null
+let reissuedWith = null
+const revisionedPlane = await composeToolPlane({
+  studio: stubRenderHost({
+    startFinalRender: async request => {
+      if (request?.approved !== true) {
+        throw new BlenderError(BlenderErrorCode.RENDER_APPROVAL_REQUIRED, 'needs a grant', {
+          detail: { frames: 1200, threshold: 900, frameStart: 1, frameEnd: 1200, revision: 'r0007' },
+        })
+      }
+      reissuedWith = request
+      return {
+        jobId: 'render-0003', projectId: 'watch-commercial', revision: 'r0007', frames: 1200,
+        frameStart: 1, frameEnd: 1200, warnings: [],
+      }
+    },
+  }),
+  label: 'm3-tool-approval-revision',
+  expectAtLeast: 16,
+  services: {
+    approval: {
+      async request(request) {
+        askedWithRevision = request
+        return 'allowed-once'
+      },
+    },
+  },
+})
+await revisionedPlane.registered.get('blender_final_render').execute(
+  { projectId: 'watch-commercial' },
+  { signal: undefined, agent: { id: 'contract-test-agent' }, callId: 'call-2' },
+)
+// The operator sees the REASON: `requestApproval` sends `{ agent, toolName, callId, reason, signal }` and no
+// structured detail (the detail is what the refusal's `data` carries back to the model), so the revision has to
+// be in the sentence — which is where a person reads it anyway.
+check('the approval prompt names the REVISION whose frames are being approved',
+  askedWithRevision !== null && /of revision r0007, above the configured approval threshold of 900/.test(askedWithRevision.reason),
+  askedWithRevision?.reason?.slice(0, 100))
+check('and the granted retry renders THAT revision, not whatever the project points at by then',
+  reissuedWith?.approved === true && reissuedWith?.revision === 'r0007',
+  { approved: reissuedWith?.approved, revision: reissuedWith?.revision })
+
 // The same prompt when the host reports a frame COUNT but no range: the sentence must drop the range rather
 // than print "undefined..undefined" — this is the last line of the file's approval text, and the one a host
 // that only counts frames would produce.

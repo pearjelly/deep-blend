@@ -298,12 +298,21 @@ function finalRender(ctx) {
           const approval = await requestApproval(ctx, exec, {
             toolName: 'blender_final_render',
             refusalCode: 'RENDER_APPROVAL_REFUSED',
-            detail: { frames: cause.detail?.frames ?? null, threshold: cause.detail?.threshold ?? null },
+            // THE REVISION IS PART OF WHAT IS BEING APPROVED. The refusal computed its frame plan for one
+            // revision, and without this the prompt said "300 frames" while the human had no way to see WHICH
+            // scene those frames were of — and the re-issue below could resolve a newer revision, so the render
+            // they approved and the render that ran were not necessarily the same thing.
+            detail: {
+              frames: cause.detail?.frames ?? null,
+              threshold: cause.detail?.threshold ?? null,
+              revision: cause.detail?.revision ?? null,
+            },
             reason:
               `Start a DELIVERY render of ${cause.detail?.frames ?? 'an unknown number of'} frame(s)` +
               `${cause.detail?.frameStart != null && cause.detail?.frameEnd != null
                 ? ` (${cause.detail.frameStart}..${cause.detail.frameEnd})`
-                : ''}, above the configured approval threshold of ${cause.detail?.threshold ?? '?'}. ` +
+                : ''}${cause.detail?.revision == null ? '' : ` of revision ${cause.detail.revision}`}` +
+              `, above the configured approval threshold of ${cause.detail?.threshold ?? '?'}. ` +
               'Measured cost on the reference machine: 19.6-41.4 s per frame at 1920x1080 / Cycles / 256 ' +
               'samples, so this is hours of machine time.',
             refusal:
@@ -318,8 +327,17 @@ function finalRender(ctx) {
           // parameter: a model able to write `approved:true` would be approving its
           // own spending, and the point of the threshold is that someone else
           // decides. The only route to this line is an `'allowed-once'` outcome.
+          // PINNED TO THE REVISION THAT WAS APPROVED. `startRequest.revision` is often absent (the schema
+          // documents it as "defaults to the project's current revision"), so re-issuing the same request after
+          // an approval that took human time could render a revision nobody approved — a patch landing in
+          // between is enough. The refusal names the revision it measured, and that is the one this renders.
+          const approvedRevision = cause.detail?.revision ?? startRequest.revision
           started = await canonicalCall(
-            resolved.studio.startFinalRender(definedFields({ ...startRequest, approved: true })),
+            resolved.studio.startFinalRender(definedFields({
+              ...startRequest,
+              ...approvedRevision === undefined ? {} : { revision: approvedRevision },
+              approved: true,
+            })),
             warning,
           )
         }

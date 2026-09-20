@@ -9031,3 +9031,46 @@ total self-counted assertions: 1479
 契约层 62 文件 / 1478 → **1479** 项（`host-asset-ingest.test.mjs` 31 → 32 ✓）。
 （顺带确认：`assets/manifest.json` **没有**发布 schema ✓——它是 store 内部产物 ✓，
 所以不需要同步 schema ✓；发布出去的三个 schema 是 scene-spec / scene-patch / job-result ✓。）
+
+## 137. 人类批准的「1200 帧」，可能不是**他看到的那个 revision** 的 1200 帧
+
+### 137.1 量它
+
+交付渲染的审批闸门在宿主里 ✓（超过阈值就拒绝 ✓），工具面负责**替模型去问人** ✓，
+拿到 `allowed-once` 之后**重新发起同一个请求** ✓。而问题出在两处细节上 ✓：
+
+1. **提示词里没有 revision** ✗：`reason` 只说「Start a DELIVERY render of 1200 frame(s) (1..1200),
+   above the configured approval threshold of 900」✓——人类看得到**多少帧** ✓，看不到**哪个场景**的帧 ✓；
+2. **重发时 revision 会重新解析** ✗：`revision` 在 schema 里是**可选**的 ✓
+   （文档写着「Defaults to the project's current revision」✓）→ 人类思考与点击的那段时间里
+   **落下一个 patch** ✓，重发就渲染**另一个 revision** ✓✓——**批准的与执行的不是同一件事** ✓。
+
+这与第 139/140 轮是**同一个形状** ✓（审批的主语漂移 ✓），只是这次漂移发生在**时间**上而不是跳转上 ✓。
+
+### 137.2 修法：把它**说出来**，并且**钉住**
+
+* 提示词的 `reason` 现在带上 revision ✓（**只有在宿主真的报了它的时候才出现** ✓——
+  与同一句里「没有 range 就不打印 `undefined..undefined`」的既有约定一致 ✓）；
+* 重发时**钉住**拒绝里报的那个 revision ✓：`approvedRevision = cause.detail?.revision ?? startRequest.revision` ✓
+  ——**批准的是它，渲染的就是它** ✓✓。
+
+（顺带量清一件事 ✓：`requestApproval` 发给操作者的只有 `{ agent, toolName, callId, reason, signal }` ✓，
+**没有**结构化 detail ✓——所以 revision 必须写在**那句话**里 ✓，而那里本来就是人读的地方 ✓。）
+
+### 137.3 三条变异
+
+* **不钉住**（重发时重新解析 ✓）→ 红 ✓；
+* **提示词不再说 revision** ✓ → 红 ✓；
+* **钉错的那个**（用请求自己的、忽略被批准的那个 ✓）→ 红 ✓✓。
+
+### 137.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1481
+```
+
+产品代码改了（提示词 + 重发 ✓），所以这一轮跑新探针 ✓（`r109` 列 ✓）。
+契约层 62 文件 / 1479 → **1481** 项（`tool-plane-output.test.mjs` 70 → 72 ✓）。
