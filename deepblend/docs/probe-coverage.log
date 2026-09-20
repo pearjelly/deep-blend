@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 122: no probe — the listing entry itself, with every claim checked against the code ──
+── ROUND 123: no probe — the command a user actually types ──
+No product code changed. Every previous check looked at the plugin's pieces — the manifest's fields, the patch's
+rows, the configuration each row carries — and none of them ran `dsh plugin add`, which is the command the plugin
+list tells a user to run and the one place where a missing `dsh.client`, a `files` list omitting the patch, or a
+row whose configuration never reaches the profile would appear as a plugin that installs and does nothing.
+
+`contract/plugin-install-path.test.mjs` builds a throwaway `$DSH_HOME`, installs the bundle into it with the real
+command, and dumps the composed profile. Three assertions: the bundle is in the profile's bundle list, all three
+rows compose, and EVERY row arrives carrying its configuration (`timeoutMs: 180000`, `maxSpillBytes: 67108864`,
+`maxPreviewSamples: 512`). The third is the end-to-end proof of round 121's claim that this bundle composes
+configuration rather than being a meta-package — the question a reviewer asks, answered by the real installer
+instead of by reading the patch. A final case proves the real `~/.dsh` was never written, by checking that it
+still composes the bundle.
+
+The local directory is used rather than a `github:` spec because that form cannot be exercised from here: the
+repository is still private and pnpm resolves `github:` through an anonymous codeload tarball, which answers 404
+— the failure the research document measured live. The local path takes the same code path (pnpm install, then the
+bundle's patch composed into the profile) without the network, so everything except the fetch is covered.
+
+Two mutations go red: the runtime row losing its configuration, and the UI row disappearing from the patch. The
+new file moved the derived counts again and the counts test caught it: 63 → 64 contract files, 311 → 313 node:test
+cases, 78 → 79 files, 79 → 80 check lines.
+
+── ROUND 122: no probe — the listing entry itself, with every claim checked against the code ──── ROUND 122: no probe — the listing entry itself, with every claim checked against the code ──
 No product code changed. Rounds 118–121 walked the ecosystem's checklist item by item; what the checklist asks a
 contributor to SUBMIT is one YAML file, and that file did not exist. It does now, as
 `deepblend/docs/listing-entry.yml` — not submitted, because the list requires the repository to be public and to

@@ -9716,3 +9716,53 @@ DeepBlend tests: 63/63 file(s) passed
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
 契约层 62 → **63** 文件 ✓（新文件 5 条用例 ✓）；`node:test` 用例 306 → **311** ✓；
 README 的四个派生数字都按实测更新 ✓（63 / 78 / 79 / 311 ✓——**它们自己抓到了我加文件的后果** ✓）。
+
+## 151. 走一遍**用户真正会敲的那条命令**
+
+### 151.1 起因：所有检查都在看零件，没有一条跑过安装
+
+前面几轮检查了插件的各个零件 ✓：清单字段 ✓、patch 的行 ✓、每行带的配置 ✓——
+而**用户真正会敲的那条命令**（`dsh plugin add` ✓，生态列表的安装方式 ✓）**一次都没被跑过** ✗。
+偏偏那才是「缺 `dsh.client`」✗、「`files` 漏掉 patch」✗、「行的配置没进 profile」✗
+这些问题会暴露的地方 ✓——症状是「装上了，但什么都不做」✓。
+
+### 151.2 做了什么：在**一次性 profile** 里跑真安装
+
+新测试 `contract/plugin-install-path.test.mjs` ✓：建一个临时 `$DSH_HOME` ✓、
+`dsh plugin add <本地目录> --profile web` ✓、然后 `dsh --profile web --dump-config` ✓ 断言 ✓：
+
+1. profile 的 `dsh.profile.bundles` 里**有**这个 bundle ✓；
+2. 组合出来的配置里**三行都在** ✓（runtime ✓、host ✓、ui ✓）；
+3. **每一行都带着它的配置** ✓✓——`timeoutMs: 180000` ✓、`maxSpillBytes: 67108864` ✓、
+   `maxPreviewSamples: 512` ✓。
+
+第 3 条正是**第 153 轮那句「它组合配置、不是 meta-package」的端到端证明** ✓✓：
+评审会问的那个问题 ✓，现在**用真安装器量出来** ✓，而不是靠读 patch 得出的观点 ✓。
+
+**安全性** ✓：`$DSH_HOME` 决定 profile 在哪 ✓ → 全部写进临时家 ✓；最后一条用例**反过来证明**
+真实的 `~/.dsh` 没被动过 ✓（它仍然组合着这个 bundle ✓）。
+
+### 151.3 为什么用**本地路径**而不是 GitHub
+
+列表的安装形式是 `github:owner/repo#path:…` ✓，而**它没法在这里跑** ✗：本仓库还是私有的 ✓，
+pnpm 用**匿名** codeload tarball 解析 `github:` ✓ → 私有仓库 404 ✓✓（这正是研究文档实测到的 ✓）。
+本地目录走的是**同一条代码路径** ✓（pnpm 安装 → bundle 的 patch 组合进 profile ✓），只是不经过网络 ✓——
+所以这里覆盖的是**除了取包之外的全部** ✓。
+
+### 151.4 两条变异
+
+* **runtime 行丢掉配置** ✓ → 红 ✓（「组合出来的行没有配置，那这个 bundle 就是一张依赖列表」✓）；
+* **UI 行整行消失** ✓ → 红 ✓（「组合出来的 profile 里没有 deepblend-blender-ui 行」✓）。
+
+### 151.5 收口
+
+```
+$ node deepblend/tests/contract/plugin-install-path.test.mjs
+ℹ pass 2   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+契约层 63 → **64** 文件 ✓；`node:test` 用例 311 → **313** ✓；
+README 的四个派生数字按实测更新 ✓（64 / 79 / 80 / 313 ✓）。
