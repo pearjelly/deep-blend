@@ -255,6 +255,17 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 105: no probe — the product changes of this round were REVERTED ──
+No column, because nothing shipped: the round's hypothesis (a second review at the same round appends a second
+entry to the index, so two entries resolve to one file) was wrong, the refusal built on it was reverted, and the
+product code is byte-identical to the previous reading. The acceptance suite is what refuted it — the M2 suite
+re-reviews one revision's round on purpose, to check determinism, and my refusal broke it.
+
+What the round left behind is an assertion where a comment had been: `recordRevisionArtifact` documents that
+re-emitting the same path REPLACES its entry ("re-rendering a view after a fix must not make the sheet look like
+two"), and nothing checked it. Two mutations now fail — appending instead of replacing, and de-duplicating on
+`kind` instead of `path` (the second needed a second view at a different path to become visible at all).
+
 ── ROUND 104: two previews of one revision used to delete each other's image ──
 The dark total is unchanged at 32 (0.3%): the fix added product code (a per-render staging directory plus two
 cleanups) and the nine new lines are covered by the case that found the defect.
