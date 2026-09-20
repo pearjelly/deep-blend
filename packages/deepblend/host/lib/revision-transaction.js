@@ -362,6 +362,36 @@ export class RevisionTransaction {
       )
     }
 
+    // ---- a declared asset hash must be the file's hash ---------------------
+    //
+    // `asset.add` carries a `sha256` the patch APPLIER cannot check: it is a pure function over documents with no
+    // filesystem, which is the right shape for it. But the hash it stores is provenance a later reader trusts —
+    // the delivery manifest, a human auditing where the bytes came from — and `blender_asset_ingest` COMPUTES the
+    // hash of what it wrote, so the two copies can disagree with nothing comparing them. MEASURED before this:
+    // nothing did, on either side, and the Python never reads `assets[].sha256` at all.
+    //
+    // Checked here, in the transaction, because this is the layer that has both the document and the store. A
+    // path with no file is left alone: declaring an asset before its bytes exist is a different question, and the
+    // compiler refuses that one loudly.
+    for (const operation of patch.operations ?? []) {
+      if (operation?.op !== 'asset.add') continue
+      const declared = operation.asset?.sha256
+      const assetPath = operation.asset?.path
+      if (typeof declared !== 'string' || typeof assetPath !== 'string') continue
+      const absolute = join(this.store.projectDirectory(projectId), assetPath)
+      if (!existsSync(absolute)) continue
+      const actual = fileSha256(absolute)
+      if (actual !== declared) {
+        throw new BlenderError(
+          BlenderErrorCode.ASSET_HASH_MISMATCH,
+          `asset "${operation.asset.id}" declares sha256 ${declared}, but ${assetPath} is ${actual}. Nothing was ` +
+            'committed. The declaration is provenance a later reader trusts, so it has to be the file\u2019s own ' +
+            'hash — blender_asset_ingest reports the right one for what it wrote.',
+          { detail: { projectId, assetId: operation.asset.id, path: assetPath, declared, actual } },
+        )
+      }
+    }
+
     // ---- resolve the RESULT before anything reads it -----------------------
     //
     // The base was compiled above, but the patch result was not — and every `*.add`

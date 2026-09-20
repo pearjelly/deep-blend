@@ -383,6 +383,68 @@ check('a local ingest produces the same record shape, with a local source',
   { assetId: local.assetId, source: local.source, sameHash: local.sha256 === fetched.sha256 })
 
 // ---------------------------------------------------------------------------
+// A declared hash has to be the FILE's hash
+// ---------------------------------------------------------------------------
+//
+// `blender_asset_ingest` computes the sha256 of what it wrote and tells the caller to declare that number in
+// `asset.add`. Nothing compared the two: the patch applier is a pure function over documents (no filesystem, which
+// is the right shape for it), and the compiler never reads `assets[].sha256`. So a patch could store provenance
+// that is simply false, and the delivery manifest and any human auditing the scene would trust it.
+{
+  const wrongHash = await studio.transactions.applyScenePatch({
+    projectId,
+    baseRevision: studio.store.readRecord(projectId).currentRevision,
+    idempotencyKey: 'declared-wrong-hash',
+    operations: [{
+      op: 'asset.add',
+      asset: { id: 'declared', type: 'glb', path: 'assets/raw/model.glb', sha256: 'b'.repeat(64) },
+    }],
+    saveCheckpoint: false,
+  }).catch(cause => cause)
+  check('a patch declaring a hash that is not the file\u2019s is REFUSED, naming both numbers',
+    wrongHash instanceof BlenderError && wrongHash.code === code('ASSET_HASH_MISMATCH') &&
+    wrongHash.detail?.declared === 'b'.repeat(64) &&
+    /^[0-9a-f]{64}$/.test(wrongHash.detail?.actual ?? '') &&
+    /Nothing was committed/.test(wrongHash.message),
+    wrongHash?.code === undefined ? wrongHash : { code: wrongHash.code, declared: wrongHash.detail?.declared?.slice(0, 8), actual: wrongHash.detail?.actual?.slice(0, 8) })
+
+  // The honest declaration goes through, which is what makes the refusal a check rather than a wall.
+  const actualHash = createHash('sha256').update(readFileSync(join(studio.store.projectDirectory(projectId), 'assets/raw/model.glb'))).digest('hex')
+  const rightHash = await studio.transactions.applyScenePatch({
+    projectId,
+    baseRevision: studio.store.readRecord(projectId).currentRevision,
+    idempotencyKey: 'declared-right-hash',
+    operations: [{
+      op: 'asset.add',
+      asset: { id: 'declared', type: 'glb', path: 'assets/raw/model.glb', sha256: actualHash },
+    }],
+    saveCheckpoint: false,
+  })
+  // Read the committed document back through the store rather than through the response: the response's shape is
+  // the transaction's, and the question here is what was WRITTEN.
+  const committed = studio.store.readRevisionSpec(projectId, rightHash.revision.revision)
+  check('and the hash the ingest actually reported is accepted, so the rule is a check and not a wall',
+    rightHash.revision?.revision !== undefined &&
+    (committed.assets ?? []).some(asset => asset.id === 'declared' && asset.sha256 === actualHash),
+    (committed.assets ?? []).map(asset => `${asset.id}:${asset.sha256?.slice(0, 8)}`))
+
+  // A path with no file is left to the compiler: declaring an asset before its bytes exist is a different
+  // question, and answering it here would refuse a flow that works.
+  const noFile = await studio.transactions.applyScenePatch({
+    projectId,
+    baseRevision: studio.store.readRecord(projectId).currentRevision,
+    idempotencyKey: 'declared-later',
+    operations: [{
+      op: 'asset.add',
+      asset: { id: 'later', type: 'glb', path: 'assets/raw/not-yet.glb', sha256: 'c'.repeat(64) },
+    }],
+    saveCheckpoint: false,
+  })
+  check('an asset whose file does not exist yet is NOT refused here: that question belongs to the compiler',
+    noFile.revision?.revision !== undefined, noFile?.code ?? 'committed')
+}
+
+// ---------------------------------------------------------------------------
 // Redirects: followed, bounded, and VISIBLE
 // ---------------------------------------------------------------------------
 //
