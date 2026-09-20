@@ -10108,3 +10108,48 @@ DeepBlend tests: 64/64 file(s) passed
 
 **目标未达成** ✓（这四件未决 ✓，而第 4 件是真正的工作量 ✓）→ 目标保持 active ✓。
 前三条你做完 ✓，第 4 件你给一个方向 ✓，我就能把打包改造与那份 PR 一起收尾 ✓。
+
+## 160. 三条**只说了问题、没说怎么办**的拒绝
+
+### 160.1 起因：两次**没做成检查**的尝试
+
+这一轮先试了两条「能被机器检查」的性质 ✓，**两条都证明不是** ✓：
+
+* 「每条拒绝都点名下一步」✗——关键词法在 **116 条** `BlenderError` 里报出 **102 条**没有 ✓，
+  而抽查显示它们**在实质上都是可行动的** ✓（「needs a title」✓、「needs either sourcePath or sourceUrl」✓）
+  ——**关键词不是那条性质** ✓（第 142 轮同一个教训：一个会误报的检查比它想保留的测量更糟 ✓）；
+* 「每条工具描述都点到它的每个参数」✗——用仓库自己的解析器拿到 **16 个工具 / 75 个参数** ✓，
+  文本搜索说 **50 个**没被提到 ✓，而抽查显示描述用**散文**覆盖了它们 ✓（「the project」✓）✓
+  ——**散文也不是那条性质** ✓。
+
+### 160.2 于是做**具体的**：把三条最不可行动的拒绝补上
+
+抽查里真正**只说了问题**的是三条 ✓：
+
+* 「`Revision r0001 defines no preview render profile.`」✗（**两处** ✓——`renderPreview` 与 `renderViews` ✓）
+  → 现在点名**字段** ✓（`renderProfiles.preview` ✓）、**写它的操作** ✓（`{op: "render.profile.set"}` ✓）、
+  以及**它属于 revision 而不是这次调用** ✓✓；
+* 「`The visual review has no contact sheet recorded…`」✗
+  → 现在说清**先跑 `blender_visual_review`** ✓，以及评审者拿到的是**字节**而不是路径 ✓。
+
+### 160.3 断言与变异
+
+两条既有断言从「消息里出现某个短语」**收紧成「必须点名修法」** ✓
+（`host-render-orchestration` ✓ 要求字段名 + 操作名 + 「属于 revision」三句都在 ✓；
+`host-read-and-job-refusals` ✓ 要求点名 `blender_visual_review` ✓）。
+
+**变异**：把两处拒绝的修法整段删掉 ✓ → **红** ✓。
+（第一次变异只改了**两处中的第一处** ✗——而用例驱动的是**第二处** ✓（`renderViews` ✓），
+于是它**活着** ✓；把两处都改掉才红 ✓✓——**同一个消息有两份拷贝**这件事本身也是读数告诉我的 ✓。）
+
+### 160.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 80 ✓ lines
+```
+
+**产品代码改了**（三条消息 ✓），所以这一轮跑新探针 ✓（`r118` 列 ✓）。
+契约层 64 文件 / 1489 项不变 ✓（两处收紧都在既有断言内 ✓）。

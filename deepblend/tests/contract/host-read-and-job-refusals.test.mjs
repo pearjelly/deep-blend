@@ -170,9 +170,12 @@ check('exporting a project that does not exist is refused before any job lookup'
 
 // ---- a review with nothing to show, and a compile that produced nothing ----
 const noSheet = await studio.readSheetPng(projectId, { revisionId: revision }).catch(cause => cause)
+// The message must say what is missing AND what to do about it — a refusal that only states the problem leaves
+// the caller to guess which tool writes a contact sheet, and this is a tool the model is expected to call.
 check('a visual review with no contact sheet recorded says so instead of reading an empty path',
   noSheet instanceof BlenderError && noSheet.code === code('RENDER_NO_OUTPUT') &&
-  noSheet.message === 'The visual review has no contact sheet recorded, so there is nothing to show the reviewer.',
+  /^The visual review has no contact sheet recorded, so there is nothing to show the reviewer\./.test(noSheet.message) &&
+  /Run blender_visual_review for this revision first/.test(noSheet.message),
   noSheet?.message ?? noSheet)
 
 // A renderer that exits successfully and produces NO checkpoint is the failure the compile step exists

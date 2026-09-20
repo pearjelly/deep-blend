@@ -726,7 +726,13 @@ export default class BlenderStudio extends Service {
     if (profile === undefined) {
       throw new BlenderError(
         BlenderErrorCode.RENDER_PROFILE_MISSING,
-        `Revision ${revision} defines no preview render profile.`,
+        // The refusal names the FIELD and where it goes: a caller that has to guess which key is missing
+        // reads a message that says what is wrong but not what to do, and this one is reached by the most
+        // ordinary mistake there is (a spec written without a preview profile).
+        `Revision ${revision} defines no preview render profile, so there is nothing to render with. Add ` +
+          'renderProfiles.preview to the SceneSpec (width, height, samples, engine) with ' +
+          'blender_scene_patch {op: "render.profile.set"}, then render again — the profile is a property of the ' +
+          'revision, not of this call.',
         { detail: { projectId, revision } },
       )
     }
@@ -1086,7 +1092,13 @@ export default class BlenderStudio extends Service {
     if (profile === undefined) {
       throw new BlenderError(
         BlenderErrorCode.RENDER_PROFILE_MISSING,
-        `Revision ${revision} defines no preview render profile.`,
+        // The refusal names the FIELD and where it goes: a caller that has to guess which key is missing
+        // reads a message that says what is wrong but not what to do, and this one is reached by the most
+        // ordinary mistake there is (a spec written without a preview profile).
+        `Revision ${revision} defines no preview render profile, so there is nothing to render with. Add ` +
+          'renderProfiles.preview to the SceneSpec (width, height, samples, engine) with ' +
+          'blender_scene_patch {op: "render.profile.set"}, then render again — the profile is a property of the ' +
+          'revision, not of this call.',
         { detail: { projectId, revision } },
       )
     }
@@ -1889,7 +1901,9 @@ export default class BlenderStudio extends Service {
     if (typeof path !== 'string' || path.length === 0) {
       throw new BlenderError(
         BlenderErrorCode.RENDER_NO_OUTPUT,
-        'The visual review has no contact sheet recorded, so there is nothing to show the reviewer.',
+        'The visual review has no contact sheet recorded, so there is nothing to show the reviewer. Run ' +
+          'blender_visual_review for this revision first — it writes the sheet and records it against the ' +
+          'revision, and the reviewer is handed those bytes rather than a path.',
       )
     }
     const absolute = resolveInside(this.store.projectDirectory(projectId), join(this.store.projectDirectory(projectId), path), 'contact sheet')

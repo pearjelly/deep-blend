@@ -177,9 +177,16 @@ delete trimmed.renderProfiles.preview
 writeFileSync(trimmedSpecPath, `${JSON.stringify(trimmed, null, 2)}\n`)
 
 const noProfileViews = await studio.renderViews({ projectId: trimmedProject.projectId }).catch(cause => cause)
-check('renderViews refuses a revision with no preview profile, naming the revision',
+// AND IT SAYS WHAT TO DO. "defines no preview render profile" states the problem; a caller — a model, most of
+// the time — then has to guess which key is missing and which tool writes it. The message names the field, the
+// operation that sets it, and the fact that it belongs to the revision rather than to this call.
+check('renderViews refuses a revision with no preview profile, naming the revision AND the fix',
   noProfileViews instanceof BlenderError && noProfileViews.code === code('RENDER_PROFILE_MISSING') &&
-  noProfileViews.detail?.revision === trimmedRevision && /defines no preview render profile/.test(noProfileViews.message),
+  noProfileViews.detail?.revision === trimmedRevision &&
+  /defines no preview render profile/.test(noProfileViews.message) &&
+  /Add renderProfiles\.preview to the SceneSpec/.test(noProfileViews.message) &&
+  /op: "render\.profile\.set"/.test(noProfileViews.message) &&
+  /a property of the revision, not of this call/.test(noProfileViews.message),
   noProfileViews?.detail ?? noProfileViews?.message)
 
 const noProfilePreview = await studio.renderPreview({ projectId: trimmedProject.projectId }).catch(cause => cause)
