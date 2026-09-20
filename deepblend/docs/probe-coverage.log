@@ -255,6 +255,15 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 106: no probe — a check about the tests themselves ──
+No product code changed, so the previous column still describes this tree. The round added one question at the
+level above the code: is every REGISTERED tool actually INVOKED by some test, or only listed in a roster? All
+sixteen are driven — but measuring that took two wrong answers first: checking that each name appears in the
+tests (it appears in rosters), then a call-shape detector that missed `callTool(registry, 'blender_asset_ingest',
+…)`, which is how the M5 assets suite drives the ingest tool. The check that went in therefore carries its own
+guard: it must be able to see a tool known to be driven, so a detector that quietly stops matching fails loudly
+instead of passing over nothing. The mutation that removes one of its shapes goes red on that guard.
+
 ── ROUND 105: no probe — the product changes of this round were REVERTED ──
 No column, because nothing shipped: the round's hypothesis (a second review at the same round appends a second
 entry to the index, so two entries resolve to one file) was wrong, the refusal built on it was reverted, and the

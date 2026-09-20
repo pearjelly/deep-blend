@@ -40,10 +40,10 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -599,6 +599,42 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   cancelFailure.ok === false && cancelFailure.data?.errorCode === code('SCRIPT_ERROR') &&
   cancelFailure.text.includes('the process table is unreadable'),
   { code: cancelFailure.data?.errorCode, text: cancelFailure.text?.split('\n')[0] })
+
+// ---------------------------------------------------------------------------
+// Every tool is INVOKED by at least one test, not merely named
+// ---------------------------------------------------------------------------
+//
+// A tool that ships with no test is a surface nobody has driven — the "copy nobody runs" rule one level up. The
+// detector below is deliberately generous (the suites use `callTool(registry, name, …)`, `call(name, …)` and
+// `tools.get(name).execute(…)`) AND guarded: it asserts that it can see a tool known to be driven, because a
+// pattern set that silently stops matching would make this check pass over nothing. That guard is not
+// hypothetical — writing this by hand twice missed a shape: `callTool(registry, 'blender_asset_ingest', …)` in
+// the M5 assets suite matched none of the first three patterns I tried, and the first version of this
+// measurement reported a fully-driven tool as never invoked.
+{
+  const files = []
+  const walk = directory => {
+    for (const entry of readdirSync(join(ROOT, directory), { withFileTypes: true })) {
+      const path = `${directory}/${entry.name}`
+      if (entry.isDirectory()) walk(path)
+      else if (entry.name.endsWith('.mjs')) files.push(path)
+    }
+  }
+  walk('deepblend/tests')
+  const sources = files.map(file => ({ file, text: readFileSync(join(ROOT, file), 'utf8') }))
+  const invokedBy = name => sources
+    .filter(({ text }) => text.includes(`'${name}'`) && (
+      text.includes('callTool(') || text.includes(`call('${name}'`) || text.includes(`get('${name}').execute`)
+    ))
+    .map(({ file }) => file)
+
+  check('the invocation detector can see a tool that is definitely invoked (so it cannot pass over nothing)',
+    invokedBy('blender_asset_ingest').length > 0, invokedBy('blender_asset_ingest'))
+
+  const untested = UI_TOOL_CARD_KEYS.filter(name => invokedBy(name).length === 0)
+  check('every registered tool is INVOKED by some test, not merely listed in a roster',
+    untested.length === 0, untested)
+}
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nM1 tool output contract: ${passed}/${results.length} check(s) passed`)
