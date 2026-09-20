@@ -35,6 +35,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 
 import { BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
 import { BlenderWarningCode } from '@deepblend/dsh-blender-contracts'
@@ -259,4 +262,42 @@ test('the manuals exist and are the ones this test reads', () => {
     assert.ok(existsSync(join(ROOT, path)), `${path} is missing, so the checks above would be vacuous`)
   }
   assert.ok(declared.size >= 40, `only ${declared.size} codes are classified, which is too few to be the shipped table`)
+})
+
+// ---------------------------------------------------------------------------
+// The documented shape of "Python is missing" is a FAILURE MODE, so it is checked
+// ---------------------------------------------------------------------------
+//
+// The prerequisites table promises something specific: without Python, ONE check fails and says what is missing,
+// and the rest of the file keeps running. MEASURED — by running `render-job.test.mjs` under a PATH built to
+// contain node and nothing else — it does: exit 1, exactly one `[FAIL]`, a message naming `$DEEPBLEND_PYTHON` as
+// the way out, and 83 of 84 checks still passing.
+//
+// Nothing exercised that path, for the same reason round 179's exit code was never exercised: this machine HAS
+// Python, so every run takes the other branch. The failure mode a stranger meets is the one least likely to be
+// run, which is exactly why it is worth a case.
+test('without Python, one check fails by name and the rest of the file still runs', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-no-python-'))
+  try {
+    // A PATH with node and a shell in it, and no interpreter of any name.
+    for (const [name, target] of [['node', process.execPath], ['sh', '/bin/sh']]) {
+      symlinkSync(target, join(scratch, name))
+    }
+    const probe = spawnSync(process.execPath, [join(ROOT, 'deepblend', 'tests', 'contract', 'render-job.test.mjs')], {
+      cwd: ROOT, encoding: 'utf8', env: { ...process.env, PATH: scratch, DEEPBLEND_PYTHON: '' }, timeout: 120_000,
+    })
+    const output = `${probe.stdout ?? ''}${probe.stderr ?? ''}`
+    const failures = output.split('\n').filter(line => line.includes('[FAIL]'))
+    assert.equal(probe.status, 1, `the file exited ${probe.status} with no Python, and the README says one check fails`)
+    assert.equal(failures.length, 1, `expected exactly one named failure, found ${failures.length}:\n${failures.join('\n')}`)
+    assert.match(failures[0], /Python 3/, 'the failure does not name what is missing')
+    assert.match(failures[0], /DEEPBLEND_PYTHON/, 'the failure does not say how to point the file at an interpreter')
+    // And the rest of the file ran: a file that dies on its first check reports far fewer than this.
+    const passed = /(\d+)\/(\d+) check\(s\) passed/.exec(output)
+    assert.ok(passed !== null, 'the file no longer reports a check tally')
+    assert.ok(Number(passed[1]) > 70,
+      `only ${passed[1]} checks ran without Python; the point of the failure mode is that the rest keep going`)
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
 })

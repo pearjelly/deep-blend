@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 144: no probe — the exit-code contract a stranger meets first, never exercised ──
+── ROUND 145: no probe — the documented failure mode for a missing interpreter ──
+No product code changed. The prerequisites table promises something specific: without Python, ONE check fails and
+says what is missing, and the rest of the file keeps running. MEASURED by running `render-job.test.mjs` under a
+PATH built to hold node and sh and nothing else: exit 1, exactly one `[FAIL]`, a message naming
+`$DEEPBLEND_PYTHON` as the way out, and 83 of 84 checks still passing. The claim holds.
+
+The first attempt to remove Python did not remove it — `/usr/bin/python3` exists on macOS and stayed on the PATH,
+so the suite passed 88/88 and the experiment proved nothing. The PATH had to be replaced rather than trimmed.
+
+Nothing exercised that path, for the same reason round 144's exit code was never exercised: this machine HAS
+Python, so every run takes the other branch. The failure mode a stranger meets is the one least likely to be run,
+because reaching it means deliberately breaking the environment. That is now written into a case in
+`error-documentation.test.mjs`: it builds a PATH of node and sh, runs the file, and asserts the exit code, exactly
+one named failure, a message that names both the missing thing and the fix, and more than seventy checks still
+running — the last one being what separates "dies on its first check" from "keeps going", which is the whole point
+of the documented mode.
+
+The mutation that replaces the whole message with a vague one goes red. Its first version only removed one of the
+message's two mentions of `$DEEPBLEND_PYTHON`, and the assertion correctly stayed green — a mutation that is too
+weak is its own kind of false signal.
+
+── ROUND 144: no probe — the exit-code contract a stranger meets first, never exercised ──── ROUND 144: no probe — the exit-code contract a stranger meets first, never exercised ──
 No product code changed. Round 143 pinned the prerequisites table's claims about files; this round measured its
 exit-code claim — "run-all.sh 找不到 Blender 会直接以 2 退出". Measured by moving `.tools` aside: exit 2, with a
 message naming Blender and the document section. The claim holds.
