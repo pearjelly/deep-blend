@@ -109,7 +109,7 @@ packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
-    python/           bootstrap.py 分派器 + 6 个动作模块
+    python/           bootstrap.py 分派器 + 6 个动作模块（另有 deepblend_util.py 这一份工具）
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
   tool/               16 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
@@ -199,14 +199,14 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 照样成功（容器里跑过整条 job）。
 
 预期：**16 个套件、76 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**61 个文件 = 1469 项自计断言（32 个文件打印计数）+ 293 个 `node:test` 用例（29 个文件）**。
+**61 个文件 = 1469 项自计断言（32 个文件打印计数）+ 294 个 `node:test` 用例（29 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
 **这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
-它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1469 和 293 是
+它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以 1469 和 294 是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），

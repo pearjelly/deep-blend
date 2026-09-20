@@ -106,6 +106,28 @@ test('the numbers this test compares are the ones the README states', () => {
   assert.ok(declaredSuites.length > 0, 'run-all.sh declares no suites, so the parser is wrong')
 })
 
+test('the layout counts in the README are what the tree holds', () => {
+  // Two numbers in the README's tree block are countable, and both were unchecked — the kind of number that
+  // rots when a tool or a module is added. Each is derived here, and each derivation is guarded: a reworded line
+  // must fail rather than make the check pass over nothing (the same rule the suite-count cases follow).
+  const tools = readme.match(/(\d+) 个模型可见工具/)
+  assert.ok(tools !== null, 'the README no longer states "N 个模型可见工具"')
+  assert.equal(Number(tools[1]), UI_TOOL_CARD_KEYS.length,
+    `the README says ${tools[1]} model-visible tools; the contract declares ${UI_TOOL_CARD_KEYS.length}`)
+
+  // The module count excludes the dispatcher and the shared utility, and the README says so in the same line —
+  // without that clause the number would be unverifiable by a reader AND by this check.
+  const modules = readme.match(/(\d+) 个动作模块（另有 (\S+\.py) 这一份工具）/)
+  assert.ok(modules !== null, 'the README no longer states "N 个动作模块（另有 X.py 这一份工具）"')
+  const pythonDirectory = join(ROOT, 'packages', 'deepblend', 'provider-local', 'python')
+  const files = readdirSync(pythonDirectory).filter(name => name.endsWith('.py'))
+  assert.ok(files.length > 3, `the python directory holds ${files.length} .py files; the parser is wrong`)
+  const actionModules = files.filter(name => name !== 'bootstrap.py' && name !== modules[2])
+  assert.equal(Number(modules[1]), actionModules.length,
+    `the README says ${modules[1]} action modules; ${files.length} .py files minus bootstrap.py minus ` +
+    `${modules[2]} is ${actionModules.length} (${actionModules.join(', ')})`)
+})
+
 test('the suite count in the README is what run-all.sh declares', () => {
   const documented = readme.match(/\*\*(\d+) 个套件/)
   assert.ok(documented !== null, 'the README no longer spells the suite count as "N 个套件"')

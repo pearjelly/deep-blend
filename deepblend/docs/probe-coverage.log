@@ -255,6 +255,18 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 115: no probe — two numbers in the README's tree block ──
+No product code changed. The tree block states two countable numbers. `16 个模型可见工具` is live and nothing
+watched it — round 114 tied the ROSTER to the declared tools, which is a different statement from "the number in
+the README equals that count". And `bootstrap.py 分派器 + 6 个动作模块` is correct (the directory holds eight
+`.py` files: the dispatcher, `deepblend_util.py`, and six action modules) but was UNVERIFIABLE — nothing said
+which files the six are, so neither a reader nor a check could tell.
+
+The line now states its convention ("另有 deepblend_util.py 这一份工具"), and both numbers are derived by a check
+that carries the same guard the suite counts do: a reworded line fails instead of passing over nothing. Three
+mutations go red — the tool count drifting, the module count drifting (which prints the six module names), and
+the convention clause being removed.
+
 ── ROUND 114: no probe — the manual stated a vocabulary size in prose ──
 No product code changed. Following the previous round's find (a tally sentence that had drifted from its own
 table), this one swept the manuals for numbers written in PROSE that can be derived from something checkable —

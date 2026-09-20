@@ -8537,3 +8537,42 @@ total self-counted assertions: 1469
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 `node:test` 用例 291 → **293** ✓（`docs-consistency.test.mjs` 新增一条 ✓——README 已按实测更新 ✓）。
+
+## 127. 目录树里那两个数字：一个是活的、一个**不可核对**
+
+### 127.1 量它
+
+README 的目录树块里有两个数字 ✓：
+
+* `tool/  **16 个模型可见工具**` ✓——**是活的** ✓，而且**没有任何检查看着它** ✗
+  （第 114 轮把**名册**钉住了 ✓，但那是「名册 == 声明的工具」✓，不是「README 里的数字 == 那个数」✗）；
+* `python/  bootstrap.py 分派器 + **6 个动作模块**` ✓——目录里其实有 **8** 个 `.py` ✓：
+  分派器 ✓、`deepblend_util.py` ✓、以及**六个**动作模块 ✓✓——所以 6 是**对的** ✓，
+  但**读者（和检查）都无从知道那 6 是怎么数的** ✗：没有任何地方说清 `util` 不算动作模块 ✓✓。
+
+### 127.2 修法：先让数字**可核对**，再核对它
+
+1. README 那行补上约定 ✓：`+ 6 个动作模块（另有 deepblend_util.py 这一份工具）` ✓——
+   **一句话让这个数字对读者和对检查都成立** ✓；
+2. 新增一条检查 ✓（`documented-counts.test.mjs` ✓，README 的数字都归它管 ✓）：
+   两个数字都**推导**出来 ✓——工具数对 `UI_TOOL_CARD_KEYS.length` ✓、
+   模块数对「`.py` 文件 − 分派器 − 那一份工具」✓——**两个推导都带守卫** ✓
+   （行被改写就失败 ✓，不许空过 ✓）。
+
+### 127.3 三条变异
+
+* 工具数改成 17 ✓ → 红 ✓，报出「README 说 17、契约声明 16」✓；
+* 模块数改成 5 ✓ → 红 ✓，并**把六个文件名列出来** ✓（`capabilities/frames/render/scene/validate/views` ✓）；
+* **把那句约定删掉** ✓ → 红 ✓，报出「README 不再用那句话陈述模块数」✓✓——**空过被挡住** ✓。
+
+### 127.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1469
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+`node:test` 用例 293 → **294** ✓（README 已按实测更新 ✓）。
