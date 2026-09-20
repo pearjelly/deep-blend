@@ -501,6 +501,39 @@ try {
     diskLedger.presentCount === 1)
   check('the on-disk listing is diagnostic only, and does include the stray file',
     JSON.stringify(framesOnDisk(framesDirectory)) === JSON.stringify([1, 2, 3]), framesOnDisk(framesDirectory))
+
+  // THE OTHER HALF OF WHAT THIS FILE'S HEADER CLAIMS. It says "the parts that must agree with
+  // `deepblend_frames.py` byte for byte" are pinned — and what WAS pinned (above) is the frame NAMING, against
+  // `deepblend_util`. The two CLASSIFIERS were never held against each other: Python's `verify_frame` and this
+  // host's `readFrameLedger` independently decide whether a file on disk is a frame, and a disagreement would
+  // mean a render that Python considers finished is one the host keeps re-rendering (or the reverse, which is
+  // worse: a delivery built from a frame nobody verified). They run here on the same four cases.
+  if (python !== undefined) {
+    const pythonVerdicts = JSON.parse(execFileSync(python, ['-c', [
+      'import json, sys, types',
+      // `deepblend_frames` imports Blender's modules at the top, and the classifier itself needs neither:
+      // stubbing them is what lets the SAME file be exercised outside Blender, which is the point of the check.
+      'for name in ("bpy", "mathutils"):',
+      '    module = types.ModuleType(name); module.ops = types.SimpleNamespace(); module.data = types.SimpleNamespace()',
+      '    sys.modules[name] = module',
+      'sys.modules["mathutils"].Vector = lambda *a, **k: None',
+      `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'))})`,
+      'from deepblend_frames import verify_frame',
+      `print(json.dumps({frame: verify_frame(${JSON.stringify(join(framesDirectory, 'frame_'))} + '%04d.png' % frame, 1920, 1080) for frame in (1, 2, 3, 4)}))`,
+    ].join('\n')], { encoding: 'utf8' }).trim())
+    const jsVerdict = (frame) => {
+      if (diskLedger.present.some(entry => entry.frame === frame)) return 'present'
+      if (diskLedger.corrupt.some(entry => entry.frame === frame)) return 'corrupt'
+      return 'missing'
+    }
+    const disagreements = [1, 2, 3, 4].filter(frame =>
+      (pythonVerdicts[frame].ok === true) !== (jsVerdict(frame) === 'present'))
+    check('deepblend_frames.py and the host ledger AGREE, file by file, about what is a frame',
+      disagreements.length === 0 &&
+      pythonVerdicts[2].reason === 'unterminated' && pythonVerdicts[3].reason === 'truncated' &&
+      pythonVerdicts[4].reason === 'missing',
+      { python: pythonVerdicts, js: [1, 2, 3, 4].map(frame => `${frame}:${jsVerdict(frame)}`), disagreements })
+  }
 } finally {
   rmSync(scratch, { recursive: true, force: true })
 }

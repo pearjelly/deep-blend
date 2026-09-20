@@ -255,6 +255,20 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 108: no probe — two classifiers that had never been held against each other ──
+No product code changed. The header of `contracts/lib/render-job.js` claims that the parts which must agree with
+`deepblend_frames.py` byte for byte are pinned by `render-job.test.mjs`; what was actually pinned is the frame
+NAMING, and against `deepblend_util`. The two CLASSIFIERS — Python's `verify_frame` and the host's
+`readFrameLedger`, each deciding independently whether a file on disk is a frame — had never been compared. A
+disagreement is not academic: one side calling a render finished while the other keeps re-rendering costs time,
+and the other direction is worse, because it means delivering frames nobody verified.
+
+`deepblend_frames` imports Blender's modules at the top and cannot be imported outside Blender, but the
+classifier needs neither — so the check stubs `bpy` and `mathutils` and runs both sides over the same four files
+(a good frame, a torn one, a 10-byte stub, an absent one), asserting the verdicts agree and that Python's
+reasons are `unterminated` / `truncated` / `missing`. Three mutations go red: either classifier losing the torn
+case, and — the one that proves the agreement is asserted rather than assumed — renaming only Python's reason.
+
 ── ROUND 107: no probe — a documented promise that had only half an assertion ──
 No product code changed. The manual's promise about `blender_revision_restore` — "回退不删东西": restoring only
 moves the pointer, the revisions in between stay in the history and the one you left is still there — had an

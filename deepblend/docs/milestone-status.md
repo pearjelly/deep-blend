@@ -8179,3 +8179,48 @@ total self-counted assertions: 1459
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 61 文件 / 1458 → **1459** 项（`host-read-and-job-refusals.test.mjs` 23 → 24 ✓）。
+
+## 119. 一句「必须与 Python 逐字节一致」的注释，只兑现了一半
+
+### 119.1 量它
+
+`contracts/lib/render-job.js` 的头部写着：
+
+> this module reproduces it; `render-job.test.mjs` pins the parts that must agree with
+> `deepblend_frames.py` byte for byte.
+
+而实际被钉住的是**帧命名** ✓——而且对象是 `deepblend_util.frame_file_name` ✓（不是 `deepblend_frames` ✓）。
+**两个分类器**（Python 的 `verify_frame` ✓ 与宿主的 `readFrameLedger` ✓）各自独立判断
+「磁盘上这个文件算不算一帧」 ✓——它们**从来没有被互相对照过** ✗。
+
+不一致的后果不是学术问题 ✓：一边认为渲染完成、另一边认为还欠帧 ✓，宿主会一直重渲 ✓；
+反过来的方向更糟 ✓——**用一份没人验证过的帧去交付** ✓。
+
+### 119.2 修法：让两个分类器跑在**同一批文件**上
+
+`deepblend_frames` 顶层 import 了 Blender 的模块 ✓，所以它没法在 Blender 之外被导入 ✓——
+但分类器本身**不需要**它们 ✓，于是用两个**桩模块**（`bpy`、`mathutils`）导入它 ✓，
+再把同一批四个文件（好帧 ✓、被撕掉的帧 ✓、10 字节的碎片 ✓、不存在的帧 ✓）交给两边 ✓，
+逐个断言**判定一致** ✓，并且 Python 那边的**理由**就是 `unterminated` / `truncated` / `missing` ✓。
+
+读数：
+
+```
+python: {1:{ok:true}, 2:{ok:false,unterminated}, 3:{ok:false,truncated}, 4:{ok:false,missing}}
+js:     [1:present, 2:corrupt, 3:corrupt, 4:missing]      disagreements: []
+```
+
+### 119.3 收口
+
+三条变异全红 ✓：**JS 那边不再识别被撕掉的帧** ✓、**Python 那边不再识别** ✓、
+以及**只把 Python 的理由词改掉** ✓（最后这条证明「一致」是被断言的，而不是被假设的 ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1460
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 61 文件 / 1459 → **1460** 项。
