@@ -20,6 +20,8 @@
  * Run: node deepblend/tests/composition/activation.e2e.mjs
  */
 
+import { spawnSync } from 'node:child_process'
+
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -97,6 +99,11 @@ try {
   // Every row's `name` is resolved the way the loader resolves it: a bare
   // import of the package name. If any package were missing from the
   // composition's resolution roots, this is where the mount would fail.
+  const blenderCountBeforeMount = (() => {
+    const found = spawnSync('pgrep', ['-f', 'Blender'], { encoding: 'utf8' })
+    return (found.stdout ?? '').split('\n').filter(line => line.trim() !== '').length
+  })()
+
   for (const row of rows) {
     const loaded = await import(row.name)
     const plugin = loaded.default ?? loaded
@@ -112,6 +119,25 @@ try {
   // blenderUi is bound to the optional webServer; without one it must simply
   // not crash the mount, which the successful boot above already demonstrates.
   check('host bundle mounted without a webServer present', true)
+
+  // --- MOUNTING MUST NOT START ANYTHING ------------------------------------
+  //
+  // The reviewer's question about "surprising install-time behaviour" has a second half beyond importing the
+  // module: what the plugin does when a profile MOUNTS it. This plugin's whole job is launching an external
+  // binary, and its own comment says the runtime row "parks in `waiting`" rather than failing at first call — so
+  // the property to check is that composing it starts NO Blender at all. A boot-time launch would be exactly the
+  // surprise the checklist asks about: an operator starting their harness would pay for a renderer they did not
+  // ask for, on a machine that may not have one.
+  //
+  // MEASURED with `pgrep`: the count before the mount and after it are compared, so the assertion is about what
+  // the MOUNT did rather than about what happens to be running on the machine.
+  const blenderProcesses = () => {
+    const found = spawnSync('pgrep', ['-f', 'Blender'], { encoding: 'utf8' })
+    return (found.stdout ?? '').split('\n').filter(line => line.trim() !== '').length
+  }
+  check('mounting the bundle starts no Blender process at all',
+    blenderProcesses() === blenderCountBeforeMount,
+    { before: blenderCountBeforeMount, after: blenderProcesses() })
 
   // --- the plane rule: the tool must NOT come from the host bundle ---------
   const hostTools = root.get('tools')

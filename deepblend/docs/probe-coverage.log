@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 124: no probe — the reviewer's last machine-checkable question ──
+── ROUND 125: no probe — mounting the plugin must start nothing ──
+No product code changed. Round 124 turned "importing the module does nothing" into a check; the other half of the
+reviewer's "surprising install-time behaviour" is what happens when a profile MOUNTS the plugin — and this
+plugin's job is launching an external binary, so "does mounting it start a Blender" is a real question. The
+plugin's own comment claims the runtime row "parks in `waiting`" rather than probing at mount, and nothing
+asserted it: the activation suite checks the three rows, the two services and the tool plane, but not that the
+mount started no process.
+
+The suite now counts `pgrep -f Blender` before the rows are mounted and again after, and requires the two counts
+to be equal. Counting processes rather than asking this process about its handles is deliberate: the question is
+what the MOUNT did, not what happens to be running on the machine, and the difference of two counts removes the
+latter. The mutation that makes the host launch a detached Blender-named process while being constructed goes red
+on exactly this check (`{"before":0,"after":1}`).
+
+The first mutation attempt used `spawnSync('sleep')`, which neither matches `pgrep -f Blender` nor survives the
+call (spawnSync waits), so it broke an unrelated assertion first — the check needed a detached process whose argv
+carries the name.
+
+The README's numbers do not move: this assertion lives in the COMPOSITION layer, while `count-assertions.mjs`
+counts the contract layer's thirty-two self-counting files. I changed the README to 1490 first and only the
+counter's own output showed it was still 1489 — which is the lesson: which bucket a new assertion lands in is a
+measurement, not an assumption.
+
+── ROUND 124: no probe — the reviewer's last machine-checkable question ──── ROUND 124: no probe — the reviewer's last machine-checkable question ──
 No product code changed. The reviewer checklist has eight items; seven are human judgement or already covered by
 this repository's checks. The one machine-checkable item nobody had checked is §A7.5's last clause — "surprising
 install-time behaviour" — which is a property: a plugin that writes files, starts processes or opens sockets the
