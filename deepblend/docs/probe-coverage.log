@@ -255,7 +255,30 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 146: no probe — the promise made to a tarball user ──
+── ROUND 147: no probe — the read-only guarantee, and the prerequisites table completed ──
+No product code changed. Rounds 144–146 turned three documented failure modes into runnable cases; this round swept
+the other contracts the manuals state, and `install.md` has the strongest kind a tool can make: "四步各有一条命令
+和一个 `--check`。`--check` 从不改动任何东西" — an operator runs a check precisely when they are unsure of the
+state, and a check that repairs as a side effect destroys the evidence they were asking about.
+
+MEASURED on a fully installed throwaway home: snapshotting every file's bytes and every link's target, the three
+`--check` modes left the tree identical (the same hash before and after). Nothing asserted it, so a `--check` that
+wrote "just the one file" would have gone unnoticed. The case in `installer-drift.test.mjs` now installs, snapshots,
+runs the three checks and asserts the snapshot is byte-identical — with a guard against passing vacuously on an
+empty home. The mutation that makes a `--check` write a file goes red.
+
+Two false reds of my own on the way, both worth recording: the first mutation changed a branch the case never
+reaches (it installs first, so `--check` takes the already-registered path), and the second added a duplicate
+`import { writeFileSync }` to a file that already had one — a SyntaxError, which is red on a crash rather than on
+the assertion. Only the third counted.
+
+That completes the prerequisites table, all eight rows measured: the platform key, the Node floor, the DSH anchor
+and Python were already pinned or are pinned now; the missing-`.git` skip and the missing-Blender exit code became
+cases in rounds 145 and 146; ffmpeg's failure mode was measured in round 30 and is covered by the delivery suites;
+and "only `docs:images` and the M4 browser acceptance need Chrome" survived a repository-wide sweep, whose other
+hits were a MATERIAL named `chrome` and a CI comment explaining the same thing.
+
+── ROUND 146: no probe — the promise made to a tarball user ──── ROUND 146: no probe — the promise made to a tarball user ──
 No product code changed. The prerequisites table says that without a `.git` directory the two assertions reading
 repository state report "not a git checkout" and SKIP, with the exit code staying 0. That is the shape a tarball
 download meets — one of the three install routes the plugin list accepts — and nothing exercised it: this checkout

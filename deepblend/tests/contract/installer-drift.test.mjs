@@ -30,7 +30,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -168,4 +169,58 @@ test('and the real DSH home was never touched: its own plugin:check still report
   assert.equal(real.status, 0,
     `the real deployment drifted — this test only ever wrote to temp homes, so something else did:\n` +
     `${real.stdout}${real.stderr}`)
+})
+
+// ---------------------------------------------------------------------------
+// "`--check` never changes anything" — the read-only guarantee, measured
+// ---------------------------------------------------------------------------
+//
+// `install.md` states it plainly: the four steps each have a command and a `--check`, and "`--check` 从不改动任何
+// 东西" — the exit code is what tells "not installed" from "installed but drifted". That is the strongest kind of
+// claim a tool can make, because an operator runs `--check` precisely when they are unsure of the state, and a
+// check that repairs as a side effect destroys the evidence they were asking about.
+//
+// MEASURED before this was written: installing into a throwaway home and hashing every file and link, the four
+// checks left the tree byte-identical. Nothing asserted it, so a `--check` that wrote "just the one file" would
+// have gone unnoticed.
+test('the four --check modes leave an installed home byte-identical', () => {
+  const home = mkdtempSync(join(tmpdir(), 'deepblend-readonly-'))
+  try {
+    mkdirSync(join(home, 'profiles', 'web'), { recursive: true })
+    writeFileSync(join(home, 'profiles', 'web', 'package.json'),
+      `${JSON.stringify({ name: 'web', private: true, dsh: { profile: { bundles: [] } } }, null, 2)}\n`)
+    const run = (args) => spawnSync('node', args, { cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 300_000 })
+    for (const tool of ['install-plugin.mjs', 'install-presets.mjs']) {
+      const installed = run([join(ROOT, 'deepblend', 'tools', tool)])
+      assert.equal(installed.status, 0, `${tool} failed:\n${installed.stdout}${installed.stderr}`)
+    }
+    const snapshot = () => {
+      // Every file's bytes and every link's target, in a stable order.
+      const entries = []
+      const walk = (directory) => {
+        for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+          const path = join(directory, entry.name)
+          if (entry.isSymbolicLink()) entries.push(`${path} -> ${readlinkSync(path)}`)
+          else if (entry.isDirectory()) walk(path)
+          else entries.push(`${path} ${createHash('sha256').update(readFileSync(path)).digest('hex')}`)
+        }
+      }
+      walk(home)
+      return entries.join('\n')
+    }
+    const before = snapshot()
+    assert.ok(before.length > 500, 'the home looks empty, so this case would pass vacuously')
+    const checks = [
+      ['setup:check', [join(ROOT, 'deepblend', 'tools', 'link-workspace.mjs'), '--check']],
+      ['plugin:check', [join(ROOT, 'deepblend', 'tools', 'install-plugin.mjs'), '--check']],
+      ['presets:check', [join(ROOT, 'deepblend', 'tools', 'install-presets.mjs'), '--check']],
+    ]
+    for (const [label, argv] of checks) {
+      const result = run(argv)
+      assert.equal(result.status, 0, `${label} exited ${result.status} on a freshly installed home:\n${result.stdout}${result.stderr}`)
+    }
+    assert.equal(snapshot(), before, 'a --check changed the home it was checking, which is what install.md promises it never does')
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
 })
