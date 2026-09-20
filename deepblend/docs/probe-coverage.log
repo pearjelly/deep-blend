@@ -255,6 +255,42 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 112: no probe — a clean referential sweep, and a deviation about to expire ──
+No product code changed. Two measurements, one negative and one that changes a record.
+
+The referential sweep: the scene schema has four fields that name another object (`entity.assetId`,
+`entity.materialId`, `camera.targetEntityId`, `shot.cameraId`, `animationTrack.targetEntityId` — five call sites,
+four fields), and `validateSceneSpec`'s `requiresId(...)` covers every one of them. "A scene that points at
+nothing" has no hole. Recorded as a result rather than a failed hunt.
+
+The record that changed: deviation §7 #14 was written in round 113, when `material.texture` appeared zero times in
+the compiler — accurate then. Measuring the working tree now shows the parallel contributor has written the
+compiler half (uncommitted, 38 lines): `TEXTURE_PATTERN_NODES` mapping noise/wave/voronoi to Blender pattern nodes,
+`_build_texture_graph`, and an explicit refusal for a type it cannot build.
+
+So two things were done in this lane, without touching their file. The two vocabularies are now held against each
+other by a cross-language assertion (the schema's `type` enum must equal the compiler's table keys — readings
+`schema: [noise,wave,voronoi]`, `compiler: [noise,wave,voronoi]`), with both mutations red (the first aimed at the
+packaged mirror again, the same wrong-file slip as round 120, corrected to the authoritative copy). And the
+deviation row now states the truth: the compiler half exists in the working tree, the vocabularies are pinned, and
+what is STILL open is that the code is driven by no test (no fixture carries a texture) and is not yet committed.
+
+── ROUND 111: a declared hash nothing compared with the file ──
+The asset workflow is two steps: `blender_asset_ingest` COMPUTES the sha256 of what it wrote and reports it, and
+the caller then DECLARES it in `asset.add`. Nothing compared the two. The patch applier is a pure function over
+documents — no filesystem, which is the right shape for it — so it stored whatever hash the caller supplied, and
+the Python never reads `assets[].sha256` at all (measured: zero occurrences). A patch could therefore write
+provenance that is simply false into the scene, and the delivery manifest and any human auditing where the bytes
+came from would believe it.
+
+The check lives in the transaction, the one layer holding both the document and the store: after applying a patch,
+every `asset.add` whose file EXISTS is hashed and compared, and a mismatch is refused with `ASSET_HASH_MISMATCH`
+naming both numbers, committing nothing. A path with no file is deliberately left to the compiler — "declare it
+before the bytes exist" is a different question, and refusing it here would break a flow that works, which the
+third mutation checks by breaking it.
+
+Three mutations go red: removing the comparison, comparing something to itself, and refusing a missing file.
+
 ── ROUND 110: no probe — a check that was written three times and removed ──
 No product code changed, and no assertion stayed either. The round applied the previous three rounds' ruler in its
 POSITIVE form: seven host methods default a revision (`request.revision ?? record.currentRevision`), which is
