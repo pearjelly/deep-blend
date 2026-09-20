@@ -255,7 +255,32 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 164: no probe — the routes the docs name, and one more parameter claim ──
+── ROUND 165: no probe — the check-up found a regression that was blocking CI's last step ──
+No product code changed. Round 200's evidence-gathering began with `npm run verify:clone` — the command that proves a
+stranger can follow the documented install path, and CI's final step — and IT FAILED: "the documented path failed
+at: contract suite (exit 1)".
+
+Four independent causes, all of them mine. `installer-drift`'s "the real DSH home was never touched" asks whether
+the developer's real `$DSH_HOME` matches THIS checkout, which has no answer in a clone, where the profile points at
+the original and `plugin:check` correctly reports eight things not installed. Three suites spawned `npm run` for
+their checks, and although `run.mjs` is sequential, one case runs a whole nested layer in a copy, so two npm
+processes collided on npm's own cache lock — which is how a suite passed alone (22/22) and failed inside the clone.
+`verify:clone` gives its clone a `$DSH_HOME` that has never seen DeepBlend, where `plugin:check` exits 2 with "known
+profiles: (none)" and prints no `result:` line at all, which the helper treated as an assertion failure. And the
+manual writes the home as `/Users/<you>/.dsh` while the normalizer only rewrote paths ending in `/.dsh`, so the
+clone's scratch home called `home` compared unequal on a CORRECT output.
+
+After the four fixes: `verify:clone` exits 0, the contract layer is 65/65, and run-all.sh is 16/16.
+
+Two of them looked like flakes, and the lesson is worth keeping. The third appeared only on a cold clone and passed
+on a warm one — "run it again and it works" is exactly where a flake is most dangerous, because it teaches people
+to re-run instead of to read. And the fourth I first blamed on concurrency, when `run.mjs` is sequential and the
+real cause was a path normalizer that knew one home name.
+
+All of it came from gathering evidence the way the round's policy asks, not from looking for a bug. Round 184's
+check-up said there were no open defects; sixteen rounds later the same command was broken.
+
+── ROUND 164: no probe — the routes the docs name, and one more parameter claim ──── ROUND 164: no probe — the routes the docs name, and one more parameter claim ──
 No product code changed. The fifth candidate for the "a name a document shows must be a name the product has"
 family is ROUTES. Every `/deepblend/xxx` mention in the documentation was compared with `UI_ROUTES`: the three real
 routes the docs name are real, `/deepblend/artifacts` is a prefix of a real route, and the rest — bundle, contracts,

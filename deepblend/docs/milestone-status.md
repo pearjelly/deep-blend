@@ -11755,3 +11755,48 @@ DeepBlend tests: 65/65 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
 `node:test` 用例 **341** ✓、契约层 **65 个文件** ✓。
+
+## 196. 目标体检（第 200 轮）：**体检本身抓到一个把 CI 挡住的回归**
+
+### 196.1 体检怎么变成一次真发现
+
+按体检的流程重新跑 `npm run verify:clone` ✓——**它失败了** ✗✓：
+「the documented path failed at: **contract suite (exit 1)**」✓。
+也就是说 ✓：**那条证明「陌生人装得上」的检查** ✓（CI 的最后一步 ✓✓）**当时是坏的** ✗。
+
+**四个各自独立的原因** ✓，四个都是**我自己**的 ✓：
+
+| # | 原因 | 修法 |
+|---|---|---|
+| 1 | `installer-drift` 的「真实 `$DSH_HOME` 没被动过」那条断言 ✓——它问的是「**这份 checkout 是不是那个 home 装出来的那一份**」✓，而在 **clone** 里**不是** ✓（profile 指向原仓库 ✓）→ `plugin:check` 正确地报「8 things are not installed」✗✓ | 认得出这个状态并**返回** ✓（第 187 轮同一条形状 ✓） |
+| 2 | **三个套件**用 `npm run` 跑检查 ✓，而 `run.mjs` 是**顺序**跑的 ✗——但 `readme-fresh-clone` 会**在副本里再跑一整层** ✓✓ → 两个 npm 进程**撞在 npm 自己的缓存锁**上 ✓ → 同一个套件**单独跑 22/22 ✓、在 clone 的 `run.mjs` 里红** ✗✓ | 直接调**工具本身** ✓（正是 npm 脚本跑的那条命令 ✓，去掉包装 ✓） |
+| 3 | `verify:clone` 给 clone 的 `$DSH_HOME` **从没见过 DeepBlend** ✓ → `plugin:check` 在那里 exit 2、说「known profiles: (none)」✓、**不打印 `result:` 行** ✗✓ → 我的辅助函数把它当成断言失败 ✓ | **缺 `result:` 行是合法答案** ✓；空行不算「装在这里」✓ |
+| 4 | 手册把 home 写成 `/Users/<you>/.dsh` ✓，而我的归一化只重写以 `/.dsh` 结尾的路径 ✗——clone 的 home 叫 `home` ✓ → **正确的输出**比不相等 ✗✓ | 两边都归一到 ` at <the DSH home>` ✓ |
+
+**修完之后** ✓：`verify:clone` **exit 0** ✓✓、契约层 **65/65** ✓、`run-all.sh` **16/16**（81 行 ✓）。
+
+### 196.2 两次「看起来像偶发」的教训
+
+第 3 条**看起来是偶发** ✗（暖 clone 通过 ✓、冷 clone 失败 ✓✓）——而它**不是** ✓：
+`verify:clone` 每次都给 clone 一个**全新的空 home** ✓✓。**「重跑一次就好了」正是偶发最危险的地方** ✓——
+它会让人**重跑**而不是**读** ✓✓。
+
+第 4 条同理 ✓：我一开始以为是**并发** ✗（`run.mjs` 明明是顺序的 ✓✓），
+真正的原因是**路径归一化只认一种 home 名字** ✓✓。
+
+**而这一切是「按流程收集证据」发现的** ✓✓——不是「找 bug」找到的 ✓。
+第 184 轮那次体检说「没有开着的缺陷」✓；十六轮之后，同一条命令**是坏的** ✓✓。
+
+### 196.3 收口
+
+```
+$ npm run verify:clone
+✓ the documented install path works from a clean clone against a clean DSH_HOME
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 81 ✓ lines
+```
+
+**产品代码未改** ✓（改的是四个套件 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
+`node:test` 用例 **341** ✓、契约层 **65 个文件** ✓。
