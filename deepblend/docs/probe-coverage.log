@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 113: no probe — driving the code nobody drove, and what it said ──
+── ROUND 114: no probe — a goal check-up, and the fifth clean sweep in a row ──
+No product code changed. Three more sweeps along the "declared versus existing" ruler all came back clean, which
+is itself the result: the README's three screenshots exist, are in the manifest and are already covered by
+`docs-images.test.mjs` (referenced with non-empty alt text, byte-for-byte hashes); twenty of the sixty-two error
+codes are in the manuals and the other forty-two each have a home in `error-documentation.test.mjs`'s
+classification; and the scene's four reference fields are covered by `requiresId` at all five call sites. Together
+with the enumerating-comment sweep (round 110) and the dark-line review (round 108), that is five consecutive
+negative results — the small-and-certain class of gap has been swept clean.
+
+The deployment's four checks were re-measured: setup, blender, plugin and presets all exit 0, with the plugin
+check reporting the profile it is installed in.
+
+What remains open and USER-VISIBLE is deviation §7 #14: the procedural texture. The parallel contributor's file
+was modified 29 minutes before this round, so they are actively working on it and it stays untouched. Its precise
+state, measured last round: the compiler reads the texture, builds the coordinate/mapping/pattern chain, and does
+not connect the pattern's output to the shading chain — so a texture still changes the document and not the
+pixels. One link closes it, and the gap is written in the test's comment and in the deviation row.
+
+The goal stays active. Nothing small is left to fix; what remains is that one piece of somebody else's work and
+whatever new capability the product direction calls for.
+
+── ROUND 113: no probe — driving the code nobody drove, and what it said ──── ROUND 113: no probe — driving the code nobody drove, and what it said ──
 No product code changed. The previous round measured that the parallel contributor's compiler half for
 `material.texture` (TEXTURE_PATTERN_NODES plus _build_texture_graph) was driven by NOTHING — no fixture carries a
 texture, so every suite passed whether the graph was built or not. A capability with no test is a claim, so this
