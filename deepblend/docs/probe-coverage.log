@@ -255,7 +255,21 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 160: no probe — the contributor's map, all nine rows measured ──
+── ROUND 161: no probe — the suite is deterministic, measured for the first time ──
+No product code changed. The repository writes "passing once is not passing" into its rules everywhere — mutation
+testing, vacuity guards — and nobody had measured the most basic property underneath them: does the same code give
+the same answer twice? A flaky suite is worse than a failing one, because it teaches people to re-run.
+
+Measured: the contract layer twice — exit 0 both times, the same set of passing files, `65/65 file(s) passed` both
+times. And the FULL acceptance suite twice — exit 0 both times and all 81 `✓` lines identical, including the real
+browser suite and the real Blender ones, which are where a flake would live.
+
+It is recorded rather than turned into a check, and the reason is worth writing down: a "run it twice" check inside
+the suite would have the suite run itself inside itself, which is the recursion trap rounds 181 and 186 each hit and
+each discovered only through a ten-minute timeout. The scope of the measurement is also stated — two runs on ONE
+machine — which catches an obvious flake and cannot catch one that only appears elsewhere.
+
+── ROUND 160: no probe — the contributor's map, all nine rows measured ──── ROUND 160: no probe — the contributor's map, all nine rows measured ──
 No product code changed. The last four rows of CONTRIBUTING's "change this, and this assertion catches the rest"
 table were sampled by making the change, which completes the sweep: eight rows hold and one was wrong, corrected in
 round 193.
