@@ -724,3 +724,33 @@ test('every key a manual shows in a JSON example exists in the product', () => {
   assert.ok(inspected >= 8, `expected several keys across the examples, found ${inspected}`)
   assert.deepEqual(missing, [], 'a manual shows a key the product does not have')
 })
+
+// ---------------------------------------------------------------------------
+// A parameter the contract doc documents belongs to the tool it documents
+// ---------------------------------------------------------------------------
+//
+// `tool-contracts.md` §3 gives each tool a table of parameters, and a model reads those tables before calling. The
+// tables are SELECTIVE — the doc never claims to list every parameter, and 22 rows stand beside 75 declared ones —
+// so the check is the same one-directional rule the JSON examples get: a documented name must be a name the tool
+// actually declares, which is the direction a rename rots.
+//
+// MEASURED: all 22 belong to the tool whose section they sit in.
+test('every parameter the contract doc documents is one the tool declares', () => {
+  const tools = new Map(declaredTools(ROOT).map(tool => [tool.name, new Set(tool.declared)]))
+  assert.ok(tools.size >= 10, `expected the tool definitions to parse, found ${tools.size}`)
+
+  const doc = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
+  const foreign = []
+  let current = null
+  let inspected = 0
+  for (const line of doc.split('\n')) {
+    const heading = /^#{3,4} .*`(blender_[a-z_]+)`/.exec(line)
+    if (heading !== null) { current = heading[1]; continue }
+    const row = /^\| `([a-zA-Z]+)` \| (?:string|number|boolean|object|array|integer)/.exec(line)
+    if (row === null || current === null) continue
+    inspected += 1
+    if (!tools.get(current)?.has(row[1])) foreign.push(`${current}.${row[1]}`)
+  }
+  assert.ok(inspected >= 15, `expected the doc to document many parameters, found ${inspected}`)
+  assert.deepEqual(foreign, [], 'the doc documents a parameter its tool does not declare')
+})

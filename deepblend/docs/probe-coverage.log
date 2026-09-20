@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 154: no probe — every key in every JSON example the manuals show ──
+── ROUND 155: no probe — the parameter tables a model reads before calling ──
+No product code changed. `tool-contracts.md` §3 gives each tool a table of parameters, and a model reads those
+tables before it calls anything. Measured against the tool definitions: 22 rows, and every name belongs to the tool
+whose section it sits in — no foreign ones.
+
+The other direction is deliberately out of scope, and for the same reason round 189 left the absence direction out:
+the doc never claims to list every parameter (22 rows stand beside 75 declared ones), so a completeness rule would
+fail on a correct document. The check is the one-directional rule the JSON examples get — a name the doc shows must
+be a name the tool declares — with guards so that finding no tools or no rows cannot pass vacuously. The mutation
+that renames `refresh` in the capabilities table goes red.
+
+One small mistake of my own: `declaredTools()` takes the root and I called it without one, which failed with
+ERR_INVALID_ARG_TYPE — the error named the argument type, which is what a coded failure is for.
+
+Three checks of one family now live in the same file — the quoted cancel result's keys, the JSON examples' keys, and
+the doc's parameter names — and the rule is the same in all three: a name a document shows must be a name the
+product has.
+
+── ROUND 154: no probe — every key in every JSON example the manuals show ──── ROUND 154: no probe — every key in every JSON example the manuals show ──
 No product code changed. Round 153's ruler — a key a manual shows must be a key the product has — was applied to all
 of the manuals' JSON at once: three blocks (the tool result envelope, its failure form, and a ScenePatch request)
 and ten distinct keys. MEASURED: all ten are in the product's sources and schemas, comments excluded, which is the
