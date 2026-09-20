@@ -255,7 +255,31 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 148: no probe — the entry's behavioural claims, and the recovery manual mapped ──
+── ROUND 149: no probe — a goal check-up, twenty rounds on ──
+No product code changed. Re-measured: 64 contract files, 1489 self-counted assertions, 332 node:test cases;
+run-all.sh 16/16 suites printing 80 lines; `verify:clone` exit 0 from a clean clone against a clean DSH_HOME,
+including the new no-Blender assertion; the four deployment checks all exit 0; 12363 product code lines with 35
+dark (0.3%), each named; the decision register complete from D1 to D197 with all 664 citations resolving; and the
+deviation register at twelve rows, ten open and two resolved, every open one read individually and all of them
+deliberate.
+
+What rounds 164–183 changed: one product defect (the browser half declared on the bundle while the `./client`
+export that the client module system resolves was missing, so it would have been skipped in silence), one
+model-facing document that stated the operation vocabulary twice wrong, and the bundle manifest's client
+declaration and `files` list. Then a long line of VERIFICATION: the operator-layer install composes its rows; the
+preset's metadata is parsed rather than pattern-matched (a parse failure is silent, and a preset with no name is
+what a user would see); the README's second copy of the totals — nineteen rounds stale — was removed rather than
+pinned, per D93; text a model reads states no count at all, which is why none of it can rot; the prerequisites
+table's eight rows were all measured, and three of the failure modes a stranger meets first (no Blender's exit
+code, no Python's one named failure, no `.git`'s skip) had never been run; the read-only guarantee behind
+`--check`; the entry's behavioural claims backed by written decisions; and every section of the recovery manual
+mapped to evidence.
+
+What remains is unchanged from round 163 and is not mine to decide: making the repository public (which alone
+unblocks installing from source), adding the `dsh-plugin` topic, confirming the monorepo entry form, and choosing a
+packaging direction for the four unpublished siblings — whose three options were measured in round 168.
+
+── ROUND 148: no probe — the entry's behavioural claims, and the recovery manual mapped ──── ROUND 148: no probe — the entry's behavioural claims, and the recovery manual mapped ──
 No product code changed. The plugin list's rule is that a description "is read as a claim about your plugin, and it
 is checked against your code". Round 153 checked the entry's NUMBERS; the entry also claims behaviour — "with
 immutable revisions and an approval gate" — and for those there is no lexical answer: no assertion in this
