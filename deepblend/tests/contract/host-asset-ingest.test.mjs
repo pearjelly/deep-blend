@@ -401,6 +401,18 @@ check('a local ingest produces the same record shape, with a local source',
     /model\.glb$/.test(redirected.redirectedFrom.chain[1]),
     redirected.redirectedFrom ?? redirected)
 
+  // AND THE MANIFEST KEEPS IT, because the manifest is the copy a later reader trusts: the tool result is gone
+  // when the conversation ends, and "which URL did these bytes come from?" is exactly the question a provenance
+  // record exists to answer.
+  const redirectManifest = JSON.parse(readFileSync(
+    join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8',
+  ))
+  const redirectEntry = (redirectManifest.assets ?? []).find(entry => entry.assetId === 'redirected')
+  check('and the asset manifest records BOTH the approved URL and the one that answered',
+    /redirect-once\.glb$/.test(redirectEntry?.source?.url ?? '') &&
+    /model\.glb$/.test(redirectEntry?.source?.resolvedUrl ?? ''),
+    redirectEntry?.source ?? redirectEntry)
+
   const endless = await studio.ingestAsset({
     projectId, sourceUrl: `${base}/redirect-forever.glb`, assetId: 'endless', approved: true,
   }).catch(cause => cause)

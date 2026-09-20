@@ -8985,3 +8985,49 @@ total self-counted assertions: 1476
 * 第二次读数回到 **32 (0.3%)** ✓✓。
 
 契约层 62 文件 / 1473 → **1478** 项（`host-asset-ingest.test.mjs` 26 → 31 ✓）。
+
+## 136. 审批的主语在**结果里**看得见了，但在**manifest 里**没有
+
+### 136.1 起因：把上一轮的尺子往回量一格
+
+第 139 轮修的是「审批给你看的 URL 不是请求真正去的地方」✓，并把链路放进了**工具结果** ✓
+（`redirectedFrom` ✓）。这一轮问的是同一个问题的**下一格** ✓：
+**那份会被后来的人读的记录里，写的是哪个 URL？** ✓
+
+`assets/manifest.json` 的条目写着：
+
+```js
+source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath }
+```
+
+**只有被批准的那个 URL** ✗——而 manifest 是「后来的人会读的那一份」✓✓（第 117 轮那条教训 ✓）。
+工具结果在对话结束时就没了 ✓，于是「这些字节到底从哪儿来」这个**来源记录存在的理由** ✓，
+在重定向之后就没有答案了 ✓。
+
+### 136.2 修法：两个问题，两个字段
+
+```js
+source: { kind: 'url', url: <批准的那个>, resolvedUrl: <真正回答的那个> }
+```
+
+`url` 回答「我要的是什么」✓、`resolvedUrl` 回答「我拿到了什么」✓——**只在链路真的移动过时才出现** ✓
+（没重定向的条目里不会多一个等于 `url` 的冗余字段 ✓）。
+
+### 136.3 两条变异
+
+* **去掉 `resolvedUrl`** ✓ → 红 ✓（来源记录又指回一个没有回答的 URL ✓）；
+* **把 `resolvedUrl` 写成 `url`** ✓（看起来像有、其实在说「一切照旧」✓）→ 红 ✓✓。
+
+### 136.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1479
+```
+
+产品代码改了（manifest 多一个来源字段 ✓），所以这一轮跑新探针 ✓（`r108` 列 ✓）。
+契约层 62 文件 / 1478 → **1479** 项（`host-asset-ingest.test.mjs` 31 → 32 ✓）。
+（顺带确认：`assets/manifest.json` **没有**发布 schema ✓——它是 store 内部产物 ✓，
+所以不需要同步 schema ✓；发布出去的三个 schema 是 scene-spec / scene-patch / job-result ✓。）

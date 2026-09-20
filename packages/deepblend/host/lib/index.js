@@ -2133,7 +2133,16 @@ export default class BlenderStudio extends Service {
         path: relativePath,
         sha256,
         bytes,
-        source: sourceUrl !== null ? { kind: 'url', url: sourceUrl } : { kind: 'local', path: sourcePath },
+        // WHERE THE BYTES ACTUALLY CAME FROM, which is not always the URL that was approved: a redirect moves
+        // the request, and the manifest is the copy a later reader trusts. It carries the approved URL (the
+        // question "what did I ask for?") and, when the chain moved, the URL that answered ("what did I get?").
+        source: sourceUrl !== null
+          ? {
+            kind: 'url',
+            url: sourceUrl,
+            ...fetchedChain.length > 1 ? { resolvedUrl: fetchedChain[fetchedChain.length - 1] } : {},
+          }
+          : { kind: 'local', path: sourcePath },
         // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
         // are different statements, and only the first one is true here.
         license,
