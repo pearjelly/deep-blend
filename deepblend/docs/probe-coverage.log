@@ -255,7 +255,31 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 116: two manifest entries for one path ──
+── ROUND 117: no probe — a correction: the texture WAS wired, my case asked for no effect ──
+No product code changed. Round 115 measured the node graph the compiler builds for a textured material and found
+the pattern's output connected to nothing, which was written up as "it reads it, builds it, and does not connect
+it" and folded into deviation §7 #14. That conclusion was WRONG.
+
+Reading the whole of `_build_texture_graph` — the first pass had read half of it — shows the pattern feeds three
+OPT-IN consumers: `bump` drives the Principled's Normal through a Bump node, `roughnessVariation` swings its
+Roughness through a Map Range, and `colorVariation` tints Base Color. The case declared `{type: 'noise',
+scale: 12.5}` — none of the three — so the compiler built the chain and connected it to nothing, correctly. The
+code was right and the input was empty: the same slip as round 118 (inferring behaviour from a field name) and
+round 142 (treating source shape as the property), and this time it was reading half a function.
+
+Declaring `bump: 0.6, roughnessVariation: 0.3` produces, measured in real Blender:
+
+    TEX_NOISE.Factor -> BUMP.Height
+    BUMP.Normal -> BSDF_PRINCIPLED.Normal
+    TEX_NOISE.Factor -> MAP_RANGE.Value
+    MAP_RANGE.Result -> BSDF_PRINCIPLED.Roughness
+
+M1 Blender integration: 80/80. The assertion names those four links exactly rather than matching "something to
+something", which would pass on a graph wired to the wrong socket — the failure the case exists to catch. The
+deviation row now says what is true: implemented in the working tree, proven by a test, and the only thing still
+open is that the contributor has not committed it. Their file was not committed here; that is theirs to do.
+
+── ROUND 116: two manifest entries for one path ──── ROUND 116: two manifest entries for one path ──
 The asset destination is `assets/raw/<file name>` — shared by NAME, not by asset id — so two ingests of one file
 name write the same path. Measured with two sources that share a name and differ in bytes (identical bytes would
 make a torn write invisible): both succeeded, the file that landed was one of the two intact, and the manifest's

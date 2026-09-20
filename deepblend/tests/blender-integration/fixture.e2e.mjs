@@ -982,7 +982,12 @@ write({'materials': materials})
 const texturedSpec = compileSceneSpec({
   ...fixtureSpec,
   materials: fixtureSpec.materials.map((material, index) =>
-    (index === 0 ? { ...material, texture: { type: 'noise', scale: 12.5 } } : material)),
+    (index === 0
+      // The three consumers are OPT-IN (`bump`, `roughnessVariation`, `colorVariation`), and a texture that asks
+      // for none of them is built and connected to nothing — which is what the first version of this case
+      // declared, and why it read as "the graph is not wired". It is wired; the case was asking for no effect.
+      ? { ...material, texture: { type: 'noise', scale: 12.5, bump: 0.6, roughnessVariation: 0.3 } }
+      : material)),
 }).spec
 
 /** Compile a spec through the provider and return the produced `.blend`, kept for inspection. */
@@ -1025,6 +1030,20 @@ check('a material with a procedural texture is compiled with a coordinate/mappin
   texturedMaterial !== undefined && texturedMaterial.patterns.includes('TEX_NOISE') &&
   texturedMaterial.links.some(link => link === 'MAPPING.Vector -> TEX_NOISE.Vector'),
   texturedMaterial ?? withTexture.materials.map(entry => entry.name))
+// AND THE PATTERN REACHES THE SHADER, through the consumers the texture asked for: `bump` drives the Principled's
+// Normal via a Bump node, and `roughnessVariation` swings its Roughness through a Map Range. Asserting the exact
+// links rather than "some link exists" is what makes this a test of the feature instead of of Blender's defaults.
+// The exact links, as MEASURED — a regex over "something to something" would pass on a graph wired to the wrong
+// socket, which is the failure this is here to catch.
+const REQUIRED_LINKS = [
+  'TEX_NOISE.Factor -> BUMP.Height',
+  'BUMP.Normal -> BSDF_PRINCIPLED.Normal',
+  'TEX_NOISE.Factor -> MAP_RANGE.Value',
+  'MAP_RANGE.Result -> BSDF_PRINCIPLED.Roughness',
+]
+check('and the pattern it builds REACHES the shading: a Bump node into Normal, a Map Range into Roughness',
+  REQUIRED_LINKS.every(link => texturedMaterial.links.includes(link)),
+  { missing: REQUIRED_LINKS.filter(link => !texturedMaterial.links.includes(link)), links: texturedMaterial.links })
 check('and the same material WITHOUT a texture builds no pattern node at all, so the case above is not universal',
   plainMaterial !== undefined && plainMaterial.patterns.length === 0 && plainMaterial.links.length === 1,
   plainMaterial ?? withoutTexture.materials.map(entry => entry.name))

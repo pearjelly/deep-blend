@@ -433,7 +433,8 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 10 | SPEC §15.2「日志脱敏」 | **一半 + 一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），且**本插件自己产出的 URL 一律先脱敏**（`contracts/lib/redact.js`：凭据/查询串/片段被移除并说明移除了什么；`contract/url-redaction.test.mjs` 7 项 + `host-asset-ingest.test.mjs` 用一条**预签名** URL 断言签名不出现在消息与记录里）。**仍然没有**日志过滤器 | 第一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。第二半是本轮补的：五处资产抓取消息此前把 URL 原样写进**模型读到的话**和**操作者读到的记录**，而模型拿到的模型文件链接**通常就是预签名的**——「URL 不是秘密」是一句本产品不能做的断言。脱敏**只删不掩**：掩码需要一个「可信参数名」清单，而那份清单正是会烂掉的东西（没人想到的签名参数就是泄漏），删掉查询串最坏只是消息少一点信息。真正需要脱敏的**用户自己**贴进对话的秘密属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
 | 12 | SPEC §17 的配置形状（`finalRender.*` / `security.*` / `jobs.*` / `agent.*` 分组） | **平铺的键**：每个键属于**执行它的那个包**（`requireApprovalAboveFrames`、`assetMaxBytes`、`timeoutMs`…），而不是属于一个分组 | 分组会藏起「谁在执行这个键」这个事实：`security.*` 里一半的键**根本没有实现者**，因为那些「开关」对应的是**从不发生的事**（不装 add-on、不跑任意 Python、不放开工作区）。键与执行者一对一之后，schema 才能被拿去和读它的代码逐条对照（`contract/config-surface.test.mjs` 两个方向都查）。**而且分组写法曾经是静默失效的**：schema 接受它、当成不认识的属性留下、一声不吭——照 SPEC 抄配置的操作者会得到一个「审批阈值还是默认值」的部署。现在三个 row 在构造时拒绝不认识的键并列出真正读的键（`install.md` §3.1 是完整的对照表） |
-| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **编译器那一半已经在工作区里了（未提交，并行贡献者所写）**：`deepblend_scene.py` 的 `TEXTURE_PATTERN_NODES`（noise/wave/voronoi → 各自的 Blender pattern 节点）+ `_build_texture_graph` ✓，并且对**它建不出来的类型**会**明确拒绝**（`which this compiler cannot build` ✓）——本会话写下这一行时（第 113 轮）编译器里这个名字出现 **0 次** ✓，所以当时的记录是准的 ✓。现在**两边的词汇表已经被一条跨语言断言钉住** ✓（`render-job.test.mjs`：schema 的 `type` 枚举 == 编译器那张表的键 ✓，读数 `{schema: [noise,wave,voronoi], compiler: [noise,wave,voronoi]}` ✓）。**这一行现在有了实测的、更精确的结论（第 145 轮）**：那条测试写出来之后 ✓，在**真实 Blender** 里编出来的节点图是这样的 ✓：
+| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **已实现（在工作区，未提交，并行贡献者所写），并且现在有测试证明它能用** ✓✓。第 145 轮我曾写下「pattern 建出来了但输出没接到任何地方」✗——**那是错的** ✓：三个消费者（`bump` ✓、`roughnessVariation` ✓、`colorVariation` ✓）**是可选开启的** ✓，而我的用例声明的是 `{type:'noise', scale:12.5}` ✓——**什么都没要求** ✓，于是自然什么都不接 ✓。第 149 轮把用例改成声明 `bump: 0.6, roughnessVariation: 0.3` ✓，在**真实 Blender** 里量到的连线是 ✓：
+`TEX_NOISE.Factor → BUMP.Height` ✓、`BUMP.Normal → BSDF_PRINCIPLED.Normal` ✓、`TEX_NOISE.Factor → MAP_RANGE.Value` ✓、`MAP_RANGE.Result → BSDF_PRINCIPLED.Roughness` ✓（`M1 Blender integration: 80/80` ✓）。**仍然开着的是**：那段代码**还没进版本库** ✓——等它提交之后这一行划掉 ✓ |
 `TEX_COORD.Object → MAPPING.Vector` ✓、`MAPPING.Vector → TEX_NOISE.Vector` ✓、`BSDF_PRINCIPLED.BSDF → OUTPUT_MATERIAL.Surface` ✓——**pattern 节点建出来了，但它的输出没有接到任何地方** ✗✗。也就是说：**纹理仍然只改文档、不改像素** ✓——这一行最初的那句话，到现在**依然成立** ✓，只是原因从「编译器根本不读它」变成了「读了、建了、没接上」✓。测试断言的是**已实现的那一半** ✓（坐标/映射/pattern 链存在 ✓、没有纹理的材质一个 pattern 节点都没有 ✓），并在注释里写明这条链**还没接进着色** ✓——把「没接上」写成断言，等于修好它时必须先删掉断言 ✓。等它接上并有真实用例之后，这一行划掉 ✓ |
 | 13 | SPEC §17 `finalRender.requireApprovalAboveResolution` | **未实现**：审批阈值只有**帧数**一个维度 | 分辨率是**成本的一个因子**而不是成本的度量：同一个 1920×1080 的项目，渲 3 帧和渲 3000 帧差三个数量级，而 4K 的 3 帧仍然便宜。加第二个阈值会造出一个「两把尺子」的问题（哪个先触发？超了其中一个算不算批过？），而帧数已经能把「小时级」和「秒级」分开。真要按分辨率管，答案是把成本估算做成一个数（SPEC §16 的方向），而不是再加一个开关 |
 
@@ -9397,3 +9398,52 @@ total self-counted assertions: 1489
 
 产品代码改了（按 path 替换 + 原子落地 ✓），所以这一轮跑新探针 ✓（`r116` 列 ✓）。
 契约层 62 文件 / 1487 → **1489** 项 ✓。
+
+## 145. 一次**纠正**：我把「没接上」当成了缺陷，其实是我的用例什么都没要求
+
+### 145.1 我错在哪
+
+第 145 轮我在真实 Blender 里量了纹理编译出来的节点图 ✓，看到 pattern 的输出没有连到任何地方 ✓，
+于是写下「**编译器读了、建了、没接上**」✓，并把它写进了偏差 #14 ✓。**这是错的** ✓。
+
+第 149 轮读完贡献者的 `_build_texture_graph` 全文 ✓（之前只读了前半段 ✗）才发现：
+pattern 的输出接给**三个可选消费者** ✓——
+
+1. `bump` > 0 → `ShaderNodeBump` → Principled 的 **Normal** ✓；
+2. `roughnessVariation` > 0 → `ShaderNodeMapRange` → Principled 的 **Roughness** ✓；
+3. `colorVariation` > 0 → 乘性 tint → Principled 的 **Base Color** ✓。
+
+而我的用例声明的是 `{type: 'noise', scale: 12.5}` ✓——**三个都没要求** ✓，于是**什么都不接** ✓✓。
+**代码是对的，问题在我的输入** ✓——第 118 轮（把索引的行为从字段名推断 ✗）、第 142 轮（源码形状当性质 ✗）
+之后，同一个毛病又一次：**我读了函数的一半就下了结论** ✓。
+
+### 145.2 修好用例，量到真实的行为
+
+用例改成声明 `bump: 0.6, roughnessVariation: 0.3` ✓，断言**逐条列出实测的连线** ✓
+（而不是「存在某种连线」✗——那种断言在接错插座时照样通过 ✓）：
+
+```
+TEX_NOISE.Factor -> BUMP.Height
+BUMP.Normal -> BSDF_PRINCIPLED.Normal
+TEX_NOISE.Factor -> MAP_RANGE.Value
+MAP_RANGE.Result -> BSDF_PRINCIPLED.Roughness
+```
+
+`M1 Blender integration: 80/80 checks passed` ✓✓——**这个特性是能用的** ✓。
+
+### 145.3 记录怎么改
+
+* §7 #14 那一行**改写成真相** ✓：已实现（工作区、未提交）✓、**有测试证明** ✓、
+  **仍然开着的是它还没进版本库** ✓；
+* 我**没有**提交那个文件 ✓（那是贡献者的 ✓）——他们一提交 ✓，这一行划掉 ✓。
+
+### 145.4 收口
+
+```
+$ node deepblend/tests/blender-integration/fixture.e2e.mjs
+M1 Blender integration: 80/80 checks passed
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+```
+
+**产品代码未改** ✓（改的是我自己的用例与那条偏差记录 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
