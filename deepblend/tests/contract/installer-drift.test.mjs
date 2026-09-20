@@ -34,6 +34,8 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { MANAGED_BLENDER_RELATIVE_PATHS, MANAGED_TOOLS_DIRECTORY } from '@deepblend/dsh-blender-contracts'
+
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** Run a tool with a given `DSH_HOME`, and report its exit code and output together. */
@@ -126,6 +128,38 @@ test('presets --check: absent entirely is a STATE (0), partly present is DRIFT (
     assert.equal(run('install-presets.mjs', ['--check'], home).status, 0, 'and it checks clean again')
   } finally {
     rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('blender:check agrees with the machine it is on, and never claims 0 without an install', () => {
+  // THE FOURTH CHECK, AND THE ONE THAT CANNOT BE DRIVEN INTO DRIFT SAFELY. It reads the managed install that
+  // lives inside THIS repository (`deepblend/tools/<app>`), with no override — so breaking it would mean moving
+  // a real Blender or editing the pinned release record, both of which are the machine rather than a fixture.
+  // What is reachable is asserted: where an install exists it must verify clean, and where none exists it must
+  // NOT report "installed and matching" (its documented code for that is 0; the contract names no code for
+  // "absent", so this asserts only what is true either way). The drift branch — a digest that does not match —
+  // is exercised by `blender:install` and by hand, and is named here rather than pretended.
+  //
+  // MEASURED, so the next reader does not mistake the coverage for something it is not: on a machine WITH the
+  // install (this one), the absent branch is unreachable, and a mutation that breaks it there is EQUIVALENT —
+  // it survives. CI is where the other half runs, because a runner has no Blender. The present branch is the one
+  // this machine can pin, and the mutation that makes it exit 1 goes red here.
+  // Derived from the same constants the installer uses (`MANAGED_TOOLS_DIRECTORY` is `.tools`, and the app name
+  // is the first segment of `MANAGED_BLENDER_RELATIVE_PATHS[0]`) — the first version of this probe hardcoded
+  // `deepblend/tools/Blender.app`, found nothing, and then failed a machine that HAS Blender installed.
+  const app = join(ROOT, MANAGED_TOOLS_DIRECTORY, MANAGED_BLENDER_RELATIVE_PATHS[0].split('/')[0])
+  const present = existsSync(app)
+  const checked = spawnSync('node', [join(ROOT, 'deepblend', 'tools', 'install-blender.mjs'), '--check'], {
+    cwd: ROOT, encoding: 'utf8',
+  })
+  assert.ok(checked.status !== null, 'blender:check did not exit')
+  if (present) {
+    assert.equal(checked.status, 0,
+      `the managed install is present, so this must verify clean:\n${checked.stdout}${checked.stderr}`)
+    assert.match(`${checked.stdout}${checked.stderr}`, /(in sync|matching|installed)/i)
+  } else {
+    assert.notEqual(checked.status, 0,
+      `there is no managed install, so this must not report success:\n${checked.stdout}${checked.stderr}`)
   }
 })
 

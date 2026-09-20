@@ -255,6 +255,24 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 119: no probe — the fourth `--check`, and the half of it this machine cannot reach ──
+No product code changed. `install-blender.mjs` keeps its managed install inside the repository
+(`MANAGED_TOOLS_DIRECTORY` is `.tools`, `TOOLS = join(ROOT, '.tools')`) and offers no override, so driving its
+drift branch would mean moving a real Blender or editing the pinned release record — the machine rather than a
+fixture. What is reachable is asserted: where an install exists it must verify clean, and where none exists it
+must not report success (its documented 0 means "installed and matching", and the contract names no code for
+"absent", so the case asserts only what holds either way).
+
+The probe that decides which branch to take was wrong first: it hardcoded `deepblend/tools/Blender.app`, found
+nothing, and walked into the "absent" branch on a machine that HAS Blender — and the product's own output is what
+exposed it ("the pinned Blender 5.2.1 is installed"). It derives the path from the same constants the installer
+uses now.
+
+The coverage is stated with its measurement: the mutation that makes the present branch exit 1 goes red here,
+while the mutation that makes the absent branch report success SURVIVES — it is equivalent on this machine,
+because that branch is unreachable here. CI is where the other half runs. The comment says so, so the next reader
+does not mistake this for more coverage than it is.
+
 ── ROUND 118: no probe — three of the four `--check` scripts had never been run by a test ──
 No product code changed. The repository's operator-facing guarantees are four `--check` scripts, and only
 `setup:check` was exercised by anything (and only since the previous round, to tie the link count). The comment
