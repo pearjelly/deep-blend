@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 137: no probe — the packaging decision, measured instead of estimated ──
+── ROUND 138: no probe — a second copy of the total, nineteen rounds stale ──
+No product code changed. The README carries a caveat about a count that depends on the machine:
+`preset-source.test.mjs` reports 19 checks without an installed preset and 21 with one, so subtracting two
+machines' totals invents or loses two. Re-measured this round — `DSH_HOME` pointed at a home with no preset gives
+19/19, the real home gives 21/21 — so the caveat itself holds. What did not hold is the sentence after it, which
+said "上面那个 1469 是装了 preset 的读数" while the total above it had been 1488 for nineteen rounds.
+
+The first response was an assertion: the number in that sentence must equal the measured total. That would have
+violated D93, whose reasoning is written in `documented-counts.test.mjs` — the check is deliberately about the
+SHAPE (a number next to "断言" or "node:test 用例") "because a rule that listed the two stale figures would be the
+same rot one round later". D93's rule is that ONE document carries the totals and the rest point at it; the README
+is that document, so the real defect was a SECOND copy inside it, not an unchecked figure.
+
+So the sentence now points instead of repeating ("上面那个总数是「装了」preset 的读数"), the assertion was removed,
+and the counts test is unchanged at 13/13. The lesson: adding a check is not always the answer — when the
+repository has already written down a rule about a class of numbers rotting, the answer is usually to remove the
+duplicate, and the rule is cheaper to read than the number.
+
+── ROUND 137: no probe — the packaging decision, measured instead of estimated ──── ROUND 137: no probe — the packaging decision, measured instead of estimated ──
 No product code changed. Two of the three install routes come down to the same question — how do five packages and
 a bundle become something a stranger can install — and while the answer is a product decision, its COST is
 measurable.
