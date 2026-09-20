@@ -255,6 +255,19 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 116: no probe — an ordinal no reader could check ──
+No product code changed. `tool-contracts.md` titled two sections with an ordinal — "关于 `world.set`（第 21 个
+操作）" and "关于 `entity.tags.set`（第 20 个操作）". The first coincides with `world.set`'s position in the
+vocabulary; the second does not (`entity.tags.set` sits at position 3), because those numbers were recording the
+order the operations were ADDED — a fact no reader can verify and no code can derive, wearing the shape of a table
+position that a reader would naturally check against `usage.md`.
+
+The rule is now the checkable one: if a manual cites a position, it must be the position, and the operation must
+exist in the vocabulary. The stale citation is gone (the section keeps its substance — "before this operation,
+changing a tag meant rebuilding the project"), and the remaining one is derived. Three mutations go red: the
+ordinal drifting, the citation naming an operation that is not in the vocabulary, and the vocabulary being
+renamed — which is what the append-at-the-end convention exists to prevent.
+
 ── ROUND 115: no probe — two numbers in the README's tree block ──
 No product code changed. The tree block states two countable numbers. `16 个模型可见工具` is live and nothing
 watched it — round 114 tied the ROSTER to the declared tools, which is a different statement from "the number in

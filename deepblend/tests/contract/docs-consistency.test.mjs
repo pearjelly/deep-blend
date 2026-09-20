@@ -251,6 +251,23 @@ test('every blender tool a manual names is a tool that exists', () => {
   )
 })
 
+test('an ordinal a manual cites is the operation\u2019s position in the vocabulary', () => {
+  // `tool-contracts.md` says "关于 `world.set`（第 21 个操作）", and a reader checks that against the table in
+  // `usage.md` — which is where positions come from. MEASURED: the same file also said "关于 `entity.tags.set`
+  // （第 20 个操作）" for an operation that sits at position 3, because that number was recording the order the
+  // operation was ADDED (a fact no reader can check and no code can derive) while reading like a table position.
+  // The rule is now the checkable one: cite the position, and it has to be the position.
+  const toolContracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
+  const citations = [...toolContracts.matchAll(/关于 `([a-z][a-zA-Z.]*)`（第 (\d+) 个操作）/g)]
+  assert.ok(citations.length > 0, 'tool-contracts.md no longer cites an operation position — re-anchor this check')
+  for (const [, operation, stated] of citations) {
+    const position = SCENE_OPERATION_NAMES.indexOf(operation) + 1
+    assert.ok(position > 0, `tool-contracts.md cites "${operation}", which is not in the vocabulary at all`)
+    assert.equal(Number(stated), position,
+      `tool-contracts.md says "${operation}" is operation ${stated}; the vocabulary puts it at ${position}`)
+  }
+})
+
 test('the COUNT the manual states is the count the vocabulary has', () => {
   // The table below is tied to `SCENE_OPERATION_NAMES`, and so is the order — but the sentence ABOVE the table
   // states a number in prose ("下面 N 个操作名就是全部词汇"), and nothing checked it. MEASURED: it still said 23

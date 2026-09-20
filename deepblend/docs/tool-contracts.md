@@ -86,7 +86,7 @@
 **审查器失败不会让整次 review 失败**：渲染、测量、sheet、分数都还在，只是少了第二意见，
 失败原因进 `reviewer.error` 与 warnings。
 
-### 关于 `entity.tags.set`（第 20 个操作）
+### 关于 `entity.tags.set`
 
 标签不是元数据而是**语义**：`environment` 决定谁可以遮挡主体，`hero-product` 标记主体，
 `subject-part` 声明某个实体是**主体自身的一部分**而不是挡在它前面的东西。
