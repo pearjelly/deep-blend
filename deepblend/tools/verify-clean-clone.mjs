@@ -154,6 +154,27 @@ try {
 
   if (withBlender) {
     record('acceptance suite', step(['bash', join(clone, 'deepblend/tests/run-all.sh')], { cwd: clone, home, label: 'the full acceptance suite, in the clone' }))
+  } else {
+    // THE NO-BLENDER PATH IS THE ONE A STRANGER MEETS FIRST, and the README states its contract exactly: without
+    // Blender, `run-all.sh` "直接以 2 退出" and says what is missing. This branch used to skip the acceptance
+    // suite entirely, so that sentence was never exercised — and the path costs a tenth of a second, because the
+    // script checks for the binary before running anything.
+    //
+    // MUTATION-TESTED BY A TEMPORARY COMMIT, not by editing the tree: this script clones the COMMITTED state, so a
+    // dirty-tree mutation never reaches the clone — the first attempt changed `exit 2` to `exit 3` and the check
+    // still passed. Committing the mutation made it red ("run-all.sh without Blender exited 3, and the README says
+    // 2") and the commit was dropped. That is a property worth keeping: what this verifies is what a stranger
+    // would clone.
+    const refused = step(['bash', join(clone, 'deepblend/tests/run-all.sh')], {
+      cwd: clone, home, label: 'the acceptance suite, with no Blender present',
+    })
+    if (refused.status !== 2) {
+      failures.push(`run-all.sh without Blender exited ${refused.status}, and the README says 2`)
+    } else if (!/Blender not found/.test(refused.output)) {
+      failures.push('run-all.sh refused without naming the missing Blender')
+    } else {
+      say('no-Blender path', 'run-all.sh exits 2 and names the missing Blender, as the README says')
+    }
   }
 } catch (error) {
   console.error(`\n${error.message}`)
