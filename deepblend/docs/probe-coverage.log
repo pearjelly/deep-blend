@@ -255,7 +255,24 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 142: no probe — the last corner of the count sweep, and a mutation I forgot to revert ──
+── ROUND 143: no probe — the prerequisites table's claims, two of which nothing checked ──
+No product code changed. This round started from a hypothesis of mine that turned out to be wrong: I thought the
+README stated the "N 条照跑" count in two places with different numbers. Measured: the sentence appears once, it
+says 80, and `documented-counts` derives it from the counts the cases above already compute — a check that caught
+this very number drifting when a contract file was added (the run printed 78 while the sentence still said 77). No
+defect; what I had misremembered was a log summary from round 154, not the file, and the file is the authority.
+
+Following the false lead still paid. The "快速开始" table's rows are claims about files rather than opinions, and
+three of them are checkable: the Node floor comes from `package.json`'s `engines` AND the version CI runs, the
+managed Blender is the platform pinned in `blender-release.json`, and the harness version is the one in
+`dsh-baseline.json`. The baseline was already covered — SECURITY.md's promise that the pin, the document and the
+workflow agree has a check. MEASURED by mutation, the other two were not: changing `engines.node` from ">=22" to
+">=20" left the suite green, so the first table a visitor reads could state a floor the repository no longer had.
+
+All three are pinned now, and all three mutations go red: the engines floor lowered, CI moved to another Node, and
+the Blender platform changed to `linux-x64`.
+
+── ROUND 142: no probe — the last corner of the count sweep, and a mutation I forgot to revert ──── ROUND 142: no probe — the last corner of the count sweep, and a mutation I forgot to revert ──
 No product code changed. Rounds 140 and 141 applied the "check every count" ruler to the README and to the other
 live documents. This round swept the last two places a count could hide: the JSON schemas' descriptions and the
 tool definitions a model reads.

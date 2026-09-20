@@ -477,3 +477,34 @@ test('the model-facing text states no counts of its own', () => {
   assert.deepEqual(offenders, [],
     'these statements count a set in text a model reads, where a stale count is invisible')
 })
+
+// ---------------------------------------------------------------------------
+// The prerequisites table's claims are read off three files
+// ---------------------------------------------------------------------------
+//
+// "快速开始" opens with a table of what a machine needs, and three of its rows are claims about files rather than
+// opinions: the Node floor is `package.json`'s `engines` AND the version CI runs, the managed Blender is the
+// platform pinned in `blender-release.json`, and the harness version is the one in `dsh-baseline.json`. The
+// baseline is checked elsewhere (SECURITY.md's promise that the pin, the document and the workflow agree);
+// MEASURED by mutation, the other two were not — changing `engines.node` from ">=22" to ">=20" left the suite
+// green, so the first table a visitor reads would have stated a floor the repository no longer had.
+test('the prerequisites table states the floors the files state', () => {
+  const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+  const floor = /engines[^\n]*?\n?[^\n]*?>=(\d+)/.exec(readme) ?? /Node\s*≥\s*(\d+)/.exec(readme)
+  assert.ok(floor !== null, 'the README no longer states a Node floor — re-anchor this check')
+  const enginesFloor = /(\d+)/.exec(String(root.engines?.node ?? ''))
+  assert.ok(enginesFloor !== null, 'the root package.json declares no node engine')
+  assert.equal(Number(floor[1]), Number(enginesFloor[1]),
+    `the README states Node >= ${floor[1]}; package.json's engines say ${root.engines?.node}`)
+
+  const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
+  const ciNode = /node-version:\s*'?(\d+)/.exec(workflow)?.[1]
+  assert.ok(ciNode !== undefined, 'the workflow no longer pins a node version')
+  assert.equal(Number(ciNode), Number(enginesFloor[1]),
+    `CI runs node ${ciNode} while the README says the engines require >= ${enginesFloor[1]}`)
+
+  const release = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'tools', 'blender-release.json'), 'utf8'))
+  assert.equal(release.platform, 'macos-arm64',
+    'the README calls the managed Blender a macOS arm64 build; the release manifest says otherwise')
+  assert.match(readme, /macOS arm64/, 'the README no longer says which platform the managed Blender is for')
+})

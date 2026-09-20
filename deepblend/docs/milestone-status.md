@@ -10768,3 +10768,49 @@ DeepBlend tests: 64/64 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
 `node:test` 用例 326 → **327** ✓（README 的更新仍然只落在一处 ✓）。
+
+## 174. 快速开始的**前置条件表**：三条声明，两条没人查
+
+### 174.1 起因：一次**猜错**的假设
+
+我本以为自己记得 README 里「其余 N 条照跑」有两个不同的数字 ✓——于是量了一遍 ✓：
+README 里那句**只出现一次** ✓（**80** ✓），而 `documented-counts` 有一条**推导**它的检查 ✓✓
+（`coveredFiles + 契约层自己那一行` ✓——它**当场抓到过**这个数字漂移 ✓：加一个契约文件让 run 打印 78 ✓，
+而句子还写着 77 ✓✓）。**没有缺陷** ✓。
+
+**我记错的是第 154 轮的日志摘要** ✗，不是文件 ✓——而**文件才是权威** ✓（第 164 轮同一个教训 ✓）。
+
+### 174.2 于是量那张表：三条「关于文件」的声明
+
+「快速开始」的第一张表列了机器需要什么 ✓，其中三行不是观点而是**对文件的声明** ✓：
+Node 下限来自 `package.json` 的 `engines` **以及** CI 跑的那个版本 ✓；
+受管 Blender 是 `blender-release.json` 钉的平台 ✓；harness 版本是 `dsh-baseline.json` 里那个 ✓。
+
+**用变异量**（唯一诚实的量具 ✓）：把 `engines.node` 从 `>=22` 改成 `>=20` ✓ → **套件全绿** ✗✓。
+也就是说：**访客读到的第一张表，可以写着一个仓库已经没有的下限** ✓✓。
+
+（baseline 那一条**已经被查住** ✓——`SECURITY.md` 的承诺「pin、baseline 文档与 workflow 三者版本一致」✓
+有检查 ✓；另两条没有 ✗。）
+
+### 174.3 修法：三条一起钉住
+
+`documented-counts` 新增 ✓：README 的 Node 下限 = `package.json` 的 `engines` ✓；
+CI 的 `node-version` = 同一个下限 ✓（README 说「CI 跑的就是 22」✓）；
+受管 Blender 的平台 = `macos-arm64` ✓ 且 README 确实说「macOS arm64」✓。
+
+**三条变异全红** ✓：`engines` 降级 ✓、CI 换版本 ✓、平台换成 `linux-x64` ✓。
+
+### 174.4 收口
+
+```
+$ node deepblend/tests/contract/documented-counts.test.mjs
+ℹ pass 18   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
+`node:test` 用例 327 → **328** ✓（README 的更新仍然只落在一处 ✓）。
+
+**这一轮的教训** ✓：**先量，再相信自己的记忆** ✓——我以为的「两个不同数字」不存在 ✓，
+而顺着那条错误的线索量下去，找到了**真正**没有检查的两条声明 ✓✓。
