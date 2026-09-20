@@ -673,3 +673,54 @@ test('every key the quoted cancel result shows is one the host produces', () => 
   assert.deepEqual(missing, [],
     'the manual quotes keys the host does not produce, so a reader compares against a shape that is not the product')
 })
+
+// ---------------------------------------------------------------------------
+// Every key in a JSON example a manual shows is a key the product has
+// ---------------------------------------------------------------------------
+//
+// The manuals show three JSON blocks — the tool result envelope, its failure form, and a ScenePatch request — and a
+// reader types those keys. Same rule as the cancel-result quote above, applied to all of them at once: a key the
+// product does not have is a manual describing a shape that is not the product, and the BEHAVIOUR those examples
+// document is asserted elsewhere, so the manual could drift alone.
+//
+// The scope is the product's source and schemas. It shares the blind spot named above — a rename with survivors
+// passes — and covers the rot that happens: a key deleted everywhere. The OTHER direction is deliberately out of
+// scope: an example that stops SHOWING a required key is not caught, because these blocks are fragments with
+// comments and `…` placeholders, and requiring completeness would fail on correct ones.
+test('every key a manual shows in a JSON example exists in the product', () => {
+  const manuals = ['deepblend/docs/usage.md', 'deepblend/docs/recovery.md', 'deepblend/docs/tool-contracts.md']
+  const examples = []
+  for (const path of manuals) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/```jsonc?\n([\s\S]*?)```/g)) {
+      examples.push({ path, body: match[1] })
+    }
+  }
+  assert.ok(examples.length >= 3, `expected the manuals to show several JSON examples, found ${examples.length}`)
+
+  // The product: every package's lib, the authoritative schemas, and the contracts.
+  const sources = []
+  const collect = (directory, extensions) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) { collect(path, extensions); continue }
+      if (extensions.some(extension => entry.name.endsWith(extension))) {
+        sources.push(readFileSync(path, 'utf8'))
+      }
+    }
+  }
+  collect(join(ROOT, 'packages', 'deepblend'), ['.js'])
+  collect(join(ROOT, 'deepblend', 'schemas'), ['.json'])
+  const product = sources.join('\n').split('\n').filter(line => !/^\s*(\/\/|\*|\/\*)/.test(line)).join('\n')
+
+  const missing = []
+  let inspected = 0
+  for (const example of examples) {
+    for (const key of new Set([...example.body.matchAll(/"([a-zA-Z][a-zA-Z0-9]*)":/g)].map(match => match[1]))) {
+      inspected += 1
+      if (!new RegExp(`\\b${key}\\b`).test(product)) missing.push(`${example.path}: ${key}`)
+    }
+  }
+  assert.ok(inspected >= 8, `expected several keys across the examples, found ${inspected}`)
+  assert.deepEqual(missing, [], 'a manual shows a key the product does not have')
+})

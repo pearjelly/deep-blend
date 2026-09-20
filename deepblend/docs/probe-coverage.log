@@ -255,7 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 153: no probe — the cancel result recovery.md quotes, and what a mention check cannot see ──
+── ROUND 154: no probe — every key in every JSON example the manuals show ──
+No product code changed. Round 153's ruler — a key a manual shows must be a key the product has — was applied to all
+of the manuals' JSON at once: three blocks (the tool result envelope, its failure form, and a ScenePatch request)
+and ten distinct keys. MEASURED: all ten are in the product's sources and schemas, comments excluded, which is the
+same rule the cancel-result quote uses. The keys a reader types are keys the product has.
+
+The check collects every fenced json/jsonc block in the manuals, extracts the keys, and requires each to appear in
+`packages/deepblend/**/*.js` or `deepblend/schemas/*.json`, with a guard so that finding no examples cannot pass
+vacuously. It shares the blind spot round 153 named — a rename with survivors — and covers the rot that happens: a
+key deleted everywhere.
+
+The OTHER direction is written down as deliberately out of scope: an example that stops SHOWING a required key is
+not caught, because these blocks are fragments carrying comments and `…` placeholders, and requiring completeness
+would fail on correct ones. A mutation that renames a key in an example goes red.
+
+── ROUND 153: no probe — the cancel result recovery.md quotes, and what a mention check cannot see ──── ROUND 153: no probe — the cancel result recovery.md quotes, and what a mention check cannot see ──
 No product code changed. `recovery.md` §7 answers "I cancelled it — is the process really gone?" by quoting the JSON
 `blender_job_cancel` returns, and that quote is what an operator compares their own output against. Its keys are the
 contract: a renamed key leaves the manual describing a shape the product no longer produces, while the behaviour
