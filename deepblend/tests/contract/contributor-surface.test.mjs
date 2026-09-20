@@ -303,3 +303,40 @@ test('the issue-form reader names every fault, including the ones that void a wh
     'a valid form must come back clean, or every fault above is noise',
   )
 })
+
+// ---------------------------------------------------------------------------
+// A method that DEFAULTS a revision must say which revision it used
+// ---------------------------------------------------------------------------
+//
+// Seven host methods resolve `request.revision ?? record.currentRevision`. That default is the right behaviour and
+// it is also the one way a caller can be surprised: ask for a preview without naming a revision, let a patch land
+// while the request is in flight, and the answer describes a scene the caller never named. What makes it safe is
+// that every one of them RETURNS the revision it used, so the answer is self-describing.
+//
+// MEASURED while writing this: all seven do. Nothing kept it that way — and this session spent three rounds on
+// approvals whose subject drifted (a redirect, a provenance record, a retry that re-resolved the revision), so the
+// property is worth a guard rather than a memory.
+
+// ---------------------------------------------------------------------------
+// A property that is MEASURED rather than checked here, and why
+// ---------------------------------------------------------------------------
+//
+// Seven host methods resolve `request.revision ?? record.currentRevision`: validateScene, renderPreview,
+// renderViews, visualReview, visualLoop, getRevisionDetail and startFinalRender. The default is right, and it is
+// also the one way a caller can be surprised — ask without naming a revision, let a patch land while the request
+// is in flight, and the answer describes a scene the caller never named. What makes it safe is that every one of
+// them returns the revision it used, so the answer is self-describing. MEASURED: all seven do.
+//
+// This file tried to PIN that by reading the host's source, and the attempt is worth recording because it failed
+// three times in a row for the same reason: source shape is not the property. The first version looked for
+// `revision` anywhere in the method body and survived the mutation that removed it from the answer (every one of
+// these methods also mentions it in a message or a call). The second narrowed to `return { … }` objects carrying
+// `projectId`, and inspected four of twenty-one literals — the rest are nested, and one method hands its fields
+// to a builder (`toCanonicalQAReport({ … })`), which the third version's `({` pattern then caught while breaking
+// three other methods, whose `projectId` and `revision` legitimately live in different literals.
+//
+// So the property is not asserted here. What IS asserted is the behavioural half, where a caller can be
+// surprised and a fixture already exists: `host-render-orchestration.test.mjs` requires a preview to report
+// "which revision it wrote into", and `tool-plane-output.test.mjs` requires the approval prompt to name the
+// revision and the granted retry to render that one. A source-level check that keeps reporting false positives
+// is worse than the measurement it was meant to preserve.

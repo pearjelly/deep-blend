@@ -9074,3 +9074,48 @@ total self-counted assertions: 1481
 
 产品代码改了（提示词 + 重发 ✓），所以这一轮跑新探针 ✓（`r109` 列 ✓）。
 契约层 62 文件 / 1479 → **1481** 项（`tool-plane-output.test.mjs` 70 → 72 ✓）。
+
+## 138. 一次**没有留下检查**的尝试，以及它为什么该被记下来
+
+### 138.1 起因：把「审批的主语」那把尺子用到**正向**
+
+第 139–141 轮修的是「审批/承诺的主语漂移」✓。这一轮问它的**正向**形态 ✓：
+宿主有 **七个**方法会解析 `request.revision ?? record.currentRevision` ✓
+（`validateScene` / `renderPreview` / `renderViews` / `visualReview` / `visualLoop` /
+`getRevisionDetail` / `startFinalRender` ✓）——**这个默认是对的** ✓，
+但它也是调用者唯一可能被惊到的地方 ✓：不写 revision、请求在飞的时候落下一个 patch ✓，
+回答描述的就是调用者从没点名的场景 ✓。让它安全的性质是：**每一个都把用过的 revision 返回** ✓，
+于是回答是**自描述**的 ✓。实测：**七个都做到了** ✓✓。
+
+### 138.2 然后我试着用**源码形状**把它钉住，连着失败三次
+
+| 版本 | 规则 | 结果 |
+|---|---|---|
+| 1 | 方法体里出现 `revision` | ✗ **变异存活**——这七个方法都在消息、调用或路径里提到它 ✓ |
+| 2 | `return { … }` 且带 `projectId` 的对象里必须有它 | ✗ 只看到 21 个字面量里的 **4 个** ✓（其余是嵌套的 ✓），而 `validateScene` 把字段交给 `toCanonicalQAReport({ … })` ✓ |
+| 3 | 把 `({` 也认成一种形状 | ✗ 又弄坏三个方法 ✓——它们的 `projectId` 与 `revision` **合法地**待在不同的字面量里 ✓ |
+
+**源码形状不是那个性质** ✓——三次失败是同一个原因 ✓。
+
+### 138.3 结论：**不留检查，留测量**
+
+那个检查被删掉了 ✓，取而代之的是文件里的一段**记录** ✓（写清七个方法 ✓、写清它三次失败的原因 ✓），
+以及**行为那一半本来就在哪里** ✓：
+
+* `host-render-orchestration.test.mjs` 要求预览**报告它写进了哪个 revision** ✓；
+* `tool-plane-output.test.mjs` 要求审批提示**点名 revision** ✓、且被批准的**重发渲染的就是它** ✓。
+
+**一个不断误报的源码级检查，比它想保留的那条测量更糟** ✓✓——这是这一轮唯一诚实的产出 ✓。
+
+### 138.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1481
+```
+
+**产品代码未改** ✓（这一轮改的是「试图加一个检查」这件事本身 ✓），
+读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 62 文件 / **1481** 项不变 ✓（删掉的那条从未进入计数 ✓——它每次都被自己挡住 ✓）。

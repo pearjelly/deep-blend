@@ -255,7 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 109: the approval's subject drifted in TIME rather than across a redirect ──
+── ROUND 110: no probe — a check that was written three times and removed ──
+No product code changed, and no assertion stayed either. The round applied the previous three rounds' ruler in its
+POSITIVE form: seven host methods default a revision (`request.revision ?? record.currentRevision`), which is
+right, and the property that makes it safe is that each one RETURNS the revision it used so the answer is
+self-describing. MEASURED: all seven do.
+
+Pinning that by reading the host's source failed three times for one reason — source shape is not the property.
+Version one looked for `revision` anywhere in the method body and survived the mutation that removed it from the
+answer (each method also mentions it in a message or a call). Version two narrowed to `return { … }` objects
+carrying `projectId` and saw four of twenty-one literals, the rest being nested, while `validateScene` hands its
+fields to `toCanonicalQAReport({ … })`. Version three accepted `({` as a shape too, which caught that method and
+broke three others whose `projectId` and `revision` legitimately live in different literals.
+
+The check is gone and the measurement is recorded in its place, together with where the behavioural half already
+lives: the orchestration suite requires a preview to report which revision it wrote into, and the tool-plane suite
+requires the approval prompt to name the revision and the granted retry to render that one. A source-level check
+that keeps reporting false positives is worse than the measurement it was meant to preserve.
+
+── ROUND 109: the approval's subject drifted in TIME rather than across a redirect ──── ROUND 109: the approval's subject drifted in TIME rather than across a redirect ──
 The same shape as round 107 and 108, one step further out. The delivery render's approval gate refuses above a
 threshold, and the tool plane answers it by asking the operator and then re-issuing the same request with
 `approved: true`. Two details made that approval's subject movable: the prompt's sentence named the frame count and
