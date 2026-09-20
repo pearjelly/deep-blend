@@ -255,7 +255,33 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 129: no probe — the decision numbers the documents cite ──
+── ROUND 130: no probe — a goal check-up, and the CI workflow audited step by step ──
+No product code changed. Two measurements.
+
+The CI workflow's steps were checked against what has actually been verified rather than against what looks
+plausible: the Python prerequisite, the pinned DSH deployment, the workspace links (write and check), the preset
+source, the contract layer, and — as its last step — `verify-clean-clone.mjs --source .`. Every one of them has
+been run and passes in this checkout, which is as far as it can be taken here: the workflow targets
+`ubuntu-latest`, and this machine has docker, podman and colima installed but none running, so starting one would
+mean downloading a VM for a claim that is already backed by the same commands succeeding locally. The one half
+that stays unverified is the operating system.
+
+Then the goal's own evidence, re-measured: 64 contract files, 1489 self-counted assertions and 318 node:test
+cases; run-all.sh 16/16; `verify:clone` exit 0 from a clean clone against a clean DSH_HOME with 64/64 inside the
+clone; the four deployment checks all exit 0; 12355 product code lines with 35 dark (0.3%), each named; the
+decision register complete from D1 to D197 with all 664 citations resolving.
+
+The deviation register is twelve rows: eleven still open and one resolved — the procedural texture, whose compiler
+half the parallel contributor wrote and which now has a real-Blender case. The eleven open ones are all deliberate
+trade-offs with their reasons written down (the parts of the SPEC this project does not intend to implement), and
+none of them is a gap of the kind the last thirty rounds cleared: referential integrity, cross-language field
+names, concurrent shared resources, the subject of an approval, declared-versus-implemented, and everything the
+documents name (sections, test files, decision numbers, source paths).
+
+What remains is four decisions this session cannot make: making the repository public, adding the `dsh-plugin`
+topic, confirming the monorepo entry form, and choosing a packaging direction for the four unpublished siblings.
+
+── ROUND 129: no probe — the decision numbers the documents cite ──── ROUND 129: no probe — the decision numbers the documents cite ──
 No product code changed. The documents cite decisions by number everywhere — 664 citations across nine documents —
 and those numbers are the repository's memory, so a citation to a number nobody wrote down sends a reader nowhere
 with no complaint from anything.
