@@ -447,7 +447,11 @@ test('the four --check outputs quoted in install.md are what the checks print', 
   // copy: the check reports "8 thing(s) are not installed", which is correct there and is not what this compares.
   const plugin = run('plugin')
   const pluginLine = actual('plugin', plugin)
-  const normalized = pluginLine.replace(/at \/\S+\/\.dsh/, 'at /Users/<you>/.dsh')
+  // THE HOME'S LOCATION IS THE MACHINE'S BUSINESS. The manual writes `/Users/<you>/.dsh` as a placeholder, and the
+  // first version of this only rewrote paths ending in `/.dsh` — so `verify:clone`, whose home is a scratch
+  // directory called `home`, compared unequal on a correct output. Both sides are reduced to the same shape now.
+  const normalizeHome = (line) => line.replace(/ at \S+$/, ' at <the DSH home>')
+  const normalized = normalizeHome(pluginLine)
   // TWO STATES MEAN "this tree is not the installed one", and the first version knew only one of them. With a
   // DSH_HOME that has no profile at all — which is what `verify:clone` gives its clone — `plugin:check` exits 2
   // with "known profiles: (none)" and no `result:` line about drift, so the check below failed on a state that is
@@ -462,7 +466,7 @@ test('the four --check outputs quoted in install.md are what the checks print', 
     // place, because the PROFILE ($DSH_HOME) still points at the checkout it was installed from. Drift is the right
     // answer there, so the only honest thing to assert is that the tree is not the installed one — which is what
     // this branch means.
-  } else if (normalized !== quoted.get('plugin')) {
+  } else if (normalized !== normalizeHome(quoted.get('plugin'))) {
     problems.push(`plugin: manual says "${quoted.get('plugin')}", check says "${normalized}"`)
   }
   // presets: two documented outcomes, depending on this machine.
