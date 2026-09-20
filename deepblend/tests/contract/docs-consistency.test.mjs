@@ -754,3 +754,86 @@ test('every parameter the contract doc documents is one the tool declares', () =
   assert.ok(inspected >= 15, `expected the doc to document many parameters, found ${inspected}`)
   assert.deepEqual(foreign, [], 'the doc documents a parameter its tool does not declare')
 })
+
+// ---------------------------------------------------------------------------
+// A service name a document shows is a service the product publishes
+// ---------------------------------------------------------------------------
+//
+// The fourth member of one family: a name a document shows must be a name the product has. The manuals name
+// `blenderStudio`, `blenderRuntime` and `blenderUi` in prose — 46 mentions across the documentation — and those are
+// strings the product matches on, declared in five places because the layering forces it (the tool cannot import
+// the host's constant, the provider cannot import the host's).
+//
+// MEASURED, and it is the strongest answer of the four: the AGREEMENT of those declarations is already checked
+// BEHAVIOURALLY. Renaming `STUDIO_SERVICE` in the tool package alone fails five cases across the tool-plane suites,
+// because the tool then reports "the deployment is missing" for a composed host. So this check covers the weaker
+// half — a document naming a service that no longer exists anywhere — which is the half a rename would rot.
+test('every service name a document shows is one the product declares', () => {
+  const declarations = []
+  const collect = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) { collect(path); continue }
+      if (!entry.name.endsWith('.js')) continue
+      const text = readFileSync(path, 'utf8')
+      for (const match of text.matchAll(/export const [A-Z_]*SERVICE = '([^']+)'/g)) declarations.push(match[1])
+    }
+  }
+  collect(join(ROOT, 'packages', 'deepblend'))
+  const services = new Set(declarations)
+  assert.ok(services.size >= 3, `expected the product to declare its services, found ${[...services].join(', ')}`)
+
+  // EVERY `blenderXxx` NAME THE PRODUCT HAS, from its own source. The schemas alone were not enough: MEASURED,
+  // they miss `blenderPath` (a schemastery key declared in JS) and `blenderApproval` (the workbench's approval
+  // plane), both of which the manuals legitimately name. Same scope as the JSON-example check above — the product
+  // — which is the honest one: this catches a document naming something the product no longer has anywhere.
+  const configKeys = new Set()
+  const collectNames = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) { collectNames(path); continue }
+      if (!entry.name.endsWith('.js')) continue
+      const text = readFileSync(path, 'utf8')
+      for (const match of text.matchAll(/\b(blender[A-Z][A-Za-z]*)\b/g)) configKeys.add(match[1])
+    }
+  }
+  collectNames(join(ROOT, 'packages', 'deepblend'))
+
+  const documents = ['README.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
+    'deepblend/docs/tool-contracts.md']
+  const foreign = []
+  let inspected = 0
+  for (const path of documents) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    // ANY `blenderXxx`, CHECKED AGAINST BOTH REGISTRIES. Three corrections got here: matching only the three valid
+    // names could not SEE a renamed one (the check was vacuous), widening to any `blenderXxx` swept in `blenderPath`
+    // — a config key the manuals legitimately name — and matching `ctx.<name>` found nothing at all, because these
+    // documents name services in PROSE rather than in code. What works is the wider pattern plus the second
+    // registry: a `blenderXxx` name in a document must be a declared service or a declared config key, and both
+    // sets are derived from the product.
+    // A LINE THAT DOCUMENTS AN ABSENCE IS EXEMPT, which is the deviation register's whole purpose: it names things
+    // the product deliberately does not have. MEASURED: `blenderApproval.respond` appears nowhere in the product and
+    // nowhere in the tests, because §13.4 records it as a route M4 only shows — the name of a thing deliberately
+    // not built. The vocabulary is the one the register itself uses.
+    // UNDER A DEVIATION HEADING, the whole table is exempt: it exists to name what the product deliberately does
+    // not have, and its rows do not all use the same vocabulary — MEASURED, `blenderApproval.respond`'s row says
+    // "M4 只显示阈值事实…是 M5" rather than any word for "absent", so a phrase list missed it. The heading is the
+    // structural fact; the phrasing is not.
+    let inDeviation = false
+    for (const line of text.split('\n')) {
+      // The headings that announce an absence, which is a small and stable set in these documents: a deviation
+      // section, a "deliberately unregistered" one, an "unimplemented" one. A phrase list over BODY text would rot
+      // (round 189's lesson); over headings there are four of them and they name themselves.
+      if (/^#{2,4} /.test(line)) inDeviation = /偏差|未注册|未实现|deviation/i.test(line)
+      if (inDeviation) continue
+      for (const match of line.matchAll(/\b(blender[A-Z][A-Za-z]*)\b/g)) {
+        inspected += 1
+        if (!services.has(match[1]) && !configKeys.has(match[1])) foreign.push(`${path}: ${match[1]}`)
+      }
+    }
+  }
+  // The LIVE documents name them a handful of times; the 46 mentions I first counted included the milestone log,
+  // which is a record. A floor, not a count.
+  assert.ok(inspected >= 5, `expected the documents to name the services, found ${inspected}`)
+  assert.deepEqual(foreign, [], 'a document names a service the product does not declare')
+})

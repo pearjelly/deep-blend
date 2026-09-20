@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 155: no probe — the parameter tables a model reads before calling ──
+── ROUND 156: no probe — the fourth member of the name family, and four corrections ──
+No product code changed. The rule "a name a document shows must be a name the product has" got its fourth member:
+service names. The product declares three of them in five places, because the layering forces the duplication (the
+tool package cannot import the host's constant, the provider cannot import the host's).
+
+The product half was measured first, and it has the strongest answer of the four: renaming `STUDIO_SERVICE` in the
+tool package alone fails five tool-plane cases BEHAVIOURALLY, because the tool then reports "the deployment is
+missing" for a composed host. The name's agreement with what the host publishes is already pinned by behaviour.
+
+The documentation half took four corrections. Matching only the three valid names made the check vacuous — it could
+not SEE a renamed one. Widening to any `blenderXxx` swept in `blenderPath`, a config key the manuals legitimately
+name. Matching `ctx.<name>` found nothing at all, because these documents name services in prose rather than in
+code. What works is the wider pattern plus the product's own names, read from the source rather than from the JSON
+schemas alone — those miss `blenderPath` (declared in JS) and `blenderApproval` (the workbench's approval plane).
+
+`blenderApproval` turned out to be the interesting one: it appears nowhere in the product and nowhere in the tests,
+because `tool-contracts.md` §2.3 is headed "刻意未注册的一条" — the name of a thing deliberately not built. So the
+check exempts any table under a heading that announces an absence, with the vocabulary on the HEADINGS (four of
+them, each naming itself) rather than in body text, which is the lesson round 189 recorded about phrase lists.
+
+── ROUND 155: no probe — the parameter tables a model reads before calling ──── ROUND 155: no probe — the parameter tables a model reads before calling ──
 No product code changed. `tool-contracts.md` §3 gives each tool a table of parameters, and a model reads those
 tables before it calls anything. Measured against the tool definitions: 22 rows, and every name belongs to the tool
 whose section it sits in — no foreign ones.
