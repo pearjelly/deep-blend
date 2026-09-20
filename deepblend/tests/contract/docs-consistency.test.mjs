@@ -481,3 +481,41 @@ test('every SPEC and milestone section a document cites exists', () => {
   assert.ok(checked >= 50, `expected to check many citations, checked ${checked}`)
   assert.deepEqual([...new Set(missing)], [], 'these citations point at a section that does not exist')
 })
+
+// ---------------------------------------------------------------------------
+// A test file the documentation names must exist
+// ---------------------------------------------------------------------------
+//
+// CONTRIBUTING.md keeps a table of "change this, and this assertion will catch the rest", and each row names the
+// suite that does the catching. Those names are how a contributor finds the check without running the whole suite,
+// and a renamed or deleted suite leaves the table pointing at nothing — with no complaint from anything, because
+// a document is not executed.
+//
+// The narrative documents are excluded on purpose: `milestone-status.md` and `architecture-decisions.md` are
+// RECORDS, and a record naming a suite that has since been renamed is a true statement about the past (the same
+// distinction the counts sweep had to make in round 130). What is checked is the live manuals and the
+// contributing guide, where a name is a promise that the file is there.
+test('every test file the manuals name exists', () => {
+  const live = ['README.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
+    'deepblend/docs/tool-contracts.md']
+  const missing = []
+  const seen = new Set()
+  for (const path of live) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/\b([a-z0-9-]+\.(?:test|e2e)\.mjs)\b/g)) {
+      if (seen.has(match[1])) continue
+      seen.add(match[1])
+      const candidates = [
+        join(ROOT, 'deepblend', 'tests', 'contract', match[1]),
+        join(ROOT, 'deepblend', 'tests', 'composition', match[1]),
+        join(ROOT, 'deepblend', 'tests', 'blender-integration', match[1]),
+        join(ROOT, 'deepblend', 'tests', 'e2e', match[1]),
+      ]
+      if (!candidates.some(candidate => existsSync(candidate))) {
+        missing.push(`${path}: ${match[1]}`)
+      }
+    }
+  }
+  assert.ok(seen.size >= 20, `expected the manuals to name many suites, found ${seen.size}`)
+  assert.deepEqual(missing, [], 'these documents name a test file that does not exist')
+})

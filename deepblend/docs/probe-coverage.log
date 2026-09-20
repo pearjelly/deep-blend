@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 127: no probe — an audit of my own compliance with the repository's own rule ──
+── ROUND 128: no probe — the test files the documentation names ──
+No product code changed. CONTRIBUTING.md keeps a table of "change this, and this assertion will catch the rest",
+and each of its nine rows names the suite that does the catching. Those names are how a contributor finds the
+check without running the whole suite, and a renamed or deleted suite leaves the table pointing at nothing — with
+no complaint from anything, because a document is not executed.
+
+Sweeping the live documents (README, CONTRIBUTING, the three manuals, security, tool-contracts) for every
+`*.test.mjs` and `*.e2e.mjs` they name: 80 names, one that does not resolve. That one turned out to be my
+extraction rather than the document — `tool-contracts.md` writes `tool-plane-m1/m2.e2e.mjs`, a shorthand for two
+suites, which a filename regex reads literally. The document was not wrong, but it was unclear to a reader and to
+a check alike, so it spells both names out now.
+
+The narrative documents are excluded on purpose: `milestone-status.md` and `architecture-decisions.md` are
+records, and a record naming a suite that has since been renamed is a true statement about the past — the same
+distinction the counts sweep had to make in round 130.
+
+The check asserts that every test file a live document names exists in one of the four test directories, with a
+guard so that a failed parse cannot silently become "everything passes" (the documents must name at least twenty
+suites). Two mutations go red: a renamed suite in the contributing table, and a renamed suite in a manual.
+
+── ROUND 127: no probe — an audit of my own compliance with the repository's own rule ──── ROUND 127: no probe — an audit of my own compliance with the repository's own rule ──
 No product code changed. `CONTRIBUTING.md` §5 requires that any measurement- or defect-driven decision be written
 into `architecture-decisions.md`, numbered after the last D, with three things: what the decision is, the fact that
 triggered it, and what would happen otherwise ("the reason you delete is the hardest information to recover").
