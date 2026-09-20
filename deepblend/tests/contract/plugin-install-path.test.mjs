@@ -52,6 +52,10 @@ function makeHome() {
   return home
 }
 
+const runInstaller = (args, home) => spawnSync('node', [join(ROOT, 'deepblend', 'tools', 'install-plugin.mjs'), ...args], {
+  cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 120_000,
+})
+
 const run = (args, home) => spawnSync('dsh', args, {
   cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 120_000,
 })
@@ -148,5 +152,40 @@ test('importing every package of this plugin writes nothing and starts nothing',
     assert.deepEqual(offenders, [], 'importing these packages must do nothing observable')
   } finally {
     rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Uninstalling: the command the manual gives must actually remove it
+// ---------------------------------------------------------------------------
+//
+// `install.md` §6 is the operator's removal path, and it was incomplete in a way only running it shows: its first
+// step (`plugin:install --portable`) EMPTIES the operator layer but leaves the bundle composed, so the plugin was
+// still installed — and the ecosystem's own removal command could not finish the job either. MEASURED:
+// `dsh plugin remove @deepblend/dsh-blender-bundle --profile web` failed with ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS,
+// because `install-plugin.mjs` wrote `dsh.profile.bundles` (all the Loader needs) and no `dependencies` entry
+// (which is what pnpm — and therefore `plugin remove` — reads).
+//
+// The installer writes both now, and this case runs the whole round trip: install, remove with the ecosystem's
+// command, and the profile must no longer compose the bundle.
+test('the ecosystem remove command uninstalls what this installer installed', () => {
+  const home = makeHome()
+  try {
+    const install = runInstaller([], home)
+    assert.equal(install.status, 0, `install-plugin failed:\n${install.stdout}${install.stderr}`)
+    const profilePath = join(home, 'profiles', 'web', 'package.json')
+    const installed = JSON.parse(readFileSync(profilePath, 'utf8'))
+    assert.deepEqual(installed.dsh.profile.bundles, ['@deepblend/dsh-blender-bundle'])
+    assert.equal(typeof installed.dependencies?.['@deepblend/dsh-blender-bundle'], 'string',
+      'the installer wrote no dependency entry, so `dsh plugin remove` cannot remove the bundle')
+
+    const remove = run(['plugin', 'remove', '@deepblend/dsh-blender-bundle', '--profile', 'web'], home)
+    assert.equal(remove.status, 0,
+      `dsh plugin remove failed, so the manual\u2019s removal path does not work:\n${remove.stdout}${remove.stderr}`)
+    const removed = JSON.parse(readFileSync(profilePath, 'utf8'))
+    assert.deepEqual(removed.dsh.profile.bundles, [],
+      'the bundle is still composed after removal, so the plugin is still installed')
+  } finally {
+    rmSync(home, { recursive: true, force: true })
   }
 })

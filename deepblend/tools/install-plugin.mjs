@@ -348,6 +348,28 @@ if (desiredStoreRoot !== undefined) {
   }
 }
 
+// ---- the dependency entry `dsh plugin remove` reads ------------------------
+//
+// `dsh.profile.bundles` is all the LOADER needs to compose a bundle, and this tool wrote only that — so a plugin
+// it installed could not be uninstalled by the ecosystem's own command. MEASURED: `dsh plugin remove
+// @deepblend/dsh-blender-bundle --profile web` fails with ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS, because pnpm is
+// asked to remove a package the profile does not depend on. The ecosystem's `plugin add` writes both keys; this
+// does now, with a `link:` to the bundle in this repository — the same form `plugin add <path>` produces.
+const bundleDependency = `link:${join(ROOT, 'packages', 'deepblend', 'bundle')}`
+if (manifest.dependencies?.[BUNDLE_PACKAGE] === bundleDependency) {
+  say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} dependency in sync`)
+} else {
+  drift += 1
+  if (checkOnly) {
+    say(`profiles/${profile}/package.json`,
+      `missing the ${BUNDLE_PACKAGE} dependency, so \`dsh plugin remove\` cannot uninstall it`)
+  } else {
+    manifest.dependencies = { ...manifest.dependencies ?? {}, [BUNDLE_PACKAGE]: bundleDependency }
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+    say(`profiles/${profile}/package.json`, `linked ${BUNDLE_PACKAGE}`)
+  }
+}
+
 if (checkOnly) {
   if (drift === 0) {
     say('result', `DeepBlend is installed in the "${profile}" profile at ${DSH_HOME}`)

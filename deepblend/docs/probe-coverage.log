@@ -255,7 +255,33 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 125: no probe — mounting the plugin must start nothing ──
+── ROUND 117 (probe): the uninstall path the manual gives did not uninstall ──
+The probe's number is unchanged (35 dark lines, 0.3%) because the change is in a TOOL rather than in the product's
+libraries — the coverage probe measures the product packages.
+
+`install.md` §6 is the operator's removal path, and running its first step in a throwaway home showed it does not
+do what the section implies: `plugin:install --portable` empties the operator layer (its own comment says so) and
+leaves the bundle composed, so the plugin is still installed and `dsh` still mounts its three rows.
+
+Following that found a second defect: the ecosystem's own removal command could not finish the job either.
+MEASURED: `dsh plugin remove @deepblend/dsh-blender-bundle --profile web` fails with
+ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS, because `install-plugin.mjs` wrote `dsh.profile.bundles` — all the Loader
+needs — and no `dependencies` entry, which is what pnpm (and therefore `plugin remove`) reads. The ecosystem's
+`plugin add` writes both keys, so the two install paths produced different profile states.
+
+The installer writes both now, as its own drift check: `plugin:check` reports the missing entry, `--check` exits 1,
+and an install adds it. Measured end to end: the real home reported the drift, one install fixed it, and
+`dsh plugin remove` now exits 0 with `bundles: []` — the plugin is actually removed. The manual's section names
+the removal command first and says why it used to fail.
+
+A new case runs the round trip (install, remove with the ecosystem's command, the profile no longer composes the
+bundle), and the mutation that stops the installer writing the dependency entry goes red on it.
+
+One slip of my own: the first version of the dependency check sat AFTER the `if (checkOnly) { … process.exit(0) }`
+block, so it never ran in check mode — and the real home reported exit 0 while its `dependencies` was empty. What
+exposed it was the contradiction between that reading and the file's own contents.
+
+── ROUND 125: no probe — mounting the plugin must start nothing ──── ROUND 125: no probe — mounting the plugin must start nothing ──
 No product code changed. Round 124 turned "importing the module does nothing" into a check; the other half of the
 reviewer's "surprising install-time behaviour" is what happens when a profile MOUNTS the plugin — and this
 plugin's job is launching an external binary, so "does mounting it start a Blender" is a real question. The

@@ -9847,3 +9847,66 @@ total self-counted assertions: 1490
 **README 的数字不动** ✓：这一条加在**组合层**的套件里 ✓，而 `count-assertions.mjs` 数的是**契约层** ✓
 （32 个自计文件 ✓）——我先把 README 改成 1490 ✗，跑了一次 `count-assertions` 才发现它仍然是 **1489** ✓✓，
 改回来了 ✓。**数字的归属也要量** ✓，不能因为「我加了一条断言」就假设它进了哪个桶 ✓。
+
+## 154. 手册里的**卸载**路径：第一步只是改配置，插件还装着
+
+### 154.1 量它
+
+`install.md` §6「卸载与回退」给了四步 ✓。把前两步在**临时 DSH_HOME** 里真跑一遍 ✓：
+
+```
+$ install-plugin.mjs --portable     → exit 0, "installed (1 change(s))"
+profile 的 bundles: ["@deepblend/dsh-blender-bundle"]   ← 还组合着 ✗
+```
+
+**`--portable` 确实做了它注释里说的事** ✓（把 operator layer 清成 `[]` ✓——「存储交还产品默认值」✓），
+**但它不移除 bundle** ✗——于是**插件仍然装着** ✓：`dsh` 启动时照样组合那三行 ✓。
+手册那四步走完，读者以为卸载了 ✓，其实没有 ✓✓。
+
+### 154.2 顺着找到**第二个**缺陷：生态的卸载命令根本用不了
+
+于是试 `dsh plugin remove @deepblend/dsh-blender-bundle --profile web` ✓——**失败** ✗：
+
+```
+ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS  Cannot remove '@deepblend/dsh-blender-bundle':
+                                     project has no dependencies of any kind
+```
+
+**原因** ✓：`install-plugin.mjs` 只写 `dsh.profile.bundles` ✓（Loader 组合 bundle 需要的**全部** ✓），
+**不写 `dependencies`** ✗——而 pnpm（因此 `dsh plugin remove`）读的正是后者 ✓。
+生态的 `dsh plugin add` **两个键都写** ✓（第 155 轮实测 ✓）→ **两条安装路径产出的 profile 状态不一致** ✓✓。
+
+### 154.3 修法：安装器写两个键，并且把缺的那个**报成 drift**
+
+`install-plugin.mjs` 现在也写 `dependencies` ✓（值是 `link:<仓库里的 bundle>` ✓——与
+`dsh plugin add <路径>` 产出的形式一致 ✓），而且是**独立的 drift 检查** ✓：
+缺了就 `plugin:check` 报出来 ✓、`--check` 退出 1 ✓、安装时补上 ✓。
+
+**实测**：真实 home 先报 drift ✓（`missing the … dependency, so dsh plugin remove cannot uninstall it` ✓）
+→ 跑一次 `plugin:install` 补上 ✓ → `plugin:check` exit 0 ✓ →
+**`dsh plugin remove` 现在 exit 0 且 `bundles: []`** ✓✓——插件真的被卸掉了 ✓。
+
+### 154.4 手册补上缺的那一步
+
+`install.md` §6 现在**先**给 `dsh plugin remove …` ✓（并写明为什么以前不行 ✓），再给原来那四步 ✓。
+
+### 154.5 新增用例与变异
+
+`plugin-install-path.test.mjs` 新增一条 ✓：**装 → 用生态命令卸 → profile 不再组合它** ✓。
+变异「**安装器不写 dependency**」✓ → **红** ✓（`the installer wrote no dependency entry, so dsh plugin remove cannot remove the bundle` ✓）。
+
+（过程中一次自己的坑 ✓：我第一版把这段放在 `if (checkOnly) { … process.exit(0) }` **之后** ✗——
+于是 `--check` 模式下**永远不跑** ✓，而真实 home 明明缺 dependency 却报 exit 0 ✓✓。
+是「真实 home 的 `dependencies: {}`」与「检查说 in sync」**互相矛盾**把它揭穿的 ✓。）
+
+### 154.6 收口
+
+```
+$ node deepblend/tests/contract/plugin-install-path.test.mjs
+ℹ tests 4   ℹ pass 4   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码改了**（安装器 ✓ + 手册 ✓），所以这一轮跑新探针 ✓（`r117` 列 ✓）。
+契约层 64 文件 / 1489 自计断言（不变 ✓——新用例在 `node:test` 里 ✓）+ `node:test` 314 → **315** ✓。

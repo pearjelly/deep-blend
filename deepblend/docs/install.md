@@ -245,6 +245,18 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 ## 6. 卸载与回退
 
+**先卸载插件本身**——否则它仍然被 profile 组合着，下面几步只是在改它的配置：
+
+```bash
+dsh plugin remove @deepblend/dsh-blender-bundle --profile web
+```
+
+（这条命令读的是 profile 的 `dependencies`；`install-plugin.mjs` 以前只写 `dsh.profile.bundles`，
+于是 `dsh plugin remove` 会以 `ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS` 失败——**实测过** ✓，
+现在两个键都写 ✓，`plugin:check` 也会把缺的那个报成 drift ✓。）
+
+然后是剩下的：
+
 ```bash
 npm run plugin:install -- --portable   # 存储交还产品默认值（清空 operator layer，不删文件）
 npm run plugin:check                   # 复核
