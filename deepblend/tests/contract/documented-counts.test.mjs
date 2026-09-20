@@ -437,3 +437,43 @@ test('every statement of the operation vocabulary’s size is the declared size'
   assert.equal(SCENE_OPERATION_NAMES[Number(ordinal[1]) - 1], 'world.set',
     `the document calls world.set the ${ordinal[1]}st operation; the contract puts it elsewhere`)
 })
+
+// ---------------------------------------------------------------------------
+// The model-facing text states no counts — so none of it can rot
+// ---------------------------------------------------------------------------
+//
+// The sweep that produced the last three rounds' findings ended by looking where it had not: the schemas' own
+// descriptions and the tool definitions the model reads. MEASURED: neither states a count at all. That is why this
+// corner has no stale numbers — and it is worth keeping, because it is the cheapest way for a document not to rot:
+// the descriptions say what a value IS ("one of the scene operations") rather than how many there are, and the
+// count lives in exactly one place, `SCENE_OPERATION_NAMES`, which the tool text is generated from.
+//
+// The rule is about COUNTS, not numbers: a description may say "the first frame" or "0 means unbounded".
+//
+// WHAT IT CANNOT SEE, stated rather than discovered later: it matches the phrasings these files would actually use
+// — `N 个…`, `N operations`, `N tools`. A count written some other way ("24 of them") slips through, and the first
+// mutation tried was exactly that. Widening the pattern to every phrasing of a number is how the previous two
+// rounds produced checks that failed on correct documents; a lexical rule that names its hole is worth more than
+// one that keeps growing. What protects the model-facing text in practice is the design: the counts live in
+// `SCENE_OPERATION_NAMES` and `UI_TOOL_CARD_KEYS`, and this text is generated from them.
+test('the model-facing text states no counts of its own', () => {
+  const files = [
+    ...readdirSync(join(ROOT, 'deepblend', 'schemas')).map(name => `deepblend/schemas/${name}`),
+    'packages/deepblend/tool/lib/tools.js',
+  ]
+  const offenders = []
+  let inspected = 0
+  for (const path of files) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    inspected += 1
+    for (const match of text.matchAll(/(\d+)\s*(?:个[^\s，。；)）|]{0,8}|operations\b|tools\b)/g)) {
+      // A number that is a VALUE is fine; a number that counts a set is the rot.
+      if (/^[01]\s/.test(match[0])) continue
+      offenders.push(`${path}: ${match[0]}`)
+    }
+  }
+  // Three schemas plus the tool definitions; the guard is a floor, not a count, so adding a schema does not break it.
+  assert.ok(inspected >= 4, `expected to inspect the schemas and the tool definitions, found ${inspected}`)
+  assert.deepEqual(offenders, [],
+    'these statements count a set in text a model reads, where a stale count is invisible')
+})

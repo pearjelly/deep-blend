@@ -255,7 +255,35 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 141: no probe — the model-facing document stated the operation vocabulary twice wrong ──
+── ROUND 142: no probe — the last corner of the count sweep, and a mutation I forgot to revert ──
+No product code changed. Rounds 140 and 141 applied the "check every count" ruler to the README and to the other
+live documents. This round swept the last two places a count could hide: the JSON schemas' descriptions and the
+tool definitions a model reads.
+
+Measured: neither states a count at all — no `N 个…`, no `N operations`, no `N tools`. That is why this corner has
+no stale numbers, and it is a design worth keeping: the descriptions say what a value IS ("one of the scene
+operations") rather than how many there are, and the count lives in one place, `SCENE_OPERATION_NAMES`, from which
+the tool text is generated.
+
+The sweep also tested two mutations of that vocabulary. Adding an operation to the constant goes red — on the docs
+and implementation suites. Renaming one in the SCHEMA also goes red, naming an assertion that already existed: "the
+operation vocabulary in the SCHEMA and in SCENE_OPERATION_NAMES are the same set", plus three byte-identity checks
+between the authoritative schema and its packaged mirror. Another clean result: the property was already held.
+
+A forward-looking check was added instead: text a model reads may state no count, in the three phrasings these
+files would use, with numbers as VALUES still allowed ("0 means unbounded"). Its hole is written down rather than
+discovered later — it cannot see a count phrased another way, and "24 of them" was the first mutation tried.
+Widening a pattern to every phrasing of a number is exactly how the previous two rounds produced checks that failed
+on correct documents; a lexical rule that names its hole is worth more than one that keeps growing. What protects
+this text in practice is the design.
+
+One accident of my own, caught by the repository rather than by me: of the two scripts that mutated the schema,
+the second restored it in a `finally` and the first did not, so the authoritative schema kept a stray
+`"title": "renamed by the mutation"` line. `schema-mirror.test.mjs`'s byte-identity check reported it immediately
+(33994 against 33952); `git checkout` restored it and the suite is 33/33. The lesson is that a mutation belongs in
+a `finally` — and this round the repository's own checks were what noticed I had forgotten.
+
+── ROUND 141: no probe — the model-facing document stated the operation vocabulary twice wrong ──── ROUND 141: no probe — the model-facing document stated the operation vocabulary twice wrong ──
 No product code changed. Round 140 applied the "check every count, not the anchored one" ruler to the README; this
 round applied it to the other live documents, by sweeping them for counted statements and measuring each.
 
