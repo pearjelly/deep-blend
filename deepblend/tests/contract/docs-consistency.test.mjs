@@ -883,3 +883,25 @@ test('the profile manifest dsh-baseline.md quotes is the shape a profile has', (
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+// ---------------------------------------------------------------------------
+// The warning recovery.md quotes is the warning the product emits
+// ---------------------------------------------------------------------------
+//
+// The fifth and last quoted artifact: `recovery.md` §1 shows the line `blender_job_status` prints when an attempt
+// was cut off mid-journal, and a reader compares their own output against it. The quote is an EXCERPT — it ends in
+// `…` — so the check is a prefix: the first words the document shows must be the first words the warning carries.
+//
+// MEASURED: they are ("an attempt at this job was cut off mid-line in its event journal (a kill between the write
+// and the flush)…"). With this, every quoted artifact in the documentation set has been executed against its
+// producer.
+test('the warning recovery.md quotes is the warning the product emits', () => {
+  const doc = readFileSync(join(ROOT, 'deepblend', 'docs', 'recovery.md'), 'utf8')
+  const quoted = /warning:\s+\[JOURNAL_INCOMPLETE\]\s+([^\n]+?)\s*…/.exec(doc)
+  assert.ok(quoted !== null, 'recovery.md no longer quotes the journal warning — re-anchor this check')
+  const source = readFileSync(join(ROOT, 'packages', 'deepblend', 'host', 'lib', 'render-journal.js'), 'utf8')
+  // The message is built by concatenation, so the document's excerpt is compared against the joined literal.
+  const message = source.replace(/'\s*\+\s*\n\s*'/g, '').replace(/\s+/g, ' ')
+  assert.ok(message.includes(quoted[1].replace(/\s+/g, ' ')),
+    `recovery.md quotes "${quoted[1]}", which the warning does not start with`)
+})

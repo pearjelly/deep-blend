@@ -255,7 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 162: no probe — the profile manifest the compatibility anchor quotes ──
+── ROUND 163: no probe — the last quoted artifact, and the sweep is complete ──
+No product code changed. Since round 186 every artifact the documentation quotes has been executed or compared
+against its producer, and this round closed the list with the fifth: the `[JOURNAL_INCOMPLETE]` line `recovery.md`
+§1 shows. The quote is an EXCERPT ending in `…`, and the code's message begins with exactly those words — the check
+compares a prefix, and joins the message's two concatenated literals first. The mutation that rewords the warning
+goes red.
+
+The list, with the one that was wrong: the README's fresh-clone output said `0/16` where the run printed `10/65`
+(fixed and pinned); install.md's four `--check` outputs are accurate and now pinned, including the two values that
+move (the link count and the pinned Blender's version); the cancel result recovery.md quotes is accurate and its
+keys are pinned to the host package's code; the three JSON examples in tool-contracts.md are accurate and their keys
+are pinned to the product; and the journal warning is accurate and now pinned by prefix.
+
+Five quoted artifacts, one of which had rotted, and all five now fail if the thing they quote changes.
+
+── ROUND 162: no probe — the profile manifest the compatibility anchor quotes ──── ROUND 162: no probe — the profile manifest the compatibility anchor quotes ──
 No product code changed. `dsh-baseline.md` is the compatibility anchor, and it shows the profile manifest a `dsh`
 deployment creates — name, `private`, two bundles, `patchReload`. A harness upgrade that renamed a field would
 leave the anchor describing a shape the deployment no longer produces, and nothing would notice, because the
