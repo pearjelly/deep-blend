@@ -8366,3 +8366,47 @@ total self-counted assertions: 1463
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 `render-reconciler.test.mjs` 的用例数与自计断言数**都没变** ✓（这一轮加的是**用例内部**的断言 ✓，
 它用 `node:test` 的 `assert` ✓——所以总数不动是预期的 ✓，不是漏记 ✓）。
+
+## 123. 结果信封的**版本**被检查了，而**字段名**没有
+
+### 123.1 量它
+
+每个动作的答复都是同一份文档 ✓：`bootstrap.py` 写它 ✓、provider 解析它 ✓、host 从里面读
+`envelope.warnings` / `notices` / `result` / `status` / `capabilities` ✓。运行时检查的是
+**`protocolVersion`** ✓——它抓得住「整份文档换了一代」✓，**抓不住「字段改了名」** ✗：
+一份保持版本号、却把 `notices` 改名的信封 ✓ 会让宿主读到 `undefined` ✓，
+于是**一次渲染被报成「没有任何警告」** ✓——**看起来像成功的沉默** ✓。
+
+### 123.2 修法：把字段名也钉住（与第 124 轮同一条尺子）
+
+跑 Python 的 `build_envelope` ✓（桩掉 `bpy`/`mathutils` ✓），把**成功信封**与**错误信封**的键
+与宿主/provider **实际读的字段**（从源码抽 `envelope.X` ✓）对照 ✓。读数：
+
+```
+pythonEmits: [action, capabilities, error, jobId, notices, protocolVersion, result, status, warnings]
+hostReads:   [protocolVersion, status, error, capabilities, result, warnings, notices]   missing: []
+```
+
+另加一条：错误信封里必须有 `code` 与 `message` ✓（provider 正是靠它们把失败变成**带码的**失败 ✓）。
+
+### 123.3 一次「变异选错了行」与一次「放错了位置」
+
+* 第一条变异我改的是 `build_envelope` **开头那个字典** ✗——而 `notices` 是在**函数后面**赋值的 ✓
+  → 改名没生效 ✓、变异**活着** ✗；改成把**所有** `envelope["notices"] = …` 都改名之后立刻红 ✓。
+* 这个块我第一次放到了 `python` 发现之前 ✗（`Cannot access 'python' before initialization` ✓）——
+  与第 124 轮**同一个位置错误** ✓，这次是我自己认出来并挪到发现之后的 ✓。
+
+### 123.4 收口
+
+两条变异全红 ✓（Python 改名 ✓、provider 读一个不存在的字段 ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1465
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 61 文件 / 1463 → **1465** 项（`render-job.test.mjs` 是**自计**文件 ✓，
+所以这两条进的是自计总数 ✓，`node:test` 用例仍是 **291** ✓）。

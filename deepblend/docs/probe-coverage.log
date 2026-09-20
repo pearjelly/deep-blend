@@ -255,6 +255,24 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 111: no probe — the result envelope's VERSION was checked, its field names were not ──
+No product code changed. Every action's answer travels as one document written by `bootstrap.py` and read by the
+provider and the host (`envelope.warnings`, `notices`, `result`, `status`, `capabilities`). What the runtime
+checks is `protocolVersion`, which catches a whole-document generation change but not a renamed FIELD: an
+envelope that keeps its version and renames `notices` leaves the host reading `undefined`, so a render is
+reported with no warnings at all — silence that looks like success.
+
+The names are held against each other now, the same way the compile report's fingerprint is (round 106):
+`pythonEmits: [action, capabilities, error, jobId, notices, protocolVersion, result, status, warnings]` against
+`hostReads: [protocolVersion, status, error, capabilities, result, warnings, notices]`, with no field read that
+the envelope does not carry, plus a check that the error envelope holds the `code` and `message` the provider
+turns into a coded failure.
+
+Two process notes worth keeping: the first mutation renamed the dict at the TOP of `build_envelope`, where
+`notices` is not set (it is assigned further down), so the mutation survived until every assignment was renamed;
+and the block was first placed above the `python` discovery — the same placement mistake as the previous round,
+caught this time by reading the error rather than by moving it twice.
+
 ── ROUND 110: no probe — a record that existed but whose contents were never asserted ──
 No product code changed. The round opened with a method-level sweep (names no test mentions — sixteen of them)
 and its first three leads all evaporated: the `refresh: true` invalidation path is driven in three suites,

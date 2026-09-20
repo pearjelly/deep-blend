@@ -189,6 +189,44 @@ if (python === undefined) {
 }
 
 // ---------------------------------------------------------------------------
+// 1c. The result envelope's field names, across the language boundary
+// ---------------------------------------------------------------------------
+//
+// Every action's answer travels as this document: `bootstrap.py` writes it, the provider parses it, and the host
+// reads `envelope.warnings`, `envelope.notices`, `envelope.result`, `envelope.status` and `envelope.capabilities`
+// out of it. The version is checked at runtime (`protocolVersion`), which catches a WHOLE-document change but not
+// a renamed FIELD: an envelope that keeps its version and renames `notices` would leave the host reading
+// `undefined` and reporting a render with no warnings — silence that looks like success. So the names are held
+// against each other here, the same way the compile report's fingerprint is.
+if (python !== undefined) {
+  const envelopeKeys = JSON.parse(execFileSync(python, ['-c', [
+    'import json, sys, types',
+    'for name in ("bpy", "mathutils"):',
+    '    module = types.ModuleType(name); module.ops = types.SimpleNamespace(); module.data = types.SimpleNamespace()',
+    '    sys.modules[name] = module',
+    'sys.modules["mathutils"].Vector = lambda *a, **k: None',
+    `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'))})`,
+    'from bootstrap import build_envelope',
+    'ok = build_envelope("job-1", "render_preview", {"views": []}, None, [], [])',
+    'bad = build_envelope("job-1", "render_preview", None, {"code": "X", "message": "y"}, [], [])',
+    'print(json.dumps({"ok": sorted(ok.keys()), "error": sorted(bad.keys()), "errorInner": sorted(bad["error"].keys())}))',
+  ].join('\n')], { encoding: 'utf8' }).trim())
+  const readerSources = [
+    readFileSync(join(ROOT, 'packages', 'deepblend', 'provider-local', 'lib', 'index.js'), 'utf8'),
+    readFileSync(join(ROOT, 'packages', 'deepblend', 'host', 'lib', 'index.js'), 'utf8'),
+  ].join('\n')
+  const envelopeReads = [...new Set([...readerSources.matchAll(/envelope\??\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1]))]
+  const emitted = new Set([...envelopeKeys.ok, ...envelopeKeys.error])
+  check('the result envelope carries every field the host and provider read out of it',
+    envelopeReads.length > 0 && envelopeReads.every(field => emitted.has(field)),
+    { pythonEmits: envelopeKeys.ok, hostReads: envelopeReads,
+      missing: envelopeReads.filter(field => !emitted.has(field)) })
+  check('the error envelope carries the code and message the provider turns into a coded failure',
+    envelopeKeys.errorInner.includes('code') && envelopeKeys.errorInner.includes('message'),
+    envelopeKeys.errorInner)
+}
+
+// ---------------------------------------------------------------------------
 // 1b. The compile report's field names, across the language boundary
 // ---------------------------------------------------------------------------
 //
