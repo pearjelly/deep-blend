@@ -634,3 +634,42 @@ test('no open row claims the bundle carries absolute paths while it carries none
     `expected the two rows that recorded this problem to still exist and be struck through, found ${inspected}`)
   assert.deepEqual(offenders, [], 'these rows still claim the bundle carries literal absolute paths')
 })
+
+// ---------------------------------------------------------------------------
+// The cancel result recovery.md quotes is the shape the host produces
+// ---------------------------------------------------------------------------
+//
+// `recovery.md` §7 answers "I cancelled it — is the process really gone?" with the actual JSON `blender_job_cancel`
+// returns, and that quote is what an operator compares their own output against. Its keys are the contract: a
+// renamed key would leave the manual describing a shape the product no longer produces, and the BEHAVIOUR behind it
+// (`processGone`) is asserted elsewhere, so nothing would notice the difference.
+//
+// MEASURED: all of them are in the package's lib. The check requires each key the quote shows — including the
+// nested ones under `after` — to appear there in CODE rather than in a comment.
+//
+// WHAT IT CANNOT SEE, measured rather than assumed: a rename that leaves the old name somewhere else in the same
+// package still passes, because this is a mention check. Renaming `groupAlive` in the object literal that builds
+// the report kept it green — the name survives in a second code path — while deleting a key from the quote goes
+// red. So the direction it covers is the common one (a key the product no longer produces anywhere) and the
+// direction it misses is a rename with survivors. Proving the quote IS the produced shape would mean running the
+// cancel path and comparing the object, which the M3 suite does for the BEHAVIOUR (`processGone`) already.
+test('every key the quoted cancel result shows is one the host produces', () => {
+  const manual = readFileSync(join(ROOT, 'deepblend', 'docs', 'recovery.md'), 'utf8')
+  const quoted = /\{"attempted":true[\s\S]*?\n[^\n]*"gone":true\}/.exec(manual)
+  assert.ok(quoted !== null, 'recovery.md no longer quotes the cancel result — re-anchor this check')
+  const keys = [...new Set([...quoted[0].matchAll(/"([a-zA-Z]+)":/g)].map(match => match[1]))]
+  assert.ok(keys.length >= 6, `expected the quote to show several keys, found ${keys.length}`)
+  // THE WHOLE PACKAGE'S lib, not just `index.js`: MEASURED, the `after` block is built in `render-reconciler.js`
+  // (`{ alive, groupAlive, leaderAlive, command }`), and the first version of this check searched only `index.js`
+  // and reported `groupAlive` as missing from a quote that is correct.
+  const hostDirectory = join(ROOT, 'packages', 'deepblend', 'host', 'lib')
+  const host = readdirSync(hostDirectory).filter(name => name.endsWith('.js'))
+    .map(name => readFileSync(join(hostDirectory, name), 'utf8')).join('\n')
+  // IN CODE, not in prose. MEASURED: the first version accepted any mention, and the mutation that renamed
+  // `groupAlive` in the object literal still passed, because the name survives in the JSDoc two lines up. A line
+  // that is a comment does not count; a line that builds the object does.
+  const codeLines = host.split('\n').filter(line => !/^\s*(\/\/|\*|\/\*)/.test(line)).join('\n')
+  const missing = keys.filter(key => !new RegExp(`\\b${key}\\b`).test(codeLines))
+  assert.deepEqual(missing, [],
+    'the manual quotes keys the host does not produce, so a reader compares against a shape that is not the product')
+})

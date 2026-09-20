@@ -255,7 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 152: no probe — the four check outputs install.md quotes ──
+── ROUND 153: no probe — the cancel result recovery.md quotes, and what a mention check cannot see ──
+No product code changed. `recovery.md` §7 answers "I cancelled it — is the process really gone?" by quoting the JSON
+`blender_job_cancel` returns, and that quote is what an operator compares their own output against. Its keys are the
+contract: a renamed key leaves the manual describing a shape the product no longer produces, while the behaviour
+behind it (`processGone`) is asserted elsewhere, so nothing would notice the manual had drifted. MEASURED: all six
+top-level keys and the four nested ones under `after` are in the product's code, so the quote is accurate today.
+
+The check reads the quoted JSON out of the manual and requires each key to appear in the host package's lib, in
+CODE rather than in a comment. Getting there took three corrections, each from a reading. Searching only
+`index.js` reported `groupAlive` missing — the `after` block is built in `render-reconciler.js`. Accepting any
+mention let the mutation that renames `groupAlive` in the object literal pass, because the name survives in the JSDoc
+above it. And after excluding comment lines the mutation STILL passed: the old name lives on in a second code path
+in the same package.
+
+So the check's blind spot is written down rather than papered over: it catches the common rot — a key the product
+no longer produces anywhere, which goes red — and misses a rename with survivors. Proving the quote IS the produced
+shape would mean running the cancel path and comparing the object, and the behaviour that path exists for
+(`processGone`) is already asserted by the M3 suite.
+
+── ROUND 152: no probe — the four check outputs install.md quotes ──── ROUND 152: no probe — the four check outputs install.md quotes ──
 No product code changed. `install.md` shows an expected `result:` line for each of the four `--check` commands, and
 a reader compares their own output against it. Two of those lines carry values that move — the workspace's link
 count and the pinned Blender's version — and MEASURED, nothing compared the quotes with the commands: changing the
