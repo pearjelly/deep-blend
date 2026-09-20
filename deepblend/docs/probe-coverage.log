@@ -255,6 +255,18 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 109: no probe — a documented clamp that nothing asserted ──
+No product code changed. `visualConfidence()`'s comment promises that the confidence floor is clamped into [0, 1]
+"so a bad config cannot disable review", and the config key is a plain `z.number().default(0.8)` with no bounds
+— so the clamp is what stands between a deployment that sets 2 and an auto-fix loop that silently applies
+nothing (every finding below the floor, the loop still scoring, never fixing). No test mentioned the method or
+the key; the mutation that deletes the clamp left everything green.
+
+The assertion now covers both halves: out-of-range values fall back to the default (2 → 0.8, -1 → 0.8) and
+in-range ones pass through untouched (0, 1, 0.5) — the second half matters as much, because an implementation
+that always returned 0.8 would make the knob unadjustable. Two mutations go red, including the one-sided version
+that checks only the lower bound.
+
 ── ROUND 106: a guard that passed by not running ──
 The host's polygon guard reads `compileReport.sceneFingerprint.totalPolygons`, and that report is built in
 Python. The condition was `typeof polygons === 'number' && polygons > max` — so a renamed field on EITHER side

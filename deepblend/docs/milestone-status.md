@@ -8282,3 +8282,40 @@ total self-counted assertions: 1462
 产品代码改了（守卫的拒绝 ✓），所以这一轮跑新探针 ✓（`r106` 列 ✓）。
 契约层 61 文件 / 1460 → **1462** 项（`store-error-paths.test.mjs` 40 → 41 ✓、
 `render-job.test.mjs` 多一条 `node:test` 用例 ✓）。
+
+## 121. 一句「坏配置不能关掉审查」的承诺，没有任何断言
+
+### 121.1 量它
+
+`visualConfidence()` 的注释写着：
+
+> The confidence floor, clamped into [0, 1] so a bad config cannot disable review.
+
+而 `minVisualConfidenceForAutoFix` 的 schema 是 `z.number().default(0.8)` ✓——**没有任何上下界** ✓，
+所以部署里写 `2` 或 `-1` 都能通过 ✓，**由这个 clamp 兜住** ✓。而**没有任何测试提到它** ✓
+（`visualConfidence` 与那个键在契约层里一次都没出现 ✓）。
+
+后果不是风格问题 ✓：下限是 `2` 时**每一个** finding 都低于它 ✓ → 自动修复**静默地什么都不做** ✓——
+M2 的循环还在跑、还在报分数 ✓，只是永远不采纳 ✓。而把 clamp 删掉的变异**不会让任何测试变红** ✓。
+
+### 121.2 修法：把三种情况都钉住
+
+新增断言 ✓（用第二个 studio 实例 ✓，clamp 不需要运行时 ✓）：
+
+* `2` → `0.8` ✓、`-1` → `0.8` ✓（越界回落默认 ✓）；
+* `0` → `0` ✓、`1` → `1` ✓、`0.5` → `0.5` ✓（**界内原样通过** ✓——这一半同样重要 ✓：
+  一个「永远返回 0.8」的实现会让操作者调不动这个旋钮 ✓）。
+
+### 121.3 收口
+
+两条变异全红 ✓：**删掉 clamp** ✓、**只检查下界** ✓（`2` 会穿过去 ✓——那条正是「两面问题只测一面」的形状 ✓）。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1463
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 61 文件 / 1462 → **1463** 项（`host-render-orchestration.test.mjs` 45 → 46 ✓）。

@@ -104,6 +104,24 @@ const studio = new BlenderStudio(ctx, StudioConfig({
   maxPreviewSamples: 128,
 }))
 
+// THE CONFIDENCE FLOOR IS CLAMPED, because the schema does not bound it: `minVisualConfidenceForAutoFix` is a
+// plain `z.number().default(0.8)`, so a deployment can set 2 (or -1) and the schema will accept it. The clamp's
+// comment says why it exists — "so a bad config cannot disable review" — and nothing asserted it: the mutation
+// that removes it leaves every test green, while a floor of 2 means EVERY finding is below the floor and the
+// auto-fix loop silently stops applying anything. A second studio is enough, because the clamp needs no runtime.
+{
+  const clamped = (value) => {
+    const context = new Context()
+    context.provide('blenderRuntime', {})
+    return new BlenderStudio(context, StudioConfig({
+      workspaceRoot, projectsRoot: join(workspaceRoot, 'projects'), minVisualConfidenceForAutoFix: value,
+    })).visualConfidence()
+  }
+  check('a confidence floor outside [0, 1] is clamped to the default, so a bad config cannot disable auto-fix',
+    clamped(2) === 0.8 && clamped(-1) === 0.8 && clamped(0) === 0 && clamped(1) === 1 && clamped(0.5) === 0.5,
+    { two: clamped(2), negative: clamped(-1), zero: clamped(0), one: clamped(1), half: clamped(0.5) })
+}
+
 const productSpec = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'fixtures', 'product-turntable', 'scene-spec.json'), 'utf8'))
 
 /** A spec whose subject must be GUESSED: no camera aims at an entity and nothing is tagged. */
