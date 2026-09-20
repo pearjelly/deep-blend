@@ -94,6 +94,9 @@ const NOT_EXPLAINED = new Map([
     'ASSET_MISSING', 'ASSET_REQUEST_INVALID', 'ASSET_SOURCE_NOT_FOUND', 'ASSET_FETCH_FAILED', 'ASSET_HASH_MISMATCH',
     'RENDER_PROFILE_MISSING', 'RENDER_BUDGET_EXCEEDED', 'RENDER_NO_OUTPUT', 'RENDER_RANGE_INVALID',
     'RENDER_JOB_NOT_FOUND', 'RENDER_JOB_STATE_INVALID', 'DELIVERY_INCOMPLETE', 'ENCODE_FAILED', 'ENCODER_NOT_FOUND',
+    // The name and the message are the instruction: it says which call is already encoding, where, and what to
+    // do instead (wait, or cancel and start again). A manual entry would repeat it.
+    'EXPORT_IN_PROGRESS',
     'ARTIFACT_NOT_FOUND', 'UI_ROUTE_NOT_FOUND', 'UI_REQUEST_FAILED',
   ]],
   ['Between the host and Blender: a tool call fails, and the fix is the deployment (which Blender, which engine, whether the bundle is composed) rather than anything in the project.', [

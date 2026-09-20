@@ -34,7 +34,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
-import BlenderStudio, { StudioConfig, checkProcessAlive, relativeTo } from '@deepblend/dsh-blender-host'
+import BlenderStudio, { StudioConfig, checkProcessAlive, probeVideo, relativeTo } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const results = []
@@ -438,6 +438,45 @@ check('a re-export that fails leaves the COMPLETED job completed, and records th
   completedRecord.status === 'completed' && completedRecord.delivery?.status === 'failed' &&
   completedRecord.errorCode === code('ENCODE_VERIFY_FAILED'),
   { status: completedRecord.status, delivery: completedRecord.delivery?.status, code: completedRecord.errorCode })
+
+// ---------------------------------------------------------------------------
+// Two exports of ONE job at once
+// ---------------------------------------------------------------------------
+//
+// `encodedPath(jobDirectory, jobId)` is `<job>/encoded/<jobId>.mp4` — ONE path per job, however many deliveries
+// run. An export is not instantaneous (it shells out to ffmpeg and then probes the result), so a second call
+// while the first is encoding writes the same file, and each verifies a file the other is still writing.
+// MEASURED before the guard existed: BOTH callers failed with `ENCODE_VERIFY_FAILED` — a message that blames the
+// video's properties rather than the collision.
+//
+// This case asserts the GUARD, not ffmpeg's output: whether the first encode succeeds is a fixture question
+// (frames that differ enough to survive the encoder), while the property under test is that exactly one caller
+// gets to encode and the other is told why.
+{
+  writeFrames('render-0008', [1])
+  writeFileSync(
+    join(framesDirectory('render-0008'), 'frame_0002.png'),
+    encodePng(createImage(FRAME_SIZE, FRAME_SIZE, [40, 90, 200, 255])),
+  )
+  studio.renderJobs.write(jobRecord('render-0008', { status: 'running' }))
+  const spec = studio.store.readRevisionSpec(projectId, project.revision.revision)
+  const deliver = () => studio._deliverJob({
+    record: studio.renderJobs.read(projectId, 'render-0008'), spec, reason: 'export',
+  }).then(value => ({ ok: true, value })).catch(cause => ({ ok: false, code: cause?.code ?? String(cause), message: cause?.message }))
+  const [first, second] = await Promise.all([deliver(), deliver()])
+
+  const refused = [first, second].filter(entry => !entry.ok && entry.code === code('EXPORT_IN_PROGRESS'))
+  check('of two exports of one job at once, exactly ONE is refused with the collision named',
+    refused.length === 1,
+    { first: first.ok ? 'ok' : first.code, second: second.ok ? 'ok' : second.code })
+
+  // AND THE FLAG DOES NOT LEAK, which is the half that matters more: a guard that stayed set would refuse every
+  // later delivery of this job forever, turning a race into a permanently broken job.
+  const later = await deliver()
+  check('and a later export of the same job is not refused by a flag the first one left behind',
+    later.ok === true || later.code !== code('EXPORT_IN_PROGRESS'),
+    later.ok ? 'ok' : later.code)
+}
 
 rmSync(workspaceRoot, { recursive: true, force: true })
 

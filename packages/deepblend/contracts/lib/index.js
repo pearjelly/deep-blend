@@ -221,6 +221,17 @@ export const BlenderErrorCode = Object.freeze({
   /** A delivery was requested for a job that has not produced every frame. */
   DELIVERY_INCOMPLETE: 'DELIVERY_INCOMPLETE',
   /**
+   * A job is already being encoded, so this delivery would put two encoders on one file.
+   *
+   * `encodedPath` is one path per job, and an encode is not instantaneous — two deliveries of the same job write
+   * the same MP4, and each then verifies a file the other is still writing. MEASURED before this code existed:
+   * both callers failed with `ENCODE_VERIFY_FAILED`, a message that blames the video's properties rather than the
+   * collision. The refusal names the call that is already running, and the caller loses nothing: the encode it
+   * was about to duplicate is happening anyway.
+   */
+  EXPORT_IN_PROGRESS: 'EXPORT_IN_PROGRESS',
+
+  /**
    * A delivery render is large enough that the operator must approve it first
    * (SPEC §15.1 "高成本最终渲染达阈值审批").
    *

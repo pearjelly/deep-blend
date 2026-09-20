@@ -325,6 +325,8 @@ export default class BlenderStudio extends Service {
     this.config = config
     /** In-flight probe, so N concurrent callers share one Blender launch. */
     this._inFlight = null
+    /** Jobs being encoded right now, so two encoders never write one file. Keyed `projectId/jobId`. */
+    this._deliveriesInFlight = new Map()
 
     // Resolved ONCE, here, and every consumer below uses these two values rather
     // than `config.*`. An unresolved `projectsRoot` must follow the resolved
@@ -4118,6 +4120,40 @@ export default class BlenderStudio extends Service {
    * number unless the expected count came from the job.
    */
   async _deliverJob(input) {
+    const record = input.record
+    const projectId = record.projectId
+    const jobId = record.jobId
+
+    // ONE ENCODER PER JOB. `encodedPath` is `<job>/encoded/<jobId>.mp4` — one path however many deliveries run —
+    // and an encode is not instantaneous, so a second call while the first is encoding writes the same file.
+    // MEASURED before this guard: two concurrent exports of one job BOTH failed with `ENCODE_VERIFY_FAILED`,
+    // because each verified a file the other was still writing; the message blamed the video's properties rather
+    // than the collision. A refusal that names the other call is the honest answer — and it costs the caller
+    // nothing, because the encode it was about to duplicate is already happening.
+    const deliveryKey = `${projectId}/${jobId}`
+    const inFlight = this._deliveriesInFlight.get(deliveryKey)
+    if (inFlight !== undefined) {
+      throw new BlenderError(
+        BlenderErrorCode.EXPORT_IN_PROGRESS,
+        `${inFlight} is already encoding ${projectId}/${jobId} into ` +
+          `${encodedPath(this.renderJobs.jobDirectory(projectId, jobId), jobId)}. Two encoders on one ` +
+          'file produce a video that verifies as neither, so this one was refused rather than started. Wait for ' +
+          'the first to finish — blender_job_status reports it — or cancel the job and start again.',
+        { detail: { projectId, jobId, inFlight, reason: input.reason ?? null } },
+      )
+    }
+    this._deliveriesInFlight.set(deliveryKey, input.reason === 'export' ? 'a delivery export' : 'the render\u2019s own delivery')
+    try {
+      return await this._deliverJobBody(input)
+    } finally {
+      // Cleared on EVERY path, including a throw: a flag that leaks would refuse every later delivery of this job
+      // forever, which is a worse failure than the collision it prevents.
+      this._deliveriesInFlight.delete(deliveryKey)
+    }
+  }
+
+  /** The body of {@link _deliverJob}, under the one-encoder-per-job guard. */
+  async _deliverJobBody(input) {
     const record = input.record
     const projectId = record.projectId
     const jobId = record.jobId
