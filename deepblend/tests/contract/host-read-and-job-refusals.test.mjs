@@ -28,7 +28,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -275,11 +275,36 @@ const patched = await studio.transactions.applyScenePatch({
   baseRevision: revision,
   operations: [{ op: 'entity.visibility.set', entityId: spec.entities[0].id, visible: false }],
 })
+const revisionsDirectory = join(studio.store.projectDirectory(projectId), 'revisions')
+const snapshotOf = (directory) => {
+  const entries = []
+  const walk = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true }).sort((left, right) => (left.name < right.name ? -1 : 1))) {
+      const path = join(current, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else entries.push(`${path.slice(directory.length)}:${statSync(path).size}`)
+    }
+  }
+  walk(directory)
+  return entries
+}
+const revisionsBefore = snapshotOf(revisionsDirectory)
 const restored = await studio.restoreRevision({ projectId, revision })
 check('restoring a revision with no checkpoint reports a NULL checkpoint instead of a path to nothing',
   restored.restored === true && restored.checkpoint === null && restored.from === patched.revision.revision &&
   restored.revision === revision,
   { restored: restored.restored, from: restored.from, checkpoint: restored.checkpoint, revision: restored.revision })
+
+// "回退不删东西" IS A PROMISE IN THE MANUAL (`usage.md`: restoring only moves the pointer, the revisions in
+// between are still in the history and the one you left is still there), and nothing asserted the "not deleted"
+// half — only the outcome of the move. The strongest form is the whole revision tree, byte for byte: nothing
+// removed, nothing added, nothing rewritten. It is the promise that makes a restore safe to try.
+const revisionsAfter = snapshotOf(revisionsDirectory)
+check('a restore DELETES nothing: every revision file is still there, byte for byte',
+  JSON.stringify(revisionsAfter) === JSON.stringify(revisionsBefore) &&
+  revisionsAfter.some(entry => entry.startsWith(`/${revision}/`)) &&
+  revisionsAfter.some(entry => entry.startsWith(`/${patched.revision.revision}/`)),
+  { files: revisionsAfter.length, same: JSON.stringify(revisionsAfter) === JSON.stringify(revisionsBefore) })
 
 // ---- a job directory with NO record at all ---------------------------------
 //

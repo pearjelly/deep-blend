@@ -255,6 +255,15 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 107: no probe — a documented promise that had only half an assertion ──
+No product code changed. The manual's promise about `blender_revision_restore` — "回退不删东西": restoring only
+moves the pointer, the revisions in between stay in the history and the one you left is still there — had an
+assertion for the MOVE (`restored`, `from`, `checkpoint`) and none for the "nothing was deleted" half. The
+assertion added here is the strongest form of that half: the whole `<project>/revisions/` tree, file list and
+byte sizes, identical before and after (reading: `{files: 9, same: true}`), which excludes a deleted file, a
+quietly rewritten one and an extra one at once. The mutation that makes a restore prune the revision it left
+behind goes red on it.
+
 ── ROUND 106: no probe — a check about the tests themselves ──
 No product code changed, so the previous column still describes this tree. The round added one question at the
 level above the code: is every REGISTERED tool actually INVOKED by some test, or only listed in a roster? All

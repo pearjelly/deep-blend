@@ -8149,3 +8149,33 @@ total self-counted assertions: 1458
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 61 文件 / 1456 → **1458** 项（`tool-plane-output.test.mjs` 68 → 70 ✓）。
+
+## 118. 「回退不删东西」是手册里的一句话，而只有一半被断言过
+
+### 118.1 量它
+
+`usage.md` 里写着：**回退不删东西**——`blender_revision_restore` 只是把指针移回去，中间那些 revision
+仍在历史里，你离开的那个也还在 ✓。而测试里只断言了**移动的结果** ✓（`restored`、`from`、`checkpoint` ✓），
+**没有断言「什么都没被删」** ✓。
+
+### 118.2 补上最强的那一版：整棵 revision 树逐字节不变
+
+在回退前后各拍一次 `<project>/revisions/` 的**文件清单 + 每个文件的字节数** ✓，断言两份**完全相同** ✓，
+并且**离开的那个 revision 与目标的目录都还在** ✓。读数 `{files: 9, same: true}` ✓。
+
+这一条比「`listRevisions` 里还有几个」更强 ✓：它同时排除「删掉一个文件」✓、「偷偷重写一份」✓
+与「多写出一份」✓ 三种情况 ✓——而「回退是安全的」正是这条承诺让人敢按下去的理由 ✓。
+
+### 118.3 收口
+
+变异：**让回退顺手把「离开的那个 revision」删掉** ✓（正是这条承诺要挡的事 ✓）→ 红 ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1459
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 61 文件 / 1458 → **1459** 项（`host-read-and-job-refusals.test.mjs` 23 → 24 ✓）。
