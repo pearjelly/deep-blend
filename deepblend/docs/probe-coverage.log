@@ -255,6 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 110: no probe — a record that existed but whose contents were never asserted ──
+No product code changed. The round opened with a method-level sweep (names no test mentions — sixteen of them)
+and its first three leads all evaporated: the `refresh: true` invalidation path is driven in three suites,
+`scoreVisualViews` is a thin wrapper over a scoring function that is tested, and `recovery.json` IS documented
+in `recovery.md` §1 — my `grep | head -5` had truncated that line away, which is the tenth time or so this
+session's own measuring instrument misled me.
+
+What was actually missing is the record's CONTENTS. `recovery.md` sends an operator to that file after a
+restart, and the test asserted only that it exists — a JSON that parses and holds nothing would pass. The
+assertions now pin the schema version, the ids, `status`, `previousStatus` (the field that answers "what was
+this job doing when the Host died"), the ledger counts and the frames still owed, the notes, and a parseable
+timestamp. Two of them had to be moved or corrected first: the previous-status one was written into the
+unreadable-record case, where `record` is null and the field is null however the code is written (the mutation
+survived — round 118's lesson again), and I guessed the ledger's shape wrong (`presentCount`; it is `present`
+plus `toRender`), which the test's own reading exposed.
+
 ── ROUND 109: no probe — a documented clamp that nothing asserted ──
 No product code changed. `visualConfidence()`'s comment promises that the confidence floor is clamped into [0, 1]
 "so a bad config cannot disable review", and the config key is a plain `z.number().default(0.8)` with no bounds

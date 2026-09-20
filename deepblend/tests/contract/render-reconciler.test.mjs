@@ -235,6 +235,20 @@ test('an unreadable record is reported and LEFT ON DISK byte for byte', async ()
   assert.deepEqual(written, [], 'an unreadable record must not be overwritten')
   assert.equal(readFileSync(recordPath, 'utf8'), garbage, 'the evidence must survive byte for byte')
   assert.ok(existsSync(join(jobDirectory, 'recovery.json')), 'the finding is written beside the job')
+
+  // ...AND IT IS THE OPERATOR'S EVIDENCE, so what it HOLDS is part of the contract, not just that it exists.
+  // `recovery.md` §1 tells a reader to look for this file after a restart ("重启后在「任务」页看到状态是
+  // recovering，旁边多了一份 recovery.json"), and a record that parsed but carried none of the conclusion
+  // would satisfy every assertion above. The schema version is asserted too, because a reader that has to
+  // guess which shape it is looking at is the reason the version is in there.
+  const recovery = JSON.parse(readFileSync(join(jobDirectory, 'recovery.json'), 'utf8'))
+  assert.equal(recovery.schemaVersion, 'deepblend.render-recovery/v1')
+  assert.equal(recovery.jobId, jobId)
+  assert.equal(recovery.projectId, 'demo')
+  assert.equal(recovery.status, 'unreadable')
+  assert.equal(recovery.previousStatus, null)
+  assert.ok(recovery.notes.length === 1 && recovery.notes[0].includes('left untouched'))
+  assert.ok(typeof recovery.reconciledAt === 'string' && !Number.isNaN(Date.parse(recovery.reconciledAt)))
 })
 
 test('the orphan is stopped BEFORE the ledger is read, which is the documented order', async () => {
@@ -259,6 +273,22 @@ test('the orphan is stopped BEFORE the ledger is read, which is the documented o
   assert.equal(finding.resumable, true, 'a job whose orphan was stopped IS resumable')
   assert.equal(finding.process.stopped.gone, true, 'and the stop is verified, not assumed')
   assert.equal(checkProcessAlive(child.pid).alive, false, 'the orphan is really gone')
+
+  // AND THE RECORD IT WROTE CARRIES WHAT WAS TRUE BEFORE, which is the field an operator needs to answer
+  // "what was this job doing when the Host died?". Asserting it only on the unreadable case would not do:
+  // there `record` is null, so `previousStatus` is null whichever way the code is written — the mutation that
+  // hardcodes it survived exactly that. Here the record is real (`running`), so the field has to be carried.
+  const written = JSON.parse(readFileSync(join(jobDirectory, 'recovery.json'), 'utf8'))
+  assert.equal(written.schemaVersion, 'deepblend.render-recovery/v1')
+  assert.equal(written.jobId, jobId)
+  assert.equal(written.previousStatus, 'running', 'the status it had before the restart is carried, not recomputed')
+  assert.equal(written.status, 'recovering')
+  // The ledger is carried as COUNTS plus the frames still owed, not as the ledger object itself: this record is
+  // what an operator reads, and the whole per-frame ledger belongs in the job, not in a recovery note.
+  assert.ok(written.ledger !== null && typeof written.ledger.present === 'number' &&
+    typeof written.ledger.missing === 'number' && Array.isArray(written.ledger.toRender),
+    `the ledger it rebuilt is in the record: ${JSON.stringify(written.ledger)}`)
+  assert.ok(Array.isArray(written.notes) && written.notes.length > 0)
 })
 
 // ---------------------------------------------------------------------------

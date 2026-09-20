@@ -8319,3 +8319,50 @@ total self-counted assertions: 1463
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 61 文件 / 1462 → **1463** 项（`host-render-orchestration.test.mjs` 45 → 46 ✓）。
+
+## 122. 重启记录「存在」被断言过，而它**装的东西**没有
+
+### 122.1 起因：一次方法级扫描，前几个线索都断了
+
+这一轮先做了一次**方法级**扫描 ✓：找出「名字在任何测试里都没出现过」的方法 ✓（16 个 ✓）。
+顺着看下去，前几个线索**都被否掉** ✓：
+
+* `blender_capabilities {refresh: true}` 的失效路径 ✓——`provider-actions.test.mjs` 与两个 e2e 都在用 ✓；
+* `scoreVisualViews` ✓——它只是 `scoreReview` 的薄包装 ✓（真正的评分规则有测试 ✓）；
+* `recovery.json` ✓——我以为它没进手册 ✗，**其实 `recovery.md` §1 明明白白写着它** ✓
+  （我的 `grep | head -5` 把那一行截掉了 ✗——**量具又一次骗了我** ✓，第十次左右 ✓）。
+
+### 122.2 真缺口：`recovery.json` 的**内容**没有任何断言
+
+重启后那台「任务」页旁边的记录 ✓ 是**操作者唯一的证据** ✓（`recovery.md` §1 让读者去找它 ✓），
+而测试只断言了**它存在** ✓——一个解析得开、却什么都没装的 JSON 同样能通过 ✓✓。
+
+于是把**它装的东西**钉住 ✓（在**有真实记录**的那个用例里 ✓——`running` ✓）：
+
+* `schemaVersion` = `deepblend.render-recovery/v1` ✓（读者不该去猜自己在看哪种形状 ✓）；
+* `jobId` / `projectId` ✓、`status` = `recovering` ✓；
+* **`previousStatus` = `running`** ✓——回答「Host 死的时候这个任务在干什么」的那个字段 ✓；
+* `ledger` 的计数与**还欠哪些帧** ✓、`notes` 非空 ✓、`reconciledAt` 可解析 ✓。
+
+### 122.3 两次「在错误的输入上断言」
+
+* 第一条断言我加在**不可读记录**那个用例里 ✓——那里 `record` 是 `null` ✓，
+  所以 `previousStatus` 怎么改都是 `null` ✗ → **变异「写死 previousStatus」活着** ✓。
+  移到有真实记录的用例里之后它立刻红 ✓（第 118 轮同一个教训 ✓：**输入必须能让变异改变读数** ✓）。
+* 我还猜错了一次 `ledger` 的形状 ✗（猜 `presentCount` ✓，实际是 `present` 计数 + `toRender` 帧号 ✓）——
+  是**测试自己报的读数**把它揭穿的 ✓。
+
+### 122.4 收口
+
+四条变异全红 ✓：去掉 `schemaVersion` ✓、写死 `previousStatus` ✓、丢掉 `notes` ✓、丢掉 `toRender` ✓。
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 61/61 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1463
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+`render-reconciler.test.mjs` 的用例数与自计断言数**都没变** ✓（这一轮加的是**用例内部**的断言 ✓，
+它用 `node:test` 的 `assert` ✓——所以总数不动是预期的 ✓，不是漏记 ✓）。
