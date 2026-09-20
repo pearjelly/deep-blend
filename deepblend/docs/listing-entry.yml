@@ -18,6 +18,40 @@
 # "read as a claim about your plugin, and checked against your code" — so the claim is checked here first.
 #
 # ─────────────────────────────────────────────────────────────────────────────
+# THE PACKAGING DECISION, MEASURED
+#
+# Routes 2 and 3 need packages that can be installed, and this project ships five plus a bundle. What each option
+# actually costs, read off the tree rather than estimated:
+#
+#   the five packages      52 source files, ~26 900 lines (contracts 7 450, host 8 261, provider-local 6 473,
+#                          tool 2 746, ui 1 980, bundle 29)
+#   imports BETWEEN them   16, and every one of them is `@deepblend/dsh-blender-contracts`. The packages are
+#                          otherwise independent of each other — this is the number that decides the question.
+#   the bundle's patch     names three packages (provider-local, host, ui) as three rows with distinct ids
+#   the workspace          12 symlinks, all derived from source imports, asserted by `setup:check`
+#   the test suite         imports the packages at 160 sites (contracts 56, host 40, provider-local 25, tool 19,
+#                          ui 11, bundle 9)
+#
+# (a) PUBLISH ALL FIVE. No source change at all: five publishes, the `repository` field each already carries, and
+#     `private: true` removed from each manifest. The four siblings then resolve from the registry like any other
+#     dependency, and the bundle's exact pins (`0.1.0`) keep working. Cost: five packages to version in lockstep.
+#
+# (b) FLATTEN THE SOURCE TREE into one package. The product side is cheap — 16 imports to rewrite (all pointing at
+#     contracts), the patch's three rows may keep their distinct ids while naming one package, and the workspace's
+#     12 links become 1. The expensive part is the SUITE: 160 import sites across the tests, plus every fixture
+#     that names a package directory. This is the only option that changes what a contributor sees.
+#
+# (c) VENDOR, AS A RELEASE ARTIFACT. Copy the five into the bundle at PACK TIME and ship the result — the tarball
+#     route's requirement exactly. The repository keeps one copy of every fact (the doctrine that decides this),
+#     the dev layout is untouched, and no test changes. Cost: a build step, and a bundle whose contents no longer
+#     match its own directory.
+#
+# What the measurement says: the coupling inside the product is 16 imports, so (b) is not the expensive option it
+# looks like from the file count — but its cost lands on the suite, and (a) and (c) both leave the repository as it
+# is. (c) is the only one that satisfies the tarball route; (a) is the only one that satisfies the npm route without
+# a build step.
+#
+# ─────────────────────────────────────────────────────────────────────────────
 # HOW THIS PLUGIN CAN BE INSTALLED, AND WHAT EACH ROUTE STILL NEEDS
 #
 # The list accepts three routes, and they are not interchangeable — each one has a different prerequisite, so the

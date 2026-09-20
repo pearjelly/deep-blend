@@ -255,7 +255,37 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 136: no probe — the three install routes, and the fact that they are not independent ──
+── ROUND 137: no probe — the packaging decision, measured instead of estimated ──
+No product code changed. Two of the three install routes come down to the same question — how do five packages and
+a bundle become something a stranger can install — and while the answer is a product decision, its COST is
+measurable.
+
+Measured: the five packages are 52 source files and about 26 900 lines (contracts 7 450, host 8 261,
+provider-local 6 473, tool 2 746, ui 1 980, bundle 29). The number that actually decides the question is the
+coupling BETWEEN them: 16 imports, every one of them pointing at `@deepblend/dsh-blender-contracts`. Otherwise the
+packages do not depend on each other at all. The bundle's patch names three of them as three rows with distinct
+ids; the workspace makes 12 symlinks derived from source imports and asserted by `setup:check`; and the test suite
+imports the packages at 160 sites (contracts 56, host 40, provider-local 25, tool 19, ui 11, bundle 9).
+
+(a) Publish all five: no source change — five publishes, the `repository` field each manifest already carries, and
+`private: true` removed. Cost: five packages versioned in lockstep.
+
+(b) Flatten the source tree: cheap on the product side (16 imports to rewrite, all at contracts; the patch's three
+rows may keep distinct ids while naming one package; 12 links become 1) and expensive in the SUITE — 160 import
+sites plus every fixture naming a package directory. The only option that changes what a contributor sees.
+
+(c) Vendor as a release artifact: copy the five into the bundle at pack time. The repository keeps one copy of
+every fact, which is the doctrine that decides it; the dev layout is untouched and no test changes. Cost: a build
+step, and a bundle whose contents no longer match its own directory.
+
+So the coupling inside the product is 16 imports — (b) is not as expensive as its file count suggests, but its
+cost lands on the suite, while (a) and (c) both leave the repository as it is. (c) is the only option that
+satisfies the tarball route; (a) is the only one that satisfies the npm route without a build step.
+
+The brief is written into the entry file itself, where whoever decides reads it, with every number read off the
+tree.
+
+── ROUND 136: no probe — the three install routes, and the fact that they are not independent ──── ROUND 136: no probe — the three install routes, and the fact that they are not independent ──
 No product code changed. The research document's three install routes were measured against this repository, and
 they turn out to have different prerequisites, which sharpens what is actually blocking a submission.
 
