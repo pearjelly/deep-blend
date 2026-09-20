@@ -331,3 +331,27 @@ test('the tool count is derived from the list the UI draws cards from, not a sec
     'the card list has a duplicate, so its length is not a tool count',
   )
 })
+
+// ---------------------------------------------------------------------------
+// The document that OWNS the totals states them once
+// ---------------------------------------------------------------------------
+//
+// D93's rule is that one document carries the totals and the rest point at it. The check below enforces that for
+// the OTHER documents by shape; nothing enforced it for the README itself, and the README had grown two copies of
+// both numbers — the snapshot sentence and a later one explaining that they are a snapshot. The second copy read
+// 1469 for nineteen rounds while the first had moved to 1488, which is exactly the rot D93's rule is about.
+//
+// The rule here is self-anchoring: the totals are READ from the snapshot sentence (by the same shape the other
+// check uses), and then each must appear exactly once in the whole document. No figure is written into this file,
+// so this check cannot rot the way the sentence did.
+test('the README names each of its totals exactly once', () => {
+  const shape = /(\d[\d\s]*)\s*项自计断言|(\d+)\s*个\s*`?node:test`?\s*用例/g
+  const totals = [...readme.matchAll(shape)].map(match => (match[1] ?? match[2]).replace(/\s/g, ''))
+  assert.equal(totals.length, 2,
+    `the README should state a self-counted total and a node:test total once each; found ${totals.length}`)
+  for (const total of totals) {
+    const occurrences = (readme.match(new RegExp(`\\b${total}\\b`, 'g')) ?? []).length
+    assert.equal(occurrences, 1,
+      `the README states ${total} ${occurrences} times — the totals belong in one sentence, and a second copy is what rotted for nineteen rounds`)
+  }
+})

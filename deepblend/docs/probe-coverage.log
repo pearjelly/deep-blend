@@ -255,7 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 138: no probe — a second copy of the total, nineteen rounds stale ──
+── ROUND 139: no probe — D93's rule applied to the document that owns the totals ──
+No product code changed. Round 138 found a second copy of the totals inside the README and removed it, per D93.
+This round asked the next question: who enforces D93 on the document that OWNS the totals? `documented-counts`
+enforces it on the OTHER documents by shape — a number next to "断言" or "node:test 用例" — and nothing enforced it
+on the README itself.
+
+Measured: the README contains exactly one statement of that shape (the snapshot sentence), but the sentence after
+it said "所以 1488 和 323 是快照，不是承诺" — bare numbers, a different shape, invisible to the shape check. So the
+defect round 138 removed from one sentence was still present in the next one.
+
+The sentence points now ("所以上面那两个数字是快照"), and a check was added: the totals are READ OUT of the
+snapshot sentence by the same shape the other check uses, and then each must appear exactly once in the whole
+document. No figure is written into the test file, so the check cannot rot the way the sentence did — which is the
+property D93 is really about. The mutation that restores the second copy goes red with "the README states 1488 2
+times".
+
+The README's node:test count moved 323 → 324 for the new case, and — as the new rule requires — the update landed
+in exactly one place.
+
+── ROUND 138: no probe — a second copy of the total, nineteen rounds stale ──── ROUND 138: no probe — a second copy of the total, nineteen rounds stale ──
 No product code changed. The README carries a caveat about a count that depends on the machine:
 `preset-source.test.mjs` reports 19 checks without an installed preset and 21 with one, so subtracting two
 machines' totals invents or loses two. Re-measured this round — `DSH_HOME` pointed at a home with no preset gives
