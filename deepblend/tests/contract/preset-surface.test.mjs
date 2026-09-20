@@ -183,7 +183,7 @@ test('the composition names no machine-specific path', () => {
   assert.deepEqual(found, [], `the composition contains machine-specific paths: ${found.join(', ')}`)
 })
 
-test('the skill the persona tells the model to load is shipped inside the preset', () => {
+test('the skill the persona tells the model to load is shipped inside the preset', async () => {
   const skillPath = join(PRESET_DIR, 'skills', 'deepblend-studio', 'SKILL.md')
   assert.ok(existsSync(skillPath), 'the preset ships no deepblend-studio skill, so the persona points at nothing')
 
@@ -191,14 +191,27 @@ test('the skill the persona tells the model to load is shipped inside the preset
   const frontmatter = text.match(/^---\n([\s\S]*?)\n---/)
   assert.ok(frontmatter !== null, 'the skill has no YAML frontmatter, so skill discovery ignores it')
 
-  // The runtime requires both fields and a valid name; a skill that fails those
-  // is dropped with a logger warning and never reaches the catalog.
-  const block = frontmatter[1]
-  const name = block.match(/^name:\s*(.+)$/m)?.[1]?.trim()
-  const description = block.match(/^description:\s*(.+)$/m)?.[1]?.trim()
+  // PARSED WITH THE RUNTIME'S OWN PARSER, and validated with the RUNTIME'S OWN GRAMMAR. The runtime reads this
+  // frontmatter with a YAML parser and drops the whole file — with a logger warning nobody reads — when the parse
+  // fails or when the name does not match `SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/`. The version of this
+  // assertion that used a line regex and `/^[a-z0-9][a-z0-9-]*$/` was LOOSER than the consumer in both places: it
+  // accepted `a-` and `a--b`, which the runtime rejects, and it accepted YAML the parser refuses. Same lesson as
+  // the preset's metadata one file up.
+  const yaml = await import(pathToFileURL(join(dirname(resolveDshScope()), 'js-yaml', 'index.js')).href)
+  const parsed = yaml.load(frontmatter[1])
+  assert.equal(typeof parsed, 'object', 'the frontmatter does not parse as a mapping')
+  const { isSkillName } = await importDsh('dsh-skill')
+  const name = parsed.name
+  const description = parsed.description
   assert.equal(name, 'deepblend-studio', 'the skill name must match its directory name')
-  assert.match(name, /^[a-z0-9][a-z0-9-]*$/)
-  assert.ok(description !== undefined && description.length > 40, 'a one-line description never gets loaded by a model')
+  // DEFENSIVE, and named as such rather than left looking load-bearing. MEASURED: with the path above hard-coded
+  // to `deepblend-studio`, any name change fails the directory assertion first, and renaming the directory fails
+  // the path assertion first — so this line cannot be reached by either mutation. It stays because the runtime's
+  // grammar is the authority and the check above it is a string comparison: the day the path becomes derived from
+  // the frontmatter, this is the assertion that matters.
+  assert.ok(isSkillName(name), `the runtime rejects the skill name ${JSON.stringify(name)} and drops the file`)
+  assert.ok(typeof description === 'string' && description.length > 40,
+    'a one-line description never gets loaded by a model')
 
   // And the persona must actually point at it, or nothing loads it.
   const composition = readFileSync(COMPOSITION, 'utf8')

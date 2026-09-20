@@ -11115,3 +11115,68 @@ DeepBlend tests: 64/64 file(s) passed
    摊平源码树 **改 160 处测试 import** ✓ / 打包时 vendor **不动仓库** ✓）。
 
 **目标未达成** ✓（第 4 件是实打实的工作量 ✓），保持 active ✓。
+
+## 181. 技能（skill）的元数据：检查比**消费者**更松
+
+### 181.1 起因：继续读第三个平面的加载器
+
+前几轮读完了 bundle（`dsh-app-boot` ✓）、客户端（`dsh-client-modules` ✓）、preset（`dsh-agent-presets` ✓）。
+这一轮读 **skill**（`dsh-skill-filesystem` ✓）——preset 里那个 `skills/deepblend-studio/SKILL.md` 的加载规则 ✓：
+
+```js
+const name = stringField(parsed.data, "name");
+const description = stringField(parsed.data, "description");
+if (name === void 0 || description === void 0) {
+  ctx.logger.warn(`skill file ${path} ignored: frontmatter requires name and description`);
+}
+if (!isSkillName(name)) { ctx.logger.warn(`… invalid skill name "${name}"`); }
+```
+
+**两条规则** ✓：frontmatter 用 **YAML 解析** ✓（失败则**整个文件被忽略**，只留一条 `logger.warn` ✓✓）；
+名字必须匹配 `SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/` ✓✓。
+
+**本仓库的技能是对的** ✓（`name: deepblend-studio` ✓、描述齐全 ✓、名字合法 ✓✓）——
+**但断言比消费者松两处** ✗✓：
+
+| 断言写的 | 运行时要求的 |
+|---|---|
+| **按行正则**读 frontmatter ✗ | **YAML 解析** ✓（解析失败就丢弃 ✓） |
+| `/^[a-z0-9][a-z0-9-]*$/` ✗ | `/^[a-z0-9]+(?:-[a-z0-9]+)*$/` ✓✓ |
+
+第二行更松 ✓：**`a-`** ✓ 与 **`a--b`** ✓ 都能通过旧正则 ✗，而运行时**拒绝**它们 ✓✓。
+
+### 181.2 修法：用**运行时自己的**解析器与语法
+
+断言改成 ✓：用**部署自己的 `js-yaml`** 解析 frontmatter ✓（与第 170 轮同一个模块 ✓），
+再用**部署自己的 `isSkillName`** 校验名字 ✓✓（`importDsh('dsh-skill')` ✓——**导入那个函数本身** ✓，
+不是抄它的正则 ✓✓）。
+
+**变异** ✓：
+* 把描述写成含**未加引号冒号** ✓ → **红** ✓（`YAMLException: bad indentation of a mapping entry` ✓✓——正是旧正则**看不见**的那种文件 ✓）；
+* 把名字改成 `deepblend--studio` ✓ → 红 ✓（**但红在目录名那条断言上** ✗）。
+
+### 181.3 一条**够不到**的断言，被命名为 DEFENSIVE
+
+顺着第二个变异量下去 ✓：把名字改成运行时拒绝的形式 ✓ → **路径那条断言先红** ✗；
+把**目录也一起改名** ✓ → **路径断言仍然先红** ✗✓。
+也就是说 ✓：只要上面那条路径是**硬编码**的 ✓，`isSkillName` 那行**两种变异都到不了** ✓✓。
+
+**这正是仓库自己的约定** ✓（第 142 轮：一个关键区永远不触发的守卫要**在代码里写明是 DEFENSIVE** ✓✓）——
+于是写上理由 ✓：**它留着是因为语法才是权威** ✓，而上面那条只是字符串比较 ✓；
+**哪天路径改成从 frontmatter 推导，这一行就是真正管用的那条** ✓✓。
+
+### 181.4 收口
+
+```
+$ node deepblend/tests/contract/preset-surface.test.mjs
+ℹ pass 10   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
+`node:test` 用例 **332** ✓（替换既有断言 ✓，未新增 ✓）。
+
+**三个平面的加载器都读过了** ✓：bundle ✓、client ✓、preset ✓、skill ✓——
+**四处「失败即静默」的形状** ✓（缺导出 ✓、缺声明 ✓、解析失败 ✓、名字不合法 ✓），
+而本仓库在这四处**现在都有断言** ✓✓。

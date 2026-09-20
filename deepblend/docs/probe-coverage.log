@@ -255,7 +255,32 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 149: no probe — a goal check-up, twenty rounds on ──
+── ROUND 150: no probe — the skill's metadata, checked more loosely than the consumer checks it ──
+No product code changed. Rounds 133–135 read the loaders for the bundle, the client and the preset; this round read
+the fourth, `dsh-skill-filesystem`, which loads the skill a preset ships. Two rules: the frontmatter is read with a
+YAML parser and the WHOLE FILE IS IGNORED, with one logger warning, when the parse fails or when the name does not
+match `SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/`.
+
+This repository's skill is correct on both counts — name `deepblend-studio`, a real description, a legal name — but
+the assertion checking it was LOOSER than the consumer in two places. It read the frontmatter with a line regex, so
+a YAML the parser refuses would pass; and it validated the name with `/^[a-z0-9][a-z0-9-]*$/`, which accepts `a-`
+and `a--b`, both of which the runtime rejects.
+
+The assertion now parses with the deployment's own js-yaml — the same module round 134 used for the preset's
+metadata — and validates with the deployment's own `isSkillName`, imported from `dsh-skill` rather than copied as a
+regex. Two mutations: an unquoted colon in the description goes red with the YAMLException the old regex could not
+see, and a name the runtime rejects goes red.
+
+The second mutation exposed an unreachable assertion, which is now named rather than left looking load-bearing:
+with the path hard-coded to `deepblend-studio`, a changed name fails the directory assertion first, and renaming the
+directory fails the path assertion first — so the `isSkillName` line cannot be reached by either. It stays because
+the runtime's grammar is the authority and the line above it is a string comparison, and the comment says exactly
+that.
+
+All four loaders have now been read, and all four have a silent-failure shape — a missing export, a missing
+declaration, a failed parse, an illegal name — and this repository has an assertion for each.
+
+── ROUND 149: no probe — a goal check-up, twenty rounds on ──── ROUND 149: no probe — a goal check-up, twenty rounds on ──
 No product code changed. Re-measured: 64 contract files, 1489 self-counted assertions, 332 node:test cases;
 run-all.sh 16/16 suites printing 80 lines; `verify:clone` exit 0 from a clean clone against a clean DSH_HOME,
 including the new no-Blender assertion; the four deployment checks all exit 0; 12363 product code lines with 35
