@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 126: no probe — the manuals' cross-references, and two wrong extractions before a right one ──
+── ROUND 127: no probe — an audit of my own compliance with the repository's own rule ──
+No product code changed. `CONTRIBUTING.md` §5 requires that any measurement- or defect-driven decision be written
+into `architecture-decisions.md`, numbered after the last D, with three things: what the decision is, the fact that
+triggered it, and what would happen otherwise ("the reason you delete is the hardest information to recover").
+
+Measuring my own recent commits against it: the newest row was D185 (round 124), and the twelve `fix(deepblend)`
+commits after it — every one of them driven by a real defect — had no decision record at all. They do now, as
+D186 through D197: the two previews of one revision deleting each other's image, the installable package's missing
+client declaration and files list, two manifest entries for one asset path, a guard that silently skips when its
+field is missing, a redirect walking around an approval, a provenance record naming the URL that did not answer,
+an approval whose subject drifted in time, a declared asset hash nothing compared with the file, two encoders on
+one MP4, a manifest de-duplicating by id while the artifact index de-duplicates by path, the peer-dependency rule
+the ecosystem rejects submissions for, and an uninstall path whose first step only changed configuration.
+
+Renumbering was needed too: the new rows started at D187 while D186 did not exist, so they moved down one and the
+sequence now runs D185 → D186…D197 without a gap.
+
+The lesson worth keeping: I had been FOLLOWING §5's format — the commit messages, the measurement in every round —
+without ever checking back that each defect-driven change actually got its row. A repository's own rules are among
+the few things that can be used to measure the person following them.
+
+── ROUND 126: no probe — the manuals' cross-references, and two wrong extractions before a right one ──── ROUND 126: no probe — the manuals' cross-references, and two wrong extractions before a right one ──
 No product code changed. The manuals cross-reference by name and section number ("SPEC §15.2",
 "`milestone-status.md` §14") rather than by link — six relative links exist in the whole documentation set, and all
 six resolve — which reads well and cannot break a build, and which means a stale number sends a reader nowhere
