@@ -10356,3 +10356,53 @@ DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 80 ✓ lines
 
 **这一轮的教训** ✓：我第 152 轮从**一个例子**推断出一条**规则** ✗——而那份例子里两个角色恰好重合 ✓。
 **规则要从实现里读** ✓（`clientExportOf` 与 `id:` 那两行注释 ✓），不是从样本里猜 ✓。
+
+## 165. 两条安装路径，**两条都要能组合**——而操作者那条此前只查了文件
+
+### 165.1 起因：继续读加载器的源码
+
+第 168 轮靠「读实现，不读例子」抓到一个真缺陷 ✓。这一轮接着读 ✓：
+`dsh-app-boot` 的 `loadProfileDirectory` ✓ 对 profile 的每个 bundle 名做三件事 ✓——
+`resolveBundleDir` ✓、读它的 `dsh.bundle.patch` ✓（**缺失就抛** ✓：「declares no dsh.bundle」✓）、
+再按**路径**加载那份 patch ✓✓（与文档的说明一致 ✓：patch 不经过 `exports` ✓）。
+
+而 `resolveBundleDir` 从**两个锚点**找包 ✓：**dsh 安装自己的 `package.json`** ✓、
+以及**profile 的 `package.json`** ✓——也就是说 ✓：bundle 必须是**这两者之一的依赖** ✓✓。
+
+### 165.2 于是发现一个**没人验证过**的差别
+
+本插件有**两条安装路径** ✓，它们产出的 profile 状态**不同** ✓：
+
+| 路径 | 做什么 |
+|---|---|
+| 生态的 `dsh plugin add` ✓ | 写 `dependencies` ✓ + 让 pnpm 把包放到 `profiles/<name>/node_modules` ✓ |
+| `install-plugin.mjs`（操作者层）✓ | **自己**把包链到 **`profiles/node_modules`** ✓ + 把 bundle 名写进 `dsh.profile.bundles` ✓ |
+
+而 `plugin:check` 对操作者那条路径验证的是**文件是否同步** ✗（链接 ✓、operator layer ✓、dependency 条目 ✓）——
+**「文件对了」不等于「加载器组合得出来」** ✓✓。
+
+**实测**：它**组合得出来** ✓✓——因为加载器解析包名走的是 **Node 自己的解析** ✓，
+从 `profiles/<name>/` 向上走到 `profiles/node_modules` ✓✓。真实 home 上量到**三行 + 它们的配置** ✓。
+
+### 165.3 修法：把这条路径也钉住
+
+`plugin-install-path.test.mjs` 新增 ✓：临时 home 里用 `install-plugin.mjs` 装 ✓ →
+`dsh --profile web --dump-config` ✓ → **三行都在** ✓ 且 **runtime 行带着 `timeoutMs: 180000`** ✓✓。
+**变异**：把安装器的链接位置改到加载器找不到的地方 ✓ → **红** ✓
+（`dsh --dump-config failed` ✓——正是「文件都在、但组合不出来」那种失败 ✓）。
+
+### 165.4 收口
+
+```
+$ node deepblend/tests/contract/plugin-install-path.test.mjs
+ℹ tests 5   ℹ pass 5   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓（只加了用例 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+`node:test` 用例 322 → **323** ✓（README 已按实测更新 ✓）。
+
+**两条安装路径现在都被端到端验证过** ✓：生态那条（第 155 轮 ✓）与操作者那条（这一轮 ✓），
+而且两边都断言了「**行带着它们的配置**」 ✓✓——也就是第 153 轮那个「它是插件、不是 meta-package」的结论 ✓，
+在**真实安装器**里各验一遍 ✓。

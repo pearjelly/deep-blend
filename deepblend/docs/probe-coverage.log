@@ -255,7 +255,32 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 119 (probe): the browser half belongs to the package the row mounts ──
+── ROUND 134: no probe — the operator-layer install must compose, not just write the right files ──
+No product code changed. Continuing round 133's method — read the implementation rather than an example — the
+bundle side of the Loader was read next: `loadProfileDirectory` resolves each `dsh.profile.bundles` entry through
+`resolveBundleDir`, reads that package's `dsh.bundle.patch` (throwing "declares no dsh.bundle" when absent), and
+loads the patch BY PATH rather than through `exports`, which is what the documentation said. `resolveBundleDir`
+searches two anchors — the dsh installation's own `package.json` and the profile's — so the bundle has to be a
+dependency of one of them.
+
+That exposed a difference nobody had verified. This plugin has two install paths and they produce different
+profile states: the ecosystem's `dsh plugin add` writes a `dependencies` entry and lets pnpm place the package,
+while `install-plugin.mjs` links the packages into `profiles/node_modules` itself. `plugin:check` verifies that the
+operator path's FILES are in sync — links, operator layer, dependency entry — and files being right is not the same
+claim as the Loader being able to compose the rows.
+
+It composes, because the Loader resolves a bundle name through Node's own resolution, which walks up from
+`profiles/<name>/` to `profiles/node_modules`. Measured against the real home: three rows, with their
+configuration. A case now pins that in a throwaway home — install with the tool, then `dsh --profile web
+--dump-config`, requiring all three rows and the runtime row's `timeoutMs` — and the mutation that moves the
+installer's link target where the Loader cannot see it goes red, failing exactly the way that gap would fail: the
+files all present and the composition impossible.
+
+Both install paths are now verified end to end, and both assert that the rows arrive WITH their configuration —
+round 153's "it composes configuration, so it is a plugin rather than a wrapper", measured through each real
+installer.
+
+── ROUND 119 (probe): the browser half belongs to the package the row mounts ──── ROUND 119 (probe): the browser half belongs to the package the row mounts ──
 Comparing this repository's manifest against the real published reference the research captured
 (`dshmarket@1.50.0`) turned up one difference worth following: the reference exports `./client`, the bundle does
 not. Reading the installed client module system settled it — `clientExportOf` resolves `exports["./client"]` on

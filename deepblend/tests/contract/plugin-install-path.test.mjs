@@ -189,3 +189,35 @@ test('the ecosystem remove command uninstalls what this installer installed', ()
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+// ---------------------------------------------------------------------------
+// The OPERATOR-layer path must compose too, not just write the right files
+// ---------------------------------------------------------------------------
+//
+// There are two ways this plugin gets installed, and they produce different profile states: the ecosystem's
+// `dsh plugin add` writes a `dependencies` entry and lets pnpm place the package, while `install-plugin.mjs` links
+// the packages into `profiles/node_modules` itself and writes the bundle name into `dsh.profile.bundles`. What
+// `plugin:check` verifies for the operator path is that the FILES are in sync — the links, the operator layer, the
+// dependency entry — and files being right is not the same claim as the Loader being able to compose the rows.
+//
+// It composes because the Loader resolves a bundle name through Node's own resolution, which walks up from
+// `profiles/<name>/` to `profiles/node_modules`. MEASURED against the real home: three rows, with their
+// configuration. This case pins that for a throwaway home, so a change to where the installer links would fail
+// here rather than at a user's first start.
+test('the operator-layer install composes its rows in a real profile too', () => {
+  const home = makeHome()
+  try {
+    const install = runInstaller([], home)
+    assert.equal(install.status, 0, `install-plugin failed:\n${install.stdout}${install.stderr}`)
+    const dump = run(['--profile', 'web', '--dump-config'], home)
+    assert.equal(dump.status, 0, `dsh --dump-config failed:\n${dump.stdout}${dump.stderr}`)
+    for (const row of ['deepblend-blender-runtime', 'deepblend-blender-host', 'deepblend-blender-ui']) {
+      assert.ok(dump.stdout.includes(`id: ${row}`),
+        `the operator-layer install composed no ${row} row, so the Loader could not resolve the bundle`)
+    }
+    const runtime = dump.stdout.slice(dump.stdout.indexOf('id: deepblend-blender-runtime'))
+    assert.match(runtime, /timeoutMs: 180000/, 'the row composed without its configuration')
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
