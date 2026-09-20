@@ -255,6 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 122: no probe — a sweep that came back negative, and a fresh clone ──
+No product code changed. The previous two rounds each caught one instance of a shape worth hunting: a comment
+claiming N sides above an assertion driving one. So this round swept for it deliberately — enumerating comments
+(three or more names in parentheses, or "all/every/both N") whose following assertion drives no loop. The coarse
+pass returned 135 leads, which is noise; tightened to explicit enumerations it returned three, and all three are
+sound: the preset-surface case evaluates the expression exactly as the loader does, the render-journal case drives
+its four conditions as four separate statements rather than a loop, and the setup-steps case asserts that both
+halves are present.
+
+The answer is that the class has been closed — both instances lived between a NEWLY written sentence and an OLDER
+assertion rather than being scattered — and that is worth recording as a result rather than a failed hunt.
+
+Two dark lines with no note of mine were read as well, and both already carry their reason: the project index's
+write failure ("the index is derived data"; and `store-error-paths.test.mjs` had already measured that a directory
+in its place fails the READ first while a read-only file does not fail the write at all, since the write is a
+rename), and the `closeSync` catch in the frame ledger ("a throw inside `finally` replaces the error being
+propagated", with no assertion able to stand on the branch).
+
+With no hole to fill, the round re-ran the objective's hardest evidence, for the first time in dozens of rounds:
+`npm run verify:clone` — the documented four-step install path from a clean clone against a clean `$DSH_HOME`,
+then the contract layer in that clone. Exit 0, 62/62 files.
+
 ── ROUND 121: no probe — a seven-sided sentence with a one-sided check ──
 No product code changed. `scene-spec.test.mjs` carried a comment claiming the schema shadows the validator's id
 check "on all seven collections", above an assertion that rigged exactly one (`entities[0]`). That is the gap this
