@@ -255,7 +255,33 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 135: no probe — the preset's metadata must PARSE, not merely match a pattern ──
+── ROUND 136: no probe — the three install routes, and the fact that they are not independent ──
+No product code changed. The research document's three install routes were measured against this repository, and
+they turn out to have different prerequisites, which sharpens what is actually blocking a submission.
+
+FROM SOURCE (what the entry's `url` implies) needs the repository to be PUBLIC: pnpm resolves a `github:` spec
+through an anonymous codeload tarball, which answers 404 for a private repository — measured live, and the reason no
+submission has been made. The `#path:` form is documented and supported, and nothing about this repository's layout
+is in the way.
+
+FROM npm (the recommended route, since prebuilt installs skip the build-approval step) needs PUBLISHED packages.
+The mapping is harvested from the registry and never declared in the entry — `probe-npm.mjs` finds the package and
+verifies that its own `repository` field points back at the repository, "or the two are not linked". The bundle
+pins four unpublished siblings, so this route needs the packaging decision first.
+
+FROM A TARBALL (for a repository that cannot be installed from source at all) needs a SELF-CONTAINED artifact,
+which is the same packaging decision — a tarball of the bundle alone would still need its four dependencies. Two
+rules if it is chosen: GitHub release hosting only, and the asset name must be VERSION-FREE, because
+`latest/download/` takes the filename literally and a versioned name works on the day of submission and 404s on the
+next release.
+
+So the decisions are not independent: making the repository public unblocks route 1, which needs nothing else, and
+the packaging decision unblocks routes 2 and 3. All three routes are now written into the entry file itself, where
+whoever submits reads them. The entry's keys are unchanged — the check that permits only `url`, `name`, `category`,
+`description` and `tarball` still passes 5/5, which is the point: writing context into the file did not move the
+rule that governs it.
+
+── ROUND 135: no probe — the preset's metadata must PARSE, not merely match a pattern ──── ROUND 135: no probe — the preset's metadata must PARSE, not merely match a pattern ──
 No product code changed. Continuing the read-the-implementation method, the preset loader was read next
 (`@deepseek-ai/dsh-agent-presets`): it names two exact files, `preset.yml` and `agent.cordis.yml`, and this
 repository matches both, with the `skills/` subdirectory the loader's own documentation describes ("each preset's

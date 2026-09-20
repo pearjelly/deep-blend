@@ -16,6 +16,34 @@
 # subdirectory exists here, the `#subname` matches it, the category is one of the ecosystem's ids, and the
 # numbers in the description are the numbers the repository actually has. The checklist says descriptions are
 # "read as a claim about your plugin, and checked against your code" — so the claim is checked here first.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# HOW THIS PLUGIN CAN BE INSTALLED, AND WHAT EACH ROUTE STILL NEEDS
+#
+# The list accepts three routes, and they are not interchangeable — each one has a different prerequisite, so the
+# submission is only as ready as the route chosen:
+#
+#   1. FROM SOURCE (what the entry's `url` implies, `github:owner/repo#path:…`)
+#      Needs the repository to be PUBLIC. pnpm resolves a `github:` spec through an anonymous codeload tarball,
+#      which answers 404 for a private repository — measured live, which is why no submission has been made. The
+#      `#path:` form itself is documented and supported; nothing about this repository's layout is in the way.
+#
+#   2. FROM npm (the recommended route — prebuilt installs skip the build-approval step)
+#      Needs PUBLISHED packages. The mapping is harvested from the registry, never declared here: `probe-npm.mjs`
+#      finds the package and verifies that ITS `repository` field points back at this repository, "or the two are
+#      not linked". The bundle pins four `@deepblend/dsh-blender-*` siblings that are not published, so this route
+#      needs the packaging decision first: publish all five, flatten them into one self-contained package, or
+#      vendor the siblings into the bundle.
+#
+#   3. FROM A TARBALL (for a repository that cannot be installed from source at all)
+#      Needs a SELF-CONTAINED artifact, which is the same packaging decision as route 2 — a tarball of the bundle
+#      alone would still need its four unpublished dependencies. Two rules if this route is chosen: the host must
+#      be GitHub release hosting, and the ASSET NAME MUST BE VERSION-FREE (`…/releases/latest/download/NAME.tgz`),
+#      because `latest/download/` takes the filename literally — a versioned name works on the day of submission
+#      and 404s on the next release.
+#
+# So the four decisions are not independent: making the repository public unblocks route 1, and the packaging
+# decision unblocks routes 2 and 3. Route 1 is the one that needs nothing else.
 url: https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle
 name: pearjelly/deep-blend#bundle
 # `#bundle` rather than a prettier `#deepblend`: the gate's own rule is `owner/repo#<last segment of the
