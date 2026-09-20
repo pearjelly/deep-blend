@@ -255,7 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 143: no probe — the prerequisites table's claims, two of which nothing checked ──
+── ROUND 144: no probe — the exit-code contract a stranger meets first, never exercised ──
+No product code changed. Round 143 pinned the prerequisites table's claims about files; this round measured its
+exit-code claim — "run-all.sh 找不到 Blender 会直接以 2 退出". Measured by moving `.tools` aside: exit 2, with a
+message naming Blender and the document section. The claim holds.
+
+But it had never been RUN. `verify-clean-clone.mjs` runs the acceptance suite only under `--with-blender`, and
+skips the whole step otherwise — so the path a stranger without Blender meets first was never verified. The else
+branch now runs `run-all.sh` in the clone and asserts the contract: exit 2, and the message names the missing
+Blender. It costs a tenth of a second, because the script checks for the binary before running any suite.
+
+The mutation taught something about the verifier: editing `exit 2` to `exit 3` in the working tree did NOT make the
+check red, because the script clones the COMMITTED state — a dirty-tree mutation never reaches the clone. Committing
+the mutation made it red ("run-all.sh without Blender exited 3, and the README says 2"), and the commit was dropped
+with a hard reset. That is a property worth keeping, and it is now written in the script: what this verifies is what
+a stranger would clone.
+
+One mistake of my own on the way: `step()` returns `{ok, output, status}` and my first version read
+`refused.stdout`, so the message check failed on a correct exit code. The field is `output`.
+
+── ROUND 143: no probe — the prerequisites table's claims, two of which nothing checked ──── ROUND 143: no probe — the prerequisites table's claims, two of which nothing checked ──
 No product code changed. This round started from a hypothesis of mine that turned out to be wrong: I thought the
 README stated the "N 条照跑" count in two places with different numbers. Measured: the sentence appears once, it
 says 80, and `documented-counts` derives it from the counts the cases above already compute — a check that caught

@@ -10814,3 +10814,45 @@ DeepBlend tests: 64/64 file(s) passed
 
 **这一轮的教训** ✓：**先量，再相信自己的记忆** ✓——我以为的「两个不同数字」不存在 ✓，
 而顺着那条错误的线索量下去，找到了**真正**没有检查的两条声明 ✓✓。
+
+## 175. 前置条件表里的**退出码**：一条从没被跑过的合同
+
+### 175.1 量它
+
+第 174 轮钉住了那张表的三条「关于文件」的声明 ✓。这一轮量它的**退出码**声明 ✓——
+表里写着 ✓：**「`run-all.sh` 找不到 Blender 会直接以 **2** 退出」** ✓✓。
+
+实测（把 `.tools` 暂时移开 ✓）：**exit 2** ✓、消息点名 Blender 与文档小节 ✓✓——**声明成立** ✓。
+
+**但它是被跑过的吗** ✓？`verify-clean-clone.mjs` 里 ✓：acceptance suite 只在 **`--with-blender`** 时才跑 ✓，
+否则**整段跳过** ✗✓——也就是说，**陌生人最先遇到的那条路径**（没有 Blender ✓）**从来没有被验证过** ✓✓。
+
+### 175.2 修法：在那个分支里断言合同
+
+`verify-clean-clone.mjs` 的 `else` 分支现在跑一次 `run-all.sh` ✓ 并断言：
+**exit 2** ✓、且消息里点名缺的 Blender ✓✓。**代价是 0.1 秒** ✓——脚本在跑任何套件之前就检查二进制 ✓✓。
+
+### 175.3 变异：**必须提交**才有效
+
+第一次变异（把 `exit 2` 改成 `exit 3` ✓）**活了下来** ✗——原因本身就是这个脚本的一个好性质 ✓：
+它 **clone 的是已提交的状态** ✓（`git clone` ✓），所以**脏工作树上的变异根本到不了 clone 里** ✓✓。
+
+于是改成**临时提交** ✓：提交变异 → 跑 → **红** ✓
+（`run-all.sh without Blender exited 3, and the README says 2` ✓）→ `git reset --hard HEAD~1` 丢掉 ✓✓。
+这条也写进了脚本的注释 ✓：「**这个脚本验证的是陌生人会 clone 到的东西**」✓。
+
+（过程中还有一处我自己的错 ✓：`step()` 返回的是 `{ok, output, status}` ✓，
+而我第一版去读 `refused.stdout` ✗——于是**消息检查**在一个正确的退出码上失败 ✓；改成 `refused.output` ✓✓。）
+
+### 175.4 收口
+
+```
+$ npm run verify:clone
+no-Blender path: run-all.sh exits 2 and names the missing Blender, as the README says
+✓ the documented install path works from a clean clone against a clean DSH_HOME
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+```
+
+**产品代码未改** ✓（改的是验证脚本 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、
+自计断言 **1489** ✓、`node:test` 用例 **328** ✓。
