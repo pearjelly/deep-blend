@@ -54,6 +54,7 @@ const RUN_ALL = join(ROOT, 'deepblend', 'tests', 'run-all.sh')
 
 const runAll = readFileSync(RUN_ALL, 'utf8')
 const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
 const toolContracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
 
 /** Every `run_suite "label" \` + the command line under it. */
@@ -104,6 +105,21 @@ test('the numbers this test compares are the ones the README states', () => {
   assert.ok(readme.includes('个套件'), 'the README no longer states a suite count')
   assert.ok(readme.includes('个文件'), 'the README no longer states a file count')
   assert.ok(declaredSuites.length > 0, 'run-all.sh declares no suites, so the parser is wrong')
+})
+
+test('the link count in install.md is what the linker resolves', () => {
+  // `install.md` tells a reader that `node_modules/` holds "12 个指向已安装的 DSH 部署与本仓库 packages/ 的绝对
+  // 符号链接", and that number is the linker's own output — a count that rots the moment a thirteenth package is
+  // imported. `link-workspace.mjs` is a script with no exported plan, so the tie runs its `--check` mode, which
+  // prints the number and exits non-zero when the workspace is out of sync.
+  const stated = install.match(/(\d+) 个指向\*\*已安装的 DSH 部署/)
+  assert.ok(stated !== null, 'install.md no longer states "N 个指向已安装的 DSH 部署" — re-anchor this check')
+  const check = spawnSync('npm', ['run', '--silent', 'setup:check'], { cwd: ROOT, encoding: 'utf8' })
+  assert.equal(check.status, 0, `setup:check failed, so the link count cannot be compared:\n${check.stdout}${check.stderr}`)
+  const resolved = /resolves all (\d+) package\(s\)/.exec(check.stdout)
+  assert.ok(resolved !== null, `setup:check no longer prints "resolves all N package(s)":\n${check.stdout}`)
+  assert.equal(Number(stated[1]), Number(resolved[1]),
+    `install.md says ${stated[1]} symlinks; the linker resolves ${resolved[1]}`)
 })
 
 test('the layout counts in the README are what the tree holds', () => {

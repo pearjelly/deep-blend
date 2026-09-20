@@ -255,6 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 117: no probe — the last derivable number in the manuals ──
+No product code changed. `install.md` tells a reader that `node_modules/` holds twelve absolute symlinks into the
+installed deployment and this repository's packages, and the number is the linker's own output (`setup:check`
+prints `resolves all 12 package(s) from the deployment`) — but nothing tied the two: import one more package and
+the manual keeps saying twelve.
+
+`link-workspace.mjs` is a script with no exported plan, so the tie runs its `--check` mode: the sentence must be
+findable (a reworded sentence fails and says to re-anchor), the command must succeed, and the documented number
+must equal the printed one. Two mutations go red — the count drifting, and the emphasis markers moving one
+space, which is the deliberate cost of "fail loudly rather than pass over nothing".
+
+This closes the sweep that began with the security matrix's tally: every derivable number in the manuals (the
+suite/file/assertion counts, the tool and module counts, the vocabulary size, an operation's ordinal, the
+security tally, and now the link count) is derived from its own source, each with a guard that fails when the
+sentence it reads is reworded.
+
 ── ROUND 116: no probe — an ordinal no reader could check ──
 No product code changed. `tool-contracts.md` titled two sections with an ordinal — "关于 `world.set`（第 21 个
 操作）" and "关于 `entity.tags.set`（第 20 个操作）". The first coincides with `world.set`'s position in the
