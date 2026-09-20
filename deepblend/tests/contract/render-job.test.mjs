@@ -158,6 +158,32 @@ check('a torn frame keeps the dimensions it did have, so the report is useful',
 }
 
 // ---------------------------------------------------------------------------
+// 1e. The procedural-texture vocabulary, across the language boundary
+// ---------------------------------------------------------------------------
+//
+// `material.texture` is declared in the SceneSpec schema (`type: noise|wave|voronoi`) and built by the compiler
+// (`deepblend_scene.py`'s `TEXTURE_PATTERN_NODES`). The compiler refuses a type it has no node for — the right
+// behaviour — but nothing held the two lists against each other, so a type added to the schema alone would be a
+// capability the schema promises and the compiler rejects, discovered only when somebody tried it. This is the
+// same tie as the fingerprint and the envelope: the names are one fact with two copies.
+//
+// Read from the file rather than imported: `deepblend_scene.py` imports `bpy` at the top and cannot be loaded
+// outside Blender, while the table is a literal a regex can read exactly.
+{
+  const schema = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'schemas', 'scene-spec.schema.json'), 'utf8'))
+  const declared = schema.$defs.proceduralTexture?.properties?.type?.enum ?? []
+  const compiler = readFileSync(
+    join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_scene.py'), 'utf8',
+  )
+  const table = /TEXTURE_PATTERN_NODES = \{([\s\S]*?)\n\}/.exec(compiler)?.[1] ?? ''
+  const built = [...table.matchAll(/^\s{4}"([a-z]+)":/gm)].map(match => match[1])
+  check('the texture types the schema declares are the ones the compiler can build, and no others',
+    declared.length >= 3 && built.length >= 3 &&
+    JSON.stringify([...declared].sort()) === JSON.stringify([...built].sort()),
+    { schema: declared, compiler: built })
+}
+
+// ---------------------------------------------------------------------------
 // 2. The ledger: which frames are still owed
 // ---------------------------------------------------------------------------
 

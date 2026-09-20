@@ -433,7 +433,7 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 10 | SPEC §15.2「日志脱敏」 | **一半 + 一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），且**本插件自己产出的 URL 一律先脱敏**（`contracts/lib/redact.js`：凭据/查询串/片段被移除并说明移除了什么；`contract/url-redaction.test.mjs` 7 项 + `host-asset-ingest.test.mjs` 用一条**预签名** URL 断言签名不出现在消息与记录里）。**仍然没有**日志过滤器 | 第一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。第二半是本轮补的：五处资产抓取消息此前把 URL 原样写进**模型读到的话**和**操作者读到的记录**，而模型拿到的模型文件链接**通常就是预签名的**——「URL 不是秘密」是一句本产品不能做的断言。脱敏**只删不掩**：掩码需要一个「可信参数名」清单，而那份清单正是会烂掉的东西（没人想到的签名参数就是泄漏），删掉查询串最坏只是消息少一点信息。真正需要脱敏的**用户自己**贴进对话的秘密属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
 | 12 | SPEC §17 的配置形状（`finalRender.*` / `security.*` / `jobs.*` / `agent.*` 分组） | **平铺的键**：每个键属于**执行它的那个包**（`requireApprovalAboveFrames`、`assetMaxBytes`、`timeoutMs`…），而不是属于一个分组 | 分组会藏起「谁在执行这个键」这个事实：`security.*` 里一半的键**根本没有实现者**，因为那些「开关」对应的是**从不发生的事**（不装 add-on、不跑任意 Python、不放开工作区）。键与执行者一对一之后，schema 才能被拿去和读它的代码逐条对照（`contract/config-surface.test.mjs` 两个方向都查）。**而且分组写法曾经是静默失效的**：schema 接受它、当成不认识的属性留下、一声不吭——照 SPEC 抄配置的操作者会得到一个「审批阈值还是默认值」的部署。现在三个 row 在构造时拒绝不认识的键并列出真正读的键（`install.md` §3.1 是完整的对照表） |
-| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **只做了一半**：schema 接受它 ✓、`material.texture.set` 会把它写进 SceneSpec ✓、场景摘要因此变化（会触发重渲判定 ✓），但**编译器完全不读它** ✗——`deepblend_scene.py` 里这个名字出现 **0 次**（实测），所以**今天设了纹理，渲染出来的像素一模一样** | 这是「声明了却没人实现」的典型：模型会以为自己在改画面。选择**写下来**而不是**替别人实现**——这个操作是并行贡献者在同一提交里加进来的，节点图的形状（texture coordinate → mapping → pattern → bump/roughness/base colour）是他们的设计，未经协调去补另一半会撞车。所以：偏差在这里编号 ✓、`scene-patch.test.mjs` 里那条断言旁边也写明「这一半是偏差」✓，而**已实现的那一半有断言盯着**（写入 ✓、digest 变化 ✓、`null` 删除键而不是存 null ✓）。等编译器读它时，删掉这一行 |
+| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **编译器那一半已经在工作区里了（未提交，并行贡献者所写）**：`deepblend_scene.py` 的 `TEXTURE_PATTERN_NODES`（noise/wave/voronoi → 各自的 Blender pattern 节点）+ `_build_texture_graph` ✓，并且对**它建不出来的类型**会**明确拒绝**（`which this compiler cannot build` ✓）——本会话写下这一行时（第 113 轮）编译器里这个名字出现 **0 次** ✓，所以当时的记录是准的 ✓。现在**两边的词汇表已经被一条跨语言断言钉住** ✓（`render-job.test.mjs`：schema 的 `type` 枚举 == 编译器那张表的键 ✓，读数 `{schema: [noise,wave,voronoi], compiler: [noise,wave,voronoi]}` ✓）。**仍然开着的是**：那段代码**没有任何测试驱动过** ✓（没有 fixture 带纹理 ✓），而且它**还没进版本库** ✓——等它提交并有一条真实用例之后，这一行划掉 ✓ |
 | 13 | SPEC §17 `finalRender.requireApprovalAboveResolution` | **未实现**：审批阈值只有**帧数**一个维度 | 分辨率是**成本的一个因子**而不是成本的度量：同一个 1920×1080 的项目，渲 3 帧和渲 3000 帧差三个数量级，而 4K 的 3 帧仍然便宜。加第二个阈值会造出一个「两把尺子」的问题（哪个先触发？超了其中一个算不算批过？），而帧数已经能把「小时级」和「秒级」分开。真要按分辨率管，答案是把成本估算做成一个数（SPEC §16 的方向），而不是再加一个开关 |
 
 ---
@@ -9159,3 +9159,42 @@ total self-counted assertions: 1484
 
 产品代码改了（交易层新增核对 ✓），所以这一轮跑新探针 ✓（`r111` 列 ✓）。
 契约层 62 文件 / 1481 → **1484** 项（`host-asset-ingest.test.mjs` 32 → 35 ✓）。
+
+## 140. 一条**参考完整性**的扫描（干净），和一条**快要过期**的偏差
+
+### 140.1 先扫引用完整性：四个 `*Id` 字段，四个都被查
+
+场景里带引用的字段只有四个 ✓（`entity.assetId` ✓、`entity.materialId` ✓、`camera.targetEntityId` ✓、
+`shot.cameraId` ✓、`animationTrack.targetEntityId` ✓——共五处调用 ✓，四个字段 ✓）。
+逐条对照 `validateSceneSpec` 的 `requiresId(...)` 调用 ✓：**每一个都在** ✓✓——
+「指向不存在的东西」这一类**没有洞** ✓。这是一次**负结果**的扫描 ✓，值得记下来 ✓。
+
+### 140.2 然后发现：§7 #14 那条偏差**快要过期**了
+
+第 113 轮我写下 #14 时 ✓，编译器里 `material.texture` 出现 **0 次** ✓——记录是准的 ✓。
+而这一轮量工作区时 ✓，并行贡献者**已经把编译器那一半写好了** ✓（未提交 ✓，38 行新增 ✓）：
+`TEXTURE_PATTERN_NODES`（noise/wave/voronoi → 各自的 Blender pattern 节点 ✓）
++ `_build_texture_graph` ✓，并且对**它建不出来的类型明确拒绝** ✓。
+
+于是做两件在**我这条道**上的事 ✓（不碰他们的文件 ✓）：
+
+1. **把两边的词汇表钉住** ✓（正是第 124/127 轮那条尺子 ✓）：新增跨语言断言 ✓，
+   schema 的 `type` 枚举必须**等于**编译器那张表的键 ✓——读数
+   `{schema: [noise,wave,voronoi], compiler: [noise,wave,voronoi]}` ✓；
+   两条变异全红 ✓（schema 加一个编译器建不出的类型 ✓、编译器丢掉一个能建的模式 ✓）。
+   第一次变异我又打在了**包内镜像**上 ✗（这条检查读的是权威副本 ✓）——第 136 轮同一个错 ✓，改正后红 ✓；
+2. **把 #14 那一行改写成现在的真相** ✓：编译器那一半在工作区 ✓、两边词汇表已被钉住 ✓、
+   **仍然开着的是**那段代码**没有任何测试驱动过** ✓（没有 fixture 带纹理 ✓）且**还没进版本库** ✓
+   ——等它提交并有一条真实用例之后再划掉 ✓。
+
+### 140.3 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1485
+```
+
+**产品代码未改** ✓（改的是测试与那条偏差记录 ✓），读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
+契约层 62 文件 / 1484 → **1485** 项 ✓。
