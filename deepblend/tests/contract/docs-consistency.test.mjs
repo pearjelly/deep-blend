@@ -251,6 +251,19 @@ test('every blender tool a manual names is a tool that exists', () => {
   )
 })
 
+test('the COUNT the manual states is the count the vocabulary has', () => {
+  // The table below is tied to `SCENE_OPERATION_NAMES`, and so is the order — but the sentence ABOVE the table
+  // states a number in prose ("下面 N 个操作名就是全部词汇"), and nothing checked it. MEASURED: it still said 23
+  // after `material.texture.set` made the vocabulary 24, so the human-facing manual described a smaller language
+  // than the tool schema accepts. The sentence is now derived from the constant, and the match is required to
+  // exist: a reworded sentence must fail this check rather than make it pass over nothing.
+  const usageText = readFileSync(join(ROOT, 'deepblend', 'docs', 'usage.md'), 'utf8')
+  const stated = /下面\s*(\d+)\s*个操作名就是全部词汇/.exec(usageText)
+  assert.ok(stated !== null, 'usage.md no longer states the size of the vocabulary in that sentence — re-anchor this check')
+  assert.equal(Number(stated[1]), SCENE_OPERATION_NAMES.length,
+    `usage.md says ${stated[1]} operations; the vocabulary has ${SCENE_OPERATION_NAMES.length}`)
+})
+
 test('usage.md spells out the whole ScenePatch vocabulary, and invents none of it', () => {
   // The roster above settles which TOOLS exist. This is the same question one level down: a patch is
   // the only way to change a scene, and the 23 operation names are its whole vocabulary — so a manual

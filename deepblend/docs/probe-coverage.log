@@ -255,6 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 114: no probe — the manual stated a vocabulary size in prose ──
+No product code changed. Following the previous round's find (a tally sentence that had drifted from its own
+table), this one swept the manuals for numbers written in PROSE that can be derived from something checkable —
+and found a live one: `usage.md` says "下面 23 个操作名就是全部词汇" above its operation table, while the
+vocabulary has been 24 since `material.texture.set` arrived. The table was tied to the constant, the tool
+description was tied to the constant, and nothing watched the sentence — so the human-facing manual described a
+smaller language than the tool schema accepts.
+
+The other `23 个` occurrences are all records rather than declarations (a decision log's "21 → 23 个操作", the
+narrative of the round that taught the manual its table, a brief's file count), which is the distinction the
+sweep has to make: only a declaration can rot.
+
+The sentence is now derived from `SCENE_OPERATION_NAMES.length`, and the match is REQUIRED to exist — a reworded
+sentence fails the check instead of making it pass over nothing. Two mutations go red: restoring the 23, and
+rewording the sentence.
+
 ── ROUND 113: no probe — a tally sentence that disagreed with its own table ──
 No product code changed. `security.md`'s §15.2 matrix ends with a summary line, and that line had drifted: it
 said "14 条 ✅、2 条 ➖、1 条 ⚠️、1 条 ❌" while the table's own status column held 1 ➖ and 2 ⚠️. The table was the
