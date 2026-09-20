@@ -150,7 +150,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 11/65 file(s) passed
+DeepBlend tests: 10/65 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -203,7 +203,7 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 照样成功（容器里跑过整条 job）。
 
 预期：**16 个套件、80 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**65 个文件 = 1489 项自计断言（32 个文件打印计数）+ 333 个 `node:test` 用例（33 个文件）**。
+**65 个文件 = 1489 项自计断言（32 个文件打印计数）+ 334 个 `node:test` 用例（33 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

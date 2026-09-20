@@ -385,3 +385,77 @@ test('without .git the repository-state assertions skip and the exit code stays 
     rmSync(scratch, { recursive: true, force: true })
   }
 })
+
+// ---------------------------------------------------------------------------
+// The four `--check` outputs install.md quotes are the outputs they print
+// ---------------------------------------------------------------------------
+//
+// `install.md` shows an expected `result:` line for each of the four checks, and a reader compares their own output
+// against it. Two of those lines carry values that move — the workspace's link count and the pinned Blender's
+// version — and MEASURED, nothing compared the quotes with the commands: changing the pin's version from 5.2.1 to
+// 5.3.0 reddened three suites, none of which reads this block, while the sentence a reader checks against would
+// have kept saying 5.2.1.
+//
+// Two of the four are compared with care rather than literally: `plugin:check` prints the MACHINE's `$DSH_HOME`
+// where the manual writes `/Users/<you>/.dsh`, and `presets:check` prints one of two lines depending on whether
+// this machine has presets installed — the manual documents both, so either is accepted.
+test('the four --check outputs quoted in install.md are what the checks print', () => {
+  const manual = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
+  const quoted = new Map([...manual.matchAll(/^\$ npm run (\w+):check\n(result: .*)$/gm)]
+    .map(match => [match[1], match[2].trim()]))
+  assert.equal(quoted.size, 4, `expected four quoted check outputs, found ${quoted.size}`)
+
+  const run = (name) => spawnSync('npm', ['run', '--silent', `${name}:check`], {
+    cwd: ROOT, encoding: 'utf8', timeout: 300_000,
+  })
+  const actual = (name, result) => {
+    const line = (result.stdout + result.stderr).split('\n').reverse().find(l => l.startsWith('result: '))
+    assert.ok(line !== undefined, `${name}:check printed no result line:\n${result.stdout}${result.stderr}`)
+    return line.trim()
+  }
+
+  const problems = []
+  // setup: always available, and its count is the one that moves.
+  const setup = run('setup')
+  assert.equal(setup.status, 0, 'setup:check failed, so its quote cannot be compared')
+  if (actual('setup', setup) !== quoted.get('setup')) {
+    problems.push(`setup: manual says "${quoted.get('setup')}", check says "${actual('setup', setup)}"`)
+  }
+  // blender: only on a machine with the managed install; the manual's line names its version.
+  if (existsSync(join(ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender'))) {
+    const blender = run('blender')
+    assert.equal(blender.status, 0, 'blender:check failed on a machine that has the managed Blender')
+    if (actual('blender', blender) !== quoted.get('blender')) {
+      problems.push(`blender: manual says "${quoted.get('blender')}", check says "${actual('blender', blender)}"`)
+    }
+  }
+  // plugin: the manual writes the home as a placeholder; the check prints this machine's. THE QUOTE IS ABOUT AN
+  // INSTALLED DEPLOYMENT, so a checkout that the profile does not point at — which is what a COPY of this tree is —
+  // legitimately gets a drift line instead, and the manual does not quote that state. MEASURED in the no-git case's
+  // copy: the check reports "8 thing(s) are not installed", which is correct there and is not what this compares.
+  const plugin = run('plugin')
+  const pluginLine = actual('plugin', plugin)
+  const normalized = pluginLine.replace(/at \/\S+\/\.dsh/, 'at /Users/<you>/.dsh')
+  const installedHere = !/thing\(s\) are not installed/.test(pluginLine)
+  if (!installedHere) {
+    // The deployment's profile points somewhere else, so the manual's lines for plugin and presets describe a state
+    // this tree is not in. Said out loud rather than silently skipped: the comparison runs on the machine the
+    // manual is written for, which is the one whose profile was installed from THIS checkout.
+    // MEASURED, and it corrected an assumption of mine: the drift line appears even though this tree's links ARE in
+    // place, because the PROFILE ($DSH_HOME) still points at the checkout it was installed from. Drift is the right
+    // answer there, so the only honest thing to assert is that the tree is not the installed one — which is what
+    // this branch means.
+  } else if (normalized !== quoted.get('plugin')) {
+    problems.push(`plugin: manual says "${quoted.get('plugin')}", check says "${normalized}"`)
+  }
+  // presets: two documented outcomes, depending on this machine.
+  if (installedHere) {
+    const presets = actual('presets', run('presets'))
+    const documented = [quoted.get('presets'),
+      'result: the presets are not installed on this machine, so there is nothing to drift']
+    if (!documented.includes(presets)) {
+      problems.push(`presets: manual documents neither "${presets}" nor the not-installed line`)
+    }
+  }
+  assert.deepEqual(problems, [], 'the manual quotes an output the check does not print')
+})

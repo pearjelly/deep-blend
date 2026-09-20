@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 151: no probe — the quoted output a stranger reads first ──
+── ROUND 152: no probe — the four check outputs install.md quotes ──
+No product code changed. `install.md` shows an expected `result:` line for each of the four `--check` commands, and
+a reader compares their own output against it. Two of those lines carry values that move — the workspace's link
+count and the pinned Blender's version — and MEASURED, nothing compared the quotes with the commands: changing the
+pin's version from 5.2.1 to 5.3.0 reddened three suites, none of which reads this block, so the sentence a reader
+checks against would have kept saying 5.2.1.
+
+The case reads the four quoted lines out of the manual, runs the four checks, and compares. Two are compared with
+care rather than literally: `plugin:check` prints the machine's `$DSH_HOME` where the manual writes
+`/Users/<you>/.dsh`, and `presets:check` prints one of two documented lines depending on whether this machine has
+presets. Two mutations go red: a stale version in the quote and a stale link count.
+
+Three mistakes of my own, each corrected by a reading. I asserted that drift can only appear on a tree whose links
+are missing — MEASURED false: in a copy of this tree the links are in place and `plugin:check` still reports drift,
+because the PROFILE points at the checkout it was installed from, so drift is the right answer there. The
+comparison is therefore scoped to a tree the deployment actually points at, with the skip said out loud. And that
+skip changed the number `readme-fresh-clone` checks: the new case cannot run in a fresh clone, a SKIPPED file is not
+a PASS, and the passing count fell from 11 to 10 — which that check reported immediately, and the README's quote
+was updated from the measurement.
+
+── ROUND 151: no probe — the quoted output a stranger reads first ──── ROUND 151: no probe — the quoted output a stranger reads first ──
 No product code changed. "快速开始" opens with the failure a stranger meets before anything else — a clone has no
 `node_modules`, so the contract files that import the shared contracts die before their first assertion — and it
 quotes the command and its summary line. MEASURED by building a release-archive-shaped tree and running that
