@@ -35,6 +35,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -95,4 +96,57 @@ test('and the real profile was never touched', () => {
   const profile = JSON.parse(readFileSync(real, 'utf8'))
   assert.ok((profile.dsh?.profile?.bundles ?? []).includes('@deepblend/dsh-blender-bundle'),
     'the real profile no longer composes the bundle — this test only writes to temp homes, so something else changed it')
+})
+
+// ---------------------------------------------------------------------------
+// What importing this plugin DOES — the reviewer's "surprising install-time behaviour"
+// ---------------------------------------------------------------------------
+//
+// The listing's reviewer checklist asks about "anything alarming in the source — obfuscated code, credential
+// exfiltration, surprising install-time behaviour", and the last of those is a property a machine can check: a
+// plugin that writes files, starts processes or opens sockets the moment it is imported is doing something the
+// person installing it did not ask for. This plugin's packages must be inert on import — they publish services,
+// register tools and export functions, and every one of those happens when the profile composes them, not when
+// Node loads the module.
+//
+// MEASURED by running each import in a child process whose cwd and HOME are throwaway directories, then checking
+// that nothing was written and no handle was opened. A weaker version — importing in this process and looking at
+// `getActiveResourcesInfo` — reported zero for every package and would also have reported zero for a module that
+// wrote a file, which is why the directories are compared instead.
+test('importing every package of this plugin writes nothing and starts nothing', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-import-'))
+  const packages = ['contracts', 'provider-local', 'host', 'tool', 'ui', 'bundle']
+  const offenders = []
+  try {
+    for (const name of packages) {
+      const cwd = join(scratch, name)
+      mkdirSync(cwd, { recursive: true })
+      // Imported by ABSOLUTE PATH: the child's cwd is the throwaway directory being watched, so a bare package
+      // specifier would resolve against that directory's (empty) `node_modules` and fail — which is how the first
+      // version of this reported six failed imports instead of six inert ones.
+      const entry = pathToFileURL(join(ROOT, 'packages', 'deepblend', name, 'lib', 'index.js')).href
+      const probe = spawnSync('node', ['--input-type=module', '-e', `
+        import { readdirSync } from 'node:fs'
+        const before = readdirSync('.')
+        await import(${JSON.stringify(entry)})
+        const after = readdirSync('.')
+        const handles = process.getActiveResourcesInfo().filter(kind => kind !== 'TTYWrap')
+        console.log(JSON.stringify({ before, after, handles }))
+      `], { cwd, encoding: 'utf8', env: { ...process.env, HOME: cwd, DSH_HOME: cwd }, timeout: 60_000 })
+      if (probe.status !== 0) {
+        offenders.push(`${name}: the import failed — ${(probe.stderr ?? '').split('\n')[0]}`)
+        continue
+      }
+      const result = JSON.parse(probe.stdout.trim().split('\n').pop())
+      if (JSON.stringify(result.before) !== JSON.stringify(result.after)) {
+        offenders.push(`${name}: wrote ${result.after.filter(entry => !result.before.includes(entry)).join(', ')} into its cwd`)
+      }
+      if (result.handles.length > 0) {
+        offenders.push(`${name}: left ${result.handles.join(', ')} open (a process, a socket or a watcher)`)
+      }
+    }
+    assert.deepEqual(offenders, [], 'importing these packages must do nothing observable')
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
 })

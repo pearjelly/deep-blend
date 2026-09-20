@@ -255,7 +255,27 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 123: no probe — the command a user actually types ──
+── ROUND 124: no probe — the reviewer's last machine-checkable question ──
+No product code changed. The reviewer checklist has eight items; seven are human judgement or already covered by
+this repository's checks. The one machine-checkable item nobody had checked is §A7.5's last clause — "surprising
+install-time behaviour" — which is a property: a plugin that writes files, starts processes or opens sockets the
+moment it is imported is doing something the person installing it did not ask for. These six packages are supposed
+to be inert on import; they publish services, register tools and export functions, and all of that happens when the
+profile composes them.
+
+The case runs each import in a child process whose cwd and HOME are throwaway directories, compares the cwd's
+contents before and after, and checks that no handle was left open. The stronger version is the right one: the
+first attempt imported in-process and looked at `getActiveResourcesInfo`, which reported zero for all six packages
+— and would also have reported zero for a module that wrote a file, which makes it a check that cannot fail. The
+mutation that makes the host package write a file at import time goes red against the directory comparison.
+
+One slip on the way: the child's cwd is the throwaway directory, so bare package specifiers could not resolve and
+all six imports reported failure. Importing by absolute path fixes it — the module's own imports still walk up to
+the repository's `node_modules`.
+
+That closes the reviewer checklist: nothing in it is left unchecked that a machine can check.
+
+── ROUND 123: no probe — the command a user actually types ──── ROUND 123: no probe — the command a user actually types ──
 No product code changed. Every previous check looked at the plugin's pieces — the manifest's fields, the patch's
 rows, the configuration each row carries — and none of them ran `dsh plugin add`, which is the command the plugin
 list tells a user to run and the one place where a missing `dsh.client`, a `files` list omitting the patch, or a
