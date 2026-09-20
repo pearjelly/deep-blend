@@ -255,7 +255,23 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 163: no probe — the last quoted artifact, and the sweep is complete ──
+── ROUND 164: no probe — the routes the docs name, and one more parameter claim ──
+No product code changed. The fifth candidate for the "a name a document shows must be a name the product has"
+family is ROUTES. Every `/deepblend/xxx` mention in the documentation was compared with `UI_ROUTES`: the three real
+routes the docs name are real, `/deepblend/artifacts` is a prefix of a real route, and the rest — bundle, contracts,
+host, provider-local, tool, ui, skills — are FILE PATHS. Nothing foreign.
+
+That one is deliberately NOT turned into a check, and the reason is the wall rounds 164 and 191 both hit: a route and
+a path are textually indistinguishable. `/deepblend/host` is a package directory and `/deepblend/state` is a route,
+and they have the same shape. Telling them apart needs context, and a lexical rule over prose is how two checks that
+fail on CORRECT documents got written.
+
+The parameter sample also grew by one: `tool-contracts.md` says `blender_capabilities`'s `refresh` skips the short
+cache, and the provider's code is `if (options.refresh !== true && cached && now - cached.…)`, so it does — with
+`capabilitiesCacheMs` (60 s by default) as the window. Three sampled behaviour claims from that table now, all
+accurate; the full 22 rows are a judgement task rather than something to pin.
+
+── ROUND 163: no probe — the last quoted artifact, and the sweep is complete ──── ROUND 163: no probe — the last quoted artifact, and the sweep is complete ──
 No product code changed. Since round 186 every artifact the documentation quotes has been executed or compared
 against its producer, and this round closed the list with the fifth: the `[JOURNAL_INCOMPLETE]` line `recovery.md`
 §1 shows. The quote is an EXCERPT ending in `…`, and the code's message begins with exactly those words — the check

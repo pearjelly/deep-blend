@@ -11712,3 +11712,46 @@ DeepBlend tests: 65/65 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
 `node:test` 用例 340 → **341** ✓（README 的更新仍然只落在一处 ✓）。
+
+## 195. 两条干净的：**文档里的路由名**，与 `refresh` 那句行为声明
+
+### 195.1 路由名
+
+「文档里出现的名字，产品里必须有」的第五个候选 ✓：**路由** ✓。
+把文档里所有 `/deepblend/xxx` 的提及都拿出来 ✓，对着 `UI_ROUTES` 比 ✓：
+
+| 提及 | 判定 |
+|---|---|
+| `/deepblend/capabilities` ✓、`/deepblend/state` ✓、`/deepblend/projects` ✓ | **真路由** ✓✓ |
+| `/deepblend/artifacts` ✓ | 真路由 `/deepblend/artifacts/:projectId/*` 的**前缀** ✓ |
+| `/deepblend/bundle` ✓、`/deepblend/contracts` ✓、`/deepblend/host` ✓、`/deepblend/provider-local` ✓、`/deepblend/tool` ✓、`/deepblend/ui` ✓、`/deepblend/skills` ✓ | **文件路径** ✓（`packages/deepblend/*` 等 ✓） |
+
+**没有一个是外来的** ✓✓——文档提到的路由都是真路由 ✓。
+
+**而这一条故意不加检查** ✓：**路由与路径在文本上无法区分** ✗——
+`/deepblend/host` 是包目录 ✓、`/deepblend/state` 是路由 ✓，两者形状一样 ✓✓。
+要靠上下文判 ✓，而**对着散文做词法规则**正是第 164 与 191 轮两次踩过的坑 ✓（写出会在**正确**文档上失败的检查 ✓）。
+
+### 195.2 `refresh` 那句行为声明
+
+`tool-contracts.md` 说 `blender_capabilities` 的 `refresh`「**跳过短时缓存，重新探测**」✓。
+实测代码 ✓：`provider-local` 里写着
+
+```js
+if (options.refresh !== true && cached && now - cached.…) { … }
+```
+
+✓——`refresh: true` 确实**绕过缓存** ✓✓，而缓存窗口是 `capabilitiesCacheMs`（默认 60 秒 ✓）。
+
+**声明成立** ✓✓。（连同第 192 轮的 `saveCheckpoint` ✓ 与第 196 轮的返回形状 ✓，
+参数表里抽样过的三条行为声明**都成立** ✓——而**全表 22 行是判断任务** ✗，不是可以钉住的东西 ✓✓。）
+
+### 195.3 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
+`node:test` 用例 **341** ✓、契约层 **65 个文件** ✓。
