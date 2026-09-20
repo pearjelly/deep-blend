@@ -602,3 +602,35 @@ test('no deviation row claims a tool is unregistered while the roster has it', (
   assert.deepEqual(offenders, [],
     `these open rows claim a tool is unregistered while the roster has it (${inspected} row(s) inspected)`)
 })
+
+// ---------------------------------------------------------------------------
+// A claim that the bundle carries absolute paths must not outlive the paths
+// ---------------------------------------------------------------------------
+//
+// The bundle patch carried five literal absolute paths until M5, and two rows recorded it as a live problem: §8's
+// known-issues table and the "what still blocks a stranger installing this" table. Both were accurate, both were
+// resolved, and neither was struck through — so the register kept telling a reader that the bundle needs editing
+// on another machine, while `grep -c /Users/` on the patch answers zero and `bundle-portability.test.mjs` asserts
+// it stays zero (comments included).
+//
+// The rule is narrow because it CAN be: "the patch contains a literal absolute path" is a claim about a file, and
+// a file can be read. Every other row in those tables is a judgement, and a text search over judgements is how
+// round 164 produced two checks that would have reported false positives.
+test('no open row claims the bundle carries absolute paths while it carries none', () => {
+  const status = readFileSync(join(ROOT, 'deepblend', 'docs', 'milestone-status.md'), 'utf8')
+  const patch = readFileSync(join(ROOT, 'packages', 'deepblend', 'bundle', 'cordis.patch.yml'), 'utf8')
+  const absolutePaths = patch.match(/\/(?:Users|home)\/[^\s'"]*/g) ?? []
+  assert.deepEqual(absolutePaths, [], 'the bundle patch carries an absolute path, which its own test forbids')
+
+  const offenders = []
+  let inspected = 0
+  for (const line of status.split('\n')) {
+    if (!/^\| \d+ \|/.test(line)) continue
+    if (!/字面量绝对路径/.test(line)) continue
+    inspected += 1
+    if (!line.includes('~~')) offenders.push(line.slice(0, 80))
+  }
+  assert.equal(inspected, 2,
+    `expected the two rows that recorded this problem to still exist and be struck through, found ${inspected}`)
+  assert.deepEqual(offenders, [], 'these rows still claim the bundle carries literal absolute paths')
+})

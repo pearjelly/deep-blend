@@ -255,7 +255,26 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 131: no probe — a register row that was accurate when written and never struck through ──
+── ROUND 132: no probe — the same stale claim in two more tables ──
+No product code changed. Round 131's ruler — "accurate when written, never revisited" — was applied to the rest of
+the milestone log: every row claiming something is ABSENT was collected (twelve) and classified by the heading of
+the table it sits in. Four rows in §7's deviation register hold up (deliberate trade-offs, read one by one); five
+in the "defects found and fixed" tables are records of what a defect looked like at the time; one in M4's
+deviations holds up (measured: `UI_ROUTES` really has no approval-respond route); and TWO do not.
+
+Both of those claim `cordis.patch.yml` carries literal absolute paths (`/Users/hxb/…`). Measured today:
+`grep -c /Users/` on that file answers zero, and `bundle-portability.test.mjs` asserts it stays zero — including in
+comments, on the reasoning that "a commented-out absolute path is how the next one gets pasted in". Both rows are
+struck through now, each saying that it was accurate, when it was resolved, and which assertion keeps it that way.
+
+The check reads the patch itself (it may contain no absolute path) and then requires the milestone log to have
+exactly those two rows and to have them struck through — the second half being a guard: if the rows disappear
+entirely, the check has stopped looking at anything. Narrow on purpose: every other row in those tables is a
+judgement, and running a text search over judgements is exactly how round 164 produced two checks that would have
+reported false positives. Two mutations go red: un-striking one row, and putting an absolute path back into the
+patch.
+
+── ROUND 131: no probe — a register row that was accurate when written and never struck through ──── ROUND 131: no probe — a register row that was accurate when written and never struck through ──
 No product code changed. Round 130's check-up said the eleven open deviations were all deliberate trade-offs, so
 this round measured whether each still holds. The first one did not: §7 row 4 said `blender_asset_ingest` was
 unregistered, while the roster has it — sixteen model-visible tools, one of them this. The row was accurate when
