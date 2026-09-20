@@ -255,7 +255,23 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 118 (probe): three refusals that stated the problem and not the fix ──
+── ROUND 131: no probe — a register row that was accurate when written and never struck through ──
+No product code changed. Round 130's check-up said the eleven open deviations were all deliberate trade-offs, so
+this round measured whether each still holds. The first one did not: §7 row 4 said `blender_asset_ingest` was
+unregistered, while the roster has it — sixteen model-visible tools, one of them this. The row was accurate when
+M2 wrote it (registering a tool that throws would have violated SPEC §11.1) and M5 registered it along with its
+host service and approval boundary (local automatic, network approved, both covered by e2e suites), and the row was
+never struck through. For dozens of rounds a reader of the register was told to build something that already
+existed. The narrative sentence that repeated the claim was in the present tense too, and now says "at the time".
+
+The row is struck through, and `docs-consistency.test.mjs` gained a NARROW check: an open row that names a
+`blender_*` tool and claims it is unregistered must not name one the roster contains. Narrow on purpose — the
+register also has a row about the workbench's approval-respond ROUTE, which really is unregistered (measured:
+`UI_ROUTES` has no approval entry; the UI only reads the threshold and displays it), and that is a different claim
+no tool roster can contradict. The first version of the check counted it and would have failed on a correct row.
+The mutation that un-strikes row 4 goes red.
+
+── ROUND 118 (probe): three refusals that stated the problem and not the fix ──── ROUND 118 (probe): three refusals that stated the problem and not the fix ──
 Two properties were measured and both turned out NOT to be machine-checkable, which is worth recording as much as
 a fix. "Every refusal names a next step" reported 102 of 116 refusals as silent, and spot-checking showed them
 actionable in substance ("needs a title", "needs either sourcePath or sourceUrl") — a keyword list is not that

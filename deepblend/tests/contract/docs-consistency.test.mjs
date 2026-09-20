@@ -565,3 +565,40 @@ test('every decision number a document cites is defined somewhere', () => {
   assert.ok(cited >= 200, `expected many citations, found ${cited}`)
   assert.deepEqual([...new Set(missing)], [], 'these citations name a decision nobody wrote down')
 })
+
+// ---------------------------------------------------------------------------
+// The deviation register must not contradict the tool roster
+// ---------------------------------------------------------------------------
+//
+// A register of deviations is only useful while it is CURRENT: a reader takes "未注册" as a statement about today,
+// and a row that says a tool is missing while the roster has it sends them to build something that already exists.
+// MEASURED: row 4 said `blender_asset_ingest` was unregistered — accurate when M2 wrote it, resolved when M5
+// registered the tool, and never struck through, so the register was wrong for dozens of rounds and nothing
+// noticed. The narrative sentence that repeated the claim was written in the present tense too.
+//
+// The check is narrow on purpose: only rows that BOTH name a `blender_*` tool AND claim it is unregistered, and
+// only against the roster the contract declares. A row may still say a capability is absent — the deliberate
+// trade-offs do — because that is a different claim, and no roster contradicts it.
+test('no deviation row claims a tool is unregistered while the roster has it', () => {
+  const status = readFileSync(join(ROOT, 'deepblend', 'docs', 'milestone-status.md'), 'utf8')
+  const offenders = []
+  let inspected = 0
+  for (const line of status.split('\n')) {
+    if (!/^\| \d+ \|/.test(line)) continue
+    if (line.includes('~~')) continue
+    if (!/未注册/.test(line)) continue
+    // ONLY ROWS ABOUT A MODEL-VISIBLE TOOL. The register also has a row about the workbench's approval-respond
+    // ROUTE, which is genuinely unregistered (measured: `UI_ROUTES` has no approval entry) — a different claim,
+    // which no tool roster can contradict. The first version of this counted it and would have failed on a row
+    // that is correct.
+    const named = [...line.matchAll(/`(blender_[a-z_]+)`/g)].map(match => match[1])
+      .filter(name => UI_TOOL_CARD_KEYS.includes(name))
+    if (named.length === 0) continue
+    inspected += 1
+    offenders.push(...named.map(name => `${name} is in the roster`))
+  }
+  // The guard: if no row makes the claim at all, this check has stopped looking at anything — which is the right
+  // state, but it must be reached by the rows being fixed rather than by the pattern breaking.
+  assert.deepEqual(offenders, [],
+    `these open rows claim a tool is unregistered while the roster has it (${inspected} row(s) inspected)`)
+})
