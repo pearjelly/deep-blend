@@ -167,3 +167,32 @@ test('the README says where the pictures came from', () => {
     'the README shows pictures without naming the tool that produces them, so a reader cannot tell a screenshot from a mockup',
   )
 })
+
+// ---------------------------------------------------------------------------
+// The storefront declaration: `screenshots.json` beside the bundle
+// ---------------------------------------------------------------------------
+//
+// The plugin ecosystem reads a `screenshots.json` next to the installable package's `package.json` — inside the
+// subdirectory, for a monorepo entry — and rejects third-party image hosts for privacy. Without the file,
+// storefronts fall back to scraping the README, which works and is why nothing noticed its absence; with it, the
+// images a store shows are the ones this repository chose and can check.
+//
+// The rules are the ecosystem's, not ours: one to eight images, relative paths with no leading slash and no
+// `..`, and every path must exist. A declaration that points at nothing is worse than no declaration, because a
+// storefront would show a broken image where a scraped one would have worked.
+test('the storefront screenshots declaration names real images, within the ecosystem\u2019s rules', () => {
+  const declaration = join(ROOT, 'packages', 'deepblend', 'bundle', 'screenshots.json')
+  assert.ok(existsSync(declaration), 'the bundle no longer declares screenshots.json')
+  const list = JSON.parse(readFileSync(declaration, 'utf8'))
+  assert.ok(Array.isArray(list) && list.length >= 1 && list.length <= 8,
+    `screenshots.json must hold between one and eight paths, it holds ${Array.isArray(list) ? list.length : 'no array'}`)
+  const bad = list.filter(entry => typeof entry !== 'string' || entry.startsWith('/') || entry.split('/').includes('..'))
+  assert.deepEqual(bad, [], 'these entries are not repo-relative paths without a leading slash or a ".."')
+  const missing = list.filter(entry => !existsSync(join(ROOT, entry)))
+  assert.deepEqual(missing, [], 'these declared screenshots do not exist')
+  // And every image the README shows should be among them, so the store and the README agree about what this
+  // project looks like.
+  const referenced = [...readme.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match => match[1])
+  const undeclared = referenced.filter(path => !list.includes(path))
+  assert.deepEqual(undeclared, [], 'the README shows images the storefront declaration does not list')
+})

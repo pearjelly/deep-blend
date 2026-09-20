@@ -255,7 +255,29 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 118: no probe — the plugin ecosystem's hard checklist, and one item that was ours ──
+── ROUND 119: no probe — the one checklist item that was mine to do ──
+No product code changed. Round 118 fixed the peer-dependency rule the listing checklist names as a rejection
+cause; this round walked the rest of the checklist (§A1–A8) against this repository. Most of it is already
+satisfied — a `dsh.bundle` exists in the bundle subpackage (CI walks the tree), the repository is older than the
+one-day floor, the code is real (62 test files, 16 suites), the bundle composes configuration rather than only
+listing dependencies (so it is a plugin and not a meta-package), and the accuracy rule is the thing this
+repository has been pinning all along, every number in the README derived from its source.
+
+One item was missing: §A6's `screenshots.json`, which a storefront reads beside the installable package — inside
+the subdirectory, for a monorepo entry — and which rejects third-party image hosts for privacy. Without it,
+storefronts fall back to scraping the README, which works, which is why nothing had noticed. The bundle declares
+the three images the README shows now: repo-relative, no leading slash, no `..`, all present.
+
+The check lives in `docs-images.test.mjs`, which already owns these images: one to eight entries, repo-relative
+with no `..`, every path existing, and every image the README shows being declared — so the store and the README
+agree about what this project looks like. Four mutations, all red: a declared screenshot that does not exist, an
+entry escaping the repository, an emptied declaration, and a README image the declaration omits.
+
+The four blockers that remain need decisions this session cannot make: the repository is private, the
+`dsh-plugin` topic is missing, the repository root has no `dsh.bundle` (so the entry must use the monorepo form),
+and the four `@deepblend/dsh-blender-*` siblings are unpublished while the bundle pins them exactly.
+
+── ROUND 118: no probe — the plugin ecosystem's hard checklist, and one item that was ours ──── ROUND 118: no probe — the plugin ecosystem's hard checklist, and one item that was ours ──
 No product code changed. A research document appeared in the working tree (`DSH-PLUGIN-LISTING-RESEARCH.md`,
 850 lines, untracked, not mine) that checked the DSH plugin ecosystem's listing requirements against the official
 `publish.md`, `awesome-dsh-plugin`'s `contributing.md` and its CI gate `check-submission.mjs`, and eight real

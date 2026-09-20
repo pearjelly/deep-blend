@@ -9519,3 +9519,51 @@ total self-counted assertions: 1489
 
 **产品代码未改** ✓（改的是四个包的清单 ✓ + 两条检查 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
 `node:test` 用例 302 → **303** ✓（README 已按实测更新 ✓）。
+
+## 147. 上架清单里**能由我做**的那一条：`screenshots.json`
+
+### 147.1 从研究文档的清单里挑出「我的」
+
+第 150 轮修掉了清单里点名的拒绝原因之一（`@deepseek-ai/*` 必须是 peerDependencies ✓）。
+这一轮把清单（§A1–A8 ✓）逐条对照本仓库 ✓，其中：
+
+| 清单项 | 本仓库 |
+|---|---|
+| A4.1 某个 `package.json` 声明 `dsh.bundle` ✓ | 有 ✓（`packages/deepblend/bundle/` ✓，CI 会走整棵树 ✓） |
+| A4.2 仓库年龄 ≥ 1 天 ✓ | 满足 ✓（**没有**提交数门槛 ✓——README 里那句「10 个提交」是**过期文本** ✓，权威是 `contributing.md` 与 CI 脚本 ✓） |
+| A4.3 真实可用的代码 ✓ | 62 个测试文件 ✓、16 套件 ✓ |
+| A4.6/7 描述必须**准确**、不许夸张 ✓ | 正是本仓库一直在钉的东西 ✓（README 的每个数字都有推导 ✓） |
+| A4.8 不能是 meta-package ✓ | bundle 自己**组合配置** ✓（`cordis.patch.yml` + 操作者层 ✓）→ 是插件 ✓ |
+| **A6 `screenshots.json`** | **缺** ✗ ← 这一轮做的 ✓ |
+
+### 147.2 做什么
+
+生态的店面会读**可安装包旁边**的 `screenshots.json` ✓（monorepo 条目就是子目录里 ✓），
+并且**拒绝第三方图床**（隐私 ✓）。没有这个文件时会退回**从 README 抓图** ✓——能用 ✓，
+所以此前没人注意它缺席 ✓；有了它 ✓，店面展示的就是**本仓库自己选的、并且能被检查的**那几张 ✓。
+
+于是加了 `packages/deepblend/bundle/screenshots.json` ✓，列出 README 展示的三张截图 ✓
+（相对仓库根 ✓、无前导斜杠 ✓、无 `..` ✓、文件都存在 ✓）。
+
+### 147.3 检查：四条规则，四条变异全红
+
+`docs-images.test.mjs`（本来就管这些图 ✓）现在断言 ✓：**1–8 张** ✓、**仓库相对且无 `..`** ✓、
+**每张都存在** ✓，以及**README 展示的每一张都在声明里** ✓（让店面与 README 对「这个项目长什么样」保持一致 ✓）。
+
+变异 ✓：**声明一张不存在的图** ✓、**用 `../outside.png` 逃出仓库** ✓、**清空声明** ✓、
+**让 README 展示一张声明里没有的** ✓——**四条全红** ✓。
+
+### 147.4 收口
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1489
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+`node:test` 用例 303 → **304** ✓（README 已按实测更新 ✓）。
+
+**清单里仍然需要你决定的四条**（第 150 轮已列 ✓）：仓库私有 ✗、缺 `dsh-plugin` topic ✗、
+根目录没有 `dsh.bundle`（条目要用 monorepo 形式 ✓）、四个兄弟包未发布（真正的打包工作 ✓）。
