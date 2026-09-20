@@ -255,7 +255,38 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 121: no probe — the question a reviewer asks, turned into a property of the file ──
+── ROUND 122: no probe — the listing entry itself, with every claim checked against the code ──
+No product code changed. Rounds 118–121 walked the ecosystem's checklist item by item; what the checklist asks a
+contributor to SUBMIT is one YAML file, and that file did not exist. It does now, as
+`deepblend/docs/listing-entry.yml` — not submitted, because the list requires the repository to be public and to
+carry the `dsh-plugin` topic, and this one is private, but prepared where its claims can be checked.
+
+`contract/listing-entry.test.mjs` checks the entry against the code, which is the rule the guide states in as many
+words ("descriptions are read as a claim about your plugin, and checked against your code… overstating is the one
+thing that gets an otherwise-good plugin sent back"):
+
+- only the five permitted keys are declared (an `npm:` key alone rejects the whole submission);
+- the url points at a subdirectory that EXISTS here, the `#subname` matches it, and that subdirectory declares a
+  `dsh.bundle` — otherwise an install mounts nothing;
+- the category is one of the ecosystem's twenty-three ids;
+- the number in the description is the number the repository has (16 tools against `UI_TOOL_CARD_KEYS.length`),
+  and the description carries no marketing word;
+- the submission filename is the one the gate derives (`slugFor`), so the submission is a copy rather than a
+  rename somebody works out under review.
+
+Five mutations, all red: overstating the tool count, a url pointing at a subdirectory that does not exist, an
+unpermitted key, a category outside the list, and a description that markets instead of stating.
+
+Two slips of my own, both caught by readings. The `#subname` I first wrote was the plugin's name (`#deepblend`)
+while the gate's rule is the LAST SEGMENT of the subdirectory (`#bundle`, per its own example). And three regexes
+carried doubled backslashes from a heredoc — one of which made an assertion fail forever — and while fixing them
+the edit script again aborted before writing (the fourth time this session), so the fixes were redone one at a time
+with the file read back to confirm.
+
+The new file moved the derived counts, and the counts test caught it immediately: 62 → 63 contract files, 306 →
+311 node:test cases, 77 → 78 files in the run, 78 → 79 check lines.
+
+── ROUND 121: no probe — the question a reviewer asks, turned into a property of the file ──── ROUND 121: no probe — the question a reviewer asks, turned into a property of the file ──
 No product code changed. The listing checklist rejects meta-packages in as many words: a bundle whose only content
 is a dependency list is not listed, while one that "does something itself (composes configuration, adds a settings
 surface, coordinates parts at runtime)" IS a plugin and is judged normally. The bundle's own header reads like the

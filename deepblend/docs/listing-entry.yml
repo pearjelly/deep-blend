@@ -1,0 +1,28 @@
+# The entry this repository would submit to the DSH plugin list.
+#
+# NOT submitted: the list's contributing guide requires the repository to be public and to carry the
+# `dsh-plugin` topic, and this one is still private — so the entry is prepared here, where its claims can be
+# checked, rather than in a pull request that the CI gate would reject on the first line.
+#
+# The submission is ONE file whose name must equal `slugFor(url)`:
+#
+#   data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml
+#
+# The permitted keys are exactly `url`, `name`, `category`, `description`, `tarball` — anything else is a
+# validation failure, including a hand-written `npm:` key (the registry mapping is harvested automatically).
+# `description.zh` is optional; only `description.en` is a contributor's responsibility.
+#
+# `contract/listing-entry.test.mjs` reads this file and checks every claim in it against the code: the URL's
+# subdirectory exists here, the `#subname` matches it, the category is one of the ecosystem's ids, and the
+# numbers in the description are the numbers the repository actually has. The checklist says descriptions are
+# "read as a claim about your plugin, and checked against your code" — so the claim is checked here first.
+url: https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle
+name: pearjelly/deep-blend#bundle
+# `#bundle` rather than a prettier `#deepblend`: the gate's own rule is `owner/repo#<last segment of the
+# subdirectory the url points at>`, and its example is `…/packages/my-plugin` → `owner/repo#my-plugin`.
+# A nicer label would have to come from renaming the directory, which the rest of the repository pins.
+category: tools
+description:
+  # Quoted because it contains ": " — unquoted, the YAML parser trips on the colon.
+  en: 'Render and iterate on Blender scenes from DSH: 16 tools for scene specs, previews, visual review and delivery renders, with immutable revisions and an approval gate.'
+  zh: '在 DSH 里渲染并迭代 Blender 场景：16 个工具覆盖场景规格、预览、视觉评审与交付渲染，带不可变 revision 与审批闸门。'
