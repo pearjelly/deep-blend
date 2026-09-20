@@ -255,7 +255,39 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 134: no probe — the operator-layer install must compose, not just write the right files ──
+── ROUND 135: no probe — the preset's metadata must PARSE, not merely match a pattern ──
+No product code changed. Continuing the read-the-implementation method, the preset loader was read next
+(`@deepseek-ai/dsh-agent-presets`): it names two exact files, `preset.yml` and `agent.cordis.yml`, and this
+repository matches both, with the `skills/` subdirectory the loader's own documentation describes ("each preset's
+own skills travel inside its directory").
+
+The metadata parser is the interesting part:
+
+    try { parsed = yaml.load(raw) } catch { return {} }
+
+A parse failure is SILENT — the preset appears in the roster with no name and no description, exactly the shape of
+round 168's missing client export. And this repository's assertion read the file with a LINE REGEX
+(`/^name:\s*(.+)$/m`), which matches a file the parser rejects: a tab, an unquoted colon, a stray quote. The
+assertion could pass on a preset the roster would show blank.
+
+It parses now, with the deployment's own js-yaml — the module the loader itself calls, which sits one level above
+the `@deepseek-ai` scope `importDsh` resolves in, so it is imported by path. Four assertions: the top level must be
+a mapping, the name must be the one the roster shows, the description must be substantial, and if an `order` is
+ever added it must be a number (the sort treats a non-number as absent). The mutation that puts an unquoted colon
+in the description — the exact gotcha the ecosystem's contributing guide warns about — goes red with
+`YAMLException: bad indentation of a mapping entry`. The first attempt used a TAB, which js-yaml accepts, so the
+mutation survived; the colon is the real one.
+
+One deliberate omission is now written down in the file: every preset the deployment ships declares `order`
+(1/2/3/4) and this one does not, so it sorts after them (absent is `Number.POSITIVE_INFINITY`, ties by id). That is
+the intended position and the more robust spelling — a declared number would tie with a future built-in that picks
+the same one. The comment parses; verified with the deployment's js-yaml.
+
+Two derived readings moved and both were caught by the machinery: the self-counted total 1489 → 1488 (the
+assertion became a `node:test` case rather than a `check`), and `preset-source.test.mjs` immediately reported the
+INSTALLED preset as drifted, because the repository copy changed and had not been re-installed.
+
+── ROUND 134: no probe — the operator-layer install must compose, not just write the right files ──── ROUND 134: no probe — the operator-layer install must compose, not just write the right files ──
 No product code changed. Continuing round 133's method — read the implementation rather than an example — the
 bundle side of the Loader was read next: `loadProfileDirectory` resolves each `dsh.profile.bundles` entry through
 `resolveBundleDir`, reads that package's `dsh.bundle.patch` (throwing "declares no dsh.bundle" when absent), and

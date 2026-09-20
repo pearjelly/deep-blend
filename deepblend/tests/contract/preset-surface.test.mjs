@@ -37,13 +37,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
-import { join, resolve, sep } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
-import { importDsh } from '../lib/dsh-deployment.mjs'
+import { importDsh, resolveDshScope } from '../lib/dsh-deployment.mjs'
 
 const PRESET_DIR = join(ROOT, 'deepblend', 'presets', 'deepblend')
 const COMPOSITION = join(PRESET_DIR, 'agent.cordis.yml')
@@ -245,12 +245,25 @@ test('the skill names every tool the preset registers, and invents none', () => 
   )
 })
 
-test('preset.yml carries the metadata the roster shows a user', () => {
+// PARSED, NOT PATTERN-MATCHED. The roster reads this file with a YAML parser and returns `{}` when the parse
+// fails — no error, no warning, just a preset with no name and no description in the picker. A regex over the
+// lines still matches a file that parser rejects (a tab, an unquoted colon, a stray quote), so the earlier version
+// of this assertion could pass on a preset the roster would show as blank. The parser used here is the
+// deployment's own js-yaml, which is the module the loader calls.
+test('preset.yml parses, and carries the metadata the roster shows a user', async () => {
   const text = readFileSync(join(PRESET_DIR, 'preset.yml'), 'utf8')
-  const name = text.match(/^name:\s*(.+)$/m)?.[1]?.trim()
-  const description = text.match(/^description:\s*(.+)$/m)?.[1]?.trim()
-  assert.equal(name, 'DeepBlend Studio', 'the roster name is what a user picks the preset by')
-  assert.ok(description !== undefined && description.length > 20, 'the roster description is what a user reads before picking')
+  // js-yaml is the DEPLOYMENT's own parser, one level above the `@deepseek-ai` scope `importDsh` resolves in, so
+  // it is imported by path. Using the same module the loader calls is the point: a different YAML implementation
+  // could accept what this one rejects.
+  const yaml = await import(pathToFileURL(join(dirname(resolveDshScope()), 'js-yaml', 'index.js')).href)
+  const parsed = yaml.load(text)
+  assert.equal(typeof parsed, 'object', 'the roster reads this file as a mapping and shows nothing when it is not one')
+  assert.equal(parsed.name, 'DeepBlend Studio', 'the roster name is what a user picks the preset by')
+  assert.ok(typeof parsed.description === 'string' && parsed.description.length > 20,
+    'the roster description is what a user reads before picking')
+  // `order` is deliberately absent; the reasoning is in the file. If it is ever added, it must be a number, because
+  // the sort treats a non-number as absent.
+  if (parsed.order !== undefined) assert.equal(typeof parsed.order, 'number', 'the sort treats a non-number as absent')
 })
 
 test('the installer deploys everything inside the preset directory, not a fixed file list', () => {

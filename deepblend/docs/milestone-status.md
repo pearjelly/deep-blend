@@ -10406,3 +10406,65 @@ DeepBlend tests: 64/64 file(s) passed
 **两条安装路径现在都被端到端验证过** ✓：生态那条（第 155 轮 ✓）与操作者那条（这一轮 ✓），
 而且两边都断言了「**行带着它们的配置**」 ✓✓——也就是第 153 轮那个「它是插件、不是 meta-package」的结论 ✓，
 在**真实安装器**里各验一遍 ✓。
+
+## 166. preset 的元数据：**解析**它，而不是用正则匹配它
+
+### 166.1 起因：继续读加载器
+
+第 168–169 轮靠「读实现」抓到两个真缺陷 ✓。这一轮读 **preset 加载器**
+（`@deepseek-ai/dsh-agent-presets` ✓）：它认两个**确切文件名** ✓——
+`preset.yml`（元数据 ✓）与 `agent.cordis.yml`（组合 ✓）——**本仓库两个都一致** ✓✓，
+`skills/` 子目录也是文档写的布局 ✓（「每个 preset 自己的 skills 随它的目录走」✓）。
+
+而元数据的解析器是这样的 ✓：
+
+```js
+try { parsed = yaml.load(raw) } catch { return {} }        // ← 解析失败**静默返回空对象**
+const name = text(record.name); …
+```
+
+**解析失败不报错** ✗——名册里那个 preset **没有名字、没有描述** ✓✓（与第 168 轮那个「缺失导出静默跳过」是同一种形状 ✓）。
+
+### 166.2 而本仓库的断言**匹配的是正则**
+
+`preset-surface.test.mjs` 里那条断言读 `preset.yml` **按行匹配** ✓（`/^name:\s*(.+)$/m` ✓）——
+它能匹配一个**解析器会拒绝**的文件 ✓✓（制表符 ✓、未加引号的冒号 ✓、多余的引号 ✓）。
+也就是说：**这条断言可以在一个名册显示为空白的 preset 上通过** ✗✓。
+
+### 166.3 修法：用**加载器自己调用的那个解析器**
+
+断言改成**解析** ✓——而且用的是**部署自己的 `js-yaml`** ✓（就是加载器调用的那个模块 ✓；
+它在 `@deepseek-ai` 作用域**上一层** ✓，所以按路径 import ✓）✓。三条断言 ✓：
+顶层必须是映射 ✓、`name` 必须是名册里那个 ✓、`description` 必须够长 ✓；
+外加一条 ✓：**若将来有人加了 `order`，它必须是数字** ✓（排序把非数字当作「没有」✓）。
+
+**变异**：把描述改成**含未加引号冒号** ✓（正是生态 contributing 里点名的那个 YAML 坑 ✓）
+→ **红** ✓：`YAMLException: bad indentation of a mapping entry` ✓✓。
+（第一次我用**制表符** ✗——js-yaml 宽容地接受了它 ✓，于是变异**活着** ✓；
+换成冒号才对 ✓。）
+
+### 166.4 顺带写下一个**有意的省略**
+
+名册按 `order` 排序 ✓，而**缺失**被当作 `Number.POSITIVE_INFINITY` ✓（`?? Infinity` ✓，同值时按 id ✓）。
+部署自带的四个 preset **都**声明了 `order`（1/2/3/4 ✓），本仓库的**没有** ✗——
+于是它排在四个内置之后 ✓✓。**这是有意的、也是更稳的写法** ✓：写死一个数字会与将来的内置**撞号** ✓，
+而「不写」永远跟在部署自己那些之后 ✓。这句话现在写在 `preset.yml` 的注释里 ✓
+（**解析仍然通过** ✓——用部署自己的 js-yaml 验过 ✓）。
+
+### 166.5 收口
+
+```
+$ node deepblend/tests/contract/preset-surface.test.mjs
+ℹ pass 10   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 80 ✓ lines
+```
+
+**产品代码未改** ✓（改的是 preset 元数据的注释 ✓ 与一条断言 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓。
+
+**两条读数动了，都是推导出来的** ✓：自计断言 1489 → **1488** ✓
+（那条断言从 `check(...)` 变成 `test(...)` ✓——少一条自计 ✓、`node:test` 用例数不变 ✓），
+README 已按实测更新 ✓；而**装好的 preset 漂移**被 `preset-source.test.mjs` 当场抓到 ✓✓
+（我改了仓库里的 `preset.yml` 而没重装 ✓）——跑一次 `install-presets.mjs` 即恢复 ✓✓。
