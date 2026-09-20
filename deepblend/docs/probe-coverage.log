@@ -255,7 +255,34 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 112: no probe — a clean referential sweep, and a deviation about to expire ──
+── ROUND 113: no probe — driving the code nobody drove, and what it said ──
+No product code changed. The previous round measured that the parallel contributor's compiler half for
+`material.texture` (TEXTURE_PATTERN_NODES plus _build_texture_graph) was driven by NOTHING — no fixture carries a
+texture, so every suite passed whether the graph was built or not. A capability with no test is a claim, so this
+round drove it, in the Blender-integration layer where a real Blender compiles a real spec and a Python probe can
+read the produced node graph.
+
+Both sides are compiled and inspected the same way (a textured spec and the plain fixture, one probe each),
+because comparing a textured compile against an inventory built by a different snippet would compare two
+different questions. What the probe reported:
+
+    links: ["BSDF_PRINCIPLED.BSDF -> OUTPUT_MATERIAL.Surface",
+            "MAPPING.Vector -> TEX_NOISE.Vector",
+            "TEX_COORD.Object -> MAPPING.Vector"]
+
+The pattern node is built, the coordinate and mapping chain is wired — and the pattern's OUTPUT is connected to
+nothing. So a texture still changes the document and not the pixels: deviation §7 #14's original sentence is still
+true, with its reason changed from "the compiler never reads it" to "it reads it, builds it, and does not connect
+it". The case asserts the half that IS implemented (the chain exists; a material without a texture builds no
+pattern node at all, which is what stops the case being true of everything) and names the gap in a comment and in
+the deviation row, rather than pinning the gap with an assertion that would have to be deleted to fix the feature.
+
+Three implementation slips, all caught by readings: the section first sat after `rmSync(workspace…)` (mkdtemp
+ENOENT, the same placement mistake as rounds 139 and 142), material names are prefixed (`db_mat__hero-steel`) so
+the lookup reads the stamped `deepblend_id`, and a backtick inside a Python comment terminated the JS template
+literal it lived in.
+
+── ROUND 112: no probe — a clean referential sweep, and a deviation about to expire ──── ROUND 112: no probe — a clean referential sweep, and a deviation about to expire ──
 No product code changed. Two measurements, one negative and one that changes a record.
 
 The referential sweep: the scene schema has four fields that name another object (`entity.assetId`,

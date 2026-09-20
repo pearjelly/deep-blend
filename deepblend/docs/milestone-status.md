@@ -433,7 +433,8 @@ Cordis 接受「带 `apply` 的对象」或「函数本身作为 apply」，不�
 | 10 | SPEC §15.2「日志脱敏」 | **一半 + 一半**：秘密根本不进子进程（环境变量白名单，`security-controls.test.mjs` 有断言），且**本插件自己产出的 URL 一律先脱敏**（`contracts/lib/redact.js`：凭据/查询串/片段被移除并说明移除了什么；`contract/url-redaction.test.mjs` 7 项 + `host-asset-ingest.test.mjs` 用一条**预签名** URL 断言签名不出现在消息与记录里）。**仍然没有**日志过滤器 | 第一半是更强的一半：API key 从未离开宿主进程，就没有「日志里出现 key」的路径。第二半是本轮补的：五处资产抓取消息此前把 URL 原样写进**模型读到的话**和**操作者读到的记录**，而模型拿到的模型文件链接**通常就是预签名的**——「URL 不是秘密」是一句本产品不能做的断言。脱敏**只删不掩**：掩码需要一个「可信参数名」清单，而那份清单正是会烂掉的东西（没人想到的签名参数就是泄漏），删掉查询串最坏只是消息少一点信息。真正需要脱敏的**用户自己**贴进对话的秘密属于 DSH 的凭据平面 |
 | 11 | SPEC §15.1「启动远程 Worker」 | **未实现**：没有远程 worker 这一层 | SPEC §20 把它列在 M6 的扩展项里，M5 的验收条件里没有它。等它存在时，审批边界要先于实现写好 |
 | 12 | SPEC §17 的配置形状（`finalRender.*` / `security.*` / `jobs.*` / `agent.*` 分组） | **平铺的键**：每个键属于**执行它的那个包**（`requireApprovalAboveFrames`、`assetMaxBytes`、`timeoutMs`…），而不是属于一个分组 | 分组会藏起「谁在执行这个键」这个事实：`security.*` 里一半的键**根本没有实现者**，因为那些「开关」对应的是**从不发生的事**（不装 add-on、不跑任意 Python、不放开工作区）。键与执行者一对一之后，schema 才能被拿去和读它的代码逐条对照（`contract/config-surface.test.mjs` 两个方向都查）。**而且分组写法曾经是静默失效的**：schema 接受它、当成不认识的属性留下、一声不吭——照 SPEC 抄配置的操作者会得到一个「审批阈值还是默认值」的部署。现在三个 row 在构造时拒绝不认识的键并列出真正读的键（`install.md` §3.1 是完整的对照表） |
-| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **编译器那一半已经在工作区里了（未提交，并行贡献者所写）**：`deepblend_scene.py` 的 `TEXTURE_PATTERN_NODES`（noise/wave/voronoi → 各自的 Blender pattern 节点）+ `_build_texture_graph` ✓，并且对**它建不出来的类型**会**明确拒绝**（`which this compiler cannot build` ✓）——本会话写下这一行时（第 113 轮）编译器里这个名字出现 **0 次** ✓，所以当时的记录是准的 ✓。现在**两边的词汇表已经被一条跨语言断言钉住** ✓（`render-job.test.mjs`：schema 的 `type` 枚举 == 编译器那张表的键 ✓，读数 `{schema: [noise,wave,voronoi], compiler: [noise,wave,voronoi]}` ✓）。**仍然开着的是**：那段代码**没有任何测试驱动过** ✓（没有 fixture 带纹理 ✓），而且它**还没进版本库** ✓——等它提交并有一条真实用例之后，这一行划掉 ✓ |
+| 14 | SPEC §5.2「程序化纹理」（`material.texture`，2026-09-19 加入 schema） | **编译器那一半已经在工作区里了（未提交，并行贡献者所写）**：`deepblend_scene.py` 的 `TEXTURE_PATTERN_NODES`（noise/wave/voronoi → 各自的 Blender pattern 节点）+ `_build_texture_graph` ✓，并且对**它建不出来的类型**会**明确拒绝**（`which this compiler cannot build` ✓）——本会话写下这一行时（第 113 轮）编译器里这个名字出现 **0 次** ✓，所以当时的记录是准的 ✓。现在**两边的词汇表已经被一条跨语言断言钉住** ✓（`render-job.test.mjs`：schema 的 `type` 枚举 == 编译器那张表的键 ✓，读数 `{schema: [noise,wave,voronoi], compiler: [noise,wave,voronoi]}` ✓）。**这一行现在有了实测的、更精确的结论（第 145 轮）**：那条测试写出来之后 ✓，在**真实 Blender** 里编出来的节点图是这样的 ✓：
+`TEX_COORD.Object → MAPPING.Vector` ✓、`MAPPING.Vector → TEX_NOISE.Vector` ✓、`BSDF_PRINCIPLED.BSDF → OUTPUT_MATERIAL.Surface` ✓——**pattern 节点建出来了，但它的输出没有接到任何地方** ✗✗。也就是说：**纹理仍然只改文档、不改像素** ✓——这一行最初的那句话，到现在**依然成立** ✓，只是原因从「编译器根本不读它」变成了「读了、建了、没接上」✓。测试断言的是**已实现的那一半** ✓（坐标/映射/pattern 链存在 ✓、没有纹理的材质一个 pattern 节点都没有 ✓），并在注释里写明这条链**还没接进着色** ✓——把「没接上」写成断言，等于修好它时必须先删掉断言 ✓。等它接上并有真实用例之后，这一行划掉 ✓ |
 | 13 | SPEC §17 `finalRender.requireApprovalAboveResolution` | **未实现**：审批阈值只有**帧数**一个维度 | 分辨率是**成本的一个因子**而不是成本的度量：同一个 1920×1080 的项目，渲 3 帧和渲 3000 帧差三个数量级，而 4K 的 3 帧仍然便宜。加第二个阈值会造出一个「两把尺子」的问题（哪个先触发？超了其中一个算不算批过？），而帧数已经能把「小时级」和「秒级」分开。真要按分辨率管，答案是把成本估算做成一个数（SPEC §16 的方向），而不是再加一个开关 |
 
 ---
@@ -9198,3 +9199,62 @@ total self-counted assertions: 1485
 
 **产品代码未改** ✓（改的是测试与那条偏差记录 ✓），读数沿用上一轮 ✓：产品可执行行黑暗 **32 (0.3%)** ✓。
 契约层 62 文件 / 1484 → **1485** 项 ✓。
+
+## 141. 把「没人驱动的那段代码」驱动起来——然后它当场说出自己没接上
+
+### 141.1 起因：一个能力，没有任何测试
+
+第 144 轮量出：并行贡献者写的编译器那一半（`TEXTURE_PATTERN_NODES` + `_build_texture_graph`）
+**没有任何测试驱动过** ✓——没有 fixture 带纹理 ✓，所以**图建了还是没建，每个套件都是绿的** ✓。
+**没有测试的能力是声明，不是能力** ✓——于是这一轮把它驱动起来 ✓（在**我这条道**上：测试 ✓，不碰他们的文件 ✓）。
+
+### 141.2 做法：在**真实 Blender** 里编两份，用同一段探针看节点图
+
+`blender-integration/fixture.e2e.mjs` 本来就有这套机械 ✓（`compileScene` ✓ + `inspectBlend` ✓——
+在 Blender 里跑一段 Python 看 `.blend` ✓）。于是 ✓：
+
+* 编一份**带** `material.texture: {type:'noise', scale:12.5}` 的 spec ✓；
+* 再编一份**不带**的 ✓（同一个 fixture ✓）；
+* 两边用**同一段**探针读节点图 ✓（材质、pattern 节点、每一条连线 ✓）。
+
+**两边都编、都用同一段探针** ✓——拿带纹理的编译去比另一段探针产出的清单，是在比两个不同的问题 ✓。
+
+### 141.3 它当场说出了真相
+
+```
+links: ["BSDF_PRINCIPLED.BSDF -> OUTPUT_MATERIAL.Surface",
+        "MAPPING.Vector -> TEX_NOISE.Vector",
+        "TEX_COORD.Object -> MAPPING.Vector"]
+```
+
+**pattern 节点建出来了 ✓，坐标与映射也串好了 ✓——但 pattern 的输出没有接到任何地方** ✗✗。
+也就是说：**纹理仍然只改文档、不改像素** ✓——§7 #14 最初那句话**到现在依然成立** ✓，
+只是原因从「编译器根本不读它」变成了「**读了、建了、没接上**」✓✓。
+
+### 141.4 处理：断言**已实现的那一半**，把缺口写在注释与偏差行里
+
+测试断言 ✓：带纹理的材质**有**坐标/映射/pattern 链 ✓；不带纹理的材质**一个 pattern 节点都没有** ✓
+（否则「存在一个 TEX_ 节点」对每个材质都成立 ✓，用例就会空过 ✓）。
+
+**不**把「输出没接上」写成断言 ✗——那样修好这个特性时，第一件事是删掉断言 ✓（第 118 轮同一个判断 ✓）。
+缺口写进两处 ✓：用例里的注释（带实测的连线 ✓）与 **§7 #14 那一行** ✓。
+
+### 141.5 三次实现细节，全部由读数揭穿
+
+* 段落第一次放在 `rmSync(workspace…)` **之后** ✗（`mkdtemp ENOENT` ✓——第 139/142 轮同一个位置错误 ✓）；
+* 材质名是**带前缀**的（`db_mat__hero-steel` ✓），我按名字找 ✗ → 改读它盖的 `deepblend_id` ✓；
+* 我在**模板字符串里**写了反引号 ✗（`TEXTURE_SNIPPET` 是反引号字符串 ✓）→ 语法错误 ✓，去掉即可 ✓。
+
+### 141.6 收口
+
+```
+$ node deepblend/tests/blender-integration/fixture.e2e.mjs
+M1 Blender integration: 79/79 checks passed
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 62/62 file(s) passed
+$ node deepblend/tools/count-assertions.mjs
+total self-counted assertions: 1485
+```
+
+这一段进的是 **Blender 集成层** ✓（`run-all.sh` 的一部分 ✓，需要 Blender ✓），
+所以契约层的自计断言总数不变 ✓（1485 ✓——那两条不是自计检查 ✓）。

@@ -934,6 +934,101 @@ check('a scene that declares no world compiles to the documented default',
 // ---------------------------------------------------------------------------
 
 await ctx.stop?.()
+// ---------------------------------------------------------------------------
+// 5. The procedural texture the compiler builds (SPEC §5.2, `material.texture`)
+// ---------------------------------------------------------------------------
+//
+// WHY THIS IS HERE. `material.texture` was declared in the SceneSpec schema in round 113, and for many rounds the
+// compiler read nothing at all — deviation §7 #14 recorded that a texture changed the document and not the pixels.
+// The compiler half now exists in the working tree (`deepblend_scene.py`'s `TEXTURE_PATTERN_NODES` and
+// `_build_texture_graph`), and until this section NOTHING DROVE IT: no fixture carries a texture, so every suite
+// passed whether the graph was built or not. A capability with no test is a claim, not a capability.
+//
+// TWO-SIDED ON PURPOSE. A material WITH a texture must get a pattern node wired to its Principled BSDF, and a
+// material WITHOUT one must not — otherwise "a TEX_ node exists" would be satisfied by every material in the file
+// and the case would pass over a compiler that textured everything.
+const TEXTURE_SNIPPET = `
+materials = []
+for material in bpy.data.materials:
+    tree = material.node_tree
+    principled = None
+    patterns = []
+    for node in (tree.nodes if tree is not None else []):
+        if node.type == 'BSDF_PRINCIPLED':
+            principled = node
+        if node.type.startswith('TEX_'):
+            patterns.append(node.type)
+    wired = []
+    links = []
+    if tree is not None:
+        for link in tree.links:
+            links.append('%s.%s -> %s.%s' % (
+                link.from_node.type, link.from_socket.name, link.to_node.type, link.to_socket.name))
+            if principled is not None and link.to_node is principled:
+                wired.append(link.from_node.type)
+    materials.append({
+        'name': material.name,
+        # The compiler PREFIXES material names (db_mat__hero-steel), so the SceneSpec id is read from the
+        # property it stamps rather than reconstructed from the name.
+        'deepblendId': material.get('deepblend_id'),
+        'patterns': sorted(patterns),
+        'wiredToPrincipled': sorted(wired),
+        'links': sorted(links),
+    })
+materials.sort(key=lambda item: item['name'])
+write({'materials': materials})
+`
+
+const texturedSpec = compileSceneSpec({
+  ...fixtureSpec,
+  materials: fixtureSpec.materials.map((material, index) =>
+    (index === 0 ? { ...material, texture: { type: 'noise', scale: 12.5 } } : material)),
+}).spec
+
+/** Compile a spec through the provider and return the produced `.blend`, kept for inspection. */
+async function compileToBlend(spec, label) {
+  const scratch = mkdtempSync(join(workspace, `${label}-`))
+  const specPath = join(scratch, 'scene-spec.json')
+  writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`, 'utf8')
+  let produced = null
+  await studio.runtime.compileScene({
+    sceneSpecPath: specPath,
+    onWorkingDirectory: info => {
+      const candidate = join(info.directory, 'result.blend')
+      if (existsSync(candidate)) {
+        produced = join(scratch, `${label}.blend`)
+        writeFileSync(produced, readFileSync(candidate))
+      }
+    },
+  })
+  return produced
+}
+
+// BOTH SIDES COMPILED AND INSPECTED THE SAME WAY: comparing a textured compile against the inventory built by a
+// different snippet would compare two different questions.
+const withTexture = inspectBlend(await compileToBlend(texturedSpec, 'textured'), TEXTURE_SNIPPET)
+const withoutTexture = inspectBlend(
+  await compileToBlend(compileSceneSpec(fixtureSpec).spec, 'plain'), TEXTURE_SNIPPET,
+)
+
+const materialId = fixtureSpec.materials[0].id
+const texturedMaterial = withTexture.materials.find(entry => entry.deepblendId === materialId)
+const plainMaterial = withoutTexture.materials.find(entry => entry.deepblendId === materialId)
+
+// WHAT THIS MEASURED, AND WHAT IT DOES NOT CLAIM. The compiler builds the chain — coordinate, mapping, pattern —
+// and the pattern node is there. It does NOT yet connect the pattern's scalar output into the shading chain:
+// MEASURED, the only links are `TEX_COORD.Object -> MAPPING.Vector`, `MAPPING.Vector -> TEX_NOISE.Vector` and
+// `BSDF_PRINCIPLED.BSDF -> OUTPUT_MATERIAL.Surface`, so a texture still changes the document and not the pixels.
+// That is deviation §7 #14, and this case asserts the half that IS implemented rather than pinning the gap: an
+// assertion that the output is disconnected would have to be deleted to fix the feature.
+check('a material with a procedural texture is compiled with a coordinate/mapping/pattern chain',
+  texturedMaterial !== undefined && texturedMaterial.patterns.includes('TEX_NOISE') &&
+  texturedMaterial.links.some(link => link === 'MAPPING.Vector -> TEX_NOISE.Vector'),
+  texturedMaterial ?? withTexture.materials.map(entry => entry.name))
+check('and the same material WITHOUT a texture builds no pattern node at all, so the case above is not universal',
+  plainMaterial !== undefined && plainMaterial.patterns.length === 0 && plainMaterial.links.length === 1,
+  plainMaterial ?? withoutTexture.materials.map(entry => entry.name))
+
 rmSync(workspace, { recursive: true, force: true })
 
 console.log('')
