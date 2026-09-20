@@ -10290,3 +10290,69 @@ DeepBlend tests: 64/64 file(s) passed
 （另：`SECURITY.md` 那句「安装器拒绝覆盖不是它写的 operator layer」也量了 ✓——
 实测 **exit 2** ✓、文件**原样未动** ✓、消息点名「Merge the layers by hand」 ✓，
 而且 `install-plugin-modes.test.mjs` **已经在断言**它 ✓✓。又一个「声明与实现一致」的干净结果 ✓。）
+
+## 164. 浏览器半边属于**那一行挂载的那个包**，不是**可安装的那个包**
+
+### 164.1 起因：拿**真实发布**的参考清单逐字段对照
+
+研究文档抄了一份 `dshmarket@1.50.0` 的完整清单 ✓（真实发布、真实在用 ✓）。逐字段对照本仓库的 bundle ✓，
+其中一处引起注意 ✓：参考清单的 `exports` 里有 **`"./client"`** ✓，而 bundle 没有 ✗。
+
+### 164.2 顺着查到加载器的规则（**读源码，不猜**）
+
+安装目录里 `@deepseek-ai/dsh-client-modules/lib/index.js` ✓ 写得很清楚 ✓：
+
+```js
+function clientExportOf(pkgName, exportsField) {
+  const client = exportsField["./client"]
+  if (client === void 0) return void 0        // ← 缺失时**静默返回 undefined**
+  ...
+  throw new Error(`… exports["./client"] must be a string or an object with a string default`)
+}
+```
+
+两条规则 ✓：**声明 `dsh.client` 的那个包**必须导出 `./client` ✓✓；
+而**缺失时它不报错** ✗——返回 `undefined` ✓，客户端**被静默跳过** ✓✓（「畸形的会抛 ✓、缺失的不会 ✓」——
+危险的是后者 ✓）。
+
+### 164.3 于是发现**我上一轮的改动是错的**
+
+第 152 轮我把 `dsh.client` **从 `ui` 包搬到了 bundle** ✗，理由是「该字段描述被安装的那个包」✓——
+那是从**单包**参考清单**推断**出来的 ✗✓：在**单包**插件里「可安装的包」与「有 UI 的包」**是同一个** ✓，
+而在 monorepo 里**不是** ✓✓。
+
+而客户端注册的**身份**是**包名** ✓（`ui/lib/client.js` 里写着 ✓：
+
+> `id: '@deepblend/dsh-blender-ui'`——**必须是包名**：客户端模块图按包身份寻址这个 bundle，
+> 而 Host 行挂载的是同一个包 ✓）
+
+也就是说：**行挂载的是 `ui` 包** ✓、**客户端注册的也是 `ui` 包** ✓——所以**该声明它的是 `ui` 包** ✓✓，
+而 bundle 上那份**既冗余又危险** ✗（它没有 `./client` 导出 ✓ → 静默跳过 ✓）。
+
+### 164.4 修法
+
+* bundle 的 `dsh.client` **撤掉** ✓（它只会带来一次静默跳过 ✓）；`ui` 包的**保留** ✓
+  （声明 ✓ + `exports["./client"]` ✓ + 注册 id 与包名一致 ✓✓）；
+* 第 152 轮那条断言（「可安装包必须声明 client」✗）**改写成加载器真正的规则** ✓：
+  **凡是声明了 `dsh.client` 的包**，必须导出 `./client` ✓、导出的文件必须存在 ✓、
+  且**它的注册 id 必须等于这个包自己的名字** ✓✓。
+
+**两条变异全红** ✓：把 `ui` 的 `./client` 导出删掉 ✓（静默跳过的那种状态 ✓）、
+把注册 id 改成 bundle 的名字 ✓（身份对不上 ✓）。
+
+### 164.5 收口
+
+```
+$ node deepblend/tests/contract/contributor-surface.test.mjs
+ℹ tests 16   ℹ pass 16   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 64/64 file(s) passed
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 80 ✓ lines
+```
+
+**产品代码改了**（bundle 的清单 ✓），所以这一轮跑新探针 ✓（`r119` 列 ✓）。
+`node:test` 用例 321 → **322** ✓（README 已按实测更新 ✓）。
+
+**这一轮的教训** ✓：我第 152 轮从**一个例子**推断出一条**规则** ✗——而那份例子里两个角色恰好重合 ✓。
+**规则要从实现里读** ✓（`clientExportOf` 与 `id:` 那两行注释 ✓），不是从样本里猜 ✓。

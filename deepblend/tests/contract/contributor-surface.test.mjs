@@ -403,8 +403,13 @@ test('the installable package declares the fields an ecosystem install reads, an
   assert.ok(bundle.dsh?.bundle?.patch !== undefined, 'the bundle declares no dsh.bundle.patch, so it is not a bundle')
   assert.ok(existsSync(join(ROOT, 'packages', 'deepblend', 'bundle', bundle.dsh.bundle.patch)),
     `the declared patch ${bundle.dsh?.bundle?.patch} does not exist next to package.json`)
-  assert.equal(bundle.dsh?.client?.platform, 'web',
-    'the installable package declares no dsh.client, so an install mounts the host with no workbench')
+  // THE CLIENT BELONGS TO THE PACKAGE THE ROW MOUNTS, NOT TO THE INSTALLABLE ONE, and this assertion said the
+  // opposite until it was measured. The client module system resolves `exports["./client"]` from whichever package
+  // declares `dsh.client`, and this plugin's client registers under `@deepblend/dsh-blender-ui` — the package the
+  // patch's own row mounts ("the client module graph addresses this bundle by package identity, and the Host row
+  // mounts the same package"). A declaration on the bundle is not merely redundant: its export is absent, and the
+  // resolver returns `undefined` for an absent one rather than throwing, so the browser half would be skipped in
+  // silence. The rule is checked below, against every package that declares a client.
   const files = bundle.files ?? []
   // The two spell the same file differently: `dsh.bundle.patch` is a path relative to the package directory
   // (`./cordis.patch.yml`) while `files` entries are bare (`cordis.patch.yml`). Comparing them raw fails on a
@@ -501,4 +506,51 @@ test('every @deepseek-ai package the code imports is declared in its manifest', 
     `expected to find @deepseek-ai imports to check, found ${inspected} — the walk has stopped matching`)
   assert.deepEqual(undeclared, [],
     'these packages are imported but not declared, so a compatibility preflight cannot see them')
+})
+
+// ---------------------------------------------------------------------------
+// A package that declares a browser client must be loadable as one
+// ---------------------------------------------------------------------------
+//
+// Two rules, both read off the client module system rather than inferred from an example:
+//
+//   1. it resolves `exports["./client"]` on the package that declares `dsh.client`, and returns `undefined` when
+//      the export is ABSENT — no error, no warning, the client is simply never loaded. (An export that is present
+//      but malformed throws, which is why the silent case is the dangerous one.)
+//   2. the client registers itself under a package NAME, and the Host row must mount that same package.
+//
+// MEASURED before this was written: the bundle declared `dsh.client` with no `./client` export at all (silently
+// skipped), while the ui package — the one whose name the client registers under and whose row the patch mounts —
+// declared it and exported it correctly. The declaration was moved to the bundle by an earlier round that read a
+// single-package reference manifest and inferred that "the installable package" carries the client; in a monorepo
+// the two are different packages.
+test('every package that declares a browser client can actually be loaded as one', () => {
+  const packages = ['bundle', 'contracts', 'host', 'provider-local', 'tool', 'ui']
+  const problems = []
+  let declaring = 0
+  for (const name of packages) {
+    const directory = join(ROOT, 'packages', 'deepblend', name)
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
+    if (manifest.dsh?.client === undefined) continue
+    declaring += 1
+    const exported = manifest.exports?.['./client']
+    const relative = typeof exported === 'string' ? exported : exported?.default
+    if (typeof relative !== 'string') {
+      problems.push(`${name}: declares dsh.client but exports no ./client, so the client is skipped in silence`)
+      continue
+    }
+    const entry = join(directory, relative)
+    if (!existsSync(entry)) {
+      problems.push(`${name}: exports ./client at ${relative}, which does not exist`)
+      continue
+    }
+    // The registration names a package, and it has to be this one: the Host row mounts a package by name.
+    const source = readFileSync(entry, 'utf8')
+    const registered = /id:\s*'([^']+)'/.exec(source)?.[1]
+    if (registered !== manifest.name) {
+      problems.push(`${name}: its client registers as ${registered ?? 'nothing'}, which is not ${manifest.name}`)
+    }
+  }
+  assert.ok(declaring >= 1, 'no package declares dsh.client, so this check has stopped looking at anything')
+  assert.deepEqual(problems, [], 'these packages declare a browser client that cannot be loaded')
 })
