@@ -28,7 +28,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { validateScenePatch } from '@deepblend/dsh-blender-contracts'
+import { compileSchema, validateScenePatch } from '@deepblend/dsh-blender-contracts'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -118,6 +118,65 @@ const advice = host.slice(adviceAt, adviceAt + 700)
 check('and it spells the licence the way the schema wants it, not as a bare string',
   advice.includes('license: ${JSON.stringify({ source: license })}') && !/license: \$\{JSON\.stringify\(license\)\}/.test(advice),
   advice.slice(advice.indexOf('license'), advice.indexOf('license') + 80))
+
+// ---------------------------------------------------------------------------
+// Every `type` a schema uses is one the validator implements
+// ---------------------------------------------------------------------------
+//
+// `json-schema.js` ends its type switch with `default: return false`, and that line is dark in every coverage
+// reading — the claim being that no bundled schema ever asks for an unknown type. That is exactly the kind of
+// claim that should be ASSERTED rather than assumed, because the failure it hides is silent and total: a schema
+// written `"type": "int"` (instead of `"integer"`) makes the validator reject EVERY value at that position, and
+// the symptom is a feature that mysteriously refuses its own valid input. This walks the schemas the same way
+// the validator does — into every nested object and array — and requires the types to be ones it knows.
+{
+  const SUPPORTED = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
+  const used = new Map()
+  const visit = (value, where) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) => visit(entry, `${where}[${index}]`))
+      return
+    }
+    if (value === null || typeof value !== 'object') return
+    // A type ARRAY is supported — the validator normalises it (`Array.isArray(node.type) ? node.type :
+    // [node.type]`) and accepts the value if ANY member matches. The first version of this check called the
+    // array form unsupported and reported three real properties of `job-result.schema.json` as broken: it had
+    // read the `switch` and not its caller. What matters is every MEMBER being a type it knows.
+    const declared = Array.isArray(value.type) ? value.type : [value.type]
+    for (const type of declared) {
+      if (typeof type !== 'string') continue
+      if (!used.has(type)) used.set(type, [])
+      used.get(type).push(where)
+    }
+    for (const [key, nested] of Object.entries(value)) visit(nested, `${where}.${key}`)
+  }
+  for (const schema of schemas) visit(schema.json, schema.name)
+
+  check('the schemas were walked far enough to have found types (a check over zero types proves nothing)',
+    used.size >= 4 && [...used.values()].reduce((total, list) => total + list.length, 0) >= 20,
+    { types: used.size, occurrences: [...used.values()].reduce((total, list) => total + list.length, 0) })
+  const unknown = [...used.keys()].filter(type => !SUPPORTED.includes(type))
+  check('every `type` the schemas declare is one the validator implements, so its default branch stays dead',
+    unknown.length === 0,
+    Object.fromEntries(unknown.map(type => [type, used.get(type).slice(0, 3)])))
+
+  // AND THE REASON IT STAYS DEAD IS A GUARD, not luck: the validator refuses an unknown type when it meets one,
+  // before `matchesType` is ever called. Asserting that behaviourally is what turns "the default branch is dark"
+  // from an observation into a property — a schema typo fails loudly at validation time instead of silently
+  // rejecting every value at that position.
+  const typo = { type: 'object', properties: { id: { type: 'int' } }, required: ['id'] }
+  // `compileSchema` walks the schema for unsupported KEYWORDS; the type names are checked when a value is
+  // validated, which is the walk that reaches `matchesType`. So the probe compiles and then validates.
+  let refused = null
+  try {
+    compileSchema(typo, { id: 'a schema with a typo' })({ id: 3 })
+  } catch (cause) {
+    refused = cause
+  }
+  check('an unknown `type` is REFUSED when the validator meets it, which is why the default branch is dead',
+    refused !== null && /unknown type "int"/.test(String(refused.message)),
+    refused === null ? 'it accepted a schema declaring type "int"' : String(refused.message))
+}
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nSchema references: ${passed}/${results.length} check(s) passed`)

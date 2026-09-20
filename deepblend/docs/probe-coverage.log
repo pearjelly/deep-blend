@@ -255,6 +255,25 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 120: no probe — a dark line explained by a property instead of an observation ──
+No product code changed. `json-schema.js` ends its type switch with `default: return false`, and that line is dark
+in every reading — the claim being that no bundled schema asks for an unknown type. That claim is worth asserting
+rather than assuming, because the failure it hides is silent and total: a schema written `"type": "int"` makes the
+validator reject every value at that position, and the symptom is a feature that mysteriously refuses its own
+valid input.
+
+The check walks the schemas the way the validator does (every nested object and array) and requires the types to
+be ones it implements, with a guard so a walk over zero types cannot pass. A second, behavioural assertion pins
+WHY the default branch is dead: a schema declaring `"type": "int"` must be refused when a value is validated
+against it, which is a guard rather than luck.
+
+Three misreadings happened first, and all three are the same shape as earlier rounds: the first check called a
+type ARRAY unsupported and reported three real properties of `job-result.schema.json` as broken (the truth was in
+the caller — `Array.isArray(node.type) ? node.type : [node.type]` — because I read the switch and not who calls
+it); the probe called `compileSchema` alone, which walks keywords, while type names are checked when a value is
+validated; and the first mutation was aimed at the authoritative schema copy while this check walks the packaged
+mirror (the mirror-drift check lives in another suite).
+
 ── ROUND 119: no probe — the fourth `--check`, and the half of it this machine cannot reach ──
 No product code changed. `install-blender.mjs` keeps its managed install inside the repository
 (`MANAGED_TOOLS_DIRECTORY` is `.tools`, `TOOLS = join(ROOT, '.tools')`) and offers no override, so driving its
