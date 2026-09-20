@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 150: no probe — the skill's metadata, checked more loosely than the consumer checks it ──
+── ROUND 151: no probe — the quoted output a stranger reads first ──
+No product code changed. "快速开始" opens with the failure a stranger meets before anything else — a clone has no
+`node_modules`, so the contract files that import the shared contracts die before their first assertion — and it
+quotes the command and its summary line. MEASURED by building a release-archive-shaped tree and running that
+command: the run prints `11/65`, while the README said `0/16`. Both numbers had rotted: the denominator grew from
+16 files to 65, and the numerator is not zero, because ten (now eleven) files read only from disk and need no links
+at all — so the sentence beside the quote, "they ALL die on the import", had stopped being true too.
+
+`contract/readme-fresh-clone.test.mjs` executes the quote: it copies the tree, runs the documented command, and
+requires the README's line to be the line that comes back, asserting the numerator is above zero as well so that
+the sentence and the number cannot disagree in either direction. The README now says which files need imports,
+quotes `11/65`, and says the numbers are pinned by a check. The mutation that restores `0/16` goes red.
+
+The check changed the number it checks, and said so: adding the file made the copy's run print `11/65` instead of
+`10/64`, which the check reported immediately, and the README's quote, file total, node:test total and "N 条照跑"
+were all updated from the measurement. That is what a derived number with a checker buys.
+
+The recursion trap appeared a second time — the copied tree contains this case, so it copied again and the run hit
+the ten-minute timeout. Round 181's environment-variable guard transferred directly, and the case runs in 7
+seconds.
+
+── ROUND 150: no probe — the skill's metadata, checked more loosely than the consumer checks it ──── ROUND 150: no probe — the skill's metadata, checked more loosely than the consumer checks it ──
 No product code changed. Rounds 133–135 read the loaders for the bundle, the client and the preset; this round read
 the fourth, `dsh-skill-filesystem`, which loads the skill a preset ships. Two rules: the frontmatter is read with a
 YAML parser and the WHOLE FILE IS IGNORED, with one logger warning, when the parse fails or when the name does not

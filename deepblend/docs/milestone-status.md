@@ -11180,3 +11180,61 @@ DeepBlend tests: 64/64 file(s) passed
 **三个平面的加载器都读过了** ✓：bundle ✓、client ✓、preset ✓、skill ✓——
 **四处「失败即静默」的形状** ✓（缺导出 ✓、缺声明 ✓、解析失败 ✓、名字不合法 ✓），
 而本仓库在这四处**现在都有断言** ✓✓。
+
+## 182. 快速开始里那段**引用输出**：两个数字都漂了
+
+### 182.1 量它
+
+README 的「快速开始」第一块给出**一个陌生人最先遇到的失败** ✓：
+刚 clone 的仓库没有 `node_modules` ✓ → 需要 import 的契约文件在第一条断言之前就死 ✓。
+它**引用了命令与输出** ✓：
+
+```
+$ node deepblend/tests/run.mjs
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
+DeepBlend tests: 0/16 file(s) passed        ← 引用
+```
+
+**实测**（`rsync` 造一份发布归档形状的树 ✓、跑同一条命令 ✓）：
+
+```
+DeepBlend tests: 11/65 file(s) passed       ← 今天真的会打印的
+```
+
+**两个数字都漂了** ✓✓：分母从 **16** 涨到 **65** ✓；分子**不是 0** ✗——
+**十个（现在是十一个）纯读文件的套件根本不需要链接** ✓✓，
+所以旁边那句「**全部**死于 `ERR_MODULE_NOT_FOUND`」**也不再成立** ✗。
+
+### 182.2 修法：把引用**执行**一遍
+
+新增 `contract/readme-fresh-clone.test.mjs` ✓：造一份没有 `node_modules` 的树 ✓ →
+跑文档里那条命令 ✓ → **要求 README 引用的那一行就是真的那一行** ✓✓；
+并且断言**分子大于 0** ✓（否则旁边那句「全部死于」才是对的 ✓——两个方向都管 ✓）。
+
+README 改成 ✓：句子说「**需要 import 的那些**契约文件」✓（而不是全部 ✓），
+引用改成 **11/65** ✓，并写明**这两个数字由检查钉住** ✓✓。
+
+**变异**：把引用改回 `0/16` ✓ → **红** ✓
+（`the README quotes 0/16 for a fresh clone; the run prints 11/65` ✓✓）。
+
+### 182.3 检查**自己**改了它引用的数字
+
+加这个文件之后 ✓，拷贝里就多了一个契约文件 ✓ → **65** ✓、而**通过**的也多一个 ✓ → **11** ✓✓。
+检查当场报出 `the README quotes 10/64 for a fresh clone; the run prints 11/65` ✓✓——
+于是 README 的引用、文件总数、`node:test` 用例数、以及「其余 N 条照跑」**一起**按实测更新 ✓
+（**这就是为什么那个数字要有检查** ✓：它每次被自己改动时都会**当场告诉你** ✓✓）。
+
+（同一个递归陷阱第二次出现 ✓：拷进来的树里**也有这个用例** ✗ → 它又拷一份 ✓ →
+**跑满十分钟超时** ✓✓。第 181 轮那个环境变量守卫照搬 ✓ → **7 秒** ✓。）
+
+### 182.4 收口
+
+```
+$ node deepblend/tests/contract/readme-fresh-clone.test.mjs
+ℹ pass 1   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
+契约层 64 → **65** 文件 ✓、`node:test` 用例 332 → **333** ✓——四个派生数字都按实测更新 ✓✓。
