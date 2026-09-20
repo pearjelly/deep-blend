@@ -255,7 +255,19 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 158: no probe — three rows of the contributor's map, and one of them was wrong ──
+── ROUND 159: no probe — two more rows of the contributor's map ──
+No product code changed. Two more rows of CONTRIBUTING's "change this, and this assertion catches the rest" table
+were sampled by making the change: a second copy of the assertion totals in another document reddens
+`documented-counts`, and a real milestone-status claim in the PR template reddens `contributor-surface`. Both hold.
+Five rows sampled now, four accurate and one wrong — the import row round 158 corrected.
+
+Measuring the template row took three attempts, and the first two taught the round's lesson. Renaming a heading was
+outside the four things the row's own parenthetical names, and writing "里程碑状态：进行中" carried no milestone
+identifier, while the detector requires an `M\d` plus a verdict. Only `M5 验收已闭环` — a claim the rule actually
+forbids — went red. That is the fourth time in this stretch that a mutation was too weak rather than the check too
+loose: read the check before mutating it, or "it stayed green" says nothing about the check.
+
+── ROUND 158: no probe — three rows of the contributor's map, and one of them was wrong ──── ROUND 158: no probe — three rows of the contributor's map, and one of them was wrong ──
 No product code changed. CONTRIBUTING.md carries a table of "change this, and this assertion catches the rest",
 which round 161 confirmed names files that exist. This round measured the stronger claim — that the named suite
 actually reddens — by making the change, since mutation is the only instrument that answers it.
