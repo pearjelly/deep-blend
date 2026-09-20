@@ -130,3 +130,31 @@ test('the submission filename is the one the gate derives from the url', () => {
   assert.match(entry, /data\/plugins\/pearjelly__deep-blend--packages-deepblend-bundle\.yml/,
     'the entry no longer records the filename the gate would require')
 })
+
+// ---------------------------------------------------------------------------
+// The description's BEHAVIOURAL claims are backed by written decisions
+// ---------------------------------------------------------------------------
+//
+// The entry says the plugin comes "with immutable revisions and an approval gate". Those are claims about behaviour,
+// and the guide's rule — "it is read as a claim about your plugin, and it is checked against your code" — has no
+// lexical answer: no assertion in this repository contains the word "immutable", because the behaviour is expressed
+// as assertions about what a patch does. What CAN be checked is that each claim is a decision somebody wrote down:
+// the register is the place a claim like this is supposed to live, and its own definitions are checked by
+// `docs-consistency.test.mjs`.
+//
+// MEASURED: both are there. D28's body says "永不可变；这就是「不可变 revision」的含义" — the phrase in the entry
+// is the phrase in the decision — and the approval gate is D64 plus D191, which records what the gate actually does
+// when it refuses. A claim with no decision behind it would be the thing this case exists to catch.
+test('every behavioural claim in the description is backed by a defined decision', () => {
+  const register = readFileSync(join(ROOT, 'deepblend', 'docs', 'architecture-decisions.md'), 'utf8')
+  const defined = (number) => new RegExp(`^#{2,4} ?D${number}\\b|\\|\\s*\\**D${number}\\**\\s*[:：]`, 'm').test(register)
+  const claims = [
+    ['immutable revisions', 28],
+    ['an approval gate', 64],
+  ]
+  const unsupported = claims.filter(([, number]) => !defined(number)).map(([claim, number]) => `${claim} (D${number})`)
+  assert.deepEqual(unsupported, [], 'the description claims behaviour that no written decision covers')
+  // The claims are in the description, not merely in this file: if the sentence changes, this case should be revisited.
+  assert.match(entry, /immutable revisions/, 'the description no longer claims immutable revisions')
+  assert.match(entry, /an approval gate/, 'the description no longer claims an approval gate')
+})

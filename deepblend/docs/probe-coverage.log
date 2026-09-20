@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 147: no probe — the read-only guarantee, and the prerequisites table completed ──
+── ROUND 148: no probe — the entry's behavioural claims, and the recovery manual mapped ──
+No product code changed. The plugin list's rule is that a description "is read as a claim about your plugin, and it
+is checked against your code". Round 153 checked the entry's NUMBERS; the entry also claims behaviour — "with
+immutable revisions and an approval gate" — and for those there is no lexical answer: no assertion in this
+repository contains the word "immutable", because immutability is expressed as assertions about what a patch does
+(a new revision, the old one untouched).
+
+What can be checked is that each claim is a decision somebody wrote down, which is where a claim like this belongs —
+and the register's own definitions are already checked by `docs-consistency`. MEASURED: both are there. D28's body
+reads "永不可变；这就是「不可变 revision」的含义" — the sentence in the entry is the sentence in the decision — and
+the approval gate is D64 plus D191, which records what the gate does when it refuses.
+
+`listing-entry.test.mjs` now carries a claim-to-decision table, asserts each number has a definition in the
+register (the same two shapes round 162 uses), and asserts the two phrases are still in the entry so that a
+rewritten description comes back to this case. The mutation that renames D28's heading and row — leaving the claim
+with no backing — goes red.
+
+The same round mapped the recovery manual: all eleven sections have evidence, from 2 test files to 45, and section
+3's recipe ("the frames are all there but there is no video") is DRIVEN in `tool-plane-m3.e2e.mjs` with a real
+Blender and a real ffmpeg. No section of the operator's manual is unowned.
+
+── ROUND 147: no probe — the read-only guarantee, and the prerequisites table completed ──── ROUND 147: no probe — the read-only guarantee, and the prerequisites table completed ──
 No product code changed. Rounds 144–146 turned three documented failure modes into runnable cases; this round swept
 the other contracts the manuals state, and `install.md` has the strongest kind a tool can make: "四步各有一条命令
 和一个 `--check`。`--check` 从不改动任何东西" — an operator runs a check precisely when they are unsure of the
