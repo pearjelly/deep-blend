@@ -335,3 +335,37 @@ test('the provider never reaches a shell, and hands the child no secret', () => 
     'SECURITY.md states how many variables the whitelist has; the list is the fact, and a count is what rots',
   )
 })
+
+// ---------------------------------------------------------------------------
+// The tally line is a COUNT, and counts are the part of a sentence that rots
+// ---------------------------------------------------------------------------
+//
+// `security.md`'s §15.2 matrix ends with "统计：**14 条 ✅、1 条 ➖、2 条 ⚠️、1 条 ❌**", and that sentence had
+// drifted: it said 2 ➖ / 1 ⚠️ while the table's own status column held 1 ➖ / 2 ⚠️ (a row had changed category
+// and the summary was not updated). MEASURED, and the table was the truthful side — every ⚠️ and ❌ row cites a
+// §7 number, which the check above verifies, and the ➖ row is the texture-size requirement that is genuinely
+// not applicable. So the sentence is now derived from the table by this check rather than trusted.
+test('the §15.2 tally sentence is derived from the table, not trusted', () => {
+  const lines = security.split('\n')
+  const start = lines.findIndex(line => line.startsWith('## 3.'))
+  const tallyIndex = lines.findIndex((line, index) => index > start && line.startsWith('统计：'))
+  const rows = lines.slice(start, tallyIndex).filter(line => /^\|\s*[0-9]+\s*\|/.test(line))
+  const counted = { '✅': 0, '➖': 0, '⚠️': 0, '❌': 0 }
+  const unrecognised = []
+  for (const row of rows) {
+    const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
+    const marker = (cells[cells.length - 1].match(/^(✅|➖|⚠️|❌)/) ?? [])[1]
+    if (marker === undefined) unrecognised.push(cells[0])
+    else counted[marker] += 1
+  }
+  const sentence = lines[tallyIndex]
+  const quoted = Object.fromEntries(
+    [...sentence.matchAll(/(\d+)\s*条\s*(✅|➖|⚠️|❌)/g)].map(match => [match[2], Number(match[1])]),
+  )
+  assert.deepEqual(unrecognised, [], 'every row of the §15.2 matrix must end in one of the four markers')
+  assert.equal(rows.length, 18, 'the §15.2 matrix is SPEC §15.2\u2019s eighteen requirements')
+  assert.deepEqual(
+    quoted, counted,
+    `security.md's tally line and its own table disagree: quoted ${JSON.stringify(quoted)}, table ${JSON.stringify(counted)}`,
+  )
+})

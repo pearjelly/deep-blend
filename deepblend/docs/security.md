@@ -74,7 +74,7 @@
 | 17 | 日志脱敏 | 两半，各管一边：秘密**根本不进子进程**（环境变量白名单），而且**本插件自己产出的 URL 一律先脱敏**——凭据、查询串、片段被移除并在文本里**说明移除了什么**（预签名的模型链接是常态，不是特例）。仍然没有的是「用户自己贴进对话的秘密」的日志过滤器，那属于 DSH 的凭据平面 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」＋`contract/url-redaction.test.mjs` 与 `contract/host-asset-ingest.test.mjs`「a failed fetch of a PRESIGNED url quotes it with the signature removed」 | ⚠️ 偏差 §7 #10 |
 | 18 | 完整 Tool 审计 | 每次 Blender 动作留 durable job 记录；每次成功的 patch 留 operation manifest；每个 revision 留 manifest | `deepblend/tests/blender-integration/fixture.e2e.mjs` 「every Blender action left a durable job record」 | ✅ |
 
-统计：**14 条 ✅、2 条 ➖、1 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
+统计：**14 条 ✅、1 条 ➖、2 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
 
 ## 4. 已知偏差
 

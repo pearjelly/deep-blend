@@ -255,6 +255,18 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
+── ROUND 113: no probe — a tally sentence that disagreed with its own table ──
+No product code changed. `security.md`'s §15.2 matrix ends with a summary line, and that line had drifted: it
+said "14 条 ✅、2 条 ➖、1 条 ⚠️、1 条 ❌" while the table's own status column held 1 ➖ and 2 ⚠️. The table was the
+truthful side — the ➖ row is the texture-size requirement, which is genuinely not applicable because managed
+Blender imports geometry only, and both ⚠️ rows cite a §7 number, which is what the summary itself promises.
+
+The sentence is corrected and, more usefully, it is now DERIVED by a check: the §15.2 table's status column is
+counted and compared with the numbers the sentence quotes, with two guards (eighteen rows, since SPEC §15.2 has
+eighteen requirements, and every row must end in one of the four markers — otherwise "cannot count" would
+quietly become "counted fewer"). A count is the part of a sentence that rots; this one can no longer rot
+silently.
+
 ── ROUND 112: no probe — a projection whose every read is `?? null`-guarded ──
 No product code changed. The revision manifest carries a projection of the compile report's technical validation
 (`ok`, `errors`, `counts`, `geometry`, `frameRange`, `fps`, `engine`, `activeCamera`, `animatedObjects`,
