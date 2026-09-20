@@ -34,7 +34,9 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 
 import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS, validateScenePatch } from '@deepblend/dsh-blender-contracts'
@@ -836,4 +838,48 @@ test('every service name a document shows is one the product declares', () => {
   // which is a record. A floor, not a count.
   assert.ok(inspected >= 5, `expected the documents to name the services, found ${inspected}`)
   assert.deepEqual(foreign, [], 'a document names a service the product does not declare')
+})
+
+// ---------------------------------------------------------------------------
+// The profile manifest dsh-baseline.md quotes is the shape a profile has
+// ---------------------------------------------------------------------------
+//
+// `dsh-baseline.md` is the compatibility anchor document, and it shows the profile manifest a `dsh` deployment
+// creates — name, `private`, the two bundles, `patchReload`. A harness upgrade that renamed a field would leave the
+// anchor describing a shape the deployment no longer produces, and nothing would notice, because the document is
+// not executed.
+//
+// MEASURED against the real profile: `name` is "dsh-profile-web", `private` is true, `patchReload` is "live", and
+// the bundles are the two the quote shows (the real profile also carries this plugin, prepended by the installer —
+// the quote is the pristine state, which is what a reader comparing their own fresh profile would see).
+//
+// The check builds a profile the way the deployment does — `dsh plugin add` into a throwaway DSH_HOME — and
+// requires every field the quote shows to be there with the quoted value.
+test('the profile manifest dsh-baseline.md quotes is the shape a profile has', () => {
+  const doc = readFileSync(join(ROOT, 'deepblend', 'docs', 'dsh-baseline.md'), 'utf8')
+  const quoted = /\{[^{]*"name": "dsh-profile-web"[\s\S]*?\n\}/.exec(doc)
+  assert.ok(quoted !== null, 'dsh-baseline.md no longer quotes a profile manifest — re-anchor this check')
+  const expected = JSON.parse(quoted[0])
+
+  const home = mkdtempSync(join(tmpdir(), 'deepblend-profile-shape-'))
+  try {
+    const installed = spawnSync('dsh', ['plugin', 'add', join(ROOT, 'packages', 'deepblend', 'bundle'), '--profile', 'web'], {
+      cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 300_000,
+    })
+    assert.equal(installed.status, 0, `creating the profile failed:\n${installed.stdout}${installed.stderr}`)
+    const actual = JSON.parse(readFileSync(join(home, 'profiles', 'web', 'package.json'), 'utf8'))
+
+    const problems = []
+    if (actual.name !== expected.name) problems.push(`name: quoted ${expected.name}, profile has ${actual.name}`)
+    if (actual.private !== expected.private) problems.push('private differs')
+    if (actual.dsh?.profile?.patchReload !== expected.dsh.profile.patchReload) {
+      problems.push(`patchReload: quoted ${expected.dsh.profile.patchReload}, profile has ${actual.dsh?.profile?.patchReload}`)
+    }
+    // The quoted bundles are a SUBSET: the installer prepends this plugin, and the quote is the pristine state.
+    const missing = expected.dsh.profile.bundles.filter(name => !(actual.dsh?.profile?.bundles ?? []).includes(name))
+    if (missing.length > 0) problems.push(`the profile is missing the quoted bundle(s): ${missing.join(', ')}`)
+    assert.deepEqual(problems, [], 'the anchor document describes a profile shape the deployment does not produce')
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
 })

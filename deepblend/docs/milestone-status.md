@@ -11642,3 +11642,36 @@ DeepBlend tests: 65/65 file(s) passed
 
 **产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
 `node:test` 用例 **339** ✓、契约层 **65** 个文件 ✓。
+
+## 193. 兼容锚点文档里那份**profile 清单**：逐字段对照，全中
+
+### 193.1 量它
+
+`dsh-baseline.md` 是**兼容锚点**那份文档 ✓——它贴出一份 `dsh` 会创建的 profile 清单 ✓
+（`name` ✓、`private` ✓、两个 bundle ✓、`patchReload` ✓）。**harness 升级要是改了字段名** ✓，
+这份锚点就会描述一个**部署不再产出**的形状 ✓，而**没有任何东西会发现** ✓（文档不会被执行 ✓）。
+
+**实测**（对照真实 profile ✓）：`name` 是 `"dsh-profile-web"` ✓、`private` 是 `true` ✓、
+`patchReload` 是 `"live"` ✓、两个 bundle 都在 ✓✓——**逐字段全中** ✓。
+真实 profile 里还多一个本插件 ✓（安装器**前插**的 ✓）——引用的是**初始状态** ✓，
+而那正是读者拿自己的新 profile 对照时会看到的 ✓✓。
+
+### 193.2 修法：造一个 profile，比对形状
+
+`docs-consistency.test.mjs` 新增 ✓：从文档里读出那份清单 ✓ →
+用 **`dsh plugin add`** 在**一次性 `$DSH_HOME`** 里**造一个真的 profile** ✓ →
+要求引用里的每个字段都在、且值相同 ✓✓（bundle 按**子集**比 ✓——引用是初始状态 ✓，安装器会前插本插件 ✓）。
+
+**两条变异全红** ✓：把引用里的一个 bundle 换成不存在的 ✓、把 `patchReload` 改成 `"startup"` ✓。
+
+### 193.3 收口
+
+```
+$ node deepblend/tests/contract/docs-consistency.test.mjs
+ℹ pass 25   ℹ fail 0
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 65/65 file(s) passed
+```
+
+**产品代码未改** ✓，读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓。
+`node:test` 用例 339 → **340** ✓（README 的更新仍然只落在一处 ✓）。

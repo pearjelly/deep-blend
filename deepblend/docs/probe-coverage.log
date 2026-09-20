@@ -255,7 +255,22 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 161: no probe — the suite is deterministic, measured for the first time ──
+── ROUND 162: no probe — the profile manifest the compatibility anchor quotes ──
+No product code changed. `dsh-baseline.md` is the compatibility anchor, and it shows the profile manifest a `dsh`
+deployment creates — name, `private`, two bundles, `patchReload`. A harness upgrade that renamed a field would
+leave the anchor describing a shape the deployment no longer produces, and nothing would notice, because the
+document is not executed.
+
+MEASURED against the real profile: name "dsh-profile-web", private true, patchReload "live", both quoted bundles
+present — every field matches. The real profile also carries this plugin, prepended by the installer, so the quote
+is the pristine state a reader comparing their own fresh profile would see.
+
+The check builds a profile the way the deployment does — `dsh plugin add` into a throwaway DSH_HOME — and requires
+every field the quote shows to be present with the quoted value, with the bundles compared as a SUBSET for the
+reason above. Two mutations go red: a quoted bundle that does not exist, and a `patchReload` the deployment does not
+use.
+
+── ROUND 161: no probe — the suite is deterministic, measured for the first time ──── ROUND 161: no probe — the suite is deterministic, measured for the first time ──
 No product code changed. The repository writes "passing once is not passing" into its rules everywhere — mutation
 testing, vacuity guards — and nobody had measured the most basic property underneath them: does the same code give
 the same answer twice? A flaky suite is worse than a failing one, because it teaches people to re-run.
