@@ -31,6 +31,7 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import { createHash } from 'node:crypto'
+import { mkdirSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -290,9 +291,14 @@ check('a SUCCESSFUL remote ingest leaves no scratch behind either, because the b
   scratchAfterSuccess.length === 0,
   scratchAfterSuccess)
 
-check('two ingests in flight at once both land in the manifest, because its read-modify-write has no await',
+// BOTH CALLS SUCCEED, BUT ONE ENTRY PER PATH — and this case used to assert TWO, which pinned a defect: both
+// ingests fetch the same URL, so they land at the same `assets/raw/race.glb`, and the manifest de-duplicated by
+// asset id alone. The first entry then described bytes the second had already replaced. The manifest replaces by
+// PATH as well now (the rule the artifact index already follows), so the honest expectation is one entry whose
+// file exists and whose hash is that file's.
+check('two ingests in flight at once: both succeed, and the manifest keeps ONE entry for the path they share',
   concurrent.every(entry => entry.assetId !== undefined) &&
-  afterRace.assets.filter(entry => entry.assetId.startsWith('race-')).length === 2 &&
+  afterRace.assets.filter(entry => entry.assetId.startsWith('race-')).length === 1 &&
   afterRace.assets.every(entry => existsSync(join(studio.store.projectDirectory(projectId), entry.path))),
   { manifestIds: afterRace.assets.map(entry => entry.assetId) })
 
@@ -383,6 +389,57 @@ check('a local ingest produces the same record shape, with a local source',
   { assetId: local.assetId, source: local.source, sameHash: local.sha256 === fetched.sha256 })
 
 // ---------------------------------------------------------------------------
+// Two ingests of the SAME FILE NAME at once
+// ---------------------------------------------------------------------------
+//
+// The destination is `<project>/assets/raw/<name>` — shared by NAME, not by asset id — and the copy used to write
+// it in place (`copyFileSync`), so two ingests of a file called `model.glb` interleaved their writes. A reader, or
+// the hash computed right after the copy, could then see a mixture of two different assets, and the manifest would
+// record the hash of whatever the mixture happened to be.
+//
+// Two sources with the SAME NAME and DIFFERENT BYTES, because identical bytes would make a torn write
+// undetectable: what the case asserts is that the file which lands is one of the two, intact, and that the hash
+// the manifest records is that file's own hash.
+{
+  const firstSource = join(outsideRoot, 'a', 'twin.glb')
+  const secondSource = join(outsideRoot, 'b', 'twin.glb')
+  mkdirSync(join(outsideRoot, 'a'), { recursive: true })
+  mkdirSync(join(outsideRoot, 'b'), { recursive: true })
+  // Small enough for the fixture's 256-byte cap, different enough that a mixture is detectable.
+  const firstBytes = Buffer.concat([glbBytes, Buffer.alloc(32, 0x11)])
+  const secondBytes = Buffer.concat([glbBytes, Buffer.alloc(32, 0x22)])
+  writeFileSync(firstSource, firstBytes)
+  writeFileSync(secondSource, secondBytes)
+
+  const [left, right] = await Promise.all([
+    studio.ingestAsset({ projectId, sourcePath: firstSource, assetId: 'twin-left' }).catch(cause => cause),
+    studio.ingestAsset({ projectId, sourcePath: secondSource, assetId: 'twin-right' }).catch(cause => cause),
+  ])
+  const twinPath = join(studio.store.projectDirectory(projectId), 'assets/raw/twin.glb')
+  const landed = existsSync(twinPath) ? readFileSync(twinPath) : null
+  const isFirst = landed !== null && landed.equals(firstBytes)
+  const isSecond = landed !== null && landed.equals(secondBytes)
+  check('two ingests of one file NAME at once leave ONE of the two files intact, never a mixture',
+    isFirst || isSecond,
+    { bytes: landed?.length ?? null, first: isFirst, second: isSecond,
+      outcomes: [left?.code ?? 'ok', right?.code ?? 'ok'], leftMessage: left?.message?.slice(0, 80) })
+
+  // And the hash recorded is the hash of what is actually on disk: a torn write would have been hashed as torn.
+  const recorded = createHash('sha256').update(landed).digest('hex')
+  const manifest = JSON.parse(readFileSync(
+    join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8',
+  ))
+  // ONE ENTRY PER PATH, and it describes the bytes that are actually there. Two entries would leave the first
+  // describing bytes the second replaced — the same fact in two places disagreeing.
+  const twins = (manifest.assets ?? []).filter(entry => entry.path === 'assets/raw/twin.glb')
+  check('and the manifest keeps ONE entry for that path, whose hash is the hash of the bytes that survived',
+    twins.length === 1 && twins[0].sha256 === recorded,
+    { entries: twins.length, recorded: recorded.slice(0, 12), manifest: twins[0]?.sha256?.slice(0, 12) })
+}
+
+// ---------------------------------------------------------------------------
+// A declared hash has to be the FILE's hash
+// ---------------------------------------------------------------------------// ---------------------------------------------------------------------------
 // A declared hash has to be the FILE's hash
 // ---------------------------------------------------------------------------
 //

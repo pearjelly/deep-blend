@@ -2,11 +2,11 @@
 #
 #   node deepblend/tools/coverage-probe.mjs --all --keep    (the run this log came from)
 #
-# Taken 2026-09-20 (round 115 of this session's review). Its provenance is the next line because the
+# Taken 2026-09-20 (round 116 of this session's review). Its provenance is the next line because the
 # merge rule changed underneath it once already; the numbers below are reproducible from the kept
 # coverage directory with `--from`.
 #
-# PROVENANCE: collected by the suite run of round 115 (`suite exit code: 0`) and read with the merge
+# PROVENANCE: collected by the suite run of round 116 (`suite exit code: 0`) and read with the merge
 # rule corrected in round 27 (D112) — a line is judged by the innermost range covering its first code
 # character. `node deepblend/tools/coverage-probe.mjs --from <that coverage directory>` reproduces every
 # number on this page. The tree was FROZEN for this run — no product file and no test file was edited
@@ -33,11 +33,11 @@ coverage files: 119 (119 parsed)
 product files seen: 34
 product files never loaded: 0
 
-product lines seen:      20680, never executed: 1277 (6.2%)   [every line]
-product CODE lines:      12345, never executed: 32 (0.3%)   [blank + comment-only excluded]
+product lines seen:      20710, never executed: 1280 (6.2%)   [every line]
+product CODE lines:      12355, never executed: 35 (0.3%)   [blank + comment-only excluded]
 
 ── WHAT THE LAST ROUNDS CHANGED, MEASURED ──
-                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96   —   r97   —   r98   —   r99   —   r100   —   r101   —   r102   —   r104   —   r106   —   r107   —   r108   —   r109   —   r111   —   r113   —   r114   —   r115
+                                §36           §41 (r28)     §42 (r29)     r38           r40           r41           r43           r44           r45           r46           r47           r48           r49           r50           r51   —   r52   —   r53   —   r54   —   r55   —   r57   —   r60   —   r65   —   r66   —   r67   —   r68   —   r69   —   r70   —   r71   —   r72   —   r73   —   r74   —   r75   —   r76   —   r77   —   r78   —   r79   —   r80   —   r81   —   r82   —   r83   —   r84   —   r85   —   r86   —   r87   —   r88   —   r89   —   r90   —   r91   —   r92   —   r93   —   r94   —   r95   —   r96   —   r97   —   r98   —   r99   —   r100   —   r101   —   r102   —   r104   —   r106   —   r107   —   r108   —   r109   —   r111   —   r113   —   r114   —   r115   —   r116
 product code lines dark         —             1637 (13.5%)  1497 (12.4%)  1274 (10.5%)  1158 (9.6%)   1077 (8.9%)   1057 (8.7%)   993 (8.2%)    938 (7.8%)    853 (7.1%)    804 (6.6%)    780 (6.4%)    731 (6.0%)    687 (5.7%)    601 (5.0%)   543 (4.5%)   454 (3.8%)   412 (3.4%)   377 (3.1%)   349 (2.9%)   305 (2.5%)   272 (2.2%)   251 (2.1%)   224 (1.8%)   210 (1.7%)   185 (1.5%)   167 (1.4%)   153 (1.3%)   140 (1.2%)   133 (1.1%)   122 (1.0%)   103 (0.9%)   90 (0.7%)   74 (0.6%)   66 (0.5%)   53 (0.4%)   45 (0.4%)   43 (0.4%)   48 (0.4%)   39 (0.3%)   38 (0.3%)   38 (0.3%)   38 (0.3%)   32 (0.3%)   53 (0.4%)
 files with dark lines           —             28            28            28            28            26            24            24            24            24            24            24            23            23            23   23   22   21   21   21   21   21   21   21   21   21   21   21   20   20   20   19   18   17   11   10   9   9   9   9   9   9   9   9   8   9
 host/lib/index.js               (951 raw)     649           526           493           493           493           493           429           374           292           244           220           220           220           220   167   167   167   132   132   88   88   67   40   26   26   26   20   20   20   20   20   20   20   20   20   20   18   17   14   13   13   13   13   13
@@ -255,7 +255,28 @@ one whose scope cannot be seen from its name. And two of the mutations turned ou
 one removed a single `...` from a block that has several, and the other removed them all, which made the block
 VALID JSON.
 
-── ROUND 115: two encoders, one file ──
+── ROUND 116: two manifest entries for one path ──
+The asset destination is `assets/raw/<file name>` — shared by NAME, not by asset id — so two ingests of one file
+name write the same path. Measured with two sources that share a name and differ in bytes (identical bytes would
+make a torn write invisible): both succeeded, the file that landed was one of the two intact, and the manifest's
+hash matched NEITHER. The hash was not miscomputed: the manifest kept TWO entries for that path, the first
+describing bytes the second had replaced, because its de-duplication filter looked at `assetId` alone. The
+artifact index already replaces by PATH ("re-emitting the same path replaces its entry"), so this was one fact
+kept in two places that disagreed.
+
+The filter now takes the path into account, and the copy goes through a temporary name and a rename (the
+discipline `writeJsonAtomic` applies everywhere else). The fix immediately turned an older case red — the one
+written in round 108 asserting that BOTH entries land — which means that case had been pinning the defect; it now
+asserts the honest property (both succeed, one entry for the shared path, and that entry's file exists).
+
+Two mutations: filtering by id alone goes red, and putting the in-place copy back SURVIVES — measured as an
+equivalent mutant, because the whole stretch from the copy to the manifest write is synchronous and two calls
+cannot interleave in it. The rename is therefore DEFENSIVE, and the code says so: it makes the file atomic for a
+future reader (a panel, a second process, a tool opening the asset mid-ingest) where the synchronous argument no
+longer holds. The three new dark lines are named at their sites for the same reason — a catch reachable only on a
+full volume, and a post-copy size check that is a second belt behind two earlier ones.
+
+── ROUND 115: two encoders, one file ──── ROUND 115: two encoders, one file ──
 `encodedPath(jobDirectory, jobId)` is one path per job, and an export is not instantaneous — it shells out to
 ffmpeg and then probes the result. So a second export of the same job writes the same MP4 while the first is still
 writing it, and each verifies a file the other is producing. Nothing guarded it: both callers see a `completed`

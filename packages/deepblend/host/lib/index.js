@@ -2110,9 +2110,38 @@ export default class BlenderStudio extends Service {
         'asset destination',
       )
       mkdirSync(dirname(destination), { recursive: true })
-      copyFileSync(staged, destination)
+      // NO IN-FLIGHT GUARD HERE, AND THAT IS A MEASUREMENT RATHER THAN AN OMISSION: everything from the copy to
+      // the manifest write below is SYNCHRONOUS (`copyFileSync`, `renameSync`, `writeJsonAtomic`), so two ingests
+      // of one file name cannot interleave in that window at all — a guard written for it never fires. What they
+      // DO leave behind is two manifest entries for one path, which is handled at the entry below.
+      //
+      // COPIED TO A TEMPORARY NAME AND RENAMED, because the destination is shared by FILE NAME: two ingests of a
+      // file called `model.glb` — even with different asset ids — write the same path, and `copyFileSync` writes
+      // in place. `renameSync` is atomic on POSIX, the same discipline `writeJsonAtomic` applies to every JSON
+      // document this store writes.
+      //
+      // THIS IS DEFENSIVE RATHER THAN OBSERVED, and saying so is the point: MEASURED, the mutation that puts
+      // `copyFileSync` back in place survives every test, because this whole stretch is synchronous and two calls
+      // cannot interleave in it. The rename costs nothing and makes the file atomic for any FUTURE reader — a
+      // panel, a second process, a tool that opens the asset while an ingest runs — where the synchronous
+      // argument no longer applies.
+      const staging = `${destination}.incoming-${randomUUID()}`
+      try {
+        copyFileSync(staged, staging)
+        renameSync(staging, destination)
+      } catch (cause) {
+        // DARK, AND NAMED: copying a file this process just wrote into a directory it just created fails only
+        // when the volume is full or read-only — which is the disk-full probe's territory, not a branch a test
+        // can arrange here. The cleanup is what matters: a failed ingest must not leave a `.incoming-…` file
+        // behind, which is the same promise the scratch removal above makes.
+        removeTree(staging)
+        throw cause
+      }
 
       const bytes = statSync(destination).size
+      // DARK, AND NAMED: the LOCAL source path checks this before copying, and the remote path caps the STREAM,
+      // so this second belt is reached only by a source that grew between the two — an in-place file being
+      // written by something else. Kept because the check that runs first is the one that can be bypassed.
       if (bytes > this.config.assetMaxBytes) {
         removeTree(destination)
         throw new BlenderError(
@@ -2150,7 +2179,15 @@ export default class BlenderStudio extends Service {
         license,
         ingestedAt: new Date().toISOString(),
       }
-      const assets = [...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId), entry]
+      // REPLACED BY PATH AS WELL AS BY ID. A destination is shared by file name, so ingesting `model.glb` under a
+      // second id leaves the first entry describing bytes that are no longer there — MEASURED: two concurrent
+      // ingests, one file intact, and an entry whose hash belonged to neither. The artifact index already
+      // de-duplicates by PATH ("re-emitting the same path replaces its entry"); this manifest de-duplicated by id
+      // alone, which is the same fact in two places disagreeing.
+      const assets = [
+        ...(manifest.assets ?? []).filter(candidate => candidate.assetId !== assetId && candidate.path !== relativePath),
+        entry,
+      ]
         .sort((left, right) => (left.assetId < right.assetId ? -1 : left.assetId > right.assetId ? 1 : 0))
       writeJsonAtomic(manifestPath, { schemaVersion: 'deepblend.assets/v1', assets })
 
