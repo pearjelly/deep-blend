@@ -172,6 +172,22 @@ export function twoFactorEnabled() {
 }
 
 /**
+ * Whether npm refused because this exact version is already on the registry.
+ *
+ * A published version is immutable, so this is the answer a re-run gets for every package
+ * that went up the first time — and it is not a failure. Treating it as one made a partial
+ * publish unrecoverable: the loop stops at the first failure, so a run interrupted after
+ * three of seven could never be finished, because the fourth run would stop on the first
+ * package, which is already there. MEASURED on the real publish.
+ *
+ * @param {string} output - everything npm printed.
+ * @returns {boolean}
+ */
+export function alreadyPublished(output) {
+  return /cannot publish over the previously published versions/i.test(output)
+}
+
+/**
  * What npm is asking for, when a publish is refused rather than broken.
  *
  * A 403 on publish is almost always one of two things, and both are the operator's to fix
@@ -419,6 +435,17 @@ function publish(dryRun) {
       if (OTP !== null) args.push(`--otp=${OTP}`)
       const result = run('npm', args, { cwd: target })
       if (result.status !== 0) {
+        // ALREADY PUBLISHED IS NOT A FAILURE, and treating it as one made a partial publish
+        // unrecoverable: the loop stops at the first failure, so a run interrupted after
+        // three of seven packages could never be finished — the fourth re-run would stop on
+        // the first package, which is already there. MEASURED, on the real publish: the
+        // second run answered "You cannot publish over the previously published versions:
+        // 0.1.0" and stopped at `contracts`, leaving the six that were already done
+        // indistinguishable from the six that were not.
+        if (alreadyPublished(result.output)) {
+          console.log(`  ${entry.name}@${entry.version} — already published, skipping`)
+          continue
+        }
         console.error(`  ${entry.name}@${entry.version} — FAILED: ${npmError(result.output)}`)
         // A REFUSAL is the operator's to fix and the message says how; a broken publish is not.
         // They exit differently on purpose — 2 for "cannot yet", 1 for "it broke".
@@ -439,7 +466,9 @@ function publish(dryRun) {
     rmSync(STAGE_DIRECTORY, { recursive: true, force: true })
   }
 
-  console.log(dryRun ? 'result: the dry run published every package' : `result: published ${order.length} packages`)
+  console.log(dryRun
+    ? 'result: the dry run published every package'
+    : `result: all ${order.length} packages are on the registry`)
   if (!dryRun) {
     console.log(`next:   the list harvests the npm mapping itself, by checking that a package's \`repository\` points back at the listed repo`)
     console.log(`        entry: https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle`)

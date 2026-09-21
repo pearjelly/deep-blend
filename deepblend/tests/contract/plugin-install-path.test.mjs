@@ -43,7 +43,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { bundledPackages, shippedManifest, stagingManifest } from '../../tools/build-release-tarball.mjs'
-import { npmError, npmManifest, publishOrder, publishRefusalFix } from '../../tools/publish-packages.mjs'
+import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFix } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -557,4 +557,30 @@ test('a publish failure is reported as the cause, not as npm\'s log path', () =>
     'the fix does not warn that a token created before the org cannot be given it afterwards')
   assert.equal(publishRefusalFix('npm error code E500\nnpm error Internal server error'), null,
     'a failure this tool does not recognise was given an invented fix')
+})
+
+// ---------------------------------------------------------------------------
+// Re-running the publish, which the first version made impossible
+// ---------------------------------------------------------------------------
+//
+// A published version is immutable, so a re-run gets "You cannot publish over the
+// previously published versions" for every package that went up the first time. The first
+// version of the loop treated that as a FAILURE and stopped — which made a partial publish
+// unrecoverable: a run interrupted after three of seven packages could never be finished,
+// because the fourth run would stop on the first package, which is already there.
+//
+// MEASURED on the real publish, not imagined: the second run answered exactly that and
+// stopped at `contracts`, leaving the six already done indistinguishable from the six not.
+test('a version that is already on the registry is a skip, not a failure', () => {
+  const realAnswer = 'npm error code E403\nnpm error 403 403 Forbidden - PUT https://registry.npmjs.org/'
+    + '@deepblend%2fdsh-blender-contracts - You cannot publish over the previously published versions: 0.1.0.'
+  assert.equal(alreadyPublished(realAnswer), true,
+    'a re-run would stop at the first package that is already published, so a partial publish could never be completed')
+
+  // And it is not confused with the refusals that ARE the operator's to fix — those must
+  // still stop the run and print their fix.
+  assert.equal(alreadyPublished('npm error 403 403 Forbidden - PUT … - Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.'), false,
+    'a 2FA refusal was mistaken for an already-published version, so the run would skip it and claim success')
+  assert.equal(alreadyPublished('npm error 404 Not Found - PUT … - Not found'), false,
+    'a 404 was mistaken for an already-published version')
 })
