@@ -195,8 +195,20 @@ export function publishRefusalFix(output, tfa = null) {
       + '`npm run publish:packages -- --otp <6 digits>` — or, if your account has no authenticator, '
       + `${token}.`
   }
-  if (/Scope not found|scope.*not.*found/i.test(output)) {
-    return `the ${SCOPE} scope does not exist yet: create it first — \`npm org create ${SCOPE.replace('@', '')} --registry ${REGISTRY}\``
+  // A 404 on a PUT of a SCOPED package is npm's answer for two different situations, and it
+  // does not distinguish them on purpose — answering 403 for "you may not" would leak which
+  // scopes exist. Both are named, because the reader cannot tell them apart either.
+  //
+  // AND THE FIRST VERSION OF THIS MESSAGE WAS WRONG: it said to run `npm org create <name>`.
+  // There is no such command. `npm org` manages orgs that ALREADY EXIST — `set`, `rm`, `ls`
+  // only — and `npm help org` says so. An invented command is worse than no advice: it costs
+  // the reader a round trip and teaches them the tool is guessing.
+  if (/Not found|Scope not found|scope.*not.*found/i.test(output)) {
+    return `npm answered 404, which for a scoped package means one of two things and says which: `
+      + `either the ${SCOPE} org does not exist — create it at https://www.npmjs.com/org/create `
+      + `(there is NO command-line way to create an org; \`npm org\` only manages ones that already exist) `
+      + `— or the token in ~/.npmrc is not allowed to publish to ${SCOPE}: regenerate it with that scope `
+      + `selected, or with "all packages".`
   }
   if (/EOTP/.test(output)) {
     return 'npm wants a one-time code: `npm run publish:packages -- --otp <6 digits>`'

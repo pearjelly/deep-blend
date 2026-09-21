@@ -541,7 +541,16 @@ test('a publish failure is reported as the cause, not as npm\'s log path', () =>
 
   // The other refusals this tool knows, and one it must NOT claim to know: a fix invented for
   // an unrecognised failure would send the reader somewhere wrong.
-  assert.match(publishRefusalFix('npm error code E404\nnpm error 404 Not Found - Scope not found'), /npm org create/)
+  // The scope refusal, and the assertion that matters most about it: the first version of
+  // this message told the reader to run `npm org create`, WHICH IS NOT A COMMAND — `npm org`
+  // only manages orgs that already exist. An invented command costs a round trip and teaches
+  // the reader the tool is guessing, so the case now asserts the real route (the website) and
+  // that no `npm org create` is suggested again.
+  const scopeFix = publishRefusalFix('npm error code E404\nnpm error 404 Not Found - PUT https://registry.npmjs.org/@deepblend%2fdsh-blender-contracts - Not found')
+  assert.match(scopeFix, /npmjs\.com\/org\/create/, 'the scope refusal does not name where an org is actually created')
+  assert.ok(!/npm org create/.test(scopeFix), 'the scope refusal suggests `npm org create` again, which is not a command')
+  assert.match(scopeFix, /token in ~\/\.npmrc is not allowed to publish/,
+    'the other cause of a 404 on a scoped PUT — a token without publish access to the scope — is not named')
   assert.equal(publishRefusalFix('npm error code E500\nnpm error Internal server error'), null,
     'a failure this tool does not recognise was given an invented fix')
 })
