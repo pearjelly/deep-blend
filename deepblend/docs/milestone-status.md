@@ -12023,7 +12023,49 @@ $ npm run release:check     → result: deepblend-bundle.tgz satisfies the relea
 **契约层仍是 66 个文件** ✓（本轮**新增的是用例、不是文件** ✓，所以文档里的
 66 / 81 / 82 行 / 13 链接 / 10-of-66 这些数**一个都不用改** ✓，`documented-counts` 全程绿 ✓）。
 
-### 197.12 仍然开着的缺口
+### 197.12 让「两条路线的实测」变成**可重跑的**，而不是一段叙述
+
+路线 1 早就有**提交进仓库的探针** ✓（`tools/dsh-plugin-install-probe.mjs` ✓，
+日志 `docs/probe-dsh-plugin-install.log` ✓）；路线 3 的实测此前**只是临时 shell** ✓——
+也就是说 ✓，**条目第三条安装路线背后的读数，只能从叙述里复现** ✗✓。
+
+给探针加了 `--spec <spec>` ✓：默认仍装 checkout 的六条本地路径 ✓，给了就装**一条 spec** ✓。
+于是两条路线用**同一份代码、同一套判据**量 ✓：
+
+```
+$ node deepblend/tools/dsh-plugin-install-probe.mjs \
+    --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+packages pnpm fetched: 7
+$ node deepblend/tools/dsh-plugin-install-probe.mjs \
+    --spec https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+packages pnpm fetched: 1
+# 两条之后完全相同：
+capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
+deployed presets are byte-identical to deepblend/presets/: yes
+DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
+```
+
+**探针原先根本不看 preset** ✗——它只问「服务起来了吗」✓，不问「另一半到了吗」✓。
+而「装上了」是**两个**断言 ✓：一个 bundle 只挂 Host 组合 ✓，
+**装得上、工作台能开、而每个会话都渲染不了任何东西** ✓✓。第 4 步现在是后者 ✓。
+
+两份日志都按 `contract/probe-logs.test.mjs` 的要求加了**策展头** ✓（标题 ✓、日期 ✓、命令 ✓、被谁引用 ✓）。
+
+### 197.13 一个耦合：加一份证据日志，会让**全新 clone 的读数**变红
+
+加完两份日志后 ✓，`run.mjs` 从 66/66 变成 **64/66** ✗：`probe-logs` 红 ✓
+（新日志没有策展头 ✓），而 `readme-fresh-clone` 报
+「the README quotes **10/66** for a fresh clone; the run prints **9/66**」✗✓。
+
+**第二条是第一条的后果** ✓：`readme-fresh-clone` 把整棵工作树复制一份 ✓、
+在副本里**再跑一整层契约套件** ✓，所以副本里 `probe-logs` 一红 ✓，
+那个「全新 clone 能过几个文件」的读数就**少一个** ✓✓。
+
+**两个读数都对，而它们描述的是同一个事实** ✓——这正是「文档里的数字要有主」的价值 ✓：
+README 引的 10/66 **不是**独立的一个数 ✓，它是**整套契约层在 clone 里的投影** ✓。
+给日志补上头之后 ✓：`probe-logs` 6/6 ✓、`readme-fresh-clone` 恢复 **10/66** ✓、`run.mjs` **66/66** ✓。
+
+### 197.14 仍然开着的缺口
 
 1. **路线 2（npm）卡在账号** ✓：需要 npm 登录与 `@deepblend` scope ✓，本机都没有 ✓。
    **清单侧已就绪且已被断言** ✓（197.5）✓。发布之后市场会自动采集 npm 映射 ✓——

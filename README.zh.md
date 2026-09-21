@@ -69,6 +69,8 @@ deepblend/
                       **安全**：security.md —— SPEC §15 的逐条对照表（含**没做到的那几条**）
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
                       / probe-dsh-plugin-install.log（两条装法各自测到什么，见「5. 安装进 DSH profile」）
+                      / probe-dsh-plugin-github.log（**源码**路线：`Packages: +7`，六个同级包全靠自指 git spec）
+                      / probe-dsh-plugin-tarball.log（**tarball** 路线：`Packages: +1`，产物自包含、不解析任何依赖）
                       / probe-disk-full.log（卷写满时会发生什么：一帧不丢、可续渲）
                       / probe-coverage.log（整套验收执行了产品的哪些行，以及量具看不见什么）
   docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）

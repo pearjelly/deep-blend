@@ -23,20 +23,44 @@
  *   3. whether the resulting profile actually SERVES the product: `dsh web` on a scratch
  *      home, polled at `/deepblend/capabilities` (the route the M4 suite reports as
  *      "dsh web never served /deepblend/capabilities" when a bundle is unreachable);
- *   4. where a project store lands — `<DSH_HOME>/deepblend`, the product default — which is
+ *   4. whether the OTHER half arrived: the agent presets, byte-compared against
+ *      `deepblend/presets/`, plus DSH's own `discoverPresets` verdict on each. A bundle
+ *      that mounts the host composition and deploys nothing installs, serves the
+ *      workbench, and leaves every session unable to render anything — so "it installs" is
+ *      two claims, and the second one is this;
+ *   5. where a project store lands — `<DSH_HOME>/deepblend`, the product default — which is
  *      the one thing the supported path does NOT do for a checkout, and therefore the whole
  *      reason `install-plugin.mjs` still exists.
+ *
+ * BOTH INSTALL ROUTES, ONE PROBE
+ * ------------------------------
+ * By default it installs the six local package paths, which is what a checkout does. Pass
+ * `--spec <spec>` to install ONE spec instead, which is how the two routes a user actually
+ * has are measured with the same code and the same criteria:
+ *
+ *   node deepblend/tools/dsh-plugin-install-probe.mjs \
+ *     --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+ *   node deepblend/tools/dsh-plugin-install-probe.mjs \
+ *     --spec https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+ *
+ * The tarball route was ad-hoc shell until this option existed, which made the measurement
+ * behind the listing entry's third install route reproducible only from prose. The criteria
+ * are identical for both on purpose: how many packages pnpm fetches differs (7 against 1)
+ * and nothing else should.
  *
  * It never touches `~/.dsh`. The whole run happens in a temp directory that is removed at
  * the end, including the case where it fails.
  *
- * Owner: DeepBlend Studio — M5
+ * Owner: DeepBlend Studio — M5; `--spec` and the preset verdict — M6 (plugin-market packaging)
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+import { importDsh } from '../tests/lib/dsh-deployment.mjs'
 
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
@@ -50,6 +74,32 @@ const PACKAGES = [
   'packages/deepblend/tool',
   'packages/deepblend/bundle',
 ]
+
+/** `--spec <spec>`: install one spec rather than this checkout's six paths. */
+const SPEC_INDEX = process.argv.indexOf('--spec')
+const SPEC = SPEC_INDEX < 0 ? null : process.argv[SPEC_INDEX + 1]
+if (SPEC_INDEX >= 0 && (SPEC === undefined || SPEC.startsWith('--'))) {
+  console.error('--spec needs a value: a `github:` spec, an https tarball URL, or a path')
+  process.exit(2)
+}
+
+/** The preset ids the preset package ships, read from the source of truth. */
+const PRESET_IDS = readdirSync(join(ROOT, 'deepblend', 'presets'))
+  .filter(name => statSync(join(ROOT, 'deepblend', 'presets', name)).isDirectory())
+  .sort()
+
+/** Every file under a directory, as paths relative to it. */
+function filesUnder(directory) {
+  const found = []
+  const walk = (current, prefix) => {
+    for (const item of readdirSync(current, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      if (item.isDirectory()) walk(join(current, item.name), `${prefix}${item.name}/`)
+      else found.push(`${prefix}${item.name}`)
+    }
+  }
+  walk(directory, '')
+  return found
+}
 
 const report = []
 function say(label, value) {
@@ -114,11 +164,20 @@ try {
   const before = JSON.parse(readFileSync(manifestPath, 'utf8'))
   say('bundles before', JSON.stringify(before.dsh.profile.bundles))
 
-  const added = run('dsh', ['plugin', '--profile', 'web', 'add', ...PACKAGES.map(entry => join(ROOT, entry))], {
-    env: { ...process.env, DSH_HOME: home },
-  })
+  const added = run(
+    'dsh',
+    ['plugin', '--profile', 'web', 'add', ...(SPEC === null ? PACKAGES.map(entry => join(ROOT, entry)) : [SPEC])],
+    { env: { ...process.env, DSH_HOME: home } },
+  )
   const warnings = added.combined.split('\n').filter(line => line.startsWith('dsh: warning')).length
-  say('`dsh plugin add` (6 local paths)', `exit ${added.status}, ${warnings} warning(s) about plain dependencies`)
+  const specLabel = SPEC === null ? `${PACKAGES.length} local paths` : SPEC
+  // `Packages: +N` is the number that separates the two routes: a `github:` spec resolves the
+  // bundle AND its six siblings (7), a self-contained tarball resolves the artifact and
+  // nothing else (1). Reported rather than asserted, because it is a property of the route
+  // and not a pass/fail — but it is the number a reader of the listing entry needs.
+  const fetched = /Packages: \+(\d+)/.exec(added.combined)?.[1] ?? '(not reported)'
+  say('`dsh plugin add`', `exit ${added.status}, ${warnings} warning(s) — spec: ${specLabel}`)
+  say('packages pnpm fetched', fetched)
 
   const after = JSON.parse(readFileSync(manifestPath, 'utf8'))
   say('bundles after', JSON.stringify(after.dsh.profile.bundles))
@@ -129,7 +188,6 @@ try {
     : []
   say('packages resolvable in the profile', JSON.stringify(linked))
   say('shared profiles/node_modules created', existsSync(join(home, 'profiles', 'node_modules')) ? 'yes' : 'no')
-
   // -------------------------------------------------------------------------
   // 3. Does that profile actually serve the product?
   // -------------------------------------------------------------------------
@@ -190,7 +248,63 @@ try {
     say('checkout store untouched', existsSync(join(ROOT, '.deepblend', 'projects')) ? 'a <repo>/.deepblend store exists and was NOT used' : 'no <repo>/.deepblend store present')
   }
 
-  say('result', 'the supported path installs and serves DeepBlend from a checkout; what it does not do is pin the store to that checkout')
+  // -------------------------------------------------------------------------
+  // 5. The other half: did the AGENT PRESETS arrive?
+  //
+  // The deployer row runs while the profile composes, so this is only observable after
+  // `dsh web` above. Two questions, and they are different: are the bytes right, and does
+  // DSH agree the preset is usable? A preset directory can be byte-perfect and still be
+  // `broken` because a row in its composition names a package that cannot be resolved —
+  // which is exactly what a bundle whose siblings did not arrive produces.
+  // -------------------------------------------------------------------------
+  const presetRoot = join(home, '.agent-presets')
+  const deployed = existsSync(presetRoot) ? readdirSync(presetRoot).sort() : []
+  say('presets deployed', JSON.stringify(deployed))
+  say('the presets the package ships', JSON.stringify(PRESET_IDS))
+
+  const differing = []
+  for (const id of PRESET_IDS) {
+    const source = join(ROOT, 'deepblend', 'presets', id)
+    const target = join(presetRoot, id)
+    if (!existsSync(target)) {
+      differing.push(`${id}: not deployed`)
+      continue
+    }
+    const sourceFiles = filesUnder(source)
+    const targetFiles = filesUnder(target)
+    const missing = sourceFiles.filter(file => !targetFiles.includes(file))
+    const extra = targetFiles.filter(file => !sourceFiles.includes(file))
+    if (missing.length > 0) differing.push(`${id}: missing ${missing.join(', ')}`)
+    if (extra.length > 0) differing.push(`${id}: extra ${extra.join(', ')}`)
+    for (const file of sourceFiles.filter(file => targetFiles.includes(file))) {
+      if (readFileSync(join(source, file), 'utf8') !== readFileSync(join(target, file), 'utf8')) {
+        differing.push(`${id}/${file}: differs from the repository copy`)
+      }
+    }
+  }
+  say('deployed presets are byte-identical to deepblend/presets/', differing.length === 0 ? 'yes' : differing.join('; '))
+
+  // And DSH's own verdict. The base URL is the PROFILE DIRECTORY, which is where the
+  // boot anchors `baseUrl` — not the DSH installation, and not the preset root. Passing the
+  // installation instead makes every row that names a `@deepblend/*` package report
+  // "cannot be resolved", which is a wrong measurement rather than a product defect.
+  try {
+    const { discoverPresets } = await importDsh('dsh-agent-presets')
+    const found = await discoverPresets(
+      [{ path: presetRoot, trust: 'user' }],
+      `${pathToFileURL(join(home, 'profiles', 'web') + '/').href}`,
+    )
+    const verdicts = found.map(preset => `${preset.id}: ${preset.problem ?? 'problem: null'}`)
+    say('DSH discoverPresets', verdicts.length === 0 ? 'no presets found' : verdicts.join(' | '))
+  } catch (cause) {
+    // A branchable outcome, not a stack: this needs the deployment's own package, and a
+    // probe run against a machine without one should say so and keep its other readings.
+    say('DSH discoverPresets', `could not be asked — ${String(cause.message).split('\n')[0]}`)
+  }
+
+  say('result', SPEC === null
+    ? 'the supported path installs and serves DeepBlend from a checkout; what it does not do is pin the store to that checkout'
+    : `the spec installs, serves DeepBlend and delivers both presets — ${SPEC}`)
 } finally {
   if (server !== null) {
     try { server.kill('SIGTERM') } catch { /* already gone */ }

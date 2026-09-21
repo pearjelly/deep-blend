@@ -1,0 +1,39 @@
+# DSH plugin-install probe — the TARBALL install route, measured end to end
+#
+#   node deepblend/tools/dsh-plugin-install-probe.mjs \
+#     --spec https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+#
+# Taken 2026-09-21 (M6, plugin-market packaging). What it is evidence for: the listing entry's
+# THIRD install route, the one that needs no registry at all. The reading that separates it from
+# the source route is `packages pnpm fetched` — 1 here against 7 there — because the artifact
+# carries its six siblings inside its own node_modules through npm's bundledDependencies and
+# resolves nothing. Everything else is meant to be IDENTICAL, and is: HTTP 200 on
+# /deepblend/capabilities with hostApiVersion 4, both presets deployed byte-identical to
+# deepblend/presets/, and DSH's own discoverPresets reporting `problem: null` for both.
+# Body is the tool's output.
+date: 2026-09-21T02:57:49.028Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-pmCLo0
+dsh: 0.1.5-rc.2
+dsh directory: /Users/hxb/.nvm/versions/node/v26.8.2/bin
+pnpm on PATH: 10.28.2
+`dsh plugin add` with no pnpm on PATH: exit 127 — dsh: pnpm not found on PATH — install pnpm to manage profile plugins
+profile created by `dsh`: yes
+bundles before: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app"]
+`dsh plugin add`: exit 0, 0 warning(s) — spec: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+packages pnpm fetched: 1
+bundles after: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app","@deepblend/dsh-blender-bundle"]
+dependencies after: {"@deepblend/dsh-blender-bundle":"https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz"}
+packages resolvable in the profile: ["dsh-blender-bundle"]
+shared profiles/node_modules created: no
+dsh web: port 63858
+capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
+projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-pmCLo0/deepblend/projects
+projectsRoot is under the scratch DSH_HOME: yes — the product default
+checkout store untouched: a <repo>/.deepblend store exists and was NOT used
+presets deployed: ["deepblend","deepblend-dev"]
+the presets the package ships: ["deepblend","deepblend-dev"]
+deployed presets are byte-identical to deepblend/presets/: yes
+DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
+result: the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-pmCLo0
