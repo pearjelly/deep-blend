@@ -191,8 +191,20 @@ export function stagingManifest(manifest, packages, commit) {
   }
 }
 
-/** The shipped manifest: what the artifact actually carries, and nothing it has to fetch. */
-function shippedManifest(manifest, packages) {
+/**
+ * The shipped manifest: what the artifact actually carries, and nothing it has to fetch.
+ *
+ * Exported so the contract layer can assert the same property the npm route is asserted for
+ * (`contract/plugin-install-path.test.mjs`): the manifest that leaves this repository names
+ * its siblings at exact versions and carries no `github:` spec. Without that, the check only
+ * happened at BUILD time — which needs the network, so it was a step an operator ran rather
+ * than a case that runs on every push.
+ *
+ * Exact versions rather than a range, for the reason the publish tool gives: these seven are
+ * released in lockstep, and a range would let a `0.1.0` bundle install a `0.1.4` host it was
+ * never tested against.
+ */
+export function shippedManifest(manifest, packages) {
   const versions = {}
   for (const { name, version } of packages) versions[name] = version
   return { ...manifest, dependencies: versions }

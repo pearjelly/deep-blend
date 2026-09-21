@@ -42,6 +42,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { bundledPackages, shippedManifest, stagingManifest } from '../../tools/build-release-tarball.mjs'
 import { npmManifest, publishOrder } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -410,10 +411,17 @@ test('the manifests this repository publishes carry no git spec', () => {
     }
   }
   assert.deepEqual(surviving, [], 'a published manifest still resolves a sibling from git, so the npm route is not a registry install')
-  // Non-vacuous: the repository DOES carry git specs — the rewrite has to have something to
-  // do, or this case would pass on a tree where the problem was never present.
-  assert.ok(rewrites >= 6,
-    `only ${rewrites} git spec(s) were rewritten; the repository's manifests are expected to carry at least six`)
+  // EXACT, not a floor: every local `github:` spec the repository's manifests carry must be
+  // rewritten, and the rewrite must invent none. A floor would pass on a tree where one
+  // package's spec had been missed and another's double-counted, and the number this file's
+  // own milestone record quotes would stop meaning anything.
+  const inRepository = order.reduce((total, entry) => total
+    + Object.values(entry.manifest.dependencies ?? {}).filter(spec => spec.startsWith('github:')).length, 0)
+  assert.equal(rewrites, inRepository,
+    `the repository's manifests carry ${inRepository} git spec(s) and the publish rewrite touched ${rewrites}`)
+  const carriers = order.filter(entry => Object.values(entry.manifest.dependencies ?? {}).some(spec => spec.startsWith('github:'))).length
+  assert.ok(inRepository >= 6 && carriers >= 5,
+    `the rewrite has almost nothing to do (${inRepository} spec(s) across ${carriers} package(s)), so this case may be passing vacuously`)
 
   // And the repository's own manifests keep the git form, because route 1 needs it. Both
   // halves asserted, because "rewrite everything to versions" would break the source route
@@ -422,4 +430,49 @@ test('the manifests this repository publishes carry no git spec', () => {
   const gitSpecs = Object.values(bundle.dependencies ?? {}).filter(spec => spec.startsWith('github:'))
   assert.equal(gitSpecs.length, 6,
     'the repository bundle manifest no longer carries six git specs, so a source install would resolve unpublished versions')
+})
+
+// ---------------------------------------------------------------------------
+// The tarball route's shipped manifest: the same invariant, for the same reason
+// ---------------------------------------------------------------------------
+//
+// Route 3 rewrites the dependency specs too, and for the same reason as route 2 — but its
+// rewrite is the more extreme one: the six siblings are not fetched from anywhere at all,
+// they are VENDORED into the artifact's own `node_modules`. A `github:` spec left in the
+// shipped manifest would therefore not even be a slow install; it would be a network
+// round-trip for packages that are already inside the tarball.
+//
+// This property was checked only at BUILD time until this case existed, and a build needs
+// the network — so it was a step an operator ran, not a case that runs on every push. The
+// same is true of the `bundledDependencies` list, which is the thing that makes pnpm use
+// the vendored copies instead of resolving the specs at all.
+test('the tarball this repository releases carries no git spec either', () => {
+  const bundle = JSON.parse(readFileSync(join(ROOT, 'packages', 'deepblend', 'bundle', 'package.json'), 'utf8'))
+  const packages = bundledPackages()
+  assert.ok(packages.length >= 6, `only ${packages.length} packages would be bundled into the artifact`)
+
+  const shipped = shippedManifest(bundle, packages)
+
+  // No git spec survives, and every sibling the bundle depends on is declared at exactly the
+  // version being bundled — not a range, and not the commit-pinned spec the BUILD manifest
+  // needs in order to fetch them in the first place.
+  const gitSpecs = Object.entries(shipped.dependencies).filter(([, spec]) => spec.startsWith('github:'))
+  assert.deepEqual(gitSpecs, [], 'the released artifact would still resolve a sibling from git, though it carries that sibling inside itself')
+
+  const versions = new Map(packages.map(entry => [entry.name, entry.version]))
+  const mismatched = Object.entries(shipped.dependencies)
+    .filter(([name, spec]) => versions.has(name) && spec !== versions.get(name))
+    .map(([name, spec]) => `${name}: declared ${spec}, bundled ${versions.get(name)}`)
+  assert.deepEqual(mismatched, [], 'the released artifact declares a version other than the one it carries')
+  assert.equal(Object.keys(shipped.dependencies).length, packages.length,
+    'the released artifact does not declare every package it bundles')
+
+  // The other half, and the one that makes the vendored copies be USED: pnpm consults
+  // `bundledDependencies` and skips resolution entirely — MEASURED, it does so even when a
+  // bundled dependency's spec names a version that exists nowhere. Without this list the
+  // artifact would carry six packages and then go to the network for all six.
+  const pinned = stagingManifest(bundle, packages, 'a'.repeat(40))
+  const bundled = new Set(pinned.bundledDependencies ?? [])
+  const notBundled = packages.map(entry => entry.name).filter(name => !bundled.has(name))
+  assert.deepEqual(notBundled, [], 'the artifact would carry packages it does not declare as bundled, so pnpm would fetch them instead')
 })
