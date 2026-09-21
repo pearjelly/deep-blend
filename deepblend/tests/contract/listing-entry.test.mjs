@@ -362,3 +362,55 @@ test('the tarball asset name carries no version', () => {
   assert.equal(asset, ASSET_NAME, 'the release tool builds a differently-named asset than the entry declares')
 })
 
+
+// ---------------------------------------------------------------------------
+// THE REVIEW'S OWN CHECKLIST, AND THE ONE ITEM THAT COULD SEND THIS BACK
+// ---------------------------------------------------------------------------
+//
+// `awesome-dsh-plugin/contributing.md` lists eight things a maintainer looks at, and its
+// seventh is the sharpest:
+//
+//   **Is it a meta-package.** A bundle whose only content is a dependency list — it installs
+//   a set of other plugins and ships no behaviour of its own — is not listed as an entry.
+//   **List the plugins, not the bundle.**
+//
+// Read carelessly, that describes this repository: the entry points at
+// `packages/deepblend/bundle`, whose `lib/index.js` is 29 lines that export two constants,
+// and whose `dependencies` are six `@deepblend/*` packages. So the question has to be
+// answerable rather than argued, and the answer is the market's OWN second CI check:
+//
+//   **`dsh.bundle`** — fetched from your repo's `package.json` (root, or a `packages/` ·
+//   `plugins/` · `apps/` subpackage). Declaring only `dsh.client` fails here.
+//
+// A submission must point at a package declaring `dsh.bundle`. MEASURED, exactly one package
+// in this repository does, and it is the one the entry points at — so "list the plugin
+// instead of the bundle" has no alternative here: there is no other package the gate would
+// accept, and the siblings are internal modules of one product rather than other entries,
+// which is the double-counting the rule exists to prevent.
+test('the entry points at the only package that can be a submission target', () => {
+  const directory = join(ROOT, 'packages', 'deepblend')
+  const declaring = readdirSync(directory)
+    .filter(name => existsSync(join(directory, name, 'package.json')))
+    .filter((name) => {
+      const manifest = JSON.parse(readFileSync(join(directory, name, 'package.json'), 'utf8'))
+      return manifest.dsh?.bundle !== undefined
+    })
+    .sort()
+
+  assert.deepEqual(declaring, ['bundle'],
+    'more than one package declares dsh.bundle, so "point the entry at the plugin, not the bundle" has a real alternative and the meta-package answer needs revisiting')
+
+  // And it is the one the entry's url names — the two halves of the same fact, so a
+  // subdirectory rename cannot satisfy this case while breaking the submission.
+  const [, , , subdirectory] = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/tree\/[^/]+\/(.+)$/.exec(topLevel(entry).url)
+  assert.equal(subdirectory, `packages/deepblend/${declaring[0]}`,
+    `the entry points at ${subdirectory}, and the only package declaring dsh.bundle is packages/deepblend/${declaring[0]}`)
+
+  // The other half of the meta-package answer, asserted rather than asserted-about: the
+  // bundle's patch MOUNTS rows. A dependency list alone mounts nothing — `dsh.profile.bundles`
+  // plus this patch is what composes a profile, which is what a DSH Host Bundle is.
+  const patch = readFileSync(join(ROOT, subdirectory, 'cordis.patch.yml'), 'utf8')
+  const rows = [...patch.matchAll(/^\s+- id:\s*(\S+)/gm)].map(match => match[1])
+  assert.ok(rows.length >= 4,
+    `the bundle patch mounts ${rows.length} row(s); it is the composition, and a composition with nothing in it is the meta-package the list refuses`)
+})
