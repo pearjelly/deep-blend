@@ -210,3 +210,52 @@ node --version; npm --version; sw_vers
 # Blender 复核
 /Users/hxb/workspace/deep-blend/.tools/Blender.app/Contents/MacOS/Blender --version
 ```
+
+---
+
+## 8. 基线的一处必须打的补丁：`reasoning_content`
+
+**这是一处对「已安装的 DSH」的改动，不是对本仓库源码的改动。** 记录在此，是因为它
+属于基线（§1 固定的 `0.1.5-rc.2`）的一部分：不打它，本产品在 thinking 模式下无法完成
+任何一次工具调用。
+
+### 8.1 症状
+
+思考模式下，凡是携带 `tool_calls` 的 assistant 消息，API 要求同时携带
+`reasoning_content`；DSH 在该轮**没有产出 reasoning 文本**时会省略整个字段（这在后端
+忽略 `thinking` 的网关后面是常态），于是续跑直接 HTTP 400：
+
+```
+The `reasoning_content` in the thinking mode must be passed back to the API.
+```
+
+对 DeepBlend 来说这不是「偶发报错」：本产品的每一次渲染、每一次读场景都经由工具调用，
+所以补丁不打，工作台连一次 `blender_*` 都跑不完。
+
+### 8.2 补丁
+
+`docs/dsh-reasoning-content-fix.patch`，目标文件是安装版的
+`@deepseek-ai/dsh-llm-deepseek/lib/index.js`（**不是**本仓库的任何文件）：
+
+```bash
+cd <DSH 安装目录>/node_modules/@deepseek-ai/dsh-llm-deepseek
+patch -p0 < <本仓库>/deepblend/docs/dsh-reasoning-content-fix.patch
+# 回退：restore lib/index.js.orig-reasoning-fix，或 patch -R
+```
+
+规则（对着上游 API 实测得出）：thinking 模式下，凡带 `tool_calls` 的 assistant 消息一律
+带 `reasoning_content`，**没有 reasoning 文本时用 `""`**——空串被接受。
+
+### 8.3 为什么它曾经是根目录下的一个孤儿
+
+它原先叫 `dsh-reasoning-content-fix.patch`，挂在仓库根目录，**没有任何文档或测试引用它**。
+这正是本仓库反复记录的缺陷形状（D38、D43、D57、D60）：一个事实写在一个没人读的地方，
+写的时候是对的，之后没人再读它。现在的处置是两条，而不是一条：
+
+1. 文件移进文档平面（`deepblend/docs/`），并在本节被具名引用；
+2. `contract/toolchain-pins.test.mjs` 断言**本节确实具名引用了它、且该路径真实存在**——
+   所以「文档说了但文件没了」和「文件在但没人引用」都会红。
+
+**它是否还有效是可复核的**，不是记忆：安装版里若已出现
+`function serializeAssistant(message, thinkingEnabled)`，说明补丁已打（或上游已修）；
+若同时存在 `lib/index.js.orig-reasoning-fix`，说明是本机手工打的。

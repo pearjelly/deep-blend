@@ -29,15 +29,32 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
+import { ASSET_NAME, TARBALL_URL } from '../../tools/build-release-tarball.mjs'
+import {
+  PERMITTED_KEYS,
+  SOURCE_PATH,
+  entryOffset,
+  project,
+  submissionPath,
+} from '../../tools/project-listing-entry.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const ENTRY_PATH = join(ROOT, 'deepblend', 'docs', 'listing-entry.yml')
 const entry = readFileSync(ENTRY_PATH, 'utf8')
+
+/**
+ * The English description, READ OUT OF THE SOURCE rather than written here.
+ *
+ * A literal would be a third copy of the sentence — the defect the single-source
+ * case below exists to catch — and it would also be the wrong sentence the day the
+ * description changes, so the case would keep passing while guarding nothing.
+ */
+const DESCRIPTION_EN = /^\s{2}en:\s*'(.*)'$/m.exec(entry)?.[1] ?? ''
 
 /** The 23 ids the ecosystem accepts, in the order its own list publishes them. */
 const CATEGORY_IDS = [
@@ -192,3 +209,156 @@ test('every behavioural claim in the description is backed by a defined decision
   assert.match(entry, /immutable revisions/, 'the description no longer claims immutable revisions')
   assert.match(entry, /an approval gate/, 'the description no longer claims an approval gate')
 })
+
+// ---------------------------------------------------------------------------
+// ONE SOURCE, ONE PROJECTION
+// ---------------------------------------------------------------------------
+//
+// The submission lives in a different repository (`awesome-dsh-plugin`), so this
+// suite cannot read it — which is precisely how the entry came to exist twice, in
+// two places, edited by hand in both. `tools/project-listing-entry.mjs` replaces
+// that discipline with a rule:
+//
+//     deepblend/docs/listing-entry.yml is the SOURCE.
+//     The submitted file is its PROJECTION — the source from its first permitted
+//     key to the end — and the tool is the only writer of it.
+//
+// What the three cases below can settle WITHOUT the network is the half that makes
+// the rule worth having: that the projection is a pure function of the source, that
+// it cannot reformat a value, and that no second copy of the entry's data exists in
+// this repository. The half that needs the network — "is the submitted branch
+// currently the projection?" — is `node deepblend/tools/project-listing-entry.mjs
+// --check-remote`, a step an operator runs before touching the submission, with an
+// exit code for "cannot reach it" kept separate from "it drifted". A check that
+// needs the network does not belong in the layer CI runs on every push.
+test('the projection is the source from its first permitted key, verbatim', () => {
+  const offset = entryOffset(entry)
+  assert.ok(offset > 0, 'the entry declares no permitted top-level key, so there is nothing to submit')
+  const projection = project(entry)
+
+  // VERBATIM: the projection is a SUFFIX of the source, not a re-serialization. A
+  // parser-and-printer would have to get `": "` inside a quoted scalar and the
+  // non-ASCII description right; a suffix cannot get either wrong, because it does
+  // not touch them. This is the assertion that makes "the values cannot drift" true
+  // rather than intended.
+  assert.ok(entry.endsWith(projection), 'the projection is not a verbatim suffix of the source')
+  assert.equal(projection, `${entry.slice(offset).replace(/\s*$/, '')}\n`,
+    'the projection is not exactly the source from its first permitted key')
+  // The analysis above it is dropped, and dropping it is the point: those keys are
+  // not permitted and the gate rejects the whole submission for one of them.
+  assert.ok(!projection.includes('THE PACKAGING DECISION, MEASURED'),
+    'the projection carries the repository analysis, which is not part of the entry')
+})
+
+test('the projection declares the permitted keys, and every value round-trips', () => {
+  const projection = project(entry)
+  const declared = [...projection.matchAll(/^([a-z]+):/gm)].map(match => match[1])
+  assert.deepEqual([...new Set(declared)].sort(), [...PERMITTED_KEYS].filter(key => declared.includes(key)).sort(),
+    'the projection declares a key the ecosystem does not permit')
+
+  // Byte equality of every value, read the same way the gate reads them. This is what
+  // "the projection is derived" has to mean: no value may exist only in the projection.
+  const fromSource = topLevel(entry)
+  const fromProjection = topLevel(projection)
+  assert.deepEqual(fromProjection, fromSource, 'a value in the projection is not the value in the source')
+  for (const key of PERMITTED_KEYS) {
+    // `description` is a BLOCK mapping — its scalar is empty and its two languages are
+    // indented under it — so it is compared by the loop below rather than here.
+    if (fromSource[key] === undefined || fromSource[key] === '') continue
+    assert.ok(projection.includes(`${key}: ${fromSource[key]}`),
+      `the projection does not carry ${key} exactly as the source writes it`)
+  }
+  // The two description languages, which are indented and so are not top-level pairs.
+  const line = (text, language) => new RegExp(`^\\s{2}${language}:\\s*(.*)$`, 'm').exec(text)?.[1]?.trim()
+  for (const language of ['en', 'zh']) {
+    assert.equal(line(projection, language), line(entry, language),
+      `description.${language} differs between the source and its projection`)
+  }
+  // A projection is a file the gate parses: it must not end mid-line or carry a stray blank tail.
+  assert.ok(projection.endsWith('\n') && !projection.endsWith('\n\n'),
+    'the projection must end in exactly one newline')
+})
+
+test('the entry data exists in exactly one file in this repository', () => {
+  // THE LOCAL HALF OF THE RULE, and the one that catches the defect as it is made
+  // rather than at submission time: a second copy of the description, or of the url,
+  // anywhere in this repository is the thing that rots. The projection itself is not
+  // stored here — it is generated — so the only file allowed to contain the entry's
+  // data is the source.
+  const TEXT = /\.(md|mjs|js|json|yml|yaml|sh|txt)$/
+  const SKIP = new Set(['.git', 'node_modules', '.deepblend', '.tmp-probe', '.tmp-market', '.tools'])
+  const found = []
+
+  const walk = (directory) => {
+    for (const item of readdirSync(directory, { withFileTypes: true })) {
+      if (item.name.startsWith('.') && item.name !== '.github') continue
+      if (SKIP.has(item.name)) continue
+      const path = join(directory, item.name)
+      if (item.isDirectory()) walk(path)
+      else if (TEXT.test(item.name) && readFileSync(path, 'utf8').includes(DESCRIPTION_EN)) found.push(path)
+    }
+  }
+  walk(ROOT)
+
+  const relative = found.map(path => path.replace(`${ROOT}/`, '')).sort()
+  assert.deepEqual(relative, ['deepblend/docs/listing-entry.yml'],
+    'the entry description is written in more than one file — the source is the only place it may live')
+})
+
+test('the submission path is derived from the url, and the source records it', () => {
+  // The path inside the list's repository is a FUNCTION of the entry's url, so it is
+  // derived here rather than typed. The earlier case in this file checks the same
+  // string against a literal; this one checks that the derivation and the literal
+  // agree, which is what breaks when the url's subdirectory moves.
+  assert.equal(submissionPath(entry), 'data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml',
+    'the submission path derived from the url is not the path the entry records')
+  assert.equal(SOURCE_PATH, ENTRY_PATH, 'the tool reads its source from somewhere other than the entry')
+})
+
+// ---------------------------------------------------------------------------
+// THE TARBALL ROUTE'S TWO RULES
+// ---------------------------------------------------------------------------
+//
+// The entry declares a `tarball`, which makes this repository subject to rules it
+// does not get to interpret. They are the MARKET's, read out of its own validator
+// rather than guessed at — `awesome-dsh-plugin/scripts/lib/entries.mjs::tarballProblem`
+// and `scripts/probe-tarballs.mjs` — and the second one is the reason this section
+// exists at all:
+//
+//   A tarball whose URL contains its version and resolves `latest` at request time
+//   works today and 404s on the author's next release.
+//
+// That is a warning in the market, not a failure, so nothing there will stop this
+// repository from writing a URL that dies at the next release. Here it is a failure,
+// and the URL is DERIVED from the tool that builds the artifact rather than typed
+// into this file, so the entry and the build cannot disagree about the asset's name.
+test('the declared tarball is one the market accepts', () => {
+  const { tarball } = topLevel(entry)
+  assert.ok(tarball !== undefined, 'the entry declares no tarball, so this repository claims only two routes')
+
+  // The market's own `tarballProblem`, restated: https, a GitHub releases host, a .tgz.
+  const url = new URL(tarball)
+  assert.equal(url.protocol, 'https:', 'the market refuses a tarball that is not https')
+  assert.ok(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'].includes(url.hostname),
+    `the market refuses a tarball hosted anywhere but GitHub releases (got ${url.hostname})`)
+  assert.ok(url.pathname.includes('/releases/'), 'the market refuses a GitHub URL that is not a release asset')
+  assert.ok(url.pathname.endsWith('.tgz') || url.pathname.endsWith('.tar.gz'),
+    'the market refuses an asset that is not a .tgz or .tar.gz')
+
+  // And the URL the entry declares is the one the build produces, not a second copy of it.
+  assert.equal(tarball, TARBALL_URL, 'the entry declares a tarball the release build does not produce')
+})
+
+test('the tarball asset name carries no version', () => {
+  // The rule the market only warns about, made fatal here. `/releases/latest/download/`
+  // resolves the filename LITERALLY, so a version in the name is a URL that is correct
+  // on the day it is written and 404 the next time anything is released.
+  const asset = TARBALL_URL.split('/').pop()
+  assert.ok(!/\d/.test(asset),
+    `${asset} contains a digit, so it names a version — under /releases/latest/download/ that URL dies at the next release`)
+  assert.ok(TARBALL_URL.includes('/releases/latest/download/'),
+    'the tarball URL is not a latest/download URL, so a version-free asset name buys nothing')
+  // The artifact's name is the URL's last segment, which is what `gh release create` attaches.
+  assert.equal(asset, ASSET_NAME, 'the release tool builds a differently-named asset than the entry declares')
+})
+

@@ -110,6 +110,38 @@ test('the DSH anchor is stated identically in the pin, the baseline document and
   )
 })
 
+// ---------------------------------------------------------------------------
+// The one patch this project applies to the PINNED BASELINE
+// ---------------------------------------------------------------------------
+//
+// `docs/dsh-reasoning-content-fix.patch` is unusual among this repository's files: it
+// modifies the INSTALLED DSH, not anything under version control here. It used to sit in
+// the repository root referenced by nothing, which is the defect shape this repository
+// keeps recording — a fact written where nobody reads it, correct when written and never
+// re-read (D38, D43, D57, D60).
+//
+// It is not decorative: in thinking mode every assistant message carrying `tool_calls`
+// must carry `reasoning_content`, and the pinned `0.1.5-rc.2` omits the field whenever the
+// turn produced no reasoning text. Every DeepBlend capability is a tool call, so without
+// the patch the workbench cannot complete a single render.
+//
+// The two halves are asserted separately because either one alone rots: a document that
+// names a file which no longer exists, and a file nobody names, are both failures and
+// neither is visible from the other.
+test('the baseline patch is named by the baseline document and exists where it says', () => {
+  const PATCH = 'dsh-reasoning-content-fix.patch'
+  assert.ok(
+    baselineDoc.includes(PATCH),
+    `docs/dsh-baseline.md no longer names ${PATCH}, so the workaround it documents is unreferenced again`,
+  )
+  const path = join(ROOT, 'deepblend', 'docs', PATCH)
+  assert.ok(existsSync(path), `docs/dsh-baseline.md names ${PATCH} but deepblend/docs/${PATCH} does not exist`)
+  // And it is no longer ALSO at the repository root, which is where it was orphaned. Two
+  // copies is the other half of the same defect.
+  assert.ok(!existsSync(join(ROOT, PATCH)),
+    `${PATCH} is back at the repository root as well as in docs/, which is the second copy this case exists to prevent`)
+})
+
 test('the deployment this workspace links against is the pinned one', () => {
   // The strongest of the four: not what a file says, but what the suites will
   // actually import. A mismatch here means every other green line describes a

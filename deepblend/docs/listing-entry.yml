@@ -1,8 +1,28 @@
-# The entry this repository would submit to the DSH plugin list.
+# The entry this repository submits to the DSH plugin list — THE SOURCE.
 #
-# NOT submitted: the list's contributing guide requires the repository to be public and to carry the
-# `dsh-plugin` topic, and this one is still private — so the entry is prepared here, where its claims can be
-# checked, rather than in a pull request that the CI gate would reject on the first line.
+# SUBMITTED as [awesome-dsh-plugin#5545](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/5545),
+# on the branch `pearjelly:add-pearjelly-deep-blend`. The list's contributing guide requires the repository to
+# be public and to carry the `dsh-plugin` topic; both are true as of 2026-09-21, and the submission gate and the
+# `check` job are both green with the pull request MERGEABLE and unmerged.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# THIS FILE IS THE ONLY PLACE THE ENTRY'S DATA IS WRITTEN
+#
+# The submission lives in a different repository, so it cannot be read by this one's suite — which is how the
+# entry came to exist twice and be edited by hand in both. `tools/project-listing-entry.mjs` replaces that with
+# a rule:
+#
+#   **everything from the first permitted key below is the PROJECTION — the exact bytes submitted — and that
+#   tool is the only writer of it. Everything above that line is this repository's own analysis and is not
+#   submitted at all.**
+#
+#   node deepblend/tools/project-listing-entry.mjs                # print the projection
+#   node deepblend/tools/project-listing-entry.mjs --out <path>   # write it
+#   node deepblend/tools/project-listing-entry.mjs --check-remote # is the submitted branch still this?
+#
+# So a change to the description is ONE edit here, and the submission is regenerated. `--check-remote` exits 0
+# for "in sync", 1 for "the branch drifted", and 2 for "could not reach it" — three states, because an operator
+# who cannot reach the list must be able to tell that apart from a drifted submission.
 #
 # The submission is ONE file whose name must equal `slugFor(url)`:
 #
@@ -13,9 +33,10 @@
 # `description.zh` is optional; only `description.en` is a contributor's responsibility.
 #
 # `contract/listing-entry.test.mjs` reads this file and checks every claim in it against the code: the URL's
-# subdirectory exists here, the `#subname` matches it, the category is one of the ecosystem's ids, and the
-# numbers in the description are the numbers the repository actually has. The checklist says descriptions are
-# "read as a claim about your plugin, and checked against your code" — so the claim is checked here first.
+# subdirectory exists here, the `#subname` matches it, the category is one of the ecosystem's ids, the numbers in
+# the description are the numbers the repository actually has, and that the projection is this file's own bytes
+# rather than a second copy somebody maintains. The checklist says descriptions are "read as a claim about your
+# plugin, and checked against your code" — so the claim is checked here first.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # THE PACKAGING DECISION, MEASURED
@@ -92,37 +113,52 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # HOW THIS PLUGIN CAN BE INSTALLED, AND WHAT EACH ROUTE STILL NEEDS
 #
-# The list accepts three routes, and they are not interchangeable — each one has a different prerequisite, so the
-# submission is only as ready as the route chosen:
+# The list accepts three routes, and they are not interchangeable — each one has a different prerequisite. What
+# each one measures, as of 2026-09-21, on a scratch `$DSH_HOME` rather than by inspection:
 #
-#   1. FROM SOURCE (what the entry's `url` implies, `github:owner/repo#path:…`)
-#      Needs the repository to be PUBLIC. pnpm resolves a `github:` spec through an anonymous codeload tarball,
-#      which answers 404 for a private repository — measured live, which is why no submission has been made. The
-#      `#path:` form itself is documented and supported, and the siblings resolve through the same repository
-#      (option (d) above), so this route needs nothing else: it is the route this submission takes.
+#   1. FROM SOURCE (what the entry's `url` implies, `github:owner/repo#path:…`) — WORKS.
+#      `dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'` installs in
+#      12.0 s, `Packages: +7` (the bundle and its six siblings, all resolved through this same repository by
+#      option (d) above). `dsh web` then serves `/deepblend/capabilities` HTTP 200 with `hostApiVersion 4`, and
+#      the deployer row writes both presets into `<DSH_HOME>/.agent-presets/`, byte-identical to
+#      `deepblend/presets/`. DSH's own `discoverPresets` reports `problem: null` for both.
+#      It needed the repository to be PUBLIC: pnpm resolves a `github:` spec through an anonymous codeload
+#      tarball, which answers 404 for a private repository — measured live, which is why no submission was made
+#      while it was private.
 #
-#   2. FROM npm (the recommended route — prebuilt installs skip the build-approval step)
+#   2. FROM npm (the recommended route — prebuilt installs skip the build-approval step) — BLOCKED ON AN ACCOUNT.
 #      Needs PUBLISHED packages. The mapping is harvested from the registry, never declared here: `probe-npm.mjs`
 #      finds the package and verifies that ITS `repository` field points back at this repository, "or the two are
-#      not linked". The bundle pins four `@deepblend/dsh-blender-*` siblings that are not published, so this route
-#      needs the packaging decision first: publish all five, flatten them into one self-contained package, or
-#      vendor the siblings into the bundle.
+#      not linked". Nothing is published: this machine has no npm credentials (`npm whoami` → `ENEEDAUTH`) and no
+#      `@deepblend` scope. The manifests themselves are ready — `private` is gone from all seven, every
+#      `@deepseek-ai/*` import is a peer with a prerelease-aware range, and `npm pack --dry-run` on each produces
+#      only `lib/`, `python/` or `presets/` and the manifest. So this route is waiting on a login, not on code.
 #
-#   3. FROM A TARBALL (for a repository that cannot be installed from source at all)
-#      Needs a SELF-CONTAINED artifact, which is the same packaging decision as route 2 — a tarball of the bundle
-#      alone would still need its four unpublished dependencies. Two rules if this route is chosen: the host must
-#      be GitHub release hosting, and the ASSET NAME MUST BE VERSION-FREE (`…/releases/latest/download/NAME.tgz`),
-#      because `latest/download/` takes the filename literally — a versioned name works on the day of submission
-#      and 404s on the next release.
+#   3. FROM A TARBALL — WORKS, and it is the one route that needs no registry at all.
+#      `tools/build-release-tarball.mjs` builds a SELF-CONTAINED artifact and attaches it to a GitHub release
+#      under a VERSION-FREE asset name. Self-containment is npm's own `bundledDependencies`, not a bundler: the
+#      six siblings are vendored into the tarball's `node_modules`, so `dsh plugin add <url>` reports
+#      `Packages: +1` — it fetches the artifact and resolves nothing. Measured on a scratch home: the same 4
+#      composed rows, `/deepblend/capabilities` HTTP 200, both presets deployed and `problem: null`.
+#      The two rules this route carries, and why the second is a rule and not a nicety: the host must be GitHub
+#      release hosting, and the ASSET NAME MUST BE VERSION-FREE (`…/releases/latest/download/NAME.tgz`), because
+#      `latest/download/` takes the filename literally — a versioned name works on the day of submission and
+#      404s on the next release. The market's own `probe-tarballs.mjs` warns about exactly that pattern, so the
+#      naming rule is asserted by `contract/listing-entry.test.mjs` rather than left to whoever edits this file.
 #
-# So the four decisions are not independent: making the repository public unblocks route 1, and the packaging
-# decision unblocks routes 2 and 3. Route 1 is the one that needs nothing else.
+# So the decisions are not independent: making the repository public unblocked route 1, and route 3 is satisfied
+# by the same self-referential git specs plus a vendored artifact. Route 2 is the only one still open, and it is
+# open on an account rather than on the repository.
 url: https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle
 name: pearjelly/deep-blend#bundle
 # `#bundle` rather than a prettier `#deepblend`: the gate's own rule is `owner/repo#<last segment of the
 # subdirectory the url points at>`, and its example is `…/packages/my-plugin` → `owner/repo#my-plugin`.
 # A nicer label would have to come from renaming the directory, which the rest of the repository pins.
 category: tools
+# The release asset `tools/build-release-tarball.mjs` builds and `gh release` attaches. `latest/download/` plus a
+# name with no version in it is what keeps this URL alive across releases; `--check` on that tool fails if a
+# version ever appears in the asset name.
+tarball: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
 description:
   # Quoted because it contains ": " — unquoted, the YAML parser trips on the colon.
   en: 'Render and iterate on Blender scenes from DSH: 16 tools for scene specs, previews, visual review and delivery renders, with immutable revisions and an approval gate.'
