@@ -147,6 +147,19 @@ function releaseCommit(allowDirty) {
     console.error('commit or stash them, or pass --allow-dirty if this is a local experiment')
     process.exit(2)
   }
+
+  // AND THE COMMIT HAS TO BE ON THE REMOTE, which is not a formality: the staging install
+  // fetches the siblings by `github:…#<commit>&path:…`, and codeload cannot serve a commit
+  // nobody has pushed. Without this check the build dies inside pnpm with an empty error —
+  // MEASURED, on the first clean-tree build of this very tool — and an empty pnpm error
+  // reads like a network fault rather than "you have not pushed yet".
+  run('git', ['fetch', 'origin', '--quiet'], ROOT)
+  const containing = run('git', ['branch', '--remotes', '--contains', commit], ROOT).output
+  if (containing === '') {
+    console.error(`${commit.slice(0, 12)} is not on any remote branch, so pnpm cannot fetch it`)
+    console.error('push it first — a release artifact has to correspond to a commit other people can fetch')
+    process.exit(2)
+  }
   return commit
 }
 
