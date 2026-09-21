@@ -1,0 +1,9 @@
+# WHY THERE IS NO `order` KEY, when every preset the deployment ships declares one.
+#
+# The roster sorts by `order` and treats an absent one as `Number.POSITIVE_INFINITY`
+# (`@deepseek-ai/dsh-agent-presets`, "ordered by id" is the tie-break), so this preset appears after the four
+# built-ins and among any other unordered ones by id. That is the intended position for a plugin's preset, and it
+# is the more robust spelling: a declared number would tie with a future built-in that picks the same one, while
+# an absent one always follows the deployment's own. Measured by reading the sort, not assumed.
+name: DeepBlend Studio
+description: 用 DeepSeek-Flash 规划、检查并控制 Blender 产出 3D 动画的专用 Agent：只会看场景、改场景、渲预览、判读测量并交付视频，没有 Shell、没有任意文件写入、没有任意 Python。

@@ -72,7 +72,7 @@ npm run presets:install  # 4. 部署 agent preset 与它自带的 skill
 
 ```
 $ npm run setup:check
-result: the workspace resolves all 12 package(s) from the deployment
+result: the workspace resolves all 13 package(s) from the deployment
 
 $ npm run blender:check
 result: the pinned Blender 5.2.1 is installed
@@ -105,7 +105,7 @@ result: the installed presets match the repository
 
 ### `npm run setup` — 工作区依赖链接
 
-`node_modules/` **不在版本控制里**：它没有任何内容，只有 12 个指向**已安装的 DSH 部署**
+`node_modules/` **不在版本控制里**：它没有任何内容，只有 13 个指向**已安装的 DSH 部署**
 与本仓库 `packages/` 的绝对符号链接。要链接哪些包**不是写死的清单**，而是从源码里的
 真实 import 读出来的，所以新增一句 `import '@deepseek-ai/dsh-xxx'` 只需要重跑这条命令。
 

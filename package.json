@@ -27,6 +27,8 @@
     "plugin:check": "node deepblend/tools/install-plugin.mjs --check",
     "presets:install": "node deepblend/tools/install-presets.mjs",
     "presets:check": "node deepblend/tools/install-presets.mjs --check",
+    "presets:sync": "node deepblend/tools/sync-plugin-presets.mjs",
+    "presets:sync:check": "node deepblend/tools/sync-plugin-presets.mjs --check",
     "verify:clone": "node deepblend/tools/verify-clean-clone.mjs",
     "test": "node deepblend/tests/run.mjs",
     "test:acceptance": "bash deepblend/tests/run-all.sh",

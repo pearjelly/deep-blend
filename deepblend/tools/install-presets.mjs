@@ -51,6 +51,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { homedir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
+import * as deployRule from '@deepblend/dsh-blender-preset/deploy'
+
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
 const SOURCE = join(ROOT, 'deepblend', 'presets')
@@ -58,7 +60,14 @@ const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
 const TARGET = join(DSH_HOME, '.agent-presets')
 
 /**
- * The files a preset directory cannot be without.
+ * The files a preset directory cannot be without, and the walk that finds the
+ * rest of it.
+ *
+ * BOTH COME FROM THE PACKAGE THAT SHIPS THE PRESETS, not from a copy here. The
+ * plugin row a market install composes deploys the same presets through the same
+ * rule (`@deepblend/dsh-blender-preset/deploy`), and a second copy of "what a
+ * preset is made of" is exactly the kind of list that rots in the copy nobody
+ * runs (D38, D43, D57, D60).
  *
  * The rest of the directory travels too — a preset's `skills/` directory is
  * loaded through `customSkillDirs`, resolved against the composition's own
@@ -67,10 +76,7 @@ const TARGET = join(DSH_HOME, '.agent-presets')
  * would mount, the model would get every tool, and the skill the persona tells it
  * to load would simply not be in the catalog.
  */
-const REQUIRED_FILES = ['preset.yml', 'agent.cordis.yml']
-
-/** Directories inside a preset that are not shipped (editor and VCS noise). */
-const IGNORED_DIRECTORIES = new Set(['node_modules', '.git'])
+const REQUIRED_FILES = deployRule.REQUIRED_FILES
 
 const checkOnly = process.argv.includes('--check')
 
@@ -80,21 +86,11 @@ function say(label, value) {
 
 /**
  * Every file under `directory`, as paths relative to it, in a stable order.
- * @param {string} directory
- * @returns {string[]}
+ *
+ * The walk itself lives in the package that ships the presets; this is a local
+ * name for it so the body below reads the same as it always has.
  */
-function filesUnder(directory) {
-  const found = []
-  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
-    if (entry.isDirectory()) {
-      if (IGNORED_DIRECTORIES.has(entry.name)) continue
-      for (const nested of filesUnder(join(directory, entry.name))) found.push(join(entry.name, nested))
-    } else if (entry.isFile()) {
-      found.push(entry.name)
-    }
-  }
-  return found
-}
+const filesUnder = deployRule.filesUnder
 
 if (!existsSync(SOURCE)) {
   console.error(`no preset source directory at ${SOURCE}`)

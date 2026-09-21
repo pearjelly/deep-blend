@@ -1,7 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
   "version": "0.1.0",
-  "private": true,
   "description": "DeepBlend Studio Host Bundle: composes the Blender runtime provider, host facade and UI host half, with default configuration.",
   "main": "lib/index.js",
   "exports": {
@@ -21,10 +20,12 @@
     }
   },
   "dependencies": {
-    "@deepblend/dsh-blender-contracts": "0.1.0",
-    "@deepblend/dsh-blender-host": "0.1.0",
-    "@deepblend/dsh-blender-provider-local": "0.1.0",
-    "@deepblend/dsh-blender-ui": "0.1.0"
+    "@deepblend/dsh-blender-contracts": "github:pearjelly/deep-blend#path:/packages/deepblend/contracts",
+    "@deepblend/dsh-blender-host": "github:pearjelly/deep-blend#path:/packages/deepblend/host",
+    "@deepblend/dsh-blender-preset": "github:pearjelly/deep-blend#path:/packages/deepblend/preset",
+    "@deepblend/dsh-blender-provider-local": "github:pearjelly/deep-blend#path:/packages/deepblend/provider-local",
+    "@deepblend/dsh-blender-tool": "github:pearjelly/deep-blend#path:/packages/deepblend/tool",
+    "@deepblend/dsh-blender-ui": "github:pearjelly/deep-blend#path:/packages/deepblend/ui"
   },
   "type": "module",
   "license": "MIT",

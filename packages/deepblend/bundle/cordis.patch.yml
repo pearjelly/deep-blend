@@ -180,3 +180,40 @@
       name: '@deepblend/dsh-blender-ui'
       config:
         serveRoute: true
+
+    # ── THE AGENT-PRESET PLANE'S DELIVERABLE ────────────────────────────────
+    #
+    # The sixteen model-visible tools belong to an AGENT PRESET, not to this
+    # composition (SPEC §4.3): registering them here would hand the Blender
+    # toolset to every session in the process. So the preset is not a row of
+    # tools — it is a directory under `<DSH_HOME>/.agent-presets/`, and
+    # `dsh plugin add` installs a package rather than writing a user's preset
+    # root.
+    #
+    # Without this row the plugin installs and HALF works: the workbench appears,
+    # the project store serves, and no session can render anything, because the
+    # model has no `blender_*` tool to call. The package this row mounts ships
+    # the preset and installs it, which is what makes the one-line install the
+    # whole install. `dsh-expert-orchestrator` is the same shape on the plugin
+    # list.
+    #
+    # It deploys when the profile composes, idempotently, into
+    # `<DSH_HOME>/.agent-presets/` only — never the root itself, never another
+    # preset — and a home it cannot write is logged rather than thrown, because a
+    # convenience copy must not take a deployment down. `deploy: false` leaves a
+    # preset root that an operator manages themselves untouched.
+    #
+    # The two paths are EMPTY on purpose, for the reason the first row's comment
+    # gives: a machine-dependent value belongs in the package that owns it, where
+    # it is ordinary Node code that can look at `DSH_HOME` and at its own
+    # location. `''` means "the default", and the default is derived once in
+    # `@deepblend/dsh-blender-preset/deploy`.
+    - id: deepblend-blender-preset
+      name: '@deepblend/dsh-blender-preset'
+      config:
+        deploy: true
+        # Empty means every preset the package ships: a preset added to the
+        # package then arrives without a composition change.
+        presets: []
+        # Empty means `<DSH_HOME>/.agent-presets`.
+        target: ''

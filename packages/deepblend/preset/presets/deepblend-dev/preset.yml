@@ -1,0 +1,2 @@
+name: DeepBlend 开发模式
+description: 开发与调试 DeepBlend Studio 的完整编码 Agent：在标准模式全部能力之上提供 Blender 能力检测工具，用于开发 Blender Runtime、检查项目文件、执行测试与查看日志产物。

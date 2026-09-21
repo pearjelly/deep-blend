@@ -92,7 +92,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         65 个 *.test.mjs
+    contract/         66 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -128,7 +128,7 @@ packages/deepblend/
 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） |
 | **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
 | **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
-| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 81 条照跑 |
+| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 82 条照跑 |
 | **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
 | **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
 | **ffmpeg + ffprobe**（macOS：`brew install ffmpeg`） | **只有交付的编码那一步**：`blender_final_render` 渲完最后一帧之后把它编成 MP4，`blender_export` 同理 | **渲染照跑、帧一帧不丢**，只有编码以 `ENCODER_NOT_FOUND` 失败，消息里点名 ffmpeg 与装法。装上之后对同一个 job 调 `blender_export` 即可补上交付（`recovery.md` §3；第 30 轮实测：2 帧的 job 渲完、编码失败、帧保留、装好编码器后导出并发布成功） |
@@ -142,7 +142,7 @@ packages/deepblend/
 
 ### 1. 装配工作区（全新 clone 的第一步）
 
-本仓库的 `node_modules/` **不在版本控制里**：它没有任何内容，只有 12 个指向
+本仓库的 `node_modules/` **不在版本控制里**：它没有任何内容，只有 13 个指向
 **已安装的 DSH 部署**与本仓库 `packages/` 的绝对符号链接（见 `.gitignore`）。
 所以刚 clone 下来的仓库**解析不了自己写的任何一句 import**：**需要 import 的那些契约文件**
 会在跑第一条断言之前死于 `ERR_MODULE_NOT_FOUND`，只有纯读文件的那几个照跑：
@@ -202,8 +202,8 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**16 个套件、80 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**65 个文件 = 1489 项自计断言（32 个文件打印计数）+ 341 个 `node:test` 用例（33 个文件）**。
+预期：**16 个套件、81 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**66 个文件 = 1489 项自计断言（32 个文件打印计数）+ 341 个 `node:test` 用例（34 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

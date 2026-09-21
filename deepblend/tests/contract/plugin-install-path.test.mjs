@@ -119,7 +119,7 @@ test('and the real profile was never touched', () => {
 // wrote a file, which is why the directories are compared instead.
 test('importing every package of this plugin writes nothing and starts nothing', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'deepblend-import-'))
-  const packages = ['contracts', 'provider-local', 'host', 'tool', 'ui', 'bundle']
+  const packages = ['contracts', 'provider-local', 'host', 'tool', 'ui', 'preset', 'bundle']
   const offenders = []
   try {
     for (const name of packages) {
