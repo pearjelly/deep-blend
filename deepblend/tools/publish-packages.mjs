@@ -207,8 +207,16 @@ export function publishRefusalFix(output, tfa = null) {
     return `npm answered 404, which for a scoped package means one of two things and says which: `
       + `either the ${SCOPE} org does not exist — create it at https://www.npmjs.com/org/create `
       + `(there is NO command-line way to create an org; \`npm org\` only manages ones that already exist) `
-      + `— or the token in ~/.npmrc is not allowed to publish to ${SCOPE}: regenerate it with that scope `
-      + `selected, or with "all packages".`
+      + `— or the token in ~/.npmrc is not allowed to publish to ${SCOPE}: edit or regenerate it with that `
+      + `scope selected, or with "all packages". `
+      // THE ORDER MATTERS, and it is the trap: a granular token's package allowlist is fixed
+      // when the token is created, so a token made BEFORE the org existed cannot be given it
+      // afterwards — the org is not in the list of things the page could offer. Creating the
+      // org and re-running is therefore not enough, which is exactly the round trip this
+      // sentence exists to save.
+      + `NOTE THE ORDER: if you have just created the org, the token you already have still cannot `
+      + `publish to it — a granular token's allowlist is chosen when the token is created, so EDIT OR `
+      + `REGENERATE IT AFTER the org exists, then re-run.`
   }
   if (/EOTP/.test(output)) {
     return 'npm wants a one-time code: `npm run publish:packages -- --otp <6 digits>`'

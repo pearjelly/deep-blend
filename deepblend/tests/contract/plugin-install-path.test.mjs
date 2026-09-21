@@ -551,6 +551,10 @@ test('a publish failure is reported as the cause, not as npm\'s log path', () =>
   assert.ok(!/npm org create/.test(scopeFix), 'the scope refusal suggests `npm org create` again, which is not a command')
   assert.match(scopeFix, /token in ~\/\.npmrc is not allowed to publish/,
     'the other cause of a 404 on a scoped PUT — a token without publish access to the scope — is not named')
+  // The ordering trap, asserted because it is the one that costs a round trip: a granular
+  // token's allowlist is fixed at creation, so creating the org afterwards is not enough.
+  assert.match(scopeFix, /EDIT OR REGENERATE IT AFTER the org exists/,
+    'the fix does not warn that a token created before the org cannot be given it afterwards')
   assert.equal(publishRefusalFix('npm error code E500\nnpm error Internal server error'), null,
     'a failure this tool does not recognise was given an invented fix')
 })
