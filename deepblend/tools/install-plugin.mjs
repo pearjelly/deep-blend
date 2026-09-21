@@ -16,7 +16,7 @@
  *   2. The profile's `package.json` must list `@deepblend/dsh-blender-bundle`
  *      under `dsh.profile.bundles`, or the bundle's patch file is never read.
  *
- * Both used to live only in prose — `README.md` §5 and `runtime-audit.md` §5.4
+ * Both used to live only in prose — `README.zh.md` §5 and `runtime-audit.md` §5.4
  * describe them as "the manual equivalent of `dsh plugin --profile add`, because
  * this machine has no pnpm". On 2026-09-14 the profile was reinstalled and both
  * were gone, and the cost was not theoretical:

@@ -461,7 +461,7 @@ check('resuming a COMPLETED job is refused with a coded result pointing at blend
 //
 // These checks are why the tool exists at all. Two of this repository's own
 // documents told a user to call `blender_revision_restore` for four milestones
-// (`README.md`, `milestone-status.md` §10B) while no such tool was registered. The
+// (`README.zh.md`, `milestone-status.md` §10B) while no such tool was registered. The
 // facade method it wraps had been implemented since M1 and the workbench's own
 // Revisions panel called it, so nothing failed and nothing noticed. A suite that
 // CALLS the tool is what makes that class of promise impossible to leave broken.

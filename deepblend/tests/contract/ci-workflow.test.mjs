@@ -129,7 +129,7 @@ test('the workflow pins the same DSH version as the toolchain anchor', () => {
 test('the workflow states no count of the test layer', () => {
   // THE DEFECT THIS FILE EXISTS FOR. "17 files — 806 checks plus 82 cases" sat in this
   // comment while the truth moved to 26/830/156. The numbers belong where a run prints
-  // them (the console) or where a test checks them (README.md, via documented-counts).
+  // them (the console) or where a test checks them (README.zh.md, via documented-counts).
   const counted = [/\b\d+\s+files?\b/i, /\b\d+\s+(?:self-reported\s+)?checks?\b/i, /\b\d+\s+(?:node:test\s+)?cases?\b/i]
   for (const pattern of counted) {
     const found = pattern.exec(workflow)

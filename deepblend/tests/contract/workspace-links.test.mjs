@@ -157,7 +157,7 @@ test('the setup step is discoverable from the repository root', () => {
   assert.equal(manifest.scripts?.test, 'node deepblend/tests/run.mjs')
   // The README's quick start is written against these two; a rename of either
   // breaks the documented path without breaking any other assertion here.
-  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
   assert.ok(readme.includes('npm run setup'), 'the README no longer tells a fresh clone how to link its workspace')
 })
 

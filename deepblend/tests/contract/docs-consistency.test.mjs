@@ -5,7 +5,7 @@
  * WHY THIS EXISTS
  * ---------------
  * A manual is the artifact most likely to lie, because nothing executes it. This
- * repository has already paid for that twice: `README.md` and `milestone-status.md`
+ * repository has already paid for that twice: `README.zh.md` and `milestone-status.md`
  * told users to call `blender_revision_restore` for four milestones while no such
  * tool existed (D80), and the README's own "来源与校验和见 §5" pointed at a section
  * that had no checksum in it. Both were true-sounding sentences that no line of
@@ -58,7 +58,7 @@ const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 // (It used to be a Set, and passing a Set to a checker that indexes by name reported every script
 // as missing — caught the moment the two were put together, which is the whole point of doing it.)
 const scripts = manifest.scripts ?? {}
-const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
 /** The other document a person reads before running anything. */
 const mergePolicy = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf8')
 
@@ -74,7 +74,7 @@ test('every manual SPEC asks for is present and linked from the README', () => {
     const basename = path.split('/').pop()
     assert.ok(
       readme.includes(basename),
-      `README.md never points at ${path}; a manual nobody is linked to is a manual nobody reads`,
+      `README.zh.md never points at ${path}; a manual nobody is linked to is a manual nobody reads`,
     )
   }
 })
@@ -124,7 +124,7 @@ test('the demo section describes what the TOOLS produce, and names the tool that
   // The README is read directly: it is not in `documents` (that list is the manuals), and the sibling check
   // below — "the README does not assert milestone status, because it cannot keep it true" — reads it the same
   // way. This check is that same rule applied to the OPERATOR'S STORE rather than to the milestone log.
-  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
   const demoAt = readme.indexOf('### 4. 生成演示项目')
   assert.notEqual(demoAt, -1, 'the README no longer has the demo-project section, so this check has no subject')
   const demo = readme.slice(demoAt, readme.indexOf('### 5.', demoAt))
@@ -197,7 +197,7 @@ test('a JSON example in the docs is JSON, and a ScenePatch example is a patch th
   // brief's job-record example (making it invalid JSON) stayed green. A check that skips a directory is a check
   // whose scope nobody can see from its name.
   const sources = [
-    { path: 'README.md', text: readFileSync(join(ROOT, 'README.md'), 'utf8') },
+    { path: 'README.zh.md', text: readFileSync(join(ROOT, 'README.zh.md'), 'utf8') },
     { path: 'SPEC.md', text: readFileSync(join(ROOT, 'SPEC.md'), 'utf8') },
     ...readdirSync(join(ROOT, 'deepblend', 'docs'))
       .filter(name => name.endsWith('.md'))
@@ -385,9 +385,13 @@ test('the manuals do not restate the install commands as a second source of trut
   // `install.md` may POINT at the README's quick start; what it must not do is carry
   // its own copy of a step list that can drift. The check is deliberately narrow: it
   // looks for an unqualified install command, which is the thing the README owns.
+  //
+  // EITHER README, since the language split: `install.md` is Chinese and points at
+  // `README.zh.md`, which is the detailed document. The claim being checked is "this manual
+  // says the README owns the step list", not which language it sends the reader to.
   const install = documents.find(document => document.path.endsWith('install.md')).text
   assert.ok(
-    /README\.md/.test(install),
+    /README(\.zh)?\.md/.test(install),
     'install.md does not point at the README, so it is presenting itself as the only install path',
   )
 })
@@ -416,7 +420,7 @@ test('the README does not assert milestone status, because it cannot keep it tru
   // The README and CONTRIBUTING are the two documents a person reads before running anything, and
   // both are covered: a status claim is not more acceptable one file over. The templates are covered
   // by `contributor-surface.test.mjs`.
-  for (const [name, text] of [['README.md', readme], ['CONTRIBUTING.md', mergePolicy]]) {
+  for (const [name, text] of [['README.zh.md', readme], ['CONTRIBUTING.md', mergePolicy]]) {
     const claim = findMilestoneStatusClaim(text)
     assert.equal(
       claim,
@@ -464,7 +468,7 @@ test('every SPEC and milestone section a document cites exists', () => {
   assert.ok(specSections.size > 50 && milestoneSections.size > 50,
     `the documents were not parsed (SPEC ${specSections.size} sections, milestone ${milestoneSections.size})`)
 
-  const documents = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md',
+  const documents = ['README.zh.md', 'CONTRIBUTING.md', 'SECURITY.md',
     ...MANUALS, 'deepblend/docs/security.md', 'deepblend/docs/tool-contracts.md',
     'deepblend/docs/architecture-decisions.md']
   const missing = []
@@ -498,7 +502,7 @@ test('every SPEC and milestone section a document cites exists', () => {
 // distinction the counts sweep had to make in round 130). What is checked is the live manuals and the
 // contributing guide, where a name is a promise that the file is there.
 test('every test file the manuals name exists', () => {
-  const live = ['README.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
+  const live = ['README.zh.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
     'deepblend/docs/tool-contracts.md']
   const missing = []
   const seen = new Set()
@@ -552,7 +556,7 @@ test('every decision number a document cites is defined somewhere', () => {
   // the check read its own documentation as a dangling citation. A record may legitimately name a number that was
   // never defined (a hypothetical, a mutation, a decision that was withdrawn); a manual may not, because a reader
   // follows it. Same distinction as the test-file check above.
-  const documents = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', ...MANUALS,
+  const documents = ['README.zh.md', 'CONTRIBUTING.md', 'SECURITY.md', ...MANUALS,
     'deepblend/docs/security.md', 'deepblend/docs/tool-contracts.md',
     'deepblend/docs/architecture-decisions.md']
   const missing = []
@@ -801,7 +805,7 @@ test('every service name a document shows is one the product declares', () => {
   }
   collectNames(join(ROOT, 'packages', 'deepblend'))
 
-  const documents = ['README.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
+  const documents = ['README.zh.md', 'CONTRIBUTING.md', ...MANUALS, 'deepblend/docs/security.md',
     'deepblend/docs/tool-contracts.md']
   const foreign = []
   let inspected = 0

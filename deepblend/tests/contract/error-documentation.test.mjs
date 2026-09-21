@@ -45,7 +45,7 @@ import { BlenderWarningCode } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 /** The documents a user reads when something was refused. */
-const MANUALS = ['deepblend/docs/recovery.md', 'deepblend/docs/usage.md', 'deepblend/docs/install.md', 'README.md']
+const MANUALS = ['deepblend/docs/recovery.md', 'deepblend/docs/usage.md', 'deepblend/docs/install.md', 'README.zh.md']
 const manuals = new Map(MANUALS.map(path => [path, readFileSync(join(ROOT, path), 'utf8')]))
 
 /**

@@ -36,7 +36,7 @@
 | `blender_debug_run_script` | 任意脚本执行；SPEC §11.2 要求它只存在于 `deepblend-dev`，且每次执行需审批 | 不进正式 preset |
 
 > **关于 `blender_revision_restore`（M5 补上，值得记一笔）**：SPEC §11 把它列为模型可见工具，
-> `README.md` 与 `milestone-status.md` §10B 都告诉用户去调用它——而它既不在上面那张工具表里，
+> `README.zh.md` 与 `milestone-status.md` §10B 都告诉用户去调用它——而它既不在上面那张工具表里，
 > 也不在实现里，整整四个里程碑。它包住的 facade 方法 `restoreRevision` 从 M1 起就实现了，
 > 工作台的 Revisions 面板也确实在调它，所以**没有任何东西失败，也没有任何东西发现**。
 > 这正是「散文里的承诺」的形状：一层之下有能跑的实现，而没有任何一行代码必须与两者一致。

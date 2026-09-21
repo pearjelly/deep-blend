@@ -4,7 +4,7 @@
  *
  * WHY THIS EXISTS
  * ---------------
- * `README.md` §「当前状态与下一步」 said `M0、M1、M2、M3、M4 验收均已闭环` and, eleven lines
+ * `README.zh.md` §「当前状态与下一步」 said `M0、M1、M2、M3、M4 验收均已闭环` and, eleven lines
  * later, `按 SPEC §0.3，M5 应在新的会话中开始` — six rounds after M5 had finished, in the section
  * whose whole job is to describe the present. There is no machine-readable "current milestone" to
  * compare prose against, so the rule is the other one: DO NOT RESTATE IT. `milestone-status.md` is

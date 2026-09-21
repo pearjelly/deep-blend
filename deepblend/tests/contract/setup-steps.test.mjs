@@ -61,7 +61,7 @@ const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 const scripts = manifest.scripts ?? {}
 
 /** Documents a human is expected to read before running anything. */
-const documentation = ['README.md', 'CONTRIBUTING.md']
+const documentation = ['README.zh.md', 'CONTRIBUTING.md']
   .map(name => ({ name, text: readFileSync(join(ROOT, name), 'utf8') }))
 
 const checkout = existsSync(join(ROOT, '.git'))
@@ -120,12 +120,12 @@ test('the commands the README documents are ones a reader can run', () => {
   // The README is the front door. A renamed script it still names breaks the documented path without
   // breaking any other assertion here — and since round 34 the check is the shared one
   // (`tests/lib/command-claims.mjs`), which also resolves the repository paths it names.
-  const readme = documentation.find(document => document.name === 'README.md').text
+  const readme = documentation.find(document => document.name === 'README.zh.md').text
   const documented = commandsIn(readme)
   assert.ok(documented.length > 0, 'the README no longer tells anyone to run anything')
 
   const missing = missingCommands(readme, { scripts, root: ROOT })
-  assert.deepEqual(missing, [], `README.md tells a reader to run ${missing.join(', ')}, which cannot be run`)
+  assert.deepEqual(missing, [], `README.zh.md tells a reader to run ${missing.join(', ')}, which cannot be run`)
 })
 
 // ---------------------------------------------------------------------------
@@ -269,7 +269,7 @@ test('the platform the managed Blender is pinned for is stated where prerequisit
   const wanted = blenderPin.platform.replace(/[^a-z0-9]/gi, '').toLowerCase()
   assert.ok(wanted.length > 0, 'the Blender pin no longer records a platform')
 
-  for (const name of ['README.md', 'deepblend/docs/install.md']) {
+  for (const name of ['README.zh.md', 'deepblend/docs/install.md']) {
     const text = readFileSync(join(ROOT, name), 'utf8')
     assert.ok(
       text.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(wanted),
@@ -352,7 +352,7 @@ test('without .git the repository-state assertions skip and the exit code stays 
   const scratch = mkdtempSync(join(tmpdir(), 'deepblend-no-git-'))
   try {
     // A TARBALL, not a hand-picked file list: the first version copied the directories this case seemed to need,
-    // and `workspace-links.test.mjs` failed with ENOENT on README.md — the file list a test needs is not something
+    // and `workspace-links.test.mjs` failed with ENOENT on README.zh.md — the file list a test needs is not something
     // to guess. `rsync` excludes exactly what a release archive would not carry: the history, the managed Blender,
     // the linked modules and the generated store.
     execFileSync('rsync', [

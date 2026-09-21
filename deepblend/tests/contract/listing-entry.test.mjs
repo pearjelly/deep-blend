@@ -132,8 +132,42 @@ test('the submission filename is the one the gate derives from the url', () => {
 })
 
 // ---------------------------------------------------------------------------
-// The description's BEHAVIOURAL claims are backed by written decisions
+// The English README is the market's landing page, and it must carry the install
 // ---------------------------------------------------------------------------
+//
+// The listing's own review asks a contributor to document the install command, and the
+// document a visitor to this repository actually lands on is `README.md` — the English one,
+// since the language split. `README.zh.md` is the detailed document every other check reads,
+// which left the English entry point as the one file nothing compared against anything.
+//
+// The command is DERIVED from the entry's own url rather than copied into this file: the
+// entry points at `…/tree/main/packages/deepblend/bundle`, the ecosystem's install form for
+// that is `github:owner/repo#path:/packages/deepblend/bundle`, and a README that documents a
+// different form is documenting an install nobody can run. That is the failure this catches —
+// it cannot catch a typo in the repository name, because both sides would move together.
+test('the English README documents the install form the entry implies', () => {
+  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const fields = topLevel(entry)
+  const [, owner, repo, subdirectory] = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/tree\/[^/]+\/(.+)$/.exec(fields.url)
+  const spec = `github:${owner}/${repo}#path:/${subdirectory}`
+  assert.ok(readme.includes(spec),
+    `README.md does not show the install command ${spec}, so the market's landing page does not document how to install the plugin`)
+  // Quoted, because `#` starts a comment in every shell this is pasted into — the unquoted
+  // form silently installs the repository root, which declares no bundle.
+  assert.ok(readme.includes(`'${spec}'`),
+    'README.md shows the install spec without quoting it, so a shell would truncate it at the "#"')
+  assert.ok(readme.includes('dsh plugin --profile web add'),
+    'README.md does not name the command the install spec belongs to')
+  // The badge is what the list's own Badge section asks a listed plugin to embed.
+  assert.match(readme, /\[!\[Awesome DSH Plugin\]\(https:\/\/awesome-dsh-plugin\.com\/badge\.svg\)\]\(https:\/\/awesome-dsh-plugin\.com\)/,
+    'README.md does not carry the Awesome DSH Plugin badge the listing asks for')
+  // And a reader of either language must be able to reach the other document.
+  assert.ok(readme.includes('README.zh.md'), 'README.md does not link to the Chinese document')
+  const chinese = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
+  assert.match(chinese, /\[English\]\(README\.md\)/,
+    'README.zh.md does not link back to the English document')
+})
+
 //
 // The entry says the plugin comes "with immutable revisions and an approval gate". Those are claims about behaviour,
 // and the guide's rule — "it is read as a claim about your plugin, and it is checked against your code" — has no

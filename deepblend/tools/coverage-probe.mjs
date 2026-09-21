@@ -130,7 +130,7 @@ function sourceFingerprints() {
   // Measured, round 38. Everything the suite can read is now fingerprinted.
   walk(join(ROOT, 'packages'))
   walk(join(ROOT, 'deepblend'))
-  for (const name of ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SPEC.md', 'package.json']) {
+  for (const name of ['README.zh.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SPEC.md', 'package.json']) {
     const path = join(ROOT, name)
     if (existsSync(path)) record(path)
   }

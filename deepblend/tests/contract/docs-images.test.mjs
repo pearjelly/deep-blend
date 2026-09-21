@@ -19,8 +19,8 @@
  *   2. each image is byte-for-byte what the manifest recorded, at the size it recorded;
  *   3. each image decodes, is fully opaque, and carries far more distinct colours than a
  *      blank or half-rendered page can;
- *   4. every image is referenced from README.md with non-empty alt text, and every image
- *      README.md references exists — a 300 KiB PNG nobody links to is dead weight in a
+ *   4. every image is referenced from README.zh.md with non-empty alt text, and every image
+ *      README.zh.md references exists — a 300 KiB PNG nobody links to is dead weight in a
  *      clone, which is the one cost this repository cannot test away.
  *
  * WHAT IT CANNOT CHECK
@@ -44,7 +44,14 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const DIR = join(ROOT, 'deepblend', 'docs', 'images')
 const MANIFEST_PATH = join(DIR, 'manifest.json')
-const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+
+// BOTH READMEs, because the plugin market reads the English one and a reader of either is
+// entitled to the same pictures. Before the language split only `README.md` was checked, and
+// an image added to the English one alone would have gone unnoticed in both directions.
+const READMES = [
+  ['README.md', readFileSync(join(ROOT, 'README.md'), 'utf8')],
+  ['README.zh.md', readFileSync(join(ROOT, 'README.zh.md'), 'utf8')],
+]
 
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'))
 const files = readdirSync(DIR).filter(name => name.endsWith('.png')).sort()
@@ -146,26 +153,30 @@ test('every image is a picture rather than a blank or half-rendered page', () =>
   }
 })
 
-test('every image is referenced from the README, with alt text', () => {
-  const referenced = new Set()
-  for (const match of readme.matchAll(/!\[([^\]]*)\]\((deepblend\/docs\/images\/[\w.-]+\.png)\)/g)) {
-    assert.ok(match[1].trim().length > 0, `${match[2]} is referenced with empty alt text, which is the caption a reader gets when the image does not load`)
-    referenced.add(match[2].split('/').pop())
+test('every image is referenced from both READMEs, with alt text', () => {
+  for (const [name, text] of READMES) {
+    const referenced = new Set()
+    for (const match of text.matchAll(/!\[([^\]]*)\]\((deepblend\/docs\/images\/[\w.-]+\.png)\)/g)) {
+      assert.ok(match[1].trim().length > 0, `${name}: ${match[2]} is referenced with empty alt text, which is the caption a reader gets when the image does not load`)
+      referenced.add(match[2].split('/').pop())
+    }
+    assert.deepEqual(
+      [...referenced].sort(),
+      files,
+      `${name} and the images directory disagree: an image nobody links to is dead weight in every clone`,
+    )
   }
-  assert.deepEqual(
-    [...referenced].sort(),
-    files,
-    'the README and the images directory disagree: an image nobody links to is dead weight in every clone',
-  )
 })
 
-test('the README says where the pictures came from', () => {
+test('both READMEs say where the pictures came from', () => {
   // A reader is entitled to know whether a picture is a screenshot or a mockup, and a
   // repository whose whole argument is "measured, not asserted" cannot leave that implicit.
-  assert.ok(
-    /capture-docs-images\.mjs/.test(readme),
-    'the README shows pictures without naming the tool that produces them, so a reader cannot tell a screenshot from a mockup',
-  )
+  for (const [name, text] of READMES) {
+    assert.ok(
+      /capture-docs-images\.mjs/.test(text),
+      `${name} shows pictures without naming the tool that produces them, so a reader cannot tell a screenshot from a mockup`,
+    )
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -190,9 +201,16 @@ test('the storefront screenshots declaration names real images, within the ecosy
   assert.deepEqual(bad, [], 'these entries are not repo-relative paths without a leading slash or a ".."')
   const missing = list.filter(entry => !existsSync(join(ROOT, entry)))
   assert.deepEqual(missing, [], 'these declared screenshots do not exist')
-  // And every image the README shows should be among them, so the store and the README agree about what this
-  // project looks like.
-  const referenced = [...readme.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match => match[1])
+  // And every image either README shows should be among them, so the store and the READMEs
+  // agree about what this project looks like.
+  //
+  // REPO-RELATIVE images only. The listing asks a plugin to embed its badge, which is an
+  // absolute URL served by the list itself, and a storefront's `screenshots.json` can only
+  // name files in this repository — comparing the two lists whole would fail on a document
+  // that is doing exactly what the checklist asks for.
+  const referenced = READMES
+    .flatMap(([, text]) => [...text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match => match[1]))
+    .filter(path => !/^[a-z]+:\/\//i.test(path))
   const undeclared = referenced.filter(path => !list.includes(path))
-  assert.deepEqual(undeclared, [], 'the README shows images the storefront declaration does not list')
+  assert.deepEqual(undeclared, [], 'the READMEs show images the storefront declaration does not list')
 })

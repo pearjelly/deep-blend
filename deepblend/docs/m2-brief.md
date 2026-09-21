@@ -251,6 +251,6 @@ M2 设计多视角接口时把「视角 × 帧」一起表达，比事后补要�
 - `deepblend/docs/runtime-audit.md`（探针结论，第 3 节）；
 - `deepblend/docs/architecture-decisions.md`（D29 起）；
 - `deepblend/docs/tool-contracts.md`（新增/变更的工具）；
-- 若视觉审查工具的契约变了，`README.md` 的断言数量也要同步。
+- 若视觉审查工具的契约变了，`README.zh.md` 的断言数量也要同步。
 
 本地 commit，**不要 push**，不要进入 M3。

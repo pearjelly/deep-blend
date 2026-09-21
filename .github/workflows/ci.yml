@@ -10,7 +10,7 @@
 # files the layer had and how many checks and cases they reported, and it went on stating
 # those figures for two milestones after they had all grown, because a figure in a comment
 # nothing executes is a figure nothing re-reads. The run prints its own totals, and
-# README.md keeps the snapshot with its caveats; a second copy here would only be a second
+# README.zh.md keeps the snapshot with its caveats; a second copy here would only be a second
 # thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
 # The Blender-backed layers (`blender-integration/*`, `composition/*`,

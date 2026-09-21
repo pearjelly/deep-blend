@@ -32,7 +32,7 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 // environment variable the copy sets for its children.
 test('the fresh-clone output the README quotes is what a fresh clone prints',
   { skip: process.env.DEEPBLEND_FRESH_CLONE_CASE === '1' ? 'this is the copy the case made' : false }, () => {
-  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
   const quoted = /DeepBlend tests: (\d+)\/(\d+) file\(s\) passed/.exec(readme)
   assert.ok(quoted !== null, 'the README no longer quotes a fresh-clone summary — re-anchor this check')
 

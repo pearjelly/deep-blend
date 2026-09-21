@@ -53,7 +53,7 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 const RUN_ALL = join(ROOT, 'deepblend', 'tests', 'run-all.sh')
 
 const runAll = readFileSync(RUN_ALL, 'utf8')
-const readme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
 const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
 const toolContracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
 

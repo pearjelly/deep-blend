@@ -43,7 +43,7 @@ const packageJson = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 
 /** Every document that could cite a log, as `{name, text}`. */
 const documents = [
-  ['README.md', readFileSync(join(ROOT, 'README.md'), 'utf8')],
+  ['README.zh.md', readFileSync(join(ROOT, 'README.zh.md'), 'utf8')],
   ...readdirSync(DOCS)
     .filter(name => name.endsWith('.md'))
     .map(name => [name, readFileSync(join(DOCS, name), 'utf8')]),
@@ -137,7 +137,7 @@ test('the checker names every fault on logs that are wrong in each documented wa
     name: 'probe-example.log',
     text: '# Example probe — what it measured\n#\n#   node deepblend/tests/run.mjs\n#\n# Taken 2026-09-15.\n\nbody\n',
     ...context,
-    citedBy: ['README.md'],
+    citedBy: ['README.zh.md'],
   }
   assert.deepEqual(logFaults(good), [], 'a well-formed log must come back clean')
 
@@ -179,7 +179,7 @@ test('the header is the header, not "anywhere near the top of the file"', () => 
     text: buried,
     scripts: { test: 'node deepblend/tests/run.mjs' },
     root: ROOT,
-    citedBy: ['README.md'],
+    citedBy: ['README.zh.md'],
   })
   assert.ok(faults.some(fault => fault.startsWith('no date')), `a body date satisfied the header rule: ${faults}`)
   assert.ok(faults.some(fault => fault.startsWith('no command')), `a body command satisfied the header rule: ${faults}`)
