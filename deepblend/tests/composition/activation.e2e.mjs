@@ -46,7 +46,32 @@ function check(name, ok, detail) {
 const { loadOverlayPatches } = await import('@deepseek-ai/dsh-app-boot')
 const patches = loadOverlayPatches('deepblend-test', PATCH_FILE)
 const rows = patches.flatMap(patch => patch.insert ?? [])
-check('bundle patch declares three host rows', rows.length === 3, rows.map(row => row.id))
+
+// FOUR rows, and the fourth is not a host row — which is why this check no longer says
+// "three". The first three publish the services this suite is about; the fourth mounts
+// `@deepblend/dsh-blender-preset`, the deployer that writes the agent presets into
+// `<DSH_HOME>/.agent-presets/` when the profile composes. It arrived with the plugin
+// packaging, and this check kept asserting three — so the composition suite was RED from
+// that commit until this one. MEASURED:
+//
+//     [FAIL] bundle patch declares three host rows
+//            — ["deepblend-blender-runtime","deepblend-blender-host","deepblend-blender-ui","deepblend-blender-preset"]
+//
+// The contract layer never saw it: this suite needs a real DSH and is not part of
+// `run.mjs`. The ids are named individually rather than counted, because a count cannot
+// tell the difference between a row that was added and a row that was swapped for it.
+const HOST_ROWS = ['deepblend-blender-runtime', 'deepblend-blender-host', 'deepblend-blender-ui']
+const PRESET_ROW = 'deepblend-blender-preset'
+const ids = rows.map(row => row.id)
+check('bundle patch declares the three host rows and the preset deployer', rows.length === 4, ids)
+check('the three rows the services are published from are all present', HOST_ROWS.every(id => ids.includes(id)), ids)
+check(
+  'the preset deployer is mounted by the HOST composition, not by a preset',
+  // SPEC §4.3/§4.4: it must run once per process. A preset that mounted it would deploy
+  // the presets once per session, and publishing a service from it would collide.
+  ids.includes(PRESET_ROW),
+  'a convenience copy belongs to the host composition because it must happen once per process',
+)
 check(
   'no row is disabled by default',
   rows.every(row => row.disabled !== true),

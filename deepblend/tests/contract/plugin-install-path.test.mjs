@@ -19,11 +19,16 @@
  *
  * WHY THE LOCAL PATH RATHER THAN GITHUB
  * -------------------------------------
- * The list's own install form is `github:owner/repo#path:…`, and that form cannot be exercised from here: this
- * repository is still private, and pnpm resolves a `github:` spec through an ANONYMOUS codeload tarball, which
- * answers 404 for a private repository. The local directory exercises the same code path — pnpm install, then the
- * bundle's patch composed into the profile — without the network, so what is checked here is everything except
- * the fetch.
+ * Not because the `github:` form cannot be exercised — it can, and it was: `dsh plugin --profile web add
+ * 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'` installs in 11.8 s on a scratch `$DSH_HOME`,
+ * `Packages: +7`, and the profile it produces serves `/deepblend/capabilities` with HTTP 200. That measurement
+ * lives in `docs/milestone-status.md` §197 and in `docs/probe-dsh-plugin-install.log`, because it needs the
+ * network and this layer promises to need nothing but Node, git and a Python 3.
+ *
+ * The local directory exercises the same code path without the fetch — pnpm install, then the bundle's patch
+ * composed into the profile — so what is checked here is everything except the download. This paragraph used to
+ * say the `github:` form "cannot be exercised from here" because "this repository is still private": true when
+ * it was written, false since 2026-09-21, and never the real reason. The reason was always the network.
  *
  * Run standalone: `node deepblend/tests/contract/plugin-install-path.test.mjs`
  * Run all:        `node deepblend/tests/run.mjs`
@@ -32,7 +37,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -220,4 +225,86 @@ test('the operator-layer install composes its rows in a real profile too', () =>
   } finally {
     rmSync(home, { recursive: true, force: true })
   }
+})
+
+// ---------------------------------------------------------------------------
+// The npm route's precondition: every package is publishable AS IT STANDS
+// ---------------------------------------------------------------------------
+//
+// The list accepts three install routes and this repository now measures two of them
+// end to end (source, tarball). The third — from npm — is the one the list recommends,
+// and it is blocked on an ACCOUNT rather than on code: this machine has no npm
+// credentials (`npm whoami` → `ENEEDAUTH`) and no `@deepblend` scope. That claim is
+// only worth writing down if "ready to publish" is checkable, so it is checked here.
+//
+// Three properties, and each one is a way a publish goes wrong silently:
+//
+//   1. `private: true` left in a manifest. npm refuses the publish outright, which is
+//      the good case; the bad case is a package published under a name that then
+//      cannot be unpublished.
+//   2. A directory holding something the author did not mean to ship. There is no
+//      `files` field on five of the seven packages — deliberately, and MEASURED as
+//      unnecessary: each of those directories contains only `lib/` (plus `python/` for
+//      the provider and `presets/` for the preset package) and its manifest, so
+//      `npm pack --dry-run` produces exactly the intended set. But "no `files` field"
+//      means a scratch file dropped into one of those directories ships to the
+//      registry, and nothing would say so. This is the assertion that says so.
+//   3. A `@deepseek-ai/*` package in `dependencies` rather than `peerDependencies`.
+//      Those are the DSH deployment the plugin runs INSIDE; declaring one as a
+//      dependency would make npm try to install the harness into itself, and the
+//      version ranges carry prerelease branches precisely because the harness ships
+//      release candidates.
+test('every package under packages/deepblend is publishable as it stands', () => {
+  const directory = join(ROOT, 'packages', 'deepblend')
+  const packages = readdirSync(directory)
+    .filter(name => existsSync(join(directory, name, 'package.json')))
+    .sort()
+  assert.ok(packages.length >= 6, `only ${packages.length} packages found; the listing entry installs at least six`)
+
+  // What a package directory may hold, and the rule differs by whether the manifest
+  // declares a `files` list:
+  //
+  //   WITH `files`     every top-level entry must be one it lists. `package.json` and a
+  //                    README are packed regardless, so they are always allowed.
+  //   WITHOUT `files`  npm packs everything, so only the directories a package is made of
+  //                    are permitted. This is the case that matters: five of the seven
+  //                    packages have no `files` list, deliberately — MEASURED as
+  //                    unnecessary, because each holds only `lib/` (plus `python/` for the
+  //                    provider and `presets/` for the preset package) and its manifest.
+  //                    But a scratch file dropped into one of them would ship to the
+  //                    registry with nothing to say so, and this is what says so.
+  const ALWAYS_PACKED = new Set(['package.json', 'README.md', 'node_modules'])
+  const DEFAULT_DIRECTORIES = new Set(['lib', 'python', 'presets'])
+
+  for (const name of packages) {
+    const manifest = JSON.parse(readFileSync(join(directory, name, 'package.json'), 'utf8'))
+    assert.notEqual(manifest.private, true,
+      `${manifest.name} still declares private: true, so npm would refuse to publish it`)
+    assert.equal(typeof manifest.repository?.url, 'string',
+      `${manifest.name} declares no repository url — the list harvests the npm mapping by checking that a package's repository points back at the listed repo`)
+
+    const entries = readdirSync(join(directory, name)).filter(entry => !ALWAYS_PACKED.has(entry))
+    const listed = manifest.files
+    const stray = listed === undefined
+      ? entries.filter(entry => !DEFAULT_DIRECTORIES.has(entry))
+      : entries.filter(entry => !listed.includes(entry))
+    assert.deepEqual(stray, [],
+      listed === undefined
+        ? `${manifest.name} holds ${stray.join(', ')} and declares no files list, so npm would publish it`
+        : `${manifest.name} holds ${stray.join(', ')}, which its files list does not include`)
+
+    const dshDependencies = Object.keys(manifest.dependencies ?? {}).filter(key => key.startsWith('@deepseek-ai/'))
+    assert.deepEqual(dshDependencies, [],
+      `${manifest.name} depends on ${dshDependencies.join(', ')}; the harness is provided by the deployment the plugin runs inside, so it belongs in peerDependencies`)
+  }
+
+  // And the two packages that DO carry a `files` list must still list what the plugin
+  // needs at runtime: the bundle's patch is what makes an install compose anything, and
+  // the preset package's `presets/` is the other half of "it installs".
+  const bundle = JSON.parse(readFileSync(join(directory, 'bundle', 'package.json'), 'utf8'))
+  assert.ok(bundle.files?.includes('cordis.patch.yml'),
+    'the bundle no longer ships cordis.patch.yml, so an installed bundle would compose no rows')
+  const preset = JSON.parse(readFileSync(join(directory, 'preset', 'package.json'), 'utf8'))
+  assert.ok(preset.files?.includes('presets'),
+    'the preset package no longer ships presets/, so the deployer row would deploy nothing')
 })
