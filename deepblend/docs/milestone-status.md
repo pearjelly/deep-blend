@@ -12065,11 +12065,53 @@ DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
 README 引的 10/66 **不是**独立的一个数 ✓，它是**整套契约层在 clone 里的投影** ✓。
 给日志补上头之后 ✓：`probe-logs` 6/6 ✓、`readme-fresh-clone` 恢复 **10/66** ✓、`run.mjs` **66/66** ✓。
 
-### 197.14 仍然开着的缺口
+### 197.14 路线 2 剩下的不是代码，是**一条登录**——那就把流程写成一条命令
+
+路线 2 卡在账号 ✓，这一条**本轮改不了** ✓。但「卡在账号」不该同时意味着「卡在流程」✓——
+所以剩下的事是把流程写出来 ✓，并且**把流程里两个会静默出错的坑**钉住 ✓。
+
+`tools/publish-packages.mjs` ✓。两个坑都是**跑 `npm publish --dry-run` 量出来的** ✓，不是读来的 ✓：
+
+1. **本机配的 registry 是镜像** ✓：`npm config get registry` 答
+   `https://mirrors.cloud.tencent.com/npm/` ✓——它代理**读** ✓、**不接受发布** ✓。
+   直接发会得到一个**读起来像权限问题**的状态码 ✗✓，于是人会去查 token ✓，而问题在路由 ✓。
+   所以工具在**每一条命令**上显式写 `--registry https://registry.npmjs.org/` ✓——
+   这不是偏好 ✓，是「发出去」和「4xx」的区别 ✓。
+2. **顺序不是字母序** ✓：`contracts` 被另外四个 import ✓，`bundle` 依赖全部六个 ✓，
+   而 **npm 不会替你解析** ✓——先发 `bundle` 会得到一个「装的时候 404」的包 ✓，
+   而**发布本身是成功的** ✓✓。顺序是从各包自己的 `dependencies` **算出来的** ✓（不是手写 ✓），
+   有环就**拒绝** ✓而不是随便定一个顺序 ✓。
+
+`--check` **不需要凭据**就能跑 ✓（实测：`npm publish --dry-run` 在没有登录时照样 exit 0 ✓，
+只警告一句 ✓），所以操作者在**登录之前**就能看到「七个包、各自几个文件、多大」✓：
+
+```
+$ npm run publish:check
+registry: https://registry.npmjs.org/
+packages: 7, in publish order
+  @deepblend/dsh-blender-contracts@0.1.0 — 22 files, 106.1 kB
+  …
+  @deepblend/dsh-blender-bundle@0.1.0 — 4 files, 5.6 kB
+result: 7 packages are ready to publish, and this machine is not logged in
+fix:    npm login --registry https://registry.npmjs.org/   (then: npm org create deepblend or be added to it)
+```
+
+**退出码三种状态** ✓：`0` 完成 ✓ / `1` 某个包失败 ✓ / `2` 前置条件缺失 ✓——
+「还发不了」和「发出去坏了」对读结果的人是**两件事** ✓✓。发布循环在第一个失败处**停下** ✓，
+不继续 ✓：依赖失败之后发的同级包**收不回来** ✓。
+
+两个坑都有断言 ✓（`plugin-install-path.test.mjs` ✓）：registry 必须被**真的传给 npm** ✓
+（写在注释里不改路由 ✓），顺序按**性质**验 ✓（每个包的每个本地依赖都必须排在它前面 ✓），
+并且点名两端 ✓——`contracts` 第一 ✓、`bundle` 最后 ✓，因为手写的清单正是在这两头写错 ✓。
+
+**所以路线 2 现在的状态是**：一条登录 + 一条命令 ✓，而不是一段要重新推导的流程 ✓。
+
+### 197.15 仍然开着的缺口
 
 1. **路线 2（npm）卡在账号** ✓：需要 npm 登录与 `@deepblend` scope ✓，本机都没有 ✓。
-   **清单侧已就绪且已被断言** ✓（197.5）✓。发布之后市场会自动采集 npm 映射 ✓——
-   但**前提是包的 `repository` 指回本仓库** ✓，这一条也在断言里 ✓。
+   **清单侧已就绪且已被断言** ✓（197.5）✓，**流程侧已写成一条命令** ✓（197.14）✓——
+   所以剩下的是 `npm login` 加一次 `npm run publish:packages` ✓，不是一段要重新推导的过程 ✓。
+   发布之后市场会自动采集 npm 映射 ✓——但**前提是包的 `repository` 指回本仓库** ✓，这一条也在断言里 ✓。
 2. **`files` 字段**：五个包没有 ✓，本轮量出**不需要** ✓，并把「目录里不能有多余东西」变成了断言 ✓。
    没有补 `files` ✓——补它只会多一份要与目录保持一致的事实 ✓。
 3. **tarball 与源码两条路线的一致性**：产物在**构建时**钉住 commit ✓，

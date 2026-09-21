@@ -42,6 +42,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { publishOrder } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -307,4 +308,61 @@ test('every package under packages/deepblend is publishable as it stands', () =>
   const preset = JSON.parse(readFileSync(join(directory, 'preset', 'package.json'), 'utf8'))
   assert.ok(preset.files?.includes('presets'),
     'the preset package no longer ships presets/, so the deployer row would deploy nothing')
+})
+
+// ---------------------------------------------------------------------------
+// The npm route's PROCEDURE: two traps that are silent when they are wrong
+// ---------------------------------------------------------------------------
+//
+// `tools/publish-packages.mjs` is the one command that completes the npm route once an
+// operator has an account. Its two design constraints were both found by running
+// `npm publish --dry-run` against this repository, and both fail in a way that points
+// somewhere other than the cause:
+//
+//   1. THE CONFIGURED REGISTRY IS A MIRROR. `npm config get registry` on this machine
+//      answers `https://mirrors.cloud.tencent.com/npm/`, which proxies reads and does not
+//      accept publishes. A publish sent there fails with a status that reads like a
+//      permissions problem, so the reader checks their token instead of their registry.
+//      The tool names the public registry on every command; this asserts it does, and that
+//      the reason is written down where the next person will read it.
+//
+//   2. THE ORDER IS NOT ALPHABETICAL, and npm resolves nothing. `contracts` is imported by
+//      four of the others and `bundle` depends on all six, so a `bundle` published first is
+//      a package whose install 404s — and the publish itself SUCCEEDS. The order is derived
+//      from the manifests' own `dependencies` rather than typed, and this case checks the
+//      derivation against the manifests instead of against a copy of the answer.
+test('the publish procedure names the public registry and orders dependencies first', () => {
+  const tool = readFileSync(join(ROOT, 'deepblend', 'tools', 'publish-packages.mjs'), 'utf8')
+
+  // The registry is the public one, and it is passed on the command line rather than left to
+  // `npm config`. Both halves matter: naming it in a comment would not change where npm sends
+  // the request.
+  assert.ok(tool.includes("const REGISTRY = 'https://registry.npmjs.org/'"),
+    'publish-packages.mjs no longer pins the public registry, so a publish would go to whatever npm config says')
+  assert.match(tool, /'--registry', REGISTRY|--registry.*REGISTRY/,
+    'publish-packages.mjs defines the registry but does not pass it to npm')
+  assert.ok(tool.includes('mirrors.cloud.tencent.com'),
+    'the mirror is no longer named in the tool, so the next reader has to rediscover why the registry is pinned')
+
+  // And the order, checked as a PROPERTY rather than against a literal list: for every
+  // package, every dependency of it that lives in this repository must appear earlier.
+  const order = publishOrder()
+  const position = new Map(order.map((entry, index) => [entry.name, index]))
+  const local = new Set(order.map(entry => entry.name))
+  assert.equal(order.length, local.size, 'publishOrder returned a package twice')
+
+  const violations = []
+  for (const entry of order) {
+    for (const dependency of Object.keys(entry.manifest.dependencies ?? {})) {
+      if (!local.has(dependency)) continue
+      if (position.get(dependency) > position.get(entry.name)) {
+        violations.push(`${dependency} must precede ${entry.name}`)
+      }
+    }
+  }
+  assert.deepEqual(violations, [], 'the publish order puts a package before something it depends on')
+  // The two ends, stated because they are the ones a hand-written list gets wrong: the shared
+  // contracts package first, and the bundle — which depends on all six — last.
+  assert.equal(order[0].name, '@deepblend/dsh-blender-contracts', 'the shared contracts package is not published first')
+  assert.equal(order[order.length - 1].name, '@deepblend/dsh-blender-bundle', 'the bundle is not published last')
 })
