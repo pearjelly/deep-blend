@@ -42,7 +42,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { publishOrder } from '../../tools/publish-packages.mjs'
+import { npmManifest, publishOrder } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -365,4 +365,61 @@ test('the publish procedure names the public registry and orders dependencies fi
   // contracts package first, and the bundle — which depends on all six — last.
   assert.equal(order[0].name, '@deepblend/dsh-blender-contracts', 'the shared contracts package is not published first')
   assert.equal(order[order.length - 1].name, '@deepblend/dsh-blender-bundle', 'the bundle is not published last')
+})
+
+// ---------------------------------------------------------------------------
+// What the npm route PUBLISHES is not what the repository CONTAINS
+// ---------------------------------------------------------------------------
+//
+// `ebb11ac` changed every sibling dependency from an exact `0.1.0` to a self-referential
+// `github:pearjelly/deep-blend#path:…` spec, and for the SOURCE route that was the whole
+// fix: a remote install fetches the bundle and then resolves its dependencies, and `0.1.0`
+// resolved to nothing because none of the six was published. MEASURED, that route works.
+//
+// The same spec makes the npm route something other than what the plugin list recommends it
+// for. `dsh plugin add @deepblend/dsh-blender-bundle` would take the artifact from the
+// registry and then send pnpm back to GIT for all six siblings — a registry install in name
+// only, and not the second-long path the listing entry describes. Nothing in the repository
+// would be wrong: the manifest is CORRECT for a different route than the one being measured.
+//
+// So `tools/publish-packages.mjs` rewrites the specs at publish time, into a staged copy —
+// the repository keeps the `github:` form, and the tarball builder rewrites it again for
+// route 3, where the siblings are bundled instead of fetched. This case asserts the
+// invariant that makes the npm route what it claims: NOTHING PUBLISHED FROM THIS REPOSITORY
+// MAY CARRY A GIT SPEC.
+test('the manifests this repository publishes carry no git spec', () => {
+  const order = publishOrder()
+  const byName = new Map(order.map(entry => [entry.name, entry]))
+  assert.ok(order.length >= 6, `only ${order.length} packages would be published; the entry installs at least six`)
+
+  const surviving = []
+  let rewrites = 0
+  for (const entry of order) {
+    const { manifest, rewritten } = npmManifest(entry, byName)
+    rewrites += rewritten.length
+    for (const [name, spec] of Object.entries(manifest.dependencies ?? {})) {
+      if (spec.startsWith('github:')) surviving.push(`${entry.name} -> ${name}: ${spec}`)
+      // And every local dependency is published BY THIS RUN, at a version that exists. A
+      // rewrite to a version nobody is publishing is the same 404 with none of the
+      // diagnostics, which is the failure this whole case is about.
+      if (name.startsWith('@deepblend/')) {
+        assert.ok(byName.has(name), `${entry.name} depends on ${name}, which this run does not publish`)
+        assert.equal(spec, byName.get(name).version,
+          `${entry.name} would be published depending on ${name}@${spec}, but this run publishes ${byName.get(name).version}`)
+      }
+    }
+  }
+  assert.deepEqual(surviving, [], 'a published manifest still resolves a sibling from git, so the npm route is not a registry install')
+  // Non-vacuous: the repository DOES carry git specs — the rewrite has to have something to
+  // do, or this case would pass on a tree where the problem was never present.
+  assert.ok(rewrites >= 6,
+    `only ${rewrites} git spec(s) were rewritten; the repository's manifests are expected to carry at least six`)
+
+  // And the repository's own manifests keep the git form, because route 1 needs it. Both
+  // halves asserted, because "rewrite everything to versions" would break the source route
+  // just as silently as the reverse breaks this one.
+  const bundle = JSON.parse(readFileSync(join(ROOT, 'packages', 'deepblend', 'bundle', 'package.json'), 'utf8'))
+  const gitSpecs = Object.values(bundle.dependencies ?? {}).filter(spec => spec.startsWith('github:'))
+  assert.equal(gitSpecs.length, 6,
+    'the repository bundle manifest no longer carries six git specs, so a source install would resolve unpublished versions')
 })
