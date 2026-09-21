@@ -67,6 +67,21 @@ const PACKAGES_DIRECTORY = join(ROOT, 'packages', 'deepblend')
 /** The scope every package is published under; the operator has to own it. */
 const SCOPE = '@deepblend'
 
+/**
+ * `--otp <code>`: the one-time password npm asks for on an account with 2FA.
+ *
+ * Passed through rather than stored: a code is valid for about thirty seconds, so the only
+ * thing this tool may do with it is hand it to npm on the command line. Publishing seven
+ * packages needs seven writes, and a code that expires mid-run fails the run — which is why
+ * the refusal message also names the granular token, the option that does not expire.
+ */
+const OTP_INDEX = process.argv.indexOf('--otp')
+const OTP = OTP_INDEX < 0 ? null : process.argv[OTP_INDEX + 1]
+if (OTP_INDEX >= 0 && (OTP === undefined || !/^\d{6}$/.test(OTP))) {
+  console.error('--otp needs a 6-digit code from your authenticator')
+  process.exit(2)
+}
+
 /** Where the publishable copies are assembled. Git-ignored, removed on every exit path. */
 const STAGE_DIRECTORY = join(ROOT, '.tmp-publish')
 
@@ -76,6 +91,67 @@ function run(command, args, options = {}) {
     status: outcome.status,
     output: `${outcome.stdout ?? ''}${outcome.stderr ?? ''}`.trim(),
   }
+}
+
+/**
+ * The line worth reading, out of an npm failure.
+ *
+ * `npm publish` prints a paragraph, and its LAST line is always
+ *
+ *     A complete log of this run can be found in: /Users/…/_logs/….log
+ *
+ * which is where the error is NOT. Taking the last line — which is what this tool did until a
+ * real failure showed what that reads like — reports a log path and nothing else, and sends
+ * the reader to a file to find what npm already said on the line above.
+ *
+ * So the `npm error` lines are collected and the boilerplate dropped: the two generic
+ * paragraphs npm appends to every failure ("In most cases, you or one of your dependencies…"
+ * and the log path) carry no information about THIS failure.
+ *
+ * @param {string} output - everything npm printed.
+ * @returns {string} the most specific line, or the whole output when nothing matches.
+ */
+export function npmError(output) {
+  const BOILERPLATE = [
+    /A complete log of this run can be found in/,
+    /^In most cases, you or one of your dependencies/,
+    /^a package version that is forbidden by your security policy/,
+    /^on a server you do not have access to/,
+    /^npm error$/,
+  ]
+  const lines = output
+    .split('\n')
+    .map(line => line.replace(/^npm (error|warn) /, '').trim())
+    .filter(line => line.length > 0)
+    .filter(line => !BOILERPLATE.some(pattern => pattern.test(line)))
+  // The FIRST remaining line, not the last: npm puts the specific message first and the
+  // generic advice after it.
+  return lines[0] ?? output.split('\n').filter(Boolean).pop() ?? '(no output)'
+}
+
+/**
+ * What npm is asking for, when a publish is refused rather than broken.
+ *
+ * A 403 on publish is almost always one of two things, and both are the operator's to fix
+ * rather than the code's — so they are named instead of being left as "FAILED: 403".
+ *
+ * @param {string} output - everything npm printed.
+ * @returns {string|null} the fix, or null when this is not a refusal this tool knows.
+ */
+export function publishRefusalFix(output) {
+  if (/bypass 2fa|two-factor authentication/i.test(output)) {
+    return 'npm requires 2FA for writes on this account. Either pass a one-time code — '
+      + '`npm run publish:packages -- --otp <6 digits>` — or create a Granular Access Token with '
+      + '"Bypass 2FA" enabled at https://www.npmjs.com/settings/<user>/tokens and put it in ~/.npmrc, '
+      + 'which is the one that survives publishing seven packages in a row.'
+  }
+  if (/Scope not found|scope.*not.*found/i.test(output)) {
+    return `the ${SCOPE} scope does not exist yet: create it first — \`npm org create ${SCOPE.replace('@', '')} --registry ${REGISTRY}\``
+  }
+  if (/EOTP/.test(output)) {
+    return 'npm wants a one-time code: `npm run publish:packages -- --otp <6 digits>`'
+  }
+  return null
 }
 
 /** Every package under `packages/deepblend`, with the manifest facts this tool needs. */
@@ -270,10 +346,18 @@ function publish(dryRun) {
       const target = stage(entry, manifest)
       const args = ['publish', '--access', 'public', '--registry', REGISTRY]
       if (dryRun) args.push('--dry-run')
+      if (OTP !== null) args.push(`--otp=${OTP}`)
       const result = run('npm', args, { cwd: target })
-      const line = result.output.split('\n').filter(Boolean).pop() ?? '(no output)'
       if (result.status !== 0) {
-        console.error(`  ${entry.name}@${entry.version} — FAILED: ${line}`)
+        console.error(`  ${entry.name}@${entry.version} — FAILED: ${npmError(result.output)}`)
+        // A REFUSAL is the operator's to fix and the message says how; a broken publish is not.
+        // They exit differently on purpose — 2 for "cannot yet", 1 for "it broke".
+        const fix = publishRefusalFix(result.output)
+        if (fix !== null) {
+          console.error(`  ${fix}`)
+          console.error(`stopped at ${entry.name}; the packages after it were not published`)
+          return 2
+        }
         // Stopped, not continued: a sibling published after its dependency failed is a package
         // on the registry whose install cannot resolve, and there is no way to take it back.
         console.error(`stopped at ${entry.name}; the packages after it were not published`)
