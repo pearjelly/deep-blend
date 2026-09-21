@@ -143,9 +143,26 @@ try {
   // -------------------------------------------------------------------------
   const composed = step(['dsh', '--profile', 'web', '--dump-config'], { cwd: clone, home, label: 'the installed profile composes' })
   record('composition', composed)
-  const rows = (composed.output.match(/deepblend-blender-(runtime|host|ui)/g) ?? [])
-  say('deepblend rows composed', [...new Set(rows)].length)
-  if (new Set(rows).size !== 3) failures.push('the composed tree does not carry all three DeepBlend rows')
+  // ALL FOUR rows, not the three host rows. The fourth is `deepblend-blender-preset`, the
+  // deployer that writes the agent presets into `<DSH_HOME>/.agent-presets/`, and it is the
+  // half of "one command installs both planes" that the listing entry's description
+  // promises: a bundle mounting only the host composition would install, serve the
+  // workbench, and leave every session unable to render anything.
+  //
+  // The pattern used to be `/deepblend-blender-(runtime|host|ui)/` and the assertion
+  // compared against 3, so a clone whose deployer row failed to compose PASSED this check.
+  // Same shape as the composition suite's stale `rows.length === 3` (milestone-status
+  // §197.10), found the same way: by re-running and reading the number instead of trusting it.
+  const rows = (composed.output.match(/deepblend-blender-[a-z-]+/g) ?? [])
+  const composedRows = [...new Set(rows)].sort()
+  say('deepblend rows composed', composedRows.length)
+  say('  the rows', composedRows.join(', '))
+  if (composedRows.length !== 4) {
+    failures.push(`the composed tree carries ${composedRows.length} DeepBlend rows; the bundle patch declares 4`)
+  }
+  if (!composedRows.includes('deepblend-blender-preset')) {
+    failures.push('the composed tree carries no deepblend-blender-preset row, so the install would deliver no preset')
+  }
 
   // -------------------------------------------------------------------------
   // Finally: does the thing it installed actually pass its own tests?

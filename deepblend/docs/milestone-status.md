@@ -11800,3 +11800,238 @@ DeepBlend acceptance suite: 16 suite(s) passed      # exit 0, 81 ✓ lines
 
 **产品代码未改** ✓（改的是四个套件 ✓），读数沿用上一轮 ✓：黑暗 **35 (0.3%)** ✓、自计断言 **1489** ✓、
 `node:test` 用例 **341** ✓、契约层 **65 个文件** ✓。
+
+---
+
+## 197. 市场包装收口：**三条安装路线**各自的实测，和「一份事实、两个地方」的终结
+
+本轮的目标是**收口市场包装**，不进 SPEC §20 的 M6 功能项。下面每一条都是**实测**，
+不是读代码得出的 ✓。
+
+### 197.1 接手第一步：重跑，差异就是第一个发现
+
+提示词里每个数字都是上一轮的读数 ✓，重跑之后**三处不一样** ✓：
+
+| 项 | 提示词的读数 | 本轮实测 | 说明 |
+|---|---|---|---|
+| 契约层 | 63/66（3 条红是沙箱限制） | **66/66** ✓ | 本会话**没有沙箱限制** ✓，`ps` 可用 ✓——那 3 条红是环境造成的 ✓，环境换了就没了 ✓ |
+| 投稿 PR 评审意见 | 「意见以 PR 评论给出」 | **0 条评论、0 条 review** ✓ | `issues/5545/comments` 与 `pulls/5545/reviews` 都是空的 ✓✓——**没有可回应的意见** ✓ |
+| `plugin:check` | 未提 | **红的**（1 件未安装）✗ | 见 197.2，这是本轮第一个真缺陷 ✓ |
+
+### 197.2 本机部署其实是坏的：`preset` 包**从没被链接过**
+
+`npm run plugin:check` 报 `@deepblend/dsh-blender-preset: not installed` ✗。
+ebb11ac 那次提交**新增了 preset 包** ✓、**把 `deepblend-blender-preset` 这一行加进了 bundle patch** ✓，
+但**没有人重跑过 `npm run plugin:install`** ✗——所以本机的
+`$DSH_HOME/profiles/node_modules/@deepblend/` 里**没有这个包** ✓。
+
+实测它是不是真的坏 ✓：
+
+```
+$ node -e "import('@deepblend/dsh-blender-preset')"     # 从 profile 与从 DSH 安装目录
+FAILED: ERR_MODULE_NOT_FOUND  Cannot find package '@deepblend/dsh-blender-preset'
+```
+
+**后果**：这一行在 `--dump-config` 里**照样出现** ✓（组合是纯文本操作 ✓），
+但真正加载时**解析不了** ✗✓——正是「装上了、看起来对、用起来半死」的形状 ✓。
+`npm run plugin:install` 之后 ✓ `plugin:check` 绿 ✓。
+
+**这一条没有测试能挡住** ✓：`installer-drift` 用的是**临时 home** ✓，
+而这条断言问的是**本机真实的 `$DSH_HOME`** ✓——那是环境状态 ✓，不该进 CI ✓。
+它只能靠**流程**发现 ✓：这就是「接手第一步重跑一遍」的价值 ✓。
+
+### 197.3 条目回到单一来源：**仓库那份是源，PR 那份是它的投影**
+
+投稿文件在**另一个仓库**里 ✓，所以本仓库的测试**读不到它** ✓——这正是条目变成两份的原因 ✓。
+
+规则现在是一句话 ✓，而且**可执行** ✓：
+
+> `deepblend/docs/listing-entry.yml` 是**源**；投稿文件是它的**投影**——
+> **从第一个合法键到文件末尾**——而 `tools/project-listing-entry.mjs` 是它**唯一的写入者**。
+
+**为什么是「后缀」而不是「重新序列化」** ✓：描述里有 `": "` ✓ 和非 ASCII ✓，
+这两样正是朴素 YAML emitter 会弄错的东西 ✓；后缀**不可能**改动任何一个值 ✓，
+所以「值不会漂移」是**结构保证** ✓，不是期望 ✓。
+
+`contract/listing-entry.test.mjs` 新增 4 条 ✓：
+
+1. 投影是源的**逐字节后缀** ✓，且**不含**仓库自己的分析段 ✓；
+2. 投影只声明合法键 ✓，**每个值逐字节往返** ✓；
+3. **条目数据在本仓库只存在于一个文件里** ✓（描述句出现在第二个文件就红 ✓）；
+4. 投稿路径是**从 url 推出来的** ✓，不是手写的 ✓。
+
+`--check-remote` 通过 `gh` 读分支 ✓，**三个退出码三种状态** ✓：
+`0` 同步 ✓ / `1` 分支漂移 ✓ / `2` 读不到 ✓——「够不着」和「漂移了」是**两件事** ✓✓。
+实测：**exit 0，分支就是投影** ✓。
+
+### 197.4 三条路线：源码 / npm / tarball
+
+| 路线 | 状态 | 实测 |
+|---|---|---|
+| **1 源码** | ✅ **可用** | `Packages: +7` ✓、**11.8 s** ✓、`/deepblend/capabilities` **HTTP 200** `hostApiVersion 4` ✓、两个 preset 落盘 ✓ |
+| **2 npm** | ⛔ **卡在账号** | `npm whoami` → `ENEEDAUTH` ✗，无 `@deepblend` scope ✗。**清单本身是就绪的** ✓，见 197.5 |
+| **3 tarball** | ✅ **可用** | 见 197.6：**2.3 s** ✓、`Packages: +1` ✓ |
+
+两条可用路线都做了**同一套判据** ✓：4 行组合 ✓ + `/deepblend/capabilities` HTTP 200 ✓ +
+两个 preset **逐字节等于** `deepblend/presets/` ✓ + DSH 自己的 `discoverPresets` 两个都 `problem: null` ✓。
+
+**关于 `discoverPresets` 的 harnessBase** ✓：它传的是「**profile 目录**」✓——
+`profile-boot` 的注释写着 Loader 需要 include root「**anchor `baseUrl` at the profile directory**」✓。
+用 DSH 安装目录当 base 会得到 `problem: row "deepblend-tool" names a plugin that cannot be resolved` ✗✓，
+那是**测法错** ✓，不是产品错 ✓。
+
+### 197.5 路线 2：提示词里「`files` 已补」是**错的**
+
+提示词说六个包「`private` 已摘、`@deepseek-ai/*` 全在 `peerDependencies` 且带预发布分支、**`files` 已补**」✓。
+实测：**前两条对** ✓，**第三条错** ✗——**七个包里只有 `bundle` 和 `preset` 有 `files`** ✓，
+另外五个**没有** ✓。
+
+但**缺 `files` 并不需要补** ✓，这是量出来的 ✓：那五个包目录里**只有** `lib/`（provider 多一个 `python/`）✓
+和 `package.json` ✓，所以 `npm pack --dry-run` 出来的就是该出的那些 ✓。
+**缺 `files` 的危险是另一件事** ✓：往目录里丢一个草稿文件，它**会**被发布 ✓，而且**没有任何东西会说** ✓。
+
+所以把它变成断言 ✓——`plugin-install-path.test.mjs` 新增一条 ✓：
+无 `private` ✓、有 `repository.url` ✓、**目录里没有 `files` 列不到的东西** ✓、
+`@deepseek-ai/*` **不在 `dependencies`** ✓。**变异实测**：往 `packages/deepblend/host/` 丢一个
+`scratch-notes.txt` ✓ → **恰好这一条红** ✓。
+
+### 197.6 路线 3：自包含产物，用 npm 自己的机制而不是打包器
+
+「自包含」是这条路线全部的难点 ✓：只打包 bundle 的话 ✓，它**仍然声明六个依赖** ✓，
+而它们**不在任何 registry 上** ✓。
+
+答案是 npm **早于 pnpm 就有**的机制 ✓：**`bundledDependencies`** ✓。产物体内带着
+`node_modules/@deepblend/*` ✓，安装器**用体内那份、根本不去解析 spec** ✓。
+
+**这一步是实测出来的，整个设计都压在它上面** ✓（pnpm 10.28.2 ✓，先一个两包的合成样例 ✓，再真包 ✓）：
+
+* 带 `node_modules/@probe/leaf` 且列进 `bundledDependencies` 的 tarball ✓，
+  `require('@probe/outer')` **解析到体内那份** ✓；
+* 输出是 `Packages: +1` ✓——**只取了外层包，别的什么都没取** ✓；
+* **把体内依赖的 spec 写成 `9.9.9-does-not-exist`，它照样工作** ✓✓。
+
+**最后一条是承重的那条** ✓：它意味着**发布的清单可以诚实地写 `0.1.0`** ✓（哪怕没有 registry 有这个版本 ✓），
+于是产物**完全不需要网络** ✓，而清单**说的是实话** ✓。
+
+`tools/build-release-tarball.mjs` 的三条设计约束 ✓，每条都是踩出来的：
+
+1. **`node-linker=hoisted`** ✓：pnpm 默认的 isolated linker 在 `node_modules` 里留**符号链接** ✓，
+   而符号链接打成的 tarball 解出来是**一堆断链** ✗✓——**装得上、但 import 不了** ✓；
+2. **`auto-install-peers=false`** ✓：pnpm 默认会装 peer ✓，而这些包 peer 的是
+   `@deepseek-ai/cordis` / `schemastery` / `dsh-tools` ✓——**插件运行所在的 DSH 部署** ✓，任何 registry 都没有 ✓。
+   默认开着会以 `ERR_PNPM_FETCH_404 GET …/@deepseek-ai%2Fdsh-type-meta` 失败 ✗✓，
+   那个包名**本仓库从没听说过** ✓，读起来像依赖坏了 ✓，而不像「peer 本来就该缺席」✓；
+3. **提交必须已推送** ✓：staging 安装按 `github:…#<commit>&path:…` 取同级包 ✓，
+   而 codeload **取不到没人推过的 commit** ✓。第一版**没检查这个** ✗ → pnpm 报了一个**空错误** ✗✓，
+   读起来像网络故障 ✓。现在它是**一句点名的话** ✓。
+
+**两条市场硬规则，都在这里变成断言** ✓：
+
+* `tarballProblem`（市场自己的校验器 ✓）：https ✓、GitHub releases 主机 ✓、`.tgz` ✓；
+* **资产名不带版本号** ✓——`/releases/latest/download/` **字面**取文件名 ✓，
+  带版本的名字**提交当天能用、下次发版就 404** ✓。市场对这条**只警告、不拒绝** ✓
+  （`probe-tarballs.mjs` ✓，见其 `rotProne` ✓），所以**没有任何东西会挡住你写一个会死的 URL** ✓——
+  **本仓库把它做成失败断言** ✓。
+
+**实测**（发布之后，从**真 URL**）：
+
+```
+$ curl -sIL https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+HTTP 200
+$ dsh plugin --profile web add <该 URL>
+Packages: +1        Done in 2.1s
+$ dsh web  →  /deepblend/capabilities  HTTP 200, hostApiVersion 4
+presets: deepblend ✓ deepblend-dev ✓  与源逐字节相同 ✓
+discoverPresets: 两个都 problem: null ✓
+```
+
+**推送前先用市场自己的校验器验过** ✓：`validateEntries` 跑**全部 4063 条**条目 → **无问题** ✓，
+`tarballProblem` → `null`（接受）✓。
+
+### 197.7 投稿分支：推了第三条路线，并留了说明
+
+**没有评审意见可回应** ✓（197.1）。但本轮**确实在**同一分支上推了东西 ✓：
+条目新增 `tarball:` 键 ✓，并留了一条 PR 评论说明**为什么**加 ✓、**怎么量**的 ✓。
+`--check-remote` 复验 **exit 0** ✓。
+
+**只动了 yml** ✓——市场 `pr-check.yml` 的 README 一致性检查**接受两种形状** ✓，
+「只改 yml」是其中之一 ✓（README 由 `sync-readme.yml` 在合并后生成 ✓）。
+
+### 197.8 两个孤儿
+
+* `dsh-reasoning-content-fix.patch` **挂在仓库根目录、没有任何文档或测试引用它** ✓。
+  它不是对本仓库的改动 ✓，而是对**已安装的 DSH** 的改动 ✓，而且**是承重的** ✓：
+  thinking 模式下凡是带 `tool_calls` 的 assistant 消息都必须带 `reasoning_content` ✓，
+  而基线 `0.1.5-rc.2` 在「该轮没有 reasoning 文本」时会**整个省略**该字段 ✓ → HTTP 400 ✓。
+  本产品**每一次渲染都是工具调用** ✓，所以不打它**一次都跑不完** ✓。
+  **处置是两条** ✓：文件移进文档平面 ✓，`docs/dsh-baseline.md` **§8** 具名引用它 ✓，
+  并加断言 ✓——**「文档说了但文件没了」和「文件在但没人引用」都会红** ✓。
+  实测有效性可复核 ✓：安装版里已有 `function serializeAssistant(message, thinkingEnabled)` ✓，
+  且同目录存在 `lib/index.js.orig-reasoning-fix` ✓ → **本机手工打过** ✓。
+* 空目录 `frames/` **已删** ✓（未被 git 跟踪 ✓，删除无副作用 ✓）。
+
+### 197.9 英文 README：从「三条守卫」到**数字也有守卫**
+
+`README.md` 是市场落地页 ✓，而它此前只有**三条**守卫 ✓：安装命令 ✓、badge ✓、语言互链 ✓——
+**它声称的数字一条都没守** ✗✓，而 `documented-counts.test.mjs` 里**每一条**都在读 `README.zh.md` ✓。
+
+新增 4 条 ✓：工具数 ✓、套件数 ✓、钉住的 DSH/Blender 版本与 Node 下限 ✓、
+**它点名的每一个仓库路径都存在** ✓。**变异实测**：16→15 ✓、16→12 ✓、改一个路径名 ✓——
+**每次恰好一条红** ✓，别的都不动 ✓。
+
+工具数**改成用阿拉伯数字** ✓（`sixteen` → `16`）✓，这是 `listing-entry.test.mjs`
+对条目描述**已经施加**的同一条家规 ✓，理由相同 ✓：拼写的数字要比较就得有词表 ✓，
+而覆盖 `sixteen` 不覆盖 `twenty` 的词表**会偶然放过一次虚报** ✓。另有一条 ✓：
+**拼写形式一旦重新出现就红** ✓。
+
+### 197.10 顺带抓到的**真回归**：组合套件断言了 3 行，而 patch 有 4 行
+
+跑 `run-all.sh` 时 ✗：
+
+```
+[FAIL] bundle patch declares three host rows
+       — ["deepblend-blender-runtime","deepblend-blender-host","deepblend-blender-ui","deepblend-blender-preset"]
+```
+
+`composition/activation.e2e.mjs` 断言 `rows.length === 3` ✗，而插件打包那次提交
+**加了第四行**（preset 部署行 ✓），**之后没有人再跑过这个套件** ✓——
+所以它**从那次提交起就是红的** ✓✓。
+
+**契约层看不见它** ✓：这个套件需要**真的 DSH** ✓，不在 `run.mjs` 里 ✓——
+这正是「契约层 66/66 全绿」和「组合层有一条红」能同时成立的形状 ✓✓。
+
+改成**三个具名 id** ✓（而不是计数 ✓——计数分不出「加了一行」和「换了一行」✓），
+外加一条**部署行属于 Host 组合**的断言 ✓（SPEC §4.3/§4.4：它必须**每进程一次** ✓，
+放进 preset 就会**每会话一次** ✓）。复跑：**18/18** ✓。
+
+### 197.11 收口读数
+
+```
+$ node deepblend/tests/run.mjs
+DeepBlend tests: 66/66 file(s) passed
+
+$ bash deepblend/tests/run-all.sh
+DeepBlend acceptance suite: 16 suite(s) passed        # 82 行 ✓
+
+$ npm run plugin:check      → result: DeepBlend is installed in the "web" profile
+$ npm run presets:check     → result: the installed presets match the repository
+$ npm run presets:sync:check→ result: the shipped preset copy matches the repository source
+$ npm run listing:check     → result: … is the projection of deepblend/docs/listing-entry.yml
+$ npm run release:check     → result: deepblend-bundle.tgz satisfies the release naming rules
+```
+
+**契约层仍是 66 个文件** ✓（本轮**新增的是用例、不是文件** ✓，所以文档里的
+66 / 81 / 82 行 / 13 链接 / 10-of-66 这些数**一个都不用改** ✓，`documented-counts` 全程绿 ✓）。
+
+### 197.12 仍然开着的缺口
+
+1. **路线 2（npm）卡在账号** ✓：需要 npm 登录与 `@deepblend` scope ✓，本机都没有 ✓。
+   **清单侧已就绪且已被断言** ✓（197.5）✓。发布之后市场会自动采集 npm 映射 ✓——
+   但**前提是包的 `repository` 指回本仓库** ✓，这一条也在断言里 ✓。
+2. **`files` 字段**：五个包没有 ✓，本轮量出**不需要** ✓，并把「目录里不能有多余东西」变成了断言 ✓。
+   没有补 `files` ✓——补它只会多一份要与目录保持一致的事实 ✓。
+3. **tarball 与源码两条路线的一致性**：产物在**构建时**钉住 commit ✓，
+   但**没有任何断言**保证「最新 release 的产物 = 当前 main」✓。
+   要它就得在发布流程里比一次 ✓，那是一条独立的、值得做的小事 ✓。
+4. `readme-fresh-clone` 要求 `TMPDIR` 在工作区**外** ✓、pnpm 套件要求在工作区**内** ✓——
+   **两者不能同时满足** ✓，必须**分开跑** ✓（本轮的 `run-all.sh` 走的是后者 ✓）。
