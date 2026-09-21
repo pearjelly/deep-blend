@@ -43,7 +43,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { bundledPackages, shippedManifest, stagingManifest } from '../../tools/build-release-tarball.mjs'
-import { npmManifest, publishOrder } from '../../tools/publish-packages.mjs'
+import { npmError, npmManifest, publishOrder, publishRefusalFix } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -475,4 +475,53 @@ test('the tarball this repository releases carries no git spec either', () => {
   const bundled = new Set(pinned.bundledDependencies ?? [])
   const notBundled = packages.map(entry => entry.name).filter(name => !bundled.has(name))
   assert.deepEqual(notBundled, [], 'the artifact would carry packages it does not declare as bundled, so pnpm would fetch them instead')
+})
+
+// ---------------------------------------------------------------------------
+// Reporting a publish failure, which the first version got wrong in production
+// ---------------------------------------------------------------------------
+//
+// A real `npm run publish:packages` failed and the tool printed:
+//
+//     @deepblend/dsh-blender-contracts@0.1.0 — FAILED: npm error A complete log of this
+//     run can be found in: /Users/hxb/.npm/_logs/….log
+//
+// `npm publish` prints a paragraph whose LAST line is always that log path, and the tool
+// took the last line. A genuine 403 was therefore reported as a filename, and the reader was
+// sent to a log to find what npm had already said on the line above it. The refusal itself
+// was `Two-factor authentication or granular access token with bypass 2fa enabled is required
+// to publish packages` — an operator's problem with a one-line fix, presented as a path.
+//
+// The exact output of that run is the fixture below, because a hand-written one would have
+// been written by whoever wrote the parser and would agree with it by construction.
+test('a publish failure is reported as the cause, not as npm\'s log path', () => {
+  const realFailure = [
+    'npm notice',
+    'npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access',
+    'npm error code E403',
+    'npm error 403 403 Forbidden - PUT https://registry.npmjs.org/@deepblend%2fdsh-blender-contracts - '
+      + 'Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.',
+    'npm error 403 In most cases, you or one of your dependencies are requesting',
+    'npm error 403 a package version that is forbidden by your security policy, or',
+    'npm error 403 on a server you do not have access to.',
+    'npm error A complete log of this run can be found in: /Users/hxb/.npm/_logs/x.log',
+  ].join('\n')
+
+  const reported = npmError(realFailure)
+  assert.match(reported, /Two-factor authentication/,
+    `the failure was reported as "${reported}", which does not name the cause`)
+  assert.ok(!/A complete log of this run/.test(reported), 'the log path was reported as the error again')
+  assert.ok(!/^npm notice/.test(reported), 'a notice line was reported as the error')
+
+  // And the refusal is recognised, so the fix is printed rather than "FAILED: 403".
+  const fix = publishRefusalFix(realFailure)
+  assert.ok(fix !== null, 'the 2FA refusal was not recognised, so the operator gets no fix')
+  assert.match(fix, /--otp/, 'the fix does not mention the one-time code')
+  assert.match(fix, /Bypass 2FA/, 'the fix does not mention the token that does not expire mid-run')
+
+  // The other refusals this tool knows, and one it must NOT claim to know: a fix invented for
+  // an unrecognised failure would send the reader somewhere wrong.
+  assert.match(publishRefusalFix('npm error code E404\nnpm error 404 Not Found - Scope not found'), /npm org create/)
+  assert.equal(publishRefusalFix('npm error code E500\nnpm error Internal server error'), null,
+    'a failure this tool does not recognise was given an invented fix')
 })

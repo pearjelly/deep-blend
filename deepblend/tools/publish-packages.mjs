@@ -112,21 +112,36 @@ function run(command, args, options = {}) {
  * @returns {string} the most specific line, or the whole output when nothing matches.
  */
 export function npmError(output) {
+  // Unanchored, and deliberately so: npm prefixes these with the status code, so an anchored
+  // pattern matches none of them and the generic paragraph wins by being first.
   const BOILERPLATE = [
     /A complete log of this run can be found in/,
-    /^In most cases, you or one of your dependencies/,
-    /^a package version that is forbidden by your security policy/,
-    /^on a server you do not have access to/,
-    /^npm error$/,
+    /In most cases, you or one of your dependencies/,
+    /a package version that is forbidden by your security policy/,
+    /on a server you do not have access to/,
+    // `npm error code E403` on its own line, which names the code and not the cause.
+    /^code [A-Z0-9_]+$/,
   ]
-  const lines = output
+  const cleaned = output
     .split('\n')
-    .map(line => line.replace(/^npm (error|warn) /, '').trim())
+    .map(line => line.trim())
     .filter(line => line.length > 0)
+
+  // Prefer the `npm error` lines, and among them the first: npm puts the specific message
+  // first and the generic advice after it. Falling back to every line is what made the first
+  // version of this print "npm notice" — npm opens a publish with a notice block, so the
+  // first non-boilerplate line was a prefix with its message already stripped off.
+  const errors = cleaned
+    .filter(line => line.startsWith('npm error '))
+    .map(line => line.replace(/^npm error /, '').trim())
     .filter(line => !BOILERPLATE.some(pattern => pattern.test(line)))
-  // The FIRST remaining line, not the last: npm puts the specific message first and the
-  // generic advice after it.
-  return lines[0] ?? output.split('\n').filter(Boolean).pop() ?? '(no output)'
+  if (errors.length > 0) return errors[0]
+
+  const rest = cleaned
+    .map(line => line.replace(/^npm (warn|notice) /, '').trim())
+    .filter(line => line.length > 0 && !/^npm (warn|notice)$/.test(line))
+    .filter(line => !BOILERPLATE.some(pattern => pattern.test(line)))
+  return rest[0] ?? '(no output)'
 }
 
 /**
