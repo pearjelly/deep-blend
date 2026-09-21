@@ -359,6 +359,7 @@ function check() {
   console.log(`registry: ${REGISTRY}`)
   console.log(`packages: ${order.length}, in publish order`)
   let failures = 0
+  let published = 0
   for (const entry of order) {
     const { manifest, rewritten } = npmManifest(entry, byName)
     // A local dependency that is NOT in the publish set would be rewritten to a version
@@ -376,8 +377,21 @@ function check() {
     const dry = run('npm', ['publish', '--dry-run', '--access', 'public', '--registry', REGISTRY], { cwd: target })
     const files = /total files:\s*(\d+)/.exec(dry.output)?.[1] ?? '?'
     const size = /package size:\s*([\d.]+ \w+)/.exec(dry.output)?.[1] ?? '?'
-    console.log(`  ${entry.name}@${entry.version} — ${files} files, ${size}${dry.status === 0 ? '' : ` — DRY RUN FAILED: ${dry.output.split('\n').pop()}`}`)
-    if (dry.status !== 0) failures += 1
+    if (dry.status === 0) {
+      console.log(`  ${entry.name}@${entry.version} — ${files} files, ${size}`)
+    } else if (alreadyPublished(dry.output)) {
+      // NOT a problem, and calling it one reports a healthy repository as broken: a published
+      // version is immutable, so this is simply the state a finished package is in. MEASURED —
+      // this check answered "7 problem(s)" minutes after a successful publish, for the same
+      // reason the publish loop did.
+      console.log(`  ${entry.name}@${entry.version} — ${files} files, ${size} — already on the registry`)
+      published += 1
+    } else {
+      // And the failure names its cause rather than npm's log path, which is the same defect
+      // the publish loop had.
+      console.log(`  ${entry.name}@${entry.version} — DRY RUN FAILED: ${npmError(dry.output)}`)
+      failures += 1
+    }
     for (const change of rewritten) {
       console.log(`      ${change.name}: ${change.from}  ->  ${change.to}   (git spec -> registry version)`)
     }
@@ -389,6 +403,11 @@ function check() {
   }
 
   const user = whoami()
+  if (published === order.length) {
+    console.log(`result: all ${order.length} packages are already on the registry at these versions`)
+    console.log(`next:   to publish a change, bump the version in each manifest — a published version cannot be replaced`)
+    return 0
+  }
   if (user === null) {
     // THE OPERATOR'S STEP, said in one line. Everything above this point is already known to
     // be right; what is missing is an account.

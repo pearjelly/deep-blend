@@ -1,0 +1,46 @@
+# DSH plugin-install probe — the NPM install route, measured end to end
+#
+#   node deepblend/tools/dsh-plugin-install-probe.mjs --spec @deepblend/dsh-blender-bundle
+#   (run with npm_config_registry=https://registry.npmjs.org/, because this machine's
+#    configured registry is a mirror and a mirror does not have a package published minutes ago)
+#
+# Taken 2026-09-21, minutes after the seven packages were published, and it is the FIRST
+# evidence that the npm route works — the route the plugin list recommends, and the last of
+# the three this repository could not measure. Everything before this was a derivation: the
+# manifests were asserted publishable, the publish procedure was asserted, and the artifact's
+# shipped manifest was opened and read. None of that is an install.
+#
+# What it shows: `packages pnpm fetched: 7` — the bundle AND its six siblings, all resolved
+# from the registry rather than from git, which is the whole point of this route and the thing
+# `publish-packages.mjs` rewrites the dependency specs to achieve. Then the same criteria the
+# other two routes are held to, and the same answers: HTTP 200 on /deepblend/capabilities with
+# hostApiVersion 4, both presets deployed byte-identical to deepblend/presets/, and DSH's own
+# discoverPresets reporting `problem: null` for both.
+#
+# Body is the tool's output.
+date: 2026-09-21T10:21:34.032Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nTbm62
+dsh: 0.1.5-rc.2
+dsh directory: /Users/hxb/.nvm/versions/node/v26.8.2/bin
+pnpm on PATH: 10.28.2
+`dsh plugin add` with no pnpm on PATH: exit 127 — dsh: pnpm not found on PATH — install pnpm to manage profile plugins
+profile created by `dsh`: yes
+bundles before: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app"]
+`dsh plugin add`: exit 0, 0 warning(s) — spec: @deepblend/dsh-blender-bundle
+packages pnpm fetched: 7
+bundles after: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app","@deepblend/dsh-blender-bundle"]
+dependencies after: {"@deepblend/dsh-blender-bundle":"^0.1.0"}
+packages resolvable in the profile: ["dsh-blender-bundle","dsh-blender-contracts","dsh-blender-host","dsh-blender-preset","dsh-blender-provider-local","dsh-blender-tool","dsh-blender-ui"]
+shared profiles/node_modules created: no
+dsh web: port 54994
+capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
+projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nTbm62/deepblend/projects
+projectsRoot is under the scratch DSH_HOME: yes — the product default
+checkout store untouched: a <repo>/.deepblend store exists and was NOT used
+presets deployed: ["deepblend","deepblend-dev"]
+the presets the package ships: ["deepblend","deepblend-dev"]
+deployed presets are byte-identical to deepblend/presets/: yes
+DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
+result: the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle
+
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nTbm62

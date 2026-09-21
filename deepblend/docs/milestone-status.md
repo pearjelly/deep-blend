@@ -12382,9 +12382,91 @@ npm 仍然没有凭据 ✓。
 并且对**全部七个包**实测 ✓：**七个都 LINKED** ✓。现在这是断言 ✓——
 **变异实测**：把 `repository` 字段从清单里删掉 ✓ → 恰好那一条红 ✓。
 
-### 197.21 仍然开着的缺口
+### 197.21 **三条安装路线全部实测可用** —— npm 路线发布并量到了
 
-1. **路线 2（npm）卡在账号** ✓：需要 npm 登录与 `@deepblend` scope ✓，本机都没有 ✓。
+`@deepblend/*` 七个包于 **2026-09-21** 发布到 npm ✓，随后**实测**而不是推断 ✓：
+
+```
+$ node deepblend/tools/dsh-plugin-install-probe.mjs --spec @deepblend/dsh-blender-bundle
+packages pnpm fetched: 7
+capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
+presets deployed: ["deepblend","deepblend-dev"]
+deployed presets are byte-identical to deepblend/presets/: yes
+DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
+```
+
+日志 `docs/probe-dsh-plugin-npm.log` ✓。**至此三条路线都有各自的实测与日志** ✓：
+源码 `+7` ✓、tarball `+1` ✓、npm `+7` ✓，三条都用**同一套判据** ✓（4 行组合 ✓、
+HTTP 200 `hostApiVersion 4` ✓、两个 preset 逐字节相同 ✓、`discoverPresets` 双 `null` ✓）。
+
+#### 197.21.1 「从 registry 解析」不是自动的，**是这次发布最该验的一条**
+
+仓库清单里是**自指 git spec** ✓（源码路线需要它 ✓）。**原样发出去，npm 路线就只是名义上的** ✓：
+pnpm 会从 registry 取到 bundle ✓，**然后回 git 取那六个同级包** ✓✓。
+`publish-packages.mjs` 在发布时把 spec 重写成精确版本 ✓，**而发布出去的清单被读了回来确认** ✓：
+
+```
+$ npm view @deepblend/dsh-blender-bundle dependencies
+{ "@deepblend/dsh-blender-contracts": "0.1.0", … , "@deepblend/dsh-blender-ui": "0.1.0" }
+```
+
+六个精确 pin ✓、**零 git spec** ✓。这就是 `packages pnpm fetched: 7` 与「7 但其中 6 个来自 git」的区别 ✓。
+
+#### 197.21.2 发布路上的四道坎，每一道都记下来
+
+| # | 现象 | 真正的原因 |
+|---|---|---|
+| 1 | `403 Two-factor authentication … required` | token **没有勾 Bypass 2FA**；而账号 `tfa: false` ✓，所以 `--otp` **这条路根本走不通** ✓ |
+| 2 | `404 Not Found - PUT` | 建出来的 org 叫 **`deep-blend`**（有连字符）✓，而包名是 `@deepblend/…` ✓ —— **两个 scope** ✓ |
+| 3 | 还是 `404 Not Found - PUT` | 细粒度 token 的**包白名单在创建那一刻定下** ✓——token 建在 org 之前 ✓，**所以 org 根本不在它的候选里** ✓ |
+| 4 | 发布全报 `ok` ✓，但 `npm view` 全 `404` ✗ | **读侧 CDN 传播** ✓。`/-/package/…/dist-tags` 当时就 `200` 且内容是 `{"latest":"0.1.0"}` ✓✓——**包在，只是 packument 还没到边缘** ✓。约两分钟后 `npm view` 正常 ✓ |
+
+第 4 条**差点被误判成「发布其实没成功」** ✓。**救回来的是换了一个端点去问** ✓：
+`dist-tags` 与 packument 不是同一条读路径 ✓，前者答 200 就证明写侧确实落了 ✓✓。
+
+#### 197.21.3 发布工具自己的两个缺陷（都是这次真跑出来的）
+
+1. **报错报成了日志路径** ✓：`npm publish` 输出的**最后一行永远是** `A complete log of this run can be found in: …` ✓，
+   而工具取的就是最后一行 ✗ → 一个真 403 被报成一个文件名 ✓。现在收集 `npm error` 行、丢掉通用段落、取**第一条** ✓。
+2. **「已经发布过」被当成失败** ✓✗：已发布的版本不可覆盖 ✓，所以重跑对每个包都会得到
+   「You cannot publish over the previously published versions」 ✓。工具把它当失败并**停下** ✓——
+   于是**一次中途断掉的发布永远补不完** ✓✓：第 N 次重跑会**停在第一个包**上 ✓，
+   而「已经发好的六个」与「还没发的六个」**看起来一模一样** ✓。现在它是**跳过并继续** ✓，
+   整轮结束报 `all 7 packages are on the registry` ✓。
+
+3. **同一个「已发布 = 失败」的判断，`--check` 里还有一份** ✓✗：发布成功几分钟后 ✓
+   `npm run publish:check` 报 **`7 problem(s)`** ✗✓——**一个把健康仓库报成坏掉的就绪检查** ✓。
+   而且它**连报错都还是那个日志路径** ✓（同一个「取最后一行」的老毛病 ✓，只在发布循环里修过 ✓）。
+   现在它报 `all 7 packages are already on the registry at these versions` ✓ 并 exit 0 ✓。
+
+三条都有断言 ✓，第二条的断言**同时要求它不要吞掉真正的拒绝** ✓
+（2FA 拒绝、404 ✓——把那些当成「已发布」会**在包不在的情况下报告成功** ✓）。
+
+**一个反复出现的形状** ✓：同一个判断写在两个地方 ✓，修了一处忘了另一处 ✓——
+这正是本仓库那句「写两遍就会烂掉」 ✓，而这次它**在同一个文件里**发生了 ✓。
+
+#### 197.21.4 市场会不会采集到：用**市场自己的逻辑**跑了一遍
+
+`probe-npm.mjs` 的三步表达式 ✓，对着本条目原样跑 ✓：
+
+```
+1. name read from the entry URL  : @deepblend/dsh-blender-bundle
+2. registry has it, latest       : 0.1.0
+3. repository field              : git+https://github.com/pearjelly/deep-blend.git
+   linked (the acceptance test)  : true
+RESULT: the market would record { npm: '@deepblend/dsh-blender-bundle', version: '0.1.0' }
+```
+
+**下一次 `probe-npm.mjs` 就会把这条映射写进 `data/npm-map.json`** ✓，
+网站与 `dsh-market` 随后会优先展示 registry 安装而不是源码构建 ✓。
+
+### 197.22 仍然开着的缺口
+
+1. ~~**路线 2（npm）卡在账号**~~ ✓ —— **已解决** ✓（197.21）✓：七个包已发布 ✓、安装已实测 ✓、
+   市场的采集逻辑已用其自身代码验过 ✓。**三条路线现在都是「实测可用」** ✓。
+   仍然留着的一件事：`@deepblend` 这个 scope 归 `shawnhan` ✓，
+   所以**发版权限跟着那个账号** ✓——将来换人接手时，发布需要那个账号（或它发的 token）✓。
+2. （历史记录，保留）路线 2 曾经的阻塞条件：需要 npm 登录与 `@deepblend` scope ✓。
    **清单侧已就绪且已被断言** ✓（197.5）✓，**流程侧已写成一条命令** ✓（197.14）✓，
    **发出去的清单也已验到产物里** ✓（197.15）✓——
    所以剩下的是 `npm login` 加一次 `npm run publish:packages` ✓，不是一段要重新推导的过程 ✓。

@@ -126,13 +126,26 @@
 #      tarball, which answers 404 for a private repository — measured live, which is why no submission was made
 #      while it was private.
 #
-#   2. FROM npm (the recommended route — prebuilt installs skip the build-approval step) — BLOCKED ON AN ACCOUNT.
-#      Needs PUBLISHED packages. The mapping is harvested from the registry, never declared here: `probe-npm.mjs`
-#      finds the package and verifies that ITS `repository` field points back at this repository, "or the two are
-#      not linked". Nothing is published: this machine has no npm credentials (`npm whoami` → `ENEEDAUTH`) and no
-#      `@deepblend` scope. The manifests themselves are ready — `private` is gone from all seven, every
-#      `@deepseek-ai/*` import is a peer with a prerelease-aware range, and `npm pack --dry-run` on each produces
-#      only `lib/`, `python/` or `presets/` and the manifest. So this route is waiting on a login, not on code.
+#   2. FROM npm (the recommended route — prebuilt installs skip the build-approval step) — WORKS.
+#      PUBLISHED 2026-09-21: all seven packages at `0.1.0` under the `@deepblend` scope, and the install was then
+#      measured rather than assumed — `node tools/dsh-plugin-install-probe.mjs --spec
+#      @deepblend/dsh-blender-bundle` on a scratch `$DSH_HOME` reports `packages pnpm fetched: 7`, the same four
+#      composed rows, `/deepblend/capabilities` HTTP 200 with `hostApiVersion 4`, both presets deployed
+#      byte-identical to `deepblend/presets/`, and `discoverPresets` reporting `problem: null` for both. That log
+#      is `docs/probe-dsh-plugin-npm.log`.
+#
+#      THE SEVEN FROM THE REGISTRY, NOT FROM GIT, and that is not automatic: the repository's manifests carry
+#      self-referential `github:` specs because the SOURCE route needs them, so publishing those as-is would have
+#      made this route a registry install in name only — pnpm would have taken the bundle from the registry and
+#      gone straight back to git for the six siblings. `tools/publish-packages.mjs` rewrites the specs to exact
+#      versions in a staged copy at publish time, and the published manifests were read back to confirm it:
+#      `npm view @deepblend/dsh-blender-bundle dependencies` answers six `0.1.0` pins and no git spec.
+#
+#      The mapping is harvested from the registry, never declared here: `probe-npm.mjs` finds the package and
+#      verifies that ITS `repository` field points back at this repository, "or the two are not linked". That
+#      field is `git+https://github.com/pearjelly/deep-blend.git` on all seven, and
+#      `contract/listing-entry.test.mjs` asserts the condition against the entry's own url so a repository rename
+#      cannot break the harvest silently.
 #
 #   3. FROM A TARBALL — WORKS, and it is the one route that needs no registry at all.
 #      `tools/build-release-tarball.mjs` builds a SELF-CONTAINED artifact and attaches it to a GitHub release
