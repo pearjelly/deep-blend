@@ -160,6 +160,62 @@ for (const row of ROWS) {
     undeclared.length === 0, undeclared)
 }
 
+// ---- 5. what the BUNDLE PATCH contributes, which is less than it looks ----
+//
+// The entry's analysis makes a claim a maintainer can check, and it is the honest half of
+// the answer to the plugin list's "is this a meta-package?" question:
+//
+//   "the patch's `config:` blocks set 18 keys across four rows and NONE of them differs from
+//    the package's own schema default. They make the composed configuration explicit in
+//    `--dump-config` rather than change it."
+//
+// That is a claim about CODE, so it is checked against the code rather than trusted — and it
+// is checked against the record too, because a number in prose that nothing re-reads is the
+// defect this repository keeps paying for (D38, D43, D57, D60). A deliberate override added
+// later is fine; it just has to be written down.
+{
+  const { loadOverlayPatches } = await import('@deepseek-ai/dsh-app-boot')
+  const patchFile = join(ROOT, 'packages', 'deepblend', 'bundle', 'cordis.patch.yml')
+  const rows = loadOverlayPatches('deepblend-config-surface', patchFile).flatMap(patch => patch.insert ?? [])
+  const schemas = new Map(ROWS.map(row => [row.label, row.schema]))
+  const presets = await import('@deepblend/dsh-blender-preset')
+  schemas.set('deepblend-blender-preset', presets.Config)
+
+  let keys = 0
+  const overrides = []
+  for (const row of rows) {
+    const schema = schemas.get(row.id)
+    // A row with no schema of its own is one this file has not been told about — which is a
+    // fact about this check, not about the row, so it is said rather than skipped silently.
+    if (schema === undefined) {
+      check(`${row.id} has a schema this check knows`, false, 'add it to ROWS so the claim below covers every row')
+      continue
+    }
+    const defaults = schema({})
+    for (const [key, value] of Object.entries(row.config ?? {})) {
+      keys += 1
+      if (JSON.stringify(value) !== JSON.stringify(defaults[key])) {
+        overrides.push(`${row.id}.${key}: ${JSON.stringify(value)} (default ${JSON.stringify(defaults[key])})`)
+      }
+    }
+  }
+
+  check('the bundle patch really does mount rows to configure', rows.length >= 4 && keys >= 10,
+    { rows: rows.length, keys })
+  check('every config key the bundle patch sets IS the package default, so the patch overrides nothing',
+    overrides.length === 0, overrides)
+
+  // And the record states these numbers, so they have an owner.
+  const record = readFileSync(join(ROOT, 'deepblend', 'docs', 'listing-entry.yml'), 'utf8')
+  const stated = /set (\d+) keys across (\w+) rows and NONE of them differs/.exec(record)
+  check('listing-entry.yml states that claim, so the number is owned rather than remembered',
+    stated !== null, stated === null ? 'the sentence no longer matches — re-anchor this check' : stated[0])
+  if (stated !== null) {
+    check('and the numbers it states are the numbers this check just measured',
+      Number(stated[1]) === keys, { stated: Number(stated[1]), measured: keys })
+  }
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nConfiguration surface: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {

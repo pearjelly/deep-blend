@@ -35,6 +35,7 @@ import { join } from 'node:path'
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { ASSET_NAME, TARBALL_URL } from '../../tools/build-release-tarball.mjs'
+import { npmManifest, publishOrder } from '../../tools/publish-packages.mjs'
 import {
   PERMITTED_KEYS,
   SOURCE_PATH,
@@ -455,4 +456,51 @@ test('the directory the entry points at explains itself, and its links resolve',
   assert.ok(targets.length >= 8, `only ${targets.length} relative links found; the extraction is wrong, not the file`)
   const broken = targets.filter(target => !existsSync(join(directory, target)))
   assert.deepEqual(broken, [], `the bundle README links to ${broken.join(', ')}, which do not exist from ${subdirectory}`)
+})
+
+// ---------------------------------------------------------------------------
+// The npm route's LAST step, which is not publishing
+// ---------------------------------------------------------------------------
+//
+// Publishing seven packages does not put the plugin on the list's fast path. The list
+// harvests the npm mapping itself, in `scripts/probe-npm.mjs`, and it accepts a package only
+// when TWO things hold — read out of that file rather than assumed:
+//
+//   1. it reads the package name from the manifest AT THE ENTRY'S OWN URL:
+//      `raw.githubusercontent.com/<owner>/<repo>/HEAD/<sub>/package.json`
+//   2. it accepts that name only when the registry has it AND the published manifest's
+//      `repository` field contains `<owner>/<repo>`:
+//      `repoField.toLowerCase().includes(repo.toLowerCase())`
+//
+// The first is why the name that matters is `@deepblend/dsh-blender-bundle` and not the
+// repository root's `deepblend-studio`: the probe looks in the subdirectory the entry points
+// at. The second is why a package published from a fork, or with the `repository` field
+// dropped, would sit on the registry and never be harvested — the plugin would stay on the
+// slower `github:` install with nothing anywhere saying why.
+//
+// Both are derived here from the entry's own url, so a repository rename cannot satisfy this
+// case while breaking the submission.
+test('every published package would be harvested by the market\'s own npm probe', () => {
+  const [, owner, repo, subdirectory] = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/tree\/[^/]+\/(.+)$/.exec(topLevel(entry).url)
+  const ownerRepo = `${owner}/${repo}`
+
+  // (1) The name the probe would read is the one this repository publishes.
+  const target = JSON.parse(readFileSync(join(ROOT, subdirectory, 'package.json'), 'utf8'))
+  const published = publishOrder().map(entry => entry.name)
+  assert.ok(published.includes(target.name),
+    `the probe reads ${target.name} from ${subdirectory}/package.json, and the publish run does not publish that name`)
+
+  // (2) Every package that IS published points back at this repository, which is the
+  //     condition the probe checks before it records a mapping.
+  const byName = new Map(publishOrder().map(entry => [entry.name, entry]))
+  const unlinked = []
+  for (const entry of publishOrder()) {
+    const { manifest } = npmManifest(entry, byName)
+    const field = String(manifest.repository?.url ?? manifest.repository ?? '')
+    if (!field.toLowerCase().includes(ownerRepo.toLowerCase())) {
+      unlinked.push(`${entry.name}: repository is ${field === '' ? '(absent)' : field}`)
+    }
+  }
+  assert.deepEqual(unlinked, [],
+    `these packages would be published but never harvested, because their repository field does not contain ${ownerRepo}`)
 })
