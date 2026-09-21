@@ -57,6 +57,18 @@ const readme = readFileSync(join(ROOT, 'README.zh.md'), 'utf8')
 const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
 const toolContracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
 
+/**
+ * The English README — the market's landing page.
+ *
+ * It was the one document in this repository that carried claims and was compared against
+ * nothing. Every case in this file reads `README.zh.md` (the detailed one), and the English
+ * file had exactly three guards — the install command, the badge, and the language
+ * cross-link, all in `contract/listing-entry.test.mjs`. Its NUMBERS were unguarded, which
+ * for a file whose whole job is to state what a visitor gets is the defect this test file
+ * exists to catch.
+ */
+const englishReadme = readFileSync(join(ROOT, 'README.md'), 'utf8')
+
 /** Every `run_suite "label" \` + the command line under it. */
 const declaredSuites = [...runAll.matchAll(/^run_suite "([^"]+)" \\\n {2}(.+)$/gm)]
   .map(match => ({ label: match[1], command: match[2].trim() }))
@@ -507,4 +519,86 @@ test('the prerequisites table states the floors the files state', () => {
   assert.equal(release.platform, 'macos-arm64',
     'the README calls the managed Blender a macOS arm64 build; the release manifest says otherwise')
   assert.match(readme, /macOS arm64/, 'the README no longer says which platform the managed Blender is for')
+})
+
+// ---------------------------------------------------------------------------
+// THE ENGLISH README
+// ---------------------------------------------------------------------------
+//
+// `README.md` is what a visitor to the repository and a reader of the plugin list both
+// land on. It was guarded for exactly three things — that it shows the install command the
+// entry implies, that it carries the list's badge, and that it links to the Chinese
+// document — and for nothing it CLAIMS. The cases below give it the treatment its Chinese
+// counterpart already had.
+//
+// The tool count is stated AS A DIGIT, which is the same house rule
+// `contract/listing-entry.test.mjs` imposes on the entry's description and for the same
+// reason: a spelled-out number cannot be compared without a word table, and a table that
+// covers "sixteen" but not "twenty" catches an overstatement by accident. Both places in
+// this file said "sixteen" until this case existed; they now say "16", so the comparison is
+// exact rather than approximate.
+test('the English README states the tool count the contract declares', () => {
+  const stated = [...englishReadme.matchAll(/(\d+)\s+model-visible tools/g)].map(match => Number(match[1]))
+  assert.ok(stated.length > 0,
+    'README.md no longer states its tool count as a digit ("N model-visible tools") — re-anchor this check')
+  for (const count of stated) {
+    assert.equal(count, UI_TOOL_CARD_KEYS.length,
+      `README.md says ${count} model-visible tools; the contract declares ${UI_TOOL_CARD_KEYS.length}`)
+  }
+  // And no spelled-out count survives anywhere, which is what would make the case above
+  // pass while the sentence a reader sees says something else.
+  assert.ok(!/\b(twenty|nineteen|eighteen|seventeen|sixteen|fifteen|fourteen|thirteen|twelve|eleven|ten)\s+model-visible tools/i.test(englishReadme),
+    'README.md spells its tool count as a word, so the digit comparison above can pass while the prose disagrees')
+})
+
+test('the English README states the suite count run-all.sh declares', () => {
+  const stated = /bash deepblend\/tests\/run-all\.sh\s+#\s*(\d+) suites/.exec(englishReadme)
+  assert.ok(stated !== null,
+    'README.md no longer states the suite count beside the run-all.sh command — re-anchor this check')
+  assert.equal(Number(stated[1]), declaredSuites.length,
+    `README.md says ${stated[1]} suites and run-all.sh declares ${declaredSuites.length}: ` +
+      declaredSuites.map(suite => suite.label).join(' | '))
+})
+
+test('the English README states the versions the repository pins', () => {
+  const dsh = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'tools', 'dsh-baseline.json'), 'utf8'))
+  assert.ok(englishReadme.includes(dsh.version),
+    `README.md does not state the pinned DSH version ${dsh.version}, which its Requirements table is about`)
+
+  const blender = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'tools', 'blender-release.json'), 'utf8'))
+  assert.ok(englishReadme.includes(blender.version),
+    `README.md does not state the pinned Blender version ${blender.version}`)
+
+  // The Node floor is stated twice — in the table and in `package.json` — so the same
+  // comparison the Chinese case makes is made here.
+  const engines = /(\d+)/.exec(String(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).engines?.node ?? ''))
+  assert.ok(engines !== null, 'the root package.json declares no node engine')
+  const floor = /Node\.js\*\*\s*\|\s*≥\s*(\d+)/.exec(englishReadme)
+  assert.ok(floor !== null, 'README.md no longer states a Node.js floor — re-anchor this check')
+  assert.equal(Number(floor[1]), Number(engines[1]),
+    `README.md states Node >= ${floor[1]}; package.json's engines say the floor is ${engines[1]}`)
+})
+
+test('every repository path the English README names exists', () => {
+  // A README is a table of contents for the repository, and a link to a file that moved is
+  // the cheapest possible way for it to be wrong. Both spellings are collected: markdown
+  // link targets, and paths written in inline code — the second is how this file names
+  // `deepblend/tools/capture-docs-images.mjs` and `contract/security-controls.test.mjs`,
+  // neither of which is a link and both of which a reader is told to open.
+  const targets = [...englishReadme.matchAll(/\]\(([^)\s]+)\)/g)]
+    .map(match => match[1])
+    .filter(target => !target.includes('://') && !target.startsWith('#'))
+  const codeSpans = [...englishReadme.matchAll(/`([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+\.(?:mjs|md|yml|yaml|json|py|png))`/g)]
+    .map(match => match[1])
+  const named = [...new Set([...targets, ...codeSpans])].sort()
+  assert.ok(named.length > 8, `only ${named.length} paths found in README.md; the extraction is wrong, not the file`)
+
+  // `contract/…` is this repository's shorthand for `deepblend/tests/contract/…`, used in
+  // the README's own prose. Every other path is relative to the repository root.
+  const resolveNamed = named => (named.startsWith('contract/')
+    ? join(ROOT, 'deepblend', 'tests', named)
+    : join(ROOT, named))
+  const missing = named.filter(named => !existsSync(resolveNamed(named)))
+  assert.deepEqual(missing, [],
+    `README.md names ${missing.length} path(s) that do not exist: ${missing.join(', ')}`)
 })

@@ -23,7 +23,7 @@ One command installs both planes:
 | Plane | What arrives |
 |---|---|
 | **Host composition** | the Blender runtime provider, the project/revision store, and the workbench's host half |
-| **Agent preset** | **DeepBlend Studio** and **DeepBlend dev mode**, deployed into `<DSH_HOME>/.agent-presets/` — the sixteen model-visible tools belong to a preset, not to the host, so a session only sees them when it runs on one |
+| **Agent preset** | **DeepBlend Studio** and **DeepBlend dev mode**, deployed into `<DSH_HOME>/.agent-presets/` — the 16 model-visible tools belong to a preset, not to the host, so a session only sees them when it runs on one |
 
 > The `#path:` form is quoted because `#` starts a comment in a shell. Requires **pnpm** on
 > `PATH` (`dsh plugin` forwards to it) and a repository it can reach: pnpm resolves the
@@ -65,7 +65,7 @@ three-quarter, top and detail) composited into one sheet:
 
 ## What you get
 
-**Sixteen model-visible tools** across four jobs — inspecting a scene, changing it, judging a
+**16 model-visible tools** across four jobs — inspecting a scene, changing it, judging a
 render, and delivering a video:
 
 * **Scene** — create a project, read it, read and patch the scene, validate it
