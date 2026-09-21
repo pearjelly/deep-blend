@@ -145,20 +145,55 @@ export function npmError(output) {
 }
 
 /**
+ * Whether the account has an authenticator, asked of the registry rather than assumed.
+ *
+ * MEASURED on the account this was written against: `npm profile get --json` answers
+ * `tfa: false` while publishing still returns "Two-factor authentication or granular access
+ * token with bypass 2fa enabled is required". That combination matters, because it means the
+ * `--otp` route CANNOT work — there is no authenticator to produce a code — and the only way
+ * through is a token with "Bypass 2FA" enabled. Offering a one-time code to somebody who has
+ * no authenticator is advice that costs them a trip to a settings page that has nothing to
+ * change on it.
+ *
+ * `npm profile get` is used rather than a hand-rolled registry request because it does not
+ * require this tool to read, hold or print the token in `~/.npmrc`.
+ *
+ * @returns {boolean|null} true, false, or null when it could not be determined.
+ */
+export function twoFactorEnabled() {
+  const profile = run('npm', ['profile', 'get', '--json', '--registry', REGISTRY])
+  if (profile.status !== 0) return null
+  try {
+    const parsed = JSON.parse(profile.output)
+    return typeof parsed.tfa === 'boolean' ? parsed.tfa : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * What npm is asking for, when a publish is refused rather than broken.
  *
  * A 403 on publish is almost always one of two things, and both are the operator's to fix
  * rather than the code's — so they are named instead of being left as "FAILED: 403".
  *
  * @param {string} output - everything npm printed.
+ * @param {boolean|null} [tfa] - whether the account has an authenticator, when it is known.
  * @returns {string|null} the fix, or null when this is not a refusal this tool knows.
  */
-export function publishRefusalFix(output) {
+export function publishRefusalFix(output, tfa = null) {
   if (/bypass 2fa|two-factor authentication/i.test(output)) {
-    return 'npm requires 2FA for writes on this account. Either pass a one-time code — '
-      + '`npm run publish:packages -- --otp <6 digits>` — or create a Granular Access Token with '
-      + '"Bypass 2FA" enabled at https://www.npmjs.com/settings/<user>/tokens and put it in ~/.npmrc, '
-      + 'which is the one that survives publishing seven packages in a row.'
+    const token = 'create a Granular Access Token with "Bypass 2FA" enabled at '
+      + 'https://www.npmjs.com/settings/<your-user>/tokens, give it publish access to the scope, '
+      + `and put it in ~/.npmrc as //registry.npmjs.org/:_authToken — it is the one that survives publishing seven packages in a row`
+    if (tfa === false) {
+      return `npm refused the write because the token in ~/.npmrc has no "Bypass 2FA". `
+        + `Your account has NO authenticator (\`npm profile get\` → tfa: false), so \`--otp\` cannot help — `
+        + `there is no code to produce. ${token[0].toUpperCase()}${token.slice(1)}.`
+    }
+    return 'npm requires 2FA for writes. Either pass a one-time code — '
+      + '`npm run publish:packages -- --otp <6 digits>` — or, if your account has no authenticator, '
+      + `${token}.`
   }
   if (/Scope not found|scope.*not.*found/i.test(output)) {
     return `the ${SCOPE} scope does not exist yet: create it first — \`npm org create ${SCOPE.replace('@', '')} --registry ${REGISTRY}\``
@@ -367,7 +402,7 @@ function publish(dryRun) {
         console.error(`  ${entry.name}@${entry.version} — FAILED: ${npmError(result.output)}`)
         // A REFUSAL is the operator's to fix and the message says how; a broken publish is not.
         // They exit differently on purpose — 2 for "cannot yet", 1 for "it broke".
-        const fix = publishRefusalFix(result.output)
+        const fix = publishRefusalFix(result.output, twoFactorEnabled())
         if (fix !== null) {
           console.error(`  ${fix}`)
           console.error(`stopped at ${entry.name}; the packages after it were not published`)

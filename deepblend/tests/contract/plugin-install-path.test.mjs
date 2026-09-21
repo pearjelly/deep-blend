@@ -514,10 +514,30 @@ test('a publish failure is reported as the cause, not as npm\'s log path', () =>
   assert.ok(!/^npm notice/.test(reported), 'a notice line was reported as the error')
 
   // And the refusal is recognised, so the fix is printed rather than "FAILED: 403".
-  const fix = publishRefusalFix(realFailure)
-  assert.ok(fix !== null, 'the 2FA refusal was not recognised, so the operator gets no fix')
-  assert.match(fix, /--otp/, 'the fix does not mention the one-time code')
-  assert.match(fix, /Bypass 2FA/, 'the fix does not mention the token that does not expire mid-run')
+  const withAuthenticator = publishRefusalFix(realFailure, true)
+  assert.ok(withAuthenticator !== null, 'the 2FA refusal was not recognised, so the operator gets no fix')
+  assert.match(withAuthenticator, /--otp/, 'the fix does not mention the one-time code an authenticator can produce')
+  assert.match(withAuthenticator, /Bypass 2FA/, 'the fix does not mention the token that does not expire mid-run')
+
+  // THE ADVICE DEPENDS ON THE ACCOUNT, and this is the half that was measured on a real one:
+  // publishing was refused for want of 2FA while `npm profile get` answered `tfa: false`. On
+  // that account `--otp` CANNOT work — there is no authenticator to produce a code — so
+  // offering it sends the reader to a settings page with nothing to change on it.
+  const withoutAuthenticator = publishRefusalFix(realFailure, false)
+  // Not "must not mention --otp": naming it in order to say it CANNOT help is the useful
+  // thing to do, because it is the fix everybody reaches for first. What must not happen is
+  // offering it as a route that works.
+  assert.match(withoutAuthenticator, /`--otp` cannot help/,
+    'the fix does not say why the one-time code is not the answer on this account')
+  assert.match(withoutAuthenticator, /Bypass 2FA/, 'the only route that works on that account is not named')
+  assert.match(withoutAuthenticator, /no authenticator|NO authenticator/i,
+    'the fix does not say why the one-time code was withheld')
+
+  // With the state unknown both routes are offered, because guessing wrong is worse than
+  // naming two.
+  const unknown = publishRefusalFix(realFailure)
+  assert.match(unknown, /--otp/, 'with the account state unknown, the one-time code was withheld')
+  assert.match(unknown, /Bypass 2FA/, 'with the account state unknown, the token route was withheld')
 
   // The other refusals this tool knows, and one it must NOT claim to know: a fix invented for
   // an unrecognised failure would send the reader somewhere wrong.
