@@ -414,3 +414,45 @@ test('the entry points at the only package that can be a submission target', () 
   assert.ok(rows.length >= 4,
     `the bundle patch mounts ${rows.length} row(s); it is the composition, and a composition with nothing in it is the meta-package the list refuses`)
 })
+
+// ---------------------------------------------------------------------------
+// What a maintainer actually LANDS ON
+// ---------------------------------------------------------------------------
+//
+// The review is "a maintainer reads the target repository before merging", and the first
+// thing they click is the entry's own url. That lands on a DIRECTORY — and until this case
+// existed, `packages/deepblend/bundle/` held four files and no prose at all: a patch, a
+// 29-line module, a manifest and a screenshot manifest. A reader arriving there has to go up
+// to the repository root to learn anything, and the one question this shape invites — "is
+// this a meta-package?" — was answered nowhere they were standing.
+//
+// A comparable ACCEPTED entry does have one: `f-infinite-z/dsh-plugin-ops` ships a README in
+// its `packages/bundle/`, explaining what the bundle is, how to install it and how it works.
+//
+// So the rule is asserted rather than remembered: the directory the entry points at must
+// explain itself, and every relative link in that explanation must resolve — a README full of
+// links into a directory layout that has moved is worse than no README.
+test('the directory the entry points at explains itself, and its links resolve', () => {
+  const [, , , subdirectory] = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/tree\/[^/]+\/(.+)$/.exec(topLevel(entry).url)
+  const directory = join(ROOT, subdirectory)
+  const readme = join(directory, 'README.md')
+  assert.ok(existsSync(readme),
+    `${subdirectory} has no README.md, and it is the directory the entry's url lands a maintainer on`)
+
+  const text = readFileSync(readme, 'utf8')
+  assert.ok(text.includes('dsh plugin'),
+    'the bundle README does not show the install command, which is the first thing a visitor to this directory wants')
+  // The one question this shape invites, answered where the reader is standing.
+  assert.match(text, /meta-package/i,
+    'the bundle README does not answer the meta-package question, which is the item that could send the submission back')
+
+  // Every relative link resolves against the README's own directory. The two paths that were
+  // wrong when this file was first written were both "how many levels up is the root" — which
+  // is exactly the arithmetic a human gets wrong and a check does not.
+  const targets = [...text.matchAll(/\]\(([^)\s]+)\)/g)]
+    .map(match => match[1])
+    .filter(target => !target.startsWith('http') && !target.startsWith('#'))
+  assert.ok(targets.length >= 8, `only ${targets.length} relative links found; the extraction is wrong, not the file`)
+  const broken = targets.filter(target => !existsSync(join(directory, target)))
+  assert.deepEqual(broken, [], `the bundle README links to ${broken.join(', ')}, which do not exist from ${subdirectory}`)
+})
