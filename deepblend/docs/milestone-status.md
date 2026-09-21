@@ -12182,6 +12182,10 @@ git specs inside the published artifact: 0
    **发出去的清单也已验到产物里** ✓（197.15）✓——
    所以剩下的是 `npm login` 加一次 `npm run publish:packages` ✓，不是一段要重新推导的过程 ✓。
    发布之后市场会自动采集 npm 映射 ✓——但**前提是包的 `repository` 指回本仓库** ✓，这一条也在断言里 ✓。
+   **本机连凭据都不存在** ✓，而不只是「没登录」✓——`~/.npmrc` **只有一行 `registry=`** ✓、
+   **没有任何 token** ✓，而且对**公共 registry** 单独问一次也是 `ENEEDAUTH` ✓✓。
+   也就是说最常见的那个「其实只是配错了 registry」的解释 ✓，本轮**排除掉了** ✓：
+   账号得由人来建 ✓，不是一条配置能修的 ✓。
    **这一条本轮仍然无法在本机验证** ✓：`npm publish` 需要账号 ✓，
    所以「发布之后 `dsh plugin add @deepblend/dsh-blender-bundle` 真的秒级装得上吗」✓
    **仍然只是一个推导** ✓——本会话只验到了**产物里的清单是对的** ✓（197.15）✓，
