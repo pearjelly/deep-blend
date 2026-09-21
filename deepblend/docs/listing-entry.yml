@@ -184,6 +184,25 @@
 #       entry points at no other entry's work. `contract/listing-entry.test.mjs` asserts both
 #       halves — the uniqueness of `dsh.bundle`, and that the patch really mounts rows.
 #
+#       AND THE SHAPE IS ALREADY ON THE LIST, EIGHT TIMES. Read from the list's own
+#       `data/plugins/*.yml` on 2026-09-21: 438 entries point at a monorepo SUBDIRECTORY, and
+#       EIGHT of them point at `packages/bundle` — across six categories (`ui`, `security`,
+#       `model`, `market`, `theme`, `session`). Two opened directly:
+#
+#         ayahunter/dsh-trail/packages/bundle      cordis.patch.yml (421 B) + package.json,
+#                                                  no source at all — 1 row, 1 dependency
+#         f-infinite-z/dsh-plugin-ops/packages/…   cordis.patch.yml (285 B) + manifest + src
+#                                                  — 1 row, 1 dependency
+#         THIS SUBMISSION                          cordis.patch.yml (11.9 KB) + lib/ + the
+#                                                  manifest — 4 rows, 6 dependencies
+#
+#       Both accepted bundles are composition wrappers with a single row and a single
+#       dependency. This one is strictly more than either by every one of those measures, and
+#       its six dependencies are its own repository's internal modules rather than other
+#       entries. (That is a READING of a list that grows, not a permanent fact — the command
+#       is `grep -l '^url:.*tree/.*/packages/bundle$' data/plugins/*.yml` in a clone of
+#       `awesome-dsh-plugin`.)
+#
 #       THE HONEST PART, because a maintainer may go and look: the patch's `config:` blocks
 #       set 18 keys across four rows and NONE of them differs from the package's own schema
 #       default. They make the composed configuration explicit in `--dump-config` rather than
