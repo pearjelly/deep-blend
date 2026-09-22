@@ -1,5 +1,7 @@
 # DeepBlend Studio
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 > 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
 > 主规格：`SPEC.md`（V2.0）　逐里程碑的结论与验收数字：`deepblend/docs/milestone-status.md`
 

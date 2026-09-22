@@ -504,3 +504,34 @@ test('every published package would be harvested by the market\'s own npm probe'
   assert.deepEqual(unlinked, [],
     `these packages would be published but never harvested, because their repository field does not contain ${ownerRepo}`)
 })
+
+// ---------------------------------------------------------------------------
+// The badge, now that the plugin is LISTED
+// ---------------------------------------------------------------------------
+//
+// The list's own README ends with "Listed here? Show it off:" and the snippet below it —
+//
+//   [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+//
+// — which `README.md` has carried since it was written. `README.zh.md`, the DETAILED
+// document, did not: a reader arriving there saw no sign that the plugin is on the list at
+// all, and the two files disagreed about a fact that has one answer.
+//
+// Both are asserted now, and the badge is asserted to be the LINKED form rather than a bare
+// image: the snippet the list publishes wraps it in a link to the site, and a badge that
+// does not go anywhere is decoration.
+test('both READMEs carry the badge the list asks a listed plugin to show', () => {
+  const SNIPPET = '[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)'
+  const readmes = {
+    'README.md': readFileSync(join(ROOT, 'README.md'), 'utf8'),
+    'README.zh.md': readFileSync(join(ROOT, 'README.zh.md'), 'utf8'),
+  }
+  for (const [name, text] of Object.entries(readmes)) {
+    assert.ok(text.includes(SNIPPET),
+      `${name} does not carry the badge snippet the list publishes, so one of the two READMEs disagrees about the plugin being listed`)
+    // Near the top, where a visitor sees it: the first screen, not an appendix.
+    const at = text.indexOf(SNIPPET)
+    assert.ok(at < 400,
+      `${name} carries the badge ${at} characters in, which is past the first screen`)
+  }
+})
