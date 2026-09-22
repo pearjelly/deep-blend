@@ -580,7 +580,8 @@ M3 新增的：
 > 平面归属：**Host composition**（`@deepblend/dsh-blender-ui` 的 Host 半边）。网页半边
 > 只有 `fetch`，没有任何执行入口。
 
-M4 的九个交付项全部由这 19 条路由支撑。**这张表不是手写的**：它由
+M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工作台」加上第 20 条
+（`GET /deepblend/workbench`，唯一一条回答 HTML 而不是 JSON 的路由）。**这张表不是手写的**：它由
 `packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES` 生成，并由
 `deepblend/tests/contract/ui-api.test.mjs` 断言本文件里的行与那份表**逐条相同**
 （本仓库第 6 次遇到「同一份词表写两遍」，所以这次让文档漂移直接让测试变红）。
@@ -590,6 +591,7 @@ M4 的九个交付项全部由这 19 条路由支撑。**这张表不是手写�
 | 路由 | 语义 | 说明 |
 |---|---|---|
 | `GET /deepblend/capabilities` | 读 | Blender capabilities and the settings card. |
+| `GET /deepblend/workbench` | 读 | The standalone fullscreen workbench document. |
 | `GET /deepblend/state` | 读 | Everything the panel needs to render itself from scratch. |
 | `GET /deepblend/projects` | 读 | Every project in the store. |
 | `POST /deepblend/projects` | **写** | Create a project (title, optional seed scene). |

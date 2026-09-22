@@ -21,6 +21,10 @@
 # click. It uses its own project store, so it can run while a real GUI is up. `e2e/visual-live.e2e.mjs` is deliberately NOT part of this run: it spends
 # real model calls and needs an API key, so it is run explicitly before a commit that
 # touches the reviewer, the prompt, the sheet compositor or the scorer.
+# M6 adds the standalone fullscreen workbench: one new Host route that answers an
+# HTML document, and `e2e/workbench-page.e2e.mjs`, which opens that route in the same
+# real Chrome and asserts — off the network — that the page loaded the CONSOLE's own
+# client bundle out of the boot graph rather than a copy of the workbench.
 #
 # Usage: bash deepblend/tests/run-all.sh
 set -uo pipefail
@@ -96,6 +100,9 @@ run_suite "Workbench UI plane: closed route set, writes through the Host, client
 
 run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)" \
   node deepblend/tests/e2e/ui.e2e.mjs
+
+run_suite "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)" \
+  node deepblend/tests/e2e/workbench-page.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

@@ -220,14 +220,30 @@ function createStudioStub() {
 /** A `webServer` that captures the one route the UI registers. */
 function createWebServerStub() {
   const registered = []
+  const rendered = []
   return {
     registered,
+    rendered,
     register(entry) {
       registered.push(entry)
       return () => {
         const index = registered.indexOf(entry)
         if (index >= 0) registered.splice(index, 1)
       }
+    },
+    /**
+     * The one method the page route calls.
+     *
+     * The real one splices the boot rows (`window.__ModuleLoader__`, the
+     * `@deepseek-ai/dsh-client-modules` bootstrap, `window.__DSH_BOOT__`) into the
+     * body. This records the call and leaves a marker, so the test can assert the
+     * document went THROUGH the injection path rather than around it — which is
+     * the difference between a page that can import the client bundle and a page
+     * that merely looks like one.
+     */
+    renderIndex(html) {
+      rendered.push(html)
+      return html.replace('<head>', '<head>\n<!-- dsh index injections -->')
     },
   }
 }
@@ -270,7 +286,7 @@ root.provide('blenderStudio', studio)
 root.provide('webServer', webServer)
 
 const uiModule = await import('@deepblend/dsh-blender-ui')
-const { BLENDER_UI_SERVICE, CAPABILITIES_ROUTE } = uiModule
+const { BLENDER_UI_SERVICE, CAPABILITIES_ROUTE, WORKBENCH_PAGE_ROOT_ID } = uiModule
 const ui = new uiModule.default(root, { serveRoute: true })
 await new Promise(settle => setTimeout(settle, 50))
 
@@ -300,13 +316,20 @@ async function request(method, url, body) {
 // --- the handler table is exactly the route table ---------------------------
 
 const routeIds = UI_ROUTES.map(route => route.id).sort()
-// The artifact route is served by the byte path in `_handle`, not by a JSON
-// handler, so the handler table is the table minus exactly that one.
-const expectedHandlerIds = routeIds.filter(id => id !== 'artifacts.open')
+// Two routes answer with a shape of their own instead of the JSON envelope:
+// `artifacts.open` serves bytes, and `workbench.page` serves the standalone
+// document (SPEC §20 M6). Both are served by a named method in `_handle`, both
+// are asserted on their own below, and this list is the whole of the exception —
+// a THIRD route that quietly stops using the envelope goes red right here.
+const SPECIAL_RESPONSE_ROUTES = ['artifacts.open', 'workbench.page']
+const expectedHandlerIds = routeIds.filter(id => !SPECIAL_RESPONSE_ROUTES.includes(id))
 const handlerIds = Object.keys(ui.handlers).sort()
-check('the handler table is exactly the route table, minus the byte route',
+check('the handler table is exactly the route table, minus the two routes that answer with their own shape',
   JSON.stringify(handlerIds) === JSON.stringify(expectedHandlerIds),
   { handlers: handlerIds, routes: routeIds })
+check('and those two are the only exceptions, so a third one cannot hide',
+  JSON.stringify(routeIds.filter(id => !handlerIds.includes(id))) === JSON.stringify([...SPECIAL_RESPONSE_ROUTES].sort()),
+  routeIds.filter(id => !handlerIds.includes(id)))
 
 // --- every GET route answers from the facade, with a body the client can place
 
@@ -336,6 +359,38 @@ for (const route of UI_ROUTES) {
     check(`${route.id} serves bytes, not JSON`,
       response.statusCode === 200 && response.headers['content-type'] === 'image/png' && response.headers['cache-control'] === 'no-store',
       { status: response.statusCode, type: response.headers['content-type'] })
+    continue
+  }
+
+  if (route.id === 'workbench.page') {
+    // The standalone workbench document (SPEC §20 M6). What matters here is not
+    // that HTML comes back — it is that the HTML is BOOT-CAPABLE: it went through
+    // the composition's index injections, and its bootstrap builds the module
+    // system out of the graph so it can import this package's own client bundle
+    // instead of being handed a copy of the workbench.
+    const html = String(response.body)
+    check(`${route.id} serves an HTML document, not the JSON envelope`,
+      response.statusCode === 200
+      && response.headers['content-type'] === 'text/html; charset=utf-8'
+      && response.headers['cache-control'] === 'no-store'
+      && json === null,
+      { status: response.statusCode, type: response.headers['content-type'] })
+    check(`${route.id} reserves the element the bundle mounts into`,
+      html.includes(`id="${WORKBENCH_PAGE_ROOT_ID}"`) && html.includes('data-deepblend-standalone'),
+      html.slice(0, 160))
+    check(`${route.id} is rendered through the composition's index injections, so the boot protocol is in the page`,
+      webServer.rendered.length === 1 && html.includes('<!-- dsh index injections -->'),
+      { rendered: webServer.rendered.length })
+    check(`${route.id} has head and body for those injections to be spliced into`,
+      html.includes('<head>') && html.includes('<body'))
+    check(`${route.id} builds the module system from the graph and imports THIS package`,
+      html.includes('window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })')
+      && html.includes("modules.import('@deepblend/dsh-blender-ui')")
+      && html.includes('bundle.mountStandalone(root)'))
+    check(`${route.id} is not the console: no shell bundle, no sidebar, no conversation`,
+      !/dsh-web-frontend|\/assets\/index-|sidebar|conversation/.test(html))
+    check(`${route.id} reads nothing through the facade: a page is not a project read`,
+      studio.calls.length === 0, studio.methodsCalled())
     continue
   }
 

@@ -43,6 +43,13 @@ export const UI_REST_MARKER = '*'
  */
 export const UI_ROUTES = Object.freeze([
   { id: 'capabilities', method: 'GET', path: '/deepblend/capabilities', write: false, summary: 'Blender capabilities and the settings card.' },
+  // The one route whose response is an HTML document rather than JSON: the
+  // standalone fullscreen workbench (SPEC §20 M6). It is a READ route — it
+  // answers with a page, and every write that page performs goes through the
+  // routes below it. The page it serves loads this package's OWN client bundle
+  // out of the boot graph, so the six tabs are rendered by one implementation
+  // (`contract/workbench-page.test.mjs` is what holds that).
+  { id: 'workbench.page', method: 'GET', path: '/deepblend/workbench', write: false, summary: 'The standalone fullscreen workbench document.' },
   { id: 'state', method: 'GET', path: '/deepblend/state', write: false, summary: 'Everything the panel needs to render itself from scratch.' },
   { id: 'projects.list', method: 'GET', path: '/deepblend/projects', write: false, summary: 'Every project in the store.' },
   { id: 'projects.create', method: 'POST', path: '/deepblend/projects', write: true, summary: 'Create a project (title, optional seed scene).' },

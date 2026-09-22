@@ -59,7 +59,14 @@ export function makeReactStub() {
 /**
  * Load `client.js` the way the page does.
  *
- * @param {{ react?: object }} [options]
+ * `resolve` exists for one caller and one claim: the M6 standalone page supplies
+ * NO platform seed (`create({ staticModules: {} })`), so the bundle has to be
+ * able to build and render the whole workbench without React. Passing a `resolve`
+ * that throws on every specifier is how that claim is tested rather than
+ * asserted — if any part of the shared core reached for React, the load or the
+ * render fails here instead of on a blank full-screen page.
+ *
+ * @param {{ react?: object, resolve?: (specifier: string) => unknown }} [options]
  * @returns {{ moduleId: string, exports: object, source: string }}
  */
 export function loadClientBundle(options = {}) {
@@ -72,15 +79,21 @@ export function loadClientBundle(options = {}) {
     window,
     document: undefined,
     JSON, Object, Array, String, Number, Boolean, Math, Error, Set, Map, Promise, console,
+    // The store polls on a timer, exactly as it does in a browser. These are
+    // JavaScript globals rather than DOM ones, so supplying them is not a DOM
+    // simulation — it is the same environment the bundle really runs in, minus
+    // everything that only a page has. A suite that mounts a store must stop it.
+    setInterval, clearInterval, setTimeout, clearTimeout,
   })
   if (captured === null || typeof captured.factory !== 'function') {
     throw new Error('client.js did not register a module through window.__ModuleLoader__.load')
   }
 
-  const exports = captured.factory(specifier => {
+  const resolve = options.resolve ?? (specifier => {
     if (specifier === 'react' || specifier === 'react/jsx-runtime') return react
     throw new Error(`the client bundle required an unexpected module: ${specifier}`)
   })
+  const exports = captured.factory(resolve)
 
   return { moduleId: captured.id, exports, source }
 }

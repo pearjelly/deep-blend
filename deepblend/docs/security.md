@@ -31,6 +31,22 @@
 4. **花钱与离开这台机器的动作要问人。** 目前恰好两个：超过阈值的正式渲染，
    以及从网络地址导入资产。其余一切自动。
 
+### 1.1 浏览器平面：两条不走 JSON 信封的路由
+
+M6 之后，`/deepblend` 前缀下**有两条路由回答的不是 `{ ok, route, hostApiVersion, … }`**。
+两条都不是新的信任边界，但两条都值得写下来，因为它们各自多读了一样东西：
+
+| 路由 | 谁负责 | 哪条断言盯着 |
+|---|---|---|
+| `GET /deepblend/artifacts/:projectId/*` | 唯一的 URL 参数进文件系统的路由：项目 id 与路径都交给 `blenderStudio.readArtifact`，由它按 realpath 解在项目目录内（SPEC §15.2） | `composition/ui-plane.e2e.mjs`「serves bytes, not JSON」＋`hardening.e2e.mjs` 的越界与软链接用例＋`e2e/ui.e2e.mjs`「an artifact path that escapes the project is refused by the Host」 |
+| `GET /deepblend/workbench` | 唯一的 HTML 路由（SPEC §20 M6）。**不读请求的任何输入**：没有参数、没有查询串、没有 body，文档是常量加上组合自己的 index 注入；不碰项目、不碰路径、不起进程 | `contract/workbench-page.test.mjs`「it is a READ route: a page is not a write」＋`composition/ui-plane.e2e.mjs`「reads nothing through the facade: a page is not a project read」 |
+
+`GET /deepblend/workbench` 返回的那一页**没有自己的渲染实现**：它的 bootstrap 从
+`window.__DSH_BOOT__` 里 import 本包**同一个 client bundle**，六个页签因此只有一份代码。
+这条不是安全属性，但它决定了这一页不会变成一个没人看的第二实现——
+`e2e/workbench-page.e2e.mjs`「the standalone page loaded the workbench bundle from the URL
+the graph declares for it」是它在网络上的证据。
+
 ## 2. SPEC §15.1 权限策略：逐条
 
 对照 SPEC §15.1 的表格。状态含义：✅ 有实现且有断言；➖ 不适用（说明了原因）；

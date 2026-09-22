@@ -46,6 +46,95 @@ import {
 /** Route path serving the settings card document (M0's surface, kept verbatim). */
 export const CAPABILITIES_ROUTE = '/deepblend/capabilities'
 
+/** Route path serving the standalone fullscreen workbench document (SPEC §20 M6). */
+export const WORKBENCH_PAGE_ROUTE = '/deepblend/workbench'
+
+/**
+ * The element the standalone page reserves for the workbench.
+ *
+ * Named once, and read by the page's own bootstrap below and by
+ * `e2e/workbench-page.e2e.mjs`, so "the page mounted something" is answered by
+ * the same string on both sides.
+ */
+export const WORKBENCH_PAGE_ROOT_ID = 'deepblend-workbench'
+
+/**
+ * The bootstrap the standalone page runs.
+ *
+ * Twelve lines, and every one of them is about ARRIVING at the bundle rather
+ * than about the workbench:
+ *
+ *   1. `__DSH_BOOT_READY__` — the tail injection, resolved once the boot rows
+ *      have run. Awaiting it is what makes this script safe wherever the
+ *      injection table happens to be spliced.
+ *   2. `create({ boot: __DSH_BOOT__, staticModules: {} })` — the SAME module
+ *      system the console builds, over the SAME graph global. The seed is empty
+ *      because this page supplies no platform modules: React is a console seed
+ *      word, the workbench core does not use it, and `client.js` reads it lazily
+ *      precisely so that this call can pass `{}`.
+ *   3. `import('@deepblend/dsh-blender-ui')` — the console's own graph row,
+ *      fetched from the console's own bundle route. There is no second copy of
+ *      the workbench anywhere for this to find.
+ *   4. `mountStandalone(root)` — the one function that differs between the faces.
+ *
+ * A failure is reported INTO the page rather than only to the console, because a
+ * blank full-screen page is indistinguishable from a page that never booted.
+ *
+ * @param {string} rootId
+ * @returns {string}
+ */
+export function workbenchPageBootstrap(rootId) {
+  return `<script>(async () => {
+  const root = document.getElementById(${JSON.stringify(rootId)})
+  try {
+    await globalThis.__DSH_BOOT_READY__?.promise
+    const modules = window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })
+    const bundle = await modules.import('@deepblend/dsh-blender-ui')
+    await bundle.mountStandalone(root)
+    root.dataset.deepblendStandalone = 'ready'
+  } catch (error) {
+    root.dataset.deepblendStandalone = 'failed'
+    root.textContent = 'DeepBlend 工作台未能启动：' + String((error && error.message) || error)
+  }
+})()</script>`
+}
+
+/**
+ * The standalone workbench document.
+ *
+ * Deliberately minimal, and deliberately NOT the console: no shell bundle, no
+ * sidebar, no conversation — one root element and the bootstrap. Everything the
+ * page shows arrives from the bundle the bootstrap imports and from the Host
+ * routes that bundle reads.
+ *
+ * `<head>` and `<body>` are present because `webServer.renderIndex` splices the
+ * boot injections into them; without the tags the rows would be prepended to the
+ * document instead, and the bootstrap script would run before the module loader
+ * existed.
+ *
+ * @param {string} rootId
+ * @param {{ title?: string }} [options]
+ * @returns {string}
+ */
+export function workbenchPageDocument(rootId, options = {}) {
+  const title = options.title ?? 'DeepBlend 工作台'
+  return [
+    '<!doctype html>',
+    '<html lang="zh">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    `<title>${title}</title>`,
+    '</head>',
+    `<body style="margin:0;height:100vh">`,
+    `<div id="${rootId}" data-deepblend-standalone="loading" style="height:100vh"></div>`,
+    workbenchPageBootstrap(rootId),
+    '</body>',
+    '</html>',
+    '',
+  ].join('\n')
+}
+
 /** Service key for the UI-facing host controller. */
 export const BLENDER_UI_SERVICE = 'blenderUi'
 
@@ -96,6 +185,12 @@ export default class BlenderUiHost extends Service {
     assertKnownConfigKeys(UiConfig, config, 'deepblend-blender-ui')
     this.config = config
     this._routeDisposer = null
+    // Kept for ONE reason: the standalone page document has to be rendered
+    // through `webServer.renderIndex`, which is what splices the boot injections
+    // (`window.__ModuleLoader__`, `window.__DSH_BOOT__`, the bootstrap batch) into
+    // a body. That is the whole of this row's dependence on the server object —
+    // no file, no process, no path.
+    this._webServer = null
 
     // One handler per route id, and no other way in. A test asserts the key set
     // equals UI_ROUTES exactly, in both directions.
@@ -104,6 +199,7 @@ export default class BlenderUiHost extends Service {
     if (!config.serveRoute) return
 
     ctx.inject(['webServer'], (serverCtx) => {
+      this._webServer = serverCtx.webServer
       // Route registration belongs to this fiber, so unmounting the row removes
       // the route (SPEC §4.4 / lifecycle: every side effect is reversible).
       const dispose = serverCtx.webServer.register({
@@ -114,6 +210,7 @@ export default class BlenderUiHost extends Service {
       this._routeDisposer = dispose
       return () => {
         this._routeDisposer = null
+        this._webServer = null
         dispose()
       }
     })
@@ -154,6 +251,13 @@ export default class BlenderUiHost extends Service {
     try {
       if (matched.route.id === 'artifacts.open') {
         await this._sendArtifact(request, response, matched.params)
+        return
+      }
+      // The second response that is not JSON, and the only one that is a
+      // document: the standalone workbench. It reads nothing from the request —
+      // no query, no body, no parameter — so there is no input here to validate.
+      if (matched.route.id === 'workbench.page') {
+        this._sendWorkbenchPage(request, response)
         return
       }
       const body = await readRequestBody(request)
@@ -199,6 +303,46 @@ export default class BlenderUiHost extends Service {
     response.setHeader('cache-control', 'no-store')
     response.setHeader('content-length', String(artifact.size))
     response.end(request.method === 'HEAD' ? undefined : artifact.bytes)
+  }
+
+  /**
+   * Serve the standalone fullscreen workbench document (SPEC §20 M6).
+   *
+   * This is the only route that answers with HTML, and the only place in this
+   * package that asks the web server for anything other than a route seat. It
+   * reads no request input, touches no project and no path, and derives nothing
+   * from the caller: the document is a constant plus whatever the composition's
+   * own index injections add.
+   *
+   * `renderIndex` is what makes the page a real client surface rather than a
+   * static one — it splices in the boot rows (`window.__ModuleLoader__`, the
+   * `@deepseek-ai/dsh-client-modules` bootstrap, `window.__DSH_BOOT__`) that the
+   * console's own index.html gets, so the page can import this package's client
+   * bundle out of the graph instead of being handed a copy of it.
+   *
+   * When there is no web server there is no route either (the row only registers
+   * one inside `ctx.inject(['webServer'])`), so the fallback below is unreachable
+   * in a composed deployment; it exists so that driving `_handle` against a stub
+   * server in a test cannot throw on a missing method.
+   *
+   * @param {import('node:http').IncomingMessage} request
+   * @param {import('node:http').ServerResponse} response
+   */
+  _sendWorkbenchPage(request, response) {
+    const document = workbenchPageDocument(WORKBENCH_PAGE_ROOT_ID)
+    const server = this._webServer
+    const html = server !== null && typeof server.renderIndex === 'function'
+      ? server.renderIndex(document)
+      : document
+    const bytes = Buffer.from(html, 'utf8')
+    response.setHeader('content-type', 'text/html; charset=utf-8')
+    // Never cached, for the same reason the JSON routes are not: this document
+    // names the bundle revision it will load, and a cached copy would pin a page
+    // to a revision the process no longer serves.
+    response.setHeader('cache-control', 'no-store')
+    response.setHeader('content-length', String(bytes.length))
+    response.statusCode = 200
+    response.end(request.method === 'HEAD' ? undefined : bytes)
   }
 
   /**

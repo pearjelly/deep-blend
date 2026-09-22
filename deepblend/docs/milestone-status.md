@@ -12533,3 +12533,172 @@ BYTE-IDENTICAL to the projection
    要它就得在发布流程里比一次 ✓，那是一条独立的、值得做的小事 ✓。
 4. `readme-fresh-clone` 要求 `TMPDIR` 在工作区**外** ✓、pnpm 套件要求在工作区**内** ✓——
    **两者不能同时满足** ✓，必须**分开跑** ✓（本轮的 `run-all.sh` 走的是后者 ✓）。
+
+## 198. M6：独立全屏工作台 —— 一次「抽出来」，和它唯一可能变成的东西
+
+SPEC §20 的 M6 里这一项只有一行字 ✓：`独立全屏工作台` ✓。**它没有自己的验收块** ✓，
+所以它的验收措辞只能从 M4 继承 ✓（§20 M4 的四条）✓——本轮按那四条收口 ✓，
+并额外守一条本项特有的硬约束 ✓：**六个页签的渲染只能有一份实现** ✓。
+
+### 198.1 这一项要证明什么，和它最容易变成什么
+
+要证明的是：**工作台是产品面，不是聊天窗口的附件** ✓——
+同一份项目状态、同一组 Host 路由 ✓，在**没有 DSH 聊天外壳**的整屏页面上照样成立 ✓。
+
+它最容易变成的是：**M4 工作台的第二个实现** ✓。整屏页面要显示同样的六个页签 ✓、
+同样的 revision 头 ✓、同样的预览对比 ✓——而「再写一遍渲染」在这个仓库里不是省事 ✓，
+是**制造第二份事实** ✓：两份都会有人改 ✓，先烂的那一份没人知道 ✓。
+
+### 198.2 它是什么：一条路由、一个页面，和**控制台自己那个 bundle**
+
+新增的是第 20 条路由 ✓：`GET /deepblend/workbench` ✓
+（`packages/deepblend/contracts/lib/ui-api.js` ✓），
+也是**唯一一条回答 HTML 而不是 JSON 的路由** ✓。它**不读请求的任何输入** ✓：
+没有参数、没有查询串、没有 body ✓；文档是常量加上组合自己的 index 注入 ✓
+（`webServer.renderIndex` ✓）——不碰项目、不碰路径、不起进程 ✓。
+
+它**不是第二个 `dsh web`** ✓：没有新服务器 ✓、没有新进程 ✓、没有新端口 ✓。
+浏览器验收里那条服务器就是被测的那一个 ✓。
+
+**页面上的 bootstrap 一共十二行** ✓，而每一行都是关于「怎么到达那个 bundle」的 ✓，
+不是关于工作台的 ✓：
+
+```js
+await globalThis.__DSH_BOOT_READY__?.promise
+const modules = window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })
+const bundle = await modules.import('@deepblend/dsh-blender-ui')
+await bundle.mountStandalone(root)
+```
+
+第三行是整件事的关键 ✓：它 import 的是**控制台自己那个模块 id** ✓，
+从 `window.__DSH_BOOT__` 里取 ✓——**不是副本、不是兄弟文件、不是打包进去的第二份面板** ✓。
+`staticModules: {}` 是空的 ✓，因为这一页不提供任何平台模块 ✓：
+React 是控制台的 seed word ✓，而工作台核心不用它 ✓。
+
+### 198.3 抽出来的是什么：一个无框架的核心，和两个通用绑定
+
+`packages/deepblend/ui/lib/client.js` 现在分两半 ✓：
+
+* **§C–§H 无框架核心** ✓：元素词汇（`el`）✓、显示helper ✓、六个页签 ✓、
+  以及一个**无框架 store**（状态、轮询、动作）✓——全部是返回**描述符树**的纯函数 ✓，
+  描述符是 `{ tag, props, children }` 这样的普通数据 ✓，里面**没有 React** ✓。
+* **§I 两个通用绑定** ✓：`toReact`（控制台）✓与 `toDom`（整屏页）✓。
+  **它们谁都不认识一个 DeepBlend 名词** ✓——没有路由、没有页签名、没有字段名 ✓。
+* **§K 控制台座位** ✓：侧边栏入口、设置页、工具卡片、会话 chip ✓——这些仍然是 React ✓，
+  而且**只在控制台里存在** ✓。
+
+于是「六个页签」只有一份 ✓：`buildWorkbenchView(state, actions)` ✓。
+控制台把它交给 `toReact` ✓，整屏页把它交给 `toDom` ✓，
+**两个面都不决定工作台里有什么** ✓。
+
+### 198.4 「只有一份实现」是怎么被断言的
+
+`deepblend/tests/contract/workbench-page.test.mjs`（新，**51 项** ✓）：
+
+1. **页面加载的是控制台那个 bundle** ✓——文档里的 import id 与本包注册的 id 逐字节相同 ✓；
+2. **核心无 React** ✓——用**一个对任何 specifier 都抛的 `require`** 把整个 bundle 装载并挂载 ✓，
+   六个页签照样渲染出来 ✓。这条是设计上最承重的一条 ✓：核心一旦碰 React ✓，这里就红 ✓，
+   而不是在整屏页上留一片空白 ✓；
+3. **两个面画同一棵树** ✓——store 被一段**脚本化的 Host 响应**驱动 ✓，
+   然后对**六个页签各比一次** ✓（加上结构差异那条分支 ✓）：
+   同样的标签、同样的 class、同样的 `data-*`、同样的顺序 ✓。
+   六个页签的节点数分别是 144 / 72 / 67 / 137 / 68 / … ✓；
+4. **`mountStandalone` 真的走那个 builder** ✓——把它实际画出来的树 ✓
+   与共享 builder 对**它自己 store 的状态**产出的树逐节点比较 ✓。
+   这一条让「整屏面没有自己的渲染器」从「调用次数」变成**行为事实** ✓；
+5. **控制台那个 `main` 座位就是这棵树** ✓——用 M4 卡片套件同一个 Node 渲染器渲染 ✓，
+   产出面板根与六个页签 ✓；
+6. **两个绑定是通用的** ✓——喂给它一个工作台永远不会构造的节点（`x-widget`）✓，
+   它照样渲染 ✓；而 §I 与 §J 两段源码里**一个路由、一个页签名、一个领域名词都没有** ✓
+   （§J 里唯一认识的标记是 `data-field` ✓，那是重画后把光标放回去要用的那一个 ✓）。
+
+浏览器那半在 `deepblend/tests/e2e/workbench-page.e2e.mjs`（新，**42 项** ✓），
+真实 Chrome ✓、真实 `dsh web` ✓、真实 Blender ✓，并且把这条声明**读在网络记录上** ✓：
+
+```
+the boot graph declares a row for the workbench bundle, and an initial batch that carries it ✓
+the standalone page loaded the workbench bundle from the URL the graph declares for it ✓
+and it loaded the bundle exactly once, so there is no second copy being fetched alongside ✓
+and it loaded no console bundle at all: the page is not the shell wearing a different URL ✓
+```
+
+第二行是这一轮的**核心证据** ✓：页面取 bundle 的那个 URL ✓，
+就是 `window.__DSH_BOOT__` 里为这个包声明的那一个 ✓——
+**控制台 index.html 预载的是同一个 URL** ✓。
+
+### 198.5 变异测试：四处改坏，四处都被抓
+
+| 改坏的地方 | 谁红了 |
+|---|---|
+| 整屏面长出自己的渲染器（本项最可能的失败形态） | 「and what it drew is the shared builder's own output for the state it loaded」✓＋四处源码计数 ✓ |
+| bundle 在工厂期读 React | 「the bundle materializes with a require that refuses every specifier」✓ |
+| 页面文档 import 一个没人服务的模块 id | 「the document imports the module id this bundle registers itself under」✓（**恰好一条** ✓） |
+| 把 `workbench.page` 移出闭集路由表 | `ui-plane.e2e.mjs`「and those two are the only exceptions, so a third one cannot hide」✓＋契约层两条 ✓ |
+
+第一条**改坏的是本项存在的理由** ✓，而它红在了行为断言上 ✓，不只是计数 ✓。
+
+### 198.6 撞上的两件真事
+
+**一、抽出 store 之后，M4 的浏览器验收红了一次** ✓，而且红得有道理 ✓。
+
+M4 套件靠「点这个页签的按钮 → 等这个页签的成功提示」来排自己的顺序 ✓。
+在原来的实现里 ✓，那个提示是**视图组件自己的 state** ✓——离开页签就随组件卸载消失 ✓。
+抽成共享 store 之后它活过了页签往返 ✓，于是那句 wait **被上一次编辑的提示满足了** ✓，
+下一次点击在它本该跟随的那次写入**提交之前**就发出去了 ✓。
+**这不是推测** ✓：store 在磁盘上留下了证据 ✓——第三次预览渲染合成的 contact sheet
+落在了 `r0002` ✓，而 patch 已经在 `14.967` 提交了 `r0003` ✓，渲染是在这中间开始的 ✓。
+
+修的是语义而不是测试 ✓：**提示属于它发生的那一个页签** ✓，
+进入一个页签会清掉它自己的提示 ✓，点你已经待着的那个页签不算重新进入 ✓。
+这条现在有断言 ✓（`workbench-page.test.mjs` Part 3b ✓），
+而 M4 的 71 项在修好之后**全部回到绿** ✓。
+
+**二、`git status` 里那份未提交的 §197.22，在我这一轮期间被提交了** ✓
+（`851b45e` ✓、随后 `9aa7c69` 把徽章带进两个 README ✓）。本轮的工作是在它们**之上** ✓，
+所以 README 的数字改动仍然成立 ✓。
+
+### 198.7 收口读数
+
+| 读数 | 值 |
+|---|---|
+| 契约层 | **67/67 文件** ✓（66 → 67 ✓，新增 `contract/workbench-page.test.mjs` ✓） |
+| `run-all.sh` | **17 个套件全绿** ✓（16 → 17 ✓，新增 `e2e/workbench-page.e2e.mjs` ✓） |
+| `composition/ui-plane.e2e.mjs` | **152/152** ✓（闭集里多了第 20 条 ✓，并且多了一条「例外只有两条」 ✓） |
+| `contract/workbench-page.test.mjs` | **51/51** ✓ |
+| `e2e/ui.e2e.mjs`（M4，控制台那一面） | **71/71** ✓——**抽出来之后它仍然工作** ✓ |
+| `e2e/workbench-page.e2e.mjs`（M6，整屏那一面） | **42/42** ✓ |
+| `plugin:check` / `presets:check` / `presets:sync:check` / `setup:check` / `release:check` / `listing:check` / `publish:check` | 全部 exit 0 ✓ |
+| README 里被这一轮改动的数字 | 套件 16→17 ✓、文件 81→83 ✓、契约 66→67 ✓、「照跑」82→84 ✓、打印计数的文件 32→33 ✓、fresh clone 10/66→10/67 ✓（由 `documented-counts.test.mjs` 逐条报出来 ✓） |
+
+### 198.8 仍然开着的缺口
+
+1. **`packages/**` 动了，但版本没有升、也没有重发** ✓——这是本轮**最大的一条未收口** ✓。
+   `0.1.0` 已经烧掉 ✓、七个包必须同步升版 ✓、bundle 依赖是精确 pin ✓，
+   所以「升版 → 重建 tarball → 新 Release → 重发 npm」这四步是一条链 ✓，
+   而**本轮一步都没有走** ✓。**原因是实测的环境限制，不是选择** ✓：
+
+   ```
+   $ npm whoami
+   npm error need auth You need to authorize this machine using `npm adduser`
+   ```
+
+   `gh` 是登录着的 ✓（`pearjelly` ✓），但 npm 侧**连凭据都不存在** ✓，
+   所以四步链里的第 4 步在本会话**无法执行** ✓。
+   而只走前三步会得到**更糟的状态** ✓：tarball 与 Release 声称一个版本 ✓，
+   npm 那条路线还停在 `0.1.0` ✓——三条安装路线版本不一致 ✓，
+   市场的 npm 命令会装到旧代码 ✓。所以**选择不动** ✓，并把这件事写在这里 ✓。
+
+2. **版本策略仍然不存在** ✓。提示词建议的形状（版本号单一来源 ✓
+   ＋「`packages/**` 自上次 Release 以来有改动而版本号没变即红」✓）本轮**没有做** ✓。
+   它现在被上面那条挡住了 ✓：策略一旦落地 ✓，这条断言**立刻就是红的** ✓
+   （`packages/**` 确实动了、版本确实没变 ✓），而让它变绿就要升版 ✓，
+   升版就要走完整条链 ✓——**而第 4 步在本会话做不到** ✓。
+   所以它是一条**需要凭据才能收口**的小事 ✓，不是一件可以半途做掉的事 ✓。
+
+3. **「最新 release 的产物 = 当前 main」仍然没有断言** ✓（§197.23 第 3 条 ✓）。
+   本轮没有加 ✓，理由同上：它要在发布流程里比一次 ✓，而发布流程这一轮没走 ✓。
+
+4. **整屏页的六个页签是交互完整的 ✓，但 `diff` 那条分支只在契约层被驱动过** ✓——
+   浏览器验收走的是 建项目 → 改场景 → 渲预览 → 起任务 → 取消 → 刷新 ✓，
+   没有点「看结构差异」✓。它在契约层两个面上都渲染并比对过 ✓，
+   但「在真实 Chrome 里点一下」这件事**没有做** ✓，所以这里如实写成缺口 ✓。
