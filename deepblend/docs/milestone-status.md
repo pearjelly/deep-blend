@@ -12710,3 +12710,225 @@ M4 套件靠「点这个页签的按钮 → 等这个页签的成功提示」来
    本轮**没有**为它新开一节文档 ✓：`CONTRIBUTING.md` 现在没有发布一节 ✓，
    而凭空加一节是另一件事 ✓（它要自己的断言 ✓），不属于 M6 这一项 ✓。
    所以它如实留在这里 ✓。
+
+---
+
+## 199. 把发布链重新对齐 main：四步走完，三条路线读回同一个 `0.2.0`
+
+本轮只做一件事 ✓：让**已发布的两条路线重新等于 main** ✓——升版 → 重建 tarball → 新 Release →
+重发 npm ✓——并用**同一套判据**在三条路线上复验 ✓。
+
+先做它的理由不是「顺手」✓：投稿 PR 已合并 ✓、插件**已经挂在市场上** ✓，
+而它的 tarball 与 npm 两条路线服务的是**上一个版本** ✓——用户今天从市场装到的构建里
+**没有整屏工作台** ✓。源码路线是新的 ✓，另外两条是旧的 ✓，三条路线声称同一个产品 ✓。
+**这是一条开着的线，而且是对用户可见的那条** ✓。
+
+### 199.1 接手第一步：凭据回来了
+
+上一轮的收口**卡在凭据上** ✓（`npm whoami` → `need auth` ✓），所以本轮第一件事是确认它回来没有 ✓：
+
+```
+$ npm whoami --registry https://registry.npmjs.org/
+shawnhan
+```
+
+回来了 ✓。`gh` 侧仍然是 `pearjelly` ✓——两个账号的单点依然存在 ✓，
+但它本轮不再是阻塞 ✓。
+
+### 199.2 量到的现状：两条路线服务的是 M6 之前的构建
+
+不是从「应该发一版」推出来的 ✓，是**读回来的** ✓：
+
+```
+$ for p in contracts host preset provider-local tool ui bundle; do
+    npm view "@deepblend/dsh-blender-$p" version --registry https://registry.npmjs.org/; done
+0.1.0 ×7
+
+$ gh release list --repo pearjelly/deep-blend
+DeepBlend Studio 0.1.1 — …   Latest   v0.1.1   2026-09-21T04:15:22Z
+
+$ curl -sSL .../releases/latest/download/deepblend-bundle.tgz | tar xz
+$ grep -rl "deepblend/workbench" package/          # 空
+$ npm pack @deepblend/dsh-blender-ui@0.1.0 && grep -rl "deepblend/workbench" package/   # 空
+```
+
+两条路线都是 `0.1.0` ✓，两条都**不含** `/deepblend/workbench` ✓——
+而它在 `main` 上是第 20 条路由、唯一一条回答 HTML 的 ✓。
+`v0.1.1` 那个 Release 是从 `51757ff` 构建的 ✓，那个 commit 上 `git grep deepblend/workbench` 同样是空的 ✓。
+
+### 199.3 版本策略：单一来源 ＋ 两条门禁，其中一条**不进契约层**
+
+**单一来源** ✓：`deepblend/version.json` 是源 ✓，8 个 manifest 是副本 ✓
+（7 个包 ＋ 仓库根 ✓——根 manifest 也在集合里是**刻意的** ✓：
+「允许不同的第二个数字」正是这条策略要消掉的东西 ✓）。
+`tools/release-version.mjs --check` 是那条断言 ✓，`--sync` 让「手改六个漏一个」不可能发生 ✓。
+
+**升版粒度是 lockstep，理由是交付形态而不是整齐** ✓：tarball 路线是**一个**产物、
+里面**装着**六个兄弟包 ✓，它的 manifest 把六个钉在精确版本上 ✓；
+npm 路线在发布时把六个 git spec 重写成精确版本 ✓。
+任何一个包单独走 ✓，两条路线就开始描述不同的产品 ✓。
+「有没有哪个包真的需要独立走」这个问题在写代码之前量过 ✓：包之间的 16 处 import **全部指向 `contracts`** ✓，
+`bundle` 依赖另外六个 ✓——**没有叶子** ✓。
+
+**第二条判断是门禁放在哪里** ✓，这一条本轮想清楚了才写代码 ✓：
+
+| 问的问题 | 命令 | 放哪 | 落地时是红是绿 |
+|---|---|---|---|
+| 8 个 manifest 等于源吗 | `npm run version:check` | **契约层**（`release-version.test.mjs`） | 绿 ✓ |
+| 最新 Release 还是这棵树吗 | `npm run release:freshness` | **发布那一族**，不进契约层 | **红** ✓（M6 改了 `packages/**` 而没有 Release 带上它） |
+
+一条注定要红的断言放进契约层 ✓，会把「契约层全绿」变成一句假话 ✓，
+而下一个看到红的人就不信它了 ✓。所以 `--stale` 只在发布这一族里 ✓：
+**让陈旧可见，而不是让主套件变红** ✓。
+
+### 199.4 四步链
+
+```
+npm run version:sync        # 0.1.0 → 0.2.0，8 个 manifest 一次写完
+git commit && git push      # tarball 构建要求 commit 在远端分支上（工具自己会拒绝别的状态）
+npm run release:tarball     # 从 4181da5 构建：64 个文件（60 个在 node_modules 下）、368.3 kB
+gh release create v0.2.0 .tmp-release/deepblend-bundle.tgz
+npm run publish:packages    # 七个包，依赖序
+```
+
+**读回来的证据**（不是「命令返回 ok」✓）：
+
+```
+$ gh release view v0.2.0 --json assets
+digest: sha256:da1d7494b335f082eb1c4bf61668bbf956b3c9c798ad61feea3d71c8b6e68df2  size 377190
+$ curl -sSL .../releases/latest/download/deepblend-bundle.tgz | shasum -a 256
+da1d7494b335f082eb1c4bf61668bbf956b3c9c798ad61feea3d71c8b6e68df2        ← 与本地构建逐字节相同
+$ curl -sI .../releases/latest/download/deepblend-bundle.tgz | grep -i location
+location: https://github.com/pearjelly/deep-blend/releases/download/v0.2.0/deepblend-bundle.tgz
+```
+
+npm 侧同样读回来 ✓：七个包 `latest=0.2.0` ✓，`versions=0.1.0,0.2.0` ✓；
+`@deepblend/dsh-blender-bundle@0.2.0` 的 `dependencies` 是**六个精确 `0.2.0`、零个 git spec** ✓；
+把 `@deepblend/dsh-blender-ui@0.2.0` 拉下来解包 ✓，`lib/index.js` 里有 `deepblend/workbench` ✓。
+
+### 199.5 三条路线复验：同一套判据，同一个答案
+
+判据对三条路线**完全相同** ✓，这是 `--spec` 存在的理由 ✓：
+
+```
+$ npm_config_store_dir=<空目录> node deepblend/tools/dsh-plugin-install-probe.mjs --spec '<route>'
+```
+
+| | npm | 源码 | tarball |
+|---|---|---|---|
+| `packages pnpm fetched` | 7 | 7 | **1** |
+| `installed version` | `…bundle@0.2.0` | `…bundle@0.2.0` | `…bundle@0.2.0` |
+| 六个 pin | 6 精确 / 0 git | 0 精确 / **6 git** | 6 精确 / 0 git |
+| `/deepblend/capabilities` | HTTP 200 / hostApiVersion 4 | 同 | 同 |
+| **`/deepblend/workbench`** | **HTTP 200, text/html** | **HTTP 200, text/html** | **HTTP 200, text/html** |
+| 两个 preset | 字节一致 / `problem: null` | 同 | 同 |
+| 退出码 | 0 | 0 | 0 |
+
+日志：`probe-dsh-plugin-{npm,github,tarball}.log` ✓。
+**`workbench route` 那一行才是「新版本真的发出去了」的证据** ✓——
+版本号是产物对自己的声明 ✓，一个陈旧的 Release 会**诚实地**声称自己是旧版本 ✓；
+而 `/deepblend/workbench` 是只有当前版本才有的路由 ✓，旧产物在那里只能回答 **404** ✓
+（本轮动手之前量到的正是 404 ✓）。
+
+### 199.6 路上量到的三个缺陷
+
+1. **`npm run --silent publish:check` 对七个包都报 `DRY RUN FAILED: (no output)`** ✓。
+   `npm run --silent` 会导出 `npm_config_loglevel=silent` ✓，而这个工具自己的 `npm publish` 继承了它 ✓——
+   npm 在那个级别上**失败时什么都不打印** ✓，但退出码仍然是 1 ✓。
+   npm 实际在说的是 `You cannot publish over the previously published versions` ✓，
+   而工具自己的 `alreadyPublished` 分支**恰好认得这一句** ✓（它把「已经发布过」当作健康状态 ✓）。
+   也就是说：这个工具**因为一个继承来的配置而看不见自己的诊断** ✓。
+   修法是把 `npm_config_loglevel` 从子进程环境里删掉 ✓，而不是用 `--loglevel=notice` 覆盖 ✓——
+   一个它管不到的配置不该决定它的诊断是否存在 ✓。
+   （`npm run publish:check` 不带 `--silent` 是好的 ✓，所以这是一个**只在 `--silent` 下**的陷阱 ✓。）
+
+2. **tarball 路线的 URL 跨版本逐字节相同，于是 pnpm 的 store 会把上一个产物装给你** ✓。
+   资产名不带版本号是**市场规则** ✓（`/releases/latest/download/` 按字面取文件名 ✓），
+   代价是 URL 永远不变 ✓，而 pnpm 的 store 正是按 URL 取键的 ✓。实测：
+
+   ```
+   共享 store：  installed version: @deepblend/dsh-blender-bundle@0.1.0
+                 workbench route: HTTP 404
+   同一个 URL：  curl 302 → …/download/v0.2.0/… ，字节是新的
+   空 store：    installed version: @deepblend/dsh-blender-bundle@0.2.0
+                 workbench route: HTTP 200
+   ```
+
+   一个**全新的 `$DSH_HOME`** 也挡不住它 ✓，因为缓存在 store 而不是在 profile ✓。
+   探针现在把 `pnpm store` 打出来 ✓，并在用共享 store 时自己声明这一点 ✓；
+   `CONTRIBUTING.md` §5 写了这条 ✓。**这是本轮最有价值的一条读数** ✓——
+   它说明「装了一次、读到旧版本」这个现象**不等于发布失败** ✓，而它离「发布失败」只有一步之遥 ✓。
+
+3. **探针的 `result:` 行是按模式写的，不是按读数写的** ✓。
+   它此前只判断「用没用 `--spec`」✓，于是在一次 `dsh plugin add` 退出 1 ✓、
+   capabilities 404 ✓、presets 一个没装的运行之后 ✓，仍然打印
+   「the spec installs, serves DeepBlend and delivers both presets」✓——
+   而那份日志是**被当作证据提交**的 ✓。现在结论从一张 `problems` 表推导 ✓，
+   退出码也带同一个判决 ✓（那一次运行因此 exit 1 ✓）。
+
+顺带一条**发布传播延迟**的实测 ✓（上一轮已经知道它存在 ✓，这一轮量到了它的形状 ✓）：
+`npm publish` 七个包全部报 ok 之后 ✓，`https://registry.npmjs.org/@deepblend%2F<pkg>/0.2.0`
+从 15:38:41 到 15:40:45 **逐个**变成 200 ✓（`bundle` 最先、`contracts` 最后 ✓）；
+而 `provider-local` 的 **tarball** 又晚了一步 ✓，到 15:45:14 才 200 ✓——
+在那之前 `dsh plugin add` 会以 `ERR_PNPM_FETCH_404 … dsh-blender-provider-local-0.2.0.tgz` 失败 ✓。
+**packument 与 tarball 是两个对象、两条传播路径** ✓，这一点上一轮没有分开量过 ✓。
+
+### 199.7 变异测试
+
+七条版本策略的变异 ✓ ＋ 三条陈旧门禁的变异 ✓，逐条记录哪一条红了 ✓：
+
+| 变异 | 结果 |
+|---|---|
+| 一个 manifest 的版本改成 `9.9.9` | 红 ✓（`every manifest … carries the source version` ＋ CLI 那条） |
+| 源的版本改成 `0.2.1` 而不同步 | 红 ✓（同上两条） |
+| 删掉一个 manifest 的 `version` 字段 | 红 ✓（drift 断言，`undefined !== '0.2.0'`） |
+| `manifests()` 不再发现 `packages/` | 红 ✓（集合/计数断言：期望 8、得到 1） |
+| `releaseTag()` 去掉 `v` | 红 ✓（tag 推导那条） |
+| 往 `blender-release.json` 加 `version: 0.2.0` | **第一版活了下来** ✗ → 改断言后红 ✓ |
+| 新增一个不在 lockstep 集合里的 `package.json` | 红 ✓（同一个断言的另一半） |
+| `packages/**` 改了但**没有提交** | **第一版活了下来** ✗（`git diff tag..HEAD` 看不见工作树）→ 改成与工作树比较后红 ✓ |
+| 新增一个**未跟踪**文件在 `packages/` 下 | 红 ✓ |
+| 只改 `CONTRIBUTING.md` | **不红** ✓（正确：文档不使产物陈旧） |
+| 升版但没有任何 tag 带上它 | 红 ✓（`STALE — the version moved to 0.2.1`） |
+
+两条活下来的变异各指出一个**断言的洞** ✓，而且两条都是同一个形状 ✓：
+**检查读了一个范围，然后把它叫作全部** ✓——第一版只 `readdirSync('deepblend')` 而没有下到 `tools/` ✓，
+第一版只比两个 commit 而不比工作树 ✓。两条都改掉了 ✓。
+
+### 199.8 收口读数
+
+* 契约层 **68/68** ✓（本轮新增 1 个文件：`contract/release-version.test.mjs` ✓）；
+  **1544 项自计断言（33 个文件）＋ 373 个 `node:test` 用例（35 个文件）** ✓。
+  README 里那组快照按 `documented-counts.test.mjs` 报出的真实值改过 ✓
+  （67→68 个文件 ✓、84→85 条照跑 ✓、83→84 个文件 ✓、`10/67`→`10/68` ✓）。
+* `bash deepblend/tests/run-all.sh`：**17 套件全绿** ✓（exit 0 ✓）。
+* 七个包装检查全部 exit 0 ✓（`plugin:check` ✓ / `presets:check` ✓ / `presets:sync:check` ✓ /
+  `setup:check` ✓ / `release:check` ✓ / `listing:check` ✓ / `publish:check` ✓），
+  外加本轮新增的两条：`version:check` ✓、`release:freshness` ✓（发布后 **FRESH** ✓）。
+* 投稿条目**一个字节都没有动** ✓（`listing:check` 仍报投影一致 ✓）。
+  合并后维护者**没有留下意见** ✓（PR #5545 `state: MERGED` ✓、`reviews: []` ✓、
+  三条评论全部是作者自己的 ✓），所以按目标「不动投稿条目」✓。
+* `deepblend/docs/listing-entry.yml` 的**分析头**里那句「PUBLISHED … all seven packages at `0.1.0`」✓
+  现在读起来是旧的 ✓——它**不属于投影** ✓（投影从第一个允许的顶层键开始 ✓，
+  `listing:check` 仍然一致 ✓），但它是这个仓库自己的分析 ✓，改它不会动投稿文件 ✓。
+  本轮**没有改** ✓：它是当时那次发布的**记录** ✓，而记录不该被改写 ✓；
+  新的读数写在这里 ✓ 和 §199.4 ✓。
+
+### 199.9 仍然开着的缺口
+
+1. **`/deepblend/workbench` 只在「路由回答什么」这一层被三条路线验过** ✓，
+   **没有**在真实 Chrome 里从**装出来的**那一份点一遍 ✓。浏览器验收（M6 42 项 ✓）
+   跑的是仓库里的那一份 ✓。所以「市场上装到的那一份，页面在浏览器里也能用」✓
+   目前是**推断** ✓（同一个产物、同一份 client bundle ✓），不是实测 ✓。
+2. **tarball 路线的升级路径没有实测过** ✓：本轮量到的是「装了旧版之后，
+   同一个 URL 会给你旧产物」✓（§199.6 第 2 条 ✓），
+   但**没有**量过「已经装过 v0.1.1 的 profile 能不能升到 0.2.0」✓——
+   那需要 `dsh plugin remove` ＋ `add`，或者一条显式的 `--force` ✓，而这两条都没试 ✓。
+   这是**面向用户**的一条 ✓，值得单独一轮 ✓。
+3. **三条路线的复验是一条命令 ×3，不是一个脚本** ✓：本轮跑了三条 ✓、存了三份日志 ✓，
+   但没有一条断言把「三条读数必须相同」钉住 ✓。它需要网络与 pnpm ✓，
+   所以它属于发布那一族而不是契约层 ✓——但**它现在不存在** ✓。
+4. **`release:freshness` 看不到 tag 之外的另外两半** ✓：tag 有没有真的挂上 Release 与资产 ✓、
+   npm 上是不是同一个版本 ✓。这两件只有装一次才能读回来 ✓，写在 `CONTRIBUTING.md` §5 里 ✓。
+5. **npm/GitHub 账号分离进文档了** ✓（`CONTRIBUTING.md` §5「操作者要自己准备的东西」✓），
+   但**单点本身没有变** ✓：一次发布仍然需要两个账号 ✓。
