@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "DeepBlend workbench UI: Host half (typed HTTP API) and Web Client half (sidebar, panels, tool cards).",
   "main": "lib/index.js",

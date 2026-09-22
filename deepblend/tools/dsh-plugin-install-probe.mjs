@@ -61,6 +61,8 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { importDsh } from '../tests/lib/dsh-deployment.mjs'
+import { source } from './release-version.mjs'
+import { WORKBENCH_PAGE_ROUTE, WORKBENCH_PAGE_ROOT_ID } from '@deepblend/dsh-blender-ui'
 
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..')
@@ -74,6 +76,31 @@ const PACKAGES = [
   'packages/deepblend/tool',
   'packages/deepblend/bundle',
 ]
+
+/**
+ * The artifact and its siblings, DISCOVERED from the disk rather than typed.
+ *
+ * The version reading below asks every one of them what version it landed at, and a typed list
+ * would answer for the seven packages that exist today and stay silent about the eighth — which is
+ * the failure this whole reading exists to catch, one package too late.
+ */
+const BUNDLE_DIRECTORY = 'bundle'
+const SIBLING_DIRECTORIES = readdirSync(join(ROOT, 'packages', 'deepblend'))
+  .filter(name => statSync(join(ROOT, 'packages', 'deepblend', name)).isDirectory())
+  .filter(name => name !== BUNDLE_DIRECTORY)
+  .sort()
+
+/**
+ * The directory the bundle occupies INSIDE `node_modules/@deepblend/`.
+ *
+ * Not the same string as `bundle`, and the difference is exactly the kind that reads as "the
+ * install is broken" when it is a typo: the repository directory is `bundle`, the installed one is
+ * the package name with its scope removed. MEASURED on the first run of this reading, which
+ * reported `the profile has no bundle manifest` for an install that had just succeeded.
+ */
+const BUNDLE_PACKAGE_DIRECTORY = JSON.parse(
+  readFileSync(join(ROOT, 'packages', 'deepblend', BUNDLE_DIRECTORY, 'package.json'), 'utf8'),
+).name.replace(/^@[^/]+\//, '')
 
 /** `--spec <spec>`: install one spec rather than this checkout's six paths. */
 const SPEC_INDEX = process.argv.indexOf('--spec')
@@ -188,6 +215,66 @@ try {
     : []
   say('packages resolvable in the profile', JSON.stringify(linked))
   say('shared profiles/node_modules created', existsSync(join(home, 'profiles', 'node_modules')) ? 'yes' : 'no')
+
+  // -------------------------------------------------------------------------
+  // 2b. WHAT VERSION DID THAT INSTALL, read back from the installed files.
+  //
+  // This is the reading the three routes are compared on, and it is deliberately
+  // taken from the PROFILE rather than from the spec that was asked for: "the
+  // command succeeded" is not the same claim as "the version this repository is at
+  // is the version that landed". MEASURED reason it cannot be inferred: a
+  // `/releases/latest/download/` URL and a bare `@deepblend/…` name both resolve to
+  // whatever the remote has RIGHT NOW, so a stale Release or a stale registry
+  // answers the same command with an older build and no warning at all.
+  //
+  // The BUNDLE's manifest is the fact, and the siblings are read out of ITS
+  // dependencies rather than looked for on disk. Both alternatives were considered
+  // and both are wrong here:
+  //
+  //   - the bundle pins its six siblings at EXACT versions, so its manifest states
+  //     which six versions the installed product resolves. That is the claim that
+  //     has to match the repository, and it is checkable in every layout;
+  //   - hunting for six sibling directories does NOT work in every layout, and the
+  //     reason is a property of the routes rather than a detail: the tarball
+  //     CARRIES them (`<bundle>/node_modules/@deepblend/…`), the npm and source
+  //     routes resolve them as siblings, and pnpm's isolated linker puts those
+  //     under `.pnpm` with symlinks into the profile. A reader that demanded one
+  //     shape would report six packages missing on the route that is working
+  //     exactly as designed — which is the worst kind of green-to-red noise.
+  // -------------------------------------------------------------------------
+  const bundleManifest = join(home, 'profiles', 'web', 'node_modules', '@deepblend', BUNDLE_PACKAGE_DIRECTORY, 'package.json')
+  if (!existsSync(bundleManifest)) {
+    say('installed version', `the profile has no ${BUNDLE_PACKAGE_DIRECTORY} manifest at ${bundleManifest}`)
+  } else {
+    const installed = JSON.parse(readFileSync(bundleManifest, 'utf8'))
+    const pins = installed.dependencies ?? {}
+    const versions = Object.values(pins).filter(spec => /^\d+\.\d+\.\d+$/.test(spec))
+    const gitSpecs = Object.values(pins).filter(spec => spec.startsWith('github:'))
+    const repositoryVersion = source().version
+    say('installed version', `${installed.name}@${installed.version}`)
+    say('installed sibling pins', Object.entries(pins).map(([name, spec]) => `${name}@${spec}`).join(', '))
+    say('the version the repository is at', repositoryVersion)
+    // ONE comparison, and it is stated as three facts rather than one so that a failure says
+    // WHICH part drifted:
+    //   - the artifact's own version is the repository's;
+    //   - it pins every sibling (a bundle that pins six of seven installs and is not the product);
+    //   - every pin that IS a version is that same version. The `github:` pins are route 1's own
+    //     design — its manifest has to point the source install back at the repository, because
+    //     on that route the siblings come from git rather than from a registry or from the
+    //     artifact — so they are reported rather than counted as a disagreement.
+    const problems = []
+    if (installed.version !== repositoryVersion) problems.push(`the artifact is ${installed.version}`)
+    if (Object.keys(pins).length !== SIBLING_DIRECTORIES.length) {
+      problems.push(`it pins ${Object.keys(pins).length} of ${SIBLING_DIRECTORIES.length} siblings`)
+    }
+    if (versions.some(version => version !== repositoryVersion)) {
+      problems.push(`its pins include ${versions.filter(version => version !== repositoryVersion).join(', ')}`)
+    }
+    say('the install is the version this repository is at', problems.length === 0
+      ? `yes — ${installed.name}@${repositoryVersion}, ${Object.keys(pins).length} pins `
+        + `(${versions.length} exact, ${gitSpecs.length} git)`
+      : `NO — ${problems.join('; ')}, against ${repositoryVersion}`)
+  }
   // -------------------------------------------------------------------------
   // 3. Does that profile actually serve the product?
   // -------------------------------------------------------------------------
@@ -231,6 +318,42 @@ try {
       await new Promise(settle => setTimeout(settle, 300))
     }
     say('capabilities route', capabilities)
+
+    // -----------------------------------------------------------------------
+    // 3b. THE ROUTE THAT ONLY THE CURRENT VERSION HAS.
+    //
+    // `/deepblend/workbench` arrived with M6, and it is the reading that separates
+    // "the route installed" from "the route installed THE BUILD THIS REPOSITORY IS
+    // AT". The version number cannot do that on its own: a version is a claim the
+    // artifact makes about itself, and a stale Release carrying a stale manifest
+    // would make it truthfully. A route that did not exist before cannot be faked by
+    // an older artifact — it answers 404, which is what every install of the two
+    // earlier releases does.
+    //
+    // Three facts, because a 200 alone is weak: the status, the content type (this is
+    // the ONE route that answers HTML, and the contract's route table says so), and
+    // the element the document reserves for the workbench. A server that answered
+    // 200 with a JSON error page would pass a status-only check.
+    // -----------------------------------------------------------------------
+    let workbench = 'no answer within 60 s'
+    const workbenchDeadline = Date.now() + 60000
+    for (;;) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}${WORKBENCH_PAGE_ROUTE}`)
+        const body = await response.text()
+        const reservesRoot = body.includes(`id="${WORKBENCH_PAGE_ROOT_ID}"`)
+        const importsOwnBundle = body.includes('@deepblend/dsh-blender-ui')
+        workbench = `HTTP ${response.status}, ${response.headers.get('content-type') ?? 'no content-type'}`
+          + `, reserves #${WORKBENCH_PAGE_ROOT_ID}=${reservesRoot}`
+          + `, imports its own client bundle=${importsOwnBundle}`
+        break
+      } catch {
+        // not listening yet
+      }
+      if (Date.now() > workbenchDeadline) break
+      await new Promise(settle => setTimeout(settle, 300))
+    }
+    say('workbench route', workbench)
 
     // -----------------------------------------------------------------------
     // 4. Where does the store land? This is the difference that keeps

@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DeepBlend Studio Host Bundle: composes the Blender runtime provider, host facade and UI host half, with default configuration.",
   "main": "lib/index.js",
   "exports": {

@@ -86,7 +86,20 @@ if (OTP_INDEX >= 0 && (OTP === undefined || !/^\d{6}$/.test(OTP))) {
 const STAGE_DIRECTORY = join(ROOT, '.tmp-publish')
 
 function run(command, args, options = {}) {
-  const outcome = spawnSync(command, args, { encoding: 'utf8', ...options })
+  // `npm_config_loglevel` IS REMOVED FROM THE CHILD ENVIRONMENT, and it is not a tidy-up.
+  // `npm run --silent <script>` exports `npm_config_loglevel=silent`, which this tool's own
+  // `npm publish` inherits — and at `silent` npm prints NOTHING on a failure while still exiting
+  // 1. MEASURED, and it is the worst possible shape for this tool: `npm run --silent publish:check`
+  // answered `DRY RUN FAILED: (no output)` for all seven packages, which is precisely the defect
+  // the `npmError` reader below was written to fix ("a log path and nothing else"). The message
+  // npm was actually printing was `You cannot publish over the previously published versions`,
+  // and the `alreadyPublished` branch would have recognised it as a healthy repository.
+  //
+  // Removed rather than overridden with `--loglevel=notice`: an inherited config this tool does
+  // not control should not be able to decide whether its diagnostics exist.
+  const environment = { ...process.env }
+  delete environment.npm_config_loglevel
+  const outcome = spawnSync(command, args, { encoding: 'utf8', env: environment, ...options })
   return {
     status: outcome.status,
     output: `${outcome.stdout ?? ''}${outcome.stderr ?? ''}`.trim(),

@@ -1,6 +1,6 @@
 {
   "name": "deepblend-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "DeepBlend Studio — a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
   "keywords": [
@@ -31,6 +31,9 @@
     "presets:sync:check": "node deepblend/tools/sync-plugin-presets.mjs --check",
     "listing:project": "node deepblend/tools/project-listing-entry.mjs",
     "listing:check": "node deepblend/tools/project-listing-entry.mjs --check-remote",
+    "version:check": "node deepblend/tools/release-version.mjs --check",
+    "version:sync": "node deepblend/tools/release-version.mjs --sync",
+    "release:freshness": "node deepblend/tools/release-version.mjs --stale",
     "release:check": "node deepblend/tools/build-release-tarball.mjs --check",
     "release:tarball": "node deepblend/tools/build-release-tarball.mjs",
     "publish:check": "node deepblend/tools/publish-packages.mjs --check",

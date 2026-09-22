@@ -124,6 +124,8 @@ docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
 | 改 bundle 里的配置 | `plugin:check` 会报 operator layer 漂移（那一层是推导出来的） |
 | 改工作台 UI 的**可见**部分 | **没有断言**。README 的三张图不会自己更新，也没人会发现它们过时了——跑 `npm run docs:images` 重新截（`docs-images.test.mjs` 只能保证它们还在、还是截图，保证不了它们是新版） |
 | 改 `.github/` 里的 issue / PR 模板 | `contributor-surface.test.mjs`（表单能不能被 GitHub 渲染、点名的命令与路径是否存在、pin 与链接指向真的东西、以及模板里不许写里程碑状态） |
+| 改 `deepblend/version.json`，或手改任何一个 manifest 的 `version` | `release-version.test.mjs`（8 个 manifest 必须等于那一个源，`npm run version:check` 是同一条的 CLI 面） |
+| 改了 `packages/**` 却还没发版 | **契约层不会红，这是刻意的**——`npm run release:freshness` 会红（§5） |
 | 在**别处**再抄一份断言总数 | `documented-counts.test.mjs`。总数只有 README 那一份，而且是**标注过的快照**；`CONTRIBUTING.md` 里那第二份漂了 25 个提交（写它时 806/82，今天 841/224），而且无法复原它当年是否曾经是对的（D111） |
 
 **手册是唯一一类不会被执行的产物**，所以它的可验证部分被单独查住（D82）：
@@ -189,7 +191,100 @@ node deepblend/tools/coverage-probe.mjs --from <目录> --file packages/deepblen
 
 ---
 
-## 5. 记录决策
+## 5. 发一个版本：四步是一次动作
+
+三条安装路线（源码 / npm / tarball）服务的是**同一份产物**，但它们各自从**不同的地方**取：
+源码路线取仓库默认分支，另外两条取各自上一次发布留下的东西。所以「三条路线一致」不会自己成立——
+它只在**四步都走完**的那一刻成立，而其中每一步单独看起来都是成功的。
+
+```bash
+# 0. 升版：单一来源是 deepblend/version.json，只改这一个文件
+$EDITOR deepblend/version.json
+npm run version:sync      # 写进全部 8 个 manifest（7 个包 + 仓库根）
+npm run version:check     # 必须绿；契约层盯着同一条（contract/release-version.test.mjs）
+
+# 1. 重建 tarball —— 必须在一个「已推送的干净 commit」上，工具会拒绝别的状态
+npm run release:tarball
+
+# 2. 新 Release —— tag 就是 v<version>，资产名不带版本号
+gh release create v0.2.0 .tmp-release/deepblend-bundle.tgz --repo pearjelly/deep-blend
+
+# 3. 重发 npm
+npm run publish:check     # 先看一遍：能不能发、会发什么、顺序对不对
+npm run publish:packages
+```
+
+**只走前三步而不重发 npm，比一步都不走更糟。** tarball 与 Release 会声称一个 npm 上没有的版本，
+于是三条路线开始对「这个产品是什么」给出两个答案，而两条看起来都成功了。要么四步都走完，
+要么一步都不走——**半走的产物是一条新的谎**。
+
+**别用「发布命令返回 ok」当证据。** npm 会报 ok 而读侧暂时 404（新 scope 首次发布有传播延迟），
+Release 页面也会在资产上传完成之前就存在。判断发出去的是不是仓库当前那份代码，只有一条路：
+**装一次，读回来**：
+
+```bash
+node deepblend/tools/dsh-plugin-install-probe.mjs --spec '@deepblend/dsh-blender-bundle'
+node deepblend/tools/dsh-plugin-install-probe.mjs --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+node deepblend/tools/dsh-plugin-install-probe.mjs --spec 'https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz'
+```
+
+三条路线的判据是**同一条**：装进一个临时 `$DSH_HOME`、起一个 `dsh web`，然后读回
+`installed version` 与 `workbench route` 两行。**workbench 那一行才是关键**——版本号是产物对自己的
+声明，一个陈旧的 Release 会「诚实地」声称自己是旧版本；而 `/deepblend/workbench` 是**只有当前版本
+才有的路由**，旧产物在那里只能回答 404。`packages pnpm fetched` 则是三条路线互相区分的那一个数
+（npm 与源码是 7，tarball 是 1）。
+
+### 版本号只有一个来源，升版是 lockstep
+
+`deepblend/version.json` 是源，8 个 manifest 是副本，`npm run version:check` 是那条断言。
+**不要手改任何 manifest 的 `version`**：改了会在契约层红，而且会红在一个看起来和版本无关的地方。
+
+七个包必须同版本，理由是**交付形态**而不是整齐：tarball 路线是**一个**产物、里面**装着**六个兄弟包，
+它的 manifest 把六个钉在精确版本上；npm 路线在发布时把六个 git spec 重写成精确版本。
+任何一个包单独走，都会让两条路线开始描述不同的产品。唯一的例外是仓库自己的 manifest——
+它在源码路线下必须保留自指的 git spec（见下表）。
+
+| 路线 | 谁改清单 | 改成什么 |
+|---|---|---|
+| 1 源码 | **不改** | 仓库清单保持自指 git spec `github:pearjelly/deep-blend#path:/packages/deepblend/<pkg>` |
+| 2 npm | `deepblend/tools/publish-packages.mjs` | 在暂存副本里重写成精确版本，同级包从 registry 解析 |
+| 3 tarball | `deepblend/tools/build-release-tarball.mjs` | 钉 commit + `bundledDependencies` 打进产物 + 精确版本 |
+
+**发布顺序不是字母序。** `bundle` 依赖另外六个，先发 `bundle` 会**成功**，而装它的人拿到 404——
+这是「发布成功、安装失败」里最难查的一种。顺序不是写死的表，是从 manifest 的 `dependencies`
+拓扑排出来的（有环就拒绝），而这条性质由 `contract/plugin-install-path.test.mjs` 按
+「依赖一定排在前面」来断言，不靠文档里这句话。
+
+### 操作者要自己准备的东西
+
+* **两个账号，一个真实的单点**：npm 凭据属于 `shawnhan`，GitHub 仓库属于 `pearjelly`。
+  发一次版要同时用上两个，缺一个就停在链的中间。
+* **本机 registry 是只读镜像**（`npm config get registry` 指向腾讯云镜像）：它代理读、不接受发布，
+  而失败信息长得像权限问题。所有发布命令都显式带 `--registry https://registry.npmjs.org/`——
+  registry 在这里不是偏好，是「发得出去」与「4xx」的区别。
+* **`--otp` 在这个账号上是死路**：`npm profile get` 报 `tfa: false`，没有验证器就没有码可生成。
+  唯一可行的是**勾了 Bypass 2FA 的细粒度 token**，而它的**包白名单在创建那一刻定下**：
+  org 建好之后必须回去改那个 token，否则得到的是与「org 不存在」一模一样的 404。
+* **`npm org create` 这条命令不存在**（`npm org` 只有 `set` / `rm` / `ls`）。建 org 只能在网页上做。
+* **新 scope 首次发布有读侧传播延迟**：`dist-tags` 当时就 200，packument 大约两分钟后才 200。
+  **不要据此判断「发布失败」。**
+
+### 发完之后：让「还没发」这件事自己说出来
+
+```bash
+npm run release:freshness   # 最新 Release 的 packages/ 树与 HEAD 是不是同一份
+```
+
+它**不进契约层**，而且是刻意的：它检查的那件事（`packages/**` 变了、却还没有 Release 带上它）
+在任何一棵「改了还没发」的树上都是红的，包括引入它的那一次提交。一条注定要红的断言放进契约层，
+会把「契约层全绿」变成一句假话——它属于发布这一族：**让陈旧可见，而不是让主套件变红**。
+
+它**也看不到另外两件事**，因为它只用 git：tag 有没有真的挂上 Release 与资产、npm 上是不是同一个版本。
+那两件只有上面那三条 `--spec` 各装一次才能读回来。
+
+---
+
+## 6. 记录决策
 
 任何**由实测或真实缺陷驱动**的决策，都要写进 `deepblend/docs/architecture-decisions.md`，
 编号续在最后一个 D 之后，并写清三件事：
@@ -203,7 +298,7 @@ node deepblend/tools/coverage-probe.mjs --from <目录> --file packages/deepblen
 
 ---
 
-## 6. 提交信息与许可
+## 7. 提交信息与许可
 
 提交信息用 `<type>(deepblend): <做了什么，用一句话说清>`，正文写**为什么**。
 本仓库的历史提交本身就是格式样例。
