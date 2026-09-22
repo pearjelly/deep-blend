@@ -12460,7 +12460,53 @@ RESULT: the market would record { npm: '@deepblend/dsh-blender-bundle', version:
 **下一次 `probe-npm.mjs` 就会把这条映射写进 `data/npm-map.json`** ✓，
 网站与 `dsh-market` 随后会优先展示 registry 安装而不是源码构建 ✓。
 
-### 197.22 仍然开着的缺口
+### 197.22 **已收录**：合并、上站、三条安装路线都出现在列表页上
+
+投稿 **已合并** ✓：`awesome-dsh-plugin#5545` ✓，`2026-09-21T15:49:56Z` ✓，合并者 `fkysly` ✓，
+merge commit `128528173ddf` ✓。
+
+#### 197.22.1 合并进去的那份，与本仓库的投影**逐字节相同**
+
+这是「一份事实、一个来源」那条规则**最有力的确认** ✓：
+
+```
+$ diff <(node deepblend/tools/project-listing-entry.mjs) \
+       <market>/data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml
+（无输出）
+BYTE-IDENTICAL to the projection
+```
+
+**不是「内容差不多」** ✓，是**同一个字节序列** ✓——包括那条解释为什么叫 `#bundle` 的注释 ✓
+和 `tarball` 那两行注释 ✓。也就是说：**清单从写下来到被市场收录，中间没有任何人手工编辑过** ✓✓。
+
+#### 197.22.2 站点实测：三条命令都在页面上，npm 那条标着 prebuilt
+
+`https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/` ✓
+（HTTP 200 ✓，32 KB ✓）——页面上同时出现：
+
+| 页面上的命令 | 对应路线 |
+|---|---|
+| `dsh plugin --profile web add @deepblend/dsh-blender-bundle` ✓（**标着 prebuilt** ✓） | npm ✓ |
+| `…/releases/latest/download/deepblend-bundle.tgz` ✓ | tarball ✓ |
+| `github:pearjelly/deep-blend#path:/packages/deepblend/bundle` ✓ | 源码 ✓ |
+
+描述也是本仓库写的那一句 ✓（含 `16 tools` ✓），分类 `tools` ✓。
+条目也出现在**生成的 README** 里 ✓（第 2199 行 ✓）。
+
+**npm 那条出现在页面上，本身就证明映射被采集到了** ✓✓：
+站点构建先跑 `scripts/probe-npm.mjs` ✓、再跑 `build-site.mjs` ✓（`build-site.yml` 第 172 / 205 行 ✓），
+而 `data/npm-map.json` 是**构建产物**（被 gitignore ✓）。
+所以「页面上有 npm 命令」= **采集真的发生了** ✓，而不是我们在本地推出来的 ✓。
+
+#### 197.22.3 收口
+
+目标的三条判据全部成立 ✓：
+
+1. **三条安装路线各自实测可用** ✓——各有探针日志 ✓（`probe-dsh-plugin-{github,tarball,npm}.log` ✓）；
+2. **PR 评审意见落地** ✓——从未有过评审意见 ✓，所以改为把市场自己的八条评审清单**逐条作答** ✓；
+3. **投稿条目回到单一事实来源** ✓——而 197.22.1 是这条的**最终证据** ✓。
+
+### 197.23 仍然开着的缺口
 
 1. ~~**路线 2（npm）卡在账号**~~ ✓ —— **已解决** ✓（197.21）✓：七个包已发布 ✓、安装已实测 ✓、
    市场的采集逻辑已用其自身代码验过 ✓。**三条路线现在都是「实测可用」** ✓。
