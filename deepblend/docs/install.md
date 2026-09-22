@@ -245,24 +245,37 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 ## 6. 卸载与回退
 
-**先卸载插件本身**——否则它仍然被 profile 组合着，下面几步只是在改它的配置：
+**三条命令，没有手打的路径**：
 
 ```bash
-dsh plugin remove @deepblend/dsh-blender-bundle --profile web
+dsh plugin remove @deepblend/dsh-blender-bundle --profile web   # 1. 生态自己的卸载：清掉 pnpm 的链接
+npm run plugin:uninstall                                        # 2. profile 的其余三处
+npm run presets:uninstall                                       # 3. preset 根（另一个平面）
 ```
 
-（这条命令读的是 profile 的 `dependencies`；`install-plugin.mjs` 以前只写 `dsh.profile.bundles`，
-于是 `dsh plugin remove` 会以 `ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS` 失败——**实测过** ✓，
-现在两个键都写 ✓，`plugin:check` 也会把缺的那个报成 drift ✓。）
+**第 2 步为什么不是「再跑一次安装器」**——这一版之前它确实是，而那是错的，**实测**：
+`install-plugin.mjs --portable` 是一个**安装器**，它会重新登记 bundle 并把 dependency 键写回去，
+于是手册把读者送回了起点，而三条命令的退出码全是 0。`--portable` 仍然存在，它的用途是
+**装的时候**不要把存储钉在这个 checkout 上，不是卸载。
 
-然后是剩下的：
+每一步之后怎么知道它真的没了：
 
 ```bash
-npm run plugin:install -- --portable   # 存储交还产品默认值（清空 operator layer，不删文件）
-npm run plugin:check                   # 复核
-rm -rf "$DSH_HOME/.agent-presets/deepblend"   # 只移除正式 preset，开发模式不受影响
-rm -rf .tools                          # 移除受管 Blender（约 1.4 GB + 346 MB 镜像）
+npm run plugin:check      # 退出 1：这个 profile 不再组合 DeepBlend（「没装」是漂移，不是健康）
+npm run presets:check     # 退出 0，并说「not installed on this machine」——缺席是一个状态
 ```
 
-`node_modules/` 与 `.deepblend/` 都可以直接删：前者由 `npm run setup` 重建，后者是
-生成状态，重建方式是提交在仓库里的 fixture 加两个生成器（见 `.gitignore` 的说明）。
+`plugin:uninstall` 只移除**它自己写的**东西：bundle 登记、dependency 键、它生成的 operator layer
+（清空而不删文件）、以及指向**这个 checkout** 的七个链接。指向 pnpm store 的链接归
+`dsh plugin remove` 管，它会在输出里点名这一条；别人的 operator layer 与别人的 preset 目录
+**一个字节都不动**。一次真实的「装 → 卸 → 读回」走查在
+`probe-uninstall-residue.log`，盯着它的是 `contract/uninstall-residue.test.mjs`。
+
+剩下两件是这个仓库自己留下的：
+
+```bash
+rm -rf .tools       # 受管 Blender（约 1.4 GB 下载 + 346 MB 镜像）
+rm -rf .deepblend   # 生成状态；重建方式是提交在仓库里的 fixture 加两个生成器（见 .gitignore）
+```
+
+`node_modules/` 也可以直接删：它由 `npm run setup` 重建。

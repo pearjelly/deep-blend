@@ -83,11 +83,12 @@
  *   node deepblend/tools/install-plugin.mjs --profile <name>
  *   node deepblend/tools/install-plugin.mjs --portable        # keep the $DSH_HOME default
  *   node deepblend/tools/install-plugin.mjs --check           # report drift, change nothing
+ *   node deepblend/tools/install-plugin.mjs --uninstall       # the same writes, in reverse
  *
  * Exit codes: 0 = installed and in sync, 1 = drift (with --check), 2 = nothing to
  *             install into, or an operator layer that is not ours.
  *
- * Owner: DeepBlend Studio — M5 (reproducibility)
+ * Owner: DeepBlend Studio — M5 (reproducibility); `--uninstall` — commercial readiness (C4)
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
@@ -126,6 +127,15 @@ const EMPTY_OPERATOR_LAYER = [
 
 const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
 const checkOnly = process.argv.includes('--check')
+const uninstall = process.argv.includes('--uninstall')
+
+if (checkOnly && uninstall) {
+  // `--check` promises to change nothing and `--uninstall` exists to change things; a run
+  // that asked for both is a mistake about which question is being asked, and guessing
+  // which one the reader meant is how a script that reports turns into one that deletes.
+  console.error('--check reports and --uninstall changes; pick one')
+  process.exit(2)
+}
 
 /**
  * `--portable` leaves the deployment on the product defaults (`<DSH_HOME>/deepblend`)
@@ -196,6 +206,113 @@ if (local.size === 0) {
 }
 
 let drift = 0
+
+// ---------------------------------------------------------------------------
+// 0. `--uninstall`: the writes above, in reverse.
+//
+// WHY THIS EXISTS. `install.md` §6 used to tell the reader to run
+// `dsh plugin remove` and then `plugin:install -- --portable` — and that second
+// step is an INSTALLER. MEASURED on a scratch `DSH_HOME`: after `plugin remove`
+// the profile named the bundle nowhere, and the documented second step answered
+// `installed (3 change(s))` and wrote both keys back. A manual that re-installs
+// what you just removed is worse than no manual — the reader ends exactly where
+// they started and every command exited 0.
+//
+// Three more residues were invisible for the same reason (nothing was looking):
+// the operator layer this tool wrote, the seven `@deepblend/*` links, and the
+// presets in a different root entirely. `tools/uninstall-residue-probe.mjs` is
+// the reading that keeps this honest, and `tests/contract/uninstall-residue.test.mjs`
+// is the assertion.
+//
+// WHAT IT DELIBERATELY DOES NOT REMOVE: a link into `node_modules/.pnpm` — that is
+// pnpm's, put there by `dsh plugin add` on the npm and tarball routes, and the
+// command that removes it is `dsh plugin remove`. This tool removes what THIS
+// tool wrote, and says what it left alone.
+// ---------------------------------------------------------------------------
+if (uninstall) {
+  let undone = 0
+  const manifestPath = join(profileDirectory, 'package.json')
+  if (!existsSync(manifestPath)) {
+    console.error(`no package.json in ${profileDirectory}`)
+    process.exit(2)
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  let manifestChanged = false
+
+  const bundles = manifest.dsh?.profile?.bundles
+  if (Array.isArray(bundles) && bundles.includes(BUNDLE_PACKAGE)) {
+    manifest.dsh.profile.bundles = bundles.filter(name => name !== BUNDLE_PACKAGE)
+    manifestChanged = true
+    undone += 1
+    say(`profiles/${profile}/package.json`, `unregistered ${BUNDLE_PACKAGE}`)
+  } else {
+    say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} was not registered`)
+  }
+
+  if (manifest.dependencies?.[BUNDLE_PACKAGE] !== undefined) {
+    delete manifest.dependencies[BUNDLE_PACKAGE]
+    // The key itself goes when it empties, because that is the shape a profile has
+    // before anything was installed into it — `dsh` writes no `dependencies` at all,
+    // and a leftover `{}` is a difference a reader would have to explain.
+    if (Object.keys(manifest.dependencies).length === 0) delete manifest.dependencies
+    manifestChanged = true
+    undone += 1
+    say(`profiles/${profile}/package.json`, `unlinked the ${BUNDLE_PACKAGE} dependency`)
+  } else {
+    say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} was not a dependency`)
+  }
+
+  if (manifestChanged) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+
+  const layerPath = join(profileDirectory, 'cordis.patch.yml')
+  if (!existsSync(layerPath)) {
+    say(`profiles/${profile}/cordis.patch.yml`, 'no operator layer')
+  } else if (!operatorLayerIsOurs(layerPath)) {
+    // Same refusal as the install path, for the same reason: someone else's patch
+    // entries are not this tool's to delete.
+    say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
+  } else if (readFileSync(layerPath, 'utf8') === EMPTY_OPERATOR_LAYER) {
+    say(`profiles/${profile}/cordis.patch.yml`, 'already empty')
+  } else {
+    writeFileSync(layerPath, EMPTY_OPERATOR_LAYER)
+    undone += 1
+    say(`profiles/${profile}/cordis.patch.yml`, 'emptied — storage follows the product default')
+  }
+
+  // The links, but only the ones pointing into THIS checkout. A link into pnpm's
+  // store belongs to pnpm, and removing it here would leave a profile whose
+  // manifest still depends on a package whose link is gone.
+  const scope = join(DSH_HOME, 'profiles', 'node_modules', LOCAL_SCOPE)
+  let ours = 0
+  let theirs = 0
+  for (const [name, directory] of [...local].sort()) {
+    const linkPath = join(scope, name.split('/')[1])
+    const current = linkTarget(linkPath)
+    if (current === undefined) continue
+    if (current === directory) {
+      rmSync(linkPath, { recursive: true, force: true })
+      ours += 1
+      undone += 1
+    } else {
+      theirs += 1
+    }
+  }
+  say(`profiles/node_modules/${LOCAL_SCOPE}`, ours === 0 ? 'no links into this checkout' : `removed ${ours} link(s)`)
+  if (theirs > 0) {
+    say('left alone', `${theirs} link(s) into pnpm's store — \`dsh plugin remove ${BUNDLE_PACKAGE} --profile ${profile}\` removes those`)
+  }
+  if (existsSync(scope) && readdirSync(scope).length === 0) rmSync(scope, { recursive: true, force: true })
+
+  say('dsh home', DSH_HOME)
+  say('profile', profile)
+  say('result', undone === 0
+    ? 'nothing of DeepBlend was installed in this profile'
+    : `uninstalled (${undone} change(s))`)
+  say('also needed', 'node deepblend/tools/install-presets.mjs --uninstall — the agent preset is a separate plane')
+  say('note', 'a profile reads its bundles when it starts; restart `dsh web` for the rows to stop composing')
+  process.exit(0)
+}
 
 // ---------------------------------------------------------------------------
 // 1. The package links.
@@ -281,10 +398,10 @@ if (bundles.includes(BUNDLE_PACKAGE)) {
 const operatorLayerPath = join(profileDirectory, 'cordis.patch.yml')
 const desiredStoreRoot = portable ? undefined : devStoreRoot(ROOT)
 
-/** Whether the operator layer on disk is one this tool wrote, or nothing at all. */
-function operatorLayerIsOurs() {
-  if (!existsSync(operatorLayerPath)) return true
-  const text = readFileSync(operatorLayerPath, 'utf8')
+/** Whether the operator layer at `path` is one this tool wrote, or nothing at all. */
+function operatorLayerIsOurs(path) {
+  if (!existsSync(path)) return true
+  const text = readFileSync(path, 'utf8')
   if (text.includes(OPERATOR_LAYER_MARKER)) return true
   // An untouched profile ships a comment header and an empty patch list. Anything
   // that is not empty belongs to whoever wrote it, and is not ours to replace.
@@ -301,7 +418,7 @@ if (desiredStoreRoot !== undefined) {
 
   if (current === expected) {
     say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
-  } else if (!operatorLayerIsOurs()) {
+  } else if (!operatorLayerIsOurs(operatorLayerPath)) {
     // Refusing beats clobbering. Someone's own operator layer may hold settings
     // this tool knows nothing about, and "the installer overwrote my config" is
     // not a failure a user can diagnose from the result.
@@ -328,7 +445,7 @@ if (desiredStoreRoot !== undefined) {
       say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
     }
   }
-} else if (existsSync(operatorLayerPath) && operatorLayerIsOurs()) {
+} else if (existsSync(operatorLayerPath) && operatorLayerIsOurs(operatorLayerPath)) {
   // `--portable`: the deployment keeps the product default, so an operator layer
   // this tool wrote earlier is now the only thing overriding it.
   //

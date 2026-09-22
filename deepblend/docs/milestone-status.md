@@ -12932,3 +12932,182 @@ $ npm_config_store_dir=<空目录> node deepblend/tools/dsh-plugin-install-probe
    npm 上是不是同一个版本 ✓。这两件只有装一次才能读回来 ✓，写在 `CONTRIBUTING.md` §5 里 ✓。
 5. **npm/GitHub 账号分离进文档了** ✓（`CONTRIBUTING.md` §5「操作者要自己准备的东西」✓），
    但**单点本身没有变** ✓：一次发布仍然需要两个账号 ✓。
+
+---
+
+## 200. 商业就绪账本：十七行逐行量出来的，以及它顺手量出的一条真缺陷
+
+### 200.1 第一步是规格本身：SPEC §21.1 的最后一条被显式修订（D200）
+
+这一轮的目标不是「做完某个里程碑」✓，而是一条**常驻的、跨多轮自动继续**的目标 ✓——
+「持续完善 deep-blend 的功能与细节，直到它达到可商用水平」✓。它撞上的第一件事是规格 ✓：
+SPEC §21.1 的第 12 步写着「停止，不自动进入下一里程碑」✓，而这份目标要求自动前进 ✓。
+
+**规格的所有者（用户）显式修订了它，修订的精确范围先落盘再动手** ✓：
+
+* ❌ 一个里程碑没做完就跳到下一个 —— **仍然禁止** ✓；
+* ❌ 一次会话横跨多个未完成里程碑 —— **仍然禁止** ✓；
+* ✅ 「做完之后必须停下等人」 —— **取消这一条** ✓。
+
+**自动前进是允许的，自动跳步不是** ✓。这条修订作为 **D200** 追加进
+`deepblend/docs/architecture-decisions.md` §8（登记册只追加、不改写历史 ✓），
+而**它必须排在所有功能工作之前** ✓：一份没有被写下来的授权，事后无法与「我自己决定继续」
+区分开 ✓——提交历史在两种情况下长得一模一样 ✓。执行上的两条硬约束随之而来 ✓：
+**一次只开一条线** ✓，以及**每一轮的进展必须可数** ✓——「可数」是自动前进这一侧唯一的刹车 ✓。
+
+### 200.2 账本不是照种子行抄的，是逐行量的
+
+`deepblend/docs/commercial-readiness.md` 是本轮建立的**出口条件** ✓，形状照 `security.md` ✓：
+每一行都有「谁负责 / 哪条断言或哪条可重跑命令盯着 / 或者写着它没做到」✓。
+第一轮**不凭种子行下结论** ✓，十七行（C1–C17）逐行去量 ✓，量出来的分布是
+**五绿十二红** ✓：
+
+| 判成 ✓ 的（判据今天真的绿） | 判成 ✗ 的（还差什么已写明） |
+|---|---|
+| C1 三条安装路线各自可用 ✓（探针三份日志 ＋ `install-plugin-modes.test.mjs`） | C2 三条路线的**同一性**没有断言（§199.9 缺口三）✓ |
+| C8 崩溃/磁盘满/中断/并发/不丢数据 ✓（五个套件与两份探针日志） | C3 tarball 路线的升级路径未实测 ✓ |
+| C9 失败可分支 ✓（`recovery.md` §10 ＋ 两条契约断言） | C4 卸载残留（本轮修掉 ✓，见 §200.4） |
+| C11 SPEC §15 逐条对照 ✓（`security.md` ＋ 其断言） | C5 跨平台、C6 首次体验分钟数、C7 运维单点 |
+| C13 黑暗行读数 ✓（探针 ＋ 合并规则的断言） | C10 导出诊断、C12 第三方许可、C14 活下来的变异清单 |
+| | C15 M6 八项、C16 双语文案、C17 成本模型 |
+
+### 200.3 本轮量到的两条新读数（把未知变成已知的失败）
+
+1. **C5 跨平台**：受管 Blender 只有一个 `macos-arm64` 构建 ✓，而「别的平台今天看到什么」
+   此前没有读数 ✓。这一轮量到了 ✓——把 `process.platform` 伪装成别的平台再跑安装器 ✓：
+
+   ```
+   platform: linux/x64
+   result: this installer only knows the pinned macos-arm64 build
+   manual: install Blender 5.2.1 yourself, then set blenderPath on the deepblend-blender-runtime row …
+   note: DEEPBLEND_BLENDER_PATH is what THIS repository's tests read; the installed product does not
+   [exit=2]
+   ```
+
+   形状是**对的** ✓（说清而不是假装 ✓，且点到产品真的读的那个键 ✓），
+   但**三件事仍然开着** ✓：非 macOS 上「自装 Blender ＋ 设 `blenderPath`」没有在真机上走过 ✓；
+   三处 ffmpeg 装法只给了 macOS 的那条命令 ✓；需要 Blender 的套件要求一个只有本仓库测试读的
+   环境变量 ✓。伪装平台只够读安装器的守卫 ✓，不够跑一次渲染 ✓——**这是本轮的测量边界，写在读数里** ✓。
+
+2. **C10 可诊断**：市场里同类插件有一个 Export log ✓，这一份有没有 ✓？
+   量法是读 `packages/deepblend/ui/lib/client.js` ✓：**没有任何导出/下载诊断的动作** ✓，
+   宿主路由表里也没有对应的读路由 ✓。用户今天能拿到的只有错误码与 `recovery.md` ✓，
+   拿不到一份可以附在问题里的现场 ✓。
+
+### 200.4 修掉的缺陷：手册的卸载顺序**会把刚卸掉的插件装回来**
+
+这是本轮最有价值的一条读数 ✓，因为三条命令**全部退出 0** ✓、而读者回到了起点 ✓。
+在临时 `DSH_HOME` 上按 `install.md` §6 的顺序走一遍 ✓：
+
+```
+dsh plugin remove @deepblend/dsh-blender-bundle --profile web   → exit 0，bundles 与 dependencies 都没它了
+npm run plugin:install -- --portable                            → exit 0，报 installed (3 change(s))
+```
+
+**第二步是一个安装器** ✓：它把 bundle 重新登记进 `dsh.profile.bundles` ✓、把 dependency 键写回去 ✓，
+只顺手清空了 operator layer ✓。手册把它当卸载器用了 ✓，而且它前面那句「然后是剩下的」
+（「then the rest」）让它读起来像收尾 ✓。残留另有三处 ✓，全都没有任何东西在看 ✓：
+operator layer 的 `cordis.patch.yml` ✓、`profiles/node_modules/@deepblend/` 下的七个符号链接 ✓、
+以及 preset 根下的**两个** preset 目录 ✓（手册只让删其中一个 ✓，而部署器装的是
+`deepblend/presets/` 下的每一个 ✓）。这与 D197 同形 ✓——那次是**第一步**只改配置 ✓，
+这次是**第二步**把插件装回来 ✓。
+
+**修法是一条命令，不是一段说明**（D71/D89）✓：两个工具各加一个 `--uninstall` ✓
+（`npm run plugin:uninstall` ✓ / `npm run presets:uninstall` ✓）。
+`plugin:uninstall` 只移除**它自己写的**东西 ✓：bundle 登记 ✓、dependency 键 ✓、
+它生成的 operator layer（清空而不删文件 ✓）、以及指向**这个 checkout** 的链接 ✓。
+指向 pnpm store 的链接归 `dsh plugin remove` 管 ✓，它会在输出里点名这一条 ✓；
+别人的 operator layer 与别人的 preset 目录**一个字节都不动** ✓。
+`--check --uninstall` 一起给会被**拒绝**（退出 2）✓，而不是替读者猜他要问哪一个问题 ✓。
+
+### 200.5 修完之后的读数：零残留
+
+`node deepblend/tools/uninstall-residue-probe.mjs` ✓（日志 `probe-uninstall-residue.log` ✓）——
+它走「装 → 按手册卸 → 读回」✓，结论与退出码都**从读数推导** ✓（D199 的教训 ✓）：
+
+```
+BEFORE — bundle in dsh.profile.bundles: true      AFTER — bundle in dsh.profile.bundles: false
+BEFORE — operator layer entries: 2                AFTER — dependencies key: (absent)
+BEFORE — links into this checkout: 7              AFTER — operator layer entries: 0
+BEFORE — presets in the root: [deepblend, …]      AFTER — scope directory: (gone)
+                                                  AFTER — presets in the root: []
+problems: 0
+```
+
+profile 里剩下的四个文件 ✓（`cordis.patch.yml` / `cordis.yml` / `package.json` /
+`pnpm-workspace.yaml`）正是 `dsh` 自己建的那一套 ✓——探针把「剩下的是不是启动器放的那套」
+也读了一遍 ✓，于是「零残留」不是一句总结 ✓。
+
+### 200.6 盯着账本的那条断言
+
+`deepblend/tests/contract/commercial-readiness.test.mjs` ✓（十二项）守四件事 ✓：
+
+1. **每轮恰好一条记录、轮号连续** ✓；
+2. **每条记录至少具名一个移动** ✓，移动类型在**闭集**里 ✓——而闭集由**断言**持有 ✓、
+   与账本声明的集合**相等** ✓（D38 的形状 ✓：一份词汇表，或者两份都不算数 ✓）；
+   记录还必须点名它移动了**哪一行** ✓，且那一行真的存在 ✓；
+3. **每个 ✓ 行都具名判据，判据指到的文件或命令存在** ✓；✓ 行**不许**留残余缺口 ✓
+   （那是 ✗ 行的形状 ✓）；每个 ✗ 行必须写明还差什么 ✓；
+4. **数字只有一处** ✓：§2 是唯一的数字登记处 ✓，每一个都由测试**重算一遍**与来源比对 ✓，
+   而 §1 的散文里**一个数字都不许有** ✓——这条规则自己也有反例控制 ✓
+   （`68 个文件` 必须红 ✓、`` `deepblend/…` `` 必须豁免 ✓）。
+
+### 200.7 变异测试：十二条，十二条全红
+
+**没有一条活下来** ✓。逐条记下它红在哪一句 ✓：
+
+| 变异 | 结果 |
+|---|---|
+| `--uninstall` 不把 bundle 从 `bundles` 里去掉 | 红 ✓「the bundle is still composed」 |
+| `--uninstall` 留下一个空的 `dependencies: {}` | 红 ✓「a dependency entry survived: {}」 |
+| `--uninstall` 不清空 operator layer | 红 ✓「still pins a store DeepBlend no longer uses」 |
+| `--uninstall` 连 pnpm 的链接一起删 | 红 ✓「a pnpm-managed link was removed by the wrong tool」 |
+| `presets:uninstall` 只删第一个 preset | 红 ✓「deepblend-dev survived the uninstall」 |
+| `presets:uninstall` 把整个 preset 根删掉 | 红 ✓「removed a preset it did not deploy」 |
+| `install.md` §6 把安装器写回卸载步骤 | 红 ✓「an uninstall command block still runs the installer」 |
+| 去掉 `--check --uninstall` 的拒绝 | 红 ✓「guessed which of two opposite questions was meant」 |
+| 账本某行标绿而缺口还在 | 红 ✓「C10 is ✓ and still carries a gap」 |
+| §2 的一个数字与 `probe-coverage.log` 不一致 | 红 ✓「recomputing it from its source gives a different number」 |
+| 一个 ✓ 行的判据指向不存在的文件 | 红 ✓「points at …, which does not exist」 |
+| 轮次记录里写一个闭集外的移动（M9） | 红 ✓「names M9, which is not in the closed set」 |
+
+### 200.8 收口读数
+
+* 契约层 **70/70** ✓（本轮新增 2 个文件 ✓：`contract/commercial-readiness.test.mjs` ✓、
+  `contract/uninstall-residue.test.mjs` ✓）；README 那组快照按 `documented-counts.test.mjs`
+  报出的真实值改过 ✓（84→**86** 个文件 ✓、85→**87** 条照跑 ✓、68→**70** 个契约文件 ✓），
+  而那句「一个全新 clone 打印什么」也改了 ✓：`10/68` → **`11/70`** ✓——
+  它数的是「**通过**了几个」✓，所以那个只读文件的账本断言把它推高了一 ✓，
+  而新加的卸载套件要驱动两个工具 ✓、工具要 import 包 ✓，所以在没有 `node_modules` 的
+  拷贝里它**属于失败的那一类** ✓（README 里那句话说的正是这一类 ✓）。
+  自计断言 **1544 项（33 个文件打印计数）** ✓ 不变（两个新文件用的是 `node:test` ✓），
+  `node:test` 用例 **373 → 398（35 → 37 个文件）** ✓。
+* `bash deepblend/tests/run-all.sh`：**17 套件全绿** ✓（exit 0 ✓）。
+* 七个包装检查全部 exit 0 ✓（`plugin:check` ✓ / `presets:check` ✓ / `presets:sync:check` ✓ /
+  `setup:check` ✓ / `release:check` ✓ / `listing:check` ✓ / `publish:check` ✓），
+  外加 `version:check` ✓ 与 `release:freshness` **FRESH** ✓。
+* `npm run verify:clone` ✓：从零 clone 走一遍装配 ✓。
+* 本轮**没有改 `packages/**`** ✓，所以四步发布链**没有触发** ✓
+  （`release:freshness` 仍是 FRESH ✓ 就是它的读数 ✓）。
+* 投稿条目一个字节都没有动 ✓。
+
+### 200.9 仍然开着的缺口
+
+1. **C5 跨平台**：非 macOS 上「自己装 Blender ＋ 设 `blenderPath`」这条路**没有在真机上走过** ✓。
+   伪装平台只够读安装器的守卫 ✓——要跑一次真实渲染需要第二台机器 ✓（或者一个容器 ✓，
+   而容器里没有 GUI 也不影响 `--background` 渲染 ✓，所以这是**可以做的** ✓，只是本轮没做 ✓）。
+   附带两条小的 ✓：三处 ffmpeg 装法只写了 macOS ✓；需要 Blender 的套件要求
+   `DEEPBLEND_BLENDER_PATH` ✓ 而产品读 `blenderPath` ✓——这个「两个键」的事实写在
+   安装器的输出里 ✓，但没有一条断言盯着它 ✓。
+2. **C10 导出诊断**：工作台里没有导出入口 ✓，宿主也没有对应的读路由 ✓。
+   要做的是一条**读**路由（导出的是现场，不是新的写路径 ✓），以及一个**不泄漏路径**的边界 ✓。
+3. **C12 第三方许可**：三件事今天没有任何地方写着 ✓——Blender 是外部程序调用（不是链接）✓、
+   ffmpeg 由用户自己装 ✓、受管 Blender 是**下载**而不是再分发 ✓。
+   这是**文档 ＋ 断言**的一轮 ✓，不需要改产品 ✓。
+4. **C6 首次体验的分钟数**：受管 Blender 是一个几百 MB 的下载 ✓，它的墙钟时间没有记下来 ✓。
+   要一条读数：从零 clone 到第一帧 ✓，分步计时 ✓，并说明卡在哪一步 ✓。
+5. **C14 活下来的变异**：每轮点名 ✓，但没有一份**常驻**清单 ✓。
+   §200.7 这一轮是零存活 ✓，所以这一行今天最接近关闭 ✓——它需要的是
+   「下一轮开始前先看上一轮的存活表」这件事有个地方可看 ✓。
+6. **C2/C3**：三条路线的同一性没有断言 ✓；tarball 路线的升级路径未实测 ✓（§199.9 的缺口二、三 ✓）。
+7. **C7 运维单点**：只有用户能改变 ✓（第二个账号，或把发布权交给仓库所属的账号 ✓）。

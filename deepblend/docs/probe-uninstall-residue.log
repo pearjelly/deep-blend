@@ -1,0 +1,48 @@
+# Uninstall-residue probe — what is left in a profile and a preset root after the manual's uninstall
+#
+#   node deepblend/tools/uninstall-residue-probe.mjs | tee deepblend/docs/probe-uninstall-residue.log
+#
+# Taken 2026-09-22 (commercial-readiness ledger C4). What it is evidence for: `install.md` §6, and the
+# defect that section had until this reading existed.
+#
+# WHY IT WAS TAKEN. The manual gave the uninstall as four steps and following them IN ORDER re-installed
+# the plugin: `dsh plugin remove` emptied the profile's `dsh.profile.bundles` and `dependencies`, and the
+# documented second step — `plugin:install -- --portable` — answered `installed (3 change(s))` and wrote
+# both keys back, because that step is an INSTALLER. Every command exited 0 and the reader ended exactly
+# where they started. Three more residues were invisible for the same reason (nothing was looking): the
+# operator layer this repository writes, the seven `@deepblend/*` links, and the presets — a different
+# root entirely, where the manual named ONE directory and the deployer installs every preset in
+# `deepblend/presets/`, which is two.
+#
+# HOW TO READ IT. `BEFORE —` lines are the install; `AFTER —` lines are the residue. The `result:` line is
+# derived from the `problems` list, not written by hand (D199: a probe log committed as evidence must not
+# state its own conclusion independently of its readings). Exit 0 means the residue table was empty.
+#
+# The contract layer covers the same tool behaviour against a fixture profile
+# (`deepblend/tests/contract/uninstall-residue.test.mjs`); what this adds is a profile created by the real
+# launcher plus `dsh plugin remove`, which needs pnpm and therefore cannot live in that layer.
+
+date: 2026-09-22T09:02:51.940Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-uninstall-probe-GE6GAp
+dsh: 0.1.5-rc.2
+pnpm: 10.28.2
+profile created by `dsh`: yes
+`plugin:install`: exit 0 — note: a profile reads its bundles when it starts; restart `dsh web` for the rows to compose
+`presets:install`: exit 0 — next: check it mounts: the roster reports each preset's standing mount state
+BEFORE — bundle in dsh.profile.bundles: true
+BEFORE — dependency: link:/Users/hxb/workspace/deep-blend/packages/deepblend/bundle
+BEFORE — operator layer entries: 2
+BEFORE — links into this checkout: 7
+BEFORE — presets in the root: ["deepblend","deepblend-dev"]
+`dsh plugin remove`: exit 0 — Done in 142ms using pnpm v10.28.2
+`plugin:uninstall`: exit 0 — note: a profile reads its bundles when it starts; restart `dsh web` for the rows to stop composing
+`presets:uninstall`: exit 0 — result: uninstalled 2 preset(s)
+AFTER — bundle in dsh.profile.bundles: false
+AFTER — dependencies key: (absent)
+AFTER — operator layer entries: 0
+AFTER — scope directory: (gone)
+AFTER — presets in the root: []
+AFTER — directories left in the preset root: []
+AFTER — profile files: ["cordis.patch.yml","cordis.yml","package.json","pnpm-workspace.yaml"]
+problems: 0
+result: the documented uninstall leaves the profile and the preset root with nothing of DeepBlend in them

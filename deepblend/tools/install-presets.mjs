@@ -30,6 +30,7 @@
  * Usage:
  *   node deepblend/tools/install-presets.mjs            # install every preset
  *   node deepblend/tools/install-presets.mjs --check    # report drift, change nothing
+ *   node deepblend/tools/install-presets.mjs --uninstall # remove the presets this deploys
  *
  * `--check` HAS THREE OUTCOMES, NOT TWO
  * -------------------------------------
@@ -79,6 +80,12 @@ const TARGET = join(DSH_HOME, '.agent-presets')
 const REQUIRED_FILES = deployRule.REQUIRED_FILES
 
 const checkOnly = process.argv.includes('--check')
+const uninstall = process.argv.includes('--uninstall')
+
+if (checkOnly && uninstall) {
+  console.error('--check reports and --uninstall changes; pick one')
+  process.exit(2)
+}
 
 function say(label, value) {
   console.log(`${label}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
@@ -101,6 +108,43 @@ const presets = readdirSync(SOURCE).filter(name => statSync(join(SOURCE, name)).
 if (presets.length === 0) {
   console.error(`${SOURCE} contains no preset directories`)
   process.exit(2)
+}
+
+// ---------------------------------------------------------------------------
+// `--uninstall`: remove the preset directories this script deploys.
+//
+// The other half of the residue question. `install.md` §6 asked the reader to
+// `rm -rf "$DSH_HOME/.agent-presets/deepblend"` — a hand-typed path, and the one
+// that was WRONG: this script deploys every directory under `deepblend/presets/`,
+// which is two, so `deepblend-dev` stayed behind. A manual that lists what to
+// delete will be right until the next preset is added, and nothing would notice.
+//
+// Only directories that came from the source list are touched, and a preset
+// directory is removed WHOLE (not file by file): the preset is the unit that
+// mounts, so a half-removed one is a broken preset rather than an absent one.
+// ---------------------------------------------------------------------------
+if (uninstall) {
+  let removed = 0
+  for (const preset of presets) {
+    const targetDirectory = join(TARGET, preset)
+    if (!existsSync(targetDirectory)) {
+      say(preset, 'not installed')
+      continue
+    }
+    rmSync(targetDirectory, { recursive: true, force: true })
+    removed += 1
+    say(preset, `removed -> ${targetDirectory}`)
+  }
+  // The root itself belongs to the deployment — other presets may live in it, and an
+  // uninstaller that deletes a directory it did not fill is the same class of mistake
+  // as an installer that overwrites a config file.
+  const left = existsSync(TARGET)
+    ? readdirSync(TARGET).filter(name => statSync(join(TARGET, name)).isDirectory()).sort()
+    : []
+  say('preset root', TARGET)
+  say('left in it', left.length === 0 ? '(empty)' : left)
+  say('result', removed === 0 ? 'no DeepBlend preset was installed' : `uninstalled ${removed} preset(s)`)
+  process.exit(0)
 }
 
 let drift = 0
