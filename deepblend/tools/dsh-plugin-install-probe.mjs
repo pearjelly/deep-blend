@@ -134,6 +134,21 @@ function say(label, value) {
   console.log(`${label}: ${value}`)
 }
 
+/**
+ * The readings that are WRONG, as opposed to merely interesting.
+ *
+ * The `result:` line used to be written from `SPEC === null` alone, so it announced "the spec
+ * installs, serves DeepBlend and delivers both presets" for a run whose every reading said
+ * otherwise — MEASURED, on the npm route minutes after a publish: `dsh plugin add` exited 1,
+ * `capabilities route: HTTP 404`, `presets deployed: []`, and the log still closed with a
+ * sentence claiming success. A probe log is committed as evidence; one that states its own
+ * conclusion independently of its readings is worse than no log at all.
+ *
+ * The list is what the ROUTE is judged on, and it is the same list for all three routes — which
+ * is the point of `--spec`, and the reason these particular readings were chosen.
+ */
+const problems = []
+
 /** Run a command and capture everything, without throwing on a non-zero exit. */
 function run(command, args, options = {}) {
   const outcome = spawnSync(command, args, { encoding: 'utf8', ...options })
@@ -167,6 +182,30 @@ try {
   // -------------------------------------------------------------------------
   const systemPnpm = run('pnpm', ['--version'])
   say('pnpm on PATH', systemPnpm.status === 0 ? systemPnpm.combined.split('\n')[0] : 'no')
+
+  // THE STORE IS PART OF THE READING, and this line exists because a stale artifact was measured
+  // coming out of it. The tarball route's URL is VERSION-FREE on purpose — the market's
+  // `latest/download/` rule means a versioned asset name dies at the next release — and the
+  // consequence is that the URL is BYTE-IDENTICAL across releases. pnpm's store is keyed by that
+  // URL, so a machine that installed the previous release and then asks for the same URL gets the
+  // PREVIOUS ARTIFACT, on a brand-new `$DSH_HOME`, with no warning from anyone.
+  //
+  // MEASURED, on this repository's own 0.2.0 release: `dsh plugin add <the url>` installed
+  // `@deepblend/dsh-blender-bundle@0.1.0` and answered `/deepblend/workbench` with 404, while
+  // `curl` on that same URL followed a 302 to `…/download/v0.2.0/…` and served the new bytes. The
+  // same command with `npm_config_store_dir` pointed at an empty directory installed 0.2.0 and
+  // answered 200.
+  //
+  // So the store is printed rather than assumed: a log that says which store it read can be told
+  // apart from one that cannot, and `npm_config_store_dir=<empty dir>` is the way to ask the
+  // question about the CURRENT release.
+  const storeDirectory = run('pnpm', ['store', 'path'])
+  say('pnpm store', storeDirectory.status === 0 ? storeDirectory.combined.split('\n')[0] : 'not reported')
+  if (process.env.npm_config_store_dir === undefined) {
+    say('pnpm store note', 'this is the shared store, so an unchanged URL may resolve to a previous release; set npm_config_store_dir to an empty directory to ask about the current one')
+  } else {
+    say('pnpm store note', `isolated for this run by npm_config_store_dir=${process.env.npm_config_store_dir}`)
+  }
 
   const noPnpm = run('dsh', ['plugin', '--profile', 'web', 'add', ROOT], {
     env: { ...process.env, PATH: withoutPnpm(dshDirectory), DSH_HOME: home },
@@ -205,9 +244,20 @@ try {
   const fetched = /Packages: \+(\d+)/.exec(added.combined)?.[1] ?? '(not reported)'
   say('`dsh plugin add`', `exit ${added.status}, ${warnings} warning(s) — spec: ${specLabel}`)
   say('packages pnpm fetched', fetched)
+  if (added.status !== 0) {
+    // The LAST lines, because `dsh` prints pnpm's own failure after its own summary and the
+    // cause is the line a reader needs — MEASURED on the npm route: the reading that mattered
+    // was `ERR_PNPM_FETCH_404 … dsh-blender-provider-local-0.2.0.tgz`, which is a propagation
+    // state and not a defect in the packages.
+    const tail = added.combined.split('\n').map(line => line.trim()).filter(Boolean).slice(-3).join(' | ')
+    problems.push(`\`dsh plugin add\` exited ${added.status} — ${tail}`)
+  }
 
   const after = JSON.parse(readFileSync(manifestPath, 'utf8'))
   say('bundles after', JSON.stringify(after.dsh.profile.bundles))
+  if (!after.dsh.profile.bundles.some(name => name.startsWith('@deepblend/'))) {
+    problems.push('the profile does not compose the bundle, so nothing is mounted')
+  }
   say('dependencies after', JSON.stringify(after.dependencies))
 
   const linked = existsSync(join(home, 'profiles', 'web', 'node_modules', '@deepblend'))
@@ -245,6 +295,7 @@ try {
   const bundleManifest = join(home, 'profiles', 'web', 'node_modules', '@deepblend', BUNDLE_PACKAGE_DIRECTORY, 'package.json')
   if (!existsSync(bundleManifest)) {
     say('installed version', `the profile has no ${BUNDLE_PACKAGE_DIRECTORY} manifest at ${bundleManifest}`)
+    problems.push('the profile has no bundle manifest, so nothing was installed')
   } else {
     const installed = JSON.parse(readFileSync(bundleManifest, 'utf8'))
     const pins = installed.dependencies ?? {}
@@ -262,18 +313,19 @@ try {
     //     design — its manifest has to point the source install back at the repository, because
     //     on that route the siblings come from git rather than from a registry or from the
     //     artifact — so they are reported rather than counted as a disagreement.
-    const problems = []
-    if (installed.version !== repositoryVersion) problems.push(`the artifact is ${installed.version}`)
+    const mismatches = []
+    if (installed.version !== repositoryVersion) mismatches.push(`the artifact is ${installed.version}`)
     if (Object.keys(pins).length !== SIBLING_DIRECTORIES.length) {
-      problems.push(`it pins ${Object.keys(pins).length} of ${SIBLING_DIRECTORIES.length} siblings`)
+      mismatches.push(`it pins ${Object.keys(pins).length} of ${SIBLING_DIRECTORIES.length} siblings`)
     }
     if (versions.some(version => version !== repositoryVersion)) {
-      problems.push(`its pins include ${versions.filter(version => version !== repositoryVersion).join(', ')}`)
+      mismatches.push(`its pins include ${versions.filter(version => version !== repositoryVersion).join(', ')}`)
     }
-    say('the install is the version this repository is at', problems.length === 0
+    say('the install is the version this repository is at', mismatches.length === 0
       ? `yes — ${installed.name}@${repositoryVersion}, ${Object.keys(pins).length} pins `
         + `(${versions.length} exact, ${gitSpecs.length} git)`
-      : `NO — ${problems.join('; ')}, against ${repositoryVersion}`)
+      : `NO — ${mismatches.join('; ')}, against ${repositoryVersion}`)
+    for (const mismatch of mismatches) problems.push(`installed version: ${mismatch}`)
   }
   // -------------------------------------------------------------------------
   // 3. Does that profile actually serve the product?
@@ -318,6 +370,7 @@ try {
       await new Promise(settle => setTimeout(settle, 300))
     }
     say('capabilities route', capabilities)
+    if (!capabilities.startsWith('HTTP 200')) problems.push(`the capabilities route answered ${capabilities}`)
 
     // -----------------------------------------------------------------------
     // 3b. THE ROUTE THAT ONLY THE CURRENT VERSION HAS.
@@ -354,6 +407,7 @@ try {
       await new Promise(settle => setTimeout(settle, 300))
     }
     say('workbench route', workbench)
+    if (!workbench.startsWith('HTTP 200')) problems.push(`the workbench route answered ${workbench}`)
 
     // -----------------------------------------------------------------------
     // 4. Where does the store land? This is the difference that keeps
@@ -406,6 +460,7 @@ try {
     }
   }
   say('deployed presets are byte-identical to deepblend/presets/', differing.length === 0 ? 'yes' : differing.join('; '))
+  if (differing.length > 0) problems.push(`the presets did not arrive: ${differing.join('; ')}`)
 
   // And DSH's own verdict. The base URL is the PROFILE DIRECTORY, which is where the
   // boot anchors `baseUrl` — not the DSH installation, and not the preset root. Passing the
@@ -419,15 +474,21 @@ try {
     )
     const verdicts = found.map(preset => `${preset.id}: ${preset.problem ?? 'problem: null'}`)
     say('DSH discoverPresets', verdicts.length === 0 ? 'no presets found' : verdicts.join(' | '))
+    const broken = found.filter(preset => preset.problem != null).map(preset => `${preset.id}: ${preset.problem}`)
+    if (broken.length > 0) problems.push(`DSH rejected a preset: ${broken.join('; ')}`)
   } catch (cause) {
     // A branchable outcome, not a stack: this needs the deployment's own package, and a
     // probe run against a machine without one should say so and keep its other readings.
     say('DSH discoverPresets', `could not be asked — ${String(cause.message).split('\n')[0]}`)
   }
 
-  say('result', SPEC === null
-    ? 'the supported path installs and serves DeepBlend from a checkout; what it does not do is pin the store to that checkout'
-    : `the spec installs, serves DeepBlend and delivers both presets — ${SPEC}`)
+  // DERIVED FROM THE READINGS, never from which mode was asked for. See `problems` above for
+  // the run that made this necessary.
+  say('result', problems.length === 0
+    ? (SPEC === null
+      ? 'the supported path installs and serves DeepBlend from a checkout; what it does not do is pin the store to that checkout'
+      : `the spec installs, serves DeepBlend and delivers both presets — ${SPEC}`)
+    : `${problems.length} reading(s) say this route did NOT work: ${problems.join(' | ')}`)
 } finally {
   if (server !== null) {
     try { server.kill('SIGTERM') } catch { /* already gone */ }
@@ -437,4 +498,9 @@ try {
   rmSync(home, { recursive: true, force: true })
   console.log(`\n── cleaned up ${home}`)
 }
+
+// THE EXIT CODE CARRIES THE VERDICT, so a route that did not work cannot be mistaken for one
+// that did by whoever runs three of these in a row. 1 rather than 2: this is a measured problem
+// with the route, not a missing precondition — 2 is already taken above by "no pnpm here".
+process.exit(problems.length === 0 ? 0 : 1)
 

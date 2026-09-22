@@ -72,8 +72,11 @@ deepblend/
                       **实测日志**：probe-m3-restart.log / probe-m3-delivery.log / probe-m4-client-loop.log
                       / probe-dsh-plugin-install.log（两条装法各自测到什么，见「5. 安装进 DSH profile」）
                       / probe-dsh-plugin-github.log（**源码**路线：`Packages: +7`，六个同级包全靠自指 git spec）
-                      / probe-dsh-plugin-tarball.log（**tarball** 路线：`Packages: +1`，产物自包含、不解析任何依赖）
+                      / probe-dsh-plugin-tarball.log（**tarball** 路线：`Packages: +1`，产物自包含、不解析任何依赖；
+                        也记下了「URL 跨版本逐字节相同，所以 pnpm 的 store 会把上一个产物装给你」这条实测）
                       / probe-dsh-plugin-npm.log（**npm** 路线：`Packages: +7`，七个包全从 registry 解析、一个都不回 git）
+                      这三份用**同一套判据**读回 `installed version` 与 `/deepblend/workbench`——
+                      版本号是产物对自己的声明，而那条路由只有当前版本才有
                       / probe-disk-full.log（卷写满时会发生什么：一帧不丢、可续渲）
                       / probe-coverage.log（整套验收执行了产品的哪些行，以及量具看不见什么）
   docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）

@@ -1,20 +1,38 @@
 # DSH plugin-install probe — the SOURCE install route, measured end to end
 #
-#   node deepblend/tools/dsh-plugin-install-probe.mjs \
-#     --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+#   node deepblend/tools/dsh-plugin-install-probe.mjs --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
 #
-# Taken 2026-09-21 (M6, plugin-market packaging). What it is evidence for: the install command
-# the listing entry's `url` implies and README.md documents — the route a visitor to the
-# repository actually runs. `packages pnpm fetched: 7` is the bundle and its six siblings,
-# every one of them resolved through this SAME repository by a self-referential `github:` spec:
-# no registry, no build step, no vendored copy. This is the reading that was impossible while
-# the repository was private, because pnpm resolves a `github:` spec through an ANONYMOUS
-# codeload tarball that answers 404 for a private repository. Body is the tool's output.
-date: 2026-09-21T02:58:04.130Z
-scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-iys2Pm
+# Run with an EMPTY `npm_config_store_dir` (see the tarball log for why) and with
+# `npm_config_registry=https://registry.npmjs.org/`, because this machine's configured registry is
+# a mirror and a mirror does not carry a package published minutes ago.
+#
+# Taken 2026-09-22, minutes after the 0.2.0 release, with the same criteria applied to all three
+# routes — that sameness is the point of `--spec`, and the criteria are:
+#
+#   installed version   the bundle the profile actually got, and the six exact pins it carries
+#   workbench route     `GET /deepblend/workbench` — the route ONLY the current version has, and
+#                       the reason a version number alone is not enough: a stale artifact states
+#                       its own version truthfully, while a route it does not have answers 404
+#   presets             both deployed, byte-identical to `deepblend/presets/`, `problem: null`
+#
+# What it is evidence for: the route that needs no release at all, and therefore the one that was
+# NEVER stale — it resolves the default branch, which is `main`. That is also why it is the
+# control for the other two: it answers `installed version: 0.2.0` by construction, so a reading
+# of 0.1.0 on either of the others is the release that is behind rather than the product.
+#
+# The distinguishing reading is `packages pnpm fetched: 7` with `6 pins (0 exact, 6 git)` — the
+# bundle and its six siblings all resolved through this repository, because a remote install
+# fetches the bundle and THEN resolves its dependencies, and a version pin would resolve to
+# nothing on a machine that has never heard of the scope.
+#
+# Body is the tool's output.
+date: 2026-09-22T07:49:33.299Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nCqxlh
 dsh: 0.1.5-rc.2
 dsh directory: /Users/hxb/.nvm/versions/node/v26.8.2/bin
 pnpm on PATH: 10.28.2
+pnpm store: /tmp/stores/source/v10
+pnpm store note: isolated for this run by npm_config_store_dir=/tmp/stores/source
 `dsh plugin add` with no pnpm on PATH: exit 127 — dsh: pnpm not found on PATH — install pnpm to manage profile plugins
 profile created by `dsh`: yes
 bundles before: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app"]
@@ -24,9 +42,14 @@ bundles after: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app","@deepblend/d
 dependencies after: {"@deepblend/dsh-blender-bundle":"github:pearjelly/deep-blend#path:/packages/deepblend/bundle"}
 packages resolvable in the profile: ["dsh-blender-bundle","dsh-blender-contracts","dsh-blender-host","dsh-blender-preset","dsh-blender-provider-local","dsh-blender-tool","dsh-blender-ui"]
 shared profiles/node_modules created: no
-dsh web: port 64028
+installed version: @deepblend/dsh-blender-bundle@0.2.0
+installed sibling pins: @deepblend/dsh-blender-contracts@github:pearjelly/deep-blend#path:/packages/deepblend/contracts, @deepblend/dsh-blender-host@github:pearjelly/deep-blend#path:/packages/deepblend/host, @deepblend/dsh-blender-preset@github:pearjelly/deep-blend#path:/packages/deepblend/preset, @deepblend/dsh-blender-provider-local@github:pearjelly/deep-blend#path:/packages/deepblend/provider-local, @deepblend/dsh-blender-tool@github:pearjelly/deep-blend#path:/packages/deepblend/tool, @deepblend/dsh-blender-ui@github:pearjelly/deep-blend#path:/packages/deepblend/ui
+the version the repository is at: 0.2.0
+the install is the version this repository is at: yes — @deepblend/dsh-blender-bundle@0.2.0, 6 pins (0 exact, 6 git)
+dsh web: port 51171
 capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
-projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-iys2Pm/deepblend/projects
+workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nCqxlh/deepblend/projects
 projectsRoot is under the scratch DSH_HOME: yes — the product default
 checkout store untouched: a <repo>/.deepblend store exists and was NOT used
 presets deployed: ["deepblend","deepblend-dev"]
@@ -35,4 +58,4 @@ deployed presets are byte-identical to deepblend/presets/: yes
 DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
 result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
 
-── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-iys2Pm
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-nCqxlh

@@ -142,18 +142,69 @@ test('the release tag is derived from the version and is what the tarball URL is
 })
 
 test('the version source is not restated anywhere a test cannot compare it', () => {
-  // The shape of defect this repository keeps paying for: the same fact written twice. The version
-  // may appear in PROSE (a milestone record, a dated measurement) but not in a second machine-read
-  // field — so no manifest other than the eight may carry a `version`, and no JSON under
-  // `deepblend/` other than the source may hold one.
-  for (const name of readdirSync(join(ROOT, 'deepblend'))) {
-    const path = join(ROOT, 'deepblend', name)
-    if (!name.endsWith('.json') || !statSync(path).isFile()) continue
-    if (path === sourceFile) continue
-    const parsed = JSON.parse(readFileSync(path, 'utf8'))
-    assert.equal(parsed.version, undefined,
-      `deepblend/${name} carries a version field, which is a second source of the product version`)
+  // The shape of defect this repository keeps paying for: the same fact written twice.
+  //
+  // TWO DIRECTIONS, and the first version of this test only had the weaker one. MEASURED by a
+  // mutation that added `"version": "0.2.0"` to `deepblend/tools/blender-release.json`: it
+  // SURVIVED, because the check read `readdirSync('deepblend')` and never descended into
+  // `tools/`. A check that reads one directory and calls it "the repository" is the same defect
+  // as a count that reads one file and calls it "the total".
+  //
+  // 1. EVERY manifest in this repository is in the lockstep set. `manifests()` discovers the root
+  //    plus `packages/deepblend/*`, so a new package somewhere else — `tools/`, `examples/` —
+  //    would carry a version nothing syncs and nothing compares. The walk skips the directories
+  //    that hold other people's manifests (`node_modules` is symlinks into the DSH deployment,
+  //    `.tools` is a Blender), because those are not this repository's to version.
+  const IGNORED = new Set(['node_modules', '.git', '.tools', '.deepblend'])
+  const manifestsOnDisk = []
+  const walk = (directory, prefix) => {
+    for (const item of readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      if (item.name.startsWith('.tmp-')) continue
+      const relative = prefix === '' ? item.name : `${prefix}/${item.name}`
+      if (item.isDirectory()) {
+        if (IGNORED.has(item.name)) continue
+        walk(join(directory, item.name), relative)
+      } else if (item.name === 'package.json') {
+        manifestsOnDisk.push(relative)
+      }
+    }
   }
+  walk(ROOT, '')
+
+  const inLockstep = new Set(manifests().map(entry => entry.path.replace(`${ROOT}/`, '')))
+  const outside = manifestsOnDisk.filter(path => !inLockstep.has(path))
+  assert.deepEqual(outside, [],
+    `these manifests carry a version that nothing keeps in step with deepblend/version.json: ${outside.join(', ')}`)
+
+  // 2. No JSON the TOOLING reads may hold the PRODUCT version. Toolchain pins are the reason this
+  //    is a comparison rather than a ban: `blender-release.json` and `dsh-baseline.json` each
+  //    legitimately carry a `version`, and neither of them is this product's. What is forbidden is
+  //    the same NUMBER in a second machine-read place — a `release.json` that pins 0.2.0 beside the
+  //    source is a copy that will rot, which is the whole reason the source exists.
+  const { version } = source()
+  const secondSources = []
+  const jsonUnder = (directory, prefix) => {
+    for (const item of readdirSync(directory, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const relative = prefix === '' ? item.name : `${prefix}/${item.name}`
+      if (item.isDirectory()) {
+        if (IGNORED.has(item.name)) continue
+        jsonUnder(join(directory, item.name), relative)
+      } else if (item.name.endsWith('.json') && relative !== 'version.json') {
+        let parsed
+        try {
+          parsed = JSON.parse(readFileSync(join(directory, item.name), 'utf8'))
+        } catch {
+          continue // a malformed file is another suite's problem, not this one's
+        }
+        if (parsed !== null && typeof parsed === 'object' && parsed.version === version) {
+          secondSources.push(`deepblend/${relative}`)
+        }
+      }
+    }
+  }
+  jsonUnder(join(ROOT, 'deepblend'), '')
+  assert.deepEqual(secondSources, [],
+    `these files carry ${version} in a second machine-read place: ${secondSources.join(', ')}`)
 
   // And the root manifest is in the lockstep set rather than exempt, which is the assertion that
   // says so: `packageJson.version` is read from the file the tool also reads, so this is a check

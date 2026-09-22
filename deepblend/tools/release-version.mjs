@@ -216,19 +216,44 @@ export function versionAtTag(tag) {
 }
 
 /**
- * The files under `packages/` that differ between a tag and HEAD.
+ * The files under `packages/` that differ between a tag and THE WORKING TREE.
  *
  * `packages/` and not the whole tree: a documentation commit after a release does not make the
  * released artifact stale, and a check that says it does is a check that gets ignored. What the
  * artifact IS is the packages tree, so that is what is compared.
  *
+ * THE WORKING TREE, not `tag..HEAD`, and a mutation is what settled it: appending one comment to
+ * `packages/deepblend/ui/lib/index.js` without committing it left this check answering
+ * `changed: 0 file(s)` and `FRESH`. `git diff tag..HEAD` compares two COMMITS, so it is blind to
+ * exactly the state an operator is in when they are about to release — and that state is the one
+ * this check exists to make visible. `git diff <tag>` with no revision on the right compares the
+ * tag to the working tree, which is also what the version half of this check already did: it reads
+ * `deepblend/version.json` from disk.
+ *
+ * Untracked files are added on top, because `git diff` cannot see them and a new module under
+ * `packages/` is a change to the artifact in every sense that matters. Ignored files are not:
+ * `.tmp-release/` and `node_modules/` are not part of what a release ships.
+ *
  * @param {string} tag
- * @returns {string[]}
+ * @returns {string[]} sorted repository-relative paths.
  */
 export function changedSince(tag) {
-  const diff = git(['diff', '--name-only', `${tag}..HEAD`, '--', 'packages/'])
-  if (diff.status !== 0) return []
-  return diff.output.split('\n').map(line => line.trim()).filter(Boolean)
+  const files = new Set()
+  const tracked = git(['diff', '--name-only', tag, '--', 'packages/'])
+  if (tracked.status === 0) {
+    for (const line of tracked.output.split('\n')) {
+      const path = line.trim()
+      if (path !== '') files.add(path)
+    }
+  }
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '--', 'packages/'])
+  if (untracked.status === 0) {
+    for (const line of untracked.output.split('\n')) {
+      const path = line.trim()
+      if (path !== '') files.add(path)
+    }
+  }
+  return [...files].sort()
 }
 
 /** `--check`: every manifest equals the source. The invariant the contract layer runs. */
@@ -344,7 +369,7 @@ function stale() {
     console.log(`note:     ${tag} carries no version source, so only the packages tree can be compared`)
   }
   if (changed.length === 0 && !versionMoved) {
-    console.log(`result: FRESH — ${tag} carries the packages tree at HEAD`
+    console.log(`result: FRESH — ${tag} carries the packages tree as it stands`
       + (releasedVersion === null ? '' : `, and both say ${current.version}`))
     return 0
   }
