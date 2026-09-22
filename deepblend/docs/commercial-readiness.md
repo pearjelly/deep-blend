@@ -44,6 +44,7 @@
 | C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台，`milestone-status.md` §198）；其余七项（Blender Live Bridge、Blender Add-on、远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 |
 | C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✗ | 今天的读数：工作台的标签与提示是中文（`packages/deepblend/ui/lib/client.js`），市场入口 `README.md` 是英文、详细的那份 `README.zh.md` 是中文 | 工作台没有语言开关，也没有第二份文案：非中文用户装完之后，看到的是一个全中文的界面。这一行今天连「要不要双语」都还没有决定 |
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✗ | 今天的读数：渲染侧有一个按帧实测的参考值，写在审批提示里（`packages/deepblend/tool/lib/render-tools.js`），而审批本身是**强制**的（`deepblend/tests/composition/approval.e2e.mjs`）；视觉审查的 token 上限在 `packages/deepblend/bundle/cordis.patch.yml` 里 | **token 侧没有成本模型**：一次视觉审查要花多少 token、一次会话要花多少钱，今天没有任何读数；渲染侧只有「参考机每帧多少秒」，没有「这一次要多少分钟」的预估 |
+| C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
 
 **C15 的完成清单**（`M6` 八项，`SPEC.md` §20 的列表逐条）：
 
@@ -71,7 +72,7 @@
 | 产品代码行（全部） | 12363 | `deepblend/docs/probe-coverage.log` | `product CODE lines:` 那一行的第一个数 |
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
-| 账本行数 | 17 | 本文件 §1 | 数表里的行 |
+| 账本行数 | 18 | 本文件 §1 | 数表里的行 |
 | 轮次记录数 | 1 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
@@ -109,7 +110,7 @@
 
 ### 轮 1 — 2026-09-22
 
-- **移动：M3** — 建立 §1 的十七行（C1–C17），每一行都是**逐行量出来的**，不是照种子行抄的：
+- **移动：M3** — 建立 §1 的十八行（C1–C18），每一行都是**逐行量出来的**，不是照种子行抄的：
   C1/C8/C9/C11/C13 判成 ✓ 并具名判据，其余判成 ✗ 并写明还差什么。其中两条是**本轮新量到的读数**：
   C5（把 `process.platform` 伪装成别的平台，读到安装器的四行输出与退出码 2）、
   C10（工作台里没有任何导出诊断的入口，读法是 `packages/deepblend/ui/lib/client.js` 里没有这个动作）。
