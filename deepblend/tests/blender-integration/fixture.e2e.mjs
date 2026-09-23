@@ -49,7 +49,15 @@ function check(name, ok, detail) {
 }
 
 if (!existsSync(BLENDER)) {
+  // The FIX, not only the fact. On a platform the managed install does not serve, the reader has
+  // already installed Blender themselves — and told the PRODUCT, through `blenderPath` in the
+  // operator layer — while this suite reads `DEEPBLEND_BLENDER_PATH`. Naming both here is the only
+  // moment the two can be told apart (measured on a Linux container; ledger C5).
   console.error(`Blender not found at ${BLENDER}; the M1 integration suite cannot run.`)
+  console.error('On a platform the managed install does not serve: install Blender 5.2.1 yourself, then')
+  console.error('  DEEPBLEND_BLENDER_PATH=/path/to/blender node deepblend/tests/blender-integration/fixture.e2e.mjs')
+  console.error('That variable is what these SUITES read. The installed product reads `blenderPath` on the')
+  console.error('deepblend-blender-runtime row of the operator layer — set both, and they are not the same key.')
   process.exit(2)
 }
 

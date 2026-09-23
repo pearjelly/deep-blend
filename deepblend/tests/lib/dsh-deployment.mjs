@@ -27,7 +27,29 @@
  * a suite that quietly skips itself when it cannot find its dependency is a
  * suite that passes for the wrong reason.
  *
- * Owner: DeepBlend Studio — M2
+ * AND WHY IT RETURNS A LIST, WHICH IS THE FIX FOR A RED CI
+ * --------------------------------------------------------
+ * A global install of the pinned harness does NOT put every package in one directory. MEASURED on a
+ * clean machine (`node:22-bookworm`, `npm install -g @deepseek-ai/dsh@0.1.5-rc.2`):
+ *
+ *   <prefix>/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/   120 packages
+ *       cordis, dsh-app-boot, dsh-subprocess, dsh-tools, schemastery, dsh-llm, …
+ *   <prefix>/lib/node_modules/@deepseek-ai/                                 3 packages
+ *       dsh, dsh-subprocess-local, dsh-attachment-local
+ *
+ * Five of the six packages this repository imports live in the first directory and the sixth lives
+ * in the second. The single-scope model therefore could not work on any machine where those two
+ * directories differ — which is every machine that installs the harness fresh, including CI, whose
+ * `link-workspace.mjs` step had been failing on every push with "Could not locate a DSH deployment".
+ * On the machine this repository was developed on, an older install happened to have nested a copy of
+ * everything, so the model looked correct.
+ *
+ * Two smaller defects were found in the same reading and are fixed with it: the candidate for the
+ * directory that CONTAINS `dsh` appended the scope name a second time (`…/@deepseek-ai/@deepseek-ai`),
+ * so it could never match; and the marker that decided "this is a deployment" required
+ * `dsh-attachment-local`, a package a fresh install does not put in the tree being tested.
+ *
+ * Owner: DeepBlend Studio — M2; the scope list — commercial readiness (C5, CI)
  */
 
 import { execFileSync } from 'node:child_process'
@@ -39,8 +61,8 @@ import { pathToFileURL } from 'node:url'
 /** The npm scope every DSH package lives under. */
 const SCOPE = '@deepseek-ai'
 
-/** Memoized scope directory, so a suite can resolve packages repeatedly. */
-let cachedScope = null
+/** Memoized scope directories, so a suite can resolve packages repeatedly. */
+let cachedScopes = null
 
 /**
  * Every `node_modules/@deepseek-ai` directory worth trying, in priority order.
@@ -61,8 +83,12 @@ function candidateScopes() {
     if (which.length > 0) {
       // <root>/lib/bin.js  ->  <root>/node_modules/@deepseek-ai
       const packageRoot = resolve(dirname(realpathSync(which)), '..')
+      // The harness's own dependencies, nested under the package…
       candidates.push(join(packageRoot, 'node_modules', SCOPE))
-      candidates.push(join(dirname(packageRoot), SCOPE))
+      // …and the scope directory that CONTAINS the package, which is where `npm install -g` puts
+      // anything else you ask for in the same command. This line used to append SCOPE a second time
+      // (`…/@deepseek-ai/@deepseek-ai`), so it never matched anything on any machine.
+      candidates.push(dirname(packageRoot))
     }
   } catch {
     // No dsh on PATH — a source checkout has no reason to provide one.
@@ -98,26 +124,78 @@ function candidateScopes() {
 }
 
 /**
- * Find the `@deepseek-ai` scope directory that holds a complete DSH deployment.
+ * Every `@deepseek-ai` scope directory that exists on this machine, in priority order.
+ *
+ * A LIST, because one global install produces more than one: the harness's own dependencies nest
+ * under the package, and anything else installed alongside it lands in the scope directory that
+ * contains it. See the header for the measured layout.
+ *
+ * @returns {string[]}
+ */
+export function deploymentScopes() {
+  if (cachedScopes !== null) return cachedScopes
+  const found = []
+  for (const candidate of candidateScopes()) {
+    if (!existsSync(candidate)) continue
+    if (!found.includes(candidate)) found.push(candidate)
+  }
+  cachedScopes = found
+  return found
+}
+
+/** Where a package was looked for, for an error a reader can act on. @param {string} packageName */
+function whereLooked(packageName) {
+  const scopes = deploymentScopes()
+  return scopes.length === 0
+    ? 'no @deepseek-ai scope directory was found at all'
+    : `looked for ${packageName} in:\n${scopes.map(entry => `  - ${entry}`).join('\n')}`
+}
+
+/**
+ * The scope directory that holds one package.
+ *
+ * The package is the argument rather than an assumption: this repository needs five packages from
+ * one scope and a sixth from another, and a function that returned "the deployment" could only ever
+ * be right about one of them.
+ *
+ * @param {string} packageName - e.g. `dsh-llm`
  * @returns {string}
  */
-export function resolveDshScope() {
-  if (cachedScope !== null) return cachedScope
-  const tried = []
-  for (const candidate of candidateScopes()) {
-    tried.push(candidate)
-    if (!existsSync(candidate)) continue
-    if (existsSync(join(candidate, 'dsh-llm', 'lib', 'index.js')) &&
-        existsSync(join(candidate, 'dsh-attachment-local', 'lib', 'index.js'))) {
-      cachedScope = candidate
-      return candidate
-    }
+export function resolveDshScope(packageName) {
+  if (typeof packageName !== 'string' || packageName.length === 0) {
+    throw new Error('resolveDshScope needs a package name: the deployment is more than one directory')
+  }
+  for (const scope of deploymentScopes()) {
+    if (existsSync(join(scope, packageName, 'package.json'))) return scope
   }
   throw new Error(
-    'Could not locate a DSH deployment. Looked in:\n' +
-    tried.map(entry => `  - ${entry}`).join('\n') +
-    '\nSet DEEPBLEND_DSH_ROOT to the directory that contains node_modules/@deepseek-ai/dsh.',
+    `Could not locate @deepseek-ai/${packageName} in a DSH deployment.\n` +
+    `${whereLooked(packageName)}\n` +
+    'Set DEEPBLEND_DSH_ROOT to the directory that contains node_modules/@deepseek-ai/dsh.',
   )
+}
+
+/**
+ * The scope that holds the harness itself, for callers that want "a deployment" rather than one
+ * package. Throws when there is none, with the same list of places it looked.
+ *
+ * @returns {string}
+ */
+export function resolveHarnessScope() {
+  return resolveDshScope('dsh-llm')
+}
+
+/**
+ * The `node_modules` directory that holds the deployment, for the packages that are NOT under the
+ * `@deepseek-ai` scope — `yaml` and `js-yaml`, which two suites import to parse the deployment's own
+ * manifests. They live BESIDE the scope rather than in it, which is why this is a named accessor
+ * instead of `resolveDshScope() + '/..'`: with a list of scopes, "the parent of the scope" is not a
+ * well-defined thing to ask for.
+ *
+ * @returns {string}
+ */
+export function resolveDeploymentNodeModules() {
+  return dirname(resolveHarnessScope())
 }
 
 /**
@@ -127,7 +205,7 @@ export function resolveDshScope() {
  * @returns {Promise<Record<string, unknown>>}
  */
 export async function importDsh(packageName) {
-  const entry = join(resolveDshScope(), packageName, 'lib', 'index.js')
+  const entry = join(resolveDshScope(packageName), packageName, 'lib', 'index.js')
   if (!existsSync(entry)) {
     throw new Error(`DSH package "${packageName}" has no lib/index.js at ${entry}.`)
   }

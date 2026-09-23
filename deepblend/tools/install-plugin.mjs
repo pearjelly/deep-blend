@@ -398,6 +398,20 @@ if (bundles.includes(BUNDLE_PACKAGE)) {
 const operatorLayerPath = join(profileDirectory, 'cordis.patch.yml')
 const desiredStoreRoot = portable ? undefined : devStoreRoot(ROOT)
 
+/**
+ * The rows and keys this tool is responsible for, whatever mode it is in.
+ *
+ * DERIVED WITH THE CHECKOUT'S STORE ROOT EVEN IN `--portable`, because what is being asked here is
+ * which KEYS this tool owns, not which values it would write. The bundle patch alone is the wrong
+ * template and was measured to be: since M5 the bundle names no path, so `workspaceRoot` and
+ * `projectsRoot` exist only in the derived layer — and comparing against the bundle made the tool
+ * call its OWN two keys the user's, in a message whose whole job is to say which keys are the user's.
+ */
+const ownedRowTemplate = entriesOfLayer(renderOperatorLayer(
+  await buildStoreOverride({ storeRoot: devStoreRoot(ROOT), bundlePatch: join(ROOT, BUNDLE_PATCH) }),
+  devStoreRoot(ROOT),
+))
+
 /** Whether the operator layer at `path` is one this tool wrote, or nothing at all. */
 function operatorLayerIsOurs(path) {
   if (!existsSync(path)) return true
@@ -409,6 +423,60 @@ function operatorLayerIsOurs(path) {
   return body.trim() === '[]'
 }
 
+/** The patch entries in an operator layer, ignoring its comment header. */
+function entriesOfLayer(text) {
+  if (text === null) return []
+  const body = text.split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim()
+  return body.length === 0 ? [] : JSON.parse(body)
+}
+
+/**
+ * The user's own additions to a layer, given the rows this tool is responsible for.
+ *
+ * Additions are two things: a key inside one of the tool's rows that the template does not set, and
+ * a whole row the template does not define. The TEMPLATE is what decides — the derived layer when
+ * the tool is pinning storage, and the bundle's own rows when it is emptying the file — because
+ * "yours" only means anything relative to what this tool claims.
+ *
+ * @param {Array<Record<string, any>>} currentRows
+ * @param {Array<Record<string, any>>} templateRows
+ * @returns {{ preserved: string[], merged: Array<Record<string, any>> }}
+ */
+function userAdditions(currentRows, templateRows) {
+  const preserved = []
+  const merged = templateRows.map(row => {
+    const found = currentRows.find(candidate => candidate?.id === row.id)
+    if (found?.config === undefined) return row
+    const extra = Object.fromEntries(
+      Object.entries(found.config).filter(([key]) => !(key in (row.config ?? {}))),
+    )
+    for (const key of Object.keys(extra)) preserved.push(`${row.id}.${key}`)
+    return Object.keys(extra).length === 0 ? row : { ...row, config: { ...row.config, ...extra } }
+  })
+  for (const row of currentRows) {
+    if (templateRows.some(candidate => candidate.id === row?.id)) continue
+    preserved.push(`${row?.id ?? '(row with no id)'} (a whole row)`)
+    merged.push(row)
+  }
+  return { preserved, merged }
+}
+
+/**
+ * The layer to WRITE: what this tool derives, plus everything the user added to it.
+ *
+ * Order is the derived order first, so a diff of this file stays readable across a regeneration.
+ *
+ * @param {string} expected - the derived layer
+ * @param {string|null} current - what is on disk now
+ * @returns {{ text: string, preserved: string[] }}
+ */
+function mergeOperatorLayer(expected, current) {
+  const { preserved, merged } = userAdditions(entriesOfLayer(current), entriesOfLayer(expected))
+  if (preserved.length === 0) return { text: expected, preserved }
+  const header = expected.split('\n').filter(line => line.trimStart().startsWith('#')).join('\n')
+  return { text: `${header}\n${JSON.stringify(merged, null, 2)}\n`, preserved }
+}
+
 if (desiredStoreRoot !== undefined) {
   const expected = renderOperatorLayer(
     await buildStoreOverride({ storeRoot: desiredStoreRoot, bundlePatch: join(ROOT, BUNDLE_PATCH) }),
@@ -416,9 +484,7 @@ if (desiredStoreRoot !== undefined) {
   )
   const current = existsSync(operatorLayerPath) ? readFileSync(operatorLayerPath, 'utf8') : null
 
-  if (current === expected) {
-    say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
-  } else if (!operatorLayerIsOurs(operatorLayerPath)) {
+  if (!operatorLayerIsOurs(operatorLayerPath)) {
     // Refusing beats clobbering. Someone's own operator layer may hold settings
     // this tool knows nothing about, and "the installer overwrote my config" is
     // not a failure a user can diagnose from the result.
@@ -434,6 +500,20 @@ if (desiredStoreRoot !== undefined) {
       'Merge the layers by hand, or move that file aside and re-run.',
     )
     process.exit(2)
+  }
+
+  // IN SYNC MEANS: what this tool would write, given what is already there. That single comparison
+  // covers both halves of the rule — a user's own keys are not drift (they are in `merged`), and an
+  // edit that is neither the tool's nor a key is still drift (a stray comment, a changed derived
+  // value, a row moved). The first version of this fix compared only the DERIVED part, which made a
+  // comment invisible; `contract/installer-drift.test.mjs` caught that immediately, correctly.
+  const { text: merged, preserved } = mergeOperatorLayer(expected, current)
+
+  if (current === merged) {
+    say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
+    if (preserved.length > 0) {
+      say(`profiles/${profile}/cordis.patch.yml`, `kept your own setting(s): ${preserved.join(', ')}`)
+    }
   } else {
     drift += 1
     if (checkOnly) {
@@ -441,8 +521,13 @@ if (desiredStoreRoot !== undefined) {
         ? `missing (storage would be the product default, not ${desiredStoreRoot})`
         : 'DRIFTED — the bundle changed and this layer was not regenerated')
     } else {
-      writeFileSync(operatorLayerPath, expected)
+      writeFileSync(operatorLayerPath, merged)
       say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
+      if (preserved.length > 0) {
+        // NOT SILENT. The user has to be able to see that their keys survived, because the failure
+        // this replaced was exactly a silent one.
+        say(`profiles/${profile}/cordis.patch.yml`, `kept your own setting(s): ${preserved.join(', ')}`)
+      }
     }
   }
 } else if (existsSync(operatorLayerPath) && operatorLayerIsOurs(operatorLayerPath)) {
@@ -455,6 +540,23 @@ if (desiredStoreRoot !== undefined) {
   // patch list is exactly what a profile ships with, so this restores it to that.
   const text = readFileSync(operatorLayerPath, 'utf8')
   if (text.includes(OPERATOR_LAYER_MARKER)) {
+    // THE USER'S OWN KEYS CANNOT COME ALONG, and that is a property of the patch format rather than
+    // a choice: a patch entry's `config` REPLACES the bundle's wholesale (D74), so a row carrying
+    // only `blenderPath` would silently wipe the row's other settings at composition. Refusing and
+    // naming them beats emptying a file that holds somebody's configuration — and it is the same
+    // rule as the foreign-layer refusal one screen up, applied to a layer that is ours but no
+    // longer only ours.
+    const { preserved } = userAdditions(entriesOfLayer(text), ownedRowTemplate)
+    if (preserved.length > 0) {
+      say(`profiles/${profile}/cordis.patch.yml`, 'NOT EMPTIED — it holds settings this tool does not own')
+      console.error(
+        `${operatorLayerPath} carries ${preserved.join(', ')}, which \`--portable\` cannot keep:\n` +
+        'a patch entry\'s `config` replaces the bundle\'s rather than merging into it, so moving those\n' +
+        'keys into an empty layer would drop the row\'s other settings. Move them to another row or\n' +
+        'another layer, then re-run.',
+      )
+      process.exit(2)
+    }
     drift += 1
     if (checkOnly) {
       say(`profiles/${profile}/cordis.patch.yml`, 'pins a store this run did not ask for')

@@ -166,6 +166,113 @@ test('--check reports drift when the bundle changes under an installed deploymen
   }
 })
 
+/**
+ * The non-macOS install path, which is a USER's key in a file this tool generates.
+ *
+ * `install.md` §0 tells a Linux or Windows user to install Blender themselves and set `blenderPath`
+ * on the `deepblend-blender-runtime` row of the operator layer. That file is generated here, and it
+ * used to be REGENERATED from the bundle patch on the next run — which dropped the key. MEASURED:
+ * `installed (1 change(s))` and `grep -c blenderPath` went to 0, so the documented way to make the
+ * product work on any other platform was destroyed by the next `plugin:install`, and `--check`
+ * called the correct configuration drift.
+ *
+ * The rule the assertions below hold: this tool owns the keys it DERIVES, and everything else in
+ * the file is the user's.
+ */
+test('a setting the user adds to a row this tool owns survives a re-install, and the run says so', () => {
+  const home = makeHome()
+  try {
+    assert.equal(runInstaller(home).status, 0)
+
+    const rows = entriesOf(operatorLayerOf(home))
+    rows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = '/opt/blender/blender'
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), renderOperatorLayer(rows, devStoreRoot(ROOT)))
+
+    const again = runInstaller(home)
+    assert.equal(again.status, 0, again.stderr)
+    const after = entriesOf(operatorLayerOf(home)).find(row => row.id === 'deepblend-blender-runtime')
+    assert.equal(after.config.blenderPath, '/opt/blender/blender', 'the documented non-macOS setting was dropped')
+    // NOT SILENTLY: the failure this replaced was exactly a silent one, so the line has to exist.
+    assert.match(again.stdout, /kept your own setting\(s\): deepblend-blender-runtime\.blenderPath/)
+
+    // And the tool's own keys are still the tool's: the store pin is intact.
+    assert.equal(after.config.workspaceRoot, devStoreRoot(ROOT))
+
+    // A difference that is only the user's is NOT drift. Calling it drift is what made a correct
+    // configuration look wrong, which is how a user ends up "fixing" it back to broken.
+    assert.equal(runInstaller(home, '--check').status, 0)
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('a key this tool DERIVES is still drift when the user changes it', () => {
+  const home = makeHome()
+  try {
+    assert.equal(runInstaller(home).status, 0)
+    const rows = entriesOf(operatorLayerOf(home))
+    rows.find(row => row.id === 'deepblend-blender-host').config.workspaceRoot = '/somewhere/else'
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), renderOperatorLayer(rows, devStoreRoot(ROOT)))
+
+    // Ownership has to cut both ways, or "the user's keys are preserved" becomes "the tool can no
+    // longer tell whether its own pinning is in place".
+    const checked = runInstaller(home, '--check')
+    assert.equal(checked.status, 1, `expected drift, got ${checked.status}: ${checked.stdout}`)
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('a whole row the user adds is preserved too', () => {
+  const home = makeHome()
+  try {
+    assert.equal(runInstaller(home).status, 0)
+    const rows = entriesOf(operatorLayerOf(home))
+    rows.push({ id: 'their-own-row', config: { something: true } })
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), renderOperatorLayer(rows, devStoreRoot(ROOT)))
+
+    assert.equal(runInstaller(home).status, 0)
+    assert.deepEqual(
+      entriesOf(operatorLayerOf(home)).find(row => row.id === 'their-own-row'),
+      { id: 'their-own-row', config: { something: true } },
+      'a row this tool does not define was dropped',
+    )
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('--portable refuses rather than emptying a layer that holds the user\'s settings', () => {
+  const home = makeHome()
+  try {
+    assert.equal(runInstaller(home).status, 0)
+    const rows = entriesOf(operatorLayerOf(home))
+    rows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = '/opt/blender/blender'
+    const withUserKey = renderOperatorLayer(rows, devStoreRoot(ROOT))
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), withUserKey)
+
+    // A patch entry's `config` REPLACES the bundle's wholesale (D74), so these keys cannot be moved
+    // into an empty layer without dropping the row's other settings. Refusing and naming them is the
+    // only answer that neither lies nor breaks the row.
+    const portable = runInstaller(home, '--portable')
+    assert.equal(portable.status, 2, `expected refusal, got ${portable.status}: ${portable.stdout}`)
+    assert.equal(operatorLayerOf(home), withUserKey, 'the layer was emptied despite holding a user setting')
+    assert.match(portable.stderr, /deepblend-blender-runtime\.blenderPath/)
+    // The tool's OWN keys are not what it is refusing about: the message must not blame them.
+    assert.doesNotMatch(portable.stderr, /workspaceRoot|projectsRoot/)
+
+    // With nothing of the user's in it, --portable still does what it always did.
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), renderOperatorLayer(entriesOf(operatorLayerOf(home)).map(row => {
+      const { blenderPath, ...rest } = row.config ?? {}
+      return { ...row, config: rest }
+    }), devStoreRoot(ROOT)))
+    assert.equal(runInstaller(home, '--portable').status, 0)
+    assert.deepEqual(entriesOf(operatorLayerOf(home)), [])
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
 test('the installed package links point at this repository', () => {
   const home = makeHome()
   try {

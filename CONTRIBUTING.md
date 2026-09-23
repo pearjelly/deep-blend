@@ -97,7 +97,7 @@ CI 是本仓库唯一一个**没有一个套件运行它**的产物，而它跑�
 WORK=$(mktemp -d); git clone --quiet . "$WORK"
 docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
   apt-get update -qq && apt-get install -y -qq python3 git
-  npm install --global @deepseek-ai/dsh@0.1.5-rc.2
+  npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
   node deepblend/tools/link-workspace.mjs
   node deepblend/tools/link-workspace.mjs --check
   node deepblend/tools/install-presets.mjs --check

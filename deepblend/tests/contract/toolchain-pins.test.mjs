@@ -33,7 +33,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { resolveDshScope } from '../lib/dsh-deployment.mjs'
+import { resolveHarnessScope } from '../lib/dsh-deployment.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const baselineDoc = readFileSync(join(ROOT, 'deepblend', 'docs', 'dsh-baseline.md'), 'utf8')
@@ -146,9 +146,9 @@ test('the deployment this workspace links against is the pinned one', () => {
   // The strongest of the four: not what a file says, but what the suites will
   // actually import. A mismatch here means every other green line describes a
   // harness the product does not run.
-  const scope = resolveDshScope()
+  const scope = resolveHarnessScope()
 
-  // `resolveDshScope()` returns an `@deepseek-ai` directory, and the `dsh`
+  // `resolveHarnessScope()` returns an `@deepseek-ai` directory, and the `dsh`
   // package sits either inside it (a sibling dependency scope) or two levels
   // above it (`<dsh>/node_modules/@deepseek-ai`, which is what a global npm
   // install produces). Both shapes are real; asking which one this is beats

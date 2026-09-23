@@ -55,8 +55,8 @@ const { loadOverlayPatches } = await import('@deepseek-ai/dsh-app-boot')
 // `preset.yml` is a plain manifest rather than a loader patch, so it is read with the
 // deployment's own YAML — located through the same helper the other suites use, so
 // this does not hard-code a path that only exists on one machine.
-const { resolveDshScope } = await import(join(HERE, '..', 'lib', 'dsh-deployment.mjs'))
-const YAML = (await import(pathToFileURL(join(resolveDshScope(), '..', 'yaml', 'dist', 'index.js')).href)).default
+const { resolveDeploymentNodeModules } = await import(join(HERE, '..', 'lib', 'dsh-deployment.mjs'))
+const YAML = (await import(pathToFileURL(join(resolveDeploymentNodeModules(), 'yaml', 'dist', 'index.js')).href)).default
 
 // ---------------------------------------------------------------------------
 // 1. The repository copy exists, is complete, and parses

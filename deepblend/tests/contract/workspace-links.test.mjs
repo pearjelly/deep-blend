@@ -39,11 +39,13 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-import { resolveDshScope } from '../lib/dsh-deployment.mjs'
+import { resolveHarnessScope } from '../lib/dsh-deployment.mjs'
 import {
   PACKAGES,
   ROOT,
@@ -58,7 +60,7 @@ const { external, internal, declarations } = requiredSpecifiers(local)
 const everySpecifier = [...internal, ...external]
 
 /** The deployment this workspace is linked against. */
-const scope = resolveDshScope()
+const scope = resolveHarnessScope()
 
 /**
  * Two assertions below are about what a CLONE can do, so they need a checkout.
@@ -148,6 +150,70 @@ test('the repository ships the step that produces these links', { skip: withoutC
       encoding: 'utf8',
     }).trim()
     assert.equal(tracked, file, `${file} is not tracked by git`)
+  }
+})
+
+test('a deployment split across two scope directories is found, and each package comes from its own', () => {
+  // THE LAYOUT A GLOBAL INSTALL ACTUALLY PRODUCES, which the single-scope model could not describe.
+  // MEASURED on a clean machine: `npm install -g @deepseek-ai/dsh@<pin> <two more>` puts the harness's
+  // dependencies in `<dsh>/node_modules/@deepseek-ai/` (120 packages) and everything installed
+  // alongside it in the scope directory ABOVE the package. Five of this repository's six imports come
+  // from the first and `dsh-subprocess-local` from the second — so a resolver that returns one
+  // directory is wrong about one of them, and the candidate for the second was misspelled
+  // (`…/@deepseek-ai/@deepseek-ai`) so it matched nothing on any machine.
+  //
+  // The fixture builds that exact shape and runs the resolver in a CHILD process, because the scopes
+  // are memoized per process and `which dsh` is read from PATH.
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-split-scope-'))
+  try {
+    const bin = join(root, 'bin')
+    const harness = join(root, 'lib', 'node_modules', '@deepseek-ai', 'dsh')
+    const nested = join(harness, 'node_modules', '@deepseek-ai')
+    const above = join(root, 'lib', 'node_modules', '@deepseek-ai')
+    for (const [directory, name] of [
+      [join(nested, 'cordis'), 'cordis'],
+      [join(nested, 'dsh-llm'), 'dsh-llm'],
+      [join(above, 'dsh-subprocess-local'), 'dsh-subprocess-local'],
+    ]) {
+      mkdirSync(join(directory, 'lib'), { recursive: true })
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: `@deepseek-ai/${name}`, version: '0.0.0' }))
+    }
+    mkdirSync(join(harness, 'lib'), { recursive: true })
+    writeFileSync(join(harness, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', version: '0.0.0' }))
+    // EXECUTABLE, or `which` skips it and the fixture silently tests the real deployment instead —
+    // MEASURED: the first version of this test did exactly that and failed with the machine's own
+    // nvm scope in the "actual" slot.
+    writeFileSync(join(harness, 'lib', 'bin.js'), '// a stand-in for the launcher\n')
+    chmodSync(join(harness, 'lib', 'bin.js'), 0o755)
+    mkdirSync(bin, { recursive: true })
+    symlinkSync(join(harness, 'lib', 'bin.js'), join(bin, 'dsh'))
+
+    const script = `
+      import { deploymentScopes, resolveDshScope } from ${JSON.stringify(pathToFileURL(join(ROOT, 'deepblend', 'tests', 'lib', 'dsh-deployment.mjs')).href)}
+      const scopes = deploymentScopes()
+      console.log(JSON.stringify({
+        scopes: scopes.length,
+        cordis: resolveDshScope('cordis'),
+        subprocessLocal: resolveDshScope('dsh-subprocess-local'),
+      }))
+    `
+    const probe = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, DEEPBLEND_DSH_ROOT: '' },
+    })
+    assert.equal(probe.status, 0, `the resolver failed on a split deployment:\n${probe.stderr}`)
+    const reading = JSON.parse(probe.stdout.trim().split('\n').pop())
+
+    // At least two: the fixture's two, plus whatever this checkout itself resolves (the repository's
+    // own scope is a candidate too). What matters is that BOTH of the fixture's are reachable.
+    assert.ok(reading.scopes >= 2, `a split deployment must be seen as more than one scope directory, saw ${reading.scopes}`)
+    // Canonicalised, because the resolver realpaths the launcher it found: on macOS `/var` is a
+    // symlink to `/private/var`, so comparing the raw fixture paths compares two spellings of one
+    // directory.
+    assert.equal(reading.cordis, realpathSync(nested), 'a package the harness nests must come from the nested scope')
+    assert.equal(reading.subprocessLocal, realpathSync(above), 'a package installed alongside the harness must come from the scope above it')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
   }
 })
 

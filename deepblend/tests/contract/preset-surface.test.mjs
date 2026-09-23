@@ -43,7 +43,7 @@ import { pathToFileURL } from 'node:url'
 import { UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
-import { importDsh, resolveDshScope } from '../lib/dsh-deployment.mjs'
+import { importDsh, resolveDeploymentNodeModules } from '../lib/dsh-deployment.mjs'
 
 const PRESET_DIR = join(ROOT, 'deepblend', 'presets', 'deepblend')
 const COMPOSITION = join(PRESET_DIR, 'agent.cordis.yml')
@@ -197,7 +197,7 @@ test('the skill the persona tells the model to load is shipped inside the preset
   // assertion that used a line regex and `/^[a-z0-9][a-z0-9-]*$/` was LOOSER than the consumer in both places: it
   // accepted `a-` and `a--b`, which the runtime rejects, and it accepted YAML the parser refuses. Same lesson as
   // the preset's metadata one file up.
-  const yaml = await import(pathToFileURL(join(dirname(resolveDshScope()), 'js-yaml', 'index.js')).href)
+  const yaml = await import(pathToFileURL(join(resolveDeploymentNodeModules(), 'js-yaml', 'index.js')).href)
   const parsed = yaml.load(frontmatter[1])
   assert.equal(typeof parsed, 'object', 'the frontmatter does not parse as a mapping')
   const { isSkillName } = await importDsh('dsh-skill')
@@ -268,7 +268,7 @@ test('preset.yml parses, and carries the metadata the roster shows a user', asyn
   // js-yaml is the DEPLOYMENT's own parser, one level above the `@deepseek-ai` scope `importDsh` resolves in, so
   // it is imported by path. Using the same module the loader calls is the point: a different YAML implementation
   // could accept what this one rejects.
-  const yaml = await import(pathToFileURL(join(dirname(resolveDshScope()), 'js-yaml', 'index.js')).href)
+  const yaml = await import(pathToFileURL(join(resolveDeploymentNodeModules(), 'js-yaml', 'index.js')).href)
   const parsed = yaml.load(text)
   assert.equal(typeof parsed, 'object', 'the roster reads this file as a mapping and shows nothing when it is not one')
   assert.equal(parsed.name, 'DeepBlend Studio', 'the roster name is what a user picks the preset by')

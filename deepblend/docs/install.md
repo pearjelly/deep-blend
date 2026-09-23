@@ -16,15 +16,22 @@
 | DSH | **`0.1.5-rc.2`**，钉住的版本 | `dsh --version`；它是兼容性锚点，别的版本未必能装（见 §4） |
 | git | 任意 | `git --version` |
 | **一个已初始化的 profile** | 第 3 步会改它，所以它必须先存在 | `ls $DSH_HOME/profiles/web`。**profile 是 `dsh` 建的，不是这个安装器建的**，所以先跑一次 `dsh web`（或 `dsh --profile web --dump-config`）把它创建出来 |
-| **ffmpeg 与 ffprobe** | 任意近期版本（macOS：`brew install ffmpeg`）。**这一步不装它**——渲染不需要它，只有把帧编成 MP4 的**交付**需要 | `ffmpeg -version` 与 `ffprobe -version`。缺了它渲染照跑、帧一帧不丢，编码会以 `ENCODER_NOT_FOUND` 失败并在消息里点名（`recovery.md` §3）；也可以在 operator layer 里把绝对路径写进 `ffmpegPath` / `ffprobePath` |
+| **ffmpeg 与 ffprobe** | 任意近期版本：macOS `brew install ffmpeg`；Debian/Ubuntu `sudo apt install ffmpeg`；Fedora `sudo dnf install ffmpeg`；Windows `winget install ffmpeg`。**这一步不装它**——渲染不需要它，只有把帧编成 MP4 的**交付**需要 | `ffmpeg -version` 与 `ffprobe -version`。缺了它渲染照跑、帧一帧不丢，编码会以 `ENCODER_NOT_FOUND` 失败并在消息里点名（`recovery.md` §3）；也可以在 operator layer 里把绝对路径写进 `ffmpegPath` / `ffprobePath` |
 
 DSH 不在机器上时：
 
 ```bash
-npm install -g @deepseek-ai/dsh@0.1.5-rc.2
+npm install -g @deepseek-ai/dsh@0.1.5-rc.2 \
+  @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
 dsh web                # 首次运行会创建 profile；装完之后再重启一次它
 ```
 
+> **为什么多装两个包**：DSH 自己的清单**不带**它们 ✓，而本仓库的套件要用
+> `dsh-subprocess-local`（每一个 Blender 与组合套件 ✓）、实拍视觉探针要用 `dsh-attachment-local` ✓。
+> 一次全局安装会把部署**拆成两处** ✓（实测：harness 自己的依赖嵌在包内 ✓，另外装的落在上一层 ✓），
+> `link-workspace.mjs` 两处都会找 ✓。少了它们，第 1 步会以「有包不在部署里」退出 2 ✓，
+> 并点名是哪个包、谁要它 ✓。
+>
 > **为什么 profile 必须是 `dsh` 建的**：一个 profile 是它自己的一目录文件
 > （`cordis.yml`、`pnpm-workspace.yaml`、manifest），由 launcher 写入并组合。
 > 手工拼半个出来会得到一个**启动方式与其它每个部署不同**的部署，所以

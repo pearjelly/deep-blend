@@ -116,7 +116,7 @@ blender_export {projectId, revision, jobId}
 
 | 码 | 意思 | 你该做的 |
 |---|---|---|
-| `ENCODER_NOT_FOUND` | 这台机器上没有 ffmpeg（或配置里的路径指错了）——**渲染没事，是编码没开始** | 装上：macOS `brew install ffmpeg`，或在 DeepBlend 配置里给出绝对路径 `ffmpegPath`；然后对同一个 job 再调一次 `blender_export` |
+| `ENCODER_NOT_FOUND` | 这台机器上没有 ffmpeg（或配置里的路径指错了）——**渲染没事，是编码没开始** | 装上：macOS `brew install ffmpeg`、Debian/Ubuntu `sudo apt install ffmpeg`、Fedora `sudo dnf install ffmpeg`、Windows `winget install ffmpeg`；任何平台上也可以直接在配置里给出绝对路径 `ffmpegPath`；然后对同一个 job 再调一次 `blender_export` |
 | `PROBE_FAILED` | ffprobe 读不了刚编出来的文件 | 同样先确认 ffprobe 在 PATH 上；装好后再 `blender_export` |
 | `ENCODE_VERIFY_FAILED` | 编码成功，但**量到的属性与 job 声称的不一致** | 不要发布它。看消息里的 `field claimed … but probed …`：帧数不符通常是帧目录被动过，分辨率/fps 不符通常是 SceneSpec 与 profile 不一致 |
 

@@ -57,7 +57,7 @@
 import { existsSync, mkdirSync, rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { resolveDshScope } from '../tests/lib/dsh-deployment.mjs'
+import { deploymentScopes, resolveDshScope } from '../tests/lib/dsh-deployment.mjs'
 import {
   PACKAGES,
   SCANNED_DIRECTORIES,
@@ -79,14 +79,15 @@ const checkOnly = process.argv.includes('--check')
 // suite would fail anyway, and an unclear error here is the thing this script
 // exists to delete.
 // ---------------------------------------------------------------------------
-let scope
+let scopes
 try {
-  scope = resolveDshScope()
+  scopes = deploymentScopes()
+  if (scopes.length === 0) throw new Error('no @deepseek-ai scope directory was found')
 } catch (error) {
   console.error(String(error instanceof Error ? error.message : error))
   process.exit(2)
 }
-say('dsh scope', scope)
+say('dsh scope(s)', scopes)
 
 const local = localPackages()
 if (local.size === 0) {
@@ -108,9 +109,21 @@ if (external.length === 0 && internal.length === 0) {
 /** Where each specifier has to point, and who asked for it. */
 const wanted = [
   ...internal.map(specifier => ({ specifier, target: local.get(specifier), declaredBy: declarations.get(specifier) })),
+  // EACH SPECIFIER FROM THE SCOPE THAT ACTUALLY HOLDS IT. One global install puts the harness's own
+  // dependencies under the package and anything installed alongside it in the scope directory above —
+  // MEASURED: five of this repository's six imports come from the first, and `dsh-subprocess-local`
+  // from the second. Assuming one directory made this step fail on every fresh machine, CI included.
   ...external.map(specifier => ({
     specifier,
-    target: join(scope, specifier.split('/')[1]),
+    target: (() => {
+      try {
+        return join(resolveDshScope(specifier.split('/')[1]), specifier.split('/')[1])
+      } catch {
+        // Reported below as TARGET MISSING, with the scope list in the message: a package that is in
+        // no scope is a deployment that is missing something, not a directory that was not found.
+        return join(scopes[0], specifier.split('/')[1])
+      }
+    })(),
     declaredBy: declarations.get(specifier),
   })),
 ]
@@ -141,7 +154,8 @@ const missingTargets = plan.filter(entry => entry.action === 'TARGET MISSING')
 const drifted = plan.filter(entry => entry.action === 'missing' || entry.action === 'DRIFTED')
 
 if (missingTargets.length > 0) {
-  say('result', `${missingTargets.length} package(s) are not in the deployment at ${scope}`)
+  say('result', `${missingTargets.length} package(s) are not in the deployment`)
+  say('scopes', scopes)
   say('fix', 'install the DSH package that provides them, or set DEEPBLEND_DSH_ROOT to another deployment')
   process.exit(2)
 }

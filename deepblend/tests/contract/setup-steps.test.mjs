@@ -278,6 +278,63 @@ test('the platform the managed Blender is pinned for is stated where prerequisit
   }
 })
 
+test('a suite that cannot find Blender names the variable that fixes it, and the OTHER key', () => {
+  // THE MOMENT THE TWO NAMES HAVE TO BE TOLD APART. On any platform the managed install does not
+  // serve, a contributor has already installed Blender themselves and told the PRODUCT about it
+  // (`blenderPath` on the operator layer). The suites read `DEEPBLEND_BLENDER_PATH` instead, so the
+  // first thing they say is "Blender not found" — at the one moment the reader is most likely to
+  // conclude the product is broken rather than that they are looking at a second knob.
+  //
+  // MEASURED on a Linux container (ledger C5): `run-all.sh` said "Blender not found at
+  // <repo>/.tools/Blender.app/..." and pointed at a document. The fix is named here now, and so is
+  // the fact that it is not the product's key.
+  const result = spawnSync(process.execPath, [join(ROOT, 'deepblend', 'tests', 'blender-integration', 'fixture.e2e.mjs')], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: { ...process.env, DEEPBLEND_BLENDER_PATH: join(ROOT, 'no', 'such', 'blender') },
+  })
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
+
+  assert.equal(result.status, 2, `a missing Blender must be exit 2, not a stack: ${output.slice(-300)}`)
+  assert.match(output, /DEEPBLEND_BLENDER_PATH=\/path\/to\/blender/, 'the message does not name the variable that fixes it')
+  assert.match(output, /blenderPath/, 'the message does not name the key the PRODUCT reads')
+  assert.match(output, /not the same key/, 'the message names two keys without saying they are different')
+
+  // The runner says the same thing, because that is what a contributor actually runs.
+  const runner = readFileSync(join(ROOT, 'deepblend', 'tests', 'run-all.sh'), 'utf8')
+  const gate = runner.slice(runner.indexOf('Blender not found at'), runner.indexOf('exit 2', runner.indexOf('Blender not found at')))
+  assert.match(gate, /DEEPBLEND_BLENDER_PATH/, 'run-all.sh does not name the variable that fixes it')
+  assert.match(gate, /blenderPath/, 'run-all.sh does not name the key the PRODUCT reads')
+})
+
+test('the ffmpeg advice names a command for more than one platform', () => {
+  // A PREREQUISITE WHOSE ONLY INSTRUCTION IS FOR SOMEBODY ELSE'S MACHINE.
+  //
+  // The managed Blender is macOS arm64 and only macOS arm64 — that is pinned, asserted and stated
+  // (the test above). ffmpeg is different: it is installed BY THE USER on every platform, and all
+  // three sites that gave a command gave `brew install ffmpeg`. MEASURED on a Linux container:
+  // nothing in this repository said how a Linux user gets ffmpeg, and `recovery.md` is where they
+  // land when the delivery step fails with `ENCODER_NOT_FOUND` — the one moment the advice has to
+  // be for their machine. The English README, which is the market's landing page, named ffmpeg and
+  // gave no command at all.
+  //
+  // The rule: a document that mentions ffmpeg has to name a way to get it that is not macOS-only.
+  // The platform-independent escape hatch (`ffmpegPath`) counts as one, because it works everywhere
+  // and the product reads it — but a bare `brew install` does not.
+  const otherPlatforms = /apt(-get)? install ffmpeg|dnf install ffmpeg|pacman -S ffmpeg|zypper install ffmpeg|winget install ffmpeg|choco install ffmpeg|scoop install ffmpeg|ffmpegPath/
+
+  const mentioning = ['README.md', 'README.zh.md', 'deepblend/docs/install.md', 'deepblend/docs/recovery.md']
+  for (const name of mentioning) {
+    const text = readFileSync(join(ROOT, name), 'utf8')
+    assert.ok(text.includes('ffmpeg'), `${name} no longer mentions ffmpeg — this assertion has lost its subject`)
+    assert.match(text, otherPlatforms, `${name} tells a user to install ffmpeg with a macOS-only command`)
+  }
+
+  // And the negative control: the pattern must be able to fail, or the rule above proves nothing.
+  assert.doesNotMatch('macOS: `brew install ffmpeg`.', otherPlatforms)
+  assert.match('macOS: `brew install ffmpeg`; Linux: `sudo apt install ffmpeg`.', otherPlatforms)
+})
+
 test('the profile installer says why it still exists, and it is not pnpm', () => {
   // A STEP THAT CANNOT SAY WHY IT EXISTS IS THE ONE SOMEBODY DELETES.
   //

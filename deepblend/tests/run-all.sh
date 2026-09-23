@@ -36,6 +36,15 @@ BLENDER="$ROOT/.tools/Blender.app/Contents/MacOS/Blender"
 if [ ! -x "$BLENDER" ]; then
   echo "Blender not found at $BLENDER"
   echo "The Blender suites cannot run. See deepblend/docs/dsh-baseline.md §5."
+  # THE FIX, NAMED, AT THE MOMENT SOMEBODY MEETS THIS. On any platform the managed install
+  # does not serve (everything but macOS arm64), the reader has just installed Blender
+  # themselves and told the PRODUCT about it — `blenderPath` in the operator layer — and this
+  # script would still say "not found", because the suites read a different variable. MEASURED
+  # on a Linux container: that is the exact moment the two names have to be told apart.
+  echo "On a platform the managed install does not serve: install Blender 5.2.1 yourself, then"
+  echo "  DEEPBLEND_BLENDER_PATH=/path/to/blender bash deepblend/tests/run-all.sh"
+  echo "That variable is what these SUITES read. The installed product reads \`blenderPath\` on the"
+  echo "deepblend-blender-runtime row of the operator layer — set both, and they are not the same key."
   exit 2
 fi
 

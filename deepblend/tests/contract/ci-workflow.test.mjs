@@ -126,6 +126,49 @@ test('the workflow pins the same DSH version as the toolchain anchor', () => {
   }
 })
 
+test('the workflow installs the deployment packages the harness does not bring, and nothing else', () => {
+  // A GREEN JOB THAT CANNOT LINK IS NOT A GREEN JOB. MEASURED: this workflow failed on every push for
+  // at least six commits, at `link-workspace.mjs`, with "Could not locate a DSH deployment" — because
+  // a global install of the pinned harness does not put every package this repository imports in one
+  // place. The harness's own dependencies nest under it; `dsh-subprocess-local` (imported by every
+  // Blender and composition suite) and `dsh-attachment-local` (the live visual probe) are not in that
+  // tree at all, and `npm install -g @deepseek-ai/dsh` alone therefore produces a deployment the
+  // suites cannot be linked against.
+  //
+  // Two-way, like the other vocabulary assertions here: every package named in the install step has
+  // to be imported by the repository somewhere, or the step is carrying something nobody needs.
+  const install = workflow.match(/npm install --global [^\n]*/)
+  assert.ok(install !== null, 'the workflow installs no deployment at all')
+
+  const required = ['@deepseek-ai/dsh-subprocess-local', '@deepseek-ai/dsh-attachment-local']
+  for (const spec of required) {
+    assert.ok(install[0].includes(spec), `the workflow does not install ${spec}, which this repository imports`)
+  }
+
+  // The other direction, from the tree rather than from a list: whatever the step names beyond the
+  // harness itself has to be reachable as an import in this repository.
+  const sources = []
+  const walk = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+      const full = join(directory, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (/\.(mjs|js|yml|json)$/.test(entry.name)) sources.push(readFileSync(full, 'utf8'))
+    }
+  }
+  walk(join(ROOT, 'packages'))
+  walk(join(ROOT, 'deepblend'))
+  const corpus = sources.join('\n')
+
+  for (const spec of [...install[0].matchAll(/@deepseek-ai\/[\w.-]+/g)].map(match => match[0])) {
+    if (spec.startsWith('@deepseek-ai/dsh@')) continue
+    assert.ok(
+      corpus.includes(spec),
+      `${spec} is installed by the workflow but nothing in this repository imports it — drop it, or say why here`,
+    )
+  }
+})
+
 test('the workflow states no count of the test layer', () => {
   // THE DEFECT THIS FILE EXISTS FOR. "17 files — 806 checks plus 82 cases" sat in this
   // comment while the truth moved to 26/830/156. The numbers belong where a run prints

@@ -66,7 +66,14 @@ jobs:
       # `deepblend/tests/lib/dsh-deployment.mjs` for why). So the deployment has
       # to exist before anything can be linked or run.
       - name: Install the pinned DSH deployment
-        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2
+      # AND TWO PACKAGES THE HARNESS'S OWN MANIFEST DOES NOT BRING. MEASURED on a clean machine:
+      # `npm install -g @deepseek-ai/dsh@<pin>` produces a SPLIT tree — the harness's dependencies
+      # nest under the package (120 of them, including cordis/dsh-tools/schemastery), while anything
+      # else installed alongside it lands in the scope directory above. This repository's suites
+      # import `dsh-subprocess-local` (every Blender and composition suite) and its live visual probe
+      # imports `dsh-attachment-local`, so a deployment without them cannot be linked at all — which
+      # is how this job was failing on every push before the resolver learned to look in both places.
+        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
 
       # The step a fresh clone needs: `node_modules/` is git-ignored and holds
       # only symlinks, so without this every suite dies on ERR_MODULE_NOT_FOUND
