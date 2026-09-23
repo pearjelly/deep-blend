@@ -266,6 +266,16 @@ const READERS = {
   '轮次记录数': () => String(roundRecords.length),
   'M6 总项': () => String(m6ItemsInSpec().length),
   'M6 已完成项': () => String(m6Rows.filter(cells => cells[1] === '✓').length),
+  // Derived from the survivors document rather than copied from it: a row added there and not
+  // reflected here makes the ledger red, which is the point of a number having one source.
+  '活下来的变异（累计）': () => String(survivorRows().length),
+}
+
+/** The rows of `mutation-survivors.md` §2 — the holes this repository has actually found. */
+function survivorRows() {
+  const doc = readFileSync(join(ROOT, 'deepblend', 'docs', 'mutation-survivors.md'), 'utf8')
+  const section = doc.slice(doc.indexOf('## 2. 存活者'), doc.indexOf('## 3. 量具自己也会说谎'))
+  return section.split('\n').filter(line => /^\| \d+ \| /.test(line))
 }
 
 /** The three coverage numbers, from the one log that holds them. */

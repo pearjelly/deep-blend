@@ -40,7 +40,7 @@
 | C11 | 安全与合规 | SPEC §15 逐条有证据或具名缺口吗 | ✓ | `deepblend/docs/security.md` 是逐条对照表，`deepblend/tests/contract/security-controls.test.mjs` 盯着「SPEC 增删一条要求、表不跟着改就红」与「表里指到的代码或断言不存在就红」 | — |
 | C12 | 安全与合规 | 第三方许可盘点过吗——Blender 的 GPL、ffmpeg、受管 Blender 的下载与再分发 | ✓ | `deepblend/docs/third-party.md`：三类关系（外部程序调用 / 同行依赖 / 再分发）与逐项表，每行指到代码或断言，§4 给出复核命令；`deepblend/tests/contract/third-party.test.mjs` 盯四件事——产品 spawn 的外部程序**恰好**是配置 schema 声明的三个（双向，从源码推导）、八个 manifest 的 `license` 与仓库根一致、产品的 `dependencies` 只有自己的包而外部一律是 `peerDependencies`、被跟踪的文件里没有一个二进制。许可读数取自**产物自己**：Blender 自带的 `head .tools/Blender.app/Contents/Resources/text/license/license.md`、本机 `ffmpeg -version` 的 `configuration:` 行 | — |
 | C13 | 质量 | 黑暗行是多少 | ✓ | `deepblend/docs/probe-coverage.log` 的读数由 `deepblend/tools/coverage-probe.mjs` 产出，合并规则由 `deepblend/tests/contract/probe-merge.test.mjs` 盯着（量具自己错了四次，四次都是合并规则） | — |
-| C14 | 质量 | 活下来的变异有多少、记在哪里 | ✗ | 今天的读数：记录散在各轮的 `deepblend/docs/milestone-status.md` 里，每轮点名它自己那几条 | 没有一份**常驻的**「活下来的变异」清单。活下来的变异是每轮最有价值的产出（它指出一个断言的洞），而它现在只活在那一轮的散文里，下一轮不会有人再读它 |
+| C14 | 质量 | 活下来的变异有多少、记在哪里 | ✓ | `deepblend/docs/mutation-survivors.md`：一份**追加式**的表，每行一个洞——哪一轮、什么变异、**三个形状**里的哪一个、杀死它的断言、状态——外加 §1 的三条规则与 §3 的**量具自己说谎**一条；`deepblend/tests/contract/mutation-survivors.test.mjs` 盯四件事：每行的 killer 指向的文件或命令存在、每行的形状取自**由断言持有**的闭集、每行引用的 `milestone-status.md` 小节真的存在、而本文档的散文里**不许出现计数**（行数就是计数） | — |
 | C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台，`milestone-status.md` §198）；其余七项（Blender Live Bridge、Blender Add-on、远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 |
 | C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✗ | 今天的读数：工作台的标签与提示是中文（`packages/deepblend/ui/lib/client.js`），市场入口 `README.md` 是英文、详细的那份 `README.zh.md` 是中文 | 工作台没有语言开关，也没有第二份文案：非中文用户装完之后，看到的是一个全中文的界面。这一行今天连「要不要双语」都还没有决定 |
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✗ | 今天的读数：渲染侧有一个按帧实测的参考值，写在审批提示里（`packages/deepblend/tool/lib/render-tools.js`），而审批本身是**强制**的（`deepblend/tests/composition/approval.e2e.mjs`）；视觉审查的 token 上限在 `packages/deepblend/bundle/cordis.patch.yml` 里 | **token 侧没有成本模型**：一次视觉审查要花多少 token、一次会话要花多少钱，今天没有任何读数；渲染侧只有「参考机每帧多少秒」，没有「这一次要多少分钟」的预估 |
@@ -74,9 +74,10 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 5 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 6 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
+| 活下来的变异（累计） | 7 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
 
 **这里刻意没有的**：README 里的断言总数与用例总数。那是一个**快照**，只能有一个地方有它
 （`README.zh.md`，并且标着「快照」），由 `deepblend/tests/contract/documented-counts.test.mjs`
@@ -237,3 +238,21 @@
   下一轮的第一顺位是 **C14（活下来的变异清单）** ✓——这一轮又出现一条存活者 ✓，
   而三轮下来「存活者」已经是一个**反复出现的形状**（断言的作用域错了）✓，
   值得有一份常驻的表把它记下来 ✓；其次是 **C17（成本）** ✓，它是唯一一行用户**每次花钱时**都会遇到的 ✓。
+
+### 轮 6 — 2026-09-23
+
+- **移动：M1** — C14 从 ✗ → ✓：活下来的变异第一次有了**常驻的表** ✓。
+  它由 `deepblend/docs/mutation-survivors.md` ✓ 与 `contract/mutation-survivors.test.mjs` ✓ 组成 ✓，
+  而它不只是把旧散文抄一遍 ✓：把六条存活者摆在一起之后 ✓，**三个形状**自己浮出来了 ✓——
+  ① 断言的作用域比主张宽 ✓（四条 ✓）、② 断言测的是被测对象旁边的东西 ✓（一条 ✓）、
+  ③ 检查读了一个范围却把它叫作全部 ✓（两条 ✓）。§1 把三个形状写成**三条规则** ✓，
+  于是下一份断言写完之后可以拿它去问 ✓——这是这一行真正的产出 ✓，表只是它的载体 ✓。
+- **移动：M3** — 账本的 §2 多了一个**由表推导**的数字 ✓：「活下来的变异（累计）= 6」 ✓——
+  它不是抄的 ✓，是 `commercial-readiness.test.mjs` 数 `mutation-survivors.md` §2 的行数算出来的 ✓，
+  所以表加一行而账本没跟着动，账本会红 ✓。
+- **移动：M5** — 关闭 §204.7 的第一条 ✓（也是 §203.8 与 §204.7 连着两轮点名的那个缺口 ✓）。
+- **判据**：`node deepblend/tests/contract/mutation-survivors.test.mjs` ✓（六项 ✓）、
+  `node deepblend/tests/contract/commercial-readiness.test.mjs` ✓（它重算那个数字 ✓）。
+- **还差什么**：账本上仍然开着的是 C2、C3、C7、C15、C16、C17 ✓。
+  下一轮的第一顺位是 **C17（成本）** ✓——它是唯一一行**用户每次花钱时都会遇到**的 ✓，
+  而它今天连一个读数都没有 ✓（渲染侧只有「参考机每帧多少秒」 ✓，token 侧一个都没有 ✓）。
