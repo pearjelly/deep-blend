@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|
 | C1 | 安装与升级 | 三条安装路线今天各自可用吗 | ✓ | `deepblend/tools/dsh-plugin-install-probe.mjs` 分别以本仓库路径、git spec、Release tarball 三种 spec 跑过，读数在三份日志里：`deepblend/docs/probe-dsh-plugin-npm.log`、`deepblend/docs/probe-dsh-plugin-github.log`、`deepblend/docs/probe-dsh-plugin-tarball.log`；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着清单里的路线声明 | — |
 | C2 | 安装与升级 | 三条路线服务的是**同一个**版本，这件事有断言吗 | ✓ | `npm run release:parity`：三条路线各装一次 ✓，然后把三份读数**互相比较** ✓——三条的 `installed version` 必须**互相相同** ✓ **且**等于 `deepblend/version.json` ✓、三条的 `/deepblend/workbench` 都必须成功回答 ✓、preset 相同 ✓，以及**一条必须不同的读数** ✓（tarball 那条只从 registry 取一个包 ✓，另外两条各取七个 ✓，防「一致」退化成「什么都没量」✓）；读数在 `deepblend/docs/probe-route-parity.log` ✓；**它能红，而且红过** ✓：把一条路线的 spec 指到旧版本 ✓，`DEEPBLEND_PARITY_NPM_SPEC` 一跑就报出两个版本并以非零码退出 ✓ | — |
-| C3 | 安装与升级 | 升级路径有答案吗——装过旧版的 profile 能升到新版吗 | ✗ | 今天的读数：tarball 路线的 URL 跨版本逐字节相同，于是 pnpm 的 store 会把上一个产物装给你（`milestone-status.md` §199.6 的第二条，实测三行读数） | 「已经装过旧版的 profile 能升上来」**没有实测过**：需要 `dsh plugin remove` ＋ `add`，或者一条显式的 `--force`，两条都没试（§199.9 的缺口二） |
+| C3 | 安装与升级 | 升级路径有答案吗——装过旧版的 profile 能升到新版吗 | ✓ | `node deepblend/tools/upgrade-path-probe.mjs`：从**两个真实的旧 spec** 出发 ✓（registry 上钉住的旧版本 ✓、按 **tag** 取的旧 Release 资产 ✓），每条路线各在自己的临时 `DSH_HOME` 与**空 store** 里 ✓，读回版本**与 profile 里记下来的 spec** ✓——后者是**为什么**动或不动 ✓；日志 `deepblend/docs/probe-upgrade-path.log` ✓；`deepblend/tests/contract/upgrade-path.test.mjs` 盯着那份读数的形状 ✓，并盯着 `deepblend/docs/install.md` 的升级一节**按顺序**给出两条命令 ✓、**说出为什么只跑第二条不够** ✓、且把源码路线的答案是**推断**而不是读数写明 ✓ | — |
 | C4 | 安装与升级 | 卸载干净吗——`plugin remove` 之后 profile 与 preset 根不留残留 | ✓ | `node deepblend/tools/uninstall-residue-probe.mjs`：一次真实的「装 → 按手册卸 → 读回」走查，残留表由读数推导（`deepblend/docs/probe-uninstall-residue.log`）；契约层由 `deepblend/tests/contract/uninstall-residue.test.mjs` 在临时 `DSH_HOME` 上重跑同一件事 | — |
 | C5 | 跨平台 | 受管 Blender 只有 `macos-arm64` 一个构建——别的平台今天的实际体验是什么 | ✓ | `node deepblend/tools/cross-platform-probe.mjs`：在一个真实的 `x86_64` Linux 容器里按 `install.md` 的步骤走一遍（装 DSH、链接工作区、`blender:install` 拒绝、自装 Blender、设 `blenderPath`、再装一次、跑契约层、跑一次真渲染），日志 `deepblend/docs/probe-cross-platform.log`；**CI 在 ubuntu 上绿**——那是「另一台机器上真的装得起来」在机器层面的读数（`gh run list --repo pearjelly/deep-blend`）；`deepblend/tests/contract/workspace-links.test.mjs` 用一份**拆开的部署**固定装置盯着「每个包从持有它的那个 scope 解析」；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着「用户自己设的 `blenderPath` 在重装后仍在」；`deepblend/tests/contract/setup-steps.test.mjs` 盯着「ffmpeg 装法不止一个平台」与「找不到 Blender 时说清两个键」 | — |
 | C6 | 首次体验 | 从零到「渲出第一帧」要几步、几分钟、卡在哪一步 | ✓ | `npm run verify:clone -- --with-blender`：在一个临时 clone 与临时 `DSH_HOME` 上按手册走一遍，每一步计时，最后真的渲出一张图并**从磁盘读回来**；日志 `deepblend/docs/probe-first-run.log`；`deepblend/tests/contract/first-run.test.mjs` 盯着那份日志里四条手册步骤与首帧的读数都在、并且最慢的那一步是 Blender 下载（一次没有 `--with-blender` 的重跑会让它红） | — |
@@ -74,10 +74,10 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 8 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 9 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
-| 活下来的变异（累计） | 7 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
+| 活下来的变异（累计） | 8 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
 
 **这里刻意没有的**：README 里的断言总数与用例总数。那是一个**快照**，只能有一个地方有它
 （`README.zh.md`，并且标着「快照」），由 `deepblend/tests/contract/documented-counts.test.mjs`
@@ -312,3 +312,27 @@
   它与这一轮是同一个家族 ✓：三条路线都装得上 ✓、都服务同一个版本 ✓，
   而**「装过旧版的那台机器能不能升上来」**仍然没有读数 ✓，
   而它正是 §199.6 量到的那个陷阱的下一步 ✓（同一个 URL 会给你旧产物 ✓）。
+
+### 轮 9 — 2026-09-23
+
+- **移动：M1** — C3 从 ✗ → ✓：**升级路径第一次有答案** ✓，而答案不是一句话 ✓，是两条命令加一个机制 ✓。
+  实测（`probe-upgrade-path.log` ✓）：**两条路线的行为不一样** ✓——
+  npm 路线上从一个精确的旧版本重新 `add` 裸包名 ✓，**记录下来的 spec 还是旧的** ✓、装着的版本**还是旧的** ✓；
+  `remove` + `add` 之后才变成新的 ✓。tarball 路线**重新 `add` 就够** ✓，
+  因为它的 spec 是那个不带版本号的 URL ✓，而 `v0.2.1` → `latest` **就是换了一个 spec** ✓。
+  **机制**（这一轮真正量到的东西 ✓）：生态的 `add` **不会动一个已经存在的依赖的 spec** ✓。
+- **移动：M3** — 账本多了一条**由表推导**的读数（活下来的变异 7 → 8 ✓），
+  而这一轮**又**出现一条存活者 ✓——所以那个数字不是装饰 ✓：
+  它这一轮真的动了 ✓，而它动的方式正是它该动的方式 ✓（`mutation-survivors.md` 加了一行 ✓、
+  账本的数字跟着动 ✓，而**如果表加了行而账本没跟着动，账本会红** ✓）。
+- **移动：M4** — 一条**活下来的变异**被新断言杀死 ✓，而它**存活了两次** ✓，两次的形状相同 ✓：
+  第一版要求「至少四条 spec 行」✓——**任何四条都满足** ✓；
+  第二版要求「某条 npm 行的值等于旧版本」✓——而重新 `add` 之后那一行**也是** `0.2.1` ✓，
+  所以删掉**最初**那条仍然通过 ✓。第三次改成按**精确标签**要求那一对 ✓，它才红 ✓。
+- **判据**：`node deepblend/tools/upgrade-path-probe.mjs` ✓、
+  `node deepblend/tests/contract/upgrade-path.test.mjs` ✓（四项 ✓）、
+  `deepblend/docs/install.md` §6 的升级一节 ✓。
+- **还差什么**：账本上仍然开着的是 C7、C15、C16 ✓。
+  下一轮的第一顺位是 **C16（双语文案）** ✓——它是剩下三行里**用户感知最强**的一行 ✓
+  （一个非中文用户装完之后看到的是一整屏中文 ✓），而它今天连「要不要做」都还没有决定 ✓；
+  其次是 **C7**（只有用户能改变 ✓）与 **C15**（M6 的其余七项 ✓，每一项都是一个功能轮 ✓）。

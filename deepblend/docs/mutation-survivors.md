@@ -42,6 +42,7 @@
 | 5 | `milestone-status.md` §203.6 | `deepblend/docs/install.md` 只提 `linux-x64`、不提 arm64 没有构建 | **A** | `deepblend/tests/contract/setup-steps.test.mjs`（前两版分别是「文件里出现 `arm64`」与「同一行出现」——都被那一行的**前半句** `macOS arm64` 满足了；现在要求**有方向**：先上游产物名、后 arm64） | 已杀死 ✓ |
 | 6 | `milestone-status.md` §204.5 | `deepblend/docs/third-party.md` 的 §2 表里，ffprobe 那一行不再是清单的一行 | **A** | `deepblend/tests/contract/third-party.test.mjs`（前两版分别是 `inventory.includes('ffprobe')` 与「某一行同时含 Blender 与『外部程序』」——后者被 §1 那张讲三类关系的表满足了；现在**抽出 §2**、按**首格是主语**、**第三格是怎么用**判定） | 已杀死 ✓ |
 | 7 | `milestone-status.md` §205.5 | `deepblend/docs/mutation-survivors.md` §1 里多出**第四个形状**的行 | **A** | `deepblend/tests/contract/mutation-survivors.test.mjs`（第一版的正则只认 `[ABC]`——**它只能看见自己已经知道的那些形状**，所以一个 `D` 行对它不可见，两个集合永远相等；现在取 §1 表里的**任意字母**再比较） | 已杀死 ✓ |
+| 8 | `milestone-status.md` §208.5 | `deepblend/docs/probe-upgrade-path.log` 里那条**说明机制**的 spec 行被删掉 | **A** | `deepblend/tests/contract/upgrade-path.test.mjs`（第一版要求「至少四条 spec 行」——**任何四条都满足**；第二版要求「某条 npm 行的值等于旧版本」——而重新 `add` 之后那一行**也是** `0.2.1`，所以删掉**最初**那条仍然通过；现在按**精确标签**要求那一对：`npm recorded spec:` 与 `npm recorded spec now: ^<当前>`） | 已杀死 ✓ |
 
 **一轮没有存活者就不加行。** 这张表记的是**洞**，不是跑过的次数——
 「这一轮全红」是 `milestone-status.md` 那一节的事，写到这里只会变成一个没人读的数字。
@@ -54,6 +55,7 @@
 |---|---|---|---|
 | `milestone-status.md` §204.5 | 变异脚本**漏删了一个被跟踪的 `.dmg`**，于是后面三条变异都被同一个残留物弄红，全部报告成 `KILLED` | **C** | 每一条变异**打印自己的断言消息**，而不是只打印「KILLED」；残留物在每一条之后清掉，并断言它真的没了 |
 | `milestone-status.md` §205.5 | 一条**根本没有应用**的变异被报告成 `SURVIVED`：变异脚本的替换模式没有匹配上文档里那个加粗的单元格，文件一个字节都没变 | **C** | 每一条变异**先断言文件真的变了**（`assert s != before`），变了才去跑套件；否则报告 `NOT-APPLIED` 而不是 `SURVIVED` |
+| `milestone-status.md` §208.5 | 这一轮的**临时变异循环**里，三条「存活」报告其实**根本没有应用**：一条是 shell 把反引号当命令替换吃掉了模式，两条是模式与文件里的文本不匹配 | **C** | §3 第一条的规矩（**先断言文件真的变了**）**没有写进那些临时循环**——这一轮起，任何一次变异都在**同一个脚本**里跑，而那个脚本对每一条都先断言文件变了 |
 
 **为什么这条也在表里**：一次**假的杀死**会把「这个洞还开着」记成「这个洞已经关上」——
 而这一份文档的全部价值就是那张洞的清单。**量具的错与断言的洞同价。**

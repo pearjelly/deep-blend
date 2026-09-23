@@ -1,0 +1,59 @@
+# Upgrade-path probe — can a profile that installed an OLD version be upgraded, and by which command
+#
+#   node deepblend/tools/upgrade-path-probe.mjs | tee deepblend/docs/probe-upgrade-path.log
+#
+# Taken 2026-09-23 (commercial-readiness ledger C3). What it is evidence for: `install.md` §6's upgrade
+# answer, which did not exist before this run because nobody had asked the question with a command.
+#
+# WHY IT IS WORTH A PROBE. Three routes install, and (since C2) they are compared and agree. What a
+# user asks SECOND is "I have last month's build — how do I get this month's?", and the sharp edge is
+# the tarball route: its asset name carries no version (the market's `/releases/latest/download/`
+# rule), so the URL is byte-identical between releases while pnpm's store is keyed by that URL. A
+# machine that installed the previous release and asks for the same URL gets the previous artifact —
+# measured in `milestone-status.md` §199.6, where it looked exactly like a failed release.
+#
+# HOW IT IS MEASURED. Both old specs are real and still addressable: `@deepblend/dsh-blender-bundle@0.2.1`
+# on the registry, and `…/releases/download/v0.2.1/deepblend-bundle.tgz` — a Release asset answers to
+# its TAG even though the version-free name only ever serves the latest, which is what makes this
+# question answerable at all. Each route gets its own scratch `$DSH_HOME` and its own EMPTY pnpm store,
+# so no cache can answer for the network.
+#
+# THE ANSWER, AND THE MECHANISM. The two routes behave differently, and the `recorded spec` lines say
+# why: the ecosystem's `add` leaves an EXISTING dependency's spec alone.
+#
+#   npm      0.2.1 → re-add the bare name → still 0.2.1 (spec unchanged: 0.2.1)
+#                   → remove + add       → 0.2.2  (spec becomes ^0.2.2)
+#   tarball  0.2.1 → re-add the current URL → 0.2.2 (the spec CHANGED: v0.2.1 → latest)
+#
+# So: **re-running `add` upgrades the tarball route and does NOT upgrade the npm route.** The command
+# that works on both is `dsh plugin remove` then `dsh plugin add`, which is now what `install.md` §6
+# tells a reader — with the reason, because "run these two" without "why" is the shape of instruction
+# this repository keeps replacing with a command.
+#
+# WHAT IS NOT MEASURED HERE: the SOURCE route. It tracks the default branch, so it has no old version
+# to start from — its spec string is the same before and after, which by the npm route's mechanism
+# means re-adding it would not move either. That is an inference from the measurement above, not a
+# reading, and it is written down as one.
+
+date: 2026-09-23T11:05:16.114Z
+pnpm: 10.28.2
+the version this repository is at: 0.2.2
+the old version each route starts from: 0.2.1
+
+── npm: 0.2.1 → 0.2.2 ──
+npm installed: @deepblend/dsh-blender-bundle@0.2.1
+npm recorded spec: 0.2.1
+npm after re-adding the current spec: @deepblend/dsh-blender-bundle@0.2.1 (exit 0)
+npm recorded spec now: 0.2.1
+npm after remove + add: @deepblend/dsh-blender-bundle@0.2.2 (remove exit 0, add exit 0)
+npm recorded spec now: ^0.2.2
+npm upgrade path: remove then add — re-adding alone left the old version
+
+── tarball: 0.2.1 → 0.2.2 ──
+tarball installed: @deepblend/dsh-blender-bundle@0.2.1
+tarball recorded spec: https://github.com/pearjelly/deep-blend/releases/download/v0.2.1/deepblend-bundle.tgz
+tarball after re-adding the current spec: @deepblend/dsh-blender-bundle@0.2.2 (exit 0)
+tarball recorded spec now: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+tarball upgrade path: re-running `dsh plugin add` with the current spec is enough
+problems: 0
+result: every route can be upgraded from an old version, and the probe says which command does it

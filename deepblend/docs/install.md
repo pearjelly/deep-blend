@@ -278,6 +278,32 @@ npm run presets:check     # 退出 0，并说「not installed on this machine」
 **一个字节都不动**。一次真实的「装 → 卸 → 读回」走查在
 `probe-uninstall-residue.log`，盯着它的是 `contract/uninstall-residue.test.mjs`。
 
+### 升级到新版本
+
+**两条命令，顺序不能反** ✓：
+
+```bash
+dsh plugin remove @deepblend/dsh-blender-bundle --profile web
+dsh plugin add @deepblend/dsh-blender-bundle --profile web
+```
+
+**为什么不能只跑第二条** ✓：实测（`probe-upgrade-path.log` ✓）——
+生态的 `add` **不会动一个已经存在的依赖的 spec** ✓。
+npm 路线上从一个精确的 `0.2.1` 重新 `add` 裸包名 ✓，记录下来的 spec **还是 `0.2.1`** ✓、
+装着的版本**还是 `0.2.1`** ✓；先 `remove` 再 `add` 之后 ✓，spec 变成 `^0.2.2` ✓、版本变成 `0.2.2` ✓。
+**tarball 路线不一样** ✓：它的 spec 是那个不带版本号的 URL ✓，
+从 `…/download/v0.2.1/…` 换成 `…/latest/download/…` **就是换了一个 spec** ✓，所以重新 `add` 就够 ✓。
+
+**源码路线没有「旧版本」可升** ✓：它跟的是默认分支 ✓，spec 前后是同一个字符串 ✓——
+按上面那个机制推 ✓，它也需要 `remove` + `add` ✓。这是**推断**，不是读数 ✓（写在这里是因为它是有依据的推断 ✓）。
+
+**升级之后怎么知道它真的换了** ✓：
+
+```bash
+dsh plugin list --profile web | grep deepblend     # 看装着的版本
+npm run release:parity                             # 看三条路线服务的是不是同一个版本
+```
+
 剩下两件是这个仓库自己留下的：
 
 ```bash
