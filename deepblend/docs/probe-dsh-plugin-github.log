@@ -6,7 +6,7 @@
 # `npm_config_registry=https://registry.npmjs.org/`, because this machine's configured registry is
 # a mirror and a mirror does not carry a package published minutes ago.
 #
-# Taken 2026-09-23, minutes after the 0.2.1 release, with the same criteria applied to all three
+# Taken 2026-09-23, minutes after the 0.2.2 release, with the same criteria applied to all three
 # routes — that sameness is the point of `--spec`, and the criteria are:
 #
 #   installed version   the bundle the profile actually got, and the six exact pins it carries
@@ -26,8 +26,8 @@
 # nothing on a machine that has never heard of the scope.
 #
 # Body is the tool's output.
-date: 2026-09-23T01:38:38.009Z
-scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-WJp4z5
+date: 2026-09-23T10:16:04.847Z
+scratch DSH_HOME: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-66YSsd
 dsh: 0.1.5-rc.2
 dsh directory: /Users/hxb/.nvm/versions/node/v26.8.2/bin
 pnpm on PATH: 10.28.2
@@ -42,14 +42,14 @@ bundles after: ["@deepseek-ai/dsh-base","@deepseek-ai/dsh-web-app","@deepblend/d
 dependencies after: {"@deepblend/dsh-blender-bundle":"github:pearjelly/deep-blend#path:/packages/deepblend/bundle"}
 packages resolvable in the profile: ["dsh-blender-bundle","dsh-blender-contracts","dsh-blender-host","dsh-blender-preset","dsh-blender-provider-local","dsh-blender-tool","dsh-blender-ui"]
 shared profiles/node_modules created: no
-installed version: @deepblend/dsh-blender-bundle@0.2.1
+installed version: @deepblend/dsh-blender-bundle@0.2.2
 installed sibling pins: @deepblend/dsh-blender-contracts@github:pearjelly/deep-blend#path:/packages/deepblend/contracts, @deepblend/dsh-blender-host@github:pearjelly/deep-blend#path:/packages/deepblend/host, @deepblend/dsh-blender-preset@github:pearjelly/deep-blend#path:/packages/deepblend/preset, @deepblend/dsh-blender-provider-local@github:pearjelly/deep-blend#path:/packages/deepblend/provider-local, @deepblend/dsh-blender-tool@github:pearjelly/deep-blend#path:/packages/deepblend/tool, @deepblend/dsh-blender-ui@github:pearjelly/deep-blend#path:/packages/deepblend/ui
-the version the repository is at: 0.2.1
-the install is the version this repository is at: yes — @deepblend/dsh-blender-bundle@0.2.1, 6 pins (0 exact, 6 git)
-dsh web: port 52713
+the version the repository is at: 0.2.2
+the install is the version this repository is at: yes — @deepblend/dsh-blender-bundle@0.2.2, 6 pins (0 exact, 6 git)
+dsh web: port 53403
 capabilities route: HTTP 200, route=capabilities, hostApiVersion=4
 workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
-projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-WJp4z5/deepblend/projects
+projectsRoot: /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-66YSsd/deepblend/projects
 projectsRoot is under the scratch DSH_HOME: yes — the product default
 checkout store untouched: a <repo>/.deepblend store exists and was NOT used
 presets deployed: ["deepblend","deepblend-dev"]
@@ -58,4 +58,4 @@ deployed presets are byte-identical to deepblend/presets/: yes
 DSH discoverPresets: deepblend: problem: null | deepblend-dev: problem: null
 result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
 
-── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-WJp4z5
+── cleaned up /var/folders/2c/k3qrmr910nz40_qrg8ts5xrm0000gn/T/deepblend-dsh-plugin-66YSsd

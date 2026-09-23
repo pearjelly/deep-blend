@@ -13892,10 +13892,54 @@ usage: null
 * 九个包装检查全部 exit 0 ✓。
 * 本轮**改了 `packages/**`** ✓，所以四步发布链触发 ✓——版本、tarball、Release、npm 四步与三条路线的复验见 §206.9 ✓。
 
-### 206.9 发布链
+### 206.9 发布链：四步走完，而两个读数各教了一件事
 
-（本节由同一次收口写入 ✓：版本 `0.2.1` → `0.2.2` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用**装一次读回来**复验三条路线 ✓。）
+```
+0. deepblend/version.json 0.2.1 -> 0.2.2 ✓ + version:sync（8 个 manifest）✓ + version:check 绿 ✓
+1. release:tarball -> .tmp-release/deepblend-bundle.tgz ✓（commit 1b5defd ✓，6 个包全部打进产物 ✓，376.9 kB ✓）
+2. gh release create v0.2.2 ✓
+3. publish:check -> 7 个包可以发 ✓；publish:packages -> 7 个包全部 ok ✓
+```
+
+**读回来的第一条** ✓：`gh release view v0.2.2 --json assets` 报 `[]` ✓——
+看起来资产没上传 ✓。而 `gh release upload` 报 `ReleaseAsset.name already exists` ✓——
+两句话互相矛盾 ✓。于是去**读字节** ✓：
+
+```
+$ curl -sL -o /tmp/served.tgz https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+http: 200   size: 385980
+$ shasum -a 256 /tmp/served.tgz .tmp-release/deepblend-bundle.tgz
+3efa707383b1e078051ddf51cb562a10a7a0dfbaa85ec3b531bee061bb0b8627  /tmp/served.tgz
+3efa707383b1e078051ddf51cb562a10a7a0dfbaa85ec3b531bee061bb0b8627  .tmp-release/deepblend-bundle.tgz
+```
+
+**资产在，而且逐字节相同** ✓。说谎的是 `gh release view` 的那个清单 ✓——
+这是这一轮第三次「量具在说谎」 ✓，而这一次**不是我的**量具 ✓。
+仓库的规矩再一次赚到了钱 ✓：**不要用「命令返回 ok」当证据，用读回来的东西当证据** ✓——
+反过来也成立 ✓：**不要用一份清单说「没有」** ✓。
+
+**读回来的第二条** ✓：npm 路线第一次装出来的是 **0.2.1** ✓——
+`The latest release of @deepblend/dsh-blender-contracts is "0.2.1"` ✓，
+因为 bundle 钉着精确版本 ✓ 而 registry 还没服务它 ✓。逐秒轮询读侧 ✓：
+
+```
+18:09:52  packument=404  tarball=404  latest=0.2.2
+18:10:14  packument=200  tarball=404  latest=0.2.2   ← 约两分钟后 packument 与 dist-tag
+18:14:40  packument=200  tarball=200  latest=0.2.2   ← 约五分钟后 tarball
+```
+
+**与 §201.8 那次是同一个形状** ✓（两分钟 / 五分钟 ✓），而这是**第二次**量到它 ✓——
+所以它不是一次意外 ✓，是这条 registry 的性质 ✓。
+
+**三条路线，同一套判据** ✓：
+
+| 路线 | `packages pnpm fetched` | `installed version` | `workbench route` |
+|---|---|---|---|
+| npm ✓ | 7 ✓ | `…bundle@0.2.2` ✓ | HTTP 200, text/html ✓ |
+| 源码（git spec）✓ | 7 ✓ | `…bundle@0.2.2` ✓ | HTTP 200, text/html ✓ |
+| tarball（隔离 store ✓）✓ | **1** ✓ | `…bundle@0.2.2` ✓ | HTTP 200, text/html ✓ |
+
+三份日志已重写为这一次的读数 ✓。
 
 ### 206.10 仍然开着的缺口
 
