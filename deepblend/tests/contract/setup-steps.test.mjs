@@ -357,17 +357,29 @@ test('the Linux the product supports is stated, because upstream publishes only 
     const text = readFileSync(join(ROOT, name), 'utf8')
     assert.match(text, upstream, `${name} sends a non-macOS user to Blender without saying which Linux upstream builds`)
   }
-  // And the boundary is not just "x64 exists" but "arm64 does not": the sentence has to say so, or a
-  // reader on an arm64 machine reads the artifact name as a detail rather than as their answer.
-  const arm64 = /arm64/
+  // AND THE TWO FACTS HAVE TO BE IN THE SAME SENTENCE. The boundary is not "x64 exists" but "arm64
+  // does not", and a file-wide search for `arm64` is satisfied by the row above it, which says the
+  // MANAGED Blender is macOS arm64 — MEASURED: a mutation that deleted the Linux sentence from
+  // install.md SURVIVED this rule for exactly that reason. Each prerequisite table is one row per
+  // line, so the rule is: some LINE must name the upstream artifact and arm64 together.
+  // ORDER MATTERS, and the first version of this rule did not know that. MEASURED: the row it checks
+  // also says the MANAGED Blender is "macOS arm64", so an order-insensitive "same line" test was
+  // satisfied by that mention alone and a mutation deleting the Linux caveat SURVIVED it. The claim
+  // has a direction: first what upstream publishes, then what that means for arm64.
+  const together = /linux-x64[^\n]*arm64/
   for (const name of ['README.md', 'deepblend/docs/install.md']) {
-    assert.match(readFileSync(join(ROOT, name), 'utf8'), arm64,
-      `${name} names the Linux build without saying that arm64 Linux has none`)
+    assert.match(readFileSync(join(ROOT, name), 'utf8'), together,
+      `${name} names the Linux build in one place and arm64 in another — a reader on arm64 Linux has to connect them`)
   }
 
-  // The negative control: the patterns must be able to fail.
+  // The negative controls: both patterns must be able to fail, and the second one must fail on the
+  // exact text that let the mutation through.
   assert.doesNotMatch('install Blender 5.2.1 yourself', upstream)
-  assert.doesNotMatch('install Blender 5.2.1 yourself', arm64)
+  assert.doesNotMatch('install Blender 5.2.1 yourself', together)
+  assert.doesNotMatch('| Managed | macOS arm64 only. |\n| Blender | linux-x64 for Linux. |', together,
+    'two lines that never meet must not satisfy "the same sentence"')
+  assert.doesNotMatch('| Managed | macOS arm64, and upstream publishes linux-x64. |', together,
+    'an arm64 mention BEFORE the Linux build is about macOS, not about the gap this rule is for')
 })
 
 test('the baseline document records why the install command carries two extra packages', () => {

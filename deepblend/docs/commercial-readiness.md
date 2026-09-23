@@ -32,7 +32,7 @@
 | C3 | 安装与升级 | 升级路径有答案吗——装过旧版的 profile 能升到新版吗 | ✗ | 今天的读数：tarball 路线的 URL 跨版本逐字节相同，于是 pnpm 的 store 会把上一个产物装给你（`milestone-status.md` §199.6 的第二条，实测三行读数） | 「已经装过旧版的 profile 能升上来」**没有实测过**：需要 `dsh plugin remove` ＋ `add`，或者一条显式的 `--force`，两条都没试（§199.9 的缺口二） |
 | C4 | 安装与升级 | 卸载干净吗——`plugin remove` 之后 profile 与 preset 根不留残留 | ✓ | `node deepblend/tools/uninstall-residue-probe.mjs`：一次真实的「装 → 按手册卸 → 读回」走查，残留表由读数推导（`deepblend/docs/probe-uninstall-residue.log`）；契约层由 `deepblend/tests/contract/uninstall-residue.test.mjs` 在临时 `DSH_HOME` 上重跑同一件事 | — |
 | C5 | 跨平台 | 受管 Blender 只有 `macos-arm64` 一个构建——别的平台今天的实际体验是什么 | ✓ | `node deepblend/tools/cross-platform-probe.mjs`：在一个真实的 `x86_64` Linux 容器里按 `install.md` 的步骤走一遍（装 DSH、链接工作区、`blender:install` 拒绝、自装 Blender、设 `blenderPath`、再装一次、跑契约层、跑一次真渲染），日志 `deepblend/docs/probe-cross-platform.log`；**CI 在 ubuntu 上绿**——那是「另一台机器上真的装得起来」在机器层面的读数（`gh run list --repo pearjelly/deep-blend`）；`deepblend/tests/contract/workspace-links.test.mjs` 用一份**拆开的部署**固定装置盯着「每个包从持有它的那个 scope 解析」；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着「用户自己设的 `blenderPath` 在重装后仍在」；`deepblend/tests/contract/setup-steps.test.mjs` 盯着「ffmpeg 装法不止一个平台」与「找不到 Blender 时说清两个键」 | — |
-| C6 | 首次体验 | 从零到「渲出第一帧」要几步、几分钟、卡在哪一步 | ✗ | 今天的读数：步数可数——`deepblend/docs/install.md` §1 是四步，每步一条命令与一个 `--check`，另有 `node deepblend/tools/verify-clean-clone.mjs` 从零 clone 走一遍装配 | 「几分钟」**没有实测**：受管 Blender 是一份几百 MB 的下载（`deepblend/tools/blender-release.json` 的 `bytes` 是它的字节数），而这一步的墙钟时间在任何地方都没有被记下来；「卡在哪一步」只有零散记录，没有一份从零开始的完整走查读数 |
+| C6 | 首次体验 | 从零到「渲出第一帧」要几步、几分钟、卡在哪一步 | ✓ | `npm run verify:clone -- --with-blender`：在一个临时 clone 与临时 `DSH_HOME` 上按手册走一遍，每一步计时，最后真的渲出一张图并**从磁盘读回来**；日志 `deepblend/docs/probe-first-run.log`；`deepblend/tests/contract/first-run.test.mjs` 盯着那份日志里四条手册步骤与首帧的读数都在、并且最慢的那一步是 Blender 下载（一次没有 `--with-blender` 的重跑会让它红） | — |
 | C7 | 运维单点 | 发布链挂在几个人的账号上 | ✗ | `CONTRIBUTING.md` §5「操作者要自己准备的东西」把单点写明了（npm 凭据属于一个账号、仓库属于另一个，一次发布两个都要） | 单点本身没有变，而且**只有用户能改变它**（第二个账号、或者把 npm 的发布权交给仓库所属的账号）。这不是难度问题，是一个需要人的条件 |
 | C8 | 可靠性 | 崩溃、磁盘满、长任务中断、并发、数据不丢，各有实测吗 | ✓ | `deepblend/tests/composition/hardening.e2e.mjs`（白名单、截止时间、输出上限、工作区边界）、`deepblend/tests/composition/concurrency.e2e.mjs`（两个会话一个 store）、`deepblend/tests/contract/host-cancel-and-delivery.test.mjs`（取消与交付的末端）、`deepblend/tools/disk-full-probe.mjs`（真实满卷，含扩容后的恢复）、`deepblend/tools/m3-restart-probe.mjs`（重启恢复）、`deepblend/docs/recovery.md`（按错误码的修法） | — |
 | C9 | 可诊断 | 每个失败都可分支吗——用户能照着错误码做事吗 | ✓ | `deepblend/docs/recovery.md` §10 是按错误码查的索引，`deepblend/tests/contract/error-codes.test.mjs` 盯着码空间，`deepblend/tests/contract/error-documentation.test.mjs` 盯着「每个码要么有一页给用户、要么有一个理由」且分类完备 | — |
@@ -45,6 +45,7 @@
 | C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✗ | 今天的读数：工作台的标签与提示是中文（`packages/deepblend/ui/lib/client.js`），市场入口 `README.md` 是英文、详细的那份 `README.zh.md` 是中文 | 工作台没有语言开关，也没有第二份文案：非中文用户装完之后，看到的是一个全中文的界面。这一行今天连「要不要双语」都还没有决定 |
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✗ | 今天的读数：渲染侧有一个按帧实测的参考值，写在审批提示里（`packages/deepblend/tool/lib/render-tools.js`），而审批本身是**强制**的（`deepblend/tests/composition/approval.e2e.mjs`）；视觉审查的 token 上限在 `packages/deepblend/bundle/cordis.patch.yml` 里 | **token 侧没有成本模型**：一次视觉审查要花多少 token、一次会话要花多少钱，今天没有任何读数；渲染侧只有「参考机每帧多少秒」，没有「这一次要多少分钟」的预估 |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
+| C19 | 跨平台 | 上游只发布 `linux-x64` 的 Blender——这件事有没有写在用户读到的地方 | ✓ | `deepblend/docs/install.md` §0 与两份 `README` 的前置表都写明上游发布的那个产物名、并写明 `arm64` Linux 上没有构建（读数：上游四条发布线的目录列表，命令与输出在 `milestone-status.md` §203.4）；`deepblend/tests/contract/setup-steps.test.mjs` 按**产物名本身**盯着这三处，并要求其中两处写明 `arm64` 没有 | — |
 
 **C15 的完成清单**（`M6` 八项，`SPEC.md` §20 的列表逐条）：
 
@@ -72,8 +73,8 @@
 | 产品代码行（全部） | 12363 | `deepblend/docs/probe-coverage.log` | `product CODE lines:` 那一行的第一个数 |
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
-| 账本行数 | 18 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 3 | 本文件 §4 | 数 `### 轮` 标题 |
+| 账本行数 | 19 | 本文件 §1 | 数表里的行 |
+| 轮次记录数 | 4 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 
@@ -181,3 +182,34 @@
 - **还差什么**：arm64 Linux 上**上游没有任何 Blender 构建** ✓（5.2 / 5.1 / 4.5 / 4.2 四条线实测只有 `linux-x64` ✓），
   所以那条平台上的实际答案是「产品今天只支持 x86_64 Linux」✓——这条边界**还没有写在用户读到的地方** ✓，
   见 `milestone-status.md` §202.9 ✓。账本上仍然开着的是 C2、C3、C6、C7、C12、C14、C15、C16、C17。
+
+### 轮 4 — 2026-09-23
+
+- **移动：M1** — C6 从 ✗ → ✓：**首次体验第一次有了分钟数** ✓。
+  读数（`probe-first-run.log` ✓）：从零到一张图 **166.5 秒** ✓，
+  其中 **149.0 秒**是那一步 346 MB 的 Blender 下载 ✓——**89%** ✓，
+  而其余每一步都在零点二秒以内 ✓。「卡在哪一步」因此是一行字的答案 ✓，
+  而且它是唯一一步**用户可以跳过**的 ✓（自己装 Blender 并设 `blenderPath` ✓——
+  那正是非 macOS 用户做的事 ✓，也是 `probe-cross-platform.log` 量过的那条路 ✓）。
+  首帧那一步不是打印了一个路径 ✓：三张 PNG 落在磁盘上 ✓，最大的一张 186 KB ✓，
+  路径在日志里 ✓。
+- **移动：M3** — 新增 C19，它带一条量出缺口的读数 ✓：**上游只发布 `linux-x64` 的 Blender** ✓
+  （5.2 / 5.1 / 4.5 / 4.2 四条线的目录列表实测 ✓），所以「自己装 Blender 5.2.1」
+  这句话在 arm64 Linux 上**根本无法执行** ✓，而此前**没有任何文档说过这件事** ✓。
+  现在三处前置表都写明上游发布的那个产物名 ✓，其中两处写明 arm64 没有构建 ✓，
+  由 `setup-steps.test.mjs` 按**产物名本身**盯着 ✓（带反例控制 ✓）。
+- **移动：M1** — C19 在同一轮里关闭 ✓（✗ → ✓）：那句话现在写在**用户读到的地方** ✓——
+  `install.md` §0 与两份 `README` 的前置表 ✓——判据是 `deepblend/tests/contract/setup-steps.test.mjs` 里
+  两条按**产物名本身**的断言 ✓（一条要求三处都出现那个名字 ✓，一条要求其中两处写明 arm64 没有 ✓），
+  两条都带反例控制 ✓：一个只说「自己装 Blender」的句子必须让它们红 ✓。
+  这一行之所以能在同一轮里关闭 ✓，是因为它问的不是「arm64 Linux 能不能跑」✓（那是一个上游事实 ✓），
+  而是「这件事有没有写在用户读到的地方」✓——后者才是产品能做的部分 ✓。
+- **移动：M5** — 关闭 §202.10 的第二条 ✓：`dsh-baseline.md`（读者用来理解**钉住的 harness**
+  的那份文档 ✓）现在写明为什么安装命令要带两个 harness 清单不提供的包 ✓，并由断言盯着 ✓。
+- **判据**：`npm run verify:clone -- --with-blender` ✓、
+  `node deepblend/tests/contract/first-run.test.mjs` ✓（日志的读数 ✓）、
+  `node deepblend/tests/contract/setup-steps.test.mjs` ✓（平台边界与 baseline 的理由 ✓）。
+- **还差什么**：账本上仍然开着的是 C2、C3、C7、C12、C14、C15、C16、C17 ✓。
+  下一轮的第一顺位是 **C12（第三方许可盘点）** ✓——它是唯一一行**完全不需要改产品**、
+  却直接决定「能不能商用」的 ✓；其次是 **C14**（活下来的变异清单 ✓，
+  这一轮与上一轮都是零存活 ✓，所以它最接近可以关闭 ✓）。
