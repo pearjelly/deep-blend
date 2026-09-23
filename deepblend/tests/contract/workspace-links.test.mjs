@@ -45,7 +45,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { resolveHarnessScope } from '../lib/dsh-deployment.mjs'
+import { deploymentScopes, resolveHarnessScope } from '../lib/dsh-deployment.mjs'
 import {
   PACKAGES,
   ROOT,
@@ -121,12 +121,17 @@ harness is free to drift from the deployment that actually runs DeepBlend (see t
       return
     }
 
-    // Everything else has to come from the one deployment, so that a suite is
-    // never green against a cordis the product does not load.
-    const insideDeployment = target.startsWith(scope + sep)
+    // Everything else has to come from THE DEPLOYMENT, so that a suite is never green against a
+    // cordis the product does not load. The deployment is a LIST of scope directories rather than
+    // one — MEASURED: a global install nests the harness's dependencies under the package and puts
+    // anything installed alongside it in the scope directory above, and this repository imports five
+    // packages from the first and `dsh-subprocess-local` from the second. This assertion used to
+    // require the single nested directory, which made the correct link look like a copy.
+    const insideDeployment = deploymentScopes().some(directory => target.startsWith(directory + sep))
     assert.ok(
       insideDeployment,
-      `${specifier} points at ${target}, outside the running deployment ${scope}`,
+      `${specifier} points at ${target}, outside every scope directory of the running deployment ` +
+      `(${deploymentScopes().join(', ')})`,
     )
   })
 }

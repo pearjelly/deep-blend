@@ -175,6 +175,11 @@ test('blender:check agrees with the machine it is on, and never claims 0 without
 test('and the real DSH home was never touched: its own plugin:check still reports in sync',
   { skip: process.env.DEEPBLEND_REAL_HOME_CASE === '0' ? 'this checkout is not the installed one' : false }, () => {
     const real = spawnSync(process.execPath, [join(ROOT, 'deepblend', 'tools', 'install-plugin.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
+    // EXIT 2 IS A STATE, NOT DRIFT: it means there is no deployment here at all. MEASURED on the CI
+    // runner, which has no `$DSH_HOME`: `no profile at /home/runner/.dsh/profiles/web`, exit 2 — and
+    // this case read that as "the real deployment drifted", which is a claim about a deployment that
+    // does not exist.
+    if (real.status === 2) return
     if (real.status !== 0 && /thing\(s\) are not installed/.test(real.stdout + real.stderr)) {
       // The home was installed from somewhere else. That is a fact about the machine, not a drift this test caused.
       return

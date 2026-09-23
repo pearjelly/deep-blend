@@ -32,6 +32,7 @@
  * Owner: DeepBlend Studio — M5
  */
 
+import { withoutPnpm } from '../lib/preconditions.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
@@ -859,7 +860,7 @@ test('every service name a document shows is one the product declares', () => {
 //
 // The check builds a profile the way the deployment does — `dsh plugin add` into a throwaway DSH_HOME — and
 // requires every field the quote shows to be there with the quoted value.
-test('the profile manifest dsh-baseline.md quotes is the shape a profile has', () => {
+test('the profile manifest dsh-baseline.md quotes is the shape a profile has', { skip: withoutPnpm() }, () => {
   const doc = readFileSync(join(ROOT, 'deepblend', 'docs', 'dsh-baseline.md'), 'utf8')
   const quoted = /\{[^{]*"name": "dsh-profile-web"[\s\S]*?\n\}/.exec(doc)
   assert.ok(quoted !== null, 'dsh-baseline.md no longer quotes a profile manifest — re-anchor this check')

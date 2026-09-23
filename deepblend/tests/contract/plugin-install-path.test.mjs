@@ -34,6 +34,7 @@
  * Run all:        `node deepblend/tests/run.mjs`
  */
 
+import { withoutPnpm } from '../lib/preconditions.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -67,7 +68,7 @@ const run = (args, home) => spawnSync('dsh', args, {
   cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 120_000,
 })
 
-test('installing the bundle through the ecosystem command composes its rows WITH their configuration', () => {
+test('installing the bundle through the ecosystem command composes its rows WITH their configuration', { skip: withoutPnpm() }, () => {
   const home = makeHome()
   try {
     const install = run(['plugin', 'add', BUNDLE, '--profile', 'web'], home)
@@ -100,7 +101,7 @@ test('installing the bundle through the ecosystem command composes its rows WITH
   }
 })
 
-test('and the real profile was never touched', () => {
+test('and the real profile was never touched', { skip: withoutPnpm() }, () => {
   // The real home is the one this session runs from, so it must still name the bundle it had: this file only ever
   // wrote to temp homes, and a change here would mean something else did.
   const real = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles', 'web', 'package.json')
@@ -175,7 +176,7 @@ test('importing every package of this plugin writes nothing and starts nothing',
 //
 // The installer writes both now, and this case runs the whole round trip: install, remove with the ecosystem's
 // command, and the profile must no longer compose the bundle.
-test('the ecosystem remove command uninstalls what this installer installed', () => {
+test('the ecosystem remove command uninstalls what this installer installed', { skip: withoutPnpm() }, () => {
   const home = makeHome()
   try {
     const install = runInstaller([], home)
