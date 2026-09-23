@@ -1,0 +1,86 @@
+# Route-parity probe — the three install routes serve THE SAME product
+#
+#   npm run release:parity | tee deepblend/docs/probe-route-parity.log
+#
+# Taken 2026-09-23 (commercial-readiness ledger C2). What it is evidence for: `CONTRIBUTING.md` §5's
+# three install routes and `install.md` §1's claim that they are three ways to the same product.
+#
+# WHY THIS EXISTS. Every route had been verified on its own — the three `probe-dsh-plugin-*.log` files
+# are three separate readings taken with the same criteria — and NOTHING asserted that they agree.
+# "Three commands run three times" is a habit, not a check, and the three fetch from three different
+# places (the default branch, the registry, the Release asset), so they can disagree. The way they
+# disagree is quiet: each one reports success about a different product.
+#
+# HOW TO READ IT. Each route is installed once into its own scratch `$DSH_HOME` and read back. The
+# comparison at the end is the point:
+#
+#   installed version   identical across the three, AND equal to `deepblend/version.json`. The
+#                       repository's own statement is the third opinion: two stale routes agreeing
+#                       with each other is a state this check would otherwise call healthy.
+#   workbench route     `GET /deepblend/workbench` answers HTTP 200 on all three. A version number is
+#                       what an artifact says about itself; this route is what only the CURRENT
+#                       version has, so a stale artifact answers 404 while honestly claiming an old
+#                       version.
+#   presets deployed    the same ids, byte-identical to `deepblend/presets/`.
+#   packages fetched    AND ONE READING THAT MUST DIFFER: 7 / 7 / 1. The tarball carries its siblings
+#                       inside the artifact and the other two resolve them. Asserting the difference is
+#                       what stops "they agree" from meaning "nothing was measured".
+#
+# The pnpm store is EMPTY for this run. The tarball's URL is version-free by design (the market's
+# `latest/download/` rule), so it is byte-identical between releases and pnpm's store — which is keyed
+# by that URL — would hand back the previous artifact on a machine that had installed it.
+#
+# IT CAN FAIL, AND HERE IS HOW THAT WAS SHOWN. One route's spec can be overridden to point at an older
+# published version, and the check must report the disagreement:
+#
+#   DEEPBLEND_PARITY_NPM_SPEC='@deepblend/dsh-blender-bundle@0.2.1' npm run release:parity
+#   → PROBLEM: the three routes serve 2 different versions:
+#       @deepblend/dsh-blender-bundle@0.2.2 | @deepblend/dsh-blender-bundle@0.2.1
+#   → problems: 2, exit 1
+#
+# A comparison that has never been seen to report a disagreement is a comparison nobody has tested.
+
+
+> deepblend-studio@0.2.2 release:parity
+> node deepblend/tools/release-route-parity.mjs
+
+date: 2026-09-23T10:33:12.269Z
+repository version: 0.2.2
+note: each route is installed once, in its own scratch DSH_HOME, and read back
+
+── source: github:pearjelly/deep-blend#path:/packages/deepblend/bundle ──
+   packages pnpm fetched: 7
+   installed version: @deepblend/dsh-blender-bundle@0.2.2
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
+
+── npm: @deepblend/dsh-blender-bundle ──
+   packages pnpm fetched: 7
+   installed version: @deepblend/dsh-blender-bundle@0.2.2
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle
+
+── tarball: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz ──
+   packages pnpm fetched: 1
+   installed version: @deepblend/dsh-blender-bundle@0.2.2
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+
+── do the three routes agree? ──
+source installed: @deepblend/dsh-blender-bundle@0.2.2
+npm installed: @deepblend/dsh-blender-bundle@0.2.2
+tarball installed: @deepblend/dsh-blender-bundle@0.2.2
+all three serve: @deepblend/dsh-blender-bundle@0.2.2
+and the repository says: 0.2.2
+source workbench route: HTTP 200
+npm workbench route: HTTP 200
+tarball workbench route: HTTP 200
+all three deployed presets: ["deepblend","deepblend-dev"]
+source packages pnpm fetched: 7
+npm packages pnpm fetched: 7
+tarball packages pnpm fetched: 1
+problems: 0
+result: the three install routes serve the same product, and it is the one this repository is

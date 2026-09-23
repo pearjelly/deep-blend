@@ -2,7 +2,7 @@
   "name": "deepblend-studio",
   "version": "0.2.2",
   "private": true,
-  "description": "DeepBlend Studio — a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
+  "description": "DeepBlend Studio \u2014 a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
   "keywords": [
     "dsh",
     "deepseek-harness",
@@ -44,7 +44,8 @@
     "verify:clone": "node deepblend/tools/verify-clean-clone.mjs",
     "test": "node deepblend/tests/run.mjs",
     "test:acceptance": "bash deepblend/tests/run-all.sh",
-    "docs:images": "node deepblend/tools/capture-docs-images.mjs"
+    "docs:images": "node deepblend/tools/capture-docs-images.mjs",
+    "release:parity": "node deepblend/tools/release-route-parity.mjs"
   },
   "repository": {
     "type": "git",

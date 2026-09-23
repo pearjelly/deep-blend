@@ -223,10 +223,27 @@ Release 页面也会在资产上传完成之前就存在。判断发出去的是
 **装一次，读回来**：
 
 ```bash
-node deepblend/tools/dsh-plugin-install-probe.mjs --spec '@deepblend/dsh-blender-bundle'
-node deepblend/tools/dsh-plugin-install-probe.mjs --spec 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
-node deepblend/tools/dsh-plugin-install-probe.mjs --spec 'https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz'
+npm run release:parity      # 三条路线各装一次，然后把三份读数**互相比较**
 ```
+
+**一条命令，不是一个习惯。** 上面这行以前是**三条**独立的 `dsh-plugin-install-probe.mjs` 调用 ✓——
+三条各自都验过 ✓，而**没有任何东西断言它们一致** ✓（账本 C2 ✓，§199.9 以来最老的具名缺口 ✓）。
+三条路线从**三个不同的地方**取东西（默认分支、registry、Release 资产 ✓），
+所以它们**可以**不一致 ✓，而不一致的方式是安静的 ✓：每一条都成功地报告了一个不同的产品 ✓。
+`release-route-parity.mjs` 读回来的判据是四条 ✓：三条的 `installed version` **互相相同** ✓
+**且**等于 `deepblend/version.json` ✓、三条的 `/deepblend/workbench` 都是 200 ✓、
+preset 相同 ✓，以及**一条必须不同的读数** ✓——`packages pnpm fetched` 是 7 / 7 / 1 ✓
+（tarball 把兄弟包装在产物里 ✓）。最后那条是防「一致」退化成「什么都没量」的 ✓。
+
+想看它**真的会红** ✓：
+
+```bash
+DEEPBLEND_PARITY_NPM_SPEC='@deepblend/dsh-blender-bundle@0.2.1' npm run release:parity
+# → PROBLEM: the three routes serve 2 different versions …  exit 1
+```
+
+三条路线各自的原始读数仍在 `deepblend/docs/probe-dsh-plugin-{npm,github,tarball}.log` ✓，
+比较的读数在 `deepblend/docs/probe-route-parity.log` ✓。
 
 三条路线的判据是**同一条**：装进一个临时 `$DSH_HOME`、起一个 `dsh web`，然后读回
 `installed version` 与 `workbench route` 两行。**workbench 那一行才是关键**——版本号是产物对自己的

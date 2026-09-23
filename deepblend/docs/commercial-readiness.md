@@ -28,7 +28,7 @@
 | # | 面 | 要回答的问题 | 状态 | 判据（谁盯着） | 还差什么 |
 |---|---|---|---|---|---|
 | C1 | 安装与升级 | 三条安装路线今天各自可用吗 | ✓ | `deepblend/tools/dsh-plugin-install-probe.mjs` 分别以本仓库路径、git spec、Release tarball 三种 spec 跑过，读数在三份日志里：`deepblend/docs/probe-dsh-plugin-npm.log`、`deepblend/docs/probe-dsh-plugin-github.log`、`deepblend/docs/probe-dsh-plugin-tarball.log`；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着清单里的路线声明 | — |
-| C2 | 安装与升级 | 三条路线服务的是**同一个**版本，这件事有断言吗 | ✗ | 今天的读数：三份日志用的是同一套判据（装出来的版本号 ＋ 只有当前版本才有的那条路由），结论相同——但它是**一条命令跑三遍**，不是一个判据 | 没有一条断言把「三条读数必须相同」钉住；`milestone-status.md` §199.9 的缺口三就是它。它需要网络与 pnpm，所以属于发布那一族而不是契约层 |
+| C2 | 安装与升级 | 三条路线服务的是**同一个**版本，这件事有断言吗 | ✓ | `npm run release:parity`：三条路线各装一次 ✓，然后把三份读数**互相比较** ✓——三条的 `installed version` 必须**互相相同** ✓ **且**等于 `deepblend/version.json` ✓、三条的 `/deepblend/workbench` 都必须成功回答 ✓、preset 相同 ✓，以及**一条必须不同的读数** ✓（tarball 那条只从 registry 取一个包 ✓，另外两条各取七个 ✓，防「一致」退化成「什么都没量」✓）；读数在 `deepblend/docs/probe-route-parity.log` ✓；**它能红，而且红过** ✓：把一条路线的 spec 指到旧版本 ✓，`DEEPBLEND_PARITY_NPM_SPEC` 一跑就报出两个版本并以非零码退出 ✓ | — |
 | C3 | 安装与升级 | 升级路径有答案吗——装过旧版的 profile 能升到新版吗 | ✗ | 今天的读数：tarball 路线的 URL 跨版本逐字节相同，于是 pnpm 的 store 会把上一个产物装给你（`milestone-status.md` §199.6 的第二条，实测三行读数） | 「已经装过旧版的 profile 能升上来」**没有实测过**：需要 `dsh plugin remove` ＋ `add`，或者一条显式的 `--force`，两条都没试（§199.9 的缺口二） |
 | C4 | 安装与升级 | 卸载干净吗——`plugin remove` 之后 profile 与 preset 根不留残留 | ✓ | `node deepblend/tools/uninstall-residue-probe.mjs`：一次真实的「装 → 按手册卸 → 读回」走查，残留表由读数推导（`deepblend/docs/probe-uninstall-residue.log`）；契约层由 `deepblend/tests/contract/uninstall-residue.test.mjs` 在临时 `DSH_HOME` 上重跑同一件事 | — |
 | C5 | 跨平台 | 受管 Blender 只有 `macos-arm64` 一个构建——别的平台今天的实际体验是什么 | ✓ | `node deepblend/tools/cross-platform-probe.mjs`：在一个真实的 `x86_64` Linux 容器里按 `install.md` 的步骤走一遍（装 DSH、链接工作区、`blender:install` 拒绝、自装 Blender、设 `blenderPath`、再装一次、跑契约层、跑一次真渲染），日志 `deepblend/docs/probe-cross-platform.log`；**CI 在 ubuntu 上绿**——那是「另一台机器上真的装得起来」在机器层面的读数（`gh run list --repo pearjelly/deep-blend`）；`deepblend/tests/contract/workspace-links.test.mjs` 用一份**拆开的部署**固定装置盯着「每个包从持有它的那个 scope 解析」；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着「用户自己设的 `blenderPath` 在重装后仍在」；`deepblend/tests/contract/setup-steps.test.mjs` 盯着「ffmpeg 装法不止一个平台」与「找不到 Blender 时说清两个键」 | — |
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 7 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 8 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 7 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
@@ -290,3 +290,25 @@
   这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（版本、tarball、Release、npm ✓）。
   下一轮的第一顺位是 **C2**（三条路线的同一性没有断言 ✓）——
   它是 §199.9 以来最老的一个具名缺口 ✓，而三条路线各自都验过 ✓、**只有「它们相同」没有** ✓。
+
+### 轮 8 — 2026-09-23
+
+- **移动：M1** — C2 从 ✗ → ✓：**「三条路线服务同一个产品」第一次有了断言** ✓，
+  而它是 §199.9 以来最老的一个具名缺口 ✓（十轮 ✓）。
+  产出是 `npm run release:parity` ✓：三条路线各装一次 ✓、把三份读数**互相比较** ✓，
+  而判据有四条 ✓——其中最后一条是这一行的关键 ✓：
+  **一条必须不同的读数** ✓（`packages pnpm fetched` 7 / 7 / 1 ✓）。
+  没有它，「三条一致」会在「三条都什么都没量到」时同样成立 ✓。
+- **移动：M4** — 这条断言**当场被证明能红** ✓，而那是它的一半价值 ✓：
+  把 npm 路线的 spec 指到 `@0.2.1` ✓，它报出
+  「the three routes serve 2 different versions」✓ 并退出 1 ✓。
+  **一个从没被看见报过不一致的比较，是一个没人测过的比较** ✓——
+  这句话写在工具头部 ✓、日志头部 ✓ 和 CONTRIBUTING 里 ✓，三处都有那条负控命令 ✓。
+- **移动：M5** — 关闭 §206.10 的第一条 ✓（也是 §199.9 / §200.9 / §201.9 / §202.10 / §203.8 / §204.7 / §205.7 连着点名的那个 ✓）。
+- **判据**：`npm run release:parity` ✓、`deepblend/docs/probe-route-parity.log` ✓
+  （三条路线的原始读数仍在 `probe-dsh-plugin-{npm,github,tarball}.log` ✓）。
+- **还差什么**：账本上仍然开着的是 C3、C7、C15、C16 ✓。
+  下一轮的第一顺位是 **C3**（tarball 路线的**升级**路径 ✓）——
+  它与这一轮是同一个家族 ✓：三条路线都装得上 ✓、都服务同一个版本 ✓，
+  而**「装过旧版的那台机器能不能升上来」**仍然没有读数 ✓，
+  而它正是 §199.6 量到的那个陷阱的下一步 ✓（同一个 URL 会给你旧产物 ✓）。
