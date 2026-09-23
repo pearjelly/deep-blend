@@ -31,7 +31,7 @@
 | C2 | 安装与升级 | 三条路线服务的是**同一个**版本，这件事有断言吗 | ✗ | 今天的读数：三份日志用的是同一套判据（装出来的版本号 ＋ 只有当前版本才有的那条路由），结论相同——但它是**一条命令跑三遍**，不是一个判据 | 没有一条断言把「三条读数必须相同」钉住；`milestone-status.md` §199.9 的缺口三就是它。它需要网络与 pnpm，所以属于发布那一族而不是契约层 |
 | C3 | 安装与升级 | 升级路径有答案吗——装过旧版的 profile 能升到新版吗 | ✗ | 今天的读数：tarball 路线的 URL 跨版本逐字节相同，于是 pnpm 的 store 会把上一个产物装给你（`milestone-status.md` §199.6 的第二条，实测三行读数） | 「已经装过旧版的 profile 能升上来」**没有实测过**：需要 `dsh plugin remove` ＋ `add`，或者一条显式的 `--force`，两条都没试（§199.9 的缺口二） |
 | C4 | 安装与升级 | 卸载干净吗——`plugin remove` 之后 profile 与 preset 根不留残留 | ✓ | `node deepblend/tools/uninstall-residue-probe.mjs`：一次真实的「装 → 按手册卸 → 读回」走查，残留表由读数推导（`deepblend/docs/probe-uninstall-residue.log`）；契约层由 `deepblend/tests/contract/uninstall-residue.test.mjs` 在临时 `DSH_HOME` 上重跑同一件事 | — |
-| C5 | 跨平台 | 受管 Blender 只有 `macos-arm64` 一个构建——别的平台今天的实际体验是什么 | ✗ | 今天的读数（本轮量到）：把 `process.platform` 伪装成别的平台跑 `deepblend/tools/install-blender.mjs`，它打印四行、点名 `blenderPath` 与 operator layer、以非零码退出（这是**正确**的形状：说清而不是假装）；`deepblend/docs/install.md` §0 也写了「别的平台要自己装 Blender 再把 `blenderPath` 设进 operator layer」 | 非 macOS 上「自己装 Blender ＋ 设 `blenderPath`」这条路**没有在真机上走过**（本机只有 `macos-arm64` 一台，伪装平台只够读安装器的守卫，不够跑一次渲染）；三处 ffmpeg 装法只给了 macOS 的那一条命令（`deepblend/docs/install.md` §0、`deepblend/docs/recovery.md`、`README.zh.md`）；需要 Blender 的那些套件要求一个只有本仓库测试读的环境变量，而产品读的是另一个键 |
+| C5 | 跨平台 | 受管 Blender 只有 `macos-arm64` 一个构建——别的平台今天的实际体验是什么 | ✓ | `node deepblend/tools/cross-platform-probe.mjs`：在一个真实的 `x86_64` Linux 容器里按 `install.md` 的步骤走一遍（装 DSH、链接工作区、`blender:install` 拒绝、自装 Blender、设 `blenderPath`、再装一次、跑契约层、跑一次真渲染），日志 `deepblend/docs/probe-cross-platform.log`；**CI 在 ubuntu 上绿**——那是「另一台机器上真的装得起来」在机器层面的读数（`gh run list --repo pearjelly/deep-blend`）；`deepblend/tests/contract/workspace-links.test.mjs` 用一份**拆开的部署**固定装置盯着「每个包从持有它的那个 scope 解析」；`deepblend/tests/contract/install-plugin-modes.test.mjs` 盯着「用户自己设的 `blenderPath` 在重装后仍在」；`deepblend/tests/contract/setup-steps.test.mjs` 盯着「ffmpeg 装法不止一个平台」与「找不到 Blender 时说清两个键」 | — |
 | C6 | 首次体验 | 从零到「渲出第一帧」要几步、几分钟、卡在哪一步 | ✗ | 今天的读数：步数可数——`deepblend/docs/install.md` §1 是四步，每步一条命令与一个 `--check`，另有 `node deepblend/tools/verify-clean-clone.mjs` 从零 clone 走一遍装配 | 「几分钟」**没有实测**：受管 Blender 是一份几百 MB 的下载（`deepblend/tools/blender-release.json` 的 `bytes` 是它的字节数），而这一步的墙钟时间在任何地方都没有被记下来；「卡在哪一步」只有零散记录，没有一份从零开始的完整走查读数 |
 | C7 | 运维单点 | 发布链挂在几个人的账号上 | ✗ | `CONTRIBUTING.md` §5「操作者要自己准备的东西」把单点写明了（npm 凭据属于一个账号、仓库属于另一个，一次发布两个都要） | 单点本身没有变，而且**只有用户能改变它**（第二个账号、或者把 npm 的发布权交给仓库所属的账号）。这不是难度问题，是一个需要人的条件 |
 | C8 | 可靠性 | 崩溃、磁盘满、长任务中断、并发、数据不丢，各有实测吗 | ✓ | `deepblend/tests/composition/hardening.e2e.mjs`（白名单、截止时间、输出上限、工作区边界）、`deepblend/tests/composition/concurrency.e2e.mjs`（两个会话一个 store）、`deepblend/tests/contract/host-cancel-and-delivery.test.mjs`（取消与交付的末端）、`deepblend/tools/disk-full-probe.mjs`（真实满卷，含扩容后的恢复）、`deepblend/tools/m3-restart-probe.mjs`（重启恢复）、`deepblend/docs/recovery.md`（按错误码的修法） | — |
@@ -73,7 +73,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 18 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 2 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 3 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 
@@ -158,3 +158,26 @@
   那次被跨过的轮次记在 `deepblend/docs/milestone-status.md` §201.1，连同它自己的一次实测教训
   （在套件跑动中改产品源码，会让那次读数作废）✓。
   账本上仍然开着的是 C2、C3、C5、C6、C7、C12、C14、C15、C16、C17。
+
+### 轮 3 — 2026-09-23
+
+- **移动：M2** — 一条红 → 绿，而且是**这一轮最有价值的那条**：**CI 从 2026-09-19 起每一次推送都红** ✓。
+  轮初的读数是 `gh run list` ✓：最近四十次里只有一次成功 ✓，而失败点是
+  `link-workspace.mjs` 的 `Could not locate a DSH deployment` ✓。
+  修完之后的读数是**同一条命令**：`completed/success` ✓（`f9606d0` ✓），
+  日志里 `resolved: 13/13` ✓ 与 `DeepBlend tests: 71/71` ✓。
+- **移动：M1** — C5 从 ✗ → ✓：非 macOS 的**实际体验**从「没人走过」变成「走过、量到、修好、有断言」✓。它由三块读数支撑 ✓：① 一个真实的 x86_64 Linux 容器里按手册走一遍 ✓（`probe-cross-platform.log` ✓）；② **CI 在 ubuntu 上绿** ✓——工作区 13/13 ✓、契约层 71/71 ✓、干净 clone 的走查通过 ✓；③ 一条真缺陷被修掉并断言 ✓：手册让非 macOS 用户把 `blenderPath` 设在 operator layer ✓，而那个文件会被下一次 `plugin:install` 重新生成并**丢掉那个键** ✓（实测：`grep -c blenderPath` 归零 ✓）。
+- **移动：M4** — 八条变异里有**两条活了下来** ✓，两条都被新断言杀死 ✓：
+  ① 「链接器把每个包都从第一个 scope 解析」✓——它在这台机器上**必然存活** ✓，
+  因为这台机器的部署恰好把一切都嵌在包内 ✓，第一个 scope 永远是对的 ✓；
+  ② 「`recovery.md` 退回只有 macOS 的 ffmpeg 装法」✓——因为那条规则把
+  「`ffmpegPath` 这个词出现在文件里任何地方」也算通过 ✓，而那个文件在别处提到了它 ✓。
+  两条的形状是同一个 ✓：**断言测的是一个在被测对象身上不成立的近似** ✓。
+- **判据**：`gh run list --repo pearjelly/deep-blend` ✓（CI 的结论 ✓）、
+  `node deepblend/tests/contract/workspace-links.test.mjs` ✓（拆开的部署固定装置 ✓）、
+  `node deepblend/tests/contract/ci-workflow.test.mjs` ✓（CI 装的包与仓库里真的被 import 的包**双向**相等 ✓）、
+  `node deepblend/tests/contract/install-plugin-modes.test.mjs` ✓（用户自己的键 ✓）、
+  `node deepblend/tests/contract/setup-steps.test.mjs` ✓（ffmpeg 与两个键 ✓）。
+- **还差什么**：arm64 Linux 上**上游没有任何 Blender 构建** ✓（5.2 / 5.1 / 4.5 / 4.2 四条线实测只有 `linux-x64` ✓），
+  所以那条平台上的实际答案是「产品今天只支持 x86_64 Linux」✓——这条边界**还没有写在用户读到的地方** ✓，
+  见 `milestone-status.md` §202.9 ✓。账本上仍然开着的是 C2、C3、C6、C7、C12、C14、C15、C16、C17。

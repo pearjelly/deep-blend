@@ -321,7 +321,12 @@ test('the ffmpeg advice names a command for more than one platform', () => {
   // The rule: a document that mentions ffmpeg has to name a way to get it that is not macOS-only.
   // The platform-independent escape hatch (`ffmpegPath`) counts as one, because it works everywhere
   // and the product reads it — but a bare `brew install` does not.
-  const otherPlatforms = /apt(-get)? install ffmpeg|dnf install ffmpeg|pacman -S ffmpeg|zypper install ffmpeg|winget install ffmpeg|choco install ffmpeg|scoop install ffmpeg|ffmpegPath/
+  // A COMMAND FOR ANOTHER PLATFORM, not a mention of the escape hatch. MEASURED: the first version of
+  // this rule accepted `ffmpegPath` as an alternative, and a mutation that put `recovery.md` back to
+  // macOS-only advice SURVIVED — the file mentions `ffmpegPath` elsewhere, so the pattern matched a
+  // sentence about something else. Pointing at a path is not an installation instruction for a reader
+  // who does not have ffmpeg at all.
+  const otherPlatforms = /apt(-get)? install ffmpeg|dnf install ffmpeg|pacman -S ffmpeg|zypper install ffmpeg|winget install ffmpeg|choco install ffmpeg|scoop install ffmpeg/
 
   const mentioning = ['README.md', 'README.zh.md', 'deepblend/docs/install.md', 'deepblend/docs/recovery.md']
   for (const name of mentioning) {
@@ -332,6 +337,8 @@ test('the ffmpeg advice names a command for more than one platform', () => {
 
   // And the negative control: the pattern must be able to fail, or the rule above proves nothing.
   assert.doesNotMatch('macOS: `brew install ffmpeg`.', otherPlatforms)
+  assert.doesNotMatch('macOS: `brew install ffmpeg`; or point `ffmpegPath` at it.', otherPlatforms,
+    'the escape hatch is not an installation command for a platform that has no ffmpeg')
   assert.match('macOS: `brew install ffmpeg`; Linux: `sudo apt install ffmpeg`.', otherPlatforms)
 })
 

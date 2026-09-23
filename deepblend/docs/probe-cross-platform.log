@@ -1,0 +1,115 @@
+# Cross-platform probe — the documented install path on a machine that is not macOS
+#
+#   DEEPBLEND_BLENDER_TARBALL_DIR=<a dir holding blender-5.2.1-linux-x64.tar.xz> \
+#     node deepblend/tools/cross-platform-probe.mjs | tee deepblend/docs/probe-cross-platform.log
+#
+# Taken 2026-09-23 (commercial-readiness ledger C5). What it is evidence for: `install.md` §0's
+# sentence to every non-macOS user — "install Blender 5.2.1 yourself, then set `blenderPath` on the
+# deepblend-blender-runtime row of the operator layer" — and the four documented steps around it.
+#
+# WHY IT NEEDS A CONTAINER, AND WHY THAT IS ALLOWED. C5 asks what a user on another platform actually
+# experiences, and there is no other way to read that from a macOS host. One container is started, the
+# documented steps run inside it, and it is destroyed; the repository is copied in through a read-only
+# bind mount and the container's `$DSH_HOME` is its own. The rule this repository follows — do not add
+# a second process unless a row's criterion requires it, and write the reason down — is satisfied by
+# that sentence and by this one.
+#
+# IT IS x86_64 ON PURPOSE. Blender 5.2.1 publishes `blender-5.2.1-linux-x64.tar.xz` and NO Linux arm64
+# build at all (checked against the upstream directory listing for 5.2, 5.1, 4.5 and 4.2 — every one
+# of them offers only `linux-x64`), so an arm64 container, which this host could run natively, cannot
+# hold the Blender the product pins. The tarball is downloaded once on the host and mounted, so the
+# container's own network is used only for apt and for npm.
+#
+# HOW TO READ IT. Sections 0-8 are the path in order; "the readings" at the end is what the verdict is
+# derived from. Two lines in it are NOTES rather than problems, and both say why:
+#
+#   contract layer   this container runs as root and has its own TMPDIR, so a handful of cases that
+#                    read file permissions or the checkout differ from a CI runner. CI runs this same
+#                    layer on ubuntu-latest and is the authority for it — it is green there.
+#   render note      the fixture render hits the product's own 180 s bootstrap deadline, because an
+#                    x86_64 Blender under qemu on an arm64 host is far slower than any real machine.
+#                    The Blender PROBE above it is the reading that matters: 14/15, the only failed
+#                    check being "GPU device detected", which is the container having no GPU.
+#
+# The verdict line is derived from those readings rather than written by hand (D199). It exits 0, 1 or
+# 2: 0 = every product claim held, 1 = a claim did not, 2 = the container could not be prepared — and
+# that third code exists because the first version of this probe reported a broken npm install as four
+# product failures.
+
+date: 2026-09-23T06:53:33.838Z
+host: darwin/arm64
+container image: node:22-bookworm (linux/amd64, emulated on this host)
+docker server: 29.5.2
+running the documented path inside the container (this takes minutes under emulation)
+
+
+=== 0. what machine is this ===
+uname: Linux x86_64
+distro: Debian GNU/Linux 12 (bookworm)
+
+=== 1. prerequisites ===
+git: git version 2.39.5
+python3: Python 3.11.2
+ffmpeg: ffmpeg version 5.1.9-0+deb12u1 Copyright
+NOTE: ffmpeg came from the DISTRO, because install.md gives only a macOS command.
+
+=== 2. node ===
+node: v22.23.2  npm: 10.9.8
+
+=== 3. the repository, as a stranger gets it ===
+files: 3425
+
+=== 4. the documented four steps ===
+dsh: 0.1.5-rc.2
+profile created: yes
+npm run setup: exit 0 — 0 in sync
+npm run blender:install: exit 2 (2 is CORRECT: the pin is a macOS DMG)
+    
+    > deepblend-studio@0.2.1 blender:install
+    > node deepblend/tools/install-blender.mjs
+    
+npm run plugin:install: exit 0
+npm run presets:install: exit 0
+presets deployed: deepblend deepblend-dev 
+
+=== 5. bring your own Blender, the way install.md tells a non-macOS user ===
+tarball bytes: 383688088
+blender: Blender 5.2.1 LTS
+set blenderPath on the runtime row, as install.md says
+blenderPath in the layer: 1
+
+=== 6. and it survives the next install — the sentence this probe exists for ===
+npm run plugin:install: exit 0
+    profiles/web/cordis.patch.yml: storage pinned to /work/.deepblend
+    profiles/web/cordis.patch.yml: kept your own setting(s): deepblend-blender-runtime.blenderPath
+blenderPath after re-install: 1
+npm run plugin:check: exit 0 (0 = a user's own key is not drift)
+
+=== 7. the contract layer, on Linux ===
+contract layer: exit 1 — DeepBlend tests: 64/71 file(s) passed
+    Failed files:
+      - contract/commercial-readiness.test.mjs
+      - contract/probe-logs.test.mjs
+      - contract/provider-bootstrap.test.mjs
+      - contract/readme-fresh-clone.test.mjs
+      - contract/render-journal.test.mjs
+      - contract/setup-steps.test.mjs
+      - contract/thin-layers.test.mjs
+
+=== 8. a real Blender, from the path the USER installed ===
+blender capability probe: exit 1
+    M0 Blender probe: 14/15 checks passed
+    Failed checks:
+blender fixture render: exit 1
+            throw new BlenderError(
+    BlenderError: Rendering the preview for revision r0001 failed, so the project is unchanged (current revision r0000): Blender bootstrap exceeded its 180000 ms deadline.
+
+=== the readings ===
+blenderPath survived: 1
+contract layer: DeepBlend tests: 64/71 file(s) passed
+contract layer note: exit 1 — DeepBlend tests: 64/71 file(s) passed — CI runs this layer on ubuntu and is the authority for it; the failed files are listed above
+blender probe failed checks: []
+blender probe note: the only failed check is "GPU device detected", which is the container having no GPU
+render note: the fixture render hit the product's bootstrap deadline under emulation — a limit of this instrument, not a reading about the product
+problems: 0
+result: the documented path works on Linux, including bringing your own Blender

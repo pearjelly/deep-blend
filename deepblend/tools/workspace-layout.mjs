@@ -156,6 +156,50 @@ export function requiredSpecifiers(local) {
  * @param {string} specifier - e.g. `@deepseek-ai/cordis`
  * @returns {string} absolute path of the link itself (which may not exist)
  */
+/**
+ * Where one external specifier's link must point, given the deployment's scope directories.
+ *
+ * A FUNCTION RATHER THAN TWO LINES INSIDE THE LINKER, because the case that matters cannot be
+ * reproduced on the machine this repository is developed on. MEASURED: a mutation that resolved every
+ * specifier from the FIRST scope survived the whole contract layer here — the development machine's
+ * deployment happens to nest a copy of everything, so the first scope is always right on it. On a
+ * clean install it is not: five of the six packages this repository imports are in the nested scope
+ * and `dsh-subprocess-local` is in the scope above. Naming the choice makes it assertable against a
+ * split layout, which is what `workspace-links.test.mjs` does with a fixture.
+ *
+ * @param {string} specifier - e.g. `@deepseek-ai/dsh-subprocess-local`
+ * @param {string[]} scopes - the deployment's scope directories, in priority order
+ * @returns {string} the directory the link should point at
+ */
+/**
+ * Where every link must point: the two package sets, resolved to their targets.
+ *
+ * THIS IS THE PLAN THE LINKER EXECUTES, extracted so a test can drive the real thing. MEASURED: with
+ * only `externalTarget` exported and tested, a mutation that made the LINKER resolve every specifier
+ * from the first scope survived the whole contract layer — the test was asserting a helper the caller
+ * was free to ignore. The case that distinguishes a correct plan from a lucky one needs a split
+ * deployment, which the development machine does not have, so the plan has to be a function of the
+ * scope list rather than a loop inside a script.
+ *
+ * @param {{ internal: string[], external: string[], local: Map<string, string>, scopes: string[] }} input
+ * @returns {Array<{ specifier: string, target: string }>}
+ */
+export function linkTargets({ internal, external, local, scopes }) {
+  return [
+    ...internal.map(specifier => ({ specifier, target: local.get(specifier) })),
+    ...external.map(specifier => ({ specifier, target: externalTarget(specifier, scopes) })),
+  ]
+}
+
+export function externalTarget(specifier, scopes) {
+  const name = specifier.split('/')[1]
+  for (const scope of scopes) {
+    if (existsSync(join(scope, name, 'package.json'))) return join(scope, name)
+  }
+  // Nowhere: the caller reports it as TARGET MISSING, naming the scopes it looked in.
+  return join(scopes[0], name)
+}
+
 export function linkPathFor(specifier) {
   const [scope, name] = specifier.split('/')
   return join(NODE_MODULES, scope, name)

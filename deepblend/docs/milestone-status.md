@@ -13283,3 +13283,167 @@ it carries no home directory
    下一次 `node deepblend/tools/coverage-probe.mjs --all` 会给出新的读数 ✓——
    它是下一轮「可数量化读数改善」的候选 ✓，也是**唯一**能说清这一轮加了多少黑暗行的办法 ✓
    （手数一遍会是同一件事的第二份实现 ✓，那是这个仓库反复付代价的形状 ✓）。
+
+---
+
+## 202. 跨平台：CI 红了四天，而根因是「部署不止一个目录」
+
+### 202.1 轮初的第一条红：CI 从 2026-09-19 起每一次推送都红
+
+固定动作的第一步是重跑 ✓，而这一轮多跑了一条这个仓库从没被写进协议的读数 ✓：
+
+```
+$ gh run list --repo pearjelly/deep-blend --limit 40
+最近四十次里成功一次 ✓（2026-09-19T06:15:26Z ✓）
+$ gh run view <最近一次> --log-failed
+Run node deepblend/tools/link-workspace.mjs
+Could not locate a DSH deployment. Looked in:
+  - /opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai
+  - /opt/hostedtoolcache/node/22.23.2/x64/lib/node_modules/@deepseek-ai/@deepseek-ai
+  - /home/runner/work/deep-blend/deep-blend/node_modules/@deepseek-ai
+##[error]Process completed with exit code 2.
+```
+
+**四天、十几次推送，没有一轮看过它** ✓。这一轮的账本里也没有这一行 ✓——**一条没有人看的红，
+与一条不存在的断言是同一件事** ✓。它按协议优先于一切计划 ✓，而它恰好就是 C5 那一行 ✓。
+
+### 202.2 量到的根因：一次全局安装把部署**拆成两处**
+
+在一个干净的 Linux 容器里量（`node:22-bookworm` ✓，`npm install -g @deepseek-ai/dsh@0.1.5-rc.2` ✓）：
+
+| 目录 | 内容 |
+|---|---|
+| `<prefix>/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/` | **120 个包**：`cordis`、`dsh-app-boot`、`dsh-subprocess`、`dsh-tools`、`schemastery`、`dsh-llm` …… |
+| `<prefix>/lib/node_modules/@deepseek-ai/` | **3 个包**：`dsh`、`dsh-subprocess-local`、`dsh-attachment-local` |
+
+本仓库 import 的六个部署包里，**五个在第一处、第六个在第二处** ✓。
+而 `resolveDshScope()` 只返回**一个**目录 ✓，并且第二个候选**拼错了** ✓——
+它把 scope 名字加了两次（`…/@deepseek-ai/@deepseek-ai` ✓），所以在**任何**机器上都匹配不到 ✓。
+这台开发机上之所以看起来是对的 ✓：很久以前的一次安装把一切都嵌进了包内 ✓，
+第一个候选**恰好**永远命中 ✓。**一个只在作者机器上成立的模型** ✓。
+
+### 202.3 修法：部署是一张列表
+
+* `deploymentScopes()` ✓ 返回**所有**存在的 scope 目录 ✓；
+  `resolveDshScope(packageName)` ✓ 从**持有那个包**的目录解析 ✓——
+  参数是包名而不是「这个部署」✓，因为一个返回值不可能同时答对两个目录 ✓。
+* 判据「这个目录是一个部署」不再要求 `dsh-attachment-local` ✓——
+  那是**一次全新安装不会放进被测那棵树**的包 ✓。
+* `linkTargets()` ✓ 是**链接计划**本身 ✓（不是链接器里的一段循环 ✓），
+  因为能区分「对的链接器」与「走运的链接器」的那个布局，这台机器上没有 ✓（见 §202.8 的存活变异 ✓）。
+* CI ✓、`install.md` ✓、`CONTRIBUTING.md` ✓ 都显式装上 harness 清单**不带**的那两个包 ✓——
+  它们是套件与实拍视觉探针真的 import 的东西 ✓。
+
+### 202.4 CI 绿了，而它顺手暴露了四条更早的红
+
+修完链接之后 CI 跑到了套件层 ✓：`66/71` ✓——**四条从来没被走到过的失败** ✓：
+
+| 失败 | 形状 | 修法 |
+|---|---|---|
+| `dsh plugin add`/`remove` 三个用例 ✓ | `pnpm not found on PATH` ✓ | CI **刻意**没有 pnpm ✓（CONTRIBUTING 量过：文档那条路不需要它 ✓），所以它们现在**带理由跳过** ✓，理由由一份共享的前置条件模块返回**字符串** ✓（`true` 会让套件看起来变小而不说为什么 ✓） |
+| `installer-drift` 的「真实 `$DSH_HOME` 没被动过」✓ | `plugin:check` 退出 **2**（`no profile at /home/runner/.dsh/profiles/web` ✓）被读成「真实部署漂移了」✓ | 退出 2 是**一个状态** ✓：这里根本没有部署 ✓，而关于一个不存在的部署的漂移断言不是漂移 ✓ |
+| `workspace-links` 的「链接必须指进那一个目录」✓ | 正确的 `dsh-subprocess-local` 链接被报成「一份拷贝」✓ | 改成「指进部署的**某一个** scope 目录」✓ |
+
+读数：`resolved: 13/13` ✓、`DeepBlend tests: 71/71` ✓、
+`✓ the documented install path works from a clean clone against a clean DSH_HOME` ✓，
+结论 `completed/success` ✓（`f9606d0` ✓）。**这是 2026-09-19 以来第一次成功的 CI** ✓。
+
+### 202.5 而 C5 那一行本身：手册让非 macOS 用户设的那个键，会被下一次安装丢掉
+
+`install.md` §0 告诉非 macOS 用户：自己装 Blender ✓，把 `blenderPath` 设在 **operator layer** ✓。
+而那个文件是 `install-plugin.mjs` **生成的** ✓，它在下一次运行时会**重新生成**它 ✓。
+实测（临时 `DSH_HOME` ✓）：
+
+```
+用户按手册设好 blenderPath ✓
+$ node deepblend/tools/install-plugin.mjs
+result: installed (1 change(s))          ← 重新生成了那一层
+$ grep -c blenderPath .../cordis.patch.yml
+0                                        ← 键没了
+$ node deepblend/tools/install-plugin.mjs --check
+exit 1                                   ← 而且把正确的配置报成 drift
+```
+
+**一个非 macOS 用户唯一要做的那件事，会被下一次安装抹掉** ✓，而 `--check` 会说他是错的 ✓。
+这与这个文件自己的承诺正相反 ✓（「安装器覆盖了我的配置」不是用户能从结果里诊断的失败 ✓）——
+它拒绝**别人的**层 ✓，却覆盖**被编辑过的自己的**层 ✓。
+
+**修法**：这个工具拥有**它推导出来的键** ✓，其余一切都是用户的 ✓：
+用户加的键被保留并在输出里**点名** ✓（`kept your own setting(s): …` ✓），
+工具不认识的整行也保留 ✓；用户**改了**一个推导出来的键仍然是 drift ✓（所有权是双向的 ✓）。
+`--portable` 不再清空一个装着用户设置的层 ✓，而是**拒绝并点名** ✓——
+因为 patch 条目里的 `config` 是**整体替换** ✓（D74 ✓），
+把这些键搬进一个空层会顺手删掉那一行的其它设置 ✓。
+
+### 202.6 同一行的另外两条：ffmpeg 的装法与「两个键」
+
+* **ffmpeg 的装法只给了 macOS** ✓，四处都是 ✓（`install.md` §0 ✓、`recovery.md` 的 `ENCODER_NOT_FOUND` 行 ✓、
+  `README.zh.md` 的前置表 ✓、而英文 `README.md` 只提了 ffmpeg 这个词、一条命令都没给 ✓）。
+  现在四处都给了四个平台的命令 ✓，并由 `setup-steps.test.mjs` 盯着 ✓。
+* **「找不到 Blender」没有说清怎么修** ✓：`run-all.sh` 与集成套件说的是「在 <受管路径> 找不到」✓，
+  而一个 Linux 贡献者刚刚按手册给**产品**设了 `blenderPath` ✓——套件读的是**另一个**变量 ✓。
+  两处现在都点名 `DEEPBLEND_BLENDER_PATH` ✓ **并且**说清它不是产品的那个键 ✓，由断言盯着 ✓。
+
+### 202.7 变异测试：八条，**两条活了下来**，两条都被新断言杀死
+
+| 变异 | 结果 |
+|---|---|
+| 安装器不再保留用户自己的键 | 红 ✓「the documented non-macOS setting was dropped」 |
+| `--portable` 照样清空装着用户设置的层 | 红 ✓ |
+| 那个拼错的候选回来 | 红 ✓ |
+| 解析器对任何包都返回第一个 scope | 红 ✓ |
+| CI 不再装那两个包 | 红 ✓「the workflow does not install …」 |
+| 「找不到 Blender」不再点名那个变量 | 红 ✓ |
+| **链接器把每个包都从第一个 scope 解析** | **活了下来** ✗ |
+| **`recovery.md` 退回只有 macOS 的 ffmpeg 装法** | **活了下来** ✗ |
+
+两条存活者的形状是同一个 ✓：**断言测的是一个在被测对象身上不成立的近似** ✓。
+
+1. 第一条在这台机器上**必然存活** ✓——它的部署把一切都嵌在包内 ✓，所以「第一个 scope」永远是对的 ✓。
+   修法是把**链接计划**抽成一个函数 ✓（`linkTargets()` ✓）并用一份**拆开的部署**驱动它 ✓；
+   只导出 `externalTarget` 是不够的 ✓——那只测了一个**调用者可以不理它**的助手 ✓，
+   而第一版正是那样 ✓，所以它**再次存活** ✓。抽到计划层之后 ✓，它红了 ✓。
+2. 第二条因为规则把「`ffmpegPath` 这个词出现在文件里任何地方」也算通过 ✓，
+   而那个文件在别处提到了它 ✓。修法是只接受**另一个平台的安装命令** ✓——
+   「把路径指过去」对一个**根本没有 ffmpeg** 的读者不是安装指令 ✓。收紧之后它红了 ✓。
+
+### 202.8 收口读数
+
+* 契约层 **71/71** ✓（本轮**没有新增** `*.test.mjs` 文件 ✓，但 `workspace-links` 33→**34** 项 ✓、
+  `setup-steps` 22→**24** 项 ✓、`ci-workflow` 10→**11** 项 ✓、`install-plugin-modes` 5→**9** 项 ✓）。
+* `bash deepblend/tests/run-all.sh`：**17 套件全绿** ✓。
+* 九个包装检查全部 exit 0 ✓，`release:freshness` **FRESH** ✓。
+* **CI 绿** ✓（2026-09-19 以来第一次 ✓）。
+* 本轮**没有改 `packages/**`** ✓，所以四步发布链没有触发 ✓（FRESH 是它的读数 ✓）。
+
+### 202.9 探针本身的读数（`probe-cross-platform.log`）
+
+容器里按手册走一遍 ✓，结论由读数推导 ✓（`problems: 0` ✓）：
+
+```
+npm run setup:            exit 0   ← 13/13 链接到部署 ✓
+npm run blender:install:  exit 2   ← 正确：钉住的是一份 macOS DMG，守卫说清并点名 blenderPath ✓
+npm run plugin:install:   exit 0
+npm run presets:install:  exit 0   ← 两个 preset 都部署了 ✓
+blender:                  Blender 5.2.1 LTS   ← 用户自己装的 Linux Blender ✓
+blenderPath 重装后:        1        ← 手册那句话现在是真的 ✓（`kept your own setting(s): …` ✓）
+npm run plugin:check:     exit 0   ← 用户自己的键不再是 drift ✓
+blender 能力探针:          14/15    ← 唯一失败的是「检测到 GPU」，那是容器没有 GPU ✓
+```
+
+两条**不是**产品失败、并且探针自己说明了为什么的读数 ✓：
+① 容器里的契约层 **64/71** ✓——这个容器以 root 运行、`TMPDIR` 是自己的 ✓，
+所以少数读权限与读 checkout 的用例与 CI runner 不同 ✓；**同一层在 CI 的 ubuntu 上是 71/71 ✓，那才是它的权威读数** ✓。
+② fixture 渲染撞上产品自己的 **180 秒 bootstrap 截止线** ✓——arm64 主机上 qemu 里的 x86_64 Blender
+比任何真机都慢得多 ✓，所以它是**这个量具的限制** ✓，不是关于产品的读数 ✓。
+
+### 202.10 仍然开着的缺口
+
+1. **arm64 Linux 上没有上游 Blender** ✓：5.2 / 5.1 / 4.5 / 4.2 四条线实测**只有 `linux-x64`** ✓。
+   所以那条平台上的实际答案是「产品今天只支持 x86_64 Linux」✓，而这条边界
+   **还没有写在用户读到的地方** ✓——它是一行新的账本条目，也是下一轮的第一顺位 ✓。
+2. **`install.md` 里「多装两个包」的理由** ✓ 只写在该文档与 CI 的注释里 ✓；
+   产品自己（`dsh-baseline.md`）还没有把「harness 的清单不带这两个包」这件事写下来 ✓。
+3. **C6 首次体验的分钟数** ✓、**C12 第三方许可** ✓、**C14 常驻的存活变异表** ✓ 都还没有动 ✓。
+4. **这个容器探针本身是 x86_64 模拟的** ✓：它证明了**路**是通的 ✓，而它的绝对耗时
+   （apt、npm、契约层、Blender 都在 qemu 下 ✓）**不能当作任何性能读数** ✓。

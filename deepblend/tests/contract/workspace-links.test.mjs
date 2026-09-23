@@ -49,7 +49,9 @@ import { deploymentScopes, resolveHarnessScope } from '../lib/dsh-deployment.mjs
 import {
   PACKAGES,
   ROOT,
+  externalTarget,
   linkPathFor,
+  linkTargets,
   linkTarget,
   localPackages,
   requiredSpecifiers,
@@ -135,6 +137,61 @@ harness is free to drift from the deployment that actually runs DeepBlend (see t
     )
   })
 }
+
+test('each external specifier is linked from the scope that holds it, not from the first one', () => {
+  // THE ASSERTION A SURVIVING MUTATION ASKED FOR. Changing the linker to resolve every specifier from
+  // the first scope directory passed the whole contract layer on this machine — because this
+  // machine's deployment nests a copy of everything, so the first scope is always right HERE. On a
+  // clean install it is wrong for `dsh-subprocess-local`, which lives in the scope directory above the
+  // harness. So the choice is driven here against a split list, which is the layout that distinguishes
+  // a correct linker from a lucky one.
+  const nested = '/deployment/@deepseek-ai/dsh/node_modules/@deepseek-ai'
+  const above = '/deployment/@deepseek-ai'
+  // The fixture has to exist for `externalTarget` to see it, so this uses two real directories.
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-external-target-'))
+  try {
+    const inner = join(root, 'nested')
+    const outer = join(root, 'above')
+    for (const [directory, name] of [[join(inner, 'cordis'), 'cordis'], [join(outer, 'dsh-subprocess-local'), 'dsh-subprocess-local']]) {
+      mkdirSync(directory, { recursive: true })
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: `@deepseek-ai/${name}` }))
+    }
+
+    assert.equal(externalTarget('@deepseek-ai/cordis', [inner, outer]), join(inner, 'cordis'),
+      'a package the harness nests must be linked from the nested scope')
+    assert.equal(externalTarget('@deepseek-ai/dsh-subprocess-local', [inner, outer]), join(outer, 'dsh-subprocess-local'),
+      'a package installed alongside the harness must be linked from the scope above it')
+    // Order-independent: whichever way round the candidates are, each package comes from the scope
+    // that actually holds it.
+    assert.equal(externalTarget('@deepseek-ai/dsh-subprocess-local', [outer, inner]), join(outer, 'dsh-subprocess-local'))
+    assert.equal(externalTarget('@deepseek-ai/cordis', [outer, inner]), join(inner, 'cordis'))
+    // And a package in NO scope is reported as missing at a path that does not exist, rather than
+    // silently pointing at the first scope as if it were there.
+    const nowhere = externalTarget('@deepseek-ai/not-installed-anywhere', [inner, outer])
+    assert.equal(existsSync(nowhere), false, 'a package in no scope must not resolve to something that exists')
+
+    // THE PLAN ITSELF, which is what the linker executes — asserting the helper alone left the caller
+    // free to ignore it, and a mutation that did exactly that survived.
+    const local = new Map([['@deepblend/dsh-blender-contracts', join(ROOT, 'packages', 'deepblend', 'contracts')]])
+    const plan = linkTargets({
+      internal: ['@deepblend/dsh-blender-contracts'],
+      external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-subprocess-local'],
+      local,
+      scopes: [inner, outer],
+    })
+    assert.deepEqual(
+      plan.map(entry => [entry.specifier, entry.target]),
+      [
+        ['@deepblend/dsh-blender-contracts', join(ROOT, 'packages', 'deepblend', 'contracts')],
+        ['@deepseek-ai/cordis', join(inner, 'cordis')],
+        ['@deepseek-ai/dsh-subprocess-local', join(outer, 'dsh-subprocess-local')],
+      ],
+      'the plan must resolve each specifier from the scope that holds it, and the internal ones from this repository',
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 test('the two package sets the linker distinguishes are both non-empty', () => {
   // If either set were empty the loop above would pass vacuously, which is the

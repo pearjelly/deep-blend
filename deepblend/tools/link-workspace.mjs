@@ -57,11 +57,12 @@
 import { existsSync, mkdirSync, rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { deploymentScopes, resolveDshScope } from '../tests/lib/dsh-deployment.mjs'
+import { deploymentScopes } from '../tests/lib/dsh-deployment.mjs'
 import {
   PACKAGES,
   SCANNED_DIRECTORIES,
   linkPathFor,
+  linkTargets,
   linkTarget,
   localPackages,
   requiredSpecifiers,
@@ -107,26 +108,8 @@ if (external.length === 0 && internal.length === 0) {
 // packages, and Node resolves the realpath.
 // ---------------------------------------------------------------------------
 /** Where each specifier has to point, and who asked for it. */
-const wanted = [
-  ...internal.map(specifier => ({ specifier, target: local.get(specifier), declaredBy: declarations.get(specifier) })),
-  // EACH SPECIFIER FROM THE SCOPE THAT ACTUALLY HOLDS IT. One global install puts the harness's own
-  // dependencies under the package and anything installed alongside it in the scope directory above —
-  // MEASURED: five of this repository's six imports come from the first, and `dsh-subprocess-local`
-  // from the second. Assuming one directory made this step fail on every fresh machine, CI included.
-  ...external.map(specifier => ({
-    specifier,
-    target: (() => {
-      try {
-        return join(resolveDshScope(specifier.split('/')[1]), specifier.split('/')[1])
-      } catch {
-        // Reported below as TARGET MISSING, with the scope list in the message: a package that is in
-        // no scope is a deployment that is missing something, not a directory that was not found.
-        return join(scopes[0], specifier.split('/')[1])
-      }
-    })(),
-    declaredBy: declarations.get(specifier),
-  })),
-]
+const wanted = linkTargets({ internal, external, local, scopes })
+  .map(entry => ({ ...entry, declaredBy: declarations.get(entry.specifier) }))
 
 const plan = wanted.map(entry => {
   const current = linkTarget(linkPathFor(entry.specifier))
