@@ -90,6 +90,323 @@ window.__ModuleLoader__.load({
     const h = (...args) => react().createElement(...args)
 
     // =========================================================================
+    // #region strings — every user-facing word in this file
+    //
+    // WHY A TABLE. The harness localizes itself: `dsh-client-locale` ships two locales (`zh`, `en`)
+    // and states its own fallback rule — "English is both the locale the UI opens in when the browser
+    // names no registered language (and for non-browser runs), and the dictionary consulted after the
+    // active locale misses a key ... because a browser naming no registered language is the reader
+    // least likely to read Chinese" (`FALLBACK_LOCALE = "en"`). This workbench used to hard-code
+    // Chinese in every one of these positions, so a reader the platform had deliberately routed to
+    // English got a Chinese screen — the one outcome the platform's own rule exists to prevent.
+    //
+    // The active locale arrives on the page: the locale plugin sets `document.documentElement.lang`
+    // (`snapshot.active === "zh" ? "zh-CN" : snapshot.active`), so this file reads the same signal the
+    // rest of the shell does rather than inventing a preference of its own.
+    //
+    // The two sides carry the SAME key set — the harness's own invariant, asserted in
+    // `contract/workbench-copy.test.mjs`, so a missing key cannot leave a hole in either direction.
+    const STRINGS = {
+    zh: {
+      'tab.projects': '项目',
+      'tab.scene': '场景树',
+      'tab.preview': '预览对比',
+      'tab.jobs': '任务',
+      'tab.revisions': '版本',
+      'common.unknown': '未知',
+      'workbench.restartHint': '重启 profile（dsh web）即可。',
+      'preview.diffFailed': 'diff 失败',
+      'preview.keptPrevious': '；上一张已留作「上一次渲染」，可以直接并排比较',
+      'preview.firstSheet': '（这是第一张；再渲染一次就能并排比较前后）',
+      'preview.isArtifact': '。预览是产物：替换同一路径上的旧图，不产生新的 revision。',
+      'jobs.cancelRequested': '取消已请求，但进程仍在',
+      'projects.empty': '这个工作区还没有项目。',
+      'projects.create': '新建项目（写操作经 Host）',
+      'projects.titlePlaceholder': '标题，例如 watch-commercial',
+      'projects.goal': '目标（可选）',
+      'projects.creating': '创建中…',
+      'projects.createButton': '创建',
+      'scene.currentRevision': '当前 revision',
+      'scene.revisionCount': 'revision 数',
+      'scene.frameRange': '帧范围',
+      'scene.activeCamera': '活动相机',
+      'scene.counts': '对象 / 材质 / 灯 / 相机',
+      'common.noProject': '尚未选择项目。',
+      'common.empty': '空',
+      'common.default': '默认',
+      'scene.entities': '实体 entities',
+      'scene.materials': '材质 materials',
+      'scene.lights': '灯光 lights',
+      'scene.cameras': '相机 cameras',
+      'scene.shots': '镜头 shots',
+      'scene.animationTracks': '动画轨道 animationTracks',
+      'scene.assets': '资产 assets',
+      'scene.patch': 'ScenePatch（写操作经 Host，原子提交为一个 revision）',
+      'scene.submitting': '提交中…',
+      'scene.submit': '提交',
+      'scene.resetTemplate': '重置模板',
+      'preview.thisRender': '本次渲染',
+      'preview.lastRender': '上一次渲染',
+      'common.noNote': '（无说明）',
+      'revisions.currentSuffix': ' (当前)',
+      'revisions.missing': '没有这个 revision',
+      'preview.noneForRevision': '这个 revision 还没有预览图（渲染一次预览即可）。',
+      'preview.noPrevious': '还没有上一次渲染：再点一次「渲染预览」，或者先在某个更早的 revision 上渲一次。',
+      'preview.notRenderedHere': '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。',
+      'preview.rendering': '渲染中…',
+      'preview.render': '渲染预览',
+      'preview.compare': '比较：',
+      'preview.lastVsThis': '上一次 vs 本次渲染',
+      'preview.twoRevisions': '两个 revision',
+      'preview.structuralDiff': '看结构差异',
+      'preview.identical': '结构完全相同',
+      'jobs.empty': '还没有渲染任务。',
+      'jobs.deliveryVerified': '交付已校验',
+      'jobs.cancel': '取消',
+      'jobs.resume': '继续渲染',
+      'jobs.startDelivery': '启动一次交付渲染（写操作经 Host）',
+      'jobs.frameStart': '帧起',
+      'jobs.frameEnd': '帧止',
+      'jobs.start': '启动',
+      'qa.passed': '技术校验通过',
+      'qa.none': '无技术校验记录',
+      'qa.title': '技术校验（validation.json）',
+      'qa.engine': '引擎',
+      'qa.objects': '对象',
+      'qa.materials': '材质',
+      'qa.cameras': '相机',
+      'qa.noErrors': '没有技术错误。',
+      'qa.notices': '编译器 notices',
+      'visual.title': '视觉评审（测量 + 模型 finding，两个来源不合并）',
+      'visual.score': '分数',
+      'common.yes': '通过',
+      'common.yesShort': '是',
+      'common.noShort': '否',
+      'visual.rounds': '轮次',
+      'visual.subjects': '主体',
+      'visual.views': '视角数',
+      'visual.reviewer': '审查器',
+      'visual.called': '已调用',
+      'visual.notCalled': '未调用',
+      'visual.noFindings': '测量没有发现问题。',
+      'visual.reviewerSilent': '审查器没有报告 finding。',
+      'visual.noSecondOpinion': '没有第二意见。',
+      'visual.none': '这个 revision 还没有视觉评审。可以用 blender_visual_review 跑一次。',
+      'revisions.current': '当前',
+      'revisions.compare': '对比',
+      'revisions.restore': '恢复',
+      'host.reading': '读取 Host 状态…',
+      'diagnostics.exportHint': '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
+      'diagnostics.export': '导出诊断',
+      'common.refresh': '刷新',
+      'blender.detecting': '检测 Blender…',
+      'common.warning': '警告',
+      'common.collapse': '收起',
+      'common.details': '详情',
+      'common.noRecord': '无记录',
+      'jobs.running': '(运行中…)',
+      'jobs.none': '无渲染任务',
+      'jobs.started': '任务 {jobId} 已启动（{frames} 帧）',
+      'projects.updated': '当前 {revision} · 更新于 {when}',
+      'qa.errorCount': '技术错误 {count}',
+      'visual.scoreIs': '视觉评分 {score}',
+      'visual.notRun': '未跑视觉评审',
+      'host.observedResponse': '观察到的响应：{detail}。',
+      'host.stale': '本进程里的 blenderUi 比磁盘上的包旧：/deepblend/{route} 没有被这一版的宿主回答',
+      'host.staleDetail': '（{detail}hostApiVersion={version}，本 UI 需要 {needed}）。',
+      'host.notJson': 'HTTP {status}，{bytes} 字节，非 JSON',
+      'projects.created': '已创建 {id}',
+      'scene.patchInvalidJson': 'patch 不是合法 JSON：{message}',
+      'scene.committed': '已提交 {revision}（digest {digest}）',
+      'preview.rendered': '已渲染 {views} 个视角 → 合成 {revision} 的 contact sheet',
+      'jobs.cancelled': '已取消 {jobId}，进程实测已消失',
+      'revisions.restored': '已恢复 {from} 为 {to}',
+      'projects.unfinishedJobs': '{count} 个任务在跑',
+      'projects.revisionCount': '{count} 个 revision',
+      'projects.currentProject': '当前项目：{title}',
+      'scene.material': '材质 {id}',
+      'scene.track': '{target} · {property} · {keys} 关键帧',
+      'preview.renderedAt': ' · 渲染于 {when}',
+      'preview.lastRenderOf': '上一次渲染 · {revision}',
+      'preview.thisRenderOf': '本次渲染 · {revision}',
+      'preview.changeCount': '{count} 处结构变化',
+      'jobs.approval': '需审批：{frames} 帧 > 阈值 {threshold}',
+      'jobs.approvalShort': '需审批：{frames} 帧 > {threshold}',
+      'qa.noticeCount': '{count} 条 notices',
+      'workbench.title': '{panel} 工作台',
+      'jobs.unfinished': '{count} 个任务在跑',
+      'blender.probedAt': '探测于 {when}',
+      'visual.operationCount': '{count} 个操作',
+      'jobs.frameProgress': '{completed}/{expected} 帧 · {percent}%',
+      'jobs.estimated': '预计 {seconds} s',
+      'visual.counts': '测量 {measured} · 模型 finding {findings}',
+      'visual.reviewerFailed': '审查器失败：{message}',
+      'jobs.unfinishedShort': '{count} 个渲染在跑',
+      'jobs.frameRange': '帧 {start}–{end}',
+      'revisions.title': '版本（{count}）',
+    },
+    en: {
+      'tab.projects': 'Projects',
+      'tab.scene': 'Scene',
+      'tab.preview': 'Preview',
+      'tab.jobs': 'Jobs',
+      'tab.revisions': 'Revisions',
+      'common.unknown': 'unknown',
+      'workbench.restartHint': 'Restart the profile (`dsh web`) and it will be there.',
+      'preview.diffFailed': 'diff failed',
+      'preview.keptPrevious': '; the previous one is kept as “last render”, so they can be compared side by side',
+      'preview.firstSheet': '(this is the first; render once more to compare before and after)',
+      'preview.isArtifact': '. A preview is an artifact: it replaces the old image at the same path and creates no revision.',
+      'jobs.cancelRequested': 'cancellation requested, but the process is still there',
+      'projects.empty': 'This workspace has no projects yet.',
+      'projects.create': 'New project (the write goes through the Host)',
+      'projects.titlePlaceholder': 'title, e.g. watch-commercial',
+      'projects.goal': 'Goal (optional)',
+      'projects.creating': 'Creating…',
+      'projects.createButton': 'Create',
+      'scene.currentRevision': 'current revision',
+      'scene.revisionCount': 'revisions',
+      'scene.frameRange': 'frame range',
+      'scene.activeCamera': 'active camera',
+      'scene.counts': 'objects / materials / lights / cameras',
+      'common.noProject': 'No project selected.',
+      'common.empty': 'empty',
+      'common.default': 'default',
+      'scene.entities': 'entities',
+      'scene.materials': 'materials',
+      'scene.lights': 'lights',
+      'scene.cameras': 'cameras',
+      'scene.shots': 'shots',
+      'scene.animationTracks': 'animation tracks',
+      'scene.assets': 'assets',
+      'scene.patch': 'ScenePatch (the write goes through the Host and commits atomically as one revision)',
+      'scene.submitting': 'Submitting…',
+      'scene.submit': 'Submit',
+      'scene.resetTemplate': 'Reset template',
+      'preview.thisRender': 'this render',
+      'preview.lastRender': 'last render',
+      'common.noNote': '(no note)',
+      'revisions.currentSuffix': ' (current)',
+      'revisions.missing': 'no such revision',
+      'preview.noneForRevision': 'This revision has no preview image yet (render a preview and it will).',
+      'preview.noPrevious': 'No previous render yet: press “Render preview” again, or render once on an earlier revision.',
+      'preview.notRenderedHere': 'This revision has no preview rendered from this panel yet (the “Render preview” button above makes the first one).',
+      'preview.rendering': 'Rendering…',
+      'preview.render': 'Render preview',
+      'preview.compare': 'Compare:',
+      'preview.lastVsThis': 'last vs this render',
+      'preview.twoRevisions': 'two revisions',
+      'preview.structuralDiff': 'structural diff',
+      'preview.identical': 'structurally identical',
+      'jobs.empty': 'No render jobs yet.',
+      'jobs.deliveryVerified': 'delivery verified',
+      'jobs.cancel': 'Cancel',
+      'jobs.resume': 'Resume render',
+      'jobs.startDelivery': 'Start a delivery render (the write goes through the Host)',
+      'jobs.frameStart': 'from frame',
+      'jobs.frameEnd': 'to frame',
+      'jobs.start': 'Start',
+      'qa.passed': 'technical checks passed',
+      'qa.none': 'no technical check recorded',
+      'qa.title': 'Technical checks (validation.json)',
+      'qa.engine': 'engine',
+      'qa.objects': 'objects',
+      'qa.materials': 'materials',
+      'qa.cameras': 'cameras',
+      'qa.noErrors': 'No technical errors.',
+      'qa.notices': 'compiler notices',
+      'visual.title': 'Visual review (measurements + model findings; the two sources are not merged)',
+      'visual.score': 'score',
+      'common.yes': 'yes',
+      'common.yesShort': 'yes',
+      'common.noShort': 'no',
+      'visual.rounds': 'rounds',
+      'visual.subjects': 'subjects',
+      'visual.views': 'views',
+      'visual.reviewer': 'reviewer',
+      'visual.called': 'called',
+      'visual.notCalled': 'not called',
+      'visual.noFindings': 'The measurements found nothing.',
+      'visual.reviewerSilent': 'The reviewer reported no findings.',
+      'visual.noSecondOpinion': 'No second opinion.',
+      'visual.none': 'This revision has no visual review yet. Run one with blender_visual_review.',
+      'revisions.current': 'current',
+      'revisions.compare': 'compare',
+      'revisions.restore': 'restore',
+      'host.reading': 'Reading Host state…',
+      'diagnostics.exportHint': 'Export diagnostics you can attach to a bug report (versions, config, a summary of projects and jobs)',
+      'diagnostics.export': 'Export diagnostics',
+      'common.refresh': 'Refresh',
+      'blender.detecting': 'Detecting Blender…',
+      'common.warning': 'warning',
+      'common.collapse': 'collapse',
+      'common.details': 'details',
+      'common.noRecord': 'no record',
+      'jobs.running': '(running…)',
+      'jobs.none': 'no render job',
+      'jobs.started': 'Job {jobId} started ({frames} frames)',
+      'projects.updated': 'current {revision} · updated {when}',
+      'qa.errorCount': '{count} technical errors',
+      'visual.scoreIs': 'visual score {score}',
+      'visual.notRun': 'no visual review yet',
+      'host.observedResponse': 'the response observed: {detail}.',
+      'host.stale': 'the blenderUi in this process is older than the package on disk: /deepblend/{route} was not answered by this host',
+      'host.staleDetail': '({detail}hostApiVersion={version}, and this UI needs {needed}).',
+      'host.notJson': 'HTTP {status}, {bytes} bytes, not JSON',
+      'projects.created': 'created {id}',
+      'scene.patchInvalidJson': 'the patch is not valid JSON: {message}',
+      'scene.committed': 'committed {revision} (digest {digest})',
+      'preview.rendered': 'rendered {views} views → a contact sheet for {revision}',
+      'jobs.cancelled': 'cancelled {jobId}, and the process is measurably gone',
+      'revisions.restored': 'restored {from} as {to}',
+      'projects.unfinishedJobs': '{count} job(s) running',
+      'projects.revisionCount': '{count} revision(s)',
+      'projects.currentProject': 'current project: {title}',
+      'scene.material': 'material {id}',
+      'scene.track': '{target} · {property} · {keys} keyframes',
+      'preview.renderedAt': ' · rendered {when}',
+      'preview.lastRenderOf': 'last render · {revision}',
+      'preview.thisRenderOf': 'this render · {revision}',
+      'preview.changeCount': '{count} structural change(s)',
+      'jobs.approval': 'approval needed: {frames} frames > threshold {threshold}',
+      'jobs.approvalShort': 'approval needed: {frames} frames > {threshold}',
+      'qa.noticeCount': '{count} notice(s)',
+      'workbench.title': '{panel} workbench',
+      'jobs.unfinished': '{count} job(s) running',
+      'blender.probedAt': 'probed {when}',
+      'visual.operationCount': '{count} operation(s)',
+      'jobs.frameProgress': '{completed}/{expected} frames · {percent}%',
+      'jobs.estimated': 'about {seconds} s left',
+      'visual.counts': 'measured {measured} · model findings {findings}',
+      'visual.reviewerFailed': 'the reviewer failed: {message}',
+      'jobs.unfinishedShort': '{count} render(s) running',
+      'jobs.frameRange': 'frames {start}–{end}',
+      'revisions.title': 'Revisions ({count})',
+    },
+    }
+
+    /** The active locale id, lowercased and stripped of any region, or `en` when it is not ours. */
+    const LOCALE = (() => {
+      const named = typeof document === 'undefined' ? '' : String(document.documentElement?.lang ?? '')
+      const key = named.toLowerCase().split('-')[0]
+      return Object.prototype.hasOwnProperty.call(STRINGS, key) ? key : 'en'
+    })()
+
+    /**
+     * One string, in the active locale, with `{name}` placeholders filled from `params`.
+     *
+     * The fallback chain mirrors the platform's: the active locale, then English, then the key
+     * itself. The last one is for a key that exists in neither table — a hole a reader can SEE
+     * rather than a silent blank.
+     */
+    const t = (key, params) => {
+      const table = STRINGS[LOCALE] ?? STRINGS.en
+      const raw = table[key] ?? STRINGS.en[key] ?? key
+      if (params === undefined) return raw
+      return raw.replace(/\{(\w+)\}/g, (whole, name) => (name in params ? String(params[name]) : whole))
+    }
+    // #endregion strings
+
     // §B  Vocabulary
     // =========================================================================
 
@@ -105,12 +422,12 @@ window.__ModuleLoader__.load({
     const POLL_IDLE_MS = 8000
 
     const VIEWS = [
-      { id: 'projects', label: '项目' },
-      { id: 'scene', label: '场景树' },
-      { id: 'preview', label: '预览对比' },
-      { id: 'jobs', label: '任务' },
+      { id: 'projects', label: t('tab.projects') },
+      { id: 'scene', label: t('tab.scene') },
+      { id: 'preview', label: t('tab.preview') },
+      { id: 'jobs', label: t('tab.jobs') },
       { id: 'qa', label: 'QA' },
-      { id: 'revisions', label: '版本' },
+      { id: 'revisions', label: t('tab.revisions') },
     ]
 
     /** Every DeepBlend wire tool name this package draws a card for. */
@@ -400,14 +717,14 @@ window.__ModuleLoader__.load({
     function staleHostError(expectedRoute, observed) {
       const version = observed && observed.payload && observed.payload.hostApiVersion
         ? observed.payload.hostApiVersion
-        : '未知'
-      const detail = observed && observed.detail ? `观察到的响应：${observed.detail}。` : ''
+        : t('common.unknown')
+      const detail = observed && observed.detail ? t('host.observedResponse', { detail: observed.detail }) : ''
       return {
         code: 'UI_HOST_API_STALE',
         message:
-          `本进程里的 blenderUi 比磁盘上的包旧：/deepblend/${expectedRoute} 没有被这一版的宿主回答` +
-          `（${detail}hostApiVersion=${version}，本 UI 需要 ${EXPECTED_HOST_API}）。` +
-          '重启 profile（dsh web）即可。',
+          t('host.stale', { route: expectedRoute }) +
+          t('host.staleDetail', { detail, version, needed: EXPECTED_HOST_API }) +
+          t('workbench.restartHint'),
       }
     }
 
@@ -443,7 +760,7 @@ window.__ModuleLoader__.load({
               payload,
               status: response.status,
               detail: payload === null
-                ? `HTTP ${response.status}，${text.length} 字节，非 JSON`
+                ? t('host.notJson', { status: response.status, bytes: text.length })
                 : `route=${JSON.stringify(payload.route)}`,
             }),
           }
@@ -646,7 +963,7 @@ window.__ModuleLoader__.load({
             const response = await fetchImpl(`${projectRoute(target(), '/diff')}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { accept: 'application/json' } })
             const parsed = await response.json()
             if (parsed && parsed.ok) set({ diff: parsed.diff })
-            else set({ diff: null, diffError: (parsed && parsed.error) || { code: `HTTP_${response.status}`, message: 'diff 失败' } })
+            else set({ diff: null, diffError: (parsed && parsed.error) || { code: `HTTP_${response.status}`, message: t('preview.diffFailed') } })
           } catch (error) {
             set({ diff: null, diffError: { code: 'UI_FETCH_FAILED', message: String((error && error.message) || error) } })
           }
@@ -661,7 +978,7 @@ window.__ModuleLoader__.load({
           setIn('busy', 'create', false)
           if (outcome.ok) {
             set({ forms: { ...data.forms, title: '', goal: '' }, projectId: outcome.payload.project.projectId })
-            setIn('notices', 'projects', { ok: true, message: `已创建 ${outcome.payload.project.projectId}` })
+            setIn('notices', 'projects', { ok: true, message: t('projects.created', { id: outcome.payload.project.projectId }) })
             reload()
           } else {
             setIn('notices', 'projects', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
@@ -674,14 +991,14 @@ window.__ModuleLoader__.load({
           try {
             patch = JSON.parse(text)
           } catch (error) {
-            setIn('notices', 'scene', { ok: false, message: `patch 不是合法 JSON：${error.message}` })
+            setIn('notices', 'scene', { ok: false, message: t('scene.patchInvalidJson', { message: error.message }) })
             return
           }
           setIn('busy', 'patch', true)
           const outcome = await postJson(fetchImpl, projectRoute(target(), '/patch'), { patch })
           setIn('busy', 'patch', false)
           if (outcome.ok) {
-            setIn('notices', 'scene', { ok: true, message: `已提交 ${outcome.payload.revision.revision}（digest ${shortDigest(outcome.payload.revision.digest)}）` })
+            setIn('notices', 'scene', { ok: true, message: t('scene.committed', { revision: outcome.payload.revision.revision, digest: shortDigest(outcome.payload.revision.digest) }) })
             setIn('forms', 'patch', null)
             reload()
           } else {
@@ -697,11 +1014,11 @@ window.__ModuleLoader__.load({
             previewResult: outcome.ok
               ? {
                 ok: true,
-                message: `已渲染 ${outcome.payload.preview.views.length} 个视角 → 合成 ${outcome.payload.preview.revision} 的 contact sheet`
+                message: t('preview.rendered', { views: outcome.payload.preview.views.length, revision: outcome.payload.preview.revision })
                   + (outcome.payload.preview.sheets && outcome.payload.preview.sheets.previous
-                    ? '；上一张已留作「上一次渲染」，可以直接并排比较'
-                    : '（这是第一张；再渲染一次就能并排比较前后）')
-                  + '。预览是产物：替换同一路径上的旧图，不产生新的 revision。',
+                    ? t('preview.keptPrevious')
+                    : t('preview.firstSheet'))
+                  + t('preview.isArtifact'),
               }
               : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` },
           })
@@ -718,7 +1035,7 @@ window.__ModuleLoader__.load({
           })
           setIn('busy', 'render', false)
           setIn('notices', 'jobs', outcome.ok
-            ? { kind: 'render', ok: true, message: `任务 ${outcome.payload.job.jobId} 已启动（${outcome.payload.job.frames || '?'} 帧）` }
+            ? { kind: 'render', ok: true, message: t('jobs.started', { jobId: outcome.payload.job.jobId, frames: outcome.payload.job.frames || '?' }) }
             : { kind: 'render', ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
         },
@@ -732,8 +1049,8 @@ window.__ModuleLoader__.load({
               kind: 'cancel',
               ok: outcome.payload.cancelled.processGone !== false,
               message: outcome.payload.cancelled.processGone === false
-                ? '取消已请求，但进程仍在'
-                : `已取消 ${jobId}，进程实测已消失`,
+                ? t('jobs.cancelRequested')
+                : t('jobs.cancelled', { jobId }),
             }
             : { kind: 'cancel', ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
@@ -744,7 +1061,7 @@ window.__ModuleLoader__.load({
           const outcome = await postJson(fetchImpl, projectRoute(target(), '/restore'), { revision })
           setIn('busy', 'restore', false)
           setIn('notices', 'revisions', outcome.ok
-            ? { ok: true, message: `已恢复 ${revision} 为 ${outcome.payload.revision.revision}` }
+            ? { ok: true, message: t('revisions.restored', { from: revision, to: outcome.payload.revision.revision }) }
             : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
         },
@@ -787,9 +1104,9 @@ window.__ModuleLoader__.load({
       return el('div', { 'data-view': 'projects' },
         ErrorBox({ error: state.error }),
         el('div', { className: 'db-card' },
-          el('h4', null, '项目'),
+          el('h4', null, t('tab.projects')),
           state.projects.length === 0
-            ? el('div', { className: 'db-muted' }, '这个工作区还没有项目。')
+            ? el('div', { className: 'db-muted' }, t('projects.empty'))
             : el('ul', { className: 'db-list' }, state.projects.map(project => el('li', { key: project.projectId, 'data-project': project.projectId },
               el('div', { className: 'db-inline' },
                 Button({
@@ -799,29 +1116,29 @@ window.__ModuleLoader__.load({
                   children: project.title || project.projectId,
                 }),
                 el('span', { className: 'db-muted db-mono' }, project.projectId),
-                project.unfinishedJobs > 0 ? Badge({ tone: 'live', name: 'unfinished', children: `${project.unfinishedJobs} 个任务在跑` }) : null,
-                el('span', { className: 'db-muted' }, `${project.revisionCount} 个 revision`),
+                project.unfinishedJobs > 0 ? Badge({ tone: 'live', name: 'unfinished', children: t('projects.unfinishedJobs', { count: project.unfinishedJobs }) }) : null,
+                el('span', { className: 'db-muted' }, t('projects.revisionCount', { count: project.revisionCount })),
               ),
-              el('div', { className: 'db-muted db-mono' }, `当前 ${project.currentRevision || '—'} · 更新于 ${formatTime(project.updatedAt)}`),
+              el('div', { className: 'db-muted db-mono' }, t('projects.updated', { revision: project.currentRevision || '—', when: formatTime(project.updatedAt) })),
               project.goal ? el('div', { className: 'db-muted' }, project.goal) : null,
             ))),
           el('div', { className: 'db-muted db-mono', style: { marginTop: '6px' } }, `projectsRoot: ${state.projectsRoot || '—'}`),
         ),
 
         el('div', { className: 'db-card' },
-          el('h4', null, '新建项目（写操作经 Host）'),
+          el('h4', null, t('projects.create')),
           el('div', { className: 'db-inline' },
             el('input', {
               className: 'db-input',
               'data-field': 'project-title',
-              placeholder: '标题，例如 watch-commercial',
+              placeholder: t('projects.titlePlaceholder'),
               value: state.forms.title,
               onChange: event => actions.setForm('title', event.target.value),
             }),
             el('input', {
               className: 'db-input',
               'data-field': 'project-goal',
-              placeholder: '目标（可选）',
+              placeholder: t('projects.goal'),
               value: state.forms.goal,
               onChange: event => actions.setForm('goal', event.target.value),
             }),
@@ -830,28 +1147,28 @@ window.__ModuleLoader__.load({
               action: 'create-project',
               disabled: state.busy.create || state.forms.title.trim().length === 0,
               onClick: actions.createProject,
-              children: state.busy.create ? '创建中…' : '创建',
+              children: state.busy.create ? t('projects.creating') : t('projects.createButton'),
             }),
           ),
           state.notices.projects ? Notice(state.notices.projects, { marginTop: '8px' }) : null,
         ),
 
         state.selected ? el('div', { className: 'db-card' },
-          el('h4', null, `当前项目：${state.selected.project.title}`),
+          el('h4', null, t('projects.currentProject', { title: state.selected.project.title })),
           KeyValues({ entries: [
             { label: 'projectId', value: state.selected.project.projectId },
-            { label: '当前 revision', value: state.selected.currentRevision },
-            { label: 'revision 数', value: state.selected.project.revisionCount },
+            { label: t('scene.currentRevision'), value: state.selected.currentRevision },
+            { label: t('scene.revisionCount'), value: state.selected.project.revisionCount },
             { label: 'digest', value: shortDigest(state.selected.scene.digest) },
-            { label: '帧范围', value: `${state.selected.scene.project.frameStart}–${state.selected.scene.project.frameEnd} @ ${state.selected.scene.project.fps}fps` },
-            { label: '活动相机', value: state.selected.scene.project.activeCamera },
-            { label: '对象 / 材质 / 灯 / 相机', value: [
+            { label: t('scene.frameRange'), value: `${state.selected.scene.project.frameStart}–${state.selected.scene.project.frameEnd} @ ${state.selected.scene.project.fps}fps` },
+            { label: t('scene.activeCamera'), value: state.selected.scene.project.activeCamera },
+            { label: t('scene.counts'), value: [
               state.selected.scene.counts.entities, state.selected.scene.counts.materials,
               state.selected.scene.counts.lights, state.selected.scene.counts.cameras,
             ].join(' / ') },
           ] }),
           el('div', { className: 'db-muted', style: { marginTop: '6px' } }, state.selected.qa.summary),
-        ) : el('div', { className: 'db-card db-muted' }, '尚未选择项目。'),
+        ) : el('div', { className: 'db-card db-muted' }, t('common.noProject')),
       )
     }
 
@@ -871,7 +1188,7 @@ window.__ModuleLoader__.load({
       const state = ctx.state
       const actions = ctx.actions
       const scene = state.selected ? state.selected.scene : null
-      if (scene === null) return el('div', { 'data-view': 'scene', className: 'db-muted' }, '尚未选择项目。')
+      if (scene === null) return el('div', { 'data-view': 'scene', className: 'db-muted' }, t('common.noProject'))
 
       const template = JSON.stringify({
         baseRevision: state.selected.currentRevision,
@@ -886,7 +1203,7 @@ window.__ModuleLoader__.load({
       const section = (title, items, render) => el('div', { className: 'db-card', key: title },
         el('h4', null, `${title}（${items.length}）`),
         items.length === 0
-          ? el('div', { className: 'db-muted' }, '空')
+          ? el('div', { className: 'db-muted' }, t('common.empty'))
           : el('ul', { className: 'db-list' }, items.map(item => el('li', { key: item.id }, render(item)))))
 
       return el('div', { 'data-view': 'scene' },
@@ -896,45 +1213,45 @@ window.__ModuleLoader__.load({
             el('strong', null, String(scene.project.title || scene.project.id || '')),
             Badge({ children: scene.revision }),
             el('span', { className: 'db-muted db-mono' }, `digest ${shortDigest(scene.digest)}`),
-            Badge({ children: `world ${scene.world ? `${(scene.world.color || []).join(',')} × ${scene.world.strength}` : '默认'}` }),
+            Badge({ children: `world ${scene.world ? `${(scene.world.color || []).join(',')} × ${scene.world.strength}` : t('common.default')}` }),
           ),
         ),
         el('div', { className: 'db-grid' },
-          section('实体 entities', scene.nodes.entities, entity => el('div', null,
+          section(t('scene.entities'), scene.nodes.entities, entity => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `entity:${entity.id}` }, entity.id), ' ',
             el('span', { className: 'db-kind' }, entity.shape || entity.kind),
-            entity.materialId ? el('span', { className: 'db-muted' }, `材质 ${entity.materialId}`) : null,
+            entity.materialId ? el('span', { className: 'db-muted' }, t('scene.material', { id: entity.materialId })) : null,
             entity.locked ? Badge({ tone: 'warn', children: 'locked' }) : null,
             entity.tags.length > 0 ? el('span', { className: 'db-muted db-mono' }, ` tags=[${entity.tags.join(' ')}]`) : null,
             entity.transform ? el('div', { className: 'db-muted db-mono' }, `loc ${(entity.transform.location || []).map(value => Number(value).toFixed(3)).join(', ')}`) : null)),
-          section('材质 materials', scene.nodes.materials, material => el('div', null,
+          section(t('scene.materials'), scene.nodes.materials, material => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `material:${material.id}` }, material.id), ' ',
             el('span', { className: 'db-kind' }, material.shader),
             material.parameters ? el('span', { className: 'db-muted db-mono' }, Object.entries(material.parameters).slice(0, 4).map(([key, value]) => `${key}=${Array.isArray(value) ? `[${value.join(',')}]` : value}`).join(' ')) : null)),
-          section('灯光 lights', scene.nodes.lights, light => el('div', null,
+          section(t('scene.lights'), scene.nodes.lights, light => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `light:${light.id}` }, light.id), ' ',
             el('span', { className: 'db-kind' }, light.type),
             el('span', { className: 'db-muted' }, `energy ${light.energy}`))),
-          section('相机 cameras', scene.nodes.cameras, camera => el('div', null,
+          section(t('scene.cameras'), scene.nodes.cameras, camera => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `camera:${camera.id}` }, camera.id), ' ',
             camera.isActive ? Badge({ tone: 'ok', children: 'active' }) : null, ' ',
             el('span', { className: 'db-kind' }, camera.role || 'no role'),
             el('span', { className: 'db-muted' }, `lens ${camera.lens}`))),
-          section('镜头 shots', scene.nodes.shots, shot => el('div', null,
+          section(t('scene.shots'), scene.nodes.shots, shot => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `shot:${shot.id}` }, shot.id), ' ',
             el('span', { className: 'db-muted' }, `${shot.cameraId} ${(shot.frameRange || []).join('–')}`))),
-          section('动画轨道 animationTracks', scene.nodes.animationTracks, track => el('div', null,
+          section(t('scene.animationTracks'), scene.nodes.animationTracks, track => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `track:${track.id}` }, track.id), ' ',
             el('span', { className: 'db-kind' }, track.targetKind),
-            el('span', { className: 'db-muted' }, `${track.targetId} · ${track.property} · ${track.keyframes} 关键帧`))),
-          section('资产 assets', scene.nodes.assets, asset => el('div', null,
+            el('span', { className: 'db-muted' }, t('scene.track', { target: track.targetId, property: track.property, keys: track.keyframes })))),
+          section(t('scene.assets'), scene.nodes.assets, asset => el('div', null,
             el('span', { className: 'db-mono', 'data-node': `asset:${asset.id}` }, asset.id), ' ',
             el('span', { className: 'db-kind' }, asset.type),
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         ),
 
         el('div', { className: 'db-card' },
-          el('h4', null, 'ScenePatch（写操作经 Host，原子提交为一个 revision）'),
+          el('h4', null, t('scene.patch')),
           el('textarea', {
             className: 'db-area',
             'data-field': 'scene-patch',
@@ -948,9 +1265,9 @@ window.__ModuleLoader__.load({
               action: 'apply-patch',
               disabled: state.busy.patch || state.activeProjectId === null,
               onClick: actions.applyPatch,
-              children: state.busy.patch ? '提交中…' : '提交',
+              children: state.busy.patch ? t('scene.submitting') : t('scene.submit'),
             }),
-            Button({ action: 'reset-patch', onClick: () => actions.setForm('patch', null), children: '重置模板' }),
+            Button({ action: 'reset-patch', onClick: () => actions.setForm('patch', null), children: t('scene.resetTemplate') }),
             Notice(state.notices.scene, { border: 0, padding: '0 6px', marginBottom: 0 }),
           ),
         ),
@@ -971,7 +1288,7 @@ window.__ModuleLoader__.load({
       if (entry === null) return null
       const sheets = entry.contactSheets || []
       const current = sheets.find(sheet => sheet.slot === 'preview-current')
-      if (current && current.path) return { ...current, label: '本次渲染' }
+      if (current && current.path) return { ...current, label: t('preview.thisRender') }
       const sheet = sheets[sheets.length - 1]
       if (sheet && sheet.path) return { ...sheet, label: 'contact sheet' }
       const list = entry.previews || []
@@ -1010,8 +1327,8 @@ window.__ModuleLoader__.load({
         }
       }
       return {
-        current: current === null ? null : { ...current, label: '本次渲染', sourceRevision: entry.revision },
-        previous: previous === null ? null : { ...previous, label: '上一次渲染', sourceRevision: previousRevision },
+        current: current === null ? null : { ...current, label: t('preview.thisRender'), sourceRevision: entry.revision },
+        previous: previous === null ? null : { ...previous, label: t('preview.lastRender'), sourceRevision: previousRevision },
       }
     }
 
@@ -1020,7 +1337,7 @@ window.__ModuleLoader__.load({
       const state = ctx.state
       const actions = ctx.actions
       const previews = state.previews
-      if (previews === null) return el('div', { 'data-view': 'preview', className: 'db-muted' }, '尚未选择项目。')
+      if (previews === null) return el('div', { 'data-view': 'preview', className: 'db-muted' }, t('common.noProject'))
       const revisions = previews.revisions
       const pick = wanted => (revisions.some(entry => entry.revision === wanted) ? wanted : (((revisions[revisions.length - 1] || {}).revision) || null))
       const left = pick(state.compareLeft || state.currentRevision)
@@ -1046,23 +1363,23 @@ window.__ModuleLoader__.load({
                 src: artifactUrl(state.artifactBase, artifact),
               }),
               el('div', { className: 'db-muted db-mono', key: 'meta' },
-                `${artifact.sourceRevision ? `${artifact.sourceRevision} ` : ''}${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`),
+                `${artifact.sourceRevision ? `${artifact.sourceRevision} ` : ''}${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : t('preview.renderedAt', { when })}`),
             ].filter(Boolean))
       }
 
-      const revisionMeta = entry => el('div', { className: 'db-muted', key: 'meta' }, `${entry.summary || '（无说明）'} · ${formatTime(entry.createdAt)}`)
+      const revisionMeta = entry => el('div', { className: 'db-muted', key: 'meta' }, `${entry.summary || t('common.noNote')} · ${formatTime(entry.createdAt)}`)
 
       /** The revision axis: two revisions side by side, each one's newest image. */
       const revisionPane = (entry, side) => el('div', { className: 'db-shot', 'data-compare': side },
-        el('h5', null, entry === null ? '—' : `${entry.revision}${entry.isCurrent ? ' (当前)' : ''}`),
+        el('h5', null, entry === null ? '—' : `${entry.revision}${entry.isCurrent ? t('revisions.currentSuffix') : ''}`),
         entry === null
-          ? el('div', { className: 'db-muted' }, '没有这个 revision')
+          ? el('div', { className: 'db-muted' }, t('revisions.missing'))
           : [
             revisionMeta(entry),
             (() => {
               const sheet = sheetOf(entry)
               return sheet === null
-                ? el('div', { className: 'db-muted', key: 'none' }, '这个 revision 还没有预览图（渲染一次预览即可）。')
+                ? el('div', { className: 'db-muted', key: 'none' }, t('preview.noneForRevision'))
                 : el('img', {
                   key: 'img',
                   'data-artifact': sheet.path,
@@ -1078,7 +1395,7 @@ window.__ModuleLoader__.load({
               const sheet = sheetOf(entry)
               const when = artifactTime(sheet)
               return sheet === null ? null : el('div', { className: 'db-muted db-mono', key: 'sheet' },
-                `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : ` · 渲染于 ${when}`}`)
+                `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : t('preview.renderedAt', { when })}`)
             })(),
             el('div', { className: 'db-muted db-mono', key: 'counts' }, `previews ${(entry.previews || []).length} · sheets ${(entry.contactSheets || []).length} · reviews ${(entry.reviews || []).length}`),
             (entry.reviews || []).length > 0
@@ -1102,10 +1419,10 @@ window.__ModuleLoader__.load({
       const pair = renderPairOf(entryOf(right), revisions)
       const rendersMode = state.compareMode !== 'revisions'
       const renderPairPanes = [
-        imagePane('left', pair.previous === null ? '上一次渲染' : `上一次渲染 · ${pair.previous.sourceRevision}`, pair.previous,
-          '还没有上一次渲染：再点一次「渲染预览」，或者先在某个更早的 revision 上渲一次。'),
-        imagePane('right', `本次渲染 · ${right}`, pair.current,
-          '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。'),
+        imagePane('left', pair.previous === null ? t('preview.lastRender') : t('preview.lastRenderOf', { revision: pair.previous.sourceRevision }), pair.previous,
+          t('preview.noPrevious')),
+        imagePane('right', t('preview.thisRenderOf', { revision: right }), pair.current,
+          t('preview.notRenderedHere')),
       ]
 
       return el('div', { 'data-view': 'preview' },
@@ -1116,24 +1433,24 @@ window.__ModuleLoader__.load({
             action: 'render-preview',
             disabled: state.previewBusy || state.activeProjectId === null,
             onClick: actions.renderPreview,
-            children: state.previewBusy ? '渲染中…' : '渲染预览',
+            children: state.previewBusy ? t('preview.rendering') : t('preview.render'),
           }),
           Notice(state.previewResult, { border: 0, padding: '0 6px', marginBottom: 0 }),
         ),
         el('div', { className: 'db-tabs' },
-          el('span', { className: 'db-muted' }, '比较：'),
+          el('span', { className: 'db-muted' }, t('preview.compare')),
           el('button', {
             type: 'button', className: 'db-btn', 'data-compare-mode': 'renders', 'data-active': String(rendersMode),
             onClick: () => actions.setCompareMode('renders'),
-          }, '上一次 vs 本次渲染'),
+          }, t('preview.lastVsThis')),
           el('button', {
             type: 'button', className: 'db-btn', 'data-compare-mode': 'revisions', 'data-active': String(!rendersMode),
             onClick: () => actions.setCompareMode('revisions'),
-          }, '两个 revision'),
+          }, t('preview.twoRevisions')),
           el('span', { style: { flex: 1 } }),
           rendersMode
             ? el('span', { className: 'db-inline' },
-              el('span', { className: 'db-muted' }, '版本'),
+              el('span', { className: 'db-muted' }, t('tab.revisions')),
               el('select', {
                 className: 'db-input', 'data-field': 'compare-revision', style: { width: 'auto' }, value: right || '',
                 onChange: event => {
@@ -1151,14 +1468,14 @@ window.__ModuleLoader__.load({
                 className: 'db-input', 'data-field': 'compare-right', style: { width: 'auto' }, value: right || '',
                 onChange: event => actions.pickCompare('right', event.target.value),
               }, revisions.map(entry => el('option', { key: entry.revision, value: entry.revision }, entry.revision))),
-              state.activeProjectId ? Button({ action: 'diff', onClick: () => actions.diff(left, right), children: '看结构差异' }) : null),
+              state.activeProjectId ? Button({ action: 'diff', onClick: () => actions.diff(left, right), children: t('preview.structuralDiff') }) : null),
         ),
         el('div', { style: { paddingTop: '2px' } },
           el('div', { className: 'db-grid' }, rendersMode
             ? renderPairPanes
             : [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
           state.diff ? el('div', { className: 'db-card', 'data-diff': state.diff.identical ? 'identical' : 'changed' },
-            el('h4', null, `${state.diff.fromRevision} → ${state.diff.toRevision}：${state.diff.identical ? '结构完全相同' : `${state.diff.totalChanges} 处结构变化`}`),
+            el('h4', null, `${state.diff.fromRevision} → ${state.diff.toRevision}：${state.diff.identical ? t('preview.identical') : t('preview.changeCount', { count: state.diff.totalChanges })}`),
             state.diff.identical ? null : el('div', null,
               Object.entries(state.diff.collections)
                 .filter(([, entry]) => entry.added.length + entry.removed.length + entry.changed.length > 0)
@@ -1181,25 +1498,25 @@ window.__ModuleLoader__.load({
     function JobsView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
-      if (state.activeProjectId === null) return el('div', { 'data-view': 'jobs', className: 'db-muted' }, '尚未选择项目。')
+      if (state.activeProjectId === null) return el('div', { 'data-view': 'jobs', className: 'db-muted' }, t('common.noProject'))
       const jobs = state.jobs || []
 
       return el('div', { 'data-view': 'jobs' },
         ErrorBox({ error: state.error }),
         el('div', { className: 'db-card' },
-          el('h4', null, '任务'),
+          el('h4', null, t('tab.jobs')),
           jobs.length === 0
-            ? el('div', { className: 'db-muted' }, '还没有渲染任务。')
+            ? el('div', { className: 'db-muted' }, t('jobs.empty'))
             : el('ul', { className: 'db-list' }, jobs.map(job => el('li', { key: job.jobId, 'data-job': job.jobId },
               el('div', { className: 'db-inline' },
                 el('span', { className: 'db-mono' }, job.jobId),
                 Badge({ tone: statusTone(job.status), children: job.status }),
                 el('span', { className: 'db-muted' }, job.type),
-                el('span', { className: 'db-muted db-mono' }, `帧 ${job.frameStart}–${job.frameEnd}`),
-                job.approval && job.approval.required ? Badge({ tone: 'warn', name: 'approval', children: `需审批：${job.approval.frames} 帧 > 阈值 ${job.approval.threshold}` }) : null,
-                job.deliverable ? Badge({ tone: 'ok', children: '交付已校验' }) : null,
-                job.cancelable ? Button({ tone: 'danger', action: `cancel:${job.jobId}`, disabled: state.busy.render, onClick: () => actions.cancelJob(job.jobId), children: '取消' }) : null,
-                job.resumable ? Button({ action: `resume:${job.jobId}`, disabled: state.busy.render, onClick: () => actions.startRender(job.jobId), children: '继续渲染' }) : null,
+                el('span', { className: 'db-muted db-mono' }, t('jobs.frameRange', { start: job.frameStart, end: job.frameEnd })),
+                job.approval && job.approval.required ? Badge({ tone: 'warn', name: 'approval', children: t('jobs.approval', { frames: job.approval.frames, threshold: job.approval.threshold }) }) : null,
+                job.deliverable ? Badge({ tone: 'ok', children: t('jobs.deliveryVerified') }) : null,
+                job.cancelable ? Button({ tone: 'danger', action: `cancel:${job.jobId}`, disabled: state.busy.render, onClick: () => actions.cancelJob(job.jobId), children: t('jobs.cancel') }) : null,
+                job.resumable ? Button({ action: `resume:${job.jobId}`, disabled: state.busy.render, onClick: () => actions.startRender(job.jobId), children: t('jobs.resume') }) : null,
               ),
               ProgressBar({ percent: job.progress.percent }),
               el('div', { className: 'db-muted', 'data-job-detail': job.jobId }, `${job.detail} · ${job.progress.percent}% · 缺失 ${job.progress.missing} · 损坏 ${job.progress.corrupt}`),
@@ -1209,11 +1526,11 @@ window.__ModuleLoader__.load({
         ),
 
         el('div', { className: 'db-card' },
-          el('h4', null, '启动一次交付渲染（写操作经 Host）'),
+          el('h4', null, t('jobs.startDelivery')),
           el('div', { className: 'db-inline' },
-            el('label', { className: 'db-muted' }, '帧起'),
+            el('label', { className: 'db-muted' }, t('jobs.frameStart')),
             el('input', { className: 'db-input', 'data-field': 'frame-start', style: { width: '90px' }, value: state.forms.frameStart, onChange: event => actions.setForm('frameStart', event.target.value) }),
-            el('label', { className: 'db-muted' }, '帧止'),
+            el('label', { className: 'db-muted' }, t('jobs.frameEnd')),
             el('input', { className: 'db-input', 'data-field': 'frame-end', style: { width: '90px' }, value: state.forms.frameEnd, onChange: event => actions.setForm('frameEnd', event.target.value) }),
             el('label', { className: 'db-muted' }, 'profile'),
             el('select', {
@@ -1222,7 +1539,7 @@ window.__ModuleLoader__.load({
             },
               el('option', { value: 'preview' }, 'preview'),
               el('option', { value: 'final' }, 'final')),
-            Button({ tone: 'primary', action: 'start-render', disabled: state.busy.render, onClick: () => actions.startRender(undefined), children: state.busy.render ? '提交中…' : '启动' }),
+            Button({ tone: 'primary', action: 'start-render', disabled: state.busy.render, onClick: () => actions.startRender(undefined), children: state.busy.render ? t('scene.submitting') : t('jobs.start') }),
           ),
           Notice(state.notices.jobs, { marginTop: '8px' }),
         ),
@@ -1233,7 +1550,7 @@ window.__ModuleLoader__.load({
     function QaView(ctx) {
       const state = ctx.state
       const qa = state.selected ? state.selected.qa : null
-      if (qa === null || qa === undefined) return el('div', { 'data-view': 'qa', className: 'db-muted' }, '尚未选择项目。')
+      if (qa === null || qa === undefined) return el('div', { 'data-view': 'qa', className: 'db-muted' }, t('common.noProject'))
       const issueList = (issues, keyPrefix) => el('ul', { className: 'db-list' }, issues.map((issue, index) => el('li', { key: `${keyPrefix}${index}` },
         el('div', { className: 'db-inline' },
           Badge({ tone: issue.severity === 'critical' ? 'bad' : issue.severity === 'major' ? 'warn' : 'muted', children: issue.severity || '—' }),
@@ -1248,49 +1565,49 @@ window.__ModuleLoader__.load({
         el('div', { className: 'db-card', 'data-qa-revision': qa.revision },
           el('div', { className: 'db-inline' },
             el('strong', null, `QA · ${qa.revision}`),
-            Badge({ tone: qa.technical.ok ? 'ok' : 'bad', children: qa.technical.available ? (qa.technical.ok ? '技术校验通过' : `技术错误 ${qa.technical.errorCount}`) : '无技术校验记录' }),
-            qa.visual.available ? Badge({ tone: qa.visual.pass ? 'ok' : 'warn', children: `视觉评分 ${qa.visual.score}` }) : Badge({ children: '未跑视觉评审' }),
-            qa.semantic.noticeCount > 0 ? Badge({ tone: 'warn', children: `${qa.semantic.noticeCount} 条 notices` }) : null,
+            Badge({ tone: qa.technical.ok ? 'ok' : 'bad', children: qa.technical.available ? (qa.technical.ok ? t('qa.passed') : t('qa.errorCount', { count: qa.technical.errorCount })) : t('qa.none') }),
+            qa.visual.available ? Badge({ tone: qa.visual.pass ? 'ok' : 'warn', children: t('visual.scoreIs', { score: qa.visual.score }) }) : Badge({ children: t('visual.notRun') }),
+            qa.semantic.noticeCount > 0 ? Badge({ tone: 'warn', children: t('qa.noticeCount', { count: qa.semantic.noticeCount }) }) : null,
           ),
           el('div', { className: 'db-muted', style: { marginTop: '4px' } }, qa.summary),
         ),
 
         el('div', { className: 'db-card' },
-          el('h4', null, '技术校验（validation.json）'),
+          el('h4', null, t('qa.title')),
           KeyValues({ entries: [
-            { label: '引擎', value: qa.technical.engine },
-            { label: '活动相机', value: qa.technical.activeCamera },
-            { label: '帧范围', value: qa.technical.frameRange ? qa.technical.frameRange.join('–') : null },
-            { label: '对象', value: qa.technical.counts ? qa.technical.counts.objects : null },
-            { label: '材质', value: qa.technical.counts ? qa.technical.counts.materials : null },
-            { label: '相机', value: qa.technical.counts ? qa.technical.counts.cameraObjects : null },
+            { label: t('qa.engine'), value: qa.technical.engine },
+            { label: t('scene.activeCamera'), value: qa.technical.activeCamera },
+            { label: t('scene.frameRange'), value: qa.technical.frameRange ? qa.technical.frameRange.join('–') : null },
+            { label: t('qa.objects'), value: qa.technical.counts ? qa.technical.counts.objects : null },
+            { label: t('qa.materials'), value: qa.technical.counts ? qa.technical.counts.materials : null },
+            { label: t('qa.cameras'), value: qa.technical.counts ? qa.technical.counts.cameraObjects : null },
           ] }),
           qa.technical.errors.length === 0
-            ? el('div', { className: 'db-muted' }, '没有技术错误。')
+            ? el('div', { className: 'db-muted' }, t('qa.noErrors'))
             : issueList(qa.technical.errors, 'tech'),
           qa.semantic.notices.length === 0 ? null : el('div', { style: { marginTop: '8px' } },
-            el('h4', null, '编译器 notices'),
+            el('h4', null, t('qa.notices')),
             el('ul', { className: 'db-list' }, qa.semantic.notices.map((notice, index) => el('li', { key: `n${index}` },
               el('span', { className: 'db-mono' }, notice.code || ''), ' ', notice.message || '')))),
         ),
 
         el('div', { className: 'db-card' },
-          el('h4', null, '视觉评审（测量 + 模型 finding，两个来源不合并）'),
+          el('h4', null, t('visual.title')),
           qa.visual.available
             ? el('div', null,
               KeyValues({ entries: [
-                { label: '分数', value: qa.visual.score },
-                { label: '通过', value: qa.visual.pass ? '是' : '否' },
-                { label: '轮次', value: qa.visual.iteration },
-                { label: '主体', value: qa.visual.subjectId },
-                { label: '视角数', value: qa.visual.viewCount },
-                { label: '审查器', value: qa.visual.reviewerAvailable ? (qa.visual.reviewerModel || '已调用') : (qa.visual.reviewerError || '未调用') },
+                { label: t('visual.score'), value: qa.visual.score },
+                { label: t('common.yes'), value: qa.visual.pass ? t('common.yesShort') : t('common.noShort') },
+                { label: t('visual.rounds'), value: qa.visual.iteration },
+                { label: t('visual.subjects'), value: qa.visual.subjectId },
+                { label: t('visual.views'), value: qa.visual.viewCount },
+                { label: t('visual.reviewer'), value: qa.visual.reviewerAvailable ? (qa.visual.reviewerModel || t('visual.called')) : (qa.visual.reviewerError || t('visual.notCalled')) },
               ] }),
-              qa.visual.measuredIssues.length === 0 ? el('div', { className: 'db-muted' }, '测量没有发现问题。') : issueList(qa.visual.measuredIssues, 'm'),
+              qa.visual.measuredIssues.length === 0 ? el('div', { className: 'db-muted' }, t('visual.noFindings')) : issueList(qa.visual.measuredIssues, 'm'),
               qa.visual.findings.length === 0
-                ? el('div', { className: 'db-muted' }, qa.visual.reviewerAvailable ? '审查器没有报告 finding。' : '没有第二意见。')
+                ? el('div', { className: 'db-muted' }, qa.visual.reviewerAvailable ? t('visual.reviewerSilent') : t('visual.noSecondOpinion'))
                 : issueList(qa.visual.findings, 'f'))
-            : el('div', { className: 'db-muted' }, '这个 revision 还没有视觉评审。可以用 blender_visual_review 跑一次。'),
+            : el('div', { className: 'db-muted' }, t('visual.none')),
         ),
       )
     }
@@ -1299,24 +1616,24 @@ window.__ModuleLoader__.load({
     function RevisionsView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
-      if (state.activeProjectId === null) return el('div', { 'data-view': 'revisions', className: 'db-muted' }, '尚未选择项目。')
+      if (state.activeProjectId === null) return el('div', { 'data-view': 'revisions', className: 'db-muted' }, t('common.noProject'))
       const revisions = (state.selected && state.selected.revisions) || []
 
       return el('div', { 'data-view': 'revisions' },
         ErrorBox({ error: state.error }),
         el('div', { className: 'db-card' },
-          el('h4', null, `版本（${revisions.length}）`),
+          el('h4', null, t('revisions.title', { count: revisions.length })),
           el('ul', { className: 'db-list' }, revisions.map(entry => el('li', { key: entry.revision, 'data-revision': entry.revision },
             el('div', { className: 'db-inline' },
               el('span', { className: 'db-mono' }, entry.revision),
-              entry.isCurrent ? Badge({ tone: 'ok', children: '当前' }) : null,
+              entry.isCurrent ? Badge({ tone: 'ok', children: t('revisions.current') }) : null,
               el('span', { className: 'db-muted' }, entry.kind || '—'),
               el('span', { className: 'db-muted' }, formatTime(entry.createdAt)),
               el('span', { className: 'db-muted db-mono' }, `digest ${shortDigest(entry.digest)}`),
-              Button({ action: `compare-from:${entry.revision}`, onClick: () => actions.compareFrom(entry.revision), children: '对比' }),
-              entry.isCurrent ? null : Button({ action: `restore:${entry.revision}`, disabled: state.busy.restore, onClick: () => actions.restoreRevision(entry.revision), children: '恢复' }),
+              Button({ action: `compare-from:${entry.revision}`, onClick: () => actions.compareFrom(entry.revision), children: t('revisions.compare') }),
+              entry.isCurrent ? null : Button({ action: `restore:${entry.revision}`, disabled: state.busy.restore, onClick: () => actions.restoreRevision(entry.revision), children: t('revisions.restore') }),
             ),
-            el('div', { className: 'db-muted' }, entry.summary || '（无说明）'),
+            el('div', { className: 'db-muted' }, entry.summary || t('common.noNote')),
             el('div', { className: 'db-muted db-mono' }, `previews ${(entry.previews || []).length} · validation ${entry.validation ? (entry.validation.ok ? 'ok' : `${entry.validation.errorCount} errors`) : '—'}`),
           ))),
           Notice(state.notices.revisions, { marginTop: '8px' }),
@@ -1352,16 +1669,16 @@ window.__ModuleLoader__.load({
       const body = stale
         ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
         : state.status === 'loading'
-          ? el('div', { className: 'db-body db-muted' }, '读取 Host 状态…')
+          ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
           : el('div', { className: 'db-body' }, renderView(ctx))
 
       return el('div', { className: 'db-root', 'data-deepblend-panel': PANEL_ID },
         el('div', { className: 'db-head' },
-          el('span', { className: 'db-title' }, `${PANEL_LABEL} 工作台`),
+          el('span', { className: 'db-title' }, t('workbench.title', { panel: PANEL_LABEL })),
           state.selected ? el('span', { className: 'db-muted' }, state.selected.project.title) : null,
           state.selected ? Badge({ children: state.selected.currentRevision || '—' }) : null,
           state.unfinishedJobs.length > 0
-            ? Badge({ tone: 'live', name: 'unfinished', children: `${state.unfinishedJobs.length} 个任务在跑` })
+            ? Badge({ tone: 'live', name: 'unfinished', children: t('jobs.unfinished', { count: state.unfinishedJobs.length }) })
             : null,
           state.hostApiVersion !== null && state.hostApiVersion !== EXPECTED_HOST_API
             ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} ≠ ${EXPECTED_HOST_API}` })
@@ -1376,9 +1693,9 @@ window.__ModuleLoader__.load({
             href: ROUTES.diagnostics,
             download: 'deepblend-diagnostics.json',
             'data-action': 'export-diagnostics',
-            title: '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
-          }, '导出诊断'),
-          Button({ action: 'reload', onClick: actions.reload, children: '刷新' }),
+            title: t('diagnostics.exportHint'),
+          }, t('diagnostics.export')),
+          Button({ action: 'reload', onClick: actions.reload, children: t('common.refresh') }),
         ),
         el('div', { className: 'db-nav' }, VIEWS.map(entry => el('button', {
           key: entry.id,
@@ -1604,17 +1921,17 @@ window.__ModuleLoader__.load({
 
       return h('div', { 'data-deepblend-settings': PANEL_ID, style: { padding: '4px 2px' } },
         state.error !== null && state.error !== undefined ? h(RErrorBox, { error: state.error }) : null,
-        state.status === 'loading' ? h('div', { className: 'db-muted' }, '检测 Blender…') : null,
+        state.status === 'loading' ? h('div', { className: 'db-muted' }, t('blender.detecting')) : null,
         card === null ? null : h('div', null,
           h('div', { className: 'db-inline' },
             h('strong', null, card.title),
             h(RBadge, { tone: card.status === 'ready' ? 'ok' : 'bad' }, card.statusLabel),
-            card.probedAt ? h('span', { className: 'db-muted' }, `探测于 ${formatTime(card.probedAt)}`) : null,
+            card.probedAt ? h('span', { className: 'db-muted' }, t('blender.probedAt', { when: formatTime(card.probedAt) })) : null,
           ),
           h('div', { className: 'db-card', style: { marginTop: '8px' } },
             card.rows.map(row => h(RRow, { key: row.label, label: row.label, value: row.value }))),
           card.warnings.length === 0 ? null : h('div', { className: 'db-card' },
-            h('h4', null, '警告'),
+            h('h4', null, t('common.warning')),
             h('ul', { className: 'db-list' }, card.warnings.map((entry, index) => h('li', { key: `w${index}` },
               h('span', { className: 'db-mono' }, entry.code || ''), ' ', entry.message || '')))),
           h('div', { className: 'db-muted db-mono' }, `hostApiVersion ${payload.hostApiVersion}`),
@@ -1731,17 +2048,17 @@ window.__ModuleLoader__.load({
           h('strong', { className: 'db-mono' }, toolName),
           projectId ? h('span', { className: 'db-muted db-mono' }, projectId) : null,
           jobId ? h(RBadge, null, jobId) : null,
-          Array.isArray(args.operations) ? h(RBadge, null, `${args.operations.length} 个操作`) : null,
-          job && job.approval && job.approval.required ? h(RBadge, { tone: 'warn', name: 'approval' }, `需审批：${job.approval.frames} 帧 > ${job.approval.threshold}`) : null,
+          Array.isArray(args.operations) ? h(RBadge, null, t('visual.operationCount', { count: args.operations.length })) : null,
+          job && job.approval && job.approval.required ? h(RBadge, { tone: 'warn', name: 'approval' }, t('jobs.approvalShort', { frames: job.approval.frames, threshold: job.approval.threshold })) : null,
           h('span', { style: { flex: 1 } }),
-          settled ? h('button', { type: 'button', className: 'db-chip', 'data-action': 'toggle-card', onClick: () => setExpanded(value => !value) }, expanded ? '收起' : '详情') : null,
+          settled ? h('button', { type: 'button', className: 'db-chip', 'data-action': 'toggle-card', onClick: () => setExpanded(value => !value) }, expanded ? t('common.collapse') : t('common.details')) : null,
         ),
 
         jobShaped && job !== null ? h('div', { 'data-tool-job': job.jobId },
           h('div', { className: 'db-inline' },
             h(RBadge, { tone: statusTone(job.status) }, job.status),
-            h('span', { className: 'db-muted' }, `${job.progress.completed}/${job.progress.expected} 帧 · ${job.progress.percent}%`),
-            job.estimatedRemainingMs ? h('span', { className: 'db-muted' }, `预计 ${Math.round(job.estimatedRemainingMs / 1000)} s`) : null,
+            h('span', { className: 'db-muted' }, t('jobs.frameProgress', { completed: job.progress.completed, expected: job.progress.expected, percent: job.progress.percent })),
+            job.estimatedRemainingMs ? h('span', { className: 'db-muted' }, t('jobs.estimated', { seconds: Math.round(job.estimatedRemainingMs / 1000) })) : null,
           ),
           h(RProgressBar, { percent: job.progress.percent }),
           h('div', { className: 'db-muted' }, job.detail),
@@ -1750,13 +2067,13 @@ window.__ModuleLoader__.load({
 
         reviewShaped && qa !== null ? h('div', { 'data-tool-qa': qa.revision },
           h('div', { className: 'db-inline' },
-            qa.visual.available ? h(RBadge, { tone: qa.visual.pass ? 'ok' : 'warn' }, `视觉评分 ${qa.visual.score}`) : h(RBadge, null, '未跑视觉评审'),
-            h(RBadge, { tone: qa.technical.ok ? 'ok' : 'bad' }, qa.technical.available ? (qa.technical.ok ? '技术校验通过' : `${qa.technical.errorCount} 个技术错误`) : '无记录'),
-            h('span', { className: 'db-muted' }, `测量 ${qa.visual.measuredIssueCount} · 模型 finding ${qa.visual.findingCount}`),
+            qa.visual.available ? h(RBadge, { tone: qa.visual.pass ? 'ok' : 'warn' }, t('visual.scoreIs', { score: qa.visual.score })) : h(RBadge, null, t('visual.notRun')),
+            h(RBadge, { tone: qa.technical.ok ? 'ok' : 'bad' }, qa.technical.available ? (qa.technical.ok ? t('qa.passed') : t('qa.errorCount', { count: qa.technical.errorCount })) : t('common.noRecord')),
+            h('span', { className: 'db-muted' }, t('visual.counts', { measured: qa.visual.measuredIssueCount, findings: qa.visual.findingCount })),
           ),
           qa.visual.measuredIssues.slice(0, 4).map((issue, index) => h('div', { key: `i${index}`, className: 'db-muted db-mono' },
             `[${issue.severity}] ${issue.code} ${issue.viewId || ''} :: ${issue.evidence || ''}`)),
-          qa.visual.reviewerError ? h('div', { className: 'db-error' }, `审查器失败：${qa.visual.reviewerError}`) : null,
+          qa.visual.reviewerError ? h('div', { className: 'db-error' }, t('visual.reviewerFailed', { message: qa.visual.reviewerError })) : null,
         ) : null,
 
         reviewShaped && sheet !== null ? h('div', { style: { marginTop: '6px' } },
@@ -1767,9 +2084,9 @@ window.__ModuleLoader__.load({
             src: artifactUrl(artifactBase, sheet),
             style: { width: '100%', borderRadius: '6px', background: '#000' },
           }),
-          h('div', { className: 'db-muted db-mono' }, `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${artifactTime(sheet) === null ? '' : ` · 渲染于 ${artifactTime(sheet)}`}`)) : null,
+          h('div', { className: 'db-muted db-mono' }, `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${artifactTime(sheet) === null ? '' : t('preview.renderedAt', { when: artifactTime(sheet) })}`)) : null,
 
-        expanded || !settled ? h('pre', { className: 'db-pre' }, (resultText(props.block) || '(运行中…)').slice(0, 4000)) : null,
+        expanded || !settled ? h('pre', { className: 'db-pre' }, (resultText(props.block) || t('jobs.running')).slice(0, 4000)) : null,
       )
     }
 
@@ -1785,7 +2102,7 @@ window.__ModuleLoader__.load({
         title: projects.map(project => `${project.projectId}: ${project.unfinishedJobs || 0}`).join('\n'),
       },
         h('span', { className: 'db-dot', 'data-tone': unfinished > 0 ? 'live' : 'ok' }),
-        unfinished > 0 ? `${unfinished} 个渲染在跑` : '无渲染任务',
+        unfinished > 0 ? t('jobs.unfinishedShort', { count: unfinished }) : t('jobs.none'),
       )
     }
 

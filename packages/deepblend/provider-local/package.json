@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-provider-local",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "Local Blender Provider: the BlenderRuntime Service over ctx.subprocess (batch execution).",
   "main": "lib/index.js",

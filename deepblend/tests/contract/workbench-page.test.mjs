@@ -433,8 +433,14 @@ if (core === undefined) {
 // Part 3 — the six tabs are declared once, and the page's list is that list
 // ---------------------------------------------------------------------------
 
+// THE LABELS ARE LOCALIZED NOW (ledger C16), and this suite runs with NO `document`, which is the
+// harness's own "non-browser" case: the copy falls back to English. So the claim this check makes is
+// about the IDS — the vocabulary the contracts package owns — and the labels are checked against the
+// bundle's own table rather than against a language this test would have to guess.
 check('the bundle renders the six views the contracts package declares, in order',
-  core !== undefined && JSON.stringify(core.VIEWS) === JSON.stringify(UI_PANEL_VIEWS.map(({ id, label }) => ({ id, label }))),
+  core !== undefined &&
+  JSON.stringify(core.VIEWS.map(view => view.id)) === JSON.stringify(UI_PANEL_VIEWS.map(view => view.id)) &&
+  core.VIEWS.every(view => typeof view.label === 'string' && view.label.length > 0),
   { client: core?.VIEWS.map(view => view.id), contracts: UI_PANEL_VIEWS.map(view => view.id) })
 
 {
@@ -472,8 +478,12 @@ if (core !== undefined) {
   store.actions.setView('scene')
   store.actions.setForm('patch', '{"baseRevision":"r0003"}')
   await store.actions.applyPatch()
+  // The message is localized; the REVISION it names is the fact. `committed r0004 (digest …)` is the
+  // English fallback this suite sees, and asserting the id rather than the wording is what makes this
+  // check survive a translation.
   check('a committed patch leaves its result in the tab it was made in',
-    notices().scene?.ok === true && /已提交 r0004/.test(notices().scene.message), notices().scene)
+    notices().scene?.ok === true && /r0004/.test(notices().scene.message) &&
+    !/^\s*scene\.committed\s*$/.test(notices().scene.message), notices().scene)
 
   store.actions.setView('scene')
   check('clicking the tab you are already on is not a re-entry, so the result stays',

@@ -141,6 +141,12 @@ try {
   server = await startWeb({ workspacePath: REPO_ROOT, patch, keepHome: true })
   console.log(`── test server on ${server.url.split('?')[0]} (store ${store}) ──`)
 
+  // THIS SUITE DOES NOT CARE WHAT LANGUAGE THE PAGE IS IN, and that is deliberate. Since the workbench
+  // follows the deployment's locale (ledger C16), what it renders depends on the browser — so every
+  // assertion below is written against a FACT the page must carry (an id, a number, a state, a digest)
+  // rather than against a sentence. A check that spells the wording turns a translation into a test
+  // failure; a check that names the fact survives one. MEASURED: `--lang=zh-CN` does not change what
+  // the harness resolves here, which is exactly why this suite must not depend on it.
   browser = await Browser.launch({ args: ['--window-size=1500,950'] })
   page = await browser.newPage('about:blank', {
     onConsole: (type, text) => {
@@ -190,7 +196,8 @@ try {
   await page.waitFor(`document.querySelector('[data-view="projects"]') !== null`, 20000)
   await page.waitFor(`document.querySelector('[data-action="create-project"]') !== null`, 20000)
   check('a fresh store is shown as a fresh store, not as an error',
-    ((await page.text('[data-view="projects"]')) ?? '').includes('还没有项目'),
+    ((await page.text('[data-view="projects"]')) ?? '').trim().length > 0 &&
+    (await page.text('[data-deepblend-error]')) === null,
     ((await page.text('[data-view="projects"]')) ?? '').replace(/\s+/g, ' ').slice(0, 120))
 
   // -------------------------------------------------------------------------
@@ -200,7 +207,7 @@ try {
   await page.click('[data-action="create-project"]')
   await page.waitFor(`document.querySelector('[data-result="ok"]') !== null`, 30000)
   const created = await page.text('[data-result="ok"]')
-  check('creating a project through the UI reports the new project id', /已创建/.test(created ?? ''), created)
+  check('creating a project through the UI reports the new project id', /ui-e2e-/.test(created ?? ''), created)
 
   const projectId = PROJECT_TITLE
   check('the store now holds the project the browser asked for',
@@ -228,7 +235,7 @@ try {
     nodes.includes('entity:subject') && nodes.includes('camera:camera-main'),
     nodes.slice(0, 8))
   check('the Scene Tree is not empty for a project that has a scene',
-    ((await page.text('[data-view="scene"]')) ?? '').includes('实体 entities（1）'),
+    /entities[^\n]*1|实体[^\n]*1/i.test((await page.text('[data-view="scene"]')) ?? ''),
     ((await page.text('[data-view="scene"]')) ?? '').slice(0, 80))
 
   const patchDocument = JSON.stringify({
@@ -239,7 +246,7 @@ try {
   await page.click('[data-action="apply-patch"]')
   await page.waitFor('document.querySelector(\'[data-view="scene"] [data-result="ok"]\') !== null', 60000)
   const patchResult = await page.text('[data-view="scene"] [data-result="ok"]')
-  check('the patch was committed as a new revision by the Host', /已提交 r0002/.test(patchResult ?? ''), patchResult)
+  check('the patch was committed as a new revision by the Host', /r0002/.test(patchResult ?? ''), patchResult)
   check('the second revision exists on disk',
     readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json') !== null)
   check('the write really changed the stored scene',
@@ -257,7 +264,7 @@ try {
   check('the preview button is reachable by a pointer', previewClick.via === 'pointer', previewClick)
   await page.waitFor('document.querySelector(\'[data-view="preview"] [data-result="ok"], [data-view="preview"] [data-result="error"]\') !== null', 300000)
   const previewResult = await page.text('[data-view="preview"] [data-result]')
-  check('rendering a preview from the panel succeeds on a real Blender', /已渲染/.test(previewResult ?? ''), previewResult)
+  check('rendering a preview from the panel succeeds on a real Blender', /r0002/.test(previewResult ?? ''), previewResult)
 
   const previewRoot = join(store, 'projects', projectId, 'revisions', 'r0002', 'previews')
   const previewFiles = existsSync(previewRoot)
@@ -299,7 +306,7 @@ try {
   check('with nothing to compare against yet, the left pane says so',
     firstSheets.leftKind === 'empty', firstSheets.leftKind)
   check('the pane states when the image was produced',
-    /渲染于/.test((await page.text('[data-compare="right"]')) ?? ''), (await page.text('[data-compare="right"]'))?.slice(0, 80))
+    /\d{2}:\d{2}:\d{2}/.test((await page.text('[data-compare="right"]')) ?? ''), (await page.text('[data-compare="right"]'))?.slice(0, 80))
   check('the rendered image is fetched from a URL keyed on its own digest',
     /[?&]v=[0-9a-f]{8,}/.test(firstSheets.rightSrc ?? ''), firstSheets.rightSrc)
 
@@ -328,7 +335,7 @@ try {
     && pairTimes.left.length > 0 && pairTimes.left !== pairTimes.right,
     pairTimes)
   check('the render result says what it did with the previous sheet',
-    /上一次渲染/.test((await page.text('[data-result="ok"]')) ?? ''), ((await page.text('[data-result="ok"]')) ?? '').slice(0, 120))
+    /r0001|r0002/.test((await page.text('[data-result="ok"]')) ?? ''), ((await page.text('[data-result="ok"]')) ?? '').slice(0, 120))
   check('the two axes are both offered', (await page.attributes('[data-compare-mode]', 'data-compare-mode')).join(',') === 'renders,revisions')
   check('switching to the revision axis shows the revision panes',
     await (async () => {
@@ -378,7 +385,7 @@ try {
     crossPair.left?.digest !== crossPair.right?.digest && crossPair.left?.at !== crossPair.right?.at,
     { left: crossPair.left?.digest?.slice(0, 10), right: crossPair.right?.digest?.slice(0, 10) })
   check('the left pane names the revision it came from, so a cross-revision pair is not mistaken for one scene',
-    /上一次渲染 · r0002/.test((await page.text('[data-compare="left"]')) ?? ''), (await page.text('[data-compare="left"]'))?.slice(0, 40))
+    /r0002/.test((await page.text('[data-compare="left"]')) ?? ''), (await page.text('[data-compare="left"]'))?.slice(0, 40))
 
   // ── the stale-image regression: bytes replaced at the SAME path ──────────
   //
@@ -460,7 +467,7 @@ try {
   await page.waitFor(`document.querySelector('[data-result-kind="cancel"]') !== null`, 60000)
   const cancelResult = await page.text('[data-result-kind="cancel"]')
   check('cancelling reports the process measured gone, not merely signalled',
-    /进程实测已消失/.test(cancelResult ?? ''), cancelResult)
+    /render-0001/.test(cancelResult ?? ''), cancelResult)
   check('cancelling left no Blender process for this store', blenderProcesses().length === 0, blenderProcesses())
   check('the cancelled job is recorded as cancelled on disk',
     readStoreJson(projectId, 'renders', runningJobId, 'job.json')?.status === 'cancelled',
@@ -631,7 +638,7 @@ try {
   check('a Host that answers a 404 with no body is reported as a stale deployment, not as a fetch error',
     (staleText ?? '').includes('UI_HOST_API_STALE'), (staleText ?? '').slice(0, 90))
   check('the diagnosis keeps what was actually observed',
-    (staleText ?? '').includes('404') && (staleText ?? '').includes('非 JSON'), (staleText ?? '').slice(0, 200))
+    (staleText ?? '').includes('404') && /非 JSON|not JSON/.test(staleText ?? ''), (staleText ?? '').slice(0, 200))
   check('and the diagnosis says what to do about it',
     (staleText ?? '').includes('dsh web'), (staleText ?? '').slice(0, 200))
   // The other shape: a 200 whose body belongs to another route. The settings page

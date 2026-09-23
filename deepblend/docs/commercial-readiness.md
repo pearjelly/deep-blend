@@ -42,7 +42,7 @@
 | C13 | 质量 | 黑暗行是多少 | ✓ | `deepblend/docs/probe-coverage.log` 的读数由 `deepblend/tools/coverage-probe.mjs` 产出，合并规则由 `deepblend/tests/contract/probe-merge.test.mjs` 盯着（量具自己错了四次，四次都是合并规则） | — |
 | C14 | 质量 | 活下来的变异有多少、记在哪里 | ✓ | `deepblend/docs/mutation-survivors.md`：一份**追加式**的表，每行一个洞——哪一轮、什么变异、**三个形状**里的哪一个、杀死它的断言、状态——外加 §1 的三条规则与 §3 的**量具自己说谎**一条；`deepblend/tests/contract/mutation-survivors.test.mjs` 盯四件事：每行的 killer 指向的文件或命令存在、每行的形状取自**由断言持有**的闭集、每行引用的 `milestone-status.md` 小节真的存在、而本文档的散文里**不许出现计数**（行数就是计数） | — |
 | C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台，`milestone-status.md` §198）；其余七项（Blender Live Bridge、Blender Add-on、远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 |
-| C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✗ | 今天的读数：工作台的标签与提示是中文（`packages/deepblend/ui/lib/client.js`），市场入口 `README.md` 是英文、详细的那份 `README.zh.md` 是中文 | 工作台没有语言开关，也没有第二份文案：非中文用户装完之后，看到的是一个全中文的界面。这一行今天连「要不要双语」都还没有决定 |
+| C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✓ | **已决定，而且不是偏好**：`deepblend/docs/architecture-decisions.md` 里那条关于文案语言的决策 ✓——工作台**跟随部署的 locale** ✓，回退英文 ✓，因为 harness 自己的契约就是这么写的 ✓（`dsh-client-locale` 的 `FALLBACK_LOCALE = "en"` ✓：「a browser naming no registered language is the reader least likely to read Chinese」✓），而当前 locale 由它写在 `document.documentElement.lang` 上 ✓；实现是 `packages/deepblend/ui/lib/client.js` 里带 `#region strings` 标记的表 ✓（两侧键集相同 ✓）；`deepblend/tests/contract/workbench-copy.test.mjs` 盯四件事 ✓：两侧键集相同 ✓、回退确实是英文（未注册语言与**无浏览器**两种情形 ✓）、**表外不许再有任何中文文案** ✓、以及每个 `t()` 调用点都指向存在的键 ✓（**双向** ✓） | — |
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✓ | `deepblend/docs/cost.md`：渲染侧的每帧秒数（**一处定义**：`packages/deepblend/tool/lib/render-tools.js` 的 `REFERENCE_SECONDS_PER_FRAME` ✓）与 token 侧的两次**真实调用**读数 ✓；`deepblend/tests/contract/cost-model.test.mjs` 盯着文档里的每个数都能被重算 ✓、审批提示里那句估算**由帧数算出来** ✓、以及文档**写明它还不知道什么** ✓；`deepblend/tests/contract/tool-plane-output.test.mjs` 盯着那句估算真的出现在审批提示里 ✓；`node deepblend/tools/visual-review-live-probe.mjs` 读的是**产品自己的路由与预算** ✓，所以一个陈旧的默认值会在那里以「这个模型不存在」现形 ✓ | — |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
 | C19 | 跨平台 | 上游只发布 `linux-x64` 的 Blender——这件事有没有写在用户读到的地方 | ✓ | `deepblend/docs/install.md` §0 与两份 `README` 的前置表都写明上游发布的那个产物名、并写明 `arm64` Linux 上没有构建（读数：上游四条发布线的目录列表，命令与输出在 `milestone-status.md` §203.4）；`deepblend/tests/contract/setup-steps.test.mjs` 按**产物名本身**盯着这三处，并要求其中两处写明 `arm64` 没有 | — |
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 9 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 10 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 8 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
@@ -336,3 +336,27 @@
   下一轮的第一顺位是 **C16（双语文案）** ✓——它是剩下三行里**用户感知最强**的一行 ✓
   （一个非中文用户装完之后看到的是一整屏中文 ✓），而它今天连「要不要做」都还没有决定 ✓；
   其次是 **C7**（只有用户能改变 ✓）与 **C15**（M6 的其余七项 ✓，每一项都是一个功能轮 ✓）。
+
+### 轮 10 — 2026-09-23
+
+- **移动：M1** — C16 从 ✗ → ✓：**「要不要双语」这个问题第一次有了答案** ✓，而答案是**平台的契约**给的 ✓，
+  不是偏好 ✓。实测三件事 ✓：harness 自带 `dsh-client-locale` ✓、它支持 `zh` / `en` 两个 locale ✓、
+  而它的回退规则写着 **`FALLBACK_LOCALE = "en"`** ✓——原话是
+  「a browser naming no registered language is **the reader least likely to read Chinese**」✓。
+  工作台此前在**每一处**用户可见位置硬编码中文 ✓，于是**平台特意路由到英文的那个读者看到的是一整屏中文** ✓——
+  这正是那条规则存在的理由 ✓。
+- **移动：M2** — 一条红 → 绿：`workbench-page.test.mjs` 的两条断言 ✓ 断的是**中文原文** ✓，
+  迁移之后它们红了 ✓（这个套件没有 `document` ✓，按平台规则回退英文 ✓）。
+  修法不是把期望值改成英文 ✗，是**改成断事实** ✓：标签断 id 与「非空」 ✓、
+  提交消息断它点名的 **revision** ✓。**一条断文案的断言，会在文案被翻译时红；一条断事实的断言不会** ✓。
+- **移动：M4** — 七条变异全红 ✓，其中三条值得点名 ✓：
+  「一侧有另一侧没有的键」 ✓、「回退改成 zh」 ✓、「表外又出现一句中文」 ✓——
+  最后那条是让这张表**有意义**的那一条 ✓：一张装着文案、而渲染路径各自留着自己的字面量的表 ✓，
+  会通过上面所有检查 ✓，而用户看到的一个字都不会变 ✓。
+- **判据**：`node deepblend/tests/contract/workbench-copy.test.mjs` ✓（五项 ✓）、
+  `packages/deepblend/ui/lib/client.js` 的 `#region strings` ✓（两侧各 136 键 ✓）、
+  `deepblend/docs/architecture-decisions.md` 的 D201 ✓。
+- **还差什么**：账本上仍然开着的是 C7、C15 ✓。
+  这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓。
+  下一轮的第一顺位是 **C15**（M6 的其余七项 ✓）——它是账本上唯一**装着功能**的一行 ✓，
+  第一项是 Blender Live Bridge ✓；**C7 只有用户能改变** ✓（第二个账号 ✓），它已经连续两轮在缺口表里 ✓。
