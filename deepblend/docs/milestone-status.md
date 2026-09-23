@@ -13229,10 +13229,42 @@ it carries no home directory
   与三条路线的复验读数见 §201.8 ✓。
 * 投稿条目一个字节都没有动 ✓。
 
-### 201.8 发布链：四步一次走完
+### 201.8 发布链：四步一次走完，而「npm 报 ok」再一次不是证据
 
-（本节由同一次收口写入 ✓：版本从 `0.2.0` 升到 `0.2.1` ✓，`version:sync` ✓ →
-tarball ✓ → Release ＋ 资产 ✓ → npm 七个包 ✓，然后用**装一次读回来**的方式复验三条路线 ✓。）
+`packages/**` 改了 ✓，所以四步全部走完 ✓：
+
+```
+0. deepblend/version.json 0.2.0 -> 0.2.1 ✓ + version:sync（8 个 manifest）✓ + version:check 绿 ✓
+1. release:tarball -> .tmp-release/deepblend-bundle.tgz ✓（commit 1ca03cf ✓，6 个包全部打进产物 ✓，374.4 kB ✓）
+2. gh release create v0.2.1 ✓（资产 deepblend-bundle.tgz ✓，读回来确认过 ✓）
+3. publish:check -> 7 个包可以发 ✓；publish:packages -> 7 个包全部 ok ✓
+```
+
+**然后三条路线各装一次、读回来** ✓，判据是同一条 ✓（`installed version` ＋ `workbench route` ✓）：
+
+| 路线 | `packages pnpm fetched` | `installed version` | `workbench route` |
+|---|---|---|---|
+| npm ✓ | 7 ✓ | `…bundle@0.2.1` ✓ | HTTP 200, text/html ✓ |
+| 源码（git spec）✓ | 7 ✓ | `…bundle@0.2.1` ✓ | HTTP 200, text/html ✓ |
+| tarball（隔离 store ✓）✓ | **1** ✓ | `…bundle@0.2.1` ✓ | HTTP 200, text/html ✓ |
+
+三份日志已重写为这一次的读数 ✓（`probe-dsh-plugin-{npm,github,tarball}.log` ✓）。
+
+**本轮量到的一条新读数：读侧传播延迟有两个对象，而它们的时差是分钟级** ✓。
+发布工具对七个包都报 ok ✓，而**紧接着**用 npm 路线装一次 ✓，装到的是 **0.2.0** ✓——
+`dist-tags.latest` 还是 `0.2.0` ✓、`/0.2.1` 的 packument 与 tarball 都是 **404** ✓。
+逐秒轮询读侧（`curl` 一个真实 URL ✓，不是「命令返回 ok」✓）：
+
+```
+09:30:54  packument=404  tarball=404  latest=0.2.0
+09:31:19  packument=200  tarball=404  latest=0.2.1     ← 约两分钟后 packument 与 dist-tag
+09:35:44  packument=200  tarball=200  latest=0.2.1     ← 约六分钟后 tarball
+```
+
+**这就是「npm 报 ok 而读侧 404」的完整形状** ✓：packument 与 tarball 是两个对象、两条传播路径 ✓
+（第 1 轮量到过这件事 ✓，这一轮量到了**秒级**的间隔 ✓）。它有一个面向用户的推论 ✓：
+**一次成功的发布之后，npm 路线在大约几分钟里装到的是上一个版本** ✓——
+而 `installed version` 那一行会让它看起来像「发布失败」✓，所以探针把版本读出来而不是假设它 ✓。
 
 ### 201.9 仍然开着的缺口
 
@@ -13246,3 +13278,8 @@ tarball ✓ → Release ＋ 资产 ✓ → npm 七个包 ✓，然后用**装一
 5. **导出没有「最近日志」** ✓：bundle 带的是任务记录里的失败 ✓，不是渲染日志的尾巴 ✓。
    真正难查的那些问题（渲染中途崩掉 ✓）需要日志本身 ✓，而日志今天只在
    `blender_job_status` 的文本里 ✓。
+6. **覆盖率读数是陈旧的，而且这一轮让它更陈旧了** ✓：`probe-coverage.log` 的那组数字取自
+   2026-09-20 的一次运行 ✓，而这一轮给产品加了新的代码行 ✓（诊断包、配置投影、版本读取 ✓）。
+   下一次 `node deepblend/tools/coverage-probe.mjs --all` 会给出新的读数 ✓——
+   它是下一轮「可数量化读数改善」的候选 ✓，也是**唯一**能说清这一轮加了多少黑暗行的办法 ✓
+   （手数一遍会是同一件事的第二份实现 ✓，那是这个仓库反复付代价的形状 ✓）。
