@@ -38,7 +38,7 @@
 | C9 | 可诊断 | 每个失败都可分支吗——用户能照着错误码做事吗 | ✓ | `deepblend/docs/recovery.md` §10 是按错误码查的索引，`deepblend/tests/contract/error-codes.test.mjs` 盯着码空间，`deepblend/tests/contract/error-documentation.test.mjs` 盯着「每个码要么有一页给用户、要么有一个理由」且分类完备 | — |
 | C10 | 可诊断 | 用户能自己导出诊断信息吗 | ✓ | `deepblend/tests/contract/diagnostics.test.mjs` 驱动那个纯构造器与真的处理器（bundle 的形状、家目录被写成 `~`、失败的探测是值而不是错误页、上限与它的说明一致）；`deepblend/tests/e2e/workbench-page.e2e.mjs` 在真 Chrome 里**按指针点一次**，把落盘的那份读回来解析（格式、版本、这个 store、Blender 探测结果、不含家目录）；路由是 `GET /deepblend/diagnostics`，写在 `deepblend/docs/tool-contracts.md` 的闭集里 | — |
 | C11 | 安全与合规 | SPEC §15 逐条有证据或具名缺口吗 | ✓ | `deepblend/docs/security.md` 是逐条对照表，`deepblend/tests/contract/security-controls.test.mjs` 盯着「SPEC 增删一条要求、表不跟着改就红」与「表里指到的代码或断言不存在就红」 | — |
-| C12 | 安全与合规 | 第三方许可盘点过吗——Blender 的 GPL、ffmpeg、受管 Blender 的下载与再分发 | ✗ | 今天的读数：仓库里没有第三方许可清单。`LICENSE` 只有本项目自己的 MIT；`deepblend/docs/` 下没有任何文件提到 Blender 的许可或 ffmpeg 的许可 | 三件事今天没有任何地方写着、也没有断言：① Blender 是**外部程序调用**（`--background --factory-startup`，argv 数组，不是链接），所以本项目的 MIT 不与它的 GPL 冲突；② ffmpeg 同理，且它是**用户自己装的**；③ 受管 Blender 是**下载**（从上游 URL 取，带 pin 与 `sha256`）而不是**再分发**，所以产物里没有别人的字节 |
+| C12 | 安全与合规 | 第三方许可盘点过吗——Blender 的 GPL、ffmpeg、受管 Blender 的下载与再分发 | ✓ | `deepblend/docs/third-party.md`：三类关系（外部程序调用 / 同行依赖 / 再分发）与逐项表，每行指到代码或断言，§4 给出复核命令；`deepblend/tests/contract/third-party.test.mjs` 盯四件事——产品 spawn 的外部程序**恰好**是配置 schema 声明的三个（双向，从源码推导）、八个 manifest 的 `license` 与仓库根一致、产品的 `dependencies` 只有自己的包而外部一律是 `peerDependencies`、被跟踪的文件里没有一个二进制。许可读数取自**产物自己**：Blender 自带的 `head .tools/Blender.app/Contents/Resources/text/license/license.md`、本机 `ffmpeg -version` 的 `configuration:` 行 | — |
 | C13 | 质量 | 黑暗行是多少 | ✓ | `deepblend/docs/probe-coverage.log` 的读数由 `deepblend/tools/coverage-probe.mjs` 产出，合并规则由 `deepblend/tests/contract/probe-merge.test.mjs` 盯着（量具自己错了四次，四次都是合并规则） | — |
 | C14 | 质量 | 活下来的变异有多少、记在哪里 | ✗ | 今天的读数：记录散在各轮的 `deepblend/docs/milestone-status.md` 里，每轮点名它自己那几条 | 没有一份**常驻的**「活下来的变异」清单。活下来的变异是每轮最有价值的产出（它指出一个断言的洞），而它现在只活在那一轮的散文里，下一轮不会有人再读它 |
 | C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台，`milestone-status.md` §198）；其余七项（Blender Live Bridge、Blender Add-on、远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 |
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 4 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 5 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 
@@ -213,3 +213,27 @@
   下一轮的第一顺位是 **C12（第三方许可盘点）** ✓——它是唯一一行**完全不需要改产品**、
   却直接决定「能不能商用」的 ✓；其次是 **C14**（活下来的变异清单 ✓，
   这一轮与上一轮都是零存活 ✓，所以它最接近可以关闭 ✓）。
+
+### 轮 5 — 2026-09-23
+
+- **移动：M1** — C12 从 ✗ → ✓：第三方许可第一次有了盘点 ✓。
+  它由一份文档（`third-party.md` ✓）与四条断言（`third-party.test.mjs` ✓）组成 ✓，
+  而四条断言里最强的一条不是「文档写了什么」✓，是「**仓库里没有一个别人的字节**」✓：
+  被跟踪的文件里没有一个二进制扩展名 ✓，而产品自己的 `dependencies` 只有自己的包 ✓、
+  其余一律是 `peerDependencies`（由用户的部署提供 ✓）。
+  许可本身是**读回来的** ✓：Blender 的 GPL 3.0-or-later 读自受管安装自带的
+  `Contents/Resources/text/license/license.md` ✓，本机 ffmpeg 的 `--enable-gpl --enable-version3`
+  读自 `ffmpeg -version` 的 `configuration:` 行 ✓——两份读数都不是从网站上抄的 ✓。
+- **移动：M4** — 一条**活下来的变异**被新断言杀死 ✓，而且它是**第三次**同一个形状 ✓：
+  断言接受「文件里出现过这个词」而不是「那一行说的就是它」✓。
+  第一次：`inventory.includes('ffprobe')` ✓——文档的 §1 散文与 §4 的命令清单里都有它 ✓；
+  第二次：改成「某一行同时含 Blender 与『外部程序』」✓——**§1 那一行**（讲三类关系的那张表 ✓）
+  恰好同时含两者 ✓；第三次：把 §2 抽出来、按**首格是主语**判定 ✓，它才红 ✓。
+  **三轮同一个形状**：断言的**作用域**比它想断言的**主张**大 ✓。
+- **判据**：`node deepblend/tests/contract/third-party.test.mjs` ✓、
+  `deepblend/docs/third-party.md` §4 的四条复核命令 ✓
+  （其中 `git ls-files | grep -E '\.(dmg|exe|so|…)$'` 一条在仓库里今天输出 `none` ✓）。
+- **还差什么**：账本上仍然开着的是 C2、C3、C7、C14、C15、C16、C17 ✓。
+  下一轮的第一顺位是 **C14（活下来的变异清单）** ✓——这一轮又出现一条存活者 ✓，
+  而三轮下来「存活者」已经是一个**反复出现的形状**（断言的作用域错了）✓，
+  值得有一份常驻的表把它记下来 ✓；其次是 **C17（成本）** ✓，它是唯一一行用户**每次花钱时**都会遇到的 ✓。
