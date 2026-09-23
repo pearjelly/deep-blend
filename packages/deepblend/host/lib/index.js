@@ -301,17 +301,20 @@ export const StudioConfig = z.object({
   /** Provider route used by the built-in vision reviewer. */
   visualReviewProvider: z.string().default('deepseek-official'),
   /** Model used by the built-in vision reviewer. */
-  visualReviewModel: z.string().default('deepseek-flash'),
+  visualReviewModel: z.string().default('deepseek-v4.1-flash'),
   /**
    * Token budget for one reviewer call.
    *
    * MEASURED, and the reason this is a config field rather than a constant: with the
-   * full reviewer prompt and a 2x2 sheet, `deepseek-flash` spent ~11 000 REASONING
-   * tokens before emitting any text. At 2048 — a budget that looks generous for a
-   * 600-character JSON answer — the stream ended with `max-tokens` and NO text, which
-   * downstream is indistinguishable from "the model reviewed the sheet and found
-   * nothing wrong". That silent approval is the failure mode this number exists to
-   * prevent, and the size of it is a property of the model, not of this code.
+   * full reviewer prompt and a 2x2 sheet, the model spends most of its output budget on
+   * REASONING before emitting any text. MEASURED twice, with the model the deployment
+   * actually serves (`deepseek-v4.1-flash`, via `visual-review-live-probe.mjs`): one
+   * review of a 640x360 sheet answered in 1049 tokens — 345 in, 704 out, of which 686
+   * were reasoning — and at the probe's own 400-token budget the same call ended with
+   * `max-tokens` and NO text at all. That empty answer is indistinguishable downstream
+   * from "the model reviewed the sheet and found nothing wrong", and that silent
+   * approval is the failure mode this number exists to prevent. The size of it is a
+   * property of the model, so this budget is sized for the reasoning, not the answer.
    */
   visualReviewMaxTokens: z.number().default(24_000),
   /** Views in the standard plan, in reading order (SPEC §12.3). */
@@ -1830,6 +1833,75 @@ export default class BlenderStudio extends Service {
    *
    * @returns {(request: object) => Promise<{ findings: object[], operations: object[], note: string|null, model: string|null, provider: string|null, raw: string|null }>}
    */
+  /**
+   * Whether the configured vision route can actually review an image.
+   *
+   * Answers `{ problem: null }` when the route is usable, or a sentence naming what is wrong and
+   * what the catalog offers instead. Never throws: an absent catalog is "cannot check", not "bad
+   * route", and the model call downstream is still the authority on whether the call works.
+   *
+   * @param {string} provider
+   * @param {string} model
+   * @returns {Promise<{ problem: string|null, providers: string[], models: string[], imageCapable: string[] }>}
+   */
+  async _visionRoute(provider, model) {
+    const empty = { problem: null, providers: [], models: [], imageCapable: [] }
+    const llm = this.ctx.get('llm')
+    if (llm === undefined || typeof llm.listModels !== 'function') return empty
+
+    let providers = []
+    try {
+      providers = (llm.listProviders?.() ?? []).map(entry => entry.id).filter(id => typeof id === 'string')
+    } catch {
+      return empty
+    }
+    if (providers.length > 0 && !providers.includes(provider)) {
+      return {
+        problem: `The vision reviewer is configured for provider "${provider}", which this deployment does not offer. ` +
+          `Set \`visualReviewProvider\` to one of: ${providers.join(', ')}.`,
+        providers,
+        models: [],
+        imageCapable: [],
+      }
+    }
+
+    let catalog = []
+    try {
+      catalog = await llm.listModels(provider)
+    } catch {
+      return { ...empty, providers }
+    }
+    const models = catalog.map(entry => entry.id).filter(id => typeof id === 'string')
+    const imageCapable = catalog
+      .filter(entry => (entry.inputModalities ?? []).includes('image'))
+      .map(entry => entry.id)
+
+    const entry = catalog.find(candidate => candidate.id === model)
+    if (entry === undefined) {
+      return {
+        problem: `The vision reviewer is configured for model "${model}", which provider "${provider}" does not serve. ` +
+          `Set \`visualReviewModel\` to one of: ${models.join(', ') || '(the catalog is empty)'}.`,
+        providers,
+        models,
+        imageCapable,
+      }
+    }
+    if (!(entry.inputModalities ?? []).includes('image')) {
+      // THE QUIET HALF OF THIS FAILURE. A text-only model answers happily and never sees the sheet,
+      // so the review comes back with zero findings — which downstream is indistinguishable from
+      // "looked at it, found nothing wrong".
+      return {
+        problem: `The vision reviewer is configured for model "${model}", which does not accept images ` +
+          `(inputModalities: ${JSON.stringify(entry.inputModalities ?? [])}). A review would silently omit the ` +
+          `contact sheet. Set \`visualReviewModel\` to one of: ${imageCapable.join(', ') || '(none of the catalog accepts images)'}.`,
+        providers,
+        models,
+        imageCapable,
+      }
+    }
+    return { problem: null, providers, models, imageCapable }
+  }
+
   createVisualReviewer() {
     const provider = this.config.visualReviewProvider
     const model = this.config.visualReviewModel
@@ -1842,6 +1914,27 @@ export default class BlenderStudio extends Service {
           'The vision reviewer needs the `llm` and `attachments` services, and at least one is not composed.',
           { detail: { llm: llm !== undefined, attachments: attachments !== undefined } },
         )
+      }
+
+      // THE ROUTE IS CHECKED BEFORE ANYTHING IS SPENT. MEASURED: the shipped default named a model
+      // the provider had stopped serving, so every review ended in an HTTP 404 from inside the
+      // stream — after the sheet had been uploaded — and the loop recorded "no second opinion" in a
+      // note nobody read. A day of reviews ran that way with every suite green.
+      //
+      // Best-effort by design: a harness that does not expose a catalog (`listProviders`/
+      // `listModels` are optional) still gets the model call and its own error handling. What this
+      // adds is a refusal that NAMES the fix, at the one moment the caller can still do something.
+      const catalogue = await this._visionRoute(provider, model)
+      if (catalogue.problem !== null) {
+        throw new BlenderError(BlenderErrorCode.VISUAL_REVIEW_MODEL_UNAVAILABLE, catalogue.problem, {
+          detail: {
+            provider,
+            model,
+            providers: catalogue.providers,
+            models: catalogue.models,
+            imageCapable: catalogue.imageCapable,
+          },
+        })
       }
 
       const ref = await attachments.saveImage({

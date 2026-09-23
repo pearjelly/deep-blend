@@ -78,7 +78,11 @@ export const Config = undefined
  * rule reachable only through a real render is a rule nobody has checked (the same reasoning
  * `host/lib/frame-ledger.js` records for `sampleFrame`). `contract/render-job.test.mjs` drives it.
  */
-export { describeJobLines } from './render-tools.js'
+export {
+  describeJobLines,
+  REFERENCE_SECONDS_PER_FRAME,
+  describeRenderCost,
+} from './render-tools.js'
 
 /**
  * The per-review prose block, re-exported for the same reason and with the same narrow scope.

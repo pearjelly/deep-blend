@@ -22,6 +22,7 @@
  * Owner: DeepBlend Studio — M2
  */
 
+import { StudioConfig } from '@deepblend/dsh-blender-host'
 import { Context } from '@deepseek-ai/cordis'
 
 import { importDsh, resolveDshHome } from '../tests/lib/dsh-deployment.mjs'
@@ -38,8 +39,12 @@ const DEFAULT_PNG = join(
 )
 const PNG = process.argv[2] ?? DEFAULT_PNG
 
-const PROVIDER = process.env.DEEPBLEND_PROBE_PROVIDER ?? 'deepseek-official'
-const MODEL = process.env.DEEPBLEND_PROBE_MODEL ?? 'deepseek-flash'
+// THE PRODUCT'S OWN ROUTE, not a second copy of it. MEASURED: this probe used to name the model
+// itself, so when the shipped default stopped being served the probe kept asking for the dead name —
+// it reported the 404 the product was getting, and the fix to the product changed nothing here. A
+// probe whose subject is "can the vision reviewer see" has to ask the same question the reviewer does.
+const PROVIDER = process.env.DEEPBLEND_PROBE_PROVIDER ?? StudioConfig({}).visualReviewProvider
+const MODEL = process.env.DEEPBLEND_PROBE_MODEL ?? StudioConfig({}).visualReviewModel
 
 if (!existsSync(PNG)) {
   console.error(`No PNG at ${PNG}. Render a preview first, or pass a path.`)
@@ -122,7 +127,11 @@ for await (const chunk of llm.stream({
   provider: PROVIDER,
   model: MODEL,
   messages: [message],
-  maxTokens: 400,
+  // THE PRODUCT'S BUDGET TOO. MEASURED: at this probe's own 400-token budget the model spent all
+  // of it on REASONING and emitted no text at all (`finish: max-tokens`, empty answer) — which is
+  // the exact failure `visualReviewMaxTokens` exists to prevent, reproduced by the probe keeping a
+  // second copy of a number the product already owns.
+  maxTokens: StudioConfig({}).visualReviewMaxTokens,
 })) {
   chunks.push(chunk)
 }

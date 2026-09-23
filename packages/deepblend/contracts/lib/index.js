@@ -193,6 +193,26 @@ export const BlenderErrorCode = Object.freeze({
 
   /** The requested render profile is not defined in the SceneSpec. */
   RENDER_PROFILE_MISSING: 'RENDER_PROFILE_MISSING',
+  // ---- M2: the vision reviewer's own route ---------------------------------
+
+  /**
+   * The configured vision model cannot be used for a review — it is not in the provider's
+   * catalog, or it does not accept images.
+   *
+   * MEASURED, and it had been happening for a day before anything noticed: the shipped default
+   * was `deepseek-flash`, which the provider stopped serving (`The model 'deepseek-flash' does
+   * not exist`, HTTP 404), and EVERY visual review in the store recorded the same line —
+   * "the vision reviewer could not be consulted, so this review carries measurements and a sheet
+   * but no second opinion". The loop degraded exactly as designed and nobody read the note, so a
+   * headline capability of M2 was dead while every suite stayed green.
+   *
+   * The refusal exists so the next occurrence is not a 404 from inside a stream: the route is
+   * checked BEFORE the sheet is uploaded and before a token is spent, and the detail names what
+   * the catalog actually offers — including which of those models can see an image, because a
+   * text-only model would silently omit the sheet rather than fail.
+   */
+  VISUAL_REVIEW_MODEL_UNAVAILABLE: 'VISUAL_REVIEW_MODEL_UNAVAILABLE',
+
   /** A render was refused because its estimated cost exceeds the configured budget. */
   RENDER_BUDGET_EXCEEDED: 'RENDER_BUDGET_EXCEEDED',
   /** Blender rendered but produced no image file. */

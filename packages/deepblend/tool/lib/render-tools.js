@@ -1,4 +1,33 @@
 /**
+ * What one frame of a delivery render costs on the reference machine, in seconds.
+ *
+ * ONE DEFINITION, because three places quote it: the approval prompt (twice, in the reason and in the
+ * refusal) and the tool description the model reads. It was a string in the prompt and a sentence in
+ * the description, which is two copies of one measurement.
+ */
+export const REFERENCE_SECONDS_PER_FRAME = Object.freeze({ low: 19.6, high: 41.4 })
+
+/**
+ * A frame count as a duration, in the words a person deciding would use.
+ *
+ * Deliberately a RANGE and deliberately coarse: the rate is a range measured on one machine, and a
+ * single number here would read as a promise. `null` frames is answered with the rate alone rather
+ * than a guess — the caller that does not know how many frames it is asking for gets no estimate.
+ *
+ * @param {number|null|undefined} frames
+ * @returns {string}
+ */
+export function describeRenderCost(frames) {
+  if (!Number.isFinite(frames) || frames <= 0) return 'an unknown amount of machine time'
+  const lowMinutes = (frames * REFERENCE_SECONDS_PER_FRAME.low) / 60
+  const highMinutes = (frames * REFERENCE_SECONDS_PER_FRAME.high) / 60
+  const asDuration = minutes => minutes < 90
+    ? `${Math.round(minutes)} minute${Math.round(minutes) === 1 ? '' : 's'}`
+    : `${(minutes / 60).toFixed(1)} hours`
+  return `${asDuration(lowMinutes)} to ${asDuration(highMinutes)} of machine time`
+}
+
+/**
  * M3 model-visible tools: the persistent delivery render (SPEC §11, §20 M3).
  *
  * Plane: Agent preset. Registers tools into the calling agent's scope and
@@ -313,8 +342,13 @@ function finalRender(ctx) {
                 ? ` (${cause.detail.frameStart}..${cause.detail.frameEnd})`
                 : ''}${cause.detail?.revision == null ? '' : ` of revision ${cause.detail.revision}`}` +
               `, above the configured approval threshold of ${cause.detail?.threshold ?? '?'}. ` +
-              'Measured cost on the reference machine: 19.6-41.4 s per frame at 1920x1080 / Cycles / 256 ' +
-              'samples, so this is hours of machine time.',
+              // WHAT IT WILL COST, IN THE UNIT THE PERSON DECIDING THINKS IN. This used to say "so this
+              // is hours of machine time" — a true sentence that leaves the reader to do the
+              // arithmetic. The rate is the same measured range; the estimate is that rate applied to
+              // the number of frames THIS request asked for, which is the number the decision is about
+              // (ledger C17: a user should know what they are about to spend before they spend it).
+              `Measured cost on the reference machine: ${REFERENCE_SECONDS_PER_FRAME.low}-${REFERENCE_SECONDS_PER_FRAME.high} s per frame ` +
+              `at 1920x1080 / Cycles / 256 samples, so this request is about ${describeRenderCost(cause.detail?.frames)}.`,
             refusal:
               `Nothing was started — no job, no frames. The request was for ${cause.detail?.frames ?? '?'} ` +
               `frame(s), above the threshold of ${cause.detail?.threshold ?? '?'}. Options: ask the operator ` +

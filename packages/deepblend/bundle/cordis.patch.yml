@@ -154,11 +154,15 @@
         # Consecutive rounds an unchanged finding may recur before the loop stops
         # (SPEC §12.3 "同一问题两轮未改善则停止自动迭代").
         stopOnRepeatedIssueCount: 2
-        # Vision reviewer route. Measured in the M2 probe: `deepseek-flash` accepts
-        # images (inputModalities ["text","image"]). The catalog also carries a
-        # text-only `deepseek-v4-flash`, which would silently omit the sheet.
+        # Vision reviewer route. MEASURED with `visual-review-live-probe.mjs`: the
+        # catalog of this provider carries `deepseek-v4.1-flash` with inputModalities
+        # ["text","image"]. The previous default, `deepseek-flash`, is no longer served
+        # at all (HTTP 404), and every review in the store recorded the reviewer being
+        # skipped because of it. A model that is in the catalog but TEXT-ONLY is the
+        # other half of this failure mode: it would silently omit the sheet rather than
+        # refuse, which is why the host now checks the route before it spends anything.
         visualReviewProvider: deepseek-official
-        visualReviewModel: deepseek-flash
+        visualReviewModel: deepseek-v4.1-flash
         # Token budget for one reviewer call. Measured: with the full reviewer prompt
         # and a 2x2 sheet, this model spends ~11 000 tokens on reasoning BEFORE it emits
         # any text, so a budget sized for the answer alone ends the stream with no text

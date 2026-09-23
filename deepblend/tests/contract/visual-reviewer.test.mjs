@@ -233,7 +233,12 @@ const success = await studioWith({
 check('a normal answer comes back as findings, operations and a note, with the model that produced it',
   success.findings.length === 1 && success.findings[0].category === 'occlusion' &&
   success.operations.length === 1 && success.operations[0].entityId === 'watch-body' &&
-  success.note === 'moved the body forward' && success.model === 'deepseek-flash' && success.provider === 'deepseek-official',
+  // The model reported back is the one the config named — read from the config rather than typed, for
+  // the same reason the route check above is: a default that stops existing must not be what this
+  // assertion is about.
+  success.note === 'moved the body forward' &&
+  success.model === StudioConfig({ workspaceRoot }).visualReviewModel &&
+  success.provider === StudioConfig({ workspaceRoot }).visualReviewProvider,
   { findings: success.findings.length, operations: success.operations.length, note: success.note })
 check('the raw answer is kept, so a review can be audited after the fact',
   success.raw === answer)
@@ -248,10 +253,114 @@ check('the model is sent one message holding the prompt AND the sheet, not the p
   streamed[0].messages[0].content[1].type === 'image' &&
   streamed[0].messages[0].content[1].attachment?.id === 'attachment-1',
   streamed[0]?.messages?.[0]?.content?.map(part => part.type))
-check('the call carries the configured provider, model and token budget',
-  streamed[0].provider === 'deepseek-official' && streamed[0].model === 'deepseek-flash' &&
-  streamed[0].maxTokens === StudioConfig({ workspaceRoot }).visualReviewMaxTokens,
-  { provider: streamed[0].provider, model: streamed[0].model, maxTokens: streamed[0].maxTokens })
+// THE ROUTE COMES FROM CONFIG, and the assertion drives it from config rather than from the shipped
+// default. MEASURED reason: this check used to name `deepseek-flash`, which the provider stopped
+// serving — so it was asserting a route that could not work, and it kept passing while every review
+// in the store was recording "no second opinion". A default is a value; what the reviewer must do is
+// USE what it was given.
+{
+  const routed = await studioWith({ llm: llmService([{ type: 'text-delta', text: '{"findings":[],"operations":[],"note":null}' }, { type: 'finish', reason: { kind: 'stop' } }]), config: { visualReviewProvider: 'some-provider', visualReviewModel: 'some-vision-model', visualReviewMaxTokens: 4096 } }).createVisualReviewer()({ review, views, sheetPng, iteration: 0, signal: undefined })
+  const sent = streamed[streamed.length - 1]
+  check('the call carries the configured provider, model and token budget — not a default of its own',
+    sent.provider === 'some-provider' && sent.model === 'some-vision-model' && sent.maxTokens === 4096 &&
+    routed.model === 'some-vision-model' && routed.provider === 'some-provider',
+    { provider: sent.provider, model: sent.model, maxTokens: sent.maxTokens })
+}
+
+// AND THE SHIPPED DEFAULT IS NAMED HERE, so a change to it is a visible edit rather than a silent
+// one — the value itself is checked against a live catalog by `visual-review-live-probe.mjs`, which
+// is the only place that can know what the provider serves today.
+check('the shipped default names a model, and the reviewer does not invent one when config is silent',
+  typeof StudioConfig({ workspaceRoot }).visualReviewModel === 'string' &&
+  StudioConfig({ workspaceRoot }).visualReviewModel.length > 0,
+  StudioConfig({ workspaceRoot }).visualReviewModel)
+
+// ---------------------------------------------------------------------------
+// The route is checked BEFORE anything is spent
+//
+// MEASURED, and it is why this block exists: the shipped default named a model the provider had
+// stopped serving, so every review ended in an HTTP 404 from inside the stream — after the sheet had
+// been uploaded — and the loop recorded "no second opinion" in a note nobody read. A day of reviews
+// ran that way while every suite stayed green.
+// ---------------------------------------------------------------------------
+
+/** An `llm` service that also exposes a catalog, which is what makes the pre-flight possible. */
+function catalogLlm(catalog, providers = ['deepseek-official']) {
+  return {
+    listProviders: () => providers.map(id => ({ id, name: id })),
+    listModels: async () => catalog,
+    stream() {
+      streamed.push({ reachedTheModel: true })
+      // A real answer, because a stub that yields no text trips the empty-answer guard — which is a
+      // different rule, and this block is about the route check.
+      return (async function* generate() {
+        yield { type: 'text-delta', text: '{"findings":[],"operations":[],"note":null}' }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+      })()
+    },
+  }
+}
+
+const beforeRoute = savedImages.length
+
+const unknownModel = await refusalFrom(studioWith({
+  llm: catalogLlm([{ id: 'a-vision-model', inputModalities: ['text', 'image'] }]),
+  config: { visualReviewModel: 'a-model-that-was-removed' },
+}))
+check('a model the provider does not serve is refused with its own code, before anything is spent',
+  unknownModel instanceof BlenderError && unknownModel.code === code('VISUAL_REVIEW_MODEL_UNAVAILABLE'),
+  unknownModel?.code ?? unknownModel?.message)
+check('and the refusal names what the catalog DOES offer, so the reader can fix the config',
+  /a-vision-model/.test(unknownModel.message) && unknownModel.detail?.models?.includes('a-vision-model'),
+  unknownModel?.message)
+check('nothing was uploaded and no model call was made for a route that cannot work',
+  savedImages.length === beforeRoute && !streamed.some(entry => entry.reachedTheModel === true),
+  { uploads: savedImages.length - beforeRoute, calls: streamed.filter(entry => entry.reachedTheModel).length })
+
+const textOnly = await refusalFrom(studioWith({
+  llm: catalogLlm([{ id: 'text-only', inputModalities: ['text'] }, { id: 'sees-images', inputModalities: ['text', 'image'] }]),
+  config: { visualReviewModel: 'text-only' },
+}))
+check('a model that cannot see images is refused too — the quiet half of the same failure',
+  textOnly instanceof BlenderError && textOnly.code === code('VISUAL_REVIEW_MODEL_UNAVAILABLE') &&
+  /does not accept images/.test(textOnly.message),
+  textOnly?.message)
+check('and it points at the models that CAN see one',
+  textOnly.detail?.imageCapable?.includes('sees-images') && /sees-images/.test(textOnly.message),
+  textOnly?.detail?.imageCapable)
+
+const wrongProvider = await refusalFrom(studioWith({
+  llm: catalogLlm([{ id: 'a-vision-model', inputModalities: ['text', 'image'] }], ['some-other-provider']),
+  config: { visualReviewProvider: 'deepseek-official' },
+}))
+check('a provider this deployment does not offer is refused, naming the ones it does',
+  wrongProvider instanceof BlenderError && wrongProvider.code === code('VISUAL_REVIEW_MODEL_UNAVAILABLE') &&
+  /some-other-provider/.test(wrongProvider.message),
+  wrongProvider?.message)
+
+// THE HAPPY PATH, so the refusal is not simply refusing everything.
+const goodRoute = await studioWith({
+  llm: catalogLlm([{ id: 'sees-images', inputModalities: ['text', 'image'] }]),
+  config: { visualReviewModel: 'sees-images' },
+}).createVisualReviewer()(reviewerRequest)
+check('a route the catalog does serve goes through — the check is a gate, not a wall',
+  goodRoute.model === 'sees-images' && streamed.some(entry => entry.reachedTheModel === true),
+  goodRoute?.model)
+
+// BEST-EFFORT BY DESIGN: a harness without a catalog still gets the model call, because the check is
+// an improvement on the failure, not a replacement for the call.
+const noCatalog = await studioWith({
+  llm: llmService([
+    { type: 'text-delta', text: '{"findings":[],"operations":[],"note":null}' },
+    { type: 'finish', reason: { kind: 'stop' } },
+  ]),
+}).createVisualReviewer()(reviewerRequest).then(
+  answer => answer,
+  error => error,
+)
+check('a harness that exposes no catalog is not treated as a bad route',
+  !(noCatalog instanceof BlenderError) && noCatalog?.model === StudioConfig({ workspaceRoot }).visualReviewModel,
+  noCatalog?.code ?? noCatalog?.message ?? noCatalog?.model)
 
 // ---- the two failures the loop must never mistake for a quiet scene -------
 const errored = await refusalFrom(studioWith({

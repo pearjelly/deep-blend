@@ -540,7 +540,11 @@ const gated = await approvalPlane.registered.get('blender_final_render').execute
 check('an over-threshold render asks the operator, naming the cost it is about to spend',
   asked !== null && asked.toolName === 'blender_final_render' && asked.agent?.id === 'contract-test-agent' &&
   asked.reason.includes('Start a DELIVERY render of 1200 frame(s) (1..1200), above the configured approval threshold of 900.') &&
-  asked.reason.includes('19.6-41.4 s per frame at 1920x1080 / Cycles / 256 samples'),
+  asked.reason.includes('19.6-41.4 s per frame at 1920x1080 / Cycles / 256 samples') &&
+  // AND THE ARITHMETIC IS DONE FOR THE READER (ledger C17). The sentence used to end at "hours of
+  // machine time", which is true and useless: the person deciding has to multiply the frame count by
+  // the rate themselves, and the frame count is the thing they chose.
+  /about \d+(\.\d+)? (minutes|hours) to \d+(\.\d+)? (minutes|hours) of machine time/.test(asked.reason),
   asked?.reason?.split('. ').slice(0, 2))
 check('and a declined approval leaves the model with the number it crossed and what was NOT started',
   gated.ok === false && /Nothing was started — no job, no frames\./.test(gated.text) &&

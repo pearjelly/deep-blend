@@ -72,6 +72,8 @@ const EXPLAINED = new Map([
   ['SCENE_PATCH_REJECTED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['REVISION_CHECKPOINT_MISSING', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['RUNTIME_UNAVAILABLE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
+  // A configuration a user can fix, and the refusal names the fix — so it needs a page.
+  ['VISUAL_REVIEW_MODEL_UNAVAILABLE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['ENGINE_UNAVAILABLE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   // The ones with a section of their own, which the index points at rather than repeating.
   ['RENDER_APPROVAL_REQUIRED', ['deepblend/docs/recovery.md', '## 8. 正式渲染要批准']],

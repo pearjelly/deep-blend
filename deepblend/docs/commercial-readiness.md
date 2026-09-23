@@ -43,7 +43,7 @@
 | C14 | 质量 | 活下来的变异有多少、记在哪里 | ✓ | `deepblend/docs/mutation-survivors.md`：一份**追加式**的表，每行一个洞——哪一轮、什么变异、**三个形状**里的哪一个、杀死它的断言、状态——外加 §1 的三条规则与 §3 的**量具自己说谎**一条；`deepblend/tests/contract/mutation-survivors.test.mjs` 盯四件事：每行的 killer 指向的文件或命令存在、每行的形状取自**由断言持有**的闭集、每行引用的 `milestone-status.md` 小节真的存在、而本文档的散文里**不许出现计数**（行数就是计数） | — |
 | C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台，`milestone-status.md` §198）；其余七项（Blender Live Bridge、Blender Add-on、远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 |
 | C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✗ | 今天的读数：工作台的标签与提示是中文（`packages/deepblend/ui/lib/client.js`），市场入口 `README.md` 是英文、详细的那份 `README.zh.md` 是中文 | 工作台没有语言开关，也没有第二份文案：非中文用户装完之后，看到的是一个全中文的界面。这一行今天连「要不要双语」都还没有决定 |
-| C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✗ | 今天的读数：渲染侧有一个按帧实测的参考值，写在审批提示里（`packages/deepblend/tool/lib/render-tools.js`），而审批本身是**强制**的（`deepblend/tests/composition/approval.e2e.mjs`）；视觉审查的 token 上限在 `packages/deepblend/bundle/cordis.patch.yml` 里 | **token 侧没有成本模型**：一次视觉审查要花多少 token、一次会话要花多少钱，今天没有任何读数；渲染侧只有「参考机每帧多少秒」，没有「这一次要多少分钟」的预估 |
+| C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✓ | `deepblend/docs/cost.md`：渲染侧的每帧秒数（**一处定义**：`packages/deepblend/tool/lib/render-tools.js` 的 `REFERENCE_SECONDS_PER_FRAME` ✓）与 token 侧的两次**真实调用**读数 ✓；`deepblend/tests/contract/cost-model.test.mjs` 盯着文档里的每个数都能被重算 ✓、审批提示里那句估算**由帧数算出来** ✓、以及文档**写明它还不知道什么** ✓；`deepblend/tests/contract/tool-plane-output.test.mjs` 盯着那句估算真的出现在审批提示里 ✓；`node deepblend/tools/visual-review-live-probe.mjs` 读的是**产品自己的路由与预算** ✓，所以一个陈旧的默认值会在那里以「这个模型不存在」现形 ✓ | — |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
 | C19 | 跨平台 | 上游只发布 `linux-x64` 的 Blender——这件事有没有写在用户读到的地方 | ✓ | `deepblend/docs/install.md` §0 与两份 `README` 的前置表都写明上游发布的那个产物名、并写明 `arm64` Linux 上没有构建（读数：上游四条发布线的目录列表，命令与输出在 `milestone-status.md` §203.4）；`deepblend/tests/contract/setup-steps.test.mjs` 按**产物名本身**盯着这三处，并要求其中两处写明 `arm64` 没有 | — |
 
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 19 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 6 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 7 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 7 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
@@ -256,3 +256,37 @@
 - **还差什么**：账本上仍然开着的是 C2、C3、C7、C15、C16、C17 ✓。
   下一轮的第一顺位是 **C17（成本）** ✓——它是唯一一行**用户每次花钱时都会遇到**的 ✓，
   而它今天连一个读数都没有 ✓（渲染侧只有「参考机每帧多少秒」 ✓，token 侧一个都没有 ✓）。
+
+### 轮 7 — 2026-09-23
+
+- **移动：M1** — C17 从 ✗ → ✓：**成本第一次有模型** ✓，而量它的过程顺手挖出一条更大的缺陷 ✓（见下）。
+  渲染侧：那个每帧秒数从**两处副本**收成**一处定义** ✓，而审批提示现在把乘法做完 ✓——
+  「450 帧」那一句从「so this is hours of machine time」变成「about 2.5 hours to 5.2 hours」✓，
+  由 `describeRenderCost()` 从帧数算出来 ✓。
+  token 侧：两次**真实调用**的读数 ✓（单视角一次 ✓、真实 2×2 contact sheet 一次 ✓），
+  而两次的读法本身就是结论 ✓：**图大了六倍，总 token 差不多** ✓——
+  成本由**推理**决定，而推理量随问题变 ✓，所以给的是区间 ✓。
+- **移动：M2** — 一条红 → 绿，而且它是这一轮**最有价值的产出** ✓：
+  **产品的视觉审查模型 `deepseek-flash` 已经不存在了** ✓（HTTP 404 ✓）。
+  实测：`.deepblend` 里**全部十份**视觉审查记录 ✓ 都记着同一句话 ✓——
+  「the vision reviewer could not be consulted, so this review carries measurements and a sheet but
+  no second opinion」✓。**M2 的招牌能力整天没有工作** ✓，而**每一个套件都是绿的** ✓——
+  循环按设计优雅降级 ✓、把失败记进记录 ✓，然后**没有人读那条记录** ✓。
+  修法三处 ✓：默认值改成实测存在且接受图像的模型 ✓、**在花钱之前**检查路由 ✓
+  （provider 在不在 ✓、模型在不在 ✓、`inputModalities` 含不含 `image` ✓），
+  失败用新码 `VISUAL_REVIEW_MODEL_UNAVAILABLE` ✓ 点名**目录里哪些模型可以** ✓，
+  并写进 `recovery.md` §10 ✓（错误文档那条断言当场要求它做这个决定 ✓）。
+  修完之后的读数是**同一条命令** ✓：路由解析成带 `["text","image"]` 的模型 ✓、
+  `finish: stop` ✓、模型真的描述了画面 ✓。
+- **移动：M3** — 探针自己也在说谎 ✓，两处 ✓：它**自带一份模型名** ✓（所以产品修好了它还在问那个死名字 ✓）、
+  以及**自带一个 token 预算** ✓（400 ✓，于是模型把预算全花在推理上 ✓、一个字都没吐 ✓——
+  那正是产品用 `visualReviewMaxTokens` 防的事 ✓，被探针的第二份副本复现了 ✓）。
+  两处都改成读**产品自己的**配置 ✓，探针这才开始量产品 ✓。
+- **判据**：`node deepblend/tests/contract/cost-model.test.mjs` ✓（五项 ✓）、
+  `node deepblend/tests/contract/tool-plane-output.test.mjs` ✓（审批提示那句 ✓）、
+  `node deepblend/tests/contract/visual-reviewer.test.mjs` ✓（路由检查九项 ✓）、
+  `node deepblend/tools/visual-review-live-probe.mjs` ✓（两次真实调用 ✓）。
+- **还差什么**：账本上仍然开着的是 C2、C3、C7、C15、C16 ✓。
+  这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（版本、tarball、Release、npm ✓）。
+  下一轮的第一顺位是 **C2**（三条路线的同一性没有断言 ✓）——
+  它是 §199.9 以来最老的一个具名缺口 ✓，而三条路线各自都验过 ✓、**只有「它们相同」没有** ✓。

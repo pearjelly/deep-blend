@@ -1,6 +1,6 @@
 {
   "name": "deepblend-studio",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "DeepBlend Studio — a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
   "keywords": [

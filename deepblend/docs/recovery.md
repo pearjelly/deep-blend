@@ -273,6 +273,7 @@ blender_final_render {projectId, resumeJobId: "render-0001"}
 | 码 | 一句话 | 详见 |
 |---|---|---|
 | `RENDER_APPROVAL_REQUIRED` | 这次渲染超过帧数阈值，**一帧都还没开始**。批了才会跑 | §8 |
+| `VISUAL_REVIEW_MODEL_UNAVAILABLE` | 配的那个视觉模型这个部署不提供、或者**看不见图**——**一个 token 都还没花**。按消息里列出的模型改 `visualReviewModel` | — |
 | `RENDER_FRAMES_INCOMPLETE` | 帧还没齐，所以没有东西可以编码。用 `resumeJobId` 接着渲，而不是重开 | §3 |
 | `RENDER_JOB_CONFLICT` | 一个项目同时只能有一个交付渲染。先 `blender_job_status` 看那个在跑的 | — |
 | `DISK_FULL` | 卷满了。已渲出的帧都还在，渲染器已停；腾出空间后用 `resumeJobId` 接着渲 | §9 |
