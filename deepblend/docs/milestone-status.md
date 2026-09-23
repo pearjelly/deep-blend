@@ -14247,10 +14247,44 @@ harness 解析出的 locale 没有变 ✓。所以钉语言这条路要么更重
 而这一轮把产品从「只有中文」改成「跟随平台」✓，正好是一次压力测试 ✓，
 **它测出的是断言的质量，不是产品的问题** ✓。
 
-### 209.8 发布链
+### 209.8 发布链：一次**读得太早**的读数，和它带出来的两个真缺陷
 
-（本节由同一次收口写入 ✓：版本 `0.2.2` → `0.2.3` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.2 -> 0.2.3 ✓ + version:sync（8 个 manifest）✓
+1. release:tarball ✓（6 个包全部打进产物 ✓，380.9 kB ✓）
+2. gh release create v0.2.3 ✓
+3. publish:check ✓ -> publish:packages：七个包全部 ok ✓
+```
+
+**然后 `npm run release:parity` 报红** ✓：`the three routes serve 2 different versions:
+…bundle@0.2.3 | …bundle@0.2.2` ✓——**npm 路线还是 0.2.2** ✓。
+
+**而这次红是「读得太早」** ✓：等传播走完之后重读 ✓，
+`dsh-blender-bundle` 的 versions 是 `0.1.0, 0.2.0, 0.2.1, 0.2.2, 0.2.3` ✓、`latest: 0.2.3` ✓——
+**发布本来就是成功的** ✓，我看到的是一个**瞬时状态** ✓。
+这正是这个仓库自己反复记过的那件事 ✓（packument 约两分钟 ✓、tarball 约五分钟 ✓），
+而我这一轮**又走了一次** ✓：**C2 那条断言的判据是「三条一致」** ✓，
+它在传播窗口里**应该**红 ✓——**红得对，只是我读它的时候还没到** ✓。
+
+**但这次红带出了两个真缺陷** ✓：
+
+1. **`publish-packages.mjs` 的成功行是推断的，不是读回来的** ✗：
+   它在 0.2.3 上打印了「all 7 packages are on the registry」 ✓，
+   而那句话当时**无法被读侧证实** ✓——**一个「静默什么都没做」的发布，从外面看与它一模一样** ✓。
+   修法：成功行改成**从 registry 读回来** ✓（`servedByRegistry()` ✓），
+   逐包读 ✓，最后那句总结也逐包读 ✓，读不到就红 ✓。
+   **这正是本仓库那条规矩**：不要用「命令返回 ok」当证据 ✓。
+2. **`alreadyPublished()` 不认「staged」那种措辞** ✗：
+   重跑发布时 `provider-local` 得到
+   `409 Conflict — Cannot publish over previously staged version "0.2.3"` ✓，
+   而那个谓词只认「previously published versions」 ✓，于是工具报 **FAILED 并停下** ✓——
+   停在一个**已经在上路**的版本上 ✓。它服务的那条规矩是「重跑必须能补完一次部分发布」 ✓，
+   而 staged 是同一个状态的另一种措辞 ✓。两条都补了断言 ✓
+   （`plugin-install-path.test.mjs` ✓，含一条**真的去读 registry** 的 ✓）。
+
+**记一条关于我自己的** ✓：我先把「三条路线不一致」当成产品缺陷去查 ✓，
+查出来的是**我读得太早** ✓。**探针红不等于产品坏** ✓——
+这一轮里，它先是一次正确的瞬时读数 ✓，然后才是两个真缺陷 ✓。
 
 ### 209.9 仍然开着的缺口
 

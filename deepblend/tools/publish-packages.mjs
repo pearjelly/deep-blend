@@ -197,7 +197,46 @@ export function twoFactorEnabled() {
  * @returns {boolean}
  */
 export function alreadyPublished(output) {
-  return /cannot publish over the previously published versions/i.test(output)
+  return /cannot publish over the previously published versions/i.test(output) ||
+    // MEASURED on the 0.2.3 release: re-running the publish after a run that had STAGED a version got
+    // `409 Conflict — Cannot publish over previously staged version "0.2.3"`, which this predicate did
+    // not recognise — so the tool reported FAILED and stopped, on a version that was already on its
+    // way to the registry. The rule this predicate serves is that a re-run must be able to finish a
+    // partial publish; a staged version is that same state under a different phrase.
+    /cannot publish over previously staged version/i.test(output)
+}
+
+/**
+ * The versions the registry actually serves for a package, read back over the network.
+ *
+ * WHY THIS EXISTS — MEASURED, on the 0.2.3 release. `npm publish` answered without an error for
+ * `@deepblend/dsh-blender-provider-local@0.2.3` while the version was only STAGED, and this tool
+ * printed "all 7 packages are on the registry" and exited 0. The bundle, which is published after it,
+ * never went out at all — and the only thing that noticed was `npm run release:parity`, three routes
+ * compared against `deepblend/version.json`, which reported "the three routes serve 2 different
+ * versions". A later run showed the truth: `409 Conflict — Cannot publish over previously staged
+ * version "0.2.3"`, and `npm stage list` showed nothing.
+ *
+ * So the success line is now earned rather than assumed: this repository's rule is that a command
+ * returning ok is not evidence, and a publish is the place where that rule is worth the most.
+ *
+ * @param {string} name
+ * @param {string} version
+ * @returns {Promise<boolean>}
+ */
+export async function servedByRegistry(name, version) {
+  try {
+    const response = await fetch(`${REGISTRY}/${name.replace('/', '%2F')}`, {
+      headers: { accept: 'application/json' },
+    })
+    if (!response.ok) return false
+    const packument = await response.json()
+    return Object.prototype.hasOwnProperty.call(packument.versions ?? {}, version)
+  } catch {
+    // A network failure is "cannot check", not "not published": the caller reports it as unverified
+    // rather than turning it into a failure the operator would chase.
+    return null
+  }
 }
 
 /**
@@ -432,7 +471,7 @@ function check() {
   return 0
 }
 
-function publish(dryRun) {
+async function publish(dryRun) {
   const dirty = run('git', ['status', '--porcelain'], { cwd: ROOT }).output
   if (dirty !== '') {
     // A published version is immutable: npm refuses to overwrite it, and the only remedy is a
@@ -492,15 +531,36 @@ function publish(dryRun) {
         console.error(`stopped at ${entry.name}; the packages after it were not published`)
         return 1
       }
-      console.log(`  ${entry.name}@${entry.version} — ok`)
+      // VERIFIED, NOT ASSUMED. `npm publish` returning without an error is what this line used to
+      // mean; on 0.2.3 that was true of a version the registry had only STAGED.
+      const served = await servedByRegistry(entry.name, entry.version)
+      if (served === false) {
+        console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry does not serve it`)
+        console.error('the publish was accepted but the version is not readable; check `npm stage list` for a staged version')
+        return 1
+      }
+      console.log(`  ${entry.name}@${entry.version} — ok${served === null ? ' (the registry could not be reached to confirm)' : ', read back from the registry'}`)
     }
   } finally {
     rmSync(STAGE_DIRECTORY, { recursive: true, force: true })
   }
 
+  if (!dryRun) {
+    // THE LAST LINE IS THE ONE PEOPLE QUOTE, so it is the one that must be read back. On 0.2.3 this
+    // sentence was printed while one package was missing, and the Release asset and the npm route then
+    // disagreed with the source route for anyone who looked.
+    const missing = []
+    for (const entry of order) {
+      if ((await servedByRegistry(entry.name, entry.version)) === false) missing.push(`${entry.name}@${entry.version}`)
+    }
+    if (missing.length > 0) {
+      console.error(`result: ${missing.length} package(s) are NOT on the registry: ${missing.join(', ')}`)
+      return 1
+    }
+  }
   console.log(dryRun
     ? 'result: the dry run published every package'
-    : `result: all ${order.length} packages are on the registry`)
+    : `result: all ${order.length} packages are on the registry, each one read back`)
   if (!dryRun) {
     console.log(`next:   the list harvests the npm mapping itself, by checking that a package's \`repository\` points back at the listed repo`)
     console.log(`        entry: https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle`)
@@ -510,5 +570,8 @@ function publish(dryRun) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const argv = process.argv.slice(2)
-  process.exit(argv.includes('--check') ? check() : publish(argv.includes('--dry-run')))
+  // `publish` is async now because its success lines are read back from the registry rather than
+  // inferred from npm's exit code.
+  if (argv.includes('--check')) process.exit(check())
+  publish(argv.includes('--dry-run')).then(code => process.exit(code))
 }

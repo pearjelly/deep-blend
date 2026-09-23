@@ -44,7 +44,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { bundledPackages, shippedManifest, stagingManifest } from '../../tools/build-release-tarball.mjs'
-import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFix } from '../../tools/publish-packages.mjs'
+import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFix, servedByRegistry } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -584,4 +584,24 @@ test('a version that is already on the registry is a skip, not a failure', () =>
     'a 2FA refusal was mistaken for an already-published version, so the run would skip it and claim success')
   assert.equal(alreadyPublished('npm error 404 Not Found - PUT … - Not found'), false,
     'a 404 was mistaken for an already-published version')
+
+  // THE SAME STATE UNDER A DIFFERENT PHRASE, and the run that found it was real: on the 0.2.3 release
+  // a re-run answered `409 Conflict — Cannot publish over previously staged version "0.2.3"` for a
+  // package the first run had staged, and this predicate did not recognise it — so the tool reported
+  // FAILED and stopped on a version that was already on its way to the registry.
+  assert.equal(alreadyPublished('npm error 409 Conflict - PUT https://registry.npmjs.org/@deepblend%2fdsh-blender-provider-local - Cannot publish over previously staged version "0.2.3".'), true,
+    'a staged version was reported as a failure, so a re-run stops on work that is already done')
+})
+
+test('the publish verifies what it reports, by reading the registry back', async () => {
+  // MEASURED, on the 0.2.3 release: `npm run release:parity` reported "the three routes serve 2
+  // different versions" minutes after a publish whose tool had printed "all 7 packages are on the
+  // registry". That reading was TRUE and transient — the registry had not propagated yet — but it is
+  // also exactly what a publish that silently did nothing looks like from the outside, which is why
+  // the tool now reads the versions back instead of inferring them from npm's exit code.
+  const served = await servedByRegistry('@deepblend/dsh-blender-bundle', '0.2.2')
+  assert.equal(served, true, 'a version the registry has served for days could not be read back')
+
+  const never = await servedByRegistry('@deepblend/dsh-blender-bundle', '9.9.9-does-not-exist')
+  assert.equal(never, false, 'a version that was never published was reported as served')
 })
