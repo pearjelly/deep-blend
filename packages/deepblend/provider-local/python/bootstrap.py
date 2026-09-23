@@ -492,6 +492,114 @@ def scene_fingerprint(spec, objects):
 # --------------------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Session mode (SPEC §20 M6 "Blender Live Bridge")
+#
+# WHY THIS EXISTS. Every operation in this product is one process: `blender --background
+# --factory-startup --python bootstrap.py -- --request … --result …`, which loads the scene,
+# does the thing, and exits. That is the right shape for a render and the wrong one for a
+# CONVERSATION: opening a scene costs seconds, and a caller that compiles, then previews, then
+# compiles again pays it every time.
+#
+# Session mode is the same dispatch with the process kept open: one JSON request per line on
+# stdin, one JSON envelope per line on stdout, until EOF or an explicit shutdown. Nothing about
+# an individual action changes — `ACTIONS`, the protocol check and the envelope are the same
+# ones the batch path uses, because a second implementation of "what does compile_scene do"
+# would be a second answer to that question.
+#
+# WHAT IT IS NOT (yet). This is the TRANSPORT half of the M6 item, not the whole item: the
+# GUI attach — the user's own Blender, with the add-on, so they can watch it work — is the
+# next item on that list. What this proves is the part everything else rests on: one Blender,
+# many operations, each one attributable to a pid and each one able to fail on its own.
+# ---------------------------------------------------------------------------
+
+
+def _session_line(payload):
+    """One compact JSON line, flushed, because the caller is waiting on it."""
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+
+
+def _session_dispatch(request, options):
+    """The batch dispatch, applied to one line of a session.
+
+    Deliberately the same checks in the same order as `main()`: a session request that names an
+    unknown action must fail exactly as a batch request would, or the two paths would disagree
+    about the protocol and only one of them would be tested.
+    """
+    if not isinstance(request, dict):
+        return build_envelope(None, None, None, {
+            "code": "BLENDER_SCRIPT_ERROR",
+            "message": "the request document must be a JSON object",
+        }, [], [])
+
+    job_id = request.get("jobId")
+    action = request.get("action")
+
+    if request.get("protocolVersion") != PROTOCOL_VERSION:
+        return build_envelope(job_id, action, None, {
+            "code": "BLENDER_PROTOCOL_VERSION_MISMATCH",
+            "message": 'request declares protocolVersion "%s", expected "%s"'
+            % (request.get("protocolVersion"), PROTOCOL_VERSION),
+        }, [], [])
+
+    handler = ACTIONS.get(action)
+    if handler is None:
+        return build_envelope(job_id, action, None, {
+            "code": "BLENDER_UNSUPPORTED_ACTION",
+            "message": 'bootstrap.py does not implement action "%s"; supported actions are %s'
+            % (action, ", ".join(SUPPORTED_ACTIONS)),
+            "detail": {"action": action, "supported": list(SUPPORTED_ACTIONS)},
+        }, [], [])
+
+    eprint("session action=%s job=%s" % (action, job_id))
+    # Same claim as the batch path: every request is attributable to this pid, so a session that
+    # dies mid-action leaves the same evidence an interrupted render does.
+    write_process_identity(
+        options.get("proc"),
+        job_id,
+        action,
+        attempt_token=_attempt_token_from_plan(action, options),
+    )
+    try:
+        payload, warnings, notices = handler(request, options)
+        return build_envelope(job_id, action, payload, None, warnings, notices)
+    except Exception as exc:
+        return build_envelope(job_id, action, None, {
+            "code": getattr(exc, "code", "BLENDER_SCRIPT_ERROR"),
+            "message": error_text(exc),
+        }, [], [])
+
+
+def run_session(options):
+    """Serve requests until stdin ends or a caller asks to stop.
+
+    EXIT CODE IS ABOUT THE SESSION, NOT THE ACTIONS: an action that fails is reported in its own
+    envelope and the session carries on, because a caller that wanted the process to stop would
+    have closed the pipe. Only the session's own health can end it non-zero.
+    """
+    _session_line({"kind": "ready", "protocolVersion": PROTOCOL_VERSION, "pid": os.getpid()})
+    for line in sys.stdin:
+        text = line.strip()
+        if text == "":
+            continue
+        try:
+            request = json.loads(text)
+        except Exception as exc:
+            _session_line(build_envelope(None, None, None, {
+                "code": "BLENDER_SCRIPT_ERROR",
+                "message": "the request line is not valid JSON: %s" % (error_text(exc),),
+            }, [], []))
+            continue
+        if isinstance(request, dict) and request.get("action") == "shutdown":
+            _session_line({"kind": "bye", "pid": os.getpid()})
+            return 0
+        envelope = _session_dispatch(request, options)
+        envelope["kind"] = "result"
+        _session_line(envelope)
+    return 0
+
+
 def main():
     argv = sys.argv
     options, unknown = parse_args(
@@ -500,9 +608,14 @@ def main():
             "--request", "--result", "--scene-spec", "--blend", "--output-blend",
             "--output", "--camera", "--engine", "--width", "--height", "--samples",
             "--frame", "--profile", "--project-root", "--save-on-failure", "--views",
-            "--frames", "--events", "--proc",
+            "--frames", "--events", "--proc", "--session",
         ),
     )
+
+    # SESSION MODE FIRST: it shares every check below, so it must not fall through to the batch
+    # path's `--result` requirement (a session has no result file; its answers go to stdout).
+    if options.get("session") is not None:
+        return run_session(options)
 
     request_path = options.get("request")
     result_path = options.get("result")

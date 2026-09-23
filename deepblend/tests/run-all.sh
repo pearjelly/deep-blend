@@ -71,6 +71,9 @@ run_suite "Blender capability probe (M0)" \
 run_suite "Blender batch SceneSpec + revision loop (M1)" \
   node deepblend/tests/blender-integration/fixture.e2e.mjs
 
+run_suite "Blender live session: one process, many operations (M6 Live Bridge, transport)" \
+  node deepblend/tests/blender-integration/live-session.e2e.mjs
+
 run_suite "Host composition activation" \
   node deepblend/tests/composition/activation.e2e.mjs
 

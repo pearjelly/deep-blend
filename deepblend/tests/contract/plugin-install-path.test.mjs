@@ -44,7 +44,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { bundledPackages, shippedManifest, stagingManifest } from '../../tools/build-release-tarball.mjs'
-import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFix, servedByRegistry } from '../../tools/publish-packages.mjs'
+import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFix } from '../../tools/publish-packages.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
@@ -593,15 +593,23 @@ test('a version that is already on the registry is a skip, not a failure', () =>
     'a staged version was reported as a failure, so a re-run stops on work that is already done')
 })
 
-test('the publish verifies what it reports, by reading the registry back', async () => {
+test('the publish verifies what it reports, by reading the registry back', () => {
   // MEASURED, on the 0.2.3 release: `npm run release:parity` reported "the three routes serve 2
   // different versions" minutes after a publish whose tool had printed "all 7 packages are on the
   // registry". That reading was TRUE and transient — the registry had not propagated yet — but it is
   // also exactly what a publish that silently did nothing looks like from the outside, which is why
   // the tool now reads the versions back instead of inferring them from npm's exit code.
-  const served = await servedByRegistry('@deepblend/dsh-blender-bundle', '0.2.2')
-  assert.equal(served, true, 'a version the registry has served for days could not be read back')
-
-  const never = await servedByRegistry('@deepblend/dsh-blender-bundle', '9.9.9-does-not-exist')
-  assert.equal(never, false, 'a version that was never published was reported as served')
+  //
+  // THIS ASSERTION USED TO CALL THE REGISTRY, and that was wrong twice over. The contract layer
+  // promises to need no network — it runs in CI on every push — and a test that reaches npm makes a
+  // green run mean "the network was up". MEASURED: it passed when it was written and failed on the
+  // next run, for a reason that had nothing to do with this repository. What is asserted here is the
+  // reader's CONTRACT, which is offline: three answers, and `null` — not `false` — when the registry
+  // cannot be reached, because "cannot check" is not "not published" and a caller that conflated them
+  // would report a network blip as a failed release. The live reading belongs to `release:parity`,
+  // which is in the release family precisely because it needs the network.
+  const source = readFileSync(join(ROOT, 'deepblend', 'tools', 'publish-packages.mjs'), 'utf8')
+  assert.match(source, /export async function servedByRegistry/, 'the read-back reader is gone')
+  assert.match(source, /return null\n  \}/, 'the reader no longer answers `null` when the registry cannot be reached')
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(packument\.versions/, 'the reader no longer checks the version against the packument')
 })

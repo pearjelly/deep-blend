@@ -167,7 +167,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 17 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 18 suites; README.zh.md states the expected numbers
 ```
 
 Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and

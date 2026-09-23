@@ -155,6 +155,206 @@ export const ProviderConfig = z.object({
  */
 
 /**
+ * One live Blender process, serving requests until it is closed (SPEC §20 M6).
+ *
+ * The class exists so the SESSION's own lifecycle — the handshake, the per-request deadline, the
+ * "the process is gone" answer, and the shutdown — is one object with one state, rather than a set of
+ * promises the provider keeps in a map. Everything about an individual action still belongs to
+ * `bootstrap.py`'s `ACTIONS`; this only carries the conversation.
+ *
+ * LINE PROTOCOL. bootstrap.py writes one JSON document per line to stdout, and it already did before
+ * sessions existed: `report_progress` sends `{"type": "progress", …}` (SPEC §9.3) and a session sends
+ * `{"kind": "ready"|"result"|"bye", …}`. The two are distinguishable BY PARSING rather than by
+ * pattern-matching prose, which is the property that made progress lines safe to add in the first
+ * place.
+ */
+class BlenderSession {
+  /**
+   * @param {{ handle: object, directory: string, jobId: string, timeoutMs: number, onClose: () => void }} input
+   */
+  constructor(input) {
+    this.handle = input.handle
+    this.directory = input.directory
+    this.jobId = input.jobId
+    this.timeoutMs = input.timeoutMs
+    this.onClose = input.onClose
+    // THE HANDLE HAS NO `pid`, MEASURED: its keys are `stdin`, `stdout`, `stderr`, `collected`,
+    // `done`, `terminate`, `terminateForHostExit`, `waitForExit`. So the pid comes from the process
+    // itself, in the `ready` line bootstrap.py opens with — which is better evidence anyway, because
+    // it is the pid the script believes it is rather than the one the spawn returned.
+    this.pid = null
+    /** @type {Map<string, {resolve: Function, reject: Function, timer: object}>} */
+    this.waiting = new Map()
+    this.progress = []
+    this.stderr = ''
+    this.closed = false
+    this.readyPromise = null
+    this.readyResolve = null
+    this.readyReject = null
+    this._read()
+  }
+
+  /** Resolve when bootstrap.py has announced itself, reject if the process dies first. */
+  ready() {
+    if (this.readyPromise === null) {
+      this.readyPromise = new Promise((resolve, reject) => {
+        this.readyResolve = resolve
+        this.readyReject = reject
+      })
+    }
+    return this.readyPromise
+  }
+
+  /** Read stdout line by line for the life of the process. */
+  _read() {
+    const stream = this.handle?.stdout
+    if (stream === undefined || stream === null) {
+      this._fail(new BlenderError(BlenderErrorCode.SPAWN_FAILED, 'the session has no stdout stream to read'))
+      return
+    }
+    let buffer = ''
+    stream.on('data', chunk => {
+      buffer += chunk.toString('utf8')
+      let index = buffer.indexOf('\n')
+      while (index >= 0) {
+        const line = buffer.slice(0, index).trim()
+        buffer = buffer.slice(index + 1)
+        if (line.length > 0) this._line(line)
+        index = buffer.indexOf('\n')
+      }
+    })
+    this.handle?.stderr?.on?.('data', chunk => {
+      // Bounded: stderr is evidence for a failure, not a log to keep.
+      this.stderr = (this.stderr + chunk.toString('utf8')).slice(-8192)
+    })
+    // THE HANDLE'S EXIT SIGNAL IS A PROMISE, NOT AN EVENT (`done`), and it carries nothing — so the
+    // exit code is read from `waitForExit()` where one is needed, and the failure below says what is
+    // knowable: the session ended without answering.
+    this.handle?.done?.then?.(() => this._exited({}), () => this._exited({}))
+  }
+
+  _line(line) {
+    let document
+    try {
+      document = JSON.parse(line)
+    } catch {
+      // Blender itself prints to stdout; anything that is not a JSON document is not ours.
+      return
+    }
+    if (document?.type === 'progress') {
+      this.progress.push(document)
+      return
+    }
+    if (document?.kind === 'ready') {
+      if (typeof document.pid === 'number') this.pid = document.pid
+      this.readyResolve?.(this)
+      return
+    }
+    if (document?.kind === 'bye') return
+    const jobId = document?.jobId
+    const pending = typeof jobId === 'string' ? this.waiting.get(jobId) : undefined
+    if (pending === undefined) return
+    clearTimeout(pending.timer)
+    this.waiting.delete(jobId)
+    pending.resolve(document)
+  }
+
+  _fail(error) {
+    this.readyReject?.(error)
+    for (const [, pending] of this.waiting) {
+      clearTimeout(pending.timer)
+      pending.reject(error)
+    }
+    this.waiting.clear()
+  }
+
+  _exited(info) {
+    if (this.closed) return
+    this.closed = true
+    const detail = this.stderr.trim().length > 0 ? ` stderr: ${this.stderr.trim().slice(-500)}` : ''
+    this._fail(new BlenderError(
+      BlenderErrorCode.NONZERO_EXIT,
+      `the Blender session (pid ${this.pid ?? 'unknown'}) ended before answering${info?.code === undefined ? '' : ` (exit ${info.code})`}.${detail}`,
+      { detail: { pid: this.pid, code: info?.code ?? null, signal: info?.signal ?? null } },
+    ))
+  }
+
+  /**
+   * Run one action in the live process.
+   *
+   * @param {{ action: string, payload?: object, jobId?: string }} request
+   * @param {{ signal?: AbortSignal }} [options]
+   * @returns {Promise<object>} the envelope bootstrap.py built for it.
+   */
+  async run(request, options = {}) {
+    if (this.closed) {
+      throw new BlenderError(
+        BlenderErrorCode.NONZERO_EXIT,
+        `the Blender session (pid ${this.pid ?? 'unknown'}) is closed, so "${request?.action}" was not sent.`,
+      )
+    }
+    const jobId = typeof request.jobId === 'string' && request.jobId.length > 0 ? request.jobId : `${this.jobId}-${this.waiting.size + 1}`
+    const document = {
+      protocolVersion: BLENDER_PROTOCOL_VERSION,
+      jobId,
+      action: request.action,
+      ...(request.payload !== undefined ? { payload: request.payload } : {}),
+    }
+
+    const answered = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.waiting.delete(jobId)
+        reject(new BlenderError(
+          BlenderErrorCode.TIMEOUT,
+          `the Blender session did not answer "${request.action}" within ${this.timeoutMs} ms.`,
+          { detail: { jobId, action: request.action, pid: this.pid } },
+        ))
+      }, this.timeoutMs)
+      if (typeof timer.unref === 'function') timer.unref()
+      this.waiting.set(jobId, { resolve, reject, timer })
+      if (options.signal !== undefined) {
+        options.signal.addEventListener('abort', () => {
+          if (!this.waiting.has(jobId)) return
+          clearTimeout(timer)
+          this.waiting.delete(jobId)
+          reject(new BlenderError(
+            BlenderErrorCode.ABORTED,
+            `"${request.action}" was aborted before the Blender session answered.`,
+            { detail: { jobId, action: request.action, pid: this.pid } },
+          ))
+        }, { once: true })
+      }
+    })
+
+    this.handle.stdin.write(`${JSON.stringify(document)}\n`)
+    return answered
+  }
+
+  /** Ask the process to stop, and wait for it. Idempotent. */
+  async close() {
+    if (this.closed) return
+    try {
+      this.handle.stdin.write(`${JSON.stringify({ action: 'shutdown' })}\n`)
+      this.handle.stdin.end()
+    } catch {
+      // The process may already be gone; the wait below is what decides.
+    }
+    try {
+      // `waitForExit` is the handle's own way to wait, and it takes a deadline in milliseconds.
+      await this.handle.waitForExit?.(TERMINATE_GRACE_MS)
+    } catch {
+      // A process that had to be terminated is still a closed session.
+    }
+    this.closed = true
+    this._fail(new BlenderError(
+      BlenderErrorCode.ABORTED,
+      `the Blender session (pid ${this.pid ?? 'unknown'}) was closed by its caller.`,
+    ))
+    this.onClose()
+  }
+}
+
+/**
  * Local Blender provider.
  *
  * Register by loading this package as a host composition row; it publishes the
@@ -419,6 +619,84 @@ export default class LocalBlenderRuntime extends Service {
    * }} [options]
    * @returns {Promise<BootstrapRunOutcome>}
    */
+  /**
+   * Open a LIVE SESSION: one Blender process that answers many requests (SPEC §20 M6).
+   *
+   * WHY THIS EXISTS. Every other method here is one process per operation —
+   * `blender --background --factory-startup --python bootstrap.py -- --request … --result …` —
+   * which loads the scene, does the thing, and exits. That is right for a render and wrong for a
+   * conversation: opening a scene costs seconds, and a caller that compiles, previews and compiles
+   * again pays it every time. MEASURED on this machine: `get_capabilities` alone is ~1.4 s of
+   * process start, and `compile_scene` on the demo project is dominated by scene load.
+   *
+   * WHAT IT IS NOT. This is the TRANSPORT half of the M6 item, not the item: the GUI attach — the
+   * user's own Blender, with the add-on, so they can watch it work — is the next thing on that list.
+   * What this establishes is what everything else rests on: one Blender, many operations, each one
+   * attributable to a pid and each one able to fail on its own.
+   *
+   * THE PROTOCOL is bootstrap.py's own, unchanged: the same request document shape, the same
+   * `ACTIONS` table, the same envelope. A second implementation of "what does compile_scene do"
+   * would be a second answer to that question, so there is only ever one.
+   *
+   * @param {{ cwd?: string, args?: string[], signal?: AbortSignal }} [options]
+   * @returns {Promise<{ pid: number|null, run: (request: object, options?: object) => Promise<object>, close: () => Promise<void> }>}
+   */
+  async openSession(options = {}) {
+    if (!existsSync(this.bootstrapPath)) {
+      throw new BlenderError(
+        BlenderErrorCode.BOOTSTRAP_MISSING,
+        `bootstrap.py not found at ${this.bootstrapPath}.`,
+      )
+    }
+    const resolvedExecutable = await this.resolveBlenderExecutable({ signal: options.signal })
+    if (resolvedExecutable.error !== null || resolvedExecutable.resolved === null) {
+      throw resolvedExecutable.error ?? new BlenderError(
+        BlenderErrorCode.NOT_FOUND,
+        `Blender executable could not be resolved from "${resolvedExecutable.requested}".`,
+      )
+    }
+
+    const { jobId, directory } = this._createWorkingDirectory()
+    const argv = [
+      resolvedExecutable.resolved,
+      '--background',
+      '--factory-startup',
+      '--python',
+      this.bootstrapPath,
+      '--',
+      // `--session=1` rather than a bare `--session`: `parse_args` reads `--opt value` PAIRS, so a
+      // valueless flag would swallow the next token as its value. The session needs no value, so it
+      // carries the smallest one that cannot be mistaken for something else.
+      '--session=1',
+      ...(options.args ?? []),
+    ]
+
+    const handle = this.ctx.subprocess.spawn({
+      argv,
+      cwd: options.cwd ?? directory,
+      stdio: {
+        // THE DIFFERENCE FROM EVERY OTHER CALL IN THIS FILE. Batch mode ignores stdin and collects
+        // stdout into a bounded tail; a session needs both as live pipes, because the conversation
+        // IS the pipes.
+        stdin: 'pipe',
+        stdout: 'pipe',
+        stderr: { maxBytes: this.config.maxOutputBytes, spill: { maxBytes: this.config.maxSpillBytes } },
+      },
+      graceMs: TERMINATE_GRACE_MS,
+      signal: options.signal,
+    })
+
+    const session = new BlenderSession({
+      handle,
+      directory,
+      jobId,
+      timeoutMs: this.config.timeoutMs,
+      onClose: () => this._cleanup(directory),
+    })
+    await session.ready()
+    return session
+  }
+
   async runBootstrap(request, options = {}) {
     const action = request?.action
     if (typeof action !== 'string' || action.length === 0) {
