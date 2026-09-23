@@ -591,6 +591,7 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 | 路由 | 语义 | 说明 |
 |---|---|---|
 | `GET /deepblend/capabilities` | 读 | Blender capabilities and the settings card. |
+| `GET /deepblend/diagnostics` | 读 | A shareable diagnostic bundle: versions, configuration, store summary and recent failures. |
 | `GET /deepblend/workbench` | 读 | The standalone fullscreen workbench document. |
 | `GET /deepblend/state` | 读 | Everything the panel needs to render itself from scratch. |
 | `GET /deepblend/projects` | 读 | Every project in the store. |

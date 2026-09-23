@@ -144,6 +144,84 @@ export function contentTypeForArtifact(path) {
 export const RUNTIME_SERVICE = 'blenderRuntime'
 
 /**
+ * The configuration a diagnostic bundle may carry.
+ *
+ * AN ALLOWLIST, AND IT LIVES HERE BECAUSE THIS IS WHERE THE KEYS ARE DECLARED. `config-surface.test.mjs`
+ * holds every `config.<key>` a package reads to that package's own schema, and it is right to: a value read
+ * where it cannot arrive is a knob that lies. The UI half projecting the Host's configuration would be
+ * exactly that — the UI's own schema declares none of these keys. So the Host names them, and the UI
+ * asks for the projection.
+ *
+ * The direction of the default matters: a key added to `StudioConfig` later is ABSENT from a bundle
+ * until somebody adds it here. A spread would publish it, and the bundle is the one artifact that
+ * leaves the machine.
+ *
+ * @param {Record<string, unknown>} config - the resolved `StudioConfig`
+ * @returns {Record<string, unknown>}
+ */
+export function diagnosticConfiguration(config) {
+  const source = config ?? {}
+  return {
+    projectsRoot: source.projectsRoot ?? null,
+    workspaceRoot: source.workspaceRoot ?? null,
+    maxPreviewSamples: source.maxPreviewSamples ?? null,
+    assetMaxBytes: source.assetMaxBytes ?? null,
+    maxMeshPolygons: source.maxMeshPolygons ?? null,
+    maxVisualIterations: source.maxVisualIterations ?? null,
+    minVisualConfidenceForAutoFix: source.minVisualConfidenceForAutoFix ?? null,
+    stopOnRepeatedIssueCount: source.stopOnRepeatedIssueCount ?? null,
+    visualReviewProvider: source.visualReviewProvider ?? null,
+    visualReviewModel: source.visualReviewModel ?? null,
+    visualReviewMaxTokens: source.visualReviewMaxTokens ?? null,
+    visualReviewViews: source.visualReviewViews ?? [],
+    finalRenderProfile: source.finalRenderProfile ?? null,
+    maxFinalSamples: source.maxFinalSamples ?? null,
+    ffmpegPath: source.ffmpegPath ?? null,
+    ffprobePath: source.ffprobePath ?? null,
+    encodeCrf: source.encodeCrf ?? null,
+    encodePreset: source.encodePreset ?? null,
+    requireApprovalAboveFrames: source.requireApprovalAboveFrames ?? null,
+    progressPollMs: source.progressPollMs ?? null,
+    reconcileOnStart: source.reconcileOnStart ?? null,
+    orphanGraceMs: source.orphanGraceMs ?? null,
+  }
+}
+
+/**
+ * The product's version, from this package's own manifest.
+ *
+ * NOT A CONSTANT, and not a second copy of the number: `deepblend/version.json` is the single source,
+ * `tools/release-version.mjs --check` holds all eight manifests to it, so reading any one of them
+ * answers for the product — and `contract/diagnostics.test.mjs` compares what this returns against
+ * the source, which is what makes it a reading rather than a third copy.
+ *
+ * It answers `null` rather than throwing: the diagnostic bundle is what a user produces when
+ * something is already wrong, and a version field that crashed the export would be the least useful
+ * failure in the product. Read once and remembered — a manifest does not change under a running
+ * process.
+ *
+ * AND IT IS HERE, not in the UI half, because that half is asserted to import no filesystem module
+ * at all (`composition/ui-plane.e2e.mjs`): it is the layer the browser talks to. The first version of
+ * the diagnostics bundle read this manifest in `ui/lib/index.js` and that suite went red, correctly.
+ *
+ * @returns {string|null}
+ */
+export function readProductVersion() {
+  if (cachedProductVersion === undefined) {
+    try {
+      const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+      cachedProductVersion = typeof manifest.version === 'string' ? manifest.version : null
+    } catch {
+      cachedProductVersion = null
+    }
+  }
+  return cachedProductVersion
+}
+
+/** @type {string|null|undefined} */
+let cachedProductVersion
+
+/**
  * Host-level configuration. Mirrors SPEC §17.
  *
  * Named `StudioConfig`, NOT `Config`. The class below declares `static Config`,
@@ -398,6 +476,38 @@ export default class BlenderStudio extends Service {
    */
   hostApiVersion() {
     return HOST_API_VERSION
+  }
+
+  /**
+   * The product's version, read from this package's own manifest.
+   *
+   * HERE RATHER THAN IN THE UI HALF, and that is a rule rather than a preference: the UI host is
+   * asserted to import no filesystem module at all (`composition/ui-plane.e2e.mjs`), because that
+   * layer is the one the browser talks to. The first version of the diagnostics bundle read this
+   * manifest in `ui/lib/index.js` and that suite went red, correctly.
+   *
+   * NOT A CONSTANT, and not a second copy of the number: `deepblend/version.json` is the single
+   * source, `tools/release-version.mjs --check` holds all eight manifests to it, so reading any one
+   * of them answers for the product — and `contract/diagnostics.test.mjs` compares what this returns
+   * against the source, which is what makes it a reading rather than a third copy.
+   *
+   * It answers `null` rather than throwing: the diagnostic bundle is what a user produces when
+   * something is already wrong, and a version field that crashed the export would be the least
+   * useful failure in the product.
+   *
+   * @returns {string|null}
+   */
+  productVersion() {
+    return readProductVersion()
+  }
+
+  /**
+   * The Host's own configuration, as a diagnostic bundle may carry it.
+   *
+   * @returns {Record<string, unknown>}
+   */
+  describeConfiguration() {
+    return diagnosticConfiguration(this.config)
   }
 
   // ---------------------------------------------------------------------------

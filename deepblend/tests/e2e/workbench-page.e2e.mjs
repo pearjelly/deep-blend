@@ -47,7 +47,7 @@
  */
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
@@ -269,6 +269,50 @@ try {
   check('the preview PNG is on disk under the revision',
     readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json')?.contactSheets?.length > 0,
     readStoreJson(projectId, 'revisions', 'r0002', 'revision-manifest.json')?.contactSheets)
+
+  // -------------------------------------------------------------------------
+  // 2b. 导出诊断: the one thing this page produces FOR SOMEBODY ELSE
+  //
+  // It is an anchor with `download`, so the BROWSER fetches the route and writes
+  // the file — which means the request log above cannot see it (that log hooks
+  // `fetch`) and the only honest evidence is the file. So the download is
+  // allowed to a directory this test owns, the link is clicked by POINTER, and
+  // what lands there is parsed and read.
+  // -------------------------------------------------------------------------
+  const downloadDirectory = mkdtempSync(join(tmpdir(), 'deepblend-diagnostics-'))
+  try {
+    await page.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDirectory })
+
+    const exportClick = await page.click('[data-action="export-diagnostics"]')
+    check('the export control is reachable by a pointer, like every other control on this page',
+      exportClick.via === 'pointer', exportClick)
+
+    const exportedPath = join(downloadDirectory, 'deepblend-diagnostics.json')
+    const deadline = Date.now() + 30000
+    while (!existsSync(exportedPath) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    check('clicking it downloads a file, and the file is the bundle the route serves',
+      existsSync(exportedPath), exportedPath)
+
+    const exported = existsSync(exportedPath) ? JSON.parse(readFileSync(exportedPath, 'utf8')) : null
+    const expectedVersion = JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend', 'version.json'), 'utf8')).version
+    check('the downloaded bundle is the product\'s own diagnostic format, at the version it ships',
+      exported?.format === 'deepblend-diagnostics' && exported?.product?.version === expectedVersion,
+      { format: exported?.format, version: exported?.product?.version, expectedVersion })
+    check('and it describes THIS store, so it is a reading rather than a template',
+      exported?.store?.projectCount >= 1 && exported.store.projects.some(project => project.projectId === projectId),
+      { count: exported?.store?.projectCount, projectId })
+    check('it carries the Blender probe result, which is the first thing a maintainer asks for',
+      exported?.blender?.probed === true && typeof exported?.blender?.installed === 'boolean' &&
+      exported.blender.version !== null,
+      { installed: exported?.blender?.installed, version: exported?.blender?.version })
+    const leaked = JSON.stringify(exported).includes(homedir())
+    check('it carries no home directory, so it can be pasted into a public issue',
+      !leaked, leaked ? 'a home path reached the downloaded file' : undefined)
+  } finally {
+    rmSync(downloadDirectory, { recursive: true, force: true })
+  }
 
   // A delivery render, so the job plane is exercised from the full-screen page
   // too and the Blender-parentage assertion below has something to look at.

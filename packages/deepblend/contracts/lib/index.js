@@ -667,7 +667,7 @@ export {
 } from './scene-spec.js'
 
 export { ASSET_HEAD_BYTES, assetContentVerdict, describeAssetContent } from './asset-content.js'
-export { redactUrl } from './redact.js'
+export { redactHome, redactUrl } from './redact.js'
 export { assertKnownConfigKeys, declaredConfigKeys, describeUnknownConfigKeys } from './config-surface.js'
 
 export {
@@ -807,6 +807,11 @@ export {
   buildJobView,
   buildProjectView,
   buildSettingsCard,
+  buildDiagnosticsBundle,
+  DIAGNOSTICS_FORMAT,
+  DIAGNOSTICS_FORMAT_VERSION,
+  DIAGNOSTICS_JOB_LIMIT,
+  DIAGNOSTICS_FAILURE_LIMIT,
   describeJobForHuman,
   formatDuration,
   parseToolCallTarget,

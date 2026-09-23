@@ -23,7 +23,16 @@
  * instead. That is not redaction and does not pretend to be: it bounds what a record can accumulate
  * from an arbitrary string, and the caller that passed a non-URL has already seen it.
  *
- * Owner: DeepBlend Studio — M5
+ * AND A SECOND KIND OF SECRET, WHICH IS WHY `redactHome` IS HERE
+ * -------------------------------------------------------------
+ * The diagnostic bundle (`ui-api.js` `buildDiagnosticsBundle`) is the first thing this product makes
+ * for a user to SEND TO SOMEBODY ELSE, and the first thing it would carry is absolute paths — the
+ * store root, the project directory, the Blender executable. Those are what a maintainer needs, so
+ * they stay; what goes is the user's account name at the front of them, which is nobody's business
+ * and is not what the path is being read for. Same rule as the URL one: the replacement is a
+ * recognizable character (`~`), not a mask, so a reader can tell a real path from a redacted one.
+ *
+ * Owner: DeepBlend Studio — M5; `redactHome` — commercial readiness (ledger C10)
  */
 
 /** How much of an unparseable source is kept. Long enough to recognise, short enough to bound a record. */
@@ -50,4 +59,25 @@ export function redactUrl(raw) {
   const clean = `${parsed.protocol}//${parsed.host}${parsed.pathname}`
   if (removed.length === 0) return clean
   return `${clean} (${removed.join(' and ')} removed)`
+}
+
+/**
+ * The same text with the user's home directory written as `~`.
+ *
+ * Applied to any string, not only to a path: a job record's message can quote a path in the middle of
+ * a sentence, and a redaction that only understood "this string is a path" would miss exactly the
+ * messages that matter. Every occurrence is replaced, because a bundle holds many paths and the first
+ * one is not the only one.
+ *
+ * An empty or absent `home` leaves the text alone rather than guessing: replacing `''` would put a `~`
+ * between every character, which is the kind of redaction that destroys the evidence it was protecting.
+ *
+ * @param {unknown} raw
+ * @param {string|null|undefined} home
+ * @returns {string}
+ */
+export function redactHome(raw, home) {
+  const text = typeof raw === 'string' ? raw : String(raw)
+  if (typeof home !== 'string' || home.length === 0) return text
+  return text.split(home).join('~')
 }

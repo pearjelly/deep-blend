@@ -67,6 +67,10 @@ function check(name, ok, detail) {
 const READ_METHODS = new Set([
   'describeCapabilities', 'listProjects', 'getProject', 'getScene', 'getRevisionDetail',
   'readRevisionPair', 'getQaRecord', 'listPreviewSets', 'readArtifact', 'listJobs', 'getJob',
+  // Not studio state: the product's own version and its own configuration projection, both of which
+  // the diagnostics route reports. The HOST reads the manifest and names the config keys because the
+  // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
+  'productVersion', 'describeConfiguration',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
@@ -109,6 +113,14 @@ function createStudioStub() {
     calls,
     config: { requireApprovalAboveFrames: 900 },
     methodsCalled: () => calls.map(call => call.name),
+    productVersion() {
+      record('productVersion')
+      return '0.2.0'
+    },
+    describeConfiguration() {
+      record('describeConfiguration')
+      return { projectsRoot: '/store/projects', workspaceRoot: '/store', maxPreviewSamples: 512, requireApprovalAboveFrames: 900 }
+    },
     async describeCapabilities() {
       record('describeCapabilities')
       return { installed: true, version: '5.2.1 LTS', engines: { CYCLES: { available: true } }, gpu: {}, formats: {}, warnings: [], executable: {}, probedAt: 'now' }

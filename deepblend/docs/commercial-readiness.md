@@ -36,7 +36,7 @@
 | C7 | 运维单点 | 发布链挂在几个人的账号上 | ✗ | `CONTRIBUTING.md` §5「操作者要自己准备的东西」把单点写明了（npm 凭据属于一个账号、仓库属于另一个，一次发布两个都要） | 单点本身没有变，而且**只有用户能改变它**（第二个账号、或者把 npm 的发布权交给仓库所属的账号）。这不是难度问题，是一个需要人的条件 |
 | C8 | 可靠性 | 崩溃、磁盘满、长任务中断、并发、数据不丢，各有实测吗 | ✓ | `deepblend/tests/composition/hardening.e2e.mjs`（白名单、截止时间、输出上限、工作区边界）、`deepblend/tests/composition/concurrency.e2e.mjs`（两个会话一个 store）、`deepblend/tests/contract/host-cancel-and-delivery.test.mjs`（取消与交付的末端）、`deepblend/tools/disk-full-probe.mjs`（真实满卷，含扩容后的恢复）、`deepblend/tools/m3-restart-probe.mjs`（重启恢复）、`deepblend/docs/recovery.md`（按错误码的修法） | — |
 | C9 | 可诊断 | 每个失败都可分支吗——用户能照着错误码做事吗 | ✓ | `deepblend/docs/recovery.md` §10 是按错误码查的索引，`deepblend/tests/contract/error-codes.test.mjs` 盯着码空间，`deepblend/tests/contract/error-documentation.test.mjs` 盯着「每个码要么有一页给用户、要么有一个理由」且分类完备 | — |
-| C10 | 可诊断 | 用户能自己导出诊断信息吗 | ✗ | 今天的读数：工作台里没有任何导出入口——`packages/deepblend/ui/lib/client.js` 里没有导出/下载诊断的动作，宿主路由表里也没有对应的读路由 | 没有「导出诊断」这条路（市场里同类插件有一个 Export log，这一份没有）。今天用户能拿到的只有错误码与 `recovery.md`，拿不到一份可以附在问题里的现场 |
+| C10 | 可诊断 | 用户能自己导出诊断信息吗 | ✓ | `deepblend/tests/contract/diagnostics.test.mjs` 驱动那个纯构造器与真的处理器（bundle 的形状、家目录被写成 `~`、失败的探测是值而不是错误页、上限与它的说明一致）；`deepblend/tests/e2e/workbench-page.e2e.mjs` 在真 Chrome 里**按指针点一次**，把落盘的那份读回来解析（格式、版本、这个 store、Blender 探测结果、不含家目录）；路由是 `GET /deepblend/diagnostics`，写在 `deepblend/docs/tool-contracts.md` 的闭集里 | — |
 | C11 | 安全与合规 | SPEC §15 逐条有证据或具名缺口吗 | ✓ | `deepblend/docs/security.md` 是逐条对照表，`deepblend/tests/contract/security-controls.test.mjs` 盯着「SPEC 增删一条要求、表不跟着改就红」与「表里指到的代码或断言不存在就红」 | — |
 | C12 | 安全与合规 | 第三方许可盘点过吗——Blender 的 GPL、ffmpeg、受管 Blender 的下载与再分发 | ✗ | 今天的读数：仓库里没有第三方许可清单。`LICENSE` 只有本项目自己的 MIT；`deepblend/docs/` 下没有任何文件提到 Blender 的许可或 ffmpeg 的许可 | 三件事今天没有任何地方写着、也没有断言：① Blender 是**外部程序调用**（`--background --factory-startup`，argv 数组，不是链接），所以本项目的 MIT 不与它的 GPL 冲突；② ffmpeg 同理，且它是**用户自己装的**；③ 受管 Blender 是**下载**（从上游 URL 取，带 pin 与 `sha256`）而不是**再分发**，所以产物里没有别人的字节 |
 | C13 | 质量 | 黑暗行是多少 | ✓ | `deepblend/docs/probe-coverage.log` 的读数由 `deepblend/tools/coverage-probe.mjs` 产出，合并规则由 `deepblend/tests/contract/probe-merge.test.mjs` 盯着（量具自己错了四次，四次都是合并规则） | — |
@@ -73,7 +73,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 18 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 1 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 2 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 
@@ -108,6 +108,11 @@
 每一轮**恰好一条**，轮号从 `轮 1` 连续递增。每条至少具名一个移动，并写清它移动了哪一行、
 判据是什么、还差什么。
 
+**轮号数的是「留下了移动的轮次」**，不是目标的轮次计数器。一轮若什么也没有移动，
+它记在 `deepblend/docs/milestone-status.md` 里（那是一次不合格的轮次），不在这里——
+账本记的是移动，而一次没有移动的轮次没有可记的东西。**唯一一次例外写在轮 2 里**：
+那一条线跨过了目标的轮次边界（§201.1 记了它），所以轮 2 与轮 3 是同一件工作。
+
 ### 轮 1 — 2026-09-22
 
 - **移动：M3** — 建立 §1 的十八行（C1–C18），每一行都是**逐行量出来的**，不是照种子行抄的：
@@ -130,3 +135,26 @@
 - **还差什么**：C2、C3、C5、C6、C7、C10、C12、C14、C15、C16、C17 仍然开着，
   按「用户能感知的程度」排，下一轮的第一顺位是 **C5（跨平台）** 或 **C10（导出诊断）**：
   前者是一个用户装不上的平台，后者是一个用户报不了的问题。
+
+### 轮 2 — 2026-09-23
+
+- **移动：M1** — C10 从 ✗ → ✓：用户能自己导出诊断信息了。判据是两条读回来的东西，不是一句声明：
+  `deepblend/tests/contract/diagnostics.test.mjs`（三十七项，驱动纯构造器与真的处理器）与
+  `deepblend/tests/e2e/workbench-page.e2e.mjs` 在真 Chrome 里按指针点一次导出，
+  把**落盘的那份文件**读回来解析（48/48）。
+- **移动：M2** — 两条红 → 绿，两条都是这一轮的实现自己撞出来的**规则**，而不是产品缺陷：
+  ① UI host 那一半**不许 import 文件系统**（它是浏览器直接对话的那一层），
+  而第一版的版本号读取用了 `node:fs` ✓——`composition/ui-plane.e2e.mjs` 立刻红了 ✓，
+  修法是把版本读取搬到 Host 那一半（它本来就该读文件）✓；
+  ② `config-surface.test.mjs` 要求**每个包只读自己 schema 声明过的键** ✓，
+  而第一版在 UI 那一半列出了 Host 的二十二个配置键 ✓——修法是把那份白名单搬到
+  键被声明的地方（Host）✓，UI 只问一个投影 ✓。两条读数：修之前 `ui plane 157/158` ✓、
+  `Configuration surface 21/22` ✓；修之后 **158/158** ✓ 与 **22/22** ✓。
+- **判据**：`node deepblend/tests/contract/diagnostics.test.mjs`（三十七项）、
+  `node deepblend/tests/e2e/workbench-page.e2e.mjs`（四十八项，真 Chrome）、
+  `node deepblend/tests/composition/ui-plane.e2e.mjs`（一百五十八项）。
+- **还差什么**：这一条线**跨过了目标的轮次边界**——一轮的边界落在功能半开的时候，
+  而目标禁止把半开的功能留到下一轮 ✓，所以它在轮 3 的开头收口 ✓。
+  那次被跨过的轮次记在 `deepblend/docs/milestone-status.md` §201.1，连同它自己的一次实测教训
+  （在套件跑动中改产品源码，会让那次读数作废）✓。
+  账本上仍然开着的是 C2、C3、C5、C6、C7、C12、C14、C15、C16、C17。

@@ -23,6 +23,8 @@
  * Plane: Host composition (the Web Client half is `./client.js`)
  */
 
+import { homedir } from 'node:os'
+
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
@@ -39,6 +41,9 @@ import {
   buildRevisionDiff,
   buildSceneTree,
   buildSettingsCard,
+  buildDiagnosticsBundle,
+  DIAGNOSTICS_JOB_LIMIT,
+  DIAGNOSTICS_FAILURE_LIMIT,
   matchUiRoute,
   assertKnownConfigKeys,
 } from '@deepblend/dsh-blender-contracts'
@@ -474,6 +479,102 @@ export function createHandlers(ctx) {
           )
         return { card: null, data: null, error: error.toJSON() }
       }
+    },
+
+    /**
+     * The shareable diagnostic bundle (ledger C10).
+     *
+     * IT PROBES BLENDER, AND THAT IS THE POINT. The first question a maintainer asks about a report is
+     * "does Blender work on that machine", and a bundle that answered "not probed" would send the
+     * conversation back to the user. The probe is the same one the settings card already makes
+     * (coalesced, cached for `capabilitiesCacheMs`), and a FAILED probe is a structured value here
+     * rather than an error page — a machine without Blender is exactly the machine whose bundle
+     * somebody is about to send.
+     *
+     * `config` IS AN ALLOWLIST. Every key below is named on purpose. A spread would publish whatever
+     * configuration key is added next, and a diagnostic bundle is the last place that should happen.
+     */
+    diagnostics: async () => {
+      let capabilities = null
+      let probeError = null
+      try {
+        capabilities = await studio().describeCapabilities({})
+      } catch (cause) {
+        const error = cause instanceof BlenderError
+          ? cause
+          : new BlenderError(
+            BlenderErrorCode.CAPABILITY_PROBE_FAILED,
+            cause instanceof Error ? cause.message : String(cause),
+          )
+        probeError = { code: error.code ?? BlenderErrorCode.CAPABILITY_PROBE_FAILED, message: error.message ?? '' }
+      }
+
+      const listed = await studio().listProjects()
+      const projects = []
+      const failures = []
+      for (const record of listed.projects) {
+        const jobs = await studio().listJobs({ projectId: record.projectId })
+        const byStatus = {}
+        for (const job of jobs.jobs) byStatus[job.status] = (byStatus[job.status] ?? 0) + 1
+        const failed = jobs.jobs.filter(job => job.status === 'failed').slice(-DIAGNOSTICS_JOB_LIMIT)
+        for (const job of failed) {
+          failures.push({
+            projectId: record.projectId,
+            jobId: job.jobId,
+            type: job.type ?? null,
+            errorCode: job.errorCode ?? null,
+            message: job.error ?? null,
+            frames: job.frames ?? null,
+            updatedAt: job.updatedAt ?? null,
+          })
+        }
+        projects.push({
+          projectId: record.projectId,
+          title: record.title ?? null,
+          currentRevision: record.currentRevision ?? null,
+          revisionCount: record.revisionCount ?? 0,
+          updatedAt: record.updatedAt ?? null,
+          jobs: {
+            total: jobs.jobs.length,
+            byStatus,
+            unfinished: jobs.unfinished?.length ?? 0,
+            recoveryFindings: jobs.recovery?.length ?? 0,
+            recent: jobs.jobs.slice(-DIAGNOSTICS_JOB_LIMIT).map(job => ({
+              jobId: job.jobId,
+              type: job.type ?? null,
+              status: job.status,
+              revision: job.revision ?? null,
+              frames: job.frames ?? null,
+              errorCode: job.errorCode ?? null,
+              updatedAt: job.updatedAt ?? null,
+            })),
+          },
+        })
+      }
+
+      // The Host projects its own configuration (the keys are declared there, and this half's schema
+      // declares none of them), and the same projection supplies the workspace root below — one read,
+      // so the two fields cannot disagree about where this deployment keeps its state.
+      const projected = studio().describeConfiguration?.() ?? {}
+
+      return buildDiagnosticsBundle({
+        generatedAt: new Date().toISOString(),
+        product: { name: 'DeepBlend Studio', version: studio().productVersion?.() ?? null, hostApiVersion: HOST_API_VERSION },
+        environment: { node: process.version, platform: process.platform, arch: process.arch, home: homedir() },
+        blender: {
+          probed: true,
+          note: 'Blender was probed for this export (the same probe the settings card makes).',
+          capabilities,
+          error: probeError,
+        },
+        config: projected,
+        store: { projectsRoot: listed.projectsRoot ?? null, workspaceRoot: projected.workspaceRoot ?? null, projects },
+        failures,
+        notes: [
+          `jobs per project are capped at ${DIAGNOSTICS_JOB_LIMIT}`,
+          `failures are capped at ${DIAGNOSTICS_FAILURE_LIMIT}`,
+        ],
+      })
     },
 
     /** Everything the panel needs to render itself from scratch, in one request. */

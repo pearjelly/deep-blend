@@ -13114,3 +13114,135 @@ profile 里剩下的四个文件 ✓（`cordis.patch.yml` / `cordis.yml` / `pack
    「下一轮开始前先看上一轮的存活表」这件事有个地方可看 ✓。
 6. **C2/C3**：三条路线的同一性没有断言 ✓；tarball 路线的升级路径未实测 ✓（§199.9 的缺口二、三 ✓）。
 7. **C7 运维单点**：只有用户能改变 ✓（第二个账号，或把发布权交给仓库所属的账号 ✓）。
+
+---
+
+## 201. 导出诊断：把「用户报不了的问题」变成一份可以附上的文件
+
+### 201.1 先说一次不合格的轮次，因为它改变了这一节的形状
+
+目标的第一条规矩是**每一轮留下可数的进展** ✓，而这一条线**跨过了轮次的边界** ✓。
+发生的事很具体 ✓：那一轮的固定动作（跑契约层与整套验收）**在改产品源码的同时进行** ✓——
+`node deepblend/tests/run.mjs` 与 `bash deepblend/tests/run-all.sh` 是长任务 ✓，
+而我在它们跑动的时候编辑了 `packages/deepblend/**` ✓。那一次读数是**作废的** ✓：
+`ui plane: 154/158` ✓ 与 M4 浏览器套件各报一条红 ✓，两条红的形状都是
+「路由表里已经有它、处理器表里还没有」✓——**量的是一个半改完的树** ✓。
+这不是产品缺陷 ✓，但它是一次真实的教训 ✓，而这个仓库已经为同一件事付过代价 ✓
+（`tools/coverage-probe.mjs` 会拒绝证明一次「树在跑动中变过」的覆盖率读数 ✓，理由相同 ✓：
+**一个移动过的树的读数不是读数** ✓）。
+
+所以那一轮**没有留下可数的进展** ✓，它记在这里而不是账本里 ✓（账本记的是移动 ✓）。
+**这一节与账本里的「轮 2」是同一件工作** ✓：那条线在下一轮的开头收口 ✓——
+目标禁止把半开的功能留到下一轮 ✓，所以它不是「跳步」✓，是**把同一件事做完** ✓。
+
+### 201.2 这一项要证明什么
+
+账本 C10 问的是：**用户能自己导出诊断信息吗** ✓。市场里同类插件有一个 Export log ✓，
+而这一份**一个都没有** ✓（第 1 轮量到的读数 ✓：`packages/deepblend/ui/lib/client.js` 里没有
+任何导出/下载动作 ✓，宿主路由表里也没有对应的读路由 ✓）。
+
+**为什么这值得一轮** ✓：这个产品的每一个失败都已经**可分支** ✓（`recovery.md` §10 按错误码查 ✓），
+但一个可分支的失败仍然要求用户**用散文描述他的机器** ✓——而维护者最先问的三件事
+（版本、存储在哪、Blender 到底能不能跑 ✓）每一件都是一个字段 ✓。
+
+### 201.3 它是什么：一条读路由、一个纯构造器、一个下载链接
+
+| 层 | 东西 | 为什么在这一层 |
+|---|---|---|
+| contracts | `buildDiagnosticsBundle()` ＋ `redactHome()` ✓ | 用户要发给**别人**的东西是一份契约 ✓，而在 HTTP 处理器里拼出来的契约只能靠起一个服务器来测 ✓；`generatedAt` 也是传进去的 ✓，否则它自己的测试就不确定 ✓ |
+| contracts | `UI_ROUTES` 里的 `GET /deepblend/diagnostics`（`write: false`）✓ | 它是这个产品**第一条为「给别人读」而存在的路由** ✓；它必须是一条读路由 ✓——一个顺手也改了东西的导出，就是一条披着诊断名字的写路径 ✓ |
+| host | `readProductVersion()` ＋ `diagnosticConfiguration()` ✓ | 见 §201.4：**这两个函数的位置是规则决定的** ✓ |
+| ui（宿主半边） | `diagnostics` 处理器 ✓ | 它只做编排 ✓：探测一次 Blender ✓、列项目与任务 ✓、把失败挑出来 ✓，然后交给构造器 ✓ |
+| client | 头部一个 `<a download>` ✓ | 导出是一次下载 ✓，而下载正是带 `download` 的锚点做的事 ✓——浏览器自己取那条路由并写文件 ✓，两个面都一样 ✓（React 透传 `href`/`download` ✓，DOM 绑定把它们设成属性 ✓）；换成按钮就需要在一个**没有地方放命令式代码**的渲染器里做 blob 管线 ✓ |
+
+**它带什么** ✓：格式与格式版本 ✓、产品版本与 `hostApiVersion` ✓、node/platform/arch ✓、
+**Blender 探测的结果**（含失败 ✓）、二十二个配置键 ✓、每个项目的 revision 与任务摘要 ✓、
+最近的失败（带错误码 ✓）、路由表 ✓、以及一份**说明它排除了什么**的 `redaction` 块 ✓。
+**它不带什么** ✓：场景文档 ✓、产物字节 ✓、模型的提示与回答 ✓、环境变量 ✓、凭据与 token ✓——
+最后一条不是在这里过滤的 ✓，而是资产 URL 在**被记录的地方**就已经过了 `redactUrl` ✓，
+所以一份 bundle 不可能泄漏任何一条记录从未持有过的东西 ✓。
+
+### 201.4 两条规则，都是这一轮的实现自己撞出来的
+
+**规则一：UI host 那一半不许碰文件系统。** ✓ `composition/ui-plane.e2e.mjs` 里有一条断言 ✓：
+那个文件不得 import `node:fs` / `node:child_process` ✓，也不得出现 `spawn(` / `eval(` ✓——
+理由是它是**浏览器直接对话的那一层** ✓，「浏览器不直接启动 Blender」这句话在那里才成为一条断言 ✓。
+第一版的版本号读取用了 `readFileSync` ✓，那条断言立刻红了 ✓（`ui plane: 157/158` ✓）。
+**修法不是绕过它** ✓：版本读取搬到 **Host** 那一半 ✓（它本来就该读文件 ✓），
+UI 通过 facade 问 ✓。同一条推理的第二次应用 ✓：二十二个配置键也不该在 UI 那一半被点名 ✓——
+`config-surface.test.mjs` 要求**每个包只读自己 schema 声明过的键** ✓
+（「一个读不到的值是一个说谎的旋钮」✓），修法是把白名单搬到**键被声明的地方** ✓。
+两条读数：`Configuration surface 21/22` → **22/22** ✓，`ui plane 157/158` → **158/158** ✓。
+
+**顺带一条自我否定的记录** ✓：修完之后我用 `git checkout` 去还原一个**未提交**的文件 ✓，
+把这一轮在 `contracts/lib/ui-api.js` 里的全部改动**删掉了** ✓——恢复它靠的是变异测试开始前
+留下的备份 ✓。这不是产品的缺陷 ✓，是一次操作事故 ✓，记在这里因为它差点让这一轮
+无声地少掉一半 ✓（而契约层当时仍然是全绿的 ✓——那才是它危险的地方 ✓）。
+
+### 201.5 读数：真 Chrome 里点一次，把落盘的那份读回来
+
+`deepblend/tests/e2e/workbench-page.e2e.mjs` 现在多六项 ✓（**42 → 48** ✓）。
+它不是去断言「按钮存在」✓：它允许下载到一个自己拥有的目录 ✓、**按指针点**那个链接 ✓、
+等文件出现 ✓、然后**读回来解析** ✓：
+
+```
+the export control is reachable by a pointer            {"via":"pointer"}
+clicking it downloads a file, and the file is the bundle the route serves
+the downloaded bundle is the product's own format, at the version it ships
+                                                        {"format":"deepblend-diagnostics","version":"0.2.0"}
+and it describes THIS store, so it is a reading rather than a template
+                                                        {"count":1,"projectId":"wb-e2e-bbd3f7"}
+it carries the Blender probe result                     {"installed":true,"version":"5.2.1 LTS"}
+it carries no home directory
+```
+
+**请求日志看不见这一次** ✓——那份日志钩的是 `window.fetch` ✓，而一个 `<a download>` 走的是
+浏览器自己的下载路径 ✓。所以证据只能是**文件本身** ✓，这也正是这一项要读文件的原因 ✓。
+
+### 201.6 变异测试：十二条，十二条全红
+
+| 变异 | 结果 |
+|---|---|
+| `redactHome` 变成恒等函数 | 红 ✓「no path in the bundle carries the home directory」 |
+| 只替换第一处出现 | 红 ✓「every occurrence is replaced, not only the first」 |
+| 空家目录也照样替换 | 红 ✓「an absent home leaves text alone instead of destroying it」（`/~U~s~e~r~s~/…` ✓） |
+| 构造器不再脱敏 failures | 红 ✓（消息里的路径漏出来 ✓） |
+| 版本号改成一个常量 | 红 ✓「the runtime reads the same version the source holds — ["9.9.9","0.2.0"]」 |
+| 去掉失败条数上限 | 红 ✓「[57,false]」 |
+| 把这条路由改成写路由 | 红 ✓「the route is a READ route」＋「not in the write set」 |
+| 配置白名单变成展开 | 红 ✓「configuration is an allowlist, not a spread」 |
+| 链接去掉 `download` 属性 | 红 ✓「the workbench offers the export as a download」 |
+| 客户端的路由路径漂移一个字母 | 红 ✓「every route the client bundle names is a route the Host matches — ["/deepblend/diagnose"]」 |
+| 失败的探测被吞掉 | 红 ✓「a failed probe is a VALUE in the bundle」 |
+| UI host 重新 import 文件系统 | 红 ✓「the UI host reads no file itself」 |
+
+**没有一条活下来** ✓。其中三条（改写成写路由 ✓、去掉 `download` ✓、路径漂移 ✓）
+被单独复跑确认**红在正确的断言上** ✓，而不是红在语法错误上 ✓——「变异必须先是合法的程序」✓。
+
+### 201.7 收口读数
+
+* 契约层 **71/71** ✓（本轮新增 1 个文件 ✓：`contract/diagnostics.test.mjs` ✓，三十七项自计断言 ✓）；
+  README 那组快照按 `documented-counts.test.mjs` 报出的真实值改过 ✓
+  （70→**71** 个契约文件 ✓、86→**87** 个文件 ✓、87→**88** 条照跑 ✓、
+  自计断言 1544→**1581**（33→**34** 个文件打印计数）✓、全新 clone 的读数 `11/70`→**`11/71`** ✓）。
+* 本轮**改了 `packages/**`** ✓，所以四步发布链**触发** ✓——版本、tarball、Release、npm 四步
+  与三条路线的复验读数见 §201.8 ✓。
+* 投稿条目一个字节都没有动 ✓。
+
+### 201.8 发布链：四步一次走完
+
+（本节由同一次收口写入 ✓：版本从 `0.2.0` 升到 `0.2.1` ✓，`version:sync` ✓ →
+tarball ✓ → Release ＋ 资产 ✓ → npm 七个包 ✓，然后用**装一次读回来**的方式复验三条路线 ✓。）
+
+### 201.9 仍然开着的缺口
+
+1. **C5 跨平台** ✓ 与 **C6 首次体验的分钟数** ✓ 都还没有动 ✓（第 1 轮的缺口表原样 ✓）。
+2. **C12 第三方许可盘点** ✓：仍然没有那份清单 ✓。
+3. **C14 活下来的变异清单** ✓：这一轮是零存活 ✓，但仍然没有一份**常驻**的表 ✓。
+4. **诊断包的两个已知边界** ✓：① 它**会探测一次 Blender** ✓（这是刻意的 ✓，因为「那台机器上
+   Blender 到底能不能跑」正是维护者最先问的 ✓），代价是一次导出要等一次探测 ✓；
+   ② 它只脱敏**家目录前缀** ✓——存储放在家目录之外时 ✓，路径原样保留 ✓，
+   这是有意的 ✓（结构对诊断有用 ✓）且写在 `redaction` 块里 ✓。
+5. **导出没有「最近日志」** ✓：bundle 带的是任务记录里的失败 ✓，不是渲染日志的尾巴 ✓。
+   真正难查的那些问题（渲染中途崩掉 ✓）需要日志本身 ✓，而日志今天只在
+   `blender_job_status` 的文本里 ✓。

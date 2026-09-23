@@ -19,6 +19,7 @@
  */
 
 import { RENDER_JOB_TERMINAL_STATUSES } from './render-job.js'
+import { redactHome } from './redact.js'
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -43,6 +44,11 @@ export const UI_REST_MARKER = '*'
  */
 export const UI_ROUTES = Object.freeze([
   { id: 'capabilities', method: 'GET', path: '/deepblend/capabilities', write: false, summary: 'Blender capabilities and the settings card.' },
+  // The first route this product serves FOR SOMEBODY ELSE TO READ. Everything else on this surface
+  // exists so the workbench can render itself; this one exists so a user can hand a maintainer the
+  // state of their machine. It is a READ route and it must stay one: an export that also changed
+  // something would be a new write path wearing a diagnostic's name.
+  { id: 'diagnostics', method: 'GET', path: '/deepblend/diagnostics', write: false, summary: 'A shareable diagnostic bundle: versions, configuration, store summary and recent failures.' },
   // The one route whose response is an HTML document rather than JSON: the
   // standalone fullscreen workbench (SPEC §20 M6). It is a READ route — it
   // answers with a page, and every write that page performs goes through the
@@ -617,6 +623,165 @@ export function buildSettingsCard(data) {
     ],
     warnings: (data?.warnings ?? []).map(entry => ({ code: entry.code, message: entry.message })),
     probedAt: data?.probedAt ?? null,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The diagnostic bundle
+// ---------------------------------------------------------------------------
+
+/** What this document is. A reader who is handed one file needs to know before parsing it. */
+export const DIAGNOSTICS_FORMAT = 'deepblend-diagnostics'
+
+/**
+ * The bundle's own version, bumped when a reader would have to change.
+ *
+ * NOT the product's version. The two move for different reasons: this one changes when the SHAPE of
+ * the document changes, and the product's changes when anything ships. A maintainer reading a bundle
+ * from an older release needs the first number to be meaningful on its own.
+ */
+export const DIAGNOSTICS_FORMAT_VERSION = 1
+
+/** How many jobs per project the bundle carries. A cap, and the bundle says it was applied. */
+export const DIAGNOSTICS_JOB_LIMIT = 20
+
+/** How many failures the bundle carries in total. */
+export const DIAGNOSTICS_FAILURE_LIMIT = 50
+
+/**
+ * Every string in a value, with the home prefix replaced. Keys are left alone: a key is this
+ * product's own vocabulary, and a path can never be one.
+ *
+ * @param {unknown} value
+ * @param {string|null} home
+ * @returns {unknown}
+ */
+function redactHomeDeep(value, home) {
+  if (typeof value === 'string') return redactHome(value, home)
+  if (Array.isArray(value)) return value.map(entry => redactHomeDeep(entry, home))
+  if (value !== null && typeof value === 'object') {
+    /** @type {Record<string, unknown>} */
+    const out = {}
+    for (const [key, entry] of Object.entries(value)) out[key] = redactHomeDeep(entry, home)
+    return out
+  }
+  return value
+}
+
+/**
+ * The shareable diagnostic bundle (ledger C10).
+ *
+ * WHY IT IS A PURE BUILDER IN THIS PACKAGE
+ * ----------------------------------------
+ * The same reason `buildSettingsCard` is: what a user sends to somebody else is a contract, and a
+ * contract that is assembled inline in an HTTP handler can only be tested through a running server.
+ * Everything here is passed IN — including `generatedAt`, because a builder that read the clock would
+ * make its own test non-deterministic.
+ *
+ * WHAT IT CARRIES, AND WHAT IT REFUSES TO
+ * ---------------------------------------
+ * Versions, configuration, a store summary, recent failures with their error codes, and the route
+ * table. What it does NOT carry, and says so in `redaction.excluded`: scene documents, artifact
+ * bytes, model prompts and replies, environment variables, and credentials. The rule for the last
+ * one is not a filter applied here — asset URLs were already quoted through `redactUrl` at the
+ * source, so a bundle cannot leak what no record ever held.
+ *
+ * `config` IS AN ALLOWLIST, NOT A SPREAD. The caller names the keys it means; a future configuration
+ * key is then absent by default rather than published by accident, which is the direction this
+ * decision has to fail in.
+ *
+ * @param {{
+ *   generatedAt: string,
+ *   product: { name: string, version: string|null, hostApiVersion: number|null },
+ *   environment: { node: string|null, platform: string|null, arch: string|null, home: string|null },
+ *   blender: { probed: boolean, note: string, capabilities?: Record<string, any>|null, error?: { code: string, message: string }|null },
+ *   config: Record<string, unknown>,
+ *   store: { projectsRoot: string|null, workspaceRoot: string|null, projects: Array<Record<string, unknown>> },
+ *   failures: Array<Record<string, unknown>>,
+ *   notes?: string[],
+ * }} input
+ * @returns {Record<string, unknown>}
+ */
+export function buildDiagnosticsBundle(input) {
+  const home = typeof input?.environment?.home === 'string' && input.environment.home.length > 0
+    ? input.environment.home
+    : null
+  const projects = (input?.store?.projects ?? []).slice(0, undefined)
+  const failures = (input?.failures ?? []).slice(0, DIAGNOSTICS_FAILURE_LIMIT)
+  const capabilities = input?.blender?.capabilities ?? null
+  const probeError = input?.blender?.error ?? null
+
+  return {
+    format: DIAGNOSTICS_FORMAT,
+    formatVersion: DIAGNOSTICS_FORMAT_VERSION,
+    generatedAt: input?.generatedAt ?? null,
+    product: {
+      name: input?.product?.name ?? 'DeepBlend Studio',
+      version: input?.product?.version ?? null,
+      hostApiVersion: input?.product?.hostApiVersion ?? null,
+    },
+    environment: {
+      node: input?.environment?.node ?? null,
+      platform: input?.environment?.platform ?? null,
+      arch: input?.environment?.arch ?? null,
+    },
+    // A PROJECTION, not the canonical blob: the canonical answer carries per-engine probe details
+    // that a reader of a shared file does not need, and every field kept here is one a maintainer
+    // would otherwise have to ask for in a follow-up message.
+    blender: {
+      probed: input?.blender?.probed === true,
+      note: input?.blender?.note ?? null,
+      error: probeError === null ? null : { code: probeError.code ?? null, message: redactHome(probeError.message ?? '', home) },
+      installed: capabilities?.installed === true,
+      version: capabilities?.version ?? null,
+      pythonVersion: capabilities?.pythonVersion ?? null,
+      executable: {
+        requested: redactHome(capabilities?.executable?.requested ?? null, home),
+        resolved: redactHome(capabilities?.executable?.resolved ?? null, home),
+        advice: redactHome(capabilities?.executable?.advice ?? null, home),
+      },
+      engines: Object.entries(capabilities?.engines ?? {}).filter(([, probe]) => probe?.available).map(([id]) => id),
+      bestAvailableEngine: capabilities?.bestAvailableEngine ?? null,
+      gpu: {
+        available: capabilities?.gpu?.available === true,
+        devices: capabilities?.gpu?.devices ?? [],
+        preferredBackend: capabilities?.gpu?.preferredBackend ?? null,
+      },
+      renderSmokeTest: capabilities?.renderSmokeTest === null || capabilities?.renderSmokeTest === undefined
+        ? null
+        : {
+            ok: capabilities.renderSmokeTest.ok === true,
+            engine: capabilities.renderSmokeTest.engine ?? null,
+            bytes: capabilities.renderSmokeTest.bytes ?? null,
+            error: capabilities.renderSmokeTest.error ?? null,
+          },
+      warnings: (capabilities?.warnings ?? []).map(entry => ({ code: entry.code ?? null, message: redactHome(entry.message ?? '', home) })),
+      probedAt: capabilities?.probedAt ?? null,
+    },
+    config: redactHomeDeep(input?.config ?? {}, home),
+    store: {
+      projectsRoot: redactHome(input?.store?.projectsRoot ?? null, home),
+      workspaceRoot: redactHome(input?.store?.workspaceRoot ?? null, home),
+      projectCount: projects.length,
+      projects: redactHomeDeep(projects, home),
+    },
+    failures: redactHomeDeep(failures, home),
+    failuresTruncated: (input?.failures ?? []).length > failures.length,
+    routes: UI_ROUTES.map(route => `${route.method} ${route.path}`),
+    redaction: {
+      homePrefix: '~',
+      replaced: [
+        'every path under the home directory is written with ~ in place of the home prefix',
+      ],
+      excluded: [
+        'scene documents and SceneSpec contents',
+        'artifact bytes (previews, contact sheets, rendered frames, videos)',
+        'model prompts and model replies',
+        'environment variables',
+        'credentials and tokens (asset URLs are quoted through redactUrl where they are recorded)',
+      ],
+    },
+    notes: input?.notes ?? [],
   }
 }
 

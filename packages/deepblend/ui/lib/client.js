@@ -127,6 +127,10 @@ window.__ModuleLoader__.load({
       state: '/deepblend/state',
       projects: '/deepblend/projects',
       capabilities: '/deepblend/capabilities',
+      // The one route here that is not fetched by the panel: it is the `href` of the export link in
+      // the header, so the BROWSER makes the request and writes the file. `contract/diagnostics.test.mjs`
+      // holds these four paths to the route table the Host actually matches.
+      diagnostics: '/deepblend/diagnostics',
     }
 
     /** Route for one project's own surfaces. */
@@ -1363,6 +1367,17 @@ window.__ModuleLoader__.load({
             ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} ≠ ${EXPECTED_HOST_API}` })
             : null,
           el('span', { style: { flex: 1 } }),
+          // AN ANCHOR, NOT A BUTTON. The export is a download, and a download is what an anchor with
+          // `download` does: the browser fetches the route and writes the file itself, in both faces
+          // (React passes `href`/`download` through, the DOM binding sets them as attributes). A button
+          // would need imperative blob plumbing in a renderer that has no place to put it.
+          el('a', {
+            className: 'db-btn',
+            href: ROUTES.diagnostics,
+            download: 'deepblend-diagnostics.json',
+            'data-action': 'export-diagnostics',
+            title: '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
+          }, '导出诊断'),
           Button({ action: 'reload', onClick: actions.reload, children: '刷新' }),
         ),
         el('div', { className: 'db-nav' }, VIEWS.map(entry => el('button', {
