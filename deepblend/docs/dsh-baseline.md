@@ -36,6 +36,8 @@ realpath "$(which dsh)"        # …/<node>/lib/node_modules/@deepseek-ai/dsh/li
 `@deepseek-ai/dsh` 的依赖树版本全部同为 `0.1.5-rc.2`（抽查 `dsh-agent-presets`、`dsh-tool-jobs`、
 `dsh-base`、`dsh-web-app` 一致）。
 
+**而且它的清单不带本仓库要用的两个包。** 实测：`npm install -g @deepseek-ai/dsh@0.1.5-rc.2` 产出的是一棵**拆开的**依赖树——harness 自己的依赖嵌在包内（120 个，含 `cordis` / `dsh-tools` / `schemastery`），而与它一起装的东西落在**上一层**的 scope 目录里。本仓库的套件 import `dsh-subprocess-local`、实拍视觉探针 import `dsh-attachment-local`，两个都**不在** harness 的清单里，所以安装命令要显式带上它们（`install.md` §0、`ci.yml`、`CONTRIBUTING.md` 三处一致）。少了它们，`link-workspace.mjs` 会以「有包不在部署里」退出 2，并点名是哪个包、谁要它。
+
 **兼容性锚点 = `0.1.5-rc.2`。** 升级 DSH 前必须重跑 `deepblend/tests/` 全部测试与
 `standingKeyFor()` mount validation。SPEC §0.1 禁止跟随 `latest` 的要求，在此以「锁定 rc 版本 +
 升级前回归测试」的方式满足。

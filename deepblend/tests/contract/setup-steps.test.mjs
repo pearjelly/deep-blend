@@ -342,6 +342,47 @@ test('the ffmpeg advice names a command for more than one platform', () => {
   assert.match('macOS: `brew install ffmpeg`; Linux: `sudo apt install ffmpeg`.', otherPlatforms)
 })
 
+test('the Linux the product supports is stated, because upstream publishes only one build of it', () => {
+  // A PLATFORM BOUNDARY NOBODY CAN FIND IS NOT A BOUNDARY. The managed Blender is macOS arm64 and the
+  // test above holds that sentence in place. What it does not cover is the OTHER end: a non-macOS user
+  // is told to install Blender 5.2.1 themselves, and MEASURED against the upstream directory listing,
+  // Blender publishes `linux-x64` and NOTHING for Linux arm64 — in 5.2, 5.1, 4.5 and 4.2 alike. So on
+  // an arm64 Linux machine the documented instruction cannot be carried out at all, and until this
+  // round no document said so.
+  //
+  // The claim is stated in the pin's own terms (the artifact name upstream publishes) rather than as a
+  // paraphrase, so a reader can check it against the same listing this test's reason cites.
+  const upstream = /linux-x64/
+  for (const name of ['README.md', 'README.zh.md', 'deepblend/docs/install.md']) {
+    const text = readFileSync(join(ROOT, name), 'utf8')
+    assert.match(text, upstream, `${name} sends a non-macOS user to Blender without saying which Linux upstream builds`)
+  }
+  // And the boundary is not just "x64 exists" but "arm64 does not": the sentence has to say so, or a
+  // reader on an arm64 machine reads the artifact name as a detail rather than as their answer.
+  const arm64 = /arm64/
+  for (const name of ['README.md', 'deepblend/docs/install.md']) {
+    assert.match(readFileSync(join(ROOT, name), 'utf8'), arm64,
+      `${name} names the Linux build without saying that arm64 Linux has none`)
+  }
+
+  // The negative control: the patterns must be able to fail.
+  assert.doesNotMatch('install Blender 5.2.1 yourself', upstream)
+  assert.doesNotMatch('install Blender 5.2.1 yourself', arm64)
+})
+
+test('the baseline document records why the install command carries two extra packages', () => {
+  // §202.10's second gap: the reason lived only in `install.md` and in a comment in `ci.yml`, and the
+  // document a reader opens to understand the PINNED HARNESS said nothing about its manifest not
+  // bringing them. A reader who trims the install command back to `@deepseek-ai/dsh` alone then gets
+  // "Could not locate a DSH deployment" — the failure this repository spent a round on.
+  const baseline = readFileSync(join(ROOT, 'deepblend', 'docs', 'dsh-baseline.md'), 'utf8')
+  for (const spec of ['dsh-subprocess-local', 'dsh-attachment-local']) {
+    assert.ok(baseline.includes(spec), `dsh-baseline.md does not name ${spec}, which the install command carries`)
+  }
+  assert.match(baseline, /清单不带|does not bring|not in .*manifest/,
+    'dsh-baseline.md names the packages without saying WHY they are installed by hand')
+})
+
 test('the profile installer says why it still exists, and it is not pnpm', () => {
   // A STEP THAT CANNOT SAY WHY IT EXISTS IS THE ONE SOMEBODY DELETES.
   //

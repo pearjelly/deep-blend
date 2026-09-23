@@ -41,7 +41,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -58,24 +58,40 @@ function say(label, value) {
 }
 
 /**
+ * Every step's wall clock, in the order they ran. The FIRST-RUN reading (ledger C6).
+ *
+ * "From zero to the first frame: how many steps, how many minutes, and where do you get stuck" was
+ * a question with no reading at all until this existed — the steps had each been measured, and the
+ * minutes never had. A number nothing records is a number nobody can improve.
+ */
+const timings = []
+
+/** Seconds, to one decimal: a first run is minutes long and a tenth of a second is noise. */
+const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`
+
+/**
  * Run one step in the clone, with a scratch home, and return its combined output.
  * @param {string[]} argv
  * @param {{ cwd: string, home: string, label: string }} context
- * @returns {{ ok: boolean, output: string, status: number|null }}
+ * @returns {{ ok: boolean, output: string, status: number|null, ms: number }}
  */
 function step(argv, context) {
   console.log(`\n── ${context.label} ──`)
+  const started = Date.now()
   const result = spawnSync(argv[0], argv.slice(1), {
     cwd: context.cwd,
     encoding: 'utf8',
     env: { ...process.env, DSH_HOME: context.home },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
+  const ms = Date.now() - started
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
   // The last few lines are the step's own summary; printing the whole of a 346 MB
   // download's progress would bury the report this script exists to produce.
   for (const line of output.trim().split('\n').slice(-4)) console.log(`   ${line}`)
-  return { ok: result.status === 0, output, status: result.status }
+  timings.push({ label: context.label, ms, ok: result.status === 0 })
+  console.log(`   took ${seconds(ms)}`)
+  return { ok: result.status === 0, output, status: result.status, ms }
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +186,37 @@ try {
   record('contract suite', step(['node', join(clone, 'deepblend/tests/run.mjs')], { cwd: clone, home, label: 'the contract suite, in the clone' }))
 
   if (withBlender) {
+    // -----------------------------------------------------------------------
+    // 5. THE FIRST FRAME, which is what "installed" means to a user.
+    //
+    // `create-demo-project.mjs` is the tool a person runs to get something on screen: it writes a
+    // project into the store the profile is pinned to and renders a preview through the real
+    // provider. Running it in the CLONE (with the clone's own managed Blender) is the only way to
+    // read "from zero to a picture" — and the picture is then read back off the disk, because a
+    // step that prints a path is not the same as a file that exists.
+    // -----------------------------------------------------------------------
+    const demo = step(['node', join(clone, 'deepblend/tools/create-demo-project.mjs')], {
+      cwd: clone, home, label: '5. the first frame (create the demo project and render a preview)',
+    })
+    record('first frame', demo)
+
+    const rendered = []
+    const walk = (directory) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const full = join(directory, entry.name)
+        if (entry.isDirectory()) walk(full)
+        else if (/\.png$/.test(entry.name)) rendered.push({ path: full, bytes: statSync(full).size })
+      }
+    }
+    const projects = join(clone, '.deepblend', 'projects')
+    if (existsSync(projects)) walk(projects)
+    // A PNG, and big enough to be a picture rather than a placeholder: the provider's own floor for
+    // "this is a frame" is 512 bytes, and a 640x360 render is three orders of magnitude above it.
+    const real = rendered.filter(entry => entry.bytes > 10_000)
+    say('frames on disk', rendered.length)
+    say('  the largest', real.length === 0 ? 'none' : `${real[0].path.slice(clone.length + 1)} (${real[0].bytes} B)`)
+    if (real.length === 0) failures.push('the first-frame step produced no rendered image on disk')
+
     record('acceptance suite', step(['bash', join(clone, 'deepblend/tests/run-all.sh')], { cwd: clone, home, label: 'the full acceptance suite, in the clone' }))
   } else {
     // THE NO-BLENDER PATH IS THE ONE A STRANGER MEETS FIRST, and the README states its contract exactly: without
@@ -195,6 +242,20 @@ try {
   }
 } catch (error) {
   console.error(`\n${error.message}`)
+}
+
+// ---------------------------------------------------------------------------
+// The first-run reading, in the order a person meets it.
+// ---------------------------------------------------------------------------
+if (timings.length > 0) {
+  console.log('\n── how long a first run took, on this machine ──')
+  for (const entry of timings) {
+    console.log(`   ${String(entry.ms).padStart(7)} ms  ${seconds(entry.ms).padStart(9)}  ${entry.label}`)
+  }
+  const total = timings.reduce((sum, entry) => sum + entry.ms, 0)
+  const slowest = timings.reduce((worst, entry) => (entry.ms > worst.ms ? entry : worst), timings[0])
+  say('total', `${seconds(total)} (${Math.floor(total / 60000)} min ${Math.round((total % 60000) / 1000)} s)`)
+  say('slowest step', `${slowest.label} — ${seconds(slowest.ms)}`)
 }
 
 console.log('')

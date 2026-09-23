@@ -140,7 +140,7 @@ packages/deepblend/
 
 | 需要 | 用在哪 | 没有它会怎样 |
 |---|---|---|
-| **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） |
+| **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） | **上游只发布 `linux-x64` 的 Blender**（5.2 / 5.1 / 4.5 / 4.2 四条线都只有它，见 `probe-cross-platform.log`），所以 Linux 上的实际要求是 **x86_64**：arm64 Linux 上没有任何上游构建可用，要用发行版包或自行构建。
 | **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
 | **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
 | **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 88 条照跑 |

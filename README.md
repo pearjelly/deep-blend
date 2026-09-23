@@ -35,7 +35,7 @@ One command installs both planes:
 | | |
 |---|---|
 | **DSH** | `0.1.5-rc.2` — the version this repository is measured against (`deepblend/tools/dsh-baseline.json`). The plugin declares what it needs as `peerDependencies`, which is what the market's compatibility preflight reads. |
-| **Blender** | `5.2.1`. The repository ships a managed, checksum-pinned install for **macOS arm64** (`npm run blender:install`); on any other platform install Blender 5.2.1 yourself and point `blenderPath` at it in the profile's patch layer. |
+| **Blender** | `5.2.1`. The repository ships a managed, checksum-pinned install for **macOS arm64** (`npm run blender:install`); on any other platform install Blender 5.2.1 yourself and point `blenderPath` at it in the profile's patch layer. Upstream publishes **`linux-x64` only** — there is no Linux arm64 build — so the supported Linux is x86_64. |
 | **ffmpeg + ffprobe** | Only for the **delivery** step that encodes frames into an MP4. Install it the way your platform does: `brew install ffmpeg` (macOS), `sudo apt install ffmpeg` (Debian/Ubuntu), `sudo dnf install ffmpeg` (Fedora), `winget install ffmpeg` (Windows) — or point `ffmpegPath`/`ffprobePath` at an absolute path. Without them rendering still runs and no frame is lost: encoding fails with `ENCODER_NOT_FOUND` and the message names the binary. |
 | **Node.js** | ≥ 22 — for the repository's own tools and test suites, not for the plugin. |
 
