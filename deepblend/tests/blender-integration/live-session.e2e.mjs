@@ -240,6 +240,96 @@ try {
     { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
 
   // -------------------------------------------------------------------------
+  // TWO BRIDGES, ONE PATH — the collision that used to be silent.
+  //
+  // MEASURED before the fix: the second bridge unlinked the first's socket file, bound its own, and
+  // announced `ready`. The first Blender became unreachable while still believing it was listening, and
+  // the second reported success — the same failure this repository keeps paying for, something other
+  // than what was asked reported as fine. A socket path has THREE states, not two.
+  // -------------------------------------------------------------------------
+  const sharedPath = join(workspace, 'shared.sock')
+  const startBridge = path => {
+    const child = spawn(BLENDER, [
+      '--background', '--factory-startup',
+      '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+      '--', '--socket', path,
+    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let said = ''
+    child.stdout.on('data', chunk => { said += chunk.toString('utf8') })
+    child.stderr.on('data', chunk => { said += chunk.toString('utf8') })
+    return { child, said: () => said }
+  }
+  const askBridge = path => new Promise(resolve => {
+    const socket = net.connect(path)
+    let buffer = ''
+    let pid = null
+    socket.setTimeout(3000)
+    socket.on('connect', () => socket.write(`${JSON.stringify({ protocolVersion: 'deepblend.blender/v1', jobId: 'probe', action: 'get_capabilities' })}\n`))
+    socket.on('data', data => {
+      buffer += data.toString('utf8')
+      for (const line of buffer.split('\n')) {
+        if (!line.trim()) continue
+        try {
+          const document = JSON.parse(line)
+          if (document.kind === 'ready') pid = document.pid
+          if (document.kind === 'result') { socket.destroy(); resolve({ status: document.status, pid }) }
+        } catch { /* Blender's own output */ }
+      }
+    })
+    socket.on('timeout', () => { socket.destroy(); resolve(null) })
+    socket.on('error', () => resolve(null))
+  })
+
+  const holder = startBridge(sharedPath)
+  let servedBy = null
+  for (let attempt = 0; attempt < 40 && servedBy === null; attempt += 1) {
+    servedBy = await askBridge(sharedPath)
+    if (servedBy === null) await new Promise(settle => setTimeout(settle, 500))
+  }
+  check('a bridge serves on the path it was given', servedBy?.status === 'success' && typeof servedBy.pid === 'number', servedBy)
+
+  try {
+    const intruder = startBridge(sharedPath)
+    const refusalDeadline = Date.now() + 30_000
+    while (!/already serving/.test(intruder.said()) && Date.now() < refusalDeadline) {
+      await new Promise(settle => setTimeout(settle, 300))
+    }
+    const refusal = intruder.said()
+    check('a second bridge on a LIVE path refuses, and names how to give it its own',
+      /already serving/.test(refusal) && /DEEPBLEND_BRIDGE_SOCKET/.test(refusal),
+      refusal.trim().split('\n').filter(line => line.includes('already serving'))[0]?.slice(0, 120))
+    check('and it refuses as a document a caller can parse, not a traceback',
+      /\{"kind": "error"/.test(refusal), refusal.trim().split('\n').slice(-1)[0]?.slice(0, 100))
+
+    const afterIntruder = await askBridge(sharedPath)
+    check('the FIRST bridge is still the one answering, with the same pid',
+      afterIntruder?.status === 'success' && afterIntruder.pid === servedBy.pid,
+      { before: servedBy, after: afterIntruder })
+    intruder.child.kill('SIGTERM')
+  } finally {
+    holder.child.kill('SIGTERM')
+  }
+  await new Promise(settle => setTimeout(settle, 500))
+
+  // THE THIRD STATE: a file left by a process that died must still be usable, or a crash would leave
+  // the user with no way forward except deleting a file they cannot see.
+  // The path still holds a socket inode from the bridge just killed, and writing to it fails — so it
+  // is removed and replaced with a plain file, which is the same state a crash leaves: a path that
+  // exists and that nothing answers on.
+  rmSync(sharedPath, { force: true })
+  writeFileSync(sharedPath, 'not a socket')
+  const afterStale = startBridge(sharedPath)
+  let staleServed = null
+  for (let attempt = 0; attempt < 40 && staleServed === null; attempt += 1) {
+    staleServed = await askBridge(sharedPath)
+    if (staleServed === null) await new Promise(settle => setTimeout(settle, 500))
+  }
+  check('a socket file nothing answers is replaced, so a crash does not need the user to delete a file',
+    staleServed?.status === 'success', staleServed ?? afterStale.said().trim().slice(-120))
+  afterStale.child.kill('SIGTERM')
+  await new Promise(settle => setTimeout(settle, 500))
+
+  // -------------------------------------------------------------------------
   // THE PANEL — the only part of this family a user actually looks at, and the only part that had no
   // criterion. "It looks nice" needs a screen and a person; "it says the truth" does not, so the panel
   // is DRAWN headlessly into a layout that records instead of painting.

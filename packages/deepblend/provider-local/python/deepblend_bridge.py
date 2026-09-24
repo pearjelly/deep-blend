@@ -107,16 +107,44 @@ class _Bridge:
     # -- lifecycle ---------------------------------------------------------
 
     def start(self):
+        # THREE STATES, NOT TWO. A socket path that exists is either a LIVE bridge or the file a dead
+        # one left behind, and the difference decides everything.
+        #
+        # MEASURED, and this is why: two workspaces on one machine both enabled the add-on, and the
+        # SECOND bridge unlinked the first's socket file, bound its own, and announced `ready` — so the
+        # first Blender became unreachable while still believing it was listening, and the second
+        # reported success. That is the failure this repository keeps paying for: something other than
+        # what was asked, reported as fine.
         if os.path.exists(self.socket_path):
-            # A socket file left by a process that died. Refusing to start would leave the user with
-            # no way forward except deleting a file they cannot see, so it is replaced — the same
-            # decision the render job's recovery path makes about a stale pid file.
+            if self._someone_is_listening():
+                raise RuntimeError(
+                    "another Blender is already serving %s. Give this one its own path with "
+                    "DEEPBLEND_BRIDGE_SOCKET (or the add-on's preferences), or stop the other bridge."
+                    % (self.socket_path,)
+                )
+            # Nothing answers, so it is the file a process that died left behind. Refusing here would
+            # leave the user with no way forward except deleting a file they cannot see.
             os.unlink(self.socket_path)
         self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.server.bind(self.socket_path)
         self.server.listen(4)
         self.thread = threading.Thread(target=self._serve, name="deepblend-bridge", daemon=True)
         self.thread.start()
+
+    def _someone_is_listening(self):
+        """Whether a live bridge is behind this path, rather than a file left by a dead one."""
+        probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        probe.settimeout(1.0)
+        try:
+            probe.connect(self.socket_path)
+            return True
+        except Exception:
+            return False
+        finally:
+            try:
+                probe.close()
+            except Exception:
+                pass
 
     def stop(self):
         try:
@@ -289,7 +317,15 @@ def main():
 
     global _BRIDGE
     _BRIDGE = _Bridge(socket_path, {"proc": None})
-    _BRIDGE.start()
+    try:
+        _BRIDGE.start()
+    except Exception as exc:
+        # A REFUSAL IS A RESULT, NOT A TRACEBACK. The one thing that can go wrong here is a named,
+        # actionable condition — another bridge on the same path — and a caller parsing stdout should
+        # get a document it can read rather than a stack it has to scrape. The add-on path already
+        # reports this in its panel; this is the same sentence for the headless one.
+        print(json.dumps({"kind": "error", "message": bootstrap.error_text(exc)}), flush=True)
+        return 2
     print(json.dumps({"kind": "ready", "pid": os.getpid(), "socket": socket_path}), flush=True)
     try:
         # The serve thread is a daemon, so this loop is what keeps the process alive. A SIGTERM (or
