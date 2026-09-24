@@ -363,6 +363,8 @@ class BlenderSession {
     // itself, in the `ready` line bootstrap.py opens with — which is better evidence anyway, because
     // it is the pid the script believes it is rather than the one the spawn returned.
     this.pid = input.transport.pid ?? null
+    /** The workspace the other end says it serves, or null when it did not say. */
+    this.workspace = null
     /** @type {Map<string, {resolve: Function, reject: Function, timer: object}>} */
     this.waiting = new Map()
     this.progress = []
@@ -456,6 +458,9 @@ class BlenderSession {
     }
     if (document?.kind === 'ready') {
       if (typeof document.pid === 'number') this.pid = document.pid
+      // What the other end says it serves, when it says anything. Empty means "not stated", which the
+      // attach path treats as "serves anything" — every deployment before this key existed.
+      if (typeof document.workspace === 'string') this.workspace = document.workspace
       this.readyResolve?.(this)
       return
     }
@@ -986,6 +991,24 @@ export default class LocalBlenderRuntime extends Service {
     // connected and said nothing took 180 s to report — long enough that a user would conclude the
     // product had hung.
     await session.ready(ATTACH_READY_MS)
+
+    // THE WRONG-BLENDER CHECK. A socket path has a global default, so two workspaces on one machine
+    // can point the product at the SAME Blender — and without this, workspace B would drive the
+    // Blender workspace A's user is looking at, silently, because both sides behave correctly. A
+    // bridge that states a workspace and states a DIFFERENT one is refused; a bridge that states none
+    // is served, because that is what every deployment did before the key existed.
+    const stated = session.workspace
+    if (typeof stated === 'string' && stated.length > 0 && resolve(stated) !== resolve(this.workspaceRoot)) {
+      await session.close()
+      throw new BlenderError(
+        BlenderErrorCode.RUNTIME_UNAVAILABLE,
+        `The Blender at ${socketPath} serves the workspace ${stated}, and this deployment is ${this.workspaceRoot}. ` +
+          'Point this deployment at its own bridge (DEEPBLEND_BRIDGE_SOCKET / sessionSocket), or start that Blender ' +
+          'with DEEPBLEND_BRIDGE_WORKSPACE set to this workspace.',
+        { detail: { socketPath, bridgeWorkspace: stated, workspaceRoot: this.workspaceRoot } },
+      )
+    }
+
     return session
   }
 

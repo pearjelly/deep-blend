@@ -97,6 +97,15 @@ class _Bridge:
     def __init__(self, socket_path, options=None):
         self.socket_path = socket_path
         self.options = options or {}
+        # WHICH WORKSPACE THIS BLENDER SERVES, when it was told. Empty means "not stated", which is
+        # what every deployment did before this existed — and the product treats "not stated" as
+        # "serves anything" rather than as a mismatch, so nothing that worked before stops working.
+        #
+        # WHY IT MATTERS: the socket path has a global default, so two workspaces on one machine can
+        # point the product at the SAME Blender. Without this, the product in workspace B would drive
+        # the Blender that workspace A's user is looking at, and the operations would land in a scene
+        # nobody intended — silently, because both sides are behaving correctly.
+        self.workspace = self.options.get("workspace") or ""
         self.server = None
         self.thread = None
         self.requests = 0
@@ -187,7 +196,12 @@ class _Bridge:
         nothing — so the product's `BlenderSession.ready()` waited forever on a peer that was already
         serving. A transport that answers the same conversation has to open it the same way.
         """
-        connection.sendall((json.dumps({"kind": "ready", "pid": os.getpid(), "socket": self.socket_path}) + "\n").encode("utf-8"))
+        connection.sendall((json.dumps({
+            "kind": "ready",
+            "pid": os.getpid(),
+            "socket": self.socket_path,
+            "workspace": self.workspace,
+        }) + "\n").encode("utf-8"))
         buffer = b""
         while True:
             chunk = connection.recv(65536)
@@ -267,6 +281,8 @@ class DEEPBLEND_PT_bridge(bpy.types.Panel):
         layout.label(text="Status: %s" % (_BRIDGE.status(),))
         layout.label(text="Socket: %s" % (os.path.basename(_BRIDGE.socket_path),))
         layout.label(text="Operations served: %d" % (_BRIDGE.requests,))
+        if _BRIDGE.workspace:
+            layout.label(text="Workspace: %s" % (os.path.basename(_BRIDGE.workspace),))
         if _BRIDGE.last_action is not None:
             layout.label(text="Last: %s" % (_BRIDGE.last_action,))
         if _BRIDGE.last_error is not None:
@@ -276,7 +292,7 @@ class DEEPBLEND_PT_bridge(bpy.types.Panel):
 def register():
     global _BRIDGE
     socket_path = os.environ.get("DEEPBLEND_BRIDGE_SOCKET", DEFAULT_SOCKET)
-    _BRIDGE = _Bridge(socket_path)
+    _BRIDGE = _Bridge(socket_path, {"workspace": os.environ.get("DEEPBLEND_BRIDGE_WORKSPACE", "")})
     try:
         _BRIDGE.start()
     except Exception as exc:
@@ -300,12 +316,17 @@ def main():
     """Headless entry point: serve until the process is asked to stop."""
     argv = sys.argv
     options = {}
+    workspace = os.environ.get("DEEPBLEND_BRIDGE_WORKSPACE", "")
     if "--" in argv:
         tokens = argv[argv.index("--") + 1:]
         index = 0
         while index < len(tokens):
             if tokens[index] == "--socket" and index + 1 < len(tokens):
                 options["socket"] = tokens[index + 1]
+                index += 2
+                continue
+            if tokens[index] == "--workspace" and index + 1 < len(tokens):
+                workspace = tokens[index + 1]
                 index += 2
                 continue
             index += 1
@@ -316,7 +337,7 @@ def main():
         return 2
 
     global _BRIDGE
-    _BRIDGE = _Bridge(socket_path, {"proc": None})
+    _BRIDGE = _Bridge(socket_path, {"proc": None, "workspace": workspace})
     try:
         _BRIDGE.start()
     except Exception as exc:
@@ -326,7 +347,7 @@ def main():
         # reports this in its panel; this is the same sentence for the headless one.
         print(json.dumps({"kind": "error", "message": bootstrap.error_text(exc)}), flush=True)
         return 2
-    print(json.dumps({"kind": "ready", "pid": os.getpid(), "socket": socket_path}), flush=True)
+    print(json.dumps({"kind": "ready", "pid": os.getpid(), "socket": socket_path, "workspace": workspace}), flush=True)
     try:
         # The serve thread is a daemon, so this loop is what keeps the process alive. A SIGTERM (or
         # the product closing the socket and asking for shutdown) ends it.

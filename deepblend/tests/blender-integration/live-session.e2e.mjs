@@ -240,6 +240,63 @@ try {
     { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
 
   // -------------------------------------------------------------------------
+  // THE WRONG BLENDER — the hazard the global default socket path creates.
+  //
+  // The socket path has a global default, so two workspaces on one machine can point the product at
+  // the SAME Blender. Without a check, workspace B drives the Blender workspace A's user is looking
+  // at, and the operations land in a scene nobody intended — silently, because both sides behave
+  // correctly. A bridge that STATES a workspace and states a different one is refused; a bridge that
+  // states none is served, because that is what every deployment did before the key existed.
+  // -------------------------------------------------------------------------
+  const otherWorkspace = join(workspace, 'a-different-workspace')
+  mkdirSync(otherWorkspace, { recursive: true })
+  const foreignPath = join(workspace, 'foreign.sock')
+  const foreign = spawn(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', foreignPath, '--workspace', otherWorkspace,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let foreignSaid = ''
+  foreign.stdout.on('data', chunk => { foreignSaid += chunk.toString('utf8') })
+  foreign.stderr.on('data', () => {})
+  try {
+    const announceDeadline = Date.now() + 30_000
+    while (!/"kind": ?"ready"/.test(foreignSaid) && Date.now() < announceDeadline) {
+      await new Promise(settle => setTimeout(settle, 200))
+    }
+    check('a bridge states which workspace it serves, in the handshake',
+      new RegExp(`"workspace": ?"${otherWorkspace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`).test(foreignSaid),
+      foreignSaid.trim().slice(-140))
+
+    const wrongRuntime = new Context()
+    wrongRuntime.plugin(LocalSubprocess)
+    const { default: WrongProvider, ProviderConfig: WrongConfig } = await import('@deepblend/dsh-blender-provider-local')
+    wrongRuntime.plugin(WrongProvider, WrongConfig({
+      blenderPath: BLENDER,
+      bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+      workspaceRoot: workspace,
+      sessionActions: ['get_capabilities'],
+      sessionSocket: foreignPath,
+    }))
+    await new Promise(settle => setTimeout(settle, 250))
+    const wrong = wrongRuntime.get('blenderRuntime')
+    const refused = await wrong.runBootstrap({ action: 'get_capabilities' }).then(() => null, error => error)
+    check('a bridge serving a DIFFERENT workspace is refused, naming both',
+      refused !== null && refused.code === 'BLENDER_RUNTIME_UNAVAILABLE' &&
+      refused.message.includes(otherWorkspace) && refused.message.includes(workspace),
+      refused?.message?.slice(0, 160) ?? 'it served the wrong Blender')
+    check('and the refusal says how to point each side at its own',
+      /DEEPBLEND_BRIDGE_SOCKET|sessionSocket/.test(refused?.message ?? '') &&
+      /DEEPBLEND_BRIDGE_WORKSPACE/.test(refused?.message ?? ''),
+      refused?.message?.slice(0, 200))
+    check('the foreign Blender is left running, because refusing is not killing',
+      alive(Number((foreignSaid.match(/"pid": ?(\d+)/) ?? [])[1])),
+      foreignSaid.match(/"pid": ?(\d+)/)?.[1] ?? null)
+  } finally {
+    foreign.kill('SIGTERM')
+  }
+
+  // -------------------------------------------------------------------------
   // TWO BRIDGES, ONE PATH — the collision that used to be silent.
   //
   // MEASURED before the fix: the second bridge unlinked the first's socket file, bound its own, and
