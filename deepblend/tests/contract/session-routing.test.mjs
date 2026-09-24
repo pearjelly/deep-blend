@@ -82,6 +82,48 @@ test('the actions it can route are accepted, including the empty default', () =>
   }
 })
 
+test('an action that can be cancelled is never routable, and that is derived too', () => {
+  // THE RULE BEHIND THE LIST, rather than the list's own comment. An action can be cancelled exactly
+  // when its provider method hands back a killable handle — that handle IS the cancel path, and a
+  // request inside a kept session has none. So the two sets must not overlap, and both sides are read
+  // out of the source: adding cancellation to a routable action, or routing a cancellable one, goes
+  // red here without anybody having to remember the rule.
+  const methods = [...source.matchAll(/^  (?:async )?([a-zA-Z_]+)\([^)]*\) \{/gm)]
+  const returnsHandle = methods
+    .filter((match, index) => {
+      const end = index + 1 < methods.length ? methods[index + 1].index : source.length
+      // BOTH SPELLINGS. MEASURED: the first version matched only the multi-line `return {\n handle,`
+      // and a one-line `return { handle: null }` slipped past it — the mutation that added one
+      // SURVIVED, which is how the hole was found. A shape check that only knows one formatting is a
+      // check on the formatting.
+      return /return \{[^}]*\bhandle\b/s.test(source.slice(match.index, end))
+    })
+    .map(match => match[1])
+  assert.deepEqual(returnsHandle, ['startFrameSequence'],
+    'the set of methods that hand back a killable handle changed, and that set IS the cancellable surface')
+
+  // The cancellable action, named where it is actually served, must not be in the routable list.
+  // THE METHOD'S REAL EXTENT, not a fixed window. MEASURED: a 2000-character window missed the action
+  // name, which sits past it in a long method — a check that looks at the wrong slice reports the wrong
+  // thing about the right code.
+  const frameStart = source.indexOf('async startFrameSequence')
+  const nextMethod = source.indexOf('\n  async ', frameStart + 10)
+  const frameSequence = source.slice(frameStart, nextMethod === -1 ? source.length : nextMethod)
+  assert.match(frameSequence, /action: 'render_frames'/,
+    'startFrameSequence no longer serves render_frames, so this check is looking at the wrong action')
+  assert.ok(!SESSION_ROUTABLE_ACTIONS.includes('render_frames'),
+    'a cancellable action became routable, so cancelling it would now end the whole session')
+
+  // AND THE OTHER SIDE OF THE CLAIM: the routable renders are routable because nothing can cancel
+  // them. `render_preview` and `render_views` await their process and return a result; if either ever
+  // grew a handle, routing it would silently lose the cancel path.
+  for (const method of ['renderPreview', 'renderViews', 'compileScene', 'getCapabilities']) {
+    const body = source.slice(source.indexOf(`async ${method}(`), source.indexOf(`async ${method}(`) + 6000)
+    assert.ok(!/return \{[^}]*\bhandle\b/s.test(body),
+      `${method} now returns a killable handle, so it is cancellable and must leave the routable list`)
+  }
+})
+
 test('the cancellable render keeps its own process, which is why the boundary exists', () => {
   // `render_frames` is excluded on purpose, and the purpose is the user's own Blender: a kept session
   // has no per-request kill, so cancelling a render inside one would mean ending the session.
