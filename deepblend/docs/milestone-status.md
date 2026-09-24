@@ -14717,5 +14717,14 @@ spawn 出来的 Blender **合理地**要一两秒才启动 ✓，而一个**已�
 
 ### 212.10 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.5` → `0.2.6` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.5 -> 0.2.6 ✓ + version:sync ✓
+1. release:tarball ✓
+2. gh release create v0.2.6 ✓
+3. publish:packages -> 「npm 说成功，而 registry 还没有它」 ✓（可读的消息 ✓，照它再跑 ✓）
+4. result: all 7 packages are on the registry, each one read back ✓
+5. release:parity -> problems: 0 ✓；两份探针日志按 0.2.6 重写 ✓
+```
+
+**第 3 步连着报了六次「还没有」** ✓，而**照它说的做就成功了** ✓——
+上一轮把「还没有」与「没有」分开之后 ✓，这条消息第一次是**可以照着做的** ✓。
