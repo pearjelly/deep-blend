@@ -224,6 +224,35 @@ export function alreadyPublished(output) {
  * @param {string} version
  * @returns {Promise<boolean>}
  */
+/**
+ * Wait for the registry to serve a version, for a bounded window.
+ *
+ * WHY THE WAIT IS PART OF THE CHECK. The first version of the read-back failed the 0.2.4 release with
+ * "npm reported success, and the registry does not serve it" — for a package that was published and
+ * simply had not propagated yet. This repository has documented that window three times now
+ * (packument ~2 min, tarball ~5 min) and I have walked into it twice; a check that cannot tell
+ * "not yet" from "never" is the check that turns a normal release into a false alarm.
+ *
+ * @param {string} name
+ * @param {string} version
+ * @param {{ timeoutMs?: number, intervalMs?: number }} [options]
+ * @returns {Promise<boolean|null>} true when served, false when it never appeared, null when the
+ *   registry could not be reached at all.
+ */
+export async function waitForRegistry(name, version, options = {}) {
+  const timeoutMs = options.timeoutMs ?? 240_000
+  const intervalMs = options.intervalMs ?? 10_000
+  const deadline = Date.now() + timeoutMs
+  let unreachable = false
+  for (;;) {
+    const served = await servedByRegistry(name, version)
+    if (served === true) return true
+    if (served === null) unreachable = true
+    if (Date.now() >= deadline) return unreachable && served === null ? null : false
+    await new Promise(settle => setTimeout(settle, intervalMs))
+  }
+}
+
 export async function servedByRegistry(name, version) {
   try {
     const response = await fetch(`${REGISTRY}/${name.replace('/', '%2F')}`, {
@@ -533,9 +562,11 @@ async function publish(dryRun) {
       }
       // VERIFIED, NOT ASSUMED. `npm publish` returning without an error is what this line used to
       // mean; on 0.2.3 that was true of a version the registry had only STAGED.
-      const served = await servedByRegistry(entry.name, entry.version)
+      // BOUNDED WAIT, because the registry's read side lags the write side by minutes and a check
+      // that cannot tell "not yet" from "never" reports a normal release as a failure.
+      const served = await waitForRegistry(entry.name, entry.version)
       if (served === false) {
-        console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry does not serve it`)
+        console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry still does not serve it after the propagation window`)
         console.error('the publish was accepted but the version is not readable; check `npm stage list` for a staged version')
         return 1
       }
@@ -551,7 +582,7 @@ async function publish(dryRun) {
     // disagreed with the source route for anyone who looked.
     const missing = []
     for (const entry of order) {
-      if ((await servedByRegistry(entry.name, entry.version)) === false) missing.push(`${entry.name}@${entry.version}`)
+      if ((await waitForRegistry(entry.name, entry.version)) === false) missing.push(`${entry.name}@${entry.version}`)
     }
     if (missing.length > 0) {
       console.error(`result: ${missing.length} package(s) are NOT on the registry: ${missing.join(', ')}`)
