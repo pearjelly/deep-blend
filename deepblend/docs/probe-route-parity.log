@@ -76,37 +76,41 @@
 > deepblend-studio@0.2.10 release:parity
 > node deepblend/tools/release-route-parity.mjs
 
-date: 2026-09-24T07:57:30.470Z
-repository version: 0.2.10
+
+> deepblend-studio@0.2.11 release:parity
+> node deepblend/tools/release-route-parity.mjs
+
+date: 2026-09-24T09:19:15.384Z
+repository version: 0.2.11
 note: each route is installed once, in its own scratch DSH_HOME, and read back
 
 ── source: github:pearjelly/deep-blend#path:/packages/deepblend/bundle ──
    packages pnpm fetched: 7
-   installed version: @deepblend/dsh-blender-bundle@0.2.10
+   installed version: @deepblend/dsh-blender-bundle@0.2.11
    workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
    presets deployed: ["deepblend","deepblend-dev"]
    result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
 
 ── npm: @deepblend/dsh-blender-bundle ──
    packages pnpm fetched: 7
-   installed version: @deepblend/dsh-blender-bundle@0.2.10
+   installed version: @deepblend/dsh-blender-bundle@0.2.11
    workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
    presets deployed: ["deepblend","deepblend-dev"]
    result: the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle
 
 ── tarball: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz ──
    packages pnpm fetched: 1
-   installed version: @deepblend/dsh-blender-bundle@0.2.10
+   installed version: @deepblend/dsh-blender-bundle@0.2.11
    workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
    presets deployed: ["deepblend","deepblend-dev"]
    result: the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
 
 ── do the three routes agree? ──
-source installed: @deepblend/dsh-blender-bundle@0.2.10
-npm installed: @deepblend/dsh-blender-bundle@0.2.10
-tarball installed: @deepblend/dsh-blender-bundle@0.2.10
-all three serve: @deepblend/dsh-blender-bundle@0.2.10
-and the repository says: 0.2.10
+source installed: @deepblend/dsh-blender-bundle@0.2.11
+npm installed: @deepblend/dsh-blender-bundle@0.2.11
+tarball installed: @deepblend/dsh-blender-bundle@0.2.11
+all three serve: @deepblend/dsh-blender-bundle@0.2.11
+and the repository says: 0.2.11
 source workbench route: HTTP 200
 npm workbench route: HTTP 200
 tarball workbench route: HTTP 200
