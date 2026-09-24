@@ -14584,7 +14584,19 @@ spawn 出来的 Blender **合理地**要一两秒才启动 ✓，而一个**已�
    需要各自设 `DEEPBLEND_BRIDGE_SOCKET` ✓，否则会撞 ✓（撞的方式是**后启动的那个把前一个的 socket 文件替换掉** ✓——
    已写在插件的默认值旁边 ✓，但没有断言 ✓）。
 
-### 211.12 发布链
+### 211.12 发布链：读回来那一步，这次连着说了三遍「还没有」
 
-（本节由同一次收口写入 ✓：版本 `0.2.4` → `0.2.5` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.4 -> 0.2.5 ✓ + version:sync ✓
+1. release:tarball ✓（390.7 kB ✓）
+2. gh release create v0.2.5 ✓
+3. publish:packages -> 连着几次都报「npm 说成功，而 registry 还没有它」 ✗
+4. 再跑 -> result: all 7 packages are on the registry, each one read back ✓
+```
+
+**这不是失败** ✓：那条消息现在写的是「**还没有**」 ✓ 并告诉读者**再跑一次** ✓——
+上一轮把「还没有」与「没有」分开之后 ✓，这条读数第一次是**可读的** ✓：
+它说清了要做什么 ✓，而照做就成功了 ✓（第 4 步 ✓）。
+
+**逐包读回来** ✓、`release:parity` 三条路线一致 ✓（`problems: 0` ✓），
+两份探针日志按 0.2.5 重写 ✓。
