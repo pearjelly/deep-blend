@@ -15204,7 +15204,35 @@ socket 路径有一个**全局默认值** ✓，所以同一台机器上两个�
 3. **`startFrameSequence` 的方法体是「交回 handle」的唯一判据** ✓（§216.7 第 3 条 ✓）。
 4. **面板的「好看」仍然只有人看** ✓（§214.8 第 4 条 ✓）。
 
-### 218.7 发布链
+### 218.7 发布链：一次**用错的管道**，让 v0.2.10 的 Release 发的是 0.2.9 的产物
 
-（本节由同一次收口写入 ✓：版本 `0.2.9` → `0.2.10` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.9 -> 0.2.10 ✓ + version:sync ✓
+1. git push -> **SSL 失败** ✗（瞬时 ✓）
+2. npm run release:tarball | tail -2 && gh release create … ✗✗  <- 见下
+3. Release v0.2.10 建好了 ✓，而它上面的产物是 **0.2.9** ✗
+```
+
+**错在两处 ✓，而第一处是这一轮真正的产出** ✓：
+
+1. **`npm run … | tail` 的退出码是 `tail` 的** ✓，不是那个工具的 ✗。
+   而 `release:tarball` **正确地拒绝了** ✓（「cbe56b82 is not on any remote branch, so pnpm cannot
+   fetch it — push it first」 ✓）——**而管道把那个非零退出码吃掉了** ✓，
+   于是 `&&` 后面的 `gh release create` **照样跑** ✓。
+   **一条管道会藏起它左边命令的失败** ✓。
+2. **被拒绝的构建把上一次的产物留在了原处** ✗：`.tmp-release/deepblend-bundle.tgz` 还是 0.2.9 的 ✓，
+   于是 `gh release create` 把**旧产物**传到了**新 tag** 上 ✓。
+
+**读回来才发现** ✓（这一族的老规矩 ✓）：
+`curl` 那个资产、解开看 `package.json` ✓ → **`0.2.9`** ✗——
+而 npm 侧是 0.2.10 ✓、tag 是 v0.2.10 ✓、**每个信号都说发布成功了** ✓。
+
+**修法两处** ✓：
+* **被拒绝的构建现在把产物删掉** ✓——**一次拒绝如果留下上一次的产物，就是在邀请这件事发生** ✓。
+  **实测证明** ✓：放一个旧产物在那儿 ✓、提交但不推 ✓、跑构建 ✓ →
+  它拒绝 ✓ **并且那个文件没了** ✓（「GONE — nothing stale can be uploaded」 ✓）。
+* 链条本身修好 ✓：重建 → `gh release upload --clobber` ✓ → **读回来** ✓。
+  中途还有一层 ✓：资产的 **size 已经是新的** ✓ 而**下载 URL 还在发旧的字节** ✓（CDN ✓），
+  轮询到它跟上 ✓，然后 v0.2.10 的 URL 服务的就是 **0.2.10** ✓。
+
+**三条路线一致** ✓（`problems: 0` ✓），两份探针日志按 0.2.10 重写 ✓。
