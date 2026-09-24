@@ -285,6 +285,38 @@ try {
     derived.kill('SIGTERM')
   }
 
+  // -------------------------------------------------------------------------
+  // THE PER-WORKSPACE SOCKET CONVENTION — and the guard the manual needs.
+  //
+  // The machine-wide default is ONE path, so two workspaces with a Blender each collide there; the
+  // refusal added two rounds ago makes that honest but leaves the user to fix it by hand. A bridge that
+  // knows its workspace can simply listen somewhere that belongs to that workspace, and then there is
+  // nothing to collide.
+  //
+  // A CONVENTION WRITTEN INTO THE MANUAL NEEDS SOMEBODY TO GUARD IT, which is why the path the code
+  // derives is compared against the path install.md states. A convention that drifts from its
+  // documentation is worse than none: the user follows the document and finds nothing listening.
+  // -------------------------------------------------------------------------
+  const convention = execFileSync(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'deepblend', 'tests', 'lib', 'bridge-socket-probe.py'),
+  ], { encoding: 'utf8', timeout: 120_000, env: { ...process.env, DEEPBLEND_PROBE_WORKSPACE: ROOT } })
+  const socketPaths = JSON.parse(convention.split('\n').filter(line => line.trim().startsWith('{')).pop())
+  check('a bridge that knows its workspace listens inside that workspace, not at a machine-wide path',
+    socketPaths.withWorkspace === join(ROOT, '.deepblend', 'bridge.sock'),
+    socketPaths.withWorkspace)
+  check('and a bridge that knows nothing keeps the machine-wide default, as every deployment had',
+    socketPaths.withoutWorkspace === socketPaths.machineDefault && socketPaths.withoutWorkspace.endsWith('.deepblend-bridge.sock'),
+    socketPaths.withoutWorkspace)
+  check('the convention lives inside the gitignored store, so a socket can never be committed',
+    socketPaths.withWorkspace.includes(`${join(ROOT, '.deepblend')}`),
+    socketPaths.withWorkspace)
+
+  const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
+  check('and the manual states the SAME path the code derives, so the convention cannot drift from its document',
+    install.includes('<工作区>/.deepblend/bridge.sock') && socketPaths.relative === '.deepblend/bridge.sock',
+    { documented: install.includes('<工作区>/.deepblend/bridge.sock'), derived: socketPaths.relative })
+
   // AN EXPLICIT SETTING WINS OVER THE DERIVATION. MEASURED as a gap: the checks above only ever ran a
   // bridge with NO explicit workspace, so a version that let the derivation override the operator would
   // have passed all of them — and an operator who set DEEPBLEND_BRIDGE_WORKSPACE would be silently

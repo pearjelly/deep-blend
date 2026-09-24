@@ -313,6 +313,12 @@ sessionSocket: ~/.deepblend-bridge.sock
 sessionActions: [get_capabilities, compile_scene]
 ```
 
+**它通常自己就知道在哪儿监听** ✓：知道了工作区之后 ✓，它默认监听
+**`<工作区>/.deepblend/bridge.sock`** ✓——**每个工作区一个 socket** ✓，
+于是**两个工作区根本不会撞** ✓（那个路径在 `.deepblend/` 里 ✓，那是 store 目录 ✓、**不入版本库** ✓）。
+不知道工作区时它退回机器级的默认值 ✓（`~/.deepblend-bridge.sock` ✓），
+而显式设的 `DEEPBLEND_BRIDGE_SOCKET` **永远优先** ✓。
+
 **它通常自己就知道服务哪个工作区** ✓：如果你在这个 Blender 里**打开着这个产品写的 checkpoint** ✓
 （`<工作区>/.deepblend/projects/…/scene.blend` ✓），它从**那个路径**读出工作区 ✓，
 你什么都不用设 ✓。**路径不像这个布局时它什么都不说** ✓——而**猜错比不说更糟** ✓：

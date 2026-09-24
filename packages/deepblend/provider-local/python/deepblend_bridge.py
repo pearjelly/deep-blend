@@ -90,6 +90,26 @@ bl_info = {
 # add-on uses when a user enables it with no configuration.
 DEFAULT_SOCKET = os.path.join(os.path.expanduser("~"), ".deepblend-bridge.sock")
 
+# THE PER-WORKSPACE CONVENTION, and the reason it exists: the global default above is ONE path for the
+# whole machine, so two workspaces with a Blender each collide there — the second refuses now, which is
+# honest but is still the user's problem to solve by hand. When a bridge knows its workspace, it can
+# simply listen somewhere that belongs to that workspace, and the collision never happens.
+#
+# The path is inside `.deepblend/`, which is the store and is gitignored — a socket is a runtime object,
+# not a source file, and it must never be committable.
+WORKSPACE_SOCKET_RELATIVE = os.path.join(".deepblend", "bridge.sock")
+
+
+def default_socket_for(workspace):
+    """Where a bridge should listen, given what it knows.
+
+    A workspace it knows gives a path that belongs to that workspace; a workspace it does not know
+    gives the machine-wide default, which is what every deployment had before this convention.
+    """
+    if isinstance(workspace, str) and workspace != "":
+        return os.path.join(workspace, WORKSPACE_SOCKET_RELATIVE)
+    return DEFAULT_SOCKET
+
 
 class _Bridge:
     """The serving state: one socket, one thread, and the last thing that happened."""
@@ -134,6 +154,11 @@ class _Bridge:
             # Nothing answers, so it is the file a process that died left behind. Refusing here would
             # leave the user with no way forward except deleting a file they cannot see.
             os.unlink(self.socket_path)
+        # A workspace-derived path lives inside `.deepblend/`, which may not exist yet on a machine
+        # where the product has never run — and `bind` does not create directories.
+        parent = os.path.dirname(self.socket_path)
+        if parent and not os.path.isdir(parent):
+            os.makedirs(parent, exist_ok=True)
         self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.server.bind(self.socket_path)
         self.server.listen(4)
@@ -314,11 +339,11 @@ class DEEPBLEND_PT_bridge(bpy.types.Panel):
 
 def register():
     global _BRIDGE
-    socket_path = os.environ.get("DEEPBLEND_BRIDGE_SOCKET", DEFAULT_SOCKET)
     workspace = os.environ.get("DEEPBLEND_BRIDGE_WORKSPACE", "")
     if workspace == "":
         # In a GUI the user has a file open, and if the product wrote it, it names the workspace.
         workspace = _Bridge.derive_workspace(getattr(bpy.data, "filepath", ""))
+    socket_path = os.environ.get("DEEPBLEND_BRIDGE_SOCKET") or default_socket_for(workspace)
     _BRIDGE = _Bridge(socket_path, {"workspace": workspace})
     try:
         _BRIDGE.start()
@@ -357,11 +382,13 @@ def main():
                 index += 2
                 continue
             index += 1
-    socket_path = options.get("socket", DEFAULT_SOCKET)
     if workspace == "":
         # WHAT THE OPEN FILE SAYS, when it says anything. An operator's explicit setting always wins;
         # this only fills a silence, and only from a path that follows the product's own layout.
         workspace = _Bridge.derive_workspace(getattr(bpy.data, "filepath", ""))
+    # THE SOCKET FOLLOWS THE WORKSPACE, so two workspaces with a Blender each do not collide at all.
+    # An explicit DEEPBLEND_BRIDGE_SOCKET still wins, exactly as an explicit workspace does.
+    socket_path = options.get("socket") or os.environ.get("DEEPBLEND_BRIDGE_SOCKET") or default_socket_for(workspace)
 
     if bootstrap is None:
         print(json.dumps({"kind": "error", "message": BOOTSTRAP_PROBLEM}), flush=True)
