@@ -240,6 +240,51 @@ try {
     { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
 
   // -------------------------------------------------------------------------
+  // THE PANEL — the only part of this family a user actually looks at, and the only part that had no
+  // criterion. "It looks nice" needs a screen and a person; "it says the truth" does not, so the panel
+  // is DRAWN headlessly into a layout that records instead of painting.
+  //
+  // WHAT THIS DOES NOT PROVE: that the panel is laid out well. That stays a human judgement, and
+  // saying so is the difference between a criterion and a claim.
+  // -------------------------------------------------------------------------
+  const panelSocket = join(workspace, 'panel.sock')
+  const panelProbe = execFileSync(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'deepblend', 'tests', 'lib', 'bridge-panel-probe.py'),
+    '--', '--socket', panelSocket,
+  ], { encoding: 'utf8', timeout: 180_000, env: { ...process.env } })
+  const panel = JSON.parse(panelProbe.split('\n').filter(line => line.trim().startsWith('{')).pop())
+  const panelText = lines => lines.map(line => line.text)
+
+  check('the panel says the bridge is not running, rather than drawing nothing',
+    panel.beforeRegister.length > 0 && /not running/.test(panelText(panel.beforeRegister).join(' ')),
+    panel.beforeRegister)
+  // THE SOCKET ROW IS ASSERTED AS ITS OWN ROW. MEASURED: the first version asked whether the panel
+  // text contained "listening on", and a mutation deleting the `Socket:` line SURVIVED — because the
+  // status line already reads "listening on <full path>", which contains it. A check satisfied by a
+  // different line is not a check on that line.
+  check('after enabling the add-on it names the socket it is listening on, and zero operations',
+    panelText(panel.afterRegister).some(line => /^Status: listening on /.test(line)) &&
+    panelText(panel.afterRegister).some(line => /^Socket: .+\.sock$/.test(line)) &&
+    panelText(panel.afterRegister).some(line => /Operations served: 0/.test(line)),
+    panelText(panel.afterRegister))
+  check('after real work the panel reports the attached state, the count and the last action',
+    panel.served === 'success' &&
+    /attached/.test(panelText(panel.afterWork).join(' ')) &&
+    panelText(panel.afterWork).some(line => /Operations served: 1/.test(line)) &&
+    panelText(panel.afterWork).some(line => /Last: get_capabilities/.test(line)),
+    panelText(panel.afterWork))
+  check('and the numbers it shows come from what happened, not from a constant',
+    panelText(panel.afterRegister).some(line => /Operations served: 0/.test(line)) &&
+    panelText(panel.afterWork).some(line => /Operations served: 1/.test(line)),
+    { before: panelText(panel.afterRegister), after: panelText(panel.afterWork) })
+  check('the add-on carries the preferences row a user has to fill in, because Blender copies it alone',
+    panel.registeredClasses.preferences === true && panel.registeredClasses.preferencesHasBootstrapDir === true,
+    panel.registeredClasses)
+  check('and unregistering takes the socket away, so disabling the add-on leaves nothing listening',
+    panel.socketRemovedOnUnregister === true, panel.socketRemovedOnUnregister)
+
+  // -------------------------------------------------------------------------
   // "USE THE BLENDER I ALREADY HAVE OPEN" — as a configuration rather than a test-only capability.
   //
   // The same two actions, the same runtime, with one key set: `sessionSocket`. What changes is whose
