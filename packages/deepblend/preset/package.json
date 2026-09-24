@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-preset",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "type": "module",
   "description": "DeepBlend Agent-preset plane: ships the DeepBlend Studio agent presets and the deployer row that installs them into the DSH home.",
   "main": "lib/index.js",
