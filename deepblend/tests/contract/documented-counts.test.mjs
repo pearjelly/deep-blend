@@ -150,10 +150,20 @@ test('the layout counts in the README are what the tree holds', () => {
   const pythonDirectory = join(ROOT, 'packages', 'deepblend', 'provider-local', 'python')
   const files = readdirSync(pythonDirectory).filter(name => name.endsWith('.py'))
   assert.ok(files.length > 3, `the python directory holds ${files.length} .py files; the parser is wrong`)
-  const actionModules = files.filter(name => name !== 'bootstrap.py' && name !== modules[2])
+
+  // NOT EVERY FILE IN THIS DIRECTORY IMPLEMENTS AN ACTION, and the difference is a fact rather than a
+  // bookkeeping choice: the dispatcher routes, the utility is shared, and the bridge carries a
+  // transport. MEASURED: adding the bridge made this check red by counting it as a seventh action
+  // module — the honest fix is to name the exception here, not to inflate the README's number, because
+  // a reader who opened `deepblend_bridge.py` looking for actions would find none.
+  const NOT_ACTION_MODULES = {
+    'bootstrap.py': 'the dispatcher: it routes to the actions and implements none of them',
+    'deepblend_bridge.py': 'the transport: it serves the actions over a socket, inside a user\'s Blender',
+  }
+  const actionModules = files.filter(name => name !== 'bootstrap.py' && name !== modules[2] && !(name in NOT_ACTION_MODULES))
   assert.equal(Number(modules[1]), actionModules.length,
-    `the README says ${modules[1]} action modules; ${files.length} .py files minus bootstrap.py minus ` +
-    `${modules[2]} is ${actionModules.length} (${actionModules.join(', ')})`)
+    `the README says ${modules[1]} action modules; ${files.length} .py files minus the dispatcher, minus ` +
+    `${modules[2]}, minus the transport is ${actionModules.length} (${actionModules.join(', ')})`)
 })
 
 test('the suite count in the README is what run-all.sh declares', () => {

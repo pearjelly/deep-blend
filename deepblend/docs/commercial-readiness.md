@@ -41,7 +41,7 @@
 | C12 | 安全与合规 | 第三方许可盘点过吗——Blender 的 GPL、ffmpeg、受管 Blender 的下载与再分发 | ✓ | `deepblend/docs/third-party.md`：三类关系（外部程序调用 / 同行依赖 / 再分发）与逐项表，每行指到代码或断言，§4 给出复核命令；`deepblend/tests/contract/third-party.test.mjs` 盯四件事——产品 spawn 的外部程序**恰好**是配置 schema 声明的三个（双向，从源码推导）、八个 manifest 的 `license` 与仓库根一致、产品的 `dependencies` 只有自己的包而外部一律是 `peerDependencies`、被跟踪的文件里没有一个二进制。许可读数取自**产物自己**：Blender 自带的 `head .tools/Blender.app/Contents/Resources/text/license/license.md`、本机 `ffmpeg -version` 的 `configuration:` 行 | — |
 | C13 | 质量 | 黑暗行是多少 | ✓ | `deepblend/docs/probe-coverage.log` 的读数由 `deepblend/tools/coverage-probe.mjs` 产出，合并规则由 `deepblend/tests/contract/probe-merge.test.mjs` 盯着（量具自己错了四次，四次都是合并规则） | — |
 | C14 | 质量 | 活下来的变异有多少、记在哪里 | ✓ | `deepblend/docs/mutation-survivors.md`：一份**追加式**的表，每行一个洞——哪一轮、什么变异、**三个形状**里的哪一个、杀死它的断言、状态——外加 §1 的三条规则与 §3 的**量具自己说谎**一条；`deepblend/tests/contract/mutation-survivors.test.mjs` 盯四件事：每行的 killer 指向的文件或命令存在、每行的形状取自**由断言持有**的闭集、每行引用的 `milestone-status.md` 小节真的存在、而本文档的散文里**不许出现计数**（行数就是计数） | — |
-| C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成一项（独立全屏工作台 ✓）；**Blender Live Bridge 的传输半边已经做完并被断言** ✓（本表里那一条 ✓：一个进程连着做很多次操作 ✓，读数在 `milestone-status.md` §210.3 ✓），而它**还不是一整项** ✓——GUI 附着（用户自己那个 Blender + add-on ✓）是**下一项**的一半 ✓；其余六项（远程 Worker、对象存储、多 GPU、角色动画、复杂模拟，以及 Add-on）没有开工 ✓ |
+| C15 | 产品面 | `SPEC.md` §20 的 `M6` 扩展项做了几项 | ✗ | `SPEC.md` §20 的 `M6` 列表是权威；完成清单见本行下方 | 八项里完成三项 ✓：独立全屏工作台 ✓、**Blender Live Bridge** ✓ 与 **Blender Add-on** ✓（后两项是一件事的两半 ✓，各自有判据 ✓：会话见本表里那一条 ✓，附着见 `deepblend/tests/blender-integration/live-session.e2e.mjs` ✓ 与 `deepblend/docs/install.md` 的插件一节 ✓）；其余五项（远程 Worker、对象存储、多 GPU、角色动画、复杂模拟）没有开工 ✓ |
 | C16 | 产品面 | 产品文案只有中文，商业用户面是否需要双语 | ✓ | **已决定，而且不是偏好**：`deepblend/docs/architecture-decisions.md` 里那条关于文案语言的决策 ✓——工作台**跟随部署的 locale** ✓，回退英文 ✓，因为 harness 自己的契约就是这么写的 ✓（`dsh-client-locale` 的 `FALLBACK_LOCALE = "en"` ✓：「a browser naming no registered language is the reader least likely to read Chinese」✓），而当前 locale 由它写在 `document.documentElement.lang` 上 ✓；实现是 `packages/deepblend/ui/lib/client.js` 里带 `#region strings` 标记的表 ✓（两侧键集相同 ✓）；`deepblend/tests/contract/workbench-copy.test.mjs` 盯四件事 ✓：两侧键集相同 ✓、回退确实是英文（未注册语言与**无浏览器**两种情形 ✓）、**表外不许再有任何中文文案** ✓、以及每个 `t()` 调用点都指向存在的键 ✓（**双向** ✓） | — |
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✓ | `deepblend/docs/cost.md`：渲染侧的每帧秒数（**一处定义**：`packages/deepblend/tool/lib/render-tools.js` 的 `REFERENCE_SECONDS_PER_FRAME` ✓）与 token 侧的两次**真实调用**读数 ✓；`deepblend/tests/contract/cost-model.test.mjs` 盯着文档里的每个数都能被重算 ✓、审批提示里那句估算**由帧数算出来** ✓、以及文档**写明它还不知道什么** ✓；`deepblend/tests/contract/tool-plane-output.test.mjs` 盯着那句估算真的出现在审批提示里 ✓；`node deepblend/tools/visual-review-live-probe.mjs` 读的是**产品自己的路由与预算** ✓，所以一个陈旧的默认值会在那里以「这个模型不存在」现形 ✓ | — |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
@@ -52,8 +52,8 @@
 | M6 项 | 状态 |
 |---|---|
 | 独立全屏工作台 | ✓ |
-| Blender Live Bridge | ✗ |
-| Blender Add-on | ✗ |
+| Blender Live Bridge | ✓ |
+| Blender Add-on | ✓ |
 | 远程 Worker | ✗ |
 | 对象存储 | ✗ |
 | 多 GPU | ✗ |
@@ -74,9 +74,9 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 20 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 12 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 13 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
-| M6 已完成项 | 1 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
+| M6 已完成项 | 3 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 9 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
 
 **这里刻意没有的**：README 里的断言总数与用例总数。那是一个**快照**，只能有一个地方有它
@@ -412,3 +412,29 @@
   下一轮的第一顺位是 **C15 的下一半** ✓（**GUI 附着** ✓ = M6 的 **Blender Add-on** ✓）；
   **C7** 只有用户能改变 ✓，它已经连续三轮在缺口表里 ✓——按本目标的规矩 ✓，
   同一个需要人的条件连续三轮不变才可以报 blocked ✓，而它是目前唯一一个这样的条件 ✓。
+
+### 轮 13 — 2026-09-23
+
+- **移动：M1** — C15 的完成清单里 **Blender Live Bridge** ✓ 与 **Blender Add-on** ✓ 两行同时从 ✗ → ✓ ✓，
+  而它们是**一件事的两半** ✓：会话（一个进程连着服务很多次请求 ✓，§210 ✓）
+  与附着（那个进程是**用户自己那个 Blender** ✓，§211 ✓）。
+  附着那一半由 `attachSession()` ✓、`deepblend_bridge.py` ✓（一个文件两个入口 ✓）
+  与 `live-session.e2e.mjs` 的七项新断言回答 ✓；用户那一侧写在 `install.md` 的插件一节 ✓。
+- **移动：M6** — 一个可数量化读数改善并被记录 ✓：**M6 完成项从 1 变成 3** ✓，
+  而新旧两个读数**都不是抄的** ✓——它们由契约层**数清单里标 ✓ 的行**算出来 ✓
+  （账本 §2 的「M6 完成项」那一行 ✓，读法写着「数标 ✓ 的行」 ✓），
+  所以清单加一行而账本没跟着动 ✓，账本会红 ✓。
+- **移动：M2** — 三条红 → 绿 ✓，而三条都是**我自己**造成的 ✓：
+  ① 新文件让「动作模块」的计数多了一个 ✓——**真缺陷在规则里** ✓（它假定除 dispatcher 与工具之外都是动作模块 ✓），
+  修法是**具名例外** ✓ 而不是把 README 的数字改大 ✓；
+  ② 基线**跑在我编辑同一个文件的同一分钟** ✓——**跑动中被改动的树，它的读数不算读数** ✓，这条规矩本仓库早就有 ✓，我又踩了一次 ✓；
+  ③ 冒烟测试留下的一个 Blender 让「挂载不启动进程」那条断言红了 ✓——**那条断言是对的** ✓。
+- **判据**：`node deepblend/tests/blender-integration/live-session.e2e.mjs` ✓（22 项 ✓）、
+  `packages/deepblend/provider-local/lib/index.js` 的 `attachSession()` ✓、
+  `packages/deepblend/provider-local/python/deepblend_bridge.py` ✓、
+  `deepblend/docs/install.md` 的插件一节 ✓。
+- **还差什么**：账本上仍然开着的是 C7 与 C15 ✓。
+  这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（见 §211.10 ✓）。
+  下一轮的第一顺位是 **§211.9 的第 1 条** ✓：**把会话接进工具面** ✓——
+  今天 `openSession()` / `attachSession()` 只有测试在调 ✓，而「批处理往返不是唯一形态」这句话 ✓
+  要到工具面用上它才算兑现 ✓；**C7** 只有用户能改变 ✓，**连续四轮** ✓。

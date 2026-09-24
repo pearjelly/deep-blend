@@ -278,6 +278,40 @@ npm run presets:check     # 退出 0，并说「not installed on this machine」
 **一个字节都不动**。一次真实的「装 → 卸 → 读回」走查在
 `probe-uninstall-residue.log`，盯着它的是 `contract/uninstall-residue.test.mjs`。
 
+### 在你自己的 Blender 里干活（Live Bridge / Add-on）
+
+批处理渲染是默认形态 ✓，但你可以让 DeepBlend 直接在**你正看着的那个 Blender** 里干活 ✓——
+这一半叫 Add-on ✓，它与会话传输合起来就是 `SPEC.md` §20 的 **Blender Live Bridge** ✓。
+
+**装上它** ✓（Blender 4.0 及以上 ✓）：
+
+1. Blender → `Edit` → `Preferences` → `Add-ons` → `Install…` ✓；
+2. 选 `packages/deepblend/provider-local/python/deepblend_bridge.py` ✓；
+3. 勾上 **DeepBlend Studio Bridge** ✓。
+
+**装完还要告诉它 `bootstrap.py` 在哪** ✓——**因为 Blender 会把插件文件复制到它自己的目录里** ✓，
+于是 `deepblend_bridge.py` 落地时是**孤零零一个文件** ✓，它旁边的 `bootstrap.py` 不在那里 ✓。
+两种给法 ✓：
+
+* 在插件的偏好设置里填 `bootstrap.py directory` ✓（就是 `…/provider-local/python` ✓）；
+* 或者设环境变量 `DEEPBLEND_BOOTSTRAP_DIR` ✓。
+
+**没给会怎样** ✓：不会抛一个看不见的 `ImportError` ✓，面板上写「bootstrap.py not found」 ✓、
+并且告诉你要设什么 ✓——那一条是被断言的 ✓（`live-session.e2e.mjs` 真的把一个孤立的副本喂给 Blender ✓）。
+
+**装上之后** ✓：`View3D` → 侧栏 → **DeepBlend** 面板 ✓ 会显示它监听在哪 ✓、服务过多少次操作 ✓、
+最后一次是什么 ✓。产品连上来之后 ✓，你就能在视口里看着操作发生 ✓。
+
+**产品怎么连** ✓：它读的是那个 socket ✓（默认 `~/.deepblend-bridge.sock` ✓，
+可用 `DEEPBLEND_BRIDGE_SOCKET` 改 ✓）。**注意**：今天的工具面还**没有**自动改用它 ✓——
+`openSession()` / `attachSession()` 是运行时能力 ✓，把它们接进工具是下一步 ✓（见 `milestone-status.md` §211.11 ✓）。
+
+**不想开 GUI 也能试** ✓：
+
+```bash
+blender --background --python packages/deepblend/provider-local/python/deepblend_bridge.py -- --socket /tmp/deepblend.sock
+```
+
 ### 升级到新版本
 
 **两条命令，顺序不能反** ✓：

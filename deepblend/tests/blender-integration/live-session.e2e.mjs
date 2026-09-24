@@ -30,9 +30,10 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import net from 'node:net'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
-import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { execFileSync, spawn } from 'node:child_process'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -171,6 +172,102 @@ try {
   check('and the answer says the process is gone rather than blaming the request',
     /ended before answering/.test(afterDeath?.message ?? ''), afterDeath?.message?.slice(0, 120))
   await doomed.close()
+  // -------------------------------------------------------------------------
+  // THE OTHER HALF: attaching to a Blender that is already running — the user's own, with the add-on.
+  // Same conversation, different owner of the other end of the bytes.
+  // -------------------------------------------------------------------------
+  const socketPath = join(workspace, 'bridge.sock')
+  const bridge = spawn(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', socketPath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let bridgeSaid = ''
+  bridge.stdout.on('data', chunk => { bridgeSaid += chunk.toString('utf8') })
+  bridge.stderr.on('data', () => {})
+
+  try {
+    // The bridge announces itself on stdout with its own pid before it serves anything.
+    const announceDeadline = Date.now() + 30_000
+    while (!/"kind": ?"ready"/.test(bridgeSaid) && Date.now() < announceDeadline) {
+      await new Promise(settle => setTimeout(settle, 200))
+    }
+    check('the add-on announces itself with the pid of the Blender it is running inside',
+      /"kind": ?"ready"/.test(bridgeSaid), bridgeSaid.trim().slice(-120))
+
+    const attached = await runtime.attachSession(socketPath)
+    check('the product attaches to that Blender, and reports ITS pid rather than its own',
+      typeof attached.pid === 'number' && attached.pid !== process.pid && alive(attached.pid),
+      { attached: attached.pid, host: process.pid })
+
+    const firstAttached = await attached.run({ action: 'get_capabilities' })
+    const secondAttached = await attached.run({ action: 'get_capabilities' })
+    check('and operations run in the attached Blender, answered with the same envelope',
+      firstAttached.status === 'success' && secondAttached.status === 'success' &&
+      firstAttached.capabilities !== undefined,
+      [firstAttached.status, secondAttached.status])
+
+    const attachedRefusal = await attached.run({ action: 'no_such_action' })
+    const attachedAfter = await attached.run({ action: 'get_capabilities' })
+    check('a refused action does not end an attached session either',
+      attachedRefusal.error?.code === 'BLENDER_UNSUPPORTED_ACTION' && attachedAfter.status === 'success',
+      [attachedRefusal.error?.code, attachedAfter.status])
+
+    await attached.close()
+    check('and closing the attach leaves the user\'s Blender running, because it is theirs',
+      alive(attached.pid), `pid ${attached.pid} was killed by the product`)
+
+    // A PEER THAT CONNECTS AND SAYS NOTHING. MEASURED, and a mutation found it: with the handshake
+    // removed from the bridge, attachSession connected successfully and then waited forever — a socket
+    // that stays open and never speaks has no failure of its own. A hang is worse than either outcome,
+    // so the opening of the conversation has the same deadline as a request.
+    const silentPath = join(workspace, 'silent.sock')
+    const silent = net.createServer(socket => { /* accept, and never speak */ })
+    await new Promise(resolve => silent.listen(silentPath, resolve))
+    try {
+      const silentStarted = Date.now()
+      const silentResult = await runtime.attachSession(silentPath).then(() => null, error => error)
+      check('a peer that connects and never announces itself is a coded failure, not a hang',
+        silentResult !== null && typeof silentResult.code === 'string' && silentResult.code.startsWith('BLENDER_'),
+        silentResult?.code ?? 'it resolved')
+      check('and it fails on the configured deadline rather than waiting for one',
+        Date.now() - silentStarted < 30_000, `${Date.now() - silentStarted} ms`)
+    } finally {
+      silent.close()
+    }
+
+    // A refusal a reader can act on: nothing is listening there, and the message says what to enable.
+    const nowhere = await runtime.attachSession(join(workspace, 'nobody-is-here.sock'))
+      .then(() => null, error => error)
+    check('attaching where nothing listens is a coded refusal that names the fix',
+      nowhere !== null && nowhere.code === 'BLENDER_RUNTIME_UNAVAILABLE' &&
+      /add-on/.test(nowhere.message) && /deepblend_bridge\.py/.test(nowhere.message),
+      nowhere?.message?.slice(0, 140))
+    // THE USER'S ACTUAL CASE: Blender COPIES an add-on into its own directory, so the file lands there
+    // ALONE and `bootstrap.py` is not beside it. The headless path never sees this; a person installing
+    // it does. What matters is that the failure names the setting rather than raising an ImportError
+    // into a panel that shows nothing.
+    const aloneDir = join(workspace, 'addons')
+    mkdirSync(aloneDir, { recursive: true })
+    const alonePath = join(aloneDir, 'deepblend_bridge.py')
+    copyFileSync(join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'), alonePath)
+    // The bridge exits 2 on this, which `execFileSync` reports as a throw — the output is in the error,
+    // and a test that only caught the exception would assert nothing about what it SAID.
+    const alone = (() => {
+      try {
+        return execFileSync(BLENDER, [
+          '--background', '--factory-startup', '--python', alonePath, '--', '--socket', join(workspace, 'alone.sock'),
+        ], { encoding: 'utf8', timeout: 120_000 })
+      } catch (error) {
+        return `${error.stdout ?? ''}${error.stderr ?? ''}`
+      }
+    })()
+    check('an add-on copied into Blender alone reports what to set, instead of an ImportError',
+      /bootstrap\.py was not found/.test(alone) && /DEEPBLEND_BOOTSTRAP_DIR/.test(alone),
+      alone.trim().split('\n').slice(-1)[0]?.slice(0, 140))
+  } finally {
+    bridge.kill('SIGTERM')
+  }
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }

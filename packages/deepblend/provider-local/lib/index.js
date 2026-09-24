@@ -21,6 +21,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import net from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { delimiter, isAbsolute, join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -154,6 +155,124 @@ export const ProviderConfig = z.object({
  * @property {string} workingDirectory
  */
 
+/** How long an attached Blender gets to say hello before the attach is called a failure. */
+const ATTACH_READY_MS = 10_000
+
+/**
+ * Connect to a Unix socket, with a deadline.
+ *
+ * The add-on may be starting when the product asks — a user enables it and the product is already
+ * polling — so this retries inside one deadline rather than failing on the first refusal.
+ *
+ * @param {string} socketPath
+ * @param {number} timeoutMs
+ * @returns {Promise<import('node:net').Socket>}
+ */
+async function connect(socketPath, timeoutMs) {
+  const deadline = Date.now() + Math.min(timeoutMs, 10_000)
+  let lastError = null
+  for (;;) {
+    const socket = await new Promise(resolve => {
+      const candidate = net.connect(socketPath)
+      candidate.once('connect', () => resolve(candidate))
+      candidate.once('error', error => {
+        lastError = error
+        candidate.destroy()
+        resolve(null)
+      })
+    })
+    if (socket !== null) return socket
+    if (Date.now() >= deadline) throw lastError ?? new Error('no answer')
+    await new Promise(settle => setTimeout(settle, 250))
+  }
+}
+
+/**
+ * A live Blender, presented as one shape whatever carries the bytes.
+ *
+ * WHY THE SEAM EXISTS. A session can be carried two ways, and both are real: the process this
+ * provider SPAWNS (`--background`, pipes on stdin/stdout) and the Blender a USER is looking at (the
+ * add-on's socket). The conversation — the handshake, the per-request deadline, matching an answer to
+ * its request — is identical, and the only thing that differs is who owns the other end. Writing it
+ * twice would mean two places to fix the next bug in the deadline, and the second one would be the
+ * one nobody runs.
+ *
+ * The subprocess adapter and the socket adapter below are the whole of the difference.
+ */
+class SubprocessTransport {
+  /** @param {object} handle from `ctx.subprocess.spawn` */
+  constructor(handle) {
+    this.handle = handle
+    this.read = handle.stdout
+    this.onExit = callback => handle.done?.then?.(() => callback({}), () => callback({}))
+    this.pid = null
+  }
+
+  write(text) {
+    this.handle.stdin.write(text)
+  }
+
+  end() {
+    try {
+      this.handle.stdin.end()
+    } catch {
+      // Already gone; the exit callback is what decides.
+    }
+  }
+
+  /** Wait for the process to be gone, bounded. */
+  async settle(graceMs) {
+    try {
+      await this.handle.waitForExit?.(graceMs)
+    } catch {
+      // A process that had to be terminated is still a settled one.
+    }
+  }
+}
+
+class SocketTransport {
+  /**
+   * @param {import('node:net').Socket} socket
+   * @param {{ pid?: number|null }} [info]
+   */
+  constructor(socket, info = {}) {
+    this.socket = socket
+    this.read = socket
+    // The pid is the ATTACHED Blender's own, from its handshake — never this process's. A product that
+    // reported its own pid here would make "which Blender answered" unanswerable, which is the one
+    // question an attach exists to answer.
+    this.pid = info.pid ?? null
+    this.exitCallbacks = []
+    socket.on('close', () => {
+      for (const callback of this.exitCallbacks) callback({})
+    })
+    socket.on('error', () => {
+      // An error closes the socket, and the close handler reports it. Swallowing it here keeps a
+      // broken pipe from becoming an unhandled 'error' event, which would take the host down.
+    })
+  }
+
+  onExit(callback) {
+    this.exitCallbacks.push(callback)
+  }
+
+  write(text) {
+    this.socket.write(text)
+  }
+
+  end() {
+    try {
+      this.socket.end()
+    } catch {
+      // Already closed.
+    }
+  }
+
+  async settle() {
+    this.socket.destroy()
+  }
+}
+
 /**
  * One live Blender process, serving requests until it is closed (SPEC §20 M6).
  *
@@ -170,10 +289,11 @@ export const ProviderConfig = z.object({
  */
 class BlenderSession {
   /**
-   * @param {{ handle: object, directory: string, jobId: string, timeoutMs: number, onClose: () => void }} input
+   * @param {{ transport: SubprocessTransport|SocketTransport, directory: string|null, jobId: string, timeoutMs: number, onClose: () => void }} input
    */
   constructor(input) {
-    this.handle = input.handle
+    this.transport = input.transport
+    this.handle = input.transport.handle ?? null
     this.directory = input.directory
     this.jobId = input.jobId
     this.timeoutMs = input.timeoutMs
@@ -182,7 +302,7 @@ class BlenderSession {
     // `done`, `terminate`, `terminateForHostExit`, `waitForExit`. So the pid comes from the process
     // itself, in the `ready` line bootstrap.py opens with — which is better evidence anyway, because
     // it is the pid the script believes it is rather than the one the spawn returned.
-    this.pid = null
+    this.pid = input.transport.pid ?? null
     /** @type {Map<string, {resolve: Function, reject: Function, timer: object}>} */
     this.waiting = new Map()
     this.progress = []
@@ -193,15 +313,42 @@ class BlenderSession {
     this.readyPromise = null
     this.readyResolve = null
     this.readyReject = null
+    this.readySettled = false
     this._read()
   }
 
-  /** Resolve when bootstrap.py has announced itself, reject if the process dies first. */
-  ready() {
+  /**
+   * Resolve when the other end has announced itself — reject if it dies first, or says nothing.
+   *
+   * THE DEADLINE IS THE POINT, and a mutation found it missing: with the handshake removed from the
+   * bridge, `attachSession` connected successfully and then waited FOREVER, because the socket stayed
+   * open and simply never spoke. A hang is worse than either a success or a coded failure — it has no
+   * message, no code, and no end — and this repository's rule is that a failure has to be a branchable
+   * result. The same deadline that bounds a request bounds the opening of the conversation.
+   */
+  ready(timeoutMs = this.timeoutMs) {
     if (this.readyPromise === null) {
       this.readyPromise = new Promise((resolve, reject) => {
-        this.readyResolve = resolve
-        this.readyReject = reject
+        const timer = setTimeout(() => {
+          if (this.readySettled) return
+          this.readySettled = true
+          reject(new BlenderError(
+            BlenderErrorCode.TIMEOUT,
+            `The Blender session (pid ${this.pid ?? 'unknown'}) connected but never announced itself within ${timeoutMs} ms.`,
+            { detail: { pid: this.pid, timeoutMs } },
+          ))
+        }, timeoutMs)
+        if (typeof timer.unref === 'function') timer.unref()
+        this.readyResolve = value => {
+          clearTimeout(timer)
+          this.readySettled = true
+          resolve(value)
+        }
+        this.readyReject = error => {
+          clearTimeout(timer)
+          this.readySettled = true
+          reject(error)
+        }
       })
     }
     return this.readyPromise
@@ -209,7 +356,7 @@ class BlenderSession {
 
   /** Read stdout line by line for the life of the process. */
   _read() {
-    const stream = this.handle?.stdout
+    const stream = this.transport.read
     if (stream === undefined || stream === null) {
       this._fail(new BlenderError(BlenderErrorCode.SPAWN_FAILED, 'the session has no stdout stream to read'))
       return
@@ -229,10 +376,10 @@ class BlenderSession {
       // Bounded: stderr is evidence for a failure, not a log to keep.
       this.stderr = (this.stderr + chunk.toString('utf8')).slice(-8192)
     })
-    // THE HANDLE'S EXIT SIGNAL IS A PROMISE, NOT AN EVENT (`done`), and it carries nothing — so the
-    // exit code is read from `waitForExit()` where one is needed, and the failure below says what is
-    // knowable: the session ended without answering.
-    this.handle?.done?.then?.(() => this._exited({}), () => this._exited({}))
+    // THE TRANSPORT REPORTS THE END, whatever the end means: for a spawned process the handle's
+    // `done` promise, for a socket its 'close'. Neither carries a code — the failure below says what
+    // is knowable, which is that the session ended without answering.
+    this.transport.onExit(info => this._exited(info))
   }
 
   _line(line) {
@@ -331,7 +478,7 @@ class BlenderSession {
       }
     })
 
-    this.handle.stdin.write(`${JSON.stringify(document)}\n`)
+    this.transport.write(`${JSON.stringify(document)}\n`)
     return answered
   }
 
@@ -339,17 +486,12 @@ class BlenderSession {
   async close() {
     if (this.closed) return
     try {
-      this.handle.stdin.write(`${JSON.stringify({ action: 'shutdown' })}\n`)
-      this.handle.stdin.end()
+      this.transport.write(`${JSON.stringify({ action: 'shutdown' })}\n`)
+      this.transport.end()
     } catch {
-      // The process may already be gone; the wait below is what decides.
+      // The other end may already be gone; the settle below is what decides.
     }
-    try {
-      // `waitForExit` is the handle's own way to wait, and it takes a deadline in milliseconds.
-      await this.handle.waitForExit?.(TERMINATE_GRACE_MS)
-    } catch {
-      // A process that had to be terminated is still a closed session.
-    }
+    await this.transport.settle(TERMINATE_GRACE_MS)
     this.closed = true
     this._fail(new BlenderError(
       BlenderErrorCode.ABORTED,
@@ -692,13 +834,70 @@ export default class LocalBlenderRuntime extends Service {
     })
 
     const session = new BlenderSession({
-      handle,
+      transport: new SubprocessTransport(handle),
       directory,
       jobId,
       timeoutMs: this.config.timeoutMs,
       onClose: () => this._cleanup(directory),
     })
     await session.ready()
+    return session
+  }
+
+  /**
+   * Attach to a Blender that is ALREADY RUNNING — the user's own, with the add-on (SPEC §20 M6).
+   *
+   * THE OTHER HALF OF THE LIVE BRIDGE. `openSession()` spawns a Blender nobody can see; this one talks
+   * to the Blender on the user's screen, so the operations happen in the window they are looking at.
+   * The conversation is identical — same protocol, same envelopes, same per-request deadline — because
+   * both go through `BlenderSession`; the only difference is who owns the other end of the bytes.
+   *
+   * The pid in the handshake is the ATTACHED Blender's own, and it is what makes "which Blender
+   * answered this" answerable. A product that reported its own pid here would make that question
+   * unanswerable, which is the one question an attach exists to answer.
+   *
+   * @param {string} socketPath
+   * @param {{ timeoutMs?: number }} [options]
+   * @returns {Promise<{ pid: number|null, run: Function, close: Function }>}
+   */
+  async attachSession(socketPath, options = {}) {
+    if (typeof socketPath !== 'string' || socketPath.length === 0) {
+      throw new BlenderError(
+        BlenderErrorCode.RUNTIME_UNAVAILABLE,
+        'Attaching needs the socket path the Blender add-on is listening on.',
+      )
+    }
+    if (!existsSync(socketPath)) {
+      throw new BlenderError(
+        BlenderErrorCode.RUNTIME_UNAVAILABLE,
+        `Nothing is listening at ${socketPath}. Enable the DeepBlend bridge add-on in Blender ` +
+          '(View3D > Sidebar > DeepBlend), or start one headless with ' +
+          '`blender --background --python deepblend_bridge.py -- --socket <path>`.',
+        { detail: { socketPath } },
+      )
+    }
+
+    const socket = await connect(socketPath, options.timeoutMs ?? this.config.timeoutMs).catch(cause => {
+      throw new BlenderError(
+        BlenderErrorCode.RUNTIME_UNAVAILABLE,
+        `The Blender bridge at ${socketPath} could not be reached: ${cause?.message ?? 'unknown failure'}.`,
+        { detail: { socketPath } },
+      )
+    })
+
+    const session = new BlenderSession({
+      transport: new SocketTransport(socket),
+      directory: null,
+      jobId: `attach-${randomUUID()}`,
+      timeoutMs: this.config.timeoutMs,
+      onClose: () => {},
+    })
+    // A SHORTER DEADLINE THAN A SPAWN, and the difference is real rather than a preference: a spawned
+    // Blender legitimately takes a second or two to boot, while an add-on that is already serving
+    // answers the handshake immediately. MEASURED: with the provider's own 180 s timeout, a peer that
+    // connected and said nothing took 180 s to report — long enough that a user would conclude the
+    // product had hung.
+    await session.ready(ATTACH_READY_MS)
     return session
   }
 
