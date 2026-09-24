@@ -14810,5 +14810,14 @@ sessionActions: [get_capabilities, compile_scene]
 
 ### 213.9 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.6` → `0.2.7` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.6 -> 0.2.7 ✓ + version:sync ✓
+1. release:tarball ✓
+2. gh release create v0.2.7 ✓
+3. publish:packages -> 「还没有」 ✓（连着六次 ✓，照它说的再跑 ✓）
+4. result: all 7 packages are on the registry, each one read back ✓
+5. release:parity -> problems: 0 ✓；两份探针日志按 0.2.7 重写 ✓
+```
+
+**这条消息现在是可以照着做的** ✓：说清「还没有」 ✓、说清「再跑一次」 ✓，
+而照做就成功了 ✓。**一个读数能告诉读者下一步做什么，才算读数** ✓。

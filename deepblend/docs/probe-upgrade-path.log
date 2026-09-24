@@ -35,24 +35,24 @@
 # means re-adding it would not move either. That is an inference from the measurement above, not a
 # reading, and it is written down as one.
 
-date: 2026-09-24T04:12:06.897Z
+date: 2026-09-24T04:47:21.317Z
 pnpm: 10.28.2
-the version this repository is at: 0.2.6
+the version this repository is at: 0.2.7
 the old version each route starts from: 0.2.1
 
-── npm: 0.2.1 → 0.2.6 ──
+── npm: 0.2.1 → 0.2.7 ──
 npm installed: @deepblend/dsh-blender-bundle@0.2.1
 npm recorded spec: 0.2.1
 npm after re-adding the current spec: @deepblend/dsh-blender-bundle@0.2.1 (exit 0)
 npm recorded spec now: 0.2.1
-npm after remove + add: @deepblend/dsh-blender-bundle@0.2.6 (remove exit 0, add exit 0)
-npm recorded spec now: ^0.2.6
+npm after remove + add: @deepblend/dsh-blender-bundle@0.2.7 (remove exit 0, add exit 0)
+npm recorded spec now: ^0.2.7
 npm upgrade path: remove then add — re-adding alone left the old version
 
-── tarball: 0.2.1 → 0.2.6 ──
+── tarball: 0.2.1 → 0.2.7 ──
 tarball installed: @deepblend/dsh-blender-bundle@0.2.1
 tarball recorded spec: https://github.com/pearjelly/deep-blend/releases/download/v0.2.1/deepblend-bundle.tgz
-tarball after re-adding the current spec: @deepblend/dsh-blender-bundle@0.2.6 (exit 0)
+tarball after re-adding the current spec: @deepblend/dsh-blender-bundle@0.2.7 (exit 0)
 tarball recorded spec now: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
 tarball upgrade path: re-running `dsh plugin add` with the current spec is enough
 problems: 0
