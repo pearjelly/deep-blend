@@ -15130,5 +15130,14 @@ after the second started, the socket is reachable = connected
 
 ### 217.8 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.8` → `0.2.9` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.8 -> 0.2.9 ✓ + version:sync ✓
+1. release:tarball ✓
+2. gh release create v0.2.9 ✓
+3. publish:packages -> 「还没有」 ✓（照它说的再跑 ✓）
+4. result: all 7 packages are on the registry, each one read back ✓
+5. release:parity -> problems: 0 ✓；两份探针日志按 0.2.9 重写 ✓
+```
+
+**第六次连着这样** ✓：那条消息说「还没有」 ✓、说「再跑一次」 ✓，照做就成了 ✓。
+**一条读数能告诉读者下一步做什么，才算读数** ✓。
