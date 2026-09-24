@@ -302,9 +302,23 @@ npm run presets:check     # 退出 0，并说「not installed on this machine」
 **装上之后** ✓：`View3D` → 侧栏 → **DeepBlend** 面板 ✓ 会显示它监听在哪 ✓、服务过多少次操作 ✓、
 最后一次是什么 ✓。产品连上来之后 ✓，你就能在视口里看着操作发生 ✓。
 
-**产品怎么连** ✓：它读的是那个 socket ✓（默认 `~/.deepblend-bridge.sock` ✓，
-可用 `DEEPBLEND_BRIDGE_SOCKET` 改 ✓）。**注意**：今天的工具面还**没有**自动改用它 ✓——
-`openSession()` / `attachSession()` 是运行时能力 ✓，把它们接进工具是下一步 ✓（见 `milestone-status.md` §211.11 ✓）。
+**产品怎么连** ✓：在 operator layer 里把 `sessionSocket` 设成那个 socket 的路径 ✓
+（默认 `~/.deepblend-bridge.sock` ✓，可用 `DEEPBLEND_BRIDGE_SOCKET` 改 ✓），
+再在 `sessionActions` 里点名哪些动作走它 ✓——**两个键都要** ✓，因为快的路是**显式打开**的 ✓
+（见 `milestone-status.md` §212.5 ✓：保活的会话**承诺得更少** ✓）。
+
+```yaml
+# 在 operator layer 的 deepblend-blender-runtime 那一行
+sessionSocket: ~/.deepblend-bridge.sock
+sessionActions: [get_capabilities, compile_scene]
+```
+
+**设了 socket 而没人应答时** ✓：**报错** ✓，**不会**悄悄改成自己起一个 ✓——
+你要的是**你自己那个 Blender** ✓，而「做到了别的事还报成功」正是这个仓库反复付代价的那种失败 ✓。
+报错消息会点名**要开哪个插件** ✓。
+
+**渲染不走这条路** ✓（`sessionActions` 里别写它们 ✓）：取消一次渲染必须能**恰好杀掉那一次** ✓，
+而这个 provider 唯一能做到的方式是结束进程 ✓——**在一个被附着的 Blender 上，那就是你自己的会话** ✓。
 
 **不想开 GUI 也能试** ✓：
 

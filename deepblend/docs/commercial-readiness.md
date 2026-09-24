@@ -46,7 +46,7 @@
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✓ | `deepblend/docs/cost.md`：渲染侧的每帧秒数（**一处定义**：`packages/deepblend/tool/lib/render-tools.js` 的 `REFERENCE_SECONDS_PER_FRAME` ✓）与 token 侧的两次**真实调用**读数 ✓；`deepblend/tests/contract/cost-model.test.mjs` 盯着文档里的每个数都能被重算 ✓、审批提示里那句估算**由帧数算出来** ✓、以及文档**写明它还不知道什么** ✓；`deepblend/tests/contract/tool-plane-output.test.mjs` 盯着那句估算真的出现在审批提示里 ✓；`node deepblend/tools/visual-review-live-probe.mjs` 读的是**产品自己的路由与预算** ✓，所以一个陈旧的默认值会在那里以「这个模型不存在」现形 ✓ | — |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
 | C19 | 跨平台 | 上游只发布 `linux-x64` 的 Blender——这件事有没有写在用户读到的地方 | ✓ | `deepblend/docs/install.md` §0 与两份 `README` 的前置表都写明上游发布的那个产物名、并写明 `arm64` Linux 上没有构建（读数：上游四条发布线的目录列表，命令与输出在 `milestone-status.md` §203.4）；`deepblend/tests/contract/setup-steps.test.mjs` 按**产物名本身**盯着这三处，并要求其中两处写明 `arm64` 没有 | — |
-| C20 | 产品面 | 一个 Blender 进程能不能连着做很多次操作（Live Bridge 的传输半边） | ✓ | `packages/deepblend/provider-local/lib/index.js` 的 `openSession()` ✓：**一个** Blender 进程 ✓、请求按行走 stdin/stdout ✓，复用 `bootstrap.py` **同一张** `ACTIONS` 表与同一套信封 ✓（第二份实现 = 第二个答案 ✓）；请求**自带参数** ✓（由同一个解析器解析 ✓——第一版没有这一条 ✓，于是每个真动作都以「requires --scene-spec」失败 ✓）；**运行时可以按配置把动作路由进一个保活的会话** ✓（`sessionActions` ✓，**默认是空的** ✓——实测：默认打开会让三条验收套件红 ✓，**而它们是对的** ✓，因为保活的会话**承诺得更少** ✓：没有每次调用的 stdout 捕获 ✓、期限不杀进程 ✓、且持有自己的目录 ✓——一个悄悄换掉承诺的默认值 ✓ 正是套件存在的理由 ✓）；渲染**不在可选项里** ✓（取消一次渲染必须能恰好杀掉那一次 ✓，而在被附着的 Blender 上那就是用户的会话 ✓）；复用**不串味** ✓（两份差一个实体的 spec 在同一个进程里编译 ✓，读数是「各自的数量」而不是「相加」 ✓）；`deepblend/tests/blender-integration/live-session.e2e.mjs` 盯住它 ✓ | — |
+| C20 | 产品面 | 一个 Blender 进程能不能连着做很多次操作（Live Bridge 的传输半边） | ✓ | `packages/deepblend/provider-local/lib/index.js` 的 `openSession()` ✓：**一个** Blender 进程 ✓、请求按行走 stdin/stdout ✓，复用 `bootstrap.py` **同一张** `ACTIONS` 表与同一套信封 ✓（第二份实现 = 第二个答案 ✓）；请求**自带参数** ✓（由同一个解析器解析 ✓——第一版没有这一条 ✓，于是每个真动作都以「requires --scene-spec」失败 ✓）；**运行时可以按配置把动作路由进一个保活的会话** ✓（`sessionActions` ✓，**默认是空的** ✓——实测：默认打开会让三条验收套件红 ✓，**而它们是对的** ✓，因为保活的会话**承诺得更少** ✓：没有每次调用的 stdout 捕获 ✓、期限不杀进程 ✓、且持有自己的目录 ✓）；**而那个会话可以是用户自己的 Blender** ✓（`sessionSocket` ✓）：设了它 ✓，点名的动作就由**那个 socket 后面的** Blender 服务 ✓——而**设了却没人应答时是有码拒绝、并点名要开哪个插件** ✓，**不会**悄悄改成自己起一个 ✓（「做到了别的事还报成功」正是本仓库反复付代价的失败 ✓）；渲染**不在可选项里** ✓（取消一次渲染必须能恰好杀掉那一次 ✓，而在被附着的 Blender 上那就是用户的会话 ✓）；复用**不串味** ✓；`deepblend/tests/blender-integration/live-session.e2e.mjs` 盯住它 ✓ | — |
 **C15 的完成清单**（`M6` 八项，`SPEC.md` §20 的列表逐条）：
 
 | M6 项 | 状态 |
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 20 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 14 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 15 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 3 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 9 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
@@ -458,3 +458,23 @@
   这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（见 §212.10 ✓）。
   下一轮的第一顺位是 **§212.9 的第 4 条** ✓：**让用户能说「就用我开着的这个 Blender」** ✓——
   `attachSession()` 是运行时能力 ✓，而工具面还没有这个选择 ✓；**C7** 只有用户能改变 ✓，**连续五轮** ✓。
+
+### 轮 15 — 2026-09-23
+
+- **移动：M5** — 关闭 §212.9 的第 4 条 ✓：**「就用我开着的这个 Blender」从一条运行时能力变成一次配置** ✓。
+  一个键 ✓（`sessionSocket` ✓）而不是第 17 个工具 ✓——「用哪个 Blender」是**部署的性质** ✓，
+  不是一次调用的参数 ✓，把它做成工具只会让模型每次重新选一件它不该关心的事 ✓。
+- **移动：M4** — 两条**活下来的**变异被新断言杀死 ✓（一条是空操作 ✓，见下）：
+  忽略配置的 socket 照样 spawn ✓、以及在 `close()` 里顺手把 pid 杀掉 ✓——
+  后者是**有人真的会写的那种「清理」** ✓，而它当场红 ✓。
+- **移动：M3** — 一条**新的**边界被写下来并给了判据 ✓：
+  **设了 socket 而没人应答时是有码拒绝 ✓，不是静默回退 ✓**——
+  用户要的是他自己那个 Blender ✓，而「做到了别的事还报成功」正是本仓库反复付代价的失败 ✓。
+- **判据**：`node deepblend/tests/blender-integration/live-session.e2e.mjs` ✓（36 项 ✓）、
+  `packages/deepblend/provider-local/lib/index.js` 的 `sessionSocket` ✓、
+  `deepblend/docs/install.md` 的插件一节 ✓。
+- **还差什么**：账本上仍然开着的是 C7 与 C15 ✓。
+  这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（见 §213.9 ✓）。
+  下一轮的第一顺位是 **§213.8 的第 2 条** ✓：**GUI 面板本身没有被自动化测过** ✓——
+  这一族（Live Bridge / Add-on）里唯一没有判据的部分 ✓；
+  **C7** 只有用户能改变 ✓，**连续六轮** ✓。

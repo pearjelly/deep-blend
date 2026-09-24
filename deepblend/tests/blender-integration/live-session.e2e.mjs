@@ -240,6 +240,75 @@ try {
     { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
 
   // -------------------------------------------------------------------------
+  // "USE THE BLENDER I ALREADY HAVE OPEN" — as a configuration rather than a test-only capability.
+  //
+  // The same two actions, the same runtime, with one key set: `sessionSocket`. What changes is whose
+  // Blender does the work, and that is the whole point of the M6 item — the operations happen in the
+  // window the user is looking at, and their session survives the product closing its connection.
+  // -------------------------------------------------------------------------
+  const bridgePath = join(workspace, 'user-blender.sock')
+  const userBlender = spawn(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', bridgePath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let userSaid = ''
+  userBlender.stdout.on('data', chunk => { userSaid += chunk.toString('utf8') })
+  userBlender.stderr.on('data', () => {})
+  try {
+    const announceDeadline = Date.now() + 30_000
+    while (!/"kind": ?"ready"/.test(userSaid) && Date.now() < announceDeadline) {
+      await new Promise(settle => setTimeout(settle, 200))
+    }
+    const userPid = (userSaid.match(/"pid": ?(\d+)/) ?? [])[1]
+    check('a user Blender is serving before the runtime is pointed at it', userPid !== undefined, userSaid.trim().slice(-80))
+
+    const userCtx = new Context()
+    userCtx.plugin(LocalSubprocess)
+    const { default: UserProvider, ProviderConfig: UserConfig } = await import('@deepblend/dsh-blender-provider-local')
+    userCtx.plugin(UserProvider, UserConfig({
+      blenderPath: BLENDER,
+      bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+      workspaceRoot: workspace,
+      sessionActions: ['get_capabilities'],
+      sessionSocket: bridgePath,
+    }))
+    await new Promise(settle => setTimeout(settle, 250))
+    const userRuntime = userCtx.get('blenderRuntime')
+
+    const fromUser = await userRuntime.runBootstrap({ action: 'get_capabilities' })
+    check('the configured actions are served by THAT Blender, not by one the runtime spawned',
+      fromUser.envelope.status === 'success' && String(userRuntime._session?.pid) === String(userPid),
+      { servedBy: userRuntime._session?.pid, userBlender: userPid })
+
+    await userRuntime.closeSession()
+    await new Promise(settle => setTimeout(settle, 300))
+    check('and closing the product\'s connection leaves the user\'s Blender running, because it is theirs',
+      alive(Number(userPid)), `pid ${userPid} was ended by the product`)
+
+    // A CONFIGURED SOCKET THAT DOES NOT ANSWER IS AN ERROR, NOT A SILENT SPAWN. The user asked for
+    // their own Blender; doing something else and reporting success is the failure this repository
+    // keeps paying for.
+    const wrongCtx = new Context()
+    wrongCtx.plugin(LocalSubprocess)
+    wrongCtx.plugin(UserProvider, UserConfig({
+      blenderPath: BLENDER,
+      bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+      workspaceRoot: workspace,
+      sessionActions: ['get_capabilities'],
+      sessionSocket: join(workspace, 'nobody-here.sock'),
+    }))
+    await new Promise(settle => setTimeout(settle, 250))
+    const wrongRuntime = wrongCtx.get('blenderRuntime')
+    const refused = await wrongRuntime.runBootstrap({ action: 'get_capabilities' }).then(() => null, error => error)
+    check('a socket the operator named but nothing answers is a coded refusal that names the add-on, never a silent spawn',
+      refused !== null && refused.code === 'BLENDER_RUNTIME_UNAVAILABLE' && /add-on/.test(refused.message),
+      refused?.code ?? 'it succeeded, which is the failure')
+  } finally {
+    userBlender.kill('SIGTERM')
+  }
+
+  // -------------------------------------------------------------------------
   // THE OTHER HALF: attaching to a Blender that is already running — the user's own, with the add-on.
   // Same conversation, different owner of the other end of the bytes.
   // -------------------------------------------------------------------------

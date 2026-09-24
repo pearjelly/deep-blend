@@ -167,6 +167,20 @@ export const ProviderConfig = z.object({
   sessionActions: z.array(z.string()).default([]),
   /** How long a kept session may sit idle before it is closed. */
   sessionIdleMs: z.number().default(60_000),
+  /**
+   * The socket a Blender bridge is listening on, when the operator wants the session actions served by
+   * THE USER'S OWN BLENDER rather than one this provider spawns (SPEC §20 M6 "Live Bridge").
+   *
+   * Empty means "spawn one", which is what every deployment did before this key existed. Setting it is
+   * how a user says *use the Blender I already have open* — and the difference is not speed, it is that
+   * they can watch the operations happen in the window they are looking at.
+   *
+   * A CONFIGURED SOCKET THAT DOES NOT ANSWER IS AN ERROR, not a fallback to spawning. Silently doing
+   * something else than what was asked is the failure mode this repository keeps paying for: the user
+   * would see operations succeed and never learn that their Blender was not the one doing them. The
+   * refusal names the add-on, because that is what has to be enabled.
+   */
+  sessionSocket: z.string().default(''),
 })
 
 /**
@@ -948,7 +962,12 @@ export default class LocalBlenderRuntime extends Service {
    */
   async _keptSession() {
     if (this._session !== null && !this._session.closed) return this._session
-    this._session = await this.openSession()
+    const socket = this.config.sessionSocket
+    // THE USER'S BLENDER, when they have named one. `attachSession` owns the refusal and its message;
+    // this only decides which of the two transports the configured actions travel over.
+    this._session = typeof socket === 'string' && socket.length > 0
+      ? await this.attachSession(socket)
+      : await this.openSession()
     return this._session
   }
 
