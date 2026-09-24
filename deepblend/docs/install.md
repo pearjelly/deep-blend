@@ -319,6 +319,17 @@ sessionActions: [get_capabilities, compile_scene]
 不知道工作区时它退回机器级的默认值 ✓（`~/.deepblend-bridge.sock` ✓），
 而显式设的 `DEEPBLEND_BRIDGE_SOCKET` **永远优先** ✓。
 
+**产品会自己去那个约定位置找它** ✓（`sessionActions` 一开 ✓）：那儿**有东西应答**就用它 ✓，
+**没有就照旧自己起一个** ✓——**这不是猜** ✓：猜是**断言**然后失败 ✗，
+而这是**先看再退** ✓。所以**你不需要把这个路径写进配置** ✓；
+写了 `sessionSocket` 的话 ✓，**你写的那个永远优先** ✓。
+
+**一个平台限制要知道** ✓：Unix socket 路径有长度上限 ✓（macOS 上约 104 字节 ✓）。
+**工作区路径太深时** ✓，`<工作区>/.deepblend/bridge.sock` 可能超限 ✓，
+于是桥会拒绝（`AF_UNIX path too long` ✓），而产品**退回去自己起一个** ✓——
+**它照样能用** ✓，只是不会驱动你那个窗口 ✓。遇到这种情况 ✓，
+用一个浅一点的工作区路径 ✓，或者显式设一个短的 `DEEPBLEND_BRIDGE_SOCKET` ✓。
+
 **它通常自己就知道服务哪个工作区** ✓：如果你在这个 Blender 里**打开着这个产品写的 checkpoint** ✓
 （`<工作区>/.deepblend/projects/…/scene.blend` ✓），它从**那个路径**读出工作区 ✓，
 你什么都不用设 ✓。**路径不像这个布局时它什么都不说** ✓——而**猜错比不说更糟** ✓：

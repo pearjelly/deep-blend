@@ -317,6 +317,142 @@ try {
     install.includes('<工作区>/.deepblend/bridge.sock') && socketPaths.relative === '.deepblend/bridge.sock',
     { documented: install.includes('<工作区>/.deepblend/bridge.sock'), derived: socketPaths.relative })
 
+  // -------------------------------------------------------------------------
+  // DISCOVERY, WHICH IS NOT A GUESS — and the difference is the whole design.
+  //
+  // A deployment that opted into sessions should not also have to write down where the bridge listens.
+  // A GUESS asserts and fails when it is wrong; this CHECKS and falls back: something answering at the
+  // conventional path is used, and nothing answering means exactly what happened before discovery
+  // existed. The wrong-blender check still applies to whatever is found.
+  // -------------------------------------------------------------------------
+  // A SHORT PATH, AND THE REASON IS A REAL LIMIT RATHER THAN CONVENIENCE. MEASURED: a Unix socket
+  // path is capped by the platform (about 104 bytes on macOS), and this suite's own temp directory is
+  // long enough that `<workspace>/.deepblend/bridge.sock` exceeded it — the bridge refused with
+  // `OSError: AF_UNIX path too long`, and the product then fell back to spawning, which is exactly
+  // what discovery is designed to do with a bridge that is not there. The limit is the platform's, so
+  // the case is exercised from a path that fits, and the fallback is asserted separately below.
+  const discoveryWorkspace = mkdtempSync(join('/tmp', 'dbd-'))
+  const conventionalPath = join(discoveryWorkspace, '.deepblend', 'bridge.sock')
+
+  const makeRuntime = async (config) => {
+    const runtimeContext = new Context()
+    runtimeContext.plugin(LocalSubprocess)
+    const { default: DiscoverProvider, ProviderConfig: DiscoverConfig } = await import('@deepblend/dsh-blender-provider-local')
+    runtimeContext.plugin(DiscoverProvider, DiscoverConfig({
+      blenderPath: BLENDER,
+      bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+      workspaceRoot: config.workspaceRoot ?? discoveryWorkspace,
+      sessionActions: ['get_capabilities'],
+      ...config,
+    }))
+    await new Promise(settle => setTimeout(settle, 250))
+    return runtimeContext.get('blenderRuntime')
+  }
+
+  // FIRST: nothing at the conventional path, so it must behave exactly as it did before discovery.
+  const spawned = await makeRuntime({})
+  const spawnedRun = await spawned.runBootstrap({ action: 'get_capabilities' })
+  check('with nothing at the conventional path the deployment spawns its own Blender, as before',
+    spawnedRun.envelope.status === 'success' && spawned._sessionOrigin === 'spawned',
+    spawned._sessionOrigin)
+  await spawned.closeSession()
+
+  // AND THE PLATFORM'S OWN LIMIT IS A FALLBACK, NOT A FAILURE. MEASURED, by accident: a workspace path
+  // deep enough that `<workspace>/.deepblend/bridge.sock` exceeds the Unix socket cap makes the bridge
+  // refuse with `AF_UNIX path too long` — and a deployment there must still work, by spawning. That is
+  // the whole point of discovery checking rather than asserting.
+  const deepWorkspace = mkdtempSync(join(workspace, 'deep-'))
+  mkdirSync(join(deepWorkspace, '.deepblend'), { recursive: true })
+  const tooLong = join(deepWorkspace, '.deepblend', 'bridge.sock')
+  const deepRuntime = await makeRuntime({ workspaceRoot: deepWorkspace })
+  const deepRun = await deepRuntime.runBootstrap({ action: 'get_capabilities' })
+  check('a workspace path too deep for a socket still works, by falling back to spawning',
+    tooLong.length > 100 && deepRun.envelope.status === 'success' && deepRuntime._sessionOrigin === 'spawned',
+    { pathLength: tooLong.length, origin: deepRuntime._sessionOrigin })
+  await deepRuntime.closeSession()
+
+  // AND THE CASE THE FALLBACK ACTUALLY EXISTS FOR: the conventional path EXISTS and nothing answers on
+  // it — the state a crashed bridge leaves. MEASURED: the check above does NOT exercise this, because
+  // a bridge that refused never created the file, so discovery was never attempted and a mutation that
+  // turns a failed discovery into a failure SURVIVED it. A file that is there and silent is the one
+  // that reaches the fallback.
+  const staleWorkspace = mkdtempSync(join('/tmp', 'dbd-stale-'))
+  mkdirSync(join(staleWorkspace, '.deepblend'), { recursive: true })
+  writeFileSync(join(staleWorkspace, '.deepblend', 'bridge.sock'), 'not a socket')
+  const staleRuntime = await makeRuntime({ workspaceRoot: staleWorkspace })
+  // A THROW IS A RESULT TOO. MEASURED: with discovery made to fail rather than fall back, this case
+  // threw out of `runBootstrap` and the suite ABORTED — the mutation was caught, but the reader got a
+  // stack and every later check silently did not run. The refusal is caught here so it is reported as
+  // the failure it is, with the check's own name attached.
+  const staleRun = await staleRuntime.runBootstrap({ action: 'get_capabilities' }).then(
+    run => run,
+    error => error,
+  )
+  check('a conventional path that exists and does not answer falls back to spawning, rather than failing',
+    staleRun?.envelope?.status === 'success' && staleRuntime._sessionOrigin === 'spawned',
+    { origin: staleRuntime._sessionOrigin, status: staleRun?.envelope?.status ?? null, threw: staleRun?.message?.slice(0, 120) ?? null })
+  await staleRuntime.closeSession()
+
+  // THEN: a bridge in the conventional place, and no configuration at all.
+  const discoveredBridge = spawn(BLENDER, [
+    '--background', '--factory-startup',
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', conventionalPath, '--workspace', discoveryWorkspace,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let discoveredSaid = ''
+  discoveredBridge.stdout.on('data', chunk => { discoveredSaid += chunk.toString('utf8') })
+  discoveredBridge.stderr.on('data', () => {})
+  try {
+    const deadline = Date.now() + 30_000
+    while (!/"kind": ?"ready"/.test(discoveredSaid) && Date.now() < deadline) {
+      await new Promise(settle => setTimeout(settle, 300))
+    }
+    const bridgePid = Number((discoveredSaid.match(/"pid": ?(\d+)/) ?? [])[1])
+
+    const discovering = await makeRuntime({})
+    const discoveredRun = await discovering.runBootstrap({ action: 'get_capabilities' })
+    check('a bridge in the conventional place is DISCOVERED with no configuration at all',
+      discoveredRun.envelope.status === 'success' && discovering._sessionOrigin === 'discovered',
+      // The bridge's own output travels with the failure: a check that says only "spawned" leaves the
+      // reader to guess whether the bridge refused, never started, or was never looked for.
+      { origin: discovering._sessionOrigin, bridgeSaid: discoveredSaid.trim().slice(-200) })
+    check('and the work is served by THAT Blender, not by one the deployment spawned',
+      String(discovering._session?.pid) === String(bridgePid),
+      { servedBy: discovering._session?.pid, bridge: bridgePid })
+    await discovering.closeSession()
+    check('and closing the product\'s connection leaves the discovered Blender running',
+      alive(bridgePid), `pid ${bridgePid} was ended by the product`)
+
+    // AND AN EXPLICIT PATH STILL WINS over whatever is in the conventional place.
+    const otherPath = join(workspace, 'elsewhere.sock')
+    const elsewhere = spawn(BLENDER, [
+      '--background', '--factory-startup',
+      '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+      '--', '--socket', otherPath, '--workspace', discoveryWorkspace,
+    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let elsewhereSaid = ''
+    elsewhere.stdout.on('data', chunk => { elsewhereSaid += chunk.toString('utf8') })
+    elsewhere.stderr.on('data', () => {})
+    try {
+      const deadline2 = Date.now() + 30_000
+      while (!/"kind": ?"ready"/.test(elsewhereSaid) && Date.now() < deadline2) {
+        await new Promise(settle => setTimeout(settle, 300))
+      }
+      const elsewherePid = Number((elsewhereSaid.match(/"pid": ?(\d+)/) ?? [])[1])
+      const configured = await makeRuntime({ sessionSocket: otherPath })
+      const configuredRun = await configured.runBootstrap({ action: 'get_capabilities' })
+      check('an explicitly configured socket wins over the conventional one',
+        configuredRun.envelope.status === 'success' && configured._sessionOrigin === 'configured' &&
+        String(configured._session?.pid) === String(elsewherePid),
+        { origin: configured._sessionOrigin, servedBy: configured._session?.pid, configured: elsewherePid })
+      await configured.closeSession()
+    } finally {
+      elsewhere.kill('SIGTERM')
+    }
+  } finally {
+    discoveredBridge.kill('SIGTERM')
+  }
+
   // AN EXPLICIT SETTING WINS OVER THE DERIVATION. MEASURED as a gap: the checks above only ever ran a
   // bridge with NO explicit workspace, so a version that let the derivation override the operator would
   // have passed all of them — and an operator who set DEEPBLEND_BRIDGE_WORKSPACE would be silently

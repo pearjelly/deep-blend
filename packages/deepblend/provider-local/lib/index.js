@@ -591,6 +591,14 @@ export default class LocalBlenderRuntime extends Service {
   /** The kept Blender for `sessionActions`, and the timer that closes it when it goes quiet. */
   _session = null
   _sessionTimer = null
+  /**
+   * Which transport the kept session came from: `configured`, `discovered` or `spawned`.
+   *
+   * Recorded rather than inferred, because "is this deployment driving the user's Blender or one of
+   * its own" is the first question anybody asks of a Live Bridge that behaves unexpectedly — and the
+   * only place that knows is the branch that chose.
+   */
+  _sessionOrigin = null
 
   /**
    * @param {import('@deepseek-ai/cordis').Context} ctx
@@ -1021,12 +1029,39 @@ export default class LocalBlenderRuntime extends Service {
    */
   async _keptSession() {
     if (this._session !== null && !this._session.closed) return this._session
-    const socket = this.config.sessionSocket
-    // THE USER'S BLENDER, when they have named one. `attachSession` owns the refusal and its message;
-    // this only decides which of the two transports the configured actions travel over.
-    this._session = typeof socket === 'string' && socket.length > 0
-      ? await this.attachSession(socket)
-      : await this.openSession()
+
+    const configured = this.config.sessionSocket
+    if (typeof configured === 'string' && configured.length > 0) {
+      // NAMED BY THE OPERATOR, so it is used and a failure is theirs to see. `attachSession` owns the
+      // refusal and its message; this only decides which transport the configured actions travel over.
+      this._session = await this.attachSession(configured)
+      this._sessionOrigin = 'configured'
+      return this._session
+    }
+
+    // DISCOVERY, WHICH IS NOT A GUESS. The convention says a bridge listens at
+    // `<workspace>/.deepblend/bridge.sock`, and a deployment that opted into sessions should not have
+    // to write that path down as well. A GUESS asserts and fails when it is wrong; this CHECKS and
+    // falls back — something answering at the conventional path is used, and nothing answering means
+    // exactly what happened before this existed. The wrong-blender check still applies to whatever is
+    // found, so discovery cannot attach to another workspace's Blender.
+    const conventional = join(this.workspaceRoot, '.deepblend', 'bridge.sock')
+    if (existsSync(conventional)) {
+      const found = await this.attachSession(conventional).then(
+        session => session,
+        () => null,
+      )
+      if (found !== null) {
+        this._session = found
+        this._sessionOrigin = 'discovered'
+        return this._session
+      }
+      // A file that exists and does not answer is the state a crash leaves; the bridge replaces it
+      // when it starts again, and until then this deployment spawns its own Blender as before.
+    }
+
+    this._session = await this.openSession()
+    this._sessionOrigin = 'spawned'
     return this._session
   }
 
