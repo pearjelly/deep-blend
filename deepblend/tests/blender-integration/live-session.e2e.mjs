@@ -240,6 +240,80 @@ try {
     { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
 
   // -------------------------------------------------------------------------
+  // THE WORKSPACE, DERIVED FROM WHAT THE USER HAS OPEN — so the check above does not need anybody to
+  // configure anything. A checkpoint the product wrote lives under `<workspace>/.deepblend/…`, so a
+  // Blender that has one open IS working in that workspace; anything else states nothing, and nothing
+  // is what the product treats as "serves anything". Guessing would be worse than silence: a wrong
+  // claim would be refused for a mismatch the user did not cause.
+  // -------------------------------------------------------------------------
+  const derivedPath = join(workspace, 'derived.sock')
+  const derived = spawn(BLENDER, [
+    '--background', join(ROOT, '.deepblend', 'projects', 'watch-commercial', 'revisions', 'r0002', 'scene.blend'),
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', derivedPath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let derivedSaid = ''
+  derived.stdout.on('data', chunk => { derivedSaid += chunk.toString('utf8') })
+  derived.stderr.on('data', () => {})
+  try {
+    const deadline = Date.now() + 40_000
+    while (!/"kind": ?"ready"/.test(derivedSaid) && Date.now() < deadline) {
+      await new Promise(settle => setTimeout(settle, 300))
+    }
+    const handshake = JSON.parse(derivedSaid.split('\n').find(line => line.includes('"kind": "ready"')) ?? '{}')
+    check('a Blender with one of our checkpoints open states the workspace that checkpoint belongs to',
+      handshake.workspace === ROOT, { stated: handshake.workspace, expected: ROOT })
+
+    // AND THE PRODUCT ACCEPTS IT, because it is the same workspace — the derivation is only useful if
+    // the check it feeds says yes to the right answer.
+    const derivedRuntime = new Context()
+    derivedRuntime.plugin(LocalSubprocess)
+    const { default: DerivedProvider, ProviderConfig: DerivedConfig } = await import('@deepblend/dsh-blender-provider-local')
+    derivedRuntime.plugin(DerivedProvider, DerivedConfig({
+      blenderPath: BLENDER,
+      bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
+      workspaceRoot: ROOT,
+      sessionActions: ['get_capabilities'],
+      sessionSocket: derivedPath,
+    }))
+    await new Promise(settle => setTimeout(settle, 250))
+    const derivedRun = await derivedRuntime.get('blenderRuntime').runBootstrap({ action: 'get_capabilities' })
+    check('and a deployment in that workspace serves it without anybody configuring a thing',
+      derivedRun.envelope.status === 'success', derivedRun.envelope.status)
+    await derivedRuntime.get('blenderRuntime').closeSession()
+  } finally {
+    derived.kill('SIGTERM')
+  }
+
+  // AN EXPLICIT SETTING WINS OVER THE DERIVATION. MEASURED as a gap: the checks above only ever ran a
+  // bridge with NO explicit workspace, so a version that let the derivation override the operator would
+  // have passed all of them — and an operator who set DEEPBLEND_BRIDGE_WORKSPACE would be silently
+  // ignored, which is the same failure this ledger has spent three rounds on.
+  const explicitPath = join(workspace, 'explicit.sock')
+  const explicitWorkspace = join(workspace, 'the-operators-choice')
+  mkdirSync(explicitWorkspace, { recursive: true })
+  const explicit = spawn(BLENDER, [
+    '--background', join(ROOT, '.deepblend', 'projects', 'watch-commercial', 'revisions', 'r0002', 'scene.blend'),
+    '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
+    '--', '--socket', explicitPath, '--workspace', explicitWorkspace,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let explicitSaid = ''
+  explicit.stdout.on('data', chunk => { explicitSaid += chunk.toString('utf8') })
+  explicit.stderr.on('data', () => {})
+  try {
+    const deadline = Date.now() + 40_000
+    while (!/"kind": ?"ready"/.test(explicitSaid) && Date.now() < deadline) {
+      await new Promise(settle => setTimeout(settle, 300))
+    }
+    const handshake = JSON.parse(explicitSaid.split('\n').find(line => line.includes('"kind": "ready"')) ?? '{}')
+    check('an operator who names a workspace gets THAT one, even with a checkpoint open that says otherwise',
+      handshake.workspace === explicitWorkspace,
+      { stated: handshake.workspace, explicit: explicitWorkspace, derived: ROOT })
+  } finally {
+    explicit.kill('SIGTERM')
+  }
+
+  // -------------------------------------------------------------------------
   // THE WRONG BLENDER — the hazard the global default socket path creates.
   //
   // The socket path has a global default, so two workspaces on one machine can point the product at

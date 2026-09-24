@@ -140,6 +140,29 @@ class _Bridge:
         self.thread = threading.Thread(target=self._serve, name="deepblend-bridge", daemon=True)
         self.thread.start()
 
+    @staticmethod
+    def derive_workspace(open_file):
+        """The workspace a Blender belongs to, read from the file it has open — or nothing at all.
+
+        WHY THIS IS A DERIVATION AND NOT A GUESS. A checkpoint the product wrote lives at
+        `<workspace>/.deepblend/projects/<id>/revisions/<rev>/scene.blend`, so a Blender that has one
+        of those open IS working in that workspace — the path says so, in the product's own layout.
+        Anything else (an empty path, a file the user made themselves, a project laid out differently)
+        returns nothing, and nothing is what the product treats as "serves anything".
+
+        THAT ASYMMETRY IS THE POINT: a bridge that states a workspace it cannot be sure of would be
+        refused by the product for a mismatch the user did not cause, and the fix would look like a
+        configuration problem when it is a wrong guess. Silence is the honest answer when the path does
+        not say.
+        """
+        if not isinstance(open_file, str) or open_file == "":
+            return ""
+        marker = os.sep + ".deepblend" + os.sep
+        head, separator, _ = open_file.partition(marker)
+        if separator == "" or head == "":
+            return ""
+        return head
+
     def _someone_is_listening(self):
         """Whether a live bridge is behind this path, rather than a file left by a dead one."""
         probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -292,7 +315,11 @@ class DEEPBLEND_PT_bridge(bpy.types.Panel):
 def register():
     global _BRIDGE
     socket_path = os.environ.get("DEEPBLEND_BRIDGE_SOCKET", DEFAULT_SOCKET)
-    _BRIDGE = _Bridge(socket_path, {"workspace": os.environ.get("DEEPBLEND_BRIDGE_WORKSPACE", "")})
+    workspace = os.environ.get("DEEPBLEND_BRIDGE_WORKSPACE", "")
+    if workspace == "":
+        # In a GUI the user has a file open, and if the product wrote it, it names the workspace.
+        workspace = _Bridge.derive_workspace(getattr(bpy.data, "filepath", ""))
+    _BRIDGE = _Bridge(socket_path, {"workspace": workspace})
     try:
         _BRIDGE.start()
     except Exception as exc:
@@ -331,6 +358,10 @@ def main():
                 continue
             index += 1
     socket_path = options.get("socket", DEFAULT_SOCKET)
+    if workspace == "":
+        # WHAT THE OPEN FILE SAYS, when it says anything. An operator's explicit setting always wins;
+        # this only fills a silence, and only from a path that follows the product's own layout.
+        workspace = _Bridge.derive_workspace(getattr(bpy.data, "filepath", ""))
 
     if bootstrap is None:
         print(json.dumps({"kind": "error", "message": BOOTSTRAP_PROBLEM}), flush=True)

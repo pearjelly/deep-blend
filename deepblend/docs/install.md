@@ -313,8 +313,14 @@ sessionSocket: ~/.deepblend-bridge.sock
 sessionActions: [get_capabilities, compile_scene]
 ```
 
+**它通常自己就知道服务哪个工作区** ✓：如果你在这个 Blender 里**打开着这个产品写的 checkpoint** ✓
+（`<工作区>/.deepblend/projects/…/scene.blend` ✓），它从**那个路径**读出工作区 ✓，
+你什么都不用设 ✓。**路径不像这个布局时它什么都不说** ✓——而**猜错比不说更糟** ✓：
+说错会被产品拒绝 ✓，而用户会以为是自己配置错了 ✓。
+
 **如果这台机器上有两个工作区** ✓：**给每个 Blender 说清它服务哪一个** ✓——
-设 `DEEPBLEND_BRIDGE_WORKSPACE`（或启动参数 `--workspace <路径>` ✓）。
+设 `DEEPBLEND_BRIDGE_WORKSPACE`（或启动参数 `--workspace <路径>` ✓）——**你设的那个永远优先** ✓，
+它只用来填补沉默 ✓。
 产品会核对这件事 ✓：**一个自称服务别的工作区的桥会被拒绝** ✓，并点名**两个路径** ✓。
 **为什么值得设** ✓：socket 路径有全局默认值 ✓，于是两个工作区**可以指向同一个 Blender** ✓——
 不设的话 ✓，B 工作区的产品会去驱动 **A 工作区的用户正在看的那个窗口** ✓，
