@@ -569,8 +569,12 @@ async function publish(dryRun) {
       // actually made.
       const served = await waitForRegistry(entry.name, entry.version, { timeoutMs: 0 })
       if (served === false) {
-        console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry still does not serve it after the propagation window`)
-        console.error('the publish was accepted but the version is not readable; check `npm stage list` for a staged version')
+        // THE MESSAGE SAYS WHAT WAS ACTUALLY DONE. The first version claimed "after the propagation
+        // window" while this read waits for none — it is a quick read, and the wait happens once in
+        // the summary. A message that overstates its own diligence is the kind of sentence a reader
+        // learns to distrust.
+        console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry does not serve it yet`)
+        console.error('the read side lags the write side by minutes; re-run to finish, and check `npm stage list` if it persists')
         return 1
       }
       console.log(`  ${entry.name}@${entry.version} — ok${served === null ? ' (the registry could not be reached to confirm)' : ', read back from the registry'}`)
