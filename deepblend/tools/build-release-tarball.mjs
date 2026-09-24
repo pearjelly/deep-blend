@@ -157,7 +157,20 @@ function releaseCommit(allowDirty) {
   const containing = run('git', ['branch', '--remotes', '--contains', commit], ROOT).output
   if (containing === '') {
     console.error(`${commit.slice(0, 12)} is not on any remote branch, so pnpm cannot fetch it`)
+    // AND THE STALE FILE GOES AWAY. MEASURED, on the 0.2.10 release: this refusal fired (the commit was
+    // not pushed yet) and the artifact from the PREVIOUS release was still sitting at the path — so the
+    // next command in the chain uploaded a 0.2.9 tarball under the v0.2.10 tag. The Release page served
+    // the old bytes while every other signal said the release had happened.
+    //
+    // A refusal that leaves the previous artifact in place is a refusal that invites exactly that, so
+    // the file is removed before the message is printed: a build that refuses leaves NOTHING to upload.
+    try {
+      rmSync(join(OUT_DIRECTORY, ASSET_NAME), { force: true })
+    } catch {
+      // Nothing to remove, or nothing removable: the refusal below is what matters.
+    }
     console.error('push it first — a release artifact has to correspond to a commit other people can fetch')
+    console.error('(the previous artifact, if any, was removed, so it cannot be uploaded by mistake)')
     process.exit(2)
   }
   return commit
