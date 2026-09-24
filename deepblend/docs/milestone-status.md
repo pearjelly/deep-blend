@@ -15396,7 +15396,20 @@ socket 路径有一个**全局默认值** ✓，所以同一台机器上两个�
 3. **`startFrameSequence` 的方法体是「交回 handle」的唯一判据** ✓（§216.7 第 3 条 ✓）。
 4. **面板的「好看」仍然只有人看** ✓（§214.8 第 4 条 ✓）。
 
-### 220.9 发布链
+### 220.9 发布链：两次瞬时网络失败，而**两次都没留下错的产物**
 
-（本节由同一次收口写入 ✓：版本 `0.2.11` → `0.2.12` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.11 -> 0.2.12 ✓ + version:sync ✓
+1. git push ✓
+2. npm run release:tarball -> 退出码 **0** ✓（读它自己的 ✓）
+3. gh release create -> **EOF（瞬时）** ✗ -> 重试 ✓ -> 资产 406035 字节、state: uploaded ✓
+4. 读回来 ✓：v0.2.12 的 URL 解出来是 **0.2.12** ✓
+5. publish:packages -> 「还没有」 ✓（照它说的再跑 ✓）-> all 7 packages ✓
+6. release:parity -> problems: 0 ✓；两份探针日志按 0.2.12 重写 ✓
+```
+
+**这一轮的网络抖了三次** ✓（push 一次 ✓、`listing:check` 一次 ✓、`gh release create` 一次 ✓），
+而**没有一次留下错的产物** ✓：`gh release create` 失败时**什么都没建** ✓，
+所以那次 `curl` 拿到的是 404 页 ✓（`tar` 说「Unrecognized archive format」 ✓）——
+**一次失败看起来就是一次失败** ✓，而不是一个看起来成功的坏产物 ✓。
+**这正是 `listing:check` 那个退出码 2 存在的理由** ✓：**「读不到远端」与「远端漂移了」是两件事** ✓。
