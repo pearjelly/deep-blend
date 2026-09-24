@@ -562,9 +562,12 @@ async function publish(dryRun) {
       }
       // VERIFIED, NOT ASSUMED. `npm publish` returning without an error is what this line used to
       // mean; on 0.2.3 that was true of a version the registry had only STAGED.
-      // BOUNDED WAIT, because the registry's read side lags the write side by minutes and a check
-      // that cannot tell "not yet" from "never" reports a normal release as a failure.
-      const served = await waitForRegistry(entry.name, entry.version)
+      // A QUICK READ, not a wait. MEASURED: waiting the full propagation window after EACH package
+      // multiplies a two-minute lag by seven and made a real release run past ten minutes and get
+      // killed mid-way. Propagation is a property of the REGISTRY, not of one package, so it is waited
+      // for ONCE — in the summary at the end, where the claim "all seven are on the registry" is
+      // actually made.
+      const served = await waitForRegistry(entry.name, entry.version, { timeoutMs: 0 })
       if (served === false) {
         console.error(`  ${entry.name}@${entry.version} — npm reported success, and the registry still does not serve it after the propagation window`)
         console.error('the publish was accepted but the version is not readable; check `npm stage list` for a staged version')
