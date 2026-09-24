@@ -384,6 +384,27 @@ test('the ledger is cited from the record that has to keep it, and the probe log
   assert.ok(install.includes('probe-uninstall-residue.log'), 'the manual does not cite the reading behind its uninstall section')
 })
 
+test('every milestone-status section the ledger cites exists in that record', () => {
+  // MEASURED, and it is why this assertion exists: the ledger's own row for the Live Bridge cited
+  // `milestone-status.md` §210.3 while §210 did not exist yet, and every check in this file stayed
+  // green. A citation that lands nowhere reads like evidence — the failure mode is not "the number is
+  // wrong", it is "a reader follows it and finds nothing". The survivors document has had this rule
+  // since it was written; the ledger, which is the document the whole objective rests on, did not.
+  const milestone = readFileSync(join(ROOT, 'deepblend', 'docs', 'milestone-status.md'), 'utf8')
+  const source = readFileSync(LEDGER, 'utf8')
+  // ONLY CITATIONS THAT NAME THE RECORD. MEASURED: matching every `§N` in the ledger found `§0`,
+  // which the ledger cites as `install.md` §0 — a section of a different document, and looking for it
+  // in the milestone record is a false accusation. The citation has to say which file it means.
+  const cited = new Set(
+    [...source.matchAll(/`milestone-status\.md`\s*§(\d+(?:\.\d+)*)/g)].map(match => match[1]),
+  )
+  assert.ok(cited.size > 0, 'the ledger cites no section of the milestone record at all')
+
+  const missing = [...cited].filter(number => !new RegExp(`^#{2,4} ${number.replace(/\./g, '\\.')}[ .]`, 'm').test(milestone))
+  assert.deepEqual(missing, [],
+    `these sections are cited by the ledger and do not exist in milestone-status.md: ${missing.join(', ')}`)
+})
+
 test('the tool files the ledger leans on are the ones the repository actually ships', () => {
   // `probe-logs.test.mjs` owns the log-header rules; this owns the one thing the ledger
   // promises a reader: that the readings behind its rows can be taken again.

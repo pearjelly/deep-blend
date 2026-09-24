@@ -186,6 +186,8 @@ class BlenderSession {
     /** @type {Map<string, {resolve: Function, reject: Function, timer: object}>} */
     this.waiting = new Map()
     this.progress = []
+    /** Whether the process said goodbye before it went: the difference between a shutdown and a death. */
+    this.saidBye = false
     this.stderr = ''
     this.closed = false
     this.readyPromise = null
@@ -250,7 +252,10 @@ class BlenderSession {
       this.readyResolve?.(this)
       return
     }
-    if (document?.kind === 'bye') return
+    if (document?.kind === 'bye') {
+      this.saidBye = true
+      return
+    }
     const jobId = document?.jobId
     const pending = typeof jobId === 'string' ? this.waiting.get(jobId) : undefined
     if (pending === undefined) return

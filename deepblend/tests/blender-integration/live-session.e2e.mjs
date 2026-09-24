@@ -147,8 +147,30 @@ try {
   const afterClose = await session.run({ action: 'get_capabilities' }).then(() => null, error => error)
   check('and a request after close is refused with a code, not a hang',
     afterClose !== null && typeof afterClose.code === 'string' && afterClose.code.startsWith('BLENDER_'), afterClose?.code ?? 'it resolved')
+  check('and the process said goodbye before it went, which is what makes this a shutdown',
+    session.saidBye === true, session.saidBye)
   await session.close()
   check('closing twice is not an error', true)
+
+  // -------------------------------------------------------------------------
+  // A SESSION WHOSE PROCESS DIES, which is the case a surviving mutation found: killing the process
+  // from outside used to leave a caller waiting until the per-request deadline, because nothing
+  // watched for the exit. A live transport has to report the death as its own answer.
+  // -------------------------------------------------------------------------
+  const doomed = await runtime.openSession()
+  const doomedPid = doomed.pid
+  execFileSync('kill', ['-9', String(doomedPid)])
+  const deathStarted = Date.now()
+  const afterDeath = await doomed.run({ action: 'get_capabilities' }).then(() => null, error => error)
+  const deathMs = Date.now() - deathStarted
+  check('a session whose process is killed answers with a code instead of waiting out the deadline',
+    afterDeath !== null && typeof afterDeath.code === 'string' && afterDeath.code.startsWith('BLENDER_'),
+    afterDeath?.code ?? 'it resolved')
+  check('and it answers promptly, not after the configured timeout',
+    deathMs < 5_000, `${deathMs} ms`)
+  check('and the answer says the process is gone rather than blaming the request',
+    /ended before answering/.test(afterDeath?.message ?? ''), afterDeath?.message?.slice(0, 120))
+  await doomed.close()
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }
