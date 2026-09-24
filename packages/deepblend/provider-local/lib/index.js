@@ -226,6 +226,28 @@ async function connect(socketPath, timeoutMs) {
 }
 
 /**
+ * The actions this provider can serve from a kept session, and the ONLY ones it can.
+ *
+ * DERIVED, NOT CHOSEN: these are exactly the actions whose calls go through `runBootstrap`, which is
+ * the one place the session path is decided. Everything else spawns its own process on purpose —
+ * `render_frames` most of all, because cancelling a render has to kill exactly that render, and a
+ * request inside a kept session cannot be killed without ending the session (and, attached, the
+ * user's own Blender).
+ *
+ * WHY THE LIST IS CHECKED RATHER THAN TRUSTED. MEASURED: naming `render_frames` in `sessionActions`
+ * used to do NOTHING AT ALL — the configuration was inert, the render ran in its own process as
+ * before, and nothing anywhere said so. A key that silently does nothing is worse than a key that
+ * fails: the operator believes they changed something. `contract/session-routing.test.mjs` derives
+ * this set from the source, so adding a `runBootstrap` call site without adding it here goes red.
+ */
+export const SESSION_ROUTABLE_ACTIONS = Object.freeze([
+  'get_capabilities',
+  'compile_scene',
+  'render_preview',
+  'render_views',
+])
+
+/**
  * A live Blender, presented as one shape whatever carries the bytes.
  *
  * WHY THE SEAM EXISTS. A session can be carried two ways, and both are real: the process this
@@ -574,6 +596,20 @@ export default class LocalBlenderRuntime extends Service {
     // See the host's constructor: a key this row does not read is a startup error, because the schema
     // accepts it silently (SPEC §17's nested groups versus this package's flat keys).
     assertKnownConfigKeys(ProviderConfig, config, 'deepblend-blender-runtime')
+    // A CONFIGURED ACTION THAT CANNOT BE ROUTED IS REFUSED AT STARTUP, not ignored. Naming a render
+    // here would leave the operator believing their renders now run in their own Blender, while the
+    // render quietly kept its own process — the same shape as a key this row does not read, which the
+    // line above already refuses.
+    const unroutable = (config.sessionActions ?? []).filter(action => !SESSION_ROUTABLE_ACTIONS.includes(action))
+    if (unroutable.length > 0) {
+      throw new Error(
+        `sessionActions names ${unroutable.map(action => `"${action}"`).join(', ')}, and this provider can only ` +
+        `serve ${SESSION_ROUTABLE_ACTIONS.join(', ')} from a kept session. The renders that must be cancellable ` +
+        '(`render_frames`) spawn their own process on purpose: cancelling one kills exactly that render, and a ' +
+        'request inside a kept session cannot be killed without ending the session — which, attached, is the ' +
+        'user\'s own Blender.',
+      )
+    }
     this.config = config
     this.bootstrapPath = this._resolveBootstrapPath(config.bootstrapPath)
     /** Resolved once: the host must be configured with the same value. */
