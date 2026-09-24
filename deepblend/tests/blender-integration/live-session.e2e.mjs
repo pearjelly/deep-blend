@@ -33,7 +33,7 @@ import { Context } from '@deepseek-ai/cordis'
 import net from 'node:net'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { execFileSync, spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -70,6 +70,10 @@ ctx.plugin(Provider, ProviderConfig({
   blenderPath: BLENDER,
   bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
   workspaceRoot: workspace,
+  // THE FAST PATH IS OPT IN, and this suite is where it is measured: the two actions that are pure
+  // and short. The batch contract (per-request stdout capture, a deadline that kills the process, no
+  // directory held) is what the other suites assert, and a session does not promise it.
+  sessionActions: ['get_capabilities', 'compile_scene'],
 }))
 await new Promise(settle => setTimeout(settle, 250))
 
@@ -172,6 +176,69 @@ try {
   check('and the answer says the process is gone rather than blaming the request',
     /ended before answering/.test(afterDeath?.message ?? ''), afterDeath?.message?.slice(0, 120))
   await doomed.close()
+  // -------------------------------------------------------------------------
+  // THE RUNTIME ROUTES THE CONFIGURED ACTIONS THROUGH A KEPT SESSION, which is what makes the Live
+  // Bridge a change in the PRODUCT rather than a capability only tests call.
+  // -------------------------------------------------------------------------
+  const capabilities = []
+  const routedStarted = Date.now()
+  for (let index = 0; index < 3; index += 1) capabilities.push(await runtime.runBootstrap({ action: 'get_capabilities' }))
+  const routedMs = Date.now() - routedStarted
+  check('the runtime serves the configured actions from a kept session, with the batch path\'s own outcome shape',
+    capabilities.every(run => run.envelope.status === 'success') &&
+    capabilities.every(run => typeof run.durationMs === 'number' && 'exitCode' in run && 'envelope' in run),
+    capabilities.map(run => run.envelope.status))
+  check('and three of them cost less than three separate processes, measured now',
+    routedMs < batchMs, { routedMs, batchMs })
+  check('the kept session is one process, named by the runtime',
+    runtime._session !== null && typeof runtime._session.pid === 'number' && alive(runtime._session.pid),
+    runtime._session?.pid ?? null)
+
+  // NO STATE LEAKS BETWEEN OPERATIONS, which is the question a kept process raises: `reset_scene()`
+  // clears `bpy.data` at the top of every compile, and this is what proves it rather than assuming it.
+  // The two specs differ by exactly one entity, so a leak would show up as a wrong COUNT.
+  const fixture = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'fixtures', 'interior-room', 'scene-spec.json'), 'utf8'))
+  const specA = join(workspace, 'leak-a.json')
+  const specB = join(workspace, 'leak-b.json')
+  writeFileSync(specA, JSON.stringify(fixture, null, 2))
+  const variant = JSON.parse(JSON.stringify(fixture))
+  variant.entities = [...variant.entities, { ...variant.entities[0], id: `${variant.entities[0].id}-extra` }]
+  writeFileSync(specB, JSON.stringify(variant, null, 2))
+
+  const meshes = envelope => envelope.result?.sceneFingerprint?.objectCounts?.MESH ?? null
+  const argsFor = (spec, blend) => ['--scene-spec', spec, '--output-blend', blend, '--profile', 'preview']
+  const compiledA = await runtime.runBootstrap({ action: 'compile_scene' }, { args: argsFor(specA, join(workspace, 'leak-a.blend')) })
+  const compiledB = await runtime.runBootstrap({ action: 'compile_scene' }, { args: argsFor(specB, join(workspace, 'leak-b.blend')) })
+  const compiledAgain = await runtime.runBootstrap({ action: 'compile_scene' }, { args: argsFor(specA, join(workspace, 'leak-a2.blend')) })
+  check('the two specs really differ, so the leak test can see one',
+    meshes(compiledA.envelope) !== meshes(compiledB.envelope),
+    { a: meshes(compiledA.envelope), b: meshes(compiledB.envelope) })
+  check('compiling B right after A in the same process gives B\'s scene, not A\'s plus B\'s',
+    meshes(compiledB.envelope) === meshes(compiledB.envelope) && meshes(compiledB.envelope) !== meshes(compiledA.envelope) + meshes(compiledA.envelope),
+    { b: meshes(compiledB.envelope) })
+  check('and compiling A again gives A, so nothing accumulates',
+    meshes(compiledAgain.envelope) === meshes(compiledA.envelope),
+    { a: meshes(compiledA.envelope), again: meshes(compiledAgain.envelope) })
+
+  // A RENDER IS NOT ROUTED, and that is a decision with a reason: cancelling one must kill exactly
+  // that render, and the only way this provider can do that is to end the process — which, on an
+  // attached Blender, is the user's own session.
+  check('the renders are not served from the kept session, so a cancel can still kill one render',
+    !runtime.config.sessionActions.includes('render_frames') &&
+    !runtime.config.sessionActions.includes('render_views'),
+    runtime.config.sessionActions)
+
+  // CLOSED, NOT FORGOTTEN. MEASURED: the first version of this check asserted `_session === null`,
+  // and a mutation that dropped the `close()` call — leaving the process running and merely losing the
+  // reference — SURVIVED it. It is the same lesson the death path taught earlier in this file: a flag
+  // says nothing about the process. The pid is what can be asked of the operating system.
+  const keptPid = runtime._session?.pid ?? null
+  await runtime.closeSession()
+  await new Promise(settle => setTimeout(settle, 400))
+  check('and closing the kept session ends that process, measured by the operating system',
+    runtime._session === null && keptPid !== null && !alive(keptPid),
+    { forgotten: runtime._session === null, pid: keptPid, stillAlive: keptPid === null ? null : alive(keptPid) })
+
   // -------------------------------------------------------------------------
   // THE OTHER HALF: attaching to a Blender that is already running — the user's own, with the add-on.
   // Same conversation, different owner of the other end of the bytes.

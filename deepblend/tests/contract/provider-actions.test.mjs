@@ -125,7 +125,16 @@ function makeProvider({
       }
     },
   })
-  const provider = new LocalBlenderRuntime(ctx, ProviderConfig({ workspaceRoot, blenderPath }))
+  const provider = new LocalBlenderRuntime(ctx, ProviderConfig({
+    workspaceRoot,
+    blenderPath,
+    // NO KEPT SESSION HERE, and it is not a workaround: this suite drives a STUB subprocess service, so
+    // a session would wait for a handshake no stub ever sends. What this file is about is the ACTIONS
+    // and their envelopes, and the session is a transport — `live-session.e2e.mjs` owns that with a
+    // real Blender. A test that opted in would be asserting the transport through a stub that cannot
+    // speak it.
+    sessionActions: [],
+  }))
   // The probe's answer is written when the capability action runs, exactly as bootstrap.py does.
   const original = provider.runBootstrap.bind(provider)
   provider.runBootstrap = async (request, options) => {

@@ -143,6 +143,30 @@ export const ProviderConfig = z.object({
   capabilitiesCacheMs: z.number().default(60_000),
   /** Retain per-invocation working directories for post-mortem inspection. */
   keepWorkingDirectory: z.boolean().default(false),
+  /**
+   * Actions served from a KEPT Blender process instead of one process each (SPEC §20 M6).
+   *
+   * EMPTY BY DEFAULT, AND THAT IS THE HONEST DEFAULT — MEASURED, not cautious. Turning it on for
+   * `get_capabilities` and `compile_scene` made three acceptance suites fail, and they were right:
+   * a kept session has a NARROWER CONTRACT than a batch invocation. It does not capture per-request
+   * stdout (the capture cap and the flood test have nothing to read), a per-request deadline does not
+   * kill the process (the deadline test found a Blender still in the process table), and it holds its
+   * working directory for as long as it lives (the M0 probe found temp directories left behind).
+   *
+   * None of that is a bug in the session; it is a different shape with different promises. But a
+   * default that silently swaps one set of promises for another is exactly the kind of change this
+   * repository's suites exist to catch, so the fast path is OPT IN: an operator who wants it names the
+   * actions, and the actions that are safe for it are the pure, short ones — `get_capabilities` and
+   * `compile_scene`. MEASURED with it on: three operations cost 832 ms instead of 2594 ms, in one
+   * process instead of three (`milestone-status.md` §212.6).
+   *
+   * The RENDERS are not safe for it in any configuration: cancelling one must kill exactly that
+   * render, and the only way this provider can do that is to end the process — which, on an ATTACHED
+   * Blender, is the user's own session.
+   */
+  sessionActions: z.array(z.string()).default([]),
+  /** How long a kept session may sit idle before it is closed. */
+  sessionIdleMs: z.number().default(60_000),
 })
 
 /**
@@ -434,7 +458,7 @@ class BlenderSession {
   /**
    * Run one action in the live process.
    *
-   * @param {{ action: string, payload?: object, jobId?: string }} request
+   * @param {{ action: string, payload?: object, args?: string[], jobId?: string }} request
    * @param {{ signal?: AbortSignal }} [options]
    * @returns {Promise<object>} the envelope bootstrap.py built for it.
    */
@@ -451,6 +475,11 @@ class BlenderSession {
       jobId,
       action: request.action,
       ...(request.payload !== undefined ? { payload: request.payload } : {}),
+      // PER-REQUEST ARGUMENTS. A session's argv is fixed when the process starts, and the actions that
+      // matter need flags (`--scene-spec`, `--output`, …), so the request carries its own and
+      // bootstrap.py parses them with the same parser the process used. MEASURED: without this, every
+      // real action failed inside a session with "requires --scene-spec".
+      ...(Array.isArray(request.args) ? { args: request.args } : {}),
     }
 
     const answered = new Promise((resolve, reject) => {
@@ -518,6 +547,10 @@ export default class LocalBlenderRuntime extends Service {
   /** @type {Map<string, import('@deepblend/dsh-blender-contracts').BlenderCapabilities>} */
   _capabilitiesCache = new Map()
 
+  /** The kept Blender for `sessionActions`, and the timer that closes it when it goes quiet. */
+  _session = null
+  _sessionTimer = null
+
   /**
    * @param {import('@deepseek-ai/cordis').Context} ctx
    * @param {import('z').infer<typeof ProviderConfig>} config - validated by schemastery before construction.
@@ -531,6 +564,11 @@ export default class LocalBlenderRuntime extends Service {
     this.bootstrapPath = this._resolveBootstrapPath(config.bootstrapPath)
     /** Resolved once: the host must be configured with the same value. */
     this.workspaceRoot = resolveWorkspaceRoot(config.workspaceRoot)
+    // A KEPT SESSION IS A PROCESS THIS ROW OWNS, so it is disposed with the row rather than left for
+    // the host's exit path to find: a plugin that is unloaded must not leave a Blender behind.
+    ctx.effect(() => () => {
+      this.closeSession().catch(() => {})
+    }, 'deepblend kept session teardown')
   }
 
   /**
@@ -901,6 +939,46 @@ export default class LocalBlenderRuntime extends Service {
     return session
   }
 
+  /**
+   * The kept session, opened on first use and closed when it has been idle.
+   *
+   * A SESSION IS NOT A CACHE. It is a Blender process holding a loaded scene, so it is closed on a
+   * timer rather than kept forever: an operator who runs one compile and walks away should not find a
+   * Blender still resident an hour later. The timer is refreshed by use and cleared on disposal.
+   */
+  async _keptSession() {
+    if (this._session !== null && !this._session.closed) return this._session
+    this._session = await this.openSession()
+    return this._session
+  }
+
+  _touchSession() {
+    if (this._sessionTimer !== null) clearTimeout(this._sessionTimer)
+    this._sessionTimer = setTimeout(() => {
+      // NEVER CLOSE UNDER A REQUEST. MEASURED: the first version closed on the timer alone, and a
+      // compile that was still running when the idle window expired was rejected with "closed by its
+      // caller" — the session ended a request that had done nothing wrong. Idle means idle.
+      if (this._session !== null && this._session.waiting.size > 0) {
+        this._touchSession()
+        return
+      }
+      const session = this._session
+      this._session = null
+      this._sessionTimer = null
+      session?.close?.().catch(() => {})
+    }, this.config.sessionIdleMs)
+    if (typeof this._sessionTimer.unref === 'function') this._sessionTimer.unref()
+  }
+
+  /** Close the kept session now, if there is one. */
+  async closeSession() {
+    if (this._sessionTimer !== null) clearTimeout(this._sessionTimer)
+    this._sessionTimer = null
+    const session = this._session
+    this._session = null
+    if (session !== null) await session.close().catch(() => {})
+  }
+
   async runBootstrap(request, options = {}) {
     const action = request?.action
     if (typeof action !== 'string' || action.length === 0) {
@@ -912,6 +990,28 @@ export default class LocalBlenderRuntime extends Service {
         BlenderErrorCode.BOOTSTRAP_MISSING,
         `bootstrap.py not found at ${this.bootstrapPath}.`,
       )
+    }
+
+    // THE SESSION PATH, for the actions configured to use one. It returns the SAME outcome shape the
+    // batch path returns — a caller must not be able to tell which one served it, or the two paths
+    // would drift into two behaviours with one name.
+    if (this.config.sessionActions.includes(action) && options.session !== false) {
+      const session = await this._keptSession()
+      this._touchSession()
+      const startedAt = Date.now()
+      const envelope = await session.run({
+        action,
+        ...(request.payload !== undefined ? { payload: request.payload } : {}),
+        ...(Array.isArray(options.args) ? { args: options.args } : {}),
+      }, { signal: options.signal })
+      return {
+        envelope,
+        stdout: '',
+        stderr: '',
+        exitCode: envelope.status === 'error' ? 1 : 0,
+        durationMs: Date.now() - startedAt,
+        workingDirectory: session.directory ?? null,
+      }
     }
 
     const resolvedExecutable = await this.resolveBlenderExecutable({ signal: options.signal })
@@ -1264,7 +1364,14 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<{report: object, envelope: object, durationMs: number, stdout: string, stderr: string}>}
    */
   async compileScene(request) {
-    const outputBlend = 'result.blend'
+    // AN ABSOLUTE, PER-REQUEST OUTPUT PATH, and it is what lets the same action run in either
+    // transport. MEASURED: this used to be the relative `'result.blend'`, which was safe only because
+    // the batch path gives every invocation its own working directory — a session has ONE directory
+    // for every request, so two compiles would write the same file and the caller would be handed a
+    // checkpoint that belonged to a different one. Passing the path explicitly removes the dependency
+    // on a working directory that a kept process does not have per request.
+    const { directory: requestDirectory } = this._createWorkingDirectory()
+    const outputBlend = join(requestDirectory, 'result.blend')
     if (typeof request?.sceneSpecPath !== 'string' || request.sceneSpecPath.length === 0) {
       throw new BlenderError(
         BlenderErrorCode.SCENE_SPEC_INVALID,
@@ -1282,9 +1389,17 @@ export default class LocalBlenderRuntime extends Service {
         signal: request.signal,
         args,
         projectRoot: request.projectRoot,
-        onWorkingDirectory: request.onWorkingDirectory,
+        // NOT `onWorkingDirectory` here: the callback has to name the directory that HOLDS the
+        // checkpoint, and that is this method's own (`runBootstrap` would name its invocation
+        // directory, which in a session is a different one). One owner for one path.
       },
     )
+
+    // The caller moves the checkpoint somewhere durable before this directory goes away, which is what
+    // lets a compile failure leave no trace in the project.
+    if (typeof request.onWorkingDirectory === 'function') {
+      await request.onWorkingDirectory({ directory: requestDirectory, envelope: run.envelope, jobId: request.jobId })
+    }
 
     const report = run.envelope.result ?? {}
     return {

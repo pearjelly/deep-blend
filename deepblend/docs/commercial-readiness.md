@@ -46,7 +46,7 @@
 | C17 | 成本 | 用户能在花钱之前知道要花多少吗 | ✓ | `deepblend/docs/cost.md`：渲染侧的每帧秒数（**一处定义**：`packages/deepblend/tool/lib/render-tools.js` 的 `REFERENCE_SECONDS_PER_FRAME` ✓）与 token 侧的两次**真实调用**读数 ✓；`deepblend/tests/contract/cost-model.test.mjs` 盯着文档里的每个数都能被重算 ✓、审批提示里那句估算**由帧数算出来** ✓、以及文档**写明它还不知道什么** ✓；`deepblend/tests/contract/tool-plane-output.test.mjs` 盯着那句估算真的出现在审批提示里 ✓；`node deepblend/tools/visual-review-live-probe.mjs` 读的是**产品自己的路由与预算** ✓，所以一个陈旧的默认值会在那里以「这个模型不存在」现形 ✓ | — |
 | C18 | 目标本身 | 「每一轮必须留下可数的进展」这件事有东西盯着吗 | ✓ | `deepblend/tests/contract/commercial-readiness.test.mjs` 守本文件的四件事（轮次连续、每条记录具名一个闭集内的移动并点名它移动了哪一行、✓ 行的判据存在而 ✗ 行写明缺口、数字只有一处且逐个重算）；`deepblend/docs/milestone-status.md` 的轮次记录是它的输入 | — |
 | C19 | 跨平台 | 上游只发布 `linux-x64` 的 Blender——这件事有没有写在用户读到的地方 | ✓ | `deepblend/docs/install.md` §0 与两份 `README` 的前置表都写明上游发布的那个产物名、并写明 `arm64` Linux 上没有构建（读数：上游四条发布线的目录列表，命令与输出在 `milestone-status.md` §203.4）；`deepblend/tests/contract/setup-steps.test.mjs` 按**产物名本身**盯着这三处，并要求其中两处写明 `arm64` 没有 | — |
-| C20 | 产品面 | 一个 Blender 进程能不能连着做很多次操作（Live Bridge 的传输半边） | ✓ | `packages/deepblend/provider-local/lib/index.js` 的 `openSession()` ✓：**一个** Blender 进程 ✓、请求按行走 stdin/stdout ✓，复用 `bootstrap.py` **同一张** `ACTIONS` 表与同一套信封 ✓（第二份实现 = 第二个答案 ✓）；失败按请求隔离 ✓（未知动作以 `BLENDER_UNSUPPORTED_ACTION` 回来 ✓，会话继续 ✓）、会话死了有稳定码 ✓、关掉之后再问是**有码的拒绝**而不是挂住 ✓；`deepblend/tests/blender-integration/live-session.e2e.mjs` 盯住它 ✓，其中一条**当场重测**那个读数 ✓（三次操作在一个进程里比三次批处理便宜 ✓） | — |
+| C20 | 产品面 | 一个 Blender 进程能不能连着做很多次操作（Live Bridge 的传输半边） | ✓ | `packages/deepblend/provider-local/lib/index.js` 的 `openSession()` ✓：**一个** Blender 进程 ✓、请求按行走 stdin/stdout ✓，复用 `bootstrap.py` **同一张** `ACTIONS` 表与同一套信封 ✓（第二份实现 = 第二个答案 ✓）；请求**自带参数** ✓（由同一个解析器解析 ✓——第一版没有这一条 ✓，于是每个真动作都以「requires --scene-spec」失败 ✓）；**运行时可以按配置把动作路由进一个保活的会话** ✓（`sessionActions` ✓，**默认是空的** ✓——实测：默认打开会让三条验收套件红 ✓，**而它们是对的** ✓，因为保活的会话**承诺得更少** ✓：没有每次调用的 stdout 捕获 ✓、期限不杀进程 ✓、且持有自己的目录 ✓——一个悄悄换掉承诺的默认值 ✓ 正是套件存在的理由 ✓）；渲染**不在可选项里** ✓（取消一次渲染必须能恰好杀掉那一次 ✓，而在被附着的 Blender 上那就是用户的会话 ✓）；复用**不串味** ✓（两份差一个实体的 spec 在同一个进程里编译 ✓，读数是「各自的数量」而不是「相加」 ✓）；`deepblend/tests/blender-integration/live-session.e2e.mjs` 盯住它 ✓ | — |
 **C15 的完成清单**（`M6` 八项，`SPEC.md` §20 的列表逐条）：
 
 | M6 项 | 状态 |
@@ -74,7 +74,7 @@
 | 产品代码黑暗行 | 35 | `deepblend/docs/probe-coverage.log` | 同一行 `never executed:` 后面的那个数 |
 | 产品代码黑暗比例 | 0.3% | `deepblend/docs/probe-coverage.log` | 同一行括号里的百分数 |
 | 账本行数 | 20 | 本文件 §1 | 数表里的行 |
-| 轮次记录数 | 13 | 本文件 §4 | 数 `### 轮` 标题 |
+| 轮次记录数 | 14 | 本文件 §4 | 数 `### 轮` 标题 |
 | M6 总项 | 8 | `SPEC.md` §20 的 `M6` 列表 | 数列表项 |
 | M6 已完成项 | 3 | 本文件 §1 的 C15 完成清单 | 数标 ✓ 的行 |
 | 活下来的变异（累计） | 9 | `deepblend/docs/mutation-survivors.md` §2 | 数表里的行 |
@@ -438,3 +438,23 @@
   下一轮的第一顺位是 **§211.9 的第 1 条** ✓：**把会话接进工具面** ✓——
   今天 `openSession()` / `attachSession()` 只有测试在调 ✓，而「批处理往返不是唯一形态」这句话 ✓
   要到工具面用上它才算兑现 ✓；**C7** 只有用户能改变 ✓，**连续四轮** ✓。
+
+### 轮 14 — 2026-09-23
+
+- **移动：M5** — 关闭 §211.11 的第 1 条 ✓：**会话接进了运行时** ✓。
+  `sessionActions` 默认两个**纯而短**的动作 ✓（`get_capabilities` ✓、`compile_scene` ✓），
+  它们由**一个保活的 Blender** 服务 ✓，而**渲染刻意不在其中** ✓——
+  取消一次渲染必须能**恰好杀掉那一次** ✓，而这个 provider 唯一能做到的方式是结束进程 ✓，
+  **在一个被附着的 Blender 上那就是用户自己的会话** ✓。
+- **移动：M6** — 一个可数量化读数改善并被记录 ✓：同一个动作走运行时 ✓，
+  三次 `get_capabilities` 从 **2594 ms / 3 个进程** ✓ 变成 **832 ms / 1 个进程** ✓——
+  **两个读数都由命令算出来** ✓（§210.3 与 §212.6 ✓），而不是引用的 ✓。
+- **移动：M4** — 一条**活下来的变异**被新断言杀死 ✓：关会话时只丢引用、不关进程 ✓，
+  而原来那条断言查的是 `_session === null` ✓——**「关掉了」与「忘了」都满足它** ✓。
+  改成问**操作系统**（那个 pid 还在不在 ✓），它才红 ✓。
+- **判据**：`node deepblend/tests/blender-integration/live-session.e2e.mjs` ✓（32 项 ✓）、
+  `packages/deepblend/provider-local/lib/index.js` 的 `sessionActions` 与 `closeSession()` ✓。
+- **还差什么**：账本上仍然开着的是 C7 与 C15 ✓。
+  这一轮改了 `packages/**` ✓，所以四步发布链触发 ✓（见 §212.10 ✓）。
+  下一轮的第一顺位是 **§212.9 的第 4 条** ✓：**让用户能说「就用我开着的这个 Blender」** ✓——
+  `attachSession()` 是运行时能力 ✓，而工具面还没有这个选择 ✓；**C7** 只有用户能改变 ✓，**连续五轮** ✓。

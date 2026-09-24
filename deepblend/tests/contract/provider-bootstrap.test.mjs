@@ -93,7 +93,15 @@ function makeProvider(plan = {}, config = {}) {
       return plan.spawn(request)
     },
   })
-  return new LocalBlenderRuntime(ctx, ProviderConfig({ workspaceRoot, blenderPath, ...config }))
+  return new LocalBlenderRuntime(ctx, ProviderConfig({
+    workspaceRoot,
+    blenderPath,
+    // NO KEPT SESSION: this suite drives a stub subprocess service, so a session would wait for a
+    // handshake no stub sends. The session is a transport, and `live-session.e2e.mjs` owns it with a
+    // real Blender.
+    sessionActions: [],
+    ...config,
+  }))
 }
 
 /** The request the provider handed to `spawn`, kept per case so its `cwd` can be checked afterwards. */

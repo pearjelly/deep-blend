@@ -429,6 +429,15 @@ def _as_int(value):
         raise ActionError("BLENDER_SCRIPT_ERROR", '"%s" is not an integer' % (value,))
 
 
+# The options a REQUEST may carry, which is the batch path's own list: a session request that names a
+# flag the batch path knows must work, and one it does not must fail the same way.
+KNOWN_SESSION_OPTIONS = (
+    "--request", "--result", "--scene-spec", "--blend", "--output-blend",
+    "--output", "--camera", "--engine", "--width", "--height", "--samples",
+    "--frame", "--profile", "--project-root", "--save-on-failure", "--views",
+    "--frames", "--events", "--proc",
+)
+
 ACTIONS = {
     "get_capabilities": action_get_capabilities,
     "compile_scene": action_compile_scene,
@@ -551,6 +560,27 @@ def _session_dispatch(request, options):
             % (action, ", ".join(SUPPORTED_ACTIONS)),
             "detail": {"action": action, "supported": list(SUPPORTED_ACTIONS)},
         }, [], [])
+
+    # PER-REQUEST ARGUMENTS, merged over the process's own.
+    #
+    # MEASURED, and it made sessions useless for the actions that matter: `compile_scene` needs
+    # `--scene-spec`, `render_preview` needs `--output`, and the batch path passes those as extra
+    # argv — but a session's argv is fixed when the process starts, so the first attempt at reusing a
+    # process dropped every one of them and every real action failed with "requires --scene-spec".
+    #
+    # The fix is not to restart the process with new flags (that is the batch path) but to let a
+    # request carry its own, parsed by the SAME parser the process used: one parser, so a flag that
+    # works in batch mode works here, including the failure for an unknown one.
+    options = options
+    if isinstance(request.get("args"), list):
+        extra, unknown = parse_args(["--"] + [str(token) for token in request["args"]], KNOWN_SESSION_OPTIONS)
+        if unknown:
+            return build_envelope(job_id, action, None, {
+                "code": "BLENDER_SCRIPT_ERROR",
+                "message": "unrecognised arguments: %s" % (", ".join(unknown),),
+            }, [], [])
+        options = dict(options)
+        options.update(extra)
 
     eprint("session action=%s job=%s" % (action, job_id))
     # Same claim as the batch path: every request is attributable to this pid, so a session that
