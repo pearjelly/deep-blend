@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-contracts",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "description": "DeepBlend Studio Service Definition, protocol contracts, and stable error codes.",
   "main": "lib/index.js",
