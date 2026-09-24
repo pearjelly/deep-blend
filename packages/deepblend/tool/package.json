@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-tool",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "description": "Agent-preset tool consumer: registers the model-visible DeepBlend Blender tools. Publishes no service.",
   "main": "lib/index.js",
