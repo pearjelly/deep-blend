@@ -185,6 +185,10 @@ export function validateSceneSpec(spec) {
   // ---- uniqueness ---------------------------------------------------------
   const collections = [
     ['assets', document.assets ?? []],
+    // ARMATURES ARE A COLLECTION LIKE ANY OTHER: they have ids, they can collide, and other things
+    // reference them by id. Leaving them out of this list meant the cross-reference check had nothing to
+    // look in, so a skinned entity was reported as naming a rig that does not exist — its own rig.
+    ['armatures', document.armatures ?? []],
     ['materials', document.materials ?? []],
     ['entities', document.entities],
     ['lights', document.lights ?? []],
@@ -279,6 +283,11 @@ export function validateSceneSpec(spec) {
       })
     }
     requiresId('materials', entity.materialId, `${at}.materialId`, 'material')
+    // AND THE RIG IT IS SKINNED TO. MEASURED: this check was missing at first, and the contract suite
+    // caught it — the schema can say `armatureId` is a string, but only a cross-reference can say it
+    // names something the scene declares. An entity skinned to an armature nobody declares would render
+    // as a static object while the file says it is rigged, which is the failure this code exists for.
+    requiresId('armatures', entity.armatureId, `${at}.armatureId`, 'armature')
     if (entity.type !== 'empty' && entity.materialId === undefined) {
       notices.push({
         severity: 'notice', code: 'SCENE_ENTITY_MATERIAL_DEFAULTED', path: at,

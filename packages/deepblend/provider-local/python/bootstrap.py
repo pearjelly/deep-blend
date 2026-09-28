@@ -230,6 +230,17 @@ def action_compile_scene(request, options):
         # THE RIGS THIS SCENE DECLARES, with their bones. A count alone would say an armature exists;
         # a rig is only useful if the bones are the ones the spec named, so the names travel with it and
         # a test can read them back rather than trust the count.
+        # WHICH ENTITIES ARE SKINNED, AND TO WHAT. The vertex groups are the evidence that weights
+        # exist at all: an entity bound to an armature with no groups renders as a static object while
+        # the file says it is rigged, and the reading is where that difference becomes visible.
+        "skinned": [
+            {
+                "entityId": entity_id,
+                "armatureId": entry["armatureId"],
+                "vertexGroups": entry["vertexGroups"],
+            }
+            for entity_id, entry in sorted((report.get("skinned") or {}).items())
+        ],
         "armatures": [
             {
                 "id": armature_id,

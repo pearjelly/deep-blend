@@ -342,6 +342,50 @@ check('and the structural fingerprint counts the rig, so a revision records that
   rigged.envelope.result?.sceneFingerprint?.objectCounts)
 
 // ---------------------------------------------------------------------------
+// 1c. SKINNING — the second slice: an entity follows the rig
+//
+// The spec states the RELATIONSHIP and Blender produces the weights. What has to be shown is that the
+// weights exist, that they are named after the bones (which is what makes them follow those bones), and
+// that the mesh is parented to the rig — because an entity "bound" with no groups renders as a static
+// object while the file says it is rigged.
+// ---------------------------------------------------------------------------
+
+const skinSpec = JSON.parse(JSON.stringify(rigSpec))
+skinSpec.entities[0] = { ...skinSpec.entities[0], armatureId: 'hero-rig' }
+const skinSpecPath = join(workspace, 'skin-spec.json')
+writeFileSync(skinSpecPath, JSON.stringify(skinSpec, null, 2))
+const skinned = await renderRuntime.compileScene({ sceneSpecPath: skinSpecPath })
+
+check('an entity skinned to the rig is bound with real weights, named after the bones',
+  skinned.envelope.status === 'success' &&
+  JSON.stringify(skinned.envelope.result?.skinned) === JSON.stringify([
+    { entityId: skinSpec.entities[0].id, armatureId: 'hero-rig', vertexGroups: ['chest', 'head', 'hips'] },
+  ]),
+  skinned.envelope.result?.skinned ?? skinned.envelope.error?.message)
+
+check('and the mesh is parented to the armature, which is what makes it follow the bones',
+  (skinned.envelope.result?.objects ?? []).some(entry =>
+    entry.deepblendId === skinSpec.entities[0].id && entry.parent === 'db_arm__hero-rig'),
+  (skinned.envelope.result?.objects ?? []).filter(entry => entry.deepblendId === skinSpec.entities[0].id))
+
+check('skinning costs nothing to a scene that does not ask for it',
+  rigged.envelope.status === 'success' && (rigged.envelope.result?.skinned ?? []).length === 0,
+  rigged.envelope.result?.skinned)
+
+// AND A RIG THAT IS NOT THERE IS REFUSED, not silently skipped: an entity that claims to be rigged and
+// is not renders as a static object, which is the difference this whole slice is about.
+const orphanSpec = JSON.parse(JSON.stringify(rigSpec))
+orphanSpec.entities[0] = { ...orphanSpec.entities[0], armatureId: 'no-such-rig' }
+const orphanSpecPath = join(workspace, 'orphan-spec.json')
+writeFileSync(orphanSpecPath, JSON.stringify(orphanSpec, null, 2))
+const orphan = await renderRuntime.compileScene({ sceneSpecPath: orphanSpecPath })
+  .then(run => run, error => error)
+check('an entity skinned to an armature that does not exist is refused by the COMPILER too',
+  orphan?.envelope?.status === 'error' || orphan?.code === 'SCENE_REFERENCE_MISSING' ||
+  /no-such-rig/.test(orphan?.message ?? '') || /no-such-rig/.test(JSON.stringify(orphan?.envelope?.error ?? {})),
+  orphan?.message ?? JSON.stringify(orphan?.envelope?.error))
+
+// ---------------------------------------------------------------------------
 // 2. project_create compiles a checkpoint from the natural-language brief
 // ---------------------------------------------------------------------------
 

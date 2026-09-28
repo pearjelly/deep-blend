@@ -855,6 +855,41 @@ check('an armature survives canonicalisation, so the rig is part of what a revis
     schema.$defs.bone.required)
 }
 
+// ---------------------------------------------------------------------------
+// SKINNING — the second slice: an entity can be bound to an armature
+//
+// The relation is what the spec states ("this entity is skinned to that armature"),
+// and the weights are Blender's own automatic answer to it. A weight table in the
+// spec would be a hand-written copy of something Blender computes from the
+// geometry, and the copy is the one that goes stale.
+// ---------------------------------------------------------------------------
+
+const withRigAndSkin = (armatureId) => {
+  const spec = withArmature([{ id: 'hero-rig', bones: [bone()] }])
+  spec.entities = spec.entities.map((entity, index) =>
+    index === 0 ? { ...entity, armatureId } : entity)
+  return spec
+}
+
+check('an entity may name the armature it is skinned to',
+  validateSceneSpec(withRigAndSkin('hero-rig')).ok === true,
+  validateSceneSpec(withRigAndSkin('hero-rig')).errors)
+
+check('and naming an armature the scene does not declare is refused, not ignored',
+  validateSceneSpec(withRigAndSkin('no-such-rig')).ok === false,
+  'an entity was skinned to an armature nobody declares, which would render static while claiming to be rigged')
+
+check('the schema now says skinning IS done, and names what is still missing',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const description = schema.properties.armatures.description
+    return /ARE skinned|skinned to an armature/i.test(description) && /animate a bone/i.test(description)
+  })(),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).properties.armatures.description.slice(0, 160))
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

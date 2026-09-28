@@ -119,10 +119,22 @@ def main():
         'preferencesHasBootstrapDir': 'bootstrap_dir' in getattr(bridge.DeepBlendBridgePreferences, '__annotations__', {}),
     }
 
-    # AFTER REAL WORK: the panel's count and last action must come from what actually happened.
-    answer = ask(socket_path, {'protocolVersion': 'deepblend.blender/v1', 'jobId': 'panel-probe', 'action': 'get_capabilities'})
-    readings['served'] = answer.get('status')
+    # AFTER REAL WORK, AND WHILE THE CONNECTION IS STILL OPEN. MEASURED: the first version closed the
+    # connection inside `ask` and then drew, so the panel reported "listening" and only said "attached"
+    # when the serve thread had not yet noticed the close — the assertion was reading a race. Both
+    # states are honest; holding the connection makes the one under test deterministic.
+    connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    connection.connect(socket_path)
+    connection.sendall((json.dumps({'protocolVersion': 'deepblend.blender/v1', 'jobId': 'panel-probe', 'action': 'get_capabilities'}) + '\n').encode('utf-8'))
+    answer = b''
+    while b'"kind": "result"' not in answer:
+        chunk = connection.recv(65536)
+        if not chunk:
+            break
+        answer += chunk
+    readings['served'] = json.loads([line for line in answer.split(b'\n') if b'"kind": "result"' in line][0].decode('utf-8')).get('status')
     readings['afterWork'] = draw_panel()
+    connection.close()
 
     bridge.unregister()
     readings['afterUnregister'] = draw_panel()

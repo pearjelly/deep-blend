@@ -31,7 +31,7 @@
       "items": {
         "$ref": "#/$defs/armature"
       },
-      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. WHAT THIS SLICE DOES NOT DO YET: bind a mesh to a bone (skinning) and animate a bone \u2014 those are the next two slices, and a rig that exists but drives nothing is honest about being exactly that."
+      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. WHAT THIS DOES NOT DO YET: animate a bone. Entities ARE skinned to an armature now (`entity.armatureId`, with Blender's automatic weights), so a rig drives its mesh \u2014 but nothing moves the rig until animation tracks can target bones, which is the next slice."
     },
     "materials": {
       "type": "array",
@@ -472,6 +472,10 @@
         "assetId": {
           "type": "string",
           "description": "Required when type is asset-instance."
+        },
+        "armatureId": {
+          "type": "string",
+          "description": "The armature this entity is skinned to, named by `armatures[].id`. The compiler binds the mesh with Blender's own automatic weights, so the entity follows the bones with no weight table to write by hand. A name the scene does not declare is refused rather than ignored, because an entity that is silently unskinned renders as a static object while the file says it is rigged."
         },
         "generator": {
           "$ref": "#/$defs/generator"

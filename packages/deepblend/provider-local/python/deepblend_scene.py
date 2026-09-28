@@ -1375,6 +1375,45 @@ def build_armature(entry, guard):
     return obj
 
 
+def skin_entity(obj, armature_obj, armature_id, guard):
+    """Bind a mesh to an armature with Blender's own automatic weights.
+
+    WHY AUTOMATIC WEIGHTS RATHER THAN A WEIGHT TABLE. A per-vertex weight table in the SceneSpec would
+    be a second, hand-written copy of something Blender already computes from the geometry — and the
+    copy would be the one that goes stale, because nothing regenerates it when a generator's parameters
+    change. What the spec states is the RELATIONSHIP ("this entity is skinned to that armature"); the
+    weights are Blender's answer to it.
+
+    Bone heat can fail on a degenerate mesh (Blender reports "failed to find solution for one or more
+    bones"), and that is a WARNING rather than a refusal: the binding still exists and the bones that
+    did solve still deform, so the honest outcome is a scene that mostly works with the failure named.
+    """
+    for target in bpy.context.selected_objects:
+        target.select_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = armature_obj
+    try:
+        bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    except Exception as exc:
+        guard.warnings.append({
+            "code": "SKIN_WEIGHTS_FAILED",
+            "message": 'entity "%s" could not be skinned to armature "%s": %s'
+            % (obj.get("deepblend_id"), armature_id, error_text(exc)),
+        })
+        return False
+    finally:
+        obj.select_set(False)
+
+    if len(obj.vertex_groups) == 0:
+        guard.warnings.append({
+            "code": "SKIN_WEIGHTS_EMPTY",
+            "message": 'entity "%s" is bound to armature "%s" but Blender produced no vertex groups, so '
+                       "it will not deform" % (obj.get("deepblend_id"), armature_id),
+        })
+        return False
+    return True
+
+
 def build_scene(spec, options, guard):
     """Compile a SceneSpec into a live Blender scene.
 
@@ -1550,6 +1589,25 @@ def build_scene(spec, options, guard):
     bpy.context.view_layer.update()
 
     report_progress("compile_done", 90)
+    # SKINNING LAST: it needs both the mesh and the rig, and doing it before either exists would mean
+    # ordering the compile around a step that is about the RELATIONSHIP between them.
+    report_progress("skin_entities", 60)
+    skinned_entities = {}
+    for entity in spec.get("entities") or []:
+        armature_id = entity.get("armatureId")
+        if armature_id is None:
+            continue
+        obj = entity_objects.get(entity["id"])
+        armature_obj = armature_objects.get(armature_id)
+        if obj is None or armature_obj is None:
+            raise ActionError(
+                "SCENE_SPEC_INVALID",
+                'entity "%s" is skinned to armature "%s", which the same SceneSpec does not declare'
+                % (entity["id"], armature_id),
+            )
+        skin_entity(obj, armature_obj, armature_id, guard)
+        skinned_entities[entity["id"]] = entity
+
     return {
         "objects": describe_objects(),
         "actions": actions,
@@ -1560,6 +1618,16 @@ def build_scene(spec, options, guard):
         "profileName": profile_name,
         "entityObjectNames": {key: value.name for key, value in entity_objects.items()},
         "armatureNames": {key: value.name for key, value in armature_objects.items()},
+        "skinned": {
+            key: {
+                "armatureId": entry["armatureId"],
+                # THE GROUPS COME FROM THE OBJECT, not from the spec entry: what the file asked for is
+                # the relationship, and what Blender produced is the weights. Reading the latter back is
+                # the whole point — an entity bound with no groups renders as a static object.
+                "vertexGroups": sorted(group.name for group in entity_objects[key].vertex_groups),
+            }
+            for key, entry in skinned_entities.items()
+        },
         "cameraNames": {key: value.name for key, value in cameras.items()},
     }
 
