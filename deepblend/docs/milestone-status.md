@@ -15848,5 +15848,13 @@ Blender **90 → 94** ✓（**报告的是物理「做了什么」** ✓、**主
 
 ### 225.7 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.16` → `0.2.17` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.16 -> 0.2.17 ✓ + version:sync ✓
+1. git push ✓ -> npm run release:tarball -> 退出码 **0** ✓
+2. gh release create v0.2.17 ✓ -> 读回来 ✓：v0.2.17 的 URL 解出来是 **0.2.17** ✓
+3. publish:packages -> 反复「还没有」 ✓ -> all 7 packages ✓
+4. release:parity -> problems: 0 ✓；两份探针日志按 0.2.17 重写 ✓
+```
+
+**读侧传播这一次慢了些** ✓（六次「还没有」 ✓）——**这正是那个消息说「再跑一次」的原因** ✓，
+而**它没有一次被当成失败** ✓。
