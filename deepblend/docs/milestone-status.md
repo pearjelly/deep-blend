@@ -15587,5 +15587,12 @@ npm 是 `shawnhan` ✓、仓库是 `pearjelly` ✓——**同一个人** ✓。
 
 ### 222.9 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.13` → `0.2.14` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.13 -> 0.2.14 ✓ + version:sync ✓
+1. git push ✓ -> npm run release:tarball -> 退出码 **0** ✓
+2. gh release create v0.2.14 ✓ -> 读回来 ✓：v0.2.14 的 URL 解出来是 **0.2.14** ✓
+3. publish:packages -> 「还没有」 ✓（照它说的再跑 ✓）-> all 7 packages ✓
+4. release:parity -> problems: 0 ✓；两份探针日志按 0.2.14 重写 ✓
+```
+
+**每一步都读回来** ✓，而这一轮**没有出现**前几轮那些瞬时故障 ✓。
