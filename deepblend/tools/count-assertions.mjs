@@ -33,8 +33,8 @@
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
-import { execFile } from 'node:child_process'
+import { resolve, join, relative } from 'node:path'
+import { execFile, execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const TESTS_ROOT = fileURLToPath(new URL('../tests', import.meta.url))
@@ -166,19 +166,52 @@ export async function countAssertions(options = {}) {
  * for twenty rounds NOTHING compared either with the tool. The self-counted total was 31 stale when this
  * was written. One tool, two totals, and the check compares the sentence against them.
  */
-// THE `node:test` TOTAL IS NOT COUNTED HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.
-//
-// Three attempts to compute it lived in this file for one round and none of them was right: a static
-// count of the declarations said 412 against a true 459, `node --test` over every file at once THREW
-// because several of these files call `process.exit`, and the per-file version reported 0 by matching
-// nothing. The header above already says why the totals are SNAPSHOTS — a check that computed them would
-// restate a number at the cost of the whole layer's runtime — and a fourth attempt would be the same
-// mistake with more code.
-//
-// So the sentence in the README names a snapshot, taken by hand, with the command that takes it:
-//   node --test $(grep -rl "from 'node:test'" deepblend/tests | tr '\n' ' ')
-// which reported 459 across 46 files when this was written. A number nobody automated is honest as long
-// as it says it is one; a function that returns 0 is not.
+/**
+ * How many `node:test` cases this repository declares — counted by RUNNING them, in one runner.
+ *
+ * THE COMMENT THAT USED TO BE HERE WAS WRONG, AND MEASUREMENT IS WHAT FOUND IT. It said the total could
+ * not be counted cheaply because "these files call process.exit and cannot share a runner". Neither half
+ * held up: a grep for `process.exit` across the 46 files matches exactly one file, and the match is
+ * GENERATED FIXTURE TEXT inside this repository's own mutation-harness test rather than a call — and one
+ * `node --test` over all 46 completes and reports the total in 18 seconds.
+ *
+ * The earlier failure was mine to misread: a suite with a red file makes `execFileSync` throw even though
+ * the runner COMPLETED, and "it threw" was taken for "the runner cannot take all the files".
+ *
+ * A STATIC COUNT IS NOT AN OPTION, and that is also measured: counting `test(` declarations gives 413
+ * against a true 460, because 18 of them are declared inside loops — `for (const x of xs) test(...)` is
+ * one declaration and many cases. A document quoting this number needs the number that is true.
+ */
+export function countNodeTestCases() {
+  const owners = []
+  const walk = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else if (entry.name.endsWith('.test.mjs') && readFileSync(path, 'utf8').includes("from 'node:test'")) owners.push(path)
+    }
+  }
+  walk(TESTS_ROOT)
+
+  let output = ''
+  try {
+    output = execFileSync('node', ['--test', ...owners], {
+      cwd: resolve(TESTS_ROOT, '..', '..'),
+      encoding: 'utf8',
+      stdio: 'pipe',
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 600_000,
+    }).toString()
+  } catch (error) {
+    // THE OUTPUT IS READ FROM BOTH OUTCOMES: a red file throws here and still printed its total.
+    output = `${error.stdout ?? ''}${error.stderr ?? ''}`.toString()
+  }
+  // MATCHED WITHOUT THE SUMMARY GLYPH ON PURPOSE: the escaping of a non-ASCII character through a
+  // generator script is one more thing to get wrong, and the word `tests` with a number is unambiguous
+  // in this output. MEASURED: the glyph-shaped version silently returned null.
+  const match = output.match(/^\S* ?tests (\d+)$/m)
+  return { total: match === null ? null : Number(match[1]), files: owners.length, passed: /^\u2139 fail 0$/m.test(output) }
+}
 
 if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const report = await countAssertions()
@@ -206,12 +239,19 @@ if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${proce
       const readme = readFileSync(join(TESTS_ROOT, '..', '..', 'README.zh.md'), 'utf8')
       const stated = readme.match(/(\d[\d\s]*)\s*项自计断言/)
       const value = stated === null ? null : Number(stated[1].replace(/\s/g, ''))
-      if (value !== report.total) {
-        console.error(`README states ${value ?? 'nothing'} self-counted assertions; the tool counts ${report.total}`)
+      const nodeTest = countNodeTestCases()
+      const statedCases = readme.match(/(\d+)\s*个\s*`?node:test`?\s*用例/)
+      const cases = statedCases === null ? null : Number(statedCases[1])
+
+      const wrong = []
+      if (value !== report.total) wrong.push(`self-counted: README says ${value ?? 'nothing'}, the tool counts ${report.total}`)
+      if (cases !== nodeTest.total) wrong.push(`node:test: README says ${cases ?? 'nothing'}, the tool counts ${nodeTest.total}`)
+      if (wrong.length > 0) {
+        for (const line of wrong) console.error(line)
         console.error('the sentence to correct is the one beginning "**80 个文件 = "')
         process.exitCode = 1
       } else {
-        console.log(`README agrees: ${value}`)
+        console.log(`README agrees: ${value} self-counted, ${cases} node:test cases in ${nodeTest.files} file(s)`)
       }
     }
     // OPT-IN, BECAUSE IT RUNS THE WHOLE LAYER: `--with-node-test` spawns one `node --test` over every

@@ -188,3 +188,72 @@ test('a guard that is a COMMAND WITH A FLAG can be mutation-tested too', () => {
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('a run whose SUITE nests another run does not destroy the outer backup', () => {
+  // MEASURED, AND IT IS THE FAILURE THIS TOOL EXISTS TO PREVENT, ONE LEVEL UP. The backup root used to
+  // be a fixed `.tmp-mutations`, so a mutation whose suite ran the contract layer nested a second
+  // mutation run inside this one — whose cleanup deleted the OUTER run's backups — and the outer restore
+  // died with ENOENT, leaving the mutated file on disk. It happened on a real run against this repository
+  // and left the README mutated at 459: the tool's own baseline check is what refused to continue.
+  //
+  // The fixture reproduces the shape without needing the contract layer: the inner suite runs the tool
+  // again, over its own product file, and the outer run must still restore its own.
+  const outer = mkdtempSync(join(tmpdir(), 'deepblend-mutation-outer-'))
+  const inner = mkdtempSync(join(tmpdir(), 'deepblend-mutation-inner-'))
+  const outerProduct = join(outer, 'product.mjs')
+  const innerProduct = join(inner, 'product.mjs')
+  const innerSpec = join(inner, 'spec.json')
+  const outerSuite = join(outer, 'suite.mjs')
+
+  writeFileSync(outerProduct, 'export const value = "intact"\n', 'utf8')
+  writeFileSync(innerProduct, 'export const value = "intact"\n', 'utf8')
+  writeFileSync(innerSpec, JSON.stringify({
+    suite: join(inner, 'inner-suite.mjs'),
+    mutations: [{ name: 'inner', file: innerProduct, find: '"intact"', replace: '"broken"' }],
+  }), 'utf8')
+  writeFileSync(join(inner, 'inner-suite.mjs'), 'process.exit(0)\n', 'utf8')
+  // The outer suite always passes, so the outer mutation is SURVIVED — but only if the restore worked.
+  writeFileSync(outerSuite, [
+    `import { execFileSync } from 'node:child_process'`,
+    `execFileSync('node', [${JSON.stringify(TOOL)}, '--spec', ${JSON.stringify(innerSpec)}], { stdio: 'pipe' })`,
+    `process.exit(0)`,
+    '',
+  ].join('\n'), 'utf8')
+
+  try {
+    const before = readFileSync(outerProduct, 'utf8')
+    const result = runTool({
+      directory: outer,
+      suite: outerSuite,
+      mutations: [{ name: 'outer', file: outerProduct, find: '"intact"', replace: '"broken"' }],
+    })
+    assert.match(result.output, /SURVIVED/)
+    assert.doesNotMatch(result.output, /RESTORE-FAILED|NO-BACKUP/)
+    assert.equal(digest(readFileSync(outerProduct, 'utf8')), digest(before),
+      'the outer run did not restore its own file after a nested run cleaned up')
+  } finally {
+    rmSync(outer, { recursive: true, force: true })
+    rmSync(inner, { recursive: true, force: true })
+  }
+})
+
+test('a mutation that targets the harness ITSELF is refused', () => {
+  // MEASURED, AND THE HARNESS BROKE ITSELF TO PROVE IT: mutating this tool to put the shared backup path
+  // back made the nested run delete the outer backups, the outer restore threw ENOENT — and the restore
+  // code IS the mutated code, so the file was left broken with nothing able to notice. A harness that can
+  // break itself cannot restore itself.
+  const fixture = makeFixture(true)
+  try {
+    const before = readFileSync(TOOL, 'utf8')
+    const result = runTool({
+      directory: fixture.directory,
+      suite: fixture.suite,
+      mutations: [{ name: 'break the harness', file: TOOL, find: 'const BACKUP_ROOT', replace: 'const BACKUP_ROOT_RENAMED' }],
+    })
+    assert.match(result.output, /REFUSED/)
+    assert.doesNotMatch(result.output, /SURVIVED|KILLED/)
+    assert.equal(digest(readFileSync(TOOL, 'utf8')), digest(before))
+  } finally {
+    rmSync(fixture.directory, { recursive: true, force: true })
+  }
+})

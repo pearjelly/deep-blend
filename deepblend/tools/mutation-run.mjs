@@ -20,15 +20,26 @@
  *
  * The spec is `{ suite, timeoutMs?, mutations: [{ name, file, find, replace }] }`.
  */
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(import.meta.dirname, '..', '..')
 
-/** The tool's OWN backup root: a caller cannot forget to create it, because the caller does not name it. */
-const BACKUP_ROOT = join(ROOT, '.tmp-mutations')
+/**
+ * The tool's OWN backup root, UNIQUE TO THIS RUN.
+ *
+ * MEASURED, and it is the same failure this tool exists to prevent, one level up: the path used to be a
+ * fixed `.tmp-mutations`, and a mutation whose suite ran the CONTRACT LAYER nested a second run inside
+ * this one — whose cleanup deleted the outer run's backups — so the outer restore died with ENOENT and
+ * left the mutated file on disk. A shared directory that every run tidies is a directory no run owns.
+ *
+ * The pid makes it per-process and the random suffix makes it per-run, so two runs at once cannot reach
+ * each other's backups, and the cleanup below can only ever remove its own.
+ */
+const BACKUP_ROOT = join(ROOT, '.tmp-mutations', `${process.pid}-${randomUUID().slice(0, 8)}`)
 
 const digest = text => createHash('sha256').update(text).digest('hex')
 
@@ -56,6 +67,16 @@ const runSuite = (suite, timeoutMs, suiteArguments = []) => {
 
 const runOne = (mutation, suite, timeoutMs, suiteArguments) => {
   const target = resolve(ROOT, mutation.file)
+
+  // A HARNESS THAT CAN BREAK ITSELF CANNOT RESTORE ITSELF, and this is not a hypothetical: MEASURED, by
+  // mutating this very file to put the shared backup path back. The nested run inside the suite deleted
+  // the outer backups, the outer restore threw ENOENT — and the restore code IS the mutated code, so the
+  // file was left broken with no way for the tool to notice. A mutation run is worth nothing if the thing
+  // that reports it can be the thing it broke.
+  if (target === fileURLToPath(import.meta.url)) {
+    return { name: mutation.name, outcome: 'REFUSED', detail: 'this mutation targets the harness itself, and a harness cannot restore the code that restores' }
+  }
+
   const original = readFileSync(target, 'utf8')
   const originalDigest = digest(original)
 
@@ -125,6 +146,8 @@ const main = () => {
 
   const survivors = results.filter(result => result.outcome === 'SURVIVED')
   const broken = results.filter(result => ['RESTORE-FAILED', 'NO-BACKUP'].includes(result.outcome))
+  const refused = results.filter(result => result.outcome === 'REFUSED')
+  if (refused.length > 0) console.error(`${refused.length} mutation(s) refused: a harness cannot mutate the code that restores it`)
   const counts = results.reduce((tally, result) => ({ ...tally, [result.outcome]: (tally[result.outcome] ?? 0) + 1 }), {})
   console.log(`\n${results.length} mutation(s): ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(', ')}`)
   // A SURVIVOR IS NOT A FAILURE OF THE RUN — it is the round's most valuable output. A file that could
