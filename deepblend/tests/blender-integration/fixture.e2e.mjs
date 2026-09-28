@@ -460,8 +460,12 @@ writeFileSync(clothPath, JSON.stringify(clothSpec, null, 2))
 const draped = await renderRuntime.compileScene({ sceneSpecPath: clothPath })
 const fabric = (draped.envelope.result?.simulation ?? []).find(entry => entry.kind === 'cloth')
 
+// THE RATIO, NOT A THRESHOLD. MEASURED, and a surviving mutation is why: "at least 64 vertices" passed
+// on a generator that already had that many, so it proved nothing about the subdivision. Comparing the
+// evaluated count against the count the object was BUILT with is what makes the subdivision visible.
 check('fabric is reported as cloth, and the compiler subdivided it because a primitive has no interior',
-  draped.envelope.status === 'success' && fabric !== undefined && fabric.firstFrameVertices >= 64,
+  draped.envelope.status === 'success' && fabric !== undefined &&
+  fabric.firstFrameVertices >= fabric.firstFrameSourceVertices * 4,
   fabric ?? draped.envelope.error?.message)
 
 check('the fabric DRAPED: its lowest point fell a long way',
@@ -471,6 +475,80 @@ check('the fabric DRAPED: its lowest point fell a long way',
 check('and the edge it hangs from did NOT move, which is what makes the drop a drape rather than a fall',
   fabric !== undefined && fabric.firstFrameHighestZ === fabric.lastFrameHighestZ,
   fabric)
+
+// ---------------------------------------------------------------------------
+// 1g. SOFT BODIES — the third mechanism, and the third measured behaviour
+//
+// Cloth moves without a bake; a soft body does NOT (measured: 1.75 -> 1.75 before, 1.75 -> 1.6252
+// after), so this slice needed the same pre-bake placement as the rigid bodies and the opposite of
+// what cloth needed. What separates it from cloth is asserted too: it falls WHILE KEEPING ITS SHAPE,
+// which is what the goal is for.
+// ---------------------------------------------------------------------------
+
+const softSpec = JSON.parse(JSON.stringify(fixtureSpec))
+softSpec.project.frameStart = 1
+softSpec.project.frameEnd = 40
+softSpec.entities = softSpec.entities.map(entity => entity.id === 'watch-dial'
+  ? { ...entity, transform: { ...entity.transform, location: [0, 0, 1.5] }, softBody: {} }
+  : entity)
+const softPath = join(workspace, 'soft-spec.json')
+writeFileSync(softPath, JSON.stringify(softSpec, null, 2))
+const softened = await renderRuntime.compileScene({ sceneSpecPath: softPath })
+const body = (softened.envelope.result?.simulation ?? []).find(entry => entry.kind === 'soft-body')
+
+check('a soft body is reported as one, and the compiler subdivided it so it has an interior to deform',
+  softened.envelope.status === 'success' && body !== undefined &&
+  body.firstFrameVertices >= body.firstFrameSourceVertices * 4,
+  body ?? softened.envelope.error?.message)
+
+check('the soft body fell, which a bake is required for — the opposite of what cloth needed',
+  body !== undefined && body.droppedZ > 0.05,
+  body)
+
+check('and it KEPT ITS SHAPE while falling, which is what makes it a soft body rather than cloth',
+  body !== undefined &&
+  Math.abs((body.firstFrameHighestZ - body.firstFrameLowestZ) - (body.lastFrameHighestZ - body.lastFrameLowestZ)) < 0.01,
+  body)
+
+// AND THE GOAL IS EXERCISED, not just carried. MEASURED, and two surviving mutations are why: both
+// "ignore the goal" and "set it to zero" survived the checks above, because those checks never declare
+// a goal at all — the setting existed and nothing proved it did anything. A body with NO goal collapses,
+// which is the difference between a soft body and a puddle.
+const limpSpec = JSON.parse(JSON.stringify(softSpec))
+limpSpec.entities = limpSpec.entities.map(entity => entity.id === 'watch-dial'
+  ? { ...entity, softBody: { goal: 0 } }
+  : entity)
+const limpPath = join(workspace, 'limp-spec.json')
+writeFileSync(limpPath, JSON.stringify(limpSpec, null, 2))
+const limp = await renderRuntime.compileScene({ sceneSpecPath: limpPath })
+const limpBody = (limp.envelope.result?.simulation ?? []).find(entry => entry.kind === 'soft-body')
+// MEASURED, AND IT CORRECTED MY ASSUMPTION: I expected `goal: 0` to make the body COLLAPSE, and it does
+// not — a symmetric body with no shape memory free-falls instead (7.01 units against 0.087 with the
+// default goal), keeping its spread exactly as it was. What the goal actually does is HOLD THE BODY UP,
+// by pulling every vertex back toward where it started. So the assertion compares the two runs rather
+// than asserting a threshold on one, which is also what makes "ignore the goal" and "zero the goal" fail.
+check('the goal holds the body up: with no shape memory it free-falls many times further',
+  limp.envelope.status === 'success' && limpBody !== undefined && body !== undefined &&
+  limpBody.droppedZ > body.droppedZ * 10,
+  { withDefaultGoal: body?.droppedZ, withNoGoal: limpBody?.droppedZ })
+
+// AND A DECLARED GOAL IS HONOURED, which needs a value that is neither the default nor zero. MEASURED,
+// and a surviving mutation is why this third run exists: "apply zero whatever the file says" survived
+// because the only goal the suite ever declared WAS zero, so the mutation and the file agreed. A goal of
+// 0.9 has to behave like the default and unlike the limp run.
+const firmSpec = JSON.parse(JSON.stringify(softSpec))
+firmSpec.entities = firmSpec.entities.map(entity => entity.id === 'watch-dial'
+  ? { ...entity, softBody: { goal: 0.9 } }
+  : entity)
+const firmPath = join(workspace, 'firm-spec.json')
+writeFileSync(firmPath, JSON.stringify(firmSpec, null, 2))
+const firm = await renderRuntime.compileScene({ sceneSpecPath: firmPath })
+const firmBody = (firm.envelope.result?.simulation ?? []).find(entry => entry.kind === 'soft-body')
+
+check('and a declared goal is honoured: 0.9 holds the body up like the default, unlike no goal at all',
+  firm.envelope.status === 'success' && firmBody !== undefined && limpBody !== undefined &&
+  firmBody.droppedZ < limpBody.droppedZ / 10,
+  { declared: firmBody?.droppedZ, none: limpBody?.droppedZ })
 
 // ---------------------------------------------------------------------------
 // 1d. THE MESH ACTUALLY MOVES — the evidence the whole item rests on

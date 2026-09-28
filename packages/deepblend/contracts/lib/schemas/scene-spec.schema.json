@@ -501,6 +501,10 @@
           "$ref": "#/$defs/cloth",
           "description": "This entity is simulated as FABRIC. A different field from `rigidBody` because it is a different mechanism rather than a different setting: a rigid body is a body type on the object, while cloth is a modifier that deforms the mesh. WHAT THIS SLICE DOES NOT DO YET: soft bodies and fluids, which are the next slices."
         },
+        "softBody": {
+          "$ref": "#/$defs/softBody",
+          "description": "This entity is simulated as a SOFT BODY: it deforms and it remembers its shape, which is what separates it from cloth. A separate field because it is a separate modifier with separate settings; WHAT THIS DOES NOT DO YET: fluids, the last slice."
+        },
         "generator": {
           "$ref": "#/$defs/generator"
         },
@@ -934,6 +938,28 @@
           "minimum": 0,
           "maximum": 1,
           "description": "How much the fabric resists bending, 0 to 1. Blender's own default applies when absent."
+        }
+      }
+    },
+    "softBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pinTop": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hold the top edge in place, so the body deforms around it rather than falling freely."
+        },
+        "goal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How strongly the body remembers its shape, 0 to 1. Blender's own default applies when absent, and that default is high \u2014 which is why a soft body falls while keeping its shape rather than collapsing, and why both of those are asserted."
+        },
+        "mass": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Kilograms. Blender's own default applies when absent."
         }
       }
     }

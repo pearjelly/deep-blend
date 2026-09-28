@@ -1486,7 +1486,7 @@ def skin_entity(obj, armature_obj, armature_id, guard):
     return True
 
 
-def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
+def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_entities=None):
     """Give the entities their physics, and BAKE the result into the checkpoint.
 
     WHY THE COMPILE BAKES: a rigid body that has not been baked is a SETTING, not a motion — Blender
@@ -1500,6 +1500,7 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
     exactly like one that fell, unless something reads where it ended up.
     """
     cloth_entities = cloth_entities or {}
+    soft_entities = soft_entities or {}
     settings = spec.get("simulation") or {}
     scene = bpy.context.scene
     if "gravity" in settings:
@@ -1544,7 +1545,7 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
             obj.rigid_body.friction = float(entry["friction"])
         bodies[entity["id"]] = entry
 
-    if not bodies and not cloth_entities:
+    if not bodies and not cloth_entities and not soft_entities:
         return {}
 
     # A SCENE WITH CLOTH AND NO RIGID BODIES STILL HAS CACHES TO BAKE. MEASURED: the first version
@@ -1563,6 +1564,13 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
     for entity_id, entry in cloth_entities.items():
         build_cloth(entry, entity_objects[entity_id], guard)
 
+    # SOFT BODIES ARE BUILT IN THE SAME PLACE, AND FOR THE SAME MEASURED REASON: MEASURED, and unlike
+    # cloth, a soft body does NOT move without a bake (1.75 -> 1.75 before, 1.75 -> 1.6252 after), so its
+    # modifier has to exist before `bake_all` — the three mechanisms behave three different ways, and each
+    # one was measured rather than assumed from the last.
+    for entity_id, entry in soft_entities.items():
+        build_soft_body(entry, entity_objects[entity_id], guard)
+
     reading = {}
     first_frame = int((spec.get("project") or {}).get("frameStart", 1))
     last_frame = int((spec.get("project") or {}).get("frameEnd", first_frame))
@@ -1578,11 +1586,14 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
                 "message": "the simulation could not be baked: %s" % (error_text(exc),),
             })
 
+    for entity_id in soft_entities:
+        reading[entity_id] = {"kind": "soft-body", **deform_reading(entity_objects[entity_id], first_frame, last_frame)}
+
     for entity_id in cloth_entities:
         # INTO THE SAME READING as the rigid bodies: one report of what the physics did, whatever the
         # mechanism, because a caller asking "what happened in this scene" should not have to know which
         # kind of simulation each entity used.
-        reading[entity_id] = {"kind": "cloth", **cloth_reading(entity_objects[entity_id], first_frame, last_frame)}
+        reading[entity_id] = {"kind": "cloth", **deform_reading(entity_objects[entity_id], first_frame, last_frame)}
 
     for entity_id in bodies:
         obj = entity_objects[entity_id]
@@ -1649,8 +1660,13 @@ def build_cloth(entry, obj, guard):
     return obj
 
 
-def cloth_reading(obj, first_frame, last_frame):
+def deform_reading(obj, first_frame, last_frame):
     """The lowest and the highest simulated vertex, at each end of the range.
+
+    SHARED BY EVERYTHING THAT DEFORMS A MESH rather than copied per mechanism: cloth and soft bodies ask
+    the same question of the same evaluated geometry, and a second copy is the one that would miss the
+    next fix — this reading already needed one when it turned out to be taken from the base mesh.
+
 
     Read off the EVALUATED mesh rather than the modifier: what the fabric did is the geometry, and the
     modifier only says what was asked for. The highest point is the pinned edge, which is how the
@@ -1670,14 +1686,56 @@ def cloth_reading(obj, first_frame, last_frame):
         if heights:
             reading[label + "LowestZ"] = round(min(heights), 6)
             reading[label + "HighestZ"] = round(max(heights), 6)
-            # THE VERTEX COUNT IS PART OF THE READING, not a diagnostic: cloth needs geometry to bend and
-            # the product's primitives are low-poly, so the compiler subdivides — and a reading that says
-            # how many vertices the fabric had is how "it draped" can be told apart from "it had nothing
-            # to drape with".
+            # THE VERTEX COUNTS ARE PART OF THE READING, not diagnostics. MEASURED, and a surviving
+            # mutation is why there are TWO of them: "the fabric had at least 64 vertices" passed on a
+            # generator that already had that many, so it proved nothing about the subdivision. What
+            # proves it is the RATIO — how many vertices the evaluated mesh has against how many the
+            # object was built with — and that needs both numbers to be read.
             reading[label + "Vertices"] = len(heights)
+            reading[label + "SourceVertices"] = len(obj.data.vertices)
     if "firstFrameLowestZ" in reading and "lastFrameLowestZ" in reading:
         reading["droppedZ"] = round(reading["firstFrameLowestZ"] - reading["lastFrameLowestZ"], 6)
     return reading
+
+
+def build_soft_body(entry, obj, guard):
+    """Give a mesh soft-body physics: it deforms, and it remembers its shape.
+
+    THE GOAL IS WHAT MAKES IT A SOFT BODY rather than cloth — `goal` is how strongly each vertex wants to
+    return to where it started, and Blender's default is high (0.7). MEASURED: a 0.5m cube dropped 25
+    frames falls 0.125m and keeps its 0.5m spread, which is exactly what a body with a goal should do,
+    and both halves of that are asserted so a future default change cannot quietly turn it into cloth.
+    """
+    settings = entry or {}
+
+    # THE SUBDIVISION IS NOT OPTIONAL, for the same measured reason as cloth: a primitive has no interior
+    # to deform, so a soft body on an eight-vertex cube is a cube that moves.
+    subdivision = obj.modifiers.new(name="DeepBlendSoftBodySubdivision", type="SUBSURF")
+    subdivision.subdivision_type = "SIMPLE"
+    subdivision.levels = int(settings.get("subdivisions", 3))
+    subdivision.render_levels = subdivision.levels
+
+    modifier = obj.modifiers.new(name="DeepBlendSoftBody", type="SOFT_BODY")
+    body_settings = modifier.settings
+    if settings.get("mass") is not None:
+        body_settings.mass = float(settings["mass"])
+    if settings.get("goal") is not None:
+        body_settings.goal_default = float(settings["goal"])
+
+    # PINNING IS EXPRESSED AS A GOAL, which is this modifier's own word for it: a vertex group at goal
+    # 1.0 holds its vertices exactly, and one at 0.0 lets them go.
+    if settings.get("pinTop"):
+        ys = [vertex.co.y for vertex in obj.data.vertices]
+        if ys:
+            top = max(ys)
+            pinned = [vertex.index for vertex in obj.data.vertices if abs(vertex.co.y - top) < 1e-4]
+            group = obj.vertex_groups.new(name="DeepBlendSoftBodyPin")
+            group.add(pinned, 1.0, "REPLACE")
+            body_settings.use_goal = True
+            body_settings.vertex_group_goal = group.name
+            body_settings.goal_min = 1.0
+            body_settings.goal_max = 1.0
+    return obj
 
 
 def build_scene(spec, options, guard):
@@ -1872,7 +1930,18 @@ def build_scene(spec, options, guard):
                 'entity "%s" declares cloth but has no object to hang it on' % (entity["id"],),
             )
         cloth_entities[entity["id"]] = entry
-    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities)
+    soft_entities = {}
+    for entity in spec.get("entities") or []:
+        entry = entity.get("softBody")
+        if entry is None:
+            continue
+        if entity_objects.get(entity["id"]) is None:
+            raise ActionError(
+                "SCENE_SPEC_INVALID",
+                'entity "%s" declares a soft body but has no object to simulate' % (entity["id"],),
+            )
+        soft_entities[entity["id"]] = entry
+    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities, soft_entities)
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)

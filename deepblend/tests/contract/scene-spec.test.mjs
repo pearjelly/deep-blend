@@ -1014,6 +1014,54 @@ check('the schema says cloth and rigid bodies are different mechanisms, and name
   })(),
   JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.entity.properties.cloth.description.slice(0, 200))
 
+// ---------------------------------------------------------------------------
+// SOFT BODIES — the third slice of complex simulation
+//
+// The third mechanism, and the third measured behaviour: cloth moves without a
+// bake, a soft body does not, and a soft body REMEMBERS ITS SHAPE while it falls
+// (`goal`), which is what separates it from cloth.
+// ---------------------------------------------------------------------------
+
+const withSoftBody = (softBody) => {
+  const spec = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'))
+  spec.entities = spec.entities.map((entity, index) => (index === 0 ? { ...entity, softBody } : entity))
+  return spec
+}
+
+check('an entity may be simulated as a soft body',
+  validateSceneSpec(withSoftBody({})).ok === true,
+  validateSceneSpec(withSoftBody({})).errors)
+
+check('a goal outside 0 to 1 is refused, because it is a fraction of how much shape is remembered',
+  validateSceneSpec(withSoftBody({ goal: 2 })).ok === false &&
+  validateSceneSpec(withSoftBody({ goal: -0.5 })).ok === false,
+  'a goal the solver cannot use was accepted')
+
+check('the schema says a soft body is not cloth, and names fluids as the last thing missing',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const description = schema.$defs.entity.properties.softBody.description
+    return /not cloth|separates it from cloth|remembers its shape/i.test(description) && /fluid/i.test(description)
+  })(),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.entity.properties.softBody.description.slice(0, 200))
+
+check('and the three mechanisms are three fields, so a file cannot say two things about one entity',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const entity = schema.$defs.entity
+    // `additionalProperties: false` is what makes them exclusive: an entity cannot carry a rigidBody
+    // and a cloth and be two simulations at once without the file saying which one it meant.
+    return entity.additionalProperties === false &&
+      ['rigidBody', 'cloth', 'softBody'].every(key => entity.properties[key] !== undefined)
+  })(),
+  'the three simulation fields are not all present or the definition is no longer closed')
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')
