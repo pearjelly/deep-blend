@@ -1062,6 +1062,52 @@ check('and the three mechanisms are three fields, so a file cannot say two thing
   })(),
   'the three simulation fields are not all present or the definition is no longer closed')
 
+// ---------------------------------------------------------------------------
+// FLUIDS — the last slice of complex simulation, and the only one that needs
+// more than one entity: a domain and something flowing into it.
+// ---------------------------------------------------------------------------
+
+const withFluid = (entries) => {
+  const spec = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'))
+  spec.entities = spec.entities.map((entity, index) => (entries[index] === undefined ? entity : { ...entity, fluid: entries[index] }))
+  return spec
+}
+
+check('a domain and an inflow are both legal fluid roles',
+  validateSceneSpec(withFluid([{ role: 'domain' }, { role: 'inflow' }])).ok === true,
+  validateSceneSpec(withFluid([{ role: 'domain' }, { role: 'inflow' }])).errors)
+
+check('a role the compiler has no answer for is refused by the schema',
+  validateSceneSpec(withFluid([{ role: 'puddle' }])).ok === false,
+  'a fluid role with no meaning was accepted')
+
+check('a fluid entity with no role at all is refused, because the role is what says which half it is',
+  validateSceneSpec(withFluid([{}])).ok === false,
+  'a fluid entity without a role was accepted')
+
+check('the schema states that the default domain type is liquid, and that Blender defaulting to gas is why',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const description = schema.$defs.fluid.properties.domainType.description
+    return /liquid/i.test(description) && /gas/i.test(description) && /nothing/i.test(description)
+  })(),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.fluid.properties.domainType.description.slice(0, 200))
+
+check('and four mechanisms are four fields, all present on a closed entity definition',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const entity = schema.$defs.entity
+    return entity.additionalProperties === false &&
+      ['rigidBody', 'cloth', 'softBody', 'fluid'].every(key => entity.properties[key] !== undefined)
+  })(),
+  'the four simulation fields are not all present, or the definition is no longer closed')
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

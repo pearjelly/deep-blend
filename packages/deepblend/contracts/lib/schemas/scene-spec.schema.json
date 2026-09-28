@@ -505,6 +505,10 @@
           "$ref": "#/$defs/softBody",
           "description": "This entity is simulated as a SOFT BODY: it deforms and it remembers its shape, which is what separates it from cloth. A separate field because it is a separate modifier with separate settings; WHAT THIS DOES NOT DO YET: fluids, the last slice."
         },
+        "fluid": {
+          "$ref": "#/$defs/fluid",
+          "description": "This entity takes part in a FLUID simulation (SPEC \u00a720 M6, complex simulation). Unlike the other three mechanisms, a fluid needs more than one entity \u2014 a domain and something flowing into it \u2014 which is why the field carries a role."
+        },
         "generator": {
           "$ref": "#/$defs/generator"
         },
@@ -960,6 +964,50 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "description": "Kilograms. Blender's own default applies when absent."
+        }
+      }
+    },
+    "fluid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "domain",
+            "inflow",
+            "outflow"
+          ],
+          "description": "A fluid takes at least TWO entities: one DOMAIN, which is the volume the liquid lives in, and one or more INFLOW/OUTFLOW objects inside it. That is why this is a role rather than a flag \u2014 there is no such thing as a single entity that is a fluid."
+        },
+        "domainType": {
+          "type": "string",
+          "enum": [
+            "liquid",
+            "gas"
+          ],
+          "default": "liquid",
+          "description": "On a domain: what fills it. THE DEFAULT IS `liquid` AND THAT IS DELIBERATE: Blender's own default is `gas`, and MEASURED, a LIQUID inflow into a GAS domain produces nothing at all \u2014 the bake reports success, both caches report baked, and the domain's evaluated mesh is its own cube. A default that produces nothing while every signal says it worked is the exact trap this product exists around."
+        },
+        "resolution": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256,
+          "description": "On a domain: the simulation's grid resolution. It is the cost knob \u2014 the bake's time and memory grow with it \u2014 so it is stated rather than left to a default nobody can see."
+        },
+        "flowType": {
+          "type": "string",
+          "enum": [
+            "liquid",
+            "smoke",
+            "fire",
+            "both"
+          ],
+          "default": "liquid",
+          "description": "On an inflow or outflow: what it emits."
         }
       }
     }

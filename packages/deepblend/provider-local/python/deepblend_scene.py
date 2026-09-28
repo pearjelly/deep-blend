@@ -1486,7 +1486,7 @@ def skin_entity(obj, armature_obj, armature_id, guard):
     return True
 
 
-def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_entities=None):
+def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_entities=None, fluid_entities=None):
     """Give the entities their physics, and BAKE the result into the checkpoint.
 
     WHY THE COMPILE BAKES: a rigid body that has not been baked is a SETTING, not a motion — Blender
@@ -1501,6 +1501,10 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_en
     """
     cloth_entities = cloth_entities or {}
     soft_entities = soft_entities or {}
+    fluid_entities = fluid_entities or {}
+    # ONLY THE DOMAINS HAVE A READING: the flows are what pours in, and what the caller wants to know is
+    # how much liquid there is, which is a property of the domain.
+    fluid_domains = {key: value for key, value in fluid_entities.items() if value.get("role") == "domain"}
     settings = spec.get("simulation") or {}
     scene = bpy.context.scene
     if "gravity" in settings:
@@ -1545,7 +1549,7 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_en
             obj.rigid_body.friction = float(entry["friction"])
         bodies[entity["id"]] = entry
 
-    if not bodies and not cloth_entities and not soft_entities:
+    if not bodies and not cloth_entities and not soft_entities and not fluid_entities:
         return {}
 
     # A SCENE WITH CLOTH AND NO RIGID BODIES STILL HAS CACHES TO BAKE. MEASURED: the first version
@@ -1571,6 +1575,11 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_en
     for entity_id, entry in soft_entities.items():
         build_soft_body(entry, entity_objects[entity_id], guard)
 
+    # FLUIDS ARE BUILT BEFORE THE BAKE TOO, for the same reason as everything else: `bake_all` walks the
+    # caches that exist, and a modifier created afterwards has no cache to walk.
+    for entity_id, entry in fluid_entities.items():
+        build_fluid(entry, entity_objects[entity_id], guard)
+
     reading = {}
     first_frame = int((spec.get("project") or {}).get("frameStart", 1))
     last_frame = int((spec.get("project") or {}).get("frameEnd", first_frame))
@@ -1586,8 +1595,27 @@ def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None, soft_en
                 "message": "the simulation could not be baked: %s" % (error_text(exc),),
             })
 
+    # THE FLUID BAKE IS A DIFFERENT OPERATOR FROM THE POINT CACHES, and this is the second measurement
+    # carried over from the last round: `ptcache.bake_all` bakes cloth and soft bodies, while a fluid
+    # domain needs `fluid.bake_all` — and THAT operator reads the CONTEXT, so the domain has to be the
+    # active object or it refuses with "Invalid domain" (the first carried measurement).
+    if fluid_domains:
+        for entity_id in fluid_domains:
+            bpy.context.view_layer.objects.active = entity_objects[entity_id]
+            try:
+                bpy.ops.fluid.bake_all()
+            except Exception as exc:
+                guard.warnings.append({
+                    "code": "FLUID_BAKE_FAILED",
+                    "message": 'the fluid domain "%s" could not be baked: %s' % (entity_id, error_text(exc)),
+                })
+            break
+
     for entity_id in soft_entities:
         reading[entity_id] = {"kind": "soft-body", **deform_reading(entity_objects[entity_id], first_frame, last_frame)}
+
+    # AFTER THE BAKE, because the liquid only exists once the mesh cache has been written.
+    reading.update(fluid_reading(fluid_domains, entity_objects, first_frame, last_frame, guard))
 
     for entity_id in cloth_entities:
         # INTO THE SAME READING as the rigid bodies: one report of what the physics did, whatever the
@@ -1736,6 +1764,100 @@ def build_soft_body(entry, obj, guard):
             body_settings.goal_min = 1.0
             body_settings.goal_max = 1.0
     return obj
+
+
+DOMAIN_TYPE_BY_NAME = {"liquid": "LIQUID", "gas": "GAS"}
+FLOW_TYPE_BY_NAME = {"liquid": "LIQUID", "smoke": "SMOKE", "fire": "FIRE", "both": "BOTH"}
+
+
+def build_fluid(entry, obj, guard):
+    """Give one object its part in a fluid simulation.
+
+    THE ROLE IS THE WHOLE REASON THIS IS ONE FIELD RATHER THAN A FLAG: a fluid is at least two entities —
+    a domain, which is the volume the liquid lives in, and something inside it that emits. There is no
+    such thing as a single entity that is a fluid.
+
+    AND THE DOMAIN TYPE IS THE POINT OF THIS SLICE. MEASURED, and it is why the product's default is
+    `liquid` rather than Blender's `gas`: a LIQUID inflow into a GAS domain produces NOTHING — the bake
+    reports success, both caches report baked, and the domain's evaluated mesh is its own cube. Nothing
+    in that chain says "you chose the wrong domain type", which is exactly the kind of silence this
+    product is built to avoid.
+    """
+    role = entry.get("role")
+    modifier = obj.modifiers.new(name="DeepBlendFluid", type="FLUID")
+    if role == "domain":
+        modifier.fluid_type = "DOMAIN"
+        settings = modifier.domain_settings
+        settings.domain_type = DOMAIN_TYPE_BY_NAME.get(entry.get("domainType", "liquid"), "LIQUID")
+        settings.resolution_max = int(entry.get("resolution", 32))
+        # THE SURFACE HAS TO BE ASKED FOR. `use_mesh` defaults to true and the mesh cache is baked by
+        # `fluid.bake_all`, but a build that turns either off gets a domain with no liquid surface and no
+        # indication that anything is missing, so both are set explicitly rather than inherited.
+        settings.use_mesh = True
+    elif role in ("inflow", "outflow"):
+        modifier.fluid_type = "FLOW"
+        settings = modifier.flow_settings
+        settings.flow_type = FLOW_TYPE_BY_NAME.get(entry.get("flowType", "liquid"), "LIQUID")
+        settings.flow_behavior = "INFLOW" if role == "inflow" else "OUTFLOW"
+    else:
+        raise ActionError(
+            "SCENE_SPEC_INVALID",
+            'fluid entity "%s" has role "%s"; expected domain, inflow or outflow'
+            % (obj.get("deepblend_id"), role),
+        )
+    return obj
+
+
+def fluid_reading(domain_entries, entity_objects, first_frame, last_frame, guard):
+    """How much liquid there is, read as the DOMAIN's evaluated mesh against its own cube.
+
+    THE RATIO IS THE READING, for the same measured reason as the subdivision check: a count says nothing
+    on its own, because a domain with no liquid still evaluates to its own eight-vertex cube. Comparing
+    the evaluated mesh against the mesh the object was built with is what tells "there is liquid in here"
+    apart from "there is a box here".
+    """
+    scene = bpy.context.scene
+    reading = {}
+    for entity_id in domain_entries:
+        obj = entity_objects[entity_id]
+        entry = {}
+        for label, frame in (("firstFrame", first_frame), ("lastFrame", last_frame)):
+            scene.frame_set(frame)
+            bpy.context.view_layer.update()
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            evaluated = obj.evaluated_get(depsgraph)
+            mesh = evaluated.to_mesh()
+            entry[label + "Vertices"] = len(mesh.vertices)
+            evaluated.to_mesh_clear()
+        entry["sourceVertices"] = len(obj.data.vertices)
+        settings = obj.modifiers["DeepBlendFluid"].domain_settings
+        entry["domainType"] = settings.domain_type
+        entry["meshCacheBaked"] = bool(settings.has_cache_baked_mesh)
+        entry["dataCacheBaked"] = bool(settings.has_cache_baked_data)
+        entry["resolution"] = settings.resolution_max
+        entry["useMesh"] = bool(settings.use_mesh)
+        flows = [other for other in obj.users_scene[0].objects
+                 if other.modifiers.get("DeepBlendFluid") is not None
+                 and other.modifiers["DeepBlendFluid"].fluid_type == "FLOW"]
+        entry["flows"] = [(other.name, other.modifiers["DeepBlendFluid"].flow_settings.flow_behavior,
+                           len(other.data.vertices) if other.type == "MESH" else 0) for other in flows]
+        # A DOMAIN THAT PRODUCED NO LIQUID IS A WARNING, NOT A SILENCE. Every signal along the way says
+        # it worked — the bake returns, both caches report baked, the domain type is what was asked for —
+        # and the evaluated mesh is still the domain's own box. MEASURED, and it is the reason this
+        # product's `domainType` default is `liquid` rather than Blender's `gas`; a build that asks for
+        # something else, or whose inflow is finer than the grid, lands here and should be told.
+        if entry["lastFrameVertices"] <= entry["sourceVertices"]:
+            guard.warnings.append({
+                "code": "FLUID_NO_LIQUID",
+                "message": 'fluid domain "%s" baked but its evaluated mesh is still the domain itself '
+                           "(%d vertices against %d), so no liquid was produced — check that the domain "
+                           "type matches what the flows emit, and that its resolution is fine enough for "
+                           "them to be seen"
+                           % (entity_id, entry["lastFrameVertices"], entry["sourceVertices"]),
+                "detail": {key: entry[key] for key in ("domainType", "resolution", "flows") if key in entry},
+            })
+        reading[entity_id] = {"kind": "fluid", **entry}
+    return reading
 
 
 def build_scene(spec, options, guard):
@@ -1941,7 +2063,23 @@ def build_scene(spec, options, guard):
                 'entity "%s" declares a soft body but has no object to simulate' % (entity["id"],),
             )
         soft_entities[entity["id"]] = entry
-    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities, soft_entities)
+    fluid_entities = {}
+    for entity in spec.get("entities") or []:
+        entry = entity.get("fluid")
+        if entry is None:
+            continue
+        if entity_objects.get(entity["id"]) is None:
+            raise ActionError(
+                "SCENE_SPEC_INVALID",
+                'entity "%s" declares a fluid role but has no object to give it to' % (entity["id"],),
+            )
+        fluid_entities[entity["id"]] = entry
+    if len([entry for entry in fluid_entities.values() if entry.get("role") == "domain"]) == 0 and fluid_entities:
+        raise ActionError(
+            "SCENE_SPEC_INVALID",
+            "the scene declares fluid objects but no domain, so the liquid would have nowhere to be",
+        )
+    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities, soft_entities, fluid_entities)
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)

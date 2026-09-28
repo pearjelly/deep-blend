@@ -551,6 +551,76 @@ check('and a declared goal is honoured: 0.9 holds the body up like the default, 
   { declared: firmBody?.droppedZ, none: limpBody?.droppedZ })
 
 // ---------------------------------------------------------------------------
+// 1h. FLUIDS — the last slice, and the one that needed the most measuring
+//
+// MEASURED, and this is the whole slice: a LIQUID inflow into a GAS domain produces NOTHING while
+// every signal says it worked — the bake returns, both caches report baked, and the evaluated mesh is
+// the domain's own box. Blender's default domain type is GAS, so the product's default is liquid, and a
+// domain that still has no liquid after a successful bake WARNS rather than being silent.
+//
+// The second measured trap, and the one that took longest to find: AN INFLOW FINER THAN THE GRID EMITS
+// NOTHING. The fixture's watch-crown is a cylinder of radius 0.006 — six millimetres — and at eight
+// times that size it was still under one cell of a 2m domain at resolution 24. The liquid appeared at
+// forty.
+// ---------------------------------------------------------------------------
+
+const fluidSpec = JSON.parse(JSON.stringify(fixtureSpec))
+fluidSpec.project.frameStart = 1
+fluidSpec.project.frameEnd = 12
+fluidSpec.simulation = { bake: true }
+fluidSpec.entities = fluidSpec.entities.map(entity => {
+  if (entity.id === 'stage') {
+    return {
+      ...entity,
+      transform: { ...entity.transform, location: [0, 0, 1.0] },
+      generator: { shape: 'cube', size: 2 },
+      fluid: { role: 'domain', resolution: 24 },
+    }
+  }
+  if (entity.id === 'watch-crown') {
+    return {
+      ...entity,
+      transform: { ...entity.transform, location: [0, 0, 1.7], scale: [40, 40, 40] },
+      fluid: { role: 'inflow' },
+    }
+  }
+  return entity
+})
+const fluidPath = join(workspace, 'fluid-spec.json')
+writeFileSync(fluidPath, JSON.stringify(fluidSpec, null, 2))
+const poured = await renderRuntime.compileScene({ sceneSpecPath: fluidPath })
+const pool = (poured.envelope.result?.simulation ?? []).find(entry => entry.kind === 'fluid')
+
+check('a fluid domain is reported with its type, its resolution and a baked mesh cache',
+  poured.envelope.status === 'success' && pool !== undefined &&
+  pool.domainType === 'LIQUID' && pool.resolution === 24 && pool.meshCacheBaked === true,
+  pool ?? poured.envelope.error?.message)
+
+check('and there IS liquid: the domain evaluates to far more than the box it was built from',
+  pool !== undefined && pool.lastFrameVertices > pool.sourceVertices * 10,
+  pool)
+
+check('and the compiler did not warn, because with liquid present there is nothing to warn about',
+  !(poured.envelope.warnings ?? []).some(entry => entry.code === 'FLUID_NO_LIQUID'),
+  (poured.envelope.warnings ?? []).map(entry => entry.code))
+
+// THE TRAP, ASSERTED RATHER THAN DESCRIBED: an inflow finer than the grid produces no liquid at all,
+// and the product says so instead of returning a domain that silently contains nothing.
+const tinySpec = JSON.parse(JSON.stringify(fluidSpec))
+tinySpec.entities = tinySpec.entities.map(entity => entity.id === 'watch-crown'
+  ? { ...entity, transform: { ...entity.transform, scale: [1, 1, 1] } }
+  : entity)
+const tinyPath = join(workspace, 'tiny-fluid-spec.json')
+writeFileSync(tinyPath, JSON.stringify(tinySpec, null, 2))
+const trickle = await renderRuntime.compileScene({ sceneSpecPath: tinyPath })
+const tricklePool = (trickle.envelope.result?.simulation ?? []).find(entry => entry.kind === 'fluid')
+check('an inflow too fine for the grid produces no liquid, and the compiler WARNS instead of being silent',
+  trickle.envelope.status === 'success' && tricklePool !== undefined &&
+  tricklePool.lastFrameVertices <= tricklePool.sourceVertices &&
+  (trickle.envelope.warnings ?? []).some(entry => entry.code === 'FLUID_NO_LIQUID'),
+  { pool: tricklePool, warnings: (trickle.envelope.warnings ?? []).map(entry => entry.code) })
+
+// ---------------------------------------------------------------------------
 // 1d. THE MESH ACTUALLY MOVES — the evidence the whole item rests on
 //
 // Everything above shows the parts exist. This shows they do something: the same scene, the same
