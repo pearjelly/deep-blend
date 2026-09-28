@@ -33,6 +33,22 @@
       },
       "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. Entities are skinned to an armature (`entity.armatureId`, with Blender's automatic weights) and animation tracks can drive a bone of it (`targetKind: \"bone\"` with `boneName`), so a rig both moves and moves its mesh."
     },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gravity": {
+          "type": "number",
+          "description": "Downward acceleration in m/s\u00b2. Blender's own default (-9.81) applies when absent."
+        },
+        "bake": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the compile bakes the simulation into the checkpoint. Baking is what makes a render show the physics rather than the initial pose, and it is not instant \u2014 so a build that wants the SETUP without paying for the bake can say so."
+        }
+      },
+      "description": "Scene-level physics settings. The bodies themselves are per-entity (`entity.rigidBody`), because which things move is a property of those things."
+    },
     "materials": {
       "type": "array",
       "items": {
@@ -477,6 +493,10 @@
           "type": "string",
           "description": "The armature this entity is skinned to, named by `armatures[].id`. The compiler binds the mesh with Blender's own automatic weights, so the entity follows the bones with no weight table to write by hand. A name the scene does not declare is refused rather than ignored, because an entity that is silently unskinned renders as a static object while the file says it is rigged."
         },
+        "rigidBody": {
+          "$ref": "#/$defs/rigidBody",
+          "description": "This entity takes part in physics (SPEC \u00a720 M6, complex simulation). WHAT THIS SLICE DOES: rigid bodies \u2014 active ones fall and collide, passive ones are what they collide with, and the compile BAKES the result into the checkpoint so a render shows it. WHAT IT DOES NOT DO YET: cloth, soft bodies and fluids, which are the next slices."
+        },
         "generator": {
           "$ref": "#/$defs/generator"
         },
@@ -861,6 +881,33 @@
         },
         "transform": {
           "$ref": "#/$defs/transform"
+        }
+      }
+    },
+    "rigidBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "active",
+            "passive"
+          ],
+          "description": "`active` means physics moves it; `passive` means it moves nothing and everything collides with it \u2014 a floor is passive, which is why the two are one field rather than a boolean: a body that is not simulated and a body that is simulated are not the only two things a body can be."
+        },
+        "mass": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Kilograms, for an active body. Blender's own default applies when it is absent, and the default is stated rather than duplicated: a second copy of it here is the one that would go stale."
+        },
+        "friction": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Blender's own default applies when absent."
         }
       }
     }

@@ -381,6 +381,62 @@ writeFileSync(orphanSpecPath, JSON.stringify(orphanSpec, null, 2))
 const orphan = await renderRuntime.compileScene({ sceneSpecPath: orphanSpecPath })
   .then(run => run, error => error)
 // ---------------------------------------------------------------------------
+// 1e. COMPLEX SIMULATION, the first slice: rigid bodies — and the reading is DIRECTIONAL
+//
+// The lesson from the animation slice, applied before it could bite: "the setup exists" and "the
+// images differ" are both satisfied by a body that is configured and never simulated. What this
+// asserts instead is WHERE THE BODY ENDED UP — an active one falls, a passive one does not — and then
+// that turning the BAKE off leaves it exactly where it started, which is what makes the reading a
+// measurement of the physics rather than of the file.
+// ---------------------------------------------------------------------------
+
+const physicsSpec = (overrides = {}) => {
+  const spec = JSON.parse(JSON.stringify(fixtureSpec))
+  spec.project.frameStart = 1
+  spec.project.frameEnd = 40
+  spec.simulation = { gravity: 9.81, ...(overrides.simulation ?? {}) }
+  spec.entities = spec.entities.map(entity => {
+    if (entity.id === 'stage') return { ...entity, rigidBody: { kind: 'passive' } }
+    if (entity.id === 'watch-body') {
+      return {
+        ...entity,
+        rigidBody: { kind: 'active', mass: 0.1 },
+        // dropped from half a metre up, so a fall is unambiguous rather than a settle
+        transform: { ...entity.transform, location: [entity.transform.location[0], entity.transform.location[1], entity.transform.location[2] + 0.5] },
+      }
+    }
+    return entity
+  })
+  return spec
+}
+
+const physicsPath = join(workspace, 'physics-spec.json')
+writeFileSync(physicsPath, JSON.stringify(physicsSpec(), null, 2))
+const simulated = await renderRuntime.compileScene({ sceneSpecPath: physicsPath })
+check('a scene with rigid bodies compiles and reports what the physics DID, per entity',
+  simulated.envelope.status === 'success' && (simulated.envelope.result?.simulation ?? []).length === 2,
+  simulated.envelope.result?.simulation ?? simulated.envelope.error?.message)
+
+const bodies = Object.fromEntries((simulated.envelope.result?.simulation ?? []).map(entry => [entry.entityId, entry]))
+check('the ACTIVE body fell, and it fell downwards',
+  bodies['watch-body']?.kind === 'active' && bodies['watch-body'].droppedZ > 0.3,
+  bodies['watch-body'])
+check('and the PASSIVE body did not move at all, which is what makes it a floor',
+  bodies.stage?.kind === 'passive' && bodies.stage.droppedZ === 0,
+  bodies.stage)
+
+// AND WITH THE BAKE OFF, NOTHING MOVES. An unbaked simulation is a SETTING: Blender evaluates it live
+// and a batch compile reads the initial pose. Without this the reading above could be satisfied by
+// anything that shifts an object, and with it the reading is specifically about the baked physics.
+const unbakedPath = join(workspace, 'unbaked-spec.json')
+writeFileSync(unbakedPath, JSON.stringify(physicsSpec({ simulation: { bake: false } }), null, 2))
+const unbaked = await renderRuntime.compileScene({ sceneSpecPath: unbakedPath })
+const unbakedBodies = Object.fromEntries((unbaked.envelope.result?.simulation ?? []).map(entry => [entry.entityId, entry]))
+check('without the bake the active body stays exactly where it started, so the reading above measures the bake',
+  unbaked.envelope.status === 'success' && unbakedBodies['watch-body']?.droppedZ === 0,
+  unbakedBodies['watch-body'])
+
+// ---------------------------------------------------------------------------
 // 1d. THE MESH ACTUALLY MOVES — the evidence the whole item rests on
 //
 // Everything above shows the parts exist. This shows they do something: the same scene, the same

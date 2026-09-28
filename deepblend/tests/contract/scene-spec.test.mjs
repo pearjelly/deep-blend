@@ -934,6 +934,47 @@ check('and the schema says the whole item is done rather than leaving a stale "n
   })(),
   JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).properties.armatures.description.slice(0, 200))
 
+// ---------------------------------------------------------------------------
+// COMPLEX SIMULATION, the first slice: rigid bodies
+//
+// The spec says which things move and which things they hit; the compiler bakes
+// the result into the checkpoint, because an unbaked simulation is a SETTING and a
+// batch render of one shows the initial pose.
+// ---------------------------------------------------------------------------
+
+const withBodies = (bodies) => {
+  const spec = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'))
+  spec.entities = spec.entities.map((entity, index) => ({ ...entity, ...(bodies[index] ?? {}) }))
+  return spec
+}
+
+check('an entity may be an active body, and one may be what it lands on',
+  validateSceneSpec(withBodies([{ rigidBody: { kind: 'passive' } }, { rigidBody: { kind: 'active', mass: 0.1 } }])).ok === true,
+  validateSceneSpec(withBodies([{ rigidBody: { kind: 'passive' } }, { rigidBody: { kind: 'active', mass: 0.1 } }])).errors)
+
+check('a body kind that is not active or passive is refused by the schema',
+  validateSceneSpec(withBodies([{ rigidBody: { kind: 'ghost' } }])).ok === false,
+  'a body kind the compiler has no answer for was accepted')
+
+check('a mass of zero or less is refused, because a body with no mass is not a body',
+  validateSceneSpec(withBodies([{ rigidBody: { kind: 'active', mass: 0 } }])).ok === false &&
+  validateSceneSpec(withBodies([{ rigidBody: { kind: 'active', mass: -1 } }])).ok === false,
+  'a non-positive mass was accepted')
+
+check('the schema says what the simulation slice does AND does not do',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    // `entities` is an array whose items are a `$ref` to `$defs.entity`, so the field lives in the
+    // definition rather than inline — reading through `items.properties` finds nothing.
+    const description = schema.$defs.entity.properties.rigidBody.description
+    return /rigid bodies/i.test(description) && /cloth|soft bodies|fluids/i.test(description) &&
+      /bake/i.test(description)
+  })(),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.entity.properties.rigidBody.description.slice(0, 200))
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

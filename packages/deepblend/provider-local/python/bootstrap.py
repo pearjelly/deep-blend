@@ -233,6 +233,13 @@ def action_compile_scene(request, options):
         # WHICH ENTITIES ARE SKINNED, AND TO WHAT. The vertex groups are the evidence that weights
         # exist at all: an entity bound to an armature with no groups renders as a static object while
         # the file says it is rigged, and the reading is where that difference becomes visible.
+        # WHAT THE PHYSICS DID, per entity. Not the settings: a body that is configured and never
+        # enabled looks exactly like one that fell, and only a reading of where it ended up tells them
+        # apart.
+        "simulation": [
+            {"entityId": entity_id, **entry}
+            for entity_id, entry in sorted((report.get("simulation") or {}).items())
+        ],
         "skinned": [
             {
                 "entityId": entity_id,

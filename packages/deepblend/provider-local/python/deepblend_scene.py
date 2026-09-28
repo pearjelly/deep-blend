@@ -1486,6 +1486,104 @@ def skin_entity(obj, armature_obj, armature_id, guard):
     return True
 
 
+def build_rigid_bodies(spec, entity_objects, guard):
+    """Give the entities their physics, and BAKE the result into the checkpoint.
+
+    WHY THE COMPILE BAKES: a rigid body that has not been baked is a SETTING, not a motion — Blender
+    evaluates it on the fly in the viewport and a batch render of an unbaked simulation renders the
+    initial pose. Baking here is what makes the checkpoint mean "this is what the simulation did", and
+    it is why `simulation.bake: false` exists for a build that only wants the setup.
+
+    Returns a reading of what the physics DID, not of what it was told: each active body's height at the
+    first and the last frame of the scene's range. MEASURED, and the lesson from the animation slice is
+    why this is not just "the setup exists": a body that is configured correctly and never enabled looks
+    exactly like one that fell, unless something reads where it ended up.
+    """
+    settings = spec.get("simulation") or {}
+    scene = bpy.context.scene
+    if "gravity" in settings:
+        scene.gravity[2] = -abs(float(settings["gravity"]))
+
+    # THE PHYSICS WORLD HAS TO EXIST BEFORE A BODY CAN BE ATTACHED TO IT. MEASURED: without this line
+    # `obj.rigid_body` is None and the assignment fails with an AttributeError — Blender's rigid-body
+    # settings live on a scene-level world, and a scene that has never had one has nowhere to put them.
+    if scene.rigidbody_world is None:
+        bpy.ops.rigidbody.world_add()
+    # AND THE WORLD NEEDS A COLLECTION, which a fresh one does not have. MEASURED, in three steps that
+    # each looked like it should work: without the world there is nowhere to put a body; with the world
+    # but no collection, `world.collection` is None; and only an object LINKED INTO that collection
+    # gets its `rigid_body` materialised. The Blender UI does all three when a user clicks "Rigid Body".
+    if scene.rigidbody_world.collection is None:
+        collection = bpy.data.collections.new("DeepBlendRigidBodies")
+        scene.collection.children.link(collection)
+        scene.rigidbody_world.collection = collection
+
+    bodies = {}
+    for entity in spec.get("entities") or []:
+        entry = entity.get("rigidBody")
+        if entry is None:
+            continue
+        obj = entity_objects.get(entity["id"])
+        if obj is None:
+            raise ActionError(
+                "SCENE_SPEC_INVALID",
+                'entity "%s" declares a rigid body but has no object to attach it to' % (entity["id"],),
+            )
+        # JOINING THE PHYSICS COLLECTION IS WHAT CREATES `obj.rigid_body`. MEASURED, twice: adding the
+        # world is not enough — Blender materialises the rigid-body settings when the object is linked
+        # into the world's own collection, so an object that has "a rigid body" the obvious way is an
+        # object with `None`.
+        if obj.name not in scene.rigidbody_world.collection.objects:
+            scene.rigidbody_world.collection.objects.link(obj)
+
+        obj.rigid_body.type = "ACTIVE" if entry["kind"] == "active" else "PASSIVE"
+        if entry.get("mass") is not None:
+            obj.rigid_body.mass = float(entry["mass"])
+        if entry.get("friction") is not None:
+            obj.rigid_body.friction = float(entry["friction"])
+        bodies[entity["id"]] = entry
+
+    if not bodies:
+        return {}
+
+    # THE GROUND BODIES DO NOT MOVE, so they need the physics world to have something to collide against
+    # and Blender needs to be told the world exists at all.
+    scene.use_gravity = True
+
+    reading = {}
+    first_frame = int((spec.get("project") or {}).get("frameStart", 1))
+    last_frame = int((spec.get("project") or {}).get("frameEnd", first_frame))
+    if settings.get("bake", True):
+        scene.frame_set(first_frame)
+        # `bake_all` walks every cache in the scene, which is what a compile wants: the caller asked for
+        # a checkpoint that shows the simulation, not for one cache to be fresh.
+        try:
+            bpy.ops.ptcache.bake_all(bake=True)
+        except Exception as exc:
+            guard.warnings.append({
+                "code": "SIMULATION_BAKE_FAILED",
+                "message": "the simulation could not be baked: %s" % (error_text(exc),),
+            })
+
+    for entity_id in bodies:
+        obj = entity_objects[entity_id]
+        scene.frame_set(first_frame)
+        bpy.context.view_layer.update()
+        first = float((obj.matrix_world.translation)[2])
+        scene.frame_set(last_frame)
+        bpy.context.view_layer.update()
+        last = float((obj.matrix_world.translation)[2])
+        reading[entity_id] = {
+            "kind": bodies[entity_id]["kind"],
+            "firstFrameZ": round(first, 6),
+            "lastFrameZ": round(last, 6),
+            "droppedZ": round(first - last, 6),
+        }
+    scene.frame_set(first_frame)
+    bpy.context.view_layer.update()
+    return reading
+
+
 def build_scene(spec, options, guard):
     """Compile a SceneSpec into a live Blender scene.
 
@@ -1664,6 +1762,9 @@ def build_scene(spec, options, guard):
             "dataPaths": sorted({curve.data_path for curve in action_fcurves(action)}),
         })
 
+    report_progress("build_simulation", 70)
+    simulation_reading = build_rigid_bodies(spec, entity_objects, guard)
+
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)
 
@@ -1708,6 +1809,7 @@ def build_scene(spec, options, guard):
         "profileName": profile_name,
         "entityObjectNames": {key: value.name for key, value in entity_objects.items()},
         "armatureNames": {key: value.name for key, value in armature_objects.items()},
+        "simulation": simulation_reading,
         "skinned": {
             key: {
                 "armatureId": entry["armatureId"],
