@@ -15761,5 +15761,14 @@ Blender **83 → 87** ✓（**真的有权重、而且顶点组按骨头命名**
 
 ### 224.8 发布链
 
-（本节由同一次收口写入 ✓：版本 `0.2.15` → `0.2.16` ✓、`version:sync` ✓ → tarball ✓ →
-Release ＋ 资产 ✓ → npm 七个包 ✓，然后用 `npm run release:parity` 复验三条路线一致 ✓。）
+```
+0. version 0.2.15 -> 0.2.16 ✓ + version:sync ✓
+1. git push ✓ -> npm run release:tarball -> 退出码 **0** ✓
+2. gh release create v0.2.16 ✓ -> 读回来 ✓：v0.2.16 的 URL 解出来是 **0.2.16** ✓
+3. publish:packages -> 「还没有」 ✓（照它说的再跑 ✓）-> all 7 packages ✓
+4. release:parity -> problems: 0 ✓；两份探针日志按 0.2.16 重写 ✓
+```
+
+**收口时又踩了一次老坑** ✓：我在 `run-all` 跑着的时候改了账本 ✓，
+于是那一轮的读数里 `commercial-readiness` 红 ✗——**跑动中被改动的树，它的读数不算读数** ✓。
+重跑一次（这次不动它 ✓）**全绿** ✓。
