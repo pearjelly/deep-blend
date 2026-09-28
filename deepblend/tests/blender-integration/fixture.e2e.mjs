@@ -437,6 +437,42 @@ check('without the bake the active body stays exactly where it started, so the r
   unbakedBodies['watch-body'])
 
 // ---------------------------------------------------------------------------
+// 1f. CLOTH — the second slice of complex simulation, and it is NOT the same as a rigid body
+//
+// MEASURED, and it would have produced a false assertion: cloth is evaluated LIVE, so it drapes with
+// or without a bake — the rigid-body claim "no bake means no motion" is simply not true here, because
+// cloth integrates frame by frame rather than being a body that is switched on. What IS asserted is
+// directional: the fabric DROPS from its lowest point while the edge it hangs from does not move.
+// ---------------------------------------------------------------------------
+
+const clothSpec = JSON.parse(JSON.stringify(fixtureSpec))
+clothSpec.project.frameStart = 1
+clothSpec.project.frameEnd = 30
+clothSpec.entities = clothSpec.entities.map(entity => entity.id === 'stage'
+  ? {
+      ...entity,
+      transform: { ...entity.transform, location: [0, 0, 1.5] },
+      cloth: { pinTop: true, stiffness: 0.5 },
+    }
+  : entity)
+const clothPath = join(workspace, 'cloth-spec.json')
+writeFileSync(clothPath, JSON.stringify(clothSpec, null, 2))
+const draped = await renderRuntime.compileScene({ sceneSpecPath: clothPath })
+const fabric = (draped.envelope.result?.simulation ?? []).find(entry => entry.kind === 'cloth')
+
+check('fabric is reported as cloth, and the compiler subdivided it because a primitive has no interior',
+  draped.envelope.status === 'success' && fabric !== undefined && fabric.firstFrameVertices >= 64,
+  fabric ?? draped.envelope.error?.message)
+
+check('the fabric DRAPED: its lowest point fell a long way',
+  fabric !== undefined && fabric.droppedZ > 1,
+  fabric)
+
+check('and the edge it hangs from did NOT move, which is what makes the drop a drape rather than a fall',
+  fabric !== undefined && fabric.firstFrameHighestZ === fabric.lastFrameHighestZ,
+  fabric)
+
+// ---------------------------------------------------------------------------
 // 1d. THE MESH ACTUALLY MOVES — the evidence the whole item rests on
 //
 // Everything above shows the parts exist. This shows they do something: the same scene, the same

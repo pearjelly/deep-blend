@@ -1486,7 +1486,7 @@ def skin_entity(obj, armature_obj, armature_id, guard):
     return True
 
 
-def build_rigid_bodies(spec, entity_objects, guard):
+def build_rigid_bodies(spec, entity_objects, guard, cloth_entities=None):
     """Give the entities their physics, and BAKE the result into the checkpoint.
 
     WHY THE COMPILE BAKES: a rigid body that has not been baked is a SETTING, not a motion — Blender
@@ -1499,6 +1499,7 @@ def build_rigid_bodies(spec, entity_objects, guard):
     why this is not just "the setup exists": a body that is configured correctly and never enabled looks
     exactly like one that fell, unless something reads where it ended up.
     """
+    cloth_entities = cloth_entities or {}
     settings = spec.get("simulation") or {}
     scene = bpy.context.scene
     if "gravity" in settings:
@@ -1543,12 +1544,24 @@ def build_rigid_bodies(spec, entity_objects, guard):
             obj.rigid_body.friction = float(entry["friction"])
         bodies[entity["id"]] = entry
 
-    if not bodies:
+    if not bodies and not cloth_entities:
         return {}
+
+    # A SCENE WITH CLOTH AND NO RIGID BODIES STILL HAS CACHES TO BAKE. MEASURED: the first version
+    # returned early when there were no bodies, and a cloth-only scene reported an empty reading — the
+    # bake and the whole reading sat behind a condition that had nothing to do with cloth.
+    _ = bodies
 
     # THE GROUND BODIES DO NOT MOVE, so they need the physics world to have something to collide against
     # and Blender needs to be told the world exists at all.
     scene.use_gravity = True
+
+    # THE CLOTH MODIFIERS ARE CREATED BEFORE THE BAKE, which is the whole reason they are built here
+    # rather than in `build_scene`. MEASURED, and the comment above this loop said so before the code
+    # did: created after it, the bake had nothing to walk and the reading saw an object with no
+    # modifiers — a fabric that never moved, reported as a simulation that did nothing.
+    for entity_id, entry in cloth_entities.items():
+        build_cloth(entry, entity_objects[entity_id], guard)
 
     reading = {}
     first_frame = int((spec.get("project") or {}).get("frameStart", 1))
@@ -1564,6 +1577,12 @@ def build_rigid_bodies(spec, entity_objects, guard):
                 "code": "SIMULATION_BAKE_FAILED",
                 "message": "the simulation could not be baked: %s" % (error_text(exc),),
             })
+
+    for entity_id in cloth_entities:
+        # INTO THE SAME READING as the rigid bodies: one report of what the physics did, whatever the
+        # mechanism, because a caller asking "what happened in this scene" should not have to know which
+        # kind of simulation each entity used.
+        reading[entity_id] = {"kind": "cloth", **cloth_reading(entity_objects[entity_id], first_frame, last_frame)}
 
     for entity_id in bodies:
         obj = entity_objects[entity_id]
@@ -1581,6 +1600,83 @@ def build_rigid_bodies(spec, entity_objects, guard):
         }
     scene.frame_set(first_frame)
     bpy.context.view_layer.update()
+    return reading
+
+
+def build_cloth(entry, obj, guard):
+    """Hang a mesh as fabric, and report where its lowest point ended up.
+
+    WHY THE PIN GROUP IS BUILT FROM GEOMETRY: Blender pins cloth through a vertex group, and a
+    SceneSpec that named one would be referring to something no generator creates. What the spec says
+    is the RELATIONSHIP ("hang this from its top edge"); the group is the compiler's answer to it.
+
+    MEASURED, AND IT DIFFERS FROM RIGID BODIES: cloth is evaluated LIVE, so it drapes with or without a
+    bake — but the BAKED result differs from the unbaked one, because cloth integrates frame by frame
+    and a bake walks every frame while a jump to the last one does not. That is why nothing here claims
+    "no bake means no motion": for cloth that claim would be false, and a false assertion is worse than
+    none.
+    """
+    settings = entry or {}
+    pin_top = settings.get("pinTop", True)
+    group_name = None
+    if pin_top:
+        ys = [vertex.co.y for vertex in obj.data.vertices]
+        if ys:
+            top = max(ys)
+            pinned = [vertex.index for vertex in obj.data.vertices if abs(vertex.co.y - top) < 1e-4]
+            group = obj.vertex_groups.new(name="DeepBlendClothPin")
+            group.add(pinned, 1.0, "REPLACE")
+            group_name = group.name
+
+    # CLOTH NEEDS GEOMETRY TO BEND, AND THE PRODUCT'S PRIMITIVES ARE LOW-POLY. MEASURED: a cube has eight
+    # vertices, so a cloth modifier on one has nothing to drape with — the reading came back with the
+    # fabric exactly where it started, and it looked like a broken simulation rather than a mesh with no
+    # interior. A SIMPLE subdivision keeps the shape and gives the solver something to work with; the
+    # reading reports the vertex count so the subdivision is visible rather than assumed.
+    subdivision = obj.modifiers.new(name="DeepBlendClothSubdivision", type="SUBSURF")
+    subdivision.subdivision_type = "SIMPLE"
+    subdivision.levels = int(settings.get("subdivisions", 3))
+    subdivision.render_levels = subdivision.levels
+
+    modifier = obj.modifiers.new(name="DeepBlendCloth", type="CLOTH")
+    cloth_settings = modifier.settings
+    if group_name is not None:
+        cloth_settings.vertex_group_mass = group_name
+    if settings.get("mass") is not None:
+        cloth_settings.mass = float(settings["mass"])
+    if settings.get("stiffness") is not None:
+        cloth_settings.tension_stiffness = float(settings["stiffness"]) * 15.0
+    return obj
+
+
+def cloth_reading(obj, first_frame, last_frame):
+    """The lowest and the highest simulated vertex, at each end of the range.
+
+    Read off the EVALUATED mesh rather than the modifier: what the fabric did is the geometry, and the
+    modifier only says what was asked for. The highest point is the pinned edge, which is how the
+    reading says "it draped FROM somewhere" rather than merely "it moved".
+    """
+    scene = bpy.context.scene
+    reading = {}
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for label, frame in (("firstFrame", first_frame), ("lastFrame", last_frame)):
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated = obj.evaluated_get(depsgraph)
+        mesh = evaluated.to_mesh()
+        heights = [(obj.matrix_world @ vertex.co).z for vertex in mesh.vertices]
+        evaluated.to_mesh_clear()
+        if heights:
+            reading[label + "LowestZ"] = round(min(heights), 6)
+            reading[label + "HighestZ"] = round(max(heights), 6)
+            # THE VERTEX COUNT IS PART OF THE READING, not a diagnostic: cloth needs geometry to bend and
+            # the product's primitives are low-poly, so the compiler subdivides — and a reading that says
+            # how many vertices the fabric had is how "it draped" can be told apart from "it had nothing
+            # to drape with".
+            reading[label + "Vertices"] = len(heights)
+    if "firstFrameLowestZ" in reading and "lastFrameLowestZ" in reading:
+        reading["droppedZ"] = round(reading["firstFrameLowestZ"] - reading["lastFrameLowestZ"], 6)
     return reading
 
 
@@ -1762,8 +1858,21 @@ def build_scene(spec, options, guard):
             "dataPaths": sorted({curve.data_path for curve in action_fcurves(action)}),
         })
 
+    # CLOTH ENTRIES ARE RESOLVED HERE, and the modifiers are created inside the simulation step so that
+    # everything the bake has to walk is in place before it runs.
     report_progress("build_simulation", 70)
-    simulation_reading = build_rigid_bodies(spec, entity_objects, guard)
+    cloth_entities = {}
+    for entity in spec.get("entities") or []:
+        entry = entity.get("cloth")
+        if entry is None:
+            continue
+        if entity_objects.get(entity["id"]) is None:
+            raise ActionError(
+                "SCENE_SPEC_INVALID",
+                'entity "%s" declares cloth but has no object to hang it on' % (entity["id"],),
+            )
+        cloth_entities[entity["id"]] = entry
+    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities)
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)

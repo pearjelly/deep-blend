@@ -975,6 +975,45 @@ check('the schema says what the simulation slice does AND does not do',
   })(),
   JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.entity.properties.rigidBody.description.slice(0, 200))
 
+// ---------------------------------------------------------------------------
+// CLOTH — the second slice of complex simulation
+//
+// A different field from `rigidBody` because it is a different MECHANISM: a
+// rigid body is a body type on the object, while cloth is a modifier that
+// deforms the mesh. The spec says the relationship ("hang this"), and the
+// compiler builds the vertex group Blender needs from the geometry.
+// ---------------------------------------------------------------------------
+
+const withCloth = (cloth) => {
+  const spec = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'))
+  spec.entities = spec.entities.map((entity, index) => (index === 0 ? { ...entity, cloth } : entity))
+  return spec
+}
+
+check('an entity may be simulated as fabric',
+  validateSceneSpec(withCloth({ pinTop: true })).ok === true,
+  validateSceneSpec(withCloth({ pinTop: true })).errors)
+
+check('and cloth with no settings at all is legal, because every setting has a Blender default',
+  validateSceneSpec(withCloth({})).ok === true,
+  validateSceneSpec(withCloth({})).errors)
+
+check('a negative mass and a stiffness outside 0 to 1 are refused',
+  validateSceneSpec(withCloth({ mass: -1 })).ok === false &&
+  validateSceneSpec(withCloth({ stiffness: 2 })).ok === false,
+  'a cloth setting outside what the solver can use was accepted')
+
+check('the schema says cloth and rigid bodies are different mechanisms, and names what is still missing',
+  (() => {
+    const schema = JSON.parse(readFileSync(
+      resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+      'utf8',
+    ))
+    const description = schema.$defs.entity.properties.cloth.description
+    return /different mechanism/i.test(description) && /soft bodies|fluids/i.test(description)
+  })(),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).$defs.entity.properties.cloth.description.slice(0, 200))
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

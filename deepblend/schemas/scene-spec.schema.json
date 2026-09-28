@@ -497,6 +497,10 @@
           "$ref": "#/$defs/rigidBody",
           "description": "This entity takes part in physics (SPEC \u00a720 M6, complex simulation). WHAT THIS SLICE DOES: rigid bodies \u2014 active ones fall and collide, passive ones are what they collide with, and the compile BAKES the result into the checkpoint so a render shows it. WHAT IT DOES NOT DO YET: cloth, soft bodies and fluids, which are the next slices."
         },
+        "cloth": {
+          "$ref": "#/$defs/cloth",
+          "description": "This entity is simulated as FABRIC. A different field from `rigidBody` because it is a different mechanism rather than a different setting: a rigid body is a body type on the object, while cloth is a modifier that deforms the mesh. WHAT THIS SLICE DOES NOT DO YET: soft bodies and fluids, which are the next slices."
+        },
         "generator": {
           "$ref": "#/$defs/generator"
         },
@@ -908,6 +912,28 @@
           "type": "number",
           "minimum": 0,
           "description": "Blender's own default applies when absent."
+        }
+      }
+    },
+    "cloth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pinTop": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hang the cloth from its top edge, which is what makes it drape rather than fall. The compiler builds the vertex group Blender needs from the geometry, because a group name in the file would be a reference to something no generator creates."
+        },
+        "mass": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Kilograms per square metre. Blender's own default applies when absent."
+        },
+        "stiffness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How much the fabric resists bending, 0 to 1. Blender's own default applies when absent."
         }
       }
     }
