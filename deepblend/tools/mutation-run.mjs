@@ -41,9 +41,12 @@ const parseArguments = argv => {
   return JSON.parse(readFileSync(argv[specIndex + 1], 'utf8'))
 }
 
-const runSuite = (suite, timeoutMs) => {
+const runSuite = (suite, timeoutMs, suiteArguments = []) => {
+  // `suiteArguments` EXISTS SO A GUARD THAT IS A COMMAND WITH A FLAG CAN BE MUTATION-TESTED TOO. The
+  // repository's guards are increasingly commands (`--check` here, the freshness gate elsewhere) rather
+  // than test files, and a guard nobody can mutate is a guard nobody has seen fail.
   try {
-    execFileSync('node', [suite], { cwd: ROOT, stdio: 'pipe', timeout: timeoutMs ?? 900_000 })
+    execFileSync('node', [suite, ...suiteArguments], { cwd: ROOT, stdio: 'pipe', timeout: timeoutMs ?? 900_000 })
     return { passed: true, output: '' }
   } catch (error) {
     const output = `${error.stdout ?? ''}${error.stderr ?? ''}`.toString()
@@ -51,7 +54,7 @@ const runSuite = (suite, timeoutMs) => {
   }
 }
 
-const runOne = (mutation, suite, timeoutMs) => {
+const runOne = (mutation, suite, timeoutMs, suiteArguments) => {
   const target = resolve(ROOT, mutation.file)
   const original = readFileSync(target, 'utf8')
   const originalDigest = digest(original)
@@ -83,13 +86,18 @@ const runOne = (mutation, suite, timeoutMs) => {
     return { name: mutation.name, outcome: 'NOT-APPLIED', detail: 'the replacement left the file unchanged' }
   }
 
-  const result = runSuite(suite, timeoutMs)
+  const result = runSuite(suite, timeoutMs, suiteArguments)
   const restored = restore()
   if (!restored) {
     return { name: mutation.name, outcome: 'RESTORE-FAILED', detail: 'THE FILE IS NOT BACK TO ITS ORIGINAL BYTES' }
   }
 
-  const firstFailure = (result.output.split('\n').find(line => line.includes('[FAIL]')) ?? '').trim().slice(0, 90)
+  // A GUARD IS NOT ALWAYS A TEST FILE, so its reason is not always on a  line. MEASURED: the
+  // README-totals guard is a command that prints its complaint to stderr, and the first version
+  // reported KILLED with no detail — the right word with nothing behind it. The fallback is the last
+  // non-empty line, which is where a command-shaped guard says what it found.
+  const lines = result.output.split('\n').map(line => line.trim()).filter(line => line !== '')
+  const firstFailure = ((lines.find(line => line.includes('[FAIL]')) ?? lines[lines.length - 1]) ?? '').slice(0, 90)
   return result.passed
     ? { name: mutation.name, outcome: 'SURVIVED', detail: 'the suite passed with the product broken' }
     : { name: mutation.name, outcome: 'KILLED', detail: firstFailure }
@@ -102,7 +110,7 @@ const main = () => {
 
   // THE BASELINE IS RUN FIRST, because a suite that is already red kills every mutation for the wrong
   // reason — and "all mutations killed" would then be a true sentence about a broken tree.
-  const baseline = runSuite(suite, spec.timeoutMs)
+  const baseline = runSuite(suite, spec.timeoutMs, spec.suiteArguments)
   if (!baseline.passed) {
     console.error(`REFUSING: ${spec.suite} is already failing, so a mutation result would mean nothing`)
     console.error(baseline.output.split('\n').filter(line => line.includes('[FAIL]')).slice(0, 3).join('\n'))
@@ -110,7 +118,7 @@ const main = () => {
     process.exit(2)
   }
 
-  for (const mutation of spec.mutations) results.push(runOne(mutation, suite, spec.timeoutMs))
+  for (const mutation of spec.mutations) results.push(runOne(mutation, suite, spec.timeoutMs, spec.suiteArguments))
 
   for (const result of results) console.log(`${result.outcome.padEnd(14)} | ${result.name}${result.detail === '' ? '' : ` | ${result.detail}`}`)
   rmSync(BACKUP_ROOT, { recursive: true, force: true })

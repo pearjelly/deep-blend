@@ -150,3 +150,41 @@ test('the tool owns its backup directory, so a caller cannot fail to create it',
     rmSync(fixture.directory, { recursive: true, force: true })
   }
 })
+
+test('a guard that is a COMMAND WITH A FLAG can be mutation-tested too', () => {
+  // MEASURED, and this is why `suiteArguments` exists: the repository's guards are increasingly commands
+  // (`count-assertions.mjs --check`, the freshness gate) rather than test files, and the first version of
+  // this tool ran `node <suite>` with no way to pass a flag — so a guard shaped like that could not be
+  // mutated at all, and a guard nobody can mutate is a guard nobody has seen fail.
+  const directory = mkdtempSync(join(tmpdir(), 'deepblend-mutation-args-'))
+  const product = join(directory, 'product.mjs')
+  const suite = join(directory, 'suite.mjs')
+  writeFileSync(product, 'export const value = "intact"\n', 'utf8')
+  // The suite passes without the flag and fails with it, so the ONLY way this mutation is killed is if
+  // the flag actually reached the command.
+  writeFileSync(
+    suite,
+    [
+      `import { readFileSync } from 'node:fs'`,
+      `const strict = process.argv.includes('--be-strict')`,
+      `const text = readFileSync(${JSON.stringify(product)}, 'utf8')`,
+      `process.exit(strict && text.includes('"intact"') ? 1 : 0)`,
+      '',
+    ].join('\n'),
+    'utf8',
+  )
+  try {
+    const result = runTool({
+      directory,
+      suite,
+      suiteArguments: ['--be-strict'],
+      mutations: [{ name: 'break it', file: product, find: '"intact"', replace: '"broken"' }],
+    })
+    // The baseline runs WITHOUT the mutation and WITH the flag, so it must be red — which is the tool
+    // refusing, and is itself the proof that the flag reached the command.
+    assert.equal(result.status, 2)
+    assert.match(result.output, /already failing/)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})

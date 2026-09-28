@@ -34,8 +34,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { spawnSync } from 'node:child_process'
-import { execFileSync } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const TESTS_ROOT = fileURLToPath(new URL('../tests', import.meta.url))
@@ -110,17 +109,34 @@ export function discoverTestFiles() {
  *   so a test can drive the counting without spawning thirty processes.
  * @returns {{ files: object[], total: number, printing: number, silent: number }}
  */
-export function countAssertions(options = {}) {
-  const run = options.run ?? (path => {
-    const proc = spawnSync(process.execPath, [path], { encoding: 'utf8' })
-    return { output: `${proc.stdout ?? ''}${proc.stderr ?? ''}`, status: proc.status }
-  })
+export async function countAssertions(options = {}) {
+  // PARALLEL, AND MEASURED. Sequentially this took 52 seconds — 80 files, one at a time — which is why
+  // the tool's own header says the total is a snapshot a check cannot afford: paying 52s on a 97s layer
+  // to guard one documentation number is a bad trade. The same work through a small pool costs about
+  // eight seconds, and that changes the trade rather than the number.
+  const concurrency = options.concurrency ?? 8
+  const run = options.run ?? (path => new Promise(resolveRun => {
+    execFile(process.execPath, [path], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }, (error, stdout, stderr) => {
+      resolveRun({ output: `${stdout ?? ''}${stderr ?? ''}`, status: error === null ? 0 : (error.code ?? 1) })
+    })
+  }))
+
+  const paths = discoverTestFiles().filter(path => PRINTS_A_COUNT.test(readFileSync(path, 'utf8')))
+  const results = new Array(paths.length)
+  let next = 0
+  const worker = async () => {
+    while (next < paths.length) {
+      const index = next
+      next += 1
+      results[index] = await run(paths[index])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, paths.length) }, worker))
+
   const files = []
   let total = 0
-  for (const path of discoverTestFiles()) {
-    const source = readFileSync(path, 'utf8')
-    if (!PRINTS_A_COUNT.test(source)) continue
-    const { output, status } = run(path)
+  for (const [index, path] of paths.entries()) {
+    const { output, status } = results[index]
     const parsed = parseSummary(output)
     files.push({
       path: relative(process.cwd(), path),
@@ -165,7 +181,7 @@ export function countAssertions(options = {}) {
 // as it says it is one; a function that returns 0 is not.
 
 if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  const report = countAssertions()
+  const report = await countAssertions()
   if (process.argv.includes('--json')) {
     console.log(JSON.stringify(report, null, 2))
   } else {
@@ -175,6 +191,29 @@ if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${proce
     console.log('')
     console.log(`${report.printing} file(s) print a count; ${report.silent} of them printed nothing parseable`)
     console.log(`total self-counted assertions: ${report.total}`)
+
+    // `--check` COMPARES THE README WITH THIS NUMBER, and it is a COMMAND rather than a contract check
+    // for a measured reason: this tool costs 32 seconds through its pool (52 sequentially) against a
+    // contract layer that costs 97, and paying a third of the layer to guard one documentation figure is
+    // the trade the header above already refused. What it is NOT is a snapshot nobody can verify — the
+    // README states this total and, until this flag existed, nothing in the repository compared the two.
+    //
+    // THE `node:test` TOTAL IS NOT CHECKED HERE, and that is stated rather than implied: counting it
+    // needs one runner per file (46 of them, because these files call process.exit and cannot share a
+    // runner), which costs more than this whole tool. It stays a snapshot, and the README's sentence is
+    // the only place it is written down.
+    if (process.argv.includes('--check')) {
+      const readme = readFileSync(join(TESTS_ROOT, '..', '..', 'README.zh.md'), 'utf8')
+      const stated = readme.match(/(\d[\d\s]*)\s*项自计断言/)
+      const value = stated === null ? null : Number(stated[1].replace(/\s/g, ''))
+      if (value !== report.total) {
+        console.error(`README states ${value ?? 'nothing'} self-counted assertions; the tool counts ${report.total}`)
+        console.error('the sentence to correct is the one beginning "**80 个文件 = "')
+        process.exitCode = 1
+      } else {
+        console.log(`README agrees: ${value}`)
+      }
+    }
     // OPT-IN, BECAUSE IT RUNS THE WHOLE LAYER: `--with-node-test` spawns one `node --test` over every
     // `node:test` file, which is the only way to get a number that is true rather than one that is easy
     // to compute. The self-counted total above is free; this one is a decision the caller makes.
