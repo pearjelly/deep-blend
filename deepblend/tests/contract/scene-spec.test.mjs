@@ -847,9 +847,10 @@ check('an armature survives canonicalisation, so the rig is part of what a revis
     'utf8',
   ))
   const description = schema.properties.armatures.description
-  check('the schema says what this slice does NOT do, where a reader of the schema will see it',
-    /skin/i.test(description) && /not do yet|next two slices/i.test(description),
-    description.slice(0, 160))
+  // RETIRED, AND WHY: this asserted that the schema said skinning was NOT done yet — a transitional
+  // sentence, and a check that pins one has a lifetime. Character animation is complete as of the bone
+  // slice, so that sentence is gone and this check with it. The check at the end of this file asserts
+  // the completed state instead: that the schema says the item IS done and does not still claim otherwise.
   check('and the bone definition requires what a bone is: a name, a head and a tail',
     ['name', 'head', 'tail'].every(key => schema.$defs.bone.required.includes(key)),
     schema.$defs.bone.required)
@@ -879,16 +880,59 @@ check('and naming an armature the scene does not declare is refused, not ignored
   validateSceneSpec(withRigAndSkin('no-such-rig')).ok === false,
   'an entity was skinned to an armature nobody declares, which would render static while claiming to be rigged')
 
-check('the schema now says skinning IS done, and names what is still missing',
+// RETIRED TOO, for the same reason: it asserted the schema still NAMED what was missing ("animate a
+// bone"), and nothing is missing now.
+
+// ---------------------------------------------------------------------------
+// BONE ANIMATION — the last slice: the rig moves, and so does its mesh
+//
+// A bone track targets the ARMATURE (the bones belong to it) and names the bone.
+// Both halves are cross-references the schema cannot express: it can say the ids
+// are strings, and only a lookup can say they name things the scene declares.
+// ---------------------------------------------------------------------------
+
+const withBoneTrack = (overrides) => {
+  const spec = withRigAndSkin('hero-rig')
+  spec.animationTracks = [
+    ...(spec.animationTracks ?? []),
+    {
+      id: 'chest-lift', targetKind: 'bone', targetEntityId: 'hero-rig', boneName: 'hips',
+      property: 'rotationEuler.x',
+      keyframes: [{ frame: 1, value: 0, interpolation: 'linear' }, { frame: 10, value: 1, interpolation: 'linear' }],
+      ...overrides,
+    },
+  ]
+  return spec
+}
+
+check('an animation track may drive a bone of an armature',
+  validateSceneSpec(withBoneTrack({})).ok === true,
+  validateSceneSpec(withBoneTrack({})).errors)
+
+check('a bone track that names no bone is refused, because it would animate nothing',
+  validateSceneSpec(withBoneTrack({ boneName: undefined })).ok === false,
+  'a bone track with no bone name was accepted')
+
+check('a bone track naming a bone the armature does not have is refused',
+  validateSceneSpec(withBoneTrack({ boneName: 'no-such-bone' })).ok === false,
+  validateSceneSpec(withBoneTrack({ boneName: 'no-such-bone' })).errors)
+
+check('a bone track targeting an armature nobody declares is refused too',
+  validateSceneSpec(withBoneTrack({ targetEntityId: 'no-such-rig' })).ok === false,
+  'a bone track pointed at an armature that does not exist')
+
+check('and the schema says the whole item is done rather than leaving a stale "not yet"',
   (() => {
     const schema = JSON.parse(readFileSync(
       resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
       'utf8',
     ))
     const description = schema.properties.armatures.description
-    return /ARE skinned|skinned to an armature/i.test(description) && /animate a bone/i.test(description)
+    return /ARE skinned|skinned to an armature/i.test(description) &&
+      /animation tracks can drive a bone|can drive a bone/i.test(description) &&
+      !/NOT DO YET/.test(description)
   })(),
-  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).properties.armatures.description.slice(0, 160))
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'), 'utf8')).properties.armatures.description.slice(0, 200))
 
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {

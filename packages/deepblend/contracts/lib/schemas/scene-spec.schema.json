@@ -31,7 +31,7 @@
       "items": {
         "$ref": "#/$defs/armature"
       },
-      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. WHAT THIS DOES NOT DO YET: animate a bone. Entities ARE skinned to an armature now (`entity.armatureId`, with Blender's automatic weights), so a rig drives its mesh \u2014 but nothing moves the rig until animation tracks can target bones, which is the next slice."
+      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. Entities are skinned to an armature (`entity.armatureId`, with Blender's automatic weights) and animation tracks can drive a bone of it (`targetKind: \"bone\"` with `boneName`), so a rig both moves and moves its mesh."
     },
     "materials": {
       "type": "array",
@@ -677,14 +677,20 @@
           "enum": [
             "entity",
             "camera",
-            "material"
+            "material",
+            "bone"
           ],
           "default": "entity",
-          "description": "What `targetEntityId` names: an entity (default), a camera, or a material. Only entity tracks existed before, which is why \"the camera orbits the product\" and \"the dial lights up\" both had to be faked with entity transforms."
+          "description": "What `targetEntityId` names: an entity (default), a camera, a material, or AN ARMATURE whose bone this track drives (with `boneName`). Ids are unique per collection, so the kind is the only thing that says whether \"watch-dial\" means the mesh or the material \u2014 and `bone` is what made a rig able to move rather than merely exist."
         },
         "targetEntityId": {
           "type": "string",
           "description": "The id of the target named by `targetKind`. The field name says Entity because every track written before target kinds existed used it and revisions are immutable; renaming it would make r0001-r0023 unreadable. Resolution is against the collection `targetKind` names, which matters because ids are unique per collection, not globally."
+        },
+        "boneName": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Required when targetKind is `bone`: the name of the bone inside the named armature. A name the armature does not have is refused \u2014 a track that silently animates nothing is a scene that claims to move and does not."
         },
         "property": {
           "type": "string",

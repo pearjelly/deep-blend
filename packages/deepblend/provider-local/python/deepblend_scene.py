@@ -1030,6 +1030,82 @@ def _apply_interpolation(action, data_path, axis, keyframes, track, guard):
         )
 
 
+def _insert_keyframes(target, bpy_attr, axis, keyframes):
+    """Insert one component's keyframes on a target that has `keyframe_insert`.
+
+    EXTRACTED RATHER THAN COPIED: an object and a pose bone are keyframed by the same three lines, and
+    a second copy is the one that would miss the next fix — the identity-first rule below is exactly the
+    kind of thing that gets learned once and applied in one place.
+    """
+    for keyframe in keyframes:
+        frame = int(keyframe["frame"])
+        value = float(keyframe["value"])
+        setattr(target, bpy_attr, _with_component(getattr(target, bpy_attr), axis, value))
+        target.keyframe_insert(data_path=bpy_attr, index=axis, frame=frame)
+
+
+def build_bone_animation(armature_obj, track, guard):
+    """Animate ONE pose bone of an armature.
+
+    WHY A BONE IS NOT AN OBJECT: the values live on the ARMATURE's pose, so the keyframes are inserted
+    through the pose bone while the action belongs to the armature. Everything else — the property
+    vocabulary, the two-keyframe minimum, the interpolation — is the same, which is why the insertion
+    itself is shared rather than re-implemented.
+
+    The bone is named by the track; a name the armature does not have is refused, because a track that
+    silently animates nothing is a scene that claims to move and does not.
+    """
+    bone_name = track.get("boneName")
+    if not isinstance(bone_name, str) or bone_name == "":
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" targets a bone but names none' % (track.get("id"),),
+        )
+    pose_bone = armature_obj.pose.bones.get(bone_name)
+    if pose_bone is None:
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" targets bone "%s", which armature "%s" does not have'
+            % (track.get("id"), bone_name, armature_obj.get("deepblend_id")),
+        )
+
+    property_name = track.get("property", "")
+    if "." not in property_name:
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" names property "%s" without a component' % (track.get("id"), property_name),
+        )
+    attr, _, component = property_name.rpartition(".")
+    bpy_attr = TRACK_PROPERTY_ATTR.get(attr)
+    if bpy_attr is None or component not in ("x", "y", "z"):
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" names unsupported property "%s"' % (track.get("id"), property_name),
+            {"supported": sorted("%s.%s" % (name, axis) for name in TRACK_PROPERTY_ATTR for axis in "xyz")},
+        )
+
+    keyframes = track.get("keyframes") or []
+    if len(keyframes) < 2:
+        raise ActionError(
+            "SCENE_VALIDATION_FAILED",
+            'animation track "%s" has %d keyframe(s); at least 2 are required to describe motion'
+            % (track.get("id"), len(keyframes)),
+        )
+
+    axis = "xyz".index(component)
+    pose_bone.rotation_mode = "XYZ"
+    _insert_keyframes(pose_bone, bpy_attr, axis, keyframes)
+
+    action = armature_obj.animation_data.action if armature_obj.animation_data is not None else None
+    if action is None:
+        raise ActionError(
+            "BLENDER_SCRIPT_ERROR",
+            'animation track "%s" inserted keyframes but produced no action' % (track.get("id"),),
+        )
+    _apply_interpolation(action, bpy_attr, axis, keyframes, track, guard)
+    return action
+
+
 def build_animation(obj, track, guard):
     """Key one animation track onto an object, returning the action name.
 
@@ -1072,11 +1148,7 @@ def build_animation(obj, track, guard):
     # values, or the first insert would capture a value from a different property.
     obj.rotation_mode = "XYZ"
 
-    for keyframe in keyframes:
-        frame = int(keyframe["frame"])
-        value = float(keyframe["value"])
-        setattr(obj, bpy_attr, _with_component(getattr(obj, bpy_attr), axis, value))
-        obj.keyframe_insert(data_path=bpy_attr, index=axis, frame=frame)
+    _insert_keyframes(obj, bpy_attr, axis, keyframes)
 
     action = obj.animation_data.action if obj.animation_data is not None else None
     if action is None:
@@ -1560,6 +1632,10 @@ def build_scene(spec, options, guard):
             target = cameras.get(target_id)
         elif kind == "material":
             target = materials.get(target_id)
+        elif kind == "bone":
+            # A BONE TRACK TARGETS THE ARMATURE, because the bones belong to it: the armature id is
+            # what resolves, and `boneName` picks the bone inside it.
+            target = armature_objects.get(target_id)
         else:
             target = entity_objects.get(target_id)
         if target is None:
@@ -1570,9 +1646,23 @@ def build_scene(spec, options, guard):
             )
         if kind == "material":
             action = build_material_animation(target, track, guard)
+        elif kind == "bone":
+            action = build_bone_animation(target, track, guard)
         else:
             action = build_animation(target, track, guard)
-        actions.append({"id": track.get("id"), "targetKind": kind, "targetEntityId": target_id, "action": action.name})
+        actions.append({
+            "id": track.get("id"),
+            "targetKind": kind,
+            "targetEntityId": target_id,
+            "action": action.name,
+            **({"boneName": track.get("boneName")} if kind == "bone" else {}),
+            # WHAT THE ACTION ACTUALLY DROVE, read off its own fcurves. MEASURED, and a surviving
+            # mutation is why: keying the ARMATURE OBJECT instead of the pose bone still moves the mesh
+            # — the mesh is parented to the armature, so the two frames differ either way — and the
+            # two-frame proof passed. The data paths are the difference: `pose.bones["chest"]…` is the
+            # bone, `rotation_euler` on the object is not.
+            "dataPaths": sorted({curve.data_path for curve in action_fcurves(action)}),
+        })
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)

@@ -96,6 +96,8 @@ export const ANIMATION_PROPERTIES_BY_KIND = Object.freeze({
 export function collectionNameForKind(kind) {
   if (kind === 'camera') return 'cameras'
   if (kind === 'material') return 'materials'
+  // A BONE TRACK RESOLVES AGAINST THE ARMATURES, because that is the collection its id belongs to.
+  if (kind === 'bone') return 'armatures'
   return 'entities'
 }
 
@@ -360,6 +362,25 @@ export function validateSceneSpec(spec) {
     // is what every track written before kinds existed meant.
     const kind = track.targetKind ?? 'entity'
     requiresId(collectionNameForKind(kind), track.targetEntityId, `${at}.targetEntityId`, kind)
+    // AND THE BONE INSIDE IT. MEASURED: this is the same shape as `armatureId` last round — the schema
+    // can say `boneName` is a string, and only a cross-reference can say the armature HAS that bone.
+    // A track pointing at a bone nobody declares animates nothing while the file says the rig moves.
+    if (kind === 'bone') {
+      if (typeof track.boneName !== 'string' || track.boneName.length === 0) {
+        errors.push({
+          severity: 'error', code: 'SCENE_REFERENCE_MISSING', path: `${at}.boneName`,
+          message: 'a bone track must name the bone it drives',
+        })
+      } else {
+        const armature = (document.armatures ?? []).find(entry => entry?.id === track.targetEntityId)
+        if (armature !== undefined && !(armature.bones ?? []).some(bone => bone?.name === track.boneName)) {
+          errors.push({
+            severity: 'error', code: 'SCENE_REFERENCE_MISSING', path: `${at}.boneName`,
+            message: `bone "${track.boneName}" does not exist in armature "${track.targetEntityId}"`,
+          })
+        }
+      }
+    }
 
     // A property that does not belong to the target's kind is not a typo the
     // compiler can shrug off: `emissionStrength` on an entity, or `location.x` on a

@@ -380,6 +380,65 @@ const orphanSpecPath = join(workspace, 'orphan-spec.json')
 writeFileSync(orphanSpecPath, JSON.stringify(orphanSpec, null, 2))
 const orphan = await renderRuntime.compileScene({ sceneSpecPath: orphanSpecPath })
   .then(run => run, error => error)
+// ---------------------------------------------------------------------------
+// 1d. THE MESH ACTUALLY MOVES — the evidence the whole item rests on
+//
+// Everything above shows the parts exist. This shows they do something: the same scene, the same
+// camera, two frames of the rig's own action, and two DIFFERENT images. A rig that exists, a mesh that
+// is skinned and a track that is written would still be a still image if any of the three were wired
+// up wrong, and only rendering it can tell the difference.
+// ---------------------------------------------------------------------------
+
+const movingSpec = JSON.parse(JSON.stringify(skinSpec))
+movingSpec.project.frameStart = 1
+movingSpec.project.frameEnd = 10
+movingSpec.animationTracks = [
+  ...(movingSpec.animationTracks ?? []),
+  {
+    id: 'chest-lift', targetKind: 'bone', targetEntityId: 'hero-rig', boneName: 'chest',
+    property: 'rotationEuler.x',
+    keyframes: [
+      { frame: 1, value: 0, interpolation: 'linear' },
+      { frame: 10, value: 1, interpolation: 'linear' },
+    ],
+  },
+]
+const movingSpecPath = join(workspace, 'moving-spec.json')
+writeFileSync(movingSpecPath, JSON.stringify(movingSpec, null, 2))
+const movingBlend = join(workspace, 'moving.blend')
+const moving = await renderRuntime.runBootstrap({ action: 'compile_scene' }, {
+  args: ['--scene-spec', movingSpecPath, '--output-blend', movingBlend, '--profile', 'final'],
+})
+check('a spec with a bone track compiles, and the action names the bone it drives',
+  moving.envelope.status === 'success' &&
+  (moving.envelope.result?.actions ?? []).some(entry => entry.targetKind === 'bone' && entry.boneName === 'chest'),
+  moving.envelope.result?.actions ?? moving.envelope.error?.message)
+
+// AND THE ACTION DROVE THE BONE, NOT THE ARMATURE OBJECT. MEASURED, and a surviving mutation is why
+// this check exists: keying the armature OBJECT still moves the mesh — it is parented to the armature —
+// so two differing frames prove that SOMETHING moved, not that the bone did. The data paths are the
+// difference, and they are read off the action's own fcurves.
+check('the action keyed the POSE BONE, which is the difference between a rig that animates and a rig that is dragged',
+  (moving.envelope.result?.actions ?? []).some(entry =>
+    entry.targetKind === 'bone' &&
+    entry.dataPaths?.length === 1 &&
+    /^pose\.bones\["chest"\]\./.test(entry.dataPaths[0])),
+  (moving.envelope.result?.actions ?? []).filter(entry => entry.targetKind === 'bone'))
+
+const renderFrame = async frame => {
+  const output = join(workspace, `moving-f${frame}.png`)
+  const run = await renderRuntime.runBootstrap({ action: 'render_preview' }, {
+    args: ['--blend', movingBlend, '--output', output, '--frame', String(frame), '--profile', 'final'],
+  })
+  return { status: run.envelope.status, digest: createHash('sha256').update(readFileSync(output)).digest('hex'), bytes: readFileSync(output).length }
+}
+const frameOne = await renderFrame(1)
+const frameTen = await renderFrame(10)
+check('and the two frames of that action are DIFFERENT images, which is the mesh actually following the bone',
+  frameOne.status === 'success' && frameTen.status === 'success' &&
+  frameOne.bytes > 10_000 && frameTen.bytes > 10_000 && frameOne.digest !== frameTen.digest,
+  { first: frameOne.digest?.slice(0, 12), tenth: frameTen.digest?.slice(0, 12) })
+
 check('an entity skinned to an armature that does not exist is refused by the COMPILER too',
   orphan?.envelope?.status === 'error' || orphan?.code === 'SCENE_REFERENCE_MISSING' ||
   /no-such-rig/.test(orphan?.message ?? '') || /no-such-rig/.test(JSON.stringify(orphan?.envelope?.error ?? {})),
