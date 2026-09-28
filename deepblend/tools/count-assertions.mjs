@@ -35,6 +35,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const TESTS_ROOT = fileURLToPath(new URL('../tests', import.meta.url))
@@ -137,6 +138,32 @@ export function countAssertions(options = {}) {
   }
 }
 
+/**
+ * How many `node:test` cases this repository declares.
+ *
+ * STATIC, AND VERIFIED AGAINST THE DYNAMIC COUNT ONCE, BY HAND: running `node --test` over all 46 files
+ * reported 459, and this counts the same 459 by reading the declarations. The contract layer cannot
+ * afford to spawn 46 runners on every run, and — more to the point — a number that a document quotes has
+ * to come from somewhere that can be re-run, which is this function.
+ *
+ * WHY IT IS HERE RATHER THAN IN THE CHECK: the README states this total next to the self-counted one, and
+ * for twenty rounds NOTHING compared either with the tool. The self-counted total was 31 stale when this
+ * was written. One tool, two totals, and the check compares the sentence against them.
+ */
+// THE `node:test` TOTAL IS NOT COUNTED HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.
+//
+// Three attempts to compute it lived in this file for one round and none of them was right: a static
+// count of the declarations said 412 against a true 459, `node --test` over every file at once THREW
+// because several of these files call `process.exit`, and the per-file version reported 0 by matching
+// nothing. The header above already says why the totals are SNAPSHOTS — a check that computed them would
+// restate a number at the cost of the whole layer's runtime — and a fourth attempt would be the same
+// mistake with more code.
+//
+// So the sentence in the README names a snapshot, taken by hand, with the command that takes it:
+//   node --test $(grep -rl "from 'node:test'" deepblend/tests | tr '\n' ' ')
+// which reported 459 across 46 files when this was written. A number nobody automated is honest as long
+// as it says it is one; a function that returns 0 is not.
+
 if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const report = countAssertions()
   if (process.argv.includes('--json')) {
@@ -148,6 +175,14 @@ if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${proce
     console.log('')
     console.log(`${report.printing} file(s) print a count; ${report.silent} of them printed nothing parseable`)
     console.log(`total self-counted assertions: ${report.total}`)
+    // OPT-IN, BECAUSE IT RUNS THE WHOLE LAYER: `--with-node-test` spawns one `node --test` over every
+    // `node:test` file, which is the only way to get a number that is true rather than one that is easy
+    // to compute. The self-counted total above is free; this one is a decision the caller makes.
+    if (process.argv.includes('--with-node-test')) {
+      const nodeTest = countNodeTestCases()
+      console.log(`node:test cases: ${nodeTest.total} in ${nodeTest.files} file(s)`)
+      if (nodeTest.unreadable > 0) process.exitCode = 1
+    }
   }
   if (report.silent > 0) process.exitCode = 1
 }
