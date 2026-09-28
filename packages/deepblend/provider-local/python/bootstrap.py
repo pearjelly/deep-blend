@@ -227,6 +227,22 @@ def action_compile_scene(request, options):
         "engine": report["engine"],
         "requestedEngine": report["requestedEngine"],
         "profileName": report["profileName"],
+        # THE RIGS THIS SCENE DECLARES, with their bones. A count alone would say an armature exists;
+        # a rig is only useful if the bones are the ones the spec named, so the names travel with it and
+        # a test can read them back rather than trust the count.
+        "armatures": [
+            {
+                "id": armature_id,
+                "object": report["armatureNames"].get(armature_id),
+                "bones": [
+                    {"name": bone["name"], "parent": bone.get("parent")}
+                    for bone in armature_entry["bones"]
+                ],
+            }
+            for armature_id, armature_entry in (
+                (entry["id"], entry) for entry in (spec.get("armatures") or [])
+            )
+        ],
         "validation": validation,
         "sceneFingerprint": scene_fingerprint(spec, describe_objects()),
     }

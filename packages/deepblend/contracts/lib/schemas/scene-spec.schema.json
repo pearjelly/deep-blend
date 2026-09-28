@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://deepblend.local/schemas/scene-spec.schema.json",
   "title": "DeepBlend SceneSpec v1",
-  "description": "The structural source of truth for one DeepBlend scene (SPEC §8.1: 'SceneSpec 场景结构事实来源'). A .blend file is a compile artifact of this document, never the authority. Scenes are compiled from a SceneSpec and modified only through ScenePatch operations, so that every revision is diffable, replayable and auditable.",
+  "description": "The structural source of truth for one DeepBlend scene (SPEC \u00a78.1: 'SceneSpec \u573a\u666f\u7ed3\u6784\u4e8b\u5b9e\u6765\u6e90'). A .blend file is a compile artifact of this document, never the authority. Scenes are compiled from a SceneSpec and modified only through ScenePatch operations, so that every revision is diffable, replayable and auditable.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,6 +25,13 @@
       "items": {
         "$ref": "#/$defs/asset"
       }
+    },
+    "armatures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/armature"
+      },
+      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. WHAT THIS SLICE DOES NOT DO YET: bind a mesh to a bone (skinning) and animate a bone \u2014 those are the next two slices, and a rig that exists but drives nothing is honest about being exactly that."
     },
     "materials": {
       "type": "array",
@@ -83,7 +90,12 @@
       "properties": {
         "color": {
           "$ref": "#/$defs/unitColor",
-          "default": [0.02, 0.021, 0.026, 1]
+          "default": [
+            0.02,
+            0.021,
+            0.026,
+            1
+          ]
         },
         "strength": {
           "type": "number",
@@ -220,7 +232,7 @@
         "path": {
           "type": "string",
           "minLength": 1,
-          "description": "Project-relative POSIX path. Absolute paths and any '..' segment are rejected by the path guard (SPEC §15.2)."
+          "description": "Project-relative POSIX path. Absolute paths and any '..' segment are rejected by the path guard (SPEC \u00a715.2)."
         },
         "sha256": {
           "type": "string",
@@ -383,7 +395,7 @@
       "required": [
         "shape"
       ],
-      "description": "Procedural proxy geometry. M1 has no asset-ingest action yet, so fixtures build their hero objects from generators; asset-instance entities take over as the primary path once blender_asset_ingest lands (SPEC §11).",
+      "description": "Procedural proxy geometry. M1 has no asset-ingest action yet, so fixtures build their hero objects from generators; asset-instance entities take over as the primary path once blender_asset_ingest lands (SPEC \u00a711).",
       "properties": {
         "shape": {
           "type": "string",
@@ -480,7 +492,7 @@
         },
         "locked": {
           "type": "boolean",
-          "description": "A locked entity may still be patched explicitly, but the orchestrator must not propose changes to it autonomously (SPEC §12)."
+          "description": "A locked entity may still be patched explicitly, but the orchestrator must not propose changes to it autonomously (SPEC \u00a712)."
         },
         "visible": {
           "type": "boolean"
@@ -658,7 +670,11 @@
         },
         "targetKind": {
           "type": "string",
-          "enum": ["entity", "camera", "material"],
+          "enum": [
+            "entity",
+            "camera",
+            "material"
+          ],
           "default": "entity",
           "description": "What `targetEntityId` names: an entity (default), a camera, or a material. Only entity tracks existed before, which is why \"the camera orbits the product\" and \"the dial lights up\" both had to be faked with entity transforms."
         },
@@ -768,7 +784,7 @@
         "maxSamplesBudget": {
           "type": "integer",
           "minimum": 1,
-          "description": "Upper bound a render action may use. Guards the render-cost threshold of SPEC §15.4."
+          "description": "Upper bound a render action may use. Guards the render-cost threshold of SPEC \u00a715.4."
         }
       }
     },
@@ -784,6 +800,57 @@
         },
         "final": {
           "$ref": "#/$defs/renderProfile"
+        }
+      }
+    },
+    "bone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "head",
+        "tail"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The bone's name inside its armature. A parent names another bone by this, so it is the identity a rig is written in terms of."
+        },
+        "head": {
+          "$ref": "#/$defs/vec3"
+        },
+        "tail": {
+          "$ref": "#/$defs/vec3"
+        },
+        "parent": {
+          "type": "string",
+          "description": "The name of another bone in the SAME armature, or absent for a root. Bones are declared in any order; the compiler resolves the hierarchy, because requiring parents-first would make a rig's declaration depend on its storage order."
+        }
+      }
+    },
+    "armature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "bones"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "bones": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/bone"
+          },
+          "description": "At least one bone, because an armature with none is a rig that cannot move anything and would silently do nothing."
+        },
+        "transform": {
+          "$ref": "#/$defs/transform"
         }
       }
     }

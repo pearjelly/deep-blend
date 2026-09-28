@@ -789,6 +789,72 @@ check('a NON-STRING id is refused by the schema in every collection, which is wh
   typeViolations.length === 0, typeViolations)
 
 console.log('')
+// ---------------------------------------------------------------------------
+// ARMATURES (SPEC §20 M6, character animation) — the first slice
+//
+// The spec can declare a skeleton and the compiler creates it. WHAT THIS SLICE
+// DOES NOT DO is bind a mesh to a bone or animate one; those are the next
+// slices, and the schema says so where a reader looking for skinning will find
+// it, rather than leaving them to discover it.
+//
+// The two functions answer different questions and this block needs both:
+// `validateSceneSpec` decides whether a document is a legal SceneSpec (schema,
+// then semantics) and `compileSceneSpec` produces the canonical form. A refusal
+// belongs to the first; "it still compiles" belongs to the second.
+// ---------------------------------------------------------------------------
+
+const withArmature = (armatures) => {
+  // THE FILE'S OWN FIXTURE CONSTANT, not a path built here: this suite already reads that fixture and
+  // pins its digests, and a second way of finding the same file is how the two drift apart.
+  const spec = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'))
+  if (armatures !== undefined) spec.armatures = armatures
+  return spec
+}
+
+const bone = (overrides = {}) => ({ name: 'hips', head: [0, 0, 0], tail: [0, 0, 0.2], ...overrides })
+
+check('a SceneSpec may declare an armature, and a minimal one is a legal spec',
+  validateSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone()] }])).ok === true,
+  validateSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone()] }])).errors)
+
+check('an armature with NO bones is refused, because a rig that cannot move anything is silently useless',
+  validateSceneSpec(withArmature([{ id: 'hero-rig', bones: [] }])).ok === false,
+  'an armature with no bones was accepted')
+
+check('a bone without a name is refused, because a parent names its child by that name',
+  validateSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone({ name: undefined })] }])).ok === false,
+  'a bone with no name was accepted')
+
+check('a bone without a tail is refused, because a bone with no direction is not a bone',
+  validateSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone({ tail: undefined })] }])).ok === false,
+  'a bone with no tail was accepted')
+
+check('and a scene with no armatures still compiles, so this slice costs nothing to scenes that have none',
+  compileSceneSpec(withArmature(undefined)).spec !== undefined &&
+  compileSceneSpec(withArmature([])).spec !== undefined,
+  'a scene without armatures no longer compiles')
+
+check('an armature survives canonicalisation, so the rig is part of what a revision commits',
+  JSON.stringify(compileSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone()] }])).spec.armatures) ===
+  JSON.stringify([{ id: 'hero-rig', bones: [bone()] }]),
+  compileSceneSpec(withArmature([{ id: 'hero-rig', bones: [bone()] }])).spec.armatures)
+
+{
+  // A FEATURE THAT IS PARTIALLY DONE HAS TO SAY SO WHERE A READER LOOKS. The armature description is
+  // that place: somebody reading the schema to find out how to skin a mesh learns that they cannot yet.
+  const schema = JSON.parse(readFileSync(
+    resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'contracts', 'lib', 'schemas', 'scene-spec.schema.json'),
+    'utf8',
+  ))
+  const description = schema.properties.armatures.description
+  check('the schema says what this slice does NOT do, where a reader of the schema will see it',
+    /skin/i.test(description) && /not do yet|next two slices/i.test(description),
+    description.slice(0, 160))
+  check('and the bone definition requires what a bone is: a name, a head and a tail',
+    ['name', 'head', 'tail'].every(key => schema.$defs.bone.required.includes(key)),
+    schema.$defs.bone.required)
+}
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

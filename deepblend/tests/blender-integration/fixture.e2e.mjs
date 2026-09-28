@@ -299,6 +299,49 @@ check('the golden subject bounds exclude the environment plane',
   summary.subjectBounds)
 
 // ---------------------------------------------------------------------------
+// 1b. ARMATURES (SPEC §20 M6, character animation) — the first slice, on a real Blender
+//
+// The schema slice is asserted in the contract layer; what has to be shown HERE is that Blender
+// actually creates the rig, and that the bones come back with the hierarchy the spec declared —
+// including a child declared BEFORE its parent, which the compiler resolves rather than requiring the
+// file to be written parents-first.
+// ---------------------------------------------------------------------------
+
+const rigSpec = JSON.parse(JSON.stringify(fixtureSpec))
+rigSpec.armatures = [{
+  id: 'hero-rig',
+  bones: [
+    { name: 'chest', head: [0, 0, 1.1], tail: [0, 0, 1.5], parent: 'hips' },
+    { name: 'hips', head: [0, 0, 0.9], tail: [0, 0, 1.1] },
+    { name: 'head', head: [0, 0, 1.5], tail: [0, 0, 1.75], parent: 'chest' },
+  ],
+}]
+const rigSpecPath = join(workspace, 'rig-spec.json')
+writeFileSync(rigSpecPath, JSON.stringify(rigSpec, null, 2))
+// THE PROVIDER'S OWN SERVICE, because this slice is about what BLENDER was told to create; the host
+// above it decides which revisions exist, and that is asserted elsewhere in this file.
+const renderRuntime = ctx.get('blenderRuntime')
+const rigged = await renderRuntime.compileScene({ sceneSpecPath: rigSpecPath })
+
+check('Blender creates the armature the spec declares',
+  rigged.envelope.status === 'success' && Array.isArray(rigged.envelope.result?.armatures) &&
+  rigged.envelope.result.armatures.length === 1 &&
+  rigged.envelope.result.armatures[0].object === 'db_arm__hero-rig',
+  rigged.envelope.result?.armatures ?? rigged.envelope.error?.message)
+
+check('and the bones come back with the parents the spec named, in any declaration order',
+  JSON.stringify(rigged.envelope.result?.armatures?.[0]?.bones) === JSON.stringify([
+    { name: 'chest', parent: 'hips' },
+    { name: 'hips', parent: null },
+    { name: 'head', parent: 'chest' },
+  ]),
+  rigged.envelope.result?.armatures?.[0]?.bones)
+
+check('and the structural fingerprint counts the rig, so a revision records that it has one',
+  (rigged.envelope.result?.sceneFingerprint?.objectCounts?.ARMATURE ?? 0) >= 1,
+  rigged.envelope.result?.sceneFingerprint?.objectCounts)
+
+// ---------------------------------------------------------------------------
 // 2. project_create compiles a checkpoint from the natural-language brief
 // ---------------------------------------------------------------------------
 

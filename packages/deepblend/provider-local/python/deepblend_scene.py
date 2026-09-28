@@ -1324,6 +1324,57 @@ def assign_view_transform(scene, name):
 # ---------------------------------------------------------------------------
 
 
+ARMATURE_PREFIX = "db_arm__"
+
+
+def build_armature(entry, guard):
+    """Create one armature and its bones, and return the object.
+
+    WHY BONES ARE RESOLVED IN A SECOND PASS: the schema lets a bone name its parent without requiring
+    the parent to be declared first, because a rig's declaration should read like the skeleton rather
+    than like its storage order. So every bone is created as a root, and the parents are applied
+    afterwards — with an unknown parent reported rather than silently ignored, since a bone that
+    quietly has no parent is a rig that deforms differently from what the file says.
+    """
+    armature_id = entry["id"]
+    data = bpy.data.armatures.new("%s%s" % (ARMATURE_PREFIX, armature_id))
+    obj = bpy.data.objects.new("%s%s" % (ARMATURE_PREFIX, armature_id), data)
+    bpy.context.scene.collection.objects.link(obj)
+    obj["deepblend_id"] = armature_id
+    obj["deepblend_kind"] = "armature"
+
+    transform = entry.get("transform") or {}
+    apply_transform(obj, transform)
+
+    # Edit mode is the only place `edit_bones` exists, and Blender's own context management is what
+    # makes it available — a manual mode switch without this leaves the object in a state the rest of
+    # the compile does not expect.
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="EDIT")
+    try:
+        created = {}
+        for bone in entry["bones"]:
+            edit_bone = data.edit_bones.new(bone["name"])
+            edit_bone.head = tuple(float(value) for value in bone["head"])
+            edit_bone.tail = tuple(float(value) for value in bone["tail"])
+            created[bone["name"]] = edit_bone
+        for bone in entry["bones"]:
+            parent = bone.get("parent")
+            if parent is None:
+                continue
+            if parent not in created:
+                raise ActionError(
+                    "SCENE_SPEC_INVALID",
+                    'bone "%s" of armature "%s" names parent "%s", which the same armature does not declare'
+                    % (bone["name"], armature_id, parent),
+                )
+            created[bone["name"]].parent = created[parent]
+    finally:
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+    return obj
+
+
 def build_scene(spec, options, guard):
     """Compile a SceneSpec into a live Blender scene.
 
@@ -1371,6 +1422,13 @@ def build_scene(spec, options, guard):
     default_material = build_default_material(guard)
 
     assets = {asset["id"]: asset for asset in spec.get("assets") or []}
+
+    # ARMATURES BEFORE ENTITIES: an entity that is skinned to one has to find it already there. Nothing
+    # binds yet — that is the next slice — but the order is the one that will not have to change.
+    report_progress("build_armatures", 30)
+    armature_objects = {}
+    for entry in spec.get("armatures") or []:
+        armature_objects[entry["id"]] = build_armature(entry, guard)
 
     report_progress("build_entities", 35)
     entity_objects = {}
@@ -1501,6 +1559,7 @@ def build_scene(spec, options, guard):
         "requestedEngine": requested_engine,
         "profileName": profile_name,
         "entityObjectNames": {key: value.name for key, value in entity_objects.items()},
+        "armatureNames": {key: value.name for key, value in armature_objects.items()},
         "cameraNames": {key: value.name for key, value in cameras.items()},
     }
 
