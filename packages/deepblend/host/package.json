@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-host",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "type": "module",
   "description": "DeepBlend Host service: the blenderStudio business facade over the BlenderRuntime seam.",
   "main": "lib/index.js",
