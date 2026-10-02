@@ -282,6 +282,21 @@ window.__ModuleLoader__.load({
       'editor.invalid': '{field} 的值无效。',
       'editor.size': '尺寸（mm）',
       'editor.radius': '半径（mm）',
+      'editor.handledCup': '带把手杯体',
+      'editor.wallThickness': '杯壁厚度（mm）',
+      'editor.baseThickness': '杯底厚度（mm）',
+      'editor.footRound': '底部圆角（mm）',
+      'editor.handleRadius': '把手截面半径（mm）',
+      'editor.handleLower': '下连接高度（mm）',
+      'editor.handleUpper': '上连接高度（mm）',
+      'editor.rootRadius': '连接根部半径（mm）',
+      'editor.rootLength': '连接过渡长度（mm）',
+      'editor.sectionSegments': '杯口与把手截面分段',
+      'editor.handleSegments': '把手弧线分段',
+      'editor.rootSegments': '连接过渡分段',
+      'editor.wallRows': '杯壁纵向分段',
+      'editor.cupAdvanced': '连接细节与网格分段',
+      'editor.cupHelp': '杯壁、把手和连接处共同决定可用尺寸；应用时会检查实际网格。尺寸超出支持范围时会保留当前版本。',
       'editor.depth': '高度（mm）',
       'editor.majorRadius': '主半径（mm）',
       'editor.minorRadius': '截面半径（mm）',
@@ -676,6 +691,21 @@ window.__ModuleLoader__.load({
       'editor.invalid': 'Invalid value for {field}.',
       'editor.size': 'Size (mm)',
       'editor.radius': 'Radius (mm)',
+      'editor.handledCup': 'Handled cup',
+      'editor.wallThickness': 'Wall thickness (mm)',
+      'editor.baseThickness': 'Base thickness (mm)',
+      'editor.footRound': 'Foot rounding (mm)',
+      'editor.handleRadius': 'Handle section radius (mm)',
+      'editor.handleLower': 'Lower attachment height (mm)',
+      'editor.handleUpper': 'Upper attachment height (mm)',
+      'editor.rootRadius': 'Attachment root radius (mm)',
+      'editor.rootLength': 'Attachment transition length (mm)',
+      'editor.sectionSegments': 'Lip and handle section segments',
+      'editor.handleSegments': 'Handle arc segments',
+      'editor.rootSegments': 'Attachment transition segments',
+      'editor.wallRows': 'Vertical wall segments',
+      'editor.cupAdvanced': 'Attachment details and mesh segments',
+      'editor.cupHelp': 'Wall, handle and attachment dimensions constrain one another. Applying an edit checks the actual mesh; unsupported dimensions keep the current revision.',
       'editor.depth': 'Height (mm)',
       'editor.majorRadius': 'Major radius (mm)',
       'editor.minorRadius': 'Section radius (mm)',
@@ -1219,9 +1249,14 @@ window.__ModuleLoader__.load({
       cube: ['size'], rounded_box: ['size'], plane: ['size'],
       uv_sphere: ['radius', 'segments', 'ringCount'], cylinder: ['radius', 'depth', 'segments'],
       cone: ['radius', 'depth', 'segments'], torus: ['majorRadius', 'minorRadius', 'segments', 'ringCount'],
+      handled_cup: ['radius', 'height', 'wallThickness', 'baseThickness', 'handleRadius', 'handleLower', 'handleUpper',
+        'footRound', 'rootRadius', 'rootLength', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows'],
       lathe: ['segments'], curve: ['radius', 'curveResolution', 'bevelResolution'],
     }
     const EDITOR_INTEGERS = { segments: [3, 512], ringCount: [3, 512], curveResolution: [1, 64], bevelResolution: [0, 16] }
+    const CUP_ADVANCED_FIELDS = ['footRound', 'rootRadius', 'rootLength', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
+    const CUP_INTEGERS = { segments: [64, 256, 4], sectionSegments: [32, 96, 4], handleSegments: [24, 128, 4], rootSegments: [8, 48, 1], wallRows: [16, 64, 1] }
+    const generatorIntegerBounds = (generator, key) => generator.shape === 'handled_cup' ? CUP_INTEGERS[key] : EDITOR_INTEGERS[key]
     let editorSequence = 0
 
     function editorTrackLocked(draft, kind, id, property) {
@@ -1292,7 +1327,8 @@ window.__ModuleLoader__.load({
       const generator = draft.entity.generator
       if (generator) {
         for (const key of GENERATOR_FIELDS[generator.shape] || []) {
-          const bounds = EDITOR_INTEGERS[key]
+          const bounds = generatorIntegerBounds(generator, key)
+          if (bounds?.[2] && generator[key] % bounds[2]) bad(key)
           scalar(generator[key], key, bounds ? bounds[0] : Number.MIN_VALUE, bounds ? bounds[1] : Infinity, Boolean(bounds))
         }
         if (generator.bevel) {
@@ -2656,7 +2692,19 @@ window.__ModuleLoader__.load({
       const disabled = state.busy.editor || conflict
       const dirty = editorDirty(draft), errors = editorErrors(draft)
       const labels = {
-        size: t('editor.size'), radius: t('editor.radius'), depth: t('editor.depth'), majorRadius: t('editor.majorRadius'), minorRadius: t('editor.minorRadius'),
+        wallThickness: t('editor.wallThickness'),
+        baseThickness: t('editor.baseThickness'),
+        footRound: t('editor.footRound'),
+        handleRadius: t('editor.handleRadius'),
+        handleLower: t('editor.handleLower'),
+        handleUpper: t('editor.handleUpper'),
+        rootRadius: t('editor.rootRadius'),
+        rootLength: t('editor.rootLength'),
+        sectionSegments: t('editor.sectionSegments'),
+        handleSegments: t('editor.handleSegments'),
+        rootSegments: t('editor.rootSegments'),
+        wallRows: t('editor.wallRows'),
+        height: t('editor.depth'), size: t('editor.size'), radius: t('editor.radius'), depth: t('editor.depth'), majorRadius: t('editor.majorRadius'), minorRadius: t('editor.minorRadius'),
         segments: t('editor.segments'), ringCount: t('editor.ringCount'), curveResolution: t('editor.curveResolution'), bevelResolution: t('editor.bevelResolution'),
       }
       const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean') }
@@ -2664,7 +2712,7 @@ window.__ModuleLoader__.load({
         const factor = options.factor ?? 1
         const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
         return el('label', { className: 'db-row', key: field }, el('span', null, label), el('input', {
-          className: 'db-input', type: 'number', 'data-field': field, value: displayed, step: options.integer ? 1 : 'any',
+          className: 'db-input', type: 'number', 'data-field': field, value: displayed, step: options.step ?? (options.integer ? 1 : 'any'),
           min: options.min, max: options.max, disabled: disabled || options.disabled === true,
           style: { width: '125px' }, onChange: event => update(event.target.value === '' ? null : Number(event.target.value) / factor),
         }))
@@ -2678,6 +2726,12 @@ window.__ModuleLoader__.load({
       const vector = (title, prefix, value, update, factor = 1000, locks = []) => el('div', null, el('strong', null, title),
         EDITOR_AXES.map((axis, index) => numeric(axis.toUpperCase(), `${prefix}-${axis}`, value?.[index], next => update(index, next), { factor, disabled: locks[index] })))
       const geometry = draft.entity.generator
+      const geometryField = key => {
+        const bounds = generatorIntegerBounds(geometry, key)
+        return numeric(labels[key], `editor-generator-${key}`, geometry[key], value => actions.updateEditor('generator', [key], value), {
+          factor: bounds ? 1 : 1000, integer: Boolean(bounds), min: bounds?.[0], max: bounds?.[1], step: bounds?.[2],
+        })
+      }
       const points = (key, title) => {
         const rows = geometry[key].map((point, index) => {
           const cells = point.map((value, axis) => el('td', { key: axis }, numeric(
@@ -2713,12 +2767,13 @@ window.__ModuleLoader__.load({
             draft.tracks.some(track => track.targetKind === 'entity' && track.targetId === draft.entityId) ? el('p', { className: 'db-muted' }, t('editor.animated')) : null),
           draft.entity.kind === 'generator' ? el('div', { className: 'db-card' }, el('h4', null, t('editor.geometry')),
             geometry ? [
-              el('strong', { key: 'shape' }, geometry.shape),
+              el('strong', { key: 'shape' }, geometry.shape === 'handled_cup' ? t('editor.handledCup') : geometry.shape),
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
-              ...(GENERATOR_FIELDS[geometry.shape] || []).map(key => numeric(labels[key], `editor-generator-${key}`, geometry[key], value => actions.updateEditor('generator', [key], value), {
-                factor: EDITOR_INTEGERS[key] ? 1 : 1000, integer: Boolean(EDITOR_INTEGERS[key]), min: EDITOR_INTEGERS[key]?.[0], max: EDITOR_INTEGERS[key]?.[1],
-              })),
+              geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
+              ...(GENERATOR_FIELDS[geometry.shape] || []).filter(key => geometry.shape !== 'handled_cup' || !CUP_ADVANCED_FIELDS.includes(key)).map(geometryField),
+              geometry.shape === 'handled_cup' ? el('details', { key: 'cup-advanced' },
+                el('summary', null, t('editor.cupAdvanced')), ...CUP_ADVANCED_FIELDS.map(geometryField)) : null,
               toggle(t('editor.bevel'), 'editor-generator-bevel', Boolean(geometry.bevel), value => actions.updateEditor('generator', ['bevel'], value ? { width: 0.001, segments: 3 } : undefined), geometry.shape === 'rounded_box'),
               geometry.bevel ? numeric(t('editor.width'), 'editor-generator-bevel-width', geometry.bevel.width ?? 0.01, value => actions.updateEditor('generator', ['bevel', 'width'], value), { factor: 1000, min: 0 }) : null,
               geometry.bevel ? numeric(t('editor.bevelSegments'), 'editor-generator-bevel-segments', geometry.bevel.segments ?? 3, value => actions.updateEditor('generator', ['bevel', 'segments'], value), { integer: true, min: 1, max: 16 }) : null,

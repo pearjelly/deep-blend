@@ -47,7 +47,7 @@ my-product/
 
 路径必须是上面两个字面量，不能是绝对路径、上级目录或 URL。Host 读取本地目录时拒绝包目录和包内文件的符号链接，并限制实际读取边界；纯 contracts 函数不访问文件系统。
 
-当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.modifiers`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.anisotropy`、`animation.transform` 和 `animation.material`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
+当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.modifiers`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.anisotropy`、`animation.transform` 和 `animation.material`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
 
 v1 只接受自包含的程序场景；不支持外部资产、图片贴图、环境文件、骨架或物理模拟。这里的限制是当前配方契约范围，不能推导为 SceneSpec 本身没有这些功能。
 

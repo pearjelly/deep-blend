@@ -68,7 +68,8 @@ const SCENE_SPEC_PARAMETER = {
     'shots[], animationTracks[], renderProfiles{preview,final}. project.reviewSubjectId optionally selects an existing non-empty main review entity without moving cameras. ' +
     'A generator entity is `{id,type:"generator",generator:{shape,size|radius|depth|majorRadius|minorRadius,bevel?},' +
     'materialId,transform:{location,rotationEuler,scale}}` where shape is one of ' +
-    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve. Curve sweeps a round section ' +
+    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup. handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
+    'Defaults are radius 0.04, height 0.105, wallThickness 0.003, baseThickness 0.005; optional handleRadius, handleLower, handleUpper, rootRadius, rootLength and mesh segments obey coupled constraints. Inspect root highlights; mesh checks do not certify aesthetic quality. Curve sweeps a round section ' +
     'of radius (default 0.01) along path:[[x,y,z],…]; pathInterpolation is poly or bezier, pathClosed closes ' +
     'the loop, and capEnds seals open endpoints. Lathe uses profile:[[radius,height],…] ' +
     'around local Z, segments (default 96), capEnds (default true) and optional closedProfile for hollow ' +

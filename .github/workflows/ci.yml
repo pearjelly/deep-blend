@@ -157,6 +157,18 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/browser
         run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
+      - name: Real handled-cup construction and dimensional edits
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_CUP_OUTPUT: ${{ runner.temp }}/deepblend-ci/cup
+        run: xvfb-run -a node deepblend/tests/blender-integration/handled-cup.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup.log" 2>&1
+      - name: Real handled-cup editor in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/cup-browser
+        run: xvfb-run -a node deepblend/tests/e2e/handled-cup-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup-browser.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

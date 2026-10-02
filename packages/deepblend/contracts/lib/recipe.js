@@ -8,7 +8,7 @@ import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
-  'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.modifiers',
+  'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.modifiers',
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.anisotropy',
   'animation.transform', 'animation.material',
 ])
@@ -31,7 +31,7 @@ export class RecipeError extends Error {
 export function recipeCapabilitiesForScene(spec) {
   const used = new Set()
   for (const entity of spec.entities ?? []) {
-    if (entity.type === 'generator') used.add(['lathe', 'curve'].includes(entity.generator.shape)
+    if (entity.type === 'generator') used.add(['lathe', 'curve', 'handled_cup'].includes(entity.generator.shape)
       ? `geometry.${entity.generator.shape}` : 'geometry.primitive')
     if (entity.modifiers?.length || entity.generator?.bevel) used.add('geometry.modifiers')
   }

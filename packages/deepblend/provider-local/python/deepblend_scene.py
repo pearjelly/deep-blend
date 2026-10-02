@@ -374,11 +374,14 @@ def create_generator(name, spec):
         create_lathe(name, spec)
     elif shape == "curve":
         create_curve(name, spec)
+    elif shape == "handled_cup":
+        from deepblend_vessel import create_handled_cup
+        create_handled_cup(name, spec)
     else:
         raise ActionError(
             "BLENDER_SCRIPT_ERROR",
             'unknown generator shape "%s"' % (shape,),
-            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve"]},
+            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup"]},
         )
 
     obj = bpy.context.active_object
@@ -2067,7 +2070,7 @@ def build_scene(spec, options, guard):
                 for polygon in getattr(obj.data, "polygons", []):
                     polygon.material_index = 0
             generator = entity.get("generator", {})
-            if generator.get("bevel") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve"):
+            if generator.get("bevel") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
                 _shade_smooth(obj)
 
         if entity.get("materialBindings"):
@@ -2110,7 +2113,7 @@ def build_scene(spec, options, guard):
         generator = entity.get("generator") or {}
         if entity.get("modifiers") and entity.get("type") == "generator" and (
             generator.get("bevel") or any(entry["type"] == "bevel" for entry in entity["modifiers"])
-            or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve")
+            or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup")
         ):
             for mesh in entity_meshes[entity["id"]]:
                 hidden = mesh.hide_viewport

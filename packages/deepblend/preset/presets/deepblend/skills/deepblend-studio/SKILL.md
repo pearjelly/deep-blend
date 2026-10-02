@@ -53,6 +53,16 @@ an intermediate result; describe its missing details explicitly.
 For rotational products, use `generator.shape: "lathe"` with an ordered
 `profile: [[radius, height], ...]`; returning along the inside models a real wall
 and base. Add profile points along curved shoulders instead of stacking cylinders.
+For a cylindrical ceramic cup with a connected semicircular handle, use
+`shape:"handled_cup"`. Defaults make a 40 mm radius, 105 mm high cup with 3 mm
+walls and a 5 mm base in a metre scene. `handleLower`/`handleUpper` locate the
+attachment centres; `handleRadius`, `rootRadius` and `rootLength` control the
+handle and flared roots. Dimensions constrain one another; an unsupported edit
+is refused before publication. The generated mesh is checked for topology, UVs
+and illegal intersections. Inspect actual clay and glazed root close-ups;
+these checks do not certify curvature continuity, manufacturing thickness or
+artistic quality. Existing modifier stacks can change the generated result.
+
 For handles and cables, use `shape: "curve"`, a three-dimensional `path`, `radius`,
 and `pathInterpolation: "bezier"` for smooth bends. Check joins and self-intersections;
 overlapping parts are not automatically fused into one solid.

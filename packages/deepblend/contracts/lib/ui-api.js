@@ -21,6 +21,7 @@
 import { RENDER_JOB_TERMINAL_STATUSES } from './render-job.js'
 import { redactHome } from './redact.js'
 import { resolveSubject } from './visual-composition.js'
+import { resolveHandledCup } from './handled-cup.js'
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -334,7 +335,8 @@ export function buildSceneTree(spec, context = {}) {
       id: entity.id,
       kind: entity.type,
       shape: entity.generator?.shape ?? null,
-      generator: clone(entity.generator ?? null),
+      generator: clone(entity.generator?.shape === 'handled_cup'
+        ? resolveHandledCup(entity.generator) : entity.generator ?? null),
       modifiers: clone(entity.modifiers ?? []),
       assetId: entity.assetId ?? null,
       materialId: entity.materialId ?? null,

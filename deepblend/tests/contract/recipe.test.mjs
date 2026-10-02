@@ -181,6 +181,7 @@ test('a valid recipe can combine every supported capability', () => {
       { id: 'combined-glass', shader: 'glass', parameters: { baseColor: [1, 1, 1, 1], roughness: 0.1, ior: 1.45 } },
       { id: 'combined-emission', shader: 'emission', parameters: { emissionColor: [1, 0.5, 0.1, 1], emissionStrength: 1 } },
     )
+    spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup'},materialId:spec.materials[0].id})
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })

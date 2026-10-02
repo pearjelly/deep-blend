@@ -13,6 +13,7 @@ Start from one of three [product recipes](deepblend/docs/recipes.md) in the work
 roughness and exposure, then create a project with a rendered preview. `blender_recipe_list` exposes
 the same catalog to agents. Each project retains its recipe version, license, source hashes and
 parameter values. Metal materials now support explicit anisotropic reflection directions.
+The [handled cup generator](deepblend/docs/modeling.md#连为一体的带把手杯体) builds a cup and handle in one closed mesh, with editable wall thickness and attachment roots.
 After creation, the [object editor](deepblend/docs/usage.md#41-调整已有对象) lets you adjust profiles,
 bevels, arrays and local materials, render the change, and restore the previous scene with a revision guard.
 Save up to four [reference images](deepblend/docs/reference-images.md) with a revision's design goal.
@@ -203,7 +204,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 22 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 24 suites; README.zh.md states the expected numbers
 ```
 
 CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.

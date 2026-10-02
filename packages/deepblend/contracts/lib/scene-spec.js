@@ -23,6 +23,7 @@
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { compileSchema, formatIssues } from './json-schema.js'
 import { referenceImageIssues } from './reference-images.js'
+import { HANDLED_CUP_FIELDS, handledCupIssues, resolveHandledCup } from './handled-cup.js'
 import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'json' }
 
 /** The one schema version this module understands. */
@@ -355,6 +356,13 @@ export function validateSceneSpec(spec) {
           path: `${at}.materialBindings[${index}]`, message: 'duplicate part and slot material binding' })
         selectors.add(key)
       }
+    }
+    if (entity.generator?.shape === 'handled_cup') {
+      for (const message of handledCupIssues(entity.generator)) errors.push({ severity: 'error',
+        code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`, message })
+    } else if (entity.generator && HANDLED_CUP_FIELDS.some(key => entity.generator[key] !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`,
+        message: 'handled cup dimensions and resolutions apply only to handled_cup geometry' })
     }
     if (entity.generator?.shape === 'lathe') {
       const profile = entity.generator.profile
@@ -801,6 +809,8 @@ function resolveGenerator(generator) {
       return { ...base, ...generator, radius: generator.radius ?? 0.01, pathClosed: generator.pathClosed ?? false,
         pathInterpolation: generator.pathInterpolation ?? 'poly', curveResolution: generator.curveResolution ?? 16,
         bevelResolution: generator.bevelResolution ?? 8, capEnds: generator.capEnds ?? true }
+    case 'handled_cup':
+      return { ...base, ...resolveHandledCup(generator) }
     default:
       return { ...generator }
   }
@@ -859,6 +869,11 @@ export function entityBoundingRadius(entity) {
       case 'lathe': radius = Math.max(...generator.profile.map(([r, z]) => Math.hypot(r, z))); break
       case 'curve': radius = Math.max(...generator.path.map(point => Math.hypot(...point))) *
         (generator.pathInterpolation === 'bezier' ? 2 : 1) + generator.radius; break
+      case 'handled_cup': {
+        const p = resolveHandledCup(generator)
+        radius = Math.hypot(p.radius + p.rootLength + (p.handleUpper - p.handleLower) / 2 + p.handleRadius, p.height)
+        break
+      }
       default: radius = 1
     }
   }

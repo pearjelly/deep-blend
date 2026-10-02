@@ -456,7 +456,7 @@
       "required": [
         "shape"
       ],
-      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile around the local Z axis.",
+      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile; handled_cup constructs a closed cup with shared-boundary flared handle roots. Coupled parameter constraints are checked before generation and the discrete output is validated.",
       "properties": {
         "shape": {
           "type": "string",
@@ -469,7 +469,8 @@
             "torus",
             "rounded_box",
             "lathe",
-            "curve"
+            "curve",
+            "handled_cup"
           ]
         },
         "size": {
@@ -563,6 +564,53 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 16
+        },
+        "height": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "wallThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "baseThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "footRound": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleLower": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleUpper": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootLength": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sectionSegments": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 96
+        },
+        "handleSegments": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 128
+        },
+        "rootSegments": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 48
+        },
+        "wallRows": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 64
         }
       }
     },

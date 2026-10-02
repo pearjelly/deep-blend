@@ -30,6 +30,12 @@ assert.equal(manifest.operationCount, 1);
 assert.equal(specSchema.properties.schemaVersion.const, 'deepblend.scene/v1');
 assert.ok(patchSchema.$defs.operation.oneOf.length === SCENE_OPERATION_NAMES.length);
 assert.equal(recipeSchema.properties.compatibility.properties.capabilities.maxItems, RECIPE_CAPABILITIES.length);
+const handledSpec: SceneSpec = { ...spec, entities: [...spec.entities,
+  { id: 'sdk-handled-cup', type: 'generator', generator: { shape: 'handled_cup',
+    radius: .04, wallThickness: .003, rootSegments: 32 }, materialId: 'ceramic' }] };
+const handled = compileSceneSpec(parseSceneSpec(handledSpec)).spec.entities.find(entity => entity.id === 'sdk-handled-cup');
+assert.equal(handled?.generator?.height, .105);
+assert.ok(RECIPE_CAPABILITIES.includes('geometry.handled_cup'));
 
 // JSON stays untrusted until the public package validator has checked it.
 const recipe: RecipeManifest = parseRecipeManifest(JSON.parse(readFileSync('recipe/recipe.json', 'utf8')));
