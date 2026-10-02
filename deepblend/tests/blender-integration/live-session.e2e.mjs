@@ -247,8 +247,12 @@ try {
   // claim would be refused for a mismatch the user did not cause.
   // -------------------------------------------------------------------------
   const derivedPath = join(workspace, 'derived.sock')
+  const checkpointDirectory = join(workspace, '.deepblend', 'projects', 'bridge-fixture', 'revisions', 'r0001')
+  mkdirSync(checkpointDirectory, { recursive: true })
+  const derivedCheckpoint = join(checkpointDirectory, 'scene.blend')
+  copyFileSync(join(workspace, 'leak-a.blend'), derivedCheckpoint)
   const derived = spawn(BLENDER, [
-    '--background', join(ROOT, '.deepblend', 'projects', 'watch-commercial', 'revisions', 'r0002', 'scene.blend'),
+    '--background', derivedCheckpoint,
     '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
     '--', '--socket', derivedPath,
   ], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -262,7 +266,7 @@ try {
     }
     const handshake = JSON.parse(derivedSaid.split('\n').find(line => line.includes('"kind": "ready"')) ?? '{}')
     check('a Blender with one of our checkpoints open states the workspace that checkpoint belongs to',
-      handshake.workspace === ROOT, { stated: handshake.workspace, expected: ROOT })
+      handshake.workspace === workspace, { stated: handshake.workspace, expected: workspace })
 
     // AND THE PRODUCT ACCEPTS IT, because it is the same workspace — the derivation is only useful if
     // the check it feeds says yes to the right answer.
@@ -272,7 +276,7 @@ try {
     derivedRuntime.plugin(DerivedProvider, DerivedConfig({
       blenderPath: BLENDER,
       bootstrapPath: join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
-      workspaceRoot: ROOT,
+      workspaceRoot: workspace,
       sessionActions: ['get_capabilities'],
       sessionSocket: derivedPath,
     }))
@@ -461,7 +465,7 @@ try {
   const explicitWorkspace = join(workspace, 'the-operators-choice')
   mkdirSync(explicitWorkspace, { recursive: true })
   const explicit = spawn(BLENDER, [
-    '--background', join(ROOT, '.deepblend', 'projects', 'watch-commercial', 'revisions', 'r0002', 'scene.blend'),
+    '--background', derivedCheckpoint,
     '--python', join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_bridge.py'),
     '--', '--socket', explicitPath, '--workspace', explicitWorkspace,
   ], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -476,7 +480,7 @@ try {
     const handshake = JSON.parse(explicitSaid.split('\n').find(line => line.includes('"kind": "ready"')) ?? '{}')
     check('an operator who names a workspace gets THAT one, even with a checkpoint open that says otherwise',
       handshake.workspace === explicitWorkspace,
-      { stated: handshake.workspace, explicit: explicitWorkspace, derived: ROOT })
+      { stated: handshake.workspace, explicit: explicitWorkspace, derived: workspace })
   } finally {
     explicit.kill('SIGTERM')
   }

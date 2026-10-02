@@ -17,8 +17,8 @@
  *      schemas declare — derived in both directions, so the inventory cannot list a program nothing
  *      spawns and cannot miss one that is spawned;
  *   2. every published manifest declares the same licence as the repository root;
- *   3. the product's `dependencies` are its own packages only, and everything external is a
- *      `peerDependencies` entry — which is what "we do not redistribute it" means in a manifest;
+ *   3. DSH remains a peer dependency; the only ordinary third-party runtime dependency
+ *      is the Host's explicitly reviewed and pinned sharp codec;
  *   4. no tracked file is a binary somebody else built.
  *
  * WHAT IT DELIBERATELY DOES NOT CHECK
@@ -120,30 +120,36 @@ test('every published manifest declares the licence the repository root does', (
   assert.ok(inventory.includes(root), `third-party.md does not state this project's own licence (${root})`)
 })
 
-test('nothing third-party is redistributed: own packages as dependencies, everything else as peers', () => {
-  // THIS IS "we do not redistribute it", written in the place a consumer's tooling reads. A third-party
-  // entry in `dependencies` would be code this repository ships; a `peerDependencies` entry is code the
-  // USER already has, which is what the harness is.
+test('third-party runtime dependencies are limited to Host sharp 0.35.5 and DSH stays a peer', () => {
+  const local = new Set(packages.map(({ manifest }) => manifest.name))
+  const ordinary = []
   for (const { name, manifest } of packages) {
-    for (const dependency of Object.keys(manifest.dependencies ?? {})) {
-      assert.ok(dependency.startsWith('@deepblend/'),
-        `packages/deepblend/${name} depends on ${dependency}, which is not this repository's own package — that is redistributed third-party code`)
+    for (const field of ['dependencies', 'optionalDependencies']) {
+      for (const [dependency, version] of Object.entries(manifest[field] ?? {})) {
+        if (local.has(dependency)) continue
+        assert.ok(!dependency.startsWith('@deepseek-ai/'), `${name}: ${dependency} must remain a DSH peer`)
+        ordinary.push({ package: name, field, dependency, version })
+      }
     }
     for (const [peer, range] of Object.entries(manifest.peerDependencies ?? {})) {
-      assert.ok(!peer.startsWith('@deepblend/'),
-        `packages/deepblend/${name} lists its own ${peer} as a peer; peers are for what the deployment provides`)
+      assert.ok(peer.startsWith('@deepseek-ai/'),
+        `packages/deepblend/${name} lists unreviewed peer ${peer}; peers are for the DSH deployment`)
       // Any of the ordinary spellings — `^1.2.3`, `~1.2`, `>=4.0.0 <5`, `*`. MEASURED: the first
       // version of this rule only accepted a leading digit, caret or tilde and rejected the harness's
       // own `>=4.0.0 <5`, which is a perfectly good range.
       assert.match(String(range), /^[\^~><=*]|^\d/, `the peer range for ${peer} is not a version range: ${range}`)
     }
   }
+  assert.deepEqual(ordinary, [{ package: 'host', field: 'dependencies', dependency: 'sharp', version: '0.35.5' }],
+    'adding or moving an external dependency requires an explicit inventory and contract review')
+  for (const token of ['sharp', '0.35.5', '@img/sharp-', 'libvips', 'Apache-2.0', 'LGPL-3.0-or-later']) {
+    assert.ok(inventory.includes(token), `third-party inventory omits the reviewed codec detail ${token}`)
+  }
 })
 
 test('no tracked file is a binary somebody else built', () => {
-  // The strongest cheap statement of "the artifact carries no third-party bytes": nothing built by
-  // anyone else is in the tree at all. The managed Blender is downloaded at install time, ffmpeg is
-  // installed by the user, and the harness comes from the user's deployment.
+  // This applies to tracked source files only. npm dependencies and release
+  // tarballs can carry third-party binaries; those have a separate inventory.
   const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n')
   assert.ok(tracked.length > 100, `only ${tracked.length} tracked file(s) — is this a checkout?`)
 
@@ -159,6 +165,19 @@ test('no tracked file is a binary somebody else built', () => {
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')
+})
+
+test('release manifest checks explicitly leave native artifact acceptance pending', () => {
+  const output = execFileSync(process.execPath, [join(ROOT, 'deepblend/tools/build-release-tarball.mjs'), '--check'],
+    { cwd: ROOT, encoding: 'utf8' })
+  assert.match(output, /check-scope: manifest-and-naming-only/)
+  assert.match(output, /native-artifact-status: target-platform-validation-required/)
+  const requirements = JSON.parse(output.split('\n').find(line => line.startsWith('native-dependencies: ')).slice('native-dependencies: '.length))
+  assert.deepEqual(requirements, [{ consumer: '@deepblend/dsh-blender-host', dependency: 'sharp', version: '0.35.5',
+    requiresTargetValidation: true, evidence: ['artifactSha256', 'platform', 'arch', 'libc', 'pngDecode', 'jpegDecode', 'licenses'] }])
+  assert.match(inventory, /DEEPBLEND_INSTALLED_HOST/)
+  assert.match(inventory, /REFERENCE_PNG/)
+  assert.match(inventory, /REFERENCE_JPEG/)
 })
 
 test('the inventory says how to re-check each claim, and states the boundary of its own reasoning', () => {

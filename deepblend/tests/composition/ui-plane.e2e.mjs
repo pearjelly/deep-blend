@@ -52,6 +52,19 @@ const { isJsonValue } = await importDsh('dsh-util-values')
 const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const UI_PACKAGE = join(PROJECT_ROOT, 'packages', 'deepblend', 'ui')
+const RECIPE_DIGEST = 'a'.repeat(64)
+const RECIPE_PREVIEW_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+const RECIPE = {
+  id: 'deepblend.example', version: '1.0.0', digest: RECIPE_DIGEST,
+  title: 'Example product', description: 'A validated local product recipe',
+  author: { name: 'Example author' }, license: 'MIT', source: { url: 'https://example.com/recipe' },
+  previewUrl: `/deepblend/recipes/deepblend.example/1.0.0/preview?digest=${RECIPE_DIGEST}`,
+  parameters: [
+    { id: 'main-color', type: 'color', title: 'Color', default: [0.2, 0.3, 0.4], bindings: [{ kind: 'material', materialId: 'finish', property: 'baseColor' }] },
+    { id: 'roughness', type: 'number', title: 'Roughness', default: 0.3, minimum: 0.1, maximum: 0.6, bindings: [{ kind: 'material', materialId: 'finish', property: 'roughness' }] },
+  ],
+}
+const RECIPE_ERRORS = [{ package: 'invalid-example', code: 'RECIPE_HASH_MISMATCH', message: 'The local package changed' }]
 
 const results = []
 function check(name, ok, detail) {
@@ -71,12 +84,16 @@ const READ_METHODS = new Set([
   // the diagnostics route reports. The HOST reads the manifest and names the config keys because the
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
+  'listRecipes', 'readRecipePreview',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
   'projects.create': 'createProject',
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
+  'project.referenceImage.upload': 'uploadReferenceImage',
+  'project.review': 'visualReview',
+  'project.autofix': 'visualLoop',
   'project.restore': 'restoreRevision',
   'project.job.cancel': 'cancelJob',
   'project.render': 'startFinalRender',
@@ -128,6 +145,17 @@ function createStudioStub() {
     async listProjects() {
       record('listProjects')
       return { projects: [{ projectId: 'demo', title: 'Demo', currentRevision: 'r0002', revisionCount: 2, createdAt: null, updatedAt: null, goal: null, jobs: [{ jobId: 'render-0001', type: 'final-render', status: 'running', revisionId: 'r0002' }], scene: null }], count: 1, projectsRoot: '/tmp/projects' }
+    },
+    async listRecipes() {
+      record('listRecipes')
+      return { recipes: [structuredClone(RECIPE)], errors: structuredClone(RECIPE_ERRORS) }
+    },
+    async readRecipePreview(request) {
+      record('readRecipePreview', request)
+      if (request.id !== RECIPE.id || request.version !== RECIPE.version) throw new BlenderError('RECIPE_NOT_FOUND', 'No such local recipe')
+      if (!request.digest) throw new BlenderError('RECIPE_REQUEST_INVALID', 'Select the recipe with its digest')
+      if (request.digest !== RECIPE_DIGEST) throw new BlenderError('RECIPE_CHANGED', 'The recipe changed; refresh the catalog')
+      return { bytes: Buffer.from(RECIPE_PREVIEW_BYTES), contentType: 'image/png', size: RECIPE_PREVIEW_BYTES.length }
     },
     async getProject() {
       record('getProject')
@@ -186,6 +214,22 @@ function createStudioStub() {
       record('createProject', request)
       return { projectId: 'demo', title: request.title, revision: { revision: 'r0001' } }
     },
+    async uploadReferenceImage(request) {
+      record('uploadReferenceImage', request)
+      let bytes = 0
+      for await (const chunk of request.stream) bytes += chunk.length
+      return { asset: { id: 'reference-upload', type: 'png', path: `assets/raw/${'c'.repeat(64)}.png`, sha256: 'c'.repeat(64) },
+        image: { mime: 'image/png', width: 8, height: 8, bytes, sha256: 'c'.repeat(64) } }
+    },
+    async visualReview(request) {
+      record('visualReview', request)
+      return { revision: request.revision, technicalPass: true, score: 100, pass: true,
+        issues: [], perView: [], referenceImages: [], reviewInputsDigest: 'brief-digest', artistic: { status: 'unassessable' } }
+    },
+    async visualLoop(request) {
+      record('visualLoop', request)
+      return { projectId: request.projectId, revision: request.revision, status: 'handed_over', rounds: [], handover: { reason: 'unassessable' } }
+    },
     async renderViews(request) {
       record('renderViews', request)
       return {
@@ -212,7 +256,7 @@ function createStudioStub() {
     },
     async restoreRevision(request) {
       record('restoreRevision', request)
-      return { revision: 'r0004', digest: 'd4' }
+      return { revision: request.revision, from: 'r0002', restored: true }
     },
     async cancelJob(request) {
       record('cancelJob', request)
@@ -262,7 +306,7 @@ function createWebServerStub() {
 
 /** A Node-shaped request the handler can read the method, url and body from. */
 function makeRequest({ method = 'GET', url, body }) {
-  const chunks = body === undefined ? [] : [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))]
+  const chunks = body === undefined ? [] : [Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))]
   return {
     method,
     url,
@@ -328,30 +372,44 @@ async function request(method, url, body) {
 // --- the handler table is exactly the route table ---------------------------
 
 const routeIds = UI_ROUTES.map(route => route.id).sort()
-// Two routes answer with a shape of their own instead of the JSON envelope:
-// `artifacts.open` serves bytes, and `workbench.page` serves the standalone
-// document (SPEC §20 M6). Both are served by a named method in `_handle`, both
-// are asserted on their own below, and this list is the whole of the exception —
-// a THIRD route that quietly stops using the envelope goes red right here.
-const SPECIAL_RESPONSE_ROUTES = ['artifacts.open', 'workbench.page']
-const expectedHandlerIds = routeIds.filter(id => !SPECIAL_RESPONSE_ROUTES.includes(id))
+// These two dispatch branches have no entry in the JSON handler table. Recipe
+// previews do have a registered handler, but HTTP dispatch sends their bytes
+// directly; that binary exception is asserted independently below.
+const ROUTES_WITHOUT_TABLE_HANDLERS = ['artifacts.open', 'workbench.page']
+const BINARY_RESPONSE_ROUTES = ['artifacts.open', 'recipes.preview']
+const expectedHandlerIds = routeIds.filter(id => !ROUTES_WITHOUT_TABLE_HANDLERS.includes(id))
 const handlerIds = Object.keys(ui.handlers).sort()
-check('the handler table is exactly the route table, minus the two routes that answer with their own shape',
+check('the handler table is exactly the route table, minus the two dedicated dispatch methods',
   JSON.stringify(handlerIds) === JSON.stringify(expectedHandlerIds),
   { handlers: handlerIds, routes: routeIds })
-check('and those two are the only exceptions, so a third one cannot hide',
-  JSON.stringify(routeIds.filter(id => !handlerIds.includes(id))) === JSON.stringify([...SPECIAL_RESPONSE_ROUTES].sort()),
+check('and those two are the only handler-table exceptions, so a third one cannot hide',
+  JSON.stringify(routeIds.filter(id => !handlerIds.includes(id))) === JSON.stringify([...ROUTES_WITHOUT_TABLE_HANDLERS].sort()),
   routeIds.filter(id => !handlerIds.includes(id)))
+
+// A raw image reaches the upload port byte-for-byte; it never passes the JSON reader.
+{
+  studio.calls.length = 0
+  const raw = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0, 1])
+  const { response, json } = await request('POST', '/deepblend/projects/demo/reference-images?name=study.png', raw)
+  check('reference upload forwards the raw stream and reports its exact byte count', response.statusCode === 200
+    && json?.image?.bytes === raw.length && studio.calls.length === 1 && studio.calls[0].name === 'uploadReferenceImage')
+  check('reference upload forwards the project and image name separately from bytes',
+    studio.calls[0]?.args?.projectId === 'demo' && studio.calls[0]?.args?.name === 'study.png')
+}
 
 // --- every GET route answers from the facade, with a body the client can place
 
 /** A request for a declared route, built from the route's own path. */
 function sampleUrl(route) {
-  return route.path
+  const path = route.path
     .replace(':projectId', 'demo')
     .replace(':revision', 'r0002')
     .replace(':jobId', 'render-0001')
+    .replace(':recipeId', RECIPE.id)
+    .replace(':version', RECIPE.version)
     .replace(/\/\*$/, '/revisions/r0002/contact-sheets/round-0.png')
+  return route.id === 'recipes.preview' ? `${path}?digest=${RECIPE_DIGEST}`
+    : route.id === 'project.referenceImage.upload' ? `${path}?name=study.png` : path
 }
 
 for (const route of UI_ROUTES) {
@@ -367,10 +425,21 @@ for (const route of UI_ROUTES) {
       && Object.keys(json?.preview ?? {}).every(key => key !== 'pngs'))
   }
 
-  if (route.id === 'artifacts.open') {
+  if (BINARY_RESPONSE_ROUTES.includes(route.id)) {
+    const expectedMethod = route.id === 'recipes.preview' ? 'readRecipePreview' : 'readArtifact'
+    const expectedBytes = route.id === 'recipes.preview' ? RECIPE_PREVIEW_BYTES : Buffer.from([0x89, 0x50, 0x4e, 0x47])
     check(`${route.id} serves bytes, not JSON`,
-      response.statusCode === 200 && response.headers['content-type'] === 'image/png' && response.headers['cache-control'] === 'no-store',
+      response.statusCode === 200 && response.headers['content-type'] === 'image/png' && response.headers['cache-control'] === 'no-store'
+      && Buffer.isBuffer(response.body) && response.body.equals(expectedBytes) && json === null,
       { status: response.statusCode, type: response.headers['content-type'] })
+    check(`${route.id} reads exactly once through its facade method and performs no write`,
+      studio.calls.length === 1 && studio.calls[0].name === expectedMethod && READ_METHODS.has(expectedMethod), studio.methodsCalled())
+    if (route.id === 'recipes.preview') {
+      check('recipe preview forwards the exact id, version and digest from the URL',
+        JSON.stringify(studio.calls[0].args) === JSON.stringify({ id: RECIPE.id, version: RECIPE.version, digest: RECIPE_DIGEST }), studio.calls[0].args)
+      check('recipe preview declares its byte length and forbids content sniffing',
+        response.headers['content-length'] === String(expectedBytes.length) && response.headers['x-content-type-options'] === 'nosniff', response.headers)
+    }
     continue
   }
 
@@ -419,6 +488,130 @@ for (const route of UI_ROUTES) {
     check(`${route.id} reads through the facade only`, called.every(name => READ_METHODS.has(name)), called)
     check(`${route.id} performs no write`, called.every(name => !ALLOWED_WRITES.has(name)), called)
   }
+}
+
+// --- edit controls receive compiled selectors and guarded restore semantics
+
+{
+  studio.calls.length = 0
+  const { response, json } = await request('POST', '/deepblend/projects/demo/restore', {
+    revision: 'r0001', expectedCurrentRevision: 'r0002', reason: 'Undo one reviewed edit',
+  })
+  check('conditional restore forwards the exact current-revision guard to the sole Host writer',
+    response.statusCode === 200 && json?.ok === true && studio.calls.length === 1
+    && studio.calls[0].name === 'restoreRevision'
+    && studio.calls[0].args.expectedCurrentRevision === 'r0002'
+    && studio.calls[0].args.revision === 'r0001' && studio.calls[0].args.projectId === 'demo', studio.calls)
+  check('restore reports the selected historical revision, without inventing a new revision',
+    json?.revision?.revision === 'r0001' && json.revision.from === 'r0002' && json.revision.restored === true,
+    json?.revision)
+}
+{
+  const original = studio.restoreRevision
+  try {
+    studio.restoreRevision = async ({ expectedCurrentRevision }) => {
+      if (expectedCurrentRevision !== 'r0002') throw new Error('UI discarded the restore guard')
+      throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'Another editor published r0003', {
+        detail: { expectedCurrentRevision, currentRevision: 'r0003' },
+      })
+    }
+    const { response, json } = await request('POST', '/deepblend/projects/demo/restore', {
+      revision: 'r0001', expectedCurrentRevision: 'r0002',
+    })
+    check('a stale restore remains a structured conflict visible to the editor',
+      response.statusCode === 409 && json?.ok === false && json?.error?.code === 'REVISION_CONFLICT'
+      && json.error.detail.expectedCurrentRevision === 'r0002' && json.error.detail.currentRevision === 'r0003'
+      && json.revision === undefined, { status: response.statusCode, body: json })
+  } finally {
+    studio.restoreRevision = original
+  }
+}
+{
+  const original = studio.getScene
+  const inventory = [{ entityId: 'imported', partId: '/Body/Panel', assetId: 'model',
+    assetSha256: 'c'.repeat(64), selectorVersion: 1,
+    sourceMaterialSlots: [{ index: 0, materialName: 'Paint' }],
+    materialSlots: [{ index: 0, materialName: 'Coating' }] }]
+  try {
+    studio.getScene = async (...args) => {
+      const result = await original(...args)
+      if (!result.spec) return result
+      const spec = structuredClone(result.spec)
+      spec.entities.push({ id: 'imported', type: 'asset-instance', assetId: 'model',
+        materialBindings: [{ partId: '/Body/Panel', materialId: 'finish', slotIndex: 0 }] })
+      spec.materials.push({ id: 'finish', shader: 'principled', parameters: { roughness: 0.31 },
+        images: { baseColor: { assetId: 'paint-map' } }, tangent: { mode: 'radial', axis: 'z' } })
+      return { ...result, spec, assetParts: structuredClone(inventory) }
+    }
+    for (const suffix of ['/scene', '']) {
+      const { response, json } = await request('GET', `/deepblend/projects/demo${suffix}`)
+      check(`the ${suffix || 'overview'} route preserves actual compiled part and source-slot selectors`,
+        response.statusCode === 200 && json?.ok === true
+        && JSON.stringify(json.scene?.assetParts) === JSON.stringify(inventory)
+        && JSON.stringify(json.scene?.nodes?.entities.find(entity => entity.id === 'imported')?.assetParts) === JSON.stringify(inventory),
+        json?.scene?.assetParts)
+      const material = json?.scene?.nodes?.materials.find(item => item.id === 'finish')?.definition
+      check(`the ${suffix || 'overview'} route provides complete material data for lossless local edits`,
+        material?.parameters?.roughness === 0.31 && material.images?.baseColor?.assetId === 'paint-map'
+        && material.tangent?.axis === 'z', material)
+    }
+  } finally {
+    studio.getScene = original
+  }
+}
+
+// --- recipes keep metadata in JSON, image content in bytes, and writes in Host
+
+{
+  studio.calls.length = 0
+  const { response, json } = await request('GET', '/deepblend/recipes')
+  check('recipe listing preserves validated metadata, finite parameter definitions and per-package errors',
+    response.statusCode === 200 && json?.ok === true
+    && JSON.stringify(json.recipes) === JSON.stringify([RECIPE])
+    && JSON.stringify(json.errors) === JSON.stringify(RECIPE_ERRORS),
+    { recipes: json?.recipes?.length, errors: json?.errors?.length })
+  check('recipe listing calls only listRecipes, without loading images or probing Blender',
+    JSON.stringify(studio.methodsCalled()) === JSON.stringify(['listRecipes']), studio.methodsCalled())
+  check('recipe listing exposes a preview URL but contains no binary image payload',
+    isJsonValue(json) && json.recipes[0].previewUrl === RECIPE.previewUrl
+    && !JSON.stringify(json).includes('"bytes"') && !JSON.stringify(json).includes('"type":"Buffer"'))
+}
+{
+  studio.calls.length = 0
+  const selection = { id: RECIPE.id, version: RECIPE.version, digest: RECIPE_DIGEST,
+    parameters: { 'main-color': [0.025, 0.25, 0.6], roughness: 0.45 } }
+  const { response, json } = await request('POST', '/deepblend/projects', {
+    title: 'Selected product', goal: 'Keep the authored assembly', recipe: selection, renderPreview: true,
+  })
+  const call = studio.calls[0]
+  check('recipe project creation uses exactly the existing Host createProject write',
+    response.statusCode === 200 && json?.ok === true && studio.calls.length === 1 && call?.name === 'createProject', studio.methodsCalled())
+  check('recipe project creation forwards pinned identity and parameters without converting or omitting values',
+    JSON.stringify(call?.args?.recipe) === JSON.stringify(selection), call?.args?.recipe)
+  check('recipe project creation preserves requested preview and checkpoint behavior',
+    call?.args?.renderPreview === true && call?.args?.saveCheckpoint === true && call?.args?.sceneSpec === undefined
+    && call?.args?.title === 'Selected product' && call?.args?.goal === 'Keep the authored assembly')
+}
+for (const [suffix, status, code] of [
+  ['', 400, 'RECIPE_REQUEST_INVALID'],
+  [`?digest=${'b'.repeat(64)}`, 409, 'RECIPE_CHANGED'],
+]) {
+  studio.calls.length = 0
+  const { response, json } = await request('GET', `/deepblend/recipes/${RECIPE.id}/${RECIPE.version}/preview${suffix}`)
+  check(`recipe preview ${code} returns structured JSON instead of image bytes`,
+    response.statusCode === status && json?.ok === false && json?.error?.code === code
+    && json.route === 'recipes.preview' && isJsonValue(json)
+    && response.headers['content-type'] === 'application/json; charset=utf-8'
+    && studio.calls.length === 1 && studio.calls[0].name === 'readRecipePreview',
+    { status: response.statusCode, code: json?.error?.code, methods: studio.methodsCalled() })
+}
+{
+  studio.calls.length = 0
+  const { response, json } = await request('GET', `/deepblend/recipes/missing/1.0.0/preview?digest=${RECIPE_DIGEST}`)
+  check('an unavailable recipe preview is a named 404 through the recipe facade, never an artifact filesystem read',
+    response.statusCode === 404 && json?.error?.code === 'RECIPE_NOT_FOUND' && isJsonValue(json)
+    && JSON.stringify(studio.methodsCalled()) === JSON.stringify(['readRecipePreview']),
+    { status: response.statusCode, code: json?.error?.code, methods: studio.methodsCalled() })
 }
 
 // --- the M0 payload shape is unchanged -------------------------------------

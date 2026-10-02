@@ -44,6 +44,7 @@
 
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertProjectWriter, withProjectWriter } from './project-writer.js'
 
 import {
   BlenderError,
@@ -184,6 +185,16 @@ export class ProjectStore {
     writeJsonAtomic(join(directory, 'project.json'), record)
     this.#refreshIndex(projectId, record)
     return record
+  }
+
+  /** Hold the revision writer lease until a synchronous or asynchronous action finishes. */
+  withProjectWrite(projectId, action) {
+    return withProjectWriter(this.projectDirectory(projectId), this.workspaceRoot, action)
+  }
+
+  /** Check ownership again immediately before publishing a revision. */
+  assertProjectWrite(projectId) {
+    assertProjectWriter(this.projectDirectory(projectId))
   }
 
   /**

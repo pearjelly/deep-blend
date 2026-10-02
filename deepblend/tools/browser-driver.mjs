@@ -242,7 +242,8 @@ export class BrowserPage {
   /**
    * Click the first element matching a selector, the way a user's pointer would.
    *
-   * The mouse events go to the element's own centre. When something else is on
+   * Scroll the element into view before checking its centre, as a person can
+   * reach controls below a long form. The mouse events go to that centre. When something else is on
    * top of that point — a modal backdrop, the shell's expanded-sidebar mask — the
    * point belongs to the overlay and a synthetic press there would be testing the
    * overlay instead. In that case the element's own `click()` is dispatched, and
@@ -257,6 +258,7 @@ export class BrowserPage {
     const target = await this.evaluate(`(() => {
       const el = document.querySelector(${JSON.stringify(selector)})
       if (!el) return null
+      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' })
       const rect = el.getBoundingClientRect()
       const x = rect.x + rect.width / 2
       const y = rect.y + rect.height / 2

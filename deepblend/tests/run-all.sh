@@ -32,7 +32,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-BLENDER="$ROOT/.tools/Blender.app/Contents/MacOS/Blender"
+BLENDER="${DEEPBLEND_BLENDER_PATH:-$ROOT/.tools/Blender.app/Contents/MacOS/Blender}"
 if [ ! -x "$BLENDER" ]; then
   echo "Blender not found at $BLENDER"
   echo "The Blender suites cannot run. See deepblend/docs/dsh-baseline.md §5."
@@ -92,7 +92,7 @@ run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
 run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)" \
   node deepblend/tests/blender-integration/render-job.e2e.mjs
 
-run_suite "Agent preset M3 tool plane (all sixteen tools, real delivery)" \
+run_suite "Agent preset M3 tool plane (all seventeen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary" \

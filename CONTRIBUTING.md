@@ -8,6 +8,11 @@ Blender Runtime。`SPEC.md` 是主规格，`deepblend/docs/` 是它的实测记�
 
 ## 1. 五分钟上手
 
+新环境建议使用[隔离开发环境](deepblend/development/README.md)：运行
+`npm run dev:setup`、`npm run dev:test`，需要完整验收时运行
+`npm run dev:acceptance`。它使用仓库中的依赖锁文件，不要求全局安装 DSH。
+以下流程适用于已经有兼容 DSH 部署、希望直接链接该部署的开发者。
+
 ```bash
 git clone https://github.com/pearjelly/deep-blend.git
 cd deep-blend

@@ -1,0 +1,114 @@
+{
+  "closedEntities": [
+    "bottle",
+    "tray",
+    "neck-sleeve",
+    "cap",
+    "cap-inset"
+  ],
+  "dimensions": [
+    {
+      "entityId": "bottle",
+      "axis": 0,
+      "min": 0.0699012,
+      "max": 0.0702012
+    },
+    {
+      "entityId": "bottle",
+      "axis": 1,
+      "min": 0.0699012,
+      "max": 0.0702012
+    },
+    {
+      "entityId": "bottle",
+      "axis": 2,
+      "min": 0.14485,
+      "max": 0.14515
+    },
+    {
+      "entityId": "tray",
+      "axis": 0,
+      "min": 0.23985,
+      "max": 0.24015
+    },
+    {
+      "entityId": "tray",
+      "axis": 1,
+      "min": 0.23985,
+      "max": 0.24015
+    },
+    {
+      "entityId": "tray",
+      "axis": 2,
+      "min": 0.02085,
+      "max": 0.02115
+    },
+    {
+      "entityId": "neck-sleeve",
+      "axis": 0,
+      "min": 0.03885,
+      "max": 0.03915
+    },
+    {
+      "entityId": "neck-sleeve",
+      "axis": 1,
+      "min": 0.03885,
+      "max": 0.03915
+    },
+    {
+      "entityId": "neck-sleeve",
+      "axis": 2,
+      "min": 0.00835,
+      "max": 0.00865
+    },
+    {
+      "entityId": "cap",
+      "axis": 0,
+      "min": 0.04185,
+      "max": 0.04215
+    },
+    {
+      "entityId": "cap",
+      "axis": 1,
+      "min": 0.04185,
+      "max": 0.04215
+    },
+    {
+      "entityId": "cap",
+      "axis": 2,
+      "min": 0.02367639,
+      "max": 0.02397639
+    },
+    {
+      "entityId": "cap-inset",
+      "axis": 0,
+      "min": 0.03305,
+      "max": 0.03335
+    },
+    {
+      "entityId": "cap-inset",
+      "axis": 1,
+      "min": 0.03305,
+      "max": 0.03335
+    },
+    {
+      "entityId": "cap-inset",
+      "axis": 2,
+      "min": 0.00185,
+      "max": 0.00215
+    }
+  ],
+  "volumes": [
+    {
+      "entityId": "bottle",
+      "min": 0.0001206436906066357,
+      "max": 0.00012810618693281936
+    }
+  ],
+  "notes": [
+    "Units: metres for dimensions, cubic metres for volumes. World-space extents; every authored subject scale is one.",
+    "All five subject parts are closed solids, including the hollow glass shell, tray foot ring, open-bottom cap, ceramic inset and annular neck sleeve. The environment floor is deliberately excluded.",
+    "The empty glass shell has an analytic piecewise-linear revolution volume of 1.243749388e-4 m^3 (124.375 mL). The cavity is subtracted by the inner profile; the range allows 3% for numeric/polygon differences.",
+    "Dimensions allow ±0.15 mm around authored profile bounds. These checks complement image review; they do not establish surface beauty or collision freedom."
+  ]
+}

@@ -37,6 +37,7 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { StudioConfig } from '@deepblend/dsh-blender-host'
 
 import {
   importDsh,
@@ -51,7 +52,7 @@ const BOOTSTRAP = join(ROOT, 'packages', 'deepblend', 'provider-local', 'python'
 const FIXTURES = join(ROOT, 'deepblend', 'fixtures')
 
 const PROVIDER = process.env.DEEPBLEND_PROBE_PROVIDER ?? 'deepseek-official'
-const MODEL = process.env.DEEPBLEND_PROBE_MODEL ?? 'deepseek-flash'
+const MODEL = process.env.DEEPBLEND_PROBE_MODEL ?? StudioConfig({ workspaceRoot: ROOT }).visualReviewModel
 const PREVIEW = { width: 400, height: 225, samples: 16 }
 
 const results = []
@@ -256,7 +257,7 @@ try {
   check('the host-owned loop ran at least one round with a real reviewer answer',
     run.iterations >= 1 && run.rounds.some(round => (round.reported ?? []).length > 0),
     { iterations: run.iterations, rounds: run.rounds.length })
-  check('no round was adopted without the measured score improving',
+  check('adopted rounds preserve technical scores',
     run.rounds.every((round, index) => round.outcome !== 'applied' ||
       index === 0 || round.score >= run.rounds[index - 1].score),
     run.rounds.map(round => `${round.outcome}:${round.score}`))
@@ -275,8 +276,8 @@ try {
     }, null, 2))
     check('a handover names a clean revision, the open issues and next steps',
       run.handover.revision === run.finalRevision &&
-      run.handover.openIssues.length >= 1 &&
-      run.handover.suggestions.length >= 2)
+      (run.handover.openIssues.length >= 1 || run.handover.artistic.status !== 'pass') &&
+      run.handover.suggestions.length >= 1)
   }
 } finally {
   rmSync(workspace, { recursive: true, force: true })

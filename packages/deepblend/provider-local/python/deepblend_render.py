@@ -25,6 +25,7 @@ import os
 import bpy
 
 from deepblend_scene import describe_objects, resolve_engine
+from deepblend_anisotropy import validate_anisotropy_render_engine
 from deepblend_util import ActionError, error_text, report_progress
 
 
@@ -107,6 +108,7 @@ def apply_render_overrides(scene, options, guard):
         engine, downgrade = resolve_engine(engine_key, guard)
         if downgrade is not None:
             guard.warnings.append(downgrade)
+        validate_anisotropy_render_engine(scene, engine)
         if scene.render.engine != engine:
             scene.render.engine = engine
             applied["engine"] = engine
@@ -116,6 +118,8 @@ def apply_render_overrides(scene, options, guard):
                 % (engine, checkpoint_profile(scene).get("engine", "<unknown>")),
                 {"engine": engine},
             )
+    else:
+        validate_anisotropy_render_engine(scene, scene.render.engine)
 
     width = options.get("width")
     height = options.get("height")

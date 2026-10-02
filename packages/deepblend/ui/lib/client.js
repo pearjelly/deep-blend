@@ -108,6 +108,131 @@ window.__ModuleLoader__.load({
     // `contract/workbench-copy.test.mjs`, so a missing key cannot leave a hole in either direction.
     const STRINGS = {
     zh: {
+      'brief.title': "制作目标与参考图片",
+      'brief.goal': "本版本制作目标",
+      'brief.upload': "上传 PNG / JPEG",
+      'brief.uploadHelp': "最多 4 张，每张不超过 8 MiB。上传只保存素材；点击保存目标才写入新版本。",
+      'brief.save': "保存目标与参考",
+      'brief.reset': "放弃草稿，重新载入",
+      'brief.saved': "已保存到 {revision}；没有启动渲染。",
+      'brief.saving': "正在保存版本…",
+      'brief.uploading': "正在上传图片…",
+      'brief.conflict': "场景已有更新。目标草稿已保留，请重新载入后再保存。",
+      'brief.pending': "有未保存的编辑；评审仅使用已保存版本。",
+      'brief.clean': "目标、主要评审对象与参考已保存。",
+      'brief.subject': "主要评审对象",
+      'brief.subjectAuto': "自动选择",
+      'brief.subjectEnvironment': "{id}（环境对象）",
+      'brief.subjectUnavailableOption': "{id}（当前不可用）",
+      'brief.subjectHelp': "选择影响构图、曝光和遮挡测量；不会改变相机。点击保存后生效。",
+      'brief.subjectSaved': "已保存版本的解析对象",
+      'brief.subjectUnknown': "尚无可用对象",
+      'brief.subjectUnavailable': "当前选择不可用于评审：{reason}",
+      'brief.subjectShortcut': "设为主要评审对象",
+      'brief.subjectShortcutHint': "已加入本项目目标草稿；请在项目页保存。",
+      'brief.subjectMode': "选择方式",
+      'brief.subjectExplicit': "明确指定",
+      'brief.subjectFixed': "本次固定对象",
+      'brief.subjectReason': "选择依据",
+      'brief.subjectLegacy': "旧记录只保存对象 ID，选择来源未知。",
+      'brief.label': "图片说明",
+      'brief.notes': "观察重点（可选）",
+      'brief.purposes': "用于判断",
+      'brief.remove': "移除参考",
+      'brief.invalid': "目标或参考无效：说明不能为空，每张至少选择一个用途。",
+      'brief.invalidFile': "请选择不超过 8 MiB 的 PNG 或 JPEG 图片。",
+      'brief.limit': "每个版本最多保存 4 张参考图片。",
+      'brief.duplicate': "这张图片已在当前参考列表中。",
+      'brief.review': "评审已保存版本",
+      'brief.autofix': "按参考自动修正",
+      'brief.reviewCost': "点击后会渲染 640 × 480 / 16 采样预览并调用视觉模型；自动修正可能创建或回退版本。",
+      'brief.iterations': "最多修正轮数",
+      'brief.reviewing': "正在渲染并评审…",
+      'brief.fixing': "正在进行有限轮次修正…",
+      'brief.reviewDone': "评审完成：{revision}。美术判断请查看 QA。",
+      'brief.fixDone': "修正结束：{revision} · {reason}。这不代表已通过参考验收。",
+      'brief.actualReferences': "本次评审核验的参考 ID",
+      'brief.referenceUnknown': "没有已记录的参考使用证据。",
+      'brief.referenceStatus': "参考证据状态",
+      'editor.title': '编辑对象',
+      'editor.unknownSettings': '这张预览缺少实测渲染设置，无法比较编辑差异。',
+      'editor.missingBaseline': '没有同相机、同帧和同渲染设置的编辑前预览，暂时无法比较差异。',
+      'editor.choose': '选择一个对象，调整后应用并查看真实预览。',
+      'editor.position': '位置（mm）',
+      'editor.rotation': '旋转（°）',
+      'editor.geometry': '形状与轮廓',
+      'editor.localDimensions': '这里是对象局部尺寸；已有缩放 {scale} 保留，最终尺寸还会受缩放影响。',
+      'editor.roundedRequired': '圆角盒保留固有倒角，可调整宽度与分段。',
+      'editor.operations': '有序几何操作',
+      'editor.material': '表面材质',
+      'editor.apply': '应用并预览',
+      'editor.reset': '放弃草稿，重新载入',
+      'editor.restore': '恢复编辑前整个场景',
+      'editor.conflict': '场景已更新。草稿保留，请重新载入后编辑。',
+      'editor.pending': '尚未应用；输入不会自动启动渲染。',
+      'editor.clean': '尚无修改',
+      'editor.animated': '动画控制的通道已禁用。',
+      'editor.invalid': '{field} 的值无效。',
+      'editor.size': '尺寸（mm）',
+      'editor.radius': '半径（mm）',
+      'editor.depth': '高度（mm）',
+      'editor.majorRadius': '主半径（mm）',
+      'editor.minorRadius': '截面半径（mm）',
+      'editor.segments': '周向分段',
+      'editor.ringCount': '环分段',
+      'editor.curveResolution': '曲线分段',
+      'editor.bevelResolution': '截面分段',
+      'editor.bevel': '倒角',
+      'editor.width': '倒角宽度（mm）',
+      'editor.bevelSegments': '倒角分段',
+      'editor.miterInner': '内角处理',
+      'editor.miterArc': '圆弧',
+      'editor.miterSharp': '尖角',
+      'editor.miterHelp': '尖角常适合曲面上的开孔边缘。它控制倒角内角的交会方式，不是通用的光滑融合。',
+      'editor.profile': '截面点：半径 / 高度（mm）',
+      'editor.path': '路径点：X / Y / Z（mm）',
+      'editor.closed': '连接首尾',
+      'editor.cap': '封闭端面',
+      'editor.interpolation': '路径连接',
+      'editor.poly': '直线',
+      'editor.bezier': '平滑曲线',
+      'editor.addPoint': '添加点',
+      'editor.remove': '删除',
+      'editor.up': '上移',
+      'editor.down': '下移',
+      'editor.add': '添加 {name}',
+      'editor.solidify': '加厚',
+      'editor.array': '阵列',
+      'editor.mirror': '镜像',
+      'editor.boolean': '布尔运算',
+      'editor.thickness': '厚度（mm）',
+      'editor.offset': '厚度偏移（−1 到 1）',
+      'editor.spacing': '每份偏移（mm）',
+      'editor.count': '数量',
+      'editor.axis': '镜像轴',
+      'editor.merge': '合并镜像接缝',
+      'editor.angle': '倒角角度阈值（°）',
+      'editor.operand': '运算对象',
+      'editor.union': '合并',
+      'editor.difference': '挖空',
+      'editor.intersect': '保留交集',
+      'editor.local': '仅当前目标（复制材质）',
+      'editor.shared': '同步修改共享材质',
+      'editor.affected': '共享修改影响：{targets}',
+      'editor.color': '基础色',
+      'editor.roughness': '粗糙度',
+      'editor.keepMaterial': '保留当前材质',
+      'editor.mapDriven': '图片或动画控制的通道已禁用。动画材质无法局部复制；选择共享修改可编辑未被动画驱动的通道。',
+      'editor.assetWhole': '整个导入资产',
+      'editor.assetPart': '部件默认材质（已有槽覆盖优先）',
+      'editor.assetSlot': '指定部件的原始槽',
+      'editor.assetNotice': '整体覆盖会替换来源材质；已有部件和槽覆盖仍优先。部件选择来自已编译资产清单。',
+      'editor.noParts': '没有已编译部件清单，暂时只能设置整体材质。',
+      'editor.part': '来源部件',
+      'editor.slot': '原始材质槽',
+      'editor.stackNotice': '操作按顺序重建。几何变化可能影响壁厚、接触和装配，请查看真实预览。',
+      'editor.advanced': '高级：编辑场景补丁 JSON',
+      'editor.unavailable': '此对象的完整几何定义尚不可用。',
       'tab.projects': '项目',
       'tab.scene': '场景树',
       'tab.preview': '预览对比',
@@ -121,9 +246,23 @@ window.__ModuleLoader__.load({
       'preview.isArtifact': '。预览是产物：替换同一路径上的旧图，不产生新的 revision。',
       'jobs.cancelRequested': '取消已请求，但进程仍在',
       'projects.empty': '这个工作区还没有项目。',
-      'projects.create': '新建项目（写操作经 Host）',
+      'projects.create': '新建项目',
       'projects.titlePlaceholder': '标题，例如 watch-commercial',
       'projects.goal': '目标（可选）',
+      'recipes.heading': '从作品配方开始',
+      'recipes.blank': '空白项目',
+      'recipes.select': '使用这个配方',
+      'recipes.selected': '已选择',
+      'recipes.parameters': '调整配方',
+      'recipes.previewNote': '示例图展示默认参数。创建后会渲染你的设置，耗时取决于设备。',
+      'recipes.createPreview': '创建并生成预览',
+      'recipes.creatingPreview': '正在创建并渲染…',
+      'recipes.stale': '选中的配方已更新或不可用，请重新选择。',
+      'recipes.range': '范围：{min}–{max}',
+      'recipes.invalid': '请输入范围内的有效数值。',
+      'recipes.reset': '恢复配方默认值',
+      'recipes.license': '作者与许可',
+      'recipes.unavailable': '部分配方无法载入；可继续使用下方可用的配方。',
       'projects.creating': '创建中…',
       'projects.createButton': '创建',
       'scene.currentRevision': '当前 revision',
@@ -155,7 +294,8 @@ window.__ModuleLoader__.load({
       'preview.notRenderedHere': '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。',
       'preview.rendering': '渲染中…',
       'preview.render': '渲染预览',
-      'preview.compare': '比较：',
+      'preview.latest': '最新预览',
+      'preview.compare': '查看：',
       'preview.lastVsThis': '上一次 vs 本次渲染',
       'preview.twoRevisions': '两个 revision',
       'preview.structuralDiff': '看结构差异',
@@ -178,7 +318,15 @@ window.__ModuleLoader__.load({
       'qa.noErrors': '没有技术错误。',
       'qa.notices': '编译器 notices',
       'visual.title': '视觉评审（测量 + 模型 finding，两个来源不合并）',
-      'visual.score': '分数',
+      'visual.score': '技术分',
+      'visual.artistic': '美术评审',
+      'visual.artistic.pass': '通过',
+      'visual.artistic.needs_work': '需要改善',
+      'visual.artistic.unassessable': '尚无法判断',
+      'visual.geometry': '几何与比例',
+      'visual.materials': '材质',
+      'visual.lighting': '灯光',
+      'visual.goalFit': '目标吻合度',
       'common.yes': '通过',
       'common.yesShort': '是',
       'common.noShort': '否',
@@ -187,6 +335,7 @@ window.__ModuleLoader__.load({
       'visual.views': '视角数',
       'visual.reviewer': '审查器',
       'visual.called': '已调用',
+      'visual.incomplete': '未完成',
       'visual.notCalled': '未调用',
       'visual.noFindings': '测量没有发现问题。',
       'visual.reviewerSilent': '审查器没有报告 finding。',
@@ -209,7 +358,7 @@ window.__ModuleLoader__.load({
       'jobs.started': '任务 {jobId} 已启动（{frames} 帧）',
       'projects.updated': '当前 {revision} · 更新于 {when}',
       'qa.errorCount': '技术错误 {count}',
-      'visual.scoreIs': '视觉评分 {score}',
+      'visual.scoreIs': '技术评分 {score}',
       'visual.notRun': '未跑视觉评审',
       'host.observedResponse': '观察到的响应：{detail}。',
       'host.stale': '本进程里的 blenderUi 比磁盘上的包旧：/deepblend/{route} 没有被这一版的宿主回答',
@@ -246,6 +395,131 @@ window.__ModuleLoader__.load({
       'revisions.title': '版本（{count}）',
     },
     en: {
+      'brief.title': "Design goal and reference images",
+      'brief.goal': "Goal for this revision",
+      'brief.upload': "Upload PNG / JPEG",
+      'brief.uploadHelp': "Up to 4 images, 8 MiB each. Uploading stores an asset; Save brief attaches it to a new revision.",
+      'brief.save': "Save brief and references",
+      'brief.reset': "Discard draft and reload",
+      'brief.saved': "Saved to {revision}; no render was started.",
+      'brief.saving': "Saving revision…",
+      'brief.uploading': "Uploading images…",
+      'brief.conflict': "The scene changed. Your brief draft is preserved; reload it before saving.",
+      'brief.pending': "There are unsaved edits; reviews use the saved revision only.",
+      'brief.clean': "The goal, main review subject and references are saved.",
+      'brief.subject': "Main review subject",
+      'brief.subjectAuto': "Choose automatically",
+      'brief.subjectEnvironment': "{id} (environment object)",
+      'brief.subjectUnavailableOption': "{id} (currently unavailable)",
+      'brief.subjectHelp': "This selects the object measured for composition, exposure and occlusion. It does not move the camera. Save to apply.",
+      'brief.subjectSaved': "Resolved subject of the saved revision",
+      'brief.subjectUnknown': "No available subject",
+      'brief.subjectUnavailable': "The selected subject cannot be reviewed: {reason}",
+      'brief.subjectShortcut': "Set as main review subject",
+      'brief.subjectShortcutHint': "Added to this project's brief draft; save it on the Projects page.",
+      'brief.subjectMode': "Selection mode",
+      'brief.subjectExplicit': "Explicit selection",
+      'brief.subjectFixed': "Fixed for this review",
+      'brief.subjectReason': "Selection reason",
+      'brief.subjectLegacy': "This older record contains only the object ID; the selection source is unknown.",
+      'brief.label': "Image label",
+      'brief.notes': "What to observe (optional)",
+      'brief.purposes': "Use as reference for",
+      'brief.remove': "Remove reference",
+      'brief.invalid': "Invalid brief or reference: labels are required, and each image needs at least one purpose.",
+      'brief.invalidFile': "Choose a PNG or JPEG image no larger than 8 MiB.",
+      'brief.limit': "A revision can have at most 4 reference images.",
+      'brief.duplicate': "This image is already in the reference list.",
+      'brief.review': "Review saved revision",
+      'brief.autofix': "Correct using references",
+      'brief.reviewCost': "Clicking renders 640 × 480 previews at 16 samples and calls the vision model. Corrections may create or restore revisions.",
+      'brief.iterations': "Maximum correction rounds",
+      'brief.reviewing': "Rendering and reviewing…",
+      'brief.fixing': "Running bounded corrections…",
+      'brief.reviewDone': "Review completed for {revision}. See QA for the artistic assessment.",
+      'brief.fixDone': "Correction ended at {revision}: {reason}. This does not establish a reference match.",
+      'brief.actualReferences': "Verified reference IDs for this review",
+      'brief.referenceUnknown': "No reference-use evidence was recorded.",
+      'brief.referenceStatus': "Reference evidence status",
+      'editor.title': 'Edit object',
+      'editor.unknownSettings': 'Measured render settings are missing. This preview cannot establish the edit difference.',
+      'editor.missingBaseline': 'No before preview has the same camera, frame and measured render settings. The edit difference is unavailable.',
+      'editor.choose': 'Select an object, adjust its settings, then apply and view a real preview.',
+      'editor.position': 'Position (mm)',
+      'editor.rotation': 'Rotation (°)',
+      'editor.geometry': 'Shape and profile',
+      'editor.localDimensions': 'These are local dimensions. Existing scale {scale} is preserved and affects the final size.',
+      'editor.roundedRequired': 'Rounded boxes retain their bevel. Adjust its width and segments below.',
+      'editor.operations': 'Ordered geometry operations',
+      'editor.material': 'Surface material',
+      'editor.apply': 'Apply and preview',
+      'editor.reset': 'Discard draft and reload',
+      'editor.restore': 'Restore the entire scene before this edit',
+      'editor.conflict': 'The scene changed. Your draft is kept; reload before editing again.',
+      'editor.pending': 'Not applied yet. Typing does not start a render.',
+      'editor.clean': 'No changes yet',
+      'editor.animated': 'Channels driven by animation are disabled.',
+      'editor.invalid': 'Invalid value for {field}.',
+      'editor.size': 'Size (mm)',
+      'editor.radius': 'Radius (mm)',
+      'editor.depth': 'Height (mm)',
+      'editor.majorRadius': 'Major radius (mm)',
+      'editor.minorRadius': 'Section radius (mm)',
+      'editor.segments': 'Radial segments',
+      'editor.ringCount': 'Ring segments',
+      'editor.curveResolution': 'Curve resolution',
+      'editor.bevelResolution': 'Section resolution',
+      'editor.bevel': 'Bevel',
+      'editor.width': 'Bevel width (mm)',
+      'editor.bevelSegments': 'Bevel segments',
+      'editor.miterInner': 'Inner corner treatment',
+      'editor.miterArc': 'Arc',
+      'editor.miterSharp': 'Sharp',
+      'editor.miterHelp': 'Sharp often suits openings on curved surfaces. It controls how inner bevel corners meet; it is not a general smooth blend.',
+      'editor.profile': 'Profile points: radius / height (mm)',
+      'editor.path': 'Path points: X / Y / Z (mm)',
+      'editor.closed': 'Connect first and last',
+      'editor.cap': 'Close ends',
+      'editor.interpolation': 'Path connection',
+      'editor.poly': 'Straight',
+      'editor.bezier': 'Smooth curve',
+      'editor.addPoint': 'Add point',
+      'editor.remove': 'Remove',
+      'editor.up': 'Move up',
+      'editor.down': 'Move down',
+      'editor.add': 'Add {name}',
+      'editor.solidify': 'Solidify',
+      'editor.array': 'Array',
+      'editor.mirror': 'Mirror',
+      'editor.boolean': 'Boolean',
+      'editor.thickness': 'Thickness (mm)',
+      'editor.offset': 'Thickness offset (−1 to 1)',
+      'editor.spacing': 'Offset per copy (mm)',
+      'editor.count': 'Count',
+      'editor.axis': 'Mirror axis',
+      'editor.merge': 'Merge mirror seam',
+      'editor.angle': 'Bevel angle threshold (°)',
+      'editor.operand': 'Operand object',
+      'editor.union': 'Union',
+      'editor.difference': 'Difference',
+      'editor.intersect': 'Intersection',
+      'editor.local': 'Only this target (copy material)',
+      'editor.shared': 'Update shared material',
+      'editor.affected': 'Shared changes affect: {targets}',
+      'editor.color': 'Base color',
+      'editor.roughness': 'Roughness',
+      'editor.keepMaterial': 'Keep current material',
+      'editor.mapDriven': 'Image- or animation-driven channels are disabled. Animated materials cannot be copied locally; shared edits can change their undriven channels.',
+      'editor.assetWhole': 'Entire imported asset',
+      'editor.assetPart': 'Part default (existing slot overrides take priority)',
+      'editor.assetSlot': 'One original slot of one part',
+      'editor.assetNotice': 'A whole-asset override replaces source materials. Existing part and slot overrides still take priority. Parts come from the compiled asset inventory.',
+      'editor.noParts': 'No compiled part inventory is available; only whole-asset material assignment is offered.',
+      'editor.part': 'Source part',
+      'editor.slot': 'Original material slot',
+      'editor.stackNotice': 'Operations rebuild in order. Geometry changes can affect wall thickness, contact and assembly; inspect the real preview.',
+      'editor.advanced': 'Advanced: edit ScenePatch JSON',
+      'editor.unavailable': 'The full geometry definition is not available for this object.',
       'tab.projects': 'Projects',
       'tab.scene': 'Scene',
       'tab.preview': 'Preview',
@@ -259,9 +533,23 @@ window.__ModuleLoader__.load({
       'preview.isArtifact': '. A preview is an artifact: it replaces the old image at the same path and creates no revision.',
       'jobs.cancelRequested': 'cancellation requested, but the process is still there',
       'projects.empty': 'This workspace has no projects yet.',
-      'projects.create': 'New project (the write goes through the Host)',
+      'projects.create': 'New project',
       'projects.titlePlaceholder': 'title, e.g. watch-commercial',
       'projects.goal': 'Goal (optional)',
+      'recipes.heading': 'Start from a recipe',
+      'recipes.blank': 'Blank project',
+      'recipes.select': 'Use this recipe',
+      'recipes.selected': 'Selected',
+      'recipes.parameters': 'Customize recipe',
+      'recipes.previewNote': 'Images show default parameters. Creating a project renders your settings; time depends on your device.',
+      'recipes.createPreview': 'Create and preview',
+      'recipes.creatingPreview': 'Creating and rendering…',
+      'recipes.stale': 'The selected recipe changed or is unavailable. Please select it again.',
+      'recipes.range': 'Range: {min}–{max}',
+      'recipes.invalid': 'Enter a valid number within the range.',
+      'recipes.reset': 'Restore recipe defaults',
+      'recipes.license': 'Author and license',
+      'recipes.unavailable': 'Some recipes could not be loaded. Available recipes are shown below.',
       'projects.creating': 'Creating…',
       'projects.createButton': 'Create',
       'scene.currentRevision': 'current revision',
@@ -293,7 +581,8 @@ window.__ModuleLoader__.load({
       'preview.notRenderedHere': 'This revision has no preview rendered from this panel yet (the “Render preview” button above makes the first one).',
       'preview.rendering': 'Rendering…',
       'preview.render': 'Render preview',
-      'preview.compare': 'Compare:',
+      'preview.latest': 'Latest preview',
+      'preview.compare': 'View:',
       'preview.lastVsThis': 'last vs this render',
       'preview.twoRevisions': 'two revisions',
       'preview.structuralDiff': 'structural diff',
@@ -316,7 +605,15 @@ window.__ModuleLoader__.load({
       'qa.noErrors': 'No technical errors.',
       'qa.notices': 'compiler notices',
       'visual.title': 'Visual review (measurements + model findings; the two sources are not merged)',
-      'visual.score': 'score',
+      'visual.score': 'technical score',
+      'visual.artistic': 'Artistic review',
+      'visual.artistic.pass': 'Passed',
+      'visual.artistic.needs_work': 'Needs work',
+      'visual.artistic.unassessable': 'Unassessable',
+      'visual.geometry': 'Geometry and proportions',
+      'visual.materials': 'Materials',
+      'visual.lighting': 'Lighting',
+      'visual.goalFit': 'Goal fit',
       'common.yes': 'yes',
       'common.yesShort': 'yes',
       'common.noShort': 'no',
@@ -325,6 +622,7 @@ window.__ModuleLoader__.load({
       'visual.views': 'views',
       'visual.reviewer': 'reviewer',
       'visual.called': 'called',
+      'visual.incomplete': 'review did not complete',
       'visual.notCalled': 'not called',
       'visual.noFindings': 'The measurements found nothing.',
       'visual.reviewerSilent': 'The reviewer reported no findings.',
@@ -347,7 +645,7 @@ window.__ModuleLoader__.load({
       'jobs.started': 'Job {jobId} started ({frames} frames)',
       'projects.updated': 'current {revision} · updated {when}',
       'qa.errorCount': '{count} technical errors',
-      'visual.scoreIs': 'visual score {score}',
+      'visual.scoreIs': 'technical score {score}',
       'visual.notRun': 'no visual review yet',
       'host.observedResponse': 'the response observed: {detail}.',
       'host.stale': 'the blenderUi in this process is older than the package on disk: /deepblend/{route} was not answered by this host',
@@ -407,6 +705,13 @@ window.__ModuleLoader__.load({
     }
     // #endregion strings
 
+    const artisticStatusLabel = status => status === 'pass' ? t('visual.artistic.pass')
+      : status === 'needs_work' ? t('visual.artistic.needs_work') : t('visual.artistic.unassessable')
+    const artisticDimensionLabel = dimension => ({
+      geometry: t('visual.geometry'), materials: t('visual.materials'),
+      lighting: t('visual.lighting'), goalFit: t('visual.goalFit'),
+    })[dimension] ?? dimension
+
     // §B  Vocabulary
     // =========================================================================
 
@@ -432,7 +737,7 @@ window.__ModuleLoader__.load({
 
     /** Every DeepBlend wire tool name this package draws a card for. */
     const TOOL_CARD_KEYS = [
-      'blender_capabilities', 'blender_project_create', 'blender_project_get',
+      'blender_capabilities', 'blender_recipe_list', 'blender_project_create', 'blender_project_get',
       'blender_scene_get', 'blender_scene_patch', 'blender_preview_render',
       'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
       'blender_preview_views', 'blender_visual_review',
@@ -690,6 +995,252 @@ window.__ModuleLoader__.load({
       return Number.isFinite(parsed) ? parsed : undefined
     }
 
+    // Editable drafts contain complete public definitions. UI controls change
+    // only named fields; whole generator/stack replacements retain everything else.
+    const editorClone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value))
+    const editorEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    const editorKey = (projectId, entityId) => JSON.stringify([projectId, entityId])
+    const EDITOR_AXES = ['x', 'y', 'z']
+    const GENERATOR_FIELDS = {
+      cube: ['size'], rounded_box: ['size'], plane: ['size'],
+      uv_sphere: ['radius', 'segments', 'ringCount'], cylinder: ['radius', 'depth', 'segments'],
+      cone: ['radius', 'depth', 'segments'], torus: ['majorRadius', 'minorRadius', 'segments', 'ringCount'],
+      lathe: ['segments'], curve: ['radius', 'curveResolution', 'bevelResolution'],
+    }
+    const EDITOR_INTEGERS = { segments: [3, 512], ringCount: [3, 512], curveResolution: [1, 64], bevelResolution: [0, 16] }
+    let editorSequence = 0
+
+    function editorTrackLocked(draft, kind, id, property) {
+      return draft.tracks.some(track => track.targetKind === kind && track.targetId === id
+        && (track.property === property || (property === 'baseColor' && track.property?.startsWith('baseColor.'))))
+    }
+
+    function createEditorDraft(scene, projectId, entityId) {
+      const entity = scene.nodes.entities.find(item => item.id === entityId)
+      if (!entity) return null
+      const original = editorClone(entity)
+      original.transform ||= { location: [0, 0, 0], rotationEuler: [0, 0, 0], scale: [1, 1, 1] }
+      original.modifiers ||= []
+      original.materialBindings ||= []
+      const material = scene.nodes.materials.find(item => item.id === entity.materialId)
+      let cloneId
+      do { cloneId = `ui-material-${Date.now().toString(36)}-${++editorSequence}` }
+      while (scene.nodes.materials.some(item => item.id === cloneId))
+      return { projectId, entityId, baseRevision: scene.revision, original, entity: editorClone(original),
+        materials: editorClone(scene.nodes.materials), entities: editorClone(scene.nodes.entities),
+        tracks: editorClone(scene.nodes.animationTracks || []), cloneId,
+        material: { id: material?.id || '', definition: editorClone(material?.definition || null),
+          scope: 'local', target: 'entity', partId: '', slotIndex: '' } }
+    }
+
+    function editorMaterialOriginal(draft) {
+      return draft.materials.find(material => material.id === draft.material.id)?.definition || null
+    }
+
+    function editorMaterialLocked(draft, property) {
+      const material = draft.material.definition
+      return !material || !['principled', 'glass'].includes(material.shader)
+        || Boolean(material.images?.[property]) || editorTrackLocked(draft, 'material', draft.material.id, property)
+        || (draft.material.scope === 'local' && draft.tracks.some(track => track.targetKind === 'material' && track.targetId === draft.material.id))
+    }
+
+    function editorEffectiveMaterialId(draft) {
+      const target = draft.material
+      if (target.target === 'entity') return draft.original.materialId || ''
+      if (!target.partId || (target.target === 'slot' && target.slotIndex === '')) return ''
+      const bindings = draft.original.materialBindings || []
+      const exact = target.target === 'slot' ? bindings.find(item => item.partId === target.partId && item.slotIndex === Number(target.slotIndex)) : null
+      const part = bindings.find(item => item.partId === target.partId && item.slotIndex === undefined)
+      const inventory = (draft.original.assetParts || []).find(item => item.partId === target.partId)
+      const slots = inventory?.materialSlots || []
+      const slotIds = new Set(slots.map(item => item.materialId))
+      return exact?.materialId || part?.materialId || draft.original.materialId
+        || (target.target === 'slot' ? slots.find(item => item.index === Number(target.slotIndex))?.materialId
+          : slots.length > 0 && slotIds.size === 1 && slots[0].materialId ? slots[0].materialId : '') || ''
+    }
+
+    function editorSelectMaterial(draft, id) {
+      draft.material.id = id
+      draft.material.definition = editorClone(draft.materials.find(item => item.id === id)?.definition || null)
+    }
+
+    function editorErrors(draft) {
+      if (!draft) return []
+      const errors = [], bad = field => errors.push(t('editor.invalid', { field }))
+      const scalar = (value, field, min = -Infinity, max = Infinity, integer = false) => {
+        if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) bad(field)
+      }
+      for (const key of ['location', 'rotationEuler']) for (let axis = 0; axis < 3; axis++) {
+        scalar(draft.entity.transform[key]?.[axis], `${key}.${EDITOR_AXES[axis]}`)
+        if (!editorEqual(draft.entity.transform[key]?.[axis], draft.original.transform[key]?.[axis])
+          && editorTrackLocked(draft, 'entity', draft.entityId, `${key}.${EDITOR_AXES[axis]}`)) bad(`${key}.${EDITOR_AXES[axis]}`)
+      }
+      const generator = draft.entity.generator
+      if (generator) {
+        for (const key of GENERATOR_FIELDS[generator.shape] || []) {
+          const bounds = EDITOR_INTEGERS[key]
+          scalar(generator[key], key, bounds ? bounds[0] : Number.MIN_VALUE, bounds ? bounds[1] : Infinity, Boolean(bounds))
+        }
+        if (generator.bevel) {
+          if (generator.bevel.width !== undefined) scalar(generator.bevel.width, 'bevel.width', Number.MIN_VALUE)
+          if (generator.bevel.segments !== undefined) scalar(generator.bevel.segments, 'bevel.segments', 1, 16, true)
+        }
+        const key = generator.shape === 'lathe' ? 'profile' : generator.shape === 'curve' ? 'path' : null
+        if (key) {
+          const points = generator[key] || [], size = key === 'profile' ? 2 : 3
+          const minimum = generator.closedProfile || generator.pathClosed ? 3 : 2
+          if (points.length < minimum || points.length > 128) bad(key)
+          points.forEach((point, index) => {
+            if (point.length !== size) bad(`${key}.${index}`)
+            point.forEach((value, axis) => scalar(value, `${key}.${index}.${axis}`, key === 'profile' && axis === 0 ? 0 : -Infinity))
+          })
+        }
+      }
+      if (draft.entity.modifiers.length > 8) bad('modifiers')
+      if (!editorEqual(draft.entity.modifiers, draft.original.modifiers)
+        && draft.entity.kind !== 'generator' && !(draft.entity.kind === 'asset-instance' && draft.original.assetParts?.length === 1)) bad('modifiers')
+      draft.entity.modifiers.forEach((modifier, index) => {
+        const at = `modifiers.${index}`
+        if (modifier.type === 'bevel') {
+          if (modifier.miterInner !== undefined && !['arc', 'sharp'].includes(modifier.miterInner)) bad(`${at}.miterInner`)
+          scalar(modifier.width, `${at}.width`, Number.MIN_VALUE)
+          if (modifier.segments !== undefined) scalar(modifier.segments, `${at}.segments`, 1, 16, true)
+          if (modifier.angle !== undefined) scalar(modifier.angle, `${at}.angle`, 0, 180)
+        } else if (modifier.type === 'solidify') {
+          scalar(modifier.thickness, `${at}.thickness`)
+          if (modifier.thickness === 0) bad(`${at}.thickness`)
+          if (modifier.offset !== undefined) scalar(modifier.offset, `${at}.offset`, -1, 1)
+        } else if (modifier.type === 'array') {
+          scalar(modifier.count, `${at}.count`, 2, 64, true)
+          modifier.offset?.forEach((value, axis) => scalar(value, `${at}.offset.${axis}`))
+          if (modifier.offset?.length !== 3 || modifier.offset.every(value => value === 0)) bad(`${at}.offset`)
+        } else if (modifier.type === 'mirror') {
+          if (!EDITOR_AXES.includes(modifier.axis)) bad(`${at}.axis`)
+        } else if (modifier.type === 'boolean') {
+          if (!['union', 'difference', 'intersect'].includes(modifier.operation)
+            || !draft.entities.some(entity => entity.id === modifier.targetEntityId && entity.id !== draft.entityId && entity.kind !== 'empty')) bad(`${at}.targetEntityId`)
+        } else bad(at)
+      })
+      const material = draft.material.definition, original = editorMaterialOriginal(draft)
+      if (material && original) for (const property of ['baseColor', 'roughness']) {
+        if (editorEqual(material.parameters?.[property], original.parameters?.[property])) continue
+        if (editorMaterialLocked(draft, property)) bad(property)
+        if (property === 'baseColor') {
+          const color = material.parameters?.baseColor
+          if (!Array.isArray(color) || color.length !== 4) bad(property)
+          else color.forEach(value => scalar(value, property, 0, 1))
+        } else scalar(material.parameters?.roughness, property, 0, 1)
+      }
+      if (draft.material.target !== 'entity') {
+        const part = draft.original.assetParts?.find(item => item.partId === draft.material.partId)
+        if (!part) bad('partId')
+        if (draft.material.target === 'slot' && (draft.material.slotIndex === '' || !part?.sourceMaterialSlots?.some(slot => slot.index === Number(draft.material.slotIndex)))) bad('slotIndex')
+      }
+      return errors
+    }
+
+    function buildEditorPatch(draft) {
+      const errors = editorErrors(draft)
+      if (errors.length) throw new Error(errors.join(' '))
+      const operations = [], original = draft.original, entity = draft.entity
+      const transform = { op: 'entity.transform.update', entityId: draft.entityId }
+      for (const key of ['location', 'rotationEuler']) if (!editorEqual(entity.transform[key], original.transform[key])) transform[key] = editorClone(entity.transform[key])
+      if (Object.keys(transform).length > 2) operations.push(transform)
+      if (!editorEqual(entity.generator, original.generator)) operations.push({ op: 'entity.generator.set', entityId: draft.entityId, generator: editorClone(entity.generator) })
+      if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
+      const material = draft.material.definition, baseMaterial = editorMaterialOriginal(draft)
+      const changedProperties = material && baseMaterial ? ['baseColor', 'roughness'].filter(key => !editorEqual(material.parameters?.[key], baseMaterial.parameters?.[key])) : []
+      let materialId = draft.material.id
+      if (changedProperties.length) {
+        if (draft.material.scope === 'local') {
+          materialId = draft.cloneId
+          operations.push({ op: 'material.add', material: { ...editorClone(material), id: materialId } })
+        } else for (const parameter of changedProperties) operations.push({ op: 'material.parameter.update', materialId, parameter, value: editorClone(material.parameters[parameter]) })
+      }
+      if (entity.kind !== 'empty' && materialId && (materialId !== editorEffectiveMaterialId(draft) || (changedProperties.length && draft.material.scope === 'local'))) {
+        if (draft.material.target === 'entity') operations.push({ op: 'entity.material.set', entityId: draft.entityId, materialId })
+        else {
+          const slotIndex = draft.material.target === 'slot' ? Number(draft.material.slotIndex) : undefined
+          const bindings = editorClone(original.materialBindings).filter(binding => !(binding.partId === draft.material.partId && binding.slotIndex === slotIndex))
+          bindings.push({ partId: draft.material.partId, ...(slotIndex === undefined ? {} : { slotIndex }), materialId })
+          operations.push({ op: 'entity.materialBindings.set', entityId: draft.entityId, materialBindings: bindings })
+        }
+      }
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, saveCheckpoint: true, renderPreview: true, actor: 'ui', operations }
+    }
+
+    function editorDirty(draft) {
+      if (!draft) return false
+      try { return buildEditorPatch(draft).operations.length > 0 } catch { return true }
+    }
+
+    function editorDraftFor(state) {
+      return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
+    }
+
+    const REFERENCE_PURPOSES = ['geometry', 'materials', 'lighting', 'goalFit']
+    const REFERENCE_MAX_BYTES = 8 * 1024 * 1024
+    function createBriefDraft(scene, projectId) {
+      const goal = scene.project.goal ?? '', referenceImages = editorClone(scene.project.referenceImages || [])
+      const reviewSubjectId = scene.project.reviewSubjectId ?? null
+      return { projectId, baseRevision: scene.revision, goal, referenceImages, reviewSubjectId,
+        reviewSubject: editorClone(scene.reviewSubject || null), entities: editorClone(scene.nodes.entities || []),
+        original: { goal, referenceImages: editorClone(referenceImages), reviewSubjectId }, assets: editorClone(scene.nodes.assets || []), pendingAssets: {} }
+    }
+    function briefContentDirty(draft) { return !editorEqual(draft.goal, draft.original.goal) || !editorEqual(draft.referenceImages, draft.original.referenceImages) }
+    function briefDirty(draft) {
+      return Boolean(draft && (briefContentDirty(draft) || draft.reviewSubjectId !== draft.original.reviewSubjectId))
+    }
+    function projectHasUnsavedDrafts(state) {
+      return briefDirty(state.briefDrafts[state.activeProjectId])
+        || Object.values(state.editorDrafts || {}).some(draft => draft.projectId === state.activeProjectId && editorDirty(draft))
+        || state.forms.patch !== null
+    }
+    function briefValid(draft) {
+      return Boolean(draft && typeof draft.goal === 'string' && draft.goal.length <= 2000 && draft.referenceImages.length <= 4
+        && (draft.reviewSubjectId === null || typeof draft.reviewSubjectId === 'string' && draft.reviewSubjectId.length > 0)
+        && draft.referenceImages.every(reference => typeof reference.label === 'string' && reference.label.trim().length > 0 && reference.label.length <= 160
+          && (reference.notes === undefined || typeof reference.notes === 'string' && reference.notes.length <= 1000)
+          && Array.isArray(reference.purposes) && reference.purposes.length > 0 && reference.purposes.length <= 4
+          && new Set(reference.purposes).size === reference.purposes.length && reference.purposes.every(purpose => REFERENCE_PURPOSES.includes(purpose))))
+    }
+    function buildBriefPatch(draft) {
+      if (!briefValid(draft)) throw new Error(t('brief.invalid'))
+      const used = new Set(draft.referenceImages.map(reference => reference.assetId))
+      const operations = Object.values(draft.pendingAssets).filter(asset => used.has(asset.id) && !draft.assets.some(existing => existing.id === asset.id))
+        .map(asset => ({ op: 'asset.add', asset: editorClone(asset) }))
+      if (briefContentDirty(draft)) operations.push({ op: 'project.brief.set', goal: draft.goal, referenceImages: editorClone(draft.referenceImages) })
+      if (draft.reviewSubjectId !== draft.original.reviewSubjectId) operations.push({ op: 'project.reviewSubject.set', entityId: draft.reviewSubjectId })
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, actor: 'ui', saveCheckpoint: true, renderPreview: false, operations }
+    }
+
+    const EDITOR_RENDER_FIELDS = ['engine', 'resolution', 'resolutionPercentage', 'samples', 'filmTransparent', 'viewTransform', 'look', 'exposure', 'fps', 'frameStart', 'frameEnd']
+    function editorPreviewPair(comparison) {
+      const previews = list => (list || []).filter(item => item.kind === 'preview' && item.path && item.sha256)
+      const after = previews(comparison.afterPreviews).at(-1) || null
+      const positiveInteger = value => Number.isInteger(value) && value > 0
+      const known = item => {
+        const renderSettings = item?.renderConfig
+        return Boolean(item && typeof item.cameraId === 'string' && item.cameraId.length > 0 && Number.isInteger(item.frame)
+          && positiveInteger(item.width) && positiveInteger(item.height) && positiveInteger(item.samples)
+          && typeof item.engine === 'string' && item.engine.length > 0 && renderSettings
+          && EDITOR_RENDER_FIELDS.every(key => Object.hasOwn(renderSettings, key))
+          && renderSettings.engine === item.engine && renderSettings.samples === item.samples
+          && Array.isArray(renderSettings.resolution) && renderSettings.resolution.length === 2 && renderSettings.resolution.every(positiveInteger)
+          && positiveInteger(renderSettings.resolutionPercentage) && renderSettings.resolutionPercentage <= 100
+          && Math.floor(renderSettings.resolution[0] * renderSettings.resolutionPercentage / 100) === item.width
+          && Math.floor(renderSettings.resolution[1] * renderSettings.resolutionPercentage / 100) === item.height
+          && typeof renderSettings.filmTransparent === 'boolean' && typeof renderSettings.viewTransform === 'string' && renderSettings.viewTransform.length > 0
+          && typeof renderSettings.look === 'string' && Number.isFinite(renderSettings.exposure) && positiveInteger(renderSettings.fps)
+          && Number.isInteger(renderSettings.frameStart) && Number.isInteger(renderSettings.frameEnd) && renderSettings.frameEnd >= renderSettings.frameStart)
+      }
+      const identity = item => JSON.stringify([item.cameraId, item.frame, item.width, item.height, ...EDITOR_RENDER_FIELDS.map(key => item.renderConfig[key])])
+      const before = known(after) ? previews(comparison.beforePreviews).findLast(item => known(item) && identity(item) === identity(after)) || null : null
+      return { beforeArtifact: before ? { ...editorClone(before), sourceRevision: comparison.before } : null,
+        afterArtifact: after ? { ...editorClone(after), sourceRevision: comparison.after } : null,
+        reason: !after ? 'no-preview' : !known(after) ? 'unknown-settings' : before ? null : 'no-matching-baseline' }
+    }
+
     // =========================================================================
     // §F  Talking to the Host
     // =========================================================================
@@ -811,6 +1362,7 @@ window.__ModuleLoader__.load({
         hostApiVersion: null,
         projects: [],
         projectsRoot: null,
+        recipeCatalog: { recipes: [], errors: [] },
         selected: null,
         currentRevision: null,
         jobs: [],
@@ -822,12 +1374,22 @@ window.__ModuleLoader__.load({
         activeProjectId: null,
         compareLeft: null,
         compareRight: null,
-        compareMode: 'renders',
+        compareMode: 'result',
         diff: null,
         diffError: null,
         previewBusy: false,
-        forms: { title: '', goal: '', patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
-        busy: { create: false, patch: false, render: false, restore: false },
+        disclosures: {},
+        briefDrafts: {},
+        briefWork: {},
+        visualRuns: {},
+        visualIterations: {},
+        editorEntityId: null,
+        editorDrafts: {},
+        editorLastEdits: {},
+        editorComparison: null,
+        patchDrafts: {},
+        forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
+        busy: { create: false, patch: false, editor: false, render: false, restore: false },
         notices: { projects: null, scene: null, preview: null, jobs: null, revisions: null },
       }
     }
@@ -849,6 +1411,7 @@ window.__ModuleLoader__.load({
       let timer = null
       let tick = 0
       let live = false
+      let loadSequence = 0
 
       const notify = () => {
         snapshot = { ...data, forms: { ...data.forms }, busy: { ...data.busy }, notices: { ...data.notices } }
@@ -864,10 +1427,12 @@ window.__ModuleLoader__.load({
 
       /** Read everything the panel shows, in one pass. */
       const load = async () => {
+        const sequence = ++loadSequence
         const projectId = target()
         const statePath = projectId === null ? ROUTES.state : `${ROUTES.state}?projectId=${encodeURIComponent(projectId)}`
         const stateResult = await readRoute(fetchImpl, `${statePath}${statePath.includes('?') ? '&' : '?'}t=${tick}`, 'state')
         if (stateResult.status !== 'ok') {
+          if (sequence !== loadSequence || projectId !== target()) return
           set({ status: stateResult.status, error: stateResult.error, hostApiVersion: stateResult.payload ? stateResult.payload.hostApiVersion : null })
           return
         }
@@ -878,6 +1443,7 @@ window.__ModuleLoader__.load({
           error: null,
           hostApiVersion: payload.hostApiVersion ?? null,
           projects: payload.projects || [],
+          recipeCatalog: payload.recipeCatalog ?? { recipes: [], errors: [] },
           projectsRoot: payload.projectsRoot ?? null,
           selected: payload.selected ?? null,
           activeProjectId: active,
@@ -908,6 +1474,21 @@ window.__ModuleLoader__.load({
         } else {
           patch.previews = null
           patch.artifactBase = ''
+        }
+        if (sequence !== loadSequence || projectId !== target()) return
+        if (active !== data.activeProjectId) patch.forms = { ...data.forms, patch: data.patchDrafts[active] ?? null }
+        if (patch.selected?.scene && active) {
+          const draft = data.briefDrafts[active], work = data.briefWork[active]
+          if (!draft || !briefDirty(draft) && !work?.uploading && !work?.saving) {
+            patch.briefDrafts = { ...data.briefDrafts, [active]: createBriefDraft(patch.selected.scene, active) }
+          }
+        }
+        const comparison = data.editorComparison
+        if (comparison?.projectId === active && !comparison.resolved) {
+          const afterPreviews = comparison.afterPreviews.length ? comparison.afterPreviews
+            : patch.previews?.revisions?.find(item => item.revision === comparison.after)?.previews || []
+          const next = { ...comparison, afterPreviews: editorClone(afterPreviews) }
+          patch.editorComparison = { ...next, ...editorPreviewPair(next), resolved: afterPreviews.length > 0 }
         }
         set(patch)
         arm()
@@ -947,15 +1528,232 @@ window.__ModuleLoader__.load({
          * it clears nothing.
          */
         setView: (view) => (view === data.view ? undefined : set({ view, notices: { ...data.notices, [view]: null } })),
-        selectProject: (projectId) => set({ projectId, diff: null, diffError: null, compareLeft: null, compareRight: null }),
+        selectProject: (projectId) => {
+          set({ projectId, selected: null, activeProjectId: null, editorEntityId: null, editorComparison: null, diff: null, diffError: null, compareLeft: null, compareRight: null })
+          reload()
+        },
         reload,
-        setForm: (field, value) => setIn('forms', field, value),
+        setForm: (field, value) => field === 'patch'
+          ? set({ forms: { ...data.forms, patch: value }, patchDrafts: { ...data.patchDrafts, [data.activeProjectId]: value } })
+          : setIn('forms', field, value),
+        setDisclosure: (key, open) => {
+          if (data.disclosures[key] !== open) set({ disclosures: { ...data.disclosures, [key]: open } })
+        },
+        selectRecipe: recipe => set({ forms: { ...data.forms, recipe,
+          recipeParameters: recipe ? Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, parameter.default])) : {},
+          title: !data.forms.title || data.forms.title === data.forms.recipe?.title ? recipe?.title || '' : data.forms.title,
+        } }),
+        setRecipeParameter: (id, value) => setIn('forms', 'recipeParameters', { ...data.forms.recipeParameters, [id]: value }),
         setCompareMode: (compareMode) => set({ compareMode }),
         pickCompare: (side, revision) => set(side === 'left'
           ? { compareLeft: revision, diff: null, diffError: null }
           : { compareRight: revision, diff: null, diffError: null }),
         /** Hand off from 版本 to 预览对比 with that revision on the left. */
         compareFrom: (revision) => set({ compareLeft: revision, view: 'preview' }),
+
+        updateBrief: (field, value, referenceId) => {
+          const projectId = data.activeProjectId, current = data.briefDrafts[projectId]
+          if (!current || data.briefWork[projectId]?.saving) return
+          const draft = editorClone(current)
+          if (field === 'goal') draft.goal = value
+          else if (field === 'reviewSubjectId') {
+            if (value !== null && !draft.entities.some(entity => entity.id === value && entity.visible !== false && entity.kind !== 'empty')) return
+            draft.reviewSubjectId = value
+          }
+          else if (['label', 'notes', 'purposes'].includes(field)) {
+            const reference = draft.referenceImages.find(item => item.id === referenceId)
+            if (!reference) return
+            reference[field] = editorClone(value)
+          } else return
+          set({ briefDrafts: { ...data.briefDrafts, [projectId]: draft } })
+        },
+        setReviewSubject: entityId => {
+          const projectId = data.activeProjectId, draft = data.briefDrafts[projectId]
+          if (!draft || data.briefWork[projectId]?.saving || data.visualRuns[projectId]?.busy
+            || !draft.entities.some(entity => entity.id === entityId && entity.visible !== false && entity.kind !== 'empty')) return
+          actions.updateBrief('reviewSubjectId', entityId)
+          set({ view: 'projects', briefWork: { ...data.briefWork, [projectId]: { ...data.briefWork[projectId], message: t('brief.subjectShortcutHint') } } })
+        },
+        removeReference: referenceId => {
+          const projectId = data.activeProjectId, current = data.briefDrafts[projectId]
+          if (!current || data.briefWork[projectId]?.saving || data.briefWork[projectId]?.uploading) return
+          set({ briefDrafts: { ...data.briefDrafts, [projectId]: { ...current, referenceImages: current.referenceImages.filter(item => item.id !== referenceId) } } })
+        },
+        resetBrief: () => {
+          const projectId = data.activeProjectId
+          if (!data.selected?.scene || data.briefWork[projectId]?.saving || data.briefWork[projectId]?.uploading) return
+          set({ briefDrafts: { ...data.briefDrafts, [projectId]: createBriefDraft(data.selected.scene, projectId) },
+            briefWork: { ...data.briefWork, [projectId]: {} } })
+        },
+        uploadReferences: async files => {
+          const projectId = data.activeProjectId, initial = data.briefDrafts[projectId]
+          if (!initial || data.briefWork[projectId]?.uploading || data.briefWork[projectId]?.saving) return
+          const selected = Array.from(files || [])
+          const work = update => set({ briefWork: { ...data.briefWork, [projectId]: { ...data.briefWork[projectId], ...update } } })
+          if (!selected.length) return
+          if (selected.length + initial.referenceImages.length > 4) { work({ error: t('brief.limit') }); return }
+          if (selected.some(file => !['image/png', 'image/jpeg'].includes(file.type) || !Number.isInteger(file.size) || file.size <= 0 || file.size > REFERENCE_MAX_BYTES)) {
+            work({ error: t('brief.invalidFile') }); return
+          }
+          work({ uploading: true, error: null, message: null })
+          try {
+            for (const file of selected) {
+              const response = await fetchImpl(`${projectRoute(projectId, '/reference-images')}?name=${encodeURIComponent(file.name)}`, {
+                method: 'POST', headers: { 'content-type': file.type, accept: 'application/json' }, body: file,
+              })
+              const result = await response.json()
+              if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_UPLOAD_FAILED'}: ${result.error?.message || response.status}`)
+              const draft = editorClone(data.briefDrafts[projectId])
+              if (draft.referenceImages.some(reference => reference.sha256 === result.asset.sha256)) { work({ error: t('brief.duplicate') }); continue }
+              draft.pendingAssets[result.asset.id] = editorClone(result.asset)
+              draft.referenceImages.push({ id: `reference-${Date.now().toString(36)}-${++editorSequence}`, assetId: result.asset.id, sha256: result.asset.sha256,
+                label: file.name.slice(0, 160), purposes: ['goalFit'] })
+              set({ briefDrafts: { ...data.briefDrafts, [projectId]: draft } })
+            }
+          } catch (error) { work({ error: error.message || String(error) }) }
+          finally { work({ uploading: false }) }
+        },
+        saveBrief: async () => {
+          const projectId = data.activeProjectId, draft = data.briefDrafts[projectId]
+          if (!draft || data.briefWork[projectId]?.saving || data.briefWork[projectId]?.uploading || data.visualRuns[projectId]?.busy
+            || draft.baseRevision !== data.selected?.scene?.revision || !briefDirty(draft)) return
+          let patch
+          try { patch = buildBriefPatch(draft) } catch (error) { set({ briefWork: { ...data.briefWork, [projectId]: { error: error.message } } }); return }
+          set({ briefWork: { ...data.briefWork, [projectId]: { saving: true, error: null } } })
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch })
+          if (outcome.ok) {
+            const drafts = { ...data.briefDrafts }; delete drafts[projectId]
+            set({ briefDrafts: drafts, briefWork: { ...data.briefWork, [projectId]: { saving: false, message: t('brief.saved', { revision: outcome.payload.revision.revision }) } } })
+          } else set({ briefWork: { ...data.briefWork, [projectId]: { saving: false, error: `${outcome.error.code}: ${outcome.error.message}` } } })
+          reload()
+        },
+        setVisualIterations: value => {
+          if (Number.isInteger(value) && value >= 1 && value <= 3) set({ visualIterations: { ...data.visualIterations, [data.activeProjectId]: value } })
+        },
+        runVisual: async mode => {
+          const projectId = data.activeProjectId, revision = data.selected?.scene?.revision
+          if (!projectId || !revision || !data.briefDrafts[projectId] || !['review', 'autofix'].includes(mode) || data.visualRuns[projectId]?.busy
+            || data.briefWork[projectId]?.saving || data.briefWork[projectId]?.uploading || projectHasUnsavedDrafts(data)
+            || data.busy.editor || data.busy.patch || data.busy.restore) return
+          set({ visualRuns: { ...data.visualRuns, [projectId]: { busy: true, mode, revision } } })
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, `/${mode}`), { revision,
+            ...(mode === 'autofix' ? { maxIterations: data.visualIterations[projectId] || 1 } : {}) })
+          const reviewerError = outcome.payload?.review?.reviewerError || outcome.payload?.review?.referenceInputError?.message
+          const result = outcome.ok ? outcome.payload : null
+          set({ visualRuns: { ...data.visualRuns, [projectId]: { busy: false, mode, revision, result,
+            error: !outcome.ok ? `${outcome.error.code}: ${outcome.error.message}` : reviewerError || null } } })
+          if (target() === projectId) set({ view: 'qa' })
+          reload()
+        },
+
+        selectEditorEntity: entityId => {
+          const scene = data.selected?.scene, projectId = data.activeProjectId
+          if (!scene || !projectId) return
+          const key = editorKey(projectId, entityId)
+          const draft = data.editorDrafts[key] || createEditorDraft(scene, projectId, entityId)
+          if (draft) set({ editorEntityId: entityId, editorDrafts: { ...data.editorDrafts, [key]: draft } })
+        },
+        resetEditor: () => {
+          const current = editorDraftFor(data), scene = data.selected?.scene
+          if (!current || !scene || data.busy.editor) return
+          const draft = createEditorDraft(scene, current.projectId, current.entityId)
+          set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, current.entityId)]: draft }, notices: { ...data.notices, scene: null } })
+        },
+        updateEditor: (section, path, value) => {
+          const current = editorDraftFor(data)
+          if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material'].includes(section)) return
+          if (!Array.isArray(path) || path.some(key => ['__proto__', 'constructor', 'prototype'].includes(String(key)))) return
+          if (section === 'generator' && path[0] === 'bevel' && path.length === 1 && value === undefined && current.entity.generator?.shape === 'rounded_box') return
+          if (section === 'transform' && editorTrackLocked(current, 'entity', current.entityId, `${path[0]}.${EDITOR_AXES[path[1]]}`)) return
+          if (section === 'material' && path[0] === 'definition' && path[1] === 'parameters' && editorMaterialLocked(current, path[2])) return
+          const draft = editorClone(current)
+          if (section === 'material' && path.length === 1 && path[0] === 'id') editorSelectMaterial(draft, value)
+          else {
+            const parent = section === 'material' ? draft : draft.entity
+            if (path.length === 0) parent[section] = editorClone(value)
+            else {
+              let object = parent[section]
+              for (const key of path.slice(0, -1)) { object[key] ??= {}; object = object[key] }
+              if (value === undefined) delete object[path[path.length - 1]]
+              else object[path[path.length - 1]] = editorClone(value)
+            }
+            if (section === 'material' && ['target', 'partId', 'slotIndex'].includes(path[0])) {
+              if (path[0] === 'partId') draft.material.slotIndex = ''
+              editorSelectMaterial(draft, editorEffectiveMaterialId(draft))
+            }
+          }
+          set({ editorDrafts: { ...data.editorDrafts, [editorKey(draft.projectId, draft.entityId)]: draft } })
+        },
+        editEditorList: (kind, index, action, type) => {
+          const current = editorDraftFor(data)
+          if (!current || data.busy.editor) return
+          const draft = editorClone(current)
+          const list = kind === 'modifiers' ? draft.entity.modifiers : draft.entity.generator?.[kind]
+          if (!Array.isArray(list)) return
+          if (action === 'add') {
+            if (list.length >= (kind === 'modifiers' ? 8 : 128)) return
+            if (kind === 'modifiers') {
+              const defaults = { bevel: { type, width: 0.001, segments: 3, angle: 30 }, solidify: { type, thickness: 0.002, offset: -1 },
+                array: { type, count: 2, offset: [0.02, 0, 0] }, mirror: { type, axis: 'x', merge: true },
+                boolean: { type, operation: 'difference', targetEntityId: draft.entities.find(item => item.id !== draft.entityId && item.kind !== 'empty')?.id || '' } }
+              if (!defaults[type]) return
+              list.push(defaults[type])
+            } else {
+              const point = [...(list.at(-1) || (kind === 'profile' ? [0.01, 0] : [0, 0, 0]))]
+              point[point.length - 1] += 0.001
+              list.push(point)
+            }
+          } else if (action === 'remove') list.splice(index, 1)
+          else {
+            const next = index + (action === 'up' ? -1 : 1)
+            if (next < 0 || next >= list.length) return
+            ;[list[index], list[next]] = [list[next], list[index]]
+          }
+          set({ editorDrafts: { ...data.editorDrafts, [editorKey(draft.projectId, draft.entityId)]: draft } })
+        },
+        applyEditor: async () => {
+          const draft = editorDraftFor(data)
+          if (!draft || data.busy.editor || draft.baseRevision !== data.selected?.scene?.revision) return
+          let patch
+          try { patch = buildEditorPatch(draft) } catch (error) {
+            setIn('notices', 'scene', { ok: false, message: error.message }); return
+          }
+          if (!patch.operations.length) return
+          const beforePreviews = editorClone(data.previews?.revisions?.find(item => item.revision === draft.baseRevision)?.previews || [])
+          setIn('busy', 'editor', true)
+          const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, '/patch'), { patch })
+          setIn('busy', 'editor', false)
+          if (outcome.ok) {
+            const revision = outcome.payload.revision.revision
+            const drafts = { ...data.editorDrafts }; delete drafts[editorKey(draft.projectId, draft.entityId)]
+            const lastEdit = { before: draft.baseRevision, after: revision }
+            set({ editorDrafts: drafts, editorLastEdits: { ...data.editorLastEdits, [draft.projectId]: lastEdit } })
+            if (target() === draft.projectId) set({ view: 'preview', compareMode: 'revisions', compareLeft: draft.baseRevision, compareRight: revision,
+              editorComparison: { projectId: draft.projectId, ...lastEdit, beforePreviews,
+                afterPreviews: editorClone(outcome.payload.revision.previews || []) },
+              notices: { ...data.notices, scene: { ok: true, message: t('scene.committed', { revision, digest: shortDigest(outcome.payload.revision.digest) }) } } })
+            reload()
+          } else if (target() === draft.projectId) {
+            setIn('notices', 'scene', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
+            if (outcome.error.code === 'REVISION_CONFLICT') reload()
+          }
+        },
+        restoreEditor: async () => {
+          const projectId = data.activeProjectId, lastEdit = data.editorLastEdits[projectId]
+          if (!lastEdit || data.busy.restore || data.currentRevision !== lastEdit.after) return
+          setIn('busy', 'restore', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/restore'), { revision: lastEdit.before, expectedCurrentRevision: lastEdit.after })
+          setIn('busy', 'restore', false)
+          if (outcome.ok) {
+            const edits = { ...data.editorLastEdits }; delete edits[projectId]
+            const drafts = Object.fromEntries(Object.entries(data.editorDrafts).filter(([, item]) => item?.projectId !== projectId))
+            set({ editorDrafts: drafts, editorLastEdits: edits, ...(target() === projectId ? { editorEntityId: null, editorComparison: null } : {}) })
+          }
+          if (target() === projectId) setIn('notices', 'scene', outcome.ok
+            ? { ok: true, message: t('revisions.restored', { from: lastEdit.after, to: lastEdit.before }) }
+            : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
+          reload()
+        },
 
         diff: async (from, to) => {
           set({ diffError: null })
@@ -970,22 +1768,30 @@ window.__ModuleLoader__.load({
         },
 
         createProject: async () => {
+          if (data.busy.create) return
+          if (!recipeSelectionCurrent(data) || !recipeValuesValid(data.forms.recipe, data.forms.recipeParameters)) return
+          const withRecipe = Boolean(data.forms.recipe)
           setIn('busy', 'create', true)
           const outcome = await postJson(fetchImpl, ROUTES.projects, {
             title: data.forms.title,
             goal: data.forms.goal.length > 0 ? data.forms.goal : undefined,
+            renderPreview: withRecipe,
+            recipe: data.forms.recipe ? { id: data.forms.recipe.id, version: data.forms.recipe.version, digest: data.forms.recipe.digest, parameters: data.forms.recipeParameters } : undefined,
           })
           setIn('busy', 'create', false)
           if (outcome.ok) {
-            set({ forms: { ...data.forms, title: '', goal: '' }, projectId: outcome.payload.project.projectId })
+            set({ forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }, projectId: outcome.payload.project.projectId, ...(withRecipe ? { view: 'preview', compareMode: 'result' } : {}) })
             setIn('notices', 'projects', { ok: true, message: t('projects.created', { id: outcome.payload.project.projectId }) })
             reload()
           } else {
             setIn('notices', 'projects', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
+            if (outcome.error.code === 'RECIPE_CHANGED' || outcome.error.code === 'RECIPE_NOT_FOUND') reload()
           }
         },
 
         applyPatch: async () => {
+          const projectId = data.activeProjectId
+          if (!projectId || data.busy.patch) return
           const text = data.forms.patch
           let patch
           try {
@@ -995,13 +1801,16 @@ window.__ModuleLoader__.load({
             return
           }
           setIn('busy', 'patch', true)
-          const outcome = await postJson(fetchImpl, projectRoute(target(), '/patch'), { patch })
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch })
           setIn('busy', 'patch', false)
           if (outcome.ok) {
-            setIn('notices', 'scene', { ok: true, message: t('scene.committed', { revision: outcome.payload.revision.revision, digest: shortDigest(outcome.payload.revision.digest) }) })
-            setIn('forms', 'patch', null)
+            set({ patchDrafts: { ...data.patchDrafts, [projectId]: null } })
+            if (data.activeProjectId === projectId) {
+              setIn('notices', 'scene', { ok: true, message: t('scene.committed', { revision: outcome.payload.revision.revision, digest: shortDigest(outcome.payload.revision.digest) }) })
+              setIn('forms', 'patch', null)
+            }
             reload()
-          } else {
+          } else if (data.activeProjectId === projectId) {
             setIn('notices', 'scene', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           }
         },
@@ -1009,7 +1818,7 @@ window.__ModuleLoader__.load({
         renderPreview: async () => {
           set({ previewBusy: true, previewResult: null })
           const outcome = await postJson(fetchImpl, projectRoute(target(), '/preview'), {})
-          set({ previewBusy: false })
+          set({ previewBusy: false, ...(outcome.ok ? { compareMode: 'renders' } : {}) })
           set({
             previewResult: outcome.ok
               ? {
@@ -1057,11 +1866,13 @@ window.__ModuleLoader__.load({
         },
 
         restoreRevision: async (revision) => {
+          const projectId = data.activeProjectId, currentRevision = data.currentRevision
+          if (!projectId || !currentRevision || data.busy.restore || data.busy.editor) return
           setIn('busy', 'restore', true)
-          const outcome = await postJson(fetchImpl, projectRoute(target(), '/restore'), { revision })
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/restore'), { revision, expectedCurrentRevision: currentRevision })
           setIn('busy', 'restore', false)
-          setIn('notices', 'revisions', outcome.ok
-            ? { ok: true, message: t('revisions.restored', { from: revision, to: outcome.payload.revision.revision }) }
+          if (target() === projectId) setIn('notices', 'revisions', outcome.ok
+            ? { ok: true, message: t('revisions.restored', { from: outcome.payload.revision.from || currentRevision, to: outcome.payload.revision.revision }) }
             : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
         },
@@ -1127,10 +1938,12 @@ window.__ModuleLoader__.load({
 
         el('div', { className: 'db-card' },
           el('h4', null, t('projects.create')),
+          RecipesView(ctx),
           el('div', { className: 'db-inline' },
             el('input', {
               className: 'db-input',
               'data-field': 'project-title',
+              'aria-label': t('projects.titlePlaceholder'),
               placeholder: t('projects.titlePlaceholder'),
               value: state.forms.title,
               onChange: event => actions.setForm('title', event.target.value),
@@ -1138,6 +1951,7 @@ window.__ModuleLoader__.load({
             el('input', {
               className: 'db-input',
               'data-field': 'project-goal',
+              'aria-label': t('projects.goal'),
               placeholder: t('projects.goal'),
               value: state.forms.goal,
               onChange: event => actions.setForm('goal', event.target.value),
@@ -1145,14 +1959,15 @@ window.__ModuleLoader__.load({
             Button({
               tone: 'primary',
               action: 'create-project',
-              disabled: state.busy.create || state.forms.title.trim().length === 0,
+              disabled: state.busy.create || state.forms.title.trim().length === 0 || !recipeSelectionCurrent(state) || !recipeValuesValid(state.forms.recipe, state.forms.recipeParameters),
               onClick: actions.createProject,
-              children: state.busy.create ? t('projects.creating') : t('projects.createButton'),
+              children: state.busy.create ? (state.forms.recipe ? t('recipes.creatingPreview') : t('projects.creating')) : (state.forms.recipe ? t('recipes.createPreview') : t('projects.createButton')),
             }),
           ),
           state.notices.projects ? Notice(state.notices.projects, { marginTop: '8px' }) : null,
         ),
 
+        BriefEditor({ state, actions }),
         state.selected ? el('div', { className: 'db-card' },
           el('h4', null, t('projects.currentProject', { title: state.selected.project.title })),
           KeyValues({ entries: [
@@ -1172,6 +1987,145 @@ window.__ModuleLoader__.load({
       )
     }
 
+    // HTML color controls use sRGB; SceneSpec stores scene-linear channels.
+    function recipeColorHex(value) {
+      return '#' + value.map(channel => {
+        const linear = Math.max(0, Math.min(1, channel))
+        const srgb = linear <= 0.0031308 ? 12.92 * linear : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055
+        return Math.round(srgb * 255).toString(16).padStart(2, '0')
+      }).join('')
+    }
+    function recipeColorLinear(hex) {
+      return [1, 3, 5].map(index => {
+        const srgb = parseInt(hex.slice(index, index + 2), 16) / 255
+        return srgb <= 0.04045 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4)
+      })
+    }
+    function recipeSelectionCurrent(state) {
+      const recipe = state.forms.recipe
+      return !recipe || state.recipeCatalog.recipes.some(item => item.id === recipe.id && item.version === recipe.version && item.digest === recipe.digest)
+    }
+    function recipeValuesValid(recipe, values) {
+      return !recipe || recipe.parameters.every(parameter => {
+        const value = values[parameter.id]
+        return parameter.type === 'color' ? Array.isArray(value) && value.length === 3 && value.every(v => Number.isFinite(v) && v >= 0 && v <= 1)
+          : Number.isFinite(value) && value >= parameter.minimum && value <= parameter.maximum
+      })
+    }
+    function RecipesView({ state, actions }) {
+      const catalog = state.recipeCatalog || { recipes: [], errors: [] }
+      const selected = state.forms.recipe
+      return el('section', { 'aria-label': t('recipes.heading'), style: { marginBottom: '16px' } },
+        el('h5', null, t('recipes.heading')),
+        el('p', { className: 'db-muted' }, t('recipes.previewNote')),
+        !recipeSelectionCurrent(state) ? el('p', { role: 'alert', className: 'db-error' }, t('recipes.stale')) : null,
+        catalog.errors.length ? el('p', { className: 'db-error' }, t('recipes.unavailable')) : null,
+        Button({ action: 'recipe-blank', tone: !selected ? 'primary' : undefined,
+          onClick: () => actions.selectRecipe(null), children: t('recipes.blank') }),
+        el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '10px' } },
+          catalog.recipes.map(recipe => {
+            const chosen = selected?.id === recipe.id && selected?.version === recipe.version && selected?.digest === recipe.digest
+            return el('article', { key: `${recipe.id}@${recipe.version}`, 'data-recipe': recipe.id,
+              style: { border: chosen ? '2px solid var(--db-accent, #4f8cff)' : '1px solid var(--db-border, #555)', borderRadius: '8px', padding: '10px' } },
+              el('img', { src: recipe.previewUrl, alt: recipe.title, loading: 'lazy', style: { width: '100%', aspectRatio: '4 / 3', objectFit: 'contain', borderRadius: '4px' } }),
+              el('h5', null, recipe.title), el('p', { className: 'db-muted' }, recipe.description),
+              el('p', { className: 'db-muted' }, `${t('recipes.license')}: ${recipe.author.name} · ${recipe.license} · v${recipe.version}`),
+              Button({ action: `select-recipe:${recipe.id}@${recipe.version}`, tone: chosen ? 'primary' : undefined,
+                onClick: () => actions.selectRecipe(recipe), children: chosen ? t('recipes.selected') : t('recipes.select') }),
+            )
+          })),
+        selected ? el('fieldset', { style: { marginTop: '12px', borderRadius: '6px' } },
+          el('legend', null, t('recipes.parameters')),
+          Button({ action: 'reset-recipe', onClick: () => actions.selectRecipe(selected), children: t('recipes.reset') }),
+          el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } }, selected.parameters.map(parameter =>
+            el('label', { key: parameter.id, style: { display: 'flex', flexDirection: 'column', gap: '5px' } },
+              parameter.title,
+              parameter.description ? el('span', { className: 'db-muted', style: { maxWidth: '260px' } }, parameter.description) : null,
+              parameter.type !== 'color' ? el('span', { className: 'db-muted' }, t('recipes.range', { min: parameter.minimum, max: parameter.maximum })) : null,
+              !recipeValuesValid({ parameters: [parameter] }, state.forms.recipeParameters) ? el('span', { className: 'db-error', role: 'alert' }, t('recipes.invalid')) : null,
+              parameter.type === 'color' ? el('input', { type: 'color', 'data-field': `recipe-${parameter.id}`, 'aria-label': parameter.title,
+                value: recipeColorHex(state.forms.recipeParameters[parameter.id]), onChange: event => actions.setRecipeParameter(parameter.id, recipeColorLinear(event.target.value)) })
+                : el('input', { className: 'db-input', type: 'number', step: 'any', min: parameter.minimum, max: parameter.maximum,
+                  'data-field': `recipe-${parameter.id}`, 'aria-label': parameter.title, value: state.forms.recipeParameters[parameter.id],
+                  onChange: event => actions.setRecipeParameter(parameter.id, event.target.value === '' ? '' : Number(event.target.value)) }),
+            ))),
+        ) : null,
+      )
+    }
+
+    function VisualActions({ state, actions }) {
+      const projectId = state.activeProjectId, run = state.visualRuns[projectId], work = state.briefWork[projectId]
+      const dirty = projectHasUnsavedDrafts(state), disabled = !projectId || !state.briefDrafts[projectId] || run?.busy || work?.saving || work?.uploading || dirty
+        || state.busy.editor || state.busy.patch || state.busy.restore
+      return el('div', { className: 'db-card', 'data-visual-actions': true, 'data-review-busy': String(Boolean(run?.busy)) },
+        el('p', { className: 'db-muted' }, t('brief.reviewCost')),
+        dirty ? el('p', { className: 'db-muted' }, t('brief.pending')) : null,
+        el('div', { className: 'db-inline' },
+          Button({ action: 'project-review', disabled, onClick: () => actions.runVisual('review'), children: t('brief.review') }),
+          el('label', null, t('brief.iterations'), el('select', { className: 'db-input', 'data-field': 'review-iterations', value: state.visualIterations[projectId] || 1,
+            disabled, onChange: event => actions.setVisualIterations(Number(event.target.value)) }, [1, 2, 3].map(value => el('option', { key: value, value }, String(value))))),
+          Button({ action: 'project-autofix', disabled, onClick: () => actions.runVisual('autofix'), children: t('brief.autofix') })),
+        run?.busy ? el('p', { role: 'status' }, run.mode === 'review' ? t('brief.reviewing') : t('brief.fixing')) : null,
+        run?.error ? el('p', { className: 'db-error', role: 'alert', 'data-review-error': true }, run.error) : null,
+        run?.result && !run.error ? el('p', { 'data-review-result': run.mode, className: 'db-muted' }, run.mode === 'review'
+          ? t('brief.reviewDone', { revision: run.result.revision })
+          : t('brief.fixDone', { revision: run.result.run?.finalRevision || run.revision, reason: run.result.run?.stopReason || '—' })) : null)
+    }
+
+    function BriefEditor(ctx) {
+      const { state, actions } = ctx, projectId = state.activeProjectId, draft = state.briefDrafts[projectId]
+      if (!draft) return null
+      const work = state.briefWork[projectId] || {}, conflict = draft.baseRevision !== state.selected?.scene?.revision
+      const disabled = Boolean(work.saving || state.visualRuns[projectId]?.busy), dirty = briefDirty(draft)
+      const assetOf = reference => draft.pendingAssets[reference.assetId] || draft.assets.find(asset => asset.id === reference.assetId)
+      const subjects = draft.entities.filter(entity => entity.visible !== false && entity.kind !== 'empty')
+      const selectedUnavailable = draft.reviewSubjectId !== null && !subjects.some(entity => entity.id === draft.reviewSubjectId)
+      const resolved = draft.reviewSubject
+      return el('section', { className: 'db-card', 'data-brief-project': projectId, 'data-brief-base-revision': draft.baseRevision,
+        'data-brief-dirty': String(dirty), 'data-brief-conflict': String(conflict) },
+        el('h4', null, t('brief.title')),
+        el('label', null, t('brief.goal'), el('textarea', { className: 'db-area', 'data-field': 'brief-goal', maxLength: 2000,
+          value: draft.goal, disabled, onChange: event => actions.updateBrief('goal', event.target.value) })),
+        el('label', { className: 'db-row' }, t('brief.subject'), el('select', { className: 'db-input', 'data-field': 'brief-review-subject', value: draft.reviewSubjectId ?? '', disabled,
+          onChange: event => actions.updateBrief('reviewSubjectId', event.target.value || null) },
+          el('option', { value: '' }, t('brief.subjectAuto')),
+          selectedUnavailable ? el('option', { value: draft.reviewSubjectId, disabled: true }, t('brief.subjectUnavailableOption', { id: draft.reviewSubjectId })) : null,
+          subjects.map(entity => el('option', { key: entity.id, value: entity.id }, (entity.tags || []).includes('environment') ? t('brief.subjectEnvironment', { id: entity.id }) : entity.id)))),
+        el('p', { className: 'db-muted' }, t('brief.subjectHelp')),
+        el('div', { 'data-review-subject-resolution': true, 'data-review-subject-id': resolved?.id || '',
+          'data-review-subject-mode': resolved?.mode || '', 'data-review-subject-available': String(resolved?.available === true) },
+          el('p', { className: 'db-muted' }, `${t('brief.subjectSaved')}: ${resolved?.id || t('brief.subjectUnknown')}`),
+          resolved?.source ? el('p', { className: 'db-muted' }, `${t('brief.subjectReason')}: ${resolved.source}`) : null,
+          resolved?.available === false ? el('p', { className: 'db-error', role: 'status' }, t('brief.subjectUnavailable', { reason: resolved.reason || t('brief.subjectUnknown') })) : null),
+        el('p', { className: conflict ? 'db-error' : 'db-muted' }, conflict ? t('brief.conflict') : dirty ? t('brief.pending') : t('brief.clean')),
+        el('p', { className: 'db-muted' }, t('brief.uploadHelp')),
+        el('label', null, t('brief.upload'), el('input', { type: 'file', accept: 'image/png,image/jpeg', multiple: true,
+          'data-field': 'brief-upload', disabled: disabled || work.uploading || draft.referenceImages.length >= 4,
+          onChange: event => actions.uploadReferences(event.target.files) })),
+        work.uploading ? el('p', { role: 'status' }, t('brief.uploading')) : null,
+        el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '12px' } }, draft.referenceImages.map(reference => {
+          const asset = assetOf(reference)
+          return el('article', { key: reference.id, className: 'db-card', 'data-reference-id': reference.id, 'data-reference-sha256': reference.sha256 },
+            asset?.path ? el('img', { alt: reference.label, src: artifactUrl(`/deepblend/artifacts/${encodeURIComponent(projectId)}/`, { path: asset.path, sha256: reference.sha256 }),
+              style: { width: '100%', height: '150px', objectFit: 'contain' } }) : null,
+            el('label', null, t('brief.label'), el('input', { className: 'db-input', 'data-field': `reference-${reference.id}-label`, value: reference.label, maxLength: 160, disabled,
+              onChange: event => actions.updateBrief('label', event.target.value, reference.id) })),
+            el('fieldset', { disabled }, el('legend', null, t('brief.purposes')), REFERENCE_PURPOSES.map(purpose =>
+              el('label', { key: purpose, className: 'db-row' }, artisticDimensionLabel(purpose), el('input', { type: 'checkbox', 'data-field': `reference-${reference.id}-${purpose}`, checked: reference.purposes.includes(purpose),
+                onChange: event => actions.updateBrief('purposes', event.target.checked ? [...reference.purposes, purpose] : reference.purposes.filter(item => item !== purpose), reference.id) })))),
+            el('label', null, t('brief.notes'), el('textarea', { className: 'db-area', style: { minHeight: '64px' }, 'data-field': `reference-${reference.id}-notes`, value: reference.notes || '', maxLength: 1000, disabled,
+              onChange: event => actions.updateBrief('notes', event.target.value, reference.id) })),
+            Button({ action: `reference-remove:${reference.id}`, disabled: disabled || work.uploading, onClick: () => actions.removeReference(reference.id), children: t('brief.remove') }))
+        })),
+        dirty && !briefValid(draft) ? el('p', { className: 'db-error', role: 'alert' }, t('brief.invalid')) : null,
+        work.error ? el('p', { className: 'db-error', role: 'alert', 'data-brief-error': true }, work.error) : null,
+        work.message ? el('p', { role: 'status', 'data-brief-result': true }, work.message) : null,
+        el('div', { className: 'db-inline' },
+          Button({ action: 'brief-save', disabled: disabled || work.uploading || conflict || !dirty || !briefValid(draft), onClick: actions.saveBrief, children: work.saving ? t('brief.saving') : t('brief.save') }),
+          Button({ action: 'brief-reset', disabled: disabled || work.uploading, onClick: actions.resetBrief, children: t('brief.reset') })),
+        VisualActions(ctx))
+    }
+
     /** A result line, in the two shapes the panel already used. */
     function Notice(result, style) {
       if (result === null || result === undefined) return null
@@ -1181,6 +2135,145 @@ window.__ModuleLoader__.load({
         className: result.ok ? 'db-muted' : 'db-error',
         style: style || undefined,
       }, result.message)
+    }
+
+    function SceneEditor(ctx) {
+      const { state, actions } = ctx, draft = editorDraftFor(state)
+      const lastEdit = state.editorLastEdits?.[state.activeProjectId]
+      const stackDisclosure = JSON.stringify([state.activeProjectId, draft?.entityId, 'modifiers'])
+      const restore = lastEdit ? Button({ action: 'editor-restore', children: t('editor.restore'),
+        disabled: state.busy.restore || state.busy.editor || state.currentRevision !== lastEdit.after, onClick: actions.restoreEditor }) : null
+      if (!draft) return el('div', { className: 'db-card', 'data-scene-editor': true }, el('h4', null, t('editor.title')), t('editor.choose'), restore)
+      const conflict = draft.baseRevision !== state.selected?.scene?.revision
+      const disabled = state.busy.editor || conflict
+      const dirty = editorDirty(draft), errors = editorErrors(draft)
+      const labels = {
+        size: t('editor.size'), radius: t('editor.radius'), depth: t('editor.depth'), majorRadius: t('editor.majorRadius'), minorRadius: t('editor.minorRadius'),
+        segments: t('editor.segments'), ringCount: t('editor.ringCount'), curveResolution: t('editor.curveResolution'), bevelResolution: t('editor.bevelResolution'),
+      }
+      const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean') }
+      const numeric = (label, field, value, update, options = {}) => {
+        const factor = options.factor ?? 1
+        const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
+        return el('label', { className: 'db-row', key: field }, el('span', null, label), el('input', {
+          className: 'db-input', type: 'number', 'data-field': field, value: displayed, step: options.integer ? 1 : 'any',
+          min: options.min, max: options.max, disabled: disabled || options.disabled === true,
+          style: { width: '125px' }, onChange: event => update(event.target.value === '' ? null : Number(event.target.value) / factor),
+        }))
+      }
+      const choose = (label, field, value, items, update, off = false) => el('label', { className: 'db-row', key: field }, el('span', null, label), el('select', {
+        className: 'db-input', 'data-field': field, value, disabled: disabled || off, style: { maxWidth: '65%' }, onChange: event => update(event.target.value),
+      }, items.map(([id, title]) => el('option', { key: id, value: id }, title))))
+      const toggle = (label, field, value, update, off = false) => el('label', { className: 'db-row', key: field }, el('span', null, label), el('input', {
+        type: 'checkbox', 'data-field': field, checked: value, disabled: disabled || off, onChange: event => update(event.target.checked),
+      }))
+      const vector = (title, prefix, value, update, factor = 1000, locks = []) => el('div', null, el('strong', null, title),
+        EDITOR_AXES.map((axis, index) => numeric(axis.toUpperCase(), `${prefix}-${axis}`, value?.[index], next => update(index, next), { factor, disabled: locks[index] })))
+      const geometry = draft.entity.generator
+      const points = (key, title) => {
+        const rows = geometry[key].map((point, index) => {
+          const cells = point.map((value, axis) => el('td', { key: axis }, numeric(
+            key === 'profile' ? ['R', 'Z'][axis] : EDITOR_AXES[axis].toUpperCase(),
+            `editor-generator-${key}-${index}-${axis}`, value,
+            next => actions.updateEditor('generator', [key, index, axis], next), { factor: 1000 })))
+          const controls = el('td', null,
+            Button({ action: `editor-${key}-${index}-up`, disabled: disabled || index === 0, children: t('editor.up'), onClick: () => actions.editEditorList(key, index, 'up') }),
+            Button({ action: `editor-${key}-${index}-down`, disabled: disabled || index === geometry[key].length - 1, children: t('editor.down'), onClick: () => actions.editEditorList(key, index, 'down') }),
+            Button({ action: `editor-${key}-${index}-remove`, disabled: disabled || geometry[key].length <= (geometry.pathClosed || geometry.closedProfile ? 3 : 2), children: t('editor.remove'), onClick: () => actions.editEditorList(key, index, 'remove') }))
+          return el('tr', { key: index }, el('td', null, String(index + 1)), cells, controls)
+        })
+        return el('div', { style: { overflowX: 'auto', maxHeight: '320px', overflowY: 'auto', marginTop: '10px' } },
+          el('strong', null, title), el('table', { className: 'db-table', 'data-editor-points': key }, el('tbody', null, rows)),
+          Button({ action: `editor-${key}-add`, disabled: disabled || geometry[key].length >= 128, children: t('editor.addPoint'), onClick: () => actions.editEditorList(key, 0, 'add') }))
+      }
+      const material = draft.material.definition, parameters = material?.parameters || {}
+      const parts = draft.original.assetParts || [], part = parts.find(item => item.partId === draft.material.partId)
+      const affected = draft.entities.filter(entity => entity.materialId === draft.material.id
+        || entity.materialBindings?.some(binding => binding.materialId === draft.material.id)
+        || entity.assetParts?.some(item => item.materialSlots?.some(slot => slot.materialId === draft.material.id))).map(entity => entity.id)
+      const canModify = draft.entity.kind === 'generator' || (draft.entity.kind === 'asset-instance' && parts.length === 1)
+      return el('div', { className: 'db-card', 'data-scene-editor': true, 'data-editor-entity': draft.entityId, 'data-editor-project': draft.projectId,
+        'data-editor-base-revision': draft.baseRevision, 'data-editor-dirty': String(dirty), 'data-editor-conflict': String(conflict) },
+        el('h4', null, `${t('editor.title')} · ${draft.entityId}`),
+        el('div', { className: conflict ? 'db-error' : 'db-muted' }, conflict ? t('editor.conflict') : dirty ? t('editor.pending') : t('editor.clean')),
+        el('div', { className: 'db-grid', style: { marginTop: '12px' } },
+          el('div', { className: 'db-card' },
+            vector(t('editor.position'), 'editor-location', draft.entity.transform.location, (axis, value) => actions.updateEditor('transform', ['location', axis], value), 1000,
+              EDITOR_AXES.map(axis => editorTrackLocked(draft, 'entity', draft.entityId, `location.${axis}`))),
+            vector(t('editor.rotation'), 'editor-rotation', draft.entity.transform.rotationEuler, (axis, value) => actions.updateEditor('transform', ['rotationEuler', axis], value), 180 / Math.PI,
+              EDITOR_AXES.map(axis => editorTrackLocked(draft, 'entity', draft.entityId, `rotationEuler.${axis}`))),
+            draft.tracks.some(track => track.targetKind === 'entity' && track.targetId === draft.entityId) ? el('p', { className: 'db-muted' }, t('editor.animated')) : null),
+          draft.entity.kind === 'generator' ? el('div', { className: 'db-card' }, el('h4', null, t('editor.geometry')),
+            geometry ? [
+              el('strong', { key: 'shape' }, geometry.shape),
+              el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
+              geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
+              ...(GENERATOR_FIELDS[geometry.shape] || []).map(key => numeric(labels[key], `editor-generator-${key}`, geometry[key], value => actions.updateEditor('generator', [key], value), {
+                factor: EDITOR_INTEGERS[key] ? 1 : 1000, integer: Boolean(EDITOR_INTEGERS[key]), min: EDITOR_INTEGERS[key]?.[0], max: EDITOR_INTEGERS[key]?.[1],
+              })),
+              toggle(t('editor.bevel'), 'editor-generator-bevel', Boolean(geometry.bevel), value => actions.updateEditor('generator', ['bevel'], value ? { width: 0.001, segments: 3 } : undefined), geometry.shape === 'rounded_box'),
+              geometry.bevel ? numeric(t('editor.width'), 'editor-generator-bevel-width', geometry.bevel.width ?? 0.01, value => actions.updateEditor('generator', ['bevel', 'width'], value), { factor: 1000, min: 0 }) : null,
+              geometry.bevel ? numeric(t('editor.bevelSegments'), 'editor-generator-bevel-segments', geometry.bevel.segments ?? 3, value => actions.updateEditor('generator', ['bevel', 'segments'], value), { integer: true, min: 1, max: 16 }) : null,
+              geometry.shape === 'lathe' ? toggle(t('editor.closed'), 'editor-generator-closedProfile', geometry.closedProfile === true, value => actions.updateEditor('generator', ['closedProfile'], value)) : null,
+              geometry.shape === 'curve' ? toggle(t('editor.closed'), 'editor-generator-pathClosed', geometry.pathClosed === true, value => actions.updateEditor('generator', ['pathClosed'], value)) : null,
+              ['lathe', 'curve'].includes(geometry.shape) ? toggle(t('editor.cap'), 'editor-generator-capEnds', geometry.capEnds !== false, value => actions.updateEditor('generator', ['capEnds'], value)) : null,
+              geometry.shape === 'curve' ? choose(t('editor.interpolation'), 'editor-generator-pathInterpolation', geometry.pathInterpolation || 'poly', [['poly', t('editor.poly')], ['bezier', t('editor.bezier')]], value => actions.updateEditor('generator', ['pathInterpolation'], value)) : null,
+              geometry.profile ? points('profile', t('editor.profile')) : null,
+              geometry.path ? points('path', t('editor.path')) : null,
+            ] : t('editor.unavailable')) : null,
+          draft.entity.kind !== 'empty' ? el('div', { className: 'db-card' }, el('h4', null, t('editor.material')),
+            draft.entity.kind === 'asset-instance' ? [
+              el('p', { className: 'db-muted', key: 'asset-notice' }, t('editor.assetNotice')),
+              choose(t('editor.material'), 'editor-material-target', draft.material.target, [['entity', t('editor.assetWhole')], ...(parts.length ? [['part', t('editor.assetPart')], ['slot', t('editor.assetSlot')]] : [])], value => actions.updateEditor('material', ['target'], value)),
+              parts.length === 0 ? el('p', { className: 'db-muted', key: 'missing-parts' }, t('editor.noParts')) : null,
+              draft.material.target !== 'entity' ? choose(t('editor.part'), 'editor-material-part', draft.material.partId, [['', '—'], ...parts.map(item => [item.partId, item.partId])], value => actions.updateEditor('material', ['partId'], value)) : null,
+              draft.material.target === 'slot' ? choose(t('editor.slot'), 'editor-material-slot', draft.material.slotIndex, [['', '—'], ...(part?.sourceMaterialSlots || []).map(slot => [String(slot.index), `${slot.index} · ${slot.materialName || '—'}`])], value => actions.updateEditor('material', ['slotIndex'], value)) : null,
+            ] : null,
+            choose(t('editor.material'), 'editor-material-id', draft.material.id, [['', t('editor.keepMaterial')], ...draft.materials.map(item => [item.id, item.id])], value => actions.updateEditor('material', ['id'], value)),
+            material ? [
+              choose(t('editor.material'), 'editor-material-scope', draft.material.scope, [['local', t('editor.local')], ['shared', t('editor.shared')]], value => actions.updateEditor('material', ['scope'], value)),
+              draft.material.scope === 'shared' ? el('p', { className: 'db-muted', 'data-editor-affected': true, key: 'affected' }, t('editor.affected', { targets: affected.join(', ') || '—' })) : null,
+              el('label', { className: 'db-row', key: 'color' }, t('editor.color'), el('input', { className: 'db-input', type: 'color', 'data-field': 'editor-material-color',
+                disabled: disabled || editorMaterialLocked(draft, 'baseColor'), value: recipeColorHex((parameters.baseColor || [0.8, 0.8, 0.8]).slice(0, 3)),
+                onChange: event => actions.updateEditor('material', ['definition', 'parameters', 'baseColor'], [...recipeColorLinear(event.target.value), parameters.baseColor?.[3] ?? 1]) })),
+              numeric(t('editor.roughness'), 'editor-material-roughness', parameters.roughness ?? (material.shader === 'glass' ? 0.05 : 0.5), value => actions.updateEditor('material', ['definition', 'parameters', 'roughness'], value), { min: 0, max: 1, disabled: editorMaterialLocked(draft, 'roughness') }),
+              editorMaterialLocked(draft, 'baseColor') || editorMaterialLocked(draft, 'roughness') ? el('p', { className: 'db-muted', key: 'maps' }, t('editor.mapDriven')) : null,
+            ] : null) : null),
+        draft.entity.kind !== 'empty' ? el('details', { key: stackDisclosure, 'data-disclosure': stackDisclosure, open: state.disclosures?.[stackDisclosure] ?? true,
+          onToggle: event => actions.setDisclosure(stackDisclosure, event.currentTarget.open), className: 'db-card' }, el('summary', null, t('editor.operations')),
+          el('p', { className: 'db-muted' }, t('editor.stackNotice')),
+          !canModify ? el('p', { className: 'db-muted' }, t('editor.unavailable')) : null,
+          draft.entity.modifiers.map((modifier, index) => {
+            const prefix = `editor-modifier-${index}`, update = (key, value) => actions.updateEditor('modifiers', [index, ...key], value)
+            return el('fieldset', { key: index, disabled: disabled || !canModify, className: 'db-card', 'data-modifier-index': index },
+              el('legend', null, `${index + 1}. ${modifierNames[modifier.type] || modifier.type}`),
+              modifier.type === 'bevel' ? [numeric(t('editor.width'), `${prefix}-width`, modifier.width, value => update(['width'], value), { factor: 1000 }),
+                numeric(t('editor.bevelSegments'), `${prefix}-segments`, modifier.segments ?? 4, value => update(['segments'], value), { integer: true, min: 1, max: 16 }),
+                numeric(t('editor.angle'), `${prefix}-angle`, modifier.angle ?? 30, value => update(['angle'], value), { min: 0, max: 180 }),
+                choose(t('editor.miterInner'), `${prefix}-miterInner`, modifier.miterInner ?? 'arc', [['arc', t('editor.miterArc')], ['sharp', t('editor.miterSharp')]], value => update(['miterInner'], value)),
+                el('p', { className: 'db-muted', 'data-miter-help': true }, t('editor.miterHelp'))] : null,
+              modifier.type === 'solidify' ? [numeric(t('editor.thickness'), `${prefix}-thickness`, modifier.thickness, value => update(['thickness'], value), { factor: 1000 }),
+                numeric(t('editor.offset'), `${prefix}-offset`, modifier.offset ?? -1, value => update(['offset'], value), { min: -1, max: 1 })] : null,
+              modifier.type === 'array' ? [numeric(t('editor.count'), `${prefix}-count`, modifier.count, value => update(['count'], value), { integer: true, min: 2, max: 64 }),
+                vector(t('editor.spacing'), `${prefix}-offset`, modifier.offset, (axis, value) => update(['offset', axis], value))] : null,
+              modifier.type === 'mirror' ? [choose(t('editor.axis'), `${prefix}-axis`, modifier.axis, EDITOR_AXES.map(axis => [axis, axis.toUpperCase()]), value => update(['axis'], value)),
+                toggle(t('editor.merge'), `${prefix}-merge`, modifier.merge !== false, value => update(['merge'], value))] : null,
+              modifier.type === 'boolean' ? [choose(t('editor.boolean'), `${prefix}-operation`, modifier.operation, [['union', t('editor.union')], ['difference', t('editor.difference')], ['intersect', t('editor.intersect')]], value => update(['operation'], value)),
+                choose(t('editor.operand'), `${prefix}-targetEntityId`, modifier.targetEntityId, [['', '—'], ...draft.entities.filter(item => item.id !== draft.entityId && item.kind !== 'empty').map(item => [item.id, item.id])], value => update(['targetEntityId'], value))] : null,
+              el('div', { className: 'db-inline' },
+                Button({ action: `${prefix}-up`, disabled: disabled || !canModify || index === 0, children: t('editor.up'), onClick: () => actions.editEditorList('modifiers', index, 'up') }),
+                Button({ action: `${prefix}-down`, disabled: disabled || !canModify || index === draft.entity.modifiers.length - 1, children: t('editor.down'), onClick: () => actions.editEditorList('modifiers', index, 'down') }),
+                Button({ action: `${prefix}-remove`, disabled: disabled || !canModify, children: t('editor.remove'), onClick: () => actions.editEditorList('modifiers', index, 'remove') })))
+          }),
+          el('div', { className: 'db-inline' }, Object.entries(modifierNames).map(([type, name]) => Button({ action: `editor-modifier-add-${type}`, disabled: disabled || !canModify || draft.entity.modifiers.length >= 8,
+            children: t('editor.add', { name }), onClick: () => actions.editEditorList('modifiers', 0, 'add', type) })))) : null,
+        errors.length ? el('div', { className: 'db-error', 'data-editor-errors': true }, errors.join(' ')) : null,
+        el('div', { className: 'db-inline' }, Button({ action: 'editor-apply', tone: 'primary', disabled: disabled || !dirty || errors.length > 0, onClick: actions.applyEditor, children: t('editor.apply') }),
+          Button({ action: 'editor-reset', disabled: state.busy.editor, onClick: actions.resetEditor, children: t('editor.reset') }),
+          Button({ action: 'editor-review-subject', disabled: disabled || draft.entity.visible === false || draft.entity.kind === 'empty'
+            || state.briefWork[state.activeProjectId]?.saving || state.visualRuns[state.activeProjectId]?.busy,
+            onClick: () => actions.setReviewSubject(draft.entityId), children: t('brief.subjectShortcut') }), restore),
+        Notice(state.notices.scene))
     }
 
     /** 场景树: the Scene Tree of the revision in view. */
@@ -1199,6 +2292,7 @@ window.__ModuleLoader__.load({
         }],
       }, null, 2)
       const text = state.forms.patch === null ? template : state.forms.patch
+      const advancedDisclosure = JSON.stringify([state.activeProjectId, 'advanced-patch'])
 
       const section = (title, items, render) => el('div', { className: 'db-card', key: title },
         el('h4', null, `${title}（${items.length}）`),
@@ -1218,6 +2312,8 @@ window.__ModuleLoader__.load({
         ),
         el('div', { className: 'db-grid' },
           section(t('scene.entities'), scene.nodes.entities, entity => el('div', null,
+            el('button', { type: 'button', className: 'db-btn', 'data-action': `select-entity:${entity.id}`, 'data-entity-id': entity.id,
+              'aria-pressed': state.editorEntityId === entity.id, onClick: () => actions.selectEditorEntity(entity.id) }, entity.id), ' ',
             el('span', { className: 'db-mono', 'data-node': `entity:${entity.id}` }, entity.id), ' ',
             el('span', { className: 'db-kind' }, entity.shape || entity.kind),
             entity.materialId ? el('span', { className: 'db-muted' }, t('scene.material', { id: entity.materialId })) : null,
@@ -1249,8 +2345,9 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-kind' }, asset.type),
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         ),
-
-        el('div', { className: 'db-card' },
+        SceneEditor(ctx),
+        el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
+          onToggle: event => actions.setDisclosure(advancedDisclosure, event.currentTarget.open), className: 'db-card' }, el('summary', null, t('editor.advanced')),
           el('h4', null, t('scene.patch')),
           el('textarea', {
             className: 'db-area',
@@ -1359,6 +2456,7 @@ window.__ModuleLoader__.load({
                 'data-artifact-slot': artifact.slot || '',
                 'data-artifact-revision': artifact.sourceRevision || '',
                 'data-artifact-at': artifact.at || '',
+                style: side === 'current' ? { width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 'calc(100vh - 230px)', margin: '0 auto' } : undefined,
                 alt: `${title} ${artifact.path}`,
                 src: artifactUrl(state.artifactBase, artifact),
               }),
@@ -1417,7 +2515,16 @@ window.__ModuleLoader__.load({
       //             M4 brief describe, kept because it is the one that survives a
       //             scene change.
       const pair = renderPairOf(entryOf(right), revisions)
-      const rendersMode = state.compareMode !== 'revisions'
+      const resultMode = state.compareMode === 'result'
+      const rendersMode = !resultMode && state.compareMode !== 'revisions'
+      const editorComparison = state.editorComparison?.projectId === state.activeProjectId
+        && state.editorComparison.before === left && state.editorComparison.after === right ? state.editorComparison : null
+      const editPair = editorComparison ? (editorComparison.resolved ? editorComparison : editorPreviewPair(editorComparison)) : null
+      const editMissing = editPair?.reason === 'unknown-settings' ? t('editor.unknownSettings') : t('editor.missingBaseline')
+      const editorPanes = editPair ? [
+        imagePane('left', left, editPair.beforeArtifact, editMissing),
+        imagePane('right', right, editPair.afterArtifact, t('preview.noneForRevision')),
+      ] : null
       const renderPairPanes = [
         imagePane('left', pair.previous === null ? t('preview.lastRender') : t('preview.lastRenderOf', { revision: pair.previous.sourceRevision }), pair.previous,
           t('preview.noPrevious')),
@@ -1439,16 +2546,19 @@ window.__ModuleLoader__.load({
         ),
         el('div', { className: 'db-tabs' },
           el('span', { className: 'db-muted' }, t('preview.compare')),
+          el('button', { type: 'button', className: 'db-btn', 'data-compare-mode': 'result', 'data-active': String(resultMode),
+            onClick: () => actions.setCompareMode('result'),
+          }, t('preview.latest')),
           el('button', {
             type: 'button', className: 'db-btn', 'data-compare-mode': 'renders', 'data-active': String(rendersMode),
             onClick: () => actions.setCompareMode('renders'),
           }, t('preview.lastVsThis')),
           el('button', {
-            type: 'button', className: 'db-btn', 'data-compare-mode': 'revisions', 'data-active': String(!rendersMode),
+            type: 'button', className: 'db-btn', 'data-compare-mode': 'revisions', 'data-active': String(!rendersMode && !resultMode),
             onClick: () => actions.setCompareMode('revisions'),
           }, t('preview.twoRevisions')),
           el('span', { style: { flex: 1 } }),
-          rendersMode
+          resultMode ? null : rendersMode
             ? el('span', { className: 'db-inline' },
               el('span', { className: 'db-muted' }, t('tab.revisions')),
               el('select', {
@@ -1471,9 +2581,9 @@ window.__ModuleLoader__.load({
               state.activeProjectId ? Button({ action: 'diff', onClick: () => actions.diff(left, right), children: t('preview.structuralDiff') }) : null),
         ),
         el('div', { style: { paddingTop: '2px' } },
-          el('div', { className: 'db-grid' }, rendersMode
-            ? renderPairPanes
-            : [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
+          resultMode
+            ? el('div', { style: { maxWidth: '960px', margin: '0 auto' } }, imagePane('current', t('preview.latest'), sheetOf(entryOf(state.currentRevision)), t('preview.noneForRevision')))
+            : el('div', { className: 'db-grid' }, rendersMode ? renderPairPanes : editorPanes || [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
           state.diff ? el('div', { className: 'db-card', 'data-diff': state.diff.identical ? 'identical' : 'changed' },
             el('h4', null, `${state.diff.fromRevision} → ${state.diff.toRevision}：${state.diff.identical ? t('preview.identical') : t('preview.changeCount', { count: state.diff.totalChanges })}`),
             state.diff.identical ? null : el('div', null,
@@ -1546,6 +2656,31 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function ReferenceEvidence(visual) {
+      const references = visual.referenceImages || []
+      return el('div', { 'data-reference-evidence': true, 'data-review-inputs-digest': visual.reviewInputsDigest || '' },
+        el('strong', null, t('brief.actualReferences')),
+        visual.referenceInputError ? el('p', { className: 'db-error', role: 'alert' },
+          `${t('brief.referenceStatus')}: ${visual.referenceInputError.code || ''} ${visual.referenceInputError.message || ''}`) : null,
+        references.length ? el('ul', { className: 'db-list' }, references.map(reference => el('li', { key: reference.id, 'data-reviewed-reference-id': reference.id },
+          el('strong', null, reference.label || reference.id), ` · ${reference.id} · ${(reference.purposes || []).map(artisticDimensionLabel).join(', ')}`)))
+          : el('p', { className: 'db-muted' }, t('brief.referenceUnknown')))
+    }
+
+    function ReviewSubjectEvidence(visual) {
+      const subject = visual.subject, id = subject?.id ?? visual.subjectId
+      return el('div', { 'data-reviewed-subject': id || '', 'data-reviewed-subject-mode': subject?.mode || 'legacy',
+        'data-reviewed-subject-available': subject ? String(subject.available === true) : 'unknown' },
+        KeyValues({ entries: [
+          { label: t('visual.subjects'), value: id },
+          ...(subject ? [{ label: t('brief.subjectMode'), value: subject.mode === 'explicit' ? t('brief.subjectExplicit')
+            : subject.mode === 'fixed' ? t('brief.subjectFixed') : t('brief.subjectAuto') },
+          { label: t('brief.subjectReason'), value: subject.source }] : []),
+        ] }),
+        !subject ? el('p', { className: 'db-muted' }, t('brief.subjectLegacy')) : null,
+        subject?.available === false ? el('p', { className: 'db-error', role: 'status' }, t('brief.subjectUnavailable', { reason: subject.reason || t('brief.subjectUnknown') })) : null)
+    }
+
     /** QA: technical validation and the visual review, never merged. */
     function QaView(ctx) {
       const state = ctx.state
@@ -1562,6 +2697,7 @@ window.__ModuleLoader__.load({
 
       return el('div', { 'data-view': 'qa' },
         ErrorBox({ error: state.error }),
+        VisualActions(ctx),
         el('div', { className: 'db-card', 'data-qa-revision': qa.revision },
           el('div', { className: 'db-inline' },
             el('strong', null, `QA · ${qa.revision}`),
@@ -1597,15 +2733,21 @@ window.__ModuleLoader__.load({
             ? el('div', null,
               KeyValues({ entries: [
                 { label: t('visual.score'), value: qa.visual.score },
+                { label: t('visual.artistic'), value: artisticStatusLabel(qa.visual.artistic?.status) },
                 { label: t('common.yes'), value: qa.visual.pass ? t('common.yesShort') : t('common.noShort') },
                 { label: t('visual.rounds'), value: qa.visual.iteration },
-                { label: t('visual.subjects'), value: qa.visual.subjectId },
                 { label: t('visual.views'), value: qa.visual.viewCount },
-                { label: t('visual.reviewer'), value: qa.visual.reviewerAvailable ? (qa.visual.reviewerModel || t('visual.called')) : (qa.visual.reviewerError || t('visual.notCalled')) },
+                { label: t('visual.reviewer'), value: qa.visual.reviewerError || qa.visual.referenceInputError ? t('visual.incomplete') : qa.visual.reviewerAvailable ? (qa.visual.reviewerModel || t('visual.called')) : t('visual.notCalled') },
               ] }),
+              ReviewSubjectEvidence(qa.visual),
+              ReferenceEvidence(qa.visual),
+              qa.visual.reviewerError ? el('p', { className: 'db-error', role: 'alert' }, qa.visual.reviewerError) : null,
+              Object.entries(qa.visual.artistic?.dimensions ?? {}).map(([dimension, assessment]) =>
+                el('div', { className: 'db-muted' },
+                  `${artisticDimensionLabel(dimension)}: ${artisticStatusLabel(assessment.status)} — ${assessment.evidence ?? t('visual.artistic.unassessable')}`)),
               qa.visual.measuredIssues.length === 0 ? el('div', { className: 'db-muted' }, t('visual.noFindings')) : issueList(qa.visual.measuredIssues, 'm'),
               qa.visual.findings.length === 0
-                ? el('div', { className: 'db-muted' }, qa.visual.reviewerAvailable ? t('visual.reviewerSilent') : t('visual.noSecondOpinion'))
+                ? el('div', { className: 'db-muted' }, qa.visual.reviewerAvailable && !qa.visual.reviewerError && !qa.visual.referenceInputError ? t('visual.reviewerSilent') : t('visual.noSecondOpinion'))
                 : issueList(qa.visual.findings, 'f'))
             : el('div', { className: 'db-muted' }, t('visual.none')),
         ),
@@ -1740,7 +2882,7 @@ window.__ModuleLoader__.load({
     /** Props that are listeners, spelled the way this vocabulary spells them. */
     const EVENT_NAMES = {
       onClick: 'click', onChange: 'input', onInput: 'input', onKeyDown: 'keydown',
-      onSubmit: 'submit', onBlur: 'blur', onFocus: 'focus',
+      onSubmit: 'submit', onBlur: 'blur', onFocus: 'focus', onToggle: 'toggle',
     }
 
     /**
@@ -1786,11 +2928,12 @@ window.__ModuleLoader__.load({
       }
       assertNode(node)
       const element = doc.createElement(node.tag)
-      applyProps(element, node.props)
       for (const child of node.children) {
         const built = toDom(child, doc)
         if (built !== null) element.appendChild(built)
       }
+      // A select can only resolve its value after its option children exist.
+      applyProps(element, node.props)
       return element
     }
 
@@ -2068,6 +3211,8 @@ window.__ModuleLoader__.load({
         reviewShaped && qa !== null ? h('div', { 'data-tool-qa': qa.revision },
           h('div', { className: 'db-inline' },
             qa.visual.available ? h(RBadge, { tone: qa.visual.pass ? 'ok' : 'warn' }, t('visual.scoreIs', { score: qa.visual.score })) : h(RBadge, null, t('visual.notRun')),
+            h(RBadge, { tone: qa.visual.artistic?.status === 'pass' ? 'ok' : 'warn' },
+              `${t('visual.artistic')}: ${artisticStatusLabel(qa.visual.artistic?.status)}`),
             h(RBadge, { tone: qa.technical.ok ? 'ok' : 'bad' }, qa.technical.available ? (qa.technical.ok ? t('qa.passed') : t('qa.errorCount', { count: qa.technical.errorCount })) : t('common.noRecord')),
             h('span', { className: 'db-muted' }, t('visual.counts', { measured: qa.visual.measuredIssueCount, findings: qa.visual.findingCount })),
           ),
@@ -2204,6 +3349,8 @@ window.__ModuleLoader__.load({
       toDom,
       buildWorkbenchView,
       createWorkbenchStore,
+      referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
+      sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },
       renderView,
       mountStandalone,
       injectStyles,

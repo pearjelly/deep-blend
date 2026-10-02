@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.metal-lamp",
+  "version": "1.0.0",
+  "title": "香槟金属桌灯",
+  "description": "连续旋压灯罩、定向金属反射、珐琅内衬、曲线弯臂与贴地线缆。可同步调整主金属颜色、粗糙度和摄影曝光，保持装配与壁厚。",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend",
+    "note": "Original metal-lamp product benchmark. The bundled SceneSpec and rendered preview are pinned by their raw content hashes; source URL is attribution, not an installation endpoint."
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "animation.transform",
+      "geometry.curve",
+      "geometry.lathe",
+      "geometry.modifiers",
+      "geometry.primitive",
+      "material.anisotropy",
+      "material.principled",
+      "material.procedural"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "6896f467a2bea311f14435c5fd755a021867c686262ea71cac80d4198694d75d"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6",
+    "mediaType": "image/png",
+    "alt": "香槟金属桌灯默认参数的实际Blender渲染"
+  },
+  "parameters": [
+    {
+      "id": "main-color",
+      "title": "主金属颜色",
+      "description": "调整灯罩、底座、支架和旋钮的金属色调。",
+      "type": "color",
+      "default": [
+        0.63,
+        0.535,
+        0.415
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "champagne-spun",
+          "property": "baseColor"
+        },
+        {
+          "kind": "material",
+          "materialId": "champagne-brushed",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "主表面粗糙度",
+      "description": "调整主金属表面的光泽；数值越小，反光越集中。",
+      "type": "number",
+      "default": 0.39,
+      "minimum": 0.22,
+      "maximum": 0.6,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "champagne-spun",
+          "property": "roughness"
+        },
+        {
+          "kind": "material",
+          "materialId": "champagne-brushed",
+          "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "exposure",
+      "title": "摄影曝光",
+      "description": "调整整体画面的明暗，预览和成品同步生效。",
+      "type": "number",
+      "default": 0,
+      "minimum": -1,
+      "maximum": 1,
+      "bindings": [
+        {
+          "kind": "render-profile",
+          "profile": "preview",
+          "property": "exposure"
+        },
+        {
+          "kind": "render-profile",
+          "profile": "final",
+          "property": "exposure"
+        }
+      ]
+    }
+  ]
+}

@@ -159,6 +159,10 @@ test('the layout counts in the README are what the tree holds', () => {
   const NOT_ACTION_MODULES = {
     'bootstrap.py': 'the dispatcher: it routes to the actions and implements none of them',
     'deepblend_bridge.py': 'the transport: it serves the actions over a socket, inside a user\'s Blender',
+    'deepblend_geometry.py': 'shared deterministic mesh builders, called by the scene compiler',
+    'deepblend_images.py': 'shared image material node builder, called by the scene compiler',
+    'deepblend_anisotropy.py': 'shared anisotropy direction and engine validation, called by the scene compiler',
+    'deepblend_parts.py': 'imported part selectors and material bindings, called by the scene compiler',
   }
   const actionModules = files.filter(name => name !== 'bootstrap.py' && name !== modules[2] && !(name in NOT_ACTION_MODULES))
   assert.equal(Number(modules[1]), actionModules.length,
@@ -598,6 +602,7 @@ test('every repository path the English README names exists', () => {
   const targets = [...englishReadme.matchAll(/\]\(([^)\s]+)\)/g)]
     .map(match => match[1])
     .filter(target => !target.includes('://') && !target.startsWith('#'))
+    .map(target => target.split('#', 1)[0]) // A section fragment is not part of the filename.
   const codeSpans = [...englishReadme.matchAll(/`([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+\.(?:mjs|md|yml|yaml|json|py|png))`/g)]
     .map(match => match[1])
   const named = [...new Set([...targets, ...codeSpans])].sort()

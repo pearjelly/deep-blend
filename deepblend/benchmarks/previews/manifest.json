@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "deepblend.benchmark-previews/v1",
+  "license": "MIT",
+  "tool": "deepblend/tools/quality-benchmark.mjs",
+  "note": "Original Cycles candidate hero pixels, 1024x768/128 samples/AgX; PNG text metadata removed without changing pixels or IDAT bytes. Deliberately simplified controls are not historical plugin outputs. Artistic review remains required.",
+  "images": [
+    {
+      "caseId": "metal-lamp",
+      "file": "metal-lamp-hero.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "0a577621a1a9eaf740ccfbc2b98b0b09b05bd02eaca5b1fc709d41a698692e9f",
+      "bytes": 686375,
+      "sourceRun": "final-metal-lamp-r13-v1",
+      "sourceRunSha256": "60ddf10aba9d4d6275def1a47b73a0ca6c486b74ad835d0787074e141f225ef2",
+      "sourceSnapshotSha256": "a7e69bfc47d16b3040adbd976796c47a75e0994143d941451e4b92245d495b96",
+      "candidateInputSha256": "32336a3ce99b4af4d32ea7c0e1057f683d89163ec842b529233bed2b11835342",
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          1024,
+          768
+        ],
+        "samples": 128,
+        "viewTransform": "AgX",
+        "frameStart": 1,
+        "frameEnd": 48,
+        "fps": 24,
+        "checkpointProfile": {
+          "engine": "CYCLES",
+          "filmTransparent": false,
+          "fps": 24,
+          "frameEnd": 48,
+          "frameStart": 1,
+          "profileEngine": "cycles",
+          "profileName": "final",
+          "requestedEngine": "cycles",
+          "resolution": [
+            1024,
+            768
+          ],
+          "samples": 128,
+          "viewTransform": "AgX"
+        }
+      },
+      "artisticReviewRequired": true,
+      "pixelSha256": "268cd7af63b337207d6ab6e75ae6db5338e974898320c1ed169af17c8c0a33e3",
+      "sourceArtifact": "metal-lamp/candidate/hero.png",
+      "sourceAuditSha256": "65bc0f6714ca628cc3d2fc7e0500954f5e48626ed5921168b310a0948fd94b49",
+      "checkpointSha256": "6846b7ff03a87385347f231817d50af50969748ededc2dc9542eedfd873a9de8",
+      "checkpointRenderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          1024,
+          768
+        ],
+        "samples": 128,
+        "viewTransform": "AgX",
+        "exposure": 0,
+        "gamma": 1
+      }
+    },
+    {
+      "caseId": "glass-ceramic",
+      "file": "glass-ceramic-hero.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "3423b2c9a097fbf2f7297bee07c05617fb527caadec1d927a8da372838ce5fcb",
+      "bytes": 692177,
+      "sourceRun": "final-products-v1",
+      "sourceRunSha256": "04da6e592f746739450c899e3f4005a3f42a9a6a6e1904379f8216701af67603",
+      "sourceSnapshotSha256": "927acd477968c3858242bc535043fd51af43f78f2cb934c0529faff64b6b235d",
+      "candidateInputSha256": "9b88031b4b4b63e79b265d87168cc258811ebc258e1957d6751c222c8c4ad190",
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          1024,
+          768
+        ],
+        "samples": 128,
+        "viewTransform": "AgX",
+        "frameStart": 1,
+        "frameEnd": 48,
+        "fps": 24,
+        "checkpointProfile": {
+          "engine": "CYCLES",
+          "filmTransparent": false,
+          "fps": 24,
+          "frameEnd": 48,
+          "frameStart": 1,
+          "profileEngine": "cycles",
+          "profileName": "final",
+          "requestedEngine": "cycles",
+          "resolution": [
+            1024,
+            768
+          ],
+          "samples": 128,
+          "viewTransform": "AgX"
+        }
+      },
+      "artisticReviewRequired": true
+    },
+    {
+      "caseId": "modular-speaker",
+      "file": "modular-speaker-hero.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "d9d4ac8474f58b4c0358ddddce0693e5398352c772abc9934fa81f5f64d30dc1",
+      "bytes": 810206,
+      "sourceRun": "final-modular-speaker-r13-v3",
+      "sourceRunSha256": "ba111f319542cdaeb0392b28a1f026717752a22e9ac1760c9b9f57153feec751",
+      "sourceSnapshotSha256": "53d184b15eb823c406406a59a3d0ae5ba1d433043c64962ebe23741d2c753f06",
+      "candidateInputSha256": "016374420de3d18c100929494cb1320e88509739768a30d905b5cff385500eb2",
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          1024,
+          768
+        ],
+        "samples": 128,
+        "viewTransform": "AgX",
+        "frameStart": 1,
+        "frameEnd": 48,
+        "fps": 24,
+        "checkpointProfile": {
+          "engine": "CYCLES",
+          "filmTransparent": false,
+          "fps": 24,
+          "frameEnd": 48,
+          "frameStart": 1,
+          "profileEngine": "cycles",
+          "profileName": "final",
+          "requestedEngine": "cycles",
+          "resolution": [
+            1024,
+            768
+          ],
+          "samples": 128,
+          "viewTransform": "AgX"
+        }
+      },
+      "artisticReviewRequired": true,
+      "pixelSha256": "73eed72017e81a70e2206d48cfa6a4d490d85f9ae67469cd996f9997bf708e1f",
+      "sourceArtifact": "modular-speaker/candidate/hero.png",
+      "sourceAuditSha256": "03796386caee6303e531865a514c6003fc0a36169d3ec3ce6d9035ad77705720",
+      "checkpointSha256": "a648cb075168239a40a076dffa223d941063a3a2b8bbef95d2634796765bf9e5",
+      "checkpointRenderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          1024,
+          768
+        ],
+        "samples": 128,
+        "viewTransform": "AgX",
+        "exposure": 0,
+        "gamma": 1
+      }
+    }
+  ]
+}

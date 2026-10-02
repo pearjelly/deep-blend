@@ -91,367 +91,77 @@
  * Owner: DeepBlend Studio — M5 (reproducibility); `--uninstall` — commercial readiness (C4)
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, rmdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 
 import { linkTarget, localPackages, ROOT } from './workspace-layout.mjs'
-import { BUNDLE_PATCH, buildStoreOverride, devStoreRoot, renderOperatorLayer } from './operator-layer.mjs'
+import { BUNDLE_PATCH, buildStoreOverride, devStoreRoot, renderOperatorLayer, REHOMED_ROW_IDS } from './operator-layer.mjs'
+import { snapshot, fileState, applyInstallerPlan, withInstallerLock } from './installer-transaction.mjs'
 
-/** The npm scope DeepBlend's own packages live under. */
 const LOCAL_SCOPE = '@deepblend'
-
-/** The bundle whose patch composes the three DeepBlend host rows. */
 const BUNDLE_PACKAGE = '@deepblend/dsh-blender-bundle'
-
-/** First line of an operator layer this tool generated; how it recognises its own. */
+const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
 const OPERATOR_LAYER_MARKER = '# DeepBlend Studio — operator layer (GENERATED).'
-
-/**
- * What `--portable` leaves behind: the empty patch list a profile ships with.
- *
- * Not an absent file. `dsh` creates `cordis.patch.yml` as part of every profile,
- * and an installer that deletes one of a deployment's own files is doing
- * something the user cannot see and did not ask for.
- */
 const EMPTY_OPERATOR_LAYER = [
   '# Your patch layer for this dsh profile, applied after every bundle layer:',
-  '# a top-level YAML array of loader patch entries (id-targeted config',
-  '# overrides, disables, and insert lists; `!!js` expressions allowed).',
-  '#',
-  '# Emptied by `node deepblend/tools/install-plugin.mjs --portable`: this',
-  '# deployment keeps DeepBlend\'s product default storage (<DSH_HOME>/deepblend).',
-  '[]',
-  '',
+  '# Emptied by the DeepBlend installer; storage follows the product default.',
+  '[]', '',
 ].join('\n')
-
-const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
+const DSH_HOME = resolve(process.env.DSH_HOME ?? join(homedir(), '.dsh'))
 const checkOnly = process.argv.includes('--check')
 const uninstall = process.argv.includes('--uninstall')
-
-if (checkOnly && uninstall) {
-  // `--check` promises to change nothing and `--uninstall` exists to change things; a run
-  // that asked for both is a mistake about which question is being asked, and guessing
-  // which one the reader meant is how a script that reports turns into one that deletes.
-  console.error('--check reports and --uninstall changes; pick one')
-  process.exit(2)
-}
-
-/**
- * `--portable` leaves the deployment on the product defaults (`<DSH_HOME>/deepblend`)
- * and removes an operator layer this tool wrote earlier.
- *
- * It exists because the two answers are both legitimate and the difference is
- * invisible afterwards: a developer wants the store beside the checkout so the
- * repository's tools and the workbench name the same directory, while anyone
- * installing DeepBlend as a plugin wants its state under `DSH_HOME`. Making that
- * a flag rather than a guess means a reader can tell which one a machine has.
- */
 const portable = process.argv.includes('--portable')
 
 function say(label, value) {
   console.log(`${label}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
 }
-
-/**
- * The profile to install into. `--profile <name>` overrides the default because a
- * deployment may run several, and installing into the wrong one is silent: the
- * rows simply never compose and nothing reports a mistake.
- * @returns {string}
- */
+function refuse(message) {
+  const error = new Error(message)
+  error.exitCode = 2
+  throw error
+}
 function requestedProfile() {
   const index = process.argv.indexOf('--profile')
   if (index === -1) return 'web'
   const name = process.argv[index + 1]
-  if (name === undefined || name.startsWith('--')) {
-    console.error('--profile needs a name, e.g. --profile web')
-    process.exit(2)
+  if (!name || name.startsWith('--') || name === '.' || name === '..' || /[\\/]/.test(name)) {
+    refuse('--profile needs a directory name, e.g. --profile web')
   }
   return name
 }
-
-/** Directory names under `$DSH_HOME/profiles`, excluding the shared node_modules. */
 function existingProfiles() {
   const root = join(DSH_HOME, 'profiles')
   if (!existsSync(root)) return []
-  return readdirSync(root)
-    .filter(name => name !== 'node_modules' && statSync(join(root, name)).isDirectory())
-    .sort()
+  return readdirSync(root).filter(name => name !== 'node_modules' && statSync(join(root, name)).isDirectory()).sort()
 }
-
-const profile = requestedProfile()
-const profileDirectory = join(DSH_HOME, 'profiles', profile)
-
-if (!existsSync(profileDirectory)) {
-  // A profile is dsh's to create, not this installer's: it is a directory of files
-  // (`cordis.yml`, `pnpm-workspace.yaml`, a manifest) that the launcher writes and
-  // composes, and hand-building a half of one would leave a deployment that boots
-  // differently from every other. Refusing is the honest answer — and the message has
-  // to say the fix, because the reader reached this by following a manual whose
-  // prerequisites did not mention it. MEASURED on a clean clone and a fresh DSH_HOME:
-  // `dsh --profile web --dump-config` creates the profile as a side effect.
-  console.error(`no profile at ${profileDirectory}`)
-  console.error(`known profiles: ${existingProfiles().join(', ') || '(none)'}`)
-  console.error(
-    `A profile is created by \`dsh\`, not by this installer. Run \`dsh --profile ${profile} --dump-config\` ` +
-    `(or start \`dsh web\` once) to initialise it, then re-run this command.`,
-  )
-  process.exit(2)
-}
-
-const local = localPackages()
-if (local.size === 0) {
-  console.error('no local packages found under packages/deepblend')
-  process.exit(2)
-}
-
-let drift = 0
-
-// ---------------------------------------------------------------------------
-// 0. `--uninstall`: the writes above, in reverse.
-//
-// WHY THIS EXISTS. `install.md` §6 used to tell the reader to run
-// `dsh plugin remove` and then `plugin:install -- --portable` — and that second
-// step is an INSTALLER. MEASURED on a scratch `DSH_HOME`: after `plugin remove`
-// the profile named the bundle nowhere, and the documented second step answered
-// `installed (3 change(s))` and wrote both keys back. A manual that re-installs
-// what you just removed is worse than no manual — the reader ends exactly where
-// they started and every command exited 0.
-//
-// Three more residues were invisible for the same reason (nothing was looking):
-// the operator layer this tool wrote, the seven `@deepblend/*` links, and the
-// presets in a different root entirely. `tools/uninstall-residue-probe.mjs` is
-// the reading that keeps this honest, and `tests/contract/uninstall-residue.test.mjs`
-// is the assertion.
-//
-// WHAT IT DELIBERATELY DOES NOT REMOVE: a link into `node_modules/.pnpm` — that is
-// pnpm's, put there by `dsh plugin add` on the npm and tarball routes, and the
-// command that removes it is `dsh plugin remove`. This tool removes what THIS
-// tool wrote, and says what it left alone.
-// ---------------------------------------------------------------------------
-if (uninstall) {
-  let undone = 0
-  const manifestPath = join(profileDirectory, 'package.json')
-  if (!existsSync(manifestPath)) {
-    console.error(`no package.json in ${profileDirectory}`)
-    process.exit(2)
-  }
-
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  let manifestChanged = false
-
-  const bundles = manifest.dsh?.profile?.bundles
-  if (Array.isArray(bundles) && bundles.includes(BUNDLE_PACKAGE)) {
-    manifest.dsh.profile.bundles = bundles.filter(name => name !== BUNDLE_PACKAGE)
-    manifestChanged = true
-    undone += 1
-    say(`profiles/${profile}/package.json`, `unregistered ${BUNDLE_PACKAGE}`)
-  } else {
-    say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} was not registered`)
-  }
-
-  if (manifest.dependencies?.[BUNDLE_PACKAGE] !== undefined) {
-    delete manifest.dependencies[BUNDLE_PACKAGE]
-    // The key itself goes when it empties, because that is the shape a profile has
-    // before anything was installed into it — `dsh` writes no `dependencies` at all,
-    // and a leftover `{}` is a difference a reader would have to explain.
-    if (Object.keys(manifest.dependencies).length === 0) delete manifest.dependencies
-    manifestChanged = true
-    undone += 1
-    say(`profiles/${profile}/package.json`, `unlinked the ${BUNDLE_PACKAGE} dependency`)
-  } else {
-    say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} was not a dependency`)
-  }
-
-  if (manifestChanged) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-
-  const layerPath = join(profileDirectory, 'cordis.patch.yml')
-  if (!existsSync(layerPath)) {
-    say(`profiles/${profile}/cordis.patch.yml`, 'no operator layer')
-  } else if (!operatorLayerIsOurs(layerPath)) {
-    // Same refusal as the install path, for the same reason: someone else's patch
-    // entries are not this tool's to delete.
-    say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
-  } else if (readFileSync(layerPath, 'utf8') === EMPTY_OPERATOR_LAYER) {
-    say(`profiles/${profile}/cordis.patch.yml`, 'already empty')
-  } else {
-    writeFileSync(layerPath, EMPTY_OPERATOR_LAYER)
-    undone += 1
-    say(`profiles/${profile}/cordis.patch.yml`, 'emptied — storage follows the product default')
-  }
-
-  // The links, but only the ones pointing into THIS checkout. A link into pnpm's
-  // store belongs to pnpm, and removing it here would leave a profile whose
-  // manifest still depends on a package whose link is gone.
-  const scope = join(DSH_HOME, 'profiles', 'node_modules', LOCAL_SCOPE)
-  let ours = 0
-  let theirs = 0
-  for (const [name, directory] of [...local].sort()) {
-    const linkPath = join(scope, name.split('/')[1])
-    const current = linkTarget(linkPath)
-    if (current === undefined) continue
-    if (current === directory) {
-      rmSync(linkPath, { recursive: true, force: true })
-      ours += 1
-      undone += 1
-    } else {
-      theirs += 1
-    }
-  }
-  say(`profiles/node_modules/${LOCAL_SCOPE}`, ours === 0 ? 'no links into this checkout' : `removed ${ours} link(s)`)
-  if (theirs > 0) {
-    say('left alone', `${theirs} link(s) into pnpm's store — \`dsh plugin remove ${BUNDLE_PACKAGE} --profile ${profile}\` removes those`)
-  }
-  if (existsSync(scope) && readdirSync(scope).length === 0) rmSync(scope, { recursive: true, force: true })
-
-  say('dsh home', DSH_HOME)
-  say('profile', profile)
-  say('result', undone === 0
-    ? 'nothing of DeepBlend was installed in this profile'
-    : `uninstalled (${undone} change(s))`)
-  say('also needed', 'node deepblend/tools/install-presets.mjs --uninstall — the agent preset is a separate plane')
-  say('note', 'a profile reads its bundles when it starts; restart `dsh web` for the rows to stop composing')
-  process.exit(0)
-}
-
-// ---------------------------------------------------------------------------
-// 1. The package links.
-//
-// Absolute, like every other link in this project: the Loader reaches these
-// through the profile, the M4 harness reaches them through ITS home's link to
-// this same directory, and a relative target would resolve differently in each.
-// ---------------------------------------------------------------------------
-const scopeDirectory = join(DSH_HOME, 'profiles', 'node_modules', LOCAL_SCOPE)
-
-for (const [name, directory] of [...local].sort()) {
-  const bare = name.split('/')[1]
-  const linkPath = join(scopeDirectory, bare)
-  const current = linkTarget(linkPath)
-
-  if (current === directory) {
-    say(`profiles/node_modules/${name}`, 'in sync')
-    continue
-  }
-  drift += 1
-  if (checkOnly) {
-    say(`profiles/node_modules/${name}`, current === undefined ? 'not installed' : `DRIFTED -> ${current}`)
-    continue
-  }
-  mkdirSync(scopeDirectory, { recursive: true })
-  rmSync(linkPath, { recursive: true, force: true })
-  symlinkSync(directory, linkPath)
-  say(`profiles/node_modules/${name}`, `linked -> ${directory}`)
-}
-
-// ---------------------------------------------------------------------------
-// 2. The bundle registration.
-//
-// `dsh.profile.bundles` is what makes the Loader read the bundle's patch file at
-// all. It is edited in place with the rest of the manifest preserved: this file
-// belongs to the deployment, and an installer that rewrote it wholesale would
-// quietly drop whatever else the operator had put there.
-// ---------------------------------------------------------------------------
-const manifestPath = join(profileDirectory, 'package.json')
-if (!existsSync(manifestPath)) {
-  console.error(`no package.json in ${profileDirectory}`)
-  process.exit(2)
-}
-
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-const bundles = manifest.dsh?.profile?.bundles
-
-if (!Array.isArray(bundles)) {
-  console.error(`${manifestPath} has no dsh.profile.bundles array, so no bundle can be composed into it`)
-  process.exit(2)
-}
-
-if (bundles.includes(BUNDLE_PACKAGE)) {
-  say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} already registered`)
-} else {
-  drift += 1
-  if (checkOnly) {
-    say(`profiles/${profile}/package.json`, `missing ${BUNDLE_PACKAGE} in dsh.profile.bundles`)
-  } else {
-    // Prepended, not appended: bundle patches compose in order and a later layer
-    // wins on a row id, so DeepBlend's rows sit where the deployment's own
-    // bundles can still override them.
-    manifest.dsh.profile.bundles = [BUNDLE_PACKAGE, ...bundles]
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    say(`profiles/${profile}/package.json`, `registered ${BUNDLE_PACKAGE}`)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 3. The operator layer: where this deployment's storage lives.
-//
-// The bundle names no path any more, so an installed deployment stores under
-// `<DSH_HOME>/deepblend` (SPEC §17) unless something says otherwise. This
-// repository's own tools all work on `<repo>/.deepblend`, so without this step
-// the workbench and the tools would name two different directories and the
-// project list would be empty for a project that plainly exists on disk.
-//
-// The layer is DERIVED from the shipped bundle patch, never retyped, because a
-// patch layer's `config` replaces the bundle's wholesale (D74). `--check`
-// re-derives it and compares, so a bundle change that never reached the
-// deployment is reported instead of being silently ignored.
-// ---------------------------------------------------------------------------
-const operatorLayerPath = join(profileDirectory, 'cordis.patch.yml')
-const desiredStoreRoot = portable ? undefined : devStoreRoot(ROOT)
-
-/**
- * The rows and keys this tool is responsible for, whatever mode it is in.
- *
- * DERIVED WITH THE CHECKOUT'S STORE ROOT EVEN IN `--portable`, because what is being asked here is
- * which KEYS this tool owns, not which values it would write. The bundle patch alone is the wrong
- * template and was measured to be: since M5 the bundle names no path, so `workspaceRoot` and
- * `projectsRoot` exist only in the derived layer — and comparing against the bundle made the tool
- * call its OWN two keys the user's, in a message whose whole job is to say which keys are the user's.
- */
-const ownedRowTemplate = entriesOfLayer(renderOperatorLayer(
-  await buildStoreOverride({ storeRoot: devStoreRoot(ROOT), bundlePatch: join(ROOT, BUNDLE_PATCH) }),
-  devStoreRoot(ROOT),
-))
-
-/** Whether the operator layer at `path` is one this tool wrote, or nothing at all. */
-function operatorLayerIsOurs(path) {
-  if (!existsSync(path)) return true
-  const text = readFileSync(path, 'utf8')
+function operatorLayerIsOurs(text) {
+  if (text === null) return true
   if (text.includes(OPERATOR_LAYER_MARKER)) return true
-  // An untouched profile ships a comment header and an empty patch list. Anything
-  // that is not empty belongs to whoever wrote it, and is not ours to replace.
-  const body = text.split('\n').filter(line => line.trim().length > 0 && !line.trimStart().startsWith('#')).join('\n')
+  const body = text.split('\n').filter(line => line.trim() && !line.trimStart().startsWith('#')).join('\n')
   return body.trim() === '[]'
 }
-
-/** The patch entries in an operator layer, ignoring its comment header. */
 function entriesOfLayer(text) {
   if (text === null) return []
   const body = text.split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim()
-  return body.length === 0 ? [] : JSON.parse(body)
+  const rows = body ? JSON.parse(body) : []
+  if (!Array.isArray(rows)) refuse('The generated operator layer must contain an array; it was left untouched')
+  for (const id of REHOMED_ROW_IDS) {
+    if (rows.filter(row => row?.id === id).length > 1) refuse(`Multiple operator entries target ${id}; no configuration was changed`)
+  }
+  return rows
 }
-
-/**
- * The user's own additions to a layer, given the rows this tool is responsible for.
- *
- * Additions are two things: a key inside one of the tool's rows that the template does not set, and
- * a whole row the template does not define. The TEMPLATE is what decides — the derived layer when
- * the tool is pinning storage, and the bundle's own rows when it is emptying the file — because
- * "yours" only means anything relative to what this tool claims.
- *
- * @param {Array<Record<string, any>>} currentRows
- * @param {Array<Record<string, any>>} templateRows
- * @returns {{ preserved: string[], merged: Array<Record<string, any>> }}
- */
 function userAdditions(currentRows, templateRows) {
   const preserved = []
   const merged = templateRows.map(row => {
     const found = currentRows.find(candidate => candidate?.id === row.id)
-    if (found?.config === undefined) return row
-    const extra = Object.fromEntries(
-      Object.entries(found.config).filter(([key]) => !(key in (row.config ?? {}))),
-    )
+    if (!found) return row
+    const extra = Object.fromEntries(Object.entries(found.config ?? {}).filter(([key]) => !(key in (row.config ?? {}))))
     for (const key of Object.keys(extra)) preserved.push(`${row.id}.${key}`)
-    return Object.keys(extra).length === 0 ? row : { ...row, config: { ...row.config, ...extra } }
+    const extraRow = Object.fromEntries(Object.entries(found).filter(([key]) => !['id', 'config'].includes(key)))
+    for (const key of Object.keys(extraRow)) preserved.push(`${row.id}.${key}`)
+    return { ...row, ...extraRow, config: { ...row.config, ...extra } }
   })
   for (const row of currentRows) {
     if (templateRows.some(candidate => candidate.id === row?.id)) continue
@@ -460,147 +170,210 @@ function userAdditions(currentRows, templateRows) {
   }
   return { preserved, merged }
 }
-
-/**
- * The layer to WRITE: what this tool derives, plus everything the user added to it.
- *
- * Order is the derived order first, so a diff of this file stays readable across a regeneration.
- *
- * @param {string} expected - the derived layer
- * @param {string|null} current - what is on disk now
- * @returns {{ text: string, preserved: string[] }}
- */
 function mergeOperatorLayer(expected, current) {
   const { preserved, merged } = userAdditions(entriesOfLayer(current), entriesOfLayer(expected))
-  if (preserved.length === 0) return { text: expected, preserved }
+  if (!preserved.length) return { text: expected, preserved }
   const header = expected.split('\n').filter(line => line.trimStart().startsWith('#')).join('\n')
   return { text: `${header}\n${JSON.stringify(merged, null, 2)}\n`, preserved }
 }
+function retainedLayer(rows) {
+  return rows.length
+    ? `${OPERATOR_LAYER_MARKER}\n# Other plugin/user entries retained; only DeepBlend rows belong to the installer.\n${JSON.stringify(rows, null, 2)}\n`
+    : EMPTY_OPERATOR_LAYER
+}
 
-if (desiredStoreRoot !== undefined) {
-  const expected = renderOperatorLayer(
-    await buildStoreOverride({ storeRoot: desiredStoreRoot, bundlePatch: join(ROOT, BUNDLE_PATCH) }),
-    desiredStoreRoot,
-  )
-  const current = existsSync(operatorLayerPath) ? readFileSync(operatorLayerPath, 'utf8') : null
+/** Read other profiles before touching shared links. An unreadable manifest is a refusal. */
+function otherReferences(profile, local, observed) {
+  const references = []
+  for (const other of existingProfiles().filter(name => name !== profile)) {
+    const path = join(DSH_HOME, 'profiles', other, 'package.json')
+    if (!existsSync(path)) continue
+    let manifest
+    try {
+      const before = snapshot(path)
+      if (before.type !== 'file') throw new Error('not a regular manifest')
+      observed.set(path, before)
+      manifest = JSON.parse(Buffer.from(before.data, 'base64').toString('utf8'))
+    } catch {
+      refuse(`Cannot read ${path}; shared package references cannot be checked`)
+    }
+    const bundles = manifest.dsh?.profile?.bundles ?? []
+    const names = new Set([...(Array.isArray(bundles) ? bundles : []), ...DEPENDENCY_FIELDS.flatMap(field => Object.keys(manifest[field] ?? {}))])
+    if ([...names].some(name => local.has(name))) references.push(other)
+  }
+  return references
+}
 
-  if (!operatorLayerIsOurs(operatorLayerPath)) {
-    // Refusing beats clobbering. Someone's own operator layer may hold settings
-    // this tool knows nothing about, and "the installer overwrote my config" is
-    // not a failure a user can diagnose from the result.
-    //
-    // This exits immediately rather than falling through, because `--check` would
-    // otherwise reach its own `process.exit(0)` and report the workspace healthy
-    // while the storage it was asked about is not pinned at all — a green line
-    // describing the opposite of what just happened.
-    say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
-    console.error(
-      `${operatorLayerPath} already contains patch entries that this tool did not write.\n` +
-      `DeepBlend's storage will follow the product default (<DSH_HOME>/deepblend) instead of ${desiredStoreRoot}.\n` +
-      'Merge the layers by hand, or move that file aside and re-run.',
-    )
-    process.exit(2)
+async function run(profile) {
+  const profileDirectory = join(DSH_HOME, 'profiles', profile)
+  const manifestPath = join(profileDirectory, 'package.json')
+  if (!existsSync(manifestPath)) refuse(`no package.json in ${profileDirectory}`)
+  const initialManifest = snapshot(manifestPath)
+  if (initialManifest.type !== 'file') refuse(`Expected a regular profile manifest at ${manifestPath}`)
+  const originalManifest = JSON.parse(Buffer.from(initialManifest.data, 'base64').toString('utf8'))
+  const manifest = structuredClone(originalManifest)
+  const bundles = manifest.dsh?.profile?.bundles
+  if (!Array.isArray(bundles)) refuse(`${manifestPath} has no dsh.profile.bundles array, so no bundle can be composed into it`)
+  const local = localPackages()
+  if (!local.size) refuse('no local packages found under packages/deepblend')
+  const observed = new Map([[manifestPath, initialManifest]])
+  const knownProfiles = existingProfiles()
+  const references = otherReferences(profile, local, observed)
+  const scope = join(DSH_HOME, 'profiles', 'node_modules', LOCAL_SCOPE)
+  const layerPath = join(profileDirectory, 'cordis.patch.yml')
+  const initialLayer = snapshot(layerPath)
+  if (!['file', 'absent'].includes(initialLayer.type)) refuse(`Expected a regular operator layer at ${layerPath}; no links or files were changed`)
+  observed.set(layerPath, initialLayer)
+  const current = initialLayer.type === 'file' ? Buffer.from(initialLayer.data, 'base64').toString('utf8') : null
+  const changes = []
+  let drift = 0
+  const plan = (path, after) => {
+    const before = observed.get(path) ?? snapshot(path)
+    if (after.type === 'file' && before.type === 'file') after.mode = before.mode
+    if (!isDeepStrictEqual(before, after)) changes.push({ path, before, after })
+  }
+  const planFile = (path, text) => plan(path, fileState(text))
+  const apply = () => {
+    if (!isDeepStrictEqual(existingProfiles(), knownProfiles)) refuse('Profiles changed during planning; re-run the installer')
+    for (const [path, before] of observed) {
+      if (!isDeepStrictEqual(snapshot(path), before)) refuse(`Configuration changed during planning: ${path}; no files or links were changed`)
+    }
+    applyInstallerPlan(DSH_HOME, changes)
   }
 
-  // IN SYNC MEANS: what this tool would write, given what is already there. That single comparison
-  // covers both halves of the rule — a user's own keys are not drift (they are in `merged`), and an
-  // edit that is neither the tool's nor a key is still drift (a stray comment, a changed derived
-  // value, a row moved). The first version of this fix compared only the DERIVED part, which made a
-  // comment invisible; `contract/installer-drift.test.mjs` caught that immediately, correctly.
-  const { text: merged, preserved } = mergeOperatorLayer(expected, current)
-
-  if (current === merged) {
-    say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
-    if (preserved.length > 0) {
-      say(`profiles/${profile}/cordis.patch.yml`, `kept your own setting(s): ${preserved.join(', ')}`)
-    }
-  } else {
-    drift += 1
-    if (checkOnly) {
-      say(`profiles/${profile}/cordis.patch.yml`, current === null
-        ? `missing (storage would be the product default, not ${desiredStoreRoot})`
-        : 'DRIFTED — the bundle changed and this layer was not regenerated')
-    } else {
-      writeFileSync(operatorLayerPath, merged)
-      say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${desiredStoreRoot}`)
-      if (preserved.length > 0) {
-        // NOT SILENT. The user has to be able to see that their keys survived, because the failure
-        // this replaced was exactly a silent one.
-        say(`profiles/${profile}/cordis.patch.yml`, `kept your own setting(s): ${preserved.join(', ')}`)
+  if (uninstall) {
+    // Only owned rows may be removed. User additions inside those rows cannot be detached
+    // safely because DSH replaces entire row configs; refuse before making any change.
+    if (current === null) say(`profiles/${profile}/cordis.patch.yml`, 'no operator layer')
+    else if (!operatorLayerIsOurs(current)) say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
+    else if (current.includes(OPERATOR_LAYER_MARKER)) {
+      const rows = entriesOfLayer(current)
+      const owned = rows.filter(row => REHOMED_ROW_IDS.includes(row?.id))
+      if (owned.length) {
+        const template = await buildStoreOverride({ storeRoot: devStoreRoot(ROOT), bundlePatch: join(ROOT, BUNDLE_PATCH) })
+        const { preserved } = userAdditions(owned, template)
+        if (preserved.length) refuse(`${layerPath} carries user settings: ${preserved.join(', ')}. Uninstall made no changes; preserve these settings outside the generated DeepBlend rows before re-running.`)
       }
+      const others = rows.filter(row => !REHOMED_ROW_IDS.includes(row?.id))
+      planFile(layerPath, retainedLayer(others))
+      say(`profiles/${profile}/cordis.patch.yml`, others.length ? `kept ${others.length} other plugin/user row(s)` : 'emptied — storage follows the product default')
+    } else say(`profiles/${profile}/cordis.patch.yml`, 'already empty')
+
+    if (bundles.includes(BUNDLE_PACKAGE)) {
+      manifest.dsh.profile.bundles = bundles.filter(name => name !== BUNDLE_PACKAGE)
+      say(`profiles/${profile}/package.json`, `unregistered ${BUNDLE_PACKAGE}`)
     }
+    if (manifest.dependencies?.[BUNDLE_PACKAGE] !== undefined) {
+      delete manifest.dependencies[BUNDLE_PACKAGE]
+      if (!Object.keys(manifest.dependencies).length) delete manifest.dependencies
+    }
+    const remainingNames = [...manifest.dsh.profile.bundles, ...DEPENDENCY_FIELDS.flatMap(field => Object.keys(manifest[field] ?? {}))]
+    if (remainingNames.some(name => local.has(name))) references.push(profile)
+    // Avoid reformatting a profile whose manifest has no changes.
+    if (!isDeepStrictEqual(manifest, originalManifest)) {
+      planFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+    }
+    let ours = 0
+    let theirs = 0
+    for (const [name, directory] of [...local].sort()) {
+      const path = join(scope, name.split('/')[1])
+      const target = linkTarget(path)
+      if (target === undefined) continue
+      if (target === directory && !references.length) {
+        plan(path, { type: 'absent' })
+        ours += 1
+      } else if (target !== directory) theirs += 1
+    }
+    say(`profiles/node_modules/${LOCAL_SCOPE}`, references.length
+      ? `kept shared links used by profile(s): ${references.join(', ')}`
+      : ours ? `removed ${ours} link(s)` : 'no links into this checkout')
+    if (theirs) say('left alone', `${theirs} foreign package(s) — \`dsh plugin remove ${BUNDLE_PACKAGE} --profile ${profile}\` manages pnpm links`)
+    apply()
+    if (existsSync(scope) && readdirSync(scope).length === 0) rmdirSync(scope)
+    say('result', changes.length ? `uninstalled (${changes.length} change(s))` : 'nothing of DeepBlend was installed in this profile')
+    say('also needed', references.length
+      ? 'presets remain shared with the other profiles; leave them installed'
+      : 'node deepblend/tools/install-presets.mjs --uninstall — the agent preset is a separate plane')
+    say('note', 'a profile reads its bundles when it starts; restart `dsh web` for the rows to stop composing')
+    return 0
   }
-} else if (existsSync(operatorLayerPath) && operatorLayerIsOurs(operatorLayerPath)) {
-  // `--portable`: the deployment keeps the product default, so an operator layer
-  // this tool wrote earlier is now the only thing overriding it.
-  //
-  // The file is EMPTIED rather than deleted. `cordis.patch.yml` is a standard
-  // part of a profile — `dsh` creates it, and "the installer removed one of my
-  // profile's files" is not a state a user should have to reason about. An empty
-  // patch list is exactly what a profile ships with, so this restores it to that.
-  const text = readFileSync(operatorLayerPath, 'utf8')
-  if (text.includes(OPERATOR_LAYER_MARKER)) {
-    // THE USER'S OWN KEYS CANNOT COME ALONG, and that is a property of the patch format rather than
-    // a choice: a patch entry's `config` REPLACES the bundle's wholesale (D74), so a row carrying
-    // only `blenderPath` would silently wipe the row's other settings at composition. Refusing and
-    // naming them beats emptying a file that holds somebody's configuration — and it is the same
-    // rule as the foreign-layer refusal one screen up, applied to a layer that is ours but no
-    // longer only ours.
-    const { preserved } = userAdditions(entriesOfLayer(text), ownedRowTemplate)
-    if (preserved.length > 0) {
-      say(`profiles/${profile}/cordis.patch.yml`, 'NOT EMPTIED — it holds settings this tool does not own')
-      console.error(
-        `${operatorLayerPath} carries ${preserved.join(', ')}, which \`--portable\` cannot keep:\n` +
-        'a patch entry\'s `config` replaces the bundle\'s rather than merging into it, so moving those\n' +
-        'keys into an empty layer would drop the row\'s other settings. Move them to another row or\n' +
-        'another layer, then re-run.',
-      )
-      process.exit(2)
-    }
-    drift += 1
-    if (checkOnly) {
-      say(`profiles/${profile}/cordis.patch.yml`, 'pins a store this run did not ask for')
+
+  // Plan the layer first: a refusal must never have already relinked packages or registered a bundle.
+  if (!portable && !operatorLayerIsOurs(current)) {
+    say(`profiles/${profile}/cordis.patch.yml`, 'NOT OURS — left untouched')
+    refuse(`${layerPath} already contains patch entries that this tool did not write.\nMerge the layers by hand, or move that file aside and re-run. No files or links were changed.`)
+  }
+  if (!portable || current?.includes(OPERATOR_LAYER_MARKER)) {
+    const template = await buildStoreOverride({ storeRoot: devStoreRoot(ROOT), bundlePatch: join(ROOT, BUNDLE_PATCH) })
+    if (portable) {
+      const rows = entriesOfLayer(current)
+      const { preserved } = userAdditions(rows.filter(row => REHOMED_ROW_IDS.includes(row?.id)), template)
+      if (preserved.length) refuse(`${layerPath} carries ${preserved.join(', ')}, which \`--portable\` cannot keep. No files or links were changed.`)
+      const text = retainedLayer(rows.filter(row => !REHOMED_ROW_IDS.includes(row?.id)))
+      if (text !== current) {
+        planFile(layerPath, text)
+        drift += 1
+      }
+      say(`profiles/${profile}/cordis.patch.yml`, checkOnly && text !== current
+        ? 'pins a store this run did not ask for'
+        : 'DeepBlend overrides removed; other plugin/user rows kept')
     } else {
-      writeFileSync(operatorLayerPath, EMPTY_OPERATOR_LAYER)
-      say(`profiles/${profile}/cordis.patch.yml`, 'emptied — storage follows the product default')
+      const expected = renderOperatorLayer(template, devStoreRoot(ROOT))
+      const { text, preserved } = mergeOperatorLayer(expected, current)
+      if (text !== current) {
+        drift += 1
+        planFile(layerPath, text)
+        say(`profiles/${profile}/cordis.patch.yml`, checkOnly ? 'DRIFTED — the bundle changed and this layer was not regenerated' : `storage pinned to ${devStoreRoot(ROOT)}`)
+      } else say(`profiles/${profile}/cordis.patch.yml`, `storage pinned to ${devStoreRoot(ROOT)}`)
+      if (preserved.length) say(`profiles/${profile}/cordis.patch.yml`, `kept your own setting(s): ${preserved.join(', ')}`)
     }
   }
-}
 
-// ---- the dependency entry `dsh plugin remove` reads ------------------------
-//
-// `dsh.profile.bundles` is all the LOADER needs to compose a bundle, and this tool wrote only that — so a plugin
-// it installed could not be uninstalled by the ecosystem's own command. MEASURED: `dsh plugin remove
-// @deepblend/dsh-blender-bundle --profile web` fails with ERR_PNPM_CANNOT_REMOVE_MISSING_DEPS, because pnpm is
-// asked to remove a package the profile does not depend on. The ecosystem's `plugin add` writes both keys; this
-// does now, with a `link:` to the bundle in this repository — the same form `plugin add <path>` produces.
-const bundleDependency = `link:${join(ROOT, 'packages', 'deepblend', 'bundle')}`
-if (manifest.dependencies?.[BUNDLE_PACKAGE] === bundleDependency) {
-  say(`profiles/${profile}/package.json`, `${BUNDLE_PACKAGE} dependency in sync`)
-} else {
-  drift += 1
+  for (const [name, directory] of [...local].sort()) {
+    const path = join(scope, name.split('/')[1])
+    const target = linkTarget(path)
+    if (target === directory) { say(`profiles/node_modules/${name}`, 'in sync'); continue }
+    // A real directory is never ours to replace, even when no profile currently references it.
+    if (target === null) refuse(`Refusing to overwrite a package directory not owned by this installer: ${path}`)
+    if (target !== undefined && references.length) refuse(`Refusing to replace a shared package used by profile(s) ${references.join(', ')}: ${path}`)
+    drift += 1
+    plan(path, { type: 'link', target: directory })
+    say(`profiles/node_modules/${name}`, checkOnly ? 'DRIFTED — package link is not in place' : `linked -> ${directory}`)
+  }
+  if (!bundles.includes(BUNDLE_PACKAGE)) {
+    manifest.dsh.profile.bundles = [BUNDLE_PACKAGE, ...bundles]
+    drift += 1
+  }
+  const dependency = `link:${join(ROOT, 'packages', 'deepblend', 'bundle')}`
+  if (manifest.dependencies?.[BUNDLE_PACKAGE] !== dependency) {
+    manifest.dependencies = { ...manifest.dependencies ?? {}, [BUNDLE_PACKAGE]: dependency }
+    drift += 1
+  }
+  if (!isDeepStrictEqual(manifest, originalManifest)) {
+    planFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  }
   if (checkOnly) {
-    say(`profiles/${profile}/package.json`,
-      `missing the ${BUNDLE_PACKAGE} dependency, so \`dsh plugin remove\` cannot uninstall it`)
-  } else {
-    manifest.dependencies = { ...manifest.dependencies ?? {}, [BUNDLE_PACKAGE]: bundleDependency }
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    say(`profiles/${profile}/package.json`, `linked ${BUNDLE_PACKAGE}`)
+    say('result', drift ? `${drift} thing(s) are not installed in the "${profile}" profile` : `DeepBlend is installed in the "${profile}" profile at ${DSH_HOME}`)
+    if (drift) say('fix', `node deepblend/tools/install-plugin.mjs --profile ${profile}`)
+    return drift ? 1 : 0
   }
+  apply()
+  say('dsh home', DSH_HOME)
+  say('profile', profile)
+  say('result', changes.length ? `installed (${changes.length} change(s))` : 'DeepBlend was already installed; nothing changed')
+  say('also needed', 'node deepblend/tools/install-presets.mjs — the agent preset is a separate plane')
+  say('note', 'a profile reads its bundles when it starts; restart `dsh web` for the rows to compose')
+  return 0
 }
 
-if (checkOnly) {
-  if (drift === 0) {
-    say('result', `DeepBlend is installed in the "${profile}" profile at ${DSH_HOME}`)
-    process.exit(0)
+try {
+  if (checkOnly && uninstall) refuse('--check reports and --uninstall changes; pick one')
+  const profile = requestedProfile()
+  if (!existsSync(join(DSH_HOME, 'profiles', profile))) {
+    refuse(`no profile at ${join(DSH_HOME, 'profiles', profile)}\nknown profiles: ${existingProfiles().join(', ') || '(none)'}\nA profile is created by \`dsh\`, not by this installer. Run \`dsh --profile ${profile} --dump-config\` to initialise it, then re-run.`)
   }
-  say('result', `${drift} thing(s) are not installed in the "${profile}" profile`)
-  say('fix', `node deepblend/tools/install-plugin.mjs --profile ${profile}`)
-  process.exit(1)
+  process.exitCode = await withInstallerLock(DSH_HOME, checkOnly, () => run(profile))
+} catch (error) {
+  console.error(error.message)
+  process.exitCode = error.exitCode ?? 2
 }
-
-say('dsh home', DSH_HOME)
-say('profile', profile)
-say('result', drift === 0 ? 'DeepBlend was already installed; nothing changed' : `installed (${drift} change(s))`)
-say('also needed', 'node deepblend/tools/install-presets.mjs — the agent preset is a separate plane')
-say('note', 'a profile reads its bundles when it starts; restart `dsh web` for the rows to compose')

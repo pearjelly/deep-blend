@@ -48,6 +48,9 @@ import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFi
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
+const realProfilePath = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles', 'web', 'package.json')
+const readRealProfile = () => existsSync(realProfilePath) ? readFileSync(realProfilePath) : null
+const realProfileBefore = readRealProfile()
 
 /** A profile `dsh` can install into: the installer composes its rows into one. */
 function makeHome() {
@@ -102,12 +105,8 @@ test('installing the bundle through the ecosystem command composes its rows WITH
 })
 
 test('and the real profile was never touched', { skip: withoutPnpm() }, () => {
-  // The real home is the one this session runs from, so it must still name the bundle it had: this file only ever
-  // wrote to temp homes, and a change here would mean something else did.
-  const real = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles', 'web', 'package.json')
-  const profile = JSON.parse(readFileSync(real, 'utf8'))
-  assert.ok((profile.dsh?.profile?.bundles ?? []).includes('@deepblend/dsh-blender-bundle'),
-    'the real profile no longer composes the bundle — this test only writes to temp homes, so something else changed it')
+  assert.deepEqual(readRealProfile(), realProfileBefore,
+    'the real profile changed while the test operated on its temporary home')
 })
 
 // ---------------------------------------------------------------------------

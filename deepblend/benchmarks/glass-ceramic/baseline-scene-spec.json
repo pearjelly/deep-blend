@@ -1,0 +1,712 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "glass-ceramic-ablation",
+    "title": "澄湾 · Synthetic geometry/material ablation (not a historical result)",
+    "goal": "A deliberately simplified controlled ablation of the companion original SceneSpec. Same cameras, lights, exposure, environment, object placements and camera motion; angular low-detail profiles, no foot ring, flat scalar surfaces. This is not an output captured from an older DeepBlend version.",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 48,
+    "aspectRatio": "4:3",
+    "activeCamera": "hero"
+  },
+  "materials": [
+    {
+      "id": "clear-glass",
+      "shader": "glass",
+      "parameters": {
+        "baseColor": [
+          0.98,
+          0.995,
+          0.985,
+          1
+        ],
+        "roughness": 0.12,
+        "metallic": 0,
+        "transmissionWeight": 1,
+        "ior": 1.46,
+        "alpha": 1
+      }
+    },
+    {
+      "id": "celadon-glaze",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.18,
+          0.3,
+          0.265,
+          1
+        ],
+        "roughness": 0.4,
+        "metallic": 0,
+        "coatWeight": 0,
+        "ior": 1.48
+      }
+    },
+    {
+      "id": "champagne-metal",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.61,
+          0.42,
+          0.21,
+          1
+        ],
+        "metallic": 0.9,
+        "roughness": 0.4
+      }
+    },
+    {
+      "id": "warm-paper",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.64,
+          0.63,
+          0.58,
+          1
+        ],
+        "roughness": 0.82
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "bottle",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.035,
+            0
+          ],
+          [
+            0.035,
+            0.08
+          ],
+          [
+            0.017,
+            0.124
+          ],
+          [
+            0.017,
+            0.145
+          ],
+          [
+            0.0128,
+            0.145
+          ],
+          [
+            0.0128,
+            0.124
+          ],
+          [
+            0.031,
+            0.079
+          ],
+          [
+            0.031,
+            0.008
+          ],
+          [
+            0,
+            0.008
+          ]
+        ],
+        "segments": 48,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "clear-glass",
+      "transform": {
+        "location": [
+          -0.033,
+          0.014,
+          0.01
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "synthetic-ablation"
+      ]
+    },
+    {
+      "id": "tray",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.104,
+            0
+          ],
+          [
+            0.12,
+            0.01
+          ],
+          [
+            0.12,
+            0.021
+          ],
+          [
+            0.11,
+            0.021
+          ],
+          [
+            0.09,
+            0.01
+          ],
+          [
+            0,
+            0.01
+          ]
+        ],
+        "segments": 48,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "celadon-glaze",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "synthetic-ablation"
+      ]
+    },
+    {
+      "id": "neck-sleeve",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0.01705,
+            0
+          ],
+          [
+            0.0195,
+            0
+          ],
+          [
+            0.0195,
+            0.0085
+          ],
+          [
+            0.01705,
+            0.0085
+          ]
+        ],
+        "segments": 48,
+        "closedProfile": true,
+        "capEnds": false
+      },
+      "materialId": "champagne-metal",
+      "transform": {
+        "location": [
+          -0.033,
+          0.014,
+          0.136
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "synthetic-ablation"
+      ]
+    },
+    {
+      "id": "cap",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0.0218
+          ],
+          [
+            0.017,
+            0.0218
+          ],
+          [
+            0.017,
+            0.024
+          ],
+          [
+            0.021,
+            0.024
+          ],
+          [
+            0.021,
+            0
+          ],
+          [
+            0.0196,
+            0
+          ],
+          [
+            0.0196,
+            0.016
+          ],
+          [
+            0,
+            0.016
+          ]
+        ],
+        "segments": 48,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "champagne-metal",
+      "transform": {
+        "location": [
+          0.059,
+          -0.028,
+          0.01
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "synthetic-ablation"
+      ]
+    },
+    {
+      "id": "cap-inset",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0166,
+            0
+          ],
+          [
+            0.0166,
+            0.002
+          ],
+          [
+            0,
+            0.002
+          ]
+        ],
+        "segments": 48,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "celadon-glaze",
+      "transform": {
+        "location": [
+          0.059,
+          -0.028,
+          0.0318
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "synthetic-ablation"
+      ]
+    },
+    {
+      "id": "floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 200
+      },
+      "materialId": "warm-paper",
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.00001
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment",
+        "studio"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "key-softbox",
+      "type": "area",
+      "energy": 15,
+      "size": 0.45,
+      "color": [
+        1,
+        0.95,
+        0.88
+      ],
+      "transform": {
+        "location": [
+          -0.3,
+          -0.38,
+          0.48
+        ],
+        "rotationEuler": [
+          0.86813548,
+          0,
+          -0.66828942
+        ]
+      }
+    },
+    {
+      "id": "fill-softbox",
+      "type": "area",
+      "energy": 7,
+      "size": 0.32,
+      "color": [
+        0.9,
+        0.95,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.36,
+          -0.06,
+          0.3
+        ],
+        "rotationEuler": [
+          1.0084692,
+          0,
+          1.40564765
+        ]
+      }
+    },
+    {
+      "id": "back-softbox",
+      "type": "area",
+      "energy": 18,
+      "size": 0.4,
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.03,
+          0.38,
+          0.4
+        ],
+        "rotationEuler": [
+          0.86313801,
+          0,
+          2.99402458
+        ]
+      }
+    },
+    {
+      "id": "top-softbox",
+      "type": "area",
+      "energy": 8,
+      "size": 0.38,
+      "color": [
+        1,
+        0.98,
+        0.94
+      ],
+      "transform": {
+        "location": [
+          -0.1,
+          0.02,
+          0.63
+        ],
+        "rotationEuler": [
+          0.16835839,
+          0,
+          -1.76819189
+        ]
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "hero",
+      "role": "active-camera",
+      "lens": 62,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          0.3,
+          -0.43,
+          0.3
+        ]
+      },
+      "targetPoint": [
+        -0.002,
+        0,
+        0.057
+      ]
+    },
+    {
+      "id": "detail",
+      "role": "detail",
+      "lens": 82,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          0.155,
+          -0.25,
+          0.236
+        ]
+      },
+      "targetPoint": [
+        -0.025,
+        0.014,
+        0.116
+      ]
+    },
+    {
+      "id": "reverse",
+      "role": "three-quarter",
+      "lens": 62,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          -0.31,
+          0.4,
+          0.22
+        ]
+      },
+      "targetPoint": [
+        0,
+        0,
+        0.058
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "hero-shot",
+      "cameraId": "hero",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Full assembly, open mouth, detached cap and ceramic tray; restrained optical-axis dolly."
+    },
+    {
+      "id": "detail-shot",
+      "cameraId": "detail",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Bottle lip, inner wall, stepped sleeve and smooth shoulder; intentionally crops the tray."
+    },
+    {
+      "id": "reverse-shot",
+      "cameraId": "reverse",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Opposite three-quarter view checks glass silhouette, tray rim and cap seating."
+    }
+  ],
+  "animationTracks": [
+    {
+      "id": "hero-dolly-x",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.x",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.3,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.29698,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.29396,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-dolly-y",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.y",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": -0.43,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": -0.4257,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": -0.4214,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-dolly-z",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.3,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.29757,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.29514,
+          "interpolation": "linear"
+        }
+      ]
+    }
+  ],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        768,
+        576
+      ],
+      "samples": 64,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 64
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1024,
+        768
+      ],
+      "samples": 128,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 128
+    }
+  },
+  "assets": [],
+  "world": {
+    "color": [
+      0.64,
+      0.7,
+      0.72,
+      1
+    ],
+    "strength": 0.45
+  }
+}

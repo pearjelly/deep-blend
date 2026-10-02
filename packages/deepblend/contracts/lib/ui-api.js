@@ -20,6 +20,7 @@
 
 import { RENDER_JOB_TERMINAL_STATUSES } from './render-job.js'
 import { redactHome } from './redact.js'
+import { resolveSubject } from './visual-composition.js'
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -57,6 +58,8 @@ export const UI_ROUTES = Object.freeze([
   // (`contract/workbench-page.test.mjs` is what holds that).
   { id: 'workbench.page', method: 'GET', path: '/deepblend/workbench', write: false, summary: 'The standalone fullscreen workbench document.' },
   { id: 'state', method: 'GET', path: '/deepblend/state', write: false, summary: 'Everything the panel needs to render itself from scratch.' },
+  { id: 'recipes.list', method: 'GET', path: '/deepblend/recipes', write: false, summary: 'Validated local recipes and their editable parameters.' },
+  { id: 'recipes.preview', method: 'GET', path: '/deepblend/recipes/:recipeId/:version/preview', write: false, summary: 'A hash-pinned recipe preview.' },
   { id: 'projects.list', method: 'GET', path: '/deepblend/projects', write: false, summary: 'Every project in the store.' },
   { id: 'projects.create', method: 'POST', path: '/deepblend/projects', write: true, summary: 'Create a project (title, optional seed scene).' },
   { id: 'project.overview', method: 'GET', path: '/deepblend/projects/:projectId', write: false, summary: 'One project: summary, revisions, current digest.' },
@@ -67,8 +70,11 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.qa', method: 'GET', path: '/deepblend/projects/:projectId/qa', write: false, summary: 'The QA view of a revision (?revision=).' },
   { id: 'project.previews', method: 'GET', path: '/deepblend/projects/:projectId/previews', write: false, summary: 'Preview sets per revision, for Preview Compare.' },
   { id: 'project.preview', method: 'POST', path: '/deepblend/projects/:projectId/preview', write: true, summary: 'Render the low-cost multi-view preview (and its contact sheet).' },
+  { id: 'project.referenceImage.upload', method: 'POST', path: '/deepblend/projects/:projectId/reference-images', write: true, summary: 'Upload a PNG or JPEG as a project asset; saving the brief creates its revision reference.' },
+  { id: 'project.review', method: 'POST', path: '/deepblend/projects/:projectId/review', write: true, summary: 'Explicitly render and consult the visual reviewer for one revision.' },
+  { id: 'project.autofix', method: 'POST', path: '/deepblend/projects/:projectId/autofix', write: true, summary: 'Explicitly run a bounded visual correction loop for one revision.' },
   { id: 'project.patch', method: 'POST', path: '/deepblend/projects/:projectId/patch', write: true, summary: 'Apply a ScenePatch as one atomic revision.' },
-  { id: 'project.restore', method: 'POST', path: '/deepblend/projects/:projectId/restore', write: true, summary: 'Restore an earlier revision as a new revision.' },
+  { id: 'project.restore', method: 'POST', path: '/deepblend/projects/:projectId/restore', write: true, summary: 'Move the current revision pointer to a saved revision, preserving history without creating a new revision.' },
   { id: 'project.jobs', method: 'GET', path: '/deepblend/projects/:projectId/jobs', write: false, summary: 'Render/export jobs of a project.' },
   { id: 'project.job', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId', write: false, summary: 'One job with its live progress.' },
   { id: 'project.job.cancel', method: 'POST', path: '/deepblend/projects/:projectId/jobs/:jobId/cancel', write: true, summary: 'Cancel a running job and verify the process is gone.' },
@@ -304,7 +310,7 @@ export function buildRevisionDiff(from, to, context = {}) {
  * human looking for a collection that does not exist in the outliner.
  *
  * @param {object} spec - a SceneSpec document
- * @param {{ revision?: string, digest?: string, compiled?: object|null }} [context]
+ * @param {{ revision?: string, digest?: string, compiled?: object|null, assetParts?: object[] }} [context]
  * @returns {Record<string, unknown>}
  */
 export function buildSceneTree(spec, context = {}) {
@@ -315,6 +321,9 @@ export function buildSceneTree(spec, context = {}) {
   const shots = spec?.shots ?? []
   const tracks = spec?.animationTracks ?? []
   const assets = spec?.assets ?? []
+  // Only the compiled revision knows imported part selectors and original slots.
+  // A spec alone cannot supply an inventory, even when it declares bindings.
+  const assetParts = context.assetParts ?? []
 
   /** @type {Record<string, unknown[]>} */
   const nodes = {
@@ -322,9 +331,14 @@ export function buildSceneTree(spec, context = {}) {
       id: entity.id,
       kind: entity.type,
       shape: entity.generator?.shape ?? null,
+      generator: clone(entity.generator ?? null),
+      modifiers: clone(entity.modifiers ?? []),
       assetId: entity.assetId ?? null,
       materialId: entity.materialId ?? null,
-      tags: entity.tags ?? [],
+      materialBindings: clone(entity.materialBindings ?? []),
+      assetParts: clone(assetParts.filter(part => part.entityId === entity.id)),
+      visible: entity.visible ?? true,
+      tags: clone(entity.tags ?? []),
       locked: entity.locked === true,
       transform: clone(entity.transform ?? null),
       detail: entity.detail ?? null,
@@ -333,6 +347,7 @@ export function buildSceneTree(spec, context = {}) {
       id: material.id,
       shader: material.shader ?? null,
       parameters: clone(material.parameters ?? null),
+      definition: clone(material),
     })),
     lights: lights.map(light => ({
       id: light.id,
@@ -367,12 +382,17 @@ export function buildSceneTree(spec, context = {}) {
     project: {
       id: spec?.project?.id ?? null,
       title: spec?.project?.title ?? null,
+      goal: spec?.project?.goal ?? '',
+      referenceImages: clone(spec?.project?.referenceImages ?? []),
+      reviewSubjectId: spec?.project?.reviewSubjectId ?? null,
       fps: spec?.project?.fps ?? null,
       frameStart: spec?.project?.frameStart ?? null,
       frameEnd: spec?.project?.frameEnd ?? null,
       activeCamera: spec?.project?.activeCamera ?? null,
     },
     world: clone(spec?.world ?? null),
+    reviewSubject: clone(resolveSubject(spec)),
+    assetParts: clone(assetParts),
     counts: {
       entities: nodes.entities.length,
       materials: nodes.materials.length,
@@ -440,8 +460,13 @@ export function buildQaView({ projectId, revision, validation = null, review = n
       available: review !== null,
       score: review?.score ?? null,
       pass: review?.pass ?? null,
+      artistic: clone(review?.referenceInputError ? { status: 'unassessable', dimensions: {} } : review?.artistic ?? { status: 'unassessable', dimensions: {} }),
+      referenceImages: clone(review?.referenceImages ?? []),
+      reviewInputsDigest: review?.reviewInputsDigest ?? null,
+      referenceInputError: clone(review?.referenceInputError ?? null),
       iteration: review?.iteration ?? null,
       subjectId: review?.subjectId ?? null,
+      subject: clone(review?.subject ?? null),
       viewCount: review?.viewCount ?? null,
       sheet: clone(review?.sheet ?? null),
       measuredIssueCount: measured.length,
@@ -849,6 +874,7 @@ export function parseToolCallTarget(argsRaw) {
  */
 export const UI_TOOL_CARD_KEYS = Object.freeze([
   'blender_capabilities',
+  'blender_recipe_list',
   'blender_project_create',
   'blender_project_get',
   'blender_scene_get',

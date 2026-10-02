@@ -46,17 +46,20 @@
  * Run: node deepblend/tests/e2e/workbench-page.e2e.mjs
  */
 
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+
+import { decodePng } from '@deepblend/dsh-blender-contracts'
 
 import { Browser } from '../../tools/browser-driver.mjs'
 import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
 
 const results = []
 function check(name, ok, detail) {
-  results.push({ name, ok })
+  results.push({ name, ok, ...(detail === undefined ? {} : { detail }) })
   console.log(`[${ok ? 'PASS' : 'FAIL'}] ${name}${detail === undefined ? '' : ` — ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`}`)
 }
 
@@ -73,6 +76,211 @@ const BUNDLE_ID = '@deepblend/dsh-blender-ui'
 const scratch = mkdtempSync(join(tmpdir(), 'deepblend-workbench-e2e-'))
 const store = join(scratch, 'store')
 const PROJECT_TITLE = `wb-e2e-${Math.random().toString(16).slice(2, 8)}`
+const evidenceDirectory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS
+  ?? join(REPO_ROOT, '.deepblend', 'quality', `workbench-object-edit-${new Date().toISOString().replace(/[:.]/g, '-')}`))
+const objectEditEvidence = []
+const retainedRevisions = []
+const startedAt = new Date().toISOString()
+mkdirSync(evidenceDirectory, { recursive: true })
+
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
+const equal = (left, right) => JSON.stringify(left) === JSON.stringify(right)
+const entity = (spec, id) => spec.entities.find(entry => entry.id === id)
+
+async function waitDisk(predicate, label, timeout = 300000) {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    const value = predicate()
+    if (value) return value
+    await new Promise(resolve => setTimeout(resolve, 150))
+  }
+  throw new Error(`Timed out waiting for ${label}`)
+}
+
+/** Retain actual products before the isolated store is removed, not only a screenshot. */
+function retainRevision(projectId, revision, label) {
+  const manifest = readStoreJson(projectId, 'revisions', revision, 'revision-manifest.json')
+  const artifact = manifest?.previews?.at(-1)
+  if (!artifact?.path) throw new Error(`${projectId}/${revision} has no committed preview`)
+  const projectDirectory = join(store, 'projects', projectId)
+  const destination = join(evidenceDirectory, label)
+  mkdirSync(destination, { recursive: true })
+  const paths = {
+    spec: join('revisions', revision, 'scene-spec.json'),
+    checkpoint: join('revisions', revision, 'scene.blend'),
+    preview: artifact.path,
+  }
+  const filenames = { spec: 'scene-spec.json', checkpoint: 'scene.blend', preview: 'preview.png' }
+  const files = Object.fromEntries(Object.entries(paths).map(([kind, path]) => {
+    const original = join(projectDirectory, path)
+    const filename = filenames[kind]
+    const bytes = readFileSync(original)
+    copyFileSync(original, join(destination, filename))
+    return [kind, { original, path: `${label}/${filename}`, sha256: sha256(bytes), bytes: bytes.length }]
+  }))
+  writeFileSync(join(destination, 'revision-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+  const decoded = decodePng(readFileSync(files.preview.original))
+  const snapshot = {
+    projectId, revision, label, files, artifact,
+    pixelSha256: sha256(decoded.data), width: decoded.width, height: decoded.height,
+    spec: readStoreJson(projectId, 'revisions', revision, 'scene-spec.json'),
+  }
+  retainedRevisions.push(snapshot)
+  check(`${label}: preview bytes match the committed artifact and the 16-sample test ceiling`,
+    files.preview.sha256 === artifact.sha256 && artifact.samples === 16
+      && decoded.width === 768 && decoded.height === 576,
+    { samples: artifact.samples, width: decoded.width, height: decoded.height, cameraId: artifact.cameraId, frame: artifact.frame })
+  return snapshot
+}
+
+function verifyRetainedBytes(label) {
+  const changed = retainedRevisions.flatMap(snapshot => Object.entries(snapshot.files)
+    .filter(([, file]) => !existsSync(file.original) || sha256(readFileSync(file.original)) !== file.sha256)
+    .map(([kind]) => `${snapshot.projectId}/${snapshot.revision}/${kind}`))
+  check(`${label}: historical SceneSpecs, checkpoints and PNGs remain byte-identical`, changed.length === 0, changed)
+}
+
+/** Exclude PNG metadata, and compare only previews made with the same camera and frame. */
+function compareRenderedChange(before, after) {
+  const sameSetup = ['cameraId', 'frame', 'width', 'height', 'samples', 'engine']
+    .every(key => before.artifact[key] === after.artifact[key])
+    && before.artifact.renderConfig !== null && before.artifact.renderConfig !== undefined
+    && equal(before.artifact.renderConfig, after.artifact.renderConfig)
+  const a = decodePng(readFileSync(before.files.preview.original))
+  const b = decodePng(readFileSync(after.files.preview.original))
+  let changedPixels = 0
+  let totalDifference = 0
+  if (a.width === b.width && a.height === b.height) {
+    for (let offset = 0; offset < a.data.length; offset += 4) {
+      let difference = 0
+      for (let channel = 0; channel < 3; channel += 1) difference += Math.abs(a.data[offset + channel] - b.data[offset + channel])
+      if (difference > 0) changedPixels += 1
+      totalDifference += difference
+    }
+  }
+  const result = { sameSetup, changedPixels, meanChannelDifference: totalDifference / (a.width * a.height * 3),
+    beforePixelSha256: before.pixelSha256, afterPixelSha256: after.pixelSha256 }
+  check(`${after.label}: the same view has a visible pixel change, excluding PNG metadata`,
+    sameSetup && changedPixels >= 100 && result.meanChannelDifference > 0.05, result)
+  objectEditEvidence.push({ before: before.label, after: after.label, ...result })
+}
+
+async function selectEntity(editorPage, id, expectedRevision) {
+  await editorPage.click('[data-view-tab="scene"]')
+  await editorPage.waitFor(`document.querySelector('[data-action="select-entity:${id}"]') !== null`, 30000)
+  const clicked = await editorPage.click(`[data-action="select-entity:${id}"]`)
+  check(`${id}: object selection is reachable by pointer`, clicked.via === 'pointer', clicked)
+  await editorPage.waitFor(`document.querySelector('[data-editor-entity="${id}"][data-editor-base-revision="${expectedRevision}"]') !== null`, 30000)
+}
+
+async function commitEntity(editorPage, projectId, id, fields) {
+  const before = readStoreJson(projectId, 'project.json').currentRevision
+  await selectEntity(editorPage, id, before)
+  if ('material-color' in fields) {
+    const spec = readStoreJson(projectId, 'revisions', before, 'scene-spec.json')
+    const material = spec.materials.find(entry => entry.id === entity(spec, id).materialId)
+    const expectedColor = '#' + material.parameters.baseColor.slice(0, 3).map(value => {
+      const srgb = value <= 0.0031308 ? value * 12.92 : 1.055 * value ** (1 / 2.4) - 0.055
+      return Math.round(srgb * 255).toString(16).padStart(2, '0')
+    }).join('')
+    check(`${id}: the color control displays the current linear RGB as sRGB`,
+      await editorPage.evaluate('document.querySelector(\'[data-field="editor-material-color"]\').value') === expectedColor, expectedColor)
+  }
+  for (const [field, value] of Object.entries(fields)) await editorPage.fill(`[data-field="editor-${field}"]`, String(value))
+  await editorPage.waitFor('document.querySelector(\'[data-editor-dirty="true"]\') !== null && !document.querySelector(\'[data-action="editor-apply"]\').disabled', 30000)
+  const clicked = await editorPage.click('[data-action="editor-apply"]')
+  check(`${id}: the visual edit is submitted by pointer`, clicked.via === 'pointer', clicked)
+  const revision = await waitDisk(() => {
+    const current = readStoreJson(projectId, 'project.json')?.currentRevision
+    return current && current !== before ? current : null
+  }, `${id} committed revision`)
+  const artifact = readStoreJson(projectId, 'revisions', revision, 'revision-manifest.json')?.previews?.at(-1)
+  await editorPage.waitFor(`(() => {
+    const img = document.querySelector('[data-compare="right"] img')
+    return img && img.complete && img.naturalWidth > 0 && img.dataset.artifactDigest === ${JSON.stringify(artifact?.sha256)}
+  })()`, 30000)
+  check(`${id}: the browser shows the new revision's actual preview`, Boolean(artifact?.sha256), { before, revision, sha256: artifact?.sha256 })
+  return revision
+}
+
+async function showComparison(editorPage, before, after, filename) {
+  await editorPage.click('[data-view-tab="preview"]')
+  await editorPage.click('[data-compare-mode="revisions"]')
+  for (const [side, revision] of [['left', before.revision], ['right', after.revision]]) {
+    await editorPage.evaluate(`(() => {
+      const input = document.querySelector('[data-field="compare-${side}"]')
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(input, ${JSON.stringify(revision)})
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })()`)
+  }
+  await editorPage.waitFor(`['left','right'].every((side, index) => {
+    const img = document.querySelector('[data-compare="' + side + '"] img')
+    return img && img.complete && img.naturalWidth === 768 && img.dataset.artifactDigest === ${JSON.stringify([before.artifact.sha256, after.artifact.sha256])}[index]
+  })`, 30000)
+  await editorPage.screenshot(join(evidenceDirectory, filename))
+}
+
+/** Independently open the saved checkpoints once, without rendering or saving. */
+function inspectObjectEditCheckpoints() {
+  const inputPath = join(evidenceDirectory, 'checkpoint-inputs.json')
+  const outputPath = join(evidenceDirectory, 'checkpoint-observations.json')
+  const scriptPath = join(evidenceDirectory, 'inspect-checkpoints.py')
+  writeFileSync(inputPath, JSON.stringify(retainedRevisions.map(snapshot => ({ label: snapshot.label, path: join(evidenceDirectory, snapshot.files.checkpoint.path) }))))
+  writeFileSync(scriptPath, `import bpy, hashlib, json
+from pathlib import Path
+rows = []
+for source in json.loads(Path(${JSON.stringify(inputPath)}).read_text()):
+    bpy.ops.wm.open_mainfile(filepath=source['path'])
+    bpy.context.scene.frame_set(1)
+    graph = bpy.context.evaluated_depsgraph_get()
+    objects = {}
+    for obj in bpy.context.scene.objects:
+        ident = obj.get('deepblend_id')
+        if not ident or obj.type != 'MESH': continue
+        evaluated = obj.evaluated_get(graph)
+        mesh = evaluated.to_mesh()
+        geometry = {'vertices': [[round(v, 8) for v in vertex.co] for vertex in mesh.vertices], 'faces': [list(face.vertices) for face in mesh.polygons]}
+        materials = []
+        for slot in obj.material_slots:
+            mat = slot.material
+            if not mat: materials.append(None); continue
+            nodes = list(mat.node_tree.nodes) if mat.use_nodes else []
+            principled = next((node for node in nodes if node.type == 'BSDF_PRINCIPLED'), None)
+            anisotropy = principled.inputs.get('Anisotropic') if principled else None
+            tangent = principled.inputs.get('Tangent') if principled else None
+            materials.append({'id': mat.get('deepblend_id'), 'anisotropic': anisotropy.default_value if anisotropy else None,
+                'tangentLinked': tangent.is_linked if tangent else False,
+                'tangents': [{'direction': node.direction_type, 'axis': node.axis} for node in nodes if node.type == 'TANGENT'],
+                'hasNoise': any(node.type == 'TEX_NOISE' for node in nodes)})
+        objects[ident] = {'location': list(obj.location), 'polygons': len(mesh.polygons),
+            'geometrySha256': hashlib.sha256(json.dumps(geometry, separators=(',', ':')).encode()).hexdigest(), 'materials': materials}
+        evaluated.to_mesh_clear()
+    rows.append({'label': source['label'], 'objects': objects})
+Path(${JSON.stringify(outputPath)}).write_text(json.dumps(rows, indent=2))
+`)
+  const output = execFileSync(BLENDER_PATH, ['--background', '--factory-startup', '--python', scriptPath],
+    { encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+  writeFileSync(join(evidenceDirectory, 'checkpoint-inspection.log'), output)
+  const rows = JSON.parse(readFileSync(outputPath, 'utf8'))
+  const objects = label => rows.find(row => row.label === label).objects
+  const glassBefore = objects('glass-ceramic-before'), glassAfter = objects('glass-ceramic-after')
+  check('Blender checkpoint: both cap components moved 8 mm without changing their actual mesh',
+    ['cap', 'cap-inset'].every(id => Math.abs(glassAfter[id].location[0] - glassBefore[id].location[0] - 0.008) < 1e-6
+      && glassAfter[id].geometrySha256 === glassBefore[id].geometrySha256))
+  const speakerBefore = objects('modular-speaker-before'), speakerAfter = objects('modular-speaker-after')
+  check('Blender checkpoint: cabinet bevel changes actual mesh and the coarser array reduces evaluated weave faces',
+    speakerBefore['cabinet-shell'].geometrySha256 !== speakerAfter['cabinet-shell'].geometrySha256
+      && speakerAfter['grille-weft'].polygons < speakerBefore['grille-weft'].polygons,
+    { before: speakerBefore['grille-weft'].polygons, after: speakerAfter['grille-weft'].polygons })
+  const lampBefore = objects('metal-lamp-before'), lampAfter = objects('metal-lamp-after')
+  const material = lampAfter['shade-shell'].materials[0]
+  check('Blender checkpoint: the shade has real anisotropy, radial Z tangent wiring and procedural texture',
+    Math.abs(material.anisotropic - 0.55) < 1e-6 && material.tangentLinked && material.hasNoise
+      && material.tangents.some(tangent => tangent.direction === 'RADIAL' && tangent.axis === 'Z'), material)
+  check('Blender checkpoint: changing the shade material leaves base and hinge bindings and geometry intact',
+    ['weighted-base', 'hinge-front-cap', 'hinge-rear-cap'].every(id => equal(lampBefore[id], lampAfter[id])))
+  verifyRetainedBytes('after independent read-only Blender inspection')
+}
 
 /** Every Blender process whose command line mentions this test's store. */
 function blenderProcesses() {
@@ -113,7 +321,12 @@ let server = null
 const pageErrors = []
 
 try {
-  const patch = await storePatch(store)
+  // These are interaction checks, not another product-quality benchmark run.
+  // Keep real recipe geometry, render size and color management; cap only cost.
+  const isolatedRows = JSON.parse(await storePatch(store))
+  const hostRow = isolatedRows.find(row => row.id === 'deepblend-blender-host')
+  hostRow.config.maxPreviewSamples = 16
+  const patch = JSON.stringify(isolatedRows)
   server = await startWeb({ workspacePath: REPO_ROOT, patch, keepHome: true })
   const base = server.url.split('?')[0]
   console.log(`── test server on ${base} (store ${store}) ──`)
@@ -132,7 +345,9 @@ try {
     window.__wbreqs = []
     const originalFetch = window.fetch
     window.fetch = (input, init) => {
-      window.__wbreqs.push({ url: String(input), method: (init && init.method) || 'GET' })
+      let body
+      try { body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined } catch {}
+      window.__wbreqs.push({ url: String(input), method: (init && init.method) || 'GET', body })
       return originalFetch(input, init)
     }
   `)
@@ -238,8 +453,17 @@ try {
     baseRevision: 'r0001',
     operations: [{ op: 'entity.transform.update', entityId: 'subject', location: [0, 0, 1.5] }],
   }, null, 2)
+  await page.click('[data-view="scene"] details:has([data-field="scene-patch"]) > summary')
   await page.fill('[data-field="scene-patch"]', patchDocument)
-  await page.click('[data-action="apply-patch"]')
+  check('the advanced editor stays expanded while its draft is changed',
+    await page.evaluate('document.querySelector(\'[data-field="scene-patch"]\').closest("details").open'))
+  await page.waitFor(`(() => {
+    const button = document.querySelector('[data-action="apply-patch"]')
+    const bounds = button.getBoundingClientRect()
+    return bounds.width > 0 && bounds.height > 0 && !button.disabled
+  })()`, 5000)
+  const patchClick = await page.click('[data-action="apply-patch"]')
+  check('the expanded advanced submit control is reached by pointer', patchClick.via === 'pointer', patchClick)
   await page.waitFor('document.querySelector(\'[data-view="scene"] [data-result="ok"]\') !== null', 60000)
   const patchResult = await page.text('[data-view="scene"] [data-result="ok"]')
   check('the patch was committed as a new revision by the Host', /已提交 r0002/.test(patchResult ?? ''), patchResult)
@@ -418,13 +642,167 @@ try {
     escape.status === 400 || escape.status === 404, { status: escape.status, code: escape.body?.error?.code })
 
   // -------------------------------------------------------------------------
-  // 5. The console stayed clean
+  // 5. Real recipe object edits: no JSON editor and no replacement scene fixture.
+  // Creation and visual edits both render a committed single-camera preview, so
+  // before/after pixels use the same frame instead of mixing two view-plan modes.
   // -------------------------------------------------------------------------
+  const requestsBeforeObjectEdits = (await page.evaluate('window.__wbreqs')).length
+  const recipeProjectIds = {}
+  for (const recipeId of ['glass-ceramic', 'modular-speaker', 'metal-lamp']) {
+    await page.click('[data-view-tab="projects"]')
+    await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@1.0.0"]') !== null`, 30000)
+    await page.click(`[data-action="select-recipe:deepblend.${recipeId}@1.0.0"]`)
+    const id = `${PROJECT_TITLE}-${recipeId}`
+    recipeProjectIds[recipeId] = id
+    await page.fill('[data-field="project-title"]', id)
+    const createRecipeClick = await page.click('[data-action="create-project"]')
+    check(`${recipeId}: the shipped recipe is created by a pointer action`, createRecipeClick.via === 'pointer')
+    await waitDisk(() => readStoreJson(id, 'project.json')?.currentRevision === 'r0001', `${recipeId} creation`)
+    const before = retainRevision(id, 'r0001', `${recipeId}-before`)
+    await page.waitFor(`(() => {
+      const img = document.querySelector('[data-compare="current"] img')
+      return img && img.complete && img.naturalWidth === 768 && img.dataset.artifactDigest === ${JSON.stringify(before.artifact.sha256)}
+    })()`, 30000)
+    check(`${recipeId}: creating the recipe already shows its own real preview`, true)
+
+    let revision
+    if (recipeId === 'glass-ceramic') {
+      // The metal cap and its ceramic inset are separate authored objects. Move
+      // both by 8 mm, then compare the assembled result; do not detach the inset.
+      const capX = entity(before.spec, 'cap').transform.location[0] + 0.008
+      const insetX = entity(before.spec, 'cap-inset').transform.location[0] + 0.008
+      await commitEntity(page, id, 'cap', { 'location-x': capX * 1000 })
+      revision = await commitEntity(page, id, 'cap-inset', { 'location-x': insetX * 1000 })
+      const afterSpec = readStoreJson(id, 'revisions', revision, 'scene-spec.json')
+      const expected = structuredClone(before.spec)
+      entity(expected, 'cap').transform.location[0] = capX
+      entity(expected, 'cap-inset').transform.location[0] = insetX
+      check('glass: the assembled cap moves 8 mm; bottle, tray, material, lights and cameras are unchanged', equal(afterSpec, expected))
+    } else if (recipeId === 'modular-speaker') {
+      await commitEntity(page, id, 'cabinet-shell', { 'generator-bevel-width': 24 })
+      revision = await commitEntity(page, id, 'grille-weft', { 'modifier-0-count': 48, 'modifier-0-offset-x': 2.4 })
+      const afterSpec = readStoreJson(id, 'revisions', revision, 'scene-spec.json')
+      const expected = structuredClone(before.spec)
+      entity(expected, 'cabinet-shell').generator.bevel.width = 0.024
+      entity(expected, 'grille-weft').modifiers[0].count = 48
+      entity(expected, 'grille-weft').modifiers[0].offset[0] = 0.0024
+      check('speaker: bevel and array edits preserve modifier order, boolean clipping and every other scene field', equal(afterSpec, expected))
+      check('speaker: the coarser weave preserves its span to within 1 mm',
+        Math.abs((48 - 1) * 0.0024 - (64 - 1) * 0.0018) < 0.001)
+    } else {
+      revision = await commitEntity(page, id, 'shade-shell', { 'material-color': '#597c86', 'material-roughness': 0.28 })
+      const afterSpec = readStoreJson(id, 'revisions', revision, 'scene-spec.json')
+      const oldMaterial = before.spec.materials.find(material => material.id === entity(before.spec, 'shade-shell').materialId)
+      const newMaterial = afterSpec.materials.find(material => material.id === entity(afterSpec, 'shade-shell').materialId)
+      const expected = structuredClone(before.spec)
+      const expectedMaterial = structuredClone(oldMaterial)
+      expectedMaterial.id = newMaterial?.id
+      expectedMaterial.parameters.baseColor = [0x59, 0x7c, 0x86].map(value => {
+        const srgb = value / 255
+        return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
+      }).concat(oldMaterial.parameters.baseColor[3] ?? 1)
+      expectedMaterial.parameters.roughness = 0.28
+      entity(expected, 'shade-shell').materialId = newMaterial?.id
+      expected.materials.push(expectedMaterial)
+      expected.materials.sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+      check('lamp: only the shade receives a cloned material; every shared base/hinge material and other scene field is unchanged',
+        newMaterial?.id !== oldMaterial.id && equal(afterSpec, expected))
+      check('lamp: the committed local material retains anisotropy, radial tangent and procedural texture',
+        newMaterial?.parameters.anisotropic === 0.55 && newMaterial?.parameters.anisotropicRotation === oldMaterial.parameters.anisotropicRotation
+          && equal(newMaterial?.tangent, oldMaterial.tangent) && equal(newMaterial?.texture, oldMaterial.texture))
+    }
+    const after = retainRevision(id, revision, `${recipeId}-after`)
+    compareRenderedChange(before, after)
+    await showComparison(page, before, after, `${recipeId}-comparison.png`)
+    verifyRetainedBytes(`${recipeId} after editing`)
+
+    if (recipeId === 'metal-lamp') {
+      // The one-click undo is conditional on the version the edit actually made.
+      await selectEntity(page, 'shade-shell', revision)
+      await page.waitFor('document.querySelector(\'[data-action="editor-restore"]\') !== null && !document.querySelector(\'[data-action="editor-restore"]\').disabled', 30000)
+      const restoreClick = await page.click('[data-action="editor-restore"]')
+      check('lamp: returning to the pre-edit scene uses the visible restore control', restoreClick.via === 'pointer')
+      await waitDisk(() => readStoreJson(id, 'project.json')?.currentRevision === before.revision, 'conditional restoration')
+      check('lamp: restore moves the current pointer while retaining the edited version',
+        equal(readStoreJson(id, 'revisions', before.revision, 'scene-spec.json'), before.spec)
+          && existsSync(join(store, 'projects', id, 'revisions', revision, 'scene.blend')))
+      verifyRetainedBytes('after conditional restoration')
+      const currentRecordHash = sha256(readFileSync(join(store, 'projects', id, 'project.json')))
+      const refused = await fetch(`${base}deepblend/projects/${id}/restore`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ revision: before.revision, expectedCurrentRevision: revision }),
+      }).then(async response => ({ status: response.status, body: await response.json() }))
+      check('lamp: stale conditional restore is rejected without changing the current project record',
+        refused.body?.ok === false && refused.body?.error?.code === 'REVISION_CONFLICT'
+          && sha256(readFileSync(join(store, 'projects', id, 'project.json'))) === currentRecordHash,
+        { status: refused.status, error: refused.body?.error?.code })
+    }
+  }
+
+  // A second real page edits the same project while the first has an unsaved
+  // draft. Polling must expose the conflict, not silently rebase that draft.
+  const concurrentId = recipeProjectIds['metal-lamp']
+  await selectEntity(page, 'shade-shell', 'r0001')
+  await page.fill('[data-field="editor-material-roughness"]', '0.31')
+  let peerPage = null
+  try {
+    peerPage = await browser.newPage(pageUrl, {
+      onConsole: (type, text) => {
+        if (type === 'error' || type === 'exception') pageErrors.push(`peer ${type}: ${text}`)
+      },
+    })
+    await peerPage.waitFor(`document.querySelector('[data-project="${concurrentId}"]') !== null`, 30000)
+    await peerPage.click(`[data-project="${concurrentId}"] button`)
+    await peerPage.click('[data-action="reload"]')
+    await selectEntity(peerPage, 'shade-shell', 'r0001')
+    const peerRevision = await commitEntity(peerPage, concurrentId, 'shade-shell', { 'material-roughness': 0.33 })
+    const peer = retainRevision(concurrentId, peerRevision, 'metal-lamp-concurrent')
+    await page.click('[data-action="reload"]')
+    await page.waitFor('document.querySelector(\'[data-editor-conflict="true"]\') !== null', 30000)
+    check('concurrent edit: polling preserves the draft and refuses to overwrite the new revision',
+      await page.evaluate('document.querySelector(\'[data-field="editor-material-roughness"]\').value === "0.31" && document.querySelector(\'[data-action="editor-apply"]\').disabled'))
+    await page.screenshot(join(evidenceDirectory, 'conflicting-draft.png'))
+    const revisionNames = readdirSync(join(store, 'projects', concurrentId, 'revisions')).sort()
+    const refused = await fetch(`${base}deepblend/projects/${concurrentId}/patch`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ patch: { baseRevision: 'r0001', operations: [{ op: 'entity.transform.update', entityId: 'shade-shell', location: [0.05, 0, 0.31] }] } }),
+    }).then(async response => ({ status: response.status, body: await response.json() }))
+    check('concurrent edit: Host also rejects stale baseRevision without creating an orphan revision',
+      refused.body?.ok === false && refused.body?.error?.code === 'REVISION_CONFLICT'
+        && readStoreJson(concurrentId, 'project.json')?.currentRevision === peer.revision
+        && equal(readdirSync(join(store, 'projects', concurrentId, 'revisions')).sort(), revisionNames),
+      { status: refused.status, error: refused.body?.error?.code })
+    await page.click('[data-action="editor-reset"]')
+    await page.waitFor(`document.querySelector('[data-editor-base-revision="${peer.revision}"][data-editor-conflict="false"][data-editor-dirty="false"]') !== null`, 30000)
+    check('concurrent edit: explicit reset reads the winning revision rather than replaying the stale draft',
+      await page.evaluate('document.querySelector(\'[data-field="editor-material-roughness"]\').value === "0.33"'))
+    verifyRetainedBytes('after conflict and explicit reset')
+  } finally {
+    if (peerPage) {
+      await peerPage.close()
+      // Browser.close iterates its pages. This driver does not make a second
+      // Page.close on an already closed WebSocket settle, so remove our peer.
+      browser.pages = browser.pages.filter(candidate => candidate !== peerPage)
+    }
+  }
+
+  inspectObjectEditCheckpoints()
+
+  const editorRequests = (await page.evaluate('window.__wbreqs')).slice(requestsBeforeObjectEdits)
+  const editorWrites = editorRequests.filter(request => request.method === 'POST')
+  check('recipe/object/restore UI writes all use the existing Host routes',
+    editorWrites.length >= 9 && editorWrites.every(request => /\/(projects|patch|restore)$/.test(routeOf(request.url))),
+    editorWrites.map(request => routeOf(request.url)))
+  check('object edits send an immutable baseRevision and conditional restores send their expected revision',
+    editorWrites.filter(request => /\/patch$/.test(routeOf(request.url))).every(request => typeof request.body?.patch?.baseRevision === 'string')
+      && editorWrites.filter(request => /\/restore$/.test(routeOf(request.url))).every(request => typeof request.body?.expectedCurrentRevision === 'string'))
+
   check('the page logged no errors and threw nothing', pageErrors.length === 0, pageErrors.slice(0, 4))
 } catch (cause) {
   check('the suite completed without an unexpected throw', false, cause?.stack ?? String(cause))
 } finally {
-  if (page !== null) await page.screenshot('/tmp/deepblend-m6-workbench-e2e.png').catch(() => {})
+  if (page !== null) await page.screenshot(join(evidenceDirectory, 'last-page.png'))
+    .then(() => copyFileSync(join(evidenceDirectory, 'last-page.png'), '/tmp/deepblend-m6-workbench-e2e.png')).catch(() => {})
   if (browser !== null) await browser.close().catch(() => {})
   if (server !== null) {
     // The same verdict M4's suite makes: a server that finishes its own shutdown
@@ -444,6 +822,15 @@ try {
       }
     }
   }
+  writeFileSync(join(evidenceDirectory, 'report.json'), `${JSON.stringify({
+    schemaVersion: 'deepblend.workbench-object-edit-evidence/v1', startedAt, finishedAt: new Date().toISOString(),
+    status: results.some(result => !result.ok) ? 'failed' : 'technical-interaction-pass',
+    previewSamplesCeiling: 16, artisticReviewRequired: true, checks: results,
+    comparisons: objectEditEvidence,
+    revisions: retainedRevisions.map(({ spec, ...snapshot }) => snapshot),
+    limitation: 'Pixel differences establish a rendered effect; they do not establish artistic quality. Fixture operations are submitted by the real browser UI; only conflict refusal probes call Host HTTP directly.',
+  }, null, 2)}\n`)
+  console.log(`Object edit evidence: ${evidenceDirectory}`)
   rmSync(scratch, { recursive: true, force: true })
 }
 

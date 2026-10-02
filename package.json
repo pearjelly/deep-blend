@@ -2,7 +2,7 @@
   "name": "deepblend-studio",
   "version": "0.2.20",
   "private": true,
-  "description": "DeepBlend Studio \u2014 a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
+  "description": "DeepBlend Studio — a Blender 3D animation agent workbench built as a DSH Host Bundle plus an Agent Preset. SceneSpec is the source of truth, .blend is a compiled artifact.",
   "keywords": [
     "dsh",
     "deepseek-harness",
@@ -19,6 +19,10 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev:setup": "node deepblend/tools/development.mjs setup",
+    "dev:doctor": "node deepblend/tools/development.mjs doctor",
+    "dev:test": "node deepblend/tools/development.mjs test",
+    "dev:acceptance": "node deepblend/tools/development.mjs acceptance",
     "setup": "node deepblend/tools/link-workspace.mjs",
     "setup:check": "node deepblend/tools/link-workspace.mjs --check",
     "blender:install": "node deepblend/tools/install-blender.mjs",
@@ -46,7 +50,12 @@
     "test:acceptance": "bash deepblend/tests/run-all.sh",
     "docs:images": "node deepblend/tools/capture-docs-images.mjs",
     "release:parity": "node deepblend/tools/release-route-parity.mjs",
-    "docs:counts": "node deepblend/tools/count-assertions.mjs --check"
+    "docs:counts": "node deepblend/tools/count-assertions.mjs --check",
+    "quality:check": "node deepblend/tools/quality-benchmark.mjs --check",
+    "quality:render": "node deepblend/tools/quality-benchmark.mjs",
+    "quality:verify": "node deepblend/tools/verify-quality-benchmark.mjs",
+    "recipes:check": "node deepblend/tools/sync-recipes.mjs --check",
+    "recipes:sync": "node deepblend/tools/sync-recipes.mjs"
   },
   "repository": {
     "type": "git",

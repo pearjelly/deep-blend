@@ -282,8 +282,8 @@ export function buildViewPlan(input) {
  *
  * The subject is always tracked. The others matter because occlusion is only
  * visible as a comparison: without a hiding object's own numbers, "the subject is
- * 40% hidden" says nothing about what to move. They are ranked by bounding-box
- * volume, which is a proxy for "big enough to hide something" and costs nothing to
+ * 40% hidden" says nothing about what to move. They are ranked by bounding
+ * radius, which is a proxy for "big enough to hide something" and costs nothing to
  * compute — the alternative, tracking everything, would multiply the render count
  * of every view.
  *
@@ -293,7 +293,7 @@ export function buildViewPlan(input) {
  */
 export function trackedObjects(spec, subjectId) {
   const entities = Array.isArray(spec?.entities) ? spec.entities : []
-  // Every declared PART is tracked regardless of size. The volume ranking below is a
+  // Every declared PART is tracked regardless of size. The radius ranking below is a
   // guess about what might hide the subject; a declaration is not a guess, and a small
   // component that is missing is exactly the defect that a size ranking would skip.
   const declared = subjectParts(spec)
@@ -349,21 +349,35 @@ export function subjectParts(spec) {
  * The rule now has a stated order of evidence, and every step of it is a fact about
  * the file rather than a fact about the alphabet:
  *
- *   1. what the ACTIVE camera aims at — a camera exists to frame something, and
+ *   1. the explicitly saved project.reviewSubjectId, even if it is unavailable;
+ *   2. otherwise what the ACTIVE camera aims at — a camera exists to frame something, and
  *      `targetEntityId` is the author saying what;
- *   2. a `hero-product` tag when exactly one entity carries it;
- *   3. among several, the largest by volume, ties broken by id;
- *   4. with no tag at all, the largest visible entity, ties broken by id.
+ *   3. entities tagged `hero-product`, then entities tagged `subject`;
+ *   4. among several in the chosen tag group, the largest bounding radius,
+ *      ties broken by id;
+ *   5. with neither tag, the largest visible non-environment entity.
  *
- * Step 3 is deliberately "largest" rather than "first": a scene that tags four things
+ * Step 4 is deliberately "largest" rather than "first": a scene that tags four things
  * hero is ambiguous, and the biggest of them is the only defensible reading.
  *
  * @param {object} spec
- * @returns {{ id: string|null, source: string, candidates: string[] }}
+ * @returns {{ id: string|null, source: string, candidates: string[], mode: 'explicit'|'automatic', available: boolean, reason: string|null }}
  */
 export function resolveSubject(spec) {
   const entities = Array.isArray(spec?.entities) ? spec.entities : []
   const visible = entities.filter(entity => entity.visible !== false)
+  const result = (id, source, candidates, mode = 'automatic') => {
+    const entity = entities.find(entry => entry.id === id)
+    const reason = id === null ? 'No review subject is available.'
+      : !entity ? `Review subject "${id}" does not exist in this revision.`
+        : entity.type === 'empty' ? `Review subject "${id}" is an empty and cannot be measured.`
+          : entity.visible === false ? `Review subject "${id}" is hidden in this revision.` : null
+    return { id, source, candidates, mode, available: reason === null, reason }
+  }
+  if (spec?.project?.reviewSubjectId !== undefined) {
+    const id = spec.project.reviewSubjectId
+    return result(id, 'it is the explicitly saved review subject', [id], 'explicit')
+  }
 
   // 1. What the shot is actually framed on.
   const cameras = Array.isArray(spec?.cameras) ? spec.cameras : []
@@ -372,33 +386,33 @@ export function resolveSubject(spec) {
   if (active?.targetEntityId !== undefined) {
     const aimed = visible.find(entity => entity.id === active.targetEntityId)
     if (aimed !== undefined) {
-      return { id: aimed.id, source: `the active camera "${active.id}" aims at it`, candidates: [aimed.id] }
+      return result(aimed.id, `the active camera "${active.id}" aims at it`, [aimed.id])
     }
   }
 
-  const tagged = visible.filter(entity => Array.isArray(entity.tags) && entity.tags.includes('hero-product'))
+  const hero = visible.filter(entity => (entity.tags ?? []).includes('hero-product'))
+  const tag = hero.length > 0 ? 'hero-product' : 'subject'
+  const tagged = hero.length > 0 ? hero : visible.filter(entity => (entity.tags ?? []).includes('subject'))
   if (tagged.length === 1) {
-    return { id: tagged[0].id, source: 'it is the only entity tagged hero-product', candidates: [tagged[0].id] }
+    return result(tagged[0].id, `it is the only entity tagged ${tag}`, [tagged[0].id])
   }
 
-  const pool = tagged.length > 1 ? tagged : visible.filter(entity => entityExtent(entity) > 0)
-  if (pool.length === 0) return { id: null, source: 'this scene has no entity to be the subject of', candidates: [] }
+  const pool = tagged.length > 1 ? tagged : visible.filter(entity =>
+    !(entity.tags ?? []).includes('environment') && entityExtent(entity) > 0)
+  if (pool.length === 0) return result(null, 'this scene has no visible non-environment subject candidate', [])
 
-  // Descending volume, and the id only breaks exact ties — so two entities of equal
+  // Descending bounding radius, and the id only breaks exact ties — so two entities of equal
   // size resolve the same way on every machine and after every re-sort.
   const ranked = [...pool].sort((left, right) => {
-    const byVolume = entityExtent(right) - entityExtent(left)
-    if (byVolume !== 0) return byVolume
+    const byExtent = entityExtent(right) - entityExtent(left)
+    if (byExtent !== 0) return byExtent
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
   })
   const candidates = ranked.map(entity => entity.id)
-  return {
-    id: ranked[0].id,
-    source: tagged.length > 1
-      ? `${tagged.length} entities are tagged hero-product, so the largest was taken; the ambiguity is reported`
-      : 'it is the largest visible entity and nothing is tagged hero-product',
-    candidates,
-  }
+  return result(ranked[0].id, tagged.length > 1
+      ? `${tagged.length} entities are tagged ${tag}, so the largest was taken; the ambiguity is reported`
+      : 'it is the largest visible non-environment entity and nothing is tagged hero-product or subject',
+    candidates)
 }
 
 /**

@@ -1,0 +1,164 @@
+# 素材版本与重建
+
+`blender_asset_ingest` 将素材复制到项目，然后返回 `asset.add` 所需的路径、类型和
+SHA-256。导入本身不提交场景修订；使用返回的完整声明创建修订后，场景才会引用素材。
+
+## 同名素材更新
+
+导入后的路径为 `assets/raw/<sha256>.<type>`，原始文件名保存在素材清单中。
+相同类型、相同内容会复用文件；同名文件内容改变会创建另一个文件。
+重新使用同一个 `assetId` 导入，只更新清单中的当前条目，不替换旧文件，也不改写旧修订。
+要更新场景，需通过场景补丁更新对应素材声明。
+
+`assets/manifest.json` 的 `assets` 保存当前条目，`versions` 保存历次导入来源、许可和摘要。
+旧修订使用其自己的 SceneSpec 路径，不通过当前条目寻找文件。因此可以在更新素材后
+重建旧修订。清单中的许可是调用者提供的信息，导入不会判断许可是否允许使用。
+
+## 完整性检查
+
+提交补丁前会检查所有已有素材的摘要；Blender 编译前再次检查，然后才清空并重建场景。
+修改内容寻址文件会导致 `ASSET_HASH_MISMATCH`。不要手动修改 `assets/raw` 中的文件；
+修改原始素材后重新导入。旧项目中没有摘要、也不使用内容寻址路径的素材，尚不受这一检查保护。
+
+这仍不是完整的依赖锁：glTF、OBJ 等文件引用的外部纹理或其他文件尚未自动打包、逐一锁定。
+当前应优先使用包含所需资源的 GLB；还需保留真实导入和重建验证。
+系统尚未提供按所有修订引用关系清理素材的功能，不要自行删除旧文件来腾出空间。
+
+## 原生 Blender 文件
+
+`.blend` 通过 Blender 数据块加载接口导入，不执行文件中的 Text 脚本。
+当前支持单场景的实际成员，或没有场景的对象库；保留原生对象类型、父子关系、
+源材质和对象的 `hide_render` / `hide_viewport`。场景中未链接的孤立对象不作为素材导入。
+实体默认可见或 `visible:true` 时仍保留源对象隐藏状态；`visible:false` 隐藏整个实例。
+
+为避免展开原型或混入另一场景，当前明确拒绝集合实例、多场景、多视图层，以及
+集合/视图层的隐藏或排除设置。遇到这些限制，应先在 Blender 中整理成受支持的素材，
+不能把拒绝当作已经保留了完整集合语义。原生曲面同样检查实际使用材质要求的命名 UV。
+真实夹具覆盖父子/材质/对象可见性、保存重开、集合实例、隐藏集合、视图层排除和多场景；
+多视图层拒绝目前只有代码检查，尚无单独的真实夹具。
+
+## 金属反射方向
+
+Principled/Glass 材质可声明各向异性强度与方向。例如旋压桌灯的圆形底座：
+
+```json
+{
+  "id": "spun-metal",
+  "shader": "principled",
+  "parameters": {
+    "baseColor": [0.65, 0.58, 0.45, 1],
+    "metallic": 1,
+    "roughness": 0.28,
+    "anisotropic": 0.55,
+    "anisotropicRotation": 0
+  },
+  "tangent": { "mode": "radial", "axis": "z" }
+}
+```
+
+`anisotropic` 与 `anisotropicRotation` 都在 `[0,1]`；旋转用整圈比例，`0.25` 表示 90°。
+方向可为物体局部轴的 `radial`，或 `{ "mode": "uv", "uvMap": "UVMap" }`。
+圆形旋压件适合径向设置；其他形状应根据表面方向选择 UV 或另设材质。
+这控制高光方向，细划痕仍需纹理，不能把有方向的高光当成已经生成微小刻痕。
+
+强度或旋转非零（含动画未来帧）时必须声明方向；UV 方向必须在实际使用该材质的表面存在。
+实际用到的非零各向异性要求 Cycles；保存检查点后改用非 Cycles 渲染也会明确拒绝。
+未使用的材质槽和纯零状态不会限制无关物体或引擎。
+这是 [Blender Principled 的能力边界](https://docs.blender.org/manual/en/5.2/render/shader_nodes/shader/principled.html)。
+`material.tangent.set` 设置/清除方向；清除前应将强度、旋转及相应动画归零。
+
+## 图片 PBR 材质
+
+先用 `blender_asset_ingest` 导入 PNG 或 JPEG，再用 `asset.add` 声明返回的素材。
+`material.images.set` 将这些素材绑定到已有 principled 或 glass 材质，完整替换图片配置；
+传 `images:null` 移除绑定。不能在同一材质同时使用图片配置和程序化 `texture`，切换时
+先通过 `material.texture.set` 将程序化纹理设为 null。
+
+支持 `baseColor`、`roughness`、`metallic`、`normal`、`alpha`、`emissionColor`。
+每个通道使用 `{assetId: "素材标识"}`，并可指定 `uvMap`、`scale:[x,y,z]`、
+`offset:[x,y,z]`；UV 平铺通常只调整前两项。默认使用活动 UV、单位缩放、零偏移和重复平铺。
+贴图连接会替换对应标量输入；未绑定的通道保留原参数。发光图仍需设置 `emissionStrength`。
+
+粗糙度、金属度和透明度可以用 `channel` 选择 r/g/b/a，默认 r，因此可从一张打包纹理
+读取不同数值通道。颜色和发光图使用 sRGB；数值图及法线图使用 Non-Color。
+法线采用 OpenGL 切线空间，`strength` 默认 1，范围 0–10；DirectX 法线需先转换。
+这一处理遵循 [Blender 法线节点说明](https://docs.blender.org/manual/en/5.2/render/shader_nodes/displacement/normal_map.html)。
+
+图片单边不得超过 8192 像素；当前在 Blender 解码后检查此限制，解码前内存预算仍需完善。
+绑定图片的网格必须有 UV，指定名称也必须存在，否则编译失败。图片会打包进检查点，
+所以单独打开 `.blend` 不依赖原图；从 SceneSpec 重建仍需保留素材文件及其摘要。
+目前尚不支持图片位移、自动 UV 展开和图片/程序化混合。
+
+## 部件与材质槽
+
+保存包含导入资产的检查点后，`blender_scene_get` 返回 `assetParts`：实体、来源部件路径、
+父路径、原始槽清单 sourceMaterialSlots 和当前有效槽 materialSlots，并附素材摘要与选择器版本。未编译的修订返回
+空清单。先读清单，再复制准确的 `partId` 和 sourceMaterialSlots 中的 index 作为 `slotIndex`，
+不要根据 Blender 显示名或最终槽猜测。整体覆盖可能把最终槽合并成一个，但原始槽仍可定位；
+原始零槽部件的 sourceMaterialSlots 为空，只能使用部件全槽绑定。
+
+```json
+{
+  "op": "entity.materialBindings.set",
+  "entityId": "product",
+  "materialBindings": [
+    { "partId": "/assembly/body", "materialId": "paint" },
+    { "partId": "/assembly/body", "slotIndex": 1, "materialId": "label" }
+  ]
+}
+```
+
+该操作完整替换局部绑定，修改一个绑定时需保留其余项。省略 slotIndex 会替换该网格全部
+材质槽；带 slotIndex 只替换指定原始槽。优先级为实体 materialId、部件全槽、指定槽，
+与数组顺序无关。保留原槽数量、面的材质索引和 UV，同一资产的其他实例不会受影响。
+只有网格部件可选择；选中父节点不会隐式修改后代。不存在的部件或槽、重复绑定会明确失败。
+零槽网格可以使用部件全槽覆盖创建一个槽，不能用指定索引添加槽。
+
+空数组清除局部绑定：若没有实体 materialId，恢复资产原材质；若仍有 materialId，恢复
+原有整体覆盖行为（一个槽）。有局部绑定时，整体覆盖会保留原槽布局供后续局部替换。
+图片材质只要求实际使用该材质的网格具有对应 UV。
+
+partId 是加实例容器前捕获的资产内部父路径，各段使用 JSON Pointer 的 ~0/~1 转义。
+同一素材字节、导入器版本和导入选项下，它不随实例顺序或 Blender 自动重命名而变化。
+更新素材内容或导入器后应重新读取库存；目前尚未提供跨资产版本的自动部件匹配。
+
+## 环境图照明
+
+导入等距柱状全景图并用 `asset.add` 声明后，通过 `world.set` 配置完整世界：
+
+```json
+{
+  "op": "world.set",
+  "world": {
+    "strength": 0.6,
+    "environment": { "assetId": "studio-environment", "rotation": 1.5707963268 }
+  }
+}
+```
+
+`rotation` 是绕世界 Z 轴的弧度，默认 0；示例为四分之一周。
+`strength` 控制整体照明强度。环境图同时影响背景、照明和反射；配置环境图时，`color`
+不参与计算。`world.set` 完整替换世界，所以改亮度时要保留 environment；省略它会恢复
+纯色世界。这遵循 [Blender 环境纹理节点](https://docs.blender.org/manual/en/5.2/render/shader_nodes/textures/environment.html)
+的等距柱状投影方式，目前不支持镜球投影或背景与照明分别设置。
+
+支持 HDR、EXR、PNG、JPEG。HDR/EXR 按线性 Rec.709 解释，PNG/JPEG 按 sRGB 解释；
+ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高亮反射；普通图片没有
+相同的亮度范围。贴图单边上限同样为 8192 像素，在解码后检查。
+环境图打包进检查点；从 SceneSpec 重建仍依赖原始素材。引用中的环境素材不能删除，
+需先修改世界设置。当前 HDR/EXR 用于环境图，材质图片通道仍接受 PNG/JPEG。
+
+## 大文件、取消与来源
+
+本地复制、下载和摘要计算采用流式处理。`assetMaxBytes` 在读取过程中限制实际字节数，
+不只依赖文件大小或 HTTP 声明。远程下载默认上限为 120 秒，可在 host 配置中通过
+`assetFetchTimeoutMs` 调整；直接调用宿主接口时也可传入 `AbortSignal`。
+下载失败、取消或超时会删除临时文件。
+
+网络来源仍需批准。HTTP(S) 重定向按现有跳数限制处理，结果记录重定向链；尚未按目标主机
+重新授权。结果、清单和错误中的 URL 会移除查询参数，
+避免保存签名链接的查询凭据。脱敏记录不能用于重新下载原来的签名链接。
+
+本地来源目前仍可指定进程能读取的文件，尚未限制为授权素材目录。目标路径检查不等于
+来源授权。同机宿主进程通过项目写锁协调素材清单发布；下载和复制在锁外进行。
+遇到 REVISION_CONFLICT 可在当前写入结束后重试，暂存文件会清理。详见[修订并发](revision-concurrency.md)。

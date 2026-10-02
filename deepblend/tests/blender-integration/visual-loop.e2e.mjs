@@ -91,6 +91,15 @@ if (studio === undefined) {
   process.exit(1)
 }
 
+// Scripted artistic judgments test orchestration, not real artistic quality.
+function artisticAssessment(review) {
+  const viewId = review.perView[0].viewId
+  return { dimensions: Object.fromEntries(['geometry', 'materials', 'lighting', 'goalFit'].map(key => [key, {
+    status: review.score >= 90 ? 'pass' : 'needs_work', viewId, confidence: 0.95,
+    evidence: `Scripted ${key} judgment for the Blender integration fixture`,
+  }])), comparison: { verdict: 'equivalent', viewId, confidence: 0.95, evidence: 'Scripted comparison preserves the fixture artistic assessment' } }
+}
+
 /** Create a project from a fixture and return its id plus the first revision. */
 async function projectFrom(fixtureDirectory, title) {
   const spec = JSON.parse(readFileSync(join(FIXTURES, fixtureDirectory, 'scene-spec.json'), 'utf8'))
@@ -394,11 +403,16 @@ try {
     // is not that a light went up — it is that a round which did not improve would
     // have been refused, so the score reaching the threshold IS the adoption rule
     // working on real pixels.
+    const reviewRequests = []
     const run = await studio.visualLoop({
       projectId,
       revision,
       ...PREVIEW,
-      reviewer: async ({ round }) => ({
+      reviewer: async request => {
+        const { iteration: round, review } = request
+        reviewRequests.push(request)
+        return ({
+        artistic: artisticAssessment(review),
         findings: [{
           category: 'exposure',
           viewId: 'active-camera',
@@ -407,19 +421,18 @@ try {
           confidence: 0.9,
           evidence: 'the whole sheet reads dark; the lamps are barely contributing',
         }],
-        // The first round undereggs the fix on purpose. "Raise the light a bit" is a
-        // REAL improvement that does not clear the threshold, so a second round has to
-        // run — which is the path a one-shot fix would never exercise.
+        // This measured fixture needs 900 to clear the exposure threshold. The
+        // scripted artistic port checks orchestration, not actual art judgment.
         operations: [{
           op: 'light.update',
           lightId: 'window-key',
-          energy: round === 1 ? 8 : 900,
+          energy: 900,
         }],
         note: `raise the key light (round ${round})`,
-      }),
+      }) },
     })
     check('a loop that can fix the exposure passes, and says so',
-      run.passed === true && run.finalScore >= 90 && run.stopReason === 'PASSING_SCORE',
+      run.passed === true && run.finalScore >= 90 && run.stopReason === 'PASSING_REVIEW',
       { passed: run.passed, score: run.finalScore, stop: run.stopReason, rounds: run.rounds.map(round => `${round.outcome}:${round.score}`) })
     check('the score rose monotonically across the adopted rounds',
       run.rounds.every((round, index) => index === 0 || round.score >= run.rounds[index - 1].score),
@@ -428,6 +441,27 @@ try {
       run.finalRevision !== revision &&
       studio.store.readRecord(projectId).currentRevision === run.finalRevision,
       { from: revision, to: run.finalRevision })
+    check('the real automatic loop fixes the baseline subject across both rendered revisions',
+      run.subjectFixed === true && run.fixedSubjectId === 'coffee-table' && reviewRequests.length === 2 &&
+      reviewRequests[0].review.subject.id === 'coffee-table' && reviewRequests[0].review.subject.available === true &&
+      reviewRequests[1].review.subject.id === 'coffee-table' && reviewRequests[1].review.subject.mode === 'fixed' &&
+      reviewRequests[1].review.subject.available === true,
+      reviewRequests.map(request => request.review.subject))
+    check('the candidate reviewer receives both real images and the authored scene context',
+      reviewRequests.length === 2 && reviewRequests[1].baselineReview.revision === revision &&
+      Buffer.compare(reviewRequests[0].sheetPng, reviewRequests[1].baselineSheetPng) === 0 &&
+      Buffer.compare(reviewRequests[1].sheetPng, reviewRequests[1].baselineSheetPng) !== 0 &&
+      reviewRequests[0].review.sceneContext.entities.length > 0 &&
+      typeof reviewRequests[0].review.sceneContext.project.goal === 'string')
+    const persistedComparison = studio.store.readRevisionManifest(projectId, run.finalRevision).reviews
+      .find(entry => entry.path.endsWith('-comparison.json'))
+    const savedArt = persistedComparison ? JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), persistedComparison.path), 'utf8')).review : null
+    check('the comparison evidence survives in the revision record with its exact baseline sheet hash',
+      savedArt?.artistic.status === 'pass' && savedArt.comparisonBaseline.revision === revision &&
+      savedArt.comparisonBaseline.sheetArtifact.sha256 === reviewRequests[0].review.sheetArtifact.sha256)
+    check('the persisted comparison retains its actual fixed subject identity',
+      savedArt?.subject?.id === 'coffee-table' && savedArt.subject.mode === 'fixed' && savedArt.subject.available === true,
+      savedArt?.subject)
     check('a passing run reports no handover', run.handover === null)
     check('the loop took at most the configured number of rounds',
       run.iterations <= 5, run.iterations)
@@ -438,8 +472,8 @@ try {
   // =========================================================================
 
   {
-    // On real pixels the interesting statement is that ONE round means ONE review,
-    // ONE patch and ONE re-measurement — not four. The full five-round schedule is
+    // One attempted patch includes baseline and candidate artistic reviews,
+    // and one candidate re-measurement. The full five-round schedule is
     // asserted in `contract/visual-loop.test.mjs`, where a round costs nothing; what
     // this case adds is that the wiring performs exactly the rounds it was told to,
     // against real Blender renders.
@@ -470,8 +504,9 @@ try {
         }
       },
     })
-    check('a one-round budget performs exactly one review and one patch',
-      reviewerCalls === 1 && run.iterations === 1 && run.rounds.length === 2,
+    check('a one-round budget permits one proposed patch and a before/after review',
+      reviewerCalls === 2 && run.iterations === 1 && run.rounds.length === 2 &&
+      run.rounds.filter(round => round.appliedPatch !== null).length === 1,
       { reviewerCalls, iterations: run.iterations, rounds: run.rounds.map(entry => entry.outcome) })
     check('the loop stops and says why, rather than silently continuing',
       run.stopReason === 'MAX_ITERATIONS' && run.passed === false,
@@ -485,7 +520,7 @@ try {
   }
 
   // =========================================================================
-  // 8b. A passing revision is not sent to a reviewer at all
+  // 8b. Technical success must not skip artistic review
   // =========================================================================
 
   {
@@ -494,10 +529,10 @@ try {
       projectId: room.projectId,
       revision: room.revision,
       ...PREVIEW,
-      reviewer: async () => { reviewerCalls += 1; return { findings: [], operations: [] } },
+      reviewer: async ({ review }) => { reviewerCalls += 1; return { findings: [], operations: [], artistic: artisticAssessment(review) } },
     })
-    check('a revision that already passes is not reviewed and not repaired',
-      run.passed === true && run.iterations === 0 && reviewerCalls === 0 && run.handover === null,
+    check('a technically passing revision still receives an artistic review',
+      run.passed === true && run.iterations === 1 && reviewerCalls === 1 && run.handover === null,
       { iterations: run.iterations, reviewerCalls, stop: run.stopReason })
   }
 
@@ -581,6 +616,40 @@ try {
       sampled.sheet.placements.length === sampled.views.length
         && sampled.sheetArtifact.columns * sampled.sheetArtifact.rows >= sampled.views.length,
       { views: sampled.views.length, columns: sampled.sheetArtifact.columns, rows: sampled.sheetArtifact.rows })
+  }
+  // A known camera target point stays in the room while the explicitly bound
+  // table moves far outside every camera. The zero silhouette comes from Blender.
+  {
+    const { projectId, revision } = await projectFrom('interior-room', 'Outside frame subject')
+    const patched = await studio.applyScenePatch({ projectId, baseRevision: revision, saveCheckpoint: true,
+      renderPreview: false, operations: [
+        { op: 'project.reviewSubject.set', entityId: 'coffee-table' },
+        { op: 'entity.transform.update', entityId: 'coffee-table', location: [100, 100, 100] },
+      ] })
+    const outside = await studio.visualReview({ projectId, revision: patched.revision, roles: ['active-camera'], ...PREVIEW })
+    const measured = objectById(viewById(outside, 'active-camera'), 'coffee-table')
+    check('a real out-of-frame subject produces a zero isolated silhouette, not missing measurements',
+      measured?.silhouettePixels === 0 && measured.visiblePixels === 0 && measured.inFrame === false,
+      measured)
+    check('the out-of-frame scene keeps the explicitly bound table and complete measurements',
+      outside.subjectId === 'coffee-table' && outside.subject.mode === 'explicit' && outside.subject.available === true,
+      outside.subject)
+    check('the actual empty subject mask cannot earn a passing technical review',
+      outside.score <= 82 && outside.pass === false && outside.technicalPass === false &&
+      outside.issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME' && issue.objectId === 'coffee-table'),
+      { score: outside.score, issues: issueCodes(outside) })
+    const persisted = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, patched.revision), 'visual-reviews/round-0.json'))).review
+    check('the failed framing and selected identity survive in the actual revision review',
+      persisted.subject.id === 'coffee-table' && persisted.technicalPass === false &&
+      persisted.issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME'))
+    const hidden = await studio.applyScenePatch({ projectId, baseRevision: patched.revision,
+      saveCheckpoint: true, renderPreview: false,
+      operations: [{ op: 'entity.visibility.set', entityId: 'coffee-table', visible: false }] })
+    const hiddenSpec = studio.store.readRevisionSpec(projectId, hidden.revision)
+    check('a real checkpoint can retain the explicitly selected subject after it is hidden',
+      hidden.checkpoint !== null && hiddenSpec.project.reviewSubjectId === 'coffee-table' &&
+      hiddenSpec.entities.find(entity => entity.id === 'coffee-table').visible === false,
+      { checkpoint: hidden.checkpoint, reviewSubjectId: hiddenSpec.project.reviewSubjectId })
   }
 } finally {
   rmSync(workspace, { recursive: true, force: true })

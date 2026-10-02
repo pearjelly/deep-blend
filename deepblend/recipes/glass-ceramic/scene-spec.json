@@ -1,0 +1,1407 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "glass-ceramic",
+    "title": "澄湾 · Empty glass fragrance bottle and ceramic tray",
+    "goal": "An original empty 145 mm glass bottle with a continuous 3.6–4.2 mm wall, 8 mm base, rounded shoulder and open lip; champagne metal neck sleeve and a detached ceramic-inset cap resting on a 240 mm glazed tray with an integral foot ring. Bright soft studio photography must reveal the hollow glass and true contacts. No liquid, labels or external assets.",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 48,
+    "aspectRatio": "4:3",
+    "activeCamera": "hero"
+  },
+  "materials": [
+    {
+      "id": "clear-glass",
+      "shader": "glass",
+      "parameters": {
+        "baseColor": [
+          0.98,
+          0.995,
+          0.985,
+          1
+        ],
+        "roughness": 0.022,
+        "metallic": 0,
+        "transmissionWeight": 1,
+        "ior": 1.46,
+        "alpha": 1
+      }
+    },
+    {
+      "id": "celadon-glaze",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.18,
+          0.3,
+          0.265,
+          1
+        ],
+        "roughness": 0.2,
+        "metallic": 0,
+        "coatWeight": 0.3,
+        "ior": 1.48
+      },
+      "texture": {
+        "type": "noise",
+        "scale": 900,
+        "detail": 2,
+        "bump": 0.0007,
+        "roughnessVariation": 0.022,
+        "colorVariation": 0.012
+      }
+    },
+    {
+      "id": "champagne-metal",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.61,
+          0.42,
+          0.21,
+          1
+        ],
+        "metallic": 0.9,
+        "roughness": 0.27
+      },
+      "texture": {
+        "type": "noise",
+        "scale": 1250,
+        "detail": 2,
+        "stretch": [
+          1,
+          1,
+          3
+        ],
+        "bump": 0.00015,
+        "roughnessVariation": 0.025,
+        "colorVariation": 0.008
+      }
+    },
+    {
+      "id": "warm-paper",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.64,
+          0.63,
+          0.58,
+          1
+        ],
+        "roughness": 0.82
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "bottle",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.027,
+            0
+          ],
+          [
+            0.0287793,
+            0.00011816
+          ],
+          [
+            0.03035937,
+            0.00047656
+          ],
+          [
+            0.03172852,
+            0.00108105
+          ],
+          [
+            0.032875,
+            0.0019375
+          ],
+          [
+            0.03378711,
+            0.00305176
+          ],
+          [
+            0.03445313,
+            0.00442969
+          ],
+          [
+            0.03486133,
+            0.00607715
+          ],
+          [
+            0.035,
+            0.008
+          ],
+          [
+            0.0350049,
+            0.015902
+          ],
+          [
+            0.0350152,
+            0.023936
+          ],
+          [
+            0.0350243,
+            0.031994
+          ],
+          [
+            0.0350256,
+            0.039968
+          ],
+          [
+            0.0350125,
+            0.04775
+          ],
+          [
+            0.0349784,
+            0.055232
+          ],
+          [
+            0.0349167,
+            0.062306
+          ],
+          [
+            0.0348208,
+            0.068864
+          ],
+          [
+            0.0346841,
+            0.074798
+          ],
+          [
+            0.0345,
+            0.08
+          ],
+          [
+            0.03422107,
+            0.08327368
+          ],
+          [
+            0.03360449,
+            0.08636133
+          ],
+          [
+            0.03269934,
+            0.08928784
+          ],
+          [
+            0.03155469,
+            0.09207812
+          ],
+          [
+            0.0302196,
+            0.09475708
+          ],
+          [
+            0.02874316,
+            0.09734961
+          ],
+          [
+            0.02717444,
+            0.09988062
+          ],
+          [
+            0.0255625,
+            0.102375
+          ],
+          [
+            0.02395642,
+            0.10485767
+          ],
+          [
+            0.02240527,
+            0.10735352
+          ],
+          [
+            0.02095813,
+            0.10988745
+          ],
+          [
+            0.01966406,
+            0.11248437
+          ],
+          [
+            0.01857214,
+            0.11516919
+          ],
+          [
+            0.01773145,
+            0.1179668
+          ],
+          [
+            0.01719104,
+            0.1209021
+          ],
+          [
+            0.017,
+            0.124
+          ],
+          [
+            0.017,
+            0.137
+          ],
+          [
+            0.017156,
+            0.137744
+          ],
+          [
+            0.017528,
+            0.138272
+          ],
+          [
+            0.017972,
+            0.138728
+          ],
+          [
+            0.018344,
+            0.139256
+          ],
+          [
+            0.0185,
+            0.14
+          ],
+          [
+            0.0185,
+            0.1422
+          ],
+          [
+            0.0184037,
+            0.14310185
+          ],
+          [
+            0.01812963,
+            0.14381481
+          ],
+          [
+            0.0177,
+            0.14435
+          ],
+          [
+            0.01713704,
+            0.14471852
+          ],
+          [
+            0.01646296,
+            0.14493148
+          ],
+          [
+            0.0157,
+            0.145
+          ],
+          [
+            0.01492963,
+            0.14493148
+          ],
+          [
+            0.01423704,
+            0.14471852
+          ],
+          [
+            0.01365,
+            0.14435
+          ],
+          [
+            0.0131963,
+            0.14381481
+          ],
+          [
+            0.0129037,
+            0.14310185
+          ],
+          [
+            0.0128,
+            0.1422
+          ],
+          [
+            0.0128,
+            0.124
+          ],
+          [
+            0.01299775,
+            0.12071509
+          ],
+          [
+            0.01355703,
+            0.1175957
+          ],
+          [
+            0.01442686,
+            0.11461987
+          ],
+          [
+            0.01555625,
+            0.11176562
+          ],
+          [
+            0.01689424,
+            0.10901099
+          ],
+          [
+            0.01838984,
+            0.10633398
+          ],
+          [
+            0.01999209,
+            0.10371265
+          ],
+          [
+            0.02165,
+            0.101125
+          ],
+          [
+            0.0233126,
+            0.09854907
+          ],
+          [
+            0.02492891,
+            0.09596289
+          ],
+          [
+            0.02644795,
+            0.09334448
+          ],
+          [
+            0.02781875,
+            0.09067187
+          ],
+          [
+            0.02899033,
+            0.0879231
+          ],
+          [
+            0.02991172,
+            0.08507617
+          ],
+          [
+            0.03053193,
+            0.08210913
+          ],
+          [
+            0.0308,
+            0.079
+          ],
+          [
+            0.0309568,
+            0.073048
+          ],
+          [
+            0.0310704,
+            0.066664
+          ],
+          [
+            0.0311456,
+            0.059956
+          ],
+          [
+            0.0311872,
+            0.053032
+          ],
+          [
+            0.0312,
+            0.046
+          ],
+          [
+            0.0311888,
+            0.038968
+          ],
+          [
+            0.0311584,
+            0.032044
+          ],
+          [
+            0.0311136,
+            0.025336
+          ],
+          [
+            0.0310592,
+            0.018952
+          ],
+          [
+            0.031,
+            0.013
+          ],
+          [
+            0.03086328,
+            0.01163672
+          ],
+          [
+            0.03046875,
+            0.01053125
+          ],
+          [
+            0.02983984,
+            0.00966016
+          ],
+          [
+            0.029,
+            0.009
+          ],
+          [
+            0.02797266,
+            0.00852734
+          ],
+          [
+            0.02678125,
+            0.00821875
+          ],
+          [
+            0.02544922,
+            0.00805078
+          ],
+          [
+            0.024,
+            0.008
+          ],
+          [
+            0,
+            0.008
+          ]
+        ],
+        "segments": 192,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "clear-glass",
+      "transform": {
+        "location": [
+          -0.033,
+          0.014,
+          0.01
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "empty",
+        "closed-thick-wall"
+      ]
+    },
+    {
+      "id": "tray",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0.0045
+          ],
+          [
+            0.08,
+            0.0045
+          ],
+          [
+            0.08094531,
+            0.00432031
+          ],
+          [
+            0.0815625,
+            0.0038125
+          ],
+          [
+            0.08189844,
+            0.00302344
+          ],
+          [
+            0.082,
+            0.002
+          ],
+          [
+            0.08210156,
+            0.00105469
+          ],
+          [
+            0.0824375,
+            0.0004375
+          ],
+          [
+            0.08305469,
+            0.00010156
+          ],
+          [
+            0.084,
+            0
+          ],
+          [
+            0.086,
+            0
+          ],
+          [
+            0.08694531,
+            0.00010156
+          ],
+          [
+            0.0875625,
+            0.0004375
+          ],
+          [
+            0.08789844,
+            0.00105469
+          ],
+          [
+            0.088,
+            0.002
+          ],
+          [
+            0.08810156,
+            0.00302344
+          ],
+          [
+            0.0884375,
+            0.0038125
+          ],
+          [
+            0.08905469,
+            0.00432031
+          ],
+          [
+            0.09,
+            0.0045
+          ],
+          [
+            0.104,
+            0.0045
+          ],
+          [
+            0.106635,
+            0.004688
+          ],
+          [
+            0.10912,
+            0.005224
+          ],
+          [
+            0.111425,
+            0.006066
+          ],
+          [
+            0.11352,
+            0.007172
+          ],
+          [
+            0.115375,
+            0.0085
+          ],
+          [
+            0.11696,
+            0.010008
+          ],
+          [
+            0.118245,
+            0.011654
+          ],
+          [
+            0.1192,
+            0.013396
+          ],
+          [
+            0.119795,
+            0.015192
+          ],
+          [
+            0.12,
+            0.017
+          ],
+          [
+            0.11987731,
+            0.01816435
+          ],
+          [
+            0.11951852,
+            0.01914815
+          ],
+          [
+            0.1189375,
+            0.0199375
+          ],
+          [
+            0.11814815,
+            0.02051852
+          ],
+          [
+            0.11716435,
+            0.02087731
+          ],
+          [
+            0.116,
+            0.021
+          ],
+          [
+            0.11489583,
+            0.02076852
+          ],
+          [
+            0.114,
+            0.02014815
+          ],
+          [
+            0.1131875,
+            0.01925
+          ],
+          [
+            0.11233333,
+            0.01818519
+          ],
+          [
+            0.1113125,
+            0.01706481
+          ],
+          [
+            0.11,
+            0.016
+          ],
+          [
+            0.10770508,
+            0.0144502
+          ],
+          [
+            0.10532813,
+            0.01316406
+          ],
+          [
+            0.10288086,
+            0.01212402
+          ],
+          [
+            0.100375,
+            0.0113125
+          ],
+          [
+            0.09782227,
+            0.01071191
+          ],
+          [
+            0.09523437,
+            0.01030469
+          ],
+          [
+            0.09262305,
+            0.01007324
+          ],
+          [
+            0.09,
+            0.01
+          ],
+          [
+            0,
+            0.01
+          ]
+        ],
+        "segments": 192,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "celadon-glaze",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "integral-foot-ring"
+      ]
+    },
+    {
+      "id": "neck-sleeve",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0.01705,
+            0
+          ],
+          [
+            0.0186,
+            0
+          ],
+          [
+            0.01903594,
+            0.00005781
+          ],
+          [
+            0.0193125,
+            0.0002375
+          ],
+          [
+            0.01945781,
+            0.00054844
+          ],
+          [
+            0.0195,
+            0.001
+          ],
+          [
+            0.0195,
+            0.0022
+          ],
+          [
+            0.0193963,
+            0.00242222
+          ],
+          [
+            0.0192037,
+            0.00257778
+          ],
+          [
+            0.0191,
+            0.0028
+          ],
+          [
+            0.0191,
+            0.0034
+          ],
+          [
+            0.0192037,
+            0.00362222
+          ],
+          [
+            0.0193963,
+            0.00377778
+          ],
+          [
+            0.0195,
+            0.004
+          ],
+          [
+            0.0195,
+            0.0075
+          ],
+          [
+            0.01945781,
+            0.00795156
+          ],
+          [
+            0.0193125,
+            0.0082625
+          ],
+          [
+            0.01903594,
+            0.00844219
+          ],
+          [
+            0.0186,
+            0.0085
+          ],
+          [
+            0.01705,
+            0.0085
+          ]
+        ],
+        "segments": 160,
+        "closedProfile": true,
+        "capEnds": false
+      },
+      "materialId": "champagne-metal",
+      "transform": {
+        "location": [
+          -0.033,
+          0.014,
+          0.136
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "independent-part"
+      ]
+    },
+    {
+      "id": "cap",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0.0218
+          ],
+          [
+            0.0168,
+            0.0218
+          ],
+          [
+            0.01705156,
+            0.02205312
+          ],
+          [
+            0.0171625,
+            0.022625
+          ],
+          [
+            0.01729219,
+            0.02323438
+          ],
+          [
+            0.0176,
+            0.0236
+          ],
+          [
+            0.01851157,
+            0.02382639
+          ],
+          [
+            0.01932593,
+            0.02381111
+          ],
+          [
+            0.0200125,
+            0.0235625
+          ],
+          [
+            0.02054074,
+            0.02308889
+          ],
+          [
+            0.02088009,
+            0.02239861
+          ],
+          [
+            0.021,
+            0.0215
+          ],
+          [
+            0.021,
+            0.003
+          ],
+          [
+            0.02098981,
+            0.00208333
+          ],
+          [
+            0.02095185,
+            0.00133333
+          ],
+          [
+            0.020875,
+            0.00075
+          ],
+          [
+            0.02074815,
+            0.00033333
+          ],
+          [
+            0.02056019,
+            0.00008333
+          ],
+          [
+            0.0203,
+            0
+          ],
+          [
+            0.0196,
+            0
+          ],
+          [
+            0.0196,
+            0.014
+          ],
+          [
+            0.01945469,
+            0.01494531
+          ],
+          [
+            0.0190375,
+            0.0155625
+          ],
+          [
+            0.01837656,
+            0.01589844
+          ],
+          [
+            0.0175,
+            0.016
+          ],
+          [
+            0,
+            0.016
+          ]
+        ],
+        "segments": 160,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "champagne-metal",
+      "transform": {
+        "location": [
+          0.059,
+          -0.028,
+          0.01
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "detached-cap",
+        "open-underneath"
+      ]
+    },
+    {
+      "id": "cap-inset",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0158,
+            0
+          ],
+          [
+            0.01617813,
+            0.00005469
+          ],
+          [
+            0.016425,
+            0.0002125
+          ],
+          [
+            0.01655938,
+            0.00046406
+          ],
+          [
+            0.0166,
+            0.0008
+          ],
+          [
+            0.01631481,
+            0.00113194
+          ],
+          [
+            0.01551852,
+            0.00142222
+          ],
+          [
+            0.0143,
+            0.0016625
+          ],
+          [
+            0.01274815,
+            0.00184444
+          ],
+          [
+            0.01095185,
+            0.00195972
+          ],
+          [
+            0.009,
+            0.002
+          ],
+          [
+            0,
+            0.002
+          ]
+        ],
+        "segments": 128,
+        "closedProfile": false,
+        "capEnds": false
+      },
+      "materialId": "celadon-glaze",
+      "transform": {
+        "location": [
+          0.059,
+          -0.028,
+          0.0318
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "subject",
+        "independent-part"
+      ]
+    },
+    {
+      "id": "floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 200
+      },
+      "materialId": "warm-paper",
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.00001
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment",
+        "studio"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "key-softbox",
+      "type": "area",
+      "energy": 15,
+      "size": 0.45,
+      "color": [
+        1,
+        0.95,
+        0.88
+      ],
+      "transform": {
+        "location": [
+          -0.3,
+          -0.38,
+          0.48
+        ],
+        "rotationEuler": [
+          0.86813548,
+          0,
+          -0.66828942
+        ]
+      }
+    },
+    {
+      "id": "fill-softbox",
+      "type": "area",
+      "energy": 7,
+      "size": 0.32,
+      "color": [
+        0.9,
+        0.95,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.36,
+          -0.06,
+          0.3
+        ],
+        "rotationEuler": [
+          1.0084692,
+          0,
+          1.40564765
+        ]
+      }
+    },
+    {
+      "id": "back-softbox",
+      "type": "area",
+      "energy": 18,
+      "size": 0.4,
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.03,
+          0.38,
+          0.4
+        ],
+        "rotationEuler": [
+          0.86313801,
+          0,
+          2.99402458
+        ]
+      }
+    },
+    {
+      "id": "top-softbox",
+      "type": "area",
+      "energy": 8,
+      "size": 0.38,
+      "color": [
+        1,
+        0.98,
+        0.94
+      ],
+      "transform": {
+        "location": [
+          -0.1,
+          0.02,
+          0.63
+        ],
+        "rotationEuler": [
+          0.16835839,
+          0,
+          -1.76819189
+        ]
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "hero",
+      "role": "active-camera",
+      "lens": 62,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          0.3,
+          -0.43,
+          0.3
+        ]
+      },
+      "targetPoint": [
+        -0.002,
+        0,
+        0.057
+      ]
+    },
+    {
+      "id": "detail",
+      "role": "detail",
+      "lens": 82,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          0.155,
+          -0.25,
+          0.236
+        ]
+      },
+      "targetPoint": [
+        -0.025,
+        0.014,
+        0.116
+      ]
+    },
+    {
+      "id": "reverse",
+      "role": "three-quarter",
+      "lens": 62,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        100
+      ],
+      "transform": {
+        "location": [
+          -0.31,
+          0.4,
+          0.22
+        ]
+      },
+      "targetPoint": [
+        0,
+        0,
+        0.058
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "hero-shot",
+      "cameraId": "hero",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Full assembly, open mouth, detached cap and ceramic tray; restrained optical-axis dolly."
+    },
+    {
+      "id": "detail-shot",
+      "cameraId": "detail",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Bottle lip, inner wall, stepped sleeve and smooth shoulder; intentionally crops the tray."
+    },
+    {
+      "id": "reverse-shot",
+      "cameraId": "reverse",
+      "frameRange": [
+        1,
+        48
+      ],
+      "description": "Opposite three-quarter view checks glass silhouette, tray rim and cap seating."
+    }
+  ],
+  "animationTracks": [
+    {
+      "id": "hero-dolly-x",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.x",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.3,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.29698,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.29396,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-dolly-y",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.y",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": -0.43,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": -0.4257,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": -0.4214,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-dolly-z",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.3,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.29757,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.29514,
+          "interpolation": "linear"
+        }
+      ]
+    }
+  ],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        768,
+        576
+      ],
+      "samples": 64,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 64
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1024,
+        768
+      ],
+      "samples": 128,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 128
+    }
+  },
+  "assets": [],
+  "world": {
+    "color": [
+      0.64,
+      0.7,
+      0.72,
+      1
+    ],
+    "strength": 0.45
+  }
+}

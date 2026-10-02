@@ -618,8 +618,7 @@ check('the sheet and the review record are persisted under the revision they bel
 // ---------------------------------------------------------------------------
 //
 // Two reviews of one revision is the normal case — the loop renders a round, patches, renders another — and the
-// QA record is supposed to answer "how does this revision look NOW". It therefore has to select by ITERATION
-// rather than by whatever order the artifact index happens to list, and then read that record from disk.
+// QA answers the newest emitted record, including when a new run resets its iteration to zero.
 const qaRecord = await studio.getQaRecord({ projectId: reviewedProject.projectId, revision: reviewedProject.revision.revision })
 check('the QA record carries the NEWEST round of a revision that was reviewed twice',
   qaRecord.review !== null && qaRecord.review?.iteration === 2 &&
@@ -629,6 +628,11 @@ check('and it reports the review’s own record rather than a summary built from
   Array.isArray(qaRecord.review?.perView) && qaRecord.review.perView.length > 0 &&
   qaRecord.review?.reported !== undefined,
   Object.keys(qaRecord.review ?? {}))
+
+await studio.visualReview({ projectId: reviewedProject.projectId, iteration: 0, consultReviewer: false })
+const restartedQa = await studio.getQaRecord({ projectId: reviewedProject.projectId })
+check('a new review run supersedes an earlier higher iteration instead of showing stale artistic evidence',
+  restartedQa.review.iteration === 0 && restartedQa.review.artistic.status === 'unassessable')
 
 // A revision with no checkpoint of its own is COMPILED for the render, and when an earlier revision HAS one the
 // warning has to say which one it fell back to — that sentence is the only place a reader learns that the

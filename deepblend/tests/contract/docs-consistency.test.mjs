@@ -868,7 +868,7 @@ test('the profile manifest dsh-baseline.md quotes is the shape a profile has', {
 
   const home = mkdtempSync(join(tmpdir(), 'deepblend-profile-shape-'))
   try {
-    const installed = spawnSync('dsh', ['plugin', 'add', join(ROOT, 'packages', 'deepblend', 'bundle'), '--profile', 'web'], {
+    const installed = spawnSync('dsh', ['plugin', 'add', join(ROOT, 'packages', 'deepblend', 'bundle'), '--workspace-root', '--profile', 'web'], {
       cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 300_000,
     })
     assert.equal(installed.status, 0, `creating the profile failed:\n${installed.stdout}${installed.stderr}`)

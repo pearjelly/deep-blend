@@ -1,0 +1,40 @@
+{
+  "closedEntities": [
+    "cabinet-shell",
+    "front-baffle",
+    "front-gasket",
+    "grille-metal-rim",
+    "volume-knob",
+    "control-module",
+    "rear-service-panel",
+    "rear-panel-gasket",
+    "rear-screw-l-b",
+    "rear-screw-r-t",
+    "top-button",
+    "foot-l-f",
+    "foot-r-b"
+  ],
+  "dimensions": [
+    { "entityId": "cabinet-shell", "axis": 0, "min": 0.2638, "max": 0.2642 },
+    { "entityId": "cabinet-shell", "axis": 1, "min": 0.1378, "max": 0.1382 },
+    { "entityId": "cabinet-shell", "axis": 2, "min": 0.1618, "max": 0.1622 },
+    { "entityId": "front-baffle", "axis": 0, "min": 0.2478, "max": 0.2482 },
+    { "entityId": "front-baffle", "axis": 2, "min": 0.1458, "max": 0.1462 },
+    { "entityId": "grille-metal-rim", "axis": 0, "min": 0.1208, "max": 0.1212 },
+    { "entityId": "grille-metal-rim", "axis": 1, "min": 0.0053, "max": 0.0057 },
+    { "entityId": "volume-knob", "axis": 0, "min": 0.0438, "max": 0.0442 },
+    { "entityId": "volume-knob", "axis": 1, "min": 0.0146, "max": 0.0150 },
+    { "entityId": "rear-service-panel", "axis": 0, "min": 0.2038, "max": 0.2042 },
+    { "entityId": "rear-service-panel", "axis": 2, "min": 0.1138, "max": 0.1142 },
+    { "entityId": "top-button", "axis": 0, "min": 0.0122, "max": 0.0126 },
+    { "entityId": "top-button", "axis": 2, "min": 0.0030, "max": 0.0034 },
+    { "entityId": "foot-l-f", "axis": 2, "min": 0.0143, "max": 0.0147 }
+  ],
+  "notes": [
+    "Each dimension min/max is a permitted world-space bounding-box SIZE, not an absolute minimum/maximum coordinate; units are metres, with 0.2 mm tolerance.",
+    "Closed entities should have positive signed volume and zero boundary/nonmanifold edges after the public compiler applies their modifier stacks. Cabinet and panel openings have wall thickness; their surfaces should remain closed.",
+    "The 150000 polygon budget includes every mesh, including invisible cavity, vent, grille-boundary and screw-slot operands. No operands are removed from this accounting.",
+    "Only top-button location.z changes: 0.175 at frame 1, 0.1743 at frame 24, 0.175 at frame 48. Every other product entity transform is invariant.",
+    "These are candidate-product checks. The explicitly simplified baseline is intentionally not required to satisfy them."
+  ]
+}

@@ -31,6 +31,7 @@ import { compileSchema } from '@deepblend/dsh-blender-contracts'
 // The packaged copies, imported exactly as `scene-spec.js` / `scene-patch.js`
 // import them (JSON module, not a filesystem read): if one of them stopped being
 // importable, the package would fail at load time in production.
+import packagedRecipe from '../../../packages/deepblend/contracts/lib/schemas/recipe.schema.json' with { type: 'json' }
 import packagedJobResult from '../../../packages/deepblend/contracts/lib/schemas/job-result.schema.json' with { type: 'json' }
 import packagedScenePatch from '../../../packages/deepblend/contracts/lib/schemas/scene-patch.schema.json' with { type: 'json' }
 import packagedSceneSpec from '../../../packages/deepblend/contracts/lib/schemas/scene-spec.schema.json' with { type: 'json' }
@@ -43,6 +44,7 @@ const PACKAGED_DIR = resolve(import.meta.dirname, '..', '..', '..', 'packages', 
 
 /** Every schema that must be mirrored, with its importable packaged module. */
 const MIRRORED_SCHEMAS = [
+  { name: 'recipe.schema.json', packaged: packagedRecipe },
   { name: 'scene-spec.schema.json', packaged: packagedSceneSpec },
   { name: 'scene-patch.schema.json', packaged: packagedScenePatch },
   { name: 'job-result.schema.json', packaged: packagedJobResult },
@@ -86,9 +88,9 @@ const authoritativeNames = schemaNames(AUTHORITATIVE_DIR)
 const packagedNames = schemaNames(PACKAGED_DIR)
 
 check(
-  'deepblend/schemas holds the three v1 schemas',
+  'deepblend/schemas holds the four v1 schemas',
   JSON.stringify(authoritativeNames) === JSON.stringify([
-    'job-result.schema.json', 'scene-patch.schema.json', 'scene-spec.schema.json',
+    'job-result.schema.json', 'recipe.schema.json', 'scene-patch.schema.json', 'scene-spec.schema.json',
   ]),
   authoritativeNames,
 )

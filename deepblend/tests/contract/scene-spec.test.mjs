@@ -42,6 +42,7 @@ import {
   sceneProjection,
   sceneSpecCanonicalText,
   sceneSpecDigest,
+  sha256Canonical,
   summarizeSceneSpec,
   validateSceneSpec,
 } from '@deepblend/dsh-blender-contracts'
@@ -1107,6 +1108,260 @@ check('and four mechanisms are four fields, all present on a closed entity defin
       ['rigidBody', 'cloth', 'softBody', 'fluid'].every(key => entity.properties[key] !== undefined)
   })(),
   'the four simulation fields are not all present, or the definition is no longer closed')
+
+const latheSpec = fixtureWith(spec => {
+  spec.entities[0].generator = { shape: 'lathe', profile: [[0, 0], [1, 0], [1, 2], [0, 2]] }
+})
+const latheCompiled = compileSceneSpec(latheSpec)
+const vessel = compileSceneSpec(JSON.parse(readFileSync(resolve(import.meta.dirname,
+  '..', '..', 'fixtures', 'ceramic-vessel', 'scene-spec.json'), 'utf8'))).spec
+check('the ceramic vessel fixture compiles with a modeled inner wall and consistent preview/final color',
+  vessel.entities[0].generator.profile.length > 20 &&
+  vessel.renderProfiles.preview.colorManagement.viewTransform === vessel.renderProfiles.final.colorManagement.viewTransform)
+check('lathe geometry validates and resolves reproducible quality defaults',
+  latheCompiled.spec.entities[0].generator.segments === 96 &&
+  latheCompiled.spec.entities[0].generator.capEnds === true)
+check('lathe camera bounds include the full profile height and radius',
+  Math.abs(entityBoundingRadius({ generator: latheCompiled.spec.entities[0].generator }) - Math.sqrt(5)) < 1e-10)
+check('profile changes affect the scene digest',
+  sceneSpecDigest(latheSpec) !== sceneSpecDigest({ ...latheSpec, entities: latheSpec.entities.map((e, i) =>
+    i ? e : { ...e, generator: { ...e.generator, profile: [[0, 0], [1, 0], [1, 3], [0, 3]] } }) }))
+for (const generator of [
+  { shape: 'lathe' },
+  { shape: 'lathe', profile: [[-1, 0], [1, 2]] },
+  { shape: 'lathe', profile: [[1, 0], [1, 0], [1, 2]] },
+  { shape: 'lathe', profile: [[0, 0], [0, 2]] },
+  { shape: 'lathe', profile: [[1, 0], [2, 0]] },
+  { shape: 'lathe', profile: [[1, 0], [1, 2], [1, 1]] },
+  { shape: 'lathe', profile: [[1, 0], [2, 2], [1, 2], [2, 0]] },
+  { shape: 'lathe', closedProfile: true, profile: [[1, 0], [2, 2], [1, 0]] },
+  { shape: 'cube', profile: [[1, 0], [1, 2]] },
+]) {
+  const rejected = fixtureWith(spec => { spec.entities[0].generator = generator })
+  check(`invalid profile is refused before Blender: ${JSON.stringify(generator)}`,
+    validateSceneSpec(rejected).errors.some(error => error.code === 'SCENE_GENERATOR_PROFILE_INVALID'))
+}
+
+const curveSpec = fixtureWith(spec => {
+  spec.entities[0].generator = { shape: 'curve', path: [[0, 0, 0], [1, 0, 2]], radius: 0.05 }
+})
+const curveCompiled = compileSceneSpec(curveSpec).spec.entities[0].generator
+check('curve defaults preserve authored points, radius and capped polyline geometry',
+  curveCompiled.pathInterpolation === 'poly' && curveCompiled.capEnds === true && curveCompiled.radius === 0.05)
+check('curve bounds include the swept section',
+  Math.abs(entityBoundingRadius({ generator: curveCompiled }) - Math.sqrt(5) - 0.05) < 1e-10)
+for (const generator of [
+  { shape: 'curve' },
+  { shape: 'curve', path: [[0, 0, 0], [0, 0, 0]] },
+  { shape: 'curve', path: [[0, 0, 0], [1, 0, 0], [0, 0, 0]] },
+  { shape: 'curve', pathClosed: true, path: [[0, 0, 0], [1, 0, 0]] },
+  { shape: 'curve', pathClosed: true, path: [[0, 0, 0], [1, 0, 1], [0, 0, 0]] },
+  { shape: 'cube', path: [[0, 0, 0], [1, 0, 0]] },
+]) {
+  check(`invalid curve path is refused: ${JSON.stringify(generator)}`,
+    validateSceneSpec(fixtureWith(spec => { spec.entities[0].generator = generator })).errors
+      .some(error => error.code === 'SCENE_GENERATOR_PATH_INVALID'))
+}
+
+// Modeling stacks must reject dangling/cyclic dependencies before Blender runs.
+const modifierSpec = fixtureWith(spec => {
+  spec.entities[0].modifiers = [
+    { type: 'solidify', thickness: 0.02 },
+    { type: 'mirror', axis: 'x' },
+    { type: 'array', count: 3, offset: [2, 0, 0] },
+    { type: 'boolean', operation: 'union', targetEntityId: spec.entities[1].id },
+    { type: 'bevel', width: 0.003, segments: 6, angle: 30 },
+  ]
+})
+check('ordered modeling stacks validate and survive compilation',
+  compileSceneSpec(modifierSpec).spec.entities[0].modifiers.length === 5)
+const legacyBevelSpec = fixtureWith(spec => {
+  spec.entities[0].modifiers = [{ type: 'bevel', width: 0.003, segments: 6, angle: 30 }]
+})
+const legacyBevelBefore = JSON.stringify(legacyBevelSpec)
+const legacyBevelCompiled = compileSceneSpec(legacyBevelSpec).spec
+const bevelSchema = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../schemas/scene-spec.schema.json'), 'utf8'))
+  .$defs.modelModifier.oneOf.find(branch => branch.properties.type.const === 'bevel')
+check('bevel modifier declares arc as its backward-compatible default', bevelSchema.properties.miterInner.default === 'arc')
+check('compiling an omitted inner miter preserves the old document and does not materialize a new field',
+  !Object.hasOwn(legacyBevelCompiled.entities[0].modifiers[0], 'miterInner') && JSON.stringify(legacyBevelSpec) === legacyBevelBefore)
+check('legacy bevel compiled geometry and whole-document hashes remain unchanged',
+  sceneSpecDigest(legacyBevelCompiled) === '53e07f9b62018e1c8965cc2088fe5f9840688e0a9818e209cfc8370106db72bd' &&
+  sha256Canonical(legacyBevelCompiled) === '88857b895a56197693cf3a524361c72302c1a3231b693c37b20ecc9765208f27')
+const innerMiterCompiled = {}
+for (const miterInner of ['arc', 'sharp']) {
+  const authored = clone(legacyBevelSpec)
+  authored.entities[0].modifiers[0].miterInner = miterInner
+  check(`bevel modifier accepts explicit ${miterInner} inner corners`, validateSceneSpec(authored).ok)
+  innerMiterCompiled[miterInner] = compileSceneSpec(authored).spec
+  check(`compilation preserves the explicit ${miterInner} setting and complete modifier stack`,
+    JSON.stringify(innerMiterCompiled[miterInner].entities[0].modifiers) === JSON.stringify(authored.entities[0].modifiers))
+}
+check('changing the inner miter changes both geometric identity and the document hash',
+  sceneSpecDigest(innerMiterCompiled.arc) !== sceneSpecDigest(innerMiterCompiled.sharp) &&
+  sha256Canonical(innerMiterCompiled.arc) !== sha256Canonical(innerMiterCompiled.sharp))
+for (const modifier of [
+  { type: 'bevel', width: 0.01, miterInner: 'patch' },
+  { type: 'bevel', width: 0.01, miterInner: 'ARC' },
+  { type: 'bevel', width: 0.01, miterInner: null },
+  { type: 'bevel', width: 0.01, miterInner: 0 },
+  { type: 'solidify', thickness: 0.01, miterInner: 'sharp' },
+  { type: 'mirror', axis: 'x', miterInner: 'sharp' },
+  { type: 'array', count: 2, offset: [1, 0, 0], miterInner: 'sharp' },
+  { type: 'boolean', operation: 'difference', targetEntityId: legacyBevelSpec.entities[1].id, miterInner: 'sharp' },
+  { type: 'bevel', width: 0.01, miterOuter: 'sharp' },
+]) {
+  check(`inner miter vocabulary stays strict and modifier-specific: ${JSON.stringify(modifier)}`,
+    validateSceneSpec(fixtureWith(spec => { spec.entities[0].modifiers = [modifier] })).errors
+      .some(error => error.code === 'SCENE_SCHEMA_INVALID'))
+}
+for (const generator of [
+  { shape: 'rounded_box', bevel: { width: 0.01, miterInner: 'sharp' } },
+  { shape: 'cube', miterInner: 'sharp' },
+]) {
+  check(`generator does not accept modifier inner miter fields: ${JSON.stringify(generator)}`,
+    validateSceneSpec(fixtureWith(spec => { spec.entities[0].generator = generator })).errors
+      .some(error => error.code === 'SCENE_SCHEMA_INVALID'))
+}
+const curvedBoreSpec = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../fixtures/curved-bore/scene-spec.json'), 'utf8'))
+const curvedBoreCompiled = compileSceneSpec(curvedBoreSpec)
+const curvedBoreBody = curvedBoreCompiled.spec.entities.find(entity => entity.id === 'body')
+const curvedBoreAuthoredBody = curvedBoreSpec.entities.find(entity => entity.id === 'body')
+check('the public curved-bore fixture validates and compiles without notices',
+  validateSceneSpec(curvedBoreSpec).ok && curvedBoreCompiled.notices.length === 0)
+check('curved-bore compilation preserves the authored geometry and ordered Boolean/bevel stack',
+  JSON.stringify(curvedBoreBody.generator) === JSON.stringify(curvedBoreAuthoredBody.generator) &&
+  JSON.stringify(curvedBoreBody.modifiers) === JSON.stringify(curvedBoreAuthoredBody.modifiers) &&
+  curvedBoreCompiled.spec.entities.find(entity => entity.id === 'bore-tool').visible === false)
+check('the public fixture binds its body and applies sharp only to the bevel modifier',
+  curvedBoreCompiled.spec.project.reviewSubjectId === 'body' &&
+  curvedBoreBody.modifiers.find(modifier => modifier.type === 'bevel').miterInner === 'sharp' &&
+  !Object.hasOwn(curvedBoreBody.generator, 'miterInner') && !Object.hasOwn(curvedBoreBody.generator.bevel, 'miterInner'))
+for (const modifier of [
+  { type: 'solidify', thickness: 0 },
+  { type: 'bevel', width: 0 },
+  { type: 'bevel', width: -1 },
+  { type: 'bevel', width: 0.01, segments: 17 },
+  { type: 'bevel', width: 0.01, angle: 181 },
+  { type: 'array', count: 2, offset: [0, 0, 0] },
+  { type: 'boolean', operation: 'union', targetEntityId: 'missing-operand' },
+  { type: 'mirror', axis: 'w' },
+  { type: 'array', count: 65, offset: [1, 0, 0] },
+]) {
+  check(`invalid modeling operation is refused: ${JSON.stringify(modifier)}`,
+    validateSceneSpec(fixtureWith(spec => { spec.entities[0].modifiers = [modifier] })).errors.length > 0)
+}
+check('boolean dependency cycles are refused', validateSceneSpec(fixtureWith(spec => {
+  spec.entities[0].modifiers = [{ type: 'boolean', operation: 'union', targetEntityId: spec.entities[1].id }]
+  spec.entities[1].modifiers = [{ type: 'boolean', operation: 'union', targetEntityId: spec.entities[0].id }]
+})).errors.some(error => error.code === 'SCENE_MODIFIER_CYCLE'))
+const framing = order => compileSceneSpec(fixtureWith(spec => {
+  spec.entities[0].transform = { location: [0, 0, 0] }
+  spec.entities[1].transform = { location: [100, 0, 0] }
+  const union = { type: 'boolean', operation: 'union', targetEntityId: spec.entities[1].id }
+  const array = { type: 'array', count: 3, offset: [10, 0, 0] }
+  spec.entities[0].modifiers = order ? [union, array] : [array, union]
+  spec.cameras[0].targetEntityId = spec.entities[0].id
+  delete spec.cameras[0].transform
+})).spec.cameras[0].transform.location
+check('auto framing expands arrays applied after distant boolean unions',
+  Math.hypot(...framing(true)) > Math.hypot(...framing(false)))
+
+const imageSpec = fixtureWith(spec => {
+  spec.assets = [{ id: 'map', type: 'png', path: 'assets/raw/map.png' }]
+  spec.materials[0].images = { baseColor: { assetId: 'map' }, roughness: { assetId: 'map', channel: 'g' }, normal: { assetId: 'map', strength: .5 } }
+})
+check('PBR image bindings validate and survive scene compilation', validateSceneSpec(imageSpec).ok &&
+  compileSceneSpec(imageSpec).spec.materials[0].images.roughness.channel === 'g')
+for (const [label, change] of [
+  ['missing image', spec => { spec.materials[0].images.baseColor.assetId = 'missing' }],
+  ['model as texture', spec => { spec.assets[0].type = 'glb' }],
+  ['scalar strength', spec => { spec.materials[0].images.roughness.strength = .4 }],
+  ['normal channel', spec => { spec.materials[0].images.normal.channel = 'g' }],
+  ['conflicting procedural map', spec => { spec.materials[0].texture = { type: 'noise', scale: 3 } }],
+  ['image mesh instance', spec => { spec.entities.push({ id: 'image-mesh', type: 'asset-instance', assetId: 'map' }) }],
+]) {
+  const invalid = structuredClone(imageSpec); change(invalid)
+  check(`PBR maps reject ${label}`, !validateSceneSpec(invalid).ok)
+}
+
+const environmentSpec = fixtureWith(spec => {
+  spec.assets = [{ id: 'studio-env', type: 'exr', path: 'assets/raw/studio.exr' }]
+  spec.world = { strength: 1.5, environment: { assetId: 'studio-env', rotation: 1.57 } }
+})
+check('an EXR environment validates and survives scene compilation and summary',
+  validateSceneSpec(environmentSpec).ok && compileSceneSpec(environmentSpec).spec.world.environment.rotation === 1.57 &&
+  summarizeSceneSpec(environmentSpec).world.environment.assetId === 'studio-env')
+for (const type of ['glb', 'obj']) {
+  const invalid = structuredClone(environmentSpec); invalid.assets[0].type = type
+  check(`environment rejects ${type} geometry assets`, !validateSceneSpec(invalid).ok)
+}
+const missingEnvironment = structuredClone(environmentSpec); missingEnvironment.assets = []
+check('environment rejects a missing asset', !validateSceneSpec(missingEnvironment).ok)
+
+
+const bindingSpec = fixtureWith(spec => {
+  spec.assets = [{ id: 'assembly', type: 'glb', path: 'assets/raw/assembly.glb' }]
+  spec.entities.push({ id: 'assembly', type: 'asset-instance', assetId: 'assembly', materialBindings: [
+    { partId: '/body', materialId: 'hero-steel' }, { partId: '/body', slotIndex: 1, materialId: 'stage-matte' }] })
+})
+check('part-wide and slot-specific bindings coexist and survive compilation and summary', validateSceneSpec(bindingSpec).ok &&
+  compileSceneSpec(bindingSpec).spec.entities.at(-1).materialBindings.length === 2 &&
+  summarizeSceneSpec(bindingSpec).entities.at(-1).materialBindings[1].slotIndex === 1)
+for (const [label, change] of [
+  ['wrong entity type', spec => { spec.entities[0].materialBindings = [] }],
+  ['missing material', spec => { spec.entities.at(-1).materialBindings[0].materialId = 'absent' }],
+  ['duplicate part', spec => { spec.entities.at(-1).materialBindings.push(spec.entities.at(-1).materialBindings[0]) }],
+  ['negative slot', spec => { spec.entities.at(-1).materialBindings[1].slotIndex = -1 }],
+  ['non-path selector', spec => { spec.entities.at(-1).materialBindings[0].partId = 'body' }],
+]) {
+  const invalid = structuredClone(bindingSpec); change(invalid)
+  check(`part bindings reject ${label}`, !validateSceneSpec(invalid).ok)
+}
+
+// Actual anisotropic reflection has an explicit tangent; zero remains a disable state.
+const anisotropySpec = fixtureWith(spec => {
+  const material = spec.materials.find(entry => entry.id === 'hero-steel')
+  material.parameters.anisotropic = 0.8
+  material.parameters.anisotropicRotation = 0.25
+  material.tangent = { mode: 'radial', axis: 'z' }
+})
+check('Principled anisotropy compiles and remains discoverable with its direction', validateSceneSpec(anisotropySpec).ok &&
+  compileSceneSpec(anisotropySpec).spec.materials.find(entry => entry.id === 'hero-steel').parameters.anisotropic === 0.8 &&
+  summarizeSceneSpec(anisotropySpec).materials.find(entry => entry.id === 'hero-steel').tangent.axis === 'z')
+const uvAnisotropy = structuredClone(anisotropySpec)
+uvAnisotropy.materials.find(entry => entry.id === 'hero-steel').tangent = { mode: 'uv', uvMap: 'BrushedUV' }
+check('named UV direction is legal and changes the scene digest', validateSceneSpec(uvAnisotropy).ok &&
+  sceneSpecDigest(uvAnisotropy) !== sceneSpecDigest(anisotropySpec))
+for (const [label, change] of [
+  ['missing tangent', material => { delete material.tangent }],
+  ['emission material', material => { material.shader = 'emission' }],
+  ['negative strength', material => { material.parameters.anisotropic = -0.1 }],
+  ['strength above one', material => { material.parameters.anisotropic = 1.1 }],
+  ['rotation in radians rather than turns', material => { material.parameters.anisotropicRotation = Math.PI }],
+  ['UV without name', material => { material.tangent = { mode: 'uv' } }],
+  ['empty UV name', material => { material.tangent = { mode: 'uv', uvMap: '' } }],
+  ['radial without axis', material => { material.tangent = { mode: 'radial' } }],
+  ['invented axis', material => { material.tangent = { mode: 'radial', axis: 'world-z' } }],
+  ['mixed direction modes', material => { material.tangent = { mode: 'uv', uvMap: 'UVMap', axis: 'z' } }],
+]) {
+  const bad = structuredClone(anisotropySpec); change(bad.materials.find(entry => entry.id === 'hero-steel'))
+  check(`anisotropy rejects ${label}`, !validateSceneSpec(bad).ok)
+}
+const disabledAnisotropy = structuredClone(anisotropySpec)
+const disabledMaterial = disabledAnisotropy.materials.find(entry => entry.id === 'hero-steel')
+disabledMaterial.parameters.anisotropic = 0; disabledMaterial.parameters.anisotropicRotation = 0; delete disabledMaterial.tangent
+check('zero anisotropy and rotation need no tangent', validateSceneSpec(disabledAnisotropy).ok)
+for (const property of ['anisotropic', 'anisotropicRotation']) {
+  const animated = structuredClone(anisotropySpec)
+  animated.animationTracks.push({ id: 'animate-' + property, targetKind: 'material', targetEntityId: 'hero-steel', property,
+    keyframes: [{ frame: 1, value: 0 }, { frame: 24, value: 0.75 }, { frame: 48, value: 0 }] })
+  check(`material ${property} animation is supported`, validateSceneSpec(animated).ok)
+  const invalid = structuredClone(animated); invalid.animationTracks.at(-1).keyframes[1].value = 1.5
+  check(`${property} animation cannot exceed one`, validateSceneSpec(invalid).errors.some(error => error.code === 'SCENE_KEYFRAME_VALUE_OUT_OF_RANGE'))
+  const noDirection = structuredClone(disabledAnisotropy); noDirection.animationTracks.push(animated.animationTracks.at(-1))
+  check(`animation enabling ${property} requires direction before rendering`, !validateSceneSpec(noDirection).ok)
+}
 
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {

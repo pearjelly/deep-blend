@@ -20,7 +20,8 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@deepblend/dsh-blender-contracts": "github:pearjelly/deep-blend#path:/packages/deepblend/contracts"
+    "@deepblend/dsh-blender-contracts": "github:pearjelly/deep-blend#path:/packages/deepblend/contracts",
+    "sharp": "0.35.5"
   },
   "license": "MIT",
   "repository": {
@@ -30,5 +31,9 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0 <5",
     "@deepseek-ai/schemastery": ">=3.18.0 <4"
-  }
+  },
+  "files": [
+    "lib",
+    "recipes"
+  ]
 }

@@ -49,8 +49,11 @@ const SIGNATURES = Object.freeze([
   // Everything else that is common enough to name, all of it a contradiction for any of the
   // six importable types.
   { format: null, magic: 'PK\u0003\u0004', at: 0, label: 'a ZIP archive' },
-  { format: null, magic: '\u0089PNG\r\n\u001a\n', at: 0, label: 'a PNG image' },
-  { format: null, magic: '\u00ff\u00d8\u00ff', at: 0, label: 'a JPEG image' },
+  { format: 'png', magic: '\u0089PNG\r\n\u001a\n', at: 0, label: 'a PNG image' },
+  { format: 'jpg', magic: '\u00ff\u00d8\u00ff', at: 0, label: 'a JPEG image' },
+  { format: 'hdr', magic: '#?RADIANCE', at: 0, label: 'a Radiance HDR image' },
+  { format: 'hdr', magic: '#?RGBE', at: 0, label: 'a Radiance HDR image' },
+  { format: 'exr', magic: '\u0076\u002f\u0031\u0001', at: 0, label: 'an OpenEXR image' },
   { format: null, magic: '%PDF', at: 0, label: 'a PDF' },
   { format: null, magic: '\u007fELF', at: 0, label: 'an ELF binary' },
   { format: null, magic: 'MZ', at: 0, label: 'a Windows executable' },
@@ -124,7 +127,7 @@ export function assetContentVerdict(head, type) {
     // for another importable type, which is how a `.obj` holding a `.blend` reads, and
     // including for a format this product cannot import at all, which is how a ZIP named
     // `.glb` reads.
-    return described.signature.format === type ? 'agrees' : 'contradicts'
+    return described.signature.format === (type === 'jpeg' ? 'jpg' : type) ? 'agrees' : 'contradicts'
   }
   // No signature. Text formats are satisfied by text; a binary format is not satisfied by
   // anything (its magic was required and did not match), but it is not contradicted either,

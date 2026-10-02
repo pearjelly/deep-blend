@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deepblend.local/schemas/recipe.schema.json",
+  "title": "DeepBlend portable product recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "title",
+    "description",
+    "author",
+    "license",
+    "source",
+    "compatibility",
+    "input",
+    "preview",
+    "parameters"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "deepblend.recipe/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[a-zA-Z0-9.-]+)?$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sceneSchemaVersion",
+        "capabilities"
+      ],
+      "properties": {
+        "sceneSchemaVersion": {
+          "const": "deepblend.scene/v1"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 11,
+          "items": {
+            "enum": [
+              "geometry.primitive",
+              "geometry.lathe",
+              "geometry.curve",
+              "geometry.modifiers",
+              "material.principled",
+              "material.glass",
+              "material.emission",
+              "material.procedural",
+              "material.anisotropy",
+              "animation.transform",
+              "animation.material"
+            ]
+          }
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "const": "scene-spec.json"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "mediaType",
+        "alt"
+      ],
+      "properties": {
+        "path": {
+          "const": "preview.png"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "mediaType": {
+          "const": "image/png"
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/colorParameter"
+          },
+          {
+            "$ref": "#/$defs/numberParameter"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "binding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "materialId",
+            "property"
+          ],
+          "properties": {
+            "kind": {
+              "const": "material"
+            },
+            "materialId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "property": {
+              "enum": [
+                "baseColor",
+                "roughness"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "profile",
+            "property"
+          ],
+          "properties": {
+            "kind": {
+              "const": "render-profile"
+            },
+            "profile": {
+              "enum": [
+                "preview",
+                "final"
+              ]
+            },
+            "property": {
+              "const": "exposure"
+            }
+          }
+        }
+      ]
+    },
+    "colorParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "type",
+        "default",
+        "bindings"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "type": {
+          "const": "color"
+        },
+        "default": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "numberParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "type",
+        "default",
+        "minimum",
+        "maximum",
+        "bindings"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "type": {
+          "const": "number"
+        },
+        "default": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

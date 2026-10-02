@@ -73,7 +73,7 @@ jobs:
       # import `dsh-subprocess-local` (every Blender and composition suite) and its live visual probe
       # imports `dsh-attachment-local`, so a deployment without them cannot be linked at all — which
       # is how this job was failing on every push before the resolver learned to look in both places.
-        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
+        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2 sharp@0.35.5
 
       # The step a fresh clone needs: `node_modules/` is git-ignored and holds
       # only symlinks, so without this every suite dies on ERR_MODULE_NOT_FOUND

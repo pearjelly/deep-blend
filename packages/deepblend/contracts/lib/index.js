@@ -676,12 +676,15 @@ export {
   SCENE_ENGINES,
   BLENDER_ENGINE_BY_KEY,
   IMPORT_OPERATOR_BY_ASSET_TYPE,
+  IMAGE_ASSET_TYPES,
+  ENVIRONMENT_ASSET_TYPES,
   validateSceneSpec,
   compileSceneSpec,
   entityBoundingRadius,
   sceneProjection,
   sceneSpecDigest,
   specHash,
+  reviewInputsDigest,
   summarizeSceneSpec,
   sceneSpecCanonicalText,
 } from './scene-spec.js'
@@ -759,6 +762,8 @@ export {
 export {
   runVisualLoop,
 } from './visual-loop.js'
+
+export { ARTISTIC_DIMENSIONS, validateArtisticReview, artisticRegressed } from './artistic-review.js'
 
 // ---------------------------------------------------------------------------
 // M3 surface
@@ -852,3 +857,5 @@ export {
   resolveProjectsRoot,
   managedBlenderCandidates,
 } from './deployment-paths.js'
+
+export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe } from './recipe.js'

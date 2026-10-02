@@ -366,6 +366,7 @@ def smoke_render(scene, engine):
         saved["resolution_percentage"] = render.resolution_percentage
         saved["file_format"] = render.image_settings.file_format
         saved["cycles_samples"] = getattr(scene.cycles, "samples", None)
+        saved["cycles_device"] = getattr(scene.cycles, "device", None)
         saved["cycles_use_denoising"] = getattr(scene.cycles, "use_denoising", None)
         saved["eevee_samples"] = getattr(scene.eevee, "taa_render_samples", None)
 
@@ -376,6 +377,10 @@ def smoke_render(scene, engine):
         render.resolution_percentage = 100
         render.image_settings.file_format = "PNG"
         if engine == "CYCLES":
+            # This measures engine availability. GPU devices are enumerated
+            # separately; inheriting an open project's GPU setting can trigger
+            # minutes of Metal kernel compilation during a capability query.
+            scene.cycles.device = "CPU"
             # 1 sample and no denoise keeps the probe effectively instantaneous.
             try:
                 scene.cycles.samples = 1
@@ -429,6 +434,8 @@ def smoke_render(scene, engine):
                 render.image_settings.file_format = saved["file_format"]
             if saved.get("cycles_samples") is not None:
                 scene.cycles.samples = saved["cycles_samples"]
+            if saved.get("cycles_device") is not None:
+                scene.cycles.device = saved["cycles_device"]
             if saved.get("cycles_use_denoising") is not None:
                 scene.cycles.use_denoising = saved["cycles_use_denoising"]
             if saved.get("eevee_samples") is not None:

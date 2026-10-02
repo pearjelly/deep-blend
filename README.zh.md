@@ -14,6 +14,14 @@
 
 ---
 
+工作台现可从三组[作品配方](deepblend/docs/recipes.md)开始：选择真实作品、调整颜色/粗糙度/曝光，
+创建后直接查看实际预览。模型也可通过 `blender_recipe_list` 发现同一批配方。每个项目保留
+配方版本、作者许可、输入摘要和实际参数；新金属材质支持明确方向的各向异性反射。
+创建后可以在[对象编辑面板](deepblend/docs/usage.md#41-调整已有对象)调整轮廓、倒角、阵列和局部材质，
+应用后查看真实预览，并在版本未被其他编辑改变时恢复整个场景。
+还可保存最多四张[参考图片](deepblend/docs/reference-images.md)与本版本目标；评审读取固定的项目资产，
+分别展示技术测量与有图片依据的美术判断，上传素材后需要保存目标才会参与评审。
+
 ## 看一眼
 
 下面三张图不是画出来的，是**从跑着的产品里截出来的**：一个真实的 `dsh web`、一个真实的
@@ -34,6 +42,27 @@ Chrome、一份真实的 Blender，项目由**点**工作台上的控件建起�
 三个机位）拼成的一张图：
 
 ![Blender 渲出的 contact sheet：七格，四格是主动相机在动画不同帧的画面，另外三格是另外三个机位](deepblend/docs/images/render-contact-sheet.png)
+
+---
+
+## 作品质量基准
+
+[金属台灯、玻璃陶瓷和模块化音箱](deepblend/docs/quality-benchmarks.md)有可重建的 SceneSpec、设计目标和几何检查。
+| 金属台灯 | 玻璃与陶瓷 | 桌面音箱 |
+|---|---|---|
+| ![真实渲染：带卷边和弯臂的金属台灯](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![真实渲染：厚壁玻璃空瓶与青釉陶瓷托盘](deepblend/benchmarks/previews/glass-ceramic-hero.png) | ![真实渲染：编织格栅、滚花旋钮与圆角外壳音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) |
+
+以上图片为未后期修改的 Cycles 输出；输入与产物摘要见 [预览记录](deepblend/benchmarks/previews/manifest.json)。
+
+统一输出三视角、细节、灰模、简化消融对照及真实动画；记录源文件、设备、耗时和产物摘要。
+技术通过后仍需审阅画面，对照不代表历史版本表现。
+
+```sh
+npm run quality:check
+npm run quality:render -- --tier final
+```
+
+需先完成下文开发环境与 Blender 安装；动画编码使用 FFmpeg。输出保存在本地忽略目录 `.deepblend/quality/benchmarks/`。
 
 ---
 
@@ -107,7 +136,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         80 个 *.test.mjs
+    contract/         93 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -125,8 +154,9 @@ packages/deepblend/
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
     python/           bootstrap.py 分派器 + 6 个动作模块（另有 deepblend_util.py 这一份工具）
+                      deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               16 个模型可见工具（Agent preset 平面，不发布服务）
+  tool/               17 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
                       手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
@@ -143,7 +173,7 @@ packages/deepblend/
 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） | **上游只发布 `linux-x64` 的 Blender**（5.2 / 5.1 / 4.5 / 4.2 四条线都只有它，见 `probe-cross-platform.log`），所以 Linux 上的实际要求是 **x86_64**：arm64 Linux 上没有任何上游构建可用，要用发行版包或自行构建。
 | **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
 | **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
-| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 98 条照跑 |
+| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 111 条照跑 |
 | **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
 | **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
 | **ffmpeg + ffprobe**（macOS `brew install ffmpeg`；Debian/Ubuntu `sudo apt install ffmpeg`；Fedora `sudo dnf install ffmpeg`；Windows `winget install ffmpeg`） | **只有交付的编码那一步**：`blender_final_render` 渲完最后一帧之后把它编成 MP4，`blender_export` 同理 | **渲染照跑、帧一帧不丢**，只有编码以 `ENCODER_NOT_FOUND` 失败，消息里点名 ffmpeg 与装法。装上之后对同一个 job 调 `blender_export` 即可补上交付（`recovery.md` §3；第 30 轮实测：2 帧的 job 渲完、编码失败、帧保留、装好编码器后导出并发布成功） |
@@ -165,7 +195,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 17/80 file(s) passed
+DeepBlend tests: 19/93 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -217,8 +247,8 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**18 个套件、97 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**80 个文件 = 1621 项自计断言（34 个文件打印计数）+ 462 个 `node:test` 用例（46 个文件）**。
+预期：**18 个套件、110 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**93 个文件 = 1874 项自计断言（34 个文件打印计数）+ 819 个 `node:test` 用例（59 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -249,7 +279,7 @@ node deepblend/tests/composition/activation.e2e.mjs             # Host compositi
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 的 7 个工具 + 无 checkpoint 的 revision 仍然可预览
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
-node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 16 个工具 + 真实交付
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 17 个工具 + 真实交付
 node deepblend/tests/composition/hardening.e2e.mjs              # M5 安全加固：白名单/截止时间/输出上限/采样预算/工作区边界
 node deepblend/tests/composition/concurrency.e2e.mjs            # M5 并发：两个会话打同一个 store，以及把它们隔开的 realm
 node deepblend/tests/composition/approval.e2e.mjs               # M5 审批：阈值以上没有授权就一帧都不渲
@@ -262,7 +292,7 @@ node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏�
 **M4 的 `e2e/ui.e2e.mjs` 会启动自己的 `dsh web`、开一个真实 Chrome，并真的渲一次预览、
 起一次渲染再取消**（约 1–2 分钟，全程在自己的临时 store 里，不碰开发者的数据）。
 
-其中 `contract/patch-resolution.test.mjs`（91 项）值得单独知道：它全部来自**在真实项目上
+其中 `contract/patch-resolution.test.mjs`（116 项）值得单独知道：它全部来自**在真实项目上
 使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
 主体与视角依赖了会被排序破坏的数组顺序。每条断言写的是**用户当时看到的现象**。
 
@@ -356,8 +386,8 @@ dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合�
 dsh web                                                 # 重启后生效
 ```
 
-重启后新建 **DeepBlend 开发模式** 会话时工具清单为 **16 个**；**DeepBlend Studio**（正式 preset）
-少得多，且没有 Shell、没有文件写入、没有 Web、没有 Creator Tool（见 `milestone-status.md` §16）。
+**DeepBlend 开发模式** 与 **DeepBlend Studio** 的 DeepBlend 工具清单为 **17 个**。
+正式 preset 不包含通用 Shell、文件写入、Web 和 Creator Tool；开发模式另带调试工具。
 
 ---
 
@@ -403,7 +433,7 @@ job 声称的帧数/时长/fps/分辨率，`ffprobe -count_frames` 实际量到�
 
 | | 谁产出 | 可否复现 |
 |---|---|---|
-| `score` | Host，从渲染像素的确定性测量算出 | ✅ 纯函数，有 56 项契约测试 |
+| `score` | Host，从渲染像素的确定性测量算出 | ✅ 纯函数，由契约与实际渲染验证 |
 | `issues` | Host，每条带触发它的那个数字 | ✅ |
 | `reported` | **视觉模型**，它说自己在图上看到了什么 | ❌ 但每条都要过校验：视角必须真实存在、类别必须在闭集内、证据不能为空 |
 
@@ -425,12 +455,17 @@ job 声称的帧数/时长/fps/分辨率，`ffprobe -count_frames` 实际量到�
 前者让地板把每个主体测成 100% 遮挡，后者让「屏幕矩形重叠」冒充遮挡。
 `environment` 标签的实体会被排除在跟踪之外——因为**背景板不是遮挡物**。
 
-### 只采纳分数真的提高的修复
+### 用技术测量和美术证据共同决定是否采纳
 
-每一轮 = 一次 `applyScenePatch` → 重新渲染 → 重新测量。分数没提高就**回退指针**：
-revision 留在历史里，但项目不会前进到一个更差的版本。停止条件三条——
-分数达标、迭代上限（默认 5）、同一指纹连续未改善 2 次——停止而未达标时返回 handover：
-可继续工作的 revision、仍开放的问题（带测量）、已试过未采纳的 revision、具体下一步。
+每轮提出一个 ScenePatch，候选经重新渲染、测量和前后图评审后再决定是否保留。
+技术分不下降、没有新增严重问题且有明确美术改善时，即使技术分持平也可以采纳。
+技术分提高仍需要有依据的美术不退步结论。证据不足、技术退步或美术退步时，条件恢复
+此前版本；候选仍保留在历史中，不覆盖期间他人提交的修改。
+
+每次循环固定基线的主要评审对象、文字目标和参考图片。停止条件包括技术与美术均通过、
+迭代上限（默认 5）、同一问题连续未改善 2 次，以及固定评审输入失效。未通过时返回
+handover：可继续工作的 revision、未解决问题、未采纳的尝试及下一步。
+具体规则见[作品评审](deepblend/docs/artistic-review.md)。
 
 ---
 
@@ -487,6 +522,8 @@ revision 留在历史里，但项目不会前进到一个更差的版本。停�
 
 上面「快速开始」是同一套命令的**开发视角**，三份手册是**使用视角**：手册只讲怎么用与
 怎么判断，设计的理由留在 `deepblend/docs/` 的其余文档里，两边不重复。
+
+[参考图片指南](deepblend/docs/reference-images.md)说明上传、版本绑定、证据引用与有限自动修正。
 
 ---
 

@@ -112,6 +112,7 @@ function check(name, ok, detail) {
 /** Every method the M1 tools call. A case replaces one of them with a thrower. */
 function stubStudio() {
   return {
+    listRecipes: () => ({ recipes: [], errors: [] }),
     createProject: async () => ({
       projectId: 'watch-commercial',
       title: 'Watch commercial',
@@ -161,6 +162,7 @@ const present = (name, args) => {
 }
 
 const M1_TOOLS = [
+  'blender_recipe_list',
   'blender_project_create', 'blender_project_get', 'blender_scene_get', 'blender_scene_patch',
   'blender_preview_render', 'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
 ]
@@ -176,6 +178,7 @@ const M1_TOOLS = [
  * of every registered tool.
  */
 const MINIMAL_ARGS = {
+  blender_recipe_list: {},
   blender_capabilities: {},
   blender_project_create: { title: 'watch commercial' },
   blender_project_get: { projectId: 'watch-commercial' },
@@ -228,6 +231,7 @@ check('every M1 tool declares a presentCall',
 
 // Each row is one tool's title for one set of args, including the branches inside the title.
 const titleCases = [
+  ['blender_recipe_list', {}, 'List product recipes', 'read'],
   // Every branch inside a title, not just the first one.
   ['blender_capabilities', {}, 'Check Blender capabilities', 'read'],
   ['blender_capabilities', { refresh: true }, 'Re-probe Blender capabilities', 'other'],
@@ -297,11 +301,57 @@ check('a card asked for args its own schema refuses is dropped, not thrown on an
   present('blender_revision_restore', { projectId: 'watch-commercial' }) === undefined &&
   present('blender_project_create', { projectId: 42, title: null }) === undefined)
 
+// Restore confirmation and current-pointer conditions must survive the real DSH wrapper.
+{
+  const restore = registered.get('blender_revision_restore')
+  check('restore declares the optional current-revision condition and explains where to read it',
+    restore.parameters.properties.expectedCurrentRevision?.type === 'string'
+    && !restore.parameters.required.includes('expectedCurrentRevision')
+    && /blender_project_get/.test(restore.description) && /currentRevision/.test(restore.description))
+  const original = studio.restoreRevision, requests = []
+  studio.restoreRevision = async input => {
+    requests.push(input)
+    if (input.expectedCurrentRevision !== undefined && input.expectedCurrentRevision !== 'r0002') {
+      throw new BlenderError(code('REVISION_CONFLICT'), 'The current revision changed.',
+        { detail: { expectedCurrentRevision: input.expectedCurrentRevision, currentRevision: 'r0002' } })
+    }
+    return { projectId: input.projectId, revision: input.revision, from: 'r0002', restored: true }
+  }
+  try {
+    const declined = await execute('blender_revision_restore', argsFor('blender_revision_restore', { confirm: false }))
+    check('explicit false confirmation returns a coded refusal without calling the Host',
+      declined.ok === false && declined.data?.errorCode === 'REVISION_RESTORE_CONFIRMATION_REQUIRED'
+      && requests.length === 0, declined.data)
+    let missingError
+    try { await execute('blender_revision_restore', argsFor('blender_revision_restore', { confirm: undefined })) }
+    catch (error) { missingError = error }
+    check('missing confirmation is rejected by the actual DSH wrapper before the Host',
+      missingError?.code === 'INVALID_ARGS' && requests.length === 0, missingError?.message)
+
+    const protectedRestore = await execute('blender_revision_restore', argsFor('blender_revision_restore', { expectedCurrentRevision: 'r0002' }))
+    check('a confirmed restore forwards the exact expected revision to the Host without forwarding confirmation',
+      protectedRestore.ok === true && JSON.stringify(requests[0]) === JSON.stringify({
+        projectId: 'watch-commercial', revision: 'r0001', expectedCurrentRevision: 'r0002',
+      }), requests[0])
+    const legacy = await execute('blender_revision_restore', MINIMAL_ARGS.blender_revision_restore)
+    check('older confirmed restore calls still omit the optional current-revision condition',
+      legacy.ok === true && !Object.hasOwn(requests[1], 'expectedCurrentRevision'), requests[1])
+    const stale = await execute('blender_revision_restore', argsFor('blender_revision_restore', { expectedCurrentRevision: 'r0000' }))
+    check('a conditional restore preserves the Host conflict code and expected/current evidence',
+      stale.ok === false && stale.data?.errorCode === code('REVISION_CONFLICT')
+      && stale.data.detail.expectedCurrentRevision === 'r0000' && stale.data.detail.currentRevision === 'r0002', stale.data)
+    check('restore conflicts ask for a fresh project read and review before another restore',
+      /blender_project_get/.test(stale.text) && /review the intervening changes/.test(stale.text)
+      && /expectedCurrentRevision/.test(stale.text) && !/re-issue the patch/.test(stale.text))
+  } finally { studio.restoreRevision = original }
+}
+
 // ---------------------------------------------------------------------------
 // Failures: a host that throws must become a coded result, never a stack the model reads
 // ---------------------------------------------------------------------------
 
 const failures = [
+  ['blender_recipe_list', 'listRecipes', 'RECIPE_LIST_FAILED'],
   ['blender_project_create', 'createProject', 'PROJECT_CREATE_FAILED'],
   ['blender_project_get', 'getProject', 'PROJECT_READ_FAILED'],
   ['blender_scene_get', 'getScene', 'SCENE_READ_FAILED'],
@@ -379,9 +429,9 @@ studio.createProject = async () => ({
   warnings: [{ code: 'SCENE_COMPILER_DECISION', message: 'the camera was aimed at the subject automatically' }],
 })
 const noCheckpoint = await execute('blender_project_create', { ...MINIMAL_ARGS.blender_project_create, saveCheckpoint: false })
-check('a revision committed without a checkpoint says that it cannot be previewed yet',
+check('a revision committed without a checkpoint explains lazy compilation on its first preview',
   noCheckpoint.ok === true &&
-  (noCheckpoint.text ?? '').includes('No checkpoint was saved, so this revision cannot be previewed until a later revision saves one.') &&
+  (noCheckpoint.text ?? '').includes('No checkpoint was saved. The first preview will compile this revision lazily.') &&
   !noCheckpoint.text.includes('checkpoint saved'),
   (noCheckpoint.text ?? '').split('\n').slice(0, 6))
 check('compiler decisions made on the model\'s behalf are listed with their messages',

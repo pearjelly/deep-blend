@@ -702,7 +702,8 @@ SceneSpec 里看不出这一点，因为板子只写着 `environment` 标签。
 **同一条工作里顺手关掉的两个缺口**：真实审查器现在在**真实项目**上跑过
 （`deepseek-official/deepseek-flash`，返回 100 分、0 条 finding、无 error，
 note 是「contact sheet shows no visual defects」）；`visualLoop` 在已通过的场景上
-**不花模型调用**（`iterations: 0`、`stopReason: PASSING_SCORE`、`handover: null`）。
+**当时不花模型调用**（`iterations: 0`、`stopReason: PASSING_SCORE`、`handover: null`）。
+该终止规则现已由[技术与美术分别评审](artistic-review.md)取代；本段保留为历史记录。
 
 ---
 

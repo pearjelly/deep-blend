@@ -42,6 +42,7 @@ import {
   shouldHandOver,
   updateFingerprintCounters,
   validateFindings,
+  validateArtisticReview,
 } from '@deepblend/dsh-blender-contracts'
 
 const results = []
@@ -157,6 +158,43 @@ check('an occluded subject is NOT also reported as too small, even though it cov
   })(),
   scoreView(view({ visiblePixels: 1250, visibleFraction: 0.25, occludedFraction: 0.75, frameCoverage: 0.06, silhouetteCoverage: 0.25 })).issues.map(issue => issue.code))
 
+const outsideObject = { id: 'subject', viewId: 'reverse', visiblePixels: 0, silhouettePixels: 0,
+  visibleFraction: 0, frameCoverage: 0, silhouetteCoverage: 0, centroid: null, inFrame: false }
+const outsideView = view({ viewId: 'reverse', objects: [outsideObject] })
+const outside = scoreView(outsideView, { subjectId: 'subject' })
+check('a measured zero silhouette outside the frame is a critical composition failure',
+  outside.score < VISUAL_PASS_SCORE && outside.issues.length === 1 &&
+  outside.issues[0].code === 'SUBJECT_OUT_OF_FRAME' && outside.issues[0].severity === 'critical', outside)
+check('the out-of-frame finding retains the actual provider view and zero-pixel evidence',
+  outside.issues[0].viewId === 'reverse' && outside.issues[0].objectId === 'subject' &&
+  outside.issues[0].measurements.silhouettePixels === 0 && outside.issues[0].measurements.visiblePixels === 0)
+const oneAbsentAngle = scoreReview([view(), view({ viewId: 'top' }), outsideView, view({ viewId: 'detail' })], { subjectId: 'subject' })
+check('three clean angles cannot average away one out-of-frame main subject',
+  oneAbsentAngle.score === outside.score && oneAbsentAngle.score < VISUAL_PASS_SCORE &&
+  oneAbsentAngle.issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME' && issue.viewId === 'reverse'), oneAbsentAngle.score)
+const fullyBlocked = scoreView(view({ objects: [{ ...outsideObject, viewId: 'active-camera',
+  silhouettePixels: 5000, silhouetteCoverage: .25, inFrame: true }] }), { subjectId: 'subject' })
+check('a full isolated silhouette with zero surviving pixels remains occlusion, not out-of-frame',
+  fullyBlocked.issues.length === 1 && fullyBlocked.issues[0].code === 'SUBJECT_OCCLUDED')
+check('a small positive silhouette is not mistaken for an absent subject',
+  scoreView(view({ objects: [{ ...outsideObject, silhouettePixels: 20 }] }), { subjectId: 'subject' })
+    .issues.every(issue => issue.code !== 'SUBJECT_OUT_OF_FRAME'))
+const withoutSilhouette = { ...outsideObject }; delete withoutSilhouette.silhouettePixels
+check('missing legacy silhouette measurements do not fabricate an out-of-frame finding',
+  scoreView(view({ objects: [withoutSilhouette] }), { subjectId: 'subject' })
+    .issues.every(issue => issue.code !== 'SUBJECT_OUT_OF_FRAME'))
+const backFacingPart = { ...outsideObject, id: 'dial', part: true }
+check('a back-facing component does not become a per-view main-subject failure',
+  scoreView(view({ objects: [view().metrics.objects[0], backFacingPart] })).issues.length === 0)
+check('explicitly selecting that component makes its absence a main-subject failure',
+  scoreView(view({ objects: [backFacingPart] }), { subjectId: 'dial' })
+    .issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME'))
+check('a component visible from another angle keeps the existing cross-view presence rule',
+  scoreReview([
+    view({ objects: [view().metrics.objects[0], backFacingPart] }),
+    view({ viewId: 'detail', objects: [view().metrics.objects[0], { ...view().metrics.objects[0], id: 'dial', part: true }] }),
+  ], { subjectId: 'subject' }).issues.length === 0)
+
 // ---- occlusion -------------------------------------------------------------
 
 const occluded = scoreView(view({ visibleFraction: 0.6, occludedFraction: 0.4, visiblePixels: 3000 }))
@@ -269,8 +307,8 @@ check('consecutive-repeat counters grow, and a finding that goes away resets',
 
 // ---- handover decisions ----------------------------------------------------
 
-check('a passing score stops the loop with PASSING_SCORE',
-  shouldHandOver({ score: 95, iteration: 0, maxIterations: 5, fingerprints: new Map(), stopOnRepeatedIssueCount: 2 }).reason === 'PASSING_SCORE')
+check('passing technical and artistic reviews stop the loop',
+  shouldHandOver({ score: 95, artisticPassed: true, iteration: 0, maxIterations: 5, fingerprints: new Map(), stopOnRepeatedIssueCount: 2 }).reason === 'PASSING_REVIEW')
 check('the iteration cap stops the loop with MAX_ITERATIONS',
   shouldHandOver({ score: 40, iteration: 5, maxIterations: 5, fingerprints: new Map(), stopOnRepeatedIssueCount: 2 }).reason === 'MAX_ITERATIONS')
 check('a repeated finding stops the loop before the cap',
@@ -401,16 +439,26 @@ function harness(options) {
 
   const restore = async request => { restored.push(request) }
 
-  const reviewer = async ({ round }) => {
-    if (options.reviewer !== undefined) return options.reviewer({ round, applied: applied.length })
+  const reviewer = async ({ round, review, baselineReview }) => {
+    if (options.reviewer !== undefined) return options.reviewer({ round, applied: applied.length, review, baselineReview })
     return {
       findings: [{ category: 'occlusion', viewId: 'active-camera', objectId: 'subject', severity: 'major', confidence: 0.9, evidence: 'the screen covers the left half of the table' }],
       operations: [{ op: 'entity.transform.update', entityId: 'screen', location: [-2, -1, 0.5], confidence: 0.95 }],
       note: 'move the screen aside',
+      artistic: artisticAnswer('pass'),
     }
   }
 
   return { review, patch, restore, reviewer, applied, restored, reviews }
+}
+
+function artisticAnswer(status = 'pass', verdict = 'equivalent') {
+  return {
+    dimensions: Object.fromEntries(['geometry', 'materials', 'lighting', 'goalFit'].map(key => [key, {
+      status, viewId: 'active-camera', confidence: 0.95, evidence: `Visible ${key} evidence on the active view`,
+    }])),
+    comparison: { verdict, viewId: 'active-camera', confidence: 0.95, evidence: 'The candidate has more rounded visible edges than the baseline' },
+  }
 }
 
 // ---- a fix that improves the score ----------------------------------------
@@ -427,7 +475,7 @@ function harness(options) {
   })
   check('a fix that measurably improves the score is adopted and the loop passes',
     run.passed === true && run.finalScore === 100 && run.startScore === 82 &&
-    run.finalRevision === 'r0002' && run.stopReason === 'PASSING_SCORE',
+    run.finalRevision === 'r0002' && run.stopReason === 'PASSING_REVIEW',
     { start: run.startScore, final: run.finalScore, stop: run.stopReason })
   check('the adopted revision is committed through the normal patch port',
     world.applied.length === 1 && world.applied[0].baseRevision === 'r0001' &&
@@ -489,7 +537,7 @@ function harness(options) {
     issueFor: (revision, score) => [{
       id: `measured-${revision}-${score}`,
       category: 'composition',
-      code: `SUBJECT_OFF_CENTER_${score}`,
+      code: 'SUBJECT_OFF_CENTER',
       severity: 'major',
       viewId: 'active-camera',
       objectId: 'subject',
@@ -641,8 +689,8 @@ function harness(options) {
     review: world.review, patch: world.patch, restore: world.restore, reviewer: world.reviewer,
     maxIterations: 5,
   })
-  check('a revision that already passes is not repaired, and no model call is spent',
-    run.passed === true && run.iterations === 0 && world.applied.length === 0,
+  check('a technically passing revision is reviewed artistically before passing without repair',
+    run.passed === true && run.iterations === 1 && world.applied.length === 0,
     { iterations: run.iterations, stop: run.stopReason })
   check('a run that passes reports NO handover, because there is nothing to hand over',
     run.handover === null, run.handover)
@@ -728,15 +776,15 @@ check('the fixture is not vacuous: the review really does fail, and it really ha
   { score: blocked.score, codes: blocked.issues.map(issue => issue.code) })
 check('the header gives the revision, the checkpoint it was rendered from, and the verdict',
   blockedNotes[0] === 'Revision: r0001  (rendered from r0000)' &&
-  blockedNotes[1] === `Score:    ${blocked.score}/100 — does NOT pass the delivery threshold`,
+  blockedNotes[1] === `Score:    ${blocked.score}/100 — does NOT pass the technical threshold`,
   blockedNotes.slice(0, 2))
 check('a review that passes says PASSES',
   describeReviewNotes(reviewDocument({ views: cleanViews }))[1].includes('PASSES'))
 check('a subject that was never tagged reads as "(none tagged)", not as null',
-  describeReviewNotes(reviewDocument({ views: cleanViews, subjectId: null }))[2] === 'Subject:  (none tagged)')
+  describeReviewNotes(reviewDocument({ views: cleanViews, subjectId: null }))[3] === 'Subject:  (none tagged)')
 check('declared subject parts are listed WITH the reason they are exempt from the occlusion rule',
-  blockedNotes[3].includes('watch-dial') && blockedNotes[3].includes('ARE the subject'),
-  blockedNotes[3])
+  blockedNotes[4].includes('watch-dial') && blockedNotes[4].includes('ARE the subject'),
+  blockedNotes[4])
 check('with no declared parts the header says only the subject is judged for occlusion',
   describeReviewNotes(reviewDocument({ views: cleanViews })).some(line =>
     line.startsWith('Parts:') && line.includes('(none declared; only the subject is judged for occlusion)')))
@@ -834,7 +882,7 @@ const cappedWorld = harness({
   issueFor: (revision, score) => [{
     id: `measured-${revision}-${score}`,
     category: 'composition',
-    code: `SUBJECT_OFF_CENTER_${score}`,
+    code: 'SUBJECT_OFF_CENTER',
     severity: 'major',
     viewId: 'active-camera',
     objectId: 'subject',
@@ -863,13 +911,13 @@ const passingNotes = describeLoopNotes(passingRun)
 // ---- the header ------------------------------------------------------------
 
 check('the header gives the score it started from and reached, and the verdict',
-  cappedNotes[0] === `Score:    ${cappedRun.startScore} -> ${cappedRun.finalScore}  (still below the threshold)` &&
-  passingNotes[0] === `Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES)`,
+  cappedNotes[0] === `Score:    ${cappedRun.startScore} -> ${cappedRun.finalScore}  (review incomplete or needs work)` &&
+  passingNotes[0] === `Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES technical and artistic review)`,
   [cappedNotes[0], passingNotes[0]])
 check('the header gives the revisions, the rounds spent out of the cap, and why it stopped',
-  cappedNotes[1] === `Revision: ${cappedRun.startRevision} -> ${cappedRun.finalRevision}` &&
-  cappedNotes[2] === `Rounds:   ${cappedRun.iterations} of ${cappedRun.maxIterations} used` &&
-  cappedNotes[3] === `Stopped:  ${cappedRun.stopReason}`,
+  cappedNotes[2] === `Revision: ${cappedRun.startRevision} -> ${cappedRun.finalRevision}` &&
+  cappedNotes[3] === `Rounds:   ${cappedRun.iterations} of ${cappedRun.maxIterations} used` &&
+  cappedNotes[4] === `Stopped:  ${cappedRun.stopReason}`,
   cappedNotes.slice(1, 4))
 
 // ---- the round log ---------------------------------------------------------
@@ -880,7 +928,7 @@ const expectedRoundLines = cappedRun.rounds.flatMap(round => [
   ...(round.reported ?? []).map(finding => `      saw: [${finding.category}] ${finding.evidence}`),
 ])
 check('every round is reported, including the ones that changed nothing',
-  cappedRun.rounds.length === 6 && cappedNotes.slice(6, 6 + expectedRoundLines.length).join('\n') === expectedRoundLines.join('\n'),
+  cappedRun.rounds.length === 6 && cappedNotes.slice(7, 7 + expectedRoundLines.length).join('\n') === expectedRoundLines.join('\n'),
   cappedNotes.slice(6, 12))
 check('the log names the round that did NOT produce a new revision, rather than printing "-> null"',
   cappedRun.rounds.some(round => round.newRevision === null) &&
@@ -997,7 +1045,7 @@ const passingResult = await (registeredTools.get('blender_visual_autofix') ?? { 
 check('a run that passes says which revision reached which score, and carries no handover at all',
   passingResult.ok === true &&
   passingResult.text.startsWith(`Visual repair reached ${passingRun.finalScore}/100 on ${passingRun.finalRevision}.`) &&
-  passingResult.text.includes(`Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES)`) &&
+  passingResult.text.includes(`Score:    ${passingRun.startScore} -> ${passingRun.finalScore}  (PASSES technical and artistic review)`) &&
   !passingResult.text.includes('HUMAN/SESSION HANDOVER'),
   passingResult.text?.split('\n')[0])
 
@@ -1008,6 +1056,117 @@ check('every line the builder produced survives into the tool text, in order',
   }))
 
 // ---------------------------------------------------------------------------
+
+// Artistic evidence cannot be inferred from technical success.
+check('a high technical score alone does not terminate artistic review',
+  shouldHandOver({ score: 100, iteration: 0, maxIterations: 5, fingerprints: new Map(), stopOnRepeatedIssueCount: 2 }).stop === false)
+for (const raw of [undefined, {}, { dimensions: {} }]) {
+  check('missing artistic assessment is unassessable',
+    validateArtisticReview(raw, new Set(['active-camera'])).status === 'unassessable')
+}
+const uncertain = artisticAnswer()
+uncertain.dimensions.geometry.confidence = 0.2
+check('low-confidence geometry cannot pass', validateArtisticReview(uncertain, new Set(['active-camera'])).status !== 'pass')
+const inventedView = artisticAnswer()
+inventedView.dimensions.materials.viewId = 'nonexistent'
+check('an invented evidence view cannot pass', validateArtisticReview(inventedView, new Set(['active-camera'])).status !== 'pass')
+
+for (const scenario of ['improved', 'equivalent', 'regressed', 'missing', 'low-confidence', 'failed-review']) {
+  let calls = 0
+  const world = harness({ scores: { r0001: 95 }, scoreAfterPatch: () => 95,
+    reviewer: ({ baselineReview }) => {
+      calls++
+      if (baselineReview && scenario === 'failed-review') throw new Error('comparison unavailable')
+      const artistic = baselineReview ? artisticAnswer('pass', scenario) : artisticAnswer('needs_work')
+      if (baselineReview && scenario === 'low-confidence') artistic.comparison.confidence = 0.2
+      return { findings: [], artistic: scenario === 'missing' ? undefined : artistic,
+        operations: [{ op: 'material.parameter.update', materialId: 'ceramic', parameter: 'roughness', value: 0.25 }] }
+    },
+  })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 1 })
+  check(`equal-score candidate requires evidenced artistic improvement (${scenario})`,
+    scenario === 'improved'
+      ? run.finalRevision === 'r0002' && run.passed && world.restored.length === 0 && run.artistic.status === 'pass'
+      : run.finalRevision === 'r0001' && !run.passed && world.restored.length === 1,
+    { revision: run.finalRevision, passed: run.passed, stop: run.stopReason })
+  check(`candidate is actually compared with the baseline (${scenario})`, calls === 2)
+}
+{
+  const world = harness({ scores: { r0001: 95 }, reviewer: () => ({ findings: [], operations: [] }) })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 5 })
+  check('an empty reviewer reply on a high-score scene hands over without claiming artistic success',
+    run.technicalPassed && !run.passed && run.artistic.status === 'unassessable' && run.handover !== null)
+}
+{
+  const world = harness({ scores: { r0001: 95 }, scoreAfterPatch: () => 90,
+    reviewer: () => ({ artistic: artisticAnswer('needs_work', 'improved'), findings: [],
+      operations: [{ op: 'light.update', lightId: 'key', energy: 42 }] }) })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 1 })
+  check('artistic claims cannot authorize technical regression', run.finalRevision === 'r0001' && world.restored.length === 1)
+}
+{
+  const world = harness({ scores: { r0001: 100 } })
+  let calls = 0
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 0,
+    reviewer: () => { calls++; return {} } })
+  check('measurement-only mode does not spend a model call or claim artistic success',
+    calls === 0 && run.technicalPassed && !run.passed && run.artistic.status === 'unassessable')
+}
+
+{
+  const world = harness({ scores: { r0001: 82 }, scoreAfterPatch: () => 100,
+    reviewer: ({ baselineReview }) => ({ artistic: baselineReview ? undefined : artisticAnswer('needs_work'),
+      findings: [], operations: [{ op: 'light.update', lightId: 'key', energy: 42 }] }) })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 1 })
+  check('a technical score gain cannot substitute for the missing candidate comparison',
+    run.finalRevision === 'r0001' && world.restored.length === 1 &&
+    run.rounds[1].reason === 'ARTISTIC_COMPARISON_UNASSESSABLE')
+}
+{
+  const world = harness({ scores: { r0001: 82 }, scoreAfterPatch: () => 95,
+    reviewer: ({ baselineReview }) => ({ artistic: artisticAnswer(baselineReview ? 'pass' : 'needs_work',
+      baselineReview ? 'regressed' : 'equivalent'), findings: [],
+      operations: [{ op: 'light.update', lightId: 'key', energy: 42 }] }) })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world, maxIterations: 1 })
+  check('an artistic regression defeats a higher technical score',
+    run.finalRevision === 'r0001' && run.rounds[1].reason === 'ARTISTIC_REGRESSION')
+}
+
+{
+  const world = harness({ scores: { r0001: 95 }, scoreAfterPatch: () => 95,
+    reviewer: () => ({ artistic: artisticAnswer('needs_work', 'equivalent'), findings: [],
+      operations: [{ op: 'light.update', lightId: 'key', energy: 42 }] }) })
+  const run = await runVisualLoop({ projectId: 'p', revision: 'r0001', ...world,
+    maxIterations: 5, stopOnRepeatedIssueCount: 2 })
+  check('repeated unresolved artistic defects stop after two failed attempts even with no technical issues',
+    run.stopReason === 'REPEATED_ISSUE' && run.iterations === 2 && run.openIssues.length === 0)
+}
+
+for (const failReview of [false, true]) {
+  const world = harness({ scores: { r0001: 82 }, scoreAfterPatch: () => 30 })
+  let current = 'r0001', restoreRequest = null
+  const failure = await runVisualLoop({
+    projectId: 'p', revision: 'r0001', ...world, maxIterations: 1,
+    patch: async request => { const result = await world.patch(request); current = result.revision; return result },
+    review: async request => {
+      const review = await world.review(request)
+      if (request.revision !== 'r0001') {
+        current = 'r0003' // A second editor publishes while the candidate is being reviewed.
+        if (failReview) throw new Error('candidate renderer failed')
+      }
+      return review
+    },
+    restore: async request => {
+      restoreRequest = request
+      if (request.expectedCurrentRevision !== undefined && request.expectedCurrentRevision !== current) {
+        throw Object.assign(new Error('another editor changed the current revision'), { code: 'REVISION_CONFLICT' })
+      }
+      current = request.revision
+    },
+  }).then(() => null, error => error)
+  check(`a ${failReview ? 'failed' : 'declined'} candidate review cannot roll back another editor's later work`,
+    failure?.code === 'REVISION_CONFLICT' && restoreRequest?.expectedCurrentRevision === 'r0002' && current === 'r0003')
+}
 
 const failed = results.filter(entry => !entry.ok).length
 console.log('')

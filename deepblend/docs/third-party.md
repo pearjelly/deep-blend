@@ -1,71 +1,125 @@
 # 第三方组件与许可
 
-> 这份文档回答一个问题：**这个产品用了别人的什么东西，各自的许可是什么，为什么它们不冲突。**
->
-> 它由 `deepblend/tests/contract/third-party.test.mjs` 盯住四件事：
-> ① 产品 spawn 的每一个外部程序都在这份表里，而表里没有产品不 spawn 的东西（**双向**，从配置 schema 推导）；
-> ② 发布的每一个 manifest 的 `license` 与仓库根的一致；
-> ③ 产品的 `dependencies` 只有本仓库自己的包，其余一律是 `peerDependencies`（由**用户的部署**提供）；
-> ④ 仓库里**没有一个被别人构建出来的字节**——没有二进制扩展名被跟踪。
->
-> **为什么这一行在商用账本上**：一个公司能不能用这份软件，先看它的许可干不干净。
-> 而「干净」不是感觉：它是上面四条断言，加上下面每一行指到的代码与读数。
+这份清单区分外部程序、DSH 提供的同行依赖，以及由 DeepBlend 安装或打包的普通 npm 依赖。
+仓库自有代码采用 MIT；这不改变第三方组件自己的许可。`third-party.test.mjs` 检查外部程序清单、
+自有包许可字段、第三方依赖白名单和源码树中的二进制文件；它不替代对发布成品的许可与平台验收。
 
----
+## 1. 三类关系
 
-## 1. 三类关系，三种义务
-
-| 关系 | 本产品的例子 | 本产品做了什么 | 义务落在谁身上 |
-|---|---|---|---|
-| **外部程序调用** | Blender、ffmpeg / ffprobe | 用 **argv 数组**启动（不经 shell），不链接、不打包、不再分发 | 用户自己那份安装的许可 |
-| **同行依赖（peer）** | DSH harness（`cordis`、`dsh-tools`、`schemastery` …） | 声明为 `peerDependencies`，由用户**已经装好的部署**提供 | 用户自己的部署 |
-| **再分发** | **没有** | 发布物里只有本仓库自己的文件 | — |
-
-**这三行是这份文档的全部内容**，其余是逐项与复核方法。
-
----
+| 关系 | 组件 | 安装与分发方式 |
+|---|---|---|
+| 外部程序调用 | Blender、ffmpeg / ffprobe | 以独立进程调用；受管 Blender 从上游下载，ffmpeg 由用户安装，DeepBlend 当前不打包这些可执行程序 |
+| 同行依赖（peer） | `@deepseek-ai/*` | 保持 `peerDependencies`，由用户的 DSH 部署提供 |
+| 普通依赖与再分发 | Host 的 `sharp@0.35.5` 及其传递依赖 | Git/npm 路线由包管理器安装；Release tarball 会包含已打包的传递依赖及原生库，必须检查实际成品 |
 
 ## 2. 逐项
 
-| 组件 | 许可 | 本产品怎么用它 | 谁把它装上 | 哪条断言盯着 |
+| 组件 | 许可 | 本产品怎么用它 | 安装与来源 | 复核位置 |
 |---|---|---|---|---|
-| **Blender 5.2.1** | **GPL-3.0-or-later**（读自受管安装自带的 `Contents/Resources/text/license/license.md`：*"While Blender itself is released under GPL 3.0 or later"*） | **外部程序**：`packages/deepblend/provider-local/lib/index.js` 用 `ctx.subprocess.spawn({ argv })` 启动 `Blender --background --factory-startup --python bootstrap.py -- …`；不链接它的库、不读它的源码、不在进程内嵌 Python | 受管安装（`npm run blender:install`，从上游**下载**）或用户自己装的那份（`blenderPath`） | `deepblend/tests/contract/security-controls.test.mjs`（argv 数组、`--factory-startup`、环境白名单）；本文件的第 ①④ 条 |
-| **ffmpeg / ffprobe** | **用户那份构建的许可**。本机实测（`ffmpeg -version` 的 `configuration:` 行）是 `--enable-gpl --enable-version3`，即 **GPL-3.0-or-later**；别的构建可能是 LGPL——许可随**用户装的二进制**而定，本产品不分发任何一份 | **外部程序**：`packages/deepblend/host/lib/video-encoder.js` 把帧编成 MP4、并用 `ffprobe` 量已发布视频的属性；可执行文件由 `ffmpegPath` / `ffprobePath` 指定，缺了就以 `ENCODER_NOT_FOUND` 失败并点名装法 | 用户（`install.md` §0 按平台给了命令；`recovery.md` 的 `ENCODER_NOT_FOUND` 一行同理） | `deepblend/tests/contract/host-video-encoder.test.mjs`（含「ffmpeg 不在」的那一支）；本文件的第 ①④ 条 |
-| **DSH harness**（`@deepseek-ai/*`） | 由用户自己的部署决定；本产品**不打包**它 | `peerDependencies`（`cordis`、`dsh-tools`、`schemastery` …），运行时从**正在跑它的那个部署**解析 | 用户（`install.md` §0 的 `npm install -g @deepseek-ai/dsh@…`） | 本文件的第 ③ 条；`deepblend/tests/contract/workspace-links.test.mjs`（链接指向部署而不是副本） |
-| **本产品自己的七个包** | **MIT**（与仓库根 `LICENSE` 一致，八个 manifest 全部声明） | 这就是产品 | 三条安装路线之一 | 本文件的第 ② 条 |
-| **本产品自己的 npm 依赖** | 只有 `@deepblend/*`（同级包） | 精确版本或 git spec，按路线不同 | 随产品 | 本文件的第 ③ 条 |
+| **Blender 5.2.1** | GPL-3.0-or-later，以该构建随附许可为准 | 外部程序：provider 通过 argv 启动 Blender，编译或渲染场景 | `blender:install` 按固定 URL 和 SHA256 下载，或用户配置 `blenderPath` | 受管安装的 `Contents/Resources/text/license/license.md`；`security-controls.test.mjs` |
+| **ffmpeg / ffprobe** | 取决于用户的构建；本机版本启用 `--enable-gpl --enable-version3` | 外部程序：编码视频、检查帧率和尺寸 | 用户安装；由 `ffmpegPath` / `ffprobePath` 配置 | `ffmpeg -version`、`ffprobe -version`；`host-video-encoder.test.mjs` |
+| **DSH harness**（`@deepseek-ai/*`） | 以用户安装的各包许可为准 | peer 依赖，从运行中的 DSH 部署解析 | 用户的 DSH 部署；不由 DeepBlend tarball 打包 | 各包 `package.json`；`workspace-links.test.mjs` |
+| **sharp 0.35.5** | Apache-2.0 | Host 完整解码 PNG/JPEG 参考图，按需加载 | Host 显式 `dependencies`；[sharp 上游源码](https://github.com/lovell/sharp)、npm registry | 安装包 `sharp/package.json` 与 `sharp/LICENSE` |
+| **@img/sharp-darwin-arm64 0.35.5** | Apache-2.0 | 当前 macOS arm64 的 Node 原生扩展；其他平台选择相应 `@img/sharp-*` 包 | sharp 的 `optionalDependencies`，由包管理器选择平台 | 该安装包 `package.json`、`LICENSE`；来源为 sharp 仓库 `npm/darwin-arm64` |
+| **@img/sharp-win32-x64 0.35.5** | Apache-2.0 AND LGPL-3.0-or-later | Windows x64 原生扩展及同包携带的 libvips DLL | sharp 的平台可选依赖；已下载核对包内容，未在 Windows 执行 | 该包 `package.json`、`LICENSE`、`README.md` 与 `versions.json` |
+| **@img/sharp-libvips-darwin-arm64 1.3.4** | 包声明 LGPL-3.0-or-later；内部组件另有各自许可 | 当前实测 libvips 8.18.7 及其共享库依赖 | 平台可选依赖；[sharp-libvips 上游源码与构建脚本](https://github.com/lovell/sharp-libvips) | 安装包 `package.json`、`README.md` 的 Licensing 表、`versions.json` |
+| **@img/colour 1.1.0** | MIT | sharp 的传递 JavaScript 依赖 | npm registry；[lovell/colour](https://github.com/lovell/colour) | `package.json`、`LICENSE.md` |
+| **detect-libc 2.1.2** | Apache-2.0 | sharp 的平台检测依赖 | npm registry；[lovell/detect-libc](https://github.com/lovell/detect-libc) | `package.json`、`LICENSE` |
+| **semver 7.8.5** | ISC | sharp 的版本判断依赖 | npm registry；[npm/node-semver](https://github.com/npm/node-semver) | `package.json`、`LICENSE` |
+| **本产品自己的七个包** | MIT | DeepBlend 的实现 | 本仓库，按安装路线分发 | 仓库 `LICENSE` 与每个自有包的 `license` 字段 |
 
-**这里没有的**：任何被**再分发**的第三方二进制。受管 Blender 是**下载**（见 §3），ffmpeg 由用户安装，harness 由用户安装，图片是本产品自己渲出来再拍的（`deepblend/tools/capture-docs-images.mjs`）。
+上表的 sharp 依赖版本来自本轮已安装的 `.tools/dsh/node_modules` 与开发运行时锁文件，并用 npm 官方元数据复核。
+平台 libvips 包的顶层没有独立 `LICENSE` 文件；它的 `README.md` 列出了内嵌组件的许可，不能把该包内所有代码都视为单一 LGPL 许可。
+例如该安装包还包含 cairo（MPL-1.1）、libpng（libpng License）、mozjpeg（zlib / IJG / BSD-3-Clause）、
+libwebp（BSD）等组件。完整版本和许可表以对应安装包及上游
+[第三方声明](https://github.com/lovell/sharp-libvips/blob/main/THIRD-PARTY-NOTICES.md) 为准；此处没有声称已审核所有平台成品。
 
----
+## 3. 为什么不冲突：按实际分发物核验
 
-## 3. 为什么不冲突
+Blender 和 ffmpeg 是独立程序，当前产物不携带它们；DSH 仍由用户的部署提供。
+sharp 则是进程内调用的第三方库，Release tarball 可能携带其原生扩展、libvips 和内嵌组件。
+因此“发布物只有本仓库自己的文件”“全部外部依赖都是 peer”已不适用于当前项目。
 
-**GPL 的义务跟着「分发」和「衍生作品」走，而这两件事本产品都不做。**
+构建与分发时应保留随包的版权、许可、第三方声明，并针对实际包含的 LGPL 等组件核对对应源码、替换或重新链接等适用条件。
+上游仓库链接和一个 SPDX 字段本身不能证明某个离线成品已满足这些条件。本文记录组件与验证边界，不作整套产品的法律合规结论。
 
-* **不链接。** Blender 与 ffmpeg 都是**独立进程**，通过 argv 与文件系统交互；本产品不链接它们的库，也不把它们的代码编译进来。GPL 对「同一进程内的衍生作品」的要求因此不适用——这与「一个 MIT 程序调用一个 GPL 命令行工具」是同一类关系。
-* **不分发。** 受管 Blender 是 `npm run blender:install` **从上游 URL 取**的（`deepblend/tools/blender-release.json` 钉了版本、URL、字节数与 `sha256`），产物里没有它；发布到 npm 的七个包与 Release 的 tarball 都只装本仓库自己的文件。
-* **不隐瞒。** 用户装的是什么，`blender:check` 与诊断包都会说出来（`blender.version`、`blender.executable.resolved`）——一个 GPL 程序的用户有权知道自己在跑它。
-
-**如果将来要再分发**（比如把 Blender 打进一个离线安装包），这一节就不再成立，那份产物必须带上 GPL 的全文与相应源码的可获得性声明。**这条边界写在这里，是为了让那件事发生时有人知道它越过了什么。**
-
----
+**如果将来要再分发** Blender 或 ffmpeg，还须把对应二进制及其实际构建配置、许可和源码提供方式纳入成品清单。
 
 ## 4. 怎么复核
 
 ```bash
-# ① 外部程序：配置 schema 声明的那三个可执行文件，就是产品 spawn 的全部
-grep -n "blenderPath\|ffmpegPath\|ffprobePath" packages/deepblend/*/lib/*.js
-
-# ② 许可字段：八个 manifest 与仓库根一致
+# 自有包许可、普通运行时依赖白名单、DSH peer 边界
 node deepblend/tests/contract/third-party.test.mjs
 
-# ③ 依赖：产品的 dependencies 只有自己的包，其余是 peer
-node -e "for (const f of require('node:fs').readdirSync('packages/deepblend')) { const p = require('./packages/deepblend/'+f+'/package.json'); console.log(f, Object.keys(p.dependencies||{}), Object.keys(p.peerDependencies||{})) }"
+# 实际解码、尺寸限制、源图 SHA256 与畸形图片检查
+node --test deepblend/tests/contract/reference-image.test.mjs
 
-# ④ 仓库里没有别人的字节：被跟踪的文件里没有一个二进制扩展名
-git ls-files | grep -E '\.(dmg|exe|so|dylib|dll|node|wasm|zip|tgz|tar\.xz)$' || echo "none"
+# 仅检查命名与声明；会明确输出 target-platform-validation-required
+node deepblend/tools/build-release-tarball.mjs --check
 
-# 受管 Blender 的许可，读自它自己带的那份文件
+# 当前安装包的许可、平台库组件版本与完整许可表
+cat .tools/dsh/node_modules/sharp/LICENSE
+cat .tools/dsh/node_modules/@img/sharp-darwin-arm64/LICENSE
+cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/package.json
+cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/README.md
+cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/versions.json
+
+# 外部程序本身提供的许可与构建信息
 head -30 .tools/Blender.app/Contents/Resources/text/license/license.md
+ffmpeg -version
+ffprobe -version
 ```
+
+### Release tarball 的目标平台验收
+
+`--check` 不安装 tarball、不加载成品里的原生库，也不验证离线或跨平台安装。
+**实际构建已有强制文件门禁**：暂存清单的 `pnpm.supportedArchitectures` 声明
+`os: [darwin, linux, win32]`、`cpu: [arm64, x64]`、`libc: [glibc, musl]`。
+这是 pnpm 9 支持的机制，见 [pnpm 9.15.0 官方变更记录](https://github.com/pnpm/pnpm/blob/v9.15.0/pnpm/CHANGELOG.md)
+中的 8.10.0 引入项与 9.12.0 libc 修复；本轮用 pnpm 9.15.0 真实下载并打包验证。
+该配置按组合安装，可能携带更多平台文件；构建必须完整保留下面四个承诺目标：
+
+| 目标 | sharp 原生扩展 | libvips 运行时位置 |
+|---|---|---|
+| macOS arm64 | `@img/sharp-darwin-arm64` 的 `.node` | `@img/sharp-libvips-darwin-arm64` 的 `libvips-cpp.<version>.dylib` |
+| Linux x64 / glibc | `@img/sharp-linux-x64` 的 `.node` | `@img/sharp-libvips-linux-x64` 的 `libvips-cpp.so.<version>` |
+| Linux x64 / musl | `@img/sharp-linuxmusl-x64` 的 `.node` | `@img/sharp-libvips-linuxmusl-x64` 的 `libvips-cpp.so.<version>` |
+| Windows x64 | `@img/sharp-win32-x64` 的 `.node` | 同包的 `libvips-cpp-<version>.dll` 与 `libvips-42.dll` |
+
+打包前检查精确包版本、OS/CPU/libc、真实 Mach-O/ELF/PE 架构、加载入口及非空运行时文件。
+sharp 与各平台扩展必须保留 Apache `LICENSE`；libvips 必须保留随包 `README.md` 的许可表、`versions.json` 和许可字段。
+独立 libvips 包上游没有名为 `LICENSE` 的文件，因此检查的是其实际随附声明，未把声明检查说成已满足所有再分发义务。
+打包后从 tgz 再取出上述文件，重新执行检查并逐文件比较 SHA256。任何缺失、损坏或字节变化都会硬失败，
+删除不合格候选，不生成可发布的通用文件名；`--allow-dirty` 不跳过门禁。
+成功会写出 `native-payload-verification.json`，包含 tgz SHA256、四个目标和每个受检文件的哈希，
+同时明确 `crossPlatformExecutionVerified: false`。这项证据证明原生文件被完整装入，并不证明在其他操作系统运行过。
+
+以下仍是实际运行验收步骤：
+在每个声明支持的平台使用全新的 DSH_HOME 安装**同一个待发布 tgz**，记录 tgz SHA256、OS/arch、Linux libc 和安装日志。
+按 [sharp 的安装说明](https://sharp.pixelplumbing.com/install/) 保留可选依赖，避免复用开发机的 `node_modules`。
+
+安装后把下面的 `DEEPBLEND_INSTALLED_HOST` 设为**刚安装的 Host 包真实目录**，`REFERENCE_PNG` 和 `REFERENCE_JPEG`
+设为两份独立已知正常图片。这个探针从成品的模块解析依赖，强制真实 PNG/JPEG 解码；需要退出 0，并把 JSON 输出留作证据：
+
+```bash
+DEEPBLEND_INSTALLED_HOST=/absolute/path/to/installed/host \
+REFERENCE_PNG=/absolute/path/to/known-valid.png \
+REFERENCE_JPEG=/absolute/path/to/known-valid.jpg \
+node --input-type=module <<'JS'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+const { inspectReferenceImage } = await import(pathToFileURL(join(process.env.DEEPBLEND_INSTALLED_HOST, 'lib/reference-image.js')))
+const report = { platform: process.platform, arch: process.arch,
+  libc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime ?? 'non-glibc; record libc separately' : null }
+for (const [key, path, mime] of [['pngDecode', process.env.REFERENCE_PNG, 'image/png'], ['jpegDecode', process.env.REFERENCE_JPEG, 'image/jpeg']]) {
+  report[key] = await inspectReferenceImage(readFileSync(path), { name: path, mediaType: mime })
+}
+console.log(JSON.stringify(report, null, 2))
+JS
+```
+
+最后从该 tgz 解包清单核对原生包、随附许可和第三方声明。若宣称离线安装，还必须用空包管理器缓存、禁用网络、
+隔离已有部署依赖重做安装与解码；普通联网安装通过不等于离线通过。本轮完成 macOS arm64 解码及独立 sharp 矩阵下载/打包探针，
+并用全新空 pnpm store、`--offline` 与隔离 `node_modules` 安装该探针 tgz，在 macOS arm64 完成透明 PNG 与渐进 JPEG 的完整解码。
+尚未在其他 OS 执行原生库，也未构建或发布含最新业务代码的 DeepBlend 发布包。

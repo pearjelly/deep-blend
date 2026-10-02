@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.modular-speaker",
+  "version": "1.0.0",
+  "title": "编织格栅桌面音箱",
+  "description": "圆角空腔柜体、真实编织格栅、独立控制组件、贯通散热口与背面接线。可调整外壳颜色、粗糙度和摄影曝光。",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend",
+    "note": "Original modular-speaker product benchmark. The bundled SceneSpec and rendered preview are pinned by their raw content hashes; source URL is attribution, not an installation endpoint."
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "animation.transform",
+      "geometry.curve",
+      "geometry.lathe",
+      "geometry.modifiers",
+      "geometry.primitive",
+      "material.principled",
+      "material.procedural"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "efb7ffabb4901ba4e824537885b2215923910e7855f656e5776c562ad2e33de1"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492",
+    "mediaType": "image/png",
+    "alt": "编织格栅桌面音箱默认参数的实际Blender渲染"
+  },
+  "parameters": [
+    {
+      "id": "main-color",
+      "title": "外壳颜色",
+      "description": "调整音箱外壳的颜色。",
+      "type": "color",
+      "default": [
+        0.66,
+        0.62,
+        0.52
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "shell-porcelain",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "主表面粗糙度",
+      "description": "调整音箱外壳的光泽；数值越大，表面越柔和。",
+      "type": "number",
+      "default": 0.31,
+      "minimum": 0.2,
+      "maximum": 0.55,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "shell-porcelain",
+          "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "exposure",
+      "title": "摄影曝光",
+      "description": "调整整体画面的明暗，预览和成品同步生效。",
+      "type": "number",
+      "default": 0,
+      "minimum": -1,
+      "maximum": 1,
+      "bindings": [
+        {
+          "kind": "render-profile",
+          "profile": "preview",
+          "property": "exposure"
+        },
+        {
+          "kind": "render-profile",
+          "profile": "final",
+          "property": "exposure"
+        }
+      ]
+    }
+  ]
+}

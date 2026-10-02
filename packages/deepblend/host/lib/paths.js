@@ -21,6 +21,9 @@
 import { createHash } from 'node:crypto'
 import {
   existsSync,
+  openSync,
+  closeSync,
+  readSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -272,10 +275,18 @@ export function fileSize(path) {
 
 /** sha256 of a file's bytes, or `null` when the file is absent. */
 export function fileSha256(path) {
+  let descriptor
   try {
-    return createHash('sha256').update(readFileSync(path)).digest('hex')
+    descriptor = openSync(path, 'r')
+    const hash = createHash('sha256')
+    const buffer = Buffer.allocUnsafe(64 * 1024)
+    let bytes
+    while ((bytes = readSync(descriptor, buffer, 0, buffer.length, null)) > 0) hash.update(buffer.subarray(0, bytes))
+    return hash.digest('hex')
   } catch {
     return null
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor)
   }
 }
 

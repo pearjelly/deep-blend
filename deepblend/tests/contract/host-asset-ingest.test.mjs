@@ -1,32 +1,7 @@
 #!/usr/bin/env node
-/**
- * Asset ingest: every way it refuses, and the two ways it reaches off this machine.
- *
- * WHY THIS FILE EXISTS
- * --------------------
- * `assets.e2e.mjs` drives this path through the composition with real files, and that is why the
- * refusals left in the coverage reading were the ones a well-behaved caller never produces: no source
- * at all, a path that is a DIRECTORY, a local file above the byte cap, and the whole remote half
- * (`_fetchAssetToScratch`) — which was dark because a test that needs the network is a test nobody
- * runs, and because the fetch uses the global `fetch`, so its failures look unreachable from a
- * contract test.
- *
- * They are not unreachable: a `node:http` server on a random loopback port is the real thing, not a
- * stub. The host fetches from it over a real socket, streams a real body, and hits its real HTTP and
- * size branches. Nothing here mocks `fetch`, and nothing leaves the machine.
- *
- * The refusals are worth reading for the same reason every other refusal in this session was: they
- * are what an operator sees when an import does not work, and each one names a DIFFERENT cause
- * (nothing to import / not a file / too big / not a URL / not a protocol / HTTP status / no bytes).
- * A version that answered all of them "the import failed" would pass a test that only checked `ok:false`.
- *
- * DELIBERATELY NOT COVERED, and named so nobody assumes it runs: the post-copy size check in
- * `ingestAsset` compares the bytes on disk after the copy with the same cap checked before it. It can
- * only fire if the source file GROWS between the two `stat` calls, so it is a race guard rather than a
- * rule — reproducing it would mean racing this machine, which measures the machine.
- *
- * Run standalone: `node deepblend/tests/contract/host-asset-ingest.test.mjs`
- * Run all:        `node deepblend/tests/run.mjs`
+/** Asset imports over real loopback HTTP and local files: content identity,
+ * version provenance, hash verification, bounded streaming, cancellation and cleanup.
+ * No external network or Blender process is needed for this contract suite.
  */
 
 import { Context } from '@deepseek-ai/cordis'
@@ -41,12 +16,6 @@ import { BlenderError, BlenderErrorCode, validateScenePatch } from '@deepblend/d
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
-// NAMED, NOT PRETENDED COVERED: `ingestAsset` checks the size TWICE — once on the staged copy and once after
-// the bytes land in the project (`statSync(destination).size > assetMaxBytes`, which removes the file and throws
-// `ASSET_TOO_LARGE`). The second check cannot be driven from a test: it fires only when the file GREW between
-// the pre-copy stat and the copy, which is a race against whoever is writing the source — the same shape as the
-// `statSync` guard in the provider's `_assertAllowed`. The first check is asserted below, and the second is a
-// belt for a source that is still being written while it is ingested.
 const results = []
 function check(name, ok, detail) {
   results.push({ name, ok })
@@ -88,6 +57,7 @@ const ingestError = request => studio.ingestAsset(request).catch(cause => cause)
 // ---------------------------------------------------------------------------
 
 let bodiesServed = 0
+let finishProgressResponse
 const server = createServer((request, response) => {
   if (request.url === '/redirect-once.glb') {
     // A redirect is normal (an S3 region mismatch does it), and the point of the case below is that the host
@@ -140,6 +110,17 @@ const server = createServer((request, response) => {
     response.end()
     return
   }
+  if (request.url === '/progress.glb') {
+    response.writeHead(200, { 'content-type': 'model/gltf-binary' })
+    response.write(glbBytes)
+    finishProgressResponse = () => response.end(Buffer.alloc(16, 7))
+    return
+  }
+  if (request.url === '/slow.glb') {
+    response.writeHead(200, { 'content-type': 'model/gltf-binary' })
+    response.write(glbBytes)
+    return // The client deadline/cancel must close this unfinished response.
+  }
   if (request.url === '/race.glb') {
     // A second URL serving the same bytes: the concurrency case below must not disturb the counter that
     // proves `/model.glb` was fetched exactly once.
@@ -147,7 +128,7 @@ const server = createServer((request, response) => {
     response.end(glbBytes)
     return
   }
-  if (request.url === '/model.glb') {
+  if (request.url?.startsWith('/model.glb')) {
     response.writeHead(200, { 'content-type': 'model/gltf-binary' })
     bodiesServed += 1
     response.end(glbBytes)
@@ -291,14 +272,10 @@ check('a SUCCESSFUL remote ingest leaves no scratch behind either, because the b
   scratchAfterSuccess.length === 0,
   scratchAfterSuccess)
 
-// BOTH CALLS SUCCEED, BUT ONE ENTRY PER PATH — and this case used to assert TWO, which pinned a defect: both
-// ingests fetch the same URL, so they land at the same `assets/raw/race.glb`, and the manifest de-duplicated by
-// asset id alone. The first entry then described bytes the second had already replaced. The manifest replaces by
-// PATH as well now (the rule the artifact index already follows), so the honest expectation is one entry whose
-// file exists and whose hash is that file's.
-check('two ingests in flight at once: both succeed, and the manifest keeps ONE entry for the path they share',
-  concurrent.every(entry => entry.assetId !== undefined) &&
-  afterRace.assets.filter(entry => entry.assetId.startsWith('race-')).length === 1 &&
+// Identical content shares one object while each independently named alias survives.
+check('concurrent identical ingests preserve both aliases and deduplicate their bytes',
+  concurrent.every(entry => entry.assetId !== undefined) && concurrent[0].path === concurrent[1].path &&
+  afterRace.assets.filter(entry => entry.assetId.startsWith('race-')).length === 2 &&
   afterRace.assets.every(entry => existsSync(join(studio.store.projectDirectory(projectId), entry.path))),
   { manifestIds: afterRace.assets.map(entry => entry.assetId) })
 
@@ -307,6 +284,15 @@ check('two ingests in flight at once: both succeed, and the manifest keeps ONE e
 // and in the model's transcript, so the raw URL is a credential being copied around. The check asserts BOTH
 // that the secret is absent and that the removal is visible — a reader comparing the message with what they
 // pasted has to be able to tell a cleaned URL from one that never had a query.
+const unapprovedSigned = await ingestError({
+  projectId,
+  sourceUrl: `${base}/model.glb?signature=approval-secret`,
+})
+check('an unapproved signed URL is redacted in both the error message and detail',
+  unapprovedSigned.code === code('ASSET_APPROVAL_REQUIRED') &&
+  !JSON.stringify({ message: unapprovedSigned.message, detail: unapprovedSigned.detail }).includes('approval-secret') &&
+  unapprovedSigned.detail.sourceUrl === `${base}/model.glb (query removed)`)
+
 const presigned = await ingestError({
   projectId,
   sourceUrl: `${base}/missing.glb?X-Amz-Signature=deadbeefcafe&X-Amz-Credential=AKIAEXAMPLE`,
@@ -343,7 +329,7 @@ const huge = await ingestError({ projectId, sourceUrl: `${base}/huge.glb`, appro
 check('a body that grows past the cap is stopped WHILE streaming, with the number received so far',
   huge instanceof BlenderError && huge.code === code('ASSET_TOO_LARGE') &&
   huge.detail?.received > ASSET_MAX_BYTES && huge.detail?.maxBytes === ASSET_MAX_BYTES &&
-  /the download was stopped rather than completed/.test(huge.message),
+  /the transfer was stopped/.test(huge.message),
   huge?.detail ?? huge?.message)
 check('and the scratch space of every failed fetch is gone, so the next attempt starts clean',
   readdirSync(join(workspaceRoot, 'tmp')).filter(name => name.startsWith('asset-')).length === 0,
@@ -358,9 +344,9 @@ check('a fetch that cannot reach the host becomes ASSET_FETCH_FAILED, keeping wh
   unreachable?.message ?? unreachable)
 
 const fetched = await studio.ingestAsset({ projectId, sourceUrl: `${base}/model.glb`, approved: true })
-check('a fetch that works lands the bytes in the project, under the name the URL ended with',
+check('a fetch stores the bytes at a path determined by their digest',
   fetched.assetId === 'model' && fetched.type === 'glb' &&
-  fetched.path === 'assets/raw/model.glb' && fetched.bytes === glbBytes.length &&
+  fetched.path === `assets/raw/${fetched.sha256}.glb` && fetched.bytes === glbBytes.length &&
   fetched.source?.kind === 'url' && fetched.source?.url === `${base}/model.glb`,
   { assetId: fetched.assetId, path: fetched.path, source: fetched.source })
 const landed = join(studio.store.projectDirectory(projectId), fetched.path)
@@ -392,14 +378,7 @@ check('a local ingest produces the same record shape, with a local source',
 // Two ingests of the SAME FILE NAME at once
 // ---------------------------------------------------------------------------
 //
-// The destination is `<project>/assets/raw/<name>` — shared by NAME, not by asset id — and the copy used to write
-// it in place (`copyFileSync`), so two ingests of a file called `model.glb` interleaved their writes. A reader, or
-// the hash computed right after the copy, could then see a mixture of two different assets, and the manifest would
-// record the hash of whatever the mixture happened to be.
-//
-// Two sources with the SAME NAME and DIFFERENT BYTES, because identical bytes would make a torn write
-// undetectable: what the case asserts is that the file which lands is one of the two, intact, and that the hash
-// the manifest records is that file's own hash.
+// Same name, different bytes: both objects and their history must survive.
 {
   const firstSource = join(outsideRoot, 'a', 'twin.glb')
   const secondSource = join(outsideRoot, 'b', 'twin.glb')
@@ -415,26 +394,21 @@ check('a local ingest produces the same record shape, with a local source',
     studio.ingestAsset({ projectId, sourcePath: firstSource, assetId: 'twin-left' }).catch(cause => cause),
     studio.ingestAsset({ projectId, sourcePath: secondSource, assetId: 'twin-right' }).catch(cause => cause),
   ])
-  const twinPath = join(studio.store.projectDirectory(projectId), 'assets/raw/twin.glb')
-  const landed = existsSync(twinPath) ? readFileSync(twinPath) : null
-  const isFirst = landed !== null && landed.equals(firstBytes)
-  const isSecond = landed !== null && landed.equals(secondBytes)
-  check('two ingests of one file NAME at once leave ONE of the two files intact, never a mixture',
-    isFirst || isSecond,
-    { bytes: landed?.length ?? null, first: isFirst, second: isSecond,
-      outcomes: [left?.code ?? 'ok', right?.code ?? 'ok'], leftMessage: left?.message?.slice(0, 80) })
+  check('concurrent different files with one name preserve BOTH versions',
+    left.path !== right.path && readFileSync(join(studio.store.projectDirectory(projectId), left.path)).equals(firstBytes) &&
+    readFileSync(join(studio.store.projectDirectory(projectId), right.path)).equals(secondBytes))
+  const replaced = await studio.ingestAsset({ projectId, sourcePath: secondSource, assetId: 'twin-left' })
+  const manifest = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
+  check('replacing an alias preserves its old bytes and both provenance versions',
+    replaced.path === right.path && readFileSync(join(studio.store.projectDirectory(projectId), left.path)).equals(firstBytes) &&
+    manifest.versions.filter(entry => entry.assetId === 'twin-left').length === 2 &&
+    manifest.assets.find(entry => entry.assetId === 'twin-left').path === right.path)
+  await studio.ingestAsset({ projectId, sourcePath: secondSource, assetId: 'twin-left', license: 'CC0-1.0' })
+  const changedProvenance = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8'))
+  const history = changedProvenance.versions.filter(entry => entry.assetId === 'twin-left' && entry.path === right.path)
+  check('new provenance for identical bytes does not erase the prior provenance record',
+    history.length === 2 && history.some(entry => entry.license === null) && history.some(entry => entry.license === 'CC0-1.0'))
 
-  // And the hash recorded is the hash of what is actually on disk: a torn write would have been hashed as torn.
-  const recorded = createHash('sha256').update(landed).digest('hex')
-  const manifest = JSON.parse(readFileSync(
-    join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8',
-  ))
-  // ONE ENTRY PER PATH, and it describes the bytes that are actually there. Two entries would leave the first
-  // describing bytes the second replaced — the same fact in two places disagreeing.
-  const twins = (manifest.assets ?? []).filter(entry => entry.path === 'assets/raw/twin.glb')
-  check('and the manifest keeps ONE entry for that path, whose hash is the hash of the bytes that survived',
-    twins.length === 1 && twins[0].sha256 === recorded,
-    { entries: twins.length, recorded: recorded.slice(0, 12), manifest: twins[0]?.sha256?.slice(0, 12) })
 }
 
 // ---------------------------------------------------------------------------
@@ -454,7 +428,7 @@ check('a local ingest produces the same record shape, with a local source',
     idempotencyKey: 'declared-wrong-hash',
     operations: [{
       op: 'asset.add',
-      asset: { id: 'declared', type: 'glb', path: 'assets/raw/model.glb', sha256: 'b'.repeat(64) },
+      asset: { id: 'declared', type: 'glb', path: fetched.path, sha256: 'b'.repeat(64) },
     }],
     saveCheckpoint: false,
   }).catch(cause => cause)
@@ -466,14 +440,14 @@ check('a local ingest produces the same record shape, with a local source',
     wrongHash?.code === undefined ? wrongHash : { code: wrongHash.code, declared: wrongHash.detail?.declared?.slice(0, 8), actual: wrongHash.detail?.actual?.slice(0, 8) })
 
   // The honest declaration goes through, which is what makes the refusal a check rather than a wall.
-  const actualHash = createHash('sha256').update(readFileSync(join(studio.store.projectDirectory(projectId), 'assets/raw/model.glb'))).digest('hex')
+  const actualHash = createHash('sha256').update(readFileSync(join(studio.store.projectDirectory(projectId), fetched.path))).digest('hex')
   const rightHash = await studio.transactions.applyScenePatch({
     projectId,
     baseRevision: studio.store.readRecord(projectId).currentRevision,
     idempotencyKey: 'declared-right-hash',
     operations: [{
       op: 'asset.add',
-      asset: { id: 'declared', type: 'glb', path: 'assets/raw/model.glb', sha256: actualHash },
+      asset: { id: 'declared', type: 'glb', path: fetched.path, sha256: actualHash },
     }],
     saveCheckpoint: false,
   })
@@ -500,6 +474,60 @@ check('a local ingest produces the same record shape, with a local source',
   check('an asset whose file does not exist yet is NOT refused here: that question belongs to the compiler',
     noFile.revision?.revision !== undefined, noFile?.code ?? 'committed')
 }
+
+// Unchanged asset declarations are rechecked on unrelated edits.
+{
+  const pinnedPath = join(studio.store.projectDirectory(projectId), fetched.path)
+  const original = readFileSync(pinnedPath)
+  const before = studio.store.readRecord(projectId).currentRevision
+  writeFileSync(pinnedPath, Buffer.concat([original, Buffer.from('changed')]))
+  const failed = await studio.transactions.applyScenePatch({ projectId, baseRevision: before,
+    operations: [{ op: 'entity.visibility.set', entityId: studio.store.readRevisionSpec(projectId, before).entities[0].id, visible: false }],
+    saveCheckpoint: false }).catch(error => error)
+  check('a changed pinned asset blocks an unrelated patch without moving the revision',
+    failed.code === 'ASSET_HASH_MISMATCH' && studio.store.readRecord(projectId).currentRevision === before)
+  const refusedOverwrite = await ingestError({ projectId, sourcePath: localSource })
+  check('reingest refuses to overwrite a corrupted content-addressed object', refusedOverwrite.code === 'ASSET_HASH_MISMATCH')
+  writeFileSync(pinnedPath, original)
+}
+const secretFetch = await studio.ingestAsset({ projectId, sourceUrl: `${base}/model.glb?signature=test-secret`, approved: true })
+const savedManifest = readFileSync(join(studio.store.projectDirectory(projectId), 'assets', 'manifest.json'), 'utf8')
+check('successful source provenance also redacts signed URL query values',
+  !JSON.stringify(secretFetch).includes('test-secret') && !savedManifest.includes('test-secret'))
+
+let streamFinished = false
+const streaming = studio.ingestAsset({ projectId, sourceUrl: `${base}/progress.glb`, approved: true })
+  .finally(() => { streamFinished = true })
+let sawPartialFile = false
+for (let attempt = 0; attempt < 100 && !sawPartialFile; attempt++) {
+  await new Promise(resolve => setTimeout(resolve, 10))
+  const partial = readdirSync(join(workspaceRoot, 'tmp')).filter(name => name.startsWith('asset-'))
+  sawPartialFile = partial.some(name => {
+    const path = join(workspaceRoot, 'tmp', name, 'download')
+    return existsSync(path) && statSync(path).size >= glbBytes.length
+  })
+}
+check('download bytes reach disk before the server finishes its response', sawPartialFile && !streamFinished)
+finishProgressResponse?.()
+const streamed = await streaming
+check('a streamed object hash describes exactly the published bytes',
+  streamed.sha256 === createHash('sha256').update(readFileSync(join(studio.store.projectDirectory(projectId), streamed.path))).digest('hex'))
+
+const originalTimeout = studio.config.assetFetchTimeoutMs
+studio.config.assetFetchTimeoutMs = 40
+const deadlineStarted = Date.now()
+const timedOut = await ingestError({ projectId, sourceUrl: `${base}/slow.glb`, approved: true })
+studio.config.assetFetchTimeoutMs = originalTimeout
+check('a stalled body hits the asset deadline and removes its partial scratch file',
+  timedOut.code === 'ASSET_FETCH_FAILED' && /timed out/.test(timedOut.message) && Date.now() - deadlineStarted < 2000 &&
+  readdirSync(join(workspaceRoot, 'tmp')).filter(name => name.startsWith('asset-')).length === 0)
+const abort = new AbortController()
+const cancelTimer = setTimeout(() => abort.abort(), 40)
+const cancelled = await ingestError({ projectId, sourceUrl: `${base}/slow.glb`, approved: true, signal: abort.signal })
+clearTimeout(cancelTimer)
+check('cancelling a streaming asset removes its partial bytes',
+  cancelled.code === 'ASSET_FETCH_FAILED' && /cancelled/.test(cancelled.message) &&
+  readdirSync(join(workspaceRoot, 'tmp')).filter(name => name.startsWith('asset-')).length === 0)
 
 // ---------------------------------------------------------------------------
 // Redirects: followed, bounded, and VISIBLE
@@ -565,6 +593,23 @@ check('a local ingest produces the same record shape, with a local source',
     /only http and https are followed, on the first URL and on every hop after it/.test(elsewhere.message) &&
     elsewhere.detail?.protocol === 'ftp:',
     elsewhere?.code === undefined ? elsewhere : { code: elsewhere.code, protocol: elsewhere.detail?.protocol })
+}
+
+const pngSource = join(outsideRoot, 'albedo.png')
+writeFileSync(pngSource, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==', 'base64'))
+const pngAsset = await studio.ingestAsset({ projectId, sourcePath: pngSource, assetId: 'albedo' })
+check('PNG maps use content-addressed asset storage and return a valid scene declaration',
+  pngAsset.type === 'png' && pngAsset.path === `assets/raw/${pngAsset.sha256}.png` &&
+  existsSync(join(studio.store.projectDirectory(projectId), pngAsset.path)))
+const wrongImage = await ingestError({ projectId, sourcePath: pngSource, type: 'jpg' })
+check('PNG bytes declared as JPEG are refused', wrongImage.code === code('ASSET_CONTENT_MISMATCH'))
+for (const [type, bytes] of [['hdr', Buffer.from('#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n')],
+  ['exr', Buffer.from([0x76, 0x2f, 0x31, 0x01, 2, 0, 0, 0])]]) {
+  const source = join(outsideRoot, `environment.${type}`)
+  writeFileSync(source, bytes)
+  const imported = await studio.ingestAsset({ projectId, sourcePath: source, assetId: `environment-${type}` })
+  check(`${type} signatures pass the ingest gate and receive a content-addressed path`,
+    imported.type === type && imported.path === `assets/raw/${imported.sha256}.${type}`)
 }
 
 await new Promise(resolve => server.close(resolve))
