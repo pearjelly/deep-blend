@@ -91,6 +91,8 @@ import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGrou
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { streamAsset } from './asset-io.js'
+import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
+import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { inspectReferenceImage, REFERENCE_IMAGE_MAX_BYTES } from './reference-image.js'
 import { createReadStream, linkSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
@@ -117,6 +119,12 @@ import {
  * `_fetchFollowingRedirects`); a server that redirects forever must cost a refusal, not an endless loop.
  */
 const MAX_ASSET_REDIRECTS = 5
+
+function assetLibraryDescriptor(entry) {
+  const license = typeof entry.license === 'string' ? { source: entry.license } : entry.license
+  return { id: entry.id ?? entry.assetId, type: entry.type, path: entry.path, sha256: entry.sha256,
+    ...(license ? { license: structuredClone(license) } : {}) }
+}
 
 export const BLENDER_STUDIO_SERVICE = 'blenderStudio'
 
@@ -2242,6 +2250,152 @@ export default class BlenderStudio extends Service {
   // Assets (SPEC §11 "导入用户资产": local automatic, network requires approval)
   // ---------------------------------------------------------------------------
 
+  /** Stage a local upload without declaring it in a scene or changing its revision. */
+  async uploadAsset(request) {
+    const projectId = requireSafeSegment(request?.projectId, 'project id')
+    this.store.readRecord(projectId)
+    const name = requireSafeSegment(request?.name, 'asset file name')
+    const type = uploadAssetType(name, request?.mediaType)
+    if (!request?.stream || typeof request.stream[Symbol.asyncIterator] !== 'function') {
+      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'Upload the asset as a byte stream.')
+    }
+    if (request.license !== undefined && (typeof request.license !== 'string' || request.license.length > 200)) {
+      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'The optional asset licence source must be text of at most 200 characters.')
+    }
+    const scratch = resolveInside(this.store.projectDirectory(projectId), `assets/.upload-${randomUUID()}`, 'asset upload')
+    mkdirSync(scratch, { recursive: true })
+    const staged = join(scratch, name)
+    try {
+      const uploaded = await streamAsset(request.stream, staged, { maxBytes: this.config.assetMaxBytes,
+        signal: request.signal, label: name })
+      await checkAssetUpload(staged, type, { signal: request.signal })
+      const result = await this._ingestAsset({ projectId, sourcePath: staged, type,
+        assetId: `asset-${randomUUID()}`, license: request.license, signal: request.signal },
+      { kind: 'upload', name })
+      if (result.sha256 !== uploaded.sha256) throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
+        'The asset changed during upload; it was not declared in the scene.')
+      return { projectId, asset: assetLibraryDescriptor(result), originalName: name,
+        bytes: result.bytes, license: result.license, currentRevision: result.currentRevision }
+    } finally { removeTree(scratch) }
+  }
+
+  /** Inventory metadata only; preview and scene compilation verify the actual bytes. */
+  async listAssets({ projectId, revision } = {}) {
+    const record = this.store.readRecord(projectId)
+    revision ??= record.currentRevision
+    const spec = this.store.readRevisionSpec(projectId, revision)
+    const directory = this.store.projectDirectory(projectId)
+    const manifest = readJsonSafe(join(directory, 'assets/manifest.json')) ?? {}
+    const keyOf = entry => `${entry.id ?? entry.assetId}|${entry.type}|${entry.path}|${entry.sha256}`
+    const rows = new Map()
+    const history = [...(manifest.versions ?? []), ...(manifest.assets ?? [])]
+    for (const entry of history) rows.set(keyOf(entry), { entry, declaredInRevision: false })
+    for (const asset of spec.assets ?? []) {
+      const key = keyOf(asset), previous = rows.get(key)?.entry
+      rows.set(key, { entry: { ...previous, ...asset, assetId: asset.id,
+        license: asset.license !== undefined ? structuredClone(asset.license) : previous?.license ?? null }, declaredInRevision: true })
+    }
+    const assets = [...rows.values()].map(({ entry, declaredInRevision }) => {
+      const asset = assetLibraryDescriptor(entry)
+      const inspectionFile = /^[a-f0-9]{64}$/.test(asset.sha256 ?? '')
+        ? resolveInside(directory, `assets/previews/${asset.sha256}/${requireSafeSegment(asset.id, 'asset id')}/inspection.json`, 'asset inspection') : null
+      const cached = inspectionFile ? readJsonSafe(inspectionFile) : null
+      return { asset, originalName: entry.originalName ?? basename(asset.path),
+        bytes: Number.isSafeInteger(entry.bytes) ? entry.bytes : null,
+        license: typeof entry.license === 'string' ? entry.license : entry.license?.source ?? null, declaredInRevision,
+        inspection: cached?.assetId === asset.id && cached?.sha256 === asset.sha256 ? cached.inspection ?? null : null,
+        preview: cached?.assetId === asset.id && cached?.sha256 === asset.sha256 ? cached.preview ?? null : null }
+    }).sort((left, right) => left.originalName.localeCompare(right.originalName)
+      || left.asset.id.localeCompare(right.asset.id) || String(left.asset.sha256).localeCompare(String(right.asset.sha256)))
+    return { projectId, revision, limits: { maxBytes: this.config.assetMaxBytes, ...ASSET_LIBRARY_LIMITS }, assets }
+  }
+
+  /** Inspect exact staged bytes in an isolated batch scene, without publishing a scene revision. */
+  async previewAsset(request) {
+    const projectId = requireSafeSegment(request?.projectId, 'project id')
+    const assetId = requireSafeSegment(request?.assetId, 'asset id')
+    const sha256 = request?.sha256
+    if (typeof sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(sha256)) {
+      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'An asset preview requires the exact SHA-256 shown in the library.')
+    }
+    if (this._assetPreviewRunning) throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID,
+      'An asset preview is already running. Wait for it or cancel it before starting another.')
+    this._assetPreviewRunning = true
+    let scratch = null, published = null, complete = false
+    const signal = request.signal
+    try {
+      signal?.throwIfAborted()
+      const inventory = await this.listAssets({ projectId })
+      const row = inventory.assets.find(entry => entry.asset.id === assetId && entry.asset.sha256 === sha256)
+      if (!row) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
+        'The selected asset version is not in this project library.')
+      const asset = row.asset
+      uploadAssetType(`asset.${asset.type}`)
+      const projectDirectory = this.store.projectDirectory(projectId)
+      const source = resolveInside(projectDirectory, asset.path, 'asset preview source')
+      if (!isFile(source)) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND, 'The selected asset bytes are missing.')
+      const runId = randomUUID()
+      scratch = resolveInside(projectDirectory, `assets/.preview-${runId}`, 'asset preview staging')
+      const stagedAsset = resolveInside(scratch, asset.path, 'staged preview asset')
+      mkdirSync(dirname(stagedAsset), { recursive: true })
+      const copied = await streamAsset(createReadStream(source), stagedAsset, {
+        maxBytes: this.config.assetMaxBytes, signal, label: row.originalName,
+      })
+      if (copied.sha256 !== sha256) throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
+        'The selected asset bytes no longer match the library version.')
+      await checkAssetUpload(stagedAsset, asset.type, { signal })
+      const imagePath = join(scratch, 'preview.png')
+      let rendered
+      if (['png', 'jpg', 'jpeg'].includes(asset.type)) {
+        const result = await previewRasterAsset(stagedAsset, asset.type, imagePath, { signal })
+        rendered = { inspection: { kind: 'image', image: result.image,
+          warnings: result.image.orientation === 1 ? [] : ['The preview shows stored texture pixels; EXIF orientation is not applied.'] },
+        preview: result.preview, template: ASSET_PREVIEW_TEMPLATE }
+      } else rendered = await renderAssetPreview({ runtime: this.runtime, asset, directory: scratch,
+        maxMeshPolygons: this.config.maxMeshPolygons, maxPreviewSamples: this.config.maxPreviewSamples, signal })
+      signal?.throwIfAborted()
+      if (!isFile(imagePath) || fileSize(imagePath) > 8 * 1024 * 1024) {
+        throw new BlenderError(BlenderErrorCode.RENDER_NO_OUTPUT, 'The asset preview produced no bounded PNG image.')
+      }
+      const { default: sharp } = await import('sharp')
+      const metadata = await sharp(imagePath, { failOn: 'warning', limitInputPixels: ASSET_LIBRARY_LIMITS.previewWidth * ASSET_LIBRARY_LIMITS.previewHeight }).metadata()
+      if (metadata.format !== 'png' || metadata.width !== rendered.preview.width || metadata.height !== rendered.preview.height
+        || metadata.width > ASSET_LIBRARY_LIMITS.previewWidth || metadata.height > ASSET_LIBRARY_LIMITS.previewHeight) {
+        throw new BlenderError(BlenderErrorCode.RENDER_NO_OUTPUT, 'The measured preview dimensions do not match its PNG image.')
+      }
+      // Force pixel decoding before publishing a thumbnail that the browser will read.
+      await sharp(imagePath, { failOn: 'warning', limitInputPixels: ASSET_LIBRARY_LIMITS.previewWidth * ASSET_LIBRARY_LIMITS.previewHeight }).raw().toBuffer()
+      const imageHash = await hashAssetFile(imagePath, { maxBytes: 8 * 1024 * 1024, signal })
+      const relative = `assets/previews/${sha256}/${assetId}/${runId}`
+      const result = { projectId, assetId, sha256, template: rendered.template,
+        checkedAt: new Date().toISOString(), inspection: rendered.inspection,
+        ...(rendered.sourceSceneSha256 ? { sourceSceneSha256: rendered.sourceSceneSha256 } : {}),
+        preview: { ...rendered.preview, path: `${relative}/preview.png`, sha256: imageHash.sha256 } }
+      // The immutable source already lives in assets/raw; do not retain a second
+      // GiB-scale copy or a disposable compiled checkpoint for every thumbnail.
+      removeTree(stagedAsset)
+      removeTree(join(scratch, 'assets'))
+      removeTree(join(scratch, 'preview.blend'))
+      removeTree(join(scratch, 'preview.blend1'))
+      writeJsonAtomic(join(scratch, 'inspection.json'), result)
+      signal?.throwIfAborted()
+      this.store.withProjectWrite(projectId, () => {
+        this.store.readRecord(projectId)
+        const destination = resolveInside(projectDirectory, relative, 'published asset preview')
+        mkdirSync(dirname(destination), { recursive: true })
+        renameSync(scratch, destination)
+        published = destination
+        writeJsonAtomic(join(dirname(destination), 'inspection.json'), result)
+      })
+      complete = true
+      return result
+    } finally {
+      if (scratch) removeTree(scratch)
+      if (published && !complete) removeTree(published)
+      this._assetPreviewRunning = false
+    }
+  }
+
   /** Uploading stores validated immutable bytes; binding them requires a separate revision patch. */
   async uploadReferenceImage(request) {
     const projectId = requireSafeSegment(request?.projectId, 'project id')
@@ -2333,6 +2487,11 @@ export default class BlenderStudio extends Service {
    * @returns {Promise<Record<string, unknown>>}
    */
   async ingestAsset(request) {
+    return this._ingestAsset(request)
+  }
+
+  /** A browser upload supplies trusted provenance here, never a caller-provided source path. */
+  async _ingestAsset(request, uploadedSource = null) {
     const projectId = requireSafeSegment(request?.projectId, 'project id')
     this.store.readRecord(projectId)
 
@@ -2539,13 +2698,13 @@ export default class BlenderStudio extends Service {
             // WHERE THE BYTES ACTUALLY CAME FROM, which is not always the URL that was approved: a redirect moves
             // the request, and the manifest is the copy a later reader trusts. It carries the approved URL (the
             // question "what did I ask for?") and, when the chain moved, the URL that answered ("what did I get?").
-            source: sourceUrl !== null
+            source: uploadedSource ?? (sourceUrl !== null
               ? {
                 kind: 'url',
                 url: redactUrl(sourceUrl),
                 ...fetchedChain.length > 1 ? { resolvedUrl: redactUrl(fetchedChain[fetchedChain.length - 1]) } : {},
               }
-              : { kind: 'local', path: sourcePath },
+              : { kind: 'local', path: sourcePath }),
             // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
             // are different statements, and only the first one is true here.
             license,

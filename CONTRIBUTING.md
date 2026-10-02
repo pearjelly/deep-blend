@@ -18,6 +18,7 @@ git clone https://github.com/pearjelly/deep-blend.git
 cd deep-blend
 
 npm run setup            # 把 node_modules 链接到本机已安装的 DSH 部署（必须先做）
+node deepblend/tools/development.mjs sdk  # 准备锁定的 SDK 类型检查工具，不修改外部 DSH
 npm test                 # 单元 + 契约，不需要 Blender（当前读数是 README 里那张快照，这里不抄第二份）
 
 npm run blender:check    # 本机有没有跑验收套件所需的那个 Blender
@@ -102,8 +103,10 @@ CI 是本仓库唯一一个**没有一个套件运行它**的产物，而它跑�
 WORK=$(mktemp -d); git clone --quiet . "$WORK"
 docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
   apt-get update -qq && apt-get install -y -qq python3 git
-  npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
-  node deepblend/tools/link-workspace.mjs
+  node deepblend/tools/development.mjs setup
+  export DEEPBLEND_DSH_ROOT="$PWD/.tools/dsh"
+  export DEEPBLEND_SDK_TOOLCHAIN_ROOT="$PWD/.tools/dsh"
+  export PATH="$PWD/.tools/dsh/node_modules/.bin:$PATH"
   node deepblend/tools/link-workspace.mjs --check
   node deepblend/tools/install-presets.mjs --check
   node deepblend/tests/run.mjs'

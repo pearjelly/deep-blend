@@ -21,6 +21,11 @@
 应用后查看真实预览，并在版本未被其他编辑改变时恢复整个场景。
 还可保存最多四张[参考图片](deepblend/docs/reference-images.md)与本版本目标；评审读取固定的项目资产，
 分别展示技术测量与有图片依据的美术判断，上传素材后需要保存目标才会参与评审。
+在[素材库](deepblend/docs/assets.md)中上传 GLB、PNG/JPEG 或 HDR/EXR，先查看实际预览，
+再插入模型、绑定图片材质或应用环境照明。模型插入默认保留原始材质和部件关系。
+内容作者可使用[公共 SDK](deepblend/docs/public-api.md)的 JavaScript/TypeScript 接口和版本化 Schema；
+[独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁。
+本轮[作品质量与开放生态改进](deepblend/docs/improvement-plan.md)记录完整范围、实际验证和剩余工作。
 
 ## 看一眼
 
@@ -136,7 +141,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         93 个 *.test.mjs
+    contract/         98 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -173,7 +178,7 @@ packages/deepblend/
 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`deepblend/tools/blender-release.json` 的 `platform`） | `npm run blender:install` / `blender:check` 报「只认得钉住的那份 macOS arm64 构建」并**退出 2**，同时告诉你去设哪个键；别的平台自装 Blender 5.2.1 并把 `blenderPath` 设在 operator layer 即可。**契约层不受影响**（CI 就跑在 Linux 上） | **上游只发布 `linux-x64` 的 Blender**（5.2 / 5.1 / 4.5 / 4.2 四条线都只有它，见 `probe-cross-platform.log`），所以 Linux 上的实际要求是 **x86_64**：arm64 Linux 上没有任何上游构建可用，要用发行版包或自行构建。
 | **Node ≥ 22**（`package.json` 的 `engines`，CI 跑的就是 22） | 一切 | 跑不起来 |
 | **一个已安装的 DSH 部署**，版本钉在 `deepblend/tools/dsh-baseline.json` | 本仓库的 import 目标 | 第 1 步的报错会点名要装哪一个版本 |
-| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 111 条照跑 |
+| **Python 3** | 只有一处：`contract/render-job.test.mjs` 用普通 CPython 跑 `deepblend_util.py`，比对两边的帧命名 | 那**一条**失败并说清缺什么，其余 118 条照跑 |
 | **git** | 契约层里读仓库状态的两条断言 | 没有 `.git` 时那两条**报「not a git checkout」并跳过**（退出码仍然是 0） |
 | **Blender 5.2.1**（`npm run blender:install`） | 需要 Blender 的那几层 | 契约层照跑；`run-all.sh` 找不到 Blender 会直接以 2 退出 |
 | **ffmpeg + ffprobe**（macOS `brew install ffmpeg`；Debian/Ubuntu `sudo apt install ffmpeg`；Fedora `sudo dnf install ffmpeg`；Windows `winget install ffmpeg`） | **只有交付的编码那一步**：`blender_final_render` 渲完最后一帧之后把它编成 MP4，`blender_export` 同理 | **渲染照跑、帧一帧不丢**，只有编码以 `ENCODER_NOT_FOUND` 失败，消息里点名 ffmpeg 与装法。装上之后对同一个 job 调 `blender_export` 即可补上交付（`recovery.md` §3；第 30 轮实测：2 帧的 job 渲完、编码失败、帧保留、装好编码器后导出并发布成功） |
@@ -195,7 +200,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 19/93 file(s) passed
+DeepBlend tests: 20/98 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -207,12 +212,16 @@ DeepBlend tests: 19/93 file(s) passed
 ```bash
 npm run setup          # = node deepblend/tools/link-workspace.mjs
 npm run setup:check    # 只报告漂移，不改动任何文件
+node deepblend/tools/development.mjs sdk  # 准备锁定的 SDK 类型检查工具
 ```
 
 它**不写 DSH 安装目录，也不写 `$DSH_HOME`**：只在仓库根建 `node_modules/@deepseek-ai/*`
 与 `node_modules/@deepblend/*` 两组符号链接，然后**逐个真的 import 一遍**来验证。
 要链接哪些包不是写死的清单，而是**从本仓库源码里读出来的**——新增一句
 `import '@deepseek-ai/dsh-xxx'` 只需重跑本命令，不需要改任何脚本。
+
+新开发环境也可直接使用 `npm run dev:setup` 完成固定依赖安装、链接和 SDK 工具准备。
+SDK 编译工具只用于开发验收；产品运行不需要 TypeScript，外部 DSH 部署不会因准备工具被重装。
 
 为什么不直接写进 `package.json` 的 `dependencies`：那会在仓库里装下**第二份 harness**，
 它可以和真正运行 DeepBlend 的那个部署各自漂移，于是契约套件会对着一份产品并不加载的
@@ -247,8 +256,8 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-预期：**18 个套件、110 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**93 个文件 = 1874 项自计断言（34 个文件打印计数）+ 819 个 `node:test` 用例（59 个文件）**。
+预期：**20 个套件、117 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**98 个文件 = 1874 项自计断言（34 个文件打印计数）+ 890 个 `node:test` 用例（64 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -553,7 +562,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 18 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 20 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

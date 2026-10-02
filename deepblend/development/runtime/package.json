@@ -3,8 +3,8 @@
   "private": true,
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-subprocess-local": "0.1.5-rc.2",
     "@deepseek-ai/dsh-attachment-local": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-subprocess-local": "0.1.5-rc.2",
     "sharp": "0.35.5"
   },
   "overrides": {
@@ -248,5 +248,8 @@
     "@deepseek-ai/dsh-workspace": "0.1.5-rc.2",
     "@deepseek-ai/node-addon-system": "0.1.2",
     "@deepseek-ai/schemastery": "3.18.2"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
   }
 }

@@ -238,7 +238,7 @@ test('Host declares and the isolated runtime pins the codec, including native op
   assert.ok(lock.packages['node_modules/sharp'].optionalDependencies['@img/sharp-darwin-arm64'])
   assert.equal(sharp.versions.sharp, host.dependencies.sharp)
   const workflow = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8')
-  assert.match(workflow, /run: npm install --global[^\n]* sharp@0\.35\.5(?:\s|$)/)
+  assert.match(workflow, /run: node deepblend\/tools\/development\.mjs setup --github-env/)
 })
 
 test('workspace links explicitly declared libraries without classifying them as DSH plugins', () => {

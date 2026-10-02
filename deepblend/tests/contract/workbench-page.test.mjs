@@ -52,7 +52,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 
-import { UI_PANEL_VIEWS, UI_ROUTES, UI_ROUTE_PREFIX } from '@deepblend/dsh-blender-contracts'
+import { HOST_API_VERSION, UI_PANEL_VIEWS, UI_ROUTES, UI_ROUTE_PREFIX } from '@deepblend/dsh-blender-contracts'
 
 import {
   UI_PACKAGE,
@@ -234,7 +234,7 @@ const DEMO_PROJECT = {
 
 const ROUTE_PAYLOADS = {
   state: () => ({
-    ok: true, route: 'state', hostApiVersion: 4, panelId: 'deepblend',
+    ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, panelId: 'deepblend',
     projects: [DEMO_PROJECT], projectsRoot: '/tmp/projects',
     selected: {
       project: { projectId: 'demo', title: 'Demo', revisionCount: 3, currentRevision: 'r0003', unfinishedJobs: 1 },

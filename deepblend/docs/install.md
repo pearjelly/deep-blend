@@ -253,7 +253,8 @@ npm run verify:clone -- --with-blender   # 连 Blender 一起（346 MB）
 ### 再跑完整的验收
 
 ```bash
-node deepblend/tests/run.mjs        # 契约层，不需要 Blender，约 30 秒
+node deepblend/tools/development.mjs sdk  # 开发验收需要；产品安装本身不需要编译器
+node deepblend/tests/run.mjs        # 契约层，不需要 Blender
 bash deepblend/tests/run-all.sh     # 完整验收，需要 Blender，约 10 分钟
 ```
 

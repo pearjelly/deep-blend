@@ -104,10 +104,12 @@ test('the DSH anchor is stated identically in the pin, the baseline document and
     baselineDoc.includes(version),
     `docs/dsh-baseline.md does not state the pinned DSH version ${version}`,
   )
-  assert.ok(
-    ciWorkflow.includes(`@deepseek-ai/dsh@${version}`),
-    `.github/workflows/ci.yml does not install the pinned DSH version ${version}; CI would test a different harness`,
-  )
+  const runtime = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package.json'), 'utf8'))
+  const lock = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package-lock.json'), 'utf8'))
+  assert.equal(runtime.dependencies['@deepseek-ai/dsh'], version)
+  assert.equal(lock.packages['node_modules/@deepseek-ai/dsh'].version, version)
+  assert.match(ciWorkflow, /node deepblend\/tools\/development\.mjs setup --github-env/,
+    'CI must install the same locked development deployment')
 })
 
 // ---------------------------------------------------------------------------

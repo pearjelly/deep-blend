@@ -619,9 +619,9 @@ M3 新增的：
 > 平面归属：**Host composition**（`@deepblend/dsh-blender-ui` 的 Host 半边）。网页半边
 > 只有 `fetch`，没有任何执行入口。
 
-M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工作台」加上第 20 条
-（`GET /deepblend/workbench`，唯一一条回答 HTML 而不是 JSON 的路由）。**这张表不是手写的**：它由
-`packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES` 生成，并由
+当前工作台共有 29 条路由；`GET /deepblend/workbench` 回答完整 HTML，素材与配方预览
+通过图片产物展示。路由的权威定义为
+`packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES`，由
 `deepblend/tests/contract/ui-api.test.mjs` 断言本文件里的行与那份表**逐条相同**
 （本仓库第 6 次遇到「同一份词表写两遍」，所以这次让文档漂移直接让测试变红）。
 
@@ -646,6 +646,9 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 | `GET /deepblend/projects/:projectId/previews` | 读 | Preview sets per revision, for Preview Compare. |
 | `POST /deepblend/projects/:projectId/preview` | **写** | Render the low-cost multi-view preview (and its contact sheet). |
 | `POST /deepblend/projects/:projectId/reference-images` | **写** | 上传 PNG/JPEG 原始字节（`?name=...`、图片 Content-Type），核验后保存资产；保存目标的 patch 才绑定版本。 |
+| `GET /deepblend/projects/:projectId/assets` | 读 | 素材库：暂存素材、指定修订中的声明及最近一次检查和预览；不改变场景。 |
+| `POST /deepblend/projects/:projectId/assets` | **写** | 流式上传 GLB、PNG、JPEG、HDR、EXR（`?name=...&license=...`），按内容摘要保存原字节；应用到场景才生成修订。 |
+| `POST /deepblend/projects/:projectId/assets/:assetId/preview` | **写** | 按请求的 sha256 核验素材并生成独立预览；模型保留原材质，环境图展示双球照明，不修改项目版本。 |
 | `POST /deepblend/projects/:projectId/review` | **写** | 对指定 revision 渲染并调用视觉模型，记录技术与艺术评价及核验的参考图。 |
 | `POST /deepblend/projects/:projectId/autofix` | **写** | 指定 revision，按固定目标尝试 1–3 轮修正；证据不足或效果退步时停止、条件回滚。 |
 | `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
@@ -658,7 +661,7 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 
 ### 2.2 契约要点
 
-* **写操作共有 9 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `visualReview` / `visualLoop` /
+* **写操作共有 11 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
   `applyScenePatch` / `restoreRevision` / `startFinalRender`+`resumeRenderJob` /
   `cancelJob`）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
   那一个方法，且没有任何 handler 在表外存在（闭集，两个方向都断言）。
@@ -668,6 +671,7 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
   两种形状：一个成功的错答案，和一个不是 JSON 的响应。客户端把两种都归到
   `UI_HOST_API_STALE`，并把观察到的状态码/字节数写进诊断
   （`tests/e2e/ui.e2e.mjs` 用真实页面把两条都断言了）。
+  当前 Host API 为 5，新增素材库的上传、列表与独立预览；网页依赖该版本或后续兼容版本。
 * **没有缓存**：每条响应 `cache-control: no-store`，每个值都是当次从 Host 现算的
   （SPEC §14.3「刷新后可从 Host 恢复权威状态」）。
 * **预览渲染合成自己的 contact sheet，并保留上一张**：`contact-sheets/preview-current.png`

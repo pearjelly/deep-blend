@@ -25,7 +25,7 @@
 # because DSH is a Developer Preview and may break compatibility. An upgrade is a
 # deliberate commit that changes this line and re-runs the full acceptance suite.
 # `contract/toolchain-pins.test.mjs` asserts that this line, the baseline document
-# and `tools/dsh-baseline.json` all state the same version.
+# and `tools/dsh-baseline.json` agree with the committed development lock.
 
 name: CI
 
@@ -60,20 +60,12 @@ jobs:
       - name: Assert the Python 3 the contract layer needs
         run: python3 --version
 
-      # DeepBlend is a plugin for a DSH deployment, and its own tests import
-      # cordis, dsh-tools and dsh-subprocess-local from that deployment rather
-      # than from a copy pinned in this repository (see
-      # `deepblend/tests/lib/dsh-deployment.mjs` for why). So the deployment has
-      # to exist before anything can be linked or run.
-      - name: Install the pinned DSH deployment
-      # AND TWO PACKAGES THE HARNESS'S OWN MANIFEST DOES NOT BRING. MEASURED on a clean machine:
-      # `npm install -g @deepseek-ai/dsh@<pin>` produces a SPLIT tree — the harness's dependencies
-      # nest under the package (120 of them, including cordis/dsh-tools/schemastery), while anything
-      # else installed alongside it lands in the scope directory above. This repository's suites
-      # import `dsh-subprocess-local` (every Blender and composition suite) and its live visual probe
-      # imports `dsh-attachment-local`, so a deployment without them cannot be linked at all — which
-      # is how this job was failing on every push before the resolver learned to look in both places.
-        run: npm install --global @deepseek-ai/dsh@0.1.5-rc.2 @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2 sharp@0.35.5
+      # npm ci uses deepblend/development/runtime/package-lock.json for the DSH
+      # deployment, its subprocess/attachment providers, sharp and SDK tools.
+      # setup also writes absolute deployment/toolchain paths and the dsh bin
+      # directory to GitHub's environment files for later steps and the clone.
+      - name: Install the locked development deployment and SDK tools
+        run: node deepblend/tools/development.mjs setup --github-env
 
       # The step a fresh clone needs: `node_modules/` is git-ignored and holds
       # only symlinks, so without this every suite dies on ERR_MODULE_NOT_FOUND

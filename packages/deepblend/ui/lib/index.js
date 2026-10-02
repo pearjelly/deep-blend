@@ -253,6 +253,7 @@ export default class BlenderUiHost extends Service {
       return
     }
 
+    let releaseSignal = () => {}
     try {
       if (matched.route.id === 'recipes.preview') {
         const preview = await this.ctx.blenderStudio.readRecipePreview({ id: matched.params.recipeId, version: matched.params.version, digest: url.searchParams.get('digest') })
@@ -274,12 +275,25 @@ export default class BlenderUiHost extends Service {
         this._sendWorkbenchPage(request, response)
         return
       }
-      const body = matched.route.id === 'project.referenceImage.upload' ? {} : await readRequestBody(request)
+      const cancellable = ['project.assets.upload', 'project.assets.preview'].includes(matched.route.id)
+      let signal
+      if (cancellable) {
+        const controller = new AbortController()
+        const abort = () => controller.abort()
+        const closed = () => { if (!response.writableEnded) abort() }
+        request.once?.('aborted', abort)
+        response.once?.('close', closed)
+        if (request.aborted) abort()
+        releaseSignal = () => { request.off?.('aborted', abort); response.off?.('close', closed) }
+        signal = controller.signal
+      }
+      const body = ['project.referenceImage.upload', 'project.assets.upload'].includes(matched.route.id) ? {} : await readRequestBody(request)
       const result = await this._handlers[matched.route.id]({
         params: matched.params,
         query: Object.fromEntries(url.searchParams.entries()),
         body,
         request,
+        signal,
       })
       this._sendJson(response, 200, { ok: true, route: matched.route.id, hostApiVersion: HOST_API_VERSION, ...result })
     } catch (cause) {
@@ -295,6 +309,8 @@ export default class BlenderUiHost extends Service {
         hostApiVersion: HOST_API_VERSION,
         error: error.toJSON(),
       })
+    } finally {
+      releaseSignal()
     }
   }
 
@@ -400,7 +416,9 @@ export default class BlenderUiHost extends Service {
  * @returns {number}
  */
 export function statusForError(error) {
+  if (error?.code === 'UI_HOST_API_STALE') return 503
   const referenceStatuses = { ASSET_REQUEST_INVALID: 400, ASSET_CONTENT_MISMATCH: 415, ASSET_TOO_LARGE: 413,
+    ASSET_FORMAT_UNAVAILABLE: 415, SCENE_VALIDATION_FAILED: 422, SCENE_SPEC_INVALID: 422,
     PATH_SEGMENT_INVALID: 400, ASSET_HASH_MISMATCH: 409, ASSET_SOURCE_NOT_FOUND: 404 }
   if (referenceStatuses[error.code]) return referenceStatuses[error.code]
   if (error.code === 'RECIPE_NOT_FOUND') return 404
@@ -475,6 +493,13 @@ async function readRequestBody(request) {
  */
 export function createHandlers(ctx) {
   const studio = () => ctx.blenderStudio
+  const assetStudio = method => {
+    const service = studio(), version = service?.hostApiVersion?.()
+    if (typeof service?.[method] !== 'function' || typeof version === 'number' && version < 5) {
+      throw new BlenderError('UI_HOST_API_STALE', 'The running Blender Host does not support the asset library. Restart with Host API 5 or newer.')
+    }
+    return service
+  }
   const approvalThreshold = () => studio().config?.requireApprovalAboveFrames ?? Number.POSITIVE_INFINITY
 
   return {
@@ -723,6 +748,17 @@ export function createHandlers(ctx) {
 
     'project.referenceImage.upload': async ({ params, query, request }) => studio().uploadReferenceImage({
       projectId: params.projectId, name: query.name, mediaType: request?.headers?.['content-type'], stream: request,
+    }),
+
+    'project.assets.list': async ({ params, query }) => assetStudio('listAssets').listAssets({
+      projectId: params.projectId, ...(query.revision ? { revision: requiredRevision(query.revision) } : {}),
+    }),
+    'project.assets.upload': async ({ params, query, request, signal }) => assetStudio('uploadAsset').uploadAsset({
+      projectId: params.projectId, name: query.name, mediaType: request?.headers?.['content-type'],
+      ...(query.license === undefined ? {} : { license: query.license }), stream: request, signal,
+    }),
+    'project.assets.preview': async ({ params, body, signal }) => assetStudio('previewAsset').previewAsset({
+      projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, signal,
     }),
 
     'project.review': async ({ params, body }) => {

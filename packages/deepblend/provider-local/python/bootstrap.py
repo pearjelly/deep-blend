@@ -218,10 +218,12 @@ def action_compile_scene(request, options):
 
     report_progress("validate", 92)
     validation = validate_scene(bpy.context.scene, spec, guard)
+    objects = describe_objects()
 
     payload = {
         "sceneSpec": spec_path,
-        "objects": describe_objects(),
+        "objects": objects,
+        "world": report["world"],
         "actions": report["actions"],
         "renderConfig": report["renderConfig"],
         "engine": report["engine"],
@@ -262,7 +264,7 @@ def action_compile_scene(request, options):
             )
         ],
         "validation": validation,
-        "sceneFingerprint": scene_fingerprint(spec, describe_objects()),
+        "sceneFingerprint": scene_fingerprint(spec, objects),
     }
 
     # The checkpoint is written even when validation reported errors: the caller

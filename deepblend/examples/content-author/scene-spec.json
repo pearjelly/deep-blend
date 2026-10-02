@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {"id":"author-example","title":"SDK author example","units":"metric","fps":24,"frameStart":1,"frameEnd":48,"aspectRatio":"4:3","activeCamera":"hero","reviewSubjectId":"body"},
+  "assets": [],
+  "materials": [{"id":"ceramic","shader":"principled","parameters":{"baseColor":[0.18,0.3,0.265,1],"roughness":0.25}}],
+  "entities": [{"id":"body","type":"generator","generator":{"shape":"cylinder","radius":0.05,"depth":0.1,"segments":64},"materialId":"ceramic","transform":{"location":[0,0,0.05]},"modifiers":[{"type":"bevel","width":0.002,"segments":4,"miterInner":"arc"}],"tags":["subject"]}],
+  "cameras": [{"id":"hero","role":"active-camera","lens":50,"transform":{"location":[0.3,-0.45,0.25]},"targetEntityId":"body"}],
+  "lights": [{"id":"key","type":"area","energy":50,"size":0.4,"transform":{"location":[-0.2,-0.3,0.5],"rotationEuler":[20,0,-20]}}],
+  "world":{"color":[0.08,0.08,0.08],"strength":0.5},
+  "renderProfiles": {
+    "preview":{"engine":"cycles","resolution":[768,576],"samples":64,"colorManagement":{"viewTransform":"AgX","exposure":0}},
+    "final":{"engine":"cycles","resolution":[1024,768],"samples":128,"colorManagement":{"viewTransform":"AgX","exposure":0}}
+  }
+}

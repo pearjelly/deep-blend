@@ -153,7 +153,7 @@ revision 留在历史里但不被采纳。所以「autofix 跑完还是原来的
 ```
 UI_HOST_API_STALE: 本进程里的 blenderUi 比磁盘上的包旧：
 /deepblend/state 没有被这一版的宿主回答（观察到的响应：HTTP 404，0 字节，非 JSON。
-hostApiVersion=未知，本 UI 需要 4）。重启 profile（dsh web）即可。
+hostApiVersion=未知，本 UI 需要 5）。重启 profile（dsh web）即可。
 ```
 
 **原因**：bundle 是进程级组合，`dsh web` 在启动时读一次，之后磁盘上的包再新也不会被它

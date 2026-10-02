@@ -52,6 +52,9 @@ def build_environment(world, background, environment, assets, project_root):
     links.new(coordinates.outputs['Generated'], mapping.inputs['Vector'])
     links.new(mapping.outputs['Vector'], texture.inputs['Vector'])
     links.new(texture.outputs['Color'], background.inputs['Color'])
+    return {'width': int(image.size[0]), 'height': int(image.size[1]),
+            'channels': int(image.channels), 'isFloat': bool(image.is_float),
+            'colorSpace': image.colorspace_settings.name}
 
 
 def build_image_maps(material, principled, bindings, assets, project_root):

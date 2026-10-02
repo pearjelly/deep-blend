@@ -36,6 +36,7 @@ import { join, resolve } from 'node:path'
 
 import {
   UI_PANEL_ID,
+  HOST_API_VERSION,
   UI_ROUTES,
   UI_ROUTE_PREFIX,
   UI_TOOL_CARD_KEYS,
@@ -84,7 +85,7 @@ const READ_METHODS = new Set([
   // the diagnostics route reports. The HOST reads the manifest and names the config keys because the
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
-  'listRecipes', 'readRecipePreview',
+  'listRecipes', 'readRecipePreview', 'listAssets',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
@@ -92,6 +93,8 @@ const WRITE_METHOD = {
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
   'project.referenceImage.upload': 'uploadReferenceImage',
+  'project.assets.upload': 'uploadAsset',
+  'project.assets.preview': 'previewAsset',
   'project.review': 'visualReview',
   'project.autofix': 'visualLoop',
   'project.restore': 'restoreRevision',
@@ -220,6 +223,24 @@ function createStudioStub() {
       for await (const chunk of request.stream) bytes += chunk.length
       return { asset: { id: 'reference-upload', type: 'png', path: `assets/raw/${'c'.repeat(64)}.png`, sha256: 'c'.repeat(64) },
         image: { mime: 'image/png', width: 8, height: 8, bytes, sha256: 'c'.repeat(64) } }
+    },
+    async listAssets(request) {
+      record('listAssets', request)
+      return { projectId: request.projectId, revision: request.revision ?? 'r0002', assets: [], limits: { maxBytes: 1073741824 } }
+    },
+    async uploadAsset(request) {
+      record('uploadAsset', request)
+      let bytes = 0
+      for await (const chunk of request.stream) bytes += chunk.length
+      return { projectId: request.projectId, currentRevision: 'r0002', bytes, originalName: request.name,
+        license: request.license ?? null,
+        asset: { id: 'asset-upload', type: 'glb', path: `assets/raw/${'c'.repeat(64)}.glb`, sha256: 'c'.repeat(64) } }
+    },
+    async previewAsset(request) {
+      record('previewAsset', request)
+      return { projectId: request.projectId, assetId: request.assetId, sha256: request.sha256,
+        inspection: { kind: 'model', dimensions: [1, 2, 3], parts: [], warnings: [] },
+        preview: { path: 'assets/previews/model.png', mime: 'image/png', width: 512, height: 384 } }
     },
     async visualReview(request) {
       record('visualReview', request)
@@ -405,16 +426,18 @@ function sampleUrl(route) {
     .replace(':projectId', 'demo')
     .replace(':revision', 'r0002')
     .replace(':jobId', 'render-0001')
+    .replace(':assetId', 'asset-upload')
     .replace(':recipeId', RECIPE.id)
     .replace(':version', RECIPE.version)
     .replace(/\/\*$/, '/revisions/r0002/contact-sheets/round-0.png')
   return route.id === 'recipes.preview' ? `${path}?digest=${RECIPE_DIGEST}`
-    : route.id === 'project.referenceImage.upload' ? `${path}?name=study.png` : path
+    : route.id === 'project.referenceImage.upload' ? `${path}?name=study.png`
+    : route.id === 'project.assets.upload' ? `${path}?name=model.glb&license=MIT` : path
 }
 
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
-  const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001' } : undefined)
+  const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64) } : undefined)
   if (route.id === 'project.preview') {
     // The pair reaches the browser; the PNG buffers do not (a JSON body of image
     // bytes is not lossless, and the panel displays images through the artifact
@@ -477,7 +500,7 @@ for (const route of UI_ROUTES) {
 
   check(`${route.id} answers 200 with ok:true`, response.statusCode === 200 && json?.ok === true, { status: response.statusCode, code: json?.error?.code })
   check(`${route.id} reports the route that served it, so a stale Host is detectable`, json?.route === route.id, json?.route)
-  check(`${route.id} reports the host API version`, json?.hostApiVersion === 4, json?.hostApiVersion)
+  check(`${route.id} reports the host API version`, json?.hostApiVersion === HOST_API_VERSION, json?.hostApiVersion)
   check(`${route.id} answers with lossless JSON`, isJsonValue(json), route.id)
 
   const called = studio.methodsCalled()

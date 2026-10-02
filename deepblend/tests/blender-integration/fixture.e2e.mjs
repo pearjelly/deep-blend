@@ -1540,6 +1540,14 @@ check('part material slots stay isolated and stable across shared meshes, instan
   materialBindings.status === 0 && materialBindings.stdout.includes('MATERIAL_BINDINGS_PASSED'),
   materialBindings.status === 0 ? undefined : { error: materialBindings.error?.message, output: `${materialBindings.stdout}\n${materialBindings.stderr}`.slice(-6000) })
 
+const assetPreview = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'asset-preview.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('asset inspection measures evaluated world bounds, UVs, empty slots and source environment radiance',
+  assetPreview.status === 0 && assetPreview.stdout.includes('ASSET_PREVIEW_PASSED'),
+  assetPreview.status === 0 ? undefined : { error: assetPreview.error?.message, output: `${assetPreview.stdout}\n${assetPreview.stderr}`.slice(-6000) })
+
 const environmentLighting = spawnSync(BLENDER, [
   '--background', '--factory-startup', '--python-exit-code', '1',
   '--python', join(HERE, 'environment.py'),

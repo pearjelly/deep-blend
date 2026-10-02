@@ -108,6 +108,68 @@ window.__ModuleLoader__.load({
     // `contract/workbench-copy.test.mjs`, so a missing key cannot leave a hole in either direction.
     const STRINGS = {
     zh: {
+      "assets.title": "素材库",
+      "assets.open": "打开素材库",
+      "assets.refresh": "刷新素材库",
+      "assets.help": "上传只保存素材。检查预览后，选择用途并保存新版本。",
+      "assets.limits": "文件上限 {bytes}；图片 {pixels} 像素、单边 {edge} 像素；预览 {width} × {height}。",
+      "assets.upload": "上传本地素材",
+      "assets.license": "来源许可（可选，按原文填写）",
+      "assets.noLicense": "未提供许可信息",
+      "assets.staged": "已暂存，未入本版本",
+      "assets.declared": "本版本已声明",
+      "assets.inspect": "检查并预览",
+      "assets.choose": "用于当前场景",
+      "assets.cancel": "取消上传 / 检查",
+      "assets.working": "正在{action}…",
+      "assets.uploading": "上传素材",
+      "assets.inspecting": "检查素材",
+      "assets.cancelled": "已取消，场景版本没有改变。",
+      "assets.invalidFile": "请选择 Host 文件上限内的 GLB、PNG、JPEG、HDR 或 EXR。",
+      "assets.needLibrary": "请先打开素材库以读取实际上传限制。",
+      "assets.needPreview": "请先检查并预览此素材。",
+      "assets.invalid": "素材操作无效：{field}",
+      "assets.conflict": "场景已有更新。素材草稿已保留，请放弃草稿后重新选择用途。",
+      "assets.apply": "保存到场景并预览",
+      "assets.reset": "放弃素材草稿",
+      "assets.saved": "素材已应用到 {revision}。",
+      "assets.model": "放入场景（保留原材质）",
+      "assets.image": "绑定图片材质",
+      "assets.environment": "用作环境照明",
+      "assets.dimensions": "素材尺寸（米）",
+      "assets.toneMapped": "这是环境照明效果示例，经过色调映射；应用使用原始 HDR / EXR 数据。",
+      "assets.modelHelp": "位置为素材原点，缩放相对原素材。保留原材质、层级与源对象，不改相机。",
+      "assets.entityId": "新对象标识",
+      "assets.scale": "统一缩放倍数",
+      "assets.target": "应用对象",
+      "assets.channel": "图片通道",
+      "assets.channel.baseColor": "颜色",
+      "assets.channel.roughness": "粗糙度",
+      "assets.channel.metallic": "金属度",
+      "assets.channel.normal": "法线（OpenGL）",
+      "assets.channel.alpha": "透明度",
+      "assets.channel.emissionColor": "发光颜色",
+      "assets.uv": "UV 名称（空值使用活动 UV）",
+      "assets.tile": "UV 平铺",
+      "assets.offset": "UV 偏移",
+      "assets.scalarChannel": "读取图片通道",
+      "assets.normalStrength": "法线强度",
+      "assets.newMaterial": "创建新的基础材质并覆盖所选范围",
+      "assets.nativeHelp": "原生节点没有可编辑的公共定义；需明确创建新材质覆盖所选范围。",
+      "assets.replaceTexture": "用图片替换此材质的程序化纹理",
+      "assets.localAnimated": "来源材质含动画，局部复制会丢失动画。请选择共享修改或明确创建新材质。",
+      "assets.animatedChannel": "该通道由动画驱动，不能在此覆盖。",
+      "assets.imageHelp": "保留其他通道；缺少 UV 时保存会明确失败。共享修改影响该材质所有使用者。",
+      "assets.environmentHelp": "环境图改变照明、反射与背景；保留其他世界设置和相机。",
+      "assets.strength": "环境强度",
+      "assets.rotation": "环境旋转（度）",
+      "assets.inspectionWarnings": "素材检查提示",
+      "assets.material": "当前公共材质",
+      "assets.partDefault": "部件默认材质（已有槽覆盖优先）",
+      "assets.busyDraft": "请先完成当前素材操作或放弃草稿。",
+      "assets.inspected": "已检查",
+      "assets.pending": "尚未检查",
+      "assets.emissionHelp": "发光图使用现有强度；强度为零时不会发光。",
       'brief.title': "制作目标与参考图片",
       'brief.goal': "本版本制作目标",
       'brief.upload': "上传 PNG / JPEG",
@@ -395,6 +457,68 @@ window.__ModuleLoader__.load({
       'revisions.title': '版本（{count}）',
     },
     en: {
+      "assets.title": "Asset library",
+      "assets.open": "Open asset library",
+      "assets.refresh": "Refresh assets",
+      "assets.help": "Uploads only store assets. Inspect a preview, choose its use, then save a revision.",
+      "assets.limits": "File limit {bytes}; images {pixels} pixels, {edge} pixels per edge; preview {width} × {height}.",
+      "assets.upload": "Upload a local asset",
+      "assets.license": "Source license (optional, as provided)",
+      "assets.noLicense": "License information not provided",
+      "assets.staged": "Staged; not in this revision",
+      "assets.declared": "Declared in this revision",
+      "assets.inspect": "Inspect and preview",
+      "assets.choose": "Use in this scene",
+      "assets.cancel": "Cancel upload / inspection",
+      "assets.working": "{action}…",
+      "assets.uploading": "Uploading asset",
+      "assets.inspecting": "Inspecting asset",
+      "assets.cancelled": "Cancelled; the scene revision is unchanged.",
+      "assets.invalidFile": "Choose a GLB, PNG, JPEG, HDR or EXR within the Host file limit.",
+      "assets.needLibrary": "Open the asset library first to read the actual limits.",
+      "assets.needPreview": "Inspect and preview this asset first.",
+      "assets.invalid": "Invalid asset action: {field}",
+      "assets.conflict": "The scene changed. Your asset draft is retained; discard it and choose its use again.",
+      "assets.apply": "Save to scene and preview",
+      "assets.reset": "Discard asset draft",
+      "assets.saved": "Asset applied in {revision}.",
+      "assets.model": "Place in scene (preserve materials)",
+      "assets.image": "Bind image material",
+      "assets.environment": "Use for environment lighting",
+      "assets.dimensions": "Asset dimensions (metres)",
+      "assets.toneMapped": "This tone-mapped preview shows environment lighting; applying uses original HDR / EXR data.",
+      "assets.modelHelp": "Position refers to the source origin and scale is relative to the source. Preserve its materials, hierarchy and objects; keep the camera.",
+      "assets.entityId": "New object ID",
+      "assets.scale": "Uniform scale",
+      "assets.target": "Target object",
+      "assets.channel": "Image map",
+      "assets.channel.baseColor": "Base color",
+      "assets.channel.roughness": "Roughness",
+      "assets.channel.metallic": "Metallic",
+      "assets.channel.normal": "Normal (OpenGL)",
+      "assets.channel.alpha": "Alpha",
+      "assets.channel.emissionColor": "Emission color",
+      "assets.uv": "UV name (empty for active UV)",
+      "assets.tile": "UV tiling",
+      "assets.offset": "UV offset",
+      "assets.scalarChannel": "Read image channel",
+      "assets.normalStrength": "Normal strength",
+      "assets.newMaterial": "Create a new basic material and override this target",
+      "assets.nativeHelp": "Native nodes have no editable public definition; explicitly create a replacement material for this target.",
+      "assets.replaceTexture": "Replace this material’s procedural texture with image maps",
+      "assets.localAnimated": "A local copy would lose source material animation. Choose shared editing or explicitly create a new material.",
+      "assets.animatedChannel": "This channel is animated and cannot be overridden here.",
+      "assets.imageHelp": "Other maps are preserved. Missing UVs cause an explicit save failure. Shared editing affects all material users.",
+      "assets.environmentHelp": "Environment images change lighting, reflections and background; other world settings and the camera are preserved.",
+      "assets.strength": "Environment strength",
+      "assets.rotation": "Environment rotation (degrees)",
+      "assets.inspectionWarnings": "Inspection notes",
+      "assets.material": "Current public material",
+      "assets.partDefault": "Part default material (existing slot overrides take priority)",
+      "assets.busyDraft": "Finish this asset action or discard its draft first.",
+      "assets.inspected": "Inspected",
+      "assets.pending": "Not inspected",
+      "assets.emissionHelp": "The map uses existing emission strength; zero strength produces no emission.",
       'brief.title': "Design goal and reference images",
       'brief.goal': "Goal for this revision",
       'brief.upload': "Upload PNG / JPEG",
@@ -720,7 +844,7 @@ window.__ModuleLoader__.load({
     /** Label shown by the sidebar entry, the settings nav and the panel title. */
     const PANEL_LABEL = 'Blender'
     /** The host API this half was written against; a mismatch is a deployment state. */
-    const EXPECTED_HOST_API = 4
+    const EXPECTED_HOST_API = 5
     /** Polling cadence while something is live; M3 writes progress once a second. */
     const POLL_LIVE_MS = 1500
     /** Polling cadence when nothing is running. */
@@ -1178,6 +1302,105 @@ window.__ModuleLoader__.load({
       return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
     }
 
+    const ASSET_TYPES = ['glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr']
+    const ASSET_CHANNELS = ['baseColor', 'roughness', 'metallic', 'normal', 'alpha', 'emissionColor']
+    const assetKey = asset => JSON.stringify([asset.id, asset.sha256])
+    const assetKind = asset => asset.type === 'glb' ? 'model' : ['hdr', 'exr'].includes(asset.type) ? 'environment' : 'image'
+    const assetBytes = value => {
+      if (!Number.isFinite(value)) return '—'
+      const unit = value >= 1048576 ? ['MiB', 1048576] : value >= 1024 ? ['KiB', 1024] : ['B', 1]
+      return `${(value / unit[1]).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit[0]}`
+    }
+    function assetEditor(draft) {
+      const original = draft.scene.nodes.entities.find(entity => entity.id === draft.entityId)
+      if (!original) return null
+      const editor = { original, materials: draft.scene.nodes.materials, tracks: draft.scene.nodes.animationTracks || [],
+        material: { target: draft.target, partId: draft.partId, slotIndex: draft.slotIndex } }
+      editorSelectMaterial(editor, editorEffectiveMaterialId(editor))
+      return editor
+    }
+    function resetAssetBinding(draft) {
+      const source = draft.newMaterial ? null : assetEditor(draft)?.material.definition
+      draft.binding = editorClone(source?.images?.[draft.channel] || {})
+      draft.replaceTexture = false
+    }
+    function createAssetDraft(scene, projectId, entry, inspection, entityId) {
+      const id = `ui-asset-${Date.now().toString(36)}-${++editorSequence}`
+      const draft = { projectId, baseRevision: scene.revision, scene: editorClone(scene), entry: editorClone(entry),
+        inspection: editorClone(inspection), kind: assetKind(entry.asset), newEntityId: id, newMaterialId: `${id}-material`,
+        location: [0, 0, 0], rotationEuler: [0, 0, 0], scale: 1,
+        entityId: entityId || scene.nodes.entities.find(item => item.kind !== 'empty')?.id || '',
+        target: 'entity', partId: '', slotIndex: '', scope: 'local', newMaterial: false,
+        channel: 'baseColor', binding: {}, replaceTexture: false,
+        world: editorClone(scene.world || {}), strength: scene.world?.strength ?? 1,
+        rotation: scene.world?.environment?.rotation ?? 0 }
+      resetAssetBinding(draft)
+      return draft
+    }
+    function buildAssetPatch(draft) {
+      if (!draft) throw new Error(t('assets.invalid', { field: 'draft' }))
+      const fail = field => { throw new Error(t('assets.invalid', { field })) }
+      const asset = draft.entry.asset, operations = []
+      if (!asset || !ASSET_TYPES.includes(asset.type) || !/^[a-f0-9]{64}$/.test(asset.sha256 || '')) fail('asset')
+      if (draft.inspection?.kind !== assetKind(asset) || draft.kind !== assetKind(asset)) fail('inspection')
+      const declared = draft.scene.nodes.assets.find(item => item.id === asset.id)
+      if (declared && (declared.sha256 !== asset.sha256 || declared.path !== asset.path || declared.type !== asset.type)) fail('asset identity changed')
+      if (!declared) operations.push({ op: 'asset.add', asset: { ...editorClone(asset),
+        ...(asset.license === undefined && draft.entry.license ? { license: { source: draft.entry.license } } : {}) } })
+      if (draft.kind === 'model') {
+        if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(draft.newEntityId) || draft.scene.nodes.entities.some(item => item.id === draft.newEntityId)) fail('object ID')
+        if (![draft.location, draft.rotationEuler].every(values => Array.isArray(values) && values.length === 3 && values.every(Number.isFinite))) fail('transform')
+        if (!Number.isFinite(draft.scale) || draft.scale <= 0) fail('scale')
+        operations.push({ op: 'entity.add', entity: { id: draft.newEntityId, type: 'asset-instance', assetId: asset.id,
+          transform: { location: [...draft.location], rotationEuler: [...draft.rotationEuler], scale: [draft.scale, draft.scale, draft.scale] } } })
+      } else if (draft.kind === 'environment') {
+        if (!Number.isFinite(draft.strength) || draft.strength < 0 || draft.strength > 1000 || !Number.isFinite(draft.rotation)) fail('environment')
+        operations.push({ op: 'world.set', world: { ...editorClone(draft.world), strength: draft.strength,
+          environment: { ...editorClone(draft.world.environment || {}), assetId: asset.id, rotation: draft.rotation } } })
+      } else {
+        const editor = assetEditor(draft), target = editor?.original
+        if (!editor || target.kind === 'empty' || target.locked) fail('target')
+        if (!['entity', 'part', 'slot'].includes(draft.target) || !['local', 'shared'].includes(draft.scope)) fail('target scope')
+        if (draft.target !== 'entity') {
+          const part = target.assetParts?.find(item => item.partId === draft.partId)
+          const sourceAsset = draft.scene.nodes.assets.find(item => item.id === target.assetId)
+          if (target.kind !== 'asset-instance' || !part || part.selectorVersion !== 1 || !sourceAsset?.sha256 || part.assetSha256 !== sourceAsset.sha256) fail('source part inventory')
+          if (draft.target === 'slot' && (draft.slotIndex === '' || !part.sourceMaterialSlots.some(slot => slot.index === Number(draft.slotIndex)))) fail('source slot')
+        }
+        const original = editor.material.definition
+        if (!draft.newMaterial && (!original || !['principled', 'glass'].includes(original.shader))) throw new Error(t('assets.nativeHelp'))
+        const animated = editor.tracks.filter(track => track.targetKind === 'material' && track.targetId === original?.id)
+        if (!draft.newMaterial && draft.scope === 'local' && animated.length) throw new Error(t('assets.localAnimated'))
+        if (!draft.newMaterial && animated.some(track => track.property === draft.channel || track.property?.startsWith(`${draft.channel}.`))) throw new Error(t('assets.animatedChannel'))
+        if (!ASSET_CHANNELS.includes(draft.channel)) fail('image channel')
+        const binding = { ...editorClone(draft.binding), assetId: asset.id }
+        if (binding.uvMap !== undefined && (typeof binding.uvMap !== 'string' || !binding.uvMap.trim())) fail('UV name')
+        for (const key of ['scale', 'offset']) if (binding[key] !== undefined && (!Array.isArray(binding[key]) || binding[key].length !== 3 || !binding[key].every(Number.isFinite))) fail(key)
+        if (binding.channel !== undefined && (!['roughness', 'metallic', 'alpha'].includes(draft.channel) || !['r', 'g', 'b', 'a'].includes(binding.channel))) fail('image channel')
+        if (binding.strength !== undefined && (draft.channel !== 'normal' || !Number.isFinite(binding.strength) || binding.strength < 0 || binding.strength > 10)) fail('normal strength')
+        const material = draft.newMaterial ? { id: draft.newMaterialId, shader: 'principled', parameters: { baseColor: [0.8, 0.8, 0.8, 1], roughness: 0.5, metallic: 0 } } : editorClone(original)
+        if (material.texture && !draft.replaceTexture) fail('procedural texture must be explicitly replaced')
+        const images = { ...editorClone(material.images || {}), [draft.channel]: binding }
+        let materialId = material.id
+        if (draft.newMaterial || draft.scope === 'local') {
+          materialId = draft.newMaterialId; material.id = materialId; material.images = images; delete material.texture
+          operations.push({ op: 'material.add', material })
+          if (draft.target === 'entity') operations.push({ op: 'entity.material.set', entityId: draft.entityId, materialId })
+          else {
+            const slotIndex = draft.target === 'slot' ? Number(draft.slotIndex) : undefined
+            const bindings = editorClone(target.materialBindings || []).filter(binding => !(binding.partId === draft.partId && binding.slotIndex === slotIndex))
+            bindings.push({ partId: draft.partId, ...(slotIndex === undefined ? {} : { slotIndex }), materialId })
+            operations.push({ op: 'entity.materialBindings.set', entityId: draft.entityId, materialBindings: bindings })
+          }
+        } else {
+          if (material.texture) operations.push({ op: 'material.texture.set', materialId, texture: null })
+          operations.push({ op: 'material.images.set', materialId, images })
+        }
+      }
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, saveCheckpoint: true, renderPreview: true, actor: 'ui', operations }
+    }
+    function assetDraftError(draft) { try { buildAssetPatch(draft); return null } catch (error) { return error.message } }
+
     const REFERENCE_PURPOSES = ['geometry', 'materials', 'lighting', 'goalFit']
     const REFERENCE_MAX_BYTES = 8 * 1024 * 1024
     function createBriefDraft(scene, projectId) {
@@ -1194,6 +1417,7 @@ window.__ModuleLoader__.load({
     function projectHasUnsavedDrafts(state) {
       return briefDirty(state.briefDrafts[state.activeProjectId])
         || Object.values(state.editorDrafts || {}).some(draft => draft.projectId === state.activeProjectId && editorDirty(draft))
+        || Boolean(state.assetDrafts?.[state.activeProjectId])
         || state.forms.patch !== null
     }
     function briefValid(draft) {
@@ -1316,6 +1540,9 @@ window.__ModuleLoader__.load({
             }),
           }
         }
+        if (typeof payload?.hostApiVersion === 'number' && payload.hostApiVersion < EXPECTED_HOST_API) {
+          return { status: 'stale', payload: null, error: staleHostError(expectedRoute, { payload, status: response.status }) }
+        }
         if (payload && payload.ok) return { status: 'ok', payload, error: null }
         return {
           status: 'error',
@@ -1379,6 +1606,11 @@ window.__ModuleLoader__.load({
         diffError: null,
         previewBusy: false,
         disclosures: {},
+        assetLibraries: {},
+        assetWork: {},
+        assetDrafts: {},
+        assetPreviews: {},
+        assetLicenses: {},
         briefDrafts: {},
         briefWork: {},
         visualRuns: {},
@@ -1412,6 +1644,9 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      const assetControllers = new Map()
+      const assetListSequences = new Map()
+      const assetWork = (projectId, changes) => set({ assetWork: { ...data.assetWork, [projectId]: { ...data.assetWork[projectId], ...changes } } })
 
       const notify = () => {
         snapshot = { ...data, forms: { ...data.forms }, busy: { ...data.busy }, notices: { ...data.notices } }
@@ -1538,6 +1773,122 @@ window.__ModuleLoader__.load({
           : setIn('forms', field, value),
         setDisclosure: (key, open) => {
           if (data.disclosures[key] !== open) set({ disclosures: { ...data.disclosures, [key]: open } })
+        },
+        loadAssets: async (requestedProjectId, requestedRevision) => {
+          const projectId = requestedProjectId || data.activeProjectId
+          const revision = requestedRevision || (data.activeProjectId === projectId ? data.selected?.scene?.revision : null)
+          if (!projectId || !revision) return
+          const sequence = (assetListSequences.get(projectId) || 0) + 1
+          assetListSequences.set(projectId, sequence); assetWork(projectId, { loading: true, error: null })
+          const result = await readRoute(fetchImpl, `${projectRoute(projectId, '/assets')}?revision=${encodeURIComponent(revision)}`, 'project.assets.list')
+          if (sequence !== assetListSequences.get(projectId)) return
+          if (result.status === 'ok') {
+            const previews = { ...data.assetPreviews[projectId] }
+            for (const entry of result.payload.assets || []) {
+              if (entry.preview?.mime === 'image/png' && entry.inspection?.kind === assetKind(entry.asset)) previews[assetKey(entry.asset)] = {
+                projectId, assetId: entry.asset.id, sha256: entry.asset.sha256,
+                inspection: editorClone(entry.inspection), preview: editorClone(entry.preview),
+              }
+            }
+            set({ assetLibraries: { ...data.assetLibraries, [projectId]: editorClone(result.payload) }, assetPreviews: { ...data.assetPreviews, [projectId]: previews } })
+          }
+          assetWork(projectId, { loading: false, error: result.status === 'ok' ? null : `${result.error.code}: ${result.error.message}` })
+        },
+        setAssetLicense: value => set({ assetLicenses: { ...data.assetLicenses, [data.activeProjectId]: value } }),
+        cancelAsset: () => assetControllers.get(data.activeProjectId)?.abort(),
+        uploadAsset: async files => {
+          const projectId = data.activeProjectId, revision = data.selected?.scene?.revision
+          if (!projectId || !revision || data.assetWork[projectId]?.busy) return
+          const limit = data.assetLibraries[projectId]?.limits?.maxBytes
+          if (!Number.isFinite(limit) || limit <= 0) { assetWork(projectId, { error: t('assets.needLibrary') }); return }
+          const selected = Array.from(files || [])
+          if (selected.length !== 1 || !ASSET_TYPES.includes(selected[0].name?.split('.').at(-1)?.toLowerCase())
+            || !Number.isInteger(selected[0].size) || selected[0].size <= 0 || selected[0].size > limit) {
+            assetWork(projectId, { error: t('assets.invalidFile') }); return
+          }
+          const file = selected[0], license = (data.assetLicenses[projectId] || '').trim()
+          if (license.length > 200) { assetWork(projectId, { error: t('assets.invalid', { field: 'license' }) }); return }
+          const controller = new AbortController(); assetControllers.set(projectId, controller)
+          assetWork(projectId, { busy: 'uploading', error: null, message: null })
+          try {
+            const response = await fetchImpl(`${projectRoute(projectId, '/assets')}?name=${encodeURIComponent(file.name)}${license ? `&license=${encodeURIComponent(license)}` : ''}`, {
+              method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream', accept: 'application/json' }, body: file, signal: controller.signal,
+            })
+            const result = await response.json()
+            if (controller.signal.aborted) throw new Error(t('assets.cancelled'))
+            if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_UPLOAD_FAILED'}: ${result.error?.message || response.status}`)
+            await actions.loadAssets(projectId, data.activeProjectId === projectId ? data.selected?.scene?.revision : revision)
+          } catch (error) { assetWork(projectId, { error: controller.signal.aborted ? t('assets.cancelled') : error.message || String(error) }) }
+          finally { assetControllers.delete(projectId); assetWork(projectId, { busy: null }) }
+        },
+        previewAsset: async key => {
+          const projectId = data.activeProjectId, entry = data.assetLibraries[projectId]?.assets.find(item => assetKey(item.asset) === key)
+          if (!entry || data.assetWork[projectId]?.busy) return
+          const controller = new AbortController(); assetControllers.set(projectId, controller)
+          const previews = { ...data.assetPreviews[projectId] }; delete previews[key]
+          set({ assetPreviews: { ...data.assetPreviews, [projectId]: previews } })
+          assetWork(projectId, { busy: 'inspecting', error: null, message: null })
+          try {
+            const response = await fetchImpl(projectRoute(projectId, `/assets/${encodeURIComponent(entry.asset.id)}/preview`), {
+              method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({ sha256: entry.asset.sha256 }), signal: controller.signal,
+            })
+            const result = await response.json()
+            if (controller.signal.aborted) throw new Error(t('assets.cancelled'))
+            if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_PREVIEW_FAILED'}: ${result.error?.message || response.status}`)
+            if (result.projectId !== projectId || result.assetId !== entry.asset.id || result.sha256 !== entry.asset.sha256
+              || result.inspection?.kind !== assetKind(entry.asset) || result.preview?.mime !== 'image/png') throw new Error(t('assets.needPreview'))
+            set({ assetPreviews: { ...data.assetPreviews, [projectId]: { ...data.assetPreviews[projectId], [key]: editorClone(result) } } })
+          } catch (error) { assetWork(projectId, { error: controller.signal.aborted ? t('assets.cancelled') : error.message || String(error) }) }
+          finally { assetControllers.delete(projectId); assetWork(projectId, { busy: null }) }
+        },
+        chooseAsset: key => {
+          const projectId = data.activeProjectId, scene = data.selected?.scene
+          if (!scene || !projectId || data.assetWork[projectId]?.busy) return
+          if (data.assetDrafts[projectId]) { assetWork(projectId, { error: t('assets.busyDraft') }); return }
+          const entry = data.assetLibraries[projectId]?.assets.find(item => assetKey(item.asset) === key)
+          const preview = data.assetPreviews[projectId]?.[key]
+          if (!entry || !preview) { assetWork(projectId, { error: t('assets.needPreview') }); return }
+          set({ assetDrafts: { ...data.assetDrafts, [projectId]: createAssetDraft(scene, projectId, entry, preview.inspection, data.editorEntityId) } })
+          assetWork(projectId, { error: null, message: null })
+        },
+        updateAsset: (field, value) => {
+          const projectId = data.activeProjectId, current = data.assetDrafts[projectId]
+          if (!current || data.assetWork[projectId]?.busy) return
+          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'strength', 'rotation']
+          if (!allowed.includes(field)) return
+          const draft = editorClone(current); draft[field] = editorClone(value)
+          if (['entityId', 'target'].includes(field)) { draft.partId = ''; draft.slotIndex = '' }
+          if (field === 'partId') draft.slotIndex = ''
+          if (['entityId', 'target', 'partId', 'slotIndex', 'channel', 'newMaterial'].includes(field)) resetAssetBinding(draft)
+          set({ assetDrafts: { ...data.assetDrafts, [projectId]: draft } })
+        },
+        discardAsset: () => {
+          const projectId = data.activeProjectId
+          if (!projectId || data.assetWork[projectId]?.busy) return
+          const drafts = { ...data.assetDrafts }; delete drafts[projectId]
+          set({ assetDrafts: drafts }); assetWork(projectId, { error: null, message: null })
+        },
+        applyAsset: async () => {
+          const projectId = data.activeProjectId, draft = data.assetDrafts[projectId]
+          if (!draft || data.assetWork[projectId]?.busy || data.busy.editor || data.busy.patch || data.busy.restore
+            || data.visualRuns[projectId]?.busy || draft.baseRevision !== data.selected?.scene?.revision) return
+          let patch
+          try { patch = buildAssetPatch(draft) } catch (error) { assetWork(projectId, { error: error.message }); return }
+          const beforePreviews = editorClone(data.previews?.revisions?.find(item => item.revision === draft.baseRevision)?.previews || [])
+          assetWork(projectId, { busy: 'saving', error: null, message: null }); setIn('busy', 'editor', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch })
+          setIn('busy', 'editor', false); assetWork(projectId, { busy: null })
+          if (outcome.ok) {
+            const revision = outcome.payload.revision.revision, drafts = { ...data.assetDrafts }; delete drafts[projectId]
+            const lastEdit = { before: draft.baseRevision, after: revision }
+            set({ assetDrafts: drafts, editorLastEdits: { ...data.editorLastEdits, [projectId]: lastEdit } })
+            assetWork(projectId, { message: t('assets.saved', { revision }) })
+            if (target() === projectId) set({ view: 'preview', compareMode: 'revisions', compareLeft: draft.baseRevision, compareRight: revision,
+              editorComparison: { projectId, ...lastEdit, beforePreviews, afterPreviews: editorClone(outcome.payload.revision.previews || []) } })
+            await actions.loadAssets(projectId, revision)
+          } else assetWork(projectId, { error: `${outcome.error.code}: ${outcome.error.message}` })
+          reload()
         },
         selectRecipe: recipe => set({ forms: { ...data.forms, recipe,
           recipeParameters: recipe ? Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, parameter.default])) : {},
@@ -1893,6 +2244,8 @@ window.__ModuleLoader__.load({
         stop() {
           running = false
           if (timer !== null) { clearInterval(timer); timer = null }
+          for (const controller of assetControllers.values()) controller.abort()
+          assetControllers.clear()
         },
         actions,
         /** The console's write helper, kept reachable for the tool cards. */
@@ -2277,6 +2630,106 @@ window.__ModuleLoader__.load({
     }
 
     /** 场景树: the Scene Tree of the revision in view. */
+    function AssetsView({ state, actions }) {
+      const projectId = state.activeProjectId, library = state.assetLibraries?.[projectId], work = state.assetWork?.[projectId] || {}
+      const draft = state.assetDrafts?.[projectId], busy = Boolean(work.busy), limits = library?.limits
+      const conflict = Boolean(draft && draft.baseRevision !== state.selected?.scene?.revision)
+      const update = (field, value) => actions.updateAsset(field, value)
+      const text = (label, field, value, change, extra = {}) => el('label', { className: 'db-row' }, label,
+        el('input', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value), ...extra }))
+      const number = (label, field, value, change, extra = {}) => text(label, field, value, value => change(value === '' ? null : Number(value)), { type: 'number', step: 'any', ...extra })
+      const choose = (label, field, value, entries, change) => el('label', { className: 'db-row' }, label,
+        el('select', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value) },
+          entries.map(([id, name]) => el('option', { value: id, key: id }, name))))
+      const check = (label, field, value, change) => el('label', { className: 'db-row' },
+        el('input', { type: 'checkbox', 'data-field': field, checked: value, disabled: busy, onChange: event => change(event.target.checked) }), label)
+      const vector = (name, field, values, factor) => el('div', { className: 'db-inline' }, EDITOR_AXES.map((axis, index) => number(`${name} ${axis}`, `asset-${field}-${axis}`,
+        values[index] === null ? '' : values[index] * factor, value => { const next = [...values]; next[index] = value === null ? null : value / factor; update(field, next) })))
+      let editor, material, part, error, affected = []
+      if (draft) {
+        error = assetDraftError(draft)
+        if (draft.kind === 'image') {
+          editor = assetEditor(draft); material = editor?.material.definition
+          part = editor?.original.assetParts?.find(item => item.partId === draft.partId)
+          affected = draft.scene.nodes.entities.filter(entity => entity.materialId === material?.id
+            || entity.materialBindings?.some(binding => binding.materialId === material?.id)
+            || entity.assetParts?.some(item => item.materialSlots?.some(slot => slot.materialId === material?.id))).map(entity => entity.id)
+        }
+      }
+      const mapSetting = (key, value) => { const binding = editorClone(draft.binding); if (value === undefined) delete binding[key]; else binding[key] = value; update('binding', binding) }
+      return el('section', { className: 'db-card', 'data-assets-library': projectId, 'data-asset-base-revision': draft?.baseRevision || '', 'data-asset-conflict': String(conflict) },
+        el('h4', null, t('assets.title')), el('p', { className: 'db-muted' }, t('assets.help')),
+        Button({ action: 'assets-open', disabled: busy || work.loading, onClick: () => actions.loadAssets(), children: library ? t('assets.refresh') : t('assets.open') }),
+        work.error ? el('p', { role: 'status', className: 'db-error' }, work.error) : null,
+        work.message ? el('p', { role: 'status' }, work.message) : null,
+        library ? el('div', null,
+          el('p', { className: 'db-muted', 'data-asset-limits': true }, t('assets.limits', { bytes: assetBytes(limits?.maxBytes), pixels: limits?.maxImagePixels ?? '—', edge: limits?.maxImageEdge ?? '—', width: limits?.previewWidth ?? '—', height: limits?.previewHeight ?? '—' })),
+          text(t('assets.license'), 'asset-license', state.assetLicenses?.[projectId] || '', actions.setAssetLicense, { maxLength: 200 }),
+          el('label', null, t('assets.upload'), el('input', { type: 'file', accept: '.glb,.png,.jpg,.jpeg,.hdr,.exr', 'data-field': 'asset-upload', disabled: busy || !Number.isFinite(limits?.maxBytes),
+            onChange: event => actions.uploadAsset(event.target.files) })),
+          busy && work.busy !== 'saving' ? el('div', { className: 'db-inline' }, el('span', { role: 'status' }, t('assets.working', { action: work.busy === 'uploading' ? t('assets.uploading') : t('assets.inspecting') })),
+            Button({ action: 'asset-cancel', onClick: actions.cancelAsset, children: t('assets.cancel') })) : null,
+          el('div', { className: 'db-grid', style: { marginTop: '12px' } }, (library.assets || []).map(entry => {
+            const key = assetKey(entry.asset), result = state.assetPreviews?.[projectId]?.[key]
+            const declared = state.selected?.scene?.nodes.assets.some(asset => asset.id === entry.asset.id && asset.sha256 === entry.asset.sha256)
+            return el('article', { className: 'db-card', key, 'data-asset-id': entry.asset.id, 'data-asset-sha256': entry.asset.sha256 },
+              el('h4', null, entry.originalName || entry.asset.id), el('p', null, `${entry.asset.type.toUpperCase()} · ${assetBytes(entry.bytes)}`),
+              el('p', { className: 'db-muted' }, declared ? t('assets.declared') : t('assets.staged')),
+              el('p', { className: 'db-muted' }, entry.license || t('assets.noLicense')),
+              el('p', { className: 'db-muted' }, result ? t('assets.inspected') : t('assets.pending')),
+              result ? el('div', null, el('img', { 'data-asset-preview': entry.asset.id, alt: entry.originalName || entry.asset.id,
+                src: artifactUrl(`/deepblend/artifacts/${encodeURIComponent(projectId)}/`, result.preview), style: { width: '100%', maxHeight: '240px', objectFit: 'contain' } }),
+                result.inspection.kind === 'environment' && result.preview.toneMapped ? el('p', { className: 'db-muted' }, t('assets.toneMapped')) : null,
+                result.inspection.dimensions ? el('p', null, `${t('assets.dimensions')}: ${result.inspection.dimensions.map(value => Number.isFinite(value) ? Number(value.toFixed(4)) : '—').join(' × ')}`) : null,
+                result.inspection.image ? el('p', null, `${result.inspection.image.width} × ${result.inspection.image.height}`) : null,
+                result.inspection.warnings?.length ? el('h5', null, t('assets.inspectionWarnings')) : null,
+                (result.inspection.warnings || []).map((warning, index) => el('p', { className: 'db-muted', key: index }, typeof warning === 'string' ? warning : warning.message || warning.code || '')),
+                result.inspection.parts?.length ? el('ul', { className: 'db-list' }, result.inspection.parts.map(item => el('li', { key: item.partId },
+                  item.partId, ' · ', (item.sourceMaterialSlots || []).map(slot => `${slot.index}: ${slot.materialName || '—'}`).join(', '),
+                  ' · UV: ', (item.uvMaps || []).map(uv => typeof uv === 'string' ? uv : uv.name).join(', ') || '—'))) : null) : null,
+              el('div', { className: 'db-inline' },
+                Button({ action: `asset-preview:${entry.asset.id}`, disabled: busy, onClick: () => actions.previewAsset(key), children: t('assets.inspect') }),
+                Button({ action: `asset-use:${entry.asset.id}`, disabled: busy || !result || Boolean(draft), onClick: () => actions.chooseAsset(key), children: t('assets.choose') })))
+          }))) : null,
+        draft ? el('div', { className: 'db-card', 'data-asset-draft': draft.kind },
+          el('h4', null, `${{ model: t('assets.model'), image: t('assets.image'), environment: t('assets.environment') }[draft.kind]} · ${draft.entry.originalName || draft.entry.asset.id}`),
+          conflict ? el('p', { className: 'db-error' }, t('assets.conflict')) : null,
+          draft.kind === 'model' ? el('div', null,
+            el('p', { className: 'db-muted' }, t('assets.modelHelp')),
+            text(t('assets.entityId'), 'asset-entity-id', draft.newEntityId, value => update('newEntityId', value)),
+            vector(t('editor.position'), 'location', draft.location, 1000), vector(t('editor.rotation'), 'rotationEuler', draft.rotationEuler, 180 / Math.PI),
+            number(t('assets.scale'), 'asset-scale', draft.scale ?? '', value => update('scale', value), { min: 0.000001 })) : null,
+          draft.kind === 'environment' ? el('div', null,
+            el('p', { className: 'db-muted' }, t('assets.environmentHelp')),
+            number(t('assets.strength'), 'asset-world-strength', draft.strength ?? '', value => update('strength', value), { min: 0, max: 1000 }),
+            number(t('assets.rotation'), 'asset-world-rotation', draft.rotation === null ? '' : draft.rotation * 180 / Math.PI, value => update('rotation', value === null ? null : value * Math.PI / 180))) : null,
+          draft.kind === 'image' ? el('div', null,
+            el('p', { className: 'db-muted' }, t('assets.imageHelp')),
+            choose(t('assets.target'), 'asset-target-entity', draft.entityId, [['', '—'], ...draft.scene.nodes.entities.filter(entity => entity.kind !== 'empty').map(entity => [entity.id, entity.id])], value => update('entityId', value)),
+            editor?.original.kind === 'asset-instance' ? el('div', null,
+              choose(t('editor.material'), 'asset-material-target', draft.target, [['entity', t('editor.assetWhole')], ['part', t('assets.partDefault')], ['slot', t('editor.slot')]], value => update('target', value)),
+              el('p', { className: 'db-muted' }, t('editor.assetNotice')),
+              draft.target !== 'entity' ? choose(t('editor.part'), 'asset-material-part', draft.partId, [['', '—'], ...(editor.original.assetParts || []).map(item => [item.partId, item.partId])], value => update('partId', value)) : null,
+              draft.target === 'slot' ? choose(t('editor.slot'), 'asset-material-slot', draft.slotIndex, [['', '—'], ...(part?.sourceMaterialSlots || []).map(slot => [String(slot.index), `${slot.index}: ${slot.materialName || '—'}`])], value => update('slotIndex', value)) : null) : null,
+            el('p', null, `${t('assets.material')}: ${material?.id || '—'}`),
+            !material || !['principled', 'glass'].includes(material.shader) ? el('p', { className: 'db-muted' }, t('assets.nativeHelp')) : null,
+            check(t('assets.newMaterial'), 'asset-new-material', draft.newMaterial, value => update('newMaterial', value)),
+            !draft.newMaterial && material ? choose(t('editor.material'), 'asset-material-scope', draft.scope, [['local', t('editor.local')], ['shared', t('editor.shared')]], value => update('scope', value)) : null,
+            !draft.newMaterial && draft.scope === 'shared' ? el('p', { className: 'db-muted' }, t('editor.affected', { targets: affected.join(', ') || '—' })) : null,
+            choose(t('assets.channel'), 'asset-map-channel', draft.channel, ASSET_CHANNELS.map(channel => [channel, { baseColor: t('assets.channel.baseColor'), roughness: t('assets.channel.roughness'), metallic: t('assets.channel.metallic'), normal: t('assets.channel.normal'), alpha: t('assets.channel.alpha'), emissionColor: t('assets.channel.emissionColor') }[channel]]), value => update('channel', value)),
+            text(t('assets.uv'), 'asset-uv-map', draft.binding.uvMap || '', value => mapSetting('uvMap', value.trim() || undefined)),
+            ...['scale', 'offset'].map(key => el('div', { className: 'db-inline', key }, ['u', 'v'].map((axis, index) => number(`${key === 'scale' ? t('assets.tile') : t('assets.offset')} ${axis}`, `asset-map-${key}-${axis}`, (draft.binding[key] || (key === 'scale' ? [1, 1, 1] : [0, 0, 0]))[index], value => {
+              const values = [...(draft.binding[key] || (key === 'scale' ? [1, 1, 1] : [0, 0, 0]))]; values[index] = value; mapSetting(key, values)
+            })))),
+            ['roughness', 'metallic', 'alpha'].includes(draft.channel) ? choose(t('assets.scalarChannel'), 'asset-scalar-channel', draft.binding.channel || 'r', ['r', 'g', 'b', 'a'].map(value => [value, value]), value => mapSetting('channel', value)) : null,
+            draft.channel === 'normal' ? number(t('assets.normalStrength'), 'asset-normal-strength', draft.binding.strength ?? 1, value => mapSetting('strength', value), { min: 0, max: 10 }) : null,
+            draft.channel === 'emissionColor' ? el('p', { className: 'db-muted' }, t('assets.emissionHelp')) : null,
+            !draft.newMaterial && material?.texture ? check(t('assets.replaceTexture'), 'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value)) : null) : null,
+          error ? el('p', { className: 'db-error' }, error) : null,
+          el('div', { className: 'db-inline' }, Button({ action: 'asset-apply', tone: 'primary', disabled: busy || conflict || Boolean(error) || state.busy.editor || state.busy.patch || state.busy.restore || state.visualRuns[projectId]?.busy,
+            onClick: actions.applyAsset, children: t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
+    }
+
     function SceneView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
@@ -2345,6 +2798,7 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-kind' }, asset.type),
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         ),
+        AssetsView(ctx),
         SceneEditor(ctx),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
           onToggle: event => actions.setDisclosure(advancedDisclosure, event.currentTarget.open), className: 'db-card' }, el('summary', null, t('editor.advanced')),
@@ -2822,8 +3276,8 @@ window.__ModuleLoader__.load({
           state.unfinishedJobs.length > 0
             ? Badge({ tone: 'live', name: 'unfinished', children: t('jobs.unfinished', { count: state.unfinishedJobs.length }) })
             : null,
-          state.hostApiVersion !== null && state.hostApiVersion !== EXPECTED_HOST_API
-            ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} ≠ ${EXPECTED_HOST_API}` })
+          typeof state.hostApiVersion === 'number' && state.hostApiVersion < EXPECTED_HOST_API
+            ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} < ${EXPECTED_HOST_API}` })
             : null,
           el('span', { style: { flex: 1 } }),
           // AN ANCHOR, NOT A BUTTON. The export is a download, and a download is what an anchor with
@@ -3349,6 +3803,7 @@ window.__ModuleLoader__.load({
       toDom,
       buildWorkbenchView,
       createWorkbenchStore,
+      assetLibrary: { createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },
       renderView,

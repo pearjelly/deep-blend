@@ -17,6 +17,8 @@ After creation, the [object editor](deepblend/docs/usage.md#41-调整已有对�
 bevels, arrays and local materials, render the change, and restore the previous scene with a revision guard.
 Save up to four [reference images](deepblend/docs/reference-images.md) with a revision's design goal.
 Reviews use those exact project assets and distinguish technical measurements from evidenced artistic judgments.
+Use the [asset library](deepblend/docs/assets.md) to upload and preview local GLB, PNG/JPEG and HDR/EXR
+files, then insert a model, bind a texture or set environment lighting. Model imports preserve source materials.
 
 ## Install
 
@@ -138,9 +140,12 @@ The repository's own documents are in Chinese, and they are the detailed ones:
 | **Install it** — from a clone to "DeepBlend Studio appears in a new session", four steps each with `--check`, and what each step does *not* verify | [`deepblend/docs/install.md`](deepblend/docs/install.md) |
 | **Use it** — what a session looks like, what each tool is for, the cost model, the six workbench tabs, one worked example | [`deepblend/docs/usage.md`](deepblend/docs/usage.md) |
 | **Review against references** — upload, save a versioned brief, inspect reference evidence and run bounded corrections | [`deepblend/docs/reference-images.md`](deepblend/docs/reference-images.md) |
+| **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
+| **Extend the plugin** — public JavaScript and TypeScript SDK, versioned schemas, runtime lifecycle and an independent consumer example | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
 | **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
 | **The specification** — `SPEC.md` is the master specification; the repository is its implementation | [`SPEC.md`](SPEC.md) |
 | **Per-milestone conclusions, evidence and known gaps** | [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md) |
+| **Current quality and ecosystem improvements** — scope, measured progress and remaining work | [`deepblend/docs/improvement-plan.md`](deepblend/docs/improvement-plan.md) |
 
 [`README.zh.md`](README.zh.md) is the Chinese README, and it carries the measured counts —
 suite and file numbers, assertion totals, and the commands that produce them.
@@ -197,7 +202,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 18 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 20 suites; README.zh.md states the expected numbers
 ```
 
 Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and

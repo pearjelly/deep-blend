@@ -16,7 +16,7 @@
  *   1. every file path the workflow names exists, so a rename cannot leave a step that
  *      runs nothing (a `run:` of a missing script is a RED step on GitHub, which is the
  *      good outcome — but the ones embedded in a longer command line are not always);
- *   2. every `npm install --global` pin agrees with the toolchain anchor, which
+ *   2. the committed development lock agrees with the toolchain anchor, which
  *      `toolchain-pins.test.mjs` also asserts from the other side;
  *   3. the workflow states no COUNT of the test layer, because a count in a file nothing
  *      executes is a count nothing re-reads — this is the defect that produced this file;
@@ -111,62 +111,31 @@ test('every external command the workflow runs is declared, with a reason', () =
   }
 })
 
-test('the workflow pins the same DSH version as the toolchain anchor', () => {
-  // `toolchain-pins.test.mjs` asserts this from the pin's side. It is asserted here from
-  // the workflow's side too, because the two files can be edited in either order and a
-  // failing check should name the file a reader has open.
-  const pinned = [...workflow.matchAll(/npm install --global (@deepseek-ai\/dsh@[\w.-]+)/g)].map(match => match[1])
-  assert.ok(pinned.length > 0, 'the workflow installs no pinned DSH, so CI tests against whatever npm resolves')
-  for (const spec of pinned) {
-    assert.equal(
-      spec,
-      `@deepseek-ai/dsh@${dshPin.version}`,
-      `the workflow installs ${spec}; deepblend/tools/dsh-baseline.json pins ${dshPin.version}`,
-    )
-  }
+test('the workflow installs the committed development lock before linking or testing', () => {
+  const setup = runSteps.indexOf('node deepblend/tools/development.mjs setup --github-env')
+  assert.ok(setup >= 0, 'CI must install the committed development lock and expose it to later steps')
+  assert.ok(setup < runSteps.indexOf('node deepblend/tools/link-workspace.mjs'))
+  assert.ok(setup < runSteps.indexOf('node deepblend/tests/run.mjs'))
+  assert.ok(!runSteps.some(step => /npm install|npx/.test(step)), 'CI must not resolve a second unlocked dependency tree')
+  const development = readFileSync(join(ROOT, 'deepblend/tools/development.mjs'), 'utf8')
+  assert.match(development, /'ci', '--prefix', runtime, '--include=dev'/)
+  assert.match(development, /GITHUB_ENV/)
+  assert.match(development, /GITHUB_PATH/)
 })
 
-test('the workflow installs the deployment packages the harness does not bring, and nothing else', () => {
-  // A GREEN JOB THAT CANNOT LINK IS NOT A GREEN JOB. MEASURED: this workflow failed on every push for
-  // at least six commits, at `link-workspace.mjs`, with "Could not locate a DSH deployment" — because
-  // a global install of the pinned harness does not put every package this repository imports in one
-  // place. The harness's own dependencies nest under it; `dsh-subprocess-local` (imported by every
-  // Blender and composition suite) and `dsh-attachment-local` (the live visual probe) are not in that
-  // tree at all, and `npm install -g @deepseek-ai/dsh` alone therefore produces a deployment the
-  // suites cannot be linked against.
-  //
-  // Two-way, like the other vocabulary assertions here: every package named in the install step has
-  // to be imported by the repository somewhere, or the step is carrying something nobody needs.
-  const install = workflow.match(/npm install --global [^\n]*/)
-  assert.ok(install !== null, 'the workflow installs no deployment at all')
-
-  const required = ['@deepseek-ai/dsh-subprocess-local', '@deepseek-ai/dsh-attachment-local']
-  for (const spec of required) {
-    assert.ok(install[0].includes(spec), `the workflow does not install ${spec}, which this repository imports`)
+test('the lock supplies the pinned DSH providers, codec and strict SDK compiler', () => {
+  const runtime = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package.json'), 'utf8'))
+  const lock = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package-lock.json'), 'utf8'))
+  for (const name of ['@deepseek-ai/dsh', '@deepseek-ai/dsh-subprocess-local', '@deepseek-ai/dsh-attachment-local']) {
+    assert.equal(runtime.dependencies[name], dshPin.version)
+    assert.equal(lock.packages[`node_modules/${name}`].version, dshPin.version)
   }
-
-  // The other direction, from the tree rather than from a list: whatever the step names beyond the
-  // harness itself has to be reachable as an import in this repository.
-  const sources = []
-  const walk = (directory) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
-      const full = join(directory, entry.name)
-      if (entry.isDirectory()) walk(full)
-      else if (/\.(mjs|js|yml|json)$/.test(entry.name)) sources.push(readFileSync(full, 'utf8'))
-    }
-  }
-  walk(join(ROOT, 'packages'))
-  walk(join(ROOT, 'deepblend'))
-  const corpus = sources.join('\n')
-
-  for (const spec of [...install[0].matchAll(/@deepseek-ai\/[\w.-]+/g)].map(match => match[0])) {
-    if (spec.startsWith('@deepseek-ai/dsh@')) continue
-    assert.ok(
-      corpus.includes(spec),
-      `${spec} is installed by the workflow but nothing in this repository imports it — drop it, or say why here`,
-    )
-  }
+  const host = JSON.parse(readFileSync(join(ROOT, 'packages/deepblend/host/package.json'), 'utf8'))
+  assert.equal(runtime.dependencies.sharp, host.dependencies.sharp)
+  assert.equal(lock.packages['node_modules/sharp'].version, host.dependencies.sharp)
+  assert.equal(runtime.devDependencies.typescript, '6.0.3')
+  assert.equal(lock.packages['node_modules/typescript'].version, runtime.devDependencies.typescript)
+  assert.ok(lock.packages['node_modules/@types/node'].version)
 })
 
 test('the workflow states no count of the test layer', () => {

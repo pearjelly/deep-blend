@@ -166,10 +166,10 @@ def build_world(scene, spec, options=None):
             background.inputs[1].default_value = strength
             report = {"declared": declared is not None, "color": list(color), "strength": strength}
             if declared and declared.get('environment'):
-                build_environment(world, background, declared['environment'],
-                                  {asset['id']: asset for asset in spec.get('assets') or []},
-                                  (options or {}).get('project_root'))
-                report['environment'] = declared['environment']
+                image = build_environment(world, background, declared['environment'],
+                                          {asset['id']: asset for asset in spec.get('assets') or []},
+                                          (options or {}).get('project_root'))
+                report['environment'] = {**declared['environment'], 'image': image}
             return report
     raise ActionError(
         "BLENDER_SCRIPT_ERROR",
@@ -2290,10 +2290,58 @@ def build_scene(spec, options, guard):
     }
 
 
+def _uv_map_facts(mesh, source):
+    """Names and finite coordinates are inventory, not an overlap/unwrap verdict."""
+    return [{'name': layer.name, 'activeRender': bool(layer.active_render),
+             'loopCount': len(layer.data),
+             'finite': all(math.isfinite(value) for loop in layer.data for value in loop.uv),
+             'source': source}
+            for layer in mesh.uv_layers]
+
+
+def _render_collection_members(layer, inherited_excluded=False, members=None):
+    """An object can have several collection paths; one render-enabled path suffices."""
+    members = set() if members is None else members
+    excluded = inherited_excluded or layer.exclude or layer.collection.hide_render
+    if not excluded:
+        members.update(layer.collection.objects)
+    for child in layer.children:
+        _render_collection_members(child, excluded, members)
+    return members
+
+
+def _object_world_bounds(obj, depsgraph):
+    """Conservative world AABB of an evaluated mesh; wrappers have no geometry.
+
+    Bounds use the evaluated local bounding box transformed by matrix_world.
+    They include the object hierarchy and modifiers, but are not a tight vertex
+    hull or a claim that every enclosed pixel is visible to the camera.
+    """
+    if obj.type != 'MESH':
+        return None
+    evaluated = obj.evaluated_get(depsgraph)
+    if not evaluated.data.vertices:
+        return None
+    local = [tuple(corner) for corner in evaluated.bound_box]
+    if not local or all(corner == (-1.0, -1.0, -1.0) for corner in local):
+        return None
+    corners = [evaluated.matrix_world @ Vector(corner) for corner in local]
+    if not all(math.isfinite(value) for corner in corners for value in corner):
+        return None
+    return {'min': [min(float(corner[axis]) for corner in corners) for axis in range(3)],
+            'max': [max(float(corner[axis]) for corner in corners) for axis in range(3)]}
+
+
 def describe_objects():
     """Inventory of every object in the scene, for validation and golden checks."""
     entries = []
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    frame = int(bpy.context.scene.frame_current)
+    render_members = _render_collection_members(bpy.context.view_layer.layer_collection)
     for obj in bpy.data.objects:
+        # Disabled viewport objects can retain stale evaluated transforms. Do
+        # not present that cache as a measured world bound or evaluated UV set.
+        evaluation_available = obj.type == 'MESH' and obj.visible_get(view_layer=bpy.context.view_layer)
         entry = {
             "name": obj.name,
             "type": obj.type,
@@ -2303,19 +2351,42 @@ def describe_objects():
             "rotationEuler": [round(float(value), 6) for value in obj.rotation_euler],
             "scale": [round(float(value), 6) for value in obj.scale],
             "visible": not (obj.hide_render or obj.hide_viewport),
+            # Render eligibility only: viewport hiding is a different flag, and
+            # this does not test occlusion, clipping, alpha or material output.
+            "renderVisible": obj in render_members and not obj.hide_render and obj.visible_camera,
+            "worldBounds": _object_world_bounds(obj, depsgraph) if evaluation_available else None,
+            "boundsFrame": frame,
             "parent": obj.parent.name if obj.parent is not None else None,
         }
         if obj.type == "MESH":
             entry["vertexCount"] = len(obj.data.vertices)
             entry["polygonCount"] = len(obj.data.polygons)
             entry["materialNames"] = [slot.material.name for slot in obj.material_slots if slot.material is not None]
+            entry['uvMaps'] = _uv_map_facts(obj.data, 'mesh-data')
+            if evaluation_available:
+                evaluated = obj.evaluated_get(depsgraph)
+                try:
+                    surface = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+                    entry['evaluatedUvMaps'] = _uv_map_facts(surface, 'evaluated-mesh') if surface else []
+                finally:
+                    evaluated.to_mesh_clear()
+                if entry['worldBounds'] is None:
+                    entry['boundsUnavailable'] = 'empty-or-invalid-bounds'
+            else:
+                entry['boundsUnavailable'] = 'viewport-disabled'
+                entry['evaluatedUvMaps'] = None
+                entry['evaluatedUvMapsUnavailable'] = 'viewport-disabled'
             if obj.get('deepblend_part_id'):
                 entry['partId'] = obj['deepblend_part_id']
                 entry['parentPartId'] = obj.get('deepblend_parent_part_id') or None
                 entry['sourceMaterialSlots'] = json.loads(obj.get('deepblend_source_material_slots', '[]'))
+                used_slots = {}
+                for polygon in obj.data.polygons:
+                    used_slots[polygon.material_index] = used_slots.get(polygon.material_index, 0) + 1
                 entry['materialSlots'] = [
                     {'index': index, 'materialName': slot.material.name if slot.material else None,
-                     'materialId': slot.material.get('deepblend_id') if slot.material else None}
+                     'materialId': slot.material.get('deepblend_id') if slot.material else None,
+                     'usedPolygonCount': used_slots.get(index, 0)}
                     for index, slot in enumerate(obj.material_slots)]
         if obj.type == "LIGHT":
             entry["lightType"] = obj.data.type

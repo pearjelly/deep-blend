@@ -89,8 +89,8 @@ check('restore describes moving the current pointer while preserving history, wi
  * line, which is the whole point — "所有写操作经过 Host" is a claim about a set,
  * and a set nobody wrote down is a set that grows quietly.
  */
-const EXPECTED_WRITES = ['projects.create', 'project.preview', 'project.referenceImage.upload', 'project.review', 'project.autofix', 'project.patch', 'project.restore', 'project.job.cancel', 'project.render']
-check('the write set is exactly the nine named routes', JSON.stringify(writeRouteIds()) === JSON.stringify(EXPECTED_WRITES), writeRouteIds())
+const EXPECTED_WRITES = ['projects.create', 'project.preview', 'project.referenceImage.upload', 'project.assets.upload', 'project.assets.preview', 'project.review', 'project.autofix', 'project.patch', 'project.restore', 'project.job.cancel', 'project.render']
+check('the write set is exactly the eleven named routes', JSON.stringify(writeRouteIds()) === JSON.stringify(EXPECTED_WRITES), writeRouteIds())
 
 /** A concrete path for a declared route, from the route itself. */
 function samplePath(route) {
