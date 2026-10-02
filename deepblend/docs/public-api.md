@@ -183,7 +183,12 @@ Keep package versions aligned across a deployment. The SceneSpec/ScenePatch
 schema versions and bootstrap protocol version identify their document/wire
 contracts; `HOST_API_VERSION` is the existing coarse Host compatibility gate.
 API 5 adds the Studio `uploadAsset`, `listAssets` and `previewAsset` methods used
-by the asset-library UI. UI/Host callers that need them require API 5. The SDK's
+by the asset-library UI. API 6 adds explicit beauty/clay modes on `renderViews`
+and separate diagnostic artifacts on `listPreviewSets`; see [fixed-view inspection](inspection.md).
+The workbench requires API 6, and rejects older Hosts for explicit inspection modes.
+Runtime adapters must honor `session:false` for both compilation and `renderViews`,
+and return per-view measured `renderConfig` and `cameraFacts` for diagnostics.
+The SDK's
 runtime interface remains the separate execution contract; it does not declare
 a complete typed Studio facade or expose internal Host helpers.
 There is no separate negotiated runtime-interface version. New types do not

@@ -375,9 +375,10 @@ export const BlenderWarningCode = Object.freeze({
  * read/aggregate methods — the browser half faces the same half-upgraded deployment
  * the tools do, and it has to say so instead of painting a blank panel over a
  * `TypeError` (D59). 5 adds the asset library's upload, inventory and isolated
- * preview methods; an older Host cannot serve that UI workflow.
+ * preview methods; an older Host cannot serve that UI workflow. 6 adds isolated
+ * beauty/clay diagnostics; an older Host must not silently ignore that mode.
  */
-export const HOST_API_VERSION = 5
+export const HOST_API_VERSION = 6
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
 export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])

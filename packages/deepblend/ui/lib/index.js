@@ -275,7 +275,7 @@ export default class BlenderUiHost extends Service {
         this._sendWorkbenchPage(request, response)
         return
       }
-      const cancellable = ['project.assets.upload', 'project.assets.preview'].includes(matched.route.id)
+      const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview'].includes(matched.route.id)
       let signal
       if (cancellable) {
         const controller = new AbortController()
@@ -709,7 +709,13 @@ export function createHandlers(ctx) {
       return { previews: sets, artifactBase: `${UI_ROUTE_PREFIX}/artifacts/${encodeURIComponent(params.projectId)}/` }
     },
 
-    'project.preview': async ({ params, body }) => {
+    'project.preview': async ({ params, body, signal }) => {
+      if (body.mode !== undefined) {
+        const version = studio()?.hostApiVersion?.()
+        if (!Number.isFinite(version) || version < 6) throw new BlenderError('UI_HOST_API_STALE', 'Fixed-view inspections require Blender Host API 6 or newer. Restart the Host.')
+        if (!['beauty', 'clay'].includes(body.mode)) throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Unknown inspection mode.')
+        requiredRevision(body.revision)
+      }
       // `renderViews` answers with the rendered PNG bytes in `pngs`, which is not
       // lossless JSON and is not what the browser needs: the panel displays the
       // images through the artifact route, so the response carries the paths,
@@ -717,6 +723,9 @@ export function createHandlers(ctx) {
       const result = await studio().renderViews({
         projectId: params.projectId,
         revision: body.revision,
+        ...(body.mode === undefined ? {} : { mode: body.mode }),
+        ...(body.views === undefined ? {} : { views: Array.isArray(body.views) ? body.views.map(view => ({ id: view?.id, cameraId: view?.cameraId, frame: view?.frame })) : body.views }),
+        signal,
         samples: numberOrUndefined(body.samples),
         maxViews: numberOrUndefined(body.maxViews),
         reason: body.reason ?? 'preview rendered from the workbench UI',
@@ -724,6 +733,9 @@ export function createHandlers(ctx) {
       return {
         preview: {
           projectId: params.projectId,
+          ...(result.mode ? { mode: result.mode } : {}),
+          ...(result.sourceRevision ? { sourceRevision: result.sourceRevision } : {}),
+          ...(result.sourceDigest ? { sourceDigest: result.sourceDigest } : {}),
           revision: result.revision ?? body.revision ?? null,
           digest: result.digest ?? null,
           profile: result.profile ?? null,

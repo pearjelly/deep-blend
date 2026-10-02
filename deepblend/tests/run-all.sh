@@ -74,6 +74,9 @@ run_suite "Blender batch SceneSpec + revision loop (M1)" \
 run_suite "Asset library: real uploads, isolated previews and source fidelity" \
   node deepblend/tests/blender-integration/asset-library.e2e.mjs
 
+run_suite "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection" \
+  node deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs
+
 run_suite "Blender live session: one process, many operations (M6 Live Bridge, transport)" \
   node deepblend/tests/blender-integration/live-session.e2e.mjs
 
@@ -121,6 +124,9 @@ run_suite "Standalone fullscreen workbench: its own route, the console's own bun
 
 run_suite "Asset library in a real browser: upload, preview, apply and revision conflicts" \
   node deepblend/tests/e2e/asset-library.e2e.mjs
+
+run_suite "Fixed-view inspection workbench: real images, revision history and cancellation" \
+  node deepblend/tests/e2e/inspection-ui.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

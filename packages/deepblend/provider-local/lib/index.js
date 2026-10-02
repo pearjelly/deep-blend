@@ -1605,6 +1605,7 @@ export default class LocalBlenderRuntime extends Service {
    * @param {number} [request.samples]
    * @param {string} [request.jobId]
    * @param {AbortSignal} [request.signal]
+   * @param {boolean} [request.session] - false forces batch isolation; omission preserves configured session routing.
    * @returns {Promise<{report: object, pngs: Record<string, Buffer>, envelope: object, durationMs: number}>}
    */
   /**
@@ -1895,6 +1896,7 @@ export default class LocalBlenderRuntime extends Service {
       { action: 'render_views', jobId: request.jobId },
       {
         signal: request.signal,
+        session: request.session,
         args: ['--views', 'views.json'],
         // The plan names outputs by BARE file name: Blender must write somewhere
         // that dies with the invocation, or a failed render would leave images

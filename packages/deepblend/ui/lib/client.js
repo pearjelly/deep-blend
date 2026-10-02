@@ -108,6 +108,51 @@ window.__ModuleLoader__.load({
     // `contract/workbench-copy.test.mjs`, so a missing key cannot leave a hole in either direction.
     const STRINGS = {
     zh: {
+      'inspection.mismatch': '检查回执与请求的版本、相机或帧不一致，未标记为成功。',
+      'inspection.cameraUnavailable': '{camera}（当前版本不可用）',
+      "inspection.title": "固定视角检查",
+      "inspection.help": "选择已有相机和帧号。检查图从此版本场景描述独立重建，单独保存；它不是原检查点截图，不替换成品预览，也不修改场景。",
+      "inspection.camera": "检查相机",
+      "inspection.frame": "检查帧",
+      "inspection.mode": "显示方式",
+      "inspection.samples": "采样数",
+      "inspection.beauty": "材质检查图",
+      "inspection.clay": "中性灰模",
+      "inspection.render": "生成检查图",
+      "inspection.rendering": "正在生成检查图…",
+      "inspection.cancel": "取消检查渲染",
+      "inspection.cancelled": "检查渲染已取消，已保存场景保持不变。",
+      "inspection.invalid": "请选择存在的相机、范围内的整数帧和有效采样数。",
+      "inspection.pending": "有未保存的修改。先保存或放弃草稿，再检查已保存场景。",
+      "inspection.saved": "检查图已保存：{revision} · {camera} · 帧 {frame}。",
+      "inspection.source": "本次来源：{revision}；帧范围 {start}–{end}。采样数受 Host 预算限制，以产物实测记录为准。",
+      "inspection.gallery": "独立检查图",
+      "inspection.revision": "查看版本",
+      "inspection.none": "这个版本尚无独立检查图。",
+      "inspection.limit": "灰模便于查看轮廓、比例和接缝；它不证明壁厚、封闭性或美术质量。灰模去掉透明、发光、纹理及表面凹凸，导入材质的位移也可能改变渲染外形，不能用它判断原材质效果。",
+      "inspection.identity": "{revision} · {camera} · 帧 {frame}",
+      "inspection.actual": "实测：{engine} · {width}×{height} · {samples} samples",
+      "inspection.open": "打开原图",
+      "inspection.history": "当前显示历史版本 {revision} 的检查图，当前项目为 {current}。",
+      "guide.title": "创作引导",
+      "guide.help": "按需要跳转。每一步打开对应操作；不会自动提交、渲染或判定质量通过。",
+      "guide.goal": "目标与参考",
+      "guide.route": "选择起点",
+      "guide.parts": "部件与结构",
+      "guide.form": "灰模与比例",
+      "guide.detail": "边缘与细节",
+      "guide.appearance": "材质与灯光",
+      "guide.delivery": "检查与交付",
+      "guide.goalHint": "说明用途、尺寸、材质和交付视角；保存参考图并核对主要评审对象。",
+      "guide.routeHint": "配方适合改已有设计；素材库可放入自己的模型。基础项目仍需要补齐结构与细节。",
+      "guide.partsHint": "逐个选择实际对象，检查装配与接触。导入部件和槽位以已编译库存为准。",
+      "guide.formHint": "生成灰模检查轮廓与比例；发现问题后回到场景树修改对象。",
+      "guide.detailHint": "选择已有特写相机和固定帧，检查倒角、接缝与重复细节。没有特写机位时，需先通过 Agent 或场景补丁添加。",
+      "guide.appearanceHint": "编辑局部材质或绑定图片、环境图；再查看反射、透明度与接触阴影。灯光编辑可通过 Agent 或高级补丁完成。",
+      "guide.deliveryHint": "先在预览与 QA 核对目标和运动覆盖，再选择已保存版本交付。检查图存在不代表作品质量通过。",
+      "guide.evidence": "当前 {revision}：{parts} 个对象，{references} 张参考，{images} 张独立检查图。",
+      "guide.noProject": "先创建项目。配方示例来自真实渲染；调整后仍需检查你自己的结果。",
+
       "assets.title": "素材库",
       "assets.open": "打开素材库",
       "assets.refresh": "刷新素材库",
@@ -457,6 +502,51 @@ window.__ModuleLoader__.load({
       'revisions.title': '版本（{count}）',
     },
     en: {
+      'inspection.mismatch': 'The inspection receipt does not match the requested revision, camera or frame; success was not recorded.',
+      'inspection.cameraUnavailable': '{camera} (unavailable in this revision)',
+      "inspection.title": "Inspect a fixed view",
+      "inspection.help": "Choose a saved camera and frame. Inspection images are rebuilt from this revision’s scene description and stored separately. They are not screenshots of the original checkpoint, and do not replace product previews or change the scene.",
+      "inspection.camera": "Camera",
+      "inspection.frame": "Frame",
+      "inspection.mode": "Appearance",
+      "inspection.samples": "Samples",
+      "inspection.beauty": "Material inspection",
+      "inspection.clay": "Neutral clay",
+      "inspection.render": "Render inspection",
+      "inspection.rendering": "Rendering inspection…",
+      "inspection.cancel": "Cancel inspection",
+      "inspection.cancelled": "Inspection rendering cancelled. The saved scene is unchanged.",
+      "inspection.invalid": "Choose an existing camera, an integer frame within the scene range and a valid sample count.",
+      "inspection.pending": "There are unsaved changes. Save or discard them before inspecting the saved scene.",
+      "inspection.saved": "Inspection saved: {revision} · {camera} · frame {frame}.",
+      "inspection.source": "Source: {revision}; frames {start}–{end}. Host budgets may reduce samples; artifact measurements are authoritative.",
+      "inspection.gallery": "Inspection images",
+      "inspection.revision": "Evidence revision",
+      "inspection.none": "This revision has no inspection images.",
+      "inspection.limit": "Clay helps inspect silhouette, proportions and joins. It does not prove thickness, watertightness or artistic quality. Clay removes transparency, emission, textures and surface bumps; displacement from imported materials may also change rendered geometry. Use material images to inspect the original appearance.",
+      "inspection.identity": "{revision} · {camera} · frame {frame}",
+      "inspection.actual": "Measured: {engine} · {width}×{height} · {samples} samples",
+      "inspection.open": "Open image",
+      "inspection.history": "Showing inspection images from historical revision {revision}; the project is at {current}.",
+      "guide.title": "Creation guide",
+      "guide.help": "Jump to the work you need. These links open the relevant controls; they do not submit, render or judge quality automatically.",
+      "guide.goal": "Goal and references",
+      "guide.route": "Choose a starting point",
+      "guide.parts": "Parts and structure",
+      "guide.form": "Clay and proportions",
+      "guide.detail": "Edges and details",
+      "guide.appearance": "Materials and lighting",
+      "guide.delivery": "Review and delivery",
+      "guide.goalHint": "Describe use, dimensions, materials and delivery views. Save references and check the review subject.",
+      "guide.routeHint": "Recipes adapt an existing design; the asset library brings in your model. A basic project still needs structure and detail.",
+      "guide.partsHint": "Select real objects and inspect assembly and contact. Imported parts and slots come from compiled inventory.",
+      "guide.formHint": "Render clay to inspect silhouette and proportions; return to the scene tree to edit the object.",
+      "guide.detailHint": "Choose an existing close-up camera and a fixed frame to inspect bevels, joins and repeated details. Add missing close-up cameras through the agent or a scene patch.",
+      "guide.appearanceHint": "Edit a local material or bind images and an environment, then inspect reflections, transparency and contact shadows. Use the agent or an advanced patch to edit lights.",
+      "guide.deliveryHint": "Check the goal and motion coverage in Preview and QA before delivering a saved revision. Having inspection images does not establish artistic quality.",
+      "guide.evidence": "Current {revision}: {parts} objects, {references} references and {images} inspection images.",
+      "guide.noProject": "Create a project first. Recipe examples are real renders; inspect your own result after changing them.",
+
       "assets.title": "Asset library",
       "assets.open": "Open asset library",
       "assets.refresh": "Refresh assets",
@@ -844,7 +934,7 @@ window.__ModuleLoader__.load({
     /** Label shown by the sidebar entry, the settings nav and the panel title. */
     const PANEL_LABEL = 'Blender'
     /** The host API this half was written against; a mismatch is a deployment state. */
-    const EXPECTED_HOST_API = 5
+    const EXPECTED_HOST_API = 6
     /** Polling cadence while something is live; M3 writes progress once a second. */
     const POLL_LIVE_MS = 1500
     /** Polling cadence when nothing is running. */
@@ -1401,6 +1491,21 @@ window.__ModuleLoader__.load({
     }
     function assetDraftError(draft) { try { buildAssetPatch(draft); return null } catch (error) { return error.message } }
 
+    function inspectionForm(state) {
+      const scene = state.selected?.scene
+      if (!scene) return null
+      return state.inspectionForms?.[state.activeProjectId] || {
+        cameraId: scene.project.activeCamera || scene.nodes.cameras[0]?.id || '',
+        frame: scene.project.frameStart ?? 1, mode: 'beauty', samples: 16,
+      }
+    }
+    function inspectionFormValid(form, scene) {
+      return Boolean(form && scene?.revision && scene.nodes.cameras.some(camera => camera.id === form.cameraId)
+        && ['beauty', 'clay'].includes(form.mode) && Number.isInteger(form.frame)
+        && form.frame >= scene.project.frameStart && form.frame <= scene.project.frameEnd
+        && Number.isInteger(form.samples) && form.samples >= 1 && form.samples <= 512)
+    }
+
     const REFERENCE_PURPOSES = ['geometry', 'materials', 'lighting', 'goalFit']
     const REFERENCE_MAX_BYTES = 8 * 1024 * 1024
     function createBriefDraft(scene, projectId) {
@@ -1605,6 +1710,10 @@ window.__ModuleLoader__.load({
         diff: null,
         diffError: null,
         previewBusy: false,
+        inspectionForms: {},
+        inspectionWork: {},
+        inspectionRevisions: {},
+        guideFocus: {},
         disclosures: {},
         assetLibraries: {},
         assetWork: {},
@@ -1644,8 +1753,10 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      const inspectionControllers = new Map()
       const assetControllers = new Map()
       const assetListSequences = new Map()
+      const inspectionWork = (projectId, changes) => set({ inspectionWork: { ...data.inspectionWork, [projectId]: { ...data.inspectionWork[projectId], ...changes } } })
       const assetWork = (projectId, changes) => set({ assetWork: { ...data.assetWork, [projectId]: { ...data.assetWork[projectId], ...changes } } })
 
       const notify = () => {
@@ -2166,9 +2277,51 @@ window.__ModuleLoader__.load({
           }
         },
 
+        setInspection: (field, value) => {
+          const projectId = data.activeProjectId, current = inspectionForm(data)
+          if (!projectId || !current || data.inspectionWork[projectId]?.busy || !['cameraId', 'frame', 'mode', 'samples'].includes(field)) return
+          set({ inspectionForms: { ...data.inspectionForms, [projectId]: { ...current, [field]: value } } })
+        },
+        selectInspectionRevision: revision => {
+          const projectId = data.activeProjectId
+          if (!projectId || !data.previews?.revisions?.some(item => item.revision === revision)) return
+          set({ inspectionRevisions: { ...data.inspectionRevisions, [projectId]: revision } })
+        },
+        openCreationStep: step => {
+          const projectId = data.activeProjectId, destination = { goal: 'projects', route: 'projects', parts: 'scene', form: 'preview', detail: 'preview', appearance: 'scene', delivery: 'jobs' }[step]
+          if (!destination) return
+          if (projectId && ['form', 'detail'].includes(step)) actions.setInspection('mode', step === 'form' ? 'clay' : 'beauty')
+          set({ view: destination, guideFocus: { ...data.guideFocus, [projectId || 'new']: step } })
+        },
+        cancelInspection: () => inspectionControllers.get(data.activeProjectId)?.abort(),
+        renderInspection: async () => {
+          const projectId = data.activeProjectId, scene = data.selected?.scene, form = inspectionForm(data)
+          if (!projectId || !scene || data.inspectionWork[projectId]?.busy || data.busy.editor || data.busy.patch || data.busy.restore || data.previewBusy || data.assetWork[projectId]?.busy || data.visualRuns[projectId]?.busy) return
+          if (projectHasUnsavedDrafts(data)) { inspectionWork(projectId, { error: t('inspection.pending') }); return }
+          if (!inspectionFormValid(form, scene)) { inspectionWork(projectId, { error: t('inspection.invalid') }); return }
+          const request = { revision: scene.revision, mode: form.mode, views: [{ id: 'selected', cameraId: form.cameraId, frame: form.frame }], samples: form.samples }
+          const controller = new AbortController(); inspectionControllers.set(projectId, controller)
+          inspectionWork(projectId, { busy: true, error: null, result: null, request: editorClone(request) })
+          try {
+            const response = await fetchImpl(projectRoute(projectId, '/preview'), { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(request), signal: controller.signal })
+            const payload = await response.json()
+            if (controller.signal.aborted) throw new Error(t('inspection.cancelled'))
+            if (!response.ok || !payload.ok) throw new Error(`${payload.error?.code || 'UI_PREVIEW_FAILED'}: ${payload.error?.message || response.status}`)
+            const receipt = payload.preview, artifacts = receipt?.artifacts
+            if (receipt?.revision !== request.revision || receipt?.sourceRevision !== request.revision || receipt?.mode !== request.mode
+              || scene.digest && receipt.sourceDigest !== scene.digest || !Array.isArray(artifacts) || artifacts.length !== 1
+              || artifacts.some(artifact => artifact.kind !== 'diagnostic' || artifact.mode !== request.mode || artifact.sourceRevision !== request.revision
+                || artifact.cameraId !== form.cameraId || artifact.frame !== form.frame || artifact.mime !== 'image/png'
+                || typeof artifact.path !== 'string' || !artifact.path || !/^[a-f0-9]{64}$/.test(artifact.sha256 || ''))) throw new Error(t('inspection.mismatch'))
+            inspectionWork(projectId, { result: { revision: request.revision, mode: request.mode, message: t('inspection.saved', { revision: request.revision, camera: form.cameraId, frame: form.frame }) } })
+            set({ inspectionRevisions: { ...data.inspectionRevisions, [projectId]: request.revision } })
+          } catch (error) { inspectionWork(projectId, { error: controller.signal.aborted ? t('inspection.cancelled') : error.message || String(error) }) }
+          finally { inspectionControllers.delete(projectId); inspectionWork(projectId, { busy: false }); reload() }
+        },
+
         renderPreview: async () => {
           set({ previewBusy: true, previewResult: null })
-          const outcome = await postJson(fetchImpl, projectRoute(target(), '/preview'), {})
+          const outcome = await postJson(fetchImpl, projectRoute(target(), '/preview'), { revision: data.selected?.scene?.revision })
           set({ previewBusy: false, ...(outcome.ok ? { compareMode: 'renders' } : {}) })
           set({
             previewResult: outcome.ok
@@ -2244,6 +2397,8 @@ window.__ModuleLoader__.load({
         stop() {
           running = false
           if (timer !== null) { clearInterval(timer); timer = null }
+          for (const controller of inspectionControllers.values()) controller.abort()
+          inspectionControllers.clear()
           for (const controller of assetControllers.values()) controller.abort()
           assetControllers.clear()
         },
@@ -2883,6 +3038,69 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function CreationGuide({ state, actions }) {
+      const projectId = state.activeProjectId, scene = state.selected?.scene, focus = state.guideFocus?.[projectId || 'new'] || 'goal'
+      const evidence = state.previews?.revisions?.find(item => item.revision === scene?.revision)
+      const steps = [
+        { id: 'goal', label: t('guide.goal'), hint: t('guide.goalHint') },
+        { id: 'route', label: t('guide.route'), hint: t('guide.routeHint') },
+        { id: 'parts', label: t('guide.parts'), hint: t('guide.partsHint') },
+        { id: 'form', label: t('guide.form'), hint: t('guide.formHint') },
+        { id: 'detail', label: t('guide.detail'), hint: t('guide.detailHint') },
+        { id: 'appearance', label: t('guide.appearance'), hint: t('guide.appearanceHint') },
+        { id: 'delivery', label: t('guide.delivery'), hint: t('guide.deliveryHint') },
+      ]
+      return el('section', { className: 'db-card', 'data-creation-guide': projectId || 'new' },
+        el('strong', null, t('guide.title')),
+        el('div', { className: 'db-inline', style: { flexWrap: 'wrap', marginTop: '8px' } }, steps.map(step =>
+          Button({ action: `guide-${step.id}`, disabled: !projectId && !['goal', 'route'].includes(step.id), onClick: () => actions.openCreationStep(step.id), children: step.label }))),
+        el('p', { className: 'db-muted', 'data-guide-hint': focus }, steps.find(step => step.id === focus)?.hint || steps[0].hint),
+        el('p', { className: 'db-muted' }, scene ? t('guide.evidence', { revision: scene.revision,
+          parts: scene.nodes.entities.filter(entity => entity.kind !== 'empty' && !entity.tags?.includes('environment')).length,
+          references: scene.project.referenceImages?.length || 0, images: evidence?.diagnostics?.length || 0 }) : t('guide.noProject')),
+        el('small', { className: 'db-muted' }, t('guide.help')))
+    }
+    function InspectionPanel({ state, actions }) {
+      const projectId = state.activeProjectId, scene = state.selected?.scene, form = inspectionForm(state), work = state.inspectionWork?.[projectId] || {}
+      if (!scene || !form) return null
+      const dirty = projectHasUnsavedDrafts(state), valid = inspectionFormValid(form, scene), busy = Boolean(work.busy)
+      const revisions = state.previews?.revisions || [], selectedRevision = state.inspectionRevisions?.[projectId] || scene.revision
+      const entry = revisions.find(item => item.revision === selectedRevision)
+      const artifacts = (entry?.diagnostics || []).filter(item => ['beauty', 'clay'].includes(item.mode) && item.path && item.sha256).sort((left, right) => String(right.at || '').localeCompare(String(left.at || '')))
+      const choose = (label, key, options) => el('label', { className: 'db-row' }, label, el('select', { className: 'db-input', 'data-field': `inspection-${key}`, value: form[key], disabled: busy,
+        onChange: event => actions.setInspection(key, event.target.value) }, options.map(([value, text]) => el('option', { value, key: value }, text))))
+      return el('section', { className: 'db-card', 'data-inspection-panel': projectId, 'data-inspection-source-revision': scene.revision },
+        el('h4', null, t('inspection.title')), el('p', { className: 'db-muted' }, t('inspection.help')),
+        el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } },
+          choose(t('inspection.camera'), 'cameraId', [['', '—'], ...(!scene.nodes.cameras.some(camera => camera.id === form.cameraId) && form.cameraId ? [[form.cameraId, t('inspection.cameraUnavailable', { camera: form.cameraId })]] : []), ...scene.nodes.cameras.map(camera => [camera.id, camera.id])]),
+          el('label', null, t('inspection.frame'), el('input', { className: 'db-input', type: 'number', step: 1, min: scene.project.frameStart, max: scene.project.frameEnd, 'data-field': 'inspection-frame', value: form.frame ?? '', disabled: busy,
+            onChange: event => actions.setInspection('frame', event.target.value === '' ? null : Number(event.target.value)) })),
+          choose(t('inspection.mode'), 'mode', [['beauty', t('inspection.beauty')], ['clay', t('inspection.clay')]]),
+          el('label', null, t('inspection.samples'), el('input', { className: 'db-input', type: 'number', step: 1, min: 1, max: 512, 'data-field': 'inspection-samples', value: form.samples ?? '', disabled: busy,
+            onChange: event => actions.setInspection('samples', event.target.value === '' ? null : Number(event.target.value)) }))),
+        el('p', { className: 'db-muted' }, t('inspection.source', { revision: scene.revision, start: scene.project.frameStart, end: scene.project.frameEnd })),
+        dirty ? el('p', { className: 'db-muted' }, t('inspection.pending')) : null,
+        !valid ? el('p', { className: 'db-error' }, t('inspection.invalid')) : null,
+        el('div', { className: 'db-inline' }, Button({ action: 'inspection-render', disabled: busy || dirty || !valid || state.previewBusy || state.busy.editor || state.busy.patch || state.busy.restore || state.assetWork?.[projectId]?.busy || state.visualRuns?.[projectId]?.busy,
+          onClick: actions.renderInspection, children: busy ? t('inspection.rendering') : t('inspection.render') }),
+          busy ? Button({ action: 'inspection-cancel', onClick: actions.cancelInspection, children: t('inspection.cancel') }) : null),
+        work.error ? el('p', { className: 'db-error', 'data-inspection-error': true, role: 'status' }, work.error) : null,
+        work.result && !work.error ? el('p', { 'data-inspection-result': work.result.revision }, work.result.message) : null,
+        el('h4', null, t('inspection.gallery')),
+        el('p', { className: 'db-muted' }, t('inspection.limit')),
+        el('label', { className: 'db-row' }, t('inspection.revision'), el('select', { className: 'db-input', 'data-field': 'inspection-revision', value: selectedRevision,
+          onChange: event => actions.selectInspectionRevision(event.target.value) }, revisions.map(item => el('option', { value: item.revision, key: item.revision }, item.revision)))),
+        selectedRevision !== scene.revision ? el('p', { className: 'db-muted' }, t('inspection.history', { revision: selectedRevision, current: scene.revision })) : null,
+        artifacts.length === 0 ? el('p', { className: 'db-muted' }, t('inspection.none')) : el('div', { className: 'db-grid' }, artifacts.map(artifact => el('article', { className: 'db-card', key: artifact.path,
+          'data-inspection-artifact': artifact.path, 'data-inspection-mode': artifact.mode, 'data-inspection-revision': artifact.sourceRevision || selectedRevision },
+          el('h5', null, t(`inspection.${artifact.mode}`)),
+          el('p', null, t('inspection.identity', { revision: artifact.sourceRevision || selectedRevision, camera: artifact.cameraId || '—', frame: artifact.frame ?? '—' })),
+          el('img', { src: artifactUrl(state.artifactBase, artifact), alt: t(`inspection.${artifact.mode}`), 'data-inspection-image': artifact.path, style: { width: '100%', objectFit: 'contain' } }),
+          el('p', { className: 'db-muted' }, t('inspection.actual', { engine: artifact.engine || '—', width: artifact.width ?? '—', height: artifact.height ?? '—', samples: artifact.samples ?? '—' })),
+          el('p', { className: 'db-muted db-mono' }, `${shortDigest(artifact.sha256)} · ${artifact.at || ''}`),
+          el('a', { className: 'db-btn', href: artifactUrl(state.artifactBase, artifact), target: '_blank', rel: 'noopener noreferrer' }, t('inspection.open'))))))
+    }
+
     /** 预览对比: two revisions' contact sheets side by side. */
     function PreviewView(ctx) {
       const state = ctx.state
@@ -2988,6 +3206,7 @@ window.__ModuleLoader__.load({
 
       return el('div', { 'data-view': 'preview' },
         ErrorBox({ error: state.error }),
+        InspectionPanel(ctx),
         el('div', { className: 'db-tabs' },
           Button({
             tone: 'primary',
@@ -3266,7 +3485,7 @@ window.__ModuleLoader__.load({
         ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
         : state.status === 'loading'
           ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
-          : el('div', { className: 'db-body' }, renderView(ctx))
+          : el('div', { className: 'db-body' }, CreationGuide(ctx), renderView(ctx))
 
       return el('div', { className: 'db-root', 'data-deepblend-panel': PANEL_ID },
         el('div', { className: 'db-head' },
@@ -3803,6 +4022,7 @@ window.__ModuleLoader__.load({
       toDom,
       buildWorkbenchView,
       createWorkbenchStore,
+      inspection: { form: inspectionForm, valid: inspectionFormValid },
       assetLibrary: { createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },

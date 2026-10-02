@@ -141,6 +141,7 @@ The repository's own documents are in Chinese, and they are the detailed ones:
 | **Use it** — what a session looks like, what each tool is for, the cost model, the six workbench tabs, one worked example | [`deepblend/docs/usage.md`](deepblend/docs/usage.md) |
 | **Review against references** — upload, save a versioned brief, inspect reference evidence and run bounded corrections | [`deepblend/docs/reference-images.md`](deepblend/docs/reference-images.md) |
 | **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
+| **Inspect rough results** — fixed camera/frame material and clay images, with a creation guide | [`deepblend/docs/inspection.md`](deepblend/docs/inspection.md) |
 | **Extend the plugin** — public JavaScript and TypeScript SDK, versioned schemas, runtime lifecycle and an independent consumer example | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
 | **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
 | **The specification** — `SPEC.md` is the master specification; the repository is its implementation | [`SPEC.md`](SPEC.md) |
@@ -202,7 +203,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 20 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 22 suites; README.zh.md states the expected numbers
 ```
 
 Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and

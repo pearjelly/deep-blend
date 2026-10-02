@@ -324,14 +324,14 @@ test('discarding a draft preserves staged bytes and creates no asset-remove oper
 })
 
 
-test('numeric Host API 4 is stale even with the correct route; future versions and legacy missing version retain their policy', async t => {
-  for (const version of [4, 5, 6, undefined]) {
+test('older numeric Host APIs are stale even with the correct route; future versions and legacy missing version retain their policy', async t => {
+  for (const version of [4, 5, 6, 7, undefined]) {
     const payload = { ok: true, route: 'state', ...(version === undefined ? {} : { hostApiVersion: version }), projects: [], selected: null }
     const store = core.createWorkbenchStore({ fetch: async () => ({ ok: true, status: 200, text: async () => JSON.stringify(payload) }) })
     t.after(() => store.stop())
     const result = await store.readRoute('/deepblend/state', 'state')
-    assert.equal(result.status, version === 4 ? 'stale' : 'ok')
-    if (version === 4) { assert.equal(result.error.code, 'UI_HOST_API_STALE'); assert.match(result.error.message, /hostApiVersion=4/); assert.match(result.error.message, /5/) }
+    assert.equal(result.status, version < 6 ? 'stale' : 'ok')
+    if (version < 6) { assert.equal(result.error.code, 'UI_HOST_API_STALE'); assert.ok(result.error.message.includes(`hostApiVersion=${version}`)); assert.match(result.error.message, /6/) }
   }
 })
 

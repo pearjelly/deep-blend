@@ -93,6 +93,7 @@ import { buildDeliveryManifest } from './delivery-manifest.js'
 import { streamAsset } from './asset-io.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
+import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
 import { inspectReferenceImage, REFERENCE_IMAGE_MAX_BYTES } from './reference-image.js'
 import { createReadStream, linkSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
@@ -1213,10 +1214,13 @@ export default class BlenderStudio extends Service {
    * Rendering observes a scene, so — exactly like `renderPreview` — this creates no
    * revision. The images land in the revision's own `previews/views/` directory, and
    * the manifest's preview index is amended to list them (decision D28).
+   * An explicit beauty/clay mode instead rebuilds an isolated inspection and
+   * publishes an immutable diagnostics set, leaving default previews untouched.
    *
    * @param {object} request
    * @param {string} request.projectId
    * @param {string} [request.revision]
+   * @param {'beauty'|'clay'} [request.mode] - isolated inspection; requires revision and explicit views.
    * @param {object[]} [request.views] - explicit views; default is the standard plan.
    * @param {string[]} [request.track] - objects to measure by isolation.
    * @param {number} [request.frame]
@@ -1228,6 +1232,13 @@ export default class BlenderStudio extends Service {
    * @returns {Promise<Record<string, unknown>>}
    */
   async renderViews(request) {
+    if (request?.mode !== undefined) {
+      if (this._diagnosticPreviewRunning) throw new BlenderError(BlenderErrorCode.RENDER_JOB_CONFLICT,
+        'An inspection is running. Wait for it or cancel it before starting another.')
+      this._diagnosticPreviewRunning = true
+      try { return await renderDiagnostic(this, request) }
+      finally { this._diagnosticPreviewRunning = false }
+    }
     const projectId = request?.projectId
     const record = this.store.readRecord(projectId)
     const revision = request.revision ?? record.currentRevision
@@ -3386,6 +3397,7 @@ export default class BlenderStudio extends Service {
         previews: manifest?.previews ?? [],
         contactSheets: manifest?.contactSheets ?? [],
         reviews: manifest?.reviews ?? [],
+        diagnostics: listDiagnostics(this.store, projectId, revision),
       }
     })
     return { projectId, currentRevision: record.currentRevision, revisions }

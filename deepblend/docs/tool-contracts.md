@@ -671,9 +671,14 @@ M3 新增的：
   两种形状：一个成功的错答案，和一个不是 JSON 的响应。客户端把两种都归到
   `UI_HOST_API_STALE`，并把观察到的状态码/字节数写进诊断
   （`tests/e2e/ui.e2e.mjs` 用真实页面把两条都断言了）。
-  当前 Host API 为 5，新增素材库的上传、列表与独立预览；网页依赖该版本或后续兼容版本。
+  当前 Host API 为 6；继承素材库，并支持固定相机/帧的独立材质与灰模检查。
+  网页依赖该版本或后续兼容版本，显式检查模式还核对运行中服务的实际版本。
 * **没有缓存**：每条响应 `cache-control: no-store`，每个值都是当次从 Host 现算的
   （SPEC §14.3「刷新后可从 Host 恢复权威状态」）。
+* **独立检查图**：`POST /preview` 显式传 `mode: beauty|clay`、`revision` 和
+  `views: [{id, cameraId, frame}]` 时，隔离重建后发布到该版本的独立 diagnostics。
+  `/previews` 在各版本下新增 `diagnostics` 数组；不会替换默认成品、联系表或评审输入。
+  详见[固定视角检查](inspection.md)。
 * **预览渲染合成自己的 contact sheet，并保留上一张**：`contact-sheets/preview-current.png`
   与 `preview-previous.png`，两条都带 `slot`（`PREVIEW_SHEET_SLOTS`）与 `at`。这样
   「上一次 vs 本次渲染」才可比——预览不产生 revision，版本轴在渲染完的那一刻是空的

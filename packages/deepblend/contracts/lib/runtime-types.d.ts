@@ -94,10 +94,21 @@ export interface ViewReport {
   viewId: string; role: string | null; outputPath: string; bytes: number; width: number; height: number;
   frame: number; cameraId: string; cameraName: string; lens: number; engine: string;
   metrics: { width: number; height: number; objects: ObjectMeasurement[]; luminance: Record<string, unknown> };
+  /** Measured for this frame before diagnostic mask renders. */
+  renderConfig?: MeasuredRenderConfig;
+  cameraFacts?: MeasuredCameraFacts;
+}
+export interface MeasuredCameraFacts {
+  frame: number; matrixWorld: number[][]; type: 'PERSP' | 'ORTHO' | 'PANO'; lens: number; orthoScale: number;
+  sensorWidth: number; sensorHeight: number; sensorFit: string; shift: number[]; clip: number[];
+  dof: { enabled: boolean; focusDistance: number; focusObject: { name: string; entityId: string | null; matrixWorld: number[][] } | null;
+    focusSubtarget: string | null; apertureFstop: number; apertureBlades: number; apertureRotation: number; apertureRatio: number };
 }
 export interface ViewsReport { views: ViewReport[]; renderConfig?: MeasuredRenderConfig; objects?: CompiledObject[]; [key: string]: unknown }
 export interface RenderViewsRequest extends RuntimeOptions, RenderOverrides {
   checkpointPath: string; views: RenderView[]; track?: string[]; parts?: string[]; jobId?: string;
+  /** false isolates both rendering and measurements from a user's live session. */
+  session?: boolean;
 }
 export interface RenderViewsResult {
   report: ViewsReport; pngs: Record<string, Buffer>; envelope: BlenderBootstrapEnvelope<ViewsReport>; durationMs: number;
