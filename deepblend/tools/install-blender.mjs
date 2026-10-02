@@ -29,13 +29,10 @@
  *
  * WHY THE DIGEST IS PINNED HERE AND NOT FETCHED
  * ---------------------------------------------
- * `download.blender.org` publishes no `.sha256` / `SHA256SUMS` beside this
- * release (checked: all three spellings 404). So the pin is recorded in
- * `blender-release.json` next to this file, and `--record` is the only way it is
- * ever written — an installer that hashes whatever it just downloaded and then
- * reports "verified" is describing itself, not the artifact. The pinned size
- * comes from Blender's own directory listing, which is the one number that can
- * be checked against the origin without trusting the download.
+ * `blender-release.json` records the size and reviewed digest. The current pin
+ * matches Blender's official version-level checksum manifest (sha256Source).
+ * --record measures bytes for review; that measurement alone is not origin
+ * verification. Compare an upgrade with the official manifest before accepting it.
  *
  * Usage:
  *   node deepblend/tools/install-blender.mjs            # install if absent, else report

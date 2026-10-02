@@ -85,6 +85,8 @@ test('every repository path the workflow names exists', () => {
  * surprise already happened once — see §25.
  */
 const EXTERNAL_COMMANDS = new Map([
+  ['mkdir', 'create the CI evidence parent'],
+  ['xvfb-run', 'software display for EEVEE and Chrome'],
   ['python3', 'the cross-language frame-naming check in contract/render-job.test.mjs; `deepblend_util.py` imports no bpy so it runs in plain CPython'],
 ])
 
@@ -244,4 +246,26 @@ test('the install path is walked on every push, not when somebody remembers', ()
     workflowOrder !== -1 && walkthrough > workflowOrder,
     'the clean-clone walkthrough runs before the contract suite it contains',
   )
+})
+
+
+test('Linux inspections use fixed runtimes and preserve failure evidence', () => {
+  const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
+  const blender = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/blender-release.json')))
+  assert.equal(pins.blender.version, blender.version)
+  assert.match(workflow, /linux-render-browser-smoke:/)
+  assert.match(workflow, /runs-on: ubuntu-24\.04/)
+  assert.ok(workflow.includes(`node-version: '${pins.node}'`))
+  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs']) {
+    assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
+  }
+  assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
+  for (const variable of ['DEEPBLEND_DIAGNOSTIC_OUTPUT', 'DEEPBLEND_TOOL_INSPECTION_OUTPUT', 'DEEPBLEND_E2E_ARTIFACTS']) assert.ok(workflow.includes(variable))
+  assert.ok(runSteps.some(step => step.startsWith('node deepblend/tools/install-ci-runtimes.mjs')))
+  assert.ok(runSteps.some(step => step.startsWith('node deepblend/tools/prepare-ci-linux.mjs')))
+  assert.match(workflow, /if: always\(\)\n\s+uses: actions\/upload-artifact@v4/)
+  assert.match(workflow, /retention-days: 7/)
+  assert.match(workflow, /path: \$\{\{ runner.temp \}\}\/deepblend-ci/)
+  assert.ok(!workflow.includes('restore-keys:'), 'runtime cache must match the complete pin digest')
+  assert.ok(!workflow.includes('--no-sandbox'), 'the smoke must retain Chrome sandboxing')
 })

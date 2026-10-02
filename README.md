@@ -206,6 +206,9 @@ against pinned versions, and without them a report can only be guessed at.
 bash deepblend/tests/run-all.sh      # 22 suites; README.zh.md states the expected numbers
 ```
 
+CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.
+See [CI coverage and artifacts](deepblend/docs/ci.md) for the exact scope.
+
 Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and
 gaps live in [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md). That
 document is the only record and this one does not repeat it — for the reason this project has

@@ -222,7 +222,7 @@ SPEC §17 把配置画成**分组**的（`finalRender.requireApprovalAboveFrames
 | 步骤 | 它不验证的 |
 |---|---|
 | `setup` | 只验证**能解析**，不验证那个部署能用。`blender:check` 与真实渲染才是 |
-| `blender:install` | `sha256` 是**第一次校验下载**时写进 pin 的。Blender 对 5.2.1 没有发布任何 checksum（`.dmg.sha256`、`release.sha256`、`SHA256SUMS` 全部 404），所以这个 pin 只能检测「那个 URL 上的东西变了」，**不能**让第一次下载变得可信 |
+| `blender:install` | 当前固定摘要与 [Blender 5.2.1 官方版本校验清单](https://download.blender.org/release/Blender5.2/blender-5.2.1.sha256) 一致。`--record` 只记录实际字节供审阅；升级时需再与官方清单核对，不能把自行重算摘要当成来源证明 |
 | `plugin:install` | 遇到**不是自己写的** operator layer 会拒绝覆盖并退出 2。它的输出会说明存储将回落到产品默认值，而不是悄悄改掉你的配置 |
 | `presets:install` | 不验证 preset **能挂载**。挂载验证是 `agentPresets.standingKeyFor(id)`，需要一次真实运行（SPEC §6.2） |
 

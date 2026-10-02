@@ -57,8 +57,7 @@ test('the Blender pin names a version, an https image and a positive size', () =
 })
 
 test('the Blender pin records a digest, or says out loud that it has none', () => {
-  // `null` is a legitimate state (Blender publishes no checksum for this release,
-  // so the first verified download establishes it) — but it must be `null` and
+  // `null` is a legitimate unreviewed upgrade state — but it must be `null` and
   // not an empty string or an absent key, because the installer branches on it.
   if (blenderPin.sha256 === null) {
     assert.ok(

@@ -13,12 +13,11 @@
 # README.zh.md keeps the snapshot with its caveats; a second copy here would only be a second
 # thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
-# The Blender-backed layers (`blender-integration/*`, `composition/*`,
-# `e2e/ui.e2e.mjs`) are NOT run here. They need a ~1.4 GB Blender, a real Chrome
-# and 5–10 minutes of 1080p rendering, and two of them encode with ffmpeg. Making
-# CI pretend to cover them would be worse than saying it does not: they are run
-# locally with `bash deepblend/tests/run-all.sh` before a commit that touches the
-# runtime, the renderer or the UI plane.
+# A separate Linux job runs selected real Blender, Agent and browser inspections.
+# The remaining blender-integration/*, composition/* and e2e/ui.e2e.mjs coverage
+# stays in `bash deepblend/tests/run-all.sh`, including delivery encoding and
+# broader recovery flows. No online model calls are made by these CI jobs.
+# Runtime archives are pinned; raw cached archives are rehashed before extraction.
 #
 # The DSH version is PINNED, not `latest`. `deepblend/docs/dsh-baseline.md` §1
 # makes `0.1.5-rc.2` a compatibility anchor: SPEC §0.1 forbids following latest,
@@ -35,13 +34,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   contract:
     name: Unit + contract (no Blender)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -99,3 +102,64 @@ jobs:
       # the walkthrough still passes (three of the four steps are plain Node).
       - name: The documented install path, from a clean clone
         run: node deepblend/tools/verify-clean-clone.mjs --source .
+
+  linux-render-browser-smoke:
+    name: Linux Blender + Agent + browser inspections
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEEPBLEND_CI_EVIDENCE: ${{ runner.temp }}/deepblend-ci
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - name: Prepare evidence directory
+        run: mkdir -p "$DEEPBLEND_CI_EVIDENCE"
+      - name: Install the locked development deployment and SDK tools
+        run: node deepblend/tools/development.mjs setup --github-env
+      - name: Verify workspace links
+        run: node deepblend/tools/link-workspace.mjs --check
+      - name: Cache pinned raw runtime archives
+        uses: actions/cache@v4
+        with:
+          path: .tools/ci/archives
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+      - name: Download and verify fixed Linux runtimes
+        id: runtimes
+        run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
+      - name: Recheck installed executables without changes
+        run: node deepblend/tools/install-ci-runtimes.mjs --check > "$DEEPBLEND_CI_EVIDENCE/runtime-check.json" 2>&1
+      - name: Prepare software graphics and Chrome sandbox
+        id: graphics
+        run: node deepblend/tools/prepare-ci-linux.mjs > "$DEEPBLEND_CI_EVIDENCE/graphics.log" 2>&1
+      - name: Real Host beauty and clay inspections
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_DIAGNOSTIC_OUTPUT: ${{ runner.temp }}/deepblend-ci/diagnostic
+        run: xvfb-run -a node deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/diagnostic.log" 2>&1
+      - name: Real Agent inspection image attachments
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_TOOL_INSPECTION_OUTPUT: ${{ runner.temp }}/deepblend-ci/agent
+        run: xvfb-run -a node deepblend/tests/composition/tool-plane-m1.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/agent.log" 2>&1
+      - name: Real browser inspection workflow
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/browser
+        run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
+      - name: Preserve runtime facts, receipts, images and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-inspections-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/deepblend-ci
+          retention-days: 7
+          if-no-files-found: error
