@@ -111,7 +111,6 @@ jobs:
       run:
         shell: bash
     env:
-      DEEPBLEND_CI_EVIDENCE: ${{ runner.temp }}/deepblend-ci
       LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
       - uses: actions/checkout@v4
@@ -119,7 +118,7 @@ jobs:
         with:
           node-version: '22.23.3'
       - name: Prepare evidence directory
-        run: mkdir -p "$DEEPBLEND_CI_EVIDENCE"
+        run: node deepblend/tools/ci-evidence.mjs
       - name: Install the locked development deployment and SDK tools
         run: node deepblend/tools/development.mjs setup --github-env
       - name: Verify workspace links

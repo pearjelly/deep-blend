@@ -85,7 +85,6 @@ test('every repository path the workflow names exists', () => {
  * surprise already happened once — see §25.
  */
 const EXTERNAL_COMMANDS = new Map([
-  ['mkdir', 'create the CI evidence parent'],
   ['xvfb-run', 'software display for EEVEE and Chrome'],
   ['python3', 'the cross-language frame-naming check in contract/render-job.test.mjs; `deepblend_util.py` imports no bpy so it runs in plain CPython'],
 ])
@@ -268,4 +267,14 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /path: \$\{\{ runner.temp \}\}\/deepblend-ci/)
   assert.ok(!workflow.includes('restore-keys:'), 'runtime cache must match the complete pin digest')
   assert.ok(!workflow.includes('--no-sandbox'), 'the smoke must retain Chrome sandboxing')
+})
+
+test('runner evidence paths are initialized at step execution before installing runtimes', () => {
+  const init = runSteps.indexOf('node deepblend/tools/ci-evidence.mjs')
+  const install = runSteps.findIndex(step => step.startsWith('node deepblend/tools/install-ci-runtimes.mjs >'))
+  assert.ok(init >= 0 && install > init)
+  const source = readFileSync(join(ROOT, 'deepblend/tools/ci-evidence.mjs'), 'utf8')
+  assert.match(source, /RUNNER_TEMP/)
+  assert.match(source, /appendFileSync\(process\.env\.GITHUB_ENV/)
+  assert.ok(!workflow.includes('      DEEPBLEND_CI_EVIDENCE: ${{ runner.temp }}'), 'runner context is unavailable in job-level env')
 })
