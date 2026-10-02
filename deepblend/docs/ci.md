@@ -3,6 +3,9 @@
 CI 保留独立的契约与干净克隆安装 job。另一个 Linux job 使用固定 Blender、Chrome
 和 Node，串行执行以下已有测试，不需要模型密钥或个人 DSH 配置：
 
+开发依赖锁同时固定 pnpm 9.15.0。契约 job 在运行测试前检查它可执行，使真实 DSH
+插件安装、卸载检查可以运行；缺少 pnpm 会提前失败，不能依靠跳过这些用例得到绿灯。
+
 | 测试入口 | 检查范围 |
 | --- | --- |
 | `deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs` | 实际 Cycles / EEVEE、固定摄影与帧、GLB 多材质、独立重开 checkpoint、源文件保护与失败不发布 |

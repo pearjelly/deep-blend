@@ -250,6 +250,7 @@
     "@deepseek-ai/schemastery": "3.18.2"
   },
   "devDependencies": {
+    "pnpm": "9.15.0",
     "typescript": "6.0.3"
   }
 }

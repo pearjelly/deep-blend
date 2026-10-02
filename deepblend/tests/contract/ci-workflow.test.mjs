@@ -85,6 +85,7 @@ test('every repository path the workflow names exists', () => {
  * surprise already happened once — see §25.
  */
 const EXTERNAL_COMMANDS = new Map([
+  ['pnpm', 'locked development dependency required by the real DSH plugin add/remove checks'],
   ['xvfb-run', 'software display for EEVEE and Chrome'],
   ['python3', 'the cross-language frame-naming check in contract/render-job.test.mjs; `deepblend_util.py` imports no bpy so it runs in plain CPython'],
 ])
@@ -124,7 +125,7 @@ test('the workflow installs the committed development lock before linking or tes
   assert.match(development, /GITHUB_PATH/)
 })
 
-test('the lock supplies the pinned DSH providers, codec and strict SDK compiler', () => {
+test('the lock supplies the pinned DSH providers, codec, ecosystem package manager and strict SDK compiler', () => {
   const runtime = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package.json'), 'utf8'))
   const lock = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package-lock.json'), 'utf8'))
   for (const name of ['@deepseek-ai/dsh', '@deepseek-ai/dsh-subprocess-local', '@deepseek-ai/dsh-attachment-local']) {
@@ -137,6 +138,11 @@ test('the lock supplies the pinned DSH providers, codec and strict SDK compiler'
   assert.equal(runtime.devDependencies.typescript, '6.0.3')
   assert.equal(lock.packages['node_modules/typescript'].version, runtime.devDependencies.typescript)
   assert.ok(lock.packages['node_modules/@types/node'].version)
+  assert.equal(runtime.devDependencies.pnpm, '9.15.0')
+  assert.equal(lock.packages['node_modules/pnpm'].version, runtime.devDependencies.pnpm)
+  const pnpm = runSteps.indexOf('pnpm --version')
+  assert.ok(pnpm > runSteps.indexOf('node deepblend/tools/development.mjs setup --github-env'))
+  assert.ok(pnpm < runSteps.indexOf('node deepblend/tests/run.mjs'), 'CI must fail early when ecosystem install/remove checks would otherwise skip')
 })
 
 test('the workflow states no count of the test layer', () => {

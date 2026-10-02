@@ -70,6 +70,9 @@ jobs:
       - name: Install the locked development deployment and SDK tools
         run: node deepblend/tools/development.mjs setup --github-env
 
+      - name: Assert the locked ecosystem package manager is executable
+        run: pnpm --version
+
       # The step a fresh clone needs: `node_modules/` is git-ignored and holds
       # only symlinks, so without this every suite dies on ERR_MODULE_NOT_FOUND
       # before evaluating an assertion.
