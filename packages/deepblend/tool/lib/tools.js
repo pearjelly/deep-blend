@@ -27,6 +27,7 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { renderInspection } from './inspection.js'
 
 import {
   SCENE_OPERATION_NAMES,
@@ -38,6 +39,7 @@ import {
 
 import {
   TOOL_OUTPUT,
+  TOOL_OUTPUT_WITH_IMAGE,
   canonicalCall,
   definedFields,
   describeRevision,
@@ -594,9 +596,14 @@ function previewRender(ctx) {
       'directly; if it does not, the revision is compiled from its SceneSpec into a scratch directory first ' +
       '(slower, and reported as a warning). Prefer committing patches with saveCheckpoint:true so previews ' +
       'stay cheap. Returns the project-relative path of the image, its dimensions, the engine actually used, ' +
-      'and the frame that was rendered.',
+      'and the frame that was rendered. Set mode beauty or clay for an independent inspection rebuilt from ' +
+      'SceneSpec with an image attachment; this requires Host API 6 and explicit revision, cameraId and frame. ' +
+      'Clay replaces subject surface materials with gray, removing transparency, emission and textures; ' +
+      'imported shader displacement may change the rendered shape. It does not approve technical or artistic quality.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
+      mode: { type: 'string', enum: ['beauty', 'clay'],
+        description: 'Independent fixed-view inspection with an image attachment. Requires explicit revision, cameraId and frame. Omit for normal checkpoint preview.' },
       revision: { type: 'string', description: 'Revision to render. Defaults to the current one.' },
       cameraId: {
         type: 'string',
@@ -617,11 +624,16 @@ function previewRender(ctx) {
       width: { type: 'integer', description: 'Override preview width in pixels.' },
       height: { type: 'integer', description: 'Override preview height in pixels.' },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.mode !== undefined) return await renderInspection(resolved, {
+          projectId: args.projectId, revision: args.revision, mode: args.mode,
+          cameraId: args.cameraId, frame: args.frame, width: args.width, height: args.height,
+          samples: args.samples, signal: exec.signal,
+        })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderPreview({
           ...definedFields({
             projectId: args.projectId,
@@ -659,7 +671,9 @@ function previewRender(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: `Render preview of "${args?.projectId ?? ''}"${args?.cameraId ? ` from ${args.cameraId}` : ''}`,
+      title: args?.mode
+        ? `Render ${args.mode} inspection of "${args.projectId}" · ${args.revision ?? '?'} · ${args.cameraId ?? '?'} · frame ${args.frame ?? '?'}`
+        : `Render preview of "${args?.projectId ?? ''}"${args?.cameraId ? ` from ${args.cameraId}` : ''}`,
       kind: 'other',
     }),
   })

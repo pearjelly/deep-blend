@@ -41,6 +41,8 @@
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 import { join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
@@ -734,6 +736,141 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   const untested = UI_TOOL_CARD_KEYS.filter(name => invokedBy(name).length === 0)
   check('every registered tool is INVOKED by some test, not merely listed in a roster',
     untested.length === 0, untested)
+}
+
+// Independent inspections use the real DSH definition and its output contract.
+{
+  const args = { projectId: 'product', revision: 'r0003', cameraId: 'camera-detail', frame: 24, mode: 'clay', samples: 8, width: 1, height: 1 }
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRZkAAAAASUVORK5CYII=', 'base64')
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const artifact = { kind: 'diagnostic', mode: 'clay', sourceRevision: 'r0003', sourceDigest: 'digest',
+    viewId: 'inspection', cameraId: args.cameraId, frame: 24, width: 1, height: 1,
+    bytes: bytes.length, sha256, mime: 'image/png', path: 'revisions/r0003/diagnostics/job/selected.png' }
+  const receipt = { schemaVersion: 'deepblend.diagnostic/v1', projectId: 'product', revision: 'r0003',
+    sourceRevision: 'r0003', sourceDigest: 'digest', mode: 'clay', artifacts: [artifact],
+    limitations: ['Imported shader displacement may change rendered geometry.'], warnings: [] }
+  let renderCalls = 0, readCalls = 0, saveCalls = 0, edits = 0, forwarded
+  const attachmentStore = {
+    async saveImage(input) {
+      saveCalls++
+      if (!input.data.equals(bytes)) throw new Error('wrong image bytes')
+      return { attachmentId: 'inspection-1', mediaType: 'image/png', bytes: bytes.length, width: 1, height: 1, name: input.name }
+    },
+  }
+  const save = attachmentStore.saveImage
+  const host = {
+    hostApiVersion: () => 6,
+    renderViews: async request => { renderCalls++; forwarded = request; return structuredClone(receipt) },
+    readArtifact: async request => { readCalls++; return { path: request.path, contentType: 'image/png', bytes, size: bytes.length } },
+    renderPreview: async request => ({ revision: 'r0003', profile: { engine: 'cycles' }, artifacts: [], request }),
+    scoreVisualViews: () => { edits++; throw new Error('unexpected scoring') },
+    visualReview: () => { edits++; throw new Error('unexpected review') },
+    visualLoop: () => { edits++; throw new Error('unexpected loop') },
+    applyScenePatch: () => { edits++; throw new Error('unexpected patch') },
+    restoreRevision: () => { edits++; throw new Error('unexpected restore') },
+  }
+  const plane = await composeToolPlane({ studio: host, services: { attachments: attachmentStore }, label: 'inspection-output', expectAtLeast: 16 })
+  const tool = plane.tools.get('blender_preview_render')
+  const run = (input = args, signal) => plane.tools.execute({ name: 'blender_preview_render', arguments: input, callId: 'inspection', signal })
+  const good = await run()
+  check('fixed-view inspection routes to Host renderViews and attaches its verified PNG',
+    good.isError === false && good.value?.ok === true && good.content.filter(block => block.type === 'image').length === 1 &&
+    good.value.image?.attachmentId === 'inspection-1' && renderCalls === 1 && readCalls === 1 && saveCalls === 1)
+  check('the inspection forwards exactly one explicit view, dimensions, samples and mode',
+    JSON.stringify(forwarded) === JSON.stringify({ projectId: 'product', revision: 'r0003', mode: 'clay', width: 1, height: 1, samples: 8,
+      views: [{ id: 'inspection', cameraId: 'camera-detail', frame: 24 }] }), forwarded)
+  check('inspection data preserves provenance and limitations without image bytes or scores',
+    JSON.stringify(good.value.data) === JSON.stringify(receipt) && !JSON.stringify(good.value).includes('"type":"Buffer"') &&
+    /rebuilt from SceneSpec/.test(good.value.text) && /does not establish technical or artistic approval/.test(good.value.text))
+  const snapshot = JSON.parse(JSON.stringify(good.value))
+  check('actual DSH output validator accepts an attached inspection but refuses malformed image references',
+    validateJsonSchemaValue(tool.output.schema, snapshot).length === 0 &&
+    validateJsonSchemaValue(tool.output.schema, { ...snapshot, image: { attachmentId: 'bad' } }).length > 0)
+  const beforeReplay = [renderCalls, readCalls, saveCalls]
+  const replay = tool.output.render(args, snapshot)
+  check('cold inspection replay emits the saved image reference with zero IO',
+    JSON.stringify(replay) === JSON.stringify(good.content) && JSON.stringify(beforeReplay) === JSON.stringify([renderCalls, readCalls, saveCalls]))
+  check('inspection presenter binds mode, revision, camera and frame',
+    tool.presentCall(args)?.title === 'Render clay inspection of "product" · r0003 · camera-detail · frame 24' && tool.presentCall(args).kind === 'other')
+  const badMode = await run({ ...args, mode: 'solid' })
+  check('DSH rejects invalid inspection mode before invoking the Host', badMode.isError === true && renderCalls === 1)
+  for (const key of ['revision', 'cameraId', 'frame']) {
+    const incomplete = { ...args }; delete incomplete[key]
+    const result = await run(incomplete)
+    check(`inspection without explicit ${key} is refused before Host or attachment IO`,
+      result.value?.data?.errorCode === 'RENDER_RANGE_INVALID' && renderCalls === 1 && readCalls === 1 && saveCalls === 1)
+  }
+  const render = host.renderViews, read = host.readArtifact
+  const wrongReceipts = [
+    ['mode', d => { d.mode = 'beauty' }], ['revision', d => { d.revision = 'r0004' }],
+    ['source revision', d => { d.sourceRevision = 'r0004' }], ['project', d => { d.projectId = 'other' }],
+    ['missing artifact', d => { d.artifacts = [] }], ['camera', d => { d.artifacts[0].cameraId = 'other' }],
+    ['frame', d => { d.artifacts[0].frame = 1 }], ['artifact mode', d => { d.artifacts[0].mode = 'beauty' }],
+    ['artifact digest', d => { d.artifacts[0].sourceDigest = 'other' }],
+    ['image path', d => { d.artifacts[0].path = 'revisions/r0004/diagnostics/job/selected.png' }],
+    ['traversing image path', d => { d.artifacts[0].path = 'revisions/r0003/diagnostics/../previews/selected.png' }],
+  ]
+  for (const [label, change] of wrongReceipts) {
+    host.renderViews = async () => { const data = structuredClone(receipt); change(data); return data }
+    const count = saveCalls
+    const result = await run()
+    check(`inspection rejects wrong ${label} without attaching a stale image`,
+      result.value?.ok === false && result.value.data.errorCode === 'BLENDER_SCRIPT_ERROR' && saveCalls === count && result.content.every(b => b.type !== 'image'))
+  }
+  host.renderViews = render
+  for (const [label, change] of [
+    ['SHA', d => { d.bytes = Buffer.alloc(bytes.length) }], ['byte count', d => { d.size-- }],
+    ['content type', d => { d.contentType = 'text/plain' }], ['path', d => { d.path = 'other.png' }],
+  ]) {
+    host.readArtifact = async request => { const data = await read(request); change(data); return data }
+    const count = saveCalls, result = await run()
+    check(`inspection verifies read artifact ${label} before attachment`, result.value?.ok === false && saveCalls === count)
+  }
+  host.readArtifact = async () => { throw new BlenderError(code('ARTIFACT_NOT_FOUND'), 'missing inspection') }
+  check('missing inspection artifact retains its stable Host error code', (await run()).value?.data?.errorCode === code('ARTIFACT_NOT_FOUND'))
+  host.readArtifact = read
+  const controller = new AbortController(); controller.abort()
+  const beforeAbort = [renderCalls, readCalls, saveCalls]
+  const cancelled = await run(args, controller.signal)
+  check('pre-cancelled inspection performs no Host or attachment IO', cancelled.value?.data?.errorCode === code('ABORTED') &&
+    JSON.stringify(beforeAbort) === JSON.stringify([renderCalls, readCalls, saveCalls]))
+  host.renderViews = async () => { throw new BlenderError(code('ABORTED'), 'render cancelled') }
+  check('in-flight Host cancellation remains BLENDER_ABORTED', (await run()).value?.data?.errorCode === code('ABORTED'))
+  host.renderViews = render
+  for (const stage of ['render', 'read', 'save']) {
+    const cancel = new AbortController(), count = saveCalls
+    if (stage === 'render') host.renderViews = async request => { const d = await render(request); cancel.abort(); return d }
+    if (stage === 'read') host.readArtifact = async request => { const d = await read(request); cancel.abort(); return d }
+    if (stage === 'save') attachmentStore.saveImage = async input => { const d = await save(input); cancel.abort(); return d }
+    const result = await run(args, cancel.signal)
+    check(`cancellation after ${stage} does not emit an image or claim diagnostic deletion`,
+      result.value?.data?.errorCode === code('ABORTED') && result.content.every(b => b.type !== 'image') &&
+      /may remain/.test(result.value.text) && saveCalls === count + (stage === 'save' ? 1 : 0))
+    host.renderViews = render; host.readArtifact = read; attachmentStore.saveImage = save
+  }
+  for (const [label, saver] of [
+    ['absent', undefined], ['failed', async () => { throw new Error('store offline') }],
+    ['invalid reference', async () => ({ attachmentId: 'bad', mediaType: 'image/png', bytes: bytes.length, width: 2, height: 1 })],
+    ['missing attachment id', async () => ({ mediaType: 'image/png', bytes: bytes.length, width: 1, height: 1 })],
+  ]) {
+    attachmentStore.saveImage = saver
+    const count = renderCalls, result = await run()
+    check(`attachment store ${label} keeps completed inspection data and clearly reports no image`,
+      result.value?.ok === true && result.value.image === null && validateJsonSchemaValue(tool.output.schema, result.value).length === 0 && result.content.every(b => b.type !== 'image') &&
+      /model cannot see it/.test(result.value.text) && renderCalls === count + 1 && JSON.stringify(result.value.data) === JSON.stringify(receipt))
+  }
+  attachmentStore.saveImage = save
+  for (const version of [6, 7]) {
+    host.hostApiVersion = () => version
+    check(`Host API ${version} supports explicit inspections`, (await run()).value?.ok === true)
+  }
+  host.hostApiVersion = () => 5
+  const { mode, ...legacyArgs } = args
+  const legacy = await run(legacyArgs)
+  check('omitting mode preserves normal preview on an older Host without an attachment', legacy.value?.ok === true &&
+    !('image' in legacy.value) && legacy.content.length === 1 && legacy.value.data.request.revision === 'r0003' &&
+    tool.presentCall(legacyArgs).title === 'Render preview of "product" from camera-detail')
+  check('inspections never invoke scoring, review, automatic edits or restore', edits === 0)
 }
 
 const passed = results.filter(entry => entry.ok).length

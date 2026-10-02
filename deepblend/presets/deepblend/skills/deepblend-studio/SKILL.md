@@ -121,6 +121,27 @@ specific change. A high composition/exposure score does not establish visual qua
 When the current tools cannot produce an essential detail, report that limitation
 and propose an asset or supported construction that meets the requirement.
 
+To inspect geometry and finish independently, first call `blender_scene_get` for
+the revision and existing cameras. Call `blender_preview_render` with explicit
+`revision`, `cameraId`, `frame` and `mode:"clay"`; repeat with `mode:"beauty"` at
+the same camera and frame. For example:
+
+```json
+{"projectId":"product","revision":"r0003","cameraId":"camera-detail","frame":1,"mode":"clay","samples":16}
+```
+
+These inspections require Host API 6 or newer and attach the verified PNG when
+an attachment store is available. If the result says no image was attached, the
+model has not seen it; read the actual image before making visual claims. Images
+are rebuilt from SceneSpec in independent storage and do not alter the source
+revision or ordinary previews. Clay removes transparency, emission, textures and
+bump/normal response; imported shader displacement can change the rendered shape.
+It does not prove wall thickness, manifold geometry, no intersections or artistic
+approval. Use declared cameras for front, side, three-quarter and detail checks;
+if a needed camera is absent, add it through the normal revision workflow first.
+Record the source revision, camera, frame, mode and concrete findings, then patch
+the current revision and repeat the affected views with the same settings.
+
 1. **`blender_capabilities`** — what this Blender can actually do: engines, formats,
    GPU. Call it once per session before promising anything. It reports absence as
    data (`installed: false` plus a warning), never as a crash.
@@ -139,7 +160,10 @@ and propose an asset or supported construction that meets the requirement.
 5. **`blender_scene_patch`** — the ONLY way to change a scene. There is no free-form
    edit and no script. See "Revision discipline" below.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
-   renders several declared views in one Blender launch and returns a contact sheet.
+   renders several declared views in one Blender launch and returns contact sheet
+   paths and measurements as text. It does not attach those images automatically;
+   read the images before claiming to have seen them. Single-frame `preview_render`
+   attaches an independent inspection when an explicit beauty/clay mode is set.
 7. **`blender_visual_review`** — ask for a measured judgement (see "Who decides what").
 8. **`blender_visual_autofix`** — iterate against the revision's saved goal and
    reference images with a bounded budget. It requires evidenced artistic judgment

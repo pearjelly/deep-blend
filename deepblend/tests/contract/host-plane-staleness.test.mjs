@@ -154,6 +154,20 @@ const currentStudio = { ...olderStudio(), resumeRenderJob: async () => ({}), lis
 check('the guard is not a blanket refusal: a host with the methods is not reported as stale',
   ['resumeRenderJob', 'listJobs', 'exportProject'].every(name => typeof currentStudio[name] === 'function'))
 
+// API 6 introduced isolated inspections. Old renderViews alone must not bypass this gate.
+for (const version of [undefined, 5, Number.NaN, '6']) {
+  let calls = 0
+  const host = { ...olderStudio(), hostApiVersion: () => version,
+    renderViews: async () => { calls++; return {} }, readArtifact: async () => { calls++; return {} } }
+  const plane = await composeToolPlane({ studio: host, label: `inspection-stale-${String(version)}`, expectAtLeast: 16 })
+  const result = await plane.tools.execute({ name: 'blender_preview_render', arguments: {
+    projectId: 'p', revision: 'r0001', mode: 'clay', cameraId: 'camera-main', frame: 1,
+  } })
+  check(`inspection rejects Host version ${String(version)} despite existing renderViews`,
+    result.value?.data?.errorCode === 'BLENDER_RUNTIME_UNAVAILABLE' && calls === 0 &&
+    result.value.data.detail.requiredHostApiVersion === 6 && /restart the profile/.test(result.value.text))
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nHost-plane staleness diagnosis: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {

@@ -51,8 +51,8 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `blender_scene_patch` | **写** | **唯一**改场景的途径。一次成功 = 一个不可变 revision |
 | `blender_asset_ingest` | 写文件 | 把素材收进项目。本地路径直接收，网络地址要你批准；**它不提交 revision**，收完还要用 `asset.add` 声明 |
 | `blender_scene_validate` | 读 | 校验当前场景，或 `dryRun` 校验一个还没提交的 patch |
-| `blender_preview_render` | 读 | 渲一张预览（写产物，不改场景） |
-| `blender_preview_views` | 读 | 一次 Blender 启动渲多个视角，回一张 contact sheet |
+| `blender_preview_render` | 读 | 渲一张预览；显式 beauty/clay 模式生成独立检查图并附图 |
+| `blender_preview_views` | 读 | 一次 Blender 启动渲多个视角，返回 contact sheet 路径和测量文本 |
 | `blender_visual_review` | 读 | 调用视觉模型 + 确定性测量，产出分数与问题清单 |
 | `blender_visual_autofix` | **写** | 自动跑「改 → 重渲 → 重测」，技术不退化时可采纳有证据的美术改进 |
 | `blender_final_render` | **写** | 启动正式渲染。**立刻返回 jobId**，不阻塞 |
@@ -219,7 +219,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
    它是**存起来给人看的，不会被解析**，所以写全。
 3. 反复用 `blender_scene_patch` 一次改一件事：镜头、灯、材质、动画轨道。
    每次给 `note` —— 以后读历史的人通常就是模型自己。
-4. `blender_preview_views` 一次拿四个视角的 contact sheet。**这张图就是模型看到的那张图。**
+4. `blender_preview_views` 一次生成四个视角的 contact sheet，返回路径和测量文本；需读取图片后模型才能看到。也可以用 `blender_preview_render` 显式指定修订、相机、帧及 `mode:"clay"` / `mode:"beauty"`，取得附图的独立检查结果。
 5. `blender_scene_validate` 看技术错误与语义 notice。
 6. 需要自动迭代时用 `blender_visual_autofix`；它的停止条件有三条（分数达标、
    迭代上限、同一指纹连续未改善两次），没达标时会返回一份 **handover**：

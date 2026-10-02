@@ -383,6 +383,7 @@ visible/locked）、相机参数、动画轨道、渲染 profile、已有的 pre
 | `frame` | integer | 默认**帧范围中点**（对动画而言比首帧更有信息量） |
 | `samples` | integer | 超过 profile 的 `maxSamplesBudget` 或 Host 上限会被**削减并报告** |
 | `width` / `height` | integer | 覆盖分辨率 |
+| `mode` | string | 可选 `beauty` / `clay`；独立检查图，必须显式指定 `revision`、`cameraId`、`frame`，需要 Host API ≥6 |
 
 **不创建 revision**：预览是对场景的观察，不是对场景的修改，因此永远安全。
 checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编译到临时目录
@@ -390,6 +391,24 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 产物路径为 `revisions/<rev>/previews/<file>.png`，**项目相对路径**，并带
 `width`/`height`/`bytes`/`sha256`/`engine`/`samples`/`frame`。
+
+指定 `mode` 后通过 `renderViews` 从 SceneSpec 重建单张隔离检查图，存入
+`revisions/<rev>/diagnostics/<job>/`。不会修改源修订、普通 previews 或自动评分。
+先用 `blender_scene_get` 取得修订和已有相机，再调用，例如：
+
+```json
+{"projectId":"product","revision":"r0003","cameraId":"camera-detail","frame":1,"mode":"clay","samples":16}
+```
+
+工具核对回执的版本、模式、机位和帧，读取 PNG 并校验字节数及 SHA-256，
+然后在执行期间保存图片附件。返回值的 `image` 只有附件引用，不包含图像字节；
+回放只读取该引用。无附件服务或保存失败时，保留已完成的检查图及回执，
+`image:null` 并明确提示模型尚未看到图片；读取失败或文件摘要不符则拒绝附图。
+旧 Host 会返回 `BLENDER_RUNTIME_UNAVAILABLE` 并提示升级及重启 profile，普通预览不受影响。
+
+灰模替换主体表面材质，去掉透明、发光、纹理及凹凸；导入材质的位移可能影响外形。
+它不是原 checkpoint 截图，也不证明壁厚、封闭性、无自交或美术通过。实际设置、
+源摘要和限制保留在 `data` 中。调用取消返回 `BLENDER_ABORTED`；已经发布的检查图可能保留。
 
 ### 3.6 `blender_scene_validate`
 
