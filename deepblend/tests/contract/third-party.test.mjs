@@ -37,6 +37,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -147,21 +148,57 @@ test('third-party runtime dependencies are limited to Host sharp 0.35.5 and DSH 
   }
 })
 
-test('no tracked file is a binary somebody else built', () => {
-  // This applies to tracked source files only. npm dependencies and release
-  // tarballs can carry third-party binaries; those have a separate inventory.
-  const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n')
+test('source files exclude external binaries and published images have declared provenance', () => {
+  // Include new source before its first commit, so a local pass cannot conceal
+  // a failure that only appears in CI after those files become tracked.
+  // Ignored dependencies and release artifacts have a separate inventory.
+  const tracked = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+    { cwd: ROOT, encoding: 'utf8' }).split('\0').filter(Boolean)
   assert.ok(tracked.length > 100, `only ${tracked.length} tracked file(s) — is this a checkout?`)
 
   const binary = /\.(dmg|pkg|exe|msi|so|dylib|dll|a|o|node|wasm|zip|tgz|tar\.xz|tar\.gz|7z|jar)$/i
   const offenders = tracked.filter(file => binary.test(file))
   assert.deepEqual(offenders, [], `these tracked files are binaries: ${offenders.join(', ')}`)
 
-  // The images this repository DOES carry are its own, and the tool that makes them is the evidence.
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  const ownLicense = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).license
+  const previewManifest = JSON.parse(readFileSync(join(ROOT, 'deepblend/benchmarks/previews/manifest.json'), 'utf8'))
+  assert.equal(previewManifest.license, ownLicense)
+  assert.equal(previewManifest.tool, 'deepblend/tools/quality-benchmark.mjs')
+  assert.ok(tracked.includes(previewManifest.tool))
+  const declared = new Set()
+  for (const image of previewManifest.images) {
+    assert.match(image.file, /^[a-z0-9-]+\.png$/)
+    const path = `deepblend/benchmarks/previews/${image.file}`
+    const bytes = readFileSync(join(ROOT, path))
+    assert.equal(hash(bytes), image.sha256, `${path}: preview digest differs from its provenance`)
+    assert.equal(bytes.length, image.bytes)
+    assert.match(image.sourceRunSha256, /^[a-f0-9]{64}$/)
+    assert.match(image.sourceSnapshotSha256, /^[a-f0-9]{64}$/)
+    declared.add(path)
+  }
+  for (const name of readdirSync(join(ROOT, 'deepblend/recipes'))) {
+    const base = `deepblend/recipes/${name}`
+    const recipe = JSON.parse(readFileSync(join(ROOT, base, 'recipe.json'), 'utf8'))
+    assert.equal(recipe.license, ownLicense)
+    assert.equal(recipe.source.url, 'https://github.com/pearjelly/deep-blend')
+    assert.equal(recipe.preview.path, 'preview.png')
+    assert.equal(recipe.input.path, 'scene-spec.json')
+    assert.equal(hash(readFileSync(join(ROOT, base, recipe.input.path))), recipe.input.sha256)
+    for (const directory of [base, `packages/deepblend/host/recipes/${name}`]) {
+      const path = `${directory}/${recipe.preview.path}`
+      assert.equal(hash(readFileSync(join(ROOT, path))), recipe.preview.sha256,
+        `${path}: recipe preview differs from its declared original source`)
+      declared.add(path)
+    }
+  }
+
+  // Screenshots come from the capture tool; product previews are exact files
+  // declared by the benchmark and recipe manifests, not entire allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
-    assert.match(image, /^deepblend\/docs\/images\//,
-      `${image} is an image outside docs/images — every picture here is captured from this product by capture-docs-images.mjs`)
+    assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
+      `${image} has no declared screenshot, benchmark or recipe provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')
