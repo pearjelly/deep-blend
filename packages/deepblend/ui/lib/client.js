@@ -1659,8 +1659,9 @@ window.__ModuleLoader__.load({
 
     const EDITOR_RENDER_FIELDS = ['engine', 'resolution', 'resolutionPercentage', 'samples', 'filmTransparent', 'viewTransform', 'look', 'exposure', 'fps', 'frameStart', 'frameEnd']
     function editorPreviewPair(comparison) {
-      const previews = list => (list || []).filter(item => item.kind === 'preview' && item.path && item.sha256)
-      const after = previews(comparison.afterPreviews).at(-1) || null
+      const previews = (list, revision) => (list || []).filter(item => item.kind === 'preview' && item.path && item.sha256)
+        .map(item => previewSource({ revision }, item)).filter(item => item.sourceRevision === revision)
+      const after = previews(comparison.afterPreviews, comparison.after).at(-1) || null
       const positiveInteger = value => Number.isInteger(value) && value > 0
       const known = item => {
         const renderSettings = item?.renderConfig
@@ -1678,9 +1679,9 @@ window.__ModuleLoader__.load({
           && Number.isInteger(renderSettings.frameStart) && Number.isInteger(renderSettings.frameEnd) && renderSettings.frameEnd >= renderSettings.frameStart)
       }
       const identity = item => JSON.stringify([item.cameraId, item.frame, item.width, item.height, ...EDITOR_RENDER_FIELDS.map(key => item.renderConfig[key])])
-      const before = known(after) ? previews(comparison.beforePreviews).findLast(item => known(item) && identity(item) === identity(after)) || null : null
-      return { beforeArtifact: before ? { ...editorClone(before), sourceRevision: comparison.before } : null,
-        afterArtifact: after ? { ...editorClone(after), sourceRevision: comparison.after } : null,
+      const before = known(after) ? previews(comparison.beforePreviews, comparison.before).findLast(item => known(item) && identity(item) === identity(after)) || null : null
+      return { beforeArtifact: before ? editorClone(before) : null,
+        afterArtifact: after ? editorClone(after) : null,
         reason: !after ? 'no-preview' : !known(after) ? 'unknown-settings' : before ? null : 'no-matching-baseline' }
     }
 
@@ -3143,62 +3144,57 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /**
-     * The newest image to show for a revision.
-     *
-     * Order of preference: the sheet THIS panel's render just composed, then any
-     * contact sheet (a review's), then the newest single view. The artifact is
-     * passed through WHOLE with a display label added: an earlier version built a
-     * fresh `{ path, kind }` here and threw away the digest and the timestamp —
-     * which is how the panel ended up keyed on the path alone and showing a stale
-     * render (§13.5B).
-     */
-    function sheetOf(entry) {
-      if (entry === null) return null
-      const sheets = entry.contactSheets || []
-      const current = sheets.find(sheet => sheet.slot === 'preview-current')
-      if (current && current.path) return { ...current, label: t('preview.thisRender') }
-      const sheet = sheets[sheets.length - 1]
-      if (sheet && sheet.path) return { ...sheet, label: 'contact sheet' }
-      const list = entry.previews || []
-      const preview = list[list.length - 1]
-      if (preview && preview.path) return { ...preview, label: preview.kind || 'preview' }
-      return null
+    /** Keep declared sources; derive a legacy source only from its own path. */
+    function previewSource(entry, artifact) {
+      const ownPath = typeof artifact.path === 'string'
+        && [`revisions/${entry.revision}/previews/`, `revisions/${entry.revision}/contact-sheets/`].some(prefix => artifact.path.startsWith(prefix))
+        && !artifact.path.split('/').some(part => part === '..' || part === '.')
+      const sourceRevision = Object.hasOwn(artifact, 'sourceRevision') ? artifact.sourceRevision : ownPath ? entry.revision : null
+      return { ...artifact, sourceRevision,
+        sourceDigest: Object.hasOwn(artifact, 'sourceDigest') ? artifact.sourceDigest
+          : sourceRevision === entry.revision ? entry.digest || null : null }
     }
 
-    /**
-     * The pair a render leaves behind: what it just composed, and what came before.
-     *
-     * "Before" is the previous generation of the SAME revision when there is one.
-     * When there is not — which is the case on the first render after a scene
-     * change, and therefore the case the comparison exists for — it falls back to
-     * the newest render of an older revision. Without that fallback the axis is
-     * empty exactly when a person wants it: they changed something, rendered once,
-     * and the left pane would say "nothing to compare yet" while the picture they
-     * want to compare against is sitting one revision back.
-     *
-     * The pane labels say which revision each side came from, so a cross-revision
-     * pair cannot be mistaken for two renders of one scene.
-     */
-    function renderPairOf(entry, allRevisions) {
-      if (entry === null) return { current: null, previous: null }
+    /** Single renders and the retained sheet generations, newest first. */
+    function renderHistoryOf(entry) {
+      if (!entry) return []
+      const singles = (entry.previews || []).filter(item => item.path && item.kind === 'preview').slice().reverse()
       const sheets = entry.contactSheets || []
-      const current = sheets.find(sheet => sheet.slot === 'preview-current') ?? null
-      let previous = sheets.find(sheet => sheet.slot === 'preview-previous') ?? null
-      let previousRevision = entry.revision
-      if (previous === null) {
+      // Undated legacy data retains the former sheet preference. An unknown
+      // timestamp remains unknown; it is never replaced with revision creation.
+      const candidates = [sheets.find(item => item.slot === 'preview-current'), ...singles,
+        sheets.find(item => item.slot === 'preview-previous')].filter(item => item?.path)
+      const time = item => { const value = Date.parse(item.at); return Number.isFinite(value) ? value : -Infinity }
+      const seen = new Set()
+      return candidates.filter(item => { if (seen.has(item.path)) return false; seen.add(item.path); return true })
+        .map(item => previewSource(entry, item)).sort((left, right) => {
+          const a = time(left), b = time(right)
+          return a === b ? 0 : a > b ? -1 : 1
+        })
+    }
+
+    /** Latest finished preview, with a review sheet as a display fallback. */
+    function sheetOf(entry) {
+      if (!entry) return null
+      const latest = renderHistoryOf(entry)[0]
+      if (latest) return { ...latest, label: latest.slot === 'preview-current' ? t('preview.thisRender') : latest.kind || 'preview' }
+      const review = (entry.contactSheets || []).filter(item => item.path).at(-1)
+      return review ? { ...previewSource(entry, review), label: 'contact sheet' } : null
+    }
+
+    /** Compare render generations, falling back to an older scene revision. */
+    function renderPairOf(entry, allRevisions) {
+      const history = renderHistoryOf(entry)
+      const current = history[0] || null
+      let previous = history[1] || null
+      if (entry && !previous) {
         const index = allRevisions.findIndex(candidate => candidate.revision === entry.revision)
-        const older = (index > 0 ? allRevisions.slice(0, index) : []).reverse()
-          .find(candidate => (candidate.contactSheets || []).some(sheet => sheet.slot === 'preview-current'))
-        if (older !== undefined) {
-          previous = (older.contactSheets || []).find(sheet => sheet.slot === 'preview-current')
-          previousRevision = older.revision
+        for (const older of (index > 0 ? allRevisions.slice(0, index) : []).slice().reverse()) {
+          previous = renderHistoryOf(older)[0] || null
+          if (previous) break
         }
       }
-      return {
-        current: current === null ? null : { ...current, label: t('preview.thisRender'), sourceRevision: entry.revision },
-        previous: previous === null ? null : { ...previous, label: t('preview.lastRender'), sourceRevision: previousRevision },
-      }
+      return { current, previous }
     }
 
     function CreationGuide({ state, actions }) {
@@ -3288,6 +3284,7 @@ window.__ModuleLoader__.load({
                 key: 'img',
                 'data-artifact': artifact.path,
                 'data-artifact-digest': artifact.sha256 || '',
+                'data-artifact-source-digest': artifact.sourceDigest || '',
                 'data-artifact-slot': artifact.slot || '',
                 'data-artifact-revision': artifact.sourceRevision || '',
                 'data-artifact-at': artifact.at || '',
@@ -3318,7 +3315,8 @@ window.__ModuleLoader__.load({
                   'data-artifact': sheet.path,
                   'data-artifact-digest': sheet.sha256 || '',
                   'data-artifact-slot': sheet.slot || '',
-                  'data-artifact-revision': entry.revision,
+                  'data-artifact-revision': sheet.sourceRevision || '',
+                  'data-artifact-source-digest': sheet.sourceDigest || '',
                   'data-artifact-at': sheet.at || '',
                   alt: `${entry.revision} ${sheet.label}`,
                   src: artifactUrl(state.artifactBase, sheet),
@@ -3328,7 +3326,7 @@ window.__ModuleLoader__.load({
               const sheet = sheetOf(entry)
               const when = artifactTime(sheet)
               return sheet === null ? null : el('div', { className: 'db-muted db-mono', key: 'sheet' },
-                `${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : t('preview.renderedAt', { when })}`)
+                `${sheet.sourceRevision ? `${sheet.sourceRevision} ` : ''}${sheet.sha256 ? String(sheet.sha256).slice(0, 10) : '—'}${when === null ? '' : t('preview.renderedAt', { when })}`)
             })(),
             el('div', { className: 'db-muted db-mono', key: 'counts' }, `previews ${(entry.previews || []).length} · sheets ${(entry.contactSheets || []).length} · reviews ${(entry.reviews || []).length}`),
             (entry.reviews || []).length > 0
@@ -3361,9 +3359,9 @@ window.__ModuleLoader__.load({
         imagePane('right', right, editPair.afterArtifact, t('preview.noneForRevision')),
       ] : null
       const renderPairPanes = [
-        imagePane('left', pair.previous === null ? t('preview.lastRender') : t('preview.lastRenderOf', { revision: pair.previous.sourceRevision }), pair.previous,
+        imagePane('left', pair.previous === null ? t('preview.lastRender') : t('preview.lastRenderOf', { revision: pair.previous.sourceRevision || '—' }), pair.previous,
           t('preview.noPrevious')),
-        imagePane('right', t('preview.thisRenderOf', { revision: right }), pair.current,
+        imagePane('right', t('preview.thisRenderOf', { revision: pair.current ? pair.current.sourceRevision || '—' : right }), pair.current,
           t('preview.notRenderedHere')),
       ]
 

@@ -993,7 +993,9 @@ export default class BlenderStudio extends Service {
       const revisionDirectory = this.store.revisionDirectory(projectId, revision)
       const previewsDir = join(revisionDirectory, 'previews')
       mkdirSync(previewsDir, { recursive: true })
-      const filename = `frame${report.frame ?? 0}-${request.cameraId ?? spec.cameras?.[0]?.id ?? 'camera'}.png`
+      // Each attempt owns its image. Camera/frame alone would overwrite pixels
+      // referenced by an earlier job when its budget or render settings differ.
+      const filename = `${jobId}-frame${report.frame ?? 0}-${safeFileName(request.cameraId ?? spec.cameras?.[0]?.id ?? 'camera')}.png`
       const finalPath = resolveInside(
         this.store.projectDirectory(projectId),
         join(previewsDir, filename),
@@ -1013,12 +1015,17 @@ export default class BlenderStudio extends Service {
       const artifact = {
         kind: 'preview',
         path: `revisions/${revision}/previews/${filename}`,
+        sourceRevision: revision,
+        sourceDigest: digest,
+        jobId,
+        at: new Date().toISOString(),
         cameraId: report.cameraId ?? request.cameraId ?? null,
         frame: report.frame ?? null,
         width: report.width ?? null,
         height: report.height ?? null,
         engine: report.engine ?? null,
         samples: report.renderConfig?.samples ?? null,
+        renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
         bytes: fileSize(finalPath),
         sha256: fileSha256(finalPath),
         mime: 'image/png',
@@ -1423,6 +1430,9 @@ export default class BlenderStudio extends Service {
         const relative = `revisions/${revision}/previews/views/${safeFileName(entry.viewId)}.png`
         const artifact = {
           kind: 'view',
+          sourceRevision: revision,
+          sourceDigest: digest,
+          jobId,
           viewId: entry.viewId,
           role: entry.role ?? null,
           path: relative,
@@ -1494,13 +1504,16 @@ export default class BlenderStudio extends Service {
           // minutes earlier was "渲染于 <this render's clock>" — measured in the real
           // GUI, where both panes read 07:11:58 while only one of them was rendered
           // then. The time comes from the artifact that is being rotated; a store
-          // written before artifacts carried `at` falls back to now, which is wrong
-          // by at most one render.
+          // written before artifacts carried `at` retains an unknown time.
           const priorCurrent = (this.store.readRevisionManifest(projectId, revision)?.contactSheets ?? [])
             .find(entry => entry.slot === PREVIEW_SHEET_SLOTS.current)
           copyFileSync(currentFile, previousFile)
           previousArtifact = {
             kind: 'contact-sheet',
+            sourceRevision: priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') ? priorCurrent.sourceRevision : revision,
+            sourceDigest: priorCurrent && Object.hasOwn(priorCurrent, 'sourceDigest') ? priorCurrent.sourceDigest
+              : priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') && priorCurrent.sourceRevision !== revision ? null : digest,
+            jobId: priorCurrent?.jobId ?? null,
             slot: PREVIEW_SHEET_SLOTS.previous,
             path: `revisions/${revision}/contact-sheets/preview-previous.png`,
             iteration: null,
@@ -1512,12 +1525,15 @@ export default class BlenderStudio extends Service {
             sha256: fileSha256(previousFile),
             mime: 'image/png',
             views: built.placements.map(placement => placement.viewId),
-            at: priorCurrent?.at ?? new Date().toISOString(),
+            at: priorCurrent?.at ?? null,
           }
         }
         writeFileSync(currentFile, built.png)
         const currentArtifact = {
           kind: 'contact-sheet',
+          sourceRevision: revision,
+          sourceDigest: digest,
+          jobId,
           slot: PREVIEW_SHEET_SLOTS.current,
           path: `revisions/${revision}/contact-sheets/preview-current.png`,
           iteration: null,
@@ -3416,14 +3432,26 @@ export default class BlenderStudio extends Service {
     const record = this.store.readRecord(projectId)
     const revisions = this.store.listRevisions(projectId).map(revision => {
       const manifest = this.store.readRevisionManifest(projectId, revision)
+      // Legacy artifacts can identify their source by their own revision path.
+      // A copied path or an explicit source remains authoritative; reading this
+      // projection never rewrites the historical manifest or invents a time.
+      const sourceOf = artifact => {
+        const ownPath = typeof artifact.path === 'string'
+          && [`revisions/${revision}/previews/`, `revisions/${revision}/contact-sheets/`].some(prefix => artifact.path.startsWith(prefix))
+          && !artifact.path.split('/').some(part => part === '..' || part === '.')
+        const sourceRevision = Object.hasOwn(artifact, 'sourceRevision') ? artifact.sourceRevision : ownPath ? revision : null
+        return { ...artifact, sourceRevision,
+          sourceDigest: Object.hasOwn(artifact, 'sourceDigest') ? artifact.sourceDigest
+            : sourceRevision === revision ? manifest?.digest ?? null : null }
+      }
       return {
         revision,
         isCurrent: revision === record.currentRevision,
         createdAt: manifest?.createdAt ?? null,
         summary: manifest?.summary ?? null,
         digest: manifest?.digest ?? null,
-        previews: manifest?.previews ?? [],
-        contactSheets: manifest?.contactSheets ?? [],
+        previews: (manifest?.previews ?? []).map(sourceOf),
+        contactSheets: (manifest?.contactSheets ?? []).map(sourceOf),
         reviews: manifest?.reviews ?? [],
         diagnostics: listDiagnostics(this.store, projectId, revision),
       }

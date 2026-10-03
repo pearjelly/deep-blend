@@ -199,6 +199,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-browser
         run: xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-browser.log" 2>&1
+      - name: Real preview history and source revisions in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/preview-browser
+        run: xvfb-run -a node deepblend/tests/e2e/preview-history-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/preview-browser.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

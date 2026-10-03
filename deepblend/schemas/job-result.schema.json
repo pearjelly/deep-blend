@@ -264,6 +264,36 @@
             "type": "string"
           },
           "description": "The view ids a contact sheet contains, in slot order."
+        },
+        "sourceRevision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Revision whose SceneSpec produced these pixels. Null when a legacy source cannot be established."
+        },
+        "sourceDigest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SceneSpec digest of the source revision; distinct from the PNG digest."
+        },
+        "jobId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Attempt that emitted this artifact, when recorded."
+        },
+        "renderConfig": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Actual configuration reported by the renderer. Null means unknown; never filled from the requested profile."
         }
       }
     },

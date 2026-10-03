@@ -950,6 +950,9 @@ export class RevisionTransaction {
       artifact: {
         kind: 'preview',
         path: `revisions/${revision}/previews/${filename}`,
+        sourceRevision: revision,
+        sourceDigest: sceneSpecDigest(spec),
+        at: new Date().toISOString(),
         cameraId: report.cameraId ?? null,
         frame: report.frame ?? null,
         width: report.width ?? null,

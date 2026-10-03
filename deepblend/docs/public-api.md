@@ -208,6 +208,16 @@ and separate diagnostic artifacts on `listPreviewSets`; see [fixed-view inspecti
 The workbench requires API 6, and rejects older Hosts for explicit inspection modes.
 Runtime adapters must honor `session:false` for both compilation and `renderViews`,
 and return per-view measured `renderConfig` and `cameraFacts` for diagnostics.
+Studio preview artifacts record `sourceRevision`, the source SceneSpec's
+`sourceDigest`, an actual emission time `at`, and measured `renderConfig` for
+single images. These fields are additive; absent renderer settings remain null.
+Repeated Studio `renderPreview` calls retain separate PNG paths per attempt, even
+at the same revision, camera and frame. Initial creation and patch previews also
+record their source. `listPreviewSets` derives legacy sources only from their own
+revision paths; declared sources take precedence and reading never migrates the
+stored manifest or invents a render time. Restore moves the current pointer to
+an existing revision and keeps its image history. Multi-view previews still use
+the current/previous sheet slots; they are not an immutable archive of all renders.
 The SDK's
 runtime interface remains the separate execution contract; it does not declare
 a complete typed Studio facade or expose internal Host helpers.

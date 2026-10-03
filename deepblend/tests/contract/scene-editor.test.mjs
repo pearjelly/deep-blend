@@ -259,7 +259,7 @@ test('comparison snapshots select matching single-frame artifacts and ignore mis
     const mismatch = editor.previewPair({ before: 'r0001', after: 'r0002', beforePreviews: [artifact('r0001', change)], afterPreviews: [after] })
     assert.equal(mismatch.beforeArtifact, null); assert.equal(mismatch.reason, 'no-matching-baseline')
   }
-  assert.equal(editor.previewPair({ beforePreviews: [], afterPreviews: [artifact('r0002', { renderConfig: null })] }).reason, 'unknown-settings')
+  assert.equal(editor.previewPair({ before: 'r0001', after: 'r0002', beforePreviews: [], afterPreviews: [artifact('r0002', { renderConfig: null })] }).reason, 'unknown-settings')
 })
 
 test('real UI handlers use mm/degrees, initialize RGB color correctly and submit only on apply', async t => {
@@ -400,11 +400,11 @@ test('mixed native and public material slots do not masquerade as one uniform pa
 
 test('unknown samples, invalid pixel dimensions and inconsistent observed render metadata cannot compare', () => {
   for (const change of [{ samples: null, renderConfig: { ...config, samples: null } }, { width: 321 }, { height: null }, { engine: null }, { renderConfig: { ...config, resolutionPercentage: 50 } }]) {
-    const pair = editor.previewPair({ beforePreviews: [artifact('r0001', change)], afterPreviews: [artifact('r0002', change)] })
+    const pair = editor.previewPair({ before: 'r0001', after: 'r0002', beforePreviews: [artifact('r0001', change)], afterPreviews: [artifact('r0002', change)] })
     assert.equal(pair.beforeArtifact, null); assert.equal(pair.reason, 'unknown-settings')
   }
   const half = { width: 160, height: 120, renderConfig: { ...config, resolutionPercentage: 50 } }
-  assert.equal(editor.previewPair({ beforePreviews: [artifact('r0001', half)], afterPreviews: [artifact('r0002', half)] }).reason, null)
+  assert.equal(editor.previewPair({ before: 'r0001', after: 'r0002', beforePreviews: [artifact('r0001', half)], afterPreviews: [artifact('r0002', half)] }).reason, null)
 })
 
 test('ordinary history restore uses current revision CAS, rejects duplicate clicks and reports correct direction', async t => {

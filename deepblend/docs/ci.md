@@ -19,6 +19,8 @@
 | `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、新版 UV 默认值与独立原生重开、旧版参数含义、过期选择及旧文件保护 |
 
+| `deepblend/tests/e2e/preview-history-ui.e2e.mjs` | 同机位/帧单图独立保存、单图与拼图先后显示、编辑前后实际配置、来源标签、旧记录只读兼容和恢复重载 |
+
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
 完整验收仍通过 `bash deepblend/tests/run-all.sh` 运行。

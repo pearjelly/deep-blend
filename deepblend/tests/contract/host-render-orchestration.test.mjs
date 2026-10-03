@@ -348,9 +348,9 @@ check('the preview says WHERE its pixels came from without inventing what the re
   preview.warnings.map(entry => entry.message))
 check('a preview renders, publishes the image into the revision, and reports which revision it wrote into',
   preview.revision === second &&
-  preview.artifacts.some(entry => entry.path === `revisions/${second}/previews/frame60-camera-main.png`) &&
-  preview.revisionPreviews.some(entry => entry.path === `revisions/${second}/previews/frame60-camera-main.png`) &&
-  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', 'frame60-camera-main.png')),
+  preview.artifacts.some(entry => entry.path === `revisions/${second}/previews/${preview.job.jobId}-frame60-camera-main.png`) &&
+  preview.revisionPreviews.some(entry => entry.path === `revisions/${second}/previews/${preview.job.jobId}-frame60-camera-main.png`) &&
+  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', `${preview.job.jobId}-frame60-camera-main.png`)),
   { revision: preview.revision, artifacts: preview.artifacts.map(entry => entry.path) })
 // THE RECORD IS PUT THROUGH THE SCHEMA THIS PRODUCT PUBLISHES. `deepblend/schemas/job-result.schema.json`
 // is mirrored, documented and referenced by SPEC — and until this check existed, NOTHING validated anything
