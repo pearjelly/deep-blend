@@ -11,15 +11,53 @@
     "goal": "一把钢制小物件的产品转台：深色台面、一圈发光环、四视角预览。",
     "revision": "r0003"
   },
+  "comparison": {
+    "beforeRevision": "r0002",
+    "afterRevision": "r0003",
+    "beforeSceneSha256": "016f1f8fa64d4edbad5ff64b273782b36b02c5440ff72d492c2bcc7186f0896f",
+    "afterSceneSha256": "07980ade56bcf9d1c1c1255e7c47aa4516cb90d124eb76f782a7056be7df7e9a",
+    "operations": [
+      {
+        "op": "material.parameter.update",
+        "materialId": "hero-steel",
+        "parameter": "roughness",
+        "value": 0.06
+      },
+      {
+        "op": "material.parameter.update",
+        "materialId": "accent-signal",
+        "parameter": "emissionStrength",
+        "value": 1.1
+      }
+    ],
+    "images": [
+      {
+        "revision": "r0002",
+        "path": "revisions/r0002/contact-sheets/preview-current.png",
+        "width": 2952,
+        "height": 1812,
+        "sha256": "d9e7e4d1e74a0c2c5a824a639c981086c91973fccc37a3de226b7b27f3891b8c",
+        "bytes": 2244701
+      },
+      {
+        "revision": "r0003",
+        "path": "revisions/r0003/contact-sheets/preview-current.png",
+        "width": 2952,
+        "height": 1812,
+        "sha256": "d29ff7cf8785399a70ab7580e98ad13c18d43bb4187341d039d42cc83edc07f5",
+        "bytes": 2115229
+      }
+    ]
+  },
   "images": [
     {
       "file": "preview-compare.png",
       "kind": "preview-compare",
-      "note": "the Preview view after two renders: 本次渲染 beside 上一次渲染, each pane keyed on its own digest",
+      "note": "the Preview view comparing actual r0002/r0003 renders, before/after the material refinement",
       "width": 3000,
       "height": 1900,
-      "bytes": 496920,
-      "sha256": "5d1db9b130dc36a419856e272653282f83624dd6626558f280b088c019af780c"
+      "bytes": 1015222,
+      "sha256": "d3f2c480e9ec42253225a1f212443cd7adae8539c20583f85fc2e8f8306d2562"
     },
     {
       "file": "workbench-scene.png",
@@ -27,8 +65,8 @@
       "note": "the workbench: the project header with its current revision, and the Scene tree the Host serves",
       "width": 3000,
       "height": 1900,
-      "bytes": 371407,
-      "sha256": "39ae346e3f72ae860433ebae02325c530423203853074a72124bbd747dfd27d0"
+      "bytes": 401585,
+      "sha256": "3f4741a57370e3d85e92f9e8781ee733c9a82d1df61838831b47edb842603e1c"
     },
     {
       "file": "render-contact-sheet.png",
@@ -36,8 +74,8 @@
       "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
       "width": 1476,
       "height": 906,
-      "bytes": 597486,
-      "sha256": "412f65762c7206b63c6bd6a6db645d2f376e7a5b359c559fe4433e4fdbaa066f"
+      "bytes": 625195,
+      "sha256": "540d38ccc01857df7d2be587b4a7004e467ef2353a16573f2421d55a891de30c"
     }
   ]
 }

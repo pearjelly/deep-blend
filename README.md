@@ -64,9 +64,9 @@ Workbench — project header, current revision, and the scene tree the host comp
 ![Blender workbench: project name, current revision r0003, six view tabs, and six scene cards for entities, materials, lights, cameras, shots and animation tracks](deepblend/docs/images/workbench-scene.png)
 
 Preview comparison — one preview renders seven views into a contact sheet; change a material,
-render again, and the two sheets sit side by side with their own digests and render times:
+render again, and the two sheets sit side by side as actual r0002/r0003 revision images with their own digests and render times. The capture manifest records both source-scene and displayed-image hashes:
 
-![Preview comparison: two contact sheets side by side, the left labelled previous render and the right current render, each with its own digest and timestamp](deepblend/docs/images/preview-compare.png)
+![Preview comparison: two contact sheets side by side, r0002 before the material edit on the left and r0003 after it on the right, each with its own digest and timestamp](deepblend/docs/images/preview-compare.png)
 
 The render itself — seven views (the active camera sampled at four animation frames, plus
 three-quarter, top and detail) composited into one sheet:

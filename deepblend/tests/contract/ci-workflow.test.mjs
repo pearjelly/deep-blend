@@ -261,7 +261,7 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /linux-render-browser-smoke:/)
   assert.match(workflow, /runs-on: ubuntu-24\.04/)
   assert.ok(workflow.includes(`node-version: '${pins.node}'`))
-  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs']) {
+  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs']) {
     assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
   }
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
@@ -273,6 +273,10 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /path: \$\{\{ runner.temp \}\}\/deepblend-ci/)
   assert.ok(!workflow.includes('restore-keys:'), 'runtime cache must match the complete pin digest')
   assert.ok(!workflow.includes('--no-sandbox'), 'the smoke must retain Chrome sandboxing')
+  const guide=readFileSync(join(ROOT,'deepblend/docs/ci.md'),'utf8')
+  const actual=[...new Set(runSteps.flatMap(step=>[...step.matchAll(/(deepblend\/tests\/[\w/-]+\.e2e\.mjs)/g)].map(m=>m[1])))].sort()
+  const documented=[...guide.matchAll(/^\| `(deepblend\/tests\/[\w/-]+\.e2e\.mjs)` \|/gm)].map(m=>m[1]).sort()
+  assert.deepEqual(documented,actual,'CI guide must name exactly the actual real test steps')
 })
 
 test('runner evidence paths are initialized at step execution before installing runtimes', () => {

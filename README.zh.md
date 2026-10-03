@@ -41,9 +41,9 @@ Chrome、一份真实的 Blender，项目由**点**工作台上的控件建起�
 ![Blender 工作台：项目名、当前 revision r0003、六个视图页签，以及实体/材质/灯光/相机/镜头/动画轨道六张场景卡片](deepblend/docs/images/workbench-scene.png)
 
 预览对比：一次预览渲七个视角合成一张 contact sheet；改一次材质再渲一次，左右就是
-「上一次渲染」和「本次渲染」，各自带自己的 digest 与渲染时间。
+`r0002` 与 `r0003` 的实际渲染，各自带自己的 digest 与渲染时间；源场景与实际图片摘要记录在截图清单。
 
-![预览对比：两张 contact sheet 并排，左为上一次渲染、右为本次渲染，各自带 digest 与时间戳](deepblend/docs/images/preview-compare.png)
+![预览对比：两张 contact sheet 并排，左为 r0002、右为 r0003 的实际材质修改前后，各自带 digest 与时间戳](deepblend/docs/images/preview-compare.png)
 
 上面那次渲染的产物本身 —— 七个视角（主动相机在动画的四个采样帧，加上四分之三、俯视、特写
 三个机位）拼成的一张图：

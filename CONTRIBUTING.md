@@ -92,12 +92,16 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 新增一句 `import '@deepseek-ai/dsh-xxx'` 之后**不需要改任何脚本**：链接清单是从源码里
 读出来的（`deepblend/tools/workspace-layout.mjs`），重跑 `npm run setup` 即可。
 
-### 改了 `.github/workflows/ci.yml`：**在容器里跑一遍**
+### 改了 `.github/workflows/ci.yml`：验证实际运行范围
 
-CI 是本仓库唯一一个**没有一个套件运行它**的产物，而它跑在 `ubuntu-latest` + Node 22 上，
-和你本机通常不是一个环境。D96 就是这么来的：把 CI 的每一步照抄进一个 Linux 容器之后，
-两个此前从未被执行的产物同时坏了（一个把「本机没装」报成「漂移」，一个缺 Python 就崩）。
-照抄它，比读它有用：
+契约检查可以核对 workflow 的路径、固定依赖、权限和文档，但不能证明 runner 能执行它。
+当前契约 job 与 Linux 渲染/浏览器 job 都运行在 Ubuntu 24.04；契约与干净克隆在同一个
+job，另一 job 验证真实 Blender、Agent 和浏览器。实际范围与下载证据见
+[CI 指南](deepblend/docs/ci.md)。修改后核对该提交的实际 Actions 结果及产物。
+
+下面的 Linux 容器示例复现契约层的前置条件与测试。它没有运行 Blender、Chrome、
+Mesa 或干净克隆步骤，不能替代整个 workflow 的验收。D96 曾通过实际容器执行发现
+未安装环境被误报成漂移和缺 Python 的问题：
 
 ```bash
 WORK=$(mktemp -d); git clone --quiet . "$WORK"
@@ -115,7 +119,7 @@ docker run --rm -v "$WORK":/src -w /src node:22-bookworm-slim bash -lc '
 `python3` 与 `git` 是**手动装上的**：runner 镜像里有，`-slim` 里没有，而 README 的前置表
 说了缺了它们分别会怎样。`contract/ci-workflow.test.mjs` 会盯住「每一步点到的路径存在」
 「pin 与 `dsh-baseline.json` 一致」「不跑的层被点名」「没有任何套件同时落在 CI 与 not-run
-之外」，但它**没法**知道 GitHub 的镜像今天有没有 Python——那件事只能这样跑一次。
+之外」，但它**没法**知道 GitHub 的镜像今天有没有 Python——实际执行与下载证据仍需核对。
 
 ### 动了这些东西，契约层会告诉你哪里还没跟上
 
