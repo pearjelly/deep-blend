@@ -5,6 +5,7 @@ blender --background --factory-startup --python-exit-code 1 --python
 """
 import hashlib
 import json
+import platform
 import sys
 import time
 from pathlib import Path
@@ -32,7 +33,10 @@ from deepblend_util import ActionError
 fixture_bytes = (ROOT / 'deepblend/fixtures/handled-cup/parameter-cases.json').read_bytes()
 (output / 'parameter-cases.json').write_bytes(fixture_bytes)
 fixture = json.loads(fixture_bytes)
-report = {'blender': bpy.app.version_string, 'sourceHashes': source_hashes,
+runtime = {'blender': bpy.app.version_string, 'buildHash': bpy.app.build_hash.decode(),
+           'platform': sys.platform, 'machine': platform.machine()}
+reference_runtime_match = runtime == fixture['referenceRuntime']
+report = {'runtime': runtime, 'referenceRuntimeMatch': reference_runtime_match, 'sourceHashes': source_hashes,
           'fixtureSha256': hashlib.sha256(fixture_bytes).hexdigest(),
           'normalModel': fixture['normalModel'], 'scope': fixture['scope'], 'cases': []}
 for case in fixture['cases']:
@@ -55,7 +59,7 @@ for case in fixture['cases']:
                       geometryUvSha256=geometry_digest, customNormals=mesh.has_custom_normals,
                       referenceGeometryUvIdentical=geometry_digest == case['geometryUvSha256'],
                       referenceMeshIdentical=digest == case['meshUvNormalSha256'])
-        if report['blender'] == fixture['referenceBlender'] and not (
+        if reference_runtime_match and not (
                 result['referenceMeshIdentical'] and result['referenceGeometryUvIdentical']):
             raise RuntimeError('Reference-runtime mesh/UV/normal reproduction differs')
         result['passed'] = True

@@ -1,5 +1,10 @@
 {
-  "referenceBlender": "5.2.1 LTS",
+  "referenceRuntime": {
+    "blender": "5.2.1 LTS",
+    "buildHash": "9e2066aef7ef",
+    "platform": "darwin",
+    "machine": "arm64"
+  },
   "scope": "Finite authored endpoints, boundary resolutions and seeded interior dimensions. Geometry/UV are unchanged from the recorded average-normal baseline; analytic normals intentionally replace it. Reference-runtime digests are reproduction evidence, not a continuous-domain or artistic certificate.",
   "cases": [
     {
