@@ -596,8 +596,8 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
 
     A material carrying only scalar parameters shades as one flat colour, which is
     why paper, wood and glazed ceramic all read as the same plastic. This builds the
-    relief and variation that tells them apart, in OBJECT space so the pattern
-    travels with the object and no image has to be ingested.
+    relief and variation that tells them apart. Object space is the legacy
+    default; UV space follows an authored surface layout without an image.
 
     Every socket is looked up by name and every stage is optional: a build missing
     one node degrades to a plainer material and says so, rather than failing the
@@ -627,12 +627,19 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
         )
         return
 
-    coord = nodes.new("ShaderNodeTexCoord")
+    mode = texture.get("coordinates", "object")
+    if mode not in ("object", "uv") or ("uvMap" in texture and
+            (mode != "uv" or not isinstance(texture['uvMap'], str) or not texture['uvMap'].strip())):
+        raise ActionError("SCENE_VALIDATION_FAILED", "procedural uvMap requires UV coordinates",
+                          {"materialId": material_id})
+    coord = nodes.new("ShaderNodeUVMap" if mode == "uv" else "ShaderNodeTexCoord")
+    if mode == "uv":
+        coord.uv_map = texture.get("uvMap", "")
     coord.location = (-1080, -240)
     mapping = nodes.new("ShaderNodeMapping")
     mapping.location = (-900, -240)
     pattern.location = (-700, -240)
-    links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    links.new(coord.outputs["UV" if mode == "uv" else "Object"], mapping.inputs["Vector"])
     links.new(mapping.outputs["Vector"], pattern.inputs["Vector"])
 
     stretch = texture.get("stretch") or [1.0, 1.0, 1.0]
@@ -728,6 +735,10 @@ def build_material(spec, guard, assets=None, project_root=None):
     material_id = spec["id"]
     shader = spec.get("shader", "principled")
     parameters = spec.get("parameters") or {}
+
+    if shader == 'emission' and (spec.get('texture') or {}).get('coordinates') == 'uv':
+        raise ActionError('SCENE_VALIDATION_FAILED', 'UV procedural texture requires a principled or glass material',
+                          {'materialId': material_id})
 
     material = bpy.data.materials.new(name="%s%s" % (MATERIAL_PREFIX, material_id))
     # A material has `use_nodes` enabled by default in 5.x and arrives with a
@@ -2109,6 +2120,11 @@ def build_scene(spec, options, guard):
                 scene['deepblend_requires_cycles'] = True
         for entity_id, meshes in entity_meshes.items():
             for mesh in meshes:
+                if (entry.get('texture') or {}).get('coordinates') == 'uv':
+                    if validate_native_material_usage(entry, materials[entry['id']], mesh, scene.render.engine,
+                                                      spec.get('animationTracks') or [], bpy.context.evaluated_depsgraph_get()):
+                        scene['deepblend_requires_cycles'] = True
+                    continue
                 used_slots = {polygon.material_index for polygon in mesh.data.polygons}
                 if not any(slot.material == materials[entry['id']] and index in used_slots
                            for index, slot in enumerate(mesh.material_slots)):

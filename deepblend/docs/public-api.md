@@ -287,3 +287,9 @@ Other formats need separate dependency evidence. Legacy unbundled core glTF/GLB/
 external resources refuses at commit/compile; reimport the complete local source.
 It does not establish license rights,
 pre-decode memory guarantees or independent adoption. See the [asset guide](assets.md).
+
+## Procedural surface coordinates
+
+SceneSpec and `material.texture.set` accept `coordinates: "object" | "uv"`. Omitted coordinates preserve the existing Object node and scene data. UV uses a real UV Map node; optional `uvMap` selects a nonblank name, otherwise Blender uses the active render UV layer. Names require UV mode. The compiler validates evaluated faces using the material, including native curves/text, and rejects missing UV with `SCENE_VALIDATION_FAILED`; unused slots are exempt. UV textures require principled/glass.
+
+`scale × stretch` controls frequency in the chosen layout. On the lamp’s lathe UV, `scale: 1, stretch: [0.0001,800,1]` produces circumferential noise grain because V follows profile arc length. This is a procedural appearance example, not physical manufacturing metrology. SDK types and both scene/patch schemas include the coordinate union.

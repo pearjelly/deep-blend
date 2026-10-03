@@ -113,6 +113,19 @@
 文档取的，给从没提过 world 的场景补上默认值会改掉每一个已记录 revision 的 digest，
 store 会看起来与自己的 manifest 不一致。
 
+### 程序纹理的表面方向
+
+`material.texture.set` 的完整纹理块可声明 `coordinates: "uv"`，并可指定
+`uvMap: "UVMap"`。省略坐标仍使用对象局部坐标；显式 `"object"` 效果相同。
+UV 模式省略名称使用每个表面的活动渲染 UV 层。名称需非空，且只能与 UV 模式一起使用。
+实际使用材质的求值表面必须具有指定 UV；包含网格、原生曲线与文本，未使用的材质槽不阻塞。
+UV 程序纹理只支持 principled/glass，不接受会忽略该图的 emission。
+
+例如车削件已有环向 U、截面弧长 V，可用
+`{type:"noise",coordinates:"uv",uvMap:"UVMap",scale:1,stretch:[0.0001,800,1],detail:2,bump:0.006,roughnessVariation:0.035,colorVariation:0.012}`
+形成沿截面变化的环向纹理。频率相对于 UV 布局，不是物理毫米；先固定照明和机位比较特写，
+再调粗糙度、尺度与凹凸强度。该示例不代表测量过的真实加工刀痕。
+
 ### 各向异性反射与切线
 
 `parameters.anisotropic` 是 Principled 各向异性强度，`anisotropicRotation` 为整圈比例，

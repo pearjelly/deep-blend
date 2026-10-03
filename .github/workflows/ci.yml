@@ -181,6 +181,12 @@ jobs:
         env:
           DEEPBLEND_ASSET_BUNDLE_OUTPUT: ${{ runner.temp }}/deepblend-ci/asset-bundle
         run: xvfb-run -a node deepblend/tests/blender-integration/asset-bundle.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/asset-bundle.log" 2>&1
+      - name: Real procedural UV surface grain and saved pixels
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_PROCEDURAL_UV_OUTPUT: ${{ runner.temp }}/deepblend-ci/procedural-uv
+        run: env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py > "$DEEPBLEND_CI_EVIDENCE/procedural-uv.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

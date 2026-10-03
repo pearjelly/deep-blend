@@ -101,6 +101,16 @@ text without changing their source data. Zero strength and rotation can
 remove tangent with null. Inspect changed highlights in a close-up; procedural
 noise can add microtexture but is not a substitute for anisotropic reflection.
 
+For procedural grain, set the full texture with material.texture.set. Coordinates
+default to object space. Use coordinates:"uv" and optional uvMap:"UVMap" to
+follow an authored surface layout; omitting the UV name uses the active render
+layer. Named maps must exist on every evaluated surface actually using the
+material; unused slots do not block compilation. UV mode requires principled
+or glass. On lathe UV (U around circumference, V along profile), noise with
+scale:1 and stretch:[0.0001,800,1] follows circumferential lines. Compare roughness
+and grain separately under fixed lighting and camera; UV frequency is layout
+relative, not a physical groove measurement.
+
 For image PBR, ingest PNG/JPEG maps and declare the returned assets, then use
 `material.images.set` with baseColor/roughness/metallic/normal/alpha/emissionColor
 bindings. Each binding names an assetId; optional scale and offset are UV vectors,

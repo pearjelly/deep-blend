@@ -216,60 +216,142 @@
       }
     },
     "proceduralTexture": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "type",
-        "scale"
-      ],
       "description": "A procedural surface texture. Duplicated from scene-spec.schema.json because this schema is deliberately self-contained (it never $refs across files), so the two copies are kept in step by hand.",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "noise",
-            "wave",
-            "voronoi"
-          ]
-        },
-        "scale": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "detail": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 16
-        },
-        "distortion": {
-          "type": "number",
-          "minimum": 0
-        },
-        "stretch": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "items": {
-            "type": "number",
-            "exclusiveMinimum": 0
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "object"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            }
           }
         },
-        "bump": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "roughnessVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "colorVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale",
+            "coordinates"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "uv"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            },
+            "uvMap": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "description": "Existing UV map name. Requires coordinates: uv. Omit to use the active render UV map."
+            }
+          }
         }
-      }
+      ]
     },
     "generator": {
       "type": "object",

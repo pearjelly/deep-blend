@@ -1572,6 +1572,14 @@ check('Principled anisotropy changes reflected pixels with explicit tangent dire
   anisotropy.status === 0 && anisotropy.stdout.includes('ANISOTROPY_PASSED'),
   anisotropy.status === 0 ? undefined : { error: anisotropy.error?.message, output: `${anisotropy.stdout}\n${anisotropy.stderr}`.slice(-6000) })
 
+const proceduralUv = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
+  '--python', join(HERE, 'procedural-uv.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('procedural UV grain selects actual render layers, rejects missing UV and survives checkpoint reopening',
+  proceduralUv.status === 0 && proceduralUv.stdout.includes('PROCEDURAL_UV_PASSED'),
+  proceduralUv.status === 0 ? undefined : { error: proceduralUv.error?.message, output: `${proceduralUv.stdout}\n${proceduralUv.stderr}`.slice(-6000) })
+
 const lathe = spawnSync(BLENDER, [
   '--background', '--factory-startup', '--python-exit-code', '1',
   '--python', join(HERE, 'lathe.py'),

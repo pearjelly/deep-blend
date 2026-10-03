@@ -85,6 +85,7 @@ test('every repository path the workflow names exists', () => {
  * surprise already happened once — see §25.
  */
 const EXTERNAL_COMMANDS = new Map([
+  ['env', 'Ubuntu coreutils launcher for the verified Blender path exported by the runtime installer'],
   ['pnpm', 'locked development dependency required by the real DSH plugin add/remove checks'],
   ['xvfb-run', 'software display for EEVEE and Chrome'],
   ['python3', 'the cross-language frame-naming check in contract/render-job.test.mjs; `deepblend_util.py` imports no bpy so it runs in plain CPython'],
@@ -264,6 +265,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs', 'blender-integration/asset-bundle.e2e.mjs']) {
     assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
   }
+  assert.ok(runSteps.some(step => step.startsWith('env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py >')), 'missing real UV grain execution with fatal assertion errors')
+  assert.match(workflow, /DEEPBLEND_PROCEDURAL_UV_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/procedural-uv/)
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   for (const variable of ['DEEPBLEND_DIAGNOSTIC_OUTPUT', 'DEEPBLEND_TOOL_INSPECTION_OUTPUT', 'DEEPBLEND_E2E_ARTIFACTS']) assert.ok(workflow.includes(variable))
   assert.ok(runSteps.some(step => step.startsWith('node deepblend/tools/install-ci-runtimes.mjs')))
@@ -276,8 +279,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.ok(!workflow.includes('restore-keys:'), 'runtime cache must match the complete pin digest')
   assert.ok(!workflow.includes('--no-sandbox'), 'the smoke must retain Chrome sandboxing')
   const guide=readFileSync(join(ROOT,'deepblend/docs/ci.md'),'utf8')
-  const actual=[...new Set(runSteps.flatMap(step=>[...step.matchAll(/(deepblend\/tests\/[\w/-]+\.e2e\.mjs)/g)].map(m=>m[1])))].sort()
-  const documented=[...guide.matchAll(/^\| `(deepblend\/tests\/[\w/-]+\.e2e\.mjs)` \|/gm)].map(m=>m[1]).sort()
+  const actual=[...new Set(runSteps.flatMap(step=>[...step.matchAll(/(deepblend\/tests\/[\w/-]+(?:\.e2e\.mjs|\.py))/g)].map(m=>m[1])))].sort()
+  const documented=[...guide.matchAll(/^\| `(deepblend\/tests\/[\w/-]+(?:\.e2e\.mjs|\.py))` \|/gm)].map(m=>m[1]).sort()
   assert.deepEqual(documented,actual,'CI guide must name exactly the actual real test steps')
 })
 

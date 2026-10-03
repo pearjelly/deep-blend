@@ -9,23 +9,27 @@
       "file": "metal-lamp-hero.png",
       "width": 1024,
       "height": 768,
-      "sha256": "0a577621a1a9eaf740ccfbc2b98b0b09b05bd02eaca5b1fc709d41a698692e9f",
-      "bytes": 686375,
-      "sourceRun": "final-metal-lamp-r13-v1",
-      "sourceRunSha256": "60ddf10aba9d4d6275def1a47b73a0ca6c486b74ad835d0787074e141f225ef2",
-      "sourceSnapshotSha256": "a7e69bfc47d16b3040adbd976796c47a75e0994143d941451e4b92245d495b96",
-      "candidateInputSha256": "32336a3ce99b4af4d32ea7c0e1057f683d89163ec842b529233bed2b11835342",
+      "sha256": "fef3c55d5b241566fd141d5ea1a63313af2b6c5abdb6d57f786a5a62cbf12669",
+      "bytes": 694782,
+      "sourceRun": "metal-surface-r34/benchmark-final-v1",
+      "sourceRunSha256": "681dd031af13619824dbfc832d80587b5ff90bad587a37fe5d5a858dd966514b",
+      "sourceSnapshotSha256": "3dc43e0940e222e0158b35b943bcbed10fe07f4d1aa27cf3020968abac9194b8",
+      "candidateInputSha256": "a48edc5ec865fe258a9ed85e9e8876aa86dbed558370dd36d251d9471d215f10",
       "renderConfig": {
         "engine": "CYCLES",
         "resolution": [
           1024,
           768
         ],
+        "resolutionPercentage": 100,
         "samples": 128,
+        "filmTransparent": false,
         "viewTransform": "AgX",
+        "look": "None",
+        "exposure": 0,
+        "fps": 24,
         "frameStart": 1,
         "frameEnd": 48,
-        "fps": 24,
         "checkpointProfile": {
           "engine": "CYCLES",
           "filmTransparent": false,
@@ -44,10 +48,10 @@
         }
       },
       "artisticReviewRequired": true,
-      "pixelSha256": "268cd7af63b337207d6ab6e75ae6db5338e974898320c1ed169af17c8c0a33e3",
+      "pixelSha256": "456f55e19866af8cf1494eae47b2fd616d2ff4114d7b8b38d7878e5881c5fd95",
       "sourceArtifact": "metal-lamp/candidate/hero.png",
-      "sourceAuditSha256": "65bc0f6714ca628cc3d2fc7e0500954f5e48626ed5921168b310a0948fd94b49",
-      "checkpointSha256": "6846b7ff03a87385347f231817d50af50969748ededc2dc9542eedfd873a9de8",
+      "sourceAuditSha256": "995317a1a7e2f4e0a65a1973840c7efa9310f8ba0473f266b632104c7ee18b6e",
+      "checkpointSha256": "d45bffa45c73c6d10cf12977b54928ef4ee3da899deb46203a9587a10dd9d2c2",
       "checkpointRenderConfig": {
         "engine": "CYCLES",
         "resolution": [

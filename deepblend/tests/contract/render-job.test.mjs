@@ -171,7 +171,8 @@ check('a torn frame keeps the dimensions it did have, so the report is useful',
 // outside Blender, while the table is a literal a regex can read exactly.
 {
   const schema = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'schemas', 'scene-spec.schema.json'), 'utf8'))
-  const declared = schema.$defs.proceduralTexture?.properties?.type?.enum ?? []
+  const texture = schema.$defs.proceduralTexture
+  const declared = [...new Set((texture.oneOf ?? [texture]).flatMap(branch => branch.properties?.type?.enum ?? []))]
   const compiler = readFileSync(
     join(ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'deepblend_scene.py'), 'utf8',
   )

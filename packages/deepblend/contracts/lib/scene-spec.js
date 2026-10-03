@@ -279,6 +279,9 @@ export function validateSceneSpec(spec) {
   }
 
   for (const [index, material] of (document.materials ?? []).entries()) {
+    if (material.texture?.coordinates === 'uv' && material.shader === 'emission') errors.push({ severity: 'error',
+      code: 'SCENE_MATERIAL_TEXTURE_INVALID', path: `materials[${index}].texture`,
+      message: 'UV procedural texture requires a principled or glass material' })
     const anisotropicKeys = ['anisotropic', 'anisotropicRotation']
     const anisotropicTracks = (document.animationTracks ?? []).filter(track => track.targetKind === 'material' &&
       track.targetEntityId === material.id && anisotropicKeys.includes(track.property))

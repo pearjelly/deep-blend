@@ -7,7 +7,7 @@ https://docs.blender.org/manual/en/5.2/render/shader_nodes/shader/principled.htm
 https://docs.blender.org/manual/en/4.3/render/shader_nodes/input/tangent.html
 """
 from deepblend_util import ActionError
-from deepblend_images import validate_image_uv_usage
+from deepblend_images import validate_image_uv_usage, validate_procedural_uv_usage
 
 KEYS = ('anisotropic', 'anisotropicRotation')
 
@@ -85,7 +85,8 @@ def validate_native_material_usage(spec, material, obj, engine, tracks, depsgrap
     """
     _, direction_required, active = anisotropy_state(spec, tracks)
     assigned = {index for index, slot in enumerate(obj.material_slots) if slot.material == material}
-    if not assigned or not (direction_required or active or spec.get('images')):
+    if not assigned or not (direction_required or active or spec.get('images') or
+                            (spec.get('texture') or {}).get('coordinates') == 'uv'):
         return False
     evaluated = obj.evaluated_get(depsgraph)
     try:
@@ -95,6 +96,7 @@ def validate_native_material_usage(spec, material, obj, engine, tracks, depsgrap
                               {'materialId': spec['id'], 'entityId': obj.get('deepblend_id'), 'objectType': obj.type})
         if any(polygon.material_index in assigned for polygon in surface.polygons):
             validate_image_uv_usage(spec, obj, surface.uv_layers)
+            validate_procedural_uv_usage(spec, obj, surface.uv_layers)
             return validate_anisotropy_usage(spec, obj, engine, tracks, uv_layers=surface.uv_layers)
         return False
     finally:

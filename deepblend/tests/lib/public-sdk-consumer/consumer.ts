@@ -7,7 +7,7 @@ import {
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
   type RecipeManifest, type RecipeBundle, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
-  type CompiledObject,
+  type CompiledObject, type SceneSpecSchema,
 } from '@deepblend/dsh-blender-contracts/sdk';
 import specSchema from '@deepblend/dsh-blender-contracts/schemas/scene-spec.json' with { type: 'json' };
 import patchSchema from '@deepblend/dsh-blender-contracts/schemas/scene-patch.json' with { type: 'json' };
@@ -110,3 +110,9 @@ function invalidTypes(runtime: BlenderRuntime) {
 }
 void invalidTypes;
 console.log('External SDK consumer: strict types and authored scene/patch/recipe workflow passed.');
+
+// Surface layout is available to an author using the installed public package.
+const uvGrain: SceneSpecSchema.ProceduralTexture = {type:'noise',scale:1,coordinates:'uv',uvMap:'Finish UV',stretch:[0.0001,800,1],bump:0.006};
+const surfaceSpec = parseSceneSpec({...spec,materials:[{...spec.materials[0]!,texture:uvGrain}]});
+assert.equal(surfaceSpec.materials?.[0]?.texture?.coordinates,'uv');
+assert.equal(surfaceSpec.materials?.[0]?.texture?.uvMap,'Finish UV');

@@ -47,6 +47,20 @@ def validate_image_uv_usage(spec, obj, layers):
                               {'entityId': obj.get('deepblend_id'), 'partId': obj.get('deepblend_part_id'), 'uvMap': uv_name})
 
 
+def validate_procedural_uv_usage(spec, obj, layers):
+    """Reject implicit UV fallback on an evaluated surface using this material."""
+    texture = spec.get('texture') or {}
+    if texture.get('coordinates') != 'uv':
+        return
+    name = texture.get('uvMap')
+    valid = layers is not None and bool(layers) and (
+        layers.get(name) is not None if name else any(layer.active_render for layer in layers))
+    if not valid:
+        raise ActionError('SCENE_VALIDATION_FAILED', 'procedural texture requires an existing UV map on the used surface',
+                          {'materialId': spec['id'], 'entityId': obj.get('deepblend_id'),
+                           'partId': obj.get('deepblend_part_id'), 'uvMap': name})
+
+
 def load_packed_image(asset, project_root, colorspace=None):
     root = os.path.realpath(project_root or '.')
     path = os.path.realpath(os.path.join(root, asset['path']))
