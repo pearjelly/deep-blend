@@ -9,7 +9,7 @@
 
 ---
 
-Start from one of three [product recipes](deepblend/docs/recipes.md) in the workbench, adjust color,
+Start from one of four [product recipes](deepblend/docs/recipes.md) in the workbench, adjust color,
 roughness and exposure, then create a project with a rendered preview. `blender_recipe_list` exposes
 the same catalog to agents. Each project retains its recipe version, license, source hashes and
 parameter values. Metal materials now support explicit anisotropic reflection directions.

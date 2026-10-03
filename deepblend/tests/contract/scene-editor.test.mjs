@@ -64,8 +64,8 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
   return { store, nodes, field, calls, projects, previews, fail: value => { failure = value } }
 }
 
-test('untouched drafts are no-ops for all three built-in recipes, isolated from the scene', () => {
-  for (const name of ['metal-lamp', 'glass-ceramic', 'modular-speaker']) {
+test('untouched drafts are no-ops for all four built-in recipes, isolated from the scene', () => {
+  for (const name of ['metal-lamp', 'glass-ceramic', 'modular-speaker', 'glazed-cup']) {
     const spec = source(name), scene = tree(spec), before = JSON.stringify(scene)
     for (const entity of scene.nodes.entities) {
       const draft = editor.createDraft(scene, 'project-a', entity.id)

@@ -25,12 +25,12 @@ function setup(t) {
   return { root, recipes, catalog, request, studio }
 }
 
-test('the distributed Host carries three validated self-contained recipes', () => {
+test('the distributed Host carries four validated self-contained recipes', () => {
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
-  assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
+  assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
   assert.ok(result.recipes.every(r => r.parameters.length === 3 && r.license === 'MIT'))
-  for (const name of ['glass-ceramic', 'metal-lamp', 'modular-speaker']) {
+  for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(
         readFileSync(new URL(`../../recipes/${name}/${file}`, import.meta.url))), `${name}/${file} differs from its reviewed source`)
@@ -207,7 +207,7 @@ async function client(t) {
 
 test('UI offers the exact catalog, converts color input to linear RGB and blocks out-of-range values', async t => {
   const { store, nodes, recipes } = await client(t)
-  assert.equal(nodes().filter(node => node.props['data-recipe']).length, 3)
+  assert.equal(nodes().filter(node => node.props['data-recipe']).length, 4)
   store.actions.selectRecipe(recipes[0])
   const color = nodes().find(node => node.props['data-field'] === 'recipe-main-color')
   color.props.onChange({ target: { value: '#808080' } })
