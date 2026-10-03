@@ -169,6 +169,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/cup-browser
         run: xvfb-run -a node deepblend/tests/e2e/handled-cup-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup-browser.log" 2>&1
+      - name: Public runtime conformance outside the checkout
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_RUNTIME_CONFORMANCE_OUTPUT: ${{ runner.temp }}/deepblend-ci/runtime-conformance
+        run: xvfb-run -a node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/runtime-conformance.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

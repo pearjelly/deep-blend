@@ -1932,6 +1932,14 @@ def build_scene(spec, options, guard):
     Returns a report describing what was built. Raises ``ActionError`` on any
     failure that must not be silently tolerated.
     """
+    profile_name = options.get("profile") or "preview"
+    profile = (spec.get("renderProfiles") or {}).get(profile_name)
+    if profile is None:
+        raise ActionError(
+            "RENDER_PROFILE_MISSING",
+            'the SceneSpec defines no render profile named "%s"' % (profile_name,),
+        )
+
     # Check pinned source bytes again at the actual compile boundary. This also
     # protects lazy checkpoint rebuilds, which do not pass through asset.add.
     for asset in spec.get("assets") or []:
@@ -1959,17 +1967,6 @@ def build_scene(spec, options, guard):
     world_report = build_world(scene, spec, options)
 
     report_progress("configure_scene", 12)
-    profile_name = options.get("profile") or "preview"
-    profiles = spec.get("renderProfiles") or {}
-    profile = profiles.get(profile_name)
-    if profile is None:
-        profile = profiles.get("preview")
-    if profile is None:
-        raise ActionError(
-            "RENDER_PROFILE_MISSING",
-            'the SceneSpec defines no render profile named "%s" and no "preview" profile' % (profile_name,),
-        )
-
     requested_engine = profile.get("engine", "cycles")
     engine, downgrade = resolve_engine(requested_engine, guard)
     try:

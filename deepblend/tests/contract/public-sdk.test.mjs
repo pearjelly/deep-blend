@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { RUNTIME_METHODS } from '../../examples/runtime-author/conformance.mjs'
 import * as sdk from '../../../packages/deepblend/contracts/lib/sdk.js'
 import { resolveSdkToolchain, verifySdkToolchain } from '../../tools/sdk-toolchain.mjs'
 
@@ -41,6 +42,12 @@ test('parsers validate unknown values and return independent scene and patch doc
 
 test('generated SDK declarations match authoritative schemas and current error vocabulary', () => {
   run(process.execPath, ['deepblend/tools/generate-sdk-types.mjs', '--check'], root)
+  const ts = packageRequire('typescript')
+  const declaration = join(root, 'packages/deepblend/contracts/lib/runtime-types.d.ts')
+  const ast = ts.createSourceFile(declaration, readFileSync(declaration, 'utf8'), ts.ScriptTarget.Latest, true)
+  const runtime = ast.statements.find(node => ts.isInterfaceDeclaration(node) && node.name.text === 'BlenderRuntime')
+  assert(runtime, 'Public runtime interface must exist')
+  assert.deepEqual([...RUNTIME_METHODS].sort(), runtime.members.map(member => member.name.getText(ast)).sort(), 'Conformance runner must cover the public runtime methods')
   const manifest = load(join(root,'packages/deepblend/contracts/package.json'))
   assert.equal(manifest.dependencies, undefined)
   assert.equal(manifest.exports['./sdk'].types, './lib/sdk.d.ts')

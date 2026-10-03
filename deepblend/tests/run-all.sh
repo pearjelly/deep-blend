@@ -71,6 +71,9 @@ run_suite "Blender capability probe (M0)" \
 run_suite "Blender batch SceneSpec + revision loop (M1)" \
   node deepblend/tests/blender-integration/fixture.e2e.mjs
 
+run_suite "Public runtime conformance: packed checker, native evidence, cancellation and partial resume" \
+  node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs
+
 run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
   node deepblend/tests/blender-integration/handled-cup.e2e.mjs
 

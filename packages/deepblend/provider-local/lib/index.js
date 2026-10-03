@@ -706,9 +706,17 @@ export default class LocalBlenderRuntime extends Service {
       // bare names against the provider's scrubbed PATH. Relative paths with
       // separators are rejected by the service itself.
       const resolved = await this.ctx.subprocess.resolveExecutable(requested, undefined, options.signal)
+      if (options.signal?.aborted) {
+        throw new BlenderError(BlenderErrorCode.ABORTED, 'Blender executable resolution was cancelled.')
+      }
       const canonical = this._assertAllowed(resolved, requested)
       return { resolved: canonical, requested, error: null }
     } catch (cause) {
+      if (options.signal?.aborted || cause?.name === 'AbortError') {
+        return { resolved: null, requested, error: new BlenderError(
+          BlenderErrorCode.ABORTED, 'Blender executable resolution was cancelled.', { cause },
+        ) }
+      }
       // The ADVICE travels with the failure, because two readers need the same sentence: the settings
       // card a human opens and the capability text a model reads. Composing it in either of them would
       // be a second copy of "what to do when there is no Blender", and this repository has paid for
@@ -1342,6 +1350,9 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<import('@deepblend/dsh-blender-contracts').BlenderCapabilities>}
    */
   async getCapabilities(options = {}) {
+    if (options.signal?.aborted) {
+      throw new BlenderError(BlenderErrorCode.ABORTED, 'Blender capability probe was cancelled.')
+    }
     const cacheKey = this._requestedBlenderPath()
     const cached = this._capabilitiesCache.get(cacheKey)
     const now = Date.now()
@@ -1350,6 +1361,7 @@ export default class LocalBlenderRuntime extends Service {
     }
 
     const resolved = await this.resolveBlenderExecutable({ signal: options.signal })
+    if (resolved.error?.code === BlenderErrorCode.ABORTED) throw resolved.error
     if (resolved.resolved === null || resolved.error !== null) {
       const absent = this._absentCapabilities(resolved, resolved.error)
       this._capabilitiesCache.set(cacheKey, absent)

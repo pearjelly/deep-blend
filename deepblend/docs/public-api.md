@@ -188,6 +188,17 @@ such as Host `_ingestAsset` are not part of this SDK or a public Studio contract
 
 ## Compatibility and verification
 
+The [standalone runtime checker](../examples/runtime-author/README.md) executes
+the public seam against an author-supplied factory. Its Cycles fixture profile
+independently reopens saved artifacts and checks views, failures, cancellation
+and partial resume. This finite profile does not certify arbitrary deployments
+or independent adoption. The native integration suite also runs the copied
+checker with packed contracts outside the checkout.
+
+Unknown compilation profile names are refused with `RENDER_PROFILE_MISSING`
+before the scene is reset. Cancelled executable lookups and capability requests
+retain `BLENDER_ABORTED`; they are not cached as Blender absence.
+
 Keep package versions aligned across a deployment. The SceneSpec/ScenePatch
 schema versions and bootstrap protocol version identify their document/wire
 contracts; `HOST_API_VERSION` is the existing coarse Host compatibility gate.
