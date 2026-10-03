@@ -262,10 +262,11 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /linux-render-browser-smoke:/)
   assert.match(workflow, /runs-on: ubuntu-24\.04/)
   assert.ok(workflow.includes(`node-version: '${pins.node}'`))
-  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs', 'blender-integration/asset-bundle.e2e.mjs']) {
+  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'e2e/material-texture-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs', 'blender-integration/asset-bundle.e2e.mjs']) {
     assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
   }
   assert.ok(runSteps.some(step => step.startsWith('env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py >')), 'missing real UV grain execution with fatal assertion errors')
+  assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/material-browser/)
   assert.match(workflow, /DEEPBLEND_PROCEDURAL_UV_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/procedural-uv/)
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   for (const variable of ['DEEPBLEND_DIAGNOSTIC_OUTPUT', 'DEEPBLEND_TOOL_INSPECTION_OUTPUT', 'DEEPBLEND_E2E_ARTIFACTS']) assert.ok(workflow.includes(variable))

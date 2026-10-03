@@ -343,6 +343,25 @@ window.__ModuleLoader__.load({
       'editor.affected': '共享修改影响：{targets}',
       'editor.color': '基础色',
       'editor.roughness': '粗糙度',
+      'editor.texture.surface': "表面纹理",
+      'editor.texture.pattern': "纹理图案",
+      'editor.texture.noTexture': "无纹理",
+      'editor.texture.noise': "细颗粒",
+      'editor.texture.wave': "条纹",
+      'editor.texture.voronoi': "蜂窝颗粒",
+      'editor.texture.coordinates': "表面方向",
+      'editor.texture.objectCoordinates': "沿物体空间",
+      'editor.texture.uvCoordinates': "沿曲面 UV 布局",
+      'editor.texture.uvMap': "UV 层名称（留空用渲染层）",
+      'editor.texture.density': "纹理密度",
+      'editor.texture.stretch': "方向密度倍率",
+      'editor.texture.detail': "细节层次",
+      'editor.texture.distortion': "纹理扰动",
+      'editor.texture.bump': "凹凸强度",
+      'editor.texture.roughnessVariation': "粗糙度变化",
+      'editor.texture.colorVariation': "颜色变化",
+      'editor.texture.textureHelp': "密度越大，纹理越细。方向倍率决定延伸方向；UV 取决于模型已有的展开布局。先用小幅凹凸，再应用并检查高光。",
+      'editor.texture.textureLocked': "此材质由图片控制、使用不支持的着色器，或包含无法局部复制的动画。图片替换请使用素材面板。",
       'editor.keepMaterial': '保留当前材质',
       'editor.mapDriven': '图片或动画控制的通道已禁用。动画材质无法局部复制；选择共享修改可编辑未被动画驱动的通道。',
       'editor.assetWhole': '整个导入资产',
@@ -752,6 +771,25 @@ window.__ModuleLoader__.load({
       'editor.affected': 'Shared changes affect: {targets}',
       'editor.color': 'Base color',
       'editor.roughness': 'Roughness',
+      'editor.texture.surface': "Surface texture",
+      'editor.texture.pattern': "Pattern",
+      'editor.texture.noTexture': "No texture",
+      'editor.texture.noise': "Fine grain",
+      'editor.texture.wave': "Bands",
+      'editor.texture.voronoi': "Cellular grain",
+      'editor.texture.coordinates': "Surface direction",
+      'editor.texture.objectCoordinates': "Object space",
+      'editor.texture.uvCoordinates': "Surface UV layout",
+      'editor.texture.uvMap': "UV map name (blank uses render map)",
+      'editor.texture.density': "Pattern density",
+      'editor.texture.stretch': "Directional density multipliers",
+      'editor.texture.detail': "Detail",
+      'editor.texture.distortion': "Distortion",
+      'editor.texture.bump': "Bump strength",
+      'editor.texture.roughnessVariation': "Roughness variation",
+      'editor.texture.colorVariation': "Color variation",
+      'editor.texture.textureHelp': "Higher density makes finer grain. Direction multipliers control its orientation; UV follows the model’s existing layout. Start with subtle bump, then apply and inspect the highlights.",
+      'editor.texture.textureLocked': "This material uses image maps, an unsupported shader, or animation that cannot be copied locally. Use the asset panel to replace image maps.",
       'editor.keepMaterial': 'Keep current material',
       'editor.mapDriven': 'Image- or animation-driven channels are disabled. Animated materials cannot be copied locally; shared edits can change their undriven channels.',
       'editor.assetWhole': 'Entire imported asset',
@@ -1313,6 +1351,13 @@ window.__ModuleLoader__.load({
       draft.material.definition = editorClone(draft.materials.find(item => item.id === id)?.definition || null)
     }
 
+    function editorTextureLocked(draft) {
+      const material = draft.material.definition
+      return !material || !['principled', 'glass'].includes(material.shader)
+        || Object.keys(material.images || {}).length > 0
+        || (draft.material.scope === 'local' && draft.tracks.some(track => track.targetKind === 'material' && track.targetId === draft.material.id))
+    }
+
     function editorErrors(draft) {
       if (!draft) return []
       const errors = [], bad = field => errors.push(t('editor.invalid', { field }))
@@ -1381,6 +1426,28 @@ window.__ModuleLoader__.load({
           else color.forEach(value => scalar(value, property, 0, 1))
         } else scalar(material.parameters?.roughness, property, 0, 1)
       }
+      if (material && original && !editorEqual(material.texture, original.texture)) {
+        if (editorTextureLocked(draft)) bad('texture')
+        const texture = material.texture
+        if (texture !== undefined) {
+          if (!texture || typeof texture !== 'object' || Array.isArray(texture)) bad('texture')
+          else {
+            const keys = ['type', 'scale', 'detail', 'distortion', 'stretch', 'bump', 'roughnessVariation', 'colorVariation', 'coordinates', 'uvMap']
+            if (Object.keys(texture).some(key => !keys.includes(key))) bad('texture')
+            if (!['noise', 'wave', 'voronoi'].includes(texture.type)) bad('texture.type')
+            scalar(texture.scale, 'texture.scale', Number.MIN_VALUE)
+            if (texture.coordinates !== undefined && !['object', 'uv'].includes(texture.coordinates)) bad('texture.coordinates')
+            if (texture.uvMap !== undefined && (texture.coordinates !== 'uv' || typeof texture.uvMap !== 'string' || !texture.uvMap.trim())) bad('texture.uvMap')
+            for (const [key, min, max] of [['detail', 0, 16], ['distortion', 0, Infinity], ['bump', 0, 1], ['roughnessVariation', 0, 1], ['colorVariation', 0, 1]]) {
+              if (texture[key] !== undefined) scalar(texture[key], `texture.${key}`, min, max)
+            }
+            if (texture.stretch !== undefined) {
+              if (!Array.isArray(texture.stretch) || texture.stretch.length !== 3) bad('texture.stretch')
+              else texture.stretch.forEach((value, axis) => scalar(value, `texture.stretch.${axis}`, Number.MIN_VALUE))
+            }
+          }
+        }
+      }
       if (draft.material.target !== 'entity') {
         const part = draft.original.assetParts?.find(item => item.partId === draft.material.partId)
         if (!part) bad('partId')
@@ -1400,14 +1467,19 @@ window.__ModuleLoader__.load({
       if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
       const material = draft.material.definition, baseMaterial = editorMaterialOriginal(draft)
       const changedProperties = material && baseMaterial ? ['baseColor', 'roughness'].filter(key => !editorEqual(material.parameters?.[key], baseMaterial.parameters?.[key])) : []
+      const textureChanged = material && baseMaterial && !editorEqual(material.texture, baseMaterial.texture)
+      const materialChanged = changedProperties.length > 0 || textureChanged
       let materialId = draft.material.id
-      if (changedProperties.length) {
+      if (materialChanged) {
         if (draft.material.scope === 'local') {
           materialId = draft.cloneId
           operations.push({ op: 'material.add', material: { ...editorClone(material), id: materialId } })
-        } else for (const parameter of changedProperties) operations.push({ op: 'material.parameter.update', materialId, parameter, value: editorClone(material.parameters[parameter]) })
+        } else {
+          for (const parameter of changedProperties) operations.push({ op: 'material.parameter.update', materialId, parameter, value: editorClone(material.parameters[parameter]) })
+          if (textureChanged) operations.push({ op: 'material.texture.set', materialId, texture: material.texture === undefined ? null : editorClone(material.texture) })
+        }
       }
-      if (entity.kind !== 'empty' && materialId && (materialId !== editorEffectiveMaterialId(draft) || (changedProperties.length && draft.material.scope === 'local'))) {
+      if (entity.kind !== 'empty' && materialId && materialId !== editorEffectiveMaterialId(draft)) {
         if (draft.material.target === 'entity') operations.push({ op: 'entity.material.set', entityId: draft.entityId, materialId })
         else {
           const slotIndex = draft.material.target === 'slot' ? Number(draft.material.slotIndex) : undefined
@@ -2172,6 +2244,7 @@ window.__ModuleLoader__.load({
           if (section === 'generator' && path[0] === 'bevel' && path.length === 1 && value === undefined && current.entity.generator?.shape === 'rounded_box') return
           if (section === 'transform' && editorTrackLocked(current, 'entity', current.entityId, `${path[0]}.${EDITOR_AXES[path[1]]}`)) return
           if (section === 'material' && path[0] === 'definition' && path[1] === 'parameters' && editorMaterialLocked(current, path[2])) return
+          if (section === 'material' && path[0] === 'definition' && path[1] === 'texture' && editorTextureLocked(current)) return
           const draft = editorClone(current)
           if (section === 'material' && path.length === 1 && path[0] === 'id') editorSelectMaterial(draft, value)
           else {
@@ -2808,6 +2881,33 @@ window.__ModuleLoader__.load({
                 disabled: disabled || editorMaterialLocked(draft, 'baseColor'), value: recipeColorHex((parameters.baseColor || [0.8, 0.8, 0.8]).slice(0, 3)),
                 onChange: event => actions.updateEditor('material', ['definition', 'parameters', 'baseColor'], [...recipeColorLinear(event.target.value), parameters.baseColor?.[3] ?? 1]) })),
               numeric(t('editor.roughness'), 'editor-material-roughness', parameters.roughness ?? (material.shader === 'glass' ? 0.05 : 0.5), value => actions.updateEditor('material', ['definition', 'parameters', 'roughness'], value), { min: 0, max: 1, disabled: editorMaterialLocked(draft, 'roughness') }),
+              el('fieldset', { className: 'db-card', 'data-texture-editor': true, disabled: disabled || editorTextureLocked(draft) },
+                el('legend', null, t('editor.texture.surface')),
+                choose(t('editor.texture.pattern'), 'editor-texture-type', material.texture?.type || '',
+                  [['', t('editor.texture.noTexture')], ['noise', t('editor.texture.noise')], ['wave', t('editor.texture.wave')], ['voronoi', t('editor.texture.voronoi')]],
+                  value => actions.updateEditor('material', ['definition', 'texture'], value ? { ...(material.texture || { scale: 20, bump: 0.01 }), type: value } : undefined)),
+                material.texture ? [
+                  choose(t('editor.texture.coordinates'), 'editor-texture-coordinates', material.texture.coordinates || 'object',
+                    [['object', t('editor.texture.objectCoordinates')], ['uv', t('editor.texture.uvCoordinates')]], value => {
+                      const texture = editorClone(material.texture); texture.coordinates = value
+                      if (value !== 'uv') delete texture.uvMap
+                      actions.updateEditor('material', ['definition', 'texture'], texture)
+                    }),
+                  material.texture.coordinates === 'uv' ? el('label', { className: 'db-row' }, el('span', null, t('editor.texture.uvMap')), el('input', {
+                    className: 'db-input', type: 'text', style: { maxWidth: '65%' }, 'data-field': 'editor-texture-uvMap', value: material.texture.uvMap ?? '',
+                    onChange: event => actions.updateEditor('material', ['definition', 'texture', 'uvMap'], event.target.value === '' ? undefined : event.target.value),
+                  })) : null,
+                  numeric(t('editor.texture.density'), 'editor-texture-scale', material.texture.scale,
+                    value => actions.updateEditor('material', ['definition', 'texture', 'scale'], value), { min: Number.MIN_VALUE }),
+                  el('div', null, el('strong', null, t('editor.texture.stretch')), EDITOR_AXES.map((axis, index) =>
+                    numeric((material.texture.coordinates === 'uv' ? ['U', 'V', 'W'][index] : axis.toUpperCase()), 'editor-texture-stretch-' + axis, material.texture.stretch?.[index] ?? 1,
+                      value => { const stretch = [...(material.texture.stretch || [1, 1, 1])]; stretch[index] = value; actions.updateEditor('material', ['definition', 'texture', 'stretch'], stretch) }, { min: Number.MIN_VALUE }))),
+                  ...[['detail', t('editor.texture.detail'), 0, 16], ['distortion', t('editor.texture.distortion'), 0, undefined], ['bump', t('editor.texture.bump'), 0, 1], ['roughnessVariation', t('editor.texture.roughnessVariation'), 0, 1], ['colorVariation', t('editor.texture.colorVariation'), 0, 1]].map(([key, label, min, max]) =>
+                    numeric(label, 'editor-texture-' + key, material.texture[key],
+                      value => actions.updateEditor('material', ['definition', 'texture', key], value === null ? undefined : value), { min, max })),
+                  el('p', { className: 'db-muted' }, t('editor.texture.textureHelp')),
+                ] : null),
+              editorTextureLocked(draft) ? el('p', { className: 'db-muted', 'data-texture-locked': true }, t('editor.texture.textureLocked')) : null,
               editorMaterialLocked(draft, 'baseColor') || editorMaterialLocked(draft, 'roughness') ? el('p', { className: 'db-muted', key: 'maps' }, t('editor.mapDriven')) : null,
             ] : null) : null),
         draft.entity.kind !== 'empty' ? el('details', { key: stackDisclosure, 'data-disclosure': stackDisclosure, open: state.disclosures?.[stackDisclosure] ?? true,

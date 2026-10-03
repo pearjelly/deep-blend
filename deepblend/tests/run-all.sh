@@ -137,6 +137,9 @@ run_suite "Asset library in a real browser: upload, preview, apply and revision 
 run_suite "Handled cup editor: real dimensions, refusals and revision reload" \
   node deepblend/tests/e2e/handled-cup-ui.e2e.mjs
 
+run_suite "Material surface editor: UV drafts, native refusals, saved graph and real pixels" \
+  node deepblend/tests/e2e/material-texture-ui.e2e.mjs
+
 run_suite "Fixed-view inspection workbench: real images, revision history and cancellation" \
   node deepblend/tests/e2e/inspection-ui.e2e.mjs
 

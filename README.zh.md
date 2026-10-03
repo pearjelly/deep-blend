@@ -262,8 +262,8 @@ CI 另有固定 Linux 运行时的真实检查 job，覆盖 Host 灰模/材质�
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**26 个套件、130 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**105 个文件 = 1921 项自计断言（34 个文件打印计数）+ 1031 个 `node:test` 用例（71 个文件）**。
+预期：**27 个套件、131 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**105 个文件 = 1921 项自计断言（34 个文件打印计数）+ 1039 个 `node:test` 用例（71 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -570,7 +570,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 26 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 27 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

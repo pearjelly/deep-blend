@@ -508,3 +508,121 @@ test('standalone disclosure state survives actual input and polling redraws, and
   const stable = details('advanced-patch'); stable.listeners.toggle({ currentTarget: stable }); unsubscribe()
   assert.equal(redraws, 0, 'a toggle emitted by controlled initial rendering does not create a redraw loop')
 })
+
+test('surface texture edits clone the full local material and preserve every unrelated definition', () => {
+  const {spec,draft}=make(), before=plain(spec)
+  draft.material.definition.texture={...draft.material.definition.texture,coordinates:'uv',uvMap:'UVMap',stretch:[.0001,800,1],scale:1,bump:.006}
+  assert.equal(editor.dirty(draft),true)
+  const {patch,next}=apply(spec,draft)
+  assert.deepEqual(patch.operations.map(o=>o.op),['material.add','entity.material.set'])
+  assert.deepEqual(next.materials.find(m=>m.id===draft.cloneId),{...plain(draft.material.definition),id:draft.cloneId})
+  for(const material of before.materials)assert.deepEqual(next.materials.find(m=>m.id===material.id),material)
+  assert.deepEqual(next.entities.slice(1),before.entities.slice(1));assert.deepEqual(next.lights,before.lights);assert.deepEqual(next.cameras,before.cameras)
+  assert.deepEqual(spec,before)
+})
+
+test('shared surface texture changes and removal use complete texture operations without rebinding', () => {
+  for(const texture of [{type:'wave',coordinates:'uv',scale:35,stretch:[1,4,1],distortion:2},undefined]) {
+    const {spec,draft}=make();draft.material.scope='shared'
+    if(texture===undefined)delete draft.material.definition.texture;else draft.material.definition.texture=plain(texture)
+    const {patch,next}=apply(spec,draft)
+    assert.deepEqual(patch.operations,[{op:'material.texture.set',materialId:draft.material.id,texture:texture??null}])
+    assert.deepEqual(next.entities,spec.entities)
+    assert.deepEqual(next.materials.find(m=>m.id===draft.material.id).texture,texture)
+  }
+})
+
+test('surface texture edits compose with parameter changes and original imported slot bindings', () => {
+  const draft=assetDraft();draft.material.definition.texture.bump=.07
+  const patch=plain(editor.buildPatch(draft))
+  assert.deepEqual(patch.operations.map(o=>o.op),['material.add','entity.materialBindings.set'])
+  assert.equal(patch.operations[0].material.texture.bump,.07)
+  assert.equal(patch.operations[0].material.parameters.roughness,.28)
+  assert.deepEqual(patch.operations[1].materialBindings,[{partId:'/Root/Empty',materialId:draft.material.id},{partId:'/Root/Body',slotIndex:1,materialId:draft.cloneId}])
+  draft.material.scope='shared'
+  assert.deepEqual(plain(editor.buildPatch(draft)).operations.map(o=>o.op),['material.parameter.update','material.texture.set'])
+})
+
+test('surface texture validation rejects bad patterns, coordinates, names, bounds and malformed arrays', () => {
+  for(const texture of [null,[],{type:'wood',scale:1},{type:'noise',scale:0},{type:'noise',scale:Infinity},{type:'noise',scale:1,coordinates:'camera'},
+    {type:'noise',scale:1,uvMap:'UVMap'},{type:'noise',scale:1,coordinates:'uv',uvMap:' '},{type:'noise',scale:1,coordinates:'uv',uvMap:1},
+    {type:'noise',scale:1,stretch:[1,0,1]},{type:'noise',scale:1,stretch:[1,1]}, {type:'noise',scale:1,stretch:'bad'},
+    {type:'noise',scale:1,detail:17},{type:'noise',scale:1,distortion:-1},{type:'noise',scale:1,bump:1.1},
+    {type:'noise',scale:1,roughnessVariation:-.1},{type:'noise',scale:1,colorVariation:null},{type:'noise',scale:1,unknown:1}]) {
+    const {draft}=make();draft.material.definition.texture=texture
+    assert.throws(()=>editor.buildPatch(draft),/texture/)
+  }
+})
+
+test('procedural texture edits refuse image materials and local animated clones; shared undriven texture is editable', () => {
+  for(const kind of ['images','emission','animation']) {
+    const {draft}=make()
+    if(kind==='images')draft.material.definition.images={normal:{assetId:'image'}}
+    if(kind==='emission')draft.material.definition.shader='emission'
+    if(kind==='animation')draft.tracks.push({targetKind:'material',targetId:draft.material.id,property:'metallic'})
+    draft.material.definition.texture.bump=.07
+    assert.throws(()=>editor.buildPatch(draft),/texture/)
+    if(kind==='animation') {draft.material.scope='shared';assert.equal(editor.buildPatch(draft).operations[0].op,'material.texture.set')}
+  }
+})
+
+test('texture controls preserve omitted defaults, optional names and untouched fields through actual event handlers', async t => {
+  const spec=source('metal-lamp');spec.materials.find(m=>m.id==='champagne-spun').texture={type:'noise',scale:20}
+  const {field,store,calls}=await client(t,spec)
+  const draft=()=>editor.draftFor(store.getState())
+  assert.equal(field('editor-texture-coordinates').props.value,'object')
+  assert.equal(field('editor-texture-stretch-x').props.value,1)
+  assert.equal(field('editor-texture-bump').props.value,'')
+  assert.deepEqual(plain(editor.buildPatch(draft()).operations),[])
+  field('editor-texture-coordinates').props.onChange({target:{value:'uv'}})
+  field('editor-texture-uvMap').props.onChange({target:{value:'UV Map '}})
+  field('editor-texture-stretch-y').props.onChange({target:{value:'800'}})
+  field('editor-texture-bump').props.onChange({target:{value:'0.006'}})
+  assert.deepEqual(plain(draft().material.definition.texture),{type:'noise',scale:20,coordinates:'uv',uvMap:'UV Map ',stretch:[1,800,1],bump:.006})
+  field('editor-texture-uvMap').props.onChange({target:{value:''}})
+  assert.equal(Object.hasOwn(draft().material.definition.texture,'uvMap'),false)
+  field('editor-texture-bump').props.onChange({target:{value:''}})
+  assert.equal(Object.hasOwn(draft().material.definition.texture,'bump'),false)
+  field('editor-texture-uvMap').props.onChange({target:{value:'UVMap'}})
+  field('editor-texture-coordinates').props.onChange({target:{value:'object'}})
+  assert.equal(Object.hasOwn(draft().material.definition.texture,'uvMap'),false)
+  field('editor-texture-type').props.onChange({target:{value:'voronoi'}})
+  assert.deepEqual(plain(draft().material.definition.texture),{type:'voronoi',scale:20,coordinates:'object',stretch:[1,800,1]})
+  assert.equal(calls.length,0)
+  field('editor-texture-type').props.onChange({target:{value:''}})
+  assert.equal(Object.hasOwn(draft().material.definition,'texture'),false)
+  field('editor-texture-type').props.onChange({target:{value:'wave'}})
+  assert.deepEqual(plain(draft().material.definition.texture),{type:'wave',scale:20,bump:.01})
+})
+
+test('texture controls lock image replacement and recover an editable shared animated surface', async t => {
+  const {field,store,calls,nodes}=await client(t)
+  const draft=editor.draftFor(store.getState());draft.tracks.push({targetKind:'material',targetId:draft.material.id,property:'metallic'})
+  assert.equal(nodes().find(n=>n.props['data-texture-editor']).props.disabled,true)
+  const before=plain(draft.material.definition.texture)
+  field('editor-texture-bump').props.onChange({target:{value:'0.8'}})
+  assert.deepEqual(plain(editor.draftFor(store.getState()).material.definition.texture),before)
+  field('editor-material-scope').props.onChange({target:{value:'shared'}})
+  assert.equal(nodes().find(n=>n.props['data-texture-editor']).props.disabled,false)
+  field('editor-texture-bump').props.onChange({target:{value:'0.8'}})
+  assert.equal(editor.draftFor(store.getState()).material.definition.texture.bump,.8)
+  editor.draftFor(store.getState()).material.definition.images={normal:{assetId:'map'}}
+  assert.equal(nodes().find(n=>n.props['data-texture-editor']).props.disabled,true)
+  assert.equal(calls.length,0)
+})
+
+test('surface texture drafts survive a native refusal and submit the correction against the unchanged revision', async t => {
+  const {field,store,calls,fail,projects}=await client(t)
+  field('editor-texture-coordinates').props.onChange({target:{value:'uv'}})
+  field('editor-texture-uvMap').props.onChange({target:{value:'missing-map'}})
+  fail({code:'SCENE_VALIDATION_FAILED',message:'Missing UV map missing-map'})
+  await store.actions.applyEditor()
+  assert.equal(store.getState().currentRevision,'r0001')
+  assert.equal(field('editor-texture-uvMap').props.value,'missing-map')
+  assert.equal(editor.dirty(editor.draftFor(store.getState())),true)
+  field('editor-texture-uvMap').props.onChange({target:{value:'UVMap'}});fail(null)
+  await store.actions.applyEditor();await waitFor(store,s=>s.currentRevision==='r0002')
+  assert.equal(calls.length,2);assert.equal(calls[1].body.patch.baseRevision,'r0001')
+  const saved=projects['project-a'].spec;assert.equal(saved.materials.find(m=>m.id===saved.entities.find(e=>e.id==='shade-shell').materialId).texture.uvMap,'UVMap')
+  assert.equal(editor.dirty(editor.draftFor(store.getState())),false)
+})

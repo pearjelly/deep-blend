@@ -16,6 +16,7 @@
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF 缓冲区/纹理文件包、保存、渲染及旧修订重建 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |
+| `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
