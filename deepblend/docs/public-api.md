@@ -1,5 +1,8 @@
 # Public authoring API and runtime interface
 
+For independent consumer trials, use the [human validation guide and adoption record](human-validation.md).
+Record actual public imports, package identity, behavior and independent provenance.
+
 DeepBlend has three different extension boundaries. Choose the smallest one that
 fits the work:
 

@@ -144,6 +144,7 @@ The repository's own documents are in Chinese, and they are the detailed ones:
 | **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
 | **Inspect rough results** — fixed camera/frame material and clay images, with a creation guide | [`deepblend/docs/inspection.md`](deepblend/docs/inspection.md) |
 | **Extend the plugin** — public JavaScript and TypeScript SDK, recipe directory validation reports, versioned schemas and runtime lifecycle | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
+| **Run independent trials** — own-asset creation, author submissions, reuse and public-interface adoption, with blank evidence records | [`deepblend/docs/human-validation.md`](deepblend/docs/human-validation.md) |
 | **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
 | **The specification** — `SPEC.md` is the master specification; the repository is its implementation | [`SPEC.md`](SPEC.md) |
 | **Per-milestone conclusions, evidence and known gaps** | [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md) |
