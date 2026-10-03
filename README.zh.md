@@ -26,7 +26,7 @@
 再插入模型、绑定图片材质或应用环境照明。模型插入默认保留原始材质和部件关系。
 通过[固定视角检查](deepblend/docs/inspection.md)分别观察灰模与材质效果，按创作引导定位和修改问题。
 内容作者可使用[公共 SDK](deepblend/docs/public-api.md)的 JavaScript/TypeScript 接口和版本化 Schema；
-[独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁。
+[独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁，也可对自己的配方目录生成只读验证报告。
 本轮[作品质量与开放生态改进](deepblend/docs/improvement-plan.md)记录完整范围、实际验证和剩余工作。
 
 ## 看一眼

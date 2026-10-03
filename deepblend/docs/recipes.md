@@ -146,6 +146,17 @@ const created = instantiateRecipe(bundle, { exposure: 0.3 })
 5. 运行包校验并测试默认值、边界参数和错误值。契约编译通过不等于 Blender 编译或美术质量通过。
 6. 通过目录/PR 交付；更新内容时发布新版本。使用者通过本地发现选择配方，不自动信任或安装远程 URL。
 
+作者可以复制[独立作者示例](../examples/content-author/README.md)，在自己的 Node.js 22+ 项目安装打包的 contracts 后运行：
+
+```sh
+node validate-recipe.mjs /absolute/my-product > recipe-report.json
+node validate-recipe.mjs /absolute/my-product --parameters values.json > selected-report.json
+```
+
+报告文件放在配方目录之外。工具只读四个固定文件，输出实际字节长度/摘要、运行版本、能力与预览尺寸，检查默认值、各数字参数的最小/最大值及各颜色参数的黑/白值（逐参数独立检查），验证非法类型、越界和未知参数的拒绝结果。可选 `values.json` 检查作者指定的参数组合。成功退出为 0，失败退出为 1 并输出结构化错误；未覆盖的范围也写入报告。
+
+工具拒绝包目录及成员文件的符号链接，并限制读取大小；清单、许可文本和参数文件上限 64 KiB。许可文本必须存在且为非空 UTF-8，但工具不验证版权或许可声明真实性。将报告与实际 Blender 构造、默认/选定参数渲染证据一起提交；报告通过不能代替几何、美术、预览真实性或所有参数组合的验收。
+
 ## 本地发现与发行
 
 Host 自带四组内置配方。第三方配方由运行环境维护者放入本地目录，再通过 Host 的 `recipeDirectories` 数组配置其父目录；例如配置 `/workspace/product-recipes` 后，Host 会读取其中 `my-product/` 的固定文件。工具调用不能任意指定文件路径或临时注册来源。

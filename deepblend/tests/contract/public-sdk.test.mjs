@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cpSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
@@ -85,7 +85,7 @@ test('packed package works in a real external strict TS and JS consumer without 
       const source = resolve(packageRequire.resolve(`${name}/package.json`),'..')
       cpSync(source,join(consumer,'node_modules',name),{recursive:true})
     }
-    for (const name of ['author.mjs','scene-spec.json']) cpSync(join(example,name),join(consumer,name))
+    for (const name of ['author.mjs','validate-recipe.mjs','scene-spec.json']) cpSync(join(example,name),join(consumer,name))
     cpSync(join(root,'deepblend/tests/lib/public-sdk-consumer/consumer.ts'),join(consumer,'consumer.ts'))
     cpSync(join(root,'deepblend/recipes/glass-ceramic'),join(consumer,'recipe'),{recursive:true})
     const config = {compilerOptions:{target:'ES2022',module:'NodeNext',moduleResolution:'NodeNext',strict:true,
@@ -96,6 +96,73 @@ test('packed package works in a real external strict TS and JS consumer without 
     run(process.execPath,['dist/consumer.js'],consumer)
     run(process.execPath,['author.mjs','resolved-scene.json'],consumer)
     assert.equal(sdk.parseSceneSpec(load(join(consumer,'resolved-scene.json'))).materials[0].parameters.roughness,0.35)
+    // The author runs their chosen directory against the installed package, not workspace internals.
+    const recipeFiles = ['recipe.json','scene-spec.json','preview.png','LICENSE']
+    const authorEvidence=[]
+    const checkRecipe=(args,expected=0)=>{
+      const report=JSON.parse(run(process.execPath,['validate-recipe.mjs',...args],consumer,expected))
+      authorEvidence.push({args,expected,report})
+      writeFileSync(join(output,'recipe-author-reports.json'),JSON.stringify(authorEvidence,null,2))
+      return report
+    }
+    for (const name of ['glass-ceramic','glazed-cup','metal-lamp','modular-speaker']) {
+      const directory = join(consumer,'author-recipes',name)
+      cpSync(join(root,'deepblend/recipes',name),directory,{recursive:true})
+      const before = Object.fromEntries(recipeFiles.map(file => [file,sdk.sha256(readFileSync(join(directory,file)))]))
+      const report = checkRecipe([directory])
+      assert.equal(report.status,'passed'); assert.equal(report.schemaVersion,'deepblend.recipe-author-report/v1')
+      assert.equal(report.runtime.contractsVersion,load(join(installed,'package.json')).version)
+      assert.equal(report.package.id,load(join(directory,'recipe.json')).id)
+      assert.equal(report.variants.length,7); assert.equal(report.refusals.length,7)
+      assert.deepEqual(report.errors,[])
+      assert.deepEqual(Object.fromEntries(report.files.map(file=>[file.name,file.sha256])),before)
+      assert.ok(report.scope.unverified.includes('artistic quality'))
+      assert.ok(report.scope.unverified.includes('all parameter combinations'))
+      assert.deepEqual(Object.fromEntries(recipeFiles.map(file => [file,sdk.sha256(readFileSync(join(directory,file)))])),before)
+      if (name==='glass-ceramic') {
+        assert.deepEqual(checkRecipe([directory]),report)
+        writeFileSync(join(consumer,'values.json'),JSON.stringify({'surface-roughness':0.3}))
+        const selected=checkRecipe([directory,'--parameters','values.json'])
+        assert.equal(selected.variants.at(-1).name,'selected');assert.equal(selected.variants.at(-1).values['surface-roughness'],0.3)
+        assert.equal(selected.parameterInput.sha256,sdk.sha256(readFileSync(join(consumer,'values.json'))))
+        writeFileSync(join(consumer,'values.json'),JSON.stringify({'surface-roughness':9}))
+        const invalid=checkRecipe([directory,'--parameters','values.json'],1)
+        assert.equal(invalid.status,'failed');assert.equal(invalid.errors[0].code,'RECIPE_PARAMETER_INVALID')
+        const original=readFileSync(join(directory,'preview.png'))
+        writeFileSync(join(directory,'preview.png'),Buffer.concat([original,Buffer.from('tampered')]))
+        const tampered=checkRecipe([directory],1)
+        assert.equal(tampered.status,'failed');assert.equal(tampered.errors[0].code,'RECIPE_HASH_MISMATCH')
+        writeFileSync(join(directory,'preview.png'),original)
+        const license=readFileSync(join(directory,'LICENSE'));rmSync(join(directory,'LICENSE'))
+        assert.equal(checkRecipe([directory],1).errors[0].code,'ENOENT')
+        writeFileSync(join(directory,'LICENSE'),'   \n')
+        assert.equal(checkRecipe([directory],1).errors[0].code,'AUTHOR_LICENSE_EMPTY')
+        writeFileSync(join(directory,'LICENSE'),license)
+        writeFileSync(join(consumer,'values.json'),'{broken')
+        assert.equal(checkRecipe([directory,'--parameters','values.json'],1).errors[0].code,'AUTHOR_JSON_INVALID')
+        writeFileSync(join(consumer,'values.json'),' '.repeat(65537))
+        assert.equal(checkRecipe([directory,'--parameters','values.json'],1).errors[0].code,'AUTHOR_FILE_LIMIT')
+        writeFileSync(join(directory,'LICENSE'),Buffer.from([0xff]))
+        assert.equal(checkRecipe([directory],1).errors[0].code,'AUTHOR_TEXT_INVALID')
+        rmSync(join(directory,'LICENSE'));mkdirSync(join(directory,'LICENSE'))
+        assert.equal(checkRecipe([directory],1).errors[0].code,'AUTHOR_FILE_INVALID')
+        rmSync(join(directory,'LICENSE'),{recursive:true})
+        // Native symbolic links require privileges on some Windows installations.
+        if (process.platform!=='win32') {
+          writeFileSync(join(consumer,'outside-license'),license)
+          symlinkSync(join(consumer,'outside-license'),join(directory,'LICENSE'))
+          assert.equal(checkRecipe([directory],1).errors[0].code,'AUTHOR_FILE_INVALID')
+          rmSync(join(directory,'LICENSE'))
+          symlinkSync(directory,join(consumer,'linked-recipe'))
+          assert.equal(checkRecipe([join(consumer,'linked-recipe')],1).errors[0].code,'AUTHOR_DIRECTORY_INVALID')
+        }
+        writeFileSync(join(directory,'LICENSE'),license)
+        assert.deepEqual(Object.fromEntries(recipeFiles.map(file => [file,sdk.sha256(readFileSync(join(directory,file)))])),before)
+        assert.deepEqual(checkRecipe(['--unknown'],1).errors.map(e=>e.code),['AUTHOR_ARGUMENT_INVALID'])
+        assert.equal(checkRecipe([],1).errors[0].code,'AUTHOR_ARGUMENT_INVALID')
+        assert.match(run(process.execPath,['validate-recipe.mjs','--help'],consumer),/Usage:/)
+      }
+    }
     const types = readFileSync(join(consumer,'consumer.ts'),'utf8')
     const negativeCases = [...types.matchAll(/@ts-expect-error/g)].length
     assert.equal(negativeCases,11)
@@ -114,7 +181,8 @@ test('packed package works in a real external strict TS and JS consumer without 
     const module = externalRequire.resolve('@deepblend/dsh-blender-contracts/sdk')
     assert.ok(module.startsWith(realpathSync(installed)))
     writeFileSync(join(output,'evidence.json'),JSON.stringify({compilerVersion,archive,consumer,negativeCases,
-      strictTypecheck:true,compiledJavaScript:true,plainJavaScript:true,privatePathsRejected:true},null,2))
+      strictTypecheck:true,compiledJavaScript:true,plainJavaScript:true,privatePathsRejected:true,
+      recipeAuthorExample:{packages:4,standalonePublicImports:true,readOnlyInputs:true,selectedParameters:true,tamperingRefused:true,licensePresence:true}},null,2))
     console.log(`External SDK package evidence: ${join(output,'evidence.json')}`)
   } finally { if (!keep) rmSync(output,{recursive:true,force:true}) }
 })

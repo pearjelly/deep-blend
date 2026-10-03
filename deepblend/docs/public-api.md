@@ -104,6 +104,12 @@ Filesystem discovery and directory boundaries belong to the Host catalog. See
 The executable [content-author example](../examples/content-author/README.md)
 validates, compiles, patches and saves a scene using only public package imports.
 It is intentionally small; it is an API example, not a finished product render.
+The same directory contains `validate-recipe.mjs`, a read-only command accepting
+an author-selected recipe directory and optional parameter JSON. Its structured
+report covers actual package bytes, defaults, separate parameter endpoints and
+refusals through public SDK imports. It runs against a packed package in the
+external-consumer test. Render, geometry, artistic and ownership evidence remain
+separate; see the example's commands and scope before submitting content.
 
 ## Runtime implementers
 
