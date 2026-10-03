@@ -45,7 +45,10 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 ## 查看证据
 
 在 Actions 运行页面下载 `linux-inspections-<run-id>-<attempt>` artifact。
-它保留七天，成功或失败都上传已有证据，内容包括：
+它保留七天，成功或失败都上传已有证据。归档包含本次隔离证据目录中的隐藏文件，
+以保留 `.deepblend-lock.json` 等资源身份记录；不上传仓库或个人配置目录。
+[上传动作的选项说明](https://github.com/actions/upload-artifact#inputs)明确该选项默认关闭。
+内容包括：
 
 - `install.log` / `runtimes.json`：归档校验、缓存命中、实际版本、来源 commit、runner 镜像版本和依赖锁摘要。
 - `graphics.log`：安装的图形依赖、动态库与 Mesa renderer；适用时保留精确路径的 AppArmor 规则。

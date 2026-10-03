@@ -188,4 +188,5 @@ jobs:
           name: linux-inspections-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/deepblend-ci
           retention-days: 7
+          include-hidden-files: true
           if-no-files-found: error

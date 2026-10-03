@@ -270,6 +270,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.ok(runSteps.some(step => step.startsWith('node deepblend/tools/prepare-ci-linux.mjs')))
   assert.match(workflow, /if: always\(\)\n\s+uses: actions\/upload-artifact@v4/)
   assert.match(workflow, /retention-days: 7/)
+  const evidenceUpload = (workflow.split('      - name: Preserve runtime facts, receipts, images and failures')[1] ?? '').split('\n      - name:')[0]
+  assert.match(evidenceUpload, /^\s+include-hidden-files: true$/m, 'CI must retain .deepblend-lock.json for independent resource identity verification')
   assert.match(workflow, /path: \$\{\{ runner.temp \}\}\/deepblend-ci/)
   assert.ok(!workflow.includes('restore-keys:'), 'runtime cache must match the complete pin digest')
   assert.ok(!workflow.includes('--no-sandbox'), 'the smoke must retain Chrome sandboxing')
