@@ -261,7 +261,7 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /linux-render-browser-smoke:/)
   assert.match(workflow, /runs-on: ubuntu-24\.04/)
   assert.ok(workflow.includes(`node-version: '${pins.node}'`))
-  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs']) {
+  for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs', 'blender-integration/asset-bundle.e2e.mjs']) {
     assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
   }
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)

@@ -163,6 +163,7 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_vessel_math.py': 'analytic cup surfaces and derivatives without Blender, called by mesh construction',
     'deepblend_vessel_parameters.py': 'shared coupled cup parameter guards, called before mesh construction',
     'deepblend_mesh_checks.py': 'shared discrete mesh validity checks, called by the cup constructor',
+    'deepblend_asset_bundle.py': 'shared immutable resource lock validation without bpy, called before scene reset',
     'deepblend_geometry.py': 'shared deterministic mesh builders, called by the scene compiler',
     'deepblend_images.py': 'shared image material node builder, called by the scene compiler',
     'deepblend_anisotropy.py': 'shared anisotropy direction and engine validation, called by the scene compiler',

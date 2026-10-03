@@ -37,6 +37,7 @@ import bpy
 from mathutils import Vector
 
 from deepblend_util import ActionError, Guard, as_text, error_text, report_progress, warning
+from deepblend_asset_bundle import verify_asset_bundle
 from deepblend_geometry import create_lathe, create_curve, apply_model_modifiers
 from deepblend_images import build_image_maps, build_environment
 from deepblend_parts import isolated_import_names, stamp_imported_parts, apply_material_bindings
@@ -1943,6 +1944,7 @@ def build_scene(spec, options, guard):
     # Check pinned source bytes again at the actual compile boundary. This also
     # protects lazy checkpoint rebuilds, which do not pass through asset.add.
     for asset in spec.get("assets") or []:
+        verify_asset_bundle(options.get("project_root") or "", asset)
         addressed = re.fullmatch(r"assets/raw/([a-f0-9]{64})\.[a-z0-9]+", asset.get("path", ""))
         declared = addressed.group(1) if addressed else asset.get("sha256")
         if not declared:

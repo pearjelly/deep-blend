@@ -91,6 +91,7 @@ import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGrou
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { streamAsset } from './asset-io.js'
+import { prepareGltfBundle } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
@@ -2516,6 +2517,9 @@ export default class BlenderStudio extends Service {
     const sourceUrl = typeof request?.sourceUrl === 'string' && request.sourceUrl.length > 0
       ? request.sourceUrl
       : null
+    if (request?.sourceRoot !== undefined && sourcePath === null) {
+      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot requires a local glTF source directory.')
+    }
     if (sourcePath === null && sourceUrl === null) {
       throw new BlenderError(
         BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
@@ -2610,6 +2614,10 @@ export default class BlenderStudio extends Service {
         )
       }
 
+      if (request?.sourceRoot !== undefined && type !== 'gltf') {
+        throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot is supported for local glTF resource bundles.')
+      }
+
       // ---- and what its BYTES are ---------------------------------------------
       //
       // SPEC §15.2 "MIME 与扩展名双重校验": the extension picked the import operator, and this
@@ -2665,24 +2673,32 @@ export default class BlenderStudio extends Service {
       requireSafeSegment(name, 'asset file name')
       const rawDirectory = resolveInside(this.store.projectDirectory(projectId), 'assets/raw', 'asset directory')
       mkdirSync(rawDirectory, { recursive: true })
-      const staging = join(rawDirectory, `.incoming-${randomUUID()}`)
-      let bytes, sha256, relativePath
+      let staging = join(rawDirectory, `.incoming-${randomUUID()}`)
+      let bytes, sha256, relativePath, preparedBundle
       try {
-        ({ bytes, sha256 } = await streamAsset(createReadStream(staged), staging, {
-          maxBytes: this.config.assetMaxBytes, signal: request?.signal, label: name,
-        }))
-        if (assetContentVerdict(readFileHead(staging, ASSET_HEAD_BYTES), type) === 'contradicts') {
-          throw new BlenderError(BlenderErrorCode.ASSET_CONTENT_MISMATCH,
-            'The copied asset does not match its declared type; the source may have changed during import.')
+        if (type === 'gltf') {
+          preparedBundle = await prepareGltfBundle({ projectRoot: this.store.projectDirectory(projectId),
+            sourcePath: staged, name, sourceRoot: request?.sourceRoot, local: sourcePath !== null,
+            maxBytes: this.config.assetMaxBytes, signal: request?.signal })
+          ;({ staging, bytes, sha256, relativePath } = preparedBundle)
+        } else {
+          ({ bytes, sha256 } = await streamAsset(createReadStream(staged), staging, {
+            maxBytes: this.config.assetMaxBytes, signal: request?.signal, label: name,
+          }))
+          if (assetContentVerdict(readFileHead(staging, ASSET_HEAD_BYTES), type) === 'contradicts') {
+            throw new BlenderError(BlenderErrorCode.ASSET_CONTENT_MISMATCH,
+              'The copied asset does not match its declared type; the source may have changed during import.')
+          }
+          relativePath = `assets/raw/${sha256}.${type}`
         }
-        relativePath = `assets/raw/${sha256}.${type}`
         // The slow transfer stays outside the project lease. Publishing bytes and
         // updating aliases/history form one short, synchronous write section.
         // On contention the outer finally removes this import's private copy.
         return this.store.withProjectWrite(projectId, () => {
           const currentRecord = this.store.readRecord(projectId)
           const destination = resolveInside(this.store.projectDirectory(projectId), relativePath, 'asset destination')
-          try {
+          if (preparedBundle) preparedBundle.publish()
+          else try {
             linkSync(staging, destination)
           } catch (cause) {
             if (cause.code !== 'EEXIST') throw cause
@@ -2706,6 +2722,7 @@ export default class BlenderStudio extends Service {
             path: relativePath,
             sha256,
             bytes,
+            ...(preparedBundle ? { bundle: preparedBundle.bundle } : {}),
             // WHERE THE BYTES ACTUALLY CAME FROM, which is not always the URL that was approved: a redirect moves
             // the request, and the manifest is the copy a later reader trusts. It carries the approved URL (the
             // question "what did I ask for?") and, when the chain moved, the URL that answered ("what did I get?").
@@ -2715,7 +2732,7 @@ export default class BlenderStudio extends Service {
                 url: redactUrl(sourceUrl),
                 ...fetchedChain.length > 1 ? { resolvedUrl: redactUrl(fetchedChain[fetchedChain.length - 1]) } : {},
               }
-              : { kind: 'local', path: sourcePath }),
+              : { kind: 'local', path: sourcePath, ...(preparedBundle ? { root: preparedBundle.sourceRoot } : {}) }),
             // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
             // are different statements, and only the first one is true here.
             license,
@@ -2739,6 +2756,7 @@ export default class BlenderStudio extends Service {
             sha256,
             bytes,
             source: entry.source,
+            ...(entry.bundle ? { bundle: entry.bundle } : {}),
             license,
             manifestPath: 'assets/manifest.json',
             currentRevision: currentRecord.currentRevision,

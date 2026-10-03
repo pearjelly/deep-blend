@@ -65,6 +65,7 @@ import {
   validateSceneSpec,
   warning,
 } from '@deepblend/dsh-blender-contracts'
+import { verifyAssetBundle } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import {
   fileSha256,
@@ -380,6 +381,7 @@ export class RevisionTransaction {
     // A later material/camera edit must not silently compile changed source bytes.
     for (const asset of nextSpec.assets ?? []) {
       if (typeof asset.path !== 'string') continue
+      verifyAssetBundle(this.store.projectDirectory(projectId), asset)
       const pathHash = /^assets\/raw\/([a-f0-9]{64})\.[a-z0-9]+$/.exec(asset.path)?.[1]
       const declared = pathHash ?? asset.sha256
       if (typeof declared !== 'string') continue

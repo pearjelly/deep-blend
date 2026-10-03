@@ -28,7 +28,7 @@
 | `blender_job_status` | M3 | 自动 | 读（**从磁盘读**，跨重启） |
 | `blender_job_cancel` | M3 | 自动或确认 | **写**（终止进程组并改 job 状态） |
 | `blender_revision_restore` | M5 | 需明确 `confirm:true`；缺失或 `false` 均拒绝 | **写**（移动 current 指针；不删除任何 revision） |
-| `blender_asset_ingest` | M5 | 本地自动；**网络需审批**（harness 审批平面） | **写**（写 `assets/raw/` 与 `assets/manifest.json`；不改场景） |
+| `blender_asset_ingest` | M5 | 本地自动；**网络需审批**（harness 审批平面） | **写**（写 `assets/raw/` 或 glTF 资源文件包及 `assets/manifest.json`；不改场景） |
 
 ### 1.1 刻意**未注册**的工具
 

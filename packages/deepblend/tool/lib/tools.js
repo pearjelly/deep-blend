@@ -948,13 +948,13 @@ function assetIngest(ctx) {
       'Bring a 3D model file into a project, so a scene can instantiate it. Give EITHER sourcePath (a ' +
       'file already on this machine) OR sourceUrl (an http/https address); a local file is imported ' +
       'directly, a remote one needs the operator\'s approval first, so it will pause and ask. ' +
-      '\n\nThis does NOT change the scene. It copies the bytes into the project\'s assets/raw/, records ' +
+      '\n\nThis does NOT change the scene. It copies the bytes into assets/raw/ or a locked glTF resource bundle, records ' +
       'them in assets/manifest.json, and returns an assetId, a project-relative path and a sha256. ' +
       'Declare it with blender_scene_patch {op: "asset.add", asset: {...}} and then add an entity of ' +
       'type "asset-instance" with that assetId — those two steps are what put it in the scene, and ' +
       'blender_scene_validate will tell you if the format cannot be imported by this Blender build. ' +
       '\n\nSupported formats: glb, gltf, fbx, obj, usd, blend, png, jpg, jpeg, hdr, exr. The size ceiling is the deployment\'s ' +
-      'assetMaxBytes (SPEC §15).',
+      'assetMaxBytes (SPEC §15). Local glTF includes relative buffers and images; sourceRoot selects their containing directory. Remote external glTF dependencies are refused.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project to bring the asset into.' },
       sourcePath: {
@@ -962,6 +962,7 @@ function assetIngest(ctx) {
         description: 'Absolute path to a local file. No approval needed. Use this whenever the file is ' +
           'already on the machine — it is faster and it does not leave the machine.',
       },
+      sourceRoot: { type: 'string', description: 'Optional local glTF resource root containing the model and all relative buffer/image files. Defaults to its directory; files outside this root are refused.' },
       sourceUrl: {
         type: 'string',
         description: 'An http or https URL. Requires the operator\'s approval, which this tool asks for ' +
@@ -990,6 +991,7 @@ function assetIngest(ctx) {
       const ingestRequest = {
         projectId: args.projectId,
         sourcePath: args.sourcePath,
+        sourceRoot: args.sourceRoot,
         sourceUrl: args.sourceUrl,
         assetId: args.assetId,
         type: args.type,

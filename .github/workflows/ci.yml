@@ -175,6 +175,12 @@ jobs:
         env:
           DEEPBLEND_RUNTIME_CONFORMANCE_OUTPUT: ${{ runner.temp }}/deepblend-ci/runtime-conformance
         run: xvfb-run -a node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/runtime-conformance.log" 2>&1
+      - name: Real glTF resource bundles and old revision rebuild
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_ASSET_BUNDLE_OUTPUT: ${{ runner.temp }}/deepblend-ci/asset-bundle
+        run: xvfb-run -a node deepblend/tests/blender-integration/asset-bundle.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/asset-bundle.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

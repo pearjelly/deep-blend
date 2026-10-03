@@ -243,3 +243,20 @@ TypeScript version must match the development manifest. Set
 These tests demonstrate a maintained external package boundary. They are not
 evidence of adoption by an independent external author, a different runtime's
 behavioral compatibility, a successful Blender render, or artistic quality.
+
+### Managed glTF resource bundles
+
+Host `ingestAsset` and `blender_asset_ingest` accept optional `sourceRoot` for local `.gltf`.
+The returned asset declaration keeps the existing `path` and main-file `sha256` shape.
+A managed path is `assets/bundles/<lock-sha256>/<entrypoint>`. Its directory contains
+`.deepblend-lock.json` with `schemaVersion: deepblend.asset-bundle/v1`, `entrypoint`,
+`files` (relative `path`, actual `bytes` and `sha256`), and `totalBytes` (source files).
+The directory identity hashes the exact lock bytes, including its final newline.
+Changing a member requires a new lock and path. Verification requires every core
+glTF buffer/image reference to be locked, alongside full member hashes and root containment.
+
+This storage profile covers core `.gltf` buffers/images and embedded data. Source JSON
+and dependencies retain their original bytes/layout. Remote external dependencies and
+additional external URI resources in extensions are refused. Other formats and legacy
+unbundled paths need separate dependency evidence. It does not establish license rights,
+pre-decode memory guarantees or independent adoption. See the [asset guide](assets.md).
