@@ -45,7 +45,9 @@
       "id": "cup",
       "type": "generator",
       "generator": {
-        "shape": "handled_cup"
+        "shape": "handled_cup",
+        "rootRadius": 0.009,
+        "rootLength": 0.006
       },
       "materialId": "glaze",
       "tags": [

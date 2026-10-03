@@ -46,7 +46,7 @@ try {
   await page.click('[data-view-tab="scene"]')
   await page.click('[data-action="select-entity:cup"]')
   await page.waitFor('document.querySelector("[data-editor-entity=cup]")!==null')
-  check('default dimensions display in millimetres with no accidental write',await page.evaluate(`document.querySelector(${JSON.stringify(field('height'))}).value==='105' && document.querySelector(${JSON.stringify(field('wallThickness'))}).value==='3' && window.__cupRequests.every(x=>x.method!=='POST')`))
+  check('recipe dimensions and compact attachments display in millimetres with no accidental write',await page.evaluate(`document.querySelector(${JSON.stringify(field('height'))}).value==='105' && document.querySelector(${JSON.stringify(field('wallThickness'))}).value==='3' && document.querySelector(${JSON.stringify(field('rootRadius'))}).value==='9' && document.querySelector(${JSON.stringify(field('rootLength'))}).value==='6' && window.__cupRequests.every(x=>x.method!=='POST')`))
   check('cup editor labels and attachment guidance are visible',(await page.text('[data-editor-entity=cup]')).includes('带把手杯体')&&(await page.text('[data-editor-entity=cup]')).includes('检查实际网格'))
   await page.fill(field('height'),'110')
   check('typing a dimension keeps the saved revision',read('project.json').currentRevision==='r0001')
