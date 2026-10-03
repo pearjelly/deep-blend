@@ -59,7 +59,7 @@
       "type": "generator",
       "generator": {
         "shape": "plane",
-        "size": 1
+        "size": 5
       },
       "materialId": "floor",
       "tags": [

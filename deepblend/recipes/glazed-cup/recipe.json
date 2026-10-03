@@ -23,11 +23,11 @@
   },
   "input": {
     "path": "scene-spec.json",
-    "sha256": "31e6b40ef81db15cba37ef16485fa9885b29e498ec170556e0cbc1f88db44c1c"
+    "sha256": "59e8d58c33bd4dfb16af906d894ffd12cd12c3b3a8395579c9ae0df7856b6b5c"
   },
   "preview": {
     "path": "preview.png",
-    "sha256": "7bc7c2927347c15b1d2d2c475930e2811fd633d983f58c148722bd9f1b0cd8f6",
+    "sha256": "c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92",
     "mediaType": "image/png",
     "alt": "青釉带把手杯默认参数的实际 Blender 主视角渲染"
   },

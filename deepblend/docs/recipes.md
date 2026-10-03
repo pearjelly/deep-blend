@@ -11,9 +11,9 @@
 | `deepblend.metal-lamp` | `final-metal-lamp-r13-v1` |
 | `deepblend.glass-ceramic` | `final-products-v1` |
 | `deepblend.modular-speaker` | `final-modular-speaker-r13-v3` |
-| `deepblend.glazed-cup` | `cup-contour-r25/public-v1/beauty-hero.png` |
+| `deepblend.glazed-cup` | `cup-backdrop-r26/public-v1/beauty-hero.png` |
 
-前三组原始运行目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-contour-r25/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
+前三组原始运行目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-backdrop-r26/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
 
 ## 一个包包含什么
 
@@ -58,7 +58,7 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 
 桌灯的主金属参数同时作用于灯罩、底座等旋压部件和支架材质；原有各向异性强度与方向保持不变。玻璃陶瓷的颜色作用于托盘和瓶盖陶瓷饰片，音箱的颜色作用于外壳，杯体的颜色作用于杯身和连续把手。
 
-杯体默认高 105 mm、壁厚 3 mm，连接半径 9 mm、连接长度 6 mm；创建后可在对象编辑器调整实际尺寸。模板保留主视角、把手根部和杯内三个相机，可通过固定机位的材质/灰模检查观察结构。它是静态产品场景，没有动画轨道。网格与法线有效不代表根部轮廓或成品美术已经获得外部认可。
+杯体默认高 105 mm、壁厚 3 mm，连接半径 9 mm、连接长度 6 mm；创建后可在对象编辑器调整实际尺寸。模板保留主视角、把手根部和杯内三个相机，可通过固定机位的材质/灰模检查观察结构。摄影地面宽 5 m，覆盖三个相机的背景，避免主视角出现地面边缘。它是静态产品场景，没有动画轨道。网格与法线有效不代表根部轮廓或成品美术已经获得外部认可。
 
 ```json
 {

@@ -3261,7 +3261,6 @@ window.__ModuleLoader__.load({
 
       return el('div', { 'data-view': 'preview' },
         ErrorBox({ error: state.error }),
-        InspectionPanel(ctx),
         el('div', { className: 'db-tabs' },
           Button({
             tone: 'primary',
@@ -3329,6 +3328,7 @@ window.__ModuleLoader__.load({
           ) : null,
           state.diffError ? ErrorBox({ error: state.diffError }) : null,
         ),
+        InspectionPanel(ctx),
       )
     }
 
@@ -3540,7 +3540,9 @@ window.__ModuleLoader__.load({
         ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
         : state.status === 'loading'
           ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
-          : el('div', { className: 'db-body' }, CreationGuide(ctx), renderView(ctx))
+          : el('div', { className: 'db-body' },
+            state.view === 'preview' ? renderView(ctx) : CreationGuide(ctx),
+            state.view === 'preview' ? CreationGuide(ctx) : renderView(ctx))
 
       return el('div', { className: 'db-root', 'data-deepblend-panel': PANEL_ID },
         el('div', { className: 'db-head' },
