@@ -1,5 +1,10 @@
 # DeepBlend 工具契约（M0–M4）
 
+动作任务 ID 按不透明字符串使用；新增 ID 含 UUID，避免独立 Host 共用记录和 staging。
+单图、产物清单和多视角拼图发布在本机修订租约内完成，渲染可以并行。等待最多十秒，
+调用者取消返回 BLENDER_ABORTED，等待超限返回 REVISION_CONFLICT；已保存 ID 仍可读取。
+交付任务编号及两代多视角策略维持现有行为，不据此承诺全部历史不可变。
+
 > 范围：模型可见工具的**实际**契约，取自 `packages/deepblend/tool/lib/` 与
 > `packages/deepblend/contracts/lib/`。
 > 本文件描述**已实现**的行为，不描述计划。SPEC §11 中尚未实现的工具在此明确标为未注册。

@@ -24,8 +24,8 @@
  * `jobs/` holds M1's attempt log: written once at the start of an action and once
  * at the end, because every M1/M2 action finished inside the tool call that
  * started it. The durable render job is a different object with a different
- * lifetime (SPEC §10.2), and `allocateJobId` counts `*.json` in `jobs/` to mint
- * its ids — writing render jobs there would both inflate that counter and make
+ * lifetime (SPEC §10.2). Attempt ids use UUIDs; delivery ids keep their existing
+ * ordinal format. Writing render jobs into `jobs/` would make
  * "list this project's attempts" return two shapes.
  *
  * WHY THE RECORD IS WRITTEN SO OFTEN

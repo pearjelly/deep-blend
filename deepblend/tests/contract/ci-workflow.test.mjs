@@ -270,6 +270,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs >')), 'missing real recipe version workflow')
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/recipe-browser/)
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/preview-browser/)
+  assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs >')), 'missing independent native Host publishers')
+  assert.match(workflow, /DEEPBLEND_ARTIFACT_CONCURRENCY_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/artifact-concurrency/)
   assert.match(workflow, /DEEPBLEND_PROCEDURAL_UV_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/procedural-uv/)
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   for (const variable of ['DEEPBLEND_DIAGNOSTIC_OUTPUT', 'DEEPBLEND_TOOL_INSPECTION_OUTPUT', 'DEEPBLEND_E2E_ARTIFACTS']) assert.ok(workflow.includes(variable))

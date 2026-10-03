@@ -146,6 +146,9 @@ run_suite "Recipe versions: native UV defaults, gallery selection and historical
 run_suite "Preview history: native attempts, source labels, editor comparison and restore" \
   node deepblend/tests/e2e/preview-history-ui.e2e.mjs
 
+run_suite "Independent Host processes: native previews, protected indices and sheet rotation" \
+  node deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs
+
 run_suite "Fixed-view inspection workbench: real images, revision history and cancellation" \
   node deepblend/tests/e2e/inspection-ui.e2e.mjs
 

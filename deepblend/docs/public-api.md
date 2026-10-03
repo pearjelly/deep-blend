@@ -1,5 +1,7 @@
 # Public authoring API and runtime interface
 
+Attempt job IDs are opaque strings. Newly allocated compile, patch and preview attempts include a UUID so independent local Hosts cannot share staging or job records. Existing IDs remain readable. Delivery render IDs retain their separate ordinal format. Revision artifact indices and preview publication use bounded, cancellable local leases; this does not guarantee immutable multi-view history or coordination on network filesystems.
+
 For independent consumer trials, use the [human validation guide and adoption record](human-validation.md).
 Record actual public imports, package identity, behavior and independent provenance.
 

@@ -20,6 +20,7 @@
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、新版 UV 默认值与独立原生重开、旧版参数含义、过期选择及旧文件保护 |
 
 | `deepblend/tests/e2e/preview-history-ui.e2e.mjs` | 同机位/帧单图独立保存、单图与拼图先后显示、编辑前后实际配置、来源标签、旧记录只读兼容和恢复重载 |
+| `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
@@ -54,6 +55,8 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 以保留 `.deepblend-lock.json` 等资源身份记录；不上传仓库或个人配置目录。
 [上传动作的选项说明](https://github.com/actions/upload-artifact#inputs)明确该选项默认关闭。
 内容包括：
+
+- `artifact-concurrency.log` / `artifact-concurrency/`：实际独立进程结果、调度屏障、单图、两代拼图、完成任务与文件摘要；多视角仍采用既有可覆盖策略。
 
 - `install.log` / `runtimes.json`：归档校验、缓存命中、实际版本、来源 commit、runner 镜像版本和依赖锁摘要。
 - `graphics.log`：安装的图形依赖、动态库与 Mesa renderer；适用时保留精确路径的 AppArmor 规则。

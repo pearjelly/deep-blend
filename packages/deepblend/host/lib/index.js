@@ -60,6 +60,7 @@ import {
   // M4 — the preview pair the workbench compares
   PREVIEW_SHEET_SLOTS,
   composeContactSheet,
+  decodePng,
   // M3 — the persistent render job
   HOST_API_VERSION,
   RENDER_JOB_VERSION,
@@ -953,8 +954,7 @@ export default class BlenderStudio extends Service {
       // whichever finished first delete the other's image, and the other reported `RENDER_NO_OUTPUT` for a
       // render that had worked. MEASURED by the concurrency case in `host-render-orchestration.test.mjs`
       // (two cameras, one revision, `Promise.all`): one of the two failed with "the renderer reported success
-      // but wrote no image", and the artifact index lost it. The job id is minted and written in one
-      // synchronous block above, so it is unique per call and can name the staging directory.
+      // but wrote no image", and the artifact index lost it. The attempt id includes a UUID, so independent Host processes can name their own staging directories.
       const stagingParent = join(this.store.revisionDirectory(projectId, revision), '.render-staging')
       const staging = join(stagingParent, jobId)
       const engineInfo = await this.runtime.resolveEngineKey(profile.engine, { signal: request.signal })
@@ -988,67 +988,70 @@ export default class BlenderStudio extends Service {
         )
       }
 
-      // The image lives in the revision's previews/ from now on: a preview is an
-      // artifact OF a revision, so a later revision cannot overwrite it.
-      const revisionDirectory = this.store.revisionDirectory(projectId, revision)
-      const previewsDir = join(revisionDirectory, 'previews')
-      mkdirSync(previewsDir, { recursive: true })
-      // Each attempt owns its image. Camera/frame alone would overwrite pixels
-      // referenced by an earlier job when its budget or render settings differ.
-      const filename = `${jobId}-frame${report.frame ?? 0}-${safeFileName(request.cameraId ?? spec.cameras?.[0]?.id ?? 'camera')}.png`
-      const finalPath = resolveInside(
-        this.store.projectDirectory(projectId),
-        join(previewsDir, filename),
-        'preview artifact',
-      )
-      renameSync(outputPath, finalPath)
-      removeTree(staging)
-      // The parent is shared, so it goes only when this render was the last one using it: `rmdirSync` refuses a
-      // non-empty directory, which is exactly the check wanted — no listing, no race, and a failure here means
-      // another preview is still working.
-      try {
-        rmdirSync(stagingParent)
-      } catch {
-        /* another preview is still staging into it */
-      }
+      const { artifact, previews } = await this.store.withRevisionArtifacts(projectId, revision, async () => {
+        // The image lives in the revision's previews/ from now on: a preview is an
+        // artifact OF a revision, so a later revision cannot overwrite it.
+        const revisionDirectory = this.store.revisionDirectory(projectId, revision)
+        const previewsDir = join(revisionDirectory, 'previews')
+        mkdirSync(previewsDir, { recursive: true })
+        // Each attempt owns its image. Camera/frame alone would overwrite pixels
+        // referenced by an earlier job when its budget or render settings differ.
+        const filename = `${jobId}-frame${report.frame ?? 0}-${safeFileName(request.cameraId ?? spec.cameras?.[0]?.id ?? 'camera')}.png`
+        const finalPath = resolveInside(
+          this.store.projectDirectory(projectId),
+          join(previewsDir, filename),
+          'preview artifact',
+        )
+        renameSync(outputPath, finalPath)
+        removeTree(staging)
+        // The parent is shared, so it goes only when this render was the last one using it: `rmdirSync` refuses a
+        // non-empty directory, which is exactly the check wanted — no listing, no race, and a failure here means
+        // another preview is still working.
+        try {
+          rmdirSync(stagingParent)
+        } catch {
+          /* another preview is still staging into it */
+        }
 
-      const artifact = {
-        kind: 'preview',
-        path: `revisions/${revision}/previews/${filename}`,
-        sourceRevision: revision,
-        sourceDigest: digest,
-        jobId,
-        at: new Date().toISOString(),
-        cameraId: report.cameraId ?? request.cameraId ?? null,
-        frame: report.frame ?? null,
-        width: report.width ?? null,
-        height: report.height ?? null,
-        engine: report.engine ?? null,
-        samples: report.renderConfig?.samples ?? null,
-        renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
-        bytes: fileSize(finalPath),
-        sha256: fileSha256(finalPath),
-        mime: 'image/png',
-      }
+        const artifact = {
+          kind: 'preview',
+          path: `revisions/${revision}/previews/${filename}`,
+          sourceRevision: revision,
+          sourceDigest: digest,
+          jobId,
+          at: new Date().toISOString(),
+          cameraId: report.cameraId ?? request.cameraId ?? null,
+          frame: report.frame ?? null,
+          width: report.width ?? null,
+          height: report.height ?? null,
+          engine: report.engine ?? null,
+          samples: report.renderConfig?.samples ?? null,
+          renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
+          bytes: fileSize(finalPath),
+          sha256: fileSha256(finalPath),
+          mime: 'image/png',
+        }
 
-      // Record the new artifact in the revision's own manifest.
-      //
-      // Without this the manifest under-reports its own revision: it is written
-      // once at commit time, so every preview rendered LATER left the
-      // `previews` array listing only the ones that existed then. That made the
-      // audit record disagree with the directory it describes — a caller asking
-      // "what previews does r0002 have?" got one answer from the manifest and
-      // three from the filesystem, and the manifest is the one that gets
-      // persisted, copied into a delivery bundle, and read by the model.
-      //
-      // This is the one WRITE that may touch a published revision, and it is
-      // deliberately an append-only amendment of the artifact index rather than a
-      // change to the revision's content: the SceneSpec, the checkpoint, the
-      // validation report and the manifest's identity/digest fields are all left
-      // exactly as committed. A preview is produced BY a revision and is not part
-      // of what that revision decided, which is why rendering does not create a
-      // revision and why this amendment is not one either.
-      const previews = this.store.recordRevisionPreview(projectId, revision, artifact)
+        // Record the new artifact in the revision's own manifest.
+        //
+        // Without this the manifest under-reports its own revision: it is written
+        // once at commit time, so every preview rendered LATER left the
+        // `previews` array listing only the ones that existed then. That made the
+        // audit record disagree with the directory it describes — a caller asking
+        // "what previews does r0002 have?" got one answer from the manifest and
+        // three from the filesystem, and the manifest is the one that gets
+        // persisted, copied into a delivery bundle, and read by the model.
+        //
+        // This is the one WRITE that may touch a published revision, and it is
+        // deliberately an append-only amendment of the artifact index rather than a
+        // change to the revision's content: the SceneSpec, the checkpoint, the
+        // validation report and the manifest's identity/digest fields are all left
+        // exactly as committed. A preview is produced BY a revision and is not part
+        // of what that revision decided, which is why rendering does not create a
+        // revision and why this amendment is not one either.
+        const previews = await this.store.recordRevisionPreview(projectId, revision, artifact)
+        return { artifact, previews }
+      }, { signal: request.signal })
       // What the caller is actually looking at. A preview is the one result whose
       // value depends on facts the numbers do not carry — which checkpoint it came
       // from, which frame, which engine — so all three are stated rather than
@@ -1398,160 +1401,165 @@ export default class BlenderStudio extends Service {
         warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, entry.message, { code: entry.code }))
       }
 
-      // Published in VIEW ORDER, and the measurement records keep that order too:
-      // the contact sheet's left-to-right reading order is derived from it, and a
-      // sheet whose labels disagree with the measurements is worse than a sheet with
-      // no labels at all.
-      const revisionDirectory = this.store.revisionDirectory(projectId, revision)
-      const viewsDirectory = join(revisionDirectory, 'previews', 'views')
-      mkdirSync(viewsDirectory, { recursive: true })
+      const { artifacts, measurements, previewSheets } = await this.store.withRevisionArtifacts(projectId, revision, async () => {
+        // Published in VIEW ORDER, and the measurement records keep that order too:
+        // the contact sheet's left-to-right reading order is derived from it, and a
+        // sheet whose labels disagree with the measurements is worse than a sheet with
+        // no labels at all.
+        const revisionDirectory = this.store.revisionDirectory(projectId, revision)
+        const viewsDirectory = join(revisionDirectory, 'previews', 'views')
+        mkdirSync(viewsDirectory, { recursive: true })
 
-      const artifacts = []
-      const measurements = []
-      for (const entry of run.report.views ?? []) {
-        if (typeof entry.outputPath !== 'string') continue
-        const finalPath = resolveInside(
-          this.store.projectDirectory(projectId),
-          join(viewsDirectory, `${safeFileName(entry.viewId)}.png`),
-          'view preview artifact',
-        )
-        const png = run.pngs[entry.viewId]
-        if (!Buffer.isBuffer(png)) {
-          throw new BlenderError(
-            BlenderErrorCode.RENDER_NO_OUTPUT,
-            `The Blender renderer reported success for view "${entry.viewId}" but its bytes could not be read.`,
-            { detail: { viewId: entry.viewId, outputPath: entry.outputPath, jobId } },
+        const artifacts = []
+        const measurements = []
+        for (const entry of run.report.views ?? []) {
+          if (typeof entry.outputPath !== 'string') continue
+          const finalPath = resolveInside(
+            this.store.projectDirectory(projectId),
+            join(viewsDirectory, `${safeFileName(entry.viewId)}.png`),
+            'view preview artifact',
           )
+          const png = run.pngs[entry.viewId]
+          if (!Buffer.isBuffer(png)) {
+            throw new BlenderError(
+              BlenderErrorCode.RENDER_NO_OUTPUT,
+              `The Blender renderer reported success for view "${entry.viewId}" but its bytes could not be read.`,
+              { detail: { viewId: entry.viewId, outputPath: entry.outputPath, jobId } },
+            )
+          }
+          // The bytes are written by the HOST, not by Blender, so the file that gets
+          // hashed is the file that gets published — Blender wrote into a scratch
+          // directory that no longer exists by the time anyone reads this record.
+          writeFileSync(finalPath, png)
+          const relative = `revisions/${revision}/previews/views/${safeFileName(entry.viewId)}.png`
+          const artifact = {
+            kind: 'view',
+            sourceRevision: revision,
+            sourceDigest: digest,
+            jobId,
+            viewId: entry.viewId,
+            role: entry.role ?? null,
+            path: relative,
+            cameraId: entry.cameraId ?? null,
+            frame: entry.frame ?? null,
+            width: entry.width ?? null,
+            height: entry.height ?? null,
+            engine: entry.engine ?? null,
+            samples: effectiveSamples ?? null,
+            bytes: png.length,
+            sha256: fileSha256(finalPath),
+            mime: 'image/png',
+            // WHEN this was produced. A preview is an EMITTED artifact: rendering one
+            // replaces the files at the same paths (D28), so without a timestamp the
+            // only trace of "I just rendered this" is the sha changing — which a
+            // human cannot see, and which a UI that keys its <img> on the path alone
+            // does not even re-fetch. Recorded here rather than inferred by a reader.
+            at: new Date().toISOString(),
+          }
+          artifacts.push(artifact)
+          measurements.push({
+            viewId: entry.viewId,
+            role: entry.role ?? null,
+            cameraId: entry.cameraId ?? null,
+            frame: entry.frame ?? null,
+            width: entry.width ?? null,
+            height: entry.height ?? null,
+            engine: entry.engine ?? null,
+            path: relative,
+            caption: plan.find(view => view.id === entry.viewId)?.label ?? entry.viewId,
+            purpose: plan.find(view => view.id === entry.viewId)?.purpose ?? null,
+            metrics: entry.metrics ?? null,
+          })
+          await this.store.recordRevisionPreview(projectId, revision, artifact)
         }
-        // The bytes are written by the HOST, not by Blender, so the file that gets
-        // hashed is the file that gets published — Blender wrote into a scratch
-        // directory that no longer exists by the time anyone reads this record.
-        writeFileSync(finalPath, png)
-        const relative = `revisions/${revision}/previews/views/${safeFileName(entry.viewId)}.png`
-        const artifact = {
-          kind: 'view',
-          sourceRevision: revision,
-          sourceDigest: digest,
-          jobId,
-          viewId: entry.viewId,
-          role: entry.role ?? null,
-          path: relative,
-          cameraId: entry.cameraId ?? null,
-          frame: entry.frame ?? null,
-          width: entry.width ?? null,
-          height: entry.height ?? null,
-          engine: entry.engine ?? null,
-          samples: effectiveSamples ?? null,
-          bytes: png.length,
-          sha256: fileSha256(finalPath),
-          mime: 'image/png',
-          // WHEN this was produced. A preview is an EMITTED artifact: rendering one
-          // replaces the files at the same paths (D28), so without a timestamp the
-          // only trace of "I just rendered this" is the sha changing — which a
-          // human cannot see, and which a UI that keys its <img> on the path alone
-          // does not even re-fetch. Recorded here rather than inferred by a reader.
-          at: new Date().toISOString(),
-        }
-        artifacts.push(artifact)
-        measurements.push({
-          viewId: entry.viewId,
-          role: entry.role ?? null,
-          cameraId: entry.cameraId ?? null,
-          frame: entry.frame ?? null,
-          width: entry.width ?? null,
-          height: entry.height ?? null,
-          engine: entry.engine ?? null,
-          path: relative,
-          caption: plan.find(view => view.id === entry.viewId)?.label ?? entry.viewId,
-          purpose: plan.find(view => view.id === entry.viewId)?.purpose ?? null,
-          metrics: entry.metrics ?? null,
-        })
-        this.store.recordRevisionPreview(projectId, revision, artifact)
-      }
 
-      // ── one preview render = one sheet, and one generation kept back ──────
-      //
-      // Why the render composes a sheet at all: the individual views change on disk
-      // but nothing in the panel displayed them, so a person who clicked render saw
-      // "已渲染 7 个视角" and a screen identical to the one before (measured; §13.5B).
-      // Why it keeps the PREVIOUS one: a preview replaces its own image, so without
-      // a kept generation the panel can only ever show the present — and the
-      // question a person has after a render is "what changed?".
-      //
-      // The sheet the REVIEW path writes (`contact-sheets/round-N.png`, the image the
-      // model was shown) is deliberately untouched: it is evidence for a review, and
-      // overwriting it would rewrite what a reviewer looked at.
-      let previewSheets = null
-      if (run.pngs !== undefined && run.pngs !== null && Object.keys(run.pngs).length > 0) {
-        const directory = join(this.store.revisionDirectory(projectId, revision), 'contact-sheets')
-        mkdirSync(directory, { recursive: true })
-        const built = composeContactSheet({
-          views: measurements
-            .filter(view => Buffer.isBuffer(run.pngs[view.viewId]))
-            .map(view => ({ viewId: view.viewId, label: view.caption ?? view.viewId, png: run.pngs[view.viewId] })),
-          title: `${projectId} ${revision} preview ${new Date().toISOString()}`,
-        })
-        const currentFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-current.png'), 'preview sheet')
-        const previousFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-previous.png'), 'previous preview sheet')
+        // ── one preview render = one sheet, and one generation kept back ──────
+        //
+        // Why the render composes a sheet at all: the individual views change on disk
+        // but nothing in the panel displayed them, so a person who clicked render saw
+        // "已渲染 7 个视角" and a screen identical to the one before (measured; §13.5B).
+        // Why it keeps the PREVIOUS one: a preview replaces its own image, so without
+        // a kept generation the panel can only ever show the present — and the
+        // question a person has after a render is "what changed?".
+        //
+        // The sheet the REVIEW path writes (`contact-sheets/round-N.png`, the image the
+        // model was shown) is deliberately untouched: it is evidence for a review, and
+        // overwriting it would rewrite what a reviewer looked at.
+        let previewSheets = null
+        if (run.pngs !== undefined && run.pngs !== null && Object.keys(run.pngs).length > 0) {
+          const directory = join(this.store.revisionDirectory(projectId, revision), 'contact-sheets')
+          mkdirSync(directory, { recursive: true })
+          const built = composeContactSheet({
+            views: measurements
+              .filter(view => Buffer.isBuffer(run.pngs[view.viewId]))
+              .map(view => ({ viewId: view.viewId, label: view.caption ?? view.viewId, png: run.pngs[view.viewId] })),
+            title: `${projectId} ${revision} preview ${new Date().toISOString()}`,
+          })
+          const currentFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-current.png'), 'preview sheet')
+          const previousFile = resolveInside(this.store.projectDirectory(projectId), join(directory, 'preview-previous.png'), 'previous preview sheet')
 
-        // Rotate FIRST, then write the new one: the file that was current becomes the
-        // comparison, and its digest is recomputed from the bytes that are now there
-        // rather than carried over from the manifest.
-        let previousArtifact = null
-        if (isFile(currentFile)) {
-          // WHEN the rotated sheet was produced is the previous render's time, not
-          // this one's. Stamping `now` here made the pane claim a sheet rendered
-          // minutes earlier was "渲染于 <this render's clock>" — measured in the real
-          // GUI, where both panes read 07:11:58 while only one of them was rendered
-          // then. The time comes from the artifact that is being rotated; a store
-          // written before artifacts carried `at` retains an unknown time.
-          const priorCurrent = (this.store.readRevisionManifest(projectId, revision)?.contactSheets ?? [])
-            .find(entry => entry.slot === PREVIEW_SHEET_SLOTS.current)
-          copyFileSync(currentFile, previousFile)
-          previousArtifact = {
+          // Rotate FIRST, then write the new one: the file that was current becomes the
+          // comparison, and its digest is recomputed from the bytes that are now there
+          // rather than carried over from the manifest.
+          let previousArtifact = null
+          if (isFile(currentFile)) {
+            // WHEN the rotated sheet was produced is the previous render's time, not
+            // this one's. Stamping `now` here made the pane claim a sheet rendered
+            // minutes earlier was "渲染于 <this render's clock>" — measured in the real
+            // GUI, where both panes read 07:11:58 while only one of them was rendered
+            // then. The time comes from the artifact that is being rotated; a store
+            // written before artifacts carried `at` retains an unknown time.
+            const priorCurrent = (this.store.readRevisionManifest(projectId, revision)?.contactSheets ?? [])
+              .find(entry => entry.slot === PREVIEW_SHEET_SLOTS.current)
+            copyFileSync(currentFile, previousFile)
+            const previousImage = decodePng(readFileSync(previousFile))
+            previousArtifact = {
+              kind: 'contact-sheet',
+              sourceRevision: priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') ? priorCurrent.sourceRevision : revision,
+              sourceDigest: priorCurrent && Object.hasOwn(priorCurrent, 'sourceDigest') ? priorCurrent.sourceDigest
+                : priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') && priorCurrent.sourceRevision !== revision ? null : digest,
+              jobId: priorCurrent?.jobId ?? null,
+              slot: PREVIEW_SHEET_SLOTS.previous,
+              path: `revisions/${revision}/contact-sheets/preview-previous.png`,
+              iteration: null,
+              width: previousImage.width,
+              height: previousImage.height,
+              columns: priorCurrent?.columns ?? null,
+              rows: priorCurrent?.rows ?? null,
+              bytes: fileSize(previousFile),
+              sha256: fileSha256(previousFile),
+              mime: 'image/png',
+              ...(Array.isArray(priorCurrent?.views) ? { views: [...priorCurrent.views] } : {}),
+              at: priorCurrent?.at ?? null,
+            }
+          }
+          writeFileSync(currentFile, built.png)
+          const currentArtifact = {
             kind: 'contact-sheet',
-            sourceRevision: priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') ? priorCurrent.sourceRevision : revision,
-            sourceDigest: priorCurrent && Object.hasOwn(priorCurrent, 'sourceDigest') ? priorCurrent.sourceDigest
-              : priorCurrent && Object.hasOwn(priorCurrent, 'sourceRevision') && priorCurrent.sourceRevision !== revision ? null : digest,
-            jobId: priorCurrent?.jobId ?? null,
-            slot: PREVIEW_SHEET_SLOTS.previous,
-            path: `revisions/${revision}/contact-sheets/preview-previous.png`,
+            sourceRevision: revision,
+            sourceDigest: digest,
+            jobId,
+            slot: PREVIEW_SHEET_SLOTS.current,
+            path: `revisions/${revision}/contact-sheets/preview-current.png`,
             iteration: null,
             width: built.width,
             height: built.height,
             columns: built.columns,
             rows: built.rows,
-            bytes: fileSize(previousFile),
-            sha256: fileSha256(previousFile),
+            bytes: built.png.length,
+            sha256: fileSha256(currentFile),
             mime: 'image/png',
             views: built.placements.map(placement => placement.viewId),
-            at: priorCurrent?.at ?? null,
+            at: new Date().toISOString(),
           }
+          if (previousArtifact !== null) await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', previousArtifact)
+          await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', currentArtifact)
+          previewSheets = { current: currentArtifact, previous: previousArtifact }
+          artifacts.push(currentArtifact)
         }
-        writeFileSync(currentFile, built.png)
-        const currentArtifact = {
-          kind: 'contact-sheet',
-          sourceRevision: revision,
-          sourceDigest: digest,
-          jobId,
-          slot: PREVIEW_SHEET_SLOTS.current,
-          path: `revisions/${revision}/contact-sheets/preview-current.png`,
-          iteration: null,
-          width: built.width,
-          height: built.height,
-          columns: built.columns,
-          rows: built.rows,
-          bytes: built.png.length,
-          sha256: fileSha256(currentFile),
-          mime: 'image/png',
-          views: built.placements.map(placement => placement.viewId),
-          at: new Date().toISOString(),
-        }
-        if (previousArtifact !== null) this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', previousArtifact)
-        this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', currentArtifact)
-        previewSheets = { current: currentArtifact, previous: previousArtifact }
-        artifacts.push(currentArtifact)
-      }
+
+        return { artifacts, measurements, previewSheets }
+      }, { signal: input.signal })
 
       const job = this.store.writeJob(projectId, {
         schemaVersion: JOB_RECORD_VERSION,
@@ -1860,7 +1868,7 @@ export default class BlenderStudio extends Service {
       }
     }
 
-    const previews = this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', sheetArtifact)
+    const previews = await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', sheetArtifact)
     const reviewArtifact = {
       kind: 'visual-review',
       path: `revisions/${revision}/visual-reviews/round-${iteration}.json`,
@@ -1876,7 +1884,7 @@ export default class BlenderStudio extends Service {
       resolveInside(this.store.projectDirectory(projectId), join(reviewDirectory, `round-${iteration}.json`), 'visual review record'),
       { review, views: rendered.views },
     )
-    const reviews = this.store.recordRevisionArtifact(projectId, revision, 'reviews', reviewArtifact)
+    const reviews = await this.store.recordRevisionArtifact(projectId, revision, 'reviews', reviewArtifact)
 
     return {
       ...review,
@@ -2205,7 +2213,7 @@ export default class BlenderStudio extends Service {
           comparisonBaseline: baselineReview ? { revision: baselineReview.revision, sheetArtifact: baselineReview.sheetArtifact } : null,
         }, views: review.views,
       })
-      this.store.recordRevisionArtifact(projectId, review.revision, 'reviews', {
+      await this.store.recordRevisionArtifact(projectId, review.revision, 'reviews', {
         kind: 'visual-review', path, iteration: round, score: review.score, pass: review.pass,
         artisticStatus: assessment.status, issueCount: review.issues.length, at: new Date().toISOString(),
       })
