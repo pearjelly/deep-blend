@@ -26,6 +26,8 @@ function inspect(checkpoint,name){
 import bpy,bmesh,json,sys,hashlib,math
 from pathlib import Path
 checkpoint,out=sys.argv[sys.argv.index('--')+1:]
+sys.path.insert(0,${JSON.stringify(join(ROOT,'packages/deepblend/provider-local/python'))})
+from deepblend_mesh_checks import validate_corner_normals
 bpy.ops.wm.open_mainfile(filepath=checkpoint)
 obj=bpy.data.objects['db_entity__cup'];mesh=obj.data
 bm=bmesh.new();bm.from_mesh(mesh);unseen=set(bm.verts);components=0
@@ -39,6 +41,8 @@ result={'vertices':len(bm.verts),'faces':len(bm.faces),'euler':len(bm.verts)-len
     'components':components,'boundaryEdges':sum(e.is_boundary for e in bm.edges),
     'nonManifoldEdges':sum(not e.is_manifold for e in bm.edges),'volume':bm.calc_volume(signed=True)}
 bm.free();result['uvLayers']=len(mesh.uv_layers);result['finiteUV']=all(math.isfinite(c) for uv in mesh.uv_layers.active.data for c in uv.uv)
+validate_corner_normals(mesh)
+result['validCornerNormals']=True;result['customNormals']=mesh.has_custom_normals
 data={'vertices':[list(v.co) for v in mesh.vertices],'faces':[list(p.vertices) for p in mesh.polygons],
     'uv':[list(x.uv) for x in mesh.uv_layers.active.data],'normals':[list(n.vector) for n in mesh.corner_normals]}
 result['meshUvNormalSha256']=hashlib.sha256(json.dumps(data,sort_keys=True,separators=(',',':')).encode()).hexdigest()
@@ -69,6 +73,7 @@ try{
   const original=hashes(revisionDir),originalFacts=inspect(join(revisionDir,'scene.blend'),'initial')
   check('cup and handle are one closed connected object',originalFacts.components===1&&originalFacts.euler===0&&originalFacts.boundaryEdges===0&&originalFacts.nonManifoldEdges===0,originalFacts)
   check('actual volume and UVs are valid',originalFacts.volume>0&&originalFacts.uvLayers===1&&originalFacts.finiteUV)
+  check('analytic corner normals survive compiler shading and checkpoint storage',originalFacts.customNormals&&originalFacts.validCornerNormals)
   check('default geometry is fine and in the local physical bounds',originalFacts.faces>20_000&&Math.abs(originalFacts.bounds[1][2]-.105)<1e-6&&originalFacts.bounds[1][0]<.08,originalFacts)
   const scene=await studio.getScene(projectId,{full:true})
   write(join(output,'scene-plane.json'),scene)
@@ -93,6 +98,7 @@ try{
   check('generator patch creates a new version',nextRevision&&nextRevision!==revision,changed)
   const updatedFacts=inspect(join(workspace,'projects',projectId,'revisions',nextRevision,'scene.blend'),'updated')
   check('resized cup remains closed, connected and correctly sized',updatedFacts.components===1&&updatedFacts.boundaryEdges===0&&updatedFacts.nonManifoldEdges===0&&Math.abs(updatedFacts.bounds[1][2]-.126)<1e-6,updatedFacts)
+  check('resized checkpoint retains valid analytic corner normals',updatedFacts.customNormals&&updatedFacts.validCornerNormals)
   check('physical resize increases actual volume',Math.abs(updatedFacts.volume/originalFacts.volume-1.2**3)<.015)
   const reopened=inspect(join(revisionDir,'scene.blend'),'original-reopened')
   check('old checkpoint retains exact mesh, UV and normal data',reopened.meshUvNormalSha256===originalFacts.meshUvNormalSha256)

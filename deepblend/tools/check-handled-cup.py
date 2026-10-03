@@ -20,7 +20,7 @@ output.mkdir(parents=True, exist_ok=False)
 sources = output / 'sources'
 sources.mkdir()
 source_hashes = {}
-for name in ['deepblend_vessel.py', 'deepblend_vessel_parameters.py', 'deepblend_mesh_checks.py', 'deepblend_util.py']:
+for name in ['deepblend_vessel.py', 'deepblend_vessel_math.py', 'deepblend_vessel_parameters.py', 'deepblend_mesh_checks.py', 'deepblend_util.py']:
     content = (ROOT / 'packages/deepblend/provider-local/python' / name).read_bytes()
     (sources / name).write_bytes(content)
     source_hashes[name] = hashlib.sha256(content).hexdigest()
@@ -34,7 +34,7 @@ fixture_bytes = (ROOT / 'deepblend/fixtures/handled-cup/parameter-cases.json').r
 fixture = json.loads(fixture_bytes)
 report = {'blender': bpy.app.version_string, 'sourceHashes': source_hashes,
           'fixtureSha256': hashlib.sha256(fixture_bytes).hexdigest(),
-          'scope': fixture['scope'], 'cases': []}
+          'normalModel': fixture['normalModel'], 'scope': fixture['scope'], 'cases': []}
 for case in fixture['cases']:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     started = time.monotonic()
@@ -49,9 +49,14 @@ for case in fixture['cases']:
                 'uv': [list(x.uv) for x in mesh.uv_layers.active.data],
                 'normals': [list(n.vector) for n in mesh.corner_normals]}
         digest = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        geometry = {key: data[key] for key in ['vertices', 'faces', 'uv']}
+        geometry_digest = hashlib.sha256(json.dumps(geometry, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         result.update(meshUvNormalSha256=digest, vertices=len(mesh.vertices), faces=len(mesh.polygons),
+                      geometryUvSha256=geometry_digest, customNormals=mesh.has_custom_normals,
+                      referenceGeometryUvIdentical=geometry_digest == case['geometryUvSha256'],
                       referenceMeshIdentical=digest == case['meshUvNormalSha256'])
-        if report['blender'] == fixture['referenceBlender'] and not result['referenceMeshIdentical']:
+        if report['blender'] == fixture['referenceBlender'] and not (
+                result['referenceMeshIdentical'] and result['referenceGeometryUvIdentical']):
             raise RuntimeError('Reference-runtime mesh/UV/normal reproduction differs')
         result['passed'] = True
     except ActionError as error:

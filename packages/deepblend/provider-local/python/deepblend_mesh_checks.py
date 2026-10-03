@@ -85,6 +85,21 @@ def intersection_facts(mesh, max_candidates=2_000_000):
         'toleranceM':eps,'coplanarAreaToleranceM2':1e-14,'planeToleranceM':1e-9,'barycentricTolerance':1e-12}
 
 
+def validate_corner_normals(mesh):
+    """Check actual stored normals, including their orientation on each triangle."""
+    normals = [tuple(float(c) for c in item.vector) for item in mesh.corner_normals]
+    if len(normals) != len(mesh.loops):
+        raise ValueError('missing corner normals')
+    if any(not all(math.isfinite(c) for c in n) or abs(length(n)-1)>1e-5 for n in normals):
+        raise ValueError('non-finite or non-unit corner normals')
+    mesh.calc_loop_triangles()
+    for triangle in mesh.loop_triangles:
+        points = [tuple(float(c) for c in mesh.vertices[i].co) for i in triangle.vertices]
+        face_normal = normal(*points)
+        if face_normal is None or any(dot(normals[i], face_normal)<=0 for i in triangle.loops):
+            raise ValueError('corner normal opposes its geometry triangle')
+
+
 def validate_handled_cup_mesh(mesh, parameters):
     """Refuse invalid discrete output; do not publish a folded or open cup."""
     import bmesh
@@ -119,7 +134,9 @@ def validate_handled_cup_mesh(mesh, parameters):
             invalid('zero-area geometry triangle')
         a,b,c=(uv.data[i].uv for i in tri.loops)
         if abs((b-a).cross(c-a))<1e-12:invalid('zero-area UV triangle')
+    if not mesh.has_custom_normals:invalid('missing analytic corner normals')
     try:
+        validate_corner_normals(mesh)
         intersections=intersection_facts(mesh)
     except ValueError as error:
         invalid(str(error))

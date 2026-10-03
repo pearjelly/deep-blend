@@ -160,6 +160,7 @@ test('the layout counts in the README are what the tree holds', () => {
     'bootstrap.py': 'the dispatcher: it routes to the actions and implements none of them',
     'deepblend_bridge.py': 'the transport: it serves the actions over a socket, inside a user\'s Blender',
     'deepblend_vessel.py': 'shared handled-cup mesh construction, called by the scene compiler',
+    'deepblend_vessel_math.py': 'analytic cup surfaces and derivatives without Blender, called by mesh construction',
     'deepblend_vessel_parameters.py': 'shared coupled cup parameter guards, called before mesh construction',
     'deepblend_mesh_checks.py': 'shared discrete mesh validity checks, called by the cup constructor',
     'deepblend_geometry.py': 'shared deterministic mesh builders, called by the scene compiler',

@@ -1,6 +1,6 @@
 {
   "referenceBlender": "5.2.1 LTS",
-  "scope": "Finite authored endpoints, boundary resolutions and seeded interior dimensions; mesh digests are reproduction evidence for the reference runtime, not a continuous-domain or artistic certificate.",
+  "scope": "Finite authored endpoints, boundary resolutions and seeded interior dimensions. Geometry/UV are unchanged from the recorded average-normal baseline; analytic normals intentionally replace it. Reference-runtime digests are reproduction evidence, not a continuous-domain or artistic certificate.",
   "cases": [
     {
       "id": "original-default",
@@ -23,7 +23,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "077c6a8977fe6b836b146d2faed4acdf6701c4daa83dd5a66db45376eda75528"
+      "meshUvNormalSha256": "628e422084be4c00f88159a97f6aae481561147ad5af10eb169444b204fb1c06",
+      "previousMeshUvNormalSha256": "077c6a8977fe6b836b146d2faed4acdf6701c4daa83dd5a66db45376eda75528",
+      "geometryUvSha256": "0a31467d5f734c64d485045c43e5da70f8377019b664bffadcf27bdaad67f7f5"
     },
     {
       "id": "factorial-00",
@@ -46,7 +48,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "bec065bdc3912488bace3509b93fa57007789ecd699eb97312611d7d994bca87"
+      "meshUvNormalSha256": "37098726156e7b810033d1d5e7b58d57ab80fd920c8788aef03e4f71bb63ee64",
+      "previousMeshUvNormalSha256": "bec065bdc3912488bace3509b93fa57007789ecd699eb97312611d7d994bca87",
+      "geometryUvSha256": "bda38e46062bf9c72076aaacc9b23061f8231b52caa31095d0c38a10c8b21456"
     },
     {
       "id": "factorial-01",
@@ -69,7 +73,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "606245bd04b76a3874b8e47945bb777e3073e18f45f159e0d35a929cf65823da"
+      "meshUvNormalSha256": "aa821b19be908e2a2f132e8781e050f8f723f174895423bdd638df3c4dafd098",
+      "previousMeshUvNormalSha256": "606245bd04b76a3874b8e47945bb777e3073e18f45f159e0d35a929cf65823da",
+      "geometryUvSha256": "a0452e9c4c4d91ccb800e2edef3f9959bba886e77fe7b3ec0aef7845663d550a"
     },
     {
       "id": "factorial-02",
@@ -92,7 +98,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "47529f859410a6e7080db31e2427d03799584fd6cc5a2ec577418793aff4a7ba"
+      "meshUvNormalSha256": "927463fe8d200bc7f39e85db28111bab9c9258402142069568b0cc3f54e73e92",
+      "previousMeshUvNormalSha256": "47529f859410a6e7080db31e2427d03799584fd6cc5a2ec577418793aff4a7ba",
+      "geometryUvSha256": "b74fb35ba685445382f8a709a85dcb8061ba98f2aab65b739f5a9c5558aaa3e5"
     },
     {
       "id": "factorial-03",
@@ -115,7 +123,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "d50c8dbeb8d085a167f25d602e6c3ec37f151be3af58f9e616f982114412682d"
+      "meshUvNormalSha256": "815e7c1e0ff194b4c06aa8c509d382c5971eb4907ecd6a78902918e33ba96b97",
+      "previousMeshUvNormalSha256": "d50c8dbeb8d085a167f25d602e6c3ec37f151be3af58f9e616f982114412682d",
+      "geometryUvSha256": "34b02b45be6ebb4b8b0b4c66e20b9920bf6f41764b3ebe58e011eb137a2b967f"
     },
     {
       "id": "factorial-04",
@@ -138,7 +148,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "2710151961a5b1b8c82f204eb112f319abf525ee8564cc16df2ba6e15a88a681"
+      "meshUvNormalSha256": "d9243707bd274a9508d770f76cda4db911ef4aa3db6d0be14e8c6f681bc1bcf1",
+      "previousMeshUvNormalSha256": "2710151961a5b1b8c82f204eb112f319abf525ee8564cc16df2ba6e15a88a681",
+      "geometryUvSha256": "3589d8bd0a61d6183bcbfc0666875c7d6243b8209d1e443b85f4cea6e1b007f3"
     },
     {
       "id": "factorial-05",
@@ -161,7 +173,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "4abdab9647bedc8b79692fc637a5e597bf0379550b1ec5d20cde620200820f77"
+      "meshUvNormalSha256": "9ae0b908586ff33536d4f8436539eff826f6d0e02d31cd337b0764ff99501667",
+      "previousMeshUvNormalSha256": "4abdab9647bedc8b79692fc637a5e597bf0379550b1ec5d20cde620200820f77",
+      "geometryUvSha256": "61ec8da26b725994c2ef730ae09ebd64d2f619002596ab4fdbe8932191486d56"
     },
     {
       "id": "factorial-06",
@@ -184,7 +198,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "c265e75d4cf78cd90f3e23080890ffede36ec4505319b2501f68675bb558c39c"
+      "meshUvNormalSha256": "2d5d113bdedec0f2f3c11dea42aca771abb954d4c949adfb05c9c05cb25230f3",
+      "previousMeshUvNormalSha256": "c265e75d4cf78cd90f3e23080890ffede36ec4505319b2501f68675bb558c39c",
+      "geometryUvSha256": "91a13e211c277317b17056048b725abb36f76be26e93f9bd602365b414026388"
     },
     {
       "id": "factorial-07",
@@ -229,7 +245,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "bcd6c00e613411bf98170e13eec31030ec7008a64b7e641bad00e4e32d59833b"
+      "meshUvNormalSha256": "ceec0741c9ddc0fef1868740096d8f503ce0c49821634f80ad8922a76fc85ef9",
+      "previousMeshUvNormalSha256": "bcd6c00e613411bf98170e13eec31030ec7008a64b7e641bad00e4e32d59833b",
+      "geometryUvSha256": "98f2954130b0d705c453ca621a0057d7481d82c0d05132113fccf736bd5907c6"
     },
     {
       "id": "factorial-09",
@@ -252,7 +270,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "f553af20218020f7fbeab6d7bc3c8cd90e3ed24177b96d98a39805ab093c9ff5"
+      "meshUvNormalSha256": "da13eae5d896a43746d6457c1132d611df8f1fdf87d9584b3f264fc8a15e835e",
+      "previousMeshUvNormalSha256": "f553af20218020f7fbeab6d7bc3c8cd90e3ed24177b96d98a39805ab093c9ff5",
+      "geometryUvSha256": "ed451d976dcaf7edbba7244515cb583015a8e946f6bd8aa88cfb2d00745ffb82"
     },
     {
       "id": "factorial-10",
@@ -275,7 +295,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "9a8792ca02d56128ee50559f3ea34a2f801cf5ba70e1549b3c07a1a929ec5fb1"
+      "meshUvNormalSha256": "a11fe63c1c8ab5a206952e828a725f850ccaa146403cd2c9ee8ea8881ed0b7b0",
+      "previousMeshUvNormalSha256": "9a8792ca02d56128ee50559f3ea34a2f801cf5ba70e1549b3c07a1a929ec5fb1",
+      "geometryUvSha256": "0bd05e2eb4de49d62ab309caedd45ed8940178af9c4238db9727886e6dd85ff4"
     },
     {
       "id": "factorial-11",
@@ -298,7 +320,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "b4679c067b28a04fa46993b027ac8e8b3db5b4b6e1bd05d301db863274b49a06"
+      "meshUvNormalSha256": "4a5879dc6fd28eb2945f49381bde4c798ee2a16086dcb7d6c19671f7128b51df",
+      "previousMeshUvNormalSha256": "b4679c067b28a04fa46993b027ac8e8b3db5b4b6e1bd05d301db863274b49a06",
+      "geometryUvSha256": "2e27dc692507e0239573c9bb547a1f3367475909b13823886306cbf0e42cf53f"
     },
     {
       "id": "factorial-12",
@@ -321,7 +345,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "90ee67a0a35aa692eea3bed1ebf96981466c7d0de8462ff2dda4d00822de527c"
+      "meshUvNormalSha256": "81a27b06d18820fe70594ec9df036a73cfa104bf014ca748018e3259b6cd4c71",
+      "previousMeshUvNormalSha256": "90ee67a0a35aa692eea3bed1ebf96981466c7d0de8462ff2dda4d00822de527c",
+      "geometryUvSha256": "f9b928f344a1de036ca40b814da2dd1874ad7648cfd73a211dd7bb018f900f2c"
     },
     {
       "id": "factorial-13",
@@ -344,7 +370,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "ad33457fe1caf17ba3fd62ead492e2fcb86e510b486e4585088e5fba951a93cb"
+      "meshUvNormalSha256": "e395a7a0bd666cd559f612da61a4564b8d105149ffbbbe3534e301d6c3a50898",
+      "previousMeshUvNormalSha256": "ad33457fe1caf17ba3fd62ead492e2fcb86e510b486e4585088e5fba951a93cb",
+      "geometryUvSha256": "9e8e464c389058fbe8d51602dea968116fe3c7cdc7f9e15000090757bdbc794e"
     },
     {
       "id": "factorial-14",
@@ -367,7 +395,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "1d7b80fdcc1c168ae1f12e5a1170a27e24d4a8f5506ce8b0c94aafc84bdda4d1"
+      "meshUvNormalSha256": "2e6f5b971112d033040e5d9c30e6d0b9f7af78a1eece4dc087541e9bbe2a6e99",
+      "previousMeshUvNormalSha256": "1d7b80fdcc1c168ae1f12e5a1170a27e24d4a8f5506ce8b0c94aafc84bdda4d1",
+      "geometryUvSha256": "993449ad49cc64a41c902275fc3b153c625caa297f84439242312b45c8c5299d"
     },
     {
       "id": "factorial-15",
@@ -412,7 +442,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "29cd26601a5f9eecf829b32ad2f8eea47113de09b7538eec0019b1cf170d4c59"
+      "meshUvNormalSha256": "284abb1a1635cf6f095962e7b055b773c21bbc8868cc6cb8ec7efae8c4c8eec9",
+      "previousMeshUvNormalSha256": "29cd26601a5f9eecf829b32ad2f8eea47113de09b7538eec0019b1cf170d4c59",
+      "geometryUvSha256": "055324fedd35c7f7cec03e75799e98a47b25e95e6d95a5f14839ec1db6ad9de7"
     },
     {
       "id": "factorial-17",
@@ -435,7 +467,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "60852406fe9067ed566262c852783e8477ba1dd729a5c31140fa1afac758141d"
+      "meshUvNormalSha256": "6a611ac6750200005a97edcc13acd398d77c63d0ad23a33847678bcf207c79d7",
+      "previousMeshUvNormalSha256": "60852406fe9067ed566262c852783e8477ba1dd729a5c31140fa1afac758141d",
+      "geometryUvSha256": "90c8ad5c32b4bb4c63786e6a56b963676213cd4b1d795295cd96484e4da0c14b"
     },
     {
       "id": "factorial-18",
@@ -458,7 +492,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "a29747748e3a6075bca27e5aa68ac2112f6b0635b540ea4d5a718800e29fab6f"
+      "meshUvNormalSha256": "b671f5981b245853e4bc0f34012cfbb239c71089f24ac60d254e7f0f93910e34",
+      "previousMeshUvNormalSha256": "a29747748e3a6075bca27e5aa68ac2112f6b0635b540ea4d5a718800e29fab6f",
+      "geometryUvSha256": "a551641801e1b72dcdc9b3d0dd95153576fc5ea382d252ca9e2cef7f2f4bb179"
     },
     {
       "id": "factorial-19",
@@ -481,7 +517,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "bc211b6d52a2a09c00d01829f8614af80752442fb1c481f151abca14a3fea5a7"
+      "meshUvNormalSha256": "2ec5f1e828d03fcec6d7ad4534fe810d062d05fbe26b49cf25842003fa9487c5",
+      "previousMeshUvNormalSha256": "bc211b6d52a2a09c00d01829f8614af80752442fb1c481f151abca14a3fea5a7",
+      "geometryUvSha256": "3a580c193933262f4471a1852d7a7386d15363ae53b97ea5cf54648984c13c5d"
     },
     {
       "id": "factorial-20",
@@ -504,7 +542,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "313b85333ddaafc0b8a7f89c41168570f817042ced7cfc16d0439f9118005860"
+      "meshUvNormalSha256": "141623c5a6466bdb4c9a400403f0a46a5af9507a0937924f9c9dcf063190d04d",
+      "previousMeshUvNormalSha256": "313b85333ddaafc0b8a7f89c41168570f817042ced7cfc16d0439f9118005860",
+      "geometryUvSha256": "bffc9356c0f5a0e0514ee2c27684e7ea66ac3ae877380eedadf1ca0a53d76676"
     },
     {
       "id": "factorial-21",
@@ -527,7 +567,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "69a58beb5d5aa427345f580921fd482546803d30fa6cc0a159135a6e5758fa65"
+      "meshUvNormalSha256": "1cfefef20cb5ad005a9d2bd56588d4593da5acb8f55f1ff175533cb2db606ffb",
+      "previousMeshUvNormalSha256": "69a58beb5d5aa427345f580921fd482546803d30fa6cc0a159135a6e5758fa65",
+      "geometryUvSha256": "f2854520bf6a091cbd12cfbcb159180f01d3e80deb546213865519941e67266d"
     },
     {
       "id": "factorial-22",
@@ -550,7 +592,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "5f90f79d7903e5828d2c902d78e6c362dfdf91b45e9b6e36318c7393a3584932"
+      "meshUvNormalSha256": "c413feedacba049453af3a444acda31f6a34fa4224d3c1f68fa93946da0c8733",
+      "previousMeshUvNormalSha256": "5f90f79d7903e5828d2c902d78e6c362dfdf91b45e9b6e36318c7393a3584932",
+      "geometryUvSha256": "4a3f61b48341bcc0f35cbfb7de4cea4f1ef134f3fd7ee701cb34c5f04e65dda4"
     },
     {
       "id": "factorial-23",
@@ -573,7 +617,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "1b61cb89623fa35526b514508a777d9e575b8fc2f685ed90b8bc3e7ab76fd646"
+      "meshUvNormalSha256": "af6f7fbd3bc2c1f03cdf1041004c3e0f14036d69b59152e29ba7600367f1814c",
+      "previousMeshUvNormalSha256": "1b61cb89623fa35526b514508a777d9e575b8fc2f685ed90b8bc3e7ab76fd646",
+      "geometryUvSha256": "895d6f7de61179c3c475e26c6893dbfe00f4b9ed467884b128435856ed6ed353"
     },
     {
       "id": "factorial-24",
@@ -596,7 +642,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "d4fc5d821acce9494852de7bdf93bdd31a1a871e06de490434e9d38503859fce"
+      "meshUvNormalSha256": "e62314c670e5c598e015c662c016e259428a6c9eff47306b7559b241f708e43d",
+      "previousMeshUvNormalSha256": "d4fc5d821acce9494852de7bdf93bdd31a1a871e06de490434e9d38503859fce",
+      "geometryUvSha256": "409ca6c0714ef25bf493e4456cedb41b5f7f829756b8fb26a68f2ef058d19230"
     },
     {
       "id": "factorial-25",
@@ -619,7 +667,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "54716311db2d8680531428b144bc6cb28497090d5009231266bc3a0b1f4d9da9"
+      "meshUvNormalSha256": "83a2e31c669052d562c11d441a670099604b0aae774b756376692ab06a543b94",
+      "previousMeshUvNormalSha256": "54716311db2d8680531428b144bc6cb28497090d5009231266bc3a0b1f4d9da9",
+      "geometryUvSha256": "6168737fcf84e1a586c8e0c9f51d9c253fea49fb2ca45056bc46f27452535aba"
     },
     {
       "id": "factorial-26",
@@ -642,7 +692,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "5ca7d0f7ba55edd253a7fb061336594d689db53ee13d2157451a0152963d5514"
+      "meshUvNormalSha256": "d446555080e535e71eef2578f5a5550df7f81c1c5c6a41708be8c6a8d366fe2a",
+      "previousMeshUvNormalSha256": "5ca7d0f7ba55edd253a7fb061336594d689db53ee13d2157451a0152963d5514",
+      "geometryUvSha256": "c1860f88064821f29ce73bd459c8741c405b98f6359e311b8a669edd5f7afea1"
     },
     {
       "id": "factorial-27",
@@ -665,7 +717,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "847090207bfdfd74c4226fc756807a5d5380d1ffe683785cefb94578441df1dc"
+      "meshUvNormalSha256": "8d44b6e07dff986112a39d9242eef8e63d8382e91bbb01af62998b40f9845fb6",
+      "previousMeshUvNormalSha256": "847090207bfdfd74c4226fc756807a5d5380d1ffe683785cefb94578441df1dc",
+      "geometryUvSha256": "16009fe00c0a108025139e34b305c7b14063b06daa024c03df35d9b796771f9b"
     },
     {
       "id": "factorial-28",
@@ -688,7 +742,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "b830db40635604e66e8674d2e3950497f916e22531630181f99b51e5ca9c9196"
+      "meshUvNormalSha256": "a64096ea47ad084dab30f79c31d9202e786399c7ee96abb487d74cb84bfb7124",
+      "previousMeshUvNormalSha256": "b830db40635604e66e8674d2e3950497f916e22531630181f99b51e5ca9c9196",
+      "geometryUvSha256": "15659a260a75031adba153b3da5a39b926b68c9ac7a2e57a598e8d3ba270d699"
     },
     {
       "id": "factorial-29",
@@ -711,7 +767,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "0469d7c269a3ebfc56319d7f4b4e8c711fad296bd3ac71ab02a63bfc3f756b92"
+      "meshUvNormalSha256": "afeb603ce3996fd814793453688169635c420565e70a8173cd6d657ce17ac065",
+      "previousMeshUvNormalSha256": "0469d7c269a3ebfc56319d7f4b4e8c711fad296bd3ac71ab02a63bfc3f756b92",
+      "geometryUvSha256": "e3a54d00578f4f574764ecf52bcc493a20f5eab4e93b81b2bfdc78616316efbb"
     },
     {
       "id": "factorial-30",
@@ -734,7 +792,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "cb48771fb13719f3793a7dfb74b6a1389d23c21e8778f30fcc853aed4a2acbae"
+      "meshUvNormalSha256": "4b18ecd1891a80aa73faed1cb9267dcbadfcccd97b196e6e4c1956c20dd92c7f",
+      "previousMeshUvNormalSha256": "cb48771fb13719f3793a7dfb74b6a1389d23c21e8778f30fcc853aed4a2acbae",
+      "geometryUvSha256": "6a580669ca3654feffb5eb1b8b1ad7a63773e0589121cff452216be359251fa8"
     },
     {
       "id": "factorial-31",
@@ -757,7 +817,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "136d0660f87b64249ca518df94eb1a5a736e58187061db2da9493efb9bc4d9ee"
+      "meshUvNormalSha256": "1bc2b75b8119c643eaa7373a5d34f22c5dc0193e5362fb061b81292fee7d7097",
+      "previousMeshUvNormalSha256": "136d0660f87b64249ca518df94eb1a5a736e58187061db2da9493efb9bc4d9ee",
+      "geometryUvSha256": "af5fcabd7b7d2c268d8befc2b316d43c0305474ea723bd9b56f26f5b58fcf39a"
     },
     {
       "id": "factorial-32",
@@ -780,7 +842,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "e28c88df49d3fe1b06bbe099de2cc8b376e0a546be36f10f82436097455cac91"
+      "meshUvNormalSha256": "615bc9f5b4f75e96535ac8c1cc54610742002beb671577e8d82edf3584c26b61",
+      "previousMeshUvNormalSha256": "e28c88df49d3fe1b06bbe099de2cc8b376e0a546be36f10f82436097455cac91",
+      "geometryUvSha256": "4c04321c2840dfe9a775ebb7a740b3cee886373b937d2f74372e99f5f6ad18cf"
     },
     {
       "id": "factorial-33",
@@ -803,7 +867,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "ffa035b4c089fa0eafff46f70fc9a7ce0d8152d6de05258e9e077ce211d1b2c9"
+      "meshUvNormalSha256": "b61387942453943ae46d51cde510c81e4cd0bacd526eb8fcc0bf017728314f2e",
+      "previousMeshUvNormalSha256": "ffa035b4c089fa0eafff46f70fc9a7ce0d8152d6de05258e9e077ce211d1b2c9",
+      "geometryUvSha256": "f294243846319a50e4d73c2150dbb534041503a0201c928fa5bf9976e055cf98"
     },
     {
       "id": "factorial-34",
@@ -826,7 +892,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "b6a69cc439c5b91fa6c4696ff8ef312910081122ca0bb6884ec9166797716327"
+      "meshUvNormalSha256": "75b4536b5cc1381155b1172ad50d10be52898d9682c710489b0b16b72bde2106",
+      "previousMeshUvNormalSha256": "b6a69cc439c5b91fa6c4696ff8ef312910081122ca0bb6884ec9166797716327",
+      "geometryUvSha256": "06810b9a2a5d51c51f07d4f4cae0b1951c485831c2dfbae2e4a38ade3204663b"
     },
     {
       "id": "factorial-35",
@@ -849,7 +917,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "a916cf81d4ef1c1460d7ef4c3618c0d86af742d82fc5f49bd8d735a571efd5dc"
+      "meshUvNormalSha256": "a2ec2c44c39a53a92eb5ef72da4fba61bdb42baeb4b60dbcaaf9a8d8f78f188c",
+      "previousMeshUvNormalSha256": "a916cf81d4ef1c1460d7ef4c3618c0d86af742d82fc5f49bd8d735a571efd5dc",
+      "geometryUvSha256": "e30510f7ec1844b927f07bdcebc8fe385e1b1233c8376f94ad7ae574395250b3"
     },
     {
       "id": "factorial-36",
@@ -872,7 +942,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "cc69fccd71419669c8a4f250e98ba3419c6193d5d7e673f398027f9e7d6f8c7a"
+      "meshUvNormalSha256": "3f5f47c5fcc75c67d8eb714d7619d3f26a23c3c44fdb94ff2ac9751aed6378e8",
+      "previousMeshUvNormalSha256": "cc69fccd71419669c8a4f250e98ba3419c6193d5d7e673f398027f9e7d6f8c7a",
+      "geometryUvSha256": "acc132dff12a4fe8f425390eb4ca4c82701469a5fcec8dc761bcf4c5843ee61d"
     },
     {
       "id": "factorial-37",
@@ -895,7 +967,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "d7e36adf74dc7f0b489190da0e072fc31f92210023dac5718da6b60e801cc51b"
+      "meshUvNormalSha256": "4bdaa8e0094849589371a07002249242c3d302a3b416456e2533276f877fcbb0",
+      "previousMeshUvNormalSha256": "d7e36adf74dc7f0b489190da0e072fc31f92210023dac5718da6b60e801cc51b",
+      "geometryUvSha256": "ffd5cd8a8bfefbb26d04fed4fc5f7f5219d06d16993db588cb41fb07fb16d494"
     },
     {
       "id": "factorial-38",
@@ -918,7 +992,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "ae46d8ecbdc70b016e17c7c4bbc88231b1866f1815748d1255ed13aecb6f77f5"
+      "meshUvNormalSha256": "6c5cde102354212376719b4764e439d64764169e2a155dc722af23677707a568",
+      "previousMeshUvNormalSha256": "ae46d8ecbdc70b016e17c7c4bbc88231b1866f1815748d1255ed13aecb6f77f5",
+      "geometryUvSha256": "a9fa360f1e8eb70849ce5ea887b6287dd9e670cbdde82edd4dec12d793b86200"
     },
     {
       "id": "factorial-39",
@@ -963,7 +1039,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "7bc9b82cef7c7f2f4bf30cc91afe6af98ceb760321af8835df4142dd5fbfa1a4"
+      "meshUvNormalSha256": "1ab0e6cff3609d5ec7fec794be8b637cc8154b2a2d4ceda6bb7da057e695b02d",
+      "previousMeshUvNormalSha256": "7bc9b82cef7c7f2f4bf30cc91afe6af98ceb760321af8835df4142dd5fbfa1a4",
+      "geometryUvSha256": "3d2119b4c70fba42b09152d91f51895ffd71ddf40f9154108d486a054a53522d"
     },
     {
       "id": "factorial-41",
@@ -986,7 +1064,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "2086b5abe2351934cfe669bf779c102b6a4ffda596dfb72ad1720ee374b13fa1"
+      "meshUvNormalSha256": "49934d5a75fd685be36c86b8515475c2a53901ae6c304edcf4837f858374a7bc",
+      "previousMeshUvNormalSha256": "2086b5abe2351934cfe669bf779c102b6a4ffda596dfb72ad1720ee374b13fa1",
+      "geometryUvSha256": "9ca87b94ce874432d3d7cbcde2c932441c31338b82500a5ac2e86c390b0b9e7d"
     },
     {
       "id": "factorial-42",
@@ -1009,7 +1089,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "02028cf63b501c0e057ffa88ce8936581d4d3abdeaf47f0c88e494d1960a9daa"
+      "meshUvNormalSha256": "86595c32b28e7bd1b98d5e83e78b34c899d443ef20a34c9a856a007e3dc81752",
+      "previousMeshUvNormalSha256": "02028cf63b501c0e057ffa88ce8936581d4d3abdeaf47f0c88e494d1960a9daa",
+      "geometryUvSha256": "e91d635e2dd1a1e30c731a040d5bfc964fc79f819c49390c4e4b20e3cac5c8d3"
     },
     {
       "id": "factorial-43",
@@ -1032,7 +1114,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "e2ba84baaa677d68e945a96b89ba9a787134e6bc0eb1456c0de828935397bc97"
+      "meshUvNormalSha256": "148250b0a3aec80ca1c181a4d4d96950605e196cf3743824ca77efc404c50c5b",
+      "previousMeshUvNormalSha256": "e2ba84baaa677d68e945a96b89ba9a787134e6bc0eb1456c0de828935397bc97",
+      "geometryUvSha256": "bd468fdd95fe86b688b466c5c849d220329a3e0e2f3daabd93629ef23ab17a8b"
     },
     {
       "id": "factorial-44",
@@ -1055,7 +1139,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "b059948e374d6b1f1cd4ac2ceff1472ce3fb81a1526b29073b44d1dce4a00e0c"
+      "meshUvNormalSha256": "831d42cca0801b74b6ea7482103fef4a54944a7af8ca5117382ccae88916c54d",
+      "previousMeshUvNormalSha256": "b059948e374d6b1f1cd4ac2ceff1472ce3fb81a1526b29073b44d1dce4a00e0c",
+      "geometryUvSha256": "a756191c296a2698b50f5cd667dd173ca8ea1b81fb1db7e8a927d35aaae71b2a"
     },
     {
       "id": "factorial-45",
@@ -1078,7 +1164,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "f24cfd1d433c0b1b0b676602a62cb95f750f0646feff0b5e6b26ad8417648620"
+      "meshUvNormalSha256": "07699517f818a909ccca63277c4974b96684e109d5db261e40eef6e77c59bcfb",
+      "previousMeshUvNormalSha256": "f24cfd1d433c0b1b0b676602a62cb95f750f0646feff0b5e6b26ad8417648620",
+      "geometryUvSha256": "57a3fb06940e08d6ab6e2480a6a7dd1caa6368dac217ebf1d43bce91761fed10"
     },
     {
       "id": "factorial-46",
@@ -1101,7 +1189,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "11776116ae987f764d8d0d3fcc24629188ece4a65cce1acfe105db0df3224d01"
+      "meshUvNormalSha256": "2c2b5cef0cfb32fcb82546e13f38f351f7dd27fba0c35eeeb994ea9b9b069b9e",
+      "previousMeshUvNormalSha256": "11776116ae987f764d8d0d3fcc24629188ece4a65cce1acfe105db0df3224d01",
+      "geometryUvSha256": "fbac29b009b21cf500602c25fbfc2000cde91188f35bc1ff8130efcbde586215"
     },
     {
       "id": "factorial-47",
@@ -1146,7 +1236,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "8264df30b6cf1102b2ed39d3a143b3594500b8f0872cc94b0b88279904c17265"
+      "meshUvNormalSha256": "ddda9cbdad8481b3896d450f308a332675863cd3f2f91c445890b18e45e9c6bd",
+      "previousMeshUvNormalSha256": "8264df30b6cf1102b2ed39d3a143b3594500b8f0872cc94b0b88279904c17265",
+      "geometryUvSha256": "0b4f5f7b6f66ab4840844687b559ede88ff209d612dba78f311e6c38ab2b8462"
     },
     {
       "id": "factorial-49",
@@ -1169,7 +1261,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "c8ee78fb2717d4d8855110768142936df7ef7aac5c24396e4470e976032bae1f"
+      "meshUvNormalSha256": "3e878ae80292686b30f349934cd4a076507dffecd563131db095c200f8a410f0",
+      "previousMeshUvNormalSha256": "c8ee78fb2717d4d8855110768142936df7ef7aac5c24396e4470e976032bae1f",
+      "geometryUvSha256": "800c4e43e7842879bd12b6276b82331f513056c8f1c0fb18d6ef083b190be1d3"
     },
     {
       "id": "factorial-50",
@@ -1192,7 +1286,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "9d8f2642bd9cf4ea146ad80e1641ad4fc38719a7b8e46687f6b1d1d021ace77e"
+      "meshUvNormalSha256": "e10852d0bc581f8b922afacc211ec40fda2b32096adba3025d4e420b5ff35ca3",
+      "previousMeshUvNormalSha256": "9d8f2642bd9cf4ea146ad80e1641ad4fc38719a7b8e46687f6b1d1d021ace77e",
+      "geometryUvSha256": "95d37358932447bc73b652067e2ce113568e5e53391fe2a39e2dac9f045ce48a"
     },
     {
       "id": "factorial-51",
@@ -1215,7 +1311,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "4d565dc8cbe4f987d373c69bab1753595a761c508b58b2e0c667f872c711fd8b"
+      "meshUvNormalSha256": "a9a3298fe73f5c4087c2a8cf9bec39ea48dcb25ba6ffcac169777b8de7a8e3a6",
+      "previousMeshUvNormalSha256": "4d565dc8cbe4f987d373c69bab1753595a761c508b58b2e0c667f872c711fd8b",
+      "geometryUvSha256": "b01508b6f28b7a289cb78273ee020fab05a3b617b27db953835ad82c4bb298dd"
     },
     {
       "id": "factorial-52",
@@ -1238,7 +1336,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "34f1c8f5bd083801358c22d89a68c8342133414b88b1cf84d5dab6124c8c3ae5"
+      "meshUvNormalSha256": "100d1f64e07d43551a3e09eb0b134b411003337d614fd9bb5e0582d2965c82c8",
+      "previousMeshUvNormalSha256": "34f1c8f5bd083801358c22d89a68c8342133414b88b1cf84d5dab6124c8c3ae5",
+      "geometryUvSha256": "6bab80937c973c98a5597e5216d8e085b8f19db910201aa13b79978d5e325325"
     },
     {
       "id": "factorial-53",
@@ -1261,7 +1361,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "da4e01e68293c38aedb713a651e68eec2a206e807b8df05df75d7cc6b1bbdff0"
+      "meshUvNormalSha256": "3ffa2e07a8e7a97bbaf9b6c3fe7ca5df567c0f10f62867df8923b1b876a9a10e",
+      "previousMeshUvNormalSha256": "da4e01e68293c38aedb713a651e68eec2a206e807b8df05df75d7cc6b1bbdff0",
+      "geometryUvSha256": "e9a8dc07eb389dd115d742799203a4d807182e86988d0e8ebe59c62debabedc0"
     },
     {
       "id": "factorial-54",
@@ -1284,7 +1386,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "ec96005395a38c15bcb6cb5ee510c3502097d145b6a32fd7ef5b743bed026e6c"
+      "meshUvNormalSha256": "3a3dc89b6b769fb1671927762cc9107e8c2872a9455eb73e02552196ddc769f9",
+      "previousMeshUvNormalSha256": "ec96005395a38c15bcb6cb5ee510c3502097d145b6a32fd7ef5b743bed026e6c",
+      "geometryUvSha256": "fbdda565a3202067e3ad80643ed8116377a398d2c2d7695ac980e09540443055"
     },
     {
       "id": "factorial-55",
@@ -1307,7 +1411,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "47cee07c56e1d014d72150ed6ca66ad4a6bf80e6d710624513b6e9a7060d9558"
+      "meshUvNormalSha256": "2c0e6ce16d251a64a3cc78a9db0b09c555b24dc9557cdddcae0dd2998943336b",
+      "previousMeshUvNormalSha256": "47cee07c56e1d014d72150ed6ca66ad4a6bf80e6d710624513b6e9a7060d9558",
+      "geometryUvSha256": "a5cc4f7b3e2b8e0e570f60e598575a5eb63beb1ee8fd1e4303db57fb9a7f3346"
     },
     {
       "id": "factorial-56",
@@ -1330,7 +1436,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "086d305b869316e0fae2745c05027d4dceb42edc6906693b8e731e9c6e0fd249"
+      "meshUvNormalSha256": "5e666d3bd670d8dc9f1fa647b94fec13367b7b79125acde5f8ad3bd0fa0e5f62",
+      "previousMeshUvNormalSha256": "086d305b869316e0fae2745c05027d4dceb42edc6906693b8e731e9c6e0fd249",
+      "geometryUvSha256": "e6644e12032b3f65e5bcb7d534357014fdec0017a7b86e387ccc7c569d606d25"
     },
     {
       "id": "factorial-57",
@@ -1353,7 +1461,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "f76a1b087520577b577908101f5cc75705aabebf26d6b28bfc6947bb17b95359"
+      "meshUvNormalSha256": "9d345fed756f925fd528d460a8ef2d99b02697f877b571c4f265b45a3b9f73da",
+      "previousMeshUvNormalSha256": "f76a1b087520577b577908101f5cc75705aabebf26d6b28bfc6947bb17b95359",
+      "geometryUvSha256": "f59decd15faebabde2ea9c6290f4f4d4c2714d4c5e1c45331fc1ddb65c3c65f5"
     },
     {
       "id": "factorial-58",
@@ -1376,7 +1486,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "a4e589fb9359b44c1bdc247008b4096510259b0010581a4f7adb5660250103af"
+      "meshUvNormalSha256": "6f821e200b8054553660a9faa1a75bf8b0e2d7924f509969e4b45e1de5f764b4",
+      "previousMeshUvNormalSha256": "a4e589fb9359b44c1bdc247008b4096510259b0010581a4f7adb5660250103af",
+      "geometryUvSha256": "5fbee5fcd986570b986951bbe0e8819009634f815bc98d01951ee2d3918885a8"
     },
     {
       "id": "factorial-59",
@@ -1399,7 +1511,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "751dd392095102e597c1b39723f3e3326b27e80bc895bae3a434a681e881a540"
+      "meshUvNormalSha256": "ffb3f9f32dba787fb16ef8fb1a446e7ef930c28bc45367ebe8476f6e62e4c980",
+      "previousMeshUvNormalSha256": "751dd392095102e597c1b39723f3e3326b27e80bc895bae3a434a681e881a540",
+      "geometryUvSha256": "88e48dc255caa80d67a867ac78fab6fd9861b7ba5201b8022ad37406809c915d"
     },
     {
       "id": "factorial-60",
@@ -1422,7 +1536,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "ebed1c4fb654a5a9fe90e9f511c124b65194ac5bfed48ab357977bf0cd5af62d"
+      "meshUvNormalSha256": "b786f3b86255a7c19e304df08021b8fe20df2c613555789546abd02356bdb26f",
+      "previousMeshUvNormalSha256": "ebed1c4fb654a5a9fe90e9f511c124b65194ac5bfed48ab357977bf0cd5af62d",
+      "geometryUvSha256": "44d51d608df17c45cbfd4a80448117c12b29491f584dfa33f8f1dc527c286761"
     },
     {
       "id": "factorial-61",
@@ -1445,7 +1561,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "aa37b91c55900589771eb5861e1c9adee449e140bb5a2babc1966d2a5e443398"
+      "meshUvNormalSha256": "546d77eba13a63da0edb15f0b98ef17862063261f8e4c7db03387f214b420c99",
+      "previousMeshUvNormalSha256": "aa37b91c55900589771eb5861e1c9adee449e140bb5a2babc1966d2a5e443398",
+      "geometryUvSha256": "66d6cccd5f801e72835ce4f70dce9c00c86d72296162adb9fb86656122913224"
     },
     {
       "id": "factorial-62",
@@ -1468,7 +1586,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "2820f703282dd04f2693433f915088dd4b14801ca7d76bf56b2b24569aaa1b60"
+      "meshUvNormalSha256": "a0f0173ff2615089132d872497dae0dc06706e5a85f14193736d6824d70b611e",
+      "previousMeshUvNormalSha256": "2820f703282dd04f2693433f915088dd4b14801ca7d76bf56b2b24569aaa1b60",
+      "geometryUvSha256": "6066810144dc427075fba4e7703ce2ae7c94ec164e88b762ba0ad5d3b0f28b39"
     },
     {
       "id": "factorial-63",
@@ -1491,7 +1611,9 @@
         "rootSegments": 12,
         "wallRows": 20
       },
-      "meshUvNormalSha256": "c969b67e7daf60863df660451be33946fde9a7b7017517604cd41c2d33cbdf6d"
+      "meshUvNormalSha256": "aa415e32a70ec27b3e29f480462b391b9c65c3a088b27f5b7b5655a7607aa496",
+      "previousMeshUvNormalSha256": "c969b67e7daf60863df660451be33946fde9a7b7017517604cd41c2d33cbdf6d",
+      "geometryUvSha256": "61135234b4631256a81fc6657eb213e7158a592e76e7784047ae5e4021ba1951"
     },
     {
       "id": "thin-wall",
@@ -1514,7 +1636,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "b6ee61725e215ac5aca369fe6b5a642cb96485e51b4ec4b6d2de3455a57d226d"
+      "meshUvNormalSha256": "eef836ec3f7285f79f3da32d01a830a657ac865d4c9c28476c8454090b1f7bdf",
+      "previousMeshUvNormalSha256": "b6ee61725e215ac5aca369fe6b5a642cb96485e51b4ec4b6d2de3455a57d226d",
+      "geometryUvSha256": "7a6dc863802943dd4db6074369764792ad7b9aafb005dd793a93e167a796d31e"
     },
     {
       "id": "thick-wall",
@@ -1537,7 +1661,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "11475469ca4a6b16944e362308fb6ed85db85134bac9a63a22b0ad5286d4ecd7"
+      "meshUvNormalSha256": "61bf5ff035c446a89cc3e1a075f0721c00922a63a904e2683ebec22be67dff13",
+      "previousMeshUvNormalSha256": "11475469ca4a6b16944e362308fb6ed85db85134bac9a63a22b0ad5286d4ecd7",
+      "geometryUvSha256": "cb344b54e706a52f0fd102eb20922213705241d602d34165055237e08df1c992"
     },
     {
       "id": "thin-base",
@@ -1560,7 +1686,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "6f6d6f9168fd2f13964b5040ed8785d584611f810f8a34186796980783c2224d"
+      "meshUvNormalSha256": "532b8bc6944d86fe05b0f3fe1ce291f62c0e1e8d46b2f480f8328938d724240f",
+      "previousMeshUvNormalSha256": "6f6d6f9168fd2f13964b5040ed8785d584611f810f8a34186796980783c2224d",
+      "geometryUvSha256": "b1578491d101d1c83b04322dc97bc1d90a8155c593503d5ed30ff9363ac06327"
     },
     {
       "id": "thick-base",
@@ -1583,7 +1711,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "571da60c79765577e2f5ba378027e3557f305185a66405102309e53671860d64"
+      "meshUvNormalSha256": "ed2379c63f5598adf27e0ecfc096b3dad473a709f3da3fa6012a0c26d13e7e3e",
+      "previousMeshUvNormalSha256": "571da60c79765577e2f5ba378027e3557f305185a66405102309e53671860d64",
+      "geometryUvSha256": "ec7fb203b69f75f3d5d75ab63de293c315f85f5b1bd6aea284972d9c2e76554c"
     },
     {
       "id": "thin-tube",
@@ -1606,7 +1736,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "afe1e4c632a702a8a41e2a4472e53515e05ae30bdc57017dff959dbdf8fb42da"
+      "meshUvNormalSha256": "bad906604098c7693b1d327416b4b1bd57ebb8ae4d178d54dd303c121b04e4d8",
+      "previousMeshUvNormalSha256": "afe1e4c632a702a8a41e2a4472e53515e05ae30bdc57017dff959dbdf8fb42da",
+      "geometryUvSha256": "b69e262e9d35ad855e85e9c50a2ad8e4f6bd4a4bbca9f90e8f009071062a6aca"
     },
     {
       "id": "thick-tube",
@@ -1629,7 +1761,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "86ed8c48aaaa8d40d1856c84d47bcaa2b4204df3cb4ee16ac2f7271317a56a7c"
+      "meshUvNormalSha256": "e02cfb1494a5a2a425ee1fb2dc81b74845071efd9e3a4adb8419ccd5a2e6031c",
+      "previousMeshUvNormalSha256": "86ed8c48aaaa8d40d1856c84d47bcaa2b4204df3cb4ee16ac2f7271317a56a7c",
+      "geometryUvSha256": "d7f79465864d374edab74fcebfc328a82bc35cea59850a8729dea8b0888e1997"
     },
     {
       "id": "small-footprint",
@@ -1652,7 +1786,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "78bbdd5a006a4f6bfd79e3d04f5aa27bc2dfa9587f419f522c985ebf1d98549d"
+      "meshUvNormalSha256": "955d798e46bc471337ab731b0f3476630cb38b22f4207f718a3ad1bd55038d09",
+      "previousMeshUvNormalSha256": "78bbdd5a006a4f6bfd79e3d04f5aa27bc2dfa9587f419f522c985ebf1d98549d",
+      "geometryUvSha256": "cf5073b29ad040aae65f615081e7de2d92e005ab9d9da37e335f67e0d9869521"
     },
     {
       "id": "large-footprint",
@@ -1675,7 +1811,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "c5bbba889282c0f4a44ec7759b5e813bd568f3d4a43ea829e42f33de6281b731"
+      "meshUvNormalSha256": "6d0ee97d6a4e0f6e93be71030c99df11841d8c56b35bd45f10a449d7934f8e23",
+      "previousMeshUvNormalSha256": "c5bbba889282c0f4a44ec7759b5e813bd568f3d4a43ea829e42f33de6281b731",
+      "geometryUvSha256": "13f07edacf8cd9932e5cd26e954a980c5a4ceb5afb0e0dfe662bcba979bb6662"
     },
     {
       "id": "small-flare",
@@ -1698,7 +1836,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "bed28893e3e2e9e5c7207eb1ae49669784abcbbf215f90673ca7c3d1788e4c90"
+      "meshUvNormalSha256": "3b75c74d138e7987d56afef32a558f9b3498df107278485100c1a05e41f899ff",
+      "previousMeshUvNormalSha256": "bed28893e3e2e9e5c7207eb1ae49669784abcbbf215f90673ca7c3d1788e4c90",
+      "geometryUvSha256": "02eb5bab3201ee3ed78b2ef43286ab9a193c398e4703e5c5879126b554149042"
     },
     {
       "id": "large-flare",
@@ -1721,7 +1861,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "363a1168330706f082d11743cf679f411c189195ba05d503c9c13d7a44900c9c"
+      "meshUvNormalSha256": "d1bbd51cc8fd4eb24325289052090f3aafb9f6b3ea86161bc3d6c6b96c2eeeae",
+      "previousMeshUvNormalSha256": "363a1168330706f082d11743cf679f411c189195ba05d503c9c13d7a44900c9c",
+      "geometryUvSha256": "1d2fe122175ea350a4ed725439c1421821ce61b9c7e35733706a17cde496117f"
     },
     {
       "id": "short-root",
@@ -1744,7 +1886,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "1c6236423a73b11711250e773b55d86ccaa0c17c83a9a51db716fef8fc71b57a"
+      "meshUvNormalSha256": "4576bdbf646e921877b29ad77144da5867096e56dfea899a4e88549923f92821",
+      "previousMeshUvNormalSha256": "1c6236423a73b11711250e773b55d86ccaa0c17c83a9a51db716fef8fc71b57a",
+      "geometryUvSha256": "61794e88cb7b30e2fffbc3d026ef991afb8b005cd7a16a41930d1c41257a0b3d"
     },
     {
       "id": "long-root",
@@ -1767,7 +1911,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "7151260b98056d2873fcb3b39d86e85edd6694972be46fffe59538b883ee72e0"
+      "meshUvNormalSha256": "67e6ac675ce75a3dafb63b7c16f0cae178ca586fef8bcf44d77cbf39ef9306fc",
+      "previousMeshUvNormalSha256": "7151260b98056d2873fcb3b39d86e85edd6694972be46fffe59538b883ee72e0",
+      "geometryUvSha256": "e993396e28ff5fc84c220e21ad8011aea61f9a311a03b980003b3cbde1fd8239"
     },
     {
       "id": "close-roots",
@@ -1790,7 +1936,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "cd593e904468e19d4762f5aa07c4ef98a16837bea96311084bf7de16f7cdeef9"
+      "meshUvNormalSha256": "5142ba1571a92b7733f365b1a38016d76c6c808f5676b45a3407117e0075031a",
+      "previousMeshUvNormalSha256": "cd593e904468e19d4762f5aa07c4ef98a16837bea96311084bf7de16f7cdeef9",
+      "geometryUvSha256": "53f16337e7d08fd9cc17be7dbb0fa1213f1c8cbf7536aa6c5cec2c23c2709bec"
     },
     {
       "id": "close-torus",
@@ -1813,7 +1961,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "427a111cb476cb63c63bcf58c9f9d5803aefeb2439a0b93f1be343be06f6841e"
+      "meshUvNormalSha256": "47e89dbc49ee6c6d29965bf367c787c701d28761ac1aa03b6bf72f09275bb043",
+      "previousMeshUvNormalSha256": "427a111cb476cb63c63bcf58c9f9d5803aefeb2439a0b93f1be343be06f6841e",
+      "geometryUvSha256": "e0a98df3bee13533b81e5269d404d84009fd22b57625c3cbddb15be103a3e5be"
     },
     {
       "id": "long-root-close-gap",
@@ -1836,7 +1986,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "75b949e437598314f1f9b5dbae29d17aebe269e66c89c4fcdf58edbde45fab0a"
+      "meshUvNormalSha256": "f0592c788d2eaa4730a8b7eeb40c3e661cc72cd85851167167650b1aabc24219",
+      "previousMeshUvNormalSha256": "75b949e437598314f1f9b5dbae29d17aebe269e66c89c4fcdf58edbde45fab0a",
+      "geometryUvSha256": "67205359458c358a4d6702c53368fde48ae770eccfb2a7ba6d40c455b9e40928"
     },
     {
       "id": "lower-root-boundary",
@@ -1859,7 +2011,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "a6365dfa3deb2c80253dfe87648499d997c4c14313e5c2b8f0b33ac7deb56eea"
+      "meshUvNormalSha256": "87dd9963f8f5d64c7e0f44e25e47331edb94feb508052a7906b68005f4b75db6",
+      "previousMeshUvNormalSha256": "a6365dfa3deb2c80253dfe87648499d997c4c14313e5c2b8f0b33ac7deb56eea",
+      "geometryUvSha256": "89d7ccda6ad7ae41ed8e5b4540614ab1412e28b09876bb08694851175fb0b866"
     },
     {
       "id": "upper-root-boundary",
@@ -1882,7 +2036,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "dde54587c9bcfb12ae902ab0c32d093009cb5d28d736f2fa7c5628f7761e7eb6"
+      "meshUvNormalSha256": "6d44c3de7566ef4aef2d6f948a1a5b303d8db1ec962a02d8e94cd09b4929f749",
+      "previousMeshUvNormalSha256": "dde54587c9bcfb12ae902ab0c32d093009cb5d28d736f2fa7c5628f7761e7eb6",
+      "geometryUvSha256": "afd15d076c506d2d6cb20edc57221e76e9993521c4408182d76bc94aab2ab662"
     },
     {
       "id": "minimum-resolution",
@@ -1905,7 +2061,9 @@
         "rootSegments": 8,
         "wallRows": 16
       },
-      "meshUvNormalSha256": "9d2261d183200fd4eedbbadd780481427b6c2b8ff03610499ffd14fd637224c5"
+      "meshUvNormalSha256": "43f7a5ca7ad1bf792af81cd63e2d9111744d9a1ac6a2bc9e637de621ddf64e5f",
+      "previousMeshUvNormalSha256": "9d2261d183200fd4eedbbadd780481427b6c2b8ff03610499ffd14fd637224c5",
+      "geometryUvSha256": "66f77d1232f43ef1628bc902c322fe49e54d9fbb53effc39270ef1f06f6bfe69"
     },
     {
       "id": "maximum-resolution",
@@ -1928,7 +2086,9 @@
         "rootSegments": 48,
         "wallRows": 64
       },
-      "meshUvNormalSha256": "0bf45b9adf969f1abc18e51629b0897cde744023d6fb64b69ed6612e296f0304"
+      "meshUvNormalSha256": "60baa9a243467ec309848c2f7fde3e6f00e5c7f38bda26d2884ffbb56f638192",
+      "previousMeshUvNormalSha256": "0bf45b9adf969f1abc18e51629b0897cde744023d6fb64b69ed6612e296f0304",
+      "geometryUvSha256": "0f29dd5f5d4b86ae72e24c4adf68857d1166c4e4192604b647c0f7f7ad899af3"
     },
     {
       "id": "fine-default",
@@ -1951,7 +2111,9 @@
         "rootSegments": 32,
         "wallRows": 40
       },
-      "meshUvNormalSha256": "1abbb7576ca11875431838f550cc8d497b2193309fb8db96fb0eb828c2fd86a2"
+      "meshUvNormalSha256": "b21acceb2f0bec9344fe3e47c155faaa46a0a2a0dff9ebbb6be6186f3826358b",
+      "previousMeshUvNormalSha256": "1abbb7576ca11875431838f550cc8d497b2193309fb8db96fb0eb828c2fd86a2",
+      "geometryUvSha256": "7ef5fed48b39dd42d24e148c0fef09f5a6780651d24a0f968476bb6789f3c97d"
     },
     {
       "id": "interior-00",
@@ -1974,7 +2136,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "9d41edb6b5fcfd046259f3779e20cf63d2f579081dd26609a3743649bef02d60"
+      "meshUvNormalSha256": "db7b4716eb7622e3d34fa6c9694c731fa80cb25ca25754f102dedc6754defeb2",
+      "previousMeshUvNormalSha256": "9d41edb6b5fcfd046259f3779e20cf63d2f579081dd26609a3743649bef02d60",
+      "geometryUvSha256": "1c52bf9fde6e1d9f528dbabbafa79f2b7872d476daf66d429838d612e354d62b"
     },
     {
       "id": "interior-01",
@@ -1997,7 +2161,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "92f2521cd1b37789c50b6f86f9f45f42a918848030f33b31dded69a6a6c641ae"
+      "meshUvNormalSha256": "568208f015e475231b7f25bf639f8d92138772cbbf9c71929cfc3b26b2ae1f92",
+      "previousMeshUvNormalSha256": "92f2521cd1b37789c50b6f86f9f45f42a918848030f33b31dded69a6a6c641ae",
+      "geometryUvSha256": "d54956860015ef5047ec15ea87a4e4768b738223264d390ad366ef111394aa16"
     },
     {
       "id": "interior-02",
@@ -2020,7 +2186,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "18054aab912d324c95a52ece046d312ad1fd6da58176f4714dfe558057c60dcc"
+      "meshUvNormalSha256": "5831e883af522430eaa38897198c6d9670b29888b3be766813a1ca23a6de0f0b",
+      "previousMeshUvNormalSha256": "18054aab912d324c95a52ece046d312ad1fd6da58176f4714dfe558057c60dcc",
+      "geometryUvSha256": "5b534337ba690ba14ced6149994534892933c485acfae260aa8d3f2987f15886"
     },
     {
       "id": "interior-03",
@@ -2043,7 +2211,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "44dc66b10b5d23fb24906eace324d1bdff98a051c43f4f8e122e6176a334dac4"
+      "meshUvNormalSha256": "4cee5784bb84759236120cc203b70997759158b464ee39a6fd10fedb25d9ff36",
+      "previousMeshUvNormalSha256": "44dc66b10b5d23fb24906eace324d1bdff98a051c43f4f8e122e6176a334dac4",
+      "geometryUvSha256": "cc68d7386668afc4c756f11111c43ed74f8342863e7d6e063de4c9f472c7efbe"
     },
     {
       "id": "interior-04",
@@ -2066,7 +2236,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "4c7c60022eb192721085dcc33017ed03d6d97169f3545103a899561ab359b76d"
+      "meshUvNormalSha256": "c6bd4fc0169e8b8bedabbde2e26a70d08c70464178891c274948f1f7d9636d66",
+      "previousMeshUvNormalSha256": "4c7c60022eb192721085dcc33017ed03d6d97169f3545103a899561ab359b76d",
+      "geometryUvSha256": "58a5040ce943952e957242d0cf8de6b586b23038f1da42abaf1ff4adf7f90d9b"
     },
     {
       "id": "interior-05",
@@ -2089,7 +2261,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "a20f6a4ef59821b55318954e10530fd8ec19f3593ee714f506a1047f405cc456"
+      "meshUvNormalSha256": "97d9c442906dbabb63115df7224cea3840d8bf5526d21d59251f356e265b2b15",
+      "previousMeshUvNormalSha256": "a20f6a4ef59821b55318954e10530fd8ec19f3593ee714f506a1047f405cc456",
+      "geometryUvSha256": "bac53765aef3b6d1ee4f6eeba0c55a38fae780958bd2d7adf0f431acc8bc1fe2"
     },
     {
       "id": "interior-06",
@@ -2112,7 +2286,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "63bbcdb6ba2e94624b711d6ebdb0751a1a7a668c1f81ec3f1053411fbaa7fddf"
+      "meshUvNormalSha256": "ceeebfce5ee0b1b530eb5c3eb0c76b0e24a67c839724508f6a46b93518a0faba",
+      "previousMeshUvNormalSha256": "63bbcdb6ba2e94624b711d6ebdb0751a1a7a668c1f81ec3f1053411fbaa7fddf",
+      "geometryUvSha256": "ae5350590fbc6acf078f09d0e081c1188a18e5171d385534a41c62b269e82ee9"
     },
     {
       "id": "interior-07",
@@ -2135,7 +2311,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "043d9d66cd7cdedbe5307d68aac7a59ea5e0e7ac54ebdfc6ecb8488a9f071268"
+      "meshUvNormalSha256": "6f95db0a4b70dac8360e04e3c0bba781ec2dc605dcde4579f1e1736757e4c10b",
+      "previousMeshUvNormalSha256": "043d9d66cd7cdedbe5307d68aac7a59ea5e0e7ac54ebdfc6ecb8488a9f071268",
+      "geometryUvSha256": "f798ff377dbc582d608970c382b411faaff3727da40447ee009625b268f78b7e"
     },
     {
       "id": "interior-08",
@@ -2158,7 +2336,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "28d9a717201047b349969043d9428529822584139e5f16caed4fd5d6fbeeb2b8"
+      "meshUvNormalSha256": "90aad28a7d06358c813bb6304a1a810596c0804ee649e56d85676a46a9e4835b",
+      "previousMeshUvNormalSha256": "28d9a717201047b349969043d9428529822584139e5f16caed4fd5d6fbeeb2b8",
+      "geometryUvSha256": "87207d70b3d3bfab66c7eabee1bdf2eda675f0827ddc8848e373a670f3fb3855"
     },
     {
       "id": "interior-09",
@@ -2181,7 +2361,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "52d5520d880568300339de7d25b9783c6d0380123d5e32a9ad92844b4d48e2b6"
+      "meshUvNormalSha256": "dc7343b8b7af9f88d3cce5fa128863d614181f6fb351603f65669c30f6c1d32c",
+      "previousMeshUvNormalSha256": "52d5520d880568300339de7d25b9783c6d0380123d5e32a9ad92844b4d48e2b6",
+      "geometryUvSha256": "7b5cafe951d63eb6d698e23c6ab427892d4773d0dcaea4de838ac20cd38ef449"
     },
     {
       "id": "interior-10",
@@ -2204,7 +2386,9 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "44410ff57d048ed6273f769aa1b107e9775afb8e1c22828ace68ce123001fb5e"
+      "meshUvNormalSha256": "e98f31000b537fb9b3398822c528f9c3f743f8f03b14e10fe1adb25380bb16a2",
+      "previousMeshUvNormalSha256": "44410ff57d048ed6273f769aa1b107e9775afb8e1c22828ace68ce123001fb5e",
+      "geometryUvSha256": "210d3222ba3a6c9319c9f98112119a9a23691f8bb4639815c883dca7ff6303cc"
     },
     {
       "id": "interior-11",
@@ -2227,7 +2411,10 @@
         "rootSegments": 16,
         "wallRows": 28
       },
-      "meshUvNormalSha256": "65e95427f6df75a8789e568fde6393bdd887f35dd074ee2e77c1695259259a81"
+      "meshUvNormalSha256": "c84f634df71a89d4c4d4971bec67405ed600469e71847a2375c213852c1771a8",
+      "previousMeshUvNormalSha256": "65e95427f6df75a8789e568fde6393bdd887f35dd074ee2e77c1695259259a81",
+      "geometryUvSha256": "3f14f7612fae98a116f6b50bedf419add83d1e0468c2a5af999c1f03216c9a0f"
     }
-  ]
+  ],
+  "normalModel": "analytic-v1"
 }

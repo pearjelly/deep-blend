@@ -155,3 +155,63 @@ test('raw generator defaults arrive in the editor without an accidental patch; e
   assert.ok(editor.errors(draft).length>0)
   assert.deepEqual(cup(spec).generator,{shape:'handled_cup'})
 })
+
+test('analytic root derivatives match independent finite differences and adjacent surface normals', () => {
+  const matrix=JSON.parse(readFileSync(new URL('../../fixtures/handled-cup/parameter-cases.json',import.meta.url)))
+  const result=python(String.raw`
+import sys,json,math
+sys.path.insert(0,'packages/deepblend/provider-local/python')
+from deepblend_vessel_math import CupSurface,unit
+from deepblend_vessel_parameters import handled_cup_parameters
+maximum=0; samples=0
+def difference(f,x,h):
+    values=[f(x+d*h) for d in [-2,-1,1,2]]
+    return tuple((values[0][i]-8*values[1][i]+8*values[2][i]-values[3][i])/(12*h) for i in range(3))
+for case in json.load(sys.stdin):
+    shape=CupSurface(handled_cup_parameters(case['generator']))
+    assert len(shape.profile())==len(shape.profile_normals())==37
+    assert shape.profile_normals()[9]==shape.profile_normals()[10]==(1,0)
+    for i,((radius,z),actual) in enumerate(zip(shape.profile(),shape.profile_normals())):
+        if i<=1:expected=(0,-1)
+        elif i<=9:expected=unit((radius-(shape.R-shape.C),z-shape.C))
+        elif i<=26:expected=unit((radius-(shape.R-shape.T/2),z-(shape.HEIGHT-shape.T/2)))
+        elif i==27:expected=(-1,0)
+        elif i<=35:expected=unit((-(radius-(shape.R-shape.T-shape.C)),(shape.B+shape.C)-z))
+        else:expected=(0,1)
+        assert math.dist(actual,expected)<1e-12
+    for upper in [False,True]:
+        for theta in [-math.pi,-1.3,0,.41,math.pi/2,2.8,math.tau]:
+            wall=shape.root_point(0,theta,upper)
+            for t,expected in [(0,unit((wall[0],wall[1],0))),(1,(0,math.cos(theta),math.sin(theta)))]:
+                assert math.dist(shape.root_normal(t,theta,upper),expected)<1e-10
+            for t in [0,.13,.47,.83,1]:
+                for h in [2e-4,7e-5]:
+                    for numeric,exact in [(difference(lambda a:shape.root_point(t,a,upper),theta,h),shape.root_dtheta(t,theta,upper)),
+                                          (difference(lambda a:shape.root_point(a,theta,upper),t,h),shape.root_dt(t,theta,upper))]:
+                        error=math.dist(numeric,exact)/max(math.dist(exact,(0,0,0)),1e-12)
+                        maximum=max(maximum,error);assert error<1e-7,(case['id'],upper,t,theta,h,error)
+                n=shape.root_normal(t,theta,upper)
+                assert all(math.isfinite(c) for c in n) and abs(math.dist(n,(0,0,0))-1)<1e-12
+                samples+=1
+print(json.dumps({'samples':samples,'maximumRelativeDerivativeError':maximum}))
+`,matrix.cases.filter(c=>c.accepted))
+  assert.equal(result.samples,93*2*7*5)
+  assert.ok(result.maximumRelativeDerivativeError<1e-7)
+})
+
+test('stored corner normal checks reject reversed, zero, non-unit, non-finite and missing normals', () => {
+  const results=python(String.raw`
+import sys,json,math
+from types import SimpleNamespace as NS
+sys.path.insert(0,'packages/deepblend/provider-local/python')
+from deepblend_mesh_checks import validate_corner_normals
+out=[]
+for normals in [[(0,0,1)]*3,[(0,0,-1)]*3,[(0,0,0)]*3,[(0,0,2)]*3,[(0,0,float('nan'))]*3,[(0,0,1)]*2]:
+    mesh=NS(vertices=[NS(co=v) for v in [(0,0,0),(1,0,0),(0,1,0)]],loops=[0,1,2],
+            corner_normals=[NS(vector=v) for v in normals],loop_triangles=[NS(vertices=(0,1,2),loops=(0,1,2))],calc_loop_triangles=lambda:None)
+    try:validate_corner_normals(mesh);out.append(True)
+    except ValueError:out.append(False)
+print(json.dumps(out))
+`,null)
+  assert.deepEqual(results,[true,false,false,false,false,false])
+})
