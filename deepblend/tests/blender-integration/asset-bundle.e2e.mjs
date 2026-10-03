@@ -12,6 +12,8 @@ import assert from 'node:assert/strict';
 const ROOT = resolve(import.meta.dirname, '../../..'), out = resolve(process.env.DEEPBLEND_ASSET_BUNDLE_OUTPUT ?? join(ROOT, '.deepblend/quality', `asset-bundle-${Date.now()}`)), blender = process.env.DEEPBLEND_BLENDER_PATH ?? join(ROOT, '.tools/Blender.app/Contents/MacOS/Blender');
 assert(!existsSync(out));
 mkdirSync(out, { recursive: true });
+const nativeFormat = process.env.DEEPBLEND_BUNDLE_FORMAT ?? 'gltf';
+assert(['gltf', 'glb-internal-buffer', 'glb-external-buffer'].includes(nativeFormat));
 const source = join(out, 'source'), workspace = join(out, 'workspace');
 mkdirSync(source);
 mkdirSync(workspace);
@@ -20,9 +22,9 @@ let failure = null, project, projectId, ctx;
 const check = (name, condition, detail) => { checks.push({ name, ok: !!condition, ...(detail === undefined ? {} : { detail }) }); assert(condition, name); };
 function python(name, body, args) { const script = join(out, name + '.py'); writeFileSync(script, body); const r = spawnSync(blender, ['--background', '--factory-startup', '--python-exit-code', '1', '--python', script, '--', ...args], { encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024 }); writeFileSync(join(out, name + '.log'), (r.stdout ?? '') + '\n' + (r.stderr ?? '')); assert.equal(r.status, 0, `${name}: ${r.error?.message ?? ''}\n${r.stderr}`); }
 const GENERATE = String.raw `
-import bpy,sys,json
+import bpy,sys,json,struct
 from pathlib import Path
-root=Path(sys.argv[sys.argv.index('--')+1]);(root/'models').mkdir();(root/'textures').mkdir()
+root=Path(sys.argv[sys.argv.index('--')+1]);kind=sys.argv[sys.argv.index('--')+2];(root/'models').mkdir();(root/'textures').mkdir()
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 image=bpy.data.images.new('paint é',width=8,height=8,alpha=True)
 colors=[]
@@ -35,6 +37,15 @@ texture=material.node_tree.nodes.new('ShaderNodeTexImage');texture.image=image;m
 parent=bpy.data.objects.new('authored parent',None);bpy.context.scene.collection.objects.link(parent);parent.location=(.02,.01,.03);parent.rotation_euler[2]=.15
 bpy.ops.mesh.primitive_cube_add(size=.1,location=(0,0,.05));cube=bpy.context.object;cube.name='authored body';cube.parent=parent;cube.data.materials.append(material)
 bpy.ops.export_scene.gltf(filepath=str(root/'models/product.gltf'),export_format='GLTF_SEPARATE',export_texture_dir='../textures')
+if kind!='gltf':
+ document=json.loads((root/'models/product.gltf').read_text());binary=None
+ if kind=='glb-internal-buffer':
+  binary=(root/'models'/document['buffers'][0]['uri']).read_bytes();del document['buffers'][0]['uri']
+ data=json.dumps(document,separators=(',',':')).encode();data+=b' ' * (-len(data)%4)
+ payload=struct.pack('<II',len(data),0x4e4f534a)+data
+ if binary is not None:
+  binary+=b'\0' * (-len(binary)%4);payload+=struct.pack('<II',len(binary),0x004e4942)+binary
+ (root/'models/product.glb').write_bytes(struct.pack('<4sII',b'glTF',2,12+len(payload))+payload)
 (root/'build.json').write_text(json.dumps({'version':bpy.app.version_string,'buildHash':bpy.app.build_hash.decode()}))
 `;
 const INSPECT = String.raw `
@@ -60,9 +71,9 @@ Path(out).write_text(json.dumps({'meshes':meshes,'images':images,'buildHash':bpy
 function image(file) { const bytes = readFileSync(file), png = decodePng(bytes); check('render has requested dimensions and nonconstant pixels', png.width === 256 && png.height === 192 && new Set(Array.from({ length: png.width * png.height }, (_, i) => png.data.subarray(i * 4, i * 4 + 3).toString('hex'))).size > 32); artifacts.push({ path: file, bytes: bytes.length, sha256: sha(bytes), width: png.width, height: png.height }); return png; }
 const materialFacts = f => ({ ...f, images: f.images.map(({ packed, ...value }) => value), buildHash: undefined });
 try {
-    python('generate', GENERATE, [source]);
-    const main = join(source, 'models/product.gltf'), document = json(main), uris = [...(document.buffers ?? []), ...(document.images ?? [])].map(x => x.uri).filter(Boolean);
-    check('native authored glTF uses external binary and image resources', uris.some(u => u.endsWith('.bin')) && uris.some(u => u.includes('../textures/')), { uris });
+    python('generate', GENERATE, [source, nativeFormat]);
+    const main = join(source, 'models/product.' + (nativeFormat === 'gltf' ? 'gltf' : 'glb')), raw = readFileSync(main), document = nativeFormat === 'gltf' ? json(main) : JSON.parse(raw.subarray(20, 20 + raw.readUInt32LE(12)).toString('utf8')), uris = [...(document.buffers ?? []), ...(document.images ?? [])].map(x => x.uri).filter(Boolean);
+    check('native authored container has its declared buffer storage and external texture', (nativeFormat === 'glb-internal-buffer' ? document.buffers[0].uri === undefined : uris.some(u => u.endsWith('.bin'))) && uris.some(u => u.includes('../textures/')), { format: nativeFormat, uris });
     cpSync(source, join(out, 'authored-source'), { recursive: true });
     python('original', INSPECT, ['asset', main, join(out, 'original.json')]);
     const original = json(join(out, 'original.json'));
@@ -121,6 +132,30 @@ try {
     copyFileSync(afterPath, join(out, 'new-preview.png'));
     check('texture-only update changes actual rendered pixels', !beforeImage.data.every((v, i) => v === afterImage.data[i]));
     check('new revision leaves earlier saved checkpoint bytes unchanged', sha(readFileSync(checkpoint)) === checkpointHash);
+    await assert.rejects(studio.previewAsset({ projectId, assetId: first.assetId, sha256: first.sha256 }), { code: 'ASSET_REQUEST_INVALID' });
+    check('ambiguous main hash requires an exact dependency version', studio.store.currentRevision(projectId) === current);
+    const libraryPreviews = [];
+    const storedHashes = [first, second].flatMap(r => r.bundle.files.map(m => ({ path: join(project, 'assets/bundles', r.bundle.sha256, m.path), sha256: m.sha256 })));
+    for (const version of [first, second]) {
+        const receipt = await studio.previewAsset({ projectId, assetId: version.assetId, sha256: version.sha256, assetPath: version.path });
+        save(join(out, version === first ? 'first-library-preview.json' : 'second-library-preview.json'), receipt);
+        const png = decodePng(readFileSync(join(project, receipt.preview.path)));
+        copyFileSync(join(project, receipt.preview.path), join(out, version === first ? 'first-library-preview.png' : 'second-library-preview.png'));
+        check('library preview renders exact selected dependency version with real bounds and UV inventory', receipt.assetPath === version.path && receipt.preview.path.startsWith(`assets/previews/${version.bundle.sha256}/`) && receipt.inspection.kind === 'model' && receipt.inspection.parts.some(p => p.uvMaps.length) && png.width === 512 && png.height === 384);
+        libraryPreviews.push({ receipt, png });
+    }
+    check('same-main dependency versions produce different actual library render pixels', !libraryPreviews[0].png.data.every((v, i) => v === libraryPreviews[1].png.data[i]));
+    const inventory = await studio.listAssets({ projectId });
+    check('library refresh retains two independent version caches', libraryPreviews.every(p => inventory.assets.find(row => row.asset.path === p.receipt.assetPath)?.preview?.sha256 === p.receipt.preview.sha256));
+    check('isolated library previews preserve project revision, source bytes and saved checkpoint', studio.store.currentRevision(projectId) === current && sha(readFileSync(checkpoint)) === checkpointHash && storedHashes.every(f => sha(readFileSync(f.path)) === f.sha256));
+    for (const [revision, mode, version] of [[old, 'beauty', first], [current, 'clay', second]]) {
+        const receipt = await studio.renderViews({ projectId, revision, mode, views: [{ id: 'fixed', cameraId: 'camera-main', frame: 1 }], width: 256, height: 192, samples: 8 });
+        save(join(out, mode + '-diagnostic.json'), receipt);
+        const artifact = receipt.artifacts[0], png = decodePng(readFileSync(join(project, artifact.path)));
+        copyFileSync(join(project, artifact.path), join(out, mode + '-diagnostic.png'));
+        check('fixed diagnostic renders complete version resources in the requested mode', artifact.mode === mode && artifact.sourceRevision === revision && png.width === 256 && png.height === 192 && receipt.sourceAssets.some(a => a.path === version.path && a.sha256 === version.sha256));
+        check('fixed diagnostic preserves old checkpoint and all dependency versions', sha(readFileSync(checkpoint)) === checkpointHash && studio.store.currentRevision(projectId) === current && storedHashes.every(f => sha(readFileSync(f.path)) === f.sha256));
+    }
     rmSync(source, { recursive: true });
     const parked = firstRoot + '.held';
     renameSync(firstRoot, parked);
@@ -141,9 +176,9 @@ try {
     error /= beforeImage.data.length;
     check('old revision rebuild uses locked original resources after source deletion and alias update', error <= .001, { meanPixelError: error, oldRevision: old, currentRevision: current });
     check('historical preview does not move the current revision', studio.store.currentRevision(projectId) === current);
-    const changedBuffer = second.bundle.files.find(m => m.path.endsWith('.bin')), secondRoot = join(project, 'assets/bundles', second.bundle.sha256), bufferPath = join(secondRoot, changedBuffer.path), buffer = readFileSync(bufferPath), bad = Buffer.from(buffer);
+    const changedBuffer = second.bundle.files.find(m => m.path.endsWith('.bin')) ?? second.bundle.files.find(m => m.path.endsWith('.png')), secondRoot = join(project, 'assets/bundles', second.bundle.sha256), bufferPath = join(secondRoot, changedBuffer.path), buffer = readFileSync(bufferPath), bad = Buffer.from(buffer);
     bad[0] ^= 1;
-    writeFileSync(bufferPath, bad);
+    writeFileSync(bufferPath, changedBuffer.path.endsWith('.png') ? encodePng({ width: 8, height: 8, data: Buffer.from(Array.from({ length: 64 }, () => [20, 30, 210, 255]).flat()) }) : bad);
     let refused;
     try {
         await apply([{ op: 'entity.visibility.set', entityId: 'subject', visible: false }]);
@@ -151,7 +186,7 @@ try {
     catch (e) {
         refused = e;
     }
-    check('unrelated public patch refuses changed buffer and preserves current revision', refused?.code === 'ASSET_HASH_MISMATCH' && studio.store.currentRevision(projectId) === current);
+    check('unrelated public patch refuses changed resource and preserves current revision', refused?.code === 'ASSET_HASH_MISMATCH' && studio.store.currentRevision(projectId) === current);
     const pythonRefusal = String.raw `
 import bpy,sys,json
 from pathlib import Path
@@ -161,7 +196,7 @@ from deepblend_util import ActionError,Guard
 bpy.ops.mesh.primitive_cube_add();bpy.context.object.name='bundle-refusal-sentinel';before=sorted(o.name for o in bpy.data.objects)
 try:build_scene(json.loads(Path(specfile).read_text()),{'project_root':project,'profile':'preview'},Guard())
 except ActionError as e:assert e.code=='ASSET_HASH_MISMATCH'
-else:raise AssertionError('changed buffer accepted')
+else:raise AssertionError('changed resource accepted')
 assert sorted(o.name for o in bpy.data.objects)==before
 Path(out).write_text(json.dumps({'code':'ASSET_HASH_MISMATCH','sceneInventoryPreserved':True,'buildHash':bpy.app.build_hash.decode()}))
 `;
@@ -169,8 +204,28 @@ Path(out).write_text(json.dumps({'code':'ASSET_HASH_MISMATCH','sceneInventoryPre
     check('native compile refuses before clearing the live scene', json(join(out, 'compile-refusal.json')).sceneInventoryPreserved);
     writeFileSync(bufferPath, buffer);
     check('all snapshot files are restored to their locked bytes', second.bundle.files.every(m => sha(readFileSync(join(secondRoot, m.path))) === m.sha256));
+    const legacy = join(project, 'legacy');
+    cpSync(secondRoot, legacy, { recursive: true });
+    const legacyAsset = { ...declaration(second), path: 'legacy/' + second.bundle.entrypoint };
+    let legacyRefusal;
+    try {
+        await apply([{ op: 'entity.remove', entityId: 'subject' }, { op: 'asset.remove', assetId: second.assetId }, { op: 'asset.add', asset: legacyAsset }, { op: 'entity.add', entity }]);
+    }
+    catch (error) {
+        legacyRefusal = error;
+    }
+    check('legacy external resources refuse public declaration before changing the revision', legacyRefusal?.code === 'ASSET_REQUEST_INVALID' && studio.store.currentRevision(projectId) === current);
+    const legacySpec = json(join(project, 'revisions', current, 'scene-spec.json'));
+    legacySpec.assets.find(a => a.id === second.assetId).path = legacyAsset.path;
+    save(join(out, 'legacy-spec.json'), legacySpec);
+    python('legacy-refusal', pythonRefusal.replaceAll('ASSET_HASH_MISMATCH', 'ASSET_REQUEST_INVALID').replace('changed resource accepted', 'unlocked resources accepted'), [ROOT, project, join(out, 'legacy-spec.json'), join(out, 'legacy-refusal.json')]);
+    check('native legacy refusal preserves the live scene with all external files present', json(join(out, 'legacy-refusal.json')).sceneInventoryPreserved);
+    delete legacySpec.assets.find(a => a.id === second.assetId).sha256;
+    save(join(out, 'legacy-unhashed-spec.json'), legacySpec);
+    python('legacy-unhashed-refusal', pythonRefusal.replaceAll('ASSET_HASH_MISMATCH', 'ASSET_REQUEST_INVALID').replace('changed resource accepted', 'unlocked resources accepted'), [ROOT, project, join(out, 'legacy-unhashed-spec.json'), join(out, 'legacy-unhashed-refusal.json')]);
+    check('native legacy refusal also protects declarations without a main-file hash', json(join(out, 'legacy-unhashed-refusal.json')).sceneInventoryPreserved);
     check('all bundle staging directories are removed', readdirSync(join(project, 'assets/bundles')).every(name => /^[a-f0-9]{64}$/.test(name)));
-    save(join(out, 'identity.json'), { project, projectId, oldRevision: old, currentRevision: current, sourceBuild: json(join(out, 'authored-source/build.json')), runtimeBuild: (await runtime.getCapabilities()).buildHash, firstBundle: first.bundle.sha256, secondBundle: second.bundle.sha256 });
+    save(join(out, 'identity.json'), { format: nativeFormat, project, projectId, oldRevision: old, currentRevision: current, sourceBuild: json(join(out, 'authored-source/build.json')), runtimeBuild: (await runtime.getCapabilities()).buildHash, firstBundle: first.bundle.sha256, secondBundle: second.bundle.sha256 });
 }
 catch (error) {
     failure = { message: error.message, code: error.code ?? null };
@@ -179,7 +234,23 @@ catch (error) {
 finally {
     if (ctx)
         await ctx.fiber.dispose();
-    save(join(out, 'report.json'), { checks, artifacts, calls, failure, scope: 'Maintained actual Host/provider and independently authored native glTF buffers/images. No independent adoption or complete dependency guarantees for other formats/extensions.' });
+    save(join(out, 'report.json'), { checks, artifacts, calls, failure, scope: 'Maintained actual Host/provider and independently authored native glTF buffers/images. No independent adoption or complete dependency guarantees for other formats/extensions. GLB container/BIN and legacy core resource refusal are exercised separately.' });
     if (!failure)
         console.log(`Asset bundles: ${checks.length}/${checks.length} checks passed`);
+}
+// One maintained entry point exercises three independently opened native source formats.
+if (nativeFormat === 'gltf') {
+    const scenarios = [{ format: nativeFormat, checks: checks.length, report: 'report.json' }];
+    for (const format of ['glb-internal-buffer', 'glb-external-buffer']) {
+        const childOut = join(out, format), result = spawnSync(process.execPath, [import.meta.filename], { encoding: 'utf8', timeout: 240000, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, DEEPBLEND_BUNDLE_FORMAT: format, DEEPBLEND_ASSET_BUNDLE_OUTPUT: childOut } });
+        writeFileSync(join(out, format + '.log'), (result.stdout ?? '') + '\n' + (result.stderr ?? ''));
+        const report = existsSync(join(childOut, 'report.json')) ? json(join(childOut, 'report.json')) : null;
+        scenarios.push({ format, checks: report?.checks?.length ?? 0, report: format + '/report.json', exit: result.status, error: result.error?.message ?? report?.failure ?? null });
+        save(join(out, 'bundle-matrix.json'), { status: result.status === 0 ? 'running' : 'failed', scenarios });
+        assert.equal(result.status, 0, `${format}: ${result.error?.message ?? result.stderr}`);
+        assert(report && !report.failure && report.checks.every(c => c.ok));
+    }
+    const total = scenarios.reduce((n, s) => n + s.checks, 0);
+    save(join(out, 'bundle-matrix.json'), { status: 'passed', scenarios, checks: total });
+    console.log(`Asset bundle matrix: ${total}/${total} checks passed across three native formats`);
 }

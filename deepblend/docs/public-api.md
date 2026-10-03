@@ -246,7 +246,18 @@ behavioral compatibility, a successful Blender render, or artistic quality.
 
 ### Managed glTF resource bundles
 
-Host `ingestAsset` and `blender_asset_ingest` accept optional `sourceRoot` for local `.gltf`.
+`previewAsset` accepts optional `assetPath` from the library inventory in addition to
+`projectId`, `assetId` and `sha256`. When several dependency versions share the same
+ID and main-file SHA, `assetPath` is required; it selects an existing inventory row
+and cannot introduce a source path. Preview receipts include `assetPath`. Staging
+copies the complete verified lock and members under the aggregate byte budget.
+Managed caches use the bundle hash; receipt matching includes the exact path.
+The workbench accepts older receipts without `assetPath` only for canonical raw
+paths that encode the complete single-file SHA and format. Dependency bundles
+require a path-bound receipt. Both JSON glTF and GLB use the isolated model preview. Applying another version
+in the workbench creates a separate declaration so earlier instances retain their version.
+
+Host `ingestAsset` and `blender_asset_ingest` accept optional `sourceRoot` for local `.gltf` and `.glb`.
 The returned asset declaration keeps the existing `path` and main-file `sha256` shape.
 A managed path is `assets/bundles/<lock-sha256>/<entrypoint>`. Its directory contains
 `.deepblend-lock.json` with `schemaVersion: deepblend.asset-bundle/v1`, `entrypoint`,
@@ -255,8 +266,18 @@ The directory identity hashes the exact lock bytes, including its final newline.
 Changing a member requires a new lock and path. Verification requires every core
 glTF buffer/image reference to be locked, alongside full member hashes and root containment.
 
-This storage profile covers core `.gltf` buffers/images and embedded data. Source JSON
-and dependencies retain their original bytes/layout. Remote external dependencies and
-additional external URI resources in extensions are refused. Other formats and legacy
-unbundled paths need separate dependency evidence. It does not establish license rights,
+A lock without `format` describes JSON glTF. A GLB lock includes `format: glb`;
+unknown formats and disagreement with the SceneSpec asset type refuse. Existing JSON
+locks retain their identity. GLB consumers must implement the explicit format profile;
+an older JSON-only bundle reader cannot certify it.
+
+This storage profile covers core `.gltf` / `.glb` buffers/images, embedded BIN and data.
+Main files and dependencies retain their original bytes/layout. Self-contained GLB
+keeps its existing `assets/raw/<main-sha256>.glb` path. Metadata readers check GLB 2
+layout, lengths, ordering and embedded buffer bounds, ignore unknown chunk types, and
+read only JSON/chunk headers, with 16 MiB JSON and 1,024 chunk limits.
+Remote external dependencies and additional external URI resources in extensions refuse.
+Other formats need separate dependency evidence. Legacy unbundled core glTF/GLB with
+external resources refuses at commit/compile; reimport the complete local source.
+It does not establish license rights,
 pre-decode memory guarantees or independent adoption. See the [asset guide](assets.md).

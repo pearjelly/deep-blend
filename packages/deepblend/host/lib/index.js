@@ -91,7 +91,7 @@ import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGrou
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { streamAsset } from './asset-io.js'
-import { prepareGltfBundle } from './asset-bundle.js'
+import { prepareGltfBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
@@ -2310,13 +2310,15 @@ export default class BlenderStudio extends Service {
     const assets = [...rows.values()].map(({ entry, declaredInRevision }) => {
       const asset = assetLibraryDescriptor(entry)
       const inspectionFile = /^[a-f0-9]{64}$/.test(asset.sha256 ?? '')
-        ? resolveInside(directory, `assets/previews/${asset.sha256}/${requireSafeSegment(asset.id, 'asset id')}/inspection.json`, 'asset inspection') : null
+        ? resolveInside(directory, `assets/previews/${assetPreviewVersion(asset)}/${requireSafeSegment(asset.id, 'asset id')}/inspection.json`, 'asset inspection') : null
       const cached = inspectionFile ? readJsonSafe(inspectionFile) : null
+      const cacheMatches = cached?.assetId === asset.id && cached?.sha256 === asset.sha256
+        && (cached.assetPath === asset.path || (cached.assetPath === undefined && assetPreviewVersion(asset) === asset.sha256))
       return { asset, originalName: entry.originalName ?? basename(asset.path),
         bytes: Number.isSafeInteger(entry.bytes) ? entry.bytes : null,
         license: typeof entry.license === 'string' ? entry.license : entry.license?.source ?? null, declaredInRevision,
-        inspection: cached?.assetId === asset.id && cached?.sha256 === asset.sha256 ? cached.inspection ?? null : null,
-        preview: cached?.assetId === asset.id && cached?.sha256 === asset.sha256 ? cached.preview ?? null : null }
+        inspection: cacheMatches ? cached.inspection ?? null : null,
+        preview: cacheMatches ? cached.preview ?? null : null }
     }).sort((left, right) => left.originalName.localeCompare(right.originalName)
       || left.asset.id.localeCompare(right.asset.id) || String(left.asset.sha256).localeCompare(String(right.asset.sha256)))
     return { projectId, revision, limits: { maxBytes: this.config.assetMaxBytes, ...ASSET_LIBRARY_LIMITS }, assets }
@@ -2338,11 +2340,15 @@ export default class BlenderStudio extends Service {
     try {
       signal?.throwIfAborted()
       const inventory = await this.listAssets({ projectId })
-      const row = inventory.assets.find(entry => entry.asset.id === assetId && entry.asset.sha256 === sha256)
+      const matches = inventory.assets.filter(entry => entry.asset.id === assetId && entry.asset.sha256 === sha256
+        && (request.assetPath === undefined || entry.asset.path === request.assetPath))
+      if (matches.length > 1) throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID,
+        'Several dependency versions share this main-file hash. Select the exact assetPath shown in the library.')
+      const row = matches[0]
       if (!row) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
         'The selected asset version is not in this project library.')
       const asset = row.asset
-      uploadAssetType(`asset.${asset.type}`)
+      if (!['gltf', 'glb'].includes(asset.type)) uploadAssetType(`asset.${asset.type}`)
       const projectDirectory = this.store.projectDirectory(projectId)
       const source = resolveInside(projectDirectory, asset.path, 'asset preview source')
       if (!isFile(source)) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND, 'The selected asset bytes are missing.')
@@ -2350,12 +2356,16 @@ export default class BlenderStudio extends Service {
       scratch = resolveInside(projectDirectory, `assets/.preview-${runId}`, 'asset preview staging')
       const stagedAsset = resolveInside(scratch, asset.path, 'staged preview asset')
       mkdirSync(dirname(stagedAsset), { recursive: true })
-      const copied = await streamAsset(createReadStream(source), stagedAsset, {
-        maxBytes: this.config.assetMaxBytes, signal, label: row.originalName,
-      })
-      if (copied.sha256 !== sha256) throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
-        'The selected asset bytes no longer match the library version.')
-      await checkAssetUpload(stagedAsset, asset.type, { signal })
+      const bundled = await stageAssetBundle(projectDirectory, scratch, asset, { maxBytes: this.config.assetMaxBytes, signal })
+      if (!bundled) {
+        const copied = await streamAsset(createReadStream(source), stagedAsset, {
+          maxBytes: this.config.assetMaxBytes, signal, label: row.originalName,
+        })
+        if (copied.sha256 !== sha256) throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
+          'The selected asset bytes no longer match the library version.')
+        if (['gltf', 'glb'].includes(asset.type)) verifyUnbundledGltfAsset(scratch, asset)
+        else await checkAssetUpload(stagedAsset, asset.type, { signal })
+      }
       const imagePath = join(scratch, 'preview.png')
       let rendered
       if (['png', 'jpg', 'jpeg'].includes(asset.type)) {
@@ -2378,8 +2388,8 @@ export default class BlenderStudio extends Service {
       // Force pixel decoding before publishing a thumbnail that the browser will read.
       await sharp(imagePath, { failOn: 'warning', limitInputPixels: ASSET_LIBRARY_LIMITS.previewWidth * ASSET_LIBRARY_LIMITS.previewHeight }).raw().toBuffer()
       const imageHash = await hashAssetFile(imagePath, { maxBytes: 8 * 1024 * 1024, signal })
-      const relative = `assets/previews/${sha256}/${assetId}/${runId}`
-      const result = { projectId, assetId, sha256, template: rendered.template,
+      const relative = `assets/previews/${assetPreviewVersion(asset)}/${assetId}/${runId}`
+      const result = { projectId, assetId, sha256, assetPath: asset.path, template: rendered.template,
         checkedAt: new Date().toISOString(), inspection: rendered.inspection,
         ...(rendered.sourceSceneSha256 ? { sourceSceneSha256: rendered.sourceSceneSha256 } : {}),
         preview: { ...rendered.preview, path: `${relative}/preview.png`, sha256: imageHash.sha256 } }
@@ -2614,8 +2624,8 @@ export default class BlenderStudio extends Service {
         )
       }
 
-      if (request?.sourceRoot !== undefined && type !== 'gltf') {
-        throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot is supported for local glTF resource bundles.')
+      if (request?.sourceRoot !== undefined && !['gltf', 'glb'].includes(type)) {
+        throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot is supported for local glTF/GLB resource bundles.')
       }
 
       // ---- and what its BYTES are ---------------------------------------------
@@ -2676,10 +2686,10 @@ export default class BlenderStudio extends Service {
       let staging = join(rawDirectory, `.incoming-${randomUUID()}`)
       let bytes, sha256, relativePath, preparedBundle
       try {
-        if (type === 'gltf') {
+        if (type === 'gltf' || type === 'glb') {
           preparedBundle = await prepareGltfBundle({ projectRoot: this.store.projectDirectory(projectId),
             sourcePath: staged, name, sourceRoot: request?.sourceRoot, local: sourcePath !== null,
-            maxBytes: this.config.assetMaxBytes, signal: request?.signal })
+            maxBytes: this.config.assetMaxBytes, signal: request?.signal, type })
           ;({ staging, bytes, sha256, relativePath } = preparedBundle)
         } else {
           ({ bytes, sha256 } = await streamAsset(createReadStream(staged), staging, {
@@ -2722,7 +2732,7 @@ export default class BlenderStudio extends Service {
             path: relativePath,
             sha256,
             bytes,
-            ...(preparedBundle ? { bundle: preparedBundle.bundle } : {}),
+            ...(preparedBundle?.bundle ? { bundle: preparedBundle.bundle } : {}),
             // WHERE THE BYTES ACTUALLY CAME FROM, which is not always the URL that was approved: a redirect moves
             // the request, and the manifest is the copy a later reader trusts. It carries the approved URL (the
             // question "what did I ask for?") and, when the chain moved, the URL that answered ("what did I get?").
@@ -2732,7 +2742,7 @@ export default class BlenderStudio extends Service {
                 url: redactUrl(sourceUrl),
                 ...fetchedChain.length > 1 ? { resolvedUrl: redactUrl(fetchedChain[fetchedChain.length - 1]) } : {},
               }
-              : { kind: 'local', path: sourcePath, ...(preparedBundle ? { root: preparedBundle.sourceRoot } : {}) }),
+              : { kind: 'local', path: sourcePath, ...(preparedBundle?.bundle ? { root: preparedBundle.sourceRoot } : {}) }),
             // `null` rather than absent when nobody said: "no licence was given" and "this asset has no licence"
             // are different statements, and only the first one is true here.
             license,

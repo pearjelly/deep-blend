@@ -8,6 +8,8 @@ import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { createImage, encodePng, sha256 } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '@deepblend/dsh-blender-host/revision-transaction'
 import { diagnosticSpec } from '../../../packages/deepblend/host/lib/diagnostic-preview.js'
+import { verifyAssetBundle, BUNDLE_LOCK } from '../../../packages/deepblend/host/lib/asset-bundle.js'
+import { encodeGlb } from '../lib/glb.mjs'
 
 const base = () => defaultSceneSpec({ projectId: 'inspection-test', title: 'Inspection contract' })
 const matrix = () => [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]]
@@ -201,18 +203,41 @@ test('an earlier image alias cannot bypass a GLB external-dependency check on th
   header.writeUInt32LE(json.length,12); header.writeUInt32LE(0x4e4f534a,16)
   const bytes = Buffer.concat([header,json]), f = await setup(t), path = 'assets/raw/alias.png'
   mkdirSync(join(f.project, 'assets/raw'), { recursive: true }); writeFileSync(join(f.project,path),bytes)
-  await f.studio.applyScenePatch({ projectId: f.projectId, baseRevision: 'r0001', saveCheckpoint: false, renderPreview: false,
-    operations: [
-      { op: 'asset.add', asset: { id: 'image-alias', type: 'png', path, sha256: sha256(bytes) } },
-      { op: 'asset.add', asset: { id: 'model-alias', type: 'glb', path, sha256: sha256(bytes) } },
-      { op: 'entity.add', entity: { id: 'imported', type: 'asset-instance', assetId: 'model-alias' } },
-    ] })
-  await assert.rejects(f.render({ revision: 'r0002' }), { code: 'ASSET_REQUEST_INVALID' })
+  // Inject an existing legacy revision so this exercises the independent inspection
+  // guard; new patch submission already refuses this declaration.
+  const legacy=f.studio.store.readRevisionSpec(f.projectId,'r0001')
+  legacy.assets=[{id:'image-alias',type:'png',path,sha256:sha256(bytes)},{id:'model-alias',type:'glb',path,sha256:sha256(bytes)}]
+  legacy.entities.push({id:'imported',type:'asset-instance',assetId:'model-alias'})
+  writeFileSync(join(f.project,'revisions/r0001/scene-spec.json'),JSON.stringify(legacy))
+  await assert.rejects(f.render({ revision: 'r0001' }), { code: 'ASSET_REQUEST_INVALID' })
   assert.equal(f.calls.length, 0)
-  assert.deepEqual((await f.studio.listPreviewSets({ projectId: f.projectId })).revisions.find(row => row.revision === 'r0002').diagnostics, [])
+  assert.deepEqual((await f.studio.listPreviewSets({ projectId: f.projectId })).revisions.find(row => row.revision === 'r0001').diagnostics, [])
 })
 
 test('pre-aborted request launches no runtime and creates no diagnostic output', async t => {
   const f = await setup(t), controller = new AbortController(); controller.abort()
   await assert.rejects(f.render({ signal: controller.signal }), { code: 'BLENDER_ABORTED' }); assert.equal(f.calls.length, 0); await emptyDiagnostics(f)
+})
+
+test('fixed diagnostics stage complete glTF/GLB bundles once for repeated aliases', async t => {
+  for (const format of ['gltf','glb']) {
+    let model, compiled
+    const f=await setup(t,{compile:request=>{
+      const input=JSON.parse(readFileSync(request.sceneSpecPath));compiled=input.assets
+      for (const asset of input.assets) {
+        const lock=verifyAssetBundle(request.projectRoot,asset)
+        assert.equal(lock.files.length,3)
+        for (const member of [...lock.files,{path:BUNDLE_LOCK}]) assert.deepEqual(readFileSync(join(request.projectRoot,'assets/bundles',model.bundle.sha256,member.path)),readFileSync(join(f.project,'assets/bundles',model.bundle.sha256,member.path)))
+      }
+    }})
+    const source=join(f.root,'source');mkdirSync(source);writeFileSync(join(source,'model.bin'),Buffer.alloc(12));writeFileSync(join(source,'paint.png'),encodePng(createImage(2,2,[12,145,36,255])))
+    const doc={asset:{version:'2.0'},buffers:[{uri:'model.bin',byteLength:12}],images:[{uri:'paint.png'}]}
+    const file=join(source,'model.'+format);writeFileSync(file,format==='gltf'?JSON.stringify(doc):encodeGlb(doc))
+    model=await f.studio.ingestAsset({projectId:f.projectId,sourcePath:file,assetId:'model'})
+    const declaration={id:'model',type:format,path:model.path,sha256:model.sha256}
+    await f.studio.applyScenePatch({projectId:f.projectId,baseRevision:'r0001',saveCheckpoint:false,operations:[{op:'asset.add',asset:declaration},{op:'asset.add',asset:{...declaration,id:'alias'}}]})
+    const before=snapshot(join(f.project,'assets/bundles')),result=await f.render({revision:'r0002'})
+    assert.equal(compiled.length,2);assert.equal(result.sourceAssets.length,2);assert.deepEqual(snapshot(join(f.project,'assets/bundles')),before)
+    assert(!readdirSync(join(f.project,'staging')).some(n=>n.startsWith('.diagnostic-')))
+  }
 })

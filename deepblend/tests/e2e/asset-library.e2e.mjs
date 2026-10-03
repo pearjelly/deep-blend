@@ -8,6 +8,8 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import sharp from 'sharp'
+import { Context } from '@deepseek-ai/cordis'
+import Studio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-transaction.js'
 import { Browser } from '../../tools/browser-driver.mjs'
@@ -28,7 +30,7 @@ function check(name, ok, detail) { results.push({ name, ok, ...(detail === undef
 const blenderPath = process.env.DEEPBLEND_BLENDER_PATH ?? join(REPO_ROOT, '.tools/Blender.app/Contents/MacOS/Blender')
 if (!existsSync(blenderPath)) throw new Error(`Set DEEPBLEND_BLENDER_PATH; Blender not found: ${blenderPath}`)
 const generate = String.raw`
-import bpy,sys
+import bpy,sys,json,struct
 from pathlib import Path
 root=Path(sys.argv[sys.argv.index('--')+1])
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -39,6 +41,14 @@ for name,color in [('authored-red',(.6,.02,.01,1)),('authored-blue',(.01,.06,.5,
     body.data.materials.append(material)
 for face in body.data.polygons: face.material_index=face.index%2
 bpy.ops.export_scene.gltf(filepath=str(root/'authored-product.glb'),export_format='GLB')
+image=bpy.data.images.new('bundle-color',width=8,height=8,alpha=True);image.pixels=[.03,.55,.09,1]*64
+texture=body.data.materials[0].node_tree.nodes.new('ShaderNodeTexImage');texture.image=image
+body.data.materials[0].node_tree.links.new(texture.outputs['Color'],body.data.materials[0].node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+bpy.ops.export_scene.gltf(filepath=str(root/'bundled.gltf'),export_format='GLTF_SEPARATE')
+document=json.loads((root/'bundled.gltf').read_text());data=json.dumps(document,separators=(',',':')).encode();data+=b' '*(-len(data)%4)
+payload=struct.pack('<II',len(data),0x4e4f534a)+data
+(root/'bundled.glb').write_bytes(struct.pack('<4sII',b'glTF',2,len(payload)+12)+payload)
+(root/'bundle-image.json').write_text(json.dumps(document['images'][0]['uri']))
 pixels=[]
 for y in range(32):
     for x in range(64): pixels.extend([8,5,2,1] if 12<x<25 and 10<y<24 else [.06,.08,.15,1])
@@ -78,16 +88,17 @@ async function upload(name) {
   check(`${name}: native upload stores exact bytes and keeps the scene revision`, row?.asset.sha256 === sha(readFileSync(file)) && current() === before)
   return row
 }
+const card = row => `[data-asset-id="${row.asset.id}"][data-asset-path="${row.asset.path}"]`
 async function inspect(row) {
-  const before = current(), clicked = await page.click(`[data-action="asset-preview:${row.asset.id}"]`)
-  await page.waitFor(`document.querySelector('[data-asset-preview="${row.asset.id}"]')?.naturalWidth>0`, 180000)
+  const before = current(), clicked = await page.click(`${card(row)} [data-action="asset-preview:${row.asset.id}"]`)
+  await page.waitFor(`document.querySelector(${JSON.stringify(card(row) + ' [data-asset-preview]')})?.naturalWidth>0`, 180000)
   const inventory = await (await fetch(`${base}/deepblend/projects/${projectId}/assets`)).json()
-  const item = inventory.assets.find(entry => entry.asset.id === row.asset.id)
+  const item = inventory.assets.find(entry => entry.asset.id === row.asset.id && entry.asset.path === row.asset.path)
   check(`${row.originalName}: isolated preview is a real PNG with pinned inspection`, clicked.via === 'pointer' && item.preview?.sha256 === sha(readFileSync(path(item.preview.path))) && current() === before)
-  copyFileSync(path(item.preview.path), join(directory, `library-${row.asset.type}.png`)); previews.push(item)
+  copyFileSync(path(item.preview.path), join(directory, `library-${row.asset.type}-${previews.length}.png`)); previews.push(item)
   return item
 }
-async function choose(row) { await page.click(`[data-action="asset-use:${row.asset.id}"]`); await page.waitFor('document.querySelector("[data-asset-draft]")!==null') }
+async function choose(row) { await page.click(`${card(row)} [data-action="asset-use:${row.asset.id}"]`); await page.waitFor('document.querySelector("[data-asset-draft]")!==null') }
 async function apply(label) {
   const before = current(), clicked = await page.click('[data-action="asset-apply"]')
   await page.waitFor(`document.querySelector('[data-compare="right"] img[data-artifact-revision]')?.dataset.artifactRevision!==undefined && document.querySelector('[data-compare="right"] img[data-artifact-revision]').dataset.artifactRevision!==${JSON.stringify(before)}`, 180000)
@@ -143,9 +154,36 @@ try {
     await choose(environment); await page.fill(field('asset-world-strength'), String(strength)); await page.fill(field('asset-world-rotation'), String(rotation)); await apply(`${extension}-world`)
     check(`${extension}: world application preserves color, cameras and lights`, spec().world.environment.assetId === environment.asset.id && Math.abs(spec().world.environment.rotation - rotation * Math.PI / 180) < 1e-10 && spec().world.strength === strength && isDeepStrictEqual(spec().world.color, worldBefore.color) && isDeepStrictEqual(spec().cameras, scene.cameras) && isDeepStrictEqual(spec().lights, scene.lights))
   }
+  const seedContext = new Context(); seedContext.provide('blenderRuntime', {})
+  const seed = new Studio(seedContext, StudioConfig({ workspaceRoot: root, projectsRoot: join(root, 'projects'), reconcileOnStart: false }))
+  let bundledVersions
+  try {
+    const gltf = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.gltf'), sourceRoot: sources, assetId: 'bundled-json' })
+    const first = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.glb'), sourceRoot: sources, assetId: 'bundled-binary' })
+    await sharp({ create: { width: 8, height: 8, channels: 4, background: { r: 230, g: 25, b: 15, alpha: 1 } } }).png().toFile(join(sources, JSON.parse(readFileSync(join(sources, 'bundle-image.json')))))
+    const second = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.glb'), sourceRoot: sources, assetId: 'bundled-binary' })
+    bundledVersions = [gltf, first, second]
+  } finally { await seedContext.fiber.dispose() }
+  await page.click('[data-action="assets-open"]')
+  await page.waitFor('document.querySelectorAll("[data-asset-id]").length===8', 30000)
+  const library = await (await fetch(`${base}/deepblend/projects/${projectId}/assets`)).json()
+  const bundledRows = bundledVersions.map(version => library.assets.find(row => row.asset.path === version.path && row.asset.id === version.assetId))
+  check('same-main GLB versions appear as separate cards with exact paths', bundledVersions[1].sha256 === bundledVersions[2].sha256 && bundledVersions[1].path !== bundledVersions[2].path && bundledRows.every(Boolean))
+  for (const [index, row] of bundledRows.entries()) {
+    const receipt = await inspect(row)
+    check('bundled model preview exposes real material slots and UVs', receipt.inspection.kind === 'model' && receipt.inspection.parts.some(p => p.sourceMaterialSlots.length === 2 && p.uvMaps.length))
+    await choose(row); await page.fill(field('asset-entity-id'), 'bundled-object-' + index)
+    await apply('bundled-' + index)
+    const entity = spec().entities.find(e => e.id === 'bundled-object-' + index), applied = spec().assets.find(a => a.id === entity.assetId)
+    check('selected dependency version applies without changing earlier objects', applied.path === row.asset.path && applied.sha256 === row.asset.sha256 && (index !== 2 || spec().assets.find(a => a.id === spec().entities.find(e => e.id === 'bundled-object-1').assetId).path === bundledRows[1].asset.path))
+  }
+  const pixelA = decodePng(readFileSync(path(previews[6].preview.path))), pixelB = decodePng(readFileSync(path(previews[7].preview.path)))
+  check('same-main GLB versions produce different actual browser preview images', !pixelA.data.every((v, i) => v === pixelB.data[i]))
+  const bundledRequests = (await page.evaluate('window.__assetRequests')).filter(r => r.method === 'POST' && /\/assets\/.+\/preview$/.test(r.url) && r.body?.assetPath?.startsWith('assets/bundles/'))
+  check('browser preview requests pin every selected full dependency path', bundledRequests.length === 3 && bundledRows.every(row => bundledRequests.some(r => r.body.assetPath === row.asset.path)))
   const saved = current(); write('requests-before-refresh.json', await page.evaluate('window.__assetRequests'))
-  await page.reload(); await page.waitFor(`document.querySelector('[data-brief-base-revision="${saved}"]')!==null`, 45000); await sceneView(); await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelectorAll("[data-asset-preview]").length===5 && Array.from(document.querySelectorAll("[data-asset-preview]")).every(image=>image.naturalWidth>0)', 30000)
-  check('refresh recovers all five immutable preview PNGs and their source hashes', await page.evaluate('document.querySelectorAll("[data-asset-preview]").length===5'))
+  await page.reload(); await page.waitFor(`document.querySelector('[data-brief-base-revision="${saved}"]')!==null`, 45000); await sceneView(); await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelectorAll("[data-asset-preview]").length>=8 && Array.from(document.querySelectorAll("[data-asset-preview]")).every(image=>image.naturalWidth>0)', 30000)
+  check('refresh recovers all version-specific preview PNGs and their source hashes', await page.evaluate('document.querySelectorAll("[data-asset-preview]").length>=8'))
   await page.evaluate('document.querySelector("[data-assets-library]").scrollIntoView({block:"start"})'); await page.screenshot(join(directory, '02-library-after-refresh.png'))
   await choose(model); await page.fill(field('asset-entity-id'), 'unsaved-conflict-object')
   const peer = await fetch(`${base}/deepblend/projects/${projectId}/patch`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ patch: { projectId, baseRevision: saved, saveCheckpoint: true, renderPreview: false, operations: [{ op: 'project.brief.set', goal: 'A peer changed the saved goal.', referenceImages: [] }] } }), signal: AbortSignal.timeout(180000) })
@@ -172,7 +210,7 @@ finally {
     try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { outcome = 'failed'; results.push({ name: `${name} shutdown`, ok: false, detail: String(error) }) }
   }
   const report = { startedAt, completedAt: new Date().toISOString(), outcome, directory, root, url, projectId, shutdown, originals, captures, results, passed: results.filter(result => result.ok).length, total: results.length,
-    scope: 'Real browser, locally authored five-format files and actual Host/Blender output. Representative base-color image binding, original GLB slot override, world lighting, conflict and preview cancellation. Other map channels, all format combinations and online model quality are not claimed.' }
+    scope: 'Real browser, locally authored five upload formats plus locked JSON glTF and two same-main external GLB versions, actual Host/Blender output. Representative base-color image binding, original GLB slot override, world lighting, conflict and preview cancellation. Other map channels, all format combinations and online model quality are not claimed.' }
   write('results.json', report); console.log(`Asset library UI: ${report.passed}/${report.total}; ${directory}`)
 }
 if (outcome !== 'passed') process.exitCode = 1

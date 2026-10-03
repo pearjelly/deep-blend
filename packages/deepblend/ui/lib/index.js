@@ -770,7 +770,7 @@ export function createHandlers(ctx) {
       ...(query.license === undefined ? {} : { license: query.license }), stream: request, signal,
     }),
     'project.assets.preview': async ({ params, body, signal }) => assetStudio('previewAsset').previewAsset({
-      projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, signal,
+      projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, assetPath: body.assetPath, signal,
     }),
 
     'project.review': async ({ params, body }) => {

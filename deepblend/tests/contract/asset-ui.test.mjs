@@ -14,8 +14,8 @@ const core = loadClientBundle().exports.workbench, assets = core.assetLibrary
 const sha = 'a'.repeat(64), glbSha = 'b'.repeat(64)
 const entry = (type = 'png', extra = {}) => ({ asset: { id: `uploaded-${type}`, type, path: `assets/raw/${type === 'glb' ? glbSha : sha}.${type}`, sha256: type === 'glb' ? glbSha : sha },
   originalName: `My source.${type}`, bytes: 10 * 1024 * 1024, license: null, declaredInRevision: false, inspection: null, ...extra })
-const kind = type => type === 'glb' ? 'model' : ['hdr', 'exr'].includes(type) ? 'environment' : 'image'
-const inspected = item => ({ kind: kind(item.asset.type), warnings: [], ...(item.asset.type === 'glb' ? { dimensions: [.1, .2, .3], parts: [] } : {}) })
+const kind = type => ['gltf', 'glb'].includes(type) ? 'model' : ['hdr', 'exr'].includes(type) ? 'environment' : 'image'
+const inspected = item => ({ kind: kind(item.asset.type), warnings: [], ...(['gltf', 'glb'].includes(item.asset.type) ? { dimensions: [.1, .2, .3], parts: [] } : {}) })
 const source = () => compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/metal-lamp/scene-spec.json', import.meta.url)))).spec
 const scene = (spec, revision = 'r0001', assetParts = []) => buildSceneTree(spec, { revision, assetParts })
 function draft(type = 'png', spec = source(), assetParts = []) {
@@ -52,9 +52,9 @@ async function client(t, options = {}) {
         const added = entry(body.name.split('.').at(-1).toLowerCase(), { license: parsed.searchParams.get('license') || null })
         project.assets.push(added); payload = { ok: true, projectId: id, currentRevision: project.revision, ...clone(added) }
       } else if (/\/assets\/[^/]+\/preview$/.test(parsed.pathname)) {
-        const assetId = parsed.pathname.split('/').at(-2), found = project.assets.find(item => item.asset.id === assetId)
+        const assetId = parsed.pathname.split('/').at(-2), found = project.assets.find(item => item.asset.id === assetId && (body.assetPath === undefined || item.asset.path === body.assetPath))
         assert.equal(body.sha256, found.asset.sha256); found.inspection = inspected(found); found.preview = preview(found)
-        payload = { ok: true, projectId: id, assetId, sha256: found.asset.sha256, inspection: found.inspection, preview: found.preview }
+        payload = { ok: true, projectId: id, assetId, sha256: found.asset.sha256, assetPath: options.omitPreviewPath ? undefined : options.wrongPreviewPath ?? found.asset.path, inspection: found.inspection, preview: found.preview }
       } else if (parsed.pathname.endsWith('/patch')) {
         assert.equal(body.patch.baseRevision, project.revision); assert.equal(validateScenePatch(body.patch).ok, true, validateScenePatch(body.patch).summary)
         project.spec = applyPatchToSpec(project.spec, body.patch).spec; assert.equal(validateSceneSpec(project.spec).ok, true, validateSceneSpec(project.spec).summary)
@@ -86,8 +86,8 @@ test('asset routes are closed; Host inputs omit arbitrary paths, commands and re
   }
   const signal = new AbortController().signal
   await handlers['project.assets.list']({ params: { projectId: 'one' }, query: { revision: 'r0001', sourcePath: '/private' } })
-  await handlers['project.assets.preview']({ params: { projectId: 'one', assetId: 'a' }, body: { sha256: sha, path: '/private', width: 99999, command: 'bad' }, signal })
-  assert.deepEqual(calls, [{ projectId: 'one', revision: 'r0001' }, { projectId: 'one', assetId: 'a', sha256: sha, signal }])
+  await handlers['project.assets.preview']({ params: { projectId: 'one', assetId: 'a' }, body: { sha256: sha, assetPath: 'assets/bundles/version/model.glb', path: '/private', width: 99999, command: 'bad' }, signal })
+  assert.deepEqual(calls, [{ projectId: 'one', revision: 'r0001' }, { projectId: 'one', assetId: 'a', sha256: sha, assetPath: 'assets/bundles/version/model.glb', signal }])
 })
 
 test('generic raw upload exceeds reference/JSON limits and passes the actual stream, license and cancellation signal', async () => {
@@ -125,7 +125,11 @@ test('GLB placement preserves original materials and camera, with one atomic che
 test('asset licenses are carried only when explicitly supplied; alias changes never rewrite old declarations', () => {
   const { spec, value } = draft('glb'); assert.equal(assets.buildPatch(value).operations[0].asset.license, undefined)
   value.entry.license = 'CC BY 4.0: Original Author'; assert.deepEqual(clone(assets.buildPatch(value).operations[0].asset.license), { source: value.entry.license })
-  value.scene.nodes.assets.push({ ...value.entry.asset, sha256: sha }); assert.throws(() => assets.buildPatch(value), /identity changed/)
+  const old = { ...value.entry.asset, sha256: sha }; value.scene.nodes.assets.push(old)
+  const before = clone(value.scene.nodes.assets), patch = clone(assets.buildPatch(value))
+  assert.notEqual(patch.operations[0].asset.id, old.id); assert.equal(patch.operations[0].asset.path, value.entry.asset.path)
+  assert.equal(patch.operations[1].entity.assetId, patch.operations[0].asset.id); assert.deepEqual(clone(value.scene.nodes.assets), before)
+  assert.deepEqual(patch.operations[0].asset.license, {source:value.entry.license})
 })
 
 test('local image binding preserves alpha, anisotropy, tangents, other maps and the selected map UV transform', () => {
@@ -204,7 +208,7 @@ test('opening inventory makes no writes; browser upload follows dynamic 1 GiB li
 test('inspection is explicit and hash-pinned; reload recovers its thumbnail without another render', async t => {
   const { store, calls, projects, nodes } = await client(t); await store.actions.loadAssets(); await store.actions.uploadAsset([{ name: 'source.hdr', size: 100, type: '' }])
   const item = projects.one.assets[0]; store.actions.chooseAsset(assets.key(item.asset)); assert.equal(store.getState().assetDrafts.one, undefined)
-  await store.actions.previewAsset(assets.key(item.asset)); assert.deepEqual(calls.at(-1).body, { sha256: sha }); assert.equal(projects.one.revision, 'r0001')
+  await store.actions.previewAsset(assets.key(item.asset)); assert.deepEqual(calls.at(-1).body, { sha256: sha, assetPath: item.asset.path }); assert.equal(projects.one.revision, 'r0001')
   const count = calls.length; await store.actions.loadAssets(); assert.equal(calls.length, count)
   assert.ok(nodes().some(node => node.props['data-asset-preview'] === item.asset.id)); assert.match(JSON.stringify(nodes()), /tone-mapped|色调映射/)
   store.actions.chooseAsset(assets.key(item.asset)); assert.equal(store.getState().assetDrafts.one.kind, 'environment')
@@ -353,3 +357,32 @@ test('a tone-mapped GLB preview never claims to be an environment lighting examp
   assert.doesNotMatch(text, /环境照明效果示例/)
   assert.match(text, /0.16 × 0.16 × 0.16/); assert.match(text, /2 KiB/)
 })
+
+test('glTF inspected models form native-preserving insertion patches', () => {
+  const {spec,value}=draft('gltf'),next=apply(spec,value);
+  assert.equal(next.patch.operations[0].asset.type,'gltf');
+  const entity=next.spec.entities.find(e=>e.id===value.newEntityId);assert.equal(entity.assetId,value.entry.asset.id);assert.equal(entity.materialId,undefined);
+});
+test('same-main dependency versions have distinct browser cards, previews and drafts', async t => {
+  const first=entry('glb'),second=clone(first);first.asset.path='assets/bundles/'+ '1'.repeat(64)+'/model.glb';second.asset.path='assets/bundles/'+ '2'.repeat(64)+'/model.glb';
+  assert.notEqual(assets.key(first.asset),assets.key(second.asset));
+  const {store,calls,nodes}=await client(t,{seed:[first,second]});await store.actions.loadAssets();
+  for (const item of [first,second]) await store.actions.previewAsset(assets.key(item.asset));
+  assert.equal(Object.keys(store.getState().assetPreviews.one).length,2);
+  assert.deepEqual(calls.map(c=>c.body.assetPath),[first.asset.path,second.asset.path]);
+  assert.deepEqual(nodes().filter(n=>n.props['data-asset-id']===first.asset.id).map(n=>n.props['data-asset-path']),[first.asset.path,second.asset.path]);
+  for (const item of [first,second]) {store.actions.chooseAsset(assets.key(item.asset));assert.equal(store.getState().assetDrafts.one.entry.asset.path,item.asset.path);store.actions.discardAsset();}
+});
+test('preview receipt from another dependency version cannot enable apply', async t => {
+  const item=entry('glb');item.asset.path='assets/bundles/'+ '1'.repeat(64)+'/model.glb';
+  const {store,action}=await client(t,{seed:[item],wrongPreviewPath:'assets/bundles/'+ '2'.repeat(64)+'/model.glb'});await store.actions.loadAssets();await store.actions.previewAsset(assets.key(item.asset));
+  assert.equal(store.getState().assetPreviews.one[assets.key(item.asset)],undefined);assert.equal(action('asset-use:'+item.asset.id).props.disabled,true);
+});
+
+test('legacy preview receipts remain usable only for canonical single-file raw identity', async t => {
+  for (const bundled of [false,true]) {
+    const item=entry('glb');if(bundled)item.asset.path='assets/bundles/'+ '1'.repeat(64)+'/model.glb';
+    const {store,action}=await client(t,{seed:[item],omitPreviewPath:true});await store.actions.loadAssets();await store.actions.previewAsset(assets.key(item.asset));
+    assert.equal(action('asset-use:'+item.asset.id).props.disabled,bundled);
+  }
+});

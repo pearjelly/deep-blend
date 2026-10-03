@@ -37,7 +37,7 @@ import bpy
 from mathutils import Vector
 
 from deepblend_util import ActionError, Guard, as_text, error_text, report_progress, warning
-from deepblend_asset_bundle import verify_asset_bundle
+from deepblend_asset_bundle import verify_asset_bundle, verify_unbundled_gltf_asset
 from deepblend_geometry import create_lathe, create_curve, apply_model_modifiers
 from deepblend_images import build_image_maps, build_environment
 from deepblend_parts import isolated_import_names, stamp_imported_parts, apply_material_bindings
@@ -1948,6 +1948,7 @@ def build_scene(spec, options, guard):
         addressed = re.fullmatch(r"assets/raw/([a-f0-9]{64})\.[a-z0-9]+", asset.get("path", ""))
         declared = addressed.group(1) if addressed else asset.get("sha256")
         if not declared:
+            verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
             continue
         asset_path = os.path.join(options.get("project_root") or "", asset.get("path", ""))
         digest = hashlib.sha256()
@@ -1961,6 +1962,8 @@ def build_scene(spec, options, guard):
         if actual != declared or (asset.get("sha256") and asset["sha256"] != declared):
             raise ActionError("ASSET_HASH_MISMATCH", 'asset "%s" changed since its revision was declared' % asset.get("id"),
                               {"assetId": asset.get("id"), "declared": declared, "actual": actual})
+
+        verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
 
     report_progress("reset_scene", 5)
     scene = reset_scene()

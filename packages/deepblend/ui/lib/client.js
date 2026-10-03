@@ -1430,8 +1430,8 @@ window.__ModuleLoader__.load({
 
     const ASSET_TYPES = ['glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr']
     const ASSET_CHANNELS = ['baseColor', 'roughness', 'metallic', 'normal', 'alpha', 'emissionColor']
-    const assetKey = asset => JSON.stringify([asset.id, asset.sha256])
-    const assetKind = asset => asset.type === 'glb' ? 'model' : ['hdr', 'exr'].includes(asset.type) ? 'environment' : 'image'
+    const assetKey = asset => JSON.stringify([asset.id, asset.sha256, asset.path])
+    const assetKind = asset => ['gltf', 'glb'].includes(asset.type) ? 'model' : ['hdr', 'exr'].includes(asset.type) ? 'environment' : 'image'
     const assetBytes = value => {
       if (!Number.isFinite(value)) return '—'
       const unit = value >= 1048576 ? ['MiB', 1048576] : value >= 1024 ? ['KiB', 1024] : ['B', 1]
@@ -1466,11 +1466,17 @@ window.__ModuleLoader__.load({
     function buildAssetPatch(draft) {
       if (!draft) throw new Error(t('assets.invalid', { field: 'draft' }))
       const fail = field => { throw new Error(t('assets.invalid', { field })) }
-      const asset = draft.entry.asset, operations = []
-      if (!asset || !ASSET_TYPES.includes(asset.type) || !/^[a-f0-9]{64}$/.test(asset.sha256 || '')) fail('asset')
+      let asset = draft.entry.asset
+      const operations = []
+      if (!asset || ![...ASSET_TYPES, 'gltf'].includes(asset.type) || !/^[a-f0-9]{64}$/.test(asset.sha256 || '')) fail('asset')
       if (draft.inspection?.kind !== assetKind(asset) || draft.kind !== assetKind(asset)) fail('inspection')
-      const declared = draft.scene.nodes.assets.find(item => item.id === asset.id)
-      if (declared && (declared.sha256 !== asset.sha256 || declared.path !== asset.path || declared.type !== asset.type)) fail('asset identity changed')
+      let declared = draft.scene.nodes.assets.find(item => item.id === asset.id)
+      if (declared && (declared.sha256 !== asset.sha256 || declared.path !== asset.path || declared.type !== asset.type)) {
+        const alias = `${draft.newEntityId}-source`
+        if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(alias) || draft.scene.nodes.assets.some(item => item.id === alias)) fail('asset ID')
+        asset = { ...asset, id: alias }
+        declared = null
+      }
       if (!declared) operations.push({ op: 'asset.add', asset: { ...editorClone(asset),
         ...(asset.license === undefined && draft.entry.license ? { license: { source: draft.entry.license } } : {}) } })
       if (draft.kind === 'model') {
@@ -1933,7 +1939,7 @@ window.__ModuleLoader__.load({
             const previews = { ...data.assetPreviews[projectId] }
             for (const entry of result.payload.assets || []) {
               if (entry.preview?.mime === 'image/png' && entry.inspection?.kind === assetKind(entry.asset)) previews[assetKey(entry.asset)] = {
-                projectId, assetId: entry.asset.id, sha256: entry.asset.sha256,
+                projectId, assetId: entry.asset.id, sha256: entry.asset.sha256, assetPath: entry.asset.path,
                 inspection: editorClone(entry.inspection), preview: editorClone(entry.preview),
               }
             }
@@ -1978,12 +1984,14 @@ window.__ModuleLoader__.load({
           try {
             const response = await fetchImpl(projectRoute(projectId, `/assets/${encodeURIComponent(entry.asset.id)}/preview`), {
               method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
-              body: JSON.stringify({ sha256: entry.asset.sha256 }), signal: controller.signal,
+              body: JSON.stringify({ sha256: entry.asset.sha256, assetPath: entry.asset.path }), signal: controller.signal,
             })
             const result = await response.json()
             if (controller.signal.aborted) throw new Error(t('assets.cancelled'))
             if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_PREVIEW_FAILED'}: ${result.error?.message || response.status}`)
             if (result.projectId !== projectId || result.assetId !== entry.asset.id || result.sha256 !== entry.asset.sha256
+              || (result.assetPath !== entry.asset.path && !(result.assetPath === undefined
+                && entry.asset.path === `assets/raw/${entry.asset.sha256}.${entry.asset.type}`))
               || result.inspection?.kind !== assetKind(entry.asset) || result.preview?.mime !== 'image/png') throw new Error(t('assets.needPreview'))
             set({ assetPreviews: { ...data.assetPreviews, [projectId]: { ...data.assetPreviews[projectId], [key]: editorClone(result) } } })
           } catch (error) { assetWork(projectId, { error: controller.signal.aborted ? t('assets.cancelled') : error.message || String(error) }) }
@@ -2881,8 +2889,8 @@ window.__ModuleLoader__.load({
             Button({ action: 'asset-cancel', onClick: actions.cancelAsset, children: t('assets.cancel') })) : null,
           el('div', { className: 'db-grid', style: { marginTop: '12px' } }, (library.assets || []).map(entry => {
             const key = assetKey(entry.asset), result = state.assetPreviews?.[projectId]?.[key]
-            const declared = state.selected?.scene?.nodes.assets.some(asset => asset.id === entry.asset.id && asset.sha256 === entry.asset.sha256)
-            return el('article', { className: 'db-card', key, 'data-asset-id': entry.asset.id, 'data-asset-sha256': entry.asset.sha256 },
+            const declared = state.selected?.scene?.nodes.assets.some(asset => asset.id === entry.asset.id && asset.sha256 === entry.asset.sha256 && asset.path === entry.asset.path)
+            return el('article', { className: 'db-card', key, 'data-asset-id': entry.asset.id, 'data-asset-sha256': entry.asset.sha256, 'data-asset-path': entry.asset.path },
               el('h4', null, entry.originalName || entry.asset.id), el('p', null, `${entry.asset.type.toUpperCase()} · ${assetBytes(entry.bytes)}`),
               el('p', { className: 'db-muted' }, declared ? t('assets.declared') : t('assets.staged')),
               el('p', { className: 'db-muted' }, entry.license || t('assets.noLicense')),

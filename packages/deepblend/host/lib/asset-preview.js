@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, compileSceneSpec, validateSceneSpec, specHash } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from './revision-transaction.js'
-import { ASSET_LIBRARY_LIMITS, inspectSelfContainedGlb } from './asset-library.js'
+import { ASSET_LIBRARY_LIMITS } from './asset-library.js'
+import { readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
 
 export const ASSET_PREVIEW_TEMPLATE = 'deepblend.asset-preview/v1'
 
@@ -77,8 +78,16 @@ function modelInspection(report, glb) {
 
 export async function renderAssetPreview({ runtime, asset, directory, maxMeshPolygons, maxPreviewSamples, signal }) {
   const environment = ['hdr', 'exr'].includes(asset.type)
-  if (!environment && asset.type !== 'glb') invalid('This preview supports GLB models and HDR/EXR environment lighting.')
-  const glb = environment ? null : await inspectSelfContainedGlb(join(directory, asset.path), { signal })
+  if (!environment && !['gltf', 'glb'].includes(asset.type)) invalid('This preview supports glTF/GLB models and HDR/EXR environment lighting.')
+  let glb = null
+  if (!environment) {
+    signal?.throwIfAborted()
+    verifyAssetBundle(directory, asset)
+    verifyUnbundledGltfAsset(directory, asset)
+    const { document } = readGltfDocument(join(directory, asset.path), { format: asset.type, signal })
+    glb = { animations: document.animations?.length ?? 0, cameras: document.cameras?.length ?? 0,
+      lights: document.extensions?.KHR_lights_punctual?.lights?.length ?? 0 }
+  }
   if (glb && (glb.cameras || glb.lights)) invalid(
     'This GLB contains cameras or lights. Export a model-only GLB for the current asset library preview; its contents will not be silently removed.')
   const samples = Math.max(1, Math.min(ASSET_LIBRARY_LIMITS.previewSamples, Math.floor(maxPreviewSamples)))

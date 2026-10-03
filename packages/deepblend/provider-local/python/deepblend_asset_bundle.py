@@ -1,11 +1,12 @@
 """Verify managed glTF bundles before any scene mutation; no bpy dependency."""
-import hashlib,json,os,posixpath,re
+import hashlib,json,os,posixpath,re,struct
 from urllib.parse import unquote
 from deepblend_util import ActionError
 LOCK='.deepblend-lock.json'
 MAX_FILES=256
 MAX_LOCK=1024*1024
 MAX_JSON=16*1024*1024
+MAX_CHUNKS=1024
 
 def fail(message,code='ASSET_REQUEST_INVALID'):
     raise ActionError(code,message)
@@ -38,18 +39,55 @@ def read_json(path,limit):
     try:return data,json.loads(data)
     except (ValueError,UnicodeError):fail('The asset bundle metadata cannot be parsed.','ASSET_CONTENT_MISMATCH')
 
-def resources(document,entrypoint):
+def parse_document(data):
+    try:return json.loads(data.decode('utf-8-sig'),parse_constant=lambda value:fail('Non-finite glTF JSON value.','ASSET_CONTENT_MISMATCH'))
+    except (ValueError,UnicodeError):fail('The glTF metadata cannot be parsed.','ASSET_CONTENT_MISMATCH')
+
+def read_document(path,format='gltf'):
+    if format=='gltf':return parse_document(read_bytes(path,MAX_JSON)),None
+    if format!='glb':fail('Unsupported asset bundle format.')
+    try:
+        with open(path,'rb') as source:
+            size=os.fstat(source.fileno()).st_size
+            def read(offset,length):
+                source.seek(offset);data=source.read(length)
+                if len(data)!=length:fail('The GLB is truncated.','ASSET_CONTENT_MISMATCH')
+                return data
+            if size<20:fail('The GLB header is truncated.','ASSET_CONTENT_MISMATCH')
+            magic,version,declared=struct.unpack('<4sII',read(0,12))
+            if magic!=b'glTF' or version!=2 or declared!=size:fail('The GLB must be a complete version 2 container.','ASSET_CONTENT_MISMATCH')
+            offset=12;document=None;bin_bytes=None;chunks=0;json_seen=False
+            while offset<size:
+                chunks+=1
+                if chunks>MAX_CHUNKS:fail('The GLB exceeds the chunk inspection limit.','ASSET_TOO_LARGE')
+                if offset+8>size:fail('The GLB chunk header is truncated.','ASSET_CONTENT_MISMATCH')
+                length,kind=struct.unpack('<II',read(offset,8))
+                if length%4 or offset+8+length>size:fail('The GLB chunk length is invalid.','ASSET_CONTENT_MISMATCH')
+                if chunks==1 and kind!=0x4e4f534a:fail('The first GLB chunk must contain JSON.','ASSET_CONTENT_MISMATCH')
+                if kind==0x4e4f534a:
+                    if json_seen:fail('The GLB contains duplicate JSON chunks.','ASSET_CONTENT_MISMATCH')
+                    if length>MAX_JSON:fail('The GLB JSON exceeds 16 MiB.','ASSET_TOO_LARGE')
+                    json_seen=True;document=parse_document(read(offset+8,length))
+                elif kind==0x004e4942:
+                    if chunks!=2 or bin_bytes is not None:fail('The GLB BIN must be its second chunk.','ASSET_CONTENT_MISMATCH')
+                    bin_bytes=length
+                offset+=8+length
+            if not isinstance(document,dict) or not isinstance(document.get('asset'),dict) or document['asset'].get('version')!='2.0':fail('The GLB JSON must declare glTF 2.0.','ASSET_CONTENT_MISMATCH')
+            return document,bin_bytes
+    except OSError:fail('A glTF asset file is missing.','ASSET_MISSING')
+
+def resources(document,entrypoint,bin_bytes=None):
     if not isinstance(document,dict) or not isinstance(document.get('asset'),dict) or document['asset'].get('version')!='2.0':
         fail('The glTF JSON must declare version 2.0.','ASSET_CONTENT_MISMATCH')
     paths=set()
     for key in ('buffers','images'):
         entries=document.get(key,[])
         if not isinstance(entries,list):fail('glTF resources must be arrays.')
-        for item in entries:
+        for index,item in enumerate(entries):
             if not isinstance(item,dict):fail('Invalid glTF resource entry.')
             uri=item.get('uri')
             if uri is None and 'uri' not in item:
-                if key=='buffers':fail('JSON glTF buffers require a URI.')
+                if key=='buffers' and (index!=0 or bin_bytes is None or type(item.get('byteLength')) is not int or not 0<=item['byteLength']<=bin_bytes or bin_bytes-item['byteLength']>3):fail('An embedded buffer requires the first GLB buffer and a matching BIN chunk.')
                 continue
             if not isinstance(uri,str) or not uri:fail('glTF resource URIs must be nonempty strings.')
             if uri.startswith('data:'):
@@ -88,7 +126,9 @@ def verify_asset_bundle(project_root,asset):
     except (ValueError,UnicodeError):fail('The asset bundle lock cannot be parsed.','ASSET_CONTENT_MISMATCH')
     if not isinstance(manifest,dict) or manifest.get('schemaVersion')!='deepblend.asset-bundle/v1' or manifest.get('entrypoint')!=match.group(2) or not isinstance(manifest.get('files'),list) or not 1<=len(manifest['files'])<=MAX_FILES:
         fail('The asset bundle lock has an invalid shape or entrypoint.')
-    member_path(manifest['entrypoint']);members={};folded=set();total=0
+    member_path(manifest['entrypoint']);format=manifest.get('format','gltf')
+    if format not in ('gltf','glb') or (asset.get('type') and asset['type']!=format):fail('The asset bundle format does not match its declaration.')
+    members={};folded=set();total=0
     for member in manifest['files']:
         if not isinstance(member,dict):fail('Invalid asset bundle member.')
         path=member_path(member.get('path'));size=member.get('bytes');sha=member.get('sha256')
@@ -107,7 +147,12 @@ def verify_asset_bundle(project_root,asset):
     main=members.get(manifest['entrypoint'])
     if total>9007199254740991 or type(manifest.get('totalBytes')) is not int or manifest['totalBytes']!=total or main is None or (asset.get('sha256') and asset['sha256']!=main['sha256']):
         fail('The asset bundle identity does not agree with its declaration.','ASSET_HASH_MISMATCH')
-    _,document=read_json(inside(root,manifest['entrypoint']),MAX_JSON)
-    for path in resources(document,manifest['entrypoint']):
+    document,bin_bytes=read_document(inside(root,manifest['entrypoint']),format)
+    for path in resources(document,manifest['entrypoint'],bin_bytes):
         if path not in members:fail('A glTF resource is not locked.')
     return manifest
+
+def verify_unbundled_gltf_asset(project_root,asset):
+    if asset.get('type') not in ('gltf','glb') or re.match(r'assets/bundles/[a-f0-9]{64}/',asset.get('path','')):return
+    document,bin_bytes=read_document(inside(project_root,asset.get('path','')),asset['type'])
+    if resources(document,posixpath.basename(asset.get('path','')),bin_bytes):fail('This glTF/GLB has unlocked external resources. Reimport the local source with a containing sourceRoot.')

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { open } from 'node:fs/promises'
 import { extname } from 'node:path'
+import { readGltfDocument, gltfResources } from './asset-bundle.js'
 import { BlenderError, BlenderErrorCode, assetContentVerdict } from '@deepblend/dsh-blender-contracts'
 
 export const ASSET_LIBRARY_LIMITS = Object.freeze({
@@ -34,74 +35,17 @@ export function uploadAssetType(name, mediaType) {
   return type
 }
 
-async function readExactly(handle, offset, length) {
-  const data = Buffer.alloc(length)
-  let read = 0
-  while (read < length) {
-    const result = await handle.read(data, read, length - read, offset + read)
-    if (!result.bytesRead) reject('The asset file is truncated.')
-    read += result.bytesRead
-  }
-  return data
-}
-
-/** Inspect GLB JSON without reading a potentially large BIN chunk into memory. */
+/** Inspect bounded GLB metadata; the upload profile requires all core resources embedded. */
 export async function inspectSelfContainedGlb(path, { signal } = {}) {
-  const handle = await open(path, 'r')
-  try {
-    signal?.throwIfAborted()
-    const { size } = await handle.stat()
-    if (size < 20) reject('The GLB header is truncated.')
-    const header = await readExactly(handle, 0, 12)
-    if (header.toString('ascii', 0, 4) !== 'glTF' || header.readUInt32LE(4) !== 2 || header.readUInt32LE(8) !== size) {
-      reject('The upload must be a complete GLB 2 file with its declared byte length.')
-    }
-    let offset = 12, document = null, binBytes = null
-    while (offset < size) {
-      signal?.throwIfAborted()
-      if (offset + 8 > size) reject('The GLB contains a truncated chunk header.')
-      const chunk = await readExactly(handle, offset, 8)
-      const length = chunk.readUInt32LE(0), kind = chunk.readUInt32LE(4)
-      if (length % 4 !== 0 || offset + 8 + length > size) reject('The GLB has an invalid chunk length.')
-      if (offset === 12 && kind !== 0x4e4f534a) reject('The first GLB chunk must contain its JSON document.')
-      if (kind === 0x4e4f534a) {
-        if (document !== null || length > ASSET_LIBRARY_LIMITS.maxGlbJsonBytes) {
-          reject('The GLB needs one JSON chunk of at most 16 MiB.', BlenderErrorCode.ASSET_REQUEST_INVALID)
-        }
-        try { document = JSON.parse((await readExactly(handle, offset + 8, length)).toString('utf8')) }
-        catch (cause) {
-          if (cause instanceof BlenderError) throw cause
-          reject('The GLB JSON document is invalid.')
-        }
-        if (!document || typeof document !== 'object' || Array.isArray(document) || document.asset?.version !== '2.0') {
-          reject('The GLB must declare glTF version 2.0.')
-        }
-      } else if (kind === 0x004e4942) {
-        if (binBytes !== null) reject('The GLB contains more than one binary chunk.')
-        binBytes = length
-      }
-      offset += 8 + length
-    }
-    for (const key of ['buffers', 'images']) {
-      if (document[key] !== undefined && !Array.isArray(document[key])) reject(`The GLB ${key} field must be an array.`)
-      for (const item of document[key] ?? []) {
-        if (!item || typeof item !== 'object') reject(`The GLB contains an invalid ${key} entry.`)
-        if (item.uri !== undefined && (typeof item.uri !== 'string' || !/^data:[^,]*;base64,/i.test(item.uri))) {
-          reject('Upload a self-contained GLB. External buffers and image files are not copied or fetched.', BlenderErrorCode.ASSET_REQUEST_INVALID)
-        }
-      }
-    }
-    const embedded = (document.buffers ?? []).filter(buffer => buffer.uri === undefined)
-    if (embedded.length > 1 || embedded.some(buffer => !Number.isSafeInteger(buffer.byteLength)
-      || buffer.byteLength < 0 || binBytes === null || buffer.byteLength > binBytes || binBytes - buffer.byteLength > 3)) {
-      reject('The GLB embedded buffer does not match its binary chunk.')
-    }
-    return {
-      animations: Array.isArray(document.animations) ? document.animations.length : 0,
-      cameras: Array.isArray(document.cameras) ? document.cameras.length : 0,
-      lights: Array.isArray(document.extensions?.KHR_lights_punctual?.lights) ? document.extensions.KHR_lights_punctual.lights.length : 0,
-    }
-  } finally { await handle.close() }
+  const { document, binBytes } = readGltfDocument(path, { format: 'glb', signal })
+  if (gltfResources(document, 'upload.glb', binBytes).length) {
+    reject('Upload a self-contained GLB. External buffers and image files are not copied or fetched.', BlenderErrorCode.ASSET_REQUEST_INVALID)
+  }
+  return {
+    animations: Array.isArray(document.animations) ? document.animations.length : 0,
+    cameras: Array.isArray(document.cameras) ? document.cameras.length : 0,
+    lights: Array.isArray(document.extensions?.KHR_lights_punctual?.lights) ? document.extensions.KHR_lights_punctual.lights.length : 0,
+  }
 }
 
 export async function checkAssetUpload(path, type, { signal } = {}) {

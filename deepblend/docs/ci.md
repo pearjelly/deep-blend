@@ -57,7 +57,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `browser.log` / `browser/`：实际图片、截图、请求与结果；失败时已有材料仍保留。
 - `cup.log` / `cup/`：实际杯体 checkpoint、材质/灰模 PNG、参数及网格/法线检查。
 - `cup-browser.log` / `cup-browser/`：实际创建/编辑请求、桌面与窄屏截图、布局测量、配方锁与各修订文件。
-- `asset-bundle.log` / `asset-bundle/`：原始 glTF 缓冲区/纹理、两份依赖锁、实际 checkpoint/PNG、旧修订重建与编译前拒绝的独立检查。
+- `asset-bundle.log` / `asset-bundle/`：三种原生 glTF/GLB 配置、原始缓冲区/纹理、各版依赖锁、实际 checkpoint/PNG、旧修订重建与旧素材编译前拒绝的独立检查。
 - `runtime-conformance.log` / `runtime-conformance/`：打包身份、公开检查报告、实际 checkpoint/PNG、独立重开与参考图片、取消/补渲回执及失败日志。
 
 以该次运行的 commit 和 `runtimes.json` 为准。不能用本机旧截图证明 Linux CI 通过。

@@ -5,8 +5,8 @@ import { randomUUID } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, BLENDER_ENGINE_BY_KEY, JOB_RECORD_VERSION, compileSceneSpec, sceneSpecDigest,
   sha256, specHash, validateSceneSpec, toCanonicalJobRecord } from '@deepblend/dsh-blender-contracts'
 import { streamAsset } from './asset-io.js'
-import { inspectSelfContainedGlb } from './asset-library.js'
-import { fileSha256, isFile, readJsonSafe, removeTree, resolveInside, writeJsonAtomic } from './paths.js'
+import { stageAssetBundle, assetPreviewVersion, readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
+import { fileSha256, fileSize, isFile, readJsonSafe, removeTree, resolveInside, writeJsonAtomic } from './paths.js'
 
 export const DIAGNOSTIC_VERSION = 'deepblend.diagnostic/v1'
 export const CLAY_TRANSFORM = Object.freeze({ id: 'opaque-clay', version: 1,
@@ -146,11 +146,12 @@ export async function renderDiagnostic(host, request) {
     mkdirSync(compileRoot, { recursive: true }); mkdirSync(output)
     const sourceAssets = []
     const assetPaths = new Map()
+    const stagedBundles = new Set()
     for (const asset of spec.assets ?? []) {
       if (typeof asset.path !== 'string' || !asset.path.startsWith('assets/')) {
         refuse('Inspection requires project-local assets under assets/.', BlenderErrorCode.ASSET_REQUEST_INVALID)
       }
-      if (!['glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr', 'stl', 'ply'].includes(asset.type)) {
+      if (!['gltf', 'glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr', 'stl', 'ply'].includes(asset.type)) {
         refuse(`Inspection cannot isolate dependencies of ${asset.type} assets. Use a self-contained GLB or the existing checkpoint preview.`, BlenderErrorCode.UNSUPPORTED_ACTION)
       }
       if (!/^[a-f0-9]{64}$/.test(asset.sha256 ?? '')) refuse(`Asset ${asset.id} has no exact SHA-256.`, BlenderErrorCode.ASSET_HASH_MISMATCH)
@@ -159,16 +160,26 @@ export async function renderDiagnostic(host, request) {
       if (!isFile(original)) refuse(`Asset ${asset.id} is missing.`, BlenderErrorCode.ASSET_SOURCE_NOT_FOUND)
       let copied = assetPaths.get(staged)
       if (!copied) {
-        mkdirSync(dirname(staged), { recursive: true })
-        copied = await streamAsset(createReadStream(original), staged, { maxBytes: config.assetMaxBytes, signal, label: asset.id })
+        const version = assetPreviewVersion(asset)
+        let bundled = stagedBundles.has(version)
+        if (!bundled) bundled = await stageAssetBundle(project, compileRoot, asset, { maxBytes: config.assetMaxBytes, signal })
+        if (bundled) {
+          stagedBundles.add(version)
+          copied = { sha256: fileSha256(staged), bytes: fileSize(staged) }
+        } else {
+          mkdirSync(dirname(staged), { recursive: true })
+          copied = await streamAsset(createReadStream(original), staged, { maxBytes: config.assetMaxBytes, signal, label: asset.id })
+        }
         assetPaths.set(staged, copied)
       }
       if (copied.sha256 !== asset.sha256) refuse(`Asset ${asset.id} no longer matches this revision.`, BlenderErrorCode.ASSET_HASH_MISMATCH)
+      verifyAssetBundle(compileRoot, asset)
       // Aliases can share bytes while declaring different types. Copying once
       // must not let an earlier image alias bypass a later GLB dependency check.
-      if (asset.type === 'glb') {
-        const glb = await inspectSelfContainedGlb(staged, { signal })
-        if (glb.cameras || glb.lights) refuse('Inspection requires model-only GLB assets, without embedded cameras or lights.', BlenderErrorCode.UNSUPPORTED_ACTION)
+      if (['gltf', 'glb'].includes(asset.type)) {
+        verifyUnbundledGltfAsset(compileRoot, asset)
+        const { document } = readGltfDocument(staged, { format: asset.type, signal })
+        if (document.cameras?.length || document.extensions?.KHR_lights_punctual?.lights?.length) refuse('Inspection requires model-only glTF/GLB assets, without embedded cameras or lights.', BlenderErrorCode.UNSUPPORTED_ACTION)
       }
       sourceAssets.push({ id: asset.id, path: asset.path, sha256: copied.sha256, bytes: copied.bytes })
     }

@@ -30,8 +30,9 @@ function code(name) {
   return value
 }
 
-/** A 12-byte Blender-style header for the type the extension claims. */
-const glbBytes = Buffer.concat([Buffer.from('glTF', 'latin1'), Buffer.from([2, 0, 0, 0, 12, 0, 0, 0])])
+import { encodeGlb } from '../lib/glb.mjs'
+/** A complete self-contained GLB document for transfer and provenance checks. */
+const glbBytes = encodeGlb({ asset: { version: '2.0' } })
 
 const ASSET_MAX_BYTES = 256
 const workspaceRoot = mkdtempSync(join(tmpdir(), 'deepblend-asset-ingest-'))
@@ -112,8 +113,9 @@ const server = createServer((request, response) => {
   }
   if (request.url === '/progress.glb') {
     response.writeHead(200, { 'content-type': 'model/gltf-binary' })
-    response.write(glbBytes)
-    finishProgressResponse = () => response.end(Buffer.alloc(16, 7))
+    const body = encodeGlb({ asset: { version: '2.0' }, extras: { progress: 'x'.repeat(32) } })
+    response.write(body.subarray(0, glbBytes.length))
+    finishProgressResponse = () => response.end(body.subarray(glbBytes.length))
     return
   }
   if (request.url === '/slow.glb') {
@@ -385,8 +387,8 @@ check('a local ingest produces the same record shape, with a local source',
   mkdirSync(join(outsideRoot, 'a'), { recursive: true })
   mkdirSync(join(outsideRoot, 'b'), { recursive: true })
   // Small enough for the fixture's 256-byte cap, different enough that a mixture is detectable.
-  const firstBytes = Buffer.concat([glbBytes, Buffer.alloc(32, 0x11)])
-  const secondBytes = Buffer.concat([glbBytes, Buffer.alloc(32, 0x22)])
+  const firstBytes = encodeGlb({ asset: { version: '2.0' }, extras: { variant: 'first' } })
+  const secondBytes = encodeGlb({ asset: { version: '2.0' }, extras: { variant: 'other' } })
   writeFileSync(firstSource, firstBytes)
   writeFileSync(secondSource, secondBytes)
 

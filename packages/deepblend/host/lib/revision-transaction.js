@@ -65,7 +65,7 @@ import {
   validateSceneSpec,
   warning,
 } from '@deepblend/dsh-blender-contracts'
-import { verifyAssetBundle } from './asset-bundle.js'
+import { verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import {
   fileSha256,
@@ -384,15 +384,15 @@ export class RevisionTransaction {
       verifyAssetBundle(this.store.projectDirectory(projectId), asset)
       const pathHash = /^assets\/raw\/([a-f0-9]{64})\.[a-z0-9]+$/.exec(asset.path)?.[1]
       const declared = pathHash ?? asset.sha256
-      if (typeof declared !== 'string') continue
       const absolute = resolveInside(this.store.projectDirectory(projectId), asset.path, 'scene asset')
       if (!existsSync(absolute)) continue // Missing declarations are diagnosed when compiled.
-      const actual = fileSha256(absolute)
-      if (actual !== declared || (asset.sha256 && asset.sha256 !== declared)) {
+      const actual = typeof declared === 'string' ? fileSha256(absolute) : null
+      if (typeof declared === 'string' && (actual !== declared || (asset.sha256 && asset.sha256 !== declared))) {
         throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
           `asset "${asset.id}" declares sha256 ${asset.sha256 ?? declared}, but ${asset.path} is ${actual}. Nothing was committed.`,
           { detail: { projectId, assetId: asset.id, path: asset.path, declared: asset.sha256 ?? declared, pathHash, actual } })
       }
+      verifyUnbundledGltfAsset(this.store.projectDirectory(projectId), asset)
     }
 
     // ---- resolve the RESULT before anything reads it -----------------------

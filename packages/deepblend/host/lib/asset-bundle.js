@@ -1,12 +1,12 @@
 /** Immutable glTF resource snapshots. File URIs are resolved only inside a supplied local root. */
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, closeSync, existsSync, openSync, readSync, mkdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, closeSync, existsSync, openSync, readSync, fstatSync, linkSync, mkdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, relative, resolve, sep } from 'node:path';
 import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts';
 import { streamAsset } from './asset-io.js';
 import { fileSha256, removeTree, resolveInside } from './paths.js';
 export const BUNDLE_LOCK = '.deepblend-lock.json';
-export const BUNDLE_LIMITS = Object.freeze({ files: 256, lockBytes: 1024 * 1024, jsonBytes: 16 * 1024 * 1024 });
+export const BUNDLE_LIMITS = Object.freeze({ files: 256, lockBytes: 1024 * 1024, jsonBytes: 16 * 1024 * 1024, chunks: 1024 });
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const reject = (message, code = BlenderErrorCode.ASSET_REQUEST_INVALID) => { throw new BlenderError(code, message); };
 export function bundlePath(path) {
@@ -15,20 +15,21 @@ export function bundlePath(path) {
         reject('Asset bundle members need contained, portable relative paths.');
     return path;
 }
-export function gltfResources(document, entrypoint) {
+export function gltfResources(document, entrypoint, binBytes = null) {
     if (!document || Array.isArray(document) || document.asset?.version !== '2.0')
         reject('The glTF JSON must declare version 2.0.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
     const paths = new Set();
     for (const key of ['buffers', 'images']) {
         if (document[key] !== undefined && !Array.isArray(document[key]))
             reject(`glTF ${key} must be an array.`);
-        for (const item of document[key] ?? []) {
+        for (const [index, item] of (document[key] ?? []).entries()) {
             if (!item || typeof item !== 'object' || Array.isArray(item))
                 reject(`Invalid glTF ${key} entry.`);
             const uri = item.uri;
             if (uri === undefined) {
-                if (key === 'buffers')
-                    reject('JSON glTF buffers require a URI. Use GLB for a binary chunk.');
+                if (key === 'buffers' && (index !== 0 || binBytes === null || !Number.isSafeInteger(item.byteLength)
+                    || item.byteLength < 0 || item.byteLength > binBytes || binBytes - item.byteLength > 3))
+                    reject('An embedded buffer requires the first GLB buffer and a matching BIN chunk.');
                 continue;
             }
             if (typeof uri !== 'string' || !uri)
@@ -102,14 +103,74 @@ function readBounded(file, limit) {
     }
 }
 function parseJson(bytes) { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
-function readDocument(file) {
+/** Read only JSON and chunk headers. Large GLB binary payloads stay on disk. */
+export function readGltfDocument(file, { format = 'gltf', signal } = {}) {
     try {
-        return parseJson(readBounded(file, BUNDLE_LIMITS.jsonBytes));
+        signal?.throwIfAborted();
+        if (format === 'gltf')
+            return { document: parseJson(readBounded(file, BUNDLE_LIMITS.jsonBytes)), binBytes: null };
+        if (format !== 'glb')
+            reject('Unsupported asset bundle format.');
+        const fd = openSync(file, 'r');
+        try {
+            const size = fstatSync(fd).size;
+            const read = (offset, length) => {
+                const bytes = Buffer.alloc(length);
+                let received = 0;
+                while (received < length) {
+                    signal?.throwIfAborted();
+                    const n = readSync(fd, bytes, received, length - received, offset + received);
+                    if (!n)
+                        reject('The GLB is truncated.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                    received += n;
+                }
+                return bytes;
+            };
+            if (size < 20)
+                reject('The GLB header is truncated.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+            const header = read(0, 12);
+            if (header.toString('ascii', 0, 4) !== 'glTF' || header.readUInt32LE(4) !== 2 || header.readUInt32LE(8) !== size)
+                reject('The GLB must be a complete version 2 container.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+            let offset = 12, document = null, binBytes = null, chunks = 0, jsonSeen = false;
+            while (offset < size) {
+                signal?.throwIfAborted();
+                if (++chunks > BUNDLE_LIMITS.chunks)
+                    reject('The GLB exceeds the chunk inspection limit.', BlenderErrorCode.ASSET_TOO_LARGE);
+                if (offset + 8 > size)
+                    reject('The GLB chunk header is truncated.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                const chunk = read(offset, 8), length = chunk.readUInt32LE(0), kind = chunk.readUInt32LE(4);
+                if (length % 4 || offset + 8 + length > size)
+                    reject('The GLB chunk length is invalid.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                if (chunks === 1 && kind !== 0x4e4f534a)
+                    reject('The first GLB chunk must contain JSON.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                if (kind === 0x4e4f534a) {
+                    if (jsonSeen)
+                        reject('The GLB contains duplicate JSON chunks.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                    if (length > BUNDLE_LIMITS.jsonBytes)
+                        reject('The GLB JSON exceeds 16 MiB.', BlenderErrorCode.ASSET_TOO_LARGE);
+                    jsonSeen = true;
+                    document = parseJson(read(offset + 8, length));
+                }
+                else if (kind === 0x004e4942) {
+                    if (chunks !== 2 || binBytes !== null)
+                        reject('The GLB BIN must be its second chunk.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+                    binBytes = length;
+                }
+                offset += 8 + length;
+            }
+            if (!document || Array.isArray(document) || document.asset?.version !== '2.0')
+                reject('The GLB JSON must declare glTF 2.0.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+            return { document, binBytes };
+        }
+        finally {
+            closeSync(fd);
+        }
     }
     catch (error) {
+        signal?.throwIfAborted();
         if (error instanceof BlenderError)
             throw error;
-        reject('The glTF JSON cannot be parsed.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+        reject('The glTF metadata cannot be parsed.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
     }
 }
 export function verifyAssetBundle(projectRoot, asset) {
@@ -133,6 +194,9 @@ export function verifyAssetBundle(projectRoot, asset) {
         || !Array.isArray(manifest.files) || !manifest.files.length || manifest.files.length > BUNDLE_LIMITS.files)
         reject('The asset bundle lock has an invalid shape or entrypoint.');
     bundlePath(manifest.entrypoint);
+    const format = manifest.format ?? 'gltf';
+    if (!['gltf', 'glb'].includes(format) || (asset.type && asset.type !== format))
+        reject('The asset bundle format does not match its declaration.');
     const members = new Map(), folded = new Set();
     let total = 0;
     for (const member of manifest.files) {
@@ -153,12 +217,47 @@ export function verifyAssetBundle(projectRoot, asset) {
     if (!Number.isSafeInteger(total) || total !== manifest.totalBytes || !members.has(manifest.entrypoint)
         || (asset.sha256 && asset.sha256 !== members.get(manifest.entrypoint).sha256))
         reject('The asset bundle identity does not agree with its declaration.', BlenderErrorCode.ASSET_HASH_MISMATCH);
-    for (const path of gltfResources(readDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint')), manifest.entrypoint))
+    const content = readGltfDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint'), { format });
+    for (const path of gltfResources(content.document, manifest.entrypoint, content.binBytes))
         if (!members.has(path))
             reject(`The glTF resource ${path} is not locked.`);
     return manifest;
 }
-export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal }) {
+/** Legacy files can rebuild only when the main file contains all core resources. */
+export function verifyUnbundledGltfAsset(projectRoot, asset) {
+    if (!['gltf', 'glb'].includes(asset.type) || /^assets\/bundles\/[a-f0-9]{64}\//.test(asset.path ?? ''))
+        return;
+    const file = resolveInside(projectRoot, asset.path, 'glTF asset');
+    const content = readGltfDocument(file, { format: asset.type });
+    if (gltfResources(content.document, posix.basename(asset.path), content.binBytes).length)
+        reject('This glTF/GLB has unlocked external resources. Reimport its local source with a containing sourceRoot to create a resource snapshot.');
+}
+/** Dependency identity is encoded in the managed path, independently of main-file SHA. */
+export function assetPreviewVersion(asset) {
+    return /^assets\/bundles\/([a-f0-9]{64})\//.exec(asset.path ?? '')?.[1] ?? asset.sha256;
+}
+/** Copy and reverify a complete immutable snapshot in the disposable preview root. */
+export async function stageAssetBundle(projectRoot, directory, asset, { maxBytes, signal } = {}) {
+    signal?.throwIfAborted();
+    const manifest = verifyAssetBundle(projectRoot, asset);
+    if (!manifest) return false;
+    const prefix = `assets/bundles/${assetPreviewVersion(asset)}`;
+    let total = 0;
+    for (const path of [...manifest.files.map(member => member.path), BUNDLE_LOCK]) {
+        signal?.throwIfAborted();
+        const source = resolveInside(projectRoot, `${prefix}/${path}`, 'preview bundle source');
+        const target = resolveInside(directory, `${prefix}/${path}`, 'preview bundle copy');
+        mkdirSync(dirname(target), { recursive: true });
+        const copied = await streamAsset(createReadStream(source), target, { maxBytes: maxBytes - total, signal, label: path });
+        total += copied.bytes;
+        const expected = manifest.files.find(member => member.path === path);
+        if (expected && (expected.bytes !== copied.bytes || expected.sha256 !== copied.sha256))
+            reject('The asset bundle changed while preparing its preview.', BlenderErrorCode.ASSET_HASH_MISMATCH);
+    }
+    verifyAssetBundle(directory, asset);
+    return true;
+}
+export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal, type = 'gltf' }) {
     if (sourceRoot !== undefined && (!local || typeof sourceRoot !== 'string' || !sourceRoot))
         reject('sourceRoot requires a local glTF source directory.');
     const sourceBase = resolve(sourceRoot ?? dirname(sourcePath)), entrypoint = bundlePath(local ? relative(sourceBase, resolve(sourcePath)).split(sep).join('/') : name);
@@ -181,14 +280,32 @@ export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceR
             files.push({ path, ...result });
         };
         await copy(entrypoint, local ? undefined : sourcePath);
-        const resources = gltfResources(readDocument(join(staging, entrypoint)), entrypoint);
+        const content = readGltfDocument(join(staging, entrypoint), { format: type, signal });
+        const resources = gltfResources(content.document, entrypoint, content.binBytes);
         if (!local && resources.length)
             reject('Remote glTF dependencies are not fetched. Import a local resource directory or a self-contained file.');
         for (const path of resources)
             if (path !== entrypoint)
                 await copy(path);
+        if (type === 'glb' && resources.length === 0) {
+            const main = files[0], relativePath = `assets/raw/${main.sha256}.glb`;
+            return { staging, relativePath, sourceRoot: local ? sourceBase : null, bytes: main.bytes, sha256: main.sha256, bundle: null, publish() {
+                    const destination = resolveInside(projectRoot, relativePath, 'GLB destination');
+                    mkdirSync(dirname(destination), { recursive: true });
+                    try {
+                        linkSync(join(staging, entrypoint), destination);
+                    }
+                    catch (error) {
+                        if (error.code !== 'EEXIST')
+                            throw error;
+                        if (fileSha256(destination) !== main.sha256)
+                            reject('The stored GLB changed.', BlenderErrorCode.ASSET_HASH_MISMATCH);
+                    }
+                    return destination;
+                } };
+        }
         files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-        const manifest = { schemaVersion: 'deepblend.asset-bundle/v1', entrypoint, files, totalBytes }, lockBytes = Buffer.from(JSON.stringify(manifest) + '\n');
+        const manifest = { schemaVersion: 'deepblend.asset-bundle/v1', ...(type === 'glb' ? { format: 'glb' } : {}), entrypoint, files, totalBytes }, lockBytes = Buffer.from(JSON.stringify(manifest) + '\n');
         if (totalBytes + lockBytes.length > maxBytes)
             reject('The glTF bundle and lock exceed assetMaxBytes.', BlenderErrorCode.ASSET_TOO_LARGE);
         if (lockBytes.length > BUNDLE_LIMITS.lockBytes)
@@ -203,7 +320,7 @@ export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceR
                 catch (error) {
                     if (!['EEXIST', 'ENOTEMPTY'].includes(error.code))
                         throw error;
-                    verifyAssetBundle(projectRoot, { path: relativePath, sha256: main.sha256 });
+                    verifyAssetBundle(projectRoot, { path: relativePath, sha256: main.sha256, type });
                 }
                 return destination;
             } };
