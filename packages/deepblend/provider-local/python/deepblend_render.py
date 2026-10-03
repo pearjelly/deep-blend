@@ -29,6 +29,54 @@ from deepblend_anisotropy import validate_anisotropy_render_engine
 from deepblend_util import ActionError, error_text, report_progress
 
 
+def _camera_facts(scene, camera):
+    """Evaluated camera optics and pose for one rendered frame.
+
+    Matrix rows are copied to plain numbers so later frames cannot mutate the
+    record. A focus object is evaluated too: its animation changes depth of field
+    even when the camera's stored focus_distance is unchanged.
+    Lens and sensor dimensions are millimetres; transforms use scene units.
+    """
+    if camera is None:
+        raise ActionError("SCENE_CAMERA_MISSING", "the rendered scene has no active camera")
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = camera.evaluated_get(depsgraph)
+    data = evaluated.data
+    dof = data.dof
+    focus = dof.focus_object
+    focus_facts = None
+    if focus is not None:
+        focus_facts = {
+            "name": focus.name,
+            "entityId": focus.get("deepblend_id"),
+            "matrixWorld": [[float(value) for value in row]
+                            for row in focus.evaluated_get(depsgraph).matrix_world],
+        }
+    return {
+        "frame": int(scene.frame_current),
+        "matrixWorld": [[float(value) for value in row] for row in evaluated.matrix_world],
+        "type": data.type,
+        "lens": float(data.lens),
+        "orthoScale": float(data.ortho_scale),
+        "sensorWidth": float(data.sensor_width),
+        "sensorHeight": float(data.sensor_height),
+        "sensorFit": data.sensor_fit,
+        "shift": [float(data.shift_x), float(data.shift_y)],
+        "clip": [float(data.clip_start), float(data.clip_end)],
+        "dof": {
+            "enabled": bool(dof.use_dof),
+            "focusDistance": float(dof.focus_distance),
+            "focusObject": focus_facts,
+            "focusSubtarget": getattr(dof, "focus_subtarget", "") or None,
+            "apertureFstop": float(dof.aperture_fstop),
+            "apertureBlades": int(dof.aperture_blades),
+            "apertureRotation": float(dof.aperture_rotation),
+            "apertureRatio": float(dof.aperture_ratio),
+        },
+    }
+
+
+
 def open_checkpoint(path):
     """Open a ``.blend`` checkpoint and return its scene.
 
@@ -245,6 +293,7 @@ def render_preview(options=None, guard=None, checkpoint=None, output=None, camer
         "cameraId": camera.get("deepblend_id") or camera.name,
         "cameraName": camera.name,
         "lens": round(float(camera.data.lens), 6),
+        "cameraFacts": _camera_facts(scene, camera),
         "overrides": overrides,
         "renderConfig": _render_config(scene),
         "objects": describe_objects(),

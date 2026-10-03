@@ -1027,6 +1027,7 @@ export default class BlenderStudio extends Service {
           engine: report.engine ?? null,
           samples: report.renderConfig?.samples ?? null,
           renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
+          cameraFacts: report.cameraFacts ? structuredClone(report.cameraFacts) : null,
           bytes: fileSize(finalPath),
           sha256: fileSha256(finalPath),
           mime: 'image/png',
@@ -1445,7 +1446,9 @@ export default class BlenderStudio extends Service {
             width: entry.width ?? null,
             height: entry.height ?? null,
             engine: entry.engine ?? null,
-            samples: effectiveSamples ?? null,
+            samples: entry.renderConfig?.samples ?? null,
+            renderConfig: entry.renderConfig ? structuredClone(entry.renderConfig) : null,
+            cameraFacts: entry.cameraFacts ? structuredClone(entry.cameraFacts) : null,
             bytes: png.length,
             sha256: fileSha256(finalPath),
             mime: 'image/png',
@@ -1468,6 +1471,9 @@ export default class BlenderStudio extends Service {
             path: relative,
             caption: plan.find(view => view.id === entry.viewId)?.label ?? entry.viewId,
             purpose: plan.find(view => view.id === entry.viewId)?.purpose ?? null,
+            samples: artifact.samples,
+            renderConfig: artifact.renderConfig ? structuredClone(artifact.renderConfig) : null,
+            cameraFacts: artifact.cameraFacts ? structuredClone(artifact.cameraFacts) : null,
             metrics: entry.metrics ?? null,
           })
           await this.store.recordRevisionPreview(projectId, revision, artifact)
@@ -1530,6 +1536,7 @@ export default class BlenderStudio extends Service {
               sha256: fileSha256(previousFile),
               mime: 'image/png',
               ...(Array.isArray(priorCurrent?.views) ? { views: [...priorCurrent.views] } : {}),
+              ...(Array.isArray(priorCurrent?.viewSettings) ? { viewSettings: structuredClone(priorCurrent.viewSettings) } : {}),
               at: priorCurrent?.at ?? null,
             }
           }
@@ -1550,6 +1557,8 @@ export default class BlenderStudio extends Service {
             sha256: fileSha256(currentFile),
             mime: 'image/png',
             views: built.placements.map(placement => placement.viewId),
+            viewSettings: measurements.map(({ viewId, cameraId, frame, width, height, engine, samples, renderConfig, cameraFacts }) =>
+              structuredClone({ viewId, cameraId, frame, width, height, engine, samples, renderConfig, cameraFacts })),
             at: new Date().toISOString(),
           }
           if (previousArtifact !== null) await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', previousArtifact)
@@ -1777,6 +1786,10 @@ export default class BlenderStudio extends Service {
       sha256: fileSha256(sheetFile),
       mime: 'image/png',
       views: built.sheet.placements.map(placement => placement.viewId),
+      sourceRevision: revision,
+      sourceDigest: rendered.digest,
+      viewSettings: rendered.views.map(({ viewId, cameraId, frame, width, height, engine, samples, renderConfig, cameraFacts }) =>
+        structuredClone({ viewId, cameraId, frame, width, height, engine, samples, renderConfig, cameraFacts })),
       at: new Date().toISOString(),
     }
 

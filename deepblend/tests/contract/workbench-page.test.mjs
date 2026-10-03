@@ -621,11 +621,11 @@ if (core !== undefined) {
     (source.match(/function to(React|Dom)\(/g) ?? []).length === 2,
     source.match(/function to(React|Dom)\(/g))
 
-  // `mountStandalone` is the ONE place the two faces differ, and the only marker
-  // it knows is the one it needs to put the caret back after a redraw.
+  // The standalone binding carries focus and scroll across a redraw using
+  // generic identity markers. Domain decisions remain in the shared views.
   const markers = [...standalone.matchAll(/data-[a-z-]+/g)].map(match => match[0])
-  check('the standalone mount knows exactly one marker, and it is the caret\'s',
-    JSON.stringify([...new Set(markers)]) === JSON.stringify(['data-field']), [...new Set(markers)])
+  check('the standalone mount identifies only focus and scroll, without domain markers',
+    JSON.stringify([...new Set(markers)]) === JSON.stringify(['data-field', 'data-scroll-key']), [...new Set(markers)])
   const standaloneNouns = DOMAIN.filter(noun => noun !== 'data-view' && standalone.toLowerCase().includes(noun.toLowerCase()))
   check('and it names no route, no tab and no domain noun either',
     standaloneNouns.length === 0, standaloneNouns)

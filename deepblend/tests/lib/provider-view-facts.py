@@ -109,7 +109,8 @@ namespace = {'os': os,
              'measure_view': measure}
 load_functions(PROVIDER / 'deepblend_render.py', ['_render_config'], namespace)
 namespace['_actual_render_config'] = namespace.pop('_render_config')
-load_functions(PROVIDER / 'deepblend_views.py', ['_render_config', '_camera_facts', '_render_one'], namespace)
+load_functions(PROVIDER / 'deepblend_render.py', ['_camera_facts'], namespace)
+load_functions(PROVIDER / 'deepblend_views.py', ['_render_config', '_render_one'], namespace)
 
 scenario = sys.argv[1]
 if scenario == 'evaluated-camera':

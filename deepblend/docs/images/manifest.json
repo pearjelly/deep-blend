@@ -36,16 +36,16 @@
         "path": "revisions/r0002/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "e9a0ce7b88454e11a9b5961da7c60d2db9f376e83e014289315717d1189471c9",
-        "bytes": 2244694
+        "sha256": "311b2ebcd6132d04abebaac6d23d7db25211081c0d8d1f0005a8c8c65c2e1c86",
+        "bytes": 2244689
       },
       {
         "revision": "r0003",
         "path": "revisions/r0003/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "35059f61d29638c7377bb5e427e584a81c735da7689b7654d117967521e3a409",
-        "bytes": 2115250
+        "sha256": "f28102401914ccd7dc6d84c780147c84f86ebd018d243baa147b0a1838ef7daa",
+        "bytes": 2115249
       }
     ]
   },
@@ -56,8 +56,8 @@
       "note": "the Preview view comparing actual r0002/r0003 renders, before/after the material refinement",
       "width": 3000,
       "height": 1900,
-      "bytes": 1020932,
-      "sha256": "70914954ebf1eecb2f3f559ea7ebaa09abdc866295874d39c45ff394c835e572"
+      "bytes": 1206100,
+      "sha256": "9f330269e8acb89827ed98325480ee7dbe0679de6ba44073a1bcca0b8aac012a"
     },
     {
       "file": "workbench-scene.png",
@@ -74,8 +74,8 @@
       "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
       "width": 1476,
       "height": 906,
-      "bytes": 625201,
-      "sha256": "9b5645ca6a0435aff5d2de9ad8d99abd71e0ee124104ba2f8b755885466f884b"
+      "bytes": 625203,
+      "sha256": "00f939e3ff6c534333ba2e7eaa007a662d1ecc8c3c527c650b4ed0d3ebfa5144"
     }
   ]
 }

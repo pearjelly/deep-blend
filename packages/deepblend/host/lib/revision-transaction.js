@@ -962,6 +962,7 @@ export class RevisionTransaction {
         // Measured renderer settings, not the requested SceneSpec profile. Older
         // providers may omit this; a comparison must then treat it as unknown.
         renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
+        cameraFacts: report.cameraFacts ? structuredClone(report.cameraFacts) : null,
         bytes,
         sha256: fileSha256(outputPath),
         mime: 'image/png',

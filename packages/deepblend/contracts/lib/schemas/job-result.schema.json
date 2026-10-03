@@ -294,6 +294,20 @@
           ],
           "additionalProperties": true,
           "description": "Actual configuration reported by the renderer. Null means unknown; never filled from the requested profile."
+        },
+        "cameraFacts": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Evaluated camera optics and world pose measured for these pixels; unknown on legacy records."
+        },
+        "viewSettings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/viewSettings"
+          },
+          "description": "Ordered measured settings for the constituent renders of this sheet, independent of its composed PNG dimensions."
         }
       }
     },
@@ -318,6 +332,79 @@
             "object",
             "null"
           ]
+        }
+      }
+    },
+    "viewSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "viewId"
+      ],
+      "properties": {
+        "viewId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The declared view identifier; order follows the sheet layout."
+        },
+        "cameraId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The camera a preview was rendered from. Present on preview artifacts, absent on a `.blend`."
+        },
+        "frame": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "The scene frame a preview shows."
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The render engine the preview actually used, as Blender reported it (e.g. \"CYCLES\")."
+        },
+        "samples": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "The sample count the preview actually used — which may be below the profile asked for."
+        },
+        "renderConfig": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Actual configuration reported by the renderer. Null means unknown; never filled from the requested profile."
+        },
+        "cameraFacts": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Evaluated camera optics and world pose measured for these pixels; unknown on legacy records."
         }
       }
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Real creation, render history, editor comparison, restore and legacy read provenance. */
+/** Real preview settings, render history, editor comparison, restore and legacy reads. */
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import Provider, { ProviderConfig } from '@deepblend/dsh-blender-provider-local'
@@ -30,6 +30,7 @@ try {
   server = await startWeb({ workspacePath: REPO_ROOT, patch: JSON.stringify(rows), keepHome: false })
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
+  await page.addInitScript(`window.__previewPointerClicks=[];document.addEventListener('click',event=>{const control=event.target.closest?.('[data-action]');if(control)window.__previewPointerClicks.push({action:control.dataset.action,disabled:control.disabled===true})},true)`)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]\')!==null', 45000)
   await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]'); await page.fill('[data-field="project-title"]', projectId)
@@ -40,6 +41,8 @@ try {
   check('new creation displays and records the actual source revision and digest', initial.sourceRevision === 'r0001' && initial.sourceDigest === sceneSpecDigest(read('revisions', 'r0001', 'scene-spec.json'))
     && await page.evaluate(`document.querySelector('[data-compare=current] img').dataset.artifactSourceDigest===${JSON.stringify(initial.sourceDigest)}`))
   check('initial budget is measured independently of the authored profile', initial.width === 768 && initial.height === 576 && initial.samples === 8 && initial.renderConfig.samples === 8 && read('revisions', 'r0001', 'scene-spec.json').renderProfiles.preview.samples === 64)
+  check('creation records evaluated camera facts and visibly shows the actual budget', initial.cameraFacts.frame === initial.frame && initial.cameraFacts.lens > 0
+    && await page.evaluate('document.querySelector("[data-compare=current] [data-render-settings-known=true]")?.textContent.includes("768×576")===true'))
   await page.screenshot(join(output, '01-created.png'))
   const ctx = new Context()
   fibers.push(ctx.plugin(LocalSubprocess), ctx.plugin(Provider, ProviderConfig({ blenderPath, workspaceRoot: root, timeoutMs: 120000 })), ctx.plugin(Studio, { workspaceRoot: root, projectsRoot: join(root, 'projects'), maxPreviewSamples: 8 }))
@@ -60,21 +63,42 @@ try {
   check('latest result shows the newest single render with its recorded revision', await page.evaluate(`document.querySelector('[data-compare=current] img').dataset.artifactRevision==='r0001'`))
   await page.click('[data-compare-mode="renders"]')
   check('render comparison shows the two independent same-version attempts', await page.evaluate(`document.querySelector('[data-compare=left] img').dataset.artifact===${JSON.stringify(first.path)}&&document.querySelector('[data-compare=right] img').dataset.artifact===${JSON.stringify(second.path)}`))
+  check('same-version images show their distinct budgets and measured condition differences', await page.evaluate('document.querySelector("[data-compare=left]").textContent.includes("192×144")&&document.querySelector("[data-compare=right]").textContent.includes("240×180")&&document.querySelector("[data-preview-conditions]").dataset.previewConditions==="different"&&document.querySelector("[data-preview-conditions]").dataset.previewConditionsIncomplete==="false"'))
   for (const item of [first, second]) {
     const response = await fetch(`${base}/deepblend/artifacts/${projectId}/${item.path}`), bytes = Buffer.from(await response.arrayBuffer())
     check(`browser artifact response preserves ${item.jobId} exact PNG bytes`, response.ok && sha(bytes) === item.sha256)
   }
   const views = await studio.renderViews({ projectId, revision: 'r0001', views: [{ id: 'hero', cameraId: 'hero', frame: 24 }], width: 160, height: 120, samples: 4 })
-  const currentSheet = views.artifacts.find(item => item.slot === 'preview-current')
+  let currentSheet = views.artifacts.find(item => item.slot === 'preview-current')
   check('a later multi-view sheet records its own source without replacing single attempts', currentSheet?.sourceRevision === 'r0001' && currentSheet.sourceDigest === initial.sourceDigest && kept())
+  check('a sheet stores each measured view rather than the requested profile', views.views[0].samples === 4 && currentSheet.viewSettings[0].renderConfig.samples === 4 && currentSheet.viewSettings[0].cameraFacts.frame === 24 && currentSheet.viewSettings[0].cameraFacts.lens === first.cameraFacts.lens)
+  const firstSheet = structuredClone(currentSheet)
+  const multi = await studio.renderViews({ projectId, revision: 'r0001', views: [{ id: 'hero', cameraId: 'hero', frame: 24 }, { id: 'later', cameraId: 'hero', frame: 36 }], width: 192, height: 144, samples: 12 })
+  currentSheet = multi.previewSheets.current
+  check('rotation retains the preceding sheet settings and the new capped per-view budget', isDeepStrictEqual(multi.previewSheets.previous.viewSettings, firstSheet.viewSettings) && multi.previewSheets.previous.sha256 === firstSheet.sha256
+    && currentSheet.viewSettings.every(item => item.samples === 8 && item.renderConfig.samples === 8) && currentSheet.viewSettings[1].cameraFacts.frame === 36)
+  await page.click('[data-action="reload"]'); await page.click('[data-compare-mode="result"]')
+  await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}`)
+  check('sheet display distinguishes composed pixels from both constituent render settings', await page.evaluate(`document.querySelector('[data-compare=current]').textContent.includes(${JSON.stringify(`${currentSheet.width}×${currentSheet.height}`)})&&document.querySelector('[data-compare=current]').textContent.includes('192×144')&&document.querySelectorAll('[data-compare=current] [data-render-view-id]').length===2&&document.querySelector('[data-render-view-id=later]').textContent.includes('36')`))
+  await page.screenshot(join(output, '02-sheet-settings.png'))
   const third = await render(256, 192, 8)
   await page.click('[data-action="reload"]'); await page.click('[data-compare-mode="result"]')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(third.path)}`)
   check('a newer single render supersedes an older sheet on the latest view', await page.evaluate(`document.querySelector('[data-compare=current] img').dataset.artifactRevision==='r0001'`))
   await page.click('[data-compare-mode="renders"]')
   check('mixed render comparison retains the preceding sheet and newest single', await page.evaluate(`document.querySelector('[data-compare=left] img').dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=right] img').dataset.artifact===${JSON.stringify(third.path)}`))
+  check('mixed layouts have an explicit measured condition difference', await page.evaluate('document.querySelector("[data-preview-conditions]").dataset.previewConditions==="different"&&document.querySelector("[data-preview-conditions]").dataset.previewConditionsIncomplete==="false"'))
   await page.waitFor('Array.from(document.querySelectorAll("[data-view=preview] img")).every(img=>img.complete&&img.naturalWidth>0)')
   await page.screenshot(join(output, '02-render-history.png'))
+  const measuredManifestPath = file('revisions', 'r0001', 'revision-manifest.json'), measuredManifestBytes = readFileSync(measuredManifestPath)
+  const missingSettings = JSON.parse(measuredManifestBytes), legacySingle = missingSettings.previews.find(item => item.path === third.path)
+  delete legacySingle.renderConfig; delete legacySingle.cameraFacts
+  writeFileSync(measuredManifestPath, JSON.stringify(missingSettings, null, 2) + '\n'); const missingSettingsBytes = readFileSync(measuredManifestPath)
+  await page.click('[data-action="reload"]')
+  await page.waitFor('document.querySelector("[data-preview-conditions]")?.dataset.previewConditionsIncomplete==="true"')
+  check('legacy settings remain unknown without borrowing the authored budget or rewriting the manifest', await page.evaluate('document.querySelector("[data-compare=right] [data-render-settings-known=false]")!==null&&!document.querySelector("[data-compare=right] [data-preview-settings]").textContent.includes("64")') && readFileSync(measuredManifestPath).equals(missingSettingsBytes))
+  await page.screenshot(join(output, '02-legacy-settings.png'))
+  writeFileSync(measuredManifestPath, measuredManifestBytes); await page.click('[data-action="reload"]')
   // Reproduce a manifest written before provenance fields existed. Reading it
   // must enrich the response without migrating or changing its stored bytes.
   const legacyPath = file('revisions', 'r0001', 'revision-manifest.json'), legacy = JSON.parse(readFileSync(legacyPath))
@@ -86,11 +110,25 @@ try {
   await page.click('[data-view-tab="scene"]'); await page.click('[data-action="select-entity:shade-shell"]')
   await page.waitFor('document.querySelector("[data-field=editor-material-roughness]")!==null')
   await page.fill('[data-field="editor-material-roughness"]', '0.31')
-  check('a real material edit uses the visible apply control', (await page.click('[data-action="editor-apply"]')).via === 'pointer')
+  const scrollRefresh = await page.evaluate('(()=>{document.querySelector("[data-action=editor-apply]").scrollIntoView({block:"center"});const before=document.querySelector(".db-body").scrollTop;document.querySelector("[data-field=editor-material-roughness]").dispatchEvent(new Event("input",{bubbles:true}));return{before,after:document.querySelector(".db-body").scrollTop}})()')
+  check('an idle state refresh preserves the actual scrolled main surface', scrollRefresh.before > 0 && scrollRefresh.after === scrollRefresh.before, scrollRefresh)
+  const heldTab = await page.evaluate('(()=>{const el=document.querySelector("[data-view-tab=preview]");el.scrollIntoView();window.__heldPreviewTab=el;const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()')
+  await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...heldTab, button: 'left', buttons: 1, clickCount: 1 })
+  const heldConnected = await page.evaluate('(()=>{document.querySelector("[data-field=editor-material-roughness]").dispatchEvent(new Event("input",{bubbles:true}));return window.__heldPreviewTab.isConnected})()')
+  check('a forced refresh keeps the pressed native control connected', heldConnected)
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...heldTab, button: 'left', buttons: 0, clickCount: 1 })
+  await page.waitFor('document.querySelector("[data-view=preview]")!==null')
+  check('native release still activates the tab after an intervening state refresh', await page.evaluate('document.querySelector("[data-view-tab=preview]").dataset.active==="true"'))
+  await page.click('[data-view-tab="scene"]'); await page.waitFor('document.querySelector("[data-action=editor-apply]")?.disabled===false')
+  await page.waitFor('document.querySelector("[data-action=editor-apply]")?.disabled===false')
+  check('a real material edit uses the visible apply control', (await page.click('[data-action="editor-apply"]')).via === 'pointer'
+    && await page.evaluate('window.__previewPointerClicks.at(-1)?.action==="editor-apply"'))
   await page.waitFor('document.querySelector("[data-compare=right] img[data-artifact-revision=r0002]")?.complete===true', 180000)
   const after = read('revisions', 'r0002', 'revision-manifest.json').previews[0]; retained.push(after)
   check('editor comparison uses the matching baseline budget rather than a later different-size render', await page.evaluate(`document.querySelector('[data-compare=left] img').dataset.artifact===${JSON.stringify(initial.path)}&&document.querySelector('[data-compare=right] img').dataset.artifact===${JSON.stringify(after.path)}`)
     && isDeepStrictEqual(initial.renderConfig, after.renderConfig) && ['cameraId', 'frame', 'width', 'height', 'engine', 'samples'].every(key => initial[key] === after[key]))
+  check('a material edit retains actual camera conditions and visibly reports a matched comparison', isDeepStrictEqual(initial.cameraFacts, after.cameraFacts)
+    && await page.evaluate('document.querySelector("[data-preview-conditions]").dataset.previewConditions==="matching"'))
   check('edited preview records the changed source digest', after.sourceRevision === 'r0002' && after.sourceDigest !== initial.sourceDigest && after.sourceDigest === sceneSpecDigest(read('revisions', 'r0002', 'scene-spec.json')))
   const beforePixels = decodePng(readFileSync(file(initial.path))), afterPixels = decodePng(readFileSync(file(after.path)))
   let changed = 0; for (let i = 0; i < beforePixels.data.length; i += 4) if ([0, 1, 2].some(channel => beforePixels.data[i + channel] !== afterPixels.data[i + channel])) changed++
@@ -112,13 +150,18 @@ try {
     && await page.evaluate('document.querySelector("[data-compare=current] img").dataset.artifactRevision==="r0001"'))
   await page.waitFor('document.querySelector("[data-compare=current] img").complete&&document.querySelector("[data-compare=current] img").naturalWidth>0')
   await page.screenshot(join(output, '03-restored.png'))
-  json('artifacts.json', { initial, first, second, third, after, currentSheet, protectedSources, manifests, retained })
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })
+  const narrow = await page.evaluate('(()=>{const panel=document.querySelector("[data-compare=current]").getBoundingClientRect();return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,left:panel.left,right:panel.right,budgetVisible:document.querySelector("[data-compare=current]").textContent.includes("256×192")}})()')
+  check('actual render settings remain visible without horizontal overflow at 390 pixels', narrow.viewport === 390 && narrow.scrollWidth <= 390 && narrow.left >= 0 && narrow.right <= 390 && narrow.budgetVisible, narrow)
+  await page.screenshot(join(output, '04-narrow-settings.png')); await page.send('Emulation.clearDeviceMetricsOverride')
+  json('artifacts.json', { initial, first, second, third, after, currentSheet, firstSheet, narrow, protectedSources, manifests, retained })
 } catch (error) {
   failure = error.stack || String(error); checks.push({ name: 'workflow completes without unexpected failure', ok: false, detail: failure }); console.error(error); await page?.screenshot(join(output, 'failure.png')).catch(() => {})
+  if (page) json('failure-dom.json', await page.evaluate('({clicks:window.__previewPointerClicks,editor:document.querySelector("[data-scene-editor]")?.dataset,apply:document.querySelector("[data-action=editor-apply]")?.disabled,text:document.body.textContent})').catch(error => ({ failure: String(error) })))
 } finally {
   for (const fiber of fibers.slice().reverse()) { try { await fiber.dispose() } catch (error) { failure ??= String(error) } }
   for (const [name, close] of [['browser', () => browser?.close()], ['server', () => server?.stop()]]) { try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { failure ??= String(error) } }
-  json('report.json', { status: failure ? 'failed' : 'passed', checks, failure, shutdown, scope: 'Real Chrome, Host and Blender: independent single renders, mixed sheet display, matched editor comparison, legacy reads, restore and reload. Multi-view current/previous slots retain their established two-generation policy; no artistic approval.' })
+  json('report.json', { status: failure ? 'failed' : 'passed', checks, failure, shutdown, scope: 'Real Chrome, Host and Blender: measured single and per-view settings, capped samples, retained sheet snapshots, mixed conditions, matched editor comparison, legacy unknown settings, scroll continuity and native activation under forced refresh, narrow display, restore and reload. Multi-view current/previous slots retain their established two-generation policy; no artistic approval.' })
 }
 console.log(`Preview history: ${checks.filter(item => item.ok).length}/${checks.length} checks passed; ${output}`)
 if (failure) process.exitCode = 1

@@ -724,6 +724,7 @@ try {
       const restoreClick = await page.click('[data-action="editor-restore"]')
       check('lamp: returning to the pre-edit scene uses the visible restore control', restoreClick.via === 'pointer')
       await waitDisk(() => readStoreJson(id, 'project.json')?.currentRevision === before.revision, 'conditional restoration')
+      await page.waitFor(`document.querySelector('[data-action="editor-restore"]') === null && document.querySelector('[data-view="scene"] .db-badge')?.textContent === ${JSON.stringify(before.revision)}`, 30000)
       check('lamp: restore moves the current pointer while retaining the edited version',
         equal(readStoreJson(id, 'revisions', before.revision, 'scene-spec.json'), before.spec)
           && existsSync(join(store, 'projects', id, 'revisions', revision, 'scene.blend')))

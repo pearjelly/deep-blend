@@ -212,7 +212,15 @@ Runtime adapters must honor `session:false` for both compilation and `renderView
 and return per-view measured `renderConfig` and `cameraFacts` for diagnostics.
 Studio preview artifacts record `sourceRevision`, the source SceneSpec's
 `sourceDigest`, an actual emission time `at`, and measured `renderConfig` for
-single images. These fields are additive; absent renderer settings remain null.
+single images, together with evaluated `cameraFacts` (pose, optics and depth of field).
+Multi-view artifacts retain their own measured `renderConfig`, `cameraFacts` and
+actual sample count; contact sheets retain ordered `viewSettings` snapshots for
+their constituent images. Rotating a sheet preserves its own settings, rather
+than borrowing the current view records. These fields are additive; missing
+measurements remain null or absent on legacy sheets. Requested profiles do not
+fill measurement gaps. The workbench distinguishes composed sheet dimensions
+from rendered view dimensions and reports recorded condition differences or
+incomplete settings. Matching conditions do not establish artistic quality.
 Repeated Studio `renderPreview` calls retain separate PNG paths per attempt, even
 at the same revision, camera and frame. Initial creation and patch previews also
 record their source. `listPreviewSets` derives legacy sources only from their own

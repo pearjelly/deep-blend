@@ -517,6 +517,23 @@ window.__ModuleLoader__.load({
       'scene.material': '材质 {id}',
       'scene.track': '{target} · {property} · {keys} 关键帧',
       'preview.renderedAt': ' · 渲染于 {when}',
+      'preview.actualPixels': '实际渲染 {width}×{height} · 采样 {samples} · {engine}',
+      'preview.actualCamera': '相机 {camera} · 帧 {frame} · 焦距 {lens} mm',
+      'preview.actualColor': '{transform} · 曝光 {exposure}',
+      'preview.sheetPixels': '拼图图片 {width}×{height}；以下为各视图实际设置',
+      'preview.settingsMissing': '部分实际设置未记录，重新渲染可补齐。',
+      'preview.conditionsDifferent': '已记录的比较条件有差异：{fields}。请结合实际设置判断画面变化。',
+      'preview.conditionsUnknown': '部分实际设置未记录，无法确认比较条件一致。',
+      'preview.conditionsMatching': '已记录的渲染与摄影条件一致。',
+      'preview.condition.layout': '图片布局或视图组成',
+      'preview.condition.resolution': '分辨率',
+      'preview.condition.samples': '采样',
+      'preview.condition.engine': '渲染引擎',
+      'preview.condition.camera': '相机参数',
+      'preview.condition.frame': '帧',
+      'preview.condition.color': '色彩或曝光',
+      'preview.condition.transparency': '背景透明',
+      'preview.condition.timing': '动画时间范围',
       'preview.lastRenderOf': '上一次渲染 · {revision}',
       'preview.thisRenderOf': '本次渲染 · {revision}',
       'preview.changeCount': '{count} 处结构变化',
@@ -945,6 +962,23 @@ window.__ModuleLoader__.load({
       'scene.material': 'material {id}',
       'scene.track': '{target} · {property} · {keys} keyframes',
       'preview.renderedAt': ' · rendered {when}',
+      'preview.actualPixels': 'Rendered {width}×{height} · samples {samples} · {engine}',
+      'preview.actualCamera': 'Camera {camera} · frame {frame} · lens {lens} mm',
+      'preview.actualColor': '{transform} · exposure {exposure}',
+      'preview.sheetPixels': 'Sheet image {width}×{height}; constituent render settings below',
+      'preview.settingsMissing': 'Some measured settings are missing; render again to record them.',
+      'preview.conditionsDifferent': 'Recorded comparison conditions differ: {fields}. Consider these settings when judging image changes.',
+      'preview.conditionsUnknown': 'Some measured settings are missing; matching comparison conditions cannot be confirmed.',
+      'preview.conditionsMatching': 'Recorded render and camera conditions match.',
+      'preview.condition.layout': 'layout or view composition',
+      'preview.condition.resolution': 'resolution',
+      'preview.condition.samples': 'samples',
+      'preview.condition.engine': 'engine',
+      'preview.condition.camera': 'camera',
+      'preview.condition.frame': 'frame',
+      'preview.condition.color': 'color or exposure',
+      'preview.condition.transparency': 'transparency',
+      'preview.condition.timing': 'animation timing',
       'preview.lastRenderOf': 'last render · {revision}',
       'preview.thisRenderOf': 'this render · {revision}',
       'preview.changeCount': '{count} structural change(s)',
@@ -3197,6 +3231,99 @@ window.__ModuleLoader__.load({
       return { current, previous }
     }
 
+    // Compare only recorded measurements; never fill a gap from today's profile.
+    function previewViews(artifact) {
+      if (!artifact) return []
+      return artifact.kind === 'contact-sheet' ? (Array.isArray(artifact.viewSettings) ? artifact.viewSettings : []) : [artifact]
+    }
+    const previewPositive = value => Number.isInteger(value) && value > 0
+    const previewText = value => typeof value === 'string' && value.length > 0
+    const previewMatrix = value => Array.isArray(value) && value.length === 4 && value.every(row => Array.isArray(row) && row.length === 4 && row.every(Number.isFinite))
+    const PREVIEW_CAMERA_FIELDS = ['matrixWorld', 'type', 'lens', 'orthoScale', 'sensorWidth', 'sensorHeight', 'sensorFit', 'shift', 'clip', 'dof']
+    function previewCameraKnown(view) {
+      const camera = view?.cameraFacts, dof = camera?.dof
+      return Boolean(camera && camera.frame === view.frame && PREVIEW_CAMERA_FIELDS.every(key => Object.hasOwn(camera, key))
+        && previewMatrix(camera.matrixWorld) && previewText(camera.type) && previewText(camera.sensorFit)
+        && ['lens', 'orthoScale', 'sensorWidth', 'sensorHeight'].every(key => Number.isFinite(camera[key]) && camera[key] > 0)
+        && Array.isArray(camera.shift) && camera.shift.length === 2 && camera.shift.every(Number.isFinite)
+        && Array.isArray(camera.clip) && camera.clip.length === 2 && camera.clip.every(Number.isFinite) && camera.clip[0] > 0 && camera.clip[1] > camera.clip[0]
+        && dof && typeof dof.enabled === 'boolean' && Number.isFinite(dof.focusDistance) && dof.focusDistance >= 0
+        && Object.hasOwn(dof, 'focusObject') && (dof.focusObject === null || previewMatrix(dof.focusObject?.matrixWorld))
+        && Object.hasOwn(dof, 'focusSubtarget') && ['apertureFstop', 'apertureRatio'].every(key => Number.isFinite(dof[key]) && dof[key] > 0)
+        && Number.isInteger(dof.apertureBlades) && dof.apertureBlades >= 0 && Number.isFinite(dof.apertureRotation))
+    }
+    function previewConfigKnown(view) {
+      const measured = view?.renderConfig
+      return Boolean(view && previewText(view.cameraId) && Number.isInteger(view.frame) && previewPositive(view.width) && previewPositive(view.height)
+        && measured && EDITOR_RENDER_FIELDS.every(key => Object.hasOwn(measured, key))
+        && previewText(view.engine) && measured.engine === view.engine && previewPositive(measured.samples) && measured.samples === view.samples
+        && Array.isArray(measured.resolution) && measured.resolution.length === 2 && measured.resolution.every(previewPositive)
+        && previewPositive(measured.resolutionPercentage) && measured.resolutionPercentage <= 100
+        && Math.floor(measured.resolution[0] * measured.resolutionPercentage / 100) === view.width
+        && Math.floor(measured.resolution[1] * measured.resolutionPercentage / 100) === view.height
+        && typeof measured.filmTransparent === 'boolean' && previewText(measured.viewTransform) && typeof measured.look === 'string'
+        && Number.isFinite(measured.exposure) && previewPositive(measured.fps) && Number.isInteger(measured.frameStart) && Number.isInteger(measured.frameEnd) && measured.frameEnd >= measured.frameStart)
+    }
+    function previewCanonical(value) {
+      if (Array.isArray(value)) return value.map(previewCanonical)
+      if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, previewCanonical(value[key])]))
+      return value
+    }
+    function previewConditions(before, after) {
+      if (!before || !after) return null
+      const left = previewViews(before), right = previewViews(after), differences = new Set()
+      let unknown = left.length === 0 || right.length === 0 || [...left, ...right].some(view => !previewConfigKnown(view) || !previewCameraKnown(view))
+      if (before.kind === 'contact-sheet' && after.kind === 'contact-sheet') {
+        if ([before.columns, before.rows, after.columns, after.rows].every(previewPositive)) {
+          if (before.columns !== after.columns || before.rows !== after.rows) differences.add('layout')
+        } else unknown = true
+      }
+      if ((before.kind === 'contact-sheet') !== (after.kind === 'contact-sheet') || left.length !== right.length
+          || before.kind === 'contact-sheet' && after.kind === 'contact-sheet' && !editorEqual(left.map(view => view.viewId), right.map(view => view.viewId))) differences.add('layout')
+      const compare = (a, b, key, valid) => { if (valid(a) && valid(b)) { if (!editorEqual(previewCanonical(a), previewCanonical(b))) differences.add(key) } else unknown = true }
+      for (let index = 0; index < Math.min(left.length, right.length); index++) {
+        const a = left[index], b = right[index]
+        compare([a.width, a.height], [b.width, b.height], 'resolution', value => value.every(previewPositive))
+        compare(a.cameraId, b.cameraId, 'camera', previewText)
+        compare(a.frame, b.frame, 'frame', Number.isInteger)
+        compare(a.renderConfig?.samples, b.renderConfig?.samples, 'samples', previewPositive)
+        compare(a.engine, b.engine, 'engine', previewText)
+        if (previewConfigKnown(a) && previewConfigKnown(b)) {
+          compare([a.renderConfig.viewTransform, a.renderConfig.look, a.renderConfig.exposure], [b.renderConfig.viewTransform, b.renderConfig.look, b.renderConfig.exposure], 'color', () => true)
+          compare(a.renderConfig.filmTransparent, b.renderConfig.filmTransparent, 'transparency', () => true)
+          compare([a.renderConfig.fps, a.renderConfig.frameStart, a.renderConfig.frameEnd], [b.renderConfig.fps, b.renderConfig.frameStart, b.renderConfig.frameEnd], 'timing', () => true)
+        } else unknown = true
+        if (previewCameraKnown(a) && previewCameraKnown(b)) compare(Object.fromEntries(PREVIEW_CAMERA_FIELDS.map(key => [key, a.cameraFacts[key]])), Object.fromEntries(PREVIEW_CAMERA_FIELDS.map(key => [key, b.cameraFacts[key]])), 'camera', () => true)
+        else unknown = true
+      }
+      return { status: differences.size ? 'different' : unknown ? 'unknown' : 'matching', differences: [...differences], unknown }
+    }
+    function PreviewConditions(before, after) {
+      const conditions = previewConditions(before, after)
+      if (!conditions) return null
+      return el('p', { className: 'db-muted', role: 'status', 'data-preview-conditions': conditions.status, 'data-preview-conditions-incomplete': String(conditions.unknown), style: { margin: '8px 0' } },
+        conditions.status === 'different' ? t('preview.conditionsDifferent', { fields: conditions.differences.map(key => ({ layout: t('preview.condition.layout'), resolution: t('preview.condition.resolution'), samples: t('preview.condition.samples'), engine: t('preview.condition.engine'), camera: t('preview.condition.camera'), frame: t('preview.condition.frame'), color: t('preview.condition.color'), transparency: t('preview.condition.transparency'), timing: t('preview.condition.timing') })[key]).join(' · ') })
+          : conditions.status === 'matching' ? t('preview.conditionsMatching') : t('preview.conditionsUnknown'),
+        conditions.status === 'different' && conditions.unknown ? ` ${t('preview.conditionsUnknown')}` : null)
+    }
+    function PreviewSettings(artifact) {
+      if (!artifact) return null
+      const views = previewViews(artifact), value = number => Number.isFinite(number) ? number : '—'
+      return el('div', { 'data-preview-settings': artifact.path, style: { marginBottom: '6px', overflowWrap: 'anywhere' } },
+        artifact.kind === 'contact-sheet' ? el('div', { className: 'db-muted' }, t('preview.sheetPixels', { width: value(artifact.width), height: value(artifact.height) })) : null,
+        views.length === 0 ? el('div', { className: 'db-muted', 'data-render-settings-missing': true }, t('preview.settingsMissing')) : views.map((view, index) =>
+          el('div', { 'data-render-view-id': view.viewId || 'single', key: view.viewId || index,
+            'data-render-settings-known': String(previewConfigKnown(view) && previewCameraKnown(view)) },
+            el('div', { className: 'db-muted' },
+              view.viewId ? `${view.viewId} · ` : '',
+              t('preview.actualPixels', { width: previewPositive(view.width) ? view.width : '—', height: previewPositive(view.height) ? view.height : '—',
+                samples: previewPositive(view.renderConfig?.samples) ? view.renderConfig.samples : '—', engine: view.engine || '—' })),
+            el('div', { className: 'db-muted' }, t('preview.actualCamera', { camera: view.cameraId || '—', frame: Number.isInteger(view.frame) ? view.frame : '—',
+              lens: Number.isFinite(view.cameraFacts?.lens) ? Math.round(view.cameraFacts.lens * 1000) / 1000 : '—' }),
+              view.renderConfig ? ` · ${t('preview.actualColor', { transform: view.renderConfig.viewTransform || '—', exposure: value(view.renderConfig.exposure) })}` : ''),
+            !previewConfigKnown(view) || !previewCameraKnown(view) ? el('small', { className: 'db-muted' }, t('preview.settingsMissing')) : null)))
+    }
+
     function CreationGuide({ state, actions }) {
       const projectId = state.activeProjectId, scene = state.selected?.scene, focus = state.guideFocus?.[projectId || 'new'] || 'goal'
       const evidence = state.previews?.revisions?.find(item => item.revision === scene?.revision)
@@ -3288,10 +3415,11 @@ window.__ModuleLoader__.load({
                 'data-artifact-slot': artifact.slot || '',
                 'data-artifact-revision': artifact.sourceRevision || '',
                 'data-artifact-at': artifact.at || '',
-                style: side === 'current' ? { width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 'calc(100vh - 230px)', margin: '0 auto' } : undefined,
+                style: side === 'current' ? { width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 'calc(100vh - 300px)', margin: '0 auto' } : undefined,
                 alt: `${title} ${artifact.path}`,
                 src: artifactUrl(state.artifactBase, artifact),
               }),
+              PreviewSettings(artifact),
               el('div', { className: 'db-muted db-mono', key: 'meta' },
                 `${artifact.sourceRevision ? `${artifact.sourceRevision} ` : ''}${artifact.slot ? artifact.slot : (artifact.kind || 'artifact')} · ${artifact.sha256 ? String(artifact.sha256).slice(0, 10) : '—'}${when === null ? '' : t('preview.renderedAt', { when })}`),
             ].filter(Boolean))
@@ -3322,6 +3450,7 @@ window.__ModuleLoader__.load({
                   src: artifactUrl(state.artifactBase, sheet),
                 })
             })(),
+            PreviewSettings(sheetOf(entry)),
             (() => {
               const sheet = sheetOf(entry)
               const when = artifactTime(sheet)
@@ -3414,6 +3543,8 @@ window.__ModuleLoader__.load({
               state.activeProjectId ? Button({ action: 'diff', onClick: () => actions.diff(left, right), children: t('preview.structuralDiff') }) : null),
         ),
         el('div', { style: { paddingTop: '2px' } },
+          resultMode ? null : rendersMode ? PreviewConditions(pair.previous, pair.current)
+            : editPair ? PreviewConditions(editPair.beforeArtifact, editPair.afterArtifact) : PreviewConditions(sheetOf(entryOf(left)), sheetOf(entryOf(right))),
           resultMode
             ? el('div', { style: { maxWidth: '960px', margin: '0 auto' } }, imagePane('current', t('preview.latest'), sheetOf(entryOf(state.currentRevision)), t('preview.noneForRevision')))
             : el('div', { className: 'db-grid' }, rendersMode ? renderPairPanes : editorPanes || [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
@@ -3646,7 +3777,7 @@ window.__ModuleLoader__.load({
         ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
         : state.status === 'loading'
           ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
-          : el('div', { className: 'db-body' },
+          : el('div', { className: 'db-body', 'data-scroll-key': JSON.stringify([state.activeProjectId, state.view]) },
             state.view === 'preview' ? renderView(ctx) : CreationGuide(ctx),
             state.view === 'preview' ? CreationGuide(ctx) : renderView(ctx))
 
@@ -3801,32 +3932,62 @@ window.__ModuleLoader__.load({
       root.classList.add('db-standalone-root')
 
       const store = createWorkbenchStore(options)
+      const pressed = new Set()
+      let pendingDraw = false, releaseTimer = null, disposed = false
 
       /**
        * Redraw from the snapshot.
        *
        * The tree is rebuilt wholesale, so a text field would lose its caret on
        * every keystroke. The focus and the selection are therefore carried across
-       * the redraw by the field's own `data-field` marker — the one piece of DOM
-       * bookkeeping this binding needs, and the reason it can rebuild rather than
-       * reconcile.
+       * the redraw by the field's own `data-field` marker. Generic scroll keys
+       * preserve position on the same surface; active presses postpone drawing
+       * so a native click can complete before its target is replaced.
        */
       const draw = () => {
+        if (disposed) return
+        // Replacing a pressed control prevents its native click from firing.
+        // Keep it connected through pointerup and the ensuing click event.
+        if (pressed.size > 0) { pendingDraw = true; return }
+        pendingDraw = false
         const active = doc.activeElement
         const focused = active !== null && active !== doc.body && active.dataset ? active.dataset.field ?? null : null
         const caret = focused === null ? null : active.selectionStart
+        const scrolls = [...(root.querySelectorAll?.('[data-scroll-key]') || [])].map(element => ({
+          key: element.dataset.scrollKey, top: element.scrollTop, left: element.scrollLeft,
+        }))
 
         const next = toDom(buildWorkbenchView(store.getState(), store.actions), doc)
         root.replaceChildren(...(next === null ? [] : [next]))
+        for (const scroll of scrolls) {
+          const restored = [...(root.querySelectorAll?.('[data-scroll-key]') || [])].find(element => element.dataset.scrollKey === scroll.key)
+          if (restored) { restored.scrollTop = scroll.top; restored.scrollLeft = scroll.left }
+        }
 
         if (focused !== null) {
           const restored = root.querySelector(`[data-field="${focused}"]`)
           if (restored !== null) {
-            restored.focus()
+            restored.focus({ preventScroll: true })
             if (caret !== null && typeof restored.setSelectionRange === 'function') restored.setSelectionRange(caret, caret)
           }
         }
       }
+
+      const beginPress = event => { pressed.add(event.pointerId) }
+      const finishPress = event => {
+        pressed.delete(event.pointerId)
+        if (pressed.size === 0 && pendingDraw && releaseTimer === null) {
+          releaseTimer = setTimeout(() => { releaseTimer = null; draw() }, 0)
+        }
+      }
+      const cancelPresses = () => {
+        pressed.clear()
+        finishPress({})
+      }
+      root.addEventListener?.('pointerdown', beginPress, true)
+      doc.addEventListener?.('pointerup', finishPress, true)
+      doc.addEventListener?.('pointercancel', finishPress, true)
+      doc.defaultView?.addEventListener('blur', cancelPresses)
 
       const unsubscribe = store.subscribe(draw)
       store.start()
@@ -3835,6 +3996,13 @@ window.__ModuleLoader__.load({
       return {
         store,
         dispose() {
+          disposed = true
+          if (releaseTimer !== null) clearTimeout(releaseTimer)
+          root.removeEventListener?.('pointerdown', beginPress, true)
+          doc.removeEventListener?.('pointerup', finishPress, true)
+          doc.removeEventListener?.('pointercancel', finishPress, true)
+          doc.defaultView?.removeEventListener('blur', cancelPresses)
+          pressed.clear()
           unsubscribe()
           store.stop()
           root.replaceChildren()
