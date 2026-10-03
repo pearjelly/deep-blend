@@ -1431,7 +1431,7 @@ window.__ModuleLoader__.load({
     const ASSET_TYPES = ['glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr']
     const ASSET_CHANNELS = ['baseColor', 'roughness', 'metallic', 'normal', 'alpha', 'emissionColor']
     const assetKey = asset => JSON.stringify([asset.id, asset.sha256, asset.path])
-    const assetKind = asset => ['gltf', 'glb'].includes(asset.type) ? 'model' : ['hdr', 'exr'].includes(asset.type) ? 'environment' : 'image'
+    const assetKind = asset => ['gltf', 'glb', 'obj'].includes(asset.type) ? 'model' : ['hdr', 'exr'].includes(asset.type) ? 'environment' : 'image'
     const assetBytes = value => {
       if (!Number.isFinite(value)) return '—'
       const unit = value >= 1048576 ? ['MiB', 1048576] : value >= 1024 ? ['KiB', 1024] : ['B', 1]
@@ -1468,7 +1468,7 @@ window.__ModuleLoader__.load({
       const fail = field => { throw new Error(t('assets.invalid', { field })) }
       let asset = draft.entry.asset
       const operations = []
-      if (!asset || ![...ASSET_TYPES, 'gltf'].includes(asset.type) || !/^[a-f0-9]{64}$/.test(asset.sha256 || '')) fail('asset')
+      if (!asset || ![...ASSET_TYPES, 'gltf', 'obj'].includes(asset.type) || !/^[a-f0-9]{64}$/.test(asset.sha256 || '')) fail('asset')
       if (draft.inspection?.kind !== assetKind(asset) || draft.kind !== assetKind(asset)) fail('inspection')
       let declared = draft.scene.nodes.assets.find(item => item.id === asset.id)
       if (declared && (declared.sha256 !== asset.sha256 || declared.path !== asset.path || declared.type !== asset.type)) {

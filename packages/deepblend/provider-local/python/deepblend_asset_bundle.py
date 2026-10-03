@@ -2,6 +2,7 @@
 import hashlib,json,os,posixpath,re,struct
 from urllib.parse import unquote
 from deepblend_util import ActionError
+from deepblend_obj_resources import obj_libraries,mtl_images
 LOCK='.deepblend-lock.json'
 MAX_FILES=256
 MAX_LOCK=1024*1024
@@ -127,7 +128,7 @@ def verify_asset_bundle(project_root,asset):
     if not isinstance(manifest,dict) or manifest.get('schemaVersion')!='deepblend.asset-bundle/v1' or manifest.get('entrypoint')!=match.group(2) or not isinstance(manifest.get('files'),list) or not 1<=len(manifest['files'])<=MAX_FILES:
         fail('The asset bundle lock has an invalid shape or entrypoint.')
     member_path(manifest['entrypoint']);format=manifest.get('format','gltf')
-    if format not in ('gltf','glb') or (asset.get('type') and asset['type']!=format):fail('The asset bundle format does not match its declaration.')
+    if format not in ('gltf','glb','obj') or (asset.get('type') and asset['type']!=format):fail('The asset bundle format does not match its declaration.')
     members={};folded=set();total=0
     for member in manifest['files']:
         if not isinstance(member,dict):fail('Invalid asset bundle member.')
@@ -147,8 +148,11 @@ def verify_asset_bundle(project_root,asset):
     main=members.get(manifest['entrypoint'])
     if total>9007199254740991 or type(manifest.get('totalBytes')) is not int or manifest['totalBytes']!=total or main is None or (asset.get('sha256') and asset['sha256']!=main['sha256']):
         fail('The asset bundle identity does not agree with its declaration.','ASSET_HASH_MISMATCH')
-    document,bin_bytes=read_document(inside(root,manifest['entrypoint']),format)
-    for path in resources(document,manifest['entrypoint'],bin_bytes):
+    if format=='obj':paths=obj_resources(root,manifest['entrypoint'])
+    else:
+        document,bin_bytes=read_document(inside(root,manifest['entrypoint']),format)
+        paths=resources(document,manifest['entrypoint'],bin_bytes)
+    for path in paths:
         if path not in members:fail('A glTF resource is not locked.')
     return manifest
 
@@ -156,3 +160,34 @@ def verify_unbundled_gltf_asset(project_root,asset):
     if asset.get('type') not in ('gltf','glb') or re.match(r'assets/bundles/[a-f0-9]{64}/',asset.get('path','')):return
     document,bin_bytes=read_document(inside(project_root,asset.get('path','')),asset['type'])
     if resources(document,posixpath.basename(asset.get('path','')),bin_bytes):fail('This glTF/GLB has unlocked external resources. Reimport the local source with a containing sourceRoot.')
+
+
+def obj_reference(entrypoint,name):
+    if not name or name.startswith('/') or '\\' in name or re.match(r'^[a-z][a-z0-9+.-]*:',name,re.I):
+        fail('OBJ resources require portable relative file paths. No dependency URLs are fetched.')
+    path=member_path(posixpath.normpath(posixpath.join(posixpath.dirname(entrypoint),name)))
+    if path==LOCK:fail('An OBJ resource collides with the reserved bundle lock.')
+    return path
+
+def obj_resources(root,entrypoint):
+    libraries={obj_reference(entrypoint,name) for name in obj_libraries(inside(root,entrypoint))}
+    fallback=posixpath.splitext(entrypoint)[0]+'.mtl'
+    if os.path.exists(inside(root,fallback)):libraries.add(fallback)
+    paths=set(libraries);folded={entrypoint.lower():entrypoint}
+    def check(path):
+        previous=folded.get(path.lower())
+        if previous is not None and previous!=path:fail('OBJ resource paths collide on case-insensitive filesystems.')
+        folded[path.lower()]=path
+        if len(paths|{entrypoint})>MAX_FILES:fail('The OBJ bundle exceeds its resource file limit.','ASSET_TOO_LARGE')
+    for library in libraries:
+        check(library)
+        for name in mtl_images(inside(root,library)):
+            path=obj_reference(library,name);paths.add(path);check(path)
+    for path in paths:check(path)
+    return paths
+
+def verify_unbundled_obj_asset(project_root,asset):
+    if asset.get('type')!='obj' or re.match(r'assets/bundles/[a-f0-9]{64}/',asset.get('path','')):return
+    file=inside(project_root,asset.get('path',''));fallback=posixpath.splitext(asset.get('path',''))[0]+'.mtl'
+    if obj_libraries(file) or os.path.exists(inside(project_root,fallback)):
+        fail('This OBJ has unlocked material resources. Reimport the complete local source with a containing sourceRoot.')

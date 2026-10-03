@@ -91,7 +91,7 @@ import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGrou
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { streamAsset } from './asset-io.js'
-import { prepareGltfBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
+import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
@@ -2348,7 +2348,7 @@ export default class BlenderStudio extends Service {
       if (!row) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND,
         'The selected asset version is not in this project library.')
       const asset = row.asset
-      if (!['gltf', 'glb'].includes(asset.type)) uploadAssetType(`asset.${asset.type}`)
+      if (!['gltf', 'glb', 'obj'].includes(asset.type)) uploadAssetType(`asset.${asset.type}`)
       const projectDirectory = this.store.projectDirectory(projectId)
       const source = resolveInside(projectDirectory, asset.path, 'asset preview source')
       if (!isFile(source)) throw new BlenderError(BlenderErrorCode.ASSET_SOURCE_NOT_FOUND, 'The selected asset bytes are missing.')
@@ -2363,7 +2363,7 @@ export default class BlenderStudio extends Service {
         })
         if (copied.sha256 !== sha256) throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
           'The selected asset bytes no longer match the library version.')
-        if (['gltf', 'glb'].includes(asset.type)) verifyUnbundledGltfAsset(scratch, asset)
+        if (['gltf', 'glb', 'obj'].includes(asset.type)) { verifyUnbundledGltfAsset(scratch, asset); verifyUnbundledObjAsset(scratch, asset) }
         else await checkAssetUpload(stagedAsset, asset.type, { signal })
       }
       const imagePath = join(scratch, 'preview.png')
@@ -2528,7 +2528,7 @@ export default class BlenderStudio extends Service {
       ? request.sourceUrl
       : null
     if (request?.sourceRoot !== undefined && sourcePath === null) {
-      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot requires a local glTF source directory.')
+      throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot requires a local glTF/GLB/OBJ source directory.')
     }
     if (sourcePath === null && sourceUrl === null) {
       throw new BlenderError(
@@ -2624,8 +2624,8 @@ export default class BlenderStudio extends Service {
         )
       }
 
-      if (request?.sourceRoot !== undefined && !['gltf', 'glb'].includes(type)) {
-        throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot is supported for local glTF/GLB resource bundles.')
+      if (request?.sourceRoot !== undefined && !['gltf', 'glb', 'obj'].includes(type)) {
+        throw new BlenderError(BlenderErrorCode.ASSET_REQUEST_INVALID, 'sourceRoot is supported for local glTF/GLB/OBJ resource bundles.')
       }
 
       // ---- and what its BYTES are ---------------------------------------------
@@ -2686,8 +2686,8 @@ export default class BlenderStudio extends Service {
       let staging = join(rawDirectory, `.incoming-${randomUUID()}`)
       let bytes, sha256, relativePath, preparedBundle
       try {
-        if (type === 'gltf' || type === 'glb') {
-          preparedBundle = await prepareGltfBundle({ projectRoot: this.store.projectDirectory(projectId),
+        if (type === 'gltf' || type === 'glb' || type === 'obj') {
+          preparedBundle = await prepareModelBundle({ projectRoot: this.store.projectDirectory(projectId),
             sourcePath: staged, name, sourceRoot: request?.sourceRoot, local: sourcePath !== null,
             maxBytes: this.config.assetMaxBytes, signal: request?.signal, type })
           ;({ staging, bytes, sha256, relativePath } = preparedBundle)

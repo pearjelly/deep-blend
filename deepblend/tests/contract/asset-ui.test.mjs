@@ -14,8 +14,8 @@ const core = loadClientBundle().exports.workbench, assets = core.assetLibrary
 const sha = 'a'.repeat(64), glbSha = 'b'.repeat(64)
 const entry = (type = 'png', extra = {}) => ({ asset: { id: `uploaded-${type}`, type, path: `assets/raw/${type === 'glb' ? glbSha : sha}.${type}`, sha256: type === 'glb' ? glbSha : sha },
   originalName: `My source.${type}`, bytes: 10 * 1024 * 1024, license: null, declaredInRevision: false, inspection: null, ...extra })
-const kind = type => ['gltf', 'glb'].includes(type) ? 'model' : ['hdr', 'exr'].includes(type) ? 'environment' : 'image'
-const inspected = item => ({ kind: kind(item.asset.type), warnings: [], ...(['gltf', 'glb'].includes(item.asset.type) ? { dimensions: [.1, .2, .3], parts: [] } : {}) })
+const kind = type => ['gltf', 'glb', 'obj'].includes(type) ? 'model' : ['hdr', 'exr'].includes(type) ? 'environment' : 'image'
+const inspected = item => ({ kind: kind(item.asset.type), warnings: [], ...(['gltf', 'glb', 'obj'].includes(item.asset.type) ? { dimensions: [.1, .2, .3], parts: [] } : {}) })
 const source = () => compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/metal-lamp/scene-spec.json', import.meta.url)))).spec
 const scene = (spec, revision = 'r0001', assetParts = []) => buildSceneTree(spec, { revision, assetParts })
 function draft(type = 'png', spec = source(), assetParts = []) {
@@ -358,10 +358,12 @@ test('a tone-mapped GLB preview never claims to be an environment lighting examp
   assert.match(text, /0.16 × 0.16 × 0.16/); assert.match(text, /2 KiB/)
 })
 
-test('glTF inspected models form native-preserving insertion patches', () => {
-  const {spec,value}=draft('gltf'),next=apply(spec,value);
-  assert.equal(next.patch.operations[0].asset.type,'gltf');
-  const entity=next.spec.entities.find(e=>e.id===value.newEntityId);assert.equal(entity.assetId,value.entry.asset.id);assert.equal(entity.materialId,undefined);
+test('glTF and OBJ inspected models preserve native materials when inserted', () => {
+  for (const type of ['gltf','obj']) {
+    const {spec,value}=draft(type),next=apply(spec,value);
+    assert.equal(next.patch.operations[0].asset.type,type);
+    const entity=next.spec.entities.find(e=>e.id===value.newEntityId);assert.equal(entity.assetId,value.entry.asset.id);assert.equal(entity.materialId,undefined);
+  }
 });
 test('same-main dependency versions have distinct browser cards, previews and drafts', async t => {
   const first=entry('glb'),second=clone(first);first.asset.path='assets/bundles/'+ '1'.repeat(64)+'/model.glb';second.asset.path='assets/bundles/'+ '2'.repeat(64)+'/model.glb';

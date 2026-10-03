@@ -49,6 +49,10 @@ document=json.loads((root/'bundled.gltf').read_text());data=json.dumps(document,
 payload=struct.pack('<II',len(data),0x4e4f534a)+data
 (root/'bundled.glb').write_bytes(struct.pack('<4sII',b'glTF',2,len(payload)+12)+payload)
 (root/'bundle-image.json').write_text(json.dumps(document['images'][0]['uri']))
+image.filepath_raw=str(root/document['images'][0]['uri'])
+bpy.ops.wm.obj_export(filepath=str(root/'bundled.obj'),path_mode='RELATIVE',export_pbr_extensions=True)
+(root/'bundled-implicit.obj').write_text('\n'.join(line for line in (root/'bundled.obj').read_text().splitlines() if not line.startswith('mtllib '))+'\n')
+(root/'bundled-implicit.mtl').write_bytes((root/'bundled.mtl').read_bytes())
 pixels=[]
 for y in range(32):
     for x in range(64): pixels.extend([8,5,2,1] if 12<x<25 and 10<y<24 else [.06,.08,.15,1])
@@ -162,28 +166,36 @@ try {
     const first = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.glb'), sourceRoot: sources, assetId: 'bundled-binary' })
     await sharp({ create: { width: 8, height: 8, channels: 4, background: { r: 230, g: 25, b: 15, alpha: 1 } } }).png().toFile(join(sources, JSON.parse(readFileSync(join(sources, 'bundle-image.json')))))
     const second = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.glb'), sourceRoot: sources, assetId: 'bundled-binary' })
-    bundledVersions = [gltf, first, second]
+    const objFirst = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.obj'), sourceRoot: sources, assetId: 'bundled-obj' })
+    await sharp({ create: { width: 8, height: 8, channels: 4, background: { r: 25, g: 40, b: 230, alpha: 1 } } }).png().toFile(join(sources, JSON.parse(readFileSync(join(sources, 'bundle-image.json')))))
+    const objSecond = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled.obj'), sourceRoot: sources, assetId: 'bundled-obj' })
+    const objImplicit = await seed.ingestAsset({ projectId, sourcePath: join(sources, 'bundled-implicit.obj'), sourceRoot: sources, assetId: 'bundled-obj-implicit' })
+    bundledVersions = [gltf, first, second, objFirst, objSecond, objImplicit]
   } finally { await seedContext.fiber.dispose() }
   await page.click('[data-action="assets-open"]')
-  await page.waitFor('document.querySelectorAll("[data-asset-id]").length===8', 30000)
+  await page.waitFor('document.querySelectorAll("[data-asset-id]").length===11', 30000)
   const library = await (await fetch(`${base}/deepblend/projects/${projectId}/assets`)).json()
   const bundledRows = bundledVersions.map(version => library.assets.find(row => row.asset.path === version.path && row.asset.id === version.assetId))
   check('same-main GLB versions appear as separate cards with exact paths', bundledVersions[1].sha256 === bundledVersions[2].sha256 && bundledVersions[1].path !== bundledVersions[2].path && bundledRows.every(Boolean))
+  check('same-main OBJ versions and implicit MTL model have independent cards', bundledVersions[3].sha256 === bundledVersions[4].sha256 && bundledVersions[3].path !== bundledVersions[4].path && bundledRows.slice(3).every(row => row.asset.type === 'obj'))
   for (const [index, row] of bundledRows.entries()) {
     const receipt = await inspect(row)
     check('bundled model preview exposes real material slots and UVs', receipt.inspection.kind === 'model' && receipt.inspection.parts.some(p => p.sourceMaterialSlots.length === 2 && p.uvMaps.length))
     await choose(row); await page.fill(field('asset-entity-id'), 'bundled-object-' + index)
     await apply('bundled-' + index)
     const entity = spec().entities.find(e => e.id === 'bundled-object-' + index), applied = spec().assets.find(a => a.id === entity.assetId)
-    check('selected dependency version applies without changing earlier objects', applied.path === row.asset.path && applied.sha256 === row.asset.sha256 && (index !== 2 || spec().assets.find(a => a.id === spec().entities.find(e => e.id === 'bundled-object-1').assetId).path === bundledRows[1].asset.path))
+    const earlierIndex = index === 2 ? 1 : index === 4 ? 3 : null
+    check('selected dependency version applies without changing earlier objects', applied.path === row.asset.path && applied.sha256 === row.asset.sha256 && !Object.hasOwn(entity, 'materialId') && (earlierIndex === null || spec().assets.find(a => a.id === spec().entities.find(e => e.id === 'bundled-object-' + earlierIndex).assetId).path === bundledRows[earlierIndex].asset.path))
   }
   const pixelA = decodePng(readFileSync(path(previews[6].preview.path))), pixelB = decodePng(readFileSync(path(previews[7].preview.path)))
   check('same-main GLB versions produce different actual browser preview images', !pixelA.data.every((v, i) => v === pixelB.data[i]))
+  const objPixelA = decodePng(readFileSync(path(previews[8].preview.path))), objPixelB = decodePng(readFileSync(path(previews[9].preview.path)))
+  check('same-main OBJ texture versions produce different actual browser preview images', !objPixelA.data.every((v, i) => v === objPixelB.data[i]))
   const bundledRequests = (await page.evaluate('window.__assetRequests')).filter(r => r.method === 'POST' && /\/assets\/.+\/preview$/.test(r.url) && r.body?.assetPath?.startsWith('assets/bundles/'))
-  check('browser preview requests pin every selected full dependency path', bundledRequests.length === 3 && bundledRows.every(row => bundledRequests.some(r => r.body.assetPath === row.asset.path)))
+  check('browser preview requests pin every selected full dependency path', bundledRequests.length === 6 && bundledRows.every(row => bundledRequests.some(r => r.body.assetPath === row.asset.path)))
   const saved = current(); write('requests-before-refresh.json', await page.evaluate('window.__assetRequests'))
-  await page.reload(); await page.waitFor(`document.querySelector('[data-brief-base-revision="${saved}"]')!==null`, 45000); await sceneView(); await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelectorAll("[data-asset-preview]").length>=8 && Array.from(document.querySelectorAll("[data-asset-preview]")).every(image=>image.naturalWidth>0)', 30000)
-  check('refresh recovers all version-specific preview PNGs and their source hashes', await page.evaluate('document.querySelectorAll("[data-asset-preview]").length>=8'))
+  await page.reload(); await page.waitFor(`document.querySelector('[data-brief-base-revision="${saved}"]')!==null`, 45000); await sceneView(); await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelectorAll("[data-asset-preview]").length>=11 && Array.from(document.querySelectorAll("[data-asset-preview]")).every(image=>image.naturalWidth>0)', 30000)
+  check('refresh recovers all version-specific preview PNGs and their source hashes', await page.evaluate('document.querySelectorAll("[data-asset-preview]").length>=11'))
   await page.evaluate('document.querySelector("[data-assets-library]").scrollIntoView({block:"start"})'); await page.screenshot(join(directory, '02-library-after-refresh.png'))
   await choose(model); await page.fill(field('asset-entity-id'), 'unsaved-conflict-object')
   const peer = await fetch(`${base}/deepblend/projects/${projectId}/patch`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ patch: { projectId, baseRevision: saved, saveCheckpoint: true, renderPreview: false, operations: [{ op: 'project.brief.set', goal: 'A peer changed the saved goal.', referenceImages: [] }] } }), signal: AbortSignal.timeout(180000) })
@@ -210,7 +222,7 @@ finally {
     try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { outcome = 'failed'; results.push({ name: `${name} shutdown`, ok: false, detail: String(error) }) }
   }
   const report = { startedAt, completedAt: new Date().toISOString(), outcome, directory, root, url, projectId, shutdown, originals, captures, results, passed: results.filter(result => result.ok).length, total: results.length,
-    scope: 'Real browser, locally authored five upload formats plus locked JSON glTF and two same-main external GLB versions, actual Host/Blender output. Representative base-color image binding, original GLB slot override, world lighting, conflict and preview cancellation. Other map channels, all format combinations and online model quality are not claimed.' }
+    scope: 'Real browser, locally authored five upload formats plus locked JSON glTF, two same-main external GLB versions, two same-main OBJ versions and implicit MTL OBJ, actual Host/Blender output. Representative base-color image binding, original GLB slot override, world lighting, conflict and preview cancellation. Other map channels, all format combinations and online model quality are not claimed.' }
   write('results.json', report); console.log(`Asset library UI: ${report.passed}/${report.total}; ${directory}`)
 }
 if (outcome !== 'passed') process.exitCode = 1

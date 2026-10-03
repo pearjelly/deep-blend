@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, compileSceneSpec, validateSceneSpec, specHash } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from './revision-transaction.js'
 import { ASSET_LIBRARY_LIMITS } from './asset-library.js'
-import { readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
+import { readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 
 export const ASSET_PREVIEW_TEMPLATE = 'deepblend.asset-preview/v1'
 
@@ -55,7 +55,7 @@ export function assetPreviewScene(asset, { bounds, environment = false, samples 
 function modelInspection(report, glb) {
   const objects = (report.objects ?? []).filter(object => object.deepblendId === 'asset-subject')
   const surfaces = objects.filter(object => object.type === 'MESH' && object.renderVisible === true)
-  if (!surfaces.length) invalid('The GLB has no visible mesh with measured bounds for an isolated preview.')
+  if (!surfaces.length) invalid('The model has no visible mesh with measured bounds for an isolated preview.')
   if (surfaces.some(object => !object.worldBounds)) invalid('A renderable part has no evaluated world bounds; the preview cannot frame the complete asset.')
   const bounds = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] }
   for (const object of surfaces) for (let axis = 0; axis < 3; axis++) {
@@ -73,23 +73,24 @@ function modelInspection(report, glb) {
       ...(object.evaluatedUvMapsUnavailable ? { evaluatedUvMapsUnavailable: object.evaluatedUvMapsUnavailable } : {}),
       sourceMaterialSlots: object.sourceMaterialSlots ?? [], materialSlots: object.materialSlots ?? [],
       assetSha256: null, selectorVersion: 1,
-    })), warnings: glb.animations ? ['This GLB contains animation. The isolated preview shows frame 1 only.'] : [] }
+    })), warnings: glb.animations ? ['This model contains animation. The isolated preview shows frame 1 only.'] : [] }
 }
 
 export async function renderAssetPreview({ runtime, asset, directory, maxMeshPolygons, maxPreviewSamples, signal }) {
   const environment = ['hdr', 'exr'].includes(asset.type)
-  if (!environment && !['gltf', 'glb'].includes(asset.type)) invalid('This preview supports glTF/GLB models and HDR/EXR environment lighting.')
+  if (!environment && !['gltf', 'glb', 'obj'].includes(asset.type)) invalid('This preview supports glTF/GLB/OBJ models and HDR/EXR environment lighting.')
   let glb = null
   if (!environment) {
     signal?.throwIfAborted()
     verifyAssetBundle(directory, asset)
     verifyUnbundledGltfAsset(directory, asset)
-    const { document } = readGltfDocument(join(directory, asset.path), { format: asset.type, signal })
+    verifyUnbundledObjAsset(directory, asset)
+    const { document } = asset.type === 'obj' ? { document: {} } : readGltfDocument(join(directory, asset.path), { format: asset.type, signal })
     glb = { animations: document.animations?.length ?? 0, cameras: document.cameras?.length ?? 0,
       lights: document.extensions?.KHR_lights_punctual?.lights?.length ?? 0 }
   }
   if (glb && (glb.cameras || glb.lights)) invalid(
-    'This GLB contains cameras or lights. Export a model-only GLB for the current asset library preview; its contents will not be silently removed.')
+    'This model contains cameras or lights. Export a model-only file for the current asset library preview; its contents will not be silently removed.')
   const samples = Math.max(1, Math.min(ASSET_LIBRARY_LIMITS.previewSamples, Math.floor(maxPreviewSamples)))
   const checkpointPath = join(directory, 'preview.blend'), sceneSpecPath = join(directory, 'scene-spec.json')
   const compile = async scene => {

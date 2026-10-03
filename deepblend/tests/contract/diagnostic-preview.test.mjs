@@ -220,7 +220,7 @@ test('pre-aborted request launches no runtime and creates no diagnostic output',
 })
 
 test('fixed diagnostics stage complete glTF/GLB bundles once for repeated aliases', async t => {
-  for (const format of ['gltf','glb']) {
+  for (const format of ['gltf','glb','obj']) {
     let model, compiled
     const f=await setup(t,{compile:request=>{
       const input=JSON.parse(readFileSync(request.sceneSpecPath));compiled=input.assets
@@ -232,7 +232,9 @@ test('fixed diagnostics stage complete glTF/GLB bundles once for repeated aliase
     }})
     const source=join(f.root,'source');mkdirSync(source);writeFileSync(join(source,'model.bin'),Buffer.alloc(12));writeFileSync(join(source,'paint.png'),encodePng(createImage(2,2,[12,145,36,255])))
     const doc={asset:{version:'2.0'},buffers:[{uri:'model.bin',byteLength:12}],images:[{uri:'paint.png'}]}
-    const file=join(source,'model.'+format);writeFileSync(file,format==='gltf'?JSON.stringify(doc):encodeGlb(doc))
+    const file=join(source,'model.'+format)
+    if (format==='obj') { writeFileSync(file,'mtllib paint.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n');writeFileSync(join(source,'paint.mtl'),'newmtl paint\nmap_Kd paint.png\n') }
+    else writeFileSync(file,format==='gltf'?JSON.stringify(doc):encodeGlb(doc))
     model=await f.studio.ingestAsset({projectId:f.projectId,sourcePath:file,assetId:'model'})
     const declaration={id:'model',type:format,path:model.path,sha256:model.sha256}
     await f.studio.applyScenePatch({projectId:f.projectId,baseRevision:'r0001',saveCheckpoint:false,operations:[{op:'asset.add',asset:declaration},{op:'asset.add',asset:{...declaration,id:'alias'}}]})

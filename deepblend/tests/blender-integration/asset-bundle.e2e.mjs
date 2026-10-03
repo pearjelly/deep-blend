@@ -1,4 +1,4 @@
-/** Actual textured glTF → immutable resource bundle → Host compile/render → old revision rebuild. */
+/** Actual textured glTF/GLB/OBJ → immutable resource bundle → Host compile/render → old revision rebuild. */
 import { Context } from '@deepseek-ai/cordis';
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local';
 import Provider, { ProviderConfig } from '@deepblend/dsh-blender-provider-local';
@@ -13,7 +13,7 @@ const ROOT = resolve(import.meta.dirname, '../../..'), out = resolve(process.env
 assert(!existsSync(out));
 mkdirSync(out, { recursive: true });
 const nativeFormat = process.env.DEEPBLEND_BUNDLE_FORMAT ?? 'gltf';
-assert(['gltf', 'glb-internal-buffer', 'glb-external-buffer'].includes(nativeFormat));
+assert(['gltf', 'glb-internal-buffer', 'glb-external-buffer', 'obj-explicit', 'obj-implicit'].includes(nativeFormat));
 const source = join(out, 'source'), workspace = join(out, 'workspace');
 mkdirSync(source);
 mkdirSync(workspace);
@@ -37,7 +37,11 @@ texture=material.node_tree.nodes.new('ShaderNodeTexImage');texture.image=image;m
 parent=bpy.data.objects.new('authored parent',None);bpy.context.scene.collection.objects.link(parent);parent.location=(.02,.01,.03);parent.rotation_euler[2]=.15
 bpy.ops.mesh.primitive_cube_add(size=.1,location=(0,0,.05));cube=bpy.context.object;cube.name='authored body';cube.parent=parent;cube.data.materials.append(material)
 bpy.ops.export_scene.gltf(filepath=str(root/'models/product.gltf'),export_format='GLTF_SEPARATE',export_texture_dir='../textures')
-if kind!='gltf':
+if kind.startswith('obj'):
+ bpy.ops.wm.obj_export(filepath=str(root/'models/product.obj'),path_mode='RELATIVE',export_pbr_extensions=True)
+ if kind=='obj-implicit':
+  file=root/'models/product.obj';file.write_text('\n'.join(line for line in file.read_text().splitlines() if not line.startswith('mtllib '))+'\n')
+if kind.startswith('glb'):
  document=json.loads((root/'models/product.gltf').read_text());binary=None
  if kind=='glb-internal-buffer':
   binary=(root/'models'/document['buffers'][0]['uri']).read_bytes();del document['buffers'][0]['uri']
@@ -53,7 +57,7 @@ import bpy,sys,json,hashlib
 from pathlib import Path
 kind,path,out=sys.argv[sys.argv.index('--')+1:]
 if kind=='asset':
- bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False);bpy.ops.import_scene.gltf(filepath=path)
+ bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False);bpy.ops.wm.obj_import(filepath=path) if path.lower().endswith('.obj') else bpy.ops.import_scene.gltf(filepath=path)
 else:bpy.ops.wm.open_mainfile(filepath=path)
 bpy.context.view_layer.update();meshes=[];images=[]
 for obj in bpy.context.scene.objects:
@@ -72,8 +76,11 @@ function image(file) { const bytes = readFileSync(file), png = decodePng(bytes);
 const materialFacts = f => ({ ...f, images: f.images.map(({ packed, ...value }) => value), buildHash: undefined });
 try {
     python('generate', GENERATE, [source, nativeFormat]);
-    const main = join(source, 'models/product.' + (nativeFormat === 'gltf' ? 'gltf' : 'glb')), raw = readFileSync(main), document = nativeFormat === 'gltf' ? json(main) : JSON.parse(raw.subarray(20, 20 + raw.readUInt32LE(12)).toString('utf8')), uris = [...(document.buffers ?? []), ...(document.images ?? [])].map(x => x.uri).filter(Boolean);
-    check('native authored container has its declared buffer storage and external texture', (nativeFormat === 'glb-internal-buffer' ? document.buffers[0].uri === undefined : uris.some(u => u.endsWith('.bin'))) && uris.some(u => u.includes('../textures/')), { format: nativeFormat, uris });
+    const obj = nativeFormat.startsWith('obj'), extension = obj ? 'obj' : nativeFormat === 'gltf' ? 'gltf' : 'glb';
+    const main = join(source,'models/product.'+extension), raw = readFileSync(main);
+    const document = obj ? {} : nativeFormat === 'gltf' ? json(main) : JSON.parse(raw.subarray(20,20+raw.readUInt32LE(12)).toString('utf8'));
+    const uris = obj ? ['product.mtl', ...readFileSync(join(source,'models/product.mtl'),'utf8').split(/\r?\n/).filter(line=>line.startsWith('map_Kd ')).map(line=>line.slice(7).trim().replaceAll('"',''))] : [...(document.buffers??[]),...(document.images??[])].map(x=>x.uri).filter(Boolean);
+    check('native authored container has its declared buffer storage and external texture', (obj ? uris.includes('product.mtl') && (nativeFormat==='obj-explicit' ? /^mtllib /m.test(raw.toString('utf8')) : !/^mtllib /m.test(raw.toString('utf8'))) : nativeFormat === 'glb-internal-buffer' ? document.buffers[0].uri === undefined : uris.some(u => u.endsWith('.bin'))) && uris.some(u => u.includes('../textures/')), { format: nativeFormat, uris });
     cpSync(source, join(out, 'authored-source'), { recursive: true });
     python('original', INSPECT, ['asset', main, join(out, 'original.json')]);
     const original = json(join(out, 'original.json'));
@@ -204,6 +211,27 @@ Path(out).write_text(json.dumps({'code':'ASSET_HASH_MISMATCH','sceneInventoryPre
     check('native compile refuses before clearing the live scene', json(join(out, 'compile-refusal.json')).sceneInventoryPreserved);
     writeFileSync(bufferPath, buffer);
     check('all snapshot files are restored to their locked bytes', second.bundle.files.every(m => sha(readFileSync(join(secondRoot, m.path))) === m.sha256));
+    if (obj) {
+        const broken = join(out, 'broken-source');
+        cpSync(secondRoot, broken, { recursive: true });
+        writeFileSync(join(broken, texture.path), Buffer.from('invalid image with a valid recorded file hash'));
+        const invalid = await studio.ingestAsset({ projectId, sourcePath: join(broken, second.bundle.entrypoint), sourceRoot: broken, assetId: 'broken-texture' });
+        save(join(out, 'invalid-image-ingest.json'), invalid);
+        let imageRefusal;
+        try { await apply([{ op: 'asset.add', asset: declaration(invalid) }, { op: 'entity.add', entity: { ...entity, id: 'broken-texture-object', assetId: invalid.assetId } }]); }
+        catch (error) { imageRefusal = error; }
+        check('native OBJ refuses an undecodable used texture despite matching resource hashes', imageRefusal?.code === 'ASSET_CONTENT_MISMATCH');
+        check('failed OBJ image embedding keeps the current revision and saved checkpoint intact', studio.store.currentRevision(projectId) === current && existsSync(newCheckpoint) && !json(join(project, 'revisions', current, 'scene-spec.json')).assets.some(a => a.id === invalid.assetId));
+        save(join(out, 'invalid-image-refusal.json'), { code: imageRefusal?.code, currentRevision: studio.store.currentRevision(projectId) });
+        writeFileSync(join(broken, texture.path), encodePng({ width: 9000, height: 1, data: Buffer.from(Array.from({ length: 9000 }, () => [10, 60, 210, 255]).flat()) }));
+        const oversized = await studio.ingestAsset({ projectId, sourcePath: join(broken, second.bundle.entrypoint), sourceRoot: broken, assetId: 'oversized-texture' });
+        save(join(out, 'oversized-image-ingest.json'), oversized);
+        let sizeRefusal;
+        try { await apply([{ op: 'asset.add', asset: declaration(oversized) }, { op: 'entity.add', entity: { ...entity, id: 'oversized-texture-object', assetId: oversized.assetId } }]); }
+        catch (error) { sizeRefusal = error; }
+        check('native OBJ refuses used images over the fixed dimension limit without publishing', sizeRefusal?.code === 'ASSET_CONTENT_MISMATCH' && studio.store.currentRevision(projectId) === current);
+        save(join(out, 'oversized-image-refusal.json'), { code: sizeRefusal?.code, currentRevision: studio.store.currentRevision(projectId) });
+    }
     const legacy = join(project, 'legacy');
     cpSync(secondRoot, legacy, { recursive: true });
     const legacyAsset = { ...declaration(second), path: 'legacy/' + second.bundle.entrypoint };
@@ -234,14 +262,14 @@ catch (error) {
 finally {
     if (ctx)
         await ctx.fiber.dispose();
-    save(join(out, 'report.json'), { checks, artifacts, calls, failure, scope: 'Maintained actual Host/provider and independently authored native glTF buffers/images. No independent adoption or complete dependency guarantees for other formats/extensions. GLB container/BIN and legacy core resource refusal are exercised separately.' });
+    save(join(out, 'report.json'), { checks, artifacts, calls, failure, scope: 'Actual Host/provider and independently authored glTF/GLB buffers/images or OBJ explicit/implicit MTL and texture dependencies. Used OBJ images are embedded; an undecodable used texture refuses. No independent adoption or complete resource guarantees for other formats/extensions.' });
     if (!failure)
         console.log(`Asset bundles: ${checks.length}/${checks.length} checks passed`);
 }
-// One maintained entry point exercises three independently opened native source formats.
+// One maintained entry point exercises five independently opened native source formats.
 if (nativeFormat === 'gltf') {
     const scenarios = [{ format: nativeFormat, checks: checks.length, report: 'report.json' }];
-    for (const format of ['glb-internal-buffer', 'glb-external-buffer']) {
+    for (const format of ['glb-internal-buffer', 'glb-external-buffer', 'obj-explicit', 'obj-implicit']) {
         const childOut = join(out, format), result = spawnSync(process.execPath, [import.meta.filename], { encoding: 'utf8', timeout: 240000, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, DEEPBLEND_BUNDLE_FORMAT: format, DEEPBLEND_ASSET_BUNDLE_OUTPUT: childOut } });
         writeFileSync(join(out, format + '.log'), (result.stdout ?? '') + '\n' + (result.stderr ?? ''));
         const report = existsSync(join(childOut, 'report.json')) ? json(join(childOut, 'report.json')) : null;
@@ -252,5 +280,5 @@ if (nativeFormat === 'gltf') {
     }
     const total = scenarios.reduce((n, s) => n + s.checks, 0);
     save(join(out, 'bundle-matrix.json'), { status: 'passed', scenarios, checks: total });
-    console.log(`Asset bundle matrix: ${total}/${total} checks passed across three native formats`);
+    console.log(`Asset bundle matrix: ${total}/${total} checks passed across five native formats`);
 }

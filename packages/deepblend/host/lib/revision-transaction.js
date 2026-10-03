@@ -65,7 +65,7 @@ import {
   validateSceneSpec,
   warning,
 } from '@deepblend/dsh-blender-contracts'
-import { verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
+import { verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import {
   fileSha256,
@@ -393,6 +393,7 @@ export class RevisionTransaction {
           { detail: { projectId, assetId: asset.id, path: asset.path, declared: asset.sha256 ?? declared, pathHash, actual } })
       }
       verifyUnbundledGltfAsset(this.store.projectDirectory(projectId), asset)
+      verifyUnbundledObjAsset(this.store.projectDirectory(projectId), asset)
     }
 
     // ---- resolve the RESULT before anything reads it -----------------------

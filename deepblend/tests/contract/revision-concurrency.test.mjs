@@ -259,20 +259,22 @@ test('ambiguous leases and interrupted recovery guards fail closed', async t => 
   assert.deepEqual(h.studio.store.listRevisions('ambiguous'), ['r0001'])
 })
 
-for (const sameAlias of [false, true]) {
-  test(`two Node asset publishers retain ${sameAlias ? 'both versions of one alias' : 'both distinct aliases'}`, { timeout: 15000 }, async t => {
+for (const format of ['obj', 'usd']) for (const sameAlias of [false, true]) {
+  test(`two Node ${format} publishers retain ${sameAlias ? 'both versions of one alias' : 'both distinct aliases'}`, { timeout: 15000 }, async t => {
     const h = harness(t)
     await h.create('assets')
-    const firstPath = join(h.workspaceRoot, 'first.obj')
-    const secondPath = join(h.workspaceRoot, 'second.obj')
-    writeFileSync(firstPath, 'v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n')
-    writeFileSync(secondPath, 'v 0 0 0\nv 2 0 0\nv 0 2 0\nf 1 2 3\n')
+    const firstPath = join(h.workspaceRoot, 'first.' + format)
+    const secondPath = join(h.workspaceRoot, 'second.' + format)
+    const mesh = size => format === 'obj' ? `v 0 0 0\nv ${size} 0 0\nv 0 ${size} 0\nf 1 2 3\n`
+      : `#usda 1.0\ndef Mesh "Triangle" {\npoint3f[] points = [(0, 0, 0), (${size}, 0, 0), (0, ${size}, 0)]\nint[] faceVertexCounts = [3]\nint[] faceVertexIndices = [0, 1, 2]\n}\n`
+    writeFileSync(firstPath, mesh(1))
+    writeFileSync(secondPath, mesh(2))
     const releasePath = join(h.workspaceRoot, 'release-publication')
     const firstRequest = JSON.stringify({ sourcePath: firstPath, assetId: 'first' })
     const secondRequest = JSON.stringify({ sourcePath: secondPath, assetId: sameAlias ? 'first' : 'second' })
     const writer = child(t, [h.workspaceRoot, 'assets', 'asset-hold', firstRequest, releasePath])
     await writer.next('publishing')
-    const raw = join(h.studio.store.projectDirectory('assets'), 'assets', 'raw')
+    const raw = join(h.studio.store.projectDirectory('assets'), 'assets', format === 'obj' ? 'bundles' : 'raw')
     // The first copy completed before it acquired the publication lease.
     assert.equal(readdirSync(raw).filter(name => name.startsWith('.incoming-')).length, 1)
     const contender = child(t, [h.workspaceRoot, 'assets', 'asset', secondRequest])

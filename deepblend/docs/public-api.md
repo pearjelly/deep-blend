@@ -244,7 +244,7 @@ These tests demonstrate a maintained external package boundary. They are not
 evidence of adoption by an independent external author, a different runtime's
 behavioral compatibility, a successful Blender render, or artistic quality.
 
-### Managed glTF resource bundles
+### Managed model resource bundles
 
 `previewAsset` accepts optional `assetPath` from the library inventory in addition to
 `projectId`, `assetId` and `sha256`. When several dependency versions share the same
@@ -254,21 +254,21 @@ copies the complete verified lock and members under the aggregate byte budget.
 Managed caches use the bundle hash; receipt matching includes the exact path.
 The workbench accepts older receipts without `assetPath` only for canonical raw
 paths that encode the complete single-file SHA and format. Dependency bundles
-require a path-bound receipt. Both JSON glTF and GLB use the isolated model preview. Applying another version
+require a path-bound receipt. JSON glTF, GLB and OBJ use the isolated model preview. Applying another version
 in the workbench creates a separate declaration so earlier instances retain their version.
 
-Host `ingestAsset` and `blender_asset_ingest` accept optional `sourceRoot` for local `.gltf` and `.glb`.
+Host `ingestAsset` and `blender_asset_ingest` accept optional `sourceRoot` for local `.gltf`, `.glb` and `.obj`.
 The returned asset declaration keeps the existing `path` and main-file `sha256` shape.
 A managed path is `assets/bundles/<lock-sha256>/<entrypoint>`. Its directory contains
 `.deepblend-lock.json` with `schemaVersion: deepblend.asset-bundle/v1`, `entrypoint`,
 `files` (relative `path`, actual `bytes` and `sha256`), and `totalBytes` (source files).
 The directory identity hashes the exact lock bytes, including its final newline.
 Changing a member requires a new lock and path. Verification requires every core
-glTF buffer/image reference to be locked, alongside full member hashes and root containment.
+glTF buffer/image or OBJ material/texture reference to be locked, alongside full member hashes and root containment.
 
-A lock without `format` describes JSON glTF. A GLB lock includes `format: glb`;
+A lock without `format` describes JSON glTF. GLB and OBJ locks include `format: glb` or `format: obj`;
 unknown formats and disagreement with the SceneSpec asset type refuse. Existing JSON
-locks retain their identity. GLB consumers must implement the explicit format profile;
+locks retain their identity. Consumers must implement the explicit format profile;
 an older JSON-only bundle reader cannot certify it.
 
 This storage profile covers core `.gltf` / `.glb` buffers/images, embedded BIN and data.
@@ -277,7 +277,13 @@ keeps its existing `assets/raw/<main-sha256>.glb` path. Metadata readers check G
 layout, lengths, ordering and embedded buffer bounds, ignore unknown chunk types, and
 read only JSON/chunk headers, with 16 MiB JSON and 1,024 chunk limits.
 Remote external dependencies and additional external URI resources in extensions refuse.
-Other formats need separate dependency evidence. Legacy unbundled core glTF/GLB with
+OBJ preserves explicit MTL files, an existing same-basename MTL, and declared textures.
+Material texture paths are resolved relative to the MTL. Readers process OBJ continuations,
+quoted library names and the pinned Blender MTL texture options; OBJ is limited to 1 GiB,
+MTL to 16 MiB and physical/logical lines to 1 MiB. Used OBJ material images are embedded
+in saved checkpoints without replacing their nodes or color interpretation. Undecodable
+or oversized images refuse after native loading; this is not a pre-decode memory bound.
+Other formats need separate dependency evidence. Legacy unbundled core glTF/GLB/OBJ with
 external resources refuses at commit/compile; reimport the complete local source.
 It does not establish license rights,
 pre-decode memory guarantees or independent adoption. See the [asset guide](assets.md).

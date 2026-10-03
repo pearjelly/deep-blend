@@ -207,12 +207,14 @@ Two steps follow it, and a scene that skips the second one has an asset nobody u
 import. Setting `license` on anything you downloaded is worth the argument: an asset
 whose provenance is unrecorded is one nobody can safely ship.
 
-For local .gltf or .glb with external buffers/images, pass sourceRoot when resources
+For local .gltf/.glb buffers/images or .obj MTL/texture dependencies, pass sourceRoot when resources
 live above the model directory. Use the returned path and hash in asset.add;
 dependency changes create a new locked path even if the main-file hash is unchanged.
 Remote external dependencies are refused. Old declarations with unlocked core
 resources must be reimported from the complete local source; compilation refuses
-before clearing the scene. Self-contained GLB keeps its single content-addressed file.
+before clearing the scene. OBJ also includes an existing same-basename .mtl, even
+without mtllib. Used OBJ textures are embedded in checkpoints; undecodable or
+oversized images refuse compilation. Self-contained GLB keeps its single content-addressed file.
 
 ## Revision discipline
 

@@ -37,9 +37,9 @@ import bpy
 from mathutils import Vector
 
 from deepblend_util import ActionError, Guard, as_text, error_text, report_progress, warning
-from deepblend_asset_bundle import verify_asset_bundle, verify_unbundled_gltf_asset
+from deepblend_asset_bundle import verify_asset_bundle, verify_unbundled_gltf_asset, verify_unbundled_obj_asset
 from deepblend_geometry import create_lathe, create_curve, apply_model_modifiers
-from deepblend_images import build_image_maps, build_environment
+from deepblend_images import build_image_maps, build_environment, pack_imported_material_images
 from deepblend_parts import isolated_import_names, stamp_imported_parts, apply_material_bindings
 from deepblend_anisotropy import build_anisotropy, validate_anisotropy_material, validate_anisotropy_usage, validate_native_material_usage
 from deepblend_images import validate_image_uv_usage
@@ -468,6 +468,9 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
             'importing "%s" produced no objects' % (asset_path,),
             {"assetPath": asset_path},
         )
+
+    if asset_type == 'obj':
+        pack_imported_material_images(imported)
 
     # The SceneSpec transform belongs to an instance container. Choosing the
     # first imported object as the root overwrites its authored transform and
@@ -1949,6 +1952,7 @@ def build_scene(spec, options, guard):
         declared = addressed.group(1) if addressed else asset.get("sha256")
         if not declared:
             verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
+            verify_unbundled_obj_asset(options.get("project_root") or "", asset)
             continue
         asset_path = os.path.join(options.get("project_root") or "", asset.get("path", ""))
         digest = hashlib.sha256()
@@ -1964,6 +1968,7 @@ def build_scene(spec, options, guard):
                               {"assetId": asset.get("id"), "declared": declared, "actual": actual})
 
         verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
+        verify_unbundled_obj_asset(options.get("project_root") or "", asset)
 
     report_progress("reset_scene", 5)
     scene = reset_scene()

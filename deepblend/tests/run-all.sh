@@ -77,7 +77,7 @@ run_suite "Public runtime conformance: packed checker, native evidence, cancella
 run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
   node deepblend/tests/blender-integration/handled-cup.e2e.mjs
 
-run_suite "glTF resource bundles: textured import, locked files and old revision rebuild" \
+run_suite "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild" \
   node deepblend/tests/blender-integration/asset-bundle.e2e.mjs
 
 run_suite "Asset library: real uploads, isolated previews and source fidelity" \

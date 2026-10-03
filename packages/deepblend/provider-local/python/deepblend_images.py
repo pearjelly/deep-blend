@@ -7,6 +7,37 @@ SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Met
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
 
 
+def pack_imported_material_images(objects):
+    """Keep OBJ's authored image nodes usable after saving or moving a checkpoint."""
+    trees, visited, images = [], set(), set()
+    for obj in objects:
+        for slot in getattr(obj, 'material_slots', []):
+            material = slot.material
+            if material and material.use_nodes and material.node_tree:
+                trees.append(material.node_tree)
+    while trees:
+        tree = trees.pop()
+        if tree in visited:
+            continue
+        visited.add(tree)
+        for node in tree.nodes:
+            if node.type == 'GROUP' and node.node_tree:
+                trees.append(node.node_tree)
+            image = getattr(node, 'image', None)
+            if image is not None:
+                images.add(image)
+    for image in images:
+        try:
+            if min(image.size) <= 0 or max(image.size) > 8192:
+                raise ValueError('image dimensions must be between 1 and 8192 pixels')
+            if not image.packed_file:
+                image.pack()
+            if not image.packed_file:
+                raise ValueError('Blender did not embed the image')
+        except Exception as error:
+            raise ActionError('ASSET_CONTENT_MISMATCH', 'cannot embed imported material image: %s' % error)
+
+
 def validate_image_uv_usage(spec, obj, layers):
     """Validate named/default UV on a surface that actually uses this material."""
     for binding in (spec.get('images') or {}).values():

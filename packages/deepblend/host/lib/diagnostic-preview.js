@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, BLENDER_ENGINE_BY_KEY, JOB_RECORD_VERSION, compileSceneSpec, sceneSpecDigest,
   sha256, specHash, validateSceneSpec, toCanonicalJobRecord } from '@deepblend/dsh-blender-contracts'
 import { streamAsset } from './asset-io.js'
-import { stageAssetBundle, assetPreviewVersion, readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset } from './asset-bundle.js'
+import { stageAssetBundle, assetPreviewVersion, readGltfDocument, verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { fileSha256, fileSize, isFile, readJsonSafe, removeTree, resolveInside, writeJsonAtomic } from './paths.js'
 
 export const DIAGNOSTIC_VERSION = 'deepblend.diagnostic/v1'
@@ -151,7 +151,7 @@ export async function renderDiagnostic(host, request) {
       if (typeof asset.path !== 'string' || !asset.path.startsWith('assets/')) {
         refuse('Inspection requires project-local assets under assets/.', BlenderErrorCode.ASSET_REQUEST_INVALID)
       }
-      if (!['gltf', 'glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr', 'stl', 'ply'].includes(asset.type)) {
+      if (!['gltf', 'glb', 'obj', 'png', 'jpg', 'jpeg', 'hdr', 'exr', 'stl', 'ply'].includes(asset.type)) {
         refuse(`Inspection cannot isolate dependencies of ${asset.type} assets. Use a self-contained GLB or the existing checkpoint preview.`, BlenderErrorCode.UNSUPPORTED_ACTION)
       }
       if (!/^[a-f0-9]{64}$/.test(asset.sha256 ?? '')) refuse(`Asset ${asset.id} has no exact SHA-256.`, BlenderErrorCode.ASSET_HASH_MISMATCH)
@@ -176,9 +176,10 @@ export async function renderDiagnostic(host, request) {
       verifyAssetBundle(compileRoot, asset)
       // Aliases can share bytes while declaring different types. Copying once
       // must not let an earlier image alias bypass a later GLB dependency check.
-      if (['gltf', 'glb'].includes(asset.type)) {
+      if (['gltf', 'glb', 'obj'].includes(asset.type)) {
         verifyUnbundledGltfAsset(compileRoot, asset)
-        const { document } = readGltfDocument(staged, { format: asset.type, signal })
+        verifyUnbundledObjAsset(compileRoot, asset)
+        const { document } = asset.type === 'obj' ? { document: {} } : readGltfDocument(staged, { format: asset.type, signal })
         if (document.cameras?.length || document.extensions?.KHR_lights_punctual?.lights?.length) refuse('Inspection requires model-only glTF/GLB assets, without embedded cameras or lights.', BlenderErrorCode.UNSUPPORTED_ACTION)
       }
       sourceAssets.push({ id: asset.id, path: asset.path, sha256: copied.sha256, bytes: copied.bytes })

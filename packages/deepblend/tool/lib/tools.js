@@ -954,7 +954,7 @@ function assetIngest(ctx) {
       'type "asset-instance" with that assetId — those two steps are what put it in the scene, and ' +
       'blender_scene_validate will tell you if the format cannot be imported by this Blender build. ' +
       '\n\nSupported formats: glb, gltf, fbx, obj, usd, blend, png, jpg, jpeg, hdr, exr. The size ceiling is the deployment\'s ' +
-      'assetMaxBytes (SPEC §15). Local glTF/GLB includes relative buffers and images; sourceRoot selects their containing directory. Remote external glTF/GLB dependencies are refused.',
+      'assetMaxBytes (SPEC §15). Local glTF/GLB includes buffers/images; OBJ includes MTL files and referenced textures. sourceRoot selects their containing directory. Remote external dependencies are refused.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project to bring the asset into.' },
       sourcePath: {
@@ -962,7 +962,7 @@ function assetIngest(ctx) {
         description: 'Absolute path to a local file. No approval needed. Use this whenever the file is ' +
           'already on the machine — it is faster and it does not leave the machine.',
       },
-      sourceRoot: { type: 'string', description: 'Optional local glTF/GLB resource root containing the model and all relative buffer/image files. Defaults to its directory; files outside this root are refused.' },
+      sourceRoot: { type: 'string', description: 'Optional local glTF/GLB/OBJ resource root containing the model and all relative buffer, material and image files. Defaults to its directory; files outside this root are refused.' },
       sourceUrl: {
         type: 'string',
         description: 'An http or https URL. Requires the operator\'s approval, which this tool asks for ' +

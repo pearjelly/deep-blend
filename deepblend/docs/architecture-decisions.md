@@ -4,6 +4,16 @@
 > 原则：每条决策都由**运行时实测或真实缺陷**驱动，而不是由偏好驱动。
 > 强制的决策要写明「不这样做会发生什么」，因为被删掉的理由才是最难复原的信息。
 
+## D211 — OBJ 保真必须覆盖材质文件及其图片
+
+**触发事实**：在 `cea1437` 上使用独立创作的 OBJ、MTL 和 PNG，真实 Blender 原生导入有一个三角形、UV、材质和一张贴图。通用摄取只保存 OBJ，原生重开副本的几何保持，但贴图数量从 1 变为 0。探针在 `.deepblend/quality/glb-bundle-r32/obj-probe/`。
+
+**决策**：保持模型、材质与图片的原字节和相对目录，资源变化产生新快照；独立 Node/Python 复核，贯通素材库与固定检查图。Blender 会读取显式 `mtllib` 以及实际存在的同名 `.mtl`，纹理相对于材质文件解析。规则参考固定构建 `9e2066aef7ef` 的[OBJ 读取器](https://raw.githubusercontent.com/blender/blender/9e2066aef7ef/source/blender/io/wavefront_obj/importer/obj_import_file_reader.cc)和[纹理加载入口](https://raw.githubusercontent.com/blender/blender/9e2066aef7ef/source/blender/io/wavefront_obj/importer/obj_import_mtl.cc)，以实际导入产物核对。显式与同名 MTL 两种配置均以独立原生导入和保存产物核对。
+
+**保存问题与修复**：依赖复制修复后，第一轮真实检查发现 OBJ 已使用的图片未被嵌入，保存后重开图片尺寸变成 0。编译现遍历导入对象的材质图片并嵌入，保留原节点与色彩解释；无法解码或超过已声明尺寸预算的图片明确拒绝。仅完整字节锁不能证明图片可用。
+
+**验证边界**：五种真实原生模型配置通过 169 项，OBJ 两配置各 35 项；真实浏览器通过 65 项，含同主摘要 OBJ 两版与隐式材质的检查、应用、旧对象保持和刷新。契约、反例、完整验收与阶段 CI 以当前源码和冻结提交回执确认。这些结果证明资源保真，不代表作品美术认可、所有 OBJ 方言或其他格式依赖兼容。
+
 ## D210 — GLB 容器不能代替资源闭包与版本身份
 
 **触发事实**：通用 Host 接受带外部 `triangle.bin` 的 GLB，原文件在真实 Blender 中导入一个三角形，存储副本却因缺少资源导入失败。网页上传已有自包含约束，但通用导入和旧素材编译未执行同等依赖检查。

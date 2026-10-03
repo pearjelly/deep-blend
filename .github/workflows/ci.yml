@@ -175,7 +175,7 @@ jobs:
         env:
           DEEPBLEND_RUNTIME_CONFORMANCE_OUTPUT: ${{ runner.temp }}/deepblend-ci/runtime-conformance
         run: xvfb-run -a node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/runtime-conformance.log" 2>&1
-      - name: Real glTF resource bundles and old revision rebuild
+      - name: Real glTF/GLB/OBJ resource bundles and old revision rebuild
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5
         env:

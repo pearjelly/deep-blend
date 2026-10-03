@@ -1,10 +1,11 @@
-/** Immutable glTF resource snapshots. File URIs are resolved only inside a supplied local root. */
+/** Immutable model resource snapshots. File URIs are resolved only inside a supplied local root. */
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, closeSync, existsSync, openSync, readSync, fstatSync, linkSync, mkdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, relative, resolve, sep } from 'node:path';
 import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts';
 import { streamAsset } from './asset-io.js';
 import { fileSha256, removeTree, resolveInside } from './paths.js';
+import { objLibraries, mtlImages } from './obj-resources.js';
 export const BUNDLE_LOCK = '.deepblend-lock.json';
 export const BUNDLE_LIMITS = Object.freeze({ files: 256, lockBytes: 1024 * 1024, jsonBytes: 16 * 1024 * 1024, chunks: 1024 });
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -103,6 +104,35 @@ function readBounded(file, limit) {
     }
 }
 function parseJson(bytes) { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+function objReference(entrypoint, name) {
+    if (!name || name.startsWith('/') || name.includes('\\') || /^[a-z][a-z0-9+.-]*:/i.test(name))
+        reject('OBJ resources require portable relative file paths. No dependency URLs are fetched.');
+    const path = bundlePath(posix.normalize(posix.join(posix.dirname(entrypoint), name)));
+    if (path === BUNDLE_LOCK) reject('An OBJ resource collides with the reserved bundle lock.');
+    return path;
+}
+/** Includes Blender's same-basename MTL lookup as well as explicit libraries. */
+export function objResources(root, entrypoint, { mainFile, signal, missingCode = BlenderErrorCode.ASSET_MISSING, implicit = true } = {}) {
+    const main = mainFile ?? resolveInside(root, entrypoint, 'OBJ entrypoint');
+    const libraries = new Set(objLibraries(main, { signal }).map(name => objReference(entrypoint, name)));
+    const fallback = entrypoint.replace(/\.[^/.]+$/, '.mtl');
+    if (implicit && existsSync(resolveInside(root, fallback, 'OBJ implicit library'))) libraries.add(fallback);
+    const paths = new Set(libraries), folded = new Map([[entrypoint.toLowerCase(), entrypoint]]);
+    const check = path => {
+        const previous = folded.get(path.toLowerCase());
+        if (previous && previous !== path) reject('OBJ resource paths collide on case-insensitive filesystems.');
+        folded.set(path.toLowerCase(), path);
+        if (new Set([entrypoint, ...paths]).size > BUNDLE_LIMITS.files) reject('The OBJ bundle exceeds the resource file limit.', BlenderErrorCode.ASSET_TOO_LARGE);
+    };
+    for (const library of libraries) {
+        signal?.throwIfAborted(); check(library);
+        const file = resolveInside(root, library, 'OBJ material library');
+        if (!existsSync(file) || !statSync(file).isFile()) reject(`The OBJ material library ${library} is missing.`, missingCode);
+        for (const name of mtlImages(file, { signal })) { const path = objReference(library, name); paths.add(path); check(path); }
+    }
+    for (const path of paths) check(path);
+    return [...paths].sort();
+}
 /** Read only JSON and chunk headers. Large GLB binary payloads stay on disk. */
 export function readGltfDocument(file, { format = 'gltf', signal } = {}) {
     try {
@@ -195,7 +225,7 @@ export function verifyAssetBundle(projectRoot, asset) {
         reject('The asset bundle lock has an invalid shape or entrypoint.');
     bundlePath(manifest.entrypoint);
     const format = manifest.format ?? 'gltf';
-    if (!['gltf', 'glb'].includes(format) || (asset.type && asset.type !== format))
+    if (!['gltf', 'glb', 'obj'].includes(format) || (asset.type && asset.type !== format))
         reject('The asset bundle format does not match its declaration.');
     const members = new Map(), folded = new Set();
     let total = 0;
@@ -217,11 +247,19 @@ export function verifyAssetBundle(projectRoot, asset) {
     if (!Number.isSafeInteger(total) || total !== manifest.totalBytes || !members.has(manifest.entrypoint)
         || (asset.sha256 && asset.sha256 !== members.get(manifest.entrypoint).sha256))
         reject('The asset bundle identity does not agree with its declaration.', BlenderErrorCode.ASSET_HASH_MISMATCH);
-    const content = readGltfDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint'), { format });
-    for (const path of gltfResources(content.document, manifest.entrypoint, content.binBytes))
+    const content = format === 'obj' ? null : readGltfDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint'), { format });
+    const resources = format === 'obj' ? objResources(root, manifest.entrypoint) : gltfResources(content.document, manifest.entrypoint, content.binBytes);
+    for (const path of resources)
         if (!members.has(path))
             reject(`The glTF resource ${path} is not locked.`);
     return manifest;
+}
+export function verifyUnbundledObjAsset(projectRoot, asset) {
+    if (asset.type !== 'obj' || /^assets\/bundles\/[a-f0-9]{64}\//.test(asset.path ?? '')) return;
+    const file = resolveInside(projectRoot, asset.path, 'OBJ asset');
+    const fallback = asset.path.replace(/\.[^/.]+$/, '.mtl');
+    if (objLibraries(file).length || existsSync(resolveInside(projectRoot, fallback, 'OBJ implicit library')))
+        reject('This OBJ has unlocked material resources. Reimport the complete local source with a containing sourceRoot.');
 }
 /** Legacy files can rebuild only when the main file contains all core resources. */
 export function verifyUnbundledGltfAsset(projectRoot, asset) {
@@ -257,11 +295,11 @@ export async function stageAssetBundle(projectRoot, directory, asset, { maxBytes
     verifyAssetBundle(directory, asset);
     return true;
 }
-export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal, type = 'gltf' }) {
+export async function prepareModelBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal, type = 'gltf' }) {
     if (sourceRoot !== undefined && (!local || typeof sourceRoot !== 'string' || !sourceRoot))
-        reject('sourceRoot requires a local glTF source directory.');
+        reject('sourceRoot requires a local model source directory.');
     const sourceBase = resolve(sourceRoot ?? dirname(sourcePath)), entrypoint = bundlePath(local ? relative(sourceBase, resolve(sourcePath)).split(sep).join('/') : name);
-    resolveInside(sourceBase, sourcePath, 'glTF source');
+    resolveInside(sourceBase, sourcePath, 'model source');
     const parent = resolveInside(projectRoot, 'assets/bundles', 'asset bundle directory');
     mkdirSync(parent, { recursive: true });
     const staging = join(parent, `.incoming-${randomUUID()}`);
@@ -271,22 +309,31 @@ export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceR
         let totalBytes = 0;
         const copy = async (path, sourceOverride) => {
             signal?.throwIfAborted();
-            const source = resolveInside(sourceBase, sourceOverride ?? path, 'glTF resource'), target = resolveInside(staging, path, 'staged glTF resource');
+            const source = resolveInside(sourceBase, sourceOverride ?? path, 'model resource'), target = resolveInside(staging, path, 'staged model resource');
             if (!existsSync(source) || !statSync(source).isFile())
-                reject(`The local glTF resource ${path} is missing.`, BlenderErrorCode.ASSET_SOURCE_NOT_FOUND);
+                reject(`The local model resource ${path} is missing.`, BlenderErrorCode.ASSET_SOURCE_NOT_FOUND);
             mkdirSync(dirname(target), { recursive: true });
             const result = await streamAsset(createReadStream(source), target, { maxBytes: maxBytes - totalBytes, signal, label: path });
             totalBytes += result.bytes;
             files.push({ path, ...result });
         };
         await copy(entrypoint, local ? undefined : sourcePath);
-        const content = readGltfDocument(join(staging, entrypoint), { format: type, signal });
-        const resources = gltfResources(content.document, entrypoint, content.binBytes);
+        const content = type === 'obj' ? null : readGltfDocument(join(staging, entrypoint), { format: type, signal });
+        if (type === 'obj' && !local && objLibraries(join(staging, entrypoint), { signal }).length)
+            reject('Remote OBJ material dependencies are not fetched. Import a complete local resource directory.');
+        const resources = type === 'obj'
+            ? objResources(sourceBase, entrypoint, { mainFile: join(staging, entrypoint), signal, implicit: local, missingCode: BlenderErrorCode.ASSET_SOURCE_NOT_FOUND })
+            : gltfResources(content.document, entrypoint, content.binBytes);
         if (!local && resources.length)
             reject('Remote glTF dependencies are not fetched. Import a local resource directory or a self-contained file.');
         for (const path of resources)
             if (path !== entrypoint)
                 await copy(path);
+        if (type === 'obj') {
+            const copied = new Set(files.map(file => file.path));
+            for (const path of objResources(staging, entrypoint, { signal }))
+                if (!copied.has(path)) reject('An OBJ material reference changed during import.', BlenderErrorCode.ASSET_HASH_MISMATCH);
+        }
         if (type === 'glb' && resources.length === 0) {
             const main = files[0], relativePath = `assets/raw/${main.sha256}.glb`;
             return { staging, relativePath, sourceRoot: local ? sourceBase : null, bytes: main.bytes, sha256: main.sha256, bundle: null, publish() {
@@ -305,9 +352,9 @@ export async function prepareGltfBundle({ projectRoot, sourcePath, name, sourceR
                 } };
         }
         files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-        const manifest = { schemaVersion: 'deepblend.asset-bundle/v1', ...(type === 'glb' ? { format: 'glb' } : {}), entrypoint, files, totalBytes }, lockBytes = Buffer.from(JSON.stringify(manifest) + '\n');
+        const manifest = { schemaVersion: 'deepblend.asset-bundle/v1', ...(type !== 'gltf' ? { format: type } : {}), entrypoint, files, totalBytes }, lockBytes = Buffer.from(JSON.stringify(manifest) + '\n');
         if (totalBytes + lockBytes.length > maxBytes)
-            reject('The glTF bundle and lock exceed assetMaxBytes.', BlenderErrorCode.ASSET_TOO_LARGE);
+            reject('The model bundle and lock exceed assetMaxBytes.', BlenderErrorCode.ASSET_TOO_LARGE);
         if (lockBytes.length > BUNDLE_LIMITS.lockBytes)
             reject('The asset bundle lock exceeds its byte limit.', BlenderErrorCode.ASSET_TOO_LARGE);
         writeFileSync(join(staging, BUNDLE_LOCK), lockBytes, { flag: 'wx' });
