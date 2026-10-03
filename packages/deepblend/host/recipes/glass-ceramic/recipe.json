@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.glass-ceramic",
+  "version": "1.0.0",
+  "title": "玻璃空瓶与青釉托盘",
+  "description": "带厚底、内壁和圆润瓶肩的透明空瓶，搭配独立瓶盖与有脚圈的青釉托盘。只调整青釉颜色、粗糙度和摄影曝光，玻璃厚壁保持不变。",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend",
+    "note": "Original glass-ceramic product benchmark. The bundled SceneSpec and rendered preview are pinned by their raw content hashes; source URL is attribution, not an installation endpoint."
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "animation.transform",
+      "geometry.lathe",
+      "geometry.primitive",
+      "material.glass",
+      "material.principled",
+      "material.procedural"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "c9c6d7b6aaecfef62db28d862d632df4b591448f05dcad6b58b39cc66b97fac9"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "fecf9682091b4878fdbe72632d7d2600f9f7fba8d718849195e8094f36093c8b",
+    "mediaType": "image/png",
+    "alt": "玻璃空瓶与青釉托盘默认参数的实际Blender渲染"
+  },
+  "parameters": [
+    {
+      "id": "main-color",
+      "title": "陶瓷釉色",
+      "description": "同步调整陶瓷托盘和瓶盖饰片的釉色。",
+      "type": "color",
+      "default": [
+        0.18,
+        0.3,
+        0.265
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "celadon-glaze",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "主表面粗糙度",
+      "description": "调整陶瓷釉面的光泽；数值越小，表面越亮。",
+      "type": "number",
+      "default": 0.2,
+      "minimum": 0.12,
+      "maximum": 0.42,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "celadon-glaze",
+          "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "exposure",
+      "title": "摄影曝光",
+      "description": "调整整体画面的明暗，预览和成品同步生效。",
+      "type": "number",
+      "default": 0,
+      "minimum": -1,
+      "maximum": 1,
+      "bindings": [
+        {
+          "kind": "render-profile",
+          "profile": "preview",
+          "property": "exposure"
+        },
+        {
+          "kind": "render-profile",
+          "profile": "final",
+          "property": "exposure"
+        }
+      ]
+    }
+  ]
+}

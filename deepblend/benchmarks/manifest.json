@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "deepblend.quality-benchmarks/v1",
+  "version": 1,
+  "license": "MIT",
+  "referencePolicy": "Original design briefs, not external photographic ground truth. The baseline is a deliberately simplified ablation, not a historical plugin output.",
+  "tiers": {
+    "draft": { "resolution": [384, 288], "samples": 16, "profile": "preview", "baseline": false, "clay": false, "motion": false, "maxCaseSeconds": 300 },
+    "review": { "resolution": [768, 576], "samples": 64, "profile": "preview", "baseline": true, "clay": true, "motion": false, "maxCaseSeconds": 900 },
+    "final": { "resolution": [1024, 768], "samples": 128, "profile": "final", "baseline": true, "clay": true, "motion": true, "maxCaseSeconds": 1800 }
+  },
+  "motion": { "cameraId": "hero", "frameStart": 1, "frameEnd": 48, "fps": 24, "resolution": [384, 288], "samples": 24 },
+  "views": [
+    { "id": "hero", "cameraId": "hero", "frame": 1 },
+    { "id": "detail", "cameraId": "detail", "frame": 1 },
+    { "id": "reverse", "cameraId": "reverse", "frame": 1 },
+    { "id": "motion-mid", "cameraId": "hero", "frame": 24 },
+    { "id": "motion-end", "cameraId": "hero", "frame": 48 }
+  ],
+  "cases": [
+    { "id": "metal-lamp", "title": "Metal task lamp", "category": "metal", "maxPolygons": 150000 },
+    { "id": "glass-ceramic", "title": "Glass vessel and ceramic tray", "category": "glass-ceramic", "maxPolygons": 150000 },
+    { "id": "modular-speaker", "title": "Modular desktop speaker", "category": "assembly", "motionCameraId": "motion-detail", "maxPolygons": 150000 }
+  ]
+}

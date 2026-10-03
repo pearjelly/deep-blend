@@ -242,7 +242,8 @@ export class BrowserPage {
   /**
    * Click the first element matching a selector, the way a user's pointer would.
    *
-   * The mouse events go to the element's own centre. When something else is on
+   * Scroll the element into view before checking its centre, as a person can
+   * reach controls below a long form. The mouse events go to that centre. When something else is on
    * top of that point — a modal backdrop, the shell's expanded-sidebar mask — the
    * point belongs to the overlay and a synthetic press there would be testing the
    * overlay instead. In that case the element's own `click()` is dispatched, and
@@ -257,6 +258,7 @@ export class BrowserPage {
     const target = await this.evaluate(`(() => {
       const el = document.querySelector(${JSON.stringify(selector)})
       if (!el) return null
+      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' })
       const rect = el.getBoundingClientRect()
       const x = rect.x + rect.width / 2
       const y = rect.y + rect.height / 2
@@ -347,8 +349,8 @@ export class Browser {
   static async launch(options = {}) {
     const chromePath = options.chromePath ?? process.env.DEEPBLEND_CHROME ?? DEFAULT_CHROME
     const headless = options.headless !== false
-    const userDataDir = mkdtempSync(join(tmpdir(), 'deepblend-chrome-'))
     const port = await freePort()
+    const userDataDir = mkdtempSync(join(tmpdir(), 'deepblend-chrome-'))
     const args = [
       ...(headless ? ['--headless=new'] : []),
       '--disable-gpu',
@@ -363,21 +365,37 @@ export class Browser {
     ]
     const child = spawn(chromePath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const browser = new Browser(child, port, userDataDir)
+    let stderr = '', spawnError = null
+    child.stdout.resume()
+    child.stderr.on('data', bytes => { stderr = (stderr + bytes.toString()).slice(-32768) })
+    child.on('error', error => { spawnError = error })
     const deadline = Date.now() + LAUNCH_TIMEOUT_MS
-    for (;;) {
-      try {
-        const response = await fetch(`http://127.0.0.1:${port}/json/version`)
-        if (response.ok) break
-      } catch {
-        // not up yet
+    try {
+      for (;;) {
+        if (spawnError || child.exitCode !== null || child.signalCode !== null || Date.now() > deadline) {
+          const reason = spawnError?.message ?? (child.exitCode !== null || child.signalCode !== null
+            ? `Chrome exited early (code ${child.exitCode}, signal ${child.signalCode})`
+            : `Chrome did not expose a debugging endpoint within ${LAUNCH_TIMEOUT_MS}ms`)
+          const error = new Error(`${reason}; executable ${chromePath}; port ${port}.\n${stderr}`)
+          error.launch = { chromePath, port, userDataDir, exitCode: child.exitCode, signal: child.signalCode, stderr }
+          throw error
+        }
+        try {
+          const response = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(500) })
+          if (response.ok) break
+        } catch {
+          // not up yet
+        }
+        await sleep(100)
       }
-      if (Date.now() > deadline) {
-        child.kill('SIGKILL')
-        throw new Error(`Chrome did not expose a debugging endpoint on port ${port} within ${LAUNCH_TIMEOUT_MS}ms`)
-      }
-      await sleep(100)
+      browser.launchFacts = { chromePath, port, get stderr() { return stderr } }
+      return browser
+    } catch (error) {
+      child.kill('SIGKILL')
+      await sleep(200)
+      rmSync(userDataDir, { recursive: true, force: true })
+      throw error
     }
-    return browser
   }
 
   /**

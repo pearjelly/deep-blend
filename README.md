@@ -9,6 +9,18 @@
 
 ---
 
+Start from one of four [product recipes](deepblend/docs/recipes.md) in the workbench, adjust color,
+roughness and exposure, then create a project with a rendered preview. `blender_recipe_list` exposes
+the same catalog to agents. Each project retains its recipe version, license, source hashes and
+parameter values. Metal materials now support explicit anisotropic reflection directions.
+The [handled cup generator](deepblend/docs/modeling.md#连为一体的带把手杯体) builds a cup and handle in one closed mesh, with editable wall thickness and attachment roots.
+After creation, the [object editor](deepblend/docs/usage.md#41-调整已有对象) lets you adjust profiles,
+bevels, arrays and local materials, render the change, and restore the previous scene with a revision guard.
+Save up to four [reference images](deepblend/docs/reference-images.md) with a revision's design goal.
+Reviews use those exact project assets and distinguish technical measurements from evidenced artistic judgments.
+Use the [asset library](deepblend/docs/assets.md) to upload and preview local GLB, PNG/JPEG and HDR/EXR
+files, then insert a model, bind a texture or set environment lighting. Model imports preserve source materials.
+
 ## Install
 
 ```sh
@@ -23,7 +35,7 @@ One command installs both planes:
 | Plane | What arrives |
 |---|---|
 | **Host composition** | the Blender runtime provider, the project/revision store, and the workbench's host half |
-| **Agent preset** | **DeepBlend Studio** and **DeepBlend dev mode**, deployed into `<DSH_HOME>/.agent-presets/` — the 16 model-visible tools belong to a preset, not to the host, so a session only sees them when it runs on one |
+| **Agent preset** | **DeepBlend Studio** and **DeepBlend dev mode**, deployed into `<DSH_HOME>/.agent-presets/` — the 17 model-visible tools belong to a preset, not to the host, so a session only sees them when it runs on one |
 
 > The `#path:` form is quoted because `#` starts a comment in a shell. Requires **pnpm** on
 > `PATH` (`dsh plugin` forwards to it) and a repository it can reach: pnpm resolves the
@@ -52,9 +64,9 @@ Workbench — project header, current revision, and the scene tree the host comp
 ![Blender workbench: project name, current revision r0003, six view tabs, and six scene cards for entities, materials, lights, cameras, shots and animation tracks](deepblend/docs/images/workbench-scene.png)
 
 Preview comparison — one preview renders seven views into a contact sheet; change a material,
-render again, and the two sheets sit side by side with their own digests and render times:
+render again, and the two sheets sit side by side as actual r0002/r0003 revision images with their own digests and render times. The capture manifest records both source-scene and displayed-image hashes:
 
-![Preview comparison: two contact sheets side by side, the left labelled previous render and the right current render, each with its own digest and timestamp](deepblend/docs/images/preview-compare.png)
+![Preview comparison: two contact sheets side by side, r0002 before the material edit on the left and r0003 after it on the right, each with its own digest and timestamp](deepblend/docs/images/preview-compare.png)
 
 The render itself — seven views (the active camera sampled at four animation frames, plus
 three-quarter, top and detail) composited into one sheet:
@@ -63,9 +75,29 @@ three-quarter, top and detail) composited into one sheet:
 
 ---
 
+## Rebuildable product examples
+
+The [quality benchmarks](deepblend/docs/quality-benchmarks.md) include a metal lamp,
+a hollow glass vessel with a ceramic tray, and a detailed desktop speaker. Each has an
+original design brief, public SceneSpec, geometry checks, fixed camera and render budgets,
+clay views, a deliberately simplified ablation, and a real frame sequence.
+
+| Metal lamp | Glass and ceramic | Desktop speaker |
+|---|---|---|
+| ![Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Cycles render of a hollow glass bottle and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) | ![Cycles render of a detailed desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) |
+
+These are unedited Blender renders; [preview provenance](deepblend/benchmarks/previews/manifest.json) records their inputs and artifact hashes.
+
+After setting up the development environment and Blender, run `npm run quality:check`, then
+`npm run quality:render -- --tier final`. Results stay local and include an interactive gallery,
+source snapshots, timings and independently verified artifacts. The ablation is not a historical
+plugin output; technical success still requires a separate artistic review.
+
+---
+
 ## What you get
 
-**16 model-visible tools** across four jobs — inspecting a scene, changing it, judging a
+**17 model-visible tools** across four jobs — inspecting a scene, changing it, judging a
 render, and delivering a video:
 
 * **Scene** — create a project, read it, read and patch the scene, validate it
@@ -92,11 +124,11 @@ completed all 60 and encoded a 1920×1080 `output/final.mp4`.
 **An approval gate on cost.** Anything above a configured frame count does not render a
 single frame without an explicit approval, and the prompt names the revision it will write.
 
-**A score the model cannot write.** The visual score is computed by the host from rendered
-pixels. The model's own findings are recorded separately, every one of them checked against
-the views that actually exist and the closed set of issue categories. A fix is adopted only
-if the score really improved; otherwise the pointer is rolled back and the revision stays in
-history.
+**Separate technical and artistic review.** The host computes technical measurements from
+rendered pixels. Artistic findings must name their source views and design goals. An artistic
+improvement can be accepted when technical checks remain valid and the required visual evidence
+supports it; a higher technical score alone does not establish a better-looking result.
+Rejected candidates stay in revision history. See [artistic review](deepblend/docs/artistic-review.md).
 
 ---
 
@@ -108,9 +140,15 @@ The repository's own documents are in Chinese, and they are the detailed ones:
 |---|---|
 | **Install it** — from a clone to "DeepBlend Studio appears in a new session", four steps each with `--check`, and what each step does *not* verify | [`deepblend/docs/install.md`](deepblend/docs/install.md) |
 | **Use it** — what a session looks like, what each tool is for, the cost model, the six workbench tabs, one worked example | [`deepblend/docs/usage.md`](deepblend/docs/usage.md) |
+| **Review against references** — upload, save a versioned brief, inspect reference evidence and run bounded corrections | [`deepblend/docs/reference-images.md`](deepblend/docs/reference-images.md) |
+| **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
+| **Inspect rough results** — fixed camera/frame material and clay images, with a creation guide | [`deepblend/docs/inspection.md`](deepblend/docs/inspection.md) |
+| **Extend the plugin** — public JavaScript and TypeScript SDK, recipe directory validation reports, versioned schemas and runtime lifecycle | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
+| **Run independent trials** — own-asset creation, author submissions, reuse and public-interface adoption, with blank evidence records | [`deepblend/docs/human-validation.md`](deepblend/docs/human-validation.md) |
 | **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
 | **The specification** — `SPEC.md` is the master specification; the repository is its implementation | [`SPEC.md`](SPEC.md) |
 | **Per-milestone conclusions, evidence and known gaps** | [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md) |
+| **Current quality and ecosystem improvements** — scope, measured progress and remaining work | [`deepblend/docs/improvement-plan.md`](deepblend/docs/improvement-plan.md) |
 
 [`README.zh.md`](README.zh.md) is the Chinese README, and it carries the measured counts —
 suite and file numbers, assertion totals, and the commands that produce them.
@@ -167,8 +205,11 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 18 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 30 suites; README.zh.md states the expected numbers
 ```
+
+CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.
+See [CI coverage and artifacts](deepblend/docs/ci.md) for the exact scope.
 
 Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and
 gaps live in [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md). That

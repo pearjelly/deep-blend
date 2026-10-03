@@ -5,7 +5,7 @@
  *
  * WHAT THIS SUITE UNIQUELY PROVES
  * -------------------------------
- *  1. The catalog is EXACTLY the sixteen tools that exist. Each milestone's suite
+ *  1. The catalog is EXACTLY the seventeen tools that exist. Each milestone's suite
  *     asserted the exact total while it was current; this one owns the total now. The
  *     only other list of the same size is the package's `UI_TOOL_CARD_KEYS`, and
  *     `ui-plane.e2e.mjs` compares that against this same runtime — so the two cannot
@@ -202,6 +202,7 @@ const EXPECTED = [
   'blender_preview_views',
   'blender_project_create',
   'blender_project_get',
+  'blender_recipe_list',
   'blender_revision_restore',
   'blender_scene_get',
   'blender_scene_patch',
@@ -209,7 +210,7 @@ const EXPECTED = [
   'blender_visual_autofix',
   'blender_visual_review',
 ]
-check('the preset plane registers exactly the sixteen tools that exist',
+check('the preset plane registers exactly the seventeen tools that exist',
   JSON.stringify(names) === JSON.stringify(EXPECTED), names)
 check('every tool SPEC §11 names is registered, so that inventory is complete',
   SPEC_11_TOOLS.every(name => names.includes(name)),
@@ -466,17 +467,17 @@ check('resuming a COMPLETED job is refused with a coded result pointing at blend
 // Revisions panel called it, so nothing failed and nothing noticed. A suite that
 // CALLS the tool is what makes that class of promise impossible to leave broken.
 
-// First the guard. SPEC §11 gives this tool "需确认" as its permission, and the
-// confirmation is the SCHEMA requirement rather than a branch inside `execute`: the
-// harness refuses a call that omits a required parameter before the tool runs, which
-// is both earlier and impossible to forget. Both halves are asserted, because
-// "declared required" and "actually refused" are different claims.
+// DSH rejects a missing confirmation; the tool also refuses explicit false.
+// A required boolean alone does not establish the caller's confirmation.
 const restoreDefinition = root.get('tools').get('blender_revision_restore')
 check('blender_revision_restore declares confirm as a REQUIRED parameter',
   Array.isArray(restoreDefinition?.parameters?.required)
   && restoreDefinition.parameters.required.includes('confirm')
   && restoreDefinition.parameters.properties?.confirm?.type === 'boolean',
   restoreDefinition?.parameters?.required)
+check('restore exposes an optional current-revision condition for protecting intervening edits',
+  restoreDefinition.parameters.properties?.expectedCurrentRevision?.type === 'string'
+  && !restoreDefinition.parameters.required.includes('expectedCurrentRevision'))
 check('and its description says why the confirmation is required, not merely that it is',
   /Requires confirm:true/.test(restoreDefinition.description)
   && /re-read with blender_scene_get/.test(restoreDefinition.description))
@@ -501,6 +502,24 @@ check('a second revision exists for the restore to return to',
   patched.value?.ok === true ? patched.value.data.revision : (patched.value?.data ?? patched.error))
 const secondRevision = patched.value?.data?.revision
 
+const declined = await call('blender_revision_restore', { projectId, revision, confirm: false })
+check('an explicit false confirmation is a coded refusal',
+  declined.isError === false && declined.value?.ok === false
+  && declined.value.data.errorCode === 'REVISION_RESTORE_CONFIRMATION_REQUIRED', declined.value?.data ?? declined.error)
+const afterDecline = await call('blender_project_get', { projectId })
+check('false confirmation leaves the actual current revision unchanged',
+  afterDecline.value?.data?.currentRevision === secondRevision, afterDecline.value?.data?.currentRevision)
+
+const staleRestore = await call('blender_revision_restore', {
+  projectId, revision, expectedCurrentRevision: revision, confirm: true,
+})
+check('a stale current-revision condition is refused through the real tool and Host',
+  staleRestore.value?.ok === false && staleRestore.value.data.errorCode === 'REVISION_CONFLICT',
+  staleRestore.value?.data ?? staleRestore.error)
+const afterStaleRestore = await call('blender_project_get', { projectId })
+check('a stale conditional restore leaves the actual current revision unchanged',
+  afterStaleRestore.value?.data?.currentRevision === secondRevision, afterStaleRestore.value?.data?.currentRevision)
+
 // Restoring to the revision that is already current is a SUCCESS reporting no
 // change, not an error — the rule the job surface already follows for a job that is
 // already finished (D54).
@@ -511,7 +530,7 @@ check('restoring to the current revision succeeds and says nothing moved',
 check('and it does not claim a from/to transition that did not happen',
   alreadyThere.value.data.from === undefined && !/Moved/.test(alreadyThere.value.text))
 
-const restored = await call('blender_revision_restore', { projectId, revision, confirm: true })
+const restored = await call('blender_revision_restore', { projectId, revision, expectedCurrentRevision: secondRevision, confirm: true })
 check('a confirmed restore moves the project back',
   restored.value?.ok === true && restored.value.data.restored === true
   && restored.value.data.revision === revision,

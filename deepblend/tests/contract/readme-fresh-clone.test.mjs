@@ -45,11 +45,20 @@ test('the fresh-clone output the README quotes is what a fresh clone prints',
     ], { cwd: ROOT, encoding: 'utf8', timeout: 300_000 })
     assert.equal(copied.status, 0, `copying the tree failed: ${copied.stderr}`)
     assert.ok(!existsSync(join(scratch, 'node_modules')), 'the copy must have no linked modules')
+    assert.ok(!existsSync(join(scratch, '.tools')), 'the copy must have no managed tools')
 
     const probe = spawnSync(process.execPath, [join(scratch, 'deepblend', 'tests', 'run.mjs')], {
-      cwd: scratch, encoding: 'utf8', timeout: 600_000,
-      env: { ...process.env, DEEPBLEND_FRESH_CLONE_CASE: '1' },
+      cwd: scratch, encoding: 'utf8', timeout: 600_000, maxBuffer: 8 * 1024 * 1024,
+      // An explicit missing SDK root prevents fallback to the parent's SDK or DSH tools.
+      // Keep the DSH environment used by the existing source-only contracts.
+      env: {
+        ...process.env,
+        DEEPBLEND_FRESH_CLONE_CASE: '1',
+        DEEPBLEND_SDK_TOOLCHAIN_ROOT: join(scratch, '.tools/sdk'),
+      },
     })
+    assert.equal(probe.error, undefined, `the fresh-clone probe failed: ${probe.error?.message}`)
+    assert.ok(!existsSync(join(scratch, '.tools/sdk')), 'the probe must not install SDK tools')
     const output = `${probe.stdout ?? ''}${probe.stderr ?? ''}`
     const actual = /DeepBlend tests: (\d+)\/(\d+) file\(s\) passed/.exec(output)
     assert.ok(actual !== null, `the fresh clone printed no summary line:\n${output.slice(-500)}`)

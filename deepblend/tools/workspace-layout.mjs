@@ -117,7 +117,7 @@ export function localPackages() {
  * belong to the deployment and the ones this workspace publishes itself.
  *
  * @param {Map<string, string>} local - from {@link localPackages}
- * @returns {{ external: string[], internal: string[], declarations: Map<string, string> }}
+ * @returns {{ external: string[], internal: string[], registry: string[], declarations: Map<string, string> }}
  *   `declarations` maps each specifier to the first source file that asks for it,
  *   so a failure can name the file that has to change.
  */
@@ -126,16 +126,21 @@ export function requiredSpecifiers(local) {
   const declarations = new Map()
   const external = new Set()
   const internal = new Set()
+  const registry = new Set()
+  // Ordinary runtime libraries are explicitly declared by their consuming
+  // package. They are not DSH plugins and are never discovered by name alone.
+  const declaredRegistry = new Set([...local.values()].flatMap(directory =>
+    Object.keys(JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')).dependencies ?? {})
+      .filter(name => !local.has(name) && !name.startsWith('@deepseek-ai/'))))
 
   for (const directory of SCANNED_DIRECTORIES) {
     for (const file of sourceFiles(join(ROOT, directory))) {
       for (const specifier of specifiersIn(readFileSync(file, 'utf8'))) {
-        if (!specifier.startsWith('@')) continue
         const [scope, name] = specifier.split('/')
-        if (name === undefined) continue
-        const packageName = `${scope}/${name}`
+        const packageName = specifier.startsWith('@') ? `${scope}/${name}` : scope
         if (local.has(packageName)) internal.add(packageName)
         else if (scope === '@deepseek-ai') external.add(packageName)
+        else if (declaredRegistry.has(packageName)) registry.add(packageName)
         else continue
         if (!declarations.has(packageName)) declarations.set(packageName, relative(ROOT, file))
       }
@@ -145,6 +150,7 @@ export function requiredSpecifiers(local) {
   return {
     external: [...external].sort(),
     internal: [...internal].sort(),
+    registry: [...registry].sort(),
     declarations,
   }
 }
@@ -184,10 +190,14 @@ export function requiredSpecifiers(local) {
  * @param {{ internal: string[], external: string[], local: Map<string, string>, scopes: string[] }} input
  * @returns {Array<{ specifier: string, target: string }>}
  */
-export function linkTargets({ internal, external, local, scopes }) {
+export function linkTargets({ internal, external, registry = [], local, scopes }) {
   return [
     ...internal.map(specifier => ({ specifier, target: local.get(specifier) })),
     ...external.map(specifier => ({ specifier, target: externalTarget(specifier, scopes) })),
+    ...registry.map(specifier => {
+      const requiredVersion = registryVersion(specifier, local)
+      return { specifier, requiredVersion, target: registryTarget(specifier, scopes, requiredVersion) }
+    }),
   ]
 }
 
@@ -201,8 +211,36 @@ export function externalTarget(specifier, scopes) {
 }
 
 export function linkPathFor(specifier) {
-  const [scope, name] = specifier.split('/')
-  return join(NODE_MODULES, scope, name)
+  return join(NODE_MODULES, specifier)
+}
+
+/** A declared npm library lives beside the deployment's @deepseek-ai scope. */
+export function registryTarget(specifier, scopes, requiredVersion) {
+  // The workspace's existing link is not evidence that a different deployment
+  // has the required version, and must never become the link's own target.
+  const candidates = scopes.filter(scope => dirname(scope) !== NODE_MODULES)
+  let firstExisting
+  for (const scope of candidates) {
+    const target = join(dirname(scope), specifier)
+    if (!existsSync(join(target, 'package.json'))) continue
+    firstExisting ??= target
+    const manifest = JSON.parse(readFileSync(join(target, 'package.json'), 'utf8'))
+    if (requiredVersion === undefined || manifest.version === requiredVersion) return target
+  }
+  return firstExisting ?? join(dirname(candidates[0] ?? scopes[0]), specifier)
+}
+
+/** Ordinary runtime libraries use the same exact pin in every consumer. */
+export function registryVersion(specifier, local) {
+  const versions = new Set([...local.values()].flatMap(directory => {
+    const version = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')).dependencies?.[specifier]
+    return version === undefined ? [] : [version]
+  }))
+  const [version] = versions
+  if (versions.size !== 1 || !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version)) {
+    throw new Error(`${specifier}: ordinary workspace dependencies require one shared exact version; found ${[...versions].join(', ')}`)
+  }
+  return version
 }
 
 /**

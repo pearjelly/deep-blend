@@ -22,7 +22,7 @@ DSH 不在机器上时：
 
 ```bash
 npm install -g @deepseek-ai/dsh@0.1.5-rc.2 \
-  @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2
+  @deepseek-ai/dsh-subprocess-local@0.1.5-rc.2 @deepseek-ai/dsh-attachment-local@0.1.5-rc.2 sharp@0.35.5
 dsh web                # 首次运行会创建 profile；装完之后再重启一次它
 ```
 
@@ -31,6 +31,8 @@ dsh web                # 首次运行会创建 profile；装完之后再重启�
 > 一次全局安装会把部署**拆成两处** ✓（实测：harness 自己的依赖嵌在包内 ✓，另外装的落在上一层 ✓），
 > `link-workspace.mjs` 两处都会找 ✓。少了它们，第 1 步会以「有包不在部署里」退出 2 ✓，
 > 并点名是哪个包、谁要它 ✓。
+> `sharp` 是参考图片解码库，由 Host 的 `dependencies` 显式声明；源码链接部署需要在同一部署安装它。
+> 开发者也可运行 `npm run dev:setup`，按已提交的清单与锁文件安装到仓库内 `.tools/dsh`。
 >
 > **为什么 profile 必须是 `dsh` 建的**：一个 profile 是它自己的一目录文件
 > （`cordis.yml`、`pnpm-workspace.yaml`、manifest），由 launcher 写入并组合。
@@ -79,7 +81,7 @@ npm run presets:install  # 4. 部署 agent preset 与它自带的 skill
 
 ```
 $ npm run setup:check
-result: the workspace resolves all 13 package(s) from the deployment
+result: the workspace resolves all 14 package(s) from the deployment
 
 $ npm run blender:check
 result: the pinned Blender 5.2.1 is installed
@@ -112,12 +114,25 @@ result: the installed presets match the repository
 
 ### `npm run setup` — 工作区依赖链接
 
-`node_modules/` **不在版本控制里**：它没有任何内容，只有 13 个指向**已安装的 DSH 部署**
+`node_modules/` **不在版本控制里**：它没有任何内容，只有 14 个指向**已安装的 DSH 部署**
 与本仓库 `packages/` 的绝对符号链接。要链接哪些包**不是写死的清单**，而是从源码里的
-真实 import 读出来的，所以新增一句 `import '@deepseek-ai/dsh-xxx'` 只需要重跑这条命令。
+真实 import 读出来的；普通 npm 库还必须由使用它的包显式声明依赖。当前链接包含参考图片解码库 `sharp@0.35.5`。
 
 它建完链接后会**逐个真的 `import()` 一遍**再报成功——符号链接存在不等于能解析，
 而那正是套件失败时的状态。
+
+#### 参考图片解码依赖
+
+Host 将 `sharp@0.35.5` 作为普通 npm 依赖发布。通过 Git 或 npm 安装 Host 时，包管理器负责安装
+`sharp` 及适合当前系统的 `@img/sharp-*`、libvips 可选依赖；请保留可选依赖安装。
+源码开发使用 `deepblend/development/runtime/package.json` 和锁文件里的相同精确版本，
+`npm run dev:setup` 安装后由工作区链接器连接。单独导入 Host 不加载原生图片库，实际上传或读取参考图时才加载。
+CI 也显式安装该版本，不依赖 DSH 的传递依赖碰巧提供它。连接外部部署时，若找不到声明的精确版本，
+`setup` 和 `setup:check` 会报告 `VERSION MISMATCH`（含所需版本、实际版本和路径）并退出 2，保持现有链接。
+参见 [sharp 安装说明](https://sharp.pixelplumbing.com/install/)。
+
+当前真实解码验证在 macOS arm64 上完成。Release tarball 会打包 Host 的传递依赖；它携带的原生库受构建平台影响，
+本轮尚未验证跨平台 tarball 安装，发布前需在目标平台检查参考图上传与读取，不能把源码测试通过视为跨平台成品验证。
 
 ### `npm run blender:install` — 受管 Blender
 
@@ -187,7 +202,8 @@ SPEC §17 把配置画成**分组**的（`finalRender.requireApprovalAboveFrames
 | `security.workspaceOnly` | —— | 不是开关：路径检查**总是**执行（`PATH_OUTSIDE_WORKSPACE`） |
 | `security.allowNetworkInBlender` / `allowArbitraryPython` / `allowAddonInstall` | —— | 不是开关：这三件事**从不**发生（`--factory-startup`，argv 数组，见 `security.md`） |
 | `security.assetMaxBytes` | `assetMaxBytes` | host row |
-| `security.textureMaxDimension` | —— | 未实现：场景里没有纹理通道（§7 #7） |
+| —— | `assetFetchTimeoutMs` | host row：远程素材下载超时，默认 120000 毫秒，范围 1–3600000 |
+| `security.textureMaxDimension` | —— | 尚非配置项：图片 PBR 在 Blender 解码后执行固定的 8192 单边上限，解码前预算未完成 |
 | `agent.maxVisualIterations` | `maxVisualIterations` | host row |
 | `agent.minVisualConfidenceForAutoFix` | `minVisualConfidenceForAutoFix` | host row |
 | `agent.stopOnRepeatedIssueCount` | `stopOnRepeatedIssueCount` | host row |
@@ -206,7 +222,7 @@ SPEC §17 把配置画成**分组**的（`finalRender.requireApprovalAboveFrames
 | 步骤 | 它不验证的 |
 |---|---|
 | `setup` | 只验证**能解析**，不验证那个部署能用。`blender:check` 与真实渲染才是 |
-| `blender:install` | `sha256` 是**第一次校验下载**时写进 pin 的。Blender 对 5.2.1 没有发布任何 checksum（`.dmg.sha256`、`release.sha256`、`SHA256SUMS` 全部 404），所以这个 pin 只能检测「那个 URL 上的东西变了」，**不能**让第一次下载变得可信 |
+| `blender:install` | 当前固定摘要与 [Blender 5.2.1 官方版本校验清单](https://download.blender.org/release/Blender5.2/blender-5.2.1.sha256) 一致。`--record` 只记录实际字节供审阅；升级时需再与官方清单核对，不能把自行重算摘要当成来源证明 |
 | `plugin:install` | 遇到**不是自己写的** operator layer 会拒绝覆盖并退出 2。它的输出会说明存储将回落到产品默认值，而不是悄悄改掉你的配置 |
 | `presets:install` | 不验证 preset **能挂载**。挂载验证是 `agentPresets.standingKeyFor(id)`，需要一次真实运行（SPEC §6.2） |
 
@@ -237,7 +253,8 @@ npm run verify:clone -- --with-blender   # 连 Blender 一起（346 MB）
 ### 再跑完整的验收
 
 ```bash
-node deepblend/tests/run.mjs        # 契约层，不需要 Blender，约 30 秒
+node deepblend/tools/development.mjs sdk  # 开发验收需要；产品安装本身不需要编译器
+node deepblend/tests/run.mjs        # 契约层，不需要 Blender
 bash deepblend/tests/run-all.sh     # 完整验收，需要 Blender，约 10 分钟
 ```
 
@@ -252,31 +269,59 @@ DeepBlend acceptance suite: ALL SUITES PASSED
 
 ## 6. 卸载与回退
 
-**三条命令，没有手打的路径**：
+先停止正在使用目标 profile 的 DSH 进程，再按安装方式选择卸载入口。
+
+通过 `dsh plugin add` 安装的包，由 DSH 管理包与 pnpm 链接：
 
 ```bash
-dsh plugin remove @deepblend/dsh-blender-bundle --profile web   # 1. 生态自己的卸载：清掉 pnpm 的链接
-npm run plugin:uninstall                                        # 2. profile 的其余三处
-npm run presets:uninstall                                       # 3. preset 根（另一个平面）
+dsh plugin remove @deepblend/dsh-blender-bundle --profile web
 ```
 
-**第 2 步为什么不是「再跑一次安装器」**——这一版之前它确实是，而那是错的，**实测**：
-`install-plugin.mjs --portable` 是一个**安装器**，它会重新登记 bundle 并把 dependency 键写回去，
-于是手册把读者送回了起点，而三条命令的退出码全是 0。`--portable` 仍然存在，它的用途是
-**装的时候**不要把存储钉在这个 checkout 上，不是卸载。
+通过仓库安装器装配的开发环境，使用以下命令；它也可清理之前由仓库安装器留下的配置：
+
+```bash
+npm run plugin:uninstall -- --profile web
+```
+
+`plugin:uninstall` 删除目标 profile 的 bundle 登记与 dependency 键，只移除生成层里的
+DeepBlend 配置行，并保留其他插件的配置行。其他 profile，或当前 profile 的独立依赖，
+仍引用 DeepBlend 包时，共享包链接会保留。指向其他安装位置的链接不由它删除。
+依赖检查包括 `dependencies`、`devDependencies`、`optionalDependencies` 和 `peerDependencies`。
+如果 DeepBlend 自有行里有用户追加配置，无法安全拆分时会退出 2，列出相关配置并保持原状。
+
+所有 profile 都不再使用 DeepBlend 后，再清理共享 preset：
+
+```bash
+npm run presets:uninstall
+```
+
+`presets:uninstall` 检查所有 profile 的 bundle、依赖和显式 preset 配置引用；仍有引用时
+退出 2，点名相应 profile，保留全部文件。它不会修改 profile 清单、operator layer 或包链接。
+这项检查读取本地声明，不会启动 profile，也不判断未声明的动态引用。
+
+卸载 preset 前会核对安装记录中的文件摘要。用户修改过的文件、额外文件、同名外来目录或
+符号链接都会阻止删除；未记录归属的旧安装只允许删除与当前发布源码一致的文件。
+保留或移走自己的改动后可以重试。其他 preset 和共享 preset 根目录始终保留。
+
+`presets:install` 重装时同样保护本地修改：只有文件仍与上次安装记录一致，或已经与当前发布源码
+一致，才可替换。缺失文件会补回；已被用户修改的同名文件会使整次安装退出 2，并保持原状。
+
+两种仓库安装器共用互斥锁及恢复日志：先检查完整变更，再原子替换文件；普通写入失败回滚，
+进程中断后由下一次写操作恢复。`--check` 遇到未完成事务只报告问题，不执行恢复。
+恢复发现中断后的人工编辑时会保留日志并拒绝覆盖；原生 DSH/pnpm 命令不使用这个锁。
+
+`--portable` 仍是安装选项：它移除 DeepBlend 的存储覆盖并保留其他插件配置，不用于卸载。
 
 每一步之后怎么知道它真的没了：
 
 ```bash
 npm run plugin:check      # 退出 1：这个 profile 不再组合 DeepBlend（「没装」是漂移，不是健康）
-npm run presets:check     # 退出 0，并说「not installed on this machine」——缺席是一个状态
+npm run presets:check     # 全部卸载后退出 0，并说「not installed on this machine」；其他 profile 仍使用时应保持已安装
 ```
 
-`plugin:uninstall` 只移除**它自己写的**东西：bundle 登记、dependency 键、它生成的 operator layer
-（清空而不删文件）、以及指向**这个 checkout** 的七个链接。指向 pnpm store 的链接归
-`dsh plugin remove` 管，它会在输出里点名这一条；别人的 operator layer 与别人的 preset 目录
-**一个字节都不动**。一次真实的「装 → 卸 → 读回」走查在
-`probe-uninstall-residue.log`，盯着它的是 `contract/uninstall-residue.test.mjs`。
+`contract/install-plugin-modes.test.mjs` 与 `contract/uninstall-residue.test.mjs` 覆盖混合配置、
+双 profile 共享、preset 归属以及失败恢复；其中双 profile 测试使用真实 DSH 配置组合。
+历史的单 profile 走查保存在 `probe-uninstall-residue.log`，不替代这些当前回归检查。
 
 ### 在你自己的 Blender 里干活（Live Bridge / Add-on）
 

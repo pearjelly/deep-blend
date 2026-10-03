@@ -242,6 +242,7 @@ try {
     baseRevision: 'r0001',
     operations: [{ op: 'entity.transform.update', entityId: 'subject', location: [0, 0, 1.5] }],
   }, null, 2)
+  await page.click('[data-view="scene"] details:has([data-field="scene-patch"]) > summary')
   await page.fill('[data-field="scene-patch"]', patchDocument)
   await page.click('[data-action="apply-patch"]')
   await page.waitFor('document.querySelector(\'[data-view="scene"] [data-result="ok"]\') !== null', 60000)
@@ -336,7 +337,7 @@ try {
     pairTimes)
   check('the render result says what it did with the previous sheet',
     /r0001|r0002/.test((await page.text('[data-result="ok"]')) ?? ''), ((await page.text('[data-result="ok"]')) ?? '').slice(0, 120))
-  check('the two axes are both offered', (await page.attributes('[data-compare-mode]', 'data-compare-mode')).join(',') === 'renders,revisions')
+  check('the latest image and both comparison axes are offered', (await page.attributes('[data-compare-mode]', 'data-compare-mode')).join(',') === 'result,renders,revisions')
   check('switching to the revision axis shows the revision panes',
     await (async () => {
       await page.click('[data-compare-mode="revisions"]')
@@ -358,6 +359,9 @@ try {
     operations: [{ op: 'entity.transform.update', entityId: 'subject', location: [0, 0, 2.4] }],
   }, null, 2)
   await openView(page, 'scene')
+  if (!await page.evaluate('document.querySelector("[data-field=scene-patch]").closest("details").open')) {
+    await page.click('[data-view="scene"] details:has([data-field="scene-patch"]) > summary')
+  }
   await page.fill('[data-field="scene-patch"]', patchAgain)
   await page.click('[data-action="apply-patch"]')
   await page.waitFor(`document.querySelector('[data-view="scene"] [data-result="ok"]') !== null`, 60000)
@@ -517,6 +521,23 @@ try {
   check('the refreshed page rebuilt itself from the Host rather than from memory',
     requestsAfterReload.some(entry => entry.url.includes('/deepblend/state')),
     requestsAfterReload.map(entry => entry.url).slice(0, 6))
+
+  // Synthetic QA judgment: this checks UI meaning, not actual model art quality.
+  const qaPath = `revisions/${hostRevision}/artistic-ui-fixture.json`
+  const qaFixture = { review: { revision: hostRevision, score: 100, pass: true,
+    issues: [], reported: [], perView: [], artistic: { status: 'needs_work', dimensions: {
+      geometry: { status: 'needs_work', evidence: 'Visible sharp handle junction', viewId: 'front', confidence: 0.95 },
+    } } }, views: [] }
+  writeFileSync(join(store, 'projects', projectId, qaPath), JSON.stringify(qaFixture))
+  const qaManifest = readStoreJson(projectId, 'revisions', hostRevision, 'revision-manifest.json')
+  qaManifest.reviews = [...(qaManifest.reviews ?? []), { kind: 'visual-review', path: qaPath, iteration: 0, at: new Date().toISOString() }]
+  writeFileSync(join(store, 'projects', projectId, 'revisions', hostRevision, 'revision-manifest.json'), JSON.stringify(qaManifest))
+  await openView(page, 'qa')
+  await page.waitFor(`document.querySelector('[data-view="qa"]')?.textContent.includes('Visible sharp handle junction')`, 30000)
+  const qaText = await page.text('[data-view="qa"]')
+  check('QA shows a high technical score alongside the unresolved artistic judgment and its evidence',
+    /100/.test(qaText) && /美术评审|Artistic review/.test(qaText) && /需要改善|Needs work/.test(qaText) &&
+    qaText.includes('Visible sharp handle junction'))
 
   // -------------------------------------------------------------------------
   // 6. 浏览器不直接启动 Blender / 所有写操作经过 Host

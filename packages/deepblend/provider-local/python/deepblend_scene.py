@@ -29,12 +29,20 @@ Runs inside Blender's embedded interpreter; ``bpy`` is available at call time.
 
 import json
 import math
+import hashlib
 import os
+import re
 
 import bpy
 from mathutils import Vector
 
 from deepblend_util import ActionError, Guard, as_text, error_text, report_progress, warning
+from deepblend_asset_bundle import verify_asset_bundle, verify_unbundled_gltf_asset, verify_unbundled_obj_asset
+from deepblend_geometry import create_lathe, create_curve, apply_model_modifiers
+from deepblend_images import build_image_maps, build_environment, pack_imported_material_images
+from deepblend_parts import isolated_import_names, stamp_imported_parts, apply_material_bindings
+from deepblend_anisotropy import build_anisotropy, validate_anisotropy_material, validate_anisotropy_usage, validate_native_material_usage
+from deepblend_images import validate_image_uv_usage
 
 #: SceneSpec engine key -> Blender render engine identifier.
 BLENDER_ENGINE_BY_KEY = {
@@ -65,6 +73,8 @@ PRINCIPLED_SOCKETS = {
     "emissionStrength": ["Emission Strength"],
     "coatWeight": ["Coat Weight", "Clearcoat"],
     "transmissionWeight": ["Transmission Weight", "Transmission"],
+    "anisotropic": ["Anisotropic"],
+    "anisotropicRotation": ["Anisotropic Rotation"],
 }
 
 #: Layer-weight socket name for the Mix Shader node.
@@ -122,7 +132,7 @@ def reset_scene():
     return bpy.context.scene
 
 
-def build_world(scene, spec):
+def build_world(scene, spec, options=None):
     """Apply the SceneSpec's `world` block, or the documented default.
 
     The background a viewer sees behind the product is the World, and until this
@@ -155,7 +165,13 @@ def build_world(scene, spec):
         if background is not None:
             background.inputs[0].default_value = color
             background.inputs[1].default_value = strength
-            return {"declared": declared is not None, "color": list(color), "strength": strength}
+            report = {"declared": declared is not None, "color": list(color), "strength": strength}
+            if declared and declared.get('environment'):
+                image = build_environment(world, background, declared['environment'],
+                                          {asset['id']: asset for asset in spec.get('assets') or []},
+                                          (options or {}).get('project_root'))
+                report['environment'] = {**declared['environment'], 'image': image}
+            return report
     raise ActionError(
         "BLENDER_SCRIPT_ERROR",
         "the scene world has no addressable Background node, so the declared world "
@@ -326,9 +342,8 @@ def _shade_smooth(obj):
 def create_generator(name, spec):
     """Create the mesh for one ``generator`` entity and return the object.
 
-    Every shape is built through a ``bpy.ops.mesh.primitive_*_add`` call so the
-    mesh is Blender's own primitive rather than hand-built vertex data, and every
-    call can be replayed to produce the same topology.
+    Primitive operators and deterministic profile meshes can be replayed to
+    produce the same topology from the same specification.
     """
     shape = spec.get("shape")
     size = float(spec.get("size", 2.0))
@@ -341,9 +356,6 @@ def create_generator(name, spec):
         bpy.ops.mesh.primitive_cube_add(size=size)
     elif shape == "rounded_box":
         bpy.ops.mesh.primitive_cube_add(size=size)
-        bevel = spec.get("bevel") or {}
-        if bevel:
-            _apply_bevel(bpy.context.active_object, bevel)
     elif shape == "uv_sphere":
         bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, segments=segments, ring_count=ring_count)
     elif shape == "cylinder":
@@ -359,16 +371,27 @@ def create_generator(name, spec):
             major_segments=segments,
             minor_segments=ring_count,
         )
+    elif shape == "lathe":
+        create_lathe(name, spec)
+    elif shape == "curve":
+        create_curve(name, spec)
+    elif shape == "handled_cup":
+        from deepblend_vessel import create_handled_cup
+        create_handled_cup(name, spec)
     else:
         raise ActionError(
             "BLENDER_SCRIPT_ERROR",
             'unknown generator shape "%s"' % (shape,),
-            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus"]},
+            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup"]},
         )
 
     obj = bpy.context.active_object
     if obj is None:
         raise ActionError("BLENDER_SCRIPT_ERROR", 'primitive for shape "%s" produced no object' % (shape,))
+    # Bevel is a generator property, not a rounded_box-only option. Silently
+    # ignoring it on cylinders removes the edge highlights product shots need.
+    if spec.get("bevel"):
+        _apply_bevel(obj, spec["bevel"])
     obj.name = name
     obj.data.name = "%s_mesh" % (name,)
     return obj
@@ -384,7 +407,7 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
     format's add-on — is classified as the format being unavailable rather than as
     a generic script error, because the two need different fixes.
     """
-    before = set(bpy.data.objects.keys())
+    before = set(bpy.data.objects)
 
     if asset_type in ("glb", "gltf"):
         call = lambda: bpy.ops.import_scene.gltf(filepath=asset_path)  # noqa: E731
@@ -395,12 +418,43 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
     elif asset_type == "usd":
         call = lambda: bpy.ops.wm.usd_import(filepath=asset_path)  # noqa: E731
     elif asset_type == "blend":
-        call = lambda: bpy.ops.wm.append(filename=asset_path)  # noqa: E731
+        def call():
+            # Read datablocks without opening the file or executing registered
+            # text scripts. One scene identifies its real members and excludes
+            # orphan object datablocks; an object-only library is also supported.
+            with bpy.data.libraries.load(asset_path, link=False) as (source, destination):
+                if len(source.scenes) > 1:
+                    raise ValueError('.blend assets currently require at most one scene')
+                has_scene = bool(source.scenes)
+                if has_scene:
+                    destination.scenes = list(source.scenes)
+                else:
+                    destination.objects = list(source.objects)
+            source_scene = destination.scenes[0] if has_scene else None
+            imported_objects = list(source_scene.objects) if source_scene else [obj for obj in destination.objects if obj is not None]
+            if any(obj.instance_type == 'COLLECTION' for obj in imported_objects):
+                raise ValueError('.blend collection instances are not supported; realize them before importing')
+            if source_scene is not None:
+                if len(source_scene.view_layers) > 1:
+                    raise ValueError('.blend multiple view layers are not supported')
+                def hidden_collection(layer):
+                    return (layer.exclude or layer.hide_viewport or layer.collection.hide_render or layer.collection.hide_viewport
+                            or any(hidden_collection(child) for child in layer.children))
+                if any(hidden_collection(layer.layer_collection) for layer in source_scene.view_layers):
+                    raise ValueError('.blend collection or view-layer visibility overrides are not supported; use object visibility')
+            for obj in imported_objects:
+                bpy.context.scene.collection.objects.link(obj)
+            if source_scene is not None:
+                bpy.data.scenes.remove(source_scene)
+            return imported_objects
     else:
         raise ActionError("ASSET_FORMAT_UNAVAILABLE", 'unsupported asset type "%s"' % (asset_type,))
 
     try:
-        call()
+        with isolated_import_names(name):
+            loaded = call()
+            imported = loaded if asset_type == 'blend' else [obj for obj in bpy.data.objects if obj not in before]
+            stamp_imported_parts(imported)
     except Exception as exc:
         raise ActionError(
             "ASSET_FORMAT_UNAVAILABLE",
@@ -408,7 +462,6 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
             {"assetPath": asset_path, "assetType": asset_type},
         )
 
-    imported = [bpy.data.objects[key] for key in bpy.data.objects.keys() if key not in before]
     if not imported:
         raise ActionError(
             "ASSET_MISSING",
@@ -416,16 +469,27 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
             {"assetPath": asset_path},
         )
 
-    root = imported[0]
-    root.name = name
-    for obj in imported[1:]:
-        obj.parent = root
+    if asset_type == 'obj':
+        pack_imported_material_images(imported)
+
+    # The SceneSpec transform belongs to an instance container. Choosing the
+    # first imported object as the root overwrites its authored transform and
+    # flattening every parent destroys assemblies, rigs and nested transforms.
+    bpy.context.view_layer.update()
+    imported_set = set(imported)
+    root = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(root)
+    for obj in imported:
+        if obj.parent not in imported_set:
+            world = obj.matrix_world.copy()
+            obj.parent = root
+            obj.matrix_world = world
     guard.note(
         "SCENE_ASSET_IMPORTED",
         'entity "%s" imported %d object(s) from %s' % (name, len(imported), asset_path),
         {"assetPath": asset_path, "objectCount": len(imported)},
     )
-    return imported
+    return [root, *imported]
 
 
 # ---------------------------------------------------------------------------
@@ -532,8 +596,8 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
 
     A material carrying only scalar parameters shades as one flat colour, which is
     why paper, wood and glazed ceramic all read as the same plastic. This builds the
-    relief and variation that tells them apart, in OBJECT space so the pattern
-    travels with the object and no image has to be ingested.
+    relief and variation that tells them apart. Object space is the legacy
+    default; UV space follows an authored surface layout without an image.
 
     Every socket is looked up by name and every stage is optional: a build missing
     one node degrades to a plainer material and says so, rather than failing the
@@ -563,12 +627,19 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
         )
         return
 
-    coord = nodes.new("ShaderNodeTexCoord")
+    mode = texture.get("coordinates", "object")
+    if mode not in ("object", "uv") or ("uvMap" in texture and
+            (mode != "uv" or not isinstance(texture['uvMap'], str) or not texture['uvMap'].strip())):
+        raise ActionError("SCENE_VALIDATION_FAILED", "procedural uvMap requires UV coordinates",
+                          {"materialId": material_id})
+    coord = nodes.new("ShaderNodeUVMap" if mode == "uv" else "ShaderNodeTexCoord")
+    if mode == "uv":
+        coord.uv_map = texture.get("uvMap", "")
     coord.location = (-1080, -240)
     mapping = nodes.new("ShaderNodeMapping")
     mapping.location = (-900, -240)
     pattern.location = (-700, -240)
-    links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    links.new(coord.outputs["UV" if mode == "uv" else "Object"], mapping.inputs["Vector"])
     links.new(mapping.outputs["Vector"], pattern.inputs["Vector"])
 
     stretch = texture.get("stretch") or [1.0, 1.0, 1.0]
@@ -659,11 +730,15 @@ def _build_texture_graph(material, principled, texture, guard, material_id):
         links.new(multiply.outputs["Vector"], base_socket)
 
 
-def build_material(spec, guard):
+def build_material(spec, guard, assets=None, project_root=None):
     """Create one Blender material from a SceneSpec material entry."""
     material_id = spec["id"]
     shader = spec.get("shader", "principled")
     parameters = spec.get("parameters") or {}
+
+    if shader == 'emission' and (spec.get('texture') or {}).get('coordinates') == 'uv':
+        raise ActionError('SCENE_VALIDATION_FAILED', 'UV procedural texture requires a principled or glass material',
+                          {'materialId': material_id})
 
     material = bpy.data.materials.new(name="%s%s" % (MATERIAL_PREFIX, material_id))
     # A material has `use_nodes` enabled by default in 5.x and arrives with a
@@ -698,15 +773,18 @@ def build_material(spec, guard):
 
         for key, value in parameters.items():
             _set_socket(principled, key, value, guard, material_id)
+        build_anisotropy(material, principled, spec)
 
         # After the scalars, so the pattern varies around the authored values
         # rather than replacing them.
         texture = spec.get("texture")
         if isinstance(texture, dict):
             _build_texture_graph(material, principled, texture, guard, material_id)
+        if spec.get('images'):
+            build_image_maps(material, principled, spec['images'], assets or {}, project_root)
 
     alpha = parameters.get("alpha")
-    if isinstance(alpha, (int, float)) and float(alpha) < 1.0:
+    if (isinstance(alpha, (int, float)) and float(alpha) < 1.0) or 'alpha' in (spec.get('images') or {}):
         # Non-opaque alpha needs an explicit blend mode, or the viewport and the
         # render disagree about whether the surface is see-through.
         try:
@@ -1869,24 +1947,47 @@ def build_scene(spec, options, guard):
     Returns a report describing what was built. Raises ``ActionError`` on any
     failure that must not be silently tolerated.
     """
+    profile_name = options.get("profile") or "preview"
+    profile = (spec.get("renderProfiles") or {}).get(profile_name)
+    if profile is None:
+        raise ActionError(
+            "RENDER_PROFILE_MISSING",
+            'the SceneSpec defines no render profile named "%s"' % (profile_name,),
+        )
+
+    # Check pinned source bytes again at the actual compile boundary. This also
+    # protects lazy checkpoint rebuilds, which do not pass through asset.add.
+    for asset in spec.get("assets") or []:
+        verify_asset_bundle(options.get("project_root") or "", asset)
+        addressed = re.fullmatch(r"assets/raw/([a-f0-9]{64})\.[a-z0-9]+", asset.get("path", ""))
+        declared = addressed.group(1) if addressed else asset.get("sha256")
+        if not declared:
+            verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
+            verify_unbundled_obj_asset(options.get("project_root") or "", asset)
+            continue
+        asset_path = os.path.join(options.get("project_root") or "", asset.get("path", ""))
+        digest = hashlib.sha256()
+        try:
+            with open(asset_path, "rb") as source:
+                for chunk in iter(lambda: source.read(64 * 1024), b""):
+                    digest.update(chunk)
+        except OSError as error:
+            raise ActionError("ASSET_MISSING", 'cannot read pinned asset "%s": %s' % (asset.get("id"), error))
+        actual = digest.hexdigest()
+        if actual != declared or (asset.get("sha256") and asset["sha256"] != declared):
+            raise ActionError("ASSET_HASH_MISMATCH", 'asset "%s" changed since its revision was declared' % asset.get("id"),
+                              {"assetId": asset.get("id"), "declared": declared, "actual": actual})
+
+        verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
+        verify_unbundled_obj_asset(options.get("project_root") or "", asset)
+
     report_progress("reset_scene", 5)
     scene = reset_scene()
 
     report_progress("build_world", 10)
-    world_report = build_world(scene, spec)
+    world_report = build_world(scene, spec, options)
 
     report_progress("configure_scene", 12)
-    profile_name = options.get("profile") or "preview"
-    profiles = spec.get("renderProfiles") or {}
-    profile = profiles.get(profile_name)
-    if profile is None:
-        profile = profiles.get("preview")
-    if profile is None:
-        raise ActionError(
-            "RENDER_PROFILE_MISSING",
-            'the SceneSpec defines no render profile named "%s" and no "preview" profile' % (profile_name,),
-        )
-
     requested_engine = profile.get("engine", "cycles")
     engine, downgrade = resolve_engine(requested_engine, guard)
     try:
@@ -1902,8 +2003,10 @@ def build_scene(spec, options, guard):
     # Materials first: entities reference them by id during construction.
     report_progress("build_materials", 20)
     materials = {}
+    assets = {asset["id"]: asset for asset in spec.get("assets") or []}
     for entry in spec.get("materials") or []:
-        materials[entry["id"]] = build_material(entry, guard)
+        validate_anisotropy_material(entry, spec.get('animationTracks') or [])
+        materials[entry["id"]] = build_material(entry, guard, assets, options.get('project_root'))
     default_material = build_default_material(guard)
 
     assets = {asset["id"]: asset for asset in spec.get("assets") or []}
@@ -1917,6 +2020,9 @@ def build_scene(spec, options, guard):
 
     report_progress("build_entities", 35)
     entity_objects = {}
+    entity_meshes = {}
+    native_material_surfaces = []
+    simulation_objects = {}
     entity_positions = {}
     for entity in spec.get("entities") or []:
         entity_id = entity["id"]
@@ -1955,14 +2061,18 @@ def build_scene(spec, options, guard):
         apply_transform(root, entity.get("transform") or {})
         apply_visibility(root, visible)
         for obj in objects:
-            apply_visibility(obj, visible)
+            # The instance wrapper follows the entity flag. A visible asset keeps
+            # each source object's hidden helpers; explicit false hides all of it.
+            if entity.get('type') != 'asset-instance' or not visible:
+                apply_visibility(obj, visible)
 
         material_id = entity.get("materialId")
-        if material_id is None and entity.get("type") != "empty":
+        preserve_materials = entity.get("type") == "asset-instance" and material_id is None
+        if material_id is None and entity.get("type") not in ("empty", "asset-instance"):
             material_id = "default"
             materials.setdefault("default", default_material)
         material = materials.get(material_id)
-        if material is None:
+        if material is None and not preserve_materials and entity.get("type") != "empty":
             raise ActionError(
                 "SCENE_VALIDATION_FAILED",
                 'entity "%s" references material "%s", which was not built' % (entity_id, material_id),
@@ -1970,16 +2080,71 @@ def build_scene(spec, options, guard):
         for obj in objects:
             if not hasattr(obj.data, "materials"):
                 continue
-            obj.data.materials.clear()
-            obj.data.materials.append(material)
-            if entity.get("generator", {}).get("shape") in ("uv_sphere", "cylinder", "cone", "torus"):
+            if not preserve_materials and not entity.get("materialBindings"):
+                obj.data.materials.clear()
+                obj.data.materials.append(material)
+                # Whole-asset override has one slot; imported face indices may
+                # still refer to several slots from the original asset.
+                for polygon in getattr(obj.data, "polygons", []):
+                    polygon.material_index = 0
+            generator = entity.get("generator", {})
+            if generator.get("bevel") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
                 _shade_smooth(obj)
+
+        if entity.get("materialBindings"):
+            apply_material_bindings(entity, objects, materials)
 
         for obj in objects:
             obj["deepblend_id"] = entity_id
             obj["deepblend_kind"] = "entity"
         entity_objects[entity_id] = root
+        meshes = [obj for obj in objects if obj.type == "MESH"]
+        entity_meshes[entity_id] = meshes
+        native_material_surfaces.extend(obj for obj in objects if obj.type in ('CURVE', 'SURFACE', 'FONT', 'META'))
+        if any(entity.get(field) is not None for field in ("rigidBody", "cloth", "softBody", "fluid")):
+            if len(meshes) != 1:
+                raise ActionError(
+                    "SCENE_SPEC_INVALID",
+                    'entity "%s" needs exactly one mesh for entity-level physics; found %d. '
+                    "Declare separately simulated parts as separate entities." % (entity_id, len(meshes)),
+                )
+            simulation_objects[entity_id] = meshes[0]
         entity_positions[entity_id] = [float(root.location[0]), float(root.location[1]), float(root.location[2])]
+
+    apply_model_modifiers(spec.get("entities") or [], entity_meshes)
+    scene['deepblend_requires_cycles'] = False
+    for entry in spec.get('materials') or []:
+        for surface in native_material_surfaces:
+            if validate_native_material_usage(entry, materials[entry['id']], surface, scene.render.engine,
+                                              spec.get('animationTracks') or [], bpy.context.evaluated_depsgraph_get()):
+                scene['deepblend_requires_cycles'] = True
+        for entity_id, meshes in entity_meshes.items():
+            for mesh in meshes:
+                if (entry.get('texture') or {}).get('coordinates') == 'uv':
+                    if validate_native_material_usage(entry, materials[entry['id']], mesh, scene.render.engine,
+                                                      spec.get('animationTracks') or [], bpy.context.evaluated_depsgraph_get()):
+                        scene['deepblend_requires_cycles'] = True
+                    continue
+                used_slots = {polygon.material_index for polygon in mesh.data.polygons}
+                if not any(slot.material == materials[entry['id']] and index in used_slots
+                           for index, slot in enumerate(mesh.material_slots)):
+                    continue
+                if validate_anisotropy_usage(entry, mesh, scene.render.engine, spec.get('animationTracks') or []):
+                    scene['deepblend_requires_cycles'] = True
+                validate_image_uv_usage(entry, mesh, mesh.data.uv_layers)
+    for entity in spec.get("entities") or []:
+        generator = entity.get("generator") or {}
+        if entity.get("modifiers") and entity.get("type") == "generator" and (
+            generator.get("bevel") or any(entry["type"] == "bevel" for entry in entity["modifiers"])
+            or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup")
+        ):
+            for mesh in entity_meshes[entity["id"]]:
+                hidden = mesh.hide_viewport
+                mesh.hide_viewport = False
+                try:
+                    _shade_smooth(mesh)
+                finally:
+                    mesh.hide_viewport = hidden
 
     report_progress("build_lights", 55)
     for light in spec.get("lights") or []:
@@ -2079,7 +2244,7 @@ def build_scene(spec, options, guard):
             "SCENE_SPEC_INVALID",
             "the scene declares fluid objects but no domain, so the liquid would have nowhere to be",
         )
-    simulation_reading = build_rigid_bodies(spec, entity_objects, guard, cloth_entities, soft_entities, fluid_entities)
+    simulation_reading = build_rigid_bodies(spec, simulation_objects, guard, cloth_entities, soft_entities, fluid_entities)
 
     report_progress("configure_render", 85)
     render_config = configure_scene(scene, spec, profile, guard)
@@ -2112,7 +2277,18 @@ def build_scene(spec, options, guard):
                 'entity "%s" is skinned to armature "%s", which the same SceneSpec does not declare'
                 % (entity["id"], armature_id),
             )
-        skin_entity(obj, armature_obj, armature_id, guard)
+        meshes = entity_meshes[entity["id"]]
+        if not meshes:
+            raise ActionError("SCENE_SPEC_INVALID", 'entity "%s" has no mesh to skin' % entity["id"])
+        for mesh in meshes:
+            previous_parent = mesh.parent
+            previous_world = mesh.matrix_world.copy()
+            skin_entity(mesh, armature_obj, armature_id, guard)
+            if entity.get("type") == "asset-instance":
+                # Automatic weights also reparents the mesh. Keep the authored
+                # assembly and instance transform; the armature modifier deforms it.
+                mesh.parent = previous_parent
+                mesh.matrix_world = previous_world
         skinned_entities[entity["id"]] = entity
 
     return {
@@ -2132,7 +2308,7 @@ def build_scene(spec, options, guard):
                 # THE GROUPS COME FROM THE OBJECT, not from the spec entry: what the file asked for is
                 # the relationship, and what Blender produced is the weights. Reading the latter back is
                 # the whole point — an entity bound with no groups renders as a static object.
-                "vertexGroups": sorted(group.name for group in entity_objects[key].vertex_groups),
+                "vertexGroups": sorted({group.name for mesh in entity_meshes[key] for group in mesh.vertex_groups}),
             }
             for key, entry in skinned_entities.items()
         },
@@ -2140,10 +2316,58 @@ def build_scene(spec, options, guard):
     }
 
 
+def _uv_map_facts(mesh, source):
+    """Names and finite coordinates are inventory, not an overlap/unwrap verdict."""
+    return [{'name': layer.name, 'activeRender': bool(layer.active_render),
+             'loopCount': len(layer.data),
+             'finite': all(math.isfinite(value) for loop in layer.data for value in loop.uv),
+             'source': source}
+            for layer in mesh.uv_layers]
+
+
+def _render_collection_members(layer, inherited_excluded=False, members=None):
+    """An object can have several collection paths; one render-enabled path suffices."""
+    members = set() if members is None else members
+    excluded = inherited_excluded or layer.exclude or layer.collection.hide_render
+    if not excluded:
+        members.update(layer.collection.objects)
+    for child in layer.children:
+        _render_collection_members(child, excluded, members)
+    return members
+
+
+def _object_world_bounds(obj, depsgraph):
+    """Conservative world AABB of an evaluated mesh; wrappers have no geometry.
+
+    Bounds use the evaluated local bounding box transformed by matrix_world.
+    They include the object hierarchy and modifiers, but are not a tight vertex
+    hull or a claim that every enclosed pixel is visible to the camera.
+    """
+    if obj.type != 'MESH':
+        return None
+    evaluated = obj.evaluated_get(depsgraph)
+    if not evaluated.data.vertices:
+        return None
+    local = [tuple(corner) for corner in evaluated.bound_box]
+    if not local or all(corner == (-1.0, -1.0, -1.0) for corner in local):
+        return None
+    corners = [evaluated.matrix_world @ Vector(corner) for corner in local]
+    if not all(math.isfinite(value) for corner in corners for value in corner):
+        return None
+    return {'min': [min(float(corner[axis]) for corner in corners) for axis in range(3)],
+            'max': [max(float(corner[axis]) for corner in corners) for axis in range(3)]}
+
+
 def describe_objects():
     """Inventory of every object in the scene, for validation and golden checks."""
     entries = []
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    frame = int(bpy.context.scene.frame_current)
+    render_members = _render_collection_members(bpy.context.view_layer.layer_collection)
     for obj in bpy.data.objects:
+        # Disabled viewport objects can retain stale evaluated transforms. Do
+        # not present that cache as a measured world bound or evaluated UV set.
+        evaluation_available = obj.type == 'MESH' and obj.visible_get(view_layer=bpy.context.view_layer)
         entry = {
             "name": obj.name,
             "type": obj.type,
@@ -2153,12 +2377,43 @@ def describe_objects():
             "rotationEuler": [round(float(value), 6) for value in obj.rotation_euler],
             "scale": [round(float(value), 6) for value in obj.scale],
             "visible": not (obj.hide_render or obj.hide_viewport),
+            # Render eligibility only: viewport hiding is a different flag, and
+            # this does not test occlusion, clipping, alpha or material output.
+            "renderVisible": obj in render_members and not obj.hide_render and obj.visible_camera,
+            "worldBounds": _object_world_bounds(obj, depsgraph) if evaluation_available else None,
+            "boundsFrame": frame,
             "parent": obj.parent.name if obj.parent is not None else None,
         }
         if obj.type == "MESH":
             entry["vertexCount"] = len(obj.data.vertices)
             entry["polygonCount"] = len(obj.data.polygons)
-            entry["materialNames"] = [material.name for material in obj.data.materials if material is not None]
+            entry["materialNames"] = [slot.material.name for slot in obj.material_slots if slot.material is not None]
+            entry['uvMaps'] = _uv_map_facts(obj.data, 'mesh-data')
+            if evaluation_available:
+                evaluated = obj.evaluated_get(depsgraph)
+                try:
+                    surface = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+                    entry['evaluatedUvMaps'] = _uv_map_facts(surface, 'evaluated-mesh') if surface else []
+                finally:
+                    evaluated.to_mesh_clear()
+                if entry['worldBounds'] is None:
+                    entry['boundsUnavailable'] = 'empty-or-invalid-bounds'
+            else:
+                entry['boundsUnavailable'] = 'viewport-disabled'
+                entry['evaluatedUvMaps'] = None
+                entry['evaluatedUvMapsUnavailable'] = 'viewport-disabled'
+            if obj.get('deepblend_part_id'):
+                entry['partId'] = obj['deepblend_part_id']
+                entry['parentPartId'] = obj.get('deepblend_parent_part_id') or None
+                entry['sourceMaterialSlots'] = json.loads(obj.get('deepblend_source_material_slots', '[]'))
+                used_slots = {}
+                for polygon in obj.data.polygons:
+                    used_slots[polygon.material_index] = used_slots.get(polygon.material_index, 0) + 1
+                entry['materialSlots'] = [
+                    {'index': index, 'materialName': slot.material.name if slot.material else None,
+                     'materialId': slot.material.get('deepblend_id') if slot.material else None,
+                     'usedPolygonCount': used_slots.get(index, 0)}
+                    for index, slot in enumerate(obj.material_slots)]
         if obj.type == "LIGHT":
             entry["lightType"] = obj.data.type
             entry["energy"] = round(float(obj.data.energy), 6)

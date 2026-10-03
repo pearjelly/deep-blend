@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://deepblend.local/schemas/scene-spec.schema.json",
   "title": "DeepBlend SceneSpec v1",
-  "description": "The structural source of truth for one DeepBlend scene (SPEC \u00a78.1: 'SceneSpec \u573a\u666f\u7ed3\u6784\u4e8b\u5b9e\u6765\u6e90'). A .blend file is a compile artifact of this document, never the authority. Scenes are compiled from a SceneSpec and modified only through ScenePatch operations, so that every revision is diffable, replayable and auditable.",
+  "description": "The structural source of truth for one DeepBlend scene (SPEC §8.1: 'SceneSpec 场景结构事实来源'). A .blend file is a compile artifact of this document, never the authority. Scenes are compiled from a SceneSpec and modified only through ScenePatch operations, so that every revision is diffable, replayable and auditable.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,7 +31,7 @@
       "items": {
         "$ref": "#/$defs/armature"
       },
-      "description": "Armatures this scene declares (SPEC \u00a720 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. Entities are skinned to an armature (`entity.armatureId`, with Blender's automatic weights) and animation tracks can drive a bone of it (`targetKind: \"bone\"` with `boneName`), so a rig both moves and moves its mesh."
+      "description": "Armatures this scene declares (SPEC §20 M6, character animation). Each is one skeleton, created as its own object and named `<prefix><id>` like every other product object. Entities are skinned to an armature (`entity.armatureId`, with Blender's automatic weights) and animation tracks can drive a bone of it (`targetKind: \"bone\"` with `boneName`), so a rig both moves and moves its mesh."
     },
     "simulation": {
       "type": "object",
@@ -39,12 +39,12 @@
       "properties": {
         "gravity": {
           "type": "number",
-          "description": "Downward acceleration in m/s\u00b2. Blender's own default (-9.81) applies when absent."
+          "description": "Downward acceleration in m/s². Blender's own default (-9.81) applies when absent."
         },
         "bake": {
           "type": "boolean",
           "default": true,
-          "description": "Whether the compile bakes the simulation into the checkpoint. Baking is what makes a render show the physics rather than the initial pose, and it is not instant \u2014 so a build that wants the SETUP without paying for the bake can say so."
+          "description": "Whether the compile bakes the simulation into the checkpoint. Baking is what makes a render show the physics rather than the initial pose, and it is not instant — so a build that wants the SETUP without paying for the bake can say so."
         }
       },
       "description": "Scene-level physics settings. The bodies themselves are per-entity (`entity.rigidBody`), because which things move is a property of those things."
@@ -118,6 +118,22 @@
           "minimum": 0,
           "maximum": 1000,
           "default": 0.6
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assetId"
+          ],
+          "properties": {
+            "assetId": {
+              "$ref": "#/$defs/id"
+            },
+            "rotation": {
+              "type": "number",
+              "description": "Rotation around world Z in radians; default zero."
+            }
+          }
         }
       }
     },
@@ -202,6 +218,12 @@
         "activeCamera": {
           "type": "string",
           "description": "Camera id the animation is seen through. The active-camera view of a view plan renders this one; when absent the first declared camera is used."
+        },
+        "referenceImages": {
+          "$ref": "#/$defs/referenceImages"
+        },
+        "reviewSubjectId": {
+          "$ref": "#/$defs/id"
         }
       }
     },
@@ -242,13 +264,18 @@
             "fbx",
             "obj",
             "usd",
-            "blend"
+            "blend",
+            "png",
+            "jpg",
+            "jpeg",
+            "hdr",
+            "exr"
           ]
         },
         "path": {
           "type": "string",
           "minLength": 1,
-          "description": "Project-relative POSIX path. Absolute paths and any '..' segment are rejected by the path guard (SPEC \u00a715.2)."
+          "description": "Project-relative POSIX path. Absolute paths and any '..' segment are rejected by the path guard (SPEC §15.2)."
         },
         "sha256": {
           "type": "string",
@@ -260,65 +287,150 @@
       }
     },
     "proceduralTexture": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "type",
-        "scale"
-      ],
       "description": "A procedural surface texture. A material with only scalar parameters renders as one flat colour, which is what makes paper, wood and glazed ceramic all read as plastic; this block adds the surface relief and variation that distinguishes them. It is built as a real node graph (texture coordinate -> mapping -> pattern -> bump / roughness / base colour), not a baked image, so it needs no asset ingest and stays resolution-independent.",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "noise",
-            "wave",
-            "voronoi"
-          ]
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "description": "Per-axis multiplier on the mapping, so a grain can run along one direction (wood) instead of being isotropic."
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Strength of the normal perturbation. 0 leaves the surface smooth."
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "How far the pattern swings roughness around its authored value, which is what breaks a highlight up instead of letting it read as plastic."
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "How strongly the pattern darkens the base colour."
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "object"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            }
+          }
         },
-        "scale": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "description": "Pattern density in object space. Larger is finer."
-        },
-        "detail": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 16
-        },
-        "distortion": {
-          "type": "number",
-          "minimum": 0
-        },
-        "stretch": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "items": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          },
-          "description": "Per-axis multiplier on the mapping, so a grain can run along one direction (wood) instead of being isotropic."
-        },
-        "bump": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Strength of the normal perturbation. 0 leaves the surface smooth."
-        },
-        "roughnessVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "How far the pattern swings roughness around its authored value, which is what breaks a highlight up instead of letting it read as plastic."
-        },
-        "colorVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "How strongly the pattern darkens the base colour."
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale",
+            "coordinates"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "description": "Per-axis multiplier on the mapping, so a grain can run along one direction (wood) instead of being isotropic."
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Strength of the normal perturbation. 0 leaves the surface smooth."
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "How far the pattern swings roughness around its authored value, which is what breaks a highlight up instead of letting it read as plastic."
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "How strongly the pattern darkens the base colour."
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "uv"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            },
+            "uvMap": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "description": "Existing UV map name. Requires coordinates: uv. Omit to use the active render UV map."
+            }
+          }
         }
-      }
+      ]
     },
     "material": {
       "type": "object",
@@ -381,11 +493,29 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1
+            },
+            "anisotropic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Cycles Principled specular anisotropy. 0 disables; positive values need an explicit material tangent."
+            },
+            "anisotropicRotation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Rotate the anisotropic tangent in turns: 0.25 is 90 degrees; 1 is one full turn. Nonzero values need an explicit tangent."
             }
           }
         },
         "texture": {
           "$ref": "#/$defs/proceduralTexture"
+        },
+        "images": {
+          "$ref": "#/$defs/materialImages"
+        },
+        "tangent": {
+          "$ref": "#/$defs/materialTangent"
         }
       }
     },
@@ -411,7 +541,7 @@
       "required": [
         "shape"
       ],
-      "description": "Procedural proxy geometry. M1 has no asset-ingest action yet, so fixtures build their hero objects from generators; asset-instance entities take over as the primary path once blender_asset_ingest lands (SPEC \u00a711).",
+      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile; handled_cup constructs a closed cup with shared-boundary flared handle roots. Coupled parameter constraints are checked before generation and the discrete output is validated.",
       "properties": {
         "shape": {
           "type": "string",
@@ -422,7 +552,10 @@
             "cone",
             "plane",
             "torus",
-            "rounded_box"
+            "rounded_box",
+            "lathe",
+            "curve",
+            "handled_cup"
           ]
         },
         "size": {
@@ -463,6 +596,106 @@
               "maximum": 16
             }
           }
+        },
+        "profile": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 128,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          },
+          "description": "Lathe boundary in ordered [radius, height] points, in scene units. Radius must be nonnegative. Do not repeat the first point to close it."
+        },
+        "closedProfile": {
+          "type": "boolean",
+          "description": "Join the final profile point to the first, for annular or hollow sections. Default false."
+        },
+        "capEnds": {
+          "type": "boolean",
+          "description": "Close open lathe rings or curve ends. Default true; closed paths and profiles need no caps."
+        },
+        "path": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/vec3"
+          },
+          "description": "Ordered local-space points for a swept round section."
+        },
+        "pathClosed": {
+          "type": "boolean",
+          "description": "Connect the last path point to the first. Default false."
+        },
+        "pathInterpolation": {
+          "type": "string",
+          "enum": [
+            "poly",
+            "bezier"
+          ],
+          "description": "poly preserves straight segments; bezier uses automatic smooth handles. Default poly."
+        },
+        "curveResolution": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "bevelResolution": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "height": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "wallThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "baseThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "footRound": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleLower": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleUpper": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootLength": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sectionSegments": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 96
+        },
+        "handleSegments": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 128
+        },
+        "rootSegments": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 48
+        },
+        "wallRows": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 64
         }
       }
     },
@@ -495,7 +728,7 @@
         },
         "rigidBody": {
           "$ref": "#/$defs/rigidBody",
-          "description": "This entity takes part in physics (SPEC \u00a720 M6, complex simulation). WHAT THIS SLICE DOES: rigid bodies \u2014 active ones fall and collide, passive ones are what they collide with, and the compile BAKES the result into the checkpoint so a render shows it. WHAT IT DOES NOT DO YET: cloth, soft bodies and fluids, which are the next slices."
+          "description": "This entity takes part in physics (SPEC §20 M6, complex simulation). WHAT THIS SLICE DOES: rigid bodies — active ones fall and collide, passive ones are what they collide with, and the compile BAKES the result into the checkpoint so a render shows it. WHAT IT DOES NOT DO YET: cloth, soft bodies and fluids, which are the next slices."
         },
         "cloth": {
           "$ref": "#/$defs/cloth",
@@ -507,7 +740,7 @@
         },
         "fluid": {
           "$ref": "#/$defs/fluid",
-          "description": "This entity takes part in a FLUID simulation (SPEC \u00a720 M6, complex simulation). Unlike the other three mechanisms, a fluid needs more than one entity \u2014 a domain and something flowing into it \u2014 which is why the field carries a role."
+          "description": "This entity takes part in a FLUID simulation (SPEC §20 M6, complex simulation). Unlike the other three mechanisms, a fluid needs more than one entity — a domain and something flowing into it — which is why the field carries a role."
         },
         "generator": {
           "$ref": "#/$defs/generator"
@@ -528,10 +761,22 @@
         },
         "locked": {
           "type": "boolean",
-          "description": "A locked entity may still be patched explicitly, but the orchestrator must not propose changes to it autonomously (SPEC \u00a712)."
+          "description": "A locked entity may still be patched explicitly, but the orchestrator must not propose changes to it autonomously (SPEC §12)."
         },
         "visible": {
           "type": "boolean"
+        },
+        "modifiers": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/modelModifier"
+          },
+          "description": "Ordered mesh operations, applied before animation and simulation. Boolean dependencies compile before their consumers. Each participating entity must contain exactly one mesh."
+        },
+        "materialBindings": {
+          "$ref": "#/$defs/materialBindings",
+          "description": "Asset mesh part overrides, preserving original slots and face indices. Part-wide overrides precede slot-specific overrides."
         }
       }
     },
@@ -713,7 +958,7 @@
             "bone"
           ],
           "default": "entity",
-          "description": "What `targetEntityId` names: an entity (default), a camera, a material, or AN ARMATURE whose bone this track drives (with `boneName`). Ids are unique per collection, so the kind is the only thing that says whether \"watch-dial\" means the mesh or the material \u2014 and `bone` is what made a rig able to move rather than merely exist."
+          "description": "What `targetEntityId` names: an entity (default), a camera, a material, or AN ARMATURE whose bone this track drives (with `boneName`). Ids are unique per collection, so the kind is the only thing that says whether \"watch-dial\" means the mesh or the material — and `bone` is what made a rig able to move rather than merely exist."
         },
         "targetEntityId": {
           "type": "string",
@@ -722,7 +967,7 @@
         "boneName": {
           "type": "string",
           "maxLength": 64,
-          "description": "Required when targetKind is `bone`: the name of the bone inside the named armature. A name the armature does not have is refused \u2014 a track that silently animates nothing is a scene that claims to move and does not."
+          "description": "Required when targetKind is `bone`: the name of the bone inside the named armature. A name the armature does not have is refused — a track that silently animates nothing is a scene that claims to move and does not."
         },
         "property": {
           "type": "string",
@@ -748,7 +993,9 @@
             "baseColor.b",
             "emissionColor.r",
             "emissionColor.g",
-            "emissionColor.b"
+            "emissionColor.b",
+            "anisotropic",
+            "anisotropicRotation"
           ],
           "description": "The channel to animate. Transform channels apply to entities and cameras; material parameters apply to materials and use the same names `material.parameter.update` takes."
         },
@@ -826,7 +1073,7 @@
         "maxSamplesBudget": {
           "type": "integer",
           "minimum": 1,
-          "description": "Upper bound a render action may use. Guards the render-cost threshold of SPEC \u00a715.4."
+          "description": "Upper bound a render action may use. Guards the render-cost threshold of SPEC §15.4."
         }
       }
     },
@@ -909,7 +1156,7 @@
             "active",
             "passive"
           ],
-          "description": "`active` means physics moves it; `passive` means it moves nothing and everything collides with it \u2014 a floor is passive, which is why the two are one field rather than a boolean: a body that is not simulated and a body that is simulated are not the only two things a body can be."
+          "description": "`active` means physics moves it; `passive` means it moves nothing and everything collides with it — a floor is passive, which is why the two are one field rather than a boolean: a body that is not simulated and a body that is simulated are not the only two things a body can be."
         },
         "mass": {
           "type": "number",
@@ -958,7 +1205,7 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "How strongly the body remembers its shape, 0 to 1. Blender's own default applies when absent, and that default is high \u2014 which is why a soft body falls while keeping its shape rather than collapsing, and why both of those are asserted."
+          "description": "How strongly the body remembers its shape, 0 to 1. Blender's own default applies when absent, and that default is high — which is why a soft body falls while keeping its shape rather than collapsing, and why both of those are asserted."
         },
         "mass": {
           "type": "number",
@@ -981,7 +1228,7 @@
             "inflow",
             "outflow"
           ],
-          "description": "A fluid takes at least TWO entities: one DOMAIN, which is the volume the liquid lives in, and one or more INFLOW/OUTFLOW objects inside it. That is why this is a role rather than a flag \u2014 there is no such thing as a single entity that is a fluid."
+          "description": "A fluid takes at least TWO entities: one DOMAIN, which is the volume the liquid lives in, and one or more INFLOW/OUTFLOW objects inside it. That is why this is a role rather than a flag — there is no such thing as a single entity that is a fluid."
         },
         "domainType": {
           "type": "string",
@@ -990,13 +1237,13 @@
             "gas"
           ],
           "default": "liquid",
-          "description": "On a domain: what fills it. THE DEFAULT IS `liquid` AND THAT IS DELIBERATE: Blender's own default is `gas`, and MEASURED, a LIQUID inflow into a GAS domain produces nothing at all \u2014 the bake reports success, both caches report baked, and the domain's evaluated mesh is its own cube. A default that produces nothing while every signal says it worked is the exact trap this product exists around."
+          "description": "On a domain: what fills it. THE DEFAULT IS `liquid` AND THAT IS DELIBERATE: Blender's own default is `gas`, and MEASURED, a LIQUID inflow into a GAS domain produces nothing at all — the bake reports success, both caches report baked, and the domain's evaluated mesh is its own cube. A default that produces nothing while every signal says it worked is the exact trap this product exists around."
         },
         "resolution": {
           "type": "integer",
           "minimum": 8,
           "maximum": 256,
-          "description": "On a domain: the simulation's grid resolution. It is the cost knob \u2014 the bake's time and memory grow with it \u2014 so it is stated rather than left to a default nobody can see."
+          "description": "On a domain: the simulation's grid resolution. It is the cost knob — the bake's time and memory grow with it — so it is stated rather than left to a default nobody can see."
         },
         "flowType": {
           "type": "string",
@@ -1010,6 +1257,330 @@
           "description": "On an inflow or outflow: what it emits."
         }
       }
+    },
+    "modelModifier": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "thickness"
+          ],
+          "properties": {
+            "type": {
+              "const": "solidify"
+            },
+            "thickness": {
+              "type": "number"
+            },
+            "offset": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "axis"
+          ],
+          "properties": {
+            "type": {
+              "const": "mirror"
+            },
+            "axis": {
+              "type": "string",
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "merge": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "count",
+            "offset"
+          ],
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 64
+            },
+            "offset": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "operation",
+            "targetEntityId"
+          ],
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "union",
+                "difference",
+                "intersect"
+              ]
+            },
+            "targetEntityId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "width"
+          ],
+          "properties": {
+            "type": {
+              "const": "bevel"
+            },
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "segments": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "angle": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 180
+            },
+            "miterInner": {
+              "type": "string",
+              "enum": [
+                "arc",
+                "sharp"
+              ],
+              "default": "arc",
+              "description": "Inner corner join for this bevel modifier. Omitted values preserve the existing arc behavior."
+            }
+          }
+        }
+      ]
+    },
+    "imageBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetId"
+      ],
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/id"
+        },
+        "scale": {
+          "$ref": "#/$defs/vec3"
+        },
+        "offset": {
+          "$ref": "#/$defs/vec3"
+        },
+        "uvMap": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "r",
+            "g",
+            "b",
+            "a"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "materialImages": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseColor": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "roughness": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "metallic": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "normal": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "alpha": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "emissionColor": {
+          "$ref": "#/$defs/imageBinding"
+        }
+      }
+    },
+    "materialBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partId",
+        "materialId"
+      ],
+      "properties": {
+        "partId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096,
+          "pattern": "^/",
+          "description": "Exact source path returned in assetParts; JSON Pointer escaped segments."
+        },
+        "slotIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Original material slot index. Omit to replace every slot of this mesh part."
+        },
+        "materialId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "materialBindings": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/materialBinding"
+      }
+    },
+    "materialTangent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "uvMap"
+          ],
+          "properties": {
+            "mode": {
+              "const": "uv"
+            },
+            "uvMap": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63
+            }
+          },
+          "description": "Use the tangent along the named UV map U direction. The map must exist on every mesh face using this material."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "axis"
+          ],
+          "properties": {
+            "mode": {
+              "const": "radial"
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            }
+          },
+          "description": "Blender cylindrical-projection tangent around the selected object-local axis; no UV map required."
+        }
+      ]
+    },
+    "referenceImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "assetId",
+        "sha256",
+        "label",
+        "purposes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "assetId": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "purposes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "enum": [
+              "geometry",
+              "materials",
+              "lighting",
+              "goalFit"
+            ]
+          },
+          "description": "Distinct review dimensions this reference informs; duplicate purposes are rejected semantically."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "referenceImages": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/referenceImage"
+      },
+      "description": "Visual review references only. Each id is unique and points to a declared, hash-pinned PNG/JPEG project asset; this does not apply an object texture or environment map."
     }
   }
 }

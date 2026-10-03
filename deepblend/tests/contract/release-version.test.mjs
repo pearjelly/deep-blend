@@ -150,7 +150,7 @@ test('the version source is not restated anywhere a test cannot compare it', () 
   // `tools/`. A check that reads one directory and calls it "the repository" is the same defect
   // as a count that reads one file and calls it "the total".
   //
-  // 1. EVERY manifest in this repository is in the lockstep set. `manifests()` discovers the root
+  // 1. Every versioned or publishable manifest is in the lockstep set. `manifests()` discovers the root
   //    plus `packages/deepblend/*`, so a new package somewhere else — `tools/`, `examples/` —
   //    would carry a version nothing syncs and nothing compares. The walk skips the directories
   //    that hold other people's manifests (`node_modules` is symlinks into the DSH deployment,
@@ -165,7 +165,10 @@ test('the version source is not restated anywhere a test cannot compare it', () 
         if (IGNORED.has(item.name)) continue
         walk(join(directory, item.name), relative)
       } else if (item.name === 'package.json') {
-        manifestsOnDisk.push(relative)
+        const manifest = JSON.parse(readFileSync(join(directory, item.name), 'utf8'))
+        // A private, unversioned dependency lock (the development deployment)
+        // declares no product version and cannot be published.
+        if (manifest.version !== undefined || manifest.private !== true) manifestsOnDisk.push(relative)
       }
     }
   }

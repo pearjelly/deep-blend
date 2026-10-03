@@ -254,6 +254,92 @@ for (const generator of [
 }
 
 // ---------------------------------------------------------------------------
+// Subject tags used by the built-in recipes must outrank the studio backdrop.
+// `subject` chooses a review target; only `subject-part` declares body membership.
+// ---------------------------------------------------------------------------
+
+{
+  const floor = mkEntity('floor', 100, ['environment'])
+  const hero = mkEntity('hero', 0.1, ['hero-product'])
+  const subject = mkEntity('subject', 1, ['subject'])
+  const untagged = mkEntity('untagged', 10)
+  const scene = { project: {}, cameras: [], entities: [floor, untagged, subject, hero] }
+  check('hero-product retains priority over a larger subject-tagged entity',
+    resolveSubjectId(scene) === 'hero', resolveSubject(scene))
+
+  const noHero = { ...scene, entities: [floor, untagged, subject] }
+  check('a subject tag outranks larger untagged geometry and the environment',
+    resolveSubjectId(noHero) === 'subject', resolveSubject(noHero))
+  check('a subject tag is reported as the reason for the selection',
+    resolveSubject(noHero).source === 'it is the only entity tagged subject')
+  const hiddenHero = { ...noHero, entities: [...noHero.entities, { ...hero, visible: false }] }
+  check('a hidden hero does not suppress a visible subject declaration',
+    resolveSubjectId(hiddenHero) === 'subject')
+
+  const several = { ...noHero, entities: [floor, mkEntity('small-subject', 0.2, ['subject']), subject] }
+  const choice = resolveSubject(several)
+  check('multiple subject tags rank by size and report all candidates without the floor',
+    choice.id === 'subject' && choice.candidates.join(',') === 'subject,small-subject' && /2 entities are tagged subject/.test(choice.source), choice)
+  const equal = { ...noHero, entities: [floor, mkEntity('z-subject', 1, ['subject']), mkEntity('a-subject', 1, ['subject'])] }
+  check('equal subject candidates resolve by id and survive storage reordering',
+    resolveSubjectId(equal) === 'a-subject' && resolveSubjectId({ ...equal, entities: [...equal.entities].reverse() }) === 'a-subject')
+
+  const fallback = { ...scene, entities: [floor, untagged, mkEntity('small', 0.2)] }
+  check('untagged fallback ranks only visible non-environment geometry',
+    resolveSubject(fallback).candidates.join(',') === 'untagged,small', resolveSubject(fallback))
+  check('an environment-only scene has no inferred subject',
+    resolveSubjectId({ ...scene, entities: [floor] }) === null)
+  check('hidden declarations do not become subjects in an otherwise environment-only scene',
+    resolveSubjectId({ ...scene, entities: [floor, { ...subject, visible: false }, { ...hero, visible: false }] }) === null)
+
+  const aimed = {
+    ...scene,
+    project: { activeCamera: 'author-camera' },
+    cameras: [mkCamera('role-camera', 'active-camera', 'hero'), mkCamera('author-camera', undefined, 'floor')],
+  }
+  check('the named active camera explicitly targeting an environment entity retains highest priority',
+    resolveSubjectId(aimed) === 'floor' && resolveSubject(aimed).candidates.join(',') === 'floor', resolveSubject(aimed))
+  check('an active-camera role also supplies an explicit target when no camera is named',
+    resolveSubjectId({ ...aimed, project: {}, cameras: [mkCamera('role-camera', 'active-camera', 'floor')] }) === 'floor')
+  check('a hidden explicit target falls back to visible authored subject tags',
+    resolveSubjectId({ ...aimed, entities: [{ ...floor, visible: false }, subject] }) === 'subject')
+  check('tracking retains an explicitly selected environment subject but no other environment',
+    trackedObjects({ ...aimed, entities: [...aimed.entities, mkEntity('wall', 200, ['environment'])] }, 'floor').includes('floor') &&
+      !trackedObjects({ ...aimed, entities: [...aimed.entities, mkEntity('wall', 200, ['environment'])] }, 'floor').includes('wall'))
+
+  const declaredPart = mkEntity('tiny-part', 0.0001, ['subject-part'])
+  const composed = { ...scene, entities: [...scene.entities, declaredPart] }
+  check('hero-product and subject tags do not silently change subject-part body semantics',
+    subjectPartsOf(composed).join(',') === 'tiny-part', subjectPartsOf(composed))
+  check('the explicit small body part stays tracked while the environment stays excluded',
+    trackedObjects(composed, 'hero').includes('tiny-part') && !trackedObjects(composed, 'hero').includes('floor'))
+}
+
+for (const recipeId of ['glass-ceramic', 'metal-lamp', 'modular-speaker']) {
+  const recipe = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'recipes', recipeId, 'scene-spec.json'), 'utf8'))
+  const compiled = compileSceneSpec(recipe)
+  const subject = resolveSubject(compiled.spec)
+  const selected = compiled.spec.entities.find(entity => entity.id === subject.id)
+  const declaredTag = recipeId === 'glass-ceramic' ? 'subject' : 'hero-product'
+  check(`${recipeId}: the actual recipe compiles without notices and resolves a tagged non-environment candidate`,
+    compiled.notices.length === 0 && selected?.tags?.includes(declaredTag) && !selected.tags.includes('environment'),
+    { subjectId: subject.id, source: subject.source, notices: compiled.notices })
+  if (recipeId === 'glass-ceramic') {
+    check('glass-ceramic: the actual review subject is the bottle, not the studio floor',
+      subject.id === 'bottle', subject)
+  }
+  const largerBackdrop = { ...compiled.spec, entities: [...compiled.spec.entities, mkEntity('extra-backdrop', 1000, ['environment'])].reverse() }
+  check(`${recipeId}: an enlarged backdrop and reordered storage cannot replace the product`,
+    resolveSubjectId(largerBackdrop) === subject.id && !trackedObjects(largerBackdrop, subject.id).includes('extra-backdrop'))
+  const aimed = structuredClone(compiled.spec)
+  const active = aimed.cameras.find(camera => camera.id === aimed.project.activeCamera)
+  const environment = aimed.entities.find(entity => entity.visible !== false && entity.tags?.includes('environment'))
+  active.targetEntityId = environment.id
+  check(`${recipeId}: an explicit active-camera environment target remains authoritative`,
+    resolveSubjectId(aimed) === environment.id, resolveSubject(aimed))
+}
+
+// ---------------------------------------------------------------------------
 // 4. View roles must come from the scene, never from array position
 // ---------------------------------------------------------------------------
 

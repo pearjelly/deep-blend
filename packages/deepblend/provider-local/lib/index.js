@@ -706,9 +706,17 @@ export default class LocalBlenderRuntime extends Service {
       // bare names against the provider's scrubbed PATH. Relative paths with
       // separators are rejected by the service itself.
       const resolved = await this.ctx.subprocess.resolveExecutable(requested, undefined, options.signal)
+      if (options.signal?.aborted) {
+        throw new BlenderError(BlenderErrorCode.ABORTED, 'Blender executable resolution was cancelled.')
+      }
       const canonical = this._assertAllowed(resolved, requested)
       return { resolved: canonical, requested, error: null }
     } catch (cause) {
+      if (options.signal?.aborted || cause?.name === 'AbortError') {
+        return { resolved: null, requested, error: new BlenderError(
+          BlenderErrorCode.ABORTED, 'Blender executable resolution was cancelled.', { cause },
+        ) }
+      }
       // The ADVICE travels with the failure, because two readers need the same sentence: the settings
       // card a human opens and the capability text a model reads. Composing it in either of them would
       // be a second copy of "what to do when there is no Blender", and this repository has paid for
@@ -1342,6 +1350,9 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<import('@deepblend/dsh-blender-contracts').BlenderCapabilities>}
    */
   async getCapabilities(options = {}) {
+    if (options.signal?.aborted) {
+      throw new BlenderError(BlenderErrorCode.ABORTED, 'Blender capability probe was cancelled.')
+    }
     const cacheKey = this._requestedBlenderPath()
     const cached = this._capabilitiesCache.get(cacheKey)
     const now = Date.now()
@@ -1350,6 +1361,7 @@ export default class LocalBlenderRuntime extends Service {
     }
 
     const resolved = await this.resolveBlenderExecutable({ signal: options.signal })
+    if (resolved.error?.code === BlenderErrorCode.ABORTED) throw resolved.error
     if (resolved.resolved === null || resolved.error !== null) {
       const absent = this._absentCapabilities(resolved, resolved.error)
       this._capabilitiesCache.set(cacheKey, absent)
@@ -1474,6 +1486,7 @@ export default class LocalBlenderRuntime extends Service {
    * @param {string} [request.projectRoot]
    * @param {string} [request.jobId]
    * @param {AbortSignal} [request.signal]
+   * @param {boolean} [request.session] - false forces an isolated batch process, even when compile_scene is configured for a kept/live session.
    * @returns {Promise<{report: object, envelope: object, durationMs: number, stdout: string, stderr: string}>}
    */
   async compileScene(request) {
@@ -1484,43 +1497,42 @@ export default class LocalBlenderRuntime extends Service {
     // checkpoint that belonged to a different one. Passing the path explicitly removes the dependency
     // on a working directory that a kept process does not have per request.
     const { directory: requestDirectory } = this._createWorkingDirectory()
-    const outputBlend = join(requestDirectory, 'result.blend')
-    if (typeof request?.sceneSpecPath !== 'string' || request.sceneSpecPath.length === 0) {
-      throw new BlenderError(
-        BlenderErrorCode.SCENE_SPEC_INVALID,
-        'compileScene needs an absolute path to a SceneSpec document.',
+    try {
+      const outputBlend = join(requestDirectory, 'result.blend')
+      if (typeof request?.sceneSpecPath !== 'string' || request.sceneSpecPath.length === 0) {
+        throw new BlenderError(
+          BlenderErrorCode.SCENE_SPEC_INVALID,
+          'compileScene needs an absolute path to a SceneSpec document.',
+        )
+      }
+
+      const args = ['--scene-spec', request.sceneSpecPath, '--output-blend', outputBlend]
+      if (request.profile !== undefined) args.push('--profile', String(request.profile))
+      if (request.projectRoot !== undefined) args.push('--project-root', request.projectRoot)
+
+      const run = await this.runBootstrap(
+        { action: 'compile_scene', jobId: request.jobId },
+        {
+          signal: request.signal,
+          session: request.session,
+          args,
+          projectRoot: request.projectRoot,
+          // This method owns the directory containing the checkpoint; the
+          // bootstrap invocation has a separate directory in batch mode.
+        },
       )
-    }
 
-    const args = ['--scene-spec', request.sceneSpecPath, '--output-blend', outputBlend]
-    if (request.profile !== undefined) args.push('--profile', String(request.profile))
-    if (request.projectRoot !== undefined) args.push('--project-root', request.projectRoot)
+      // Await consumption before cleanup, including asynchronous moves/copies.
+      if (typeof request.onWorkingDirectory === 'function') {
+        await request.onWorkingDirectory({ directory: requestDirectory, envelope: run.envelope, jobId: request.jobId })
+      }
 
-    const run = await this.runBootstrap(
-      { action: 'compile_scene', jobId: request.jobId },
-      {
-        signal: request.signal,
-        args,
-        projectRoot: request.projectRoot,
-        // NOT `onWorkingDirectory` here: the callback has to name the directory that HOLDS the
-        // checkpoint, and that is this method's own (`runBootstrap` would name its invocation
-        // directory, which in a session is a different one). One owner for one path.
-      },
-    )
-
-    // The caller moves the checkpoint somewhere durable before this directory goes away, which is what
-    // lets a compile failure leave no trace in the project.
-    if (typeof request.onWorkingDirectory === 'function') {
-      await request.onWorkingDirectory({ directory: requestDirectory, envelope: run.envelope, jobId: request.jobId })
-    }
-
-    const report = run.envelope.result ?? {}
-    return {
-      report,
-      envelope: run.envelope,
-      durationMs: run.durationMs,
-      stdout: run.stdout,
-      stderr: run.stderr,
+      const report = run.envelope.result ?? {}
+      return { report, envelope: run.envelope, durationMs: run.durationMs, stdout: run.stdout, stderr: run.stderr }
+    } finally {
+      // Includes compile failure, cancellation and consumer callback failure.
+      // Hosts never have to guess provider-owned temporary paths to remove them.
+      this._cleanup(requestDirectory)
     }
   }
 
@@ -1538,6 +1550,7 @@ export default class LocalBlenderRuntime extends Service {
    * @param {number} [request.frame]
    * @param {string} [request.jobId]
    * @param {AbortSignal} [request.signal]
+   * @param {boolean} [request.session] - false forces an isolated batch process; omission preserves configured session routing.
    * @returns {Promise<{report: object, envelope: object, durationMs: number, stdout: string, stderr: string}>}
    */
   async renderPreview(request) {
@@ -1561,7 +1574,7 @@ export default class LocalBlenderRuntime extends Service {
 
     const run = await this.runBootstrap(
       { action: 'render_preview', jobId: request.jobId },
-      { signal: request.signal, args, onWorkingDirectory: request.onWorkingDirectory },
+      { signal: request.signal, session: request.session, args, onWorkingDirectory: request.onWorkingDirectory },
     )
 
     const report = run.envelope.result ?? {}
@@ -1604,6 +1617,7 @@ export default class LocalBlenderRuntime extends Service {
    * @param {number} [request.samples]
    * @param {string} [request.jobId]
    * @param {AbortSignal} [request.signal]
+   * @param {boolean} [request.session] - false forces batch isolation; omission preserves configured session routing.
    * @returns {Promise<{report: object, pngs: Record<string, Buffer>, envelope: object, durationMs: number}>}
    */
   /**
@@ -1894,6 +1908,7 @@ export default class LocalBlenderRuntime extends Service {
       { action: 'render_views', jobId: request.jobId },
       {
         signal: request.signal,
+        session: request.session,
         args: ['--views', 'views.json'],
         // The plan names outputs by BARE file name: Blender must write somewhere
         // that dies with the invocation, or a failed render would leave images

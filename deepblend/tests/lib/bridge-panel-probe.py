@@ -25,6 +25,8 @@ import json
 import os
 import socket
 import sys
+import threading
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROVIDER_PYTHON = os.path.normpath(os.path.join(HERE, '..', '..', '..', 'packages', 'deepblend', 'provider-local', 'python'))
@@ -109,6 +111,11 @@ def main():
     bridge._BRIDGE = None
     readings['beforeRegister'] = draw_panel()
 
+    dispatch = bridge.bootstrap._session_dispatch
+    def on_main_thread(request, options):
+        assert threading.current_thread() is threading.main_thread(), "Blender API called off the main thread"
+        return dispatch(request, options)
+    bridge.bootstrap._session_dispatch = on_main_thread
     bridge.register()
     readings['afterRegister'] = draw_panel()
     readings['registeredClasses'] = {
@@ -126,9 +133,17 @@ def main():
     connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     connection.connect(socket_path)
     connection.sendall((json.dumps({'protocolVersion': 'deepblend.blender/v1', 'jobId': 'panel-probe', 'action': 'get_capabilities'}) + '\n').encode('utf-8'))
+    connection.settimeout(0.05)
+    deadline = time.monotonic() + 30
     answer = b''
     while b'"kind": "result"' not in answer:
-        chunk = connection.recv(65536)
+        assert time.monotonic() < deadline, "panel bridge did not answer within 30 seconds"
+        # Background Blender has no UI timer loop; service its main-thread pump.
+        bridge._BRIDGE._pump()
+        try:
+            chunk = connection.recv(65536)
+        except socket.timeout:
+            continue
         if not chunk:
             break
         answer += chunk

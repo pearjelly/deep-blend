@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.glazed-cup",
+  "version": "1.0.0",
+  "title": "青釉带把手杯",
+  "description": "105 mm 高的陶瓷杯，3 mm 壁厚，圆润杯沿与连续把手。大面积灯光展示釉面；可调整釉色、光泽与曝光，创建后在对象编辑器中修改尺寸。",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend",
+    "note": "Original procedural handled cup with analytic corner normals and broad studio area lights. Preview is an actual fixed hero-camera Blender render of the bundled SceneSpec; raw content hashes pin both files."
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "geometry.handled_cup",
+      "geometry.primitive",
+      "material.principled"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "59e8d58c33bd4dfb16af906d894ffd12cd12c3b3a8395579c9ae0df7856b6b5c"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92",
+    "mediaType": "image/png",
+    "alt": "青釉带把手杯默认参数的实际 Blender 主视角渲染"
+  },
+  "parameters": [
+    {
+      "id": "main-color",
+      "title": "陶瓷釉色",
+      "description": "调整杯体与把手的统一釉色。",
+      "type": "color",
+      "default": [
+        0.035,
+        0.24,
+        0.2
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "glaze",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "主表面粗糙度",
+      "description": "调整陶瓷釉面的光泽；数值越小，表面越亮。",
+      "type": "number",
+      "default": 0.22,
+      "minimum": 0.12,
+      "maximum": 0.42,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "glaze",
+          "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "exposure",
+      "title": "摄影曝光",
+      "description": "调整整体画面的明暗，预览和成品同步生效。",
+      "type": "number",
+      "default": 0,
+      "minimum": -1,
+      "maximum": 1,
+      "bindings": [
+        {
+          "kind": "render-profile",
+          "profile": "preview",
+          "property": "exposure"
+        },
+        {
+          "kind": "render-profile",
+          "profile": "final",
+          "property": "exposure"
+        }
+      ]
+    }
+  ]
+}

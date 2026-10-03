@@ -498,19 +498,11 @@ check('exists() answers false for an id that cannot be a path, and true for a pr
 // real project ever gets is 002 — this is the branch for a project whose jobs were never recorded, which is
 // why it is driven through the allocator itself rather than by arranging an older store.)
 const firstJobId = store.allocateJobId('a-project-with-no-jobs-directory', 'render_preview')
-check('a project with no jobs directory allocates its first job id from zero instead of failing',
-  /^render_preview-\d{14}-001$/.test(firstJobId), firstJobId)
+check('a project with no jobs directory allocates an independent attempt id without failing',
+  /^render_preview-\d{14}-[0-9a-f-]{36}$/.test(firstJobId), firstJobId)
 
-// TWO PATCHES AT ONCE MUST NOT GET THE SAME ATTEMPT-LOG ID, and the reason they do not is a property worth
-// stating: the allocator COUNTS the records in `jobs/` — a read-modify-write — and it is safe only because
-// everything before it in the transaction is await-free, so two calls cannot interleave there. MEASURED: two
-// concurrent patches with different idempotency keys and the SAME baseRevision produce two records with
-// distinct ordinals, and the loser is refused with REVISION_CONFLICT. Insert an `await` above the allocation
-// and both would mint the same name, so the second write would erase the first attempt's record — the same
-// "atomic by construction" shape the asset manifest's read-modify-write has, and the same reason it needs an
-// assertion rather than a comment.
-// A project of its own for this, because `createProject` is what writes the first attempt log — the
-// `healthy` fixture above was made by the STORE, so it has no `jobs/` directory at all.
+// Attempt identifiers also remain distinct for calls made in one Host. Cross-process
+// allocation and manifest publication are covered by artifact-concurrency.test.mjs.
 const raceProject = await transactions.createProject({ title: 'job-id race', sceneSpec: productSpec, saveCheckpoint: false })
 const raceA = await transactions.applyScenePatch({
   projectId: raceProject.projectId, baseRevision: raceProject.revision.revision, idempotencyKey: 'race-a',
@@ -524,7 +516,7 @@ const raceB = await transactions.applyScenePatch({
 }).catch(cause => cause)
 const raceIds = readdirSync(join(store.projectDirectory(raceProject.projectId), 'jobs'))
   .filter(name => name.endsWith('.json'))
-check('two patches at once get DISTINCT attempt-log ids, because the allocator cannot interleave',
+check('two patches at once get DISTINCT attempt-log ids, including asynchronous calls in one Host',
   raceIds.length >= 2 && new Set(raceIds).size === raceIds.length &&
   [raceA, raceB].every(entry => entry instanceof Error || typeof entry.revision?.revision === 'string'),
   { records: raceIds.length, distinct: new Set(raceIds).size })
@@ -533,7 +525,7 @@ check('two patches at once get DISTINCT attempt-log ids, because the allocator c
 // invent a manifest, and must still hand the caller back the artifact it recorded.
 const unpublished = store.revisionDirectory(realProject.projectId, 'r0002')
 mkdirSync(unpublished, { recursive: true })
-const recorded = store.recordRevisionArtifact(realProject.projectId, 'r0002', 'previews', {
+const recorded = await store.recordRevisionArtifact(realProject.projectId, 'r0002', 'previews', {
   kind: 'preview', path: 'revisions/r0002/previews/a.png', at: new Date().toISOString(),
 })
 // RE-EMITTING THE SAME PATH REPLACES ITS ENTRY, and the promise lives in a comment on the writer with no
@@ -546,8 +538,8 @@ const recorded = store.recordRevisionArtifact(realProject.projectId, 'r0002', 'p
 {
   const project = await transactions.createProject({ title: 'artifact identity', sceneSpec: productSpec, saveCheckpoint: false })
   const artifact = { kind: 'view', path: `revisions/${project.revision.revision}/previews/views/top.png`, viewId: 'top' }
-  const first = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', artifact)
-  const second = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
+  const first = await store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', artifact)
+  const second = await store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
     ...artifact, role: 'top', at: new Date().toISOString(),
   })
   const onDisk = JSON.parse(readFileSync(
@@ -560,7 +552,7 @@ const recorded = store.recordRevisionArtifact(realProject.projectId, 'r0002', 'p
   // AND A DIFFERENT PATH IS A DIFFERENT ARTIFACT, even of the same kind: the identity is the PATH, and a rule
   // that de-duplicated on `kind` would keep one view out of two — which the mutation that does exactly that
   // survived until this second view existed.
-  const other = store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
+  const other = await store.recordRevisionArtifact(project.projectId, project.revision.revision, 'previews', {
     kind: 'view', path: `revisions/${project.revision.revision}/previews/views/detail.png`, viewId: 'detail',
   })
   check('and two artifacts of the same kind at DIFFERENT paths are both kept',

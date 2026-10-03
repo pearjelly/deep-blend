@@ -253,7 +253,17 @@ export default class BlenderUiHost extends Service {
       return
     }
 
+    let releaseSignal = () => {}
     try {
+      if (matched.route.id === 'recipes.preview') {
+        const preview = await this.ctx.blenderStudio.readRecipePreview({ id: matched.params.recipeId, version: matched.params.version, digest: url.searchParams.get('digest') })
+        response.setHeader('content-type', preview.contentType)
+        response.setHeader('x-content-type-options', 'nosniff')
+        response.setHeader('cache-control', 'no-store')
+        response.setHeader('content-length', String(preview.size))
+        response.end(request.method === 'HEAD' ? undefined : preview.bytes)
+        return
+      }
       if (matched.route.id === 'artifacts.open') {
         await this._sendArtifact(request, response, matched.params)
         return
@@ -265,11 +275,25 @@ export default class BlenderUiHost extends Service {
         this._sendWorkbenchPage(request, response)
         return
       }
-      const body = await readRequestBody(request)
+      const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview'].includes(matched.route.id)
+      let signal
+      if (cancellable) {
+        const controller = new AbortController()
+        const abort = () => controller.abort()
+        const closed = () => { if (!response.writableEnded) abort() }
+        request.once?.('aborted', abort)
+        response.once?.('close', closed)
+        if (request.aborted) abort()
+        releaseSignal = () => { request.off?.('aborted', abort); response.off?.('close', closed) }
+        signal = controller.signal
+      }
+      const body = ['project.referenceImage.upload', 'project.assets.upload'].includes(matched.route.id) ? {} : await readRequestBody(request)
       const result = await this._handlers[matched.route.id]({
         params: matched.params,
         query: Object.fromEntries(url.searchParams.entries()),
         body,
+        request,
+        signal,
       })
       this._sendJson(response, 200, { ok: true, route: matched.route.id, hostApiVersion: HOST_API_VERSION, ...result })
     } catch (cause) {
@@ -285,6 +309,8 @@ export default class BlenderUiHost extends Service {
         hostApiVersion: HOST_API_VERSION,
         error: error.toJSON(),
       })
+    } finally {
+      releaseSignal()
     }
   }
 
@@ -390,6 +416,14 @@ export default class BlenderUiHost extends Service {
  * @returns {number}
  */
 export function statusForError(error) {
+  if (error?.code === 'UI_HOST_API_STALE') return 503
+  const referenceStatuses = { ASSET_REQUEST_INVALID: 400, ASSET_CONTENT_MISMATCH: 415, ASSET_TOO_LARGE: 413,
+    ASSET_FORMAT_UNAVAILABLE: 415, SCENE_VALIDATION_FAILED: 422, SCENE_SPEC_INVALID: 422,
+    PATH_SEGMENT_INVALID: 400, ASSET_HASH_MISMATCH: 409, ASSET_SOURCE_NOT_FOUND: 404 }
+  if (referenceStatuses[error.code]) return referenceStatuses[error.code]
+  if (error.code === 'RECIPE_NOT_FOUND') return 404
+  if (error.code === 'RECIPE_CHANGED' || error.code === 'RECIPE_ID_CONFLICT') return 409
+  if (error.code?.startsWith('RECIPE_')) return 400
   switch (error.code) {
     case BlenderErrorCode.PROJECT_NOT_FOUND:
     case BlenderErrorCode.REVISION_NOT_FOUND:
@@ -401,6 +435,7 @@ export function statusForError(error) {
     case BlenderErrorCode.SCENE_PATCH_INVALID:
       return 400
     case BlenderErrorCode.RENDER_JOB_CONFLICT:
+    case BlenderErrorCode.REVISION_CONFLICT:
       return 409
     default:
       return 500
@@ -458,6 +493,13 @@ async function readRequestBody(request) {
  */
 export function createHandlers(ctx) {
   const studio = () => ctx.blenderStudio
+  const assetStudio = method => {
+    const service = studio(), version = service?.hostApiVersion?.()
+    if (typeof service?.[method] !== 'function' || typeof version === 'number' && version < 5) {
+      throw new BlenderError('UI_HOST_API_STALE', 'The running Blender Host does not support the asset library. Restart with Host API 5 or newer.')
+    }
+    return service
+  }
   const approvalThreshold = () => studio().config?.requireApprovalAboveFrames ?? Number.POSITIVE_INFINITY
 
   return {
@@ -583,6 +625,7 @@ export function createHandlers(ctx) {
       const projectId = query.projectId ?? listed.projects[0]?.projectId ?? null
       return {
         panelId: UI_PANEL_ID,
+        recipeCatalog: studio().listRecipes?.() ?? { recipes: [], errors: [] },
         projects: listed.projects.map(record => buildProjectView(record)),
         projectsRoot: listed.projectsRoot,
         selected: projectId === null
@@ -590,6 +633,9 @@ export function createHandlers(ctx) {
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
       }
     },
+
+    'recipes.list': async () => studio().listRecipes(),
+    'recipes.preview': async ({ params, query }) => studio().readRecipePreview({ id: params.recipeId, version: params.version, digest: query.digest }),
 
     'projects.list': async () => {
       const listed = await studio().listProjects()
@@ -601,6 +647,7 @@ export function createHandlers(ctx) {
         title: body.title,
         goal: body.goal,
         sceneSpec: body.sceneSpec,
+        recipe: body.recipe,
         projectId: body.projectId,
         saveCheckpoint: true,
         renderPreview: body.renderPreview === true,
@@ -619,6 +666,7 @@ export function createHandlers(ctx) {
           revision: detail.revision,
           digest: detail.digest,
           compiled: detail.compiledSpec ?? null,
+          assetParts: detail.assetParts ?? [],
         }),
       }
     },
@@ -661,7 +709,13 @@ export function createHandlers(ctx) {
       return { previews: sets, artifactBase: `${UI_ROUTE_PREFIX}/artifacts/${encodeURIComponent(params.projectId)}/` }
     },
 
-    'project.preview': async ({ params, body }) => {
+    'project.preview': async ({ params, body, signal }) => {
+      if (body.mode !== undefined) {
+        const version = studio()?.hostApiVersion?.()
+        if (!Number.isFinite(version) || version < 6) throw new BlenderError('UI_HOST_API_STALE', 'Fixed-view inspections require Blender Host API 6 or newer. Restart the Host.')
+        if (!['beauty', 'clay'].includes(body.mode)) throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Unknown inspection mode.')
+        requiredRevision(body.revision)
+      }
       // `renderViews` answers with the rendered PNG bytes in `pngs`, which is not
       // lossless JSON and is not what the browser needs: the panel displays the
       // images through the artifact route, so the response carries the paths,
@@ -669,6 +723,9 @@ export function createHandlers(ctx) {
       const result = await studio().renderViews({
         projectId: params.projectId,
         revision: body.revision,
+        ...(body.mode === undefined ? {} : { mode: body.mode }),
+        ...(body.views === undefined ? {} : { views: Array.isArray(body.views) ? body.views.map(view => ({ id: view?.id, cameraId: view?.cameraId, frame: view?.frame })) : body.views }),
+        signal,
         samples: numberOrUndefined(body.samples),
         maxViews: numberOrUndefined(body.maxViews),
         reason: body.reason ?? 'preview rendered from the workbench UI',
@@ -676,6 +733,9 @@ export function createHandlers(ctx) {
       return {
         preview: {
           projectId: params.projectId,
+          ...(result.mode ? { mode: result.mode } : {}),
+          ...(result.sourceRevision ? { sourceRevision: result.sourceRevision } : {}),
+          ...(result.sourceDigest ? { sourceDigest: result.sourceDigest } : {}),
           revision: result.revision ?? body.revision ?? null,
           digest: result.digest ?? null,
           profile: result.profile ?? null,
@@ -698,6 +758,39 @@ export function createHandlers(ctx) {
       }
     },
 
+    'project.referenceImage.upload': async ({ params, query, request }) => studio().uploadReferenceImage({
+      projectId: params.projectId, name: query.name, mediaType: request?.headers?.['content-type'], stream: request,
+    }),
+
+    'project.assets.list': async ({ params, query }) => assetStudio('listAssets').listAssets({
+      projectId: params.projectId, ...(query.revision ? { revision: requiredRevision(query.revision) } : {}),
+    }),
+    'project.assets.upload': async ({ params, query, request, signal }) => assetStudio('uploadAsset').uploadAsset({
+      projectId: params.projectId, name: query.name, mediaType: request?.headers?.['content-type'],
+      ...(query.license === undefined ? {} : { license: query.license }), stream: request, signal,
+    }),
+    'project.assets.preview': async ({ params, body, signal }) => assetStudio('previewAsset').previewAsset({
+      projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, assetPath: body.assetPath, signal,
+    }),
+
+    'project.review': async ({ params, body }) => {
+      const revision = requiredRevision(body.revision)
+      const result = await studio().visualReview({ projectId: params.projectId, revision, consultReviewer: true,
+        width: 640, height: 480, samples: 16 })
+      return { revision: result.revision ?? revision,
+        review: buildQaView({ projectId: params.projectId, revision, review: result }).visual }
+    },
+
+    'project.autofix': async ({ params, body }) => {
+      const revision = requiredRevision(body.revision)
+      const maxIterations = body.maxIterations ?? 1
+      if (!Number.isInteger(maxIterations) || maxIterations < 1 || maxIterations > 3) {
+        throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'maxIterations must be an integer from 1 to 3.')
+      }
+      return { run: await studio().visualLoop({ projectId: params.projectId, revision, autoFix: true,
+        maxIterations, width: 640, height: 480, samples: 16 }) }
+    },
+
     'project.patch': async ({ params, body }) => {
       // The patch is passed through verbatim: the Host validates it against the
       // ScenePatch schema and the base revision, and it is the only writer.
@@ -710,6 +803,7 @@ export function createHandlers(ctx) {
       const result = await studio().restoreRevision({
         projectId: params.projectId,
         revision: body.revision,
+        expectedCurrentRevision: body.expectedCurrentRevision,
         reason: body.reason ?? 'restored from the workbench UI',
         actor: body.actor ?? 'ui',
       })
@@ -798,7 +892,7 @@ async function buildProjectState(studio, projectId, revision, threshold) {
     project: buildProjectView({
       projectId,
       title: overview.title,
-      goal: record?.goal ?? null,
+      goal: scene.spec?.project?.goal ?? '',
       currentRevision: overview.currentRevision,
       revisionCount: overview.revisionCount,
       createdAt: record?.createdAt ?? null,
@@ -811,6 +905,7 @@ async function buildProjectState(studio, projectId, revision, threshold) {
       revision: scene.revision,
       digest: scene.digest,
       compiled: scene.compiledSpec ?? null,
+      assetParts: scene.assetParts ?? [],
     }),
     revisions: overview.revisions ?? [],
     jobs: jobs.jobs.map(job => buildJobView(job, { threshold })),
@@ -842,3 +937,10 @@ function numberOrUndefined(value) {
  * @returns {Record<string, unknown>}
  */
 export { buildSettingsCard }
+
+function requiredRevision(value) {
+  if (typeof value !== 'string' || !/^r[0-9]+$/.test(value)) {
+    throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Select a saved revision before reviewing it.')
+  }
+  return value
+}

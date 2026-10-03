@@ -69,7 +69,7 @@ let server = null
 let browser = null
 
 try {
-  server = await startWeb({ workspacePath: REPO_ROOT, patch: await storePatch(store), keepHome: true })
+  server = await startWeb({ workspacePath: REPO_ROOT, patch: await storePatch(store), keepHome: true, inheritUserConfig: true })
   console.log(`── test server on ${server.url.split('?')[0]} ──`)
 
   // The project is made through the Host route, not through the UI: this suite is

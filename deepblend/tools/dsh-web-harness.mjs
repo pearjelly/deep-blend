@@ -12,16 +12,15 @@
  *    *after* `package.json` declared `dsh.client` (see
  *    `docs/probe-m4-client-loop.log` §3.1).
  *
- * The home is assembled from the real one by symlink where the content is the
- * machine's (node_modules, credentials, settings, agent presets) and by copy
- * where it is the profile's. Secrets are never copied — the credential store is
- * symlinked so it stays in exactly one place.
+ * Ordinary UI tests use a fresh baseline profile plus this checkout's plugin.
+ * Live model tests explicitly opt into the user's settings and credential links.
  *
  * Owner: DeepBlend Studio — M4
  * Plane: test tooling.
  */
 
 import { spawn } from 'node:child_process'
+import { initProfile, PROFILE_TEMPLATES } from '@deepseek-ai/dsh-app-boot'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -103,9 +102,9 @@ export function seedWorkspace(home, workspacePath, options = {}) {
 }
 
 /**
- * Build a DSH home that boots the same composition as the developer's.
+ * Build an isolated DSH home; user configuration requires an explicit opt-in.
  *
- * @param {{ home?: string, profile?: string, patch?: string, keep?: boolean }} [options]
+ * @param {{ home?: string, profile?: string, patch?: string, inheritUserConfig?: boolean }} [options]
  * @returns {string} the home directory
  */
 export function createHome(options = {}) {
@@ -123,7 +122,8 @@ export function createHome(options = {}) {
   // to make. That dialog is a property of an unconfigured deployment, not of the
   // UI under test — and the alternative (clicking through it in every test)
   // would make every test depend on the dialog's own copy.
-  for (const name of ['settings.yaml', '.credentials.yaml', '.anonymous-user-id', 'llm-deepseek', '.agent-presets', 'cordis.patch.yml']) {
+  for (const name of options.inheritUserConfig === true
+    ? ['settings.yaml', '.credentials.yaml', '.anonymous-user-id', 'llm-deepseek', '.agent-presets', 'cordis.patch.yml'] : []) {
     const source = join(REAL_HOME, name)
     if (existsSync(source)) linkDirectory(source, join(home, name))
   }
@@ -147,7 +147,7 @@ export function createHome(options = {}) {
   const realProfilesNodeModules = join(REAL_HOME, 'profiles', 'node_modules')
   const testProfilesNodeModules = join(home, 'profiles', 'node_modules')
   mkdirSync(testProfilesNodeModules, { recursive: true })
-  if (existsSync(realProfilesNodeModules)) {
+  if (options.inheritUserConfig === true && existsSync(realProfilesNodeModules)) {
     for (const entry of readdirSync(realProfilesNodeModules)) {
       if (entry === LOCAL_SCOPE) continue
       symlinkSync(join(realProfilesNodeModules, entry), join(testProfilesNodeModules, entry))
@@ -160,9 +160,21 @@ export function createHome(options = {}) {
   }
 
   const realProfile = join(REAL_HOME, 'profiles', profile)
-  for (const name of ['cordis.yml', 'cordis.patch.yml', 'package.json', 'pnpm-workspace.yaml']) {
+  for (const name of options.inheritUserConfig === true
+    ? ['cordis.yml', 'cordis.patch.yml', 'package.json', 'pnpm-workspace.yaml'] : []) {
     const source = join(realProfile, name)
     if (existsSync(source)) copyFile(source, join(home, 'profiles', profile, name))
+  }
+  if (options.inheritUserConfig !== true) {
+    const template = PROFILE_TEMPLATES[profile]
+    if (!template) throw new Error(`Unknown DSH profile template: ${profile}`)
+    initProfile(join(home, 'profiles', profile),
+      [...template.bundles, '@deepblend/dsh-blender-bundle'], template.patchReload)
+    const presets = join(home, '.agent-presets')
+    mkdirSync(presets, { recursive: true })
+    for (const name of ['deepblend', 'deepblend-dev']) {
+      linkDirectory(join(REPO_ROOT, 'deepblend', 'presets', name), join(presets, name))
+    }
   }
   // The operator layer is the test's own: it composes the same bundles and
   // redirects the DeepBlend store into scratch space.
@@ -204,11 +216,12 @@ export function readServerUrl(child, timeoutMs = 90000) {
 /**
  * Start one `dsh web` and wait until it serves the DeepBlend route.
  *
- * @param {{ workspacePath: string, home?: string, port?: number, patch?: string, profile?: string, env?: Record<string, string> }} options
+ * @param {{ workspacePath: string, home?: string, port?: number, patch?: string, profile?: string, env?: Record<string, string>, keepHome?: boolean, inheritUserConfig?: boolean }} options
  * @returns {Promise<{ url: string, token: string, port: number, home: string, child: any, output: string[], stop: () => Promise<void> }>}
  */
 export async function startWeb(options) {
-  const home = createHome({ home: options.home, patch: options.patch, profile: options.profile })
+  const home = createHome({ home: options.home, patch: options.patch, profile: options.profile,
+    inheritUserConfig: options.inheritUserConfig })
   seedWorkspace(home, options.workspacePath)
   const port = options.port ?? 0
   const child = spawn('dsh', ['web', '--port', String(port), '--no-open'], {
@@ -216,20 +229,29 @@ export async function startWeb(options) {
     env: { ...process.env, ...options.env, DSH_HOME: home },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  const info = await readServerUrl(child)
+  let info
+  try {
+    info = await readServerUrl(child)
 
-  // The URL is printed before the first request is served; poll the DeepBlend
-  // route so a test never races startup.
-  const deadline = Date.now() + 60000
-  for (;;) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${info.port}/deepblend/capabilities`)
-      if (response.ok) break
-    } catch {
-      // not listening yet
+    // The URL is printed before the first request is served; poll the DeepBlend
+    // route so a test never races startup.
+    const deadline = Date.now() + 60000
+    for (;;) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${info.port}/deepblend/capabilities`)
+        if (response.ok) break
+      } catch {
+        // not listening yet
+      }
+      if (child.exitCode !== null || Date.now() > deadline) {
+        const output = info.output.join('').replace(/token=[A-Za-z0-9_-]+/g, 'token=[redacted]')
+        throw new Error(`dsh web never served /deepblend/capabilities on port ${info.port}:\n${output.slice(-6000)}`)
+      }
+      await sleep(200)
     }
-    if (Date.now() > deadline) throw new Error(`dsh web never served /deepblend/capabilities on port ${info.port}`)
-    await sleep(200)
+  } catch (error) {
+    await stop()
+    throw error
   }
 
   /**
@@ -250,9 +272,17 @@ export async function startWeb(options) {
    *
    * @returns {Promise<{via: 'already-exited'|'sigterm'|'sigkill', ms: number}>}
    */
-  const stop = async () => {
+  async function stop() {
     const startedAt = Date.now()
-    if (child.exitCode !== null || child.signalCode !== null) return { via: 'already-exited', ms: 0 }
+    const cleanup = () => {
+      if (options.home === undefined && options.keepHome !== true) {
+        rmSync(home, { recursive: true, force: true })
+      }
+    }
+    if (child.exitCode !== null || child.signalCode !== null) {
+      cleanup()
+      return { via: 'already-exited', ms: 0 }
+    }
 
     let exited = false
     const exitedOnce = new Promise(resolve => child.once('exit', () => { exited = true; resolve() }))
@@ -266,7 +296,7 @@ export async function startWeb(options) {
       await exitedOnce
     }
     const ms = Date.now() - startedAt
-    if (options.keepHome !== true) {
+    if (options.home === undefined && options.keepHome !== true) {
       try {
         rmSync(home, { recursive: true, force: true })
       } catch {
@@ -303,16 +333,26 @@ export function linkTarget(path) {
  */
 export async function dismissFirstRunDialogs(page) {
   const labels = ['API 密钥稍后配置', '稍后配置', 'Skip for now', 'Configure later']
-  const dismissed = await page.evaluate(`(() => {
+  let dismissed = false
+  // A fresh profile first shows the testing notice, then the optional key dialog.
+  // Wait for the first-run UI to mount instead of borrowing the user's settings.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const clicked = await page.evaluate(`(() => {
     const wanted = ${JSON.stringify(labels)}
+    if (/内测声明|Internal Testing Notice/.test(document.body.innerText)) {
+      wanted.push('继续', 'Continue')
+    }
     const buttons = Array.from(document.querySelectorAll('button'))
-    const match = buttons.find(button => wanted.some(label => (button.textContent || '').trim() === label))
+    const match = buttons.find(button => button.getClientRects().length > 0 &&
+      wanted.some(label => (button.textContent || '').trim() === label))
     if (!match) return false
     match.click()
     return true
   })()`)
-  if (dismissed) await sleep(600)
-  return dismissed === true
+    dismissed ||= clicked
+    await sleep(250)
+  }
+  return dismissed
 }
 
 /**

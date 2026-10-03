@@ -139,6 +139,89 @@ function entity(next, id) {
 // ---------------------------------------------------------------------------
 
 const validPatch = patchWith([{ op: 'entity.visibility.set', entityId: 'stage', visible: false }])
+const geometryEdit = runPatch([
+  { op: 'entity.generator.set', entityId: 'watch-body', generator: {
+    shape: 'lathe', profile: [[0, 0], [.05, 0], [.04, .1], [0, .1]], segments: 64 } },
+  { op: 'entity.modifiers.set', entityId: 'watch-body', modifiers: [{ type: 'bevel', width: .001 }] },
+])
+check('geometry editing changes the existing shape and stack without mutating its inputs',
+  !geometryEdit.error && geometryEdit.specUnchanged && geometryEdit.patchUnchanged &&
+  entity(geometryEdit.next, 'watch-body').generator.shape === 'lathe' &&
+  entity(geometryEdit.next, 'watch-body').modifiers[0].type === 'bevel')
+check('geometry editing preserves material, transform and animation/camera references',
+  JSON.stringify(geometryEdit.next.animationTracks) === JSON.stringify(geometryEdit.spec.animationTracks) &&
+  JSON.stringify(geometryEdit.next.cameras) === JSON.stringify(geometryEdit.spec.cameras) &&
+  entity(geometryEdit.next, 'watch-body').materialId === entity(geometryEdit.spec, 'watch-body').materialId &&
+  JSON.stringify(entity(geometryEdit.next, 'watch-body').transform) === JSON.stringify(entity(geometryEdit.spec, 'watch-body').transform))
+check('geometry edits compile and record changed paths for revision history',
+  compileSceneSpec(geometryEdit.next).spec.entities.some(entry => entry.generator?.shape === 'lathe') &&
+  geometryEdit.result.operations.flatMap(entry => entry.changedPaths).includes('entities.watch-body.modifiers'))
+const sharpBevelOperation = { op: 'entity.modifiers.set', entityId: 'watch-body',
+  modifiers: [{ type: 'bevel', width: .001, miterInner: 'sharp' }] }
+const sharpenedBevel = runPatch([sharpBevelOperation], { spec: geometryEdit.next })
+const sharpBevelManifest = buildOperationManifest({ operations: sharpenedBevel.result.operations, request: sharpenedBevel.patch,
+  revision: { revision: 'r0002', baseRevision: 'r0001', ...sharpenedBevel.result }, notices: [] })
+check('a modifier patch accepts and compiles sharp inner corners',
+  validateScenePatch(patchWith([sharpBevelOperation])).ok && !sharpenedBevel.error &&
+  entity(compileSceneSpec(sharpenedBevel.next).spec, 'watch-body').modifiers[0].miterInner === 'sharp')
+check('an inner miter edit changes both scene and spec identity and records its stack path',
+  sharpBevelManifest.sceneChanged && sharpBevelManifest.specChanged &&
+  sharpenedBevel.result.digestBefore !== sharpenedBevel.result.digestAfter &&
+  sharpenedBevel.result.specHashBefore !== sharpenedBevel.result.specHashAfter &&
+  sharpenedBevel.result.operations[0].changedPaths.includes('entities.watch-body.modifiers'))
+const expectedBevelEdit = clone(geometryEdit.next)
+entity(expectedBevelEdit, 'watch-body').modifiers = clone(sharpBevelOperation.modifiers)
+check('an inner miter patch preserves every unrelated field and both caller inputs',
+  JSON.stringify(sharpenedBevel.next) === JSON.stringify(expectedBevelEdit) && sharpenedBevel.specUnchanged && sharpenedBevel.patchUnchanged)
+const repeatedBevel = runPatch([sharpBevelOperation], { spec: sharpenedBevel.next })
+check('reapplying the same inner miter is a scene and document no-op',
+  repeatedBevel.result.digestBefore === repeatedBevel.result.digestAfter &&
+  repeatedBevel.result.specHashBefore === repeatedBevel.result.specHashAfter)
+const arcBevel = runPatch([{ ...sharpBevelOperation, modifiers: [{ type: 'bevel', width: .001, miterInner: 'arc' }] }],
+  { spec: sharpenedBevel.next })
+check('an explicit arc patch restores that join and counts as a geometry change',
+  entity(arcBevel.next, 'watch-body').modifiers[0].miterInner === 'arc' &&
+  arcBevel.result.digestBefore !== arcBevel.result.digestAfter && arcBevel.result.specHashBefore !== arcBevel.result.specHashAfter)
+const omittedBevel = runPatch([{ ...sharpBevelOperation, modifiers: [{ type: 'bevel', width: .001 }] }],
+  { spec: sharpenedBevel.next })
+check('removing the optional join returns to the exact legacy scene and spec hashes',
+  !Object.hasOwn(entity(omittedBevel.next, 'watch-body').modifiers[0], 'miterInner') &&
+  omittedBevel.result.digestAfter === sharpenedBevel.result.digestBefore &&
+  omittedBevel.result.specHashAfter === sharpenedBevel.result.specHashBefore)
+const addedBevel = runPatch([{ op: 'entity.add', entity: { id: 'new-beveled-body', type: 'generator',
+  generator: { shape: 'cube' }, modifiers: [{ type: 'bevel', width: .01, miterInner: 'sharp' }] } }])
+check('entity.add carries the same strict bevel option through its embedded entity schema',
+  !addedBevel.error && entity(addedBevel.next, 'new-beveled-body').modifiers[0].miterInner === 'sharp')
+for (const operation of [
+  { ...sharpBevelOperation, modifiers: [{ type: 'bevel', width: .001, miterInner: 'patch' }] },
+  { ...sharpBevelOperation, modifiers: [{ type: 'bevel', width: .001, miterInner: null }] },
+  { ...sharpBevelOperation, modifiers: [{ type: 'array', count: 2, offset: [1, 0, 0], miterInner: 'sharp' }] },
+  { ...sharpBevelOperation, modifiers: [{ type: 'bevel', width: .001, miterOuter: 'sharp' }] },
+  { op: 'entity.generator.set', entityId: 'watch-body', generator: { shape: 'rounded_box', bevel: { width: .01, miterInner: 'sharp' } } },
+  { op: 'entity.generator.set', entityId: 'watch-body', generator: { shape: 'cube', miterInner: 'sharp' } },
+  { op: 'entity.add', entity: { id: 'wrong-beveled-body', type: 'generator', generator: { shape: 'cube' },
+    modifiers: [{ type: 'bevel', width: .01, miterInner: 'round' }] } },
+]) {
+  const patch = patchWith([operation]), before = JSON.stringify(patch)
+  const rejected = validateScenePatch(patch)
+  check(`inner miter patch rejects malformed or misplaced fields: ${JSON.stringify(operation)}`,
+    !rejected.ok && rejected.errors.some(error => error.code === 'PATCH_SCHEMA_INVALID') && JSON.stringify(patch) === before)
+}
+const clearStack = runPatch([{ op: 'entity.modifiers.set', entityId: 'watch-body', modifiers: [] }], { spec: geometryEdit.next })
+check('clearing the stack removes its key and preserves the generator',
+  !('modifiers' in entity(clearStack.next, 'watch-body')) && entity(clearStack.next, 'watch-body').generator.shape === 'lathe')
+const noStack = runPatch([{ op: 'entity.modifiers.set', entityId: 'watch-body', modifiers: [] }])
+check('clearing an absent stack is a no-op', noStack.result.specHashBefore === noStack.result.specHashAfter)
+const wrongGeometryTarget = compiledFixture()
+wrongGeometryTarget.entities.push({ id: 'empty-target', type: 'empty' })
+for (const operation of [
+  { op: 'entity.generator.set', entityId: 'empty-target', generator: { shape: 'cube' } },
+  { op: 'entity.modifiers.set', entityId: 'empty-target', modifiers: [{ type: 'bevel', width: .1 }] },
+]) {
+  const rejected = runPatch([operation], { spec: wrongGeometryTarget })
+  check(`${operation.op} rejects empty targets without mutating input`,
+    rejected.errorCode === 'PATCH_OPERATION_INVALID' && rejected.specUnchanged)
+}
 const validResult = validateScenePatch(validPatch)
 check('a well-formed patch validates', validResult.ok === true, validResult.errors)
 check('a valid patch reports the summary "valid"', validResult.summary === 'valid', validResult.summary)
@@ -263,6 +346,91 @@ check(
 
 /** Records which operation names a real patch exercised successfully. */
 const exercisedOperations = new Set()
+const briefEdit = runPatch([{ op: 'project.brief.set', goal: 'A rounded product silhouette', referenceImages: [] }])
+check('project.brief.set preserves unrelated project fields and records both authored input paths',
+  briefEdit.next?.project.goal === 'A rounded product silhouette' && briefEdit.specUnchanged && briefEdit.patchUnchanged
+  && briefEdit.next.project.fps === briefEdit.spec.project.fps
+  && JSON.stringify(briefEdit.result.operations[0].changedPaths) === JSON.stringify(['project.goal', 'project.referenceImages']))
+for (const operation of briefEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const subjectEdit = runPatch([{ op: 'project.reviewSubject.set', entityId: 'watch-body' }])
+check('project.reviewSubject.set changes only the saved subject and preserves patch/spec inputs',
+  subjectEdit.next?.project.reviewSubjectId === 'watch-body' && subjectEdit.specUnchanged && subjectEdit.patchUnchanged &&
+  JSON.stringify(subjectEdit.result.operations[0].changedPaths) === JSON.stringify(['project.reviewSubjectId']))
+for (const operation of subjectEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const anisotropicEdit = runPatch([
+  { op: 'material.tangent.set', materialId: 'hero-steel', tangent: { mode: 'radial', axis: 'z' } },
+  { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'anisotropic', value: 0.8 },
+  { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'anisotropicRotation', value: 0.25 },
+])
+check('anisotropic tangent and scalars patch atomically without mutating inputs', !anisotropicEdit.error &&
+  anisotropicEdit.specUnchanged && anisotropicEdit.patchUnchanged && validateSceneSpec(anisotropicEdit.next).ok &&
+  anisotropicEdit.result.operations[0].changedPaths[0] === 'materials.hero-steel.tangent')
+for (const operation of anisotropicEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const tangentToUV = runPatch([{ op: 'material.tangent.set', materialId: 'hero-steel', tangent: { mode: 'uv', uvMap: 'SurfaceUV' } }], { spec: anisotropicEdit.next })
+check('tangent patch replaces radial direction with named UV and changes the scene', !tangentToUV.error &&
+  tangentToUV.result.digestBefore !== tangentToUV.result.digestAfter &&
+  tangentToUV.next.materials.find(entry => entry.id === 'hero-steel').tangent.axis === undefined)
+const clearActiveTangent = runPatch([{ op: 'material.tangent.set', materialId: 'hero-steel', tangent: null }], { spec: anisotropicEdit.next })
+check('clearing a still-active tangent is rejected by final scene validation', !clearActiveTangent.error && !validateSceneSpec(clearActiveTangent.next).ok)
+const clearedTangent = runPatch([
+  { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'anisotropic', value: 0 },
+  { op: 'material.parameter.update', materialId: 'hero-steel', parameter: 'anisotropicRotation', value: 0 },
+  { op: 'material.tangent.set', materialId: 'hero-steel', tangent: null },
+], { spec: anisotropicEdit.next })
+check('zeroing both scalars permits clearing the tangent', !clearedTangent.error && validateSceneSpec(clearedTangent.next).ok &&
+  !Object.hasOwn(clearedTangent.next.materials.find(entry => entry.id === 'hero-steel'), 'tangent'))
+check('tangent patches reject missing material', runPatch([{ op: 'material.tangent.set', materialId: 'absent', tangent: null }]).errorCode === 'PATCH_TARGET_MISSING')
+for (const parameter of ['anisotropic', 'anisotropicRotation']) {
+  for (const value of [-0.1, 1.1, [0, 0, 0]]) check(`${parameter} patch rejects ${JSON.stringify(value)}`,
+    !validateScenePatch(patchWith([{ op: 'material.parameter.update', materialId: 'hero-steel', parameter, value }])).ok)
+  const track = { id: 'animate-' + parameter, targetKind: 'material', targetEntityId: 'hero-steel', property: parameter,
+    keyframes: [{ frame: 1, value: 0 }, { frame: 48, value: 0.7 }] }
+  const animated = runPatch([{ op: 'animation.track.set', track }], { spec: anisotropicEdit.next })
+  check(`${parameter} animation patch targets the material`, !animated.error && validateSceneSpec(animated.next).ok)
+}
+const addAnisotropic = runPatch([{ op: 'material.add', material: { id: 'new-brushed', shader: 'principled',
+  parameters: { metallic: 1, anisotropic: 0.7 }, tangent: { mode: 'uv', uvMap: 'UVMap' } } }])
+check('material.add exposes tangent without a second patch', !addAnisotropic.error && validateSceneSpec(addAnisotropic.next).ok)
+
+const bindingSpec = compiledFixture()
+bindingSpec.assets = [{ id: 'assembly', type: 'glb', path: 'assets/raw/assembly.glb' }]
+bindingSpec.entities.push({ id: 'assembly', type: 'asset-instance', assetId: 'assembly' })
+const localBinding = { partId: '/body', slotIndex: 1, materialId: 'hero-steel' }
+const partEdit = runPatch([{ op: 'entity.materialBindings.set', entityId: 'assembly', materialBindings: [localBinding] }], { spec: bindingSpec })
+check('part bindings set and preserve unrelated entity state and input documents', !partEdit.error && partEdit.specUnchanged &&
+  partEdit.patchUnchanged && entity(partEdit.next, 'assembly').assetId === 'assembly' &&
+  entity(partEdit.next, 'assembly').materialBindings[0].slotIndex === 1 && validateSceneSpec(partEdit.next).ok)
+for (const operation of partEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const clearBindings = runPatch([{ op: 'entity.materialBindings.set', entityId: 'assembly', materialBindings: [] }], { spec: partEdit.next })
+check('clearing part bindings removes the key and reports the changed field', !clearBindings.error &&
+  !Object.hasOwn(entity(clearBindings.next, 'assembly'), 'materialBindings') && clearBindings.result.operations[0].changedPaths.length === 1)
+const noBindings = runPatch([{ op: 'entity.materialBindings.set', entityId: 'assembly', materialBindings: [] }], { spec: bindingSpec })
+check('clearing absent bindings is a semantic no-op', !noBindings.error && noBindings.result.operations[0].changedPaths.length === 0)
+for (const [label, target, bindings, code] of [
+  ['generator', 'stage', [localBinding], 'PATCH_OPERATION_INVALID'],
+  ['missing entity', 'absent', [localBinding], 'PATCH_TARGET_MISSING'],
+  ['missing material', 'assembly', [{ ...localBinding, materialId: 'absent' }], 'PATCH_REFERENCE_MISSING'],
+  ['duplicate slot', 'assembly', [localBinding, localBinding], 'PATCH_OPERATION_INVALID'],
+]) {
+  const rejected = runPatch([{ op: 'entity.materialBindings.set', entityId: target, materialBindings: bindings }], { spec: bindingSpec })
+  check(`part binding rejects ${label} without mutation`, rejected.errorCode === code && rejected.specUnchanged)
+}
+
+const imageEdit = runPatch([
+  { op: 'asset.add', asset: { id: 'albedo-map', type: 'png', path: 'assets/raw/albedo.png' } },
+  { op: 'material.images.set', materialId: 'hero-steel', images: { baseColor: { assetId: 'albedo-map' } } },
+])
+check('image map bindings survive a material patch and validate as a complete scene',
+  !imageEdit.error && validateSceneSpec(imageEdit.next).ok && imageEdit.next.materials.find(entry => entry.id === 'hero-steel').images.baseColor.assetId === 'albedo-map')
+for (const operation of imageEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const imageRemoval = runPatch([{ op: 'asset.remove', assetId: 'albedo-map' }], { spec: imageEdit.next })
+check('removing a material image dependency is refused', imageRemoval.errorCode === 'PATCH_TARGET_IN_USE')
+const clearImages = runPatch([{ op: 'material.images.set', materialId: 'hero-steel', images: null },
+  { op: 'asset.remove', assetId: 'albedo-map' }], { spec: imageEdit.next })
+check('clearing images permits dependency removal and preserves material scalars',
+  !clearImages.error && !clearImages.next.materials.find(entry => entry.id === 'hero-steel').images &&
+  JSON.stringify(clearImages.next.materials[0].parameters) === JSON.stringify(imageEdit.next.materials[0].parameters))
+for (const operation of geometryEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
 
 /** Apply a case that is expected to succeed, asserting uniformity first. */
 function applied(label, operations, options) {
@@ -788,6 +956,19 @@ check(
 )
 
 // ---- world.set ------------------------------------------------------------
+const environmentPatch = runPatch([
+  { op: 'asset.add', asset: { id: 'env', type: 'hdr', path: 'assets/raw/studio.hdr' } },
+  { op: 'world.set', world: { strength: .8, environment: { assetId: 'env', rotation: 1 } } },
+])
+check('world.set preserves an environment binding and rotation', !environmentPatch.error &&
+  environmentPatch.next.world.environment.rotation === 1 && validateSceneSpec(environmentPatch.next).ok)
+check('environment dependencies cannot be removed while referenced',
+  runPatch([{ op: 'asset.remove', assetId: 'env' }], { spec: environmentPatch.next }).errorCode === 'PATCH_TARGET_IN_USE')
+const clearEnvironment = runPatch([{ op: 'world.set', world: { strength: .2 } }, { op: 'asset.remove', assetId: 'env' }], { spec: environmentPatch.next })
+check('replacing the world clears its environment and permits asset removal',
+  !clearEnvironment.error && !clearEnvironment.next.world.environment)
+check('world.set rejects missing environment assets',
+  runPatch([{ op: 'world.set', world: { environment: { assetId: 'missing-env' } } }]).errorCode === 'PATCH_REFERENCE_MISSING')
 // The background a viewer sees behind the product used to be a constant inside the
 // Blender compiler, so a brief asking for a black background could not be honoured
 // through the spec at all. These assert the reachable version.
@@ -962,8 +1143,9 @@ check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 }
 
 check(
-  'SCENE_OPERATION_NAMES lists the 24 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 24
+  'SCENE_OPERATION_NAMES lists the 31 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 31 && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
+    && SCENE_OPERATION_NAMES[29] === 'project.brief.set'
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
     && SCENE_OPERATION_NAMES[19] === 'render.profile.set'
@@ -1032,6 +1214,12 @@ const FAILURE_CASES = [
     { op: 'asset.add', asset: { id: 'used-asset', type: 'glb', path: 'assets/raw/used.glb' } },
     { op: 'entity.add', entity: { id: 'asset-user', type: 'asset-instance', assetId: 'used-asset' } },
     { op: 'asset.remove', assetId: 'used-asset' },
+  ] },
+  { label: 'entity.remove of a boolean operand', code: 'PATCH_TARGET_IN_USE', operations: [
+    { op: 'entity.add', entity: { id: 'operand', type: 'generator', generator: { shape: 'cube' } } },
+    { op: 'entity.add', entity: { id: 'consumer', type: 'generator', generator: { shape: 'cube' },
+      modifiers: [{ type: 'boolean', operation: 'union', targetEntityId: 'operand' }] } },
+    { op: 'entity.remove', entityId: 'operand' },
   ] },
   { label: 'an operation name this version does not implement', code: 'PATCH_OPERATION_UNKNOWN', operations: [{ op: 'scene.wipe' }] },
 ]

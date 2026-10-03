@@ -38,7 +38,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 import { SCENE_OPERATION_NAMES, UI_TOOL_CARD_KEYS, validateScenePatch } from '@deepblend/dsh-blender-contracts'
 
@@ -52,7 +52,7 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 // before submitting, and a contributor guide naming a command that does not exist is the same defect as an
 // install manual doing it. Adding it here is what makes the new "how to decide what to test" section's
 // commands checked rather than merely written.
-const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepblend/docs/recovery.md', 'CONTRIBUTING.md']
+const MANUALS = ['deepblend/docs/install.md', 'deepblend/docs/usage.md', 'deepblend/docs/recovery.md', 'CONTRIBUTING.md', 'deepblend/docs/human-validation.md']
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
 // A plain object, because that is what the shared checker reads: `scripts[name] === undefined`.
@@ -362,6 +362,18 @@ test('every repository path a manual names exists', () => {
 
   const missing = [...named].filter(path => !existsSync(join(ROOT, path)))
   assert.deepEqual(missing, [], `a manual references ${missing.join(', ')}, which does not exist — a rename left a dead link`)
+  const pilotPaths = ['deepblend/docs/human-validation.md',
+    'deepblend/docs/validation-templates/creation-session.md',
+    'deepblend/docs/validation-templates/author-submission.md',
+    'deepblend/docs/validation-templates/interface-adoption.md']
+  for (const path of pilotPaths) {
+    const text = readFileSync(join(ROOT, path), 'utf8')
+    for (const match of text.matchAll(/\[[^\]]+\]\(([^\s)]+)\)/g)) {
+      const target = match[1].split('#')[0]
+      if (!target || /^[a-z]+:/i.test(target)) continue
+      assert.ok(existsSync(resolve(dirname(join(ROOT, path)), target)), `${path} has a missing local link: ${target}`)
+    }
+  }
 })
 
 test('every document a manual cites as its source exists', () => {
@@ -868,7 +880,7 @@ test('the profile manifest dsh-baseline.md quotes is the shape a profile has', {
 
   const home = mkdtempSync(join(tmpdir(), 'deepblend-profile-shape-'))
   try {
-    const installed = spawnSync('dsh', ['plugin', 'add', join(ROOT, 'packages', 'deepblend', 'bundle'), '--profile', 'web'], {
+    const installed = spawnSync('dsh', ['plugin', 'add', join(ROOT, 'packages', 'deepblend', 'bundle'), '--workspace-root', '--profile', 'web'], {
       cwd: ROOT, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 300_000,
     })
     assert.equal(installed.status, 0, `creating the profile failed:\n${installed.stdout}${installed.stderr}`)

@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "handled-cup",
+    "title": "Glazed handled cup",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 48,
+    "aspectRatio": "16:9",
+    "goal": "A 105 mm ceramic cup with a 3 mm wall, rounded lip and base, and a connected flared handle. Inspect both roots in clay and untextured glaze.",
+    "activeCamera": "hero"
+  },
+  "materials": [
+    {
+      "id": "glaze",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.035,
+          0.24,
+          0.2,
+          1
+        ],
+        "roughness": 0.22,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "floor",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.09,
+          0.1,
+          0.12,
+          1
+        ],
+        "roughness": 0.7
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "cup",
+      "type": "generator",
+      "generator": {
+        "shape": "handled_cup"
+      },
+      "materialId": "glaze",
+      "tags": [
+        "subject"
+      ]
+    },
+    {
+      "id": "floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 1
+      },
+      "materialId": "floor",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.0004
+        ]
+      }
+    }
+  ],
+  "lights": [
+    {
+      "id": "key",
+      "type": "area",
+      "energy": 0.65,
+      "size": 0.04,
+      "transform": {
+        "location": [
+          0.08,
+          -0.13,
+          0.16
+        ],
+        "rotationEuler": [
+          0.9380354763622779,
+          0,
+          0.43240777557053783
+        ]
+      }
+    },
+    {
+      "id": "fill",
+      "type": "area",
+      "energy": 0.2,
+      "size": 0.16,
+      "transform": {
+        "location": [
+          -0.08,
+          -0.07,
+          0.12
+        ],
+        "rotationEuler": [
+          1.0814874309309424,
+          0,
+          -0.960070362405688
+        ]
+      }
+    },
+    {
+      "id": "rim",
+      "type": "area",
+      "energy": 0.75,
+      "size": 0.025,
+      "transform": {
+        "location": [
+          0.08,
+          0.12,
+          0.14
+        ],
+        "rotationEuler": [
+          1.0060704583410132,
+          0,
+          2.677945044588987
+        ]
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "hero",
+      "lens": 60,
+      "sensorWidth": 36,
+      "clipping": [
+        0.001,
+        10
+      ],
+      "transform": {
+        "location": [
+          0.175,
+          -0.245,
+          0.135
+        ]
+      },
+      "targetPoint": [
+        0.018,
+        0,
+        0.0525
+      ]
+    },
+    {
+      "id": "roots",
+      "lens": 68,
+      "sensorWidth": 36,
+      "clipping": [
+        0.001,
+        10
+      ],
+      "transform": {
+        "location": [
+          0.135,
+          -0.175,
+          0.102
+        ]
+      },
+      "targetPoint": [
+        0.044,
+        0,
+        0.055
+      ]
+    },
+    {
+      "id": "inside",
+      "lens": 60,
+      "sensorWidth": 36,
+      "clipping": [
+        0.001,
+        10
+      ],
+      "transform": {
+        "location": [
+          0.14,
+          -0.2,
+          0.32
+        ]
+      },
+      "targetPoint": [
+        0,
+        0,
+        0.05
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "cup-hero",
+      "cameraId": "hero",
+      "frameRange": [
+        1,
+        48
+      ]
+    }
+  ],
+  "animationTracks": [],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        640,
+        480
+      ],
+      "samples": 32,
+      "maxSamplesBudget": 128,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      }
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        960,
+        720
+      ],
+      "samples": 128,
+      "maxSamplesBudget": 256,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      }
+    }
+  },
+  "assets": [],
+  "world": {
+    "color": [
+      0.09,
+      0.09,
+      0.09,
+      1
+    ],
+    "strength": 0.35
+  }
+}

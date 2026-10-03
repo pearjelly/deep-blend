@@ -1385,13 +1385,14 @@ const texturedSpec = compileSceneSpec({
 }).spec
 
 /** Compile a spec through the provider and return the produced `.blend`, kept for inspection. */
-async function compileToBlend(spec, label) {
+async function compileToBlend(spec, label, projectRoot) {
   const scratch = mkdtempSync(join(workspace, `${label}-`))
   const specPath = join(scratch, 'scene-spec.json')
   writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`, 'utf8')
   let produced = null
   await studio.runtime.compileScene({
     sceneSpecPath: specPath,
+    projectRoot,
     onWorkingDirectory: info => {
       const candidate = join(info.directory, 'result.blend')
       if (existsSync(candidate)) {
@@ -1441,6 +1442,167 @@ check('and the pattern it builds REACHES the shading: a Bump node into Normal, a
 check('and the same material WITHOUT a texture builds no pattern node at all, so the case above is not universal',
   plainMaterial !== undefined && plainMaterial.patterns.length === 0 && plainMaterial.links.length === 1,
   plainMaterial ?? withoutTexture.materials.map(entry => entry.name))
+
+const fidelity = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'asset-fidelity.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024,
+  env: { ...process.env, DEEPBLEND_ASSET_EXPORT_DIR: join(workspace, 'source-assets') } })
+check('imported GLB preserves geometry, hierarchy, materials, textures and UV in the saved checkpoint',
+  fidelity.status === 0 && fidelity.stdout.includes('ASSET_FIDELITY_PASSED'),
+  fidelity.status === 0 ? undefined : { error: fidelity.error?.message, output: `${fidelity.stdout}\n${fidelity.stderr}`.slice(-6000) })
+
+const versionSpec = structuredClone(fixtureSpec)
+versionSpec.entities = [{ id: 'placeholder', type: 'generator', generator: { shape: 'cube' }, visible: false }]
+versionSpec.animationTracks = []
+for (const camera of versionSpec.cameras) {
+  delete camera.targetEntityId
+  camera.targetPoint = [0, 0, 1]
+}
+const versionProject = await studio.createProject({ title: 'Asset version rebuild', sceneSpec: versionSpec, saveCheckpoint: false })
+const sourceAsset = join(workspace, 'source-assets', 'product.glb')
+const firstAsset = await studio.ingestAsset({ projectId: versionProject.projectId, sourcePath: sourceAsset, assetId: 'product' })
+const versionCommit = await studio.applyScenePatch({
+  projectId: versionProject.projectId, baseRevision: versionProject.revision.revision,
+  operations: [
+    { op: 'asset.add', asset: { id: 'product', type: 'glb', path: firstAsset.path, sha256: firstAsset.sha256 } },
+    { op: 'entity.add', entity: { id: 'product', type: 'asset-instance', assetId: 'product' } },
+  ], saveCheckpoint: true,
+})
+const partsScene = await studio.getScene(versionProject.projectId)
+const importedPart = partsScene.assetParts.find(part => part.entityId === 'product' && part.sourceMaterialSlots.length > 1)
+check('scene_get exposes compiled part selectors, original slot indices and pinned source identity',
+  importedPart?.partId?.startsWith('/') && importedPart.sourceMaterialSlots[1].index === 1 &&
+  importedPart.assetSha256 === firstAsset.sha256 && importedPart.selectorVersion === 1)
+const partCommit = await studio.applyScenePatch({ projectId: versionProject.projectId, baseRevision: versionCommit.revision,
+  operations: [{ op: 'entity.materialBindings.set', entityId: 'product', materialBindings: [
+    { partId: importedPart.partId, slotIndex: 1, materialId: 'hero-steel' }] }], saveCheckpoint: true })
+const boundPart = (await studio.getScene(versionProject.projectId)).assetParts.find(part => part.partId === importedPart.partId)
+check('a part binding patch publishes the checkpoint and its effective material slot inventory',
+  boundPart.materialSlots.length === importedPart.materialSlots.length &&
+  boundPart.materialSlots[1].materialId === 'hero-steel' &&
+  boundPart.materialSlots[0].materialName === importedPart.materialSlots[0].materialName)
+let invalidPartRejected = false
+try {
+  await studio.applyScenePatch({ projectId: versionProject.projectId, baseRevision: partCommit.revision,
+    operations: [{ op: 'entity.materialBindings.set', entityId: 'product', materialBindings: [
+      { partId: '/nonexistent-part', slotIndex: 1, materialId: 'hero-steel' }] }], saveCheckpoint: true })
+} catch { invalidPartRejected = true }
+check('an invalid compiled part selector cannot publish or advance the project revision',
+  invalidPartRejected && studio.store.readRecord(versionProject.projectId).currentRevision === partCommit.revision)
+
+const pinnedSpec = studio.store.readRevisionSpec(versionProject.projectId, versionCommit.revision)
+const beforeVersion = inspectBlend(join(studio.store.revisionDirectory(versionProject.projectId, versionCommit.revision), 'scene.blend'), INVENTORY_SNIPPET)
+writeFileSync(sourceAsset, readFileSync(join(workspace, 'source-assets', 'single.glb')))
+const secondAsset = await studio.ingestAsset({ projectId: versionProject.projectId, sourcePath: sourceAsset, assetId: 'product' })
+check('a real same-name replacement keeps the old pinned asset and publishes a distinct version',
+  firstAsset.path !== secondAsset.path && pinnedSpec.assets[0].path === firstAsset.path &&
+  existsSync(join(studio.store.projectDirectory(versionProject.projectId), firstAsset.path)))
+const rebuiltVersion = await compileToBlend(pinnedSpec, 'old-asset-rebuild', studio.store.projectDirectory(versionProject.projectId))
+check('an old revision rebuilds identical geometry after its source name and alias have been replaced',
+  JSON.stringify(inspectBlend(rebuiltVersion, INVENTORY_SNIPPET).objects) === JSON.stringify(beforeVersion.objects))
+
+const editProject = await studio.createProject({ title: 'Existing geometry edit', sceneSpec: fixtureSpec, saveCheckpoint: true })
+const originalEditPath = join(studio.store.revisionDirectory(editProject.projectId, editProject.revision.revision), 'scene.blend')
+const originalEditHash = createHash('sha256').update(readFileSync(originalEditPath)).digest('hex')
+const editCommit = await studio.applyScenePatch({
+  projectId: editProject.projectId, baseRevision: editProject.revision.revision,
+  operations: [
+    { op: 'entity.generator.set', entityId: 'watch-body', generator: {
+      shape: 'lathe', profile: [[0, 0], [.05, 0], [.06, .03], [.04, .05], [0, .05]], segments: 64 } },
+    { op: 'entity.modifiers.set', entityId: 'watch-body', modifiers: [{ type: 'bevel', width: .001, segments: 4 }] },
+  ], saveCheckpoint: true,
+})
+const editedInventory = inspectBlend(join(studio.store.revisionDirectory(editProject.projectId, editCommit.revision), 'scene.blend'), INVENTORY_SNIPPET)
+const oldEditInventory = inspectBlend(originalEditPath, INVENTORY_SNIPPET)
+const editedBody = editedInventory.objects.find(entry => entry.deepblendId === 'watch-body')
+const oldEditBody = oldEditInventory.objects.find(entry => entry.deepblendId === 'watch-body')
+check('editing an existing generator and stack changes checkpoint geometry while preserving placement and materials',
+  editedBody.polygonCount !== oldEditBody.polygonCount &&
+  JSON.stringify(editedBody.location) === JSON.stringify(oldEditBody.location) &&
+  JSON.stringify(editedBody.materialNames) === JSON.stringify(oldEditBody.materialNames) &&
+  createHash('sha256').update(readFileSync(originalEditPath)).digest('hex') === originalEditHash)
+let badEditRejected = false
+try {
+  await studio.applyScenePatch({ projectId: editProject.projectId, baseRevision: editCommit.revision,
+    operations: [{ op: 'entity.modifiers.set', entityId: 'watch-body', modifiers: [
+      { type: 'boolean', operation: 'union', targetEntityId: 'watch-body' }] }], saveCheckpoint: true })
+} catch { badEditRejected = true }
+check('a cyclic geometry edit leaves the current revision and its saved checkpoint intact',
+  badEditRejected && studio.store.readRecord(editProject.projectId).currentRevision === editCommit.revision &&
+  existsSync(join(studio.store.revisionDirectory(editProject.projectId, editCommit.revision), 'scene.blend')))
+
+const materialBindings = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'material-bindings.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('part material slots stay isolated and stable across shared meshes, instances and checkpoint reopening',
+  materialBindings.status === 0 && materialBindings.stdout.includes('MATERIAL_BINDINGS_PASSED'),
+  materialBindings.status === 0 ? undefined : { error: materialBindings.error?.message, output: `${materialBindings.stdout}\n${materialBindings.stderr}`.slice(-6000) })
+
+const assetPreview = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'asset-preview.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('asset inspection measures evaluated world bounds, UVs, empty slots and source environment radiance',
+  assetPreview.status === 0 && assetPreview.stdout.includes('ASSET_PREVIEW_PASSED'),
+  assetPreview.status === 0 ? undefined : { error: assetPreview.error?.message, output: `${assetPreview.stdout}\n${assetPreview.stderr}`.slice(-6000) })
+
+const environmentLighting = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'environment.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('HDR/EXR environment radiance lights the scene, rotates reflections and survives packed checkpoint reopening',
+  environmentLighting.status === 0 && environmentLighting.stdout.includes('ENVIRONMENT_PASSED'),
+  environmentLighting.status === 0 ? undefined : { error: environmentLighting.error?.message, output: `${environmentLighting.stdout}\n${environmentLighting.stderr}`.slice(-6000) })
+
+const imageMaterials = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'image-materials.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('PBR maps preserve channel interpretation, affect rendered pixels and survive source removal in a packed checkpoint',
+  imageMaterials.status === 0 && imageMaterials.stdout.includes('IMAGE_MATERIALS_PASSED'),
+  imageMaterials.status === 0 ? undefined : { error: imageMaterials.error?.message, output: `${imageMaterials.stdout}\n${imageMaterials.stderr}`.slice(-6000) })
+
+const anisotropy = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'anisotropy.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('Principled anisotropy changes reflected pixels with explicit tangent direction and survives checkpoint reopening',
+  anisotropy.status === 0 && anisotropy.stdout.includes('ANISOTROPY_PASSED'),
+  anisotropy.status === 0 ? undefined : { error: anisotropy.error?.message, output: `${anisotropy.stdout}\n${anisotropy.stderr}`.slice(-6000) })
+
+const proceduralUv = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
+  '--python', join(HERE, 'procedural-uv.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('procedural UV grain selects actual render layers, rejects missing UV and survives checkpoint reopening',
+  proceduralUv.status === 0 && proceduralUv.stdout.includes('PROCEDURAL_UV_PASSED'),
+  proceduralUv.status === 0 ? undefined : { error: proceduralUv.error?.message, output: `${proceduralUv.stdout}\n${proceduralUv.stderr}`.slice(-6000) })
+
+const lathe = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'lathe.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('lathe geometry has correct volume, topology and UV, and survives checkpoint rendering',
+  lathe.status === 0 && lathe.stdout.includes('LATHE_PASSED'),
+  lathe.status === 0 ? undefined : { error: lathe.error?.message, output: `${lathe.stdout}\n${lathe.stderr}`.slice(-6000) })
+
+const curve = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'curve.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('curve sweeps produce capped or open meshes, UV and a renderable smooth handle',
+  curve.status === 0 && curve.stdout.includes('CURVE_PASSED'),
+  curve.status === 0 ? undefined : { error: curve.error?.message, output: `${curve.stdout}\n${curve.stderr}`.slice(-6000) })
+
+const modifiers = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'modifiers.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('modeling stacks preserve measured volume, manifold topology and dependency order',
+  modifiers.status === 0 && modifiers.stdout.includes('MODIFIERS_PASSED'),
+  modifiers.status === 0 ? undefined : { error: modifiers.error?.message, output: `${modifiers.stdout}\n${modifiers.stderr}`.slice(-6000) })
 
 rmSync(workspace, { recursive: true, force: true })
 

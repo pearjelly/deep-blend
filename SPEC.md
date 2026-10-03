@@ -796,6 +796,12 @@ renderProfiles:
     raytracing: true              # 仅 EEVEE：开启屏幕空间光线追踪（GI / AO / 反射）
 ```
 
+图片 PBR 扩展：`material.images` 可将 PNG/JPEG 资产绑定到 baseColor、roughness、metallic、
+normal、alpha、emissionColor。每个绑定指定 assetId，可附带 UV 名称、缩放与偏移；数值通道
+可选择 r/g/b/a，法线采用 OpenGL 切线空间。通过 `material.images.set` 完整替换或移除。
+颜色与数值贴图分别使用 sRGB、Non-Color，图片打包进入检查点。当前不与程序化 texture
+混合；具体边界和重建要求见 `deepblend/docs/assets.md`。
+
 ### 8.3 ScenePatch
 
 ```json
@@ -1284,6 +1290,11 @@ DONE
 - 同一问题两轮未改善则停止自动迭代；
 - 达到最大迭代数后进入人工审查；
 - 修改前后都保存评分和证据；
+- 技术分衡量构图、曝光和遮挡，不能单独判定作品通过；
+- 美术评审分别给出几何、材质、灯光和目标吻合度的结论、视角、证据与置信度；
+- 技术达标后仍需美术评审，缺失或低置信度证据记为无法判断；
+- 技术不退化且有前后图片对比证据的美术改善可以保留，即使技术分不变；
+- 候选版本评审失败时恢复此前版本，保留尝试记录；
 - 视觉 Pass 不替代技术 QA。
 
 ### 12.4 DSH Workflow 与 PTC 的使用

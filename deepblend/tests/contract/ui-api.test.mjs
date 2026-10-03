@@ -78,6 +78,9 @@ check('every route lives under the DeepBlend prefix', UI_ROUTES.every(route => r
 check('a route that writes is a POST, and a GET never is', UI_ROUTES.every(route => (route.write ? route.method === 'POST' : route.method === 'GET')),
   UI_ROUTES.filter(route => route.write).map(route => route.id))
 check('every route carries a summary, so the 404 can explain the surface', UI_ROUTES.every(route => typeof route.summary === 'string' && route.summary.length > 10))
+check('restore describes moving the current pointer while preserving history, with no new revision',
+  /current revision pointer/.test(UI_ROUTES.find(route => route.id === 'project.restore').summary)
+  && /preserving history without creating a new revision/.test(UI_ROUTES.find(route => route.id === 'project.restore').summary))
 
 /**
  * The closed set of writes, by name.
@@ -86,8 +89,8 @@ check('every route carries a summary, so the 404 can explain the surface', UI_RO
  * line, which is the whole point — "所有写操作经过 Host" is a claim about a set,
  * and a set nobody wrote down is a set that grows quietly.
  */
-const EXPECTED_WRITES = ['projects.create', 'project.preview', 'project.patch', 'project.restore', 'project.job.cancel', 'project.render']
-check('the write set is exactly the six named routes', JSON.stringify(writeRouteIds()) === JSON.stringify(EXPECTED_WRITES), writeRouteIds())
+const EXPECTED_WRITES = ['projects.create', 'project.preview', 'project.referenceImage.upload', 'project.assets.upload', 'project.assets.preview', 'project.review', 'project.autofix', 'project.patch', 'project.restore', 'project.job.cancel', 'project.render']
+check('the write set is exactly the eleven named routes', JSON.stringify(writeRouteIds()) === JSON.stringify(EXPECTED_WRITES), writeRouteIds())
 
 /** A concrete path for a declared route, from the route itself. */
 function samplePath(route) {
@@ -193,6 +196,98 @@ check('the tree labels itself with the revision it was built from', tree.revisio
 check('a scene with nothing in it builds a zero tree rather than throwing',
   buildSceneTree({ project: { id: 'x' } }).counts.entities === 0)
 
+const EDITABLE_SPEC = {
+  ...SPEC,
+  entities: [
+    { id: 'lathed', type: 'generator', visible: false, materialId: 'finish', tags: ['hero-product'],
+      generator: { shape: 'lathe', profile: [[0, 0], [0.04, 0], [0.04, 0.1], [0, 0.1]], segments: 96, closedProfile: false, capEnds: true },
+      modifiers: [
+        { type: 'solidify', thickness: 0.002, offset: -1 },
+        { type: 'mirror', axis: 'x', merge: false },
+        { type: 'array', count: 3, offset: [0.12, 0, 0] },
+        { type: 'boolean', operation: 'difference', targetEntityId: 'cutter' },
+        { type: 'bevel', width: 0.001, segments: 4, angle: 30 },
+      ] },
+    { id: 'curved', type: 'generator', visible: true,
+      generator: { shape: 'curve', path: [[0, 0, 0], [0.2, 0.1, 0], [0.3, 0, 0]], radius: 0.003,
+        pathClosed: false, pathInterpolation: 'bezier', curveResolution: 16, bevelResolution: 4, capEnds: true } },
+    { id: 'imported', type: 'asset-instance', assetId: 'assembly',
+      materialBindings: [{ partId: '/Assembly/Body', slotIndex: 1, materialId: 'finish' }, { partId: '/Assembly/Cap', materialId: 'finish' }] },
+    { id: 'other-import', type: 'asset-instance', assetId: 'other-assembly' },
+    { id: 'cutter', type: 'generator', generator: { shape: 'rounded_box', size: 0.1, bevel: { width: 0.005, segments: 3 } } },
+  ],
+  materials: [
+    { id: 'finish', shader: 'principled', parameters: { baseColor: [0.6, 0.5, 0.4, 1], metallic: 1, roughness: 0.3, anisotropic: 0.55 },
+      tangent: { mode: 'uv', uvMap: 'MetalUV' },
+      images: { baseColor: { assetId: 'albedo', uvMap: 'MetalUV', scale: [2, 3, 1], offset: [0.1, 0.2, 0] },
+        normal: { assetId: 'normal-map', uvMap: 'MetalUV', strength: 0.7 } } },
+    { id: 'procedural', shader: 'principled', parameters: { roughness: 0.45 },
+      texture: { type: 'noise', scale: 20, detail: 3, stretch: [2, 1, 1], roughnessVariation: 0.6, bump: 0.15 } },
+  ],
+  animationTracks: [
+    { id: 'entity-motion', targetEntityId: 'lathed', property: 'location.x', keyframes: [{ frame: 1, value: 0 }, { frame: 120, value: 1 }] },
+    { id: 'camera-motion', targetKind: 'camera', targetEntityId: 'camera-main', property: 'location.x', keyframes: [{ frame: 1, value: 1 }, { frame: 120, value: 2 }] },
+    { id: 'finish-motion', targetKind: 'material', targetEntityId: 'finish', property: 'baseColor.r', keyframes: [{ frame: 1, value: 0.6 }, { frame: 120, value: 0.4 }] },
+  ],
+}
+const PARTS = [
+  { entityId: 'imported', partId: '/Assembly/Body', parentPartId: '/Assembly', assetId: 'assembly', assetSha256: 'a'.repeat(64), selectorVersion: 1,
+    sourceMaterialSlots: [{ index: 0, materialName: 'Original paint' }, { index: 1, materialName: 'Original trim' }],
+    materialSlots: [{ index: 0, materialName: 'db_material__finish', materialId: 'finish' }] },
+  { entityId: 'other-import', partId: '/Other/Body', parentPartId: '/Other', assetId: 'other-assembly', assetSha256: 'b'.repeat(64), selectorVersion: 1,
+    sourceMaterialSlots: [{ index: 0, materialName: null }], materialSlots: [{ index: 0, materialName: null, materialId: null }] },
+]
+const editableSource = JSON.stringify(EDITABLE_SPEC), partsSource = JSON.stringify(PARTS)
+const editable = buildSceneTree(EDITABLE_SPEC, { revision: 'r0010', assetParts: PARTS })
+const editableEntity = id => editable.nodes.entities.find(entity => entity.id === id)
+check('the editor receives complete lathe, curve and primitive generator definitions',
+  EDITABLE_SPEC.entities.filter(entity => entity.generator).every(entity =>
+    JSON.stringify(editableEntity(entity.id).generator) === JSON.stringify(entity.generator)))
+check('the editor receives the ordered operation stack without losing nested options',
+  JSON.stringify(editableEntity('lathed').modifiers) === JSON.stringify(EDITABLE_SPEC.entities[0].modifiers))
+check('the editor keeps explicit visibility and provides consistent defaults for missing edit fields',
+  editableEntity('lathed').visible === false && editableEntity('curved').visible === true && editableEntity('imported').visible === true
+  && editableEntity('imported').generator === null && JSON.stringify(editableEntity('imported').modifiers) === '[]'
+  && JSON.stringify(editableEntity('lathed').materialBindings) === '[]')
+check('part-wide and original-slot material bindings survive the tree projection',
+  JSON.stringify(editableEntity('imported').materialBindings) === JSON.stringify(EDITABLE_SPEC.entities[2].materialBindings))
+check('material definitions preserve image mapping, procedural texture, tangent and every parameter for local copies',
+  editable.nodes.materials.every((material, index) => JSON.stringify(material.definition) === JSON.stringify(EDITABLE_SPEC.materials[index]))
+  && editable.nodes.materials[0].definition.parameters !== editable.nodes.materials[0].parameters)
+check('animation targets retain their kinds and channels so unrelated editors do not disable each other',
+  JSON.stringify(editable.nodes.animationTracks.map(({ targetKind, targetId, property }) => ({ targetKind, targetId, property })))
+  === JSON.stringify([
+    { targetKind: 'entity', targetId: 'lathed', property: 'location.x' },
+    { targetKind: 'camera', targetId: 'camera-main', property: 'location.x' },
+    { targetKind: 'material', targetId: 'finish', property: 'baseColor.r' },
+  ]))
+check('imported inventory retains source slots separately from effective slots and carries selector provenance',
+  JSON.stringify(editable.assetParts) === partsSource
+  && editableEntity('imported').assetParts[0].sourceMaterialSlots.length === 2
+  && editableEntity('imported').assetParts[0].materialSlots.length === 1
+  && editableEntity('imported').assetParts[0].assetSha256 === 'a'.repeat(64)
+  && editableEntity('imported').assetParts[0].selectorVersion === 1)
+check('part inventory belongs only to its entity, with no parts guessed for uncompiled revisions',
+  editableEntity('imported').assetParts.length === 1 && editableEntity('other-import').assetParts.length === 1
+  && editableEntity('lathed').assetParts.length === 0
+  && buildSceneTree(EDITABLE_SPEC).assetParts.length === 0
+  && buildSceneTree(EDITABLE_SPEC).nodes.entities.every(entity => entity.assetParts.length === 0))
+check('the editable tree remains lossless JSON', isJsonValue(editable))
+editableEntity('lathed').generator.profile[1][0] = 5
+editableEntity('lathed').modifiers[2].offset[0] = 5
+editableEntity('lathed').tags.push('edited')
+editableEntity('curved').generator.path[0][0] = 5
+editableEntity('cutter').generator.bevel.width = 5
+editableEntity('imported').materialBindings[0].slotIndex = 5
+editable.nodes.materials[0].definition.images.baseColor.scale[0] = 5
+editable.nodes.materials[0].definition.tangent.uvMap = 'changed'
+editable.nodes.materials[0].definition.parameters.baseColor[0] = 0
+editable.nodes.materials[1].definition.texture.scale = 5
+editableEntity('imported').assetParts[0].sourceMaterialSlots[0].materialName = 'edited'
+editable.assetParts[1].materialSlots[0].materialName = 'edited'
+check('editing nested view data cannot mutate the SceneSpec or compiled inventory',
+  JSON.stringify(EDITABLE_SPEC) === editableSource && JSON.stringify(PARTS) === partsSource)
+
 // ---------------------------------------------------------------------------
 // Revision diff
 // ---------------------------------------------------------------------------
@@ -261,6 +356,12 @@ check('a revision with no QA record says so instead of showing zeros as facts',
   qaEmpty.technical.available === false && qaEmpty.visual.available === false && qaEmpty.summary.includes('还没有 QA 记录'),
   qaEmpty.summary)
 const qaReviewerDown = buildQaView({ projectId: 'demo', revision: 'r0009', validation: VALIDATION, review: { ...REVIEW, reported: [], reviewer: { error: { message: 'stream ended' } } } })
+const artQa = buildQaView({ projectId: 'demo', revision: 'r0009', review: { ...REVIEW, score: 100, pass: true,
+  artistic: { status: 'needs_work', dimensions: { geometry: { status: 'needs_work', evidence: 'The handle join is visibly sharp' } } } } })
+check('QA keeps a high technical score separate from an unresolved artistic defect',
+  artQa.visual.pass === true && artQa.visual.artistic.status === 'needs_work' &&
+  artQa.visual.artistic.dimensions.geometry.evidence.includes('handle'))
+check('older QA records without art judgments show unassessable rather than passed', qa.visual.artistic.status === 'unassessable')
 check('a failed reviewer is surfaced as a failure, not as "found nothing"',
   qaReviewerDown.visual.reviewerError === 'stream ended' && qaReviewerDown.visual.reviewerAvailable === true)
 

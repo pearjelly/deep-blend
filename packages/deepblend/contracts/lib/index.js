@@ -374,9 +374,11 @@ export const BlenderWarningCode = Object.freeze({
  * before. 3 is M3 (the persistent render job). 4 is M4, which added the UI plane's
  * read/aggregate methods — the browser half faces the same half-upgraded deployment
  * the tools do, and it has to say so instead of painting a blank panel over a
- * `TypeError` (D59).
+ * `TypeError` (D59). 5 adds the asset library's upload, inventory and isolated
+ * preview methods; an older Host cannot serve that UI workflow. 6 adds isolated
+ * beauty/clay diagnostics; an older Host must not silently ignore that mode.
  */
-export const HOST_API_VERSION = 4
+export const HOST_API_VERSION = 6
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
 export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])
@@ -528,14 +530,19 @@ export function warning(code, message, detail) {
  * They hold NO business state machine — orchestration belongs to
  * `BlenderOrchestrator` and persistence to the project/revision stores.
  *
- * M0 implements `getCapabilities` and the shared `runBootstrap` transport.
- * The remaining methods are declared here as the frozen target shape and are
- * implemented in M1+. Calling an unimplemented one throws
- * `BlenderErrorCode.UNSUPPORTED_ACTION`, never silently succeeds.
+ * The complete, current Host-facing interface and optional local transport
+ * extensions are exported as TypeScript types from the public `/sdk` entry.
+ * See `deepblend/docs/public-api.md` for cancellation and artifact ownership.
  *
  * @typedef {object} BlenderRuntime
- * @property {(signal?: AbortSignal) => Promise<BlenderCapabilities>} getCapabilities
- * @property {(request: BlenderBootstrapRequest, options?: { signal?: AbortSignal }) => Promise<BlenderBootstrapEnvelope>} runBootstrap
+ * @property {(options?: {refresh?: boolean, signal?: AbortSignal}) => Promise<BlenderCapabilities>} getCapabilities
+ * @property {() => void} invalidateCapabilities
+ * @property {import('./runtime-types.js').BlenderRuntime['resolveEngineKey']} resolveEngineKey
+ * @property {import('./runtime-types.js').BlenderRuntime['compileScene']} compileScene
+ * @property {import('./runtime-types.js').BlenderRuntime['renderPreview']} renderPreview
+ * @property {import('./runtime-types.js').BlenderRuntime['renderViews']} renderViews
+ * @property {import('./runtime-types.js').BlenderRuntime['startFrameSequence']} startFrameSequence
+ * @property {import('./runtime-types.js').BlenderRuntime['awaitFrameSequence']} awaitFrameSequence
  * @property {() => void} dispose
  */
 
@@ -553,17 +560,20 @@ export function warning(code, message, detail) {
  * @property {'success'|'error'} status
  * @property {string} protocolVersion
  * @property {string|null} jobId
- * @property {BlenderCapabilities|null} capabilities
- * @property {{ code: string, message: string }|null} error
- * @property {string[]} warnings
+ * @property {string} action
+ * @property {Record<string, unknown>|null} capabilities - raw probe; normalized by getCapabilities.
+ * @property {Record<string, unknown>|null} result
+ * @property {{ code: string, message: string, detail?: unknown }|null} error
+ * @property {{code: string, message: string, detail?: unknown}[]} warnings
+ * @property {{code: string, message: string, detail?: unknown}[]} notices
  */
 
 /**
  * The model- and UI-facing business facade (SPEC §7.2).
  *
- * M0 implements `getCapabilities` only. Everything else is the frozen M1+ target
- * and throws `UNSUPPORTED_ACTION` until implemented, so the model can never
- * believe a not-yet-built capability worked.
+ * The Host implements project/revision transactions, reviews, assets and render
+ * jobs. This historical typedef is a minimal view, not the full facade contract;
+ * the SDK's BlenderRuntime types describe the separate execution seam.
  *
  * @typedef {object} BlenderStudio
  * @property {(request?: { refresh?: boolean }) => Promise<BlenderCapabilities>} getCapabilities
@@ -676,12 +686,15 @@ export {
   SCENE_ENGINES,
   BLENDER_ENGINE_BY_KEY,
   IMPORT_OPERATOR_BY_ASSET_TYPE,
+  IMAGE_ASSET_TYPES,
+  ENVIRONMENT_ASSET_TYPES,
   validateSceneSpec,
   compileSceneSpec,
   entityBoundingRadius,
   sceneProjection,
   sceneSpecDigest,
   specHash,
+  reviewInputsDigest,
   summarizeSceneSpec,
   sceneSpecCanonicalText,
 } from './scene-spec.js'
@@ -759,6 +772,8 @@ export {
 export {
   runVisualLoop,
 } from './visual-loop.js'
+
+export { ARTISTIC_DIMENSIONS, validateArtisticReview, artisticRegressed } from './artistic-review.js'
 
 // ---------------------------------------------------------------------------
 // M3 surface
@@ -852,3 +867,5 @@ export {
   resolveProjectsRoot,
   managedBlenderCandidates,
 } from './deployment-paths.js'
+
+export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe } from './recipe.js'

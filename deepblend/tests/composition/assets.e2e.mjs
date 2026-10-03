@@ -31,6 +31,7 @@
  * Owner: DeepBlend Studio — M5
  */
 
+import { encodeGlb } from '../lib/glb.mjs'
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { createServer } from 'node:http'
@@ -114,7 +115,7 @@ const server = createServer((request, response) => {
     response.writeHead(404)
     return response.end('nope')
   }
-  const body = Buffer.concat([Buffer.from('glTF'), Buffer.alloc(60, 0x20)])
+  const body = encodeGlb({ asset: { version: '2.0' } })
   response.writeHead(200, { 'content-type': 'model/gltf-binary', 'content-length': String(body.byteLength) })
   response.end(body)
 })
@@ -159,7 +160,7 @@ async function callTool(registry, name, args) {
 }
 
 const localSource = join(scratch, 'Widget Model.glb')
-writeFileSync(localSource, Buffer.concat([Buffer.from('glTF'), Buffer.alloc(60, 0x20)]))
+writeFileSync(localSource, encodeGlb({ asset: { version: '2.0' } }))
 const oversized = join(scratch, 'Huge.fbx')
 writeFileSync(oversized, Buffer.alloc(MAX_BYTES + 1, 0x62))
 const wrongFormat = join(scratch, 'notes.txt')
@@ -173,7 +174,7 @@ writeFileSync(mislabeled, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a,
 const emptyFile = join(scratch, 'Empty.glb')
 writeFileSync(emptyFile, Buffer.alloc(0))
 const misnamed = join(scratch, 'model-with-no-extension')
-writeFileSync(misnamed, Buffer.concat([Buffer.from('glTF'), Buffer.alloc(60, 0x20)]))
+writeFileSync(misnamed, encodeGlb({ asset: { version: '2.0' } }))
 
 // ---------------------------------------------------------------------------
 // 1. Local: automatic, and the descriptor it returns is the one a patch accepts

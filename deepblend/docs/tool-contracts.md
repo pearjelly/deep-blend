@@ -1,5 +1,10 @@
 # DeepBlend 工具契约（M0–M4）
 
+动作任务 ID 按不透明字符串使用；新增 ID 含 UUID，避免独立 Host 共用记录和 staging。
+单图、产物清单和多视角拼图发布在本机修订租约内完成，渲染可以并行。等待最多十秒，
+调用者取消返回 BLENDER_ABORTED，等待超限返回 REVISION_CONFLICT；已保存 ID 仍可读取。
+交付任务编号及两代多视角策略维持现有行为，不据此承诺全部历史不可变。
+
 > 范围：模型可见工具的**实际**契约，取自 `packages/deepblend/tool/lib/` 与
 > `packages/deepblend/contracts/lib/`。
 > 本文件描述**已实现**的行为，不描述计划。SPEC §11 中尚未实现的工具在此明确标为未注册。
@@ -13,6 +18,7 @@
 | 工具 | 里程碑 | 权限（SPEC §11） | 写操作 |
 |---|---|---|---|
 | `blender_capabilities` | M0 | 自动 | 读 |
+| `blender_recipe_list` | 内容配方 | 自动 | 读（已注册的本地配方） |
 | `blender_project_create` | M1 | 自动 | **写**（提交 r0001） |
 | `blender_project_get` | M1 | 自动 | 读 |
 | `blender_scene_get` | M1 | 自动 | 读 |
@@ -26,8 +32,8 @@
 | `blender_export` | M3 | 工作区外需审批 | **写**（编码并发布 `output/`） |
 | `blender_job_status` | M3 | 自动 | 读（**从磁盘读**，跨重启） |
 | `blender_job_cancel` | M3 | 自动或确认 | **写**（终止进程组并改 job 状态） |
-| `blender_revision_restore` | M5 | 需确认（`confirm:true` 是 schema 必填参数） | **写**（移动 current 指针；不删除任何 revision） |
-| `blender_asset_ingest` | M5 | 本地自动；**网络需审批**（harness 审批平面） | **写**（写 `assets/raw/` 与 `assets/manifest.json`；不改场景） |
+| `blender_revision_restore` | M5 | 需明确 `confirm:true`；缺失或 `false` 均拒绝 | **写**（移动 current 指针；不删除任何 revision） |
+| `blender_asset_ingest` | M5 | 本地自动；**网络需审批**（harness 审批平面） | **写**（写 `assets/raw/` 或 glTF 资源文件包及 `assets/manifest.json`；不改场景） |
 
 ### 1.1 刻意**未注册**的工具
 
@@ -42,9 +48,17 @@
 > 这正是「散文里的承诺」的形状：一层之下有能跑的实现，而没有任何一行代码必须与两者一致。
 > M5 补上了工具，并让 `tool-plane-m3.e2e.mjs` **真的调用它**——那一行代码就是本来会发现这件事的东西。
 
+`blender_revision_restore` 接受必填的 `projectId`、目标 `revision`、`confirm:true`，以及可选的
+`expectedCurrentRevision`。先调用 `blender_project_get`，将读到的 `currentRevision` 原样传入
+`expectedCurrentRevision`；Host 在项目写锁内比较当前指针，已变化则返回 `REVISION_CONFLICT`，
+避免覆盖其他编辑。此时应重读项目并审阅期间的变化，再决定是否恢复。旧调用可以省略该条件。
+恢复只移动指针、保留全部历史，不创建新修订；恢复后用 `blender_scene_get` 重新读取场景再编辑。
+缺失 `confirm` 由 DSH 返回 `INVALID_ARGS`；显式 `confirm:false` 返回
+`REVISION_RESTORE_CONFIRMATION_REQUIRED`，且不会调用 Host。
+
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **16** 个
-（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **17** 个
+（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
 那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
 每加一个里程碑都要改前面所有套件。
 
@@ -104,6 +118,34 @@
 文档取的，给从没提过 world 的场景补上默认值会改掉每一个已记录 revision 的 digest，
 store 会看起来与自己的 manifest 不一致。
 
+### 程序纹理的表面方向
+
+`material.texture.set` 的完整纹理块可声明 `coordinates: "uv"`，并可指定
+`uvMap: "UVMap"`。省略坐标仍使用对象局部坐标；显式 `"object"` 效果相同。
+UV 模式省略名称使用每个表面的活动渲染 UV 层。名称需非空，且只能与 UV 模式一起使用。
+实际使用材质的求值表面必须具有指定 UV；包含网格、原生曲线与文本，未使用的材质槽不阻塞。
+UV 程序纹理只支持 principled/glass，不接受会忽略该图的 emission。
+
+例如车削件已有环向 U、截面弧长 V，可用
+`{type:"noise",coordinates:"uv",uvMap:"UVMap",scale:1,stretch:[0.0001,800,1],detail:2,bump:0.006,roughnessVariation:0.035,colorVariation:0.012}`
+形成沿截面变化的环向纹理。频率相对于 UV 布局，不是物理毫米；先固定照明和机位比较特写，
+再调粗糙度、尺度与凹凸强度。该示例不代表测量过的真实加工刀痕。
+
+### 各向异性反射与切线
+
+`parameters.anisotropic` 是 Principled 各向异性强度，`anisotropicRotation` 为整圈比例，
+均在 [0,1]；0.25 表示 90°。非零强度、旋转或相关动画需要显式 `material.tangent`。
+`{mode:"uv",uvMap:"UVMap"}` 采用该 UV 层的切线；`{mode:"radial",axis:"z"}` 采用
+Blender 围绕对象局部轴的圆柱投影切线，不需要 UV。它们连接真实 Tangent 节点。
+强度与旋转均为零且动画不启用时可清除 tangent。两个参数可经 `material.parameter.update`
+修改，也可由 `targetKind:"material"` 动画驱动；方向配置由 `material.tangent.set` 完整替换。
+
+实际使用的各向异性材质要求 Cycles；EEVEE/Workbench 不会静默忽略效果。UV 检查只针对
+实际使用该材质的表面，包含 OBJECT 槽覆盖；原生 Curve/Surface/Text 的求值网格也需能证明指定 UV 存在，检查不转换源对象。未用材质和未用槽不阻塞编译。emission
+不支持这些字段。图片 normal 与程序 bump 可共同影响表面法线，但不替代各向异性反射。
+依据：[Blender Principled 文档](https://docs.blender.org/manual/en/5.2/render/shader_nodes/shader/principled.html)、
+[Tangent 节点](https://docs.blender.org/manual/en/4.3/render/shader_nodes/input/tangent.html)。
+
 ### 关于 `animation.track.set` 的 `targetKind`
 
 `targetKind` 是可选字段（`entity` | `camera` | `material`，缺省 `entity`），目标 id 仍写在
@@ -115,7 +157,7 @@ store 会看起来与自己的 manifest 不一致。
 |---|---|---|
 | `entity`（缺省） | `location` / `rotationEuler` / `scale` 各分量 | 实体对象 |
 | `camera` | 同上 | 相机对象——「镜头环绕产品」由此可表达 |
-| `material` | `emissionStrength` / `roughness` / `metallic` / `ior` / `alpha` / `coatWeight` / `transmissionWeight` / `baseColor.r/g/b` / `emissionColor.r/g/b` | 材质表面节点的 socket |
+| `material` | `emissionStrength` / `roughness` / `metallic` / `ior` / `alpha` / `coatWeight` / `transmissionWeight` / `anisotropic` / `anisotropicRotation` / `baseColor.r/g/b` / `emissionColor.r/g/b` | 材质表面节点的 socket |
 
 材质属性名与 `material.parameter.update` **同一套**。语义层拒绝 kind 与属性不匹配的组合
 （`emissionStrength` 放在实体上、`location.x` 放在材质上都会静默地什么都不动），
@@ -288,19 +330,27 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
 `data.engines[id].available` 是被验证过的赋值结果，而 `data.engineEnumItems` 仅为诊断，
 **不得**用于判断可用性（决策 D1/D9）。
 
+### 3.1.1 `blender_recipe_list`
+
+无参数。返回 `data.recipes`（版本、摘要、作者、许可、预览地址、参数定义）与
+`data.errors`（无法载入的本地配方）。只发现内置及 Host `recipeDirectories` 已注册的目录。
+将所选配方的 `id`、`version`、`digest` 和参数值传给 `blender_project_create.recipe`；
+模型不传文件路径或脚本。目录读取失败使用 `RECIPE_LIST_FAILED`，单包失败保留在 errors 中。
+
 ### 3.2 `blender_project_create`
 
 | 参数 | 类型 | 必需 | 说明 |
 |---|---|---|---|
 | `title` | string | **是** | 人类名称，同时是 projectId 的来源（slug 化） |
 | `goal` | string | 否 | 自然语言目标，**逐字保存**，永不参与编译 |
-| `sceneSpec` | object | 否 | 完整 SceneSpec v1；省略则用最小可渲染脚手架 |
+| `sceneSpec` | object | 否 | 完整 SceneSpec v1；与 recipe 互斥，两者省略则用最小可渲染脚手架 |
+| `recipe` | object | 否 | `{id, version, digest, parameters?}`；实际源 hash、许可与参数记录在首版 recipe-lock.json |
 | `projectId` | string | 否 | 显式 id；冲突时自动加数字后缀而非报错 |
 | `saveCheckpoint` | boolean | 否 | 默认 `true`，编译并保存 `<revision>/scene.blend` |
 | `renderPreview` | boolean | 否 | 默认 `false` |
 
 **副作用**：创建 `<projectsRoot>/<id>/` 骨架，提交 **r0001**（`kind: project_create`）。
-若省略 `sceneSpec`，脚手架包含一个立方体、一盏面光、一台对准主体的相机、两个渲染
+若省略 `sceneSpec` 与 `recipe`，脚手架包含一个立方体、一盏面光、一台对准主体的相机、两个渲染
 profile —— 保证新项目**立即可渲染**。
 
 ### 3.3 `blender_project_get` / `blender_scene_get`
@@ -351,6 +401,7 @@ visible/locked）、相机参数、动画轨道、渲染 profile、已有的 pre
 | `frame` | integer | 默认**帧范围中点**（对动画而言比首帧更有信息量） |
 | `samples` | integer | 超过 profile 的 `maxSamplesBudget` 或 Host 上限会被**削减并报告** |
 | `width` / `height` | integer | 覆盖分辨率 |
+| `mode` | string | 可选 `beauty` / `clay`；独立检查图，必须显式指定 `revision`、`cameraId`、`frame`，需要 Host API ≥6 |
 
 **不创建 revision**：预览是对场景的观察，不是对场景的修改，因此永远安全。
 checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编译到临时目录
@@ -358,6 +409,24 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 产物路径为 `revisions/<rev>/previews/<file>.png`，**项目相对路径**，并带
 `width`/`height`/`bytes`/`sha256`/`engine`/`samples`/`frame`。
+
+指定 `mode` 后通过 `renderViews` 从 SceneSpec 重建单张隔离检查图，存入
+`revisions/<rev>/diagnostics/<job>/`。不会修改源修订、普通 previews 或自动评分。
+先用 `blender_scene_get` 取得修订和已有相机，再调用，例如：
+
+```json
+{"projectId":"product","revision":"r0003","cameraId":"camera-detail","frame":1,"mode":"clay","samples":16}
+```
+
+工具核对回执的版本、模式、机位和帧，读取 PNG 并校验字节数及 SHA-256，
+然后在执行期间保存图片附件。返回值的 `image` 只有附件引用，不包含图像字节；
+回放只读取该引用。无附件服务或保存失败时，保留已完成的检查图及回执，
+`image:null` 并明确提示模型尚未看到图片；读取失败或文件摘要不符则拒绝附图。
+旧 Host 会返回 `BLENDER_RUNTIME_UNAVAILABLE` 并提示升级及重启 profile，普通预览不受影响。
+
+灰模替换主体表面材质，去掉透明、发光、纹理及凹凸；导入材质的位移可能影响外形。
+它不是原 checkpoint 截图，也不证明壁厚、封闭性、无自交或美术通过。实际设置、
+源摘要和限制保留在 `data` 中。调用取消返回 `BLENDER_ABORTED`；已经发布的检查图可能保留。
 
 ### 3.6 `blender_scene_validate`
 
@@ -399,7 +468,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 ## 5. ScenePatch v1 操作词汇表
 
-共 24 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
+共 31 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
 
 ### 5.1 实体
 
@@ -410,6 +479,8 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `entity.add` | `entity`（完整实体对象） |
 | `entity.remove` | `entityId`（若有相机或动画轨道引用它 → `PATCH_TARGET_IN_USE`） |
 | `entity.material.set` | `entityId`, `materialId`（`null` 表示恢复默认材质） |
+| `entity.generator.set` | `entityId`, `generator`（完整替换，只适用于生成器实体） |
+| `entity.modifiers.set` | `entityId`, `modifiers`（完整替换，空数组清除；不适用于 empty） |
 
 ### 5.2 材质
 
@@ -417,6 +488,9 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 |---|---|
 | `material.add` | `material` = `{id, shader, parameters?}`；id 已存在 → `PATCH_TARGET_EXISTS` |
 | `material.parameter.update` | `materialId`, `parameter`, `value` |
+| `material.tangent.set` | `materialId`, `tangent`（`{mode:"uv",uvMap:"UVMap"}` 或 `{mode:"radial",axis:"x"|"y"|"z"}`；null 清除） |
+| `material.images.set` | `materialId`, `images`（图片通道绑定，完整替换；null 移除） |
+| `entity.materialBindings.set` | `entityId`、`materialBindings` | 完整替换导入网格的部件/槽位材质；从 scene_get.assetParts 读取选择器；空数组清除 |
 
 `parameter` 取值：`baseColor`、`metallic`、`roughness`、`ior`、`alpha`、
 `emissionColor`、`emissionStrength`、`coatWeight`、`transmissionWeight`。
@@ -452,6 +526,8 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `animation.track.remove` | `trackId` |
 | `shot.set` | `shot` = `{id, cameraId, frameRange?, description?}` |
 | `shot.remove` | `shotId` |
+| `project.brief.set` | `goal`（≤2000 字符）、`referenceImages`（≤4，完整替换；每项 `{id,assetId,sha256,label,purposes,notes?}`；PNG/JPEG 内容寻址资产） |
+| `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`）；保存主要评审对象，null 恢复自动选择；实体须存在且非 empty，不移动相机 |
 | `project.frameRange.set` | `frameStart`, `frameEnd`, `fps?` |
 | `render.profile.set` | `profileName`（`preview`\|`final`）, `profile` |
 
@@ -519,7 +595,7 @@ M3 新增的：
 | 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
-| 不接受任意 Python | 只接受 24 个固定操作名，无脚本入口 |
+| 不接受任意 Python | 只接受 31 个固定操作名，无脚本入口 |
 | 结果必须**可无损表示** | 工具边界把 `-0` 归一为 `0`，丢 `undefined`、换非有限数并报告 |
 | 不接受任意 Shell | 全部经 `ctx.subprocess` 的 argv 数组 |
 | 不写入项目工作区之外 | `paths.js` 的 `resolveInside()` 在 realpath 上强制 |
@@ -580,9 +656,9 @@ M3 新增的：
 > 平面归属：**Host composition**（`@deepblend/dsh-blender-ui` 的 Host 半边）。网页半边
 > 只有 `fetch`，没有任何执行入口。
 
-M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工作台」加上第 20 条
-（`GET /deepblend/workbench`，唯一一条回答 HTML 而不是 JSON 的路由）。**这张表不是手写的**：它由
-`packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES` 生成，并由
+当前工作台共有 29 条路由；`GET /deepblend/workbench` 回答完整 HTML，素材与配方预览
+通过图片产物展示。路由的权威定义为
+`packages/deepblend/contracts/lib/ui-api.js` 的 `UI_ROUTES`，由
 `deepblend/tests/contract/ui-api.test.mjs` 断言本文件里的行与那份表**逐条相同**
 （本仓库第 6 次遇到「同一份词表写两遍」，所以这次让文档漂移直接让测试变红）。
 
@@ -594,6 +670,8 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 | `GET /deepblend/diagnostics` | 读 | A shareable diagnostic bundle: versions, configuration, store summary and recent failures. |
 | `GET /deepblend/workbench` | 读 | The standalone fullscreen workbench document. |
 | `GET /deepblend/state` | 读 | Everything the panel needs to render itself from scratch. |
+| `GET /deepblend/recipes` | 读 | Validated local recipes and their editable parameters. |
+| `GET /deepblend/recipes/:recipeId/:version/preview` | 读 | A hash-pinned recipe preview. |
 | `GET /deepblend/projects` | 读 | Every project in the store. |
 | `POST /deepblend/projects` | **写** | Create a project (title, optional seed scene). |
 | `GET /deepblend/projects/:projectId` | 读 | One project: summary, revisions, current digest. |
@@ -604,8 +682,14 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 | `GET /deepblend/projects/:projectId/qa` | 读 | The QA view of a revision (?revision=). |
 | `GET /deepblend/projects/:projectId/previews` | 读 | Preview sets per revision, for Preview Compare. |
 | `POST /deepblend/projects/:projectId/preview` | **写** | Render the low-cost multi-view preview (and its contact sheet). |
+| `POST /deepblend/projects/:projectId/reference-images` | **写** | 上传 PNG/JPEG 原始字节（`?name=...`、图片 Content-Type），核验后保存资产；保存目标的 patch 才绑定版本。 |
+| `GET /deepblend/projects/:projectId/assets` | 读 | 素材库：暂存素材、指定修订中的声明及最近一次检查和预览；不改变场景。 |
+| `POST /deepblend/projects/:projectId/assets` | **写** | 流式上传 GLB、PNG、JPEG、HDR、EXR（`?name=...&license=...`），按内容摘要保存原字节；应用到场景才生成修订。 |
+| `POST /deepblend/projects/:projectId/assets/:assetId/preview` | **写** | 按请求的 sha256 核验素材并生成独立预览；模型保留原材质，环境图展示双球照明，不修改项目版本。 |
+| `POST /deepblend/projects/:projectId/review` | **写** | 对指定 revision 渲染并调用视觉模型，记录技术与艺术评价及核验的参考图。 |
+| `POST /deepblend/projects/:projectId/autofix` | **写** | 指定 revision，按固定目标尝试 1–3 轮修正；证据不足或效果退步时停止、条件回滚。 |
 | `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
-| `POST /deepblend/projects/:projectId/restore` | **写** | Restore an earlier revision as a new revision. |
+| `POST /deepblend/projects/:projectId/restore` | **写** | Move the current pointer to a saved revision; preserve history. Optional `expectedCurrentRevision` rejects intervening edits. |
 | `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |
 | `POST /deepblend/projects/:projectId/jobs/:jobId/cancel` | **写** | Cancel a running job and verify the process is gone. |
@@ -614,7 +698,7 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
 
 ### 2.2 契约要点
 
-* **写操作只有 6 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` /
+* **写操作共有 11 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
   `applyScenePatch` / `restoreRevision` / `startFinalRender`+`resumeRenderJob` /
   `cancelJob`）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
   那一个方法，且没有任何 handler 在表外存在（闭集，两个方向都断言）。
@@ -624,14 +708,25 @@ M4 的九个交付项全部由这 19 条路由支撑；M6 的「独立全屏工�
   两种形状：一个成功的错答案，和一个不是 JSON 的响应。客户端把两种都归到
   `UI_HOST_API_STALE`，并把观察到的状态码/字节数写进诊断
   （`tests/e2e/ui.e2e.mjs` 用真实页面把两条都断言了）。
+  当前 Host API 为 6；继承素材库，并支持固定相机/帧的独立材质与灰模检查。
+  网页依赖该版本或后续兼容版本，显式检查模式还核对运行中服务的实际版本。
 * **没有缓存**：每条响应 `cache-control: no-store`，每个值都是当次从 Host 现算的
   （SPEC §14.3「刷新后可从 Host 恢复权威状态」）。
+* **独立检查图**：`POST /preview` 显式传 `mode: beauty|clay`、`revision` 和
+  `views: [{id, cameraId, frame}]` 时，隔离重建后发布到该版本的独立 diagnostics。
+  `/previews` 在各版本下新增 `diagnostics` 数组；不会替换默认成品、联系表或评审输入。
+  详见[固定视角检查](inspection.md)。
 * **预览渲染合成自己的 contact sheet，并保留上一张**：`contact-sheets/preview-current.png`
   与 `preview-previous.png`，两条都带 `slot`（`PREVIEW_SHEET_SLOTS`）与 `at`。这样
   「上一次 vs 本次渲染」才可比——预览不产生 revision，版本轴在渲染完的那一刻是空的
   （D70）。响应里的 `preview.sheets` 是这一对（**不含** PNG 字节：图片走 artifact 路由）。
+* **单图来源与历史**：创建/编辑预览及 Studio `renderPreview` 的单图记录来源版本、
+  SceneSpec 摘要、实际生成时间与渲染器报告的配置。重复渲染同一版本、机位、帧会生成
+  独立路径，旧图片和原任务记录保持可读。旧数据只读推导来源；不明确的来源/时间保留未知。
+  对比页同时考虑单图和预览拼图的实际时间；编辑对比还核对来源及相同摄影配置。
+* **实测预览条件**：单图记录求值后的 `cameraFacts`；多视角的 view 记录各自的实际 `renderConfig`、`cameraFacts` 和采样，拼图保存有序 `viewSettings` 快照。轮换保留旧拼图自己的快照，缺失保持未知。工作台分别标注拼图尺寸和各视图预算，并提示比较条件的差异；相同相机 ID 不代表姿态或焦距相同。配置匹配不表示作品已通过美术评审。
 * **产物 URL 由内容决定**：客户端给工件 URL 加上 `?v=<sha256 前 12 位>`。预览是**产物**：
-  重渲会替换**同一路径**上的字节（D28/D69），路径不变时浏览器不会重新请求，面板就会一直
+  多视角重渲会替换**同一路径**上的字节（D28/D69），路径不变时浏览器不会重新请求，面板就会一直
   显示旧图——实测缺陷，回归断言在 `e2e/ui.e2e.mjs`。
 * **`artifacts` 是唯一碰文件系统的路由**，路径交给 `blenderStudio.readArtifact`，由它
   用 `resolveInside` 把项目目录当作边界（SPEC §15.2）。路由器会**先解码** `*` 捕获的

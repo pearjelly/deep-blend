@@ -18,6 +18,7 @@
 
 import { compileSchema, formatIssues } from './json-schema.js'
 import { collectionForKind, sceneSpecDigest, specHash } from './scene-spec.js'
+import { referenceImageIssues } from './reference-images.js'
 import scenePatchSchema from './schemas/scene-patch.schema.json' with { type: 'json' }
 
 const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patch.schema.json' })
@@ -53,6 +54,13 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   // accepted `material.texture.set` while this list (and therefore the manual and the tool's description) still
   // had 23 names, which `scene-patch.test.mjs`'s schema-vs-constant check is the only check able to see.
   'material.texture.set',
+  'entity.generator.set',
+  'entity.modifiers.set',
+  'material.images.set',
+  'entity.materialBindings.set',
+  'material.tangent.set',
+  'project.brief.set',
+  'project.reviewSubject.set',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
@@ -105,6 +113,12 @@ export function validateScenePatch(patch) {
     const at = `operations[${position}]`
     const op = operation.op
 
+    if (op === 'project.brief.set') {
+      for (const issue of referenceImageIssues(operation.referenceImages)) {
+        errors.push({ code: 'PATCH_OPERATION_INVALID', path: `${at}.referenceImages${issue.path}`, message: issue.message })
+      }
+    }
+
     if (op === 'entity.transform.update') {
       const supplied = ['location', 'rotationEuler', 'scale'].filter(key => operation[key] !== undefined)
       if (supplied.length === 0) {
@@ -148,6 +162,11 @@ export function validateScenePatch(patch) {
           message: 'camera.update must set either targetEntityId or targetPoint, not both',
         })
       }
+    }
+    if (op === 'material.parameter.update' && ['anisotropic', 'anisotropicRotation'].includes(operation.parameter) &&
+        (!Number.isFinite(operation.value) || operation.value < 0 || operation.value > 1)) {
+      errors.push({ code: 'PATCH_OPERATION_INVALID', path: `${at}.value`,
+        message: `${operation.parameter} must be a finite scalar in [0, 1]` })
     }
     for (const key of ['entityId', 'materialId', 'lightId', 'cameraId', 'trackId', 'shotId']) {
       const value = operation[key]
@@ -402,6 +421,51 @@ export function applyPatchToSpec(spec, patch) {
         break
       }
 
+      case 'entity.materialBindings.set': {
+        const at = indexOfId(next.entities, operation.entityId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no entity "${operation.entityId}" exists in this scene`)
+        const entity = next.entities[at]
+        if (entity.type !== 'asset-instance') fail('PATCH_OPERATION_INVALID', `${op} requires an asset-instance entity`)
+        const selectors = new Set()
+        for (const binding of operation.materialBindings) {
+          if (indexOfId(next.materials, binding.materialId) < 0) fail('PATCH_REFERENCE_MISSING', `no material "${binding.materialId}" exists`)
+          const key = JSON.stringify([binding.partId, binding.slotIndex ?? null])
+          if (selectors.has(key)) fail('PATCH_OPERATION_INVALID', 'duplicate part and slot material binding')
+          selectors.add(key)
+        }
+        const changed = JSON.stringify(entity.materialBindings ?? []) !== JSON.stringify(operation.materialBindings)
+        if (changed) {
+          const updated = { ...entity, materialBindings: structuredClone(operation.materialBindings) }
+          if (!updated.materialBindings.length) delete updated.materialBindings
+          next.entities[at] = updated
+        }
+        applied.push({ op, target: entity.id, summary: `set material bindings on entity "${entity.id}"`,
+          changedPaths: changed ? [`entities.${entity.id}.materialBindings`] : [] })
+        break
+      }
+
+      case 'entity.generator.set':
+      case 'entity.modifiers.set': {
+        const at = indexOfId(next.entities, operation.entityId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no entity "${operation.entityId}" exists in this scene`)
+        const entity = next.entities[at]
+        const field = op === 'entity.generator.set' ? 'generator' : 'modifiers'
+        if ((field === 'generator' && entity.type !== 'generator') || entity.type === 'empty') {
+          fail('PATCH_OPERATION_INVALID', `${op} cannot edit a ${entity.type} entity`)
+        }
+        const before = entity[field] ?? (field === 'modifiers' ? [] : undefined)
+        const value = structuredClone(operation[field])
+        const changed = JSON.stringify(before) !== JSON.stringify(value)
+        if (changed) {
+          const updated = { ...entity, [field]: value }
+          if (field === 'modifiers' && value.length === 0) delete updated.modifiers
+          next.entities[at] = updated
+        }
+        applied.push({ op, target: entity.id, summary: `set ${field} on entity "${entity.id}"`,
+          changedPaths: changed ? [`entities.${entity.id}.${field}`] : [] })
+        break
+      }
+
       case 'entity.add': {
         if (indexOfId(next.entities, operation.entity.id) >= 0) {
           fail('PATCH_TARGET_EXISTS', `entity "${operation.entity.id}" already exists; use entity.transform.update instead`)
@@ -428,6 +492,11 @@ export function applyPatchToSpec(spec, patch) {
           fail('PATCH_TARGET_MISSING', `no entity "${operation.entityId}" exists in this scene`)
         }
         const dependents = []
+        if (next.project.reviewSubjectId === operation.entityId) dependents.push('review subject')
+        if (next.entities.some(entity => (entity.modifiers ?? []).some(modifier =>
+          modifier.type === 'boolean' && modifier.targetEntityId === operation.entityId))) {
+          dependents.push('boolean operand')
+        }
         if (next.cameras.some(camera => camera.targetEntityId === operation.entityId)) {
           dependents.push('camera target')
         }
@@ -513,6 +582,34 @@ export function applyPatchToSpec(spec, patch) {
           } → ${JSON.stringify(operation.value)}`,
           changedPaths: [`materials.${material.id}.parameters.${operation.parameter}`],
         })
+        break
+      }
+
+      case 'material.tangent.set': {
+        const at = indexOfId(next.materials, operation.materialId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no material "${operation.materialId}" exists in this scene`)
+        const material = { ...next.materials[at] }
+        if (operation.tangent === null) delete material.tangent
+        else material.tangent = structuredClone(operation.tangent)
+        next.materials = [...next.materials]
+        next.materials[at] = material
+        applied.push({ op, target: material.id, summary: `set anisotropic tangent on material "${material.id}"`,
+          changedPaths: [`materials.${material.id}.tangent`] })
+        break
+      }
+
+      case 'material.images.set': {
+        const at = indexOfId(next.materials, operation.materialId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no material "${operation.materialId}" exists in this scene`)
+        const material = { ...next.materials[at] }
+        for (const binding of Object.values(operation.images ?? {})) {
+          if (indexOfId(next.assets, binding.assetId) < 0) fail('PATCH_REFERENCE_MISSING', `no image asset "${binding.assetId}" exists`)
+        }
+        if (operation.images === null) delete material.images
+        else material.images = structuredClone(operation.images)
+        next.materials[at] = material
+        applied.push({ op, target: material.id, summary: `set image maps on material "${material.id}"`,
+          changedPaths: [`materials.${material.id}.images`] })
         break
       }
 
@@ -758,6 +855,29 @@ export function applyPatchToSpec(spec, patch) {
       }
 
       // ---- project and profiles -------------------------------------------
+      case 'project.reviewSubject.set': {
+        const entity = next.entities.find(entry => entry.id === operation.entityId)
+        if (operation.entityId !== null && !entity) fail('PATCH_REFERENCE_MISSING', `review subject "${operation.entityId}" does not exist`)
+        if (entity?.type === 'empty') fail('PATCH_OPERATION_INVALID', 'The review subject must be a renderable entity, not an empty.')
+        const project = { ...next.project }
+        if (operation.entityId === null) delete project.reviewSubjectId
+        else project.reviewSubjectId = operation.entityId
+        next = { ...next, project }
+        applied.push({ op, target: project.id,
+          summary: operation.entityId === null ? 'restored automatic review subject selection' : `set review subject to "${operation.entityId}"`,
+          changedPaths: ['project.reviewSubjectId'] })
+        break
+      }
+      case 'project.brief.set': {
+        const issues = referenceImageIssues(operation.referenceImages, next.assets ?? [])
+        if (issues.length > 0) fail(issues[0].code === 'SCENE_REFERENCE_MISSING'
+          ? 'PATCH_REFERENCE_MISSING' : 'PATCH_OPERATION_INVALID', issues[0].message)
+        next = { ...next, project: { ...next.project, goal: operation.goal,
+          referenceImages: structuredClone(operation.referenceImages) } }
+        applied.push({ op, target: next.project.id, summary: 'replaced the authored goal and visual references',
+          changedPaths: ['project.goal', 'project.referenceImages'] })
+        break
+      }
       case 'project.frameRange.set': {
         if (operation.frameEnd <= operation.frameStart) {
           fail('PATCH_FRAME_RANGE_INVALID', `frameEnd (${operation.frameEnd}) must be greater than frameStart (${operation.frameStart})`)
@@ -817,6 +937,9 @@ export function applyPatchToSpec(spec, patch) {
       }
 
       case 'world.set': {
+        if (operation.world.environment && indexOfId(next.assets, operation.world.environment.assetId) < 0) {
+          fail('PATCH_REFERENCE_MISSING', `no environment asset "${operation.world.environment.assetId}" exists`)
+        }
         // The world REPLACES rather than merges, matching how a caller thinks about
         // "make the background black": a half-updated world is how the hidden grey
         // constant survived this long in the first place.
@@ -869,6 +992,12 @@ export function applyPatchToSpec(spec, patch) {
       }
 
       case 'asset.remove': {
+        if ((next.project.referenceImages ?? []).some(reference => reference.assetId === operation.assetId)) {
+          fail('PATCH_TARGET_IN_USE', `asset "${operation.assetId}" is still used by project.referenceImages`)
+        }
+        if (next.world?.environment?.assetId === operation.assetId) {
+          fail('PATCH_TARGET_IN_USE', `asset "${operation.assetId}" is still used by world.environment`)
+        }
         if (indexOfId(next.assets, operation.assetId) < 0) {
           fail('PATCH_TARGET_MISSING', `no asset "${operation.assetId}" exists in this scene`)
         }
@@ -876,6 +1005,9 @@ export function applyPatchToSpec(spec, patch) {
         // instantiates this asset would be left pointing at nothing, and the compiler
         // would then refuse a scene the patch claimed to have produced.
         const dependents = next.entities.filter(entity => entity.assetId === operation.assetId)
+        if ((next.materials ?? []).some(material => Object.values(material.images ?? {}).some(binding => binding.assetId === operation.assetId))) {
+          fail('PATCH_TARGET_IN_USE', `asset "${operation.assetId}" is still referenced by material image maps`)
+        }
         if (dependents.length > 0) {
           fail(
             'PATCH_TARGET_IN_USE',
@@ -929,7 +1061,7 @@ export function buildOperationManifest({ operations, request, revision, notices 
     specHashBefore: revision.specHashBefore ?? null,
     specHashAfter: revision.specHashAfter ?? null,
     // Two different questions, two different answers. `sceneChanged` excludes
-    // project.title/goal by design (see sceneSpecDigest); `specChanged` covers the
+    // project metadata and brief by design (see sceneSpecDigest); `specChanged` covers the
     // whole document, so the frame range counts.
     sceneChanged: revision.digestBefore !== revision.digestAfter,
     specChanged: (revision.specHashBefore ?? null) !== null

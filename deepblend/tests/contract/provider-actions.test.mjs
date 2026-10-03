@@ -246,6 +246,33 @@ check('startFrameSequence refuses when the executable cannot be resolved, keepin
 // Which engine a render will really use
 // ---------------------------------------------------------------------------
 
+const cancelledResolution = new AbortController()
+cancelledResolution.abort()
+const resolvedAfterAbort = await makeProvider().resolveBlenderExecutable({ signal: cancelledResolution.signal })
+check('a cancelled executable lookup retains ABORTED even when its resolver returns a path',
+  resolvedAfterAbort.resolved === null && resolvedAfterAbort.error?.code === code('ABORTED'))
+
+const abortLookupContext = new Context()
+abortLookupContext.provide('subprocess', { async resolveExecutable() { throw new DOMException('lookup cancelled', 'AbortError') } })
+const abortLookupProvider = new LocalBlenderRuntime(abortLookupContext, ProviderConfig({ workspaceRoot, blenderPath }))
+const abortLookupResult = await abortLookupProvider.resolveBlenderExecutable()
+check('an AbortError from executable lookup is cancellation rather than executable absence',
+  abortLookupResult.resolved === null && abortLookupResult.error?.code === code('ABORTED'))
+
+const cachedProbeProvider = makeProvider()
+await cachedProbeProvider.getCapabilities()
+const cancelledCachedProbe = await cachedProbeProvider.getCapabilities({ signal: cancelledResolution.signal }).catch(cause => cause)
+check('a cached capability response cannot bypass an already cancelled request',
+  cancelledCachedProbe instanceof BlenderError && cancelledCachedProbe.code === code('ABORTED'))
+
+const duringLookup = new AbortController()
+const duringLookupContext = new Context()
+duringLookupContext.provide('subprocess', { async resolveExecutable(requested) { duringLookup.abort(); return requested } })
+const duringLookupProvider = new LocalBlenderRuntime(duringLookupContext, ProviderConfig({ workspaceRoot, blenderPath }))
+const interruptedProbe = await duringLookupProvider.getCapabilities({ signal: duringLookup.signal }).catch(cause => cause)
+check('a probe cancelled during lookup throws ABORTED without caching installed false',
+  interruptedProbe instanceof BlenderError && interruptedProbe.code === code('ABORTED') && duringLookupProvider._capabilitiesCache.size === 0)
+
 const unknownEngine = await makeProvider().resolveEngineKey('not-an-engine').catch(cause => cause)
 check('an engine key that is not a SceneSpec engine is refused, listing the keys that are',
   unknownEngine instanceof BlenderError && unknownEngine.code === code('RENDER_PROFILE_MISSING') &&

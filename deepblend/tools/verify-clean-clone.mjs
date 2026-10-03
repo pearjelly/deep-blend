@@ -44,6 +44,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { ensureSdkToolchain } from './sdk-toolchain.mjs'
 
 const HERE = import.meta.dirname
 const REPO = resolve(HERE, '..', '..')
@@ -52,6 +53,7 @@ const keep = process.argv.includes('--keep')
 const withBlender = process.argv.includes('--with-blender')
 const sourceIndex = process.argv.indexOf('--source')
 const source = sourceIndex === -1 ? REPO : resolve(process.argv[sourceIndex + 1] ?? REPO)
+const childEnv = { ...process.env }
 
 function say(label, value) {
   console.log(`${label}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
@@ -81,7 +83,7 @@ function step(argv, context) {
   const result = spawnSync(argv[0], argv.slice(1), {
     cwd: context.cwd,
     encoding: 'utf8',
-    env: { ...process.env, DSH_HOME: context.home },
+    env: { ...childEnv, DSH_HOME: context.home },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   const ms = Date.now() - started
@@ -183,6 +185,11 @@ try {
   // -------------------------------------------------------------------------
   // Finally: does the thing it installed actually pass its own tests?
   // -------------------------------------------------------------------------
+  // Product installation does not require a compiler. The author SDK contract
+  // does, so reuse a matching explicit toolchain or prepare only its locked
+  // dependency subset under this clone; never rewrite the DSH deployment.
+  childEnv.DEEPBLEND_SDK_TOOLCHAIN_ROOT = ensureSdkToolchain(clone, childEnv)
+  say('SDK development tools', childEnv.DEEPBLEND_SDK_TOOLCHAIN_ROOT)
   record('contract suite', step(['node', join(clone, 'deepblend/tests/run.mjs')], { cwd: clone, home, label: 'the contract suite, in the clone' }))
 
   if (withBlender) {
@@ -241,6 +248,7 @@ try {
     }
   }
 } catch (error) {
+  failures.push(`walkthrough error: ${error.message}`)
   console.error(`\n${error.message}`)
 }
 
