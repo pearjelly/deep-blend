@@ -23,7 +23,7 @@
           1
         ],
         "metallic": 1,
-        "roughness": 0.39,
+        "roughness": 0.28,
         "coatWeight": 0.025,
         "anisotropic": 0.55,
         "anisotropicRotation": 0
@@ -34,14 +34,16 @@
       },
       "texture": {
         "type": "noise",
-        "scale": 1800,
+        "coordinates": "uv",
+        "uvMap": "UVMap",
+        "scale": 1,
         "detail": 2,
         "stretch": [
-          1,
-          1,
-          0.028
+          0.0001,
+          800,
+          1
         ],
-        "bump": 0.002,
+        "bump": 0.006,
         "roughnessVariation": 0.035,
         "colorVariation": 0.012
       }

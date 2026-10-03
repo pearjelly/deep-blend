@@ -5,7 +5,7 @@ import {
   parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, buildOperationManifest,
   sceneSpecDigest, specHash, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
-  type RecipeManifest, type RecipeBundle, type BlenderRuntime, type LocalBlenderRuntime,
+  type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
   type CompiledObject, type SceneSpecSchema,
 } from '@deepblend/dsh-blender-contracts/sdk';
@@ -116,3 +116,6 @@ const uvGrain: SceneSpecSchema.ProceduralTexture = {type:'noise',scale:1,coordin
 const surfaceSpec = parseSceneSpec({...spec,materials:[{...spec.materials[0]!,texture:uvGrain}]});
 assert.equal(surfaceSpec.materials?.[0]?.texture?.coordinates,'uv');
 assert.equal(surfaceSpec.materials?.[0]?.texture?.uvMap,'Finish UV');
+
+const uvRecipeCapability: RecipeCapability = 'material.procedural.uv';
+assert.ok(RECIPE_CAPABILITIES.includes(uvRecipeCapability));

@@ -9,7 +9,7 @@ import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
   'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.modifiers',
-  'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.anisotropy',
+  'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
@@ -38,6 +38,7 @@ export function recipeCapabilitiesForScene(spec) {
   for (const material of spec.materials ?? []) {
     used.add(`material.${material.shader}`)
     if (material.texture) used.add('material.procedural')
+    if (material.texture?.coordinates === 'uv') used.add('material.procedural.uv')
     if (material.tangent !== undefined || material.parameters?.anisotropic !== undefined || material.parameters?.anisotropicRotation !== undefined) used.add('material.anisotropy')
   }
   for (const track of spec.animationTracks ?? []) {

@@ -21,7 +21,8 @@ const json=(name,value)=>writeFileSync(join(output,name),JSON.stringify(value,nu
 let server,browser,page,failure,shutdown,original
 try{
   const blenderPath=process.env.DEEPBLEND_BLENDER_PATH??join(REPO_ROOT,'.tools','Blender.app','Contents','MacOS','Blender')
-  const sceneSpec=JSON.parse(readFileSync(join(REPO_ROOT,'deepblend/recipes/metal-lamp/scene-spec.json')))
+  // Keep the historical Object material as the switch-to-UV fixture when gallery defaults evolve.
+  const sceneSpec=JSON.parse(readFileSync(join(REPO_ROOT,'deepblend/tests/fixtures/metal-lamp-v1/scene-spec.json')))
   sceneSpec.renderProfiles.preview.resolution=[320,240];sceneSpec.renderProfiles.preview.samples=16
   const rows=JSON.parse(await storePatch(root));rows.find(x=>x.id==='deepblend-blender-runtime').config.blenderPath=blenderPath
   rows.find(x=>x.id==='deepblend-blender-host').config.maxPreviewSamples=16

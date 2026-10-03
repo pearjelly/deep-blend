@@ -29,7 +29,7 @@ test('the distributed Host carries four validated self-contained recipes', () =>
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
   assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
-  assert.ok(result.recipes.every(r => r.parameters.length === 3 && r.license === 'MIT'))
+  assert.ok(result.recipes.every(r => r.parameters.length === (r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
   for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(
@@ -253,4 +253,25 @@ test('an updated catalog disables a stale selection until the recipe is selected
   await store.actions.createProject(); assert.equal(calls.length, 0)
   store.actions.selectRecipe(recipes[0])
   assert.equal(nodes().find(node => node.props['data-action'] === 'create-project').props.disabled, false)
+})
+
+test('same recipe ID can expose distinct versions and removed v1 cannot silently select v2', async t => {
+  const {root,recipes,catalog,studio,request}=setup(t)
+  cpSync(new URL('../fixtures/metal-lamp-v1/',import.meta.url),join(recipes,'historical'),{recursive:true})
+  const items=catalog.list();assert.deepEqual(items.errors,[])
+  assert.deepEqual(items.recipes.map(r=>r.version).sort(),['1.0.0','2.0.0'])
+  const old=items.recipes.find(r=>r.version==='1.0.0'),selection={id:old.id,version:old.version,digest:old.digest,parameters:{'surface-roughness':.45}}
+  assert(readFileSync(new URL('../fixtures/metal-lamp-v1/preview.png',import.meta.url)).equals(catalog.preview(selection).bytes))
+  const made=await studio.createProject({title:'historical lamp',recipe:selection,saveCheckpoint:false})
+  const directory=studio.store.revisionDirectory(made.projectId,'r0001')
+  const manifest=studio.store.readRevisionManifest(made.projectId,'r0001'),lockPath=join(directory,manifest.recipe.lockPath)
+  const before=readFileSync(lockPath),source=readFileSync(join(directory,'scene-spec.json'))
+  const lock=JSON.parse(before);assert.equal(lock.version,'1.0.0');assert.equal(lock.values['surface-roughness'],.45)
+  assert.equal(sha256(lock.sceneSource),'6896f467a2bea311f14435c5fd755a021867c686262ea71cac80d4198694d75d')
+  rmSync(join(recipes,'historical'),{recursive:true})
+  assert.throws(()=>catalog.instantiate(selection),{code:'RECIPE_NOT_FOUND'})
+  assert.equal(catalog.list().recipes[0].version,'2.0.0')
+  assert(before.equals(readFileSync(lockPath)));assert(source.equals(readFileSync(join(directory,'scene-spec.json'))))
+  const current=catalog.instantiate(request)
+  assert.equal(current.lock.version,'2.0.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
 })

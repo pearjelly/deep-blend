@@ -193,6 +193,15 @@ test('source files exclude external binaries and published images have declared 
     }
   }
 
+  const historical='deepblend/tests/fixtures/metal-lamp-v1'
+  const historicalRecipe=JSON.parse(readFileSync(join(ROOT,historical,'recipe.json')))
+  assert.equal(historicalRecipe.version,'1.0.0');assert.equal(historicalRecipe.license,ownLicense)
+  assert.equal(historicalRecipe.source.url,'https://github.com/pearjelly/deep-blend')
+  assert.equal(hash(readFileSync(join(ROOT,historical,'preview.png'))),historicalRecipe.preview.sha256)
+  assert.equal(historicalRecipe.preview.sha256,'e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6')
+  assert.ok(readFileSync(join(ROOT,historical,'LICENSE'),'utf8').includes('MIT License'))
+  declared.add(`${historical}/preview.png`)
+
   // Screenshots come from the capture tool; product previews are exact files
   // declared by the benchmark and recipe manifests, not entire allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))

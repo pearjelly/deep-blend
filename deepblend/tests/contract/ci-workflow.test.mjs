@@ -267,6 +267,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   }
   assert.ok(runSteps.some(step => step.startsWith('env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py >')), 'missing real UV grain execution with fatal assertion errors')
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/material-browser/)
+  assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs >')), 'missing real recipe version workflow')
+  assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/recipe-browser/)
   assert.match(workflow, /DEEPBLEND_PROCEDURAL_UV_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/procedural-uv/)
   assert.match(workflow, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   for (const variable of ['DEEPBLEND_DIAGNOSTIC_OUTPUT', 'DEEPBLEND_TOOL_INSPECTION_OUTPUT', 'DEEPBLEND_E2E_ARTIFACTS']) assert.ok(workflow.includes(variable))

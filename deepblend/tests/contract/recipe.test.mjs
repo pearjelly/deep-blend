@@ -1,9 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync, cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import {tmpdir} from 'node:os'
 import { join, resolve } from 'node:path'
+import {execFileSync} from 'node:child_process'
 import { sha256, canonicalStringify } from '../../../packages/deepblend/contracts/lib/canonical.js'
 import { compileSceneSpec, validateSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
+import {decodePng} from '../../../packages/deepblend/contracts/lib/png.js'
 import { RECIPE_CAPABILITIES, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe } from '../../../packages/deepblend/contracts/lib/recipe.js'
 
 const root = resolve(import.meta.dirname, '../../..')
@@ -66,7 +69,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, '1.0.0')
+    assert.equal(first.recipe.version, name === 'metal-lamp' ? '2.0.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })
@@ -89,14 +92,14 @@ test('color/roughness/exposure alter only allowed slots, preserve alpha and geom
   assert.equal(instantiateRecipe(alpha, values).spec.materials.find(material => material.id === materialId).parameters.baseColor[3], 0.4)
 })
 
-test('lamp main finish parameters stay synchronized across spun and brushed parts while preserving anisotropy', () => {
+test('lamp color stays synchronized while independent finish controls preserve texture and anisotropy', () => {
   const bundle = load('metal-lamp'), base = instantiateRecipe(bundle)
   assert.ok(bundle.manifest.compatibility.capabilities.includes('material.anisotropy'))
-  const edited = instantiateRecipe(bundle, { 'main-color': [0.25, 0.3, 0.4], 'surface-roughness': 0.45 })
+  const edited = instantiateRecipe(bundle, { 'main-color': [0.25, 0.3, 0.4], 'spun-roughness': 0.31, 'brushed-roughness': 0.45 })
   for (const id of ['champagne-spun', 'champagne-brushed']) {
     const before = base.spec.materials.find(material => material.id === id)
     const after = edited.spec.materials.find(material => material.id === id)
-    assert.deepEqual(after, { ...before, parameters: { ...before.parameters, baseColor: [0.25, 0.3, 0.4, 1], roughness: 0.45 } })
+    assert.deepEqual(after, { ...before, parameters: { ...before.parameters, baseColor: [0.25, 0.3, 0.4, 1], roughness: id === 'champagne-spun' ? 0.31 : 0.45 } })
   }
   assert.deepEqual(edited.spec.entities, base.spec.entities)
   assert.equal(edited.spec.materials.find(material => material.id === 'champagne-spun').parameters.anisotropic, 0.55)
@@ -290,4 +293,73 @@ test('invalid SceneSpec and missing content return structured errors without Ble
   const missing = load(); delete missing.previewBytes
   refused(missing, 'RECIPE_INPUT_INVALID')
   assert.equal(validateRecipePackage(undefined).ok, false)
+})
+
+const historicalLamp = () => { const directory=join(root,'deepblend/tests/fixtures/metal-lamp-v1');return {manifest:JSON.parse(readFileSync(join(directory,'recipe.json'))),sceneBytes:readFileSync(join(directory,'scene-spec.json')),previewBytes:readFileSync(join(directory,'preview.png'))} }
+
+test('lamp v2 preserves native benchmark defaults, UV grain and exact preview pixels with reproducible packaging', () => {
+  const bundle=load('metal-lamp'),instance=instantiateRecipe(bundle),mat=id=>instance.spec.materials.find(m=>m.id===id)
+  assert.equal(bundle.manifest.version,'2.0.0')
+  assert.deepEqual(bundle.manifest.parameters.map(p=>p.id),['main-color','spun-roughness','brushed-roughness','exposure'])
+  assert.equal(mat('champagne-spun').parameters.roughness,.28);assert.equal(mat('champagne-brushed').parameters.roughness,.39)
+  assert.deepEqual(mat('champagne-spun').texture,{type:'noise',coordinates:'uv',uvMap:'UVMap',scale:1,detail:2,stretch:[.0001,800,1],bump:.006,roughnessVariation:.035,colorVariation:.012})
+  assert.deepEqual(bundle.sceneBytes,readFileSync(join(root,'deepblend/benchmarks/metal-lamp/scene-spec.json')))
+  const native=readFileSync(join(root,'deepblend/benchmarks/previews/metal-lamp-hero.png'))
+  assert.deepEqual(decodePng(bundle.previewBytes),decodePng(native),'Metadata removal must preserve every decoded pixel')
+  const imageChunks=bytes=>{const chunks=[];for(let offset=8;offset<bytes.length;){const end=offset+12+bytes.readUInt32BE(offset),kind=bytes.toString('ascii',offset+4,offset+8);if(['IHDR','IDAT','IEND'].includes(kind))chunks.push(bytes.subarray(offset,end));offset=end}return Buffer.concat(chunks)}
+  assert.deepEqual(imageChunks(bundle.previewBytes),imageChunks(native),'Encoded image chunks must remain byte-identical')
+  assert.equal(sha256(canonicalStringify(JSON.parse(bundle.sceneBytes))),JSON.parse(readFileSync(join(root,'deepblend/benchmarks/previews/manifest.json'))).images.find(p=>p.caseId==='metal-lamp').candidateInputSha256)
+  assert.match(execFileSync(process.execPath,[join(root,'deepblend/tools/build-metal-lamp-recipe.mjs'),'--check'],{encoding:'utf8'}),/2\.0\.0 verified/)
+})
+
+test('lamp builder refuses changed source or native image before packaging unverified content', t => {
+  const temporary=mkdtempSync(join(tmpdir(),'deepblend-lamp-source-'));t.after(()=>rmSync(temporary,{recursive:true,force:true}))
+  for(const directory of ['deepblend/tools','deepblend/benchmarks','deepblend/recipes','packages/deepblend/contracts'])mkdirSync(join(temporary,directory),{recursive:true})
+  cpSync(join(root,'packages/deepblend/contracts/lib'),join(temporary,'packages/deepblend/contracts/lib'),{recursive:true})
+  cpSync(join(root,'packages/deepblend/contracts/package.json'),join(temporary,'packages/deepblend/contracts/package.json'))
+  for(const name of ['metal-lamp','previews'])cpSync(join(root,'deepblend/benchmarks',name),join(temporary,'deepblend/benchmarks',name),{recursive:true})
+  cpSync(join(root,'deepblend/recipes/metal-lamp'),join(temporary,'deepblend/recipes/metal-lamp'),{recursive:true})
+  const tool=join(temporary,'deepblend/tools/build-metal-lamp-recipe.mjs');cpSync(join(root,'deepblend/tools/build-metal-lamp-recipe.mjs'),tool)
+  const run=()=>execFileSync(process.execPath,[tool,'--check'],{encoding:'utf8',stdio:['ignore','pipe','pipe']})
+  assert.match(run(),/2\.0\.0 verified/)
+  const input=join(temporary,'deepblend/benchmarks/metal-lamp/scene-spec.json'),before=readFileSync(input),scene=JSON.parse(before)
+  scene.materials.find(m=>m.id==='champagne-spun').parameters.roughness=.33;writeFileSync(input,JSON.stringify(scene))
+  assert.throws(run,error=>error.status===1&&String(error.stderr).includes('Benchmark source changed'))
+  writeFileSync(input,before)
+  const image=join(temporary,'deepblend/benchmarks/previews/metal-lamp-hero.png'),pixels=readFileSync(image);pixels[pixels.length-1]^=1;writeFileSync(image,pixels)
+  assert.throws(run,error=>error.status===1&&String(error.stderr).includes('Native benchmark preview bytes changed'))
+})
+
+test('each lamp v2 roughness control changes only its intended finish and preserves the other default', () => {
+  const bundle=load('metal-lamp'),base=instantiateRecipe(bundle)
+  for(const [key,id]of[['spun-roughness','champagne-spun'],['brushed-roughness','champagne-brushed']]){
+    const after=instantiateRecipe(bundle,{[key]:.46})
+    const expected=structuredClone(base.spec);expected.materials.find(m=>m.id===id).parameters.roughness=.46
+    assert.deepEqual(after.spec,expected)
+  }
+  assert.throws(()=>instantiateRecipe(bundle,{'surface-roughness':.39}),{code:'RECIPE_PARAMETER_UNKNOWN'})
+})
+
+test('historical lamp v1 source identity, coupled roughness semantics and Object grain remain usable', () => {
+  const bundle=historicalLamp();assert.equal(bundle.manifest.version,'1.0.0')
+  assert.equal(sha256(bundle.sceneBytes),'6896f467a2bea311f14435c5fd755a021867c686262ea71cac80d4198694d75d')
+  assert.equal(sha256(bundle.previewBytes),'e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6')
+  assert.equal(validateRecipePackage(bundle).ok,true)
+  const result=instantiateRecipe(bundle,{'surface-roughness':.45})
+  for(const id of ['champagne-spun','champagne-brushed'])assert.equal(result.spec.materials.find(m=>m.id===id).parameters.roughness,.45)
+  assert.equal(result.spec.materials.find(m=>m.id==='champagne-spun').texture.coordinates,undefined)
+  assert.equal(result.recipe.version,'1.0.0')
+})
+
+test('UV recipe capability distinguishes Object surfaces and refuses consumers lacking UV support', () => {
+  const bundle=load('metal-lamp'),old=historicalLamp(),withoutUv=RECIPE_CAPABILITIES.filter(c=>c!=='material.procedural.uv')
+  assert(RECIPE_CAPABILITIES.includes('material.procedural.uv'))
+  assert(recipeCapabilitiesForScene(JSON.parse(bundle.sceneBytes)).includes('material.procedural.uv'))
+  assert.equal(recipeCapabilitiesForScene(JSON.parse(old.sceneBytes)).includes('material.procedural.uv'),false)
+  assert.equal(validateRecipePackage(old,{supportedCapabilities:withoutUv}).ok,true)
+  assert(errorCodes(validateRecipePackage(bundle,{supportedCapabilities:withoutUv})).includes('RECIPE_INCOMPATIBLE'))
+  bundle.manifest.compatibility.capabilities=bundle.manifest.compatibility.capabilities.filter(c=>c!=='material.procedural.uv')
+  refused(bundle,'RECIPE_CAPABILITY_UNDECLARED')
+  const schema=JSON.parse(readFileSync(join(root,'deepblend/schemas/recipe.schema.json')))
+  assert.equal(schema.properties.compatibility.properties.capabilities.maxItems,RECIPE_CAPABILITIES.length)
 })

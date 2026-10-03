@@ -140,6 +140,9 @@ run_suite "Handled cup editor: real dimensions, refusals and revision reload" \
 run_suite "Material surface editor: UV drafts, native refusals, saved graph and real pixels" \
   node deepblend/tests/e2e/material-texture-ui.e2e.mjs
 
+run_suite "Recipe versions: native UV defaults, gallery selection and historical project locks" \
+  node deepblend/tests/e2e/recipe-version-ui.e2e.mjs
+
 run_suite "Fixed-view inspection workbench: real images, revision history and cancellation" \
   node deepblend/tests/e2e/inspection-ui.e2e.mjs
 

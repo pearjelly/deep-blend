@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 12,
+          "maxItems": 13,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -109,6 +109,7 @@
               "material.glass",
               "material.emission",
               "material.procedural",
+              "material.procedural.uv",
               "material.anisotropy",
               "animation.transform",
               "animation.material"

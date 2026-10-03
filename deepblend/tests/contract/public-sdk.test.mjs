@@ -120,7 +120,8 @@ test('packed package works in a real external strict TS and JS consumer without 
       assert.equal(report.status,'passed'); assert.equal(report.schemaVersion,'deepblend.recipe-author-report/v1')
       assert.equal(report.runtime.contractsVersion,load(join(installed,'package.json')).version)
       assert.equal(report.package.id,load(join(directory,'recipe.json')).id)
-      assert.equal(report.variants.length,7); assert.equal(report.refusals.length,7)
+      const parameterCount=load(join(directory,'recipe.json')).parameters.length
+      assert.equal(report.variants.length,1+2*parameterCount); assert.equal(report.refusals.length,1+2*parameterCount)
       assert.deepEqual(report.errors,[])
       assert.deepEqual(Object.fromEntries(report.files.map(file=>[file.name,file.sha256])),before)
       assert.ok(report.scope.unverified.includes('artistic quality'))

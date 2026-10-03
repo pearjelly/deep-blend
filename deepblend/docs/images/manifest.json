@@ -36,16 +36,16 @@
         "path": "revisions/r0002/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "ad927ebb51d1a9bc7075153caad319c714413bed534540ba2d2761c6020d06a9",
-        "bytes": 2244690
+        "sha256": "6642120b644d7e50735247d431d367a359e9676267b39e6177ec03ce63e45669",
+        "bytes": 2244705
       },
       {
         "revision": "r0003",
         "path": "revisions/r0003/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "5ae59d16fbb49805dd329d0c9915d613da35fbacc5d9e4353882785ce00b55ad",
-        "bytes": 2115247
+        "sha256": "0a0a935c57e595ebe16386234e11524ed1133e553f74c57f49ede5ff0a169bf3",
+        "bytes": 2115244
       }
     ]
   },
@@ -56,8 +56,8 @@
       "note": "the Preview view comparing actual r0002/r0003 renders, before/after the material refinement",
       "width": 3000,
       "height": 1900,
-      "bytes": 1018097,
-      "sha256": "d3d7ae9ba1701ea384b0b689b5167eeff2b729423aa0276c4b9d7bdb09f693ab"
+      "bytes": 1019832,
+      "sha256": "3cbcf015ec380acbbb8d57676d117f91eb6cfe6271214470d7111e5c1339ff76"
     },
     {
       "file": "workbench-scene.png",
@@ -75,7 +75,7 @@
       "width": 1476,
       "height": 906,
       "bytes": 625205,
-      "sha256": "cc39164f7baceb5d86f21bebb9c4babada446be055a1f82f9e1f07afe1b09bd4"
+      "sha256": "73d610a09b2bd1965aa75102bb4fdd27caf0893b2dd57a59234fcad8879effa7"
     }
   ]
 }

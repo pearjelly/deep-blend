@@ -193,6 +193,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/material-browser
         run: xvfb-run -a node deepblend/tests/e2e/material-texture-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/material-browser.log" 2>&1
+      - name: Real recipe versions and native gallery defaults in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-browser
+        run: xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-browser.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

@@ -649,9 +649,10 @@ try {
   const requestsBeforeObjectEdits = (await page.evaluate('window.__wbreqs')).length
   const recipeProjectIds = {}
   for (const recipeId of ['glass-ceramic', 'modular-speaker', 'metal-lamp']) {
+    const version=recipeId==='metal-lamp'?'2.0.0':'1.0.0'
     await page.click('[data-view-tab="projects"]')
-    await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@1.0.0"]') !== null`, 30000)
-    await page.click(`[data-action="select-recipe:deepblend.${recipeId}@1.0.0"]`)
+    await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@${version}"]') !== null`, 30000)
+    await page.click(`[data-action="select-recipe:deepblend.${recipeId}@${version}"]`)
     const id = `${PROJECT_TITLE}-${recipeId}`
     recipeProjectIds[recipeId] = id
     await page.fill('[data-field="project-title"]', id)
@@ -690,7 +691,7 @@ try {
       check('speaker: the coarser weave preserves its span to within 1 mm',
         Math.abs((48 - 1) * 0.0024 - (64 - 1) * 0.0018) < 0.001)
     } else {
-      revision = await commitEntity(page, id, 'shade-shell', { 'material-color': '#597c86', 'material-roughness': 0.28 })
+      revision = await commitEntity(page, id, 'shade-shell', { 'material-color': '#597c86', 'material-roughness': 0.31 })
       const afterSpec = readStoreJson(id, 'revisions', revision, 'scene-spec.json')
       const oldMaterial = before.spec.materials.find(material => material.id === entity(before.spec, 'shade-shell').materialId)
       const newMaterial = afterSpec.materials.find(material => material.id === entity(afterSpec, 'shade-shell').materialId)
@@ -701,7 +702,7 @@ try {
         const srgb = value / 255
         return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
       }).concat(oldMaterial.parameters.baseColor[3] ?? 1)
-      expectedMaterial.parameters.roughness = 0.28
+      expectedMaterial.parameters.roughness = 0.31
       entity(expected, 'shade-shell').materialId = newMaterial?.id
       expected.materials.push(expectedMaterial)
       expected.materials.sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)

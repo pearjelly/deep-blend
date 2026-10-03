@@ -73,12 +73,12 @@ export namespace ScenePatchSchema {
 }
 export type ScenePatch = ScenePatchSchema.Document;
 
-/** Source SHA-256: 74ef02865615e48505fffb61b7da0aae6fa05a7c6cafaa6cf0e334325090f385 */
+/** Source SHA-256: d4955c974e4dc351fc528ea6e06409f12a645a4ff0ab86db269847d46d4d31af */
 export namespace RecipeSchema {
   export type Binding = ({ "kind": "material"; "materialId": string; "property": "baseColor" | "roughness"; }) | ({ "kind": "render-profile"; "profile": "preview" | "final"; "property": "exposure"; });
   export type ColorParameter = { "id": string; "title": string; "description"?: string; "bindings": Array<RecipeSchema.Binding>; "type": "color"; "default": [number, number, number]; };
   export type NumberParameter = { "id": string; "title": string; "description"?: string; "bindings": Array<RecipeSchema.Binding>; "type": "number"; "default": number; "minimum": number; "maximum": number; };
-  export type Document = { "schemaVersion": "deepblend.recipe/v1"; "id": string; "version": string; "title": string; "description": string; "author": { "name": string; "url"?: string; }; "license": string; "source": { "url": string; "note"?: string; }; "compatibility": { "sceneSchemaVersion": "deepblend.scene/v1"; "capabilities": Array<"geometry.primitive" | "geometry.lathe" | "geometry.curve" | "geometry.handled_cup" | "geometry.modifiers" | "material.principled" | "material.glass" | "material.emission" | "material.procedural" | "material.anisotropy" | "animation.transform" | "animation.material">; }; "input": { "path": "scene-spec.json"; "sha256": string; }; "preview": { "path": "preview.png"; "sha256": string; "mediaType": "image/png"; "alt": string; }; "parameters": Array<(RecipeSchema.ColorParameter) | (RecipeSchema.NumberParameter)>; };
+  export type Document = { "schemaVersion": "deepblend.recipe/v1"; "id": string; "version": string; "title": string; "description": string; "author": { "name": string; "url"?: string; }; "license": string; "source": { "url": string; "note"?: string; }; "compatibility": { "sceneSchemaVersion": "deepblend.scene/v1"; "capabilities": Array<"geometry.primitive" | "geometry.lathe" | "geometry.curve" | "geometry.handled_cup" | "geometry.modifiers" | "material.principled" | "material.glass" | "material.emission" | "material.procedural" | "material.procedural.uv" | "material.anisotropy" | "animation.transform" | "animation.material">; }; "input": { "path": "scene-spec.json"; "sha256": string; }; "preview": { "path": "preview.png"; "sha256": string; "mediaType": "image/png"; "alt": string; }; "parameters": Array<(RecipeSchema.ColorParameter) | (RecipeSchema.NumberParameter)>; };
 }
 export type RecipeManifest = RecipeSchema.Document;
 export type Entity = SceneSpecSchema.Entity;

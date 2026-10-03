@@ -4,18 +4,18 @@
 
 配方把一个经过设计的产品场景及其有限参数打包成可复用内容。当前提供金属桌灯、玻璃空瓶与陶瓷托盘、编织格栅音箱、青釉带把手杯四个内置配方，规范源位于 [`deepblend/recipes/`](../recipes/)。桌灯、玻璃陶瓷和音箱来自对应基准的公开 SceneSpec；杯体使用公开 `handled_cup` 生成器和大面积摄影灯。每个包都包含真实渲染预览，无需依赖基准目录或下载资产。
 
-这四组 `1.0.0` 配方当前是仓库内待发布的本地内容。工作区中的版本号和来源 URL 不表示已经对外发布；首次发布前可继续同步最终场景与预览。对外发布后，更改内容须更新版本。
+桌灯当前为 `2.0.0`，其余三组为 `1.0.0`。这些都是仓库内待发布的本地内容；版本号和来源 URL 不表示已经对外发布。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
 
 桌灯、玻璃陶瓷和音箱使用成品 candidate 场景，预览取自以下已核验批次的 `candidate/hero.png`。杯体预览由包内 SceneSpec 经公开 Host 单独渲染，使用主相机、第 1 帧、960×720、128 samples。所有预览只移除元数据，解码像素保持一致：
 
 | 配方 | 本地渲染批次 |
 | --- | --- |
-| `deepblend.metal-lamp` | `final-metal-lamp-r13-v1` |
+| `deepblend.metal-lamp` | `metal-surface-r34/benchmark-final-v1` |
 | `deepblend.glass-ceramic` | `final-products-v1` |
 | `deepblend.modular-speaker` | `final-modular-speaker-r13-v3` |
 | `deepblend.glazed-cup` | `cup-backdrop-r26/public-v1/beauty-hero.png` |
 
-前三组原始运行目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-backdrop-r26/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
+桌灯当前原始运行目录位于 `.deepblend/quality/metal-surface-r34/`，玻璃陶瓷和音箱的目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-backdrop-r26/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
 
 ## 一个包包含什么
 
@@ -50,15 +50,15 @@ my-product/
 
 路径必须是上面两个字面量，不能是绝对路径、上级目录或 URL。Host 读取本地目录时拒绝包目录和包内文件的符号链接，并限制实际读取边界；纯 contracts 函数不访问文件系统。
 
-当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.modifiers`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.anisotropy`、`animation.transform` 和 `animation.material`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
+当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.modifiers`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.procedural.uv`、`material.anisotropy`、`animation.transform` 和 `animation.material`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。程序纹理使用 UV 坐标时同时需要 `material.procedural` 和 `material.procedural.uv`；对象坐标只需要前者。支持集合不含 UV 能力的使用方应明确拒绝该配方。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
 
 v1 只接受自包含的程序场景；不支持外部资产、图片贴图、环境文件、骨架或物理模拟。这里的限制是当前配方契约范围，不能推导为 SceneSpec 本身没有这些功能。
 
 ## 参数与绑定
 
-四组内置配方都只有主材质颜色、主材质粗糙度和摄影曝光三个参数。没有通用尺寸缩放，因为随意缩放可能破坏壁厚、曲率、装配和接触关系。
+桌灯有主金属颜色、旋压件粗糙度、拉丝件粗糙度和摄影曝光四个参数。其他三组只有主材质颜色、主材质粗糙度和摄影曝光三个参数。没有通用尺寸缩放，因为随意缩放可能破坏壁厚、曲率、装配和接触关系。
 
-桌灯的主金属参数同时作用于灯罩、底座等旋压部件和支架材质；原有各向异性强度与方向保持不变。玻璃陶瓷的颜色作用于托盘和瓶盖陶瓷饰片，音箱的颜色作用于外壳，杯体的颜色作用于杯身和连续把手。
+桌灯颜色同步作用于旋压件和拉丝件；`spun-roughness` 默认 0.28，只作用于灯罩、底座等旋压部件，`brushed-roughness` 默认 0.39，只作用于支架与弯臂。旋压件保留 UVMap 曲面细纹和完整纹理参数；两类材质的各向异性保持原值。玻璃陶瓷的颜色作用于托盘和瓶盖陶瓷饰片，音箱的颜色作用于外壳，杯体的颜色作用于杯身和连续把手。
 
 杯体默认高 105 mm、壁厚 3 mm，连接半径 9 mm、连接长度 6 mm；创建后可在对象编辑器调整实际尺寸。模板保留主视角、把手根部和杯内三个相机，可通过固定机位的材质/灰模检查观察结构。摄影地面宽 5 m，覆盖三个相机的背景，避免主视角出现地面边缘。它是静态产品场景，没有动画轨道。网格与法线有效不代表根部轮廓或成品美术已经获得外部认可。
 
@@ -95,6 +95,14 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 ```
 
 省略参数使用清单默认值。未知参数、数字字符串、NaN、Infinity、越界数值和原型对象键会明确报错，不进行静默转换或截断。
+
+## 桌灯 1.0.0 → 2.0.0
+
+旧版的 `surface-roughness` 同时覆盖两类金属。新版取消这个参数 ID，分别使用 `spun-roughness` 和 `brushed-roughness`；将旧 ID 直接交给新版会得到 `RECIPE_PARAMETER_UNKNOWN`。如果需要迁移旧参数，应由调用方明确把同一个值赋给两个新 ID，并重新选择 2.0.0 的 digest。
+
+旧项目无需迁移：项目修订保存精确的 SceneSpec 源码、配方清单、版本、参数值和摘要，重新渲染读取该修订。画廊允许同一 ID 的不同版本共存，外部目录可继续提供旧包；移除旧包后，旧项目的锁与场景仍可读取，旧选择不能自动替换成新版本。相同 ID 和相同版本的重复包仍被拒绝。
+
+新版通过 `node deepblend/tools/build-metal-lamp-recipe.mjs` 从公开基准源生成；`--check` 检查可复现的包字节。打包前核对原生预览来源的规范化 SceneSpec 摘要和原始图片摘要，再删除 PNG 文本、时间与 EXIF 元数据，复制图像块原字节。配方清单的 input/preview SHA-256 始终针对最终分发文件的原始字节。画廊的成品图来自 128 samples 原生运行；新项目预览遵守 Host 的样本预算，实际设置写入预览记录。
 
 ## Contracts API
 

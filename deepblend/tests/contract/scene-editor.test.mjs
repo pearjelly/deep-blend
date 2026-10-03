@@ -169,7 +169,7 @@ test('invalid bevel inner corner values are rejected locally without posting an 
 test('local material changes clone the complete anisotropic textured definition with alpha', () => {
   const { spec, draft } = make()
   draft.material.definition.parameters.baseColor = [.1, .2, .3, .6]
-  draft.material.definition.parameters.roughness = .28
+  draft.material.definition.parameters.roughness = .31
   const { patch, next } = apply(spec, draft)
   assert.deepEqual(patch.operations.map(o => o.op), ['material.add', 'entity.material.set'])
   const original = spec.materials.find(m => m.id === draft.material.id), added = next.materials.find(m => m.id === draft.cloneId)
@@ -184,7 +184,7 @@ test('local cloning preserves image channels that are not being edited; image-dr
   const images = { normal: { assetId: 'normal-map', uvMap: 'UVMap' }, baseColor: { assetId: 'color-map', uvMap: 'UVMap' } }
   draft.materials.find(m => m.id === draft.material.id).definition.images = plain(images)
   draft.material.definition.images = plain(images)
-  draft.material.definition.parameters.roughness = .28
+  draft.material.definition.parameters.roughness = .31
   const patch = plain(editor.buildPatch(draft))
   assert.deepEqual(patch.operations[0].material.images, images)
   draft.material.definition.parameters.baseColor = [.1, .2, .3, 1]
@@ -192,9 +192,9 @@ test('local cloning preserves image channels that are not being edited; image-dr
 })
 
 test('shared edits update named parameters without cloning or rebinding', () => {
-  const { spec, draft } = make(); draft.material.scope = 'shared'; draft.material.definition.parameters.roughness = .28
+  const { spec, draft } = make(); draft.material.scope = 'shared'; draft.material.definition.parameters.roughness = .31
   const { patch, next } = apply(spec, draft)
-  assert.deepEqual(patch.operations, [{ op: 'material.parameter.update', materialId: draft.material.id, parameter: 'roughness', value: .28 }])
+  assert.deepEqual(patch.operations, [{ op: 'material.parameter.update', materialId: draft.material.id, parameter: 'roughness', value: .31 }])
   assert.deepEqual(next.entities, spec.entities)
 })
 
@@ -203,7 +203,7 @@ test('animated transforms and local cloning of any animated material cannot sile
   draft.entity.transform.location[0] += .01; assert.throws(() => editor.buildPatch(draft), /location.x/)
   draft.entity.transform.location[0] = draft.original.transform.location[0]
   draft.tracks.push({ targetKind: 'material', targetId: draft.material.id, property: 'metallic' })
-  draft.material.definition.parameters.roughness = .28
+  draft.material.definition.parameters.roughness = .31
   assert.throws(() => editor.buildPatch(draft), /roughness/)
   draft.material.scope = 'shared'; assert.equal(editor.buildPatch(draft).operations[0].op, 'material.parameter.update')
   draft.tracks.push({ targetKind: 'material', targetId: draft.material.id, property: 'roughness' })
@@ -219,7 +219,7 @@ function assetDraft() {
   ]
   draft.original.materialBindings = draft.entity.materialBindings = [{ partId: '/Root/Empty', materialId: draft.material.id }]
   draft.material.target = 'slot'; draft.material.partId = '/Root/Body'; draft.material.slotIndex = '1'
-  draft.material.definition.parameters.roughness = .28
+  draft.material.definition.parameters.roughness = .31
   return draft
 }
 
@@ -311,7 +311,7 @@ test('project switches isolate drafts and recover the previous project input wit
 
 test('rejected requests preserve draft inputs and the same local clone identity for retry', async t => {
   const { store, fail, calls } = await client(t)
-  store.actions.updateEditor('material', ['definition', 'parameters', 'roughness'], .28)
+  store.actions.updateEditor('material', ['definition', 'parameters', 'roughness'], .31)
   const before = plain(editor.draftFor(store.getState())); fail({ code: 'SCENE_VALIDATION_FAILED', message: 'Controlled rejection' })
   await store.actions.applyEditor(); await store.actions.applyEditor()
   assert.deepEqual(plain(editor.draftFor(store.getState())), before)
@@ -511,7 +511,7 @@ test('standalone disclosure state survives actual input and polling redraws, and
 
 test('surface texture edits clone the full local material and preserve every unrelated definition', () => {
   const {spec,draft}=make(), before=plain(spec)
-  draft.material.definition.texture={...draft.material.definition.texture,coordinates:'uv',uvMap:'UVMap',stretch:[.0001,800,1],scale:1,bump:.006}
+  draft.material.definition.texture={...draft.material.definition.texture,coordinates:'uv',uvMap:'UVMap',stretch:[.0002,640,1],scale:1,bump:.009}
   assert.equal(editor.dirty(draft),true)
   const {patch,next}=apply(spec,draft)
   assert.deepEqual(patch.operations.map(o=>o.op),['material.add','entity.material.set'])
@@ -537,7 +537,7 @@ test('surface texture edits compose with parameter changes and original imported
   const patch=plain(editor.buildPatch(draft))
   assert.deepEqual(patch.operations.map(o=>o.op),['material.add','entity.materialBindings.set'])
   assert.equal(patch.operations[0].material.texture.bump,.07)
-  assert.equal(patch.operations[0].material.parameters.roughness,.28)
+  assert.equal(patch.operations[0].material.parameters.roughness,.31)
   assert.deepEqual(patch.operations[1].materialBindings,[{partId:'/Root/Empty',materialId:draft.material.id},{partId:'/Root/Body',slotIndex:1,materialId:draft.cloneId}])
   draft.material.scope='shared'
   assert.deepEqual(plain(editor.buildPatch(draft)).operations.map(o=>o.op),['material.parameter.update','material.texture.set'])
@@ -615,6 +615,7 @@ test('surface texture drafts survive a native refusal and submit the correction 
   const {field,store,calls,fail,projects}=await client(t)
   field('editor-texture-coordinates').props.onChange({target:{value:'uv'}})
   field('editor-texture-uvMap').props.onChange({target:{value:'missing-map'}})
+  field('editor-texture-scale').props.onChange({target:{value:'2'}})
   fail({code:'SCENE_VALIDATION_FAILED',message:'Missing UV map missing-map'})
   await store.actions.applyEditor()
   assert.equal(store.getState().currentRevision,'r0001')
