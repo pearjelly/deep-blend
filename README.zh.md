@@ -546,6 +546,8 @@ handover：可继续工作的 revision、未解决问题、未采纳的尝试及
 
 [参考图片指南](deepblend/docs/reference-images.md)说明上传、版本绑定、证据引用与有限自动修正。
 
+[青釉杯创作教程](deepblend/docs/creator-tutorial.md)：从配方开始，分别修改尺寸、粗糙度与主灯，比较保存版本并交付一帧。
+
 [真人验收指南](deepblend/docs/human-validation.md)提供用自己的素材完成作品、外部投稿与他人复用、公开接口采用的实际执行步骤及空白记录，分别观察几何、材质、灯光和目标吻合。
 
 ---
