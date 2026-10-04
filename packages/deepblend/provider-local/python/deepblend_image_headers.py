@@ -142,6 +142,49 @@ def hdr_header(reader, prefix):
     return [dimensions(axes[b'X'], axes[b'Y'])]
 
 
+def webp_header(reader):
+    size, magic = struct.unpack('<I4s', reader.read(8))
+    if magic != b'WEBP' or size < 12:
+        raise ValueError('invalid WebP RIFF container')
+    remaining = size - 4
+    for _ in range(4096):
+        if remaining < 8:
+            raise ValueError('WebP has no bounded image header')
+        kind, length = struct.unpack('<4sI', reader.read(8))
+        padded = length + length % 2
+        remaining -= 8
+        if padded > remaining:
+            raise ValueError('WebP chunk escapes its RIFF container')
+        if kind == b'VP8X':
+            if length != 10:
+                raise ValueError('invalid WebP extended image header')
+            data = reader.read(10)
+            if data[0] & 0xc3 or data[1:4] != b'\0\0\0':
+                raise ValueError('animated or reserved WebP features are not static textures')
+            return [dimensions(1 + int.from_bytes(data[4:7], 'little'),
+                               1 + int.from_bytes(data[7:10], 'little'))]
+        if kind == b'VP8L':
+            if length < 5:
+                raise ValueError('truncated WebP lossless header')
+            data = reader.read(5)
+            bits = int.from_bytes(data[1:], 'little')
+            if data[0] != 0x2f or bits >> 29:
+                raise ValueError('invalid WebP lossless signature or version')
+            return [dimensions(1 + (bits & 0x3fff), 1 + ((bits >> 14) & 0x3fff))]
+        if kind == b'VP8 ':
+            if length < 10:
+                raise ValueError('truncated WebP lossy header')
+            data = reader.read(10)
+            frame = int.from_bytes(data[:3], 'little')
+            if frame & 1 or (frame >> 1) & 7 > 3 or not frame & 0x10 or data[3:6] != b'\x9d\x01\x2a':
+                raise ValueError('WebP requires a visible VP8 key frame')
+            width, height = struct.unpack('<HH', data[6:10])
+            return [dimensions(width & 0x3fff, height & 0x3fff)]
+        reader.read(padded)
+        remaining -= padded
+    raise ValueError('WebP exceeds the chunk count budget')
+
+
 def exr_header(reader):
     version = struct.unpack('<I', reader.read(4))[0]
     if version & 0xff not in (1, 2) or version & ~0x1eFF:
@@ -235,6 +278,8 @@ def inspect_image_header(source):
             format_name, parts = 'png', png_header(reader)
         elif magic == b'v/1\x01':
             format_name, parts = 'exr', exr_header(reader)
+        elif magic == b'RIFF':
+            format_name, parts = 'webp', webp_header(reader)
         else:
             raise ValueError('unsupported image header signature')
     return {'format': format_name, 'parts': parts, 'headerBytes': reader.consumed,

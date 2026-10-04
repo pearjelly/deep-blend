@@ -44,7 +44,7 @@ def parse_document(data):
     try:return json.loads(data.decode('utf-8-sig'),parse_constant=lambda value:fail('Non-finite glTF JSON value.','ASSET_CONTENT_MISMATCH'))
     except (ValueError,UnicodeError):fail('The glTF metadata cannot be parsed.','ASSET_CONTENT_MISMATCH')
 
-def read_document(path,format='gltf'):
+def read_document(path,format='gltf',include_bin_location=False):
     if format=='gltf':return parse_document(read_bytes(path,MAX_JSON)),None
     if format!='glb':fail('Unsupported asset bundle format.')
     try:
@@ -57,7 +57,7 @@ def read_document(path,format='gltf'):
             if size<20:fail('The GLB header is truncated.','ASSET_CONTENT_MISMATCH')
             magic,version,declared=struct.unpack('<4sII',read(0,12))
             if magic!=b'glTF' or version!=2 or declared!=size:fail('The GLB must be a complete version 2 container.','ASSET_CONTENT_MISMATCH')
-            offset=12;document=None;bin_bytes=None;chunks=0;json_seen=False
+            offset=12;document=None;bin_bytes=None;bin_offset=None;chunks=0;json_seen=False
             while offset<size:
                 chunks+=1
                 if chunks>MAX_CHUNKS:fail('The GLB exceeds the chunk inspection limit.','ASSET_TOO_LARGE')
@@ -71,10 +71,10 @@ def read_document(path,format='gltf'):
                     json_seen=True;document=parse_document(read(offset+8,length))
                 elif kind==0x004e4942:
                     if chunks!=2 or bin_bytes is not None:fail('The GLB BIN must be its second chunk.','ASSET_CONTENT_MISMATCH')
-                    bin_bytes=length
+                    bin_bytes=length;bin_offset=offset+8
                 offset+=8+length
             if not isinstance(document,dict) or not isinstance(document.get('asset'),dict) or document['asset'].get('version')!='2.0':fail('The GLB JSON must declare glTF 2.0.','ASSET_CONTENT_MISMATCH')
-            return document,bin_bytes
+            return document,({'offset':bin_offset,'bytes':bin_bytes} if include_bin_location and bin_bytes is not None else bin_bytes)
     except OSError:fail('A glTF asset file is missing.','ASSET_MISSING')
 
 def resources(document,entrypoint,bin_bytes=None):

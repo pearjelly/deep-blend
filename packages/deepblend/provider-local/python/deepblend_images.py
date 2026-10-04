@@ -3,6 +3,7 @@ import os
 import bpy
 from deepblend_util import ActionError
 from deepblend_image_headers import check_image_header, MAX_IMAGE_DECODE_BYTES
+from deepblend_gltf_images import inspect_gltf_images
 
 SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Metallic',
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
@@ -20,8 +21,8 @@ def check_scene_image_budget(spec, project_root):
     """Count declared image datablocks before scene reset or native decode.
 
     Color and data bindings create separate datablocks even for one source; a
-    cache of header facts must not collapse their allocation costs. Imported
-    model textures require their own preflight and are not counted here.
+    cache of header facts must not collapse their allocation costs. glTF/GLB
+    image declarations are conservatively counted per imported instance.
     """
     assets = {asset['id']: asset for asset in spec.get('assets') or []}
     bindings = []
@@ -42,11 +43,25 @@ def check_scene_image_budget(spec, project_root):
         total += facts[path]['decodedBytes']
         if total > MAX_IMAGE_DECODE_BYTES:
             raise ActionError('ASSET_CONTENT_MISMATCH', 'declared scene images exceed the 1 GiB decoded pixel budget')
-    return {'bindings': len(bindings), 'decodedBytes': total}
+    imported_images, imported_facts = 0, {}
+    for entity in spec.get('entities') or []:
+        if entity.get('type') != 'asset-instance':
+            continue
+        asset = assets.get(entity.get('assetId'))
+        if asset is None or asset.get('type') not in ('gltf', 'glb'):
+            continue
+        key = (asset['path'], asset['type'])
+        if key not in imported_facts:
+            imported_facts[key] = inspect_gltf_images(project_root, asset)
+        total += imported_facts[key]['decodedBytes']
+        imported_images += imported_facts[key]['images']
+        if total > MAX_IMAGE_DECODE_BYTES:
+            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared and imported scene images exceed the 1 GiB decoded pixel budget')
+    return {'bindings': len(bindings), 'importedImages': imported_images, 'decodedBytes': total}
 
 
 def pack_imported_material_images(objects):
-    """Keep OBJ's authored image nodes usable after saving or moving a checkpoint."""
+    """Validate and embed authored image nodes after the native import."""
     trees, visited, images = [], set(), set()
     for obj in objects:
         for slot in getattr(obj, 'material_slots', []):
