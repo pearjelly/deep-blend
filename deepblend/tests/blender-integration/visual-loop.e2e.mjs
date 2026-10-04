@@ -638,7 +638,7 @@ try {
       outside.score <= 82 && outside.pass === false && outside.technicalPass === false &&
       outside.issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME' && issue.objectId === 'coffee-table'),
       { score: outside.score, issues: issueCodes(outside) })
-    const persisted = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, patched.revision), 'visual-reviews/round-0.json'))).review
+    const persisted = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), outside.reviewArtifact.path))).review
     check('the failed framing and selected identity survive in the actual revision review',
       persisted.subject.id === 'coffee-table' && persisted.technicalPass === false &&
       persisted.issues.some(issue => issue.code === 'SUBJECT_OUT_OF_FRAME'))

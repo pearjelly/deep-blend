@@ -42,6 +42,7 @@ import {
   resolveSubject,
   resolveSubjectId,
   sceneSpecDigest,
+  sha256,
   reviewInputsDigest,
   scoreReview,
   summarizeSceneSpec,
@@ -111,6 +112,7 @@ import {
   removeTree,
   requireSafeSegment,
   resolveInside,
+  writeFileAtomic,
   writeJsonAtomic,
 } from './paths.js'
 
@@ -1408,7 +1410,7 @@ export default class BlenderStudio extends Service {
         // sheet whose labels disagree with the measurements is worse than a sheet with
         // no labels at all.
         const revisionDirectory = this.store.revisionDirectory(projectId, revision)
-        const viewsDirectory = join(revisionDirectory, 'previews', 'views')
+        const viewsDirectory = join(revisionDirectory, 'previews', 'views', jobId)
         mkdirSync(viewsDirectory, { recursive: true })
 
         const artifacts = []
@@ -1432,7 +1434,7 @@ export default class BlenderStudio extends Service {
           // hashed is the file that gets published — Blender wrote into a scratch
           // directory that no longer exists by the time anyone reads this record.
           writeFileSync(finalPath, png)
-          const relative = `revisions/${revision}/previews/views/${safeFileName(entry.viewId)}.png`
+          const relative = `revisions/${revision}/previews/views/${jobId}/${safeFileName(entry.viewId)}.png`
           const artifact = {
             kind: 'view',
             sourceRevision: revision,
@@ -1452,11 +1454,8 @@ export default class BlenderStudio extends Service {
             bytes: png.length,
             sha256: fileSha256(finalPath),
             mime: 'image/png',
-            // WHEN this was produced. A preview is an EMITTED artifact: rendering one
-            // replaces the files at the same paths (D28), so without a timestamp the
-            // only trace of "I just rendered this" is the sha changing — which a
-            // human cannot see, and which a UI that keys its <img> on the path alone
-            // does not even re-fetch. Recorded here rather than inferred by a reader.
+            // Each attempt retains its own pixels and producing time. Review
+            // measurements must keep pointing to the image they measured.
             at: new Date().toISOString(),
           }
           artifacts.push(artifact)
@@ -1488,9 +1487,8 @@ export default class BlenderStudio extends Service {
         // a kept generation the panel can only ever show the present — and the
         // question a person has after a render is "what changed?".
         //
-        // The sheet the REVIEW path writes (`contact-sheets/round-N.png`, the image the
-        // model was shown) is deliberately untouched: it is evidence for a review, and
-        // overwriting it would rewrite what a reviewer looked at.
+        // The review's own sheet is separate immutable evidence. These two
+        // comparison slots retain their existing rotation policy.
         let previewSheets = null
         if (run.pngs !== undefined && run.pngs !== null && Object.keys(run.pngs).length > 0) {
           const directory = join(this.store.revisionDirectory(projectId, revision), 'contact-sheets')
@@ -1735,6 +1733,7 @@ export default class BlenderStudio extends Service {
     const record = this.store.readRecord(projectId)
     const revision = request.revision ?? record.currentRevision
     const iteration = Number.isInteger(request.iteration) ? request.iteration : 0
+    const reviewId = randomUUID()
 
     const rendered = await this.renderViews({
       projectId,
@@ -1750,7 +1749,8 @@ export default class BlenderStudio extends Service {
       signal: request.signal,
     })
 
-    const sheetPath = `revisions/${revision}/contact-sheets/round-${iteration}.png`
+    const reviewName = `review-${reviewId}-round-${iteration}`
+    const sheetPath = `revisions/${revision}/contact-sheets/${reviewName}.png`
     const built = buildVisualReview({
       projectId,
       revision,
@@ -1770,12 +1770,13 @@ export default class BlenderStudio extends Service {
     mkdirSync(sheetDirectory, { recursive: true })
     const sheetFile = resolveInside(
       this.store.projectDirectory(projectId),
-      join(sheetDirectory, `round-${iteration}.png`),
+      join(sheetDirectory, `${reviewName}.png`),
       'contact sheet artifact',
     )
-    writeFileSync(sheetFile, built.sheet.png)
     const sheetArtifact = {
       kind: 'contact-sheet',
+      reviewId,
+      jobId: rendered.job?.jobId ?? null,
       path: sheetPath,
       iteration,
       width: built.sheet.width,
@@ -1783,7 +1784,7 @@ export default class BlenderStudio extends Service {
       columns: built.sheet.columns,
       rows: built.sheet.rows,
       bytes: built.sheet.png.length,
-      sha256: fileSha256(sheetFile),
+      sha256: sha256(built.sheet.png),
       mime: 'image/png',
       views: built.sheet.placements.map(placement => placement.viewId),
       sourceRevision: revision,
@@ -1802,7 +1803,7 @@ export default class BlenderStudio extends Service {
         message: cause instanceof Error ? cause.message : String(cause) }
     }
     const subject = measuredReviewSubject(rendered.subject ?? resolveReviewSubject(sceneSpec, request), rendered.views)
-    const review = { ...built.review, warnings: rendered.warnings,
+    const review = { ...built.review, reviewId, warnings: rendered.warnings,
       subject,
       pass: built.review.pass && subject.available,
       technicalPass: built.review.pass && subject.available,
@@ -1819,6 +1820,10 @@ export default class BlenderStudio extends Service {
     }
 
     if (request.consultReviewer === true) {
+      // Custom reviewers can read the same sheet from disk while reviewing.
+      // Its invocation-specific path is safe to write without blocking other
+      // publishers. The completed pair is indexed after the reviewer returns.
+      writeFileAtomic(sheetFile, built.sheet.png)
       const reviewer = typeof request.reviewer === 'function'
         ? request.reviewer
         : this.createVisualReviewer()
@@ -1881,10 +1886,15 @@ export default class BlenderStudio extends Service {
       }
     }
 
-    const previews = await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', sheetArtifact)
     const reviewArtifact = {
       kind: 'visual-review',
-      path: `revisions/${revision}/visual-reviews/round-${iteration}.json`,
+      reviewId,
+      jobId: rendered.job?.jobId ?? null,
+      sourceRevision: revision,
+      sourceDigest: rendered.digest,
+      sheetPath,
+      sheetSha256: sheetArtifact.sha256,
+      path: `revisions/${revision}/visual-reviews/${reviewName}.json`,
       iteration,
       score: review.score,
       pass: review.pass,
@@ -1893,11 +1903,18 @@ export default class BlenderStudio extends Service {
     }
     const reviewDirectory = join(revisionDirectory, 'visual-reviews')
     mkdirSync(reviewDirectory, { recursive: true })
-    writeJsonAtomic(
-      resolveInside(this.store.projectDirectory(projectId), join(reviewDirectory, `round-${iteration}.json`), 'visual review record'),
-      { review, views: rendered.views },
-    )
-    const reviews = await this.store.recordRevisionArtifact(projectId, revision, 'reviews', reviewArtifact)
+    const { previews, reviews } = await this.store.withRevisionArtifacts(projectId, revision, async () => {
+      // Publish the immutable pair after rendering/reviewing, then index both
+      // under one short lease. Concurrent callers retain their own identities.
+      writeFileAtomic(sheetFile, built.sheet.png)
+      const reviewFile = resolveInside(this.store.projectDirectory(projectId), reviewArtifact.path, 'visual review record')
+      writeJsonAtomic(reviewFile, { review, sheetArtifact, views: rendered.views })
+      reviewArtifact.sha256 = fileSha256(reviewFile)
+      reviewArtifact.bytes = fileSize(reviewFile)
+      const previews = await this.store.recordRevisionArtifact(projectId, revision, 'contactSheets', sheetArtifact)
+      const reviews = await this.store.recordRevisionArtifact(projectId, revision, 'reviews', reviewArtifact)
+      return { previews, reviews }
+    }, { signal: request.signal })
 
     return {
       ...review,
@@ -1912,6 +1929,7 @@ export default class BlenderStudio extends Service {
       profile: rendered.profile,
       checkpointRevision: rendered.checkpointRevision,
       sheetArtifact,
+      reviewArtifact,
       contactSheets: previews,
       reviews,
       views: rendered.views.map(view => ({
@@ -2218,17 +2236,25 @@ export default class BlenderStudio extends Service {
         message: failure instanceof Error ? failure.message : String(failure),
       }
       const path = `revisions/${review.revision}/visual-reviews/loop-${runId}-round-${round}-${baselineReview ? 'comparison' : 'proposal'}.json`
-      writeJsonAtomic(resolveInside(this.store.projectDirectory(projectId), path, 'artistic review record'), {
+      const artisticRecord = {
         review: { ...review, artistic: assessment, reported: verified.accepted, rejected: verified.rejected,
           ...(referenceFailure ? { referenceInputError: referenceFailure } : {}),
           reviewer: { model: answer?.model ?? null, provider: answer?.provider ?? null,
             raw: answer?.raw ?? null, error },
           comparisonBaseline: baselineReview ? { revision: baselineReview.revision, sheetArtifact: baselineReview.sheetArtifact } : null,
         }, views: review.views,
-      })
-      await this.store.recordRevisionArtifact(projectId, review.revision, 'reviews', {
-        kind: 'visual-review', path, iteration: round, score: review.score, pass: review.pass,
-        artisticStatus: assessment.status, issueCount: review.issues.length, at: new Date().toISOString(),
+      }
+      await this.store.withRevisionArtifacts(projectId, review.revision, async () => {
+        const file = resolveInside(this.store.projectDirectory(projectId), path, 'artistic review record')
+        writeJsonAtomic(file, artisticRecord)
+        await this.store.recordRevisionArtifact(projectId, review.revision, 'reviews', {
+          kind: 'visual-review', path, reviewId: review.reviewId,
+          jobId: review.job?.jobId ?? null, sourceRevision: review.revision, sourceDigest: review.digest,
+          sheetPath: review.sheetArtifact.path, sheetSha256: review.sheetArtifact.sha256,
+          sha256: fileSha256(file), bytes: fileSize(file),
+          iteration: round, score: review.score, pass: review.pass,
+          artisticStatus: assessment.status, issueCount: review.issues.length, at: new Date().toISOString(),
+        })
       })
       if (failure !== null) throw failure
       return {

@@ -213,8 +213,8 @@ check('an explicit view list is rendered as given, instead of the standard plan'
   named.views.map(view => view.viewId))
 check('and the PNG the runtime handed back is published as an artifact OF that revision',
   named.artifacts.some(artifact => artifact.kind === 'view' &&
-    artifact.path === `revisions/${second}/previews/views/three-quarter.png`) &&
-  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', 'views', 'three-quarter.png')),
+    artifact.path === `revisions/${second}/previews/views/${named.job.jobId}/three-quarter.png`) &&
+  existsSync(join(studio.store.projectDirectory(projectId), named.views[0].path)),
   named.artifacts.map(artifact => artifact.path))
 check('the render is recorded as a job, so a later reader can see that it happened',
   named.job?.status === 'succeeded' && named.job?.action === 'render_views' && named.job?.revision === second,
@@ -608,10 +608,10 @@ check('what the reviewer SAID is kept as its own record, with the model, the not
 // into the revision and indexed there, and the review record lands beside it.
 const revisionDirectory = studio.store.revisionDirectory(reviewedProject.projectId, reviewedProject.revision.revision)
 check('the sheet and the review record are persisted under the revision they belong to',
-  existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')) &&
-  existsSync(join(revisionDirectory, 'visual-reviews', 'round-2.json')) &&
-  existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')),
-  { round2Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')), round0Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')) })
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), reviewRound.sheetArtifact.path)) &&
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), reviewRound.reviewArtifact.path)) &&
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), unconsulted.sheetArtifact.path)),
+  { round2Sheet: reviewRound.sheetArtifact.path, round0Sheet: unconsulted.sheetArtifact.path })
 
 // ---------------------------------------------------------------------------
 // The QA record picks the NEWEST review, and a preview says where its checkpoint came from

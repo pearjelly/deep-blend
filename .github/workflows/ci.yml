@@ -223,6 +223,12 @@ jobs:
         env:
           DEEPBLEND_ARTIFACT_CONCURRENCY_OUTPUT: ${{ runner.temp }}/deepblend-ci/artifact-concurrency
         run: xvfb-run -a node deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/artifact-concurrency.log" 2>&1
+      - name: Real immutable review history across independent Hosts
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_REVIEW_HISTORY_OUTPUT: ${{ runner.temp }}/deepblend-ci/review-history
+        run: xvfb-run -a node deepblend/tests/blender-integration/review-history.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/review-history.log" 2>&1
       - name: Preserve runtime facts, receipts, images and failures
         if: always()
         uses: actions/upload-artifact@v4

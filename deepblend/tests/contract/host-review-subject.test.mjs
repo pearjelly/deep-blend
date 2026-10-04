@@ -65,7 +65,7 @@ test('saved explicit subject takes priority, joins explicit tracking, and persis
   const review = await studio.visualReview({ projectId, track: ['watch-body'] })
   assert.equal(review.subjectId, 'watch-dial'); assert.equal(review.subject.mode, 'explicit')
   assert.equal(review.subject.available, true); assert.ok(calls.at(-1).track.includes('watch-dial'))
-  const stored = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, 'r0002'), 'visual-reviews/round-0.json'))).review
+  const stored = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), review.reviewArtifact.path))).review
   assert.deepEqual(stored.subject, review.subject)
   assert.deepEqual((await studio.getQaRecord({ projectId })).review.subject, review.subject)
   await studio.restoreRevision({ projectId, revision: 'r0001', expectedCurrentRevision: 'r0002' })

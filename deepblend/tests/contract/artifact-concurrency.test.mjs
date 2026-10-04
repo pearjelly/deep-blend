@@ -85,7 +85,9 @@ test('two view publishers rotate matching sheets, view pixels and provenance und
   const h = await harness(t), a = child(t, [h.root, 'race', 'manifest-hold', '18', h.release, 'camera-main', '1', 'views']), b = child(t, [h.root, 'race', 'normal', '22', h.release, 'camera-main', '1', 'views'])
   await Promise.all([a.next('ready'), b.next('ready')]); a.proc.send('go'); await a.next('manifest-read')
   b.proc.send('go'); await b.next('rendered'); await delay(100)
-  const pendingViewWidth = decodePng(readFileSync(h.file('revisions/r0001/previews/views/hero.png'))).width
+  const viewRoot = h.file('revisions/r0001/previews/views'), pendingDirectories = readdirSync(viewRoot)
+  assert.equal(pendingDirectories.length, 1, 'only the owning publisher has written view pixels')
+  const pendingViewWidth = decodePng(readFileSync(join(viewRoot, pendingDirectories[0], 'hero.png'))).width
   writeFileSync(h.release, 'release')
   const [first, second] = await Promise.all([a.next('result'), b.next('result')])
   assert.equal(first.ok, true, first.message); assert.equal(pendingViewWidth, 18, 'second publisher cannot overwrite view bytes while the first owns publication'); verify(h, second)
