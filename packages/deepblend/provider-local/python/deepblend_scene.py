@@ -469,7 +469,7 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
             {"assetPath": asset_path},
         )
 
-    if asset_type == 'obj':
+    if asset_type in ('obj', 'gltf', 'glb'):
         pack_imported_material_images(imported)
 
     # The SceneSpec transform belongs to an instance container. Choosing the

@@ -32,7 +32,7 @@ GLB 需包含全部缓冲区和图片；外部依赖会被拒绝。当前素材�
   缩略图不超过 512×384；纹理预览采用存储像素方向，EXIF 方向不会自动应用。
 - GLB 和环境图使用独立的 Blender 批处理场景，固定 512×384、最多 16 samples、Cycles/AgX。
   环境图缩略图是经过色调映射的照明示例；原 HDR/EXR 浮点数据保持不变。
-- 模型面数受 `maxMeshPolygons` 限制；HDR/EXR 的尺寸限制目前在 Blender 解码后执行。
+- 模型面数受 `maxMeshPolygons` 限制；HDR/EXR 在原生解码前检查头部和预算，加载后复核尺寸。
   一个 Host 实例同时运行一个素材预览；这还不是跨实例的全局资源预算。
 - 列表展示最近一次检查结果；每次重新预览和编译都会重新核验源文件摘要。
   预览本身不证明素材具有可交付的造型或美术质量。
@@ -170,7 +170,7 @@ Principled/Glass 材质可声明各向异性强度与方向。例如旋压桌灯
 法线采用 OpenGL 切线空间，`strength` 默认 1，范围 0–10；DirectX 法线需先转换。
 这一处理遵循 [Blender 法线节点说明](https://docs.blender.org/manual/en/5.2/render/shader_nodes/displacement/normal_map.html)。
 
-图片单边不得超过 8192 像素；当前在 Blender 解码后检查此限制，解码前内存预算仍需完善。
+图片单边不得超过 8192 像素；在原生解码前检查实际头部与累计像素估算，加载后复核尺寸。
 绑定图片的网格必须有 UV，指定名称也必须存在，否则编译失败。图片会打包进检查点，
 所以单独打开 `.blend` 不依赖原图；从 SceneSpec 重建仍需保留素材文件及其摘要。
 目前尚不支持图片位移、自动 UV 展开和图片/程序化混合。
@@ -230,7 +230,7 @@ partId 是加实例容器前捕获的资产内部父路径，各段使用 JSON P
 
 支持 HDR、EXR、PNG、JPEG。HDR/EXR 按线性 Rec.709 解释，PNG/JPEG 按 sRGB 解释；
 ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高亮反射；普通图片没有
-相同的亮度范围。贴图单边上限同样为 8192 像素，在解码后检查。
+相同的亮度范围。贴图单边上限同样为 8192 像素，在解码前预检、加载后复核。
 环境图打包进检查点；从 SceneSpec 重建仍依赖原始素材。引用中的环境素材不能删除，
 需先修改世界设置。当前 HDR/EXR 用于环境图，材质图片通道仍接受 PNG/JPEG。
 
@@ -257,4 +257,14 @@ ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高
 
 格式依据：[PNG IHDR](https://www.w3.org/TR/png-3/#11IHDR)、[JPEG T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf)、[Radiance 格式资料](https://www.radiance-online.org/learning/documentation/references.html)和 [OpenEXR 文件布局](https://openexr.com/en/latest/OpenEXRFileLayout.html)。奇数尺寸层级按声明的向上/向下取整逐层计算。
 
-这些是显式图片通道的像素估算，不能当作进程峰值内存或全部模型贴图的限制。模型内嵌/外部贴图的全面解码前预检和跨 Host 全局预算仍在改进。
+这些像素估算不能当作进程峰值内存或全部模型格式的贴图限制。OBJ、FBX、USD、blend 的完整图片预检及跨 Host 全局预算仍在改进。
+
+## glTF / GLB 导入贴图的解码前检查
+
+编译与素材预览按固定 Blender 导入器的默认选择，检查纹理的核心图片来源；无核心来源时检查 EXT_texture_webp 来源。普通静态 WebP 保持可用，未选中的 WebP 或 BasisU 备选资源保留原字节。动画 WebP 不属于这一静态纹理路径。
+
+图片可来自外部文件、图片数据 URI、外部/数据 URI 缓冲区的 bufferView，或 GLB BIN 片段。检查实际 PNG、JPEG、WebP 头部，核对片段偏移、长度、类型和声明的媒体类型；每个头部最多读取 1 MiB，每边最多 8192。二进制图片只读所需头部，数据 URI 只解码对应 base64 四元组，避免先读完整缓冲区。
+
+同一模型中的相同图片索引只计一次；每个模型实例的选中图片声明作为保守上界独立计入场景 1 GiB 预算，与显式材质/环境合计，在清空场景前拒绝。外部图片可能被原生导入器共享，因而实际分配可能小于估算；估算也包含未用于默认场景的纹理声明。原生导入后检查实际可用尺寸并嵌入图片，损坏像素不能发布新修订。
+
+依据：[glTF 图片与 bufferView](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#images)、[WebP 容器](https://developers.google.com/speed/webp/docs/riff_container)、[EXT_texture_webp](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Vendor/EXT_texture_webp/README.md)。本范围不替代其他模型格式、复杂压缩扩展或跨 Host 进程配额。
