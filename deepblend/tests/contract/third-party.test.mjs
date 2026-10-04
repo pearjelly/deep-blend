@@ -210,12 +210,28 @@ test('source files exclude external binaries and published images have declared 
     declared.add(`${historical}/preview.png`)
   }
 
-  // Screenshots come from the capture tool; product previews are exact files
-  // declared by the benchmark and recipe manifests, not entire allowed folders.
+  const fixtureBase = 'deepblend/tests/fixtures/obj-image-formats'
+  const fixtureManifest = JSON.parse(readFileSync(join(ROOT, fixtureBase, 'formats.json'), 'utf8'))
+  assert.equal(fixtureManifest.license, ownLicense)
+  assert.equal(fixtureManifest.author, 'DeepBlend contributors')
+  assert.equal(fixtureManifest.schemaVersion, 'deepblend.obj-image-fixtures/v1')
+  assert.equal(fixtureManifest.images.length, 15)
+  for (const image of fixtureManifest.images) {
+    assert.match(image.file, /^paint\.(png|jpg|bmp|tga|rgb|cin|dpx|tif|hdr|exr|jp2|dds|psd|webp|avif)$/)
+    const path = `${fixtureBase}/${image.file}`
+    assert.equal(hash(readFileSync(join(ROOT, path))), image.sha256,
+      `${path}: native fixture bytes differ from their declared provenance`)
+    assert.equal(image.width, 64)
+    assert.equal(image.height, 64)
+    declared.add(path)
+  }
+
+  // Screenshots come from the capture tool; other images must be exact files
+  // declared by benchmark, recipe or native fixture manifests, not allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark or recipe provenance`)
+      `${image} has no declared screenshot, benchmark, recipe or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')

@@ -4,6 +4,7 @@ import bpy
 from deepblend_util import ActionError
 from deepblend_image_headers import check_image_header, MAX_IMAGE_DECODE_BYTES
 from deepblend_gltf_images import inspect_gltf_images
+from deepblend_obj_images import inspect_obj_images
 
 SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Metallic',
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
@@ -21,7 +22,7 @@ def check_scene_image_budget(spec, project_root):
     """Count declared image datablocks before scene reset or native decode.
 
     Color and data bindings create separate datablocks even for one source; a
-    cache of header facts must not collapse their allocation costs. glTF/GLB
+    cache of header facts must not collapse their allocation costs. glTF/GLB/OBJ
     image declarations are conservatively counted per imported instance.
     """
     assets = {asset['id']: asset for asset in spec.get('assets') or []}
@@ -48,11 +49,12 @@ def check_scene_image_budget(spec, project_root):
         if entity.get('type') != 'asset-instance':
             continue
         asset = assets.get(entity.get('assetId'))
-        if asset is None or asset.get('type') not in ('gltf', 'glb'):
+        if asset is None or asset.get('type') not in ('gltf', 'glb', 'obj'):
             continue
         key = (asset['path'], asset['type'])
         if key not in imported_facts:
-            imported_facts[key] = inspect_gltf_images(project_root, asset)
+            inspect = inspect_obj_images if asset['type'] == 'obj' else inspect_gltf_images
+            imported_facts[key] = inspect(project_root, asset)
         total += imported_facts[key]['decodedBytes']
         imported_images += imported_facts[key]['images']
         if total > MAX_IMAGE_DECODE_BYTES:

@@ -48,7 +48,7 @@ for material in bpy.data.materials:
 assert rows and materials and hashlib.sha256(file.read_bytes()).hexdigest()==before
 Path(out).write_text(json.dumps({'passed':True,'sha256':before,'unchanged':True,'images':rows,'materials':materials,'nativeVersion':bpy.app.version_string},indent=2)+'\n')
 `;
-const PRESERVE = String.raw`
+export const PRESERVE = String.raw`
 import sys,json,hashlib
 from pathlib import Path
 import bpy

@@ -303,8 +303,20 @@ OBJ preserves explicit MTL files, an existing same-basename MTL, and declared te
 Material texture paths are resolved relative to the MTL. Readers process OBJ continuations,
 quoted library names and the pinned Blender MTL texture options; OBJ is limited to 1 GiB,
 MTL to 16 MiB and physical/logical lines to 1 MiB. Used OBJ material images are embedded
-in saved checkpoints without replacing their nodes or color interpretation. Undecodable
-or oversized images refuse after native loading; this is not a pre-decode memory bound.
+in saved checkpoints without replacing their nodes or color interpretation.
+Native validation still rejects undecodable pixels. Before clearing the scene, selected OBJ maps
+are inspected within a shared 1 MiB metadata read budget per image and added to the
+1 GiB scene decoded-image estimate. Each side must be 1–8192 pixels. Explicit MTL
+order and replacement maps follow the pinned importer. Library de-duplication
+compares declared spellings before path resolution, so distinct relative spellings
+can reapply the same file later. An existing same-basename MTL is appended when
+that basename has not already been declared;
+unused or overwritten maps are locked but do not consume decoding budget.
+PNG, JPEG, BMP, TGA, SGI, Cineon, DPX, TIFF/BigTIFF, HDR, EXR, JPEG2000, DDS,
+PSD/PSB, WebP and AVIF have bounded metadata readers. AVIF checks selected item
+locations, coded AV1 sequence maxima, grids and alpha dependencies, so a smaller
+container extent cannot hide a larger coded image. Header inspection does not
+validate encoded pixels, establish every format variant or bound native peak RSS.
 Other formats need separate dependency evidence. Legacy unbundled core glTF/GLB/OBJ with
 external resources refuses at commit/compile; reimport the complete local source.
 It does not establish license rights,
