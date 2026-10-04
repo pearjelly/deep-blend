@@ -226,12 +226,37 @@ test('source files exclude external binaries and published images have declared 
     declared.add(path)
   }
 
+  const tutorialBase = 'deepblend/docs/assets/creator-tutorial'
+  const tutorialManifest = JSON.parse(readFileSync(join(ROOT, tutorialBase, 'manifest.json'), 'utf8'))
+  assert.equal(tutorialManifest.schemaVersion, 'deepblend.creator-tutorial-images/v1')
+  assert.equal(tutorialManifest.license, ownLicense)
+  assert.equal(tutorialManifest.author, 'DeepBlend contributors')
+  assert.match(tutorialManifest.sourceCommit, /^[a-f0-9]{40}$/)
+  assert.match(tutorialManifest.sourceTree, /^[a-f0-9]{40}$/)
+  assert.match(tutorialManifest.sourceRun.reportSha256, /^[a-f0-9]{64}$/)
+  assert.match(tutorialManifest.sourceRun.walkthroughSha256, /^[a-f0-9]{64}$/)
+  assert.ok(existsSync(join(ROOT, tutorialBase, tutorialManifest.reproductionGuide)))
+  assert.deepEqual(tutorialManifest.images.map(image => image.file).sort(),
+    ['cup-105mm-clay.png', 'cup-110mm-clay.png', 'cup-final-frame.png'])
+  for (const image of tutorialManifest.images) {
+    const path = `${tutorialBase}/${image.file}`
+    const bytes = readFileSync(join(ROOT, path))
+    assert.equal(hash(bytes), image.sha256, `${path}: tutorial image differs from its native source`)
+    assert.equal(bytes.length, image.bytes)
+    assert.equal(bytes.toString('hex', 0, 8), '89504e470d0a1a0a')
+    assert.equal(bytes.readUInt32BE(16), image.width)
+    assert.equal(bytes.readUInt32BE(20), image.height)
+    for (const field of ['sceneSpecSha256', 'checkpointSha256', 'sourceReceiptSha256']) assert.match(image[field], /^[a-f0-9]{64}$/)
+    assert.equal(image.postProcessed, false)
+    declared.add(path)
+  }
+
   // Screenshots come from the capture tool; other images must be exact files
   // declared by benchmark, recipe or native fixture manifests, not allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark, recipe or native fixture provenance`)
+      `${image} has no declared screenshot, benchmark, recipe, tutorial or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')

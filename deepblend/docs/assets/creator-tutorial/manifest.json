@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "deepblend.creator-tutorial-images/v1",
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "sourceCommit": "325b099dcbcb78e5a299bbaf7728a6ed210757a8",
+  "sourceTree": "dfc09a207f35b0bb62104fca2a77078ece60b1d2",
+  "sourceRun": {
+    "startedAt": "2026-10-04T19:09:04.156Z",
+    "finishedAt": "2026-10-04T19:12:54.372Z",
+    "reportSha256": "63692fbb423ffd274fb8227b0612519466b01bf2918e798f9172481005186386",
+    "walkthroughSha256": "476b8e954c30f533b2a68612aca01bcb68e6c8d83efc24688e09c2485a9f792e"
+  },
+  "recipe": {
+    "id": "deepblend.glazed-cup",
+    "version": "3.0.0",
+    "sourceSha256": "4bbc13795cfc54f10cc2605c24072d11deb2f029381d38b97753d4003d58d5e7",
+    "gallerySha256": "b8f7b70e26032ef9f6deae577856a71342c450a0e71e47c804876227d1086807"
+  },
+  "runtime": {
+    "blenderVersion": "Blender 5.2.1 LTS",
+    "blenderBuild": "9e2066aef7ef",
+    "blenderExecutableSha256": "ea651e507c6b197df0e234bfa04e5ed43e7f4d498267a7df93fcb38f21928a5c"
+  },
+  "reproductionGuide": "../../creator-tutorial.md",
+  "artisticApproval": false,
+  "images": [
+    {
+      "file": "cup-105mm-clay.png",
+      "sha256": "43c9111474b5f09913eeb7c565ee10cd90a8a66345a3c3b10fdaf86e2741f69b",
+      "bytes": 263997,
+      "width": 640,
+      "height": 480,
+      "sourceRevision": "r0001",
+      "sceneSpecSha256": "c9cf2613dabfb3d22cb0d22acf65052e137519ee488d6f39846d691afc73deea",
+      "checkpointSha256": "e8d2858d62a96446eafa9401ca669447ae274bdff33e48c722e076f2573b71f5",
+      "cameraId": "hero",
+      "frame": 1,
+      "postProcessed": false,
+      "kind": "clay-inspection",
+      "settingsSource": "native-inspection-receipt",
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          640,
+          480
+        ],
+        "resolutionPercentage": 100,
+        "samples": 32,
+        "filmTransparent": false,
+        "viewTransform": "AgX",
+        "look": "None",
+        "exposure": 0,
+        "fps": 24,
+        "frameStart": 1,
+        "frameEnd": 48,
+        "checkpointProfile": {
+          "engine": "CYCLES",
+          "filmTransparent": false,
+          "fps": 24,
+          "frameEnd": 48,
+          "frameStart": 1,
+          "profileEngine": "cycles",
+          "profileName": "preview",
+          "requestedEngine": "cycles",
+          "resolution": [
+            640,
+            480
+          ],
+          "samples": 32,
+          "viewTransform": "AgX"
+        }
+      },
+      "sourceReceiptSha256": "01047f33f00895014bd2c424bd114f1e5ffffcbd4619eb4fdf565557b857b390"
+    },
+    {
+      "file": "cup-110mm-clay.png",
+      "sha256": "5d110f0acbc587146e31ea17fc4340bb524fda1c02d56d2a33dc148c3ff83692",
+      "bytes": 264539,
+      "width": 640,
+      "height": 480,
+      "sourceRevision": "r0002",
+      "sceneSpecSha256": "6f244e06471140b26e4abf548acffcf48539dedb6b23ec1e06c54a5da4374b5d",
+      "checkpointSha256": "47b3f13e475de15ae99f17c1c9371c89b4756f322e3773894ceea77e49a73e8c",
+      "cameraId": "hero",
+      "frame": 1,
+      "postProcessed": false,
+      "kind": "clay-inspection",
+      "settingsSource": "native-inspection-receipt",
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          640,
+          480
+        ],
+        "resolutionPercentage": 100,
+        "samples": 32,
+        "filmTransparent": false,
+        "viewTransform": "AgX",
+        "look": "None",
+        "exposure": 0,
+        "fps": 24,
+        "frameStart": 1,
+        "frameEnd": 48,
+        "checkpointProfile": {
+          "engine": "CYCLES",
+          "filmTransparent": false,
+          "fps": 24,
+          "frameEnd": 48,
+          "frameStart": 1,
+          "profileEngine": "cycles",
+          "profileName": "preview",
+          "requestedEngine": "cycles",
+          "resolution": [
+            640,
+            480
+          ],
+          "samples": 32,
+          "viewTransform": "AgX"
+        }
+      },
+      "sourceReceiptSha256": "378ea867fb8d8c8a0494d5b37ba489d7441f291c1909899c74896bc53c5bce4d"
+    },
+    {
+      "file": "cup-final-frame.png",
+      "sha256": "9959b949707136a003b079aac3010f94370a42fe935502de30f921b8f7a8a8a9",
+      "bytes": 591287,
+      "width": 960,
+      "height": 720,
+      "sourceRevision": "r0004",
+      "sceneSpecSha256": "18676025b776427676f4b3bdb485be2ed103278493889dffa757bee0fef828ef",
+      "checkpointSha256": "953bfff0c025f32a6b3b32830fd7eb8f770bc73e49c3bc4b4ab6544fa66682d4",
+      "cameraId": "hero",
+      "frame": 1,
+      "postProcessed": false,
+      "kind": "final-frame",
+      "settingsSource": "saved-render-job",
+      "renderConfig": {
+        "resolution": [
+          960,
+          720
+        ],
+        "samples": 128,
+        "engine": "cycles",
+        "viewTransform": "AgX",
+        "fps": 24
+      },
+      "sourceReceiptSha256": "e75dd9a13f1884a20eb8b3c8cff36119ca2e8b3b883615e01d2e57b54b00c232"
+    }
+  ]
+}
