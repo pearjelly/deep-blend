@@ -84,7 +84,7 @@ OBJ 元数据按流读取：模型最多 1 GiB，单份 MTL 最多 16 MiB，每�
 [OBJ 读取器](https://github.com/blender/blender/blob/9e2066aef7ef/source/blender/io/wavefront_obj/importer/obj_import_file_reader.cc)和
 [MTL 读取器](https://github.com/blender/blender/blob/9e2066aef7ef/source/blender/io/wavefront_obj/importer/obj_import_mtl.cc)。
 编译会嵌入 OBJ 已使用的材质图片，保留原节点和色彩解释；无法解码或尺寸超过 8192 像素的图片会拒绝。
-该尺寸检查发生在 Blender 加载后，不构成解码前内存保证。
+使用中的贴图先按实际元数据检查尺寸和解码估算，场景清空前拒绝超限；原生加载后继续复核。具体范围见本页「OBJ 图片解码前检查」。
 
 ## 同名素材更新
 
@@ -257,7 +257,7 @@ ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高
 
 格式依据：[PNG IHDR](https://www.w3.org/TR/png-3/#11IHDR)、[JPEG T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf)、[Radiance 格式资料](https://www.radiance-online.org/learning/documentation/references.html)和 [OpenEXR 文件布局](https://openexr.com/en/latest/OpenEXRFileLayout.html)。奇数尺寸层级按声明的向上/向下取整逐层计算。
 
-这些像素估算不能当作进程峰值内存或全部模型格式的贴图限制。OBJ、FBX、USD、blend 的完整图片预检及跨 Host 全局预算仍在改进。
+这些像素估算不能当作进程峰值内存或全部模型格式的贴图限制。FBX、USD、blend 的图片预检、全部格式变体及跨 Host 全局预算仍在改进。
 
 ## glTF / GLB 导入贴图的解码前检查
 
@@ -272,3 +272,11 @@ ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高
 alpha 与颜色规则见 [KHR_materials_specular](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_specular/README.md) 和 [KHR_materials_sheen](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_sheen/README.md)：强度/粗糙度使用 alpha，颜色纹理的 RGB 使用 sRGB。
 
 依据：[glTF 图片与 bufferView](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#images)、[WebP 容器](https://developers.google.com/speed/webp/docs/riff_container)、[EXT_texture_webp](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Vendor/EXT_texture_webp/README.md)。本范围不替代其他模型格式、复杂压缩扩展或跨 Host 进程配额。
+
+## OBJ 图片解码前检查
+
+使用中的 OBJ 材质贴图在场景清空前纳入图片预算：单边 1–8192 像素、每张图片最多读取 1 MiB 元数据，各模型实例与显式材质/环境共享 1 GiB 解码图片估算。同一路径在一次导入中去重；多个实例仍分别计入。显式 MTL 按声明顺序读取；库去重比较路径解析前的声明写法，不同写法可在后面重读同一个文件。同名 MTL 存在且其文件名未声明时追加；覆盖掉或未使用的贴图仍保留在资源锁中。
+
+原生已接受的 15 种格式夹具用于真实导入与保存文件重开验证。AVIF 额外检查编码数据的最大尺寸，容器中较小的尺寸声明不能降低预算。TIFF 检查原生选择的第一幅图；DDS 累计 mip、切片和数组；JPEG2000 从码流读取尺寸。
+
+这些检查估算解码图片缓冲区。元数据通过后仍需原生像素解码和打包验证；完整格式变体、解码器进程峰值和跨 Host 全局资源协调继续单独验收。

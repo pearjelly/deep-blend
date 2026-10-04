@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "deepblend.obj-image-fixtures/v1",
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "generation": {
+    "version": "5.2.1 LTS",
+    "buildHash": "9e2066aef7ef",
+    "platform": "macOS arm64",
+    "note": "All 15 files were actually imported through native OBJ/MTL and packed by the production image helper. DDS and flattened PSD are locally constructed; other files use native save_render. The initial 16x8 JPEG2000 generator failed; the accepted JPEG2000 is an actual 64x64 output. These samples establish compatibility, not complete format validity."
+  },
+  "images": [
+    {
+      "format": "PNG",
+      "file": "paint.png",
+      "sha256": "3c75537b1428dbc9748644e152d9b4b89e99bbb98e623d6d895fcbd03557ec46",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "JPEG",
+      "file": "paint.jpg",
+      "sha256": "6f7c1dd443cf0d68ecac5e763327b76a08d309302eb8093cddc7107c7bf0ce3b",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "BMP",
+      "file": "paint.bmp",
+      "sha256": "f1805c9cbff4fb6585ddbaa170aebb5710ad38532224718c7bd97d9cd464495d",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "TARGA",
+      "file": "paint.tga",
+      "sha256": "1d090112515e61cf76563f76a8b9d0fe174eca8459a9730e30eb8536b0945f8c",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "IRIS",
+      "file": "paint.rgb",
+      "sha256": "b356862d2cd4419a12a5273c9a42b21d5e6884c46d1ce70f1f01e297cbf47edf",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "CINEON",
+      "file": "paint.cin",
+      "sha256": "acb9f6fb565c9eb9d76e6bfceb1b245e16a90158a68e563afc464e809fe1cfea",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "Linear Rec.709"
+    },
+    {
+      "format": "DPX",
+      "file": "paint.dpx",
+      "sha256": "78f2f3bdc8e93da068e68dfc42853ad7f36abc71cb64298ad578ce98a06a9174",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "Linear Rec.709"
+    },
+    {
+      "format": "TIFF",
+      "file": "paint.tif",
+      "sha256": "56a4539c66c181fb7226c8cc17b24fd0005eba2c6f49bdc03f07bc6464f5d4b3",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "HDR",
+      "file": "paint.hdr",
+      "sha256": "cf05045dfec659bb0ca8c7e11e50b56f639b6f04239b52319398127ca06cfb7a",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "Linear Rec.709"
+    },
+    {
+      "format": "OPEN_EXR",
+      "file": "paint.exr",
+      "sha256": "a61f32efe17343470fa66a9ebe5e6e1e3f46401c27dd2fd2f3808c9e81cc9e5f",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "Linear Rec.709"
+    },
+    {
+      "format": "JPEG2000",
+      "file": "paint.jp2",
+      "sha256": "0b29357fbd0a47ca0d7aed3a2741f82063ff6b6c588a9e8ece686197fa775938",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "DDS",
+      "file": "paint.dds",
+      "sha256": "ea39e97e4a3f85326ee5dd69123fbc49dc50b991023d929fe1d2ebd92923463f",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "PSD",
+      "file": "paint.psd",
+      "sha256": "a25c0386c9050268c929d9774db913e30eb54d0e8dbd234fa962032c2043af34",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "WEBP",
+      "file": "paint.webp",
+      "sha256": "56405009182a0a3a298cae3b9e9ec1d1cfabfffe045fd8e1f5cd8be538683d7e",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    },
+    {
+      "format": "AVIF",
+      "file": "paint.avif",
+      "sha256": "5a50039096f7e7f12b14b8c8a7c28309a8b14e77cf3c1453caa47c0375f2ff73",
+      "width": 64,
+      "height": 64,
+      "nativeColorSpace": "sRGB"
+    }
+  ]
+}

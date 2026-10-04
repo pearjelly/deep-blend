@@ -35,24 +35,26 @@ def lines(path,limit,continuation=False):
     except UnicodeError:fail('OBJ/MTL text must be valid UTF-8.','ASSET_CONTENT_MISMATCH')
     except OSError:fail('An OBJ/MTL file is missing.','ASSET_MISSING')
 
-def obj_libraries(path):
-    result=set()
+def obj_declarations(path):
     for line in lines(path,MAX_OBJ,True):
         field=line.split(None,1)
-        if not field or field[0]!='mtllib':continue
+        if not field or field[0] not in ('mtllib','usemtl'):continue
         name=field[1].strip() if len(field)>1 else ''
-        if len(name)>2 and name.startswith('"') and name.endswith('"'):name=name[1:-1]
-        if not name:fail('An OBJ material library reference is empty.')
-        result.add(name)
-    return result
+        if field[0]=='mtllib':
+            if len(name)>2 and name.startswith('"') and name.endswith('"'):name=name[1:-1]
+            if not name:fail('An OBJ material library reference is empty.')
+        yield field[0],name
 
-def mtl_images(path):
-    result=set();material=False
+def obj_libraries(path):
+    return {name for kind,name in obj_declarations(path) if kind=='mtllib'}
+
+def mtl_image_records(path):
+    material=None
     for line in lines(path,MAX_MTL):
         field=line.split(None,1)
         if not field:continue
-        if field[0]=='newmtl':material=True;continue
-        if not material or field[0] not in MAP_KEYS:continue
+        if field[0]=='newmtl':material=field[1].strip() if len(field)>1 else '';continue
+        if material is None or field[0] not in MAP_KEYS:continue
         rest=field[1].strip() if len(field)>1 else ''
         while rest:
             token=rest.split(None,1)[0]
@@ -71,5 +73,7 @@ def mtl_images(path):
             else:break
         name=rest.strip().replace('"','')
         if not name:fail('An MTL texture reference is empty.')
-        result.add(name)
-    return result
+        yield material,field[0],name
+
+def mtl_images(path):
+    return {name for material,kind,name in mtl_image_records(path)}
