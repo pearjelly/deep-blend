@@ -627,3 +627,93 @@ test('surface texture drafts survive a native refusal and submit the correction 
   const saved=projects['project-a'].spec;assert.equal(saved.materials.find(m=>m.id===saved.entities.find(e=>e.id==='shade-shell').materialId).texture.uvMap,'UVMap')
   assert.equal(editor.dirty(editor.draftFor(store.getState())),false)
 })
+
+test('roughness can be cleared and replaced without a default being appended, while empty saves stay blocked', async t => {
+  const spec = source('metal-lamp'); spec.materials.find(item => item.id === 'champagne-spun').parameters.roughness = .22
+  const { store, field, nodes, calls } = await client(t, spec)
+  const input = () => field('editor-material-roughness')
+  const save = () => nodes().find(node => node.props['data-action'] === 'editor-apply')
+  input().props.onChange({ target: { value: '' } })
+  assert.equal(input().props.value, '', 'deleting the existing value must leave the visible field empty')
+  assert.equal(editor.draftFor(store.getState()).material.definition.parameters.roughness, null)
+  assert.equal(save().props.disabled, true)
+  await store.actions.applyEditor(); assert.equal(calls.length, 0)
+  input().props.onChange({ target: { value: '0.28' } })
+  assert.equal(input().props.value, .28)
+  assert.equal(save().props.disabled, false)
+  await store.actions.applyEditor()
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].body.patch.operations.find(op => op.op === 'material.add').material.parameters.roughness, .28)
+})
+
+test('roughness defaults apply only to omitted values, and explicit zero stays editable', async t => {
+  for (const [shader, expected] of [['principled', .5], ['glass', .05]]) {
+    await t.test(shader, async t => {
+      const spec = source('metal-lamp'), material = spec.materials.find(item => item.id === 'champagne-spun')
+      material.shader = shader; delete material.parameters.roughness
+      const { store, field, calls } = await client(t, spec)
+      const input = () => field('editor-material-roughness')
+      assert.equal(input().props.value, expected)
+      assert.equal(Object.hasOwn(editor.draftFor(store.getState()).material.definition.parameters, 'roughness'), false)
+      assert.deepEqual(plain(editor.buildPatch(editor.draftFor(store.getState())).operations), [])
+      input().props.onChange({ target: { value: '0' } })
+      assert.equal(input().props.value, 0)
+      assert.equal(editor.errors(editor.draftFor(store.getState())).length, 0)
+      input().props.onChange({ target: { value: '' } })
+      assert.equal(input().props.value, '')
+      await store.actions.applyEditor(); assert.equal(calls.length, 0)
+      input().props.onChange({ target: { value: '0' } })
+      await store.actions.applyEditor()
+      assert.equal(calls[0].body.patch.operations.find(op => op.op === 'material.add').material.parameters.roughness, 0)
+    })
+  }
+})
+
+
+test('defaulted object numeric controls retain empty drafts and block apply until a valid replacement', async t => {
+  const cases = [
+    ['editor-generator-bevel-width', d => d.entity.generator.bevel.width, '2', false],
+    ['editor-generator-bevel-segments', d => d.entity.generator.bevel.segments, '5', false],
+    ['editor-texture-stretch-x', d => d.material.definition.texture.stretch[0], '2', false],
+    ['editor-modifier-0-segments', d => d.entity.modifiers[0].segments, '5', false],
+    ['editor-modifier-0-angle', d => d.entity.modifiers[0].angle, '45', true],
+    ['editor-modifier-1-offset', d => d.entity.modifiers[1].offset, '.5', true],
+  ]
+  for (const [name, readValue, replacement, zeroValid] of cases) {
+    const spec = source('metal-lamp'), entity = spec.entities.find(e => e.id === 'shade-shell')
+    entity.generator.bevel = { width: .001, segments: 3 }
+    entity.modifiers = [{ type: 'bevel', width: .001, segments: 3, angle: 30 }, { type: 'solidify', thickness: .002, offset: -1 }]
+    const { store, field, nodes, calls } = await client(t, spec)
+    const draft = () => editor.draftFor(store.getState()), save = () => nodes().find(n => n.props['data-action'] === 'editor-apply')
+    field(name).props.onChange({ target: { value: '' } })
+    assert.equal(readValue(draft()), null, name)
+    assert.equal(field(name).props.value, '', `${name}: deleted value must stay visibly empty`)
+    assert.equal(save().props.disabled, true, name)
+    await store.actions.applyEditor(); assert.equal(calls.length, 0, name)
+    field(name).props.onChange({ target: { value: '0' } })
+    assert.equal(field(name).props.value, 0, name)
+    assert.equal(editor.errors(draft()).length === 0, zeroValid, `${name}: zero follows the existing domain`)
+    field(name).props.onChange({ target: { value: replacement } })
+    assert.equal(field(name).props.value, Number(replacement), name)
+    assert.equal(save().props.disabled, false, name)
+    apply(spec, draft())
+  }
+})
+
+test('omitted object numeric options keep defaults without materializing them into the draft', async t => {
+  const spec = source('metal-lamp'), entity = spec.entities.find(e => e.id === 'shade-shell')
+  entity.generator.bevel = {}
+  entity.modifiers = [{ type: 'bevel', width: .001 }, { type: 'solidify', thickness: .002 }]
+  delete spec.materials.find(m => m.id === 'champagne-spun').texture.stretch
+  const { store, field } = await client(t, spec), draft = editor.draftFor(store.getState())
+  for (const [name, expected] of [['editor-generator-bevel-width', 10], ['editor-generator-bevel-segments', 3],
+    ['editor-texture-stretch-x', 1], ['editor-modifier-0-segments', 4], ['editor-modifier-0-angle', 30], ['editor-modifier-1-offset', -1]])
+    assert.equal(field(name).props.value, expected, name)
+  assert.equal(draft.entity.generator.bevel.width, undefined)
+  assert.equal(draft.entity.generator.bevel.segments, undefined)
+  assert.equal(draft.material.definition.texture.stretch, undefined)
+  assert.equal(draft.entity.modifiers[0].segments, undefined)
+  assert.equal(draft.entity.modifiers[0].angle, undefined)
+  assert.equal(draft.entity.modifiers[1].offset, undefined)
+  assert.deepEqual(plain(editor.buildPatch(draft).operations), [])
+})

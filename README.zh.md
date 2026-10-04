@@ -143,7 +143,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         119 个 *.test.mjs
+    contract/         121 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -202,7 +202,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 22/119 file(s) passed
+DeepBlend tests: 23/121 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -262,12 +262,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**34 个套件、152 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**119 个文件 = 1954 项自计断言（34 个文件打印计数）+ 1253 个 `node:test` 用例（85 个文件）**。
+预期：**34 个套件、154 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**121 个文件 = 1954 项自计断言（34 个文件打印计数）+ 1302 个 `node:test` 用例（87 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前快照合并了已验收基线与本轮相关契约实测增量；完整入口的运行记录见 `deepblend/docs/milestone-status.md`。
+**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前快照取自最终整合源码一次连续通过的完整入口 v5（34/34）；此前环境路径失败及复验记录见 `deepblend/docs/milestone-status.md`。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

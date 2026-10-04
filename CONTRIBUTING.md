@@ -23,7 +23,7 @@ npm test                 # 单元 + 契约，不需要 Blender（当前读数是
 
 npm run blender:check    # 本机有没有跑验收套件所需的那个 Blender
 npm run blender:install  # 没有就装一个（工作区内的 .tools/，免 sudo）
-bash deepblend/tests/run-all.sh   # 完整验收；需要 Blender，约 5–10 分钟
+bash deepblend/tests/run-all.sh   # 完整验收；需要 Blender，耗时取决于设备；当前本机完整运行约半小时
 ```
 
 **`npm run setup` 不是可选的。** `node_modules/` 被 git 忽略，里面没有任何内容，只有指向

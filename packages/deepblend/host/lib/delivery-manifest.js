@@ -103,7 +103,12 @@ export function buildDeliveryManifest(input) {
 
     render: {
       profileName: record.profileName ?? null,
-      config: record.renderConfig ?? null,
+      // The old job config remains the default for a later resume. Only known,
+      // uniform frame settings can describe the entire delivered sequence.
+      config: input.provenance?.coverage === 'complete' && input.provenance?.configuration === 'uniform'
+        ? input.provenance.groups[0].renderConfig : null,
+      defaultConfig: record.renderConfig ?? null,
+      provenance: input.provenance ?? null,
       cameraId: record.cameraId ?? null,
       meanMsPerFrame: record.meanMsPerFrame ?? null,
       renderDurationMs: record.renderDurationMs ?? null,

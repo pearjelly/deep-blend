@@ -45,6 +45,7 @@ than trusting that.
 Runs inside Blender's embedded interpreter.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -299,6 +300,10 @@ def render_frames(plan, guard):
     profile = plan.get("profile") or {}
     report_progress("configure_render", 4)
     overrides, actual = apply_profile(scene, profile, guard)
+    # Persist the read-back settings before any frame can be accepted. A process
+    # killed before the final result still leaves its completed frames attributable.
+    attempt_token = plan.get("attemptToken")
+    append_event(events_path, {"type": "render_config", "attemptToken": attempt_token, "renderConfig": actual})
     expected_width = int(actual["resolution"][0])
     expected_height = int(actual["resolution"][1])
 
@@ -360,7 +365,12 @@ def render_frames(plan, guard):
         total_bytes += verdict["bytes"]
         # Written AFTER the file is verified on disk, so the journal never claims
         # a frame the ledger would call missing.
-        append_event(events_path, {"type": "frame", "frame": frame, "bytes": verdict["bytes"], "ms": elapsed_ms})
+        digest = hashlib.sha256()
+        with open(path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(256 * 1024), b""):
+                digest.update(chunk)
+        append_event(events_path, {"type": "frame", "frame": frame, "bytes": verdict["bytes"], "ms": elapsed_ms,
+                                   "attemptToken": attempt_token, "sha256": digest.hexdigest()})
 
     report_progress("frames_done", 97, {"rendered": len(written)})
     append_event(events_path, {"type": "frames_done", "rendered": written})

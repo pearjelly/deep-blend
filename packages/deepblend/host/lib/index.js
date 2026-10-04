@@ -92,6 +92,7 @@ import { JournalTail, incompleteJournalWarning, isFrameClaim } from './render-jo
 import { ORPHAN_GRACE_MS, checkProcessAlive, reconcileRenderJob, stopProcessGroup } from './render-reconciler.js'
 import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js'
 import { buildDeliveryManifest } from './delivery-manifest.js'
+import { beginFrameAttempt, createFrameProvenanceReadBudget, readFrameProvenance, syncFrameProvenance } from './frame-provenance.js'
 import { streamAsset } from './asset-io.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
@@ -3275,9 +3276,10 @@ export default class BlenderStudio extends Service {
     const records = this.renderJobs.list(projectId)
     const limit = Number.isSafeInteger(request?.limit) ? request.limit : records.length
     const selected = limit >= records.length ? records : records.slice(records.length - limit)
+    const provenanceBudget = createFrameProvenanceReadBudget()
     return {
       projectId,
-      jobs: selected.map(record => this._canonicalRenderJob(record)),
+      jobs: selected.map(record => this._canonicalRenderJob(record, provenanceBudget)),
       unfinished: records.filter(record => !RenderJobStore.isTerminal(record)).map(record => record.jobId),
       recovery: this._recoveryFindings
         .filter(finding => finding.projectId === projectId)
@@ -3920,7 +3922,8 @@ export default class BlenderStudio extends Service {
       // not. The suite asserts what the renderer was handed, read from the `plan.json`
       // the provider writes before spawning, because the job record is what the HOST
       // believes and the plan is what the child was told.
-      record: created, spec, profile: effective.profile, profileName, checkpoint, cameraId, frames, reason: 'start',
+      record: created, spec, profile: effective.profile,
+      requestedSamples, profileName, checkpoint, cameraId, frames, reason: 'start',
     })
 
     return {
@@ -4052,6 +4055,7 @@ export default class BlenderStudio extends Service {
       },
       spec,
       profile: effective.profile,
+      requestedSamples: samples,
       profileName,
       checkpoint,
       cameraId: record.cameraId ?? this._deliveryCameraId(spec),
@@ -4512,6 +4516,20 @@ export default class BlenderStudio extends Service {
     }
 
     const expected = input.expectedFrames ?? this.renderJobs.expectedFrames(record)
+    const attemptToken = randomUUID()
+    try {
+      beginFrameAttempt(record, this.renderJobs.jobDirectory(projectId, jobId), {
+        id: attemptToken, frames, profile, requestedSamples: input.requestedSamples,
+        cameraId: input.cameraId, checkpointPath: record.checkpointPath ?? checkpoint.path,
+      })
+    } catch (cause) {
+      const code = isStorageExhausted(cause) ? BlenderErrorCode.DISK_FULL
+        : cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR
+      try {
+        this.renderJobs.write({ ...record, status: 'failed', errorCode: code, message: cause.message, finishedAt: Date.now() }, { previous: record })
+      } catch { /* The old journal is retained even when failure cannot be recorded. */ }
+      throw new BlenderError(code, cause.message, { cause })
+    }
     const renderConfig = record.renderConfig ?? {
       resolution: profile.resolution,
       samples: profile.samples,
@@ -4551,7 +4569,6 @@ export default class BlenderStudio extends Service {
     // Spawn, then hand the rest to the background. `startFrameSequence` is the
     // only await here: it resolves once the child exists, which is what makes the
     // returned job id true rather than optimistic.
-    const attemptToken = randomUUID()
     live.attemptToken = attemptToken
     const run = await this.runtime.startFrameSequence({
       checkpointPath: record.checkpointPath ?? checkpoint.path,
@@ -4628,6 +4645,7 @@ export default class BlenderStudio extends Service {
       // writer has stopped, so an incomplete last line is evidence rather than a
       // line still arriving.
       await this._absorbProgress(live, run, projectId, jobId, { final: true })
+      syncFrameProvenance(record, this.renderJobs.jobDirectory(projectId, jobId))
 
       // The frames are the authority for what happened, whatever the envelope says
       // — a killed process writes no envelope, and a successful one can still have
@@ -5153,10 +5171,12 @@ export default class BlenderStudio extends Service {
     // The commit below is synchronous: cancellation can win before this guard,
     // or observe the completed publication after it, never interleave its files.
     this._checkDeliveryCancelled(input)
+    const provenance = syncFrameProvenance(record, jobDirectory, { allowLimited: true })
     copyFileSync(encode.outputPath, `${videoPath}.tmp`)
     renameSync(`${videoPath}.tmp`, videoPath)
 
     const manifest = buildDeliveryManifest({
+      provenance,
       record: { ...record, framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId) },
       ledger,
       probed,
@@ -5287,7 +5307,7 @@ export default class BlenderStudio extends Service {
   }
 
   /** The canonical render-job projection shared by `getJob` and `listJobs`. */
-  _canonicalRenderJob(record) {
+  _canonicalRenderJob(record, provenanceBudget) {
     const completed = Array.isArray(record.completedFrames) ? record.completedFrames : []
     const expected = record.expectedFrames ?? (record.frameEnd - record.frameStart + 1)
     return {
@@ -5312,6 +5332,7 @@ export default class BlenderStudio extends Service {
       fps: record.fps,
       profileName: record.profileName ?? null,
       renderConfig: record.renderConfig ?? null,
+      provenance: readFrameProvenance(record, this.renderJobs.jobDirectory(record.projectId, record.jobId), provenanceBudget),
       framesDirectory: record.framesDirectory ?? null,
       delivery: record.delivery ?? null,
       outputManifest: record.outputManifest ?? null,

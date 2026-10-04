@@ -571,6 +571,33 @@ export function buildJobView(job, options) {
     deliverable: job.status === 'completed' && job.delivery !== null,
     approval: buildApprovalView({ record: { expectedFrames: expected, warnings: job.warnings ?? [] }, threshold: options?.threshold ?? Number.POSITIVE_INFINITY }),
     detail: describeJobForHuman(job),
+    provenanceDisplay: describeFrameProvenance(job.provenance),
+  }
+}
+
+/** Bounded display facts from the same source summary; the client localizes labels. */
+function describeFrameProvenance(provenance) {
+  if (!provenance) return null
+  const groups = provenance.groups ?? []
+  const framesLabel = frames => {
+    const ranges = []
+    for (let i = 0; i < frames.length;) {
+      const start = frames[i]; let end = start
+      while (frames[++i] === end + 1) end = frames[i]
+      ranges.push(start === end ? String(start) : `${start}–${end}`)
+    }
+    return ranges.slice(0, 8).join(', ') + (ranges.length > 8 ? '…' : '')
+  }
+  return {
+    mixed: provenance.configuration === 'mixed',
+    uncheckedCount: provenance.uncheckedFrameCount ?? 0,
+    groups: groups.slice(0, 8).map(group => ({
+      engine: group.renderConfig.engine, resolution: group.renderConfig.resolution?.join('×'),
+      samples: group.renderConfig.samples, frames: framesLabel(group.frames), frameCount: group.frames.length,
+    })),
+    moreGroups: Math.max(0, groups.length - 8),
+    unknownCount: provenance.unknownFrameCount ?? provenance.unknownFrames?.length ?? 0,
+    missingCount: provenance.missingFrameCount ?? provenance.missingFrames?.length ?? 0,
   }
 }
 
