@@ -1,9 +1,9 @@
 {
   "schemaVersion": "deepblend.recipe/v1",
   "id": "deepblend.glazed-cup",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "青釉带把手杯",
-  "description": "105 mm 高的陶瓷杯，3 mm 壁厚，圆润杯沿与连续把手。大面积灯光展示釉面；可调整釉色、光泽与曝光，创建后在对象编辑器中修改尺寸。",
+  "description": "105 mm 高的陶瓷杯，3 mm 壁厚，圆润杯沿与连续把手。根部曲面展开过渡；可调整釉色、光泽与曝光，创建后修改尺寸和连接曲面。",
   "author": {
     "name": "DeepBlend contributors",
     "url": "https://github.com/pearjelly/deep-blend"
@@ -11,23 +11,24 @@
   "license": "MIT",
   "source": {
     "url": "https://github.com/pearjelly/deep-blend",
-    "note": "Original procedural handled cup with analytic corner normals and broad studio area lights. Preview is an actual fixed hero-camera Blender render of the bundled SceneSpec; raw content hashes pin both files."
+    "note": "Original procedural handled cup with explicit 1.5 endpoint tension, retained body dimensions and analytic corner normals. Actual fixed hero-camera Blender preview and SceneSpec bytes are pinned. Historical v1 is preserved separately; technical evidence is not artistic approval."
   },
   "compatibility": {
     "sceneSchemaVersion": "deepblend.scene/v1",
     "capabilities": [
       "geometry.handled_cup",
+      "geometry.handled_cup.tension",
       "geometry.primitive",
       "material.principled"
     ]
   },
   "input": {
     "path": "scene-spec.json",
-    "sha256": "59e8d58c33bd4dfb16af906d894ffd12cd12c3b3a8395579c9ae0df7856b6b5c"
+    "sha256": "7bf69996931787262aa7a1155d80149c8e2e2ee7041fd771884070c032ef80ca"
   },
   "preview": {
     "path": "preview.png",
-    "sha256": "c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92",
+    "sha256": "ce84a64b8bb3314c83b84f2f96c907fca7ee74cc24ad425c52df6cd915af197f",
     "mediaType": "image/png",
     "alt": "青釉带把手杯默认参数的实际 Blender 主视角渲染"
   },

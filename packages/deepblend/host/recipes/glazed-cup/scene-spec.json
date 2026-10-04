@@ -47,7 +47,8 @@
       "generator": {
         "shape": "handled_cup",
         "rootRadius": 0.009,
-        "rootLength": 0.006
+        "rootLength": 0.006,
+        "rootTension": 1.5
       },
       "materialId": "glaze",
       "tags": [

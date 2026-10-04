@@ -275,3 +275,21 @@ test('same recipe ID can expose distinct versions and removed v1 cannot silently
   const current=catalog.instantiate(request)
   assert.equal(current.lock.version,'2.0.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
 })
+
+test('cup versions keep distinct transition defaults and immutable historical source locks', async t => {
+  const {recipes,catalog,studio}=setup(t)
+  cpSync(join(BUILTIN_RECIPES,'glazed-cup'),join(recipes,'cup-current'),{recursive:true})
+  cpSync(new URL('../fixtures/glazed-cup-v1/',import.meta.url),join(recipes,'cup-old'),{recursive:true})
+  const entries=catalog.list().recipes.filter(r=>r.id==='deepblend.glazed-cup');assert.deepEqual(entries.map(r=>r.version).sort(),['1.0.0','2.0.0'])
+  const select=version=>{const r=entries.find(r=>r.version===version);return {id:r.id,version:r.version,digest:r.digest}}
+  const original=select('1.0.0'),current=select('2.0.0')
+  assert.equal(catalog.instantiate(original).sceneSpec.entities.find(e=>e.id==='cup').generator.rootTension,1)
+  assert.equal(catalog.instantiate(current).sceneSpec.entities.find(e=>e.id==='cup').generator.rootTension,1.5)
+  const made=await studio.createProject({title:'historical cup',recipe:original,saveCheckpoint:false}),directory=studio.store.revisionDirectory(made.projectId,'r0001'),manifest=studio.store.readRevisionManifest(made.projectId,'r0001')
+  const before=Object.fromEntries(['scene-spec.json',manifest.recipe.lockPath].map(p=>[p,readFileSync(join(directory,p))]))
+  const lock=JSON.parse(before[manifest.recipe.lockPath]);assert.equal(lock.version,'1.0.0');assert.equal(sha256(lock.sceneSource),'59e8d58c33bd4dfb16af906d894ffd12cd12c3b3a8395579c9ae0df7856b6b5c')
+  assert.equal(JSON.parse(lock.sceneSource).entities.find(e=>e.id==='cup').generator.rootTension,undefined)
+  rmSync(join(recipes,'cup-old'),{recursive:true});assert.throws(()=>catalog.instantiate(original),{code:'RECIPE_NOT_FOUND'})
+  assert.equal(catalog.instantiate(current).lock.version,'2.0.0')
+  for(const [p,b]of Object.entries(before))assert(b.equals(readFileSync(join(directory,p))))
+})

@@ -69,7 +69,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, name === 'metal-lamp' ? '2.0.0' : '1.0.0')
+    assert.equal(first.recipe.version, ['metal-lamp','glazed-cup'].includes(name) ? '2.0.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })
@@ -184,7 +184,7 @@ test('a valid recipe can combine every supported capability', () => {
       { id: 'combined-glass', shader: 'glass', parameters: { baseColor: [1, 1, 1, 1], roughness: 0.1, ior: 1.45 } },
       { id: 'combined-emission', shader: 'emission', parameters: { emissionColor: [1, 0.5, 0.1, 1], emissionStrength: 1 } },
     )
-    spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup'},materialId:spec.materials[0].id})
+    spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup',rootTension:1.5},materialId:spec.materials[0].id})
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })
@@ -362,4 +362,22 @@ test('UV recipe capability distinguishes Object surfaces and refuses consumers l
   refused(bundle,'RECIPE_CAPABILITY_UNDECLARED')
   const schema=JSON.parse(readFileSync(join(root,'deepblend/schemas/recipe.schema.json')))
   assert.equal(schema.properties.compatibility.properties.capabilities.maxItems,RECIPE_CAPABILITIES.length)
+})
+
+test('cup transition capability describes actual shape use and refuses unsupported authors', () => {
+  const bundle=load('glazed-cup'),without=RECIPE_CAPABILITIES.filter(c=>c!=='geometry.handled_cup.tension')
+  assert(RECIPE_CAPABILITIES.includes('geometry.handled_cup.tension'))
+  replaceScene(bundle,spec=>{spec.entities.find(e=>e.id==='cup').generator.rootTension=1.5})
+  bundle.manifest.compatibility.capabilities=recipeCapabilitiesForScene(JSON.parse(bundle.sceneBytes))
+  assert.equal(validateRecipePackage(bundle).ok,true)
+  assert.equal(validateRecipePackage(bundle,{supportedCapabilities:without}).ok,false)
+  assert.throws(()=>instantiateRecipe(bundle,{}, {supportedCapabilities:without}),RecipeError)
+  bundle.manifest.compatibility.capabilities=without.filter(c=>bundle.manifest.compatibility.capabilities.includes(c))
+  refused(bundle,'RECIPE_CAPABILITY_UNDECLARED')
+  const oldPath=join(root,'deepblend/tests/fixtures/glazed-cup-v1'),old={manifest:JSON.parse(readFileSync(join(oldPath,'recipe.json'))),sceneBytes:readFileSync(join(oldPath,'scene-spec.json')),previewBytes:readFileSync(join(oldPath,'preview.png'))}
+  assert.equal(old.manifest.version,'1.0.0');assert.equal(validateRecipePackage(old,{supportedCapabilities:without}).ok,true)
+  assert.equal(recipeCapabilitiesForScene(JSON.parse(old.sceneBytes)).includes('geometry.handled_cup.tension'),false)
+  assert.equal(instantiateRecipe(old).spec.entities.find(e=>e.id==='cup').generator.rootTension,1)
+  const schema=JSON.parse(readFileSync(join(root,'deepblend/schemas/recipe.schema.json'))),caps=schema.properties.compatibility.properties.capabilities
+  assert.equal(caps.maxItems,caps.items.enum.length)
 })

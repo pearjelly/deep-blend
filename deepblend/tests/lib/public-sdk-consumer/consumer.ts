@@ -119,3 +119,7 @@ assert.equal(surfaceSpec.materials?.[0]?.texture?.uvMap,'Finish UV');
 
 const uvRecipeCapability: RecipeCapability = 'material.procedural.uv';
 assert.ok(RECIPE_CAPABILITIES.includes(uvRecipeCapability));
+const cupTransition: SceneSpecSchema.Generator = {shape:'handled_cup',rootTension:1.5};
+const cupTransitionCapability: RecipeCapability = 'geometry.handled_cup.tension';
+assert.ok(RECIPE_CAPABILITIES.includes(cupTransitionCapability));
+assert.equal(cupTransition.rootTension,1.5);
