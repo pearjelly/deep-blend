@@ -3769,6 +3769,11 @@ window.__ModuleLoader__.load({
       /** One image (or the reason there is none), with its digest and its time. */
       const imagePane = (side, title, artifact, missing) => {
         const when = artifactTime(artifact)
+        // Keep controls below the current preview in place while its PNG loads.
+        // Only recorded image dimensions can reserve its size and aspect ratio.
+        const dimensions = side === 'current' && Number.isSafeInteger(artifact?.width) && artifact.width > 0
+          && Number.isSafeInteger(artifact?.height) && artifact.height > 0
+          ? { width: artifact.width, height: artifact.height } : {}
         return el('div', { className: 'db-shot', 'data-compare': side, 'data-compare-kind': artifact === null ? 'empty' : 'image' },
           el('h5', null, title),
           artifact === null
@@ -3782,7 +3787,12 @@ window.__ModuleLoader__.load({
                 'data-artifact-slot': artifact.slot || '',
                 'data-artifact-revision': artifact.sourceRevision || '',
                 'data-artifact-at': artifact.at || '',
-                style: side === 'current' ? { width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 'calc(100vh - 300px)', margin: '0 auto' } : undefined,
+                ...dimensions,
+                style: side === 'current' ? {
+                  width: dimensions.width ? `min(${dimensions.width}px, 100%, calc((100vh - 300px) * ${dimensions.width / dimensions.height}))` : 'auto',
+                  aspectRatio: dimensions.width ? `${dimensions.width} / ${dimensions.height}` : undefined,
+                  maxWidth: '100%', height: 'auto', maxHeight: 'calc(100vh - 300px)', margin: '0 auto',
+                } : undefined,
                 alt: `${title} ${artifact.path}`,
                 src: artifactUrl(state.artifactBase, artifact),
               }),

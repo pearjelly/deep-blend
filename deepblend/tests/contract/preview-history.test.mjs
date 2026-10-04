@@ -105,6 +105,30 @@ test('newly created single previews appear on both latest and render comparison 
   assert.equal(images(rows, 'result')[0].props['data-artifact-source-digest'], sha('source'))
 })
 
+test('the current product image reserves its measured size without enlarging small previews', () => {
+  for (const [width, height] of [[256, 192], [48, 16], [1200, 1800]]) {
+    const rows = [{ revision: 'r0001', previews: [single('r0001', 'hero', undefined, { width, height })], contactSheets: [] }]
+    const image = images(rows, 'result')[0]
+    assert.equal(image.props.width, width); assert.equal(image.props.height, height)
+    assert.equal(image.props.style.aspectRatio, `${width} / ${height}`)
+    assert.notEqual(image.props.style.width, 'auto', 'known pixels reserve space before the image decodes')
+    assert.equal(image.props.style.height, 'auto')
+    assert.equal(image.props.style.maxWidth, '100%'); assert.equal(image.props.style.maxHeight, 'calc(100vh - 300px)')
+    assert.equal(images(rows, 'renders')[0].props.width, undefined, 'comparison panes retain their own sizing')
+  }
+})
+
+test('legacy or invalid preview dimensions do not invent a reserved image size', () => {
+  for (const dimensions of [{}, { width: 256 }, { height: 192 }, { width: 0, height: 192 }, { width: 256, height: -1 },
+    { width: 256.5, height: 192 }, { width: '256', height: 192 }, { width: Infinity, height: 192 }]) {
+    const rows = [{ revision: 'r0001', previews: [single('r0001', 'hero', undefined, dimensions)], contactSheets: [] }]
+    const image = images(rows, 'result')[0]
+    assert.equal(image.props.width, undefined); assert.equal(image.props.height, undefined)
+    assert.equal(image.props.style.width, 'auto'); assert.equal(image.props.style.height, 'auto')
+    assert.equal(image.props.style.aspectRatio, undefined)
+  }
+})
+
 test('latest measured single render supersedes an older sheet while retaining the preceding render', () => {
   const rows = [{ revision: 'r0001', previews: [single('r0001', 'initial', '2026-10-03T01:00:00Z'), single('r0001', 'new', '2026-10-03T03:00:00Z')], contactSheets: [sheet('r0001', 'preview-current', '2026-10-03T02:00:00Z')] }]
   assert.equal(images(rows, 'result')[0].props['data-artifact'], rows[0].previews[1].path)

@@ -14,7 +14,7 @@
 # thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
 # Separate Linux jobs run selected real Blender, Agent and browser inspections,
-# and the render-selection / photography workflows with their own time budget.
+# and completed-frame delivery / render-selection / photography with their own time budget.
 # The remaining blender-integration/*, composition/* and e2e/ui.e2e.mjs coverage
 # stays in `bash deepblend/tests/run-all.sh`, including longer delivery renders and
 # broader recovery flows. No online model calls are made by these CI jobs.
@@ -241,7 +241,7 @@ jobs:
           if-no-files-found: error
 
   linux-render-photography-browser:
-    name: Linux render selection + photography editor
+    name: Linux completed-frame delivery + render selection + photography
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
@@ -278,6 +278,12 @@ jobs:
       - name: Verify ffmpeg and ffprobe and retain their versions
         id: codecs
         run: ffmpeg -version > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-version.log" 2>&1 && ffprobe -version > "$DEEPBLEND_CI_EVIDENCE/ffprobe-version.log" 2>&1
+      - name: Real completed-frame delivery and native encoder cancellation
+        if: ${{ !cancelled() && steps.codecs.outcome == 'success' }}
+        timeout-minutes: 2
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/complete-frame-delivery
+        run: node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/complete-frame-delivery.log" 2>&1
       - name: Real render profile selection and revision-pinned delivery
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
         timeout-minutes: 5
@@ -290,7 +296,7 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/photography-browser
         run: xvfb-run -a node deepblend/tests/e2e/photography-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/photography-browser.log" 2>&1
-      - name: Preserve editing requests, native artifacts and shutdown evidence
+      - name: Preserve delivery and editing requests, native artifacts and shutdown evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:

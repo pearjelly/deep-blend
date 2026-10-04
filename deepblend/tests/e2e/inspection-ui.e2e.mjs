@@ -23,12 +23,59 @@ const sceneSpec = JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/gla
 sceneSpec.project.id = projectId; sceneSpec.project.title = 'Fixed-view inspections'
 sceneSpec.renderProfiles.preview = { ...sceneSpec.renderProfiles.preview, resolution: [256, 192], samples: 8, maxSamplesBudget: 8 }
 const field = name => `[data-field="inspection-${name}"]`
-let server, browser, page, base, url, shutdown, outcome = 'failed', originals = {}, artifacts = []
+let server, browser, page, base, url, shutdown, heldProductImage, outcome = 'failed', originals = {}, artifacts = []
 async function select(name, value) { await page.evaluate(`(() => {const el=document.querySelector(${JSON.stringify(field(name))});if(!el)throw Error('missing inspection field');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));})()`) }
 async function previewList() { const response = await fetch(`${base}/deepblend/projects/${projectId}/previews`); if (!response.ok) throw Error(await response.text()); return (await response.json()).previews }
+async function firstInspectionClick() {
+  const paused = await heldProductImage.promise
+  const before = await page.evaluate(`(() => {
+    const button=document.querySelector('[data-action="inspection-render"]'),image=document.querySelector('[data-compare="current"] img');
+    button.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+    const rect=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
+    return {button:rect(button),image:rect(image),decoded:image.complete&&image.naturalWidth>0};
+  })()`)
+  await page.send('Fetch.continueRequest', { requestId: paused.requestId })
+  await page.send('Fetch.disable')
+  const after = await page.evaluate(`(async () => {
+    const image=document.querySelector('[data-compare="current"] img');await image.decode();
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const rect=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
+    return {button:rect(document.querySelector('[data-action="inspection-render"]')),image:rect(image),natural:[image.naturalWidth,image.naturalHeight]};
+  })()`)
+  // Keep the first measured position: retrying or re-aiming would hide a shift.
+  const x = before.button.x + before.button.width / 2, y = before.button.y + before.button.height / 2
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, buttons: 0 })
+  for (const type of ['mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: 1, clickCount: 1 })
+  const observed = await page.evaluate('({events:window.__inspectionEvents,requests:window.__inspectionRequests})')
+  const evidence = { before, after, x, y, ...observed }; json('first-inspection-click.json', evidence)
+  const stable = ['button', 'image'].every(key => ['x', 'y', 'width', 'height'].every(axis => Math.abs(before[key][axis] - after[key][axis]) < .1))
+  const pointer = observed.events.filter(event => event.type === 'click').at(-1)
+  check('loading the measured product PNG preserves its size and the first inspection pointer target', !before.decoded && stable
+    && before.image.width === 256 && before.image.height === 192 && pointer?.action === 'inspection-render'
+    && observed.requests.filter(request => request.method === 'POST' && request.url.endsWith('/preview')).length === 1, evidence)
+  return { via: 'pointer' }
+}
+async function checkPreviewScaling() {
+  const measurements = []
+  try {
+    for (const [width, height] of [[1440, 1000], [240, 900], [1440, 380]]) {
+      await page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+      measurements.push(await page.evaluate(`(async()=>{
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        const image=document.querySelector('[data-compare="current"] img'),rect=image.getBoundingClientRect(),parent=image.parentElement,style=getComputedStyle(parent);
+        return {viewport:[innerWidth,innerHeight],natural:[image.naturalWidth,image.naturalHeight],actual:[rect.width,rect.height],availableWidth:parent.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)};
+      })()`))
+    }
+  } finally { await page.send('Emulation.clearDeviceMetricsOverride') }
+  json('product-preview-scaling.json', measurements)
+  check('current preview keeps its original size or scales proportionally to narrow and short viewports', measurements.every(row => {
+    const scale = Math.min(1, row.availableWidth / row.natural[0], (row.viewport[1] - 300) / row.natural[1])
+    return row.actual.every((value, index) => Math.abs(value - row.natural[index] * scale) < .1)
+  }), measurements)
+}
 async function inspect(mode, cameraId, frame) {
   await select('mode', mode); await select('cameraId', cameraId); await page.fill(field('frame'), String(frame)); await page.fill(field('samples'), '8')
-  const count = artifacts.length, clicked = await page.click('[data-action="inspection-render"]')
+  const count = artifacts.length, clicked = count === 0 ? await firstInspectionClick() : await page.click('[data-action="inspection-render"]')
   await page.waitFor(`document.querySelectorAll('[data-inspection-artifact]').length===${count + 1} && !document.querySelector('[data-action="inspection-cancel"]')`, 180000)
   const current = (await previewList()).revisions.find(revision => revision.revision === 'r0001'), added = current.diagnostics.filter(item => !artifacts.some(existing => existing.path === item.path))
   if (added.length !== 1) throw Error(`Expected one newly published diagnostic; found ${added.length}`)
@@ -37,6 +84,7 @@ async function inspect(mode, cameraId, frame) {
   await page.waitFor(`Array.from(document.querySelectorAll('[data-inspection-image]')).every(image=>image.complete&&image.naturalWidth>0)`, 30000)
   copyFileSync(path(artifact.path), join(directory, `${mode}-${cameraId}-${frame}.png`)); artifacts.push(artifact)
   check(`${mode} inspection does not move the project revision`, read('project.json').currentRevision === 'r0001')
+  if (count === 0) await checkPreviewScaling()
   return artifact
 }
 try {
@@ -52,7 +100,13 @@ try {
   originals = Object.fromEntries(['revisions/r0001/scene-spec.json', 'revisions/r0001/scene.blend', product.path].map(file => [file, sha(readFileSync(path(file)))]))
   copyFileSync(path(product.path), join(directory, 'original-product-preview.png')); json('original-previews.json', before)
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
-  await page.addInitScript(`window.__inspectionRequests=[];const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=typeof init?.body==='string'?JSON.parse(init.body):undefined}catch{};window.__inspectionRequests.push({url:String(input),method:init?.method||'GET',body});return original(input,init)}`)
+  heldProductImage = page._waitForEvent('Fetch.requestPaused'); heldProductImage.promise.catch(() => {})
+  await page.send('Fetch.enable', { patterns: [{ urlPattern: `*/deepblend/artifacts/${projectId}/${product.path}*`, requestStage: 'Response' }] })
+  await page.addInitScript(`window.__inspectionRequests=[];window.__inspectionEvents=[];
+    for(const type of ['pointerdown','pointerup','click'])document.addEventListener(type,event=>window.__inspectionEvents.push({type,at:performance.now(),action:event.target.closest?.('[data-action]')?.dataset.action||null,tag:event.target.tagName,x:event.clientX,y:event.clientY}),true);
+    const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=typeof init?.body==='string'?JSON.parse(init.body):undefined}catch{};
+      const row={url:String(input),method:init?.method||'GET',body,startedAt:Date.now()};window.__inspectionRequests.push(row);
+      return original(input,init).then(response=>{row.status=response.status;row.finishedAt=Date.now();return response},error=>{row.error=String(error);row.finishedAt=Date.now();throw error})}`)
   await page.goto(url); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000)
   await page.click('[data-action="guide-form"]'); await page.waitFor('document.querySelector("[data-inspection-panel]")!==null')
   check('the creation guide opens clay controls with correct native selection and no write', await page.evaluate('document.querySelector("[data-field=inspection-mode]").value==="clay" && window.__inspectionRequests.every(request=>request.method!=="POST")'))
@@ -92,9 +146,17 @@ try {
   json('requests.json', requests); json('artifacts.json', artifacts); outcome = 'passed'
 } catch (error) { console.error(error); results.push({ name: 'unexpected failure', ok: false, detail: error.stack || String(error) }); if (page) await page.screenshot(join(directory, 'failure.png')).catch(() => {}) }
 finally {
+  heldProductImage?.cancel()
+  if (page) {
+    try { json('browser-state-before-close.json', { dom: await page.evaluate('document.documentElement.outerHTML'), requests: await page.evaluate('window.__inspectionRequests'), events: await page.evaluate('window.__inspectionEvents'), console: page.consoleLog }) }
+    catch (error) { json('browser-state-capture-error.json', { message: String(error) }) }
+  }
   for (const [name, close] of [['browser', () => browser?.close()], ['server', () => server?.stop()]]) {
     try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { outcome = 'failed'; results.push({ name: `${name} shutdown`, ok: false, detail: String(error) }) }
   }
+  if (server) writeFileSync(join(directory, 'server.log'), server.output.join('').replace(/token=[A-Za-z0-9_-]+/g, 'token=[redacted]'))
+  json('process-exit.json', { server: server ? { pid: server.child.pid, exitCode: server.child.exitCode, signalCode: server.child.signalCode } : null,
+    browser: browser ? { pid: browser.child.pid, exitCode: browser.child.exitCode, signalCode: browser.child.signalCode } : null })
   const report = { startedAt, completedAt: new Date().toISOString(), outcome, directory, root, url, projectId, shutdown, originals, artifacts, results, passed: results.filter(result => result.ok).length, total: results.length,
     scope: 'Real browser and isolated inspection render evidence; no online model calls, no aesthetic approval, no claim that clay proves thickness or manifold geometry. Cancellation covers browser/HTTP behavior; provider process cleanup has separate integration coverage.' }
   json('results.json', report); console.log(`Inspection UI: ${report.passed}/${report.total}; ${directory}`)

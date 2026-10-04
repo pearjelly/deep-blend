@@ -24,24 +24,32 @@
 | `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
 | `deepblend/tests/blender-integration/review-history.e2e.mjs` | 重复与跨进程重叠的实际评审、独立视角和图片/评分摘要、完成顺序 QA、取消前发布拒绝、场景/checkpoint 保护；模型端口仅作为受控等待屏障 |
 
-## 渲染选择与摄影浏览器检查
+## 完整帧交付、渲染选择与摄影检查
 
 独立的 `linux-render-photography-browser` job 使用 Ubuntu 24.04、Node 22.23.3，复用固定运行时安装
-和软件图形准备。整个 job 的超时为 20 分钟，以下两个步骤按表中顺序串行执行，每步超时为 5 分钟：
+和软件图形准备。整个 job 的超时为 20 分钟，以下步骤按表中顺序串行执行：纯编码步骤限时 2 分钟，
+两个浏览器步骤各限时 5 分钟。
 
 | 测试入口 | 检查范围 |
 | --- | --- |
+| `deepblend/tests/e2e/complete-frame-delivery.e2e.mjs` | 两张 256×192 已完整 PNG 帧直接经 Host 交给真实 FFmpeg/ffprobe；不要求 checkpoint、采样预算或 Blender；核对帧与交付历史，取消本次创建的编码器并等待其进程范围退出，保留旧正式视频与清单 |
 | `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
 | `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
 
-已有真实渲染 job 在本轮实测约 15 分钟，因此把这两个入口放入独立 job，给原任务保留超时余量。
-拆分会增加 runner 总耗时；20 分钟和 5 分钟是超时上限，不是新 job 或步骤的预计耗时。
+已有真实渲染 job 曾实测约 15 分钟，因此把编辑入口放入独立 job，给原任务保留超时余量。
+完整帧交付复用这个 job 已安装并核验的编码器，直接运行 Node，不使用 Xvfb、不增加运行时安装。
+它只在 codecs 成功且工作流未取消时运行；浏览器步骤还要求 graphics 成功。普通测试失败不会吞掉后续独立步骤。
+拆分会增加 runner 总耗时；20 分钟、2 分钟和 5 分钟是超时上限，不是预计耗时。
+
+本次集成源在本地的两帧交付专项通过，约 1.18 秒；创建的三个受管句柄均已退出，原 PNG 帧和正式视频摘要已独立核对。
+这是小型编码与取消验收。新增 CI 步骤的实际 Linux 耗时及进程取消行为仍待 Actions 运行后核对。
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整长序列交付、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
 新增渲染选择测试会实际编码两个小交付，共三帧：preview 为 160×120、4 samples，final 为
 240×180、12 samples。这能检查小交付的编码和来源记录，仍不覆盖长序列中断、续渲与恢复。
 完整验收仍通过 `bash deepblend/tests/run-all.sh` 运行。
+完整帧交付专项也不覆盖跨 Host 孤儿编码恢复；它只暂停和取消自己刚创建、已核对 PID 与命令行的编码器。
 
 ## 时间预算
 
@@ -103,10 +111,11 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `runtime-conformance.log` / `runtime-conformance/`：打包身份、公开检查报告、实际 checkpoint/PNG、独立重开与参考图片、取消/补渲回执及失败日志。
 
 新增 job 的证据单独上传为 `linux-render-photography-<run-id>-<attempt>` artifact。
-上传步骤使用 `always()`，成功或失败都收集已有文件，并包含隐藏文件。两项测试通过
+上传步骤使用 `always()`，成功或失败都收集已有文件，并包含隐藏文件。各项测试通过
 `DEEPBLEND_E2E_ARTIFACTS` 分别写入以下目录；对应日志位于相同父目录，使用同名前缀：
 
 - `${{ runner.temp }}/deepblend-ci/render-selection-browser/` 与 `render-selection-browser.log`：浏览器请求、实际任务/计划/Blender 结果、PNG/MP4/清单、截图及取消与停机记录。
+- `${{ runner.temp }}/deepblend-ci/complete-frame-delivery/` 与 `complete-frame-delivery.log`：隔离 store、两张原始 PNG、前后任务记录、Host/编码器源摘要、FFmpeg 请求、编码器 PID、取消和退出结果及失败；此目录不能复用，重新运行须使用新的证据目录。
 - `${{ runner.temp }}/deepblend-ci/photography-browser/` 与 `photography-browser.log`：摄影请求和回执、前后图片、独立重开结果、固定像素对照、截图及停机结果。
 
 该 artifact 也保留运行时安装、软件图形和 FFmpeg/ffprobe 实际版本日志。

@@ -206,7 +206,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 33 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 34 suites; README.zh.md states the expected numbers
 ```
 
 CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.

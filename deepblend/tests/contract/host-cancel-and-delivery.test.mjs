@@ -188,7 +188,7 @@ let settled = 0
 // The live entry a real render puts in `_liveRenders`: the provider's handle, and the `settle` that
 // releases the DSH projection (cancelJob awaits it, so a caller that cancels and immediately resumes
 // does not race its own previous attempt for the same frame files).
-studio._liveRenders.set('render-0001', {
+studio._liveRenders.set(`${projectId}/render-0001`, {
   handle: {
     terminate() { terminated += 1 },
     get done() { return Promise.resolve({ exitCode: null, signal: 'SIGTERM' }) },
@@ -212,10 +212,10 @@ check('and the durable record says cancelled, with the reason a person gave',
   studio.renderJobs.read(projectId, 'render-0001').status === 'cancelled' &&
   studio.renderJobs.read(projectId, 'render-0001').message === 'cancelled: the operator stopped it',
   studio.renderJobs.read(projectId, 'render-0001').status)
-studio._liveRenders.delete('render-0001')
+studio._liveRenders.delete(`${projectId}/render-0001`)
 
 studio.renderJobs.write(jobRecord('render-0002', { status: 'running', pid: null }))
-studio._liveRenders.set('render-0002', {
+studio._liveRenders.set(`${projectId}/render-0002`, {
   handle: { terminate() { throw new Error('the handle was already released') }, done: Promise.resolve({}) },
   settle: () => {},
   cancelled: false, cancelReason: null, dshJobId: null, output: '', attemptToken: 'token-a',
@@ -226,7 +226,7 @@ check('a handle that throws while terminating is REPORTED, and the cancel still 
   handleFailed.process?.error === 'Error: the handle was already released' &&
   studio.renderJobs.read(projectId, 'render-0002').status === 'cancelled',
   handleFailed.process ?? handleFailed)
-studio._liveRenders.delete('render-0002')
+studio._liveRenders.delete(`${projectId}/render-0002`)
 
 // A job whose process was started by a PREVIOUS Host: no handle here, only a pid.
 const sleeper = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', detached: true })
