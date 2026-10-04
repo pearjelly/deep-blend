@@ -39,7 +39,7 @@ from mathutils import Vector
 from deepblend_util import ActionError, Guard, as_text, error_text, report_progress, warning
 from deepblend_asset_bundle import verify_asset_bundle, verify_unbundled_gltf_asset, verify_unbundled_obj_asset
 from deepblend_geometry import create_lathe, create_curve, apply_model_modifiers
-from deepblend_images import build_image_maps, build_environment, pack_imported_material_images
+from deepblend_images import build_image_maps, build_environment, pack_imported_material_images, check_scene_image_budget
 from deepblend_parts import isolated_import_names, stamp_imported_parts, apply_material_bindings
 from deepblend_anisotropy import build_anisotropy, validate_anisotropy_material, validate_anisotropy_usage, validate_native_material_usage
 from deepblend_images import validate_image_uv_usage
@@ -1981,6 +1981,7 @@ def build_scene(spec, options, guard):
         verify_unbundled_gltf_asset(options.get("project_root") or "", asset)
         verify_unbundled_obj_asset(options.get("project_root") or "", asset)
 
+    check_scene_image_budget(spec, options.get('project_root'))
     report_progress("reset_scene", 5)
     scene = reset_scene()
 

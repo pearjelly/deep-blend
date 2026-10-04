@@ -1,5 +1,8 @@
 """Actual image maps: color/data interpretation, channels, packing and pixels."""
 import hashlib
+import copy
+import struct
+import zlib
 import json
 import os
 import sys
@@ -10,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'packages/deepblend/provider-local/python'))
 from deepblend_scene import build_scene
 from deepblend_util import Guard, ActionError
+from deepblend_images import load_packed_image
+from deepblend_image_headers import check_image_header
 
 with tempfile.TemporaryDirectory(prefix='deepblend-pbr-') as temporary:
     root = Path(temporary)
@@ -111,4 +116,67 @@ with tempfile.TemporaryDirectory(prefix='deepblend-pbr-') as temporary:
         raise AssertionError('missing UV map silently accepted')
     except ActionError as error:
         assert error.code == 'SCENE_VALIDATION_FAILED' and 'UV' in str(error), error
+    # A refused source must not allocate a decoded image or reset the scene.
+    # This real 9000x1 PNG is small enough to test safely; the old loader decoded
+    # it before checking its dimensions, and kept the failed datablock alive.
+    oversized = bpy.data.images.new('oversized-source', width=9000, height=1)
+    oversized.filepath_raw = str(root / 'oversized.png')
+    oversized.file_format = 'PNG'
+    oversized.save()
+    bpy.data.images.remove(oversized)
+    before_images = set(bpy.data.images)
+    try:
+        load_packed_image({'path': 'oversized.png', 'type': 'png'}, str(root))
+        raise AssertionError('oversized image accepted')
+    except ActionError as error:
+        assert error.code == 'ASSET_CONTENT_MISMATCH' and 'before decoding' in str(error), error
+    assert set(bpy.data.images) == before_images, 'refused image allocated a native datablock'
+    candidate = copy.deepcopy(spec)
+    candidate['assets'].append({'id': 'oversized', 'type': 'png', 'path': 'oversized.png',
+                               'sha256': hashlib.sha256((root / 'oversized.png').read_bytes()).hexdigest()})
+    candidate['materials'][0]['images'] = {'baseColor': {'assetId': 'oversized'}}
+    before_objects = set(bpy.data.objects)
+    before_scene = bpy.context.scene
+    try:
+        build_scene(candidate, {'project_root': str(root)}, Guard())
+        raise AssertionError('oversized material accepted')
+    except ActionError as error:
+        assert error.code == 'ASSET_CONTENT_MISMATCH', error
+    assert bpy.context.scene == before_scene and set(bpy.data.objects) == before_objects, 'budget refusal reset the scene'
+    assert set(bpy.data.images) == before_images, 'scene budget allocated a native image'
+    # Metadata-only oversize allocation request: never decode this synthetic
+    # payload. It verifies that two bindings of one source are counted twice.
+    budget_source = bytearray((root / 'oversized.png').read_bytes())
+    budget_source[16:24] = struct.pack('>II', 8192, 8192)
+    budget_source[29:33] = struct.pack('>I', zlib.crc32(budget_source[12:29]) & 0xffffffff)
+    (root / 'budget-header.png').write_bytes(budget_source)
+    candidate['assets'][-1] = {'id': 'oversized', 'type': 'png', 'path': 'budget-header.png',
+                               'sha256': hashlib.sha256(budget_source).hexdigest()}
+    candidate['materials'][0]['images']['roughness'] = {'assetId': 'oversized'}
+    try:
+        build_scene(candidate, {'project_root': str(root)}, Guard())
+        raise AssertionError('aggregate image budget accepted repeated source bindings')
+    except ActionError as error:
+        assert error.code == 'ASSET_CONTENT_MISMATCH' and 'scene images exceed' in str(error), error
+    assert bpy.context.scene == before_scene and set(bpy.data.objects) == before_objects, 'aggregate refusal reset the scene'
+    assert set(bpy.data.images) == before_images, 'aggregate refusal allocated an image'
+    refused_sources = []
+    for name in ('oversized.png', 'budget-header.png'):
+        data = (root / name).read_bytes()
+        (output / name).write_bytes(data)
+        refused_sources.append({'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
+                                'metadataOnly': name == 'budget-header.png'})
+    # Check actual native headers alongside the pure metadata fixtures. These
+    # files were packed and recreated above with their original source bytes.
+    for extension in ('png', 'jpg'):
+        facts = check_image_header(str(root / ('color.' + extension)))
+        assert facts['parts'][0]['width'] == 32 and facts['parts'][0]['height'] == 32
+    (output / 'report.json').write_text(json.dumps({
+        'nativeVersion': bpy.app.version_string, 'sixChannels': True, 'packedSourceRemoval': True,
+        'normalPixelDifference': sum(abs(a-b) for a,b in zip(mapped, without_normal)) / len(mapped),
+        'pbrPixelDifference': difference, 'packedMaxPixelDifference': max(abs(a-b) for a,b in zip(mapped, reopened)),
+        'refusedSources': refused_sources, 'singleRefusalBeforeDecode': True,
+        'aggregateRepeatedSourceRefusal': True, 'sceneObjectsPreserved': True,
+        'imageDatablocksBefore': len(before_images), 'imageDatablocksAfter': len(bpy.data.images),
+    }, indent=2) + '\n')
     print('IMAGE_MATERIALS_PASSED: six channels, colorspaces, UV transform, packed reopen without sources, pixel difference=%s' % difference)

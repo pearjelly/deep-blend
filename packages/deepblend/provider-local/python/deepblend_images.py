@@ -2,9 +2,47 @@
 import os
 import bpy
 from deepblend_util import ActionError
+from deepblend_image_headers import check_image_header, MAX_IMAGE_DECODE_BYTES
 
 SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Metallic',
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
+
+
+def image_asset_path(asset, project_root):
+    root = os.path.realpath(project_root or '.')
+    path = os.path.realpath(os.path.join(root, asset['path']))
+    if os.path.commonpath([root, path]) != root:
+        raise ActionError('PATH_OUTSIDE_WORKSPACE', 'image asset escapes the project directory')
+    return path
+
+
+def check_scene_image_budget(spec, project_root):
+    """Count declared image datablocks before scene reset or native decode.
+
+    Color and data bindings create separate datablocks even for one source; a
+    cache of header facts must not collapse their allocation costs. Imported
+    model textures require their own preflight and are not counted here.
+    """
+    assets = {asset['id']: asset for asset in spec.get('assets') or []}
+    bindings = []
+    environment = (spec.get('world') or {}).get('environment')
+    if environment:
+        bindings.append((environment, ('png', 'jpg', 'jpeg', 'hdr', 'exr')))
+    for material in spec.get('materials') or []:
+        for binding in (material.get('images') or {}).values():
+            bindings.append((binding, ('png', 'jpg', 'jpeg')))
+    total, facts = 0, {}
+    for binding, formats in bindings:
+        asset = assets.get(binding['assetId'])
+        if asset is None or asset.get('type') not in formats:
+            raise ActionError('ASSET_FORMAT_UNAVAILABLE', 'image binding requires a declared image asset')
+        path = image_asset_path(asset, project_root)
+        if path not in facts:
+            facts[path] = check_image_header(path)
+        total += facts[path]['decodedBytes']
+        if total > MAX_IMAGE_DECODE_BYTES:
+            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared scene images exceed the 1 GiB decoded pixel budget')
+    return {'bindings': len(bindings), 'decodedBytes': total}
 
 
 def pack_imported_material_images(objects):
@@ -62,19 +100,22 @@ def validate_procedural_uv_usage(spec, obj, layers):
 
 
 def load_packed_image(asset, project_root, colorspace=None):
-    root = os.path.realpath(project_root or '.')
-    path = os.path.realpath(os.path.join(root, asset['path']))
-    if os.path.commonpath([root, path]) != root:
-        raise ActionError('PATH_OUTSIDE_WORKSPACE', 'image asset escapes the project directory')
+    path = image_asset_path(asset, project_root)
+    facts = check_image_header(path)
+    image = None
     try:
         image = bpy.data.images.load(path, check_existing=False)
         if min(image.size) <= 0 or max(image.size) > 8192:
             raise ValueError('image dimensions must be between 1 and 8192 pixels')
+        if list(image.size) not in [[part['width'], part['height']] for part in facts['parts']]:
+            raise ValueError('decoded image dimensions disagree with the inspected header')
         if colorspace is not None:
             image.colorspace_settings.name = colorspace
         image.pack()
         return image
     except Exception as error:
+        if image is not None:
+            bpy.data.images.remove(image)
         raise ActionError('ASSET_CONTENT_MISMATCH', 'cannot load image asset: %s' % error)
 
 
