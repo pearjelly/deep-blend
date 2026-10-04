@@ -107,7 +107,7 @@ try{
   check('incompatible root dimensions are refused with a stable error',rejected?.code==='SCENE_SPEC_INVALID',rejected?.code)
   check('rejected edit keeps the current revision',(await studio.getProject(projectId)).currentRevision===nextRevision)
   let previousRevision=nextRevision,previousFacts=updatedFacts
-  for(const rootTension of [1.25,1.5]){
+  for(const rootTension of [1.25,1.5,2,2.5]){
     const changedTransition=await studio.applyScenePatch({projectId,baseRevision:previousRevision,saveCheckpoint:true,renderPreview:false,
       operations:[{op:'entity.generator.set',entityId:'cup',generator:{...updated,rootTension}}]})
     const tensionRevision=changedTransition.revision??changedTransition.currentRevision

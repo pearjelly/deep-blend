@@ -40,7 +40,7 @@ test('public generator replacement retains other entities and rejects unsupporte
 
 test('attachment fields cannot silently become ignored settings on another shape', () => {
   for (const field of ['height','wallThickness','handleRadius','rootLength','rootTension','wallRows']) {
-    const spec=fixture();cup(spec).generator={shape:'cylinder',radius:.04,depth:.105,[field]:field==='wallRows'?32:.003}
+    const spec=fixture();cup(spec).generator={shape:'cylinder',radius:.04,depth:.105,[field]:field==='wallRows'?32:field==='rootTension'?1.25:.003}
     assert.equal(validateSceneSpec(spec).ok,false,field)
   }
 })
@@ -194,8 +194,8 @@ for case in json.load(sys.stdin):
                 assert all(math.isfinite(c) for c in n) and abs(math.dist(n,(0,0,0))-1)<1e-12
                 samples+=1
 print(json.dumps({'samples':samples,'maximumRelativeDerivativeError':maximum}))
-`,matrix.cases.filter(c=>c.accepted).flatMap(c=>[1,1.25,1.5].map(rootTension=>({...c,generator:{...c.generator,rootTension}}))))
-  assert.equal(result.samples,93*3*2*7*5)
+`,matrix.cases.filter(c=>c.accepted).flatMap(c=>[1,1.25,1.5,2,2.5].map(rootTension=>({...c,generator:{...c.generator,rootTension}}))))
+  assert.equal(result.samples,93*5*2*7*5)
   assert.ok(result.maximumRelativeDerivativeError<1e-7)
 })
 
@@ -218,7 +218,7 @@ print(json.dumps(out))
 
 test('transition tension preserves legacy defaults and has matching Node/Python refusals', () => {
   assert.equal(resolveHandledCup({shape:'handled_cup'}).rootTension,1)
-  const values=[1,1.25,1.5,.999,1.501,1-Number.EPSILON,1.5+Number.EPSILON,null,true,'1.5',0],expected=values.map((_,i)=>i<3)
+  const values=[1,1.25,1.5,1.501,2,2.5,.999,2.501,1-Number.EPSILON,2.5+2*Number.EPSILON,null,true,'2.5',0],expected=values.map((_,i)=>i<6)
   const native=python(String.raw`
 import sys,json
 sys.path.insert(0,'packages/deepblend/provider-local/python')
@@ -242,23 +242,23 @@ test('editing transition tension leaves dimensions and source untouched, with bo
   const spec=fixture(),original=JSON.stringify(spec),draft=editor.createDraft(buildSceneTree(spec,{revision:'r0001'}),'cup','cup')
   assert.equal(draft.entity.generator.rootTension,1)
   assert.deepEqual(plain(editor.buildPatch(draft).operations),[])
-  draft.entity.generator.rootTension=1.5
+  draft.entity.generator.rootTension=2.5
   const operation=plain(editor.buildPatch(draft).operations)[0]
-  assert.equal(operation.generator.rootTension,1.5);assert.equal(operation.generator.height,.105);assert.equal(operation.generator.rootLength,.008)
-  assert.equal(cup(applyPatchToSpec(spec,{projectId:'cup',baseRevision:'r0001',operations:[operation]}).spec).generator.rootTension,1.5)
-  for(const value of [.99,1.51,null]){draft.entity.generator.rootTension=value;assert.ok(editor.errors(draft).length);assert.throws(()=>editor.buildPatch(draft))}
+  assert.equal(operation.generator.rootTension,2.5);assert.equal(operation.generator.height,.105);assert.equal(operation.generator.rootLength,.008)
+  assert.equal(cup(applyPatchToSpec(spec,{projectId:'cup',baseRevision:'r0001',operations:[operation]}).spec).generator.rootTension,2.5)
+  for(const value of [.99,2.51,null]){draft.entity.generator.rootTension=value;assert.ok(editor.errors(draft).length);assert.throws(()=>editor.buildPatch(draft))}
   assert.equal(JSON.stringify(spec),original)
 })
 
 test('rendered transition controls keep dimensionless values while dimensions use millimetres', () => {
   const core=loadClientBundle().exports.workbench,scene=buildSceneTree(fixture(),{revision:'r0001'}),draft=core.sceneEditor.createDraft(scene,'cup','cup'),store=core.createWorkbenchStore(),calls=[]
-  draft.entity.generator.rootTension=1.5
+  draft.entity.generator.rootTension=2.5
   const state={...store.getState(),activeProjectId:'cup',view:'scene',editorEntityId:'cup',currentRevision:'r0001',selected:{scene,currentRevision:'r0001'},editorDrafts:{[JSON.stringify(['cup','cup'])]:draft}}
   const tree=core.renderView({state,actions:{updateEditor:(...a)=>calls.push(a)}})
   const walk=n=>n&&typeof n==='object'?[n,...(n.children||[]).flatMap(walk)]:[],nodes=walk(tree)
   const find=field=>nodes.find(n=>n.props?.['data-field']===`editor-generator-${field}`)
   const control=find('rootTension'),height=find('height')
-  assert.ok(control);assert.equal(control.props.value,1.5);assert.equal(control.props.min,1);assert.equal(control.props.max,1.5);assert.equal(control.props.step,.05)
+  assert.ok(control);assert.equal(control.props.value,2.5);assert.equal(control.props.min,1);assert.equal(control.props.max,2.5);assert.equal(control.props.step,.05)
   assert.equal(height.props.value,105)
   control.props.onChange({target:{value:'1.25'}});assert.deepEqual(plain(calls),[['generator',['rootTension'],1.25]])
   height.props.onChange({target:{value:'110'}});assert.deepEqual(plain(calls[1]),['generator',['height'],.11])
@@ -277,7 +277,7 @@ def second(f,x,h):
     values=[f(x+d*h)for d in [-2,-1,0,1,2]]
     return tuple((-values[0][i]+16*values[1][i]-30*values[2][i]+16*values[3][i]-values[4][i])/(12*h*h)for i in range(3))
 for case in json.load(sys.stdin):
-    for tension in [1,1.25,1.5]:
+    for tension in [1,1.25,1.5,2,2.5]:
         shape=CupSurface(handled_cup_parameters({**case['generator'],'rootTension':tension}))
         for upper in [False,True]:
             for theta in [0,.4,math.pi/2,2.8]:
@@ -296,6 +296,6 @@ for case in json.load(sys.stdin):
                         samples+=1
 print(json.dumps({'samples':samples,'maximumRadiusNormalizedSecondDerivativeError':maximum}))
 `,matrix.cases.filter(c=>c.accepted))
-  assert.equal(result.samples,93*3*2*4*2*2)
+  assert.equal(result.samples,93*5*2*4*2*2)
   assert.ok(result.maximumRadiusNormalizedSecondDerivativeError<2e-7)
 })

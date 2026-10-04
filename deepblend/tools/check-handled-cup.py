@@ -5,6 +5,7 @@ blender --background --factory-startup --python-exit-code 1 --python
 """
 import hashlib
 import json
+import math
 import platform
 import sys
 import time
@@ -14,8 +15,11 @@ import bpy
 
 ROOT = Path(__file__).resolve().parents[2]
 arguments = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-if len(arguments) != 1:
-    raise RuntimeError('Pass one fresh evidence directory after --')
+if len(arguments) not in (1, 3) or (len(arguments) == 3 and arguments[1] != '--root-tension'):
+    raise RuntimeError('Pass a fresh evidence directory, optionally followed by --root-tension NUMBER, after --')
+root_tension = float(arguments[2]) if len(arguments) == 3 else None
+if root_tension is not None and (not math.isfinite(root_tension) or not 1 <= root_tension <= 2.5):
+    raise RuntimeError('root tension must be within 1–2.5')
 output = Path(arguments[0]).resolve()
 output.mkdir(parents=True, exist_ok=False)
 sources = output / 'sources'
@@ -38,13 +42,20 @@ runtime = {'blender': bpy.app.version_string, 'buildHash': bpy.app.build_hash.de
 reference_runtime_match = runtime == fixture['referenceRuntime']
 report = {'runtime': runtime, 'referenceRuntimeMatch': reference_runtime_match, 'sourceHashes': source_hashes,
           'fixtureSha256': hashlib.sha256(fixture_bytes).hexdigest(),
-          'normalModel': fixture['normalModel'], 'scope': fixture['scope'], 'cases': []}
+          'normalModel': fixture['normalModel'], 'scope': fixture['scope'], 'cases': [],
+          'rootTensionOverride': root_tension,
+          'referenceDigestsRequired': reference_runtime_match and root_tension in (None, 1)}
+if root_tension is not None:
+    report['scope'] = 'Finite authored dimensions with an explicit public rootTension override. Production construction and output checks run normally. Original default mesh digests are comparison facts, not the expected changed geometry. No continuous-domain or artistic certification.'
 for case in fixture['cases']:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     started = time.monotonic()
     result = {'id': case['id'], 'accepted': case['accepted'], 'passed': False}
     try:
-        obj = create_handled_cup('cup', case['generator'])
+        generator = {**case['generator']}
+        if root_tension is not None:
+            generator['rootTension'] = root_tension
+        obj = create_handled_cup('cup', generator)
         if not case['accepted']:
             raise RuntimeError('Invalid coupled parameters generated an object')
         mesh = obj.data
@@ -59,7 +70,7 @@ for case in fixture['cases']:
                       geometryUvSha256=geometry_digest, customNormals=mesh.has_custom_normals,
                       referenceGeometryUvIdentical=geometry_digest == case['geometryUvSha256'],
                       referenceMeshIdentical=digest == case['meshUvNormalSha256'])
-        if reference_runtime_match and not (
+        if report['referenceDigestsRequired'] and not (
                 result['referenceMeshIdentical'] and result['referenceGeometryUvIdentical']):
             raise RuntimeError('Reference-runtime mesh/UV/normal reproduction differs')
         result['passed'] = True

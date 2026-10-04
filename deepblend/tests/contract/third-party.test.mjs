@@ -196,10 +196,11 @@ test('source files exclude external binaries and published images have declared 
   for (const [name, expectedPreview] of [
     ['metal-lamp-v1','e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6'],
     ['glazed-cup-v1','c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92'],
+    ['glazed-cup-v2','ce84a64b8bb3314c83b84f2f96c907fca7ee74cc24ad425c52df6cd915af197f'],
   ]) {
     const historical=`deepblend/tests/fixtures/${name}`
     const historicalRecipe=JSON.parse(readFileSync(join(ROOT,historical,'recipe.json')))
-    assert.equal(historicalRecipe.version,'1.0.0');assert.equal(historicalRecipe.license,ownLicense)
+    assert.equal(historicalRecipe.version,name==='glazed-cup-v2'?'2.0.0':'1.0.0');assert.equal(historicalRecipe.license,ownLicense)
     assert.equal(historicalRecipe.source.url,'https://github.com/pearjelly/deep-blend')
     assert.equal(historicalRecipe.input.path,'scene-spec.json');assert.equal(historicalRecipe.preview.path,'preview.png')
     assert.equal(hash(readFileSync(join(ROOT,historical,'scene-spec.json'))),historicalRecipe.input.sha256)

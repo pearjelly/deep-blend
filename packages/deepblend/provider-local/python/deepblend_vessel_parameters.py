@@ -34,8 +34,8 @@ def handled_cup_parameters(spec):
     if any(isinstance(v, bool) or not isinstance(v, (int,float)) or not math.isfinite(v) or v<=0 for v in values.values()):
         invalid('dimensions and resolutions must be finite positive numbers')
     def within(v,lo,hi): return lo-1e-12<=v<=hi+1e-12
-    if not 1 <= values['rootTension'] <= 1.5:
-        invalid('rootTension must be within 1–1.5')
+    if not 1 <= values['rootTension'] <= 2.5:
+        invalid('rootTension must be within 1–2.5')
     ratios=[('radius',radius,.02,.08),('height/radius',height/radius,1.8,4),
         ('wallThickness/radius',wall/radius,.025,.15),('baseThickness/radius',bottom/radius,.05,.25),
         ('handleRadius/radius',values['handleRadius']/radius,.05,.2),
