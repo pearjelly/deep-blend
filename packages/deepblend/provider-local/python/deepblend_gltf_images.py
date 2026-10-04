@@ -9,6 +9,7 @@ from urllib.parse import unquote
 from deepblend_asset_bundle import inside, member_path, read_document, resources
 from deepblend_image_headers import inspect_image_header, MAX_IMAGE_DECODE_BYTES
 from deepblend_util import ActionError
+from deepblend_gltf_roles import texture_uses
 
 
 def invalid(message):
@@ -137,6 +138,7 @@ def inspect_gltf_images(project_root, asset):
         if not isinstance(textures, list):
             invalid('glTF textures must be an array')
         selected = set()
+        sources = []
         for texture in textures:
             if not isinstance(texture, dict):
                 invalid('invalid glTF texture declaration')
@@ -146,9 +148,22 @@ def inspect_gltf_images(project_root, asset):
                 webp = extensions.get('EXT_texture_webp') if isinstance(extensions, dict) else None
                 source = webp.get('source') if isinstance(webp, dict) else None
             if source is not None:
-                selected.add(integer(source))
+                source = integer(source)
+                selected.add(source)
+            sources.append(source)
+        roles = {source: set() for source in selected}
+        baked = set()
+        for texture_index, role in texture_uses(document):
+            indexed(textures, texture_index)
+            source = sources[texture_index]
+            if source is None:
+                continue
+            if role == 'baked':
+                baked.add(source)
+            else:
+                roles[source].add(role)
         facts = []
-        total = 0
+        total, allocations = 0, 0
         for index in sorted(selected):
             image = indexed(document.get('images'), index)
             value = image_facts(root, entrypoint, path, document, binary, image)
@@ -157,10 +172,12 @@ def inspect_gltf_images(project_root, asset):
             declared = image.get('mimeType')
             if declared is not None and declared != {'png': 'image/png', 'jpeg': 'image/jpeg', 'webp': 'image/webp'}[value['format']]:
                 invalid('image media type disagrees with its inspected bytes')
-            total += value['decodedBytes']
+            count = max(1, len(roles[index] & {'color', 'data'})) + int(index in baked)
+            total += value['decodedBytes'] * count
+            allocations += count
             if total > MAX_IMAGE_DECODE_BYTES:
                 invalid('imported images exceed the 1 GiB decoded pixel budget')
-            facts.append({'imageIndex': index, **value})
-        return {'images': len(facts), 'decodedBytes': total, 'facts': facts}
+            facts.append({'imageIndex': index, 'allocations': count, 'roles': sorted(roles[index]), **value})
+        return {'images': len(facts), 'allocations': allocations, 'decodedBytes': total, 'facts': facts}
     except (OSError, ValueError, UnicodeError, binascii.Error) as error:
         raise ActionError('ASSET_CONTENT_MISMATCH', 'cannot inspect imported image before decoding: %s' % error)
