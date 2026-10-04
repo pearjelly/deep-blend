@@ -2,14 +2,16 @@
 /**
  * Native Host → ffmpeg → ffprobe acceptance for already-complete frames.
  * Two generated PNGs are the durable input; Blender is deliberately unavailable.
- * This standalone preparation is not wired into run-all/CI until native review.
+ * Runs in the full acceptance entry and Linux CI editing job.
  * Retains the isolated store, source hashes, process identities, failures and cleanup.
  */
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { execFile } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import BlenderStudio, { StudioConfig, checkProcessAlive } from '@deepblend/dsh-blender-host'
 import { BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -23,6 +25,49 @@ const checks = [], handles = [], cleanup = [], calls = []
 const json = (name, value) => writeFileSync(join(output, name), JSON.stringify(value, null, 2) + '\n')
 const sha = path => createHash('sha256').update(readFileSync(path)).digest('hex')
 const sleep = ms => new Promise(resolveWait => setTimeout(resolveWait, ms))
+const processEvents = [], observationErrors = [], observedScopes = new Set()
+let observedIdentity, observerTimer, pendingObservation
+const note = (event, detail = {}) => {
+  // Observation failures must not throw from an AbortSignal listener or a
+  // discarded promise branch, or replace the result being observed.
+  try {
+    processEvents.push({ at: new Date().toISOString(), event, ...detail })
+    json('process-events.json', processEvents)
+  } catch (error) { observationErrors.push({ event, error: String(error) }) }
+}
+const readCommand = (file, args) => new Promise(resolveRead => {
+  const finish = (error, stdout = '', stderr = '') => resolveRead({ stdout: String(stdout), stderr: String(stderr),
+    ...(error ? { error: String(error), code: error.code ?? null, signal: error.signal ?? null } : {}) })
+  try { execFile(file, args, { encoding: 'utf8', timeout: 1500, maxBuffer: 128 * 1024 }, finish) }
+  catch (error) { finish(error) }
+})
+async function collectProcesses(label) {
+  const pids = [observedIdentity.wrapperPid, observedIdentity.encoderPid].filter(Number.isSafeInteger)
+  const detail = { label, pids }
+  if (process.platform === 'linux') {
+    detail.cgroups = pids.map(pid => {
+      try { return { pid, value: readFileSync(`/proc/${pid}/cgroup`, 'utf8') } }
+      catch (error) { return { pid, error: error.code } }
+    })
+    for (const row of detail.cgroups) for (const unit of (row.value || '').match(/dsh-[^/\n]+\.scope/g) || []) observedScopes.add(unit)
+  }
+  // Read the small /proc identities before yielding to ps, so the first
+  // snapshot can keep the owned scope even if cancellation removes its PIDs.
+  detail.ps = await readCommand('ps', ['-p', pids.join(','), '-o', 'pid=,ppid=,pgid=,stat=,command='])
+  if (process.platform === 'linux') {
+    detail.scopes = await Promise.all([...observedScopes].map(async unit => ({ unit,
+      state: await readCommand('systemctl', ['--user', 'show', unit, '--property=LoadState,ActiveState,SubState,ControlGroup']) })))
+  }
+  note('process-snapshot', detail)
+}
+function observeProcesses(label) {
+  if (!observedIdentity) return Promise.resolve()
+  if (pendingObservation) { note('process-snapshot-busy', { label }); return pendingObservation }
+  pendingObservation = collectProcesses(label).catch(error => note('process-snapshot-error', { label, error: String(error) }))
+    .finally(() => { pendingObservation = undefined })
+  return pendingObservation
+}
+
 async function bounded(promise, label, timeout = 20000) {
   let timer
   try { return await Promise.race([promise, new Promise((resolveWait, reject) => {
@@ -45,6 +90,17 @@ try {
   ctx.plugin(LocalSubprocess)
   await waitFor('subprocess composition', () => ctx.get('subprocess') !== undefined)
   const subprocess = ctx.get('subprocess')
+  const entry = createRequire(import.meta.url).resolve('@deepseek-ai/dsh-subprocess-local')
+  const sdkDirectory = dirname(entry), packagePath = join(sdkDirectory, '../package.json')
+  json('runtime-identity.json', { platform: process.platform, arch: process.arch, node: process.version,
+    subprocessEntry: entry, subprocessSha256: sha(entry), packageVersion: JSON.parse(readFileSync(packagePath)).version,
+    packageSha256: sha(packagePath), modules: Object.fromEntries(readdirSync(sdkDirectory).filter(name => name.endsWith('.js'))
+      .map(name => [name, sha(join(sdkDirectory, name))])) })
+  if (typeof subprocess.selectContainmentMode === 'function') {
+    const selectMode = subprocess.selectContainmentMode.bind(subprocess)
+    subprocess.selectContainmentMode = (...args) => { const mode = selectMode(...args); note('containment-mode', { args, mode }); return mode }
+  }
+
   const ffmpeg = await subprocess.resolveExecutable(process.env.DEEPBLEND_FFMPEG_PATH ?? 'ffmpeg', { PATH: process.env.PATH ?? '' })
   const ffprobe = await subprocess.resolveExecutable(process.env.DEEPBLEND_FFPROBE_PATH ?? 'ffprobe', { PATH: process.env.PATH ?? '' })
   const spawn = subprocess.spawn.bind(subprocess)
@@ -58,6 +114,20 @@ try {
     argv.splice(argv.length - 1, 0, '-threads', '1')
     calls.push(argv)
     const handle = spawn({ ...spec, argv })
+    const ordinal = handles.length + 1
+    note('spawn-returned', { ordinal, argv, signalAborted: spec.signal?.aborted })
+    spec.signal?.addEventListener('abort', () => { note('signal-aborted', { ordinal, reason: String(spec.signal.reason) }); void observeProcesses('signal-aborted') }, { once: true })
+    handle.done.then(value => note('handle-done', { ordinal, value }), error => note('handle-done-rejected', { ordinal, error: String(error) }))
+    const waitForExit = handle.waitForExit.bind(handle)
+    let waitCallId = 0
+    handle.waitForExit = (...args) => {
+      const callId = ++waitCallId
+      note('wait-for-exit-started', { ordinal, callId, signalAborted: args[0]?.aborted })
+      const waiting = waitForExit(...args)
+      waiting.then(value => note('wait-for-exit-resolved', { ordinal, callId, value }), error => note('wait-for-exit-rejected', { ordinal, callId, error: String(error) }))
+      return waiting
+    }
+
     handles.push(handle)
     return handle
   }
@@ -99,16 +169,55 @@ try {
   // process to terminate without increasing the render or encoding workload.
   const marker = join(output, 'paused-encoder.json')
   const wrapper = join(output, 'paused-ffmpeg.mjs')
-  writeFileSync(wrapper, `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { writeFileSync } from 'node:fs'\nconst child=spawn(${JSON.stringify(ffmpeg)},process.argv.slice(2),{stdio:'inherit'})\nchild.on('exit',(code,signal)=>{process.exitCode=code??1})\nprocess.on('SIGTERM',()=>{child.kill('SIGCONT');child.kill('SIGTERM')})\nif(!child.kill('SIGSTOP'))throw Error('fixture could not pause its own encoder')\nwriteFileSync(${JSON.stringify(marker)},JSON.stringify({wrapperPid:process.pid,encoderPid:child.pid}))\n`, { mode: 0o755 })
+  const wrapperLog = join(output, 'paused-encoder-events.jsonl')
+  writeFileSync(wrapper, `#!${process.execPath}
+import { spawn } from 'node:child_process'
+import { appendFileSync, writeFileSync } from 'node:fs'
+const record=(event,detail={})=>{
+  try { appendFileSync(${JSON.stringify(wrapperLog)},JSON.stringify({at:new Date().toISOString(),wrapperPid:process.pid,event,...detail})+'\\n') }
+  catch(error) { try { process.stderr.write('fixture observation failed: '+String(error)+'\\n') } catch {} }
+}
+const child=spawn(${JSON.stringify(ffmpeg)},process.argv.slice(2),{stdio:'inherit'})
+child.on('exit',(code,signal)=>{record('child-exit',{encoderPid:child.pid,code,signal});process.exitCode=code??1})
+child.on('close',(code,signal)=>record('child-close',{encoderPid:child.pid,code,signal}))
+process.on('SIGTERM',()=>{
+  const events=[{event:'wrapper-sigterm',at:new Date().toISOString()}]
+  const send=signal=>{
+    const at=new Date().toISOString()
+    try { const sent=child.kill(signal);events.push({event:'child-signal-result',at,encoderPid:child.pid,signal,sent});return sent }
+    catch(error) { events.push({event:'child-signal-error',at,encoderPid:child.pid,signal,error:String(error)});throw error }
+  }
+  // Keep the original CONT -> TERM calls adjacent; flush observations afterwards.
+  try { send('SIGCONT');send('SIGTERM') } finally { for(const item of events)record(item.event,item) }
+})
+process.on('exit',code=>record('wrapper-exit',{code}))
+if(!child.kill('SIGSTOP'))throw Error('fixture could not pause its own encoder')
+record('child-sigstop-sent',{encoderPid:child.pid,argv:process.argv.slice(2)})
+writeFileSync(${JSON.stringify(marker)},JSON.stringify({wrapperPid:process.pid,encoderPid:child.pid}))
+record('marker-written',{encoderPid:child.pid})
+`, { mode: 0o755 })
   studio.config.ffmpegPath = wrapper
   const protectedFiles = [job.delivery.videoPath, job.delivery.manifestPath]
   const oldHashes = protectedFiles.map(sha)
-  const exported = studio.exportProject(request).then(value => ({ value }), error => ({ error: { code: error.code, message: error.message } }))
+  const exported = studio.exportProject(request).then(value => {
+    note('export-resolved', { value }); return { value }
+  }, error => {
+    note('export-rejected', { code: error.code, message: error.message, detail: error.detail ?? null, cause: String(error.cause ?? '') })
+    return { error: { code: error.code, message: error.message } }
+  })
   await waitFor('real encoder child identity', () => existsSync(marker))
   const identity = JSON.parse(readFileSync(marker))
+  observedIdentity = identity
+  observeProcesses('before-cancellation')
+  observerTimer = setInterval(() => observeProcesses('during-cancellation'), 2000)
   await sleep(100)
   check('cancellation reaches a live native encoder', checkProcessAlive(identity.encoderPid).alive && checkProcessAlive(identity.encoderPid).command?.includes(output), identity)
-  const cancelled = await bounded(studio.cancelJob(request), 'native cancellation')
+  note('cancel-requested')
+  const cancellation = studio.cancelJob(request)
+  const boundedCancellation = bounded(cancellation, 'native cancellation')
+  note('cancel-call-returned')
+  const cancelled = await boundedCancellation
+  note('cancel-returned', { cancelled })
   const result = await exported
   json('cancellation.json', { identity, cancelled, result })
   check('cancel waits for the native process range to exit', cancelled.cancelled && cancelled.processGone
@@ -121,6 +230,7 @@ try {
   console.error(failure.message)
   process.exitCode = 1
 } finally {
+  observeProcesses('before-cleanup')
   if (studio && request && (studio._liveRenders.has(`${request.projectId}/${request.jobId}`) || studio._deliveriesInFlight.size)) {
     try { cleanup.push(await bounded(studio.cancelJob(request), 'cleanup cancellation')) } catch (error) { cleanup.push({ error: String(error) }) }
   }
@@ -129,6 +239,9 @@ try {
     catch (error) { cleanup.push({ error: String(error) }) }
   }
   if (cleanup.some(item => item.error || item.exited === false || item.processGone === false)) process.exitCode = 1
-  json('report.json', { checks, failure, calls, cleanup, finishedAt: new Date().toISOString() })
+  clearInterval(observerTimer)
+  await pendingObservation
+  await observeProcesses('after-cleanup')
+  json('report.json', { checks, failure, calls, cleanup, observationErrors, finishedAt: new Date().toISOString() })
   console.log(`Complete-frame native delivery: ${checks.filter(check => check.ok).length}/${checks.length} check(s) passed`)
 }
