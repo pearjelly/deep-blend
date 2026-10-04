@@ -40,7 +40,7 @@ export function handledCupIssues(spec) {
   for (const [name, value, low, high] of ratios) if (!Number.isFinite(value) || !within(value, low, high)) {
     errors.push(`${name} must be within ${low}–${high}`)
   }
-  if (p.rootTension < 1 || p.rootTension > 1.5) errors.push('rootTension must be within 1–1.5')
+  if (p.rootTension < 1 || p.rootTension > 2.5) errors.push('rootTension must be within 1–2.5')
   const gap = (p.handleUpper - p.handleLower) / 2
   if (gap <= 0 || p.rootLength / gap > .8 + 1e-12) errors.push('handleUpper must exceed handleLower; rootLength/half-gap must be <=0.8')
   if (gap + p.radius * 1e-12 < Math.max(1.1 * p.rootRadius, 2 * p.handleRadius)) errors.push('attachment half-gap must be >=1.1*rootRadius and >=2*handleRadius')

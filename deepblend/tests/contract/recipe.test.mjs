@@ -69,7 +69,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, ['metal-lamp','glazed-cup'].includes(name) ? '2.0.0' : '1.0.0')
+    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.0.0' : name==='metal-lamp' ? '2.0.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })
@@ -184,7 +184,7 @@ test('a valid recipe can combine every supported capability', () => {
       { id: 'combined-glass', shader: 'glass', parameters: { baseColor: [1, 1, 1, 1], roughness: 0.1, ior: 1.45 } },
       { id: 'combined-emission', shader: 'emission', parameters: { emissionColor: [1, 0.5, 0.1, 1], emissionStrength: 1 } },
     )
-    spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup',rootTension:1.5},materialId:spec.materials[0].id})
+    spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup',rootTension:2.5},materialId:spec.materials[0].id})
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })
@@ -380,4 +380,30 @@ test('cup transition capability describes actual shape use and refuses unsupport
   assert.equal(instantiateRecipe(old).spec.entities.find(e=>e.id==='cup').generator.rootTension,1)
   const schema=JSON.parse(readFileSync(join(root,'deepblend/schemas/recipe.schema.json'))),caps=schema.properties.compatibility.properties.capabilities
   assert.equal(caps.maxItems,caps.items.enum.length)
+})
+
+test('extended cup transitions require support and declaration beyond the original tension capability', () => {
+  const bundle=load('glazed-cup'), supported=RECIPE_CAPABILITIES.filter(c=>c!=='geometry.handled_cup.tension.extended')
+  assert.equal(bundle.manifest.version,'3.0.0')
+  assert.equal(instantiateRecipe(bundle).spec.entities.find(e=>e.id==='cup').generator.rootTension,2.5)
+  assert.equal(validateRecipePackage(bundle).ok,true)
+  assert.equal(validateRecipePackage(bundle,{supportedCapabilities:supported}).ok,false)
+  assert.throws(()=>instantiateRecipe(bundle,{}, {supportedCapabilities:supported}),RecipeError)
+  bundle.manifest.compatibility.capabilities=bundle.manifest.compatibility.capabilities.filter(c=>c!=='geometry.handled_cup.tension.extended')
+  refused(bundle,'RECIPE_CAPABILITY_UNDECLARED')
+  for(const tension of [1,1.5,1.5001,2.5]){
+    const source=JSON.parse(bundle.sceneBytes);source.entities.find(e=>e.id==='cup').generator.rootTension=tension
+    assert.equal(recipeCapabilitiesForScene(source).includes('geometry.handled_cup.tension.extended'),tension>1.5)
+  }
+})
+
+test('historical cup v2 retains its accepted input, preview and 1.5 transition on older consumers', () => {
+  const directory=join(root,'deepblend/tests/fixtures/glazed-cup-v2'), old={manifest:JSON.parse(readFileSync(join(directory,'recipe.json'))),sceneBytes:readFileSync(join(directory,'scene-spec.json')),previewBytes:readFileSync(join(directory,'preview.png'))}
+  const supported=RECIPE_CAPABILITIES.filter(c=>c!=='geometry.handled_cup.tension.extended')
+  assert.equal(old.manifest.version,'2.0.0')
+  assert.equal(sha256(old.sceneBytes),'7bf69996931787262aa7a1155d80149c8e2e2ee7041fd771884070c032ef80ca')
+  assert.equal(sha256(old.previewBytes),'ce84a64b8bb3314c83b84f2f96c907fca7ee74cc24ad425c52df6cd915af197f')
+  assert.equal(validateRecipePackage(old,{supportedCapabilities:supported}).ok,true)
+  assert.equal(instantiateRecipe(old,{}, {supportedCapabilities:supported}).spec.entities.find(e=>e.id==='cup').generator.rootTension,1.5)
+  assert.equal(recipeCapabilitiesForScene(JSON.parse(old.sceneBytes)).includes('geometry.handled_cup.tension.extended'),false)
 })

@@ -123,3 +123,9 @@ const cupTransition: SceneSpecSchema.Generator = {shape:'handled_cup',rootTensio
 const cupTransitionCapability: RecipeCapability = 'geometry.handled_cup.tension';
 assert.ok(RECIPE_CAPABILITIES.includes(cupTransitionCapability));
 assert.equal(cupTransition.rootTension,1.5);
+
+const extendedCupTransition: SceneSpecSchema.Generator = {shape:'handled_cup',rootTension:2.5};
+const extendedCupCapability: RecipeCapability = 'geometry.handled_cup.tension.extended';
+assert.equal(extendedCupTransition.rootTension,2.5);
+assert.equal(specSchema.$defs.generator.properties.rootTension.maximum,2.5);
+assert(RECIPE_CAPABILITIES.includes(extendedCupCapability));

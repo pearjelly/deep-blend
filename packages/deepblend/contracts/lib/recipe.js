@@ -8,7 +8,7 @@ import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
-  'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.modifiers',
+  'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
 ])
@@ -35,6 +35,7 @@ export function recipeCapabilitiesForScene(spec) {
       ? `geometry.${entity.generator.shape}` : 'geometry.primitive')
     if (entity.modifiers?.length || entity.generator?.bevel) used.add('geometry.modifiers')
     if (entity.generator?.shape === 'handled_cup' && (entity.generator.rootTension ?? 1) !== 1) used.add('geometry.handled_cup.tension')
+    if (entity.generator?.shape === 'handled_cup' && (entity.generator.rootTension ?? 1) > 1.5) used.add('geometry.handled_cup.tension.extended')
   }
   for (const material of spec.materials ?? []) {
     used.add(`material.${material.shader}`)
