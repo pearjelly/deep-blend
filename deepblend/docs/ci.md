@@ -11,8 +11,8 @@
 | `deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs` | 实际 Cycles / EEVEE、固定摄影与帧、GLB 多材质、独立重开 checkpoint、源文件保护与失败不发布 |
 | `deepblend/tests/composition/tool-plane-m1.e2e.mjs` | 实际 Agent 工具、灰模/材质图片附件、PNG 摘要、相同摄影设置与旧预览保护 |
 | `deepblend/tests/e2e/inspection-ui.e2e.mjs` | 实际浏览器生成图、刷新与历史版本、草稿保护和取消 |
-| `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片及旧文件保护 |
-| `deepblend/tests/e2e/handled-cup-ui.e2e.mjs` | 实际画廊创建、参数与来源锁定、桌面/窄屏完整预览、毫米编辑与拒绝、重载及旧版本保护 |
+| `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片、过渡参数实际几何及旧文件保护 |
+| `deepblend/tests/e2e/handled-cup-ui.e2e.mjs` | 实际画廊创建、参数与来源锁定、桌面/窄屏完整预览、毫米与无量纲过渡参数编辑与拒绝、重载及旧版本保护 |
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF 缓冲区/纹理文件包、保存、渲染及旧修订重建 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |

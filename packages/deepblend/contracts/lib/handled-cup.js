@@ -1,6 +1,6 @@
 /** Dimensions are local scene units; mesh validity is checked again in Blender. */
 export const HANDLED_CUP_FIELDS = ['height', 'wallThickness', 'baseThickness', 'footRound', 'handleRadius',
-  'handleLower', 'handleUpper', 'rootRadius', 'rootLength', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
+  'handleLower', 'handleUpper', 'rootRadius', 'rootLength', 'rootTension', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
 
 export function resolveHandledCup(spec = {}) {
   const radius = spec.radius ?? .04
@@ -13,6 +13,7 @@ export function resolveHandledCup(spec = {}) {
     handleLower: spec.handleLower ?? height * (4 / 15),
     handleUpper: spec.handleUpper ?? height * (26 / 35),
     rootRadius: spec.rootRadius ?? radius * .2625, rootLength: spec.rootLength ?? radius * .2,
+    rootTension: spec.rootTension ?? 1,
     segments: spec.segments ?? 192, sectionSegments: spec.sectionSegments ?? 96,
     handleSegments: spec.handleSegments ?? 96, rootSegments: spec.rootSegments ?? 32, wallRows: spec.wallRows ?? 40 }
 }
@@ -39,6 +40,7 @@ export function handledCupIssues(spec) {
   for (const [name, value, low, high] of ratios) if (!Number.isFinite(value) || !within(value, low, high)) {
     errors.push(`${name} must be within ${low}–${high}`)
   }
+  if (p.rootTension < 1 || p.rootTension > 1.5) errors.push('rootTension must be within 1–1.5')
   const gap = (p.handleUpper - p.handleLower) / 2
   if (gap <= 0 || p.rootLength / gap > .8 + 1e-12) errors.push('handleUpper must exceed handleLower; rootLength/half-gap must be <=0.8')
   if (gap + p.radius * 1e-12 < Math.max(1.1 * p.rootRadius, 2 * p.handleRadius)) errors.push('attachment half-gap must be >=1.1*rootRadius and >=2*handleRadius')

@@ -696,6 +696,12 @@
           "type": "integer",
           "minimum": 16,
           "maximum": 64
+        },
+        "rootTension": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1.5,
+          "description": "Dimensionless scale of both endpoint tangent speeds for the quintic attachment. Missing or 1 preserves the original surface; 1.5 spreads the transition. Native output validation still applies."
         }
       }
     },

@@ -39,7 +39,7 @@ test('public generator replacement retains other entities and rejects unsupporte
 })
 
 test('attachment fields cannot silently become ignored settings on another shape', () => {
-  for (const field of ['height','wallThickness','handleRadius','rootLength','wallRows']) {
+  for (const field of ['height','wallThickness','handleRadius','rootLength','rootTension','wallRows']) {
     const spec=fixture();cup(spec).generator={shape:'cylinder',radius:.04,depth:.105,[field]:field==='wallRows'?32:.003}
     assert.equal(validateSceneSpec(spec).ok,false,field)
   }
@@ -65,7 +65,7 @@ test('Node and Python agree on boundary constraints, resolution defaults and mal
     {...base,segments:256,sectionSegments:96,handleSegments:128,rootSegments:48,wallRows:64},
     {...base,wallThickness:.001,footRound:.001}, {...base,baseThickness:.002,footRound:.0016}]
   const invalid=[]
-  for (const key of ['radius','height','wallThickness','baseThickness','footRound','handleRadius','handleLower','handleUpper','rootRadius','rootLength','segments','sectionSegments','handleSegments','rootSegments','wallRows']) {
+  for (const key of ['radius','height','wallThickness','baseThickness','footRound','handleRadius','handleLower','handleUpper','rootRadius','rootLength','rootTension','segments','sectionSegments','handleSegments','rootSegments','wallRows']) {
     for(const value of [null,true,'0.04',0,-1])invalid.push({...base,[key]:value})
   }
   invalid.push({...base,rootLength:.0001},{...base,handleUpper:base.handleLower},
@@ -194,8 +194,8 @@ for case in json.load(sys.stdin):
                 assert all(math.isfinite(c) for c in n) and abs(math.dist(n,(0,0,0))-1)<1e-12
                 samples+=1
 print(json.dumps({'samples':samples,'maximumRelativeDerivativeError':maximum}))
-`,matrix.cases.filter(c=>c.accepted))
-  assert.equal(result.samples,93*2*7*5)
+`,matrix.cases.filter(c=>c.accepted).flatMap(c=>[1,1.25,1.5].map(rootTension=>({...c,generator:{...c.generator,rootTension}}))))
+  assert.equal(result.samples,93*3*2*7*5)
   assert.ok(result.maximumRelativeDerivativeError<1e-7)
 })
 
@@ -214,4 +214,88 @@ for normals in [[(0,0,1)]*3,[(0,0,-1)]*3,[(0,0,0)]*3,[(0,0,2)]*3,[(0,0,float('na
 print(json.dumps(out))
 `,null)
   assert.deepEqual(results,[true,false,false,false,false,false])
+})
+
+test('transition tension preserves legacy defaults and has matching Node/Python refusals', () => {
+  assert.equal(resolveHandledCup({shape:'handled_cup'}).rootTension,1)
+  const values=[1,1.25,1.5,.999,1.501,1-Number.EPSILON,1.5+Number.EPSILON,null,true,'1.5',0],expected=values.map((_,i)=>i<3)
+  const native=python(String.raw`
+import sys,json
+sys.path.insert(0,'packages/deepblend/provider-local/python')
+from deepblend_vessel_parameters import handled_cup_parameters
+from deepblend_util import ActionError
+out=[]
+for value in json.load(sys.stdin):
+    try:out.append({'ok':True,'value':handled_cup_parameters({'rootTension':value})['rootTension']})
+    except ActionError as e:out.append({'ok':False,'code':e.code})
+print(json.dumps(out))
+`,values)
+  values.forEach((rootTension,i)=>{
+    const spec=fixture();cup(spec).generator.rootTension=rootTension
+    assert.equal(validateSceneSpec(spec).ok,expected[i],String(rootTension))
+    assert.equal(handledCupIssues({shape:'handled_cup',rootTension}).length===0,expected[i])
+    assert.equal(native[i].ok,expected[i]);if(expected[i])assert.equal(native[i].value,rootTension);else assert.equal(native[i].code,'SCENE_SPEC_INVALID')
+  })
+})
+
+test('editing transition tension leaves dimensions and source untouched, with bounded drafts', () => {
+  const spec=fixture(),original=JSON.stringify(spec),draft=editor.createDraft(buildSceneTree(spec,{revision:'r0001'}),'cup','cup')
+  assert.equal(draft.entity.generator.rootTension,1)
+  assert.deepEqual(plain(editor.buildPatch(draft).operations),[])
+  draft.entity.generator.rootTension=1.5
+  const operation=plain(editor.buildPatch(draft).operations)[0]
+  assert.equal(operation.generator.rootTension,1.5);assert.equal(operation.generator.height,.105);assert.equal(operation.generator.rootLength,.008)
+  assert.equal(cup(applyPatchToSpec(spec,{projectId:'cup',baseRevision:'r0001',operations:[operation]}).spec).generator.rootTension,1.5)
+  for(const value of [.99,1.51,null]){draft.entity.generator.rootTension=value;assert.ok(editor.errors(draft).length);assert.throws(()=>editor.buildPatch(draft))}
+  assert.equal(JSON.stringify(spec),original)
+})
+
+test('rendered transition controls keep dimensionless values while dimensions use millimetres', () => {
+  const core=loadClientBundle().exports.workbench,scene=buildSceneTree(fixture(),{revision:'r0001'}),draft=core.sceneEditor.createDraft(scene,'cup','cup'),store=core.createWorkbenchStore(),calls=[]
+  draft.entity.generator.rootTension=1.5
+  const state={...store.getState(),activeProjectId:'cup',view:'scene',editorEntityId:'cup',currentRevision:'r0001',selected:{scene,currentRevision:'r0001'},editorDrafts:{[JSON.stringify(['cup','cup'])]:draft}}
+  const tree=core.renderView({state,actions:{updateEditor:(...a)=>calls.push(a)}})
+  const walk=n=>n&&typeof n==='object'?[n,...(n.children||[]).flatMap(walk)]:[],nodes=walk(tree)
+  const find=field=>nodes.find(n=>n.props?.['data-field']===`editor-generator-${field}`)
+  const control=find('rootTension'),height=find('height')
+  assert.ok(control);assert.equal(control.props.value,1.5);assert.equal(control.props.min,1);assert.equal(control.props.max,1.5);assert.equal(control.props.step,.05)
+  assert.equal(height.props.value,105)
+  control.props.onChange({target:{value:'1.25'}});assert.deepEqual(plain(calls),[['generator',['rootTension'],1.25]])
+  height.props.onChange({target:{value:'110'}});assert.deepEqual(plain(calls[1]),['generator',['height'],.11])
+  store.stop()
+})
+
+test('transition second jets match independent cylindrical and torus reference curves', () => {
+  const matrix=JSON.parse(readFileSync(new URL('../../fixtures/handled-cup/parameter-cases.json',import.meta.url)))
+  const result=python(String.raw`
+import sys,json,math
+sys.path.insert(0,'packages/deepblend/provider-local/python')
+from deepblend_vessel_math import CupSurface
+from deepblend_vessel_parameters import handled_cup_parameters
+maximum=0;samples=0
+def second(f,x,h):
+    values=[f(x+d*h)for d in [-2,-1,0,1,2]]
+    return tuple((-values[0][i]+16*values[1][i]-30*values[2][i]+16*values[3][i]-values[4][i])/(12*h*h)for i in range(3))
+for case in json.load(sys.stdin):
+    for tension in [1,1.25,1.5]:
+        shape=CupSurface(handled_cup_parameters({**case['generator'],'rootTension':tension}))
+        for upper in [False,True]:
+            for theta in [0,.4,math.pi/2,2.8]:
+                ct,st=math.cos(theta),math.sin(theta);z=shape.P['upper']if upper else shape.P['lower'];sign=1 if upper else -1
+                speed=(shape.A-shape.r)*tension;alpha=shape.L/shape.H*tension;tube=shape.H+sign*shape.r*st
+                def wall(t):
+                    rho=shape.A-speed*t
+                    return (math.sqrt(shape.R**2-(rho*ct)**2),rho*ct,z+rho*st)
+                def handle(t):
+                    angle=alpha*(t-1)
+                    return (shape.R+shape.L+tube*math.sin(angle),shape.r*ct,shape.MID+sign*tube*math.cos(angle))
+                for t,reference in [(0,wall),(1,handle)]:
+                    for h in [1e-3,3e-3]:
+                        error=math.dist(second(lambda x:shape.root_point(x,theta,upper),t,h),second(reference,t,h))/shape.R
+                        maximum=max(maximum,error);assert error<2e-7,(case['id'],tension,upper,theta,t,h,error)
+                        samples+=1
+print(json.dumps({'samples':samples,'maximumRadiusNormalizedSecondDerivativeError':maximum}))
+`,matrix.cases.filter(c=>c.accepted))
+  assert.equal(result.samples,93*3*2*4*2*2)
+  assert.ok(result.maximumRadiusNormalizedSecondDerivativeError<2e-7)
 })

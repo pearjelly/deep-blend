@@ -7,7 +7,7 @@ def handled_cup_parameters(spec):
     def invalid(message):
         raise ActionError('SCENE_SPEC_INVALID', 'handled_cup: '+message)
     fields=['radius','height','wallThickness','baseThickness','footRound','handleRadius','handleLower','handleUpper',
-            'rootRadius','rootLength','segments','sectionSegments','handleSegments','rootSegments','wallRows']
+            'rootRadius','rootLength','rootTension','segments','sectionSegments','handleSegments','rootSegments','wallRows']
     for key in fields:
         if key in spec and (isinstance(spec[key],bool) or not isinstance(spec[key],(int,float))
                 or not math.isfinite(spec[key]) or spec[key]<=0):
@@ -24,6 +24,7 @@ def handled_cup_parameters(spec):
         'upper': spec.get('handleUpper', height*(26/35)),
         'rootRadius': spec.get('rootRadius', radius*.2625),
         'rootLength': spec.get('rootLength', radius*.2),
+        'rootTension': spec.get('rootTension', 1),
         'bodySegments': spec.get('segments', 192),
         'sectionSegments': spec.get('sectionSegments', 96),
         'handleSegments': spec.get('handleSegments', 96),
@@ -33,6 +34,8 @@ def handled_cup_parameters(spec):
     if any(isinstance(v, bool) or not isinstance(v, (int,float)) or not math.isfinite(v) or v<=0 for v in values.values()):
         invalid('dimensions and resolutions must be finite positive numbers')
     def within(v,lo,hi): return lo-1e-12<=v<=hi+1e-12
+    if not 1 <= values['rootTension'] <= 1.5:
+        invalid('rootTension must be within 1–1.5')
     ratios=[('radius',radius,.02,.08),('height/radius',height/radius,1.8,4),
         ('wallThickness/radius',wall/radius,.025,.15),('baseThickness/radius',bottom/radius,.05,.25),
         ('handleRadius/radius',values['handleRadius']/radius,.05,.2),

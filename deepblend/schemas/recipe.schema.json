@@ -97,13 +97,14 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 13,
+          "maxItems": 14,
           "items": {
             "enum": [
               "geometry.primitive",
               "geometry.lathe",
               "geometry.curve",
               "geometry.handled_cup",
+              "geometry.handled_cup.tension",
               "geometry.modifiers",
               "material.principled",
               "material.glass",

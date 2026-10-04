@@ -35,16 +35,19 @@ class CupSurface:
 
         rho decreases at the wall. At the tube end, alpha increases along the
         outgoing torus (opposite traversal for the lower attachment).
+        Tension scales endpoint speeds; the second jets scale quadratically,
+        keeping the same adjacent-surface tangent and curvature at each join.
+        Missing tension resolves to 1 to retain the original surface.
         """
         (ct, st) = (math.cos(theta), math.sin(theta))
         z = self.P['upper'] if upper else self.P['lower']
         q0 = (math.sqrt(self.R * self.R - self.A * self.A * ct * ct), self.A * ct, z + self.A * st)
-        speed = self.A - self.r
+        speed = (self.A - self.r) * self.P['rootTension']
         d0 = (self.A * speed * ct * ct / q0[0], -speed * ct, -speed * st)
         dd0 = (-speed * speed * ct * ct * self.R * self.R / q0[0] ** 3, 0, 0)
         q1 = (self.R + self.L, self.r * ct, z + self.r * st)
         sign = 1 if upper else -1
-        alpha_speed = self.L / self.H
+        alpha_speed = self.L / self.H * self.P['rootTension']
         d1 = (alpha_speed * (self.H + sign * self.r * st), 0, 0)
         dd1 = (0, 0, -sign * alpha_speed ** 2 * (self.H + sign * self.r * st))
         return [q0, add(q0, mul(d0, 0.2)), add(add(q0, mul(d0, 0.4)), mul(dd0, 0.05)), add(sub(q1, mul(d1, 0.4)), mul(dd1, 0.05)), sub(q1, mul(d1, 0.2)), q1]
@@ -76,7 +79,7 @@ class CupSurface:
         """Exact theta partial of the quintic root, including endpoint jets."""
         ct, st = math.cos(theta), math.sin(theta)
         x = math.sqrt(self.R * self.R - self.A * self.A * ct * ct)
-        speed = self.A - self.r
+        speed = (self.A - self.r) * self.P['rootTension']
         q0 = (self.A * self.A * ct * st / x, -self.A * st, self.A * ct)
         d0 = (-self.A * speed * ct * st * (2 / x + self.A * self.A * ct * ct / x**3),
               speed * st, -speed * ct)
@@ -84,7 +87,7 @@ class CupSurface:
                (2 / x**3 + 3 * self.A * self.A * ct * ct / x**5), 0, 0)
         q1 = (0, -self.r * st, self.r * ct)
         sign = 1 if upper else -1
-        alpha_speed = self.L / self.H
+        alpha_speed = self.L / self.H * self.P['rootTension']
         d1 = (alpha_speed * sign * self.r * ct, 0, 0)
         dd1 = (0, 0, -alpha_speed * alpha_speed * self.r * ct)
         controls = [q0, add(q0, mul(d0, .2)), add(add(q0, mul(d0, .4)), mul(dd0, .05)),

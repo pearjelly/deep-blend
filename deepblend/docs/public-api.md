@@ -51,6 +51,8 @@ with `SCENE_SPEC_INVALID` / `SCENE_PATCH_INVALID`; the recipe parser throws
 list. The corresponding `validate*` functions return structured errors instead.
 Inspect notices as well: a valid scene can require an explicit compiler decision.
 
+The handled cup supports dimensionless `rootTension` from 1 to 1.5. Its default is 1, preserving the original transition; non-default values require the recipe capability `geometry.handled_cup.tension`. The bundled glazed cup 2.0.0 explicitly uses 1.5. This spreads the root transition while retaining the endpoint tangent and curvature conditions; it does not establish finished artistic quality.
+
 `compileSceneSpec` fills defaults and returns `{spec, notices, entityBounds}`.
 It assumes validated input; it does not render or create a checkpoint.
 `applyPatchToSpec` assumes a compiled scene and validated patch. It checks

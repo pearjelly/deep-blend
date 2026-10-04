@@ -106,6 +106,19 @@ try{
   try{await studio.applyScenePatch({projectId,baseRevision:nextRevision,operations:[{op:'entity.generator.set',entityId:'cup',generator:{...updated,rootLength:.0001}}]})}catch(error){rejected=error}
   check('incompatible root dimensions are refused with a stable error',rejected?.code==='SCENE_SPEC_INVALID',rejected?.code)
   check('rejected edit keeps the current revision',(await studio.getProject(projectId)).currentRevision===nextRevision)
+  let previousRevision=nextRevision,previousFacts=updatedFacts
+  for(const rootTension of [1.25,1.5]){
+    const changedTransition=await studio.applyScenePatch({projectId,baseRevision:previousRevision,saveCheckpoint:true,renderPreview:false,
+      operations:[{op:'entity.generator.set',entityId:'cup',generator:{...updated,rootTension}}]})
+    const tensionRevision=changedTransition.revision??changedTransition.currentRevision
+    const tensionFacts=inspect(join(workspace,'projects',projectId,'revisions',tensionRevision,'scene.blend'),`tension-${rootTension}`)
+    const tensionSource=json(join(workspace,'projects',projectId,'revisions',tensionRevision,'scene-spec.json'))
+    check(`tension ${rootTension}: explicit saved revision and original dimensions`,tensionRevision!==previousRevision&&tensionSource.entities.find(e=>e.id==='cup').generator.rootTension===rootTension&&Math.abs(tensionFacts.bounds[1][2]-.126)<1e-6)
+    check(`tension ${rootTension}: one closed mesh and actual analytic normals`,tensionFacts.components===1&&tensionFacts.euler===0&&tensionFacts.boundaryEdges===0&&tensionFacts.nonManifoldEdges===0&&tensionFacts.customNormals&&tensionFacts.validCornerNormals)
+    check(`tension ${rootTension}: changes real geometry without a large volume change`,tensionFacts.meshUvNormalSha256!==previousFacts.meshUvNormalSha256&&Math.abs(tensionFacts.volume/updatedFacts.volume-1)<.02)
+    previousRevision=tensionRevision;previousFacts=tensionFacts
+  }
+  check('transition changes preserve the original source and checkpoint bytes',Object.entries(original).every(([path,hash])=>hashes(revisionDir)[path]===hash))
 }catch(error){failure={message:error.message,stack:error.stack};console.error(error)}finally{
   try { await ctx.fiber.dispose() } catch(error) {
     checks.push({name:'Host and Provider cleanup',ok:false,detail:error.message})

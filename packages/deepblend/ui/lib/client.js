@@ -291,12 +291,13 @@ window.__ModuleLoader__.load({
       'editor.handleUpper': '上连接高度（mm）',
       'editor.rootRadius': '连接根部半径（mm）',
       'editor.rootLength': '连接过渡长度（mm）',
+      'editor.rootTension': '连接曲面展开程度（1–1.5）',
       'editor.sectionSegments': '杯口与把手截面分段',
       'editor.handleSegments': '把手弧线分段',
       'editor.rootSegments': '连接过渡分段',
       'editor.wallRows': '杯壁纵向分段',
       'editor.cupAdvanced': '连接细节与网格分段',
-      'editor.cupHelp': '杯壁、把手和连接处共同决定可用尺寸；应用时会检查实际网格。尺寸超出支持范围时会保留当前版本。',
+      'editor.cupHelp': '杯壁、把手和连接处共同决定可用尺寸；应用时会检查实际网格。高级参数中的连接曲面展开程度：1 保留原形，1.5 展开过渡。尺寸超出支持范围时会保留当前版本。',
       'editor.depth': '高度（mm）',
       'editor.majorRadius': '主半径（mm）',
       'editor.minorRadius': '截面半径（mm）',
@@ -736,12 +737,13 @@ window.__ModuleLoader__.load({
       'editor.handleUpper': 'Upper attachment height (mm)',
       'editor.rootRadius': 'Attachment root radius (mm)',
       'editor.rootLength': 'Attachment transition length (mm)',
+      'editor.rootTension': 'Attachment transition spread (1–1.5)',
       'editor.sectionSegments': 'Lip and handle section segments',
       'editor.handleSegments': 'Handle arc segments',
       'editor.rootSegments': 'Attachment transition segments',
       'editor.wallRows': 'Vertical wall segments',
       'editor.cupAdvanced': 'Attachment details and mesh segments',
-      'editor.cupHelp': 'Wall, handle and attachment dimensions constrain one another. Applying an edit checks the actual mesh; unsupported dimensions keep the current revision.',
+      'editor.cupHelp': 'Wall, handle and attachment dimensions constrain one another. Applying an edit checks the actual mesh. Advanced transition spread: 1 keeps the original shape; 1.5 spreads the transition. Unsupported dimensions keep the current revision.',
       'editor.depth': 'Height (mm)',
       'editor.majorRadius': 'Major radius (mm)',
       'editor.minorRadius': 'Section radius (mm)',
@@ -1322,11 +1324,11 @@ window.__ModuleLoader__.load({
       uv_sphere: ['radius', 'segments', 'ringCount'], cylinder: ['radius', 'depth', 'segments'],
       cone: ['radius', 'depth', 'segments'], torus: ['majorRadius', 'minorRadius', 'segments', 'ringCount'],
       handled_cup: ['radius', 'height', 'wallThickness', 'baseThickness', 'handleRadius', 'handleLower', 'handleUpper',
-        'footRound', 'rootRadius', 'rootLength', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows'],
+        'footRound', 'rootRadius', 'rootLength', 'rootTension', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows'],
       lathe: ['segments'], curve: ['radius', 'curveResolution', 'bevelResolution'],
     }
     const EDITOR_INTEGERS = { segments: [3, 512], ringCount: [3, 512], curveResolution: [1, 64], bevelResolution: [0, 16] }
-    const CUP_ADVANCED_FIELDS = ['footRound', 'rootRadius', 'rootLength', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
+    const CUP_ADVANCED_FIELDS = ['footRound', 'rootRadius', 'rootLength', 'rootTension', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
     const CUP_INTEGERS = { segments: [64, 256, 4], sectionSegments: [32, 96, 4], handleSegments: [24, 128, 4], rootSegments: [8, 48, 1], wallRows: [16, 64, 1] }
     const generatorIntegerBounds = (generator, key) => generator.shape === 'handled_cup' ? CUP_INTEGERS[key] : EDITOR_INTEGERS[key]
     let editorSequence = 0
@@ -1408,7 +1410,8 @@ window.__ModuleLoader__.load({
         for (const key of GENERATOR_FIELDS[generator.shape] || []) {
           const bounds = generatorIntegerBounds(generator, key)
           if (bounds?.[2] && generator[key] % bounds[2]) bad(key)
-          scalar(generator[key], key, bounds ? bounds[0] : Number.MIN_VALUE, bounds ? bounds[1] : Infinity, Boolean(bounds))
+          scalar(generator[key], key, key === 'rootTension' ? 1 : bounds ? bounds[0] : Number.MIN_VALUE,
+            key === 'rootTension' ? 1.5 : bounds ? bounds[1] : Infinity, Boolean(bounds))
         }
         if (generator.bevel) {
           if (generator.bevel.width !== undefined) scalar(generator.bevel.width, 'bevel.width', Number.MIN_VALUE)
@@ -2816,6 +2819,7 @@ window.__ModuleLoader__.load({
         handleUpper: t('editor.handleUpper'),
         rootRadius: t('editor.rootRadius'),
         rootLength: t('editor.rootLength'),
+        rootTension: t('editor.rootTension'),
         sectionSegments: t('editor.sectionSegments'),
         handleSegments: t('editor.handleSegments'),
         rootSegments: t('editor.rootSegments'),
@@ -2844,6 +2848,8 @@ window.__ModuleLoader__.load({
       const geometry = draft.entity.generator
       const geometryField = key => {
         const bounds = generatorIntegerBounds(geometry, key)
+        if (key === 'rootTension') return numeric(labels[key], `editor-generator-${key}`, geometry[key],
+          value => actions.updateEditor('generator', [key], value), { factor: 1, min: 1, max: 1.5, step: .05 })
         return numeric(labels[key], `editor-generator-${key}`, geometry[key], value => actions.updateEditor('generator', [key], value), {
           factor: bounds ? 1 : 1000, integer: Boolean(bounds), min: bounds?.[0], max: bounds?.[1], step: bounds?.[2],
         })
