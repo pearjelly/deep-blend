@@ -38,7 +38,7 @@ import { withoutPnpm } from '../lib/preconditions.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -48,6 +48,9 @@ import { alreadyPublished, npmError, npmManifest, publishOrder, publishRefusalFi
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const BUNDLE = join(ROOT, 'packages', 'deepblend', 'bundle')
+const realProfilePath = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles', 'web', 'package.json')
+const readRealProfile = () => existsSync(realProfilePath) ? readFileSync(realProfilePath) : null
+const realProfileBefore = readRealProfile()
 
 /** A profile `dsh` can install into: the installer composes its rows into one. */
 function makeHome() {
@@ -102,12 +105,8 @@ test('installing the bundle through the ecosystem command composes its rows WITH
 })
 
 test('and the real profile was never touched', { skip: withoutPnpm() }, () => {
-  // The real home is the one this session runs from, so it must still name the bundle it had: this file only ever
-  // wrote to temp homes, and a change here would mean something else did.
-  const real = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles', 'web', 'package.json')
-  const profile = JSON.parse(readFileSync(real, 'utf8'))
-  assert.ok((profile.dsh?.profile?.bundles ?? []).includes('@deepblend/dsh-blender-bundle'),
-    'the real profile no longer composes the bundle — this test only writes to temp homes, so something else changed it')
+  assert.deepEqual(readRealProfile(), realProfileBefore,
+    'the real profile changed while the test operated on its temporary home')
 })
 
 // ---------------------------------------------------------------------------
@@ -269,6 +268,7 @@ test('every package under packages/deepblend is publishable as it stands', () =>
   //
   //   WITH `files`     every top-level entry must be one it lists. `package.json` and a
   //                    README are packed regardless, so they are always allowed.
+  //                    `.npmignore` controls packing and is not itself packed.
   //   WITHOUT `files`  npm packs everything, so only the directories a package is made of
   //                    are permitted. This is the case that matters: five of the seven
   //                    packages have no `files` list, deliberately — MEASURED as
@@ -277,6 +277,7 @@ test('every package under packages/deepblend is publishable as it stands', () =>
   //                    But a scratch file dropped into one of them would ship to the
   //                    registry with nothing to say so, and this is what says so.
   const ALWAYS_PACKED = new Set(['package.json', 'README.md', 'node_modules'])
+  const PACKING_CONTROL_FILES = new Set(['.npmignore'])
   const DEFAULT_DIRECTORIES = new Set(['lib', 'python', 'presets'])
 
   for (const name of packages) {
@@ -286,7 +287,8 @@ test('every package under packages/deepblend is publishable as it stands', () =>
     assert.equal(typeof manifest.repository?.url, 'string',
       `${manifest.name} declares no repository url — the list harvests the npm mapping by checking that a package's repository points back at the listed repo`)
 
-    const entries = readdirSync(join(directory, name)).filter(entry => !ALWAYS_PACKED.has(entry))
+    const entries = readdirSync(join(directory, name))
+      .filter(entry => !ALWAYS_PACKED.has(entry) && !PACKING_CONTROL_FILES.has(entry))
     const listed = manifest.files
     const stray = listed === undefined
       ? entries.filter(entry => !DEFAULT_DIRECTORIES.has(entry))
@@ -310,6 +312,32 @@ test('every package under packages/deepblend is publishable as it stands', () =>
   const preset = JSON.parse(readFileSync(join(directory, 'preset', 'package.json'), 'utf8'))
   assert.ok(preset.files?.includes('presets'),
     'the preset package no longer ships presets/, so the deployer row would deploy nothing')
+
+  // Exercise npm's packing rules in a copy: a clean clone has no Python caches,
+  // while a developer's checkout does. The same package must omit them in both.
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-pack-contract-'))
+  try {
+    const stagedProvider = join(scratch, 'provider-local')
+    cpSync(join(directory, 'provider-local'), stagedProvider, {
+      recursive: true,
+      filter: source => !source.split(/[\\/]/).includes('node_modules'),
+    })
+    mkdirSync(join(stagedProvider, 'python', '__pycache__'), { recursive: true })
+    writeFileSync(join(stagedProvider, 'python', '__pycache__', 'pack-probe.cpython-313.pyc'), 'cache probe')
+    writeFileSync(join(stagedProvider, 'python', 'pack-probe.pyc'), 'cache probe outside __pycache__')
+    const packed = spawnSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
+      cwd: stagedProvider, encoding: 'utf8', timeout: 60_000,
+      env: { ...process.env, npm_config_cache: join(scratch, 'npm-cache') },
+    })
+    assert.equal(packed.status, 0, `npm pack --dry-run failed:\n${packed.stdout}\n${packed.stderr}`)
+    const paths = JSON.parse(packed.stdout)[0].files.map(file => file.path)
+    assert.ok(paths.includes('python/bootstrap.py'), 'the provider package lost its Blender entrypoint')
+    assert.deepEqual(paths.filter(path => path.split('/').includes('.npmignore')
+      || path.split('/').includes('__pycache__') || /\.py[co]$/.test(path)), [],
+    'the provider package contains packing controls or generated Python bytecode')
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
 })
 
 // ---------------------------------------------------------------------------

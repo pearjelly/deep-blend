@@ -20,7 +20,7 @@
  *      they are validated against the review they claim to describe.
  *
  *  `blender_visual_autofix`  the host-owned repair LOOP: propose, apply, re-render,
- *      re-score, and adopt only what measures better, bounded by the iteration cap
+ *      re-score, and adopt supported artistic improvements without technical regression, bounded by the iteration cap
  *      and the repeated-issue rule. It returns a handover package when it stops short
  *      of passing.
  *
@@ -279,7 +279,8 @@ export function describeReviewNotes(data) {
   const reviewerUnavailable = reviewerError !== null && reviewerError !== undefined
   const notes = [
     `Revision: ${data.revision}  (rendered from ${data.checkpointRevision})`,
-    `Score:    ${data.score}/100 — ${data.pass ? 'PASSES' : 'does NOT pass'} the delivery threshold`,
+    `Score:    ${data.score}/100 — ${data.pass ? 'PASSES' : 'does NOT pass'} the technical threshold`,
+    `Artistic: ${data.artistic?.status ?? 'unassessable'} — geometry, materials, lighting and goal fit`,
     `Subject:  ${data.subjectId ?? '(none tagged)'}`,
     `Parts:    ${(data.parts ?? []).length > 0 ? data.parts.join(', ') + '  (declared subject-part: they ARE the subject, so they cannot be in its way)' : '(none declared; only the subject is judged for occlusion)'}`,
     '',
@@ -318,6 +319,9 @@ export function describeReviewNotes(data) {
     notes.push(`The reviewer proposed ${data.suggestedOperations.length} ScenePatch operation(s); apply them with`)
     notes.push('blender_scene_patch if you agree, or run blender_visual_autofix to let the host try them.')
   }
+  for (const [dimension, assessment] of Object.entries(data.artistic?.dimensions ?? {})) {
+    notes.push(`Artistic ${dimension}: ${assessment.status} — ${assessment.evidence ?? 'insufficient evidence'}`)
+  }
   return notes
 }
 
@@ -336,7 +340,8 @@ export function describeReviewNotes(data) {
  */
 export function describeLoopNotes(data) {
   const notes = [
-    `Score:    ${data.startScore} -> ${data.finalScore}  (${data.passed ? 'PASSES' : 'still below the threshold'})`,
+    `Score:    ${data.startScore} -> ${data.finalScore}  (${data.passed ? 'PASSES technical and artistic review' : 'review incomplete or needs work'})`,
+    `Artistic: ${data.artistic?.status ?? 'unassessable'}`,
     `Revision: ${data.startRevision} -> ${data.finalRevision}`,
     `Rounds:   ${data.iterations} of ${data.maxIterations} used`,
     `Stopped:  ${data.stopReason}`,
@@ -352,6 +357,9 @@ export function describeLoopNotes(data) {
     for (const finding of round.reported ?? []) {
       notes.push(`      saw: [${finding.category}] ${finding.evidence}`)
     }
+  }
+  for (const [dimension, assessment] of Object.entries(data.artistic?.dimensions ?? {})) {
+    notes.push(`Artistic ${dimension}: ${assessment.status} — ${assessment.evidence ?? 'insufficient evidence'}`)
   }
   if ((data.openIssues ?? []).length > 0) {
     notes.push('')
@@ -381,12 +389,13 @@ function visualAutofix(ctx) {
     name: 'blender_visual_autofix',
     description:
       'Run the automated visual repair loop on a revision: review, propose a ScenePatch, commit it, render ' +
-      'and measure again, and KEEP the change only if the score actually went up. Stops when the score ' +
-      `passes, when the iteration cap is reached, or when the same finding recurs without improving. ` +
+      'and measure again. Keep technical improvements without artistic regression, or evidenced artistic ' +
+      'improvements with no technical regression. Passing requires both the technical threshold and ' +
+      'an evidenced artistic review. Stops at the iteration cap or repeated unresolved findings. ' +
       'Because it stops on its own, a handover package comes back whenever it stopped short of passing: the ' +
       'revision to work from (never a polluted one), the open issues with their measurements, and concrete ' +
       'next steps.\n\n' +
-      'A round that does not improve the score is rolled back — the revision stays in the history, but the ' +
+      'A round that improves neither technical nor artistic quality is rolled back — the revision stays in the history, but the ' +
       'project does not move to a worse one. Every round is reported, including the ones that failed, so you ' +
       'can see what was already tried before proposing another change yourself.\n\n' +
       MEASUREMENT_GLOSSARY,

@@ -38,6 +38,9 @@
  * ---------------
  *   node_modules/@deepseek-ai/<pkg>   ->  <deployment>/node_modules/@deepseek-ai/<pkg>
  *   node_modules/@deepblend/<pkg>     ->  packages/deepblend/<dir>
+ *   node_modules/<library>           ->  <deployment>/node_modules/<library>
+ * Ordinary libraries must be declared in the consuming package's dependencies
+ * and explicitly installed in the development runtime; they are not plugins.
  *
  * Nothing else. It never writes into the DSH installation, and it never writes
  * into `$DSH_HOME` — the profile-plane links are `install-plugin.mjs`'s job and
@@ -54,7 +57,7 @@
  * Owner: DeepBlend Studio — M5 (reproducibility)
  */
 
-import { existsSync, mkdirSync, rmSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { deploymentScopes } from '../tests/lib/dsh-deployment.mjs'
@@ -96,8 +99,8 @@ if (local.size === 0) {
   process.exit(2)
 }
 
-const { external, internal, declarations } = requiredSpecifiers(local)
-if (external.length === 0 && internal.length === 0) {
+const { external, internal, registry, declarations } = requiredSpecifiers(local)
+if (external.length === 0 && internal.length === 0 && registry.length === 0) {
   console.error(`no scoped import specifiers found under ${SCANNED_DIRECTORIES.join(', ')}`)
   process.exit(2)
 }
@@ -108,17 +111,17 @@ if (external.length === 0 && internal.length === 0) {
 // packages, and Node resolves the realpath.
 // ---------------------------------------------------------------------------
 /** Where each specifier has to point, and who asked for it. */
-const wanted = linkTargets({ internal, external, local, scopes })
+const wanted = linkTargets({ internal, external, registry, local, scopes })
   .map(entry => ({ ...entry, declaredBy: declarations.get(entry.specifier) }))
 
 const plan = wanted.map(entry => {
   const current = linkTarget(linkPathFor(entry.specifier))
-  const action = current === entry.target
-    ? 'in sync'
-    : !existsSync(entry.target)
-      ? 'TARGET MISSING'
-      : current === undefined ? 'missing' : 'DRIFTED'
-  return { ...entry, current, action }
+  const exists = existsSync(join(entry.target, 'package.json'))
+  const actualVersion = exists && entry.requiredVersion ? JSON.parse(readFileSync(join(entry.target, 'package.json'), 'utf8')).version : undefined
+  const action = !exists ? 'TARGET MISSING'
+    : entry.requiredVersion && actualVersion !== entry.requiredVersion ? 'VERSION MISMATCH'
+      : current === entry.target ? 'in sync' : current === undefined ? 'missing' : 'DRIFTED'
+  return { ...entry, current, action, actualVersion }
 })
 
 for (const entry of plan) {
@@ -130,16 +133,20 @@ for (const entry of plan) {
     console.error(`${entry.specifier}: ${entry.target} does not exist (asked for by ${entry.declaredBy})`)
     continue
   }
+  if (entry.action === 'VERSION MISMATCH') {
+    console.error(`${entry.specifier}: VERSION MISMATCH; requires ${entry.requiredVersion}, found ${entry.actualVersion ?? 'no version'} at ${entry.target} (asked for by ${entry.declaredBy})`)
+    continue
+  }
   say(entry.specifier, `${entry.action} (asked for by ${entry.declaredBy})`)
 }
 
-const missingTargets = plan.filter(entry => entry.action === 'TARGET MISSING')
+const missingTargets = plan.filter(entry => ['TARGET MISSING', 'VERSION MISMATCH'].includes(entry.action))
 const drifted = plan.filter(entry => entry.action === 'missing' || entry.action === 'DRIFTED')
 
 if (missingTargets.length > 0) {
-  say('result', `${missingTargets.length} package(s) are not in the deployment`)
+  say('result', `${missingTargets.length} package(s) are missing or incompatible in the deployment`)
   say('scopes', scopes)
-  say('fix', 'install the DSH package that provides them, or set DEEPBLEND_DSH_ROOT to another deployment')
+  say('fix', 'install the declared packages in the deployment (npm run dev:setup for the isolated runtime), or set DEEPBLEND_DSH_ROOT to another deployment')
   process.exit(2)
 }
 

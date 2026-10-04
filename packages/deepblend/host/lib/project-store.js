@@ -36,14 +36,17 @@
  *    revision manifest describes that revision and nothing else, so publishing a
  *    revision and moving the pointer stay two separate steps and a half-finished
  *    publish cannot claim to be current.
- *  - **`staging/` is the only mutable revision state.** Everything under
- *    `revisions/` was published by an atomic rename and is never written again.
+ *  - **Revision decisions are immutable.** SceneSpecs and checkpoints publish by
+ *    atomic rename; later emitted artifacts amend only their protected indices.
  *
  * Owner: DeepBlend Studio — M1
  */
 
 import { existsSync, readdirSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
+import { assertProjectWriter, withProjectWriter } from './project-writer.js'
+import { withArtifactWriter } from './artifact-writer.js'
 
 import {
   BlenderError,
@@ -186,6 +189,16 @@ export class ProjectStore {
     return record
   }
 
+  /** Hold the revision writer lease until a synchronous or asynchronous action finishes. */
+  withProjectWrite(projectId, action) {
+    return withProjectWriter(this.projectDirectory(projectId), this.workspaceRoot, action)
+  }
+
+  /** Check ownership again immediately before publishing a revision. */
+  assertProjectWrite(projectId) {
+    assertProjectWriter(this.projectDirectory(projectId))
+  }
+
   /**
    * Allocate a project id from a title, avoiding collisions.
    *
@@ -303,7 +316,7 @@ export class ProjectStore {
    * @param {string} projectId
    * @param {string} revision
    * @param {object} artifact
-   * @returns {object[]} the revision's previews, in render order.
+   * @returns {Promise<object[]>} the revision's previews, in render order.
    */
   recordRevisionPreview(projectId, revision, artifact) {
     return this.recordRevisionArtifact(projectId, revision, 'previews', artifact)
@@ -333,22 +346,29 @@ export class ProjectStore {
    * @param {string} revision
    * @param {'previews'|'contactSheets'|'reviews'} indexKey
    * @param {object} artifact
-   * @returns {object[]} the revision's entries under that key, in emission order.
+   * @returns {Promise<object[]>} the revision's entries under that key, in emission order.
    */
   recordRevisionArtifact(projectId, revision, indexKey, artifact) {
-    const path = join(this.revisionDirectory(projectId, revision), 'revision-manifest.json')
-    const manifest = readJson(path)
-    if (manifest === null) {
-      // A revision directory with no manifest did not finish publishing, so there
-      // is nothing to amend and nothing safe to write into it.
-      return [artifact]
-    }
-    const existing = Array.isArray(manifest[indexKey]) ? manifest[indexKey] : []
-    // Re-emitting the same path replaces its entry rather than duplicating it:
-    // re-rendering a view after a fix must not make the sheet look like two.
-    const next = [...existing.filter(entry => entry.path !== artifact.path), artifact]
-    writeJsonAtomic(path, { ...manifest, [indexKey]: next })
-    return next
+    return this.withRevisionArtifacts(projectId, revision, () => {
+      const path = join(this.revisionDirectory(projectId, revision), 'revision-manifest.json')
+      const manifest = readJson(path)
+      if (manifest === null) {
+        // A revision directory with no manifest did not finish publishing, so there
+        // is nothing to amend and nothing safe to write into it.
+        return [artifact]
+      }
+      const existing = Array.isArray(manifest[indexKey]) ? manifest[indexKey] : []
+      // Re-emitting the same path replaces its entry rather than duplicating it:
+      // re-rendering a view after a fix must not make the sheet look like two.
+      const next = [...existing.filter(entry => entry.path !== artifact.path), artifact]
+      writeJsonAtomic(path, { ...manifest, [indexKey]: next })
+      return next
+    })
+  }
+
+  /** Coordinate a short group of file publications and manifest amendments. */
+  withRevisionArtifacts(projectId, revision, action, options = {}) {
+    return withArtifactWriter(this.revisionDirectory(projectId, revision), this.workspaceRoot, action, options)
   }
 
   /**
@@ -416,19 +436,15 @@ export class ProjectStore {
   }
 
   /**
-   * Allocate a job id. Monotonic within the project and readable in a log,
-   * because a job id ends up in a tool result the model reasons about.
+   * Allocate an opaque attempt id across independent Host processes. The time
+   * helps locate an attempt; uniqueness must not depend on directory counts.
    * @param {string} projectId
    * @param {string} action
    * @returns {string}
    */
   allocateJobId(projectId, action) {
-    const directory = join(this.projectDirectory(projectId), 'jobs')
-    const existing = existsSync(directory)
-      ? readdirSync(directory).filter(name => name.endsWith('.json')).length
-      : 0
     const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
-    return `${action}-${stamp}-${String(existing + 1).padStart(3, '0')}`
+    return `${action}-${stamp}-${randomUUID()}`
   }
 
   // -------------------------------------------------------------------------

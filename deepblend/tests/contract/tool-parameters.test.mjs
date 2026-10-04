@@ -53,13 +53,15 @@ const SOURCES = ['index.js', 'tools.js', 'render-tools.js', 'visual-tools.js']
 // (`docs-consistency.test.mjs` holds these parameters against the manual's tables) — and a copied parser is the
 // worst kind of copy: the two drift silently, and a test that parses nothing looks exactly like one that passes.
 const tools = declaredTools(ROOT)
+// This catalog read deliberately has no filters or parameters: its only call is listRecipes().
+const parameterless = new Set(['blender_recipe_list'])
 
 check('every tool the product ships was parsed (a check over fewer tools than exist proves less)',
   tools.length === UI_TOOL_CARD_KEYS.length,
   { parsed: tools.length, shipped: UI_TOOL_CARD_KEYS.length, names: tools.map(tool => tool.name) })
 check('and every parsed tool declares parameters at all, so the two directions below have content',
-  tools.every(tool => tool.declared.length > 0),
-  tools.filter(tool => tool.declared.length === 0).map(tool => tool.name))
+  tools.every(tool => tool.declared.length > 0 || parameterless.has(tool.name)),
+  tools.filter(tool => tool.declared.length === 0 && !parameterless.has(tool.name)).map(tool => tool.name))
 
 const unread = tools.filter(tool => tool.declared.some(key => !tool.read.includes(key)))
 check('every declared parameter is READ by its handler (a parameter nobody reads is a lie told to the model)',
@@ -74,8 +76,8 @@ check('every parameter a handler reads is DECLARED (an undeclared read can never
 // Every tool must declare at least one parameter and read at least one: a tool whose reads are invisible to
 // this parser would otherwise pass the two directions above by having nothing to check.
 check('every parsed tool both declares and reads at least one parameter (no tool passes by being unreadable)',
-  tools.every(tool => tool.declared.length > 0 && tool.read.length > 0),
-  tools.filter(tool => tool.declared.length === 0 || tool.read.length === 0).map(tool => tool.name))
+  tools.every(tool => parameterless.has(tool.name) ? tool.declared.length === 0 && tool.read.length === 0 : tool.declared.length > 0 && tool.read.length > 0),
+  tools.filter(tool => !parameterless.has(tool.name) && (tool.declared.length === 0 || tool.read.length === 0)).map(tool => tool.name))
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nTool parameters: ${passed}/${results.length} check(s) passed`)

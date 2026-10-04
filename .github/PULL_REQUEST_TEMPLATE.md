@@ -14,12 +14,25 @@ something a previous round paid for. `CONTRIBUTING.md` §3 has the reasoning beh
 
 ## What I ran
 
-- [ ] `node deepblend/tests/run.mjs` — the contract layer. Fast, no Blender, and it is the one CI runs.
+- [ ] `node deepblend/tests/run.mjs` — the complete contract layer, including the packed public SDK author example. CI runs it and the clean-clone installation; its Linux job also runs selected real Blender/Agent/browser flows. See [CI scope](../deepblend/docs/ci.md).
 - [ ] `bash deepblend/tests/run-all.sh` — the acceptance suite. Required if you touched the runtime,
       rendering, the UI plane, or anything a Blender process executes.
 - [ ] `npm run setup:check` — after adding an `import` of a DSH package.
 - [ ] `npm run plugin:check` — after touching `packages/deepblend/bundle/`.
 - [ ] `npm run presets:check` — after touching `deepblend/presets/`.
+
+## Recipe or content submissions
+
+<!-- Complete this section for a recipe; otherwise remove it. Follow deepblend/docs/recipes.md. -->
+
+- Recipe ID/version and intended result:
+- Four package files: `recipe.json`, `scene-spec.json`, `preview.png`, `LICENSE`.
+- Author validation report from the [standalone example](../deepblend/examples/content-author/README.md), including defaults and any chosen parameter combination; state which render/geometry/rights/artistic checks remain unverified.
+- Actual Blender version/build, input hashes, camera/frame, engine, samples, render size, time and measured cost. Attach default render and relevant detail/clay views; include selected-value renders when making claims about those values.
+- Source and license review: explain what you authored, what you reused and the basis for redistribution. License text presence does not establish rights.
+- Changes to published content use a new version; raw content hashes, real preview and Host mirror are updated together. Validate with `npm run recipes:check` when changing built-in packages.
+
+Data validation, actual construction/rendering and artistic review need separate evidence. Maintained fixtures do not establish independent author adoption or user reuse.
 
 ## Checklist
 

@@ -40,6 +40,8 @@ import bpy
 import numpy as np
 
 from deepblend_render import (
+    _camera_facts,
+    _render_config as _actual_render_config,
     apply_render_overrides,
     checkpoint_profile,
     find_camera,
@@ -202,6 +204,11 @@ def _render_one(scene, entry, tracked, parts, object_index, guard, base_percent,
             {"view": view_id, "output": output},
         )
 
+    # Capture the frame and evaluated camera that produced these bytes before
+    # isolation measurements temporarily change the scene's render settings.
+    actual_camera = scene.camera
+    render_config = _render_config(scene)
+    camera_facts = _camera_facts(scene, actual_camera)
     report_progress("measure", base_percent + 5.0, {"view": view_id})
     width, height = png_dimensions(output) or (
         int(scene.render.resolution_x),
@@ -215,14 +222,18 @@ def _render_one(scene, entry, tracked, parts, object_index, guard, base_percent,
         "bytes": os.path.getsize(output),
         "width": width,
         "height": height,
-        "frame": frame,
-        "cameraId": camera.get("deepblend_id") or camera.name,
-        "cameraName": camera.name,
-        "lens": round(float(camera.data.lens), 6),
-        "engine": scene.render.engine,
+        "frame": int(scene.frame_current),
+        "cameraId": actual_camera.get("deepblend_id") or actual_camera.name,
+        "cameraName": actual_camera.name,
+        "lens": round(camera_facts["lens"], 6),
+        "engine": render_config["engine"],
+        "renderConfig": render_config,
+        "cameraFacts": camera_facts,
         "metrics": measure_view(scene, output, tracked, parts, object_index, guard, view_id, scratch),
     }
     return entry_report
+
+
 
 
 def measure_view(scene, image_path, tracked, parts, object_index, guard, view_id, scratch):
@@ -716,21 +727,9 @@ def _load_rgb(path):
 
 
 def _render_config(scene):
-    """The render settings in force for this plan, for the manifest."""
-    samples = None
-    try:
-        if scene.render.engine == "CYCLES":
-            samples = int(scene.cycles.samples)
-    except Exception:
-        samples = None
+    """Actual settings, retaining the plan report's checkpoint profile field."""
     return {
-        "engine": scene.render.engine,
-        "resolution": [int(scene.render.resolution_x), int(scene.render.resolution_y)],
-        "samples": samples,
-        "viewTransform": scene.view_settings.view_transform,
-        "frameStart": int(scene.frame_start),
-        "frameEnd": int(scene.frame_end),
-        "fps": int(scene.render.fps),
+        **_actual_render_config(scene),
         "checkpointProfile": checkpoint_profile(scene),
     }
 

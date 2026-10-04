@@ -1,0 +1,24 @@
+{
+  "closedEntities": [
+    "shade-shell", "shade-enamel-lining", "weighted-base", "base-felt-foot",
+    "upright-mast", "hinge-body", "swept-upper-arm", "fabric-power-cable"
+  ],
+  "dimensions": [
+    { "entityId": "shade-shell", "axis": 0, "min": 0.2095, "max": 0.2101 },
+    { "entityId": "shade-shell", "axis": 1, "min": 0.2095, "max": 0.2101 },
+    { "entityId": "shade-shell", "axis": 2, "min": 0.1163, "max": 0.1169 },
+    { "entityId": "weighted-base", "axis": 0, "min": 0.2087, "max": 0.2093 },
+    { "entityId": "weighted-base", "axis": 2, "min": 0.0222, "max": 0.0228 },
+    { "entityId": "upright-mast", "axis": 0, "min": 0.0137, "max": 0.0143 },
+    { "entityId": "upright-mast", "axis": 2, "min": 0.3237, "max": 0.3243 },
+    { "entityId": "hinge-body", "axis": 0, "min": 0.0317, "max": 0.0323 },
+    { "entityId": "hinge-body", "axis": 1, "min": 0.0237, "max": 0.0243 }
+  ],
+  "notes": [
+    "These are authored acceptance intervals in metres, not previously measured results. Check candidate only using the actual compiled checkpoint.",
+    "Major shells are closed revolved boundaries. Require manifold edges and positive finite volume; the thin enamel liner intentionally has much smaller volume than the metal shade.",
+    "Dimensions refer to world-space axis-aligned bounding box lengths, not local generator parameters.",
+    "The mast axis is X=-0.075m and the shade axis X=0.045m; the revised arrangement reserves visible clearance outside the opening. Curved-part collision and cable contact still require rendered inspection.",
+    "The 200m floor is an environment plane; it is intentionally open and excluded from closed-volume checks."
+  ]
+}

@@ -20,7 +20,10 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import sharp from 'sharp'
+import { validateJsonSchemaValue, ToolOutputError } from '@deepseek-ai/dsh-tools'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -30,6 +33,18 @@ const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH
   ?? join(PROJECT_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
+
+const attachedImages = new Map()
+const evidenceDirectory = process.env.DEEPBLEND_TOOL_INSPECTION_OUTPUT
+if (evidenceDirectory) mkdirSync(evidenceDirectory, { recursive: true })
+const sha = bytes => createHash('sha256').update(bytes).digest('hex')
+function fileSnapshot(directory, prefix = '') {
+  return Object.fromEntries(readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const relative = prefix + entry.name, path = join(directory, entry.name)
+    if (entry.isDirectory()) return Object.entries(fileSnapshot(path, `${relative}/`))
+    return [[relative, sha(readFileSync(path))]]
+  }))
+}
 
 const results = []
 function check(name, ok, detail) {
@@ -48,6 +63,14 @@ function toolRegistryStub() {
   return {
     name: 'tool-registry-stub',
     apply(ctx) {
+      ctx.provide('attachments', {
+        async saveImage({ data, mediaType, name }) {
+          const metadata = await sharp(data).metadata()
+          const attachmentId = `sha256:${sha(data)}`
+          attachedImages.set(attachmentId, Buffer.from(data))
+          return { attachmentId, mediaType, bytes: data.length, width: metadata.width, height: metadata.height, name }
+        },
+      })
       ctx.provide('tools', {
         register(definition) {
           if (registered.has(definition.name)) throw new Error(`duplicate tool ${definition.name}`)
@@ -70,6 +93,8 @@ function toolRegistryStub() {
               deferContext() {},
               concludeTurn() {},
             })
+            const violations = validateJsonSchemaValue(definition.output.schema, value)
+            if (violations.length) throw new ToolOutputError(definition.name, violations)
             return { isError: false, value, content: definition.output.render(input.arguments ?? {}, value) }
           } catch (error) {
             return {
@@ -275,6 +300,43 @@ try {
   check('blender_preview_render reports the engine and dimensions in its text',
     preview.value.text.includes('640') && preview.value.text.includes('CYCLES'))
 
+  // Beauty and clay through the model-visible tool, bound to identical source/camera/frame.
+  const studio = root.get('blenderStudio')
+  const sourceDirectory = studio.store.revisionDirectory(projectId, 'r0002')
+  const protectedFiles = fileSnapshot(sourceDirectory)
+  const protectedProject = sha(readFileSync(join(studio.store.projectDirectory(projectId), 'project.json')))
+  const inspections = []
+  for (const mode of ['beauty', 'clay']) {
+    const inspection = await call('blender_preview_render', {
+      projectId, revision: 'r0002', cameraId: 'camera-top', frame: 45, mode, samples: 8, width: 320, height: 240,
+    })
+    const data = inspection.value?.data, artifact = data?.artifacts?.[0], ref = inspection.value?.image
+    const attachment = ref && attachedImages.get(ref.attachmentId)
+    check(`${mode} inspection returns an actual PNG attachment bound to revision, camera and frame`,
+      inspection.isError === false && inspection.value?.ok === true && Buffer.isBuffer(attachment) &&
+      inspection.content.some(block => block.type === 'image') && data.sourceRevision === 'r0002' && data.mode === mode &&
+      artifact.cameraId === 'camera-top' && artifact.frame === 45 && artifact.width === 320 && artifact.height === 240,
+      inspection.value?.ok ? { path: artifact?.path, sha256: artifact?.sha256, image: ref } : inspection.value?.data)
+    const stored = artifact && await studio.readArtifact({ projectId, path: artifact.path })
+    check(`${mode} attachment bytes equal the published inspection PNG and its SHA-256`,
+      Buffer.isBuffer(attachment) && stored?.bytes.equals(attachment) && sha(attachment) === artifact.sha256 && ref.bytes === artifact.bytes)
+    check(`${mode} inspection reports actual optics, settings and rebuilt-source limitations`,
+      artifact?.renderConfig?.samples === 8 && artifact?.cameraFacts?.frame === 45 &&
+      data.execution?.transport === 'batch' && data.limitations?.length > 0 && /rebuilt from SceneSpec/.test(inspection.value.text))
+    inspections.push(data)
+    if (evidenceDirectory && attachment) writeFileSync(join(evidenceDirectory, `${mode}.png`), attachment)
+  }
+  const afterFiles = fileSnapshot(sourceDirectory)
+  check('Agent beauty/clay inspection leaves all original revision files, checkpoint and normal previews byte-identical',
+    Object.entries(protectedFiles).every(([path, digest]) => afterFiles[path] === digest) &&
+    sha(readFileSync(join(studio.store.projectDirectory(projectId), 'project.json'))) === protectedProject &&
+    Object.keys(afterFiles).filter(path => !(path in protectedFiles)).every(path => path.startsWith('diagnostics/')))
+  check('Agent beauty and clay use the same source digest and actual camera/render configuration',
+    inspections.length === 2 && inspections[0]?.sourceDigest === inspections[1]?.sourceDigest &&
+    JSON.stringify(inspections[0]?.artifacts?.[0]?.cameraFacts) === JSON.stringify(inspections[1]?.artifacts?.[0]?.cameraFacts) &&
+    JSON.stringify(inspections[0]?.artifacts?.[0]?.renderConfig) === JSON.stringify(inspections[1]?.artifacts?.[0]?.renderConfig))
+  if (evidenceDirectory) writeFileSync(join(evidenceDirectory, 'inspection-receipts.json'), JSON.stringify({ protectedFiles, protectedProject, inspections }, null, 2))
+
   const validation = await call('blender_scene_validate', { projectId })
   check('blender_scene_validate reports a healthy revision as valid',
     validation.value?.ok === true && validation.value?.data?.ok === true,
@@ -357,4 +419,5 @@ if (failures.length > 0) {
   for (const entry of failures) console.log(`  - ${entry.name}`)
   process.exit(1)
 }
+if (evidenceDirectory) writeFileSync(join(evidenceDirectory, 'results.json'), JSON.stringify(results, null, 2))
 process.exit(0)

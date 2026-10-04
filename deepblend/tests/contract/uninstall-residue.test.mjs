@@ -42,11 +42,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { localPackages, ROOT } from '../../tools/workspace-layout.mjs'
+import { resolveDshScope } from '../lib/dsh-deployment.mjs'
+import { withInstallerLock } from '../../tools/installer-transaction.mjs'
 
 const PLUGIN_TOOL = join(ROOT, 'deepblend', 'tools', 'install-plugin.mjs')
 const PRESET_TOOL = join(ROOT, 'deepblend', 'tools', 'install-presets.mjs')
@@ -86,6 +89,20 @@ function run(tool, home, ...args) {
 const manifestOf = home => JSON.parse(readFileSync(join(home, 'profiles', 'web', 'package.json'), 'utf8'))
 const scopeOf = home => join(home, 'profiles', 'node_modules', '@deepblend')
 const presetRootOf = home => join(home, '.agent-presets')
+const ownershipOf = home => join(home, '.deepblend-preset-ownership.json')
+
+function filesInHome(home) {
+  const files = {}
+  const walk = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else files[path.slice(home.length)] = entry.isSymbolicLink() ? `link:${readlinkSync(path)}` : readFileSync(path, 'base64')
+    }
+  }
+  walk(home)
+  return files
+}
 
 /** The patch entries in an operator layer, ignoring its comment header. */
 function entriesOf(text) {
@@ -244,6 +261,240 @@ test('the presets this repository deploys all go, and nothing else in the root d
   }
 })
 
+test('preset uninstall preserves both profiles until their final declared bundle reference is removed', () => {
+  const home = makeHome()
+  try {
+    cpSync(join(home, 'profiles', 'web'), join(home, 'profiles', 'second'), { recursive: true })
+    assert.equal(run(PLUGIN_TOOL, home).status, 0)
+    assert.equal(run(PLUGIN_TOOL, home, '--profile', 'second').status, 0)
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    const before = filesInHome(home)
+    const refused = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(refused.status, 2)
+    assert.match(refused.stderr, /still referenced/)
+    assert.match(refused.stderr, /web/)
+    assert.match(refused.stderr, /second/)
+    assert.deepEqual(filesInHome(home), before)
+    assert.equal(run(PLUGIN_TOOL, home, '--uninstall').status, 0)
+    const oneLeft = filesInHome(home)
+    assert.equal(run(PRESET_TOOL, home, '--uninstall').status, 2)
+    assert.deepEqual(filesInHome(home), oneLeft)
+    assert.equal(run(PLUGIN_TOOL, home, '--profile', 'second', '--check').status, 0)
+    assert.equal(run(PLUGIN_TOOL, home, '--profile', 'second', '--uninstall').status, 0)
+    const removed = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(removed.status, 0, removed.stderr)
+    for (const id of PRESETS) assert.ok(!existsSync(join(presetRootOf(home), id)))
+    assert.ok(!existsSync(ownershipOf(home)))
+    assert.ok(existsSync(presetRootOf(home)), 'the shared preset root remains')
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('explicit preset selection also prevents removal after its bundle has been unregistered', () => {
+  const home = makeHome()
+  try {
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), '[{"id":"agent-presets","config":{"default":"deepblend"}}]\n')
+    const before = filesInHome(home)
+    const result = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(result.status, 2)
+    assert.match(result.stderr, /web \(cordis.patch.yml\)/)
+    assert.deepEqual(filesInHome(home), before)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('all explicit dependency fields protect shared links and presets in the current or another profile', () => {
+  for (const field of ['devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    for (const profile of ['web', 'second']) {
+      const home = makeHome()
+      try {
+        if (profile === 'second') cpSync(join(home, 'profiles', 'web'), join(home, 'profiles', profile), { recursive: true })
+        assert.equal(run(PLUGIN_TOOL, home).status, 0)
+        assert.equal(run(PRESET_TOOL, home).status, 0)
+        const manifestPath = join(home, 'profiles', profile, 'package.json')
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+        manifest[field] = { '@deepblend/dsh-blender-contracts': '*' }
+        writeFileSync(manifestPath, JSON.stringify(manifest))
+        const removed = run(PLUGIN_TOOL, home, '--uninstall')
+        assert.equal(removed.status, 0, `${field} in ${profile}: ${removed.stderr}`)
+        assert.ok(existsSync(join(home, 'profiles', 'node_modules', '@deepblend', 'dsh-blender-contracts', 'package.json')))
+        const before = filesInHome(home)
+        const refused = run(PRESET_TOOL, home, '--uninstall')
+        assert.equal(refused.status, 2, `${field} in ${profile}: ${refused.stderr}`)
+        assert.ok(refused.stderr.includes(`${profile} (package.json)`))
+        assert.deepEqual(filesInHome(home), before)
+        const remaining = JSON.parse(readFileSync(manifestPath, 'utf8'))
+        delete remaining[field]
+        writeFileSync(manifestPath, JSON.stringify(remaining))
+        assert.equal(run(PLUGIN_TOOL, home, '--uninstall').status, 0)
+        assert.ok(!existsSync(join(home, 'profiles', 'node_modules', '@deepblend')))
+        assert.equal(run(PRESET_TOOL, home, '--uninstall').status, 0)
+      } finally { rmSync(home, { recursive: true, force: true }) }
+    }
+  }
+})
+
+test('preset reinstall preserves user edits but upgrades files that still match their previous receipt', () => {
+  const home = makeHome()
+  try {
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    const path = join(presetRootOf(home), 'deepblend', 'preset.yml')
+    const published = readFileSync(path)
+    writeFileSync(path, 'my edited preset\n')
+    const before = filesInHome(home)
+    const refused = run(PRESET_TOOL, home)
+    assert.equal(refused.status, 2, refused.stderr)
+    assert.match(refused.stderr, /modified/)
+    assert.deepEqual(filesInHome(home), before)
+
+    // Model an unchanged older installation without editing repository source.
+    const older = 'an earlier released preset\n'
+    writeFileSync(path, older)
+    const receipt = JSON.parse(readFileSync(ownershipOf(home), 'utf8'))
+    receipt.presets.deepblend.files['preset.yml'] = createHash('sha256').update(older).digest('hex')
+    writeFileSync(ownershipOf(home), JSON.stringify(receipt))
+    const upgraded = run(PRESET_TOOL, home)
+    assert.equal(upgraded.status, 0, upgraded.stderr)
+    assert.deepEqual(readFileSync(path), published)
+    assert.equal(run(PRESET_TOOL, home, '--check').status, 0)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('preset uninstall refuses modified or unowned files without deleting the other preset', () => {
+  for (const file of ['preset.yml', 'my-notes.md']) {
+    const home = makeHome()
+    try {
+      assert.equal(run(PRESET_TOOL, home).status, 0)
+      writeFileSync(join(presetRootOf(home), 'deepblend', file), 'user-owned content\n')
+      const before = filesInHome(home)
+      const result = run(PRESET_TOOL, home, '--uninstall')
+      assert.equal(result.status, 2)
+      assert.match(result.stderr, /NOT OURS/)
+      assert.deepEqual(filesInHome(home), before)
+    } finally { rmSync(home, { recursive: true, force: true }) }
+  }
+})
+
+test('preset links, including nested links, are preserved and never followed for uninstall', () => {
+  for (const nested of [false, true]) {
+    const home = makeHome()
+    try {
+      assert.equal(run(PRESET_TOOL, home).status, 0)
+      const outside = join(home, 'other-preset-files')
+      mkdirSync(outside)
+      writeFileSync(join(outside, 'keep.md'), 'must survive')
+      const target = join(presetRootOf(home), 'deepblend')
+      if (nested) symlinkSync(outside, join(target, 'external'))
+      else { rmSync(target, { recursive: true }); symlinkSync(outside, target) }
+      const before = filesInHome(home)
+      const result = run(PRESET_TOOL, home, '--uninstall')
+      assert.equal(result.status, 2)
+      assert.match(result.stderr, /link/)
+      assert.deepEqual(filesInHome(home), before)
+    } finally { rmSync(home, { recursive: true, force: true }) }
+  }
+})
+
+test('an unchanged file recorded by an older preset receipt can be uninstalled safely', () => {
+  const home = makeHome()
+  try {
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    const bytes = 'owned by an older release\n'
+    const receipt = JSON.parse(readFileSync(ownershipOf(home), 'utf8'))
+    receipt.presets.deepblend.files['old-owned-file.md'] = createHash('sha256').update(bytes).digest('hex')
+    writeFileSync(ownershipOf(home), JSON.stringify(receipt))
+    writeFileSync(join(presetRootOf(home), 'deepblend', 'old-owned-file.md'), bytes)
+    const result = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(result.status, 0, result.stderr)
+    assert.ok(!existsSync(join(presetRootOf(home), 'deepblend')))
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('legacy native presets without a receipt are removable only when their files match the published source', () => {
+  const home = makeHome()
+  try {
+    cpSync(join(ROOT, 'deepblend', 'presets'), presetRootOf(home), { recursive: true })
+    assert.ok(!existsSync(ownershipOf(home)))
+    const result = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(result.status, 0, result.stderr)
+    for (const id of PRESETS) assert.ok(!existsSync(join(presetRootOf(home), id)))
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('preset operations use the same lock as host installation', async () => {
+  const home = makeHome()
+  try {
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    await withInstallerLock(home, false, () => {
+      const before = filesInHome(home)
+      const result = run(PRESET_TOOL, home, '--uninstall')
+      assert.equal(result.status, 2)
+      assert.match(result.stderr, /Another installer is running/)
+      assert.deepEqual(filesInHome(home), before)
+    })
+    assert.equal(run(PRESET_TOOL, home, '--uninstall').status, 0)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('the preset command restores an interrupted deletion before checking live profile references', () => {
+  const home = makeHome()
+  try {
+    assert.equal(run(PLUGIN_TOOL, home).status, 0)
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    const before = filesInHome(home)
+    const module = join(ROOT, 'deepblend', 'tools', 'installer-transaction.mjs')
+    const interrupted = spawnSync(process.execPath, ['--input-type=module', '-e', `
+      import { applyInstallerPlan, snapshot, withInstallerLock } from ${JSON.stringify(`file://${module}`)};
+      const home = process.argv[1];
+      const path = home + '/.agent-presets/deepblend/preset.yml';
+      await withInstallerLock(home, false, () => applyInstallerPlan(home, [
+        { path, before: snapshot(path), after: { type: 'absent' } },
+      ], { afterWrite() { process.kill(process.pid, 'SIGKILL') } }));
+    `, home], { encoding: 'utf8' })
+    assert.equal(interrupted.signal, 'SIGKILL')
+    assert.ok(!existsSync(join(presetRootOf(home), 'deepblend', 'preset.yml')))
+    const pending = filesInHome(home)
+    assert.equal(run(PRESET_TOOL, home, '--check').status, 2)
+    assert.deepEqual(filesInHome(home), pending, '--check must not recover or delete anything')
+    const recovered = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(recovered.status, 2, 'a live bundle still requires the restored preset')
+    assert.match(recovered.stdout, /recovered: restored/)
+    assert.match(recovered.stderr, /still referenced/)
+    assert.deepEqual(filesInHome(home), before)
+    assert.equal(run(PLUGIN_TOOL, home, '--uninstall').status, 0)
+    assert.equal(run(PRESET_TOOL, home, '--uninstall').status, 0)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('real DSH two-profile lifecycle blocks preset removal while the other profile still composes DeepBlend', () => {
+  const home = mkdtempSync(join(tmpdir(), 'deepblend-preset-lifecycle-'))
+  try {
+    const cli = join(resolveDshScope('dsh'), 'dsh', 'lib', 'bin.js')
+    const dump = profile => spawnSync(process.execPath, [cli, '--profile', profile, '--dump-config'], {
+      cwd: ROOT, encoding: 'utf8', timeout: 30_000, env: { ...process.env, DSH_HOME: home },
+    })
+    assert.equal(dump('web').status, 0)
+    cpSync(join(home, 'profiles', 'web'), join(home, 'profiles', 'second'), { recursive: true })
+    assert.equal(run(PLUGIN_TOOL, home).status, 0)
+    assert.equal(run(PLUGIN_TOOL, home, '--profile', 'second').status, 0)
+    assert.equal(run(PRESET_TOOL, home).status, 0)
+    assert.equal(run(PLUGIN_TOOL, home, '--uninstall').status, 0)
+    const refused = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(refused.status, 2, refused.stderr)
+    assert.match(refused.stderr, /second/)
+    const composed = dump('second')
+    assert.equal(composed.status, 0, composed.stderr)
+    assert.match(composed.stdout, /id: deepblend-blender-host/)
+    assert.match(composed.stdout, /id: deepblend-blender-preset/)
+    assert.equal(run(PRESET_TOOL, home, '--check').status, 0)
+    assert.equal(run(PLUGIN_TOOL, home, '--profile', 'second', '--uninstall').status, 0)
+    const removed = run(PRESET_TOOL, home, '--uninstall')
+    assert.equal(removed.status, 0, removed.stderr)
+    const remaining = dump('second')
+    assert.equal(remaining.status, 0, remaining.stderr)
+    assert.doesNotMatch(remaining.stdout, /id: deepblend-blender-preset/)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
 test('the manual tells the reader to uninstall, not to run the installer again', () => {
   const section = uninstallSection()
 
@@ -303,3 +554,22 @@ test('every local package this repository links is a package the uninstaller kno
     assert.ok(existsSync(join(directory, 'package.json')), `${name} points at ${directory}, which has no manifest`)
   }
 })
+
+for (const args of [['--help'], ['-h'], ['--help', '--uninstall'], ['--hepl'], ['--check', '--unknown']]) {
+  test(`preset installer ${args.join(' ')} does not mutate an existing or absent DSH home`, () => {
+    const home = makeHome(), absent = join(home, 'never-created')
+    try {
+      const before = filesInHome(home)
+      for (const target of [home, absent]) {
+        const result = run(PRESET_TOOL, target, ...args)
+        const invalid = args.some(arg => ['--hepl', '--unknown'].includes(arg))
+        assert.equal(result.status, invalid ? 2 : 0, result.stdout + result.stderr)
+        assert.match(invalid ? result.stderr : result.stdout, invalid ? /Unknown preset installer argument/ : /Usage:/)
+        assert.deepEqual(filesInHome(home), before)
+        assert.equal(existsSync(absent), false)
+        assert.equal(existsSync(presetRootOf(home)), false)
+        assert.equal(existsSync(ownershipOf(home)), false)
+      }
+    } finally { rmSync(home, { recursive: true, force: true }) }
+  })
+}

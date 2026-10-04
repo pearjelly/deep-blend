@@ -213,8 +213,8 @@ check('an explicit view list is rendered as given, instead of the standard plan'
   named.views.map(view => view.viewId))
 check('and the PNG the runtime handed back is published as an artifact OF that revision',
   named.artifacts.some(artifact => artifact.kind === 'view' &&
-    artifact.path === `revisions/${second}/previews/views/three-quarter.png`) &&
-  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', 'views', 'three-quarter.png')),
+    artifact.path === `revisions/${second}/previews/views/${named.job.jobId}/three-quarter.png`) &&
+  existsSync(join(studio.store.projectDirectory(projectId), named.views[0].path)),
   named.artifacts.map(artifact => artifact.path))
 check('the render is recorded as a job, so a later reader can see that it happened',
   named.job?.status === 'succeeded' && named.job?.action === 'render_views' && named.job?.revision === second,
@@ -348,9 +348,9 @@ check('the preview says WHERE its pixels came from without inventing what the re
   preview.warnings.map(entry => entry.message))
 check('a preview renders, publishes the image into the revision, and reports which revision it wrote into',
   preview.revision === second &&
-  preview.artifacts.some(entry => entry.path === `revisions/${second}/previews/frame60-camera-main.png`) &&
-  preview.revisionPreviews.some(entry => entry.path === `revisions/${second}/previews/frame60-camera-main.png`) &&
-  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', 'frame60-camera-main.png')),
+  preview.artifacts.some(entry => entry.path === `revisions/${second}/previews/${preview.job.jobId}-frame60-camera-main.png`) &&
+  preview.revisionPreviews.some(entry => entry.path === `revisions/${second}/previews/${preview.job.jobId}-frame60-camera-main.png`) &&
+  existsSync(join(studio.store.revisionDirectory(projectId, second), 'previews', `${preview.job.jobId}-frame60-camera-main.png`)),
   { revision: preview.revision, artifacts: preview.artifacts.map(entry => entry.path) })
 // THE RECORD IS PUT THROUGH THE SCHEMA THIS PRODUCT PUBLISHES. `deepblend/schemas/job-result.schema.json`
 // is mirrored, documented and referenced by SPEC — and until this check existed, NOTHING validated anything
@@ -608,18 +608,17 @@ check('what the reviewer SAID is kept as its own record, with the model, the not
 // into the revision and indexed there, and the review record lands beside it.
 const revisionDirectory = studio.store.revisionDirectory(reviewedProject.projectId, reviewedProject.revision.revision)
 check('the sheet and the review record are persisted under the revision they belong to',
-  existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')) &&
-  existsSync(join(revisionDirectory, 'visual-reviews', 'round-2.json')) &&
-  existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')),
-  { round2Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-2.png')), round0Sheet: existsSync(join(revisionDirectory, 'contact-sheets', 'round-0.png')) })
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), reviewRound.sheetArtifact.path)) &&
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), reviewRound.reviewArtifact.path)) &&
+  existsSync(join(studio.store.projectDirectory(reviewedProject.projectId), unconsulted.sheetArtifact.path)),
+  { round2Sheet: reviewRound.sheetArtifact.path, round0Sheet: unconsulted.sheetArtifact.path })
 
 // ---------------------------------------------------------------------------
 // The QA record picks the NEWEST review, and a preview says where its checkpoint came from
 // ---------------------------------------------------------------------------
 //
 // Two reviews of one revision is the normal case — the loop renders a round, patches, renders another — and the
-// QA record is supposed to answer "how does this revision look NOW". It therefore has to select by ITERATION
-// rather than by whatever order the artifact index happens to list, and then read that record from disk.
+// QA answers the newest emitted record, including when a new run resets its iteration to zero.
 const qaRecord = await studio.getQaRecord({ projectId: reviewedProject.projectId, revision: reviewedProject.revision.revision })
 check('the QA record carries the NEWEST round of a revision that was reviewed twice',
   qaRecord.review !== null && qaRecord.review?.iteration === 2 &&
@@ -629,6 +628,11 @@ check('and it reports the review’s own record rather than a summary built from
   Array.isArray(qaRecord.review?.perView) && qaRecord.review.perView.length > 0 &&
   qaRecord.review?.reported !== undefined,
   Object.keys(qaRecord.review ?? {}))
+
+await studio.visualReview({ projectId: reviewedProject.projectId, iteration: 0, consultReviewer: false })
+const restartedQa = await studio.getQaRecord({ projectId: reviewedProject.projectId })
+check('a new review run supersedes an earlier higher iteration instead of showing stale artistic evidence',
+  restartedQa.review.iteration === 0 && restartedQa.review.artistic.status === 'unassessable')
 
 // A revision with no checkpoint of its own is COMPILED for the render, and when an earlier revision HAS one the
 // warning has to say which one it fell back to — that sentence is the only place a reader learns that the

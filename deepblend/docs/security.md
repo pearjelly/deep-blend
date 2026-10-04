@@ -80,7 +80,7 @@ the graph declares for it」是它在网络上的证据。
 | 7 | 压缩包目录穿越防护 | ➖ 压缩包不是可导入的资产类型（`IMPORT_OPERATOR_BY_ASSET_TYPE` 只认 glb/gltf/fbx/obj/usd/blend），没有解包路径可穿越 | `deepblend/tests/composition/assets.e2e.mjs` 「a format this project cannot carry」 | ➖ |
 | 8 | MIME 与扩展名双重校验 | 扩展名选导入算子（`packages/deepblend/contracts/lib/scene-spec.js` 「IMPORT_OPERATOR_BY_ASSET_TYPE」），**内容**再看前 512 字节：`packages/deepblend/contracts/lib/asset-content.js` 「assetContentVerdict」，拷贝进项目**之前**判，只有**正面矛盾**才拒绝 | `deepblend/tests/composition/assets.e2e.mjs` 「a .glb whose bytes are a PNG」 | ✅ |
 | 9 | 文件大小限制 | `packages/deepblend/host/lib/index.js` 「assetMaxBytes」，本地复制前与网络流式下载中都检查 | `deepblend/tests/composition/assets.e2e.mjs` 「a source above assetMaxBytes」 | ✅ |
-| 10 | 纹理尺寸限制 | ❌ 没有：纹理尺寸既不测量也不设限 | —— | ❌ 偏差 §7 #7 |
+| 10 | 纹理尺寸限制 | 显式图片材质/环境在清空场景前检查实际头部，最多 8192 像素；有固定元数据和累计像素估算预算。glTF/GLB 选中来源、不同 RGB 用途、原生粗糙度烘焙和各实例保守估算已纳入；其他模型格式的全面预检待完成 | `deepblend/tests/contract/image-headers.test.mjs` 「scene budgets count separate color and data bindings」＋`gltf-image-roles.test.mjs` | ⚠️ 偏差 §7 #7 |
 | 11 | Mesh 面数限制 | `packages/deepblend/host/lib/revision-transaction.js` 「SCENE_TOO_HEAVY」，上限是 `maxMeshPolygons`（默认 200 万），比较的是编译报告里**已经测出来**的面数 | `deepblend/tests/composition/hardening.e2e.mjs` 「a scene above maxMeshPolygons is refused」 | ✅ |
 | 12 | 资产 Hash | `sha256` 写进 manifest，并被 `asset.add` 与场景一起钉住 | `deepblend/tests/composition/assets.e2e.mjs` 「it reports a sha256 the scene can pin」 | ✅ |
 | 13 | 禁用未知 Add-on | `--factory-startup` | `deepblend/tests/contract/security-controls.test.mjs` 「the provider starts Blender with the flags the policy depends on」 | ✅ |
@@ -90,7 +90,7 @@ the graph declares for it」是它在网络上的证据。
 | 17 | 日志脱敏 | 两半，各管一边：秘密**根本不进子进程**（环境变量白名单），而且**本插件自己产出的 URL 一律先脱敏**——凭据、查询串、片段被移除并在文本里**说明移除了什么**（预签名的模型链接是常态，不是特例）。仍然没有的是「用户自己贴进对话的秘密」的日志过滤器，那属于 DSH 的凭据平面 | `deepblend/tests/contract/security-controls.test.mjs` 「hands the child no secret」＋`contract/url-redaction.test.mjs` 与 `contract/host-asset-ingest.test.mjs`「a failed fetch of a PRESIGNED url quotes it with the signature removed」 | ⚠️ 偏差 §7 #10 |
 | 18 | 完整 Tool 审计 | 每次 Blender 动作留 durable job 记录；每次成功的 patch 留 operation manifest；每个 revision 留 manifest | `deepblend/tests/blender-integration/fixture.e2e.mjs` 「every Blender action left a durable job record」 | ✅ |
 
-统计：**14 条 ✅、1 条 ➖、2 条 ⚠️、1 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
+统计：**14 条 ✅、1 条 ➖、3 条 ⚠️、0 条 ❌**（⚠️ 与 ❌ 各自在 §7 有编号）。
 
 ## 4. 已知偏差
 

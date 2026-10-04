@@ -30,6 +30,7 @@ Owner: DeepBlend Studio — SPEC §20 M6
 
 import json
 import os
+import queue
 import socket
 import sys
 import threading
@@ -132,6 +133,9 @@ class _Bridge:
         self.last_action = None
         self.last_error = None
         self.connected = False
+        self.pending = queue.Queue()
+        self.connection = None
+        self.timer = self._pump
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -164,6 +168,29 @@ class _Bridge:
         self.server.listen(4)
         self.thread = threading.Thread(target=self._serve, name="deepblend-bridge", daemon=True)
         self.thread.start()
+        if not bpy.app.background:
+            bpy.app.timers.register(self.timer, first_interval=0.01, persistent=True)
+
+    def _dispatch_pending(self, timeout=0):
+        """Run Blender API calls on the main thread; the socket thread only does I/O."""
+        try:
+            job = self.pending.get(timeout=timeout)
+        except queue.Empty:
+            return
+        try:
+            job["answer"] = bootstrap._session_dispatch(job["request"], self.options)
+        except Exception as exc:
+            job["answer"] = bootstrap.build_envelope(None, None, None, {
+                "code": "BLENDER_SCRIPT_ERROR", "message": bootstrap.error_text(exc),
+            }, [], [])
+        finally:
+            job["done"].set()
+
+    def _pump(self):
+        if self.server is None:
+            return None
+        self._dispatch_pending()
+        return 0.01
 
     @staticmethod
     def derive_workspace(open_file):
@@ -204,6 +231,13 @@ class _Bridge:
                 pass
 
     def stop(self):
+        if not bpy.app.background and bpy.app.timers.is_registered(self.timer):
+            bpy.app.timers.unregister(self.timer)
+        if self.connection is not None:
+            try:
+                self.connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
         try:
             if self.server is not None:
                 self.server.close()
@@ -225,12 +259,14 @@ class _Bridge:
             except Exception:
                 return
             self.connected = True
+            self.connection = connection
             try:
                 self._converse(connection)
             except Exception as exc:
                 self.last_error = bootstrap.error_text(exc)
             finally:
                 self.connected = False
+                self.connection = None
                 try:
                     connection.close()
                 except Exception:
@@ -274,7 +310,12 @@ class _Bridge:
                         return
                     self.requests += 1
                     self.last_action = request.get("action") if isinstance(request, dict) else None
-                    answer = bootstrap._session_dispatch(request, self.options)
+                    job = {"request": request, "done": threading.Event()}
+                    self.pending.put(job)
+                    while not job["done"].wait(0.1):
+                        if self.server is None:
+                            return
+                    answer = job["answer"]
                 answer["kind"] = "result"
                 connection.sendall((json.dumps(answer, ensure_ascii=False) + "\n").encode("utf-8"))
 
@@ -407,9 +448,10 @@ def main():
         return 2
     print(json.dumps({"kind": "ready", "pid": os.getpid(), "socket": socket_path, "workspace": workspace}), flush=True)
     try:
-        # The serve thread is a daemon, so this loop is what keeps the process alive. A SIGTERM (or
-        # the product closing the socket and asking for shutdown) ends it.
-        _BRIDGE.thread.join()
+        # Headless Blender has no UI timer loop. Pump on this main thread instead
+        # of joining the socket worker, which would run bpy from the wrong thread.
+        while _BRIDGE.thread.is_alive():
+            _BRIDGE._dispatch_pending(timeout=0.1)
     except KeyboardInterrupt:
         pass
     finally:

@@ -32,7 +32,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-BLENDER="$ROOT/.tools/Blender.app/Contents/MacOS/Blender"
+BLENDER="${DEEPBLEND_BLENDER_PATH:-$ROOT/.tools/Blender.app/Contents/MacOS/Blender}"
 if [ ! -x "$BLENDER" ]; then
   echo "Blender not found at $BLENDER"
   echo "The Blender suites cannot run. See deepblend/docs/dsh-baseline.md §5."
@@ -71,6 +71,21 @@ run_suite "Blender capability probe (M0)" \
 run_suite "Blender batch SceneSpec + revision loop (M1)" \
   node deepblend/tests/blender-integration/fixture.e2e.mjs
 
+run_suite "Public runtime conformance: packed checker, native evidence, cancellation and partial resume" \
+  node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs
+
+run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
+  node deepblend/tests/blender-integration/handled-cup.e2e.mjs
+
+run_suite "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild" \
+  node deepblend/tests/blender-integration/asset-bundle.e2e.mjs
+
+run_suite "Asset library: real uploads, isolated previews and source fidelity" \
+  node deepblend/tests/blender-integration/asset-library.e2e.mjs
+
+run_suite "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection" \
+  node deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs
+
 run_suite "Blender live session: one process, many operations (M6 Live Bridge, transport)" \
   node deepblend/tests/blender-integration/live-session.e2e.mjs
 
@@ -92,7 +107,7 @@ run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
 run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)" \
   node deepblend/tests/blender-integration/render-job.e2e.mjs
 
-run_suite "Agent preset M3 tool plane (all sixteen tools, real delivery)" \
+run_suite "Agent preset M3 tool plane (all seventeen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary" \
@@ -115,6 +130,30 @@ run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no
 
 run_suite "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)" \
   node deepblend/tests/e2e/workbench-page.e2e.mjs
+
+run_suite "Asset library in a real browser: upload, preview, apply and revision conflicts" \
+  node deepblend/tests/e2e/asset-library.e2e.mjs
+
+run_suite "Handled cup editor: real dimensions, refusals and revision reload" \
+  node deepblend/tests/e2e/handled-cup-ui.e2e.mjs
+
+run_suite "Material surface editor: UV drafts, native refusals, saved graph and real pixels" \
+  node deepblend/tests/e2e/material-texture-ui.e2e.mjs
+
+run_suite "Recipe versions: native UV defaults, gallery selection and historical project locks" \
+  node deepblend/tests/e2e/recipe-version-ui.e2e.mjs
+
+run_suite "Preview history: native attempts, source labels, editor comparison and restore" \
+  node deepblend/tests/e2e/preview-history-ui.e2e.mjs
+
+run_suite "Independent Host processes: native previews, protected indices and sheet rotation" \
+  node deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs
+
+run_suite "Review history: independent native Hosts, immutable image pairs and latest QA" \
+  node deepblend/tests/blender-integration/review-history.e2e.mjs
+
+run_suite "Fixed-view inspection workbench: real images, revision history and cancellation" \
+  node deepblend/tests/e2e/inspection-ui.e2e.mjs
 
 echo ""
 echo "══════════════════════════════════════════"

@@ -205,16 +205,21 @@ export const TOOL_OUTPUT_WITH_IMAGE = {
       text: { type: 'string', required: true },
       data: { type: 'object', additionalProperties: true, required: true },
       image: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          attachmentId: { type: 'string', required: true },
-          mediaType: { type: 'string', required: true },
-          bytes: { type: 'number', required: true },
-          width: { type: 'number', required: true },
-          height: { type: 'number', required: true },
-          name: { type: 'string' },
-        },
+        oneOf: [
+          { type: 'null' },
+          {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              attachmentId: { type: 'string', required: true },
+              mediaType: { type: 'string', required: true },
+              bytes: { type: 'number', required: true },
+              width: { type: 'number', required: true },
+              height: { type: 'number', required: true },
+              name: { type: 'string' },
+            },
+          },
+        ],
       },
     },
   },

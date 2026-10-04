@@ -1,0 +1,1174 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "metal-lamp-baseline",
+    "title": "Arc No. 01 — geometry and finish ablation",
+    "goal": "A deliberately simplified ablation of the same authored lamp: fewer radial/profile samples, plain metal, and missing small trim. Camera, assembly positions, practical light, world, render profiles and exposure are identical. This is not a historical version.",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 48,
+    "aspectRatio": "4:3",
+    "activeCamera": "hero"
+  },
+  "materials": [
+    {
+      "id": "champagne-spun",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.63,
+          0.535,
+          0.415,
+          1
+        ],
+        "metallic": 1,
+        "roughness": 0.39
+      }
+    },
+    {
+      "id": "champagne-brushed",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.63,
+          0.535,
+          0.415,
+          1
+        ],
+        "metallic": 1,
+        "roughness": 0.39
+      }
+    },
+    {
+      "id": "polished-edge",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.67,
+          0.59,
+          0.47,
+          1
+        ],
+        "metallic": 1,
+        "roughness": 0.19
+      }
+    },
+    {
+      "id": "dark-bronze",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.125,
+          0.098,
+          0.067,
+          1
+        ],
+        "metallic": 0.9,
+        "roughness": 0.32
+      }
+    },
+    {
+      "id": "warm-enamel",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.76,
+          0.715,
+          0.61,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.3,
+        "coatWeight": 0.25
+      }
+    },
+    {
+      "id": "opal-warm",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.82,
+          0.765,
+          0.65,
+          1
+        ],
+        "roughness": 0.35,
+        "emissionColor": [
+          1,
+          0.72,
+          0.38,
+          1
+        ],
+        "emissionStrength": 2.5
+      }
+    },
+    {
+      "id": "graphite-rubber",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.016,
+          0.019,
+          0.019,
+          1
+        ],
+        "roughness": 0.78
+      }
+    },
+    {
+      "id": "woven-cable",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.028,
+          0.027,
+          0.024,
+          1
+        ],
+        "roughness": 0.72
+      }
+    },
+    {
+      "id": "warm-stone",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.17,
+          0.155,
+          0.137,
+          1
+        ],
+        "roughness": 0.72
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "shade-shell",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0.104,
+            0.0034
+          ],
+          [
+            0.104,
+            0.012
+          ],
+          [
+            0.072,
+            0.094
+          ],
+          [
+            0.01,
+            0.12
+          ],
+          [
+            0.0084,
+            0.1184
+          ],
+          [
+            0.0704,
+            0.0924
+          ],
+          [
+            0.1024,
+            0.01
+          ],
+          [
+            0.1024,
+            0.0034
+          ]
+        ],
+        "segments": 16,
+        "closedProfile": true
+      },
+      "materialId": "champagne-spun",
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.31
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "hero-product",
+        "continuous-hollow-shell"
+      ]
+    },
+    {
+      "id": "shade-enamel-lining",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0.10100431,
+            0.0155181
+          ],
+          [
+            0.06320219,
+            0.08849052
+          ],
+          [
+            0.01788699,
+            0.11690984
+          ],
+          [
+            0.01763699,
+            0.11690984
+          ],
+          [
+            0.06295219,
+            0.08849052
+          ],
+          [
+            0.10075431,
+            0.0155181
+          ]
+        ],
+        "segments": 16,
+        "closedProfile": true
+      },
+      "materialId": "warm-enamel",
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.31
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "weighted-base",
+      "type": "generator",
+      "generator": {
+        "shape": "lathe",
+        "profile": [
+          [
+            0,
+            0.003
+          ],
+          [
+            0.1045,
+            0.003
+          ],
+          [
+            0.1045,
+            0.0255
+          ],
+          [
+            0,
+            0.0255
+          ]
+        ],
+        "segments": 16,
+        "capEnds": true
+      },
+      "materialId": "champagne-spun",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "base-felt-foot",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.096,
+        "depth": 0.003,
+        "segments": 16
+      },
+      "materialId": "graphite-rubber",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.0015
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "mast-socket",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.015,
+        "depth": 0.013,
+        "segments": 16
+      },
+      "materialId": "dark-bronze",
+      "transform": {
+        "location": [
+          -0.075,
+          0.025,
+          0.0298
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "upright-mast",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.007,
+        "depth": 0.324,
+        "segments": 16
+      },
+      "materialId": "champagne-brushed",
+      "transform": {
+        "location": [
+          -0.075,
+          0.025,
+          0.199
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "hinge-body",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.016,
+        "depth": 0.024,
+        "segments": 16
+      },
+      "materialId": "dark-bronze",
+      "transform": {
+        "location": [
+          -0.075,
+          0.025,
+          0.364
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "hinge-front-cap",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.0128,
+        "depth": 0.0026,
+        "segments": 16
+      },
+      "materialId": "champagne-spun",
+      "transform": {
+        "location": [
+          -0.075,
+          0.0118,
+          0.364
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "hinge-rear-cap",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.0128,
+        "depth": 0.0026,
+        "segments": 16
+      },
+      "materialId": "champagne-spun",
+      "transform": {
+        "location": [
+          -0.075,
+          0.0382,
+          0.364
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "swept-upper-arm",
+      "type": "generator",
+      "generator": {
+        "shape": "curve",
+        "pathInterpolation": "bezier",
+        "radius": 0.006,
+        "curveResolution": 4,
+        "bevelResolution": 2,
+        "capEnds": true,
+        "path": [
+          [
+            -0.075,
+            0.025,
+            0.364
+          ],
+          [
+            -0.062,
+            0.023,
+            0.396
+          ],
+          [
+            -0.014,
+            0.015,
+            0.434
+          ],
+          [
+            0.03,
+            0.004,
+            0.449
+          ],
+          [
+            0.045,
+            0,
+            0.444
+          ],
+          [
+            0.045,
+            0,
+            0.428
+          ]
+        ]
+      },
+      "materialId": "champagne-brushed",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "shade-neck-collar",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.012,
+        "depth": 0.013,
+        "segments": 16
+      },
+      "materialId": "dark-bronze",
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.4315
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "bulb-socket",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.009,
+        "depth": 0.035,
+        "segments": 16
+      },
+      "materialId": "warm-enamel",
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.4
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "opal-bulb",
+      "type": "generator",
+      "generator": {
+        "shape": "uv_sphere",
+        "radius": 0.021,
+        "segments": 16,
+        "ringCount": 8
+      },
+      "materialId": "opal-warm",
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.366
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "control-recess",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.013,
+        "depth": 0.001,
+        "segments": 16
+      },
+      "materialId": "dark-bronze",
+      "transform": {
+        "location": [
+          0.035,
+          -0.042,
+          0.0256
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "dimmer-dial",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.011,
+        "depth": 0.006,
+        "segments": 16
+      },
+      "materialId": "champagne-spun",
+      "transform": {
+        "location": [
+          0.035,
+          -0.042,
+          0.029
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "rear-cable-grommet",
+      "type": "generator",
+      "generator": {
+        "shape": "uv_sphere",
+        "radius": 0.0045,
+        "segments": 16,
+        "ringCount": 8
+      },
+      "materialId": "graphite-rubber",
+      "transform": {
+        "location": [
+          -0.055,
+          0.087,
+          0.013
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "fabric-power-cable",
+      "type": "generator",
+      "generator": {
+        "shape": "curve",
+        "radius": 0.0022,
+        "pathInterpolation": "poly",
+        "curveResolution": 4,
+        "bevelResolution": 2,
+        "capEnds": true,
+        "path": [
+          [
+            -0.055,
+            0.087,
+            0.013
+          ],
+          [
+            -0.065,
+            0.114,
+            0.004
+          ],
+          [
+            -0.125,
+            0.154,
+            0.0023
+          ],
+          [
+            -0.122,
+            0.217,
+            0.0023
+          ],
+          [
+            -0.047,
+            0.255,
+            0.0023
+          ],
+          [
+            0.069,
+            0.251,
+            0.0023
+          ],
+          [
+            0.156,
+            0.222,
+            0.0023
+          ],
+          [
+            0.223,
+            0.251,
+            0.0023
+          ]
+        ]
+      },
+      "materialId": "woven-cable",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": []
+    },
+    {
+      "id": "studio-floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 200
+      },
+      "materialId": "warm-stone",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "large-key-softbox",
+      "type": "area",
+      "energy": 22,
+      "size": 0.62,
+      "color": [
+        1,
+        0.93,
+        0.83,
+        1
+      ],
+      "transform": {
+        "location": [
+          -0.44,
+          -0.62,
+          0.85
+        ],
+        "rotationEuler": [
+          0.90638746,
+          0,
+          -0.62783659
+        ]
+      }
+    },
+    {
+      "id": "rear-edge-softbox",
+      "type": "area",
+      "energy": 17,
+      "size": 0.4,
+      "color": [
+        0.84,
+        0.9,
+        1,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.44,
+          0.42,
+          0.68
+        ],
+        "rotationEuler": [
+          1.03798382,
+          0,
+          2.38685972
+        ]
+      }
+    },
+    {
+      "id": "front-fill",
+      "type": "area",
+      "energy": 3.5,
+      "size": 0.5,
+      "color": [
+        1,
+        0.94,
+        0.85,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.5,
+          -0.52,
+          0.37
+        ],
+        "rotationEuler": [
+          1.404398,
+          0,
+          0.75570392
+        ]
+      }
+    },
+    {
+      "id": "top-sheen",
+      "type": "area",
+      "energy": 6,
+      "size": 0.42,
+      "color": [
+        1,
+        0.97,
+        0.92,
+        1
+      ],
+      "transform": {
+        "location": [
+          -0.08,
+          0.09,
+          1.02
+        ],
+        "rotationEuler": [
+          0.19816502,
+          0,
+          -2.30361143
+        ]
+      }
+    },
+    {
+      "id": "bulb-practical",
+      "type": "point",
+      "energy": 0.65,
+      "size": 0.006,
+      "color": [
+        1,
+        0.73,
+        0.42,
+        1
+      ],
+      "transform": {
+        "location": [
+          0.045,
+          0,
+          0.34
+        ]
+      }
+    }
+  ],
+  "world": {
+    "color": [
+      0.18,
+      0.19,
+      0.22,
+      1
+    ],
+    "strength": 0.24
+  },
+  "cameras": [
+    {
+      "id": "hero",
+      "role": "active-camera",
+      "lens": 65,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        250
+      ],
+      "transform": {
+        "location": [
+          0.70289504,
+          -1.07746253,
+          0.52
+        ]
+      },
+      "targetPoint": [
+        0.014,
+        0.025,
+        0.228
+      ],
+      "fStop": 11
+    },
+    {
+      "id": "detail",
+      "role": "detail",
+      "lens": 70,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        250
+      ],
+      "transform": {
+        "location": [
+          0.31,
+          -0.44,
+          0.1
+        ]
+      },
+      "targetPoint": [
+        0.019,
+        0.008,
+        0.343
+      ],
+      "fStop": 16
+    },
+    {
+      "id": "reverse",
+      "role": "three-quarter",
+      "lens": 58,
+      "sensorWidth": 36,
+      "clipping": [
+        0.005,
+        250
+      ],
+      "transform": {
+        "location": [
+          -0.75,
+          1.08,
+          0.585
+        ]
+      },
+      "targetPoint": [
+        0.04,
+        0.07,
+        0.2
+      ],
+      "fStop": 11
+    }
+  ],
+  "shots": [
+    {
+      "id": "hero-shot",
+      "cameraId": "hero",
+      "frameRange": [
+        1,
+        48
+      ]
+    },
+    {
+      "id": "detail-shot",
+      "cameraId": "detail",
+      "frameRange": [
+        1,
+        48
+      ]
+    },
+    {
+      "id": "reverse-shot",
+      "cameraId": "reverse",
+      "frameRange": [
+        1,
+        48
+      ]
+    }
+  ],
+  "animationTracks": [
+    {
+      "id": "hero-orbit-0",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.x",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.70289504,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.62431303,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.54275764,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-orbit-1",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "location.y",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": -1.07746253,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": -1.12283187,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": -1.16260909,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-orbit-2",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "rotationEuler.x",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 1.349848,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 1.349848,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 1.349848,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "hero-orbit-3",
+      "targetKind": "camera",
+      "targetEntityId": "hero",
+      "property": "rotationEuler.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0.55850536,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.48869219,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 48,
+          "value": 0.41887902,
+          "interpolation": "linear"
+        }
+      ]
+    }
+  ],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        768,
+        576
+      ],
+      "samples": 64,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 128
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1024,
+        768
+      ],
+      "samples": 128,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 256
+    }
+  },
+  "assets": []
+}

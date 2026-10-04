@@ -50,8 +50,9 @@
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 
-import { UI_PANEL_VIEWS, UI_ROUTES, UI_ROUTE_PREFIX } from '@deepblend/dsh-blender-contracts'
+import { HOST_API_VERSION, UI_PANEL_VIEWS, UI_ROUTES, UI_ROUTE_PREFIX } from '@deepblend/dsh-blender-contracts'
 
 import {
   UI_PACKAGE,
@@ -189,14 +190,12 @@ function countNodes(shape) {
 
 /** The first path at which two shapes disagree, for a diagnostic worth reading. */
 function firstDifference(left, right, path = '$') {
-  if (JSON.stringify(left) === JSON.stringify(right)) return null
+  if (isDeepStrictEqual(left, right)) return null
   if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') {
     return { path, left, right }
   }
   if (left.tag !== right.tag) return { path: `${path}.tag`, left: left.tag, right: right.tag }
-  const leftAttrs = JSON.stringify(left.attrs ?? left.text)
-  const rightAttrs = JSON.stringify(right.attrs ?? right.text)
-  if (leftAttrs !== rightAttrs) return { path: `${path}.attrs`, left: left.attrs ?? left.text, right: right.attrs ?? right.text }
+  if (!isDeepStrictEqual(left.attrs ?? left.text, right.attrs ?? right.text)) return { path: `${path}.attrs`, left: left.attrs ?? left.text, right: right.attrs ?? right.text }
   const leftChildren = left.children ?? []
   const rightChildren = right.children ?? []
   if (leftChildren.length !== rightChildren.length) {
@@ -235,7 +234,7 @@ const DEMO_PROJECT = {
 
 const ROUTE_PAYLOADS = {
   state: () => ({
-    ok: true, route: 'state', hostApiVersion: 4, panelId: 'deepblend',
+    ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, panelId: 'deepblend',
     projects: [DEMO_PROJECT], projectsRoot: '/tmp/projects',
     selected: {
       project: { projectId: 'demo', title: 'Demo', revisionCount: 3, currentRevision: 'r0003', unfinishedJobs: 1 },
@@ -417,8 +416,8 @@ if (core === undefined) {
   // what the shared builder produces for the state its own store loaded.
   const expected = domShape(core.toDom(core.buildWorkbenchView(mounted.store.getState(), mounted.store.actions), createDocumentRecorder()))
   check('and what it drew is the shared builder\'s own output for the state it loaded — not a tree of its own',
-    JSON.stringify(drawn) === JSON.stringify(expected),
-    JSON.stringify(drawn) === JSON.stringify(expected)
+    isDeepStrictEqual(drawn, expected),
+    isDeepStrictEqual(drawn, expected)
       ? { nodes: countNodes(drawn) }
       : firstDifference(drawn, expected))
 
@@ -521,7 +520,9 @@ if (core !== undefined) {
     const snapshot = store.getState()
     const consoleShape = reactShape(renderTree(core.toReact(core.buildWorkbenchView(snapshot, store.actions), reactStub.createElement)))
     const pageShape = domShape(core.toDom(core.buildWorkbenchView(snapshot, store.actions), doc))
-    const same = JSON.stringify(consoleShape) === JSON.stringify(pageShape)
+    // DOM attribute insertion order has no visual or semantic meaning. Preserve
+    // child order while comparing property values, including every style value.
+    const same = isDeepStrictEqual(consoleShape, pageShape)
 
     check(`the console and the standalone page render 视图「${view.label}」 as the same tree`,
       same,
@@ -589,7 +590,7 @@ if (core !== undefined) {
     domShape(dom))
   const react = reactShape(renderTree(core.toReact(probe, makeReactStub().createElement)))
   check('and toReact renders the same node the same way',
-    JSON.stringify(react) === JSON.stringify(domShape(dom)), { react, dom: domShape(dom) })
+    isDeepStrictEqual(react, domShape(dom)), { react, dom: domShape(dom) })
 
   // A function tag is the shape a second renderer would take if someone started
   // building views outside the shared vocabulary: it must be loud, not blank.
@@ -620,11 +621,11 @@ if (core !== undefined) {
     (source.match(/function to(React|Dom)\(/g) ?? []).length === 2,
     source.match(/function to(React|Dom)\(/g))
 
-  // `mountStandalone` is the ONE place the two faces differ, and the only marker
-  // it knows is the one it needs to put the caret back after a redraw.
+  // The standalone binding carries focus and scroll across a redraw using
+  // generic identity markers. Domain decisions remain in the shared views.
   const markers = [...standalone.matchAll(/data-[a-z-]+/g)].map(match => match[0])
-  check('the standalone mount knows exactly one marker, and it is the caret\'s',
-    JSON.stringify([...new Set(markers)]) === JSON.stringify(['data-field']), [...new Set(markers)])
+  check('the standalone mount identifies only focus and scroll, without domain markers',
+    JSON.stringify([...new Set(markers)]) === JSON.stringify(['data-field', 'data-scroll-key']), [...new Set(markers)])
   const standaloneNouns = DOMAIN.filter(noun => noun !== 'data-view' && standalone.toLowerCase().includes(noun.toLowerCase()))
   check('and it names no route, no tab and no domain noun either',
     standaloneNouns.length === 0, standaloneNouns)

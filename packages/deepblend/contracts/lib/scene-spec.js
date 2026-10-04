@@ -22,6 +22,8 @@
 
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { compileSchema, formatIssues } from './json-schema.js'
+import { referenceImageIssues } from './reference-images.js'
+import { HANDLED_CUP_FIELDS, handledCupIssues, resolveHandledCup } from './handled-cup.js'
 import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'json' }
 
 /** The one schema version this module understands. */
@@ -73,6 +75,7 @@ export const TRANSFORM_ANIMATION_PROPERTIES = Object.freeze([
  */
 export const MATERIAL_ANIMATION_PROPERTIES = Object.freeze([
   'emissionStrength', 'roughness', 'metallic', 'ior', 'alpha', 'coatWeight', 'transmissionWeight',
+  'anisotropic', 'anisotropicRotation',
   'baseColor.r', 'baseColor.g', 'baseColor.b',
   'emissionColor.r', 'emissionColor.g', 'emissionColor.b',
 ])
@@ -114,6 +117,7 @@ const NON_NEGATIVE_MATERIAL_PROPERTIES = Object.freeze([
 /** Material parameters that are only meaningful inside [0, 1]. */
 const UNIT_MATERIAL_PROPERTIES = Object.freeze([
   'roughness', 'metallic', 'alpha', 'coatWeight', 'transmissionWeight',
+  'anisotropic', 'anisotropicRotation',
   'baseColor.r', 'baseColor.g', 'baseColor.b',
 ])
 
@@ -135,6 +139,9 @@ export const IMPORT_OPERATOR_BY_ASSET_TYPE = Object.freeze({
   usd: 'wm.usd_import',
   blend: 'wm.append',
 })
+
+export const IMAGE_ASSET_TYPES = Object.freeze(['png', 'jpg', 'jpeg'])
+export const ENVIRONMENT_ASSET_TYPES = Object.freeze([...IMAGE_ASSET_TYPES, 'hdr', 'exr'])
 
 const validateStructure = compileSchema(sceneSpecSchema, { id: 'scene-spec.schema.json' })
 
@@ -226,6 +233,9 @@ export function validateSceneSpec(spec) {
   const idsOf = name => indexByCollection.get(name) ?? new Map()
 
   // ---- reference integrity ------------------------------------------------
+  for (const issue of referenceImageIssues(project.referenceImages ?? [], document.assets ?? [])) {
+    errors.push({ ...issue, severity: 'error', path: `project.referenceImages${issue.path}` })
+  }
   const requiresId = (collection, id, path, what) => {
     if (id === undefined || id === null) return
     if (!idsOf(collection).has(id)) {
@@ -234,6 +244,12 @@ export function validateSceneSpec(spec) {
         message: `${what} "${id}" does not exist in ${collection}`,
       })
     }
+  }
+  requiresId('entities', project.reviewSubjectId, 'project.reviewSubjectId', 'review subject')
+  if (project.reviewSubjectId !== undefined && document.entities.some(entity =>
+    entity.id === project.reviewSubjectId && entity.type === 'empty')) {
+    errors.push({ severity: 'error', code: 'SCENE_SPEC_INVALID', path: 'project.reviewSubjectId',
+      message: 'The review subject must be a renderable entity, not an empty.' })
   }
 
   ;(document.assets ?? []).forEach((asset, position) => {
@@ -254,6 +270,49 @@ export function validateSceneSpec(spec) {
     }
   })
 
+  if (document.world?.environment) {
+    const id = document.world.environment.assetId
+    requiresId('assets', id, 'world.environment.assetId', 'environment image')
+    const asset = (document.assets ?? []).find(entry => entry.id === id)
+    if (asset && !ENVIRONMENT_ASSET_TYPES.includes(asset.type)) errors.push({ severity: 'error',
+      code: 'SCENE_WORLD_ENVIRONMENT_INVALID', path: 'world.environment.assetId', message: 'environment requires an image asset' })
+  }
+
+  for (const [index, material] of (document.materials ?? []).entries()) {
+    if (material.texture?.coordinates === 'uv' && material.shader === 'emission') errors.push({ severity: 'error',
+      code: 'SCENE_MATERIAL_TEXTURE_INVALID', path: `materials[${index}].texture`,
+      message: 'UV procedural texture requires a principled or glass material' })
+    const anisotropicKeys = ['anisotropic', 'anisotropicRotation']
+    const anisotropicTracks = (document.animationTracks ?? []).filter(track => track.targetKind === 'material' &&
+      track.targetEntityId === material.id && anisotropicKeys.includes(track.property))
+    const declaredAnisotropy = material.tangent !== undefined || anisotropicTracks.length > 0 ||
+      anisotropicKeys.some(key => material.parameters?.[key] !== undefined)
+    if (declaredAnisotropy && material.shader === 'emission') errors.push({ severity: 'error',
+      code: 'SCENE_MATERIAL_ANISOTROPY_INVALID', path: `materials[${index}]`,
+      message: 'anisotropic parameters and tangents require a principled or glass material' })
+    const directionRequired = anisotropicKeys.some(key => (material.parameters?.[key] ?? 0) !== 0) ||
+      anisotropicTracks.some(track => track.keyframes.some(keyframe => keyframe.value !== 0))
+    if (directionRequired && material.tangent === undefined) errors.push({ severity: 'error',
+      code: 'SCENE_MATERIAL_ANISOTROPY_INVALID', path: `materials[${index}].tangent`,
+      message: 'nonzero anisotropy or rotation, including animation, requires an explicit uv or radial tangent' })
+    if (material.images && material.texture) errors.push({ severity: 'error', code: 'SCENE_MATERIAL_IMAGES_INVALID',
+      path: `materials[${index}].images`, message: 'image maps and procedural texture cannot be combined on one material yet' })
+    if (material.images && material.shader === 'emission') errors.push({ severity: 'error', code: 'SCENE_MATERIAL_IMAGES_INVALID',
+      path: `materials[${index}].images`, message: 'image maps require a principled or glass material' })
+    for (const [channel, binding] of Object.entries(material.images ?? {})) {
+      const path = `materials[${index}].images.${channel}`
+      requiresId('assets', binding.assetId, `${path}.assetId`, 'image asset')
+      const asset = (document.assets ?? []).find(entry => entry.id === binding.assetId)
+      if (asset && !IMAGE_ASSET_TYPES.includes(asset.type)) errors.push({ severity: 'error',
+        code: 'SCENE_MATERIAL_IMAGES_INVALID', path, message: 'material image maps require PNG or JPEG assets' })
+      if ((binding.strength !== undefined && channel !== 'normal') ||
+          (binding.channel !== undefined && !['roughness', 'metallic', 'alpha'].includes(channel))) {
+        errors.push({ severity: 'error', code: 'SCENE_MATERIAL_IMAGES_INVALID', path,
+          message: 'strength applies only to normals; channel selection applies only to scalar maps' })
+      }
+    }
+  }
+
   document.entities.forEach((entity, position) => {
     const at = `entities[${position}]`
     if (entity.type === 'asset-instance') {
@@ -264,6 +323,10 @@ export function validateSceneSpec(spec) {
         })
       } else {
         requiresId('assets', entity.assetId, `${at}.assetId`, 'asset')
+        if (ENVIRONMENT_ASSET_TYPES.includes((document.assets ?? []).find(asset => asset.id === entity.assetId)?.type)) {
+          errors.push({ severity: 'error', code: 'SCENE_ENTITY_ASSET_INVALID', path: `${at}.assetId`,
+            message: 'an image asset cannot be instantiated as a mesh' })
+        }
       }
       if (entity.generator !== undefined) {
         errors.push({
@@ -285,19 +348,118 @@ export function validateSceneSpec(spec) {
       })
     }
     requiresId('materials', entity.materialId, `${at}.materialId`, 'material')
+    if (entity.materialBindings !== undefined) {
+      if (entity.type !== 'asset-instance') errors.push({ severity: 'error', code: 'SCENE_MATERIAL_BINDING_INVALID',
+        path: `${at}.materialBindings`, message: 'materialBindings requires an asset-instance entity' })
+      const selectors = new Set()
+      for (const [index, binding] of entity.materialBindings.entries()) {
+        requiresId('materials', binding.materialId, `${at}.materialBindings[${index}].materialId`, 'material')
+        const key = JSON.stringify([binding.partId, binding.slotIndex ?? null])
+        if (selectors.has(key)) errors.push({ severity: 'error', code: 'SCENE_MATERIAL_BINDING_INVALID',
+          path: `${at}.materialBindings[${index}]`, message: 'duplicate part and slot material binding' })
+        selectors.add(key)
+      }
+    }
+    if (entity.generator?.shape === 'handled_cup') {
+      for (const message of handledCupIssues(entity.generator)) errors.push({ severity: 'error',
+        code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`, message })
+    } else if (entity.generator && HANDLED_CUP_FIELDS.some(key => entity.generator[key] !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`,
+        message: 'handled cup dimensions and resolutions apply only to handled_cup geometry' })
+    }
+    if (entity.generator?.shape === 'lathe') {
+      const profile = entity.generator.profile
+      const invalid = message => errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PROFILE_INVALID',
+        path: `${at}.generator.profile`, message })
+      if (!Array.isArray(profile) || profile.length < 2) {
+        invalid('a lathe requires at least two [radius, height] profile points')
+      } else {
+        if (profile.some(point => point[0] < 0) || !profile.some(point => point[0] > 0)) {
+          invalid('lathe radii must be nonnegative, with at least one positive radius')
+        }
+        if (profile.some((point, index) => index > 0 && point[0] === profile[index - 1][0] && point[1] === profile[index - 1][1])) {
+          invalid('consecutive lathe profile points must differ')
+        }
+        if (profile.slice(1, -1).some(point => point[0] === 0)) invalid('axis points are allowed only at the two profile ends')
+        if (new Set(profile.map(point => point[1])).size < 2) invalid('a lathe profile must have nonzero height')
+        if (entity.generator.closedProfile && (profile.length < 3 ||
+          (profile[0][0] === profile.at(-1)[0] && profile[0][1] === profile.at(-1)[1]))) {
+          invalid('a closed profile needs at least three points and closes automatically; omit the repeated first point')
+        }
+        if (profileIntersects(profile, entity.generator.closedProfile === true)) invalid('lathe profile edges must not intersect')
+      }
+    } else if (entity.generator && ['profile', 'closedProfile', ...(entity.generator.shape === 'curve' ? [] : ['capEnds'])].some(key => entity.generator[key] !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PROFILE_INVALID', path: `${at}.generator`,
+        message: 'profile and closedProfile require lathe geometry; capEnds requires lathe or curve geometry' })
+    }
+    const generator = entity.generator
+    if (generator?.shape === 'curve') {
+      const path = generator.path
+      const invalid = message => errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PATH_INVALID',
+        path: `${at}.generator.path`, message })
+      if (!Array.isArray(path) || path.length < (generator.pathClosed ? 3 : 2)) {
+        invalid('a curve needs two path points, or three for a closed path')
+      } else {
+        if (path.some((point, i) => i > 0 && point.every((value, axis) => value === path[i - 1][axis]))) {
+          invalid('consecutive curve path points must differ')
+        }
+        if (generator.pathClosed && path[0].every((value, axis) => value === path.at(-1)[axis])) {
+          invalid('a closed path closes automatically; omit the repeated first point')
+        }
+        for (let i = generator.pathClosed ? 0 : 1; i < (generator.pathClosed ? path.length : path.length - 1); i += 1) {
+          const a = path[(i + path.length - 1) % path.length].map((v, axis) => v - path[i][axis])
+          const b = path[(i + 1) % path.length].map((v, axis) => v - path[i][axis])
+          const cross = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+          if (Math.hypot(...cross) < 1e-12 && a.reduce((sum, v, axis) => sum + v * b[axis], 0) > 0) {
+            invalid('a curve path must not reverse along the same segment')
+            break
+          }
+        }
+      }
+    } else if (generator && ['path', 'pathClosed', 'pathInterpolation', 'curveResolution', 'bevelResolution'].some(key => generator[key] !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PATH_INVALID', path: `${at}.generator`,
+        message: 'curve path parameters apply only to curve geometry' })
+    }
     // AND THE RIG IT IS SKINNED TO. MEASURED: this check was missing at first, and the contract suite
     // caught it — the schema can say `armatureId` is a string, but only a cross-reference can say it
     // names something the scene declares. An entity skinned to an armature nobody declares would render
     // as a static object while the file says it is rigged, which is the failure this code exists for.
     requiresId('armatures', entity.armatureId, `${at}.armatureId`, 'armature')
-    if (entity.type !== 'empty' && entity.materialId === undefined) {
+    if (entity.type === 'generator' && entity.materialId === undefined) {
       notices.push({
         severity: 'notice', code: 'SCENE_ENTITY_MATERIAL_DEFAULTED', path: at,
         message: `entity "${entity.id}" has no materialId; the default principled material will be applied`,
       })
     }
     checkScale(entity.transform?.scale, `${at}.transform.scale`, errors, entity.id)
+    for (const [i, modifier] of (entity.modifiers ?? []).entries()) {
+      const path = `${at}.modifiers[${i}]`
+      if (entity.type === 'empty' || (modifier.type === 'solidify' && modifier.thickness === 0) ||
+        (modifier.type === 'array' && modifier.offset.every(value => value === 0))) {
+        errors.push({ severity: 'error', code: 'SCENE_MODIFIER_INVALID', path,
+          message: 'mesh modifiers need geometry, nonzero thickness and nonzero array offset' })
+      }
+      if (modifier.type === 'boolean') requiresId('entities', modifier.targetEntityId, `${path}.targetEntityId`, 'boolean operand')
+    }
   })
+
+  const modifierEntities = new Map(document.entities.map(entity => [entity.id, entity]))
+  const visitedModifiers = new Set(), activeModifiers = new Set()
+  const visitModifiers = id => {
+    if (activeModifiers.has(id)) {
+      errors.push({ severity: 'error', code: 'SCENE_MODIFIER_CYCLE', path: 'entities',
+        message: `boolean dependency cycle includes entity "${id}"` })
+      return
+    }
+    if (visitedModifiers.has(id)) return
+    activeModifiers.add(id)
+    for (const modifier of modifierEntities.get(id)?.modifiers ?? []) {
+      if (modifier.type === 'boolean') visitModifiers(modifier.targetEntityId)
+    }
+    activeModifiers.delete(id)
+    visitedModifiers.add(id)
+  }
+  for (const id of modifierEntities.keys()) visitModifiers(id)
 
   ;(document.lights ?? []).forEach((light, position) => {
     checkScale(light.transform?.scale, `lights[${position}].transform.scale`, errors, light.id)
@@ -521,8 +683,25 @@ export function compileSceneSpec(spec) {
   /** Entity centre and radius from generator footprint — the aiming substrate. */
   const entityBounds = {}
   for (const entity of entities) {
-    entityBounds[entity.id] = boundsOf(entity)
+    entityBounds[entity.id] = boundsOf({ ...entity, modifiers: [] })
   }
+  const boundsVisited = new Set()
+  const expandBooleanBounds = entity => {
+    if (boundsVisited.has(entity.id)) return
+    boundsVisited.add(entity.id)
+    for (const modifier of entity.modifiers ?? []) {
+      const scale = Math.max(...entity.transform.scale.map(Math.abs))
+      if (modifier.type === 'solidify') entityBounds[entity.id].radius += Math.abs(modifier.thickness) * scale
+      if (modifier.type === 'array') entityBounds[entity.id].radius += Math.hypot(...modifier.offset) * (modifier.count - 1) * scale
+      if (modifier.type !== 'boolean' || modifier.operation !== 'union') continue
+      const operand = entities.find(candidate => candidate.id === modifier.targetEntityId)
+      if (!operand) continue
+      expandBooleanBounds(operand)
+      const own = entityBounds[entity.id], other = entityBounds[operand.id]
+      own.radius = Math.max(own.radius, Math.hypot(...own.location.map((v, axis) => v - other.location[axis])) + other.radius)
+    }
+  }
+  for (const entity of entities) expandBooleanBounds(entity)
 
   const cameras = spec.cameras.map(camera => {
     const targetPoint = camera.targetEntityId !== undefined
@@ -573,6 +752,28 @@ export function compileSceneSpec(spec) {
   return { spec: resolved, notices, entityBounds }
 }
 
+/** Reject intersections and collinear reversals in a lathe boundary. */
+function profileIntersects(points, closed) {
+  const edges = points.slice(0, closed ? points.length : -1).map((point, index) => [point, points[(index + 1) % points.length]])
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+  const on = (a, b, p) => Math.abs(cross(a, b, p)) < 1e-12 &&
+    p.every((value, axis) => value >= Math.min(a[axis], b[axis]) - 1e-12 && value <= Math.max(a[axis], b[axis]) + 1e-12)
+  for (let i = closed ? 0 : 1; i < (closed ? points.length : points.length - 1); i += 1) {
+    const a = points[(i + points.length - 1) % points.length], b = points[i], c = points[(i + 1) % points.length]
+    if (Math.abs(cross(a, b, c)) < 1e-12 &&
+      (a[0] - b[0]) * (c[0] - b[0]) + (a[1] - b[1]) * (c[1] - b[1]) > 0) return true
+  }
+  for (let i = 0; i < edges.length; i += 1) {
+    for (let j = i + 2; j < edges.length; j += 1) {
+      if (closed && i === 0 && j === edges.length - 1) continue
+      const [a, b] = edges[i], [c, d] = edges[j]
+      if ((cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0) ||
+        on(a, b, c) || on(a, b, d) || on(c, d, a) || on(c, d, b)) return true
+    }
+  }
+  return false
+}
+
 /** Generator defaults, applied per shape. */
 function resolveGenerator(generator) {
   const shape = generator?.shape
@@ -604,6 +805,15 @@ function resolveGenerator(generator) {
         segments: generator.segments ?? 48,
         ringCount: generator.ringCount ?? 12,
       }
+    case 'lathe':
+      return { ...base, ...generator, segments: generator.segments ?? 96,
+        closedProfile: generator.closedProfile ?? false, capEnds: generator.capEnds ?? true }
+    case 'curve':
+      return { ...base, ...generator, radius: generator.radius ?? 0.01, pathClosed: generator.pathClosed ?? false,
+        pathInterpolation: generator.pathInterpolation ?? 'poly', curveResolution: generator.curveResolution ?? 16,
+        bevelResolution: generator.bevelResolution ?? 8, capEnds: generator.capEnds ?? true }
+    case 'handled_cup':
+      return { ...base, ...resolveHandledCup(generator) }
     default:
       return { ...generator }
   }
@@ -659,8 +869,20 @@ export function entityBoundingRadius(entity) {
       case 'cone': radius = Math.hypot(generator.radius, generator.depth / 2); break
       case 'plane': radius = (generator.size / 2) * Math.SQRT2; break
       case 'torus': radius = generator.majorRadius + generator.minorRadius; break
+      case 'lathe': radius = Math.max(...generator.profile.map(([r, z]) => Math.hypot(r, z))); break
+      case 'curve': radius = Math.max(...generator.path.map(point => Math.hypot(...point))) *
+        (generator.pathInterpolation === 'bezier' ? 2 : 1) + generator.radius; break
+      case 'handled_cup': {
+        const p = resolveHandledCup(generator)
+        radius = Math.hypot(p.radius + p.rootLength + (p.handleUpper - p.handleLower) / 2 + p.handleRadius, p.height)
+        break
+      }
       default: radius = 1
     }
+  }
+  for (const modifier of entity?.modifiers ?? []) {
+    if (modifier.type === 'solidify') radius += Math.abs(modifier.thickness)
+    if (modifier.type === 'array') radius += Math.hypot(...modifier.offset) * (modifier.count - 1)
   }
   return radius * Math.max(Math.abs(scale[0]), Math.abs(scale[1]), Math.abs(scale[2]))
 }
@@ -703,7 +925,7 @@ function round4(value) {
 /**
  * The scene-relevant projection of a spec.
  *
- * `project.goal` and `project.title` are excluded on purpose: the digest exists
+ * Project metadata, including goal and referenceImages, is excluded on purpose: the digest exists
  * to answer "is the SCENE different?", and a re-worded brief over an unchanged
  * scene is not a new scene. Two revisions can therefore share a digest, which is
  * exactly the signal a caller wants when deciding whether a re-render is needed.
@@ -742,7 +964,7 @@ export function sceneSpecDigest(spec) {
  * Content hash of the WHOLE document, including `project`.
  *
  * Distinct from {@link sceneSpecDigest}, and the distinction is load-bearing.
- * The scene digest deliberately excludes `project.title` and `project.goal` so
+ * The scene digest deliberately excludes project metadata and the authored brief so
  * that re-wording a brief over an unchanged scene is not treated as a new scene.
  * But it also excludes `project.frameStart`, `project.frameEnd` and `project.fps`
  * — which ARE scene-relevant: changing the frame range changes what a render
@@ -765,6 +987,24 @@ export function sceneSpecDigest(spec) {
  */
 export function specHash(spec) {
   return sha256Canonical(spec)
+}
+
+/** Identity of authored review inputs, independent of geometry and render settings.
+ * References and purposes are sets identified by id; display order does not change
+ * their meaning. Asset aliases are resolved from this document, never a live catalog.
+ * The Host must still verify these declared hashes against the actual file bytes.
+ */
+export function reviewInputsDigest(spec) {
+  const referenceImages = (spec?.project?.referenceImages ?? []).map(reference => {
+    const asset = (spec.assets ?? []).find(entry => entry.id === reference.assetId)
+    return {
+      id: reference.id, assetId: reference.assetId, sha256: reference.sha256,
+      label: reference.label, purposes: [...reference.purposes].sort(), notes: reference.notes ?? '',
+      asset: asset ? { id: asset.id, type: asset.type, path: asset.path, sha256: asset.sha256 ?? null } : null,
+    }
+  }).sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+  return sha256Canonical({ goal: spec?.project?.goal ?? '', referenceImages,
+    ...(spec?.project?.reviewSubjectId === undefined ? {} : { reviewSubjectId: spec.project.reviewSubjectId }) })
 }
 
 /**
@@ -828,6 +1068,8 @@ export function summarizeSceneSpec(document, context = {}) {
       id: spec.project.id,
       title: spec.project.title,
       goal: spec.project.goal ?? null,
+      referenceImages: structuredClone(spec.project.referenceImages ?? []),
+      reviewSubjectId: spec.project.reviewSubjectId ?? null,
       fps: spec.project.fps,
       frameStart: spec.project.frameStart,
       frameEnd: spec.project.frameEnd,
@@ -849,6 +1091,7 @@ export function summarizeSceneSpec(document, context = {}) {
       type: entity.type,
       shape: entity.generator?.shape ?? null,
       materialId: entity.materialId ?? null,
+      ...(entity.materialBindings?.length ? { materialBindings: entity.materialBindings } : {}),
       location: entity.transform.location.map(round4),
       visible: entity.visible !== false,
       locked: entity.locked === true,
@@ -858,6 +1101,7 @@ export function summarizeSceneSpec(document, context = {}) {
       id: material.id,
       shader: material.shader,
       parameters: material.parameters ?? {},
+      ...(material.tangent ? { tangent: material.tangent } : {}),
     })),
     lights: lights.map(light => ({
       id: light.id,
@@ -903,6 +1147,7 @@ export function summarizeSceneSpec(document, context = {}) {
       declared: spec.world !== undefined,
       color: spec.world?.color ?? DEFAULT_WORLD.color,
       strength: spec.world?.strength ?? DEFAULT_WORLD.strength,
+      ...(spec.world?.environment ? { environment: spec.world.environment } : {}),
     },
     bounds: enclosing,
     subjectBounds,

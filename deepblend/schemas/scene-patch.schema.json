@@ -105,6 +105,22 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1000
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assetId"
+          ],
+          "properties": {
+            "assetId": {
+              "$ref": "#/$defs/id"
+            },
+            "rotation": {
+              "type": "number",
+              "description": "Rotation around world Z in radians; default zero."
+            }
+          }
         }
       }
     },
@@ -184,64 +200,158 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "anisotropic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Cycles Principled specular anisotropy. 0 disables; positive values need an explicit material tangent."
+        },
+        "anisotropicRotation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rotate the anisotropic tangent in turns: 0.25 is 90 degrees; 1 is one full turn. Nonzero values need an explicit tangent."
         }
       }
     },
     "proceduralTexture": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "type",
-        "scale"
-      ],
       "description": "A procedural surface texture. Duplicated from scene-spec.schema.json because this schema is deliberately self-contained (it never $refs across files), so the two copies are kept in step by hand.",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "noise",
-            "wave",
-            "voronoi"
-          ]
-        },
-        "scale": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "detail": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 16
-        },
-        "distortion": {
-          "type": "number",
-          "minimum": 0
-        },
-        "stretch": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "items": {
-            "type": "number",
-            "exclusiveMinimum": 0
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "object"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            }
           }
         },
-        "bump": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "roughnessVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "colorVariation": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scale",
+            "coordinates"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "noise",
+                "wave",
+                "voronoi"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Pattern density in the selected coordinate space. Larger is finer; UV density is relative to the UV layout."
+            },
+            "detail": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "distortion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stretch": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "bump": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughnessVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "colorVariation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "coordinates": {
+              "type": "string",
+              "enum": [
+                "uv"
+              ],
+              "description": "Coordinate source. Omitted means object space. UV uses the named UV map or the active render UV map on each used surface."
+            },
+            "uvMap": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "description": "Existing UV map name. Requires coordinates: uv. Omit to use the active render UV map."
+            }
+          }
         }
-      }
+      ]
     },
     "generator": {
       "type": "object",
@@ -259,7 +369,10 @@
             "cone",
             "plane",
             "torus",
-            "rounded_box"
+            "rounded_box",
+            "lathe",
+            "curve",
+            "handled_cup"
           ]
         },
         "size": {
@@ -300,8 +413,115 @@
               "maximum": 16
             }
           }
+        },
+        "profile": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 128,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          },
+          "description": "Lathe boundary in ordered [radius, height] points, in scene units. Radius must be nonnegative. Do not repeat the first point to close it."
+        },
+        "closedProfile": {
+          "type": "boolean",
+          "description": "Join the final profile point to the first, for annular or hollow sections. Default false."
+        },
+        "capEnds": {
+          "type": "boolean",
+          "description": "Close open lathe rings or curve ends. Default true; closed paths and profiles need no caps."
+        },
+        "path": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/vec3"
+          },
+          "description": "Ordered local-space points for a swept round section."
+        },
+        "pathClosed": {
+          "type": "boolean",
+          "description": "Connect the last path point to the first. Default false."
+        },
+        "pathInterpolation": {
+          "type": "string",
+          "enum": [
+            "poly",
+            "bezier"
+          ],
+          "description": "poly preserves straight segments; bezier uses automatic smooth handles. Default poly."
+        },
+        "curveResolution": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "bevelResolution": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "height": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "wallThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "baseThickness": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "footRound": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleLower": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "handleUpper": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootRadius": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rootLength": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sectionSegments": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 96
+        },
+        "handleSegments": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 128
+        },
+        "rootSegments": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 48
+        },
+        "wallRows": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 64
+        },
+        "rootTension": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2.5,
+          "description": "Dimensionless scale of both endpoint tangent speeds for the quintic attachment. Missing or 1 preserves the original surface. Values above 1.5 require the extended recipe capability. Native output validation still applies."
         }
-      }
+      },
+      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile; handled_cup constructs a closed cup with shared-boundary flared handle roots. Coupled parameter constraints are checked before generation and the discrete output is validated."
     },
     "entity": {
       "type": "object",
@@ -358,6 +578,18 @@
         },
         "visible": {
           "type": "boolean"
+        },
+        "modifiers": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/modelModifier"
+          },
+          "description": "Ordered mesh operations, applied before animation and simulation. Boolean dependencies compile before their consumers. Each participating entity must contain exactly one mesh."
+        },
+        "materialBindings": {
+          "$ref": "#/$defs/materialBindings",
+          "description": "Asset mesh part overrides, preserving original slots and face indices. Part-wide overrides precede slot-specific overrides."
         }
       }
     },
@@ -533,7 +765,9 @@
             "baseColor.b",
             "emissionColor.r",
             "emissionColor.g",
-            "emissionColor.b"
+            "emissionColor.b",
+            "anisotropic",
+            "anisotropicRotation"
           ],
           "description": "The channel to animate. Transform channels apply to entities and cameras; material parameters apply to materials and use the same names `material.parameter.update` takes."
         },
@@ -832,6 +1066,12 @@
                 },
                 "texture": {
                   "$ref": "#/$defs/proceduralTexture"
+                },
+                "images": {
+                  "$ref": "#/$defs/materialImages"
+                },
+                "tangent": {
+                  "$ref": "#/$defs/materialTangent"
                 }
               }
             }
@@ -865,7 +1105,9 @@
                 "emissionColor",
                 "emissionStrength",
                 "coatWeight",
-                "transmissionWeight"
+                "transmissionWeight",
+                "anisotropic",
+                "anisotropicRotation"
               ]
             },
             "value": {
@@ -1265,7 +1507,12 @@
                     "fbx",
                     "obj",
                     "usd",
-                    "blend"
+                    "blend",
+                    "png",
+                    "jpg",
+                    "jpeg",
+                    "hdr",
+                    "exr"
                   ]
                 },
                 "path": {
@@ -1300,8 +1547,497 @@
               "$ref": "#/$defs/id"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId",
+            "generator"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.generator.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "generator": {
+              "$ref": "#/$defs/generator"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId",
+            "modifiers"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "entity.modifiers.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "modifiers": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/modelModifier"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "materialId",
+            "images"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "material.images.set"
+            },
+            "materialId": {
+              "$ref": "#/$defs/id"
+            },
+            "images": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/materialImages"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId",
+            "materialBindings"
+          ],
+          "properties": {
+            "op": {
+              "const": "entity.materialBindings.set"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "materialBindings": {
+              "$ref": "#/$defs/materialBindings"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "materialId",
+            "tangent"
+          ],
+          "properties": {
+            "op": {
+              "const": "material.tangent.set"
+            },
+            "materialId": {
+              "$ref": "#/$defs/id"
+            },
+            "tangent": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/materialTangent"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "goal",
+            "referenceImages"
+          ],
+          "properties": {
+            "op": {
+              "const": "project.brief.set"
+            },
+            "goal": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "referenceImages": {
+              "$ref": "#/$defs/referenceImages"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId"
+          ],
+          "properties": {
+            "op": {
+              "const": "project.reviewSubject.set"
+            },
+            "entityId": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/id"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       ]
+    },
+    "modelModifier": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "thickness"
+          ],
+          "properties": {
+            "type": {
+              "const": "solidify"
+            },
+            "thickness": {
+              "type": "number"
+            },
+            "offset": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "axis"
+          ],
+          "properties": {
+            "type": {
+              "const": "mirror"
+            },
+            "axis": {
+              "type": "string",
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "merge": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "count",
+            "offset"
+          ],
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 64
+            },
+            "offset": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "operation",
+            "targetEntityId"
+          ],
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "union",
+                "difference",
+                "intersect"
+              ]
+            },
+            "targetEntityId": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "width"
+          ],
+          "properties": {
+            "type": {
+              "const": "bevel"
+            },
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "segments": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "angle": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 180
+            },
+            "miterInner": {
+              "type": "string",
+              "enum": [
+                "arc",
+                "sharp"
+              ],
+              "default": "arc",
+              "description": "Inner corner join for this bevel modifier. Omitted values preserve the existing arc behavior."
+            }
+          }
+        }
+      ]
+    },
+    "imageBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetId"
+      ],
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/id"
+        },
+        "scale": {
+          "$ref": "#/$defs/vec3"
+        },
+        "offset": {
+          "$ref": "#/$defs/vec3"
+        },
+        "uvMap": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "r",
+            "g",
+            "b",
+            "a"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "materialImages": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseColor": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "roughness": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "metallic": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "normal": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "alpha": {
+          "$ref": "#/$defs/imageBinding"
+        },
+        "emissionColor": {
+          "$ref": "#/$defs/imageBinding"
+        }
+      }
+    },
+    "materialBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partId",
+        "materialId"
+      ],
+      "properties": {
+        "partId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096,
+          "pattern": "^/",
+          "description": "Exact source path returned in assetParts; JSON Pointer escaped segments."
+        },
+        "slotIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Original material slot index. Omit to replace every slot of this mesh part."
+        },
+        "materialId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "materialBindings": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/materialBinding"
+      }
+    },
+    "materialTangent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "uvMap"
+          ],
+          "properties": {
+            "mode": {
+              "const": "uv"
+            },
+            "uvMap": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63
+            }
+          },
+          "description": "Use the tangent along the named UV map U direction. The map must exist on every mesh face using this material."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "axis"
+          ],
+          "properties": {
+            "mode": {
+              "const": "radial"
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            }
+          },
+          "description": "Blender cylindrical-projection tangent around the selected object-local axis; no UV map required."
+        }
+      ]
+    },
+    "referenceImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "assetId",
+        "sha256",
+        "label",
+        "purposes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "assetId": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "purposes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "enum": [
+              "geometry",
+              "materials",
+              "lighting",
+              "goalFit"
+            ]
+          },
+          "description": "Distinct review dimensions this reference informs; duplicate purposes are rejected semantically."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "referenceImages": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/referenceImage"
+      },
+      "description": "Visual review references only. Each id is unique and points to a declared, hash-pinned PNG/JPEG project asset; this does not apply an object texture or environment map."
     }
   }
 }

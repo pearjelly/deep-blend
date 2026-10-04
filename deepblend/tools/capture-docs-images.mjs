@@ -17,7 +17,7 @@
  *   create a project by typing a title        → the Projects view
  *   apply a scene patch by typing JSON        → the Scene view, two new revisions
  *   render a preview (real Blender, real PNG) → the Preview view, a contact sheet
- *   patch it again and render again           → the before/after compare
+ *   patch it again and render again           → two different revisions compared
  *   copy the contact sheet out of the store   → the artifact itself, halved in size
  *
  * Every one of those is a `data-action` the client half registers. If a control is renamed
@@ -40,6 +40,7 @@
  *
  * Run: node deepblend/tools/capture-docs-images.mjs
  *      node deepblend/tools/capture-docs-images.mjs --out deepblend/docs/images
+ *      node deepblend/tools/capture-docs-images.mjs --out /absolute/evidence --keep-store
  *
  * REPRODUCIBLE IN CONTENT, NOT IN BYTES
  * -------------------------------------
@@ -67,6 +68,7 @@ const OUT = (() => {
   const flag = process.argv.indexOf('--out')
   return resolve(flag === -1 ? join(REPO_ROOT, 'deepblend', 'docs', 'images') : process.argv[flag + 1])
 })()
+const KEEP_STORE = process.argv.includes('--keep-store')
 
 /** The viewport every picture is taken at, and the scale factor it is taken with. */
 const VIEWPORT = { width: 1500, height: 950, deviceScaleFactor: 2 }
@@ -231,8 +233,12 @@ async function submitPatch(page, store, projectId, operations, label) {
 
   await page.fill('[data-field="scene-patch"]', JSON.stringify({ baseRevision: current, operations }, null, 2))
   const result = await clickForResult(page, '[data-result]', '[data-action="apply-patch"]', `the ${label} patch to commit`, 300000)
-  if (!/已提交/.test(result ?? '')) throw new Error(`the ${label} patch did not commit: ${result}`)
+  const next = storeJson(store, projectId, 'project.json')?.currentRevision
+  if (!next || next === current || !storeJson(store, projectId, 'revisions', next, 'scene-spec.json')) {
+    throw new Error(`the ${label} patch did not publish a new saved revision: ${result}`)
+  }
   step(`${label} patch committed — ${(result ?? '').replace(/\s+/g, ' ').slice(0, 70)}`)
+  return next
 }
 
 /** Render a preview through the panel and wait for the panel to report it. */
@@ -322,21 +328,35 @@ try {
 
   await page.click('[data-view-tab="scene"]')
   await waitFor(page, 'document.querySelector(\'[data-field="scene-patch"]\') !== null', 'the patch box')
-  await submitPatch(page, store, PROJECT_TITLE, DEMO_PATCH, 'demo scene')
-  await submitPatch(page, store, PROJECT_TITLE, SECOND_PATCH, 'refinement')
+  const beforeRevision = await submitPatch(page, store, PROJECT_TITLE, DEMO_PATCH, 'demo scene')
 
   await page.click('[data-view-tab="preview"]')
   await waitFor(page, 'document.querySelector(\'[data-view="preview"]\') !== null', 'the Preview view')
   await renderPreview(page, 'first')
+  await page.click('[data-view-tab="scene"]')
+  const afterRevision = await submitPatch(page, store, PROJECT_TITLE, SECOND_PATCH, 'refinement')
+  await page.click('[data-view-tab="preview"]')
   await renderPreview(page, 'second')
-  await waitFor(page, `document.querySelectorAll('[data-compare] img').length >= 1`, 'the compare panes', 60000)
-  await new Promise(settle => setTimeout(settle, 2500))
+  await page.click('[data-compare-mode="revisions"]')
+  for (const [side, revision] of [['left', beforeRevision], ['right', afterRevision]]) {
+    await page.evaluate(`(() => {const select=document.querySelector('[data-field="compare-${side}"]');select.value=${JSON.stringify(revision)};select.dispatchEvent(new Event('change',{bubbles:true}))})()`)
+  }
+  await waitFor(page, `(() => {const images=[...document.querySelectorAll('[data-compare] img')];return images.length===2 && images.every(img=>img.complete && img.naturalWidth>0) && images[0].dataset.artifactRevision===${JSON.stringify(beforeRevision)} && images[1].dataset.artifactRevision===${JSON.stringify(afterRevision)}})()`, 'both actual revision images', 60000)
+  const comparisonImages = await page.evaluate(`Array.from(document.querySelectorAll('[data-compare] img')).map(img=>({revision:img.dataset.artifactRevision,path:img.dataset.artifact,width:img.naturalWidth,height:img.naturalHeight}))`)
+  for (const image of comparisonImages) {
+    const bytes=readFileSync(join(store,'projects',PROJECT_TITLE,image.path))
+    const size=pngSize(bytes)
+    if(size.width!==image.width || size.height!==image.height) throw new Error('Displayed comparison dimensions differ from actual artifact')
+    image.sha256=createHash('sha256').update(bytes).digest('hex');image.bytes=bytes.length
+  }
+  await page.evaluate('document.querySelector(".db-body").scrollTop=0')
 
   images.push(await capture(page, 'preview-compare.png', 'preview-compare',
-    'the Preview view after two renders: 本次渲染 beside 上一次渲染, each pane keyed on its own digest'))
+    `the Preview view comparing actual ${beforeRevision}/${afterRevision} renders, before/after the material refinement`))
 
   await page.click('[data-view-tab="scene"]')
   await waitFor(page, 'document.querySelector(\'[data-view="scene"]\') !== null', 'the Scene view')
+  await page.evaluate('document.querySelector(".db-body").scrollTop=0')
   await new Promise(settle => setTimeout(settle, 800))
   images.push(await capture(page, 'workbench-scene.png', 'workbench-scene',
     'the workbench: the project header with its current revision, and the Scene tree the Host serves'))
@@ -362,6 +382,10 @@ try {
     tool: 'deepblend/tools/capture-docs-images.mjs',
     viewport: VIEWPORT,
     project: { id: PROJECT_TITLE, goal: PROJECT_GOAL, revision },
+    comparison: { beforeRevision, afterRevision,
+      beforeSceneSha256: createHash('sha256').update(readFileSync(join(store, 'projects', PROJECT_TITLE, 'revisions', beforeRevision, 'scene-spec.json'))).digest('hex'),
+      afterSceneSha256: createHash('sha256').update(readFileSync(join(store, 'projects', PROJECT_TITLE, 'revisions', afterRevision, 'scene-spec.json'))).digest('hex'),
+      operations: SECOND_PATCH, images: comparisonImages },
     images,
   }, null, 2)}\n`)
 
@@ -372,5 +396,8 @@ try {
 } finally {
   if (browser !== null) await browser.close().catch(() => {})
   if (server !== null) await server.stop().catch(() => {})
-  rmSync(scratch, { recursive: true, force: true })
+  if (KEEP_STORE) {
+    writeFileSync(join(OUT, 'scratch.json'), JSON.stringify({ scratch, store }, null, 2))
+    step(`retained evidence store at ${store}`)
+  } else rmSync(scratch, { recursive: true, force: true })
 }

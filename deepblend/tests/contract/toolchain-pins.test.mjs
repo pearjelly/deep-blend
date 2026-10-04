@@ -57,8 +57,7 @@ test('the Blender pin names a version, an https image and a positive size', () =
 })
 
 test('the Blender pin records a digest, or says out loud that it has none', () => {
-  // `null` is a legitimate state (Blender publishes no checksum for this release,
-  // so the first verified download establishes it) — but it must be `null` and
+  // `null` is a legitimate unreviewed upgrade state — but it must be `null` and
   // not an empty string or an absent key, because the installer branches on it.
   if (blenderPin.sha256 === null) {
     assert.ok(
@@ -104,10 +103,12 @@ test('the DSH anchor is stated identically in the pin, the baseline document and
     baselineDoc.includes(version),
     `docs/dsh-baseline.md does not state the pinned DSH version ${version}`,
   )
-  assert.ok(
-    ciWorkflow.includes(`@deepseek-ai/dsh@${version}`),
-    `.github/workflows/ci.yml does not install the pinned DSH version ${version}; CI would test a different harness`,
-  )
+  const runtime = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package.json'), 'utf8'))
+  const lock = JSON.parse(readFileSync(join(ROOT, 'deepblend/development/runtime/package-lock.json'), 'utf8'))
+  assert.equal(runtime.dependencies['@deepseek-ai/dsh'], version)
+  assert.equal(lock.packages['node_modules/@deepseek-ai/dsh'].version, version)
+  assert.match(ciWorkflow, /node deepblend\/tools\/development\.mjs setup --github-env/,
+    'CI must install the same locked development deployment')
 })
 
 // ---------------------------------------------------------------------------

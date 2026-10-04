@@ -27,9 +27,11 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { renderInspection } from './inspection.js'
 
 import {
   SCENE_OPERATION_NAMES,
+  BlenderError,
   BlenderErrorCode,
   BlenderWarningCode,
   warning,
@@ -37,6 +39,7 @@ import {
 
 import {
   TOOL_OUTPUT,
+  TOOL_OUTPUT_WITH_IMAGE,
   canonicalCall,
   definedFields,
   describeRevision,
@@ -57,15 +60,25 @@ const SCENE_SPEC_PARAMETER = {
   type: 'object',
   additionalProperties: true,
   description:
-    'A complete SceneSpec v1 document to seed the project with. Omit it to start from a minimal, ' +
+    'A complete SceneSpec v1 document to seed the project with. Mutually exclusive with recipe. Omit both to start from a minimal, ' +
     'immediately renderable scaffold (one cube, one camera, one area light, both render profiles), ' +
     'then build the scene with blender_scene_patch — that route is usually better, because each patch ' +
     'is a reviewable revision instead of one large opaque document. ' +
     'Top-level keys: schemaVersion, project, assets[], materials[], entities[], lights[], cameras[], ' +
-    'shots[], animationTracks[], renderProfiles{preview,final}. ' +
+    'shots[], animationTracks[], renderProfiles{preview,final}. project.reviewSubjectId optionally selects an existing non-empty main review entity without moving cameras. ' +
     'A generator entity is `{id,type:"generator",generator:{shape,size|radius|depth|majorRadius|minorRadius,bevel?},' +
     'materialId,transform:{location,rotationEuler,scale}}` where shape is one of ' +
-    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus. Material parameters use Blender 5 socket ' +
+    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup. handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
+    'Defaults are radius 0.04, height 0.105, wallThickness 0.003, baseThickness 0.005; optional handleRadius, handleLower, handleUpper, rootRadius, rootLength and mesh segments obey coupled constraints. Inspect root highlights; mesh checks do not certify aesthetic quality. Curve sweeps a round section ' +
+    'of radius (default 0.01) along path:[[x,y,z],…]; pathInterpolation is poly or bezier, pathClosed closes ' +
+    'the loop, and capEnds seals open endpoints. Lathe uses profile:[[radius,height],…] ' +
+    'around local Z, segments (default 96), capEnds (default true) and optional closedProfile for hollow ' +
+    'sections. Use enough profile points to describe smooth shoulders and rounded lips; points form straight segments. ' +
+    'Entity modifiers[] apply in order: {type:"solidify",thickness,offset?}, {type:"mirror",axis:"x"|"y"|"z",merge?}, ' +
+    '{type:"array",count,offset:[x,y,z]}, {type:"boolean",operation:"union"|"difference"|"intersect",targetEntityId}, ' +
+    'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
+    'Boolean operands must be separate single-mesh entities; visible:false hides an operand while preserving its geometry for the operation. ' +
+    'Material parameters use Blender 5 socket ' +
     'names: baseColor [r,g,b,a], metallic, roughness, ior, alpha, emissionColor, emissionStrength, ' +
     'coatWeight, transmissionWeight. A camera aims itself at `targetEntityId` (or `targetPoint`) and needs ' +
     '`transform.location` for framing.',
@@ -81,6 +94,7 @@ const SCENE_SPEC_PARAMETER = {
  * @param {import('@deepseek-ai/cordis').Context} ctx
  */
 export function apply(ctx) {
+  ctx.tools.register(recipeList(ctx))
   ctx.tools.register(projectCreate(ctx))
   ctx.tools.register(projectGet(ctx))
   ctx.tools.register(sceneGet(ctx))
@@ -89,6 +103,33 @@ export function apply(ctx) {
   ctx.tools.register(sceneValidate(ctx))
   ctx.tools.register(revisionRestore(ctx))
   ctx.tools.register(assetIngest(ctx))
+}
+
+/** Read verified local package metadata through the Host; never load a package in the tool plane. */
+function recipeList(ctx) {
+  return defineTool({
+    name: 'blender_recipe_list',
+    description:
+      'List locally available, validated product recipes without launching Blender or creating a project. ' +
+      'Returns recipes with id, version, digest, title, author, declared license, source, preview URL and ' +
+      'finite parameter definitions, plus errors for packages that could not be accepted. Content hashes ' +
+      'check loaded bytes; they do not certify authorship or artistic quality. Use the returned id, version ' +
+      'and digest together in blender_project_create.recipe. Only pass parameter IDs and ranges declared ' +
+      'by that recipe. This tool never downloads or installs anything.',
+    parameters: {},
+    output: TOOL_OUTPUT,
+    async execute() {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+      try {
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.listRecipes(), warning)
+        return { ok: true, text: renderSuccess('Available product recipes.', data, { warnings: canonicalWarnings }), data }
+      } catch (cause) {
+        return { ok: false, ...renderFailure(cause, 'RECIPE_LIST_FAILED') }
+      }
+    },
+    presentCall: () => ({ card: 'generic', title: 'List product recipes', kind: 'read' }),
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +143,9 @@ function projectCreate(ctx) {
       'Create a DeepBlend 3D project and commit its first revision. Returns the projectId and the initial ' +
       'revision id — keep BOTH, because every later write must name the project and the revision it read. ' +
       'Give it the operator\'s brief as `goal`: it is stored with the project and never parsed, so write it ' +
-      'in full. Omit `sceneSpec` to start from a minimal renderable scaffold and build up with ' +
+      'in full. For an existing product design, call blender_recipe_list and pass its id/version/digest ' +
+      'as recipe, with only its declared parameter overrides. recipe and sceneSpec are mutually exclusive. ' +
+      'Omit both to start from a minimal renderable scaffold and build up with ' +
       'blender_scene_patch; pass one only when you already know the whole scene. ' +
       'Set saveCheckpoint:false to skip the Blender compile and store the SceneSpec alone. The revision then ' +
       'has no .blend of its own, and the first render of it compiles one from the spec — which costs a few ' +
@@ -122,6 +165,16 @@ function projectCreate(ctx) {
           'The operator\'s natural-language brief, stored verbatim for audit. It never affects compilation.',
       },
       sceneSpec: SCENE_SPEC_PARAMETER,
+      recipe: {
+        type: 'object', additionalProperties: false,
+        description: 'An exact local recipe selection returned by blender_recipe_list. The Host rechecks package bytes before creating the project; do not combine with sceneSpec.',
+        properties: {
+          id: { type: 'string', required: true, description: 'Recipe id from the catalog.' },
+          version: { type: 'string', required: true, description: 'Recipe version from the catalog.' },
+          digest: { type: 'string', required: true, description: 'Exact current catalog digest; refresh the catalog if the package changed.' },
+          parameters: { type: 'object', additionalProperties: true, description: 'Optional parameter-ID/value overrides from this recipe. Unknown keys or invalid ranges are refused by the Host; omitted values use defaults. Color values are three scene-linear RGB numbers.' },
+        },
+      },
       projectId: {
         type: 'string',
         description:
@@ -132,7 +185,7 @@ function projectCreate(ctx) {
         type: 'boolean',
         description:
           'Compile the scene in Blender and store `<revision>/scene.blend` as a checkpoint. Default true. ' +
-          'A preview can only be rendered from a checkpoint, so leave this on unless you are only reshaping the spec.',
+          'If false, the first preview compiles this revision lazily before rendering.',
       },
       renderPreview: {
         type: 'boolean',
@@ -145,11 +198,13 @@ function projectCreate(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.recipe !== undefined && args.sceneSpec !== undefined) throw new BlenderError('RECIPE_REQUEST_INVALID', 'Pass either recipe or sceneSpec, not both')
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.createProject({
           ...definedFields({
             title: args.title,
             goal: args.goal,
             sceneSpec: args.sceneSpec,
+            recipe: args.recipe,
             projectId: args.projectId,
             saveCheckpoint: args.saveCheckpoint,
           }),
@@ -162,7 +217,7 @@ function projectCreate(ctx) {
           `Digest:   ${data.revision.digest}`,
         ]
         if (data.revision.checkpoint === null) {
-          notes.push('No checkpoint was saved, so this revision cannot be previewed until a later revision saves one.')
+          notes.push('No checkpoint was saved. The first preview will compile this revision lazily.')
         }
         if (Array.isArray(data.warnings) && data.warnings.length > 0) {
           notes.push('')
@@ -303,6 +358,7 @@ function sceneGet(ctx) {
           )
         }
         notes.push('')
+        if (data.assetParts?.length) notes.push(`Imported mesh parts (use sourceMaterialSlots indices for binding; materialSlots are the current result): ${JSON.stringify(data.assetParts)}`, '')
         notes.push('Cameras:')
         for (const camera of data.cameras ?? []) {
           notes.push(
@@ -360,8 +416,8 @@ const OPERATION_SUMMARY = [
   'entity.add                   {entity}                                       — full entity object',
   'entity.remove                {entityId}',
   'entity.material.set          {entityId, materialId|null}                    — null restores the default material',
-  'material.add                 {material}                                     — {id, shader, parameters?}',
-  'material.parameter.update    {materialId, parameter, value}                  — parameter is a Blender 5 socket name',
+  'material.add                 {material}                                     — {id, shader, parameters?, tangent?}',
+  'material.parameter.update    {materialId, parameter, value}                  — SceneSpec camelCase parameter; anisotropic and anisotropicRotation use [0,1], rotation is turns; nonzero values/animation require explicit tangent and active anisotropy requires Cycles',
   'light.add                    {light}',
   'light.update                 {lightId, energy?, color?, size?, transform?, spotSize?, spotBlend?, angle?}',
   'light.remove                 {lightId}',
@@ -374,10 +430,17 @@ const OPERATION_SUMMARY = [
   'shot.remove                  {shotId}',
   'project.frameRange.set       {frameStart, frameEnd, fps?}',
   'render.profile.set           {profileName, profile}                         — profileName is "preview" or "final"',
-  'world.set                    {world}                                        — {color?, strength?}; the environment behind the product',
+  'world.set                    {world}                                        — {color?, strength?, environment?:{assetId,rotation?}}; rotation is world-Z radians; environment uses a declared image',
   'asset.add                    {asset}                                        — {id, type, path, sha256, license?}; the file must be ingested first',
   'asset.remove                 {assetId}                                      — removing the last one makes the key disappear, not an empty list',
   'material.texture.set         {materialId, texture}                          — {type: noise|wave|voronoi, scale, …}, or null to remove it',
+  'entity.generator.set         {entityId, generator}                          — replace generator geometry; preserve identity, material and animation',
+  'entity.modifiers.set         {entityId, modifiers}                          — replace the ordered modeling stack; [] removes it',
+  'material.images.set          {materialId, images}                           — replace PBR image maps, or null to remove; baseColor/roughness/metallic/normal/alpha/emissionColor bindings name assetId with optional scale, offset, uvMap; scalar maps support channel r/g/b/a, normals support strength',
+  'entity.materialBindings.set  {entityId, materialBindings}                   — replace imported mesh bindings; copy partId and sourceMaterialSlots index from scene_get.assetParts; each {partId,materialId,slotIndex?}; [] clears; whole-part then slot override',
+  'material.tangent.set         {materialId, tangent}                          — {mode:uv,uvMap:UVMap} uses named mesh UVs; {mode:radial,axis:x|y|z} uses object-local cylindrical tangent; null clears after disabling anisotropy and rotation/animation',
+  'project.brief.set            {goal, referenceImages}                         — replace written goal and up to four reference bindings; each {id,assetId,sha256,label,purposes,notes?}, purposes geometry/materials/lighting/goalFit; bind immutable ingested PNG/JPEG assets; empty goal and [] clear',
+  'project.reviewSubject.set    {entityId}                                     — save the main review entity; null restores automatic selection; entity must exist and be non-empty; does not move any camera',
 ].join('\n  ')
 
 function scenePatch(ctx) {
@@ -391,8 +454,8 @@ function scenePatch(ctx) {
       'fails, no revision is created and the current revision is untouched, so a failed patch is always safe ' +
       'to correct and retry. Retrying an identical patch is also safe — it returns the original outcome ' +
       'instead of committing twice.\n\n' +
-      'Set saveCheckpoint (default true) unless you are only reshaping the spec: a preview can only be ' +
-      'rendered from a revision that has a .blend checkpoint.\n\n' +
+      'saveCheckpoint (default true) compiles this revision now. If false, the first preview compiles ' +
+      'the revision lazily before rendering.\n\n' +
       'Operations (each object needs an "op" key):\n  ' + OPERATION_SUMMARY,
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
@@ -410,8 +473,8 @@ function scenePatch(ctx) {
         items: { type: 'object', additionalProperties: true },
         description:
           'Ordered list of operations. Each needs an "op" key naming the operation (see the tool description). ' +
-          'Later operations see the result of earlier ones, so a patch can remove a camera and then the shot ' +
-          'that used it — in that order.',
+          'Later operations see the result of earlier ones: remove or retarget every shot that uses a camera ' +
+          'before removing that camera.',
       },
       note: {
         type: 'string',
@@ -489,7 +552,7 @@ function scenePatch(ctx) {
         if (data.checkpoint !== null && data.checkpoint !== undefined) {
           notes.push(`Checkpoint: ${data.checkpoint}`)
         } else {
-          notes.push('No checkpoint was saved, so this revision cannot be previewed as-is.')
+          notes.push('No checkpoint was saved. The first preview will compile this revision lazily.')
         }
         if ((data.previews ?? []).length > 0) {
           for (const preview of data.previews) {
@@ -534,9 +597,14 @@ function previewRender(ctx) {
       'directly; if it does not, the revision is compiled from its SceneSpec into a scratch directory first ' +
       '(slower, and reported as a warning). Prefer committing patches with saveCheckpoint:true so previews ' +
       'stay cheap. Returns the project-relative path of the image, its dimensions, the engine actually used, ' +
-      'and the frame that was rendered.',
+      'and the frame that was rendered. Set mode beauty or clay for an independent inspection rebuilt from ' +
+      'SceneSpec with an image attachment; this requires Host API 6 and explicit revision, cameraId and frame. ' +
+      'Clay replaces subject surface materials with gray, removing transparency, emission and textures; ' +
+      'imported shader displacement may change the rendered shape. It does not approve technical or artistic quality.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
+      mode: { type: 'string', enum: ['beauty', 'clay'],
+        description: 'Independent fixed-view inspection with an image attachment. Requires explicit revision, cameraId and frame. Omit for normal checkpoint preview.' },
       revision: { type: 'string', description: 'Revision to render. Defaults to the current one.' },
       cameraId: {
         type: 'string',
@@ -557,11 +625,16 @@ function previewRender(ctx) {
       width: { type: 'integer', description: 'Override preview width in pixels.' },
       height: { type: 'integer', description: 'Override preview height in pixels.' },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.mode !== undefined) return await renderInspection(resolved, {
+          projectId: args.projectId, revision: args.revision, mode: args.mode,
+          cameraId: args.cameraId, frame: args.frame, width: args.width, height: args.height,
+          samples: args.samples, signal: exec.signal,
+        })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderPreview({
           ...definedFields({
             projectId: args.projectId,
@@ -599,7 +672,9 @@ function previewRender(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: `Render preview of "${args?.projectId ?? ''}"${args?.cameraId ? ` from ${args.cameraId}` : ''}`,
+      title: args?.mode
+        ? `Render ${args.mode} inspection of "${args.projectId}" · ${args.revision ?? '?'} · ${args.cameraId ?? '?'} · frame ${args.frame ?? '?'}`
+        : `Render preview of "${args?.projectId ?? ''}"${args?.cameraId ? ` from ${args.cameraId}` : ''}`,
       kind: 'other',
     }),
   })
@@ -742,6 +817,8 @@ function revisionRestore(ctx) {
     description:
       'Move a project back to an earlier revision. Read blender_project_get first and pass the exact ' +
       'revision id from its history — this does not take an index, a timestamp or "the previous one". ' +
+      'Pass the currentRevision you just read as expectedCurrentRevision so the Host refuses the restore ' +
+      'if another edit changed the current revision. ' +
       'Nothing is deleted: the revisions after the target stay in the history, and the revision you ' +
       'leave is still there to restore again. Requires confirm:true, because the scene the model is ' +
       'reasoning about changes underneath it — after a restore, re-read with blender_scene_get before ' +
@@ -752,6 +829,11 @@ function revisionRestore(ctx) {
         type: 'string',
         required: true,
         description: 'The revision to move the project to, exactly as blender_project_get reports it (e.g. "r0003").',
+      },
+      expectedCurrentRevision: {
+        type: 'string',
+        description: 'The currentRevision just read from blender_project_get. If the current pointer changed, ' +
+          'the Host refuses with REVISION_CONFLICT before moving it. Optional for older callers; supply it to protect other edits.',
       },
       confirm: {
         type: 'boolean',
@@ -765,20 +847,17 @@ function revisionRestore(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
 
-      // NOTE ON THE ABSENT `confirm` CHECK. An earlier version of this tool ran a
-      // hand-written refusal when `args.confirm !== true`. It was unreachable: the
-      // parameter is declared `required`, so the harness rejects a call that omits it
-      // with `INVALID_ARGS` before `execute` is entered — measured while writing this
-      // suite, and it is why the branch is gone. A guard that cannot fire reads like
-      // protection and is not, which is the same defect as a test that cannot fail.
-      // The confirmation this tool offers IS the schema requirement, and
-      // `composition/tool-plane-m3.e2e.mjs` asserts both halves: that it is declared,
-      // and that omitting it never reaches the host.
       try {
+        // A required boolean still accepts false. Refuse it before calling the Host.
+        if (args.confirm !== true) {
+          throw new BlenderError('REVISION_RESTORE_CONFIRMATION_REQUIRED',
+            'Restore requires confirm:true. No revision was changed.')
+        }
         const { data, canonicalWarnings } = await canonicalCall(
           resolved.studio.restoreRevision(definedFields({
             projectId: args.projectId,
             revision: args.revision,
+            expectedCurrentRevision: args.expectedCurrentRevision,
           })),
           warning,
         )
@@ -809,6 +888,17 @@ function revisionRestore(ctx) {
         }
       } catch (cause) {
         const failure = renderFailure(cause, 'REVISION_RESTORE_FAILED')
+        if (failure.data.errorCode === BlenderErrorCode.REVISION_CONFLICT) {
+          failure.text = [
+            'DeepBlend restore refused.',
+            `errorCode: ${failure.data.errorCode}`,
+            `message:   ${failure.data.message}`,
+            ...(failure.data.detail == null ? [] : [`detail:    ${JSON.stringify(failure.data.detail)}`]),
+            '',
+            'Read blender_project_get again and review the intervening changes before deciding whether to restore. ' +
+              'If restoring is still intended, pass its currentRevision as expectedCurrentRevision.',
+          ].join('\n')
+        }
         return { ok: false, ...failure }
       }
     },
@@ -858,13 +948,13 @@ function assetIngest(ctx) {
       'Bring a 3D model file into a project, so a scene can instantiate it. Give EITHER sourcePath (a ' +
       'file already on this machine) OR sourceUrl (an http/https address); a local file is imported ' +
       'directly, a remote one needs the operator\'s approval first, so it will pause and ask. ' +
-      '\n\nThis does NOT change the scene. It copies the bytes into the project\'s assets/raw/, records ' +
+      '\n\nThis does NOT change the scene. It copies the bytes into assets/raw/ or a locked glTF resource bundle, records ' +
       'them in assets/manifest.json, and returns an assetId, a project-relative path and a sha256. ' +
       'Declare it with blender_scene_patch {op: "asset.add", asset: {...}} and then add an entity of ' +
       'type "asset-instance" with that assetId — those two steps are what put it in the scene, and ' +
       'blender_scene_validate will tell you if the format cannot be imported by this Blender build. ' +
-      '\n\nSupported formats: glb, gltf, fbx, obj, usd, blend. The size ceiling is the deployment\'s ' +
-      'assetMaxBytes (SPEC §15).',
+      '\n\nSupported formats: glb, gltf, fbx, obj, usd, blend, png, jpg, jpeg, hdr, exr. The size ceiling is the deployment\'s ' +
+      'assetMaxBytes (SPEC §15). Local glTF/GLB includes buffers/images; OBJ includes MTL files and referenced textures. sourceRoot selects their containing directory. Remote external dependencies are refused.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project to bring the asset into.' },
       sourcePath: {
@@ -872,6 +962,7 @@ function assetIngest(ctx) {
         description: 'Absolute path to a local file. No approval needed. Use this whenever the file is ' +
           'already on the machine — it is faster and it does not leave the machine.',
       },
+      sourceRoot: { type: 'string', description: 'Optional local glTF/GLB/OBJ resource root containing the model and all relative buffer, material and image files. Defaults to its directory; files outside this root are refused.' },
       sourceUrl: {
         type: 'string',
         description: 'An http or https URL. Requires the operator\'s approval, which this tool asks for ' +
@@ -884,7 +975,7 @@ function assetIngest(ctx) {
       },
       type: {
         type: 'string',
-        description: 'Asset type, when the file extension does not say it. One of glb, gltf, fbx, obj, usd, blend.',
+        description: 'Asset type, when the file extension does not say it. One of glb, gltf, fbx, obj, usd, blend, png, jpg, jpeg, hdr, exr.',
       },
       license: {
         type: 'string',
@@ -900,6 +991,7 @@ function assetIngest(ctx) {
       const ingestRequest = {
         projectId: args.projectId,
         sourcePath: args.sourcePath,
+        sourceRoot: args.sourceRoot,
         sourceUrl: args.sourceUrl,
         assetId: args.assetId,
         type: args.type,

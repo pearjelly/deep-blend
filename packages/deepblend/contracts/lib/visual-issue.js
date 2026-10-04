@@ -87,8 +87,8 @@ export const VISUAL_SEVERITIES = Object.freeze(['minor', 'major', 'critical'])
 const SEVERITY_POINTS = Object.freeze({ minor: 4, major: 10, critical: 18 })
 
 /**
- * A perfect score. Below this the automated loop has something to fix; at or above
- * it the loop hands over instead of pretending there is work (see `shouldHandOver`).
+ * Technical passing threshold. Artistic quality is assessed separately; reaching
+ * this value does not establish that the work meets its visual goal.
  */
 export const VISUAL_PASS_SCORE = 90
 
@@ -216,7 +216,7 @@ export function scoreView(view, options = {}) {
   if (exposure !== null) add(exposure)
 
   for (const object of subjects) {
-    const composition = assessComposition(object)
+    const composition = assessComposition(object, options.subjectId)
     if (composition !== null) add(composition)
     const occlusion = assessOcclusion(object)
     if (occlusion !== null) add(occlusion)
@@ -412,9 +412,26 @@ function assessExposure(metrics, viewId, subject = null) {
  * Where the subject sits in the frame, and how big it is.
  *
  * @param {object} object - one object entry from the view's measurements.
+ * @param {string|null} subjectId - the selected primary subject, when supplied.
  * @returns {VisualIssue|null}
  */
-function assessComposition(object) {
+function assessComposition(object, subjectId) {
+  // No isolated silhouette is different from a silhouette hidden by another object.
+  // Require the provider's complete zero/out-of-frame reading rather than treating
+  // omitted legacy measurements or a tiny positive silhouette as proof of absence.
+  // A component may legitimately face away in this view; its presence is assessed
+  // across views below, unless the user explicitly selected that component itself.
+  if (object.silhouettePixels === 0 && object.visiblePixels === 0 && object.inFrame === false &&
+    (!isSubjectPart(object) || object.id === subjectId)) {
+    return buildIssue({
+      category: 'composition', code: 'SUBJECT_OUT_OF_FRAME', severity: 'critical',
+      viewId: object.viewId, objectId: object.id,
+      evidence: `"${object.id}" has no isolated silhouette in this view: silhouettePixels=0, ` +
+        'visiblePixels=0 and inFrame=false. The subject is absent from the measured frame, so its framing cannot pass.',
+      measurements: { silhouettePixels: 0, visiblePixels: 0, inFrame: 'false' },
+      buckets: ['absent'],
+    })
+  }
   if (object.visiblePixels === 0) return null // fully hidden is an occlusion finding
   const centroid = object.centroid
   if (!Array.isArray(centroid) || centroid.length !== 2) return null
@@ -642,7 +659,7 @@ export function validateFindings(raw, context) {
       continue
     }
     const category = entry.category
-    if (!VISUAL_ISSUE_CATEGORIES.includes(category)) {
+    if (![...VISUAL_ISSUE_CATEGORIES, 'geometry', 'materials', 'lighting', 'goalFit'].includes(category)) {
       rejected.push({ finding: entry, reason: `unknown category "${String(category)}"` })
       continue
     }
@@ -687,13 +704,14 @@ export function validateFindings(raw, context) {
  * Three ways to stop, and each one exists because the alternative is a loop that
  * spends money to make things worse:
  *
- *  - the score is already passing — there is no measured problem to improve;
+ *  - both the technical score and the separate artistic review pass;
  *  - the iteration cap is reached (SPEC §12.3 "达到最大迭代数后进入人工审查");
  *  - the same fingerprint has repeated `stopOnRepeatedIssueCount` times, which is
  *    the structural form of "同一问题两轮未改善则停止自动迭代".
  *
  * @param {object} input
  * @param {number} input.score
+ * @param {boolean} input.artisticPassed
  * @param {number} input.iteration
  * @param {number} input.maxIterations
  * @param {Map<string, number>} input.fingerprints - fingerprint -> consecutive count
@@ -701,8 +719,8 @@ export function validateFindings(raw, context) {
  * @returns {{ stop: boolean, reason: string|null }}
  */
 export function shouldHandOver(input) {
-  if (input.score >= VISUAL_PASS_SCORE) {
-    return { stop: true, reason: 'PASSING_SCORE' }
+  if (input.score >= VISUAL_PASS_SCORE && input.artisticPassed === true) {
+    return { stop: true, reason: 'PASSING_REVIEW' }
   }
   if (input.iteration >= input.maxIterations) {
     return { stop: true, reason: 'MAX_ITERATIONS' }

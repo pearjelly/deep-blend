@@ -95,6 +95,14 @@ function describeImageFrom(image) {
 test('the manifest exists, parses, and names the tool that wrote it', () => {
   assert.ok(existsSync(MANIFEST_PATH), 'deepblend/docs/images/manifest.json is missing; re-run the capture tool')
   assert.equal(manifest.tool, 'deepblend/tools/capture-docs-images.mjs', 'the manifest does not name the tool that produces these images')
+  const comparison=manifest.comparison
+  assert.ok(comparison,'the screenshot must record its actual before/after source revisions')
+  assert.notEqual(comparison.beforeRevision,comparison.afterRevision,'two renders of the same revision do not prove a material edit')
+  assert.match(comparison.beforeSceneSha256,/^[a-f0-9]{64}$/)
+  assert.match(comparison.afterSceneSha256,/^[a-f0-9]{64}$/)
+  assert.notEqual(comparison.beforeSceneSha256,comparison.afterSceneSha256)
+  assert.deepEqual(comparison.images.map(image=>image.revision),[comparison.beforeRevision,comparison.afterRevision])
+  for(const image of comparison.images){assert.match(image.sha256,/^[a-f0-9]{64}$/);assert.ok(image.bytes>0 && image.width>0 && image.height>0);assert.ok(image.path.includes('/'+image.revision+'/'))}
   assert.ok(
     existsSync(join(ROOT, manifest.tool)),
     `the manifest names ${manifest.tool}, which does not exist — the pictures can no longer be reproduced`,

@@ -142,6 +142,11 @@ const views = [
 // ---------------------------------------------------------------------------
 
 const prompt = buildReviewerPrompt(review, views)
+check('the reviewer can propose generator and ordered-stack repairs while preserving existing operations',
+  prompt.includes('entity.generator.set') && prompt.includes('entity.modifiers.set') &&
+  prompt.includes('Preserve existing operations') && /place after boolean/i.test(prompt) &&
+  prompt.includes('miterInner?:"arc"|"sharp"') && prompt.includes('omitted miterInner preserves arc') &&
+  prompt.includes('does not create a smooth organic union'))
 check('the prompt places every view on the sheet, by cell, so a finding can name one',
   prompt.includes('cell (row 1, column 1) = view "three-quarter", camera camera-main, frame 60 — a 45-degree reading of the subject') &&
   prompt.includes('cell (row 1, column 2) = view "front", camera camera-front, frame 60'),
@@ -165,13 +170,12 @@ check('with measured issues the prompt lists them with their severity, view, obj
   prompt.split('\n').filter(line => line.startsWith('  [')).slice(0, 3))
 check('a clean review says "(none)" instead of printing an empty list',
   buildReviewerPrompt({ ...review, issues: [], score: 100 }, views).includes('An automated scorer measured 0 problem(s) and scored this 100/100:\n  (none)'))
-// The prompt is allowed exactly ONE `null`, and it is not a leak: the JSON shape the model is told
-// to answer in documents `"objectId"` as nullable. A check that simply banned the word would be
-// asserting that the product may not describe its own format.
+// Null is intentional for nullable object ids and clearing image bindings.
 const nullLines = prompt.split('\n').filter(line => /null/.test(line))
-check('the prompt leaks no JavaScript value, and its only `null` is the documented JSON value',
+check('the prompt leaks no JavaScript value; null appears only in documented nullable fields',
   !/undefined|NaN|\[object Object\]/.test(prompt) &&
-  nullLines.length === 1 && nullLines[0].includes('"objectId": "<object id or null>"'),
+  nullLines.length === 2 && nullLines.every(line => line.includes('"objectId": "<object id or null>"') ||
+    line.includes('material.images.set {materialId, images} — replace image map bindings or null to remove.')),
   nullLines)
 
 // ---------------------------------------------------------------------------
@@ -390,6 +394,34 @@ rmSync(workspaceRoot, { recursive: true, force: true })
 // ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
+
+const authoredContext = { project: { goal: 'Ceramic cup with a rounded handle and visible wall thickness' },
+  entities: [{ id: 'cup-body', generator: { shape: 'lathe' } }], materials: [{ id: 'glaze' }] }
+const contextualPrompt = buildReviewerPrompt({ ...review, sceneContext: authoredContext }, views, { revision: 'r0001' })
+check('the reviewer receives the authored goal and parts, and must review artistic quality even at high technical scores',
+  contextualPrompt.includes(authoredContext.project.goal) && contextualPrompt.includes('cup-body') &&
+  contextualPrompt.includes('even at 100/100') && contextualPrompt.includes('"geometry"') &&
+  contextualPrompt.includes('"materials"') && contextualPrompt.includes('"lighting"') && contextualPrompt.includes('"goalFit"'))
+check('comparison instructions identify candidate and baseline and do not invent supplied references',
+  contextualPrompt.includes('candidate r0002 (first image) with baseline r0001 (second image)') &&
+  contextualPrompt.includes('Reference images have not been supplied'))
+{
+  const beforeImages = savedImages.length
+  const baselinePng = Buffer.from(sheetPng)
+  const artistic = { dimensions: { geometry: { status: 'needs_work', viewId: 'three-quarter', confidence: 0.95,
+    evidence: 'The handle join has a visible sharp ridge' } } }
+  const result = await studioWith({ llm: llmService([
+    { type: 'text-delta', text: JSON.stringify({ findings: [], operations: [], artistic }) },
+    { type: 'finish', reason: { kind: 'stop' } },
+  ]) }).createVisualReviewer()({ ...reviewerRequest, baselineReview: { revision: 'r0001' }, baselineSheetPng: baselinePng })
+  const content = streamed.at(-1).messages[0].content
+  check('a comparison uploads both real sheets in documented order',
+    savedImages.length === beforeImages + 2 && savedImages.at(-1).name === 'baseline-r0001.png' &&
+    content.filter(part => part.type === 'image').length === 2 &&
+    Buffer.compare(savedImages.at(-1).data, baselinePng) === 0)
+  check('the artistic assessment survives the model response parser',
+    result.artistic.dimensions.geometry.evidence === artistic.dimensions.geometry.evidence)
+}
 
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nVisual reviewer contract: ${passed}/${results.length} check(s) passed`)

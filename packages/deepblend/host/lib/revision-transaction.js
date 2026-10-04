@@ -42,6 +42,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
 import {
@@ -64,12 +65,14 @@ import {
   validateSceneSpec,
   warning,
 } from '@deepblend/dsh-blender-contracts'
+import { verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import {
   fileSha256,
   fileSize,
   isFile,
   publishDirectory,
+  resolveInside,
   removeTree,
   writeFileAtomic,
   writeJsonAtomic,
@@ -123,9 +126,8 @@ export function resolveIdempotencyKey(patch) {
 /**
  * The revision transaction runner.
  *
- * One instance per `blenderStudio` service; it holds no state of its own beyond
- * the stores and the runtime it was built with, so a second project cannot leak
- * into the first.
+ * Each mutation holds the store's project writer lease until the revision,
+ * project pointer and idempotency record have all been written.
  */
 export class RevisionTransaction {
   /**
@@ -148,14 +150,17 @@ export class RevisionTransaction {
   /**
    * Remove abandoned staging directories.
    *
-   * Called before each transaction rather than on a timer: a staging directory
-   * can only be abandoned by a process that died, and the next transaction is
-   * exactly when we know we are alive and it is stale.
+   * Called only while owning the project writer lease. Once a dead writer has
+   * been recovered, its unpublished candidates can safely be discarded.
    *
    * @param {string} projectId
    * @param {string} [keep] - a staging directory to preserve (this transaction's).
    */
   sweepStaging(projectId, keep) {
+    return this.store.withProjectWrite(projectId, () => this._sweepStaging(projectId, keep))
+  }
+
+  _sweepStaging(projectId, keep) {
     const staging = join(this.store.projectDirectory(projectId), 'staging')
     if (!existsSync(staging)) return
     for (const entry of readdirSafe(staging)) {
@@ -184,6 +189,11 @@ export class RevisionTransaction {
    * @returns {Promise<{ projectId: string, record: object, revision: object, job: object, warnings: object[] }>}
    */
   async createProject(input) {
+    const projectId = input.projectId ?? this.store.allocateProjectId(String(input.title ?? '').trim())
+    return this.store.withProjectWrite(projectId, () => this._createProject({ ...input, projectId }))
+  }
+
+  async _createProject(input) {
     const title = String(input.title ?? '').trim()
     if (title.length === 0) {
       throw new BlenderError(BlenderErrorCode.PROJECT_ID_INVALID, 'A project needs a non-empty title.')
@@ -241,7 +251,7 @@ export class RevisionTransaction {
       projectsRoot: this.store.projectsRoot,
     })
 
-    const outcome = await this.commit({
+    const outcome = await this._commit({
       projectId,
       baseRevision: GENESIS_REVISION,
       operations: [],
@@ -249,6 +259,7 @@ export class RevisionTransaction {
       specHashBefore: null,
       specHashAfter: specHash(compiled.spec),
       kind: 'project_create',
+      recipeLock: input.recipeLock ?? null,
       summary: `Initialise project "${title}"`,
       actor: input.actor ?? null,
       stage: 'BRIEF',
@@ -280,6 +291,10 @@ export class RevisionTransaction {
       )
     }
 
+    return this.store.withProjectWrite(patch.projectId, () => this._applyScenePatch(patch, options))
+  }
+
+  async _applyScenePatch(patch, options) {
     const projectId = patch.projectId
     const record = this.store.readRecord(projectId)
     const { key, derived } = resolveIdempotencyKey(patch)
@@ -362,34 +377,23 @@ export class RevisionTransaction {
       )
     }
 
-    // ---- a declared asset hash must be the file's hash ---------------------
-    //
-    // `asset.add` carries a `sha256` the patch APPLIER cannot check: it is a pure function over documents with no
-    // filesystem, which is the right shape for it. But the hash it stores is provenance a later reader trusts —
-    // the delivery manifest, a human auditing where the bytes came from — and `blender_asset_ingest` COMPUTES the
-    // hash of what it wrote, so the two copies can disagree with nothing comparing them. MEASURED before this:
-    // nothing did, on either side, and the Python never reads `assets[].sha256` at all.
-    //
-    // Checked here, in the transaction, because this is the layer that has both the document and the store. A
-    // path with no file is left alone: declaring an asset before its bytes exist is a different question, and the
-    // compiler refuses that one loudly.
-    for (const operation of patch.operations ?? []) {
-      if (operation?.op !== 'asset.add') continue
-      const declared = operation.asset?.sha256
-      const assetPath = operation.asset?.path
-      if (typeof declared !== 'string' || typeof assetPath !== 'string') continue
-      const absolute = join(this.store.projectDirectory(projectId), assetPath)
-      if (!existsSync(absolute)) continue
-      const actual = fileSha256(absolute)
-      if (actual !== declared) {
-        throw new BlenderError(
-          BlenderErrorCode.ASSET_HASH_MISMATCH,
-          `asset "${operation.asset.id}" declares sha256 ${declared}, but ${assetPath} is ${actual}. Nothing was ` +
-            'committed. The declaration is provenance a later reader trusts, so it has to be the file\u2019s own ' +
-            'hash — blender_asset_ingest reports the right one for what it wrote.',
-          { detail: { projectId, assetId: operation.asset.id, path: assetPath, declared, actual } },
-        )
+    // Verify every declared dependency on every patch, including unchanged assets.
+    // A later material/camera edit must not silently compile changed source bytes.
+    for (const asset of nextSpec.assets ?? []) {
+      if (typeof asset.path !== 'string') continue
+      verifyAssetBundle(this.store.projectDirectory(projectId), asset)
+      const pathHash = /^assets\/raw\/([a-f0-9]{64})\.[a-z0-9]+$/.exec(asset.path)?.[1]
+      const declared = pathHash ?? asset.sha256
+      const absolute = resolveInside(this.store.projectDirectory(projectId), asset.path, 'scene asset')
+      if (!existsSync(absolute)) continue // Missing declarations are diagnosed when compiled.
+      const actual = typeof declared === 'string' ? fileSha256(absolute) : null
+      if (typeof declared === 'string' && (actual !== declared || (asset.sha256 && asset.sha256 !== declared))) {
+        throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
+          `asset "${asset.id}" declares sha256 ${asset.sha256 ?? declared}, but ${asset.path} is ${actual}. Nothing was committed.`,
+          { detail: { projectId, assetId: asset.id, path: asset.path, declared: asset.sha256 ?? declared, pathHash, actual } })
       }
+      verifyUnbundledGltfAsset(this.store.projectDirectory(projectId), asset)
+      verifyUnbundledObjAsset(this.store.projectDirectory(projectId), asset)
     }
 
     // ---- resolve the RESULT before anything reads it -----------------------
@@ -431,7 +435,7 @@ export class RevisionTransaction {
     }
 
     const summary = patch.note ?? describeOperations(operationRecords)
-    const outcome = await this.commit({
+    const outcome = await this._commit({
       projectId,
       baseRevision: patch.baseRevision,
       operations: patch.operations,
@@ -480,16 +484,35 @@ export class RevisionTransaction {
    * @returns {Promise<{ revision: object, job: object, warnings: object[], sceneSummary: object }>}
    */
   async commit(plan) {
+    return this.store.withProjectWrite(plan.projectId, () => this._commit(plan))
+  }
+
+  async _commit(plan) {
     const { projectId } = plan
     const record = this.store.readRecord(projectId)
+    if (plan.baseRevision !== record.currentRevision) {
+      throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT,
+        `The commit was computed against ${plan.baseRevision}, but "${projectId}" is at ${record.currentRevision}.`,
+        { detail: { projectId, baseRevision: plan.baseRevision, currentRevision: record.currentRevision } })
+    }
     const revision = this.store.nextRevisionId(projectId)
     const revisionNumber = /** @type {number} */ (parseRevisionId(revision))
 
-    this.sweepStaging(projectId)
-    const staging = join(this.store.projectDirectory(projectId), 'staging', revision)
-    removeTree(staging)
+    this._sweepStaging(projectId)
+    const staging = join(this.store.projectDirectory(projectId), 'staging', `${revision}-${randomUUID()}`)
     mkdirSync(staging, { recursive: true })
 
+    try {
+      return await this._commitStaged({ plan, record, revision, revisionNumber, staging })
+    } finally {
+      // Publication moved this directory; every unsuccessful path removes only
+      // this transaction's private staging, never another candidate's files.
+      removeTree(staging)
+    }
+  }
+
+  async _commitStaged({ plan, record, revision, revisionNumber, staging }) {
+    const { projectId } = plan
     const jobId = plan.jobId ?? this.store.allocateJobId(projectId, plan.kind === 'project_create' ? 'compile_scene' : 'apply_scene_patch')
     const startedAt = new Date().toISOString()
     const startedMs = Date.now()
@@ -725,6 +748,7 @@ export class RevisionTransaction {
       actor: plan.actor ?? null,
       stage: plan.stage ?? null,
       note: plan.note ?? null,
+      ...(plan.recipeLock ? { recipe: { id: plan.recipeLock.id, version: plan.recipeLock.version, packageDigest: plan.recipeLock.packageDigest, lockPath: 'recipe-lock.json' } } : {}),
       sceneSpecVersion: plan.spec.schemaVersion,
       counts: sceneSummary.counts,
       subjectBounds: sceneSummary.subjectBounds,
@@ -743,6 +767,12 @@ export class RevisionTransaction {
       },
       renderConfig: compileReport?.renderConfig ?? null,
       sceneFingerprint: compileReport?.sceneFingerprint ?? null,
+      assetParts: (compileReport?.objects ?? [])
+        .filter(object => object.type === 'MESH' && typeof object.partId === 'string' && object.partId.length > 0)
+        .map(({ deepblendId, partId, parentPartId, sourceMaterialSlots, materialSlots }) => ({
+          entityId: deepblendId, partId, parentPartId: parentPartId ?? null,
+          sourceMaterialSlots: sourceMaterialSlots ?? [], materialSlots: materialSlots ?? [],
+        })),
       checkpoint: isFile(join(staging, 'scene.blend')) ? `revisions/${revision}/scene.blend` : null,
       previews: previews.map(entry => entry.artifact),
       jobId,
@@ -794,6 +824,8 @@ export class RevisionTransaction {
       })
     }
 
+    if (plan.recipeLock) writeJsonAtomic(join(staging, 'recipe-lock.json'), plan.recipeLock)
+
     writeJsonAtomic(join(staging, 'validation.json'), {
       schemaVersion: 'deepblend.validation/v1',
       revision,
@@ -807,6 +839,25 @@ export class RevisionTransaction {
     writeJsonAtomic(join(staging, 'revision-manifest.json'), manifest)
 
     // ---- publish -----------------------------------------------------------
+    // The lease coordinates all supported writers; this second check also
+    // catches an external pointer/record edit while Blender was running. Compare
+    // the whole record so a restore away and back cannot hide behind the same id.
+    try {
+      this.store.assertProjectWrite(projectId)
+      const current = this.store.readRecord(projectId)
+      if (JSON.stringify(current) !== JSON.stringify(record)) {
+        throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT,
+          `Project "${projectId}" changed while ${revision} was compiling; current revision is ${current.currentRevision}. ` +
+          'The candidate was not published. Read the scene again before retrying.',
+          { detail: { projectId, baseRevision: record.currentRevision, currentRevision: current.currentRevision } })
+      }
+    } catch (cause) {
+      removeTree(staging)
+      const failure = toCanonicalFailure(cause, { isBlenderError: value => value instanceof BlenderError, fallbackCode: 'REVISION_CONFLICT' })
+      const job = writeJob({ status: 'failed', revision: null, errorCode: failure.code, message: failure.message })
+      this.recordFailedAttempt(projectId, { revision, baseRevision: plan.baseRevision, job, failure, plan })
+      throw cause
+    }
     const finalPath = this.store.revisionDirectory(projectId, revision)
     publishDirectory(staging, finalPath)
 
@@ -863,6 +914,11 @@ export class RevisionTransaction {
     const filename = `${cameraId}.png`
     const outputPath = join(previewsDir, filename)
 
+    const ceiling = Math.min(profile.maxSamplesBudget ?? this.config.maxPreviewSamples ?? 512, this.config.maxPreviewSamples ?? 512)
+    const samples = Math.min(profile.samples ?? ceiling, ceiling)
+    if (samples < profile.samples) input.warnings?.push(warning(BlenderWarningCode.RENDER_SAMPLES_REDUCED,
+      `preview samples reduced from ${profile.samples} to ${samples} by the configured budget`,
+      { requested: profile.samples, used: samples }))
     const run = await this.runtime.renderPreview({
       checkpointPath: input.checkpointPath,
       outputPath,
@@ -870,7 +926,7 @@ export class RevisionTransaction {
       engine: engineInfo.blenderEngine === null ? undefined : profile.engine,
       width: profile.resolution?.[0],
       height: profile.resolution?.[1],
-      samples: profile.samples,
+      samples,
       jobId: input.jobId,
       signal: input.signal,
     })
@@ -894,12 +950,19 @@ export class RevisionTransaction {
       artifact: {
         kind: 'preview',
         path: `revisions/${revision}/previews/${filename}`,
-        cameraId,
+        sourceRevision: revision,
+        sourceDigest: sceneSpecDigest(spec),
+        at: new Date().toISOString(),
+        cameraId: report.cameraId ?? null,
         frame: report.frame ?? null,
         width: report.width ?? null,
         height: report.height ?? null,
-        engine: report.engine ?? profile.engine,
-        samples: report.renderConfig?.samples ?? profile.samples ?? null,
+        engine: report.engine ?? null,
+        samples: report.renderConfig?.samples ?? null,
+        // Measured renderer settings, not the requested SceneSpec profile. Older
+        // providers may omit this; a comparison must then treat it as unknown.
+        renderConfig: report.renderConfig ? structuredClone(report.renderConfig) : null,
+        cameraFacts: report.cameraFacts ? structuredClone(report.cameraFacts) : null,
         bytes,
         sha256: fileSha256(outputPath),
         mime: 'image/png',
@@ -1048,7 +1111,7 @@ export function defaultSceneSpec({ projectId, title, goal }) {
         resolution: [640, 360],
         samples: 48,
         filmTransparent: false,
-        colorManagement: { viewTransform: 'Standard' },
+        colorManagement: { viewTransform: 'AgX' },
         maxSamplesBudget: 256,
       },
       final: {

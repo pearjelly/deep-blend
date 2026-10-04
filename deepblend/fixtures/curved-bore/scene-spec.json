@@ -1,0 +1,238 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "curved-bore",
+    "title": "Curved bore — bevel inner corners",
+    "goal": "An 11 cm diameter, 11.5 cm tall glazed cylinder with a 3.8 cm transverse through-hole. Inspect the hole edge and curved surface for intersecting faces, dark lines and abrupt highlight folds.",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 48,
+    "aspectRatio": "4:3",
+    "activeCamera": "diagnostic",
+    "reviewSubjectId": "body"
+  },
+  "materials": [
+    {
+      "id": "glaze",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.035,
+          0.24,
+          0.2,
+          1
+        ],
+        "roughness": 0.22,
+        "metallic": 0
+      }
+    },
+    {
+      "id": "floor",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.13,
+          0.15,
+          0.17,
+          1
+        ],
+        "roughness": 0.7
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "body",
+      "type": "generator",
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.055,
+        "depth": 0.115,
+        "segments": 128,
+        "bevel": {
+          "width": 0.002,
+          "segments": 4
+        }
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.0575
+        ]
+      },
+      "materialId": "glaze",
+      "modifiers": [
+        {
+          "type": "boolean",
+          "operation": "difference",
+          "targetEntityId": "bore-tool"
+        },
+        {
+          "type": "bevel",
+          "width": 0.001,
+          "segments": 4,
+          "angle": 30,
+          "miterInner": "sharp"
+        }
+      ]
+    },
+    {
+      "id": "bore-tool",
+      "type": "generator",
+      "visible": false,
+      "generator": {
+        "shape": "cylinder",
+        "radius": 0.019,
+        "depth": 0.15,
+        "segments": 96
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.072
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "floor",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 20
+      },
+      "materialId": "floor",
+      "tags": [
+        "environment"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "key",
+      "type": "area",
+      "energy": 6,
+      "size": 0.4,
+      "transform": {
+        "location": [
+          0.30000000000000004,
+          -0.4,
+          0.6000000000000001
+        ],
+        "rotationEuler": [
+          0.785,
+          0,
+          0.644
+        ]
+      }
+    },
+    {
+      "id": "fill",
+      "type": "area",
+      "energy": 2.3000000000000003,
+      "size": 0.30000000000000004,
+      "transform": {
+        "location": [
+          -0.30000000000000004,
+          -0.1,
+          0.4
+        ],
+        "rotationEuler": [
+          0.812,
+          0,
+          -1.249
+        ]
+      }
+    },
+    {
+      "id": "rim",
+      "type": "area",
+      "energy": 7,
+      "size": 0.2,
+      "transform": {
+        "location": [
+          0.1,
+          0.30000000000000004,
+          0.5
+        ],
+        "rotationEuler": [
+          0.669,
+          0,
+          2.82
+        ]
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "diagnostic",
+      "lens": 80,
+      "sensorWidth": 36,
+      "clipping": [
+        0.001,
+        200
+      ],
+      "transform": {
+        "location": [
+          0.19,
+          -0.31,
+          0.17
+        ]
+      },
+      "targetPoint": [
+        0,
+        -0.02,
+        0.065
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "diagnostic-shot",
+      "cameraId": "diagnostic",
+      "frameRange": [
+        1,
+        48
+      ]
+    }
+  ],
+  "animationTracks": [],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        480,
+        360
+      ],
+      "samples": 32,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 256
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        960,
+        720
+      ],
+      "samples": 128,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 256
+    }
+  },
+  "assets": []
+}

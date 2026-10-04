@@ -8,6 +8,13 @@
     ".": {
       "default": "./lib/index.js"
     },
+    "./sdk": {
+      "types": "./lib/sdk.d.ts",
+      "default": "./lib/sdk.js"
+    },
+    "./schemas/scene-spec.json": "./lib/schemas/scene-spec.schema.json",
+    "./schemas/scene-patch.json": "./lib/schemas/scene-patch.schema.json",
+    "./schemas/recipe.json": "./lib/schemas/recipe.schema.json",
     "./package.json": "./package.json"
   },
   "license": "MIT",

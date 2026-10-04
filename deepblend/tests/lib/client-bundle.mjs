@@ -78,7 +78,7 @@ export function loadClientBundle(options = {}) {
   runInNewContext(source, {
     window,
     document: undefined,
-    JSON, Object, Array, String, Number, Boolean, Math, Error, Set, Map, Promise, console,
+    JSON, Object, Array, String, Number, Boolean, Math, Error, Set, Map, Promise, AbortController, console,
     // The store polls on a timer, exactly as it does in a browser. These are
     // JavaScript globals rather than DOM ones, so supplying them is not a DOM
     // simulation — it is the same environment the bundle really runs in, minus

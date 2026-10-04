@@ -12,8 +12,8 @@
  *   reviewer()  ask the vision model what it sees, and what it would change
  *
  * That boundary is not decoration. It is what lets the loop's SEMANTICS — the
- * iteration cap, the repeated-issue stop, "only adopt a change that improves the
- * score", and the handover package — be tested deterministically against a stub,
+ * iteration cap, the repeated-issue stop, "only adopt evidenced improvements without
+ * regression", and the handover package — be tested deterministically against a stub,
  * while "the model really sees the image" is tested once, live. Mixing those two
  * claims into one untestable blob is how a project ends up asserting only one of
  * them (decision D34).
@@ -46,6 +46,8 @@ import {
   updateFingerprintCounters,
   validateFindings,
 } from './visual-issue.js'
+import { validateArtisticReview, artisticRegressed } from './artistic-review.js'
+import { reviewInputsDigest } from './scene-spec.js'
 
 /**
  * @typedef {object} VisualReviewRound
@@ -71,13 +73,15 @@ import {
  * @param {string} input.projectId
  * @param {string} input.revision - the starting (current) revision.
  * @param {(request: object) => Promise<object>} input.review
- *   `({ projectId, revision, iteration, signal }) => VisualReview` — measures and scores.
+ *   `({ projectId, revision, iteration, subjectId?, signal }) => VisualReview` — measures and scores.
+ *   After the baseline, an own subjectId (including null) fixes what is measured.
  * @param {(request: object) => Promise<object>} input.patch
  *   `({ projectId, baseRevision, operations, note, actor, stage, idempotencyKey, saveCheckpoint, signal }) => RevisionSummary`
  * @param {(request: object) => Promise<object>} input.restore
- *   `({ projectId, revision, reason }) => unknown`
+ *   `({ projectId, revision, expectedCurrentRevision, reason }) => unknown` — rejects a concurrent current-revision change.
  * @param {(request: object) => Promise<{ findings: object[], operations: object[], note: string|null, detail: object|null }>} input.reviewer
- *   The vision port. Receives `{ review, round, previousRounds, signal }`.
+ *   The vision port. Receives `{ review, baselineReview?, round, previousRounds, signal }`.
+ *   Returns artistic dimension assessments and, for a candidate, a comparison judgment.
  * @param {(line: string) => void} [input.log]
  * @param {number} [input.maxIterations]
  * @param {number} [input.stopOnRepeatedIssueCount]
@@ -87,7 +91,7 @@ import {
  *   a handover package whenever the loop stopped short of passing.
  */
 export async function runVisualLoop(input) {
-  const maxIterations = positiveInteger(input.maxIterations, 5)
+  const maxIterations = input.maxIterations === 0 ? 0 : positiveInteger(input.maxIterations, 5)
   const stopOnRepeatedIssueCount = positiveInteger(input.stopOnRepeatedIssueCount, 2)
   const minConfidence = numberInRange(input.minConfidenceForAutoFix, 0.8)
   const log = typeof input.log === 'function' ? input.log : () => {}
@@ -109,6 +113,16 @@ export async function runVisualLoop(input) {
     signal: input.signal,
   })
   let score = currentReview.score
+  const authoredInputsDigest = checkedReviewInputsDigest(currentReview)
+  // Legacy measurement-only ports omitted both subject identity and scene context.
+  // Real Host reviews carry these facts, so later rounds must prove the same subject.
+  const subjectFixed = hasSubjectEvidence(currentReview)
+  const fixedSubjectId = currentReview.subjectId ?? null
+  const subjectEvidence = { sceneContext: currentReview.sceneContext != null, subject: currentReview.subject != null }
+  const baselineSubjectError = subjectFixed ? reviewedSubjectIssue(currentReview, fixedSubjectId) : null
+  let artistic = validateArtisticReview(null, new Set(), minConfidence, {
+    subject: baselineSubjectError ? { available: false, reason: baselineSubjectError.message } : currentReview.subject,
+  })
   // The baseline is an OBSERVATION, not an attempt, so it seeds the counters at zero
   // rather than one. Counting it would make "the same issue recurred twice" true
   // after a single failed fix — and the loop would then stop before trying the second
@@ -124,15 +138,21 @@ export async function runVisualLoop(input) {
     reported: [],
     rejectedFindings: [],
     outcome: 'baseline',
-    reason: null,
+    reason: baselineSubjectError?.message ?? null,
+    ...(subjectFixed ? { fixedSubjectId } : {}),
     newRevision: null,
     appliedPatch: null,
   })
   log(`baseline ${currentRevision}: score ${score}, ${currentReview.issues.length} measured issue(s)`)
 
   while (true) {
+    if (baselineSubjectError) {
+      handedOver = { reason: baselineSubjectError.reviewSubjectReason, iteration, score, revision: currentRevision }
+      break
+    }
     const decision = shouldHandOver({
       score,
+      artisticPassed: artistic.status === 'pass',
       iteration,
       maxIterations,
       fingerprints,
@@ -157,6 +177,8 @@ export async function runVisualLoop(input) {
       previousRounds: rounds.filter(round => round.outcome === 'applied' || round.outcome === 'rejected'),
       signal: input.signal,
     })
+    artistic = assessArtisticReview(vision.artistic, currentReview, minConfidence)
+    seedFingerprintCounters(fingerprints, reviewIssues(currentReview, artistic))
 
     // The model's findings are validated against the review it was shown, and the
     // ones that survive are kept as the round's `reported` list. They are NOT added
@@ -187,6 +209,16 @@ export async function runVisualLoop(input) {
       reason: null,
       newRevision: null,
       appliedPatch: null,
+      artisticBefore: artistic,
+      reviewer: vision.detail ?? null,
+      ...(subjectFixed ? { fixedSubjectId } : {}),
+    }
+
+    if (score >= VISUAL_PASS_SCORE && artistic.status === 'pass') {
+      round.reason = 'PASSING_REVIEW'
+      rounds.push(round)
+      handedOver = { reason: 'PASSING_REVIEW', iteration, score, revision: currentRevision }
+      break
     }
 
     if (candidates.length === 0) {
@@ -202,6 +234,34 @@ export async function runVisualLoop(input) {
       round.reason = 'NO_FIX_PROPOSED'
       rounds.push(round)
       handedOver = { reason: round.reason, fingerprint: null, iteration, score, revision: currentRevision }
+      break
+    }
+
+    const subjectOperation = operations.find(operation => operation.op === 'project.reviewSubject.set' ||
+      (subjectFixed && fixedSubjectId !== null && operation.entityId === fixedSubjectId &&
+        (operation.op === 'entity.remove' || (operation.op === 'entity.visibility.set' && operation.visible === false))))
+    if (subjectOperation) {
+      round.outcome = 'rejected'
+      round.reason = `REVIEW_SUBJECT_OPERATION_REFUSED: ${subjectOperation.op}`
+      rounds.push(round)
+      handedOver = { reason: 'REVIEW_SUBJECT_OPERATION_REFUSED', iteration, score, revision: currentRevision }
+      break
+    }
+
+    // The model may improve the result, but cannot lower the authored target or
+    // replace the reference it is being judged against. Refuse the entire proposal.
+    const referenceAssets = new Set([
+      ...(currentReview.sceneContext?.project?.referenceImages ?? []),
+      ...(currentReview.referenceImages ?? []),
+    ].map(reference => reference.assetId))
+    const forbidden = operations.find(operation => operation.op === 'project.brief.set' ||
+      (operation.op === 'asset.remove' && referenceAssets.has(operation.assetId)) ||
+      (operation.op === 'asset.add' && referenceAssets.has(operation.asset?.id)))
+    if (forbidden) {
+      round.outcome = 'rejected'
+      round.reason = `REVIEW_INPUT_OPERATION_REFUSED: ${forbidden.op}`
+      rounds.push(round)
+      handedOver = { reason: 'REVIEW_INPUT_OPERATION_REFUSED', iteration, score, revision: currentRevision }
       break
     }
 
@@ -232,29 +292,71 @@ export async function runVisualLoop(input) {
       // again and this round has to count towards the repeated-issue rule. Without
       // this, a scene that refuses every proposal would run to the iteration cap
       // instead of recognising what is happening after the second refusal.
-      updateFingerprintCounters(fingerprints, currentReview.issues)
+      updateFingerprintCounters(fingerprints, reviewIssues(currentReview, artistic))
       continue
     }
 
     round.appliedPatch = { operations, note: vision.note ?? null }
     round.newRevision = summary.revision
 
-    const after = await input.review({
-      projectId: input.projectId,
-      revision: summary.revision,
-      iteration,
-      signal: input.signal,
-    })
+    let after, afterVision, afterArtistic
+    try {
+      after = await input.review({
+        projectId: input.projectId, revision: summary.revision, iteration, signal: input.signal,
+        ...(subjectFixed ? { subjectId: fixedSubjectId } : {}),
+      })
+      if (checkedReviewInputsDigest(after) !== authoredInputsDigest) {
+        throw reviewInputsChanged('The candidate changed the authored goal or visual reference inputs.')
+      }
+      if (subjectFixed) {
+        const issue = reviewedSubjectIssue(after, fixedSubjectId, subjectEvidence)
+        if (issue) throw issue
+      }
+      if (after.score >= score) {
+        afterVision = await input.reviewer({
+          review: after, baselineReview: currentReview, round: iteration,
+          previousRounds: rounds.filter(entry => entry.outcome === 'applied' || entry.outcome === 'rejected'),
+          signal: input.signal,
+        })
+        afterArtistic = assessArtisticReview(afterVision.artistic, after, minConfidence)
+      }
+    } catch (cause) {
+      await input.restore({ projectId: input.projectId, revision: currentRevision,
+        expectedCurrentRevision: summary.revision,
+        reason: 'candidate review failed; keep the previously reviewed revision' })
+      round.outcome = 'rejected'
+      const reason = cause?.reviewSubjectReason ?? (cause?.reviewInputsChanged ? 'REVIEW_INPUTS_CHANGED' : 'REVIEW_FAILED')
+      round.reason = `${reason}: ${cause instanceof Error ? cause.message : String(cause)}`
+      round.rolledBackTo = currentRevision
+      rounds.push(round)
+      handedOver = { reason, iteration, score, revision: currentRevision }
+      break
+    }
+    round.artisticAfter = afterArtistic ?? null
+    round.comparisonReviewer = afterVision?.detail ?? null
+    // Aggregate gains cannot hide a newly introduced major/critical defect.
+    const severity = { minor: 1, major: 2, critical: 3 }
+    const priorSeverity = new Map(currentReview.issues.map(issue =>
+      [`${issue.viewId}|${issue.objectId ?? ''}|${issue.code}`, severity[issue.severity] ?? 0]))
+    const worsenedIssue = after.issues.some(issue => (severity[issue.severity] ?? 0) >= 2 &&
+      (severity[issue.severity] ?? 0) > (priorSeverity.get(`${issue.viewId}|${issue.objectId ?? ''}|${issue.code}`) ?? 0))
+    const artRegression = afterArtistic && artisticRegressed(artistic, afterArtistic)
+    const artImproved = afterArtistic?.comparison.verdict === 'improved'
+    const comparisonSupported = ['improved', 'equivalent'].includes(afterArtistic?.comparison.verdict)
 
-    if (after.score > score) {
+    if (after.score >= score && !worsenedIssue && !artRegression && comparisonSupported && (after.score > score || artImproved)) {
       const previousScore = score
       score = after.score
       currentRevision = summary.revision
       currentReview = after
+      artistic = afterArtistic
       round.outcome = 'applied'
-      round.reason = `score ${previousScore} -> ${score}`
+      round.reason = previousScore === score ? `artistic improvement; technical score unchanged (${score})` : `score ${previousScore} -> ${score}`
       rounds.push(round)
-      updateFingerprintCounters(fingerprints, after.issues)
+      updateFingerprintCounters(fingerprints, reviewIssues(after, artistic))
+      if (artImproved) for (const key of fingerprints.keys()) {
+        if (key.startsWith('artistic|')) fingerprints.set(key, 0)
+      }
       log(`round ${iteration}: applied ${operations.length} operation(s), score ${previousScore} -> ${score} on ${currentRevision}`)
       continue
     }
@@ -263,35 +365,41 @@ export async function runVisualLoop(input) {
     await input.restore({
       projectId: input.projectId,
       revision: round.revision,
-      reason: `visual round ${iteration} measured ${after.score}, not better than ${score}`,
+      expectedCurrentRevision: summary.revision,
+      reason: `visual round ${iteration} declined: technical ${score} -> ${after.score}, artistic ${afterArtistic?.comparison.verdict ?? 'unassessable'}`,
     })
     round.outcome = 'rejected'
-    round.reason = `score did not improve (${score} -> ${after.score})`
+    round.reason = artRegression ? 'ARTISTIC_REGRESSION' : worsenedIssue ? 'TECHNICAL_ISSUE_REGRESSION'
+      : after.score > score && !comparisonSupported ? 'ARTISTIC_COMPARISON_UNASSESSABLE' : `score did not improve (${score} -> ${after.score})`
     round.rolledBackTo = round.revision
     rounds.push(round)
     // The measured state is unchanged (the pointer went back), so the same
     // fingerprints are present again — which is exactly what makes a fix that
     // cannot work stop the loop instead of repeating until the cap.
-    updateFingerprintCounters(fingerprints, currentReview.issues)
-    log(`round ${iteration}: rejected — score did not improve (${score} -> ${after.score}); pointer restored to ${currentRevision}`)
+    updateFingerprintCounters(fingerprints, reviewIssues(currentReview, artistic))
+    log(`round ${iteration}: rejected — ${round.reason}; pointer restored to ${currentRevision}`)
   }
 
   // A handover is something a human has to pick up, so a run that PASSED has none.
   // Reporting one would tell a reader to take over work that is finished.
-  const handover = handedOver === null || handedOver.reason === 'PASSING_SCORE'
+  const handover = handedOver === null || handedOver.reason === 'PASSING_REVIEW'
     ? null
-    : buildHandover({ handedOver, openIssues: currentReview.issues, rounds, review: currentReview })
+    : { ...buildHandover({ handedOver, openIssues: currentReview.issues, rounds, review: currentReview }), artistic }
 
   return {
     projectId: input.projectId,
     startRevision: input.revision,
     finalRevision: currentRevision,
+    subjectFixed,
+    fixedSubjectId: subjectFixed ? fixedSubjectId : null,
     startScore: rounds[0].score,
     finalScore: score,
-    passed: score >= VISUAL_PASS_SCORE,
+    technicalPassed: !baselineSubjectError && score >= VISUAL_PASS_SCORE,
+    artistic,
+    passed: !baselineSubjectError && score >= VISUAL_PASS_SCORE && artistic.status === 'pass',
     iterations: iteration,
     maxIterations,
-    stopReason: handedOver?.reason ?? 'PASSING_SCORE',
+    stopReason: handedOver?.reason ?? 'PASSING_REVIEW',
     rounds,
     openIssues: currentReview.issues,
     sheet: currentReview.sheet ?? null,
@@ -312,10 +420,19 @@ export async function runVisualLoop(input) {
  */
 function objectIdsOf(review) {
   const ids = new Set()
+  for (const entity of review.sceneContext?.entities ?? []) ids.add(entity.id)
+  for (const view of review.views ?? []) for (const object of view.objects ?? []) ids.add(object.id)
   for (const issue of review.issues ?? []) {
     if (issue.objectId) ids.add(issue.objectId)
   }
   return [...ids]
+}
+
+/** Repeated unresolved art dimensions count separately from measured issues. */
+function reviewIssues(review, artistic) {
+  return [...review.issues, ...Object.entries(artistic.dimensions)
+    .filter(([, entry]) => entry.status === 'needs_work')
+    .map(([dimension]) => ({ fingerprint: `artistic|${dimension}` }))]
 }
 
 /**
@@ -344,7 +461,7 @@ function buildHandover(input) {
   for (const viewId of investigatedViews) suggestions.push(`Re-render view "${viewId}" alone at full resolution before editing.`)
   if (attempted.length > 0) {
     suggestions.push(
-      `The automated rounds tried ${attempted.length} change(s) and none improved the measured score; ` +
+      `The automated rounds tried ${attempted.length} change(s); ` +
       'the review rounds below record exactly what each one was.',
     )
   }
@@ -388,6 +505,67 @@ function normaliseOperation(proposed) {
   const operation = 'op' in proposed ? proposed : proposed.operation
   if (operation === null || typeof operation !== 'object' || typeof operation.op !== 'string') return []
   return [operation]
+}
+
+function reviewInputsChanged(message) {
+  return Object.assign(new Error(message), { reviewInputsChanged: true })
+}
+
+function hasSubjectEvidence(review) {
+  return Object.hasOwn(review, 'subjectId') || review.subject !== undefined || review.sceneContext != null
+}
+
+function reviewedSubjectIssue(review, expectedId, required = {}) {
+  const issue = (reason, message) => Object.assign(new Error(message), { reviewSubjectReason: reason })
+  if ((required.sceneContext && review.sceneContext == null) || (required.subject && review.subject == null) ||
+    !Object.hasOwn(review, 'subjectId') ||
+    (review.subjectId !== null && (typeof review.subjectId !== 'string' || review.subjectId.length === 0)) ||
+    review.subjectId !== expectedId ||
+    (review.subject && (review.subject.id !== expectedId || typeof review.subject.available !== 'boolean'))) {
+    return issue('REVIEW_SUBJECT_CHANGED', 'The review did not report the fixed subject identity.')
+  }
+  if (expectedId === null || review.subject?.available === false) {
+    return issue('REVIEW_SUBJECT_UNAVAILABLE', review.subject?.reason ?? 'The fixed review subject is unavailable.')
+  }
+  if (review.sceneContext) {
+    const entity = (review.sceneContext.entities ?? []).find(entry => entry.id === expectedId)
+    if (!entity || entity.visible === false || entity.type === 'empty') {
+      return issue('REVIEW_SUBJECT_UNAVAILABLE', `The fixed review subject "${expectedId}" is missing, hidden or empty in this revision.`)
+    }
+    const authored = review.sceneContext.project?.reviewSubjectId
+    if (authored !== undefined && authored !== expectedId) {
+      return issue('REVIEW_SUBJECT_CHANGED', 'The review subject disagrees with the explicitly saved subject.')
+    }
+  }
+  return null
+}
+
+/** Old measurement-only ports have neither field; retain their null identity. */
+function checkedReviewInputsDigest(review) {
+  const computed = review.sceneContext ? reviewInputsDigest(review.sceneContext) : null
+  const declared = review.reviewInputsDigest ?? null
+  if (declared !== null && (!/^[a-f0-9]{64}$/.test(declared) || (computed !== null && declared !== computed))) {
+    throw reviewInputsChanged('The review input digest does not match its authored scene context.')
+  }
+  if (computed === null && declared === null && (review.referenceImages ?? []).length > 0) {
+    throw reviewInputsChanged('A visual review with references must record its review input digest.')
+  }
+  return computed ?? declared
+}
+
+function assessArtisticReview(raw, review, minConfidence) {
+  const referenceImages = review.referenceImages ?? []
+  const authored = review.sceneContext?.project?.referenceImages ?? []
+  const supplied = new Map(referenceImages.map(reference => [reference.id, reference]))
+  const missing = authored.some(reference => {
+    const actual = supplied.get(reference.id)
+    return !actual || actual.assetId !== reference.assetId || actual.sha256 !== reference.sha256 ||
+      JSON.stringify([...(actual.purposes ?? [])].sort()) !== JSON.stringify([...reference.purposes].sort())
+  }) || (review.sceneContext && referenceImages.length !== authored.length)
+  const assessment = validateArtisticReview(missing ? null : raw,
+    new Set(review.perView.map(entry => entry.viewId)), minConfidence, { referenceImages, subject: review.subject })
+  if (missing) assessment.problems.push('The actual reference image inventory does not match the authored references.')
+  return assessment
 }
 
 /** A positive integer option, with a default. */
