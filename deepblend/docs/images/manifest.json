@@ -36,16 +36,16 @@
         "path": "revisions/r0002/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "76714e205b7ef79133b183ae261faa400cc893989bb086190e8c1aff53e5138d",
-        "bytes": 2244725
+        "sha256": "bd9ff2a2c6a1f9b3a7e8e5a06fa2555796801c0137a09743d9bb3c9e7427c862",
+        "bytes": 2241982
       },
       {
         "revision": "r0003",
         "path": "revisions/r0003/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "19763b00324792a002c6d18cc350c03bbae96995a74bcf3dc387f6d5e0ef9a57",
-        "bytes": 2115254
+        "sha256": "c5c383751f2b244beb8e641734f532f27f3052c82a5fb09f14f0838406dc0655",
+        "bytes": 2114918
       }
     ]
   },
@@ -56,8 +56,8 @@
       "note": "the Preview view comparing actual r0002/r0003 renders, before/after the material refinement",
       "width": 3000,
       "height": 1900,
-      "bytes": 1207075,
-      "sha256": "5c8ad0b649322e14fd636359d9512758876d8f0ba38f80e9ab8cdcafb3c49309"
+      "bytes": 1206964,
+      "sha256": "72ce8b6492db65f2ea591d012580f3ea93859d3c110fe728526eca061b718533"
     },
     {
       "file": "workbench-scene.png",
@@ -65,8 +65,8 @@
       "note": "the workbench: the project header with its current revision, and the Scene tree the Host serves",
       "width": 3000,
       "height": 1900,
-      "bytes": 401585,
-      "sha256": "3f4741a57370e3d85e92f9e8781ee733c9a82d1df61838831b47edb842603e1c"
+      "bytes": 421476,
+      "sha256": "b199c40bbd84a4fae6d297ac60319780665622c408090869fc74630c17c3d67a"
     },
     {
       "file": "render-contact-sheet.png",
@@ -74,8 +74,8 @@
       "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
       "width": 1476,
       "height": 906,
-      "bytes": 625200,
-      "sha256": "5f209bbd60621a147087b971bd6d5e953b8d8a2d40c57613bbf8bcdb220ba2a9"
+      "bytes": 625337,
+      "sha256": "c3e05e58ff08de11fc31f972cb77926eb011ab0eb775906e4a7bcc347a661dde"
     }
   ]
 }

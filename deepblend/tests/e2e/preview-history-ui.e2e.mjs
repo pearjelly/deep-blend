@@ -30,7 +30,10 @@ try {
   server = await startWeb({ workspacePath: REPO_ROOT, patch: JSON.stringify(rows), keepHome: false })
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
-  await page.addInitScript(`window.__previewPointerClicks=[];document.addEventListener('click',event=>{const control=event.target.closest?.('[data-action]');if(control)window.__previewPointerClicks.push({action:control.dataset.action,disabled:control.disabled===true})},true)`)
+  await page.addInitScript(`window.__previewPointerClicks=[];document.addEventListener('click',event=>{const control=event.target.closest?.('[data-action]');if(control)window.__previewPointerClicks.push({action:control.dataset.action,disabled:control.disabled===true})},true);
+    window.__previewHoldRefresh=false;window.__previewHeld=[];window.__previewReleases=[];
+    const originalFetch=window.fetch;window.fetch=async(input,init)=>{const url=String(input);const response=await originalFetch(input,init);
+      if(window.__previewHoldRefresh&&(!init?.method||init.method==='GET')&&url.includes('/deepblend/')){window.__previewHeld.push(url);await new Promise(resolve=>window.__previewReleases.push(resolve));}return response;}`)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]\')!==null', 45000)
   await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]'); await page.fill('[data-field="project-title"]', projectId)
@@ -73,12 +76,20 @@ try {
   check('a later multi-view sheet records its own source without replacing single attempts', currentSheet?.sourceRevision === 'r0001' && currentSheet.sourceDigest === initial.sourceDigest && kept())
   check('a sheet stores each measured view rather than the requested profile', views.views[0].samples === 4 && currentSheet.viewSettings[0].renderConfig.samples === 4 && currentSheet.viewSettings[0].cameraFacts.frame === 24 && currentSheet.viewSettings[0].cameraFacts.lens === first.cameraFacts.lens)
   const firstSheet = structuredClone(currentSheet)
+  await page.click('[data-action="reload"]'); await page.click('[data-compare-mode="result"]')
+  await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(firstSheet.sha256)}`)
+  // Both generations use preview-current.png. Hold refresh responses so a path-only
+  // wait demonstrably observes the old metadata, then wait for the new digest.
+  await page.evaluate('window.__previewHoldRefresh=true')
   const multi = await studio.renderViews({ projectId, revision: 'r0001', views: [{ id: 'hero', cameraId: 'hero', frame: 24 }, { id: 'later', cameraId: 'hero', frame: 36 }], width: 192, height: 144, samples: 12 })
   currentSheet = multi.previewSheets.current
   check('rotation retains the preceding sheet settings and the new capped per-view budget', isDeepStrictEqual(multi.previewSheets.previous.viewSettings, firstSheet.viewSettings) && multi.previewSheets.previous.sha256 === firstSheet.sha256
     && currentSheet.viewSettings.every(item => item.samples === 8 && item.renderConfig.samples === 8) && currentSheet.viewSettings[1].cameraFacts.frame === 36)
-  await page.click('[data-action="reload"]'); await page.click('[data-compare-mode="result"]')
-  await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}`)
+  await page.click('[data-action="reload"]')
+  await page.waitFor('window.__previewHeld.length>0')
+  check('a reused sheet path cannot identify the refreshed image or its settings', await page.evaluate(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(firstSheet.sha256)}&&document.querySelectorAll('[data-compare=current] [data-render-view-id]').length===1`))
+  await page.evaluate('(()=>{window.__previewHoldRefresh=false;for(const release of window.__previewReleases)release();return true})()')
+  await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(currentSheet.sha256)}`)
   check('sheet display distinguishes composed pixels from both constituent render settings', await page.evaluate(`document.querySelector('[data-compare=current]').textContent.includes(${JSON.stringify(`${currentSheet.width}×${currentSheet.height}`)})&&document.querySelector('[data-compare=current]').textContent.includes('192×144')&&document.querySelectorAll('[data-compare=current] [data-render-view-id]').length===2&&document.querySelector('[data-render-view-id=later]').textContent.includes('36')`))
   await page.screenshot(join(output, '02-sheet-settings.png'))
   const third = await render(256, 192, 8)

@@ -131,6 +131,12 @@ run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no
 run_suite "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)" \
   node deepblend/tests/e2e/workbench-page.e2e.mjs
 
+run_suite "Render selection: native profile, submitted revision, frame dimensions and encoded delivery" \
+  node deepblend/tests/e2e/render-selection-ui.e2e.mjs
+
+run_suite "Photography editor: native camera and light edits, saved inspections and conditional restore" \
+  node deepblend/tests/e2e/photography-ui.e2e.mjs
+
 run_suite "Asset library in a real browser: upload, preview, apply and revision conflicts" \
   node deepblend/tests/e2e/asset-library.e2e.mjs
 

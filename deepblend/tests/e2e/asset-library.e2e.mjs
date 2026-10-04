@@ -121,7 +121,22 @@ try {
   const firstPreview = manifest().previews.at(-1); copyFileSync(path(firstPreview.path), join(directory, 'r0001-before.png'))
   originals = Object.fromEntries(['revisions/r0001/scene-spec.json', 'revisions/r0001/scene.blend', 'revisions/r0001/revision-manifest.json', firstPreview.path].map(file => [file, sha(readFileSync(path(file)))]))
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
-  await page.addInitScript(`window.__assetRequests=[];const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=typeof init?.body==='string'?JSON.parse(init.body):undefined}catch{};window.__assetRequests.push({url:String(input),method:init?.method||'GET',body,bodyType:init?.body?.constructor?.name,fileBytes:init?.body instanceof File?init.body.size:null});return original(input,init)}`)
+  await page.addInitScript(`window.__assetRequests=[];window.__assetPointerEvents=[];
+    for(const type of ['pointerdown','pointerup','click'])document.addEventListener(type,event=>{
+      const target=event.target,card=target.closest?.('[data-asset-path]'),rect=target.getBoundingClientRect?.();
+      window.__assetPointerEvents.push({at:performance.now(),type,x:event.clientX,y:event.clientY,tag:target.tagName,
+        action:target.closest?.('[data-action]')?.getAttribute('data-action'),assetPath:card?.getAttribute('data-asset-path'),
+        disabled:target.disabled,rect:rect?{x:rect.x,y:rect.y,width:rect.width,height:rect.height}:null});
+      if(window.__assetPointerEvents.length>400)window.__assetPointerEvents.shift();
+    },true);
+    const original=window.fetch;window.fetch=async(input,init)=>{let body;try{body=typeof init?.body==='string'?JSON.parse(init.body):undefined}catch{}
+      const record={at:performance.now(),url:String(input),method:init?.method||'GET',body,bodyType:init?.body?.constructor?.name,fileBytes:init?.body instanceof File?init.body.size:null};
+      window.__assetRequests.push(record);
+      try{const response=await original(input,init);record.status=response.status;record.completedAt=performance.now();
+        if(!response.ok)response.clone().text().then(text=>record.errorBody=text.slice(0,4000)).catch(()=>{});
+        return response;
+      }catch(error){record.error=String(error);record.completedAt=performance.now();throw error;}
+    }`)
   await page.goto(url); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000); await sceneView()
   check('the library is opened explicitly without an automatic inspection request', !(await page.evaluate('window.__assetRequests')).some(request => /\/assets/.test(request.url)))
   await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelector("[data-asset-limits]")!==null')
@@ -216,7 +231,20 @@ try {
   check('all five uploads used native File bodies and no model review was requested', requests.filter(request => request.method === 'POST' && /\/assets\?/.test(request.url)).length === 5 && requests.filter(request => request.method === 'POST' && /\/assets\?/.test(request.url)).every(request => request.bodyType === 'File' && request.fileBytes > 0) && requests.every(request => !/\/(review|autofix)$/.test(request.url)))
   write('requests-after-refresh.json', await page.evaluate('window.__assetRequests')); write('inspections.json', previews); write('captures.json', captures)
   outcome = 'passed'
-} catch (error) { console.error(error); results.push({ name: 'unexpected failure', ok: false, detail: error.stack || String(error) }); if (page) await page.screenshot(join(directory, 'failure.png')).catch(() => {}) }
+} catch (error) {
+  console.error(error); results.push({ name: 'unexpected failure', ok: false, detail: error.stack || String(error) })
+  if (page) {
+    const evidence = await page.evaluate(`(() => ({requests:window.__assetRequests,events:window.__assetPointerEvents,
+      libraryHtml:document.querySelector('[data-assets-library]')?.outerHTML,bodyText:document.body.innerText,
+      scrolls:Array.from(document.querySelectorAll('[data-scroll-key]')).map(el=>({key:el.dataset.scrollKey,top:el.scrollTop,left:el.scrollLeft})),
+      cards:Array.from(document.querySelectorAll('[data-asset-path]')).map(el=>({assetId:el.dataset.assetId,assetPath:el.dataset.assetPath,
+        buttons:Array.from(el.querySelectorAll('button')).map(button=>({action:button.dataset.action,disabled:button.disabled,rect:button.getBoundingClientRect().toJSON()})),
+        image:(()=>{const image=el.querySelector('[data-asset-preview]');return image?{src:image.src,complete:image.complete,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight,rect:image.getBoundingClientRect().toJSON()}:null})()}))}))()`)
+      .catch(diagnosticError => ({ captureError: String(diagnosticError) }))
+    write('failure-evidence.json', evidence); write('failure-console.json', page.consoleLog)
+    await page.screenshot(join(directory, 'failure.png')).catch(() => {})
+  }
+}
 finally {
   for (const [name, close] of [['browser', () => browser?.close()], ['server', () => server?.stop()]]) {
     try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { outcome = 'failed'; results.push({ name: `${name} shutdown`, ok: false, detail: String(error) }) }

@@ -3937,6 +3937,21 @@ export default class BlenderStudio extends Service {
     const spec = this.store.readRevisionSpec(projectId, record.revisionId)
     const profileName = record.profileName ?? this.config.finalRenderProfile
     const profile = this._resolveRenderProfile(spec, profileName, record.revisionId)
+    const recordedSamples = record.renderConfig?.samples
+    const samples = request?.samples ?? recordedSamples ?? profile.samples
+    const effective = this._deliverySamples(profile, samples, record.revisionId)
+    // A default resume must match completed frames. A changed operator budget
+    // cannot silently lower the quality while the job still records its old count.
+    if (request?.samples == null && recordedSamples != null && effective.samples !== recordedSamples) {
+      throw new BlenderError(
+        BlenderErrorCode.RENDER_BUDGET_EXCEEDED,
+        `Render job ${jobId} used ${recordedSamples} samples, but the current render budget allows ` +
+          `${effective.samples}. Restore enough budget to resume this job, or create a new render job. ` +
+          'Nothing has been started or changed.',
+        { detail: { projectId, jobId, revision: record.revisionId, profileName,
+          recordedSamples, availableSamples: effective.samples } },
+      )
+    }
     // The checkpoint the RENDER used, when the record carries one (it does for anything `startFinalRender`
     // produced): re-resolving here would compile a second scratch copy for a revision that has no checkpoint of
     // its own. An EXPORT of a job whose record predates that field still resolves for itself.
@@ -3967,9 +3982,6 @@ export default class BlenderStudio extends Service {
         padding: record.filePadding,
       },
     })
-
-    const samples = request?.samples ?? profile.samples
-    const effective = this._deliverySamples(profile, samples, record.revisionId)
 
     await this._launchRenderer({
       record: {

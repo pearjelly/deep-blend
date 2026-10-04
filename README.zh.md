@@ -143,7 +143,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         115 个 *.test.mjs
+    contract/         118 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -202,7 +202,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 21/115 file(s) passed
+DeepBlend tests: 22/118 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -258,12 +258,12 @@ npm run verify:clone          # 换一台「从没见过这个项目」的机器
 四步里有三步是纯 Node，而 `dsh --profile web --dump-config` 实测在没有 pnpm 的 PATH 上
 照样成功（容器里跑过整条 job）。
 
-CI 另有固定 Linux 运行时的真实检查 job，覆盖 Host 灰模/材质、Agent 附图和浏览器检查流程。
+CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Agent 附图及浏览器流程；渲染配置与摄影编辑使用独立 job 和时间预算。
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**31 个套件、145 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**115 个文件 = 1923 项自计断言（34 个文件打印计数）+ 1170 个 `node:test` 用例（81 个文件）**。
+预期：**33 个套件、150 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**118 个文件 = 1923 项自计断言（34 个文件打印计数）+ 1214 个 `node:test` 用例（84 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -570,7 +570,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 31 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 33 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

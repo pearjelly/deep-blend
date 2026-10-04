@@ -13,9 +13,10 @@
 # README.zh.md keeps the snapshot with its caveats; a second copy here would only be a second
 # thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
-# A separate Linux job runs selected real Blender, Agent and browser inspections.
+# Separate Linux jobs run selected real Blender, Agent and browser inspections,
+# and the render-selection / photography workflows with their own time budget.
 # The remaining blender-integration/*, composition/* and e2e/ui.e2e.mjs coverage
-# stays in `bash deepblend/tests/run-all.sh`, including delivery encoding and
+# stays in `bash deepblend/tests/run-all.sh`, including longer delivery renders and
 # broader recovery flows. No online model calls are made by these CI jobs.
 # Runtime archives are pinned; raw cached archives are rehashed before extraction.
 #
@@ -234,6 +235,66 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-inspections-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/deepblend-ci
+          retention-days: 7
+          include-hidden-files: true
+          if-no-files-found: error
+
+  linux-render-photography-browser:
+    name: Linux render selection + photography editor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - name: Prepare evidence directory
+        run: node deepblend/tools/ci-evidence.mjs
+      - name: Install the locked development deployment and SDK tools
+        run: node deepblend/tools/development.mjs setup --github-env
+      - name: Verify workspace links
+        run: node deepblend/tools/link-workspace.mjs --check
+      - name: Cache pinned raw runtime archives
+        uses: actions/cache@v4
+        with:
+          path: .tools/ci/archives
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+      - name: Download and verify fixed Linux runtimes
+        id: runtimes
+        run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
+      - name: Recheck installed executables without changes
+        run: node deepblend/tools/install-ci-runtimes.mjs --check > "$DEEPBLEND_CI_EVIDENCE/runtime-check.json" 2>&1
+      - name: Prepare software graphics and Chrome sandbox
+        id: graphics
+        run: node deepblend/tools/prepare-ci-linux.mjs > "$DEEPBLEND_CI_EVIDENCE/graphics.log" 2>&1
+      - name: Install delivery video tools
+        run: sudo apt-get install -y --no-install-recommends ffmpeg > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-install.log" 2>&1
+      - name: Verify ffmpeg and ffprobe and retain their versions
+        id: codecs
+        run: ffmpeg -version > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-version.log" 2>&1 && ffprobe -version > "$DEEPBLEND_CI_EVIDENCE/ffprobe-version.log" 2>&1
+      - name: Real render profile selection and revision-pinned delivery
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/render-selection-browser
+        run: xvfb-run -a node deepblend/tests/e2e/render-selection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/render-selection-browser.log" 2>&1
+      - name: Real camera and light edits with saved inspection sources
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/photography-browser
+        run: xvfb-run -a node deepblend/tests/e2e/photography-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/photography-browser.log" 2>&1
+      - name: Preserve editing requests, native artifacts and shutdown evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-render-photography-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/deepblend-ci
           retention-days: 7
           include-hidden-files: true
