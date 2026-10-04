@@ -484,6 +484,14 @@ window.__ModuleLoader__.load({
       'preview.identical': '结构完全相同',
       'jobs.empty': '还没有渲染任务。',
       'jobs.deliveryVerified': '交付已校验',
+      'jobs.provenanceUnknown': '帧来源未知',
+      'jobs.provenanceUnchecked': '{count} 帧未在本次状态读取中复核；交付时的记录见交付清单',
+      'jobs.provenanceMixed': '混合配置：{details}',
+      'jobs.provenanceConfig': '帧配置：{details}',
+      'jobs.provenanceGroup': '{engine} · {resolution} · samples {samples} · 帧 {frames}（共 {count} 帧）',
+      'jobs.provenanceMore': '另有 {count} 组配置，详见交付清单',
+      'jobs.provenanceUnknownCount': '{count} 帧来源未知',
+      'jobs.provenanceMissing': '{count} 帧尚未完成',
       'jobs.cancel': '取消',
       'jobs.resume': '继续渲染',
       'jobs.startDelivery': '启动一次交付渲染（写操作经 Host）',
@@ -970,6 +978,14 @@ window.__ModuleLoader__.load({
       'preview.identical': 'structurally identical',
       'jobs.empty': 'No render jobs yet.',
       'jobs.deliveryVerified': 'delivery verified',
+      'jobs.provenanceUnknown': 'Frame provenance unknown',
+      'jobs.provenanceUnchecked': '{count} frames not rechecked in this status read; see the delivery manifest for publication-time evidence',
+      'jobs.provenanceMixed': 'Mixed configurations: {details}',
+      'jobs.provenanceConfig': 'Frame configurations: {details}',
+      'jobs.provenanceGroup': '{engine} · {resolution} · samples {samples} · frames {frames} ({count} total)',
+      'jobs.provenanceMore': '{count} more configurations; see the delivery manifest',
+      'jobs.provenanceUnknownCount': '{count} frames with unknown provenance',
+      'jobs.provenanceMissing': '{count} frames not completed',
       'jobs.cancel': 'Cancel',
       'jobs.resume': 'Resume render',
       'jobs.startDelivery': 'Start a delivery render (the write goes through the Host)',
@@ -1082,11 +1098,11 @@ window.__ModuleLoader__.load({
     }
 
     /** The active locale id, lowercased and stripped of any region, or `en` when it is not ours. */
-    const LOCALE = (() => {
+    function readLocale() {
       const named = typeof document === 'undefined' ? '' : String(document.documentElement?.lang ?? '')
       const key = named.toLowerCase().split('-')[0]
       return Object.prototype.hasOwnProperty.call(STRINGS, key) ? key : 'en'
-    })()
+    }
 
     /**
      * One string, in the active locale, with `{name}` placeholders filled from `params`.
@@ -1096,12 +1112,58 @@ window.__ModuleLoader__.load({
      * rather than a silent blank.
      */
     const t = (key, params) => {
-      const table = STRINGS[LOCALE] ?? STRINGS.en
+      const table = STRINGS[readLocale()] ?? STRINGS.en
       const raw = table[key] ?? STRINGS.en[key] ?? key
       if (params === undefined) return raw
       return raw.replace(/\{(\w+)\}/g, (whole, name) => (name in params ? String(params[name]) : whole))
     }
     // #endregion strings
+
+    function jobProvenanceText(job) {
+      const display = job.provenanceDisplay
+      if (!display) return t('jobs.provenanceUnknown')
+      if (display.uncheckedCount) return t('jobs.provenanceUnchecked', { count: display.uncheckedCount })
+      const parts = display.groups.map(group => t('jobs.provenanceGroup', {
+        ...group, engine: group.engine ?? '?', resolution: group.resolution ?? '?',
+        samples: group.samples ?? '?', count: group.frameCount,
+      }))
+      if (display.moreGroups) parts.push(t('jobs.provenanceMore', { count: display.moreGroups }))
+      if (display.unknownCount) parts.push(t('jobs.provenanceUnknownCount', { count: display.unknownCount }))
+      if (display.missingCount) parts.push(t('jobs.provenanceMissing', { count: display.missingCount }))
+      if (!parts.length) return t('jobs.provenanceUnknown')
+      const details = parts.join('; ')
+      return display.mixed ? t('jobs.provenanceMixed', { details }) : t('jobs.provenanceConfig', { details })
+    }
+
+    /** Observe the platform's document language only while a UI surface is mounted. */
+    const localeListeners = new Set()
+    let localeObserver = null
+    let observedLocale = null
+    function subscribeLocale(listener) {
+      localeListeners.add(listener)
+      if (localeObserver === null && typeof document !== 'undefined' && document.documentElement) {
+        const Observer = document.defaultView?.MutationObserver
+          ?? (typeof MutationObserver === 'undefined' ? null : MutationObserver)
+        if (Observer) {
+          observedLocale = readLocale()
+          localeObserver = new Observer(() => {
+            const current = readLocale()
+            if (current === observedLocale) return
+            observedLocale = current
+            for (const notify of [...localeListeners]) notify()
+          })
+          localeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
+        }
+      }
+      return () => {
+        localeListeners.delete(listener)
+        if (localeListeners.size === 0) {
+          localeObserver?.disconnect()
+          localeObserver = null
+          observedLocale = null
+        }
+      }
+    }
 
     const artisticStatusLabel = status => status === 'pass' ? t('visual.artistic.pass')
       : status === 'needs_work' ? t('visual.artistic.needs_work') : t('visual.artistic.unassessable')
@@ -1125,12 +1187,12 @@ window.__ModuleLoader__.load({
     const POLL_IDLE_MS = 8000
 
     const VIEWS = [
-      { id: 'projects', label: t('tab.projects') },
-      { id: 'scene', label: t('tab.scene') },
-      { id: 'preview', label: t('tab.preview') },
-      { id: 'jobs', label: t('tab.jobs') },
+      { id: 'projects', get label() { return t('tab.projects') } },
+      { id: 'scene', get label() { return t('tab.scene') } },
+      { id: 'preview', get label() { return t('tab.preview') } },
+      { id: 'jobs', get label() { return t('tab.jobs') } },
       { id: 'qa', label: 'QA' },
-      { id: 'revisions', label: t('tab.revisions') },
+      { id: 'revisions', get label() { return t('tab.revisions') } },
     ]
 
     /** Every DeepBlend wire tool name this package draws a card for. */
@@ -1396,6 +1458,8 @@ window.__ModuleLoader__.load({
     // Editable drafts contain complete public definitions. UI controls change
     // only named fields; whole generator/stack replacements retain everything else.
     const editorClone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value))
+    // Clearing a number stores null; only omitted fields receive the display/validation default.
+    const editorNumberDefault = (value, fallback) => value === undefined ? fallback : value
     const editorEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
     const editorKey = (projectId, entityId) => JSON.stringify([projectId, entityId])
     const EDITOR_AXES = ['x', 'y', 'z']
@@ -1645,17 +1709,17 @@ window.__ModuleLoader__.load({
           }
         }
         if (kind === 'camera') {
-          if (!number(item.lens ?? 50, 0, false)) bad(`${item.id}.lens`)
+          if (!number(editorNumberDefault(item.lens, 50), 0, false)) bad(`${item.id}.lens`)
           if (item.targetEntityId !== undefined && !draft.entities.some(entity => entity.id === item.targetEntityId)) bad(`${item.id}.targetEntityId`)
           if (item.targetPoint !== undefined && !vector(item.targetPoint)) bad(`${item.id}.targetPoint`)
           if (item.targetEntityId !== undefined && item.targetPoint !== undefined) bad(`${item.id}.target`)
           const targetChanged = !editorEqual([item.targetEntityId, item.targetPoint], [original?.targetEntityId, original?.targetPoint])
           if (targetChanged && (photographyAimLocked(draft, item) || photographyAim(item) === 'free')) bad(`${item.id}.target`)
         } else {
-          if (!number(item.energy ?? 100, 0)) bad(`${item.id}.energy`)
+          if (!number(editorNumberDefault(item.energy, 100), 0)) bad(`${item.id}.energy`)
           if (!Array.isArray(item.color ?? [1, 1, 1]) || ![3, 4].includes((item.color ?? [1, 1, 1]).length)
             || !(item.color ?? [1, 1, 1]).every(value => number(value, 0) && value <= 1)) bad(`${item.id}.color`)
-          if (item.type !== 'sun' && !number(item.size ?? (item.type === 'area' ? 1 : .25), 0, false)) bad(`${item.id}.size`)
+          if (item.type !== 'sun' && !number(editorNumberDefault(item.size, item.type === 'area' ? 1 : .25), 0, false)) bad(`${item.id}.size`)
           if (!original && item.type !== 'area') bad(`${item.id}.type`)
           if (original && item.type !== original.type) bad(`${item.id}.type`)
         }
@@ -3176,8 +3240,8 @@ window.__ModuleLoader__.load({
               geometry.shape === 'handled_cup' ? el('details', { key: 'cup-advanced' },
                 el('summary', null, t('editor.cupAdvanced')), ...CUP_ADVANCED_FIELDS.map(geometryField)) : null,
               toggle(t('editor.bevel'), 'editor-generator-bevel', Boolean(geometry.bevel), value => actions.updateEditor('generator', ['bevel'], value ? { width: 0.001, segments: 3 } : undefined), geometry.shape === 'rounded_box'),
-              geometry.bevel ? numeric(t('editor.width'), 'editor-generator-bevel-width', geometry.bevel.width ?? 0.01, value => actions.updateEditor('generator', ['bevel', 'width'], value), { factor: 1000, min: 0 }) : null,
-              geometry.bevel ? numeric(t('editor.bevelSegments'), 'editor-generator-bevel-segments', geometry.bevel.segments ?? 3, value => actions.updateEditor('generator', ['bevel', 'segments'], value), { integer: true, min: 1, max: 16 }) : null,
+              geometry.bevel ? numeric(t('editor.width'), 'editor-generator-bevel-width', editorNumberDefault(geometry.bevel.width, 0.01), value => actions.updateEditor('generator', ['bevel', 'width'], value), { factor: 1000, min: 0 }) : null,
+              geometry.bevel ? numeric(t('editor.bevelSegments'), 'editor-generator-bevel-segments', editorNumberDefault(geometry.bevel.segments, 3), value => actions.updateEditor('generator', ['bevel', 'segments'], value), { integer: true, min: 1, max: 16 }) : null,
               geometry.shape === 'lathe' ? toggle(t('editor.closed'), 'editor-generator-closedProfile', geometry.closedProfile === true, value => actions.updateEditor('generator', ['closedProfile'], value)) : null,
               geometry.shape === 'curve' ? toggle(t('editor.closed'), 'editor-generator-pathClosed', geometry.pathClosed === true, value => actions.updateEditor('generator', ['pathClosed'], value)) : null,
               ['lathe', 'curve'].includes(geometry.shape) ? toggle(t('editor.cap'), 'editor-generator-capEnds', geometry.capEnds !== false, value => actions.updateEditor('generator', ['capEnds'], value)) : null,
@@ -3200,7 +3264,7 @@ window.__ModuleLoader__.load({
               el('label', { className: 'db-row', key: 'color' }, t('editor.color'), el('input', { className: 'db-input', type: 'color', 'data-field': 'editor-material-color',
                 disabled: disabled || editorMaterialLocked(draft, 'baseColor'), value: recipeColorHex((parameters.baseColor || [0.8, 0.8, 0.8]).slice(0, 3)),
                 onChange: event => actions.updateEditor('material', ['definition', 'parameters', 'baseColor'], [...recipeColorLinear(event.target.value), parameters.baseColor?.[3] ?? 1]) })),
-              numeric(t('editor.roughness'), 'editor-material-roughness', parameters.roughness ?? (material.shader === 'glass' ? 0.05 : 0.5), value => actions.updateEditor('material', ['definition', 'parameters', 'roughness'], value), { min: 0, max: 1, disabled: editorMaterialLocked(draft, 'roughness') }),
+              numeric(t('editor.roughness'), 'editor-material-roughness', editorNumberDefault(parameters.roughness, material.shader === 'glass' ? 0.05 : 0.5), value => actions.updateEditor('material', ['definition', 'parameters', 'roughness'], value), { min: 0, max: 1, disabled: editorMaterialLocked(draft, 'roughness') }),
               el('fieldset', { className: 'db-card', 'data-texture-editor': true, disabled: disabled || editorTextureLocked(draft) },
                 el('legend', null, t('editor.texture.surface')),
                 choose(t('editor.texture.pattern'), 'editor-texture-type', material.texture?.type || '',
@@ -3220,7 +3284,7 @@ window.__ModuleLoader__.load({
                   numeric(t('editor.texture.density'), 'editor-texture-scale', material.texture.scale,
                     value => actions.updateEditor('material', ['definition', 'texture', 'scale'], value), { min: Number.MIN_VALUE }),
                   el('div', null, el('strong', null, t('editor.texture.stretch')), EDITOR_AXES.map((axis, index) =>
-                    numeric((material.texture.coordinates === 'uv' ? ['U', 'V', 'W'][index] : axis.toUpperCase()), 'editor-texture-stretch-' + axis, material.texture.stretch?.[index] ?? 1,
+                    numeric((material.texture.coordinates === 'uv' ? ['U', 'V', 'W'][index] : axis.toUpperCase()), 'editor-texture-stretch-' + axis, editorNumberDefault(material.texture.stretch?.[index], 1),
                       value => { const stretch = [...(material.texture.stretch || [1, 1, 1])]; stretch[index] = value; actions.updateEditor('material', ['definition', 'texture', 'stretch'], stretch) }, { min: Number.MIN_VALUE }))),
                   ...[['detail', t('editor.texture.detail'), 0, 16], ['distortion', t('editor.texture.distortion'), 0, undefined], ['bump', t('editor.texture.bump'), 0, 1], ['roughnessVariation', t('editor.texture.roughnessVariation'), 0, 1], ['colorVariation', t('editor.texture.colorVariation'), 0, 1]].map(([key, label, min, max]) =>
                     numeric(label, 'editor-texture-' + key, material.texture[key],
@@ -3239,12 +3303,12 @@ window.__ModuleLoader__.load({
             return el('fieldset', { key: index, disabled: disabled || !canModify, className: 'db-card', 'data-modifier-index': index },
               el('legend', null, `${index + 1}. ${modifierNames[modifier.type] || modifier.type}`),
               modifier.type === 'bevel' ? [numeric(t('editor.width'), `${prefix}-width`, modifier.width, value => update(['width'], value), { factor: 1000 }),
-                numeric(t('editor.bevelSegments'), `${prefix}-segments`, modifier.segments ?? 4, value => update(['segments'], value), { integer: true, min: 1, max: 16 }),
-                numeric(t('editor.angle'), `${prefix}-angle`, modifier.angle ?? 30, value => update(['angle'], value), { min: 0, max: 180 }),
+                numeric(t('editor.bevelSegments'), `${prefix}-segments`, editorNumberDefault(modifier.segments, 4), value => update(['segments'], value), { integer: true, min: 1, max: 16 }),
+                numeric(t('editor.angle'), `${prefix}-angle`, editorNumberDefault(modifier.angle, 30), value => update(['angle'], value), { min: 0, max: 180 }),
                 choose(t('editor.miterInner'), `${prefix}-miterInner`, modifier.miterInner ?? 'arc', [['arc', t('editor.miterArc')], ['sharp', t('editor.miterSharp')]], value => update(['miterInner'], value)),
                 el('p', { className: 'db-muted', 'data-miter-help': true }, t('editor.miterHelp'))] : null,
               modifier.type === 'solidify' ? [numeric(t('editor.thickness'), `${prefix}-thickness`, modifier.thickness, value => update(['thickness'], value), { factor: 1000 }),
-                numeric(t('editor.offset'), `${prefix}-offset`, modifier.offset ?? -1, value => update(['offset'], value), { min: -1, max: 1 })] : null,
+                numeric(t('editor.offset'), `${prefix}-offset`, editorNumberDefault(modifier.offset, -1), value => update(['offset'], value), { min: -1, max: 1 })] : null,
               modifier.type === 'array' ? [numeric(t('editor.count'), `${prefix}-count`, modifier.count, value => update(['count'], value), { integer: true, min: 2, max: 64 }),
                 vector(t('editor.spacing'), `${prefix}-offset`, modifier.offset, (axis, value) => update(['offset', axis], value))] : null,
               modifier.type === 'mirror' ? [choose(t('editor.axis'), `${prefix}-axis`, modifier.axis, EDITOR_AXES.map(axis => [axis, axis.toUpperCase()]), value => update(['axis'], value)),
@@ -3275,7 +3339,7 @@ window.__ModuleLoader__.load({
       const update = (field, value) => actions.updateAsset(field, value)
       const text = (label, field, value, change, extra = {}) => el('label', { className: 'db-row' }, label,
         el('input', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value), ...extra }))
-      const number = (label, field, value, change, extra = {}) => text(label, field, value, value => change(value === '' ? null : Number(value)), { type: 'number', step: 'any', ...extra })
+      const number = (label, field, value, change, extra = {}) => text(label, field, value === null ? '' : value, value => change(value === '' ? null : Number(value)), { type: 'number', step: 'any', ...extra })
       const choose = (label, field, value, entries, change) => el('label', { className: 'db-row' }, label,
         el('select', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value) },
           entries.map(([id, name]) => el('option', { value: id, key: id }, name))))
@@ -3365,7 +3429,7 @@ window.__ModuleLoader__.load({
               const values = [...(draft.binding[key] || (key === 'scale' ? [1, 1, 1] : [0, 0, 0]))]; values[index] = value; mapSetting(key, values)
             })))),
             ['roughness', 'metallic', 'alpha'].includes(draft.channel) ? choose(t('assets.scalarChannel'), 'asset-scalar-channel', draft.binding.channel || 'r', ['r', 'g', 'b', 'a'].map(value => [value, value]), value => mapSetting('channel', value)) : null,
-            draft.channel === 'normal' ? number(t('assets.normalStrength'), 'asset-normal-strength', draft.binding.strength ?? 1, value => mapSetting('strength', value), { min: 0, max: 10 }) : null,
+            draft.channel === 'normal' ? number(t('assets.normalStrength'), 'asset-normal-strength', editorNumberDefault(draft.binding.strength, 1), value => mapSetting('strength', value), { min: 0, max: 10 }) : null,
             draft.channel === 'emissionColor' ? el('p', { className: 'db-muted' }, t('assets.emissionHelp')) : null,
             !draft.newMaterial && material?.texture ? check(t('assets.replaceTexture'), 'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value)) : null) : null,
           error ? el('p', { className: 'db-error' }, error) : null,
@@ -3390,7 +3454,7 @@ window.__ModuleLoader__.load({
         onChange: event => change(event.target.value),
       }, items.map(([id, title]) => el('option', { key: id, value: id }, title))))
       const vector = (kind, field, value, title, factor = 1, locked = false) => el('div', null, el('strong', null, title), EDITOR_AXES.map((axis, index) =>
-        numeric(axis.toUpperCase(), `${kind}-${field}-${axis}`, value?.[index] ?? 0, update(kind, field === 'targetPoint' ? [field, index] : ['transform', field, index]),
+        numeric(axis.toUpperCase(), `${kind}-${field}-${axis}`, editorNumberDefault(value?.[index], 0), update(kind, field === 'targetPoint' ? [field, index] : ['transform', field, index]),
           { factor, locked: locked || editorTrackLocked(draft, kind, kind === 'camera' ? camera.id : light.id, `${field}.${axis}`) })))
       const aim = photographyAim(camera), originalCamera = draft?.original.cameras.find(item => item.id === camera?.id)
       const aimLocked = camera && photographyAimLocked(draft, camera)
@@ -3403,7 +3467,7 @@ window.__ModuleLoader__.load({
             el('div', null,
               choose(t('photo.camera'), 'camera', draft.cameraId, draft.cameras.map(item => [item.id, item.id]), id => actions.selectPhotography('camera', id)),
               camera ? el('div', null,
-                numeric(t('photo.lens'), 'camera-lens', camera.lens ?? 50, update('camera', ['lens']), { min: .001 }),
+                numeric(t('photo.lens'), 'camera-lens', editorNumberDefault(camera.lens, 50), update('camera', ['lens']), { min: .001 }),
                 vector('camera', 'location', camera.transform?.location, t('photo.position')),
                 choose(t('photo.aim'), 'camera-aim', aim, [...(photographyAim(originalCamera) === 'free' ? [['free', t('photo.free')]] : []), ['entity', t('photo.entity')], ['point', t('photo.point')]], update('camera', ['aim']), aimLocked),
                 aim === 'entity' ? choose(t('photo.target'), 'camera-target', camera.targetEntityId, draft.entities.map(item => [item.id, item.id]), update('camera', ['targetEntityId']), aimLocked) : null,
@@ -3418,9 +3482,9 @@ window.__ModuleLoader__.load({
                 el('p', null, light.type, !draft.original.lights.some(item => item.id === light.id) ? ` · ${t('photo.newLight')}` : ''),
                 vector('light', 'location', light.transform?.location, t('photo.position')),
                 vector('light', 'rotationEuler', light.transform?.rotationEuler, t('photo.rotation'), 180 / Math.PI),
-                numeric(light.type === 'sun' ? t('photo.sunEnergy') : t('photo.power'), 'light-energy', light.energy ?? 100, update('light', ['energy']), { min: 0 }),
-                el('strong', null, t('photo.color')), ['R', 'G', 'B'].map((label, index) => numeric(label, `light-color-${label.toLowerCase()}`, light.color?.[index] ?? 1, update('light', ['color', index]), { min: 0, max: 1 })),
-                light.type !== 'sun' ? numeric(light.type === 'area' ? t('photo.areaSize') : t('photo.softSize'), 'light-size', light.size ?? (light.type === 'area' ? 1 : .25), update('light', ['size']), { min: .000001 }) : null) : null,
+                numeric(light.type === 'sun' ? t('photo.sunEnergy') : t('photo.power'), 'light-energy', editorNumberDefault(light.energy, 100), update('light', ['energy']), { min: 0 }),
+                el('strong', null, t('photo.color')), ['R', 'G', 'B'].map((label, index) => numeric(label, `light-color-${label.toLowerCase()}`, editorNumberDefault(light.color?.[index], 1), update('light', ['color', index]), { min: 0, max: 1 })),
+                light.type !== 'sun' ? numeric(light.type === 'area' ? t('photo.areaSize') : t('photo.softSize'), 'light-size', editorNumberDefault(light.size, light.type === 'area' ? 1 : .25), update('light', ['size']), { min: .000001 }) : null) : null,
               Button({ action: 'photo-add-light', disabled, onClick: actions.addPhotographyLight, children: t('photo.addLight') }))),
           el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } },
             numeric(t('inspection.frame'), 'frame', draft.frame, update('inspection', 'frame'), { min: draft.frameStart, max: draft.frameEnd, step: 1 }),
@@ -3972,6 +4036,7 @@ window.__ModuleLoader__.load({
               ),
               ProgressBar({ percent: job.progress.percent }),
               el('div', { className: 'db-muted', 'data-job-detail': job.jobId }, `${job.detail} · ${job.progress.percent}% · 缺失 ${job.progress.missing} · 损坏 ${job.progress.corrupt}`),
+              el('div', { className: 'db-muted', 'data-job-provenance': job.jobId }, jobProvenanceText(job)),
               job.errorCode ? el('div', { className: 'db-error', style: { marginTop: '4px' } }, `${job.errorCode}: ${job.message || ''}`) : null,
               job.delivery ? el('div', { className: 'db-muted db-mono' }, `video ${job.delivery.videoPath || ''}`) : null,
             ))),
@@ -4367,6 +4432,7 @@ window.__ModuleLoader__.load({
       doc.defaultView?.addEventListener('blur', cancelPresses)
 
       const unsubscribe = store.subscribe(draw)
+      const unsubscribeLocale = subscribeLocale(draw)
       store.start()
       draw()
 
@@ -4381,6 +4447,7 @@ window.__ModuleLoader__.load({
           doc.defaultView?.removeEventListener('blur', cancelPresses)
           pressed.clear()
           unsubscribe()
+          unsubscribeLocale()
           store.stop()
           root.replaceChildren()
         },
@@ -4390,6 +4457,17 @@ window.__ModuleLoader__.load({
     // =========================================================================
     // §K  The console face — React, and only React
     // =========================================================================
+
+    /** Subscribe at mount, and close the render-to-effect language change window. */
+    function useLocale() {
+      const [, setLocale] = react().useState(readLocale)
+      react().useEffect(() => {
+        const refresh = () => setLocale(readLocale())
+        const unsubscribe = subscribeLocale(refresh)
+        refresh()
+        return unsubscribe
+      }, [])
+    }
 
     /** One store per panel, started with the mount and stopped with it. */
     function useWorkbenchStore() {
@@ -4425,6 +4503,7 @@ window.__ModuleLoader__.load({
      * read from the Host on every pass, so the mirror cannot outlive the truth.
      */
     function WorkbenchPanel() {
+      useLocale()
       const store = useWorkbenchStore()
       const snapshot = useSnapshot(store)
       return toReact(buildWorkbenchView(snapshot, store.actions), h)
@@ -4432,6 +4511,7 @@ window.__ModuleLoader__.load({
 
     /** The settings page: the M0 card, now with a seat. */
     function BlenderSettingsPage() {
+      useLocale()
       const [state, setState] = react().useState({ status: 'loading', payload: null, error: null })
       react().useEffect(() => {
         let live = true
@@ -4518,6 +4598,7 @@ window.__ModuleLoader__.load({
      * still running.
      */
     function BlenderToolCard(props) {
+      useLocale()
       const toolName = props.toolName
       const args = parseArgs(callArgs(props.block))
       const projectId = typeof args.projectId === 'string' ? args.projectId : null
@@ -4586,6 +4667,7 @@ window.__ModuleLoader__.load({
           ),
           h(RProgressBar, { percent: job.progress.percent }),
           h('div', { className: 'db-muted' }, job.detail),
+          h('div', { className: 'db-muted', 'data-job-provenance': job.jobId }, jobProvenanceText(job)),
           job.delivery ? h('div', { className: 'db-muted db-mono' }, String(job.delivery.videoPath || '')) : null,
         ) : null,
 
@@ -4618,6 +4700,7 @@ window.__ModuleLoader__.load({
 
     /** The session-header chip: how many renders are live, right now. */
     function SessionJobsChip() {
+      useLocale()
       const state = useCardRoute(ROUTES.projects, 'projects.list', POLL_LIVE_MS)
       if (state.payload === null) return null
       const projects = state.payload.projects || []

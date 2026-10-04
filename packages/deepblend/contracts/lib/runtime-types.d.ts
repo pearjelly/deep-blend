@@ -134,6 +134,37 @@ export interface FrameSequenceRun {
   resultPath: string; eventsPath: string; processPath: string; argv: string[]; startedAt: number;
   attemptToken: string | null; executable: string;
 }
+/** Optional fsynced journal extension for attribution; omitted evidence stays unknown. */
+export interface FrameConfiguredEvent {
+  type: 'render_config'; attemptToken: string; renderConfig: MeasuredRenderConfig;
+}
+export interface FrameWrittenEvent {
+  type: 'frame'; frame: number; bytes: number; ms: number;
+  /** The matching configured event must precede this completion record. */
+  attemptToken: string;
+  /** SHA256 of the complete PNG bytes after structural verification. */
+  sha256: string;
+}
+export type FrameProvenanceEvent = FrameConfiguredEvent | FrameWrittenEvent;
+/** Configuration read back by the renderer, with the launch identity that requested it. */
+export interface FrameRenderSource {
+  id: string; attempt: number; revisionId: string; cameraId: string | null; checkpointSha256: string | null;
+  requestedSamples: number | null; effectiveProfile: RenderProfile; renderConfig: MeasuredRenderConfig;
+}
+export interface FrameSourceBinding { frame: number; sourceId: string; sha256: string }
+/** Shared by canonical jobs and delivery manifests; known means configuration/PNG evidence, not per-pixel samples. */
+export interface FrameProvenanceSummary {
+  schemaVersion: 'deepblend.frame-sources/v1';
+  coverage: 'complete' | 'partial' | 'unknown'; configuration: 'uniform' | 'mixed' | 'unknown';
+  groups: Array<{ renderConfig: MeasuredRenderConfig; frames: number[]; sourceIds: string[] }>;
+  sources: FrameRenderSource[]; frames: FrameSourceBinding[]; unknownFrames: number[]; missingFrames: number[];
+  knownFrameCount: number; unknownFrameCount: number; missingFrameCount: number;
+  /** A bounded read/metadata limit deferred attribution; omitted frames are not called missing or corrupt. */
+  limited?: true;
+  limitation?: 'status-budget' | 'frame-limit' | 'source-byte-limit' | 'journal-byte-limit' | 'journal-line-limit';
+  uncheckedFrameCount?: number;
+}
+
 export interface FrameSequenceOutcome {
   /** Parsed but not yet validated. The Host checks protocol, completion and durable frame evidence. */
   envelope: unknown; stdout: string; stderr: string; exitCode: number | null; signal: string | null;

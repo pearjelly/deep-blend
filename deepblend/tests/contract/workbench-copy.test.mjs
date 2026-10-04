@@ -58,8 +58,8 @@ assert.ok(region.length > 1000, 'the string region is missing from the client bu
 function stringsFor(lang) {
   const document = lang === undefined ? undefined : { documentElement: { lang } }
   const sandbox = { document, Object, String, RegExp }
-  runInNewContext(`${region}\n;globalThis.__result = { STRINGS, LOCALE, t }`, sandbox)
-  return sandbox.__result
+  runInNewContext(`${region}\n;globalThis.__result = { STRINGS, t }`, sandbox)
+  return { ...sandbox.__result, document }
 }
 
 test('the two locales carry the same key set', () => {
@@ -71,14 +71,14 @@ test('the two locales carry the same key set', () => {
 })
 
 test('the locale comes from the page, and English is the fallback', () => {
-  assert.equal(stringsFor('zh-CN').LOCALE, 'zh', 'a zh-CN page must resolve to zh')
-  assert.equal(stringsFor('zh').LOCALE, 'zh')
-  assert.equal(stringsFor('en-US').LOCALE, 'en')
+  assert.equal(stringsFor('zh-CN').t('tab.projects'), '项目', 'a zh-CN page must resolve to zh')
+  assert.equal(stringsFor('zh').t('tab.projects'), '项目')
+  assert.equal(stringsFor('en-US').t('tab.projects'), 'Projects')
   // THE PLATFORM'S OWN RULE, quoted at the top of this file: a language the product does not ship
   // gets English, "the reader least likely to read Chinese".
-  assert.equal(stringsFor('fr').LOCALE, 'en', 'an unregistered language must fall back to English')
-  assert.equal(stringsFor(undefined).LOCALE, 'en', 'a non-browser run must fall back to English')
-  assert.equal(stringsFor('').LOCALE, 'en', 'an empty lang must fall back to English')
+  assert.equal(stringsFor('fr').t('tab.projects'), 'Projects', 'an unregistered language must fall back to English')
+  assert.equal(stringsFor(undefined).t('tab.projects'), 'Projects', 'a non-browser run must fall back to English')
+  assert.equal(stringsFor('').t('tab.projects'), 'Projects', 'an empty lang must fall back to English')
 })
 
 test('the same key renders in the active locale, and the fallback chain is explicit', () => {
@@ -116,4 +116,16 @@ test('every t() call site names a key that exists', () => {
   // And the other direction, so the table cannot accumulate strings nothing renders.
   const unused = [...known].filter(key => !calls.includes(key))
   assert.deepEqual(unused, [], `these keys are in the table but no call site uses them: ${unused.join(', ')}`)
+})
+
+
+test('already loaded copy follows a late platform language and later settings changes', () => {
+  const loaded = stringsFor('')
+  assert.equal(loaded.t('tab.projects'), 'Projects')
+  loaded.document.documentElement.lang = 'zh-CN'
+  assert.equal(loaded.t('tab.projects'), '项目')
+  loaded.document.documentElement.lang = 'en-US'
+  assert.equal(loaded.t('tab.projects'), 'Projects')
+  loaded.document.documentElement.lang = 'fr'
+  assert.equal(loaded.t('tab.projects'), 'Projects')
 })

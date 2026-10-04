@@ -148,6 +148,73 @@ or usable mesh. Keep original asset material slots distinct from current effecti
 They serve different purposes when selecting a binding. Do not replace measured
 facts with estimates from the authored spec.
 
+### Frame configuration provenance
+
+The SDK exports `FrameProvenanceEvent`, `FrameRenderSource`, and
+`FrameProvenanceSummary` from `runtime-types.d.ts`. These declarations describe
+optional journal and job/manifest extensions; they do not validate untrusted
+JSON. The Host validates the versioned source document and event evidence at
+runtime. No separate job or delivery-manifest JSON Schema existed before this
+extension, and this change does not add one or alter SceneSpec/ScenePatch schemas.
+
+The optional `FrameConfiguredEvent` and `FrameWrittenEvent` types describe the
+local frame journal extension. After applying a profile, append and fsync a
+`render_config` record with the request's `attemptToken` and the settings read
+back from the renderer. Write it before rendering frames. After verifying each
+complete PNG, append and fsync a `frame` record with that token, frame number,
+bytes, duration in milliseconds and SHA256 of the PNG. Configured samples do not
+measure work performed for every pixel. A final success report alone cannot
+attribute frames left by a killed or failed sequence.
+
+If the PNG is complete but its configuration/completion event is missing or torn,
+its source stays unknown. Local journal append failures are reported on stderr;
+rendering can continue, but the Host cannot infer attribution from the final
+result. A Host source-document write failure prevents a new renderer from
+clearing the old journal and fails delivery before replacing published files.
+During cancellation, a source-only write failure still releases the live work;
+the journal remains for a later retry. Job-state writes remain best effort when
+the underlying storage also rejects them.
+
+The Host folds these records into one `frame-sources.json` before replacing a
+previous attempt's journal. It binds only matching tokens, planned frame numbers
+and complete PNG bytes. Legacy adapters without these records still render;
+their frame provenance is unknown. The saved job's `renderConfig` remains the
+default for future resumes. The delivery manifest's `render.config` contains a
+common actual configuration only when every frame has matching, uniform evidence;
+it is null for mixed or unknown provenance. `render.defaultConfig` preserves the
+old default, and `render.provenance` carries configuration groups, source attempts,
+frame digests and unknown/missing frames. The job API and workbench use the same
+source format, but their bounded status view can defer verification that the
+publication boundary performs. Video structure verification remains a separate
+result.
+
+Source metadata writes are limited to 16 MiB, profile/config documents to 8 KiB
+and a single journal read to 32 MiB and 300,032 complete lines. Attribution supports
+up to 100,000 frames per job, also subject to the metadata byte limit. Before a
+new renderer can clear its predecessor's journal, these limits remain strict:
+resolve the limit before retrying. Complete legacy jobs can still export or resume
+delivery above these attribution limits. Publication returns a bounded
+`limited: true` summary with `coverage: 'unknown'`, `limitation` and
+`uncheckedFrameCount`; it preserves existing source files and journals. It does
+not downgrade other storage errors. Within these limits publication still hashes
+all claimed known PNGs and validates their structure/size before attribution.
+
+Each `getJob` request and entire `listJobs` request has a separate provenance
+read allowance: at most 256 PNG stat calls, 16 source document opens/reads and 256 KiB
+of source bytes. Jobs that do not fit return `limitation: 'status-budget'` and an
+unchecked count, with no known, unknown or missing classifications for the
+uninspected frames. The UI says they were not rechecked in this status read and
+points to the delivery manifest for publication-time evidence. A list may have
+checked and deferred rows. A later individual read receives its own allowance.
+This budget covers the added provenance work, not pre-existing job-record I/O.
+
+Status reads inside the allowance compare saved size/timestamps without reading
+or hashing PNGs; changed stat means no current attribution. Missing/corrupt small
+source records remain unknown. Oversized source records are deferred and are not
+rewritten by status or limited publication. Stopped-render, resume and ordinary
+publication boundaries verify digests. This does not protect against another
+Host or an external writer modifying files after those checks.
+
 ### Cancellation, sessions and files
 
 - Batch compile/preview/view calls observe an `AbortSignal`; the local provider

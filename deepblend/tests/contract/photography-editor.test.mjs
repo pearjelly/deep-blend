@@ -233,3 +233,64 @@ test('restore is conditional, preserves newer drafts on rejection, and refuses c
   projects.one.revision = 'r0002'; store.actions.reload(); await waitFor(store, state => state.currentRevision === 'r0002'); fail('restore', null); await store.actions.restorePhotography()
   await waitFor(store, state => state.currentRevision === 'r0001'); assert.equal(draft().baseRevision, 'r0002'); assert.equal(editor.dirty(draft()), true); assert.equal(store.getState().photographyEdits.one, undefined)
 })
+
+
+test('camera and light numeric controls retain empty drafts before replacement, including valid zero', async t => {
+  const cases = [
+    ['camera-lens', 'camera', ['lens'], '83', false],
+    ['camera-location-x', 'camera', ['transform', 'location', 0], '.2', true],
+    ['camera-rotationEuler-x', 'camera', ['transform', 'rotationEuler', 0], '15', true],
+    ['camera-targetPoint-y', 'camera', ['targetPoint', 1], '.1', true],
+    ['light-energy', 'light', ['energy'], '275', true],
+    ['light-color-g', 'light', ['color', 1], '.3', true],
+    ['light-size', 'light', ['size'], '.5', false],
+    ['light-location-z', 'light', ['transform', 'location', 2], '.3', true],
+    ['light-rotationEuler-y', 'light', ['transform', 'rotationEuler', 1], '20', true],
+  ]
+  for (const [name, kind, path, replacement, zeroValid] of cases) {
+    const spec = source(); spec.animationTracks = []
+    const camera = spec.cameras.find(c => c.id === spec.project.activeCamera)
+    delete camera.targetEntityId; delete camera.targetPoint
+    if (path[0] === 'targetPoint') camera.targetPoint = [.01, .02, .03]
+    const { store, field, action, draft, calls } = await client(t, { spec })
+    field(name).props.onChange({ target: { value: '' } })
+    const item = () => draft()[`${kind}s`].find(item => item.id === draft()[`${kind}Id`])
+    assert.equal(path.reduce((value, key) => value[key], item()), null, name)
+    assert.equal(field(name).props.value, '', `${name}: deleted value must stay visibly empty`)
+    assert.equal(action('save').props.disabled, true, name)
+    await store.actions.savePhotography(); assert.equal(calls.length, 0, name)
+    field(name).props.onChange({ target: { value: '0' } })
+    assert.equal(field(name).props.value, 0, name)
+    assert.equal(editor.errors(draft()).length === 0, zeroValid, `${name}: zero follows the existing domain`)
+    field(name).props.onChange({ target: { value: replacement } })
+    assert.equal(field(name).props.value, Number(replacement), name)
+    assert.equal(action('save').props.disabled, false, name)
+    apply(spec, draft())
+  }
+})
+
+test('cleared lens, light energy and size are invalid even when save is called directly', async t => {
+  for (const name of ['camera-lens', 'light-energy', 'light-size']) {
+    const { store, field, action, draft, calls } = await client(t)
+    field(name).props.onChange({ target: { value: '' } })
+    assert.equal(action('save').props.disabled, true, `${name}: null is not an omitted default`)
+    assert(editor.errors(draft()).length > 0, name)
+    await store.actions.savePhotography()
+    assert.equal(calls.length, 0, `${name}: invalid draft must not reach the Host`)
+  }
+})
+
+test('omitted photographic options show defaults without a patch and zero keeps its existing meaning', async t => {
+  const spec = source(); spec.animationTracks = []
+  const camera = spec.cameras.find(c => c.id === spec.project.activeCamera), light = spec.lights[0]
+  delete camera.lens; delete camera.transform; delete camera.targetEntityId; delete camera.targetPoint
+  delete light.energy; delete light.color; delete light.size; delete light.transform
+  const { field, draft } = await client(t, { spec })
+  for (const [name, expected] of [['camera-lens', 50], ['camera-location-x', 0], ['camera-rotationEuler-x', 0],
+    ['light-energy', 100], ['light-color-r', 1], ['light-size', light.type === 'area' ? 1 : .25], ['light-location-z', 0]])
+    assert.equal(field(name).props.value, expected, name)
+  const selected = draft().cameras.find(c => c.id === draft().cameraId)
+  assert.equal(selected.lens, undefined); assert.equal(selected.transform, undefined)
+  assert.equal(draft().lights[0].energy, undefined); assert.equal(draft().lights[0].color, undefined); assert.equal(draft().lights[0].size, undefined)
+  assert.deepEqual(plain(editor.buildPatch(draft()).operations), [])
+})

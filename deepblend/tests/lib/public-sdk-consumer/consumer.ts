@@ -7,7 +7,7 @@ import {
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
   type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
-  type CompiledObject, type SceneSpecSchema,
+  type CompiledObject, type SceneSpecSchema, type FrameProvenanceEvent, type FrameProvenanceSummary,
 } from '@deepblend/dsh-blender-contracts/sdk';
 import specSchema from '@deepblend/dsh-blender-contracts/schemas/scene-spec.json' with { type: 'json' };
 import patchSchema from '@deepblend/dsh-blender-contracts/schemas/scene-patch.json' with { type: 'json' };
@@ -36,6 +36,18 @@ const handledSpec: SceneSpec = { ...spec, entities: [...spec.entities,
 const handled = compileSceneSpec(parseSceneSpec(handledSpec)).spec.entities.find(entity => entity.id === 'sdk-handled-cup');
 assert.equal(handled?.generator?.height, .105);
 assert.ok(RECIPE_CAPABILITIES.includes('geometry.handled_cup'));
+
+// The provenance extension ships through the public SDK without executing a runtime.
+const configured: FrameProvenanceEvent = {type:'render_config',attemptToken:'attempt-id',
+  renderConfig:{engine:'CYCLES',resolution:[256,256],samples:7}};
+const provenance: FrameProvenanceSummary = {schemaVersion:'deepblend.frame-sources/v1',coverage:'unknown',
+  configuration:'unknown',groups:[],sources:[],frames:[],unknownFrames:[1],missingFrames:[],
+  knownFrameCount:0,unknownFrameCount:1,missingFrameCount:0};
+assert.equal(configured.renderConfig.samples, 7);
+assert.equal(provenance.unknownFrameCount, 1);
+const deferred: FrameProvenanceSummary = {...provenance,limited:true,limitation:'status-budget',
+  unknownFrames:[],unknownFrameCount:0,uncheckedFrameCount:100001};
+assert.equal(deferred.uncheckedFrameCount, 100001);
 
 // JSON stays untrusted until the public package validator has checked it.
 const recipe: RecipeManifest = parseRecipeManifest(JSON.parse(readFileSync('recipe/recipe.json', 'utf8')));

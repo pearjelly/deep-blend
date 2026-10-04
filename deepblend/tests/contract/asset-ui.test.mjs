@@ -400,3 +400,26 @@ test('legacy preview receipts remain usable only for canonical single-file raw i
     assert.equal(action('asset-use:'+item.asset.id).props.disabled,bundled);
   }
 });
+
+
+test('normal strength shows an omitted default, keeps empty drafts blank and accepts explicit zero', async t => {
+  const { store, ready, field, action, calls, projects } = await client(t); await ready()
+  field('asset-map-channel').props.onChange({ target: { value: 'normal' } })
+  field('asset-replace-texture').props.onChange({ target: { checked: true } })
+  const input = () => field('asset-normal-strength'), draft = () => store.getState().assetDrafts.one
+  const count = calls.length
+  assert.equal(input().props.value, 1)
+  assert.equal(draft().binding.strength, undefined, 'showing the default must not create an explicit override')
+  input().props.onChange({ target: { value: '' } })
+  assert.equal(draft().binding.strength, null)
+  assert.equal(input().props.value, '', 'a controlled number input must receive an empty string, not a default or React null')
+  assert.equal(action('asset-apply').props.disabled, true)
+  await store.actions.applyAsset(); assert.equal(calls.length, count, 'empty strength must not POST a patch')
+  input().props.onChange({ target: { value: '0' } })
+  assert.equal(input().props.value, 0)
+  assert.equal(action('asset-apply').props.disabled, false)
+  const materialId = draft().newMaterialId
+  await store.actions.applyAsset()
+  assert.equal(calls.length, count + 1)
+  assert.equal(projects.one.spec.materials.find(m => m.id === materialId).images.normal.strength, 0)
+})
