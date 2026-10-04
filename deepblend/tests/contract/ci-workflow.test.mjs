@@ -87,7 +87,7 @@ test('every repository path the workflow names exists', () => {
 const EXTERNAL_COMMANDS = new Map([
   ['env', 'Ubuntu coreutils launcher for the verified Blender path exported by the runtime installer'],
   ['sudo', 'install the Ubuntu ffmpeg package, including ffprobe, for real delivery encoding'],
-  ['ffmpeg', 'verify both ffmpeg and ffprobe before the delivery browser checks; record their actual versions'],
+  ['ffmpeg', 'verify both ffmpeg and ffprobe before delivery and browser checks; record their actual versions'],
   ['pnpm', 'locked development dependency required by the real DSH plugin add/remove checks'],
   ['xvfb-run', 'software display for EEVEE and Chrome'],
   ['python3', 'the cross-language frame-naming check in contract/render-job.test.mjs; `deepblend_util.py` imports no bpy so it runs in plain CPython'],
@@ -314,16 +314,17 @@ function workflowJob(name) {
   return workflow.slice(starts[index].index, starts[index + 1]?.index ?? workflow.length)
 }
 
-const editingSuites = [
-  ['render-selection-ui.e2e.mjs', 'render-selection-browser'],
-  ['photography-ui.e2e.mjs', 'photography-browser'],
+const deliveryAndEditingSuites = [
+  ['complete-frame-delivery.e2e.mjs', 'complete-frame-delivery', 'node', 2, "!cancelled() && steps.codecs.outcome == 'success'"],
+  ['render-selection-ui.e2e.mjs', 'render-selection-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
+  ['photography-ui.e2e.mjs', 'photography-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
 ]
 
-test('render selection and photography have a separate runtime and codec budget', () => {
+test('complete-frame delivery, render selection and photography share a separate runtime and codec budget', () => {
   const job = workflowJob('linux-render-photography-browser')
   const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m)
-  assert.match(job, /^    timeout-minutes: 20$/m, 'keep setup and both native workflows outside the existing inspection budget')
+  assert.match(job, /^    timeout-minutes: 20$/m, 'keep setup, completed-frame delivery and editing workflows outside the existing inspection budget')
   assert.ok(job.includes(`node-version: '${pins.node}'`))
   assert.match(job, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   const commands = [
@@ -350,26 +351,33 @@ test('render selection and photography have a separate runtime and codec budget'
   assert.ok(!job.includes('continue-on-error:'), 'native failures must fail their job')
 })
 
-test('both native editing workflows run in CI and full acceptance with separate retained outputs', () => {
+test('delivery and editing workflows run in CI and full acceptance with separate retained outputs and prerequisites', () => {
   const job = workflowJob('linux-render-photography-browser')
   const oldJob = workflowJob('linux-render-browser-smoke')
   const runAll = readFileSync(join(ROOT, 'deepblend/tests/run-all.sh'), 'utf8')
-  for (const [file, output] of editingSuites) {
+  assert.equal(new Set(deliveryAndEditingSuites.map(([, output]) => output)).size, deliveryAndEditingSuites.length)
+  let previous = job.indexOf('run: ffmpeg -version')
+  assert.ok(previous >= 0)
+  for (const [file, output, launcher, timeout, condition] of deliveryAndEditingSuites) {
     const path = `deepblend/tests/e2e/${file}`
     assert.equal(runAll.split(`  node ${path}\n`).length - 1, 1, `${file} must run once in full acceptance`)
     assert.ok(!oldJob.includes(path), `${file} must not also spend the existing inspection job's budget`)
-    const steps = job.split(/^      - /m).filter(step => step.includes(`run: xvfb-run -a node ${path} >`))
+    assert.equal(runSteps.filter(step => step.includes(path)).length, 1, `${file} must not run in another job or step`)
+    const steps = job.split(/^      - /m).filter(step => step.includes(`run: ${launcher} ${path} >`))
     assert.equal(steps.length, 1, `${file} must run once in the independent job`)
     const step = steps[0]
-    assert.match(step, /timeout-minutes: 5/)
-    assert.ok(step.includes("if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}"),
-      'run the second workflow after a test failure, but never after failed graphics/codecs or cancellation')
+    assert.match(step, new RegExp(`^        timeout-minutes: ${timeout}$`, 'm'))
+    assert.ok(step.includes('if: ${{ ' + condition + ' }}'),
+      'ordinary failures must not skip later tests; pure encoding needs codecs, while browsers also need graphics')
+    const position = job.indexOf(`run: ${launcher} ${path} >`)
+    assert.ok(position > previous, 'run completed-frame encoding after codecs and before the browser workflows')
+    previous = position
     assert.ok(step.includes('DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/' + output))
     assert.ok(step.includes(`> "$DEEPBLEND_CI_EVIDENCE/${output}.log" 2>&1`), 'retain both output streams beside its evidence')
   }
 })
 
-test('the independent editing job uploads all evidence even when either workflow fails', () => {
+test('the independent delivery and editing job uploads all evidence even when a workflow fails', () => {
   const job = workflowJob('linux-render-photography-browser')
   const uploads = job.split(/^      - /m).filter(step => step.includes('uses: actions/upload-artifact@v4'))
   assert.equal(uploads.length, 1)

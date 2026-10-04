@@ -65,10 +65,11 @@ const MAX_SPILL_BYTES = 32 * 1024 * 1024
  * @param {string} [input.filePrefix]
  * @param {number} [input.filePadding]
  * @param {string} [input.crf]
+ * @param {AbortSignal} [input.signal]
  * @returns {Promise<{outputPath: string, bytes: number, argv: string[], durationMs: number, stderr: string}>}
  */
 export async function encodeFrameSequence(input) {
-  const executable = await resolveTool(input.ctx, input.ffmpegPath, 'ffmpeg', BlenderErrorCode.ENCODER_NOT_FOUND)
+  const executable = await resolveTool(input.ctx, input.ffmpegPath, 'ffmpeg', BlenderErrorCode.ENCODER_NOT_FOUND, input.signal)
   const prefix = input.filePrefix ?? 'frame_'
   const padding = input.filePadding ?? 4
   // ffmpeg's pattern syntax is `%0Nd`; it is derived from the job's own naming so
@@ -113,10 +114,15 @@ export async function encodeFrameSequence(input) {
     argv,
     cwd: input.framesDirectory,
     timeoutMs: input.timeoutMs ?? ENCODE_TIMEOUT_MS,
+    signal: input.signal,
+    label: 'ffmpeg',
+    failureCode: BlenderErrorCode.ENCODE_FAILED,
   })
   const durationMs = Date.now() - startedAt
 
-  if (run.exitCode !== 0 && !existsSync(input.outputPath)) {
+  // This path may hold a previous attempt. Only a confirmed successful command
+  // can supply a new encode; nonzero or unknown outcomes cannot reuse old bytes.
+  if (run.exitCode !== 0) {
     throw new BlenderError(
       BlenderErrorCode.ENCODE_FAILED,
       `ffmpeg failed to encode ${input.frameCount} frame(s) from ${pattern}: ${run.stderr.slice(-2000) || `exit ${run.exitCode}`}`,
@@ -148,11 +154,12 @@ export async function encodeFrameSequence(input) {
  * @param {import('@deepseek-ai/cordis').Context} input.ctx
  * @param {string} input.ffprobePath
  * @param {string} input.path
+ * @param {AbortSignal} [input.signal]
  * @returns {Promise<{durationSeconds: number|null, fps: number|null, width: number|null,
  *   height: number|null, nbFrames: number|null, codec: string|null, raw: object}>}
  */
 export async function probeVideo(input) {
-  const executable = await resolveTool(input.ctx, input.ffprobePath, 'ffprobe', BlenderErrorCode.PROBE_FAILED)
+  const executable = await resolveTool(input.ctx, input.ffprobePath, 'ffprobe', BlenderErrorCode.PROBE_FAILED, input.signal)
   const argv = [
     executable,
     '-hide_banner',
@@ -168,6 +175,9 @@ export async function probeVideo(input) {
     argv,
     cwd: input.cwd ?? undefined,
     timeoutMs: input.timeoutMs ?? PROBE_TIMEOUT_MS,
+    signal: input.signal,
+    label: 'ffprobe',
+    failureCode: BlenderErrorCode.PROBE_FAILED,
   })
   if (run.exitCode !== 0) {
     throw new BlenderError(
@@ -225,9 +235,11 @@ export async function probeVideo(input) {
  * @param {string} configured
  * @param {string} label
  * @param {string} code
+ * @param {AbortSignal} [signal]
  * @returns {Promise<string>}
  */
-async function resolveTool(ctx, configured, label, code) {
+async function resolveTool(ctx, configured, label, code, signal) {
+  throwIfCancelled(signal, label)
   const subprocess = ctx.get('subprocess')
   if (subprocess === undefined) {
     throw new BlenderError(
@@ -237,14 +249,23 @@ async function resolveTool(ctx, configured, label, code) {
     )
   }
   try {
-    return await subprocess.resolveExecutable(configured, { PATH: process.env.PATH ?? '' })
+    const executable = await subprocess.resolveExecutable(configured, { PATH: process.env.PATH ?? '' }, signal)
+    throwIfCancelled(signal, label)
+    return executable
   } catch (cause) {
+    throwIfCancelled(signal, label)
     throw new BlenderError(
       code,
       `${label} could not be resolved from "${configured}". A delivery render needs it on PATH ` +
         `(macOS: \`brew install ffmpeg\`) or an absolute path in the DeepBlend configuration.`,
       { cause },
     )
+  }
+}
+
+function throwIfCancelled(signal, label) {
+  if (signal?.aborted) {
+    throw new BlenderError(BlenderErrorCode.ABORTED, `${label} was cancelled by the caller.`, { cause: signal.reason })
   }
 }
 
@@ -255,9 +276,22 @@ async function resolveTool(ctx, configured, label, code) {
  * can become a command.
  */
 async function runTool(ctx, spec) {
+  throwIfCancelled(spec.signal, spec.label)
   const subprocess = ctx.get('subprocess')
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), spec.timeoutMs ?? ENCODE_TIMEOUT_MS)
+  const timeoutMs = spec.timeoutMs ?? ENCODE_TIMEOUT_MS
+  const timeoutReason = new Error(`${spec.label} exceeded its ${timeoutMs} ms deadline.`)
+  const signal = spec.signal ? AbortSignal.any([spec.signal, controller.signal]) : controller.signal
+  const timer = setTimeout(() => controller.abort(timeoutReason), timeoutMs)
+  const throwIfStopped = (detail = {}) => {
+    if (!signal.aborted) return
+    const timedOut = signal.reason === timeoutReason
+    throw new BlenderError(
+      timedOut ? BlenderErrorCode.TIMEOUT : BlenderErrorCode.ABORTED,
+      timedOut ? timeoutReason.message : `${spec.label} was cancelled by the caller.`,
+      { cause: signal.reason, detail },
+    )
+  }
   let handle
   try {
     handle = subprocess.spawn({
@@ -269,7 +303,7 @@ async function runTool(ctx, spec) {
         stderr: { maxBytes: MAX_OUTPUT_BYTES, spill: { maxBytes: MAX_SPILL_BYTES } },
       },
       graceMs: TERMINATE_GRACE_MS,
-      signal: controller.signal,
+      signal,
       env: {
         PATH: process.env.PATH ?? '',
         HOME: process.env.HOME ?? '',
@@ -281,20 +315,44 @@ async function runTool(ctx, spec) {
     // the event loop alive for the full timeout after the caller has already seen
     // the failure.
     clearTimeout(timer)
+    throwIfStopped()
     throw cause
   }
 
   let outcome = null
   let failure = null
+  let rangeFailure = null
+  let processGone = null
   try {
-    outcome = await handle.done
-  } catch (cause) {
-    failure = cause
+    // Reap the direct command before observing the managed range. An early
+    // range query can race a provider's scope establishment. A rejected command
+    // still needs range cleanup, and the same deadline covers both observations.
+    const [direct] = await Promise.allSettled([handle.done])
+    const [range] = await Promise.allSettled([
+      typeof handle.waitForExit === 'function'
+        ? Promise.resolve().then(() => handle.waitForExit())
+        : Promise.resolve(null),
+    ])
+    if (direct.status === 'fulfilled') outcome = direct.value
+    else failure = direct.reason
+    if (range.status === 'fulfilled') {
+      processGone = range.value
+      if (processGone === false) rangeFailure = new Error('the managed process range has not exited')
+    } else {
+      processGone = false
+      rangeFailure = range.reason
+    }
   } finally {
-    // Disarmed only once the process has actually exited. Clearing it right after
-    // `spawn` returned would cancel the deadline before the work started, so a
-    // hung ffmpeg would wait forever instead of being killed.
+    // A surviving descendant still needs the deadline after `done` settles.
     clearTimeout(timer)
+  }
+  // Classify cancellation before looking at an existing MP4 or successful probe
+  // JSON. Neither is evidence that this invocation completed without cancellation.
+  throwIfStopped({ processGone, ...(rangeFailure === null ? {} : { cleanupError: String(rangeFailure) }) })
+  if (rangeFailure !== null) {
+    throw new BlenderError(spec.failureCode, `${spec.label} process cleanup could not be confirmed.`, {
+      cause: rangeFailure, detail: { processGone: false },
+    })
   }
   const read = (reader) => {
     if (reader === undefined || reader === null) return ''

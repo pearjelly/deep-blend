@@ -42,6 +42,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
+import LocalBlenderRuntime from '@deepblend/dsh-blender-provider-local'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
@@ -85,8 +86,11 @@ function harness(plan = {}) {
   const spawned = []
   let resolveOutcome = null
   const outcome = new Promise(resolve => { resolveOutcome = resolve })
+  let resolveToolOutcome = null
+  const toolOutcome = new Promise(resolve => { resolveToolOutcome = resolve })
 
   let compileCount = 0
+  let renderCount = 0
   const runtime = {
     async compileScene(request) {
       // Counted because a compile is a real Blender launch: a delivery that re-resolves its checkpoint instead of
@@ -102,6 +106,9 @@ function harness(plan = {}) {
       return { report: { validation: {}, sceneFingerprint: { totalPolygons: 1200 } }, envelope: { warnings: [], notices: [] } }
     },
     async startFrameSequence(request) {
+      renderCount += 1
+      // Keep the real provider's refusal: accepting [] hid a stuck resume.
+      if (request.frames.length === 0) return LocalBlenderRuntime.prototype.startFrameSequence.call({}, request)
       // The child's own artifacts: the frames it rendered, the journal it appends to, and the identity
       // document it writes. The FRAMES have to be written here rather than in the fixture: the job id
       // (and with it the frames directory) is allocated by `startFinalRender`, and a fixture that
@@ -159,10 +166,13 @@ function harness(plan = {}) {
     spawn(request) {
       spawned.push(request)
       const isProbe = request.argv.some(argument => String(argument).includes('ffprobe'))
+      const done = plan.holdTool === (isProbe ? 'probe' : 'encode')
+        ? toolOutcome : Promise.resolve({ exitCode: 0, signal: null })
       if (!isProbe) writeFileSync(request.argv[request.argv.length - 1], Buffer.from('a pretend mp4'))
       const stream = { codec_name: 'h264', width: FRAME_WIDTH, height: FRAME_HEIGHT, avg_frame_rate: '30/1', r_frame_rate: '30/1', nb_frames: '2', nb_read_frames: plan.probedFrames ?? '2', duration: '0.066667' }
       return {
-        get done() { return Promise.resolve({ exitCode: 0, signal: null }) },
+        done,
+        async waitForExit() { await done; return plan.toolRangeGone !== false },
         collected: {
           stdout: { readFrom: () => ({ text: isProbe ? JSON.stringify({ streams: [stream], format: { duration: '0.066667' } }) : '' }) },
           stderr: { readFrom: () => ({ text: '' }) },
@@ -181,7 +191,7 @@ function harness(plan = {}) {
     // reconciliation, which writes a reconciled record for the very render being measured.
     ...(plan.config ?? {}),
   }))
-  return { studio, workspaceRoot, stdout, spawned, resolveOutcome, compiles: () => compileCount, dispose: () => rmSync(workspaceRoot, { recursive: true, force: true }) }
+  return { studio, workspaceRoot, stdout, spawned, resolveOutcome, resolveToolOutcome, compiles: () => compileCount, renders: () => renderCount, dispose: () => rmSync(workspaceRoot, { recursive: true, force: true }) }
 }
 
 /** A project with a real checkpoint, two frames on disk, and a job ready to run. */
@@ -506,7 +516,7 @@ async function fixture(plan) {
     jobs: { attachController: () => () => {}, start: request => { world.runHandle = request.run(); return 'dsh-job-cancel' } },
   })
   const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
-  const live = world.studio._liveRenders.get(started.jobId)
+  const live = world.studio._liveRenders.get(`${world.projectId}/${started.jobId}`)
   live.cancelled = true
   live.cancelReason = 'the operator closed the laptop'
   const preSettled = world.studio.renderJobs.write({
@@ -518,7 +528,7 @@ async function fixture(plan) {
   let output = ''
   await waitFor(() => {
     output += world.runHandle?.readOutput() ?? ''
-    return world.studio._liveRenders.has(started.jobId) === false
+    return world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`) === false
   })
   const after = world.studio.renderJobs.read(world.projectId, started.jobId)
   check('a cancellation that already settled the record is not rewritten when the renderer then reports success',
@@ -535,8 +545,10 @@ async function fixture(plan) {
   // answer is that there is nothing left to walk. It is a real state a model reaches by cancelling a
   // render whose frames had all landed.
   const resume = await world.studio.resumeRenderJob({ projectId: world.projectId, jobId: started.jobId })
-  check('resuming a cancelled job whose frames all landed says there is nothing left to render',
-    resume.resumed === 0 && resume.alreadyComplete === 2 &&
+  await waitFor(() => !world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`))
+  check('resuming a cancelled job whose frames all landed delivers without starting another renderer',
+    resume.resumed === 0 && resume.alreadyComplete === 2 && world.renders() === 1 &&
+    world.studio.renderJobs.read(world.projectId, started.jobId).status === 'completed' &&
     resume.message === 'Every frame is already present and complete; the job is finishing its delivery instead of re-rendering.',
     { resumed: resume.resumed, alreadyComplete: resume.alreadyComplete, message: resume.message })
   world.dispose()
@@ -686,8 +698,8 @@ async function fixture(plan) {
     world.stdout.includes('terminated'),
     world.output?.split('\n').filter(Boolean))
   check('and the record keeps the status it had, because nothing could record the failure',
-    left !== null && left.status === 'running' && left.errorCode === null && world.studio._liveRenders.has(started.jobId) === false,
-    { status: left?.status, errorCode: left?.errorCode, live: world.studio._liveRenders.has(started.jobId) })
+    left !== null && left.status === 'running' && left.errorCode === null && world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`) === false,
+    { status: left?.status, errorCode: left?.errorCode, live: world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`) })
   store.write = realWrite
   world.dispose()
 }
@@ -965,6 +977,64 @@ async function fixture(plan) {
   check('a failure path whose handle refuses to be terminated still records the REAL failure',
     record.status === 'failed' && record.errorCode === code('DISK_FULL') && world.stdout.includes('terminated'),
     { status: record.status, code: record.errorCode, stdout: world.stdout })
+  world.dispose()
+}
+
+// ---------------------------------------------------------------------------
+// Cancellation after the renderer has handed its complete frames to delivery
+// ---------------------------------------------------------------------------
+
+{
+  let projected = null
+  const world = await fixture({
+    holdTool: 'encode', writeProcessIdentity: false, config: { reconcileOnStart: false },
+    jobs: { attachController: () => () => {}, start(request) { projected = request.run(); return 'dsh-render-delivery-cancel' } },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  if (!await waitFor(() => world.spawned.length === 1)) throw new Error('renderer did not reach its delivery encoder')
+  let cancelSettled = false
+  const cancel = world.studio.cancelJob({ projectId: world.projectId, jobId: started.jobId })
+    .then(result => { cancelSettled = true; return result })
+  await new Promise(resolve => setImmediate(resolve))
+  const waitedForExit = !cancelSettled && world.spawned[0].signal.aborted
+  world.resolveToolOutcome({ exitCode: null, signal: 'SIGTERM' })
+  const cancelled = await cancel
+  const projection = await projected.done
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  check('cancelling a renderer’s delivery waits for exit and settles its DSH projection as killed',
+    waitedForExit && cancelled.cancelled && cancelled.processGone && record.status === 'cancelled' &&
+    record.delivery.status === 'cancelled' && projection.status === 'killed' && world.renders() === 1 &&
+    !world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`) && world.studio._deliveriesInFlight.size === 0 &&
+    !existsSync(join(world.studio.store.projectDirectory(world.projectId), 'output', 'final.mp4')),
+    { waitedForExit, status: record.status, projection: projection.status, processGone: cancelled.processGone })
+  world.dispose()
+}
+
+{
+  // With no jobs service, the real render driver still has to preserve the
+  // delivery's stopping state until the unresolved process is dealt with.
+  const world = await fixture({
+    holdTool: 'encode', toolRangeGone: false, writeProcessIdentity: false, config: { reconcileOnStart: false },
+  })
+  const started = await world.studio.startFinalRender({ projectId: world.projectId, revision: world.revision, frames: [1, 2] })
+  if (!await waitFor(() => world.spawned.length === 1)) throw new Error('renderer did not reach its delivery encoder')
+  const request = { projectId: world.projectId, jobId: started.jobId }
+  let cancelSettled = false
+  const cancel = world.studio.cancelJob(request).then(result => { cancelSettled = true; return result })
+  await new Promise(resolve => setImmediate(resolve))
+  const waitedForExit = !cancelSettled && world.spawned[0].signal.aborted
+  world.resolveToolOutcome({ exitCode: null, signal: 'SIGTERM' })
+  const cancelled = await cancel
+  const record = world.studio.renderJobs.read(world.projectId, started.jobId)
+  const resumeCode = await world.studio.resumeRenderJob(request).then(() => null, cause => cause.code)
+  const exportCode = await world.studio.exportProject(request).then(() => null, cause => cause.code)
+  check('a renderer’s inconclusive delivery cleanup stays stopping and locked even without jobs',
+    waitedForExit && !cancelled.cancelled && cancelled.processGone === false && record.status === 'stopping' &&
+    record.delivery.status === 'failed' && world.renders() === 1 && !world.studio._liveRenders.has(`${world.projectId}/${started.jobId}`) &&
+    world.studio._deliveriesInFlight.size === 1 && resumeCode === code('EXPORT_IN_PROGRESS') &&
+    exportCode === code('EXPORT_IN_PROGRESS') &&
+    !existsSync(join(world.studio.store.projectDirectory(world.projectId), 'output', 'final.mp4')),
+    { waitedForExit, status: record.status, processGone: cancelled.processGone, resumeCode, exportCode })
   world.dispose()
 }
 

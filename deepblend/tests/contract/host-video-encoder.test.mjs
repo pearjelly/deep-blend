@@ -28,7 +28,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -298,6 +298,135 @@ check('a collected-output reader that throws does not replace the refusal: the m
   unreadable instanceof BlenderError && unreadable.code === code('PROBE_FAILED') &&
   /exit 1$/.test(unreadable.message),
   unreadable?.message)
+
+// Cancellation must wait for both the command outcome and the provider's managed
+// range. A leftover MP4 or successful ffprobe JSON cannot turn a cancelled run
+// into a delivery. These handles are controlled independently, without processes.
+function deferred() {
+  let resolve, reject
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no })
+  return { promise, resolve, reject }
+}
+const nextTurn = () => new Promise(resolve => setImmediate(resolve))
+const validProbeOutput = JSON.stringify({ streams: [{ codec_name: 'h264', width: 320, height: 180,
+  avg_frame_rate: '30/1', nb_read_frames: '2' }], format: { duration: '0.066667' } })
+const invokeTool = (kind, ctx, options = {}) => kind === 'encode'
+  ? encodeFrameSequence({ ctx, framesDirectory, firstFrame: 1, frameCount: 2, fps: 30, outputPath: goodOutput, ...options })
+  : probeVideo({ ctx, path: goodOutput, ...options })
+
+for (const kind of ['encode', 'probe']) {
+  const preAborted = new AbortController()
+  preAborted.abort(new Error('already cancelled'))
+  let resolutions = 0, preSpawns = 0
+  const pre = await invokeTool(kind, contextWith({
+    async resolveExecutable() { resolutions++; return '/controlled/tool' },
+    spawn() { preSpawns++; return spawnResult({ stdout: validProbeOutput }).handle },
+  }), { signal: preAborted.signal }).catch(cause => cause)
+  check(`${kind}: pre-cancelled work neither resolves nor spawns an executable`,
+    pre?.code === code('ABORTED') && resolutions === 0 && preSpawns === 0,
+    { code: pre?.code, resolutions, spawns: preSpawns })
+
+  const resolving = deferred(), resolved = deferred(), lookupController = new AbortController()
+  let lookupSignal, lookupSpawns = 0
+  const lookup = invokeTool(kind, contextWith({
+    async resolveExecutable(configured, env, signal) { lookupSignal = signal; resolving.resolve(); return resolved.promise },
+    spawn() { lookupSpawns++; return spawnResult({ stdout: validProbeOutput }).handle },
+  }), { signal: lookupController.signal }).catch(cause => cause)
+  await resolving.promise
+  lookupController.abort(new Error('cancel during lookup'))
+  resolved.resolve('/controlled/tool')
+  const lookupResult = await lookup
+  check(`${kind}: cancellation during executable lookup reaches the resolver and prevents spawn`,
+    lookupSignal === lookupController.signal && lookupResult?.code === code('ABORTED') && lookupSpawns === 0,
+    { code: lookupResult?.code, spawns: lookupSpawns })
+
+  const rejectingController = new AbortController()
+  const lookupRejected = await invokeTool(kind, contextWith({
+    async resolveExecutable() { rejectingController.abort(); throw new Error('lookup aborted') },
+  }), { signal: rejectingController.signal }).catch(cause => cause)
+  check(`${kind}: an aborted lookup is cancellation, not a missing executable`, lookupRejected?.code === code('ABORTED'))
+
+  const started = deferred(), direct = deferred(), range = deferred(), controller = new AbortController()
+  let specification, rangeSignal, settled = false, waits = 0
+  const running = invokeTool(kind, contextWith(subprocessService({ next(request) {
+    specification = request; started.resolve()
+    return { throwOnSpawn: null, handle: {
+      done: direct.promise,
+      waitForExit(signal) { waits++; rangeSignal = signal; return range.promise },
+      collected: { stdout: { readFrom: () => ({ text: validProbeOutput }) } },
+    } }
+  } })), { signal: controller.signal, timeoutMs: 1000 }).then(value => { settled = true; return value }, cause => { settled = true; return cause })
+  await started.promise
+  await nextTurn()
+  check(`${kind}: range observation starts only after the direct command settles`, waits === 0 && !settled)
+  controller.abort(new Error('cancel active delivery'))
+  await nextTurn()
+  check(`${kind}: external cancellation reaches the running process without returning before exit`, specification.signal.aborted && !settled)
+  if (kind === 'encode') direct.resolve({ exitCode: 0, signal: null })
+  else direct.reject(new Error('provider stopped during cancellation'))
+  await nextTurn()
+  check(`${kind}: direct process exit alone does not finish cancellation`, waits === 1 && !settled)
+  check(`${kind}: range reaping does not reuse the cancelled signal`, waits === 1 && rangeSignal?.aborted !== true)
+  range.resolve(true)
+  const cancelled = await running
+  check(`${kind}: cancelled work refuses existing output after the managed range exits`,
+    cancelled?.code === code('ABORTED') && cancelled.detail?.processGone === true)
+
+  const deadlineHit = deferred(), timeoutRange = deferred()
+  let timeoutSettled = false
+  const timed = invokeTool(kind, contextWith(subprocessService({ next(request) {
+    request.signal.addEventListener('abort', () => deadlineHit.resolve(), { once: true })
+    return { throwOnSpawn: null, handle: {
+      done: Promise.resolve({ exitCode: 0, signal: null }),
+      waitForExit: () => timeoutRange.promise,
+      collected: { stdout: { readFrom: () => ({ text: validProbeOutput }) } },
+    } }
+  } })), { timeoutMs: 10 }).then(value => { timeoutSettled = true; return value }, cause => { timeoutSettled = true; return cause })
+  // Bound the negative control too: the old implementation disarms its timer as
+  // soon as `done` resolves, so no abort event will arrive from it.
+  let fallback
+  const hit = await Promise.race([deadlineHit.promise.then(() => true), new Promise(resolve => { fallback = setTimeout(() => resolve(false), 100) })])
+  clearTimeout(fallback)
+  check(`${kind}: the deadline remains armed until managed work exits`, hit && !timeoutSettled)
+  timeoutRange.resolve(true)
+  const timeoutResult = await timed
+  check(`${kind}: a timed-out tool refuses existing output with a stable deadline code`, timeoutResult?.code === code('TIMEOUT'))
+
+  for (const rejected of [false, true]) {
+    const unconfirmed = await invokeTool(kind, contextWith(subprocessService({ next: {
+      throwOnSpawn: null,
+      handle: { done: Promise.resolve({ exitCode: 0, signal: null }),
+        waitForExit: () => rejected ? Promise.reject(new Error('process range cannot be observed')) : Promise.resolve(false),
+        collected: { stdout: { readFrom: () => ({ text: validProbeOutput }) } },
+      },
+    } }))).catch(cause => cause)
+    check(`${kind}: ${rejected ? 'failed' : 'incomplete'} range observation cannot become successful output`,
+      unconfirmed?.code === code(kind === 'encode' ? 'ENCODE_FAILED' : 'PROBE_FAILED') && unconfirmed.detail?.processGone === false)
+  }
+
+  let finishedSignal
+  await invokeTool(kind, contextWith(subprocessService({ next(request) {
+    finishedSignal = request.signal
+    return { throwOnSpawn: null, handle: { ...spawnResult({ stdout: validProbeOutput }).handle,
+      waitForExit: async () => true } }
+  } })), { timeoutMs: 10 })
+  await new Promise(resolve => setTimeout(resolve, 20))
+  check(`${kind}: a finished process has no later deadline firing`, !finishedSignal.aborted)
+}
+
+// An earlier successful attempt may have left bytes at this same encoded path.
+// Exit failure is still failure; these cases must not be treated as fresh output.
+for (const [label, result] of [
+  ['nonzero exit', { exitCode: 1, stderr: 'encoder failed before opening output' }],
+  ['unknown exit', { exitCode: null, signal: 'SIGTERM' }],
+  ['rejected outcome', { rejectDone: new Error('provider could not report the command outcome') }],
+]) {
+  const rejected = await invokeTool('encode', contextWith(subprocessService({ next: spawnResult(result) })))
+    .catch(cause => cause)
+  check(`an earlier output cannot turn ${label} into a successful encode`,
+    rejected?.code === code('ENCODE_FAILED') && readFileSync(goodOutput).equals(goodBytes),
+    { code: rejected?.code ?? null, message: rejected?.message ?? null })
+}
 
 rmSync(scratch, { recursive: true, force: true })
 

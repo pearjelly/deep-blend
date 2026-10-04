@@ -107,6 +107,9 @@ run_suite "Agent preset M2 tool plane (all ten tools, image return)" \
 run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)" \
   node deepblend/tests/blender-integration/render-job.e2e.mjs
 
+run_suite "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)" \
+  node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs
+
 run_suite "Agent preset M3 tool plane (all seventeen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 

@@ -451,7 +451,7 @@ export default class BlenderStudio extends Service {
       projectDirectory: projectId => this.store.projectDirectory(projectId),
       workspaceRoot,
     })
-    /** Live renders, keyed by render job id, so cancel can reach the handle. */
+    /** Live renders, keyed by project/job because job ordinals repeat in every project. */
     this._liveRenders = new Map()
     /** The reconciliation pass, so a caller (or a test) can await the answer. */
     this._reconciliation = null
@@ -3561,6 +3561,53 @@ export default class BlenderStudio extends Service {
   async cancelJob(request) {
     const projectId = request?.projectId
     const jobId = request?.jobId
+    const delivery = this._deliveriesInFlight.get(`${projectId}/${jobId}`)
+    if (delivery !== undefined) {
+      const reason = request?.reason ?? 'cancelled by a caller'
+      const live = this._liveRenders.get(`${projectId}/${jobId}`)
+      let timer
+      const deadline = new Promise(resolveWait => { timer = setTimeout(() => resolveWait(false), 15_000) })
+      try {
+        if (live !== undefined) { live.cancelled = true; live.cancelReason = reason }
+        // Signalling must not depend on a successful disk write. This deadline
+        // limits only the caller's wait; the original operation keeps observing
+        // the command and managed range, including a late real exit.
+        delivery.controller.abort(reason)
+        let recordingError = null
+        try {
+          const current = this.renderJobs.read(projectId, jobId)
+          if (current.delivery?.status === 'encoding') {
+            this.renderJobs.write({
+              ...current,
+              status: current.status === 'completed' ? 'completed' : 'stopping',
+              delivery: { ...current.delivery, cancelRequestedAt: Date.now(), cancelReason: reason },
+              ...(current.status === 'completed' ? {} : { message: `cancellation requested: ${reason}; waiting for delivery process exit` }),
+            }, { previous: current })
+          }
+        } catch (cause) {
+          recordingError = String(cause)
+          this.ctx.logger?.warn(`${LOG_SCOPE}: delivery ${jobId} could not record cancellation request: ${recordingError}`)
+        }
+        const settled = await Promise.race([
+          Promise.all([delivery.done, live?.lifecycleDone]).then(() => true),
+          deadline,
+        ])
+        // A timeout is uncertainty about this response, not a permanent failed
+        // cleanup result on `delivery`. Keep its guards and late cleanup intact.
+        const processGone = settled && delivery.processGone
+        const current = this.renderJobs.read(projectId, jobId)
+        return {
+          jobId, kind: 'render-job', status: current.status,
+          cancelled: processGone && current.delivery?.status === 'cancelled', reason,
+          process: { attempted: true, via: 'delivery-signal', gone: processGone }, processGone,
+          completedFrames: current.completedFrames?.length ?? 0,
+          ...(recordingError === null ? {} : { recordingError }),
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+
     const renderRecord = projectId !== undefined && jobId !== undefined
       ? this.renderJobs.readSafe(projectId, jobId)
       : null
@@ -3589,7 +3636,7 @@ export default class BlenderStudio extends Service {
       }
     }
 
-    const live = this._liveRenders.get(jobId)
+    const live = this._liveRenders.get(`${projectId}/${jobId}`)
     const reason = request?.reason ?? 'cancelled by a caller'
 
     // Stop the DSH projection first so the harness stops waiting on it and the
@@ -3683,7 +3730,7 @@ export default class BlenderStudio extends Service {
     // its own previous attempt for the same frame files.
     if (live !== undefined && live.settle !== null) {
       live.settle({ status: 'killed', detail: reason })
-      await this._awaitLiveGone(jobId, 15_000)
+      await this._awaitLiveGone(projectId, jobId, 15_000)
     }
 
     return {
@@ -3911,6 +3958,7 @@ export default class BlenderStudio extends Service {
   async resumeRenderJob(request) {
     const projectId = request?.projectId
     const jobId = request?.jobId
+    const findings = await this.awaitReconciliation()
     const record = this.renderJobs.read(projectId, jobId)
 
     // A failed or cancelled job IS resumable: its frames are on disk and its work
@@ -3925,13 +3973,32 @@ export default class BlenderStudio extends Service {
         { detail: { jobId, status: record.status } },
       )
     }
-    const live = this._liveRenders.get(jobId)
-    if (live !== undefined && live.handle !== null) {
-      throw new BlenderError(
-        BlenderErrorCode.RENDER_JOB_CONFLICT,
-        `Render job ${jobId} is already running in this Host.`,
-        { detail: { jobId } },
-      )
+    const live = this._liveRenders.get(`${projectId}/${jobId}`)
+    if (live !== undefined) {
+      throw new BlenderError(BlenderErrorCode.RENDER_JOB_CONFLICT,
+        `Render job ${jobId} is already running in this Host.`, { detail: { jobId } })
+    }
+    this._assertNoDelivery(projectId, jobId, 'resume')
+    if (record.status === 'stopping' || this._recoveryError != null || findings.some(finding =>
+      finding.projectId === projectId && finding.jobId === jobId &&
+      ['orphan-survived', 'unwritable', 'error', 'unreadable'].includes(finding.status))) {
+      throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID,
+        `Render job ${jobId} cannot resume until cancellation and recovery have finished.`,
+        { detail: { projectId, jobId, status: record.status, recoveryError: this._recoveryError ?? null } })
+    }
+
+    const expected = this.renderJobs.expectedFrames(record)
+    const ledger = this._readJobLedger(record, expected)
+    if (ledger.toRender.length === 0 && ledger.presentCount === expected.length) {
+      this._launchDelivery({ record, ledger })
+      return {
+        jobId, projectId, revision: record.revisionId,
+        status: this.renderJobs.read(projectId, jobId).status,
+        frameStart: record.frameStart, frameEnd: record.frameEnd,
+        alreadyComplete: ledger.presentCount, resumed: 0, resumedFrames: [], corrupt: [], warnings: [],
+        message: 'Every frame is already present and complete; the job is finishing its delivery instead of re-rendering.' +
+          (request?.samples != null ? ' The samples override was not applied because no frames need rendering.' : ''),
+      }
     }
 
     const spec = this.store.readRevisionSpec(projectId, record.revisionId)
@@ -3971,18 +4038,10 @@ export default class BlenderStudio extends Service {
       })
     }
 
-    const expected = this.renderJobs.expectedFrames(record)
-    const ledger = readFrameLedger({
-      framesDirectory: this.renderJobs.framesDirectory(projectId, jobId),
-      expected,
-      expectedSize: {
-        width: record.renderConfig?.resolution?.[0],
-        height: record.renderConfig?.resolution?.[1],
-        prefix: record.filePrefix,
-        padding: record.filePadding,
-      },
-    })
-
+    if (this._liveRenders.has(`${projectId}/${jobId}`)) {
+      throw new BlenderError(BlenderErrorCode.RENDER_JOB_CONFLICT, `Render job ${jobId} is already running in this Host.`)
+    }
+    this._assertNoDelivery(projectId, jobId, 'resume')
     await this._launchRenderer({
       record: {
         ...record,
@@ -4235,13 +4294,13 @@ export default class BlenderStudio extends Service {
   }
 
   /** Wait, bounded, for a render loop to release its handle on a job. */
-  async _awaitLiveGone(jobId, timeoutMs) {
+  async _awaitLiveGone(projectId, jobId, timeoutMs) {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
-      if (!this._liveRenders.has(jobId)) return true
+      if (!this._liveRenders.has(`${projectId}/${jobId}`)) return true
       await new Promise(resolveWait => setTimeout(resolveWait, 50))
     }
-    return !this._liveRenders.has(jobId)
+    return !this._liveRenders.has(`${projectId}/${jobId}`)
   }
 
   /** The non-terminal render job for a project, if any. */
@@ -4273,6 +4332,154 @@ export default class BlenderStudio extends Service {
    * background, and the returned promise resolves as soon as the child has been
    * spawned so a tool call can answer with a job id instead of a 3.4-hour wait.
    */
+  /** Project either a renderer or a delivery into the existing DSH job controller. */
+  _projectRender(live, next, jobs) {
+    const record = next
+    const { projectId, jobId } = record
+    // The DSH projection, when the composition has a job registry. Absence is
+    // reported, never silent: a caller that asked for a background job and got an
+    // unprojected one must be able to see why.
+    if (jobs !== null) {
+      live.done = new Promise((resolveDone) => { live.settle = resolveDone })
+      try {
+        live.dshJobId = jobs.start({
+          kind: 'blender-render',
+          label: `render ${projectId}/${record.revisionId} frames ${record.frameStart}..${record.frameEnd}`,
+          run: () => ({
+            cancel: (reason) => {
+              if (live.cancelled) return
+              live.cancelled = true
+              live.cancelReason = typeof reason === 'string' && reason.length > 0 ? reason : 'cancelled'
+              this._deliveriesInFlight.get(`${projectId}/${jobId}`)?.controller.abort(live.cancelReason)
+              try {
+                live.handle?.terminate()
+              } catch {
+                /* the settle path records what happened */
+              }
+            },
+            done: live.done,
+            readOutput: () => {
+              const text = live.output
+              live.output = ''
+              return text
+            },
+          }),
+        })
+        next = this.renderJobs.write({ ...next, dshJobId: live.dshJobId }, { previous: next })
+      } catch (cause) {
+        // jobs.start may already have handed its registry our done promise. A
+        // later record write failure must keep that promise reachable for cleanup.
+        if (live.dshJobId !== null) throw cause
+        live.settle?.({ status: 'failed', detail: String(cause) })
+        live.settle = null
+        live.done = null
+        this.ctx.logger?.warn(`${LOG_SCOPE}: render job ${jobId} could not be projected into ctx.jobs: ${String(cause)}`)
+        next = this.renderJobs.write({
+          ...next,
+          warnings: [
+            ...(next.warnings ?? []),
+            warning(
+              BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
+              `this render could not be registered as a DSH background job (${String(cause)}), so it will not ` +
+                'appear in the harness job list. The render itself is unaffected and its durable record is ' +
+                'still authoritative.',
+              { jobId },
+            ),
+          ],
+        }, { previous: next })
+      }
+    } else {
+      // TWO DIFFERENT FACTS, TWO DIFFERENT SENTENCES. "no `jobs` service is composed in this
+      // process" is a true statement about a composition and a false one about a deployment whose
+      // registry threw while attaching its controller. The model reads this warning to decide
+      // whether the missing background job is its own mistake, so the reason is carried from the
+      // place that knows it (`_jobControllerError`) instead of being assumed here.
+      next = this.renderJobs.write({
+        ...next,
+        warnings: [
+          ...(next.warnings ?? []),
+          warning(
+            BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
+            this._jobControllerError === null
+              ? 'no `jobs` service is composed in this process, so this render has no DSH background-job ' +
+                'projection; progress is still recorded durably and readable through blender_job_status.'
+              : `this render could not be registered as a DSH background job (the job controller could not be ` +
+                `attached: ${this._jobControllerError}), so it will not appear in the harness job list. The ` +
+                'render itself is unaffected and its durable record is still authoritative.',
+            { jobId },
+          ),
+        ],
+      }, { previous: next })
+    }
+
+    return next
+  }
+
+  /** Register the live work and settle any accepted projection if bookkeeping fails. */
+  _registerLiveRender(live, record, jobs) {
+    const { projectId, jobId } = record
+    this._liveRenders.set(`${projectId}/${jobId}`, live)
+    try {
+      return this._projectRender(live, record, jobs)
+    } catch (cause) {
+      // Neither a renderer nor an encoder exists yet. Keep an accepted DSH job's
+      // identity and settle its promise even when a record write cannot succeed.
+      const code = isStorageExhausted(cause) ? BlenderErrorCode.DISK_FULL
+        : cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR
+      const message = cause instanceof Error ? cause.message : String(cause)
+      try {
+        const current = this.renderJobs.read(projectId, jobId)
+        this.renderJobs.write({ ...current, dshJobId: live.dshJobId ?? current.dshJobId,
+          status: 'failed', errorCode: code, message, finishedAt: Date.now() }, { previous: current })
+      } catch (writeCause) {
+        this.ctx.logger?.warn(`${LOG_SCOPE}: job ${jobId} registration failure could not be recorded: ${writeCause?.message ?? writeCause}`)
+      }
+      this._liveRenders.delete(`${projectId}/${jobId}`)
+      live.settle?.({ status: 'failed', detail: message })
+      throw new BlenderError(code, message, { cause })
+    }
+  }
+
+  /** Register complete frames as background work without creating a render attempt. */
+  _launchDelivery({ record, ledger }) {
+    const { projectId, jobId } = record
+    const live = { jobId, cancelled: false, cancelReason: null, handle: null, dshJobId: null,
+      output: '', settle: null, done: null, lifecycleDone: null }
+    let next = this.renderJobs.write({
+      ...record, status: 'running', pid: null, processGroupId: null, dshJobId: null,
+      completedFrames: ledger.present.map(entry => entry.frame), missingFrames: [], corruptFrames: [],
+      errorCode: null, finishedAt: null, cancelledAt: null,
+      message: `all ${ledger.presentCount} frame(s) present; continuing delivery`,
+    }, { previous: record })
+    next = this._registerLiveRender(live, next, this._attachJobController())
+    // The driver starts synchronously through acquisition of the actual delivery lock.
+    // Its promise exists even without a DSH jobs service, so cancel can await cleanup.
+    live.lifecycleDone = this._driveDelivery({ record: next, live }).catch(cause => {
+      this.ctx.logger?.error(`${LOG_SCOPE}: delivery cleanup for ${jobId} failed: ${cause?.message ?? cause}`)
+      live.settle?.({ status: 'failed', detail: String(cause) })
+    })
+  }
+
+  async _driveDelivery({ record, live }) {
+    const { projectId, jobId } = record
+    try {
+      const delivery = await this._deliverJob({ record, reason: 'resume' })
+      this._appendOutput(live, `${delivery.message}\n`)
+      live.settle?.({ status: delivery.status, detail: delivery.message })
+    } catch (cause) {
+      const cancelled = this._deliveriesInFlight.get(`${projectId}/${jobId}`)?.processGone !== false
+        && (live.cancelled || cause?.code === BlenderErrorCode.ABORTED)
+      const message = cause instanceof Error ? cause.message : String(cause)
+      live.settle?.({ status: cancelled ? 'killed' : 'failed', detail: message })
+      this.ctx.logger?.warn(`${LOG_SCOPE}: delivery ${jobId} ${cancelled ? 'cancelled' : 'failed'}: ${message}`)
+    } finally {
+      this._liveRenders.delete(`${projectId}/${jobId}`)
+      if (this.renderJobs.readSafe(projectId, jobId)?.status === 'completed') {
+        this._removeCompiledScratch(record.checkpointPath)
+      }
+    }
+  }
+
   async _launchRenderer(input) {
     const { record, profile, profileName, checkpoint } = input
     const projectId = record.projectId
@@ -4339,78 +4546,7 @@ export default class BlenderStudio extends Service {
         : `rendering ${frames.length} frame(s)`,
     }, { previous: record })
 
-    this._liveRenders.set(jobId, live)
-
-    // The DSH projection, when the composition has a job registry. Absence is
-    // reported, never silent: a caller that asked for a background job and got an
-    // unprojected one must be able to see why.
-    if (jobs !== null) {
-      live.done = new Promise((resolveDone) => { live.settle = resolveDone })
-      try {
-        live.dshJobId = jobs.start({
-          kind: 'blender-render',
-          label: `render ${projectId}/${record.revisionId} frames ${record.frameStart}..${record.frameEnd}`,
-          run: () => ({
-            cancel: (reason) => {
-              if (live.cancelled) return
-              live.cancelled = true
-              live.cancelReason = typeof reason === 'string' && reason.length > 0 ? reason : 'cancelled'
-              try {
-                live.handle?.terminate()
-              } catch {
-                /* the settle path records what happened */
-              }
-            },
-            done: live.done,
-            readOutput: () => {
-              const text = live.output
-              live.output = ''
-              return text
-            },
-          }),
-        })
-        next = this.renderJobs.write({ ...next, dshJobId: live.dshJobId }, { previous: next })
-      } catch (cause) {
-        live.settle = null
-        live.done = null
-        this.ctx.logger?.warn(`${LOG_SCOPE}: render job ${jobId} could not be projected into ctx.jobs: ${String(cause)}`)
-        next = this.renderJobs.write({
-          ...next,
-          warnings: [
-            ...(next.warnings ?? []),
-            warning(
-              BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
-              `this render could not be registered as a DSH background job (${String(cause)}), so it will not ` +
-                'appear in the harness job list. The render itself is unaffected and its durable record is ' +
-                'still authoritative.',
-              { jobId },
-            ),
-          ],
-        }, { previous: next })
-      }
-    } else {
-      // TWO DIFFERENT FACTS, TWO DIFFERENT SENTENCES. "no `jobs` service is composed in this
-      // process" is a true statement about a composition and a false one about a deployment whose
-      // registry threw while attaching its controller. The model reads this warning to decide
-      // whether the missing background job is its own mistake, so the reason is carried from the
-      // place that knows it (`_jobControllerError`) instead of being assumed here.
-      next = this.renderJobs.write({
-        ...next,
-        warnings: [
-          ...(next.warnings ?? []),
-          warning(
-            BlenderWarningCode.JOB_PROJECTION_UNAVAILABLE,
-            this._jobControllerError === null
-              ? 'no `jobs` service is composed in this process, so this render has no DSH background-job ' +
-                'projection; progress is still recorded durably and readable through blender_job_status.'
-              : `this render could not be registered as a DSH background job (the job controller could not be ` +
-                `attached: ${this._jobControllerError}), so it will not appear in the harness job list. The ` +
-                'render itself is unaffected and its durable record is still authoritative.',
-            { jobId },
-          ),
-        ],
-      }, { previous: next })
-    }
+    next = this._registerLiveRender(live, next, jobs)
 
     // Spawn, then hand the rest to the background. `startFrameSequence` is the
     // only await here: it resolves once the child exists, which is what makes the
@@ -4445,7 +4581,7 @@ export default class BlenderStudio extends Service {
     // rejection here has no caller, and Node turns an unhandled rejection into process death.
     // `_driveRender` promises never to throw and now survives a full disk doing it; this catch
     // is what makes that a property of the CALL rather than a promise in a comment.
-    void this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName }).catch(cause => {
+    live.lifecycleDone = this._driveRender({ live, run, record: next, expected, spec: input.spec, profile, profileName }).catch(cause => {
       this.ctx.logger?.error(`${LOG_SCOPE}: the render driver for ${jobId} threw: ${cause?.stack ?? cause}`)
       live.settle?.({ status: 'failed', detail: cause instanceof Error ? cause.message : String(cause) })
     })
@@ -4593,6 +4729,9 @@ export default class BlenderStudio extends Service {
         ? BlenderErrorCode.DISK_FULL
         : (cause instanceof BlenderError ? cause.code : BlenderErrorCode.SCRIPT_ERROR)
 
+      const deliveryUnstopped = this._deliveriesInFlight.get(`${projectId}/${jobId}`)?.processGone === false
+      const cancelled = !deliveryUnstopped && (live.cancelled || code === BlenderErrorCode.ABORTED)
+
       // STOP THE RENDERER FIRST. Whatever went wrong here, this process owns a Blender that is
       // still writing frames, and a Host that has given up while a renderer has not is exactly
       // the orphan the M3 acceptance forbids.
@@ -4612,10 +4751,10 @@ export default class BlenderStudio extends Service {
       // the record cannot be written, so the record must not be the thing that fails.
       try {
         const current = this.renderJobs.readSafe(projectId, jobId)
-        if (current !== null && !RenderJobStore.isTerminal(current)) {
+        if (current !== null && !RenderJobStore.isTerminal(current) && !deliveryUnstopped) {
           this.renderJobs.write({
             ...current,
-            status: 'failed',
+            status: cancelled ? 'cancelled' : 'failed',
             pid: null,
             processGroupId: null,
             errorCode: code,
@@ -4631,15 +4770,15 @@ export default class BlenderStudio extends Service {
       }
 
       try {
-        this._appendOutput(live, `render job ${jobId} failed: ${message}\n`)
+        this._appendOutput(live, `render job ${jobId} ${cancelled ? 'cancelled' : 'failed'}: ${message}\n`)
       } catch {
         // The journal lives on the same volume the frames do.
       }
-      live.settle?.({ status: 'failed', detail: message })
+      live.settle?.({ status: cancelled ? 'killed' : 'failed', detail: message })
       this.ctx.logger?.warn(`${LOG_SCOPE}: render job ${jobId} failed: ${message}`)
     } finally {
       clearInterval(tick)
-      this._liveRenders.delete(jobId)
+      this._liveRenders.delete(`${projectId}/${jobId}`)
       // THE COMPILE THIS RENDER PAID FOR IS REMOVED ONLY WHEN THE JOB IS FINISHED, and that word is doing
       // real work here. The preview and views paths each remove their own compiled scratch in a `finally`;
       // the DELIVERY path had none, and nothing else owns this directory — MEASURED: a delivery of a revision
@@ -4817,36 +4956,63 @@ export default class BlenderStudio extends Service {
    * shorter video and every property check downstream would agree with the wrong
    * number unless the expected count came from the job.
    */
-  async _deliverJob(input) {
-    const record = input.record
-    const projectId = record.projectId
-    const jobId = record.jobId
-
-    // ONE ENCODER PER JOB. `encodedPath` is `<job>/encoded/<jobId>.mp4` — one path however many deliveries run —
-    // and an encode is not instantaneous, so a second call while the first is encoding writes the same file.
-    // MEASURED before this guard: two concurrent exports of one job BOTH failed with `ENCODE_VERIFY_FAILED`,
-    // because each verified a file the other was still writing; the message blamed the video's properties rather
-    // than the collision. A refusal that names the other call is the honest answer — and it costs the caller
-    // nothing, because the encode it was about to duplicate is already happening.
-    const deliveryKey = `${projectId}/${jobId}`
-    const inFlight = this._deliveriesInFlight.get(deliveryKey)
+  _assertNoDelivery(projectId, jobId, reason) {
+    const inFlight = this._deliveriesInFlight.get(`${projectId}/${jobId}`)
     if (inFlight !== undefined) {
-      throw new BlenderError(
-        BlenderErrorCode.EXPORT_IN_PROGRESS,
-        `${inFlight} is already encoding ${projectId}/${jobId} into ` +
-          `${encodedPath(this.renderJobs.jobDirectory(projectId, jobId), jobId)}. Two encoders on one ` +
-          'file produce a video that verifies as neither, so this one was refused rather than started. Wait for ' +
-          'the first to finish — blender_job_status reports it — or cancel the job and start again.',
-        { detail: { projectId, jobId, inFlight, reason: input.reason ?? null } },
-      )
+      throw new BlenderError(BlenderErrorCode.EXPORT_IN_PROGRESS,
+        `${inFlight.label} is already encoding ${projectId}/${jobId}. Wait for it to finish or cancel the job.`,
+        { detail: { projectId, jobId, inFlight: inFlight.label, reason } })
     }
-    this._deliveriesInFlight.set(deliveryKey, input.reason === 'export' ? 'a delivery export' : 'the render\u2019s own delivery')
+  }
+
+  async _deliverJob(input) {
+    const { projectId, jobId } = input.record
+    const deliveryKey = `${projectId}/${jobId}`
+    this._assertNoDelivery(projectId, jobId, input.reason ?? null)
+    let release
+    const operation = { controller: new AbortController(), started: false, processGone: true,
+      label: input.reason === 'export' ? 'a delivery export' : 'the render’s own delivery',
+      done: new Promise(resolveDone => { release = resolveDone }) }
+    this._deliveriesInFlight.set(deliveryKey, operation)
+    if (this._liveRenders.get(`${projectId}/${jobId}`)?.cancelled) operation.controller.abort('cancelled before encoding')
     try {
-      return await this._deliverJobBody(input)
+      return await this._deliverJobBody({ ...input, operation, signal: operation.controller.signal })
+    } catch (cause) {
+      if (cause?.detail?.processGone === false) operation.processGone = false
+      if (operation.started) {
+        // Covers encoder/probe failures and synchronous publication failures. The
+        // caller may be a background resume or a completed-job re-export.
+        try {
+          const current = this.renderJobs.read(projectId, jobId)
+          const cancelled = operation.controller.signal.aborted || cause?.code === BlenderErrorCode.ABORTED
+          const code = cancelled ? BlenderErrorCode.ABORTED : isStorageExhausted(cause)
+            ? BlenderErrorCode.DISK_FULL : cause instanceof BlenderError ? cause.code : BlenderErrorCode.ENCODE_FAILED
+          const message = cause instanceof Error ? cause.message : String(cause)
+          this.renderJobs.write({
+            ...current,
+            status: current.status === 'completed' ? 'completed' : !operation.processGone ? 'stopping' : cancelled ? 'cancelled' : 'failed',
+            delivery: { ...current.delivery, status: cancelled && operation.processGone ? 'cancelled' : 'failed',
+              errorCode: code, message, completedAt: Date.now() },
+            errorCode: cancelled ? null : code, message,
+            ...(cancelled ? { cancelledAt: Date.now() } : {}), finishedAt: Date.now(),
+          }, { previous: current })
+        } catch (writeCause) {
+          this.ctx.logger?.warn(`${LOG_SCOPE}: delivery ${jobId} could not record failure: ${writeCause?.message ?? writeCause}`)
+        }
+      }
+      throw cause
     } finally {
-      // Cleared on EVERY path, including a throw: a flag that leaks would refuse every later delivery of this job
-      // forever, which is a worse failure than the collision it prevents.
-      this._deliveriesInFlight.delete(deliveryKey)
+      // An inconclusive cleanup must not free the file for another encoder.
+      // Keep this Host's guard until an operator has resolved the process state.
+      if (operation.processGone) this._deliveriesInFlight.delete(deliveryKey)
+      release()
+    }
+  }
+
+  _checkDeliveryCancelled(input) {
+    const { projectId, jobId } = input.record
+    if (input.signal?.aborted || this.renderJobs.read(projectId, jobId).status === 'cancelled') {
+      throw new BlenderError(BlenderErrorCode.ABORTED, `Delivery ${jobId} was cancelled before publication.`)
     }
   }
 
@@ -4902,6 +5068,7 @@ export default class BlenderStudio extends Service {
     const current = this.renderJobs.read(projectId, jobId)
     const liveStatus = current.status === 'completed' ? 'completed' : 'running'
     const deliveryAttempt = (current.delivery?.attempt ?? 0) + 1
+    input.operation.started = true
     this.renderJobs.write({
       ...current,
       status: liveStatus,
@@ -4913,49 +5080,17 @@ export default class BlenderStudio extends Service {
     const output = encodedPath(jobDirectory, jobId)
     mkdirSync(join(jobDirectory, 'encoded'), { recursive: true })
 
-    // RECORDING THE ATTEMPT IS WHAT MAKES RECORDING ITS OUTCOME THIS FUNCTION'S JOB — including when
-    // the encode THROWS, which is the state a machine without ffmpeg is in. MEASURED (round 30, the
-    // M3 tool plane run with a bogus `ffmpegPath`): the job was marked `failed` by the caller's catch
-    // while its `delivery` stayed at `encoding`, so `blender_job_status` printed a job that had
-    // stopped and an encode that was still running in the same block. A reader who believes the
-    // second line waits for something that will never finish.
-    //
-    // The job's own STATUS is left alone here: the caller decides it (a failed RE-export of a
-    // completed job must not reopen it). What this records is the delivery attempt, which is exactly
-    // the thing that failed.
-    let encode
-    let probed
-    try {
-      encode = await encodeFrameSequence({
-        ctx: this.ctx,
-        ffmpegPath: this.config.ffmpegPath,
-        framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId),
-        firstFrame: record.frameStart,
-        frameCount: total,
-        fps: record.fps,
-        outputPath: output,
-        filePrefix: record.filePrefix,
-        filePadding: record.filePadding,
-        crf: this.config.encodeCrf,
-        preset: this.config.encodePreset,
-      })
-
-      probed = await probeVideo({ ctx: this.ctx, ffprobePath: this.config.ffprobePath, path: output })
-    } catch (cause) {
-      const failedFrom = this.renderJobs.read(projectId, jobId)
-      this.renderJobs.write({
-        ...failedFrom,
-        delivery: {
-          status: 'failed',
-          attempt: deliveryAttempt,
-          errorCode: cause instanceof BlenderError ? cause.code : BlenderErrorCode.ENCODE_FAILED,
-          message: cause instanceof Error ? cause.message : String(cause),
-          videoPath: existsSync(output) ? output : null,
-          completedAt: Date.now(),
-        },
-      }, { previous: failedFrom })
-      throw cause
-    }
+    this._checkDeliveryCancelled(input)
+    const encode = await encodeFrameSequence({
+      ctx: this.ctx, ffmpegPath: this.config.ffmpegPath,
+      framesDirectory: record.framesDirectory ?? this.renderJobs.framesDirectory(projectId, jobId),
+      firstFrame: record.frameStart, frameCount: total, fps: record.fps, outputPath: output,
+      filePrefix: record.filePrefix, filePadding: record.filePadding,
+      crf: this.config.encodeCrf, preset: this.config.encodePreset, signal: input.signal,
+    })
+    this._checkDeliveryCancelled(input)
+    const probed = await probeVideo({ ctx: this.ctx, ffprobePath: this.config.ffprobePath, path: output, signal: input.signal })
+    this._checkDeliveryCancelled(input)
     const sources = this._deliverySources(projectId, record.revisionId)
     const publishRoot = join(this.store.projectDirectory(projectId), 'output')
     mkdirSync(publishRoot, { recursive: true })
@@ -5015,6 +5150,9 @@ export default class BlenderStudio extends Service {
     // a delivery that cannot be checked against its own bytes. Copying to a
     // temporary name and renaming keeps the publication atomic, so a reader never
     // sees a half-written `final.mp4`.
+    // The commit below is synchronous: cancellation can win before this guard,
+    // or observe the completed publication after it, never interleave its files.
+    this._checkDeliveryCancelled(input)
     copyFileSync(encode.outputPath, `${videoPath}.tmp`)
     renameSync(`${videoPath}.tmp`, videoPath)
 
@@ -5051,6 +5189,7 @@ export default class BlenderStudio extends Service {
       outputManifest: recordManifestPath,
       delivery: {
         status: 'published',
+        attempt: deliveryAttempt,
         videoPath,
         manifestPath,
         renderManifestPath,

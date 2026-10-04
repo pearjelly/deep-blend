@@ -143,7 +143,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         118 个 *.test.mjs
+    contract/         119 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -202,7 +202,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 22/118 file(s) passed
+DeepBlend tests: 22/119 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -262,12 +262,13 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**33 个套件、150 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**118 个文件 = 1923 项自计断言（34 个文件打印计数）+ 1214 个 `node:test` 用例（84 个文件）**。
+预期：**34 个套件、152 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**119 个文件 = 1954 项自计断言（34 个文件打印计数）+ 1253 个 `node:test` 用例（85 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**这四个数字里，前两组是断言，后两组是上一次完整 run 的读数。** 套件数、文件数、工具数由
+**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前快照合并了已验收基线与本轮相关契约实测增量；完整入口的运行记录见 `deepblend/docs/milestone-status.md`。
+套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
@@ -290,6 +291,7 @@ node deepblend/tests/blender-integration/probe.e2e.mjs          # M0 能力探�
 node deepblend/tests/blender-integration/fixture.e2e.mjs        # M1 SceneSpec + revision 回放
 node deepblend/tests/blender-integration/visual-loop.e2e.mjs    # M2 多视角 / 评分 / 修复 / handover
 node deepblend/tests/blender-integration/render-job.e2e.mjs     # M3 重启 / 续渲 / 取消 / 交付
+node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs        # 已完整 PNG 帧的 FFmpeg 交付与取消；不启动 Blender
 node deepblend/tests/composition/activation.e2e.mjs             # Host composition 是否真的激活
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 的 7 个工具 + 无 checkpoint 的 revision 仍然可预览
@@ -306,6 +308,10 @@ node deepblend/tests/e2e/ui.e2e.mjs                             # M4 真实浏�
 **M3 的两个套件会真的渲 1080p、真的编码**，所以它们是整个 run 里最慢的（约 5–10 分钟）；
 **M4 的 `e2e/ui.e2e.mjs` 会启动自己的 `dsh web`、开一个真实 Chrome，并真的渲一次预览、
 起一次渲染再取消**（约 1–2 分钟，全程在自己的临时 store 里，不碰开发者的数据）。
+
+| 新增小交付检查 | 本地定向结果与范围 |
+| --- | --- |
+| `deepblend/tests/e2e/complete-frame-delivery.e2e.mjs` | 9/9：真实 FFmpeg/ffprobe 编码两张 256×192 PNG、取消自建编码进程并确认退出、保护旧帧与已发布视频；未启动 Blender 或浏览器。新增 CI 步骤仍待 Linux 实跑。 |
 
 其中 `contract/patch-resolution.test.mjs`（116 项）值得单独知道：它全部来自**在真实项目上
 使用产品**时暴露的缺陷——patch 结果没被解析完整、bare generator 产生 NaN、
@@ -570,7 +576,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 33 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 34 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、
