@@ -5,6 +5,7 @@ from deepblend_util import ActionError
 from deepblend_image_headers import check_image_header, MAX_IMAGE_DECODE_BYTES
 from deepblend_gltf_images import inspect_gltf_images
 from deepblend_obj_images import inspect_obj_images
+from deepblend_image_roles import SOURCE_SPACE
 
 SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Metallic',
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
@@ -127,6 +128,7 @@ def load_packed_image(asset, project_root, colorspace=None):
         if list(image.size) not in [[part['width'], part['height']] for part in facts['parts']]:
             raise ValueError('decoded image dimensions disagree with the inspected header')
         if colorspace is not None:
+            image[SOURCE_SPACE] = image.colorspace_settings.name
             image.colorspace_settings.name = colorspace
         image.pack()
         return image

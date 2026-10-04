@@ -165,6 +165,8 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_mesh_checks.py': 'shared discrete mesh validity checks, called by the cup constructor',
     'deepblend_asset_bundle.py': 'shared immutable resource lock validation without bpy, called before scene reset',
     'deepblend_obj_images.py': 'shared native-selected OBJ image budget inspection before scene reset',
+    'deepblend_obj_import.py': 'native OBJ numeric/normal image interpretations, called by the scene compiler',
+    'deepblend_image_roles.py': 'shared retained native file color interpretation metadata',
     'deepblend_imported_image_headers.py': 'shared bounded raster metadata inspection without native decoding',
     'deepblend_avif_headers.py': 'shared AVIF item and coded AV1 size metadata inspection without pixel decoding',
     'deepblend_obj_resources.py': 'shared OBJ/MTL reference inspection without bpy, called by resource validation',

@@ -425,6 +425,30 @@ try {
   check('and it loaded no console bundle at all: the page is not the shell wearing a different URL',
     provenance.shellAssets.length === 0, provenance.shellAssets)
 
+  // A package name and version can match in two checkouts. Compare the entire
+  // immutable plugin response with this checkout's client artifact. DSH's
+  // single-plugin combo removes local debug trailers, adds a newline and ";",
+  // then appends the advertised revision's source-map URL.
+  const clientPath = join(REPO_ROOT, 'packages/deepblend/ui/lib/client.js')
+  const clientBytes = readFileSync(clientPath)
+  let clientSource = clientBytes.toString('utf8')
+    .replace(/(?:\r?\n)?\/\/# sourceURL=([^\r\n]+)(?:\r?\n)?$/, '')
+    .replace(/(?:\r?\n)?\/\/# sourceMappingURL=[^\r\n]*(?:\r?\n)?$/, '')
+  if (!clientSource.endsWith('\n')) clientSource += '\n'
+  const clientUrl = provenance.row.url
+  const mapUrl = clientUrl.replace(/\/client\.js(?=&rev=)/, '/client.js.map')
+  const expectedClientResponse = Buffer.from(`${clientSource};\n//# sourceMappingURL=${mapUrl}\n`)
+  const clientResponse = await fetch(new URL(clientUrl, base), { signal: AbortSignal.timeout(10000) })
+  const servedClientBytes = Buffer.from(await clientResponse.arrayBuffer())
+  const clientSourceEvidence = { clientPath, clientUrl, status: clientResponse.status,
+    sourceSha256: sha256(clientBytes), expectedResponseSha256: sha256(expectedClientResponse),
+    servedResponseSha256: sha256(servedClientBytes), servedBytes: servedClientBytes.length }
+  writeFileSync(join(evidenceDirectory, 'client-source.json'), `${JSON.stringify(clientSourceEvidence, null, 2)}\n`)
+  writeFileSync(join(evidenceDirectory, 'served-client.js'), servedClientBytes)
+  const matchesCheckout = clientResponse.ok && servedClientBytes.equals(expectedClientResponse)
+  check('the served workbench client contains this checkout\'s complete executable source', matchesCheckout, clientSourceEvidence)
+  if (!matchesCheckout) throw new Error('The Web server loaded a workbench client from outside the checkout under test')
+
   // -------------------------------------------------------------------------
   // 2. 不进入文件系统即可管理项目 — create a project, change a scene, render a preview
   // -------------------------------------------------------------------------

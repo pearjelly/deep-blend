@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { checkImportedImageBudgets, PRESERVE } from '../lib/imported-image-budgets.mjs';
 import { checkImportedImageRoles } from '../lib/imported-image-roles.mjs';
 import { checkObjImageBudgets } from '../lib/obj-image-budgets.mjs';
+import { checkObjImageRoles } from '../lib/obj-image-roles.mjs';
 const ROOT = resolve(import.meta.dirname, '../../..'), out = resolve(process.env.DEEPBLEND_ASSET_BUNDLE_OUTPUT ?? join(ROOT, '.deepblend/quality', `asset-bundle-${Date.now()}`)), blender = process.env.DEEPBLEND_BLENDER_PATH ?? join(ROOT, '.tools/Blender.app/Contents/MacOS/Blender');
 assert(!existsSync(out));
 mkdirSync(out, { recursive: true });
@@ -265,6 +266,7 @@ Path(out).write_text(json.dumps({'code':'ASSET_HASH_MISMATCH','sceneInventoryPre
     if (nativeFormat === 'gltf') await checkImportedImageBudgets({ studio, output: join(out, 'imported-images'), root: ROOT, python, check });
     if (nativeFormat === 'gltf') await checkImportedImageRoles({ studio, output: join(out, 'imported-image-roles'), root: ROOT, python, check });
     if (nativeFormat === 'gltf') await checkObjImageBudgets({ studio, output: join(out, 'obj-image-budgets'), root: ROOT, python, check });
+    if (nativeFormat === 'gltf') await checkObjImageRoles({ studio, output: join(out, 'obj-image-roles'), root: ROOT, python, check });
     check('all bundle staging directories are removed', readdirSync(join(project, 'assets/bundles')).every(name => /^[a-f0-9]{64}$/.test(name)));
     save(join(out, 'identity.json'), { format: nativeFormat, project, projectId, oldRevision: old, currentRevision: current, sourceBuild: json(join(out, 'authored-source/build.json')), runtimeBuild: (await runtime.getCapabilities()).buildHash, firstBundle: first.bundle.sha256, secondBundle: second.bundle.sha256 });
 }

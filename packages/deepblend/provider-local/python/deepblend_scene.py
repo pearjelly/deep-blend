@@ -415,7 +415,8 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
     elif asset_type == "fbx":
         call = lambda: bpy.ops.import_scene.fbx(filepath=asset_path)  # noqa: E731
     elif asset_type == "obj":
-        call = lambda: bpy.ops.wm.obj_import(filepath=asset_path)  # noqa: E731
+        from deepblend_obj_import import import_obj
+        call = lambda: import_obj(asset_path)  # noqa: E731
     elif asset_type == "usd":
         call = lambda: bpy.ops.wm.usd_import(filepath=asset_path)  # noqa: E731
     elif asset_type == "blend":
