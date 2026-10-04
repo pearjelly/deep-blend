@@ -842,7 +842,8 @@ export function createHandlers(ctx) {
         frameStart: numberOrUndefined(body.frameStart),
         frameEnd: numberOrUndefined(body.frameEnd),
         samples: numberOrUndefined(body.samples),
-        profile: body.profile,
+        // Keep the HTTP field stable while using the Host's actual parameter.
+        profileName: body.profile,
         reason: body.reason ?? 'started from the workbench UI',
       }
       // A resume is a different host entry point, and the UI must not have to
@@ -857,7 +858,7 @@ export function createHandlers(ctx) {
       // sitting right there in the panel.
       const result = resumeJobId === null
         ? await studio().startFinalRender(request)
-        : await studio().resumeRenderJob({ ...request, jobId: resumeJobId })
+        : await studio().resumeRenderJob({ projectId: params.projectId, jobId: resumeJobId })
       return { job: result, resumed: resumeJobId !== null }
     },
   }

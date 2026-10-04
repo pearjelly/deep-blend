@@ -4,7 +4,7 @@
 
 配方把一个经过设计的产品场景及其有限参数打包成可复用内容。当前提供金属桌灯、玻璃空瓶与陶瓷托盘、编织格栅音箱、青釉带把手杯四个内置配方，规范源位于 [`deepblend/recipes/`](../recipes/)。桌灯、玻璃陶瓷和音箱来自对应基准的公开 SceneSpec；杯体使用公开 `handled_cup` 生成器和大面积摄影灯。每个包都包含真实渲染预览，无需依赖基准目录或下载资产。
 
-桌灯当前为 `2.0.0`，其余三组为 `1.0.0`。这些都是仓库内待发布的本地内容；版本号和来源 URL 不表示已经对外发布。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
+桌灯当前为 `2.0.0`，青釉杯为 `3.0.0`，玻璃陶瓷和音箱为 `1.0.0`。这些都是仓库内待发布的本地内容；版本号和来源 URL 不表示已经对外发布。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
 
 桌灯、玻璃陶瓷和音箱使用成品 candidate 场景，预览取自以下已核验批次的 `candidate/hero.png`。杯体预览由包内 SceneSpec 经公开 Host 单独渲染，使用主相机、第 1 帧、960×720、128 samples。所有预览只移除元数据，解码像素保持一致：
 
@@ -13,9 +13,9 @@
 | `deepblend.metal-lamp` | `metal-surface-r34/benchmark-final-v1` |
 | `deepblend.glass-ceramic` | `final-products-v1` |
 | `deepblend.modular-speaker` | `final-modular-speaker-r13-v3` |
-| `deepblend.glazed-cup` | `cup-roots-r40/public-v1/beauty-hero.png` |
+| `deepblend.glazed-cup` | `cup-shape-r45/public-v1/beauty-hero.png` |
 
-桌灯当前原始运行目录位于 `.deepblend/quality/metal-surface-r34/`，玻璃陶瓷和音箱的目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-roots-r40/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
+桌灯当前原始运行目录位于 `.deepblend/quality/metal-surface-r34/`，玻璃陶瓷和音箱的目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-shape-r45/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
 
 青釉杯当前版本为 3.0.0，显式使用 `rootTension: 2.5` 展开根部过渡；杯身尺寸、釉面和摄影设置保留。2.0.0 使用 1.5，完整原字节保留于 [`glazed-cup-v2`](../tests/fixtures/glazed-cup-v2/recipe.json)。1.0.0 使用原过渡，并保留于 [`glazed-cup-v1`](../tests/fixtures/glazed-cup-v1/recipe.json) 历史夹具。旧项目依赖自己的原始来源锁与 checkpoint，不能因画廊升级而改写旧形体。作品观感仍需实际审阅。
 

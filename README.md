@@ -143,6 +143,7 @@ The repository's own documents are in Chinese, and they are the detailed ones:
 | **Review against references** — upload, save a versioned brief, inspect reference evidence and run bounded corrections | [`deepblend/docs/reference-images.md`](deepblend/docs/reference-images.md) |
 | **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
 | **Inspect rough results** — fixed camera/frame material and clay images, with a creation guide | [`deepblend/docs/inspection.md`](deepblend/docs/inspection.md) |
+| **Adjust cameras and lights** — save a revision and inspect the selected view | [`deepblend/docs/photography-editor.md`](deepblend/docs/photography-editor.md) |
 | **Extend the plugin** — public JavaScript and TypeScript SDK, recipe directory validation reports, versioned schemas and runtime lifecycle | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
 | **Run independent trials** — own-asset creation, author submissions, reuse and public-interface adoption, with blank evidence records | [`deepblend/docs/human-validation.md`](deepblend/docs/human-validation.md) |
 | **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
@@ -205,7 +206,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 31 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 33 suites; README.zh.md states the expected numbers
 ```
 
 CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.

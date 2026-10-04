@@ -220,6 +220,18 @@ test('a fresh client rebuilds inspected previews from Host inventory', async t =
   assert.ok(nodes().some(node => node.props['data-asset-preview'] === item.asset.id)); store.actions.chooseAsset(assets.key(item.asset)); assert.equal(store.getState().assetDrafts.one.kind, 'model'); assert.equal(calls.length, 0)
 })
 
+test('asset thumbnails reserve only measured positive pixel dimensions before image decoding', async t => {
+  const item = entry('glb'); item.inspection = inspected(item); item.preview = { ...preview(item), width: 512, height: 384 }
+  const { store, nodes, projects } = await client(t, { seed: [item] })
+  await store.actions.loadAssets()
+  const image = () => nodes().find(node => node.props['data-asset-preview'] === item.asset.id).props
+  assert.equal(image().width, 512); assert.equal(image().height, 384); assert.equal(image().style.height, 'auto')
+  for (const dimensions of [{ width: undefined, height: undefined }, { width: 0, height: 384 }, { width: 512, height: -1 }, { width: '512', height: 384 }]) {
+    Object.assign(projects.one.assets[0].preview, dimensions); await store.actions.loadAssets()
+    assert.equal(image().width, undefined); assert.equal(image().height, undefined)
+  }
+})
+
 test('actual controls use millimetres/degrees and apply only after an explicit click', async t => {
   const { store, field, calls, projects, ready } = await client(t); await ready('glb'); const count = calls.length
   field('asset-location-x').props.onChange({ target: { value: '125' } }); field('asset-rotationEuler-z').props.onChange({ target: { value: '90' } })

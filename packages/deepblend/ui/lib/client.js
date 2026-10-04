@@ -261,6 +261,46 @@ window.__ModuleLoader__.load({
       'brief.actualReferences': "本次评审核验的参考 ID",
       'brief.referenceUnknown': "没有已记录的参考使用证据。",
       'brief.referenceStatus': "参考证据状态",
+      "photo.title": "摄影：相机与灯光",
+      "photo.help": "修改作为本项目当前修订的草稿保存。点击“保存并预览”先保存整个修订，再渲染选定相机和帧的材质检查图。",
+      "photo.camera": "编辑与检查相机",
+      "photo.light": "编辑灯光",
+      "photo.lens": "焦距（mm）",
+      "photo.position": "位置（m）",
+      "photo.rotation": "旋转（°）",
+      "photo.aim": "朝向方式",
+      "photo.free": "自由旋转",
+      "photo.entity": "对象原点",
+      "photo.point": "指定点",
+      "photo.target": "瞄准对象原点",
+      "photo.targetPoint": "指定点（m）",
+      "photo.aimHelp": "瞄准对象的根原点或指定坐标；此设置在场景构造时定向。动画驱动的通道保持锁定。",
+      "photo.aimLocked": "此相机的旋转由动画驱动，瞄准设置已锁定。",
+      "photo.rotationLocked": "朝向由目标计算，旋转输入已锁定。",
+      "photo.power": "功率（W）",
+      "photo.sunEnergy": "太阳强度（W/m²）",
+      "photo.color": "颜色 RGB（0–1）",
+      "photo.areaSize": "方形灯边长（m）",
+      "photo.softSize": "柔光半径（m）",
+      "photo.addLight": "新增面积补光灯",
+      "photo.newLight": "新面积灯（待保存）",
+      "photo.save": "保存并预览",
+      "photo.saving": "正在保存修订…",
+      "photo.previewing": "修订已保存，正在渲染检查图…",
+      "photo.saved": "已保存 {revision}。",
+      "photo.failed": "修订 {revision} 已保存；检查图片未完成。{message}",
+      "photo.ready": "检查图：{revision} · {camera} · 第 {frame} 帧",
+      "photo.retry": "重试已保存修订的预览",
+      "photo.restore": "恢复摄影编辑前的场景",
+      "photo.restoreHelp": "恢复整个场景；仅当当前修订仍是 {revision} 时可用。",
+      "photo.reset": "放弃草稿，读取当前修订",
+      "photo.conflict": "草稿基于 {before}，当前为 {current}。草稿已保留，请放弃草稿后重新编辑。",
+      "photo.invalid": "输入无效：{fields}",
+      "photo.base": "草稿来源：{revision}",
+      "photo.changes": "此修订修改了 {fields}。",
+      "photo.cameraChanges": "相机",
+      "photo.lightChanges": "灯光",
+      "photo.restoreFailed": "恢复失败，已保留摄影记录：{message}",
       'editor.title': '编辑对象',
       'editor.unknownSettings': '这张预览缺少实测渲染设置，无法比较编辑差异。',
       'editor.missingBaseline': '没有同相机、同帧和同渲染设置的编辑前预览，暂时无法比较差异。',
@@ -707,6 +747,46 @@ window.__ModuleLoader__.load({
       'brief.actualReferences': "Verified reference IDs for this review",
       'brief.referenceUnknown': "No reference-use evidence was recorded.",
       'brief.referenceStatus': "Reference evidence status",
+      "photo.title": "Photography: cameras and lights",
+      "photo.help": "Edits are drafts for this project and revision. Save and preview first saves the revision, then renders the selected camera and frame in beauty mode.",
+      "photo.camera": "Camera to edit and inspect",
+      "photo.light": "Light to edit",
+      "photo.lens": "Lens (mm)",
+      "photo.position": "Position (m)",
+      "photo.rotation": "Rotation (°)",
+      "photo.aim": "Aim mode",
+      "photo.free": "Free rotation",
+      "photo.entity": "Object origin",
+      "photo.point": "Specified point",
+      "photo.target": "Aim at object origin",
+      "photo.targetPoint": "Specified point (m)",
+      "photo.aimHelp": "Aim at the object root origin or explicit coordinates when the scene is built. Animated channels stay locked.",
+      "photo.aimLocked": "Camera rotation is animated; aim controls are locked.",
+      "photo.rotationLocked": "The target determines rotation; rotation controls are locked.",
+      "photo.power": "Power (W)",
+      "photo.sunEnergy": "Sun strength (W/m²)",
+      "photo.color": "RGB color (0–1)",
+      "photo.areaSize": "Square side length (m)",
+      "photo.softSize": "Soft radius (m)",
+      "photo.addLight": "Add area fill light",
+      "photo.newLight": "New area light (unsaved)",
+      "photo.save": "Save and preview",
+      "photo.saving": "Saving revision…",
+      "photo.previewing": "Revision saved. Rendering inspection…",
+      "photo.saved": "Saved {revision}.",
+      "photo.failed": "Revision {revision} is saved; the inspection image did not finish. {message}",
+      "photo.ready": "Inspection: {revision} · {camera} · frame {frame}",
+      "photo.retry": "Retry preview of saved revision",
+      "photo.restore": "Restore scene before photography edits",
+      "photo.restoreHelp": "Restores the whole scene only while {revision} is still current.",
+      "photo.reset": "Discard draft and read current revision",
+      "photo.conflict": "Draft is based on {before}; current revision is {current}. Your draft is retained. Discard it before editing the current revision.",
+      "photo.invalid": "Invalid input: {fields}",
+      "photo.base": "Draft source: {revision}",
+      "photo.changes": "This revision changed {fields}.",
+      "photo.cameraChanges": "cameras",
+      "photo.lightChanges": "lighting",
+      "photo.restoreFailed": "Restore failed; the photography record is retained: {message}",
       'editor.title': 'Edit object',
       'editor.unknownSettings': 'Measured render settings are missing. This preview cannot establish the edit difference.',
       'editor.missingBaseline': 'No before preview has the same camera, frame and measured render settings. The edit difference is unavailable.',
@@ -1537,6 +1617,84 @@ window.__ModuleLoader__.load({
       return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
     }
 
+    function createPhotographyDraft(scene, projectId, previous = {}) {
+      const cameras = (scene.nodes.cameras || []).map(item => editorClone(item.definition)).filter(Boolean)
+      const lights = (scene.nodes.lights || []).map(item => editorClone(item.definition)).filter(Boolean)
+      return { projectId, baseRevision: scene.revision, cameras, lights, original: editorClone({ cameras, lights }),
+        entities: editorClone(scene.nodes.entities), tracks: editorClone(scene.nodes.animationTracks || []),
+        cameraId: cameras.some(item => item.id === previous.cameraId) ? previous.cameraId : scene.project.activeCamera || cameras[0]?.id || '',
+        lightId: lights.some(item => item.id === previous.lightId) ? previous.lightId : lights[0]?.id || '',
+        frame: previous.frame ?? scene.project.frameStart, samples: previous.samples ?? 16,
+        frameStart: scene.project.frameStart, frameEnd: scene.project.frameEnd }
+    }
+    const photographyDraftFor = state => state.photographyDrafts?.[state.activeProjectId] || null
+    const photographyBusy = work => Boolean(work?.saving || work?.previewing || work?.restoring)
+    const photographyAim = camera => camera?.targetEntityId !== undefined ? 'entity' : camera?.targetPoint !== undefined ? 'point' : 'free'
+    const photographyAimLocked = (draft, camera) => EDITOR_AXES.some(axis => editorTrackLocked(draft, 'camera', camera.id, `rotationEuler.${axis}`))
+    function photographyErrors(draft) {
+      const errors = [], bad = key => errors.push(key), number = (value, min, inclusive = true) => Number.isFinite(value) && (inclusive ? value >= min : value > min)
+      const vector = value => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)
+      for (const [kind, items] of [['camera', draft.cameras], ['light', draft.lights]]) for (const item of items) {
+        const original = draft.original[`${kind}s`].find(old => old.id === item.id)
+        for (const key of ['location', 'rotationEuler']) {
+          if (!editorEqual(item.transform?.[key], original?.transform?.[key])) {
+            if (!vector(item.transform?.[key])) bad(`${item.id}.${key}`)
+            else for (let axis = 0; axis < 3; axis++) if (item.transform[key][axis] !== (original?.transform?.[key]?.[axis] ?? 0)
+              && editorTrackLocked(draft, kind, item.id, `${key}.${EDITOR_AXES[axis]}`)) bad(`${item.id}.${key}.${EDITOR_AXES[axis]}`)
+            if (kind === 'camera' && key === 'rotationEuler' && photographyAim(item) !== 'free') bad(`${item.id}.rotationEuler`)
+          }
+        }
+        if (kind === 'camera') {
+          if (!number(item.lens ?? 50, 0, false)) bad(`${item.id}.lens`)
+          if (item.targetEntityId !== undefined && !draft.entities.some(entity => entity.id === item.targetEntityId)) bad(`${item.id}.targetEntityId`)
+          if (item.targetPoint !== undefined && !vector(item.targetPoint)) bad(`${item.id}.targetPoint`)
+          if (item.targetEntityId !== undefined && item.targetPoint !== undefined) bad(`${item.id}.target`)
+          const targetChanged = !editorEqual([item.targetEntityId, item.targetPoint], [original?.targetEntityId, original?.targetPoint])
+          if (targetChanged && (photographyAimLocked(draft, item) || photographyAim(item) === 'free')) bad(`${item.id}.target`)
+        } else {
+          if (!number(item.energy ?? 100, 0)) bad(`${item.id}.energy`)
+          if (!Array.isArray(item.color ?? [1, 1, 1]) || ![3, 4].includes((item.color ?? [1, 1, 1]).length)
+            || !(item.color ?? [1, 1, 1]).every(value => number(value, 0) && value <= 1)) bad(`${item.id}.color`)
+          if (item.type !== 'sun' && !number(item.size ?? (item.type === 'area' ? 1 : .25), 0, false)) bad(`${item.id}.size`)
+          if (!original && item.type !== 'area') bad(`${item.id}.type`)
+          if (original && item.type !== original.type) bad(`${item.id}.type`)
+        }
+      }
+      if (!draft.cameras.some(camera => camera.id === draft.cameraId)) bad('camera')
+      if (!Number.isInteger(draft.frame) || draft.frame < draft.frameStart || draft.frame > draft.frameEnd) bad('frame')
+      if (!Number.isInteger(draft.samples) || draft.samples < 1 || draft.samples > 512) bad('samples')
+      return errors
+    }
+    function buildPhotographyPatch(draft) {
+      const errors = photographyErrors(draft)
+      if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
+      const operations = []
+      for (const [kind, items, fields] of [['camera', draft.cameras, ['lens', 'targetEntityId', 'targetPoint']], ['light', draft.lights, ['energy', 'color', 'size']]]) {
+        for (const item of items) {
+          const original = draft.original[`${kind}s`].find(old => old.id === item.id)
+          if (!original) { operations.push({ op: 'light.add', light: editorClone(item) }); continue }
+          const changes = {}
+          for (const key of fields) if (item[key] !== undefined && !editorEqual(item[key], original[key])) changes[key] = editorClone(item[key])
+          const transform = {}
+          for (const key of ['location', 'rotationEuler']) if (!editorEqual(item.transform?.[key], original.transform?.[key])) transform[key] = editorClone(item.transform[key])
+          if (Object.keys(transform).length) changes.transform = transform
+          if (Object.keys(changes).length) operations.push({ op: `${kind}.update`, [`${kind}Id`]: item.id, ...changes })
+        }
+      }
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, actor: 'ui', saveCheckpoint: true, renderPreview: false, operations }
+    }
+    function photographyDirty(draft) {
+      return Boolean(draft && !editorEqual({ cameras: draft.cameras, lights: draft.lights }, draft.original))
+    }
+    function inspectionReceiptValid(receipt, request, digest) {
+      const artifacts = receipt?.artifacts, view = request.views[0]
+      return Boolean(receipt?.revision === request.revision && receipt?.sourceRevision === request.revision && receipt?.mode === request.mode
+        && (!digest || receipt.sourceDigest === digest) && Array.isArray(artifacts) && artifacts.length === 1
+        && artifacts.every(artifact => artifact.kind === 'diagnostic' && artifact.mode === request.mode && artifact.sourceRevision === request.revision
+          && artifact.cameraId === view.cameraId && artifact.frame === view.frame && artifact.mime === 'image/png'
+          && typeof artifact.path === 'string' && artifact.path && /^[a-f0-9]{64}$/.test(artifact.sha256 || '')))
+    }
+
     const ASSET_TYPES = ['glb', 'png', 'jpg', 'jpeg', 'hdr', 'exr']
     const ASSET_CHANNELS = ['baseColor', 'roughness', 'metallic', 'normal', 'alpha', 'emissionColor']
     const assetKey = asset => JSON.stringify([asset.id, asset.sha256, asset.path])
@@ -1673,6 +1831,7 @@ window.__ModuleLoader__.load({
     function projectHasUnsavedDrafts(state) {
       return briefDirty(state.briefDrafts[state.activeProjectId])
         || Object.values(state.editorDrafts || {}).some(draft => draft.projectId === state.activeProjectId && editorDirty(draft))
+        || photographyDirty(photographyDraftFor(state))
         || Boolean(state.assetDrafts?.[state.activeProjectId])
         || state.forms.patch !== null
     }
@@ -1876,6 +2035,9 @@ window.__ModuleLoader__.load({
         briefWork: {},
         visualRuns: {},
         visualIterations: {},
+        photographyDrafts: {},
+        photographyWork: {},
+        photographyEdits: {},
         editorEntityId: null,
         editorDrafts: {},
         editorLastEdits: {},
@@ -1905,6 +2067,8 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      const photographyControllers = new Map()
+      const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
       const inspectionControllers = new Map()
       const assetControllers = new Map()
       const assetListSequences = new Map()
@@ -1976,6 +2140,10 @@ window.__ModuleLoader__.load({
         if (sequence !== loadSequence || projectId !== target()) return
         if (active !== data.activeProjectId) patch.forms = { ...data.forms, patch: data.patchDrafts[active] ?? null }
         if (patch.selected?.scene && active) {
+          const photography = data.photographyDrafts[active]
+          if ((!photography || !photographyDirty(photography)) && !data.photographyWork[active]?.saving) {
+            patch.photographyDrafts = { ...data.photographyDrafts, [active]: createPhotographyDraft(patch.selected.scene, active, photography) }
+          }
           const draft = data.briefDrafts[active], work = data.briefWork[active]
           if (!draft || !briefDirty(draft) && !work?.uploading && !work?.saving) {
             patch.briefDrafts = { ...data.briefDrafts, [active]: createBriefDraft(patch.selected.scene, active) }
@@ -2010,6 +2178,24 @@ window.__ModuleLoader__.load({
         setIn('notices', view, outcome.ok ? describe(outcome.payload) : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
         reload()
         return outcome
+      }
+
+      const previewPhotography = async projectId => {
+        const edit = data.photographyEdits[projectId]
+        if (!edit || photographyBusy(data.photographyWork[projectId])) return
+        const request = { revision: edit.after, mode: 'beauty', views: [{ id: 'selected', cameraId: edit.cameraId, frame: edit.frame }], samples: edit.samples }
+        const controller = new AbortController(); photographyControllers.set(projectId, controller)
+        photographyWork(projectId, { previewing: true, error: null, artifact: null })
+        try {
+          const response = await fetchImpl(projectRoute(projectId, '/preview'), { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(request), signal: controller.signal })
+          const payload = await response.json()
+          if (controller.signal.aborted) throw new Error(t('inspection.cancelled'))
+          if (!response.ok || !payload.ok) throw new Error(`${payload.error?.code || 'UI_PREVIEW_FAILED'}: ${payload.error?.message || response.status}`)
+          if (!inspectionReceiptValid(payload.preview, request, edit.digest)) throw new Error(t('inspection.mismatch'))
+          photographyWork(projectId, { artifact: editorClone(payload.preview.artifacts[0]) })
+        } catch (error) {
+          photographyWork(projectId, { error: t('photo.failed', { revision: edit.after, message: controller.signal.aborted ? t('inspection.cancelled') : error.message || String(error) }) })
+        } finally { photographyControllers.delete(projectId); photographyWork(projectId, { previewing: false }); reload() }
       }
 
       const actions = {
@@ -2262,6 +2448,97 @@ window.__ModuleLoader__.load({
           reload()
         },
 
+        selectPhotography: (kind, id) => {
+          const current = photographyDraftFor(data)
+          if (!current || photographyBusy(data.photographyWork[current.projectId]) || !['camera', 'light'].includes(kind) || !current[`${kind}s`].some(item => item.id === id)) return
+          set({ photographyDrafts: { ...data.photographyDrafts, [current.projectId]: { ...current, [`${kind}Id`]: id } } })
+        },
+        resetPhotography: () => {
+          const projectId = data.activeProjectId, scene = data.selected?.scene
+          if (!scene || photographyBusy(data.photographyWork[projectId])) return
+          set({ photographyDrafts: { ...data.photographyDrafts, [projectId]: createPhotographyDraft(scene, projectId, photographyDraftFor(data)) } })
+        },
+        updatePhotography: (kind, path, value) => {
+          const current = photographyDraftFor(data)
+          if (!current || photographyBusy(data.photographyWork[current.projectId]) || current.baseRevision !== data.selected?.scene?.revision) return
+          const draft = editorClone(current)
+          if (kind === 'inspection' && ['frame', 'samples'].includes(path)) draft[path] = value
+          else {
+            if (!['camera', 'light'].includes(kind) || !Array.isArray(path)) return
+            const item = draft[`${kind}s`].find(item => item.id === draft[`${kind}Id`])
+            if (!item) return
+            if (path[0] === 'transform' && path.length === 3 && ['location', 'rotationEuler'].includes(path[1]) && [0, 1, 2].includes(path[2])) {
+              if (editorTrackLocked(draft, kind, item.id, `${path[1]}.${EDITOR_AXES[path[2]]}`) || kind === 'camera' && path[1] === 'rotationEuler' && photographyAim(item) !== 'free') return
+              item.transform ||= {}; item.transform[path[1]] ||= [0, 0, 0]; item.transform[path[1]][path[2]] = value
+            } else if (kind === 'camera' && path.length === 1 && path[0] === 'aim') {
+              if (!['free', 'entity', 'point'].includes(value) || photographyAimLocked(draft, item)) return
+              const original = draft.original.cameras.find(camera => camera.id === item.id)
+              if (value === 'free' && photographyAim(original) !== 'free') return
+              delete item.targetEntityId; delete item.targetPoint
+              if (value === 'entity') item.targetEntityId = draft.entities.find(entity => entity.id === data.editorEntityId)?.id || data.selected?.scene?.project?.reviewSubjectId || draft.entities[0]?.id || ''
+              if (value === 'point') item.targetPoint = [0, 0, 0]
+              if (value !== 'free' && !editorEqual(item.transform?.rotationEuler, original?.transform?.rotationEuler)) {
+                if (original?.transform?.rotationEuler) item.transform.rotationEuler = editorClone(original.transform.rotationEuler)
+                else delete item.transform.rotationEuler
+              }
+            } else if (kind === 'camera' && path.length === 1 && ['lens', 'targetEntityId'].includes(path[0])) {
+              if (path[0] === 'targetEntityId' && (photographyAim(item) !== 'entity' || photographyAimLocked(draft, item))) return
+              item[path[0]] = value
+            } else if (kind === 'camera' && path[0] === 'targetPoint' && path.length === 2 && [0, 1, 2].includes(path[1]) && photographyAim(item) === 'point' && !photographyAimLocked(draft, item)) item.targetPoint[path[1]] = value
+            else if (kind === 'light' && path.length === 1 && ['energy', 'size'].includes(path[0]) && !(item.type === 'sun' && path[0] === 'size')) item[path[0]] = value
+            else if (kind === 'light' && path[0] === 'color' && path.length === 2 && [0, 1, 2].includes(path[1])) { item.color ||= [1, 1, 1]; item.color[path[1]] = value }
+            else return
+          }
+          set({ photographyDrafts: { ...data.photographyDrafts, [current.projectId]: draft } })
+        },
+        addPhotographyLight: () => {
+          const current = photographyDraftFor(data)
+          if (!current || photographyBusy(data.photographyWork[current.projectId]) || current.baseRevision !== data.selected?.scene?.revision) return
+          const draft = editorClone(current)
+          let id
+          do { id = `ui-fill-${Date.now().toString(36)}-${++editorSequence}` } while (draft.lights.some(light => light.id === id))
+          draft.lights.push({ id, type: 'area', energy: 100, color: [1, 1, 1], size: 1, transform: { location: [1, -1, 2], rotationEuler: [0, 0, 0] } })
+          draft.lightId = id
+          set({ photographyDrafts: { ...data.photographyDrafts, [current.projectId]: draft } })
+        },
+        savePhotography: async () => {
+          const draft = photographyDraftFor(data), projectId = draft?.projectId, work = data.photographyWork[projectId]
+          if (!draft || work?.saving || work?.previewing || work?.restoring || data.busy.editor || data.busy.patch || data.busy.restore
+            || draft.baseRevision !== data.selected?.scene?.revision || !photographyDirty(draft)) return
+          let patch
+          try { patch = buildPhotographyPatch(draft) } catch (error) { photographyWork(projectId, { error: error.message }); return }
+          if (!patch.operations.length) return
+          photographyWork(projectId, { saving: true, error: null }); setIn('busy', 'editor', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch })
+          setIn('busy', 'editor', false)
+          if (outcome.ok) {
+            const saved = outcome.payload.revision, drafts = { ...data.photographyDrafts, [projectId]: { ...editorClone(draft), baseRevision: outcome.payload.revision.revision, original: editorClone({ cameras: draft.cameras, lights: draft.lights }) } }
+            set({ photographyDrafts: drafts, photographyEdits: { ...data.photographyEdits, [projectId]: {
+              before: draft.baseRevision, after: saved.revision, digest: saved.digest, cameraId: draft.cameraId, frame: draft.frame, samples: draft.samples,
+              changes: [...new Set(patch.operations.map(operation => operation.op.split('.')[0]))] } } })
+            photographyWork(projectId, { saving: false, error: null, artifact: null })
+            reload()
+            await previewPhotography(projectId)
+          } else {
+            photographyWork(projectId, { saving: false, error: `${outcome.error.code}: ${outcome.error.message}` }); reload()
+          }
+        },
+        retryPhotography: () => previewPhotography(data.activeProjectId),
+        cancelPhotography: () => photographyControllers.get(data.activeProjectId)?.abort(),
+        restorePhotography: async () => {
+          const projectId = data.activeProjectId, edit = data.photographyEdits[projectId], work = data.photographyWork[projectId]
+          if (!edit || work?.saving || work?.previewing || work?.restoring || data.busy.editor || data.busy.patch || data.busy.restore || data.currentRevision !== edit.after) return
+          photographyWork(projectId, { restoring: true, error: null }); setIn('busy', 'restore', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/restore'), { revision: edit.before, expectedCurrentRevision: edit.after })
+          setIn('busy', 'restore', false)
+          if (outcome.ok) {
+            const edits = { ...data.photographyEdits }; delete edits[projectId]
+            // Unsaved drafts are retained. The next state read marks their base revision as stale.
+            set({ photographyEdits: edits }); photographyWork(projectId, { restoring: false, artifact: null, error: null })
+          } else photographyWork(projectId, { restoring: false, error: t('photo.restoreFailed', { message: `${outcome.error.code}: ${outcome.error.message}` }) })
+          reload()
+        },
+
         selectEditorEntity: entityId => {
           const scene = data.selected?.scene, projectId = data.activeProjectId
           if (!scene || !projectId) return
@@ -2462,12 +2739,7 @@ window.__ModuleLoader__.load({
             const payload = await response.json()
             if (controller.signal.aborted) throw new Error(t('inspection.cancelled'))
             if (!response.ok || !payload.ok) throw new Error(`${payload.error?.code || 'UI_PREVIEW_FAILED'}: ${payload.error?.message || response.status}`)
-            const receipt = payload.preview, artifacts = receipt?.artifacts
-            if (receipt?.revision !== request.revision || receipt?.sourceRevision !== request.revision || receipt?.mode !== request.mode
-              || scene.digest && receipt.sourceDigest !== scene.digest || !Array.isArray(artifacts) || artifacts.length !== 1
-              || artifacts.some(artifact => artifact.kind !== 'diagnostic' || artifact.mode !== request.mode || artifact.sourceRevision !== request.revision
-                || artifact.cameraId !== form.cameraId || artifact.frame !== form.frame || artifact.mime !== 'image/png'
-                || typeof artifact.path !== 'string' || !artifact.path || !/^[a-f0-9]{64}$/.test(artifact.sha256 || ''))) throw new Error(t('inspection.mismatch'))
+            if (!inspectionReceiptValid(payload.preview, request, scene.digest)) throw new Error(t('inspection.mismatch'))
             inspectionWork(projectId, { result: { revision: request.revision, mode: request.mode, message: t('inspection.saved', { revision: request.revision, camera: form.cameraId, frame: form.frame }) } })
             set({ inspectionRevisions: { ...data.inspectionRevisions, [projectId]: request.revision } })
           } catch (error) { inspectionWork(projectId, { error: controller.signal.aborted ? t('inspection.cancelled') : error.message || String(error) }) }
@@ -2494,15 +2766,20 @@ window.__ModuleLoader__.load({
         },
 
         startRender: async (resumeJobId) => {
-          setIn('busy', 'render', true)
-          const outcome = await postJson(fetchImpl, projectRoute(target(), '/render'), {
-            resumeJobId,
+          const projectId = data.activeProjectId, scene = data.selected?.scene
+          if (!projectId || !scene?.revision || data.busy.render) return
+          // Snapshot before notifying subscribers: a project switch or a concurrent
+          // save must not change the scene or settings this click asked to render.
+          const request = resumeJobId === undefined ? {
+            revision: scene.revision,
             frameStart: data.forms.frameStart === '' ? undefined : Number(data.forms.frameStart),
             frameEnd: data.forms.frameEnd === '' ? undefined : Number(data.forms.frameEnd),
-            profile: resumeJobId === undefined ? data.forms.profile : undefined,
-          })
+            profile: data.forms.profile,
+          } : { resumeJobId }
+          setIn('busy', 'render', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/render'), request)
           setIn('busy', 'render', false)
-          setIn('notices', 'jobs', outcome.ok
+          if (target() === projectId) setIn('notices', 'jobs', outcome.ok
             ? { kind: 'render', ok: true, message: t('jobs.started', { jobId: outcome.payload.job.jobId, frames: outcome.payload.job.frames || '?' }) }
             : { kind: 'render', ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
@@ -2552,6 +2829,8 @@ window.__ModuleLoader__.load({
         stop() {
           running = false
           if (timer !== null) { clearInterval(timer); timer = null }
+          for (const controller of photographyControllers.values()) controller.abort()
+          photographyControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
           inspectionControllers.clear()
           for (const controller of assetControllers.values()) controller.abort()
@@ -3030,6 +3309,11 @@ window.__ModuleLoader__.load({
             Button({ action: 'asset-cancel', onClick: actions.cancelAsset, children: t('assets.cancel') })) : null,
           el('div', { className: 'db-grid', style: { marginTop: '12px' } }, (library.assets || []).map(entry => {
             const key = assetKey(entry.asset), result = state.assetPreviews?.[projectId]?.[key]
+            // Reserve the recorded PNG ratio before decoding, so controls below
+            // thumbnails stay in place as the standalone view is rebuilt.
+            const dimensions = Number.isSafeInteger(result?.preview?.width) && result.preview.width > 0
+              && Number.isSafeInteger(result?.preview?.height) && result.preview.height > 0
+              ? { width: result.preview.width, height: result.preview.height } : {}
             const declared = state.selected?.scene?.nodes.assets.some(asset => asset.id === entry.asset.id && asset.sha256 === entry.asset.sha256 && asset.path === entry.asset.path)
             return el('article', { className: 'db-card', key, 'data-asset-id': entry.asset.id, 'data-asset-sha256': entry.asset.sha256, 'data-asset-path': entry.asset.path },
               el('h4', null, entry.originalName || entry.asset.id), el('p', null, `${entry.asset.type.toUpperCase()} · ${assetBytes(entry.bytes)}`),
@@ -3037,7 +3321,7 @@ window.__ModuleLoader__.load({
               el('p', { className: 'db-muted' }, entry.license || t('assets.noLicense')),
               el('p', { className: 'db-muted' }, result ? t('assets.inspected') : t('assets.pending')),
               result ? el('div', null, el('img', { 'data-asset-preview': entry.asset.id, alt: entry.originalName || entry.asset.id,
-                src: artifactUrl(`/deepblend/artifacts/${encodeURIComponent(projectId)}/`, result.preview), style: { width: '100%', maxHeight: '240px', objectFit: 'contain' } }),
+                ...dimensions, src: artifactUrl(`/deepblend/artifacts/${encodeURIComponent(projectId)}/`, result.preview), style: { width: '100%', height: 'auto', maxHeight: '240px', objectFit: 'contain' } }),
                 result.inspection.kind === 'environment' && result.preview.toneMapped ? el('p', { className: 'db-muted' }, t('assets.toneMapped')) : null,
                 result.inspection.dimensions ? el('p', null, `${t('assets.dimensions')}: ${result.inspection.dimensions.map(value => Number.isFinite(value) ? Number(value.toFixed(4)) : '—').join(' × ')}`) : null,
                 result.inspection.image ? el('p', null, `${result.inspection.image.width} × ${result.inspection.image.height}`) : null,
@@ -3089,6 +3373,80 @@ window.__ModuleLoader__.load({
             onClick: actions.applyAsset, children: t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
     }
 
+    function PhotographyEditor({ state, actions }) {
+      const draft = photographyDraftFor(state), projectId = state.activeProjectId, work = state.photographyWork?.[projectId] || {}, edit = state.photographyEdits?.[projectId]
+      const busy = photographyBusy(work)
+      const conflict = draft && draft.baseRevision !== state.selected?.scene?.revision
+      const disabled = busy || conflict, errors = draft ? photographyErrors(draft) : []
+      const camera = draft?.cameras.find(item => item.id === draft.cameraId), light = draft?.lights.find(item => item.id === draft.lightId)
+      const update = (kind, path) => value => actions.updatePhotography(kind, path, value)
+      const numeric = (label, field, value, change, options = {}) => el('label', { className: 'db-row' }, label, el('input', {
+        className: 'db-input', type: 'number', 'data-field': `photo-${field}`, value: Number.isFinite(value) ? Math.round(value * (options.factor || 1) * 1e9) / 1e9 : '',
+        min: options.min, max: options.max, step: options.step || 'any', disabled: disabled || options.locked, style: { width: '125px' },
+        onChange: event => change(event.target.value === '' ? null : Number(event.target.value) / (options.factor || 1)),
+      }))
+      const choose = (label, field, value, items, change, locked = false) => el('label', { className: 'db-row' }, label, el('select', {
+        className: 'db-input', 'data-field': `photo-${field}`, value, disabled: disabled || locked,
+        onChange: event => change(event.target.value),
+      }, items.map(([id, title]) => el('option', { key: id, value: id }, title))))
+      const vector = (kind, field, value, title, factor = 1, locked = false) => el('div', null, el('strong', null, title), EDITOR_AXES.map((axis, index) =>
+        numeric(axis.toUpperCase(), `${kind}-${field}-${axis}`, value?.[index] ?? 0, update(kind, field === 'targetPoint' ? [field, index] : ['transform', field, index]),
+          { factor, locked: locked || editorTrackLocked(draft, kind, kind === 'camera' ? camera.id : light.id, `${field}.${axis}`) })))
+      const aim = photographyAim(camera), originalCamera = draft?.original.cameras.find(item => item.id === camera?.id)
+      const aimLocked = camera && photographyAimLocked(draft, camera)
+      return el('section', { className: 'db-card', 'data-photography-editor': projectId },
+        el('h4', null, t('photo.title')), el('p', { className: 'db-muted' }, t('photo.help')),
+        draft ? el('div', null,
+          el('p', { className: 'db-muted', 'data-photography-base': draft.baseRevision }, t('photo.base', { revision: draft.baseRevision })),
+          conflict ? el('p', { className: 'db-error', 'data-photography-conflict': true }, t('photo.conflict', { before: draft.baseRevision, current: state.selected?.scene?.revision })) : null,
+          el('div', { className: 'db-grid' },
+            el('div', null,
+              choose(t('photo.camera'), 'camera', draft.cameraId, draft.cameras.map(item => [item.id, item.id]), id => actions.selectPhotography('camera', id)),
+              camera ? el('div', null,
+                numeric(t('photo.lens'), 'camera-lens', camera.lens ?? 50, update('camera', ['lens']), { min: .001 }),
+                vector('camera', 'location', camera.transform?.location, t('photo.position')),
+                choose(t('photo.aim'), 'camera-aim', aim, [...(photographyAim(originalCamera) === 'free' ? [['free', t('photo.free')]] : []), ['entity', t('photo.entity')], ['point', t('photo.point')]], update('camera', ['aim']), aimLocked),
+                aim === 'entity' ? choose(t('photo.target'), 'camera-target', camera.targetEntityId, draft.entities.map(item => [item.id, item.id]), update('camera', ['targetEntityId']), aimLocked) : null,
+                aim === 'point' ? vector('camera', 'targetPoint', camera.targetPoint, t('photo.targetPoint'), 1, aimLocked) : null,
+                vector('camera', 'rotationEuler', camera.transform?.rotationEuler, t('photo.rotation'), 180 / Math.PI, aim !== 'free'),
+                aim !== 'free' ? el('p', { className: 'db-muted' }, t('photo.rotationLocked')) : null,
+                aimLocked ? el('p', { className: 'db-muted' }, t('photo.aimLocked')) : null,
+                el('p', { className: 'db-muted' }, t('photo.aimHelp'))) : null),
+            el('div', null,
+              choose(t('photo.light'), 'light', draft.lightId, draft.lights.map(item => [item.id, item.id]), id => actions.selectPhotography('light', id)),
+              light ? el('div', null,
+                el('p', null, light.type, !draft.original.lights.some(item => item.id === light.id) ? ` · ${t('photo.newLight')}` : ''),
+                vector('light', 'location', light.transform?.location, t('photo.position')),
+                vector('light', 'rotationEuler', light.transform?.rotationEuler, t('photo.rotation'), 180 / Math.PI),
+                numeric(light.type === 'sun' ? t('photo.sunEnergy') : t('photo.power'), 'light-energy', light.energy ?? 100, update('light', ['energy']), { min: 0 }),
+                el('strong', null, t('photo.color')), ['R', 'G', 'B'].map((label, index) => numeric(label, `light-color-${label.toLowerCase()}`, light.color?.[index] ?? 1, update('light', ['color', index]), { min: 0, max: 1 })),
+                light.type !== 'sun' ? numeric(light.type === 'area' ? t('photo.areaSize') : t('photo.softSize'), 'light-size', light.size ?? (light.type === 'area' ? 1 : .25), update('light', ['size']), { min: .000001 }) : null) : null,
+              Button({ action: 'photo-add-light', disabled, onClick: actions.addPhotographyLight, children: t('photo.addLight') }))),
+          el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } },
+            numeric(t('inspection.frame'), 'frame', draft.frame, update('inspection', 'frame'), { min: draft.frameStart, max: draft.frameEnd, step: 1 }),
+            numeric(t('inspection.samples'), 'samples', draft.samples, update('inspection', 'samples'), { min: 1, max: 512, step: 1 })),
+          errors.length ? el('p', { className: 'db-error' }, t('photo.invalid', { fields: errors.join(', ') })) : null,
+          el('div', { className: 'db-inline' },
+            Button({ action: 'photo-save', disabled: disabled || !photographyDirty(draft) || errors.length > 0 || state.busy.editor || state.busy.patch || state.busy.restore,
+              onClick: actions.savePhotography, children: t('photo.save') }),
+            Button({ action: 'photo-reset', disabled: busy, onClick: actions.resetPhotography, children: t('photo.reset') }))) : null,
+        work.saving ? el('p', { role: 'status' }, t('photo.saving')) : null,
+        work.previewing ? el('div', null, el('p', { role: 'status' }, t('photo.previewing')), Button({ action: 'photo-cancel', onClick: actions.cancelPhotography, children: t('inspection.cancel') })) : null,
+        edit ? el('div', { 'data-photography-saved': edit.after },
+          el('p', { role: 'status' }, t('photo.saved', { revision: edit.after })),
+          el('p', { className: 'db-muted' }, t('photo.changes', { fields: edit.changes.map(kind => kind === 'camera' ? t('photo.cameraChanges') : t('photo.lightChanges')).join(' / ') })),
+          el('div', { className: 'db-inline' },
+            Button({ action: 'photo-retry', disabled: busy, onClick: actions.retryPhotography, children: t('photo.retry') }),
+            Button({ action: 'photo-restore', disabled: busy || state.busy.editor || state.busy.patch || state.busy.restore || state.currentRevision !== edit.after,
+              onClick: actions.restorePhotography, children: t('photo.restore') })),
+          el('p', { className: 'db-muted' }, t('photo.restoreHelp', { revision: edit.after })),
+          work.artifact ? el('figure', { 'data-photography-artifact': work.artifact.path },
+            el('figcaption', null, t('photo.ready', { revision: edit.after, camera: edit.cameraId, frame: edit.frame })),
+            el('img', { src: artifactUrl(state.artifactBase, work.artifact), alt: t('inspection.beauty'), style: { display: 'block', width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: '640px', margin: '0 auto', objectFit: 'contain' } }),
+            PreviewSettings(work.artifact)) : null) : null,
+        work.error ? el('p', { className: 'db-error', role: 'status', 'data-photography-error': true }, work.error) : null)
+    }
+
     function SceneView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
@@ -3137,10 +3495,12 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-kind' }, material.shader),
             material.parameters ? el('span', { className: 'db-muted db-mono' }, Object.entries(material.parameters).slice(0, 4).map(([key, value]) => `${key}=${Array.isArray(value) ? `[${value.join(',')}]` : value}`).join(' ')) : null)),
           section(t('scene.lights'), scene.nodes.lights, light => el('div', null,
+            Button({ action: `select-light:${light.id}`, onClick: () => actions.selectPhotography('light', light.id), children: light.id }), ' ',
             el('span', { className: 'db-mono', 'data-node': `light:${light.id}` }, light.id), ' ',
             el('span', { className: 'db-kind' }, light.type),
             el('span', { className: 'db-muted' }, `energy ${light.energy}`))),
           section(t('scene.cameras'), scene.nodes.cameras, camera => el('div', null,
+            Button({ action: `select-camera:${camera.id}`, onClick: () => actions.selectPhotography('camera', camera.id), children: camera.id }), ' ',
             el('span', { className: 'db-mono', 'data-node': `camera:${camera.id}` }, camera.id), ' ',
             camera.isActive ? Badge({ tone: 'ok', children: 'active' }) : null, ' ',
             el('span', { className: 'db-kind' }, camera.role || 'no role'),
@@ -3157,6 +3517,7 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-kind' }, asset.type),
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         ),
+        PhotographyEditor(ctx),
         AssetsView(ctx),
         SceneEditor(ctx),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
@@ -4362,6 +4723,7 @@ window.__ModuleLoader__.load({
       inspection: { form: inspectionForm, valid: inspectionFormValid },
       assetLibrary: { createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
+      photographyEditor: { createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },
       renderView,
       mountStandalone,

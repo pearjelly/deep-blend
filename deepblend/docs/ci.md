@@ -1,7 +1,7 @@
 # CI 的真实渲染检查
 
-契约 job 运行完整契约层，并在同一个 job 中执行干净克隆安装。另一个 Linux job 使用固定 Blender、Chrome
-和 Node，串行执行以下已有测试，不需要模型密钥或个人 DSH 配置：
+契约 job 运行完整契约层，并在同一个 job 中执行干净克隆安装。两个 Linux job 使用固定 Blender、Chrome
+和 Node，不需要模型密钥或个人 DSH 配置。已有 `linux-render-browser-smoke` job 串行执行以下测试：
 
 开发依赖锁同时固定 pnpm 9.15.0。契约 job 在运行测试前检查它可执行，使真实 DSH
 插件安装、卸载检查可以运行；缺少 pnpm 会提前失败，不能依靠跳过这些用例得到绿灯。
@@ -20,13 +20,27 @@
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |
 | `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、新版 UV 默认值与独立原生重开、旧版参数含义、过期选择及旧文件保护 |
-
 | `deepblend/tests/e2e/preview-history-ui.e2e.mjs` | 同机位/帧单图独立保存、实际采样/相机姿态、拼图逐视图快照与轮换、条件差异/未知、编辑匹配、滚动保持/按压中刷新、390 像素展示、旧记录只读及恢复重载 |
 | `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
 | `deepblend/tests/blender-integration/review-history.e2e.mjs` | 重复与跨进程重叠的实际评审、独立视角和图片/评分摘要、完成顺序 QA、取消前发布拒绝、场景/checkpoint 保护；模型端口仅作为受控等待屏障 |
 
+## 渲染选择与摄影浏览器检查
+
+独立的 `linux-render-photography-browser` job 使用 Ubuntu 24.04、Node 22.23.3，复用固定运行时安装
+和软件图形准备。整个 job 的超时为 20 分钟，以下两个步骤按表中顺序串行执行，每步超时为 5 分钟：
+
+| 测试入口 | 检查范围 |
+| --- | --- |
+| `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
+| `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
+
+已有真实渲染 job 在本轮实测约 15 分钟，因此把这两个入口放入独立 job，给原任务保留超时余量。
+拆分会增加 runner 总耗时；20 分钟和 5 分钟是超时上限，不是新 job 或步骤的预计耗时。
+
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
-完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
+完整长序列交付、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
+新增渲染选择测试会实际编码两个小交付，共三帧：preview 为 160×120、4 samples，final 为
+240×180、12 samples。这能检查小交付的编码和来源记录，仍不覆盖长序列中断、续渲与恢复。
 完整验收仍通过 `bash deepblend/tests/run-all.sh` 运行。
 
 ## 时间预算
@@ -35,7 +49,7 @@ Linux 渲染与浏览器 job 的总预算为 30 分钟，资源包矩阵步骤�
 2026-10-04，同一 Git tree 的 [PR 运行](https://github.com/pearjelly/deep-blend/actions/runs/37211321750/job/111462949847)
 中，矩阵用时 4 分钟、job 用时 15 分 11 秒；[合并后运行](https://github.com/pearjelly/deep-blend/actions/runs/37212794245/job/111467189581)
 的矩阵在 5 分 7 秒时被 Actions 判为超过原 5 分钟上限；归档显示末尾原生检查仍在继续，约 5 分 21 秒才写出全部通过的矩阵报告，job 共用时 19 分 39 秒。
-此次只增加调度时间余量，保留全部测试、断言与产物；新预算仍需由实际 Actions 运行验证。
+此次只增加调度时间余量，保留全部测试、断言与产物。新预算已在 [PR #11 的实际运行](https://github.com/pearjelly/deep-blend/actions/runs/37215288660) 通过：资源包矩阵用时 5 分 16 秒，job 用时 19 分 19 秒，均正常完成；单元与干净克隆检查也通过。
 
 ## 固定安装与缓存
 
@@ -51,6 +65,10 @@ Chrome URL 来自[官方版本元数据](https://googlechromelabs.github.io/chro
 实际版本后一起发布两个运行时路径。损坏的缓存会明确失败；删除对应 Actions 缓存后重跑。
 不会缓存个人 profile、项目或工作区链接。`npm run ci:runtimes:check` 只读核验归档、
 安装时记录的可执行文件摘要及实际版本；不会下载、解压或更新安装。
+
+`linux-render-photography-browser` 另通过 Ubuntu apt 显式安装 `ffmpeg`（包含 `ffprobe`），保留
+`ffmpeg-install.log`、`ffmpeg-version.log` 和 `ffprobe-version.log`，记录安装过程及两个可执行文件的实际版本。编码器来自 Ubuntu 软件包，不属于
+`ci-runtime-pins.json` 固定的 Blender/Chrome 归档；排查编码差异时须同时核对该次日志中的版本。
 
 ## 软件图形与浏览器
 
@@ -83,6 +101,15 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `environment.log` / `environment/`：实际 HDR/EXR 环境图、旋转/关闭照明对照、保存与打包重开 checkpoint。
 - `procedural-uv.log` / `procedural-uv/`：公开参数生成的对象与 UV 对照图、具不同 UV 层的实际选图、重开 checkpoint 和断言回执。
 - `runtime-conformance.log` / `runtime-conformance/`：打包身份、公开检查报告、实际 checkpoint/PNG、独立重开与参考图片、取消/补渲回执及失败日志。
+
+新增 job 的证据单独上传为 `linux-render-photography-<run-id>-<attempt>` artifact。
+上传步骤使用 `always()`，成功或失败都收集已有文件，并包含隐藏文件。两项测试通过
+`DEEPBLEND_E2E_ARTIFACTS` 分别写入以下目录；对应日志位于相同父目录，使用同名前缀：
+
+- `${{ runner.temp }}/deepblend-ci/render-selection-browser/` 与 `render-selection-browser.log`：浏览器请求、实际任务/计划/Blender 结果、PNG/MP4/清单、截图及取消与停机记录。
+- `${{ runner.temp }}/deepblend-ci/photography-browser/` 与 `photography-browser.log`：摄影请求和回执、前后图片、独立重开结果、固定像素对照、截图及停机结果。
+
+该 artifact 也保留运行时安装、软件图形和 FFmpeg/ffprobe 实际版本日志。
 
 以该次运行的 commit 和 `runtimes.json` 为准。不能用本机旧截图证明 Linux CI 通过。
 依赖或图形准备失败时，渲染步骤不会冒称成功；日志仍可下载。

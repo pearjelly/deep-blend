@@ -24,6 +24,11 @@ export const DEFAULT_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Go
 
 /** How long to wait for Chrome's debugging endpoint to answer. */
 const LAUNCH_TIMEOUT_MS = 20000
+const COMMAND_TIMEOUT_MS = 30000
+
+function cdpError(code, message, detail = {}) {
+  return Object.assign(new Error(message), { code, ...detail })
+}
 
 /**
  * Find a TCP port nobody is listening on.
@@ -64,8 +69,9 @@ export class BrowserPage {
   /**
    * @param {string} webSocketDebuggerUrl
    * @param {() => void} [onConsole]
+   * @param {{ commandTimeoutMs?: number, connectTimeoutMs?: number, closeTimeoutMs?: number }} [options]
    */
-  constructor(webSocketDebuggerUrl, onConsole) {
+  constructor(webSocketDebuggerUrl, onConsole, options = {}) {
     this._url = webSocketDebuggerUrl
     this._nextId = 1
     this._pending = new Map()
@@ -73,19 +79,73 @@ export class BrowserPage {
     this.consoleLog = []
     this._onConsole = onConsole
     this._socket = null
+    this._eventWaiters = new Set()
+    this._connectionError = null
+    this._closePromise = null
+    this._timeouts = { command: options.commandTimeoutMs ?? COMMAND_TIMEOUT_MS,
+      connect: options.connectTimeoutMs ?? 10000, close: options.closeTimeoutMs ?? 2000 }
+    for (const value of Object.values(this._timeouts)) {
+      if (!Number.isSafeInteger(value) || value <= 0 || value > 2147483647) throw new Error('CDP timeouts must be positive timer-safe integers')
+    }
   }
 
   /** Open the DevTools socket and enable the domains this driver uses. */
   async connect() {
+    if (this._socket) throw new Error('This DevTools page has already connected')
     this._socket = new WebSocket(this._url)
-    await new Promise((resolve, reject) => {
-      this._socket.addEventListener('open', () => resolve(undefined), { once: true })
-      this._socket.addEventListener('error', (event) => reject(new Error(`devtools socket failed: ${String(event?.message ?? event)}`)), { once: true })
-    })
     this._socket.addEventListener('message', (event) => this._receive(event.data))
-    await this.send('Runtime.enable')
-    await this.send('Page.enable')
-    return this
+    this._socket.addEventListener('error', (event) => this._failConnection(cdpError('CDP_SOCKET_ERROR',
+      `devtools socket failed: ${String(event?.message || event?.error?.message || 'WebSocket error')}`)))
+    this._socket.addEventListener('close', (event) => this._failConnection(cdpError('CDP_SOCKET_CLOSED',
+      `devtools socket closed (code ${event.code ?? 'unknown'}${event.reason ? `, ${event.reason}` : ''})`)))
+    try {
+      await new Promise((resolve, reject) => {
+        const finish = error => {
+          clearTimeout(timer)
+          this._socket.removeEventListener('open', opened)
+          this._socket.removeEventListener('error', failed)
+          this._socket.removeEventListener('close', failed)
+          if (error) reject(error); else resolve(undefined)
+        }
+        const opened = () => finish()
+        const failed = () => finish(this._connectionError)
+        const timer = setTimeout(() => finish(cdpError('CDP_CONNECT_TIMEOUT',
+          `devtools connection timed out after ${this._timeouts.connect}ms`, { timeoutMs: this._timeouts.connect })), this._timeouts.connect)
+        this._socket.addEventListener('open', opened)
+        this._socket.addEventListener('error', failed)
+        this._socket.addEventListener('close', failed)
+      })
+      await this.send('Runtime.enable')
+      await this.send('Page.enable')
+      return this
+    } catch (error) {
+      this._failConnection(error)
+      try { this._socket.close() } catch { /* retain the original connection failure */ }
+      throw error
+    }
+  }
+
+  /** Reject every outstanding command/event when the transport can no longer answer. */
+  _failConnection(error) {
+    this._connectionError ??= error
+    for (const entry of [...this._pending.values()]) entry.reject(cdpError(this._connectionError.code,
+      `${entry.method}: ${this._connectionError.message}`, { method: entry.method, cause: this._connectionError }))
+    for (const waiter of [...this._eventWaiters]) waiter.reject(this._connectionError)
+  }
+
+  /** Subscribe before dispatching the command that may immediately emit this event. */
+  _waitForEvent(method) {
+    let cancel
+    const promise = new Promise((resolve, reject) => {
+      const cleanup = () => { clearTimeout(timer); this._eventWaiters.delete(waiter) }
+      const waiter = { method, resolve: value => { cleanup(); resolve(value) }, reject: error => { cleanup(); reject(error) } }
+      const timer = setTimeout(() => waiter.reject(cdpError('CDP_EVENT_TIMEOUT',
+        `${method} was not received within ${this._timeouts.command}ms`, { method, timeoutMs: this._timeouts.command })), this._timeouts.command)
+      cancel = cleanup
+      this._eventWaiters.add(waiter)
+      if (this._connectionError) waiter.reject(this._connectionError)
+    })
+    return { promise, cancel: () => cancel() }
   }
 
   /** @param {string} raw */
@@ -99,10 +159,13 @@ export class BrowserPage {
     if (message.id !== undefined) {
       const entry = this._pending.get(message.id)
       if (entry === undefined) return
-      this._pending.delete(message.id)
-      if (message.error !== undefined) entry.reject(new Error(`${entry.method}: ${message.error.message}`))
+      if (message.error !== undefined) entry.reject(cdpError('CDP_PROTOCOL_ERROR', `${entry.method}: ${message.error.message}`,
+        { method: entry.method, protocolError: message.error }))
       else entry.resolve(message.result)
       return
+    }
+    for (const waiter of [...this._eventWaiters]) {
+      if (message.method === waiter.method) waiter.resolve(message.params)
     }
     if (message.method === 'Runtime.consoleAPICalled') {
       const text = (message.params?.args ?? [])
@@ -124,13 +187,27 @@ export class BrowserPage {
    * Send one CDP command.
    * @param {string} method
    * @param {Record<string, unknown>} [params]
+   * @param {{ timeoutMs?: number }} [options]
    * @returns {Promise<any>}
    */
-  send(method, params = {}) {
+  send(method, params = {}, options = {}) {
+    if (this._connectionError) return Promise.reject(cdpError(this._connectionError.code,
+      `${method}: ${this._connectionError.message}`, { method, cause: this._connectionError }))
+    if (this._closePromise && method !== 'Page.close') return Promise.reject(cdpError('CDP_PAGE_CLOSED',
+      `${method}: devtools page is closing`, { method }))
+    if (!this._socket || this._socket.readyState !== WebSocket.OPEN) return Promise.reject(cdpError('CDP_NOT_CONNECTED',
+      `${method}: devtools socket is not open`, { method }))
     const id = this._nextId++
+    const timeoutMs = options.timeoutMs ?? this._timeouts.command
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2147483647) return Promise.reject(new Error('Invalid CDP command timeout'))
     return new Promise((resolve, reject) => {
-      this._pending.set(id, { resolve, reject, method })
-      this._socket.send(JSON.stringify({ id, method, params }))
+      const cleanup = () => { clearTimeout(timer); this._pending.delete(id) }
+      const entry = { method, resolve: value => { cleanup(); resolve(value) }, reject: error => { cleanup(); reject(error) } }
+      const timer = setTimeout(() => entry.reject(cdpError('CDP_COMMAND_TIMEOUT',
+        `${method} (command ${id}) timed out after ${timeoutMs}ms; the command was not retried`, { method, commandId: id, timeoutMs })), timeoutMs)
+      this._pending.set(id, entry)
+      try { this._socket.send(JSON.stringify({ id, method, params })) }
+      catch (error) { entry.reject(cdpError('CDP_SEND_FAILED', `${method}: ${error.message || error}`, { method, commandId: id, cause: error })) }
     })
   }
 
@@ -174,24 +251,14 @@ export class BrowserPage {
 
   /** Navigate and wait for the load event. @param {string} url */
   async goto(url) {
-    const loaded = new Promise((resolve) => {
-      const listener = (event) => {
-        let message
-        try {
-          message = JSON.parse(String(event.data))
-        } catch {
-          return
-        }
-        if (message.method === 'Page.loadEventFired') {
-          this._socket.removeEventListener('message', listener)
-          resolve(undefined)
-        }
-      }
-      this._socket.addEventListener('message', listener)
-    })
-    await this.send('Page.navigate', { url })
-    await loaded
-    return this
+    const loaded = this._waitForEvent('Page.loadEventFired')
+    try {
+      const navigated = this.send('Page.navigate', { url }).then(result => {
+        if (result.errorText) throw new Error(`Page.navigate failed: ${result.errorText}`)
+      })
+      await Promise.all([navigated, loaded.promise])
+      return this
+    } finally { loaded.cancel() }
   }
 
   /** Reload the current page and wait for load. */
@@ -217,6 +284,9 @@ export class BrowserPage {
         last = await this.evaluate(expression)
         if (last) return last
       } catch (error) {
+        // A lost CDP response is a transport failure, not a false DOM predicate.
+        // Preserve it immediately so the caller can record evidence and close.
+        if (error.code?.startsWith('CDP_') && error.code !== 'CDP_PROTOCOL_ERROR') throw error
         last = String(error)
       }
       if (Date.now() > deadline) throw new Error(`waitFor timed out after ${timeoutMs}ms: ${expression} (last: ${JSON.stringify(last)})`)
@@ -312,17 +382,17 @@ export class BrowserPage {
   }
 
   /** Close this page. */
-  async close() {
-    try {
-      await this.send('Page.close')
-    } catch {
-      // Closing the target tears the socket down; that is the expected outcome.
-    }
-    try {
-      this._socket?.close()
-    } catch {
-      // already gone
-    }
+  close() {
+    if (this._closePromise) return this._closePromise
+    this._closePromise = (async () => {
+      try { await this.send('Page.close', {}, { timeoutMs: this._timeouts.close }) }
+      catch { /* Closing the target may tear down its socket before it answers. */ }
+      finally {
+        this._failConnection(cdpError('CDP_PAGE_CLOSED', 'devtools page was closed'))
+        try { this._socket?.close() } catch { /* already gone */ }
+      }
+    })()
+    return this._closePromise
   }
 }
 
@@ -401,15 +471,15 @@ export class Browser {
   /**
    * Open a new page and connect to it.
    * @param {string} [url]
-   * @param {{ onConsole?: (type: string, text: string) => void }} [options]
+   * @param {{ onConsole?: (type: string, text: string) => void, commandTimeoutMs?: number, connectTimeoutMs?: number, closeTimeoutMs?: number }} [options]
    * @returns {Promise<BrowserPage>}
    */
   async newPage(url = 'about:blank', options = {}) {
     // `/json/new` is a PUT resource in current Chrome; GET is refused with 405.
-    const response = await fetch(`http://127.0.0.1:${this.port}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })
+    const response = await fetch(`http://127.0.0.1:${this.port}/json/new?${encodeURIComponent(url)}`, { method: 'PUT', signal: AbortSignal.timeout(options.connectTimeoutMs ?? 10000) })
     if (!response.ok) throw new Error(`could not open a page: HTTP ${response.status}`)
     const target = await response.json()
-    const page = new BrowserPage(target.webSocketDebuggerUrl, options.onConsole)
+    const page = new BrowserPage(target.webSocketDebuggerUrl, options.onConsole, options)
     await page.connect()
     this.pages.push(page)
     return page
@@ -417,7 +487,7 @@ export class Browser {
 
   /** Kill Chrome and remove its profile directory. */
   async close() {
-    for (const page of this.pages) await page.close()
+    await Promise.allSettled(this.pages.map(page => page.close()))
     this.child.kill('SIGKILL')
     await sleep(200)
     try {
