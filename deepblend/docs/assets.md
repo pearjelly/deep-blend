@@ -248,3 +248,13 @@ ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高
 本地来源目前仍可指定进程能读取的文件，尚未限制为授权素材目录。目标路径检查不等于
 来源授权。同机宿主进程通过项目写锁协调素材清单发布；下载和复制在锁外进行。
 遇到 REVISION_CONFLICT 可在当前写入结束后重试，暂存文件会清理。详见[修订并发](revision-concurrency.md)。
+
+## 显式图片材质与环境的资源预算
+
+图片材质和环境使用的 PNG、JPEG、HDR、普通 EXR，在原生解码前读取实际头部。每边最多 8192 像素，头部读取最多 1 MiB；EXR 最多 256 部分、64 通道，包含显示窗口、预览元数据和 mipmap/ripmap 层级检查。无法用二维尺寸约束的 deep EXR 会被明确拒绝。
+
+每文件的全部部分，以及一次场景编译中显式图片绑定的累计保守像素估算，分别限制为 1 GiB。估算按至少四个 32 位通道计算，EXR 多通道及完整层级另外计入。同一源同时用于颜色和数据会创建独立图片，分别计费；缓存不合并预算。这个检查发生在清空场景之前；加载后仍复核实际尺寸，失败时移除新图片。
+
+格式依据：[PNG IHDR](https://www.w3.org/TR/png-3/#11IHDR)、[JPEG T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf)、[Radiance 格式资料](https://www.radiance-online.org/learning/documentation/references.html)和 [OpenEXR 文件布局](https://openexr.com/en/latest/OpenEXRFileLayout.html)。奇数尺寸层级按声明的向上/向下取整逐层计算。
+
+这些是显式图片通道的像素估算，不能当作进程峰值内存或全部模型贴图的限制。模型内嵌/外部贴图的全面解码前预检和跨 Host 全局预算仍在改进。

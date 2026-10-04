@@ -187,6 +187,18 @@ jobs:
         env:
           DEEPBLEND_PROCEDURAL_UV_OUTPUT: ${{ runner.temp }}/deepblend-ci/procedural-uv
         run: env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py > "$DEEPBLEND_CI_EVIDENCE/procedural-uv.log" 2>&1
+      - name: Real image materials and pre-decode budget refusals
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_PBR_OUTPUT: ${{ runner.temp }}/deepblend-ci/image-materials
+        run: env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/image-materials.py > "$DEEPBLEND_CI_EVIDENCE/image-materials.log" 2>&1
+      - name: Real HDR and EXR environment lighting
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_ENV_OUTPUT: ${{ runner.temp }}/deepblend-ci/environment
+        run: env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/environment.py > "$DEEPBLEND_CI_EVIDENCE/environment.log" 2>&1
       - name: Real procedural surface editor in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5
