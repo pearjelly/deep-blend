@@ -324,10 +324,11 @@ async function runTool(ctx, spec) {
   let rangeFailure = null
   let processGone = null
   try {
-    // `done` reaps the command; `waitForExit` observes the provider's whole
-    // managed range. Keep both promises observed even if either rejects.
-    const [direct, range] = await Promise.allSettled([
-      handle.done,
+    // Reap the direct command before observing the managed range. An early
+    // range query can race a provider's scope establishment. A rejected command
+    // still needs range cleanup, and the same deadline covers both observations.
+    const [direct] = await Promise.allSettled([handle.done])
+    const [range] = await Promise.allSettled([
       typeof handle.waitForExit === 'function'
         ? Promise.resolve().then(() => handle.waitForExit())
         : Promise.resolve(null),

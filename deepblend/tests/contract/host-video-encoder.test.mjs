@@ -357,6 +357,8 @@ for (const kind of ['encode', 'probe']) {
     } }
   } })), { signal: controller.signal, timeoutMs: 1000 }).then(value => { settled = true; return value }, cause => { settled = true; return cause })
   await started.promise
+  await nextTurn()
+  check(`${kind}: range observation starts only after the direct command settles`, waits === 0 && !settled)
   controller.abort(new Error('cancel active delivery'))
   await nextTurn()
   check(`${kind}: external cancellation reaches the running process without returning before exit`, specification.signal.aborted && !settled)

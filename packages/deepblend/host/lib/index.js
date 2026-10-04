@@ -3561,6 +3561,53 @@ export default class BlenderStudio extends Service {
   async cancelJob(request) {
     const projectId = request?.projectId
     const jobId = request?.jobId
+    const delivery = this._deliveriesInFlight.get(`${projectId}/${jobId}`)
+    if (delivery !== undefined) {
+      const reason = request?.reason ?? 'cancelled by a caller'
+      const live = this._liveRenders.get(`${projectId}/${jobId}`)
+      let timer
+      const deadline = new Promise(resolveWait => { timer = setTimeout(() => resolveWait(false), 15_000) })
+      try {
+        if (live !== undefined) { live.cancelled = true; live.cancelReason = reason }
+        // Signalling must not depend on a successful disk write. This deadline
+        // limits only the caller's wait; the original operation keeps observing
+        // the command and managed range, including a late real exit.
+        delivery.controller.abort(reason)
+        let recordingError = null
+        try {
+          const current = this.renderJobs.read(projectId, jobId)
+          if (current.delivery?.status === 'encoding') {
+            this.renderJobs.write({
+              ...current,
+              status: current.status === 'completed' ? 'completed' : 'stopping',
+              delivery: { ...current.delivery, cancelRequestedAt: Date.now(), cancelReason: reason },
+              ...(current.status === 'completed' ? {} : { message: `cancellation requested: ${reason}; waiting for delivery process exit` }),
+            }, { previous: current })
+          }
+        } catch (cause) {
+          recordingError = String(cause)
+          this.ctx.logger?.warn(`${LOG_SCOPE}: delivery ${jobId} could not record cancellation request: ${recordingError}`)
+        }
+        const settled = await Promise.race([
+          Promise.all([delivery.done, live?.lifecycleDone]).then(() => true),
+          deadline,
+        ])
+        // A timeout is uncertainty about this response, not a permanent failed
+        // cleanup result on `delivery`. Keep its guards and late cleanup intact.
+        const processGone = settled && delivery.processGone
+        const current = this.renderJobs.read(projectId, jobId)
+        return {
+          jobId, kind: 'render-job', status: current.status,
+          cancelled: processGone && current.delivery?.status === 'cancelled', reason,
+          process: { attempted: true, via: 'delivery-signal', gone: processGone }, processGone,
+          completedFrames: current.completedFrames?.length ?? 0,
+          ...(recordingError === null ? {} : { recordingError }),
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+
     const renderRecord = projectId !== undefined && jobId !== undefined
       ? this.renderJobs.readSafe(projectId, jobId)
       : null
@@ -3575,23 +3622,6 @@ export default class BlenderStudio extends Service {
         cancelled: false,
         reason: `an M1 attempt log has no cancellable process; job is already ${record.status}`,
         processGone: true,
-      }
-    }
-
-    const delivery = this._deliveriesInFlight.get(`${projectId}/${jobId}`)
-    if (delivery !== undefined) {
-      const reason = request?.reason ?? 'cancelled by a caller'
-      const live = this._liveRenders.get(`${projectId}/${jobId}`)
-      if (live !== undefined) { live.cancelled = true; live.cancelReason = reason }
-      delivery.controller.abort(reason)
-      await delivery.done
-      await live?.lifecycleDone
-      const current = this.renderJobs.read(projectId, jobId)
-      return {
-        jobId, kind: 'render-job', status: current.status,
-        cancelled: delivery.processGone && current.delivery?.status === 'cancelled', reason,
-        process: { attempted: true, via: 'delivery-signal', gone: delivery.processGone }, processGone: delivery.processGone,
-        completedFrames: current.completedFrames?.length ?? 0,
       }
     }
 

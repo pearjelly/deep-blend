@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import LocalBlenderRuntime from '@deepblend/dsh-blender-provider-local'
-import { BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const defer = () => { let resolve; const promise = new Promise(r => { resolve = r }); return { promise, resolve } }
@@ -21,7 +21,8 @@ async function fixture(t, options = {}) {
   const workspaceRoot = realpathSync(mkdtempSync(join(tmpdir(), 'deepblend-complete-delivery-')))
   const calls = []
   const started = { encode: defer(), probe: defer() }
-  const release = { encode: defer(), probe: defer() }
+  const release = { encode: defer(), probe: defer(), range: defer() }
+  const rangeStarted = defer()
   const requests = {}
   const ctx = new Context()
   ctx.provide('blenderRuntime', {
@@ -46,7 +47,11 @@ async function fixture(t, options = {}) {
       const done = options.hold === phase && calls.filter(call => call === phase).length === 1 ? release[phase].promise : Promise.resolve({ exitCode: options.failure === phase ? 1 : 0, signal: null })
       return {
         done,
-        async waitForExit() { await done; return options.rangeFailure !== true },
+        async waitForExit() {
+          await done
+          if (options.rangeHold === phase && calls.filter(call => call === phase).length === 1) { rangeStarted.resolve(); await release.range.promise }
+          return options.rangeFailure !== true
+        },
         terminate() { release[phase].resolve({ exitCode: null, signal: 'SIGTERM' }) },
         collected: {
           stdout: { readFrom: () => ({ text: phase === 'probe' ? JSON.stringify({ streams: [{ codec_name: 'h264', width: options.wrongSize ? 128 : 256, height: 256, avg_frame_rate: '30/1', nb_read_frames: '2' }], format: { duration: '0.066667' } }) : '' }) },
@@ -74,12 +79,13 @@ async function fixture(t, options = {}) {
   const request = { projectId, jobId }
   const read = () => studio.renderJobs.read(projectId, jobId)
   t.after(async () => {
+    t.mock.timers.reset()
     for (const item of Object.values(release)) item.resolve({ exitCode: 0, signal: null })
     await pause()
     await pause()
     rmSync(workspaceRoot, { recursive: true, force: true })
   })
-  return { studio, calls, request, read, output, scratch, frames, started, release, requests, workspaceRoot }
+  return { studio, calls, request, read, output, scratch, frames, started, release, requests, workspaceRoot, rangeStarted }
 }
 
 for (const status of ['failed', 'cancelled', 'recovering', 'queued']) {
@@ -389,7 +395,7 @@ test('a projection bookkeeping write failure settles the new delivery registrati
 })
 
 
-test('cancelling a completed project export never cancels or waits for another project with the same job id', async t => {
+for (const bounded of [false, true]) test(`cancelling a completed project export isolates another project with the same job id (bounded=${bounded})`, async t => {
   const renderer = defer()
   let rendererRequest, rendererTerminations = 0
   const w = await fixture(t, { status: 'completed', hold: 'encode', runtime: {
@@ -415,12 +421,22 @@ test('cancelling a completed project export never cancels or waits for another p
   await w.studio.resumeRenderJob(other)
   assert.deepEqual(rendererRequest.frames, [2])
   const otherBefore = w.studio.renderJobs.read(other.projectId, other.jobId)
+  if (bounded) t.mock.timers.enable({ apis: ['setTimeout'] })
   const exported = w.studio.exportProject(w.request).then(value => ({ value }), error => ({ error }))
   await w.started.encode.promise
   let cancellationFinished = false
   const cancellation = w.studio.cancelJob(w.request).then(result => { cancellationFinished = true; return result })
   await pause()
   assert.equal(w.requests.encode.signal.aborted, true)
+  if (bounded) {
+    const result = await responseAtDeadline(t, cancellation, () => cancellationFinished)
+    assert.equal(result.cancelled, false)
+    assert.equal(result.processGone, false)
+    assert.equal(w.studio._deliveriesInFlight.size, 1)
+    assert.equal(w.studio._liveRenders.has(`${other.projectId}/${other.jobId}`), true)
+    assert.deepEqual(w.studio.renderJobs.read(other.projectId, other.jobId), otherBefore)
+    t.mock.timers.reset()
+  }
   w.release.encode.resolve({ exitCode: null, signal: 'SIGTERM' })
   await exported
   // The unrelated renderer is deliberately still unresolved. Record whether A
@@ -436,8 +452,8 @@ test('cancelling a completed project export never cancels or waits for another p
   assert.deepEqual({ finishedBeforeOtherRenderer, otherStatus: otherAfter.status, rendererTerminations },
     { finishedBeforeOtherRenderer: true, otherStatus: 'completed', rendererTerminations: 0 })
   assert.deepEqual(otherDuring, otherBefore, 'cancelling A must not rewrite B while B is running')
-  assert.equal(cancelled.cancelled, true)
-  assert.equal(cancelled.processGone, true)
+  assert.equal(cancelled.cancelled, !bounded)
+  assert.equal(cancelled.processGone, !bounded)
   assert.equal((await exported).error?.code, BlenderErrorCode.ABORTED)
   assert.equal(readFileSync(join(w.output, 'final.mp4'), 'utf8'), 'old video')
   assert.equal(readFileSync(join(w.output, 'delivery-manifest.json'), 'utf8'), 'old manifest')
@@ -528,5 +544,224 @@ test('a failed re-encode cannot probe or publish an earlier encoded file', async
   assert.equal(w.read().errorCode, BlenderErrorCode.ENCODE_FAILED)
   assert.equal(readFileSync(join(w.output, 'final.mp4'), 'utf8'), 'old video')
   assert.equal(readFileSync(join(w.output, 'delivery-manifest.json'), 'utf8'), 'old manifest')
+  assert.equal(w.studio._deliveriesInFlight.size, 0)
+})
+
+
+// Advance only the response clock. The fake managed command and its range stay
+// unresolved until explicitly released, so a timer cannot masquerade as exit.
+async function responseAtDeadline(t, cancellation, isSettled) {
+  t.mock.timers.tick(14_999)
+  await pause()
+  assert.equal(isSettled(), false, 'the response keeps the existing 15-second observation budget')
+  t.mock.timers.tick(1)
+  await pause()
+  assert.equal(isSettled(), true, 'cancel responds after 15 seconds even when the process has not exited')
+  return cancellation
+}
+
+for (const phase of ['encode', 'probe']) for (const pending of ['command', 'range']) {
+  test(`bounded ${phase} cancellation with pending ${pending} retains guards until real late exit`, async t => {
+    const w = await fixture(t, { hold: pending === 'command' ? phase : undefined,
+      rangeHold: pending === 'range' ? phase : undefined, scratch: true })
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    await w.studio.resumeRenderJob(w.request)
+    await w.started[phase].promise
+    if (pending === 'range') await w.rangeStarted.promise
+    const key = `${w.request.projectId}/${w.request.jobId}`
+    const operation = w.studio._deliveriesInFlight.get(key)
+    let settled = false
+    const cancellation = w.studio.cancelJob({ ...w.request, reason: 'controlled bounded cancel' })
+      .then(result => { settled = true; return result })
+    await pause()
+    const result = await responseAtDeadline(t, cancellation, () => settled)
+    assert.equal(result.processGone, false)
+    assert.equal(result.cancelled, false)
+    assert.equal(w.requests[phase].signal.aborted, true)
+    assert.equal(w.read().status, 'stopping')
+    assert.equal(w.read().delivery.cancelReason, 'controlled bounded cancel')
+    assert.equal(typeof w.read().delivery.cancelRequestedAt, 'number')
+    assert.equal(w.read().cancelledAt, null, 'a request is not a confirmed cancellation')
+    assert.equal(w.studio._deliveriesInFlight.get(key), operation)
+    assert.equal(operation.processGone, true, 'response uncertainty must not poison the late exit result')
+    assert.equal(w.studio._liveRenders.has(key), true)
+    await assert.rejects(w.studio.exportProject(w.request), { code: BlenderErrorCode.EXPORT_IN_PROGRESS })
+    await assert.rejects(w.studio.resumeRenderJob(w.request), { code: BlenderErrorCode.RENDER_JOB_CONFLICT })
+    assert.deepEqual(w.calls, phase === 'encode' ? ['encode'] : ['encode', 'probe'])
+    assert.equal(readFileSync(join(w.output, 'final.mp4'), 'utf8'), 'old video')
+    assert.equal(readFileSync(join(w.output, 'delivery-manifest.json'), 'utf8'), 'old manifest')
+    t.mock.timers.reset()
+    w.release[phase].resolve({ exitCode: null, signal: 'SIGTERM' })
+    w.release.range.resolve(true)
+    await waitFor(() => !w.studio._liveRenders.has(key))
+    assert.equal(w.read().status, 'cancelled')
+    assert.equal(w.read().delivery.status, 'cancelled')
+    assert.equal(w.studio._deliveriesInFlight.has(key), false)
+    assert.equal(existsSync(w.scratch), true)
+    await w.studio.resumeRenderJob(w.request)
+    await waitFor(() => !w.studio._liveRenders.has(key))
+    assert.equal(w.read().status, 'completed')
+    assert.equal(w.read().delivery.attempt, 4)
+  })
+}
+
+test('timed-out completed re-export preserves publication and completed status through late exit and retry', async t => {
+  const w = await fixture(t, { status: 'completed', hold: 'probe' })
+  const previous = w.read()
+  w.studio.renderJobs.write({ ...previous, finishedAt: 12345, outputManifest: '/original/published-manifest.json' }, { previous })
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const exported = w.studio.exportProject(w.request)
+  const rejection = assert.rejects(exported, { code: BlenderErrorCode.ABORTED })
+  await w.started.probe.promise
+  let settled = false
+  const cancellation = w.studio.cancelJob(w.request).then(result => { settled = true; return result })
+  const result = await responseAtDeadline(t, cancellation, () => settled)
+  assert.equal(result.cancelled, false)
+  assert.equal(result.processGone, false)
+  assert.equal(w.read().status, 'completed')
+  assert.equal(w.read().finishedAt, 12345)
+  assert.equal(result.recordingError, undefined)
+  assert.equal(typeof w.read().delivery.cancelRequestedAt, 'number')
+  assert.equal(w.read().outputManifest, '/original/published-manifest.json')
+  assert.equal(w.studio._deliveriesInFlight.size, 1)
+  await assert.rejects(w.studio.exportProject(w.request), { code: BlenderErrorCode.EXPORT_IN_PROGRESS })
+  assert.equal(readFileSync(join(w.output, 'final.mp4'), 'utf8'), 'old video')
+  assert.equal(readFileSync(join(w.output, 'delivery-manifest.json'), 'utf8'), 'old manifest')
+  t.mock.timers.reset()
+  w.release.probe.resolve({ exitCode: null, signal: 'SIGTERM' })
+  await rejection
+  assert.equal(w.read().status, 'completed')
+  assert.equal(w.read().outputManifest, '/original/published-manifest.json')
+  assert.equal(w.studio._deliveriesInFlight.size, 0)
+  assert.equal(readFileSync(join(w.output, 'final.mp4'), 'utf8'), 'old video')
+  assert.equal(readFileSync(join(w.output, 'delivery-manifest.json'), 'utf8'), 'old manifest')
+  assert.equal((await w.studio.exportProject(w.request)).verified, true)
+})
+
+test('a failed cancellation-request write still aborts, responds truthfully, and permits late cleanup', async t => {
+  const w = await fixture(t, { hold: 'encode' })
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  await w.studio.resumeRenderJob(w.request)
+  await w.started.encode.promise
+  const write = w.studio.renderJobs.write.bind(w.studio.renderJobs)
+  let writeFailures = 0
+  w.studio.renderJobs.write = (record, options) => {
+    if (record.status === 'stopping') { writeFailures++; throw Object.assign(Error('controlled cancellation EIO'), { code: 'EIO' }) }
+    return write(record, options)
+  }
+  let settled = false
+  const cancellation = w.studio.cancelJob(w.request).then(result => { settled = true; return result })
+  await pause()
+  assert.equal(w.requests.encode.signal.aborted, true, 'disk failure must not prevent cancellation delivery')
+  const result = await responseAtDeadline(t, cancellation, () => settled)
+  assert.equal(writeFailures, 1)
+  assert.match(result.recordingError, /controlled cancellation EIO/)
+  assert.equal(result.cancelled, false)
+  assert.equal(result.processGone, false)
+  assert.equal(w.studio._deliveriesInFlight.size, 1)
+  assert.equal(w.studio._liveRenders.size, 1)
+  assert.equal(w.read().status, 'running', 'the response must not claim the failed write persisted')
+  t.mock.timers.reset()
+  w.release.encode.resolve({ exitCode: null, signal: 'SIGTERM' })
+  await waitFor(() => w.studio._liveRenders.size === 0)
+  assert.equal(w.read().status, 'cancelled')
+  assert.equal(w.studio._deliveriesInFlight.size, 0)
+})
+
+
+test('delivery and late lifecycle cleanup share one cancellation response deadline', async t => {
+  const w = await fixture(t, { hold: 'encode' })
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  await w.studio.resumeRenderJob(w.request)
+  await w.started.encode.promise
+  const live = w.studio._liveRenders.get(`${w.request.projectId}/${w.request.jobId}`)
+  const actualLifecycle = live.lifecycleDone
+  const cleanup = defer()
+  live.lifecycleDone = actualLifecycle.then(() => cleanup.promise)
+  t.after(() => cleanup.resolve())
+  let settled = false
+  const cancellation = w.studio.cancelJob(w.request).then(result => { settled = true; return result })
+  t.mock.timers.tick(12_000)
+  w.release.encode.resolve({ exitCode: null, signal: 'SIGTERM' })
+  await actualLifecycle
+  t.mock.timers.tick(2_999)
+  await pause()
+  assert.equal(settled, false)
+  t.mock.timers.tick(1)
+  await pause()
+  assert.equal(settled, true, 'cleanup does not receive another 15-second budget')
+  const result = await cancellation
+  assert.equal(result.cancelled, false)
+  assert.equal(result.processGone, false)
+  assert.equal(w.read().status, 'cancelled', 'the bounded response must not overwrite a later settled record')
+  cleanup.resolve()
+})
+
+
+test('a settled delivery cancellation clears the response timer created before abort', async t => {
+  const w = await fixture(t, { hold: 'encode' })
+  await w.studio.resumeRenderJob(w.request)
+  await w.started.encode.promise
+  const originalSet = globalThis.setTimeout
+  const originalClear = globalThis.clearTimeout
+  const timers = new Set(), cleared = new Set()
+  t.after(() => { for (const timer of timers) originalClear(timer) })
+  t.mock.method(globalThis, 'setTimeout', (callback, ms, ...args) => {
+    const timer = originalSet(callback, ms, ...args)
+    if (ms === 15_000) timers.add(timer)
+    return timer
+  })
+  t.mock.method(globalThis, 'clearTimeout', timer => {
+    if (timers.has(timer)) cleared.add(timer)
+    return originalClear(timer)
+  })
+  let armedBeforeAbort = false
+  w.requests.encode.signal.addEventListener('abort', () => { armedBeforeAbort = timers.size === 1 }, { once: true })
+  const cancellation = w.studio.cancelJob(w.request)
+  w.release.encode.resolve({ exitCode: null, signal: 'SIGTERM' })
+  assert.equal((await cancellation).processGone, true)
+  assert.equal(armedBeforeAbort, true)
+  assert.equal(timers.size, 1)
+  assert.deepEqual(cleared, timers, 'successful cancellation must not leave a response timer active')
+})
+
+
+for (const fault of ['EIO', 'corrupt']) test(`known delivery is signalled before an unreadable job record (${fault})`, async t => {
+  const w = await fixture(t, { hold: 'encode' })
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  await w.studio.resumeRenderJob(w.request)
+  await w.started.encode.promise
+  const path = w.studio.renderJobs.recordPath(w.request.projectId, w.request.jobId)
+  const before = readFileSync(path)
+  const read = w.studio.renderJobs.read.bind(w.studio.renderJobs)
+  const readSafe = w.studio.renderJobs.readSafe.bind(w.studio.renderJobs)
+  const restore = () => { w.studio.renderJobs.read = read; w.studio.renderJobs.readSafe = readSafe; writeFileSync(path, before) }
+  t.after(() => { if (existsSync(path)) restore() })
+  if (fault === 'corrupt') writeFileSync(path, '{broken job record')
+  else {
+    const failRead = () => { throw new BlenderError(BlenderErrorCode.REVISION_CORRUPT, 'controlled unreadable job',
+      { cause: Object.assign(Error('controlled EIO'), { code: 'EIO' }) }) }
+    w.studio.renderJobs.read = failRead
+    w.studio.renderJobs.readSafe = failRead
+  }
+  const clearTimer = t.mock.method(globalThis, 'clearTimeout')
+  t.after(() => clearTimer.mock.restore())
+  let settled = false
+  const cancellation = w.studio.cancelJob(w.request).then(value => { settled = true; return { value } },
+    error => { settled = true; return { error } })
+  await pause()
+  assert.equal(w.requests.encode.signal.aborted, true, 'a known running delivery must receive abort even when its record cannot be read')
+  const result = await responseAtDeadline(t, cancellation, () => settled)
+  assert.equal(result.value, undefined, 'an unreadable final record cannot become a made-up successful result')
+  assert.equal(result.error?.code, BlenderErrorCode.REVISION_CORRUPT)
+  assert.equal(clearTimer.mock.callCount(), 1, 'the failed final record read still clears the response timer')
+  assert.equal(w.studio._deliveriesInFlight.size, 1)
+  assert.equal(w.studio._liveRenders.size, 1)
+  restore()
+  clearTimer.mock.restore()
+  t.mock.timers.reset()
+  w.release.encode.resolve({ exitCode: null, signal: 'SIGTERM' })
+  await waitFor(() => w.studio._liveRenders.size === 0)
+  assert.equal(w.read().status, 'cancelled')
   assert.equal(w.studio._deliveriesInFlight.size, 0)
 })
