@@ -67,7 +67,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `browser.log` / `browser/`：实际图片、截图、请求与结果；失败时已有材料仍保留。
 - `cup.log` / `cup/`：实际杯体 checkpoint、材质/灰模 PNG、参数及网格/法线检查。
 - `cup-browser.log` / `cup-browser/`：实际创建/编辑请求、桌面与窄屏截图、布局测量、配方锁与各修订文件。
-- `asset-bundle.log` / `asset-bundle/`：三种原生 glTF/GLB 配置、原始缓冲区/纹理、各版依赖锁、实际 checkpoint/PNG、旧修订重建与旧素材编译前拒绝的独立检查；imported-images/ 保存图片存储矩阵、正常/拒绝来源、独立重开和场景保护回执。
+- `asset-bundle.log` / `asset-bundle/`：三种原生 glTF/GLB 配置、原始缓冲区/纹理、各版依赖锁、实际 checkpoint/PNG、旧修订重建与旧素材编译前拒绝的独立检查；imported-images/ 保存图片存储矩阵与场景保护回执；imported-image-roles/ 保存颜色/数值/alpha 用途、原始编码图、原生 UV/采样/图节点对照、固定渲染、重复实例、钩子恢复及副本预算拒绝证据。
 - `image-materials.log` / `image-materials/`：实际 PBR 图片、打包 checkpoint、真实过大 PNG 与仅供头部预算验证的合成源、来源摘要和原生拒绝回执。
 - `environment.log` / `environment/`：实际 HDR/EXR 环境图、旋转/关闭照明对照、保存与打包重开 checkpoint。
 - `procedural-uv.log` / `procedural-uv/`：公开参数生成的对象与 UV 对照图、具不同 UV 层的实际选图、重开 checkpoint 和断言回执。

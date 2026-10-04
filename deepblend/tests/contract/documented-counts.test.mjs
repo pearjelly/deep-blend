@@ -169,6 +169,8 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_images.py': 'shared image material node builder, called by the scene compiler',
     'deepblend_image_headers.py': 'bounded image metadata inspection before native pixel allocation',
     'deepblend_gltf_images.py': 'bounded texture URI and buffer-view inspection before native import',
+    'deepblend_gltf_roles.py': 'declared native material image uses and baked allocation accounting',
+    'deepblend_gltf_import.py': 'scoped native glTF color/data image interpretation hooks',
     'deepblend_anisotropy.py': 'shared anisotropy direction and engine validation, called by the scene compiler',
     'deepblend_parts.py': 'imported part selectors and material bindings, called by the scene compiler',
   }

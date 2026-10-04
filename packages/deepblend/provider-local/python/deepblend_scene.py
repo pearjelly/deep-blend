@@ -410,7 +410,8 @@ def import_asset_into_scene(name, asset_path, asset_type, guard):
     before = set(bpy.data.objects)
 
     if asset_type in ("glb", "gltf"):
-        call = lambda: bpy.ops.import_scene.gltf(filepath=asset_path)  # noqa: E731
+        from deepblend_gltf_import import import_gltf
+        call = lambda: import_gltf(asset_path)  # noqa: E731
     elif asset_type == "fbx":
         call = lambda: bpy.ops.import_scene.fbx(filepath=asset_path)  # noqa: E731
     elif asset_type == "obj":

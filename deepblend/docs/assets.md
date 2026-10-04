@@ -265,6 +265,10 @@ ACEScg 等其他空间应先转换。HDR 高于 1 的数值保留，可形成高
 
 图片可来自外部文件、图片数据 URI、外部/数据 URI 缓冲区的 bufferView，或 GLB BIN 片段。检查实际 PNG、JPEG、WebP 头部，核对片段偏移、长度、类型和声明的媒体类型；每个头部最多读取 1 MiB，每边最多 8192。二进制图片只读所需头部，数据 URI 只解码对应 base64 四元组，避免先读完整缓冲区。
 
-同一模型中的相同图片索引只计一次；每个模型实例的选中图片声明作为保守上界独立计入场景 1 GiB 预算，与显式材质/环境合计，在清空场景前拒绝。外部图片可能被原生导入器共享，因而实际分配可能小于估算；估算也包含未用于默认场景的纹理声明。原生导入后检查实际可用尺寸并嵌入图片，损坏像素不能发布新修订。
+同一模型中的相同图片索引及同一 RGB 用途复用头部事实；同源颜色与数值用途分别计入独立图片估算，原生 specular/glossiness 粗糙度烘焙另计一份。仅 alpha 的线性读取可以共用已有解释，不增加 RGB 副本。每个模型实例的估算独立加入场景 1 GiB 预算，与显式材质/环境合计，在清空场景前拒绝。外部图片可能共享，因而实际分配可能小于估算；估算也包含未用于默认场景的声明。原生导入后检查实际尺寸并嵌入图片，损坏像素不能发布新修订。
+
+固定 Blender 5.2.1 的导入路径根据原生语义钩子保留颜色与 RGB 数值的独立解释，保护已存在的材质、图片索引别名及重复实例。颜色使用 sRGB，RGB 数值使用 Non-Color；同源同用途继续共享，alpha 不做 RGB 传递变换。UV、纹理变换、采样、alpha 和材质扩展仍由原生处理，原始编码图片随 checkpoint 保存。新增图片成本在上述解码前预算中明确计入。专项覆盖核心及固定版本支持的材质扩展，不能替代任意插件、未来原生接口或总体美术验收。
+
+alpha 与颜色规则见 [KHR_materials_specular](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_specular/README.md) 和 [KHR_materials_sheen](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_sheen/README.md)：强度/粗糙度使用 alpha，颜色纹理的 RGB 使用 sRGB。
 
 依据：[glTF 图片与 bufferView](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#images)、[WebP 容器](https://developers.google.com/speed/webp/docs/riff_container)、[EXT_texture_webp](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Vendor/EXT_texture_webp/README.md)。本范围不替代其他模型格式、复杂压缩扩展或跨 Host 进程配额。
