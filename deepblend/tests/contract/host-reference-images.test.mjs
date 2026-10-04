@@ -98,7 +98,7 @@ test('review sends the exact reference bytes alongside the rendered sheet and re
   assert.equal(review.referenceImages[0].data, undefined)
   assert.equal(review.reviewInputsDigest, reviewInputsDigest(studio.store.readRevisionSpec(projectId, 'r0002')))
   assert.equal(review.artistic.status, 'unassessable')
-  const persisted = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, 'r0002'), 'visual-reviews/round-0.json')))
+  const persisted = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), review.reviewArtifact.path)))
   assert.deepEqual(persisted.review.referenceImages, review.referenceImages)
   assert.equal(JSON.stringify(persisted).includes('"type":"Buffer"'), false)
 })

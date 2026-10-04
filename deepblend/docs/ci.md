@@ -23,6 +23,7 @@
 
 | `deepblend/tests/e2e/preview-history-ui.e2e.mjs` | 同机位/帧单图独立保存、实际采样/相机姿态、拼图逐视图快照与轮换、条件差异/未知、编辑匹配、滚动保持/按压中刷新、390 像素展示、旧记录只读及恢复重载 |
 | `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
+| `deepblend/tests/blender-integration/review-history.e2e.mjs` | 重复与跨进程重叠的实际评审、独立视角和图片/评分摘要、完成顺序 QA、取消前发布拒绝、场景/checkpoint 保护；模型端口仅作为受控等待屏障 |
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
