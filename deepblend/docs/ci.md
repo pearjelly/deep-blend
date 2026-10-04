@@ -29,6 +29,14 @@
 完整交付编码、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
 完整验收仍通过 `bash deepblend/tests/run-all.sh` 运行。
 
+## 时间预算
+
+Linux 渲染与浏览器 job 的总预算为 30 分钟，资源包矩阵步骤为 8 分钟。
+2026-10-04，同一 Git tree 的 [PR 运行](https://github.com/pearjelly/deep-blend/actions/runs/37211321750/job/111462949847)
+中，矩阵用时 4 分钟、job 用时 15 分 11 秒；[合并后运行](https://github.com/pearjelly/deep-blend/actions/runs/37212794245/job/111467189581)
+的矩阵在 5 分 7 秒时被 Actions 判为超过原 5 分钟上限；归档显示末尾原生检查仍在继续，约 5 分 21 秒才写出全部通过的矩阵报告，job 共用时 19 分 39 秒。
+此次只增加调度时间余量，保留全部测试、断言与产物；新预算仍需由实际 Actions 运行验证。
+
 ## 固定安装与缓存
 
 运行环境为 Ubuntu 24.04 x64、Node 22.23.3、Blender 5.2.1、Chrome for Testing
