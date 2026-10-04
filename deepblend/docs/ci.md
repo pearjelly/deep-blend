@@ -13,7 +13,7 @@
 | `deepblend/tests/e2e/inspection-ui.e2e.mjs` | 实际浏览器生成图、刷新与历史版本、草稿保护和取消 |
 | `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片、过渡参数实际几何及旧文件保护 |
 | `deepblend/tests/e2e/handled-cup-ui.e2e.mjs` | 实际画廊创建、参数与来源锁定、桌面/窄屏完整预览、毫米与无量纲过渡参数编辑与拒绝、重载及旧版本保护 |
-| `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算 |
+| `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算；OBJ 数值/法线/颜色/Alpha、实际着色器输出与既有图片用户保护 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/image-materials.py` | 六通道 PBR、色彩/UV/法线像素贡献、打包后源文件移除重开、解码前尺寸及同源累计预算拒绝、现有场景保护 |
 | `deepblend/tests/blender-integration/environment.py` | 原生 HDR/EXR 辐射值、旋转、环境照明及移除源文件后重开 |
@@ -51,6 +51,8 @@ CI 使用 Mesa、Xvfb 和 `LIBGL_ALWAYS_SOFTWARE=1`，记录实际 OpenGL render
 user namespace，只为核验后的 Chrome 确切路径安装临时 AppArmor 规则。
 Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器 profile。
 
+普通浏览器验收的临时 profile 使用独立 bundle 别名，链接到当前 checkout，避免借用其他工作区内的 DSH 时加载错误的 Host/UI。完整本地工作台验收会将 HTTP 返回的完整客户端源码与当前文件核对，并保留两侧摘要；同名、同版本不能替代来源一致。显式继承个人配置的在线测试保持原行为。
+
 ## 查看证据
 
 在 Actions 运行页面下载 `linux-inspections-<run-id>-<attempt>` artifact。
@@ -68,7 +70,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `browser.log` / `browser/`：实际图片、截图、请求与结果；失败时已有材料仍保留。
 - `cup.log` / `cup/`：实际杯体 checkpoint、材质/灰模 PNG、参数及网格/法线检查。
 - `cup-browser.log` / `cup-browser/`：实际创建/编辑请求、桌面与窄屏截图、布局测量、配方锁与各修订文件。
-- `asset-bundle.log` / `asset-bundle/`：三种原生 glTF/GLB 配置、原始缓冲区/纹理、各版依赖锁、实际 checkpoint/PNG、旧修订重建与旧素材编译前拒绝的独立检查；imported-images/ 保存图片存储矩阵与场景保护回执；obj-image-budgets/ 保存 15 种实际 OBJ 纹理的来源和保存重开、未使用/覆盖材质选择、AVIF 隐藏编码尺寸及场景保护；imported-image-roles/ 保存颜色/数值/alpha 用途、原始编码图、原生 UV/采样/图节点对照、固定渲染、重复实例、钩子恢复及副本预算拒绝证据。
+- `asset-bundle.log` / `asset-bundle/`：三种原生 glTF/GLB 配置、原始缓冲区/纹理、各版依赖锁、实际 checkpoint/PNG、旧修订重建与旧素材编译前拒绝的独立检查；imported-images/ 保存图片存储矩阵与场景保护回执；obj-image-budgets/ 保存 15 种实际 OBJ 纹理的来源和保存重开、未使用/覆盖材质选择、AVIF 隐藏编码尺寸及场景保护；obj-image-roles/ 保存 OBJ 的 15 格式颜色/数值/Alpha、原生图与 UV/法线/像素对照、着色器错误/恢复、同源已有用户及副本预算回执；imported-image-roles/ 保存颜色/数值/alpha 用途、原始编码图、原生 UV/采样/图节点对照、固定渲染、重复实例、钩子恢复及副本预算拒绝证据。
 - `image-materials.log` / `image-materials/`：实际 PBR 图片、打包 checkpoint、真实过大 PNG 与仅供头部预算验证的合成源、来源摘要和原生拒绝回执。
 - `environment.log` / `environment/`：实际 HDR/EXR 环境图、旋转/关闭照明对照、保存与打包重开 checkpoint。
 - `procedural-uv.log` / `procedural-uv/`：公开参数生成的对象与 UV 对照图、具不同 UV 层的实际选图、重开 checkpoint 和断言回执。

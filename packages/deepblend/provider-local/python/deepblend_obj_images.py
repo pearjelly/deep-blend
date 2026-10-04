@@ -34,14 +34,21 @@ def inspect_obj_images(project_root, asset):
         for material, kind, name in mtl_image_records(inside(project_root, library)):
             if material in used:
                 selected.setdefault(material, {})[ALIASES.get(kind, kind)] = obj_reference(library, name)
-    paths = sorted({path for maps in selected.values() for path in maps.values()})
+    roles = {}
+    for maps in selected.values():
+        for kind, path in maps.items():
+            role = 'color' if kind in ('map_Kd', 'map_Ke') else 'alpha' if kind == 'map_d' else 'data'
+            roles.setdefault(path, set()).add(role)
+    paths = sorted(roles)
     if len(paths) > MAX_FILES:
         raise ActionError('ASSET_TOO_LARGE', 'OBJ textures exceed their resource limit')
-    facts, total = [], 0
+    facts, total, allocations = [], 0, 0
     for path in paths:
         header = check_imported_image_header(inside(project_root, path))
-        facts.append({'path': path, **header})
-        total += header['decodedBytes']
+        count = max(1, len(roles[path] - {'alpha'}))
+        facts.append({'path': path, 'roles': sorted(roles[path]), 'allocations': count, **header})
+        allocations += count
+        total += count * header['decodedBytes']
         if total > MAX_IMAGE_DECODE_BYTES:
             raise ActionError('ASSET_CONTENT_MISMATCH', 'imported OBJ images exceed the 1 GiB decoded pixel budget')
-    return {'images': len(facts), 'decodedBytes': total, 'facts': facts}
+    return {'images': len(facts), 'allocations': allocations, 'decodedBytes': total, 'facts': facts}

@@ -303,7 +303,12 @@ OBJ preserves explicit MTL files, an existing same-basename MTL, and declared te
 Material texture paths are resolved relative to the MTL. Readers process OBJ continuations,
 quoted library names and the pinned Blender MTL texture options; OBJ is limited to 1 GiB,
 MTL to 16 MiB and physical/logical lines to 1 MiB. Used OBJ material images are embedded
-in saved checkpoints without replacing their nodes or color interpretation.
+in saved checkpoints without replacing their native node graphs. Numeric and normal RGB
+uses are interpreted as Non-Color; Base Color and Emission retain the source file's native
+color space. Separate RGB interpretations protect existing material users and are counted
+before scene reset. Alpha output shares either RGB interpretation. Original encoded bytes,
+UVs, mappings and native socket conversion remain unchanged. Existing checkpoints remain
+immutable; new builds use the corrected numeric interpretation.
 Native validation still rejects undecodable pixels. Before clearing the scene, selected OBJ maps
 are inspected within a shared 1 MiB metadata read budget per image and added to the
 1 GiB scene decoded-image estimate. Each side must be 1–8192 pixels. Explicit MTL

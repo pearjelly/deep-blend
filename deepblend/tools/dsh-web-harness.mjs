@@ -20,6 +20,7 @@
  */
 
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { initProfile, PROFILE_TEMPLATES } from '@deepseek-ai/dsh-app-boot'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -155,7 +156,8 @@ export function createHome(options = {}) {
   }
   const localScope = join(testProfilesNodeModules, LOCAL_SCOPE)
   mkdirSync(localScope, { recursive: true })
-  for (const [name, directory] of localPackages()) {
+  const packages = localPackages()
+  for (const [name, directory] of packages) {
     symlinkSync(directory, join(localScope, name.split('/')[1]))
   }
 
@@ -168,8 +170,18 @@ export function createHome(options = {}) {
   if (options.inheritUserConfig !== true) {
     const template = PROFILE_TEMPLATES[profile]
     if (!template) throw new Error(`Unknown DSH profile template: ${profile}`)
+    // DSH resolves bundle names from its installation before the profile. A
+    // deployment inside another checkout can therefore find that checkout's
+    // bundle and refill this profile's nearer node_modules with its Host/UI.
+    // Persist a private alias in this home's manifest so both the bundle and
+    // its dependency fallback resolve from this checkout. The manifest and
+    // link retain the selected source for inspection after startup.
+    const bundleAlias = `@deepblend-harness/bundle-${randomUUID()}`
+    const bundleLink = join(home, 'profiles', profile, 'node_modules', bundleAlias)
+    mkdirSync(dirname(bundleLink), { recursive: true })
+    symlinkSync(packages.get('@deepblend/dsh-blender-bundle'), bundleLink)
     initProfile(join(home, 'profiles', profile),
-      [...template.bundles, '@deepblend/dsh-blender-bundle'], template.patchReload)
+      [...template.bundles, bundleAlias], template.patchReload)
     const presets = join(home, '.agent-presets')
     mkdirSync(presets, { recursive: true })
     for (const name of ['deepblend', 'deepblend-dev']) {

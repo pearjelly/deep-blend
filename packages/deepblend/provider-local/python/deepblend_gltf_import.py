@@ -1,5 +1,6 @@
 """Preserve native glTF color/data image uses without changing importer files."""
 import bpy
+from deepblend_image_roles import SOURCE_SPACE
 
 
 class ImageRoles:
@@ -45,12 +46,14 @@ class ImageRoles:
         key = (source, role)
         if key not in self.images:
             if role != 'alpha':
+                native_space = image.get(SOURCE_SPACE, image.colorspace_settings.name)
                 space = 'Non-Color' if role == 'data' else 'sRGB'
                 if image.colorspace_settings.name != space:
                     # External files may reuse an image from another material,
                     # image index or imported instance. Protect its existing users.
                     if image.users:
                         image = image.copy()
+                    image[SOURCE_SPACE] = native_space
                     image.colorspace_settings.name = space
             self.images[key] = image
         declaration.blender_image_name = self.images[key].name
