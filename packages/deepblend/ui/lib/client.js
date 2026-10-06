@@ -153,6 +153,25 @@ window.__ModuleLoader__.load({
       "guide.evidence": "当前 {revision}：{parts} 个对象，{references} 张参考，{images} 张独立检查图。",
       "guide.noProject": "先创建项目。配方示例来自真实渲染；调整后仍需检查你自己的结果。",
 
+      "assets.bundleTitle": "导入模型资源包",
+      "assets.bundleFiles": "选择同目录文件",
+      "assets.bundleDirectory": "选择完整目录",
+      "assets.bundleHelp": "多选文件只保留文件名，适合同目录依赖。跨目录引用请选包含模型与全部资源的共同父目录；目录内相对路径保持不变。",
+      "assets.bundleLimits": "最多 {files} 个文件，合计 {bytes}；完成的依赖包连同锁文件也需在此上限内。",
+      "assets.bundleEntry": "模型入口文件",
+      "assets.bundleChooseEntry": "请选择一个 glTF、GLB 或 OBJ",
+      "assets.bundleSelection": "已选择 {files} 个文件，合计 {bytes}。",
+      "assets.bundleStart": "上传并保存到素材库",
+      "assets.bundleInvalid": "所选路径、数量或总大小无效；请按限制重新选择完整资源。",
+      "assets.bundleDirectoryMissing": "浏览器未提供目录相对路径。请使用支持目录选择的浏览器，或多选同目录文件。",
+      "assets.bundleProgress": "Host 已接收 {received} / {total}；当前文件 {path}。",
+      "assets.bundleCompleting": "正在核验依赖并保存到素材库…",
+      "assets.bundleSaved": "已保存到素材库，场景版本没有改变。请检查并预览后再应用。",
+      "assets.bundleUnused": "{count} 个未被模型引用的文件没有入库。",
+      "assets.bundleDependency": "无法解析依赖时，请选择包含模型和全部资源的共同父目录。文件不会被改名或自动改写引用。",
+      "assets.bundleCleanup": "无法确认清理结果；请恢复连接后重试取消。运行中的 Host 会在会话到期后清理未完成文件。",
+      "assets.bundleUnavailable": "当前服务已无法继续这次上传。可以重新选择文件上传；若提示另一个上传仍在运行，请先处理该上传。",
+      "assets.bundleSummary": "资源包：{files} 个文件，共 {bytes}",
       "assets.title": "素材库",
       "assets.open": "打开素材库",
       "assets.refresh": "刷新素材库",
@@ -647,6 +666,25 @@ window.__ModuleLoader__.load({
       "guide.evidence": "Current {revision}: {parts} objects, {references} references and {images} inspection images.",
       "guide.noProject": "Create a project first. Recipe examples are real renders; inspect your own result after changing them.",
 
+      "assets.bundleTitle": "Import a model resource bundle",
+      "assets.bundleFiles": "Choose files in one folder",
+      "assets.bundleDirectory": "Choose a complete folder",
+      "assets.bundleHelp": "Multiple file selection preserves file names only, for dependencies in one folder. For cross-folder references, select the common parent folder containing the model and all resources; relative paths are preserved.",
+      "assets.bundleLimits": "Up to {files} files and {bytes} in total; the completed dependency bundle including its lock must fit the same limit.",
+      "assets.bundleEntry": "Model entrypoint",
+      "assets.bundleChooseEntry": "Choose a glTF, GLB or OBJ",
+      "assets.bundleSelection": "Selected {files} files, {bytes} in total.",
+      "assets.bundleStart": "Upload and save to library",
+      "assets.bundleInvalid": "Invalid paths, count or total size. Select the complete resources within the limits.",
+      "assets.bundleDirectoryMissing": "The browser did not provide folder-relative paths. Use a browser that supports folder selection, or choose files in one folder.",
+      "assets.bundleProgress": "Host received {received} / {total}; current file: {path}.",
+      "assets.bundleCompleting": "Checking dependencies and saving to the library\u2026",
+      "assets.bundleSaved": "Saved to the library; the scene revision is unchanged. Inspect a preview before applying.",
+      "assets.bundleUnused": "{count} files not referenced by the model were left out of the library.",
+      "assets.bundleDependency": "If dependencies cannot be resolved, select their common parent folder. Files are not renamed and references are not rewritten.",
+      "assets.bundleCleanup": "Cleanup could not be confirmed. Reconnect and retry cancellation. A running Host removes unfinished files when the session expires.",
+      "assets.bundleUnavailable": "This upload session is unavailable on the current Host. You can select files and upload again; if another upload is still running, resolve it first.",
+      "assets.bundleSummary": "Bundle: {files} files, {bytes}",
       "assets.title": "Asset library",
       "assets.open": "Open asset library",
       "assets.refresh": "Refresh assets",
@@ -1768,6 +1806,44 @@ window.__ModuleLoader__.load({
       const unit = value >= 1048576 ? ['MiB', 1048576] : value >= 1024 ? ['KiB', 1024] : ['B', 1]
       return `${(value / unit[1]).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit[0]}`
     }
+    // File handles stay outside snapshots. This metadata never invents paths that
+    // ordinary multi-selection cannot provide; the Host repeats all validation.
+    function assetBundleSelection(files, mode, limits) {
+      const selected = Array.from(files || []), fail = (message = t('assets.bundleInvalid')) => { throw new Error(message) }
+      if (!limits?.bundleUpload || !Number.isSafeInteger(limits.maxBytes) || limits.maxBytes <= 0) fail(t('assets.needLibrary'))
+      if (!['files', 'directory'].includes(mode) || !selected.length || selected.length > limits.bundleUpload.maxFiles) fail()
+      let root = null, totalBytes = 0
+      const paths = new Set(), directories = new Map()
+      const members = selected.map(file => {
+        let path = file.name
+        if (mode === 'directory') {
+          const relative = file.webkitRelativePath
+          if (typeof relative !== 'string' || relative.indexOf('/') <= 0) fail(t('assets.bundleDirectoryMissing'))
+          const folder = relative.slice(0, relative.indexOf('/'))
+          if (root !== null && root !== folder) fail(t('assets.bundleDirectoryMissing'))
+          root = folder; path = relative.slice(relative.indexOf('/') + 1)
+        }
+        if (typeof path !== 'string' || path.length > 1024 || /[\\:\x00-\x1f\x7f]/.test(path)
+          || (mode === 'files' && path.includes('/')) || !Number.isSafeInteger(file.size) || file.size < 0) fail()
+        const segments = path.split('/'), key = path.normalize('NFC').toLowerCase()
+        if (segments.some(part => !part || part === '.' || part === '..' || /[. ]$/.test(part)
+          || /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(part)
+          || part.toLowerCase() === '.deepblend-lock.json') || paths.has(key)) fail()
+        paths.add(key)
+        for (let i = 1; i < segments.length; i++) {
+          const directory = segments.slice(0, i).join('/'), normalized = directory.normalize('NFC').toLowerCase()
+          if (directories.has(normalized) && directories.get(normalized) !== directory) fail()
+          directories.set(normalized, directory)
+        }
+        totalBytes += file.size
+        if (!Number.isSafeInteger(totalBytes) || totalBytes > limits.maxBytes) fail()
+        return { path, bytes: file.size }
+      })
+      if ([...paths].some(path => directories.has(path))) fail()
+      const entrypoints = members.filter(file => file.bytes > 0 && /\.(gltf|glb|obj)$/i.test(file.path)).map(file => file.path)
+      if (!entrypoints.length) fail()
+      return { mode, files: members, totalBytes, entrypoints, entrypoint: '' }
+    }
     function assetEditor(draft) {
       const original = draft.scene.nodes.entities.find(entity => entity.id === draft.entityId)
       if (!original) return null
@@ -2061,10 +2137,37 @@ window.__ModuleLoader__.load({
     // the half-typed patch) lives here too, exactly as SPEC §14.3 draws the line:
     // it decides what is DISPLAYED, never what is TRUE.
 
+    const FILE_FIELDS = ['brief-upload', 'asset-upload', 'asset-bundle-files', 'asset-bundle-directory']
+    function fileChoiceAllowed(state, field) {
+      const projectId = state.activeProjectId
+      if (state.status !== 'ok' || !projectId || !state.selected?.scene) return false
+      if (field === 'brief-upload') {
+        const draft = state.briefDrafts[projectId], work = state.briefWork[projectId] || {}
+        return state.view === 'projects' && Boolean(draft) && draft.baseRevision === state.selected.scene.revision
+          && !work.saving && !work.uploading && !state.visualRuns[projectId]?.busy && draft.referenceImages.length < 4
+      }
+      const library = state.assetLibraries[projectId]
+      return state.view === 'scene' && !state.assetWork[projectId]?.busy && Boolean(library)
+        && (field === 'asset-upload' ? Number.isFinite(library.limits?.maxBytes)
+          : ['asset-bundle-files', 'asset-bundle-directory'].includes(field) && Boolean(library.limits?.bundleUpload))
+    }
+    const fileChoiceKey = (state, field) => JSON.stringify([state.fileChoiceGeneration, state.activeProjectId, state.selected?.scene?.revision, state.view, field])
+    function fileChoiceProps(state, actions, field, consume) {
+      const source = fileChoiceKey(state, field)
+      return { key: source, 'data-field': field, 'data-file-context': source, disabled: !fileChoiceAllowed(state, field),
+        onChange: event => {
+          // Check before even accessing event.target.files: the old native node
+          // can finish after its view/project has been replaced.
+          if (!actions.acceptsFileChoice(source, field)) return
+          return consume(event, source)
+        } }
+    }
+
     /** A blank snapshot, so `getState()` always answers the same shape. */
     function emptySnapshot() {
       return {
         status: 'loading',
+        fileChoiceGeneration: 0,
         error: null,
         hostApiVersion: null,
         projects: [],
@@ -2095,6 +2198,7 @@ window.__ModuleLoader__.load({
         assetDrafts: {},
         assetPreviews: {},
         assetLicenses: {},
+        assetBundleSelections: {},
         briefDrafts: {},
         briefWork: {},
         visualRuns: {},
@@ -2131,15 +2235,50 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      let fileChoiceSignature = null, fileChoicesStopped = false
       const photographyControllers = new Map()
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
       const inspectionControllers = new Map()
       const assetControllers = new Map()
       const assetListSequences = new Map()
+      const bundleFiles = new Map(), bundleOperations = new Map()
+      // Control requests are bounded and remain alive after a local cancel so a
+      // late create response can still identify and remove its Host session.
+      const bundleRequest = async (projectId, suffix, body, signal) => {
+        const timeout = signal ? null : new AbortController()
+        const deadline = timeout ? setTimeout(() => timeout.abort(), 30000) : null
+        try {
+          const response = await fetchImpl(projectRoute(projectId, `/asset-uploads${suffix}`), {
+            method: body === undefined ? 'GET' : 'POST', headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: signal || timeout.signal,
+          })
+          const result = await response.json()
+          if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_UPLOAD_FAILED'}: ${result.error?.message || response.status}`)
+          if (result.projectId !== projectId || (suffix && result.uploadId !== suffix.split('/')[1])) throw new Error(t('assets.bundleInvalid'))
+          return result
+        } finally { if (deadline !== null) clearTimeout(deadline) }
+      }
+      const cancelBundle = async operation => {
+        operation.cancelled = true; operation.controller.abort()
+        if (!operation.uploadId) return null
+        if (!operation.cancellation) operation.cancellation = bundleRequest(operation.projectId, `/${operation.uploadId}/cancel`, {}).then(result => {
+          if (!['completed', 'cancelled', 'expired', 'failed', 'unavailable'].includes(result.status)
+            || (result.status === 'unavailable' && result.reason !== 'unknown-session')
+            || (result.status === 'completed' && (result.receipt?.projectId !== operation.projectId
+              || result.receipt?.uploadId !== operation.uploadId || !result.receipt?.asset?.path))) throw new Error(t('assets.bundleInvalid'))
+          return result
+        }).catch(error => {
+          operation.cancellation = null
+          throw error
+        })
+        return operation.cancellation
+      }
       const inspectionWork = (projectId, changes) => set({ inspectionWork: { ...data.inspectionWork, [projectId]: { ...data.inspectionWork[projectId], ...changes } } })
       const assetWork = (projectId, changes) => set({ assetWork: { ...data.assetWork, [projectId]: { ...data.assetWork[projectId], ...changes } } })
 
       const notify = () => {
+        const signature = JSON.stringify([data.activeProjectId, data.selected?.scene?.revision, data.view, ...FILE_FIELDS.map(field => fileChoiceAllowed(data, field))])
+        if (signature !== fileChoiceSignature) { data.fileChoiceGeneration += 1; fileChoiceSignature = signature }
         snapshot = { ...data, forms: { ...data.forms }, busy: { ...data.busy }, notices: { ...data.notices } }
         for (const listener of [...listeners]) listener(snapshot)
       }
@@ -2262,7 +2401,10 @@ window.__ModuleLoader__.load({
         } finally { photographyControllers.delete(projectId); photographyWork(projectId, { previewing: false }); reload() }
       }
 
+      const acceptsFileChoice = (source, field) => !fileChoicesStopped && typeof source === 'string'
+        && FILE_FIELDS.includes(field) && source === fileChoiceKey(data, field) && fileChoiceAllowed(data, field)
       const actions = {
+        acceptsFileChoice,
         /**
          * Switch tabs, and drop the notice the tab being ENTERED was carrying.
          *
@@ -2277,6 +2419,9 @@ window.__ModuleLoader__.load({
          */
         setView: (view) => (view === data.view ? undefined : set({ view, notices: { ...data.notices, [view]: null } })),
         selectProject: (projectId) => {
+          if (projectId === data.activeProjectId) { reload(); return }
+          const operation = bundleOperations.get(data.activeProjectId)
+          if (operation && projectId !== data.activeProjectId) void cancelBundle(operation).catch(() => {})
           set({ projectId, selected: null, activeProjectId: null, editorEntityId: null, editorComparison: null, diff: null, diffError: null, compareLeft: null, compareRight: null })
           reload()
         },
@@ -2308,8 +2453,125 @@ window.__ModuleLoader__.load({
           assetWork(projectId, { loading: false, error: result.status === 'ok' ? null : `${result.error.code}: ${result.error.message}` })
         },
         setAssetLicense: value => set({ assetLicenses: { ...data.assetLicenses, [data.activeProjectId]: value } }),
-        cancelAsset: () => assetControllers.get(data.activeProjectId)?.abort(),
-        uploadAsset: async files => {
+        cancelAsset: async () => {
+          const projectId = data.activeProjectId, current = assetControllers.get(projectId), operation = bundleOperations.get(projectId)
+          // A failed old bundle cleanup may coexist with a newer single-file
+          // upload or preview. Cancel belongs to the task currently running.
+          if (current) { current.abort(); return }
+          if (!operation || operation.committed) return
+          try {
+            const result = await cancelBundle(operation)
+            if (bundleOperations.get(projectId) !== operation || operation.committed) return
+            if (!data.assetWork[projectId]?.busy && result) {
+              bundleOperations.delete(projectId)
+              assetWork(projectId, { error: null, bundleCleanup: false, message: t(result.status === 'completed' ? 'assets.bundleSaved' : result.status === 'unavailable' ? 'assets.bundleUnavailable' : 'assets.cancelled') })
+              if (result.status === 'completed') {
+                if (bundleFiles.get(projectId) === operation.files) {
+                  bundleFiles.delete(projectId)
+                  set({ assetBundleSelections: { ...data.assetBundleSelections, [projectId]: null } })
+                }
+                await actions.loadAssets(projectId)
+              }
+            }
+          } catch {
+            if (bundleOperations.get(projectId) === operation && !operation.committed) assetWork(projectId, { error: t('assets.bundleCleanup'), bundleCleanup: true })
+          }
+        },
+        selectAssetBundle: (files, mode, source) => {
+          if (!acceptsFileChoice(source, mode === 'directory' ? 'asset-bundle-directory' : 'asset-bundle-files')) return
+          const projectId = data.activeProjectId
+          if (!projectId || data.assetWork[projectId]?.busy) return
+          try {
+            const selected = Array.from(files || []), selection = assetBundleSelection(selected, mode, data.assetLibraries[projectId]?.limits)
+            bundleFiles.set(projectId, selected)
+            set({ assetBundleSelections: { ...data.assetBundleSelections, [projectId]: selection } })
+            assetWork(projectId, { error: null, message: null, bundleProgress: null })
+          } catch (error) {
+            bundleFiles.delete(projectId)
+            set({ assetBundleSelections: { ...data.assetBundleSelections, [projectId]: null } })
+            assetWork(projectId, { error: error.message })
+          }
+        },
+        setAssetBundleEntry: entrypoint => {
+          const projectId = data.activeProjectId, selection = data.assetBundleSelections[projectId]
+          if (!selection || data.assetWork[projectId]?.busy || !selection.entrypoints.includes(entrypoint)) return
+          set({ assetBundleSelections: { ...data.assetBundleSelections, [projectId]: { ...selection, entrypoint } } })
+        },
+        uploadAssetBundle: async () => {
+          const projectId = data.activeProjectId, revision = data.selected?.scene?.revision, selection = data.assetBundleSelections[projectId], files = bundleFiles.get(projectId)
+          if (!projectId || !revision || data.assetWork[projectId]?.busy || bundleOperations.has(projectId)) return
+          if (!selection?.entrypoints.includes(selection.entrypoint) || !files) { assetWork(projectId, { error: t('assets.bundleInvalid') }); return }
+          const license = (data.assetLicenses[projectId] || '').trim()
+          if (license.length > 200) { assetWork(projectId, { error: t('assets.invalid', { field: 'license' }) }); return }
+          const operation = { projectId, files, controller: new AbortController(), uploadId: null, cancelled: false, committed: false, cancellation: null }
+          bundleOperations.set(projectId, operation)
+          assetWork(projectId, { busy: 'uploading', error: null, message: null, bundleProgress: { totalBytes: selection.totalBytes, receivedBytes: 0, path: selection.entrypoint } })
+          let poll = null, polling = false, committed = false
+          const acceptReceipt = result => {
+            if (result?.status !== 'completed' || result.receipt?.projectId !== projectId || result.receipt?.uploadId !== operation.uploadId || !result.receipt?.asset?.path) return false
+            committed = true; operation.committed = true
+            assetWork(projectId, { error: null, bundleCleanup: false, message: `${t('assets.bundleSaved')}${result.receipt.unusedFiles?.length ? ` ${t('assets.bundleUnused', { count: result.receipt.unusedFiles.length })}` : ''}` })
+            return true
+          }
+          try {
+            const created = await bundleRequest(projectId, '', { entrypoint: selection.entrypoint, files: selection.files, ...(license ? { license } : {}) })
+            if (!/^upload-[a-f0-9-]{36}$/.test(created.uploadId || '')) throw new Error(t('assets.bundleInvalid'))
+            operation.uploadId = created.uploadId
+            // Use the same cleanup path as cancellation during file transfer so
+            // an unavailable session is not presented as confirmed cancellation.
+            if (operation.cancelled) throw new Error(t('assets.cancelled'))
+            if (created.files?.length !== files.length || created.files.some((file, i) => file.path !== selection.files[i].path || file.bytes !== selection.files[i].bytes || file.id !== `file-${i}`)) throw new Error(t('assets.bundleInvalid'))
+            poll = setInterval(async () => {
+              if (polling || operation.cancelled || committed) return
+              polling = true
+              try {
+                const status = await bundleRequest(projectId, `/${operation.uploadId}`, undefined, operation.controller.signal)
+                if (bundleOperations.get(projectId) === operation && !operation.controller.signal.aborted && !operation.cancelled && !committed && status.status === 'receiving') assetWork(projectId, { bundleProgress: {
+                  ...data.assetWork[projectId]?.bundleProgress, receivedBytes: (status.receivedBytes || 0) + (status.inFlightBytes || 0),
+                } })
+              } catch {} finally { polling = false }
+            }, settings.bundlePollMs ?? 500)
+            for (let i = 0; i < files.length; i++) {
+              if (operation.cancelled) throw new Error(t('assets.cancelled'))
+              assetWork(projectId, { bundleProgress: { ...data.assetWork[projectId]?.bundleProgress, path: selection.files[i].path } })
+              const response = await fetchImpl(projectRoute(projectId, `/asset-uploads/${operation.uploadId}/files/${created.files[i].id}`), {
+                method: 'POST', headers: { 'content-type': 'application/octet-stream', accept: 'application/json' }, body: files[i], signal: operation.controller.signal,
+              })
+              const result = await response.json()
+              if (!response.ok || !result.ok) throw new Error(`${result.error?.code || 'UI_UPLOAD_FAILED'}: ${result.error?.message || response.status}`)
+              if (result.projectId !== projectId || result.uploadId !== operation.uploadId) throw new Error(t('assets.bundleInvalid'))
+              assetWork(projectId, { bundleProgress: { ...data.assetWork[projectId]?.bundleProgress, receivedBytes: result.receivedBytes } })
+            }
+            if (operation.cancelled) throw new Error(t('assets.cancelled'))
+            clearInterval(poll); poll = null
+            assetWork(projectId, { bundleProgress: { ...data.assetWork[projectId]?.bundleProgress, completing: true } })
+            const completed = await bundleRequest(projectId, `/${operation.uploadId}/complete`, {}, operation.controller.signal)
+            if (!acceptReceipt(completed)) throw new Error(t('assets.bundleInvalid'))
+          } catch (error) {
+            // Cancellation also recovers a published receipt if the complete
+            // response was lost. A failed transfer never changes the scene.
+            const userCancelled = operation.cancelled
+            let resolved = !operation.uploadId, unavailable = false
+            if (operation.uploadId) {
+              try { const result = await cancelBundle(operation); resolved = true; unavailable = result.status === 'unavailable'; acceptReceipt(result) } catch {}
+            }
+            if (!committed) assetWork(projectId, { bundleCleanup: !resolved, error: !resolved ? t('assets.bundleCleanup') : unavailable ? t('assets.bundleUnavailable') : userCancelled ? t('assets.cancelled') : `${error.message || String(error)} ${t('assets.bundleDependency')}` })
+          } finally {
+            if (poll !== null) clearInterval(poll)
+            operation.controller.abort()
+            if (committed) {
+              bundleFiles.delete(projectId)
+              set({ assetBundleSelections: { ...data.assetBundleSelections, [projectId]: null } })
+              assetWork(projectId, { busy: 'refreshing', bundleProgress: null })
+              await actions.loadAssets(projectId, data.activeProjectId === projectId ? data.selected?.scene?.revision : revision)
+            } else if (operation.cancelled && !data.assetWork[projectId]?.error) assetWork(projectId, { message: t('assets.cancelled') })
+            // Keep a failed cleanup reachable through Cancel until it succeeds.
+            if (!operation.uploadId || operation.cancellation || committed) bundleOperations.delete(projectId)
+            assetWork(projectId, { busy: null, bundleProgress: null })
+          }
+        },
+        uploadAsset: async (files, source) => {
+          if (!acceptsFileChoice(source, 'asset-upload')) return
           const projectId = data.activeProjectId, revision = data.selected?.scene?.revision
           if (!projectId || !revision || data.assetWork[projectId]?.busy) return
           const limit = data.assetLibraries[projectId]?.limits?.maxBytes
@@ -2451,7 +2713,8 @@ window.__ModuleLoader__.load({
           set({ briefDrafts: { ...data.briefDrafts, [projectId]: createBriefDraft(data.selected.scene, projectId) },
             briefWork: { ...data.briefWork, [projectId]: {} } })
         },
-        uploadReferences: async files => {
+        uploadReferences: async (files, source) => {
+          if (!acceptsFileChoice(source, 'brief-upload')) return
           const projectId = data.activeProjectId, initial = data.briefDrafts[projectId]
           if (!initial || data.briefWork[projectId]?.uploading || data.briefWork[projectId]?.saving) return
           const selected = Array.from(files || [])
@@ -2888,9 +3151,12 @@ window.__ModuleLoader__.load({
         start() {
           if (running) return
           running = true
+          fileChoicesStopped = false
           void load()
         },
         stop() {
+          fileChoicesStopped = true
+          data = { ...data, fileChoiceGeneration: data.fileChoiceGeneration + 1 }
           running = false
           if (timer !== null) { clearInterval(timer); timer = null }
           for (const controller of photographyControllers.values()) controller.abort()
@@ -2899,6 +3165,8 @@ window.__ModuleLoader__.load({
           inspectionControllers.clear()
           for (const controller of assetControllers.values()) controller.abort()
           assetControllers.clear()
+          for (const operation of bundleOperations.values()) void cancelBundle(operation).catch(() => {})
+          bundleFiles.clear()
         },
         actions,
         /** The console's write helper, kept reachable for the tool cards. */
@@ -3106,8 +3374,7 @@ window.__ModuleLoader__.load({
         el('p', { className: conflict ? 'db-error' : 'db-muted' }, conflict ? t('brief.conflict') : dirty ? t('brief.pending') : t('brief.clean')),
         el('p', { className: 'db-muted' }, t('brief.uploadHelp')),
         el('label', null, t('brief.upload'), el('input', { type: 'file', accept: 'image/png,image/jpeg', multiple: true,
-          'data-field': 'brief-upload', disabled: disabled || work.uploading || draft.referenceImages.length >= 4,
-          onChange: event => actions.uploadReferences(event.target.files) })),
+          ...fileChoiceProps(state, actions, 'brief-upload', (event, source) => actions.uploadReferences(event.target.files, source)) })),
         work.uploading ? el('p', { role: 'status' }, t('brief.uploading')) : null,
         el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '12px' } }, draft.referenceImages.map(reference => {
           const asset = assetOf(reference)
@@ -3334,7 +3601,7 @@ window.__ModuleLoader__.load({
     /** 场景树: the Scene Tree of the revision in view. */
     function AssetsView({ state, actions }) {
       const projectId = state.activeProjectId, library = state.assetLibraries?.[projectId], work = state.assetWork?.[projectId] || {}
-      const draft = state.assetDrafts?.[projectId], busy = Boolean(work.busy), limits = library?.limits
+      const draft = state.assetDrafts?.[projectId], busy = Boolean(work.busy), limits = library?.limits, bundle = state.assetBundleSelections?.[projectId]
       const conflict = Boolean(draft && draft.baseRevision !== state.selected?.scene?.revision)
       const update = (field, value) => actions.updateAsset(field, value)
       const text = (label, field, value, change, extra = {}) => el('label', { className: 'db-row' }, label,
@@ -3367,9 +3634,24 @@ window.__ModuleLoader__.load({
         library ? el('div', null,
           el('p', { className: 'db-muted', 'data-asset-limits': true }, t('assets.limits', { bytes: assetBytes(limits?.maxBytes), pixels: limits?.maxImagePixels ?? '—', edge: limits?.maxImageEdge ?? '—', width: limits?.previewWidth ?? '—', height: limits?.previewHeight ?? '—' })),
           text(t('assets.license'), 'asset-license', state.assetLicenses?.[projectId] || '', actions.setAssetLicense, { maxLength: 200 }),
-          el('label', null, t('assets.upload'), el('input', { type: 'file', accept: '.glb,.png,.jpg,.jpeg,.hdr,.exr', 'data-field': 'asset-upload', disabled: busy || !Number.isFinite(limits?.maxBytes),
-            onChange: event => actions.uploadAsset(event.target.files) })),
-          busy && work.busy !== 'saving' ? el('div', { className: 'db-inline' }, el('span', { role: 'status' }, t('assets.working', { action: work.busy === 'uploading' ? t('assets.uploading') : t('assets.inspecting') })),
+          el('label', null, t('assets.upload'), el('input', { type: 'file', accept: '.glb,.png,.jpg,.jpeg,.hdr,.exr',
+            ...fileChoiceProps(state, actions, 'asset-upload', (event, source) => actions.uploadAsset(event.target.files, source)) })),
+          limits?.bundleUpload ? el('div', { className: 'db-card', 'data-asset-bundle-picker': true },
+            el('h5', null, t('assets.bundleTitle')), el('p', { className: 'db-muted' }, t('assets.bundleHelp')),
+            el('p', { className: 'db-muted' }, t('assets.bundleLimits', { files: limits.bundleUpload.maxFiles, bytes: assetBytes(limits.maxBytes) })),
+            el('label', { className: 'db-row' }, t('assets.bundleFiles'), el('input', { type: 'file', multiple: true,
+              ...fileChoiceProps(state, actions, 'asset-bundle-files', (event, source) => { actions.selectAssetBundle(event.target.files, 'files', source); event.target.value = '' }) })),
+            el('label', { className: 'db-row' }, t('assets.bundleDirectory'), el('input', { type: 'file', multiple: true, webkitdirectory: '',
+              ...fileChoiceProps(state, actions, 'asset-bundle-directory', (event, source) => { actions.selectAssetBundle(event.target.files, 'directory', source); event.target.value = '' }) })),
+            bundle ? el('div', null,
+              el('p', null, t('assets.bundleSelection', { files: bundle.files.length, bytes: assetBytes(bundle.totalBytes) })),
+              choose(t('assets.bundleEntry'), 'asset-bundle-entrypoint', bundle.entrypoint, [['', t('assets.bundleChooseEntry')], ...bundle.entrypoints.map(path => [path, path])], actions.setAssetBundleEntry),
+              el('details', null, el('summary', null, t('assets.bundleFiles')), el('ul', { className: 'db-list' }, bundle.files.map(file => el('li', { key: file.path, style: { overflowWrap: 'anywhere' } }, `${file.path} · ${assetBytes(file.bytes)}`)))),
+              Button({ action: 'asset-bundle-upload', disabled: busy || work.bundleCleanup || !bundle.entrypoint, onClick: actions.uploadAssetBundle, children: t('assets.bundleStart') })) : null,
+            work.bundleProgress ? el('p', { role: 'status', 'data-asset-bundle-progress': true, style: { overflowWrap: 'anywhere' } }, work.bundleProgress.completing ? t('assets.bundleCompleting') : t('assets.bundleProgress', {
+              received: assetBytes(work.bundleProgress.receivedBytes), total: assetBytes(work.bundleProgress.totalBytes), path: work.bundleProgress.path,
+            })) : null) : null,
+          (busy && !['saving', 'refreshing'].includes(work.busy)) || work.bundleCleanup ? el('div', { className: 'db-inline' }, busy ? el('span', { role: 'status' }, t('assets.working', { action: work.busy === 'uploading' ? t('assets.uploading') : t('assets.inspecting') })) : null,
             Button({ action: 'asset-cancel', onClick: actions.cancelAsset, children: t('assets.cancel') })) : null,
           el('div', { className: 'db-grid', style: { marginTop: '12px' } }, (library.assets || []).map(entry => {
             const key = assetKey(entry.asset), result = state.assetPreviews?.[projectId]?.[key]
@@ -3381,6 +3663,7 @@ window.__ModuleLoader__.load({
             const declared = state.selected?.scene?.nodes.assets.some(asset => asset.id === entry.asset.id && asset.sha256 === entry.asset.sha256 && asset.path === entry.asset.path)
             return el('article', { className: 'db-card', key, 'data-asset-id': entry.asset.id, 'data-asset-sha256': entry.asset.sha256, 'data-asset-path': entry.asset.path },
               el('h4', null, entry.originalName || entry.asset.id), el('p', null, `${entry.asset.type.toUpperCase()} · ${assetBytes(entry.bytes)}`),
+              entry.bundle ? el('p', null, t('assets.bundleSummary', { files: entry.bundle.files.length, bytes: assetBytes(entry.bundle.totalBytes) })) : null,
               el('p', { className: 'db-muted' }, declared ? t('assets.declared') : t('assets.staged')),
               el('p', { className: 'db-muted' }, entry.license || t('assets.noLicense')),
               el('p', { className: 'db-muted' }, result ? t('assets.inspected') : t('assets.pending')),
@@ -4375,7 +4658,14 @@ window.__ModuleLoader__.load({
 
       const store = createWorkbenchStore(options)
       const pressed = new Set()
-      let pendingDraw = false, releaseTimer = null, disposed = false
+      let pendingDraw = false, releaseTimer = null, disposed = false, picker = null
+      const samePickerIn = (node, choice) => {
+        if (!node || typeof node !== 'object') return false
+        if (Array.isArray(node)) return node.some(child => samePickerIn(child, choice))
+        return node.tag === 'input' && node.props?.type === 'file' && !node.props.disabled
+          && node.props['data-field'] === choice.field && node.props['data-file-context'] === choice.context
+          || (node.children || []).some(child => samePickerIn(child, choice))
+      }
 
       /**
        * Redraw from the snapshot.
@@ -4391,6 +4681,11 @@ window.__ModuleLoader__.load({
         // Replacing a pressed control prevents its native click from firing.
         // Keep it connected through pointerup and the ensuing click event.
         if (pressed.size > 0) { pendingDraw = true; return }
+        const tree = buildWorkbenchView(store.getState(), store.actions)
+        // Keep a native picker connected while its own context is still usable.
+        // A disabled control or a different context must become visible at once.
+        if (picker && samePickerIn(tree, picker)) { pendingDraw = true; return }
+        picker = null
         pendingDraw = false
         const active = doc.activeElement
         const focused = active !== null && active !== doc.body && active.dataset ? active.dataset.field ?? null : null
@@ -4399,7 +4694,7 @@ window.__ModuleLoader__.load({
           key: element.dataset.scrollKey, top: element.scrollTop, left: element.scrollLeft,
         }))
 
-        const next = toDom(buildWorkbenchView(store.getState(), store.actions), doc)
+        const next = toDom(tree, doc)
         root.replaceChildren(...(next === null ? [] : [next]))
         for (const scroll of scrolls) {
           const restored = [...(root.querySelectorAll?.('[data-scroll-key]') || [])].find(element => element.dataset.scrollKey === scroll.key)
@@ -4426,6 +4721,24 @@ window.__ModuleLoader__.load({
         pressed.clear()
         finishPress({})
       }
+      const beginPicker = event => {
+        const node = event.target, context = node?.getAttribute?.('data-file-context')
+        if (event.isTrusted !== true || node?.type !== 'file' || node.disabled || !context || !root.contains?.(node)) return
+        picker = { node, context, field: node.getAttribute('data-field') }
+      }
+      const finishPicker = event => {
+        const completing = picker
+        if (!completing || event.target !== completing.node) return
+        // Native input precedes the target handler and change. Keep the node
+        // through both; a later terminal from another node cannot release it.
+        Promise.resolve().then(() => {
+          if (disposed || picker !== completing) return
+          picker = null
+          if (pendingDraw) draw()
+        })
+      }
+      root.addEventListener?.('click', beginPicker, true)
+      for (const type of ['input', 'change', 'cancel']) doc.addEventListener?.(type, finishPicker, true)
       root.addEventListener?.('pointerdown', beginPress, true)
       doc.addEventListener?.('pointerup', finishPress, true)
       doc.addEventListener?.('pointercancel', finishPress, true)
@@ -4440,6 +4753,9 @@ window.__ModuleLoader__.load({
         store,
         dispose() {
           disposed = true
+          picker = null
+          root.removeEventListener?.('click', beginPicker, true)
+          for (const type of ['input', 'change', 'cancel']) doc.removeEventListener?.(type, finishPicker, true)
           if (releaseTimer !== null) clearTimeout(releaseTimer)
           root.removeEventListener?.('pointerdown', beginPress, true)
           doc.removeEventListener?.('pointerup', finishPress, true)
@@ -4814,7 +5130,7 @@ window.__ModuleLoader__.load({
       buildWorkbenchView,
       createWorkbenchStore,
       inspection: { form: inspectionForm, valid: inspectionFormValid },
-      assetLibrary: { createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
+      assetLibrary: { selection: assetBundleSelection, createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
       photographyEditor: { createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },

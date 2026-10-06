@@ -143,6 +143,9 @@ run_suite "Photography editor: native camera and light edits, saved inspections 
 run_suite "Asset library in a real browser: upload, preview, apply and revision conflicts" \
   node deepblend/tests/e2e/asset-library.e2e.mjs
 
+run_suite "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply" \
+  node deepblend/tests/e2e/asset-bundle-upload.e2e.mjs
+
 run_suite "Handled cup editor: real dimensions, refusals and revision reload" \
   node deepblend/tests/e2e/handled-cup-ui.e2e.mjs
 

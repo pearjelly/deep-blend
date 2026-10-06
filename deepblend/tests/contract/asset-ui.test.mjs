@@ -27,6 +27,7 @@ function apply(spec, value) {
   return { patch, spec: result }
 }
 const nodesOf = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(nodesOf)] : []
+const chooseFiles = (store, files) => nodesOf(core.renderView({ state: store.getState(), actions: store.actions })).find(node => node.props['data-field'] === 'asset-upload').props.onChange({ target: { files } })
 async function waitFor(store, predicate) {
   if (predicate(store.getState())) return
   await new Promise((resolve, reject) => {
@@ -73,7 +74,7 @@ async function client(t, options = {}) {
   const nodes = () => nodesOf(core.renderView({ state: store.getState(), actions: store.actions }))
   const field = id => nodes().find(node => node.props['data-field'] === id), action = id => nodes().find(node => node.props['data-action'] === id)
   const ready = async (type = 'png') => {
-    await store.actions.loadAssets(); await store.actions.uploadAsset([{ name: `sample.${type}`, type: type === 'png' ? 'image/png' : '', size: 10 * 1024 * 1024 }])
+    await store.actions.loadAssets(); await chooseFiles(store, [{ name: `sample.${type}`, type: type === 'png' ? 'image/png' : '', size: 10 * 1024 * 1024 }])
     const item = projects.one.assets.at(-1); await store.actions.previewAsset(assets.key(item.asset)); store.actions.chooseAsset(assets.key(item.asset)); return item
   }
   return { store, calls, projects, nodes, field, action, ready, fail: error => { failure = error } }
@@ -199,14 +200,14 @@ test('invalid placement, binding and inspection values cannot form an operation'
 test('opening inventory makes no writes; browser upload follows dynamic 1 GiB limits and does not inspect or create a revision', async t => {
   const { store, calls, projects, nodes } = await client(t); await store.actions.loadAssets(); assert.equal(calls.length, 0)
   store.actions.setAssetLicense('Original author supplied license')
-  const file = { name: 'source.glb', type: '', size: 10 * 1024 * 1024 }; await store.actions.uploadAsset([file])
+  const file = { name: 'source.glb', type: '', size: 10 * 1024 * 1024 }; await chooseFiles(store, [file])
   assert.equal(calls.length, 1); assert.equal(calls[0].body, file); assert.equal(calls[0].headers['content-type'], 'application/octet-stream'); assert.equal(calls[0].query.get('license'), 'Original author supplied license')
   assert.equal(projects.one.revision, 'r0001'); assert.equal(store.getState().assetDrafts.one, undefined); assert.match(JSON.stringify(nodes()), /1,?024 MiB/)
-  await store.actions.uploadAsset([{ ...file, size: limits.maxBytes + 1 }]); assert.equal(calls.length, 1)
+  await chooseFiles(store, [{ ...file, size: limits.maxBytes + 1 }]); assert.equal(calls.length, 1)
 })
 
 test('inspection is explicit and hash-pinned; reload recovers its thumbnail without another render', async t => {
-  const { store, calls, projects, nodes } = await client(t); await store.actions.loadAssets(); await store.actions.uploadAsset([{ name: 'source.hdr', size: 100, type: '' }])
+  const { store, calls, projects, nodes } = await client(t); await store.actions.loadAssets(); await chooseFiles(store, [{ name: 'source.hdr', size: 100, type: '' }])
   const item = projects.one.assets[0]; store.actions.chooseAsset(assets.key(item.asset)); assert.equal(store.getState().assetDrafts.one, undefined)
   await store.actions.previewAsset(assets.key(item.asset)); assert.deepEqual(calls.at(-1).body, { sha256: sha, assetPath: item.asset.path }); assert.equal(projects.one.revision, 'r0001')
   const count = calls.length; await store.actions.loadAssets(); assert.equal(calls.length, count)
@@ -266,7 +267,7 @@ test('late uploads and previews remain attached to their originating project', a
   for (const pauseKind of ['upload', 'preview']) {
     let finish, entered; const enteredPromise = new Promise(resolve => { entered = resolve }), blocked = new Promise(resolve => { finish = resolve })
     const { store, projects } = await client(t, { seed: [entry('glb')], beforePost: async request => { if ((pauseKind === 'upload') === request.raw) { entered(); await blocked } } })
-    await store.actions.loadAssets(); const operation = pauseKind === 'upload' ? store.actions.uploadAsset([{ name: 'new.png', type: 'image/png', size: 10 }]) : store.actions.previewAsset(assets.key(projects.one.assets[0].asset))
+    await store.actions.loadAssets(); const operation = pauseKind === 'upload' ? chooseFiles(store, [{ name: 'new.png', type: 'image/png', size: 10 }]) : store.actions.previewAsset(assets.key(projects.one.assets[0].asset))
     await enteredPromise; store.actions.selectProject('two'); await waitFor(store, state => state.activeProjectId === 'two'); store.actions.updateBrief('goal', 'Keep project two'); finish(); await operation
     assert.equal(store.getState().activeProjectId, 'two'); assert.equal(store.getState().briefDrafts.two.goal, 'Keep project two'); assert.equal(store.getState().assetDrafts.two, undefined); assert.equal(projects.two.assets.length, 0)
     assert.equal(store.getState().assetLibraries.two, undefined)
@@ -276,7 +277,7 @@ test('late uploads and previews remain attached to their originating project', a
 test('cancellation reaches transport and never stages a draft or commits a revision', async t => {
   let entered; const enteredPromise = new Promise(resolve => { entered = resolve })
   const { store, calls, projects } = await client(t, { beforePost: request => new Promise((resolve, reject) => { entered(); request.signal.addEventListener('abort', () => reject(new Error('Cancelled by test')), { once: true }) }) })
-  await store.actions.loadAssets(); const operation = store.actions.uploadAsset([{ name: 'large.glb', type: '', size: 90000000 }]); await enteredPromise; store.actions.cancelAsset(); await operation
+  await store.actions.loadAssets(); const operation = chooseFiles(store, [{ name: 'large.glb', type: '', size: 90000000 }]); await enteredPromise; store.actions.cancelAsset(); await operation
   assert.equal(calls[0].signal.aborted, true); assert.equal(projects.one.assets.length, 0); assert.equal(projects.one.revision, 'r0001'); assert.equal(store.getState().assetDrafts.one, undefined); assert.match(store.getState().assetWork.one.error, /Cancelled|取消/)
 })
 
@@ -289,7 +290,7 @@ test('asset drafts block reviewer calls only in their own project', async t => {
 test('license length uses the SceneSpec boundary before any upload, without truncation', async t => {
   const { store, calls, field } = await client(t); await store.actions.loadAssets()
   assert.equal(field('asset-license').props.maxLength, 200)
-  store.actions.setAssetLicense('x'.repeat(201)); await store.actions.uploadAsset([{ name: 'image.png', type: 'image/png', size: 2 }]); assert.equal(calls.length, 0)
+  store.actions.setAssetLicense('x'.repeat(201)); await chooseFiles(store, [{ name: 'image.png', type: 'image/png', size: 2 }]); assert.equal(calls.length, 0)
   assert.equal(store.getState().assetLicenses.one.length, 201)
 })
 

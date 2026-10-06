@@ -275,7 +275,8 @@ export default class BlenderUiHost extends Service {
         this._sendWorkbenchPage(request, response)
         return
       }
-      const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview'].includes(matched.route.id)
+      const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview',
+        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete'].includes(matched.route.id)
       let signal
       if (cancellable) {
         const controller = new AbortController()
@@ -287,7 +288,7 @@ export default class BlenderUiHost extends Service {
         releaseSignal = () => { request.off?.('aborted', abort); response.off?.('close', closed) }
         signal = controller.signal
       }
-      const body = ['project.referenceImage.upload', 'project.assets.upload'].includes(matched.route.id) ? {} : await readRequestBody(request)
+      const body = ['project.referenceImage.upload', 'project.assets.upload', 'project.assetUploads.file'].includes(matched.route.id) ? {} : await readRequestBody(request)
       const result = await this._handlers[matched.route.id]({
         params: matched.params,
         query: Object.fromEntries(url.searchParams.entries()),
@@ -768,6 +769,23 @@ export function createHandlers(ctx) {
     'project.assets.upload': async ({ params, query, request, signal }) => assetStudio('uploadAsset').uploadAsset({
       projectId: params.projectId, name: query.name, mediaType: request?.headers?.['content-type'],
       ...(query.license === undefined ? {} : { license: query.license }), stream: request, signal,
+    }),
+    'project.assetUploads.create': async ({ params, body, signal }) => assetStudio('createAssetUpload').createAssetUpload({
+      projectId: params.projectId, entrypoint: body.entrypoint,
+      files: Array.isArray(body.files) ? body.files.map(file => ({ path: file?.path, bytes: file?.bytes })) : body.files,
+      ...(body.license === undefined ? {} : { license: body.license }), signal,
+    }),
+    'project.assetUploads.get': async ({ params }) => assetStudio('getAssetUpload').getAssetUpload({
+      projectId: params.projectId, uploadId: params.uploadId,
+    }),
+    'project.assetUploads.file': async ({ params, request, signal }) => assetStudio('uploadAssetFile').uploadAssetFile({
+      projectId: params.projectId, uploadId: params.uploadId, fileId: params.fileId, stream: request, signal,
+    }),
+    'project.assetUploads.complete': async ({ params, signal }) => assetStudio('completeAssetUpload').completeAssetUpload({
+      projectId: params.projectId, uploadId: params.uploadId, signal,
+    }),
+    'project.assetUploads.cancel': async ({ params }) => assetStudio('cancelAssetUpload').cancelAssetUpload({
+      projectId: params.projectId, uploadId: params.uploadId,
     }),
     'project.assets.preview': async ({ params, body, signal }) => assetStudio('previewAsset').previewAsset({
       projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, assetPath: body.assetPath, signal,

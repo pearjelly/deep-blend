@@ -14,7 +14,7 @@
 # thing to forget. `contract/ci-workflow.test.mjs` fails on a number in this file.
 #
 # Separate Linux jobs run selected real Blender, Agent and browser inspections,
-# and completed-frame delivery / render-selection / photography with their own time budget.
+# and completed-frame delivery / render-selection / photography / bundle upload with their own time budget.
 # The remaining blender-integration/*, composition/* and e2e/ui.e2e.mjs coverage
 # stays in `bash deepblend/tests/run-all.sh`, including longer delivery renders and
 # broader recovery flows. No online model calls are made by these CI jobs.
@@ -241,9 +241,9 @@ jobs:
           if-no-files-found: error
 
   linux-render-photography-browser:
-    name: Linux completed-frame delivery + render selection + photography
+    name: Linux delivery + editing + resource bundle upload
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -296,6 +296,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/photography-browser
         run: xvfb-run -a node deepblend/tests/e2e/photography-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/photography-browser.log" 2>&1
+      - name: Real directory upload, cancellation recovery and native model application
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 10
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/asset-bundle-upload-browser
+        run: xvfb-run -a node deepblend/tests/e2e/asset-bundle-upload.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/asset-bundle-upload-browser.log" 2>&1
       - name: Preserve delivery and editing requests, native artifacts and shutdown evidence
         if: always()
         uses: actions/upload-artifact@v4

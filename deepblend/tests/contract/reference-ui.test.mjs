@@ -18,6 +18,7 @@ const source = () => compileSceneSpec(JSON.parse(readFileSync(new URL('../../rec
 const scene = (spec, revision = 'r0001') => buildSceneTree(spec, { revision })
 const nodesOf = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(nodesOf)] : []
 const validPatch = patch => assert.equal(validateScenePatch(patch).ok, true, validateScenePatch(patch).summary)
+const chooseFiles = (store, files) => nodesOf(core.renderView({ state: store.getState(), actions: store.actions })).find(node => node.props['data-field'] === 'brief-upload').props.onChange({ target: { files } })
 async function waitFor(store, predicate) {
   if (predicate(store.getState())) return
   await new Promise((resolve, reject) => {
@@ -281,7 +282,7 @@ test('brief saves only referenced staged assets, then replaces goal/references a
 
 test('upload is binary, shows a hash-pinned thumbnail and creates no revision before Save brief', async t => {
   const { store, calls, field, nodes, projects } = await client(t)
-  await store.actions.uploadReferences([file])
+  await chooseFiles(store, [file])
   assert.equal(calls.length, 1); assert.equal(calls[0].body, file); assert.equal(calls[0].headers['content-type'], 'image/png')
   assert.equal(calls[0].query.get('name'), file.name); assert.equal(projects.one.revision, 'r0001')
   const draft = store.getState().briefDrafts.one
@@ -297,9 +298,9 @@ test('upload is binary, shows a hash-pinned thumbnail and creates no revision be
 
 test('invalid files, excessive counts and invalid purposes are stopped without a write', async t => {
   const { store, calls, action } = await client(t)
-  for (const invalid of [{ ...file, type: 'image/gif' }, { ...file, size: 8 * 1024 * 1024 + 1 }, { ...file, size: 0 }]) await store.actions.uploadReferences([invalid])
-  await store.actions.uploadReferences(Array.from({ length: 5 }, () => file)); assert.equal(calls.length, 0)
-  await store.actions.uploadReferences([file]); const id = store.getState().briefDrafts.one.referenceImages[0].id
+  for (const invalid of [{ ...file, type: 'image/gif' }, { ...file, size: 8 * 1024 * 1024 + 1 }, { ...file, size: 0 }]) await chooseFiles(store, [invalid])
+  await chooseFiles(store, Array.from({ length: 5 }, () => file)); assert.equal(calls.length, 0)
+  await chooseFiles(store, [file]); const id = store.getState().briefDrafts.one.referenceImages[0].id
   store.actions.updateBrief('purposes', [], id); assert.equal(action('brief-save').props.disabled, true)
   await store.actions.saveBrief(); assert.equal(calls.length, 1)
   store.actions.removeReference(id); assert.equal(brief.dirty(store.getState().briefDrafts.one), false)
@@ -319,7 +320,7 @@ test('an upload completing after a project switch stays attached to the originat
   let finish; const pending = new Promise(resolve => { finish = resolve })
   const { store } = await client(t, { onPost: () => pending })
   store.actions.updateBrief('goal', 'One draft')
-  const upload = store.actions.uploadReferences([file])
+  const upload = chooseFiles(store, [file])
   store.actions.selectProject('two'); await waitFor(store, state => state.activeProjectId === 'two')
   store.actions.updateBrief('goal', 'Two draft'); finish(); await upload
   assert.equal(store.getState().briefDrafts.one.referenceImages.length, 1); assert.equal(store.getState().briefDrafts.two.referenceImages.length, 0)
@@ -330,7 +331,7 @@ test('an upload completing after a project switch stays attached to the originat
 
 test('failed save preserves staged assets and all reference annotations for retry', async t => {
   const { store, fail, calls } = await client(t)
-  await store.actions.uploadReferences([file]); const id = store.getState().briefDrafts.one.referenceImages[0].id
+  await chooseFiles(store, [file]); const id = store.getState().briefDrafts.one.referenceImages[0].id
   store.actions.updateBrief('notes', 'Preserve this note', id); store.actions.updateBrief('purposes', ['geometry', 'lighting'], id)
   const before = clone(store.getState().briefDrafts.one); fail({ code: 'REVISION_CONFLICT', message: 'Controlled concurrent write' })
   await store.actions.saveBrief(); assert.deepEqual(clone(store.getState().briefDrafts.one), before)

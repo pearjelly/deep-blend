@@ -318,13 +318,14 @@ const deliveryAndEditingSuites = [
   ['complete-frame-delivery.e2e.mjs', 'complete-frame-delivery', 'node', 2, "!cancelled() && steps.codecs.outcome == 'success'"],
   ['render-selection-ui.e2e.mjs', 'render-selection-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
   ['photography-ui.e2e.mjs', 'photography-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
+  ['asset-bundle-upload.e2e.mjs', 'asset-bundle-upload-browser', 'xvfb-run -a node', 10, "!cancelled() && steps.graphics.outcome == 'success'"],
 ]
 
-test('complete-frame delivery, render selection and photography share a separate runtime and codec budget', () => {
+test('delivery, editing and upload share a separate runtime with bounded steps', () => {
   const job = workflowJob('linux-render-photography-browser')
   const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m)
-  assert.match(job, /^    timeout-minutes: 20$/m, 'keep setup, completed-frame delivery and editing workflows outside the existing inspection budget')
+  assert.match(job, /^    timeout-minutes: 30$/m, 'allow setup plus 2/5/5/10 minute steps outside the existing inspection budget')
   assert.ok(job.includes(`node-version: '${pins.node}'`))
   assert.match(job, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   const commands = [
@@ -368,7 +369,7 @@ test('delivery and editing workflows run in CI and full acceptance with separate
     const step = steps[0]
     assert.match(step, new RegExp(`^        timeout-minutes: ${timeout}$`, 'm'))
     assert.ok(step.includes('if: ${{ ' + condition + ' }}'),
-      'ordinary failures must not skip later tests; pure encoding needs codecs, while browsers also need graphics')
+      'ordinary failures must not skip later tests; encoding needs codecs, delivery browsers need both, and bundle uploads need graphics')
     const position = job.indexOf(`run: ${launcher} ${path} >`)
     assert.ok(position > previous, 'run completed-frame encoding after codecs and before the browser workflows')
     previous = position

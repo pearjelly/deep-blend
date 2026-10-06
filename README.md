@@ -18,8 +18,9 @@ After creation, the [object editor](deepblend/docs/usage.md#41-调整已有对�
 bevels, arrays and local materials, render the change, and restore the previous scene with a revision guard.
 Save up to four [reference images](deepblend/docs/reference-images.md) with a revision's design goal.
 Reviews use those exact project assets and distinguish technical measurements from evidenced artistic judgments.
-Use the [asset library](deepblend/docs/assets.md) to upload and preview local GLB, PNG/JPEG and HDR/EXR
-files, then insert a model, bind a texture or set environment lighting. Model imports preserve source materials.
+Use the [asset library](deepblend/docs/assets.md) to upload local GLB, PNG/JPEG and HDR/EXR files,
+or a glTF/GLB/OBJ model bundle with its dependencies. Preview the asset, then insert a model,
+bind a texture or set environment lighting. Model imports preserve source materials.
 
 ## Install
 
@@ -206,7 +207,7 @@ against pinned versions, and without them a report can only be guessed at.
 **The state of this repository is the output of one command**, not a paragraph:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 34 suites; README.zh.md states the expected numbers
+bash deepblend/tests/run-all.sh      # 35 suites; README.zh.md states the expected numbers
 ```
 
 CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.

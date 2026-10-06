@@ -94,6 +94,7 @@ import { encodeFrameSequence, encodedPath, probeVideo } from './video-encoder.js
 import { buildDeliveryManifest } from './delivery-manifest.js'
 import { beginFrameAttempt, createFrameProvenanceReadBudget, readFrameProvenance, syncFrameProvenance } from './frame-provenance.js'
 import { streamAsset } from './asset-io.js'
+import { AssetUploadSessions, ASSET_UPLOAD_LIMITS } from './asset-uploads.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
@@ -446,6 +447,7 @@ export default class BlenderStudio extends Service {
 
     this.store = new ProjectStore({ projectsRoot, workspaceRoot })
     this.transactions = new RevisionTransaction({ store: this.store, runtime: this.runtime, config })
+    this.ctx.effect(() => () => this._bundleUploads?.dispose())
 
     // ---- M3: the persistent render job (SPEC §10) --------------------------
     this.renderJobs = new RenderJobStore({
@@ -2326,6 +2328,37 @@ export default class BlenderStudio extends Service {
   // Assets (SPEC §11 "导入用户资产": local automatic, network requires approval)
   // ---------------------------------------------------------------------------
 
+  _uploadSessions() {
+    return this._bundleUploads ??= new AssetUploadSessions({
+      root: join(this.projectsRoot, '.asset-uploads'), maxBytes: this.config.assetMaxBytes,
+      readProject: projectId => this.store.readRecord(projectId),
+      ingest: (request, source) => this._ingestAsset(request, source),
+      published: (projectId, uploadId) => this._uploadedBundleReceipt(projectId, uploadId),
+    })
+  }
+
+  /** The durable asset ledger resolves a lost complete response, including after a Host restart. */
+  _uploadedBundleReceipt(projectId, uploadId) {
+    const record = this.store.readRecord(projectId), directory = this.store.projectDirectory(projectId)
+    const manifest = readJsonSafe(join(directory, 'assets/manifest.json'))
+    const entry = [...(manifest?.versions ?? []), ...(manifest?.assets ?? [])]
+      .find(entry => entry.source?.kind === 'upload' && entry.source.uploadId === uploadId)
+    if (!entry) return null
+    const files = entry.source.files ?? [], stored = new Set(entry.bundle?.files.map(file => file.path) ?? [entry.source.name])
+    return { projectId, uploadId, asset: assetLibraryDescriptor(entry), originalName: entry.source.name,
+      bytes: entry.bytes, license: entry.license, bundle: entry.bundle ?? null,
+      receivedBytes: files.reduce((total, file) => total + file.bytes, 0),
+      storedBytes: entry.bundle ? entry.bundle.totalBytes + fileSize(join(directory, 'assets/bundles', entry.bundle.sha256, '.deepblend-lock.json')) : entry.bytes,
+      unusedFiles: files.filter(file => !stored.has(file.path)).map(file => file.path),
+      currentRevision: record.currentRevision }
+  }
+
+  createAssetUpload(request) { return this._uploadSessions().create(request) }
+  getAssetUpload(request) { return this._uploadSessions().get(request) }
+  uploadAssetFile(request) { return this._uploadSessions().put(request) }
+  completeAssetUpload(request) { return this._uploadSessions().complete(request) }
+  cancelAssetUpload(request) { return this._uploadSessions().cancel(request) }
+
   /** Stage a local upload without declaring it in a scene or changing its revision. */
   async uploadAsset(request) {
     const projectId = requireSafeSegment(request?.projectId, 'project id')
@@ -2380,12 +2413,14 @@ export default class BlenderStudio extends Service {
         && (cached.assetPath === asset.path || (cached.assetPath === undefined && assetPreviewVersion(asset) === asset.sha256))
       return { asset, originalName: entry.originalName ?? basename(asset.path),
         bytes: Number.isSafeInteger(entry.bytes) ? entry.bytes : null,
+        ...(entry.bundle ? { bundle: { entrypoint: entry.bundle.entrypoint, totalBytes: entry.bundle.totalBytes,
+          files: entry.bundle.files.map(({ path, bytes }) => ({ path, bytes })) } } : {}),
         license: typeof entry.license === 'string' ? entry.license : entry.license?.source ?? null, declaredInRevision,
         inspection: cacheMatches ? cached.inspection ?? null : null,
         preview: cacheMatches ? cached.preview ?? null : null }
     }).sort((left, right) => left.originalName.localeCompare(right.originalName)
       || left.asset.id.localeCompare(right.asset.id) || String(left.asset.sha256).localeCompare(String(right.asset.sha256)))
-    return { projectId, revision, limits: { maxBytes: this.config.assetMaxBytes, ...ASSET_LIBRARY_LIMITS }, assets }
+    return { projectId, revision, limits: { maxBytes: this.config.assetMaxBytes, ...ASSET_LIBRARY_LIMITS, bundleUpload: ASSET_UPLOAD_LIMITS }, assets }
   }
 
   /** Inspect exact staged bytes in an isolated batch scene, without publishing a scene revision. */
@@ -2753,6 +2788,7 @@ export default class BlenderStudio extends Service {
         if (type === 'gltf' || type === 'glb' || type === 'obj') {
           preparedBundle = await prepareModelBundle({ projectRoot: this.store.projectDirectory(projectId),
             sourcePath: staged, name, sourceRoot: request?.sourceRoot, local: sourcePath !== null,
+            ...(uploadedSource?.uploadId ? { stagingRoot: dirname(request.sourceRoot) } : {}),
             maxBytes: this.config.assetMaxBytes, signal: request?.signal, type })
           ;({ staging, bytes, sha256, relativePath } = preparedBundle)
         } else {
@@ -2769,6 +2805,7 @@ export default class BlenderStudio extends Service {
         // updating aliases/history form one short, synchronous write section.
         // On contention the outer finally removes this import's private copy.
         return this.store.withProjectWrite(projectId, () => {
+          request.signal?.throwIfAborted()
           const currentRecord = this.store.readRecord(projectId)
           const destination = resolveInside(this.store.projectDirectory(projectId), relativePath, 'asset destination')
           if (preparedBundle) preparedBundle.publish()
