@@ -685,6 +685,11 @@ M3 新增的：
 | `POST /deepblend/projects/:projectId/reference-images` | **写** | 上传 PNG/JPEG 原始字节（`?name=...`、图片 Content-Type），核验后保存资产；保存目标的 patch 才绑定版本。 |
 | `GET /deepblend/projects/:projectId/assets` | 读 | 素材库：暂存素材、指定修订中的声明及最近一次检查和预览；不改变场景。 |
 | `POST /deepblend/projects/:projectId/assets` | **写** | 流式上传 GLB、PNG、JPEG、HDR、EXR（`?name=...&license=...`），按内容摘要保存原字节；应用到场景才生成修订。 |
+| `POST /deepblend/projects/:projectId/asset-uploads` | **写** | 以安全相对路径、字节长度和明确入口创建有界资源包上传会话；只写私有暂存。 |
+| `GET /deepblend/projects/:projectId/asset-uploads/:uploadId` | 读 | 查询实际接收进度、期限，或从素材账本恢复已完成 receipt。 |
+| `POST /deepblend/projects/:projectId/asset-uploads/:uploadId/files/:fileId` | **写** | 接收一个已声明成员的原字节；完整重试核验长度与摘要，不覆盖不同内容。 |
+| `POST /deepblend/projects/:projectId/asset-uploads/:uploadId/complete` | **写** | 核验完整依赖并复用 ingest 保存素材库；幂等返回已发布记录，不改变场景修订。 |
+| `POST /deepblend/projects/:projectId/asset-uploads/:uploadId/cancel` | **写** | 中止并清理私有上传，或返回已完成的素材记录。 |
 | `POST /deepblend/projects/:projectId/assets/:assetId/preview` | **写** | 按请求的 sha256 核验素材并生成独立预览；模型保留原材质，环境图展示双球照明，不修改项目版本。 |
 | `POST /deepblend/projects/:projectId/review` | **写** | 对指定 revision 渲染并调用视觉模型，记录技术与艺术评价及核验的参考图。 |
 | `POST /deepblend/projects/:projectId/autofix` | **写** | 指定 revision，按固定目标尝试 1–3 轮修正；证据不足或效果退步时停止、条件回滚。 |

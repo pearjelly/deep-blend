@@ -133,9 +133,10 @@ test('request inputs are captured before a subscriber switches project or change
 test('rendering waits for a project scene to load and refuses duplicate pending submissions', async t => {
   let release, hold = false; const pending = new Promise(resolve => { release = resolve })
   const h = await harness(t, { beforePost: () => hold ? pending : undefined })
-  h.store.actions.selectProject(h.projectId)
-  await h.store.actions.startRender(); assert.equal(h.posts.length, 0, 'no fallback to the current revision while loading')
-  await settle(() => h.store.getState().activeProjectId === h.projectId)
+  const secondProject = await h.studio.transactions.createProject({ title: 'Loading project', sceneSpec: source, saveCheckpoint: true })
+  h.store.actions.selectProject(secondProject.projectId)
+  await h.store.actions.startRender(); assert.equal(h.posts.length, 0, 'no fallback to the previous project revision while loading')
+  await settle(() => h.store.getState().activeProjectId === secondProject.projectId)
   hold = true
   const first = h.store.actions.startRender()
   // Do not await the second call: the unfixed client would wait on the same held request.

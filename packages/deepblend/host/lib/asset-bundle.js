@@ -295,14 +295,16 @@ export async function stageAssetBundle(projectRoot, directory, asset, { maxBytes
     verifyAssetBundle(directory, asset);
     return true;
 }
-export async function prepareModelBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal, type = 'gltf' }) {
+export async function prepareModelBundle({ projectRoot, sourcePath, name, sourceRoot, local, maxBytes, signal, type = 'gltf', stagingRoot }) {
     if (sourceRoot !== undefined && (!local || typeof sourceRoot !== 'string' || !sourceRoot))
         reject('sourceRoot requires a local model source directory.');
     const sourceBase = resolve(sourceRoot ?? dirname(sourcePath)), entrypoint = bundlePath(local ? relative(sourceBase, resolve(sourcePath)).split(sep).join('/') : name);
     resolveInside(sourceBase, sourcePath, 'model source');
     const parent = resolveInside(projectRoot, 'assets/bundles', 'asset bundle directory');
     mkdirSync(parent, { recursive: true });
-    const staging = join(parent, `.incoming-${randomUUID()}`);
+    // Browser upload sessions supply a Host-owned staging root on the same
+    // project filesystem. Their partial files stay inside that session.
+    const staging = stagingRoot ? resolveInside(stagingRoot, `.bundle-${randomUUID()}`, 'bundle preparation') : join(parent, `.incoming-${randomUUID()}`);
     mkdirSync(staging);
     try {
         const files = [];

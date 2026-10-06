@@ -85,7 +85,7 @@ const READ_METHODS = new Set([
   // the diagnostics route reports. The HOST reads the manifest and names the config keys because the
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
-  'listRecipes', 'readRecipePreview', 'listAssets',
+  'listRecipes', 'readRecipePreview', 'listAssets', 'getAssetUpload',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
@@ -94,6 +94,10 @@ const WRITE_METHOD = {
   'project.patch': 'applyScenePatch',
   'project.referenceImage.upload': 'uploadReferenceImage',
   'project.assets.upload': 'uploadAsset',
+  'project.assetUploads.create': 'createAssetUpload',
+  'project.assetUploads.file': 'uploadAssetFile',
+  'project.assetUploads.complete': 'completeAssetUpload',
+  'project.assetUploads.cancel': 'cancelAssetUpload',
   'project.assets.preview': 'previewAsset',
   'project.review': 'visualReview',
   'project.autofix': 'visualLoop',
@@ -235,6 +239,28 @@ function createStudioStub() {
       return { projectId: request.projectId, currentRevision: 'r0002', bytes, originalName: request.name,
         license: request.license ?? null,
         asset: { id: 'asset-upload', type: 'glb', path: `assets/raw/${'c'.repeat(64)}.glb`, sha256: 'c'.repeat(64) } }
+    },
+    async createAssetUpload(request) {
+      record('createAssetUpload', request)
+      return { projectId: request.projectId, uploadId: 'upload-example', status: 'receiving', files: request.files }
+    },
+    async getAssetUpload(request) {
+      record('getAssetUpload', request)
+      return { projectId: request.projectId, uploadId: request.uploadId, status: 'receiving' }
+    },
+    async uploadAssetFile(request) {
+      record('uploadAssetFile', request)
+      let bytes = 0
+      for await (const chunk of request.stream) bytes += chunk.length
+      return { projectId: request.projectId, uploadId: request.uploadId, receivedBytes: bytes }
+    },
+    async completeAssetUpload(request) {
+      record('completeAssetUpload', request)
+      return { projectId: request.projectId, uploadId: request.uploadId, status: 'completed' }
+    },
+    async cancelAssetUpload(request) {
+      record('cancelAssetUpload', request)
+      return { projectId: request.projectId, uploadId: request.uploadId, status: 'cancelled' }
     },
     async previewAsset(request) {
       record('previewAsset', request)
@@ -427,6 +453,8 @@ function sampleUrl(route) {
     .replace(':revision', 'r0002')
     .replace(':jobId', 'render-0001')
     .replace(':assetId', 'asset-upload')
+    .replace(':uploadId', 'upload-example')
+    .replace(':fileId', 'file-0')
     .replace(':recipeId', RECIPE.id)
     .replace(':version', RECIPE.version)
     .replace(/\/\*$/, '/revisions/r0002/contact-sheets/round-0.png')
@@ -437,7 +465,7 @@ function sampleUrl(route) {
 
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
-  const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64) } : undefined)
+  const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined)
   if (route.id === 'project.preview') {
     // The pair reaches the browser; the PNG buffers do not (a JSON body of image
     // bytes is not lossless, and the panel displays images through the artifact

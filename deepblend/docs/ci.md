@@ -24,25 +24,26 @@
 | `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
 | `deepblend/tests/blender-integration/review-history.e2e.mjs` | 重复与跨进程重叠的实际评审、独立视角和图片/评分摘要、完成顺序 QA、取消前发布拒绝、场景/checkpoint 保护；模型端口仅作为受控等待屏障 |
 
-## 完整帧交付、渲染选择与摄影检查
+## 完整帧交付、编辑与资源包上传检查
 
 独立的 `linux-render-photography-browser` job 使用 Ubuntu 24.04、Node 22.23.3，复用固定运行时安装
-和软件图形准备。整个 job 的超时为 20 分钟，以下步骤按表中顺序串行执行：纯编码步骤限时 2 分钟，
-两个浏览器步骤各限时 5 分钟。
+和软件图形准备。整个 job 的超时为 30 分钟，以下步骤按表中顺序串行执行：纯编码步骤限时 2 分钟，
+渲染选择与摄影步骤各限时 5 分钟，资源包上传步骤限时 10 分钟。
 
 | 测试入口 | 检查范围 |
 | --- | --- |
 | `deepblend/tests/e2e/complete-frame-delivery.e2e.mjs` | 两张 256×192 已完整 PNG 帧直接经 Host 交给真实 FFmpeg/ffprobe；不要求 checkpoint、采样预算或 Blender；核对帧与交付历史，取消本次创建的编码器并等待其进程范围退出，保留旧正式视频与清单 |
 | `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
 | `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
+| `deepblend/tests/e2e/asset-bundle-upload.e2e.mjs` | 实际 FileList/目录相对路径与原始字节；平铺成功/拒绝、真实完成和取消回包丢失后的恢复；390px 工作中进度/取消/错误；两份 glTF、GLB 与 OBJ 预览，三格式明确应用及保存场景独立重开 |
 
 已有真实渲染 job 曾实测约 15 分钟，因此把编辑入口放入独立 job，给原任务保留超时余量。
 完整帧交付复用这个 job 已安装并核验的编码器，直接运行 Node，不使用 Xvfb、不增加运行时安装。
-它只在 codecs 成功且工作流未取消时运行；浏览器步骤还要求 graphics 成功。普通测试失败不会吞掉后续独立步骤。
-拆分会增加 runner 总耗时；20 分钟、2 分钟和 5 分钟是超时上限，不是预计耗时。
+它只在 codecs 成功且工作流未取消时运行；渲染选择和摄影步骤还要求 graphics 成功。资源包上传只要求 graphics 成功，不依赖编码器。普通测试失败不会吞掉后续独立步骤。
+拆分会增加 runner 总耗时；30 分钟是 job 上限；步骤上限合计 22 分钟，保留 8 分钟准备余量。它们均不是预计耗时。
 
 本次集成源在本地的两帧交付专项通过，约 1.18 秒；创建的三个受管句柄均已退出，原 PNG 帧和正式视频摘要已独立核对。
-这是小型编码与取消验收。新增 CI 步骤的实际 Linux 耗时及进程取消行为仍待 Actions 运行后核对。
+资源包上传的浏览器、原生 Blender 与退出观察已在本地完整入口中实际执行；记录见 [里程碑 §257](milestone-status.md#257-资源包上传稳定整合与完整验收)。新增 Linux 步骤的实际耗时、退出结果与原始证据以对应提交的 [Actions 运行](https://github.com/pearjelly/deep-blend/actions/workflows/ci.yml)为准，10 分钟步骤预算和 30 分钟 job 预算均需由这些运行持续核对。
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整长序列交付、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
@@ -117,6 +118,8 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `${{ runner.temp }}/deepblend-ci/render-selection-browser/` 与 `render-selection-browser.log`：浏览器请求、实际任务/计划/Blender 结果、PNG/MP4/清单、截图及取消与停机记录。
 - `${{ runner.temp }}/deepblend-ci/complete-frame-delivery/` 与 `complete-frame-delivery.log`：隔离 store、两张原始 PNG、前后任务记录、Host/编码器源摘要、FFmpeg 请求、编码器 PID、取消和退出结果及失败；此目录不能复用，重新运行须使用新的证据目录。
 - `${{ runner.temp }}/deepblend-ci/photography-browser/` 与 `photography-browser.log`：摄影请求和回执、前后图片、独立重开结果、固定像素对照、截图及停机结果。
+
+- `${{ runner.temp }}/deepblend-ci/asset-bundle-upload-browser/` 与 `asset-bundle-upload-browser.log`：FileList、原始文件/请求摘要、真实回包丢失记录、进度与错误截图、三格式源文件/PNG/场景和独立重开结果、隔离 DSH home 普通文件及链接清单、自有进程退出及前后源码摘要；失败证据不覆盖，重新运行需新目录。
 
 该 artifact 也保留运行时安装、软件图形和 FFmpeg/ffprobe 实际版本日志。
 

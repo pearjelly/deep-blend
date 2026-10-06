@@ -24,6 +24,7 @@
 分别展示技术测量与有图片依据的美术判断，上传素材后需要保存目标才会参与评审。
 在[素材库](deepblend/docs/assets.md)中上传 GLB、PNG/JPEG 或 HDR/EXR，先查看实际预览，
 再插入模型、绑定图片材质或应用环境照明。模型插入默认保留原始材质和部件关系。
+带外部贴图或缓冲区的 glTF、GLB、OBJ 可选择多个文件或整个目录导入，明确选择模型入口并保留相对路径。
 通过[固定视角检查](deepblend/docs/inspection.md)分别观察灰模与材质效果，按创作引导定位和修改问题。
 内容作者可使用[公共 SDK](deepblend/docs/public-api.md)的 JavaScript/TypeScript 接口和版本化 Schema；
 [独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁，也可对自己的配方目录生成只读验证报告。
@@ -143,7 +144,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         121 个 *.test.mjs
+    contract/         123 个 *.test.mjs
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -202,7 +203,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 23/121 file(s) passed
+DeepBlend tests: 23/123 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -262,12 +263,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**34 个套件、154 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**121 个文件 = 1954 项自计断言（34 个文件打印计数）+ 1302 个 `node:test` 用例（87 个文件）**。
+预期：**35 个套件、157 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**123 个文件 = 1954 项自计断言（34 个文件打印计数）+ 1362 个 `node:test` 用例（89 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前快照取自最终整合源码一次连续通过的完整入口 v5（34/34）；此前环境路径失败及复验记录见 `deepblend/docs/milestone-status.md`。
+**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前快照来自 2026-10-06 资源包上传整合的连续完整验收，包含新增浏览器与原生上传专项。源码冻结、运行结果和验证边界见 `deepblend/docs/milestone-status.md` §257。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
@@ -578,7 +579,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 34 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 35 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、
