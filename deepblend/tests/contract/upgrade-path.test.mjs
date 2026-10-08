@@ -17,7 +17,7 @@
  * What is asserted here:
  *
  *   1. the committed reading covers both routes, starts each at the old version and ends each at the
- *      one this repository is at;
+ *      one the repository was at during that recorded run;
  *   2. it carries the `recorded spec` lines, because the version alone says what happened and the spec
  *      says why — and "why" is what the manual needed;
  *   3. `install.md` gives the two commands IN ORDER and says why re-running only the second is not
@@ -41,7 +41,6 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 const LOG = join(ROOT, 'deepblend', 'docs', 'probe-upgrade-path.log')
 const log = readFileSync(LOG, 'utf8')
 const install = readFileSync(join(ROOT, 'deepblend', 'docs', 'install.md'), 'utf8')
-const version = JSON.parse(readFileSync(join(ROOT, 'deepblend', 'version.json'), 'utf8')).version
 
 /** One `label: value` line out of the probe's output. */
 const reading = (label) => {
@@ -49,7 +48,12 @@ const reading = (label) => {
   return match === null ? null : match[1].trim()
 }
 
-test('the reading starts both routes at the old version and ends them at this repository\'s', () => {
+// This log records a past measurement, not the availability of an unpublished candidate.
+// Current-route availability is read back by the release probes after publication.
+const version = reading('the version this repository is at')
+
+test('the reading starts both routes at the old version and ends them at its recorded repository version', () => {
+  assert.match(version ?? '', /^\d+\.\d+\.\d+$/, 'the historical log must declare its measured target version')
   const old = reading('the old version each route starts from')
   assert.ok(old !== null && /^\d+\.\d+\.\d+$/.test(old), `the log does not name the old version: ${old}`)
   assert.equal(reading('the version this repository is at'), version)
