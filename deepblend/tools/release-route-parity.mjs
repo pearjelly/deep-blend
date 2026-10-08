@@ -24,7 +24,7 @@
  *                         CURRENT version has, so a stale artifact answers 404 while claiming an old
  *                         version honestly.
  *   presets deployed      the same preset ids, byte-identical to `deepblend/presets/`.
- *   packages pnpm fetched AND ONE READING THAT MUST DIFFER: 7 / 7 / 1. The tarball carries its
+ *   packages pnpm fetched AND ONE READING THAT MUST DIFFER: at least 7 / at least 7 / exactly 1. Ordinary dependencies may add fetches; the tarball carries its
  *                         siblings inside the artifact; the other two resolve them. Asserting the
  *                         difference is what stops "they agree" from meaning "nothing was measured".
  *
