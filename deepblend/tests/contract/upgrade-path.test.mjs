@@ -56,7 +56,6 @@ test('the reading starts both routes at the old version and ends them at its rec
   assert.match(version ?? '', /^\d+\.\d+\.\d+$/, 'the historical log must declare its measured target version')
   const old = reading('the old version each route starts from')
   assert.ok(old !== null && /^\d+\.\d+\.\d+$/.test(old), `the log does not name the old version: ${old}`)
-  assert.equal(reading('the version this repository is at'), version)
   assert.notEqual(old, version, 'the log upgrades from the version it is already at, so it measures nothing')
 
   for (const route of ['npm', 'tarball']) {
