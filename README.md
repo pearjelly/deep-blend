@@ -2,7 +2,7 @@
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
-> A Blender 3D animation workbench for **DeepSeek Harness** (`dsh`).
+> Create, refine and render Blender product scenes inside **DeepSeek Harness** (`dsh`).
 > **SceneSpec is the source of truth; `.blend` is a compiled artifact.**
 
 **English** | [中文](README.zh.md)
@@ -22,7 +22,25 @@ Use the [asset library](deepblend/docs/assets.md) to upload local GLB, PNG/JPEG 
 or a glTF/GLB/OBJ model bundle with its dependencies. Preview the asset, then insert a model,
 bind a texture or set environment lighting. Model imports preserve source materials.
 
+## Start with a creation you can follow
+
+The [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) takes you from a recipe to a
+saved result: change its height, compare clay views, adjust the glaze and key light, then deliver
+one frame. It includes the actual before/after renders and the remaining handle-root limitation.
+
+**New in [0.3.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.0):** product recipes and
+object editing, an asset library with browser model bundles, camera and light editing, fixed-view
+inspection history, render recovery with frame provenance, and a typed public authoring SDK.
+
 ## Install
+
+Recommended — the published npm package:
+
+```sh
+dsh plugin --profile web add @deepblend/dsh-blender-bundle
+```
+
+Or use the current source tree:
 
 ```sh
 dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'

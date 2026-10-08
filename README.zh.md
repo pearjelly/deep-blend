@@ -30,6 +30,18 @@
 [独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁，也可对自己的配方目录生成只读验证报告。
 本轮[作品质量与开放生态改进](deepblend/docs/improvement-plan.md)记录完整范围、实际验证和剩余工作。
 
+## 从一次完整创作开始
+
+跟着[青釉杯图文教程](deepblend/docs/creator-tutorial.md)，从配方创建杯子，调整高度，
+对照真实灰模，再分别修改釉面与主灯，最后交付一帧。教程保留原始图片和仍需改进的杯柄根部。
+
+**[0.3.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.0) 已将近期能力纳入正式包：**
+作品配方与对象编辑、素材库及浏览器模型资源包导入、相机与灯光编辑、固定视角检查历史、
+带逐帧来源的渲染恢复，以及公共作者 SDK。
+
+推荐通过 `dsh plugin --profile web add @deepblend/dsh-blender-bundle` 安装，
+环境要求与配置步骤见[安装指南](deepblend/docs/install.md)。
+
 ## 看一眼
 
 下面三张图不是画出来的，是**从跑着的产品里截出来的**：一个真实的 `dsh web`、一个真实的

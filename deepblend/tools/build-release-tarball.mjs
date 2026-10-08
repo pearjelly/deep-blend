@@ -65,7 +65,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
@@ -462,6 +462,15 @@ function check() {
   return failures === 0 ? 0 : 1
 }
 
+/** Copy bundle sources into the release stage, including declared directory entrypoints. */
+export function stageBundleFiles(source, stage) {
+  for (const name of readdirSync(source)) {
+    if (name === 'node_modules') continue
+    const from = join(source, name)
+    cpSync(from, join(stage, name), { recursive: true })
+  }
+}
+
 /** Build the artifact. */
 function build(allowDirty) {
   const commit = releaseCommit(allowDirty)
@@ -480,11 +489,7 @@ function build(allowDirty) {
 
   // 1. The bundle's own files, verbatim. The patch, the module and the manifest are the
   //    artifact; only the manifest is rewritten, and only to pin and to declare.
-  for (const name of readdirSync(BUNDLE)) {
-    if (name === 'node_modules') continue
-    const from = join(BUNDLE, name)
-    if (statSync(from).isFile()) copyFileSync(from, join(stage, name))
-  }
+  stageBundleFiles(BUNDLE, stage)
 
   const pinned = stagingManifest(manifest, packages, commit)
   writeFileSync(join(stage, 'package.json'), `${JSON.stringify(pinned, null, 2)}\n`)

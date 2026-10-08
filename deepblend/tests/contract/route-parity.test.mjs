@@ -97,7 +97,7 @@ test('routes that delivered different presets are reported', () => {
   assert.match(presets[0], /different presets/)
 })
 
-test('the committed reading says three routes were installed and read back', () => {
+test('the historical reading says three routes were installed and match its recorded version', () => {
   const routes = ['source', 'npm', 'tarball']
   for (const route of routes) {
     assert.match(log, new RegExp(`^── ${route}: `, 'm'), `the log has no section for the ${route} route`)
@@ -105,12 +105,16 @@ test('the committed reading says three routes were installed and read back', () 
   assert.match(log, /^problems: 0$/m, 'the committed reading reports problems')
   assert.match(log, /the three install routes serve the same product/, 'the log has no verdict line')
 
-  // The three versions agree, and they are the repository's — read out of the log rather than trusted.
+  // Historical evidence belongs to its recorded run. Fresh release verification is performed
+  // by release-route-parity.mjs against repositoryVersion(ROOT), after publication.
+  // Requiring an old log to match an unpublished version makes a version bump impossible to validate.
+  const recordedVersion = /^repository version: (\d+\.\d+\.\d+)$/m.exec(log)?.[1]
+  assert.ok(recordedVersion, 'the historical log does not declare a valid repository version')
   const served = [...log.matchAll(/^(source|npm|tarball) installed: (.+)$/gm)].map(match => match[2])
   assert.equal(served.length, 3, `the log reports ${served.length} installed version(s)`)
   assert.equal(new Set(served).size, 1, `the log's three routes disagree: ${served.join(' | ')}`)
-  assert.ok(served[0].endsWith(`@${version}`),
-    `the log says the routes serve ${served[0]}, and deepblend/version.json says ${version}`)
+  assert.ok(served[0].endsWith(`@${recordedVersion}`),
+    `the log says the routes serve ${served[0]}, and its recorded repository version says ${recordedVersion}`)
 
   // And the difference that proves the three really were different paths.
   assert.match(log, /^tarball packages pnpm fetched: 1$/m)

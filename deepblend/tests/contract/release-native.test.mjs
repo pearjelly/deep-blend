@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import {
   ASSET_NAME, NATIVE_RELEASE_TARGETS, RELEASE_ARCHITECTURES, inspectNativePayload,
-  packVerifiedRelease, stagingManifest, verifyNativeDirectory, verifyNativeTarball,
+  packVerifiedRelease, stagingManifest, stageBundleFiles, verifyNativeDirectory, verifyNativeTarball,
 } from '../../tools/build-release-tarball.mjs'
 
 const sharpVersion = '0.35.5'
@@ -192,7 +192,19 @@ test('the real npm pack path produces its public artifact only after both checks
     const output = join(root, 'output')
     mkdirSync(output)
     writeFixture(stage)
+    const bundle = join(root, 'bundle-source')
+    mkdirSync(join(bundle, 'lib'), { recursive: true })
+    writeFileSync(join(bundle, 'lib/index.js'), 'export const PATCH_FILE = "cordis.patch.yml";\n')
+    writeFileSync(join(bundle, 'README.zh.md'), '# 中文安装介绍\n')
+    // Existing stage dependencies must survive; dependencies in the source are never copied.
+    mkdirSync(join(bundle, 'node_modules/stray'), { recursive: true })
+    writeFileSync(join(bundle, 'node_modules/stray/secret.txt'), 'not part of the release')
+    stageBundleFiles(bundle, stage)
     const result = packVerifiedRelease(stage, output, options)
+    assert.ok(result.entries.includes('package/lib/index.js'), 'the declared bundle module entrypoint must ship')
+    assert.ok(result.entries.includes('package/README.zh.md'), 'the Chinese introduction must ship')
+    assert.equal(existsSync(join(stage, 'node_modules/stray')), false)
+
     assert.equal(result.artifact, join(output, ASSET_NAME))
     const report = JSON.parse(readFileSync(join(output, 'native-payload-verification.json')))
     assert.equal(report.artifactSha256, sha256(readFileSync(result.artifact)))
