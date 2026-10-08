@@ -16957,3 +16957,18 @@ B 最终 v4 的来源原生专项通过 15 项，总共生成五帧：混合任�
 运行前冻结 545 个源码文件，运行后逐项核对，全部摘要一致。私有原始记录位于 `.deepblend/quality/asset-upload-integration-r53-main/`：`full-v5.log`、`full-v5-result.json` 和 `full-v5-source-verification.json`；冻结清单 SHA-256 为 `533ad19460b5f0066bae3365856baa40e82823cbbe313ae8dbc892ad2715d07d`，归档 SHA-256 为 `279e2fbb67003b85168ee8c39c6fa0294cdba91d160cceacc81af1914e76a35a`。此前失败与中断记录均保留，本次通过由一轮完整运行独立得出。验收后只更新说明文档，并重新执行完整契约层；GitHub 的安装与 Linux 原生证据由相应提交的 Actions 保存。
 
 此次发布范围是浏览器资源包上传和文件选择上下文修复。资源准入候选、杯把手与材质试验继续独立保留，原工作区的 DSH RC 依赖修改也未混入。OS 文件对话框取消和成品美术质量未由此次功能验收证明。
+
+
+## 258. 0.3.0 正式发布与市场介绍更新
+
+2026-10-08：从 main 的近期产品能力准备 0.3.0，版本源与七个发布包同步。安装包中英文 README 改为先展示真实产品渲染、配方/模型起步、编辑/检查/交付流程与青釉杯教程；npm 元数据补充产品描述、主页和关键词。截图声明加入已有教程原始交付帧，未生成或替换作品图片。市场两种语言的短介绍继续从 listing-entry.yml 投影，实际工具数为 17。
+
+版本升级暴露两份历史安装日志被要求匹配尚未发布的新版本，已按其记录版本保留校验，未修改旧日志字节。预构建候选另发现缺少清单声明的 lib/index.js：复制步骤漏掉目录；真实 npm pack 用例先红后绿，最终产物包含并能导入原始模块入口与两份 README。修正后的完整契约本地通过 123/123 文件。产品包树与已通过三个 Linux CI job 的 c6913ce 相同，树摘要为 83980164cb996e2a254b7ada832e450e922e3084；最终构建/模块导入/PNG 与 JPEG 解码由实际包另行核对，不借源码 CI 声称所有 OS 成品执行通过。
+
+[正式 Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.0) 已公开，tag 指向 d1e68d26c301e62ba4fd71d699daec1dfea34932；安装包 71,728,581 字节，SHA256 为 62c719682e07c154cec10bfc3cef47260729ed338d58a09e888f3804c33f9e87，与 GitHub 资产 digest 一致。Release 同附 SHA256SUMS 和 native-payload-verification.json。四个目标的原生文件及随附许可已验证装入；实际成品解码在 macOS arm64 执行。
+
+npm 接收发布后存在实际读侧延迟：先确认 contracts 可读，再提交其他独立组件；六个依赖全部公开可读后提交 bundle，最后逐包读回七个 0.3.0。未把 HTTP 202 或 npm 命令成功当作公开可安装证明。
+
+从公开源码、npm 和 latest Release 三条入口分别在新的 profile/store 安装，均读回 0.3.0、工作台 HTTP 200 与字节匹配的两套预设，比较结果 problems: 0。原始汇总见 [发布安装读回](probe-release-0.3.0.log)。源码/npm 各实际取回 13 个包，预构建入口恰好为 1；新增 sharp 等传递依赖使旧固定 7 的比较误拒绝，已通过先红后绿回归改为源码/npm 至少包含 7 个自有包，tarball 仍严格为 1。版本及工作台/预设条件保持。
+
+[市场更新 PR #6868](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6868) 只修改自己的既有 YAML 条目，格式检查与提交门禁通过；截至本次发布记录仍等待上游合并及网站 README/截图缓存刷新。自有仓库已更新不等于线上市场详情已刷新。真人采用、外部作者复用和成品美术效果保持原有验收边界。

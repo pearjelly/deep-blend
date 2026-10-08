@@ -244,8 +244,8 @@ npm run release:parity      # 三条路线各装一次，然后把三份读数**
 所以它们**可以**不一致 ✓，而不一致的方式是安静的 ✓：每一条都成功地报告了一个不同的产品 ✓。
 `release-route-parity.mjs` 读回来的判据是四条 ✓：三条的 `installed version` **互相相同** ✓
 **且**等于 `deepblend/version.json` ✓、三条的 `/deepblend/workbench` 都是 200 ✓、
-preset 相同 ✓，以及**一条必须不同的读数** ✓——`packages pnpm fetched` 是 7 / 7 / 1 ✓
-（tarball 把兄弟包装在产物里 ✓）。最后那条是防「一致」退化成「什么都没量」的 ✓。
+preset 相同 ✓，以及**一条必须不同的读数** ✓——`packages pnpm fetched` 对源码/npm 至少为 7，对 tarball 恰好为 1 ✓
+（源码/npm 至少取回 7 个自有包，还会取普通传递依赖；tarball 的总数仍必须恰好为 1 ✓）。最后那条是防「一致」退化成「什么都没量」的 ✓。
 
 想看它**真的会红** ✓：
 

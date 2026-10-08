@@ -19,7 +19,7 @@ import { join } from 'node:path'
 export const ROUTES = [
   { id: 'source', spec: 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle', fetched: '7' },
   { id: 'npm', spec: '@deepblend/dsh-blender-bundle', fetched: '7' },
-  { id: 'tarball', spec: 'https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz', fetched: '1' },
+  { id: 'tarball', spec: 'https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz', fetched: '1', bundled: true },
 ]
 
 /** The label a probe line carries, and the reading a caller should pull out of it. */
@@ -61,7 +61,7 @@ export function repositoryVersion(root) {
  * every mutation of this logic a network operation; `contract/route-parity.test.mjs` drives it with
  * readings instead, which is what lets the negative controls run in milliseconds.
  *
- * @param {{ readings: Array<{id: string, version: string|null, workbench: string|null, fetched: string|null, presets: string|null, verdict: string|null}>, routes: Array<{id: string, fetched: string}>, expected: string }} input
+ * @param {{ readings: Array<{id: string, version: string|null, workbench: string|null, fetched: string|null, presets: string|null, verdict: string|null}>, routes: Array<{id: string, fetched: string, bundled?: boolean}>, expected: string }} input
  * @returns {{ lines: string[], problems: string[] }}
  */
 export function compareRoutes({ readings, routes, expected }) {
@@ -104,9 +104,14 @@ export function compareRoutes({ readings, routes, expected }) {
   // that all measured nothing; the tarball route is the one that carries its siblings, and the count
   // is how a reader can see the three really were different paths to the same product.
   for (const entry of readings) {
-    const wanted = routes.find(route => route.id === entry.id)?.fetched
-    if (entry.fetched !== wanted) {
-      problems.push(`${entry.id} fetched ${entry.fetched ?? '(nothing)'} package(s), and this route is expected to fetch ${wanted}`)
+    const route = routes.find(route => route.id === entry.id)
+    const wanted = route?.fetched
+    // Source/npm also fetch ordinary transitive dependencies such as sharp; the bundle
+    // must remain exactly one self-contained artifact. Never accept a missing/non-integer reading.
+    const validCount = /^\d+$/.test(entry.fetched ?? '')
+      && (route?.bundled ? entry.fetched === wanted : Number(entry.fetched) >= Number(wanted))
+    if (!validCount) {
+      problems.push(`${entry.id} fetched ${entry.fetched ?? '(nothing)'} package(s), and this route is expected to fetch ${route?.bundled ? '' : 'at least '}${wanted}`)
     } else {
       say(`${entry.id} packages pnpm fetched`, entry.fetched)
     }

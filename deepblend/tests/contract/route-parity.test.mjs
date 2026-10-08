@@ -81,6 +81,10 @@ test('a route whose workbench route does not answer is reported, by route', () =
 })
 
 test('the count that must DIFFER is checked too, in both directions', () => {
+  // Native image dependencies make fresh source/npm installs larger than the seven own packages.
+  assert.deepEqual(problemsOf(readings({ source: { fetched: '13' }, npm: { fetched: '13' } })), [])
+  assert.equal(problemsOf(readings({ source: { fetched: '(not reported)' } })).length, 1)
+
   // If every reading had to be identical, a run that measured nothing would pass. The tarball route
   // carries its siblings; the others resolve them.
   const allSeven = problemsOf(readings({ tarball: { fetched: '7' } }))
