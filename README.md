@@ -32,7 +32,8 @@ Restart an already running `dsh web` after installation. In a new session, choos
 preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
 
 **First time setting up Blender or DSH?** Follow the [English / Chinese quick-start guide](deepblend/docs/quick-start.md).
-FFmpeg and ffprobe are needed when encoding an MP4; you can create and render scenes before adding them.
+FFmpeg and ffprobe are needed when encoding an MP4. Install them with `brew install ffmpeg` on macOS,
+`sudo apt install ffmpeg` on Debian/Ubuntu, or `winget install ffmpeg` on Windows. You can create and render scenes before adding them.
 
 <details>
 <summary><strong>Other install paths and upgrading an existing installation</strong></summary>
@@ -188,6 +189,10 @@ The managed Blender download targets macOS arm64; other platforms require their 
 CI also checks selected Linux x64 paths. Actual coverage and open artistic/user-adoption work are recorded in the [acceptance register](deepblend/docs/milestone-status.md).
 
 </details>
+
+Blender's upstream Linux download is `linux-x64`; Linux arm64 needs a distribution package or a self-built Blender.
+The repository's managed installer targets macOS arm64. See the [platform details](deepblend/docs/install.md#0-前提)
+for executable paths and the limits of cross-platform validation.
 
 ## For contributors
 
