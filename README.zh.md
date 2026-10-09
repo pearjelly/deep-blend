@@ -31,7 +31,7 @@ dsh web
 已运行的 `dsh web` 需要重启。在新会话中选择 **DeepBlend Studio** 预设，从侧栏打开 **Blender** 工作台。
 安装会同时加入工作台与智能体预设。
 
-**第一次配置环境？** 先看[中英文快速上手](deepblend/docs/quick-start.md#中文)。
+**第一次配置环境？** 先看[中英文快速上手](deepblend/docs/quick-start.md)。
 输出 MP4 另需 FFmpeg 和 ffprobe；创建场景和渲染图片可以先做。
 
 <details>
@@ -84,7 +84,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | 从哪里开始 | 适合做什么 | 继续阅读 |
 | --- | --- | --- |
 | **工作台创作** | 从配方或模型开始，直接改尺寸、材质、相机和灯光 | [工作台指南](deepblend/docs/usage.md) |
-| **与智能体协作** | 描述场景，查看预览，分步骤修改，再决定是否交付 | [智能体上手](deepblend/docs/quick-start.md#与智能体协作) |
+| **与智能体协作** | 描述场景，查看预览，分步骤修改，再决定是否交付 | [智能体上手](deepblend/docs/quick-start.md#work-with-an-agent) |
 | **创作配方与工具** | 通过公共 SDK 校验场景、编写配方或集成内容工具 | [公共作者 SDK](deepblend/docs/public-api.md) |
 
 不必先记住全部工具。可以先用配方和工作台控件完成一次创作，再让 DeepBlend Studio 智能体协助修改。
@@ -141,7 +141,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 
 | 我想…… | 从这里看 |
 | --- | --- |
-| 安装、配置 Blender 或更新插件 | [快速上手](deepblend/docs/quick-start.md#中文) · [安装与自检](deepblend/docs/install.md) |
+| 安装、配置 Blender 或更新插件 | [快速上手](deepblend/docs/quick-start.md) · [安装与自检](deepblend/docs/install.md) |
 | 完成第一次创作 | [青釉杯教程](deepblend/docs/creator-tutorial.md) |
 | 导入自己的模型与贴图 | [素材库](deepblend/docs/assets.md) |
 | 调整造型、相机与灯光 | [建模指南](deepblend/docs/modeling.md) · [摄影编辑](deepblend/docs/photography-editor.md) |
