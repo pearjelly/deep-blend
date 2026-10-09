@@ -36,16 +36,16 @@
         "path": "revisions/r0002/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "bd9ff2a2c6a1f9b3a7e8e5a06fa2555796801c0137a09743d9bb3c9e7427c862",
-        "bytes": 2241982
+        "sha256": "c6d40acc3a1ca0d64ba168b027b2e45fbc46c97851a6ed107eec4261680854c9",
+        "bytes": 2244694
       },
       {
         "revision": "r0003",
         "path": "revisions/r0003/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "c5c383751f2b244beb8e641734f532f27f3052c82a5fb09f14f0838406dc0655",
-        "bytes": 2114918
+        "sha256": "83408e99012c1dcf0faf7398278a172c6d8520a061f69a90bfd3f672d6aa40f8",
+        "bytes": 2115246
       }
     ]
   },
@@ -56,17 +56,17 @@
       "note": "the Preview view comparing actual r0002/r0003 renders, before/after the material refinement",
       "width": 3000,
       "height": 1900,
-      "bytes": 1206964,
-      "sha256": "72ce8b6492db65f2ea591d012580f3ea93859d3c110fe728526eca061b718533"
+      "bytes": 1173375,
+      "sha256": "f1773fecf1dc3a25ef9662ae6c79c65f0302a2fed5b2c2aa6b4ef8da8b6d77a5"
     },
     {
       "file": "workbench-scene.png",
       "kind": "workbench-scene",
-      "note": "the workbench: the project header with its current revision, and the Scene tree the Host serves",
+      "note": "the dark workbench: saved revision, scene contents and selected monolith editor, all served by the Host",
       "width": 3000,
       "height": 1900,
-      "bytes": 421476,
-      "sha256": "b199c40bbd84a4fae6d297ac60319780665622c408090869fc74630c17c3d67a"
+      "bytes": 397116,
+      "sha256": "c40e3d1765e4b41062d69c2c0ce9727b4ae196e390e4a3565c77039ca250f8e2"
     },
     {
       "file": "render-contact-sheet.png",
@@ -74,8 +74,8 @@
       "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
       "width": 1476,
       "height": 906,
-      "bytes": 625337,
-      "sha256": "c3e05e58ff08de11fc31f972cb77926eb011ab0eb775906e4a7bcc347a661dde"
+      "bytes": 625202,
+      "sha256": "f893b2068f89eb9059cc0dd52665e938ecdae536bb24ea415ea58781b19ae0aa"
     }
   ]
 }

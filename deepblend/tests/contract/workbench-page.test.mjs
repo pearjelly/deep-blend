@@ -633,6 +633,37 @@ if (core !== undefined) {
 
 // ---------------------------------------------------------------------------
 
+// Appearance preferences must survive a reload without altering project state or needing storage access.
+{
+  const preferences = new Map([['deepblend.workbench.appearance', 'unknown-mode']])
+  let requests = 0
+  const storage = { getItem: key => preferences.get(key), setItem: (key, value) => preferences.set(key, value) }
+  const local = core.createWorkbenchStore({ preferenceStorage: storage, fetch: () => { requests += 1; throw new Error('appearance must not request a Host write') } })
+  check('an invalid saved appearance falls back to the system mode', local.getState().appearance === 'system')
+  const projectBefore = JSON.stringify({ selected: local.getState().selected, projects: local.getState().projects, forms: local.getState().forms })
+  local.actions.setAppearance('dark')
+  check('changing appearance updates the shared snapshot and persists for the next mount',
+    local.getState().appearance === 'dark' && preferences.get('deepblend.workbench.appearance') === 'dark')
+  local.actions.setAppearance('invalid-mode')
+  check('an unknown appearance cannot replace the current preference', local.getState().appearance === 'dark')
+  const remounted = core.createWorkbenchStore({ preferenceStorage: storage })
+  check('a fresh mount reads the saved appearance', remounted.getState().appearance === 'dark')
+  const denied = core.createWorkbenchStore({ preferenceStorage: { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } } })
+  denied.actions.setAppearance('light')
+  check('blocked preference storage does not prevent changing the live appearance', denied.getState().appearance === 'light')
+  check('appearance changes do not write to the Host or change any project data', requests === 0
+    && projectBefore === JSON.stringify({ selected: local.getState().selected, projects: local.getState().projects, forms: local.getState().forms }))
+  const snapshot = { ...local.getState(), status: 'ok', notices: { ...local.getState().notices, projects: { ok: true, message: 'Saved project' } } }
+  const page = domShape(core.toDom(core.buildWorkbenchView(snapshot, local.actions), createDocumentRecorder()))
+  const consoleView = reactShape(renderTree(core.toReact(core.buildWorkbenchView(snapshot, local.actions), makeReactStub().createElement)))
+  check('a saved dark appearance produces the same content and controls on both workbench faces', isDeepStrictEqual(page, consoleView)
+    && attrsNamed(page, 'data-theme').includes('dark'))
+  check('the active navigation destination is exposed once to assistive technology',
+    attrsNamed(page, 'aria-current').length === 1 && attrsNamed(page, 'aria-current')[0] === 'page')
+  check('successful action feedback is announced without moving focus', attrsNamed(page, 'role').includes('status')
+    && attrsNamed(page, 'aria-live').includes('polite'))
+}
+
 const failed = results.filter(entry => !entry.ok)
 console.log(`\nstandalone workbench contract: ${results.length - failed.length}/${results.length} check(s) passed`)
 if (failed.length > 0) {
