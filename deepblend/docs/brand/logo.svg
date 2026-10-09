@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="DeepBlend Studio logo">
+  <title>DeepBlend Studio</title>
+  <defs>
+    <linearGradient id="mark" x1="0.1" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFC078"/>
+      <stop offset="0.45" stop-color="#F2802A"/>
+      <stop offset="1" stop-color="#C85C08"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#mark)"/>
+  <g stroke="#FFFFFF" stroke-width="11" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M256 106 L386 181 L386 331 L256 406 L126 331 L126 181 Z" fill="#FFFFFF" fill-opacity="0.14"/>
+    <path d="M256 106 L386 181 L256 256 L126 181 Z" fill="#FFFFFF" fill-opacity="0.34" stroke="none"/>
+    <path d="M256 256 L126 181 L126 331 L256 406 Z" fill="#7A3200" fill-opacity="0.16" stroke="none"/>
+    <path d="M256 256 L386 181 L386 331 L256 406 Z" fill="#5C2400" fill-opacity="0.22" stroke="none"/>
+    <path d="M256 106 L386 181 L386 331 L256 406 L126 331 L126 181 Z" fill="none" opacity="0.93"/>
+    <path d="M256 256 L256 106 M256 256 L386 331 M256 256 L126 331" fill="none" opacity="0.93"/>
+  </g>
+</svg>

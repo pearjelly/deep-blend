@@ -1,5 +1,9 @@
 # DeepBlend Studio
 
+![DeepBlend Studio — Create. Refine. Render. Workflow illustration](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.1/deepblend/docs/brand/banner.png)
+
+[![npm](https://img.shields.io/npm/v/@deepblend/dsh-blender-bundle?color=ef7f30)](https://www.npmjs.com/package/@deepblend/dsh-blender-bundle) [![License: MIT](https://img.shields.io/badge/License-MIT-9baec9)](https://github.com/pearjelly/deep-blend/blob/main/LICENSE)
+
 **在 DSH 里创建产品场景，调整造型、材质和灯光，再用 Blender 渲染交付。**
 
 从台灯、玻璃陶瓷、音箱或带把手杯的作品配方开始，也可以导入自己的模型。
@@ -48,7 +52,7 @@ dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepble
 重启 `dsh web`，在新会话中选择 **DeepBlend Studio** 预设，然后从侧栏打开 Blender 工作台。
 需要 Node.js **22.23.3 或更新版本**、DSH **0.1.5-rc.2**、Blender **5.2.1**；MP4 交付另需 FFmpeg 和 ffprobe。
 macOS arm64 可使用受管 Blender 安装器，其他平台需自行安装并配置 `blenderPath`。
-完整步骤见[安装指南](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/install.md)。
+完整步骤见[安装指南](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md)。
 
 ## 第一次创作，跟着青釉杯教程做
 
@@ -66,3 +70,14 @@ macOS arm64 可使用受管 Blender 安装器，其他平台需自行安装并�
 · [内容创作指南](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/recipes.md)
 · [公共 SDK](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/public-api.md)
 · [完整中文文档](https://github.com/pearjelly/deep-blend/blob/main/README.zh.md)
+
+## 0.3.1：更容易开始
+
+统一品牌素材、重新组织首页、新增快速开始和按任务浏览的文档入口，安装包也同步更新介绍。
+场景工具与运行行为沿用 0.3.0。[变更记录](https://github.com/pearjelly/deep-blend/blob/main/CHANGELOG.md)。
+
+[导入素材](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets.md)
+· [修改造型](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/modeling.md)
+· [调整摄影](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.md)
+· [文档导航](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md)
+· [反馈问题或需求](https://github.com/pearjelly/deep-blend/issues)

@@ -1,90 +1,191 @@
 # DeepBlend Studio
 
+![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
+
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
-> 基于 **DSH 创造模式 + DeepSeek-Flash** 的 Blender 3D 动画 Agent 工作台
-> 主规格：`SPEC.md`（V2.0）　逐里程碑的结论与验收数字：`deepblend/docs/milestone-status.md`
+<p align="center">
+<strong>在 DSH 里，把产品场景做出来。</strong><br>
+从作品配方或自己的模型开始，调整造型、材质和灯光，用真实渲染判断效果，再交付结果。
+</p>
 
-[English](README.md) | **中文**
+<p align="center">
+<a href="https://www.npmjs.com/package/@deepblend/dsh-blender-bundle"><img src="https://img.shields.io/npm/v/@deepblend/dsh-blender-bundle?style=flat-square&amp;label=npm&amp;color=EC721F" alt="最新 npm 版本"></a>
+<a href="https://github.com/pearjelly/deep-blend/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pearjelly/deep-blend/ci.yml?branch=main&amp;style=flat-square&amp;label=CI" alt="主线 CI 状态"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-697B96?style=flat-square" alt="MIT 许可"></a>
+</p>
 
-> **这份文档是详细的那一份**，也是全部检查盯着的那一份：套件数、文件数、断言总数、
-> 以及每条被引用的命令输出，都由 `deepblend/tests/contract/` 里的契约套件对着代码比对。
-> [`README.md`](README.md) 是给插件市场读者的英文入口，它只写「是什么、怎么装、去哪儿看」，
-> 不复述这里的数字。
+[English](README.md) · **简体中文**
 
----
+[安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-工作台现可从四组[作品配方](deepblend/docs/recipes.md)开始：选择真实作品、调整颜色/粗糙度/曝光，
-创建后直接查看实际预览。模型也可通过 `blender_recipe_list` 发现同一批配方。每个项目保留
-配方版本、作者许可、输入摘要和实际参数；新金属材质支持明确方向的各向异性反射。
-新增[带把手杯体](deepblend/docs/modeling.md#连为一体的带把手杯体)生成器，杯壁、根部和把手在同一闭合网格中，尺寸与连接细节可编辑。
-创建后可以在[对象编辑面板](deepblend/docs/usage.md#41-调整已有对象)调整轮廓、倒角、阵列和局部材质，
-应用后查看真实预览，并在版本未被其他编辑改变时恢复整个场景。
-还可保存最多四张[参考图片](deepblend/docs/reference-images.md)与本版本目标；评审读取固定的项目资产，
-分别展示技术测量与有图片依据的美术判断，上传素材后需要保存目标才会参与评审。
-在[素材库](deepblend/docs/assets.md)中上传 GLB、PNG/JPEG 或 HDR/EXR，先查看实际预览，
-再插入模型、绑定图片材质或应用环境照明。模型插入默认保留原始材质和部件关系。
-带外部贴图或缓冲区的 glTF、GLB、OBJ 可选择多个文件或整个目录导入，明确选择模型入口并保留相对路径。
-通过[固定视角检查](deepblend/docs/inspection.md)分别观察灰模与材质效果，按创作引导定位和修改问题。
-内容作者可使用[公共 SDK](deepblend/docs/public-api.md)的 JavaScript/TypeScript 接口和版本化 Schema；
-[独立示例](deepblend/examples/content-author/README.md)演示校验、编译与补丁，也可对自己的配方目录生成只读验证报告。
-本轮[作品质量与开放生态改进](deepblend/docs/improvement-plan.md)记录完整范围、实际验证和剩余工作。
+## 安装并开始
 
-## 从一次完整创作开始
-
-跟着[青釉杯图文教程](deepblend/docs/creator-tutorial.md)，从配方创建杯子，调整高度，
-对照真实灰模，再分别修改釉面与主灯，最后交付一帧。教程保留原始图片和仍需改进的杯柄根部。
-
-**[0.3.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.0) 已将近期能力纳入正式包：**
-作品配方与对象编辑、素材库及浏览器模型资源包导入、相机与灯光编辑、固定视角检查历史、
-带逐帧来源的渲染恢复，以及公共作者 SDK。
-
-推荐通过 `dsh plugin --profile web add @deepblend/dsh-blender-bundle` 安装，
-环境要求与配置步骤见[安装指南](deepblend/docs/install.md)。
-
-## 看一眼
-
-下面三张图不是画出来的，是**从跑着的产品里截出来的**：一个真实的 `dsh web`、一个真实的
-Chrome、一份真实的 Blender，项目由**点**工作台上的控件建起来（和 `usage.md` 教的是同一批
-控件）。生成它们的工具是 `deepblend/tools/capture-docs-images.mjs`（`npm run docs:images`），
-重跑它就能更新这三张图；`contract/docs-images.test.mjs` 盯着它们是否还在、是否还是截图。
-
-工作台：项目头 + 当前 revision，以及 Host 现算的场景树。
-
-![Blender 工作台：项目名、当前 revision r0003、六个视图页签，以及实体/材质/灯光/相机/镜头/动画轨道六张场景卡片](deepblend/docs/images/workbench-scene.png)
-
-预览对比：一次预览渲七个视角合成一张 contact sheet；改一次材质再渲一次，左右就是
-`r0002` 与 `r0003` 的实际渲染，各自带自己的 digest 与渲染时间；源场景与实际图片摘要记录在截图清单。
-
-![预览对比：两张 contact sheet 并排，左为 r0002、右为 r0003 的实际材质修改前后，各自带 digest 与时间戳](deepblend/docs/images/preview-compare.png)
-
-上面那次渲染的产物本身 —— 七个视角（主动相机在动画的四个采样帧，加上四分之三、俯视、特写
-三个机位）拼成的一张图：
-
-![Blender 渲出的 contact sheet：七格，四格是主动相机在动画不同帧的画面，另外三格是另外三个机位](deepblend/docs/images/render-contact-sheet.png)
-
----
-
-## 作品质量基准
-
-[金属台灯、玻璃陶瓷和模块化音箱](deepblend/docs/quality-benchmarks.md)有可重建的 SceneSpec、设计目标和几何检查。
-| 金属台灯 | 玻璃与陶瓷 | 桌面音箱 |
-|---|---|---|
-| ![真实渲染：带卷边和弯臂的金属台灯](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![真实渲染：厚壁玻璃空瓶与青釉陶瓷托盘](deepblend/benchmarks/previews/glass-ceramic-hero.png) | ![真实渲染：编织格栅、滚花旋钮与圆角外壳音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) |
-
-以上图片为未后期修改的 Cycles 输出；输入与产物摘要见 [预览记录](deepblend/benchmarks/previews/manifest.json)。
-
-统一输出三视角、细节、灰模、简化消融对照及真实动画；记录源文件、设备、耗时和产物摘要。
-技术通过后仍需审阅画面，对照不代表历史版本表现。
+准备好 **Node.js 22.23.3 或更新版本**、**DSH 0.1.5-rc.2**、**pnpm** 和 **Blender 5.2.1** 后：
 
 ```sh
-npm run quality:check
-npm run quality:render -- --tier final
+dsh plugin --profile web add @deepblend/dsh-blender-bundle
+dsh web
 ```
 
-需先完成下文开发环境与 Blender 安装；动画编码使用 FFmpeg。输出保存在本地忽略目录 `.deepblend/quality/benchmarks/`。
+已运行的 `dsh web` 需要重启。在新会话中选择 **DeepBlend Studio** 预设，从侧栏打开 **Blender** 工作台。
+安装会同时加入工作台与智能体预设。
 
----
+**第一次配置环境？** 先看[中英文快速上手](deepblend/docs/quick-start.md)。
+输出 MP4 另需 FFmpeg 和 ffprobe；创建场景和渲染图片可以先做。
+
+<details>
+<summary><strong>预构建包、源码安装与已有版本升级</strong></summary>
+
+预构建包：
+
+```sh
+dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+```
+
+当前源码：
+
+```sh
+dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+```
+
+所有路线都需要 pnpm 在 PATH 中。源码路线若提示构建授权，按 DSH 给出的具体提示处理。
+升级已有安装时，先移除旧注册再添加，并重启 `dsh web`：
+
+```sh
+dsh plugin --profile web remove @deepblend/dsh-blender-bundle
+dsh plugin --profile web add @deepblend/dsh-blender-bundle
+```
+
+配置、存储与升级细节见[安装指南](deepblend/docs/install.md)。
+
+</details>
+
+## 从具体作品起步
+
+下面是**真实 Blender 渲染**。台灯、玻璃陶瓷和音箱有[可重建输入与来源记录](deepblend/benchmarks/previews/manifest.json)，
+杯子图片来自[青釉杯教程的实际交付](deepblend/docs/assets/creator-tutorial/manifest.json)。
+
+| 金属台灯 | 玻璃陶瓷 |
+| --- | --- |
+| ![Cycles 实际渲染的金属台灯](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Cycles 实际渲染的空心玻璃瓶与陶瓷托盘](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
+| **桌面音箱** | **青釉带把手杯** |
+| ![Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+
+在[作品配方](deepblend/docs/recipes.md)中选起点，调整颜色、粗糙度和曝光，创建后直接看实际预览。
+也可以导入自己的 glTF、GLB、OBJ 模型和外部贴图。
+
+**跟做一次完整创作：** [青釉杯图文教程](deepblend/docs/creator-tutorial.md)带你改高度、对照灰模、
+分别调整釉面与主灯，最后输出一帧。杯柄根部仍有可见凸起，教程保留了这个问题。
+该配方没有动画轨道，增加帧数不会自动生成转台运动。
+
+## 选择你的使用方式
+
+| 从哪里开始 | 适合做什么 | 继续阅读 |
+| --- | --- | --- |
+| **工作台创作** | 从配方或模型开始，直接改尺寸、材质、相机和灯光 | [工作台指南](deepblend/docs/usage.md) |
+| **与智能体协作** | 描述场景，查看预览，分步骤修改，再决定是否交付 | [智能体上手](deepblend/docs/quick-start.md#work-with-an-agent) |
+| **创作配方与工具** | 通过公共 SDK 校验场景、编写配方或集成内容工具 | [公共作者 SDK](deepblend/docs/public-api.md) |
+
+不必先记住全部工具。可以先用配方和工作台控件完成一次创作，再让 DeepBlend Studio 智能体协助修改。
+
+在使用 DeepBlend Studio 预设的会话中，可以这样开始：
+
+> 列出可用作品配方，先给我看青釉带把手杯及其参数，暂时不要创建。
+> 我选好数值后再创建预览；后续材质和灯光修改分别保存为独立版本。
+
+这是请求示例，不是实际运行记录。具体操作见[工具指南](deepblend/docs/tool-contracts.md)。
+
+## 从起点到保存的结果
+
+| 步骤 | 你可以做什么 | 能检查什么 |
+| --- | --- | --- |
+| **创建** | 使用配方，或上传模型资源包、纹理和环境图 | 配方版本、原始资源路径与来源字节 |
+| **调整** | 改造型、倒角、阵列、局部材质和表面纹理，调整摄影 | 每次采纳修改后的独立场景版本 |
+| **检查** | 对照预览，在固定相机与帧看材质图、灰模图和参考目标 | 实际图片、机位、帧号和渲染条件 |
+| **交付** | 输出 PNG 帧和 MP4，取消或续做任务 | 帧进度、实际设置与交付来源 |
+
+[素材库](deepblend/docs/assets.md) · [建模](deepblend/docs/modeling.md) · [摄影](deepblend/docs/photography-editor.md) · [固定视角检查](deepblend/docs/inspection.md) · [恢复](deepblend/docs/recovery.md)
+
+## 看看工作台
+
+以下图片来自运行中的 DSH 工作台、Chrome 与 Blender，由 `deepblend/tools/capture-docs-images.mjs` 捕获。
+它们是**产品截图与真实渲染**；首屏横幅是品牌流程示意。
+
+![实际 Blender 工作台中的项目、版本与场景控件](deepblend/docs/images/workbench-scene.png)
+
+<details>
+<summary><strong>查看版本预览对照与渲染拼图</strong></summary>
+
+对照的是两个保存版本的实际预览，来源场景与图片摘要记录在截图清单中。
+
+![带各自图片摘要与时间戳的实际修改前后预览](deepblend/docs/images/preview-compare.png)
+
+拼图包含动画采样帧与额外检查机位。
+
+![实际 Blender 七视角渲染拼图](deepblend/docs/images/render-contact-sheet.png)
+
+</details>
+
+## 让每次调整都有依据
+
+- **保留历史：** 采纳修改后形成不可变版本；恢复时移动当前指针，中间版本仍保留。
+- **按来源重建：** SceneSpec 是事实来源，`.blend` 是编译产物，场景与锁定资源可以重新构建。
+- **继续交付：** 检查磁盘上的真实帧，补渲缺失或损坏帧；帧齐时直接继续编码。
+- **明确预算：** 昂贵操作经过审批闸门，任务始终关联要渲染的场景版本。
+- **分开判断：** 技术测量与有图片依据的美术评审分别保留，分数上升不等于画面更好。
+
+[作品评审](deepblend/docs/artistic-review.md) · [恢复指南](deepblend/docs/recovery.md) · [安全控制](deepblend/docs/security.md)
+
+## 按任务找文档
+
+| 我想…… | 从这里看 |
+| --- | --- |
+| 安装、配置 Blender 或更新插件 | [快速上手](deepblend/docs/quick-start.md) · [安装与自检](deepblend/docs/install.md) |
+| 完成第一次创作 | [青釉杯教程](deepblend/docs/creator-tutorial.md) |
+| 导入自己的模型与贴图 | [素材库](deepblend/docs/assets.md) |
+| 调整造型、相机与灯光 | [建模指南](deepblend/docs/modeling.md) · [摄影编辑](deepblend/docs/photography-editor.md) |
+| 对照版本，定位粗糙的原因 | [固定视角检查](deepblend/docs/inspection.md) · [参考图片](deepblend/docs/reference-images.md) |
+| 续渲或恢复场景 | [故障恢复](deepblend/docs/recovery.md) |
+| 投稿配方或使用 SDK | [配方创作](deepblend/docs/recipes.md) · [公共 API](deepblend/docs/public-api.md) |
+| 贡献代码、复现证据或查看限制 | [贡献指南](CONTRIBUTING.md) · [验收记录](deepblend/docs/milestone-status.md) |
+
+完整入口见[文档导航](deepblend/docs/README.md)。
+
+## 开始前的几个问题
+
+<details>
+<summary><strong>第一次创作必须接入 AI 模型吗？</strong></summary>
+
+配方、工作台控件和本地渲染可以直接使用。与智能体对话、基于模型的视觉评审使用 DSH 中配置的模型。
+
+</details>
+
+<details>
+<summary><strong>项目保存在哪里？</strong></summary>
+
+普通安装默认使用 DSH home 下的项目目录。源码开发工具可以使用仓库内存储，切换配置前先看[存储说明](deepblend/docs/install.md)。
+
+</details>
+
+<details>
+<summary><strong>支持所有 Blender 编辑和所有平台吗？</strong></summary>
+
+建模能力以[受支持的生成器与编辑](deepblend/docs/modeling.md)为准。受管 Blender 下载面向 macOS arm64，
+其他平台自行安装与配置；CI 也覆盖部分 Linux x64 路径。具体覆盖与作品质量、真人采用等开放问题见[验收记录](deepblend/docs/milestone-status.md)。
+
+</details>
+
+## 版本与社区
+
+[最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [更新记录](CHANGELOG.md) · [报告问题或提出建议](https://github.com/pearjelly/deep-blend/issues/new/choose)
+
+**MIT** — [许可](LICENSE)。安全问题按[安全报告方式](SECURITY.md)提交；参与开发前阅读[贡献指南](CONTRIBUTING.md)。
+
+<details>
+<summary><strong>开发与验收参考：架构、工作区装配、完整测试和核心机制</strong></summary>
+
+下面保留可复现的开发说明与测量快照。普通使用者可以从上面的快速上手与操作指南开始。
 
 ## 这是什么
 
@@ -616,3 +717,6 @@ bash deepblend/tests/run-all.sh      # 35 个套件；上面「快速开始」�
 （`blender-integration/render-job.e2e.mjs`，以及逐行的 `probe-m3-delivery.log`）；
 以及一个真实 Chrome 里点击完成「建项目 → 改场景 → 渲预览 → 起渲染 → 取消」、
 刷新后从 Host 恢复同一个项目与 job（`e2e/ui.e2e.mjs`）。
+
+
+</details>

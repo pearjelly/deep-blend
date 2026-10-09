@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Create Blender product scenes in DSH with editable recipes, model imports, previews and PNG/MP4 delivery; includes workbench and agent configuration.",
   "main": "lib/index.js",
   "exports": {
@@ -13,7 +13,8 @@
     "lib",
     "cordis.patch.yml",
     "screenshots.json",
-    "README.zh.md"
+    "README.zh.md",
+    "assets"
   ],
   "dsh": {
     "bundle": {
@@ -32,9 +33,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pearjelly/deep-blend.git"
+    "url": "git+https://github.com/pearjelly/deep-blend.git",
+    "directory": "packages/deepblend/bundle"
   },
-  "homepage": "https://github.com/pearjelly/deep-blend#readme",
+  "homepage": "https://github.com/pearjelly/deep-blend#quick-start",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -43,5 +45,8 @@
     "product-visualization",
     "rendering",
     "agent"
-  ]
+  ],
+  "bugs": {
+    "url": "https://github.com/pearjelly/deep-blend/issues"
+  }
 }

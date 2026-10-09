@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1440 720" role="img" aria-labelledby="title description">
+<title id="title">DeepBlend Studio — Create. Refine. Render.</title>
+<desc id="description">Brand illustration of the creation workflow: create a scene, refine its shape and materials, review a Blender preview, and deliver frames. This is a workflow illustration, not a product screenshot.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101521"/><stop offset="1" stop-color="#080D16"/></linearGradient>
+ <linearGradient id="accent" x2="1" y2="1"><stop stop-color="#FFB568"/><stop offset="1" stop-color="#EC721F"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#F38231" stop-opacity=".12"/><stop offset="1" stop-color="#F38231" stop-opacity="0"/></radialGradient>
+ <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#202938" stroke-width=".5"/></pattern>
+ <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L6 4L1 7" fill="none" stroke="#8491A5" stroke-width="1.3"/></marker>
+ <style>text{font-family:Arial,Helvetica,sans-serif}.mono{font-family:Menlo,Consolas,monospace}.signal{animation:pulse 3s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.signal{animation:none}}</style>
+</defs>
+<rect width="1440" height="720" rx="24" fill="url(#bg)"/>
+<rect width="1440" height="720" rx="24" fill="url(#grid)" opacity=".4"/>
+<ellipse cx="145" cy="70" rx="550" ry="400" fill="url(#glow)"/>
+<g transform="translate(0 95)"><path d="M684 52V468" stroke="#263143"/>
+<rect x="56" y="48" width="56" height="56" rx="15" fill="url(#accent)"/>
+<g transform="translate(64 55)" fill="none" stroke="white" stroke-width="1.8" stroke-linejoin="round"><path d="M20 3L36 12V30L20 39L4 30V12Z"/><path d="M4 12L20 21L36 12M20 21V39M20 3V21"/></g>
+<text x="128" y="86" font-size="31" font-weight="700" fill="#F7F8FC">DeepBlend Studio</text>
+<text x="56" y="200" font-size="67" font-weight="700" letter-spacing="-2" fill="#F7F8FC">Create. Refine.</text>
+<text x="56" y="276" font-size="67" font-weight="700" letter-spacing="-2" fill="#FFA359">Render.</text>
+<text x="58" y="330" font-size="23" fill="#BAC5D5">Your Blender studio, inside DSH.</text>
+<text x="58" y="390" font-size="17" fill="#A6B3C6">Real previews. Saved revisions. Your next iteration.</text>
+<g font-size="13" font-weight="700" letter-spacing="1.1"><rect x="56" y="434" width="120" height="32" rx="16" fill="#232A35"/><text x="79" y="455" fill="#FFC086">DEEPSEEK</text><rect x="188" y="434" width="110" height="32" rx="16" fill="#232A35"/><text x="211" y="455" fill="#BBC8D9">BLENDER</text><rect x="310" y="434" width="125" height="32" rx="16" fill="#232A35"/><text x="333" y="455" fill="#BBC8D9">PNG + MP4</text></g>
+<text x="738" y="76" font-size="12" font-weight="700" letter-spacing="2.5" fill="#8A9AB1">FROM A STARTING POINT TO A SAVED RESULT</text>
+<!-- Deliberately schematic; these cards do not depict a running user interface. -->
+<g><rect x="736" y="112" width="270" height="144" rx="18" fill="#141D2B" stroke="#354154"/><rect x="1080" y="112" width="270" height="144" rx="18" fill="#141D2B" stroke="#354154"/><rect x="736" y="318" width="270" height="144" rx="18" fill="#141D2B" stroke="#354154"/><rect x="1080" y="318" width="270" height="144" rx="18" fill="#141D2B" stroke="#354154"/></g>
+<g fill="none" stroke="#E7924C" stroke-width="2" stroke-linejoin="round"><path d="M764 138H790L800 148V178H764Z"/><path d="M790 138V148H800M773 154H788M773 162H788M773 170H784"/><path d="M1122 137L1141 148V170L1122 181L1103 170V148Z"/><path d="M1103 148L1122 159L1141 148M1122 159V181"/><rect x="764" y="345" width="35" height="29" rx="4"/><path d="M777 353L786 359L777 365Z"/><path d="M771 378V384H806V355H802"/><rect x="1103" y="346" width="42" height="30" rx="4"/><path d="M1120 382H1130M1125 376V382M1111 367L1120 357L1128 364L1136 354"/></g>
+<g fill="#F2F5FA" font-size="23" font-weight="700"><text x="825" y="166">Create</text><text x="1165" y="166">Refine</text><text x="825" y="373">Deliver</text><text x="1165" y="373">Review</text></g>
+<g fill="#A7B5C9" font-size="15"><text x="763" y="219">A recipe or your own model</text><text x="1107" y="219">Shape, materials and light</text><text x="763" y="425">Frames, video and provenance</text><text x="1107" y="425">Beauty, clay and references</text></g>
+<g fill="none" stroke="#8491A5" stroke-width="1.6" marker-end="url(#arrow)"><path d="M1023 182H1060"/><path d="M1215 273V302"/><path d="M1061 390H1022"/></g>
+<circle class="signal" cx="1042" cy="182" r="3.5" fill="#F7A562"/>
+</g></svg>

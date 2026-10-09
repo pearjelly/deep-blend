@@ -1,3 +1,7 @@
+# DeepBlend 0.3.0 public installation route readback
+# Date: 2026-10-08
+# Command: npm run release:parity
+# Source, npm and GitHub tarball installs used separate scratch profiles and stores.
 
 > deepblend-studio@0.3.0 release:parity
 > node deepblend/tools/release-route-parity.mjs

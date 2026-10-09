@@ -6,3 +6,6 @@ contact_links:
   - name: Installing it, or a tool says the runtime is unavailable
     url: https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/install.md
     about: The host bundle, the preset, the Blender pin, and what each missing piece reports.
+  - name: First creation / 第一次创作
+    url: https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md
+    about: Install the published bundle, open the workbench and follow the cup walkthrough.
