@@ -251,12 +251,21 @@ test('source files exclude external binaries and published images have declared 
     declared.add(path)
   }
 
+  // Brand illustrations are original SVG artwork, explicitly distinct from render evidence.
+  execFileSync(process.execPath, [join(ROOT, 'deepblend/tools/render-brand.mjs'), '--check'],
+    { cwd: ROOT, encoding: 'utf8' })
+  const brand = JSON.parse(readFileSync(join(ROOT, 'deepblend/docs/brand/manifest.json')))
+  for (const image of brand.images) {
+    declared.add(`deepblend/docs/brand/${image.file}`)
+    declared.add(`packages/deepblend/bundle/assets/${image.file}`)
+  }
+
   // Screenshots come from the capture tool; other images must be exact files
   // declared by benchmark, recipe or native fixture manifests, not allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark, recipe, tutorial or native fixture provenance`)
+      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')

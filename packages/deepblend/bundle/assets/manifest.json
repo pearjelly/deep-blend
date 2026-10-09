@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deepblend.brand-illustrations/v1",
+  "author": "DeepBlend contributors",
+  "license": "MIT",
+  "kind": "original-workflow-illustration",
+  "productScreenshot": false,
+  "blenderRender": false,
+  "tool": "deepblend/tools/render-brand.mjs",
+  "renderer": "sharp@0.35.5",
+  "images": [
+    {
+      "source": "logo.svg",
+      "sourceSha256": "fe63307c9dab564329ddc39ac6f087a3cfddbc48a05fb15dea53058bddbbd73d",
+      "file": "logo.png",
+      "sha256": "9153f6a0bace3df66d6119301b61ae9c69c67e4d193687c19316c1780b2bb7f3",
+      "bytes": 33112,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "source": "banner.svg",
+      "sourceSha256": "283f1287882aab99591d5f1c15d4c299132a03fb9d4184956b84a9ae2999363d",
+      "file": "banner.png",
+      "sha256": "8396457867b925ea08d58ce6db42c00981240798cd5d4556e6ce9b2c4054de98",
+      "bytes": 122218,
+      "width": 1440,
+      "height": 520
+    },
+    {
+      "source": "social-card.svg",
+      "sourceSha256": "ef6a9b901f17e9b5258f7f2eef91d27e24d061afdda325521d12d4e74e3d1555",
+      "file": "social-card.png",
+      "sha256": "da684a6072c26566964db2536ed4b419603b4066e6d47833006903c6dc2a0756",
+      "bytes": 139430,
+      "width": 1280,
+      "height": 640
+    }
+  ]
+}

@@ -77,7 +77,7 @@ export const PERMITTED_KEYS = Object.freeze(['url', 'name', 'category', 'descrip
 
 /** Where the submission is read from, and the branch it is submitted on. */
 export const SUBMISSION_REPO = 'pearjelly/awesome-dsh-plugin'
-export const SUBMISSION_BRANCH = 'add-pearjelly-deep-blend'
+export const SUBMISSION_BRANCH = 'codex/deepblend-0.3.0-description'
 
 /**
  * The first line of the entry, or `-1` when the file declares no permitted key.

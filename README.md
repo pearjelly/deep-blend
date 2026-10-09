@@ -1,237 +1,220 @@
 # DeepBlend Studio
 
+![DeepBlend Studio: Create. Refine. Render. A conceptual workflow illustration, not a product screenshot](deepblend/docs/brand/banner.png)
+
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
-> Create, refine and render Blender product scenes inside **DeepSeek Harness** (`dsh`).
-> **SceneSpec is the source of truth; `.blend` is a compiled artifact.**
+<p align="center">
+<strong>Your Blender studio, inside DeepSeek Harness.</strong><br>
+Start with a product recipe or your own model. Shape the scene. Compare real renders. Deliver the result.
+</p>
 
-**English** | [中文](README.zh.md)
+<p align="center">
+<a href="https://www.npmjs.com/package/@deepblend/dsh-blender-bundle"><img src="https://img.shields.io/npm/v/@deepblend/dsh-blender-bundle?style=flat-square&amp;label=npm&amp;color=EC721F" alt="Latest npm version"></a>
+<a href="https://github.com/pearjelly/deep-blend/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pearjelly/deep-blend/ci.yml?branch=main&amp;style=flat-square&amp;label=CI" alt="Main branch CI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-697B96?style=flat-square" alt="MIT license"></a>
+</p>
 
----
+**English** · [简体中文](README.zh.md)
 
-Start from one of four [product recipes](deepblend/docs/recipes.md) in the workbench, adjust color,
-roughness and exposure, then create a project with a rendered preview. `blender_recipe_list` exposes
-the same catalog to agents. Each project retains its recipe version, license, source hashes and
-parameter values. Metal materials now support explicit anisotropic reflection directions.
-The [handled cup generator](deepblend/docs/modeling.md#连为一体的带把手杯体) builds a cup and handle in one closed mesh, with editable wall thickness and attachment roots.
-After creation, the [object editor](deepblend/docs/usage.md#41-调整已有对象) lets you adjust profiles,
-bevels, arrays and local materials, render the change, and restore the previous scene with a revision guard.
-Save up to four [reference images](deepblend/docs/reference-images.md) with a revision's design goal.
-Reviews use those exact project assets and distinguish technical measurements from evidenced artistic judgments.
-Use the [asset library](deepblend/docs/assets.md) to upload local GLB, PNG/JPEG and HDR/EXR files,
-or a glTF/GLB/OBJ model bundle with its dependencies. Preview the asset, then insert a model,
-bind a texture or set environment lighting. Model imports preserve source materials.
+[Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-## Start with a creation you can follow
+## Quick start
 
-The [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) takes you from a recipe to a
-saved result: change its height, compare clay views, adjust the glaze and key light, then deliver
-one frame. It includes the actual before/after renders and the remaining handle-root limitation.
-
-**New in [0.3.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.0):** product recipes and
-object editing, an asset library with browser model bundles, camera and light editing, fixed-view
-inspection history, render recovery with frame provenance, and a typed public authoring SDK.
-
-## Install
-
-Recommended — the published npm package:
+With **Node.js 22.23.3 or newer**, **DSH 0.1.5-rc.2**, **pnpm** and **Blender 5.2.1** ready:
 
 ```sh
 dsh plugin --profile web add @deepblend/dsh-blender-bundle
+dsh web
 ```
 
-Or use the current source tree:
+Restart an already running `dsh web` after installation. In a new session, choose the **DeepBlend Studio**
+preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
+
+**First time setting up Blender or DSH?** Follow the [English / Chinese quick-start guide](deepblend/docs/quick-start.md).
+FFmpeg and ffprobe are needed when encoding an MP4; you can create and render scenes before adding them.
+
+<details>
+<summary><strong>Other install paths and upgrading an existing installation</strong></summary>
+
+Prebuilt bundle:
+
+```sh
+dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+```
+
+Current source tree:
 
 ```sh
 dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
 ```
 
-Then restart `dsh web`. A new session can select the **DeepBlend Studio** preset, and
-the workbench appears in the sidebar.
+The quoted `#path:` form keeps the shell from treating `#` as a comment. Source installs may need the build approval
+reported by DSH; follow that message. **pnpm** must be on `PATH` for every install route.
 
-One command installs both planes:
-
-| Plane | What arrives |
-|---|---|
-| **Host composition** | the Blender runtime provider, the project/revision store, and the workbench's host half |
-| **Agent preset** | **DeepBlend Studio** and **DeepBlend dev mode**, deployed into `<DSH_HOME>/.agent-presets/` — the 17 model-visible tools belong to a preset, not to the host, so a session only sees them when it runs on one |
-
-> The `#path:` form is quoted because `#` starts a comment in a shell. Requires **pnpm** on
-> `PATH` (`dsh plugin` forwards to it) and a repository it can reach: pnpm resolves the
-> `github:` spec through an anonymous codeload tarball, so the repository must be public —
-> which it now is.
-
-### Requirements
-
-| | |
-|---|---|
-| **DSH** | `0.1.5-rc.2` — the version this repository is measured against (`deepblend/tools/dsh-baseline.json`). The plugin declares what it needs as `peerDependencies`, which is what the market's compatibility preflight reads. |
-| **Blender** | `5.2.1`. The repository ships a managed, checksum-pinned install for **macOS arm64** (`npm run blender:install`); on any other platform install Blender 5.2.1 yourself and point `blenderPath` at it in the profile's patch layer. Upstream publishes **`linux-x64` only** — there is no Linux arm64 build — so the supported Linux is x86_64. |
-| **ffmpeg + ffprobe** | Only for the **delivery** step that encodes frames into an MP4. Install it the way your platform does: `brew install ffmpeg` (macOS), `sudo apt install ffmpeg` (Debian/Ubuntu), `sudo dnf install ffmpeg` (Fedora), `winget install ffmpeg` (Windows) — or point `ffmpegPath`/`ffprobePath` at an absolute path. Without them rendering still runs and no frame is lost: encoding fails with `ENCODER_NOT_FOUND` and the message names the binary. |
-| **Node.js** | ≥ 22 — for the repository's own tools and test suites, not for the plugin. |
-
----
-
-## See it
-
-These are not mockups: they were captured from a running `dsh web`, a real Chrome and a real
-Blender by `deepblend/tools/capture-docs-images.mjs`, and the project in them was built by
-clicking the workbench controls. Re-run it to refresh them.
-
-Workbench — project header, current revision, and the scene tree the host computes:
-
-![Blender workbench: project name, current revision r0003, six view tabs, and six scene cards for entities, materials, lights, cameras, shots and animation tracks](deepblend/docs/images/workbench-scene.png)
-
-Preview comparison — one preview renders seven views into a contact sheet; change a material,
-render again, and the two sheets sit side by side as actual r0002/r0003 revision images with their own digests and render times. The capture manifest records both source-scene and displayed-image hashes:
-
-![Preview comparison: two contact sheets side by side, r0002 before the material edit on the left and r0003 after it on the right, each with its own digest and timestamp](deepblend/docs/images/preview-compare.png)
-
-The render itself — seven views (the active camera sampled at four animation frames, plus
-three-quarter, top and detail) composited into one sheet:
-
-![Blender contact sheet: seven tiles, four showing the active camera at different animation frames and three showing other viewpoints](deepblend/docs/images/render-contact-sheet.png)
-
----
-
-## Rebuildable product examples
-
-The [quality benchmarks](deepblend/docs/quality-benchmarks.md) include a metal lamp,
-a hollow glass vessel with a ceramic tray, and a detailed desktop speaker. Each has an
-original design brief, public SceneSpec, geometry checks, fixed camera and render budgets,
-clay views, a deliberately simplified ablation, and a real frame sequence.
-
-| Metal lamp | Glass and ceramic | Desktop speaker |
-|---|---|---|
-| ![Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Cycles render of a hollow glass bottle and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) | ![Cycles render of a detailed desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) |
-
-These are unedited Blender renders; [preview provenance](deepblend/benchmarks/previews/manifest.json) records their inputs and artifact hashes.
-
-After setting up the development environment and Blender, run `npm run quality:check`, then
-`npm run quality:render -- --tier final`. Results stay local and include an interactive gallery,
-source snapshots, timings and independently verified artifacts. The ablation is not a historical
-plugin output; technical success still requires a separate artistic review.
-
----
-
-## What you get
-
-**17 model-visible tools** across four jobs — inspecting a scene, changing it, judging a
-render, and delivering a video:
-
-* **Scene** — create a project, read it, read and patch the scene, validate it
-* **Preview** — render a preview, render an explicit set of views, compare against the last one
-* **Visual review** — the model looks at the contact sheet and reports what it sees; a
-  deterministic scorer measures occlusion and framing from the rendered pixels
-* **Delivery** — a final 1080p render, encode to MP4, poll or cancel the job, restore a
-  revision, ingest an asset
-
-**The workbench** — a project header, a revision list, and six scene cards, served from a
-closed set of HTTP routes by the host half of the plugin.
-
-**Revisions that cannot be half-applied.** Every accepted change is one immutable revision:
-the patch is validated, compiled in a staging directory, verified, then published with a
-single `rename`. A failure never touches the current revision, and a crash leaves at most a
-staging directory. `scene-spec.json` is the authority; the `.blend` can always be rebuilt.
-
-**Renders that survive being killed.** Frames on disk are the truth, not a counter in a job
-record — a truncated PNG is not a frame, and the ledger says which frames to re-render. After
-a `SIGKILL`, the next process stops the orphaned renderer first, rebuilds the ledger from the
-frames themselves, and finishes the job. Measured: a delivery killed at frame 6 of 60
-completed all 60 and encoded a 1920×1080 `output/final.mp4`.
-
-**An approval gate on cost.** Anything above a configured frame count does not render a
-single frame without an explicit approval, and the prompt names the revision it will write.
-
-**Separate technical and artistic review.** The host computes technical measurements from
-rendered pixels. Artistic findings must name their source views and design goals. An artistic
-improvement can be accepted when technical checks remain valid and the required visual evidence
-supports it; a higher technical score alone does not establish a better-looking result.
-Rejected candidates stay in revision history. See [artistic review](deepblend/docs/artistic-review.md).
-
----
-
-## Documentation
-
-The repository's own documents are in Chinese, and they are the detailed ones:
-
-| | |
-|---|---|
-| **Install it** — from a clone to "DeepBlend Studio appears in a new session", four steps each with `--check`, and what each step does *not* verify | [`deepblend/docs/install.md`](deepblend/docs/install.md) |
-| **Use it** — what a session looks like, what each tool is for, the cost model, the six workbench tabs, one worked example | [`deepblend/docs/usage.md`](deepblend/docs/usage.md) |
-| **Review against references** — upload, save a versioned brief, inspect reference evidence and run bounded corrections | [`deepblend/docs/reference-images.md`](deepblend/docs/reference-images.md) |
-| **Use your assets** — upload, inspect, preserve original materials and apply textures or environment lighting | [`deepblend/docs/assets.md`](deepblend/docs/assets.md) |
-| **Inspect rough results** — fixed camera/frame material and clay images, with a creation guide | [`deepblend/docs/inspection.md`](deepblend/docs/inspection.md) |
-| **Adjust cameras and lights** — save a revision and inspect the selected view | [`deepblend/docs/photography-editor.md`](deepblend/docs/photography-editor.md) |
-| **Extend the plugin** — public JavaScript and TypeScript SDK, recipe directory validation reports, versioned schemas and runtime lifecycle | [`deepblend/docs/public-api.md`](deepblend/docs/public-api.md) |
-| **Run independent trials** — own-asset creation, author submissions, reuse and public-interface adoption, with blank evidence records | [`deepblend/docs/human-validation.md`](deepblend/docs/human-validation.md) |
-| **Rescue it** — a killed render, a half-written frame, frames but no video, a wrong change to roll back, a host older than the package, an empty project list | [`deepblend/docs/recovery.md`](deepblend/docs/recovery.md) |
-| **The specification** — `SPEC.md` is the master specification; the repository is its implementation | [`SPEC.md`](SPEC.md) |
-| **Per-milestone conclusions, evidence and known gaps** | [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md) |
-| **Current quality and ecosystem improvements** — scope, measured progress and remaining work | [`deepblend/docs/improvement-plan.md`](deepblend/docs/improvement-plan.md) |
-
-[`README.zh.md`](README.zh.md) is the Chinese README, and it carries the measured counts —
-suite and file numbers, assertion totals, and the commands that produce them.
-
----
-
-## How it is built
-
-Three planes, and which plane a change belongs to is not a matter of taste:
-
-```
-DSH Host Composition        →  packages/deepblend/bundle/cordis.patch.yml
-                               services: Blender execution, project/revision store,
-                               atomic commit transaction, UI host half
-
-DeepBlend Agent Presets     →  packages/deepblend/preset/presets/
-                               one session's model-visible tools and prompt
-
-Blender Runtime             →  packages/deepblend/provider-local/python/
-                               controlled bpy execution, a deterministic JSON
-                               protocol, and the SceneSpec compiler
-```
-
-A row that **publishes a service** must live in the host composition; a preset may only hold
-model-visible tools, a persona, and session-scoped capability. No tool row publishes a
-service, which is what makes the presets legal to mount per session.
-
----
-
-## Security
-
-Every security requirement in SPEC §15 is traced in
-[`deepblend/docs/security.md`](deepblend/docs/security.md) to the line of code that implements
-it and the assertion that watches it — **or is recorded as not implemented**, with a reason.
-`contract/security-controls.test.mjs` fails if that table drifts from the specification.
-Report vulnerabilities as described in [`SECURITY.md`](SECURITY.md).
-
-## License and contributing
-
-**MIT** — see [`LICENSE`](LICENSE).
-
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before changing anything: it names three rules that
-cost hours if you learn them the hard way (`npm run setup` is not optional; a change belongs
-to exactly one of the three planes; adding an import requires no script edit, because the list
-of links is read from the source). Bug reports use
-[`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml), which asks
-for the Blender, DSH and platform versions — every measurement in this repository was taken
-against pinned versions, and without them a report can only be guessed at.
-
----
-
-## Current state
-
-**The state of this repository is the output of one command**, not a paragraph:
+Already installed? Replace the existing registration before adding the new package, then restart `dsh web`:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 35 suites; README.zh.md states the expected numbers
+dsh plugin --profile web remove @deepblend/dsh-blender-bundle
+dsh plugin --profile web add @deepblend/dsh-blender-bundle
 ```
 
-CI also runs selected Host, Agent and browser inspections with pinned Linux runtimes.
-See [CI coverage and artifacts](deepblend/docs/ci.md) for the exact scope.
+See the [installation and upgrade guide](deepblend/docs/install.md) for configuration and storage details.
 
-Per-milestone conclusions, the evidence behind each acceptance, and the known deviations and
-gaps live in [`deepblend/docs/milestone-status.md`](deepblend/docs/milestone-status.md). That
-document is the only record and this one does not repeat it — for the reason this project has
-paid for repeatedly: **write the same thing in two places and one of them will rot.**
+</details>
+
+## Make something concrete
+
+These are **actual Blender renders**, with [reproducible source scenes and image provenance](deepblend/benchmarks/previews/manifest.json).
+The cup image comes from the [recorded tutorial](deepblend/docs/assets/creator-tutorial/manifest.json).
+
+| Metal task lamp | Glass and ceramic |
+| --- | --- |
+| ![Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Cycles render of a hollow glass vessel and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
+| **Desktop speaker** | **Glazed handled cup** |
+| ![Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+
+Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness and exposure, and create a project with a rendered preview.
+Or start with your own glTF, GLB or OBJ model and its external textures.
+
+**Follow a complete creation:** the [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) changes height,
+compares clay views, adjusts the glaze and key light, and delivers a frame. Its handle roots still show visible
+bulges; the tutorial preserves that limitation. The recipe has no animation tracks, so adding frames does not create turntable motion.
+
+## Choose how you work
+
+| Start here | What you do | Guide |
+| --- | --- | --- |
+| **Create in the workbench** | Use a recipe or import a model; edit dimensions, materials, cameras and lights | [Workbench guide](deepblend/docs/usage.md) |
+| **Work with an agent** | Describe a scene, inspect previews and make bounded changes with the DeepBlend Studio preset | [Agent creation guide](deepblend/docs/quick-start.md#work-with-an-agent) |
+| **Build your own recipes or tools** | Validate scene documents and content through the typed public SDK | [Authoring SDK](deepblend/docs/public-api.md) |
+
+The agent preset provides **17 model-visible tools** for scenes, assets, previews, visual review and delivery.
+You can use the gallery and manual workbench controls for your first creation before asking an agent to edit it.
+
+Try this in a session using the DeepBlend Studio preset:
+
+> List the available product recipes. Show me the glazed handled cup and its parameters before creating anything.
+> After I choose the values, create a preview. Keep later material and lighting changes in separate revisions.
+
+This is an example request, not a recorded run. Use the [tool guide](deepblend/docs/tool-contracts.md) to inspect what each operation does.
+
+## From a starting point to a saved result
+
+| Step | In the studio | What stays inspectable |
+| --- | --- | --- |
+| **Create** | Start from a recipe or upload a model bundle, texture or environment map | Recipe version, original resource paths and source bytes |
+| **Refine** | Edit shape, bevels, arrays, local materials and procedural surface grain; adjust cameras and lights | A new saved scene revision for each accepted change |
+| **Review** | Compare previews, inspect fixed-view beauty/clay images, and save reference images with a design goal | The actual image, camera, frame and render conditions |
+| **Deliver** | Render PNG frames and encode an MP4; cancel or resume a job | Frame progress, actual render settings and delivery provenance |
+
+[Assets](deepblend/docs/assets.md) · [Modeling](deepblend/docs/modeling.md) · [Photography](deepblend/docs/photography-editor.md) · [Inspection](deepblend/docs/inspection.md) · [Recovery](deepblend/docs/recovery.md)
+
+## See the workbench
+
+The following images were captured from a running DSH workbench, Chrome and Blender by
+`deepblend/tools/capture-docs-images.mjs`. They are **product screenshots and render output**, separate from the illustrated brand banner above.
+
+![Actual Blender workbench showing a project, revision and scene controls](deepblend/docs/images/workbench-scene.png)
+
+<details>
+<summary><strong>Preview comparison and the rendered contact sheet</strong></summary>
+
+The comparison displays actual saved previews from two revisions; image and source hashes are retained in the capture manifest.
+
+![Actual before/after revision previews with their own image digests and timestamps](deepblend/docs/images/preview-compare.png)
+
+The contact sheet combines animation sample frames with additional inspection viewpoints.
+
+![Actual seven-view Blender contact sheet](deepblend/docs/images/render-contact-sheet.png)
+
+</details>
+
+## Why the iteration stays inspectable
+
+- **Saved history.** An accepted edit creates an immutable revision. Restoration moves the current pointer while keeping the intervening history.
+- **Source-led scenes.** **SceneSpec is the source of truth; `.blend` is a compiled artifact.** Scenes can be rebuilt from the declared inputs and locked resources.
+- **Recoverable delivery.** Frame files are checked rather than trusted from a counter. Resume renders missing or invalid frames; complete frames can proceed directly to encoding.
+- **Explicit render budgets.** Expensive operations use an approval gate, and the requested scene revision remains attached to the job.
+- **Separate kinds of evidence.** Technical measurements and image-backed artistic review are distinct; a higher score does not establish a better-looking result.
+
+[Artistic review](deepblend/docs/artistic-review.md) · [Runtime and recovery](deepblend/docs/recovery.md) · [Security controls](deepblend/docs/security.md)
+
+## Documentation by task
+
+| I want to… | Start here |
+| --- | --- |
+| Install, configure Blender, or update the plugin | [Quick start](deepblend/docs/quick-start.md) · [Installation](deepblend/docs/install.md) |
+| Complete my first creation | [Cup walkthrough](deepblend/docs/creator-tutorial.md) |
+| Import my own model, textures or environment | [Asset library](deepblend/docs/assets.md) |
+| Tune the shape or photography | [Modeling](deepblend/docs/modeling.md) · [Camera and light editing](deepblend/docs/photography-editor.md) |
+| Compare versions and investigate a rough result | [Fixed-view inspections](deepblend/docs/inspection.md) · [References](deepblend/docs/reference-images.md) |
+| Resume a render or recover a saved scene | [Recovery](deepblend/docs/recovery.md) |
+| Author a recipe or integrate the SDK | [Recipes](deepblend/docs/recipes.md) · [Public API](deepblend/docs/public-api.md) |
+| Contribute, reproduce evidence or inspect limitations | [Contributing](CONTRIBUTING.md) · [Acceptance register](deepblend/docs/milestone-status.md) |
+
+Browse the [documentation hub](deepblend/docs/README.md). Detailed operation manuals are primarily in Chinese;
+the quick-start guide and public authoring entry are available in English.
+
+## Questions before you start
+
+<details>
+<summary><strong>Do I need an AI model to create my first project?</strong></summary>
+
+The workbench gallery, editing controls and local renders can be used directly. Agent conversation and model-based visual review use the model configured in DSH.
+
+</details>
+
+<details>
+<summary><strong>Does this replace Blender's desktop editor?</strong></summary>
+
+DeepBlend builds and iterates declared scenes through its supported workbench controls and runtime contract.
+It requires a Blender installation. The [modeling guide](deepblend/docs/modeling.md) describes the supported generators and edits.
+
+</details>
+
+<details>
+<summary><strong>Where do my projects live?</strong></summary>
+
+An ordinary installation stores projects below your DSH home. Source-development tools can use a repository-local store.
+See [storage and recovery](deepblend/docs/install.md) before changing that configuration.
+
+</details>
+
+<details>
+<summary><strong>Are every platform and every artistic result validated?</strong></summary>
+
+The managed Blender download targets macOS arm64; other platforms require their own Blender installation and configuration.
+CI also checks selected Linux x64 paths. Actual coverage and open artistic/user-adoption work are recorded in the [acceptance register](deepblend/docs/milestone-status.md).
+
+</details>
+
+## For contributors
+
+**SceneSpec → Blender runtime → preview / frames → review / delivery.** The master specification is [SPEC.md](SPEC.md).
+The host composition owns shared services; the agent preset owns a session's model-visible tools; the runtime executes controlled Blender work.
+
+| Development prerequisite | Declared floor |
+| --- | --- |
+| **Node.js** | ≥ 22 for the packages; the DSH CLI needs 22.23.3+ |
+
+```sh
+npm run dev:setup
+npm run dev:test
+```
+
+Full native acceptance remains a separate entry:
+
+```sh
+bash deepblend/tests/run-all.sh      # 35 suites; README.zh.md carries the measured snapshot
+```
+
+[Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)
+
+## Release and community
+
+[Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Changelog](CHANGELOG.md) · [Report a bug](https://github.com/pearjelly/deep-blend/issues/new/choose) · [Propose a feature](https://github.com/pearjelly/deep-blend/issues/new/choose)
+
+**MIT** — [License](LICENSE). Security reports follow [SECURITY.md](SECURITY.md). Read [CONTRIBUTING.md](CONTRIBUTING.md)
+for development and evidence requirements. The Chinese README retains the measured test totals and their caveats;
+per-milestone conclusions are kept in the acceptance register.

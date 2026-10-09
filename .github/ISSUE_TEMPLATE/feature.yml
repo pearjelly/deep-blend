@@ -1,0 +1,29 @@
+name: Feature request / 功能建议
+description: Describe the creation workflow you want DeepBlend to support / 说说你希望完成的创作任务
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What are you trying to create? / 你想创作什么？
+      description: Describe the scene, task or output and where the current workflow stops.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Desired result / 希望获得的结果
+      description: A concrete example, reference or before-and-after helps us understand the request.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround / 现在怎样解决？
+      description: Include any manual Blender steps or tools you already use.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context / 补充信息
+      description: Share public references or screenshots; remove secrets and private asset paths.

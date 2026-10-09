@@ -1,5 +1,9 @@
 # DeepBlend Studio
 
+![DeepBlend Studio — Create. Refine. Render. Workflow illustration](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.1/deepblend/docs/brand/banner.png)
+
+[![npm](https://img.shields.io/npm/v/@deepblend/dsh-blender-bundle?color=ef7f30)](https://www.npmjs.com/package/@deepblend/dsh-blender-bundle) [![License: MIT](https://img.shields.io/badge/License-MIT-9baec9)](https://github.com/pearjelly/deep-blend/blob/main/LICENSE)
+
 **Create a product scene. Refine its shape, materials and lighting. Render the result — inside DSH.**
 
 DeepBlend Studio brings a Blender workbench and an agent preset to
@@ -8,7 +12,7 @@ recipe or import your own model, then compare real renders as you work.
 
 [中文介绍](https://github.com/pearjelly/deep-blend/blob/main/packages/deepblend/bundle/README.zh.md)
 · [Try the cup walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md)
-· [Installation guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/install.md)
+· [Quick start](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md)
 
 ## See what you can make
 
@@ -80,7 +84,19 @@ This is the original tutorial output. The handle roots still show visible bulges
 explains that limitation. This recipe has no animation tracks, so additional frames do not create
 turntable motion automatically.
 
-## What is new in 0.3.0
+## Find your next step
+
+[Import your own models](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets.md)
+· [Shape and material editing](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/modeling.md)
+· [Camera and lighting](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.md)
+· [Documentation index](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md)
+
+## What is new in 0.3.1
+
+A clearer first-use journey, consistent branding, task-oriented guides and refreshed package introductions.
+The scene tools and runtime behavior remain those of 0.3.0. [Changelog](https://github.com/pearjelly/deep-blend/blob/main/CHANGELOG.md).
+
+## Product capabilities from 0.3.0
 
 Product recipes and object editing, an asset library with browser model bundles, camera and light
 editing, fixed-view inspection history, more reliable render selection and recovery, and a typed
@@ -109,3 +125,6 @@ of truth, and `.blend` is a compiled artifact.
 
 [Full README](../../../README.md) · [Manuals](../../../deepblend/docs/)
 · [Listing source](../../../deepblend/docs/listing-entry.yml)
+
+[Report a bug](https://github.com/pearjelly/deep-blend/issues/new?template=bug_report.yml)
+· [Request a feature](https://github.com/pearjelly/deep-blend/issues/new?template=feature.yml)

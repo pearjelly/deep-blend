@@ -1,5 +1,8 @@
 # 安装与自检
 
+> **正式包已发布。** 普通用户先看[快速开始](quick-start.md)：安装 npm 包、重启 DSH，再从配方创作。
+> 本文保留源码部署、operator 配置和环境诊断细节，供贡献者和需要排错的用户查阅。
+>
 > 这份文档只回答一个问题：**从 clone 到「新建会话里能选到 DeepBlend Studio」，中间要做哪几步，
 > 以及每一步怎么知道它成功了。**
 > 想读「这个项目是什么、为什么这样设计」，看 `README.zh.md`；想读操作手法，看 `usage.md`；
@@ -12,7 +15,7 @@
 | 项目 | 要求 | 怎么确认 |
 |---|---|---|
 | 操作系统 | **macOS arm64** | 受管 Blender 是一份 macOS 的 DMG（`tools/blender-release.json` 里的 `platform`）。别的平台要自己装 Blender 5.2.1，再把 `blenderPath` 设在 **operator layer**（`$DSH_HOME/profiles/<profile>/cordis.patch.yml` 的 `deepblend-blender-runtime` 行）。`npm run blender:check` 在没有受管 Blender 的平台上就是这么说的，并退出 2。**上游只发布 `linux-x64` 的 Blender**（5.2 / 5.1 / 4.5 / 4.2 四条线都只有它，见 `probe-cross-platform.log`），所以 Linux 上的实际要求是 **x86_64**：arm64 Linux 上没有任何上游构建可用，要用发行版包或自行构建。 |
-| Node.js | ≥ 22（开发机是 v26.8.2） | `node --version` |
+| Node.js | 开发包 ≥ 22；运行 DSH CLI 需 **22.23.3+**（开发机是 v26.8.2） | `node --version` |
 | DSH | **`0.1.5-rc.2`**，钉住的版本 | `dsh --version`；它是兼容性锚点，别的版本未必能装（见 §4） |
 | git | 任意 | `git --version` |
 | **一个已初始化的 profile** | 第 3 步会改它，所以它必须先存在 | `ls $DSH_HOME/profiles/web`。**profile 是 `dsh` 建的，不是这个安装器建的**，所以先跑一次 `dsh web`（或 `dsh --profile web --dump-config`）把它创建出来 |
@@ -73,9 +76,8 @@ npm run presets:install  # 4. 部署 agent preset 与它自带的 skill
 > 它需要 **pnpm 在 PATH 上**（`dsh plugin` 不内置它，缺了会退出 127 并直说），
 > 会把 bundle 自动加进 `dsh.profile.bundles`，装完一样能服务
 > （实测：`/deepblend/capabilities` HTTP 200 / `hostApiVersion 4`，
-> 见 `probe-dsh-plugin-install.log`）。发布到 npm 之后这条会缩成
-> `dsh plugin --profile web add @deepblend/dsh-blender-bundle` 一条命令——
-> 那正是它比第 3 步更接近「用户的装法」的原因。
+> 见 `probe-dsh-plugin-install.log`）。正式 npm 包现已发布，普通用户直接运行
+> `dsh plugin --profile web add @deepblend/dsh-blender-bundle`，无需 clone 或手动链接内部包。
 
 每一步的期望输出：
 
