@@ -91,7 +91,13 @@ turntable motion automatically.
 · [Camera and lighting](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.md)
 · [Documentation index](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md)
 
-## What is new in 0.3.1
+## What is new in 0.3.2
+
+A clearer Blender workbench: choose light or dark appearance, browse scene contents beside the object
+editor, and keep creation and apply actions within reach. Unsaved-change and invalid-number feedback
+help you see what still needs attention. Both the DSH panel and standalone page adapt to narrower spaces.
+
+## Branding and onboarding from 0.3.1
 
 A clearer first-use journey, consistent branding, task-oriented guides and refreshed package introductions.
 The scene tools and runtime behavior remain those of 0.3.0. [Changelog](https://github.com/pearjelly/deep-blend/blob/main/CHANGELOG.md).

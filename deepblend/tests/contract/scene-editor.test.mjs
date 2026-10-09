@@ -631,10 +631,13 @@ test('surface texture drafts survive a native refusal and submit the correction 
 test('roughness can be cleared and replaced without a default being appended, while empty saves stay blocked', async t => {
   const spec = source('metal-lamp'); spec.materials.find(item => item.id === 'champagne-spun').parameters.roughness = .22
   const { store, field, nodes, calls } = await client(t, spec)
+  assert.equal(nodes().find(node => node.props['data-entity-id'] === store.getState().editorEntityId).props['aria-pressed'], 'true', 'selection must use an ARIA string on both workbench renderers')
   const input = () => field('editor-material-roughness')
   const save = () => nodes().find(node => node.props['data-action'] === 'editor-apply')
   input().props.onChange({ target: { value: '' } })
   assert.equal(input().props.value, '', 'deleting the existing value must leave the visible field empty')
+  assert.equal(input().props['aria-invalid'], 'true', 'an empty value must identify the invalid control to assistive technology')
+  assert.ok(input().props['aria-describedby'], 'the invalid field must name its inline explanation')
   assert.equal(editor.draftFor(store.getState()).material.definition.parameters.roughness, null)
   assert.equal(save().props.disabled, true)
   await store.actions.applyEditor(); assert.equal(calls.length, 0)

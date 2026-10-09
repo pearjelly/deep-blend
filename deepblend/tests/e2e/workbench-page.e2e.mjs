@@ -387,7 +387,10 @@ try {
   await page.waitFor('document.querySelector(\'[data-view="projects"]\') !== null', 20000)
   await page.waitFor('document.querySelector(\'[data-action="create-project"]\') !== null', 20000)
   check('a fresh store is shown as a fresh store, not as an error',
-    ((await page.text('[data-view="projects"]')) ?? '').includes('还没有项目'),
+    await page.count('.db-project-create') === 1
+      && await page.count('[data-recipe]') > 0
+      && await page.count('.db-project-list') === 0
+      && await page.count('[data-deepblend-panel] .db-error') === 0,
     ((await page.text('[data-view="projects"]')) ?? '').replace(/\s+/g, ' ').slice(0, 120))
 
   // -------------------------------------------------------------------------

@@ -71,6 +71,11 @@ macOS arm64 可使用受管 Blender 安装器，其他平台需自行安装并�
 · [公共 SDK](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/public-api.md)
 · [完整中文文档](https://github.com/pearjelly/deep-blend/blob/main/README.zh.md)
 
+## 0.3.2：更清楚的 Blender 工作台
+
+可选择浅色、深色或跟随系统，外观会在当前浏览器中记住。场景内容与对象编辑并排显示，
+创建和应用操作保持可见；未保存修改与无效数值都有明确提示。DSH 面板和独立工作台会适应窄屏布局。
+
 ## 0.3.1：更容易开始
 
 统一品牌素材、重新组织首页、新增快速开始和按任务浏览的文档入口，安装包也同步更新介绍。

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2 — 2026-10-09
+
+The workbench puts creation and object editing within easier reach, with a consistent DeepBlend
+appearance in both the DSH panel and standalone page.
+
+- Orange selection states, clearer cards, readable controls and visible keyboard focus.
+- System, light and dark appearance choices, remembered locally without changing project data.
+- Compact creation guidance, labelled project fields and a persistent creation action bar.
+- Scene contents beside the object editor, with camera, lighting and assets below it.
+- Persistent object actions, an unsaved-change indicator and inline invalid-number feedback.
+- Responsive layouts for narrow panels, and refreshed screenshots captured from the running product.
+
 ## 0.3.1 — 2026-10-09
 
 This release improves how users discover, install and learn DeepBlend. It retains the scene tools and

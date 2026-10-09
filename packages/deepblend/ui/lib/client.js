@@ -108,6 +108,19 @@ window.__ModuleLoader__.load({
     // `contract/workbench-copy.test.mjs`, so a missing key cannot leave a hole in either direction.
     const STRINGS = {
     zh: {
+      'workbench.appearance': '外观',
+      'workbench.system': '跟随系统',
+      'workbench.light': '浅色',
+      'workbench.dark': '深色',
+      'workbench.navigation': '工作台页面',
+      'workbench.unsaved': '有未保存的修改',
+      'projects.name': '作品名称',
+      'projects.storage': '项目存储位置',
+      'projects.startHint': '选择一个作品起点，调整参数，再创建自己的项目。',
+      'guide.notes': '使用说明与当前进度',
+      'scene.outline': '场景内容',
+      'scene.inspector': '编辑与素材',
+
       'inspection.mismatch': '检查回执与请求的版本、相机或帧不一致，未标记为成功。',
       'inspection.cameraUnavailable': '{camera}（当前版本不可用）',
       "inspection.title": "固定视角检查",
@@ -513,9 +526,10 @@ window.__ModuleLoader__.load({
       'jobs.provenanceMissing': '{count} 帧尚未完成',
       'jobs.cancel': '取消',
       'jobs.resume': '继续渲染',
-      'jobs.startDelivery': '启动一次交付渲染（写操作经 Host）',
-      'jobs.frameStart': '帧起',
-      'jobs.frameEnd': '帧止',
+      'jobs.startDelivery': '启动交付渲染',
+      'jobs.frameStart': '起始帧',
+      'jobs.frameEnd': '结束帧',
+      'jobs.profile': '渲染配置',
       'jobs.start': '启动',
       'qa.passed': '技术校验通过',
       'qa.none': '无技术校验记录',
@@ -621,6 +635,19 @@ window.__ModuleLoader__.load({
       'revisions.title': '版本（{count}）',
     },
     en: {
+      'workbench.appearance': 'Appearance',
+      'workbench.system': 'System',
+      'workbench.light': 'Light',
+      'workbench.dark': 'Dark',
+      'workbench.navigation': 'Workbench pages',
+      'workbench.unsaved': 'Unsaved changes',
+      'projects.name': 'Project name',
+      'projects.storage': 'Project storage',
+      'projects.startHint': 'Choose a starting point, adjust its parameters, and create your own project.',
+      'guide.notes': 'Guidance and current progress',
+      'scene.outline': 'Scene contents',
+      'scene.inspector': 'Editing and assets',
+
       'inspection.mismatch': 'The inspection receipt does not match the requested revision, camera or frame; success was not recorded.',
       'inspection.cameraUnavailable': '{camera} (unavailable in this revision)',
       "inspection.title": "Inspect a fixed view",
@@ -1026,9 +1053,10 @@ window.__ModuleLoader__.load({
       'jobs.provenanceMissing': '{count} frames not completed',
       'jobs.cancel': 'Cancel',
       'jobs.resume': 'Resume render',
-      'jobs.startDelivery': 'Start a delivery render (the write goes through the Host)',
+      'jobs.startDelivery': 'Start a delivery render',
       'jobs.frameStart': 'from frame',
       'jobs.frameEnd': 'to frame',
+      'jobs.profile': 'Render profile',
       'jobs.start': 'Start',
       'qa.passed': 'technical checks passed',
       'qa.none': 'no technical check recorded',
@@ -1292,55 +1320,130 @@ window.__ModuleLoader__.load({
     //     one <style> tagged with this package, deduped by querySelector.
     // =========================================================================
 
+    // Existing project mark: deepblend/docs/brand/logo.svg (MIT), embedded for offline loading.
+    const BRAND_MARK = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20512%20512%22%20role%3D%22img%22%20aria-label%3D%22DeepBlend%20Studio%20logo%22%3E%0A%20%20%3Ctitle%3EDeepBlend%20Studio%3C%2Ftitle%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22mark%22%20x1%3D%220.1%22%20y1%3D%220%22%20x2%3D%220.85%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23FFC078%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.45%22%20stop-color%3D%22%23F2802A%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23C85C08%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22url%28%23mark%29%22%2F%3E%0A%20%20%3Cg%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%2211%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L386%20331%20L256%20406%20L126%20331%20L126%20181%20Z%22%20fill%3D%22%23FFFFFF%22%20fill-opacity%3D%220.14%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L256%20256%20L126%20181%20Z%22%20fill%3D%22%23FFFFFF%22%20fill-opacity%3D%220.34%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L126%20181%20L126%20331%20L256%20406%20Z%22%20fill%3D%22%237A3200%22%20fill-opacity%3D%220.16%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L386%20181%20L386%20331%20L256%20406%20Z%22%20fill%3D%22%235C2400%22%20fill-opacity%3D%220.22%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L386%20331%20L256%20406%20L126%20331%20L126%20181%20Z%22%20fill%3D%22none%22%20opacity%3D%220.93%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L256%20106%20M256%20256%20L386%20331%20M256%20256%20L126%20331%22%20fill%3D%22none%22%20opacity%3D%220.93%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A'
+
     const CSS = `
-.db-root{display:flex;flex-direction:column;height:100%;min-height:0;color:var(--dsw-alias-label-primary);font-size:13px}
-.db-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;flex-wrap:wrap}
-.db-title{font-weight:600}
-.db-muted{color:var(--dsw-alias-label-tertiary)}
-.db-nav{display:flex;gap:2px;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none;flex-wrap:wrap}
-.db-nav button{background:0 0;border:0;border-radius:8px;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;padding:5px 10px}
-.db-nav button:hover{background:var(--dsw-alias-fill-l2);color:var(--dsw-alias-label-primary)}
-.db-nav button[data-active=true]{background:var(--dsw-alias-fill-l2);color:var(--dsw-alias-label-primary)}
-.db-tabs{display:flex;gap:8px;padding:2px 0 8px;flex:none;flex-wrap:wrap;align-items:center}
-.db-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 24px}
-.db-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:10px 12px;margin-bottom:10px}
-.db-card h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
-.db-row{display:flex;gap:8px;align-items:baseline;padding:2px 0;line-height:18px}
-.db-row>span:first-child{color:var(--dsw-alias-label-tertiary);flex:none;min-width:82px}
+.db-root{container-type:inline-size;container-name:deepblend;--db-good:#23704e;--db-warn:#946109;--db-bad:#b0303c;--db-input-border:#8492a5;--db-accent:#b95516;--db-accent-soft:#f8e9de;--db-canvas:var(--dsw-alias-bg-layer-1);--db-surface:var(--dsw-alias-bg-layer-1);--db-border:var(--dsw-alias-border-l1);--db-fill:var(--dsw-alias-fill-l2);--db-text:var(--dsw-alias-label-primary);--db-subtle:var(--dsw-alias-label-secondary);--db-muted:var(--dsw-alias-label-secondary);display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;background:var(--db-canvas);color:var(--db-text);font:13px/1.55 var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
+.db-root[data-theme=light],.db-root[data-theme=system]{color-scheme:light;--db-canvas:#f1f3f6;--db-surface:#fff;--db-border:#dce1e8;--db-fill:#f0f3f7;--db-text:#202b3c;--db-subtle:#4e5d70;--db-muted:#637186}
+.db-root[data-theme=dark]{color-scheme:dark;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692;--db-accent:#f3a365;--db-accent-soft:#3c2d23}
+.db-root *{box-sizing:border-box}
+.db-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--db-border,var(--dsw-alias-border-l1));background:var(--db-surface,var(--dsw-alias-bg-layer-1));flex:none;flex-wrap:wrap}
+.db-brand{display:flex;align-items:center;gap:10px;flex:none}
+.db-logo{width:34px;height:34px;border-radius:9px}
+.db-title{margin:0;font-size:16px;font-weight:650;line-height:1.25;letter-spacing:-.3px}
+.db-brand small{display:block;font-size:11px;color:var(--db-muted);margin-top:3px}
+.db-project-context{display:flex;align-items:center;gap:8px;min-width:0;max-width:35%;padding-left:16px;border-left:1px solid var(--db-border)}
+.db-project-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.db-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.db-theme{width:auto!important;min-width:94px}
+.db-muted{color:var(--db-muted,var(--dsw-alias-label-secondary))}
+.db-mono{font-family:var(--dsw-font-mono,ui-monospace,monospace)}
+.db-nav{display:flex;gap:6px;padding:8px 20px;border-bottom:1px solid var(--db-border);background:var(--db-surface);flex:none;overflow-x:auto;scrollbar-width:thin}
+.db-nav button{background:transparent;border:1px solid transparent;border-radius:7px;color:var(--db-subtle);cursor:pointer;font:inherit;min-height:34px;padding:6px 14px;white-space:nowrap;flex:none}
+.db-nav button:hover{background:var(--db-fill);color:var(--db-text)}
+.db-nav button[data-active=true]{background:var(--db-accent-soft);border-color:var(--db-accent);color:var(--db-accent);font-weight:650}
+.db-tabs{display:flex;gap:8px;padding:2px 0 12px;flex:none;flex-wrap:wrap;align-items:center}
+.db-body{flex:1;min-height:0;overflow:auto;padding:20px 24px 32px;scrollbar-width:thin;scrollbar-color:var(--db-border) transparent;scroll-padding:16px}
+.db-body>[data-view],.db-body>.db-guide{max-width:1440px;margin-left:auto;margin-right:auto}
+.db-card{background:var(--db-surface,var(--dsw-alias-bg-layer-1));border:1px solid var(--db-border,var(--dsw-alias-border-l1));border-radius:12px;padding:16px 18px;margin-bottom:14px;min-width:0}
+.db-card h4{margin:0 0 12px;font-size:14px;font-weight:650;color:var(--db-text,var(--dsw-alias-label-primary))}
+.db-card h5{margin:10px 0 8px;font-size:13px;font-weight:650}
+.db-card p{margin:8px 0 12px}
+.db-row{display:flex;gap:12px;align-items:baseline;padding:4px 0;line-height:20px}
+.db-row>span:first-child{color:var(--db-muted,var(--dsw-alias-label-tertiary));flex:none;min-width:90px}
 .db-row>span:last-child{min-width:0;overflow-wrap:anywhere;font-family:var(--dsw-font-mono);font-size:12px}
-.db-btn{background:var(--dsw-alias-fill-l2);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;color:var(--dsw-alias-label-primary);cursor:pointer;font:inherit;font-size:12px;padding:4px 9px}
-.db-btn:disabled{opacity:.5;cursor:default}
-.db-btn[data-tone=primary]{background:var(--dsw-alias-brand-primary,#3b6ef5);border-color:transparent;color:#fff}
-.db-btn[data-tone=danger]{color:var(--dsw-alias-label-error,#e5484d)}
-.db-input,.db-area{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;color:inherit;font:inherit;font-size:12px;padding:5px 8px;width:100%;box-sizing:border-box}
+.db-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--db-fill,var(--dsw-alias-fill-l2));border:1px solid var(--db-border,var(--dsw-alias-border-l1));border-radius:7px;color:var(--db-text,var(--dsw-alias-label-primary));cursor:pointer;font:inherit;font-size:12px;min-height:34px;padding:6px 12px;text-decoration:none;line-height:1.4}
+.db-btn:hover:not(:disabled){border-color:var(--db-accent,var(--dsw-alias-brand-primary));background:var(--db-accent-soft,var(--dsw-alias-fill-l2))}
+.db-btn:active:not(:disabled){filter:brightness(.95)}
+.db-btn:disabled{opacity:.48;cursor:not-allowed}
+.db-btn[data-tone=primary]{background:var(--db-accent,var(--dsw-alias-brand-primary,#3b6ef5));border-color:transparent;color:#fff;font-weight:650}
+.db-root[data-theme=dark] .db-btn[data-tone=primary]{color:#20170f}
+.db-btn[data-tone=danger]{color:var(--db-bad,var(--dsw-alias-label-error,#d13438))}
+.db-btn[aria-pressed=true]{border-color:var(--db-accent);background:var(--db-accent-soft);color:var(--db-accent)}
+.db-root :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--db-accent);outline-offset:3px}
+.db-input,.db-area{background:var(--db-surface,var(--dsw-alias-bg-layer-1));border:1px solid var(--db-input-border,var(--dsw-alias-border-l1));border-radius:7px;color:inherit;font:inherit;font-size:13px;min-height:34px;padding:7px 10px;width:100%;box-sizing:border-box}
+.db-input:hover,.db-area:hover{border-color:var(--db-muted,var(--dsw-alias-label-secondary))}
+.db-input:disabled,.db-area:disabled{opacity:.55;background:var(--db-fill,var(--dsw-alias-fill-l2));cursor:not-allowed}
 .db-area{font-family:var(--dsw-font-mono);min-height:150px;white-space:pre;overflow:auto}
-.db-inline{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.db-badge{border-radius:6px;font-size:11px;line-height:16px;padding:1px 6px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);white-space:nowrap}
-.db-badge[data-tone=ok]{color:var(--dsw-alias-label-success,#2f9e44);border-color:currentColor}
-.db-badge[data-tone=warn]{color:var(--dsw-alias-label-warning,#e8a33d);border-color:currentColor}
-.db-badge[data-tone=bad]{color:var(--dsw-alias-label-error,#e5484d);border-color:currentColor}
-.db-badge[data-tone=live]{color:var(--dsw-alias-brand-primary,#3b6ef5);border-color:currentColor}
-.db-bar{background:var(--dsw-alias-fill-l2);border-radius:999px;height:6px;overflow:hidden;width:100%;margin:4px 0}
-.db-bar>i{background:var(--dsw-alias-brand-primary,#3b6ef5);display:block;height:100%}
+.db-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.db-inline>label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.db-number-control{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:160px}
+.db-input[aria-invalid=true]{border-color:var(--db-bad,var(--dsw-alias-label-error));background:var(--db-surface)}
+.db-field-feedback{font:11px/1.4 var(--dsw-font-sans,system-ui,sans-serif);color:var(--db-bad,var(--dsw-alias-label-error));white-space:normal}
+.db-field{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:550}
+.db-field .db-input{font-weight:400}
+.db-badge{display:inline-flex;align-items:center;border-radius:5px;font-size:11px;line-height:18px;padding:2px 7px;border:1px solid var(--db-border,var(--dsw-alias-border-l1));color:var(--db-subtle,var(--dsw-alias-label-secondary));white-space:nowrap}
+.db-badge[data-tone=ok]{color:var(--db-good,var(--dsw-alias-label-success,#2f9e44));border-color:currentColor}
+.db-badge[data-tone=warn]{color:var(--db-warn,var(--dsw-alias-label-warning,#b8791b));border-color:currentColor}
+.db-badge[data-tone=bad]{color:var(--db-bad,var(--dsw-alias-label-error,#d13438));border-color:currentColor}
+.db-badge[data-tone=live]{color:var(--db-accent,var(--dsw-alias-brand-primary));border-color:currentColor}
+.db-bar{background:var(--db-fill,var(--dsw-alias-fill-l2));border-radius:999px;height:7px;overflow:hidden;width:100%;margin:8px 0}
+.db-bar>i{background:var(--db-accent,var(--dsw-alias-brand-primary));display:block;height:100%}
 .db-list{list-style:none;margin:0;padding:0}
-.db-list>li{border-bottom:1px solid var(--dsw-alias-border-l1);padding:7px 0}
+.db-list>li{border-bottom:1px solid var(--db-border,var(--dsw-alias-border-l1));padding:10px 0}
 .db-list>li:last-child{border-bottom:0}
-.db-kind{color:var(--dsw-alias-label-tertiary);min-width:96px;display:inline-block}
-.db-error{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-label-error,#e5484d);border-radius:10px;color:var(--dsw-alias-label-error,#e5484d);padding:10px 12px;margin-bottom:10px;white-space:pre-wrap}
-.db-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
-.db-shot{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:8px}
-.db-shot img{display:block;width:100%;height:auto;border-radius:6px;background:#000}
-.db-shot h5{margin:0 0 6px;font-size:12px;font-weight:600}
-.db-chip{display:inline-flex;align-items:center;gap:5px;background:0 0;border:0;border-radius:8px;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:12px;padding:3px 6px}
-.db-chip:hover{background:var(--dsw-alias-fill-l2);color:var(--dsw-alias-label-primary)}
-.db-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary);display:inline-block}
-.db-dot[data-tone=live]{background:var(--dsw-alias-brand-primary,#3b6ef5)}
+.db-kind{color:var(--db-muted,var(--dsw-alias-label-tertiary));min-width:96px;display:inline-block}
+.db-error{background:var(--db-surface,var(--dsw-alias-bg-layer-1));border:1px solid var(--db-bad,var(--dsw-alias-label-error,#d13438));border-radius:9px;color:var(--db-bad,var(--dsw-alias-label-error,#d13438));padding:12px 14px;margin-bottom:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.db-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.db-shot{background:var(--db-surface,var(--dsw-alias-bg-layer-1));border:1px solid var(--db-border,var(--dsw-alias-border-l1));border-radius:12px;padding:12px;min-width:0}
+.db-shot img{display:block;width:100%;height:auto;border-radius:8px;background:#0d1117}
+.db-shot h5{margin:0 0 10px;font-size:13px;font-weight:600}
+.db-chip{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;border-radius:7px;color:var(--db-subtle,var(--dsw-alias-label-secondary));cursor:pointer;font:inherit;font-size:12px;padding:6px 8px}
+.db-chip:hover{background:var(--db-fill,var(--dsw-alias-fill-l2));color:var(--db-text,var(--dsw-alias-label-primary))}
+.db-dot{width:7px;height:7px;border-radius:50%;background:var(--db-muted,var(--dsw-alias-label-tertiary));display:inline-block}
+.db-dot[data-tone=live]{background:var(--db-accent,var(--dsw-alias-brand-primary))}
 .db-dot[data-tone=ok]{background:var(--dsw-alias-label-success,#2f9e44)}
-.db-dot[data-tone=bad]{background:var(--dsw-alias-label-error,#e5484d)}
-.db-kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;margin:0}
-.db-kv dt{color:var(--dsw-alias-label-tertiary)}
+.db-dot[data-tone=bad]{background:var(--dsw-alias-label-error,#d13438)}
+.db-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;font-size:12px;margin:0}
+.db-kv dt{color:var(--db-muted,var(--dsw-alias-label-secondary))}
 .db-kv dd{margin:0;font-family:var(--dsw-font-mono);overflow-wrap:anywhere}
-.db-pre{background:var(--dsw-alias-bg-layer-1);border-radius:8px;font-family:var(--dsw-font-mono);font-size:11px;margin:6px 0 0;max-height:200px;overflow:auto;padding:8px;white-space:pre-wrap}
+.db-pre{background:var(--db-fill,var(--dsw-alias-bg-layer-1));border-radius:8px;font-family:var(--dsw-font-mono);font-size:11px;margin:8px 0 0;max-height:200px;overflow:auto;padding:12px;white-space:pre-wrap}
+.db-root details>summary{cursor:pointer;min-height:34px;padding:6px 0;font-weight:550;color:var(--db-subtle)}
+.db-root details[open]>summary{margin-bottom:8px;color:var(--db-text)}
+.db-guide{padding:12px 16px}
+.db-guide-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.db-guide-top>strong{font-size:12px;flex:none}
+.db-guide .db-btn{min-height:30px;padding:5px 9px;font-size:11px}
+.db-guide-notes{font-size:12px;margin-top:5px}
+.db-guide-notes>summary{font-size:11px;min-height:26px!important;padding:4px 0!important;font-weight:400!important}
+.db-guide-notes p{margin:4px 0 8px}
+.db-create-footer{position:sticky;bottom:0;z-index:2;background:var(--db-surface);border-top:1px solid var(--db-border);display:grid;grid-template-columns:minmax(140px,1fr) minmax(160px,1.2fr) auto;gap:12px;align-items:end;margin:16px -18px -16px;padding:14px 18px;border-radius:0 0 12px 12px;box-shadow:0 -5px 18px #00000008}
+.db-create-footer .db-btn{min-height:36px}
+.db-recipes{margin-bottom:16px}
+.db-recipe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px}
+.db-recipe{display:flex;flex-direction:column;gap:8px;min-width:0;border:1px solid var(--db-border);border-radius:10px;padding:12px;background:var(--db-surface)}
+.db-recipe[data-selected=true]{border-color:var(--db-accent);box-shadow:0 0 0 1px var(--db-accent);background:var(--db-accent-soft)}
+.db-recipe img{display:block;width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:7px;background:#10151d}
+.db-recipe h5{margin:2px 0;font-size:13px}
+.db-recipe p{margin:0;font-size:12px}
+.db-recipe .db-btn{margin-top:auto;align-self:stretch}
+.db-recipe-description{line-height:1.6}
+.db-recipe-license{font-size:10px!important}
+.db-recipe-parameters{margin-top:16px;padding:14px;border:1px solid var(--db-border);border-radius:9px}
+.db-recipe-parameters legend{font-size:12px;font-weight:600;padding:0 6px}
+.db-recipe-parameters .db-inline{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:12px}
+.db-recipe-parameters label{padding:8px;background:var(--db-fill);border-radius:7px}
+.db-recipe-parameters input[type=color]{height:34px;width:64px;border:1px solid var(--db-border);border-radius:6px;padding:3px;background:var(--db-surface)}
+.db-storage{margin-top:8px;font-size:11px;overflow-wrap:anywhere}
+.db-scene-layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:20px;align-items:start}
+.db-scene-outline{min-width:0;position:sticky;top:0;max-height:calc(100dvh - 180px);overflow:auto;scrollbar-width:thin;scrollbar-color:var(--db-border) transparent}
+.db-scene-outline>.db-grid{display:block}
+.db-scene-outline .db-card{padding:12px 14px}
+.db-scene-outline .db-kind{min-width:0;display:inline;margin:0 6px}
+.db-scene-outline .db-list>li>div{overflow-wrap:anywhere;font-size:12px}
+.db-scene-inspector{min-width:0}
+.db-notice{border-left:3px solid var(--db-good,var(--dsw-alias-label-success,#2f9e44));background:var(--db-fill,var(--dsw-alias-fill-l2));border-radius:6px;padding:9px 12px;color:var(--db-text,var(--dsw-alias-label-primary))}
+.db-editor-actions{position:sticky;bottom:0;z-index:2;background:var(--db-surface);border-top:1px solid var(--db-border);margin:16px -18px -16px;padding:12px 18px;border-radius:0 0 12px 12px;box-shadow:0 -5px 18px #00000008}
+@media(prefers-color-scheme:dark){.db-root[data-theme=system]{color-scheme:dark;--db-accent:#f3a365;--db-accent-soft:#3c2d23;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692}.db-root[data-theme=system] .db-btn[data-tone=primary]{color:#20170f}}
+@media(max-width:1000px){.db-recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.db-head{padding:12px 16px}.db-body{padding:16px}.db-project-context{max-width:45%}.db-scene-layout{grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:14px}}
+@media(max-width:700px){.db-scene-layout{grid-template-columns:minmax(0,1fr)}.db-scene-outline{position:static;max-height:none;overflow:visible}.db-scene-outline>.db-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.db-project-context{max-width:100%;border-left:0;padding-left:0}.db-head-actions{margin-left:0;width:100%}.db-head-actions .db-theme{margin-left:auto}.db-head{gap:8px}.db-nav{padding:8px 12px}.db-create-footer{grid-template-columns:1fr 1fr}.db-create-footer .db-btn{grid-column:1/-1}.db-card{padding:14px}.db-body{padding:12px}.db-create-footer{margin:14px -14px -14px;padding:12px 14px}}
+@media(max-width:440px){.db-recipe-grid{grid-template-columns:minmax(0,1fr)}.db-create-footer{position:static;grid-template-columns:minmax(0,1fr)}.db-scene-outline>.db-grid{grid-template-columns:minmax(0,1fr)}.db-badge[data-badge=unsaved]{white-space:normal}.db-nav button{padding:6px 10px}.db-head{padding:10px 12px}.db-body{padding-top:8px}.db-tabs{gap:6px;padding:0 0 6px}}
+@container deepblend (max-width:1000px){.db-recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.db-head{padding:12px 16px}.db-body{padding:16px}.db-project-context{max-width:45%}.db-scene-layout{grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:14px}}
+@container deepblend (max-width:700px){.db-scene-layout{grid-template-columns:minmax(0,1fr)}.db-scene-outline{position:static;max-height:none;overflow:visible}.db-scene-outline>.db-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.db-project-context{max-width:100%;border-left:0;padding-left:0}.db-head-actions{margin-left:0;width:100%}.db-head-actions .db-theme{margin-left:auto}.db-head{gap:8px}.db-nav{padding:8px 12px}.db-create-footer{grid-template-columns:1fr 1fr}.db-create-footer .db-btn{grid-column:1/-1}.db-card{padding:14px}.db-body{padding:12px}.db-create-footer{margin:14px -14px -14px;padding:12px 14px}}
+@container deepblend (max-width:440px){.db-recipe-grid{grid-template-columns:minmax(0,1fr)}.db-create-footer{position:static;grid-template-columns:minmax(0,1fr)}.db-scene-outline>.db-grid{grid-template-columns:minmax(0,1fr)}.db-badge[data-badge=unsaved]{white-space:normal}.db-nav button{padding:6px 10px}.db-head{padding:10px 12px}.db-body{padding-top:8px}.db-tabs{gap:6px;padding:0 0 6px}}
+@media(pointer:coarse){.db-root .db-btn,.db-root .db-input,.db-nav button{min-height:42px}}
+@media(prefers-reduced-motion:reduce){.db-root *{scroll-behavior:auto!important;transition:none!important}}
 `
 
     /**
@@ -1442,7 +1545,7 @@ window.__ModuleLoader__.load({
 
     function ErrorBox(props) {
       if (props.error === null || props.error === undefined) return null
-      return el('div', { className: 'db-error', 'data-deepblend-error': props.error.code || 'error' },
+      return el('div', { className: 'db-error', role: 'alert', 'data-deepblend-error': props.error.code || 'error' },
         el('div', null, `${props.error.code || 'ERROR'}: ${props.error.message || ''}`),
         props.error.detail ? el('pre', { className: 'db-pre' }, JSON.stringify(props.error.detail, null, 2)) : null)
     }
@@ -2222,13 +2325,23 @@ window.__ModuleLoader__.load({
      *
      * @param {{ fetch?: typeof fetch, pollLiveMs?: number, pollIdleMs?: number }} [options]
      */
+    const APPEARANCE_KEY = 'deepblend.workbench.appearance'
+    const APPEARANCES = ['system', 'light', 'dark']
+    function appearanceStorage(settings) {
+      try { return settings.preferenceStorage ?? globalThis.localStorage } catch { return undefined }
+    }
+    function savedAppearance(storage) {
+      try { const value = storage?.getItem(APPEARANCE_KEY); return APPEARANCES.includes(value) ? value : 'system' } catch { return 'system' }
+    }
+
     function createWorkbenchStore(options) {
       const settings = options || {}
       const fetchImpl = settings.fetch ?? ((...args) => fetch(...args))
       const pollLiveMs = settings.pollLiveMs ?? POLL_LIVE_MS
       const pollIdleMs = settings.pollIdleMs ?? POLL_IDLE_MS
 
-      let data = emptySnapshot()
+      const preferenceStorage = appearanceStorage(settings)
+      let data = { ...emptySnapshot(), appearance: savedAppearance(preferenceStorage) }
       let snapshot = { ...data }
       const listeners = new Set()
       let timer = null
@@ -2405,6 +2518,11 @@ window.__ModuleLoader__.load({
         && FILE_FIELDS.includes(field) && source === fileChoiceKey(data, field) && fileChoiceAllowed(data, field)
       const actions = {
         acceptsFileChoice,
+        setAppearance: value => {
+          if (!APPEARANCES.includes(value)) return
+          try { preferenceStorage?.setItem(APPEARANCE_KEY, value) } catch { /* A blocked preference must not block a project. */ }
+          set({ appearance: value })
+        },
         /**
          * Switch tabs, and drop the notice the tab being ENTERED was carrying.
          *
@@ -3188,7 +3306,7 @@ window.__ModuleLoader__.load({
       const actions = ctx.actions
       return el('div', { 'data-view': 'projects' },
         ErrorBox({ error: state.error }),
-        el('div', { className: 'db-card' },
+        state.projects.length ? el('div', { className: 'db-card db-project-list' },
           el('h4', null, t('tab.projects')),
           state.projects.length === 0
             ? el('div', { className: 'db-muted' }, t('projects.empty'))
@@ -3207,13 +3325,14 @@ window.__ModuleLoader__.load({
               el('div', { className: 'db-muted db-mono' }, t('projects.updated', { revision: project.currentRevision || '—', when: formatTime(project.updatedAt) })),
               project.goal ? el('div', { className: 'db-muted' }, project.goal) : null,
             ))),
-          el('div', { className: 'db-muted db-mono', style: { marginTop: '6px' } }, `projectsRoot: ${state.projectsRoot || '—'}`),
-        ),
+        ) : null,
 
-        el('div', { className: 'db-card' },
+        el('div', { className: 'db-card db-project-create' },
           el('h4', null, t('projects.create')),
+          !state.projects.length ? el('p', { className: 'db-muted' }, t('projects.startHint')) : null,
           RecipesView(ctx),
-          el('div', { className: 'db-inline' },
+          el('div', { className: 'db-create-footer' },
+            el('label', { className: 'db-field' }, t('projects.name'),
             el('input', {
               className: 'db-input',
               'data-field': 'project-title',
@@ -3221,15 +3340,15 @@ window.__ModuleLoader__.load({
               placeholder: t('projects.titlePlaceholder'),
               value: state.forms.title,
               onChange: event => actions.setForm('title', event.target.value),
-            }),
-            el('input', {
+            })),
+            el('label', { className: 'db-field' }, t('projects.goal'), el('input', {
               className: 'db-input',
               'data-field': 'project-goal',
               'aria-label': t('projects.goal'),
               placeholder: t('projects.goal'),
               value: state.forms.goal,
               onChange: event => actions.setForm('goal', event.target.value),
-            }),
+            })),
             Button({
               tone: 'primary',
               action: 'create-project',
@@ -3240,6 +3359,8 @@ window.__ModuleLoader__.load({
           ),
           state.notices.projects ? Notice(state.notices.projects, { marginTop: '8px' }) : null,
         ),
+        el('details', { className: 'db-storage' }, el('summary', null, t('projects.storage')),
+          el('span', { className: 'db-muted db-mono' }, `projectsRoot: ${state.projectsRoot || '—'}`)),
 
         BriefEditor({ state, actions }),
         state.selected ? el('div', { className: 'db-card' },
@@ -3257,7 +3378,7 @@ window.__ModuleLoader__.load({
             ].join(' / ') },
           ] }),
           el('div', { className: 'db-muted', style: { marginTop: '6px' } }, state.selected.qa.summary),
-        ) : el('div', { className: 'db-card db-muted' }, t('common.noProject')),
+        ) : null,
       )
     }
 
@@ -3289,26 +3410,25 @@ window.__ModuleLoader__.load({
     function RecipesView({ state, actions }) {
       const catalog = state.recipeCatalog || { recipes: [], errors: [] }
       const selected = state.forms.recipe
-      return el('section', { 'aria-label': t('recipes.heading'), style: { marginBottom: '16px' } },
+      return el('section', { className: 'db-recipes', 'aria-label': t('recipes.heading') },
         el('h5', null, t('recipes.heading')),
         el('p', { className: 'db-muted' }, t('recipes.previewNote')),
         !recipeSelectionCurrent(state) ? el('p', { role: 'alert', className: 'db-error' }, t('recipes.stale')) : null,
         catalog.errors.length ? el('p', { className: 'db-error' }, t('recipes.unavailable')) : null,
-        Button({ action: 'recipe-blank', tone: !selected ? 'primary' : undefined,
+        Button({ action: 'recipe-blank',
           onClick: () => actions.selectRecipe(null), children: t('recipes.blank') }),
-        el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '10px' } },
+        el('div', { className: 'db-recipe-grid' },
           catalog.recipes.map(recipe => {
             const chosen = selected?.id === recipe.id && selected?.version === recipe.version && selected?.digest === recipe.digest
-            return el('article', { key: `${recipe.id}@${recipe.version}`, 'data-recipe': recipe.id,
-              style: { border: chosen ? '2px solid var(--db-accent, #4f8cff)' : '1px solid var(--db-border, #555)', borderRadius: '8px', padding: '10px' } },
-              el('img', { src: recipe.previewUrl, alt: recipe.title, loading: 'lazy', style: { width: '100%', aspectRatio: '4 / 3', objectFit: 'contain', borderRadius: '4px' } }),
-              el('h5', null, recipe.title), el('p', { className: 'db-muted' }, recipe.description),
-              el('p', { className: 'db-muted' }, `${t('recipes.license')}: ${recipe.author.name} · ${recipe.license} · v${recipe.version}`),
+            return el('article', { key: `${recipe.id}@${recipe.version}`, 'data-recipe': recipe.id, className: 'db-recipe', 'data-selected': String(chosen) },
+              el('img', { src: recipe.previewUrl, alt: recipe.title, loading: 'lazy' }),
+              el('h5', null, recipe.title), el('p', { className: 'db-muted db-recipe-description' }, recipe.description),
+              el('p', { className: 'db-muted db-recipe-license' }, `${t('recipes.license')}: ${recipe.author.name} · ${recipe.license} · v${recipe.version}`),
               Button({ action: `select-recipe:${recipe.id}@${recipe.version}`, tone: chosen ? 'primary' : undefined,
                 onClick: () => actions.selectRecipe(recipe), children: chosen ? t('recipes.selected') : t('recipes.select') }),
             )
           })),
-        selected ? el('fieldset', { style: { marginTop: '12px', borderRadius: '6px' } },
+        selected ? el('fieldset', { className: 'db-recipe-parameters' },
           el('legend', null, t('recipes.parameters')),
           Button({ action: 'reset-recipe', onClick: () => actions.selectRecipe(selected), children: t('recipes.reset') }),
           el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } }, selected.parameters.map(parameter =>
@@ -3405,7 +3525,10 @@ window.__ModuleLoader__.load({
       return el('div', {
         'data-result': result.ok ? 'ok' : 'error',
         'data-result-kind': result.kind || undefined,
-        className: result.ok ? 'db-muted' : 'db-error',
+        className: result.ok ? 'db-notice' : 'db-error',
+        role: result.ok ? 'status' : 'alert',
+        'aria-live': result.ok ? 'polite' : 'assertive',
+        'aria-atomic': 'true',
         style: style || undefined,
       }, result.message)
     }
@@ -3441,11 +3564,15 @@ window.__ModuleLoader__.load({
       const numeric = (label, field, value, update, options = {}) => {
         const factor = options.factor ?? 1
         const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
-        return el('label', { className: 'db-row', key: field }, el('span', null, label), el('input', {
-          className: 'db-input', type: 'number', 'data-field': field, value: displayed, step: options.step ?? (options.integer ? 1 : 'any'),
+        const invalid = !Number.isFinite(value) && !disabled && options.disabled !== true
+        const errorId = `${draft.projectId}-${draft.entityId}-${field}-error`
+        return el('label', { className: 'db-row', key: field }, el('span', null, label), el('span', { className: 'db-number-control' }, el('input', {
+          className: 'db-input', type: 'number', 'data-field': field, 'aria-label': label,
+          'aria-invalid': invalid ? 'true' : undefined, 'aria-describedby': invalid ? errorId : undefined,
+          value: displayed, step: options.step ?? (options.integer ? 1 : 'any'),
           min: options.min, max: options.max, disabled: disabled || options.disabled === true,
           style: { width: '125px' }, onChange: event => update(event.target.value === '' ? null : Number(event.target.value) / factor),
-        }))
+        }), invalid ? el('span', { className: 'db-field-feedback', id: errorId }, t('editor.invalid', { field: label })) : null))
       }
       const choose = (label, field, value, items, update, off = false) => el('label', { className: 'db-row', key: field }, el('span', null, label), el('select', {
         className: 'db-input', 'data-field': field, value, disabled: disabled || off, style: { maxWidth: '65%' }, onChange: event => update(event.target.value),
@@ -3590,7 +3717,7 @@ window.__ModuleLoader__.load({
           el('div', { className: 'db-inline' }, Object.entries(modifierNames).map(([type, name]) => Button({ action: `editor-modifier-add-${type}`, disabled: disabled || !canModify || draft.entity.modifiers.length >= 8,
             children: t('editor.add', { name }), onClick: () => actions.editEditorList('modifiers', 0, 'add', type) })))) : null,
         errors.length ? el('div', { className: 'db-error', 'data-editor-errors': true }, errors.join(' ')) : null,
-        el('div', { className: 'db-inline' }, Button({ action: 'editor-apply', tone: 'primary', disabled: disabled || !dirty || errors.length > 0, onClick: actions.applyEditor, children: t('editor.apply') }),
+        el('div', { className: 'db-inline db-editor-actions' }, Button({ action: 'editor-apply', tone: 'primary', disabled: disabled || !dirty || errors.length > 0, onClick: actions.applyEditor, children: t('editor.apply') }),
           Button({ action: 'editor-reset', disabled: state.busy.editor, onClick: actions.resetEditor, children: t('editor.reset') }),
           Button({ action: 'editor-review-subject', disabled: disabled || draft.entity.visible === false || draft.entity.kind === 'empty'
             || state.briefWork[state.activeProjectId]?.saving || state.visualRuns[state.activeProjectId]?.busy,
@@ -3827,10 +3954,12 @@ window.__ModuleLoader__.load({
             Badge({ children: `world ${scene.world ? `${(scene.world.color || []).join(',')} × ${scene.world.strength}` : t('common.default')}` }),
           ),
         ),
+        el('div', { className: 'db-scene-layout' },
+        el('aside', { className: 'db-scene-outline', 'data-scroll-key': JSON.stringify([state.activeProjectId, 'scene-outline']), 'aria-label': t('scene.outline') },
         el('div', { className: 'db-grid' },
           section(t('scene.entities'), scene.nodes.entities, entity => el('div', null,
             el('button', { type: 'button', className: 'db-btn', 'data-action': `select-entity:${entity.id}`, 'data-entity-id': entity.id,
-              'aria-pressed': state.editorEntityId === entity.id, onClick: () => actions.selectEditorEntity(entity.id) }, entity.id), ' ',
+              'aria-pressed': String(state.editorEntityId === entity.id), onClick: () => actions.selectEditorEntity(entity.id) }, entity.id), ' ',
             el('span', { className: 'db-mono', 'data-node': `entity:${entity.id}` }, entity.id), ' ',
             el('span', { className: 'db-kind' }, entity.shape || entity.kind),
             entity.materialId ? el('span', { className: 'db-muted' }, t('scene.material', { id: entity.materialId })) : null,
@@ -3863,10 +3992,11 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-mono', 'data-node': `asset:${asset.id}` }, asset.id), ' ',
             el('span', { className: 'db-kind' }, asset.type),
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
-        ),
+        )),
+        el('section', { className: 'db-scene-inspector', 'aria-label': t('scene.inspector') },
+        SceneEditor(ctx),
         PhotographyEditor(ctx),
         AssetsView(ctx),
-        SceneEditor(ctx),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
           onToggle: event => actions.setDisclosure(advancedDisclosure, event.currentTarget.open), className: 'db-card' }, el('summary', null, t('editor.advanced')),
           el('h4', null, t('scene.patch')),
@@ -3888,7 +4018,7 @@ window.__ModuleLoader__.load({
             Button({ action: 'reset-patch', onClick: () => actions.setForm('patch', null), children: t('scene.resetTemplate') }),
             Notice(state.notices.scene, { border: 0, padding: '0 6px', marginBottom: 0 }),
           ),
-        ),
+        ))),
       )
     }
 
@@ -4050,15 +4180,18 @@ window.__ModuleLoader__.load({
         { id: 'appearance', label: t('guide.appearance'), hint: t('guide.appearanceHint') },
         { id: 'delivery', label: t('guide.delivery'), hint: t('guide.deliveryHint') },
       ]
-      return el('section', { className: 'db-card', 'data-creation-guide': projectId || 'new' },
-        el('strong', null, t('guide.title')),
-        el('div', { className: 'db-inline', style: { flexWrap: 'wrap', marginTop: '8px' } }, steps.map(step =>
-          Button({ action: `guide-${step.id}`, disabled: !projectId && !['goal', 'route'].includes(step.id), onClick: () => actions.openCreationStep(step.id), children: step.label }))),
+      const disclosure = JSON.stringify([projectId || 'new', 'guide-notes'])
+      return el('section', { className: 'db-card db-guide', 'data-creation-guide': projectId || 'new' },
+        el('div', { className: 'db-guide-top' }, el('strong', null, t('guide.title')),
+        el('div', { className: 'db-inline' }, steps.map(step =>
+          Button({ action: `guide-${step.id}`, disabled: !projectId && !['goal', 'route'].includes(step.id), onClick: () => actions.openCreationStep(step.id), children: step.label })))),
+        el('details', { className: 'db-guide-notes', 'data-disclosure': disclosure, open: state.disclosures?.[disclosure] ?? false,
+          onToggle: event => actions.setDisclosure(disclosure, event.currentTarget.open) }, el('summary', null, t('guide.notes')),
         el('p', { className: 'db-muted', 'data-guide-hint': focus }, steps.find(step => step.id === focus)?.hint || steps[0].hint),
         el('p', { className: 'db-muted' }, scene ? t('guide.evidence', { revision: scene.revision,
           parts: scene.nodes.entities.filter(entity => entity.kind !== 'empty' && !entity.tags?.includes('environment')).length,
           references: scene.project.referenceImages?.length || 0, images: evidence?.diagnostics?.length || 0 }) : t('guide.noProject')),
-        el('small', { className: 'db-muted' }, t('guide.help')))
+        el('small', { className: 'db-muted' }, t('guide.help'))))
     }
     function InspectionPanel({ state, actions }) {
       const projectId = state.activeProjectId, scene = state.selected?.scene, form = inspectionForm(state), work = state.inspectionWork?.[projectId] || {}
@@ -4329,12 +4462,12 @@ window.__ModuleLoader__.load({
           el('h4', null, t('jobs.startDelivery')),
           el('div', { className: 'db-inline' },
             el('label', { className: 'db-muted' }, t('jobs.frameStart')),
-            el('input', { className: 'db-input', 'data-field': 'frame-start', style: { width: '90px' }, value: state.forms.frameStart, onChange: event => actions.setForm('frameStart', event.target.value) }),
+            el('input', { className: 'db-input', 'data-field': 'frame-start', 'aria-label': t('jobs.frameStart'), style: { width: '90px' }, value: state.forms.frameStart, onChange: event => actions.setForm('frameStart', event.target.value) }),
             el('label', { className: 'db-muted' }, t('jobs.frameEnd')),
-            el('input', { className: 'db-input', 'data-field': 'frame-end', style: { width: '90px' }, value: state.forms.frameEnd, onChange: event => actions.setForm('frameEnd', event.target.value) }),
-            el('label', { className: 'db-muted' }, 'profile'),
+            el('input', { className: 'db-input', 'data-field': 'frame-end', 'aria-label': t('jobs.frameEnd'), style: { width: '90px' }, value: state.forms.frameEnd, onChange: event => actions.setForm('frameEnd', event.target.value) }),
+            el('label', { className: 'db-muted' }, t('jobs.profile')),
             el('select', {
-              className: 'db-input', 'data-field': 'render-profile', style: { width: 'auto' }, value: state.forms.profile,
+              className: 'db-input', 'data-field': 'render-profile', 'aria-label': t('jobs.profile'), style: { width: 'auto' }, value: state.forms.profile,
               onChange: event => actions.setForm('profile', event.target.value),
             },
               el('option', { value: 'preview' }, 'preview'),
@@ -4503,21 +4636,28 @@ window.__ModuleLoader__.load({
         : state.status === 'loading'
           ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
           : el('div', { className: 'db-body', 'data-scroll-key': JSON.stringify([state.activeProjectId, state.view]) },
-            state.view === 'preview' ? renderView(ctx) : CreationGuide(ctx),
-            state.view === 'preview' ? CreationGuide(ctx) : renderView(ctx))
+            state.view === 'preview' || !state.activeProjectId ? renderView(ctx) : CreationGuide(ctx),
+            state.view === 'preview' || !state.activeProjectId ? CreationGuide(ctx) : renderView(ctx))
 
-      return el('div', { className: 'db-root', 'data-deepblend-panel': PANEL_ID },
+      return el('div', { className: 'db-root', 'data-theme': state.appearance || 'system', 'data-deepblend-panel': PANEL_ID },
         el('div', { className: 'db-head' },
-          el('span', { className: 'db-title' }, t('workbench.title', { panel: PANEL_LABEL })),
-          state.selected ? el('span', { className: 'db-muted' }, state.selected.project.title) : null,
-          state.selected ? Badge({ children: state.selected.currentRevision || '—' }) : null,
+          el('div', { className: 'db-brand' },
+            el('img', { className: 'db-logo', src: BRAND_MARK, alt: '', width: 34, height: 34 }),
+            el('div', null, el('h1', { className: 'db-title' }, 'DeepBlend Studio'), el('small', null, t('workbench.title', { panel: PANEL_LABEL })))),
+          state.selected ? el('div', { className: 'db-project-context' },
+            el('span', { className: 'db-project-name', title: state.selected.project.title }, state.selected.project.title),
+            Badge({ children: state.selected.currentRevision || '—' })) : null,
+          projectHasUnsavedDrafts(state) ? Badge({ tone: 'warn', name: 'unsaved', children: t('workbench.unsaved') }) : null,
           state.unfinishedJobs.length > 0
             ? Badge({ tone: 'live', name: 'unfinished', children: t('jobs.unfinished', { count: state.unfinishedJobs.length }) })
             : null,
           typeof state.hostApiVersion === 'number' && state.hostApiVersion < EXPECTED_HOST_API
             ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} < ${EXPECTED_HOST_API}` })
             : null,
-          el('span', { style: { flex: 1 } }),
+          el('div', { className: 'db-head-actions' },
+          el('select', { className: 'db-input db-theme', 'data-field': 'workbench-appearance', 'aria-label': t('workbench.appearance'), value: state.appearance || 'system',
+            onChange: event => actions.setAppearance(event.target.value) },
+            [['system', t('workbench.system')], ['light', t('workbench.light')], ['dark', t('workbench.dark')]].map(([theme, label]) => el('option', { value: theme }, label))),
           // AN ANCHOR, NOT A BUTTON. The export is a download, and a download is what an anchor with
           // `download` does: the browser fetches the route and writes the file itself, in both faces
           // (React passes `href`/`download` through, the DOM binding sets them as attributes). A button
@@ -4529,13 +4669,15 @@ window.__ModuleLoader__.load({
             'data-action': 'export-diagnostics',
             title: t('diagnostics.exportHint'),
           }, t('diagnostics.export')),
-          Button({ action: 'reload', onClick: actions.reload, children: t('common.refresh') }),
+          Button({ action: 'reload', onClick: actions.reload, children: t('common.refresh') })),
         ),
-        el('div', { className: 'db-nav' }, VIEWS.map(entry => el('button', {
+        el('nav', { className: 'db-nav', 'aria-label': t('workbench.navigation') }, VIEWS.map(entry => el('button', {
           key: entry.id,
           type: 'button',
           'data-view-tab': entry.id,
           'data-active': String(state.view === entry.id),
+          'aria-current': state.view === entry.id ? 'page' : undefined,
+          'data-field': `nav-${entry.id}`,
           onClick: () => actions.setView(entry.id),
         }, entry.label))),
         state.error !== null && state.error !== undefined && !stale ? el('div', { style: { padding: '8px 14px 0' } }, ErrorBox({ error: state.error })) : null,

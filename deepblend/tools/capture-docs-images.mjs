@@ -237,6 +237,9 @@ async function submitPatch(page, store, projectId, operations, label) {
   if (!next || next === current || !storeJson(store, projectId, 'revisions', next, 'scene-spec.json')) {
     throw new Error(`the ${label} patch did not publish a new saved revision: ${result}`)
   }
+  // A save receipt arrives before the Host refresh. Rendering immediately can still
+  // ask for the previous revision; wait for the revision the user actually sees.
+  await waitFor(page, `document.querySelector('.db-project-context .db-badge')?.textContent === ${JSON.stringify(next)}`, 'the saved revision in the workbench header')
   step(`${label} patch committed — ${(result ?? '').replace(/\s+/g, ' ').slice(0, 70)}`)
   return next
 }
@@ -321,6 +324,10 @@ try {
   await waitFor(page, 'document.querySelector("[data-deepblend-panel=deepblend]") !== null', 'the workbench panel')
   await waitFor(page, 'document.querySelector(\'[data-action="create-project"]\') !== null', 'the create control')
 
+  // Capture the workbench's own appearance control; no screenshot overlays.
+  await page.evaluate(`(() => { const select = document.querySelector('[data-field="workbench-appearance"]'); select.value = 'dark'; select.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await waitFor(page, `document.querySelector('[data-deepblend-panel][data-theme="dark"]') !== null`, 'the workbench appearance')
+
   await page.fill('[data-field="project-title"]', PROJECT_TITLE)
   await page.fill('[data-field="project-goal"]', PROJECT_GOAL)
   const created = await clickForResult(page, '[data-result]', '[data-action="create-project"]', 'the project to be created', 300000)
@@ -357,9 +364,12 @@ try {
   await page.click('[data-view-tab="scene"]')
   await waitFor(page, 'document.querySelector(\'[data-view="scene"]\') !== null', 'the Scene view')
   await page.evaluate('document.querySelector(".db-body").scrollTop=0')
+  await page.click('[data-action="select-entity:monolith"]')
+  await waitFor(page, `document.querySelector('[data-scene-editor]')?.textContent.includes("monolith")`, 'the selected object editor')
+  await page.evaluate('document.querySelector(".db-body").scrollTop=0')
   await new Promise(settle => setTimeout(settle, 800))
   images.push(await capture(page, 'workbench-scene.png', 'workbench-scene',
-    'the workbench: the project header with its current revision, and the Scene tree the Host serves'))
+    'the dark workbench: saved revision, scene contents and selected monolith editor, all served by the Host'))
 
   // -------------------------------------------------------------------------
   // The rendered artifact itself, copied out of the project store
