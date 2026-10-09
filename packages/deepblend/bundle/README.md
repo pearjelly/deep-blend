@@ -14,15 +14,21 @@ recipe or import your own model, then compare real renders as you work.
 · [Try the cup walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md)
 · [Quick start](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md)
 
-## See what you can make
+## Real work: light and material
 
-| Metal task lamp | Glass and ceramic | Desktop speaker |
+Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
+
+| 琥珀时间 · Amber Atlas | 金色暮光 · Solstice | 织声 · Nocturne |
 | --- | --- | --- |
-| ![Blender render of a metal task lamp](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.0/deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Blender render of glass and ceramic](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.0/deepblend/benchmarks/previews/glass-ceramic-hero.png) | ![Blender render of a desktop speaker](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.0/deepblend/benchmarks/previews/modular-speaker-hero.png) |
+| [![Actual DeepBlend camera animation: amber glass and ivory glaze](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/amber-atlas-loop.webp)](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/amber-atlas-hero.png) | [![Actual DeepBlend camera animation: champagne metal lamp](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/solstice-loop.webp)](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/solstice-hero.png) | [![Actual DeepBlend camera animation: wood finish and woven grille](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/nocturne-loop.webp)](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/nocturne-hero.png) |
+| [Play MP4](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/amber-atlas.mp4) | [Play MP4](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/solstice.mp4) | [Play MP4](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/nocturne.mp4) |
 
-These are actual Blender renders, with reproducible inputs and
-[image provenance](https://github.com/pearjelly/deep-blend/blob/v0.3.0/deepblend/benchmarks/previews/manifest.json).
-The gallery also includes an editable glazed cup with a handle.
+The inline previews sample the actual films at 12 fps; the MP4s retain all 144 rendered frames at 24 fps. Click a preview for its 2560×1440 still.
+
+[Open the gallery](https://pearjelly.github.io/deep-blend/) · [Scene sources and rebuild](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/README.md) · [Render provenance](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/manifest.json) · [Official Blender visual references](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/REFERENCES.md)
+
+The scenes and output come from editable SceneSpec and actual rendering. Official Blender examples informed the lighting and material direction; no official demo model, texture or movie frame is used in these works.
+
 
 ## From a starting point to a saved result
 

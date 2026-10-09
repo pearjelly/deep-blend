@@ -1,0 +1,6779 @@
+{
+  "animationTracks": [
+    {
+      "id": "camera-location-0",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0.365
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.17
+        }
+      ],
+      "property": "location.x",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-location-1",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": -0.75
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": -0.775
+        }
+      ],
+      "property": "location.y",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-location-2",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0.315
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.29
+        }
+      ],
+      "property": "location.z",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-0",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 1.3027729657844964
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 1.319391516336117
+        }
+      ],
+      "property": "rotationEuler.x",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-1",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0
+        }
+      ],
+      "property": "rotationEuler.y",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-2",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0.4527784718235359
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.21243202050874216
+        }
+      ],
+      "property": "rotationEuler.z",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "dial-life",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.18
+        }
+      ],
+      "property": "rotationEuler.y",
+      "targetEntityId": "volume-knob"
+    }
+  ],
+  "assets": [],
+  "cameras": [
+    {
+      "clipping": [
+        0.001,
+        100
+      ],
+      "fStop": 32,
+      "id": "hero",
+      "lens": 64,
+      "role": "active-camera",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0.005,
+        -0.01,
+        0.089
+      ],
+      "transform": {
+        "location": [
+          0.365,
+          -0.75,
+          0.315
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "clipping": [
+        0.001,
+        100
+      ],
+      "fStop": 9,
+      "id": "detail",
+      "lens": 85,
+      "role": "detail",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0.023,
+        -0.074,
+        0.107
+      ],
+      "transform": {
+        "location": [
+          0.175,
+          -0.32,
+          0.162
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "clipping": [
+        0.001,
+        100
+      ],
+      "fStop": 11,
+      "id": "reverse",
+      "lens": 64,
+      "role": "three-quarter",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0.005,
+        -0.01,
+        0.089
+      ],
+      "transform": {
+        "location": [
+          -0.35,
+          -0.7,
+          0.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  ],
+  "entities": [
+    {
+      "generator": {
+        "bevel": {
+          "segments": 10,
+          "width": 0.027
+        },
+        "shape": "rounded_box",
+        "size": 0.246
+      },
+      "id": "shell-cavity-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.467479675,
+          0.585365854
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 8,
+          "width": 0.023
+        },
+        "shape": "rounded_box",
+        "size": 0.213
+      },
+      "id": "front-opening-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          -0.07,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.281690141,
+          0.563380282
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 8,
+          "width": 0.014
+        },
+        "shape": "rounded_box",
+        "size": 0.21
+      },
+      "id": "rear-service-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.069,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.219047619,
+          0.576190476
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 12,
+          "width": 0.032
+        },
+        "shape": "rounded_box",
+        "size": 0.264
+      },
+      "id": "cabinet-shell",
+      "locked": false,
+      "materialId": "shell-porcelain",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "shell-cavity-tool",
+          "type": "boolean"
+        },
+        {
+          "operation": "difference",
+          "targetEntityId": "front-opening-tool",
+          "type": "boolean"
+        },
+        {
+          "operation": "difference",
+          "targetEntityId": "rear-service-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.522727273,
+          0.613636364
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.018,
+        "radius": 0.0555,
+        "segments": 96,
+        "shape": "cylinder"
+      },
+      "id": "front-driver-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.071,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 10,
+          "width": 0.025
+        },
+        "shape": "rounded_box",
+        "size": 0.248
+      },
+      "id": "front-baffle",
+      "locked": false,
+      "materialId": "graphite",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "front-driver-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          -0.0705,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.024193548,
+          0.588709677
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 8,
+          "width": 0.025
+        },
+        "shape": "rounded_box",
+        "size": 0.251
+      },
+      "id": "front-gasket",
+      "locked": false,
+      "materialId": "rubber",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "front-driver-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          -0.067,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.005976096,
+          0.593625498
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0.003
+          ],
+          [
+            0.01,
+            0.003
+          ],
+          [
+            0.02,
+            0.004
+          ],
+          [
+            0.037,
+            0.01
+          ],
+          [
+            0.049,
+            0.016
+          ],
+          [
+            0.053,
+            0.018
+          ],
+          [
+            0.054,
+            0.017
+          ],
+          [
+            0.054,
+            0.015
+          ],
+          [
+            0.048,
+            0.013
+          ],
+          [
+            0.021,
+            0.001
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "driver-cone",
+      "locked": false,
+      "materialId": "cone-paper",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.046,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0.006
+          ],
+          [
+            0.004,
+            0.0058
+          ],
+          [
+            0.009,
+            0.0048
+          ],
+          [
+            0.013,
+            0.003
+          ],
+          [
+            0.016,
+            0
+          ],
+          [
+            0.016,
+            -0.001
+          ],
+          [
+            0,
+            -0.001
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "driver-dust-dome",
+      "locked": false,
+      "materialId": "cone-paper",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.057,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0535,
+            0
+          ],
+          [
+            0.06105,
+            0
+          ],
+          [
+            0.0615,
+            0.00045
+          ],
+          [
+            0.0615,
+            0.00205
+          ],
+          [
+            0.06105,
+            0.0025
+          ],
+          [
+            0.05395,
+            0.0025
+          ],
+          [
+            0.0535,
+            0.00205
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "grille-gasket",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.0733,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0538,
+            0
+          ],
+          [
+            0.06005,
+            0
+          ],
+          [
+            0.0605,
+            0.00045
+          ],
+          [
+            0.0605,
+            0.00505
+          ],
+          [
+            0.06005,
+            0.0055
+          ],
+          [
+            0.05425,
+            0.0055
+          ],
+          [
+            0.0538,
+            0.00505
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "grille-metal-rim",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.075,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0534,
+            0
+          ],
+          [
+            0.053925,
+            0
+          ],
+          [
+            0.0541,
+            0.000175
+          ],
+          [
+            0.0541,
+            0.000625
+          ],
+          [
+            0.053925,
+            0.0008
+          ],
+          [
+            0.053575,
+            0.0008
+          ],
+          [
+            0.0534,
+            0.000625
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "grille-highlight-lip",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.0799,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.009,
+        "radius": 0.05375,
+        "segments": 96,
+        "shape": "cylinder"
+      },
+      "id": "weave-boundary-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.048,
+          -0.079,
+          0.099
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            -0.1047,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.1029,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.1011,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0993,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0975,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0957,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0939,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0921,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0903,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0885,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0867,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0849,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0831,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0813,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0795,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0777,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0759,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0741,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0723,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0705,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0687,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0669,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0651,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0633,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0615,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0597,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0579,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0561,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0543,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0525,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0507,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0489,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0471,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0453,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0435,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0417,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0399,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0381,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0363,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0345,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0327,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0309,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0291,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0273,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0255,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0237,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0219,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0201,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0183,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0165,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0147,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0129,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0111,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0093,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0075,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0057,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0039,
+            -0.0783,
+            0.0423
+          ],
+          [
+            -0.0021,
+            -0.0797,
+            0.0423
+          ],
+          [
+            -0.0003,
+            -0.0783,
+            0.0423
+          ],
+          [
+            0.0015,
+            -0.0797,
+            0.0423
+          ],
+          [
+            0.0033,
+            -0.0783,
+            0.0423
+          ],
+          [
+            0.0051,
+            -0.0797,
+            0.0423
+          ],
+          [
+            0.0069,
+            -0.0783,
+            0.0423
+          ],
+          [
+            0.0087,
+            -0.0797,
+            0.0423
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00032,
+        "shape": "curve"
+      },
+      "id": "grille-warp-0",
+      "locked": false,
+      "materialId": "woven-sand",
+      "modifiers": [
+        {
+          "count": 32,
+          "offset": [
+            0,
+            0,
+            0.0036
+          ],
+          "type": "array"
+        },
+        {
+          "operation": "intersect",
+          "targetEntityId": "weave-boundary-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            -0.1047,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.1029,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.1011,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0993,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0975,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0957,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0939,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0921,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0903,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0885,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0867,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0849,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0831,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0813,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0795,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0777,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0759,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0741,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0723,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0705,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0687,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0669,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0651,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0633,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0615,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0597,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0579,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0561,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0543,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0525,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0507,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0489,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0471,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0453,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0435,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0417,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0399,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0381,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0363,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0345,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0327,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0309,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0291,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0273,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0255,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0237,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0219,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0201,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0183,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0165,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0147,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0129,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0111,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0093,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0075,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0057,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0039,
+            -0.0797,
+            0.0441
+          ],
+          [
+            -0.0021,
+            -0.0783,
+            0.0441
+          ],
+          [
+            -0.0003,
+            -0.0797,
+            0.0441
+          ],
+          [
+            0.0015,
+            -0.0783,
+            0.0441
+          ],
+          [
+            0.0033,
+            -0.0797,
+            0.0441
+          ],
+          [
+            0.0051,
+            -0.0783,
+            0.0441
+          ],
+          [
+            0.0069,
+            -0.0797,
+            0.0441
+          ],
+          [
+            0.0087,
+            -0.0783,
+            0.0441
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00032,
+        "shape": "curve"
+      },
+      "id": "grille-warp-1",
+      "locked": false,
+      "materialId": "woven-sand",
+      "modifiers": [
+        {
+          "count": 32,
+          "offset": [
+            0,
+            0,
+            0.0036
+          ],
+          "type": "array"
+        },
+        {
+          "operation": "intersect",
+          "targetEntityId": "weave-boundary-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            -0.1047,
+            -0.079,
+            0.0423
+          ],
+          [
+            -0.1047,
+            -0.079,
+            0.1557
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00032,
+        "shape": "curve"
+      },
+      "id": "grille-weft",
+      "locked": false,
+      "materialId": "woven-shadow",
+      "modifiers": [
+        {
+          "count": 64,
+          "offset": [
+            0.0018,
+            0,
+            0
+          ],
+          "type": "array"
+        },
+        {
+          "operation": "intersect",
+          "targetEntityId": "weave-boundary-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 6,
+          "width": 0.006
+        },
+        "shape": "rounded_box",
+        "size": 0.0765
+      },
+      "id": "control-module-gasket",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.0741,
+          0.096
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.020915033,
+          1.620915033
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 6,
+          "width": 0.0058
+        },
+        "shape": "rounded_box",
+        "size": 0.0742
+      },
+      "id": "control-module",
+      "locked": false,
+      "materialId": "graphite",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.0757,
+          0.096
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.040431267,
+          1.637466307
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.019,
+            0
+          ],
+          [
+            0.02555,
+            0
+          ],
+          [
+            0.026,
+            0.00045
+          ],
+          [
+            0.026,
+            0.00155
+          ],
+          [
+            0.02555,
+            0.002
+          ],
+          [
+            0.01945,
+            0.002
+          ],
+          [
+            0.019,
+            0.00155
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "dial-seat",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.0775,
+          0.112
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.02,
+            0
+          ],
+          [
+            0.02355,
+            0
+          ],
+          [
+            0.024,
+            0.00045
+          ],
+          [
+            0.024,
+            0.00155
+          ],
+          [
+            0.02355,
+            0.002
+          ],
+          [
+            0.02045,
+            0.002
+          ],
+          [
+            0.02,
+            0.00155
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "dial-metal-seat",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.0784,
+          0.112
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.019,
+            0
+          ],
+          [
+            0.021,
+            0.0007
+          ],
+          [
+            0.022,
+            0.002
+          ],
+          [
+            0.022,
+            0.012
+          ],
+          [
+            0.0217,
+            0.0134
+          ],
+          [
+            0.0207,
+            0.0144
+          ],
+          [
+            0.0198,
+            0.0148
+          ],
+          [
+            0.001,
+            0.0148
+          ],
+          [
+            0,
+            0.0148
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "volume-knob",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.079,
+          0.112
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0181,
+            0
+          ],
+          [
+            0.018505,
+            0
+          ],
+          [
+            0.01855,
+            0.000045
+          ],
+          [
+            0.01855,
+            0.000135
+          ],
+          [
+            0.018505,
+            0.00018
+          ],
+          [
+            0.018145,
+            0.00018
+          ],
+          [
+            0.0181,
+            0.000135
+          ]
+        ],
+        "segments": 96,
+        "shape": "lathe"
+      },
+      "id": "dial-face-inlay",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.09385,
+          0.112
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.09895,
+            -0.0818,
+            0.112
+          ],
+          [
+            0.09895,
+            -0.0905,
+            0.112
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-00",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.098726581,
+            -0.0818,
+            0.115123811
+          ],
+          [
+            0.098726581,
+            -0.0905,
+            0.115123811
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-01",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.098060871,
+            -0.0818,
+            0.11818403
+          ],
+          [
+            0.098060871,
+            -0.0905,
+            0.11818403
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-02",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.096966422,
+            -0.0818,
+            0.12111836
+          ],
+          [
+            0.096966422,
+            -0.0905,
+            0.12111836
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-03",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.095465515,
+            -0.0818,
+            0.123867066
+          ],
+          [
+            0.095465515,
+            -0.0905,
+            0.123867066
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-04",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.093588703,
+            -0.0818,
+            0.126374193
+          ],
+          [
+            0.093588703,
+            -0.0905,
+            0.126374193
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-05",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.091374193,
+            -0.0818,
+            0.128588703
+          ],
+          [
+            0.091374193,
+            -0.0905,
+            0.128588703
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-06",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.088867066,
+            -0.0818,
+            0.130465515
+          ],
+          [
+            0.088867066,
+            -0.0905,
+            0.130465515
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-07",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.08611836,
+            -0.0818,
+            0.131966422
+          ],
+          [
+            0.08611836,
+            -0.0905,
+            0.131966422
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-08",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.08318403,
+            -0.0818,
+            0.133060871
+          ],
+          [
+            0.08318403,
+            -0.0905,
+            0.133060871
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-09",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.080123811,
+            -0.0818,
+            0.133726581
+          ],
+          [
+            0.080123811,
+            -0.0905,
+            0.133726581
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-10",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.077,
+            -0.0818,
+            0.13395
+          ],
+          [
+            0.077,
+            -0.0905,
+            0.13395
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-11",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.073876189,
+            -0.0818,
+            0.133726581
+          ],
+          [
+            0.073876189,
+            -0.0905,
+            0.133726581
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-12",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.07081597,
+            -0.0818,
+            0.133060871
+          ],
+          [
+            0.07081597,
+            -0.0905,
+            0.133060871
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-13",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.06788164,
+            -0.0818,
+            0.131966422
+          ],
+          [
+            0.06788164,
+            -0.0905,
+            0.131966422
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-14",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.065132934,
+            -0.0818,
+            0.130465515
+          ],
+          [
+            0.065132934,
+            -0.0905,
+            0.130465515
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-15",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.062625807,
+            -0.0818,
+            0.128588703
+          ],
+          [
+            0.062625807,
+            -0.0905,
+            0.128588703
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-16",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.060411297,
+            -0.0818,
+            0.126374193
+          ],
+          [
+            0.060411297,
+            -0.0905,
+            0.126374193
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-17",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.058534485,
+            -0.0818,
+            0.123867066
+          ],
+          [
+            0.058534485,
+            -0.0905,
+            0.123867066
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-18",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.057033578,
+            -0.0818,
+            0.12111836
+          ],
+          [
+            0.057033578,
+            -0.0905,
+            0.12111836
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-19",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.055939129,
+            -0.0818,
+            0.11818403
+          ],
+          [
+            0.055939129,
+            -0.0905,
+            0.11818403
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-20",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.055273419,
+            -0.0818,
+            0.115123811
+          ],
+          [
+            0.055273419,
+            -0.0905,
+            0.115123811
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-21",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.05505,
+            -0.0818,
+            0.112
+          ],
+          [
+            0.05505,
+            -0.0905,
+            0.112
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-22",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.055273419,
+            -0.0818,
+            0.108876189
+          ],
+          [
+            0.055273419,
+            -0.0905,
+            0.108876189
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-23",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.055939129,
+            -0.0818,
+            0.10581597
+          ],
+          [
+            0.055939129,
+            -0.0905,
+            0.10581597
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-24",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.057033578,
+            -0.0818,
+            0.10288164
+          ],
+          [
+            0.057033578,
+            -0.0905,
+            0.10288164
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-25",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.058534485,
+            -0.0818,
+            0.100132934
+          ],
+          [
+            0.058534485,
+            -0.0905,
+            0.100132934
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-26",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.060411297,
+            -0.0818,
+            0.097625807
+          ],
+          [
+            0.060411297,
+            -0.0905,
+            0.097625807
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-27",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.062625807,
+            -0.0818,
+            0.095411297
+          ],
+          [
+            0.062625807,
+            -0.0905,
+            0.095411297
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-28",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.065132934,
+            -0.0818,
+            0.093534485
+          ],
+          [
+            0.065132934,
+            -0.0905,
+            0.093534485
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-29",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.06788164,
+            -0.0818,
+            0.092033578
+          ],
+          [
+            0.06788164,
+            -0.0905,
+            0.092033578
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-30",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.07081597,
+            -0.0818,
+            0.090939129
+          ],
+          [
+            0.07081597,
+            -0.0905,
+            0.090939129
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-31",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.073876189,
+            -0.0818,
+            0.090273419
+          ],
+          [
+            0.073876189,
+            -0.0905,
+            0.090273419
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-32",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.077,
+            -0.0818,
+            0.09005
+          ],
+          [
+            0.077,
+            -0.0905,
+            0.09005
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-33",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.080123811,
+            -0.0818,
+            0.090273419
+          ],
+          [
+            0.080123811,
+            -0.0905,
+            0.090273419
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-34",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.08318403,
+            -0.0818,
+            0.090939129
+          ],
+          [
+            0.08318403,
+            -0.0905,
+            0.090939129
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-35",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.08611836,
+            -0.0818,
+            0.092033578
+          ],
+          [
+            0.08611836,
+            -0.0905,
+            0.092033578
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-36",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.088867066,
+            -0.0818,
+            0.093534485
+          ],
+          [
+            0.088867066,
+            -0.0905,
+            0.093534485
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-37",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.091374193,
+            -0.0818,
+            0.095411297
+          ],
+          [
+            0.091374193,
+            -0.0905,
+            0.095411297
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-38",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.093588703,
+            -0.0818,
+            0.097625807
+          ],
+          [
+            0.093588703,
+            -0.0905,
+            0.097625807
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-39",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.095465515,
+            -0.0818,
+            0.100132934
+          ],
+          [
+            0.095465515,
+            -0.0905,
+            0.100132934
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-40",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.096966422,
+            -0.0818,
+            0.10288164
+          ],
+          [
+            0.096966422,
+            -0.0905,
+            0.10288164
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-41",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.098060871,
+            -0.0818,
+            0.10581597
+          ],
+          [
+            0.098060871,
+            -0.0905,
+            0.10581597
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-42",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.098726581,
+            -0.0818,
+            0.108876189
+          ],
+          [
+            0.098726581,
+            -0.0905,
+            0.108876189
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00029,
+        "shape": "curve"
+      },
+      "id": "dial-knurl-43",
+      "locked": false,
+      "materialId": "bright-edge",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.077,
+            -0.0941,
+            0.125
+          ],
+          [
+            0.077,
+            -0.0941,
+            0.13
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00042,
+        "shape": "curve"
+      },
+      "id": "dial-index",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.056352482,
+            -0.0775,
+            0.091352482
+          ],
+          [
+            0.053948319,
+            -0.0775,
+            0.088948319
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-00",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.047802565,
+            -0.0775,
+            0.102513178
+          ],
+          [
+            0.045995558,
+            -0.0775,
+            0.101926046
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-01",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.046677968,
+            -0.0775,
+            0.116802538
+          ],
+          [
+            0.04480136,
+            -0.0775,
+            0.117099764
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-02",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.052163178,
+            -0.0775,
+            0.130045007
+          ],
+          [
+            0.050626046,
+            -0.0775,
+            0.131161799
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-03",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.063062492,
+            -0.0775,
+            0.1393539
+          ],
+          [
+            0.06219991,
+            -0.0775,
+            0.141046813
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-04",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.077,
+            -0.0775,
+            0.1412
+          ],
+          [
+            0.077,
+            -0.0775,
+            0.1446
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-05",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.090937508,
+            -0.0775,
+            0.1393539
+          ],
+          [
+            0.09180009,
+            -0.0775,
+            0.141046813
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-06",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.101836822,
+            -0.0775,
+            0.130045007
+          ],
+          [
+            0.103373954,
+            -0.0775,
+            0.131161799
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-07",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.107322032,
+            -0.0775,
+            0.116802538
+          ],
+          [
+            0.10919864,
+            -0.0775,
+            0.117099764
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-08",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.106197435,
+            -0.0775,
+            0.102513178
+          ],
+          [
+            0.108004442,
+            -0.0775,
+            0.101926046
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-09",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 1,
+        "capEnds": true,
+        "curveResolution": 1,
+        "path": [
+          [
+            0.097647518,
+            -0.0775,
+            0.091352482
+          ],
+          [
+            0.100051681,
+            -0.0775,
+            0.088948319
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "poly",
+        "radius": 0.00033,
+        "shape": "curve"
+      },
+      "id": "scale-tick-10",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.004,
+            0
+          ],
+          [
+            0.00495,
+            0
+          ],
+          [
+            0.0052,
+            0.00025
+          ],
+          [
+            0.0052,
+            0.00075
+          ],
+          [
+            0.00495,
+            0.001
+          ],
+          [
+            0.00425,
+            0.001
+          ],
+          [
+            0.004,
+            0.00075
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "input-key-seat-0",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.061,
+          -0.0774,
+          0.056
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0041,
+            0
+          ],
+          [
+            0.0041,
+            0.0017
+          ],
+          [
+            0.0038,
+            0.0021
+          ],
+          [
+            0,
+            0.0021
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "input-key-0",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.061,
+          -0.078,
+          0.056
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.004,
+            0
+          ],
+          [
+            0.00495,
+            0
+          ],
+          [
+            0.0052,
+            0.00025
+          ],
+          [
+            0.0052,
+            0.00075
+          ],
+          [
+            0.00495,
+            0.001
+          ],
+          [
+            0.00425,
+            0.001
+          ],
+          [
+            0.004,
+            0.00075
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "input-key-seat-1",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.092,
+          -0.0774,
+          0.056
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0041,
+            0
+          ],
+          [
+            0.0041,
+            0.0017
+          ],
+          [
+            0.0038,
+            0.0021
+          ],
+          [
+            0,
+            0.0021
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "input-key-1",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.092,
+          -0.078,
+          0.056
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.0005,
+        "radius": 0.00115,
+        "segments": 24,
+        "shape": "cylinder"
+      },
+      "id": "status-lens-0",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.069,
+          -0.07755,
+          0.041
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.0005,
+        "radius": 0.00115,
+        "segments": 24,
+        "shape": "cylinder"
+      },
+      "id": "status-lens-1",
+      "locked": false,
+      "materialId": "status-amber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.077,
+          -0.07755,
+          0.041
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.0005,
+        "radius": 0.00115,
+        "segments": 24,
+        "shape": "cylinder"
+      },
+      "id": "status-lens-2",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.085,
+          -0.07755,
+          0.041
+        ],
+        "rotationEuler": [
+          1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0063,
+            0
+          ],
+          [
+            0.00735,
+            0
+          ],
+          [
+            0.0076,
+            0.00025
+          ],
+          [
+            0.0076,
+            0.00075
+          ],
+          [
+            0.00735,
+            0.001
+          ],
+          [
+            0.00655,
+            0.001
+          ],
+          [
+            0.0063,
+            0.00075
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "top-button-gasket",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.071,
+          -0.01,
+          0.175
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0062,
+            0
+          ],
+          [
+            0.0062,
+            0.0026
+          ],
+          [
+            0.0057,
+            0.0032
+          ],
+          [
+            0,
+            0.0032
+          ]
+        ],
+        "segments": 64,
+        "shape": "lathe"
+      },
+      "id": "top-button",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.071,
+          -0.01,
+          0.175
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 4,
+          "width": 0.0017
+        },
+        "shape": "rounded_box",
+        "size": 0.0038
+      },
+      "id": "rear-vent-tool",
+      "locked": false,
+      "materialId": "rubber",
+      "modifiers": [
+        {
+          "count": 9,
+          "offset": [
+            0.018,
+            0,
+            0
+          ],
+          "type": "array"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.072,
+          0.068,
+          0.111
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          5.263157895,
+          5
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 8,
+          "width": 0.013
+        },
+        "shape": "rounded_box",
+        "size": 0.207
+      },
+      "id": "rear-panel-gasket",
+      "locked": false,
+      "materialId": "rubber",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "rear-vent-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.064,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.009661836,
+          0.570048309
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 8,
+          "width": 0.012
+        },
+        "shape": "rounded_box",
+        "size": 0.204
+      },
+      "id": "rear-service-panel",
+      "locked": false,
+      "materialId": "graphite",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "rear-vent-tool",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.067,
+          0.095
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.019607843,
+          0.558823529
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.0031
+      },
+      "id": "screw-slot-tool-l-b",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.087,
+          0.07095,
+          0.052
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.516129032,
+          0.209677419
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0025,
+            0
+          ],
+          [
+            0.0027,
+            0.0008
+          ],
+          [
+            0.0025,
+            0.0015
+          ],
+          [
+            0,
+            0.0015
+          ]
+        ],
+        "segments": 32,
+        "shape": "lathe"
+      },
+      "id": "rear-screw-l-b",
+      "locked": false,
+      "materialId": "bright-edge",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "screw-slot-tool-l-b",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.087,
+          0.0695,
+          0.052
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.0031
+      },
+      "id": "screw-slot-tool-l-t",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.087,
+          0.07095,
+          0.138
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.516129032,
+          0.209677419
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0025,
+            0
+          ],
+          [
+            0.0027,
+            0.0008
+          ],
+          [
+            0.0025,
+            0.0015
+          ],
+          [
+            0,
+            0.0015
+          ]
+        ],
+        "segments": 32,
+        "shape": "lathe"
+      },
+      "id": "rear-screw-l-t",
+      "locked": false,
+      "materialId": "bright-edge",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "screw-slot-tool-l-t",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.087,
+          0.0695,
+          0.138
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.0031
+      },
+      "id": "screw-slot-tool-r-b",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.087,
+          0.07095,
+          0.052
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.516129032,
+          0.209677419
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0025,
+            0
+          ],
+          [
+            0.0027,
+            0.0008
+          ],
+          [
+            0.0025,
+            0.0015
+          ],
+          [
+            0,
+            0.0015
+          ]
+        ],
+        "segments": 32,
+        "shape": "lathe"
+      },
+      "id": "rear-screw-r-b",
+      "locked": false,
+      "materialId": "bright-edge",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "screw-slot-tool-r-b",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.087,
+          0.0695,
+          0.052
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.0031
+      },
+      "id": "screw-slot-tool-r-t",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.087,
+          0.07095,
+          0.138
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.516129032,
+          0.209677419
+        ]
+      },
+      "type": "generator",
+      "visible": false
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0025,
+            0
+          ],
+          [
+            0.0027,
+            0.0008
+          ],
+          [
+            0.0025,
+            0.0015
+          ],
+          [
+            0,
+            0.0015
+          ]
+        ],
+        "segments": 32,
+        "shape": "lathe"
+      },
+      "id": "rear-screw-r-t",
+      "locked": false,
+      "materialId": "bright-edge",
+      "modifiers": [
+        {
+          "operation": "difference",
+          "targetEntityId": "screw-slot-tool-r-t",
+          "type": "boolean"
+        }
+      ],
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.087,
+          0.0695,
+          0.138
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0036,
+            0
+          ],
+          [
+            0.00555,
+            0
+          ],
+          [
+            0.006,
+            0.00045
+          ],
+          [
+            0.006,
+            0.00255
+          ],
+          [
+            0.00555,
+            0.003
+          ],
+          [
+            0.00405,
+            0.003
+          ],
+          [
+            0.0036,
+            0.00255
+          ]
+        ],
+        "segments": 64,
+        "shape": "lathe"
+      },
+      "id": "input-jack-rim",
+      "locked": false,
+      "materialId": "anodized-champagne",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.045,
+          0.0692,
+          0.066
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.0005,
+        "radius": 0.0036,
+        "segments": 48,
+        "shape": "cylinder"
+      },
+      "id": "input-jack-dark",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.045,
+          0.0693,
+          0.066
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": false,
+        "closedProfile": true,
+        "profile": [
+          [
+            0.0032,
+            0
+          ],
+          [
+            0.00505,
+            0
+          ],
+          [
+            0.0055,
+            0.00045
+          ],
+          [
+            0.0055,
+            0.00255
+          ],
+          [
+            0.00505,
+            0.003
+          ],
+          [
+            0.00365,
+            0.003
+          ],
+          [
+            0.0032,
+            0.00255
+          ]
+        ],
+        "segments": 64,
+        "shape": "lathe"
+      },
+      "id": "power-socket-grommet",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.045,
+          0.0692,
+          0.066
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.011,
+        "radius": 0.0034,
+        "segments": 48,
+        "shape": "cylinder"
+      },
+      "id": "power-plug",
+      "locked": false,
+      "materialId": "graphite",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.045,
+          0.079,
+          0.066
+        ],
+        "rotationEuler": [
+          -1.570796327,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevelResolution": 3,
+        "capEnds": true,
+        "curveResolution": 8,
+        "path": [
+          [
+            0.045,
+            0.085,
+            0.066
+          ],
+          [
+            0.045,
+            0.099,
+            0.065
+          ],
+          [
+            0.053,
+            0.123,
+            0.053
+          ],
+          [
+            0.071,
+            0.14,
+            0.028
+          ],
+          [
+            0.098,
+            0.143,
+            0.008
+          ],
+          [
+            0.127,
+            0.144,
+            0.0024
+          ],
+          [
+            0.165,
+            0.167,
+            0.0024
+          ]
+        ],
+        "pathClosed": false,
+        "pathInterpolation": "bezier",
+        "radius": 0.0023,
+        "shape": "curve"
+      },
+      "id": "power-cable",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.03
+      },
+      "id": "rear-label-rule-0",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.0693,
+          0.06
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.008333333,
+          0.021666667
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.024
+      },
+      "id": "rear-label-rule-1",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.0693,
+          0.056
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.010416667,
+          0.027083333
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 0.018
+      },
+      "id": "rear-label-rule-2",
+      "locked": false,
+      "materialId": "ink",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.0693,
+          0.052
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.013888889,
+          0.036111111
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0135,
+            0
+          ],
+          [
+            0.016,
+            0.0015
+          ],
+          [
+            0.017,
+            0.004
+          ],
+          [
+            0.017,
+            0.009
+          ],
+          [
+            0.0155,
+            0.0145
+          ],
+          [
+            0,
+            0.0145
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "foot-l-f",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.085,
+          -0.047,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0135,
+            0
+          ],
+          [
+            0.016,
+            0.0015
+          ],
+          [
+            0.017,
+            0.004
+          ],
+          [
+            0.017,
+            0.009
+          ],
+          [
+            0.0155,
+            0.0145
+          ],
+          [
+            0,
+            0.0145
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "foot-l-b",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          -0.085,
+          0.047,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0135,
+            0
+          ],
+          [
+            0.016,
+            0.0015
+          ],
+          [
+            0.017,
+            0.004
+          ],
+          [
+            0.017,
+            0.009
+          ],
+          [
+            0.0155,
+            0.0145
+          ],
+          [
+            0,
+            0.0145
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "foot-r-f",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.085,
+          -0.047,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "capEnds": true,
+        "closedProfile": false,
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            0.0135,
+            0
+          ],
+          [
+            0.016,
+            0.0015
+          ],
+          [
+            0.017,
+            0.004
+          ],
+          [
+            0.017,
+            0.009
+          ],
+          [
+            0.0155,
+            0.0145
+          ],
+          [
+            0,
+            0.0145
+          ]
+        ],
+        "segments": 48,
+        "shape": "lathe"
+      },
+      "id": "foot-r-b",
+      "locked": false,
+      "materialId": "rubber",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0.085,
+          0.047,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "plane",
+        "size": 4
+      },
+      "id": "studio-floor",
+      "locked": true,
+      "materialId": "floor",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.026
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 6,
+          "width": 0.018
+        },
+        "shape": "rounded_box",
+        "size": 1
+      },
+      "id": "clay-podium",
+      "locked": false,
+      "materialId": "clay-stage",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.0126
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.41,
+          0.29,
+          0.025
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "bevel": {
+          "segments": 6,
+          "width": 0.01
+        },
+        "shape": "rounded_box",
+        "size": 1
+      },
+      "id": "green-backdrop",
+      "locked": false,
+      "materialId": "green-backdrop",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.45,
+          0.66
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1.9,
+          0.06,
+          1.4
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    }
+  ],
+  "lights": [
+    {
+      "color": [
+        1,
+        0.85,
+        0.64
+      ],
+      "energy": 7,
+      "id": "warm-key",
+      "size": 0.26,
+      "transform": {
+        "location": [
+          -0.34,
+          -0.37,
+          0.46
+        ],
+        "rotationEuler": [
+          0.9491305453086826,
+          0,
+          -0.7431697612844465
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        0.7,
+        0.88,
+        1
+      ],
+      "energy": 7,
+      "id": "cool-edge",
+      "size": 0.23,
+      "transform": {
+        "location": [
+          0.32,
+          0.25,
+          0.37
+        ],
+        "rotationEuler": [
+          0.9840208728215843,
+          0,
+          2.23399931950099
+        ],
+        "scale": [
+          0.38,
+          1.7,
+          1
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        1,
+        0.94,
+        0.8
+      ],
+      "energy": 2.5,
+      "id": "dial-glint",
+      "size": 0.16,
+      "transform": {
+        "location": [
+          0.2,
+          -0.25,
+          0.28
+        ],
+        "rotationEuler": [
+          0.9173595874623419,
+          0,
+          0.6254850402392291
+        ],
+        "scale": [
+          0.25,
+          2,
+          1
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        1,
+        0.97,
+        0.91
+      ],
+      "energy": 1.1,
+      "id": "front-soft-fill",
+      "size": 0.44,
+      "transform": {
+        "location": [
+          -0.01,
+          -0.45,
+          0.27
+        ],
+        "rotationEuler": [
+          1.1072871596344755,
+          0,
+          -0.02630971725292219
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "area"
+    }
+  ],
+  "materials": [
+    {
+      "id": "shell-porcelain",
+      "parameters": {
+        "baseColor": [
+          0.057,
+          0.023,
+          0.012,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.27
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0001,
+        "colorVariation": 0.23,
+        "detail": 3,
+        "roughnessVariation": 0.05,
+        "scale": 1050,
+        "stretch": [
+          0.03,
+          6,
+          6
+        ],
+        "type": "noise"
+      }
+    },
+    {
+      "id": "graphite",
+      "parameters": {
+        "baseColor": [
+          0.018,
+          0.027,
+          0.026,
+          1
+        ],
+        "metallic": 0.12,
+        "roughness": 0.4
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.00004,
+        "detail": 2,
+        "roughnessVariation": 0.035,
+        "scale": 1800,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "woven-sand",
+      "parameters": {
+        "baseColor": [
+          0.3,
+          0.23,
+          0.14,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.79
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.000025,
+        "detail": 2,
+        "roughnessVariation": 0.08,
+        "scale": 2700,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "woven-shadow",
+      "parameters": {
+        "baseColor": [
+          0.12,
+          0.098,
+          0.07,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.85
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "anodized-champagne",
+      "parameters": {
+        "baseColor": [
+          0.52,
+          0.36,
+          0.19,
+          1
+        ],
+        "metallic": 0.84,
+        "roughness": 0.3
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.000012,
+        "detail": 1,
+        "roughnessVariation": 0.035,
+        "scale": 2200,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "bright-edge",
+      "parameters": {
+        "baseColor": [
+          0.6,
+          0.47,
+          0.3,
+          1
+        ],
+        "metallic": 0.94,
+        "roughness": 0.2
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "rubber",
+      "parameters": {
+        "baseColor": [
+          0.009,
+          0.013,
+          0.016,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.76
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "cone-paper",
+      "parameters": {
+        "baseColor": [
+          0.022,
+          0.024,
+          0.025,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.89
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "ink",
+      "parameters": {
+        "baseColor": [
+          0.74,
+          0.68,
+          0.53,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.63
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "status-amber",
+      "parameters": {
+        "baseColor": [
+          0.8,
+          0.19,
+          0.025,
+          1
+        ],
+        "emissionColor": [
+          1,
+          0.27,
+          0.035,
+          1
+        ],
+        "emissionStrength": 0.8,
+        "metallic": 0,
+        "roughness": 0.23
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "floor",
+      "parameters": {
+        "baseColor": [
+          0.023,
+          0.04,
+          0.035,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.75
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "clay-stage",
+      "parameters": {
+        "baseColor": [
+          0.35,
+          0.29,
+          0.21,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.83
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0001,
+        "colorVariation": 0.025,
+        "detail": 3,
+        "roughnessVariation": 0.06,
+        "scale": 900,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "green-backdrop",
+      "parameters": {
+        "baseColor": [
+          0.02,
+          0.048,
+          0.04,
+          1
+        ],
+        "metallic": 0,
+        "roughness": 0.85
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0001,
+        "colorVariation": 0.025,
+        "detail": 3,
+        "roughnessVariation": 0.06,
+        "scale": 750,
+        "type": "noise"
+      }
+    }
+  ],
+  "project": {
+    "activeCamera": "hero",
+    "aspectRatio": "16:9",
+    "fps": 24,
+    "frameEnd": 144,
+    "frameStart": 1,
+    "goal": "A handcrafted dark evergreen tabletop speaker with true interwoven threads, warm copper anodized bezel, machined knob, enamel cabinet and tiny amber status lens. A terracotta architectural podium and black-green set create warm/cool separation. Precise rim highlights and readable woven detail. Six-second restrained orbit and dolly with a real dial motion.",
+    "id": "showcase-nocturne",
+    "title": "Nocturne · 织声",
+    "units": "metric"
+  },
+  "renderProfiles": {
+    "final": {
+      "colorManagement": {
+        "exposure": 0,
+        "look": "AgX - Medium High Contrast",
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 512,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "samples": 128
+    },
+    "preview": {
+      "colorManagement": {
+        "exposure": 0,
+        "look": "AgX - Medium High Contrast",
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 512,
+      "resolution": [
+        960,
+        540
+      ],
+      "samples": 64
+    }
+  },
+  "schemaVersion": "deepblend.scene/v1",
+  "world": {
+    "color": [
+      0.09,
+      0.14,
+      0.13,
+      1
+    ],
+    "strength": 0.1
+  }
+}

@@ -37,7 +37,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -196,8 +196,8 @@ test('both READMEs say where the pictures came from', () => {
 // storefronts fall back to scraping the README, which works and is why nothing noticed its absence; with it, the
 // images a store shows are the ones this repository chose and can check.
 //
-// The rules are the ecosystem's, not ours: one to eight images, relative paths with no leading slash and no
-// `..`, and every path must exist. A declaration that points at nothing is worse than no declaration, because a
+// The rules are the ecosystem's, not ours: one to eight images, package-relative paths without traversal or
+// HTTPS GitHub image URLs, and every local source must exist. A declaration that points at nothing is worse than no declaration, because a
 // storefront would show a broken image where a scraped one would have worked.
 test('the storefront screenshots declaration names real images, within the ecosystem\u2019s rules', () => {
   const declaration = join(ROOT, 'packages', 'deepblend', 'bundle', 'screenshots.json')
@@ -205,20 +205,34 @@ test('the storefront screenshots declaration names real images, within the ecosy
   const list = JSON.parse(readFileSync(declaration, 'utf8'))
   assert.ok(Array.isArray(list) && list.length >= 1 && list.length <= 8,
     `screenshots.json must hold between one and eight paths, it holds ${Array.isArray(list) ? list.length : 'no array'}`)
-  const bad = list.filter(entry => typeof entry !== 'string' || entry.startsWith('/') || entry.split('/').includes('..'))
-  assert.deepEqual(bad, [], 'these entries are not repo-relative paths without a leading slash or a ".."')
-  const missing = list.filter(entry => !existsSync(join(ROOT, entry)))
+  // The marketplace resolves relative paths beside the package manifest, not
+  // beside the repository README. Files outside that subtree use GitHub URLs.
+  const localPaths = list.map(entry => {
+    assert.equal(typeof entry, 'string')
+    if (/^https?:\/\//i.test(entry)) {
+      const url = new URL(entry)
+      assert.equal(url.protocol, 'https:')
+      assert.equal(url.hostname, 'raw.githubusercontent.com')
+      const match = /^\/pearjelly\/deep-blend\/(?:main|HEAD)\/(.+)$/.exec(url.pathname)
+      assert.ok(match, `screenshot must identify a file in this repository: ${entry}`)
+      assert.ok(!match[1].split('/').includes('..'))
+      return decodeURIComponent(match[1])
+    }
+    assert.ok(!entry.startsWith('/') && !entry.split('/').includes('..'))
+    return relative(ROOT, join(dirname(declaration), entry))
+  })
+  const missing = localPaths.filter(entry => !existsSync(join(ROOT, entry)))
   assert.deepEqual(missing, [], 'these declared screenshots do not exist')
   // And every image either README shows should be among them, so the store and the READMEs
   // agree about what this project looks like.
   //
   // REPO-RELATIVE images only. The listing asks a plugin to embed its badge, which is an
-  // absolute URL served by the list itself, and a storefront's `screenshots.json` can only
-  // name files in this repository — comparing the two lists whole would fail on a document
+  // absolute URL served by the list itself. These screenshot URLs identify files in this
+  // repository — comparing the two lists whole would fail on a document
   // that is doing exactly what the checklist asks for.
   const referenced = READMES
     .flatMap(([, text]) => [...text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match => match[1]))
     .filter(path => !/^[a-z]+:\/\//i.test(path))
-  const undeclared = referenced.filter(path => !list.includes(path))
+  const undeclared = referenced.filter(path => !localPaths.includes(path))
   assert.deepEqual(undeclared, [], 'the READMEs show images the storefront declaration does not list')
 })

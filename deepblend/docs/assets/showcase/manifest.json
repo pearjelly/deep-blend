@@ -1,0 +1,479 @@
+{
+  "schemaVersion": "deepblend.showcase/v1",
+  "complete": true,
+  "expectedCases": [
+    "amber-atlas",
+    "solstice",
+    "nocturne"
+  ],
+  "review": "../../../showcase/REVIEW.md",
+  "createdAt": "2026-10-09T09:33:17.483Z",
+  "pluginVersion": "0.3.2",
+  "blenderVersion": "5.2.1 LTS",
+  "platform": "darwin-arm64",
+  "backend": "Cycles / Metal via Blender native device override",
+  "renderApi": "Installed DeepBlend public Host and Local Provider APIs",
+  "references": "../../../showcase/REFERENCES.md",
+  "externalSceneAssets": [],
+  "cases": [
+    {
+      "id": "amber-atlas",
+      "title": "Amber Atlas · 琥珀时间",
+      "license": "MIT",
+      "sceneSource": "../../../showcase/amber-atlas/scene-spec.json",
+      "sceneSourceSha256": "6a1a3862d21aaa75cb52e19ddec1d553c6fab121e6c74079d5de8bd02683d3c2",
+      "images": [
+        {
+          "kind": "hero",
+          "path": "amber-atlas-hero.png",
+          "bytes": 3355332,
+          "sha256": "6fe3b38c36b8376ec79cfee2fe3c21d3fbed2dd0e6099fcc611e28b802a61910",
+          "width": 2560,
+          "height": 1440,
+          "pixelSha256": "2e1fab4f06606f0a273652c2413f3e8a296d0377fd6a2bf5f8edfa3ae5854b0c",
+          "projectId": "showcase-amber-atlas",
+          "revision": "r0002",
+          "sceneDigest": "36b964d9171e9f543f633993a01b07532d95855de6499ede3e04e5e5b1d465b6",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2560,
+              1440
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "amber-atlas-hero.webp",
+            "bytes": 44678,
+            "sha256": "8fbb272296d6ff316d8909075e74f2f09497ca541fb4707630dbf1fe639e04cf",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        },
+        {
+          "kind": "detail",
+          "path": "amber-atlas-detail.png",
+          "bytes": 2193514,
+          "sha256": "88b74c4acb28625a01705f8b76b9723e8788a341a0a29900bfd9b63e1f94003b",
+          "width": 2048,
+          "height": 1152,
+          "pixelSha256": "ca2e0fb1533aab643a597e2b3d61e2e12a119f86423f5edc74241fd74b653aef",
+          "projectId": "showcase-amber-atlas",
+          "revision": "r0002",
+          "sceneDigest": "36b964d9171e9f543f633993a01b07532d95855de6499ede3e04e5e5b1d465b6",
+          "cameraId": "detail",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2048,
+              1152
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "amber-atlas-detail.webp",
+            "bytes": 42836,
+            "sha256": "c95a59d740f8f9687179a50cb038a98d2430043622a70969dd27134466923a14",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        }
+      ],
+      "video": {
+        "path": "amber-atlas.mp4",
+        "bytes": 1905701,
+        "sha256": "0fc6214e2869f4b568dbd1e81ef8ee59f4aa07502e4fb5f26edb434ce490dfe9",
+        "width": 1920,
+        "height": 1080,
+        "fps": 24,
+        "frameCount": 144,
+        "durationSeconds": 6,
+        "codec": "h264",
+        "verified": true,
+        "projectId": "showcase-amber-atlas",
+        "revision": "r0002",
+        "jobId": "render-0002",
+        "animatedPreview": {
+          "path": "amber-atlas-loop.webp",
+          "bytes": 1669804,
+          "sha256": "aabc05f2e71349abaf0e7be4248550788ebcb17e415dba6fe16e0de48f2e17f6",
+          "width": 960,
+          "height": 540,
+          "sampledFrames": 72,
+          "durationMs": 6000,
+          "method": "Sample the actual 24 fps MP4 at 12 fps; no optical-flow interpolation."
+        },
+        "encodedFrameSamples": [
+          {
+            "encodedFrame": 1,
+            "pixelSha256": "c2f44b328fa1b50e4505c966620fafaaa635c9914686721ea1226d1a8b7bbb48"
+          },
+          {
+            "encodedFrame": 72,
+            "pixelSha256": "8bfde6fc518f13f40f3f9518b5985481ad8a78140c7624e12465ce0346f2ee21"
+          },
+          {
+            "encodedFrame": 144,
+            "pixelSha256": "8a7fa3f9fa3dc39756ba59f5f0da89f9aa5b6972544dd522adfaf896a267a391"
+          }
+        ],
+        "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
+      }
+    },
+    {
+      "id": "solstice",
+      "title": "Solstice · 金色暮光",
+      "license": "MIT",
+      "sceneSource": "../../../showcase/solstice/scene-spec.json",
+      "sceneSourceSha256": "9349df3eb7a99fddae6def6017191460fc480c0e31f18c998206b2a8b0a6b4f1",
+      "images": [
+        {
+          "kind": "hero",
+          "path": "solstice-hero.png",
+          "bytes": 3182829,
+          "sha256": "4388863b969fa08d0909c234ab756124bd17c879cfcdf995fb5be0eb9d137e7d",
+          "width": 2560,
+          "height": 1440,
+          "pixelSha256": "26b8cbfedfae360d2dcbf0a23d37b79fb599830211ce413fee8d303848961261",
+          "projectId": "showcase-solstice",
+          "revision": "r0003",
+          "sceneDigest": "4d5a682a5767fb8be8776c68951fd91000896f651bf4e74db0f0dc23424890bf",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2560,
+              1440
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "solstice-hero.webp",
+            "bytes": 32436,
+            "sha256": "65d33b9ebd496825043f8c716c22a3b3f8f4404f22388fb67f11c192d44c53ec",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        },
+        {
+          "kind": "detail",
+          "path": "solstice-detail.png",
+          "bytes": 2141453,
+          "sha256": "70e085f846ee8975773a818044355b64e760bf995b5ef8c04558e0dc52a29d2b",
+          "width": 2048,
+          "height": 1152,
+          "pixelSha256": "de0deff7fd6630a7ce69682837f38189a20e2e1798559072154e433065a1b385",
+          "projectId": "showcase-solstice",
+          "revision": "r0003",
+          "sceneDigest": "4d5a682a5767fb8be8776c68951fd91000896f651bf4e74db0f0dc23424890bf",
+          "cameraId": "detail",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2048,
+              1152
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "solstice-detail.webp",
+            "bytes": 36408,
+            "sha256": "3c43cdbc117bb5f7528f1a249a84b1fc4e065de6ad4a96e12fcd47c5f658295a",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        }
+      ],
+      "video": {
+        "path": "solstice.mp4",
+        "bytes": 1402789,
+        "sha256": "1af306769c735615148bdb0af7dcff3357a7dfb583c64c4eee003f2959a2bfef",
+        "width": 1920,
+        "height": 1080,
+        "fps": 24,
+        "frameCount": 144,
+        "durationSeconds": 6,
+        "codec": "h264",
+        "verified": true,
+        "projectId": "showcase-solstice",
+        "revision": "r0003",
+        "jobId": "render-0001",
+        "animatedPreview": {
+          "path": "solstice-loop.webp",
+          "bytes": 1467010,
+          "sha256": "1b726cd5aa532c5c24eb362dbf3920ce870666347056c42a85de07cb811fea18",
+          "width": 960,
+          "height": 540,
+          "sampledFrames": 72,
+          "durationMs": 6000,
+          "method": "Sample the actual 24 fps MP4 at 12 fps; no optical-flow interpolation."
+        },
+        "encodedFrameSamples": [
+          {
+            "encodedFrame": 1,
+            "pixelSha256": "76371930219e9540ec258cac6a2f72fed668c8ae0fede0e3c4c8588f0da4f35e"
+          },
+          {
+            "encodedFrame": 72,
+            "pixelSha256": "4f3eb86413d469283b01003e48e12886a06aacad84ca988819684b0caa5c6f9a"
+          },
+          {
+            "encodedFrame": 144,
+            "pixelSha256": "ce718cca71a1788a186e2a80f55dc51e53d3a65653ec2b5bec746795b7b774fc"
+          }
+        ],
+        "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
+      }
+    },
+    {
+      "id": "nocturne",
+      "title": "Nocturne · 织声",
+      "license": "MIT",
+      "sceneSource": "../../../showcase/nocturne/scene-spec.json",
+      "sceneSourceSha256": "a3049d8728046858a3a92d263f6c123d06fe503eea030daeb591a58178b32f07",
+      "images": [
+        {
+          "kind": "hero",
+          "path": "nocturne-hero.png",
+          "bytes": 3711704,
+          "sha256": "c99715e8d4eedce076b1db8f8383b92e789b75ec67016da68fcbfe61fab19e1f",
+          "width": 2560,
+          "height": 1440,
+          "pixelSha256": "7f13ad8a646b219ad26e56e5b57915e9a908474412a7033058cb782c27f5f9d6",
+          "projectId": "showcase-nocturne",
+          "revision": "r0003",
+          "sceneDigest": "8a5563b4a3994c47357fea067967676c0a234ab1203221153c576093f6c55829",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2560,
+              1440
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "nocturne-hero.webp",
+            "bytes": 85798,
+            "sha256": "28cb0d587ee8d4eefe19d59d53a73ae1bc6634ce9c3af3acbb7077f6590d72b6",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        },
+        {
+          "kind": "detail",
+          "path": "nocturne-detail.png",
+          "bytes": 2622267,
+          "sha256": "4ef90f58177f0b753b34accb2db7f17fbf2d38b3871f9712afd1d6367418f4a6",
+          "width": 2048,
+          "height": 1152,
+          "pixelSha256": "789db0ad7466c94fb085039402b8573091519170fe408f93355911ff11721f3d",
+          "projectId": "showcase-nocturne",
+          "revision": "r0002",
+          "sceneDigest": "3b04e67eacff42ee006aeeca603362a872acb8c910c32af174906fb6d48b6198",
+          "cameraId": "detail",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              2048,
+              1152
+            ],
+            "resolutionPercentage": 100,
+            "samples": 256,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "webDerivative": {
+            "path": "nocturne-detail.webp",
+            "bytes": 102896,
+            "sha256": "28a9722f65234f87258f2ddd8115e5b1af44d45d7a45a6f4907c8caf3c08894c",
+            "method": "Resize to 1280 pixels wide and WebP encode; no content editing."
+          }
+        }
+      ],
+      "video": {
+        "path": "nocturne.mp4",
+        "bytes": 4433473,
+        "sha256": "65d2667d67fe39daf73dda6f8fd6fe5945864670e8ceab030bdf350c90e77726",
+        "width": 1920,
+        "height": 1080,
+        "fps": 24,
+        "frameCount": 144,
+        "durationSeconds": 6,
+        "codec": "h264",
+        "verified": true,
+        "projectId": "showcase-nocturne",
+        "revision": "r0003",
+        "jobId": "render-0001",
+        "animatedPreview": {
+          "path": "nocturne-loop.webp",
+          "bytes": 3137746,
+          "sha256": "d7b59c035298c071bda1a25323a1aa601b87f94b8efe5dbf6089a76dd6ef8370",
+          "width": 960,
+          "height": 540,
+          "sampledFrames": 72,
+          "durationMs": 6000,
+          "method": "Sample the actual 24 fps MP4 at 12 fps; no optical-flow interpolation."
+        },
+        "encodedFrameSamples": [
+          {
+            "encodedFrame": 1,
+            "pixelSha256": "38086e08423515c47cb1552a13732e0f52987cb885e1c3b410124e09d65f60b8"
+          },
+          {
+            "encodedFrame": 72,
+            "pixelSha256": "9a5dcdb5c8078736b6de3826df1e8c12fedfc913d9db7bf38227f381d253b370"
+          },
+          {
+            "encodedFrame": 144,
+            "pixelSha256": "9ed6e50cbe12d33f07f8ab9e91ea7a244d705570755d7a577cb02b613d39acdb"
+          }
+        ],
+        "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
+      }
+    }
+  ]
+}

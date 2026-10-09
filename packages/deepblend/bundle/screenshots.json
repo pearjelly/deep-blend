@@ -1,10 +1,10 @@
 [
-  "deepblend/docs/brand/banner.png",
-  "deepblend/benchmarks/previews/metal-lamp-hero.png",
-  "deepblend/benchmarks/previews/glass-ceramic-hero.png",
-  "deepblend/benchmarks/previews/modular-speaker-hero.png",
-  "deepblend/docs/assets/creator-tutorial/cup-final-frame.png",
-  "deepblend/docs/images/workbench-scene.png",
-  "deepblend/docs/images/render-contact-sheet.png",
-  "deepblend/docs/images/preview-compare.png"
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/brand/banner.png",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/solstice-loop.webp",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/amber-atlas-loop.webp",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/nocturne-loop.webp",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/creator-tutorial/cup-final-frame.png",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/workbench-scene.png",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/render-contact-sheet.png",
+  "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/preview-compare.png"
 ]

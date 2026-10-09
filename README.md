@@ -64,6 +64,21 @@ See the [installation and upgrade guide](deepblend/docs/install.md) for configur
 
 </details>
 
+## Real work: light and material
+
+Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
+
+| 琥珀时间 · Amber Atlas | 金色暮光 · Solstice | 织声 · Nocturne |
+| --- | --- | --- |
+| [![Actual DeepBlend camera animation: amber glass and ivory glaze](deepblend/docs/assets/showcase/amber-atlas-loop.webp)](deepblend/docs/assets/showcase/amber-atlas-hero.png) | [![Actual DeepBlend camera animation: champagne metal lamp](deepblend/docs/assets/showcase/solstice-loop.webp)](deepblend/docs/assets/showcase/solstice-hero.png) | [![Actual DeepBlend camera animation: wood finish and woven grille](deepblend/docs/assets/showcase/nocturne-loop.webp)](deepblend/docs/assets/showcase/nocturne-hero.png) |
+| [Play MP4](deepblend/docs/assets/showcase/amber-atlas.mp4) | [Play MP4](deepblend/docs/assets/showcase/solstice.mp4) | [Play MP4](deepblend/docs/assets/showcase/nocturne.mp4) |
+
+The inline previews sample the actual films at 12 fps; the MP4s retain all 144 rendered frames at 24 fps. Click a preview for its 2560×1440 still.
+
+[Open the gallery](https://pearjelly.github.io/deep-blend/) · [Scene sources and rebuild](deepblend/showcase/README.md) · [Render provenance](deepblend/docs/assets/showcase/manifest.json) · [Official Blender visual references](deepblend/showcase/REFERENCES.md)
+
+The scenes and output come from editable SceneSpec and actual rendering. Official Blender examples informed the lighting and material direction; no official demo model, texture or movie frame is used in these works.
+
 ## Make something concrete
 
 These are **actual Blender renders**, with [reproducible source scenes and image provenance](deepblend/benchmarks/previews/manifest.json).
@@ -71,9 +86,9 @@ The cup image comes from the [recorded tutorial](deepblend/docs/assets/creator-t
 
 | Metal task lamp | Glass and ceramic |
 | --- | --- |
-| ![Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | ![Cycles render of a hollow glass vessel and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
+| [Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | [Cycles render of a hollow glass vessel and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
 | **Desktop speaker** | **Glazed handled cup** |
-| ![Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+| [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness and exposure, and create a project with a rendered preview.
 Or start with your own glTF, GLB or OBJ model and its external textures.
