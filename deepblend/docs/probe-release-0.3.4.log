@@ -1,0 +1,43 @@
+# DeepBlend 0.3.4 public installation readback
+# Date: 2026-10-10 UTC; Node 24.19.0, DSH 0.1.5-rc.2, pnpm 10.28.2
+# Command: node deepblend/tools/release-route-parity.mjs (public registry, fresh isolated profiles and store)
+date: 2026-10-10T06:06:22.959Z
+repository version: 0.3.4
+note: each route is installed once, in its own scratch DSH_HOME, and read back
+
+── source: github:pearjelly/deep-blend#path:/packages/deepblend/bundle ──
+   packages pnpm fetched: 13
+   installed version: @deepblend/dsh-blender-bundle@0.3.4
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
+
+── npm: @deepblend/dsh-blender-bundle ──
+   packages pnpm fetched: 13
+   installed version: @deepblend/dsh-blender-bundle@0.3.4
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle
+
+── tarball: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz ──
+   packages pnpm fetched: 1
+   installed version: @deepblend/dsh-blender-bundle@0.3.4
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+
+── do the three routes agree? ──
+source installed: @deepblend/dsh-blender-bundle@0.3.4
+npm installed: @deepblend/dsh-blender-bundle@0.3.4
+tarball installed: @deepblend/dsh-blender-bundle@0.3.4
+all three serve: @deepblend/dsh-blender-bundle@0.3.4
+and the repository says: 0.3.4
+source workbench route: HTTP 200
+npm workbench route: HTTP 200
+tarball workbench route: HTTP 200
+all three deployed presets: ["deepblend","deepblend-dev"]
+source packages pnpm fetched: 13
+npm packages pnpm fetched: 13
+tarball packages pnpm fetched: 1
+problems: 0
+result: the three install routes serve the same product, and it is the one this repository is

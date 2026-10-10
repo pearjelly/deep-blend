@@ -42,3 +42,15 @@
 
 - 冻结后的连续完整入口在北京时间 12:57:22 至 13:29:45 执行，36/36 套件全部成功、契约 125/125；621 个源文件逐字节摘要前后相同。原始完整日志 SHA256 `fcbe53ae684a683ed8c4e1454f6ea4b5583637a5badee9ebeff3cf14942c00de`，包含 PNG 原生浏览器 16/16 及所有既有原生渲染、编码、取消/恢复和界面流程。
 - 验收 bash 的独立内核退出记录为 0；外层 zsh 在测试结束后因收尾变量 `status` 为只读而退出 1。保留这条记录错误，不把外层失败隐藏为成功，也不把其误记为套件失败。README 的契约总数据本轮逐文件最终摘要更新；补充 D237/D238 决策。随后只改验证文档，最终提交另做契约、干净克隆及实际 GitHub CI；公开发布尚未开始。
+
+### 0.3.4 正式发布与读回
+
+- 最终候选 `15cb304` 在文档更新后重新通过契约 125/125；确切提交的干净克隆同样 125/125，文档安装、两套预设、组合与无 Blender 拒绝全部通过。[PR #22](https://github.com/pearjelly/deep-blend/pull/22) 的 [CI 38028054797](https://github.com/pearjelly/deep-blend/actions/runs/38028054797) 三项全部成功；两份原始产物的 API 摘要、CRC 和源码树已核对。Linux PNG 专项 16/16，三份实际保存文件与来源的完整摘要/字节/尺寸一致，受保护场景原字节保留。合并为 `a8621e2`，与候选源码树一致。
+- [0.3.4 正式 Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.3.4) 于北京时间 14:06:05 公开。tag 指向已验证的 `15cb304`，bundle 为 72,026,559 字节、SHA256 `8a371a989dc9d661d25d2b72af743bf7bc0aa03642ea893e466262c0efed3b39`；公共 latest URL 的实际下载与构建及 GitHub digest 一致。附完整验收日志、冻结源码摘要、干净克隆、原生载荷与安装包验证记录。
+- 七个 [npm 0.3.4 包](https://www.npmjs.com/package/@deepblend/dsh-blender-bundle/v/0.3.4) 均已匿名下载并核对完整性，UI 原字节与验收源码相同。首轮发布工具在 contracts 被接受后快速读回尚未传播时停止，原失败保留；确认 contracts 可下载后顺序提交五个独立组件，六个依赖全数可下载后才提交 bundle。没有重复覆盖或把上传接受当成公开完成。公共 CLI 在仓库外的独立目录、初始空缓存运行成功，安装/图片/视频工具 readiness 全部 true。
+- 新环境整轮三路比较通过：source/npm/latest tarball 全部为 0.3.4，工作台 HTTP 200、两套预设原字节一致，包数 13/13/1，problems: 0。原始成功输出见 [0.3.4 公开安装记录](probe-release-0.3.4.log)，额外 JSON 与原始日志附到 Release。
+- 社区介绍继续从统一来源投影，清楚区分 17 个模型工具与工作台保存入口；仍使用现有 PR #6868。合并后的主线 CI 与社区提交结果继续核对，不能提前写成完成。
+
+- 合并后的 [主线 CI 38029223771](https://github.com/pearjelly/deep-blend/actions/runs/38029223771) 三项全部成功。社区自有条目已更新为 fork 提交 `560589d`，确切远端字节与统一来源一致；[PR #6868](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6868) 仍 OPEN，记录时 check 还在构建，Submission gate 及上游合并/页面刷新继续观察。
+- **当日已公开发布 0.3.3 与 0.3.4 两个有实际改善的稳定版本。** 完整验收、GitHub/npm、匿名下载与三路安装读回均已核实；社区提交与上线不混记。持续目标和每四小时推进安排保持 ACTIVE。下一轮先实测创建等待、失败后继续及草稿保留；发布快速读回造成多轮续跑的问题也列入维护候选。
+- 社区提交 `560589d` 的 check 与 Submission gate 随后均成功；PR 仍 OPEN，上游合并及页面缓存刷新尚未确认。
