@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.3 — Unreleased
+## 0.3.3 — 2026-10-10
 
 - Read-only `deepblend-doctor` checks Node.js, DSH, pnpm, Blender and optional FFmpeg/ffprobe in one pass, with actionable failures and separate PNG/MP4 readiness.
 - Executable path overrides, per-tool deadlines, structured JSON reports and strict video requirements.

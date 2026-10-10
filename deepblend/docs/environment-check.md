@@ -16,7 +16,9 @@ npm run doctor
 npm exec --legacy-peer-deps --package=@deepblend/dsh-blender-bundle -- deepblend-doctor
 ```
 
-`npm exec` 本身可能询问是否下载 npm 包；自检命令不下载依赖工具。`--legacy-peer-deps` 避免 npm 为这个独立检查安装由 DSH 宿主提供的 peer 包。DSH 的 profile 安装不保证将命令放到当前终端 PATH。上面的公共下载入口仍需在正式发布后实际读回验证；当前已验证本地包内入口。
+`npm exec` 本身可能询问是否下载 npm 包；自检命令不下载依赖工具。`--legacy-peer-deps` 避免 npm 为这个独立检查安装由 DSH 宿主提供的 peer 包。DSH 的 profile 安装不保证将命令放到当前终端 PATH。0.3.3 的公共 npm 命令已在独立目录、空缓存中实际执行并读回完整结果。
+
+源码开发目录的包是手工链接的，没有 npm 生成的命令 shim；npm exec 可能优先选中这个本地同版本包，报 `deepblend-doctor: command not found`。开发者在仓库用 `npm run doctor`；验证公共 npm 命令时在独立目录运行，避免把本地链接当成公开下载。
 
 使用自行安装的工具时，明确传入和 DSH 配置相同的可执行路径。例如 macOS 的 Blender 应用：
 

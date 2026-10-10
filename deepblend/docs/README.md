@@ -31,7 +31,7 @@ Most detailed guides are written in Chinese, with commands and API names kept in
 | SceneSpec and implementation boundaries / 数据与实现边界 | [Specification](../../SPEC.md) · [Architecture decisions](architecture-decisions.md) |
 | Reproducible image evidence / 可重建的图片证据 | [Quality benchmarks](quality-benchmarks.md) · [Tutorial provenance](assets/creator-tutorial/manifest.json) |
 | Brand artwork and reuse / 品牌素材与复用 | [Brand assets](brand/README.md) |
-| Releases and changes / 版本与变更 | [Changelog](../../CHANGELOG.md) · [0.3.0](releases/0.3.0.md) · [0.3.1](releases/0.3.1.md) |
+| Releases and changes / 版本与变更 | [Changelog](../../CHANGELOG.md) · [0.3.3](releases/0.3.3.md) · [All releases](https://github.com/pearjelly/deep-blend/releases) |
 
 [Project home / 项目首页](../../README.md) · [中文首页](../../README.zh.md)
 · [Report a bug / 报告问题](https://github.com/pearjelly/deep-blend/issues/new?template=bug_report.yml)
