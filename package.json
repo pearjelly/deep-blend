@@ -1,6 +1,6 @@
 {
   "name": "deepblend-studio",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "description": "DeepBlend Studio — create and refine Blender product scenes in DSH with editable recipes, real previews, saved revisions and PNG/MP4 delivery.",
   "keywords": [

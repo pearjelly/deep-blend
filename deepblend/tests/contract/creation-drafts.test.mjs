@@ -300,3 +300,159 @@ test('completion cleans only the unchanged active source of the confirmed creati
   await b.store.actions.retryCreation(); assert.equal(records(storage, a.root).length, 0)
   assert.deepEqual(b.posts[0], a.posts[0])
 })
+
+test('selecting the already chosen recipe keeps edited settings and does not create or reset a browser draft', async t => {
+  const h = await client(t, new Storage()); fill(h); h.store.actions.setRecipeParameter('spun-roughness', .5)
+  const before = records(h.storage, h.root)[0].raw
+  h.store.actions.selectRecipe(h.recipe())
+  assert.equal(h.store.getState().forms.recipeParameters['spun-roughness'], .5)
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, .3)
+  assert.equal(h.store.getState().forms.title, 'Warm lamp'); assert.equal(h.posts.length, 0)
+  assert.equal(records(h.storage, h.root)[0].raw, before)
+})
+
+test('comparing lamp and cup restores their separate settings, preserving the custom name and goal', async t => {
+  const h = await client(t, new Storage()); fill(h); const lamp = h.recipe(), cup = h.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  h.store.actions.setRecipeParameter('spun-roughness', .5); h.store.actions.selectRecipe(cup)
+  h.store.actions.setRecipeParameter('exposure', -.4); h.store.actions.selectRecipe(lamp)
+  assert.equal(h.store.getState().forms.recipeParameters['spun-roughness'], .5)
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, .3)
+  h.store.actions.selectRecipe(cup); assert.equal(h.store.getState().forms.recipeParameters.exposure, -.4)
+  assert.equal(h.store.getState().forms.title, 'Warm lamp'); assert.equal(h.store.getState().forms.goal, 'Keep the warm studio brief')
+  assert.equal(h.posts.length, 0)
+})
+
+test('blank and out-of-range recipe values survive comparison and blank-project selection without becoming defaults', async t => {
+  const h = await client(t, new Storage()); fill(h); const lamp = h.recipe()
+  h.store.actions.setRecipeParameter('exposure', ''); h.store.actions.setRecipeParameter('spun-roughness', .99)
+  h.store.actions.selectRecipe(null); assert.equal(Object.keys(h.store.getState().forms.recipeParameters).length, 0)
+  h.store.actions.selectRecipe(lamp); assert.equal(h.store.getState().forms.recipeParameters.exposure, '')
+  assert.equal(h.store.getState().forms.recipeParameters['spun-roughness'], .99)
+  assert.equal(h.nodes().find(n => n.props['data-action'] === 'create-project').props.disabled, true)
+  await h.store.actions.createProject(); assert.equal(h.posts.length, 0)
+})
+
+test('explicit reset changes only the selected recipe and keeps the name, goal and other recipe edits', async t => {
+  const h = await client(t, new Storage()); fill(h); const lamp = h.recipe(), cup = h.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  h.store.actions.selectRecipe(cup); h.store.actions.setRecipeParameter('exposure', -.4); h.store.actions.selectRecipe(lamp)
+  h.nodes().find(n => n.props['data-action'] === 'reset-recipe').props.onClick()
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, 0)
+  assert.equal(h.store.getState().forms.title, 'Warm lamp'); assert.equal(h.store.getState().forms.goal, 'Keep the warm studio brief')
+  h.store.actions.selectRecipe(cup); assert.equal(h.store.getState().forms.recipeParameters.exposure, -.4)
+  assert.equal(h.posts.length, 0)
+})
+
+test('recipe comparison settings survive reopening and explicit browser-draft restoration without posting', async t => {
+  const storage = new Storage(), a = await client(t, storage); fill(a); const cup = a.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  a.store.actions.selectRecipe(cup); a.store.actions.setRecipeParameter('exposure', -.4); a.store.stop()
+  const b = await client(t, storage); assert.equal(b.store.getState().forms.recipe, null); assert.equal(b.posts.length, 0)
+  b.store.actions.restoreCreationDraft(b.draft().id); assert.equal(b.store.getState().forms.recipe.id, cup.id)
+  b.store.actions.selectRecipe(b.recipe()); assert.equal(b.store.getState().forms.recipeParameters.exposure, .3)
+  b.store.actions.selectRecipe(cup); assert.equal(b.store.getState().forms.recipeParameters.exposure, -.4)
+  assert.equal(b.posts.length, 0)
+})
+
+test('legacy 0.3.6 drafts still restore their selected recipe and gain comparison preservation', async t => {
+  const storage = new Storage(), a = await client(t, storage); fill(a); a.store.stop()
+  const record = records(storage, a.root)[0], legacy = record.data; delete legacy.recipeChoices; storage.setItem(record.key, JSON.stringify(legacy))
+  const b = await client(t, storage); b.store.actions.restoreCreationDraft(b.draft().id)
+  const cup = b.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  b.store.actions.selectRecipe(cup); b.store.actions.selectRecipe(b.recipe())
+  assert.equal(b.store.getState().forms.recipeParameters.exposure, .3); assert.equal(b.posts.length, 0)
+})
+
+test('recipe comparison never carries edited parameters into another digest or version of the same recipe', async t => {
+  const catalog = new RecipeCatalog().list(), h = await client(t, new Storage(), { recipes: catalog }); fill(h); const old = h.recipe()
+  const index = catalog.recipes.findIndex(r => r.id === old.id), changed = { ...old, digest: 'f'.repeat(64) }
+  catalog.recipes[index] = changed; await h.reload(); h.store.actions.selectRecipe(changed)
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, 0)
+  const alternate = { ...changed, version: '1.0.0', digest: 'a'.repeat(64) }; catalog.recipes.push(alternate); await h.reload()
+  h.store.actions.setRecipeParameter('exposure', .4); h.store.actions.selectRecipe(alternate)
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, 0); h.store.actions.setRecipeParameter('exposure', -.5)
+  h.store.actions.selectRecipe(changed); assert.equal(h.store.getState().forms.recipeParameters.exposure, .4)
+  h.store.actions.selectRecipe(alternate); assert.equal(h.store.getState().forms.recipeParameters.exposure, -.5)
+  assert.equal(h.posts.length, 0)
+})
+
+test('cached color edits and defaults remain independent of restored input arrays', async t => {
+  const h = await client(t, new Storage()); fill(h); const lamp = h.recipe(), initial = [...lamp.parameters.find(p => p.id === 'main-color').default]
+  h.store.getState().forms.recipeParameters['main-color'][0] = .9
+  assert.deepEqual(lamp.parameters.find(p => p.id === 'main-color').default, initial)
+  h.store.actions.setRecipeParameter('main-color', [.2, .4, .6]); h.store.actions.selectRecipe(null); h.store.actions.selectRecipe(lamp)
+  const saved = h.store.getState().recipeChoices.find(c => c.recipe.id === lamp.id)
+  h.store.getState().forms.recipeParameters['main-color'][0] = .8
+  assert.equal(saved.parameters['main-color'][0], .2)
+})
+
+test('a successful creation removes its confirmed comparison input while retaining the other recipe draft', async t => {
+  const storage = new Storage(), h = await client(t, storage, { post: () => recovered }); fill(h); const lamp = h.recipe(), cup = h.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  h.store.actions.selectRecipe(cup); h.store.actions.setRecipeParameter('exposure', -.4); h.store.actions.selectRecipe(lamp)
+  await h.store.actions.createProject()
+  assert.equal(h.store.getState().forms.recipe, null)
+  assert.deepEqual(Array.from(h.store.getState().recipeChoices, c => c.recipe.id), [cup.id])
+  assert.equal(records(storage, h.root)[0].data.recipeChoices[0].parameters.exposure, -.4)
+  h.store.actions.setView('projects')
+  assert.ok(h.nodes().some(n => n.props['data-action'] === 'clear-creation-draft'))
+  h.store.actions.selectRecipe(cup); assert.equal(h.store.getState().forms.recipeParameters.exposure, -.4)
+})
+
+test('comparing recipes during a pending request retains the captured request and preserves newer edits on success', async t => {
+  let finish; const h = await client(t, new Storage(), { post: () => new Promise(resolve => { finish = resolve }) }); fill(h)
+  const lamp = h.recipe(), cup = h.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup'), pending = h.store.actions.createProject()
+  h.store.actions.selectRecipe(cup); h.store.actions.setRecipeParameter('exposure', -.4); h.store.actions.selectRecipe(lamp); h.store.actions.setRecipeParameter('exposure', .6)
+  finish(recovered); await pending
+  assert.equal(h.posts[0].recipe.parameters.exposure, .3)
+  assert.equal(h.store.getState().forms.recipeParameters.exposure, .6)
+  h.store.actions.selectRecipe(cup); assert.equal(h.store.getState().forms.recipeParameters.exposure, -.4)
+})
+
+test('confirming a live-page restored request preserves that page\'s other recipe settings in storage', async t => {
+  const storage = new Storage(), a = await client(t, storage); fill(a); await a.store.actions.createProject()
+  const lamp = a.recipe(), cup = a.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  a.store.actions.selectRecipe(cup); a.store.actions.setRecipeParameter('exposure', -.4); a.store.actions.selectRecipe(lamp)
+  const source = records(storage, a.root)[0], b = await client(t, storage, { post: () => recovered }); b.store.actions.restoreCreationDraft(b.draft().id)
+  await b.store.actions.retryCreation()
+  const remaining = JSON.parse(storage.getItem(source.key)); assert.equal(remaining.attempt, null); assert.equal(remaining.forms.recipe, null)
+  assert.deepEqual(remaining.recipeChoices.map(c => c.recipe.id), [cup.id]); assert.equal(remaining.recipeChoices[0].parameters.exposure, -.4)
+})
+
+test('corrupt or ambiguous recipe comparison records remain untouched and cannot break the restored controls', async t => {
+  for (const corrupt of [saved => { saved.recipeChoices.push(saved.recipeChoices[0]) }, saved => { saved.recipeChoices[0].parameters['main-color'] = 2 }, saved => { saved.recipeChoices[0].parameters['main-color'] = [2, 0, 0] }]) {
+    const storage = new Storage(), a = await client(t, storage); fill(a); a.store.stop(); const record = records(storage, a.root)[0]; corrupt(record.data); const raw = JSON.stringify(record.data); storage.setItem(record.key, raw)
+    const b = await client(t, storage); b.store.actions.restoreCreationDraft(b.draft().id)
+    assert.equal(b.store.getState().forms.title, ''); assert.equal(b.posts.length, 0); assert.equal(storage.getItem(record.key), raw)
+    assert.equal(b.store.getState().creationDraftStorageStatus, 'invalid'); assert.ok(b.nodes().length)
+  }
+})
+
+test('clearing a draft and changing project storage discard only the current page\'s recipe comparison cache', async t => {
+  const storage = new Storage(), h = await client(t, storage); fill(h); h.store.actions.selectRecipe(null)
+  h.store.actions.clearCreationDraft(); assert.equal(h.store.getState().recipeChoices.length, 0); assert.equal(records(storage, h.root).length, 0)
+  h.store.actions.selectRecipe(h.recipe()); assert.equal(h.store.getState().forms.recipeParameters.exposure, 0)
+  h.store.actions.setRecipeParameter('exposure', .4); await h.reload('/projects/b')
+  assert.equal(h.store.getState().recipeChoices.length, 0); h.store.actions.selectRecipe(h.recipe()); assert.equal(h.store.getState().forms.recipeParameters.exposure, 0)
+  assert.equal(records(storage, '/projects/a')[0].data.recipeChoices[0].parameters.exposure, .4)
+})
+
+test('unavailable malformed comparison choices are visibly refused before restore and cannot overwrite a valid current input', async t => {
+  const storage = new Storage(), a = await client(t, storage); fill(a); a.store.stop(); const entry = records(storage, a.root)[0]
+  entry.data.recipeChoices.push({ recipe: { id: 'unavailable', version: '1.0.0', digest: 'a'.repeat(64) }, parameters: { tint: [2, 0, 0] } })
+  const raw = JSON.stringify(entry.data); storage.setItem(entry.key, raw)
+  const b = await client(t, storage); b.store.actions.setForm('title', 'Current input')
+  const draft = b.draft(); assert.equal(draft.invalid, true)
+  assert.equal(b.nodes().find(n => n.props['data-action'] === 'restore-creation-draft:' + draft.id).props.disabled, true)
+  b.store.actions.restoreCreationDraft(draft.id); assert.equal(b.store.getState().forms.title, 'Current input')
+  assert.equal(storage.getItem(entry.key), raw); assert.equal(b.posts.length, 0)
+})
+
+test('an unavailable version carrying a current digest cannot donate its saved edits to the current recipe', async t => {
+  const storage = new Storage(), a = await client(t, storage); fill(a)
+  const cup = a.store.getState().recipeCatalog.recipes.find(r => r.id === 'deepblend.glazed-cup')
+  a.store.actions.selectRecipe(cup); a.store.stop()
+  const record = records(storage, a.root)[0]; record.data.recipeChoices.find(c => c.recipe.id === 'deepblend.metal-lamp').recipe.version = '0.0.0'
+  storage.setItem(record.key, JSON.stringify(record.data))
+  const b = await client(t, storage); b.store.actions.restoreCreationDraft(b.draft().id)
+  assert.equal(b.store.getState().forms.recipe.id, cup.id)
+  b.store.actions.selectRecipe(b.recipe()); assert.equal(b.store.getState().forms.recipeParameters.exposure, 0)
+  assert.equal(b.posts.length, 0)
+})

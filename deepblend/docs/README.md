@@ -14,6 +14,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | Continue after creation fails / 创建失败后继续 | [Creation recovery · 创建恢复](creation-recovery.md) |
 | Continue after reload or reopening / 重载或重新打开后继续 | [Creation drafts · 浏览器创建草稿](creation-drafts.md) |
 | Choose and customize a starting point / 选择并调整配方 | [Recipes · 作品配方](recipes.md) |
+| Compare starting points without losing edits / 比较配方并保留调整 | [Recipe comparison · 配方比较](recipe-comparison.md) |
 | Import models, textures and environments / 导入模型、贴图与环境光 | [Assets · 素材库](assets.md) |
 | Change shape and materials / 修改造型和材质 | [Modeling · 对象编辑](modeling.md) |
 | Compose and light a shot / 调整构图与灯光 | [Photography · 摄影编辑](photography-editor.md) |
