@@ -53,7 +53,11 @@ for(const id of ids){
 
   video={path:filename,...facts(file),width:stream.width,height:stream.height,fps:24,frameCount:144,durationSeconds:duration,codec:stream.codec_name,verified:true,projectId:delivery.exported.projectId,revision:delivery.exported.revision,jobId:delivery.exported.jobId,animatedPreview:{path:loopFilename,...facts(join(out,loopFilename)),width:960,height:540,sampledFrames:72,durationMs:6000,method:'Sample the actual 24 fps MP4 at 12 fps; no optical-flow interpolation.'},encodedFrameSamples:samples,postproduction:'Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames.'}
  }
- cases.push({id,title:spec.project.title,license:'MIT',sceneSource:`../../../showcase/${id}/scene-spec.json`,sceneSourceSha256:hash(fs.readFileSync(specPath)),images,video})
+ const receiptPath=join(evidence,id,'clay-hero-artifacts.json'),receiptBytes=fs.readFileSync(receiptPath),receipt=JSON.parse(receiptBytes)
+ const clayFilename=`${id}-clay-hero-f072.png`,clayFile=join(out,clayFilename),clay=receipt.facts.find(x=>x.filename===clayFilename)
+ if(!clay||clay.sha256!==facts(clayFile).sha256||clay.source.mode!=='clay')throw Error(`${clayFilename}: clay provenance mismatch`)
+ const inspections=[{kind:'diagnostic',mode:'clay',path:clayFilename,...facts(clayFile),width:clay.width,height:clay.height,pixelSha256:clay.pixelSha256,projectId:spec.project.id,revision:clay.source.sourceRevision,sceneDigest:clay.source.sourceDigest,cameraId:clay.source.cameraId,frame:clay.source.frame,renderConfig:clay.source.renderConfig,sourceReceiptSha256:hash(receiptBytes),sourceRecordedAt:receipt.at}]
+ cases.push({id,title:spec.project.title,license:'MIT',sceneSource:`../../../showcase/${id}/scene-spec.json`,sceneSourceSha256:hash(fs.readFileSync(specPath)),images,inspections,video})
 }
 if(!stillsOnly){const manifest={schemaVersion:'deepblend.showcase/v1',complete:cases.length===allIds.length,expectedCases:allIds,review:'../../../showcase/REVIEW.md',createdAt:new Date().toISOString(),pluginVersion:'0.3.2',blenderVersion:'5.2.1 LTS',platform:'darwin-arm64',backend:'Cycles / Metal via Blender native device override',renderApi:'Installed DeepBlend public Host and Local Provider APIs',references:'../../../showcase/REFERENCES.md',externalSceneAssets:[],cases};fs.writeFileSync(join(out,'manifest.json'),JSON.stringify(manifest,null,2)+'\n')}
 console.log(`Verified and prepared ${cases.length} cases (${stillsOnly?'images only':'images and films'}).`)
