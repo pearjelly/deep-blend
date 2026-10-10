@@ -10,7 +10,7 @@ const root = resolve(import.meta.dirname, '../../..')
 const cli = join(root, 'packages/deepblend/bundle/lib/doctor-cli.js')
 const valid = {
   dsh: `DSH ${REQUIREMENTS.dsh}`,
-  pnpm: '10.28.2',
+  pnpm: REQUIREMENTS.pnpm,
   blender: `Blender ${REQUIREMENTS.blender}\nBuild date: example`,
   ffmpeg: 'ffmpeg version 7.1 Copyright',
   ffprobe: 'ffprobe version 7.1 Copyright',
@@ -55,6 +55,15 @@ test('rejects wrong Blender and DSH prerelease versions while checking remaining
   assert.deepEqual(report.checks.filter(c => c.status === 'fail').map(c => c.id), ['dsh', 'blender'])
   assert.equal(report.checks.find(c => c.id === 'ffprobe').status, 'pass')
   assert.equal(report.ready.images, false)
+})
+
+test('pnpm 9 cannot claim profile-install readiness, while installed PNG tools remain ready', () => {
+  const report = inspect({ ...valid, pnpm: '9.15.0' })
+  assert.deepEqual(report.ready, { installation: false, images: true, video: true })
+  const check = report.checks.find(check => check.id === 'pnpm')
+  assert.equal(check.reason, 'version')
+  assert.equal(check.expected, REQUIREMENTS.pnpm)
+  assert.match(check.action, /profile workspace root/)
 })
 
 test('Node uses numeric version ordering and the minimum DSH user requirement', () => {
@@ -132,6 +141,7 @@ test('published doctor requirements match the maintained compatibility anchors',
   assert.equal(REQUIREMENTS.blender, JSON.parse(readFileSync(join(root, 'deepblend/tools/blender-release.json'), 'utf8')).version)
   const quickStart = readFileSync(join(root, 'deepblend/docs/quick-start.md'), 'utf8')
   assert.ok(quickStart.includes(`Node.js ${REQUIREMENTS.node}+`))
+  assert.ok(quickStart.includes(`pnpm@${REQUIREMENTS.pnpm}`))
 })
 
 test('npm pack ships the executable and its requirements together', () => {

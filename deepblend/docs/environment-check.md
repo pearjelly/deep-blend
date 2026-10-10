@@ -34,7 +34,7 @@ npm run doctor -- --blender /Applications/Blender.app/Contents/MacOS/Blender
 
 分别显示安装、图片工具和视频工具是否齐备。pnpm 用于插件安装；已有安装的图片工具状态单独显示。
 
-版本要求与[快速上手](quick-start.md)一致。程序必须真正输出版本；仅有退出码 0 不算通过。DSH 启动器使用的 Node 由 PATH 决定，因此只在命令前指定另一个 Node 路径可能仍让 DSH 使用旧 Node。确认同一终端的 `node --version` 与 `dsh --version`。
+版本要求与[快速上手](quick-start.md)一致，包括实际验证的 pnpm 10.28.2。pnpm 9 的发布包构建路径仍可用，但 DSH profile 安装会拒绝工作区根目录；不能用构建成功推断用户安装成功。程序必须真正输出版本；仅有退出码 0 不算通过。DSH 启动器使用的 Node 由 PATH 决定，因此只在命令前指定另一个 Node 路径可能仍让 DSH 使用旧 Node。确认同一终端的 `node --version` 与 `dsh --version`。
 
 每个程序最多等待 8 秒，诊断输出只保留识别的版本和状态，不复制子程序原始日志。Windows 的 `.cmd` 命令包装器尚未验证；原生可执行文件或支持环境下的入口需单独检查。
 

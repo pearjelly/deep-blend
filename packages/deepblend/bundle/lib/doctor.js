@@ -21,7 +21,7 @@ const definitions = [
   { id: 'dsh', label: 'DSH', args: ['--version'], pattern: new RegExp(`^(?:v|(?:DSH|dsh|@deepseek-ai/dsh)(?: CLI)?[ :v]*)?${SEMVER}(?:\\s|$)`, 'im'),
     expected: REQUIREMENTS.dsh, action: `Install the supported DSH ${REQUIREMENTS.dsh}; see the quick start.` },
   { id: 'pnpm', label: 'pnpm', args: ['--version'], pattern: new RegExp(`^v?${SEMVER}(?:\\s|$)`, 'm'),
-    action: 'Install pnpm and ensure it is on PATH.' },
+    expected: REQUIREMENTS.pnpm, action: `Use the verified pnpm ${REQUIREMENTS.pnpm} for DSH profile installation; pnpm 9 can refuse the profile workspace root.` },
   { id: 'blender', label: 'Blender', args: ['--version'], pattern: new RegExp(`^Blender ${SEMVER}(?:\\s|$)`, 'm'),
     expected: REQUIREMENTS.blender, action: `Install Blender ${REQUIREMENTS.blender} or pass --blender /path/to/blender.` },
   { id: 'ffmpeg', label: 'FFmpeg', args: ['-version'], pattern: /^ffmpeg version (\S+)/m, optional: true,

@@ -6,7 +6,7 @@ Install the published plugin, open the Blender workbench, and create a scene fro
 ## 1. Prepare your environment / 准备环境
 
 - **Node.js 22.23.3+** for the pinned DSH CLI; the DeepBlend development packages themselves declare Node.js ≥ 22.
-- **DSH 0.1.5-rc.2** and **pnpm** on your PATH. See the CLI commands below if DSH is not installed.
+- **DSH 0.1.5-rc.2** and the verified **pnpm 10.28.2** on your PATH. See the CLI commands below if DSH is not installed.
 - **Blender 5.2.1**, available on your PATH or selected through `blenderPath` in the profile's operator configuration.
 - **FFmpeg and ffprobe** when you want MP4 output. PNG previews and frames work without an encoder.
 
