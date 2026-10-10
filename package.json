@@ -1,6 +1,6 @@
 {
   "name": "deepblend-studio",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "DeepBlend Studio — create and refine Blender product scenes in DSH with editable recipes, real previews, saved revisions and PNG/MP4 delivery.",
   "keywords": [
@@ -19,6 +19,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "doctor": "node packages/deepblend/bundle/lib/doctor-cli.js",
     "dev:setup": "node deepblend/tools/development.mjs setup",
     "dev:doctor": "node deepblend/tools/development.mjs doctor",
     "dev:test": "node deepblend/tools/development.mjs test",

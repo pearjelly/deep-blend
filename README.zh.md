@@ -272,7 +272,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         123 个 *.test.mjs
+    contract/         124 个 *.test.mjs（已提交源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -331,7 +331,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 23/123 file(s) passed
+DeepBlend tests: 24/124 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -391,12 +391,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**35 个套件、157 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**123 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1362 个 `node:test` 用例（89 个文件）**。
+预期：**35 个套件、158 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**124 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1362 个 `node:test` 用例（90 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是结构检查，断言与用例总数是运行快照。** 当前契约计数来自 2026-10-09 工作台界面优化的完整入口输出，其中契约层 123/123 文件通过。此前资源包上传整合的连续完整验收与验证边界见 `deepblend/docs/milestone-status.md` §257；本次界面与发布记录见 §259。
+**套件与文件数是已提交源码的结构检查，断言与用例总数是历史运行快照。** 上述断言与用例总数来自 2026-10-09 工作台界面优化的完整入口输出，当时契约层 123/123 文件通过；新增自检测试的最终验证另见[每日发布记录](deepblend/docs/daily-releases.md)。此前资源包上传整合的连续完整验收与验证边界见 `deepblend/docs/milestone-status.md` §257；界面与发布记录见 §259。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

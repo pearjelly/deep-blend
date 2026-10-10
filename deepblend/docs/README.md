@@ -8,6 +8,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | What you want to do / 你想做什么 | Open / 阅读 |
 | --- | --- |
 | Install the published plugin / 安装正式插件 | [Quick start · 快速开始](quick-start.md) |
+| Check tools and find installation blockers / 检查工具与安装问题 | [Environment check · 环境自检（0.3.3 候选）](environment-check.md) |
 | Make your first product scene / 完成第一件作品 | [Glazed cup walkthrough · 青釉杯图文教程](creator-tutorial.md) |
 | Learn the workbench / 熟悉工作台 | [Usage · 操作指南](usage.md) |
 | Choose and customize a starting point / 选择并调整配方 | [Recipes · 作品配方](recipes.md) |
@@ -26,6 +27,7 @@ Most detailed guides are written in Chinese, with commands and API names kept in
 | --- | --- |
 | Public authoring API and typed recipes / 公共 API 与类型化配方 | [Public SDK](public-api.md) · [Content authors](../examples/content-author/README.md) |
 | Local development and environment checks / 本地开发与自检 | [Installation reference](install.md) · [Contributing](../../CONTRIBUTING.md) |
+| Product priorities and daily releases / 产品方向与每日发布 | [Product roadmap](product-roadmap.md) · [Daily release record](daily-releases.md) |
 | SceneSpec and implementation boundaries / 数据与实现边界 | [Specification](../../SPEC.md) · [Architecture decisions](architecture-decisions.md) |
 | Reproducible image evidence / 可重建的图片证据 | [Quality benchmarks](quality-benchmarks.md) · [Tutorial provenance](assets/creator-tutorial/manifest.json) |
 | Brand artwork and reuse / 品牌素材与复用 | [Brand assets](brand/README.md) |
