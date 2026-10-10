@@ -603,7 +603,9 @@ window.__ModuleLoader__.load({
       'visual.noSecondOpinion': '没有第二意见。',
       'visual.none': '这个 revision 还没有视觉评审。可以用 blender_visual_review 跑一次。',
       'revisions.current': '当前',
-      'revisions.compare': '对比',
+      'revisions.compare': '与当前版对比',
+      'revisions.compareCurrent': '与另一版对比',
+      'revisions.compareHint': '选择已保存版本与当前版对比；选择当前版会对比相邻的另一版。需要至少两版，查看不会改动作品。',
       'revisions.restore': '恢复',
       'host.reading': '读取 Host 状态…',
       'diagnostics.exportHint': '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
@@ -1168,7 +1170,9 @@ window.__ModuleLoader__.load({
       'visual.noSecondOpinion': 'No second opinion.',
       'visual.none': 'This revision has no visual review yet. Run one with blender_visual_review.',
       'revisions.current': 'current',
-      'revisions.compare': 'compare',
+      'revisions.compare': 'Compare with current',
+      'revisions.compareCurrent': 'Compare with another version',
+      'revisions.compareHint': 'Compare a saved version with the current one. The current version uses its nearest other version. At least two versions are needed; viewing does not change the project.',
       'revisions.restore': 'restore',
       'host.reading': 'Reading Host state…',
       'diagnostics.exportHint': 'Export diagnostics you can attach to a bug report (versions, config, a summary of projects and jobs)',
@@ -2657,6 +2661,22 @@ window.__ModuleLoader__.load({
       try { const value = storage?.getItem(APPEARANCE_KEY); return APPEARANCES.includes(value) ? value : 'system' } catch { return 'system' }
     }
 
+    function previewRevisionPair(state) {
+      const revisions = state.previews?.revisions || []
+      const pick = wanted => revisions.some(entry => entry.revision === wanted) ? wanted : revisions.at(-1)?.revision || null
+      return { left: pick(state.compareLeft || state.currentRevision), right: pick(state.compareRight || state.currentRevision) }
+    }
+    function revisionComparisonTarget(state, revision) {
+      if (!state.activeProjectId) return null
+      const saved = new Set((state.selected?.revisions || []).map(entry => entry.revision))
+      const available = [...new Set((state.previews?.revisions || []).map(entry => entry.revision).filter(id => saved.has(id)))]
+        .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+      if (!available.includes(revision) || !available.includes(state.currentRevision)) return null
+      const index = available.indexOf(revision)
+      const left = revision === state.currentRevision ? available[index - 1] || available[index + 1] : revision
+      return left ? { left, right: state.currentRevision } : null
+    }
+
     function createWorkbenchStore(options) {
       const settings = options || {}
       const fetchImpl = settings.fetch ?? ((...args) => fetch(...args))
@@ -2674,6 +2694,7 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      let diffSequence = 0
       let creationAttempt = null
       const draftStorage = creationDraftStorage(settings)
       let creationDraftId = newCreationKey(), creationDraftRoot = null, persistedCreationSignature = null
@@ -2732,7 +2753,14 @@ window.__ModuleLoader__.load({
         for (const listener of [...listeners]) listener(snapshot)
       }
       /** Change the snapshot and tell everyone. @param {object} patch */
-      const set = (patch) => { data = { ...data, ...patch }; notify() }
+      const set = (patch) => {
+        if (['projectsRoot', 'activeProjectId', 'currentRevision', 'view', 'compareMode', 'compareLeft', 'compareRight']
+          .some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) {
+          diffSequence += 1
+          patch = { ...patch, diff: null, diffError: null }
+        }
+        data = { ...data, ...patch }; notify()
+      }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
       const setIn = (table, key, value) => { data = { ...data, [table]: { ...data[table], [key]: value } }; notify() }
 
@@ -3264,8 +3292,15 @@ window.__ModuleLoader__.load({
         pickCompare: (side, revision) => set(side === 'left'
           ? { compareLeft: revision, diff: null, diffError: null }
           : { compareRight: revision, diff: null, diffError: null }),
-        /** Hand off from 版本 to 预览对比 with that revision on the left. */
-        compareFrom: (revision) => set({ compareLeft: revision, view: 'preview' }),
+        /** View a saved version against the current one, without changing the project. */
+        compareFrom: (revision) => {
+          const pair = revisionComparisonTarget(data, revision)
+          if (pair) {
+            diffSequence += 1
+            set({ compareLeft: pair.left, compareRight: pair.right, compareMode: 'revisions', view: 'preview',
+              diff: null, diffError: null, editorComparison: null })
+          }
+        },
 
         updateBrief: (field, value, referenceId) => {
           const projectId = data.activeProjectId, current = data.briefDrafts[projectId]
@@ -3565,14 +3600,32 @@ window.__ModuleLoader__.load({
         },
 
         diff: async (from, to) => {
-          set({ diffError: null })
+          const projectId = data.activeProjectId, pair = previewRevisionPair(data)
+          if (!running || !projectId || data.view !== 'preview' || data.compareMode !== 'revisions' || pair.left !== from || pair.right !== to) return
+          const sequence = ++diffSequence
+          const stamp = JSON.stringify([data.projectsRoot, projectId, data.currentRevision, from, to])
+          const current = () => {
+            const selected = previewRevisionPair(data)
+            return running && sequence === diffSequence && data.view === 'preview' && data.compareMode === 'revisions'
+              && selected.left === from && selected.right === to
+              && JSON.stringify([data.projectsRoot, data.activeProjectId, data.currentRevision, from, to]) === stamp
+          }
+          set({ diff: null, diffError: null })
           try {
-            const response = await fetchImpl(`${projectRoute(target(), '/diff')}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { accept: 'application/json' } })
+            const response = await fetchImpl(`${projectRoute(projectId, '/diff')}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { accept: 'application/json' } })
             const parsed = await response.json()
-            if (parsed && parsed.ok) set({ diff: parsed.diff })
-            else set({ diff: null, diffError: (parsed && parsed.error) || { code: `HTTP_${response.status}`, message: t('preview.diffFailed') } })
+            if (!current()) return
+            if (response.ok && parsed?.ok) {
+              if (parsed.projectId !== undefined && parsed.projectId !== projectId
+                || parsed.diff?.projectId !== undefined && parsed.diff.projectId !== projectId
+                || parsed.diff?.fromRevision !== from || parsed.diff?.toRevision !== to
+                || parsed.fromRevision !== undefined && parsed.fromRevision !== from
+                || parsed.toRevision !== undefined && parsed.toRevision !== to) {
+                set({ diff: null, diffError: { code: 'UI_DIFF_MISMATCH', message: t('preview.diffFailed') } })
+              } else set({ diff: parsed.diff })
+            } else set({ diff: null, diffError: parsed?.error || { code: `HTTP_${response.status}`, message: t('preview.diffFailed') } })
           } catch (error) {
-            set({ diff: null, diffError: { code: 'UI_FETCH_FAILED', message: String((error && error.message) || error) } })
+            if (current()) set({ diff: null, diffError: { code: 'UI_FETCH_FAILED', message: String((error && error.message) || error) } })
           }
         },
 
@@ -3799,6 +3852,7 @@ window.__ModuleLoader__.load({
           void load()
         },
         stop() {
+          diffSequence += 1
           closeCreationDraft()
           draftLifecycle?.removeEventListener?.('pagehide', closeCreationDraft)
           draftLifecycle?.removeEventListener?.('pageshow', reopenCreationDraft)
@@ -4825,9 +4879,7 @@ window.__ModuleLoader__.load({
       const previews = state.previews
       if (previews === null) return el('div', { 'data-view': 'preview', className: 'db-muted' }, t('common.noProject'))
       const revisions = previews.revisions
-      const pick = wanted => (revisions.some(entry => entry.revision === wanted) ? wanted : (((revisions[revisions.length - 1] || {}).revision) || null))
-      const left = pick(state.compareLeft || state.currentRevision)
-      const right = pick(state.compareRight || state.currentRevision)
+      const { left, right } = previewRevisionPair(state)
       const entryOf = id => revisions.find(entry => entry.revision === id) || null
 
       /** One image (or the reason there is none), with its digest and its time. */
@@ -5174,6 +5226,7 @@ window.__ModuleLoader__.load({
         ErrorBox({ error: state.error }),
         el('div', { className: 'db-card' },
           el('h4', null, t('revisions.title', { count: revisions.length })),
+          el('p', { className: 'db-muted' }, t('revisions.compareHint')),
           el('ul', { className: 'db-list' }, revisions.map(entry => el('li', { key: entry.revision, 'data-revision': entry.revision },
             el('div', { className: 'db-inline' },
               el('span', { className: 'db-mono' }, entry.revision),
@@ -5181,7 +5234,8 @@ window.__ModuleLoader__.load({
               el('span', { className: 'db-muted' }, entry.kind || '—'),
               el('span', { className: 'db-muted' }, formatTime(entry.createdAt)),
               el('span', { className: 'db-muted db-mono' }, `digest ${shortDigest(entry.digest)}`),
-              Button({ action: `compare-from:${entry.revision}`, onClick: () => actions.compareFrom(entry.revision), children: t('revisions.compare') }),
+              Button({ action: `compare-from:${entry.revision}`, disabled: revisionComparisonTarget(state, entry.revision) === null,
+                onClick: () => actions.compareFrom(entry.revision), children: entry.isCurrent ? t('revisions.compareCurrent') : t('revisions.compare') }),
               entry.isCurrent ? null : Button({ action: `restore:${entry.revision}`, disabled: state.busy.restore, onClick: () => actions.restoreRevision(entry.revision), children: t('revisions.restore') }),
             ),
             el('div', { className: 'db-muted' }, entry.summary || t('common.noNote')),

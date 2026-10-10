@@ -52,7 +52,7 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
     } else if (path.pathname.endsWith('/jobs')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.jobs', jobs: [], unfinished: [] }
     else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: '/artifact', previews: { revisions: previews[projectId] } }
     else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projects: Object.keys(projects).map(projectId => ({ projectId })),
-      selected: { project: { title: projectId, projectId, revisionCount: 1 }, qa: { summary: 'Controlled UI fixture' }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
+      selected: { project: { title: projectId, projectId, revisionCount: previews[projectId].length }, revisions: previews[projectId].map(row => ({ ...row, isCurrent: row.revision === project.revision })), qa: { summary: 'Controlled UI fixture' }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
     return { ok: true, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }
   } }
   const mounted = options.root ? await core.mountStandalone(options.root, settings) : null
@@ -719,4 +719,16 @@ test('omitted object numeric options keep defaults without materializing them in
   assert.equal(draft.entity.modifiers[0].angle, undefined)
   assert.equal(draft.entity.modifiers[1].offset, undefined)
   assert.deepEqual(plain(editor.buildPatch(draft).operations), [])
+})
+
+test('explicit revision comparison leaves the automatic edit pair and retains the next unsaved draft', async t => {
+  const { store, calls } = await client(t)
+  store.actions.updateEditor('transform', ['location', 0], .008)
+  await store.actions.applyEditor(); await waitFor(store, s => s.currentRevision === 'r0002')
+  assert.equal(store.getState().editorComparison.before, 'r0001'); assert.equal(store.getState().editorComparison.after, 'r0002')
+  store.actions.setView('scene'); store.actions.selectEditorEntity('shade-shell'); store.actions.updateEditor('transform', ['location', 0], .014)
+  const drafts = JSON.stringify(store.getState().editorDrafts), writes = calls.length
+  store.actions.compareFrom('r0001')
+  const s = store.getState(); assert.equal(s.editorComparison, null); assert.equal(s.compareMode, 'revisions'); assert.equal(s.compareLeft, 'r0001'); assert.equal(s.compareRight, 'r0002')
+  assert.equal(JSON.stringify(s.editorDrafts), drafts); assert.equal(calls.length, writes)
 })

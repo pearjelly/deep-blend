@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import Studio, { StudioConfig } from '@deepblend/dsh-blender-host'
-import { createImage, encodePng, sceneSpecDigest, compileSchema } from '@deepblend/dsh-blender-contracts'
+import { createImage, encodePng, sceneSpecDigest, compileSchema, compileSceneSpec, buildSceneTree, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 const spec = JSON.parse(readFileSync(new URL('../../fixtures/product-turntable/scene-spec.json', import.meta.url)))
@@ -163,4 +163,118 @@ test('editor matching refuses a declared different source even when render setti
   assert.equal(refusedBefore.beforeArtifact, null); assert.equal(refusedBefore.reason, 'no-matching-baseline')
   comparison.afterPreviews[0].sourceRevision = 'r0001'
   assert.equal(core.sceneEditor.previewPair(comparison).afterArtifact, null)
+})
+
+// Drive the actual shared store and view. All comparison calls are reads; the
+// controlled Host allows delayed replies and changes to the current project.
+async function comparisonClient(t, ids = ['r0001', 'r0002', 'r0003']) {
+  const scene = compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/metal-lamp/scene-spec.json', import.meta.url)))).spec
+  const host = { root: '/comparison-store/a', current: ids.at(-1), ids: [...ids], queue: [] }, reads = [], writes = []
+  const response = (payload, status = 200) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(payload), json: async () => payload })
+  const settings = { pollIdleMs: 999999, pollLiveMs: 999999, fetch: async (input, init = {}) => {
+    const u = new URL(String(input), 'http://controlled.test'), projectId = u.searchParams.get('projectId') || u.pathname.split('/')[3] || 'project-a'
+    if (init.method === 'POST') { writes.push(String(input)); throw Error('comparison must not write') }
+    if (u.pathname.endsWith('/diff')) {
+      reads.push({ projectId, from: u.searchParams.get('from'), to: u.searchParams.get('to') })
+      const queued = host.queue.shift(); if (queued) return await queued
+      return response({ ok: true, diff: { fromRevision: u.searchParams.get('from'), toRevision: u.searchParams.get('to'), identical: false, totalChanges: 1, collections: {}, project: [], world: [] } })
+    }
+    const rows = host.ids.map(revision => ({ revision, isCurrent: revision === host.current, previews: [], contactSheets: [], reviews: [] }))
+    const payload = u.pathname.endsWith('/jobs') ? { route: 'project.jobs', jobs: [], unfinished: [] }
+      : u.pathname.endsWith('/previews') ? { route: 'project.previews', artifactBase: '/artifacts/'+projectId+'/', previews: { revisions: rows } }
+      : { route: 'state', projectsRoot: host.root, projects: [{ projectId: 'project-a' }, { projectId: 'project-b' }], selected: { project: { projectId, title: projectId, revisionCount: rows.length }, currentRevision: host.current, revisions: rows, scene: buildSceneTree(scene, { revision: host.current }), jobs: [], unfinishedJobs: [] } }
+    return response({ ok: true, hostApiVersion: HOST_API_VERSION, ...payload })
+  } }
+  const store = core.createWorkbenchStore(settings); t.after(() => store.stop()); store.start()
+  const wait = async predicate => { for (let n = 0; n < 100; n++) { if (predicate(store.getState())) return; await new Promise(r => setTimeout(r, 10)) } throw Error('comparison fixture did not settle') }
+  await wait(s => s.status === 'ok' && s.previews && s.currentRevision === host.current)
+  const nodes = () => flatten(core.renderView({ state: store.getState(), actions: store.actions }))
+  const pending = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b }); host.queue.push(promise); return { resolve: diff => resolve(response({ ok: true, diff })), payload: (value, status) => resolve(response(value, status)), error: error => resolve(response({ ok: false, error })), reject } }
+  const select = (left = 'r0001', right = host.current) => { store.actions.setView('preview'); store.actions.setCompareMode('revisions'); store.actions.pickCompare('left', left); store.actions.pickCompare('right', right) }
+  const pair = () => nodes().filter(n => ['compare-left', 'compare-right'].includes(n.props['data-field'])).map(n => n.props.value)
+  return { store, host, reads, writes, wait, nodes, pending, select, pair }
+}
+const difference = (from = 'r0001', to = 'r0003', count = 1) => ({ fromRevision: from, toRevision: to, identical: false, totalChanges: count, collections: {}, project: [], world: [] })
+
+for (const mode of ['result', 'renders', 'revisions']) test(`version comparison: revision entry enters the selected/current pair from ${mode}`, async t => {
+  const f = await comparisonClient(t); f.store.actions.setCompareMode(mode); f.store.actions.pickCompare('right', 'r0002'); f.store.actions.setView('revisions')
+  const button = f.nodes().find(n => n.props['data-action'] === 'compare-from:r0001'); button.props.onClick()
+  assert.equal(f.store.getState().compareMode, 'revisions'); assert.equal(f.store.getState().view, 'preview'); assert.deepEqual(f.pair(), ['r0001', 'r0003']); assert.equal(f.writes.length, 0); assert.equal(f.reads.length, 0)
+})
+test('version comparison: selected current uses the nearest other saved version', async t => {
+  const f = await comparisonClient(t); f.store.actions.compareFrom('r0003'); assert.deepEqual(f.pair(), ['r0002', 'r0003']); assert.equal(f.writes.length, 0)
+})
+test('version comparison: restored earliest current can compare with the next saved version', async t => {
+  const f = await comparisonClient(t); f.host.current = 'r0001'; f.store.actions.reload(); await f.wait(s => s.currentRevision === 'r0001'); f.store.actions.compareFrom('r0001'); assert.deepEqual(f.pair(), ['r0002', 'r0001'])
+})
+test('version comparison: one version has a disabled entry and cannot silently compare itself', async t => {
+  const f = await comparisonClient(t, ['r0001']); f.store.actions.setView('revisions'); const button = f.nodes().find(n => n.props['data-action'] === 'compare-from:r0001'); assert.equal(button.props.disabled, true)
+  const before = JSON.stringify(f.store.getState()); f.store.actions.compareFrom('r0001'); assert.equal(JSON.stringify(f.store.getState()), before); assert.equal(f.writes.length, 0)
+})
+test('version comparison: unavailable selected or current versions cannot substitute another pair', async t => {
+  const f = await comparisonClient(t); f.select(); const before = JSON.stringify(f.store.getState()); f.store.actions.compareFrom('r0999'); assert.equal(JSON.stringify(f.store.getState()), before)
+  f.host.current = 'r0999'; f.store.actions.reload(); await f.wait(s => s.currentRevision === 'r0999'); const unavailable = JSON.stringify(f.store.getState()); f.store.actions.compareFrom('r0001'); assert.equal(JSON.stringify(f.store.getState()), unavailable)
+})
+test('version comparison: explicit entry clears old diff and automatic edit metadata but retains unsubmitted inputs', async t => {
+  const f = await comparisonClient(t); f.select('r0001', 'r0002'); await f.store.actions.diff('r0001', 'r0002'); f.store.actions.setForm('title', 'My unfinished project'); f.store.actions.setForm('goal', 'Keep my notes'); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity('shade-shell'); f.store.actions.updateEditor('transform', ['location', 0], .007)
+  const drafts = JSON.stringify(f.store.getState().editorDrafts); f.store.actions.compareFrom('r0002'); const s = f.store.getState(); assert.equal(s.diff, null); assert.equal(s.diffError, null); assert.equal(s.editorComparison, null); assert.equal(s.forms.title, 'My unfinished project'); assert.equal(s.forms.goal, 'Keep my notes'); assert.equal(JSON.stringify(s.editorDrafts), drafts); assert.deepEqual(f.pair(), ['r0002', 'r0003']); assert.equal(f.writes.length, 0)
+})
+for (const change of ['pair', 'mode', 'entry', 'tab', 'project', 'root', 'current', 'stop']) test(`version comparison: late success cannot repaint after ${change} changes`, async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003');
+  if (change === 'pair') f.store.actions.pickCompare('left', 'r0002')
+  if (change === 'mode') f.store.actions.setCompareMode('result')
+  if (change === 'entry') f.store.actions.compareFrom('r0002')
+  if (change === 'tab') f.store.actions.setView('revisions')
+  if (change === 'project') { f.store.actions.selectProject('project-b'); await f.wait(s => s.activeProjectId === 'project-b') }
+  if (change === 'root') { f.host.root = '/comparison-store/b'; f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root) }
+  if (change === 'current') { f.host.current = 'r0002'; f.store.actions.reload(); await f.wait(s => s.currentRevision === f.host.current) }
+  if (change === 'stop') f.store.stop()
+  p.resolve(difference()); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError, null); assert.equal(f.writes.length, 0)
+})
+for (const kind of ['coded', 'network']) test(`version comparison: late ${kind} error cannot replace a later valid result`, async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); f.store.actions.compareFrom('r0002'); await f.store.actions.diff('r0002', 'r0003')
+  if (kind === 'coded') p.error({ code: 'OLD_ERROR', message: 'earlier comparison' }); else p.reject(Error('earlier network error'))
+  await work; assert.equal(f.store.getState().diff.fromRevision, 'r0002'); assert.equal(f.store.getState().diff.toRevision, 'r0003'); assert.equal(f.store.getState().diffError, null)
+})
+test('version comparison: newest request wins even when two requests share the same pair', async t => {
+  const f = await comparisonClient(t); f.select(); const first = f.pending(), older = f.store.actions.diff('r0001', 'r0003'); const second = f.pending(), newer = f.store.actions.diff('r0001', 'r0003'); second.resolve(difference('r0001', 'r0003', 2)); await newer; first.resolve(difference('r0001', 'r0003', 7)); await older; assert.equal(f.store.getState().diff.totalChanges, 2)
+})
+test('version comparison: changing context clears an already displayed diff and error', async t => {
+  const f = await comparisonClient(t); f.select(); await f.store.actions.diff('r0001', 'r0003'); assert.equal(f.store.getState().diff.fromRevision, 'r0001'); f.store.actions.setCompareMode('result'); assert.equal(f.store.getState().diff, null)
+  f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); p.error({ code: 'CURRENT_ERROR', message: 'visible' }); await work; assert.equal(f.store.getState().diffError.code, 'CURRENT_ERROR'); f.store.actions.compareFrom('r0002'); assert.equal(f.store.getState().diffError, null)
+})
+test('version comparison: mismatched successful response is refused instead of mislabeled', async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); p.resolve(difference('r0001', 'r0002')); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError.code, 'UI_DIFF_MISMATCH')
+})
+test('version comparison: unavailable pair and non-version mode do not fetch a diff', async t => {
+  const f = await comparisonClient(t); f.select(); f.store.actions.setCompareMode('result'); await f.store.actions.diff('r0001', 'r0003'); f.select(); await f.store.actions.diff('r0001', 'r0999'); assert.equal(f.reads.length, 0); assert.equal(f.writes.length, 0)
+})
+
+for (const change of ['pair', 'mode', 'tab', 'root', 'current']) test(`version comparison: returning from a ${change} round trip cannot revive an earlier request`, async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003')
+  if (change === 'pair') { f.store.actions.pickCompare('left', 'r0002'); f.store.actions.pickCompare('left', 'r0001') }
+  if (change === 'mode') { f.store.actions.setCompareMode('result'); f.store.actions.setCompareMode('revisions') }
+  if (change === 'tab') { f.store.actions.setView('revisions'); f.store.actions.setView('preview') }
+  if (change === 'root') { f.host.root = '/comparison-store/b'; f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root); f.host.root = '/comparison-store/a'; f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root) }
+  if (change === 'current') { f.host.current = 'r0002'; f.store.actions.reload(); await f.wait(s => s.currentRevision === 'r0002'); f.host.current = 'r0003'; f.store.actions.reload(); await f.wait(s => s.currentRevision === 'r0003') }
+  p.resolve(difference()); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError, null)
+})
+for (const change of ['root', 'current']) test(`version comparison: a ${change} change clears the displayed old comparison result`, async t => {
+  const f = await comparisonClient(t); f.select(); await f.store.actions.diff('r0001', 'r0003'); assert.equal(f.store.getState().diff.fromRevision, 'r0001')
+  if (change === 'root') f.host.root = '/comparison-store/b'; else f.host.current = 'r0002'
+  f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root && s.currentRevision === f.host.current); assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError, null)
+})
+
+test('version comparison: explicitly choosing the same pair discards an earlier pending request', async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); f.store.actions.compareFrom('r0001'); p.resolve(difference()); await work; assert.equal(f.store.getState().diff, null)
+})
+for (const place of ['envelope', 'diff']) test(`version comparison: wrong project identity in ${place} is refused`, async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); const payload = { ok: true, diff: difference() }; if (place === 'envelope') payload.projectId = 'project-b'; else payload.diff.projectId = 'project-b'
+  p.payload(payload); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError.code, 'UI_DIFF_MISMATCH')
+})
+for (const field of ['fromRevision', 'toRevision']) test(`version comparison: mismatched envelope ${field} is refused`, async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); p.payload({ ok: true, diff: difference(), [field]: 'r0002' }); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError.code, 'UI_DIFF_MISMATCH')
+})
+test('version comparison: HTTP failure cannot be presented as a successful structural difference', async t => {
+  const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); p.payload({ ok: true, diff: difference() }, 503); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError.code, 'HTTP_503')
 })

@@ -515,7 +515,10 @@ if (core !== undefined) {
     store.actions.setView(view.id)
     // The preview tab carries the structural-diff branch too, so it is driven
     // here rather than left to whichever face happens to render it.
-    if (view.id === 'preview') await store.actions.diff('r0002', 'r0003')
+    if (view.id === 'preview') {
+      store.actions.setCompareMode('revisions'); store.actions.pickCompare('left', 'r0002'); store.actions.pickCompare('right', 'r0003')
+      await store.actions.diff('r0002', 'r0003')
+    }
 
     const snapshot = store.getState()
     const consoleShape = reactShape(renderTree(core.toReact(core.buildWorkbenchView(snapshot, store.actions), reactStub.createElement)))
@@ -541,6 +544,7 @@ if (core !== undefined) {
   // Back to the tab the diff belongs to: the loop left the store on 版本, and the
   // diff branch lives in 预览对比.
   store.actions.setView('preview')
+  await store.actions.diff('r0002', 'r0003')
   const diffShape = domShape(core.toDom(core.buildWorkbenchView(store.getState(), store.actions), doc))
   check('and the diff branch rendered on both faces, so that comparison was not vacuous',
     store.getState().diff !== null && attrsNamed(diffShape, 'data-diff').length === 1,
