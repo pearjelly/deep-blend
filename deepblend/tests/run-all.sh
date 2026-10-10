@@ -137,6 +137,9 @@ run_suite "Standalone fullscreen workbench: its own route, the console's own bun
 run_suite "Render selection: native profile, submitted revision, frame dimensions and encoded delivery" \
   node deepblend/tests/e2e/render-selection-ui.e2e.mjs
 
+run_suite "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout" \
+  node deepblend/tests/e2e/png-download-ui.e2e.mjs
+
 run_suite "Photography editor: native camera and light edits, saved inspections and conditional restore" \
   node deepblend/tests/e2e/photography-ui.e2e.mjs
 

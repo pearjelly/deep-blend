@@ -1,3 +1,6 @@
+# Public release route installation reading — 0.3.3
+# Taken 2026-10-10; command: npm run release:parity
+# Original command output follows unchanged.
 
 > deepblend-studio@0.3.3 release:parity
 > node deepblend/tools/release-route-parity.mjs

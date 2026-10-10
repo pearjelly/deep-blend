@@ -458,6 +458,16 @@ window.__ModuleLoader__.load({
       'preview.keptPrevious': '；上一张已留作「上一次渲染」，可以直接并排比较',
       'preview.firstSheet': '（这是第一张；再渲染一次就能并排比较前后）',
       'preview.isArtifact': '。预览是产物：替换同一路径上的旧图，不产生新的 revision。',
+      'download.png': '保存预览 PNG',
+      'download.loading': '正在准备 PNG…',
+      'download.help': '保存这张图的原始 PNG，保留显示的尺寸与采样。更高质量的交付请使用渲染任务。',
+      'download.ready': '已交给浏览器保存：{filename}',
+      'download.source': '这张图缺少完整来源信息，请重新生成预览后再保存。',
+      'download.changed': '图片内容与当前显示的来源不一致，请刷新预览后重试。',
+      'download.failed': '无法读取预览图片，请刷新后重试。',
+      'download.unsupported': '浏览器无法保存图片，请使用支持文件下载的浏览器。',
+      'download.timeout': '准备图片超时，未发起保存。请重试。',
+      'download.cancelled': '已取消，未发起保存。',
       'jobs.cancelRequested': '取消已请求，但进程仍在',
       'projects.empty': '这个工作区还没有项目。',
       'projects.create': '新建项目',
@@ -985,6 +995,16 @@ window.__ModuleLoader__.load({
       'preview.keptPrevious': '; the previous one is kept as “last render”, so they can be compared side by side',
       'preview.firstSheet': '(this is the first; render once more to compare before and after)',
       'preview.isArtifact': '. A preview is an artifact: it replaces the old image at the same path and creates no revision.',
+      'download.png': 'Save preview PNG',
+      'download.loading': 'Preparing PNG…',
+      'download.help': 'Save this image’s original PNG at its displayed resolution and samples. Use render jobs for higher-quality delivery.',
+      'download.ready': 'Sent to your browser to save: {filename}',
+      'download.source': 'This image has incomplete source information. Generate a new preview before saving.',
+      'download.changed': 'The image bytes do not match the displayed source. Refresh the preview and retry.',
+      'download.failed': 'The preview image could not be read. Refresh and retry.',
+      'download.unsupported': 'This browser cannot save the image. Use a browser with file-download support.',
+      'download.timeout': 'Preparing the image timed out. No save was started. Retry.',
+      'download.cancelled': 'Cancelled. No save was started.',
       'jobs.cancelRequested': 'cancellation requested, but the process is still there',
       'projects.empty': 'This workspace has no projects yet.',
       'projects.create': 'New project',
@@ -1307,6 +1327,130 @@ window.__ModuleLoader__.load({
         ? String(artifact.sha256).slice(0, 12)
         : (artifact && artifact.bytes ? `b${artifact.bytes}` : '0')
       return `${base}${path}?v=${version}`
+    }
+
+    const imageDownloadKey = (projectId, artifact) => JSON.stringify([projectId, artifact?.path, artifact?.sha256])
+    function imageDownloadValid(artifact) {
+      return Boolean(artifact && typeof artifact.path === 'string' && /\.png$/i.test(artifact.path)
+        && /^[a-f0-9]{64}$/i.test(artifact.sha256 || '') && Number.isSafeInteger(artifact.bytes) && artifact.bytes > 0)
+    }
+    function imageDownloadMessage(work) {
+      switch (work.messageKey) {
+        case 'download.ready': return t('download.ready', { filename: work.filename || '' })
+        case 'download.changed': return t('download.changed')
+        case 'download.timeout': return t('download.timeout')
+        case 'download.cancelled': return t('download.cancelled')
+        case 'download.unsupported': return t('download.unsupported')
+        default: return t('download.failed')
+      }
+    }
+    function imageDownloadName(projectId, artifact) {
+      const label = value => String(value).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/^[. ]+|[. ]+$/g, '').slice(0, 60) || 'image'
+      return `deepblend-${label(projectId)}-${label(artifact.sourceRevision || 'preview')}-${label(artifact.mode || artifact.cameraId || artifact.kind || 'image')}${Number.isSafeInteger(artifact.frame) ? `-f${artifact.frame}` : ''}-${artifact.sha256.slice(0, 12).toLowerCase()}.png`
+    }
+    function savePngFile(bytes, filename) {
+      const doc = typeof document === 'object' ? document : null
+      if (!doc || typeof Blob !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') throw Object.assign(new Error(t('download.unsupported')), { messageKey: 'download.unsupported' })
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }))
+      const link = doc.createElement('a')
+      link.href = url; link.download = filename; link.hidden = true
+      try { doc.body.appendChild(link); link.click() } finally {
+        link.remove()
+        // The browser needs the Blob until its download has started.
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    }
+    // SHA-256 per FIPS 180-4 §6.2.2. LAN HTTP lacks SubtleCrypto; keep byte
+    // verification available there without adding a framework or network call.
+    // https://csrc.nist.gov/pubs/fips/180-4/upd1/final
+    const SHA256_ROUNDS = [
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+    ]
+    async function imageByteHash(bytes, signal, forceFallback = false) {
+      const active = () => { if (signal?.aborted) throw Object.assign(new Error('cancelled'), { name: 'AbortError' }) }
+      active()
+      if (!forceFallback && globalThis.crypto?.subtle) {
+        const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes); active()
+        return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('')
+      }
+      const padded = new Uint8Array(Math.ceil((bytes.length + 9) / 64) * 64)
+      padded.set(bytes); padded[bytes.length] = 128
+      const input = new DataView(padded.buffer)
+      input.setUint32(padded.length - 8, Math.floor(bytes.length * 8 / 4294967296))
+      input.setUint32(padded.length - 4, (bytes.length * 8) >>> 0)
+      const state = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]
+      const words = new Uint32Array(64), rotate = (value, amount) => (value >>> amount) | (value << (32 - amount))
+      for (let offset = 0; offset < padded.length; offset += 64) {
+        active()
+        for (let i = 0; i < 16; i++) words[i] = input.getUint32(offset + i * 4)
+        for (let i = 16; i < 64; i++) {
+          const a = words[i - 15], b = words[i - 2]
+          words[i] = (words[i - 16] + (rotate(a,7)^rotate(a,18)^(a>>>3)) + words[i - 7] + (rotate(b,17)^rotate(b,19)^(b>>>10))) >>> 0
+        }
+        let [a,b,c,d,e,f,g,h] = state
+        for (let i = 0; i < 64; i++) {
+          const first = (h + (rotate(e,6)^rotate(e,11)^rotate(e,25)) + ((e&f)^((~e)&g)) + SHA256_ROUNDS[i] + words[i]) >>> 0
+          const second = ((rotate(a,2)^rotate(a,13)^rotate(a,22)) + ((a&b)^(a&c)^(b&c))) >>> 0
+          h=g;g=f;f=e;e=(d+first)>>>0;d=c;c=b;b=a;a=(first+second)>>>0
+        }
+        const round = [a,b,c,d,e,f,g,h]
+        for (let i = 0; i < 8; i++) state[i] = (state[i] + round[i]) >>> 0
+        if (offset && offset % 65536 === 0) await new Promise(resolve => setTimeout(resolve, 0))
+      }
+      active()
+      return state.map(value => value.toString(16).padStart(8, '0')).join('')
+    }
+    async function verifiedPngBytes(response, artifact, signal) {
+      const fail = key => { throw Object.assign(new Error(t(key)), { messageKey: key }) }
+      const active = () => { if (signal.aborted) throw Object.assign(new Error('cancelled'), { name: 'AbortError' }) }
+      active()
+      if (!response.ok || response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'image/png') {
+        await response.body?.cancel?.().catch(() => {})
+        fail('download.failed')
+      }
+      const length = response.headers.get('content-length')
+      if (length !== null && Number(length) !== artifact.bytes) { await response.body?.cancel?.(); fail('download.changed') }
+      let bytes
+      if (response.body?.getReader) {
+        const reader = response.body.getReader(), chunks = []
+        let received = 0
+        const abort = () => { void reader.cancel().catch(() => {}) }
+        signal.addEventListener('abort', abort, { once: true })
+        try {
+          for (;;) {
+            const item = await reader.read(); active()
+            if (item.done) break
+            received += item.value.byteLength
+            if (received > artifact.bytes) { await reader.cancel(); fail('download.changed') }
+            chunks.push(item.value)
+          }
+        } catch (error) { await reader.cancel().catch(() => {}); throw error }
+        finally { signal.removeEventListener('abort', abort); reader.releaseLock() }
+        if (received !== artifact.bytes) fail('download.changed')
+        bytes = new Uint8Array(received)
+        let offset = 0
+        for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+      } else {
+        bytes = new Uint8Array(await response.arrayBuffer()); active()
+        if (bytes.byteLength !== artifact.bytes) fail('download.changed')
+      }
+      const signature = [137, 80, 78, 71, 13, 10, 26, 10]
+      if (bytes.length < 24 || !signature.every((byte, index) => bytes[index] === byte)) fail('download.changed')
+      if (Number.isSafeInteger(artifact.width) && Number.isSafeInteger(artifact.height)) {
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+        if (view.getUint32(16) !== artifact.width || view.getUint32(20) !== artifact.height) fail('download.changed')
+      }
+      const hash = await imageByteHash(bytes, signal)
+      active()
+      if (hash !== artifact.sha256.toLowerCase()) fail('download.changed')
+      return bytes
     }
 
     /** Short "when was this produced" for an artifact, or null. */
@@ -2291,6 +2435,7 @@ window.__ModuleLoader__.load({
         diff: null,
         diffError: null,
         previewBusy: false,
+        imageDownloads: {},
         inspectionForms: {},
         inspectionWork: {},
         inspectionRevisions: {},
@@ -2339,6 +2484,9 @@ window.__ModuleLoader__.load({
       const fetchImpl = settings.fetch ?? ((...args) => fetch(...args))
       const pollLiveMs = settings.pollLiveMs ?? POLL_LIVE_MS
       const pollIdleMs = settings.pollIdleMs ?? POLL_IDLE_MS
+      const saveImage = settings.saveImage ?? savePngFile
+      const imageDownloadTimeoutMs = settings.imageDownloadTimeoutMs ?? 30000
+      if (!Number.isSafeInteger(imageDownloadTimeoutMs) || imageDownloadTimeoutMs <= 0 || imageDownloadTimeoutMs > 2147483647) throw new Error('Image download timeout must be a positive timer-safe integer')
 
       const preferenceStorage = appearanceStorage(settings)
       let data = { ...emptySnapshot(), appearance: savedAppearance(preferenceStorage) }
@@ -2352,6 +2500,7 @@ window.__ModuleLoader__.load({
       const photographyControllers = new Map()
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
       const inspectionControllers = new Map()
+      const imageDownloadControllers = new Map()
       const assetControllers = new Map()
       const assetListSequences = new Map()
       const bundleFiles = new Map(), bundleOperations = new Map()
@@ -3106,6 +3255,30 @@ window.__ModuleLoader__.load({
           }
         },
 
+        downloadImage: async ({ projectId, artifactBase, artifact }) => {
+          if (fileChoicesStopped || !projectId || typeof artifactBase !== 'string' || !artifactBase || !imageDownloadValid(artifact)) return
+          const source = editorClone(artifact), key = imageDownloadKey(projectId, source)
+          if (imageDownloadControllers.has(key)) return
+          const controller = new AbortController(); imageDownloadControllers.set(key, controller)
+          const work = changes => set({ imageDownloads: { ...data.imageDownloads, [key]: { ...data.imageDownloads[key], ...changes } } })
+          work({ busy: true, status: 'preparing', messageKey: null, filename: null })
+          const deadline = setTimeout(() => controller.abort('timeout'), imageDownloadTimeoutMs)
+          try {
+            const response = await fetchImpl(artifactUrl(artifactBase, source), { headers: { accept: 'image/png' }, cache: 'no-store', signal: controller.signal })
+            const bytes = await verifiedPngBytes(response, source, controller.signal)
+            if (controller.signal.aborted) throw Object.assign(new Error('cancelled'), { name: 'AbortError' })
+            const filename = imageDownloadName(projectId, source)
+            clearTimeout(deadline)
+            await saveImage(bytes, filename)
+            work({ status: 'ready', filename, messageKey: 'download.ready' })
+          } catch (error) {
+            work({ status: controller.signal.aborted ? 'cancelled' : 'error', messageKey: controller.signal.aborted
+              ? controller.signal.reason === 'timeout' ? 'download.timeout' : 'download.cancelled'
+              : error.messageKey || 'download.failed' })
+          } finally { clearTimeout(deadline); imageDownloadControllers.delete(key); work({ busy: false }) }
+        },
+        cancelImageDownload: key => imageDownloadControllers.get(key)?.abort('cancelled'),
+
         createProject: async () => {
           if (data.busy.create) return
           if (!recipeSelectionCurrent(data) || !recipeValuesValid(data.forms.recipe, data.forms.recipeParameters)) return
@@ -3281,6 +3454,7 @@ window.__ModuleLoader__.load({
           photographyControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
           inspectionControllers.clear()
+          for (const controller of imageDownloadControllers.values()) controller.abort('stopped')
           for (const controller of assetControllers.values()) controller.abort()
           assetControllers.clear()
           for (const operation of bundleOperations.values()) void cancelBundle(operation).catch(() => {})
@@ -3917,7 +4091,7 @@ window.__ModuleLoader__.load({
           work.artifact ? el('figure', { 'data-photography-artifact': work.artifact.path },
             el('figcaption', null, t('photo.ready', { revision: edit.after, camera: edit.cameraId, frame: edit.frame })),
             el('img', { src: artifactUrl(state.artifactBase, work.artifact), alt: t('inspection.beauty'), style: { display: 'block', width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: '640px', margin: '0 auto', objectFit: 'contain' } }),
-            PreviewSettings(work.artifact)) : null) : null,
+            PreviewSettings(work.artifact), ImageDownload({ state, actions, artifact: work.artifact })) : null) : null,
         work.error ? el('p', { className: 'db-error', role: 'status', 'data-photography-error': true }, work.error) : null)
     }
 
@@ -4193,6 +4367,16 @@ window.__ModuleLoader__.load({
           references: scene.project.referenceImages?.length || 0, images: evidence?.diagnostics?.length || 0 }) : t('guide.noProject')),
         el('small', { className: 'db-muted' }, t('guide.help'))))
     }
+    function ImageDownload({ state, actions, artifact }) {
+      if (!artifact) return null
+      const request = { projectId: state.activeProjectId, artifactBase: state.artifactBase, artifact }
+      const key = imageDownloadKey(request.projectId, artifact), work = state.imageDownloads?.[key] || {}, valid = Boolean(imageDownloadValid(artifact) && request.projectId && request.artifactBase)
+      return el('div', { className: 'db-inline', style: { flexWrap: 'wrap' }, 'data-image-download': artifact.path, 'data-image-download-digest': artifact.sha256 || '' },
+        Button({ action: `download-image:${artifact.path}`, disabled: !valid || work.busy, title: t('download.help'), onClick: () => actions.downloadImage(request), children: work.busy ? t('download.loading') : t('download.png') }),
+        work.busy ? Button({ action: `cancel-image-download:${artifact.path}`, onClick: () => actions.cancelImageDownload(key), children: t('inspection.cancel') }) : null,
+        !valid ? el('small', { className: 'db-muted' }, t('download.source')) : null,
+        work.messageKey ? el('small', { className: work.status === 'error' ? 'db-error' : 'db-muted', role: 'status', style: { overflowWrap: 'anywhere', maxWidth: '100%', minWidth: 0 }, 'data-image-download-status': work.status }, imageDownloadMessage(work)) : null)
+    }
     function InspectionPanel({ state, actions }) {
       const projectId = state.activeProjectId, scene = state.selected?.scene, form = inspectionForm(state), work = state.inspectionWork?.[projectId] || {}
       if (!scene || !form) return null
@@ -4226,7 +4410,7 @@ window.__ModuleLoader__.load({
         selectedRevision !== scene.revision ? el('p', { className: 'db-muted' }, t('inspection.history', { revision: selectedRevision, current: scene.revision })) : null,
         artifacts.length === 0 ? el('p', { className: 'db-muted' }, t('inspection.none')) : el('div', { className: 'db-grid' }, artifacts.map(artifact => el('article', { className: 'db-card', key: artifact.path,
           'data-inspection-artifact': artifact.path, 'data-inspection-mode': artifact.mode, 'data-inspection-revision': artifact.sourceRevision || selectedRevision },
-          el('h5', null, t(`inspection.${artifact.mode}`)),
+          el('h5', null, t(`inspection.${artifact.mode}`)), ImageDownload({ state, actions, artifact }),
           el('p', null, t('inspection.identity', { revision: artifact.sourceRevision || selectedRevision, camera: artifact.cameraId || '—', frame: artifact.frame ?? '—' })),
           el('img', { src: artifactUrl(state.artifactBase, artifact), alt: t(`inspection.${artifact.mode}`), 'data-inspection-image': artifact.path, style: { width: '100%', objectFit: 'contain' } }),
           el('p', { className: 'db-muted' }, t('inspection.actual', { engine: artifact.engine || '—', width: artifact.width ?? '—', height: artifact.height ?? '—', samples: artifact.samples ?? '—' })),
@@ -4255,7 +4439,7 @@ window.__ModuleLoader__.load({
           && Number.isSafeInteger(artifact?.height) && artifact.height > 0
           ? { width: artifact.width, height: artifact.height } : {}
         return el('div', { className: 'db-shot', 'data-compare': side, 'data-compare-kind': artifact === null ? 'empty' : 'image' },
-          el('h5', null, title),
+          el('div', { className: 'db-inline', style: { justifyContent: 'space-between', flexWrap: 'wrap' } }, el('h5', null, title), ImageDownload({ state, actions, artifact })),
           artifact === null
             ? el('div', { className: 'db-muted' }, missing)
             : [
@@ -4286,7 +4470,7 @@ window.__ModuleLoader__.load({
 
       /** The revision axis: two revisions side by side, each one's newest image. */
       const revisionPane = (entry, side) => el('div', { className: 'db-shot', 'data-compare': side },
-        el('h5', null, entry === null ? '—' : `${entry.revision}${entry.isCurrent ? t('revisions.currentSuffix') : ''}`),
+        el('div', { className: 'db-inline', style: { justifyContent: 'space-between', flexWrap: 'wrap' } }, el('h5', null, entry === null ? '—' : `${entry.revision}${entry.isCurrent ? t('revisions.currentSuffix') : ''}`), ImageDownload({ state, actions, artifact: entry ? sheetOf(entry) : null })),
         entry === null
           ? el('div', { className: 'db-muted' }, t('revisions.missing'))
           : [
@@ -5263,6 +5447,7 @@ window.__ModuleLoader__.load({
       ROUTES,
       projectRoute,
       artifactUrl,
+      imageDownload: { key: imageDownloadKey, valid: imageDownloadValid, name: imageDownloadName, hash: imageByteHash },
       shortDigest,
       formatTime,
       statusTone,

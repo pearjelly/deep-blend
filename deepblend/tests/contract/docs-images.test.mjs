@@ -110,6 +110,12 @@ test('the manifest exists, parses, and names the tool that wrote it', () => {
   assert.ok(Array.isArray(manifest.images) && manifest.images.length > 0, 'the manifest lists no images')
 })
 
+test('published workbench screenshots record an unobstructed browser surface', () => {
+  const screenshots=manifest.images.filter(image=>image.kind!=='render-contact-sheet')
+  assert.ok(screenshots.length>0)
+  for(const image of screenshots){assert.equal(image.visibility?.ok,true,image.file);assert.equal(image.visibility.centerUnobstructed,true,image.file);assert.equal(image.visibility.visibleDialogs,0,image.file)}
+})
+
 test('every image in the directory is in the manifest, and the other way round', () => {
   assert.deepEqual(
     manifest.images.map(entry => entry.file).sort(),

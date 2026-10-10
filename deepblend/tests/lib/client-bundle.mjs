@@ -66,7 +66,7 @@ export function makeReactStub() {
  * asserted — if any part of the shared core reached for React, the load or the
  * render fails here instead of on a blank full-screen page.
  *
- * @param {{ react?: object, resolve?: (specifier: string) => unknown }} [options]
+ * @param {{ react?: object, resolve?: (specifier: string) => unknown, crypto?: object }} [options]
  * @returns {{ moduleId: string, exports: object, source: string }}
  */
 export function loadClientBundle(options = {}) {
@@ -84,6 +84,7 @@ export function loadClientBundle(options = {}) {
     // simulation — it is the same environment the bundle really runs in, minus
     // everything that only a page has. A suite that mounts a store must stop it.
     setInterval, clearInterval, setTimeout, clearTimeout,
+    crypto: Object.hasOwn(options, 'crypto') ? options.crypto : globalThis.crypto, Uint8Array, DataView, Blob, URL,
   })
   if (captured === null || typeof captured.factory !== 'function') {
     throw new Error('client.js did not register a module through window.__ModuleLoader__.load')

@@ -80,6 +80,8 @@ The managed Blender installer supports macOS arm64; on other platforms install B
 and configure `blenderPath`. See the installation guide for setup and platform details.
 Source installs may require the build approval that DSH reports.
 
+Version 0.3.4 adds **Save preview PNG** above previews, comparisons and inspection images. It checks the displayed source and saves the original bytes without a video encoder or another render.
+
 ## Your first creation: a glazed cup
 
 Follow the [illustrated walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md):
