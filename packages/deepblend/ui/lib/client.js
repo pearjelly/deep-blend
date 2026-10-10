@@ -495,6 +495,22 @@ window.__ModuleLoader__.load({
       'projects.creationFailed': '未能确认创建结果。输入已保留；可重试上次创建，或刷新列表检查已保存的项目。',
       'projects.retryCreation': '重试上次创建',
       'projects.originalTitle': '上次创建：{title}',
+      'projects.drafts': '继续创建草稿',
+      'projects.draftHint': '创建草稿保存在此浏览器。恢复只填写输入，不会自动创建项目。',
+      'projects.draftSaved': '当前创建草稿已保存到此浏览器。',
+      'projects.draftUnavailable': '此浏览器暂时无法保存草稿。当前输入仍可使用，但重载或关闭页面后可能丢失。',
+      'projects.draftFull': '创建草稿已满。删除不用的浏览器草稿后可继续保存，当前输入仍保留。',
+      'projects.draftTooLarge': '当前创建草稿过大，无法保存到浏览器。当前输入仍保留。',
+      'projects.draftInvalid': '这份浏览器草稿无法读取，原记录没有被更改。',
+      'projects.draftMissingRecipe': '原配方 {id}@{version} 当前不可用。原创建请求仍可重试；新建作品前请选择当前配方。',
+      'projects.draftOldParameters': '原配方参数',
+      'projects.draftRestored': '已恢复创建草稿。检查输入后继续；上次请求需要明确重试。',
+      'projects.draftRestore': '继续这份草稿',
+      'projects.draftDelete': '删除浏览器草稿',
+      'projects.draftClear': '清空当前创建草稿',
+      'projects.draftUncertain': '创建结果尚未确认',
+      'projects.untitledDraft': '未命名创建草稿',
+      'projects.damagedDraft': '无法读取的创建草稿',
       'projects.refreshList': '刷新项目列表',
       'projects.creationDetails': '详细诊断',
       'projects.environmentGuide': '查看环境检查指南',
@@ -1044,6 +1060,22 @@ window.__ModuleLoader__.load({
       'projects.creationFailed': 'The creation result could not be confirmed. Your inputs are kept; retry the previous creation, or refresh the list to check saved projects.',
       'projects.retryCreation': 'Retry previous creation',
       'projects.originalTitle': 'Previous creation: {title}',
+      'projects.drafts': 'Continue a creation draft',
+      'projects.draftHint': 'Creation drafts stay in this browser. Restoring fills the inputs and does not create a project automatically.',
+      'projects.draftSaved': 'The current creation draft is saved in this browser.',
+      'projects.draftUnavailable': 'This browser cannot save the draft right now. Current inputs still work, but reloading or closing the page may lose them.',
+      'projects.draftFull': 'Creation draft storage is full. Delete unused browser drafts to save more; current inputs remain.',
+      'projects.draftTooLarge': 'This creation draft is too large to save in the browser. Current inputs remain.',
+      'projects.draftInvalid': 'This browser draft cannot be read. Its original record has not been changed.',
+      'projects.draftMissingRecipe': 'Recipe {id}@{version} is currently unavailable. You can still retry its original creation request; choose a current recipe before starting a new project.',
+      'projects.draftOldParameters': 'Original recipe parameters',
+      'projects.draftRestored': 'Creation draft restored. Check the inputs before continuing; retry the previous request explicitly.',
+      'projects.draftRestore': 'Continue this draft',
+      'projects.draftDelete': 'Delete browser draft',
+      'projects.draftClear': 'Clear current creation draft',
+      'projects.draftUncertain': 'Creation result unconfirmed',
+      'projects.untitledDraft': 'Untitled creation draft',
+      'projects.damagedDraft': 'Unreadable creation draft',
       'projects.refreshList': 'Refresh project list',
       'projects.creationDetails': 'Diagnostic details',
       'projects.environmentGuide': 'Open the environment check guide',
@@ -1362,6 +1394,75 @@ window.__ModuleLoader__.load({
       if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes)
       else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 4294967296)
       return `create-${Date.now().toString(36)}-${(++creationKeySequence).toString(36)}-${[...bytes].map(n => n.toString(16).padStart(8, '0')).join('')}`
+    }
+    const CREATION_DRAFT_VERSION = 'deepblend.creation-draft/v1'
+    const CREATION_DRAFT_BYTES = 262144
+    const creationDraftPrefix = root => `${CREATION_DRAFT_VERSION}:${encodeURIComponent(root)}:`
+    const creationRecipeReference = recipe => recipe ? { id: recipe.id, version: recipe.version, digest: recipe.digest } : null
+    function creationDraftJson(value) {
+      if (value === null || typeof value === 'string' || typeof value === 'boolean') return
+      if (typeof value === 'number' && Number.isFinite(value)) return
+      if (!value || typeof value !== 'object') throw new Error('Draft input is not JSON')
+      for (const item of Object.values(value)) creationDraftJson(item)
+    }
+    function creationDraftForms(forms) {
+      const snapshot = { title: forms.title, goal: forms.goal,
+        recipe: creationRecipeReference(forms.recipe), recipeParameters: forms.recipeParameters }
+      creationDraftJson(snapshot)
+      return editorClone(snapshot)
+    }
+    const creationRequestBody = forms => editorClone({ title: forms.title.trim(),
+      goal: forms.goal.length > 0 ? forms.goal : undefined, renderPreview: Boolean(forms.recipe),
+      recipe: forms.recipe ? { ...creationRecipeReference(forms.recipe), parameters: forms.recipeParameters } : undefined })
+    function validCreationRecipeReference(recipe) {
+      return recipe === null || Boolean(recipe && typeof recipe === 'object' && !Array.isArray(recipe)
+        && typeof recipe.id === 'string' && recipe.id && typeof recipe.version === 'string' && recipe.version
+        && /^[a-f0-9]{64}$/.test(recipe.digest || ''))
+    }
+    function parseCreationDraft(raw, root, id) {
+      try {
+        if (typeof raw !== 'string' || new Blob([raw]).size > CREATION_DRAFT_BYTES) return null
+        const draft = JSON.parse(raw), forms = draft.forms
+        creationDraftJson(forms)
+        if (draft.schemaVersion !== CREATION_DRAFT_VERSION || draft.projectsRoot !== root || draft.id !== id
+          || (draft.ownerActive !== undefined && typeof draft.ownerActive !== 'boolean')
+          || !Number.isFinite(Date.parse(draft.savedAt)) || !forms || typeof forms.title !== 'string'
+          || typeof forms.goal !== 'string' || !validCreationRecipeReference(forms.recipe)
+          || Object.keys(forms).some(key => !['title', 'goal', 'recipe', 'recipeParameters'].includes(key))
+          || !forms.recipeParameters || typeof forms.recipeParameters !== 'object' || Array.isArray(forms.recipeParameters)) return null
+        const attempt = draft.attempt
+        if (attempt !== null) {
+          const body = attempt?.body
+          creationDraftJson(body)
+          if (!attempt || typeof attempt.key !== 'string' || !attempt.key.trim() || attempt.key.length > 128 || /[\x00-\x1f\x7f]/.test(attempt.key)
+            || !body || typeof body.title !== 'string' || !body.title.trim() || typeof body.renderPreview !== 'boolean'
+            || (body.goal !== undefined && typeof body.goal !== 'string')
+            || (body.recipe !== undefined && (!body.recipe || !validCreationRecipeReference(body.recipe)
+              || !body.recipe.parameters || typeof body.recipe.parameters !== 'object' || Array.isArray(body.recipe.parameters)))
+            || body.renderPreview !== Boolean(body.recipe)
+            || Object.keys(body).some(key => !['title', 'goal', 'recipe', 'renderPreview'].includes(key))
+            || attempt.signature !== creationSignature(body)) return null
+        }
+        return draft
+      } catch { return null }
+    }
+    function creationDraftStorage(settings) {
+      try { return settings.creationDraftStorage ?? globalThis.localStorage } catch { return undefined }
+    }
+    function readCreationDrafts(storage, root) {
+      if (!root) return { entries: [], available: false }
+      try {
+        if (!storage || typeof storage.key !== 'function' || !Number.isSafeInteger(storage.length)) return { entries: [], available: false }
+        const prefix = creationDraftPrefix(root), entries = []
+        for (let index = 0; index < storage.length; index++) {
+          const key = storage.key(index)
+          if (typeof key !== 'string' || !key.startsWith(prefix)) continue
+          const id = key.slice(prefix.length), raw = storage.getItem(key), draft = parseCreationDraft(raw, root, id)
+          entries.push({ id, raw, draft })
+        }
+        entries.sort((a, b) => String(b.draft?.savedAt || '').localeCompare(String(a.draft?.savedAt || '')))
+        return { entries, available: true }
+      } catch { return { entries: [], available: false } }
     }
     function creationErrorMessage(code) {
       if (code === 'UI_FETCH_FAILED' || /^HTTP_/.test(code)) return t('projects.replyMissing')
@@ -2480,6 +2581,9 @@ window.__ModuleLoader__.load({
         imageDownloads: {},
         creationWork: null,
         creationRequestProtocol: null,
+        creationDrafts: [],
+        creationDraftStorageStatus: null,
+        creationDraftMissingRecipe: null,
         inspectionForms: {},
         inspectionWork: {},
         inspectionRevisions: {},
@@ -2541,6 +2645,11 @@ window.__ModuleLoader__.load({
       let live = false
       let loadSequence = 0
       let creationAttempt = null
+      const draftStorage = creationDraftStorage(settings)
+      let creationDraftId = newCreationKey(), creationDraftRoot = null, persistedCreationSignature = null
+      let restoredCreationSource = null, creationDraftWriting = false
+      let creationDraftClosed = false
+      const draftLifecycle = settings.creationDraftLifecycle ?? globalThis.window
       let fileChoiceSignature = null, fileChoicesStopped = false
       const photographyControllers = new Map()
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
@@ -2584,6 +2693,7 @@ window.__ModuleLoader__.load({
       const assetWork = (projectId, changes) => set({ assetWork: { ...data.assetWork, [projectId]: { ...data.assetWork[projectId], ...changes } } })
 
       const notify = () => {
+        persistCreationDraft()
         const signature = JSON.stringify([data.activeProjectId, data.selected?.scene?.revision, data.view, ...FILE_FIELDS.map(field => fileChoiceAllowed(data, field))])
         if (signature !== fileChoiceSignature) { data.fileChoiceGeneration += 1; fileChoiceSignature = signature }
         snapshot = { ...data, forms: { ...data.forms }, busy: { ...data.busy }, notices: { ...data.notices } }
@@ -2593,6 +2703,56 @@ window.__ModuleLoader__.load({
       const set = (patch) => { data = { ...data, ...patch }; notify() }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
       const setIn = (table, key, value) => { data = { ...data, [table]: { ...data[table], [key]: value } }; notify() }
+
+      function refreshCreationDrafts() {
+        const reading = readCreationDrafts(draftStorage, creationDraftRoot)
+        data.creationDrafts = reading.entries.filter(entry => entry.id !== creationDraftId).map(entry => ({ id: entry.id,
+          title: entry.draft?.forms.title || t('projects.untitledDraft'), savedAt: entry.draft?.savedAt || null,
+          uncertain: Boolean(entry.draft?.attempt), invalid: !entry.draft }))
+        return reading
+      }
+      function persistCreationDraft() {
+        if (creationDraftClosed || creationDraftWriting || !creationDraftRoot || data.projectsRoot !== creationDraftRoot) return
+        creationDraftWriting = true
+        try {
+          const forms = { ...creationDraftForms(data.forms), recipe: creationRecipeReference(data.forms.recipe) || data.creationDraftMissingRecipe }, signature = JSON.stringify([forms, creationAttempt])
+          if (signature === persistedCreationSignature) return
+          const reading = refreshCreationDrafts()
+          if (!reading.available) { data.creationDraftStorageStatus = 'unavailable'; return }
+          const key = creationDraftPrefix(creationDraftRoot) + creationDraftId
+          if (!forms.title && !forms.goal && !forms.recipe && !Object.keys(forms.recipeParameters).length && !creationAttempt) {
+            draftStorage.removeItem(key); data.creationDraftStorageStatus = null
+          } else {
+            if (!reading.entries.some(entry => entry.id === creationDraftId) && reading.entries.length >= 20) {
+              data.creationDraftStorageStatus = 'full'; return
+            }
+            const raw = JSON.stringify({ schemaVersion: CREATION_DRAFT_VERSION, projectsRoot: creationDraftRoot,
+              id: creationDraftId, ownerActive: true, savedAt: new Date().toISOString(), forms, attempt: creationAttempt })
+            if (new Blob([raw]).size > CREATION_DRAFT_BYTES) { data.creationDraftStorageStatus = 'tooLarge'; return }
+            draftStorage.setItem(key, raw)
+            if (draftStorage.getItem(key) !== raw) throw new Error('Draft write did not persist')
+            data.creationDraftStorageStatus = 'saved'
+          }
+          persistedCreationSignature = signature
+          refreshCreationDrafts()
+        } catch { data.creationDraftStorageStatus = 'unavailable' }
+        finally { creationDraftWriting = false }
+      }
+      function closeCreationDraft() {
+        if (creationDraftClosed) return
+        persistCreationDraft()
+        creationDraftClosed = true
+        if (!creationDraftRoot) return
+        try {
+          const key = creationDraftPrefix(creationDraftRoot) + creationDraftId
+          const saved = parseCreationDraft(draftStorage?.getItem(key), creationDraftRoot, creationDraftId)
+          if (saved) draftStorage.setItem(key, JSON.stringify({ ...saved, ownerActive: false }))
+        } catch { /* Current inputs were already saved or visibly reported as unsaved. */ }
+      }
+      function reopenCreationDraft() {
+        creationDraftClosed = false; persistedCreationSignature = null
+        persistCreationDraft()
+      }
 
       /** The project every per-project route is addressed to. */
       const target = () => data.projectId ?? data.projects.find(project => !project.creationPending)?.projectId ?? null
@@ -2668,6 +2828,17 @@ window.__ModuleLoader__.load({
           const next = { ...comparison, afterPreviews: editorClone(afterPreviews) }
           patch.editorComparison = { ...next, ...editorPreviewPair(next), resolved: afterPreviews.length > 0 }
         }
+        if (patch.projectsRoot !== creationDraftRoot) {
+          // Switching stores cannot carry an old store's request identity into a new one.
+          if (creationDraftRoot !== null) {
+            creationAttempt = null; restoredCreationSource = null; creationDraftId = newCreationKey()
+            patch.creationWork = null; patch.creationDraftMissingRecipe = null
+            patch.forms = { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }
+          }
+          creationDraftRoot = typeof patch.projectsRoot === 'string' && patch.projectsRoot ? patch.projectsRoot : null
+          persistedCreationSignature = null
+        }
+        refreshCreationDrafts()
         set(patch)
         arm()
       }
@@ -2684,12 +2855,7 @@ window.__ModuleLoader__.load({
       /** A write just happened: re-run every read, including the view-specific ones. */
       const reload = () => { tick += 1; void load() }
 
-      const creationBody = () => editorClone({ title: data.forms.title.trim(),
-        goal: data.forms.goal.length > 0 ? data.forms.goal : undefined,
-        renderPreview: Boolean(data.forms.recipe), recipe: data.forms.recipe ? {
-          id: data.forms.recipe.id, version: data.forms.recipe.version, digest: data.forms.recipe.digest,
-          parameters: data.forms.recipeParameters,
-        } : undefined })
+      const creationBody = () => creationRequestBody(data.forms)
 
       async function submitCreation(attempt) {
         if (data.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL) {
@@ -2698,17 +2864,29 @@ window.__ModuleLoader__.load({
           return
         }
         setIn('busy', 'create', true)
+        const attemptRoot = creationDraftRoot
         set({ creationWork: { status: 'busy', title: attempt.body.title }, previewResult: null })
         setIn('notices', 'projects', null)
         setIn('notices', 'preview', null)
         const outcome = await postJson(fetchImpl, ROUTES.projects, { ...editorClone(attempt.body), creationKey: attempt.key })
         setIn('busy', 'create', false)
+        if (attemptRoot !== creationDraftRoot) { reload(); return }
         if (outcome.ok) {
           const sameInputs = creationSignature(creationBody()) === attempt.signature
           set({ ...(sameInputs ? { forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} } } : {}),
             creationWork: null, projectId: outcome.payload.project.projectId,
             ...(attempt.body.renderPreview ? { view: 'preview', compareMode: 'result' } : {}) })
           if (creationAttempt === attempt) creationAttempt = null
+          if (restoredCreationSource && creationDraftRoot) {
+            try {
+              const sourceKey = creationDraftPrefix(creationDraftRoot) + restoredCreationSource.id
+              const source = parseCreationDraft(restoredCreationSource.raw, creationDraftRoot, restoredCreationSource.id)
+              if (source && creationSignature(creationRequestBody(source.forms)) === attempt.signature
+                && draftStorage?.getItem(sourceKey) === restoredCreationSource.raw) draftStorage.removeItem(sourceKey)
+            } catch { data.creationDraftStorageStatus = 'unavailable' }
+          }
+          restoredCreationSource = null
+          persistedCreationSignature = null
           setIn('notices', attempt.body.renderPreview ? 'preview' : 'projects', { kind: 'creation', projectId: outcome.payload.project.projectId, ok: true, message: outcome.payload.project.creationReplayed
             ? t('projects.recovered', { id: outcome.payload.project.projectId })
             : t('projects.created', { id: outcome.payload.project.projectId }) })
@@ -3019,7 +3197,7 @@ window.__ModuleLoader__.load({
           } else assetWork(projectId, { error: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
         },
-        selectRecipe: recipe => set({ forms: { ...data.forms, recipe,
+        selectRecipe: recipe => set({ creationDraftMissingRecipe: null, forms: { ...data.forms, recipe,
           recipeParameters: recipe ? Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, parameter.default])) : {},
           title: !data.forms.title || data.forms.title === data.forms.recipe?.title ? recipe?.title || '' : data.forms.title,
         } }),
@@ -3366,6 +3544,7 @@ window.__ModuleLoader__.load({
 
         createProject: async () => {
           if (data.busy.create) return
+          if (data.creationDraftMissingRecipe) return
           if (!recipeSelectionCurrent(data) || !recipeValuesValid(data.forms.recipe, data.forms.recipeParameters)) return
           const body = creationBody()
           const signature = creationSignature(body)
@@ -3373,6 +3552,41 @@ window.__ModuleLoader__.load({
           return submitCreation(creationAttempt)
         },
         retryCreation: () => data.busy.create || !creationAttempt ? undefined : submitCreation(creationAttempt),
+        restoreCreationDraft: id => {
+          if (data.busy.create || !creationDraftRoot) return
+          const reading = readCreationDrafts(draftStorage, creationDraftRoot), source = reading.entries.find(entry => entry.id === id)
+          if (!source?.draft) { set({ creationDraftStorageStatus: 'invalid' }); return }
+          const saved = source.draft, ref = saved.forms.recipe
+          const recipe = ref ? data.recipeCatalog.recipes.find(recipe => recipe.id === ref.id && recipe.version === ref.version && recipe.digest === ref.digest) : null
+          creationDraftId = newCreationKey(); restoredCreationSource = { id, raw: source.raw }; persistedCreationSignature = null
+          creationAttempt = saved.attempt ? editorClone(saved.attempt) : null
+          set({ view: 'projects', forms: { ...data.forms, ...editorClone(saved.forms), recipe: recipe || null },
+            creationDraftMissingRecipe: ref && !recipe ? ref : null,
+            creationWork: creationAttempt ? { status: 'error', title: creationAttempt.body.title, code: 'UI_FETCH_FAILED' } : null,
+            notices: { ...data.notices, projects: { kind: 'creation', ok: true, message: t('projects.draftRestored') } } })
+          // A closed page's unchanged record can be consumed after the copy
+          // persisted. Live pages retain their independent saved record.
+          if (saved.ownerActive === false && data.creationDraftStorageStatus === 'saved') {
+            try {
+              const sourceKey = creationDraftPrefix(creationDraftRoot) + id
+              if (draftStorage.getItem(sourceKey) === source.raw) draftStorage.removeItem(sourceKey)
+              refreshCreationDrafts(); notify()
+            } catch { set({ creationDraftStorageStatus: 'unavailable' }) }
+          }
+        },
+        deleteCreationDraft: id => {
+          if (!creationDraftRoot || id === creationDraftId) return
+          const entry = readCreationDrafts(draftStorage, creationDraftRoot).entries.find(entry => entry.id === id)
+          if (!entry) return
+          try { draftStorage.removeItem(creationDraftPrefix(creationDraftRoot) + id); refreshCreationDrafts(); notify() }
+          catch { set({ creationDraftStorageStatus: 'unavailable' }) }
+        },
+        clearCreationDraft: () => {
+          if (data.busy.create) return
+          creationAttempt = null; restoredCreationSource = null; persistedCreationSignature = null
+          set({ forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }, creationWork: null,
+            creationDraftMissingRecipe: null, notices: { ...data.notices, projects: null } })
+        },
 
         applyPatch: async () => {
           const projectId = data.activeProjectId
@@ -3516,10 +3730,16 @@ window.__ModuleLoader__.load({
         start() {
           if (running) return
           running = true
+          reopenCreationDraft()
+          draftLifecycle?.addEventListener?.('pagehide', closeCreationDraft)
+          draftLifecycle?.addEventListener?.('pageshow', reopenCreationDraft)
           fileChoicesStopped = false
           void load()
         },
         stop() {
+          closeCreationDraft()
+          draftLifecycle?.removeEventListener?.('pagehide', closeCreationDraft)
+          draftLifecycle?.removeEventListener?.('pageshow', reopenCreationDraft)
           fileChoicesStopped = true
           data = { ...data, fileChoiceGeneration: data.fileChoiceGeneration + 1 }
           running = false
@@ -3549,6 +3769,35 @@ window.__ModuleLoader__.load({
     // touches React, the DOM, or the network.
 
     /** 项目: the list, the create form, and the selected project's summary. */
+    function CreationDraftsView({ state, actions }) {
+      const messages = { saved: t('projects.draftSaved'), unavailable: t('projects.draftUnavailable'), full: t('projects.draftFull'),
+        tooLarge: t('projects.draftTooLarge'), invalid: t('projects.draftInvalid') }
+      const hasInputs = Boolean(state.forms.title || state.forms.goal || state.forms.recipe || state.creationWork || state.creationDraftMissingRecipe || Object.keys(state.forms.recipeParameters).length)
+      return el('div', { 'data-creation-drafts': true },
+        el('p', { className: 'db-muted' }, t('projects.draftHint')),
+        (hasInputs || state.creationDraftStorageStatus !== 'saved') && messages[state.creationDraftStorageStatus] ? el('p', {
+          className: state.creationDraftStorageStatus === 'saved' ? 'db-muted' : 'db-error',
+          'data-creation-draft-status': state.creationDraftStorageStatus,
+        }, messages[state.creationDraftStorageStatus]) : null,
+        state.creationDraftMissingRecipe ? el('div', { 'data-creation-draft-recipe-missing': true },
+          el('p', { className: 'db-error' }, t('projects.draftMissingRecipe', state.creationDraftMissingRecipe)),
+          el('details', null, el('summary', null, t('projects.draftOldParameters')),
+            el('pre', { className: 'db-pre' }, JSON.stringify(state.forms.recipeParameters, null, 2)))) : null,
+        hasInputs ? Button({ action: 'clear-creation-draft', disabled: state.busy.create, onClick: actions.clearCreationDraft, children: t('projects.draftClear') }) : null,
+        state.creationDrafts.length ? el('div', { style: { marginTop: '8px' } },
+          el('h5', null, t('projects.drafts')),
+          ...state.creationDrafts.map(draft => el('div', { className: 'db-card', 'data-creation-draft': draft.id },
+            el('strong', null, draft.invalid ? t('projects.damagedDraft') : draft.title),
+            draft.savedAt ? el('span', { className: 'db-muted', style: { marginLeft: '8px' } }, formatTime(draft.savedAt)) : null,
+            draft.uncertain ? el('p', { className: 'db-muted' }, t('projects.draftUncertain')) : null,
+            el('div', { className: 'db-inline' },
+              Button({ action: `restore-creation-draft:${draft.id}`, disabled: state.busy.create || draft.invalid,
+                onClick: () => actions.restoreCreationDraft(draft.id), children: t('projects.draftRestore') }),
+              Button({ action: `delete-creation-draft:${draft.id}`, onClick: () => actions.deleteCreationDraft(draft.id), children: t('projects.draftDelete') })),
+          ))) : null,
+      )
+    }
+
     function ProjectsView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
@@ -3579,6 +3828,7 @@ window.__ModuleLoader__.load({
 
         el('div', { className: 'db-card db-project-create' },
           el('h4', null, t('projects.create')),
+          CreationDraftsView(ctx),
           !state.projects.length ? el('p', { className: 'db-muted' }, t('projects.startHint')) : null,
           RecipesView(ctx),
           el('div', { className: 'db-create-footer' },
@@ -3602,7 +3852,7 @@ window.__ModuleLoader__.load({
             Button({
               tone: 'primary',
               action: 'create-project',
-              disabled: state.busy.create || state.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL || state.forms.title.trim().length === 0 || !recipeSelectionCurrent(state) || !recipeValuesValid(state.forms.recipe, state.forms.recipeParameters),
+              disabled: state.busy.create || Boolean(state.creationDraftMissingRecipe) || state.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL || state.forms.title.trim().length === 0 || !recipeSelectionCurrent(state) || !recipeValuesValid(state.forms.recipe, state.forms.recipeParameters),
               onClick: actions.createProject,
               children: state.busy.create ? (state.forms.recipe ? t('recipes.creatingPreview') : t('projects.creating')) : (state.forms.recipe ? t('recipes.createPreview') : t('projects.createButton')),
             }),

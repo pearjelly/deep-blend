@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Real creation failures, a lost actual HTTP reply, explicit recovery and immutable output. */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, symlinkSync, lstatSync, unlinkSync } from 'node:fs'
 import { join, resolve, dirname, basename } from 'node:path'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
@@ -28,6 +28,21 @@ function projectFiles(id) {
   } }; walk(root); return files
 }
 let server, browser, page, paused, failure
+const requestHistory = [], readHistory = []
+const trackPage = async target => target.addInitScript(`window.__creationRequests=[];window.__creationReads=[];const original=window.fetch;
+  window.fetch=async(url,init)=>{const creating=init?.method==='POST'&&String(url)==='/deepblend/projects';
+    if(creating)window.__creationRequests.push(JSON.parse(init.body));const response=await original(url,init);
+    if(String(url).startsWith('/deepblend/state')){const payload=await response.clone().json();window.__creationReads.push({url:String(url),payload});}return response;}`)
+async function collectPage(target) {
+  const captured = await target.evaluate(`({requests:window.__creationRequests,reads:window.__creationReads})`)
+  requestHistory.push(...captured.requests); readHistory.push(...captured.reads)
+  await target.evaluate(`(()=>{window.__creationRequests=[];window.__creationReads=[];return null})()`)
+}
+async function restoreDraft(target, title) {
+  const action = await target.evaluate(`([...document.querySelectorAll('[data-creation-draft]')].find(n=>n.querySelector('strong')?.textContent===${JSON.stringify(title)})?.querySelector('[data-action^="restore-creation-draft:"]')?.dataset.action)`)
+  if (!action) throw Error('No saved draft for ' + title)
+  return target.click('[data-action=' + JSON.stringify(action) + ']')
+}
 try {
   const rows = JSON.parse(await storePatch(store))
   rows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = configuredBlender
@@ -36,10 +51,7 @@ try {
   server = await startWeb({ workspacePath: REPO_ROOT, patch, keepHome: false })
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
-  await page.addInitScript(`window.__creationRequests=[];window.__creationReads=[];const original=window.fetch;
-    window.fetch=async(url,init)=>{const creating=init?.method==='POST'&&String(url)==='/deepblend/projects';
-      if(creating)window.__creationRequests.push(JSON.parse(init.body));const response=await original(url,init);
-      if(String(url).startsWith('/deepblend/state')){const payload=await response.clone().json();window.__creationReads.push({url:String(url),payload});}return response;}`)
+  await trackPage(page)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]')!==null`, 45000)
   await ensureWorkbenchCaptureReady(page)
@@ -63,11 +75,18 @@ try {
   // Repair only this test's configured executable location, without changing the user's installation.
   symlinkSync(app ? app[1] : dirname(actualBlender), alias, 'dir')
   await page.evaluate(`fetch('/deepblend/capabilities?refresh=1').then(r=>r.json()).then(()=>null)`)
+  await collectPage(page); await page.reload()
+  await page.waitFor(`document.querySelector('[data-creation-draft]')!==null`, 45000)
+  check('page reload offers the saved failure without auto-submitting', await page.evaluate(`document.querySelector('[data-field="project-title"]').value===''&&window.__creationRequests.length===0`))
+  await ensureWorkbenchCaptureReady(page); await page.screenshot(join(out, '03-saved-draft-after-reload.png'))
+  check('restoring the failed creation draft uses a real pointer', (await restoreDraft(page, 'recovered-environment')).via === 'pointer')
+  check('restoring a saved failure does not submit before explicit retry', await page.evaluate('window.__creationRequests.length===0'))
+  check('reloaded name, goal and recipe parameters match the captured draft', await page.evaluate(`document.querySelector('[data-field="project-title"]').value==='recovered-environment'&&document.querySelector('[data-field="project-goal"]').value==='Keep the warm studio brief'&&Number(document.querySelector('[data-field="recipe-exposure"]').value)===.3`))
   await page.fill('[data-field="project-title"]', 'newer-draft')
   await page.fill('[data-field="recipe-exposure"]', '.8')
   check('retrying the captured attempt uses a real pointer', (await page.click('[data-action="retry-creation"]')).via === 'pointer')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.naturalWidth>0`, 180000)
-  const firstRequests = await page.evaluate('window.__creationRequests')
+  const firstRequests = [...requestHistory, ...await page.evaluate('window.__creationRequests')]
   check('repair retries the exact original creation key and parameters', firstRequests.length === 2 && JSON.stringify(firstRequests[0]) === JSON.stringify(firstRequests[1]))
   await page.click('[data-view-tab="projects"]')
   check('the original project is created, while newer typed inputs survive', projects().join() === 'recovered-environment'
@@ -96,25 +115,57 @@ try {
   await page.click('[data-action="refresh-creation-projects"]')
   await page.waitFor(`document.querySelector('[data-action="select-project:recovered-reply"]')!==null`, 15000)
   check('checking the saved project list sends no new creation', await page.evaluate('window.__creationRequests.length') === requestsBefore)
+  await collectPage(page); await page.close(); page = await browser.newPage(); await trackPage(page)
+  await page.goto(base + '/deepblend/workbench'); await page.waitFor(`document.querySelector('[data-creation-draft]')!==null`, 45000)
+  check('closing and reopening the tab preserves the uncertain draft without a POST', await page.evaluate(`document.querySelector('[data-field="project-title"]').value===''&&window.__creationRequests.length===0`))
+  check('reopened uncertain creation is restored by a real pointer', (await restoreDraft(page, 'recovered-reply')).via === 'pointer')
+  check('restoring a reopened uncertain result does not auto-submit', await page.evaluate('window.__creationRequests.length===0'))
   await page.click('[data-action="retry-creation"]')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.naturalWidth>0`, 45000)
   check('lost-reply retry keeps exactly the two intended projects', projects().join() === 'recovered-environment,recovered-reply')
   check('no old scene, image, job or revision file changes during recovery', JSON.stringify(projectFiles('recovered-reply')) === JSON.stringify(before)
     && JSON.stringify(projectFiles('recovered-environment')) === JSON.stringify(environmentBefore))
-  const requests = await page.evaluate('window.__creationRequests')
+  const requests = [...requestHistory, ...await page.evaluate('window.__creationRequests')]
   check('the uncertain request reuses its key and changed inputs used a fresh key', requests.length === 4
     && JSON.stringify(requests[2]) === JSON.stringify(requests[3]) && requests[0].creationKey !== requests[2].creationKey)
   check('recovery is explicitly labelled and uncommitted versions never became a global error', await page.evaluate(`document.querySelector('[data-view=preview] [data-result=ok]')?.innerText.includes('未重复')&&window.__creationReads.every(r=>r.payload.ok&&!JSON.stringify(r.payload.error||{}).includes('r0000'))`))
   await ensureWorkbenchCaptureReady(page); await page.screenshot(join(out, '04-recovered.png'))
+  await page.click('[data-view-tab="projects"]'); await page.fill('[data-field="project-title"]', 'First page draft')
+  await page.fill('[data-field="project-goal"]', 'First page keeps its own goal')
+  const secondPage = await browser.newPage(); await trackPage(secondPage); await secondPage.goto(base + '/deepblend/workbench')
+  await secondPage.waitFor(`document.querySelector('[data-action="create-project"]')!==null`, 45000)
+  await secondPage.fill('[data-field="project-title"]', 'Second page draft')
+  await page.fill('[data-field="project-goal"]', 'First page changed later')
+  check('two real pages keep separate browser drafts without creating projects', await secondPage.evaluate(`document.querySelector('[data-field="project-title"]').value==='Second page draft'&&window.__creationRequests.length===0`)
+    && await page.evaluate(`Object.keys(localStorage).filter(k=>k.startsWith('deepblend.creation-draft/v1:')).map(k=>JSON.parse(localStorage.getItem(k)).forms.title).includes('First page draft')&&Object.keys(localStorage).filter(k=>k.startsWith('deepblend.creation-draft/v1:')).map(k=>JSON.parse(localStorage.getItem(k)).forms.title).includes('Second page draft')`))
+  await collectPage(page); await collectPage(secondPage); await page.close(); await secondPage.close()
+  page = await browser.newPage(); await trackPage(page); await page.goto(base + '/deepblend/workbench')
+  await page.waitFor(`document.querySelectorAll('[data-creation-draft]').length>=2`, 45000)
+  await ensureWorkbenchCaptureReady(page); await page.screenshot(join(out, '05-independent-saved-drafts.png'))
+  await restoreDraft(page, 'First page draft')
+  check('an unsent draft survives closed tabs and still requires explicit creation', await page.evaluate(`document.querySelector('[data-field="project-title"]').value==='First page draft'&&document.querySelector('[data-field="project-goal"]').value==='First page changed later'&&window.__creationRequests.length===0`) && projects().length === 2)
+  const deleteAction = await page.evaluate(`([...document.querySelectorAll('[data-creation-draft]')].find(n=>n.querySelector('strong')?.textContent==='Second page draft')?.querySelector('[data-action^="delete-creation-draft:"]')?.dataset.action)`)
+  await page.click('[data-action=' + JSON.stringify(deleteAction) + ']')
+  check('deleting one browser draft keeps current inputs and both saved projects', await page.evaluate(`document.querySelector('[data-field="project-title"]').value==='First page draft'&&window.__creationRequests.length===0&&!Object.keys(localStorage).filter(k=>k.startsWith('deepblend.creation-draft/v1:')).some(k=>JSON.parse(localStorage.getItem(k)).forms.title==='Second page draft')`) && projects().length === 2)
   const port = server.port; await server.stop()
   server = await startWeb({ workspacePath: REPO_ROOT, port, patch, keepHome: false })
   const replay = await fetch(base + '/deepblend/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(requests[2]) }).then(r => r.json())
   check('a restarted actual Host still recovers the same keyed request', replay.ok && replay.project.creationReplayed && replay.project.projectId === 'recovered-reply'
     && JSON.stringify(projectFiles('recovered-reply')) === JSON.stringify(before) && projects().length === 2)
-  record('requests', requests); record('state-reads', await page.evaluate('window.__creationReads'))
+  await collectPage(page); record('requests', requestHistory); record('state-reads', readHistory)
   record('sources', { before, environmentBefore, replay, sourceHead: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() })
 } catch (error) { failure = error.stack || String(error); console.error(error); record('browser-console', page?.consoleLog ?? []); await page?.screenshot(join(out, 'failure.png')).catch(() => {}) }
-finally { paused?.cancel(); await browser?.close(); await server?.stop(); record('report', { status: failure ? 'failed' : 'passed', checks, failure,
-  scope: 'Real Chrome, DSH and native Blender. Missing executable repaired only in an isolated alias; the actual successful HTTP reply is dropped with CDP. Recovery, newer inputs, pixels/files/jobs, 360px and a restarted Host are observed. No online model calls.' }) }
+finally {
+  paused?.cancel(); await browser?.close(); await server?.stop()
+  // Evidence must not expand this temporary symlink into the complete application.
+  // Only the owned link is removed; the real Blender installation remains untouched.
+  try {
+    const aliasStat = lstatSync(alias, { throwIfNoEntry: false })
+    if (aliasStat) { if (!aliasStat.isSymbolicLink()) throw Error('The temporary executable alias is not a symlink'); unlinkSync(alias) }
+    check('the temporary application alias is absent from retained evidence', !lstatSync(alias, { throwIfNoEntry: false }))
+  } catch (error) { failure ||= error.stack || String(error); console.error(error) }
+  record('report', { status: failure ? 'failed' : 'passed', checks, failure,
+    scope: 'Real Chrome, DSH and native Blender. Actual lost HTTP reply, browser reload, closed/reopened tabs, independent page drafts, explicit restoration/deletion, current inputs, original pixels/files/jobs, 360px and a restarted Host. Only the temporary application alias is removed from evidence; the real installation is unchanged. No online model calls.' })
+}
 console.log(`Creation recovery: ${failure ? 'FAILED' : 'PASSED'}; ${checks.filter(item => item.ok).length}/${checks.length} checks passed; ${out}`)
 if (failure) process.exitCode = 1
