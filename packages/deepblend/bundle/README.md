@@ -16,10 +16,10 @@ recipe or import your own model, then compare real renders as you work.
 
 ## Real work: light and material
 
-For the 0.3.3 candidate, `deepblend-doctor` checks supported executable versions and reports
+Starting with 0.3.3, `deepblend-doctor` checks supported executable versions and reports
 installation blockers, with separate PNG and MP4 tool readiness. See the
 [environment check guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/environment-check.md)
-for the source command and publication status. It does not change profiles or project files.
+for commands and scope. It does not change profiles or project files.
 
 Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
 

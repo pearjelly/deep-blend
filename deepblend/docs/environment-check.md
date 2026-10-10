@@ -1,6 +1,6 @@
 # 环境自检 / Environment check
 
-0.3.3 发布候选新增命令；正式渠道完成发布前，可在源码目录用 `npm run doctor` 运行。
+0.3.3 新增命令。公开渠道状态见[每日发布记录](daily-releases.md)；源码目录可直接用 `npm run doctor` 运行。
 
 自检一次列出 Node.js、DSH、pnpm、Blender、FFmpeg 和 ffprobe 的检查结果及下一步。不安装软件，不读取模型密钥，不修改 DSH profile 或项目。
 
@@ -10,7 +10,7 @@
 npm run doctor
 ```
 
-0.3.3 或后续版本正式发布后，无需克隆仓库即可运行：
+使用 0.3.3 或后续版本，无需克隆仓库即可运行：
 
 ```sh
 npm exec --legacy-peer-deps --package=@deepblend/dsh-blender-bundle -- deepblend-doctor
