@@ -296,6 +296,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/photography-browser
         run: xvfb-run -a node deepblend/tests/e2e/photography-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/photography-browser.log" 2>&1
+      - name: Real preview PNG saving without encoders
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/png-download-browser
+        run: xvfb-run -a node deepblend/tests/e2e/png-download-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/png-download-browser.log" 2>&1
       - name: Real directory upload, cancellation recovery and native model application
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 10

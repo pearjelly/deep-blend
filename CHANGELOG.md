@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.4 — 2026-10-10
+
+- Save original PNGs directly from previews, render/revision comparisons, inspection galleries and photography results.
+- Verify exact displayed source bytes, full digest and recorded dimensions; reject replaced or incomplete artifacts.
+- Preserve source revision/camera/mode/frame in filenames, support LAN HTTP, cancellation, deadlines and retries without another render or encoder.
+- Add real Chrome download verification to full acceptance and Linux CI; refresh the first-creation guide.
+- Add reproduction metadata to the prior release installation log, retaining its original command output.
+
 ## 0.3.3 — 2026-10-10
 
 - Read-only `deepblend-doctor` checks Node.js, DSH, pnpm, Blender and optional FFmpeg/ffprobe in one pass, with actionable failures and separate PNG/MP4 readiness.

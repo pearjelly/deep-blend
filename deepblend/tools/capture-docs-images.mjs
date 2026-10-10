@@ -62,6 +62,7 @@ import { join, resolve } from 'node:path'
 import { applyPatchToSpec, decodePng, encodePng } from '@deepblend/dsh-blender-contracts'
 
 import { Browser } from './browser-driver.mjs'
+import { ensureWorkbenchCaptureReady } from './docs-capture-visibility.mjs'
 import { REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from './dsh-web-harness.mjs'
 
 const OUT = (() => {
@@ -280,12 +281,13 @@ function halve(image) {
 
 /** Screenshot the viewport and record what makes it checkable later. */
 async function capture(page, file, kind, note) {
+  const visibility = await ensureWorkbenchCaptureReady(page)
   const path = join(OUT, file)
   await page.screenshot(path)
   const bytes = readFileSync(path)
   const { width, height } = pngSize(bytes)
   step(`captured ${file} — ${width}x${height}, ${(bytes.length / 1024).toFixed(0)} KiB`)
-  return { file, kind, note, width, height, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
+  return { file, kind, note, width, height, visibility, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
 }
 
 /** Record an image this tool wrote rather than screenshotted. */
@@ -323,6 +325,7 @@ try {
   await page.click('button[aria-label="Blender"]')
   await waitFor(page, 'document.querySelector("[data-deepblend-panel=deepblend]") !== null', 'the workbench panel')
   await waitFor(page, 'document.querySelector(\'[data-action="create-project"]\') !== null', 'the create control')
+  await ensureWorkbenchCaptureReady(page)
 
   // Capture the workbench's own appearance control; no screenshot overlays.
   await page.evaluate(`(() => { const select = document.querySelector('[data-field="workbench-appearance"]'); select.value = 'dark'; select.dispatchEvent(new Event('change', { bubbles: true })) })()`)

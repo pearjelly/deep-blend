@@ -38,6 +38,8 @@
 
 ## 安装并开始
 
+0.3.4 可以从预览、对照和检查图直接保存原始 PNG，核对图片来源，不需要视频编码器。
+
 0.3.3 新增 `deepblend-doctor`，集中检查工具版本与安装问题，分别显示 PNG 和 MP4 工具是否齐备。
 命令与检查范围见[环境自检指南](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/environment-check.md)。
 自检不修改 profile 或项目文件。
