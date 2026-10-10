@@ -70,7 +70,6 @@ test('the external programs the product runs are exactly the ones its schemas de
   walk(join(ROOT, 'packages'))
 
   const declared = new Set()
-  for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
   for (const source of sources) {
     for (const match of source.matchAll(/\b(blenderPath|ffmpegPath|ffprobePath)\s*:/g)) declared.add(match[1])
   }
@@ -170,6 +169,7 @@ test('source files exclude external binaries and published images have declared 
   assert.equal(previewManifest.tool, 'deepblend/tools/quality-benchmark.mjs')
   assert.ok(tracked.includes(previewManifest.tool))
   const declared = new Set()
+  for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
   for (const image of previewManifest.images) {
     assert.match(image.file, /^[a-z0-9-]+\.png$/)
     const path = `deepblend/benchmarks/previews/${image.file}`
