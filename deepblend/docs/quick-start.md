@@ -63,6 +63,7 @@ then add the desired route again and restart DSH. Existing project storage is se
 
 1. Open the recipe gallery and select the glazed handled cup / 从作品库选择带把手青釉杯。
 2. Create the project and wait for its real preview / 创建项目，等待实际预览。
+   If creation fails, follow the repair guidance and retry the captured request; read-only refresh helps find a project whose reply was lost / 失败后按提示修复并重试原请求；只读刷新可检查回执丢失时已保存的项目。See [creation recovery](creation-recovery.md). Keep this page open to retain its draft and retry key.
 3. Click **Save preview PNG** above the image to keep the original render; no video tools are needed / 点击图片上方的「保存预览 PNG」，保存原图，不需要视频编码器。
 4. Change one parameter, save, and compare revisions / 每次修改一个参数，保存并对照版本。
 5. Follow the [cup walkthrough](creator-tutorial.md) to inspect clay renders, refine the glaze and key light,

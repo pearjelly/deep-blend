@@ -33,6 +33,7 @@ import {
   SCENE_OPERATION_NAMES,
   BlenderError,
   BlenderErrorCode,
+  CREATION_REQUEST_VERSION,
   BlenderWarningCode,
   warning,
 } from '@deepblend/dsh-blender-contracts'
@@ -192,6 +193,10 @@ function projectCreate(ctx) {
         description:
           'Also render the preview profile now, so the first revision already has a viewable image. Default false.',
       },
+      creationKey: {
+        type: 'string',
+        description: 'Optional stable key for this creation intent (1–128 characters, no control characters). Reuse it with the same inputs when retrying an uncertain result. A completed request opens the same project without another compile or render; a new project needs a new key. Recovery returns its current saved revision.',
+      },
     },
     output: TOOL_OUTPUT,
     async execute(args, exec) {
@@ -199,6 +204,9 @@ function projectCreate(ctx) {
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
         if (args.recipe !== undefined && args.sceneSpec !== undefined) throw new BlenderError('RECIPE_REQUEST_INVALID', 'Pass either recipe or sceneSpec, not both')
+        if (args.creationKey !== undefined && resolved.studio.creationRequestProtocol !== CREATION_REQUEST_VERSION) {
+          throw new BlenderError('UI_HOST_API_STALE', 'The running Host cannot recover keyed creation requests. Update DeepBlend and restart the profile before retrying.')
+        }
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.createProject({
           ...definedFields({
             title: args.title,
@@ -206,6 +214,7 @@ function projectCreate(ctx) {
             sceneSpec: args.sceneSpec,
             recipe: args.recipe,
             projectId: args.projectId,
+            creationKey: args.creationKey,
             saveCheckpoint: args.saveCheckpoint,
           }),
           renderPreview: args.renderPreview === true,
@@ -216,6 +225,7 @@ function projectCreate(ctx) {
           `Revision: ${describeRevision(data.revision)}`,
           `Digest:   ${data.revision.digest}`,
         ]
+        if (data.creationReplayed) notes.push('Recovered the existing creation; no new project, compile or render was started. This is the current saved revision.')
         if (data.revision.checkpoint === null) {
           notes.push('No checkpoint was saved. The first preview will compile this revision lazily.')
         }

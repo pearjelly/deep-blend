@@ -32,6 +32,7 @@ import {
   BlenderError,
   BlenderErrorCode,
   HOST_API_VERSION,
+  CREATION_REQUEST_VERSION,
   UI_PANEL_ID,
   UI_ROUTES,
   UI_ROUTE_PREFIX,
@@ -419,6 +420,7 @@ export default class BlenderUiHost extends Service {
 export function statusForError(error) {
   if (error?.code === 'UI_HOST_API_STALE') return 503
   const referenceStatuses = { ASSET_REQUEST_INVALID: 400, ASSET_CONTENT_MISMATCH: 415, ASSET_TOO_LARGE: 413,
+    CREATION_REQUEST_INVALID: 400, CREATION_REQUEST_CONFLICT: 409, PROJECT_ID_INVALID: 400,
     ASSET_FORMAT_UNAVAILABLE: 415, SCENE_VALIDATION_FAILED: 422, SCENE_SPEC_INVALID: 422,
     PATH_SEGMENT_INVALID: 400, ASSET_HASH_MISMATCH: 409, ASSET_SOURCE_NOT_FOUND: 404 }
   if (referenceStatuses[error.code]) return referenceStatuses[error.code]
@@ -623,13 +625,15 @@ export function createHandlers(ctx) {
     /** Everything the panel needs to render itself from scratch, in one request. */
     state: async ({ query }) => {
       const listed = await studio().listProjects()
-      const projectId = query.projectId ?? listed.projects[0]?.projectId ?? null
+      const projectId = query.projectId ?? listed.projects.find(project => !project.creationPending)?.projectId ?? null
+      const creationPending = listed.projects.some(project => project.projectId === projectId && project.creationPending)
       return {
         panelId: UI_PANEL_ID,
         recipeCatalog: studio().listRecipes?.() ?? { recipes: [], errors: [] },
         projects: listed.projects.map(record => buildProjectView(record)),
         projectsRoot: listed.projectsRoot,
-        selected: projectId === null
+        creationRequestProtocol: studio().creationRequestProtocol ?? null,
+        selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
       }
@@ -644,12 +648,16 @@ export function createHandlers(ctx) {
     },
 
     'projects.create': async ({ body }) => {
+      if (body.creationKey !== undefined && studio().creationRequestProtocol !== CREATION_REQUEST_VERSION) {
+        throw new BlenderError('UI_HOST_API_STALE', 'The running Host does not support creation recovery. Restart the profile with the updated DeepBlend packages before retrying.')
+      }
       const created = await studio().createProject({
         title: body.title,
         goal: body.goal,
         sceneSpec: body.sceneSpec,
         recipe: body.recipe,
         projectId: body.projectId,
+        creationKey: body.creationKey,
         saveCheckpoint: true,
         renderPreview: body.renderPreview === true,
       })

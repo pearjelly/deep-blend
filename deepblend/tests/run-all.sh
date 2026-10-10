@@ -140,6 +140,9 @@ run_suite "Render selection: native profile, submitted revision, frame dimension
 run_suite "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout" \
   node deepblend/tests/e2e/png-download-ui.e2e.mjs
 
+run_suite "First creation recovery: actual failures, lost reply, retry and immutable native output" \
+  node deepblend/tests/e2e/creation-recovery-ui.e2e.mjs
+
 run_suite "Photography editor: native camera and light edits, saved inspections and conditional restore" \
   node deepblend/tests/e2e/photography-ui.e2e.mjs
 

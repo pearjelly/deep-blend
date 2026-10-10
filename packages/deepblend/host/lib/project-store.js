@@ -214,7 +214,9 @@ export class ProjectStore {
     const base = slugifyProjectId(title)
     for (let suffix = 0; suffix < 1000; suffix += 1) {
       const candidate = suffix === 0 ? base : `${base}-${suffix + 1}`
-      if (!this.exists(candidate)) return candidate
+      // The root staging directory is excluded from project listings. A title
+      // such as "Staging" must therefore allocate a suffixed, visible project.
+      if (candidate !== 'staging' && !this.exists(candidate)) return candidate
     }
     throw new BlenderError(
       BlenderErrorCode.PROJECT_EXISTS,

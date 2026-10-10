@@ -27,8 +27,8 @@
 ## 完整帧交付、编辑与资源包上传检查
 
 独立的 `linux-render-photography-browser` job 使用 Ubuntu 24.04、Node 22.23.3，复用固定运行时安装
-和软件图形准备。整个 job 的超时为 30 分钟，以下步骤按表中顺序串行执行：纯编码步骤限时 2 分钟，
-渲染选择与摄影步骤各限时 5 分钟，资源包上传步骤限时 10 分钟，预览 PNG 保存步骤限时 3 分钟。
+和软件图形准备。整个 job 的超时为 33 分钟，以下步骤按表中顺序串行执行：纯编码步骤限时 2 分钟，
+渲染选择与摄影步骤各限时 5 分钟，资源包上传步骤限时 10 分钟，预览 PNG 保存与首次创建恢复步骤各限时 3 分钟。
 
 | 测试入口 | 检查范围 |
 | --- | --- |
@@ -36,15 +36,16 @@
 | `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
 | `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
 | `deepblend/tests/e2e/png-download-ui.e2e.mjs` | 真实配方创建与 Chrome 文件下载；原始 PNG 字节/尺寸/摘要和源文件名，真实 HTTP 图片被替换时拒绝、恢复后重试、无 SubtleCrypto 时校验、360px 操作和场景/任务保护；编码器路径明确不可用 |
+| `deepblend/tests/e2e/creation-recovery-ui.e2e.mjs` | 真实缺失程序失败、隔离路径修复、原请求重试及新输入保留；CDP 丢弃实际成功 HTTP 回执，同标识恢复且无重复项目/编译/渲染；场景、PNG、作业和版本原字节保护、360px 控件实际可见及 Host 重启 |
 | `deepblend/tests/e2e/asset-bundle-upload.e2e.mjs` | 实际 FileList/目录相对路径与原始字节；平铺成功/拒绝、真实完成和取消回包丢失后的恢复；390px 工作中进度/取消/错误；两份 glTF、GLB 与 OBJ 预览，三格式明确应用及保存场景独立重开 |
 
 已有真实渲染 job 曾实测约 15 分钟，因此把编辑入口放入独立 job，给原任务保留超时余量。
 完整帧交付复用这个 job 已安装并核验的编码器，直接运行 Node，不使用 Xvfb、不增加运行时安装。
-它只在 codecs 成功且工作流未取消时运行；渲染选择和摄影步骤还要求 graphics 成功。资源包上传与 PNG 保存只要求 graphics 成功，不依赖编码器。普通测试失败不会吞掉后续独立步骤。
-拆分会增加 runner 总耗时；30 分钟是 job 上限；步骤上限合计 25 分钟，保留 5 分钟准备余量。它们均不是预计耗时。
+它只在 codecs 成功且工作流未取消时运行；渲染选择和摄影步骤还要求 graphics 成功。资源包上传、PNG 保存与创建恢复只要求 graphics 成功，不依赖编码器。普通测试失败不会吞掉后续独立步骤。
+拆分会增加 runner 总耗时；33 分钟是 job 上限；步骤上限合计 28 分钟，保留 5 分钟准备余量。它们均不是预计耗时。
 
 本次集成源在本地的两帧交付专项通过，约 1.18 秒；创建的三个受管句柄均已退出，原 PNG 帧和正式视频摘要已独立核对。
-资源包上传的浏览器、原生 Blender 与退出观察已在本地完整入口中实际执行；记录见 [里程碑 §257](milestone-status.md#257-资源包上传稳定整合与完整验收)。新增 Linux 步骤的实际耗时、退出结果与原始证据以对应提交的 [Actions 运行](https://github.com/pearjelly/deep-blend/actions/workflows/ci.yml)为准，10 分钟步骤预算和 30 分钟 job 预算均需由这些运行持续核对。
+资源包上传的浏览器、原生 Blender 与退出观察已在本地完整入口中实际执行；记录见 [里程碑 §257](milestone-status.md#257-资源包上传稳定整合与完整验收)。新增 Linux 步骤的实际耗时、退出结果与原始证据以对应提交的 [Actions 运行](https://github.com/pearjelly/deep-blend/actions/workflows/ci.yml)为准，10 分钟步骤预算和 33 分钟 job 预算均需由这些运行持续核对。
 
 这些测试使用低分辨率功能夹具和实际像素变化检查。它们不提供成品美术判断，也不覆盖
 完整长序列交付、全部恢复流程、在线视觉模型、所有素材格式或其他操作系统。
@@ -123,6 +124,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `${{ runner.temp }}/deepblend-ci/asset-bundle-upload-browser/` 与 `asset-bundle-upload-browser.log`：FileList、原始文件/请求摘要、真实回包丢失记录、进度与错误截图、三格式源文件/PNG/场景和独立重开结果、隔离 DSH home 普通文件及链接清单、自有进程退出及前后源码摘要；失败证据不覆盖，重新运行需新目录。
 
 - `${{ runner.temp }}/deepblend-ci/png-download-browser/` 与 `png-download-browser.log`：首次原生图片、原始保存文件与摘要、HTTP 请求、失败/恢复和无加密 API 的重复保存、桌面/360px 截图及报告；文件目录使用独立路径，重试仍保留前次证据。
+- `${{ runner.temp }}/deepblend-ci/creation-recovery-browser/` 与 `creation-recovery-browser.log`：真实错误、修复后原请求、实际被丢弃的成功回执、读取状态与显式重试、窄屏恢复控件和可见确认、原场景/图片/作业/版本摘要及 Host 重启回执。每次运行使用新目录，保留原失败。
 
 该 artifact 也保留运行时安装、软件图形和 FFmpeg/ffprobe 实际版本日志。
 

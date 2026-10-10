@@ -91,6 +91,7 @@ The cup image comes from the [recorded tutorial](deepblend/docs/assets/creator-t
 | [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness and exposure, and create a project with a rendered preview.
+Creation errors keep your inputs and offer repair guidance and explicit retry. If a saved project's reply was lost, retry recovers it without creating another project. [Creation recovery](deepblend/docs/creation-recovery.md) explains the current-page draft behavior.
 Or start with your own glTF, GLB or OBJ model and its external textures.
 
 **Follow a complete creation:** the [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) changes height,
@@ -226,7 +227,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 36 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 37 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)

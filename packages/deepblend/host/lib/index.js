@@ -34,6 +34,7 @@ import {
   LOG_SCOPE,
   BlenderError,
   BlenderErrorCode,
+  CREATION_REQUEST_VERSION,
   BlenderWarningCode,
   SCENE_PATCH_VERSION,
   buildViewPlan,
@@ -84,6 +85,7 @@ import {
 } from '@deepblend/dsh-blender-contracts'
 
 import { RecipeCatalog } from './recipe-catalog.js'
+import { withCreationRequest } from './creation-request.js'
 import { ProjectStore, GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import { RenderJobStore, UNFINISHED_STATUSES } from './render-job-store.js'
 import { RevisionTransaction } from './revision-transaction.js'
@@ -599,6 +601,7 @@ export default class BlenderStudio extends Service {
    * @param {object} [request.sceneSpec] - a full SceneSpec to seed the project with.
    * @param {{ id: string, version: string, digest: string, parameters?: object }} [request.recipe]
    * @param {string} [request.projectId]
+   * @param {string} [request.creationKey] - a stable key reused only for the same creation intent.
    * @param {boolean} [request.saveCheckpoint]
    * @param {boolean} [request.renderPreview]
    * @param {AbortSignal} [request.signal]
@@ -612,8 +615,21 @@ export default class BlenderStudio extends Service {
       )
     }
     if (request.recipe && request.sceneSpec) throw new BlenderError('RECIPE_REQUEST_INVALID', 'Choose either a recipe or an initial scene')
+    return withCreationRequest(this.store, request, identity => this._createProject(request, identity),
+      projectId => this.store.withProjectWrite(projectId, async () => {
+        const project = await this.getProject(projectId)
+        const manifest = this.store.readRevisionManifest(projectId, project.currentRevision)
+        const job = manifest.jobId ? this.store.readJob(projectId, manifest.jobId) : null
+        return { ...project, revision: toCanonicalRevisionSummary({ manifest, checkpointPath: manifest.checkpoint }),
+          job: toCanonicalJobRecord(job), warnings: job?.warnings ?? [], creationReplayed: true }
+      }))
+  }
+
+  get creationRequestProtocol() { return CREATION_REQUEST_VERSION }
+
+  async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
-    const outcome = await this.transactions.createProject({ ...request,
+    const outcome = await this.transactions.createProject({ ...request, creationRequest,
       ...(source ? { sceneSpec: source.sceneSpec } : {}), recipeLock: source?.lock ?? null })
     return {
       ...toCanonicalProjectSummary({
@@ -3374,7 +3390,8 @@ export default class BlenderStudio extends Service {
         revisionCount: record.revisionCount ?? this.store.listRevisions(projectId).length,
         createdAt: record.createdAt ?? null,
         updatedAt: record.updatedAt ?? null,
-        unreadable: specs === null && record.currentRevision !== null,
+        creationPending: record.currentRevision === GENESIS_REVISION && record.revisionCount === 0,
+        unreadable: specs === null && record.currentRevision !== null && !(record.currentRevision === GENESIS_REVISION && record.revisionCount === 0),
         scene: specs,
         jobs: this.renderJobs.list(projectId).map(job => ({
           jobId: job.jobId,

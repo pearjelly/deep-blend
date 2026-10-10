@@ -289,6 +289,8 @@ blender_final_render {projectId, resumeJobId: "render-0001"}
 | `ASSET_TOO_LARGE` | 超过 `assetMaxBytes`（默认 1 GiB）。本地在拷贝**之前**拒，网络在下载**当中**断 | — |
 | `ASSET_APPROVAL_REQUIRED` | 从网络地址导入需要你点一次批准。本地路径不需要 | §8 |
 | `PROJECT_EXISTS` | 这个 id 已经有项目了。换一个，或者先看那个项目 | — |
+| `CREATION_REQUEST_INVALID` | 创建标识必须为 1–128 个字符的非空文本，不能包含控制字符；创建输入必须为 JSON | — |
+| `CREATION_REQUEST_CONFLICT` | 同一标识不能用于不同输入；不完整或重复的创建记录需先检查，不会另建项目。正常失败回滚后可用原标识和输入重试 | — |
 | `PATH_OUTSIDE_WORKSPACE` | 路径跑出工作区了，被按 realpath 拦下。检查软链接 | — |
 | `RUNTIME_UNAVAILABLE` | 这个进程里没有可用的 Blender 运行时 | `install.md` §0 |
 | `ENGINE_UNAVAILABLE` | 这一版 Blender 装不出你要求的引擎。先 `blender_capabilities` | — |

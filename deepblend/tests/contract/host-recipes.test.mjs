@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
-import { sha256, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
+import { sha256, HOST_API_VERSION, CREATION_REQUEST_VERSION } from '@deepblend/dsh-blender-contracts'
 import { RecipeCatalog, BUILTIN_RECIPES } from '../../../packages/deepblend/host/lib/recipe-catalog.js'
 import { createHandlers, statusForError } from '@deepblend/dsh-blender-ui'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
@@ -190,7 +190,7 @@ async function client(t) {
     if (init.method === 'POST') {
       calls.push(JSON.parse(init.body))
       payload = { ok: false, error: { code: 'RECIPE_CHANGED', message: 'Refresh the catalog' } }
-    } else payload = { ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, projects: [], selected: null, recipeCatalog: recipes }
+    } else payload = { ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, creationRequestProtocol: CREATION_REQUEST_VERSION, projects: [], selected: null, recipeCatalog: recipes }
     return { ok: true, status: 200, text: async () => JSON.stringify(payload), json: async () => payload }
   } })
   t.after(() => store.stop())
@@ -227,7 +227,7 @@ test('UI pins the selected package and preserves inputs when creation is rejecte
   assert.equal(calls[0].recipe.parameters.exposure, 0.2)
   assert.equal(calls[0].renderPreview, true)
   assert.equal(store.getState().forms.title, 'Recipe experiment')
-  assert.match(store.getState().notices.projects.message, /RECIPE_CHANGED/)
+  assert.match(store.getState().notices.projects.technicalDetails, /RECIPE_CHANGED/)
   store.actions.selectRecipe(null)
   await store.actions.createProject()
   assert.equal(calls[1].recipe, undefined)
