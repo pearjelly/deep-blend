@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
+import { ensureWorkbenchCaptureReady } from '../../tools/docs-capture-visibility.mjs'
 import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `preview-history-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(output)) throw Error(`Evidence directory already exists: ${output}`)
@@ -31,8 +32,9 @@ try {
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__previewPointerClicks=[];document.addEventListener('click',event=>{const control=event.target.closest?.('[data-action]');if(control)window.__previewPointerClicks.push({action:control.dataset.action,disabled:control.disabled===true})},true);
-    window.__previewHoldRefresh=false;window.__previewHeld=[];window.__previewReleases=[];
-    const originalFetch=window.fetch;window.fetch=async(input,init)=>{const url=String(input);const response=await originalFetch(input,init);
+    window.__previewHoldRefresh=false;window.__previewHeld=[];window.__previewReleases=[];window.__versionHoldDiff=false;window.__versionDiffReleases=[];window.__versionDiffReads=[];window.__versionWrites=[];
+    const originalFetch=window.fetch;window.fetch=async(input,init)=>{const url=String(input);if(init?.method==='POST')window.__versionWrites.push({url,body:JSON.parse(init.body)});const response=await originalFetch(input,init);
+      if(url.includes('/diff?')){if(window.__versionHoldDiff)await new Promise(resolve=>window.__versionDiffReleases.push(resolve));const nativeJson=response.json.bind(response);response.json=async()=>{const value=await nativeJson();window.__versionDiffReads.push({url,from:value.diff?.fromRevision,to:value.diff?.toRevision});return value;};}
       if(window.__previewHoldRefresh&&(!init?.method||init.method==='GET')&&url.includes('/deepblend/')){window.__previewHeld.push(url);await new Promise(resolve=>window.__previewReleases.push(resolve));}return response;}`)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]\')!==null', 45000)
@@ -47,6 +49,9 @@ try {
   check('creation records evaluated camera facts and visibly shows the actual budget', initial.cameraFacts.frame === initial.frame && initial.cameraFacts.lens > 0
     && await page.evaluate('document.querySelector("[data-compare=current] [data-render-settings-known=true]")?.textContent.includes("768×576")===true'))
   await page.screenshot(join(output, '01-created.png'))
+  await page.click('[data-view-tab=revisions]')
+  check('a single saved version has a disabled comparison entry and a visible explanation', await page.evaluate(`document.querySelector('[data-action=\"compare-from:r0001\"]').disabled===true&&document.querySelector('[data-view=revisions]').textContent.includes('至少两版')`))
+  await page.click('[data-view-tab=preview]')
   const ctx = new Context()
   fibers.push(ctx.plugin(LocalSubprocess), ctx.plugin(Provider, ProviderConfig({ blenderPath, workspaceRoot: root, timeoutMs: 120000 })), ctx.plugin(Studio, { workspaceRoot: root, projectsRoot: join(root, 'projects'), maxPreviewSamples: 8 }))
   await new Promise(resolve => setTimeout(resolve, 250)); const studio = ctx.get('blenderStudio')
@@ -165,6 +170,63 @@ try {
   const narrow = await page.evaluate('(()=>{const panel=document.querySelector("[data-compare=current]").getBoundingClientRect();return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,left:panel.left,right:panel.right,budgetVisible:document.querySelector("[data-compare=current]").textContent.includes("256×192")}})()')
   check('actual render settings remain visible without horizontal overflow at 390 pixels', narrow.viewport === 390 && narrow.scrollWidth <= 390 && narrow.left >= 0 && narrow.right <= 390 && narrow.budgetVisible, narrow)
   await page.screenshot(join(output, '04-narrow-settings.png')); await page.send('Emulation.clearDeviceMetricsOverride')
+  // Start from the real restored r0001, then branch a third saved version.
+  await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]')
+  await page.waitFor('document.querySelector("[data-field=editor-material-roughness]")!==null')
+  await page.fill('[data-field=editor-material-roughness]', '.47'); await page.waitFor('document.querySelector("[data-action=editor-apply]")?.disabled===false')
+  check('third version is saved by a real pointer', (await page.click('[data-action=editor-apply]')).via === 'pointer')
+  await page.waitFor('document.querySelector("[data-compare=right] img[data-artifact-revision=r0003]")?.complete===true', 180000)
+  const thirdVersion = read('revisions', 'r0003', 'revision-manifest.json').previews[0]; retained.push(thirdVersion)
+  check('third version has an actual native PNG and explicit saved source', decodePng(readFileSync(file(thirdVersion.path))).width === thirdVersion.width && thirdVersion.sourceRevision === 'r0003'
+    && thirdVersion.sourceDigest === sceneSpecDigest(read('revisions', 'r0003', 'scene-spec.json')) && sha(readFileSync(file(thirdVersion.path))) === thirdVersion.sha256)
+  const allSaved = Object.fromEntries(['r0001', 'r0002', 'r0003'].flatMap(revision => ['scene-spec.json', 'scene.blend', 'revision-manifest.json'].map(name => [revision+'/'+name, sha(readFileSync(file('revisions',revision,name)))])))
+  const readOnlyWrites = await page.evaluate('window.__versionWrites.length')
+  const displayedPair = async (left, right) => await page.evaluate(`document.querySelector('[data-compare-mode=revisions]').dataset.active==='true'&&document.querySelector('[data-field=compare-left]').value===${JSON.stringify(left)}&&document.querySelector('[data-field=compare-right]').value===${JSON.stringify(right)}&&document.querySelector('[data-compare=left] img')?.dataset.artifactRevision===${JSON.stringify(left)}&&document.querySelector('[data-compare=right] img')?.dataset.artifactRevision===${JSON.stringify(right)}`)
+  await page.click('[data-compare-mode=result]'); await page.click('[data-view-tab=revisions]')
+  check('history-to-current comparison enters through a real pointer', (await page.click('[data-action="compare-from:r0001"]')).via === 'pointer')
+  check('entry from latest-result displays selected r0001 against current r0003', await displayedPair('r0001', 'r0003'))
+  await page.waitFor('Array.from(document.querySelectorAll("[data-compare] img")).every(img=>img.complete&&img.naturalWidth>0)')
+  await ensureWorkbenchCaptureReady(page); await page.screenshot(join(output,'05-version-entry.png'))
+  await page.click('[data-action=diff]'); await page.waitFor('document.querySelector("[data-diff] h4")?.textContent.includes("r0001 → r0003")===true')
+  check('structural difference identifies the same pair as the two rendered panes', await displayedPair('r0001','r0003') && await page.evaluate('document.querySelector("[data-diff] h4").textContent.includes("r0001 → r0003")'))
+  // The setup pair uses the standalone input event; measured entry controls use real pointers.
+  await page.evaluate(`(()=>{const e=document.querySelector('[data-field=compare-right]');e.value='r0002';e.dispatchEvent(new Event('input',{bubbles:true}));})()`)
+  await page.click('[data-action=diff]'); await page.waitFor('document.querySelector("[data-diff] h4")?.textContent.includes("r0001 → r0002")===true')
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0002"]')
+  check('entry replaces an old right-side choice with current r0003 and clears old differences', await displayedPair('r0002','r0003') && await page.count('[data-diff]') === 0)
+  await page.click('[data-compare-mode=renders]'); await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]')
+  check('entry from render history switches to the chosen/current version comparison', await displayedPair('r0001','r0003'))
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0003"]')
+  check('current-version entry chooses the nearest other saved version', await displayedPair('r0002','r0003'))
+  await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]'); await page.fill('[data-field=editor-material-roughness]','.53')
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]'); await page.click('[data-view-tab=scene]')
+  check('viewing comparisons retains the later unsaved material value and does not submit it', await page.evaluate('document.querySelector("[data-field=editor-material-roughness]").value==="0.53"&&document.querySelector("[data-action=editor-apply]").disabled===false') && await page.evaluate('window.__versionWrites.length') === readOnlyWrites)
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]')
+  const diffReadsBefore = await page.evaluate('window.__versionDiffReads.length')
+  await page.evaluate('window.__versionHoldDiff=true'); await page.click('[data-action=diff]'); await page.waitFor('window.__versionDiffReleases.length===1')
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0002"]'); await page.click('[data-action=diff]')
+  // Hold both responses until observed, then let the newer one finish first.
+  await page.waitFor('window.__versionDiffReleases.length===2'); await page.evaluate('(()=>{window.__versionHoldDiff=false;window.__versionDiffReleases.pop()();})()')
+  await page.waitFor('document.querySelector("[data-diff] h4")?.textContent.includes("r0002 → r0003")===true')
+  await page.evaluate('window.__versionDiffReleases.shift()()')
+  await page.waitFor(`window.__versionDiffReads.length===${diffReadsBefore + 2}`)
+  check('an actual delayed old HTTP reply cannot repaint a newer valid comparison', await displayedPair('r0002','r0003') && await page.evaluate('document.querySelector("[data-diff] h4").textContent.includes("r0002 → r0003")'))
+  await ensureWorkbenchCaptureReady(page); await page.screenshot(join(output,'06-current-pair-diff.png'))
+  check('all comparison navigation and diff reads leave native files and previews unchanged', await page.evaluate('window.__versionWrites.length') === readOnlyWrites && kept()
+    && Object.entries(allSaved).every(([name,h]) => sha(readFileSync(file('revisions',name))) === h))
+  await page.click('[data-view-tab=revisions]'); check('explicit restore still uses a real pointer', (await page.click('[data-action="restore:r0001"]')).via === 'pointer')
+  await page.waitFor('document.querySelector(".db-head")?.textContent.includes("r0001")===true'); await page.click('[data-action="compare-from:r0003"]')
+  check('after explicit restore the requested saved version compares against the actual restored current', await displayedPair('r0003','r0001') && read('project.json').currentRevision === 'r0001')
+  check('restoring and viewing retain every saved scene, manifest and native PNG', kept() && Object.entries(allSaved).every(([name,h]) => sha(readFileSync(file('revisions',name))) === h)
+    && readdirSync(file('revisions')).sort().join(',') === 'r0001,r0002,r0003')
+  await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]')
+  check('restored earliest current selects the next other saved version without restoring again', await displayedPair('r0002','r0001') && await page.evaluate('window.__versionWrites.length') === readOnlyWrites + 1)
+  await page.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false}); await page.click('[data-view-tab=revisions]')
+  const small = await page.evaluate('(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,buttons:[...document.querySelectorAll("[data-action^=compare-from]")].map(e=>({action:e.dataset.action,disabled:e.disabled,label:e.textContent}))}))()')
+  check('version entry controls remain enabled and readable without horizontal overflow at 390 pixels', small.width===390&&small.scrollWidth<=390&&small.buttons.length===3&&small.buttons.every(e=>!e.disabled&&e.label.length>0),small)
+  await page.click('[data-action="compare-from:r0003"]'); check('narrow-screen comparison is activated by a real pointer and keeps the restored pair',await displayedPair('r0003','r0001'))
+  await ensureWorkbenchCaptureReady(page); await page.screenshot(join(output,'07-narrow-version-pair.png')); await page.send('Emulation.clearDeviceMetricsOverride')
+  json('version-comparison.json',{allSaved,thirdVersion,readOnlyWrites,diffReads:await page.evaluate('window.__versionDiffReads'),writesAfterRestore:await page.evaluate('window.__versionWrites.length'),small,current:read('project.json').currentRevision})
   json('artifacts.json', { initial, first, second, third, after, currentSheet, firstSheet, narrow, protectedSources, manifests, retained })
 } catch (error) {
   failure = error.stack || String(error); checks.push({ name: 'workflow completes without unexpected failure', ok: false, detail: failure }); console.error(error); await page?.screenshot(join(output, 'failure.png')).catch(() => {})
@@ -172,7 +234,7 @@ try {
 } finally {
   for (const fiber of fibers.slice().reverse()) { try { await fiber.dispose() } catch (error) { failure ??= String(error) } }
   for (const [name, close] of [['browser', () => browser?.close()], ['server', () => server?.stop()]]) { try { const result = await close(); if (name === 'server') shutdown = result } catch (error) { failure ??= String(error) } }
-  json('report.json', { status: failure ? 'failed' : 'passed', checks, failure, shutdown, scope: 'Real Chrome, Host and Blender: measured single and per-view settings, capped samples, retained sheet snapshots, mixed conditions, matched editor comparison, legacy unknown settings, scroll continuity and native activation under forced refresh, narrow display, restore and reload. Multi-view current/previous slots retain their established two-generation policy; no artistic approval.' })
+  json('report.json', { status: failure ? 'failed' : 'passed', checks, failure, shutdown, scope: 'Real Chrome, Host and Blender: measured single and per-view settings, capped samples, retained sheet snapshots, mixed conditions, matched editor comparison, legacy unknown settings, scroll continuity and native activation under forced refresh, narrow display, restore, reload, saved-version entries, three real versions, current/nearest comparison, read-only navigation, preserved unsaved inputs, delayed diff response ownership and narrow activation. Multi-view current/previous slots retain their established two-generation policy; no artistic approval.' })
 }
 console.log(`Preview history: ${checks.filter(item => item.ok).length}/${checks.length} checks passed; ${output}`)
 if (failure) process.exitCode = 1

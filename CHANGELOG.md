@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.8 — 2026-10-11
+
+- Enter an explicit saved-version comparison from the history list, pairing the selected version with the current work.
+- Let the current version compare with its nearest other saved version, and disable the entry when no other version is available.
+- Clear stale comparison results and reject delayed success/error replies after later selections, project changes or newer requests.
+- Validate difference response identities; keep unsubmitted edits and saved native artifacts intact while viewing comparisons.
+
 ## 0.3.7 — 2026-10-11
 
 - Keep each recipe's edited parameters when comparing starting points; selecting the current recipe no longer resets it.

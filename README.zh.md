@@ -393,11 +393,11 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**37 个套件、163 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**127 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1467 个 `node:test` 用例（93 个文件）**。
+**127 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1503 个 `node:test` 用例（93 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 0.3.7 冻结源码的连续完整入口已实测上述快照，运行期间全部源文件原字节保持。来源见 `deepblend/docs/milestone-status.md` §263 与[每日发布记录](deepblend/docs/daily-releases.md)；确切提交 CI、干净构建和三路公开安装均已验证。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 当前候选契约层已实测上述快照；冻结后的连续完整入口与公开发布继续验证。上轮正式快照见 `deepblend/docs/milestone-status.md` §263；本轮来源和发布状态见[每日发布记录](deepblend/docs/daily-releases.md)。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

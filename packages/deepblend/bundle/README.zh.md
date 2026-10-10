@@ -30,6 +30,7 @@
 
 - **继续创建草稿：** 刷新或重新打开工作台后，明确恢复本浏览器保存的输入，再创建或重试原请求；恢复不会自动提交。见[草稿指南](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creation-drafts.md)。
 - **比较作品起点：** 切换配方保留各自调整，恢复默认值只影响当前配方；比较设置也随浏览器草稿保存。见[配方比较](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/recipe-comparison.md)。
+- **查看保存版本：** 从版本记录直接对比保存版与当前作品，保留未提交修改，结构差异对应正在查看的两版；查看不会恢复或渲染。见[版本对比](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/version-comparison.md)。
 - **从作品起步：** 选一个配方，调整颜色、粗糙度和曝光，创建项目并查看实际预览。
 - **使用自己的素材：** 上传并预览 GLB、glTF、OBJ 模型；多文件或目录导入保留外部贴图、缓冲区和相对路径。也可添加图片纹理及 HDR/EXR 环境照明。
 - **直接修改场景：** 编辑尺寸、轮廓、倒角、阵列和局部材质，调整相机与灯光，添加面积补光灯。
