@@ -863,6 +863,7 @@ export function buildProjectView(record, extra = {}) {
     title: record.title ?? null,
     currentRevision: record.currentRevision ?? null,
     revisionCount: record.revisionCount ?? 0,
+    creationPending: record.creationPending === true,
     createdAt: record.createdAt ?? null,
     updatedAt: record.updatedAt ?? null,
     goal: record.goal ?? null,

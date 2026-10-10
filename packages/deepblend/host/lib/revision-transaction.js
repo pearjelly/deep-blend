@@ -249,6 +249,7 @@ export class RevisionTransaction {
       revisionCount: 0,
       runtimeProtocolVersion: 'deepblend.blender/v1',
       projectsRoot: this.store.projectsRoot,
+      ...(input.creationRequest ? { creationRequest: input.creationRequest } : {}),
     })
 
     const outcome = await this._commit({

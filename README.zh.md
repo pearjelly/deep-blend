@@ -88,6 +88,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | [Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 在[作品配方](deepblend/docs/recipes.md)中选起点，调整颜色、粗糙度和曝光，创建后直接看实际预览。
+创建失败时保留输入，按提示修复后可重试原请求；已保存但回执丢失的项目会直接恢复，避免重复创建。当前页面的草稿与重试行为见[创建恢复指南](deepblend/docs/creation-recovery.md)。
 也可以导入自己的 glTF、GLB、OBJ 模型和外部贴图。
 
 **跟做一次完整创作：** [青釉杯图文教程](deepblend/docs/creator-tutorial.md)带你改高度、对照灰模、
@@ -272,7 +273,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         125 个 *.test.mjs（已提交源码）
+    contract/         126 个 *.test.mjs（已提交源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -331,7 +332,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 24/125 file(s) passed
+DeepBlend tests: 24/126 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -391,12 +392,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**36 个套件、160 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**125 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1402 个 `node:test` 用例（91 个文件）**。
+预期：**37 个套件、162 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**126 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1427 个 `node:test` 用例（92 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是已提交源码的结构检查，断言与用例总数是运行快照。** 上述断言与用例总数来自 2026-10-10 原图保存候选的连续完整入口输出，契约层 125/125 文件、完整入口 36/36 套件通过；按每个契约文件的最终摘要统计。最终提交与发布验证见[每日发布记录](deepblend/docs/daily-releases.md)；本轮验证边界见 `deepblend/docs/milestone-status.md` §260。
+**套件与文件数是已提交源码的结构检查，断言与用例总数是运行快照。** 上述断言与用例总数来自 2026-10-10 创建恢复候选第二轮的连续完整入口输出，契约层 126/126 文件、完整入口 37/37 套件通过；按每个契约文件的最终摘要统计。最终提交与发布验证见[每日发布记录](deepblend/docs/daily-releases.md)；本轮验证边界见 `deepblend/docs/milestone-status.md` §261。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
@@ -707,7 +708,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 36 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 37 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

@@ -319,6 +319,7 @@ const deliveryAndEditingSuites = [
   ['render-selection-ui.e2e.mjs', 'render-selection-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
   ['photography-ui.e2e.mjs', 'photography-browser', 'xvfb-run -a node', 5, "!cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success'"],
   ['png-download-ui.e2e.mjs', 'png-download-browser', 'xvfb-run -a node', 3, "!cancelled() && steps.graphics.outcome == 'success'"],
+  ['creation-recovery-ui.e2e.mjs', 'creation-recovery-browser', 'xvfb-run -a node', 3, "!cancelled() && steps.graphics.outcome == 'success'"],
   ['asset-bundle-upload.e2e.mjs', 'asset-bundle-upload-browser', 'xvfb-run -a node', 10, "!cancelled() && steps.graphics.outcome == 'success'"],
 ]
 
@@ -326,7 +327,7 @@ test('delivery, editing and upload share a separate runtime with bounded steps',
   const job = workflowJob('linux-render-photography-browser')
   const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m)
-  assert.match(job, /^    timeout-minutes: 30$/m, 'allow setup plus 2/5/5/3/10 minute steps outside the existing inspection budget')
+  assert.match(job, /^    timeout-minutes: 33$/m, 'allow setup plus 2/5/5/3/3/10 minute steps outside the existing inspection budget')
   assert.ok(job.includes(`node-version: '${pins.node}'`))
   assert.match(job, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   const commands = [

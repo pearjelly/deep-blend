@@ -96,6 +96,10 @@ export const BlenderErrorCode = Object.freeze({
   PROJECT_EXISTS: 'PROJECT_EXISTS',
   /** A project id (or a derived slug) is not usable as a directory name. */
   PROJECT_ID_INVALID: 'PROJECT_ID_INVALID',
+  /** The optional creation key or its inputs are invalid. */
+  CREATION_REQUEST_INVALID: 'CREATION_REQUEST_INVALID',
+  /** A creation key identifies different inputs or an incomplete/corrupt creation. */
+  CREATION_REQUEST_CONFLICT: 'CREATION_REQUEST_CONFLICT',
 
   /** The named revision does not exist in this project. */
   REVISION_NOT_FOUND: 'REVISION_NOT_FOUND',
@@ -379,6 +383,8 @@ export const BlenderWarningCode = Object.freeze({
  * beauty/clay diagnostics; an older Host must not silently ignore that mode.
  */
 export const HOST_API_VERSION = 6
+/** Explicit capability for recovering a keyed creation; older Hosts ignore that input. */
+export const CREATION_REQUEST_VERSION = 'deepblend.creation-request/v1'
 
 /** Formats the product intends to support (SPEC §2.2). Used to emit warnings. */
 export const EXPECTED_IMPORT_FORMATS = Object.freeze(['gltf', 'fbx', 'obj', 'usd'])

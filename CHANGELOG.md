@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.5 — 2026-10-10
+
+- Retain creation inputs and offer actionable Blender guidance, read-only refresh and explicit retry after failures.
+- Recover a saved project when its create response was lost, using the same captured request without duplicate projects or repeated rendering.
+- Preserve newer drafts and later saved revisions; show incomplete creations without opening an unpublished revision.
+- Add optional `creationKey` to project creation and the agent tool, with an explicit host capability check. Creation drafts and retry keys remain in the current page.
+
 ## 0.3.4 — 2026-10-10
 
 - Save original PNGs directly from previews, render/revision comparisons, inspection galleries and photography results.

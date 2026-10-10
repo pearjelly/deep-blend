@@ -67,6 +67,8 @@ const EXPLAINED = new Map([
   ['RENDER_FRAMES_INCOMPLETE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['RENDER_JOB_CONFLICT', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['PROJECT_EXISTS', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
+  ['CREATION_REQUEST_INVALID', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
+  ['CREATION_REQUEST_CONFLICT', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['PATH_OUTSIDE_WORKSPACE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['SCENE_VALIDATION_FAILED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['SCENE_PATCH_REJECTED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],

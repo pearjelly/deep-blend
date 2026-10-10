@@ -488,6 +488,18 @@ window.__ModuleLoader__.load({
       'recipes.license': '作者与许可',
       'recipes.unavailable': '部分配方无法载入；可继续使用下方可用的配方。',
       'projects.creating': '创建中…',
+      'projects.incomplete': '尚未完成创建',
+      'projects.recovered': '已打开之前创建的 {id}，未重复创建或渲染',
+      'projects.replyMissing': '未能收到创建结果。输入已保留；重试上次创建会检查同一次请求。',
+      'projects.environmentFailed': 'Blender 环境尚未就绪。输入已保留；请先检查安装和路径，修复后再重试。',
+      'projects.creationFailed': '未能确认创建结果。输入已保留；可重试上次创建，或刷新列表检查已保存的项目。',
+      'projects.retryCreation': '重试上次创建',
+      'projects.originalTitle': '上次创建：{title}',
+      'projects.refreshList': '刷新项目列表',
+      'projects.creationDetails': '详细诊断',
+      'projects.environmentGuide': '查看环境检查指南',
+      'projects.creationConflict': '上次创建记录需要检查。输入已保留；请刷新列表并查看详细诊断，确认项目状态。',
+      'projects.hostNeedsRestart': '当前运行的 Host 尚不支持创建恢复。请更新 DeepBlend 并重启 DSH，输入仍保留在当前页面。',
       'projects.createButton': '创建',
       'scene.currentRevision': '当前 revision',
       'scene.revisionCount': 'revision 数',
@@ -1025,6 +1037,18 @@ window.__ModuleLoader__.load({
       'recipes.license': 'Author and license',
       'recipes.unavailable': 'Some recipes could not be loaded. Available recipes are shown below.',
       'projects.creating': 'Creating…',
+      'projects.incomplete': 'Creation is not complete',
+      'projects.recovered': 'Opened the previously created {id}; no duplicate creation or render',
+      'projects.replyMissing': 'The creation result could not be received. Your inputs are kept; retry the previous creation to check the same request.',
+      'projects.environmentFailed': 'Blender is not ready. Your inputs are kept; check its installation and path, then retry.',
+      'projects.creationFailed': 'The creation result could not be confirmed. Your inputs are kept; retry the previous creation, or refresh the list to check saved projects.',
+      'projects.retryCreation': 'Retry previous creation',
+      'projects.originalTitle': 'Previous creation: {title}',
+      'projects.refreshList': 'Refresh project list',
+      'projects.creationDetails': 'Diagnostic details',
+      'projects.environmentGuide': 'Open the environment check guide',
+      'projects.creationConflict': 'The previous creation record needs inspection. Your inputs are kept; refresh the list and read the diagnostic details to check its state.',
+      'projects.hostNeedsRestart': 'The running Host does not support creation recovery. Update DeepBlend and restart DSH; your inputs remain on this page.',
       'projects.createButton': 'Create',
       'scene.currentRevision': 'current revision',
       'scene.revisionCount': 'revisions',
@@ -1267,6 +1291,7 @@ window.__ModuleLoader__.load({
     const PANEL_LABEL = 'Blender'
     /** The host API this half was written against; a mismatch is a deployment state. */
     const EXPECTED_HOST_API = 6
+    const CREATION_REQUEST_PROTOCOL = 'deepblend.creation-request/v1'
     /** Polling cadence while something is live; M3 writes progress once a second. */
     const POLL_LIVE_MS = 1500
     /** Polling cadence when nothing is running. */
@@ -1327,6 +1352,23 @@ window.__ModuleLoader__.load({
         ? String(artifact.sha256).slice(0, 12)
         : (artifact && artifact.bytes ? `b${artifact.bytes}` : '0')
       return `${base}${path}?v=${version}`
+    }
+
+    const creationSignature = body => JSON.stringify(body, (_, value) => value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])) : value)
+    let creationKeySequence = 0
+    function newCreationKey() {
+      const bytes = new Uint32Array(4)
+      if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes)
+      else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 4294967296)
+      return `create-${Date.now().toString(36)}-${(++creationKeySequence).toString(36)}-${[...bytes].map(n => n.toString(16).padStart(8, '0')).join('')}`
+    }
+    function creationErrorMessage(code) {
+      if (code === 'UI_FETCH_FAILED' || /^HTTP_/.test(code)) return t('projects.replyMissing')
+      if (code === 'BLENDER_NOT_FOUND' || code === 'RUNTIME_UNAVAILABLE') return t('projects.environmentFailed')
+      if (code === 'CREATION_REQUEST_CONFLICT') return t('projects.creationConflict')
+      if (code === 'UI_HOST_API_STALE') return t('projects.hostNeedsRestart')
+      return t('projects.creationFailed')
     }
 
     const imageDownloadKey = (projectId, artifact) => JSON.stringify([projectId, artifact?.path, artifact?.sha256])
@@ -2436,6 +2478,8 @@ window.__ModuleLoader__.load({
         diffError: null,
         previewBusy: false,
         imageDownloads: {},
+        creationWork: null,
+        creationRequestProtocol: null,
         inspectionForms: {},
         inspectionWork: {},
         inspectionRevisions: {},
@@ -2496,6 +2540,7 @@ window.__ModuleLoader__.load({
       let tick = 0
       let live = false
       let loadSequence = 0
+      let creationAttempt = null
       let fileChoiceSignature = null, fileChoicesStopped = false
       const photographyControllers = new Map()
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
@@ -2550,7 +2595,7 @@ window.__ModuleLoader__.load({
       const setIn = (table, key, value) => { data = { ...data, [table]: { ...data[table], [key]: value } }; notify() }
 
       /** The project every per-project route is addressed to. */
-      const target = () => data.projectId ?? (data.projects[0] ? data.projects[0].projectId : null)
+      const target = () => data.projectId ?? data.projects.find(project => !project.creationPending)?.projectId ?? null
 
       /** Read everything the panel shows, in one pass. */
       const load = async () => {
@@ -2564,7 +2609,8 @@ window.__ModuleLoader__.load({
           return
         }
         const payload = stateResult.payload
-        const active = projectId !== null ? projectId : (payload.projects && payload.projects[0] ? payload.projects[0].projectId : null)
+        const pending = payload.projects?.some(project => project.projectId === projectId && project.creationPending)
+        const active = pending ? null : projectId ?? payload.projects?.find(project => !project.creationPending)?.projectId ?? null
         const patch = {
           status: 'ok',
           error: null,
@@ -2572,6 +2618,7 @@ window.__ModuleLoader__.load({
           projects: payload.projects || [],
           recipeCatalog: payload.recipeCatalog ?? { recipes: [], errors: [] },
           projectsRoot: payload.projectsRoot ?? null,
+          creationRequestProtocol: payload.creationRequestProtocol ?? null,
           selected: payload.selected ?? null,
           activeProjectId: active,
           currentRevision: payload.selected ? payload.selected.currentRevision : null,
@@ -2636,6 +2683,44 @@ window.__ModuleLoader__.load({
 
       /** A write just happened: re-run every read, including the view-specific ones. */
       const reload = () => { tick += 1; void load() }
+
+      const creationBody = () => editorClone({ title: data.forms.title.trim(),
+        goal: data.forms.goal.length > 0 ? data.forms.goal : undefined,
+        renderPreview: Boolean(data.forms.recipe), recipe: data.forms.recipe ? {
+          id: data.forms.recipe.id, version: data.forms.recipe.version, digest: data.forms.recipe.digest,
+          parameters: data.forms.recipeParameters,
+        } : undefined })
+
+      async function submitCreation(attempt) {
+        if (data.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL) {
+          set({ creationWork: { status: 'error', title: attempt.body.title, code: 'UI_HOST_API_STALE' } })
+          setIn('notices', 'projects', { kind: 'creation', ok: false, message: t('projects.hostNeedsRestart') })
+          return
+        }
+        setIn('busy', 'create', true)
+        set({ creationWork: { status: 'busy', title: attempt.body.title }, previewResult: null })
+        setIn('notices', 'projects', null)
+        setIn('notices', 'preview', null)
+        const outcome = await postJson(fetchImpl, ROUTES.projects, { ...editorClone(attempt.body), creationKey: attempt.key })
+        setIn('busy', 'create', false)
+        if (outcome.ok) {
+          const sameInputs = creationSignature(creationBody()) === attempt.signature
+          set({ ...(sameInputs ? { forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} } } : {}),
+            creationWork: null, projectId: outcome.payload.project.projectId,
+            ...(attempt.body.renderPreview ? { view: 'preview', compareMode: 'result' } : {}) })
+          if (creationAttempt === attempt) creationAttempt = null
+          setIn('notices', attempt.body.renderPreview ? 'preview' : 'projects', { kind: 'creation', projectId: outcome.payload.project.projectId, ok: true, message: outcome.payload.project.creationReplayed
+            ? t('projects.recovered', { id: outcome.payload.project.projectId })
+            : t('projects.created', { id: outcome.payload.project.projectId }) })
+        } else {
+          set({ creationWork: { status: 'error', title: attempt.body.title, code: outcome.error.code } })
+          setIn('notices', 'projects', { kind: 'creation', ok: false, message: creationErrorMessage(outcome.error.code),
+            technicalDetails: `${outcome.error.code}: ${outcome.error.message}` })
+        }
+        // A failed response may follow a successful Host commit. Refreshing is
+        // read-only; retries remain explicit and reuse the captured request key.
+        reload()
+      }
 
       /** Run one write, report it in this view's notice, then reload. */
       const write = async (view, path, body, describe) => {
@@ -3282,24 +3367,12 @@ window.__ModuleLoader__.load({
         createProject: async () => {
           if (data.busy.create) return
           if (!recipeSelectionCurrent(data) || !recipeValuesValid(data.forms.recipe, data.forms.recipeParameters)) return
-          const withRecipe = Boolean(data.forms.recipe)
-          setIn('busy', 'create', true)
-          const outcome = await postJson(fetchImpl, ROUTES.projects, {
-            title: data.forms.title,
-            goal: data.forms.goal.length > 0 ? data.forms.goal : undefined,
-            renderPreview: withRecipe,
-            recipe: data.forms.recipe ? { id: data.forms.recipe.id, version: data.forms.recipe.version, digest: data.forms.recipe.digest, parameters: data.forms.recipeParameters } : undefined,
-          })
-          setIn('busy', 'create', false)
-          if (outcome.ok) {
-            set({ forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }, projectId: outcome.payload.project.projectId, ...(withRecipe ? { view: 'preview', compareMode: 'result' } : {}) })
-            setIn('notices', 'projects', { ok: true, message: t('projects.created', { id: outcome.payload.project.projectId }) })
-            reload()
-          } else {
-            setIn('notices', 'projects', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
-            if (outcome.error.code === 'RECIPE_CHANGED' || outcome.error.code === 'RECIPE_NOT_FOUND') reload()
-          }
+          const body = creationBody()
+          const signature = creationSignature(body)
+          if (!creationAttempt || creationAttempt.signature !== signature) creationAttempt = { body, signature, key: newCreationKey() }
+          return submitCreation(creationAttempt)
         },
+        retryCreation: () => data.busy.create || !creationAttempt ? undefined : submitCreation(creationAttempt),
 
         applyPatch: async () => {
           const projectId = data.activeProjectId
@@ -3365,6 +3438,7 @@ window.__ModuleLoader__.load({
         },
 
         renderPreview: async () => {
+          setIn('notices', 'preview', null)
           set({ previewBusy: true, previewResult: null })
           const outcome = await postJson(fetchImpl, projectRoute(target(), '/preview'), { revision: data.selected?.scene?.revision })
           set({ previewBusy: false, ...(outcome.ok ? { compareMode: 'renders' } : {}) })
@@ -3489,10 +3563,12 @@ window.__ModuleLoader__.load({
                 Button({
                   tone: project.projectId === state.activeProjectId ? 'primary' : undefined,
                   action: `select-project:${project.projectId}`,
+                  disabled: project.creationPending,
                   onClick: () => actions.selectProject(project.projectId),
                   children: project.title || project.projectId,
                 }),
                 el('span', { className: 'db-muted db-mono' }, project.projectId),
+                project.creationPending ? Badge({ tone: 'live', name: 'creation-pending', children: t('projects.incomplete') }) : null,
                 project.unfinishedJobs > 0 ? Badge({ tone: 'live', name: 'unfinished', children: t('projects.unfinishedJobs', { count: project.unfinishedJobs }) }) : null,
                 el('span', { className: 'db-muted' }, t('projects.revisionCount', { count: project.revisionCount })),
               ),
@@ -3526,12 +3602,24 @@ window.__ModuleLoader__.load({
             Button({
               tone: 'primary',
               action: 'create-project',
-              disabled: state.busy.create || state.forms.title.trim().length === 0 || !recipeSelectionCurrent(state) || !recipeValuesValid(state.forms.recipe, state.forms.recipeParameters),
+              disabled: state.busy.create || state.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL || state.forms.title.trim().length === 0 || !recipeSelectionCurrent(state) || !recipeValuesValid(state.forms.recipe, state.forms.recipeParameters),
               onClick: actions.createProject,
               children: state.busy.create ? (state.forms.recipe ? t('recipes.creatingPreview') : t('projects.creating')) : (state.forms.recipe ? t('recipes.createPreview') : t('projects.createButton')),
             }),
           ),
           state.notices.projects ? Notice(state.notices.projects, { marginTop: '8px' }) : null,
+          state.status === 'ok' && state.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL
+            ? el('p', { className: 'db-muted', 'data-creation-host-stale': true }, t('projects.hostNeedsRestart')) : null,
+          state.creationWork?.status === 'error' ? el('div', { 'data-creation-recovery': true, style: { marginTop: '8px' } },
+            el('p', { className: 'db-muted' }, t('projects.originalTitle', { title: state.creationWork.title })),
+            el('div', { className: 'db-inline' },
+              Button({ action: 'retry-creation', disabled: state.busy.create, onClick: actions.retryCreation, children: t('projects.retryCreation') }),
+              Button({ action: 'refresh-creation-projects', onClick: actions.reload, children: t('projects.refreshList') }),
+              ['BLENDER_NOT_FOUND', 'RUNTIME_UNAVAILABLE'].includes(state.creationWork.code)
+                ? el('a', { href: 'https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/environment-check.md', target: '_blank', rel: 'noreferrer' }, t('projects.environmentGuide')) : null),
+            state.notices.projects?.technicalDetails ? el('details', { 'data-creation-diagnostics': true },
+              el('summary', null, t('projects.creationDetails')), el('pre', { className: 'db-pre' }, state.notices.projects.technicalDetails)) : null,
+          ) : null,
         ),
         el('details', { className: 'db-storage' }, el('summary', null, t('projects.storage')),
           el('span', { className: 'db-muted db-mono' }, `projectsRoot: ${state.projectsRoot || '—'}`)),
@@ -4546,6 +4634,8 @@ window.__ModuleLoader__.load({
             children: state.previewBusy ? t('preview.rendering') : t('preview.render'),
           }),
           Notice(state.previewResult, { border: 0, padding: '0 6px', marginBottom: 0 }),
+          state.notices.preview?.kind === 'creation' && state.notices.preview.projectId === state.activeProjectId
+            ? Notice(state.notices.preview, { border: 0, padding: '0 6px', marginBottom: 0 }) : null,
         ),
         el('div', { className: 'db-tabs' },
           el('span', { className: 'db-muted' }, t('preview.compare')),

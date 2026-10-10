@@ -10,6 +10,7 @@ export const BLENDER_PROTOCOL_VERSION: 'deepblend.blender/v1';
 export const SCENE_SCHEMA_VERSION: 'deepblend.scene/v1';
 export const SCENE_PATCH_VERSION: 'deepblend.scene-patch/v1';
 export const HOST_API_VERSION: 6;
+export const CREATION_REQUEST_VERSION: 'deepblend.creation-request/v1';
 export const BlenderErrorCode: Readonly<BlenderErrorCodeMap>;
 export const BlenderWarningCode: Readonly<BlenderWarningCodeMap>;
 export class BlenderError extends Error {

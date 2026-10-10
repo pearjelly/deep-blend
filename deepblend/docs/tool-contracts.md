@@ -348,6 +348,7 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
 | `projectId` | string | 否 | 显式 id；冲突时自动加数字后缀而非报错 |
 | `saveCheckpoint` | boolean | 否 | 默认 `true`，编译并保存 `<revision>/scene.blend` |
 | `renderPreview` | boolean | 否 | 默认 `false` |
+| `creationKey` | string | 否 | 同一次创建的稳定标识；相同输入重试可恢复已有项目，不重复创建/编译/渲染，返回当前保存版本。新项目须使用新标识；详见[创建恢复](creation-recovery.md) |
 
 **副作用**：创建 `<projectsRoot>/<id>/` 骨架，提交 **r0001**（`kind: project_create`）。
 若省略 `sceneSpec` 与 `recipe`，脚手架包含一个立方体、一盏面光、一台对准主体的相机、两个渲染

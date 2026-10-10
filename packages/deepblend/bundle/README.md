@@ -82,6 +82,8 @@ Source installs may require the build approval that DSH reports.
 
 Version 0.3.4 adds **Save preview PNG** above previews, comparisons and inspection images. It checks the displayed source and saves the original bytes without a video encoder or another render.
 
+Version 0.3.5 keeps creation inputs after failures, adds repair guidance and explicit retry, and recovers a saved project when its reply was lost. Newer drafts and later revisions are preserved. Drafts and retry keys remain in the current page; see the [creation recovery guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creation-recovery.md).
+
 ## Your first creation: a glazed cup
 
 Follow the [illustrated walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md):
