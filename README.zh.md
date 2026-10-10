@@ -273,7 +273,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         127 个 *.test.mjs（当前源码）
+    contract/         128 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -332,7 +332,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 24/127 file(s) passed
+DeepBlend tests: 24/128 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -392,12 +392,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**37 个套件、163 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**127 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1503 个 `node:test` 用例（93 个文件）**。
+预期：**37 个套件、164 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**128 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1526 个 `node:test` 用例（94 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 0.3.8 的同一次冻结完整入口已通过，上述快照由实际输出逐文件核对；637 个冻结文件原字节保持。GitHub/npm 正式公开，三路安装读回一致。正式来源见 `deepblend/docs/milestone-status.md` §264 与[每日发布记录](deepblend/docs/daily-releases.md)。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 当前候选契约层已实测上述快照，来源为同一轮逐文件输出；冻结连续完整入口与公开发布待完成。上轮正式来源见 `deepblend/docs/milestone-status.md` §264，本轮状态见[每日发布记录](deepblend/docs/daily-releases.md)。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

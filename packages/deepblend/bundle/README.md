@@ -152,3 +152,5 @@ of truth, and `.blend` is a compiled artifact.
 
 [Report a bug](https://github.com/pearjelly/deep-blend/issues/new?template=bug_report.yml)
 · [Request a feature](https://github.com/pearjelly/deep-blend/issues/new?template=feature.yml)
+
+Preview reads belong to the selected work. Failed reads offer an explicit refresh while preserving edits; see [preview recovery](../../../deepblend/docs/preview-recovery.md).

@@ -542,6 +542,9 @@ window.__ModuleLoader__.load({
       'revisions.currentSuffix': ' (当前)',
       'revisions.missing': '没有这个 revision',
       'preview.noneForRevision': '这个 revision 还没有预览图（渲染一次预览即可）。',
+      'preview.reading': '正在读取所选项目的预览…',
+      'preview.readFailed': '未能读取这个项目的预览。刷新后重试；保存版本和未提交修改仍保留。',
+      'preview.sourceMismatch': '预览回执与所选项目不一致。刷新后重试。',
       'preview.noPrevious': '还没有上一次渲染：再点一次「渲染预览」，或者先在某个更早的 revision 上渲一次。',
       'preview.notRenderedHere': '这个 revision 还没有由面板渲过预览（上方的「渲染预览」会生成第一张）。',
       'preview.rendering': '渲染中…',
@@ -1109,6 +1112,9 @@ window.__ModuleLoader__.load({
       'revisions.currentSuffix': ' (current)',
       'revisions.missing': 'no such revision',
       'preview.noneForRevision': 'This revision has no preview image yet (render a preview and it will).',
+      'preview.reading': 'Reading previews for the selected project…',
+      'preview.readFailed': 'Could not read this project’s previews. Refresh to retry; saved versions and unsaved edits are kept.',
+      'preview.sourceMismatch': 'The preview response does not match the selected project. Refresh to retry.',
       'preview.noPrevious': 'No previous render yet: press “Render preview” again, or render once on an earlier revision.',
       'preview.notRenderedHere': 'This revision has no preview rendered from this panel yet (the “Render preview” button above makes the first one).',
       'preview.rendering': 'Rendering…',
@@ -2522,7 +2528,7 @@ window.__ModuleLoader__.load({
         if (typeof payload?.hostApiVersion === 'number' && payload.hostApiVersion < EXPECTED_HOST_API) {
           return { status: 'stale', payload: null, error: staleHostError(expectedRoute, { payload, status: response.status }) }
         }
-        if (payload && payload.ok) return { status: 'ok', payload, error: null }
+        if (payload && payload.ok && response.ok !== false) return { status: 'ok', payload, error: null }
         return {
           status: 'error',
           payload: null,
@@ -2602,6 +2608,8 @@ window.__ModuleLoader__.load({
         unfinishedJobs: [],
         previews: null,
         artifactBase: '',
+        previewContext: null,
+        previewReadStatus: 'idle',
         view: 'projects',
         projectId: null,
         activeProjectId: null,
@@ -2754,6 +2762,14 @@ window.__ModuleLoader__.load({
       }
       /** Change the snapshot and tell everyone. @param {object} patch */
       const set = (patch) => {
+        // Retire the old source before selection/creation navigation can expose
+        // it with a new project. A load supplies the complete new source atomically.
+        if (!Object.hasOwn(patch, 'previews') && ['projectId', 'projectsRoot', 'activeProjectId']
+          .some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) {
+          const requested = Object.hasOwn(patch, 'projectId') ? patch.projectId : data.projectId
+          const active = Object.hasOwn(patch, 'activeProjectId') ? patch.activeProjectId : data.activeProjectId
+          patch = { ...patch, previews: null, artifactBase: '', previewContext: null, previewReadStatus: requested || active ? 'loading' : 'idle' }
+        }
         if (['projectsRoot', 'activeProjectId', 'currentRevision', 'view', 'compareMode', 'compareLeft', 'compareRight']
           .some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) {
           diffSequence += 1
@@ -2846,6 +2862,7 @@ window.__ModuleLoader__.load({
           currentRevision: payload.selected ? payload.selected.currentRevision : null,
           jobs: payload.selected ? payload.selected.jobs || [] : [],
           unfinishedJobs: payload.selected ? payload.selected.unfinishedJobs || [] : [],
+          previews: null, artifactBase: '', previewContext: null, previewReadStatus: active === null ? 'idle' : 'loading',
         }
         live = patch.unfinishedJobs.length > 0
 
@@ -2861,11 +2878,22 @@ window.__ModuleLoader__.load({
           }
           const previewResult = await readRoute(fetchImpl, `${projectRoute(active, '/previews')}?t=${tick}`, 'project.previews')
           if (previewResult.status === 'ok') {
-            patch.previews = previewResult.payload.previews ?? null
-            patch.artifactBase = previewResult.payload.artifactBase ?? ''
-          } else if (previewResult.status === 'stale') {
-            patch.status = 'stale'
+            const result = previewResult.payload
+            if (result.previews?.projectId === active && Array.isArray(result.previews.revisions)
+              && (result.projectId === undefined || result.projectId === active)
+              && result.artifactBase === `/deepblend/artifacts/${encodeURIComponent(active)}/`) {
+              patch.previews = result.previews
+              patch.artifactBase = result.artifactBase
+              patch.previewContext = { projectId: active, projectsRoot: patch.projectsRoot }
+              patch.previewReadStatus = 'ok'
+            } else {
+              patch.previewReadStatus = 'error'
+              patch.error = { code: 'UI_PREVIEW_MISMATCH', message: t('preview.sourceMismatch') }
+            }
+          } else {
+            patch.previewReadStatus = 'error'
             patch.error = previewResult.error
+            if (previewResult.status === 'stale') patch.status = 'stale'
           }
         } else {
           patch.previews = null
@@ -3852,6 +3880,7 @@ window.__ModuleLoader__.load({
           void load()
         },
         stop() {
+          loadSequence += 1
           diffSequence += 1
           closeCreationDraft()
           draftLifecycle?.removeEventListener?.('pagehide', closeCreationDraft)
@@ -4877,7 +4906,13 @@ window.__ModuleLoader__.load({
       const state = ctx.state
       const actions = ctx.actions
       const previews = state.previews
-      if (previews === null) return el('div', { 'data-view': 'preview', className: 'db-muted' }, t('common.noProject'))
+      if (previews === null) {
+        if (state.previewReadStatus === 'error') return el('div', { 'data-view': 'preview', 'data-preview-state': 'error', className: 'db-card' },
+          el('div', { className: 'db-muted' }, t('preview.readFailed')),
+          Button({ action: 'preview-reload', onClick: actions.reload, children: t('common.refresh') }))
+        if (state.previewReadStatus === 'loading') return el('div', { 'data-view': 'preview', 'data-preview-state': 'loading', className: 'db-muted' }, t('preview.reading'))
+        return el('div', { 'data-view': 'preview', className: 'db-muted' }, t('common.noProject'))
+      }
       const revisions = previews.revisions
       const { left, right } = previewRevisionPair(state)
       const entryOf = id => revisions.find(entry => entry.revision === id) || null

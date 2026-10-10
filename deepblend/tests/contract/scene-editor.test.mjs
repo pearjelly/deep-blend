@@ -50,7 +50,7 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
         project.revision = body.revision; payload = { ok: true, revision: { revision: body.revision } }
       }
     } else if (path.pathname.endsWith('/jobs')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.jobs', jobs: [], unfinished: [] }
-    else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: '/artifact', previews: { revisions: previews[projectId] } }
+    else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: previews[projectId] } }
     else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { title: projectId, projectId, revisionCount: previews[projectId].length }, revisions: previews[projectId].map(row => ({ ...row, isCurrent: row.revision === project.revision })), qa: { summary: 'Controlled UI fixture' }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
     return { ok: true, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }

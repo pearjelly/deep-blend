@@ -52,7 +52,7 @@ async function client(t, options = {}) {
       } else if (parsed.pathname.endsWith('/review')) payload = { ok: true, revision: project.revision, review: options.review || { reviewerError: null, referenceImages: [] } }
       else payload = { ok: true, run: { finalRevision: project.revision, stopReason: 'ITERATION_CAP', artistic: { status: 'unassessable' } } }
     } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', hostApiVersion: HOST_API_VERSION, jobs: [], unfinished: [] }
-    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', hostApiVersion: HOST_API_VERSION, artifactBase: `/deepblend/artifacts/${id}/`, previews: { revisions: [] } }
+    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', hostApiVersion: HOST_API_VERSION, artifactBase: `/deepblend/artifacts/${id}/`, previews: { projectId: id, revisions: [] } }
     else payload = { ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, projects: Object.keys(projects).map(projectId => ({ projectId })), selected: {
       project: { projectId: id, title: id }, scene: scene(project.spec, project.revision), currentRevision: project.revision,
       qa: buildQaView({ projectId: id, revision: project.revision, review: options.qaReview || null }), jobs: [], unfinishedJobs: [],

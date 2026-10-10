@@ -30,7 +30,7 @@ async function client(t, storage, options = {}) {
       } else {
         const route = url.includes('/jobs') ? 'project.jobs' : url.includes('/previews') ? 'project.previews' : 'state'
         payload = { ok: true, route, hostApiVersion: HOST_API_VERSION, creationRequestProtocol: protocol,
-          projectsRoot: root, projects: [], selected: null, recipeCatalog: recipes, jobs: [], unfinished: [], previews: { revisions: [] } }
+          projectsRoot: root, projects: [], selected: null, recipeCatalog: recipes, jobs: [], unfinished: [], previews: { projectId: new URL(String(url), 'http://controlled.test').pathname.split('/')[3], revisions: [] }, artifactBase: '/deepblend/artifacts/' + new URL(String(url), 'http://controlled.test').pathname.split('/')[3] + '/' }
       }
       return { ok: true, status: 200, text: async () => JSON.stringify(payload), json: async () => payload }
     } })
