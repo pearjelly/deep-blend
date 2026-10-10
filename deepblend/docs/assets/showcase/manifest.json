@@ -167,7 +167,58 @@
           }
         ],
         "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
-      }
+      },
+      "inspections": [
+        {
+          "kind": "diagnostic",
+          "mode": "clay",
+          "path": "amber-atlas-clay-hero-f072.png",
+          "bytes": 227734,
+          "sha256": "656f5cf32c5fd4051d4a5d8b6ab8a9ade71eaf9e03dcb7087fab07d249e1157f",
+          "width": 640,
+          "height": 360,
+          "pixelSha256": "c80222028a3761d0fbe515952ef113cd31c2716a4866e12963ab526eaa155771",
+          "projectId": "showcase-amber-atlas",
+          "revision": "r0002",
+          "sceneDigest": "36b964d9171e9f543f633993a01b07532d95855de6499ede3e04e5e5b1d465b6",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              640,
+              360
+            ],
+            "resolutionPercentage": 100,
+            "samples": 16,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "sourceReceiptSha256": "f01ed4bb79f9328ea1015554a072efad5059b48c15711ea5e6ac56fa6098c15d",
+          "sourceRecordedAt": "2026-10-09T07:43:05.312Z"
+        }
+      ]
     },
     {
       "id": "solstice",
@@ -320,7 +371,58 @@
           }
         ],
         "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
-      }
+      },
+      "inspections": [
+        {
+          "kind": "diagnostic",
+          "mode": "clay",
+          "path": "solstice-clay-hero-f072.png",
+          "bytes": 214507,
+          "sha256": "01ecc50daac8dec9dc77cb48731c5c6e8e15c853341758effa47c953ac7afd71",
+          "width": 640,
+          "height": 360,
+          "pixelSha256": "7d52e5c30bd10a5baf5f5d8bbf7d3a3a20225b1091665032714fe0e7fcaab233",
+          "projectId": "showcase-solstice",
+          "revision": "r0003",
+          "sceneDigest": "4d5a682a5767fb8be8776c68951fd91000896f651bf4e74db0f0dc23424890bf",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              640,
+              360
+            ],
+            "resolutionPercentage": 100,
+            "samples": 16,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "sourceReceiptSha256": "dcc8ac25c82a1d8e0bcce9c2c3d872d2c49a2e13b08177cc970f87b6b83595e3",
+          "sourceRecordedAt": "2026-10-09T07:43:10.159Z"
+        }
+      ]
     },
     {
       "id": "nocturne",
@@ -473,7 +575,58 @@
           }
         ],
         "postproduction": "Plugin-encoded H.264 delivery; 144 actual rendered frames, no interpolated or repeated static frames."
-      }
+      },
+      "inspections": [
+        {
+          "kind": "diagnostic",
+          "mode": "clay",
+          "path": "nocturne-clay-hero-f072.png",
+          "bytes": 236861,
+          "sha256": "adfca9f667cca939a09905884ca68aed6eadaed82a5d84f15f97442ea3c8addd",
+          "width": 640,
+          "height": 360,
+          "pixelSha256": "ee4b8c7eedc6b4eb2d9201e9bc5269223fc79a5337b41ad9bc615cd6162972cb",
+          "projectId": "showcase-nocturne",
+          "revision": "r0003",
+          "sceneDigest": "8a5563b4a3994c47357fea067967676c0a234ab1203221153c576093f6c55829",
+          "cameraId": "hero",
+          "frame": 72,
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              640,
+              360
+            ],
+            "resolutionPercentage": 100,
+            "samples": 16,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "AgX - Medium High Contrast",
+            "exposure": 0,
+            "fps": 24,
+            "frameStart": 1,
+            "frameEnd": 144,
+            "checkpointProfile": {
+              "engine": "CYCLES",
+              "filmTransparent": false,
+              "fps": 24,
+              "frameEnd": 144,
+              "frameStart": 1,
+              "profileEngine": "cycles",
+              "profileName": "preview",
+              "requestedEngine": "cycles",
+              "resolution": [
+                960,
+                540
+              ],
+              "samples": 64,
+              "viewTransform": "AgX"
+            }
+          },
+          "sourceReceiptSha256": "700fb18c4bd30132794b170a62017f2427d4e6a074469bd8d8899bf6a0cd6856",
+          "sourceRecordedAt": "2026-10-09T07:43:16.323Z"
+        }
+      ]
     }
   ]
 }

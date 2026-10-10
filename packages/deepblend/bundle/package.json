@@ -1,8 +1,11 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Create Blender product scenes in DSH with editable recipes, model imports, previews and PNG/MP4 delivery; includes workbench and agent configuration.",
   "main": "lib/index.js",
+  "bin": {
+    "deepblend-doctor": "lib/doctor-cli.js"
+  },
   "exports": {
     ".": {
       "default": "./lib/index.js"

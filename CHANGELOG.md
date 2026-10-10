@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 — Unreleased
+
+- Read-only `deepblend-doctor` checks Node.js, DSH, pnpm, Blender and optional FFmpeg/ffprobe in one pass, with actionable failures and separate PNG/MP4 readiness.
+- Executable path overrides, per-tool deadlines, structured JSON reports and strict video requirements.
+- User environment guidance and a product roadmap with a daily release evidence ledger.
+- Exact provenance checks for the existing showcase, including clay inspections and display derivatives.
+
 ## 0.3.2 — 2026-10-09
 
 The workbench puts creation and object editing within easier reach, with a consistent DeepBlend

@@ -1,10 +1,11 @@
 /**
  * @deepblend/dsh-blender-bundle
  *
- * This package is **patch-only**: it contributes no runtime plugin, no service
+ * This package is **patch-only when composed**: it contributes no runtime plugin, no service
  * and no tool of its own. Its entire contribution is `cordis.patch.yml`,
  * declared through `dsh.bundle.patch` and composed by the profile boot before
  * the profile's own patch layer.
+ * The optional deepblend-doctor executable runs only when explicitly invoked.
  *
  * The module exists so the package is a well-formed, importable ESM package —
  * an `exports` map with no `.` entry makes `require.resolve('@deepblend/dsh-blender-bundle')`

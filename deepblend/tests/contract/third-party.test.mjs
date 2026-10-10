@@ -38,10 +38,12 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
+import { verifyShowcaseProvenance } from '../../tools/showcase-provenance.mjs'
 
 const INVENTORY = join(ROOT, 'deepblend', 'docs', 'third-party.md')
 const inventory = readFileSync(INVENTORY, 'utf8')
@@ -167,6 +169,7 @@ test('source files exclude external binaries and published images have declared 
   assert.equal(previewManifest.tool, 'deepblend/tools/quality-benchmark.mjs')
   assert.ok(tracked.includes(previewManifest.tool))
   const declared = new Set()
+  for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
   for (const image of previewManifest.images) {
     assert.match(image.file, /^[a-z0-9-]+\.png$/)
     const path = `deepblend/benchmarks/previews/${image.file}`
@@ -265,10 +268,36 @@ test('source files exclude external binaries and published images have declared 
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand or native fixture provenance`)
+      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand, showcase or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')
+})
+
+test('showcase rejects changed images, scenes, dimensions and detached clay provenance', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-showcase-integrity-'))
+  const base = 'deepblend/docs/assets/showcase'
+  const manifest = JSON.parse(readFileSync(join(ROOT, base, 'manifest.json'), 'utf8'))
+  try {
+    writeFileSync(join(fixture, 'package.json'), readFileSync(join(ROOT, 'package.json')))
+    mkdirSync(join(fixture, base), { recursive: true })
+    symlinkSync(join(ROOT, 'deepblend/showcase'), join(fixture, 'deepblend/showcase'))
+    for (const file of readdirSync(join(ROOT, base)).filter(file => file !== 'manifest.json')) {
+      symlinkSync(join(ROOT, base, file), join(fixture, base, file))
+    }
+    const check = (change, pattern) => {
+      const changed = structuredClone(manifest)
+      change(changed.cases[0])
+      writeFileSync(join(fixture, base, 'manifest.json'), JSON.stringify(changed))
+      assert.throws(() => verifyShowcaseProvenance(fixture), pattern)
+    }
+    check(entry => { entry.images[0].sha256 = '0'.repeat(64) }, /digest differs/)
+    check(entry => { entry.sceneSourceSha256 = '0'.repeat(64) }, /scene source changed/)
+    check(entry => { entry.images[0].width++ }, /Expected values to be strictly equal/)
+    check(entry => { entry.inspections[0].revision = 'r9999' }, /Expected values to be strictly equal/)
+    check(entry => { entry.images[0].webDerivative.sha256 = '0'.repeat(64) }, /digest differs/)
+    check(entry => { entry.inspections = [] }, /missing clay provenance/)
+  } finally { rmSync(fixture, { recursive: true, force: true }) }
 })
 
 test('release manifest checks explicitly leave native artifact acceptance pending', () => {
