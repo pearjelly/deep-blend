@@ -36,7 +36,7 @@
 | `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
 | `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
 | `deepblend/tests/e2e/png-download-ui.e2e.mjs` | 真实配方创建与 Chrome 文件下载；原始 PNG 字节/尺寸/摘要和源文件名，真实 HTTP 图片被替换时拒绝、恢复后重试、无 SubtleCrypto 时校验、360px 操作和场景/任务保护；编码器路径明确不可用 |
-| `deepblend/tests/e2e/creation-recovery-ui.e2e.mjs` | 真实缺失程序失败、隔离路径修复、原请求重试及新输入保留；CDP 丢弃实际成功 HTTP 回执，同标识恢复且无重复项目/编译/渲染；场景、PNG、作业和版本原字节保护、360px 控件实际可见及 Host 重启 |
+| `deepblend/tests/e2e/creation-recovery-ui.e2e.mjs` | 真实缺失程序失败、隔离路径修复、刷新及关闭/重开后的浏览器草稿、明确恢复不提交、原请求重试及新输入保留；CDP 丢弃实际成功 HTTP 回执，同标识恢复且无重复项目/编译/渲染；两页草稿与只删除浏览器记录、场景/PNG/作业/版本原字节保护、360px 控件实际可见、Host 重启及临时应用别名移除 |
 | `deepblend/tests/e2e/asset-bundle-upload.e2e.mjs` | 实际 FileList/目录相对路径与原始字节；平铺成功/拒绝、真实完成和取消回包丢失后的恢复；390px 工作中进度/取消/错误；两份 glTF、GLB 与 OBJ 预览，三格式明确应用及保存场景独立重开 |
 
 已有真实渲染 job 曾实测约 15 分钟，因此把编辑入口放入独立 job，给原任务保留超时余量。
@@ -124,7 +124,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `${{ runner.temp }}/deepblend-ci/asset-bundle-upload-browser/` 与 `asset-bundle-upload-browser.log`：FileList、原始文件/请求摘要、真实回包丢失记录、进度与错误截图、三格式源文件/PNG/场景和独立重开结果、隔离 DSH home 普通文件及链接清单、自有进程退出及前后源码摘要；失败证据不覆盖，重新运行需新目录。
 
 - `${{ runner.temp }}/deepblend-ci/png-download-browser/` 与 `png-download-browser.log`：首次原生图片、原始保存文件与摘要、HTTP 请求、失败/恢复和无加密 API 的重复保存、桌面/360px 截图及报告；文件目录使用独立路径，重试仍保留前次证据。
-- `${{ runner.temp }}/deepblend-ci/creation-recovery-browser/` 与 `creation-recovery-browser.log`：真实错误、修复后原请求、实际被丢弃的成功回执、读取状态与显式重试、窄屏恢复控件和可见确认、原场景/图片/作业/版本摘要及 Host 重启回执。每次运行使用新目录，保留原失败。
+- `${{ runner.temp }}/deepblend-ci/creation-recovery-browser/` 与 `creation-recovery-browser.log`：真实错误、修复后原请求、实际被丢弃的成功回执、刷新/关闭重开后的草稿、只读恢复与显式重试、两页独立记录、窄屏控件和可见确认、原场景/图片/作业/版本摘要及 Host 重启回执。每次运行使用新目录，保留原失败；退出时移除仅本次创建的应用符号链接，避免上传整套 Blender 应用。
 
 该 artifact 也保留运行时安装、软件图形和 FFmpeg/ffprobe 实际版本日志。
 

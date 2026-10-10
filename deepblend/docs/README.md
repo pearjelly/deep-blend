@@ -12,6 +12,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | Make your first product scene / 完成第一件作品 | [Glazed cup walkthrough · 青釉杯图文教程](creator-tutorial.md) |
 | Learn the workbench / 熟悉工作台 | [Usage · 操作指南](usage.md) |
 | Continue after creation fails / 创建失败后继续 | [Creation recovery · 创建恢复](creation-recovery.md) |
+| Continue after reload or reopening / 重载或重新打开后继续 | [Creation drafts · 浏览器创建草稿](creation-drafts.md) |
 | Choose and customize a starting point / 选择并调整配方 | [Recipes · 作品配方](recipes.md) |
 | Import models, textures and environments / 导入模型、贴图与环境光 | [Assets · 素材库](assets.md) |
 | Change shape and materials / 修改造型和材质 | [Modeling · 对象编辑](modeling.md) |

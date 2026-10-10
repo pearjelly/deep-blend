@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6 — 2026-10-10
+
+- Keep creation drafts and captured retry requests in this browser across reloads and closed pages.
+- Restore a selected draft explicitly without submitting; retry the original request after a lost creation response.
+- Isolate drafts by project storage and page, preserving newer inputs and other open pages.
+- Explain unavailable storage, invalid drafts and changed recipes; clearing a browser draft does not delete a project.
+- Remove the test-owned Blender alias before retaining browser evidence, avoiding an accidental application copy in CI archives.
+
 ## 0.3.5 — 2026-10-10
 
 - Retain creation inputs and offer actionable Blender guidance, read-only refresh and explicit retry after failures.
