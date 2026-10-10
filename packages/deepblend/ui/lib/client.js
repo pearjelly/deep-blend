@@ -478,7 +478,7 @@ window.__ModuleLoader__.load({
       'recipes.select': '使用这个配方',
       'recipes.selected': '已选择',
       'recipes.parameters': '调整配方',
-      'recipes.previewNote': '示例图展示默认参数。创建后会渲染你的设置，耗时取决于设备。',
+      'recipes.previewNote': '示例图展示默认参数。切换配方会保留各自的调整，恢复默认值只影响当前配方。创建后会渲染你的设置，耗时取决于设备。',
       'recipes.createPreview': '创建并生成预览',
       'recipes.creatingPreview': '正在创建并渲染…',
       'recipes.stale': '选中的配方已更新或不可用，请重新选择。',
@@ -1043,7 +1043,7 @@ window.__ModuleLoader__.load({
       'recipes.select': 'Use this recipe',
       'recipes.selected': 'Selected',
       'recipes.parameters': 'Customize recipe',
-      'recipes.previewNote': 'Images show default parameters. Creating a project renders your settings; time depends on your device.',
+      'recipes.previewNote': 'Images show default parameters. Switching recipes keeps each set of edits; reset affects only the current recipe. Creating a project renders your settings; time depends on your device.',
       'recipes.createPreview': 'Create and preview',
       'recipes.creatingPreview': 'Creating and rendering…',
       'recipes.stale': 'The selected recipe changed or is unavailable. Please select it again.',
@@ -1399,6 +1399,34 @@ window.__ModuleLoader__.load({
     const CREATION_DRAFT_BYTES = 262144
     const creationDraftPrefix = root => `${CREATION_DRAFT_VERSION}:${encodeURIComponent(root)}:`
     const creationRecipeReference = recipe => recipe ? { id: recipe.id, version: recipe.version, digest: recipe.digest } : null
+    const recipeChoiceIdentity = recipe => creationSignature(creationRecipeReference(recipe))
+    const copyRecipeParameters = values => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]))
+    const rememberRecipeChoice = (choices, recipe, parameters) => !recipe ? choices : [
+      ...choices.filter(choice => recipeChoiceIdentity(choice.recipe) !== recipeChoiceIdentity(recipe)),
+      { recipe: creationRecipeReference(recipe), parameters: copyRecipeParameters(parameters) },
+    ]
+    function validRecipeChoices(choices) {
+      if (choices === undefined) return true // Existing 0.3.6 browser drafts contain only their selected recipe.
+      if (!Array.isArray(choices)) return false
+      const seen = new Set()
+      return choices.every(choice => {
+        if (!choice || !choice.recipe || !validCreationRecipeReference(choice.recipe)
+          || Object.keys(choice).some(key => !['recipe', 'parameters'].includes(key))
+          || !choice.parameters || typeof choice.parameters !== 'object' || Array.isArray(choice.parameters)) return false
+        const key = recipeChoiceIdentity(choice.recipe)
+        if (seen.has(key)) return false
+        seen.add(key)
+        return Object.values(choice.parameters).every(value => value === '' || Number.isFinite(value)
+          || Array.isArray(value) && value.length === 3 && value.every(v => Number.isFinite(v) && v >= 0 && v <= 1))
+      })
+    }
+    function recipeChoiceFits(recipe, parameters) {
+      return Object.keys(parameters).length === recipe.parameters.length && recipe.parameters.every(parameter => {
+        const value = parameters[parameter.id]
+        return parameter.type === 'color' ? Array.isArray(value) && value.length === 3 && value.every(v => Number.isFinite(v) && v >= 0 && v <= 1)
+          : value === '' || Number.isFinite(value)
+      })
+    }
     function creationDraftJson(value) {
       if (value === null || typeof value === 'string' || typeof value === 'boolean') return
       if (typeof value === 'number' && Number.isFinite(value)) return
@@ -1429,7 +1457,8 @@ window.__ModuleLoader__.load({
           || !Number.isFinite(Date.parse(draft.savedAt)) || !forms || typeof forms.title !== 'string'
           || typeof forms.goal !== 'string' || !validCreationRecipeReference(forms.recipe)
           || Object.keys(forms).some(key => !['title', 'goal', 'recipe', 'recipeParameters'].includes(key))
-          || !forms.recipeParameters || typeof forms.recipeParameters !== 'object' || Array.isArray(forms.recipeParameters)) return null
+          || !forms.recipeParameters || typeof forms.recipeParameters !== 'object' || Array.isArray(forms.recipeParameters)
+          || !validRecipeChoices(draft.recipeChoices)) return null
         const attempt = draft.attempt
         if (attempt !== null) {
           const body = attempt?.body
@@ -2607,6 +2636,7 @@ window.__ModuleLoader__.load({
         editorLastEdits: {},
         editorComparison: null,
         patchDrafts: {},
+        recipeChoices: [],
         forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
         busy: { create: false, patch: false, editor: false, render: false, restore: false },
         notices: { projects: null, scene: null, preview: null, jobs: null, revisions: null },
@@ -2693,6 +2723,8 @@ window.__ModuleLoader__.load({
       const assetWork = (projectId, changes) => set({ assetWork: { ...data.assetWork, [projectId]: { ...data.assetWork[projectId], ...changes } } })
 
       const notify = () => {
+        if (!creationDraftClosed) data.recipeChoices = rememberRecipeChoice(data.recipeChoices,
+          data.forms.recipe || data.creationDraftMissingRecipe, data.forms.recipeParameters)
         persistCreationDraft()
         const signature = JSON.stringify([data.activeProjectId, data.selected?.scene?.revision, data.view, ...FILE_FIELDS.map(field => fileChoiceAllowed(data, field))])
         if (signature !== fileChoiceSignature) { data.fileChoiceGeneration += 1; fileChoiceSignature = signature }
@@ -2715,19 +2747,21 @@ window.__ModuleLoader__.load({
         if (creationDraftClosed || creationDraftWriting || !creationDraftRoot || data.projectsRoot !== creationDraftRoot) return
         creationDraftWriting = true
         try {
-          const forms = { ...creationDraftForms(data.forms), recipe: creationRecipeReference(data.forms.recipe) || data.creationDraftMissingRecipe }, signature = JSON.stringify([forms, creationAttempt])
+          const forms = { ...creationDraftForms(data.forms), recipe: creationRecipeReference(data.forms.recipe) || data.creationDraftMissingRecipe }
+          creationDraftJson(data.recipeChoices)
+          const signature = JSON.stringify([forms, creationAttempt, data.recipeChoices])
           if (signature === persistedCreationSignature) return
           const reading = refreshCreationDrafts()
           if (!reading.available) { data.creationDraftStorageStatus = 'unavailable'; return }
           const key = creationDraftPrefix(creationDraftRoot) + creationDraftId
-          if (!forms.title && !forms.goal && !forms.recipe && !Object.keys(forms.recipeParameters).length && !creationAttempt) {
+          if (!forms.title && !forms.goal && !forms.recipe && !Object.keys(forms.recipeParameters).length && !creationAttempt && !data.recipeChoices.length) {
             draftStorage.removeItem(key); data.creationDraftStorageStatus = null
           } else {
             if (!reading.entries.some(entry => entry.id === creationDraftId) && reading.entries.length >= 20) {
               data.creationDraftStorageStatus = 'full'; return
             }
             const raw = JSON.stringify({ schemaVersion: CREATION_DRAFT_VERSION, projectsRoot: creationDraftRoot,
-              id: creationDraftId, ownerActive: true, savedAt: new Date().toISOString(), forms, attempt: creationAttempt })
+              id: creationDraftId, ownerActive: true, savedAt: new Date().toISOString(), forms, attempt: creationAttempt, recipeChoices: data.recipeChoices })
             if (new Blob([raw]).size > CREATION_DRAFT_BYTES) { data.creationDraftStorageStatus = 'tooLarge'; return }
             draftStorage.setItem(key, raw)
             if (draftStorage.getItem(key) !== raw) throw new Error('Draft write did not persist')
@@ -2832,7 +2866,7 @@ window.__ModuleLoader__.load({
           // Switching stores cannot carry an old store's request identity into a new one.
           if (creationDraftRoot !== null) {
             creationAttempt = null; restoredCreationSource = null; creationDraftId = newCreationKey()
-            patch.creationWork = null; patch.creationDraftMissingRecipe = null
+            patch.creationWork = null; patch.creationDraftMissingRecipe = null; patch.recipeChoices = []
             patch.forms = { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }
           }
           creationDraftRoot = typeof patch.projectsRoot === 'string' && patch.projectsRoot ? patch.projectsRoot : null
@@ -2873,6 +2907,9 @@ window.__ModuleLoader__.load({
         if (attemptRoot !== creationDraftRoot) { reload(); return }
         if (outcome.ok) {
           const sameInputs = creationSignature(creationBody()) === attempt.signature
+          if (attempt.body.recipe) data.recipeChoices = data.recipeChoices.filter(choice =>
+            recipeChoiceIdentity(choice.recipe) !== recipeChoiceIdentity(attempt.body.recipe)
+            || creationSignature(choice.parameters) !== creationSignature(attempt.body.recipe.parameters))
           set({ ...(sameInputs ? { forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} } } : {}),
             creationWork: null, projectId: outcome.payload.project.projectId,
             ...(attempt.body.renderPreview ? { view: 'preview', compareMode: 'result' } : {}) })
@@ -2882,7 +2919,17 @@ window.__ModuleLoader__.load({
               const sourceKey = creationDraftPrefix(creationDraftRoot) + restoredCreationSource.id
               const source = parseCreationDraft(restoredCreationSource.raw, creationDraftRoot, restoredCreationSource.id)
               if (source && creationSignature(creationRequestBody(source.forms)) === attempt.signature
-                && draftStorage?.getItem(sourceKey) === restoredCreationSource.raw) draftStorage.removeItem(sourceKey)
+                && draftStorage?.getItem(sourceKey) === restoredCreationSource.raw) {
+                const remaining = (source.recipeChoices || []).filter(choice => !attempt.body.recipe
+                  || recipeChoiceIdentity(choice.recipe) !== recipeChoiceIdentity(attempt.body.recipe)
+                  || creationSignature(choice.parameters) !== creationSignature(attempt.body.recipe.parameters))
+                if (remaining.length) {
+                  const raw = JSON.stringify({ ...source, savedAt: new Date().toISOString(), attempt: null, recipeChoices: remaining,
+                    forms: { title: '', goal: '', recipe: null, recipeParameters: {} } })
+                  draftStorage.setItem(sourceKey, raw)
+                  if (draftStorage.getItem(sourceKey) !== raw) throw new Error('Draft write did not persist')
+                } else draftStorage.removeItem(sourceKey)
+              }
             } catch { data.creationDraftStorageStatus = 'unavailable' }
           }
           restoredCreationSource = null
@@ -3197,10 +3244,21 @@ window.__ModuleLoader__.load({
           } else assetWork(projectId, { error: `${outcome.error.code}: ${outcome.error.message}` })
           reload()
         },
-        selectRecipe: recipe => set({ creationDraftMissingRecipe: null, forms: { ...data.forms, recipe,
-          recipeParameters: recipe ? Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, parameter.default])) : {},
-          title: !data.forms.title || data.forms.title === data.forms.recipe?.title ? recipe?.title || '' : data.forms.title,
-        } }),
+        selectRecipe: recipe => {
+          if (recipe && data.forms.recipe && recipeChoiceIdentity(recipe) === recipeChoiceIdentity(data.forms.recipe)) return
+          const saved = recipe ? data.recipeChoices.find(choice => recipeChoiceIdentity(choice.recipe) === recipeChoiceIdentity(recipe)) : null
+          if (saved && !recipeChoiceFits(recipe, saved.parameters)) { set({ creationDraftStorageStatus: 'invalid' }); return }
+          set({ creationDraftMissingRecipe: null, forms: { ...data.forms, recipe,
+            recipeParameters: recipe ? saved ? copyRecipeParameters(saved.parameters)
+              : Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, Array.isArray(parameter.default) ? [...parameter.default] : parameter.default])) : {},
+            title: !data.forms.title || data.forms.title === data.forms.recipe?.title ? recipe?.title || '' : data.forms.title,
+          } })
+        },
+        resetRecipe: () => {
+          const recipe = data.forms.recipe
+          if (recipe) set({ forms: { ...data.forms, recipeParameters: Object.fromEntries(recipe.parameters.map(parameter =>
+            [parameter.id, Array.isArray(parameter.default) ? [...parameter.default] : parameter.default])) } })
+        },
         setRecipeParameter: (id, value) => setIn('forms', 'recipeParameters', { ...data.forms.recipeParameters, [id]: value }),
         setCompareMode: (compareMode) => set({ compareMode }),
         pickCompare: (side, revision) => set(side === 'left'
@@ -3557,10 +3615,14 @@ window.__ModuleLoader__.load({
           const reading = readCreationDrafts(draftStorage, creationDraftRoot), source = reading.entries.find(entry => entry.id === id)
           if (!source?.draft) { set({ creationDraftStorageStatus: 'invalid' }); return }
           const saved = source.draft, ref = saved.forms.recipe
+          if ((saved.recipeChoices || []).some(choice => {
+            const available = data.recipeCatalog.recipes.find(recipe => recipeChoiceIdentity(recipe) === recipeChoiceIdentity(choice.recipe))
+            return available && !recipeChoiceFits(available, choice.parameters)
+          })) { set({ creationDraftStorageStatus: 'invalid' }); return }
           const recipe = ref ? data.recipeCatalog.recipes.find(recipe => recipe.id === ref.id && recipe.version === ref.version && recipe.digest === ref.digest) : null
           creationDraftId = newCreationKey(); restoredCreationSource = { id, raw: source.raw }; persistedCreationSignature = null
           creationAttempt = saved.attempt ? editorClone(saved.attempt) : null
-          set({ view: 'projects', forms: { ...data.forms, ...editorClone(saved.forms), recipe: recipe || null },
+          set({ view: 'projects', recipeChoices: editorClone(saved.recipeChoices || []), forms: { ...data.forms, ...editorClone(saved.forms), recipe: recipe || null },
             creationDraftMissingRecipe: ref && !recipe ? ref : null,
             creationWork: creationAttempt ? { status: 'error', title: creationAttempt.body.title, code: 'UI_FETCH_FAILED' } : null,
             notices: { ...data.notices, projects: { kind: 'creation', ok: true, message: t('projects.draftRestored') } } })
@@ -3584,7 +3646,7 @@ window.__ModuleLoader__.load({
         clearCreationDraft: () => {
           if (data.busy.create) return
           creationAttempt = null; restoredCreationSource = null; persistedCreationSignature = null
-          set({ forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }, creationWork: null,
+          set({ recipeChoices: [], forms: { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }, creationWork: null,
             creationDraftMissingRecipe: null, notices: { ...data.notices, projects: null } })
         },
 
@@ -3772,7 +3834,7 @@ window.__ModuleLoader__.load({
     function CreationDraftsView({ state, actions }) {
       const messages = { saved: t('projects.draftSaved'), unavailable: t('projects.draftUnavailable'), full: t('projects.draftFull'),
         tooLarge: t('projects.draftTooLarge'), invalid: t('projects.draftInvalid') }
-      const hasInputs = Boolean(state.forms.title || state.forms.goal || state.forms.recipe || state.creationWork || state.creationDraftMissingRecipe || Object.keys(state.forms.recipeParameters).length)
+      const hasInputs = Boolean(state.forms.title || state.forms.goal || state.forms.recipe || state.creationWork || state.creationDraftMissingRecipe || state.recipeChoices.length || Object.keys(state.forms.recipeParameters).length)
       return el('div', { 'data-creation-drafts': true },
         el('p', { className: 'db-muted' }, t('projects.draftHint')),
         (hasInputs || state.creationDraftStorageStatus !== 'saved') && messages[state.creationDraftStorageStatus] ? el('p', {
@@ -3942,7 +4004,7 @@ window.__ModuleLoader__.load({
           })),
         selected ? el('fieldset', { className: 'db-recipe-parameters' },
           el('legend', null, t('recipes.parameters')),
-          Button({ action: 'reset-recipe', onClick: () => actions.selectRecipe(selected), children: t('recipes.reset') }),
+          Button({ action: 'reset-recipe', onClick: actions.resetRecipe, children: t('recipes.reset') }),
           el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } }, selected.parameters.map(parameter =>
             el('label', { key: parameter.id, style: { display: 'flex', flexDirection: 'column', gap: '5px' } },
               parameter.title,

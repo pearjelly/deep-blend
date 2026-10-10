@@ -38,6 +38,7 @@ The scenes and output come from editable SceneSpec and actual rendering. Officia
 ## From a starting point to a saved result
 
 - **Continue a creation draft.** Reload or reopen the workbench, explicitly restore inputs saved in this browser, then create or retry the captured request. Restoring never submits automatically. [Draft guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creation-drafts.md).
+- **Compare starting points.** Switch recipes and keep each set of edits; resetting affects only the selected recipe. Comparison settings also stay with your browser draft. [Comparison guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/recipe-comparison.md).
 - **Start with something concrete.** Choose a lamp, glass-and-ceramic scene, speaker or handled
   cup from the recipe gallery; adjust its exposed parameters and create a project with a real preview.
 - **Bring your own assets.** Preview and insert GLB, glTF or OBJ models. Select multiple files or

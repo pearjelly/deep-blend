@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process'
 import {isDeepStrictEqual} from 'node:util'
 import {decodePng,compileSceneSpec} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
+import {ensureWorkbenchCaptureReady} from '../../tools/docs-capture-visibility.mjs'
 import {REPO_ROOT,startWeb,storePatch} from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend','quality',`recipe-version-ui-${new Date().toISOString().replace(/[:.]/g,'-')}`))
 if(existsSync(output))throw Error(`Evidence directory already exists: ${output}`)
@@ -43,6 +44,39 @@ try{
   check('v2 is selected by a real pointer',(await page.click(choice('2.0.0'))).via==='pointer')
   await page.waitFor(`document.querySelector(${JSON.stringify(field('spun-roughness'))})!==null`)
   check('new default controls preserve the two authored finishes',await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).value==='0.28'&&document.querySelector(${JSON.stringify(field('brushed-roughness'))}).value==='0.39'&&document.querySelector(${JSON.stringify(field('surface-roughness'))})===null`))
+  await page.fill(field('spun-roughness'),'.5');await page.fill(field('exposure'),'.45')
+  await page.fill('[data-field="project-title"]','recipe-comparison');await page.fill('[data-field="project-goal"]','Keep the warm metal finish')
+  check('clicking the selected recipe uses a real pointer without resetting its custom settings',(await page.click(choice('2.0.0'))).via==='pointer'&&await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).value==='0.5'&&document.querySelector(${JSON.stringify(field('exposure'))}).value==='0.45'`))
+  await page.click(choice('1.0.0'));await page.fill(field('surface-roughness'),'.48');await page.fill(field('exposure'),'-.2')
+  await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.0.0"]');await page.fill(field('exposure'),'-.4')
+  await page.click(choice('2.0.0'))
+  check('comparison restores the lamp inputs and keeps the manual title and goal',await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).value==='0.5'&&document.querySelector(${JSON.stringify(field('exposure'))}).value==='0.45'&&document.querySelector('[data-field="project-title"]').value==='recipe-comparison'&&document.querySelector('[data-field="project-goal"]').value==='Keep the warm metal finish'&&window.__recipeWrites.length===0`))
+  await ensureWorkbenchCaptureReady(page);await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).scrollIntoView({block:'center'})`);await page.screenshot(join(output,'03-compared-recipe-settings.png'))
+  await page.reload();await page.waitFor('document.querySelector("[data-creation-draft]")!==null',45000)
+  check('reloading comparison choices offers an explicit draft without selecting or posting',await page.evaluate(`document.querySelector('[data-field="project-title"]').value===''&&window.__recipeWrites.length===0`))
+  const restore=await page.evaluate(`([...document.querySelectorAll('[data-creation-draft]')].find(e=>e.querySelector('strong')?.textContent==='recipe-comparison')?.querySelector('[data-action^="restore-creation-draft:"]')?.dataset.action)`)
+  check('the comparison draft is restored through a real pointer',Boolean(restore)&&(await page.click('[data-action='+JSON.stringify(restore)+']')).via==='pointer')
+  await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.0.0"]')
+  check('reopened cup settings stay independent',await page.evaluate(`document.querySelector(${JSON.stringify(field('exposure'))}).value==='-0.4'&&window.__recipeWrites.length===0`))
+  await page.click(choice('1.0.0'))
+  check('reopened historical lamp settings remain separate from the new version',await page.evaluate(`document.querySelector(${JSON.stringify(field('surface-roughness'))}).value==='0.48'&&document.querySelector(${JSON.stringify(field('exposure'))}).value==='-0.2'`))
+  await page.click(choice('2.0.0'));await page.click('[data-action="reset-recipe"]')
+  check('explicit reset restores only the selected version defaults',await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).value==='0.28'&&document.querySelector(${JSON.stringify(field('exposure'))}).value==='0'`))
+  await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.0.0"]')
+  check('resetting the lamp retains the cup edits',await page.evaluate(`document.querySelector(${JSON.stringify(field('exposure'))}).value==='-0.4'`))
+  await page.click(choice('2.0.0'));await page.fill(field('spun-roughness'),'.5');await page.fill(field('exposure'),'.45')
+  check('recipe comparison and restoration did not submit or publish a project',await page.evaluate('window.__recipeWrites.length===0')&&!existsSync(join(root,'projects','recipe-comparison','project.json')))
+  await page.click('[data-action="create-project"]');await page.waitFor('document.querySelector("[data-view=preview] img[data-artifact]")?.src.includes("/recipe-comparison/")===true',180000)
+  const comparisonManifest=read('recipe-comparison','revisions','r0001','revision-manifest.json'),comparisonLock=read('recipe-comparison','revisions','r0001',comparisonManifest.recipe.lockPath),comparisonPreview=comparisonManifest.previews.at(-1)
+  check('explicit creation renders the selected comparison inputs, not another recipe cache',comparisonLock.values['spun-roughness']===.5&&comparisonLock.values.exposure===.45&&comparisonPreview.renderConfig.exposure===.45&&comparisonPreview.samples===8)
+  check('comparison output is a complete actual PNG',decodePng(readFileSync(path('recipe-comparison',comparisonPreview.path))).data.length===comparisonPreview.width*comparisonPreview.height*4)
+  const comparisonScene=path('recipe-comparison','revisions','r0001','scene.blend'),comparisonSceneHash=sha(readFileSync(comparisonScene)),comparisonScript=join(output,'comparison-readback.py'),comparisonReadback=join(output,'comparison-readback.json')
+  writeFileSync(comparisonScript,`import bpy,json\nbpy.ops.wm.open_mainfile(filepath=${JSON.stringify(comparisonScene)})\nm=next(o for o in bpy.data.objects if o.get('deepblend_id')=='shade-shell').active_material\np=next(n for n in m.node_tree.nodes if n.bl_idname=='ShaderNodeBsdfPrincipled')\njson.dump({'roughness':p.inputs['Roughness'].default_value,'exposure':bpy.context.scene.view_settings.exposure},open(${JSON.stringify(comparisonReadback)},'w'))\n`)
+  writeFileSync(join(output,'comparison-readback.log'),execFileSync(blenderPath,['--background','--factory-startup','--disable-autoexec','--python-exit-code','1','--python',comparisonScript],{timeout:90000,maxBuffer:8*1024*1024}))
+  const comparisonFacts=JSON.parse(readFileSync(comparisonReadback))
+  check('independent Blender reopen confirms comparison roughness and exposure without rewriting the scene',Math.abs(comparisonFacts.roughness-.5)<1e-7&&Math.abs(comparisonFacts.exposure-.45)<1e-7&&sha(readFileSync(comparisonScene))===comparisonSceneHash)
+  json('comparison-lock.json',comparisonLock);copyFileSync(path('recipe-comparison',comparisonPreview.path),join(output,'comparison-native-preview.png'))
+  await page.click('[data-view-tab="projects"]');await page.click(choice('2.0.0'));await page.click('[data-action="reset-recipe"]')
   await page.fill('[data-field="project-title"]','gallery-v2')
   await page.waitFor('Array.from(document.querySelectorAll("[data-recipe] img")).every(img=>img.complete&&img.naturalWidth>0)')
   await page.evaluate(`document.querySelector(${JSON.stringify(field('spun-roughness'))}).scrollIntoView({block:'center'})`)
@@ -65,6 +99,7 @@ try{
   check('independent Blender opening confirms real v2 UV grain and spun roughness',native.uvMap==='UVMap'&&native.linked&&native.mapping.every((v,i)=>Math.abs(v-[.0001,800,1][i])<1e-7)&&Math.abs(native.bump-.006)<1e-7&&Math.abs(native.roughness-.28)<1e-7,native)
   await page.click('[data-view-tab="projects"]');await page.click(choice('1.0.0'))
   await page.waitFor(`document.querySelector(${JSON.stringify(field('surface-roughness'))})!==null`)
+  await page.click('[data-action="reset-recipe"]')
   check('historical version retains its original coupled roughness control',await page.evaluate(`document.querySelector(${JSON.stringify(field('surface-roughness'))}).value==='0.39'&&document.querySelector(${JSON.stringify(field('spun-roughness'))})===null`))
   await page.fill(field('surface-roughness'),'.45');await page.fill('[data-field="project-title"]','gallery-v1')
   await page.click('[data-action="create-project"]');await page.waitFor('document.querySelector("[data-view=preview] img[data-artifact]")?.src.includes("/gallery-v1/")===true',180000)
@@ -75,7 +110,7 @@ try{
   await page.click('[data-action="reload"]');await page.waitFor(`document.querySelector(${JSON.stringify(choice('1.0.0'))})===null`)
   check('removing v1 disables its stale form instead of selecting v2',await page.evaluate(`document.querySelector('[data-action="create-project"]').disabled&&document.querySelector(${JSON.stringify(field('surface-roughness'))})!==null&&document.querySelector(${JSON.stringify(field('spun-roughness'))})===null`))
   const writes=await page.evaluate('window.__recipeWrites');json('requests.json',writes)
-  check('the browser submits exactly two explicit versions with their complete parameter sets',writes.length===2&&writes[0].body.recipe.version==='2.0.0'&&writes[1].body.recipe.version==='1.0.0'&&Object.keys(writes[0].body.recipe.parameters).sort().join(',')==='brushed-roughness,exposure,main-color,spun-roughness')
+  check('the browser submits only three explicit creations with complete selected parameter sets',writes.length===3&&writes[0].body.recipe.parameters['spun-roughness']===.5&&writes[0].body.recipe.parameters.exposure===.45&&writes[1].body.recipe.version==='2.0.0'&&writes[2].body.recipe.version==='1.0.0'&&Object.keys(writes[1].body.recipe.parameters).sort().join(',')==='brushed-roughness,exposure,main-color,spun-roughness')
   await page.screenshot(join(output,'02-stale-v1.png'))
   await page.click(choice('2.0.0'));await page.waitFor(`document.querySelector(${JSON.stringify(field('spun-roughness'))})!==null`)
   check('explicit selection of v2 resets to its own defaults and enables creation',await page.evaluate(`!document.querySelector('[data-action="create-project"]').disabled&&document.querySelector(${JSON.stringify(field('spun-roughness'))}).value==='0.28'`))
@@ -86,7 +121,7 @@ try{
 }catch(error){failure=error.stack||String(error);checks.push({name:'workflow completes without unexpected failure',ok:false,detail:failure});console.error(error);await page?.screenshot(join(output,'failure.png')).catch(()=>{})}
 finally{
   for(const [name,close]of[['browser',()=>browser?.close()],['server',()=>server?.stop()]]){try{const result=await close();if(name==='server')shutdown=result}catch(error){failure??=String(error)}}
-  json('report.json',{status:failure?'failed':'passed',checks,failure,shutdown,original,scope:'Actual browser, Host and Blender; distinct recipe versions, authored UV defaults, recorded preview budget, stale selection and immutable historical artifacts. External artwork review remains open.'})
+  json('report.json',{status:failure?'failed':'passed',checks,failure,shutdown,original,scope:'Actual browser, Host and Blender; read-only comparison, selected-click preservation, explicit reset, reloaded browser drafts, selected-input native rendering, distinct recipe versions, authored UV defaults, recorded preview budget, stale selection and immutable historical artifacts. External artwork review remains open.'})
 }
 console.log(`Recipe versions: ${checks.filter(c=>c.ok).length}/${checks.length} checks passed; ${output}`)
 if(failure)process.exitCode=1

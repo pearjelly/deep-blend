@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.7 — 2026-10-11
+
+- Keep each recipe's edited parameters when comparing starting points; selecting the current recipe no longer resets it.
+- Restore comparison settings with browser creation drafts, preserving blank/invalid inputs and separating recipe versions/content digests.
+- Explicit reset affects only the selected recipe; confirmed creation preserves other unsubmitted recipe settings and later edits.
+- Keep original captured retry requests unchanged while browsing alternatives, with legacy draft compatibility and explicit corrupt-record refusal.
+
 ## 0.3.6 — 2026-10-10
 
 - Keep creation drafts and captured retry requests in this browser across reloads and closed pages.
