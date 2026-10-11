@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.4.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0) 可复用保存作品的摄影设置。下一阶段优先[少量操作完成复杂建模](deepblend/docs/complex-modeling-roadmap.md)。
+最新稳定版 [0.5.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0) 用三个毫米尺寸创建完整的 111 部件音箱。见[按尺寸创建指南](deepblend/docs/sized-speaker.md)和[复杂建模计划](deepblend/docs/complex-modeling-roadmap.md)。
 
 ## 安装并开始
 
@@ -401,7 +401,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述计数来自尺寸联动候选的完整契约运行，不能作为候选已发布的证明。[0.4.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0)，该版冻结完整入口、确切 PR/主线 CI、干净构建、七包匿名读回和整轮三路公开安装均已通过；原始证据见 `deepblend/docs/milestone-status.md` §266 和[每日发布记录](deepblend/docs/daily-releases.md)。尺寸联动候选的完整验收与发布单独记录；社区现有投稿等待上游审核。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述计数来自尺寸联动实现的完整契约运行；38 套完整运行验收的冻结来源与最终版本、文档及测试配置差异分别核对。[0.5.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0)，最终候选与主线 CI、干净构建、七包匿名读回、公开命令及整轮三路安装均已通过。原始证据见 `deepblend/docs/milestone-status.md` §267 和[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

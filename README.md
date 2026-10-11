@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.4.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0) reuses saved photography setups. The next phase prioritizes [simple operations for complex modeling](deepblend/docs/complex-modeling-roadmap.md).
+Latest stable [0.5.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0) creates a complete editable 111-part speaker assembly from three dimensions. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
 
 ## Quick start
 
