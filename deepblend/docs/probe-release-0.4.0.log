@@ -1,7 +1,6 @@
-GitHub Release v0.4.0: published 2026-10-11T07:32:43Z; tag/source b6819c51d60cc5818641017f906f2349f8866a15
-Seven npm packages: public0.4.0; fresh anonymous files/dependencies/integrities verified
-Anonymous release bundle:72043159 bytes sha256 a343df98ed68cc07cc82de2f2909c34cfa56c371882be7e4c58b08d0baa85b8f
-
+# DeepBlend 0.4.0 public installation readback
+# Date: 2026-10-11 (Asia/Shanghai); each route used its own fresh profile.
+# Command: node deepblend/tools/release-route-parity.mjs (Node 24.19.0, pnpm 10.28.2).
 date: 2026-10-11T07:43:30.962Z
 repository version: 0.4.0
 note: each route is installed once, in its own scratch DSH_HOME, and read back
