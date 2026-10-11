@@ -3,6 +3,11 @@ import { sha256 } from '../../../packages/deepblend/contracts/lib/canonical.js'
 import { recipeCapabilitiesForScene, validateRecipePackage } from '../../../packages/deepblend/contracts/lib/recipe.js'
 
 export function createLinkedSpeakerBundle(source) {
+  if (source.manifest.id !== 'deepblend.modular-speaker' || source.manifest.version !== '1.0.0'
+    || sha256(source.sceneBytes) !== 'efb7ffabb4901ba4e824537885b2215923910e7855f656e5776c562ad2e33de1'
+    || sha256(source.previewBytes) !== 'b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492') {
+    throw new Error('Linked speaker requires the exact reviewed version 1.0.0 source and native preview')
+  }
   const scene = JSON.parse(source.sceneBytes), manifest = structuredClone(source.manifest)
   const structural = new Set(['cabinet-shell', 'shell-cavity-tool', 'front-opening-tool', 'rear-service-tool',
     'front-baffle', 'front-gasket', 'rear-panel-gasket', 'rear-service-panel'])
@@ -60,11 +65,12 @@ export function createLinkedSpeakerBundle(source) {
       }
       cameraBind(2, 'targetPoint', 2, .5)
     } else {
-      const delta = camera.id === 'motion-detail' ? [.5, 0, 1] : [-.5, -.5, .5]
+      const delta = camera.id === 'motion-detail' ? [.5, 0, 1] : [.5, -.5, .5]
       for (let axis = 0; axis < 3; axis++) for (const property of ['location', 'targetPoint']) cameraBind(axis, property, axis, delta[axis])
     }
   }
   manifest.version = '2.0.0'
+  manifest.source.note = 'Bounded assembly controls derived from the reviewed speaker 1.0.0. Default native geometry, transforms and animation are preserved; the original default render bytes remain pinned. This is not manufacturing validation.'
   manifest.description = '编织格栅桌面音箱，带旋钮、输入键、散热开口与背面接线。通过三个毫米尺寸参数联动箱体、内腔和装配部件，保留按钮动画，并可调整外壳颜色、粗糙度和摄影曝光。'
   manifest.compatibility.capabilities = [...recipeCapabilitiesForScene(scene), 'recipe.geometry-bindings'].sort()
   manifest.parameters = [...parameters, ...manifest.parameters]

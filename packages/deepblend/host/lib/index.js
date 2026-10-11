@@ -1188,7 +1188,8 @@ export default class BlenderStudio extends Service {
    */
   async compileRevisionForRender(input) {
     const { projectId, revision, spec } = input
-    await assertRuntimeSceneFeatures(this.runtime, spec, { signal: input.signal })
+    const featureCheck = assertRuntimeSceneFeatures(this.runtime, spec, { signal: input.signal })
+    if (featureCheck) await featureCheck
     const scratch = resolveInside(
       this.store.workspaceRoot,
       join(this.store.workspaceRoot, 'tmp', `render-${revision}-${Date.now().toString(36)}`),

@@ -101,7 +101,8 @@ export async function renderAssetPreview({ runtime, asset, directory, maxMeshPol
       'The isolated preview scene is invalid.', { detail: { errors: checked.errors } })
     const compiled = compileSceneSpec(scene).spec
     writeFileSync(sceneSpecPath, JSON.stringify(compiled))
-    await assertRuntimeSceneFeatures(runtime, compiled, { signal })
+    const featureCheck = assertRuntimeSceneFeatures(runtime, compiled, { signal })
+    if (featureCheck) await featureCheck
     const result = await runtime.compileScene({ sceneSpecPath, profile: 'preview', projectRoot: directory,
       jobId: `asset-compile-${randomUUID()}`, session: false, signal,
       onWorkingDirectory: info => { copyFileSync(join(info.directory, 'result.blend'), checkpointPath) } })

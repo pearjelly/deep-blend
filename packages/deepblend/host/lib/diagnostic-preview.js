@@ -187,7 +187,8 @@ export async function renderDiagnostic(host, request) {
     }
     const sceneSpecPath = join(compileRoot, 'scene-spec.json'), checkpointPath = join(compileRoot, 'derived.blend')
     writeJsonAtomic(sceneSpecPath, scene)
-    await assertRuntimeSceneFeatures(runtime, scene, { signal })
+    const featureCheck = assertRuntimeSceneFeatures(runtime, scene, { signal })
+    if (featureCheck) await featureCheck
     const compiled = await runtime.compileScene({ sceneSpecPath, projectRoot: compileRoot, profile: 'preview',
       jobId: `${jobId}-compile`, session: false, signal,
       onWorkingDirectory: info => copyFileSync(join(info.directory, 'result.blend'), checkpointPath) })

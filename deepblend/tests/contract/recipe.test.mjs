@@ -69,7 +69,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.0.0' : name==='metal-lamp' ? '2.0.0' : '1.0.0')
+    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.0.0' : ['metal-lamp', 'modular-speaker'].includes(name) ? '2.0.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })

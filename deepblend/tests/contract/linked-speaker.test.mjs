@@ -1,17 +1,34 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { createLinkedSpeakerBundle } from '../../tools/lib/linked-speaker-recipe.mjs'
-import { instantiateRecipe, validateRecipePackage } from '../../../packages/deepblend/contracts/lib/recipe.js'
+import { instantiateRecipe, validateRecipePackage, RECIPE_CAPABILITIES } from '../../../packages/deepblend/contracts/lib/recipe.js'
 import { compileSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
 
-const directory = new URL('../../recipes/modular-speaker/', import.meta.url)
+const directory = new URL('../fixtures/modular-speaker-v1/', import.meta.url)
 const source = { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))),
   sceneBytes: readFileSync(new URL('scene-spec.json', directory)), previewBytes: readFileSync(new URL('preview.png', directory)) }
 const bundle = createLinkedSpeakerBundle(source)
 const entity = (spec, id) => spec.entities.find(e => e.id === id)
 const dimensions = (spec, id) => entity(spec, id).generator.dimensions.map((value, axis) => value * entity(spec, id).transform.scale[axis])
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} differs from ${expected}`)
+
+test('the public built-in is the deterministic candidate and legacy consumers retain the original recipe', () => {
+  const folder = new URL('../../recipes/modular-speaker/', import.meta.url)
+  assert.deepEqual(JSON.parse(readFileSync(new URL('recipe.json', folder))), bundle.manifest)
+  assert.deepEqual(readFileSync(new URL('scene-spec.json', folder)), bundle.sceneBytes)
+  assert.deepEqual(readFileSync(new URL('preview.png', folder)), source.previewBytes)
+  assert.match(execFileSync(process.execPath, [new URL('../../tools/build-modular-speaker-recipe.mjs', import.meta.url).pathname, '--check'], { encoding: 'utf8' }), /2\.0\.0 verified/)
+  const supportedCapabilities = RECIPE_CAPABILITIES.filter(c => !['recipe.geometry-bindings', 'geometry.primitive.dimensions'].includes(c))
+  assert.equal(validateRecipePackage(source, { supportedCapabilities }).ok, true)
+  assert.equal(instantiateRecipe(source, {}, { supportedCapabilities }).recipe.version, '1.0.0')
+  assert.equal(validateRecipePackage(bundle, { supportedCapabilities }).ok, false)
+  for (const field of ['sceneBytes', 'previewBytes']) {
+    const altered = { ...source, [field]: Buffer.concat([source[field], Buffer.from(' ')]) }
+    assert.throws(() => createLinkedSpeakerBundle(altered), /exact reviewed/)
+  }
+})
 
 test('speaker controls retain all 111 parts and the default authored transforms, modifiers and animation', () => {
   const before = JSON.stringify(source), spec = instantiateRecipe(bundle).spec, old = compileSceneSpec(JSON.parse(source.sceneBytes)).spec
@@ -51,4 +68,18 @@ test('unsupported shrinking and excessive growth are rejected with the source in
   const before = JSON.stringify(source)
   for (const values of [{ 'cabinet-width-mm': 263 }, { 'cabinet-depth-mm': 181 }, { 'cabinet-height-mm': 221 }, { 'cabinet-height-mm': 100 }]) assert.throws(() => instantiateRecipe(bundle, values))
   assert.equal(JSON.stringify(source), before)
+})
+
+test('the control detail camera keeps its original offset and aim relative to the moving knob', () => {
+  const base = instantiateRecipe(bundle).spec
+  for (const values of [{ 'cabinet-width-mm': 300 }, { 'cabinet-width-mm': 340, 'cabinet-depth-mm': 180, 'cabinet-height-mm': 220 }]) {
+    const next = instantiateRecipe(bundle, values).spec
+    const oldCamera = base.cameras.find(c => c.id === 'detail'), camera = next.cameras.find(c => c.id === 'detail')
+    for (let axis = 0; axis < 3; axis++) for (const position of ['location', 'targetPoint']) {
+      const oldVector = position === 'location' ? oldCamera.transform.location : oldCamera.targetPoint
+      const vector = position === 'location' ? camera.transform.location : camera.targetPoint
+      close(vector[axis] - entity(next, 'volume-knob').transform.location[axis], oldVector[axis] - entity(base, 'volume-knob').transform.location[axis])
+    }
+    assert.equal(camera.lens, oldCamera.lens)
+  }
 })

@@ -275,6 +275,8 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/material-browser/)
   assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs >')), 'missing real recipe version workflow')
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/recipe-browser/)
+  assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/linked-speaker-browser/)
+  assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs >')), 'missing real linked speaker dimensions execution')
   assert.match(workflow, /DEEPBLEND_E2E_ARTIFACTS: \$\{\{ runner.temp \}\}\/deepblend-ci\/preview-browser/)
   assert.ok(runSteps.some(step => step.startsWith('xvfb-run -a node deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs >')), 'missing independent native Host publishers')
   assert.match(workflow, /DEEPBLEND_ARTIFACT_CONCURRENCY_OUTPUT: \$\{\{ runner.temp \}\}\/deepblend-ci\/artifact-concurrency/)

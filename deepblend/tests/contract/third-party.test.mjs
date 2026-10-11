@@ -198,6 +198,7 @@ test('source files exclude external binaries and published images have declared 
 
   for (const [name, expectedPreview] of [
     ['metal-lamp-v1','e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6'],
+    ['modular-speaker-v1','b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492'],
     ['glazed-cup-v1','c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92'],
     ['glazed-cup-v2','ce84a64b8bb3314c83b84f2f96c907fca7ee74cc24ad425c52df6cd915af197f'],
   ]) {

@@ -571,7 +571,8 @@ export class RevisionTransaction {
       const checkpointStaging = join(staging, 'scene.blend')
 
       try {
-        await assertRuntimeSceneFeatures(this.runtime, plan.spec, { signal: plan.signal })
+        const featureCheck = assertRuntimeSceneFeatures(this.runtime, plan.spec, { signal: plan.signal })
+        if (featureCheck) await featureCheck
         const run = await this.runtime.compileScene({
           sceneSpecPath: specPath,
           profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',

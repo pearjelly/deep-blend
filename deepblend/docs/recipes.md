@@ -48,7 +48,7 @@ my-product/
 | `compatibility` | 必需的 `sceneSchemaVersion` 和能力列表；校验器核对实际场景用到的能力 |
 | `input` | `{ "path": "scene-spec.json", "sha256": "…" }`，哈希针对文件原始字节 |
 | `preview` | 固定 `preview.png`、原始字节 SHA-256、`mediaType: "image/png"` 和 `alt` |
-| `parameters` | 最多 8 个显式参数；每个参数最多 8 个白名单绑定 |
+| `parameters` | 最多 8 个显式参数；颜色最多 8 个绑定，数字最多 128 个受约束绑定 |
 
 路径必须是上面两个字面量，不能是绝对路径、上级目录或 URL。Host 读取本地目录时拒绝包目录和包内文件的符号链接，并限制实际读取边界；纯 contracts 函数不访问文件系统。
 
@@ -58,7 +58,9 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 
 ## 参数与绑定
 
-桌灯有主金属颜色、旋压件粗糙度、拉丝件粗糙度和摄影曝光四个参数。其他三组只有主材质颜色、主材质粗糙度和摄影曝光三个参数。没有通用尺寸缩放，因为随意缩放可能破坏壁厚、曲率、装配和接触关系。
+桌灯有主金属颜色、旋压件粗糙度、拉丝件粗糙度和摄影曝光四个参数。音箱 2.0.0 配方候选增加宽、深、高三个毫米输入，联动箱体、内腔、开口、盖板及装配位置，保留零件尺寸和按钮行程；支持宽 264–340、深 138–180、高 162–220 mm。这是创建时的设置；已有项目的整套尺寸修改入口尚未提供。玻璃陶瓷和杯体保留颜色、粗糙度和曝光三个参数。插件版本尚未升级发布，当前公开版仍为 0.4.0。
+
+音箱原版 1.0.0 的完整字节保留在 [`modular-speaker-v1`](../tests/fixtures/modular-speaker-v1/recipe.json)。新配方保持原默认部件几何、变换、材质和动画，并沿用已验证的默认预览字节；修改后的尺寸在创建时重新渲染。重复构建及来源检查可运行 `node deepblend/tools/build-modular-speaker-recipe.mjs --check`。真实浏览器已验证只改宽度为 300 mm 得到 300×138×162 mm 的 111 部件模型，同时保留原版项目文件；这不证明最小壁厚、制造适用性或自然语言 Agent 成功率。
 
 桌灯颜色同步作用于旋压件和拉丝件；`spun-roughness` 默认 0.28，只作用于灯罩、底座等旋压部件，`brushed-roughness` 默认 0.39，只作用于支架与弯臂。旋压件保留 UVMap 曲面细纹和完整纹理参数；两类材质的各向异性保持原值。玻璃陶瓷的颜色作用于托盘和瓶盖陶瓷饰片，音箱的颜色作用于外壳，杯体的颜色作用于杯身和连续把手。
 
@@ -81,7 +83,7 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 允许的参数及写入位置：
 
 - `type: "color"`：三个 **scene-linear RGB** 数字，范围 `[0,1]`，只能绑定 `material.baseColor`。保留输入的 alpha，不开放透明度参数。若 UI 使用网页颜色选择器，须在 sRGB 与线性 RGB 之间转换。
-- `type: "number"`：必须有有限的 `minimum`、`maximum`、`default`；只能绑定 `material.roughness` 或 render profile 的 `exposure`。roughness 的声明范围不能超出 `[0,1]`，exposure 不能超出 `[-10,10]`。
+- `type: "number"`：必须有有限的 `minimum`、`maximum`、`default`；材质和曝光绑定分别允许 `material.roughness`、render profile 的 `exposure`，结构候选绑定见下文。roughness 的声明范围不能超出 `[0,1]`，exposure 不能超出 `[-10,10]`。
 - 曝光绑定写作 `{ "kind": "render-profile", "profile": "preview", "property": "exposure" }`；内置配方的同一个参数同时绑定 preview 和 final，避免预览与成品的曝光不同。
 
 材质绑定使用稳定 `materialId`，只对明确声明对应参数的 Principled/Glass 材质生效。参数默认值必须与输入 SceneSpec 的原始值一致，确保默认实例化保留原始设计。重复目标、未知材质、错误类型和与材质动画争用同一属性都会失败。

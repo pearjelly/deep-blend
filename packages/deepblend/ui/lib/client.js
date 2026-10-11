@@ -4469,8 +4469,8 @@ window.__ModuleLoader__.load({
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
               ...(GENERATOR_FIELDS[geometry.shape] || []).filter(key => !(key === 'size' && geometry.dimensions !== undefined)
                 && (geometry.shape !== 'handled_cup' || !CUP_ADVANCED_FIELDS.includes(key))).map(geometryField),
-              ...(geometry.dimensions !== undefined ? ['boxWidth', 'boxDepth', 'boxHeight'].map((label, index) => numeric(
-                t(`editor.${label}`), `editor-generator-dimensions-${EDITOR_AXES[index]}`, geometry.dimensions[index],
+              ...(geometry.dimensions !== undefined ? [t('editor.boxWidth'), t('editor.boxDepth'), t('editor.boxHeight')].map((label, index) => numeric(
+                label, `editor-generator-dimensions-${EDITOR_AXES[index]}`, geometry.dimensions[index],
                 value => actions.updateEditor('generator', ['dimensions', index], value), { factor: 1000, min: Number.MIN_VALUE })) : []),
               geometry.shape === 'handled_cup' ? el('details', { key: 'cup-advanced' },
                 el('summary', null, t('editor.cupAdvanced')), ...CUP_ADVANCED_FIELDS.map(geometryField)) : null,

@@ -11,8 +11,9 @@ import { statusForError } from '@deepblend/dsh-blender-ui'
 const axisScene = { entities: [{ id: 'box', type: 'generator', generator: { shape: 'rounded_box', dimensions: [.3, .138, .162] } }] }
 test('legacy geometry does not add a capability probe or change its runtime requirements', async () => {
   let calls = 0
-  await assertRuntimeSceneFeatures({ getCapabilities() { calls++; throw Error('Unexpected probe') } },
+  const pending = assertRuntimeSceneFeatures({ getCapabilities() { calls++; throw Error('Unexpected probe') } },
     { entities: [{ type: 'generator', generator: { shape: 'cube', size: .264 } }] })
+  assert.equal(pending, undefined, 'legacy compiles must not acquire an extra asynchronous boundary')
   assert.equal(calls, 0)
 })
 test('an older or unspecified runtime cannot silently reinterpret axis dimensions', async () => {

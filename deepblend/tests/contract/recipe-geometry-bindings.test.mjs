@@ -6,7 +6,7 @@ import { compileSceneSpec } from '../../../packages/deepblend/contracts/lib/scen
 import { instantiateRecipe, validateRecipePackage, RECIPE_CAPABILITIES } from '../../../packages/deepblend/contracts/lib/recipe.js'
 
 function bundle() {
-  const directory = new URL('../../recipes/modular-speaker/', import.meta.url)
+  const directory = new URL('../fixtures/modular-speaker-v1/', import.meta.url)
   const manifest = JSON.parse(readFileSync(new URL('recipe.json', directory)))
   const scene = JSON.parse(readFileSync(new URL('scene-spec.json', directory)))
   const shell = scene.entities.find(entity => entity.id === 'cabinet-shell')

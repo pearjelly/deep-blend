@@ -71,6 +71,7 @@ const EXPLAINED = new Map([
   ['CREATION_REQUEST_CONFLICT', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['PATH_OUTSIDE_WORKSPACE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['SCENE_VALIDATION_FAILED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
+  ['SCENE_FEATURE_UNSUPPORTED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['SCENE_PATCH_REJECTED', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['REVISION_CHECKPOINT_MISSING', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
   ['RUNTIME_UNAVAILABLE', ['deepblend/docs/recovery.md', '## 10. 按错误码查']],
