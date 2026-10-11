@@ -85,13 +85,14 @@ const READ_METHODS = new Set([
   // the diagnostics route reports. The HOST reads the manifest and names the config keys because the
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
-  'listRecipes', 'readRecipePreview', 'listAssets', 'getAssetUpload',
+  'listRecipes', 'readRecipePreview', 'getRecipeParameters', 'listAssets', 'getAssetUpload',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
   'projects.create': 'createProject',
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
+  'project.recipeParameters.update': 'updateRecipeParameters',
   'project.referenceImage.upload': 'uploadReferenceImage',
   'project.assets.upload': 'uploadAsset',
   'project.assetUploads.create': 'createAssetUpload',
@@ -135,6 +136,9 @@ function createStudioStub() {
   }
   return {
     calls,
+    recipeParameterEditingSupported: true,
+    getRecipeParameters(projectId, options) { record('getRecipeParameters', { projectId, options }); return { projectId, revision: options?.revision ?? 'r0002', available: false, parameters: [] } },
+    updateRecipeParameters(request) { record('updateRecipeParameters', request); return { revision: 'r0003', unchanged: false, parameters: { available: false } } },
     config: { requireApprovalAboveFrames: 900 },
     methodsCalled: () => calls.map(call => call.name),
     productVersion() {
