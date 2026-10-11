@@ -41,7 +41,10 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
+import { bundleClientSource } from '../../tools/sync-bundle-client.mjs'
 import { join } from 'node:path'
 
 import {
@@ -232,4 +235,35 @@ test('the operator layer moves the roots and changes nothing else', async () => 
   // what the installer writes, or a project created by a tool is one the
   // workbench never lists.
   assert.equal(devStoreRoot(ROOT), storeRoot, 'devStoreRoot and this test disagree about where the dev store is')
+})
+
+
+test('bundle browser entry is an exact projection of the one UI implementation', () => {
+  const source = readFileSync(join(ROOT, 'packages/deepblend/ui/lib/client.js'), 'utf8')
+  const generated = readFileSync(join(ROOT, 'packages/deepblend/bundle/lib/client.js'), 'utf8')
+  assert.equal(generated, bundleClientSource(source))
+  assert.throws(() => bundleClientSource(source + "id: '@deepblend/dsh-blender-ui'"))
+})
+
+test('bundle entries resolve their own nested components despite stale same-version outer packages', async t => {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-bundle-ownership-'))
+  t.after(() => rmSync(scratch, { recursive: true, force: true }))
+  const bundle = join(scratch, 'node_modules/@deepblend/dsh-blender-bundle')
+  mkdirSync(bundle, { recursive: true })
+  cpSync(join(ROOT, 'packages/deepblend/bundle/lib'), join(bundle, 'lib'), { recursive: true })
+  cpSync(join(ROOT, 'packages/deepblend/bundle/package.json'), join(bundle, 'package.json'))
+  const components = ['provider-local', 'host', 'preset', 'tool', 'ui']
+  for (const name of components) for (const [where, source] of [[scratch, 'stale'], [bundle, 'installed']]) {
+    const folder = join(where, 'node_modules/@deepblend/dsh-blender-' + name)
+    mkdirSync(folder, { recursive: true })
+    writeFileSync(join(folder, 'package.json'), JSON.stringify({ name: '@deepblend/dsh-blender-' + name,
+      version: '0.6.1', type: 'module', main: 'index.js' }))
+    writeFileSync(join(folder, 'index.js'), `export const source=${JSON.stringify(source)};export default class OwnedComponent {};`)
+  }
+  for (const name of components) {
+    const entry = name === 'ui' ? 'lib/index.js' : 'lib/planes/' + name + '.js'
+    const actual = await import(pathToFileURL(join(bundle, entry)).href)
+    assert.equal(actual.source, 'installed', name + ' escaped to the stale outer package')
+    if (['provider-local', 'host', 'ui'].includes(name)) assert.equal(typeof actual.default, 'function')
+  }
 })

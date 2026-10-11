@@ -95,7 +95,7 @@ export function workbenchPageBootstrap(rootId) {
   try {
     await globalThis.__DSH_BOOT_READY__?.promise
     const modules = window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })
-    const bundle = await modules.import('@deepblend/dsh-blender-ui')
+    const bundle = await modules.import('@deepblend/dsh-blender-bundle')
     await bundle.mountStandalone(root)
     root.dataset.deepblendStandalone = 'ready'
   } catch (error) {

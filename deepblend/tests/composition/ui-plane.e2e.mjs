@@ -521,7 +521,7 @@ for (const route of UI_ROUTES) {
       html.includes('<head>') && html.includes('<body'))
     check(`${route.id} builds the module system from the graph and imports THIS package`,
       html.includes('window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })')
-      && html.includes("modules.import('@deepblend/dsh-blender-ui')")
+      && html.includes("modules.import('@deepblend/dsh-blender-bundle')")
       && html.includes('bundle.mountStandalone(root)'))
     check(`${route.id} is not the console: no shell bundle, no sidebar, no conversation`,
       !/dsh-web-frontend|\/assets\/index-|sidebar|conversation/.test(html))

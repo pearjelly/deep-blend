@@ -1,20 +1,10 @@
 /**
- * @deepblend/dsh-blender-bundle
- *
- * This package is **patch-only when composed**: it contributes no runtime plugin, no service
- * and no tool of its own. Its entire contribution is `cordis.patch.yml`,
- * declared through `dsh.bundle.patch` and composed by the profile boot before
- * the profile's own patch layer.
- * The optional deepblend-doctor executable runs only when explicitly invoked.
- *
- * The module exists so the package is a well-formed, importable ESM package —
- * an `exports` map with no `.` entry makes `require.resolve('@deepblend/dsh-blender-bundle')`
- * fail, which breaks tooling that introspects a profile's bundle list.
- *
- * The rows it inserts are:
- *   - `deepblend-blender-runtime` → `@deepblend/dsh-blender-provider-local`
- *   - `deepblend-blender-host`    → `@deepblend/dsh-blender-host`
- *   - `deepblend-blender-ui`      → `@deepblend/dsh-blender-ui`
+ * Installable composition and UI entry for DeepBlend.
+ * Profile discovery reads dsh.bundle.patch without mounting this module.
+ * The patch mounts this package root once as the UI plane, giving the client
+ * scanner an exact package identity. Other planes use exported wrappers whose
+ * imports resolve from this package's own dependencies in every install route.
+ * The optional doctor executable runs only when explicitly invoked.
  */
 
 /** The bundle's patch file, relative to the package root. */
@@ -27,4 +17,6 @@ export const ROW_IDS = Object.freeze([
   'deepblend-blender-ui',
 ])
 
-export default { PATCH_FILE, ROW_IDS }
+// This entry is mounted only by the UI row; bundle discovery still reads dsh.bundle.patch.
+export * from '@deepblend/dsh-blender-ui'
+export { default } from '@deepblend/dsh-blender-ui'

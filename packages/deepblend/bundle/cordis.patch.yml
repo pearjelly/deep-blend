@@ -105,7 +105,7 @@
     # The portability of this file is asserted, not assumed:
     # `contract/bundle-portability.test.mjs` fails on any absolute path here.
     - id: deepblend-blender-runtime
-      name: '@deepblend/dsh-blender-provider-local'
+      name: '@deepblend/dsh-blender-bundle/provider-local'
       config:
         # A cold Blender launch plus one 64x36 render probe; measured ~0.4 s on
         # the M0 machine, so 180 s is a generous ceiling rather than a real budget.
@@ -127,7 +127,7 @@
     # Business facade consumed by BOTH planes: the preset tool and the UI host
     # half read the same authoritative answer (SPEC §14.3).
     - id: deepblend-blender-host
-      name: '@deepblend/dsh-blender-host'
+      name: '@deepblend/dsh-blender-bundle/host'
       config:
         # `projectsRoot` and `workspaceRoot` are deliberately absent for the same
         # reason as the paths above; both rows resolve them from `DSH_HOME`, and
@@ -181,7 +181,7 @@
     # Browser-facing host half. M0 serves the settings-card document; the Web
     # Client Slot half arrives in M4.
     - id: deepblend-blender-ui
-      name: '@deepblend/dsh-blender-ui'
+      name: '@deepblend/dsh-blender-bundle'
       config:
         serveRoute: true
 
@@ -213,7 +213,7 @@
     # location. `''` means "the default", and the default is derived once in
     # `@deepblend/dsh-blender-preset/deploy`.
     - id: deepblend-blender-preset
-      name: '@deepblend/dsh-blender-preset'
+      name: '@deepblend/dsh-blender-bundle/preset'
       config:
         deploy: true
         # Empty means every preset the package ships: a preset added to the

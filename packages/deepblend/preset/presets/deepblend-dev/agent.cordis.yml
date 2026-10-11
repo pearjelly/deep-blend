@@ -282,4 +282,4 @@
 # registered — so the rule no longer has an example of something held back, which is
 # the state it was written to reach.
 - id: deepblend-tool
-  name: '@deepblend/dsh-blender-tool'
+  name: '@deepblend/dsh-blender-bundle/tool'

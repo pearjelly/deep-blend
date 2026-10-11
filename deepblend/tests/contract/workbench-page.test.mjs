@@ -348,8 +348,8 @@ const hostModule = await import('@deepblend/dsh-blender-ui')
 
   const document = hostModule.workbenchPageDocument(hostModule.WORKBENCH_PAGE_ROOT_ID)
   check('the document imports the module id this bundle registers itself under',
-    document.includes(`modules.import('${UI_MODULE_ID}')`)
-    && source.includes(`id: '${UI_MODULE_ID}'`),
+    document.includes("modules.import('@deepblend/dsh-blender-bundle')")
+    && readFileSync(join(UI_PACKAGE, '..', 'bundle', 'lib', 'client.js'), 'utf8').includes("id: '@deepblend/dsh-blender-bundle'"),
     { imported: UI_MODULE_ID })
   check('the document mounts through this bundle\'s own entry point',
     document.includes('bundle.mountStandalone(root)'))

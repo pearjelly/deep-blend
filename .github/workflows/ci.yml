@@ -91,6 +91,9 @@ jobs:
       - name: Assert the preset source is installable
         run: node deepblend/tools/install-presets.mjs --check
 
+      - name: Assert the generated bundle client matches its source
+        run: node deepblend/tools/sync-bundle-client.mjs --check
+
       - name: Unit + contract suites
         run: node deepblend/tests/run.mjs
 
