@@ -395,7 +395,7 @@ try {
         const response = await fetch(`http://127.0.0.1:${port}${WORKBENCH_PAGE_ROUTE}`)
         const body = await response.text()
         const reservesRoot = body.includes(`id="${WORKBENCH_PAGE_ROOT_ID}"`)
-        const importsOwnBundle = body.includes('@deepblend/dsh-blender-ui')
+        const importsOwnBundle = body.includes("modules.import('@deepblend/dsh-blender-bundle')")
         workbench = `HTTP ${response.status}, ${response.headers.get('content-type') ?? 'no content-type'}`
           + `, reserves #${WORKBENCH_PAGE_ROOT_ID}=${reservesRoot}`
           + `, imports its own client bundle=${importsOwnBundle}`
@@ -408,6 +408,9 @@ try {
     }
     say('workbench route', workbench)
     if (!workbench.startsWith('HTTP 200')) problems.push(`the workbench route answered ${workbench}`)
+    if (!workbench.includes('reserves #'+WORKBENCH_PAGE_ROOT_ID+'=true') || !workbench.includes('imports its own client bundle=true')) {
+      problems.push('the workbench document does not mount its owned browser component')
+    }
 
     // -----------------------------------------------------------------------
     // 4. Where does the store land? This is the difference that keeps
