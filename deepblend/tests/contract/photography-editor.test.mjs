@@ -27,7 +27,7 @@ const waitFor = async (store, predicate) => {
 }
 async function client(t, options = {}) {
   const spec = options.spec || source(), projects = { one: { spec, revision: 'r0001' }, two: { spec: plain(spec), revision: 'r0001' } }
-  const calls = []; let patchFailure, previewFailure, restoreFailure
+  const calls = [], reads = []; let patchFailure, previewFailure, restoreFailure
   const settings = { pollIdleMs: 100000, fetch: async (url, init = {}) => {
     const path = new URL(url, 'http://localhost'), projectId = path.pathname.match(/projects\/([^/]+)/)?.[1] || path.searchParams.get('projectId') || 'one', project = projects[projectId]
     let payload
@@ -52,17 +52,25 @@ async function client(t, options = {}) {
         if (restoreFailure) payload = { ok: false, error: restoreFailure }
         else { assert.equal(body.expectedCurrentRevision, project.revision); project.revision = body.revision; payload = { ok: true, revision: { revision: body.revision } } }
       }
+    } else if (path.pathname.endsWith('/revisions')) {
+      payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.revisions', projectId, currentRevision: project.revision,
+        revisions: Object.keys(options.histories?.[projectId] || { [project.revision]: project.spec }).map(revision => ({ revision, digest: 'a'.repeat(64) })) }
+    } else if (path.pathname.endsWith('/scene')) {
+      const revision = path.searchParams.get('revision'), saved = options.histories?.[projectId]?.[revision] || project.spec
+      const scene = tree({ ...saved, project: { ...saved.project, id: projectId } }, revision); scene.digest = 'a'.repeat(64)
+      payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.scene', projectId, revision, digest: scene.digest, scene }
     } else if (path.pathname.endsWith('/jobs')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.jobs', jobs: [], unfinished: [] }
     else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: [] } }
-    else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projects: Object.keys(projects).map(projectId => ({ projectId })),
+    else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', cameraTargetResetSupported: options.legacy !== true, projectsRoot: typeof options.root === 'function' ? options.root() : null, projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { projectId, title: projectId }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
+    if (init.method !== 'POST') { reads.push({ url: String(url), projectId }); if (options.onRead) await options.onRead({ path, payload, signal: init.signal }) }
     return { ok: payload.ok, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }
   } }
   const store = core.createWorkbenchStore(settings); t.after(() => store.stop()); store.start(); await waitFor(store, state => state.status === 'ok'); store.actions.setView('scene')
   const nodes = () => flatten(core.renderView({ state: store.getState(), actions: store.actions }))
   const field = key => nodes().find(node => node.props['data-field'] === `photo-${key}`)
   const action = key => nodes().find(node => node.props['data-action'] === `photo-${key}`)
-  return { store, calls, projects, nodes, field, action, draft: () => editor.draftFor(store.getState()), fail: (kind, value) => {
+  return { store, calls, reads, projects, nodes, field, action, draft: () => editor.draftFor(store.getState()), fail: (kind, value) => {
     if (kind === 'patch') patchFailure = value; if (kind === 'preview') previewFailure = value; if (kind === 'restore') restoreFailure = value
   } }
 }
@@ -95,7 +103,7 @@ test('untouched recipes have no photography patch and omitted optional fields re
   const { next } = apply(spec, draft); assert.equal(Object.hasOwn(next.lights[0], 'size'), false); assert.equal(Object.hasOwn(next.lights[0], 'color'), false)
 })
 
-test('actual camera target controls switch entity and point without ignored rotation or target clearing', async t => {
+test('actual camera target controls switch entity, point and free rotation without ignored inputs', async t => {
   const { store, field, draft } = await client(t)
   const camera = () => draft().cameras.find(camera => camera.id === draft().cameraId), oldRotation = plain(camera().transform.rotationEuler)
   assert.equal(field('camera-rotationEuler-x').props.disabled, true)
@@ -104,7 +112,7 @@ test('actual camera target controls switch entity and point without ignored rota
   field('camera-aim').props.onChange({ target: { value: 'point' } }); field('camera-targetPoint-z').props.onChange({ target: { value: '.4' } })
   assert.equal(camera().targetEntityId, undefined); assert.deepEqual(plain(camera().targetPoint), [0, 0, .4])
   let result = apply(source(), draft()); assert.equal(result.next.cameras.find(item => item.id === camera().id).targetEntityId, undefined)
-  store.actions.updatePhotography('camera', ['aim'], 'free'); assert.equal(camera().targetPoint[2], .4)
+  store.actions.updatePhotography('camera', ['aim'], 'free'); assert.equal(camera().targetPoint, undefined); assert.equal(editor.buildPatch(draft()).operations[0].clearTarget, true)
   field('camera-aim').props.onChange({ target: { value: 'entity' } }); field('camera-target').props.onChange({ target: { value: draft().entities.at(-1).id } })
   result = apply(source(), draft()); assert.equal(result.next.cameras.find(item => item.id === camera().id).targetPoint, undefined)
   assert.equal(result.next.cameras.find(item => item.id === camera().id).targetEntityId, draft().entities.at(-1).id)
@@ -148,7 +156,7 @@ test('light controls retain type-specific fields and add an explicit area light 
   assert.deepEqual(saved.color, [.2, .3, .6, .8]); assert.equal(saved.transform.rotationEuler[0], Math.PI / 6); assert.deepEqual(projects.one.spec.lights.find(light => light.id === added.id), added)
 })
 
-test('invalid inputs and unsupported target clearing do not create a request', async t => {
+test('invalid inputs and target-overridden rotation do not create a request', async t => {
   const { store, calls, draft } = await client(t)
   for (const [kind, path, value] of [['camera', ['lens'], 0], ['light', ['energy'], -1], ['light', ['color', 0], 2], ['light', ['size'], 0], ['camera', ['transform', 'location', 0], null]]) {
     store.actions.resetPhotography(); store.actions.updatePhotography(kind, path, value); await store.actions.savePhotography(); assert.equal(calls.length, 0)
@@ -156,7 +164,7 @@ test('invalid inputs and unsupported target clearing do not create a request', a
   store.actions.resetPhotography(); draft().cameras[0].targetPoint = [0, 1, 2]; delete draft().cameras[0].targetEntityId
   draft().cameras[0].transform.rotationEuler[1] += 1; assert.throws(() => editor.buildPatch(draft()), /rotationEuler/)
   store.actions.resetPhotography(); delete draft().cameras[0].targetEntityId; delete draft().cameras[0].targetPoint
-  assert.throws(() => editor.buildPatch(draft()), /target/)
+  assert.equal(editor.buildPatch(draft()).operations[0].clearTarget, true); assert.equal(calls.length, 0)
 })
 
 test('polling and project switches retain drafts, expose stale bases and refuse stale saves', async t => {
@@ -293,4 +301,140 @@ test('omitted photographic options show defaults without a patch and zero keeps 
   assert.equal(selected.lens, undefined); assert.equal(selected.transform, undefined)
   assert.equal(draft().lights[0].energy, undefined); assert.equal(draft().lights[0].color, undefined); assert.equal(draft().lights[0].size, undefined)
   assert.deepEqual(plain(editor.buildPatch(draft()).operations), [])
+})
+
+test('saved photography reuse replaces lighting and editable camera fields in a target-bound draft', () => {
+  assert.equal(typeof editor.reuse, 'function', 'saved photography must be reusable without manually retyping its fields')
+  const from = source(), target = source(); from.cameras[0].lens = 55; from.cameras[0].targetPoint[2] = .06
+  from.lights[0].energy = .9; from.lights[0].color = [.8, .9, 1]; from.lights[0].spotBlend = .2
+  target.cameras[0].id = 'destination-camera'; target.project.activeCamera = 'destination-camera'; for (const shot of target.shots) if (shot.cameraId === 'hero') shot.cameraId = 'destination-camera'
+  target.cameras[0].sensorWidth = 42; target.cameras[0].fStop = 6.3
+  const { draft } = make(target), before = plain(draft), snapshot = plain(from)
+  const reused = editor.reuse(draft, tree(from, 'r0007'), from.cameras[0].id, '')
+  assert.deepEqual(plain(draft), before, 'applying a reusable setup must not mutate the original draft')
+  assert.deepEqual(from, snapshot, 'the saved source must remain untouched')
+  const { patch, next } = apply(target, reused)
+  assert.equal(patch.baseRevision, draft.baseRevision); assert.equal(next.cameras[0].id, 'destination-camera')
+  assert.equal(next.cameras[0].lens, 55); assert.deepEqual(next.cameras[0].targetPoint, from.cameras[0].targetPoint)
+  assert.equal(next.cameras[0].sensorWidth, 42); assert.equal(next.cameras[0].fStop, 6.3)
+  assert.deepEqual(Object.fromEntries(next.lights.map(item => [item.id, item])), Object.fromEntries(from.lights.map(item => [item.id, item])), 'all source light identities and complete definitions must be reused, including noneditable fields')
+  for (const key of ['entities', 'materials', 'assets', 'world', 'project', 'animationTracks', 'renderProfiles', 'shots']) assert.deepEqual(next[key], target[key])
+  assert.deepEqual(next.cameras.slice(1), target.cameras.slice(1)); assert.equal(reused.projectId, draft.projectId)
+})
+
+test('reusing an object-targeted camera requires an explicit target-work object mapping', () => {
+  assert.equal(typeof editor.reuse, 'function')
+  const from = source(), { spec, draft } = make(); delete from.cameras[0].targetPoint; from.cameras[0].targetEntityId = 'source-only-object'
+  assert.throws(() => editor.reuse(draft, tree(from), 'hero', ''), /target|目标|对象/i)
+  assert.throws(() => editor.reuse(draft, tree(from), 'hero', 'not-here'), /target|目标|对象/i)
+  const { next } = apply(spec, editor.reuse(draft, tree(from), 'hero', spec.entities[0].id))
+  assert.equal(next.cameras[0].targetEntityId, spec.entities[0].id); assert.equal(next.cameras[0].targetPoint, undefined)
+})
+
+test('reusing a free-rotation camera clears the earlier aim and cannot overwrite animated axes', () => {
+  assert.equal(typeof editor.reuse, 'function')
+  const from = source(), { spec, draft } = make(); delete from.cameras[0].targetPoint; from.cameras[0].transform.rotationEuler = [.1, .2, .3]
+  const { patch, next } = apply(spec, editor.reuse(draft, tree(from), 'hero', ''))
+  assert.equal(patch.operations[0].clearTarget, true); assert.equal(next.cameras[0].targetPoint, undefined)
+  assert.deepEqual(next.cameras[0].transform.rotationEuler, [.1, .2, .3]); assert.equal(Object.hasOwn(next.cameras[0], 'clearTarget'), false)
+  spec.animationTracks.push({ id: 'locked', targetKind: 'camera', targetEntityId: 'hero', property: 'rotationEuler.z', keyframes: [{ frame: 1, value: 0 }, { frame: 48, value: 1 }] })
+  const locked = make(spec).draft, before = plain(locked)
+  assert.throws(() => editor.reuse(locked, tree(from), 'hero', ''), /rotation|target|旋转|输入/i)
+  assert.deepEqual(plain(locked), before)
+})
+
+test('clearTarget is explicit, mutually exclusive with a new target and remains absent from saved camera data', () => {
+  const { spec } = make(), operation = { op: 'camera.update', cameraId: 'hero', clearTarget: true, transform: { rotationEuler: [.1, .2, .3] } }
+  const patch = { projectId: 'one', baseRevision: 'r0001', operations: [operation] }
+  assert.equal(validateScenePatch(patch).ok, true, 'a targeted camera must support returning to free rotation')
+  const next = applyPatchToSpec(spec, patch).spec; assert.equal(next.cameras[0].targetPoint, undefined); assert.equal(next.cameras[0].clearTarget, undefined)
+  for (const extra of [{ targetPoint: [0, 0, 0] }, { targetEntityId: spec.entities[0].id }, { clearTarget: false }]) {
+    assert.equal(validateScenePatch({ ...patch, operations: [{ ...operation, ...extra }] }).ok, false)
+  }
+})
+
+test('the actual source controls read a saved version and apply without a write until explicit save', async t => {
+  const { store, calls, projects, field, action, draft, reads } = await client(t)
+  projects.two.spec.cameras[0].lens = 55; projects.two.spec.lights[0].energy = .9
+  await store.actions.setPhotographySource('project', 'two')
+  assert.equal(store.getState().photographyReuse.one.revision, 'r0001'); assert.equal(field('source-camera').props.value, 'hero')
+  assert.equal(action('reuse').props.disabled, false); action('reuse').props.onClick()
+  assert.equal(draft().cameras.find(item => item.id === 'hero').lens, 55); assert.equal(draft().lights.find(item => item.id === 'key').energy, .9)
+  assert.equal(calls.length, 0); assert(reads.some(item => item.url.endsWith('/scene?revision=r0001')))
+  await store.actions.savePhotography(); assert.deepEqual(calls.map(item => item.route), ['patch', 'preview'])
+  assert.equal(calls[0].projectId, 'one'); assert.match(calls[0].body.patch.note, /two.*r0001.*aaaa.*hero/); assert.equal(calls[0].body.patch.baseRevision, 'r0001'); assert.equal(calls[1].body.revision, 'r0002')
+  assert.equal(projects.two.revision, 'r0001'); assert.equal(projects.two.spec.cameras[0].lens, 55); assert.equal(store.getState().photographyReuse.one.applied, false); assert.equal(store.getState().photographyReuse.one.baseRevision, 'r0002'); await waitFor(store, state => state.currentRevision === 'r0002'); store.actions.reusePhotography(); assert.equal(editor.dirty(draft()), false); assert.equal(store.getState().photographyReuse.one.unchanged, true); assert.equal(calls.length, 2); store.actions.updatePhotography('camera', ['lens'], 81); assert.equal(store.getState().photographyReuse.one.unchanged, false)
+})
+
+test('an existing photography draft requires explicit replacement and keeps other work inputs', async t => {
+  const { store, calls, projects, draft, field, action } = await client(t)
+  projects.two.spec.cameras[0].lens = 55; store.actions.updatePhotography('camera', ['lens'], 81); store.actions.setForm('patch', 'other unsaved edit')
+  await store.actions.setPhotographySource('project', 'two'); const before = plain(draft())
+  assert.equal(action('reuse').props.disabled, true); store.actions.reusePhotography(); assert.deepEqual(plain(draft()), before)
+  field('source-replace').props.onChange({ target: { checked: true } }); assert.equal(action('reuse').props.disabled, false)
+  store.actions.reusePhotography(); assert.equal(draft().cameras.find(item => item.id === 'hero').lens, 55)
+  assert.equal(store.getState().photographyReuse.one.replaceDraft, false); assert.equal(store.getState().forms.patch, 'other unsaved edit'); assert.equal(calls.length, 0)
+})
+
+test('source reads reject project, version and digest mismatches without replacing the destination draft', async t => {
+  for (const change of [p => p.projectId = 'elsewhere', p => p.revision = 'r0009', p => p.scene.revision = 'r0009', p => p.digest = 'b'.repeat(64), p => p.scene.project.id = 'elsewhere']) {
+    const { store, draft, calls } = await client(t, { onRead: ({ path, payload }) => { if (path.pathname.endsWith('/scene')) change(payload) } })
+    const before = plain(draft()); await store.actions.setPhotographySource('project', 'two')
+    assert.equal(store.getState().photographyReuse.one.source, null); assert(store.getState().photographyReuse.one.error)
+    store.actions.reusePhotography(); assert.deepEqual(plain(draft()), before); assert.equal(calls.length, 0)
+  }
+})
+
+test('a later source selection wins over a late saved-scene response', async t => {
+  let finish; const gate = new Promise(resolve => finish = resolve)
+  const { store, projects, calls } = await client(t, { onRead: async ({ path }) => { if (path.pathname.endsWith('/scene') && path.pathname.includes('/two/')) await gate } })
+  projects.two.spec.cameras[0].lens = 99
+  const old = store.actions.setPhotographySource('project', 'two'); await waitFor(store, state => state.photographyReuse.one?.revision === 'r0001')
+  await store.actions.setPhotographySource('project', 'one'); finish(); await old
+  assert.equal(store.getState().photographyReuse.one.sourceProjectId, 'one'); assert.equal(store.getState().photographyReuse.one.source.nodes.cameras.find(item => item.id === 'hero').definition.lens, 60)
+  assert.equal(calls.length, 0)
+})
+
+test('a stored historical version remains the source when the source current pointer changes', async t => {
+  const old = source(), newest = source(); old.cameras[0].lens = 55; newest.cameras[0].lens = 90
+  const { store, projects, calls, draft } = await client(t, { histories: { two: { r0001: old, r0002: newest } }, onRead: ({ path }) => { if (path.pathname.endsWith('/revisions') && path.pathname.includes('/two/')) projects.two.revision = 'r0002' } })
+  await store.actions.setPhotographySource('project', 'two'); assert.equal(store.getState().photographyReuse.one.revision, 'r0001')
+  await store.actions.setPhotographySource('revision', 'r0002'); assert.equal(store.getState().photographyReuse.one.source.nodes.cameras.find(item => item.id === 'hero').definition.lens, 90)
+  await store.actions.setPhotographySource('revision', 'r0001'); assert.equal(store.getState().photographyReuse.one.revision, 'r0001')
+  store.actions.reusePhotography(); assert.equal(draft().cameras.find(item => item.id === 'hero').lens, 55); assert.equal(calls.length, 0)
+})
+
+test('a late source read after stopping cannot update the snapshot', async t => {
+  let finish; const gate = new Promise(resolve => finish = resolve)
+  const { store, calls } = await client(t, { onRead: async ({ path }) => { if (path.pathname.endsWith('/scene')) await gate } })
+  const pending = store.actions.setPhotographySource('project', 'two'); await waitFor(store, state => state.photographyReuse.one?.revision === 'r0001')
+  store.stop(); const snapshot = store.getState(); finish(); await pending
+  assert.equal(store.getState(), snapshot); assert.equal(calls.length, 0)
+})
+
+test('project storage changes invalidate saved photography sources and keep an unsaved draft intact', async t => {
+  let root = '/first-store'
+  const { store, draft, calls } = await client(t, { root: () => root })
+  await store.actions.setPhotographySource('project', 'two'); store.actions.updatePhotography('camera', ['lens'], 81)
+  const before = plain(draft()); root = '/other-store'; store.actions.reload(); await waitFor(store, state => state.projectsRoot === root)
+  assert.deepEqual(Object.keys(store.getState().photographyReuse), []); store.actions.reusePhotography(); assert.deepEqual(plain(draft()), before); assert.equal(calls.length, 0)
+})
+
+test('an older Host keeps legacy photography editing while refusing unsupported reuse and target clearing', async t => {
+  const { store, reads, calls, draft, field, action } = await client(t, { legacy: true })
+  const before = plain(draft()), oldReads = reads.length
+  assert.equal(action('reuse'), undefined); assert.equal(field('source-project'), undefined)
+  await store.actions.setPhotographySource('project', 'two'); store.actions.reusePhotography()
+  store.actions.updatePhotography('camera', ['aim'], 'free'); assert.deepEqual(plain(draft()), before)
+  assert.equal(reads.length, oldReads); assert.equal(calls.length, 0)
+  store.actions.updatePhotography('camera', ['lens'], 55); await store.actions.savePhotography()
+  assert.equal(calls[0].body.patch.operations[0].lens, 55); assert.equal(calls[0].body.patch.operations[0].clearTarget, undefined)
+})
+
+test('a saved light rig with identical definitions in a different order needs no new revision', () => {
+  const { spec, draft } = make(), same = plain(spec); same.lights.reverse()
+  const reused = editor.reuse(draft, tree(same), 'hero', '')
+  assert.equal(editor.dirty(reused), false); assert.deepEqual(plain(editor.buildPatch(reused).operations), [])
+  reused.lights.find(item => item.id === 'key').energy += .1
+  assert.equal(editor.dirty(reused), true); assert(editor.buildPatch(reused).operations.some(item => item.op === 'light.add'))
 })

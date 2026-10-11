@@ -35,6 +35,7 @@ import {
   BlenderError,
   BlenderErrorCode,
   CREATION_REQUEST_VERSION,
+  CAMERA_UPDATE_FIELDS,
   BlenderWarningCode,
   SCENE_PATCH_VERSION,
   buildViewPlan,
@@ -626,6 +627,7 @@ export default class BlenderStudio extends Service {
   }
 
   get creationRequestProtocol() { return CREATION_REQUEST_VERSION }
+  get cameraTargetResetSupported() { return CAMERA_UPDATE_FIELDS.includes('clearTarget') }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null

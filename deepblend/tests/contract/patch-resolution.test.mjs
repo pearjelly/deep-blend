@@ -516,8 +516,9 @@ for (const recipeId of ['glass-ceramic', 'metal-lamp', 'modular-speaker']) {
   }
   const updateFields = asFields(Object.keys(updateBranch.properties))
 
-  check('the schema agrees with itself: camera.add and camera.update accept one field set',
-    JSON.stringify(addFields) === JSON.stringify(updateFields),
+  check('camera.add and camera.update agree on saved fields; clearTarget is an update-only instruction',
+    JSON.stringify(addFields) === JSON.stringify(updateFields.filter(key => key !== 'clearTarget'))
+      && updateBranch.properties.clearTarget?.const === true && !Object.hasOwn(schema['$defs'].camera.properties, 'clearTarget'),
     { add: addFields, update: updateFields })
   check('the semantic validator accepts exactly the fields the schema does',
     JSON.stringify(asFields([...CAMERA_UPDATE_FIELDS])) === JSON.stringify(updateFields),

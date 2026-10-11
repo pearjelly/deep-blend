@@ -513,7 +513,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | 操作 | 参数 |
 |---|---|
 | `camera.add` | `camera` = `{id, lens?, sensorWidth?, clipping?, transform?, targetEntityId? \| targetPoint?, fStop?}` |
-| `camera.update` | `cameraId` + 至少一个字段；改用 `targetEntityId` 会**清除** `targetPoint`，反之亦然 |
+| `camera.update` | `cameraId` + 至少一个字段；改用 `targetEntityId` 会**清除** `targetPoint`，反之亦然；`clearTarget:true` 明确清除两种目标、返回自由旋转，与两种目标字段互斥，指令不会写入相机定义 |
 | `camera.remove` | `cameraId`（被 shot 使用 → `PATCH_TARGET_IN_USE`） |
 
 相机同时声明 `targetEntityId` 与 `targetPoint` 会被 SceneSpec 校验拒绝

@@ -333,6 +333,24 @@ window.__ModuleLoader__.load({
       "photo.cameraChanges": "相机",
       "photo.lightChanges": "灯光",
       "photo.restoreFailed": "恢复失败，已保留摄影记录：{message}",
+      "photo.reuseUnavailable": "无法读取完整摄影设置，请重新选择来源。",
+      "photo.reuseTitle": "复用已保存作品的摄影设置",
+      "photo.reuseHelp": "原坐标以米复用，不自动缩放或取景。替换本作品全部灯光和所选相机的可编辑设置；模型、材质、世界、动画、其他相机与交付设置保留。套用后检查构图，再明确保存。",
+      "photo.reuseProject": "来源作品",
+      "photo.reuseRevision": "来源保存版本",
+      "photo.reuseCamera": "来源相机",
+      "photo.reuseTarget": "瞄准目标作品中的对象",
+      "photo.reuseReading": "正在读取已保存摄影设置…",
+      "photo.reuseSource": "来源：{project} · {revision} · {digest} · {count} 盏灯",
+      "photo.reuseReplace": "替换当前未提交的摄影草稿（其他编辑保留）",
+      "photo.reuseStale": "目标草稿来源已变化，请重新读取摄影设置。",
+      "photo.reuseApplied": "已套用到草稿，尚未保存。请检查构图与灯光。",
+      "photo.reuseSame": "当前摄影设置已与来源一致，无需再次保存。",
+      "photo.reuseReload": "重新读取来源",
+      "photo.reuseApply": "套用到摄影草稿",
+      "photo.reuseUpgrade": "更新插件并重启 DSH 后即可复用摄影设置。",
+      "photo.reuseNote": "摄影设置从 {project} · {revision} · {digest} · 相机 {camera} 开始复用；目标对象 {target}。保存前可继续调整草稿。",
+      "photo.reuseTargetRequired": "请选择目标作品中的瞄准对象。",
       'editor.title': '编辑对象',
       'editor.unknownSettings': '这张预览缺少实测渲染设置，无法比较编辑差异。',
       'editor.missingBaseline': '没有同相机、同帧和同渲染设置的编辑前预览，暂时无法比较差异。',
@@ -903,6 +921,24 @@ window.__ModuleLoader__.load({
       "photo.cameraChanges": "cameras",
       "photo.lightChanges": "lighting",
       "photo.restoreFailed": "Restore failed; the photography record is retained: {message}",
+      "photo.reuseUnavailable": "Complete photography settings are unavailable. Select the source again.",
+      "photo.reuseTitle": "Reuse photography from saved work",
+      "photo.reuseHelp": "Reuse absolute coordinates in metres, without automatic scaling or framing. Replace all lights and the selected camera’s editable settings. Keep models, materials, world, animation, other cameras and delivery settings. Check the framing before explicitly saving.",
+      "photo.reuseProject": "Source work",
+      "photo.reuseRevision": "Saved source version",
+      "photo.reuseCamera": "Source camera",
+      "photo.reuseTarget": "Aim at an object in the destination work",
+      "photo.reuseReading": "Reading saved photography settings…",
+      "photo.reuseSource": "Source: {project} · {revision} · {digest} · {count} lights",
+      "photo.reuseReplace": "Replace the unsaved photography draft (keep other edits)",
+      "photo.reuseStale": "The destination draft source changed. Read the photography settings again.",
+      "photo.reuseApplied": "Applied to the draft; not saved yet. Check the framing and lighting.",
+      "photo.reuseSame": "The current photography matches the source; no new save is needed.",
+      "photo.reuseReload": "Read source again",
+      "photo.reuseApply": "Apply to photography draft",
+      "photo.reuseUpgrade": "Update the plugin and restart DSH to reuse photography settings.",
+      "photo.reuseNote": "Photography started from {project} · {revision} · {digest} · camera {camera}; destination aim object {target}. The draft may be adjusted before saving.",
+      "photo.reuseTargetRequired": "Choose an aim target in the destination work.",
       'editor.title': 'Edit object',
       'editor.unknownSettings': 'Measured render settings are missing. This preview cannot establish the edit difference.',
       'editor.missingBaseline': 'No before preview has the same camera, frame and measured render settings. The edit difference is unavailable.',
@@ -2148,10 +2184,10 @@ window.__ModuleLoader__.load({
       return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
     }
 
-    function createPhotographyDraft(scene, projectId, previous = {}) {
+    function createPhotographyDraft(scene, projectId, previous = {}, projectsRoot = null) {
       const cameras = (scene.nodes.cameras || []).map(item => editorClone(item.definition)).filter(Boolean)
       const lights = (scene.nodes.lights || []).map(item => editorClone(item.definition)).filter(Boolean)
-      return { projectId, baseRevision: scene.revision, cameras, lights, original: editorClone({ cameras, lights }),
+      return { projectId, projectsRoot, baseRevision: scene.revision, cameras, lights, original: editorClone({ cameras, lights }),
         entities: editorClone(scene.nodes.entities), tracks: editorClone(scene.nodes.animationTracks || []),
         cameraId: cameras.some(item => item.id === previous.cameraId) ? previous.cameraId : scene.project.activeCamera || cameras[0]?.id || '',
         lightId: lights.some(item => item.id === previous.lightId) ? previous.lightId : lights[0]?.id || '',
@@ -2161,6 +2197,8 @@ window.__ModuleLoader__.load({
     const photographyDraftFor = state => state.photographyDrafts?.[state.activeProjectId] || null
     const photographyBusy = work => Boolean(work?.saving || work?.previewing || work?.restoring)
     const photographyAim = camera => camera?.targetEntityId !== undefined ? 'entity' : camera?.targetPoint !== undefined ? 'point' : 'free'
+    const photographySameLights = (a, b) => creationSignature(Object.fromEntries(a.map(item => [item.id, item])))
+      === creationSignature(Object.fromEntries(b.map(item => [item.id, item])))
     const photographyAimLocked = (draft, camera) => EDITOR_AXES.some(axis => editorTrackLocked(draft, 'camera', camera.id, `rotationEuler.${axis}`))
     function photographyErrors(draft) {
       const errors = [], bad = key => errors.push(key), number = (value, min, inclusive = true) => Number.isFinite(value) && (inclusive ? value >= min : value > min)
@@ -2181,14 +2219,14 @@ window.__ModuleLoader__.load({
           if (item.targetPoint !== undefined && !vector(item.targetPoint)) bad(`${item.id}.targetPoint`)
           if (item.targetEntityId !== undefined && item.targetPoint !== undefined) bad(`${item.id}.target`)
           const targetChanged = !editorEqual([item.targetEntityId, item.targetPoint], [original?.targetEntityId, original?.targetPoint])
-          if (targetChanged && (photographyAimLocked(draft, item) || photographyAim(item) === 'free')) bad(`${item.id}.target`)
+          if (targetChanged && photographyAimLocked(draft, item)) bad(`${item.id}.target`)
         } else {
           if (!number(editorNumberDefault(item.energy, 100), 0)) bad(`${item.id}.energy`)
           if (!Array.isArray(item.color ?? [1, 1, 1]) || ![3, 4].includes((item.color ?? [1, 1, 1]).length)
             || !(item.color ?? [1, 1, 1]).every(value => number(value, 0) && value <= 1)) bad(`${item.id}.color`)
           if (item.type !== 'sun' && !number(editorNumberDefault(item.size, item.type === 'area' ? 1 : .25), 0, false)) bad(`${item.id}.size`)
-          if (!original && item.type !== 'area') bad(`${item.id}.type`)
-          if (original && item.type !== original.type) bad(`${item.id}.type`)
+          if (!draft.reusedLights && ((!original && item.type !== 'area') || (original && item.type !== original.type))) bad(`${item.id}.type`)
+          if (!['area', 'point', 'spot', 'sun'].includes(item.type)) bad(`${item.id}.type`)
         }
       }
       if (!draft.cameras.some(camera => camera.id === draft.cameraId)) bad('camera')
@@ -2200,11 +2238,18 @@ window.__ModuleLoader__.load({
       const errors = photographyErrors(draft)
       if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
       const operations = []
+      const replaceLights = draft.reusedLights && !photographySameLights(draft.lights, draft.original.lights)
       for (const [kind, items, fields] of [['camera', draft.cameras, ['lens', 'targetEntityId', 'targetPoint']], ['light', draft.lights, ['energy', 'color', 'size']]]) {
+        if (kind === 'light' && replaceLights) {
+          for (const light of draft.original.lights) operations.push({ op: 'light.remove', lightId: light.id })
+          for (const light of items) operations.push({ op: 'light.add', light: editorClone(light) })
+          continue
+        }
         for (const item of items) {
           const original = draft.original[`${kind}s`].find(old => old.id === item.id)
           if (!original) { operations.push({ op: 'light.add', light: editorClone(item) }); continue }
           const changes = {}
+          if (kind === 'camera' && photographyAim(item) === 'free' && photographyAim(original) !== 'free') changes.clearTarget = true
           for (const key of fields) if (item[key] !== undefined && !editorEqual(item[key], original[key])) changes[key] = editorClone(item[key])
           const transform = {}
           for (const key of ['location', 'rotationEuler']) if (!editorEqual(item.transform?.[key], original.transform?.[key])) transform[key] = editorClone(item.transform[key])
@@ -2212,10 +2257,40 @@ window.__ModuleLoader__.load({
           if (Object.keys(changes).length) operations.push({ op: `${kind}.update`, [`${kind}Id`]: item.id, ...changes })
         }
       }
-      return { projectId: draft.projectId, baseRevision: draft.baseRevision, actor: 'ui', saveCheckpoint: true, renderPreview: false, operations }
+      const note = draft.reuseSource ? t('photo.reuseNote', draft.reuseSource) : null
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, actor: 'ui', saveCheckpoint: true, renderPreview: false, operations, ...(note ? { note } : {}) }
     }
     function photographyDirty(draft) {
-      return Boolean(draft && !editorEqual({ cameras: draft.cameras, lights: draft.lights }, draft.original))
+      return Boolean(draft && (creationSignature(draft.cameras) !== creationSignature(draft.original.cameras)
+        || !photographySameLights(draft.lights, draft.original.lights)))
+    }
+    function reusePhotography(draft, source, cameraId, targetEntityId) {
+      const camera = source?.nodes?.cameras?.find(item => item.id === cameraId)?.definition
+      const target = draft?.cameras?.find(item => item.id === draft.cameraId)
+      if (!camera || !target || !Array.isArray(source.nodes.lights)) throw new Error(t('photo.reuseUnavailable'))
+      const next = editorClone(draft), selected = next.cameras.find(item => item.id === next.cameraId)
+      selected.lens = editorNumberDefault(camera.lens, 50)
+      selected.transform ||= {}
+      selected.transform.location = editorClone(camera.transform?.location || [0, 0, 0])
+      delete selected.targetEntityId; delete selected.targetPoint
+      if (photographyAim(camera) === 'entity') {
+        if (!next.entities.some(item => item.id === targetEntityId)) throw new Error(t('photo.reuseTargetRequired'))
+        selected.targetEntityId = targetEntityId
+      } else if (photographyAim(camera) === 'point') selected.targetPoint = editorClone(camera.targetPoint)
+      if (photographyAim(camera) === 'free') selected.transform.rotationEuler = editorClone(camera.transform?.rotationEuler || [0, 0, 0])
+      else {
+        const original = next.original.cameras.find(item => item.id === selected.id)
+        if (original?.transform?.rotationEuler) selected.transform.rotationEuler = editorClone(original.transform.rotationEuler)
+        else delete selected.transform.rotationEuler
+      }
+      next.lights = source.nodes.lights.map(item => editorClone(item.definition))
+      if (next.lights.some(item => !item)) throw new Error(t('photo.reuseUnavailable'))
+      next.lightId = next.lights.some(item => item.id === next.lightId) ? next.lightId : next.lights[0]?.id || ''
+      next.reusedLights = true
+      next.reuseSource = { project: source.project.id, revision: source.revision, digest: source.digest, camera: cameraId, target: targetEntityId || '—' }
+      const errors = photographyErrors(next)
+      if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
+      return next
     }
     function inspectionReceiptValid(receipt, request, digest) {
       const artifacts = receipt?.artifacts, view = request.views[0]
@@ -2622,6 +2697,7 @@ window.__ModuleLoader__.load({
         imageDownloads: {},
         creationWork: null,
         creationRequestProtocol: null,
+        cameraTargetResetSupported: false,
         creationDrafts: [],
         creationDraftStorageStatus: null,
         creationDraftMissingRecipe: null,
@@ -2643,6 +2719,7 @@ window.__ModuleLoader__.load({
         photographyDrafts: {},
         photographyWork: {},
         photographyEdits: {},
+        photographyReuse: {},
         editorEntityId: null,
         editorDrafts: {},
         editorLastEdits: {},
@@ -2711,6 +2788,8 @@ window.__ModuleLoader__.load({
       const draftLifecycle = settings.creationDraftLifecycle ?? globalThis.window
       let fileChoiceSignature = null, fileChoicesStopped = false
       const photographyControllers = new Map()
+      const photographySourceControllers = new Map()
+      let photographySourceSequence = 0
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
       const inspectionControllers = new Map()
       const imageDownloadControllers = new Map()
@@ -2765,7 +2844,9 @@ window.__ModuleLoader__.load({
         // Automatic edit images are source snapshots too. They cannot override
         // fresh rows from another store, even when its project/revision IDs match.
         if (Object.hasOwn(patch, 'projectsRoot') && patch.projectsRoot !== data.projectsRoot) {
-          patch = { ...patch, editorComparison: null }
+          for (const controller of photographySourceControllers.values()) controller.abort()
+          photographySourceControllers.clear()
+          patch = { ...patch, editorComparison: null, photographyReuse: {} }
         }
         // Retire the old source before selection/creation navigation can expose
         // it with a new project. A load supplies the complete new source atomically.
@@ -2862,6 +2943,7 @@ window.__ModuleLoader__.load({
           recipeCatalog: payload.recipeCatalog ?? { recipes: [], errors: [] },
           projectsRoot: payload.projectsRoot ?? null,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
+          cameraTargetResetSupported: payload.cameraTargetResetSupported === true,
           selected: payload.selected ?? null,
           activeProjectId: active,
           currentRevision: payload.selected ? payload.selected.currentRevision : null,
@@ -2909,7 +2991,7 @@ window.__ModuleLoader__.load({
         if (patch.selected?.scene && active) {
           const photography = data.photographyDrafts[active]
           if ((!photography || !photographyDirty(photography)) && !data.photographyWork[active]?.saving) {
-            patch.photographyDrafts = { ...data.photographyDrafts, [active]: createPhotographyDraft(patch.selected.scene, active, photography) }
+            patch.photographyDrafts = { ...data.photographyDrafts, [active]: createPhotographyDraft(patch.selected.scene, active, photography, patch.projectsRoot) }
           }
           const draft = data.briefDrafts[active], work = data.briefWork[active]
           if (!draft || !briefDirty(draft) && !work?.uploading && !work?.saving) {
@@ -3036,6 +3118,46 @@ window.__ModuleLoader__.load({
 
       const acceptsFileChoice = (source, field) => !fileChoicesStopped && typeof source === 'string'
         && FILE_FIELDS.includes(field) && source === fileChoiceKey(data, field) && fileChoiceAllowed(data, field)
+      const loadPhotographySource = async requestedRevision => {
+        const draft = photographyDraftFor(data), projectId = data.activeProjectId, selection = data.photographyReuse[projectId]
+        if (!data.cameraTargetResetSupported || !draft || !selection?.sourceProjectId || photographyBusy(data.photographyWork[projectId])
+          || draft.baseRevision !== data.selected?.scene?.revision || draft.projectsRoot !== data.projectsRoot) return
+        photographySourceControllers.get(projectId)?.abort()
+        const controller = new AbortController(), sequence = ++photographySourceSequence
+        photographySourceControllers.set(projectId, controller)
+        const root = data.projectsRoot, baseRevision = draft.baseRevision, sourceProjectId = selection.sourceProjectId
+        const alive = () => running && !controller.signal.aborted && photographySourceControllers.get(projectId) === controller && data.projectsRoot === root
+        const update = changes => set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], ...changes } } })
+        update({ source: null, loading: true, error: null, applied: false, unchanged: false, replaceDraft: false, projectsRoot: root, baseRevision, sequence })
+        const deadline = setTimeout(() => controller.abort(), 30000)
+        const read = (path, route) => readRoute((url, options) => fetchImpl(url, { ...options, signal: controller.signal }), path, route)
+        try {
+          const listed = await read(projectRoute(sourceProjectId, '/revisions'), 'project.revisions')
+          if (!alive()) return
+          const list = listed.payload
+          if (listed.status !== 'ok' || list?.projectId !== sourceProjectId || !Array.isArray(list.revisions)
+            || list.revisions.some(item => !/^r[0-9]{4,}$/.test(item.revision))) throw new Error(listed.error?.message || t('photo.reuseUnavailable'))
+          const revision = requestedRevision || list.currentRevision, saved = list.revisions.find(item => item.revision === revision)
+          if (!saved) throw new Error(t('photo.reuseUnavailable'))
+          update({ revisions: editorClone(list.revisions), revision })
+          const result = await read(`${projectRoute(sourceProjectId, '/scene')}?revision=${encodeURIComponent(revision)}`, 'project.scene')
+          if (!alive()) return
+          const payload = result.payload, scene = payload?.scene
+          if (result.status !== 'ok' || payload?.projectId !== sourceProjectId || payload.revision !== revision
+            || scene?.revision !== revision || scene?.project?.id !== sourceProjectId || scene.digest !== payload.digest
+            || !/^[a-f0-9]{64}$/.test(payload.digest || '') || (saved.digest && saved.digest !== payload.digest)
+            || !Array.isArray(scene.nodes?.cameras) || !Array.isArray(scene.nodes?.lights)) throw new Error(result.error?.message || t('photo.reuseUnavailable'))
+          update({ source: editorClone(scene), cameraId: scene.nodes.cameras.find(item => item.id === scene.project.activeCamera)?.id || scene.nodes.cameras[0]?.id || '', targetEntityId: '', error: null })
+        } catch (error) {
+          if (alive()) update({ source: null, error: error.message || String(error) })
+        } finally {
+          clearTimeout(deadline)
+          if (photographySourceControllers.get(projectId) === controller) {
+            photographySourceControllers.delete(projectId)
+            if (running && data.projectsRoot === root) update({ loading: false, ...(controller.signal.aborted ? { source: null, error: t('photo.reuseUnavailable') } : {}) })
+          }
+        }
+      }
       const actions = {
         acceptsFileChoice,
         setAppearance: value => {
@@ -3439,7 +3561,43 @@ window.__ModuleLoader__.load({
         resetPhotography: () => {
           const projectId = data.activeProjectId, scene = data.selected?.scene
           if (!scene || photographyBusy(data.photographyWork[projectId])) return
-          set({ photographyDrafts: { ...data.photographyDrafts, [projectId]: createPhotographyDraft(scene, projectId, photographyDraftFor(data)) } })
+          set({ photographyDrafts: { ...data.photographyDrafts, [projectId]: createPhotographyDraft(scene, projectId, photographyDraftFor(data), data.projectsRoot) },
+            photographyReuse: { ...data.photographyReuse, ...(data.photographyReuse[projectId] ? { [projectId]: { ...data.photographyReuse[projectId], applied: false, unchanged: false, replaceDraft: false } } : {}) } })
+        },
+        setPhotographySource: (field, value) => {
+          const projectId = data.activeProjectId, selection = data.photographyReuse[projectId] || {}
+          if (!data.cameraTargetResetSupported || !photographyDraftFor(data) || photographyBusy(data.photographyWork[projectId])) return
+          if (field === 'project') {
+            if (value && !data.projects.some(item => item.projectId === value && !item.creationPending)) return
+            photographySourceControllers.get(projectId)?.abort(); photographySourceControllers.delete(projectId)
+            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { sourceProjectId: value, source: null, revisions: [], revision: '', cameraId: '', targetEntityId: '', replaceDraft: false } } })
+            if (value) return loadPhotographySource()
+          } else if (field === 'revision') {
+            if (!selection.revisions?.some(item => item.revision === value)) return
+            return loadPhotographySource(value)
+          } else if (field === 'camera' && selection.source?.nodes.cameras.some(item => item.id === value)) {
+            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, cameraId: value, targetEntityId: '', applied: false, unchanged: false } } })
+          } else if (field === 'target' && (!value || photographyDraftFor(data).entities.some(item => item.id === value))) {
+            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, targetEntityId: value, applied: false, unchanged: false } } })
+          } else if (field === 'replace' && typeof value === 'boolean') {
+            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, replaceDraft: value } } })
+          }
+        },
+        reloadPhotographySource: () => loadPhotographySource(data.photographyReuse[data.activeProjectId]?.revision),
+        reusePhotography: () => {
+          const projectId = data.activeProjectId, selection = data.photographyReuse[projectId], draft = photographyDraftFor(data)
+          if (!data.cameraTargetResetSupported || !draft || !selection?.source || selection.loading || photographyBusy(data.photographyWork[projectId])
+            || selection.projectsRoot !== data.projectsRoot || draft.projectsRoot !== data.projectsRoot
+            || selection.baseRevision !== draft.baseRevision || draft.baseRevision !== data.selected?.scene?.revision
+            || (photographyDirty(draft) && !selection.replaceDraft)) return
+          try {
+            const next = reusePhotography(draft, selection.source, selection.cameraId, selection.targetEntityId)
+            set({ photographyDrafts: { ...data.photographyDrafts, [projectId]: next }, photographyReuse: {
+              ...data.photographyReuse, [projectId]: { ...selection, replaceDraft: false, error: null, applied: photographyDirty(next), unchanged: !photographyDirty(next) },
+            } })
+          } catch (error) {
+            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, applied: false, error: error.message || String(error) } } })
+          }
         },
         updatePhotography: (kind, path, value) => {
           const current = photographyDraftFor(data)
@@ -3456,7 +3614,7 @@ window.__ModuleLoader__.load({
             } else if (kind === 'camera' && path.length === 1 && path[0] === 'aim') {
               if (!['free', 'entity', 'point'].includes(value) || photographyAimLocked(draft, item)) return
               const original = draft.original.cameras.find(camera => camera.id === item.id)
-              if (value === 'free' && photographyAim(original) !== 'free') return
+              if (value === 'free' && photographyAim(original) !== 'free' && !data.cameraTargetResetSupported) return
               delete item.targetEntityId; delete item.targetPoint
               if (value === 'entity') item.targetEntityId = draft.entities.find(entity => entity.id === data.editorEntityId)?.id || data.selected?.scene?.project?.reviewSubjectId || draft.entities[0]?.id || ''
               if (value === 'point') item.targetPoint = [0, 0, 0]
@@ -3472,7 +3630,8 @@ window.__ModuleLoader__.load({
             else if (kind === 'light' && path[0] === 'color' && path.length === 2 && [0, 1, 2].includes(path[1])) { item.color ||= [1, 1, 1]; item.color[path[1]] = value }
             else return
           }
-          set({ photographyDrafts: { ...data.photographyDrafts, [current.projectId]: draft } })
+          set({ photographyDrafts: { ...data.photographyDrafts, [current.projectId]: draft },
+            photographyReuse: { ...data.photographyReuse, ...(data.photographyReuse[current.projectId] ? { [current.projectId]: { ...data.photographyReuse[current.projectId], unchanged: false } } : {}) } })
         },
         addPhotographyLight: () => {
           const current = photographyDraftFor(data)
@@ -3496,7 +3655,9 @@ window.__ModuleLoader__.load({
           setIn('busy', 'editor', false)
           if (outcome.ok) {
             const saved = outcome.payload.revision, drafts = { ...data.photographyDrafts, [projectId]: { ...editorClone(draft), baseRevision: outcome.payload.revision.revision, original: editorClone({ cameras: draft.cameras, lights: draft.lights }) } }
-            set({ photographyDrafts: drafts, photographyEdits: { ...data.photographyEdits, [projectId]: {
+            set({ photographyDrafts: drafts,
+              photographyReuse: { ...data.photographyReuse, ...(data.photographyReuse[projectId] ? { [projectId]: { ...data.photographyReuse[projectId], baseRevision: saved.revision, applied: false, unchanged: false, replaceDraft: false } } : {}) },
+              photographyEdits: { ...data.photographyEdits, [projectId]: {
               before: draft.baseRevision, after: saved.revision, digest: saved.digest, cameraId: draft.cameraId, frame: draft.frame, samples: draft.samples,
               changes: [...new Set(patch.operations.map(operation => operation.op.split('.')[0]))] } } })
             photographyWork(projectId, { saving: false, error: null, artifact: null })
@@ -3896,6 +4057,8 @@ window.__ModuleLoader__.load({
           if (timer !== null) { clearInterval(timer); timer = null }
           for (const controller of photographyControllers.values()) controller.abort()
           photographyControllers.clear()
+          for (const controller of photographySourceControllers.values()) controller.abort()
+          photographySourceControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
           inspectionControllers.clear()
           for (const controller of imageDownloadControllers.values()) controller.abort('stopped')
@@ -4530,18 +4693,38 @@ window.__ModuleLoader__.load({
           { factor, locked: locked || editorTrackLocked(draft, kind, kind === 'camera' ? camera.id : light.id, `${field}.${axis}`) })))
       const aim = photographyAim(camera), originalCamera = draft?.original.cameras.find(item => item.id === camera?.id)
       const aimLocked = camera && photographyAimLocked(draft, camera)
+      const reuse = state.photographyReuse?.[projectId] || {}, sourceCamera = reuse.source?.nodes.cameras.find(item => item.id === reuse.cameraId)?.definition
+      const reuseStale = reuse.source && (reuse.projectsRoot !== state.projectsRoot || reuse.baseRevision !== draft?.baseRevision || draft?.projectsRoot !== state.projectsRoot)
       return el('section', { className: 'db-card', 'data-photography-editor': projectId },
         el('h4', null, t('photo.title')), el('p', { className: 'db-muted' }, t('photo.help')),
         draft ? el('div', null,
           el('p', { className: 'db-muted', 'data-photography-base': draft.baseRevision }, t('photo.base', { revision: draft.baseRevision })),
           conflict ? el('p', { className: 'db-error', 'data-photography-conflict': true }, t('photo.conflict', { before: draft.baseRevision, current: state.selected?.scene?.revision })) : null,
+          state.cameraTargetResetSupported ? el('div', { 'data-photography-reuse': true },
+            el('h4', null, t('photo.reuseTitle')), el('p', { className: 'db-muted' }, t('photo.reuseHelp')),
+            choose(t('photo.reuseProject'), 'source-project', reuse.sourceProjectId || '', [['', '—'], ...state.projects.filter(item => !item.creationPending).map(item => [item.projectId, item.title || item.projectId])], value => actions.setPhotographySource('project', value)),
+            choose(t('photo.reuseRevision'), 'source-revision', reuse.revision || '', [['', '—'], ...(reuse.revisions || []).map(item => [item.revision, item.revision])], value => actions.setPhotographySource('revision', value), reuse.loading || !reuse.revisions?.length),
+            reuse.loading ? el('p', { role: 'status' }, t('photo.reuseReading')) : null,
+            reuse.source ? el('div', { 'data-photography-source': `${reuse.sourceProjectId}:${reuse.revision}` },
+              el('p', { className: 'db-muted' }, t('photo.reuseSource', { project: reuse.sourceProjectId, revision: reuse.revision, digest: shortDigest(reuse.source.digest), count: reuse.source.nodes.lights.length })),
+              choose(t('photo.reuseCamera'), 'source-camera', reuse.cameraId, reuse.source.nodes.cameras.map(item => [item.id, item.id]), value => actions.setPhotographySource('camera', value)),
+              photographyAim(sourceCamera) === 'entity' ? choose(t('photo.reuseTarget'), 'source-target', reuse.targetEntityId || '', [['', '—'], ...draft.entities.map(item => [item.id, item.id])], value => actions.setPhotographySource('target', value)) : null,
+              photographyDirty(draft) ? el('label', { className: 'db-row' }, el('input', { type: 'checkbox', 'data-field': 'photo-source-replace', checked: Boolean(reuse.replaceDraft), disabled: disabled || reuse.loading,
+                onChange: event => actions.setPhotographySource('replace', Boolean(event.target.checked)) }), t('photo.reuseReplace')) : null,
+              reuseStale ? el('p', { className: 'db-error' }, t('photo.reuseStale')) : null,
+              reuse.applied ? el('p', { role: 'status', 'data-photography-reused': true }, t('photo.reuseApplied')) : null,
+              reuse.unchanged ? el('p', { role: 'status', 'data-photography-reuse-unchanged': true }, t('photo.reuseSame')) : null) : null,
+            reuse.error ? el('p', { className: 'db-error', role: 'status', 'data-photography-source-error': true }, reuse.error) : null,
+            el('div', { className: 'db-inline' },
+              Button({ action: 'photo-source-reload', disabled: disabled || !reuse.sourceProjectId || reuse.loading, onClick: actions.reloadPhotographySource, children: t('photo.reuseReload') }),
+              Button({ action: 'photo-reuse', disabled: disabled || reuse.loading || !reuse.source || reuseStale || (photographyDirty(draft) && !reuse.replaceDraft) || (photographyAim(sourceCamera) === 'entity' && !reuse.targetEntityId), onClick: actions.reusePhotography, children: t('photo.reuseApply') }))) : el('p', { className: 'db-muted' }, t('photo.reuseUpgrade')),
           el('div', { className: 'db-grid' },
             el('div', null,
               choose(t('photo.camera'), 'camera', draft.cameraId, draft.cameras.map(item => [item.id, item.id]), id => actions.selectPhotography('camera', id)),
               camera ? el('div', null,
                 numeric(t('photo.lens'), 'camera-lens', editorNumberDefault(camera.lens, 50), update('camera', ['lens']), { min: .001 }),
                 vector('camera', 'location', camera.transform?.location, t('photo.position')),
-                choose(t('photo.aim'), 'camera-aim', aim, [...(photographyAim(originalCamera) === 'free' ? [['free', t('photo.free')]] : []), ['entity', t('photo.entity')], ['point', t('photo.point')]], update('camera', ['aim']), aimLocked),
+                choose(t('photo.aim'), 'camera-aim', aim, [...(state.cameraTargetResetSupported || photographyAim(originalCamera) === 'free' ? [['free', t('photo.free')]] : []), ['entity', t('photo.entity')], ['point', t('photo.point')]], update('camera', ['aim']), aimLocked),
                 aim === 'entity' ? choose(t('photo.target'), 'camera-target', camera.targetEntityId, draft.entities.map(item => [item.id, item.id]), update('camera', ['targetEntityId']), aimLocked) : null,
                 aim === 'point' ? vector('camera', 'targetPoint', camera.targetPoint, t('photo.targetPoint'), 1, aimLocked) : null,
                 vector('camera', 'rotationEuler', camera.transform?.rotationEuler, t('photo.rotation'), 180 / Math.PI, aim !== 'free'),
@@ -5955,7 +6138,7 @@ window.__ModuleLoader__.load({
       inspection: { form: inspectionForm, valid: inspectionFormValid },
       assetLibrary: { selection: assetBundleSelection, createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
-      photographyEditor: { createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor },
+      photographyEditor: { createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor, reuse: reusePhotography },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },
       renderView,
       mountStandalone,

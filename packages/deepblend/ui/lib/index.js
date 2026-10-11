@@ -633,6 +633,7 @@ export function createHandlers(ctx) {
         projects: listed.projects.map(record => buildProjectView(record)),
         projectsRoot: listed.projectsRoot,
         creationRequestProtocol: studio().creationRequestProtocol ?? null,
+        cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
         selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
@@ -669,6 +670,7 @@ export function createHandlers(ctx) {
     'project.scene': async ({ params, query }) => {
       const detail = await studio().getScene(params.projectId, { revision: query.revision, full: true })
       return {
+        projectId: params.projectId,
         revision: detail.revision,
         digest: detail.digest,
         scene: buildSceneTree(detail.spec, {

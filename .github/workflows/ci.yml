@@ -292,7 +292,7 @@ jobs:
         run: xvfb-run -a node deepblend/tests/e2e/render-selection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/render-selection-browser.log" 2>&1
       - name: Real camera and light edits with saved inspection sources
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
-        timeout-minutes: 5
+        timeout-minutes: 8
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/photography-browser
         run: xvfb-run -a node deepblend/tests/e2e/photography-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/photography-browser.log" 2>&1

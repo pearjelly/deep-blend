@@ -94,6 +94,8 @@ Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness 
 Creation errors keep your inputs and offer repair guidance and explicit retry. If a saved project's reply was lost, retry recovers it without creating another project. [Browser creation drafts](deepblend/docs/creation-drafts.md) can be explicitly continued after reload or reopening, with separate drafts for each page.
 Or start with your own glTF, GLB or OBJ model and its external textures.
 
+**Keep a setup you like:** [reuse photography from a saved work and version](deepblend/docs/photography-editor.md#复用已保存摄影设置), apply its camera settings and lights to a draft, then inspect and save. Models and materials stay with the destination work.
+
 **Follow a complete creation:** the [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) changes height,
 compares clay views, adjusts the glaze and key light, and delivers a frame. Its handle roots still show visible
 bulges; the tutorial preserves that limitation. The recipe has no animation tracks, so adding frames does not create turntable motion.

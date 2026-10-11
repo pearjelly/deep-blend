@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deepblend.photography-docs/v1",
+  "at": "2026-10-11T03:52:42.738455+00:00",
+  "sourceBase": "fcc5056c1edfe9f4a504969a8cd39a0283b980c6",
+  "uiSha256": "5b43b19b9b227e6ddef8544f4c089a6932136774d3c296ea2ec092ef5f0623b4",
+  "nativeSource": "/Users/hxb/.codex/worktrees/first-output/deep-blend/.tmp-photography-reuse-native-suite-v4",
+  "nativeChecks": 36,
+  "viewed": true,
+  "scope": "Real Chrome/DSH/Blender saved photography reuse; source version selection and applied draft. No external user adoption.",
+  "images": [
+    {
+      "file": "draft.png",
+      "original": "04-reused-photography-draft.png",
+      "sha256": "c0dd1e0c068d70b2d3461207a2db9c4d51e07a4281374807d6a7bcaf5c393ccb",
+      "bytes": 181882,
+      "width": 1440,
+      "height": 1013,
+      "postProcessed": false
+    },
+    {
+      "file": "narrow.png",
+      "original": "05-narrow-photography-reuse.png",
+      "sha256": "9d69ca6ad79d88b6dda94b746a09104989d53269786e067ce6f002190928cc30",
+      "bytes": 84476,
+      "width": 390,
+      "height": 844,
+      "postProcessed": false
+    }
+  ],
+  "viewedAt": "2026-10-11T04:07:41.466510+00:00",
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
+  "toolSha256": "c9107135fbae6985a4d0b233f1f795a335efa3bbb99939c7e3e5022f93e2dc98",
+  "sourceReportSha256": "bfe3d14f64f44ab523813191be4f7d3d7ce5a1523ab5809041843b50824f6aec",
+  "sourceRequestsSha256": "46b2a1391ea90ea8500ed9c583ba9dd2938ab1bc4d15656df931acfa01bdf1c4",
+  "reproductionGuide": "../../photography-editor.md",
+  "postProcessed": false
+}
