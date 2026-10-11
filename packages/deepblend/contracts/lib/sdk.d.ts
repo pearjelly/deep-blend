@@ -32,6 +32,8 @@ export interface SceneSpecValidation extends ValidationResult<SceneSpecIssue> { 
 export function validateSceneSpec(input: unknown): SceneSpecValidation;
 export function parseSceneSpec(input: unknown): SceneSpec;
 /** Does not validate first. Call parseSceneSpec or check validateSceneSpec before compiling. */
+export const BOX_DIMENSIONS_FEATURE: 'geometry.primitive.dimensions';
+export function requiredSceneFeatures(spec: SceneSpec): string[];
 export function compileSceneSpec(spec: SceneSpec): {
   spec: SceneSpec; notices: SceneSpecIssue[];
   entityBounds: Record<string, { location: number[]; radius: number }>;

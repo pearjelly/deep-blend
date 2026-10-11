@@ -35,6 +35,7 @@ import addon_utils
 from deepblend_util import error_text as _error_text
 from deepblend_util import eprint as _eprint
 from deepblend_util import as_text as _as_text
+from deepblend_features import SCENE_FEATURES
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -630,6 +631,7 @@ def collect_capabilities():
         # --- lightweight APIs -----------------------------------------------------------
         "textBlockApi": text_block_api,
         "frameApi": frame_api,
+        "sceneFeatures": list(SCENE_FEATURES),
     }
 
     return capabilities, warnings

@@ -23,6 +23,18 @@ author entry. Private paths such as `.../lib/scene-spec.js` and
 
 ## Author a scene and patch
 
+The current development candidate adds `generator.dimensions: [width, depth,
+height]` for `cube` and `rounded_box`. All three local lengths must be finite and
+positive; `size` and `dimensions` are mutually exclusive. Dimensions are baked
+into the mesh before bevel and the authored object transform. Existing scalar
+`size` normalization and geometry remain unchanged. Scene patches accept the
+same generator vocabulary. This candidate has not been published yet.
+
+`requiredSceneFeatures(spec)` identifies `geometry.primitive.dimensions` when
+needed. A runtime must advertise it in `BlenderCapabilities.sceneFeatures`;
+missing declarations are unsupported. The Host refuses compilation with
+`BLENDER_SCENE_FEATURE_UNSUPPORTED` and retains the current revision.
+
 ```js
 import {
   parseSceneSpec, compileSceneSpec, parseScenePatch, applyPatchToSpec,

@@ -105,6 +105,23 @@ test('curve path editing retains smooth interpolation, cap policy and tube resol
   assert.deepEqual(next.entities.find(e => e.id === draft.entityId).generator, expected)
 })
 
+test('box dimension controls edit one local axis without inventing size or changing the rest of the scene', async t => {
+  const spec = source('metal-lamp'), target = spec.entities.find(entity => entity.id === 'shade-shell')
+  target.generator = { shape: 'rounded_box', dimensions: [.3, .138, .162], bevel: { width: .002, segments: 3 } }
+  const before = plain(spec), { store, field } = await client(t, spec)
+  assert.deepEqual(plain(editor.errors(editor.draftFor(store.getState()))), [])
+  assert.deepEqual(plain(editor.buildPatch(editor.draftFor(store.getState())).operations), [])
+  assert.equal(field('editor-generator-size'), undefined)
+  assert.equal(field('editor-generator-dimensions-x').props.value, 300)
+  field('editor-generator-dimensions-x').props.onChange({ target: { value: '320' } })
+  const { next } = apply(spec, editor.draftFor(store.getState()))
+  const expected = plain(before); expected.entities.find(entity => entity.id === target.id).generator.dimensions[0] = .32
+  assert.deepEqual(next, expected)
+  field('editor-generator-dimensions-y').props.onChange({ target: { value: '0' } })
+  assert.ok(editor.errors(editor.draftFor(store.getState())).length > 0)
+  assert.deepEqual(spec, before)
+})
+
 test('each public modifier remains a complete ordered definition in the generated patch', () => {
   const { spec, draft } = make()
   draft.entity.modifiers = [

@@ -69,7 +69,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.0.0' : name==='metal-lamp' ? '2.0.0' : '1.0.0')
+    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.0.0' : ['metal-lamp', 'modular-speaker'].includes(name) ? '2.0.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })
@@ -185,6 +185,7 @@ test('a valid recipe can combine every supported capability', () => {
       { id: 'combined-emission', shader: 'emission', parameters: { emissionColor: [1, 0.5, 0.1, 1], emissionStrength: 1 } },
     )
     spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup',rootTension:2.5},materialId:spec.materials[0].id})
+    spec.entities.push({ id: 'combined-box', type: 'generator', generator: { shape: 'cube', dimensions: [.2, .1, .1] }, materialId: spec.materials[0].id })
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })
@@ -194,7 +195,9 @@ test('a valid recipe can combine every supported capability', () => {
   })
   const spec = JSON.parse(bundle.sceneBytes)
   assert.equal(validateSceneSpec(spec).ok, true)
-  bundle.manifest.compatibility.capabilities = recipeCapabilitiesForScene(spec)
+  bundle.manifest.parameters.push({ id: 'combined-width', title: 'Width', type: 'number', default: .2, minimum: .2, maximum: .3,
+    bindings: [{ kind: 'entity', entityId: 'combined-box', property: 'dimensions', axis: 'x', multiplier: 1 }] })
+  bundle.manifest.compatibility.capabilities = [...recipeCapabilitiesForScene(spec), 'recipe.geometry-bindings'].sort()
   assert.deepEqual(bundle.manifest.compatibility.capabilities, [...RECIPE_CAPABILITIES].sort())
   const checked = validateRecipePackage(bundle)
   assert.equal(checked.ok, true, checked.summary)

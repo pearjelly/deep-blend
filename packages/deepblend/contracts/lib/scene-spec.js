@@ -29,6 +29,14 @@ import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'jso
 /** The one schema version this module understands. */
 export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
 
+export const BOX_DIMENSIONS_FEATURE = 'geometry.primitive.dimensions'
+
+/** Features whose absence must refuse compilation rather than reinterpret the scene. */
+export function requiredSceneFeatures(spec) {
+  return spec.entities?.some(entity => entity.type === 'generator' && entity.generator?.dimensions !== undefined)
+    ? [BOX_DIMENSIONS_FEATURE] : []
+}
+
 /**
  * What a scene with no `world` block is lit by.
  *
@@ -359,6 +367,11 @@ export function validateSceneSpec(spec) {
           path: `${at}.materialBindings[${index}]`, message: 'duplicate part and slot material binding' })
         selectors.add(key)
       }
+    }
+    if (entity.generator?.dimensions !== undefined &&
+      (!['cube', 'rounded_box'].includes(entity.generator.shape) || entity.generator.size !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`,
+        message: 'axis dimensions require cube or rounded_box and cannot be combined with scalar size' })
     }
     if (entity.generator?.shape === 'handled_cup') {
       for (const message of handledCupIssues(entity.generator)) errors.push({ severity: 'error',
@@ -780,12 +793,12 @@ function resolveGenerator(generator) {
   const base = { shape }
   switch (shape) {
     case 'cube':
-      return { ...base, ...generator, size: generator.size ?? 2 }
+      return { ...base, ...generator, ...(generator.dimensions === undefined ? { size: generator.size ?? 2 } : {}) }
     case 'rounded_box':
       return {
         ...base,
         ...generator,
-        size: generator.size ?? 2,
+        ...(generator.dimensions === undefined ? { size: generator.size ?? 2 } : {}),
         bevel: { width: generator.bevel?.width ?? 0.08, segments: generator.bevel?.segments ?? 4 },
       }
     case 'uv_sphere':
@@ -862,8 +875,10 @@ export function entityBoundingRadius(entity) {
   const generator = entity?.generator
   if (generator !== undefined) {
     switch (generator.shape) {
-      case 'cube': radius = (generator.size / 2) * Math.sqrt(3); break
-      case 'rounded_box': radius = (generator.size / 2) * Math.sqrt(3); break
+      case 'cube':
+      case 'rounded_box':
+        radius = generator.dimensions === undefined ? (generator.size / 2) * Math.sqrt(3) : Math.hypot(...generator.dimensions) / 2
+        break
       case 'uv_sphere': radius = generator.radius; break
       case 'cylinder': radius = Math.hypot(generator.radius, generator.depth / 2); break
       case 'cone': radius = Math.hypot(generator.radius, generator.depth / 2); break

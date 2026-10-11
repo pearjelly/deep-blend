@@ -277,7 +277,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         128 个 *.test.mjs（当前源码）
+    contract/         132 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -336,7 +336,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 24/128 file(s) passed
+DeepBlend tests: 27/132 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -396,12 +396,12 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**37 个套件、164 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**128 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1540 个 `node:test` 用例（94 个文件）**。
+预期：**38 个套件、169 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**132 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1563 个 `node:test` 用例（98 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述快照来自 0.4.0 的同一轮逐文件输出；冻结完整入口、确切 PR/主线 CI、干净构建、七包匿名读回和整轮三路公开安装均已通过。[0.4.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0)，原始证据见 `deepblend/docs/milestone-status.md` §266 和[每日发布记录](deepblend/docs/daily-releases.md)；社区现有投稿等待上游审核。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述计数来自尺寸联动候选的完整契约运行，不能作为候选已发布的证明。[0.4.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0)，该版冻结完整入口、确切 PR/主线 CI、干净构建、七包匿名读回和整轮三路公开安装均已通过；原始证据见 `deepblend/docs/milestone-status.md` §266 和[每日发布记录](deepblend/docs/daily-releases.md)。尺寸联动候选的完整验收与发布单独记录；社区现有投稿等待上游审核。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
@@ -712,7 +712,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 37 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 38 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

@@ -1397,6 +1397,7 @@ export default class LocalBlenderRuntime extends Service {
       cyclesSmokeTest: raw.cyclesSmokeTest ?? null,
       textBlockApi: raw.textBlockApi === true,
       frameApi: raw.frameApi === true,
+      sceneFeatures: Array.isArray(raw.sceneFeatures) ? raw.sceneFeatures.filter(feature => typeof feature === 'string') : [],
       hostPlatform: typeof raw.hostPlatform === 'string' ? raw.hostPlatform : null,
       warnings: collectWarnings(raw),
       probedAt: now,

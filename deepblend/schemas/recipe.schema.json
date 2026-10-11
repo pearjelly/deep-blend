@@ -97,10 +97,11 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 15,
+          "maxItems": 17,
           "items": {
             "enum": [
               "geometry.primitive",
+              "geometry.primitive.dimensions",
               "geometry.lathe",
               "geometry.curve",
               "geometry.handled_cup",
@@ -114,7 +115,8 @@
               "material.procedural.uv",
               "material.anisotropy",
               "animation.transform",
-              "animation.material"
+              "animation.material",
+              "recipe.geometry-bindings"
             ]
           }
         }
@@ -228,6 +230,88 @@
               "const": "exposure"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entityId",
+            "property",
+            "axis",
+            "multiplier"
+          ],
+          "description": "Apply a bounded parameter delta to an explicit local box dimension or entity location. No expressions or arbitrary paths.",
+          "properties": {
+            "kind": {
+              "const": "entity"
+            },
+            "entityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "property": {
+              "enum": [
+                "dimensions",
+                "location"
+              ]
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            },
+            "offsetAnimation": {
+              "type": "boolean",
+              "description": "Explicitly translate keyframe values on the bound location axis by the same delta, preserving the motion. Only valid for location bindings."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cameraId",
+            "property",
+            "axis",
+            "multiplier"
+          ],
+          "properties": {
+            "kind": {
+              "const": "camera"
+            },
+            "cameraId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "property": {
+              "enum": [
+                "location",
+                "targetPoint"
+              ]
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            }
+          },
+          "description": "Apply a bounded parameter delta to an explicit camera position or aim point; animated camera channels are refused."
         }
       ]
     },
@@ -309,7 +393,7 @@
         "bindings": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 8,
+          "maxItems": 128,
           "items": {
             "$ref": "#/$defs/binding"
           }

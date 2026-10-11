@@ -287,7 +287,8 @@ function blenderProcesses() {
   try {
     return execFileSync('ps', ['-Ao', 'pid=,ppid=,args='], { encoding: 'utf8' })
       .split('\n')
-      .filter(line => line.includes('Blender') && line.includes(store))
+      // macOS names the executable Blender; Linux names it blender.
+      .filter(line => /blender/i.test(line) && line.includes(store))
       .map(line => line.trim())
   } catch {
     return []
@@ -324,6 +325,9 @@ try {
   // These are interaction checks, not another product-quality benchmark run.
   // Keep real recipe geometry, render size and color management; cap only cost.
   const isolatedRows = JSON.parse(await storePatch(store))
+  // CI installs Linux Blender outside the default macOS checkout path. Pass
+  // the executable we checked above into the isolated deployment as well.
+  isolatedRows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = BLENDER_PATH
   const hostRow = isolatedRows.find(row => row.id === 'deepblend-blender-host')
   hostRow.config.maxPreviewSamples = 16
   const patch = JSON.stringify(isolatedRows)
@@ -676,7 +680,7 @@ try {
   const requestsBeforeObjectEdits = (await page.evaluate('window.__wbreqs')).length
   const recipeProjectIds = {}
   for (const recipeId of ['glass-ceramic', 'modular-speaker', 'metal-lamp']) {
-    const version=recipeId==='metal-lamp'?'2.0.0':'1.0.0'
+    const version = JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes', recipeId, 'recipe.json'), 'utf8')).version
     await page.click('[data-view-tab="projects"]')
     await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@${version}"]') !== null`, 30000)
     await page.click(`[data-action="select-recipe:deepblend.${recipeId}@${version}"]`)
@@ -829,6 +833,15 @@ try {
   check('the page logged no errors and threw nothing', pageErrors.length === 0, pageErrors.slice(0, 4))
 } catch (cause) {
   check('the suite completed without an unexpected throw', false, cause?.stack ?? String(cause))
+  if (page !== null) {
+    const diagnostic = await page.evaluate(`({
+      results: Array.from(document.querySelectorAll('[data-result]')).map(node => ({
+        status: node.dataset.result, text: node.textContent,
+      })),
+      requests: window.__wbreqs ?? [],
+    })`).catch(error => ({ diagnosticError: String(error) }))
+    writeFileSync(join(evidenceDirectory, 'failure.json'), `${JSON.stringify({ ...diagnostic, pageErrors }, null, 2)}\n`)
+  }
 } finally {
   if (page !== null) await page.screenshot(join(evidenceDirectory, 'last-page.png'))
     .then(() => copyFileSync(join(evidenceDirectory, 'last-page.png'), '/tmp/deepblend-m6-workbench-e2e.png')).catch(() => {})
@@ -839,6 +852,8 @@ try {
     const stopped = await server.stop().catch(cause => ({ via: `failed: ${String(cause)}`, ms: 0 }))
     check('the server finished its own shutdown rather than being killed mid-way',
       stopped.via === 'sigterm', stopped)
+    writeFileSync(join(evidenceDirectory, 'server.log'), server.output.join('')
+      .replace(/token=[A-Za-z0-9_-]+/g, 'token=[redacted]'))
   }
   const leftovers = blenderProcesses()
   if (leftovers.length > 0) {

@@ -283,6 +283,7 @@ blender_final_render {projectId, resumeJobId: "render-0001"}
 | `UI_HOST_API_STALE` | 工作台里那个 Host 比磁盘上的包旧。重启 profile | §5 |
 | `SCENE_TOO_HEAVY` | 编译出来的场景面数超过 `maxMeshPolygons`（默认 200 万），**没有提交 revision** | 见下 |
 | `SCENE_VALIDATION_FAILED` | 场景编译出来了，但技术校验没过。错误清单在消息里 | — |
+| `SCENE_FEATURE_UNSUPPORTED` | 当前运行组件不支持场景中的建模能力，例如盒体三轴尺寸。更新插件与运行组件到支持该能力的同一版本，重启 profile 后重试；原 revision 保留 | — |
 | `SCENE_PATCH_REJECTED` | patch 被拒，**当前 revision 一个字节都没变**。消息里说要改哪一条 | — |
 | `ASSET_CONTENT_MISMATCH` | 文件的字节不是它扩展名说的那种。**还没拷进项目** | 见下 |
 | `ASSET_FORMAT_UNAVAILABLE` | 这个格式这条流水线不带。能带的是 glb / gltf / fbx / obj / usd / blend | — |

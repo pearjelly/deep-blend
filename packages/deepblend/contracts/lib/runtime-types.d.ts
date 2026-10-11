@@ -21,6 +21,8 @@ export interface BlenderCapabilities {
   exportFormats: string[]; importFormats: string[]; unavailableFormats: string[];
   renderSmokeTest: BlenderRenderSmokeTest | null; cyclesSmokeTest: BlenderRenderSmokeTest | null;
   textBlockApi: boolean; frameApi: boolean; hostPlatform: string | null; warnings: RuntimeWarning[];
+  /** Compiler vocabulary extensions; absent means unsupported. */
+  sceneFeatures?: string[];
   probedAt: number; durationMs: number; commandLine: string | null;
 }
 export interface BlenderBootstrapRequest { action: string; payload?: Record<string, unknown>; jobId?: string }

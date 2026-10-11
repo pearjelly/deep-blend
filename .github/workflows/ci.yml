@@ -212,6 +212,18 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-browser
         run: xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-browser.log" 2>&1
+      - name: Real linked speaker dimensions in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/linked-speaker-browser
+        run: xvfb-run -a node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/linked-speaker-browser.log" 2>&1
+      - name: Fullscreen workbench and native product edits in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/fullscreen-workbench
+        run: xvfb-run -a node deepblend/tests/e2e/workbench-page.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/fullscreen-workbench.log" 2>&1
       - name: Real preview history and source revisions in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5

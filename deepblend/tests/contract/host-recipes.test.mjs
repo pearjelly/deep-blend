@@ -29,7 +29,7 @@ test('the distributed Host carries four validated self-contained recipes', () =>
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
   assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
-  assert.ok(result.recipes.every(r => r.parameters.length === (r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
+  assert.ok(result.recipes.every(r => r.parameters.length === (r.id === 'deepblend.modular-speaker' ? 6 : r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
   for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(

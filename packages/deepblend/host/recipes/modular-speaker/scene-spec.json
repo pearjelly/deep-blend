@@ -219,11 +219,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.246,
         "bevel": {
           "width": 0.027,
           "segments": 10
-        }
+        },
+        "dimensions": [
+          0.246,
+          0.246,
+          0.246
+        ]
       },
       "materialId": "rubber",
       "transform": {
@@ -253,11 +257,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.213,
         "bevel": {
           "width": 0.023,
           "segments": 8
-        }
+        },
+        "dimensions": [
+          0.213,
+          0.213,
+          0.213
+        ]
       },
       "materialId": "rubber",
       "transform": {
@@ -287,11 +295,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.21,
         "bevel": {
           "width": 0.014,
           "segments": 8
-        }
+        },
+        "dimensions": [
+          0.21,
+          0.21,
+          0.21
+        ]
       },
       "materialId": "rubber",
       "transform": {
@@ -321,11 +333,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.264,
         "bevel": {
           "width": 0.032,
           "segments": 12
-        }
+        },
+        "dimensions": [
+          0.264,
+          0.264,
+          0.264
+        ]
       },
       "materialId": "shell-porcelain",
       "transform": {
@@ -403,11 +419,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.248,
         "bevel": {
           "width": 0.025,
           "segments": 10
-        }
+        },
+        "dimensions": [
+          0.248,
+          0.248,
+          0.248
+        ]
       },
       "materialId": "graphite",
       "transform": {
@@ -443,11 +463,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.251,
         "bevel": {
           "width": 0.025,
           "segments": 8
-        }
+        },
+        "dimensions": [
+          0.251,
+          0.251,
+          0.251
+        ]
       },
       "materialId": "rubber",
       "transform": {
@@ -4961,11 +4985,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.207,
         "bevel": {
           "width": 0.013,
           "segments": 8
-        }
+        },
+        "dimensions": [
+          0.207,
+          0.207,
+          0.207
+        ]
       },
       "materialId": "rubber",
       "transform": {
@@ -5001,11 +5029,15 @@
       "type": "generator",
       "generator": {
         "shape": "rounded_box",
-        "size": 0.204,
         "bevel": {
           "width": 0.012,
           "segments": 8
-        }
+        },
+        "dimensions": [
+          0.204,
+          0.204,
+          0.204
+        ]
       },
       "materialId": "graphite",
       "transform": {
