@@ -185,6 +185,39 @@ test('packed files must still match their pre-pack hashes', () => {
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
+test('native archive verification succeeds when temporary directory allocation is unavailable', () => {
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-native-no-extraction-'))
+  try {
+    const stage = join(root, 'package')
+    writeFixture(stage)
+    const expected = verifyNativeDirectory(stage, options)
+    const artifact = createTar(root, expected.files.map(file => file.path))
+    const moduleUrl = new URL('../../tools/build-release-tarball.mjs', import.meta.url).href
+    const script = `import fs from 'node:fs'; import { syncBuiltinESMExports } from 'node:module';
+      fs.mkdtempSync = () => { throw Object.assign(new Error('no disk for extraction'), { code: 'ENOSPC' }) };
+      syncBuiltinESMExports();
+      const { verifyNativeTarball } = await import(${JSON.stringify(moduleUrl)});
+      const result = verifyNativeTarball(${JSON.stringify(artifact)}, ${JSON.stringify(expected)});
+      if (JSON.stringify(result.native) !== ${JSON.stringify(JSON.stringify(expected))}) throw Error('different native payload');`
+    execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' })
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('packed native symlinks are refused before their contents can be read', () => {
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-native-packed-symlink-'))
+  try {
+    const stage = join(root, 'package')
+    writeFixture(stage)
+    const expected = verifyNativeDirectory(stage, options)
+    const license = join(stage, 'node_modules/sharp/LICENSE')
+    writeFileSync(join(root, 'outside-license'), readFileSync(license))
+    rmSync(license)
+    symlinkSync(join(root, 'outside-license'), license)
+    const artifact = createTar(root, expected.files.map(file => file.path))
+    assert.throws(() => verifyNativeTarball(artifact, expected), /regular file/)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
 test('the real npm pack path produces its public artifact only after both checks', () => {
   const root = mkdtempSync(join(tmpdir(), 'deepblend-native-pack-'))
   try {

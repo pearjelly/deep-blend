@@ -362,15 +362,27 @@ export function verifyNativeTarball(artifact, expected) {
   for (const path of wanted) {
     if (entries.filter(entry => entry === path).length !== 1) nativeFailure(`tarball must contain exactly one ${path}`)
   }
-  const directory = mkdtempSync(join(tmpdir(), 'deepblend-native-artifact-'))
-  try {
-    // Extract only whitelisted file paths, not arbitrary package archive paths.
-    const extraction = run('tar', ['xzf', artifact, '-C', directory, '--', ...wanted], ROOT)
-    if (extraction.status !== 0) nativeFailure(`cannot inspect packed payload: ${extraction.output}`)
-    const actual = verifyNativeDirectory(join(directory, 'package'), { sharpVersion: expected.targets[0].sharp })
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) nativeFailure('packed native files differ from the validated staging bytes')
-    return { entries, native: actual }
-  } finally { rmSync(directory, { recursive: true, force: true }) }
+  // Read only validated native paths into bounded buffers. Expanding another
+  // copy of libvips can exhaust disk after a successful pack.
+  const listing = run('tar', ['tvzf', artifact, '--', ...wanted], ROOT)
+  if (listing.status !== 0) nativeFailure(`cannot inspect packed payload: ${listing.output}`)
+  const lines = listing.output.split('\n')
+  for (const path of wanted) {
+    const rows = lines.filter(line => line.endsWith(` ${path}`))
+    if (rows.length !== 1 || !rows[0].startsWith('-')) nativeFailure(`packed native path must be a regular file: ${path}`)
+  }
+  const limits = new Map(expected.files.map(file => [file.path, file.bytes]))
+  const actual = inspectNativePayload(path => {
+    const limit = limits.get(path)
+    if (limit === undefined) nativeFailure(`unexpected native path: ${path}`)
+    const result = spawnSync('tar', ['xOzf', artifact, '--', `package/${path}`], {
+      cwd: ROOT, maxBuffer: limit + 64 * 1024,
+    })
+    if (result.status !== 0) nativeFailure(`cannot read packed native path ${path}: ${result.error?.message ?? result.stderr?.toString('utf8')}`)
+    return result.stdout
+  }, { sharpVersion: expected.targets[0].sharp })
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) nativeFailure('packed native files differ from the validated staging bytes')
+  return { entries, native: actual }
 }
 
 /** No public artifact name is created until both mandatory payload checks pass. */
