@@ -324,6 +324,9 @@ try {
   // These are interaction checks, not another product-quality benchmark run.
   // Keep real recipe geometry, render size and color management; cap only cost.
   const isolatedRows = JSON.parse(await storePatch(store))
+  // CI installs Linux Blender outside the default macOS checkout path. Pass
+  // the executable we checked above into the isolated deployment as well.
+  isolatedRows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = BLENDER_PATH
   const hostRow = isolatedRows.find(row => row.id === 'deepblend-blender-host')
   hostRow.config.maxPreviewSamples = 16
   const patch = JSON.stringify(isolatedRows)
@@ -829,6 +832,15 @@ try {
   check('the page logged no errors and threw nothing', pageErrors.length === 0, pageErrors.slice(0, 4))
 } catch (cause) {
   check('the suite completed without an unexpected throw', false, cause?.stack ?? String(cause))
+  if (page !== null) {
+    const diagnostic = await page.evaluate(`({
+      results: Array.from(document.querySelectorAll('[data-result]')).map(node => ({
+        status: node.dataset.result, text: node.textContent,
+      })),
+      requests: window.__wbreqs ?? [],
+    })`).catch(error => ({ diagnosticError: String(error) }))
+    writeFileSync(join(evidenceDirectory, 'failure.json'), `${JSON.stringify({ ...diagnostic, pageErrors }, null, 2)}\n`)
+  }
 } finally {
   if (page !== null) await page.screenshot(join(evidenceDirectory, 'last-page.png'))
     .then(() => copyFileSync(join(evidenceDirectory, 'last-page.png'), '/tmp/deepblend-m6-workbench-e2e.png')).catch(() => {})
@@ -839,6 +851,8 @@ try {
     const stopped = await server.stop().catch(cause => ({ via: `failed: ${String(cause)}`, ms: 0 }))
     check('the server finished its own shutdown rather than being killed mid-way',
       stopped.via === 'sigterm', stopped)
+    writeFileSync(join(evidenceDirectory, 'server.log'), server.output.join('')
+      .replace(/token=[A-Za-z0-9_-]+/g, 'token=[redacted]'))
   }
   const leftovers = blenderProcesses()
   if (leftovers.length > 0) {
