@@ -2762,6 +2762,11 @@ window.__ModuleLoader__.load({
       }
       /** Change the snapshot and tell everyone. @param {object} patch */
       const set = (patch) => {
+        // Automatic edit images are source snapshots too. They cannot override
+        // fresh rows from another store, even when its project/revision IDs match.
+        if (Object.hasOwn(patch, 'projectsRoot') && patch.projectsRoot !== data.projectsRoot) {
+          patch = { ...patch, editorComparison: null }
+        }
         // Retire the old source before selection/creation navigation can expose
         // it with a new project. A load supplies the complete new source atomically.
         if (!Object.hasOwn(patch, 'previews') && ['projectId', 'projectsRoot', 'activeProjectId']

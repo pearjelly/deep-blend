@@ -51,7 +51,7 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
       }
     } else if (path.pathname.endsWith('/jobs')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.jobs', jobs: [], unfinished: [] }
     else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: previews[projectId] } }
-    else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projects: Object.keys(projects).map(projectId => ({ projectId })),
+    else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projectsRoot: options.projectsRoot?.() ?? null, projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { title: projectId, projectId, revisionCount: previews[projectId].length }, revisions: previews[projectId].map(row => ({ ...row, isCurrent: row.revision === project.revision })), qa: { summary: 'Controlled UI fixture' }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
     return { ok: true, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }
   } }
@@ -731,4 +731,23 @@ test('explicit revision comparison leaves the automatic edit pair and retains th
   store.actions.compareFrom('r0001')
   const s = store.getState(); assert.equal(s.editorComparison, null); assert.equal(s.compareMode, 'revisions'); assert.equal(s.compareLeft, 'r0001'); assert.equal(s.compareRight, 'r0002')
   assert.equal(JSON.stringify(s.editorDrafts), drafts); assert.equal(calls.length, writes)
+})
+
+
+test('automatic edit previews retire the prior store on a same-ID store change', async t => {
+  let root = '/editor-store/a'
+  const f = await client(t, source('metal-lamp'), { projectsRoot: () => root })
+  f.store.actions.updateEditor('transform', ['location', 0], .008)
+  await f.store.actions.applyEditor(); await waitFor(f.store, s => s.currentRevision === 'r0002' && s.editorComparison?.resolved)
+  f.store.actions.setForm('patch', 'unsubmitted advanced edit')
+  const before = f.store.getState().editorComparison
+  assert.ok(before.beforeArtifact.path.endsWith('hero.png')); assert.ok(before.afterArtifact.path.endsWith('hero.png'))
+  const writes = f.calls.length
+  root = '/editor-store/b'
+  f.previews['project-a'] = f.previews['project-a'].map(row => ({ ...row, contactSheets: [], previews: row.previews.map(item => ({ ...item, path: item.path.replace('hero.png', 'new-store.png'), sha256: 'b'.repeat(64) })) }))
+  f.store.actions.reload(); await waitFor(f.store, s => s.projectsRoot === root)
+  assert.equal(f.store.getState().editorComparison, null, 'old-store edit images cannot override newly read source rows')
+  const images = f.nodes().filter(node => node.tag === 'img')
+  assert.equal(images.length, 2); assert.ok(images.every(node => node.props.src.includes('new-store.png')))
+  assert.equal(f.store.getState().forms.patch, 'unsubmitted advanced edit'); assert.equal(f.calls.length, writes)
 })
