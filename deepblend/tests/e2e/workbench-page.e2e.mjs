@@ -287,7 +287,8 @@ function blenderProcesses() {
   try {
     return execFileSync('ps', ['-Ao', 'pid=,ppid=,args='], { encoding: 'utf8' })
       .split('\n')
-      .filter(line => line.includes('Blender') && line.includes(store))
+      // macOS names the executable Blender; Linux names it blender.
+      .filter(line => /blender/i.test(line) && line.includes(store))
       .map(line => line.trim())
   } catch {
     return []
