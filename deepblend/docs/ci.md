@@ -21,6 +21,7 @@
 | `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、比较设置保留与明确重置、浏览器草稿重载恢复、所选输入的真实渲染与独立原生重开、新版 UV 默认值、旧版参数含义、过期选择及旧文件保护 |
 | `deepblend/tests/e2e/linked-speaker-ui.e2e.mjs` | 原版与联动版音箱分开选择；毫米输入、无效范围阻止提交、真实模型创建、来源锁与预览身份、独立重开尺寸及边界差、原项目源文件/锁/模型/预览保护 |
+| `deepblend/tests/e2e/workbench-page.e2e.mjs` | 独立全屏入口与原控制台共享客户端；实际项目管理、预览、取消及刷新；当前随包配方创建，玻璃陶瓷、音箱和桌灯部件编辑、像素对照、条件恢复及历史保护 |
 | `deepblend/tests/e2e/preview-history-ui.e2e.mjs` | 同机位/帧单图独立保存、实际采样/相机姿态、拼图逐视图快照与轮换、条件差异/未知、编辑匹配、滚动保持/按压中刷新、390 像素展示、旧记录只读及恢复重载；版本入口明确配对、保留未提交修改、迟到 HTTP 成功/错误与错误回执身份拒绝；跨项目图片/下载归属、网络读取恢复、迟到预览回执、窄屏失败提示与编辑继续 |
 | `deepblend/tests/blender-integration/artifact-concurrency.e2e.mjs` | 两个独立 Host / Blender 进程，共用本机项目；任务分配、清单竞争、拼图轮换、真实 PNG/来源摘要与源文件保护 |
 | `deepblend/tests/blender-integration/review-history.e2e.mjs` | 重复与跨进程重叠的实际评审、独立视角和图片/评分摘要、完成顺序 QA、取消前发布拒绝、场景/checkpoint 保护；模型端口仅作为受控等待屏障 |

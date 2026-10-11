@@ -676,7 +676,7 @@ try {
   const requestsBeforeObjectEdits = (await page.evaluate('window.__wbreqs')).length
   const recipeProjectIds = {}
   for (const recipeId of ['glass-ceramic', 'modular-speaker', 'metal-lamp']) {
-    const version=recipeId==='metal-lamp'?'2.0.0':'1.0.0'
+    const version = JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes', recipeId, 'recipe.json'), 'utf8')).version
     await page.click('[data-view-tab="projects"]')
     await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@${version}"]') !== null`, 30000)
     await page.click(`[data-action="select-recipe:deepblend.${recipeId}@${version}"]`)
