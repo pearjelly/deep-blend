@@ -110,7 +110,7 @@ run_suite "Blender persistent render job: restart, resume, cancel, delivery (M3)
 run_suite "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)" \
   node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs
 
-run_suite "Agent preset M3 tool plane (all seventeen tools, real delivery)" \
+run_suite "Agent preset M3 tool plane (all eighteen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary" \
@@ -163,6 +163,9 @@ run_suite "Recipe versions: native UV defaults, gallery selection and historical
 
 run_suite "Linked speaker dimensions: native assembly creation and historical project protection" \
   node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs
+
+run_suite "Existing assembly dimensions: native edits, preserved styles and conditional history restore" \
+  node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs
 
 run_suite "Preview history: native attempts, source labels, editor comparison and restore" \
   node deepblend/tests/e2e/preview-history-ui.e2e.mjs

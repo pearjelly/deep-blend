@@ -114,6 +114,8 @@ function check(name, ok, detail) {
 /** Every method the M1 tools call. A case replaces one of them with a thrower. */
 function stubStudio() {
   return {
+    recipeParameterEditingSupported: true,
+    getRecipeParameters: () => ({ available: false, parameters: [] }),
     listRecipes: () => ({ recipes: [], errors: [] }),
     createProject: async () => ({
       projectId: 'watch-commercial',
@@ -164,7 +166,7 @@ const present = (name, args) => {
 }
 
 const M1_TOOLS = [
-  'blender_recipe_list',
+  'blender_recipe_list', 'blender_recipe_parameters',
   'blender_project_create', 'blender_project_get', 'blender_scene_get', 'blender_scene_patch',
   'blender_preview_render', 'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
 ]
@@ -181,6 +183,7 @@ const M1_TOOLS = [
  */
 const MINIMAL_ARGS = {
   blender_recipe_list: {},
+  blender_recipe_parameters: { projectId: 'watch-commercial' },
   blender_capabilities: {},
   blender_project_create: { title: 'watch commercial' },
   blender_project_get: { projectId: 'watch-commercial' },
@@ -234,6 +237,8 @@ check('every M1 tool declares a presentCall',
 // Each row is one tool's title for one set of args, including the branches inside the title.
 const titleCases = [
   ['blender_recipe_list', {}, 'List product recipes', 'read'],
+  ['blender_recipe_parameters', {}, 'Read assembly dimensions', 'read'],
+  ['blender_recipe_parameters', { action: 'save' }, 'Save assembly dimensions', 'edit'],
   // Every branch inside a title, not just the first one.
   ['blender_capabilities', {}, 'Check Blender capabilities', 'read'],
   ['blender_capabilities', { refresh: true }, 'Re-probe Blender capabilities', 'other'],
@@ -354,6 +359,7 @@ check('a card asked for args its own schema refuses is dropped, not thrown on an
 
 const failures = [
   ['blender_recipe_list', 'listRecipes', 'RECIPE_LIST_FAILED'],
+  ['blender_recipe_parameters', 'getRecipeParameters', 'RECIPE_PARAMETER_FAILED'],
   ['blender_project_create', 'createProject', 'PROJECT_CREATE_FAILED'],
   ['blender_project_get', 'getProject', 'PROJECT_READ_FAILED'],
   ['blender_scene_get', 'getScene', 'SCENE_READ_FAILED'],

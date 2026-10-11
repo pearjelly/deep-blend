@@ -60,6 +60,8 @@ import {
   sceneSpecDigest,
   shortDigest,
   specHash,
+  planRecipeGeometryEdit,
+  sha256Canonical,
   summarizeSceneSpec,
   toCanonicalFailure,
   validateScenePatch,
@@ -68,6 +70,7 @@ import {
 } from '@deepblend/dsh-blender-contracts'
 import { verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
+import { readRecipeContext } from './recipe-state.js'
 import {
   fileSha256,
   fileSize,
@@ -296,6 +299,37 @@ export class RevisionTransaction {
     return this.store.withProjectWrite(patch.projectId, () => this._applyScenePatch(patch, options))
   }
 
+  async applyRecipeParameters(request, options = {}) {
+    return this.store.withProjectWrite(request.projectId, async () => {
+      const context = readRecipeContext(this.store, request.projectId, request.baseRevision)
+      if (context === null) throw new BlenderError('RECIPE_NOT_FOUND', 'This revision has no saved recipe origin')
+      const current = this.store.readRevisionSpec(request.projectId, request.baseRevision)
+      let planned
+      try { planned = planRecipeGeometryEdit(context.lock, current, context.state ?? undefined, request.parameters) }
+      catch (error) { throw new BlenderError(error.code ?? 'RECIPE_PARAMETER_INVALID', error.message, { detail: error.details }) }
+      if (planned.operations.length === 0) {
+        const record = this.store.readRecord(request.projectId)
+        if (record.currentRevision !== request.baseRevision) throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The current revision changed')
+        return { unchanged: true, projectId: request.projectId,
+          revision: this.store.readRevisionManifest(request.projectId, request.baseRevision),
+          parameterState: context.state, preservedCameraIds: planned.preservedCameraIds }
+      }
+      const patch = { projectId: request.projectId, baseRevision: request.baseRevision, operations: planned.operations,
+        saveCheckpoint: request.saveCheckpoint !== false, renderPreview: request.renderPreview === true,
+        idempotencyKey: request.idempotencyKey ?? `recipe-${sha256Canonical({ projectId: request.projectId,
+          baseRevision: request.baseRevision, manifestSha256: context.lock.manifestSha256,
+          valuesSha256: planned.parameterState.valuesSha256 })}`,
+        note: 'Update assembled recipe dimensions' }
+      const checked = validateScenePatch(patch)
+      if (!checked.ok) throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, checked.summary)
+      const state = { ...planned.parameterState, originRevision: context.originRevision }
+      const outcome = await this._applyScenePatch(patch, { ...options, recipeParameters: state })
+      const committed = readRecipeContext(this.store, request.projectId, outcome.revision.revision)
+      if (!committed?.state) throw new BlenderError('RECIPE_LOCK_INVALID', 'The recorded outcome has no recipe parameter state')
+      return { ...outcome, parameterState: committed.state, preservedCameraIds: planned.preservedCameraIds }
+    })
+  }
+
   async _applyScenePatch(patch, options) {
     const projectId = patch.projectId
     const record = this.store.readRecord(projectId)
@@ -443,6 +477,7 @@ export class RevisionTransaction {
       operations: patch.operations,
       spec: nextSpec,
       kind: 'scene_patch',
+      recipeParameters: options.recipeParameters ?? null,
       summary,
       actor: patch.actor ?? null,
       stage: patch.stage ?? null,
@@ -753,6 +788,8 @@ export class RevisionTransaction {
       stage: plan.stage ?? null,
       note: plan.note ?? null,
       ...(plan.recipeLock ? { recipe: { id: plan.recipeLock.id, version: plan.recipeLock.version, packageDigest: plan.recipeLock.packageDigest, lockPath: 'recipe-lock.json' } } : {}),
+      ...(plan.recipeParameters ? { recipeParameters: { statePath: 'recipe-parameters.json',
+        stateSha256: sha256Canonical(plan.recipeParameters) } } : {}),
       sceneSpecVersion: plan.spec.schemaVersion,
       counts: sceneSummary.counts,
       subjectBounds: sceneSummary.subjectBounds,
@@ -829,6 +866,7 @@ export class RevisionTransaction {
     }
 
     if (plan.recipeLock) writeJsonAtomic(join(staging, 'recipe-lock.json'), plan.recipeLock)
+    if (plan.recipeParameters) writeJsonAtomic(join(staging, 'recipe-parameters.json'), plan.recipeParameters)
 
     writeJsonAtomic(join(staging, 'validation.json'), {
       schemaVersion: 'deepblend.validation/v1',

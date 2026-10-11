@@ -53,6 +53,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | 工具 | 读/写 | 一句话 |
 |---|---|---|
 | `blender_recipe_list` | 读 | 列出可复用作品及颜色、粗糙度、曝光参数 |
+| `blender_recipe_parameters` | 读 / 写 | 读取或保存已有装配的整体尺寸，保留独立外观与历史 |
 | `blender_capabilities` | 读 | 这一版 Blender 的引擎、格式、GPU。承诺任何分辨率/时长之前先调它 |
 | `blender_project_create` | **写** | 建项目并提交 r0001 |
 | `blender_project_get` | 读 | 当前 revision、场景摘要、完整版本历史 |

@@ -12,6 +12,10 @@ const vector = (target, property) => property === 'dimensions' ? target?.generat
 const close = (a, b) => Number.isFinite(a) && Number.isFinite(b)
   && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b))
 
+export function recipeGeometryParameters(manifest) {
+  return manifest.parameters.filter(structural)
+}
+
 export function planRecipeGeometryEdit(lock, currentSpec, parameterState, changes) {
   const origin = instantiateRecipeLock(lock)
   const scene = validateSceneSpec(currentSpec)
@@ -26,7 +30,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const before = parameterState === undefined ? origin : instantiateRecipeLock(currentLock)
   const after = instantiateRecipeLock(currentLock, changes)
-  const parameters = lock.manifest.parameters.filter(structural)
+  const parameters = recipeGeometryParameters(lock.manifest)
   for (const id of Object.keys(changes)) {
     if (!parameters.some(parameter => parameter.id === id)) {
       throw new RecipeError('RECIPE_PARAMETER_INVALID', `Parameter ${id} is not an assembly geometry control`)

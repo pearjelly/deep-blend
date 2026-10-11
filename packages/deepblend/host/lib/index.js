@@ -26,6 +26,8 @@
  */
 
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
+import { readRecipeContext } from './recipe-state.js'
+import { instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters } from '@deepblend/dsh-blender-contracts'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
@@ -629,6 +631,7 @@ export default class BlenderStudio extends Service {
 
   get creationRequestProtocol() { return CREATION_REQUEST_VERSION }
   get cameraTargetResetSupported() { return CAMERA_UPDATE_FIELDS.includes('clearTarget') }
+  get recipeParameterEditingSupported() { return true }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
@@ -774,6 +777,49 @@ export default class BlenderStudio extends Service {
       warnings: outcome.warnings,
       scene: outcome.sceneSummary,
     }
+  }
+
+  async getRecipeParameters(projectId, options = {}) {
+    const record = this.store.readRecord(projectId)
+    const revision = options.revision ?? record.currentRevision
+    const context = readRecipeContext(this.store, projectId, revision)
+    if (context === null) return { projectId, revision, available: false, parameters: [], reason: 'This revision has no saved recipe' }
+    const definitions = recipeGeometryParameters(context.lock.manifest)
+    if (!definitions.length) return { projectId, revision, available: false, parameters: [], reason: 'This saved recipe has no assembly dimensions' }
+    const locked = context.state ? { ...context.lock, values: context.state.values,
+      valuesSha256: context.state.valuesSha256 } : context.lock
+    const resolved = instantiateRecipeLock(locked)
+    let conflicts = []
+    try { planRecipeGeometryEdit(context.lock, this.store.readRevisionSpec(projectId, revision), context.state ?? undefined, {}) }
+    catch (error) {
+      if (error.code !== 'RECIPE_PARAMETER_CONFLICT') throw error
+      conflicts = error.details.conflicts
+    }
+    return { projectId, revision, available: true, originRevision: context.originRevision,
+      recipe: { id: context.lock.id, version: context.lock.version }, valuesSha256: resolved.recipe.valuesSha256,
+      parameters: definitions.map(parameter => ({ id: parameter.id, title: parameter.title, type: parameter.type,
+        minimum: parameter.minimum, maximum: parameter.maximum, default: parameter.default, value: resolved.values[parameter.id] })),
+      conflicts }
+  }
+
+  async updateRecipeParameters(request) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)
+        || typeof request.projectId !== 'string' || !/^r[0-9]{4,}$/.test(request.baseRevision ?? '')
+        || ['saveCheckpoint', 'renderPreview'].some(key => request[key] !== undefined && typeof request[key] !== 'boolean')
+        || request.idempotencyKey !== undefined && typeof request.idempotencyKey !== 'string'
+        || Object.keys(request).some(key => !['projectId', 'baseRevision', 'parameters', 'saveCheckpoint', 'renderPreview', 'idempotencyKey', 'signal', 'projectsRoot'].includes(key))) {
+      throw new BlenderError('RECIPE_PARAMETER_INVALID', 'Expected a bounded recipe parameter request')
+    }
+    const { signal, ...input } = request
+    if (input.projectsRoot !== undefined && input.projectsRoot !== this.store.projectsRoot) {
+      throw new BlenderError('REVISION_CONFLICT', 'The active project store changed; read the selected work again')
+    }
+    const outcome = await this.transactions.applyRecipeParameters(input, { signal })
+    return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
+      unchanged: outcome.unchanged === true, idempotentReplay: outcome.idempotentReplay === true,
+      parameterState: outcome.parameterState, preservedCameraIds: outcome.preservedCameraIds,
+      parameters: await this.getRecipeParameters(input.projectId, { revision: outcome.revision.revision }),
+      ...(outcome.job ? { job: toCanonicalJobRecord(outcome.job) } : {}) }
   }
 
   /**

@@ -171,13 +171,20 @@ the current revision and repeat the affected views with the same settings.
    Recipe colors are scene-linear RGB, not hex/sRGB. Source/license/hash metadata does not prove
    authorship or artistic quality. A project owns its SceneSpec, revision history and render output;
    the first revision is `r0001`. If no recipe fits, use a supplied scene or the minimal scaffold route.
+   For an existing assembly, use **`blender_recipe_parameters`** with `action:read` first.
+   Use the returned revision, numeric parameter IDs and allowed ranges in `action:save`.
+   This creates one revision in the same project, using ordinary patches internally; it preserves
+   independent materials, bevels, photography and history. Do not recreate the project to resize it.
+   Controlled geometry conflicts require resolving the named parts before saving. Old recipes
+   without geometry controls return available:false. Use a fresh idempotencyKey for each new
+   intent, including edits after restoring history; reuse it only for the same retry.
 3. **`blender_asset_ingest`** — import an authorized model or image into project storage.
    Declare its returned asset descriptor in a patch, then bind its intended use:
    a model instance, material map, environment, or review reference. See the model
    workflow below and the reference image guide above.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
-5. **`blender_scene_patch`** — the ONLY way to change a scene. There is no free-form
+5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns contact sheet

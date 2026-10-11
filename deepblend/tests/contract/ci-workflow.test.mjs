@@ -331,7 +331,7 @@ test('delivery, editing and upload share a separate runtime with bounded steps',
   const job = workflowJob('linux-render-photography-browser')
   const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
   assert.match(job, /^    runs-on: ubuntu-24\.04$/m)
-  assert.match(job, /^    timeout-minutes: 33$/m, 'allow setup plus 2/5/8/3/3/10 minute steps outside the existing inspection budget')
+  assert.match(job, /^    timeout-minutes: 41$/m, 'allow setup plus 2/5/8/3/3/8/10 minute steps outside the existing inspection budget')
   assert.ok(job.includes(`node-version: '${pins.node}'`))
   assert.match(job, /LIBGL_ALWAYS_SOFTWARE: '1'/)
   const commands = [
@@ -395,4 +395,12 @@ test('the independent delivery and editing job uploads all evidence even when a 
   assert.match(upload, /include-hidden-files: true/)
   assert.match(upload, /if-no-files-found: error/)
   assert.match(upload, /retention-days: 7/)
+})
+
+
+test('existing assembly editing runs in CI and full acceptance with retained native evidence', () => {
+  const job = workflowJob('linux-render-photography-browser')
+  assert.ok(job.includes('xvfb-run -a node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs'))
+  assert.ok(job.includes('DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-edit-browser'))
+  assert.ok(readFileSync(join(ROOT, 'deepblend/tests/run-all.sh'), 'utf8').includes('node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs'))
 })

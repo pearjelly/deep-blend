@@ -52,7 +52,7 @@ The scenes and output come from editable SceneSpec and actual rendering. Officia
   or resume missing frames. Completed frames can continue straight to encoding; delivery records
   retain frame sources and actual render settings.
 
-The agent preset exposes **17 tools** for scene editing, previews, visual review and delivery.
+The agent preset exposes **18 tools** for scene editing, previews, visual review and delivery.
 Immutable revisions keep earlier scene states available, and expensive operations use an approval gate.
 
 ## Install

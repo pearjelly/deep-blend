@@ -40,6 +40,16 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
       const body = JSON.parse(init.body); calls.push({ path: path.pathname, body })
       if (options.onPost) await options.onPost({ path: path.pathname, body })
       if (failure) payload = { ok: false, error: failure }
+      else if (path.pathname.endsWith('/recipe-parameters')) {
+        if (project.assemblyKey !== body.idempotencyKey) {
+          assert.equal(body.baseRevision, project.revision)
+          project.assemblyValues = { ...(project.assemblyValues || {}), ...body.parameters }
+          project.assemblyKey = body.idempotencyKey; project.revision = 'r0002'
+          previews[projectId].push({ revision: 'r0002', previews: [artifact('r0002')] })
+          if (options.loseAssemblyReply) { options.loseAssemblyReply = false; throw new Error('reply lost after commit') }
+        }
+        payload = { ok: true, revision: { revision: project.revision, digest: 'assembly', preservedCameraIds: ['hero'] } }
+      }
       else if (path.pathname.endsWith('/patch')) {
         assert.equal(body.patch.baseRevision, project.revision)
         project.spec = applyPatchToSpec(project.spec, body.patch).spec; project.revision = 'r0002'
@@ -53,6 +63,12 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
     else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: previews[projectId] } }
     else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projectsRoot: options.projectsRoot?.() ?? null, projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { title: projectId, projectId, revisionCount: previews[projectId].length }, revisions: previews[projectId].map(row => ({ ...row, isCurrent: row.revision === project.revision })), qa: { summary: 'Controlled UI fixture' }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
+    if (payload?.selected && options.assembly) payload.selected.recipeParameters = {
+      available: true, projectId, revision: project.revision, conflicts: [], parameters: [
+        { id: 'cabinet-width-mm', title: 'Width (mm)', minimum: 264, maximum: 340, default: 264, value: project.assemblyValues?.['cabinet-width-mm'] ?? 264 },
+        { id: 'cabinet-depth-mm', title: 'Depth (mm)', minimum: 138, maximum: 180, default: 138, value: project.assemblyValues?.['cabinet-depth-mm'] ?? 138 },
+        { id: 'cabinet-height-mm', title: 'Height (mm)', minimum: 162, maximum: 220, default: 162, value: project.assemblyValues?.['cabinet-height-mm'] ?? 162 },
+      ] }
     return { ok: true, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }
   } }
   const mounted = options.root ? await core.mountStandalone(options.root, settings) : null
@@ -63,6 +79,51 @@ async function client(t, spec = source('metal-lamp'), options = {}) {
   const field = name => nodes().find(node => node.props['data-field'] === name)
   return { store, nodes, field, calls, projects, previews, fail: value => { failure = value } }
 }
+
+test('assembly controls require valid changed inputs and save one project-pinned semantic request', async t => {
+  const { store, field, nodes, calls } = await client(t, source('modular-speaker'), { assembly: true, projectsRoot: () => '/assembly-store' })
+  const save = () => nodes().find(node => node.props['data-action'] === 'assembly-save')
+  assert.equal(field('assembly-cabinet-width-mm').props.value, 264)
+  assert.equal(save().props.disabled, true)
+  store.actions.setAssemblyValue('cabinet-width-mm', '')
+  assert.equal(save().props.disabled, true)
+  store.actions.setAssemblyValue('cabinet-width-mm', '999')
+  assert.equal(save().props.disabled, true)
+  await store.actions.saveAssembly(); assert.equal(calls.length, 0)
+  store.actions.setAssemblyValue('cabinet-width-mm', '300')
+  assert.equal(save().props.disabled, false)
+  await store.actions.saveAssembly()
+  await waitFor(store, state => state.selected.scene.revision === 'r0002')
+  assert.equal(calls.length, 1); assert.equal(calls[0].path, '/deepblend/projects/project-a/recipe-parameters')
+  assert.equal(calls[0].body.baseRevision, 'r0001'); assert.equal(calls[0].body.projectsRoot, '/assembly-store')
+  assert.equal(calls[0].body.parameters['cabinet-width-mm'], 300)
+  assert.equal(store.getState().compareLeft, 'r0001'); assert.equal(store.getState().compareRight, 'r0002')
+})
+
+test('assembly drafts survive project switching and newer revisions until explicitly reset', async t => {
+  const { store, field, nodes, projects, calls } = await client(t, source('modular-speaker'), { assembly: true })
+  store.actions.setAssemblyValue('cabinet-width-mm', '310')
+  store.actions.selectProject('project-b'); await waitFor(store, state => state.activeProjectId === 'project-b')
+  assert.equal(field('assembly-cabinet-width-mm').props.value, 264)
+  store.actions.selectProject('project-a'); await waitFor(store, state => state.activeProjectId === 'project-a')
+  assert.equal(field('assembly-cabinet-width-mm').props.value, '310')
+  projects['project-a'].revision = 'r0003'; store.actions.reload()
+  await waitFor(store, state => state.selected.scene.revision === 'r0003')
+  assert.equal(field('assembly-cabinet-width-mm').props.value, '310')
+  assert.equal(nodes().find(node => node.props['data-action'] === 'assembly-save').props.disabled, true)
+  await store.actions.saveAssembly(); assert.equal(calls.length, 0)
+  store.actions.resetAssembly(); assert.equal(field('assembly-cabinet-width-mm').props.value, 264)
+})
+
+test('lost assembly replies retry the same frozen intent without a second revision', async t => {
+  const { store, calls, projects } = await client(t, source('modular-speaker'), { assembly: true, loseAssemblyReply: true })
+  store.actions.setAssemblyValue('cabinet-width-mm', '300')
+  await store.actions.saveAssembly()
+  store.actions.setAssemblyValue('cabinet-width-mm', '320')
+  await store.actions.saveAssembly()
+  assert.equal(calls.length, 2); assert.deepEqual(calls[1].body, calls[0].body)
+  assert.equal(projects['project-a'].revision, 'r0002')
+})
 
 test('untouched drafts are no-ops for all four built-in recipes, isolated from the scene', () => {
   for (const name of ['metal-lamp', 'glass-ceramic', 'modular-speaker', 'glazed-cup']) {

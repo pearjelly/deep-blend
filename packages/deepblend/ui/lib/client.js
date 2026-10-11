@@ -355,6 +355,14 @@ window.__ModuleLoader__.load({
       'editor.unknownSettings': '这张预览缺少实测渲染设置，无法比较编辑差异。',
       'editor.missingBaseline': '没有同相机、同帧和同渲染设置的编辑前预览，暂时无法比较差异。',
       'editor.choose': '选择一个对象，调整后应用并查看真实预览。',
+      'assembly.title': '调整整套模型',
+      'assembly.help': '尺寸会联动配方中的部件，保留独立修改的材质、倒角和摄影设置。保存后生成新版本和预览。',
+      'assembly.save': '保存整套尺寸并预览',
+      'assembly.retry': '重试同一次保存',
+      'assembly.conflict': '部分受控几何已被单独修改，请先恢复对应部件；整套尺寸尚未保存。',
+      'assembly.stale': '当前作品已有新版本。草稿已保留，请重新载入后再修改。',
+      'assembly.otherDraft': '请先保存或放弃其他未提交的编辑。',
+      'assembly.photoKept': '已保留自定义摄影，请确认新尺寸下的构图。',
       'editor.position': '位置（mm）',
       'editor.rotation': '旋转（°）',
       'editor.geometry': '形状与轮廓',
@@ -946,6 +954,14 @@ window.__ModuleLoader__.load({
       'editor.unknownSettings': 'Measured render settings are missing. This preview cannot establish the edit difference.',
       'editor.missingBaseline': 'No before preview has the same camera, frame and measured render settings. The edit difference is unavailable.',
       'editor.choose': 'Select an object, adjust its settings, then apply and view a real preview.',
+      'assembly.title': 'Resize the assembly',
+      'assembly.help': 'Recipe parts follow the dimensions. Independent materials, bevels and photography are retained. Saving creates a new revision and preview.',
+      'assembly.save': 'Save assembly dimensions and preview',
+      'assembly.retry': 'Retry the same save',
+      'assembly.conflict': 'Controlled geometry was edited separately. Restore those parts before resizing; nothing has been saved.',
+      'assembly.stale': 'The work has a newer revision. Your draft is retained; reload it before editing.',
+      'assembly.otherDraft': 'Save or discard other unsaved edits first.',
+      'assembly.photoKept': 'Custom photography was preserved. Check framing at the new dimensions.',
       'editor.position': 'Position (mm)',
       'editor.rotation': 'Rotation (°)',
       'editor.geometry': 'Shape and profile',
@@ -1392,7 +1408,7 @@ window.__ModuleLoader__.load({
 
     /** Every DeepBlend wire tool name this package draws a card for. */
     const TOOL_CARD_KEYS = [
-      'blender_capabilities', 'blender_recipe_list', 'blender_project_create', 'blender_project_get',
+      'blender_capabilities', 'blender_recipe_list', 'blender_recipe_parameters', 'blender_project_create', 'blender_project_get',
       'blender_scene_get', 'blender_scene_patch', 'blender_preview_render',
       'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
       'blender_preview_views', 'blender_visual_review',
@@ -2490,6 +2506,19 @@ window.__ModuleLoader__.load({
         || photographyDirty(photographyDraftFor(state))
         || Boolean(state.assetDrafts?.[state.activeProjectId])
         || state.forms.patch !== null
+        || assemblyDirty(assemblyDraftFor(state))
+    }
+    const assemblyKey = state => JSON.stringify([state.projectsRoot, state.activeProjectId])
+    const assemblyDraftFor = state => state.assemblyDrafts?.[assemblyKey(state)] || null
+    const assemblyDirty = draft => Boolean(draft && Object.entries(draft.values).some(([id, value]) => value === '' || Number(value) !== draft.original[id]))
+    const assemblyInvalid = draft => !draft || draft.parameters.some(parameter => {
+      const raw = draft.values[parameter.id], value = Number(raw)
+      return raw === '' || !Number.isFinite(value) || value < parameter.minimum || value > parameter.maximum
+    })
+    function createAssemblyDraft(source, projectsRoot) {
+      const values = Object.fromEntries(source.parameters.map(parameter => [parameter.id, parameter.value]))
+      return { projectId: source.projectId, projectsRoot, baseRevision: source.revision,
+        parameters: editorClone(source.parameters), values, original: { ...values }, idempotencyKey: newCreationKey(), attempt: null }
     }
     function briefValid(draft) {
       return Boolean(draft && typeof draft.goal === 'string' && draft.goal.length <= 2000 && draft.referenceImages.length <= 4
@@ -2736,10 +2765,11 @@ window.__ModuleLoader__.load({
         editorDrafts: {},
         editorLastEdits: {},
         editorComparison: null,
+        assemblyDrafts: {},
         patchDrafts: {},
         recipeChoices: [],
         forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
-        busy: { create: false, patch: false, editor: false, render: false, restore: false },
+        busy: { create: false, patch: false, editor: false, assembly: false, render: false, restore: false },
         notices: { projects: null, scene: null, preview: null, jobs: null, revisions: null },
       }
     }
@@ -3001,6 +3031,13 @@ window.__ModuleLoader__.load({
         if (sequence !== loadSequence || projectId !== target()) return
         if (active !== data.activeProjectId) patch.forms = { ...data.forms, patch: data.patchDrafts[active] ?? null }
         if (patch.selected?.scene && active) {
+          const source = patch.selected.recipeParameters
+          if (source?.available === true && source.projectId === active && source.revision === patch.selected.scene.revision) {
+            const key = JSON.stringify([patch.projectsRoot, active]), draft = data.assemblyDrafts[key]
+            if ((!draft || !assemblyDirty(draft)) && !data.busy.assembly) {
+              patch.assemblyDrafts = { ...data.assemblyDrafts, [key]: createAssemblyDraft(source, patch.projectsRoot) }
+            }
+          }
           const photography = data.photographyDrafts[active]
           if ((!photography || !photographyDirty(photography)) && !data.photographyWork[active]?.saving) {
             patch.photographyDrafts = { ...data.photographyDrafts, [active]: createPhotographyDraft(patch.selected.scene, active, photography, patch.projectsRoot) }
@@ -3171,6 +3208,48 @@ window.__ModuleLoader__.load({
         }
       }
       const actions = {
+        setAssemblyValue: (id, value) => {
+          const draft = assemblyDraftFor(data)
+          if (!draft || data.busy.assembly || draft.attempt || !draft.parameters.some(parameter => parameter.id === id)) return
+          set({ assemblyDrafts: { ...data.assemblyDrafts, [assemblyKey(data)]: { ...draft, values: { ...draft.values, [id]: value } } } })
+        },
+        resetAssembly: () => {
+          const source = data.selected?.recipeParameters
+          if (!source?.available || data.busy.assembly) return
+          set({ assemblyDrafts: { ...data.assemblyDrafts, [assemblyKey(data)]: createAssemblyDraft(source, data.projectsRoot) } })
+        },
+        saveAssembly: async () => {
+          const draft = assemblyDraftFor(data), source = data.selected?.recipeParameters
+          if (!draft || data.busy.assembly || assemblyInvalid(draft) || !assemblyDirty(draft)) return
+          if (!draft.attempt && (draft.baseRevision !== source?.revision || source?.conflicts?.length
+              || projectHasUnsavedDrafts({ ...data, assemblyDrafts: {} }))) return
+          const key = assemblyKey(data), body = draft.attempt || { baseRevision: draft.baseRevision,
+            projectsRoot: draft.projectsRoot, idempotencyKey: draft.idempotencyKey,
+            parameters: Object.fromEntries(Object.entries(draft.values).map(([id, value]) => [id, Number(value)])) }
+          set({ assemblyDrafts: { ...data.assemblyDrafts, [key]: { ...draft, attempt: body } } })
+          setIn('busy', 'assembly', true)
+          const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, '/recipe-parameters'), body)
+          setIn('busy', 'assembly', false)
+          if (outcome.ok) {
+            const drafts = { ...data.assemblyDrafts }; delete drafts[key]
+            set({ assemblyDrafts: drafts })
+            if (target() === draft.projectId && data.projectsRoot === draft.projectsRoot) {
+              const revision = outcome.payload.revision.revision
+              const notice = { ok: true, kind: 'recipe-parameters', message: t('scene.committed', { revision,
+                digest: shortDigest(outcome.payload.revision.digest) }) + (outcome.payload.revision.preservedCameraIds?.length ? ` ${t('assembly.photoKept')}` : '') }
+              set({ view: 'preview', compareMode: 'revisions', compareLeft: draft.baseRevision, compareRight: revision,
+                notices: { ...data.notices, scene: notice, preview: notice } })
+            }
+            reload()
+          } else {
+            const uncertain = outcome.error.code === 'UI_FETCH_FAILED' || /^HTTP_5/.test(outcome.error.code)
+            set({ assemblyDrafts: { ...data.assemblyDrafts, [key]: { ...draft, attempt: uncertain ? body : null } } })
+            if (target() === draft.projectId && data.projectsRoot === draft.projectsRoot) {
+              setIn('notices', 'scene', { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
+              if (outcome.error.code === 'REVISION_CONFLICT') reload()
+            }
+          }
+        },
         acceptsFileChoice,
         setAppearance: value => {
           if (!APPEARANCES.includes(value)) return
@@ -4370,6 +4449,32 @@ window.__ModuleLoader__.load({
       }, result.message)
     }
 
+    function AssemblyEditor(ctx) {
+      const { state, actions } = ctx, source = state.selected?.recipeParameters, draft = assemblyDraftFor(state)
+      if (!source) return null
+      if (source.error) return el('div', { className: 'db-card', 'data-assembly-editor': true },
+        el('h4', null, t('assembly.title')), ErrorBox({ error: source.error }))
+      if (!source.available || !draft) return null
+      const stale = draft.baseRevision !== state.selected.scene.revision
+      const otherDirty = projectHasUnsavedDrafts({ ...state, assemblyDrafts: {} })
+      const blocked = state.busy.assembly || !draft.attempt && (stale || source.conflicts?.length || otherDirty)
+      return el('div', { className: 'db-card', 'data-assembly-editor': true,
+        'data-assembly-base-revision': draft.baseRevision, 'data-assembly-dirty': String(assemblyDirty(draft)) },
+        el('h4', null, t('assembly.title')), el('p', { className: 'db-muted' }, t('assembly.help')),
+        source.conflicts?.length ? el('div', { className: 'db-error' }, t('assembly.conflict'),
+          el('div', { className: 'db-inline' }, [...new Set(source.conflicts.map(conflict => conflict.entityId))].map(entityId =>
+            Button({ key: entityId, action: `assembly-conflict:${entityId}`, onClick: () => actions.selectEditorEntity(entityId), children: entityId })))) : null,
+        stale ? el('div', { className: 'db-error' }, t('assembly.stale')) : null,
+        otherDirty ? el('div', { className: 'db-muted' }, t('assembly.otherDraft')) : null,
+        el('div', { className: 'db-grid' }, draft.parameters.map(parameter => el('label', { key: parameter.id },
+          parameter.title, el('input', { type: 'number', className: 'db-input', 'data-field': `assembly-${parameter.id}`,
+            min: parameter.minimum, max: parameter.maximum, step: 'any', value: draft.values[parameter.id],
+            disabled: state.busy.assembly || Boolean(draft.attempt), onInput: event => actions.setAssemblyValue(parameter.id, event.currentTarget.value) })))),
+        el('div', { className: 'db-inline' }, Button({ action: 'assembly-save', disabled: Boolean(blocked) || assemblyInvalid(draft) || !assemblyDirty(draft),
+          onClick: actions.saveAssembly, children: draft.attempt ? t('assembly.retry') : t('assembly.save') }),
+          Button({ action: 'assembly-reset', disabled: state.busy.assembly, onClick: actions.resetAssembly, children: t('editor.reset') })))
+    }
+
     function SceneEditor(ctx) {
       const { state, actions } = ctx, draft = editorDraftFor(state)
       const lastEdit = state.editorLastEdits?.[state.activeProjectId]
@@ -4855,7 +4960,7 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         )),
         el('section', { className: 'db-scene-inspector', 'aria-label': t('scene.inspector') },
-        SceneEditor(ctx),
+        AssemblyEditor(ctx), SceneEditor(ctx),
         PhotographyEditor(ctx),
         AssetsView(ctx),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,

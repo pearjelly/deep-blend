@@ -83,6 +83,8 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.review', method: 'POST', path: '/deepblend/projects/:projectId/review', write: true, summary: 'Explicitly render and consult the visual reviewer for one revision.' },
   { id: 'project.autofix', method: 'POST', path: '/deepblend/projects/:projectId/autofix', write: true, summary: 'Explicitly run a bounded visual correction loop for one revision.' },
   { id: 'project.patch', method: 'POST', path: '/deepblend/projects/:projectId/patch', write: true, summary: 'Apply a ScenePatch as one atomic revision.' },
+  { id: 'project.recipeParameters', method: 'GET', path: '/deepblend/projects/:projectId/recipe-parameters', write: false, summary: 'Read saved assembly controls at one revision.' },
+  { id: 'project.recipeParameters.update', method: 'POST', path: '/deepblend/projects/:projectId/recipe-parameters', write: true, summary: 'Save bounded assembly dimensions as an atomic revision.' },
   { id: 'project.restore', method: 'POST', path: '/deepblend/projects/:projectId/restore', write: true, summary: 'Move the current revision pointer to a saved revision, preserving history without creating a new revision.' },
   { id: 'project.jobs', method: 'GET', path: '/deepblend/projects/:projectId/jobs', write: false, summary: 'Render/export jobs of a project.' },
   { id: 'project.job', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId', write: false, summary: 'One job with its live progress.' },
@@ -930,4 +932,5 @@ export const UI_TOOL_CARD_KEYS = Object.freeze([
   'blender_export',
   'blender_job_status',
   'blender_job_cancel',
+  'blender_recipe_parameters',
 ])

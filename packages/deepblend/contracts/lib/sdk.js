@@ -17,8 +17,9 @@ export {
 export { SCENE_OPERATION_NAMES, validateScenePatch, applyPatchToSpec, buildOperationManifest } from './scene-patch.js'
 export {
   RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError,
-  recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe,
+  recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock,
 } from './recipe.js'
+export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'
 
 /** Validate untrusted JSON and return a separate document; never assert a type without checking it. */
 export function parseSceneSpec(input) {

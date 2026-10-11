@@ -94,6 +94,19 @@ export type RecipeValues = Record<string, number | [number, number, number]>;
 export interface RecipeBundle { manifest: RecipeManifest; sceneBytes: string | Uint8Array; previewBytes: string | Uint8Array }
 export interface RecipeOptions { supportedCapabilities?: Iterable<RecipeCapability> }
 export interface RecipeValidation extends ValidationResult { notices: SceneSpecIssue[]; sceneSpec?: SceneSpec }
+export interface RecipeLock {
+  schemaVersion: 'deepblend.recipe-lock/v1'; id: string; version: string;
+  manifestSha256: string; packageDigest: string; inputSha256: string; previewSha256: string;
+  valuesSha256: string; manifest: RecipeManifest; values: RecipeValues; sceneSource: string;
+}
+export interface RecipeParameterState {
+  schemaVersion: 'deepblend.recipe-parameters/v1'; manifestSha256: string;
+  values: RecipeValues; valuesSha256: string; originRevision?: string;
+}
+export interface RecipeGeometryPlan {
+  operations: ScenePatchOperation[]; changedParameters: string[]; preservedCameraIds: string[];
+  parameterState: RecipeParameterState;
+}
 export function recipeCapabilitiesForScene(spec: SceneSpec): RecipeCapability[];
 export function validateRecipeManifest(manifest: unknown, options?: RecipeOptions): RecipeValidation;
 export function parseRecipeManifest(manifest: unknown, options?: RecipeOptions): RecipeManifest;
@@ -102,3 +115,7 @@ export function instantiateRecipe(bundle: RecipeBundle, values?: RecipeValues, o
   spec: SceneSpec; values: RecipeValues; notices: SceneSpecIssue[];
   recipe: { id: string; version: string; manifestSha256: string; inputSha256: string; previewSha256: string; valuesSha256: string };
 };
+export function instantiateRecipeLock(lock: RecipeLock, changes?: RecipeValues, options?: RecipeOptions): ReturnType<typeof instantiateRecipe>;
+export function recipeGeometryParameters(manifest: RecipeManifest): RecipeManifest['parameters'];
+export function planRecipeGeometryEdit(lock: RecipeLock, currentSpec: SceneSpec,
+  parameterState: RecipeParameterState | undefined, changes: Record<string, number>): RecipeGeometryPlan;

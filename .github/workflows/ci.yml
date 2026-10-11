@@ -255,7 +255,7 @@ jobs:
   linux-render-photography-browser:
     name: Linux delivery + editing + resource bundle upload
     runs-on: ubuntu-24.04
-    timeout-minutes: 33
+    timeout-minutes: 41
     defaults:
       run:
         shell: bash
@@ -320,6 +320,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/creation-recovery-browser
         run: xvfb-run -a node deepblend/tests/e2e/creation-recovery-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/creation-recovery-browser.log" 2>&1
+      - name: Real existing assembly dimensions and protected history
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-edit-browser
+        run: xvfb-run -a node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-edit-browser.log" 2>&1
       - name: Real directory upload, cancellation recovery and native model application
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 10
