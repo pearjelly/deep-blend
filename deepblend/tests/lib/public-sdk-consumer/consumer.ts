@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   parseSceneSpec, parseScenePatch, compileSceneSpec, applyPatchToSpec, summarizeSceneSpec,
-  parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, buildOperationManifest,
+  parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters, buildOperationManifest,
   sceneSpecDigest, specHash, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
   BOX_DIMENSIONS_FEATURE, requiredSceneFeatures,
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
-  type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
+  type RecipeLock, type RecipeParameterState, type RecipeGeometryPlan, type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
   type CompiledObject, type SceneSpecSchema, type RecipeSchema, type FrameProvenanceEvent, type FrameProvenanceSummary,
 } from '@deepblend/dsh-blender-contracts/sdk';
@@ -73,6 +73,26 @@ assert.throws(() => parseSceneSpec({...spec, project: {...spec.project, reviewSu
 assert.throws(() => parseScenePatch({...patch, operations:[{op:'unknown'}]}));
 assert.throws(() => applyPatchToSpec(compiled.spec, parseScenePatch({...patch,
   operations:[{op:'material.parameter.update', materialId:'missing', parameter:'roughness',value:0.2}]})));
+
+// Saved project metadata works through a real installed package, with no recipe directory.
+const savedLock = JSON.parse(readFileSync('saved-assembly.json', 'utf8')) as RecipeLock;
+const originalAssembly = instantiateRecipeLock(savedLock);
+assert.equal(recipeGeometryParameters(savedLock.manifest).length, 3);
+const edit: RecipeGeometryPlan = planRecipeGeometryEdit(savedLock, originalAssembly.spec, undefined, {'cabinet-width-mm':300});
+const savedParameters: RecipeParameterState = edit.parameterState;
+const resizedAssembly = applyPatchToSpec(originalAssembly.spec, parseScenePatch({projectId:'external-speaker',baseRevision:'r0001',operations:edit.operations})).spec;
+assert.ok(Math.abs(resizedAssembly.entities.find(entity => entity.id === 'cabinet-shell')!.generator!.dimensions![0]! - .3) < 1e-9);
+assert.equal(savedParameters.values['cabinet-width-mm'], 300);
+assert.equal(planRecipeGeometryEdit(savedLock,resizedAssembly,savedParameters,{'cabinet-width-mm':300}).operations.length,0);
+assert.throws(() => instantiateRecipeLock({...savedLock, inputSha256:'0'.repeat(64)}));
+assert.throws(() => planRecipeGeometryEdit(savedLock,resizedAssembly,savedParameters,{'cabinet-width-mm':999}));
+function rejectedAssemblyTypes() {
+  // @ts-expect-error saved lock needs the complete immutable provenance fields
+  instantiateRecipeLock({schemaVersion:'deepblend.recipe-lock/v1'});
+  // @ts-expect-error geometry edits accept numeric values only
+  planRecipeGeometryEdit(savedLock,originalAssembly.spec,undefined,{'cabinet-width-mm':'300'});
+}
+void rejectedAssemblyTypes;
 
 // Compile these adapters against the actual exported seam, without starting Blender.
 async function useRuntime(runtime: BlenderRuntime, local: LocalBlenderRuntime, signal: AbortSignal) {

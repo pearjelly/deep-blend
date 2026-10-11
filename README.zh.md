@@ -397,11 +397,11 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**39 个套件、170 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**132 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1563 个 `node:test` 用例（98 个文件）**。
+**132 个文件 = 1967 项自计断言（34 个文件打印计数）+ 1563 个 `node:test` 用例（98 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述计数来自尺寸联动实现的完整契约运行；38 套完整运行验收的冻结来源与最终版本、文档及测试配置差异分别核对。[0.5.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0)，最终候选与主线 CI、干净构建、七包匿名读回、公开命令及整轮三路安装均已通过。原始证据见 `deepblend/docs/milestone-status.md` §267 和[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 当前 0.6.0 候选预期结构为 39 套；自计断言已重新运行核对，完整通过的用例快照待最终验收更新。0.5.0 的 38 套完整运行来源与最终版本、文档及测试配置差异分别核对。[0.5.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0)，最终候选与主线 CI、干净构建、七包匿名读回、公开命令及整轮三路安装均已通过。原始证据见 `deepblend/docs/milestone-status.md` §267 和[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

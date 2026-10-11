@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { RUNTIME_METHODS } from '../../examples/runtime-author/conformance.mjs'
 import * as sdk from '../../../packages/deepblend/contracts/lib/sdk.js'
+import { RecipeCatalog } from '../../../packages/deepblend/host/lib/recipe-catalog.js'
 import { resolveSdkToolchain, verifySdkToolchain } from '../../tools/sdk-toolchain.mjs'
 
 const root = resolve(import.meta.dirname, '../../..')
@@ -95,6 +96,10 @@ test('packed package works in a real external strict TS and JS consumer without 
     for (const name of ['author.mjs','validate-recipe.mjs','scene-spec.json']) cpSync(join(example,name),join(consumer,name))
     cpSync(join(root,'deepblend/tests/lib/public-sdk-consumer/consumer.ts'),join(consumer,'consumer.ts'))
     cpSync(join(root,'deepblend/recipes/glass-ceramic'),join(consumer,'recipe'),{recursive:true})
+    const catalog = new RecipeCatalog()
+    const speaker = catalog.list().recipes.find(recipe => recipe.id === 'deepblend.modular-speaker' && recipe.version === '2.0.0')
+    const savedAssembly = catalog.instantiate({ id: speaker.id, version: speaker.version, digest: speaker.digest })
+    writeFileSync(join(consumer, 'saved-assembly.json'), JSON.stringify(savedAssembly.lock))
     const config = {compilerOptions:{target:'ES2022',module:'NodeNext',moduleResolution:'NodeNext',strict:true,
       exactOptionalPropertyTypes:true,noUncheckedIndexedAccess:true,skipLibCheck:false,resolveJsonModule:true,
       types:['node'],outDir:'dist'},include:['consumer.ts']}
@@ -173,7 +178,7 @@ test('packed package works in a real external strict TS and JS consumer without 
     }
     const types = readFileSync(join(consumer,'consumer.ts'),'utf8')
     const negativeCases = [...types.matchAll(/@ts-expect-error/g)].length
-    assert.equal(negativeCases,16)
+    assert.equal(negativeCases,18)
     writeFileSync(join(consumer,'consumer.ts'),types.replaceAll('@ts-expect-error','rejected input:'))
     const rejected = run(process.execPath,[compiler,'--project','tsconfig.json','--noEmit'],consumer,1)
     assert.equal([...rejected.matchAll(/error TS\d+:/g)].length,negativeCases,rejected)
