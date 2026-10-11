@@ -397,7 +397,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 当前候选契约层已实测上述快照，来源为同一轮逐文件输出；冻结连续完整入口与公开发布待完成。上轮正式来源见 `deepblend/docs/milestone-status.md` §264，本轮状态见[每日发布记录](deepblend/docs/daily-releases.md)。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述快照来自 0.3.9 同一轮逐文件输出，冻结连续完整入口及公开安装读回已经核对。来源与边界见 `deepblend/docs/milestone-status.md` §265 和[每日发布记录](deepblend/docs/daily-releases.md)。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
