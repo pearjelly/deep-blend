@@ -401,7 +401,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 当前 0.6.0 候选预期结构为 39 套；自计断言与 132/132 个契约文件已重新运行核对，完整原生验收待单独完成。0.5.0 的 38 套完整运行来源与最终版本、文档及测试配置差异分别核对。[0.5.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0)，最终候选与主线 CI、干净构建、七包匿名读回、公开命令及整轮三路安装均已通过。原始证据见 `deepblend/docs/milestone-status.md` §267 和[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** [0.6.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.0)：冻结实现 `ee7d833` 完整验收 39/39；最终发布和主线来源的产品包与配方字节相同，发布维护脚本、检查和文档差异单独核对。最终候选与主线 CI、干净构建、七包匿名读回、公开命令及隔离 DSH 下整轮三路安装均通过。0.6.1 安装来源加固仍为候选。原始证据见[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
