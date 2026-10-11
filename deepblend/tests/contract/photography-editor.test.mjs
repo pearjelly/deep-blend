@@ -53,7 +53,7 @@ async function client(t, options = {}) {
         else { assert.equal(body.expectedCurrentRevision, project.revision); project.revision = body.revision; payload = { ok: true, revision: { revision: body.revision } } }
       }
     } else if (path.pathname.endsWith('/jobs')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.jobs', jobs: [], unfinished: [] }
-    else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: '/artifact', previews: { revisions: [] } }
+    else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: [] } }
     else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { projectId, title: projectId }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
     return { ok: payload.ok, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }

@@ -231,7 +231,7 @@ async function client(t, post, protocol = CREATION_REQUEST_VERSION, projects = [
     if (init.method === 'POST') { const body = JSON.parse(init.body); calls.push(body); payload = await post(body, calls.length) }
     else { reads.push(url); const route = url.includes('/jobs') ? 'project.jobs' : url.includes('/previews') ? 'project.previews' : 'state';
       payload = { ok: true, route, hostApiVersion: HOST_API_VERSION, creationRequestProtocol: protocol,
-        projects, selected: null, recipeCatalog: new RecipeCatalog().list(), jobs: [], unfinished: [], previews: { revisions: [] } } }
+        projects, selected: null, recipeCatalog: new RecipeCatalog().list(), jobs: [], unfinished: [], previews: { projectId: new URL(String(url), 'http://controlled.test').pathname.split('/')[3], revisions: [] }, artifactBase: '/deepblend/artifacts/' + new URL(String(url), 'http://controlled.test').pathname.split('/')[3] + '/' } }
     return { ok: true, status: 200, text: async () => JSON.stringify(payload), json: async () => payload }
   } })
   t.after(() => store.stop())

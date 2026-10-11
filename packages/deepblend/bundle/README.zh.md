@@ -102,3 +102,5 @@ macOS arm64 可使用受管 Blender 安装器，其他平台需自行安装并�
 · [调整摄影](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.md)
 · [文档导航](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md)
 · [反馈问题或需求](https://github.com/pearjelly/deep-blend/issues)
+
+预览读取绑定所选作品，失败后可明确刷新并保留编辑；见[预览恢复](../../../deepblend/docs/preview-recovery.md)。

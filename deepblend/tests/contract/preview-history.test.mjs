@@ -181,7 +181,7 @@ async function comparisonClient(t, ids = ['r0001', 'r0002', 'r0003']) {
     }
     const rows = host.ids.map(revision => ({ revision, isCurrent: revision === host.current, previews: [], contactSheets: [], reviews: [] }))
     const payload = u.pathname.endsWith('/jobs') ? { route: 'project.jobs', jobs: [], unfinished: [] }
-      : u.pathname.endsWith('/previews') ? { route: 'project.previews', artifactBase: '/artifacts/'+projectId+'/', previews: { revisions: rows } }
+      : u.pathname.endsWith('/previews') ? { route: 'project.previews', artifactBase: '/deepblend/artifacts/'+projectId+'/', previews: { projectId, revisions: rows } }
       : { route: 'state', projectsRoot: host.root, projects: [{ projectId: 'project-a' }, { projectId: 'project-b' }], selected: { project: { projectId, title: projectId, revisionCount: rows.length }, currentRevision: host.current, revisions: rows, scene: buildSceneTree(scene, { revision: host.current }), jobs: [], unfinishedJobs: [] } }
     return response({ ok: true, hostApiVersion: HOST_API_VERSION, ...payload })
   } }

@@ -66,7 +66,7 @@ async function client(t, options = {}) {
       calls.push(request); await options.before?.(request, sessions)
       payload = { ok: true, route: 'project.assets.list', projectId: id, revision: project.revision, limits: limit, assets: project.assets }
     } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', jobs: [], unfinished: [] }
-    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', previews: { revisions: [] }, artifactBase: `/deepblend/artifacts/${id}/` }
+    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', previews: { projectId: id, revisions: [] }, artifactBase: `/deepblend/artifacts/${id}/` }
     else { assert.notEqual(init.method, 'POST', `Unexpected scene write: ${url}`); payload = { ok: true, route: 'state', projects: [{ projectId: 'one' }, { projectId: 'two' }], selected: { project: { projectId: id }, currentRevision: project.revision, scene: buildSceneTree(spec, { revision: project.revision }), qa: { summary: 'No report' }, jobs: [], unfinishedJobs: [] } } }
     payload.hostApiVersion = HOST_API_VERSION
     return { ok: true, status: 200, json: async () => clone(payload), text: async () => JSON.stringify(payload) }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.9
+
+- Retire earlier project images and download addresses on project or storage changes.
+- Show failed preview reads with an explicit read-only refresh; keep unsaved edits and saved artifacts.
+- Refuse mismatched project/source responses and late reads after a newer selection or store stop.
+
 ## 0.3.8 — 2026-10-11
 
 - Enter an explicit saved-version comparison from the history list, pairing the selected version with the current work.
