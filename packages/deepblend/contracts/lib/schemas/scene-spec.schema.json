@@ -702,6 +702,15 @@
           "minimum": 1,
           "maximum": 2.5,
           "description": "Dimensionless scale of both endpoint tangent speeds for the quintic attachment. Missing or 1 preserves the original surface. Values above 1.5 require the extended recipe capability. Native output validation still applies."
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/positiveNumber"
+          },
+          "description": "Explicit local width, depth and height for cube or rounded_box, in scene units, before object transform and bevel. Mutually exclusive with scalar size."
         }
       }
     },

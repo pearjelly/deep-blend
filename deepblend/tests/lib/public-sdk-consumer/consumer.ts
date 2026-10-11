@@ -4,10 +4,11 @@ import {
   parseSceneSpec, parseScenePatch, compileSceneSpec, applyPatchToSpec, summarizeSceneSpec,
   parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, buildOperationManifest,
   sceneSpecDigest, specHash, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
+  BOX_DIMENSIONS_FEATURE, requiredSceneFeatures,
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
   type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
-  type CompiledObject, type SceneSpecSchema, type FrameProvenanceEvent, type FrameProvenanceSummary,
+  type CompiledObject, type SceneSpecSchema, type RecipeSchema, type FrameProvenanceEvent, type FrameProvenanceSummary,
 } from '@deepblend/dsh-blender-contracts/sdk';
 import specSchema from '@deepblend/dsh-blender-contracts/schemas/scene-spec.json' with { type: 'json' };
 import patchSchema from '@deepblend/dsh-blender-contracts/schemas/scene-patch.json' with { type: 'json' };
@@ -152,3 +153,33 @@ const extendedCupCapability: RecipeCapability = 'geometry.handled_cup.tension.ex
 assert.equal(extendedCupTransition.rootTension,2.5);
 assert.equal(specSchema.$defs.generator.properties.rootTension.maximum,2.5);
 assert(RECIPE_CAPABILITIES.includes(extendedCupCapability));
+
+const axisBox: SceneSpecSchema.Generator = {shape:'rounded_box',dimensions:[.3,.138,.162],bevel:{width:.01,segments:4}};
+const axisSpec = parseSceneSpec({...spec,entities:spec.entities.map((entity,index)=>index===0?{...entity,type:'generator',generator:axisBox}:entity)});
+assert.deepEqual(compileSceneSpec(axisSpec).spec.entities[0]?.generator?.dimensions,[.3,.138,.162]);
+assert.equal(compileSceneSpec(axisSpec).spec.entities[0]?.generator?.size,undefined);
+const axisCapability: RecipeCapability = 'geometry.primitive.dimensions';
+assert.ok(RECIPE_CAPABILITIES.includes(axisCapability));
+assert.deepEqual(requiredSceneFeatures(axisSpec),[BOX_DIMENSIONS_FEATURE]);
+const linkedLocation: RecipeSchema.Binding = {kind:'entity',entityId:'box',property:'location',axis:'z',multiplier:.001,offsetAnimation:true};
+const linkedCamera: RecipeSchema.Binding = {kind:'camera',cameraId:'hero',property:'targetPoint',axis:'z',multiplier:.0005};
+const linkedCapability: RecipeCapability = 'recipe.geometry-bindings';
+assert.ok(RECIPE_CAPABILITIES.includes(linkedCapability));
+assert.equal(linkedLocation.offsetAnimation,true);
+assert.equal(linkedCamera.cameraId,'hero');
+function invalidBoxTypes() {
+  // @ts-expect-error axis dimensions require three entries
+  const missingAxis: SceneSpecSchema.Generator = {shape:'cube',dimensions:[.3,.138]};
+  // @ts-expect-error axis dimensions require numeric lengths
+  const nonNumericAxis: SceneSpecSchema.Generator = {shape:'cube',dimensions:[.3,.138,'height']};
+  void missingAxis;void nonNumericAxis;
+}
+void invalidBoxTypes;
+function invalidBindingTypes() {
+  // @ts-expect-error structural bindings allow only named Cartesian axes
+  const arbitraryAxis: RecipeSchema.Binding = {kind:'entity',entityId:'box',property:'dimensions',axis:'w',multiplier:1};
+  // @ts-expect-error camera targets require cameraId rather than entityId
+  const wrongCameraTarget: RecipeSchema.Binding = {kind:'camera',entityId:'hero',property:'location',axis:'x',multiplier:1};
+  void arbitraryAxis;void wrongCameraTarget;
+}
+void invalidBindingTypes;

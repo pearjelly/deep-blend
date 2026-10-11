@@ -371,6 +371,9 @@ window.__ModuleLoader__.load({
       'editor.animated': '动画控制的通道已禁用。',
       'editor.invalid': '{field} 的值无效。',
       'editor.size': '尺寸（mm）',
+      'editor.boxWidth': '宽（mm）',
+      'editor.boxDepth': '深（mm）',
+      'editor.boxHeight': '高（mm）',
       'editor.radius': '半径（mm）',
       'editor.handledCup': '带把手杯体',
       'editor.wallThickness': '杯壁厚度（mm）',
@@ -959,6 +962,9 @@ window.__ModuleLoader__.load({
       'editor.animated': 'Channels driven by animation are disabled.',
       'editor.invalid': 'Invalid value for {field}.',
       'editor.size': 'Size (mm)',
+      'editor.boxWidth': 'Width (mm)',
+      'editor.boxDepth': 'Depth (mm)',
+      'editor.boxHeight': 'Height (mm)',
       'editor.radius': 'Radius (mm)',
       'editor.handledCup': 'Handled cup',
       'editor.wallThickness': 'Wall thickness (mm)',
@@ -2054,7 +2060,13 @@ window.__ModuleLoader__.load({
       }
       const generator = draft.entity.generator
       if (generator) {
+        if (generator.dimensions !== undefined) {
+          if (!['cube', 'rounded_box'].includes(generator.shape) || generator.size !== undefined
+            || !Array.isArray(generator.dimensions) || generator.dimensions.length !== 3) bad('dimensions')
+          else generator.dimensions.forEach((value, axis) => scalar(value, `dimensions.${EDITOR_AXES[axis]}`, Number.MIN_VALUE))
+        }
         for (const key of GENERATOR_FIELDS[generator.shape] || []) {
+          if (key === 'size' && generator.dimensions !== undefined) continue
           const bounds = generatorIntegerBounds(generator, key)
           if (bounds?.[2] && generator[key] % bounds[2]) bad(key)
           scalar(generator[key], key, key === 'rootTension' ? 1 : bounds ? bounds[0] : Number.MIN_VALUE,
@@ -4455,7 +4467,11 @@ window.__ModuleLoader__.load({
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
-              ...(GENERATOR_FIELDS[geometry.shape] || []).filter(key => geometry.shape !== 'handled_cup' || !CUP_ADVANCED_FIELDS.includes(key)).map(geometryField),
+              ...(GENERATOR_FIELDS[geometry.shape] || []).filter(key => !(key === 'size' && geometry.dimensions !== undefined)
+                && (geometry.shape !== 'handled_cup' || !CUP_ADVANCED_FIELDS.includes(key))).map(geometryField),
+              ...(geometry.dimensions !== undefined ? ['boxWidth', 'boxDepth', 'boxHeight'].map((label, index) => numeric(
+                t(`editor.${label}`), `editor-generator-dimensions-${EDITOR_AXES[index]}`, geometry.dimensions[index],
+                value => actions.updateEditor('generator', ['dimensions', index], value), { factor: 1000, min: Number.MIN_VALUE })) : []),
               geometry.shape === 'handled_cup' ? el('details', { key: 'cup-advanced' },
                 el('summary', null, t('editor.cupAdvanced')), ...CUP_ADVANCED_FIELDS.map(geometryField)) : null,
               toggle(t('editor.bevel'), 'editor-generator-bevel', Boolean(geometry.bevel), value => actions.updateEditor('generator', ['bevel'], value ? { width: 0.001, segments: 3 } : undefined), geometry.shape === 'rounded_box'),

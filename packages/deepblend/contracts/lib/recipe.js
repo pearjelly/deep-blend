@@ -3,14 +3,15 @@ import { inflateSync } from 'node:zlib'
 import { sha256, sha256Canonical } from './canonical.js'
 import { compileSchema } from './json-schema.js'
 import { decodePng } from './png.js'
-import { validateSceneSpec, compileSceneSpec } from './scene-spec.js'
+import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, requiredSceneFeatures } from './scene-spec.js'
 import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
-  'geometry.primitive', 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
+  'geometry.primitive', BOX_DIMENSIONS_FEATURE, 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
+  'recipe.geometry-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
 const structural = compileSchema(recipeSchema, { id: 'recipe.schema.json' })
@@ -20,6 +21,12 @@ const plain = value => value !== null && typeof value === 'object' &&
 const issue = (code, path, message) => ({ code, path, message })
 const result = (errors, extra = {}) => ({ ok: errors.length === 0, errors, notices: [],
   summary: errors.length ? errors.map(error => `${error.path}: ${error.message}`).join('; ') : 'Recipe valid', ...extra })
+const bindingAxis = binding => ['x', 'y', 'z'].indexOf(binding.axis)
+const bindingTarget = (spec, binding) => binding.kind === 'camera' ? spec.cameras?.find(item => item.id === binding.cameraId) : spec.entities.find(item => item.id === binding.entityId)
+const bindingVector = (target, binding) => binding.property === 'dimensions' ? target?.generator?.dimensions
+  : binding.property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
+const bindingTracks = (spec, binding) => (spec.animationTracks ?? []).filter(track => (track.targetKind ?? 'entity') === binding.kind
+  && track.targetEntityId === (binding.entityId ?? binding.cameraId) && track.property === `location.${binding.axis}`)
 
 export class RecipeError extends Error {
   constructor(code, message, details = {}) {
@@ -47,6 +54,7 @@ export function recipeCapabilitiesForScene(spec) {
     used.add(track.targetKind === 'material' ? 'animation.material' : 'animation.transform')
     if (track.targetKind === 'material' && ['anisotropic', 'anisotropicRotation'].includes(track.property)) used.add('material.anisotropy')
   }
+  for (const feature of requiredSceneFeatures(spec)) used.add(feature)
   return [...used].sort()
 }
 
@@ -82,7 +90,7 @@ export function validateRecipeManifest(manifest, options = {}) {
     declared.add(capability)
     if (!supported.has(capability)) errors.push(issue('RECIPE_INCOMPATIBLE', 'compatibility.capabilities', `Unsupported capability ${capability}`))
   }
-  const ids = new Set(), targets = new Set()
+  const ids = new Set(), targets = new Map()
   for (const parameter of manifest.parameters) {
     const path = `parameters.${parameter.id}`
     if (ids.has(parameter.id) || RESERVED.has(parameter.id)) errors.push(issue('RECIPE_PARAMETER_INVALID', path, 'Parameter IDs must be unique and must not be reserved object keys'))
@@ -91,12 +99,23 @@ export function validateRecipeManifest(manifest, options = {}) {
     const valueIssue = parameterValueIssue(parameter, parameter.default, `${path}.default`)
     if (valueIssue) errors.push(valueIssue)
     for (const binding of parameter.bindings) {
-      const target = binding.kind === 'material' ? `material:${binding.materialId}:${binding.property}` : `render-profile:${binding.profile}:exposure`
-      if (targets.has(target)) errors.push(issue('RECIPE_BINDING_INVALID', path, `Target ${target} is bound more than once`))
-      targets.add(target)
+      const target = binding.kind === 'material' ? `material:${binding.materialId}:${binding.property}`
+        : ['entity', 'camera'].includes(binding.kind) ? `${binding.kind}:${binding.entityId ?? binding.cameraId}:${binding.property}.${binding.axis}` : `render-profile:${binding.profile}:exposure`
+      const prior = targets.get(target)
+      // Camera framing may add independent width/depth/height deltas. Repeating a
+      // slot inside one parameter, or overwriting any other target, remains invalid.
+      if (prior && (binding.kind !== 'camera' || prior.has(parameter.id))) errors.push(issue('RECIPE_BINDING_INVALID', path, `Target ${target} is bound more than once`))
+      if (!prior) targets.set(target, new Set([parameter.id]))
+      else prior.add(parameter.id)
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
+        if (['entity', 'camera'].includes(binding.kind)) {
+          if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
+          if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
+          if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
+          continue
+        }
         const range = binding.kind === 'material' ? [0, 1] : [-10, 10]
         if (parameter.minimum < range[0] || parameter.maximum > range[1]) errors.push(issue('RECIPE_BINDING_INVALID', path, `Binding range must stay within [${range}]`))
       }
@@ -156,7 +175,7 @@ function validatePreview(bytes) {
 }
 
 function bindingsAgainstScene(manifest, spec) {
-  const errors = []
+  const errors = [], cameraRanges = new Map()
   for (const parameter of manifest.parameters) for (const binding of parameter.bindings) {
     const path = `parameters.${parameter.id}.bindings`
     if (binding.kind === 'material') {
@@ -171,9 +190,43 @@ function bindingsAgainstScene(manifest, spec) {
         (track.property === binding.property || track.property.startsWith(`${binding.property}.`)))) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'A parameter must not compete with animation on the same material property'))
       }
+    } else if (['entity', 'camera'].includes(binding.kind)) {
+      const entity = bindingTarget(spec, binding)
+      const vector = bindingVector(entity, binding), axis = bindingAxis(binding)
+      if (!entity || (binding.property === 'dimensions' && (!['cube', 'rounded_box'].includes(entity.generator?.shape) || entity.generator.size !== undefined))
+        || !Array.isArray(vector) || vector.length !== 3 || !Number.isFinite(vector[axis])) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'Structural binding requires an explicit supported dimension, position or aim point'))
+        continue
+      }
+      const ends = [parameter.minimum, parameter.maximum].map(value => vector[axis] + (value - parameter.default) * binding.multiplier)
+      if (ends.some(value => !Number.isFinite(value) || (binding.property === 'dimensions' && value <= 0))) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'The entire parameter range must produce finite values and positive dimensions'))
+      }
+      if (binding.kind === 'camera') {
+        const key = `${binding.cameraId}:${binding.property}.${binding.axis}`
+        const range = cameraRanges.get(key) ?? [vector[axis], vector[axis]]
+        const deltas = [parameter.minimum, parameter.maximum].map(value => (value - parameter.default) * binding.multiplier)
+        range[0] += Math.min(...deltas); range[1] += Math.max(...deltas)
+        cameraRanges.set(key, range)
+      }
+      if (binding.property === 'location') {
+        const tracks = bindingTracks(spec, binding)
+        if (tracks.length && binding.offsetAnimation !== true) errors.push(issue('RECIPE_BINDING_INVALID', path, 'An animated location requires an explicit animation offset'))
+        if (binding.offsetAnimation === true && tracks.some(track => track.keyframes.some(keyframe => [parameter.minimum, parameter.maximum]
+          .some(value => !Number.isFinite(keyframe.value + (value - parameter.default) * binding.multiplier))))) {
+          errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets must remain finite throughout the parameter range'))
+        }
+      }
+      if (binding.kind === 'camera' && binding.property === 'targetPoint' && (entity.targetEntityId !== undefined
+        || spec.animationTracks?.some(track => track.targetKind === 'camera' && track.targetEntityId === entity.id && track.property.startsWith('rotationEuler.')))) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'A bound camera aim point must not compete with an entity target or animated rotation'))
+      }
     } else if (spec.renderProfiles?.[binding.profile]?.colorManagement?.exposure !== parameter.default) {
       errors.push(issue('RECIPE_BINDING_INVALID', path, `Profile ${binding.profile} must explicitly declare exposure equal to the parameter default`))
     }
+  }
+  for (const [key, range] of cameraRanges) if (range.some(value => !Number.isFinite(value))) {
+    errors.push(issue('RECIPE_BINDING_INVALID', 'parameters', `Combined camera binding range must remain finite: ${key}`))
   }
   return errors
 }
@@ -240,6 +293,14 @@ export function instantiateRecipe(bundle, values = {}, options = {}) {
       const material = spec.materials.find(item => item.id === binding.materialId)
       material.parameters[binding.property] = parameter.type === 'color'
         ? [...value, material.parameters.baseColor[3] ?? 1] : value
+    } else if (['entity', 'camera'].includes(binding.kind)) {
+      const vector = bindingVector(bindingTarget(spec, binding), binding)
+      // Preserve the input's exact default bytes and avoid cumulative edits.
+      if (value !== parameter.default) {
+        const delta = (value - parameter.default) * binding.multiplier
+        vector[bindingAxis(binding)] += delta
+        if (binding.offsetAnimation === true) for (const track of bindingTracks(spec, binding)) for (const keyframe of track.keyframes) keyframe.value += delta
+      }
     } else spec.renderProfiles[binding.profile].colorManagement.exposure = value
   }
   const validation = validateSceneSpec(spec)

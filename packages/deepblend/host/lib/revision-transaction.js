@@ -41,6 +41,7 @@
  * Plane: Host composition
  */
 
+import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
@@ -570,6 +571,7 @@ export class RevisionTransaction {
       const checkpointStaging = join(staging, 'scene.blend')
 
       try {
+        await assertRuntimeSceneFeatures(this.runtime, plan.spec, { signal: plan.signal })
         const run = await this.runtime.compileScene({
           sceneSpecPath: specPath,
           profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',

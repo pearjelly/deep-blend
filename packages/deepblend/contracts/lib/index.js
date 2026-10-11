@@ -73,6 +73,7 @@ export const BlenderErrorCode = Object.freeze({
   PROTOCOL_VERSION_MISMATCH: 'BLENDER_PROTOCOL_VERSION_MISMATCH',
   /** bootstrap.py reported an action it does not implement. */
   UNSUPPORTED_ACTION: 'BLENDER_UNSUPPORTED_ACTION',
+  SCENE_FEATURE_UNSUPPORTED: 'BLENDER_SCENE_FEATURE_UNSUPPORTED',
   /** The collection of capabilities threw unexpectedly inside Blender. */
   CAPABILITY_PROBE_FAILED: 'BLENDER_CAPABILITY_PROBE_FAILED',
   /** The configured bootstrap script is missing or unreadable. */
@@ -696,6 +697,8 @@ export {
   ENVIRONMENT_ASSET_TYPES,
   validateSceneSpec,
   compileSceneSpec,
+  BOX_DIMENSIONS_FEATURE,
+  requiredSceneFeatures,
   entityBoundingRadius,
   sceneProjection,
   sceneSpecDigest,

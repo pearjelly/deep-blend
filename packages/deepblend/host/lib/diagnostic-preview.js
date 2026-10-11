@@ -1,4 +1,5 @@
 /** Isolated inspection renders. Successful tasks are published with one directory rename. */
+import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { createReadStream, copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -186,6 +187,7 @@ export async function renderDiagnostic(host, request) {
     }
     const sceneSpecPath = join(compileRoot, 'scene-spec.json'), checkpointPath = join(compileRoot, 'derived.blend')
     writeJsonAtomic(sceneSpecPath, scene)
+    await assertRuntimeSceneFeatures(runtime, scene, { signal })
     const compiled = await runtime.compileScene({ sceneSpecPath, projectRoot: compileRoot, profile: 'preview',
       jobId: `${jobId}-compile`, session: false, signal,
       onWorkingDirectory: info => copyFileSync(join(info.directory, 'result.blend'), checkpointPath) })

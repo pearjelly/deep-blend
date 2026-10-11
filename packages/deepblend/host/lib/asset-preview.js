@@ -1,4 +1,5 @@
 /** Fixed asset preview scenes, compiled in batch mode outside project revisions. */
+import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { copyFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -100,6 +101,7 @@ export async function renderAssetPreview({ runtime, asset, directory, maxMeshPol
       'The isolated preview scene is invalid.', { detail: { errors: checked.errors } })
     const compiled = compileSceneSpec(scene).spec
     writeFileSync(sceneSpecPath, JSON.stringify(compiled))
+    await assertRuntimeSceneFeatures(runtime, compiled, { signal })
     const result = await runtime.compileScene({ sceneSpecPath, profile: 'preview', projectRoot: directory,
       jobId: `asset-compile-${randomUUID()}`, session: false, signal,
       onWorkingDirectory: info => { copyFileSync(join(info.directory, 'result.blend'), checkpointPath) } })

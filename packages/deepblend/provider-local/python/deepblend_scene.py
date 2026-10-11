@@ -346,6 +346,13 @@ def create_generator(name, spec):
     produce the same topology from the same specification.
     """
     shape = spec.get("shape")
+    dimensions = spec.get("dimensions")
+    if "dimensions" in spec and (
+            shape not in ("cube", "rounded_box") or "size" in spec or
+            not isinstance(dimensions, list) or len(dimensions) != 3 or
+            any(isinstance(value, bool) or not isinstance(value, (int, float)) or
+                not math.isfinite(value) or value <= 0 for value in dimensions)):
+        raise ActionError("BLENDER_SCRIPT_ERROR", "box dimensions require three finite positive lengths and no scalar size")
     size = float(spec.get("size", 2.0))
     radius = float(spec.get("radius", 1.0))
     depth = float(spec.get("depth", 2.0))
@@ -388,6 +395,13 @@ def create_generator(name, spec):
     obj = bpy.context.active_object
     if obj is None:
         raise ActionError("BLENDER_SCRIPT_ERROR", 'primitive for shape "%s" produced no object' % (shape,))
+    if "dimensions" in spec:
+        # Bake each local axis into vertices before beveling. Object scale stays
+        # the author's transform rather than carrying the shape's dimensions.
+        for vertex in obj.data.vertices:
+            for axis, length in enumerate(dimensions):
+                vertex.co[axis] *= float(length) / size
+        obj.data.update()
     # Bevel is a generator property, not a rounded_box-only option. Silently
     # ignoring it on cylinders removes the edge highlights product shots need.
     if spec.get("bevel"):

@@ -439,6 +439,7 @@ export function statusForError(error) {
       return 400
     case BlenderErrorCode.RENDER_JOB_CONFLICT:
     case BlenderErrorCode.REVISION_CONFLICT:
+    case BlenderErrorCode.SCENE_FEATURE_UNSUPPORTED:
       return 409
     default:
       return 500
