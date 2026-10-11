@@ -55,9 +55,9 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { importDsh } from '../tests/lib/dsh-deployment.mjs'
@@ -327,6 +327,20 @@ try {
       : `NO — ${mismatches.join('; ')}, against ${repositoryVersion}`)
     for (const mismatch of mismatches) problems.push(`installed version: ${mismatch}`)
   }
+  // The CLI resolves bundle layers from its installation before the profile.
+  // A local DSH beneath another checkout can silently select that checkout's
+  // patch even though plugin add installed the requested package successfully.
+  try {
+    const { resolveBundleDir } = await importDsh('dsh-app-boot')
+    const installAnchor = join(dirname(realpathSync(join(dshDirectory, 'dsh'))), '..', 'package.json')
+    const selected = realpathSync(resolveBundleDir('dsh', '@deepblend/dsh-blender-bundle', installAnchor, join(home, 'profiles', 'web')))
+    const requested = realpathSync(dirname(bundleManifest))
+    say('bundle layer selected', selected)
+    say('bundle layer is the installed profile package', selected === requested ? 'yes' : 'NO — installation-anchor package shadows the profile install')
+    if (selected !== requested) problems.push('DSH selected a different bundle layer; use a DSH deployment outside the other DeepBlend checkout')
+  } catch (cause) {
+    problems.push(`bundle layer provenance could not be verified: ${String(cause.message).split('\n')[0]}`)
+  }
   // -------------------------------------------------------------------------
   // 3. Does that profile actually serve the product?
   // -------------------------------------------------------------------------
@@ -395,7 +409,7 @@ try {
         const response = await fetch(`http://127.0.0.1:${port}${WORKBENCH_PAGE_ROUTE}`)
         const body = await response.text()
         const reservesRoot = body.includes(`id="${WORKBENCH_PAGE_ROOT_ID}"`)
-        const importsOwnBundle = body.includes('@deepblend/dsh-blender-ui')
+        const importsOwnBundle = body.includes("modules.import('@deepblend/dsh-blender-bundle')")
         workbench = `HTTP ${response.status}, ${response.headers.get('content-type') ?? 'no content-type'}`
           + `, reserves #${WORKBENCH_PAGE_ROOT_ID}=${reservesRoot}`
           + `, imports its own client bundle=${importsOwnBundle}`
@@ -408,6 +422,9 @@ try {
     }
     say('workbench route', workbench)
     if (!workbench.startsWith('HTTP 200')) problems.push(`the workbench route answered ${workbench}`)
+    if (!workbench.includes('reserves #'+WORKBENCH_PAGE_ROOT_ID+'=true') || !workbench.includes('imports its own client bundle=true')) {
+      problems.push('the workbench document does not mount its owned browser component')
+    }
 
     // -----------------------------------------------------------------------
     // 4. Where does the store land? This is the difference that keeps

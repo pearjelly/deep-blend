@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Create Blender product scenes in DSH with editable recipes, model imports, previews and PNG/MP4 delivery; includes workbench and agent configuration.",
   "main": "lib/index.js",
   "bin": {
@@ -10,7 +10,22 @@
     ".": {
       "default": "./lib/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./provider-local": {
+      "default": "./lib/planes/provider-local.js"
+    },
+    "./host": {
+      "default": "./lib/planes/host.js"
+    },
+    "./preset": {
+      "default": "./lib/planes/preset.js"
+    },
+    "./tool": {
+      "default": "./lib/planes/tool.js"
+    }
   },
   "files": [
     "lib",
@@ -22,6 +37,9 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   },
   "dependencies": {

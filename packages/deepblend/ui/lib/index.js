@@ -78,7 +78,7 @@ export const WORKBENCH_PAGE_ROOT_ID = 'deepblend-workbench'
  *      because this page supplies no platform modules: React is a console seed
  *      word, the workbench core does not use it, and `client.js` reads it lazily
  *      precisely so that this call can pass `{}`.
- *   3. `import('@deepblend/dsh-blender-ui')` — the console's own graph row,
+ *   3. Import the mounted bundle client, or the independently installed UI client — the console's own graph row,
  *      fetched from the console's own bundle route. There is no second copy of
  *      the workbench anywhere for this to find.
  *   4. `mountStandalone(root)` — the one function that differs between the faces.
@@ -95,7 +95,10 @@ export function workbenchPageBootstrap(rootId) {
   try {
     await globalThis.__DSH_BOOT_READY__?.promise
     const modules = window.__ModuleLoader__.create({ boot: window.__DSH_BOOT__, staticModules: {} })
-    const bundle = await modules.import('@deepblend/dsh-blender-ui')
+    const ownsBundleClient = (window.__DSH_BOOT__.entries || []).some(entry => entry.id === '@deepblend/dsh-blender-bundle')
+    const bundle = ownsBundleClient
+      ? await modules.import('@deepblend/dsh-blender-bundle')
+      : await modules.import('@deepblend/dsh-blender-ui')
     await bundle.mountStandalone(root)
     root.dataset.deepblendStandalone = 'ready'
   } catch (error) {

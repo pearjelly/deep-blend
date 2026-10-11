@@ -71,7 +71,7 @@ if (!existsSync(BLENDER_PATH)) {
 }
 
 /** The bundle id the whole assertion about "one implementation" is stated over. */
-const BUNDLE_ID = '@deepblend/dsh-blender-ui'
+const BUNDLE_ID = '@deepblend/dsh-blender-bundle'
 
 const scratch = mkdtempSync(join(tmpdir(), 'deepblend-workbench-e2e-'))
 const store = join(scratch, 'store')
@@ -436,7 +436,7 @@ try {
   // immutable plugin response with this checkout's client artifact. DSH's
   // single-plugin combo removes local debug trailers, adds a newline and ";",
   // then appends the advertised revision's source-map URL.
-  const clientPath = join(REPO_ROOT, 'packages/deepblend/ui/lib/client.js')
+  const clientPath = join(REPO_ROOT, 'packages/deepblend/bundle/lib/client.js')
   const clientBytes = readFileSync(clientPath)
   let clientSource = clientBytes.toString('utf8')
     .replace(/(?:\r?\n)?\/\/# sourceURL=([^\r\n]+)(?:\r?\n)?$/, '')

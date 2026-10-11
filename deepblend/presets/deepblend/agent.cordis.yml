@@ -215,4 +215,4 @@
 # and two of this repository's own documents tell a user to call — see
 # `milestone-status.md` §16 for the measured gap.
 - id: deepblend-tool
-  name: '@deepblend/dsh-blender-tool'
+  name: '@deepblend/dsh-blender-bundle/tool'

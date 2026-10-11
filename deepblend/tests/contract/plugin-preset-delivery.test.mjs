@@ -163,7 +163,7 @@ test('the bundle mounts the deployer with the configuration its schema declares'
   const row = patch.slice(patch.indexOf('id: deepblend-blender-preset'))
   assert.ok(patch.includes('id: deepblend-blender-preset'),
     'the bundle no longer mounts the preset deployer, so a market install would deliver no preset')
-  assert.match(row, /name: '@deepblend\/dsh-blender-preset'/,
+  assert.match(row, /name: '@deepblend\/dsh-blender-bundle\/preset'/,
     'the deployer row does not name the package that ships the presets')
   for (const key of ['deploy', 'presets', 'target']) {
     assert.match(row, new RegExp(`\\n\\s+${key}:`),
@@ -195,8 +195,8 @@ test('the preset the deployer installs is the preset the roster can read', () =>
     const metadata = readFileSync(join(PRESET_SOURCE, id, 'preset.yml'), 'utf8')
     assert.match(metadata, /^name:\s*\S/m, `${id}/preset.yml declares no name, so the session list would show nothing`)
     const composition = readFileSync(join(PRESET_SOURCE, id, 'agent.cordis.yml'), 'utf8')
-    assert.ok(composition.includes('@deepblend/dsh-blender-tool'),
-      `${id} does not mount the tool package, so the sixteen tools would never reach the model`)
+    assert.ok(composition.includes("name: '@deepblend/dsh-blender-bundle/tool'"),
+      `${id} does not mount the tool package, so the tools would never reach the model`)
     // The bundle may be NAMED in a comment — the preset's own prose explains which
     // host composition publishes the service its tools consume — but a ROW that
     // mounted it would publish a process-global service from inside a preset, and

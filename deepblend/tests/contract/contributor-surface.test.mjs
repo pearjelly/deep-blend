@@ -403,13 +403,8 @@ test('the installable package declares the fields an ecosystem install reads, an
   assert.ok(bundle.dsh?.bundle?.patch !== undefined, 'the bundle declares no dsh.bundle.patch, so it is not a bundle')
   assert.ok(existsSync(join(ROOT, 'packages', 'deepblend', 'bundle', bundle.dsh.bundle.patch)),
     `the declared patch ${bundle.dsh?.bundle?.patch} does not exist next to package.json`)
-  // THE CLIENT BELONGS TO THE PACKAGE THE ROW MOUNTS, NOT TO THE INSTALLABLE ONE, and this assertion said the
-  // opposite until it was measured. The client module system resolves `exports["./client"]` from whichever package
-  // declares `dsh.client`, and this plugin's client registers under `@deepblend/dsh-blender-ui` — the package the
-  // patch's own row mounts ("the client module graph addresses this bundle by package identity, and the Host row
-  // mounts the same package"). A declaration on the bundle is not merely redundant: its export is absent, and the
-  // resolver returns `undefined` for an absent one rather than throwing, so the browser half would be skipped in
-  // silence. The rule is checked below, against every package that declares a client.
+  // Client ownership follows the package mounted by the UI row. The bundle owns
+  // the browser entry and forwards its server implementation to the nested UI.
   const files = bundle.files ?? []
   // The two spell the same file differently: `dsh.bundle.patch` is a path relative to the package directory
   // (`./cordis.patch.yml`) while `files` entries are bare (`cordis.patch.yml`). Comparing them raw fails on a
@@ -424,11 +419,20 @@ test('the installable package declares the fields an ecosystem install reads, an
   const imports = [...patch.matchAll(/name:\s*'([^']+)'/g)].map(match => match[1])
   const own = imports.filter(specifier => specifier.startsWith('@deepblend/'))
   assert.ok(own.length > 0, 'the patch imports nothing of this project, which cannot be right')
-  const unresolvable = own.filter((specifier) => {
-    const directory = specifier.replace('@deepblend/dsh-blender-', '')
-    return !existsSync(join(ROOT, 'packages', 'deepblend', directory, 'package.json'))
-  })
-  assert.deepEqual(unresolvable, [], 'the patch imports packages that do not exist in this repository')
+  for (const specifier of own) {
+    const [scope, name, ...subpath] = specifier.split('/')
+    const directory = name.replace('dsh-blender-', '')
+    const packageRoot = join(ROOT, 'packages', 'deepblend', directory)
+    const manifestPath = join(packageRoot, 'package.json')
+    assert.ok(existsSync(manifestPath), `${specifier}: package is absent`)
+    const manifest = JSON.parse(read(manifestPath))
+    assert.equal(manifest.name, `${scope}/${name}`)
+    const key = subpath.length ? `./${subpath.join('/')}` : '.'
+    const entry = manifest.exports?.[key]
+    const target = typeof entry === 'string' ? entry : entry?.default
+    assert.ok(target?.startsWith('./'), `${specifier}: no exported entry`)
+    assert.ok(existsSync(join(packageRoot, target)), `${specifier}: exported file is absent`)
+  }
 })
 
 // ---------------------------------------------------------------------------

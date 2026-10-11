@@ -51,6 +51,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
+import { runInNewContext } from 'node:vm'
 
 import { HOST_API_VERSION, UI_PANEL_VIEWS, UI_ROUTES, UI_ROUTE_PREFIX } from '@deepblend/dsh-blender-contracts'
 
@@ -348,8 +349,8 @@ const hostModule = await import('@deepblend/dsh-blender-ui')
 
   const document = hostModule.workbenchPageDocument(hostModule.WORKBENCH_PAGE_ROOT_ID)
   check('the document imports the module id this bundle registers itself under',
-    document.includes(`modules.import('${UI_MODULE_ID}')`)
-    && source.includes(`id: '${UI_MODULE_ID}'`),
+    document.includes("modules.import('@deepblend/dsh-blender-bundle')")
+    && readFileSync(join(UI_PACKAGE, '..', 'bundle', 'lib', 'client.js'), 'utf8').includes("id: '@deepblend/dsh-blender-bundle'"),
     { imported: UI_MODULE_ID })
   check('the document mounts through this bundle\'s own entry point',
     document.includes('bundle.mountStandalone(root)'))
@@ -666,6 +667,35 @@ if (core !== undefined) {
     attrsNamed(page, 'aria-current').length === 1 && attrsNamed(page, 'aria-current')[0] === 'page')
   check('successful action feedback is announced without moving focus', attrsNamed(page, 'role').includes('status')
     && attrsNamed(page, 'aria-live').includes('polite'))
+}
+
+// Execute the actual bootstrap against both supported module graphs. An
+// independent UI install must not depend on the full bundle being present.
+{
+  const { workbenchPageBootstrap } = await import('@deepblend/dsh-blender-ui')
+  for (const moduleId of ['@deepblend/dsh-blender-bundle', '@deepblend/dsh-blender-ui']) {
+    const root = { dataset: {}, textContent: '' }
+    const imported = []
+    let mounted = null
+    const boot = { entries: [{ id: moduleId }] }
+    const window = { __DSH_BOOT__: boot, __ModuleLoader__: { create(options) {
+      if (options.boot !== boot) throw Error('different boot graph')
+      return { async import(id) {
+        imported.push(id)
+        if (id !== moduleId) throw Error('module absent from the mounted graph')
+        return { async mountStandalone(target) { mounted = target } }
+      } }
+    } } }
+    const script = workbenchPageBootstrap('standalone-root').replace(/^<script>|<\/script>$/g, '')
+    await runInNewContext(script, { window, document: { getElementById(id) {
+      if (id !== 'standalone-root') throw Error('wrong mount root')
+      return root
+    } } })
+    check(`${moduleId}: bootstrap imports only the actually mounted client`,
+      isDeepStrictEqual(imported, [moduleId]), imported)
+    check(`${moduleId}: that client mounts the shared workbench and reports ready`,
+      mounted === root && root.dataset.deepblendStandalone === 'ready', root.dataset)
+  }
 }
 
 const failed = results.filter(entry => !entry.ok)

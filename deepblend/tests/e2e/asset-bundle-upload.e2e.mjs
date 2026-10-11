@@ -372,9 +372,9 @@ function installUploadAudit() {
   }
 }
 async function verifyServedClient() {
-  const provenance = await page.evaluate(`(()=>{const graph=window.__DSH_BOOT__||{};return {row:(graph.entries||[]).find(e=>e.id==='@deepblend/dsh-blender-ui')||null,loaded:performance.getEntriesByType('resource').map(e=>e.name).filter(n=>n.includes('@deepblend/dsh-blender-ui/client.js'))}})()`)
+  const provenance = await page.evaluate(`(()=>{const graph=window.__DSH_BOOT__||{};return {row:(graph.entries||[]).find(e=>e.id==='@deepblend/dsh-blender-bundle')||null,loaded:performance.getEntriesByType('resource').map(e=>e.name).filter(n=>n.includes('@deepblend/dsh-blender-bundle/client.js'))}})()`)
   check('the actual page loaded this workbench client exactly once', provenance.row?.url && provenance.loaded.length === 1, provenance)
-  const bytes = readFileSync(join(REPO_ROOT, 'packages/deepblend/ui/lib/client.js'))
+  const bytes = readFileSync(join(REPO_ROOT, 'packages/deepblend/bundle/lib/client.js'))
   let source = bytes.toString('utf8').replace(/(?:\r?\n)?\/\/# sourceURL=([^\r\n]+)(?:\r?\n)?$/, '').replace(/(?:\r?\n)?\/\/# sourceMappingURL=[^\r\n]*(?:\r?\n)?$/, '')
   if (!source.endsWith('\n')) source += '\n'
   const expected = Buffer.from(`${source};\n//# sourceMappingURL=${provenance.row.url.replace(/\/client\.js(?=&rev=)/, '/client.js.map')}\n`)

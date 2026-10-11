@@ -67,7 +67,7 @@ const REQUIRED_MODULES = [
   '@deepseek-ai/dsh-command-compact',
   '@deepseek-ai/dsh-compaction-tool-result-pruner',
   '@deepseek-ai/dsh-tool-present',
-  '@deepblend/dsh-blender-tool',
+  '@deepblend/dsh-blender-bundle/tool',
 ]
 
 /**
@@ -165,7 +165,7 @@ test('the preset the user runs is strictly narrower than the one this repository
   const devModules = new Set(compositionRows(devComposition, 'deepblend-dev-surface').map(row => row.name))
   const productModules = rows.map(row => row.name)
 
-  const onlyInProduct = productModules.filter(module => !devModules.has(module) && module !== '@deepblend/dsh-blender-tool')
+  const onlyInProduct = productModules.filter(module => !devModules.has(module) && module !== '@deepblend/dsh-blender-bundle/tool')
   assert.deepEqual(
     onlyInProduct,
     [],

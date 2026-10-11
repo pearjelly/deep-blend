@@ -333,3 +333,13 @@ npm run release:freshness   # 最新 Release 的 packages/ 树与 HEAD 是不是
 本仓库的历史提交本身就是格式样例。
 
 本项目采用 [MIT 许可证](LICENSE)。贡献即表示你同意以同一许可发布。
+
+### Bundle browser entry
+
+Edit `packages/deepblend/ui/lib/client.js` as the authoritative workbench client.
+Run `npm run client:sync` after changing it; the generated bundle client changes
+only the factory package identity. `npm run client:sync:check` and the bundle
+portability contract reject drift. The UI row must mount the bundle package root
+so the DSH browser scanner discovers its client. Server plane subpaths import
+the bundle’s own dependencies to keep packed installs independent of any other
+DeepBlend checkout on the machine.
