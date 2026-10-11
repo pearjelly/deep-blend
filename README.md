@@ -19,6 +19,8 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
+Latest stable [0.4.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.4.0) reuses saved photography setups. The next phase prioritizes [simple operations for complex modeling](deepblend/docs/complex-modeling-roadmap.md).
+
 ## Quick start
 
 With **Node.js 22.23.3 or newer**, **DSH 0.1.5-rc.2**, **pnpm** and **Blender 5.2.1** ready:
