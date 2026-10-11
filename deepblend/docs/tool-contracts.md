@@ -19,6 +19,7 @@
 |---|---|---|---|
 | `blender_capabilities` | M0 | 自动 | 读 |
 | `blender_recipe_list` | 内容配方 | 自动 | 读（已注册的本地配方） |
+| `blender_recipe_parameters` | 已有装配 | 自动，受策略约束 | 读，或 **写**（原项目的新 revision） |
 | `blender_project_create` | M1 | 自动 | **写**（提交 r0001） |
 | `blender_project_get` | M1 | 自动 | 读 |
 | `blender_scene_get` | M1 | 自动 | 读 |
@@ -57,8 +58,8 @@
 `REVISION_RESTORE_CONFIRMATION_REQUIRED`，且不会调用 Host。
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **17** 个
-（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **18** 个
+（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个 + 已有装配参数 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
 那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
 每加一个里程碑都要改前面所有套件。
 
@@ -336,6 +337,25 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
 `data.errors`（无法载入的本地配方）。只发现内置及 Host `recipeDirectories` 已注册的目录。
 将所选配方的 `id`、`version`、`digest` 和参数值传给 `blender_project_create.recipe`；
 模型不传文件路径或脚本。目录读取失败使用 `RECIPE_LIST_FAILED`，单包失败保留在 errors 中。
+
+### 3.1.2 `blender_recipe_parameters`
+
+| 参数 | 类型 | 必需 | 说明 |
+|---|---|---|---|
+| `action` | string | 否 | `read`（默认）或 `save` |
+| `projectId` | string | **是** | 已有项目 |
+| `revision` | string | 否 | 读取所选历史版本；默认当前版本 |
+| `baseRevision` | string | 保存时是 | 原样传入读取返回的 revision |
+| `parameters` | object | 保存时是 | 已声明的数值参数及范围；Host 验证所有值 |
+| `idempotencyKey` | string | 否 | 每次新保存使用新标识；仅同一次失败重试复用 |
+| `saveCheckpoint` | boolean | 否 | 默认 true，保存实际 Blender 文件 |
+| `renderPreview` | boolean | 否 | 默认 true，渲染实际预览 |
+
+先读取 `available`、`parameters` 和保存值。仅有声明几何绑定的配方开放整体参数；
+旧配方或普通项目返回 `available:false`。保存创建原项目的新版本，保留独立材质、倒角、
+镜头与历史。用户直接修改了受控几何时返回 `RECIPE_PARAMETER_CONFLICT`，不覆盖修改；
+版本过期返回 `REVISION_CONFLICT`。恢复历史后重新读取参数，使用新的保存标识。
+参数状态和场景在同一事务提交；缺失本地配方包仍能读取项目保存的来源。
 
 ### 3.2 `blender_project_create`
 
@@ -695,6 +715,8 @@ M3 新增的：
 | `POST /deepblend/projects/:projectId/review` | **写** | 对指定 revision 渲染并调用视觉模型，记录技术与艺术评价及核验的参考图。 |
 | `POST /deepblend/projects/:projectId/autofix` | **写** | 指定 revision，按固定目标尝试 1–3 轮修正；证据不足或效果退步时停止、条件回滚。 |
 | `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
+| `GET /deepblend/projects/:projectId/recipe-parameters` | 读 | 读取指定版本的整套尺寸控制与受控几何冲突。 |
+| `POST /deepblend/projects/:projectId/recipe-parameters` | **写** | 检查 `baseRevision`，保存受约束的整套尺寸为原子版本；保留独立样式和历史。 |
 | `POST /deepblend/projects/:projectId/restore` | **写** | Move the current pointer to a saved revision; preserve history. Optional `expectedCurrentRevision` rejects intervening edits. |
 | `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |

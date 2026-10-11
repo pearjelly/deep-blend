@@ -877,4 +877,5 @@ export {
   managedBlenderCandidates,
 } from './deployment-paths.js'
 
-export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe } from './recipe.js'
+export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock } from './recipe.js'
+export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'

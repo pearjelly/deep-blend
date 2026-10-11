@@ -96,6 +96,7 @@ const SCENE_SPEC_PARAMETER = {
  */
 export function apply(ctx) {
   ctx.tools.register(recipeList(ctx))
+  ctx.tools.register(recipeParameters(ctx))
   ctx.tools.register(projectCreate(ctx))
   ctx.tools.register(projectGet(ctx))
   ctx.tools.register(sceneGet(ctx))
@@ -107,6 +108,49 @@ export function apply(ctx) {
 }
 
 /** Read verified local package metadata through the Host; never load a package in the tool plane. */
+function recipeParameters(ctx) {
+  return defineTool({
+    name: 'blender_recipe_parameters',
+    description: 'Read or update the saved geometry controls of an existing assembled recipe project. ' +
+      'Read first to obtain current revision, parameter IDs, actual saved values and allowed ranges. ' +
+      'Saving needs that exact baseRevision and numeric parameters. It updates the same project, preserves independent ' +
+      'materials, bevels, photography and history, and refuses manually conflicting controlled geometry. ' +
+      'A scene without declared assembly controls returns available:false; do not invent parameters or replace the project. ' +
+      'Saving compiles a checkpoint and preview by default; explicit false flags can request a data-only revision. ' +
+      'Use a unique idempotencyKey per user save and reuse it only when retrying the same intent.',
+    parameters: {
+      action: { type: 'string', enum: ['read', 'save'], description: 'read (default) is read-only; save creates one atomic revision.' },
+      projectId: { type: 'string', required: true, description: 'The existing project to inspect or resize.' },
+      revision: { type: 'string', description: 'Optional selected revision for read; defaults to the current version.' },
+      baseRevision: { type: 'string', description: 'Required for save. Use the revision returned by read.' },
+      parameters: { type: 'object', additionalProperties: true, description: 'For save, use only numeric parameter IDs/ranges returned by read. The Host validates every value before writing.' },
+      idempotencyKey: { type: 'string', description: 'A unique save intent; reuse for its retry, not for a new edit after restoring history.' },
+      saveCheckpoint: { type: 'boolean', description: 'Save a Blender checkpoint (default true).' },
+      renderPreview: { type: 'boolean', description: 'Render an actual new preview (default true).' },
+    },
+    output: TOOL_OUTPUT,
+    async execute(args, exec) {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+      try {
+        if (resolved.studio.recipeParameterEditingSupported !== true) throw new BlenderError('RECIPE_PARAMETER_UNAVAILABLE', 'Update the Host to edit saved assembly dimensions')
+        const action = args.action ?? 'read'
+        if (!['read', 'save'].includes(action)) throw new BlenderError('RECIPE_PARAMETER_INVALID', 'Choose read or save')
+        const result = action === 'read'
+          ? resolved.studio.getRecipeParameters(args.projectId, { revision: args.revision })
+          : resolved.studio.updateRecipeParameters({ projectId: args.projectId, baseRevision: args.baseRevision,
+            parameters: args.parameters, idempotencyKey: args.idempotencyKey,
+            saveCheckpoint: args.saveCheckpoint !== false, renderPreview: args.renderPreview !== false,
+            signal: exec?.signal })
+        const { data, canonicalWarnings } = await canonicalCall(result, warning)
+        return { ok: true, text: renderSuccess(action === 'read' ? 'Saved assembly controls.' : 'Assembly dimensions saved.', data, { warnings: canonicalWarnings }), data }
+      } catch (cause) { return { ok: false, ...renderFailure(cause, 'RECIPE_PARAMETER_FAILED') } }
+    },
+    presentCall: args => ({ card: 'generic', title: args?.action === 'save' ? 'Save assembly dimensions' : 'Read assembly dimensions',
+      kind: args?.action === 'save' ? 'edit' : 'read', projectId: args?.projectId }),
+  })
+}
+
 function recipeList(ctx) {
   return defineTool({
     name: 'blender_recipe_list',

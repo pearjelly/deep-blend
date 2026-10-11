@@ -411,3 +411,16 @@ pre-decode memory guarantees or independent adoption. See the [asset guide](asse
 SceneSpec and `material.texture.set` accept `coordinates: "object" | "uv"`. Omitted coordinates preserve the existing Object node and scene data. UV uses a real UV Map node; optional `uvMap` selects a nonblank name, otherwise Blender uses the active render UV layer. Names require UV mode. The compiler validates evaluated faces using the material, including native curves/text, and rejects missing UV with `SCENE_VALIDATION_FAILED`; unused slots are exempt. UV textures require principled/glass.
 
 `scale × stretch` controls frequency in the chosen layout. On the lamp’s lathe UV, `scale: 1, stretch: [0.0001,800,1]` produces circumferential noise grain because V follows profile arc length. This is a procedural appearance example, not physical manufacturing metrology. SDK types and both scene/patch schemas include the coordinate union.
+
+### Saved assembly geometry
+
+`instantiateRecipeLock(lock, changes?)` validates the immutable metadata saved with a recipe
+project, including source and parameter hashes. It uses the saved scene source without requiring
+the original recipe directory. Preview hash metadata does not authenticate unavailable image bytes.
+
+`recipeGeometryParameters(manifest)` selects declared structural controls.
+`planRecipeGeometryEdit(lock, currentSpec, parameterState, changes)` returns ordinary scene
+patch operations plus the next parameter state. It refuses conflicting controlled geometry,
+preserves independent appearance and photography, and offsets current animation keyframes
+without replacing their timing. These pure functions do not write projects or run Blender.
+Use the Host/tool save route for an atomic project revision and saved parameter state.

@@ -9,12 +9,13 @@ import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { sha256, HOST_API_VERSION, CREATION_REQUEST_VERSION } from '@deepblend/dsh-blender-contracts'
 import { RecipeCatalog, BUILTIN_RECIPES } from '../../../packages/deepblend/host/lib/recipe-catalog.js'
 import { createHandlers, statusForError } from '@deepblend/dsh-blender-ui'
+import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
 
-function setup(t) {
+function setup(t, recipeName = 'metal-lamp') {
   const root = mkdtempSync(join(tmpdir(), 'deepblend-recipes-'))
   const recipes = join(root, 'recipes'); mkdirSync(recipes)
-  cpSync(join(BUILTIN_RECIPES, 'metal-lamp'), join(recipes, 'lamp'), { recursive: true })
+  cpSync(join(BUILTIN_RECIPES, recipeName), join(recipes, 'lamp'), { recursive: true })
   const catalog = new RecipeCatalog({ builtinRoot: recipes })
   const { id, version, digest } = catalog.list().recipes[0]
   const request = { id, version, digest }
@@ -24,6 +25,103 @@ function setup(t) {
   t.after(() => rmSync(root, { recursive: true, force: true }))
   return { root, recipes, catalog, request, studio }
 }
+
+test('assembly parameters persist atomically, follow ordinary edit ancestry, replay once and restore with the selected revision', async t => {
+  const { studio, request, recipes } = setup(t, 'modular-speaker')
+  const made = await studio.createProject({ title: 'Resized assembly', recipe: request, saveCheckpoint: false })
+  const projectId = made.projectId, origin = studio.store.revisionDirectory(projectId, 'r0001')
+  const original = Object.fromEntries(['scene-spec.json', 'recipe-lock.json'].map(name => [name, readFileSync(join(origin, name))]))
+  const first = await studio.getRecipeParameters(projectId)
+  assert.equal(first.available, true); assert.equal(first.parameters.length, 3)
+  assert.equal(first.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 264)
+  rmSync(recipes, { recursive: true })
+  const intent = { projectId, baseRevision: 'r0001', parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false }
+  const resized = await studio.updateRecipeParameters(intent)
+  assert.equal(resized.revision, 'r0002')
+  assert.equal(resized.parameters.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 300)
+  const replay = await studio.updateRecipeParameters(intent)
+  assert.equal(replay.idempotentReplay, true); assert.equal(replay.revision, 'r0002')
+  const spec = studio.store.readRevisionSpec(projectId, 'r0002')
+  const shell = spec.entities.find(item => item.id === 'cabinet-shell')
+  assert.ok(Math.abs(shell.generator.dimensions[0] * shell.transform.scale[0] - .3) < 1e-9)
+  await studio.applyScenePatch({ projectId, baseRevision: 'r0002', saveCheckpoint: false,
+    operations: [{ op: 'material.parameter.update', materialId: spec.materials[0].id, parameter: 'roughness', value: .42 }] })
+  const later = await studio.getRecipeParameters(projectId)
+  assert.equal(later.revision, 'r0003'); assert.equal(later.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 300)
+  await studio.restoreRevision({ projectId, revision: 'r0001', expectedCurrentRevision: 'r0003' })
+  assert.equal((await studio.getRecipeParameters(projectId)).parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 264)
+  await studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: { 'cabinet-height-mm': 200 }, saveCheckpoint: false })
+  const restored = await studio.getRecipeParameters(projectId)
+  assert.equal(restored.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 264)
+  assert.equal(restored.parameters.find(parameter => parameter.id === 'cabinet-height-mm').value, 200)
+  for (const [name, bytes] of Object.entries(original)) assert.deepEqual(readFileSync(join(origin, name)), bytes)
+})
+
+test('stale, invalid and manually conflicting assembly edits leave current revisions and source files unchanged', async t => {
+  const { studio, request } = setup(t, 'modular-speaker')
+  const { projectId } = await studio.createProject({ title: 'Conflict assembly', recipe: request, saveCheckpoint: false })
+  const directory = studio.store.revisionDirectory(projectId, 'r0001'), original = readFileSync(join(directory, 'scene-spec.json'))
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: { 'cabinet-width-mm': 999 }, saveCheckpoint: false }))
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: {}, saveCheckpoint: 'false' }), { code: 'RECIPE_PARAMETER_INVALID' })
+  await studio.applyScenePatch({ projectId, baseRevision: 'r0001', saveCheckpoint: false,
+    operations: [{ op: 'entity.transform.update', entityId: 'driver-cone', location: [0, 0, .1] }] })
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false }), { code: 'REVISION_CONFLICT' })
+  const read = await studio.getRecipeParameters(projectId)
+  assert.ok(read.conflicts.length > 0)
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0002', parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false }), { code: 'RECIPE_PARAMETER_CONFLICT' })
+  assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0002')
+  assert.deepEqual(readFileSync(join(directory, 'scene-spec.json')), original)
+})
+
+test('failed native compilation cannot publish recipe state or advance the current revision', async t => {
+  const { studio, request } = setup(t, 'modular-speaker')
+  const { projectId } = await studio.createProject({ title: 'Failed assembly save', recipe: request, saveCheckpoint: false })
+  studio.transactions.runtime = {
+    getCapabilities: async () => ({ installed: true, sceneFeatures: ['geometry.primitive.dimensions'] }),
+    compileScene: async () => { throw new Error('controlled native compilation failure') },
+  }
+  const original = studio.store.readRecord(projectId)
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0001',
+    parameters: { 'cabinet-width-mm': 300 } }), /controlled native compilation failure/)
+  assert.deepEqual(studio.store.readRecord(projectId), original)
+  assert.equal(existsSync(studio.store.revisionDirectory(projectId, 'r0002')), false)
+  assert.equal((await studio.getRecipeParameters(projectId)).parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 264)
+})
+
+test('the composed semantic tool saves real Host geometry, retries once, and starts a fresh edit after history restore', async t => {
+  const { studio, request } = setup(t, 'modular-speaker')
+  const { projectId } = await studio.createProject({ title: 'Semantic assembly', recipe: request, saveCheckpoint: false })
+  const plane = await composeToolPlane({ studio, expectAtLeast: 18, label: 'real-recipe-parameters' })
+  t.after(() => plane.ctx.stop?.())
+  const tool = plane.registered.get('blender_recipe_parameters')
+  const read = await tool.execute({ projectId })
+  assert.equal(read.data.revision, 'r0001'); assert.equal(read.data.parameters.length, 3)
+  const intent = { action: 'save', projectId, baseRevision: read.data.revision,
+    parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false, renderPreview: false, idempotencyKey: 'first-resize' }
+  const saved = await tool.execute(intent), replay = await tool.execute(intent)
+  assert.equal(saved.data.revision, 'r0002'); assert.equal(replay.data.idempotentReplay, true)
+  assert.ok(Math.abs(studio.store.readRevisionSpec(projectId, 'r0002').entities.find(e => e.id === 'cabinet-shell').generator.dimensions[0] - .3) < 1e-9)
+  await studio.restoreRevision({ projectId, revision: 'r0001', expectedCurrentRevision: 'r0002' })
+  const fresh = await tool.execute({ ...intent, idempotencyKey: 'second-resize' })
+  assert.equal(fresh.ok, true); assert.equal(fresh.data.revision, 'r0003')
+  assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0003')
+})
+
+test('corrupted saved assembly state and wrong stores fail before creating a new revision', async t => {
+  const { studio, request } = setup(t, 'modular-speaker')
+  const { projectId } = await studio.createProject({ title: 'Corrupt state', recipe: request, saveCheckpoint: false })
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: {},
+    projectsRoot: studio.store.projectsRoot + '-other', saveCheckpoint: false }), { code: 'REVISION_CONFLICT' })
+  await studio.updateRecipeParameters({ projectId, baseRevision: 'r0001', parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false })
+  const statePath = join(studio.store.revisionDirectory(projectId, 'r0002'), 'recipe-parameters.json')
+  const state = JSON.parse(readFileSync(statePath)); state.values['cabinet-width-mm'] = 340
+  writeFileSync(statePath, JSON.stringify(state))
+  await assert.rejects(studio.getRecipeParameters(projectId), { code: 'RECIPE_LOCK_INVALID' })
+  await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0002',
+    parameters: { 'cabinet-height-mm': 200 }, saveCheckpoint: false }), { code: 'RECIPE_LOCK_INVALID' })
+  assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0002')
+  assert.equal(existsSync(studio.store.revisionDirectory(projectId, 'r0003')), false)
+})
 
 test('the distributed Host carries four validated self-contained recipes', () => {
   const result = new RecipeCatalog().list()

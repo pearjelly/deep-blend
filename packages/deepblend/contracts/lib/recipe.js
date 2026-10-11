@@ -231,20 +231,14 @@ function bindingsAgainstScene(manifest, spec) {
   return errors
 }
 
-/** Hash actual loaded bytes; the manifest is a claim, never a verification receipt. */
-export function validateRecipePackage(bundle, options = {}) {
-  const checked = validateRecipeManifest(bundle?.manifest, options)
-  if (!checked.ok) return checked
-  const { manifest } = bundle
+/** Shared input validation; locked recipes do not retain original preview pixels. */
+function validateRecipeInput(manifest, input) {
   const errors = []
   let sceneSpec
   try {
-    const sceneBytes = asBytes(bundle.sceneBytes, RECIPE_LIMITS.sceneBytes, 'input')
-    const previewBytes = asBytes(bundle.previewBytes, RECIPE_LIMITS.previewBytes, 'preview')
+    const sceneBytes = asBytes(input, RECIPE_LIMITS.sceneBytes, 'input')
     if (sha256(sceneBytes) !== manifest.input.sha256) errors.push(issue('RECIPE_HASH_MISMATCH', 'input.sha256', 'Loaded SceneSpec bytes differ from the declared hash'))
-    if (sha256(previewBytes) !== manifest.preview.sha256) errors.push(issue('RECIPE_HASH_MISMATCH', 'preview.sha256', 'Loaded preview bytes differ from the declared hash'))
     if (errors.length) return result(errors)
-    try { validatePreview(previewBytes) } catch (error) { return result([issue('RECIPE_PREVIEW_INVALID', 'preview', error.message)]) }
     try { sceneSpec = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(sceneBytes)) }
     catch { return result([issue('RECIPE_INPUT_INVALID', 'input', 'SceneSpec must be valid UTF-8 JSON')]) }
     const scene = validateSceneSpec(sceneSpec)
@@ -269,12 +263,55 @@ export function validateRecipePackage(bundle, options = {}) {
   } catch (error) { return result([issue(error.code ?? 'RECIPE_INPUT_INVALID', 'input', error.message)]) }
 }
 
+/** Hash actual loaded bytes; the manifest is a claim, never a verification receipt. */
+export function validateRecipePackage(bundle, options = {}) {
+  const checked = validateRecipeManifest(bundle?.manifest, options)
+  if (!checked.ok) return checked
+  const { manifest } = bundle
+  try {
+    const sceneBytes = asBytes(bundle.sceneBytes, RECIPE_LIMITS.sceneBytes, 'input')
+    const previewBytes = asBytes(bundle.previewBytes, RECIPE_LIMITS.previewBytes, 'preview')
+    const errors = []
+    if (sha256(sceneBytes) !== manifest.input.sha256) errors.push(issue('RECIPE_HASH_MISMATCH', 'input.sha256', 'Loaded SceneSpec bytes differ from the declared hash'))
+    if (sha256(previewBytes) !== manifest.preview.sha256) errors.push(issue('RECIPE_HASH_MISMATCH', 'preview.sha256', 'Loaded preview bytes differ from the declared hash'))
+    if (errors.length) return result(errors)
+    try { validatePreview(previewBytes) } catch (error) { return result([issue('RECIPE_PREVIEW_INVALID', 'preview', error.message)]) }
+    return validateRecipeInput(manifest, sceneBytes)
+  } catch (error) { return result([issue(error.code ?? 'RECIPE_INPUT_INVALID', 'input', error.message)]) }
+}
+
 /** Return a fresh resolved SceneSpec; only explicit scalar/color slots can change. */
 export function instantiateRecipe(bundle, values = {}, options = {}) {
   const checked = validateRecipePackage(bundle, options)
   if (!checked.ok) throw new RecipeError(checked.errors[0].code, checked.summary, { errors: checked.errors })
+  return resolveRecipe(bundle.manifest, checked, values)
+}
+
+/** Resolve a saved origin without inventing or accepting replacement preview bytes. */
+export function instantiateRecipeLock(lock, changes = {}, options = {}) {
+  const fail = message => { throw new RecipeError('RECIPE_LOCK_INVALID', message) }
+  if (!plain(lock) || lock.schemaVersion !== 'deepblend.recipe-lock/v1') fail('Unsupported recipe lock')
+  const manifestCheck = validateRecipeManifest(lock.manifest, options)
+  if (!manifestCheck.ok) throw new RecipeError(manifestCheck.errors[0].code, manifestCheck.summary, { errors: manifestCheck.errors })
+  const { manifest } = lock
+  if (lock.id !== manifest.id || lock.version !== manifest.version
+      || lock.manifestSha256 !== sha256Canonical(manifest) || lock.packageDigest !== lock.manifestSha256
+      || lock.inputSha256 !== manifest.input.sha256 || lock.previewSha256 !== manifest.preview.sha256) {
+    fail('Recipe lock identity or manifest hashes differ')
+  }
+  if (typeof lock.sceneSource !== 'string' || lock.sceneSource.length > RECIPE_LIMITS.sceneBytes
+      || !plain(lock.values)) fail('Recipe lock must retain bounded exact input and resolved values')
+  const checked = validateRecipeInput(manifest, new TextEncoder().encode(lock.sceneSource))
+  if (!checked.ok) throw new RecipeError(checked.errors[0].code, checked.summary, { errors: checked.errors })
+  const original = resolveRecipe(manifest, checked, lock.values)
+  if (sha256Canonical(original.values) !== lock.valuesSha256
+      || sha256Canonical(lock.values) !== lock.valuesSha256) fail('Recipe lock values differ from their resolved hash')
+  if (!plain(changes)) throw new RecipeError('RECIPE_PARAMETER_INVALID', 'Parameter values must be a plain object')
+  return resolveRecipe(manifest, checked, { ...original.values, ...changes })
+}
+
+function resolveRecipe(manifest, checked, values) {
   if (!plain(values)) throw new RecipeError('RECIPE_PARAMETER_INVALID', 'Parameter values must be a plain object')
-  const { manifest } = bundle
   const known = new Set(manifest.parameters.map(parameter => parameter.id))
   const errors = Object.keys(values).filter(key => !known.has(key) || RESERVED.has(key))
     .map(key => issue('RECIPE_PARAMETER_UNKNOWN', `values.${key}`, 'Unknown parameter'))

@@ -426,6 +426,7 @@ export function statusForError(error) {
   if (referenceStatuses[error.code]) return referenceStatuses[error.code]
   if (error.code === 'RECIPE_NOT_FOUND') return 404
   if (error.code === 'RECIPE_CHANGED' || error.code === 'RECIPE_ID_CONFLICT') return 409
+  if (error.code === 'RECIPE_PARAMETER_CONFLICT') return 409
   if (error.code?.startsWith('RECIPE_')) return 400
   switch (error.code) {
     case BlenderErrorCode.PROJECT_NOT_FOUND:
@@ -828,6 +829,16 @@ export function createHandlers(ctx) {
       return { revision: result }
     },
 
+    'project.recipeParameters': async ({ params, query }) => {
+      if (studio().recipeParameterEditingSupported !== true) throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to edit assembly dimensions')
+      return studio().getRecipeParameters(params.projectId, { revision: query.revision })
+    },
+    'project.recipeParameters.update': async ({ params, body }) => {
+      if (studio().recipeParameterEditingSupported !== true) throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to edit assembly dimensions')
+      return { revision: await studio().updateRecipeParameters({ ...body, projectId: params.projectId,
+        saveCheckpoint: true, renderPreview: true }) }
+    },
+
     'project.restore': async ({ params, body }) => {
       const result = await studio().restoreRevision({
         projectId: params.projectId,
@@ -918,7 +929,14 @@ async function buildProjectState(studio, projectId, revision, threshold) {
   const scene = await studio.getScene(projectId, { revision: requested, full: true })
   const jobs = await studio.listJobs({ projectId })
   const qa = await studio.getQaRecord({ projectId, revision: scene.revision })
+  let recipeParameters = null
+  if (studio.recipeParameterEditingSupported === true) {
+    try { recipeParameters = await studio.getRecipeParameters(projectId, { revision: scene.revision }) }
+    catch (error) { recipeParameters = { projectId, revision: scene.revision, available: false,
+      error: { code: error.code ?? 'RECIPE_LOCK_INVALID', message: error.message } } }
+  }
   return {
+    recipeParameters,
     project: buildProjectView({
       projectId,
       title: overview.title,

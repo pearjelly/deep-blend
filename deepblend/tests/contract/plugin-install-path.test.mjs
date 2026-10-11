@@ -641,3 +641,39 @@ test('the publish verifies what it reports, by reading the registry back', () =>
   assert.match(source, /return null\n  \}/, 'the reader no longer answers `null` when the registry cannot be reached')
   assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(packument\.versions/, 'the reader no longer checks the version against the packument')
 })
+
+
+test('publish dry run validates every staged package without writes, authentication or registry reads', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-publish-dry-run-'))
+  try {
+    const receipt = join(scratch, 'calls.jsonl'), preload = join(scratch, 'guard.mjs')
+    writeFileSync(preload, `
+      import child from 'node:child_process';
+      import { syncBuiltinESMExports } from 'node:module';
+      import { appendFileSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const record = value => appendFileSync(${JSON.stringify(receipt)}, JSON.stringify(value)+'\\n');
+      globalThis.fetch = async () => { record({registryRead:true}); throw Error('Unexpected registry read during dry run'); };
+      child.spawnSync = (command,args,options) => {
+        if(command==='git' && args.join(' ')==='status --porcelain') return {status:0,stdout:'',stderr:''};
+        if(command!=='npm' || args[0]!=='publish' || !args.includes('--dry-run')) throw Error('Unexpected write or authentication command');
+        const manifest=JSON.parse(readFileSync(join(options.cwd,'package.json')));
+        record({args,name:manifest.name,version:manifest.version,dependencies:manifest.dependencies});
+        return {status:0,stdout:'Npm dry run accepted the staged package',stderr:''};
+      };
+      syncBuiltinESMExports();
+    `)
+    const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href,
+      join(ROOT, 'deepblend/tools/publish-packages.mjs'), '--dry-run'], { encoding: 'utf8', timeout: 30000 })
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`)
+    const calls = readFileSync(receipt, 'utf8').trim().split('\n').map(line => JSON.parse(line))
+    assert.equal(calls.length, publishOrder().length)
+    assert.ok(calls.every(call => call.args.includes('--dry-run') && !call.registryRead))
+    assert.deepEqual(calls.map(call => call.name), publishOrder().map(entry => entry.name))
+    assert.ok(calls.every(call => Object.entries(call.dependencies ?? {}).every(([name,value]) =>
+      !name.startsWith('@deepblend/') || value === call.version)))
+    assert.equal((result.stdout.match(/dry run passed \(not published\)/g) ?? []).length, calls.length)
+    assert.match(result.stdout, /validated all 7 packages; nothing was published/)
+    assert.equal(existsSync(join(ROOT, '.tmp-publish')), false)
+  } finally { rmSync(scratch, { recursive: true, force: true }) }
+})

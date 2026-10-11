@@ -4,6 +4,33 @@ import { BlenderError } from '@deepblend/dsh-blender-contracts'
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 
 const selection = { id: 'deepblend.glass-ceramic', version: '1.0.0', digest: 'a'.repeat(64), parameters: { 'main-color': [0.1, 0.2, 0.3], exposure: 0.4 } }
+
+test('recipe_parameters reads without writes and sends one conditional semantic save to the Host', async () => {
+  const calls = [], studio = { recipeParameterEditingSupported: true,
+    getRecipeParameters(projectId, options) { calls.push({ read: projectId, options }); return { projectId, revision: 'r0002', available: true, parameters: [] } },
+    updateRecipeParameters(request) { calls.push({ save: request }); return { revision: 'r0003', parameterState: { values: { width: 300 } } } }
+  }
+  const plane = await composeToolPlane({ studio, expectAtLeast: 18, label: 'recipe-parameters' })
+  try {
+    const tool = plane.registered.get('blender_recipe_parameters')
+    assert.equal((await tool.execute({ projectId: 'speaker' })).ok, true)
+    assert.equal(calls.length, 1); assert.equal(calls[0].read, 'speaker')
+    const signal = new AbortController().signal
+    const result = await tool.execute({ action: 'save', projectId: 'speaker', baseRevision: 'r0002', parameters: { width: 300 } }, { signal })
+    assert.equal(result.ok, true); assert.equal(result.data.revision, 'r0003')
+    assert.deepEqual(calls[1].save, { projectId: 'speaker', baseRevision: 'r0002', parameters: { width: 300 },
+      idempotencyKey: undefined, saveCheckpoint: true, renderPreview: true, signal })
+  } finally { await plane.ctx.stop?.() }
+})
+
+test('recipe_parameters refuses old Hosts and forwards controlled geometry conflicts', async () => {
+  for (const studio of [{}, { recipeParameterEditingSupported: true,
+    updateRecipeParameters() { throw new BlenderError('RECIPE_PARAMETER_CONFLICT', 'manual geometry changed') } }]) {
+    const plane = await composeToolPlane({ studio, expectAtLeast: 18, label: 'recipe-parameters-refusal' })
+    try { assert.equal((await plane.registered.get('blender_recipe_parameters').execute({ action: 'save', projectId: 'speaker', baseRevision: 'r0001', parameters: { width: 300 } })).ok, false) }
+    finally { await plane.ctx.stop?.() }
+  }
+})
 function created() {
   return { projectId: 'recipe-test', title: 'Recipe test', revision: { revision: 'r0001', digest: 'b'.repeat(64), checkpoint: null, previews: [] }, warnings: [] }
 }
