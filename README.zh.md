@@ -121,6 +121,8 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | **检查** | 对照预览，在固定相机与帧看材质图、灰模图和参考目标 | 实际图片、机位、帧号和渲染条件 |
 | **交付** | 输出 PNG 帧和 MP4，取消或续做任务 | 帧进度、实际设置与交付来源 |
 
+喜欢一套构图与灯光时，可从保存作品的指定版本[复用摄影设置](deepblend/docs/photography-editor.md#复用已保存摄影设置)，先套用到草稿，再检查并保存，减少重复填写。
+
 [素材库](deepblend/docs/assets.md) · [建模](deepblend/docs/modeling.md) · [摄影](deepblend/docs/photography-editor.md) · [固定视角检查](deepblend/docs/inspection.md) · [恢复](deepblend/docs/recovery.md)
 
 ## 看看工作台
@@ -393,11 +395,11 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**37 个套件、164 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**128 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1527 个 `node:test` 用例（94 个文件）**。
+**128 个文件 = 1963 项自计断言（34 个文件打印计数）+ 1540 个 `node:test` 用例（94 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述快照来自 0.3.9 同一轮逐文件输出，冻结连续完整入口及公开安装读回已经核对。来源与边界见 `deepblend/docs/milestone-status.md` §265 和[每日发布记录](deepblend/docs/daily-releases.md)。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** 上述快照来自 0.4.0 候选的同一轮逐文件输出，冻结连续完整入口已经通过并核对源码摘要；确切提交 CI、构建与正式发布尚待完成。已公开 0.3.9 的证据见 `deepblend/docs/milestone-status.md` §265，本轮记录见 §266 和[每日发布记录](deepblend/docs/daily-releases.md)。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道

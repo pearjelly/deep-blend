@@ -254,6 +254,33 @@ test('source files exclude external binaries and published images have declared 
     declared.add(path)
   }
 
+  const photographyBase = 'deepblend/docs/assets/photography-reuse'
+  const photography = JSON.parse(readFileSync(join(ROOT, photographyBase, 'manifest.json'), 'utf8'))
+  assert.equal(photography.schemaVersion, 'deepblend.photography-docs/v1')
+  assert.equal(photography.license, ownLicense)
+  assert.equal(photography.author, 'DeepBlend contributors')
+  assert.equal(photography.tool, 'deepblend/tests/e2e/photography-ui.e2e.mjs')
+  assert.ok(tracked.includes(photography.tool))
+  assert.equal(hash(readFileSync(join(ROOT, photography.tool))), photography.toolSha256)
+  assert.match(photography.sourceBase, /^[a-f0-9]{40}$/)
+  for (const key of ['uiSha256', 'sourceReportSha256', 'sourceRequestsSha256']) assert.match(photography[key], /^[a-f0-9]{64}$/)
+  assert.equal(hash(readFileSync(join(ROOT, 'packages/deepblend/ui/lib/client.js'))), photography.uiSha256)
+  assert.equal(photography.nativeChecks, 36)
+  assert.equal(photography.postProcessed, false)
+  assert.ok(existsSync(join(ROOT, photographyBase, photography.reproductionGuide)))
+  assert.deepEqual(photography.images.map(image => image.file).sort(), ['draft.png', 'narrow.png'])
+  for (const image of photography.images) {
+    const path = `${photographyBase}/${image.file}`, bytes = readFileSync(join(ROOT, path))
+    assert.equal(hash(bytes), image.sha256, `${path}: screenshot differs from its declared native source`)
+    assert.equal(bytes.length, image.bytes)
+    assert.equal(bytes.toString('hex', 0, 8), '89504e470d0a1a0a')
+    assert.equal(bytes.readUInt32BE(16), image.width)
+    assert.equal(bytes.readUInt32BE(20), image.height)
+    assert.equal(image.postProcessed, false)
+    assert.deepEqual([image.width, image.height], image.file === 'draft.png' ? [1440, 1013] : [390, 844])
+    declared.add(path)
+  }
+
   // Brand illustrations are original SVG artwork, explicitly distinct from render evidence.
   execFileSync(process.execPath, [join(ROOT, 'deepblend/tools/render-brand.mjs'), '--check'],
     { cwd: ROOT, encoding: 'utf8' })

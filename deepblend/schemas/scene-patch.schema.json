@@ -1291,6 +1291,11 @@
             },
             "fStop": {
               "$ref": "#/$defs/positiveNumber"
+            },
+            "clearTarget": {
+              "type": "boolean",
+              "const": true,
+              "description": "Explicitly return to free rotation by removing both aim targets. Cannot accompany targetEntityId or targetPoint."
             }
           }
         },

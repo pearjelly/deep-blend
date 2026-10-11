@@ -155,11 +155,12 @@ export function validateScenePatch(patch) {
           message: `camera.update must supply at least one field to change: ${CAMERA_UPDATE_FIELDS.join(', ')}`,
         })
       }
-      if (operation.targetEntityId !== undefined && operation.targetPoint !== undefined) {
+      if ((operation.targetEntityId !== undefined && operation.targetPoint !== undefined)
+        || (operation.clearTarget === true && (operation.targetEntityId !== undefined || operation.targetPoint !== undefined))) {
         errors.push({
           code: 'PATCH_CAMERA_TARGET_AMBIGUOUS',
           path: at,
-          message: 'camera.update must set either targetEntityId or targetPoint, not both',
+          message: 'camera.update must choose one of targetEntityId, targetPoint or clearTarget',
         })
       }
     }
@@ -191,7 +192,7 @@ export function validateScenePatch(patch) {
  * not a crash — it is a rejection that names the wrong problem.
  */
 export const CAMERA_UPDATE_FIELDS = Object.freeze([
-  'lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'fStop', 'role',
+  'lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'clearTarget', 'fStop', 'role',
 ])
 
 /** Build an anchored error for a failed operation. */
@@ -719,7 +720,7 @@ export function applyPatchToSpec(spec, patch) {
           fail('PATCH_REFERENCE_MISSING', `camera "${operation.cameraId}" targets entity "${operation.targetEntityId}", which does not exist`)
         }
         const camera = next.cameras[at]
-        const { op: _op, cameraId: _cameraId, transform, ...scalars } = operation
+        const { op: _op, cameraId: _cameraId, clearTarget, transform, ...scalars } = operation
         /** @type {Record<string, unknown>} */
         const patchFields = {}
         for (const [key, value] of Object.entries(scalars)) {
@@ -745,7 +746,8 @@ export function applyPatchToSpec(spec, patch) {
         const clearedAim = operation.targetEntityId !== undefined
           ? 'targetPoint'
           : operation.targetPoint !== undefined ? 'targetEntityId' : null
-        const mergedAim = clearedAim === null ? camera : withoutKey(camera, clearedAim)
+        const mergedAim = clearTarget === true ? withoutKey(withoutKey(camera, 'targetEntityId'), 'targetPoint')
+          : clearedAim === null ? camera : withoutKey(camera, clearedAim)
         next.cameras = [...next.cameras]
         next.cameras[at] = { ...mergedAim, ...patchFields }
         applied.push({
@@ -755,7 +757,8 @@ export function applyPatchToSpec(spec, patch) {
             (clearedAim === null ? '' : `, cleared ${clearedAim}`),
           changedPaths: [
             ...Object.keys(patchFields).map(key => `cameras.${camera.id}.${key}`),
-            ...clearedAim === null ? [] : [`cameras.${camera.id}.${clearedAim}`],
+            ...clearTarget === true ? ['targetEntityId', 'targetPoint'].filter(key => camera[key] !== undefined).map(key => `cameras.${camera.id}.${key}`)
+              : clearedAim === null ? [] : [`cameras.${camera.id}.${clearedAim}`],
           ],
         })
         break

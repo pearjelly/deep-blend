@@ -27,6 +27,17 @@ assert.equal(reviewInputsDigest(compiled.spec), reviewInputsDigest(applied.spec)
 const manifest = buildOperationManifest({operations: applied.operations, notices: [], request: patch,
   revision: { revision: 'r0002', baseRevision: 'r0001', ...applied }});
 assert.equal(manifest.operationCount, 1);
+// This reset instruction is typed by the packed public schema and never becomes saved camera data.
+const camera = compiled.spec.cameras[0]!;
+const resetAim: ScenePatchOperation = { op: 'camera.update', cameraId: camera.id, clearTarget: true, transform: { rotationEuler: [.1, .2, .3] } };
+const resetScene = applyPatchToSpec(compiled.spec, parseScenePatch({ ...patch, operations: [resetAim] })).spec;
+assert.equal(resetScene.cameras[0]?.targetEntityId, undefined);
+assert.equal(resetScene.cameras[0]?.targetPoint, undefined);
+assert.equal(Object.hasOwn(resetScene.cameras[0]!, 'clearTarget'), false);
+// @ts-expect-error Only an explicit true reset instruction is supported.
+const invalidReset: ScenePatchOperation = { op: 'camera.update', cameraId: camera.id, clearTarget: false };
+assert.equal(invalidReset.op, 'camera.update');
+
 assert.equal(specSchema.properties.schemaVersion.const, 'deepblend.scene/v1');
 assert.ok(patchSchema.$defs.operation.oneOf.length === SCENE_OPERATION_NAMES.length);
 assert.equal(recipeSchema.properties.compatibility.properties.capabilities.maxItems, RECIPE_CAPABILITIES.length);

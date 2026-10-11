@@ -6,6 +6,7 @@
 
 仓库图片包括工作台截图、原创产品基准和配方预览。截图由 `capture-docs-images.mjs` 生成；
 产品图由 `quality-benchmark.mjs` 渲染，预览清单记录原始运行、输入快照和图片摘要。
+摄影复用指南的两张截图由 `photography-ui.e2e.mjs` 在真实 Chrome/DSH/Blender 专项中生成；`docs/assets/photography-reuse/manifest.json` 登记自有 MIT 许可、作者、生成程序/报告/请求摘要和逐图尺寸/SHA，不允许按整个目录放行。
 配方清单另存来源、许可及输入/图片摘要，Host 包携带相同图片。检查同时覆盖尚未提交的
 新文件，未经这些清单声明的图片不会因放入某个目录而自动获准。历史桌灯 1.0.0 的完整测试包保留原清单、MIT 文本和精确图片摘要，供版本兼容回归使用。
 

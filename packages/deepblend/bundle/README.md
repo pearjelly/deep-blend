@@ -45,7 +45,7 @@ The scenes and output come from editable SceneSpec and actual rendering. Officia
 - **Bring your own assets.** Preview and insert GLB, glTF or OBJ models. Select multiple files or
   a directory to keep external textures and buffers together; add image textures and HDR/EXR lighting.
 - **Shape the scene.** Edit dimensions, profiles, bevels, arrays and local materials. Adjust
-  existing cameras and lights, or add an area fill light, directly in the workbench.
+  existing cameras and lights, or add an area fill light, directly in the workbench. Reuse camera settings and the light rig from a saved work and version, check the draft, then explicitly save.
 - **Judge the actual change.** Compare saved revisions, inspect a fixed camera and frame in
   beauty or clay mode, and save reference images with your design goal.
 - **Finish or pick up later.** Render PNG frames and an MP4, inspect job progress, cancel work
