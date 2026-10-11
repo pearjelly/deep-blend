@@ -560,6 +560,10 @@ async function publish(dryRun) {
         console.error(`stopped at ${entry.name}; the packages after it were not published`)
         return 1
       }
+      if (dryRun) {
+        console.log(`  ${entry.name}@${entry.version} — dry run passed (not published)`)
+        continue
+      }
       // VERIFIED, NOT ASSUMED. `npm publish` returning without an error is what this line used to
       // mean; on 0.2.3 that was true of a version the registry had only STAGED.
       // A QUICK READ, not a wait. MEASURED: waiting the full propagation window after EACH package
@@ -597,7 +601,7 @@ async function publish(dryRun) {
     }
   }
   console.log(dryRun
-    ? 'result: the dry run published every package'
+    ? `result: the dry run validated all ${order.length} packages; nothing was published`
     : `result: all ${order.length} packages are on the registry, each one read back`)
   if (!dryRun) {
     console.log(`next:   the list harvests the npm mapping itself, by checking that a package's \`repository\` points back at the listed repo`)
