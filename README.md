@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.5.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.5.0) creates a complete editable 111-part speaker assembly from three dimensions. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
+Latest stable [0.6.1](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.1) lets you resize an existing speaker scene with three dimensions while preserving appearance, photography and history, and verifies installation ownership. The scene contains 111 entities, including modeling tools and a backdrop. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
 
 ## Quick start
 

@@ -1,18 +1,18 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-11T18:00:38.043867+00:00",
-  "sourceBase": "57ab61a72fc97017ec2013744066676daf148f3c",
-  "uiSha256": "6f60190a337d5296c8614e95105dfa8e58d5d40d8ee32f683e6f46d4fdfbe8a8",
-  "nativeSource": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-assembly-photography-v2",
+  "at": "2026-10-12T01:56:32.202234+00:00",
+  "sourceBase": "3fd3e590d044fcb7b46e3ca18fbc6a8a255e376f",
+  "uiSha256": "c5dbfb6fc3895fe2922459be07d0ce32d553461768e3d3bcdad851d371b99ab3",
+  "nativeSource": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-preview-current-photography-v2",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Actual assembly editing candidate Chrome/DSH/Blender photography regression,36 checks. Reviewed desktop and narrow captures; no live-model or external-user adoption claim.",
+  "scope": "Actual0.6.2 preview source-generation candidate Chrome/DSH/Blender photography regression,36checks. Actualdesktopand390pxcapturesreviewed; noexternalartapproval.",
   "images": [
     {
       "file": "draft.png",
       "original": "04-reused-photography-draft.png",
-      "sha256": "1ea3a10711317b9c340746d665df64ac383b60435cc620309dc3474cb92afd72",
-      "bytes": 181684,
+      "sha256": "fff9277b1734b57e3065d2270b6d2dea09ebae475d7a4f0cbe6e0e795660a51e",
+      "bytes": 181632,
       "width": 1440,
       "height": 1013,
       "postProcessed": false
@@ -20,20 +20,20 @@
     {
       "file": "narrow.png",
       "original": "05-narrow-photography-reuse.png",
-      "sha256": "f755fd026a5de1d1021becddeb4b4485076b4ef9aee1495af49a3c85dc8d9667",
-      "bytes": 84241,
+      "sha256": "753aaa3f60c0dbf4a79f9e0ed46764c02185fc22706d9ac444c6aadb39b14982",
+      "bytes": 84214,
       "width": 390,
       "height": 844,
       "postProcessed": false
     }
   ],
-  "viewedAt": "2026-10-11T18:00:38.043867+00:00",
+  "viewedAt": "2026-10-12T01:56:32.202234+00:00",
   "license": "MIT",
   "author": "DeepBlend contributors",
   "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
   "toolSha256": "c9107135fbae6985a4d0b233f1f795a335efa3bbb99939c7e3e5022f93e2dc98",
-  "sourceReportSha256": "023dd4c1497b8b088250f47208fc31e31017634c69cd7e16e6dbb19e97f08382",
-  "sourceRequestsSha256": "a3ac84b705337a0a0d7c61562180f500e652269690184e29f48fa676d74d2850",
+  "sourceReportSha256": "ee5967c7f55fe7fb8e487cbb934fc724d7a85a5089c64cc36f591554c7d25743",
+  "sourceRequestsSha256": "5d1d772239fed80f751f8baf4612c5a4a7427fc6574635a72ea2eb367be82166",
   "reproductionGuide": "../../photography-editor.md",
   "postProcessed": false
 }

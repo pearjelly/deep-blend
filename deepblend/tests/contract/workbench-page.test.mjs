@@ -496,6 +496,86 @@ if (core !== undefined) {
   store.stop()
 }
 
+// A saved revision can precede the UI's asynchronous refresh. The next preview
+// must use the Host's current revision even while a prior state read is held.
+if (core !== undefined) {
+  const pending = [], previewRequests = []
+  let saved = false, failRead = false, heldRead = null, releaseFresh = null, freshReads = 0
+  const freshResolvers = []
+  const respond = payload => Promise.resolve({ status: 200, ok: true, text: async () => JSON.stringify(payload), json: async () => payload })
+  const latest = () => {
+    const state = ROUTE_PAYLOADS.state()
+    if (saved) { state.selected.currentRevision = 'r0004'; state.selected.project.currentRevision = 'r0004'; state.selected.scene.revision = 'r0004' }
+    return state
+  }
+  const fetch = (input, init = {}) => {
+    const url = String(input)
+    if (url.endsWith('/patch')) { saved = true; return respond(ROUTE_PAYLOADS.patch()) }
+    if (url.endsWith('/preview') && init.method === 'POST') {
+      previewRequests.push(JSON.parse(init.body))
+      return respond({ ok: true, preview: { views: [], revision: 'r0004' } })
+    }
+    if (url.includes('/deepblend/state')) {
+      if (url.includes('&preview=')) freshReads += 1
+      if (heldRead && url.includes('&preview=')) return new Promise(resolve => { freshResolvers.push(() => respond(latest()).then(resolve)); releaseFresh = () => freshResolvers.splice(0).forEach(done => done()) })
+      if (failRead) return respond({ ok: false, error: { code: 'STATE_UNAVAILABLE', message: 'state unavailable' } })
+      if (saved && url.includes('&t=')) return new Promise(resolve => pending.push(() => resolve({ status: 200, ok: true, text: async () => JSON.stringify(latest()), json: async () => latest() })))
+      return respond(latest())
+    }
+    return scriptedFetch(input, init)
+  }
+  const store = core.createWorkbenchStore({ fetch, pollIdleMs: 600000, pollLiveMs: 600000 })
+  store.start(); await settle()
+  store.actions.setForm('patch', '{"baseRevision":"r0003"}')
+  await store.actions.applyPatch()
+  check('the saved revision can be newer than the still-refreshing UI snapshot', saved && store.getState().selected.scene.revision === 'r0003' && pending.length > 0)
+  await store.actions.renderPreview()
+  check('an immediate post-save preview renders the authoritative new revision', previewRequests.length === 1 && previewRequests[0].revision === 'r0004', previewRequests)
+  failRead = true
+  await store.actions.renderPreview()
+  check('a failed current-state read cannot render the cached older scene', previewRequests.length === 1 && store.getState().previewResult?.ok === false)
+  failRead = false; heldRead = true
+  const readsBeforePreview = freshReads
+  const previewing = store.actions.renderPreview()
+  const duplicate = store.actions.renderPreview()
+  await Promise.race([duplicate, settle()])
+  check('a preview waiting for current state prevents duplicate submissions', store.getState().previewBusy && previewRequests.length === 1 && Boolean(releaseFresh) && freshReads === readsBeforePreview + 1)
+  store.actions.selectProject('other')
+  releaseFresh(); await Promise.all([previewing, duplicate])
+  check('switching projects while current state loads cancels the old preview submission', previewRequests.length === 1 && store.getState().previewResult === null && !store.getState().previewBusy)
+  store.stop(); pending.forEach(resolve => resolve()); await settle()
+}
+
+if (core !== undefined) {
+  let current = 'r0003', releaseFresh
+  const previews = []
+  const response = payload => ({ status: 200, ok: true, text: async () => JSON.stringify(payload), json: async () => payload })
+  const fetch = (input, init = {}) => {
+    const url = String(input)
+    if (url.endsWith('/preview') && init.method === 'POST') {
+      previews.push(JSON.parse(init.body)); return Promise.resolve(response({ ok:true, preview:{ views:[], revision:JSON.parse(init.body).revision } }))
+    }
+    if (url.includes('/deepblend/state')) {
+      const payload = ROUTE_PAYLOADS.state()
+      const id = new URL(url, 'http://local').searchParams.get('projectId') || 'demo'
+      payload.selected.project.projectId = id
+      payload.selected.currentRevision = current; payload.selected.scene.revision = current; payload.selected.project.currentRevision = current
+      if (url.includes('&preview=')) return new Promise(resolve => { releaseFresh = () => resolve(response(payload)) })
+      return Promise.resolve(response(payload))
+    }
+    return scriptedFetch(input,init)
+  }
+  const store = core.createWorkbenchStore({ fetch, pollIdleMs:600000, pollLiveMs:600000 });store.start();await settle()
+  const previewing = store.actions.renderPreview()
+  store.actions.selectProject('other');await settle()
+  current='r0004';store.actions.selectProject('demo');await settle()
+  releaseFresh();await previewing
+  check('returning to a project cannot revive an obsolete preview read from before navigation',previews.length===0,{previews,current:store.getState().currentRevision})
+  const abandoned = store.actions.renderPreview()
+  store.stop(); releaseFresh(); await abandoned
+  check('closing the workbench cancels a pending preview read before starting Blender', previews.length===0 && !store.getState().previewBusy)
+}
+
 // ---------------------------------------------------------------------------
 // Part 4 — both faces draw the SAME tree, for every one of the six tabs
 // ---------------------------------------------------------------------------
