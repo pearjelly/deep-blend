@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.6.2](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.2) lets you resize an existing speaker scene with three dimensions while preserving appearance, photography and history, and previews the current saved model safely after immediate clicks or project switches. The scene contains 111 entities, including modeling tools and a backdrop. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
+Latest stable [0.6.3](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.3) lets you resize an existing speaker scene with three dimensions while preserving appearance, photography and history, and adds smoother woven grille detail for new speaker projects while retaining saved models. The default and maximum native mesh checks found no weave surface intersections; mesh complexity increases about 2.42 times. The scene contains 111 entities, including modeling tools and a backdrop. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
 
 ## Quick start
 
