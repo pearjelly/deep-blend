@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.6.4](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.4) makes recipe selection lighter for modeling tasks: the same four recipes return 87.3% less data while retaining creator metadata and parameter bounds. Saved models remain editable, including the speaker’s three size controls and woven detail. See the [recipe task evidence](deepblend/docs/recipe-task-context.md), [size guide](deepblend/docs/sized-speaker.md) and [next modeling tasks](deepblend/docs/modeling-task-baselines.md).
+Latest stable [0.7.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.7.0) adds millimeter controls for cup height, body diameter and wall thickness, with linked handle/root dimensions and default framing. Independent edits and old versions are preserved; create/save results deliver the committed preview. See the [release evidence](deepblend/docs/releases/0.7.0.md), [recipe guide](deepblend/docs/recipes.md) and [real-task boundaries](deepblend/docs/modeling-task-baselines.md).
 
 ## Quick start
 
