@@ -97,7 +97,7 @@ test('packed package works in a real external strict TS and JS consumer without 
     cpSync(join(root,'deepblend/tests/lib/public-sdk-consumer/consumer.ts'),join(consumer,'consumer.ts'))
     cpSync(join(root,'deepblend/recipes/glass-ceramic'),join(consumer,'recipe'),{recursive:true})
     const catalog = new RecipeCatalog()
-    const speaker = catalog.list().recipes.find(recipe => recipe.id === 'deepblend.modular-speaker' && recipe.version === '2.0.0')
+    const speaker = catalog.list().recipes.find(recipe => recipe.id === 'deepblend.modular-speaker' && recipe.version === '2.1.0')
     const savedAssembly = catalog.instantiate({ id: speaker.id, version: speaker.version, digest: speaker.digest })
     writeFileSync(join(consumer, 'saved-assembly.json'), JSON.stringify(savedAssembly.lock))
     const config = {compilerOptions:{target:'ES2022',module:'NodeNext',moduleResolution:'NodeNext',strict:true,

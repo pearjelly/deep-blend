@@ -57,6 +57,32 @@ test('assembly parameters persist atomically, follow ordinary edit ancestry, rep
   for (const [name, bytes] of Object.entries(original)) assert.deepEqual(readFileSync(join(origin, name)), bytes)
 })
 
+test('an existing 2.0.0 speaker saves a resized revision after the catalog is upgraded', async t => {
+  const { studio, recipes, catalog } = setup(t, 'modular-speaker')
+  cpSync(new URL('../fixtures/modular-speaker-v2/', import.meta.url), join(recipes, 'lamp'), { recursive: true })
+  const entry = catalog.list().recipes[0]
+  const made = await studio.createProject({ title: 'Existing woven speaker', saveCheckpoint: false,
+    recipe: { id: entry.id, version: entry.version, digest: entry.digest } })
+  const origin = studio.store.revisionDirectory(made.projectId, 'r0001')
+  const source = readFileSync(join(origin, 'scene-spec.json'))
+  const lock = readFileSync(join(origin, 'recipe-lock.json'))
+  cpSync(join(BUILTIN_RECIPES, 'modular-speaker'), join(recipes, 'lamp'), { recursive: true })
+  assert.equal(catalog.list().recipes[0].version, '2.1.0')
+  const intent = { projectId: made.projectId, baseRevision: 'r0001',
+    parameters: { 'cabinet-width-mm': 300 }, saveCheckpoint: false }
+  const saved = await studio.updateRecipeParameters(intent)
+  assert.equal(saved.revision, 'r0002')
+  const spec = studio.store.readRevisionSpec(made.projectId, 'r0002')
+  assert.equal(spec.entities.find(entity => entity.id === 'grille-warp-0').generator.pathInterpolation, 'poly')
+  const parameters = await studio.getRecipeParameters(made.projectId)
+  assert.equal(parameters.recipe.version, '2.0.0')
+  assert.equal(parameters.originRevision, 'r0001')
+  assert.equal(parameters.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 300)
+  assert.equal((await studio.updateRecipeParameters(intent)).idempotentReplay, true)
+  assert.deepEqual(readFileSync(join(origin, 'scene-spec.json')), source)
+  assert.deepEqual(readFileSync(join(origin, 'recipe-lock.json')), lock)
+})
+
 test('stale, invalid and manually conflicting assembly edits leave current revisions and source files unchanged', async t => {
   const { studio, request } = setup(t, 'modular-speaker')
   const { projectId } = await studio.createProject({ title: 'Conflict assembly', recipe: request, saveCheckpoint: false })

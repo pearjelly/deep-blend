@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "deepblend.speaker-weave-evidence/v1",
+  "status": "candidate; not a published plugin version",
+  "blenderVersion": "5.2.1",
+  "runtimeSourceCommit": "dc78d149781f9159eff885082961dcffb2a63a8c",
+  "recipeVersion": "2.1.0",
+  "inputSha256": "241048fbca62e7407c4c785b31cbbeeb0a6d4d69442162a5eab191ac8b3f77b3",
+  "preview": {
+    "nativeSha256": "f65a6124962b7005ca03fad00a91b0c0b1ec5960099117e34b7144571c336690",
+    "publishedSha256": "d3d8ae075c70300099861a1637cd3182d966f05b3b410f0887b26cc692e0d41d",
+    "defaultSourceMatchesNormalizedPublicInstantiation": true,
+    "frame": 1,
+    "engine": "CYCLES",
+    "device": "CPU",
+    "samples": 128,
+    "seed": 42,
+    "resolution": [
+      1024,
+      768
+    ],
+    "adaptiveSampling": false,
+    "denoising": true,
+    "metadataRemovedOnly": true
+  },
+  "dimensions": [
+    {
+      "millimeters": [
+        264,
+        138,
+        162
+      ],
+      "visibleProductMeshes": 100,
+      "allProductMeshesClosedPositive": true,
+      "changedMeshes": [
+        "grille-warp-0",
+        "grille-warp-1"
+      ],
+      "beforeTriangles": 72010,
+      "afterTriangles": 174138,
+      "beforeWeaveSurfaceTrianglePairs": 47684,
+      "afterWeaveSurfaceTrianglePairs": 0,
+      "beforeBuildInspectSaveSeconds": 2.965776916127652,
+      "afterBuildInspectSaveSeconds": 4.802017000038177,
+      "savedNativeInspection": {
+        "checkpointSha256": "01e3be6225f66df6075506446189881e2cfe4a7f99385386786a501b9a7caba4",
+        "frame": 1,
+        "blenderVersion": "5.2.1 LTS",
+        "knownCrossingControlDetected": true,
+        "meshes": [
+          {
+            "id": "grille-warp-0",
+            "triangles": 68664,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 8.487215187133964e-07,
+            "selfCandidates": 6290,
+            "nonadjacentSelfSurfacePairs": 0
+          },
+          {
+            "id": "grille-warp-1",
+            "triangles": 68664,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 8.487212101779207e-07,
+            "selfCandidates": 6852,
+            "nonadjacentSelfSurfacePairs": 0
+          },
+          {
+            "id": "grille-weft",
+            "triangles": 1296,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 1.3417953747892845e-06,
+            "selfCandidates": 190,
+            "nonadjacentSelfSurfacePairs": 0
+          }
+        ],
+        "pairs": [
+          {
+            "entities": [
+              "grille-warp-0",
+              "grille-warp-1"
+            ],
+            "surfaceTrianglePairs": 0
+          },
+          {
+            "entities": [
+              "grille-warp-0",
+              "grille-weft"
+            ],
+            "surfaceTrianglePairs": 0
+          },
+          {
+            "entities": [
+              "grille-warp-1",
+              "grille-weft"
+            ],
+            "surfaceTrianglePairs": 0
+          }
+        ],
+        "scope": "Evaluated triangulated surfaces including array and circular trim; adjacent faces excluded from self checks. No volume penetration or global minimum-wall measurement; checkpoint unchanged."
+      }
+    },
+    {
+      "millimeters": [
+        340,
+        180,
+        220
+      ],
+      "visibleProductMeshes": 100,
+      "allProductMeshesClosedPositive": true,
+      "changedMeshes": [
+        "grille-warp-0",
+        "grille-warp-1"
+      ],
+      "beforeTriangles": 72000,
+      "afterTriangles": 174128,
+      "beforeWeaveSurfaceTrianglePairs": 47779,
+      "afterWeaveSurfaceTrianglePairs": 0,
+      "beforeBuildInspectSaveSeconds": 2.8801296250894666,
+      "afterBuildInspectSaveSeconds": 4.881243624957278,
+      "savedNativeInspection": {
+        "checkpointSha256": "1a92007ddf438cce84f82d64450a751773c658e05ec8cdd2c0f89770e3d5844a",
+        "frame": 1,
+        "blenderVersion": "5.2.1 LTS",
+        "knownCrossingControlDetected": true,
+        "meshes": [
+          {
+            "id": "grille-warp-0",
+            "triangles": 68664,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 8.487212718709986e-07,
+            "selfCandidates": 4752,
+            "nonadjacentSelfSurfacePairs": 0
+          },
+          {
+            "id": "grille-warp-1",
+            "triangles": 68664,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 8.48721004898112e-07,
+            "selfCandidates": 5130,
+            "nonadjacentSelfSurfacePairs": 0
+          },
+          {
+            "id": "grille-weft",
+            "triangles": 1296,
+            "boundaryEdges": 0,
+            "nonManifoldEdges": 0,
+            "signedVolume": 1.3417952508298625e-06,
+            "selfCandidates": 216,
+            "nonadjacentSelfSurfacePairs": 0
+          }
+        ],
+        "pairs": [
+          {
+            "entities": [
+              "grille-warp-0",
+              "grille-warp-1"
+            ],
+            "surfaceTrianglePairs": 0
+          },
+          {
+            "entities": [
+              "grille-warp-0",
+              "grille-weft"
+            ],
+            "surfaceTrianglePairs": 0
+          },
+          {
+            "entities": [
+              "grille-warp-1",
+              "grille-weft"
+            ],
+            "surfaceTrianglePairs": 0
+          }
+        ],
+        "scope": "Evaluated triangulated surfaces including array and circular trim; adjacent faces excluded from self checks. No volume penetration or global minimum-wall measurement; checkpoint unchanged."
+      }
+    }
+  ],
+  "limitations": [
+    "Surface BVH candidates are not penetration volumes or manufacturing validation.",
+    "Timing is one trial including build, geometry inspection and saving.",
+    "Two public parameter states do not establish all intermediate parameter combinations.",
+    "Whole product appearance largely retained; no external artistic review or external adoption."
+  ]
+}

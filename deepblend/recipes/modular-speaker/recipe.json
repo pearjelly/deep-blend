@@ -1,9 +1,9 @@
 {
   "schemaVersion": "deepblend.recipe/v1",
   "id": "deepblend.modular-speaker",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "title": "编织格栅桌面音箱",
-  "description": "编织格栅桌面音箱，带旋钮、输入键、散热开口与背面接线。通过三个毫米尺寸参数联动箱体、内腔和装配部件，保留按钮动画，并可调整外壳颜色、粗糙度和摄影曝光。",
+  "description": "编织格栅桌面音箱，平滑经线弯折并保留真实编织间隙，带旋钮、输入键、散热开口与背面接线。通过三个毫米尺寸参数联动箱体、内腔和装配部件，保留按钮动画，并可调整外壳颜色、粗糙度和摄影曝光。",
   "author": {
     "name": "DeepBlend contributors",
     "url": "https://github.com/pearjelly/deep-blend"
@@ -11,7 +11,7 @@
   "license": "MIT",
   "source": {
     "url": "https://github.com/pearjelly/deep-blend",
-    "note": "Bounded assembly controls derived from the reviewed speaker 1.0.0. Default native geometry, transforms and animation are preserved; the original default render bytes remain pinned. This is not manufacturing validation."
+    "note": "Speaker 2.1.0 smooths the two woven warp paths with Bezier interpolation at resolution 4. Radius, array pitch, circular trim, 111 editable parts and bounded assembly controls are retained. Default preview is a native Blender 5.2.1 CPU Cycles render, frame 1, 128 samples, seed 42; metadata removed. Historical 2.0.0 locks retain their original geometry. This is not manufacturing validation."
   },
   "compatibility": {
     "sceneSchemaVersion": "deepblend.scene/v1",
@@ -29,11 +29,11 @@
   },
   "input": {
     "path": "scene-spec.json",
-    "sha256": "bc5c79614d0895b43263fc2f57257a8bf9a5895d7ec82947faa4340c9b8d2396"
+    "sha256": "241048fbca62e7407c4c785b31cbbeeb0a6d4d69442162a5eab191ac8b3f77b3"
   },
   "preview": {
     "path": "preview.png",
-    "sha256": "b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492",
+    "sha256": "d3d8ae075c70300099861a1637cd3182d966f05b3b410f0887b26cc692e0d41d",
     "mediaType": "image/png",
     "alt": "编织格栅桌面音箱默认参数的实际Blender渲染"
   },

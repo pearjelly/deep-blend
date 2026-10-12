@@ -1183,8 +1183,8 @@
           ]
         ],
         "radius": 0.00032,
-        "pathInterpolation": "poly",
-        "curveResolution": 1,
+        "pathInterpolation": "bezier",
+        "curveResolution": 4,
         "bevelResolution": 1,
         "capEnds": true
       },
@@ -1554,8 +1554,8 @@
           ]
         ],
         "radius": 0.00032,
-        "pathInterpolation": "poly",
-        "curveResolution": 1,
+        "pathInterpolation": "bezier",
+        "curveResolution": 4,
         "bevelResolution": 1,
         "capEnds": true
       },
