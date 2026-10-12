@@ -41,3 +41,6 @@ Most detailed guides are written in Chinese, with commands and API names kept in
 [Project home / 项目首页](../../README.md) · [中文首页](../../README.zh.md)
 · [Report a bug / 报告问题](https://github.com/pearjelly/deep-blend/issues/new?template=bug_report.yml)
 · [Request a feature / 提出需求](https://github.com/pearjelly/deep-blend/issues/new?template=feature.yml)
+
+- [配方任务上下文与实际观测](recipe-task-context.md)：0.6.4 的信息量、任务对照和失败范围。
+- [厚壁杯与曲面台灯任务基线](modeling-task-baselines.md)：接续建模目标、固定任务与实际文件检查，未声称已通过。

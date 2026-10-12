@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.6.3](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.3) lets you resize an existing speaker scene with three dimensions while preserving appearance, photography and history, and adds smoother woven grille detail for new speaker projects while retaining saved models. The default and maximum native mesh checks found no weave surface intersections; mesh complexity increases about 2.42 times. The scene contains 111 entities, including modeling tools and a backdrop. See the [size guide](deepblend/docs/sized-speaker.md) and [complex modeling roadmap](deepblend/docs/complex-modeling-roadmap.md).
+Latest stable [0.6.4](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.4) makes recipe selection lighter for modeling tasks: the same four recipes return 87.3% less data while retaining creator metadata and parameter bounds. Saved models remain editable, including the speaker’s three size controls and woven detail. See the [recipe task evidence](deepblend/docs/recipe-task-context.md), [size guide](deepblend/docs/sized-speaker.md) and [next modeling tasks](deepblend/docs/modeling-task-baselines.md).
 
 ## Quick start
 
