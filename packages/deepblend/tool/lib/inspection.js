@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, warning } from '@deepblend/dsh-blender-contracts'
-import { canonicalCall, definedFields, persistImage, renderSuccess } from './shared.js'
+import { canonicalCall, definedFields, renderSuccess } from './shared.js'
+
+import { persistVerifiedPng } from './attachment-image.js'
 
 const REQUIRED_HOST_API = 6
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024
@@ -66,17 +68,7 @@ export async function renderInspection(resolved, request) {
   let image = null
   let note = null
   try {
-    const store = typeof attachments?.saveImage === 'function' ? {
-      async saveImage(input) {
-        const ref = await attachments.saveImage(input)
-        if (typeof ref?.attachmentId !== 'string' || !ref.attachmentId.trim() || ref.mediaType !== 'image/png' ||
-            ref.bytes !== artifact.bytes || ref.width !== artifact.width || ref.height !== artifact.height) {
-          throw new Error('attachment reference does not match the verified PNG')
-        }
-        return ref
-      },
-    } : attachments
-    const attached = await persistImage(store, read.bytes, `${mode}-${revision}-${cameraId}-${frame}.png`)
+    const attached = await persistVerifiedPng(attachments, read.bytes, artifact, `${mode}-${revision}-${cameraId}-${frame}.png`, signal)
     aborted(signal)
     image = attached.image
     note = attached.note

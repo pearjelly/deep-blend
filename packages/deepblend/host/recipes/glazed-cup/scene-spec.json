@@ -48,7 +48,13 @@
         "shape": "handled_cup",
         "rootRadius": 0.009,
         "rootLength": 0.006,
-        "rootTension": 2.5
+        "rootTension": 2.5,
+        "height": 0.105,
+        "radius": 0.04,
+        "wallThickness": 0.003,
+        "handleLower": 0.027999999999999997,
+        "handleUpper": 0.078,
+        "handleRadius": 0.0055000000000000005
       },
       "materialId": "glaze",
       "tags": [

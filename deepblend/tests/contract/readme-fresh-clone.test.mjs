@@ -40,7 +40,7 @@ test('the fresh-clone output the README quotes is what a fresh clone prints',
   try {
     // A tree as a release archive would arrive: no history, no managed Blender, no linked modules.
     const copied = spawnSync('rsync', [
-      '-a', '--exclude', '.git', '--exclude', '.tools', '--exclude', 'node_modules', '--exclude', '.deepblend',
+      '-a', '--exclude', '.git', '--exclude', '.tools', '--exclude', 'node_modules', '--exclude', '.deepblend', '--exclude', '.tmp-*',
       `${ROOT}/`, `${scratch}/`,
     ], { cwd: ROOT, encoding: 'utf8', timeout: 300_000 })
     assert.equal(copied.status, 0, `copying the tree failed: ${copied.stderr}`)

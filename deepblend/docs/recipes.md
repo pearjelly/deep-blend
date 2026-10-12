@@ -88,9 +88,15 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 
 材质绑定使用稳定 `materialId`，只对明确声明对应参数的 Principled/Glass 材质生效。参数默认值必须与输入 SceneSpec 的原始值一致，确保默认实例化保留原始设计。重复目标、未知材质、错误类型和与材质动画争用同一属性都会失败。
 
-开发中的尺寸联动候选尚未发布。声明 `recipe.geometry-bindings` 的配方可把数字参数绑定到实体的显式 `dimensions` 或 `location` 单轴，以及摄影机的显式 `location` 或 `targetPoint` 单轴。实体绑定使用 `kind: "entity"`、`entityId`、`property`、`axis` 和有限非零 `multiplier`；摄影机使用 `kind: "camera"` 与 `cameraId`。计算方式固定为“输入属性原值 +（参数值 − 参数默认值）× multiplier”，不接受表达式或任意属性路径。默认参数保留精确输入值，重复实例化从原输入重新计算。
+声明 `recipe.geometry-bindings` 的配方可把数字参数绑定到实体的显式 `dimensions` 或 `location` 单轴，以及摄影机的显式 `location` 或 `targetPoint` 单轴。实体绑定使用 `kind: "entity"`、`entityId`、`property`、`axis` 和有限非零 `multiplier`；摄影机使用 `kind: "camera"` 与 `cameraId`。计算方式固定为“输入属性原值 +（参数值 − 参数默认值）× multiplier”，不接受表达式或任意属性路径。默认参数保留精确输入值，重复实例化从原输入重新计算。
 
 盒体尺寸绑定要求三个明确的正数尺寸；整个参数范围必须产生有限值及正尺寸。实体目标不能重复绑定。多个独立尺寸参数可向同一个摄影机坐标累加偏移，但一个参数内的重复目标、整体范围溢出、未知摄影机以及争用摄影机动画都会被拒绝。实体位置已有动画时，必须显式声明 `offsetAnimation: true`；此时该位置轴的所有关键帧跟随相同偏移，帧号、插值和相对行程保留。缺少能力声明或消费者不支持此能力时，配方不能加载。
+
+开发中的 0.7.0 技术候选包含杯子 3.1.0，尚未发布。新增 `cup-height-mm`（95–130，默认 105）、`cup-outer-diameter-mm`（72–96，默认 80）、`cup-wall-mm`（3–5，默认 3）。高度同时调整把手上下连接位置，外径同时调整把手管径、连接根半径和长度；默认摄影机的距离、目标高度和横向中心随尺寸联动。壁厚独立调整，底厚与足圈圆角保留。旧 3.0.0 锁不获得这些参数，也不自动迁移。
+
+这类标量绑定同时声明 `recipe.geometry-bindings` 与新增的 `recipe.generator-bindings`。例如 `{ "kind": "generator", "entityId": "cup", "property": "height", "multiplier": 0.001 }` 把毫米输入转换为米；仍按默认值差量计算。仅支持 `handled_cup` 明确给出的正数属性 `height`、`radius`、`wallThickness`、`handleLower`、`handleUpper`、`handleRadius`、`rootRadius`、`rootLength`，不接受任意属性、表达式或重复目标。参数范围先验证有限正数，实例化后再验证整体 SceneSpec 约束；消费者缺少新增能力会拒绝加载。
+
+继续编辑使用已保存锁及当前 SceneSpec。手工修改受控标量、生成器形状或对象缩放后，参数编辑返回冲突，避免覆盖手工尺寸；未受控的根部张力、材质和位置保留，独立修改的摄影机也保持作者设置。原修订的场景、锁与 Blender 文件保持原字节。当前原生验收测量杯身高、背面外径及三个高度的背面径向壁厚，不能据此宣称全表面最小壁厚或制造认证。
 
 用户提供的参数是按 ID 键控的对象，例如：
 

@@ -5631,6 +5631,7 @@ export function buildReviewerPrompt(review, views, baselineReview) {
   lines.push('  - Geometry: silhouette, proportion, edge treatment, wall thickness and joins. Materials: plausible reflectance, roughness and texture scale. Lighting: readable form, highlights and contact shadows. goalFit: required parts, proportions and finish against the authored brief.')
   lines.push('  - Mark unavailable or hidden evidence unassessable. Missing evidence is not a pass. Keep judgments separate from technical measurements.')
   lines.push('  - A finding whose viewId is not one of the views above is DISCARDED, so name a real view.')
+  lines.push('  - For occlusion findings, "objectId" identifies the object whose visibility is blocked, not the object blocking it. Name the blocking object in "evidence" and use its id only as the target of a repair operation.')
   lines.push('  - "operations" must use only these ScenePatch operations, and they are applied all-or-nothing:')
   lines.push('      entity.transform.update {entityId, location?, rotationEuler?, scale?}')
   lines.push('      entity.visibility.set {entityId, visible}')

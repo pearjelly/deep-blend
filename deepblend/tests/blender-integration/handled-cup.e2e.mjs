@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import Provider, { ProviderConfig } from '@deepblend/dsh-blender-provider-local'
 import Studio from '@deepblend/dsh-blender-host'
+import { instantiateRecipe } from '@deepblend/dsh-blender-contracts'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -25,6 +26,9 @@ function inspect(checkpoint,name){
   writeFileSync(script,String.raw`
 import bpy,bmesh,json,sys,hashlib,math
 from pathlib import Path
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
+from bpy_extras.object_utils import world_to_camera_view
 checkpoint,out=sys.argv[sys.argv.index('--')+1:]
 sys.path.insert(0,${JSON.stringify(join(ROOT,'packages/deepblend/provider-local/python'))})
 from deepblend_mesh_checks import validate_corner_normals
@@ -40,6 +44,18 @@ while unseen:
 result={'vertices':len(bm.verts),'faces':len(bm.faces),'euler':len(bm.verts)-len(bm.edges)+len(bm.faces),
     'components':components,'boundaryEdges':sum(e.is_boundary for e in bm.edges),
     'nonManifoldEdges':sum(not e.is_manifold for e in bm.edges),'volume':bm.calc_volume(signed=True)}
+bvh=BVHTree.FromBMesh(bm);walls=[]
+height=max(v.co.z for v in mesh.vertices)-min(v.co.z for v in mesh.vertices)
+rear=min(v.co.x for v in mesh.vertices)
+for fraction in [.4,.6,.8]:
+    origin=Vector((rear-.02,0,height*fraction));direction=Vector((1,0,0));hits=[]
+    for _ in range(2):
+        hit,normal,face,distance=bvh.ray_cast(origin,direction,.25)
+        if hit is None:break
+        hits.append(hit.x);origin=hit+direction*1e-7
+    walls.append((hits[1]-hits[0])*1000 if len(hits)==2 else None)
+result['rearRadialWallMm']=walls;result['bodyHeightMm']=height*1000;result['bodyOuterDiameterMm']=-rear*2000
+result['objectScale']=list(obj.scale)
 bm.free();result['uvLayers']=len(mesh.uv_layers);result['finiteUV']=all(math.isfinite(c) for uv in mesh.uv_layers.active.data for c in uv.uv)
 validate_corner_normals(mesh)
 result['validCornerNormals']=True;result['customNormals']=mesh.has_custom_normals
@@ -48,6 +64,8 @@ data={'vertices':[list(v.co) for v in mesh.vertices],'faces':[list(p.vertices) f
 result['meshUvNormalSha256']=hashlib.sha256(json.dumps(data,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 result['bounds']=[list(min(v.co[i] for v in mesh.vertices) for i in range(3)),list(max(v.co[i] for v in mesh.vertices) for i in range(3))]
 result['material']=obj.data.materials[0].name
+projected=[world_to_camera_view(bpy.context.scene,bpy.data.objects['db_camera__hero'],obj.matrix_world @ v.co) for v in mesh.vertices]
+result['heroProjectedBounds']=[[min(v[i] for v in projected) for i in range(3)],[max(v[i] for v in projected) for i in range(3)]]
 Path(out).write_text(json.dumps(result,indent=2))
 `)
   const result=spawnSync(BLENDER,['--background','--factory-startup','--python-exit-code','1','--python',script,'--',checkpoint,report],{cwd:ROOT,encoding:'utf8',timeout:120_000,maxBuffer:4*1024*1024})
@@ -119,6 +137,33 @@ try{
     previousRevision=tensionRevision;previousFacts=tensionFacts
   }
   check('transition changes preserve the original source and checkpoint bytes',Object.entries(original).every(([path,hash])=>hashes(revisionDir)[path]===hash))
+  // Exercise the shipped parameter route, independent of the direct generator patches above.
+  const catalog=await studio.listRecipes()
+  const recipe=catalog.recipes.find(r=>r.id==='deepblend.glazed-cup'&&r.version==='3.1.0')
+  check('current cup exposes guarded generator bindings',recipe&&['cup-height-mm','cup-outer-diameter-mm','cup-wall-mm'].every(id=>recipe.parameters.some(p=>p.id===id&&p.bindings.some(b=>b.kind==='generator'))))
+  const selector={id:recipe.id,version:recipe.version,digest:recipe.digest}
+  const historical=join(ROOT,'deepblend/tests/fixtures/glazed-cup-v3')
+  const oldDefault=instantiateRecipe({manifest:json(join(historical,'recipe.json')),sceneBytes:readFileSync(join(historical,'scene-spec.json')),previewBytes:readFileSync(join(historical,'preview.png'))})
+  const oldProject=await studio.createProject({title:'historical-cup-default',sceneSpec:oldDefault.spec,saveCheckpoint:true})
+  const newProject=await studio.createProject({title:'parameter-cup-default',recipe:selector,saveCheckpoint:true})
+  const oldFacts=inspect(join(studio.store.revisionDirectory(oldProject.projectId,'r0001'),'scene.blend'),'historical-default')
+  const newFacts=inspect(join(studio.store.revisionDirectory(newProject.projectId,'r0001'),'scene.blend'),'parameter-default')
+  check('adding parameters preserves default mesh, UVs and normals',oldFacts.meshUvNormalSha256===newFacts.meshUvNormalSha256)
+  for(const [name,height,diameter,wall] of [['requested',115,84,4],['minimum',95,72,3],['maximum',130,96,5],['wide-short-thick',95,96,5],['tall-narrow-thick',130,72,5]]){
+    const created=await studio.createProject({title:`parameter-${name}`,recipe:{...selector,parameters:{'cup-height-mm':height,'cup-outer-diameter-mm':diameter,'cup-wall-mm':wall}},saveCheckpoint:true})
+    const dir=studio.store.revisionDirectory(created.projectId,'r0001'),facts=inspect(join(dir,'scene.blend'),`parameter-${name}`)
+    check(`${name}: actual body dimensions and rear radial wall samples match inputs`,Math.abs(facts.bodyHeightMm-height)<.01&&Math.abs(facts.bodyOuterDiameterMm-diameter)<.01&&facts.rearRadialWallMm.every(v=>v!==null&&Math.abs(v-wall)<.03)&&facts.objectScale.every(v=>v===1),facts)
+    check(`${name}: closed connected native geometry retains normals`,facts.components===1&&facts.boundaryEdges===0&&facts.nonManifoldEdges===0&&facts.volume>0&&facts.validCornerNormals)
+    check(`${name}: complete cup stays inside the hero camera frame`,facts.heroProjectedBounds[0][2]>0&&[0,1].every(axis=>facts.heroProjectedBounds[0][axis]>=.01&&facts.heroProjectedBounds[1][axis]<=.99),facts.heroProjectedBounds)
+    if(name==='requested'){
+      const protectedFiles=hashes(dir)
+      const edited=await studio.updateRecipeParameters({projectId:created.projectId,baseRevision:'r0001',parameters:{'cup-height-mm':125},saveCheckpoint:true,renderPreview:true,idempotencyKey:'cup-native-height'})
+      const after=inspect(join(studio.store.revisionDirectory(created.projectId,edited.revision),'scene.blend'),'parameter-continued')
+      check('saved cup height edit preserves actual diameter and wall',Math.abs(after.bodyHeightMm-125)<.01&&Math.abs(after.bodyOuterDiameterMm-84)<.01&&after.rearRadialWallMm.every(v=>v!==null&&Math.abs(v-4)<.03))
+      check('parameter continuation preserves original revision bytes',JSON.stringify(hashes(dir))===JSON.stringify(protectedFiles))
+      write(join(output,'parameter-continued.json'),edited)
+    }
+  }
 }catch(error){failure={message:error.message,stack:error.stack};console.error(error)}finally{
   try { await ctx.fiber.dispose() } catch(error) {
     checks.push({name:'Host and Provider cleanup',ok:false,detail:error.message})

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "deepblend.recipe/v1",
   "id": "deepblend.glazed-cup",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "title": "青釉带把手杯",
-  "description": "105 mm 高的陶瓷杯，3 mm 壁厚，圆润杯沿与连续把手。根部曲面展开过渡；可调整釉色、光泽与曝光，创建后修改尺寸和连接曲面。",
+  "description": "用高度、杯口外径和壁厚三个毫米参数创建带把手陶瓷杯，杯身与把手连接同步调整；保留釉色、可继续编辑的几何、原生保存和细节预览。",
   "author": {
     "name": "DeepBlend contributors",
     "url": "https://github.com/pearjelly/deep-blend"
@@ -20,12 +20,14 @@
       "geometry.handled_cup.tension",
       "geometry.handled_cup.tension.extended",
       "geometry.primitive",
-      "material.principled"
+      "material.principled",
+      "recipe.geometry-bindings",
+      "recipe.generator-bindings"
     ]
   },
   "input": {
     "path": "scene-spec.json",
-    "sha256": "4bbc13795cfc54f10cc2605c24072d11deb2f029381d38b97753d4003d58d5e7"
+    "sha256": "ad9ae3509dc1cb9ebd01acc153f5d6724a7d2e7318d90858dedb55d2ca3cb09c"
   },
   "preview": {
     "path": "preview.png",
@@ -34,6 +36,199 @@
     "alt": "青釉带把手杯默认参数的实际 Blender 主视角渲染"
   },
   "parameters": [
+    {
+      "id": "cup-height-mm",
+      "title": "杯身高度（毫米）",
+      "description": "杯身高度，联动把手上下连接位置与默认摄影构图。",
+      "type": "number",
+      "default": 105,
+      "minimum": 95,
+      "maximum": 130,
+      "bindings": [
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "height",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "handleLower",
+          "multiplier": 0.0002666666666666667
+        },
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "handleUpper",
+          "multiplier": 0.0007428571428571429
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0014952380952380953
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.002333333333333333
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0012857142857142859
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0008666666666666667
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0016666666666666666
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0009714285714285713
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0005238095238095238
+        },
+        {
+          "kind": "camera",
+          "cameraId": "inside",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0013333333333333335
+        },
+        {
+          "kind": "camera",
+          "cameraId": "inside",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0019047619047619048
+        },
+        {
+          "kind": "camera",
+          "cameraId": "inside",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0030476190476190477
+        },
+        {
+          "kind": "camera",
+          "cameraId": "inside",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0004761904761904762
+        }
+      ]
+    },
+    {
+      "id": "cup-outer-diameter-mm",
+      "title": "杯口外径（毫米）",
+      "description": "杯口外径，联动把手截面、杯身连接尺寸与默认摄影中心。",
+      "type": "number",
+      "default": 80,
+      "minimum": 72,
+      "maximum": 96,
+      "bindings": [
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "radius",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "handleRadius",
+          "multiplier": 6.875e-05
+        },
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "rootRadius",
+          "multiplier": 0.00011250000000000001
+        },
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "rootLength",
+          "multiplier": 7.5e-05
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.000225
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "targetPoint",
+          "axis": "x",
+          "multiplier": 0.000225
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005499999999999999
+        },
+        {
+          "kind": "camera",
+          "cameraId": "roots",
+          "property": "targetPoint",
+          "axis": "x",
+          "multiplier": 0.0005499999999999999
+        }
+      ]
+    },
+    {
+      "id": "cup-wall-mm",
+      "title": "杯壁厚度（毫米）",
+      "description": "杯壁厚度，保留原底厚和圆角。",
+      "type": "number",
+      "default": 3,
+      "minimum": 3,
+      "maximum": 5,
+      "bindings": [
+        {
+          "kind": "generator",
+          "entityId": "cup",
+          "property": "wallThickness",
+          "multiplier": 0.001
+        }
+      ]
+    },
     {
       "id": "main-color",
       "title": "陶瓷釉色",

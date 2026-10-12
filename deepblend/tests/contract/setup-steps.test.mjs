@@ -473,7 +473,7 @@ test('without .git the repository-state assertions skip and the exit code stays 
     // to guess. `rsync` excludes exactly what a release archive would not carry: the history, the managed Blender,
     // the linked modules and the generated store.
     execFileSync('rsync', [
-      '-a', '--exclude', '.git', '--exclude', '.tools', '--exclude', 'node_modules', '--exclude', '.deepblend',
+      '-a', '--exclude', '.git', '--exclude', '.tools', '--exclude', 'node_modules', '--exclude', '.deepblend', '--exclude', '.tmp-*',
       `${ROOT}/`, `${scratch}/`,
     ], { cwd: ROOT })
     // The copy needs ITS OWN links. Symlinking this checkout's `node_modules` was the first attempt and it failed

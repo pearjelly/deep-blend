@@ -877,6 +877,35 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
     !('image' in legacy.value) && legacy.content.length === 1 && legacy.value.data.request.revision === 'r0003' &&
     tool.presentCall(legacyArgs).title === 'Render preview of "product" from camera-detail')
   check('inspections never invoke scoring, review, automatic edits or restore', edits === 0)
+  host.hostApiVersion = () => 7
+  let route = { provider: 'fixture-provider', model: 'text-model' }
+  const agent = { options: { provider: 'fixture-provider', model: 'vision-model' },
+    session: { requestHeader: () => ({ config: route }) } }
+  plane.ctx.provide('llm', { listModels: async () => [
+    { id: 'text-model', inputModalities: ['text'] },
+    { id: 'vision-model', inputModalities: ['text', 'image'] },
+  ] })
+  const deliver = () => plane.tools.execute({ name: 'blender_preview_render', arguments: args, callId: 'recipient', agent })
+  const textOnly = await deliver()
+  check('active text-only request keeps the verified artifact without an unsupported image block',
+    textOnly.value.ok && textOnly.value.image === null && textOnly.content.every(b => b.type !== 'image') &&
+    JSON.stringify(textOnly.value.data) === JSON.stringify(receipt) && textOnly.value.imageDelivery.model === 'text-model')
+  check('text-only delivery explains unseen pixels and its cold replay performs no model lookup',
+    /model has not seen these pixels/.test(textOnly.value.text) &&
+    tool.output.render(args, JSON.parse(JSON.stringify(textOnly.value))).every(b => b.type !== 'image'))
+  route = { provider: 'fixture-provider', model: 'vision-model' }
+  const vision = await deliver()
+  check('switching the active request to a vision model retains image delivery',
+    vision.value.image?.attachmentId === 'inspection-1' && vision.content.some(b => b.type === 'image'))
+  route = { provider: 'fixture-provider', model: 'unknown-model' }
+  check('an unavailable model capability does not silently disable legacy image delivery',
+    (await deliver()).content.some(b => b.type === 'image'))
+  const resolutionAbort = new AbortController()
+  plane.ctx.get('llm').listModels = async () => { resolutionAbort.abort(); return [] }
+  const abortedDelivery = await plane.tools.execute({ name: 'blender_preview_render', arguments: args,
+    callId: 'recipient-aborted', agent, signal: resolutionAbort.signal })
+  check('cancellation during recipient lookup cannot emit a completed image delivery',
+    abortedDelivery.value?.data?.errorCode === code('ABORTED') && abortedDelivery.content.every(b => b.type !== 'image'))
 }
 
 const passed = results.filter(entry => entry.ok).length

@@ -1,0 +1,268 @@
+{
+  "schemaVersion": "deepblend.cup-dimensions-evidence/v1",
+  "status": "0.7.0 unpublished technical candidate; full model task gate incomplete",
+  "recipeVersion": "3.1.0",
+  "inputSha256": "ad9ae3509dc1cb9ebd01acc153f5d6724a7d2e7318d90858dedb55d2ca3cb09c",
+  "previewSha256": "b8f7b70e26032ef9f6deae577856a71342c450a0e71e47c804876227d1086807",
+  "nativeProbe": {
+    "passed": 19,
+    "total": 19,
+    "cases": [
+      {
+        "name": "requested",
+        "heightMm": 115.00000208616257,
+        "outerDiameterMm": 83.99999886751175,
+        "rearRadialWallMm": [
+          3.999996930360794,
+          4.0000006556510925,
+          4.0000006556510925
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 0.0001492967096675557,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.2006947100162506,
+            0.06045346334576607,
+            0.2854614555835724
+          ],
+          [
+            0.7967378497123718,
+            0.9214629530906677,
+            0.39620864391326904
+          ]
+        ]
+      },
+      {
+        "name": "continued",
+        "heightMm": 125.0,
+        "outerDiameterMm": 83.99999886751175,
+        "rearRadialWallMm": [
+          4.0000006556510925,
+          3.999996930360794,
+          4.000004380941391
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 0.0001601315300695559,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.22437280416488647,
+            0.06782408058643341,
+            0.3129030466079712
+          ],
+          [
+            0.7819916605949402,
+            0.9192246794700623,
+            0.42637789249420166
+          ]
+        ]
+      },
+      {
+        "name": "minimum",
+        "heightMm": 94.9999988079071,
+        "outerDiameterMm": 71.99999690055847,
+        "rearRadialWallMm": [
+          2.99999862909317,
+          2.99999862909317,
+          2.99999862909317
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 8.326855429446161e-05,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.18948429822921753,
+            0.055660393089056015,
+            0.23482967913150787
+          ],
+          [
+            0.8037122488021851,
+            0.9226399064064026,
+            0.3289346992969513
+          ]
+        ]
+      },
+      {
+        "name": "maximum",
+        "heightMm": 129.99999523162842,
+        "outerDiameterMm": 96.00000083446503,
+        "rearRadialWallMm": [
+          4.999998956918716,
+          4.999998956918716,
+          4.999998956918716
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 0.00023510934366790558,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.1974860429763794,
+            0.059933993965387344,
+            0.3223724961280823
+          ],
+          [
+            0.7987733483314514,
+            0.9216623306274414,
+            0.4484456181526184
+          ]
+        ]
+      },
+      {
+        "name": "wide-short-thick",
+        "heightMm": 94.9999988079071,
+        "outerDiameterMm": 96.00000083446503,
+        "rearRadialWallMm": [
+          4.999998956918716,
+          4.999998956918716,
+          4.999998956918716
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 0.00018150442868384282,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.08713463693857193,
+            0.02434610016644001,
+            0.2263268679380417
+          ],
+          [
+            0.8692429065704346,
+            0.9314336180686951,
+            0.3428531885147095
+          ]
+        ]
+      },
+      {
+        "name": "tall-narrow-thick",
+        "heightMm": 129.99999523162842,
+        "outerDiameterMm": 71.99999690055847,
+        "rearRadialWallMm": [
+          4.999998956918716,
+          4.999998956918716,
+          4.999998956918716
+        ],
+        "components": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "signedVolumeLocal": 0.00015808172887775385,
+        "checkpointUnchanged": true,
+        "heroProjectedBounds": [
+          [
+            0.2724556624889374,
+            0.08277581632137299,
+            0.33111336827278137
+          ],
+          [
+            0.7525840401649475,
+            0.9141390919685364,
+            0.4343843162059784
+          ]
+        ]
+      }
+    ],
+    "defaultGeometryUnchanged": true
+  },
+  "currentBrowserProbe": {
+    "passed": 24,
+    "total": 24,
+    "samples": 8,
+    "scope": "Real pointer creation115/84/4 and saved parameter edit125; manual dimension conflict protection, refusals, reload and original-byte preservation."
+  },
+  "historicalBrowserProbe": {
+    "passed": 33,
+    "total": 33,
+    "scope": "Both cup versions independently retain creation drafts; lamp native/historical checks included. Before camera-only binding addition."
+  },
+  "beforeFramingCorrection": {
+    "actualHeightMm": 125.0,
+    "heroProjectedBounds": [
+      [
+        0.17011186480522156,
+        0.049791645258665085,
+        0.25209739804267883
+      ],
+      [
+        0.8509874939918518,
+        1.0601500272750854,
+        0.3655722439289093
+      ]
+    ],
+    "checkpointUnchanged": true,
+    "frameGuardRefuses": true
+  },
+  "mutationChecks": {
+    "scope": "Scalar binding implementation, before camera bindings added",
+    "killed": [
+      "skip-generator-value",
+      "skip-generator-edit",
+      "ignore-controlled-conflicts",
+      "allow-generator-scaling",
+      "ignore-consumer-capabilities",
+      "drop-handle-upper-binding"
+    ]
+  },
+  "acceptanceBoundary": {
+    "unitsBeforeCameraBindings": "132/132;1978 self-counted and1594 node cases",
+    "relatedContractsAfterCameraBindings": "72/72",
+    "officialNativeBeforeCameraBindings": "60/60",
+    "whole39CurrentCandidate": "pending",
+    "realNaturalLanguageCandidate": "Original-preserved Low/defaultidle300s task failed whole300s finalreply;7steps9calls andonecolor/camera refinement; intermediate native115/84/4 closed, filesunchanged. Tool-image diagnostic actualreply3903ms while textcontrolTIMEOUT; no blanket image-cause inference. New attached-preview source task pending.",
+    "artistApproval": "not measured",
+    "externalAdoption": "not measured",
+    "minimumWallManufacturingProof": "not claimed",
+    "previousFrozenWhole39": "39/39 on original695 files; wrapper post-test reserved-variable error retained and independent source proof supplied. New preview-delivery/reviewer source requires new whole39.",
+    "latestWholeUnits": "132/132;1984selfchecks34files;1596nodecases98files on new697 source, parsed existing successful run"
+  },
+  "taskHandoffContracts": "18/18 tool and preset contracts after clearer explicit saveCheckpoint/renderPreview guidance",
+  "imageDelivery": {
+    "currentToolContracts": "130/130",
+    "realDshNormalization": "7/7;593751byte PNG normalized to25352byte JPEG, source unchanged, corrupted private object refused/restored",
+    "normalizedAttachmentRegression": "9/9 in recipe-tools.test, includes1newcase; newfullunit snapshot pending",
+    "committedPreviewContracts": "10/10 registered-tool cases; create/patch/dimension-save reuse committed PNG, reject wrong source/hash/dimensions and pure replay/no rerender",
+    "committedPreviewRealStore": "5/5 actual Host archived-PNG read and actual DSH normalization;275111bytePNG->14512byteJPEG, all original files unchanged",
+    "committedPreviewMutations": "3 killed/restored:sourcehash,PNGdimensions,calling-model image policy"
+  },
+  "currentFrozenAcceptance": {
+    "status": "technical-and-required-manual-passed; full-natural-task-unproven; unpublished",
+    "sourceFileCount": 697,
+    "fullSuitesPassed": 39,
+    "fullLogSha256": "0317065aea779ee6f2abc2c8eb6a4aaa97beab2a6bd705184045e9fd17fd7bec",
+    "sourceUnchangedDuringFull": true,
+    "manualVisionChecksPassed": 14,
+    "manualUIChecksPassed": 10,
+    "originalAssertionsUnchanged": true,
+    "humanArtifactsReviewed": true,
+    "baiFullTaskObservationMs": 301658,
+    "officialFullTaskObservationMs": 301667,
+    "taskObservationResult": "Both observation windows ended before final response; no 125 mm follow-up submitted. Original failures retained.",
+    "officialPartialNative": {
+      "heightMm": 115.00000208616257,
+      "rearRadiusMm": 41.999999433755875,
+      "rearRadialWallSamplesMm": [
+        3.999996930360794,
+        4.0000006556510925,
+        4.0000006556510925
+      ],
+      "components": 1,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "checkpointUnchanged": true
+    },
+    "releaseRemaining": [
+      "Complete natural task and same-session 125 mm continuation",
+      "Exact commit CI and clean pushed build",
+      "Seven npm, GitHub assets, route parity and community submission readback"
+    ]
+  }
+}

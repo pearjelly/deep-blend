@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 17,
+          "maxItems": 18,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -116,7 +116,8 @@
               "material.anisotropy",
               "animation.transform",
               "animation.material",
-              "recipe.geometry-bindings"
+              "recipe.geometry-bindings",
+              "recipe.generator-bindings"
             ]
           }
         }
@@ -312,6 +313,43 @@
             }
           },
           "description": "Apply a bounded parameter delta to an explicit camera position or aim point; animated camera channels are refused."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entityId",
+            "property",
+            "multiplier"
+          ],
+          "properties": {
+            "kind": {
+              "const": "generator"
+            },
+            "entityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "property": {
+              "enum": [
+                "height",
+                "radius",
+                "wallThickness",
+                "handleLower",
+                "handleUpper",
+                "handleRadius",
+                "rootRadius",
+                "rootLength"
+              ]
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            }
+          },
+          "description": "Apply a bounded scalar delta to an explicit handled_cup generator dimension, preserving unbound generator properties."
         }
       ]
     },

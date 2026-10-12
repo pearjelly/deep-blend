@@ -160,6 +160,9 @@ check('a view with no tracked object contributes its luminance and nothing inven
   !prompt.includes('object "undefined"'))
 check('the prompt tells the model that a finding naming an unknown view is DISCARDED',
   prompt.includes('A finding whose viewId is not one of the views above is DISCARDED, so name a real view.'))
+check('occlusion findings identify the blocked subject and keep blockers as evidence or repair targets',
+  prompt.includes('For occlusion findings, "objectId" identifies the object whose visibility is blocked, not the object blocking it.') &&
+  prompt.includes('Name the blocking object in "evidence" and use its id only as the target of a repair operation.'))
 check('the prompt lists the operations it may propose, and says an empty list is valid',
   prompt.includes('      camera.update {cameraId, lens?, transform?, targetEntityId?, targetPoint?}') &&
   prompt.includes('An empty list is a valid answer.'))

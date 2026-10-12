@@ -28,6 +28,8 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { renderInspection } from './inspection.js'
+import { imageForCallingModel } from './image-delivery.js'
+import { attachCommittedPreview } from './committed-preview.js'
 
 import {
   SCENE_OPERATION_NAMES,
@@ -116,7 +118,7 @@ function recipeParameters(ctx) {
       'Saving needs that exact baseRevision and numeric parameters. It updates the same project, preserves independent ' +
       'materials, bevels, photography and history, and refuses manually conflicting controlled geometry. ' +
       'A scene without declared assembly controls returns available:false; do not invent parameters or replace the project. ' +
-      'Saving compiles a checkpoint and preview by default; explicit false flags can request a data-only revision. ' +
+      'Saving compiles a checkpoint and preview by default and can attach that existing preview for inspection; explicit false flags can request a data-only revision. ' +
       'Use a unique idempotencyKey per user save and reuse it only when retrying the same intent.',
     parameters: {
       action: { type: 'string', enum: ['read', 'save'], description: 'read (default) is read-only; save creates one atomic revision.' },
@@ -128,7 +130,7 @@ function recipeParameters(ctx) {
       saveCheckpoint: { type: 'boolean', description: 'Save a Blender checkpoint (default true).' },
       renderPreview: { type: 'boolean', description: 'Render an actual new preview (default true).' },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
@@ -143,7 +145,9 @@ function recipeParameters(ctx) {
             saveCheckpoint: args.saveCheckpoint !== false, renderPreview: args.renderPreview !== false,
             signal: exec?.signal })
         const { data, canonicalWarnings } = await canonicalCall(result, warning)
-        return { ok: true, text: renderSuccess(action === 'read' ? 'Saved assembly controls.' : 'Assembly dimensions saved.', data, { warnings: canonicalWarnings }), data }
+        const value = { ok: true, text: renderSuccess(action === 'read' ? 'Saved assembly controls.' : 'Assembly dimensions saved.', data, { warnings: canonicalWarnings }), data }
+        return action === 'save' && args.renderPreview !== false
+          ? await attachCommittedPreview(ctx, exec, resolved, value, { projectId: args.projectId, summary: data }) : value
       } catch (cause) { return { ok: false, ...renderFailure(cause, 'RECIPE_PARAMETER_FAILED') } }
     },
     presentCall: args => ({ card: 'generic', title: args?.action === 'save' ? 'Save assembly dimensions' : 'Read assembly dimensions',
@@ -194,6 +198,9 @@ function projectCreate(ctx) {
       'Give it the operator\'s brief as `goal`: it is stored with the project and never parsed, so write it ' +
       'in full. For an existing product design, call blender_recipe_list and pass its id/version/digest ' +
       'as recipe, with only its declared parameter overrides. recipe and sceneSpec are mutually exclusive. ' +
+      'When the brief asks for an editable Blender file and a preview, set saveCheckpoint:true and ' +
+      'renderPreview:true together to save both in this creation. The saved preview can be attached in this result; inspect it before rendering that view again. Inspect those returned receipts before ' +
+      'reading a full scene or starting another render. ' +
       'Omit both to start from a minimal renderable scaffold and build up with ' +
       'blender_scene_patch; pass one only when you already know the whole scene. ' +
       'Set saveCheckpoint:false to skip the Blender compile and store the SceneSpec alone. The revision then ' +
@@ -246,7 +253,7 @@ function projectCreate(ctx) {
         description: 'Optional stable key for this creation intent (1–128 characters, no control characters). Reuse it with the same inputs when retrying an uncertain result. A completed request opens the same project without another compile or render; a new project needs a new key. Recovery returns its current saved revision.',
       },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
@@ -282,7 +289,7 @@ function projectCreate(ctx) {
           notes.push('Compiler notes (these describe decisions made on your behalf):')
           for (const entry of data.warnings) notes.push(`  - ${entry.message}`)
         }
-        return {
+        const value = {
           ok: true,
           text: renderSuccess(`Created project "${data.projectId}" at revision ${data.revision.revision}.`, data, {
             notes,
@@ -290,6 +297,8 @@ function projectCreate(ctx) {
           }),
           data,
         }
+        return args.renderPreview === true
+          ? await attachCommittedPreview(ctx, exec, resolved, value, { projectId: data.projectId, summary: data.revision }) : value
       } catch (cause) {
         const failure = renderFailure(cause, 'PROJECT_CREATE_FAILED')
         return { ok: false, ...failure }
@@ -563,7 +572,7 @@ function scenePatch(ctx) {
         description: 'Also render the preview profile as part of this commit, so the revision arrives with an image. Default false.',
       },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
@@ -619,7 +628,7 @@ function scenePatch(ctx) {
         }
         const scene = data.scene ?? {}
         if (scene.counts) notes.push(`Scene now: ${JSON.stringify(scene.counts)}`)
-        return {
+        const value = {
           ok: true,
           text: renderSuccess(
             `${data.idempotentReplay === true ? 'Reused' : 'Committed'} revision ${data.revision}.`,
@@ -628,6 +637,8 @@ function scenePatch(ctx) {
           ),
           data,
         }
+        return args.renderPreview === true
+          ? await attachCommittedPreview(ctx, exec, resolved, value, { projectId: args.projectId, summary: data }) : value
       } catch (cause) {
         const failure = renderFailure(cause, 'SCENE_PATCH_FAILED')
         return { ok: false, ...failure }
@@ -688,11 +699,11 @@ function previewRender(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        if (args.mode !== undefined) return await renderInspection(resolved, {
+        if (args.mode !== undefined) return await imageForCallingModel(ctx, exec, await renderInspection(resolved, {
           projectId: args.projectId, revision: args.revision, mode: args.mode,
           cameraId: args.cameraId, frame: args.frame, width: args.width, height: args.height,
           samples: args.samples, signal: exec.signal,
-        })
+        }))
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderPreview({
           ...definedFields({
             projectId: args.projectId,

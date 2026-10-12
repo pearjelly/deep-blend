@@ -153,7 +153,7 @@ test('the distributed Host carries four validated self-contained recipes', () =>
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
   assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
-  assert.ok(result.recipes.every(r => r.parameters.length === (r.id === 'deepblend.modular-speaker' ? 6 : r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
+  assert.ok(result.recipes.every(r => r.parameters.length === (['deepblend.modular-speaker','deepblend.glazed-cup'].includes(r.id) ? 6 : r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
   for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(
@@ -405,9 +405,10 @@ test('cup versions keep distinct transition defaults and immutable historical so
   cpSync(join(BUILTIN_RECIPES,'glazed-cup'),join(recipes,'cup-current'),{recursive:true})
   cpSync(new URL('../fixtures/glazed-cup-v2/',import.meta.url),join(recipes,'cup-middle'),{recursive:true})
   cpSync(new URL('../fixtures/glazed-cup-v1/',import.meta.url),join(recipes,'cup-old'),{recursive:true})
-  const entries=catalog.list().recipes.filter(r=>r.id==='deepblend.glazed-cup');assert.deepEqual(entries.map(r=>r.version).sort(),['1.0.0','2.0.0','3.0.0'])
+  cpSync(new URL('../fixtures/glazed-cup-v3/',import.meta.url),join(recipes,'cup-previous'),{recursive:true})
+  const entries=catalog.list().recipes.filter(r=>r.id==='deepblend.glazed-cup');assert.deepEqual(entries.map(r=>r.version).sort(),['1.0.0','2.0.0','3.0.0','3.1.0'])
   const select=version=>{const r=entries.find(r=>r.version===version);return {id:r.id,version:r.version,digest:r.digest}}
-  const original=select('1.0.0'),middle=select('2.0.0'),current=select('3.0.0')
+  const original=select('1.0.0'),middle=select('2.0.0'),current=select('3.1.0')
   assert.equal(catalog.instantiate(original).sceneSpec.entities.find(e=>e.id==='cup').generator.rootTension,1)
   assert.equal(catalog.instantiate(middle).sceneSpec.entities.find(e=>e.id==='cup').generator.rootTension,1.5)
   assert.equal(catalog.instantiate(current).sceneSpec.entities.find(e=>e.id==='cup').generator.rootTension,2.5)
@@ -422,7 +423,7 @@ test('cup versions keep distinct transition defaults and immutable historical so
   assert.equal(JSON.parse(lock.sceneSource).entities.find(e=>e.id==='cup').generator.rootTension,undefined)
   rmSync(join(recipes,'cup-old'),{recursive:true});assert.throws(()=>catalog.instantiate(original),{code:'RECIPE_NOT_FOUND'})
   rmSync(join(recipes,'cup-middle'),{recursive:true});assert.throws(()=>catalog.instantiate(middle),{code:'RECIPE_NOT_FOUND'})
-  assert.equal(catalog.instantiate(current).lock.version,'3.0.0')
+  assert.equal(catalog.instantiate(current).lock.version,'3.1.0')
   for(const [p,b]of Object.entries(before))assert(b.equals(readFileSync(join(directory,p))))
   for(const [p,b]of Object.entries(middleBefore))assert(b.equals(readFileSync(join(middleDirectory,p))))
 })
@@ -444,4 +445,25 @@ test('a saved 2.0.0 speaker remains editable after the installed catalog advance
   assert.equal(replay.spec.entities.find(entity => entity.id === 'grille-warp-0').generator.pathInterpolation, 'poly')
   assert.ok(Math.abs(replay.spec.entities.find(entity => entity.id === 'cabinet-shell').generator.dimensions[0] - .3) < 1e-10)
   assert.equal(JSON.stringify(saved.lock), original)
+})
+
+test('cup three-dimension creation and continued editing retain native intent, appearance and original lock bytes', async t => {
+  const { studio, request } = setup(t, 'glazed-cup')
+  const made = await studio.createProject({ title: 'Thick wall cup', recipe: { ...request,
+    parameters: { 'cup-height-mm': 115, 'cup-outer-diameter-mm': 84, 'cup-wall-mm': 4 } }, saveCheckpoint: false })
+  const projectId = made.projectId, origin = studio.store.revisionDirectory(projectId, 'r0001')
+  const bytes = Object.fromEntries(['scene-spec.json','recipe-lock.json'].map(n=>[n,readFileSync(join(origin,n))]))
+  const first = await studio.getRecipeParameters(projectId)
+  assert.equal(first.available, true); assert.equal(first.parameters.length, 3)
+  assert.deepEqual(Object.fromEntries(first.parameters.map(p=>[p.id,p.value])), { 'cup-height-mm':115,'cup-outer-diameter-mm':84,'cup-wall-mm':4 })
+  const spec = JSON.parse(bytes['scene-spec.json']), cup = spec.entities.find(e=>e.id==='cup').generator
+  assert.ok(Math.abs(cup.height-.115)<1e-12); assert.ok(Math.abs(cup.radius-.042)<1e-12); assert.ok(Math.abs(cup.wallThickness-.004)<1e-12)
+  const resized = await studio.updateRecipeParameters({projectId,baseRevision:'r0001',parameters:{'cup-height-mm':125},saveCheckpoint:false,idempotencyKey:'cup-height-edit'})
+  assert.equal(resized.revision,'r0002')
+  const after = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId,'r0002'),'scene-spec.json'))),g=after.entities.find(e=>e.id==='cup').generator
+  assert.ok(Math.abs(g.height-.125)<1e-12); assert.equal(g.radius,cup.radius);assert.equal(g.wallThickness,cup.wallThickness)
+  assert.deepEqual(after.materials,spec.materials)
+  await assert.rejects(()=>studio.updateRecipeParameters({projectId,baseRevision:'r0002',parameters:{'cup-wall-mm':99},saveCheckpoint:false}),{code:'RECIPE_PARAMETER_INVALID'})
+  for(const [n,b] of Object.entries(bytes))assert.ok(readFileSync(join(origin,n)).equals(b))
+  assert.equal(studio.store.readRecord(projectId).currentRevision,'r0002')
 })
