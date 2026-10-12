@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.6.1](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.1) 用三个毫米尺寸继续调整已有音箱，保留外观、摄影和历史，并核对安装归属。音箱场景含 111 个实体，包括辅助工具和布景。见[按尺寸创建指南](deepblend/docs/sized-speaker.md)和[复杂建模计划](deepblend/docs/complex-modeling-roadmap.md)。
+最新稳定版 [0.6.2](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.2) 用三个毫米尺寸继续调整已有音箱，保留外观、摄影和历史，并在保存后立即预览或切换项目时保护当前模型的预览。音箱场景含 111 个实体，包括辅助工具和布景。见[按尺寸创建指南](deepblend/docs/sized-speaker.md)和[复杂建模计划](deepblend/docs/complex-modeling-roadmap.md)。
 
 ## 安装并开始
 
@@ -401,7 +401,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
-**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** [0.6.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.0)：冻结实现 `ee7d833` 完整验收 39/39；最终发布和主线来源的产品包与配方字节相同，发布维护脚本、检查和文档差异单独核对。最终候选与主线 CI、干净构建、七包匿名读回、公开命令及隔离 DSH 下整轮三路安装均通过。0.6.1 也已发布：39 套流程分别有通过证据，原整轮 33/39 的磁盘失败与同源六项复验单独保留；最新单元文件全部通过，用例总数见上表。七包、公开 CLI、安装包及一次整轮公开三路读回通过。原始证据见[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
+**套件与文件数是源码的结构检查，断言与用例总数需要运行核对。** [0.6.0 已发布](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.0)：冻结实现 `ee7d833` 完整验收 39/39；最终发布和主线来源的产品包与配方字节相同，发布维护脚本、检查和文档差异单独核对。最终候选与主线 CI、干净构建、七包匿名读回、公开命令及隔离 DSH 下整轮三路安装均通过。0.6.1 也已发布：39 套流程分别有通过证据，原整轮 33/39 的磁盘失败与同源六项复验单独保留；最新单元文件全部通过，用例总数见上表。七包、公开 CLI、安装包及一次整轮公开三路读回通过。0.6.2 已完成一次整轮 39/39、对应主线构建与两次三项 CI、七包及整轮公开三路读回；不会在项目往返切换后继续旧预览请求。原始证据见[每日发布记录](deepblend/docs/daily-releases.md)；社区投稿已更新，等待上游审核。
 套件数、文件数、工具数由
 `contract/documented-counts.test.mjs` 直接从 `run-all.sh`、契约目录和 `UI_TOOL_CARD_KEYS`
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
