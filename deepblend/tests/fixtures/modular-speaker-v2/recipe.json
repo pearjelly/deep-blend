@@ -1,0 +1,2518 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.modular-speaker",
+  "version": "2.0.0",
+  "title": "编织格栅桌面音箱",
+  "description": "编织格栅桌面音箱，带旋钮、输入键、散热开口与背面接线。通过三个毫米尺寸参数联动箱体、内腔和装配部件，保留按钮动画，并可调整外壳颜色、粗糙度和摄影曝光。",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend",
+    "note": "Bounded assembly controls derived from the reviewed speaker 1.0.0. Default native geometry, transforms and animation are preserved; the original default render bytes remain pinned. This is not manufacturing validation."
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "animation.transform",
+      "geometry.curve",
+      "geometry.lathe",
+      "geometry.modifiers",
+      "geometry.primitive",
+      "geometry.primitive.dimensions",
+      "material.principled",
+      "material.procedural",
+      "recipe.geometry-bindings"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "bc5c79614d0895b43263fc2f57257a8bf9a5895d7ec82947faa4340c9b8d2396"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492",
+    "mediaType": "image/png",
+    "alt": "编织格栅桌面音箱默认参数的实际Blender渲染"
+  },
+  "parameters": [
+    {
+      "id": "cabinet-width-mm",
+      "title": "箱体宽度（mm）",
+      "description": "联动外壳、内腔、前后开口与盖板；格栅、控制模块和脚垫随装配边缘移动，零件自身尺寸保持不变。",
+      "default": 264,
+      "minimum": 264,
+      "maximum": 340,
+      "type": "number",
+      "bindings": [
+        {
+          "kind": "entity",
+          "entityId": "shell-cavity-tool",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-opening-tool",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-tool",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "cabinet-shell",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-driver-tool",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-baffle",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-gasket",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-cone",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-dust-dome",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-gasket",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-metal-rim",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-highlight-lip",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "weave-boundary-tool",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-0",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-1",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-weft",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module-gasket",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-seat",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-metal-seat",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "volume-knob",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-face-inlay",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-00",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-01",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-02",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-03",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-04",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-05",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-06",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-07",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-08",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-09",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-10",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-11",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-12",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-13",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-14",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-15",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-16",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-17",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-18",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-19",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-20",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-21",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-22",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-23",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-24",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-25",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-26",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-27",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-28",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-29",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-30",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-31",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-32",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-33",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-34",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-35",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-36",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-37",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-38",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-39",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-40",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-41",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-42",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-43",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-index",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-00",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-01",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-02",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-03",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-04",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-05",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-06",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-07",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-08",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-09",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-10",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-0",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-0",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-1",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-1",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-0",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-1",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-2",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "top-button-gasket",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "top-button",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-panel-gasket",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-panel",
+          "property": "dimensions",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-l-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-l-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-l-t",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-l-t",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-r-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-r-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-r-t",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-r-t",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-l-f",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-l-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-r-f",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-r-b",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0008409090909090908
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0013863636363636363
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005340909090909091
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "targetPoint",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0008181818181818182
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0012159090909090908
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0004659090909090908
+        },
+        {
+          "kind": "camera",
+          "cameraId": "motion-detail",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "motion-detail",
+          "property": "targetPoint",
+          "axis": "x",
+          "multiplier": 0.0005
+        }
+      ]
+    },
+    {
+      "id": "cabinet-depth-mm",
+      "title": "箱体深度（mm）",
+      "description": "保持内腔与外壳的深度差，前后装配面、接线和脚垫一起移动。",
+      "default": 138,
+      "minimum": 138,
+      "maximum": 180,
+      "type": "number",
+      "bindings": [
+        {
+          "kind": "entity",
+          "entityId": "shell-cavity-tool",
+          "property": "dimensions",
+          "axis": "y",
+          "multiplier": 0.002139130433852552
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-opening-tool",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-tool",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "cabinet-shell",
+          "property": "dimensions",
+          "axis": "y",
+          "multiplier": 0.00191304347726276
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-driver-tool",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-baffle",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-gasket",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-cone",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-dust-dome",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-gasket",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-metal-rim",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-highlight-lip",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "weave-boundary-tool",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-0",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-1",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-weft",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module-gasket",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-seat",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-metal-seat",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "volume-knob",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-face-inlay",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-00",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-01",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-02",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-03",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-04",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-05",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-06",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-07",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-08",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-09",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-10",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-11",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-12",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-13",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-14",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-15",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-16",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-17",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-18",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-19",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-20",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-21",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-22",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-23",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-24",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-25",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-26",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-27",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-28",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-29",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-30",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-31",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-32",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-33",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-34",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-35",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-36",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-37",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-38",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-39",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-40",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-41",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-42",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-43",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-index",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-00",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-01",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-02",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-03",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-04",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-05",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-06",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-07",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-08",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-09",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-10",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-0",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-0",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-1",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-1",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-0",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-1",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-2",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-vent-tool",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-panel-gasket",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-panel",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-l-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-l-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-l-t",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-l-t",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-r-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-r-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-r-t",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-r-t",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-jack-rim",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-jack-dark",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "power-socket-grommet",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "power-plug",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "power-cable",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-label-rule-0",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-label-rule-1",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-label-rule-2",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-l-f",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-l-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-r-f",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "foot-r-b",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0008043478260869564
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.001326086956521739
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005108695652173913
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "targetPoint",
+          "axis": "y",
+          "multiplier": -0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0007826086956521738
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.0011630434782608694
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.00044565217391304336
+        }
+      ]
+    },
+    {
+      "id": "cabinet-height-mm",
+      "title": "箱体高度（mm）",
+      "description": "底面高度不变；联动内腔、开口、盖板及正面组件，并将顶部按钮的按压动画整体移到新顶面。",
+      "default": 162,
+      "minimum": 162,
+      "maximum": 220,
+      "type": "number",
+      "bindings": [
+        {
+          "kind": "entity",
+          "entityId": "shell-cavity-tool",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0017083333323368057
+        },
+        {
+          "kind": "entity",
+          "entityId": "shell-cavity-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-opening-tool",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.00177499999902375
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-opening-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-tool",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0017355371906563762
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "cabinet-shell",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.001629629628663923
+        },
+        {
+          "kind": "entity",
+          "entityId": "cabinet-shell",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-driver-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-baffle",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0016986301381962845
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-baffle",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-gasket",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0016845637584118733
+        },
+        {
+          "kind": "entity",
+          "entityId": "front-gasket",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-cone",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "driver-dust-dome",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-gasket",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-metal-rim",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-highlight-lip",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "weave-boundary-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-0",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-warp-1",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "grille-weft",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module-gasket",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "control-module",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-seat",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-metal-seat",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "volume-knob",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-face-inlay",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-00",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-01",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-02",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-03",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-04",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-05",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-06",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-07",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-08",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-09",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-10",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-11",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-12",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-13",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-14",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-15",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-16",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-17",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-18",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-19",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-20",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-21",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-22",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-23",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-24",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-25",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-26",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-27",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-28",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-29",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-30",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-31",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-32",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-33",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-34",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-35",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-36",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-37",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-38",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-39",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-40",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-41",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-42",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-knurl-43",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "dial-index",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-00",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-01",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-02",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-03",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-04",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-05",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-06",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-07",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-08",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-09",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "scale-tick-10",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-0",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-0",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-seat-1",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "input-key-1",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-0",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-1",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "status-lens-2",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "top-button-gasket",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "top-button",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001,
+          "offsetAnimation": true
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-vent-tool",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-panel-gasket",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0017542372886856505
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-panel-gasket",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-panel",
+          "property": "dimensions",
+          "axis": "z",
+          "multiplier": 0.0017894736855290857
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-service-panel",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-l-t",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-l-t",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "screw-slot-tool-r-t",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "rear-screw-r-t",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "x",
+          "multiplier": 0.0013703703703703703
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "y",
+          "multiplier": -0.002259259259259259
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0013703703703703703
+        },
+        {
+          "kind": "camera",
+          "cameraId": "hero",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "detail",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.0013333333333333333
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "y",
+          "multiplier": 0.001981481481481481
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001259259259259259
+        },
+        {
+          "kind": "camera",
+          "cameraId": "reverse",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.0005
+        },
+        {
+          "kind": "camera",
+          "cameraId": "motion-detail",
+          "property": "location",
+          "axis": "z",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "camera",
+          "cameraId": "motion-detail",
+          "property": "targetPoint",
+          "axis": "z",
+          "multiplier": 0.001
+        }
+      ]
+    },
+    {
+      "id": "main-color",
+      "title": "外壳颜色",
+      "description": "调整音箱外壳的颜色。",
+      "type": "color",
+      "default": [
+        0.66,
+        0.62,
+        0.52
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "shell-porcelain",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "主表面粗糙度",
+      "description": "调整音箱外壳的光泽；数值越大，表面越柔和。",
+      "type": "number",
+      "default": 0.31,
+      "minimum": 0.2,
+      "maximum": 0.55,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "shell-porcelain",
+          "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "exposure",
+      "title": "摄影曝光",
+      "description": "调整整体画面的明暗，预览和成品同步生效。",
+      "type": "number",
+      "default": 0,
+      "minimum": -1,
+      "maximum": 1,
+      "bindings": [
+        {
+          "kind": "render-profile",
+          "profile": "preview",
+          "property": "exposure"
+        },
+        {
+          "kind": "render-profile",
+          "profile": "final",
+          "property": "exposure"
+        }
+      ]
+    }
+  ]
+}

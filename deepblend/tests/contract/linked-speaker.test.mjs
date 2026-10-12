@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { createLinkedSpeakerBundle } from '../../tools/lib/linked-speaker-recipe.mjs'
 import { instantiateRecipe, validateRecipePackage, RECIPE_CAPABILITIES } from '../../../packages/deepblend/contracts/lib/recipe.js'
 import { compileSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
+import { createSmoothSpeakerBundle } from '../../tools/lib/smooth-speaker-recipe.mjs'
 
 const directory = new URL('../fixtures/modular-speaker-v1/', import.meta.url)
 const source = { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))),
@@ -14,12 +15,12 @@ const entity = (spec, id) => spec.entities.find(e => e.id === id)
 const dimensions = (spec, id) => entity(spec, id).generator.dimensions.map((value, axis) => value * entity(spec, id).transform.scale[axis])
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} differs from ${expected}`)
 
-test('the public built-in is the deterministic candidate and legacy consumers retain the original recipe', () => {
-  const folder = new URL('../../recipes/modular-speaker/', import.meta.url)
+test('the historical assembly remains reproducible and legacy consumers retain the original recipe', () => {
+  const folder = new URL('../fixtures/modular-speaker-v2/', import.meta.url)
   assert.deepEqual(JSON.parse(readFileSync(new URL('recipe.json', folder))), bundle.manifest)
   assert.deepEqual(readFileSync(new URL('scene-spec.json', folder)), bundle.sceneBytes)
   assert.deepEqual(readFileSync(new URL('preview.png', folder)), source.previewBytes)
-  assert.match(execFileSync(process.execPath, [new URL('../../tools/build-modular-speaker-recipe.mjs', import.meta.url).pathname, '--check'], { encoding: 'utf8' }), /2\.0\.0 verified/)
+  assert.match(execFileSync(process.execPath, [new URL('../../tools/build-modular-speaker-recipe.mjs', import.meta.url).pathname, '--check'], { encoding: 'utf8' }), /2\.1\.0 verified/)
   const supportedCapabilities = RECIPE_CAPABILITIES.filter(c => !['recipe.geometry-bindings', 'geometry.primitive.dimensions'].includes(c))
   assert.equal(validateRecipePackage(source, { supportedCapabilities }).ok, true)
   assert.equal(instantiateRecipe(source, {}, { supportedCapabilities }).recipe.version, '1.0.0')
@@ -29,6 +30,28 @@ test('the public built-in is the deterministic candidate and legacy consumers re
     assert.throws(() => createLinkedSpeakerBundle(altered), /exact reviewed/)
   }
 })
+
+test('the current speaker changes only the two warp bends and keeps all bounded assembly controls', () => {
+  const folder = new URL('../../recipes/modular-speaker/', import.meta.url)
+  const current = { manifest: JSON.parse(readFileSync(new URL('recipe.json', folder))),
+    sceneBytes: readFileSync(new URL('scene-spec.json', folder)), previewBytes: readFileSync(new URL('preview.png', folder)) }
+  assert.deepEqual(current, createSmoothSpeakerBundle(bundle, current.previewBytes))
+  assert.equal(current.manifest.version, '2.1.0')
+  assert.deepEqual(current.manifest.parameters, bundle.manifest.parameters)
+  for (const values of [{}, { 'cabinet-width-mm': 300 },
+    { 'cabinet-width-mm': 340, 'cabinet-depth-mm': 180, 'cabinet-height-mm': 220 }]) {
+    const old = instantiateRecipe(bundle, values).spec, next = instantiateRecipe(current, values).spec
+    for (const id of ['grille-warp-0', 'grille-warp-1']) {
+      const warp = entity(next, id), original = entity(old, id)
+      assert.equal(warp.generator.pathInterpolation, 'bezier')
+      assert.equal(warp.generator.curveResolution, 4)
+      assert.equal(warp.generator.bevelDepth, original.generator.bevelDepth)
+      warp.generator = original.generator
+    }
+    assert.deepEqual(next, old, 'Sizes, trim, parts, materials, cameras and animation must stay intact')
+  }
+})
+
 
 test('speaker controls retain all 111 parts and the default authored transforms, modifiers and animation', () => {
   const before = JSON.stringify(source), spec = instantiateRecipe(bundle).spec, old = compileSceneSpec(JSON.parse(source.sceneBytes)).spec
