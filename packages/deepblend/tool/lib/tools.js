@@ -157,7 +157,8 @@ function recipeList(ctx) {
     description:
       'List locally available, validated product recipes without launching Blender or creating a project. ' +
       'Returns recipes with id, version, digest, title, author, declared license, source, preview URL and ' +
-      'finite parameter definitions, plus errors for packages that could not be accepted. Content hashes ' +
+      'parameter IDs, types, defaults and allowed ranges, plus errors for packages that could not be accepted. ' +
+      'Internal geometry binding maps stay in the Host and saved recipe source. Content hashes ' +
       'check loaded bytes; they do not certify authorship or artistic quality. Use the returned id, version ' +
       'and digest together in blender_project_create.recipe. Only pass parameter IDs and ranges declared ' +
       'by that recipe. This tool never downloads or installs anything.',
@@ -168,7 +169,10 @@ function recipeList(ctx) {
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.listRecipes(), warning)
-        return { ok: true, text: renderSuccess('Available product recipes.', data, { warnings: canonicalWarnings }), data }
+        const catalog = { ...data, recipes: data.recipes.map(recipe => ({ ...recipe,
+          parameters: recipe.parameters.map(({ bindings, ...parameter }) => parameter),
+        })) }
+        return { ok: true, text: renderSuccess('Available product recipes.', catalog, { warnings: canonicalWarnings }), data: catalog }
       } catch (cause) {
         return { ok: false, ...renderFailure(cause, 'RECIPE_LIST_FAILED') }
       }
