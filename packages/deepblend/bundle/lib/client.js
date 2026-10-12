@@ -2822,6 +2822,7 @@ window.__ModuleLoader__.load({
       let live = false
       let loadSequence = 0
       let diffSequence = 0
+      let previewSourceGeneration = 0
       let creationAttempt = null
       const draftStorage = creationDraftStorage(settings)
       let creationDraftId = newCreationKey(), creationDraftRoot = null, persistedCreationSignature = null
@@ -2883,6 +2884,8 @@ window.__ModuleLoader__.load({
       }
       /** Change the snapshot and tell everyone. @param {object} patch */
       const set = (patch) => {
+        if (['projectId', 'projectsRoot', 'activeProjectId']
+          .some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) previewSourceGeneration += 1
         // Automatic edit images are source snapshots too. They cannot override
         // fresh rows from another store, even when its project/revision IDs match.
         if (Object.hasOwn(patch, 'projectsRoot') && patch.projectsRoot !== data.projectsRoot) {
@@ -4052,7 +4055,7 @@ window.__ModuleLoader__.load({
         },
 
         renderPreview: async () => {
-          const projectId = data.activeProjectId, projectsRoot = data.projectsRoot
+          const projectId = data.activeProjectId, projectsRoot = data.projectsRoot, generation = previewSourceGeneration
           if (!projectId || data.previewBusy || data.busy.patch || data.busy.editor || data.busy.assembly || data.busy.restore) return
           setIn('notices', 'preview', null)
           set({ previewBusy: true, previewResult: null })
@@ -4060,7 +4063,7 @@ window.__ModuleLoader__.load({
           // Resolve the current revision from the Host instead of rendering the
           // cached scene. A failed read must never fall back to older geometry.
           const fresh = await readRoute(fetchImpl, `${ROUTES.state}?projectId=${encodeURIComponent(projectId)}&preview=${++tick}`, 'state')
-          if (data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) {
+          if (generation !== previewSourceGeneration || data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) {
             set({ previewBusy: false }); return
           }
           const selected = fresh.payload?.selected
@@ -4071,7 +4074,7 @@ window.__ModuleLoader__.load({
             ? await postJson(fetchImpl, projectRoute(projectId, '/preview'), { revision: selected.scene.revision })
             : { ok: false, error: fresh.error || { code: 'UI_PREVIEW_MISMATCH', message: t('preview.sourceMismatch') } }
           set({ previewBusy: false })
-          if (data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) return
+          if (generation !== previewSourceGeneration || data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) return
           if (outcome.ok) set({ compareMode: 'renders' })
           set({
             previewResult: outcome.ok
@@ -4154,6 +4157,7 @@ window.__ModuleLoader__.load({
           void load()
         },
         stop() {
+          previewSourceGeneration += 1
           loadSequence += 1
           diffSequence += 1
           closeCreationDraft()
