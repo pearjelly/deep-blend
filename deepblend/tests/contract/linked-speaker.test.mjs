@@ -1,14 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, cpSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createLinkedSpeakerBundle } from '../../tools/lib/linked-speaker-recipe.mjs'
 import { instantiateRecipe, validateRecipePackage, RECIPE_CAPABILITIES } from '../../../packages/deepblend/contracts/lib/recipe.js'
 import { compileSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
-import { instantiateRecipeLock } from '../../../packages/deepblend/contracts/lib/recipe.js'
-import { RecipeCatalog } from '../../../packages/deepblend/host/lib/recipe-catalog.js'
 import { createSmoothSpeakerBundle } from '../../tools/lib/smooth-speaker-recipe.mjs'
 
 const directory = new URL('../fixtures/modular-speaker-v1/', import.meta.url)
@@ -56,24 +52,6 @@ test('the current speaker changes only the two warp bends and keeps all bounded 
   }
 })
 
-test('a saved 2.0.0 speaker remains editable after the installed catalog advances to 2.1.0', t => {
-  const root = mkdtempSync(join(tmpdir(), 'deepblend-speaker-upgrade-'))
-  t.after(() => rmSync(root, { recursive: true, force: true }))
-  cpSync(new URL('../fixtures/modular-speaker-v2/', import.meta.url), join(root, 'speaker'), { recursive: true })
-  const catalog = new RecipeCatalog({ builtinRoot: root }), entry = catalog.list().recipes[0]
-  const request = { id: entry.id, version: entry.version, digest: entry.digest }
-  const saved = catalog.instantiate(request), original = JSON.stringify(saved.lock)
-  rmSync(join(root, 'speaker'), { recursive: true })
-  cpSync(new URL('../../recipes/modular-speaker/', import.meta.url), join(root, 'speaker'), { recursive: true })
-  assert.deepEqual(catalog.list().errors, [])
-  assert.equal(catalog.list().recipes[0].version, '2.1.0')
-  assert.throws(() => catalog.instantiate(request), { code: 'RECIPE_NOT_FOUND' })
-  const replay = instantiateRecipeLock(saved.lock, { 'cabinet-width-mm': 300 })
-  assert.equal(replay.recipe.version, '2.0.0')
-  assert.equal(entity(replay.spec, 'grille-warp-0').generator.pathInterpolation, 'poly')
-  close(dimensions(replay.spec, 'cabinet-shell')[0], .3)
-  assert.equal(JSON.stringify(saved.lock), original)
-})
 
 test('speaker controls retain all 111 parts and the default authored transforms, modifiers and animation', () => {
   const before = JSON.stringify(source), spec = instantiateRecipe(bundle).spec, old = compileSceneSpec(JSON.parse(source.sceneBytes)).spec

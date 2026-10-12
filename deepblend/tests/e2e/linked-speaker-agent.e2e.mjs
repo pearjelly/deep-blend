@@ -45,7 +45,7 @@ try {
   check('the model creates the requested project through the actual tool', existsSync(manifestPath) && cards.includes('blender_project_create'), cards)
   const manifest = JSON.parse(readFileSync(manifestPath)), directory = join(root, 'projects/agent-linked-width/revisions/r0001')
   const lock = JSON.parse(readFileSync(join(directory, manifest.recipe.lockPath))), spec = JSON.parse(readFileSync(join(directory, 'scene-spec.json')))
-  check('the model selects the linked speaker and the requested millimetre values', lock.id === 'deepblend.modular-speaker' && lock.version === '2.0.0' && lock.values['cabinet-width-mm'] === 300 && lock.values['cabinet-depth-mm'] === 138 && lock.values['cabinet-height-mm'] === 162, lock.values)
+  check('the model selects the linked speaker and the requested millimetre values', lock.id === 'deepblend.modular-speaker' && lock.version === '2.1.0' && lock.values['cabinet-width-mm'] === 300 && lock.values['cabinet-depth-mm'] === 138 && lock.values['cabinet-height-mm'] === 162, lock.values)
   check('the real creation has an editable saved assembly and rendered preview', spec.entities.length === 111 && existsSync(join(directory, 'scene.blend')) && manifest.previews.length > 0)
   json('recipe-lock.json', lock); json('manifest.json', manifest)
   await page.screenshot(join(output, 'result.png'))
