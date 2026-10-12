@@ -75,7 +75,7 @@ run_suite "Public runtime conformance: packed checker, native evidence, cancella
   node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs
 
 run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
-  node deepblend/tests/blender-integration/handled-cup.e2e.mjs
+  env DEEPBLEND_CUP_GROUP=all node deepblend/tests/blender-integration/handled-cup.e2e.mjs
 
 run_suite "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild" \
   node deepblend/tests/blender-integration/asset-bundle.e2e.mjs

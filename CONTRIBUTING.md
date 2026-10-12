@@ -96,7 +96,7 @@ node deepblend/tests/e2e/ui-live.e2e.mjs       # 真实会话里的工具卡
 
 契约检查可以核对 workflow 的路径、固定依赖、权限和文档，但不能证明 runner 能执行它。
 当前契约 job 与 Linux 渲染/浏览器 job 都运行在 Ubuntu 24.04；契约与干净克隆在同一个
-job，另一 job 验证真实 Blender、Agent 和浏览器。实际范围与下载证据见
+job，Linux 作业分别验证真实 Blender/Agent/浏览器、杯尺寸边界，以及交付和编辑。实际范围与下载证据见
 [CI 指南](deepblend/docs/ci.md)。修改后核对该提交的实际 Actions 结果及产物。
 
 下面的 Linux 容器示例复现契约层的前置条件与测试。它没有运行 Blender、Chrome、

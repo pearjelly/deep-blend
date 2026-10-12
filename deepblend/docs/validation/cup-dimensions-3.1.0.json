@@ -348,5 +348,34 @@
       "Public three-route parity",
       "Community projection/submission and distinct upstream status"
     ]
+  },
+  "ciGroupingPending": {
+    "originalRun": 38290709648,
+    "originalHead": "197ffc32acea1fa64ca3e20706dd01e9045a37e4",
+    "originalStatus": "failed native step8min; final65/65 report after cutoff notCIpass",
+    "artifactZipBytes": 98792632,
+    "artifactAllCRCVerified": true,
+    "plannedGroups": [
+      "core",
+      "parameters"
+    ],
+    "defaultFullGroup": "all",
+    "assertionScopePreserved": true,
+    "coverageEquivalence": "actual all65/core38/parameters28, union exactly full65, onlyactivation overlap",
+    "newExactCommitCI": "pending fourjobs",
+    "localElapsedMs": {
+      "all": 367576,
+      "core": 180976,
+      "parameters": 185240
+    },
+    "scope": "Local raw timings, notLinux or population speed comparison",
+    "groupMutationChecks": [
+      "core incorrectly selectsparameters: killed",
+      "parameters incorrectly selectscore: killed",
+      "full-entry alloverride removed: killed"
+    ],
+    "restoredExactly": true,
+    "unknownGroupRejectedBeforeProjectCreation": true,
+    "productFilesUnchangedSinceAcceptedFreeze": 175
   }
 }

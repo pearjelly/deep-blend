@@ -10,6 +10,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join, resolve } from 'node:path'
 
 const ROOT=resolve(import.meta.dirname,'../../..')
+const group=process.env.DEEPBLEND_CUP_GROUP??'all'
+if(!['all','core','parameters'].includes(group))throw new Error(`Unknown native cup group: ${group}`)
+const startedAt=Date.now()
 const BLENDER=process.env.DEEPBLEND_BLENDER_PATH??join(ROOT,'.tools/Blender.app/Contents/MacOS/Blender')
 const output=resolve(process.env.DEEPBLEND_CUP_OUTPUT??join(ROOT,'.deepblend/quality',`handled-cup-public-${new Date().toISOString().replaceAll(':','-')}`))
 if(existsSync(output))throw new Error(`Evidence already exists: ${output}`)
@@ -81,6 +84,7 @@ try{
   await new Promise(resolve=>setTimeout(resolve,250))
   const studio=ctx.get('blenderStudio'),runtime=ctx.get('blenderRuntime')
   check('real Host and Provider activate',Boolean(studio&&runtime))
+  if(group==='all'||group==='core'){
   const spec=json(join(ROOT,'deepblend/fixtures/handled-cup/scene-spec.json'))
   spec.renderProfiles.preview.resolution=[320,240];spec.renderProfiles.preview.samples=8;spec.renderProfiles.preview.maxSamplesBudget=8
   const created=await studio.createProject({sceneSpec:spec,title:spec.project.title,saveCheckpoint:true,renderPreview:true})
@@ -137,7 +141,9 @@ try{
     previousRevision=tensionRevision;previousFacts=tensionFacts
   }
   check('transition changes preserve the original source and checkpoint bytes',Object.entries(original).every(([path,hash])=>hashes(revisionDir)[path]===hash))
+  }
   // Exercise the shipped parameter route, independent of the direct generator patches above.
+  if(group==='all'||group==='parameters'){
   const catalog=await studio.listRecipes()
   const recipe=catalog.recipes.find(r=>r.id==='deepblend.glazed-cup'&&r.version==='3.1.0')
   check('current cup exposes guarded generator bindings',recipe&&['cup-height-mm','cup-outer-diameter-mm','cup-wall-mm'].every(id=>recipe.parameters.some(p=>p.id===id&&p.bindings.some(b=>b.kind==='generator'))))
@@ -164,14 +170,15 @@ try{
       write(join(output,'parameter-continued.json'),edited)
     }
   }
+  }
 }catch(error){failure={message:error.message,stack:error.stack};console.error(error)}finally{
   try { await ctx.fiber.dispose() } catch(error) {
     checks.push({name:'Host and Provider cleanup',ok:false,detail:error.message})
     failure ??= {message:error.message,stack:error.stack}
     console.error(error)
   }
-  write(join(output,'report.json'),{status:failure?'failed':'technical-pass-artistic-review-required',passed:checks.filter(c=>c.ok).length,total:checks.length,checks,failure,
-    scope:'Public Host and provider generator, parameter refusal, actual reopened geometry, edit scaling, beauty/clay pixels and immutable source versions. No online model or external artistic approval.'})
+  write(join(output,'report.json'),{group,elapsedMs:Date.now()-startedAt,status:failure?'failed':'technical-pass-artistic-review-required',passed:checks.filter(c=>c.ok).length,total:checks.length,checks,failure,
+    scope:group==='core'?'Native cup construction, transition edits, reopened geometry, beauty/clay and original preservation; parameter boundaries are a separate group. No online model or artistic approval.':group==='parameters'?'Native parameter/default/boundary dimensions, actual geometry and camera projections, previewed continuation and original preservation; transition/clay checks are a separate group. No online model or artistic approval.':'Public Host and provider generator, parameter refusal, actual reopened geometry, edit scaling, beauty/clay pixels and immutable source versions. No online model or external artistic approval.'})
 }
-console.log(`Handled cup: ${checks.filter(c=>c.ok).length}/${checks.length}; ${output}`)
+console.log(`Handled cup (${group}): ${checks.filter(c=>c.ok).length}/${checks.length}; ${output}`)
 if(failure)process.exitCode=1
