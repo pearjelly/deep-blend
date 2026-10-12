@@ -99,6 +99,9 @@ export async function persistImage(attachments, bytes, name) {
       width: Number(ref.width),
       height: Number(ref.height),
       name: typeof ref.name === 'string' ? ref.name : name,
+      ...(ref.originalDimensions ? { originalDimensions: {
+        width: Number(ref.originalDimensions.width), height: Number(ref.originalDimensions.height),
+      } } : {}),
     },
     note: null,
   }

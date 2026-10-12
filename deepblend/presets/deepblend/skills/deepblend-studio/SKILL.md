@@ -37,6 +37,42 @@ time (`RENDER_JOB_CONFLICT`).
 
 ## The order that works
 
+### Complete a declared recipe task with few operations
+
+When a recipe covers the requested object and its declared parameter ranges,
+use those controls directly. For a brief asking for an editable Blender file
+and a preview, create with `saveCheckpoint: true` and `renderPreview: true` in
+the same `blender_project_create` call. Keep the recipe identity and digest,
+requested values, saved revision, checkpoint and preview receipts together.
+Do not create the default object and then rebuild dimensions already covered
+by its controls. Read the returned receipts before asking for the full scene.
+
+Creation, dimensional saves and patches with preview enabled can include the
+verified saved preview image in the same result. Inspect that image first; do
+not render the same view again just to retrieve it. For a visible patch, request
+checkpoint and preview together. When a result says its image was not attached,
+the model has not seen those pixels; retain the saved artifact and report that
+limit. Additional views still need to show the features required by the brief.
+
+For a later dimensional change, read `blender_recipe_parameters`, then save
+only the changed parameter IDs with the current base revision and preview
+enabled. This preserves independent appearance, the original revision and
+the declared attachment/framing links. If a controlled field conflicts, resolve
+that actual conflict instead of silently replacing a hand-edited model.
+
+A cup's body diameter excludes its handle. `cup-outer-diameter-mm` controls
+twice the body radius; the whole object's bounding box includes the handle.
+Declared wall thickness and sampled technical checks do not certify a global
+minimum wall or manufacturing tolerance.
+
+Inspect the saved preview needed for the brief; add a targeted view if it does
+not show the requested features. Once the requested native file and preview
+are saved, conclude with the project, revision and actual delivery paths.
+Separate verified dimensions/topology from appearance observations. An
+unavailable vision reviewer is a limitation to report, not a reason to repeat
+unchanged renders or to claim artistic approval. Additional artistic review
+and final rendering follow the user's delivery requirements.
+
 ### Establish the visual target before building
 
 Record the intended object, dimensions, audience, material identities and delivery

@@ -12,6 +12,7 @@ export const RECIPE_CAPABILITIES = Object.freeze([
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
   'recipe.geometry-bindings',
+  'recipe.generator-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
 const structural = compileSchema(recipeSchema, { id: 'recipe.schema.json' })
@@ -100,6 +101,7 @@ export function validateRecipeManifest(manifest, options = {}) {
     if (valueIssue) errors.push(valueIssue)
     for (const binding of parameter.bindings) {
       const target = binding.kind === 'material' ? `material:${binding.materialId}:${binding.property}`
+        : binding.kind === 'generator' ? `generator:${binding.entityId}:${binding.property}`
         : ['entity', 'camera'].includes(binding.kind) ? `${binding.kind}:${binding.entityId ?? binding.cameraId}:${binding.property}.${binding.axis}` : `render-profile:${binding.profile}:exposure`
       const prior = targets.get(target)
       // Camera framing may add independent width/depth/height deltas. Repeating a
@@ -110,9 +112,10 @@ export function validateRecipeManifest(manifest, options = {}) {
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
-        if (['entity', 'camera'].includes(binding.kind)) {
+        if (['entity', 'camera', 'generator'].includes(binding.kind)) {
           if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
           if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
+          if (binding.kind === 'generator' && !declared.has('recipe.generator-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Generator bindings require recipe.generator-bindings'))
           if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
           continue
         }
@@ -190,6 +193,15 @@ function bindingsAgainstScene(manifest, spec) {
         (track.property === binding.property || track.property.startsWith(`${binding.property}.`)))) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'A parameter must not compete with animation on the same material property'))
       }
+    } else if (binding.kind === 'generator') {
+      const entity = bindingTarget(spec, binding)
+      const current = entity?.generator?.[binding.property]
+      if (entity?.generator?.shape !== 'handled_cup' || !Number.isFinite(current) || current <= 0) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'Generator binding requires an explicit positive handled_cup scalar'))
+        continue
+      }
+      const ends = [parameter.minimum, parameter.maximum].map(value => current + (value - parameter.default) * binding.multiplier)
+      if (ends.some(value => !Number.isFinite(value) || value <= 0)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Generator binding range must remain positive and finite'))
     } else if (['entity', 'camera'].includes(binding.kind)) {
       const entity = bindingTarget(spec, binding)
       const vector = bindingVector(entity, binding), axis = bindingAxis(binding)
@@ -330,6 +342,8 @@ function resolveRecipe(manifest, checked, values) {
       const material = spec.materials.find(item => item.id === binding.materialId)
       material.parameters[binding.property] = parameter.type === 'color'
         ? [...value, material.parameters.baseColor[3] ?? 1] : value
+    } else if (binding.kind === 'generator') {
+      bindingTarget(spec, binding).generator[binding.property] += (resolvedValues[parameter.id] - parameter.default) * binding.multiplier
     } else if (['entity', 'camera'].includes(binding.kind)) {
       const vector = bindingVector(bindingTarget(spec, binding), binding)
       // Preserve the input's exact default bytes and avoid cumulative edits.

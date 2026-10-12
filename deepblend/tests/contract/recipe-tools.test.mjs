@@ -7,8 +7,109 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
+import { createHash } from 'node:crypto'
 
 const selection = { id: 'deepblend.glass-ceramic', version: '1.0.0', digest: 'a'.repeat(64), parameters: { 'main-color': [0.1, 0.2, 0.3], exposure: 0.4 } }
+
+test('committed previews attach once on create, patch and dimension save without rendering again', async () => {
+  const source = readFileSync(new URL('../fixtures/obj-image-formats/paint.png', import.meta.url))
+  const normalized = readFileSync(new URL('../fixtures/obj-image-formats/paint.jpg', import.meta.url))
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  const artifact = { kind: 'preview', cameraId: 'hero', frame: 24, sourceRevision: 'r0001',
+    sourceDigest: 'b'.repeat(64), mime: 'image/png', width: 64, height: 64, bytes: source.length,
+    sha256: hash(source), path: 'revisions/r0001/previews/hero.png' }
+  const summary = { revision: 'r0001', digest: artifact.sourceDigest, checkpoint: 'revisions/r0001/scene.blend', previews: [artifact] }
+  const reference = { attachmentId: 'sha256:' + hash(normalized), mediaType: 'image/jpeg', bytes: normalized.length, width: 64, height: 64 }
+  let writes = 0, reads = 0, saves = 0, renderCalls = 0, override = null, abortRead = null
+  const saved = () => { writes++; return { ...structuredClone(summary), previews: [structuredClone(override ?? artifact)] } }
+  const studio = { recipeParameterEditingSupported: true,
+    createProject: async () => ({ projectId: 'cup', title: 'Cup', revision: saved(), warnings: [] }),
+    applyScenePatch: async () => saved(), updateRecipeParameters: async () => saved(),
+    renderPreview: async () => { renderCalls++; throw new Error('No extra render allowed') },
+    renderViews: async () => { renderCalls++; throw new Error('No extra inspection allowed') },
+    readArtifact: async request => {
+      reads++; assert.deepEqual(request, { projectId: 'cup', path: artifact.path }); abortRead?.abort()
+      return { path: artifact.path, contentType: 'image/png', bytes: source, size: source.length }
+    } }
+  const attachments = { saveImage: async input => { saves++; assert.deepEqual(input.data, source); return { ...reference } },
+    readImage: async ref => ({ ref, data: normalized }) }
+  const llm = { listModels: async () => [{ id: 'text-only', inputModalities: ['text'] }] }
+  const plane = await composeToolPlane({ studio, services: { attachments, llm }, expectAtLeast: 18, label: 'committed-preview' })
+  const cases = [
+    ['blender_project_create', { title: 'Cup', renderPreview: true }],
+    ['blender_scene_patch', { projectId: 'cup', baseRevision: 'r0000', operations: [{ op: 'entity.transform.update', entityId: 'cup', location: [0, 0, 0] }], renderPreview: true }],
+    ['blender_recipe_parameters', { action: 'save', projectId: 'cup', baseRevision: 'r0000', parameters: { height: 115 } }],
+  ]
+  try {
+    for (const [name, args] of cases) {
+      const tool = plane.registered.get(name), result = await tool.execute(args, {})
+      assert.equal(result.ok, true); assert.equal(result.image.mediaType, 'image/jpeg')
+      assert.equal(result.imageSource.sourceDigest, summary.digest); assert.match(result.text, /no extra render/)
+      const count = saves, replay = JSON.parse(JSON.stringify(result))
+      assert.equal(tool.output.render(args, replay).filter(block => block.type === 'image').length, 1)
+      assert.equal(saves, count, 'replay must never persist again')
+    }
+    assert.equal(writes, 3); assert.equal(reads, 3); assert.equal(saves, 3); assert.equal(renderCalls, 0)
+    for (const [name, args] of cases) await plane.registered.get(name).execute({ ...args, renderPreview: false }, {})
+    assert.equal(reads, 3); assert.equal(saves, 3, 'explicit data-only writes attach nothing')
+    const create = plane.registered.get('blender_project_create'), args = cases[0][1]
+    for (const [mutate, expectedReads] of [[a => { a.sourceRevision = 'r0002' }, 0], [a => { a.sourceDigest = '0'.repeat(64) }, 0],
+      [a => { a.path = 'revisions/r0001/previews/../hero.png' }, 0], [a => { a.sha256 = '0'.repeat(64) }, 1],
+      [a => { a.width = 63 }, 1], [a => { a.bytes++ }, 1]]) {
+      override = { ...artifact }; mutate(override)
+      const beforeReads = reads, beforeSaves = saves
+      const result = await create.execute(args, {})
+      assert.equal(result.ok, true, 'an attachment failure must not disguise a committed creation')
+      assert.equal(result.image, null); assert.match(result.text, /model has not seen this image/)
+      assert.equal(reads - beforeReads, expectedReads, 'invalid receipt must stop before artifact access')
+      assert.equal(saves, beforeSaves, 'unverified source bytes must never reach the attachment store')
+    }
+    override = null
+    const textOnly = await create.execute(args, { agent: { session: { requestHeader: () => ({ config: { provider: 'text-provider', model: 'text-only' } }) } } })
+    assert.equal(textOnly.image, null); assert.equal(textOnly.imageDelivery.deliveredToModel, false)
+    assert.equal(create.output.render(args, textOnly).filter(block => block.type === 'image').length, 0)
+    abortRead = new AbortController()
+    const cancelled = await create.execute(args, { signal: abortRead.signal })
+    assert.equal(cancelled.ok, false); assert.equal(cancelled.data.errorCode, 'BLENDER_ABORTED')
+    assert.equal(renderCalls, 0); assert.equal(hash(source), artifact.sha256)
+  } finally { await plane.ctx.fiber.dispose() }
+})
+
+test('inspection accepts verified normalized attachments and refuses altered references or unreadable derivatives', async () => {
+  const source = readFileSync(new URL('../fixtures/obj-image-formats/paint.png', import.meta.url))
+  const normalized = readFileSync(new URL('../fixtures/obj-image-formats/paint.jpg', import.meta.url))
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  const artifact = { kind: 'diagnostic', mode: 'beauty', viewId: 'inspection', cameraId: 'hero', frame: 1,
+    sourceRevision: 'r0001', sourceDigest: 'source', mime: 'image/png', width: 64, height: 64,
+    bytes: source.length, sha256: hash(source), path: 'revisions/r0001/diagnostics/job/selected.png' }
+  const data = { schemaVersion: 'deepblend.diagnostic/v1', projectId: 'cup', revision: 'r0001',
+    sourceRevision: 'r0001', sourceDigest: 'source', mode: 'beauty', artifacts: [artifact] }
+  const reference = { attachmentId: 'sha256:' + hash(normalized), mediaType: 'image/jpeg',
+    bytes: normalized.length, width: 64, height: 64 }
+  const attachments = { saveImage: async input => { assert.deepEqual(input.data, source); return { ...reference } },
+    readImage: async ref => ({ ref, data: normalized }) }
+  const studio = { hostApiVersion: () => 7, renderViews: async () => data,
+    readArtifact: async () => ({ path: artifact.path, contentType: 'image/png', bytes: source, size: source.length }) }
+  const plane = await composeToolPlane({ studio, services: { attachments }, expectAtLeast: 18, label: 'normalized-inspection' })
+  const tool = plane.registered.get('blender_preview_render'), args = { projectId: 'cup', revision: 'r0001', mode: 'beauty', cameraId: 'hero', frame: 1 }
+  try {
+    const result = await tool.execute(args, {})
+    assert.equal(result.ok, true); assert.equal(result.image.mediaType, 'image/jpeg')
+    assert.deepEqual(result.data, data); assert.match(result.text, /attachment service normalization/)
+    assert.equal(tool.output.render(args, JSON.parse(JSON.stringify(result))).filter(b => b.type === 'image').length, 1)
+    for (const mutate of [
+      ref => { ref.width = 65 }, ref => { ref.bytes++ }, ref => { ref.attachmentId = 'sha256:' + '0'.repeat(64) },
+    ]) {
+      attachments.saveImage = async () => { const ref = { ...reference }; mutate(ref); return ref }
+      const rejected = await tool.execute(args, {})
+      assert.equal(rejected.ok, true); assert.equal(rejected.image, null)
+      assert.deepEqual(rejected.data, data); assert.match(rejected.text, /model cannot see it/)
+    }
+    attachments.saveImage = async () => ({ ...reference }); delete attachments.readImage
+    const unreadable = await tool.execute(args, {})
+    assert.equal(unreadable.image, null); assert.match(unreadable.text, /cannot be read back/)
+  } finally { await plane.ctx.fiber.dispose() }
+})
 
 test('recipe_parameters reads without writes and sends one conditional semantic save to the Host', async () => {
   const calls = [], studio = { recipeParameterEditingSupported: true,

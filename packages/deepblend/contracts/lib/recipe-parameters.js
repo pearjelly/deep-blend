@@ -4,8 +4,8 @@ import { instantiateRecipeLock, RecipeError } from './recipe.js'
 import { validateSceneSpec } from './scene-spec.js'
 
 const axisOf = binding => ['x', 'y', 'z'].indexOf(binding.axis)
-const structural = parameter => parameter.bindings.some(binding => binding.kind === 'entity')
-  && parameter.bindings.every(binding => ['entity', 'camera'].includes(binding.kind))
+const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator'].includes(binding.kind))
+  && parameter.bindings.every(binding => ['entity', 'camera', 'generator'].includes(binding.kind))
 const entity = (spec, id) => spec.entities.find(item => item.id === id)
 const vector = (target, property) => property === 'dimensions' ? target?.generator?.dimensions
   : property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
@@ -38,14 +38,21 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const conflicts = []
   for (const parameter of parameters) for (const binding of parameter.bindings) {
-    if (binding.kind !== 'entity') continue
-    const expected = vector(entity(before.spec, binding.entityId), binding.property)?.[axisOf(binding)]
-    const actual = vector(entity(currentSpec, binding.entityId), binding.property)?.[axisOf(binding)]
+    if (!['entity', 'generator'].includes(binding.kind)) continue
+    const oldEntity = entity(before.spec, binding.entityId), currentEntity = entity(currentSpec, binding.entityId)
+    const expected = binding.kind === 'generator' ? oldEntity?.generator?.[binding.property]
+      : vector(oldEntity, binding.property)?.[axisOf(binding)]
+    const actual = binding.kind === 'generator' ? currentEntity?.generator?.[binding.property]
+      : vector(currentEntity, binding.property)?.[axisOf(binding)]
     if (!close(actual, expected)) conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
       property: binding.property, axis: binding.axis, expected, actual })
-    if (binding.property === 'dimensions') {
-      const oldScale = entity(before.spec, binding.entityId).transform.scale
-      const scale = entity(currentSpec, binding.entityId)?.transform.scale
+    if (binding.kind === 'generator' && currentEntity?.generator?.shape !== oldEntity?.generator?.shape) {
+      conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'shape',
+        expected: oldEntity?.generator?.shape, actual: currentEntity?.generator?.shape })
+    }
+    if (binding.property === 'dimensions' || binding.kind === 'generator') {
+      const oldScale = oldEntity?.transform?.scale ?? [1, 1, 1]
+      const scale = currentEntity?.transform?.scale ?? [1, 1, 1]
       if (!scale?.every((value, axis) => close(value, oldScale[axis]))) {
         conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
           property: 'scale', expected: oldScale, actual: scale })
@@ -75,7 +82,10 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       continue
     }
     const actual = entity(currentSpec, binding.entityId), target = entity(after.spec, binding.entityId)
-    if (binding.property === 'dimensions') {
+    if (binding.kind === 'generator') {
+      if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
+      generators.get(actual.id)[binding.property] = target.generator[binding.property]
+    } else if (binding.property === 'dimensions') {
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id).dimensions[axis] = target.generator.dimensions[axis]
     } else {

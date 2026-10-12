@@ -231,7 +231,7 @@ try {
   // Two real works with different geometry exercise project ownership. Network
   // failures and delayed HTTP replies affect reads only, never their saved bytes.
   const cupId = 'preview-owner-cup', cupFile = (...parts) => join(root, 'projects', cupId, ...parts)
-  await page.click('[data-view-tab=projects]'); await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.0.0"]'); await page.fill('[data-field=project-title]', cupId)
+  await page.click('[data-view-tab=projects]'); await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]'); await page.fill('[data-field=project-title]', cupId)
   check('the second work is created only through the explicit pointer control', (await page.click('[data-action=create-project]')).via === 'pointer')
   const ownerImage = id => `document.querySelector('[data-compare=current] img')?.src.includes('/artifacts/${id}/')===true&&document.querySelector('[data-compare=current] img')?.complete===true&&document.querySelector('[data-compare=current] img')?.naturalWidth>0`
   await page.waitFor(ownerImage(cupId), 180000)

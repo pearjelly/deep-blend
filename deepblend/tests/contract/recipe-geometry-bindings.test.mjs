@@ -263,3 +263,65 @@ test('explicit camera coordinates follow a parameter while target conflicts, ani
     bindings: [{ kind: 'camera', cameraId: 'hero', property: 'location', axis: 'x', multiplier: 1 }] })
   refused(overflowing)
 })
+
+function cupBundle() {
+  const directory = new URL('../../recipes/glazed-cup/', import.meta.url)
+  return { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))),
+    sceneBytes: readFileSync(new URL('scene-spec.json', directory)), previewBytes: readFileSync(new URL('preview.png', directory)) }
+}
+
+test('three cup dimensions instantiate jointly valid vessel and handle geometry, including all boundary combinations', () => {
+  const bundle = cupBundle(), checked = validateRecipePackage(bundle)
+  assert.equal(checked.ok, true, checked.summary)
+  for (const height of [95, 115, 130]) for (const diameter of [72, 84, 96]) for (const wall of [3, 4, 5]) {
+    const result = instantiateRecipe(bundle, { 'cup-height-mm': height, 'cup-outer-diameter-mm': diameter, 'cup-wall-mm': wall })
+    const cup = result.spec.entities.find(e => e.id === 'cup').generator
+    assert.ok(Math.abs(cup.height - height / 1000) < 1e-12)
+    assert.ok(Math.abs(cup.radius - diameter / 2000) < 1e-12)
+    assert.ok(Math.abs(cup.wallThickness - wall / 1000) < 1e-12)
+    assert.ok(Math.abs(cup.handleLower - cup.height * 4 / 15) < 1e-12)
+    assert.ok(Math.abs(cup.handleUpper - cup.height * 26 / 35) < 1e-12)
+    assert.ok(Math.abs(cup.handleRadius - cup.radius * .1375) < 1e-12)
+    assert.ok(Math.abs(cup.rootRadius - cup.radius * .225) < 1e-12)
+    assert.ok(Math.abs(cup.rootLength - cup.radius * .15) < 1e-12)
+  }
+})
+
+test('continuing cup dimensions preserves unbound material, root shape and placement; controlled edits or scaling refuse', () => {
+  const bundle = cupBundle(), first = instantiateRecipe(bundle, { 'cup-height-mm': 115, 'cup-outer-diameter-mm': 84, 'cup-wall-mm': 4 })
+  const lock = lockFor(bundle, first.values)
+  const current = structuredClone(first.spec), cup = current.entities.find(e => e.id === 'cup')
+  cup.generator.rootTension = 2; cup.generator.footRound = .0025
+  cup.transform.location = [.1, .2, .3]
+  current.materials.find(m => m.id === 'glaze').parameters.roughness = .31
+  for (const camera of current.cameras) camera.lens += 1 // Independent photography stays protected.
+  const plan = planRecipeGeometryEdit(lock, current, undefined, { 'cup-height-mm': 125 })
+  assert.deepEqual(plan.changedParameters, ['cup-height-mm'])
+  const patch = { projectId: current.project.id, baseRevision: 'r0001', operations: plan.operations }
+  assert.equal(validateScenePatch(patch).ok, true)
+  const after = applyPatchToSpec(current, patch).spec, generator = after.entities.find(e => e.id === 'cup').generator
+  assert.ok(Math.abs(generator.height - .125) < 1e-12)
+  assert.equal(generator.wallThickness, cup.generator.wallThickness)
+  assert.equal(generator.radius, cup.generator.radius)
+  assert.equal(generator.rootTension, 2); assert.equal(generator.footRound, .0025)
+  assert.deepEqual(after.materials, current.materials)
+  assert.deepEqual(after.entities.find(e => e.id === 'cup').transform, cup.transform)
+  assert.deepEqual(after.cameras, current.cameras)
+  const edited = structuredClone(current); edited.entities.find(e => e.id === 'cup').generator.radius += .001
+  assert.throws(() => planRecipeGeometryEdit(lock, edited, undefined, { 'cup-height-mm': 125 }), e => e.code === 'RECIPE_PARAMETER_CONFLICT')
+  const scaled = structuredClone(current); scaled.entities.find(e => e.id === 'cup').transform.scale = [1.1, 1, 1]
+  assert.throws(() => planRecipeGeometryEdit(lock, scaled, undefined, { 'cup-height-mm': 125 }), e => e.code === 'RECIPE_PARAMETER_CONFLICT')
+  assert.throws(() => instantiateRecipe(bundle, { 'cup-wall-mm': 99 }), e => e.code === 'RECIPE_PARAMETER_INVALID')
+})
+
+test('generator scalar bindings refuse undeclared consumers, unsafe properties, duplicate targets and non-vessel shapes', () => {
+  const bundle = cupBundle()
+  assert.equal(validateRecipePackage(bundle, { supportedCapabilities: RECIPE_CAPABILITIES.filter(c => c !== 'recipe.generator-bindings') }).ok, false)
+  for (const corrupt of [
+    b => { b.manifest.compatibility.capabilities = b.manifest.compatibility.capabilities.filter(c => c !== 'recipe.generator-bindings') },
+    b => { b.manifest.parameters[0].bindings[0].property = '__proto__' },
+    b => { b.manifest.parameters[0].bindings[0].multiplier = 0 },
+    b => { b.manifest.parameters[0].bindings.push(structuredClone(b.manifest.parameters[0].bindings[0])) },
+    b => { b.manifest.parameters[0].bindings[0].entityId = 'floor' },
+  ]) { const bad = structuredClone(bundle); corrupt(bad); assert.equal(validateRecipePackage(bad).ok, false) }
+})

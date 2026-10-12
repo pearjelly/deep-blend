@@ -40,6 +40,7 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { imageForCallingModel } from './image-delivery.js'
 
 import { BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
 
@@ -229,12 +230,12 @@ function visualReview(ctx) {
         )
         if (persisted.note !== null) notes.push(persisted.note)
 
-        return {
+        return await imageForCallingModel(ctx, exec, {
           ok: true,
           text: renderSuccess(`Visual review of ${data.revision}: ${data.score}/100.`, data, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
           data,
           image: persisted.image,
-        }
+        })
       } catch (cause) {
         const failure = renderFailure(cause, 'VISUAL_REVIEW_FAILED')
         return { ok: false, ...failure, image: null }

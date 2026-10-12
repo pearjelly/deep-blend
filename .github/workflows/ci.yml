@@ -163,8 +163,9 @@ jobs:
         run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
       - name: Real handled-cup construction and dimensional edits
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
-        timeout-minutes: 5
+        timeout-minutes: 8
         env:
+          DEEPBLEND_CUP_GROUP: core
           DEEPBLEND_CUP_OUTPUT: ${{ runner.temp }}/deepblend-ci/cup
         run: xvfb-run -a node deepblend/tests/blender-integration/handled-cup.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup.log" 2>&1
       - name: Real handled-cup editor in Chrome
@@ -250,6 +251,56 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-inspections-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/deepblend-ci
+          retention-days: 7
+          include-hidden-files: true
+          if-no-files-found: error
+
+  linux-cup-parameter-smoke:
+    name: Linux cup parameter boundaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: bash
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - name: Prepare evidence directory
+        run: node deepblend/tools/ci-evidence.mjs
+      - name: Install the locked development deployment and SDK tools
+        run: node deepblend/tools/development.mjs setup --github-env
+      - name: Verify workspace links
+        run: node deepblend/tools/link-workspace.mjs --check
+      - name: Cache pinned raw runtime archives
+        uses: actions/cache@v4
+        with:
+          path: .tools/ci/archives
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+      - name: Download and verify fixed Linux runtimes
+        id: runtimes
+        run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
+      - name: Recheck installed executables without changes
+        run: node deepblend/tools/install-ci-runtimes.mjs --check > "$DEEPBLEND_CI_EVIDENCE/runtime-check.json" 2>&1
+      - name: Prepare software graphics and Chrome sandbox
+        id: graphics
+        run: node deepblend/tools/prepare-ci-linux.mjs > "$DEEPBLEND_CI_EVIDENCE/graphics.log" 2>&1
+      - name: Real handled-cup parameter boundaries
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_CUP_GROUP: parameters
+          DEEPBLEND_CUP_OUTPUT: ${{ runner.temp }}/deepblend-ci/cup-parameters
+        run: xvfb-run -a node deepblend/tests/blender-integration/handled-cup.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup-parameters.log" 2>&1
+      - name: Preserve cup dimensions, native files and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-cup-parameters-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/deepblend-ci
           retention-days: 7
           include-hidden-files: true
