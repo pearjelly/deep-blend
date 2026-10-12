@@ -510,6 +510,10 @@ try {
   const previewResult = await page.text('[data-view="preview"] [data-result]')
   check('rendering a preview from the full-screen page succeeds on a real Blender',
     /已渲染/.test(previewResult ?? ''), previewResult)
+  const submittedPreview = (await page.evaluate('window.__wbreqs')).filter(request => request.method === 'POST' && request.url.endsWith('/preview')).at(-1)
+  check('the preview request targets the revision just saved by the Host',
+    submittedPreview?.body?.revision === 'r0002', submittedPreview)
+
 
   await page.waitFor(
     'document.querySelector("[data-compare=right] img") !== null && '

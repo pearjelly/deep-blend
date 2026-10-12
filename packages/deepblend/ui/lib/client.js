@@ -4052,10 +4052,27 @@ window.__ModuleLoader__.load({
         },
 
         renderPreview: async () => {
+          const projectId = data.activeProjectId, projectsRoot = data.projectsRoot
+          if (!projectId || data.previewBusy || data.busy.patch || data.busy.editor || data.busy.assembly || data.busy.restore) return
           setIn('notices', 'preview', null)
           set({ previewBusy: true, previewResult: null })
-          const outcome = await postJson(fetchImpl, projectRoute(target(), '/preview'), { revision: data.selected?.scene?.revision })
-          set({ previewBusy: false, ...(outcome.ok ? { compareMode: 'renders' } : {}) })
+          // A save receipt can arrive before the asynchronous panel refresh.
+          // Resolve the current revision from the Host instead of rendering the
+          // cached scene. A failed read must never fall back to older geometry.
+          const fresh = await readRoute(fetchImpl, `${ROUTES.state}?projectId=${encodeURIComponent(projectId)}&preview=${++tick}`, 'state')
+          if (data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) {
+            set({ previewBusy: false }); return
+          }
+          const selected = fresh.payload?.selected
+          const coherent = fresh.status === 'ok' && fresh.payload.projectsRoot === projectsRoot
+            && selected?.project?.projectId === projectId && selected?.scene?.revision
+            && selected.currentRevision === selected.scene.revision
+          const outcome = coherent
+            ? await postJson(fetchImpl, projectRoute(projectId, '/preview'), { revision: selected.scene.revision })
+            : { ok: false, error: fresh.error || { code: 'UI_PREVIEW_MISMATCH', message: t('preview.sourceMismatch') } }
+          set({ previewBusy: false })
+          if (data.activeProjectId !== projectId || data.projectsRoot !== projectsRoot) return
+          if (outcome.ok) set({ compareMode: 'renders' })
           set({
             previewResult: outcome.ok
               ? {
@@ -5337,7 +5354,7 @@ window.__ModuleLoader__.load({
           Button({
             tone: 'primary',
             action: 'render-preview',
-            disabled: state.previewBusy || state.activeProjectId === null,
+            disabled: state.previewBusy || state.activeProjectId === null || state.busy?.patch || state.busy?.editor || state.busy?.assembly || state.busy?.restore,
             onClick: actions.renderPreview,
             children: state.previewBusy ? t('preview.rendering') : t('preview.render'),
           }),
