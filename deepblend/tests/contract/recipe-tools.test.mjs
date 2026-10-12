@@ -1,6 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { BlenderError } from '@deepblend/dsh-blender-contracts'
+import { Context } from '@deepseek-ai/cordis'
+import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 
 const selection = { id: 'deepblend.glass-ceramic', version: '1.0.0', digest: 'a'.repeat(64), parameters: { 'main-color': [0.1, 0.2, 0.3], exposure: 0.4 } }
@@ -52,6 +57,65 @@ test('recipe_list only calls listRecipes and returns catalog metadata plus rejec
     assert.match(output.text, /RECIPE_HASH_MISMATCH/)
     assert.equal(tool.presentCall({}).kind, 'read')
   } finally { await plane.ctx.stop?.() }
+})
+
+test('a compact model catalog still creates and resizes a real speaker with its exact full source lock', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-compact-recipe-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const context = new Context(); context.provide('blenderRuntime', {})
+  const studio = new BlenderStudio(context, StudioConfig({ workspaceRoot: root,
+    projectsRoot: join(root, 'projects'), reconcileOnStart: false }))
+  const catalog = studio.listRecipes(), before = JSON.stringify(catalog)
+  const plane = await composeToolPlane({ studio, expectAtLeast: 18, label: 'compact-real-recipe' })
+  t.after(() => plane.ctx.stop?.())
+  const output = await plane.registered.get('blender_recipe_list').execute({})
+  assert.equal(output.ok, true)
+  assert.equal(output.data.recipes.length, catalog.recipes.length)
+  assert.deepEqual(output.data.errors, catalog.errors)
+  assert.equal(output.data.recipeSchemaVersion, catalog.recipeSchemaVersion)
+  for (const recipe of output.data.recipes) {
+    const original = catalog.recipes.find(item => item.id === recipe.id && item.version === recipe.version)
+    for (const key of ['id', 'version', 'digest', 'title', 'description', 'author', 'license', 'source', 'previewUrl']) {
+      assert.deepEqual(recipe[key], original[key], `${recipe.id}: ${key} must remain available`)
+    }
+    assert.equal(recipe.parameters.length, original.parameters.length)
+    for (const parameter of recipe.parameters) {
+      const originalParameter = original.parameters.find(item => item.id === parameter.id)
+      assert.equal(Object.hasOwn(parameter, 'bindings'), false)
+      for (const key of Object.keys(originalParameter).filter(key => key !== 'bindings')) {
+        assert.deepEqual(parameter[key], originalParameter[key], `${parameter.id}: ${key} must remain available`)
+      }
+    }
+  }
+  assert.doesNotMatch(output.text, /"bindings"\s*:/)
+  assert.ok(Buffer.byteLength(JSON.stringify(output)) < 20000, 'Model selection should not carry the internal assembly maps')
+  const speaker = output.data.recipes.find(recipe => recipe.id === 'deepblend.modular-speaker')
+  const selection = { id: speaker.id, version: speaker.version, digest: speaker.digest,
+    parameters: { 'cabinet-width-mm': 300 } }
+  const made = await plane.registered.get('blender_project_create').execute({ title: 'Compact speaker',
+    recipe: selection, saveCheckpoint: false, renderPreview: false }, {})
+  assert.equal(made.ok, true, made.text)
+  const projectId = made.data.projectId
+  const origin = studio.store.revisionDirectory(projectId, 'r0001')
+  const source = readFileSync(join(origin, 'scene-spec.json')), lockBytes = readFileSync(join(origin, 'recipe-lock.json'))
+  const lock = JSON.parse(lockBytes)
+  assert.equal(lock.packageDigest, speaker.digest)
+  assert.ok(lock.manifest.parameters.find(parameter => parameter.id === 'cabinet-width-mm').bindings.length > 100)
+  const controls = await plane.registered.get('blender_recipe_parameters').execute({ projectId })
+  assert.equal(controls.data.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 300)
+  const saved = await plane.registered.get('blender_recipe_parameters').execute({ action: 'save', projectId,
+    baseRevision: controls.data.revision, parameters: { 'cabinet-width-mm': 340 }, saveCheckpoint: false,
+    renderPreview: false, idempotencyKey: 'compact-resize' })
+  assert.equal(saved.ok, true)
+  assert.equal(saved.data.parameters.parameters.find(parameter => parameter.id === 'cabinet-width-mm').value, 340)
+  const shell = studio.store.readRevisionSpec(projectId, saved.data.revision).entities.find(entity => entity.id === 'cabinet-shell')
+  assert.ok(Math.abs(shell.generator.dimensions[0] * shell.transform.scale[0] - .34) < 1e-9)
+  await assert.rejects(studio.createProject({ title: 'Invalid compact size', recipe: { ...selection,
+    parameters: { 'cabinet-width-mm': 999 } }, saveCheckpoint: false }), { code: 'RECIPE_PARAMETER_INVALID' })
+  assert.deepEqual(readFileSync(join(origin, 'scene-spec.json')), source)
+  assert.deepEqual(readFileSync(join(origin, 'recipe-lock.json')), lockBytes)
+  assert.equal(JSON.stringify(catalog), before)
+  assert.deepEqual(studio.listRecipes(), catalog, 'Host and author SDK metadata must retain the full bindings')
 })
 
 test('project_create forwards the exact recipe selection/overrides to the Host and keeps render controls', async () => {
