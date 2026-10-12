@@ -163,7 +163,7 @@ jobs:
         run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
       - name: Real handled-cup construction and dimensional edits
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
-        timeout-minutes: 5
+        timeout-minutes: 8
         env:
           DEEPBLEND_CUP_OUTPUT: ${{ runner.temp }}/deepblend-ci/cup
         run: xvfb-run -a node deepblend/tests/blender-integration/handled-cup.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/cup.log" 2>&1

@@ -267,6 +267,9 @@ test('Linux inspections use fixed runtimes and preserve failure evidence', () =>
   for (const file of ['blender-integration/diagnostic-preview.e2e.mjs', 'composition/tool-plane-m1.e2e.mjs', 'e2e/inspection-ui.e2e.mjs', 'blender-integration/handled-cup.e2e.mjs', 'e2e/handled-cup-ui.e2e.mjs', 'e2e/material-texture-ui.e2e.mjs', 'e2e/preview-history-ui.e2e.mjs', 'blender-integration/runtime-conformance.e2e.mjs', 'blender-integration/asset-bundle.e2e.mjs']) {
     assert.ok(runSteps.some(step => step.startsWith(`xvfb-run -a node deepblend/tests/${file} >`)), `missing real smoke ${file}`)
   }
+  const nativeCupStep = workflow.match(/      - name: Real handled-cup construction and dimensional edits[\s\S]*?(?=      - name:)/)?.[0]
+  assert.ok(nativeCupStep, 'missing native cup step')
+  assert.match(nativeCupStep, /^        timeout-minutes: 8$/m, 'expanded cup boundary suite needs its measured eight-minute CI budget')
   assert.ok(runSteps.some(step => step.startsWith('env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/procedural-uv.py >')), 'missing real UV grain execution with fatal assertion errors')
   for (const [file, variable, directory] of [['image-materials.py', 'DEEPBLEND_PBR_OUTPUT', 'image-materials'], ['environment.py', 'DEEPBLEND_ENV_OUTPUT', 'environment']]) {
     assert.ok(runSteps.some(step => step.startsWith(`env "$DEEPBLEND_BLENDER_PATH" --background --factory-startup --disable-autoexec --python-exit-code 1 --python deepblend/tests/blender-integration/${file} >`)), `missing actual image execution ${file}`)

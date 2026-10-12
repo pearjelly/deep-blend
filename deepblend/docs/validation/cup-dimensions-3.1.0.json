@@ -234,7 +234,7 @@
     "committedPreviewMutations": "3 killed/restored:sourcehash,PNGdimensions,calling-model image policy"
   },
   "currentFrozenAcceptance": {
-    "status": "technical-and-required-manual-passed; full-natural-task-unproven; unpublished",
+    "status": "technical-and-required-manual-passed; subsequent-functional-closure-verified; unpublished",
     "sourceFileCount": 697,
     "fullSuitesPassed": 39,
     "fullLogSha256": "0317065aea779ee6f2abc2c8eb6a4aaa97beab2a6bd705184045e9fd17fd7bec",
@@ -260,9 +260,93 @@
       "checkpointUnchanged": true
     },
     "releaseRemaining": [
-      "Complete natural task and same-session 125 mm continuation",
-      "Exact commit CI and clean pushed build",
-      "Seven npm, GitHub assets, route parity and community submission readback"
+      "Exact final commit CI",
+      "Clean pushed release producer build",
+      "GitHub assets/checksums and seven npm readback",
+      "Public three-route parity",
+      "Community projection/submission and distinct upstream status"
+    ]
+  },
+  "functionalTaskClosure": {
+    "schemaVersion": "deepblend.task-closure/v1",
+    "status": "verified-functional-closure; unpublished",
+    "sourceHead": "302dcf5c031a1d1743b50650798a53b48d231b34",
+    "observerPurpose": "Separate fifteen-minute functional observation, five-minute latency outcome retained independently",
+    "actualUserTasks": 2,
+    "completedTurns": 2,
+    "model": {
+      "provider": "bai",
+      "model": "deepseek-v4.1-flash",
+      "reasoning": "low",
+      "retries": 0
+    },
+    "creation": {
+      "elapsedMs": 325000,
+      "withinFiveMinutes": false,
+      "steps": 10,
+      "sourceRevision": "r0002",
+      "heightMm": 115,
+      "bodyDiameterMm": 84,
+      "rearRadialWallMm": 4,
+      "geometryScope": "Independent evaluated mesh; radial samples not all-surface minimum wall/manufacturing proof"
+    },
+    "continuation": {
+      "elapsedMs": 65317,
+      "withinFiveMinutes": true,
+      "steps": 6,
+      "sourceRevision": "r0003",
+      "heightMm": 125,
+      "bodyDiameterMm": 84,
+      "rearRadialWallMm": 4,
+      "sameSavedConversation": true,
+      "conversationReopenedAfterObserverFailure": true,
+      "originalCheckpointsAndRecipeLockProtected": true,
+      "glazePreserved": true
+    },
+    "artifacts": [
+      {
+        "revision": "r0001",
+        "path": "revisions/r0001/previews/hero.png",
+        "sha256": "1e4a5dab57ed33e633c9e34f49a162895e14d66ee28689280515c1fc18909d19",
+        "bytes": 281169
+      },
+      {
+        "revision": "r0002",
+        "path": "revisions/r0002/previews/hero.png",
+        "sha256": "533daeff31167ec948c55b0af055af6994539968a44d571a67d58bb7d4444e7b",
+        "bytes": 275249
+      },
+      {
+        "revision": "r0003",
+        "path": "revisions/r0003/previews/hero.png",
+        "sha256": "384621fb39e59f9d1debc0f4dcdac1c74b61482665f7048032565cf61de26f21",
+        "bytes": 276468
+      }
+    ],
+    "humanPixelReview": "Created and edited hero PNGs viewed: deep teal glaze, full cup/rim/handle and both attachments visible; model score/artist acceptance not claimed.",
+    "originalFailuresRetained": [
+      "Original bai and official 300s windows incomplete",
+      "Continuation observer guessed lock on patched revision instead of actual ancestor",
+      "Resume initially showed landing page instead of saved conversation",
+      "Landing history byte equality failed; independent decoded events show no user task or model turn in landing chat"
+    ],
+    "scope": "One maintainer-defined natural-language task with no recipe/tool/parameter IDs and one edit; no arbitrary-modeling, controlled latency improvement or external adoption claim",
+    "candidatePackaging": {
+      "sourceHead": "302dcf5c031a1d1743b50650798a53b48d231b34",
+      "archiveBytes": 72174505,
+      "archiveSha256": "ca8cdfb15f2eaaf9425d30f6f60906a38cf68df9d39115da7b51efac14995660",
+      "modules": 7,
+      "version": "0.7.0",
+      "sdkChecksPassed": true,
+      "nativeBuildTargets": "Packed bytes verified only; cross-platform runtime execution separate CI",
+      "published": false
+    },
+    "releaseRemaining": [
+      "Exact final commit CI",
+      "Clean pushed release producer build",
+      "GitHub assets/checksums and seven npm readback",
+      "Public three-route parity",
+      "Community projection/submission and distinct upstream status"
     ]
   }
 }
