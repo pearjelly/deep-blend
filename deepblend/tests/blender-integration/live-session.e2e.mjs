@@ -97,8 +97,17 @@ try {
   // The reading this round is about: the same work, both ways, measured here.
   // -------------------------------------------------------------------------
   const batchStarted = Date.now()
-  for (let index = 0; index < 3; index += 1) await runtime.runBootstrap({ action: 'get_capabilities' })
+  const batches = []
+  // sessionActions is enabled above: without this explicit override these calls reuse a kept
+  // process, so the purported batch baseline measures another session instead of three launches.
+  for (let index = 0; index < 3; index += 1) {
+    batches.push(await runtime.runBootstrap({ action: 'get_capabilities' }, { session: false }))
+  }
   const batchMs = Date.now() - batchStarted
+  check('the batch baseline performs three successful isolated invocations without opening a kept session',
+    batches.every(run => run.envelope.status === 'success' && typeof run.workingDirectory === 'string') &&
+    new Set(batches.map(run => run.workingDirectory)).size === 3 && runtime._session === null,
+    { directories: batches.map(run => run.workingDirectory), keptPid: runtime._session?.pid ?? null })
 
   const openStarted = Date.now()
   const session = await runtime.openSession()
@@ -124,6 +133,7 @@ try {
   check('three operations in one session cost less than three batch invocations, measured now',
     openMs + actionsMs < batchMs,
     { batchMs, sessionMs: openMs + actionsMs, openMs, actionsMs })
+  console.log(`[MEASURE] ${JSON.stringify({ batchMs, sessionMs: openMs + actionsMs, openMs, actionsMs })}`)
 
   // -------------------------------------------------------------------------
   // An action that fails belongs to that action, not to the session.
