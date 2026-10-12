@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.6.4](https://github.com/pearjelly/deep-blend/releases/tag/v0.6.4) 精简模型选配方时需要读取的数据：同四个配方的实际工具结果减少 87.3%，保留作者、许可、来源和参数范围；已保存模型继续编辑，音箱三尺寸控制与格栅细节保持。见[配方任务记录](deepblend/docs/recipe-task-context.md)、[尺寸指南](deepblend/docs/sized-speaker.md)和[后续建模任务](deepblend/docs/modeling-task-baselines.md)。
+最新稳定版 [0.7.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.7.0) 提供带把手杯的高度、外径和壁厚三个毫米控制，把手、根部和默认取景联动，保留独立改动和旧版本；创建及保存时直接交付已保存预览。见[发布证据](deepblend/docs/releases/0.7.0.md)、[配方指南](deepblend/docs/recipes.md)和[真实任务边界](deepblend/docs/modeling-task-baselines.md)。
 
 ## 安装并开始
 
