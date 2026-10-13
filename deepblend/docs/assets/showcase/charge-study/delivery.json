@@ -1,0 +1,47 @@
+{
+  "pluginVersion": "0.5.0",
+  "dshVersion": "0.1.5-rc.2",
+  "sourceToolCallId": "call_00_2cj4gvg5hqupnuvfrgznnm4b",
+  "delivery": {
+    "jobId": "render-0001",
+    "projectId": "charge-night-shift",
+    "revision": "r0002",
+    "status": "completed",
+    "video": {
+      "path": "<workspace>/.deepblend/promotion/charge-dsh/store/projects/charge-night-shift/output/final.mp4",
+      "bytes": 2323558,
+      "sha256": "142755209638993e432350095ae3385fa5302b6c6c9e1e0521a76cfc3a183dbe",
+      "probed": {
+        "durationSeconds": 6,
+        "fps": 24,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 144,
+        "containerClaimedFrameCount": 144,
+        "codec": "h264"
+      },
+      "expected": {
+        "frameStart": 1,
+        "frameEnd": 144,
+        "frameCount": 144,
+        "fps": 24,
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    "manifest": {
+      "path": "<workspace>/.deepblend/promotion/charge-dsh/store/projects/charge-night-shift/output/delivery-manifest.json",
+      "renderManifestPath": "<workspace>/.deepblend/promotion/charge-dsh/store/projects/charge-night-shift/renders/render-0001/manifest.json",
+      "recordManifest": "<workspace>/.deepblend/promotion/charge-dsh/store/projects/charge-night-shift/renders/manifest.json"
+    },
+    "verified": true,
+    "problems": [],
+    "completeness": {
+      "complete": true,
+      "missing": []
+    },
+    "warnings": [],
+    "message": "Delivery package published: <workspace>/.deepblend/promotion/charge-dsh/store/projects/charge-night-shift/output/final.mp4. 144 frame(s), 6s, 1920x1080 @ 24 fps."
+  },
+  "sha256": "142755209638993e432350095ae3385fa5302b6c6c9e1e0521a76cfc3a183dbe"
+}

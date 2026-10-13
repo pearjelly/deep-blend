@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "deepblend.public-case/v1",
+  "case": "Night Shift",
+  "casePluginVersion": "0.5.0",
+  "dshVersion": "0.1.5-rc.2",
+  "releaseVersion": "0.8.1",
+  "jobId": "render-0001",
+  "projectId": "charge-night-shift",
+  "revision": "r0002",
+  "loopDerivative": {
+    "source": "night-shift.mp4",
+    "fps": 12,
+    "frames": 72,
+    "width": 768,
+    "height": 432,
+    "method": "Decoded from actual video; resized and WebP encoded. No synthetic frames."
+  },
+  "license": "CHARGE Packbot and derived imagery: CC-BY \u2014 Blender Studio / Blender Foundation. New scene code: MIT.",
+  "files": [
+    {
+      "path": "ATTRIBUTION.txt",
+      "bytes": 651,
+      "sha256": "a7114ab64b8ffd680cca89c4d8d101d0f3625c7342eb8036fb46ce26feda4875"
+    },
+    {
+      "path": "COPY.zh.md",
+      "bytes": 1358,
+      "sha256": "4541714a6a793f38c1ca5615bb12dd9ed1591d69d56bf1441dfdeefae2879e7d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6404,
+      "sha256": "249dd0e46eddd178ac94883967b4ecd0beb1e2e3bcfff601fc65139a1dbaab32"
+    },
+    {
+      "path": "delivery.json",
+      "bytes": 1701,
+      "sha256": "c92b792908315692dfc98d90a505e03e06cf846fec85685ca253b7e04e9c6a06"
+    },
+    {
+      "path": "dsh-tool-events.json",
+      "bytes": 583196,
+      "sha256": "88a35f2260be29ae1863ccd941b1b500882b2be7ca87d5584fceb3e8b2ec5467"
+    },
+    {
+      "path": "evidence-publication.json",
+      "bytes": 1297,
+      "sha256": "6667290540be73b07464d79084901d55638bb22403a84006b75da704988622b5"
+    },
+    {
+      "path": "frame-sources.json",
+      "bytes": 44781,
+      "sha256": "6e9070174ee888aa3885ca58de673790987788501c5e88660168079f8430d1fd"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5169,
+      "sha256": "2a584a2b57568caa5db47d1e4a3775a4a6c242dd4a788fbc7e209c251396c0af"
+    },
+    {
+      "path": "model-route.json",
+      "bytes": 235,
+      "sha256": "179f8ea7d8f966ce10c6d9b115185a6edec8b3825ac84c3fdcb3cbc602c46461"
+    },
+    {
+      "path": "native-readback.json",
+      "bytes": 3691,
+      "sha256": "36809d60afd98c53b9ae2f37d6db27b1e5ff60de3525b5ee2939db8f005a6b90"
+    },
+    {
+      "path": "night-shift-loop.webp",
+      "bytes": 1352888,
+      "sha256": "bc1e486a50993694f91976a79498f08a18378d8d9364fe61648553d1f9527bdd"
+    },
+    {
+      "path": "night-shift-share.mp4",
+      "bytes": 2356295,
+      "sha256": "469b891fcf6cd292409cafaede12892ae1985b96b02d1f3e709a9701f533c84e"
+    },
+    {
+      "path": "night-shift.mp4",
+      "bytes": 2323558,
+      "sha256": "142755209638993e432350095ae3385fa5302b6c6c9e1e0521a76cfc3a183dbe"
+    },
+    {
+      "path": "promotion-manifest.json",
+      "bytes": 1928,
+      "sha256": "a895b0cb19d7c5b2d0f4ea1d4cd8bb51f567352de595750fed7a3887484c3e3a"
+    },
+    {
+      "path": "replay-check.json",
+      "bytes": 1127,
+      "sha256": "a428b38556696ff75fa65880ef4a4f6d53e717f4ba69fec0dd56fb8926a4178a"
+    },
+    {
+      "path": "social/01-cover.png",
+      "bytes": 612078,
+      "sha256": "f4a4b58cbc9b92a2d70819fd3c4f9c6d1e727efcf0e10b9f4520b02ac85fcd69"
+    },
+    {
+      "path": "social/02-detail.png",
+      "bytes": 703274,
+      "sha256": "3524221235a3237fb8da9b3f49e755252c2f501aa8aa81af7576dc9b5c46f0f1"
+    },
+    {
+      "path": "social/03-replay.png",
+      "bytes": 472180,
+      "sha256": "346cd29cdecaabcca2f4d9f3b7d697fb1ed6313457e56aa6fc1725a96ce75488"
+    },
+    {
+      "path": "source-provenance.json",
+      "bytes": 2997,
+      "sha256": "85843cd84efebc457f1403b9b5c42036e9d5fba23ece1d6a38eea0057d22ae29"
+    },
+    {
+      "path": "still-detail-72.png",
+      "bytes": 2487280,
+      "sha256": "b54e808cf255679dca75ca8c55598a7a7fc7599900141bfd49d7f631ca56f6b7"
+    },
+    {
+      "path": "still-hero-72.png",
+      "bytes": 3776309,
+      "sha256": "09245dd7d8b011c30f7dc07aeea5d4692866b496c60230dbbec0bc941d4d632c"
+    }
+  ]
+}

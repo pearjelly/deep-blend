@@ -1,0 +1,23 @@
+{
+  "casePluginVersion": "0.5.0",
+  "releaseVersion": "0.8.1",
+  "files": {
+    "dsh-tool-events.json": {
+      "originalSha256": "58ddcb2af527c572b32fc15b5c8aed3402511fc8d69f898446a9f9199000260c",
+      "publicSha256": "88a35f2260be29ae1863ccd941b1b500882b2be7ca87d5584fceb3e8b2ec5467",
+      "redaction": "Local workspace and temporary path prefixes only; tool calls, results and artifact digests preserved."
+    },
+    "delivery.json": {
+      "originalSha256": "6dd9fd5c3bd620e3a89100927148d8af08d56071792ef17aa98957b8f76047f7",
+      "publicSha256": "c92b792908315692dfc98d90a505e03e06cf846fec85685ca253b7e04e9c6a06",
+      "redaction": "Local workspace and temporary path prefixes only; tool calls, results and artifact digests preserved."
+    },
+    "promotion-manifest.json": {
+      "originalSha256": "a895b0cb19d7c5b2d0f4ea1d4cd8bb51f567352de595750fed7a3887484c3e3a",
+      "publicSha256": "a895b0cb19d7c5b2d0f4ea1d4cd8bb51f567352de595750fed7a3887484c3e3a",
+      "redaction": "Local workspace and temporary path prefixes only; tool calls, results and artifact digests preserved."
+    }
+  },
+  "modelRoute": "model-route.json",
+  "note": "Logical DSH provider label deepseek-official used the user-configured https://api.b.ai endpoint; it was not a direct official DeepSeek endpoint."
+}

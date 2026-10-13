@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.8.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.0) links lamp shade diameter with shell thickness, liner clearance and the fixed neck, and delivers saved multi-view inspection images to image-capable models. Cup dimensions and previous editable revisions remain available. See the [release evidence](deepblend/docs/releases/0.8.0.md), [recipe guide](deepblend/docs/recipes.md) and [real-task boundaries](deepblend/docs/modeling-task-baselines.md).
+Latest stable [0.8.1](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.1) publishes the verified Night Shift case with replay inputs, official asset attribution and actual DSH tool evidence. The runtime retains 0.8.0 linked lamp and cup dimensions.
 
 ## Quick start
 
@@ -66,6 +66,17 @@ See the [installation and upgrade guide](deepblend/docs/install.md) for configur
 
 </details>
 
+## New case: Night Shift
+
+[![Night Shift / 夜班](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/charge-study/night-shift-loop.webp)](https://pearjelly.github.io/deep-blend/charge-study/)
+
+Created through DeepSeek Harness with the installed deep-blend **0.5.0** plugin: Blender’s official CHARGE Packbot, a new industrial set, lighting and six seconds of camera motion. **79 mesh parts, 511,595 polygons, 19 packed images; 1080p / 24 fps / 144 actually rendered frames.** An independent DSH replay matched the scene digest; the frame-72 preview differed by at most 1/255 per channel.
+
+[播放视频 / Watch](https://pearjelly.github.io/deep-blend/charge-study/) · [复现指南 / Replay guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/charge-study/README.md) · [完整复现素材 / Replay inputs](https://github.com/pearjelly/deep-blend/releases/download/v0.8.1/night-shift-replay.zip)
+
+The robot uses the source asset’s static frame-1 pose; the film demonstrates the new set and camera motion. **CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**; new scene code is MIT. The promotional edit only adds titles and attribution. Release 0.8.1 includes replay inputs under `examples/charge-study/`; the guide pins the verified 0.5.0 environment.
+
+
 ## Real work: light and material
 
 Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
@@ -79,7 +90,7 @@ The inline previews sample the actual films at 12 fps; the MP4s retain all 144 r
 
 [Open the gallery](https://pearjelly.github.io/deep-blend/) · [Scene sources and rebuild](deepblend/showcase/README.md) · [Render provenance](deepblend/docs/assets/showcase/manifest.json) · [Official Blender visual references](deepblend/showcase/REFERENCES.md)
 
-The scenes and output come from editable SceneSpec and actual rendering. Official Blender examples informed the lighting and material direction; no official demo model, texture or movie frame is used in these works.
+The scenes and output come from editable SceneSpec and actual rendering. Official Blender examples informed the lighting and material direction; no official demo model, texture or movie frame is used in these three product studies.
 
 ## Make something concrete
 

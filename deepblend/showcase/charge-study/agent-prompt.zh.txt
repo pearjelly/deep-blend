@@ -1,0 +1,21 @@
+只使用 DeepBlend Studio 的 blender_* 工具制作真实镜头，不使用 Shell、Python 或其他场景脚本。
+
+项目 charge-night-shift 已用随包提供的 industrial-stage.json 在当前 DSH 的 deep-blend 工作台创建。请先用 blender_capabilities 和 blender_scene_get 确认项目、当前版本以及 hero / detail 相机。
+
+使用 blender_asset_ingest 导入素材包中的 packbot-static.blend。
+sourcePath = 请替换为解压后 packbot-static.blend 的绝对路径
+projectId = charge-night-shift
+assetId = official-charge-packbot
+type = blend
+license = CC-BY — CHARGE Packbot © Blender Studio / Blender Foundation. Source: https://www.blender.org/download/demo-files/ . Modified: frame-1 static geometry, packed textures; original rig and character animation excluded.
+
+用返回的真实 assetId、path、sha256 做 blender_scene_patch，baseRevision 使用当前版本，saveCheckpoint=true。两项操作：
+1. asset.add，asset 为 {id:返回的assetId,type:"blend",path:返回的path,sha256:返回的sha256,license:{source:"https://www.blender.org/download/demo-files/",attribution:"CC-BY — CHARGE Packbot © Blender Studio / Blender Foundation. Modified: frame-1 static geometry and packed textures; original rig and animation excluded."}}。
+2. entity.add，entity 为 {id:"packbot",type:"asset-instance",assetId:"official-charge-packbot",transform:{location:[0,0,0],rotationEuler:[0,0,-0.08],scale:[1,1,1]},tags:["hero-product"]}。
+注意：license.source 最多 200 字符，署名放 attribution 字段。保留工业布景、灯光、原生材质、UV、相机与动画轨道。
+
+使用普通 blender_preview_render 渲染当前保存版本的 hero 相机，帧 1、72、144，samples=64；再渲染 detail 相机第 72 帧。原生 .blend 资产在 0.5.0 中应使用检查点预览，不能使用 mode:beauty/clay 的独立检查路径。展示真实 PNG 给用户检查轮廓、落地与高光；若模型没有收到图片，不要声称已看到或已完成美术评审。
+
+用户确认预览后，使用 blender_final_render，明确 projectId、revision、cameraId="hero"、profileName="final"、frameStart=1、frameEnd=144、samples=128。这是 1920×1080、24fps、6 秒、144 个实际渲染帧，渲染需要持续一段时间。只报告真实 jobId 和状态；未完成前不要宣称成片已交付。
+
+使用 blender_job_status 查询实际作业。中断时用 blender_final_render 的 resumeJobId 续渲缺失帧，不重复新建同一个交付任务。作业完成后用 blender_export 明确同一 projectId、jobId、revision，取得 verified=true 的交付清单。保留工具调用记录、场景版本、检查点和许可署名。
