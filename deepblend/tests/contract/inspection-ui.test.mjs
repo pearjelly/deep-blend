@@ -11,6 +11,13 @@ import { loadClientBundle } from '../lib/client-bundle.mjs'
 const clone = value => JSON.parse(JSON.stringify(value)), core = loadClientBundle().exports.workbench
 const source = compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/glass-ceramic/scene-spec.json', import.meta.url)))).spec
 const tree = (revision = 'r0001') => buildSceneTree(source, { revision, digest: 'a'.repeat(64) })
+const nativeReceipt = (projectId, entityId, sourceRevision = 'r0001', frame = 1) => ({
+  schemaVersion: 'deepblend.scene-geometry/v1', projectId, sourceRevision, sourceDigest: 'a'.repeat(64),
+  sourceSpecHash: 'b'.repeat(64), sourceCheckpointSha256: 'd'.repeat(64), sourceUnchanged: true,
+  frame, blenderVersion: 'fixture', limitations: ['World-axis spans only.'], objects: [{ entityId, type: 'MESH', available: true,
+    worldBoundsMeters: { min: [0,0,0], max: [.1,.2,.3] }, worldAxisExtentMm: [100,200,300], scale: [1,1,1],
+    worldMatrix: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]], vertexCount: 8, polygonCount: 6 }],
+})
 const nodesOf = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(nodesOf)] : []
 const diagnostic = (mode = 'clay', revision = 'r0001') => ({ kind: 'diagnostic', mime: 'image/png', mode, sourceRevision: revision, sourceDigest: 'a'.repeat(64), transformationVersion: 'inspection-v1', path: `diagnostics/${mode}-${revision}.png`, sha256: 'b'.repeat(64), cameraId: 'hero', frame: 24, width: 512, height: 384, engine: 'CYCLES', samples: 16, at: '2026-10-03T00:00:00Z' })
 async function settle(store, predicate) {
@@ -29,6 +36,12 @@ async function client(t, options = {}) {
         const artifact = { ...diagnostic(body.mode, body.revision), cameraId: body.views[0].cameraId, frame: body.views[0].frame, samples: body.samples }
         project.diagnostics.push(artifact); payload = { ok: true, preview: { mode: body.mode, revision: body.revision, sourceRevision: body.revision, sourceDigest: 'a'.repeat(64), artifacts: [artifact], views: [{ viewId: 'selected', cameraId: artifact.cameraId, frame: artifact.frame }], sheets: null } }
       } else payload = { ok: true, preview: { revision: project.revision, views: [], sheets: null } }
+    } else if (parsed.pathname.endsWith('/scene') && parsed.searchParams.has('geometryEntityId')) {
+      const entityId = parsed.searchParams.get('geometryEntityId'), revision = parsed.searchParams.get('revision'), frame = Number(parsed.searchParams.get('geometryFrame'))
+      calls.push({ id, path: parsed.pathname, entityId, revision, frame, signal: init.signal })
+      await options.beforeNative?.({ id, revision, frame, signal: init.signal })
+      const receipt = nativeReceipt(id, entityId, revision, frame); options.alterNative?.(receipt)
+      payload = { ok: true, route: 'project.scene', projectId: id, revision, digest: 'a'.repeat(64), geometryInspection: receipt }
     } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', jobs: [], unfinished: [] }
     else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', artifactBase: `/deepblend/artifacts/${id}/`, previews: { projectId: id, revisions: [{ revision: project.revision, previews: [{ kind: 'preview', path: 'product.png', sha256: 'c'.repeat(64) }], contactSheets: [], diagnostics: clone(project.diagnostics) }] } }
     else payload = { ok: true, route: 'state', projects: [{ projectId: 'one' }, { projectId: 'two' }], selected: { project: { projectId: id, title: id }, currentRevision: project.revision, scene: clone(project.scene), qa: { summary: 'Controlled fixture' }, jobs: [], unfinishedJobs: [] } }
@@ -41,6 +54,112 @@ async function client(t, options = {}) {
   const field = name => nodes().find(node => node.props['data-field'] === name), action = name => nodes().find(node => node.props['data-action'] === name)
   return { store, projects, calls, nodes, view, field, action }
 }
+
+test('native measurement route binds a single selected part, saved revision, frame and cancellation', async () => {
+  let input; const signal = new AbortController().signal, entityId = source.entities[0].id
+  const handlers = createHandlers({ blenderStudio: { getScene: async (id, options) => { input = { id, options }; return {
+    revision: options.revision, digest: 'a'.repeat(64), spec: source, geometryInspection: nativeReceipt(id, entityId, options.revision, options.geometry.frame),
+  } } } })
+  const result = await handlers['project.scene']({ params: { projectId: 'one' }, query: { revision: 'r0001', geometryEntityId: entityId, geometryFrame: '17' }, signal })
+  assert.deepEqual(input.options.geometry, { entityIds: [entityId], frame: 17 }); assert.equal(input.options.signal, signal)
+  assert.equal(result.geometryInspection.sourceRevision, 'r0001'); assert.deepEqual(result.geometryInspection.objects[0].worldAxisExtentMm, [100,200,300])
+})
+
+test('native measurement route refuses partial input and old Hosts without invented values', async () => {
+  let calls = 0; const handlers = createHandlers({ blenderStudio: { getScene: async () => { calls++; return { revision: 'r0001', digest: 'a'.repeat(64), spec: source } } } })
+  for (const query of [{ geometryEntityId: 'cup' }, { revision: 'r0001', geometryEntityId: 'cup' }, { revision: 'r0001', geometryFrame: '1' },
+    { revision: 'r0001', geometryEntityId: 'cup', geometryFrame: '1.5' }]) {
+    await assert.rejects(handlers['project.scene']({ params: { projectId: 'one' }, query }))
+  }
+  assert.equal(calls, 0)
+  await assert.rejects(handlers['project.scene']({ params: { projectId: 'one' }, query: { revision: 'r0001', geometryEntityId: 'cup', geometryFrame: '1' } }), { code: 'UI_HOST_API_STALE' })
+})
+
+test('native measurement route rejects wrong source and inconsistent measured bounds', async () => {
+  for (const change of [r => r.sourceRevision = 'r0009', r => r.sourceUnchanged = false, r => r.frame = 2,
+    r => r.objects[0].worldAxisExtentMm[0]++, r => r.sourceCheckpointSha256 = 'unbound']) {
+    const entityId = source.entities[0].id, receipt = nativeReceipt('one', entityId); change(receipt)
+    const handlers = createHandlers({ blenderStudio: { getScene: async () => ({ revision: 'r0001', digest: 'a'.repeat(64), spec: source, geometryInspection: receipt }) } })
+    await assert.rejects(handlers['project.scene']({ params: { projectId: 'one' }, query: { revision: 'r0001', geometryEntityId: entityId, geometryFrame: '1' } }))
+  }
+})
+
+test('one explicit native measurement displays saved dimensions without an edit or render', async t => {
+  const f = await client(t); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  assert.equal(f.calls.length, 0); assert.ok(f.action('geometry-measure'))
+  f.field('geometry-frame').props.onChange({ target: { value: '17' } })
+  assert.equal(f.calls.length, 0)
+  await f.store.actions.measureGeometry()
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0].frame, 17); assert.equal(f.calls[0].revision, 'r0001')
+  const spans = f.nodes().find(n => n.props['data-native-spans']); assert.ok(spans)
+  assert.ok(JSON.stringify(spans).includes('100 mm')); assert.ok(JSON.stringify(f.nodes()).includes('not establish wall thickness'))
+  assert.equal(f.store.getState().selected.scene.revision, 'r0001')
+  f.store.actions.setGeometryFrame(24); assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+})
+
+test('native dimensions cannot silently follow a changed saved revision or project', async t => {
+  const f = await client(t); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  await f.store.actions.measureGeometry(); assert.ok(f.nodes().some(n => n.props['data-native-spans']))
+  f.projects.one.revision = 'r0002'; f.projects.one.scene = tree('r0002'); f.store.actions.reload()
+  await settle(f.store, state => state.selected.scene.revision === 'r0002')
+  assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+  f.store.actions.selectProject('two'); await settle(f.store, state => state.activeProjectId === 'two')
+  f.store.actions.selectEditorEntity(source.entities[0].id); assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+})
+
+for (const [name, alterNative] of [
+  ['wrong revision', r => r.sourceRevision = 'r0009'], ['wrong frame', r => r.frame++], ['wrong part', r => r.objects[0].entityId = 'other'],
+  ['unverified source', r => r.sourceUnchanged = false], ['invalid extent', r => r.objects[0].worldAxisExtentMm[0] = -1],
+]) test(`native measurement UI refuses ${name}`, async t => {
+  const f = await client(t, { alterNative }); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  await f.store.actions.measureGeometry(); assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+  assert.ok(f.nodes().some(n => n.props.role === 'alert'))
+})
+
+test('empty and invalid native frames remain drafts and prevent measuring', async t => {
+  const f = await client(t); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  for (const value of ['', '1.5', '49']) {
+    f.field('geometry-frame').props.onChange({ target: { value } })
+    assert.equal(f.action('geometry-measure').props.disabled, true); await f.store.actions.measureGeometry()
+  }
+  assert.equal(f.calls.length, 0)
+})
+
+test('native measurement cancellation prevents late dimensions and keeps the saved scene', async t => {
+  let enter, release
+  const entered = new Promise(r => { enter = r }), finished = new Promise(r => { release = r })
+  const f = await client(t, { beforeNative: async () => { enter(); await finished } }); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  const pending = f.store.actions.measureGeometry(); await entered
+  assert.equal(f.action('geometry-measure').props.disabled, true)
+  f.store.actions.cancelGeometry(); assert.equal(f.calls[0].signal.aborted, true); release(); await pending
+  assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+  assert.equal(f.store.getState().selected.scene.revision, 'r0001'); assert.ok(f.nodes().some(n => n.props.role === 'alert'))
+})
+
+test('closing the workbench aborts native transport instead of adopting a late result', async t => {
+  let enter, release
+  const entered = new Promise(r => { enter = r }), finished = new Promise(r => { release = r })
+  const f = await client(t, { beforeNative: async () => { enter(); await finished } }); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  const pending = f.store.actions.measureGeometry(); await entered; f.store.stop()
+  assert.equal(f.calls[0].signal.aborted, true); release(); await pending
+  assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+})
+
+test('native measurements of a saved part do not apply an unsaved editor draft', async t => {
+  const f = await client(t); f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id)
+  f.store.actions.updateEditor('transform', ['location', 0], .321)
+  assert.ok(JSON.stringify(f.nodes()).includes('unapplied drafts are excluded'))
+  await f.store.actions.measureGeometry()
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0].revision, 'r0001')
+  assert.equal(f.field('editor-location-x').props.value, 321)
+})
+
+test('unavailable native parts show a reason instead of dimensions', async t => {
+  const f = await client(t, { alterNative: r => { r.objects = [{ entityId: r.objects[0].entityId, type: 'MESH', available: false, unavailableReason: 'viewport-disabled' }] } })
+  f.store.actions.setView('scene'); f.store.actions.selectEditorEntity(source.entities[0].id); await f.store.actions.measureGeometry()
+  assert.equal(f.nodes().some(n => n.props['data-native-spans']), false)
+  assert.ok(JSON.stringify(f.nodes()).includes('disabled in the viewport'))
+})
 
 test('inspection route pins the revision, strips unknown view fields, and passes cancellation without exposing bytes', async () => {
   const calls = [], signal = new AbortController().signal

@@ -151,7 +151,7 @@ test('two temporary homes retain distinct aliases and independent source links a
   assert.equal(realpathSync(join(second.directory, 'node_modules', aliases[1])), realpathSync(local.get(BUNDLE)))
 })
 
-test('explicit user-configuration inheritance keeps its supplied profile and links without applying the ordinary-home alias', async t => {
+test('explicit user-configuration inheritance copies its supplied mutable configuration and keeps dependency links without applying the ordinary-home alias', async t => {
   const f = fixture(t), inherited = join(f.scratch, 'synthetic-user-home'), directory = join(inherited, 'profiles', 'web')
   const userManifest = { name: 'user-profile', private: true, dsh: { profile: { bundles: [BUNDLE], patchReload: 'startup' } } }
   writeJson(join(directory, 'package.json'), userManifest)
@@ -173,7 +173,10 @@ test('explicit user-configuration inheritance keeps its supplied profile and lin
   const home = inheritedHarness.createHome({ home: join(f.scratch, 'inherited-test-home'), inheritUserConfig: true })
   assert.deepEqual(readJson(join(home, 'profiles/web/package.json')), userManifest)
   assert.deepEqual(readFileSync(join(home, 'profiles/web/cordis.patch.yml')), readFileSync(join(directory, 'cordis.patch.yml')))
-  assert.equal(realpathSync(join(home, 'settings.yaml')), realpathSync(join(inherited, 'settings.yaml')))
+  assert.notEqual(realpathSync(join(home, 'settings.yaml')), realpathSync(join(inherited, 'settings.yaml')))
+  assert.deepEqual(readFileSync(join(home, 'settings.yaml')), readFileSync(join(inherited, 'settings.yaml')))
+  writeFileSync(join(home, 'settings.yaml'), 'language: zh\n')
+  assert.equal(readFileSync(join(inherited, 'settings.yaml'), 'utf8'), 'language: en\n')
   assert.equal(realpathSync(join(home, 'profiles/node_modules/@fixture')), realpathSync(sharedDependency))
   assert.equal(realpathSync(join(home, 'profiles/node_modules', BUNDLE)), realpathSync(local.get(BUNDLE)))
   assert.equal(existsSync(join(home, 'profiles/web/node_modules/@deepblend-harness')), false)

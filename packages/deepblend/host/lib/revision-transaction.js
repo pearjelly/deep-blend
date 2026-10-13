@@ -71,6 +71,7 @@ import {
 import { verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import { readRecipeContext } from './recipe-state.js'
+import { protectRecipeNativeSource } from './recipe-native-source.js'
 import {
   fileSha256,
   fileSize,
@@ -314,6 +315,7 @@ export class RevisionTransaction {
           revision: this.store.readRevisionManifest(request.projectId, request.baseRevision),
           parameterState: context.state, preservedCameraIds: planned.preservedCameraIds }
       }
+      const verifyNativeSource = protectRecipeNativeSource(this.store, request.projectId, request.baseRevision)
       const patch = { projectId: request.projectId, baseRevision: request.baseRevision, operations: planned.operations,
         saveCheckpoint: request.saveCheckpoint !== false, renderPreview: request.renderPreview === true,
         idempotencyKey: request.idempotencyKey ?? `recipe-${sha256Canonical({ projectId: request.projectId,
@@ -323,7 +325,7 @@ export class RevisionTransaction {
       const checked = validateScenePatch(patch)
       if (!checked.ok) throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, checked.summary)
       const state = { ...planned.parameterState, originRevision: context.originRevision }
-      const outcome = await this._applyScenePatch(patch, { ...options, recipeParameters: state })
+      const outcome = await this._applyScenePatch(patch, { ...options, recipeParameters: state, verifyNativeSource })
       const committed = readRecipeContext(this.store, request.projectId, outcome.revision.revision)
       if (!committed?.state) throw new BlenderError('RECIPE_LOCK_INVALID', 'The recorded outcome has no recipe parameter state')
       return { ...outcome, parameterState: committed.state, preservedCameraIds: planned.preservedCameraIds }
@@ -478,6 +480,7 @@ export class RevisionTransaction {
       spec: nextSpec,
       kind: 'scene_patch',
       recipeParameters: options.recipeParameters ?? null,
+      verifyNativeSource: options.verifyNativeSource,
       summary,
       actor: patch.actor ?? null,
       stage: patch.stage ?? null,
@@ -892,6 +895,7 @@ export class RevisionTransaction {
     // the whole record so a restore away and back cannot hide behind the same id.
     try {
       this.store.assertProjectWrite(projectId)
+      plan.verifyNativeSource?.()
       const current = this.store.readRecord(projectId)
       if (JSON.stringify(current) !== JSON.stringify(record)) {
         throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT,

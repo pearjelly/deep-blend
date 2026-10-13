@@ -18,20 +18,25 @@ export function validateGeometrySelection(request) {
 /** Verify measured values rather than trusting a successful process exit. */
 export function verifyGeometryReport(report, request) {
   validateGeometrySelection(request)
+  const allowed = (value, keys) => value && typeof value === 'object' && Object.keys(value).every(key => keys.includes(key))
   if (!report || Buffer.byteLength(JSON.stringify(report)) > GEOMETRY_INSPECTION_LIMITS.reportBytes ||
       report.schemaVersion !== GEOMETRY_INSPECTION_VERSION || report.checkpointSha256 !== request.checkpointSha256 ||
       report.frame !== request.frame || report.checkpointUnchanged !== true ||
       typeof report.blenderVersion !== 'string' || !report.blenderVersion ||
-      !Array.isArray(report.objects) || report.objects.length !== request.entityIds.length) refuse('the report does not match the requested source, frame or selection.')
+      !Array.isArray(report.objects) || report.objects.length !== request.entityIds.length ||
+      !allowed(report, ['schemaVersion', 'checkpointSha256', 'checkpointUnchanged', 'frame', 'blenderVersion', 'objects'])) refuse('the report does not match the requested source, frame or selection.')
   const vector = (v, length) => Array.isArray(v) && v.length === length && v.every(Number.isFinite)
   for (const [index, object] of report.objects.entries()) {
     if (object?.entityId !== request.entityIds[index] || typeof object.type !== 'string' || !object.type) refuse('object identity differs from the selection.')
+    const keys = object.available === false ? ['entityId', 'type', 'available', 'unavailableReason'] :
+      ['entityId', 'type', 'available', 'worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'scale', 'vertexCount', 'polygonCount']
+    if (!allowed(object, keys)) refuse('unsupported measurement fields are not accepted; this protocol does not establish wall thickness or clearance.')
     if (object.available === false) {
       if (!['viewport-disabled', 'not-mesh', 'empty-or-invalid-geometry'].includes(object.unavailableReason) ||
           ['worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'vertexCount', 'polygonCount', 'scale'].some(k => Object.hasOwn(object, k))) refuse('an unavailable object must not contain measurements.')
       continue
     }
-    if (object.available !== true || object.type !== 'MESH' || !vector(object.worldBoundsMeters?.min, 3) ||
+    if (object.available !== true || object.type !== 'MESH' || !allowed(object.worldBoundsMeters, ['min', 'max']) || !vector(object.worldBoundsMeters?.min, 3) ||
         !vector(object.worldBoundsMeters?.max, 3) || !vector(object.worldAxisExtentMm, 3) || !vector(object.scale, 3) ||
         !Array.isArray(object.worldMatrix) || object.worldMatrix.length !== 4 || !object.worldMatrix.every(row => vector(row, 4)) ||
         !Number.isSafeInteger(object.vertexCount) || object.vertexCount <= 0 ||

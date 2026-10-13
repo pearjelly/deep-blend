@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {lampAssemblyBindings} from '../../packages/deepblend/contracts/lib/lamp-assembly-repair.js'
 /** Package the native benchmark's exact source and preview with distinct finish controls. */
 import assert from 'node:assert/strict'
 import {readFileSync,writeFileSync} from 'node:fs'
@@ -33,15 +34,15 @@ scene.cameras.push({id:'liner-inspection',role:'detail',lens:50,clipping:[.005,2
 sceneBytes=Buffer.from(JSON.stringify(scene,null,2)+'\n')
 assert.equal(material('champagne-spun').texture.coordinates,'uv')
 assert.equal(material('champagne-spun').texture.uvMap,'UVMap')
-const manifest={schemaVersion:'deepblend.recipe/v1',id:'deepblend.metal-lamp',version:'2.1.0',title:'香槟金属桌灯',
+const manifest={schemaVersion:'deepblend.recipe/v1',id:'deepblend.metal-lamp',version:'2.2.0',title:'香槟金属桌灯',
   description:'连续旋压灯罩、沿曲面延伸的金属细纹、珐琅内衬、曲线弯臂与贴地线缆。分别调整旋压件和拉丝件的粗糙度，同步调整金属颜色与摄影曝光；灯罩外径联动金属壁与内衬，颈口保持，提供独立内衬检查相机。',
   author:{name:'DeepBlend contributors',url:'https://github.com/pearjelly/deep-blend'},license:'MIT',
   source:{url:'https://github.com/pearjelly/deep-blend',note:'Native metal-lamp benchmark with UV grain. SceneSpec bytes and native hero pixels are pinned; preview metadata is removed. Hero geometry/materials/camera remain unchanged; paired-profile diameter control and liner inspection camera are added. Source URL is attribution, not an installation endpoint.'},
-  compatibility:{sceneSchemaVersion:'deepblend.scene/v1',capabilities:[...recipeCapabilitiesForScene(scene),'recipe.geometry-bindings','recipe.lathe-shell-bindings']},
+  compatibility:{sceneSchemaVersion:'deepblend.scene/v1',capabilities:[...recipeCapabilitiesForScene(scene),'recipe.geometry-bindings','recipe.lathe-shell-bindings','recipe.curve-point-bindings','recipe.threshold-bindings']},
   input:{path:'scene-spec.json',sha256:sha(sceneBytes)},preview:{path:'preview.png',sha256:sha(previewBytes),mediaType:'image/png',alt:'香槟金属桌灯默认参数及曲面细纹的实际 Blender 渲染'},
   parameters:[
-    {id:'shade-diameter-mm',title:'灯罩外径（毫米）',description:'调整实际灯罩外径，联动金属壁和内衬，保持颈口、弯臂、灯泡与关节；不整体缩放。',type:'number',default:209.8,minimum:180,maximum:250,
-      bindings:[{kind:'lathe-shell',entityId:'shade-shell',linerEntityId:'shade-enamel-lining',outerPointCount:45,linerStart:3,linerPointCount:37,rimHeight:.008,neckAnchorHeight:.118,multiplier:.0005}]},
+    {id:'shade-diameter-mm',title:'灯罩外径（毫米）',description:'调整实际灯罩外径，联动金属壁和内衬；超过230毫米时后移立柱与关节并调整弯臂起段，保持颈口和灯泡。',type:'number',default:209.8,minimum:180,maximum:250,
+      bindings:[{kind:'lathe-shell',entityId:'shade-shell',linerEntityId:'shade-enamel-lining',outerPointCount:45,linerStart:3,linerPointCount:37,rimHeight:.008,neckAnchorHeight:.118,multiplier:.0005},...lampAssemblyBindings]},
     {id:'main-color',title:'主金属颜色',description:'同步调整旋压件和拉丝件的金属色调。',type:'color',default:material('champagne-spun').parameters.baseColor.slice(0,3),bindings:['champagne-spun','champagne-brushed'].map(materialId=>({kind:'material',materialId,property:'baseColor'}))},
     ...[['spun-roughness','旋压件粗糙度','灯罩、底座和旋钮的光泽。','champagne-spun'],['brushed-roughness','拉丝件粗糙度','支架与弯臂的光泽。','champagne-brushed']].map(([id,title,description,materialId])=>({id,title,description:description+'数值越小，反光越集中。',type:'number',default:material(materialId).parameters.roughness,minimum:.22,maximum:.6,bindings:[{kind:'material',materialId,property:'roughness'}]})),
     {id:'exposure',title:'摄影曝光',description:'调整整体画面的明暗，预览和成品同步生效。',type:'number',default:scene.renderProfiles.preview.colorManagement.exposure,minimum:-1,maximum:1,bindings:['preview','final'].map(profile=>({kind:'render-profile',profile,property:'exposure'}))},
@@ -54,4 +55,4 @@ for(const [name,bytes]of Object.entries(files)){
   if(process.argv.includes('--check'))assert.deepEqual(readFileSync(join(target,name)),bytes,`${name} differs from native benchmark recipe`)
   else writeFileSync(join(target,name),bytes)
 }
-console.log(`Metal lamp 2.1.0 ${process.argv.includes('--check')?'verified':'built'} from native benchmark source and pixels`)
+console.log(`Metal lamp 2.2.0 ${process.argv.includes('--check')?'verified':'built'} from native benchmark source and pixels`)

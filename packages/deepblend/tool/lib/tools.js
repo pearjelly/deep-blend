@@ -393,6 +393,7 @@ function sceneGet(ctx) {
       'To measure saved native parts, pass geometryEntityIds (1–8 IDs from this scene) and an explicit geometryFrame. ' +
       'This returns source-verified world-axis spans in millimeters and transforms without rendering or creating a revision. ' +
       'Spans include rotation, handles and protrusions; they are not body diameter, wall thickness, clearance or quality approval. ' +
+      'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. Those surface conditions remain unmeasured. ' +
       'ALWAYS use the revision this returns as `baseRevision` for your next blender_scene_patch.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
@@ -429,7 +430,7 @@ function sceneGet(ctx) {
             JSON.stringify(data.geometryInspection.objects?.map(o => o.entityId)) !== JSON.stringify(args.geometryEntityIds))) {
           throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
         }
-        if (data.geometryInspection) verifyGeometryReport({ ...data.geometryInspection,
+        if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
           schemaVersion: 'deepblend.geometry-inspection/v1', checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
           checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
           checkpointSha256: data.geometryInspection.sourceCheckpointSha256 })

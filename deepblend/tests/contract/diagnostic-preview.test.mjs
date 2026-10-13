@@ -80,6 +80,8 @@ test('native geometry reads the pinned checkpoint, preserves the revision and cl
   assert.equal(result.geometryInspection.sourceCheckpointSha256, sha256(readFileSync(join(directory, 'scene.blend'))))
   assert.equal(result.geometryInspection.sourceCheckpointSha256, manifest.checkpointBinding.sha256)
   assert.equal(result.geometryInspection.sourceUnchanged, true)
+  assert.ok(result.geometryInspection.excludedMeasurements.includes('shellToLinerClearance'))
+  assert.ok(result.geometryInspection.limitations.some(text => text.includes('both bounds describe outer surfaces')))
   assert.equal(result.geometryInspection.frame, 17)
   assert.deepEqual(result.geometryInspection.objects[0].worldAxisExtentMm, [100,200,300])
   assert.notEqual(input.checkpointPath, join(directory, 'scene.blend'))

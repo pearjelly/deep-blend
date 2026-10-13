@@ -376,6 +376,22 @@ window.__ModuleLoader__.load({
       'editor.conflict': '场景已更新。草稿保留，请重新载入后编辑。',
       'editor.pending': '尚未应用；输入不会自动启动渲染。',
       'editor.clean': '尚无修改',
+      'geometry.title': '保存模型的实际尺寸',
+      'geometry.measure': '检查此部件',
+      'geometry.busy': '正在检查…',
+      'geometry.cancel': '取消尺寸检查',
+      'geometry.cancelled': '尺寸检查已取消，已保存模型保持不变。',
+      'geometry.frame': '检查帧',
+      'geometry.source': '保存版本 {revision} · 第 {frame} 帧',
+      'geometry.help': '各世界方向的包围尺寸，包含旋转、把手和突出部分；不是壁厚、装配间隙或质量评审。',
+      'geometry.draft': '检查已保存模型；尚未应用的草稿不在结果中。',
+      'geometry.stale': '保存版本或检查帧已变化，请重新检查。',
+      'geometry.invalid': '返回结果与所选部件、版本或帧不一致，未采用尺寸。',
+      'geometry.unavailable': '此部件不可测：{reason}',
+      'geometry.viewport-disabled': '视口中未启用',
+      'geometry.not-mesh': '不是单个网格部件',
+      'geometry.empty-or-invalid-geometry': '没有有效网格',
+      'geometry.mesh': '网格：{vertices} 个顶点 · {faces} 个面',
       'editor.animated': '动画控制的通道已禁用。',
       'editor.invalid': '{field} 的值无效。',
       'editor.size': '尺寸（mm）',
@@ -975,6 +991,22 @@ window.__ModuleLoader__.load({
       'editor.conflict': 'The scene changed. Your draft is kept; reload before editing again.',
       'editor.pending': 'Not applied yet. Typing does not start a render.',
       'editor.clean': 'No changes yet',
+      'geometry.title': 'Actual saved model dimensions',
+      'geometry.measure': 'Inspect this part',
+      'geometry.busy': 'Inspecting…',
+      'geometry.cancel': 'Cancel measurement',
+      'geometry.cancelled': 'Measurement cancelled. The saved model is unchanged.',
+      'geometry.frame': 'Inspection frame',
+      'geometry.source': 'Saved revision {revision} · frame {frame}',
+      'geometry.help': 'World-axis bounding spans include rotation, handles and protrusions. They do not establish wall thickness, assembly clearance or quality approval.',
+      'geometry.draft': 'Measures the saved model; unapplied drafts are excluded.',
+      'geometry.stale': 'The saved revision or inspection frame changed. Inspect again.',
+      'geometry.invalid': 'The result does not match the selected part, revision or frame. No dimensions accepted.',
+      'geometry.unavailable': 'This part cannot be measured: {reason}',
+      'geometry.viewport-disabled': 'disabled in the viewport',
+      'geometry.not-mesh': 'not a single mesh part',
+      'geometry.empty-or-invalid-geometry': 'no valid mesh',
+      'geometry.mesh': 'Mesh: {vertices} vertices · {faces} faces',
       'editor.animated': 'Channels driven by animation are disabled.',
       'editor.invalid': 'Invalid value for {field}.',
       'editor.size': 'Size (mm)',
@@ -2763,6 +2795,7 @@ window.__ModuleLoader__.load({
         photographyReuse: {},
         editorEntityId: null,
         editorDrafts: {},
+        geometryMeasurements: {},
         editorLastEdits: {},
         editorComparison: null,
         assemblyDrafts: {},
@@ -2835,6 +2868,7 @@ window.__ModuleLoader__.load({
       let photographySourceSequence = 0
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
       const inspectionControllers = new Map()
+      const geometryControllers = new Map()
       const imageDownloadControllers = new Map()
       const assetControllers = new Map()
       const assetListSequences = new Map()
@@ -3784,6 +3818,47 @@ window.__ModuleLoader__.load({
           const draft = data.editorDrafts[key] || createEditorDraft(scene, projectId, entityId)
           if (draft) set({ editorEntityId: entityId, editorDrafts: { ...data.editorDrafts, [key]: draft } })
         },
+        setGeometryFrame: value => {
+          const draft = editorDraftFor(data)
+          if (!draft) return
+          const key = editorKey(draft.projectId, draft.entityId), previous = data.geometryMeasurements[key]
+          if (previous?.busy) return
+          set({ geometryMeasurements: { ...data.geometryMeasurements, [key]: { ...previous, frame: value } } })
+        },
+        cancelGeometry: () => {
+          const draft = editorDraftFor(data)
+          if (draft) geometryControllers.get(editorKey(draft.projectId, draft.entityId))?.abort()
+        },
+        measureGeometry: async () => {
+          const draft = editorDraftFor(data), scene = data.selected?.scene
+          if (!draft || !scene || draft.baseRevision !== scene.revision || data.busy.editor) return
+          const key = editorKey(draft.projectId, draft.entityId), previous = data.geometryMeasurements[key]
+          const frame = previous && Object.hasOwn(previous, 'frame') ? previous.frame : scene.project.frameStart
+          if (previous?.busy || !Number.isSafeInteger(frame) || frame < scene.project.frameStart || frame > scene.project.frameEnd) return
+          const projectId = draft.projectId, entityId = draft.entityId, revision = scene.revision, digest = scene.digest, projectsRoot = data.projectsRoot
+          const controller = new AbortController(); geometryControllers.set(key, controller)
+          const update = changes => set({ geometryMeasurements: { ...data.geometryMeasurements,
+            [key]: { ...data.geometryMeasurements[key], ...changes } } })
+          update({ frame, projectsRoot, busy: true, error: null, receipt: null })
+          try {
+            const result = await readRoute((url, options) => fetchImpl(url, { ...options, signal: controller.signal }),
+              `${projectRoute(projectId, '/scene')}?revision=${encodeURIComponent(revision)}&geometryEntityId=${encodeURIComponent(entityId)}&geometryFrame=${frame}`, 'project.scene')
+            if (controller.signal.aborted) throw Error(t('geometry.cancelled'))
+            if (data.projectsRoot !== projectsRoot) throw Error(t('geometry.stale'))
+            if (result.status !== 'ok') throw Error(`${result.error?.code || 'UI_READ_FAILED'}: ${result.error?.message || t('geometry.invalid')}`)
+            const receipt = result.payload.geometryInspection, object = receipt?.objects?.[0]
+            if (result.payload.revision !== revision || result.payload.digest !== digest || receipt?.schemaVersion !== 'deepblend.scene-geometry/v1' ||
+                receipt.projectId !== projectId || receipt.sourceRevision !== revision || receipt.sourceDigest !== digest || receipt.frame !== frame ||
+                receipt.sourceUnchanged !== true || !/^[a-f0-9]{64}$/.test(receipt.sourceCheckpointSha256 || '') ||
+                receipt.objects?.length !== 1 || object?.entityId !== entityId ||
+                (object.available !== true && object.available !== false) ||
+                (object.available === true && (!Array.isArray(object.worldAxisExtentMm) || object.worldAxisExtentMm.length !== 3 || !object.worldAxisExtentMm.every(x => Number.isFinite(x) && x >= 0)))) {
+              throw Error(t('geometry.invalid'))
+            }
+            update({ receipt })
+          } catch (error) { update({ error: controller.signal.aborted ? t('geometry.cancelled') : error.message || String(error) }) }
+          finally { geometryControllers.delete(key); update({ busy: false }) }
+        },
         resetEditor: () => {
           const current = editorDraftFor(data), scene = data.selected?.scene
           if (!current || !scene || data.busy.editor) return
@@ -4173,6 +4248,8 @@ window.__ModuleLoader__.load({
           photographySourceControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
           inspectionControllers.clear()
+          for (const controller of geometryControllers.values()) controller.abort()
+          geometryControllers.clear()
           for (const controller of imageDownloadControllers.values()) controller.abort('stopped')
           for (const controller of assetControllers.values()) controller.abort()
           assetControllers.clear()
@@ -4576,10 +4653,35 @@ window.__ModuleLoader__.load({
         || entity.materialBindings?.some(binding => binding.materialId === draft.material.id)
         || entity.assetParts?.some(item => item.materialSlots?.some(slot => slot.materialId === draft.material.id))).map(entity => entity.id)
       const canModify = draft.entity.kind === 'generator' || (draft.entity.kind === 'asset-instance' && parts.length === 1)
+      const measured = state.geometryMeasurements?.[editorKey(draft.projectId, draft.entityId)] || {}
+      const frame = Object.hasOwn(measured, 'frame') ? measured.frame : state.selected.scene.project.frameStart, receipt = measured.receipt
+      const measurementCurrent = measured.projectsRoot === state.projectsRoot && receipt?.sourceRevision === state.selected.scene.revision && receipt.sourceDigest === state.selected.scene.digest && receipt.frame === frame
+      const object = measurementCurrent ? receipt.objects[0] : null
+      const unavailableReason = { 'viewport-disabled': t('geometry.viewport-disabled'), 'not-mesh': t('geometry.not-mesh'),
+        'empty-or-invalid-geometry': t('geometry.empty-or-invalid-geometry') }[object?.unavailableReason]
       return el('div', { className: 'db-card', 'data-scene-editor': true, 'data-editor-entity': draft.entityId, 'data-editor-project': draft.projectId,
         'data-editor-base-revision': draft.baseRevision, 'data-editor-dirty': String(dirty), 'data-editor-conflict': String(conflict) },
         el('h4', null, `${t('editor.title')} · ${draft.entityId}`),
         el('div', { className: conflict ? 'db-error' : 'db-muted' }, conflict ? t('editor.conflict') : dirty ? t('editor.pending') : t('editor.clean')),
+        el('div', { className: 'db-card', 'data-native-geometry': true },
+          el('h4', null, t('geometry.title')), el('p', { className: 'db-muted' }, t('geometry.help')),
+          dirty ? el('p', { className: 'db-muted' }, t('geometry.draft')) : null,
+          el('label', { className: 'db-row' }, t('geometry.frame'), el('input', { className: 'db-input', type: 'number',
+            'data-field': 'geometry-frame', 'aria-label': t('geometry.frame'), value: frame ?? '', min: state.selected.scene.project.frameStart,
+            max: state.selected.scene.project.frameEnd, step: 1, disabled: measured.busy, style: { width: '125px' },
+            onChange: event => actions.setGeometryFrame(event.target.value === '' ? null : Number(event.target.value)) })),
+          Button({ action: 'geometry-measure', children: measured.busy ? t('geometry.busy') : t('geometry.measure'),
+            disabled: disabled || measured.busy || !Number.isSafeInteger(frame) || frame < state.selected.scene.project.frameStart || frame > state.selected.scene.project.frameEnd,
+            onClick: actions.measureGeometry }),
+          measured.busy ? Button({ action: 'geometry-cancel', children: t('geometry.cancel'), onClick: actions.cancelGeometry }) : null,
+          measured.error ? el('div', { className: 'db-error', role: 'alert' }, measured.error) : null,
+          receipt && !measurementCurrent ? el('p', { className: 'db-muted' }, t('geometry.stale')) : null,
+          object ? el('div', { 'data-measured-revision': receipt.sourceRevision, 'data-measured-frame': receipt.frame },
+            el('p', { className: 'db-muted' }, t('geometry.source', { revision: receipt.sourceRevision, frame: receipt.frame })),
+            object.available ? [el('div', { className: 'db-inline', 'data-native-spans': true }, object.worldAxisExtentMm.map((value, axis) =>
+              el('span', { key: axis }, `${['X','Y','Z'][axis]}: ${Number(value.toFixed(3))} mm`))),
+              el('p', { className: 'db-muted' }, t('geometry.mesh', { vertices: object.vertexCount, faces: object.polygonCount }))]
+              : el('p', null, t('geometry.unavailable', { reason: unavailableReason }))) : null),
         el('div', { className: 'db-grid', style: { marginTop: '12px' } },
           el('div', { className: 'db-card' },
             vector(t('editor.position'), 'editor-location', draft.entity.transform.location, (axis, value) => actions.updateEditor('transform', ['location', axis], value), 1000,

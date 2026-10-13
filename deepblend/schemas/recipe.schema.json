@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 19,
+          "maxItems": 21,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -118,7 +118,9 @@
               "animation.material",
               "recipe.geometry-bindings",
               "recipe.generator-bindings",
-              "recipe.lathe-shell-bindings"
+              "recipe.lathe-shell-bindings",
+              "recipe.curve-point-bindings",
+              "recipe.threshold-bindings"
             ]
           }
         }
@@ -273,6 +275,11 @@
             "offsetAnimation": {
               "type": "boolean",
               "description": "Explicitly translate keyframe values on the bound location axis by the same delta, preserving the motion. Only valid for location bindings."
+            },
+            "inputFloor": {
+              "type": "number",
+              "minimum": -1000000,
+              "maximum": 1000000
             }
           }
         },
@@ -410,6 +417,48 @@
             }
           },
           "description": "Bounded paired shell and liner profile expansion with fixed neck. Correspondence is authored data, not code."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entityId",
+            "pointIndex",
+            "axis",
+            "multiplier"
+          ],
+          "properties": {
+            "kind": {
+              "const": "curve-point"
+            },
+            "entityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "pointIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 127
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            },
+            "inputFloor": {
+              "type": "number",
+              "minimum": -1000000,
+              "maximum": 1000000
+            }
+          }
         }
       ]
     },

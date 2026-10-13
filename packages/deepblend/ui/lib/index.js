@@ -47,6 +47,8 @@ import {
   DIAGNOSTICS_FAILURE_LIMIT,
   matchUiRoute,
   assertKnownConfigKeys,
+  validateGeometrySelection,
+  verifyGeometryReport,
 } from '@deepblend/dsh-blender-contracts'
 
 /** Route path serving the settings card document (M0's surface, kept verbatim). */
@@ -672,12 +674,32 @@ export function createHandlers(ctx) {
 
     'project.overview': async ({ params, query }) => buildProjectState(studio(), params.projectId, query.revision, approvalThreshold()),
 
-    'project.scene': async ({ params, query }) => {
-      const detail = await studio().getScene(params.projectId, { revision: query.revision, full: true })
+    'project.scene': async ({ params, query, signal }) => {
+      let geometry
+      if (query.geometryEntityId !== undefined || query.geometryFrame !== undefined) {
+        if (typeof query.revision !== 'string' || !query.revision || !/^\d+$/.test(query.geometryFrame ?? '')) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Native measurement requires a saved revision, one entity and an explicit integer frame.')
+        }
+        geometry = { entityIds: [query.geometryEntityId], frame: Number(query.geometryFrame) }
+        validateGeometrySelection({ ...geometry, checkpointSha256: '0'.repeat(64) })
+      }
+      const detail = await studio().getScene(params.projectId, { revision: query.revision, full: true,
+        ...(geometry ? { geometry, signal } : {}) })
+      if (geometry) {
+        const receipt = detail.geometryInspection
+        if (!receipt || receipt.schemaVersion !== 'deepblend.scene-geometry/v1' || receipt.projectId !== params.projectId ||
+            receipt.sourceRevision !== query.revision || receipt.sourceRevision !== detail.revision || receipt.sourceDigest !== detail.digest || receipt.sourceUnchanged !== true) {
+          throw new BlenderError('UI_HOST_API_STALE', 'The Host did not return native measurements for this saved source. Update DeepBlend before measuring.')
+        }
+        verifyGeometryReport({ frame: receipt.frame, blenderVersion: receipt.blenderVersion, objects: receipt.objects, schemaVersion: 'deepblend.geometry-inspection/v1',
+          checkpointSha256: receipt.sourceCheckpointSha256, checkpointUnchanged: receipt.sourceUnchanged },
+          { ...geometry, checkpointSha256: receipt.sourceCheckpointSha256 })
+      }
       return {
         projectId: params.projectId,
         revision: detail.revision,
         digest: detail.digest,
+        ...(geometry ? { geometryInspection: detail.geometryInspection } : {}),
         scene: buildSceneTree(detail.spec, {
           revision: detail.revision,
           digest: detail.digest,

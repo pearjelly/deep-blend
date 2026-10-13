@@ -68,10 +68,13 @@ export async function inspectRevisionGeometry(host, projectId, revision, selecti
     return { schemaVersion: 'deepblend.scene-geometry/v1', projectId, sourceRevision: revision,
       sourceDigest: digest, sourceSpecHash: manifest.specHashAfter, sourceCheckpointSha256: expected,
       sourceUnchanged: true, frame: native.frame, objects: native.objects, blenderVersion: native.blenderVersion,
+      excludedMeasurements: ['wallThickness', 'shellToLinerClearance', 'minimumClearance', 'collision'],
       execution: { transport: 'batch' }, limitations: [
         'World-axis spans include rotations, handles and protrusions; they are not intrinsic body dimensions.',
         'This evaluates saved native mesh geometry, not shader displacement or rendered pixels.',
         'No wall thickness, clearance, collision, topology or artistic approval is established.',
+        'Do not subtract shell and liner extents or radii to report a gap: both bounds describe outer surfaces, and their difference includes wall material and depends on curvature and orientation.',
+        'Unchanged height, position or scale does not prove that wall thickness or clearance was preserved. Report those conditions as unmeasured unless a separate surface measurement verifies them.',
       ] }
   } finally { removeTree(scratch) }
 }

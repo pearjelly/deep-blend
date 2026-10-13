@@ -27,6 +27,10 @@ for (const [name, edit] of [
   ['reversed bounds', r => { r.objects[0].worldBoundsMeters.min[0] = 1 }],
   ['invented hidden object dimensions', r => { r.objects[0].available = false; r.objects[0].unavailableReason = 'viewport-disabled' }],
   ['unbounded payload', r => { r.padding = 'x'.repeat(65536) }],
+  ['invented wall thickness', r => { r.objects[0].wallThicknessMm = 2 }],
+  ['invented assembly gap', r => { r.objects[0].clearanceMm = .15 }],
+  ['invented nested gap', r => { r.objects[0].worldBoundsMeters.clearanceMm = .15 }],
+  ['invented report-level thickness', r => { r.wallThicknessMm = 2 }],
 ]) test(`geometry receipt refuses ${name}`, () => {
   const report = inspectionReport(); edit(report)
   assert.throws(() => verifyGeometryReport(report, inspectionRequest()), error => error.code === 'BLENDER_SCRIPT_ERROR')

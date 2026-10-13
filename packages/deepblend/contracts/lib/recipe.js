@@ -15,6 +15,8 @@ export const RECIPE_CAPABILITIES = Object.freeze([
   'recipe.geometry-bindings',
   'recipe.generator-bindings',
   'recipe.lathe-shell-bindings',
+  'recipe.curve-point-bindings',
+  'recipe.threshold-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
 const structural = compileSchema(recipeSchema, { id: 'recipe.schema.json' })
@@ -26,7 +28,9 @@ const result = (errors, extra = {}) => ({ ok: errors.length === 0, errors, notic
   summary: errors.length ? errors.map(error => `${error.path}: ${error.message}`).join('; ') : 'Recipe valid', ...extra })
 const bindingAxis = binding => ['x', 'y', 'z'].indexOf(binding.axis)
 const bindingTarget = (spec, binding) => binding.kind === 'camera' ? spec.cameras?.find(item => item.id === binding.cameraId) : spec.entities.find(item => item.id === binding.entityId)
-const bindingVector = (target, binding) => binding.property === 'dimensions' ? target?.generator?.dimensions
+const bindingDelta = (value, parameter, binding) => ((binding.inputFloor === undefined ? value : Math.max(value, binding.inputFloor))
+  - (binding.inputFloor === undefined ? parameter.default : Math.max(parameter.default, binding.inputFloor))) * binding.multiplier
+const bindingVector = (target, binding) => binding.kind === 'curve-point' ? target?.generator?.path?.[binding.pointIndex] : binding.property === 'dimensions' ? target?.generator?.dimensions
   : binding.property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
 const bindingTracks = (spec, binding) => (spec.animationTracks ?? []).filter(track => (track.targetKind ?? 'entity') === binding.kind
   && track.targetEntityId === (binding.entityId ?? binding.cameraId) && track.property === `location.${binding.axis}`)
@@ -105,6 +109,7 @@ export function validateRecipeManifest(manifest, options = {}) {
       const slots = binding.kind === 'lathe-shell' ? latheShellTargets(binding) : [binding]
       for (const slot of slots) {
         const target = slot.kind === 'material' ? `material:${slot.materialId}:${slot.property}`
+          : slot.kind === 'curve-point' ? `curve-point:${slot.entityId}:${slot.pointIndex}.${slot.axis}`
           : slot.kind === 'generator' ? `generator:${slot.entityId}:${slot.property}`
           : ['entity', 'camera'].includes(slot.kind) ? `${slot.kind}:${slot.entityId ?? slot.cameraId}:${slot.property}.${slot.axis}` : `render-profile:${slot.profile}:exposure`
         const prior = targets.get(target)
@@ -117,11 +122,13 @@ export function validateRecipeManifest(manifest, options = {}) {
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
-        if (['entity', 'camera', 'generator', 'lathe-shell'].includes(binding.kind)) {
+        if (['entity', 'camera', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind)) {
           if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
           if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
           if (binding.kind === 'generator' && !declared.has('recipe.generator-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Generator bindings require recipe.generator-bindings'))
           if (binding.kind === 'lathe-shell' && !declared.has('recipe.lathe-shell-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Lathe shell bindings require recipe.lathe-shell-bindings'))
+          if (binding.kind === 'curve-point' && !declared.has('recipe.curve-point-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Curve points require recipe.curve-point-bindings'))
+          if (binding.inputFloor !== undefined && (!declared.has('recipe.threshold-bindings') || binding.inputFloor < parameter.minimum || binding.inputFloor > parameter.maximum)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'A threshold must be declared and inside the parameter range'))
           if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
           continue
         }
@@ -204,7 +211,7 @@ function bindingsAgainstScene(manifest, spec) {
         const original = deformLatheShell(spec, binding, 0)
         const radius = Math.max(...original.shell.map(point => point[0]))
         if (Math.abs(parameter.default * binding.multiplier - radius) > 1e-9) throw new TypeError('Shell parameter default must match the authored outer radius')
-        for (const value of [parameter.minimum, parameter.maximum]) deformLatheShell(spec, binding, (value - parameter.default) * binding.multiplier)
+        for (const value of [parameter.minimum, parameter.maximum]) deformLatheShell(spec, binding, bindingDelta(value, parameter, binding))
       } catch (error) { errors.push(issue('RECIPE_BINDING_INVALID', path, error.message)) }
     } else if (binding.kind === 'generator') {
       const entity = bindingTarget(spec, binding)
@@ -213,24 +220,24 @@ function bindingsAgainstScene(manifest, spec) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'Generator binding requires an explicit positive handled_cup scalar'))
         continue
       }
-      const ends = [parameter.minimum, parameter.maximum].map(value => current + (value - parameter.default) * binding.multiplier)
+      const ends = [parameter.minimum, parameter.maximum].map(value => current + bindingDelta(value, parameter, binding))
       if (ends.some(value => !Number.isFinite(value) || value <= 0)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Generator binding range must remain positive and finite'))
-    } else if (['entity', 'camera'].includes(binding.kind)) {
+    } else if (['entity', 'camera', 'curve-point'].includes(binding.kind)) {
       const entity = bindingTarget(spec, binding)
       const vector = bindingVector(entity, binding), axis = bindingAxis(binding)
-      if (!entity || (binding.property === 'dimensions' && (!['cube', 'rounded_box'].includes(entity.generator?.shape) || entity.generator.size !== undefined))
+      if (!entity || (binding.kind === 'curve-point' && entity.generator?.shape !== 'curve') || (binding.property === 'dimensions' && (!['cube', 'rounded_box'].includes(entity.generator?.shape) || entity.generator.size !== undefined))
         || !Array.isArray(vector) || vector.length !== 3 || !Number.isFinite(vector[axis])) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'Structural binding requires an explicit supported dimension, position or aim point'))
         continue
       }
-      const ends = [parameter.minimum, parameter.maximum].map(value => vector[axis] + (value - parameter.default) * binding.multiplier)
+      const ends = [parameter.minimum, parameter.maximum].map(value => vector[axis] + bindingDelta(value, parameter, binding))
       if (ends.some(value => !Number.isFinite(value) || (binding.property === 'dimensions' && value <= 0))) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'The entire parameter range must produce finite values and positive dimensions'))
       }
       if (binding.kind === 'camera') {
         const key = `${binding.cameraId}:${binding.property}.${binding.axis}`
         const range = cameraRanges.get(key) ?? [vector[axis], vector[axis]]
-        const deltas = [parameter.minimum, parameter.maximum].map(value => (value - parameter.default) * binding.multiplier)
+        const deltas = [parameter.minimum, parameter.maximum].map(value => bindingDelta(value, parameter, binding))
         range[0] += Math.min(...deltas); range[1] += Math.max(...deltas)
         cameraRanges.set(key, range)
       }
@@ -238,7 +245,7 @@ function bindingsAgainstScene(manifest, spec) {
         const tracks = bindingTracks(spec, binding)
         if (tracks.length && binding.offsetAnimation !== true) errors.push(issue('RECIPE_BINDING_INVALID', path, 'An animated location requires an explicit animation offset'))
         if (binding.offsetAnimation === true && tracks.some(track => track.keyframes.some(keyframe => [parameter.minimum, parameter.maximum]
-          .some(value => !Number.isFinite(keyframe.value + (value - parameter.default) * binding.multiplier))))) {
+          .some(value => !Number.isFinite(keyframe.value + bindingDelta(value, parameter, binding)))))) {
           errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets must remain finite throughout the parameter range'))
         }
       }
@@ -356,16 +363,16 @@ function resolveRecipe(manifest, checked, values) {
       material.parameters[binding.property] = parameter.type === 'color'
         ? [...value, material.parameters.baseColor[3] ?? 1] : value
     } else if (binding.kind === 'lathe-shell') {
-      const profiles = deformLatheShell(checked.sceneSpec, binding, (value - parameter.default) * binding.multiplier)
+      const profiles = deformLatheShell(checked.sceneSpec, binding, bindingDelta(value, parameter, binding))
       spec.entities.find(entity => entity.id === binding.entityId).generator.profile = profiles.shell
       spec.entities.find(entity => entity.id === binding.linerEntityId).generator.profile = profiles.liner
     } else if (binding.kind === 'generator') {
       bindingTarget(spec, binding).generator[binding.property] += (resolvedValues[parameter.id] - parameter.default) * binding.multiplier
-    } else if (['entity', 'camera'].includes(binding.kind)) {
+    } else if (['entity', 'camera', 'curve-point'].includes(binding.kind)) {
       const vector = bindingVector(bindingTarget(spec, binding), binding)
       // Preserve the input's exact default bytes and avoid cumulative edits.
       if (value !== parameter.default) {
-        const delta = (value - parameter.default) * binding.multiplier
+        const delta = bindingDelta(value, parameter, binding)
         vector[bindingAxis(binding)] += delta
         if (binding.offsetAnimation === true) for (const track of bindingTracks(spec, binding)) for (const keyframe of track.keyframes) keyframe.value += delta
       }

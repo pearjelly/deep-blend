@@ -38,13 +38,46 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
 import { PRESET_SOURCE, REQUIRED_FILES, deployPresets, filesUnder, planPreset } from '@deepblend/dsh-blender-preset/deploy'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
+import { createHome } from '../../tools/dsh-web-harness.mjs'
+
+test('boot-time deployment into a test home cannot change the checkout preset source', () => {
+  const source = join(ROOT, 'deepblend/presets/deepblend/skills/deepblend-studio/SKILL.md')
+  const before = readFileSync(source), home = createHome({ inheritUserConfig: false })
+  try {
+    const target = join(home, '.agent-presets'), installed = join(target, 'deepblend/skills/deepblend-studio/SKILL.md')
+    writeFileSync(installed, 'Only this private installed copy may change.')
+    assert.deepEqual(readFileSync(source), before)
+    deployPresets({ source: PRESET_SOURCE, target })
+    assert.deepEqual(readFileSync(installed), before)
+    assert.deepEqual(readFileSync(source), before)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+})
+
+test('inherited test settings, credentials and presets are copies of the supplied private fixture', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-inherited-home-'))
+  try {
+    writeFileSync(join(fixture, 'settings.yaml'), 'language: zh\n')
+    writeFileSync(join(fixture, '.credentials.yaml'), 'fixture: local-only\n')
+    cpSync(join(ROOT, 'deepblend/presets'), join(fixture, '.agent-presets'), { recursive: true })
+    const relative = 'deepblend/skills/deepblend-studio/SKILL.md', original = readFileSync(join(fixture, '.agent-presets', relative))
+    const module = pathToFileURL(join(ROOT, 'deepblend/tools/dsh-web-harness.mjs')).href
+    const script = `import {createHome} from ${JSON.stringify(module)};import {writeFileSync,rmSync} from 'node:fs';import {join} from 'node:path';const home=createHome({inheritUserConfig:true});try{writeFileSync(join(home,'settings.yaml'),'private change');writeFileSync(join(home,'.credentials.yaml'),'private change');writeFileSync(join(home,'.agent-presets',${JSON.stringify(relative)}),'private change')}finally{rmSync(home,{recursive:true,force:true})}`
+    const run = spawnSync(process.execPath, ['--input-type=module', '-e', script], { env: { ...process.env, DEEPBLEND_DSH_HOME: fixture }, encoding: 'utf8' })
+    assert.equal(run.status, 0, run.stderr)
+    assert.equal(readFileSync(join(fixture, 'settings.yaml'), 'utf8'), 'language: zh\n')
+    assert.equal(readFileSync(join(fixture, '.credentials.yaml'), 'utf8'), 'fixture: local-only\n')
+    assert.deepEqual(readFileSync(join(fixture, '.agent-presets', relative)), original)
+  } finally { rmSync(fixture, { recursive: true, force: true }) }
+})
 
 const REPOSITORY_PRESETS = join(ROOT, 'deepblend', 'presets')
 const PACKAGE = join(ROOT, 'packages', 'deepblend', 'preset')
