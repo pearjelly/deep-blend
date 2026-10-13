@@ -1,6 +1,6 @@
 ---
 name: deepblend-studio
-description: Use when planning or producing a 3D animation with DeepBlend Studio — setting up a shot or product scene, importing models or visual references, changing a scene through SceneSpec patches, reviewing previews against the saved goal, running or resuming a final render, delivering a video, or restoring a previous revision.
+description: Use when creating or refining editable Blender models with DeepBlend Studio — choosing an authored recipe, adjusting linked dimensions and assembly, importing models or references, repairing geometry through bounded SceneSpec edits, inspecting real previews, preserving revisions, arranging photography, or delivering native files, images and animation.
 ---
 
 # DeepBlend Studio
@@ -224,8 +224,10 @@ the current revision and repeat the affected views with the same settings.
    edit and no script. See "Revision discipline" below.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns contact sheet
-   paths and measurements as text. It does not attach those images automatically;
-   read the images before claiming to have seen them. Single-frame `preview_render`
+   paths and measurements, and attaches the verified saved contact sheet for image-capable models.
+   Inspect those pixels directly; a separate reviewer call is for independent judgement, not image access.
+   For a specific part, use `preview_render` with an explicit cameraId, frame and beauty/clay mode;
+   do not rename camera roles or reorder cameras to obtain a targeted view. Single-frame `preview_render`
    attaches an independent inspection when an explicit beauty/clay mode is set.
 7. **`blender_visual_review`** — ask for a measured judgement (see "Who decides what").
 8. **`blender_visual_autofix`** — iterate against the revision's saved goal and

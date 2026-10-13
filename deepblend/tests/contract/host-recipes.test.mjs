@@ -153,7 +153,7 @@ test('the distributed Host carries four validated self-contained recipes', () =>
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
   assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
-  assert.ok(result.recipes.every(r => r.parameters.length === (['deepblend.modular-speaker','deepblend.glazed-cup'].includes(r.id) ? 6 : r.id === 'deepblend.metal-lamp' ? 4 : 3) && r.license === 'MIT'))
+  assert.ok(result.recipes.every(r => r.parameters.length === (['deepblend.modular-speaker','deepblend.glazed-cup'].includes(r.id) ? 6 : r.id === 'deepblend.metal-lamp' ? 5 : 3) && r.license === 'MIT'))
   for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(
@@ -382,8 +382,14 @@ test('an updated catalog disables a stale selection until the recipe is selected
 test('same recipe ID can expose distinct versions and removed v1 cannot silently select v2', async t => {
   const {root,recipes,catalog,studio,request}=setup(t)
   cpSync(new URL('../fixtures/metal-lamp-v1/',import.meta.url),join(recipes,'historical'),{recursive:true})
+  cpSync(new URL('../fixtures/metal-lamp-v2/',import.meta.url),join(recipes,'middle'),{recursive:true})
   const items=catalog.list();assert.deepEqual(items.errors,[])
-  assert.deepEqual(items.recipes.map(r=>r.version).sort(),['1.0.0','2.0.0'])
+  assert.deepEqual(items.recipes.map(r=>r.version).sort(),['1.0.0','2.0.0','2.1.0'])
+  const middle=items.recipes.find(r=>r.version==='2.0.0'),middleSelection={id:middle.id,version:middle.version,digest:middle.digest}
+  const middleInstance=catalog.instantiate(middleSelection)
+  assert.equal(middleInstance.lock.version,'2.0.0')
+  assert.equal(sha256(middleInstance.lock.sceneSource),'4a9ea6e09e757acf23dc01593a94a3a51776ec697f15853b1ba62f0ed9515f1f')
+  assert.throws(()=>catalog.instantiate({...middleSelection,parameters:{'shade-diameter-mm':230}}),{code:'RECIPE_PARAMETER_UNKNOWN'})
   const old=items.recipes.find(r=>r.version==='1.0.0'),selection={id:old.id,version:old.version,digest:old.digest,parameters:{'surface-roughness':.45}}
   assert(readFileSync(new URL('../fixtures/metal-lamp-v1/preview.png',import.meta.url)).equals(catalog.preview(selection).bytes))
   const made=await studio.createProject({title:'historical lamp',recipe:selection,saveCheckpoint:false})
@@ -394,10 +400,12 @@ test('same recipe ID can expose distinct versions and removed v1 cannot silently
   assert.equal(sha256(lock.sceneSource),'6896f467a2bea311f14435c5fd755a021867c686262ea71cac80d4198694d75d')
   rmSync(join(recipes,'historical'),{recursive:true})
   assert.throws(()=>catalog.instantiate(selection),{code:'RECIPE_NOT_FOUND'})
-  assert.equal(catalog.list().recipes[0].version,'2.0.0')
+  rmSync(join(recipes,'middle'),{recursive:true})
+  assert.throws(()=>catalog.instantiate(middleSelection),{code:'RECIPE_NOT_FOUND'})
+  assert.equal(catalog.list().recipes[0].version,'2.1.0')
   assert(before.equals(readFileSync(lockPath)));assert(source.equals(readFileSync(join(directory,'scene-spec.json'))))
   const current=catalog.instantiate(request)
-  assert.equal(current.lock.version,'2.0.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
+  assert.equal(current.lock.version,'2.1.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
 })
 
 test('cup versions keep distinct transition defaults and immutable historical source locks', async t => {

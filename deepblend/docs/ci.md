@@ -13,6 +13,8 @@
 | `deepblend/tests/e2e/inspection-ui.e2e.mjs` | 实际浏览器生成图、刷新与历史版本、草稿保护和取消 |
 | `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片、过渡参数实际几何及旧文件保护 |
 | `deepblend/tests/e2e/handled-cup-ui.e2e.mjs` | 实际画廊创建、参数与来源锁定、桌面/窄屏完整预览、毫米与无量纲过渡参数编辑与拒绝、重载及旧版本保护 |
+| `deepblend/tests/e2e/lamp-dimensions-native.e2e.mjs` | 灯罩默认/边界/230 mm及连续修改的真实Host保存、闭合网格、法向壁厚/内衬间隙、颈口装配、旧文件及内衬检查PNG；候选门槛，最终Linux结果另核对 |
+| `deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs` | 灯具尺寸入口真实浏览器创建、一次语义保存、越界不提交、重载、手工位置冲突及恢复后可继续编辑；八采样界面门槛，不算美术审查 |
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算；OBJ 数值/法线/颜色/Alpha、实际着色器输出与既有图片用户保护 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/image-materials.py` | 六通道 PBR、色彩/UV/法线像素贡献、打包后源文件移除重开、解码前尺寸及同源累计预算拒绝、现有场景保护 |

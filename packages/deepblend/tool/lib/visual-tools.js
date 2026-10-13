@@ -40,6 +40,7 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { attachVerifiedRenderedImage } from './committed-preview.js'
 import { imageForCallingModel } from './image-delivery.js'
 
 import { BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
@@ -87,7 +88,7 @@ function previewViews(ctx) {
     description:
       'Render a MULTI-VIEW preview of a revision in one go: the active camera, a three-quarter angle, a ' +
       'top-down view and a subject close-up, all from one Blender process, and measure each one. Returns ' +
-      'the images\' paths, a composed contact sheet, and per-view measurements. Rendering does NOT create a ' +
+      'the saved images, a verified contact sheet attached for the calling model, and per-view measurements. Rendering does NOT create a ' +
       'revision — a preview observes a scene rather than changing it — so this is always safe to call and ' +
       'never needs a baseRevision. Use it to look at a scene; use blender_visual_review when you also want a ' +
       'score and a judgment.\n\n' + MEASUREMENT_GLOSSARY,
@@ -114,12 +115,12 @@ function previewViews(ctx) {
         description: 'Override the preview profile\'s sample count; a value above the configured budget is reduced and reported.',
       },
     },
-    output: TOOL_OUTPUT,
+    output: TOOL_OUTPUT_WITH_IMAGE,
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
-        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.renderViews({
+        const { data, canonicalWarnings } = await canonicalCall(Promise.resolve(resolved.studio.renderViews({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -130,7 +131,7 @@ function previewViews(ctx) {
             samples: args.samples,
           }),
           signal: exec.signal,
-        }), warning)
+        })).then(({ pngs, ...metadata }) => metadata), warning)
         const scored = resolved.studio.scoreVisualViews({ views: data.views, subjectId: data.subjectId })
         const notes = [
           `Revision: ${data.revision}`,
@@ -149,13 +150,15 @@ function previewViews(ctx) {
         const sheet = (data.revisionPreviews ?? data.contactSheets ?? [])
         notes.push('')
         notes.push('The paths are relative to the project directory. The measured score is what the automated')
-        notes.push('scorer makes of these pixels; call blender_visual_review to score AND hear what a vision')
-        notes.push('model sees on the contact sheet.')
-        return {
+        notes.push('scorer makes of these pixels. Inspect the attached sheet directly; use blender_visual_review')
+        notes.push('when you need a separate vision reviewer judgement, not just to obtain these images.')
+        return await attachVerifiedRenderedImage(ctx, exec, resolved, {
           ok: true,
           text: renderSuccess(`Rendered ${data.views.length} view(s) of ${data.revision}.`, { ...data, score: scored.score, issues: scored.issues }, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
           data: { ...data, score: scored.score, issues: scored.issues, sheet },
-        }
+        }, { projectId: args.projectId, revision: data.revision, digest: data.digest,
+          artifact: data.previewSheets?.current, kind: 'contact-sheet' })
+
       } catch (cause) {
         const failure = renderFailure(cause, 'PREVIEW_VIEWS_FAILED')
         return { ok: false, ...failure }

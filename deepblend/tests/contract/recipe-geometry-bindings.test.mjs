@@ -325,3 +325,92 @@ test('generator scalar bindings refuse undeclared consumers, unsafe properties, 
     b => { b.manifest.parameters[0].bindings[0].entityId = 'floor' },
   ]) { const bad = structuredClone(bundle); corrupt(bad); assert.equal(validateRecipePackage(bad).ok, false) }
 })
+
+const lampBundle = (historical = false) => {
+  const directory = new URL(historical ? '../fixtures/metal-lamp-v2/' : '../../recipes/metal-lamp/', import.meta.url)
+  return { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))), sceneBytes: readFileSync(new URL('scene-spec.json', directory)), previewBytes: readFileSync(new URL('preview.png', directory)) }
+}
+
+test('paired lamp diameter control preserves exact authored default and historical v2 lock', () => {
+  const current = lampBundle(), old = lampBundle(true), base = instantiateRecipe(current), historical = instantiateRecipe(old)
+  assert.equal(current.manifest.version, '2.1.0'); assert.equal(old.manifest.version, '2.0.0')
+  assert.equal(sha256(old.sceneBytes), '4a9ea6e09e757acf23dc01593a94a3a51776ec697f15853b1ba62f0ed9515f1f')
+  assert.deepEqual(base.spec.entities, historical.spec.entities)
+  assert.deepEqual(base.spec.materials, historical.spec.materials)
+  assert.deepEqual(current.previewBytes, old.previewBytes)
+  assert.deepEqual(instantiateRecipeLock(lockFor(old)).spec, historical.spec)
+  assert.throws(() => instantiateRecipeLock(lockFor(old), { 'shade-diameter-mm': 230 }), { code: 'RECIPE_PARAMETER_UNKNOWN' })
+  assert.deepEqual(base.spec.cameras.find(c => c.id === 'hero'), historical.spec.cameras.find(c => c.id === 'hero'))
+  assert.equal(base.spec.cameras.find(c => c.id === 'liner-inspection').role, 'detail')
+  assert.equal(base.spec.cameras.find(c => c.id === 'detail').role, undefined)
+})
+
+test('lamp boundary and requested diameter move only the paired profiles and keep neck correspondence', () => {
+  const bundle = lampBundle(), base = instantiateRecipe(bundle)
+  assert.deepEqual(recipeGeometryParametersForTest(bundle), ['shade-diameter-mm'])
+  for (const diameter of [180, 230, 250]) {
+    const after = instantiateRecipe(bundle, { 'shade-diameter-mm': diameter })
+    const entity = (spec, id) => spec.entities.find(e => e.id === id)
+    const shell = entity(after.spec, 'shade-shell').generator.profile
+    assert.ok(Math.abs(Math.max(...shell.map(p => p[0])) * 2000 - diameter) < 1e-6)
+    assert.notDeepEqual(entity(after.spec, 'shade-enamel-lining').generator.profile, entity(base.spec, 'shade-enamel-lining').generator.profile)
+    assert.deepEqual(shell.slice(40, 50), entity(base.spec, 'shade-shell').generator.profile.slice(40, 50))
+    for (const original of base.spec.entities) if (!['shade-shell', 'shade-enamel-lining'].includes(original.id)) assert.deepEqual(entity(after.spec, original.id), original)
+    assert.deepEqual(after.spec.materials, base.spec.materials); assert.deepEqual(after.spec.cameras, base.spec.cameras)
+  }
+  assert.throws(() => instantiateRecipe(bundle, { 'shade-diameter-mm': 179.99 }), { code: 'RECIPE_PARAMETER_INVALID' })
+  assert.throws(() => instantiateRecipe(bundle, { 'shade-diameter-mm': 250.01 }), { code: 'RECIPE_PARAMETER_INVALID' })
+})
+
+function recipeGeometryParametersForTest(bundle) {
+  const lock = lockFor(bundle), base = instantiateRecipe(bundle)
+  const plan = planRecipeGeometryEdit(lock, base.spec, undefined, { 'shade-diameter-mm': 230 })
+  return plan.changedParameters
+}
+
+test('continued lamp diameter edits preserve independent style, photography and tessellation', () => {
+  const bundle = lampBundle(), lock = lockFor(bundle), first = instantiateRecipe(bundle), original = structuredClone(first.spec)
+  first.spec.materials[0].parameters.roughness = .51
+  first.spec.cameras.find(c => c.id === 'hero').lens = 62
+  first.spec.entities.find(e => e.id === 'shade-shell').generator.segments = 160
+  const p1 = planRecipeGeometryEdit(lock, first.spec, undefined, { 'shade-diameter-mm': 230 })
+  assert.equal(p1.operations.length, 2)
+  const after = applyPlan(first.spec, p1)
+  const p2 = planRecipeGeometryEdit(lock, after, p1.parameterState, { 'shade-diameter-mm': 250 })
+  const next = applyPlan(after, p2)
+  assert.deepEqual(next.materials, first.spec.materials); assert.deepEqual(next.cameras, first.spec.cameras)
+  assert.equal(next.entities.find(e => e.id === 'shade-shell').generator.segments, 160)
+  assert.deepEqual(next.entities.find(e => e.id === 'shade-shell').generator.profile, instantiateRecipe(bundle, { 'shade-diameter-mm': 250 }).spec.entities.find(e => e.id === 'shade-shell').generator.profile)
+  assert.deepEqual(instantiateRecipeLock(lock).spec, original)
+})
+
+test('manual profile, alignment, closure or shape edits refuse a coupled lamp overwrite', () => {
+  const bundle = lampBundle(), lock = lockFor(bundle)
+  for (const edit of [
+    e => { e.generator.profile[0][0] += .0001 },
+    e => { e.transform.location[0] += .001 },
+    e => { e.transform.scale[0] = 1.1 },
+    e => { e.generator.closedProfile = false },
+    e => { e.generator = { shape: 'cylinder', radius: .1, depth: .1, segments: 64 } },
+  ]) for (const id of ['shade-shell', 'shade-enamel-lining']) {
+    const spec = instantiateRecipe(bundle).spec; edit(spec.entities.find(e => e.id === id))
+    assert.throws(() => planRecipeGeometryEdit(lock, spec, undefined, { 'shade-diameter-mm': 230 }), { code: 'RECIPE_PARAMETER_CONFLICT' })
+  }
+})
+
+test('compound profile binding refuses missing capabilities, invalid correspondence and overlapping controls', () => {
+  const source = lampBundle()
+  for (const change of [
+    b => { b.manifest.compatibility.capabilities = b.manifest.compatibility.capabilities.filter(c => c !== 'recipe.lathe-shell-bindings') },
+    b => { b.manifest.parameters[0].bindings[0].linerEntityId = 'shade-shell' },
+    b => { b.manifest.parameters[0].bindings[0].outerPointCount = 46 },
+    b => { b.manifest.parameters[0].bindings[0].linerStart = 44 },
+    b => { b.manifest.parameters[0].bindings[0].neckAnchorHeight = .007 },
+    b => { b.manifest.parameters[0].default = 210 },
+    b => { const p = structuredClone(b.manifest.parameters[0]); p.id = 'overlapping'; b.manifest.parameters.push(p) },
+  ]) {
+    const altered = structuredClone(source); change(altered); assert.equal(validateRecipePackage(altered).ok, false)
+  }
+  assert.equal(validateRecipePackage(source, { supportedCapabilities: RECIPE_CAPABILITIES.filter(c => c !== 'recipe.lathe-shell-bindings') }).ok, false)
+  assert.equal(validateRecipePackage(lampBundle(true), { supportedCapabilities: RECIPE_CAPABILITIES.filter(c => c !== 'recipe.lathe-shell-bindings') }).ok, true)
+})

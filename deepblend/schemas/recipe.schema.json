@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 18,
+          "maxItems": 19,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -117,7 +117,8 @@
               "animation.transform",
               "animation.material",
               "recipe.geometry-bindings",
-              "recipe.generator-bindings"
+              "recipe.generator-bindings",
+              "recipe.lathe-shell-bindings"
             ]
           }
         }
@@ -350,6 +351,65 @@
             }
           },
           "description": "Apply a bounded scalar delta to an explicit handled_cup generator dimension, preserving unbound generator properties."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entityId",
+            "linerEntityId",
+            "outerPointCount",
+            "linerStart",
+            "linerPointCount",
+            "rimHeight",
+            "neckAnchorHeight",
+            "multiplier"
+          ],
+          "properties": {
+            "kind": {
+              "const": "lathe-shell"
+            },
+            "entityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "linerEntityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "outerPointCount": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 2048
+            },
+            "linerStart": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2047
+            },
+            "linerPointCount": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 2048
+            },
+            "rimHeight": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            },
+            "neckAnchorHeight": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
+            },
+            "multiplier": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "description": "Bounded paired shell and liner profile expansion with fixed neck. Correspondence is authored data, not code."
         }
       ]
     },

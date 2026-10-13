@@ -415,3 +415,12 @@ test('existing assembly editing runs in CI and full acceptance with retained nat
   assert.ok(job.includes('DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-edit-browser'))
   assert.ok(readFileSync(join(ROOT, 'deepblend/tests/run-all.sh'), 'utf8').includes('node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs'))
 })
+
+
+test('paired lamp geometry and saved liner pixels are covered by full acceptance and Linux CI', () => {
+  const path = 'deepblend/tests/e2e/lamp-dimensions-native.e2e.mjs'
+  assert.ok(workflow.includes(`xvfb-run -a node ${path} >`))
+  assert.ok(readFileSync(join(ROOT, 'deepblend/tests/run-all.sh'), 'utf8').includes(`node ${path}`))
+  assert.ok(readFileSync(join(ROOT, 'deepblend/docs/ci.md'), 'utf8').includes(path))
+  assert.ok(existsSync(join(ROOT, 'deepblend/tests/lib/inspect-native-lamp.py')))
+})

@@ -23,6 +23,13 @@ import scenePatchSchema from './schemas/scene-patch.schema.json' with { type: 'j
 
 const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patch.schema.json' })
 
+// Keep union validation authoritative; explain rejected known operations using
+// their exact schema branch so callers can repair fields without searching source.
+const operationDiagnostics = new Map(scenePatchSchema.$defs.operation.oneOf.map(branch => [
+  branch.properties.op.const,
+  compileSchema({ ...branch, $defs: scenePatchSchema.$defs }, { id: 'scene-patch-operation' }),
+]))
+
 /** Operation names in the order they are documented, for stable tool output. */
 export const SCENE_OPERATION_NAMES = Object.freeze([
   'entity.transform.update',
@@ -87,6 +94,16 @@ export function validateScenePatch(patch) {
   const errors = []
 
   const structural = validatePatchStructure(patch)
+  for (const issue of [...structural]) {
+    const match = issue.keyword === 'oneOf' && /^operations\[(\d+)\]$/.exec(issue.path)
+    if (!match) continue
+    const operation = patch.operations[Number(match[1])]
+    const diagnose = operationDiagnostics.get(operation?.op)
+    if (!diagnose) continue
+    for (const detail of diagnose(operation)) {
+      structural.push({ ...detail, path: detail.path === '<root>' ? issue.path : `${issue.path}.${detail.path}` })
+    }
+  }
   for (const issue of structural) {
     errors.push({ code: 'PATCH_SCHEMA_INVALID', path: issue.path, message: `${issue.message} [${issue.keyword}]` })
   }

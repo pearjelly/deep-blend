@@ -4,6 +4,7 @@ import { sha256, sha256Canonical } from './canonical.js'
 import { compileSchema } from './json-schema.js'
 import { decodePng } from './png.js'
 import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, requiredSceneFeatures } from './scene-spec.js'
+import { deformLatheShell, latheShellTargets } from './lathe-shell.js'
 import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
@@ -13,6 +14,7 @@ export const RECIPE_CAPABILITIES = Object.freeze([
   'animation.transform', 'animation.material',
   'recipe.geometry-bindings',
   'recipe.generator-bindings',
+  'recipe.lathe-shell-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
 const structural = compileSchema(recipeSchema, { id: 'recipe.schema.json' })
@@ -100,22 +102,26 @@ export function validateRecipeManifest(manifest, options = {}) {
     const valueIssue = parameterValueIssue(parameter, parameter.default, `${path}.default`)
     if (valueIssue) errors.push(valueIssue)
     for (const binding of parameter.bindings) {
-      const target = binding.kind === 'material' ? `material:${binding.materialId}:${binding.property}`
-        : binding.kind === 'generator' ? `generator:${binding.entityId}:${binding.property}`
-        : ['entity', 'camera'].includes(binding.kind) ? `${binding.kind}:${binding.entityId ?? binding.cameraId}:${binding.property}.${binding.axis}` : `render-profile:${binding.profile}:exposure`
-      const prior = targets.get(target)
-      // Camera framing may add independent width/depth/height deltas. Repeating a
-      // slot inside one parameter, or overwriting any other target, remains invalid.
-      if (prior && (binding.kind !== 'camera' || prior.has(parameter.id))) errors.push(issue('RECIPE_BINDING_INVALID', path, `Target ${target} is bound more than once`))
-      if (!prior) targets.set(target, new Set([parameter.id]))
-      else prior.add(parameter.id)
+      const slots = binding.kind === 'lathe-shell' ? latheShellTargets(binding) : [binding]
+      for (const slot of slots) {
+        const target = slot.kind === 'material' ? `material:${slot.materialId}:${slot.property}`
+          : slot.kind === 'generator' ? `generator:${slot.entityId}:${slot.property}`
+          : ['entity', 'camera'].includes(slot.kind) ? `${slot.kind}:${slot.entityId ?? slot.cameraId}:${slot.property}.${slot.axis}` : `render-profile:${slot.profile}:exposure`
+        const prior = targets.get(target)
+        // Camera framing may add independent width/depth/height deltas. Repeating a
+        // slot inside one parameter, or overwriting any other target, remains invalid.
+        if (prior && (binding.kind !== 'camera' || prior.has(parameter.id))) errors.push(issue('RECIPE_BINDING_INVALID', path, `Target ${target} is bound more than once`))
+        if (!prior) targets.set(target, new Set([parameter.id]))
+        else prior.add(parameter.id)
+      }
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
-        if (['entity', 'camera', 'generator'].includes(binding.kind)) {
+        if (['entity', 'camera', 'generator', 'lathe-shell'].includes(binding.kind)) {
           if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
           if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
           if (binding.kind === 'generator' && !declared.has('recipe.generator-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Generator bindings require recipe.generator-bindings'))
+          if (binding.kind === 'lathe-shell' && !declared.has('recipe.lathe-shell-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Lathe shell bindings require recipe.lathe-shell-bindings'))
           if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
           continue
         }
@@ -193,6 +199,13 @@ function bindingsAgainstScene(manifest, spec) {
         (track.property === binding.property || track.property.startsWith(`${binding.property}.`)))) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'A parameter must not compete with animation on the same material property'))
       }
+    } else if (binding.kind === 'lathe-shell') {
+      try {
+        const original = deformLatheShell(spec, binding, 0)
+        const radius = Math.max(...original.shell.map(point => point[0]))
+        if (Math.abs(parameter.default * binding.multiplier - radius) > 1e-9) throw new TypeError('Shell parameter default must match the authored outer radius')
+        for (const value of [parameter.minimum, parameter.maximum]) deformLatheShell(spec, binding, (value - parameter.default) * binding.multiplier)
+      } catch (error) { errors.push(issue('RECIPE_BINDING_INVALID', path, error.message)) }
     } else if (binding.kind === 'generator') {
       const entity = bindingTarget(spec, binding)
       const current = entity?.generator?.[binding.property]
@@ -342,6 +355,10 @@ function resolveRecipe(manifest, checked, values) {
       const material = spec.materials.find(item => item.id === binding.materialId)
       material.parameters[binding.property] = parameter.type === 'color'
         ? [...value, material.parameters.baseColor[3] ?? 1] : value
+    } else if (binding.kind === 'lathe-shell') {
+      const profiles = deformLatheShell(checked.sceneSpec, binding, (value - parameter.default) * binding.multiplier)
+      spec.entities.find(entity => entity.id === binding.entityId).generator.profile = profiles.shell
+      spec.entities.find(entity => entity.id === binding.linerEntityId).generator.profile = profiles.liner
     } else if (binding.kind === 'generator') {
       bindingTarget(spec, binding).generator[binding.property] += (resolvedValues[parameter.id] - parameter.default) * binding.multiplier
     } else if (['entity', 'camera'].includes(binding.kind)) {

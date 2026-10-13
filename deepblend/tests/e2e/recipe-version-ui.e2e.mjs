@@ -14,6 +14,7 @@ if(existsSync(output))throw Error(`Evidence directory already exists: ${output}`
 mkdirSync(output,{recursive:true})
 const root=join(output,'store'),external=join(output,'recipes'),oldFolder=join(external,'historical')
 cpSync(join(REPO_ROOT,'deepblend/tests/fixtures/metal-lamp-v1'),oldFolder,{recursive:true})
+const middleFolder=join(external,'middle');cpSync(join(REPO_ROOT,'deepblend/tests/fixtures/metal-lamp-v2'),middleFolder,{recursive:true})
 cpSync(join(REPO_ROOT,'deepblend/tests/fixtures/glazed-cup-v3'),join(external,'cup-historical'),{recursive:true})
 const checks=[],sha=b=>createHash('sha256').update(b).digest('hex')
 const json=(name,value)=>writeFileSync(join(output,name),JSON.stringify(value,null,2)+'\n')
@@ -31,11 +32,11 @@ try{
   const base=`http://127.0.0.1:${server.port}`
   const list=await(await fetch(`${base}/deepblend/recipes`)).json()
   const recipes=list.recipes
-  check('the actual Host lists both lamp versions without a duplicate conflict',recipes?.filter(r=>r.id==='deepblend.metal-lamp').length===2,{list})
-  for(const version of ['1.0.0','2.0.0']){
+  check('the actual Host lists three lamp versions without a duplicate conflict',recipes?.filter(r=>r.id==='deepblend.metal-lamp').length===3,{list})
+  for(const version of ['1.0.0','2.0.0','2.1.0']){
     const item=recipes.find(r=>r.id==='deepblend.metal-lamp'&&r.version===version)
     const response=await fetch(base+item.previewUrl),bytes=Buffer.from(await response.arrayBuffer())
-    const expected=readFileSync(join(version==='1.0.0'?oldFolder:join(REPO_ROOT,'deepblend/recipes/metal-lamp'),'preview.png'))
+    const expected=readFileSync(join(version==='1.0.0'?oldFolder:version==='2.0.0'?middleFolder:join(REPO_ROOT,'deepblend/recipes/metal-lamp'),'preview.png'))
     check(`v${version} preview response preserves that package's exact bytes`,response.ok&&bytes.equals(expected))
   }
   browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage()
@@ -92,7 +93,7 @@ try{
   await page.screenshot(join(output,'01-v2-gallery.png'))
   await page.click('[data-action="create-project"]')
   await page.waitFor('document.querySelector("[data-view=preview] img[data-artifact]")?.src.includes("/gallery-v2/")===true',180000)
-  const current=read('gallery-v2','revisions','r0001','scene-spec.json'),expected=compileSceneSpec(JSON.parse(readFileSync(join(REPO_ROOT,'deepblend/recipes/metal-lamp/scene-spec.json')))).spec
+  const current=read('gallery-v2','revisions','r0001','scene-spec.json'),expected=compileSceneSpec(JSON.parse(readFileSync(join(middleFolder,'scene-spec.json')))).spec
   expected.project={...expected.project,id:'gallery-v2',title:'gallery-v2'}
   check('default browser creation saves the complete authored v2 scene',isDeepStrictEqual(current,expected))
   const manifest=read('gallery-v2','revisions','r0001','revision-manifest.json'),lock=read('gallery-v2','revisions','r0001',manifest.recipe.lockPath)

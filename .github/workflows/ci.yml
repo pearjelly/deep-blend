@@ -216,6 +216,18 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-browser
         run: xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-browser.log" 2>&1
+      - name: Real paired lamp dimensions and liner inspection
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-native
+        run: xvfb-run -a node deepblend/tests/e2e/lamp-dimensions-native.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-native.log" 2>&1
+      - name: Real paired lamp dimensions in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-browser
+        run: xvfb-run -a node deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-browser.log" 2>&1
       - name: Real linked speaker dimensions in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8

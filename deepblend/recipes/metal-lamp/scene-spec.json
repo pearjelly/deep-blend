@@ -2331,7 +2331,6 @@
     },
     {
       "id": "detail",
-      "role": "detail",
       "lens": 70,
       "sensorWidth": 36,
       "clipping": [
@@ -2374,6 +2373,32 @@
         0.2
       ],
       "fStop": 11
+    },
+    {
+      "id": "liner-inspection",
+      "role": "detail",
+      "lens": 50,
+      "clipping": [
+        0.005,
+        250
+      ],
+      "targetPoint": [
+        0.045,
+        0,
+        0.394
+      ],
+      "transform": {
+        "location": [
+          0.29,
+          -0.35,
+          0.205
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
     }
   ],
   "shots": [
