@@ -438,3 +438,7 @@ rm -rf .deepblend   # 生成状态；重建方式是提交在仓库里的 fixtur
 ```
 
 `node_modules/` 也可以直接删：它由 `npm run setup` 重建。
+
+### 0.9.0 公开安装验证条件
+
+一个整轮源码/npm/latest-tarball读回通过0.9.0、工作台200、双预设、取包13/13/1。使用配对DSH0.1.5-rc.2/pnpm9.15；临时profile通过 `npm_config_ignore_workspace_root_check=true` 明确允许其工作区根安装，并用 `npm_config_auto_install_peers=false` 使用已安装DSH提供的核心peer，避免自动补装较新peer时的dsh-type-meta获取失败。设置只作用于命令环境，不写个人部署配置。预构建包已独立安装、完整匿名下载及macOS arm64 PNG/JPEG解码验证；其他原生目标的文件/摘要已核验，不代表四平台执行过。原失败完整保留。

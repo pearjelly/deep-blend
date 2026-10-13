@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.8.1](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.1) 公开夜班案例、复现输入、官方资产署名与真实 DSH 工具证据；运行能力保留 0.8.0 的灯具与杯尺寸联动。
+最新稳定版 [0.9.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.9.0) 正式修复 250 mm 灯罩的支撑与弯臂联动，保留旧项目、手工修改与历史；工作台可检查已保存部件的原生尺寸。
 
 ## 安装并开始
 
@@ -50,6 +50,14 @@ dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/la
 ```sh
 dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
 ```
+
+0.9.0 的公开三路验证使用 DSH 0.1.5-rc.2 与 pnpm 9.15。源码/npm 路线在临时 profile 中明确允许工作区根安装，并使用已安装 DSH 提供的 peer 依赖；自动补装较新 peer 曾遇到 `dsh-type-meta` 获取失败。以下设置只作用于本次命令，不写个人配置：
+
+```sh
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
+```
+
+相同设置也可用于上面的源码命令；预构建包已独立安装通过。源码构建授权仍按 DSH 的明确提示处理。
 
 所有路线都需要 pnpm 在 PATH 中。源码路线若提示构建授权，按 DSH 给出的具体提示处理。
 升级已有安装时，先移除旧注册再添加，并重启 `dsh web`：

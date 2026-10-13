@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.8.1](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.1) publishes the verified Night Shift case with replay inputs, official asset attribution and actual DSH tool evidence. The runtime retains 0.8.0 linked lamp and cup dimensions.
+Latest stable [0.9.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.9.0) links the mast, joints and arm root for a 250 mm lamp shade, preserves legacy projects and independent edits, and adds source-bound native part dimensions to the workbench.
 
 ## Quick start
 
@@ -141,6 +141,14 @@ This is an example request, not a recorded run. Use the [tool guide](deepblend/d
 | **Deliver** | Render PNG frames and encode an MP4; cancel or resume a job | Frame progress, actual render settings and delivery provenance |
 
 [Assets](deepblend/docs/assets.md) · [Modeling](deepblend/docs/modeling.md) · [Photography](deepblend/docs/photography-editor.md) · [Inspection](deepblend/docs/inspection.md) · [Recovery](deepblend/docs/recovery.md)
+
+The 0.9.0 public three-route check used paired DSH 0.1.5-rc.2 and pnpm 9.15. For source/npm installation, the temporary profile explicitly allowed workspace-root installation and used peers supplied by the installed DSH; fetching newer peers had failed on `dsh-type-meta`. These options apply only to this command:
+
+```sh
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
+```
+
+The prebuilt tarball was independently installed. Keep DSH's explicit source-build approval prompts.
 
 ## See the workbench
 
