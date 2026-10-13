@@ -74,6 +74,9 @@ run_suite "Blender batch SceneSpec + revision loop (M1)" \
 run_suite "Public runtime conformance: packed checker, native evidence, cancellation and partial resume" \
   node deepblend/tests/blender-integration/runtime-conformance.e2e.mjs
 
+run_suite "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals" \
+  node deepblend/tests/blender-integration/surface-inspection.e2e.mjs
+
 run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
   env DEEPBLEND_CUP_GROUP=all node deepblend/tests/blender-integration/handled-cup.e2e.mjs
 

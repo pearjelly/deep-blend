@@ -710,7 +710,7 @@ export default class BlenderStudio extends Service {
    * whole spec on every turn spends its context on fields it is not changing.
    *
    * @param {string} projectId
-   * @param {{ revision?: string, full?: boolean, geometry?: { entityIds: string[], frame: number }, signal?: AbortSignal }} [options]
+   * @param {{ revision?: string, full?: boolean, geometry?: { entityIds: string[], frame: number, surfaceSamples?: object[] }, signal?: AbortSignal }} [options]
    * @returns {Promise<Record<string, unknown>>}
    */
   async getScene(projectId, options = {}) {

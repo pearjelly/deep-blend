@@ -17,6 +17,7 @@
 | `deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs` | 灯具尺寸入口真实浏览器创建、一次语义保存、越界不提交、重载、手工位置冲突及恢复后可继续编辑；八采样界面门槛，不算美术审查 |
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算；OBJ 数值/法线/颜色/Alpha、实际着色器输出与既有图片用户保护 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
+| `deepblend/tests/blender-integration/surface-inspection.e2e.mjs` | 实际提供方的局部法线采样，解析2 mm壁面/间隔、旋转与斜种子、内部种子、未命中、开放/反向网格、重叠、遮挡、预算与原文件保护 |
 | `deepblend/tests/blender-integration/image-materials.py` | 六通道 PBR、色彩/UV/法线像素贡献、打包后源文件移除重开、解码前尺寸及同源累计预算拒绝、现有场景保护 |
 | `deepblend/tests/blender-integration/environment.py` | 原生 HDR/EXR 辐射值、旋转、环境照明及移除源文件后重开 |
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |
@@ -123,6 +124,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `environment.log` / `environment/`：实际 HDR/EXR 环境图、旋转/关闭照明对照、保存与打包重开 checkpoint。
 - `procedural-uv.log` / `procedural-uv/`：公开参数生成的对象与 UV 对照图、具不同 UV 层的实际选图、重开 checkpoint 和断言回执。
 - `runtime-conformance.log` / `runtime-conformance/`：打包身份、公开检查报告、实际 checkpoint/PNG、独立重开与参考图片、取消/补渲回执及失败日志。
+- `surface-native.log` / `surface-native/`：局部表面采样原生fixture、绑定来源的回执和不适用原因；不作全表面最小壁厚或净间隙认证。
 
 新增 job 的证据单独上传为 `linux-render-photography-<run-id>-<attempt>` artifact。
 上传步骤使用 `always()`，成功或失败都收集已有文件，并包含隐藏文件。各项测试通过

@@ -26,6 +26,10 @@ def inspect_geometry(request, options):
             len(set(ids)) != len(ids) or type(frame) is not int or not 0 <= frame <= 1000000 or
             not isinstance(expected, str) or re.fullmatch('[a-f0-9]{64}', expected) is None):
         raise ActionError('BLENDER_SCRIPT_ERROR', 'Geometry inspection requires 1–8 distinct entity IDs, an explicit frame and checkpoint SHA256.')
+    samples = payload.get('surfaceSamples')
+    if 'surfaceSamples' in payload:
+        from deepblend_inspect_surface import validate_surface_selection
+        validate_surface_selection(samples, ids)
     checkpoint = options.get('blend')
     if not checkpoint or not os.path.isfile(checkpoint):
         raise ActionError('REVISION_CHECKPOINT_MISSING', 'Geometry inspection needs a native checkpoint.')
@@ -84,8 +88,13 @@ def inspect_geometry(request, options):
             finally:
                 evaluated.to_mesh_clear()
         objects.append(entry)
+    report = {'schemaVersion': 'deepblend.geometry-inspection/v1', 'checkpointSha256': expected,
+              'checkpointUnchanged': True, 'frame': measured_frame, 'blenderVersion': bpy.app.version_string,
+              'objects': objects}
+    if 'surfaceSamples' in payload:
+        from deepblend_inspect_surface import inspect_surface_samples
+        report['schemaVersion'] = 'deepblend.geometry-inspection/v2'
+        report['surfaceSamples'] = inspect_surface_samples(samples, graph)
     if file_digest(checkpoint) != expected:
         raise ActionError('SCENE_VALIDATION_FAILED', 'The checkpoint changed during geometry inspection.')
-    return {'schemaVersion': 'deepblend.geometry-inspection/v1', 'checkpointSha256': expected,
-            'checkpointUnchanged': True, 'frame': measured_frame, 'blenderVersion': bpy.app.version_string,
-            'objects': objects}, [], []
+    return report, [], []

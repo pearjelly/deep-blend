@@ -70,6 +70,33 @@ function geometryReport(request) {
     })) } }
 }
 
+test('local surface reads bind the same immutable revision and leave project history exact', async t => {
+  const f=await setup(t,{saveCheckpoint:true}), entityId=base().entities[0].id
+  const samples=[{sampleId:'local-mid',entityId,originMeters:[-.01,0,0],direction:[1,0,0],searchDistanceMm:50}]
+  const before=snapshot(f.project)
+  f.runtime.inspectGeometry=async request=>{
+    assert.deepEqual(request.surfaceSamples,samples)
+    const result=geometryReport(request);result.report.schemaVersion='deepblend.geometry-inspection/v2'
+    result.report.surfaceSamples=[{...samples[0],status:'sampled',entryMeters:[0,0,0],exitMeters:[.002,0,0],inwardUnitNormal:[1,0,0],normalSurfaceChordMm:2}]
+    return result
+  }
+  const result=await f.studio.getScene(f.projectId,{geometry:{entityIds:[entityId],frame:17,surfaceSamples:samples}})
+  assert.equal(result.geometryInspection.schemaVersion,'deepblend.scene-geometry/v2')
+  assert.equal(result.geometryInspection.surfaceSamples[0].normalSurfaceChordMm,2)
+  assert.ok(result.geometryInspection.limitations.some(x=>/Other scene objects are not checked/.test(x)))
+  assert.ok(result.geometryInspection.excludedMeasurements.includes('minimumClearance'))
+  assert.deepEqual(snapshot(f.project),before)
+})
+
+test('old native runtimes refuse surface samples with an upgrade diagnosis',async t=>{
+  const f=await setup(t,{saveCheckpoint:true}),entityId=base().entities[0].id
+  f.runtime.inspectGeometry=async request=>geometryReport(request)
+  const geometry={entityIds:[entityId],frame:1,surfaceSamples:[{sampleId:'mid',entityId,originMeters:[-.01,0,0],direction:[1,0,0],searchDistanceMm:50}]}
+  await assert.rejects(f.studio.getScene(f.projectId,{geometry}),e=>e.code===BlenderErrorCode.RUNTIME_UNAVAILABLE && /upgrade/.test(e.message))
+  delete geometry.surfaceSamples
+  assert.equal((await f.studio.getScene(f.projectId,{geometry})).geometryInspection.schemaVersion,'deepblend.scene-geometry/v1')
+})
+
 test('native geometry reads the pinned checkpoint, preserves the revision and cleans private input', async t => {
   const f = await setup(t, { saveCheckpoint: true }), directory = join(f.project, 'revisions/r0001')
   const before = snapshot(f.project), selection = { entityIds: [base().entities[0].id], frame: 17 }

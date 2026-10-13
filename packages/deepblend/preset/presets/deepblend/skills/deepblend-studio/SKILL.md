@@ -86,6 +86,25 @@ from actual surface measurements. Without a separate supported surface check,
 report wall thickness and clearance as unmeasured; do not give a numeric gap or
 claim "basically preserved" from bounding dimensions or preview pixels.
 
+For actual local surface evidence, the same tool optionally accepts
+`geometrySurfaceSamples` (1–8). Each sample supplies `sampleId`, a selected
+`entityId`, an outside `originMeters`, a non-zero `direction`, and explicit
+`searchDistanceMm` (0.01–500); optional `targetEntityId` must be another selected
+part. Choose seeds from actual saved bounds and the requested region, not from
+declared thickness or gap values. The runtime follows the first entry face's
+normal to its first exit and, if requested, the target's first entry. Keep seeds,
+frame, part IDs and source SHA with the receipt; use the same explicit seeds to
+compare saved revisions. A failed sample is unavailable, never zero.
+
+`normalSurfaceChordMm` is that local evaluated-mesh chord, and
+`normalRaySeparationMm` is the specified pair's distance along the same ray.
+Triangle-face normals differ from shading normals. These samples do not prove
+global minimum wall thickness, whole-assembly free clearance, no collision,
+manufacturing safety or visual quality. Other scene objects and mesh
+self-intersections are not certified. Chord/target searches each stop at 100 mm;
+unsupported topology, overlap, occlusion and missed rays must remain explicit.
+If no supported samples cover a requested condition, keep it unmeasured.
+
 Inspect the saved preview needed for the brief; add a targeted view if it does
 not show the requested features. Once the requested native file and preview
 are saved, conclude with the project, revision and actual delivery paths.

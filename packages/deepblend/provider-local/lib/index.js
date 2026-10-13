@@ -1577,9 +1577,13 @@ export default class LocalBlenderRuntime extends Service {
       aborted()
       assertDigest(await digest(snapshot))
       const run = await this.runBootstrap({ action: 'inspect_geometry', jobId: request.jobId,
-        payload: { entityIds: request.entityIds, frame: request.frame, checkpointSha256: expected } },
+        payload: { entityIds: request.entityIds, frame: request.frame, checkpointSha256: expected,
+          ...(request.surfaceSamples === undefined ? {} : { surfaceSamples: request.surfaceSamples }) } },
       { signal: request.signal, session: false, args: ['--blend', snapshot] })
       aborted()
+      if (request.surfaceSamples !== undefined && run.envelope?.result?.schemaVersion === 'deepblend.geometry-inspection/v1') {
+        throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Blender bootstrap does not support local surface sampling. Upgrade DeepBlend; ordinary native geometry reads remain available.')
+      }
       const report = verifyGeometryReport(run.envelope?.result, request)
       assertDigest(await digest(source))
       aborted()
