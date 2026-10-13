@@ -20,10 +20,13 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import net from 'node:net'
-import { readFile } from 'node:fs/promises'
-import { delimiter, isAbsolute, join, resolve, sep } from 'node:path'
+import { readFile, copyFile } from 'node:fs/promises'
+import { GEOMETRY_INSPECTION_LIMITS, validateGeometrySelection, verifyGeometryReport } from './geometry-inspection.js'
+import { delimiter, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 import { Service } from '@deepseek-ai/cordis'
@@ -228,8 +231,9 @@ async function connect(socketPath, timeoutMs) {
 /**
  * The actions this provider can serve from a kept session, and the ONLY ones it can.
  *
- * DERIVED, NOT CHOSEN: these are exactly the actions whose calls go through `runBootstrap`, which is
- * the one place the session path is decided. Everything else spawns its own process on purpose —
+ * These are the actions whose calls permit session routing through `runBootstrap`.
+ * Explicitly isolated actions also use that dispatcher but force session:false.
+ * Everything else spawns its own process on purpose —
  * `render_frames` most of all, because cancelling a render has to kill exactly that render, and a
  * request inside a kept session cannot be killed without ending the session (and, attached, the
  * user's own Blender).
@@ -246,6 +250,7 @@ export const SESSION_ROUTABLE_ACTIONS = Object.freeze([
   'render_preview',
   'render_views',
 ])
+export const ISOLATED_BOOTSTRAP_ACTIONS = Object.freeze(['inspect_geometry'])
 
 /**
  * A live Blender, presented as one shape whatever carries the bytes.
@@ -1534,6 +1539,56 @@ export default class LocalBlenderRuntime extends Service {
       // Includes compile failure, cancellation and consumer callback failure.
       // Hosts never have to guess provider-owned temporary paths to remove them.
       this._cleanup(requestDirectory)
+    }
+  }
+
+  /** Optional read-only measurement; always isolated from a kept or interactive session. */
+  async inspectGeometry(request) {
+    validateGeometrySelection(request)
+    const aborted = () => {
+      if (request.signal?.aborted) throw new BlenderError(BlenderErrorCode.ABORTED, 'Geometry inspection cancelled.')
+    }
+    aborted()
+    if (typeof request.checkpointPath !== 'string' || !isAbsolute(request.checkpointPath) || !existsSync(request.checkpointPath)) {
+      throw new BlenderError(BlenderErrorCode.REVISION_CHECKPOINT_MISSING, 'Geometry inspection needs an absolute native checkpoint path.')
+    }
+    if (!existsSync(this.workspaceRoot)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The inspection workspace does not exist.')
+    const source = realpathSync(request.checkpointPath), root = realpathSync(this.workspaceRoot)
+    const local = relative(root, source)
+    if (!local || local === '..' || local.startsWith('..' + sep) || isAbsolute(local)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The inspected checkpoint is outside the runtime workspace.')
+    const info = statSync(source)
+    if (!info.isFile() || info.size > GEOMETRY_INSPECTION_LIMITS.checkpointBytes) {
+      throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The inspected checkpoint is not a bounded native file.')
+    }
+    const digest = async path => {
+      const hash = createHash('sha256')
+      for await (const bytes of createReadStream(path, { signal: request.signal })) hash.update(bytes)
+      return hash.digest('hex')
+    }
+    const expected = request.checkpointSha256
+    const assertDigest = actual => {
+      if (actual !== expected) throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The checkpoint differs from the expected inspection source.')
+    }
+    const { directory } = this._createWorkingDirectory()
+    try {
+      assertDigest(await digest(source))
+      const snapshot = join(directory, 'inspection-source.blend')
+      await copyFile(source, snapshot)
+      aborted()
+      assertDigest(await digest(snapshot))
+      const run = await this.runBootstrap({ action: 'inspect_geometry', jobId: request.jobId,
+        payload: { entityIds: request.entityIds, frame: request.frame, checkpointSha256: expected } },
+      { signal: request.signal, session: false, args: ['--blend', snapshot] })
+      aborted()
+      const report = verifyGeometryReport(run.envelope?.result, request)
+      assertDigest(await digest(source))
+      aborted()
+      return { report, envelope: run.envelope, durationMs: run.durationMs, stdout: run.stdout, stderr: run.stderr }
+    } catch (cause) {
+      aborted()
+      throw cause
+    } finally {
+      this._cleanup(directory)
     }
   }
 

@@ -1,0 +1,1004 @@
+{
+  "status": "passed-unshipped-prototype",
+  "publishedProduct": "0.8.0",
+  "publishedSource": "a129d93ff561e2e5684aa28bd1637075e1c66350",
+  "inspectorSha256": "c3a2e52bbd70e4095444660eadb410e19426378779130672ab4a87bd31030f4f",
+  "nativeOnly": true,
+  "modelCalls": 0,
+  "rendererCalls": 0,
+  "reviewerCalls": 0,
+  "allSourceCheckpointsUnchanged": true,
+  "canonicalLampSpecDigestMatchedManifest": true,
+  "lampSixExtentsMatchPriorIndependentNativeReport": true,
+  "normalSamplesExplicitHistoricalReplay": true,
+  "taskReceiptBytes": [
+    4192,
+    4188
+  ],
+  "viewportDisabledMeasurement": "explicitly unavailable; initial prototype retained",
+  "cases": [
+    {
+      "case": "lamp-before",
+      "replyBytes": 3367,
+      "sourceCheckpointSha256": "e0cf3ae755e2ff482faeb902e95c7b608225ec815331cc8095c677b6e846a785",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "shade-shell",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 12416,
+          "polygons": 12416,
+          "worldBoundsMeters": {
+            "min": [
+              -0.05990000069141388,
+              -0.10490000247955322,
+              0.313400000333786
+            ],
+            "max": [
+              0.14990000426769257,
+              0.10490000247955322,
+              0.4300000071525574
+            ]
+          },
+          "worldAxisExtentMm": [
+            209.80000495910645,
+            209.80000495910645,
+            116.60000681877136
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3100000023841858
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "shade-enamel-lining",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 9472,
+          "polygons": 9472,
+          "worldBoundsMeters": {
+            "min": [
+              -0.05600430816411972,
+              -0.10100430995225906,
+              0.32551810145378113
+            ],
+            "max": [
+              0.146004319190979,
+              0.10100430995225906,
+              0.42690983414649963
+            ]
+          },
+          "worldAxisExtentMm": [
+            202.00862735509872,
+            202.00861990451813,
+            101.3917326927185
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3100000023841858
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "swept-upper-arm",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 3864,
+          "polygons": 3884,
+          "worldBoundsMeters": {
+            "min": [
+              -0.08053421229124069,
+              -0.006413471419364214,
+              0.3617189824581146
+            ],
+            "max": [
+              0.05257042497396469,
+              0.03094656579196453,
+              0.45499783754348755
+            ]
+          },
+          "worldAxisExtentMm": [
+            133.10463726520538,
+            37.360037211328745,
+            93.27885508537292
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "shade-neck-collar",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 1152,
+          "polygons": 1058,
+          "worldBoundsMeters": {
+            "min": [
+              0.032999999821186066,
+              -0.012000000104308128,
+              0.42499998211860657
+            ],
+            "max": [
+              0.05700000375509262,
+              0.012000000104308128,
+              0.43799999356269836
+            ]
+          },
+          "worldAxisExtentMm": [
+            24.000003933906555,
+            24.000000208616257,
+            13.000011444091797
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.43149998784065247
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "opal-bulb",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 4514,
+          "polygons": 4608,
+          "worldBoundsMeters": {
+            "min": [
+              0.023999977856874466,
+              -0.021000012755393982,
+              0.3449999988079071
+            ],
+            "max": [
+              0.06600000709295273,
+              0.020999999716877937,
+              0.3869999945163727
+            ]
+          },
+          "worldAxisExtentMm": [
+            42.00002923607826,
+            42.00001247227192,
+            41.999995708465576
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3659999966621399
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "hinge-body",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 1152,
+          "polygons": 1058,
+          "worldBoundsMeters": {
+            "min": [
+              -0.09100000560283661,
+              0.012999999336898327,
+              0.3479999899864197
+            ],
+            "max": [
+              -0.05900000035762787,
+              0.03700000047683716,
+              0.3799999952316284
+            ]
+          },
+          "worldAxisExtentMm": [
+            32.00000524520874,
+            24.00000113993883,
+            32.00000524520874
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.07500000298023224
+            ],
+            [
+              0.0,
+              -4.371138828673793e-08,
+              -1.0,
+              0.02500000037252903
+            ],
+            [
+              0.0,
+              1.0,
+              -4.371138828673793e-08,
+              0.36399999260902405
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case": "lamp-after",
+      "replyBytes": 3364,
+      "sourceCheckpointSha256": "c12370e77555c28221727fcea6ce1c74bee711ddb8a9e0c30d27dcf97a738e23",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "shade-shell",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 12416,
+          "polygons": 12416,
+          "worldBoundsMeters": {
+            "min": [
+              -0.07000000029802322,
+              -0.11500000208616257,
+              0.313400000333786
+            ],
+            "max": [
+              0.1599999964237213,
+              0.11500000208616257,
+              0.4300000071525574
+            ]
+          },
+          "worldAxisExtentMm": [
+            229.99999672174454,
+            230.00000417232513,
+            116.60000681877136
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3100000023841858
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "shade-enamel-lining",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 9472,
+          "polygons": 9472,
+          "worldBoundsMeters": {
+            "min": [
+              -0.06597317010164261,
+              -0.11097317188978195,
+              0.32543906569480896
+            ],
+            "max": [
+              0.1559731662273407,
+              0.11097317188978195,
+              0.426909863948822
+            ]
+          },
+          "worldAxisExtentMm": [
+            221.9463363289833,
+            221.9463437795639,
+            101.47079825401306
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3100000023841858
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "swept-upper-arm",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 3864,
+          "polygons": 3884,
+          "worldBoundsMeters": {
+            "min": [
+              -0.08053421229124069,
+              -0.006413471419364214,
+              0.3617189824581146
+            ],
+            "max": [
+              0.05257042497396469,
+              0.03094656579196453,
+              0.45499783754348755
+            ]
+          },
+          "worldAxisExtentMm": [
+            133.10463726520538,
+            37.360037211328745,
+            93.27885508537292
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "shade-neck-collar",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 1152,
+          "polygons": 1058,
+          "worldBoundsMeters": {
+            "min": [
+              0.032999999821186066,
+              -0.012000000104308128,
+              0.42499998211860657
+            ],
+            "max": [
+              0.05700000375509262,
+              0.012000000104308128,
+              0.43799999356269836
+            ]
+          },
+          "worldAxisExtentMm": [
+            24.000003933906555,
+            24.000000208616257,
+            13.000011444091797
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.43149998784065247
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "opal-bulb",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 4514,
+          "polygons": 4608,
+          "worldBoundsMeters": {
+            "min": [
+              0.023999977856874466,
+              -0.021000012755393982,
+              0.3449999988079071
+            ],
+            "max": [
+              0.06600000709295273,
+              0.020999999716877937,
+              0.3869999945163727
+            ]
+          },
+          "worldAxisExtentMm": [
+            42.00002923607826,
+            42.00001247227192,
+            41.999995708465576
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04500000178813934
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.3659999966621399
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "hinge-body",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 1152,
+          "polygons": 1058,
+          "worldBoundsMeters": {
+            "min": [
+              -0.09100000560283661,
+              0.012999999336898327,
+              0.3479999899864197
+            ],
+            "max": [
+              -0.05900000035762787,
+              0.03700000047683716,
+              0.3799999952316284
+            ]
+          },
+          "worldAxisExtentMm": [
+            32.00000524520874,
+            24.00000113993883,
+            32.00000524520874
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.07500000298023224
+            ],
+            [
+              0.0,
+              -4.371138828673793e-08,
+              -1.0,
+              0.02500000037252903
+            ],
+            [
+              0.0,
+              1.0,
+              -4.371138828673793e-08,
+              0.36399999260902405
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case": "formal-cup",
+      "replyBytes": 826,
+      "sourceCheckpointSha256": "f964f466b4c6ddd1221efc362e0497db18d7a4564629a3e3f0ccd92af99a487a",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "cup",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 29528,
+          "polygons": 37360,
+          "worldBoundsMeters": {
+            "min": [
+              -0.041999999433755875,
+              -0.041999999433755875,
+              0.0
+            ],
+            "max": [
+              0.08383690565824509,
+              0.041999999433755875,
+              0.125
+            ]
+          },
+          "worldAxisExtentMm": [
+            125.83690509200096,
+            83.99999886751175,
+            125.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case": "speaker",
+      "replyBytes": 2776,
+      "sourceCheckpointSha256": "112b51fe61b2baa23dfc69cca6365cc0e554b6f076715f200588fe3c25179ffd",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "cabinet-shell",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 1292,
+          "polygons": 1188,
+          "worldBoundsMeters": {
+            "min": [
+              -0.17000000178813934,
+              -0.0689999982714653,
+              0.013999998569488525
+            ],
+            "max": [
+              0.17000000178813934,
+              0.0689999982714653,
+              0.21400000154972076
+            ]
+          },
+          "worldAxisExtentMm": [
+            340.0000035762787,
+            137.9999965429306,
+            200.00000298023224
+          ],
+          "scale": [
+            1.0,
+            0.5227272510528564,
+            0.6136363744735718
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.5227272510528564,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.6136363744735718,
+              0.11400000005960464
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "front-baffle",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 928,
+          "polygons": 824,
+          "worldBoundsMeters": {
+            "min": [
+              -0.16200000047683716,
+              -0.07349999994039536,
+              0.02199999988079071
+            ],
+            "max": [
+              0.16200000047683716,
+              -0.06750000268220901,
+              0.20600000023841858
+            ]
+          },
+          "worldAxisExtentMm": [
+            324.0000009536743,
+            5.99999725818634,
+            184.00000035762787
+          ],
+          "scale": [
+            1.0,
+            0.024193547666072845,
+            0.5887096524238586
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.024193547666072845,
+              0.0,
+              -0.07050000131130219
+            ],
+            [
+              0.0,
+              0.0,
+              0.5887096524238586,
+              0.11400000005960464
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "grille-metal-rim",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 672,
+          "polygons": 672,
+          "worldBoundsMeters": {
+            "min": [
+              -0.14650000631809235,
+              -0.08050000667572021,
+              0.057500001043081284
+            ],
+            "max": [
+              -0.02550000324845314,
+              -0.07500000298023224,
+              0.1784999966621399
+            ]
+          },
+          "worldAxisExtentMm": [
+            121.0000030696392,
+            5.500003695487976,
+            120.99999561905861
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              -0.0860000029206276
+            ],
+            [
+              0.0,
+              -4.371138828673793e-08,
+              -1.0,
+              -0.07500000298023224
+            ],
+            [
+              0.0,
+              1.0,
+              -4.371138828673793e-08,
+              0.11800000071525574
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "volume-knob",
+          "nativeType": "MESH",
+          "evaluationAvailable": true,
+          "vertices": 770,
+          "polygons": 864,
+          "worldBoundsMeters": {
+            "min": [
+              0.09300000220537186,
+              -0.09380000084638596,
+              0.10899999737739563
+            ],
+            "max": [
+              0.13699999451637268,
+              -0.07900000363588333,
+              0.15299999713897705
+            ]
+          },
+          "worldAxisExtentMm": [
+            43.999992311000824,
+            14.799997210502625,
+            43.99999976158142
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "worldMatrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.11500000208616257
+            ],
+            [
+              0.0,
+              -4.371138828673793e-08,
+              -1.0,
+              -0.07900000363588333
+            ],
+            [
+              0.0,
+              1.0,
+              -4.371138828673793e-08,
+              0.13099999725818634
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "entityId": "rear-service-tool",
+          "nativeType": "MESH",
+          "evaluationAvailable": false,
+          "worldBoundsMeters": null,
+          "worldAxisExtentMm": null,
+          "reason": "viewport-disabled; evaluated geometry may be stale"
+        }
+      ]
+    }
+  ],
+  "scope": [
+    "Completed maintainer lamp task retained checkpoints",
+    "Existing formal thick-cup case, not a new natural-language task",
+    "Retained speaker model baseline lacks revision manifest; ineligible for shipped source-bound receipt",
+    "World axis extent is not body diameter or wall thickness",
+    "No arbitrary modeling, controlled speed, whole-surface minimum wall, collision, artist or external-adoption claim"
+  ],
+  "at": "2026-10-13T02:16:09.527926+00:00"
+}

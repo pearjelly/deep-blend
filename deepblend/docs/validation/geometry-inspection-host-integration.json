@@ -1,0 +1,153 @@
+{
+  "status": "targeted-passed-unreleased",
+  "scope": "Host and existing scene_get native inspection; not a new model conversation, UI gate or full current-source acceptance",
+  "nativeTool": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "r0002 real model tool reaches Host and native runtime",
+        "ok": true
+      },
+      {
+        "name": "r0002 explicit saved revision and original hash bound",
+        "ok": true
+      },
+      {
+        "name": "r0002 all selected native extents match independent measurements",
+        "ok": true
+      },
+      {
+        "name": "r0002 tool text conveys measured source and limits",
+        "ok": true
+      },
+      {
+        "name": "r0003 real model tool reaches Host and native runtime",
+        "ok": true
+      },
+      {
+        "name": "r0003 explicit saved revision and original hash bound",
+        "ok": true
+      },
+      {
+        "name": "r0003 all selected native extents match independent measurements",
+        "ok": true
+      },
+      {
+        "name": "r0003 tool text conveys measured source and limits",
+        "ok": true
+      },
+      {
+        "name": "entire retained project byte-for-byte unchanged",
+        "ok": true
+      },
+      {
+        "name": "all measurement snapshot directories cleaned",
+        "ok": true
+      }
+    ],
+    "records": [
+      {
+        "revision": "r0002",
+        "elapsedMs": 1018,
+        "worldAxisExtentMm": [
+          209.80000495910645,
+          209.80000495910645,
+          116.60000681877136
+        ],
+        "sourceCheckpointSha256": "e0cf3ae755e2ff482faeb902e95c7b608225ec815331cc8095c677b6e846a785"
+      },
+      {
+        "revision": "r0003",
+        "elapsedMs": 925,
+        "worldAxisExtentMm": [
+          229.99999672174454,
+          230.00000417232513,
+          116.60000681877136
+        ],
+        "sourceCheckpointSha256": "c12370e77555c28221727fcea6ce1c74bee711ddb8a9e0c30d27dcf97a738e23"
+      }
+    ],
+    "scope": "Real tool → Host → native runtime on two saved bai lamp revisions; no new model conversation or general task latency claim."
+  },
+  "nativeRefusals": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "ordinary",
+        "ok": true,
+        "expectedCode": null
+      },
+      {
+        "name": "rescaled",
+        "ok": true,
+        "expectedCode": "BLENDER_UNSUPPORTED_ACTION"
+      },
+      {
+        "name": "linked",
+        "ok": true,
+        "expectedCode": "BLENDER_UNSUPPORTED_ACTION"
+      },
+      {
+        "name": "malformed",
+        "ok": true,
+        "expectedCode": "SCENE_VALIDATION_FAILED"
+      }
+    ]
+  },
+  "mutations": {
+    "results": [
+      {
+        "name": "host-post-source",
+        "killed": true,
+        "exit": 1
+      },
+      {
+        "name": "host-producer",
+        "killed": true,
+        "exit": 1
+      },
+      {
+        "name": "tool-source-receipt",
+        "killed": true,
+        "exit": 1
+      }
+    ],
+    "restored": true
+  },
+  "contracts": {
+    "hostNodeCases": 51,
+    "toolSelfCountedChecks": 139
+  },
+  "rawEvidence": {
+    ".tmp-geometry-host-native-v1/run-v5.log": {
+      "sha256": "85e769b6761ebb483bcbd9e83b3ebd9e933c9a49f68936bf3a5533be76efd782",
+      "bytes": 591
+    },
+    ".tmp-geometry-host-native-v1/guards.log": {
+      "sha256": "43aee41f6a254a7111d44895e2d2d0818cbd53ab288c2de46ee00185ae959a58",
+      "bytes": 55
+    },
+    ".tmp-geometry-host-native-v1/mutations-v3.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    ".tmp-lamp-diagnostic-evidence-v1/geometry-host-contract-v4.log": {
+      "sha256": "e9dea4509a3409ed2168f44ce319af9b6eb6ec6ffdbb2e7b8470afcd8ff8e1b8",
+      "bytes": 4242
+    },
+    ".tmp-lamp-diagnostic-evidence-v1/geometry-tool-contract-v2.log": {
+      "sha256": "1e41d926dd841a0bf1ed805f215eff10492226b6988b20674da1ead597923a1a",
+      "bytes": 19816
+    }
+  },
+  "mergedSourceUnits": {
+    "commit": "c5b3402779a3d1c8938d9563d08b8d4a5ff7e41f",
+    "exitCode": 0,
+    "files": "133/133",
+    "selfCountedChecks": 1993,
+    "nodeCases": 1641,
+    "sourceCleanAfter": true,
+    "scope": "One merged main 0.8.1 source unit/contract run. Not full runtime/UI/model/release acceptance.",
+    "logSha256": "ec480465fff785d9bfefacd88974ccf124ba68eb6c47f3f966e151e931ebed36"
+  }
+}

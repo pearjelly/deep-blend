@@ -384,7 +384,7 @@ test('same recipe ID can expose distinct versions and removed v1 cannot silently
   cpSync(new URL('../fixtures/metal-lamp-v1/',import.meta.url),join(recipes,'historical'),{recursive:true})
   cpSync(new URL('../fixtures/metal-lamp-v2/',import.meta.url),join(recipes,'middle'),{recursive:true})
   const items=catalog.list();assert.deepEqual(items.errors,[])
-  assert.deepEqual(items.recipes.map(r=>r.version).sort(),['1.0.0','2.0.0','2.1.0'])
+  assert.deepEqual(items.recipes.map(r=>r.version).sort(),['1.0.0','2.0.0','2.2.0'])
   const middle=items.recipes.find(r=>r.version==='2.0.0'),middleSelection={id:middle.id,version:middle.version,digest:middle.digest}
   const middleInstance=catalog.instantiate(middleSelection)
   assert.equal(middleInstance.lock.version,'2.0.0')
@@ -402,10 +402,10 @@ test('same recipe ID can expose distinct versions and removed v1 cannot silently
   assert.throws(()=>catalog.instantiate(selection),{code:'RECIPE_NOT_FOUND'})
   rmSync(join(recipes,'middle'),{recursive:true})
   assert.throws(()=>catalog.instantiate(middleSelection),{code:'RECIPE_NOT_FOUND'})
-  assert.equal(catalog.list().recipes[0].version,'2.1.0')
+  assert.equal(catalog.list().recipes[0].version,'2.2.0')
   assert(before.equals(readFileSync(lockPath)));assert(source.equals(readFileSync(join(directory,'scene-spec.json'))))
   const current=catalog.instantiate(request)
-  assert.equal(current.lock.version,'2.1.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
+  assert.equal(current.lock.version,'2.2.0');assert.equal(current.lock.values['spun-roughness'],.28);assert.equal(current.lock.values['brushed-roughness'],.39)
 })
 
 test('cup versions keep distinct transition defaults and immutable historical source locks', async t => {
@@ -474,4 +474,43 @@ test('cup three-dimension creation and continued editing retain native intent, a
   await assert.rejects(()=>studio.updateRecipeParameters({projectId,baseRevision:'r0002',parameters:{'cup-wall-mm':99},saveCheckpoint:false}),{code:'RECIPE_PARAMETER_INVALID'})
   for(const [n,b] of Object.entries(bytes))assert.ok(readFileSync(join(origin,n)).equals(b))
   assert.equal(studio.store.readRecord(projectId).currentRevision,'r0002')
+})
+
+test('legacy250mm repair persists across hand edits, retry and restore without changing historical lock bytes', async t => {
+ const {studio,recipes,catalog}=setup(t)
+ writeFileSync(join(recipes,'lamp','recipe.json'),readFileSync(new URL('../fixtures/metal-lamp-v21/recipe.json',import.meta.url)))
+ const legacy=catalog.list().recipes[0],made=await studio.createProject({title:'Legacy250mm',saveCheckpoint:false,recipe:{id:legacy.id,version:legacy.version,digest:legacy.digest,parameters:{'shade-diameter-mm':250}}})
+ const origin=studio.store.revisionDirectory(made.projectId,'r0001'),before=readFileSync(join(origin,'recipe-lock.json'))
+ const intent={projectId:made.projectId,baseRevision:'r0001',parameters:{'shade-diameter-mm':250},saveCheckpoint:false}
+ const repaired=await studio.updateRecipeParameters(intent)
+ assert.equal(repaired.revision,'r0002');assert.equal(repaired.parameterState.assemblyRepair,'metal-lamp-clearance/v1')
+ assert.equal((await studio.updateRecipeParameters(intent)).idempotentReplay,true)
+ const spec=studio.store.readRevisionSpec(made.projectId,'r0002');assert.ok(Math.abs(spec.entities.find(e=>e.id==='upright-mast').transform.location[0]+.086)<1e-12)
+ await studio.applyScenePatch({projectId:made.projectId,baseRevision:'r0002',saveCheckpoint:false,operations:[{op:'material.parameter.update',materialId:spec.materials[0].id,parameter:'roughness',value:.517}]})
+ const resized=await studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0003',parameters:{'shade-diameter-mm':230},saveCheckpoint:false})
+ assert.equal(resized.revision,'r0004');assert.equal(studio.store.readRevisionSpec(made.projectId,'r0004').materials[0].parameters.roughness,.517)
+ await studio.restoreRevision({projectId:made.projectId,revision:'r0001',expectedCurrentRevision:'r0004'})
+ assert.equal((await studio.getRecipeParameters(made.projectId)).recipe.version,'2.1.0')
+ assert.deepEqual(readFileSync(join(origin,'recipe-lock.json')),before)
+})
+
+test('independently edited native checkpoint refuses resizing and preserves native bytes and revision pointer', async t => {
+ const {studio,request}=setup(t)
+ const made=await studio.createProject({title:'Native hand edits',saveCheckpoint:false,recipe:request})
+ const rev=studio.store.revisionDirectory(made.projectId,'r0001'),path=join(rev,'scene.blend'),manifestPath=join(rev,'revision-manifest.json'),original=Buffer.from('original native bytes')
+ writeFileSync(path,original);const manifest=JSON.parse(readFileSync(manifestPath));manifest.checkpoint='revisions/r0001/scene.blend';manifest.checkpointBinding={sha256:sha256(original),bytes:original.length};writeFileSync(manifestPath,JSON.stringify(manifest))
+ const edited=Buffer.from('independent Blender mesh edit');writeFileSync(path,edited)
+ await assert.rejects(studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0001',parameters:{'shade-diameter-mm':250},saveCheckpoint:false}),{code:'RECIPE_PARAMETER_CONFLICT'})
+ assert.equal(studio.store.readRecord(made.projectId).currentRevision,'r0001');assert.deepEqual(readFileSync(path),edited);assert.equal(existsSync(studio.store.revisionDirectory(made.projectId,'r0002')),false)
+ writeFileSync(path,original)
+ const saved=await studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0001',parameters:{'shade-diameter-mm':250},saveCheckpoint:false});assert.equal(saved.revision,'r0002');assert.deepEqual(readFileSync(path),original)
+})
+
+test('a native edit arriving during compilation refuses publication and preserves the old revision', async t => {
+ const {studio,request}=setup(t),{requiredSceneFeatures}=await import('@deepblend/dsh-blender-contracts')
+ const made=await studio.createProject({title:'Native race',saveCheckpoint:false,recipe:request}),rev=studio.store.revisionDirectory(made.projectId,'r0001'),path=join(rev,'scene.blend'),manifestPath=join(rev,'revision-manifest.json'),original=Buffer.from('native producer bytes'),edited=Buffer.from('native edit during compilation')
+ writeFileSync(path,original);const manifest=JSON.parse(readFileSync(manifestPath));manifest.checkpoint='revisions/r0001/scene.blend';manifest.checkpointBinding={sha256:sha256(original),bytes:original.length};writeFileSync(manifestPath,JSON.stringify(manifest));let calls=0
+ studio.transactions.runtime={getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(studio.store.readRevisionSpec(made.projectId,'r0001'))}),compileScene:async()=>{calls++;writeFileSync(path,edited);return {report:{validation:{ok:true},sceneFingerprint:{totalPolygons:24}},envelope:{warnings:[],notices:[]}}}}
+ await assert.rejects(studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0001',parameters:{'shade-diameter-mm':250},saveCheckpoint:true}),{code:'RECIPE_PARAMETER_CONFLICT'})
+ assert.equal(calls,1);assert.equal(studio.store.readRecord(made.projectId).currentRevision,'r0001');assert.deepEqual(readFileSync(path),edited);assert.equal(existsSync(studio.store.revisionDirectory(made.projectId,'r0002')),false)
 })

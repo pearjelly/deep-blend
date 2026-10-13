@@ -81,6 +81,19 @@ export interface CompileSceneRequest extends RuntimeOptions {
   onWorkingDirectory?: WorkingDirectoryCallback<CompileReport>;
 }
 export interface RenderOverrides { engine?: EngineKey; width?: number; height?: number; samples?: number }
+/** Optional native inspection. Bounds are world-axis extents, not wall thickness or intrinsic dimensions. */
+export interface GeometryInspectionRequest extends RuntimeOptions {
+  checkpointPath: string; checkpointSha256: string; entityIds: string[]; frame: number; jobId?: string;
+}
+export type GeometryInspectionObject = { entityId: string; type: string } & (
+  { available: false; unavailableReason: 'viewport-disabled' | 'not-mesh' | 'empty-or-invalid-geometry' } |
+  { available: true; worldBoundsMeters: { min: Vec3; max: Vec3 }; worldAxisExtentMm: Vec3;
+    worldMatrix: number[][]; scale: Vec3; vertexCount: number; polygonCount: number }
+);
+export interface GeometryInspectionReport {
+  schemaVersion: 'deepblend.geometry-inspection/v1'; checkpointSha256: string; checkpointUnchanged: true;
+  frame: number; blenderVersion: string; objects: GeometryInspectionObject[];
+}
 export interface RenderPreviewRequest extends RuntimeOptions, RenderOverrides {
   checkpointPath: string; outputPath: string; cameraId?: string; frame?: number; jobId?: string;
   session?: boolean;
@@ -202,6 +215,8 @@ export interface BlenderSession {
 }
 /** Optional local transport extensions. Remote runtimes need only implement BlenderRuntime. */
 export interface LocalBlenderRuntime extends BlenderRuntime {
+  /** Optional native inspection extension; absent on older providers. Always uses an isolated batch. */
+  inspectGeometry?(request: GeometryInspectionRequest): Promise<RuntimeActionResult<GeometryInspectionReport>>;
   runBootstrap(request: BlenderBootstrapRequest, options?: BootstrapOptions): Promise<BootstrapRunOutcome>;
   openSession(options?: RuntimeOptions & { cwd?: string; args?: string[] }): Promise<BlenderSession>;
   attachSession(socketPath: string, options?: { timeoutMs?: number }): Promise<BlenderSession>;

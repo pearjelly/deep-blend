@@ -138,6 +138,9 @@ try {
   // -------------------------------------------------------------------------
   // An action that fails belongs to that action, not to the session.
   // -------------------------------------------------------------------------
+  const nativeInspection = await session.run({ action: 'inspect_geometry' })
+  check('a kept session refuses native inspection before opening a checkpoint',
+    nativeInspection.error?.code === 'BLENDER_UNSUPPORTED_ACTION' && /isolated batch/.test(nativeInspection.error.message), nativeInspection)
   const unknown = await session.run({ action: 'no_such_action' })
   check('an unknown action is refused in its own envelope, with the batch path\'s code',
     unknown.status === 'error' && unknown.error?.code === 'BLENDER_UNSUPPORTED_ACTION', unknown.error?.code)

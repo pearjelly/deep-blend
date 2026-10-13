@@ -23,9 +23,9 @@ function inspect(checkpoint,label){
 try{
  await new Promise(r=>setTimeout(r,100));check('actual source provider is active',Boolean(ctx.get('blenderRuntime')))
  studio=new Studio(ctx,StudioConfig({workspaceRoot:nativeRoot,projectsRoot:join(nativeRoot,'store'),reconcileOnStart:false,maxPreviewSamples:64}))
- const recipe=studio.listRecipes().recipes.find(r=>r.id==='deepblend.metal-lamp');check('actual shipped Host catalog exposes lamp2.1',recipe?.version==='2.1.0')
+ const recipe=studio.listRecipes().recipes.find(r=>r.id==='deepblend.metal-lamp');check('actual shipped Host catalog exposes lamp2.2',recipe?.version==='2.2.0')
  let baseline,target,original
- for(const diameter of [209.8,180,230,250]){
+ for(const diameter of [209.8,180,230,230.1,240,250]){
   const id='lamp-'+String(diameter).replace('.','-'),made=await studio.createProject({projectId:id,title:'Native lamp '+diameter,recipe:{id:recipe.id,version:recipe.version,digest:recipe.digest,parameters:{'shade-diameter-mm':diameter}},saveCheckpoint:true,renderPreview:false})
   const revision=studio.store.readRecord(id).currentRevision;json(id+'-create-receipt.json',{newCreation:made,observedRevision:revision,reusedOriginalDefault:made===null});const rev=studio.store.revisionDirectory(id,revision),checkpoint=join(rev,'scene.blend'),facts=inspect(checkpoint,id)
   check(id+' whole product fits the native hero camera',facts.geometry.projectedBounds[0][2]>0&&[0,1].every(axis=>facts.geometry.projectedBounds[0][axis]>=.01&&facts.geometry.projectedBounds[1][axis]<=.99))
@@ -33,7 +33,9 @@ try{
   check(id+' shell and liner closed connected positive', ['shade-shell','shade-enamel-lining'].every(part=>facts.geometry.parts[part].components===1&&facts.geometry.parts[part].nonManifoldEdges===0&&facts.geometry.parts[part].signedVolume>0))
   if(!baseline)baseline=facts
   check(id+' normal wall and liner gap samples remain close to actual baseline',facts.normal.samples.every((s,i)=>Math.abs(s.normalWallThicknessMm-baseline.normal.samples[i].normalWallThicknessMm)<.03&&s.normalShellLinerGapMm!==null&&Math.abs(s.normalShellLinerGapMm-baseline.normal.samples[i].normalShellLinerGapMm)<.01))
-  check(id+' neck arm bulb hinge actual bounds preserved',['shade-neck-collar','shade-neck-rim','swept-upper-arm','opal-bulb','hinge-body'].every(part=>JSON.stringify(facts.geometry.parts[part].worldBounds)===JSON.stringify(baseline.geometry.parts[part].worldBounds)))
+  check(id+' neck arm bulb hinge actual bounds preserved',['shade-neck-collar','shade-neck-rim','opal-bulb',...(diameter<=230?['swept-upper-arm','hinge-body']:[])].every(part=>JSON.stringify(facts.geometry.parts[part].worldBounds)===JSON.stringify(baseline.geometry.parts[part].worldBounds)))
+  const collisionOutput=join(output,id+'-collision.json'),collision=spawnSync(blender,['--background','--factory-startup','--python-exit-code','1','--python',join(root,'deepblend/tests/lib/inspect-lamp-intersection.py'),'--',collisionOutput,checkpoint],{encoding:'utf8',timeout:120000})
+  writeFileSync(collisionOutput+'.log',(collision.stdout??'')+(collision.stderr??''));check(id+' native shell does not intersect mast',collision.status===0&&JSON.parse(readFileSync(collisionOutput)).records[0].finiteSegmentTriangleHits===0)
   const controls=await studio.getRecipeParameters(id);check(id+' Host control reports actual saved value',controls.available&&controls.parameters.find(p=>p.id==='shade-diameter-mm')?.value===diameter)
   if(diameter===230){target={id,revision,rev,checkpoint};original=Object.fromEntries(['scene.blend','scene-spec.json','recipe-lock.json'].map(n=>[join(rev,n),hash(join(rev,n))]));json('target.json',target)}
  }

@@ -333,7 +333,7 @@ const lampBundle = (historical = false) => {
 
 test('paired lamp diameter control preserves exact authored default and historical v2 lock', () => {
   const current = lampBundle(), old = lampBundle(true), base = instantiateRecipe(current), historical = instantiateRecipe(old)
-  assert.equal(current.manifest.version, '2.1.0'); assert.equal(old.manifest.version, '2.0.0')
+  assert.equal(current.manifest.version, '2.2.0'); assert.equal(old.manifest.version, '2.0.0')
   assert.equal(sha256(old.sceneBytes), '4a9ea6e09e757acf23dc01593a94a3a51776ec697f15853b1ba62f0ed9515f1f')
   assert.deepEqual(base.spec.entities, historical.spec.entities)
   assert.deepEqual(base.spec.materials, historical.spec.materials)
@@ -355,7 +355,7 @@ test('lamp boundary and requested diameter move only the paired profiles and kee
     assert.ok(Math.abs(Math.max(...shell.map(p => p[0])) * 2000 - diameter) < 1e-6)
     assert.notDeepEqual(entity(after.spec, 'shade-enamel-lining').generator.profile, entity(base.spec, 'shade-enamel-lining').generator.profile)
     assert.deepEqual(shell.slice(40, 50), entity(base.spec, 'shade-shell').generator.profile.slice(40, 50))
-    for (const original of base.spec.entities) if (!['shade-shell', 'shade-enamel-lining'].includes(original.id)) assert.deepEqual(entity(after.spec, original.id), original)
+    for (const original of base.spec.entities) if (!['shade-shell', 'shade-enamel-lining', ...(diameter > 230 ? bundle.manifest.parameters[0].bindings.slice(1).map(b=>b.entityId) : [])].includes(original.id)) assert.deepEqual(entity(after.spec, original.id), original)
     assert.deepEqual(after.spec.materials, base.spec.materials); assert.deepEqual(after.spec.cameras, base.spec.cameras)
   }
   assert.throws(() => instantiateRecipe(bundle, { 'shade-diameter-mm': 179.99 }), { code: 'RECIPE_PARAMETER_INVALID' })
@@ -413,4 +413,57 @@ test('compound profile binding refuses missing capabilities, invalid corresponde
   }
   assert.equal(validateRecipePackage(source, { supportedCapabilities: RECIPE_CAPABILITIES.filter(c => c !== 'recipe.lathe-shell-bindings') }).ok, false)
   assert.equal(validateRecipePackage(lampBundle(true), { supportedCapabilities: RECIPE_CAPABILITIES.filter(c => c !== 'recipe.lathe-shell-bindings') }).ok, true)
+})
+
+test('large lamp links every support by 11mm and roundtrips exactly without replacing hand finishes', () => {
+ const bundle=lampBundle(),lock=lockFor(bundle),base=instantiateRecipe(bundle).spec
+ base.materials[0].parameters.roughness=.517
+ base.cameras[0].lens=61
+ base.entities.find(e=>e.id==='swept-upper-arm').generator.segments=36
+ const source=structuredClone(base),p=planRecipeGeometryEdit(lock,base,undefined,{'shade-diameter-mm':250}),after=applyPlan(base,p)
+ for(const id of ['mast-socket','mast-socket-collar','upright-mast','hinge-body','hinge-front-cap','hinge-rear-cap','hinge-fine-ring','hinge-centre-pin']) {
+  assert.ok(Math.abs(after.entities.find(e=>e.id===id).transform.location[0]-source.entities.find(e=>e.id===id).transform.location[0]+.011)<1e-12)
+ }
+ const arm=after.entities.find(e=>e.id==='swept-upper-arm');assert.equal(arm.generator.segments,36)
+ assert.ok(Math.abs(arm.generator.path[0][0]+.086)<1e-12)
+ assert.deepEqual(after.materials,source.materials);assert.deepEqual(after.cameras,source.cameras)
+ const back=applyPlan(after,planRecipeGeometryEdit(lock,after,p.parameterState,{'shade-diameter-mm':209.8}))
+ assert.deepEqual(back,source);assert.deepEqual(base,source)
+})
+
+test('pinned legacy 2.1 project repairs an existing250mm value once, retains lock and independent edits, and roundtrips', () => {
+ const current=lampBundle(),old={...current}
+ old.manifest=JSON.parse(readFileSync(new URL('../fixtures/metal-lamp-v21/recipe.json',import.meta.url)))
+ const lock=lockFor(old,{'shade-diameter-mm':250}),source=instantiateRecipeLock(lock).spec,originalLock=JSON.stringify(lock)
+ source.materials[0].parameters.roughness=.517;source.entities.find(e=>e.id==='swept-upper-arm').generator.segments=36
+ const before=structuredClone(source),p=planRecipeGeometryEdit(lock,source,undefined,{'shade-diameter-mm':250}),after=applyPlan(source,p)
+ assert.equal(p.parameterState.assemblyRepair,'metal-lamp-clearance/v1')
+ assert.ok(Math.abs(after.entities.find(e=>e.id==='upright-mast').transform.location[0]+.086)<1e-12)
+ assert.deepEqual(after.materials,before.materials);assert.equal(JSON.stringify(lock),originalLock)
+ assert.equal(planRecipeGeometryEdit(lock,after,p.parameterState,{'shade-diameter-mm':250}).operations.length,0)
+ const backPlan=planRecipeGeometryEdit(lock,after,p.parameterState,{'shade-diameter-mm':230}),back=applyPlan(after,backPlan)
+ assert.deepEqual(back.entities.find(e=>e.id==='upright-mast'),before.entities.find(e=>e.id==='upright-mast'))
+ assert.throws(()=>planRecipeGeometryEdit(lock,source,{...p.parameterState,assemblyRepair:'forged'},{}),{code:'RECIPE_LOCK_INVALID'})
+})
+
+test('manual support displacement and arm edits refuse atomically before any linked overwrite', () => {
+ const bundle=lampBundle(),lock=lockFor(bundle)
+ for(const mutate of [s=>s.entities.find(e=>e.id==='upright-mast').transform.location[0]+=.003,
+ s=>s.entities.find(e=>e.id==='swept-upper-arm').generator.path[4][1]+=.003,
+ s=>s.entities.find(e=>e.id==='swept-upper-arm').transform.rotationEuler=[0,.1,0]]) {
+  const spec=instantiateRecipeLock(lock).spec;mutate(spec);const before=JSON.stringify(spec)
+  assert.throws(()=>planRecipeGeometryEdit(lock,spec,undefined,{'shade-diameter-mm':250}),{code:'RECIPE_PARAMETER_CONFLICT'})
+  assert.equal(JSON.stringify(spec),before)
+ }
+})
+
+test('curve-point thresholds refuse undeclared support, unsafe indices, duplicate slots and out-of-range activation', () => {
+ for(const mutate of [
+ b=>{b.manifest.compatibility.capabilities=b.manifest.compatibility.capabilities.filter(c=>c!=='recipe.curve-point-bindings')},
+ b=>{b.manifest.parameters[0].bindings.at(-1).pointIndex=127},
+ b=>{b.manifest.parameters[0].bindings.at(-1).pointIndex=128},
+ b=>{b.manifest.parameters[0].bindings.at(-1).inputFloor=260},
+ b=>{b.manifest.parameters[0].bindings.at(-1).entityId='upright-mast'},
+ b=>{b.manifest.parameters[0].bindings.push({...b.manifest.parameters[0].bindings.at(-1)})},
+ ]){const b=lampBundle();mutate(b);assert.equal(validateRecipePackage(b).ok,false);assert.throws(()=>instantiateRecipe(b))}
 })

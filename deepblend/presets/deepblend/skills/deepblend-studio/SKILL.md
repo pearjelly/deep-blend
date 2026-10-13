@@ -65,6 +65,27 @@ twice the body radius; the whole object's bounding box includes the handle.
 Declared wall thickness and sampled technical checks do not certify a global
 minimum wall or manufacturing tolerance.
 
+For a dimension or assembly check, read a few relevant saved parts with
+`blender_scene_get {projectId, revision, geometryEntityIds, geometryFrame}`.
+Use IDs from the returned scene and the explicit frame of the preview being checked.
+This measures the actual saved native mesh without a render or another revision;
+prefer that small receipt to repeated full-scene searches when you need bounds or
+transforms. Keep its source revision and checkpoint hash with the result. World-axis
+spans include rotation, handles and protrusions: they do not prove body diameter,
+wall thickness, clearance or quality. If a part is unavailable or the runtime refuses
+inspection, state that limit instead of substituting generator settings as measurements.
+After changing dimensions, check the affected parts and important attachments again,
+then use actual preview pixels to judge the finish and joins.
+
+Do not turn the difference between shell and liner outer bounds into an assembly
+gap. It includes shell material and depends on curvature and orientation; it is
+not the distance from the shell's inner surface to the liner. An unchanged height,
+position or scale also cannot establish preserved wall thickness or clearance.
+When those conditions are requested, distinguish the recipe's linked design rule
+from actual surface measurements. Without a separate supported surface check,
+report wall thickness and clearance as unmeasured; do not give a numeric gap or
+claim "basically preserved" from bounding dimensions or preview pixels.
+
 Inspect the saved preview needed for the brief; add a targeted view if it does
 not show the requested features. Once the requested native file and preview
 are saved, conclude with the project, revision and actual delivery paths.

@@ -305,7 +305,7 @@ packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
-    python/           bootstrap.py 分派器 + 6 个动作模块（另有 deepblend_util.py 这一份工具）
+    python/           bootstrap.py 分派器 + 7 个动作模块（另有 deepblend_util.py 这一份工具）
                       deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
   tool/               18 个模型可见工具（Agent preset 平面，不发布服务）
@@ -408,7 +408,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**41 个套件、173 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**133 个文件 = 1984 项自计断言（34 个文件打印计数）+ 1608 个 `node:test` 用例（99 个文件）**。
+**133 个文件 = 1993 项自计断言（34 个文件打印计数）+ 1669 个 `node:test` 用例（99 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

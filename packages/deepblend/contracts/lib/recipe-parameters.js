@@ -1,12 +1,13 @@
 /** Plan existing-assembly edits as ordinary, bounded ScenePatch operations. */
+import { legacyLampAssembly } from './lamp-assembly-repair.js'
 import { latheShellTargets } from './lathe-shell.js'
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { instantiateRecipeLock, RecipeError } from './recipe.js'
 import { validateSceneSpec } from './scene-spec.js'
 
 const axisOf = binding => ['x', 'y', 'z'].indexOf(binding.axis)
-const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell'].includes(binding.kind))
-  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell'].includes(binding.kind))
+const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind))
+  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind))
 const entity = (spec, id) => spec.entities.find(item => item.id === id)
 const vector = (target, property) => property === 'dimensions' ? target?.generator?.dimensions
   : property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
@@ -33,9 +34,11 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
     }
     currentLock = { ...lock, values: parameterState.values, valuesSha256: parameterState.valuesSha256 }
   }
-  const before = parameterState === undefined ? origin : instantiateRecipeLock(currentLock)
-  const after = instantiateRecipeLock(currentLock, changes)
-  const parameters = recipeGeometryParameters(lock.manifest)
+  const savedBefore = parameterState === undefined ? origin : instantiateRecipeLock(currentLock)
+  const assembly = legacyLampAssembly(lock, parameterState)
+  const before = assembly && parameterState?.assemblyRepair ? instantiateRecipeLock(assembly.currentLock(currentLock)) : savedBefore
+  const after = instantiateRecipeLock(assembly ? assembly.currentLock(currentLock) : currentLock, changes)
+  const parameters = recipeGeometryParameters(assembly?.manifest ?? lock.manifest)
   for (const id of Object.keys(changes)) {
     if (!parameters.some(parameter => parameter.id === id)) {
       throw new RecipeError('RECIPE_PARAMETER_INVALID', `Parameter ${id} is not an assembly geometry control`)
@@ -43,24 +46,29 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const conflicts = []
   for (const parameter of parameters) for (const binding of targets(parameter)) {
-    if (!['entity', 'generator'].includes(binding.kind)) continue
+    if (!['entity', 'generator', 'curve-point'].includes(binding.kind)) continue
     const oldEntity = entity(before.spec, binding.entityId), currentEntity = entity(currentSpec, binding.entityId)
-    const expected = binding.kind === 'generator' ? oldEntity?.generator?.[binding.property]
+    const expected = binding.kind === 'curve-point' ? oldEntity?.generator?.path?.[binding.pointIndex]?.[axisOf(binding)] : binding.kind === 'generator' ? oldEntity?.generator?.[binding.property]
       : vector(oldEntity, binding.property)?.[axisOf(binding)]
-    const actual = binding.kind === 'generator' ? currentEntity?.generator?.[binding.property]
+    const actual = binding.kind === 'curve-point' ? currentEntity?.generator?.path?.[binding.pointIndex]?.[axisOf(binding)] : binding.kind === 'generator' ? currentEntity?.generator?.[binding.property]
       : vector(currentEntity, binding.property)?.[axisOf(binding)]
     if (!close(actual, expected)) conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
-      property: binding.property, axis: binding.axis, expected, actual })
-    if (binding.kind === 'generator' && currentEntity?.generator?.shape !== oldEntity?.generator?.shape) {
+      property: binding.kind === 'curve-point' ? `path.${binding.pointIndex}` : binding.property, axis: binding.axis, expected, actual })
+    if (['generator', 'curve-point'].includes(binding.kind) && currentEntity?.generator?.shape !== oldEntity?.generator?.shape) {
       conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'shape',
         expected: oldEntity?.generator?.shape, actual: currentEntity?.generator?.shape })
+    }
+    if (binding.kind === 'curve-point' && (canonicalStringify(currentEntity?.transform) !== canonicalStringify(oldEntity?.transform)
+      || !close(currentEntity?.generator?.path, oldEntity?.generator?.path))) {
+      conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'curve-alignment',
+        expected: oldEntity?.generator?.path, actual: currentEntity?.generator?.path })
     }
     if (binding.latheShell && (canonicalStringify(currentEntity?.transform) !== canonicalStringify(oldEntity?.transform)
       || currentEntity?.generator?.closedProfile !== oldEntity?.generator?.closedProfile)) {
       conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
         property: 'shell-alignment', expected: oldEntity?.transform, actual: currentEntity?.transform })
     }
-    if (binding.property === 'dimensions' || binding.kind === 'generator') {
+    if (binding.property === 'dimensions' || ['generator', 'curve-point'].includes(binding.kind)) {
       const oldScale = oldEntity?.transform?.scale ?? [1, 1, 1]
       const scale = currentEntity?.transform?.scale ?? [1, 1, 1]
       if (!scale?.every((value, axis) => close(value, oldScale[axis]))) {
@@ -72,7 +80,8 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   if (conflicts.length) throw new RecipeError('RECIPE_PARAMETER_CONFLICT',
     'Recipe-controlled geometry was independently edited; resolve these fields before resizing', { conflicts })
 
-  const changed = parameters.filter(parameter => before.values[parameter.id] !== after.values[parameter.id])
+  const changed = parameters.filter(parameter => before.values[parameter.id] !== after.values[parameter.id]
+    || assembly && !parameterState?.assemblyRepair && Object.keys(changes).includes(parameter.id))
   const generators = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
   const protectedCameras = new Set()
   for (const parameter of changed) for (const binding of targets(parameter)) {
@@ -92,13 +101,18 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       continue
     }
     const actual = entity(currentSpec, binding.entityId), target = entity(after.spec, binding.entityId)
-    if (binding.kind === 'generator') {
+    if (binding.kind === 'curve-point') {
+      if (close(actual.generator.path[binding.pointIndex][axis], target.generator.path[binding.pointIndex][axis])) continue
+      if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
+      generators.get(actual.id).path[binding.pointIndex][axis] = target.generator.path[binding.pointIndex][axis]
+    } else if (binding.kind === 'generator') {
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id)[binding.property] = target.generator[binding.property]
     } else if (binding.property === 'dimensions') {
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id).dimensions[axis] = target.generator.dimensions[axis]
     } else {
+      if (close(actual.transform.location[axis], target.transform.location[axis])) continue
       if (!locations.has(actual.id)) locations.set(actual.id, structuredClone(actual.transform.location))
       const delta = target.transform.location[axis] - entity(before.spec, actual.id).transform.location[axis]
       locations.get(actual.id)[axis] = target.transform.location[axis]
@@ -122,6 +136,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   return { operations, changedParameters: changed.map(parameter => parameter.id),
     preservedCameraIds: [...protectedCameras], parameterState: {
       schemaVersion: 'deepblend.recipe-parameters/v1', manifestSha256: lock.manifestSha256,
+      ...(assembly ? { assemblyRepair: 'metal-lamp-clearance/v1' } : {}),
       values: after.values, valuesSha256: sha256Canonical(after.values),
     } }
 }

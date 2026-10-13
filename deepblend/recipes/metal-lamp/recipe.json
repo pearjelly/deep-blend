@@ -1,7 +1,7 @@
 {
   "schemaVersion": "deepblend.recipe/v1",
   "id": "deepblend.metal-lamp",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "title": "香槟金属桌灯",
   "description": "连续旋压灯罩、沿曲面延伸的金属细纹、珐琅内衬、曲线弯臂与贴地线缆。分别调整旋压件和拉丝件的粗糙度，同步调整金属颜色与摄影曝光；灯罩外径联动金属壁与内衬，颈口保持，提供独立内衬检查相机。",
   "author": {
@@ -26,7 +26,9 @@
       "material.procedural",
       "material.procedural.uv",
       "recipe.geometry-bindings",
-      "recipe.lathe-shell-bindings"
+      "recipe.lathe-shell-bindings",
+      "recipe.curve-point-bindings",
+      "recipe.threshold-bindings"
     ]
   },
   "input": {
@@ -43,7 +45,7 @@
     {
       "id": "shade-diameter-mm",
       "title": "灯罩外径（毫米）",
-      "description": "调整实际灯罩外径，联动金属壁和内衬，保持颈口、弯臂、灯泡与关节；不整体缩放。",
+      "description": "调整实际灯罩外径，联动金属壁和内衬；超过230毫米时后移立柱与关节并调整弯臂起段，保持颈口和灯泡。",
       "type": "number",
       "default": 209.8,
       "minimum": 180,
@@ -59,6 +61,94 @@
           "rimHeight": 0.008,
           "neckAnchorHeight": 0.118,
           "multiplier": 0.0005
+        },
+        {
+          "kind": "entity",
+          "entityId": "mast-socket",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "mast-socket-collar",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "upright-mast",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "hinge-body",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "hinge-front-cap",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "hinge-rear-cap",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "hinge-fine-ring",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "entity",
+          "entityId": "hinge-centre-pin",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "curve-point",
+          "entityId": "swept-upper-arm",
+          "pointIndex": 0,
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "curve-point",
+          "entityId": "swept-upper-arm",
+          "pointIndex": 1,
+          "axis": "x",
+          "multiplier": -0.00055,
+          "inputFloor": 230
+        },
+        {
+          "kind": "curve-point",
+          "entityId": "swept-upper-arm",
+          "pointIndex": 2,
+          "axis": "x",
+          "multiplier": -0.000275,
+          "inputFloor": 230
         }
       ]
     },

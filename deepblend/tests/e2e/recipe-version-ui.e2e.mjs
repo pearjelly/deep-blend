@@ -33,7 +33,7 @@ try{
   const list=await(await fetch(`${base}/deepblend/recipes`)).json()
   const recipes=list.recipes
   check('the actual Host lists three lamp versions without a duplicate conflict',recipes?.filter(r=>r.id==='deepblend.metal-lamp').length===3,{list})
-  for(const version of ['1.0.0','2.0.0','2.1.0']){
+  for(const version of ['1.0.0','2.0.0','2.2.0']){
     const item=recipes.find(r=>r.id==='deepblend.metal-lamp'&&r.version===version)
     const response=await fetch(base+item.previewUrl),bytes=Buffer.from(await response.arrayBuffer())
     const expected=readFileSync(join(version==='1.0.0'?oldFolder:version==='2.0.0'?middleFolder:join(REPO_ROOT,'deepblend/recipes/metal-lamp'),'preview.png'))

@@ -143,6 +143,24 @@ try {
   check('the original saved scene/checkpoint/preview still remain unchanged after history and cancellation', Object.entries(originals).every(([file, hash]) => sha(readFileSync(path(file))) === hash))
   const requests = [...JSON.parse(readFileSync(join(directory, 'requests-before-refresh.json'))), ...await page.evaluate('window.__inspectionRequests')]
   check('all inspection writes pin revision/mode/camera/frame, without patches, final renders or model calls', requests.filter(request => request.method === 'POST').every(request => request.url.endsWith('/preview') && request.body.revision && ['beauty', 'clay'].includes(request.body.mode) && request.body.views.length === 1 && Number.isInteger(request.body.views[0].frame)))
+  const nativeFiles = Object.fromEntries(['scene-spec.json', 'scene.blend', 'revision-manifest.json'].map(name =>
+    [`revisions/r0002/${name}`, sha(readFileSync(path('revisions/r0002', name)))]))
+  await page.click('[data-view-tab="scene"]'); await page.click('[data-action="select-entity:bottle"]')
+  await page.waitFor('document.querySelector("[data-action=geometry-measure]")!==null')
+  const nativeStart = Date.now()
+  check('native dimensions start only through an explicit pointer click', (await page.click('[data-action="geometry-measure"]')).via === 'pointer')
+  await page.waitFor('document.querySelector("[data-native-spans]")!==null', 60000)
+  check('real native dimensions display their saved revision and explicit frame', await page.evaluate(`(()=>{
+    const result=document.querySelector('[data-measured-revision]');return result?.dataset.measuredRevision==='r0002'&&result.dataset.measuredFrame==='1'
+      &&document.querySelector('[data-native-spans]').textContent.includes('mm');})()`))
+  const nativeRequests = await page.evaluate('window.__inspectionRequests.filter(request=>request.url.includes("geometryEntityId="))')
+  check('one native inspection uses a GET and preserves every saved source file', nativeRequests.length === 1 && nativeRequests[0].method === 'GET'
+    && Object.entries(nativeFiles).every(([file, hash]) => sha(readFileSync(path(file))) === hash))
+  await page.evaluate('document.querySelector("[data-native-geometry]").scrollIntoView({block:"center"})')
+  await page.screenshot(join(directory, '03-native-dimensions.png'))
+  await page.fill('[data-field="geometry-frame"]', '24')
+  check('changing native frame retires dimensions without implicitly measuring again', await page.evaluate('document.querySelector("[data-native-spans]")===null && window.__inspectionRequests.filter(request=>request.url.includes("geometryEntityId=")).length===1'))
+  json('native-measurement.json', { elapsedMs: Date.now() - nativeStart, revision: 'r0002', entityId: 'bottle', frame: 1, requests: nativeRequests, protectedFiles: nativeFiles })
   json('requests.json', requests); json('artifacts.json', artifacts); outcome = 'passed'
 } catch (error) { console.error(error); results.push({ name: 'unexpected failure', ok: false, detail: error.stack || String(error) }); if (page) await page.screenshot(join(directory, 'failure.png')).catch(() => {}) }
 finally {

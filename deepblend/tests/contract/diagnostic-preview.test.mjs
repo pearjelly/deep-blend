@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
-import { createImage, encodePng, sha256 } from '@deepblend/dsh-blender-contracts'
+import { createImage, encodePng, sha256, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '@deepblend/dsh-blender-host/revision-transaction'
 import { diagnosticSpec } from '../../../packages/deepblend/host/lib/diagnostic-preview.js'
 import { verifyAssetBundle, BUNDLE_LOCK } from '../../../packages/deepblend/host/lib/asset-bundle.js'
@@ -49,7 +49,7 @@ async function setup(t, options = {}) {
   const ctx = new Context(); ctx.provide('blenderRuntime', runtime)
   const studio = new BlenderStudio(ctx, StudioConfig({ workspaceRoot: root, projectsRoot: join(root, 'projects'),
     reconcileOnStart: false, maxPreviewSamples: 32 }))
-  const created = await studio.createProject({ title: 'Inspection', saveCheckpoint: false, sceneSpec: options.spec ?? base() })
+  const created = await studio.createProject({ title: 'Inspection', saveCheckpoint: options.saveCheckpoint === true, sceneSpec: options.spec ?? base() })
   const projectId = created.projectId, project = studio.store.projectDirectory(projectId)
   const request = { projectId, revision: 'r0001', mode: 'clay', width: 32, height: 24, samples: 8,
     views: [{ id: 'selected', cameraId: 'camera-main', frame: 1 }] }
@@ -61,6 +61,94 @@ function snapshot(directory) {
   return Object.fromEntries(readdirSync(directory, { withFileTypes: true }).sort((a,b) => a.name.localeCompare(b.name))
     .map(entry => [entry.name, entry.isDirectory() ? snapshot(join(directory, entry.name)) : readFileSync(join(directory, entry.name)).toString('base64')]))
 }
+
+function geometryReport(request) {
+  return { report: { schemaVersion: 'deepblend.geometry-inspection/v1', checkpointSha256: request.checkpointSha256,
+    checkpointUnchanged: true, frame: request.frame, blenderVersion: 'fixture', objects: request.entityIds.map(entityId => ({
+      entityId, type: 'MESH', available: true, worldBoundsMeters: { min: [0,0,0], max: [.1,.2,.3] },
+      worldAxisExtentMm: [100,200,300], worldMatrix: matrix(), scale: [1,1,1], vertexCount: 8, polygonCount: 6,
+    })) } }
+}
+
+test('native geometry reads the pinned checkpoint, preserves the revision and cleans private input', async t => {
+  const f = await setup(t, { saveCheckpoint: true }), directory = join(f.project, 'revisions/r0001')
+  const before = snapshot(f.project), selection = { entityIds: [base().entities[0].id], frame: 17 }
+  let input
+  f.runtime.inspectGeometry = async request => { input = request; return geometryReport(request) }
+  const result = await f.studio.getScene(f.projectId, { geometry: selection })
+  const manifest = JSON.parse(readFileSync(join(directory, 'revision-manifest.json')))
+  assert.equal(result.geometryInspection.sourceCheckpointSha256, sha256(readFileSync(join(directory, 'scene.blend'))))
+  assert.equal(result.geometryInspection.sourceCheckpointSha256, manifest.checkpointBinding.sha256)
+  assert.equal(result.geometryInspection.sourceUnchanged, true)
+  assert.ok(result.geometryInspection.excludedMeasurements.includes('shellToLinerClearance'))
+  assert.ok(result.geometryInspection.limitations.some(text => text.includes('both bounds describe outer surfaces')))
+  assert.equal(result.geometryInspection.frame, 17)
+  assert.deepEqual(result.geometryInspection.objects[0].worldAxisExtentMm, [100,200,300])
+  assert.notEqual(input.checkpointPath, join(directory, 'scene.blend'))
+  assert.equal(existsSync(input.checkpointPath), false)
+  assert.deepEqual(snapshot(f.project), before)
+  assert.equal(f.calls.length, 1) // Only the initial compile, no measurement render or compile.
+  const path = join(directory, 'revision-manifest.json'); delete manifest.checkpointBinding
+  writeFileSync(path, JSON.stringify(manifest))
+  assert.equal((await f.studio.getScene(f.projectId, { geometry: selection })).geometryInspection.sourceCheckpointSha256, input.checkpointSha256)
+})
+
+for (const [label, change, code] of [
+  ['checkpoint tamper', f => writeFileSync(join(f.project, 'revisions/r0001/scene.blend'), 'changed'), 'SCENE_VALIDATION_FAILED'],
+  ['manifest tamper', f => { const p = join(f.project, 'revisions/r0001/revision-manifest.json'); const m = JSON.parse(readFileSync(p)); m.digest = 'changed'; writeFileSync(p, JSON.stringify(m)) }, 'SCENE_VALIDATION_FAILED'],
+  ['missing checkpoint', f => rmSync(join(f.project, 'revisions/r0001/scene.blend')), 'REVISION_CHECKPOINT_MISSING'],
+  ['unsupported runtime', f => delete f.runtime.inspectGeometry, 'RUNTIME_UNAVAILABLE'],
+]) test(`native geometry refuses ${label} before runtime`, async t => {
+  const f = await setup(t, { saveCheckpoint: true }); let calls = 0
+  f.runtime.inspectGeometry = async request => { calls++; return geometryReport(request) }; change(f)
+  await assert.rejects(f.studio.getScene(f.projectId, { geometry: { entityIds: [base().entities[0].id], frame: 1 } }), { code: BlenderErrorCode[code] })
+  assert.equal(calls, 0)
+})
+
+for (const [label, mutate] of [
+  ['saved checkpoint', f => writeFileSync(join(f.project, 'revisions/r0001/scene.blend'), 'changed during evaluation')],
+  ['removed checkpoint', f => rmSync(join(f.project, 'revisions/r0001/scene.blend'))],
+  ['removed manifest', f => rmSync(join(f.project, 'revisions/r0001/revision-manifest.json'))],
+  ['report frame', (f, result) => result.report.frame++],
+  ['report bounds', (f, result) => result.report.objects[0].worldAxisExtentMm[0]++],
+]) test(`native geometry accepts no result after changed ${label}`, async t => {
+  const f = await setup(t, { saveCheckpoint: true }); let input
+  f.runtime.inspectGeometry = async request => { input = request; const result = geometryReport(request); mutate(f, result); return result }
+  await assert.rejects(f.studio.getScene(f.projectId, { geometry: { entityIds: [base().entities[0].id], frame: 1 } }), {
+    code: label.startsWith('report') ? BlenderErrorCode.SCRIPT_ERROR : BlenderErrorCode.SCENE_VALIDATION_FAILED,
+  })
+  assert.equal(existsSync(input.checkpointPath), false)
+})
+
+test('native geometry rejects invalid selection and cancelled requests without invoking runtime', async t => {
+  const f = await setup(t, { saveCheckpoint: true }); let calls = 0
+  f.runtime.inspectGeometry = async request => { calls++; return geometryReport(request) }
+  const id = base().entities[0].id
+  for (const geometry of [{ entityIds: ['missing'], frame: 1 }, { entityIds: [id,id], frame: 1 }, { entityIds: [id], frame: 1.5 }]) {
+    await assert.rejects(f.studio.getScene(f.projectId, { geometry }))
+  }
+  await assert.rejects(f.studio.getScene(f.projectId, { geometry: { entityIds: [id], frame: 1 }, signal: AbortSignal.abort() }), { code: 'BLENDER_ABORTED' })
+  assert.equal(calls, 0)
+})
+
+test('native geometry cancellation during evaluation cleans the snapshot and forwards the signal', async t => {
+  const f = await setup(t, { saveCheckpoint: true }), controller = new AbortController(); let input
+  f.runtime.inspectGeometry = async request => { input = request; controller.abort(); return geometryReport(request) }
+  await assert.rejects(f.studio.getScene(f.projectId, { geometry: { entityIds: [base().entities[0].id], frame: 1 }, signal: controller.signal }), { code: BlenderErrorCode.ABORTED })
+  assert.equal(input.signal, controller.signal); assert.equal(existsSync(input.checkpointPath), false)
+})
+
+test('legacy native geometry requires an exact successful producer artifact', async t => {
+  const f = await setup(t, { saveCheckpoint: true }), path = join(f.project, 'revisions/r0001/revision-manifest.json')
+  const manifest = JSON.parse(readFileSync(path)); delete manifest.checkpointBinding; writeFileSync(path, JSON.stringify(manifest))
+  const jobPath = f.studio.store.jobPath(f.projectId, manifest.jobId), job = JSON.parse(readFileSync(jobPath))
+  let calls = 0; f.runtime.inspectGeometry = async request => { calls++; return geometryReport(request) }
+  for (const changed of [{ ...job, status: 'failed' }, { ...job, revision: 'r0002' }, { ...job, artifacts: [] }]) {
+    writeFileSync(jobPath, JSON.stringify(changed))
+    await assert.rejects(f.studio.getScene(f.projectId, { geometry: { entityIds: [base().entities[0].id], frame: 1 } }), { code: BlenderErrorCode.UNSUPPORTED_ACTION })
+  }
+  assert.equal(calls, 0)
+})
 async function emptyDiagnostics(fixture) {
   assert.deepEqual((await fixture.studio.listPreviewSets({ projectId: fixture.projectId })).revisions[0].diagnostics, [])
   assert.equal(readdirSync(join(fixture.project, 'staging')).filter(name => name.startsWith('.diagnostic-')).length, 0)

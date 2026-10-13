@@ -105,6 +105,7 @@ import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbund
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
+import { inspectRevisionGeometry } from './geometry-inspection.js'
 import { inspectReferenceImage, REFERENCE_IMAGE_MAX_BYTES } from './reference-image.js'
 import { createReadStream, linkSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
@@ -709,7 +710,7 @@ export default class BlenderStudio extends Service {
    * whole spec on every turn spends its context on fields it is not changing.
    *
    * @param {string} projectId
-   * @param {{ revision?: string, full?: boolean }} [options]
+   * @param {{ revision?: string, full?: boolean, geometry?: { entityIds: string[], frame: number }, signal?: AbortSignal }} [options]
    * @returns {Promise<Record<string, unknown>>}
    */
   async getScene(projectId, options = {}) {
@@ -723,10 +724,12 @@ export default class BlenderStudio extends Service {
       digest,
     })
     const manifest = this.store.readRevisionManifest(projectId, revision)
+    const geometry = options.geometry === undefined ? undefined : await inspectRevisionGeometry(this, projectId, revision, options.geometry, options.signal)
     return {
       ...summary,
       projectId,
-      isCurrent: revision === record.currentRevision,
+      isCurrent: revision === (geometry ? this.store.readRecord(projectId).currentRevision : record.currentRevision),
+      ...(geometry ? { geometryInspection: geometry } : {}),
       assetParts: (manifest?.assetParts ?? []).map(part => {
         const entity = spec.entities.find(entry => entry.id === part.entityId)
         const asset = spec.assets.find(entry => entry.id === entity?.assetId)

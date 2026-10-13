@@ -99,6 +99,7 @@ from deepblend_util import (  # noqa: E402  (path set up above)
 SUPPORTED_ACTIONS = (
     "get_capabilities",
     "compile_scene",
+    "inspect_geometry",
     "render_preview",
     "render_views",
     "render_frames",
@@ -474,7 +475,10 @@ KNOWN_SESSION_OPTIONS = (
     "--frames", "--events", "--proc",
 )
 
+from deepblend_inspect_geometry import inspect_geometry
+
 ACTIONS = {
+    "inspect_geometry": inspect_geometry,
     "get_capabilities": action_get_capabilities,
     "compile_scene": action_compile_scene,
     "render_preview": action_render_preview,
@@ -586,6 +590,12 @@ def _session_dispatch(request, options):
             "code": "BLENDER_PROTOCOL_VERSION_MISMATCH",
             "message": 'request declares protocolVersion "%s", expected "%s"'
             % (request.get("protocolVersion"), PROTOCOL_VERSION),
+        }, [], [])
+
+    if action == 'inspect_geometry':
+        return build_envelope(job_id, action, None, {
+            'code': 'BLENDER_UNSUPPORTED_ACTION',
+            'message': 'Native geometry inspection requires an isolated batch and cannot open a checkpoint in a kept or live Blender session.',
         }, [], [])
 
     handler = ACTIONS.get(action)

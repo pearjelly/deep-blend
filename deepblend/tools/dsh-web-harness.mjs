@@ -22,7 +22,7 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { initProfile, PROFILE_TEMPLATES } from '@deepseek-ai/dsh-app-boot'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -126,7 +126,8 @@ export function createHome(options = {}) {
   for (const name of options.inheritUserConfig === true
     ? ['settings.yaml', '.credentials.yaml', '.anonymous-user-id', 'llm-deepseek', '.agent-presets', 'cordis.patch.yml'] : []) {
     const source = join(REAL_HOME, name)
-    if (existsSync(source)) linkDirectory(source, join(home, name))
+    // Boot-time preset deployment and settings writes must stay inside this test home.
+    if (existsSync(source)) cpSync(source, join(home, name), { recursive: true, dereference: true })
   }
 
   // The profile's `node_modules`, entry by entry rather than as one directory link.
@@ -185,7 +186,7 @@ export function createHome(options = {}) {
     const presets = join(home, '.agent-presets')
     mkdirSync(presets, { recursive: true })
     for (const name of ['deepblend', 'deepblend-dev']) {
-      linkDirectory(join(REPO_ROOT, 'deepblend', 'presets', name), join(presets, name))
+      cpSync(join(REPO_ROOT, 'deepblend', 'presets', name), join(presets, name), { recursive: true, dereference: true })
     }
   }
   // The operator layer is the test's own: it composes the same bundles and

@@ -908,6 +908,41 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
     abortedDelivery.value?.data?.errorCode === code('ABORTED') && abortedDelivery.content.every(b => b.type !== 'image'))
 }
 
+{
+  let options, edits = 0
+  const host = stubStudio(), hash = 'a'.repeat(64)
+  const receipt = { schemaVersion: 'deepblend.scene-geometry/v1', projectId: 'watch-commercial', sourceRevision: 'r0001',
+    sourceDigest: 'sha256:1111', sourceCheckpointSha256: hash, sourceUnchanged: true, frame: 17, blenderVersion: 'fixture',
+    limitations: ['World-axis spans are not wall thickness or clearance.'], objects: [{ entityId: 'body', type: 'MESH', available: true,
+      worldBoundsMeters: { min: [0,0,0], max: [.1,.2,.3] }, worldAxisExtentMm: [100,200,300], scale: [1,1,1],
+      worldMatrix: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]], vertexCount: 8, polygonCount: 6 }] }
+  host.getScene = async (id, input) => { options = input; return { revision: 'r0001', digest: 'sha256:1111',
+    ...(input.geometry ? { geometryInspection: structuredClone(receipt) } : {}) } }
+  host.applyScenePatch = async () => { edits++; throw Error('unexpected edit') }
+  const plane = await composeToolPlane({ studio: host, label: 'native-geometry-output', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_scene_get'), args = { projectId: 'watch-commercial', geometryEntityIds: ['body'], geometryFrame: 17 }
+  const signal = new AbortController().signal, result = await tool.execute(args, { signal })
+  check('native scene read forwards exact selection, frame and cancellation to Host',
+    result.ok && JSON.stringify(options.geometry) === JSON.stringify({ entityIds: ['body'], frame: 17 }) && options.signal === signal)
+  check('native scene read delivers measured values with source identity and limitations',
+    result.data.geometryInspection.objects[0].worldAxisExtentMm[0] === 100 && /source SHA256/.test(result.text) && /not wall thickness/.test(result.text) && edits === 0)
+  await tool.execute({ projectId: args.projectId }, {})
+  check('ordinary scene reads remain cheap and do not request measurements', options.geometry === undefined)
+  const partial = await tool.execute({ projectId: args.projectId, geometryFrame: 17 }, {})
+  check('partial native selection is refused with a stable error', !partial.ok && partial.data.errorCode === code('SCRIPT_ERROR'))
+  for (const [label, change] of [
+    ['ignored geometry request', data => delete data.geometryInspection],
+    ['wrong source', data => data.geometryInspection.sourceRevision = 'r0002'],
+    ['unverified source', data => data.geometryInspection.sourceUnchanged = false],
+    ['wrong frame', data => data.geometryInspection.frame = 1],
+    ['invented bounds', data => data.geometryInspection.objects[0].worldAxisExtentMm[0]++],
+  ]) {
+    host.getScene = async () => { const data = { revision: 'r0001', digest: 'sha256:1111', geometryInspection: structuredClone(receipt) }; change(data); return data }
+    const bad = await tool.execute(args, {})
+    check(`native scene read refuses ${label} without returning a successful measurement`, !bad.ok && typeof bad.data?.errorCode === 'string')
+  }
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nM1 tool output contract: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {
