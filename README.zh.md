@@ -408,7 +408,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**41 个套件、173 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**133 个文件 = 1993 项自计断言（34 个文件打印计数）+ 1641 个 `node:test` 用例（99 个文件）**。
+**133 个文件 = 1993 项自计断言（34 个文件打印计数）+ 1669 个 `node:test` 用例（99 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

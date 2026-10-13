@@ -8,6 +8,7 @@ import { Browser } from '../../tools/browser-driver.mjs'
 import { startWeb, storePatch, REPO_ROOT } from '../../tools/dsh-web-harness.mjs'
 import { ensureWorkbenchCaptureReady } from '../../tools/docs-capture-visibility.mjs'
 
+const lampSelector = `[data-action="select-recipe:deepblend.metal-lamp@${JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/metal-lamp/recipe.json'), 'utf8')).version}"]`
 const out = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || '.deepblend/quality/creation-recovery-' + new Date().toISOString().replace(/[:.]/g, '-'))
 if (existsSync(out)) throw Error('Evidence directory already exists: ' + out)
 mkdirSync(out, { recursive: true })
@@ -53,9 +54,9 @@ try {
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await trackPage(page)
   await page.goto(base + '/deepblend/workbench')
-  await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]')!==null`, 45000)
+  await page.waitFor(`document.querySelector(${JSON.stringify(lampSelector)})!==null`, 45000)
   await ensureWorkbenchCaptureReady(page)
-  await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]')
+  await page.click(lampSelector)
   await page.fill('[data-field="project-title"]', 'recovered-environment')
   await page.fill('[data-field="project-goal"]', 'Keep the warm studio brief')
   await page.fill('[data-field="recipe-exposure"]', '.3')

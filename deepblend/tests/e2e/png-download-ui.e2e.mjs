@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto'
 import {decodePng} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
 import {startWeb,storePatch,REPO_ROOT} from '../../tools/dsh-web-harness.mjs'
+const lampSelector = `[data-action="select-recipe:deepblend.metal-lamp@${JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/metal-lamp/recipe.json'), 'utf8')).version}"]`
 const out=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||'.deepblend/quality/png-download-'+new Date().toISOString().replace(/[:.]/g,'-'))
 if(existsSync(out))throw Error('Evidence directory already exists: '+out)
 mkdirSync(out,{recursive:true});const downloads=join(out,'downloads');mkdirSync(downloads)
@@ -28,8 +29,8 @@ try{
  await page.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads,eventsEnabled:true})
  await page.addInitScript(`window.__pngRequests=[];const original=window.fetch;window.fetch=(url,init)=>{window.__pngRequests.push({url:String(url),method:init?.method||'GET',accept:init?.headers?.accept});return original(url,init)}`)
  await page.goto(base+'/deepblend/workbench')
- await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]')!==null`,45000)
- await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]');await page.fill('[data-field="project-title"]',projectId)
+ await page.waitFor(`document.querySelector(${JSON.stringify(lampSelector)})!==null`, 45000)
+ await page.click(lampSelector);await page.fill('[data-field="project-title"]',projectId)
  const began=Date.now();check('creation is a real visible pointer action',(await page.click('[data-action="create-project"]')).via==='pointer')
  await page.waitFor(`document.querySelector('[data-compare=current] img')?.naturalWidth>0`,180000)
  const firstImageMs=Date.now()-began
