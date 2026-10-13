@@ -139,5 +139,15 @@
       "sha256": "1e41d926dd841a0bf1ed805f215eff10492226b6988b20674da1ead597923a1a",
       "bytes": 19816
     }
+  },
+  "mergedSourceUnits": {
+    "commit": "c5b3402779a3d1c8938d9563d08b8d4a5ff7e41f",
+    "exitCode": 0,
+    "files": "133/133",
+    "selfCountedChecks": 1993,
+    "nodeCases": 1641,
+    "sourceCleanAfter": true,
+    "scope": "One merged main 0.8.1 source unit/contract run. Not full runtime/UI/model/release acceptance.",
+    "logSha256": "ec480465fff785d9bfefacd88974ccf124ba68eb6c47f3f966e151e931ebed36"
   }
 }
