@@ -1,16 +1,21 @@
 /** Plan existing-assembly edits as ordinary, bounded ScenePatch operations. */
+import { latheShellTargets } from './lathe-shell.js'
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { instantiateRecipeLock, RecipeError } from './recipe.js'
 import { validateSceneSpec } from './scene-spec.js'
 
 const axisOf = binding => ['x', 'y', 'z'].indexOf(binding.axis)
-const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator'].includes(binding.kind))
-  && parameter.bindings.every(binding => ['entity', 'camera', 'generator'].includes(binding.kind))
+const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell'].includes(binding.kind))
+  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell'].includes(binding.kind))
 const entity = (spec, id) => spec.entities.find(item => item.id === id)
 const vector = (target, property) => property === 'dimensions' ? target?.generator?.dimensions
   : property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
-const close = (a, b) => Number.isFinite(a) && Number.isFinite(b)
+const close = (a, b) => Array.isArray(a) && Array.isArray(b)
+  ? a.length === b.length && a.every((value, index) => close(value, b[index]))
+  : Number.isFinite(a) && Number.isFinite(b)
   && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b))
+
+const targets = parameter => parameter.bindings.flatMap(binding => binding.kind === 'lathe-shell' ? latheShellTargets(binding) : [binding])
 
 export function recipeGeometryParameters(manifest) {
   return manifest.parameters.filter(structural)
@@ -37,7 +42,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
     }
   }
   const conflicts = []
-  for (const parameter of parameters) for (const binding of parameter.bindings) {
+  for (const parameter of parameters) for (const binding of targets(parameter)) {
     if (!['entity', 'generator'].includes(binding.kind)) continue
     const oldEntity = entity(before.spec, binding.entityId), currentEntity = entity(currentSpec, binding.entityId)
     const expected = binding.kind === 'generator' ? oldEntity?.generator?.[binding.property]
@@ -49,6 +54,11 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
     if (binding.kind === 'generator' && currentEntity?.generator?.shape !== oldEntity?.generator?.shape) {
       conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'shape',
         expected: oldEntity?.generator?.shape, actual: currentEntity?.generator?.shape })
+    }
+    if (binding.latheShell && (canonicalStringify(currentEntity?.transform) !== canonicalStringify(oldEntity?.transform)
+      || currentEntity?.generator?.closedProfile !== oldEntity?.generator?.closedProfile)) {
+      conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
+        property: 'shell-alignment', expected: oldEntity?.transform, actual: currentEntity?.transform })
     }
     if (binding.property === 'dimensions' || binding.kind === 'generator') {
       const oldScale = oldEntity?.transform?.scale ?? [1, 1, 1]
@@ -65,7 +75,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   const changed = parameters.filter(parameter => before.values[parameter.id] !== after.values[parameter.id])
   const generators = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
   const protectedCameras = new Set()
-  for (const parameter of changed) for (const binding of parameter.bindings) {
+  for (const parameter of changed) for (const binding of targets(parameter)) {
     const axis = axisOf(binding)
     if (binding.kind === 'camera') {
       const actual = currentSpec.cameras?.find(item => item.id === binding.cameraId)

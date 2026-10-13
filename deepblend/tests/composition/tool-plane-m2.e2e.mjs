@@ -19,7 +19,8 @@
  *     tool's own `output.render` as a content block with a durable attachment
  *     reference. That is the M2 probe's finding turned into a regression test: the
  *     sheet must be a real image block, not a path the model is told to go read.
- *  3. `blender_preview_views` renders and measures WITHOUT spending a model call, and
+ *  3. `blender_preview_views` renders, measures and attaches the verified current sheet
+ *     WITHOUT spending a model call, and
  *     `blender_visual_autofix` runs the loop — both with their canonical envelopes.
  *  4. A failure is still a tool RESULT with a stable errorCode, never a thrown error.
  *
@@ -29,6 +30,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { mkdtempSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -69,6 +71,7 @@ function check(name, ok, detail) {
 const harness = (() => {
   const registered = new Map()
   const saved = []
+  const images = new Map()
   return {
     registered,
     saved,
@@ -119,19 +122,20 @@ const harness = (() => {
       ctx.provide('attachments', {
         async saveImage({ data, mediaType, name }) {
           const ref = {
-            attachmentId: `sha256:${'a'.repeat(64)}`,
+            attachmentId: `sha256:${createHash('sha256').update(data).digest('hex')}`,
             mediaType,
             bytes: data.byteLength,
-            width: 1656,
-            height: 1046,
+            width: Buffer.from(data).readUInt32BE(16),
+            height: Buffer.from(data).readUInt32BE(20),
             name,
           }
+          images.set(ref.attachmentId, Buffer.from(data))
           saved.push(ref)
           return ref
         },
         imageLimits: { maxImageBytes: 20_971_520, maxImagePixels: 64_000_000, mediaTypes: ['image/png'] },
         async readImageRequest(ref) {
-          return { variantId: 'variant-1', attachment: ref, data: new Uint8Array(1), mediaType: ref.mediaType, bytes: ref.bytes, width: ref.width, height: ref.height, depth: 'uchar', space: 'srgb', hasAlpha: false }
+          return { variantId: 'variant-1', attachment: ref, data: images.get(ref.attachmentId), mediaType: ref.mediaType, bytes: ref.bytes, width: ref.width, height: ref.height, depth: 'uchar', space: 'srgb', hasAlpha: false }
         },
       })
       ctx.effect(() => () => saved.length = 0)
@@ -306,10 +310,17 @@ try {
   check('blender_preview_views reports the measured score without a model call',
     preview.value.data.score === 100 && preview.value.text.includes('Measured score: 100/100'),
     preview.value.data.score)
-  check('blender_preview_views returns no image, because it is the cheap observation',
-    preview.content.length === 1 && preview.content[0].type === 'text')
-  check('blender_preview_views did not persist an attachment',
-    (harness.saved ?? []).length === 0, harness.saved.length)
+  check('blender_preview_views attaches the current verified sheet without raw PNG buffers in text',
+    preview.content.length === 2 && preview.content[0].type === 'text' && preview.content[1].type === 'image' &&
+    preview.value.imageSource?.sourceRevision === preview.value.data.revision &&
+    preview.value.imageSource?.sourceDigest === preview.value.data.digest &&
+    preview.value.imageSource?.slot === 'preview-current' && !Object.hasOwn(preview.value.data, 'pngs'))
+  check('blender_preview_views persists one actual sheet with the source PNG digest and dimensions',
+    harness.saved.length === 1 && JSON.stringify(harness.saved[0]) === JSON.stringify(preview.content[1]?.attachment) &&
+    harness.saved[0].attachmentId === 'sha256:' + preview.value.imageSource?.sha256 &&
+    harness.saved[0].bytes === preview.value.imageSource?.bytes &&
+    harness.saved[0].width === preview.value.imageSource?.width &&
+    harness.saved[0].height === preview.value.imageSource?.height, harness.saved.length)
 
   // ---- visual_review -----------------------------------------------------
 
@@ -329,7 +340,8 @@ try {
     reviewed.content[1]?.attachment?.attachmentId?.startsWith('sha256:'),
     reviewed.content[1]?.attachment)
   check('the tool persisted the sheet through the attachment service',
-    (harness.saved ?? []).length === 1 && harness.saved[0].mediaType === 'image/png',
+    harness.saved.length === 2 && JSON.stringify(harness.saved[1]) === JSON.stringify(reviewed.content[1]?.attachment) &&
+    harness.saved[1].mediaType === 'image/png',
     harness.saved.length)
   check('blender_visual_review text reports the measured issues and the model findings separately',
     reviewed.value.text.includes('Measured issues:') && reviewed.value.text.includes('What the vision model reported seeing'))

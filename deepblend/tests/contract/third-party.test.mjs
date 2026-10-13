@@ -197,6 +197,7 @@ test('source files exclude external binaries and published images have declared 
   }
 
   for (const [name, expectedPreview] of [
+    ['metal-lamp-v2','a4c39a0679b5c829fa7183b55a5b637d3fcc0f6dfaf89e7dc0f2f319c9ed9572'],
     ['metal-lamp-v1','e961539a4d22bb78232569c38f66ee51b8ed5d5e352655f35bc4a2adaa9a69f6'],
     ['modular-speaker-v2','b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492'],
     ['modular-speaker-v1','b23f9fa591d1b1a49db6067cf9df872611dde34c2472b07f38ea73590c4e1492'],
@@ -206,7 +207,7 @@ test('source files exclude external binaries and published images have declared 
   ]) {
     const historical=`deepblend/tests/fixtures/${name}`
     const historicalRecipe=JSON.parse(readFileSync(join(ROOT,historical,'recipe.json')))
-    assert.equal(historicalRecipe.version,name==='glazed-cup-v3'?'3.0.0':['glazed-cup-v2','modular-speaker-v2'].includes(name)?'2.0.0':'1.0.0');assert.equal(historicalRecipe.license,ownLicense)
+    assert.equal(historicalRecipe.version,name==='glazed-cup-v3'?'3.0.0':['glazed-cup-v2','modular-speaker-v2','metal-lamp-v2'].includes(name)?'2.0.0':'1.0.0');assert.equal(historicalRecipe.license,ownLicense)
     assert.equal(historicalRecipe.source.url,'https://github.com/pearjelly/deep-blend')
     assert.equal(historicalRecipe.input.path,'scene-spec.json');assert.equal(historicalRecipe.preview.path,'preview.png')
     assert.equal(hash(readFileSync(join(ROOT,historical,'scene-spec.json'))),historicalRecipe.input.sha256)

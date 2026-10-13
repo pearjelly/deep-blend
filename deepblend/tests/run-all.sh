@@ -161,6 +161,12 @@ run_suite "Material surface editor: UV drafts, native refusals, saved graph and 
 run_suite "Recipe versions: native UV defaults, gallery selection and historical project locks" \
   node deepblend/tests/e2e/recipe-version-ui.e2e.mjs
 
+run_suite "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera" \
+  node deepblend/tests/e2e/lamp-dimensions-native.e2e.mjs
+
+run_suite "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history" \
+  node deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs
+
 run_suite "Linked speaker dimensions: native assembly creation and historical project protection" \
   node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs
 

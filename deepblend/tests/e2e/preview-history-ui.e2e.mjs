@@ -38,8 +38,8 @@ try {
       if(url.includes('/diff?')){if(window.__versionHoldDiff)await new Promise(resolve=>window.__versionDiffReleases.push(resolve));const nativeJson=response.json.bind(response);response.json=async()=>{const value=await nativeJson();window.__versionDiffReads.push({url,from:value.diff?.fromRevision,to:value.diff?.toRevision});return value;};}
       if(window.__previewHoldRefresh&&(!init?.method||init.method==='GET')&&url.includes('/deepblend/')){window.__previewHeld.push(url);await new Promise(resolve=>window.__previewReleases.push(resolve));}return response;}`)
   await page.goto(`${base}/deepblend/workbench`)
-  await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]\')!==null', 45000)
-  await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]'); await page.fill('[data-field="project-title"]', projectId)
+  await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]\')!==null', 45000)
+  await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]'); await page.fill('[data-field="project-title"]', projectId)
   check('creation uses the visible gallery button', (await page.click('[data-action="create-project"]')).via === 'pointer')
   await page.waitFor('document.querySelector("[data-compare=current] img[data-artifact-revision=r0001]")?.complete===true', 180000)
   const initial = read('revisions', 'r0001', 'revision-manifest.json').previews[0]

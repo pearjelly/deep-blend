@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { BlenderError } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
@@ -268,5 +268,48 @@ test('recipe discovery without a Host reports unavailable and performs no filesy
     const output = await plane.registered.get('blender_recipe_list').execute({}, {})
     assert.equal(output.ok, false)
     assert.equal(output.data.code, 'BLENDER_RUNTIME_UNAVAILABLE')
+  } finally { await plane.ctx.stop?.() }
+})
+
+
+test('multiview preview attaches saved sheet once, preserves render results on corrupt receipt, and respects text-only routes', async () => {
+  const bytes = readFileSync(new URL('../fixtures/obj-image-formats/paint.png', import.meta.url))
+  const sha = data => createHash('sha256').update(data).digest('hex')
+  const artifact = { kind: 'contact-sheet', slot: 'preview-current', sourceRevision: 'r0001', sourceDigest: 'b'.repeat(64),
+    mime: 'image/png', width: 64, height: 64, bytes: bytes.length, sha256: sha(bytes), views: ['detail'],
+    path: 'revisions/r0001/contact-sheets/preview-current.png' }
+  const receipt = { revision: 'r0001', digest: 'b'.repeat(64), views: [{ viewId: 'detail', cameraId: 'liner-inspection', frame: 24 }],
+    profile: { engine: 'cycles' }, previewSheets: { current: artifact }, pngs: { detail: Buffer.from(bytes) } }
+  let renders = 0, reads = 0, saves = 0, reviews = 0, source = receipt, readBytes = bytes
+  const host = { hostApiVersion: () => 6, renderViews: async () => { renders++; return structuredClone(source) },
+    scoreVisualViews: () => ({ score: 90, issues: [] }),
+    visualReview: () => { reviews++; throw new Error('additional review forbidden') },
+    readArtifact: async request => { reads++; return { path: request.path, contentType: 'image/png', size: readBytes.length, bytes: readBytes } } }
+  const store = { saveImage: async input => { saves++; assert.deepEqual(input.data, bytes); return { attachmentId: 'sheet1', mediaType: 'image/png', width: 64, height: 64, bytes: bytes.length } } }
+  const plane = await composeToolPlane({ studio: host, services: { attachments: store, llm: { listModels: async () => [{ id: 'text', inputModalities: ['text'] }] } }, label: 'multiview-sheet' })
+  const args = { projectId: 'lamp', revision: 'r0001' }, tool = plane.tools.get('blender_preview_views')
+  try {
+    const good = await tool.execute(args, {})
+    assert.equal(good.ok, true); assert.equal(good.image.attachmentId, 'sheet1')
+    assert.equal(tool.output.render(args, good).filter(c => c.type === 'image').length, 1)
+    assert.deepEqual([renders, reads, saves, reviews], [1, 1, 1, 0])
+    assert.equal(good.imageSource.sha256, artifact.sha256)
+    assert.equal(Object.hasOwn(good.data, 'pngs'), false, 'raw image buffers must not become model text')
+    assert.equal(good.text.includes('\"pngs\"'), false)
+    tool.output.render(args, good); assert.deepEqual([renders, reads, saves, reviews], [1, 1, 1, 0], 'replay cannot perform IO')
+    const text = await tool.execute(args, { agent: { session: { requestHeader: () => ({ config: { provider: 'test', model: 'text' } }) } } })
+    assert.equal(text.image, null); assert.match(text.text, /model has not seen these pixels/)
+    for (const change of [a => { a.sha256 = 'c'.repeat(64) }, a => { a.width = 65 }, a => { a.sourceDigest = 'c'.repeat(64) }, a => { a.path = '../outside.png' }, a => { a.slot = 'preview-previous' }]) {
+      source = structuredClone(receipt); change(source.previewSheets.current)
+      const failedAttachment = await tool.execute(args, {})
+      assert.equal(failedAttachment.ok, true); assert.equal(failedAttachment.image, null)
+      assert.match(failedAttachment.text, /rendered views remain saved/)
+    }
+    source = receipt; readBytes = Buffer.from(bytes); readBytes[30] ^= 1
+    const corrupt = await tool.execute(args, {}); assert.equal(corrupt.ok, true); assert.equal(corrupt.image, null)
+    readBytes = bytes
+    const cancelled = new AbortController(); cancelled.abort()
+    const aborted = await tool.execute(args, { signal: cancelled.signal }); assert.equal(aborted.ok, false); assert.equal(aborted.data.errorCode, BlenderErrorCode.ABORTED)
+    assert.equal(reviews, 0)
   } finally { await plane.ctx.stop?.() }
 })

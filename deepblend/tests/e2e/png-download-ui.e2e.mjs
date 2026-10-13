@@ -28,8 +28,8 @@ try{
  await page.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads,eventsEnabled:true})
  await page.addInitScript(`window.__pngRequests=[];const original=window.fetch;window.fetch=(url,init)=>{window.__pngRequests.push({url:String(url),method:init?.method||'GET',accept:init?.headers?.accept});return original(url,init)}`)
  await page.goto(base+'/deepblend/workbench')
- await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]')!==null`,45000)
- await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.0.0"]');await page.fill('[data-field="project-title"]',projectId)
+ await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]')!==null`,45000)
+ await page.click('[data-action="select-recipe:deepblend.metal-lamp@2.1.0"]');await page.fill('[data-field="project-title"]',projectId)
  const began=Date.now();check('creation is a real visible pointer action',(await page.click('[data-action="create-project"]')).via==='pointer')
  await page.waitFor(`document.querySelector('[data-compare=current] img')?.naturalWidth>0`,180000)
  const firstImageMs=Date.now()-began

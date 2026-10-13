@@ -1,0 +1,300 @@
+{
+  "status": "unpublished-candidate",
+  "recipeVersion": "2.1.0",
+  "control": {
+    "id": "shade-diameter-mm",
+    "range": [
+      180,
+      250
+    ],
+    "default": 209.8,
+    "units": "mm"
+  },
+  "nativeCheckCount": 34,
+  "measurements": [
+    {
+      "label": "lamp-209-8",
+      "actualShadeDiameterMm": [
+        209.80000495910645,
+        209.80000495910645
+      ],
+      "shellClosedConnectedPositive": true,
+      "linerClosedConnectedPositive": true,
+      "normalWallSamplesMm": [
+        2.004889904270929,
+        2.1737498675071603,
+        2.2605448609726215
+      ],
+      "normalLinerGapSamplesMm": [
+        0.15203819567661922,
+        0.1403914165654053,
+        0.11915008091362712
+      ],
+      "nativeBytesUnchangedOnReopen": true
+    },
+    {
+      "label": "lamp-180",
+      "actualShadeDiameterMm": [
+        180.00000715255737,
+        180.00000715255737
+      ],
+      "shellClosedConnectedPositive": true,
+      "linerClosedConnectedPositive": true,
+      "normalWallSamplesMm": [
+        2.0120423958396048,
+        2.1732330465695346,
+        2.2610229470948933
+      ],
+      "normalLinerGapSamplesMm": [
+        0.15197655851912312,
+        0.14047988372103465,
+        0.11867817732006929
+      ],
+      "nativeBytesUnchangedOnReopen": true
+    },
+    {
+      "label": "lamp-230",
+      "actualShadeDiameterMm": [
+        229.99999672174454,
+        230.00000417232513
+      ],
+      "shellClosedConnectedPositive": true,
+      "linerClosedConnectedPositive": true,
+      "normalWallSamplesMm": [
+        2.000257753169571,
+        2.174045369885889,
+        2.260791377520809
+      ],
+      "normalLinerGapSamplesMm": [
+        0.15266573387518065,
+        0.14032773427971315,
+        0.11884846869799151
+      ],
+      "nativeBytesUnchangedOnReopen": true
+    },
+    {
+      "label": "lamp-250",
+      "actualShadeDiameterMm": [
+        250.0,
+        250.0
+      ],
+      "shellClosedConnectedPositive": true,
+      "linerClosedConnectedPositive": true,
+      "normalWallSamplesMm": [
+        1.9964204021902758,
+        2.174318656031076,
+        2.261037902840094
+      ],
+      "normalLinerGapSamplesMm": [
+        0.15326840847312465,
+        0.14025850160133208,
+        0.11850645032757434
+      ],
+      "nativeBytesUnchangedOnReopen": true
+    },
+    {
+      "label": "lamp-continued220",
+      "actualShadeDiameterMm": [
+        219.9999988079071,
+        219.9999988079071
+      ],
+      "shellClosedConnectedPositive": true,
+      "linerClosedConnectedPositive": true,
+      "normalWallSamplesMm": [
+        2.0025364741808795,
+        2.173905321680828,
+        2.260640155685121
+      ],
+      "normalLinerGapSamplesMm": [
+        0.1522815465396064,
+        0.14034134071995313,
+        0.11902052911802168
+      ],
+      "nativeBytesUnchangedOnReopen": true
+    }
+  ],
+  "old2_0FixtureInputSha256": "4a9ea6e09e757acf23dc01593a94a3a51776ec697f15853b1ba62f0ed9515f1f",
+  "originalNativeSourceLockPreservedOn230To220Edit": true,
+  "mutationsKilled": [
+    "missing-liner-application",
+    "missing-profile-conflict",
+    "missing-alignment-conflict",
+    "missing-capability-declaration",
+    "moving-neck"
+  ],
+  "originalFailuresRetained": [
+    "Observer initially treated createProject revision summary object as an ID; resumed same actual created default rather than repeating creation",
+    "Native script34 checks and preview succeeded but ctx.dispose observer teardown method was invalid; raw report remains failed. Independent readback/unchanged-source proof retained, no native transaction rerun."
+  ],
+  "scope": "Unpublished0.8 candidate. Corrected exact709 source full41/41, native35/browser13, realbai manual14/UI10 and one natural creation/same-session edit23 passed. Original failed36/41 retained. Actual candidate/mainCI, clean pushed build, public GitHub/npm/routes/community remain required. No arbitrary modeling, artist approval, population speedup, manufacturing or external adoption claim.",
+  "formalNative": {
+    "checks": "35/35",
+    "scope": "Default/180/230/250 and continued220 actual native topology, normal samples, hero framing and original protection."
+  },
+  "formalBrowser": {
+    "checks": "13/13",
+    "scope": "Real creation/save/refusal/conflict/reload and old PNG/native/source/lock byte protection."
+  },
+  "realNaturalTask": {
+    "status": "passed",
+    "actualUserTasks": 2,
+    "completedTurns": 2,
+    "sameSession": true,
+    "sourceBaseCommit": "4c2ab5ba51163ae0d3e7a9b7b53903bd08358755",
+    "uncommittedFrozenCandidate": "0.8.0",
+    "sourceFiles": 709,
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "reasoning": "Low",
+    "previewSampleCeiling": 64,
+    "checks": "23/23",
+    "modelRetries": 0,
+    "sourceUnchanged": true,
+    "personalCredentialUnchanged": true,
+    "historySha256": "cae43350f4c5f229d5954b5828285e2cde58cff0ccca8c26f144227eacc235d0",
+    "originalFailureRecordsRetained": true,
+    "nativeScope": "Independent native checkpoints; three paired face-normal wall/gap samples and unchanged protected part world bounds. Does not establish whole-surface minimum thickness or manufacturing fitness.",
+    "claimLimits": [
+      "One maintainer-defined natural-language creation and one edit",
+      "Not arbitrary modeling or controlled latency improvement",
+      "No artist approval or external adoption"
+    ],
+    "rawCheckLabelCorrection": "Raw observer label says fixed radial sample heights, but actual assertions inspect normalWallSamples: paired local normal samples; protected arm/neck/bulb/hinge assertions compare actual world bounds, not every vertex.",
+    "fixedBeforeAfter": {
+      "cameras": true,
+      "lights": true,
+      "materials": true
+    },
+    "allHistoricalPreviewHashesMatch": true,
+    "historicalPreviewCount": 12,
+    "actualShadeDiametersMm": [
+      [
+        209.80000495910645,
+        209.80000495910645
+      ],
+      [
+        229.99999672174454,
+        230.00000417232513
+      ]
+    ],
+    "maxThreeSampleNormalWallDeltaMm": 0.004632151101358062,
+    "maxThreeSampleNormalLinerGapDeltaMm": 0.0006275381985614281,
+    "fixedImagesViewed": {
+      "before": "r0002/contact-sheets/preview-current.png",
+      "after": "r0003/contact-sheets/preview-current.png",
+      "observation": "Whole front/back lamp remains framed. Diameter visibly grows in the liner detail; inner lining and rolled rim remain visible. No independent artist approval."
+    },
+    "inspectedAt": "2026-10-12T22:49:51.209546+00:00",
+    "turns": [
+      {
+        "turn": 1,
+        "steps": 11,
+        "toolCalls": 13,
+        "toolCounts": {
+          "skill": 1,
+          "blender_capabilities": 1,
+          "blender_recipe_list": 1,
+          "blender_project_create": 1,
+          "blender_preview_views": 2,
+          "blender_preview_render": 2,
+          "blender_recipe_parameters": 1,
+          "blender_scene_validate": 1,
+          "blender_scene_patch": 1,
+          "glob": 1,
+          "present": 1
+        },
+        "tokenUsage": {
+          "inputTokens": 261945,
+          "outputTokens": 8784,
+          "totalTokens": 661641,
+          "cacheReadTokens": 390912
+        },
+        "end": {
+          "turn": 1,
+          "reason": {
+            "kind": "completed"
+          }
+        },
+        "elapsedMs": 238877,
+        "deliverablesPresented": 1
+      },
+      {
+        "turn": 2,
+        "steps": 13,
+        "toolCalls": 19,
+        "toolCounts": {
+          "blender_recipe_parameters": 2,
+          "grep": 14,
+          "blender_preview_views": 1,
+          "blender_preview_render": 1,
+          "present": 1
+        },
+        "tokenUsage": {
+          "inputTokens": 398473,
+          "outputTokens": 46509,
+          "totalTokens": 1695414,
+          "cacheReadTokens": 1250432
+        },
+        "end": {
+          "turn": 2,
+          "reason": {
+            "kind": "completed"
+          }
+        },
+        "elapsedMs": 447652,
+        "deliverablesPresented": 1
+      }
+    ]
+  },
+  "manualVisual": {
+    "checks": "14/14",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "logSha256": "cb25a1ba3054386096ae1b7dd50998711742e111a34a15b506d818d68ae0c8ac",
+    "fixedImagesViewed": true
+  },
+  "manualUI": {
+    "checks": "10/10",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash"
+  },
+  "wholeFreeze": {
+    "files": 709,
+    "baseCommit": "4c2ab5ba51163ae0d3e7a9b7b53903bd08358755",
+    "status": "failed-original-freeze",
+    "passedSuites": 36,
+    "totalSuites": 41,
+    "issues": [
+      "Original M2 no-image assertions conflict with verified pixel return.",
+      "Three latest-selection UI tests still selected2.0 card.",
+      "Explicit historical2.0 full-scene expectation read current2.1 scene instead of retained2.0fixture."
+    ],
+    "originalLogSha256": "5f160590d7849397f78941a9c1494294119033722bf426f29c7439a4b8831e0c",
+    "originalFrozenSourceUnchanged": true,
+    "freshCorrectedWholeFreezeRequired": true
+  },
+  "updatedAt": "2026-10-12T23:05:02.644328+00:00",
+  "observerCorrections": {
+    "m2": "32/32",
+    "imageDropBoundaryMutation": "30/32 expected failure, product source unmodified",
+    "pngDownload": "16/16",
+    "creationRecovery": "29/29",
+    "previewHistory": "71/71",
+    "recipeVersions": "34/34",
+    "allAssertionsRetainedOrStronger": true,
+    "productSourceUnchanged": true
+  },
+  "frozenAcceptance": {
+    "status": "passed",
+    "exitCode": 0,
+    "suites": 41,
+    "sourceFiles": 709,
+    "bothFrozenAndDevelopmentFilesUnchanged": true,
+    "productFilesMappedToRealManualAndModelGates": 176,
+    "logBytes": 707763,
+    "logSha256": "649f7457f07f3a2ae0ff214f1c5757af3a623de6870b1da7690954d477edc248",
+    "firstFailurePreserved": true,
+    "candidateUnpublished": true,
+    "candidateAndMainCIStillPending": true
+  }
+}
