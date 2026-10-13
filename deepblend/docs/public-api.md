@@ -139,6 +139,16 @@ a remote adapter need not implement those extensions. They are interfaces, not
 constructors or service registrations. No adapter implementation is bundled by
 the authoring SDK.
 
+The current development branch adds optional `LocalBlenderRuntime.inspectGeometry`
+with `GeometryInspectionRequest` and `GeometryInspectionReport` types. It accepts
+1–8 distinct native entity IDs, an explicit frame and expected checkpoint SHA256.
+It measures an isolated copy, verifies the source before and after execution, and
+returns evaluated world bounds, axis extents in millimeters, transforms and mesh
+counts. Hidden viewport geometry and non-mesh entities return explicit unavailable
+results. World extents are not intrinsic dimensions, wall thickness, clearance or
+quality approval. Kept/live sessions refuse this action. This extension is not
+yet exposed by the Host, model tools or workbench, and is not part of stable 0.8.0.
+
 | Method | Required behavior and ownership |
 | --- | --- |
 | `getCapabilities({refresh?, signal?})` | Return measured capabilities. Missing Blender is `installed:false` with advice/warnings. Engine availability comes from behavioral probe results, not a static enum. |

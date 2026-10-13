@@ -37,7 +37,7 @@ import { ROOT } from '../../tools/workspace-layout.mjs'
 const PROVIDER = join(ROOT, 'packages', 'deepblend', 'provider-local', 'lib', 'index.js')
 const source = readFileSync(PROVIDER, 'utf8')
 
-const { default: LocalBlenderRuntime, ProviderConfig, SESSION_ROUTABLE_ACTIONS } = await import('@deepblend/dsh-blender-provider-local')
+const { default: LocalBlenderRuntime, ProviderConfig, SESSION_ROUTABLE_ACTIONS, ISOLATED_BOOTSTRAP_ACTIONS } = await import('@deepblend/dsh-blender-provider-local')
 
 /** A provider on its own context, so two of them in one file do not fight over the service name. */
 function provider(config) {
@@ -45,7 +45,7 @@ function provider(config) {
   return new LocalBlenderRuntime(ctx, ProviderConfig({ workspaceRoot: ROOT, ...config }))
 }
 
-test('the routable set is exactly the actions whose calls go through runBootstrap', () => {
+test('every bootstrap call is accounted for by permitted session routing or explicit isolation', () => {
   // DERIVED FROM THE SOURCE, both ways. `runBootstrap` is the one place the session path is decided,
   // so an action that does not reach it cannot be routed however the config is written — and an
   // action that reaches it and is missing from the list would be a session the operator cannot ask
@@ -53,8 +53,14 @@ test('the routable set is exactly the actions whose calls go through runBootstra
   const derived = [...source.matchAll(/this\.runBootstrap\(\s*\{[^}]*action:\s*'([a-z_]+)'/g)].map(match => match[1])
   assert.ok(derived.length >= 4, `only ${derived.length} runBootstrap call site(s) found — the parser is wrong`)
 
-  assert.deepEqual([...SESSION_ROUTABLE_ACTIONS].sort(), [...new Set(derived)].sort(),
+  assert.deepEqual([...SESSION_ROUTABLE_ACTIONS, ...ISOLATED_BOOTSTRAP_ACTIONS].sort(), [...new Set(derived)].sort(),
     'the routable list and the call sites disagree: one of them was changed without the other')
+  assert.deepEqual(ISOLATED_BOOTSTRAP_ACTIONS, ['inspect_geometry'])
+  assert.ok(ISOLATED_BOOTSTRAP_ACTIONS.every(action => !SESSION_ROUTABLE_ACTIONS.includes(action)))
+  const inspect = source.slice(source.indexOf('async inspectGeometry('), source.indexOf('async renderPreview('))
+  assert.match(inspect, /action: 'inspect_geometry'/)
+  assert.match(inspect, /session: false/)
+  assert.throws(() => provider({ sessionActions: ['inspect_geometry'] }), /inspect_geometry/)
 })
 
 test('naming an action the provider cannot route is refused, with the reason', () => {

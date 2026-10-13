@@ -129,6 +129,34 @@ export async function runConformance({ createRuntime, outputDirectory, blenderPa
         record('compile awaits saved checkpoint handoff and clears scratch');
         const checkpointHash = hash(readFileSync(checkpoint));
         writeFileSync(join(out, 'compile-receipt.json'), JSON.stringify(compiled, null, 2));
+        if (typeof runtime.inspectGeometry === 'function') {
+            // Optional extension: the required remote-runtime seam remains unchanged.
+            const measuredSource = join(out, 'runtime', 'inspection-source.blend');
+            copyFileSync(checkpoint, measuredSource);
+            const measured = [];
+            for (const frame of [1, 3]) {
+                const receipt = await call(runtime, 'inspectGeometry', { checkpointPath: measuredSource,
+                    checkpointSha256: checkpointHash, entityIds: ['body'], frame });
+                action(receipt, 'inspect_geometry');
+                assert.equal(receipt.report.schemaVersion, 'deepblend.geometry-inspection/v1');
+                assert.equal(receipt.report.frame, frame);
+                assert.equal(receipt.report.checkpointSha256, checkpointHash);
+                assert.equal(receipt.report.checkpointUnchanged, true);
+                const body = receipt.report.objects[0];
+                assert.equal(body.entityId, 'body'); assert.equal(body.available, true);
+                assert(body.worldAxisExtentMm.every(value => Math.abs(value - 100) < .01));
+                measured.push(body);
+                writeFileSync(join(out, `native-geometry-frame${frame}.json`), JSON.stringify(receipt.report, null, 2));
+            }
+            const delta = measured[1].worldBoundsMeters.min[0] - measured[0].worldBoundsMeters.min[0];
+            assert(Math.abs(delta - .1) < .00001, 'The explicit frame did not measure animated native geometry');
+            assert.equal(hash(readFileSync(checkpoint)), checkpointHash);
+            assert.equal(hash(readFileSync(measuredSource)), checkpointHash);
+            record('optional native measurements respect source, animated frame and original checkpoint bytes');
+            await refuse('optional native inspection refuses unknown entities', () => call(runtime, 'inspectGeometry', {
+                checkpointPath: measuredSource, checkpointSha256: checkpointHash, entityIds: ['missing'], frame: 1,
+            }), [BlenderErrorCode.SCENE_SPEC_INVALID]);
+        }
         let failedDirectory = null;
         await assert.rejects(() => call(runtime, 'compileScene', { sceneSpecPath: input, projectRoot: out, session: false, onWorkingDirectory: async ({ directory }) => { failedDirectory = directory; throw Error('consumer handoff refusal'); } }), /consumer handoff refusal/);
         assert(failedDirectory && !existsSync(failedDirectory));

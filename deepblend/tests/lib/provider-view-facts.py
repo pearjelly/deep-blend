@@ -192,6 +192,16 @@ elif scenario == 'per-view-capture':
         assert observed['cameraId'] == 'reverse' and observed['cameraName'] == 'actual-camera'
         assert observed['cameraFacts']['matrixWorld'] == matrix(48)
         assert observed['renderConfig']['samples'] == 64
+elif scenario == 'geometry-session':
+    sys.path.insert(0, str(PROVIDER))
+    import bootstrap
+    called = []
+    bootstrap.ACTIONS['inspect_geometry'] = lambda request, options: (called.append(True) or {}, [], [])
+    result = bootstrap._session_dispatch({'protocolVersion': bootstrap.PROTOCOL_VERSION,
+                                          'action': 'inspect_geometry', 'jobId': 'live-inspection'}, {})
+    assert result['error']['code'] == 'BLENDER_UNSUPPORTED_ACTION'
+    assert 'isolated batch' in result['error']['message']
+    assert called == [], 'A live session must refuse before opening a checkpoint or changing the scene'
 else:
     raise AssertionError('unknown scenario: ' + scenario)
 print('PASS ' + scenario)

@@ -1,13 +1,108 @@
 /** Isolated asset compilation must never enter the user's kept Blender session. */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LocalBlenderRuntime, { ProviderConfig } from '@deepblend/dsh-blender-provider-local'
-import { BLENDER_PROTOCOL_VERSION } from '@deepblend/dsh-blender-contracts'
+import { BLENDER_PROTOCOL_VERSION, BlenderErrorCode, sha256 } from '@deepblend/dsh-blender-contracts'
+import { verifyGeometryReport } from '../../../packages/deepblend/provider-local/lib/geometry-inspection.js'
+
+const inspectionRequest = () => ({ entityIds: ['body'], frame: 24, checkpointSha256: sha256('native checkpoint') })
+const inspectionReport = () => ({ schemaVersion: 'deepblend.geometry-inspection/v1',
+  checkpointSha256: sha256('native checkpoint'), checkpointUnchanged: true, frame: 24, blenderVersion: '5.2.1',
+  objects: [{ entityId: 'body', type: 'MESH', available: true, vertexCount: 8, polygonCount: 6,
+    worldBoundsMeters: { min: [0,0,0], max: [.1,.2,.3] }, worldAxisExtentMm: [100,200,300],
+    scale: [1,1,1], worldMatrix: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]] }] })
+
+for (const [name, edit] of [
+  ['wrong native source', r => { r.checkpointSha256 = '0'.repeat(64) }],
+  ['wrong frame', r => { r.frame = 1 }],
+  ['wrong selected entity', r => { r.objects[0].entityId = 'another' }],
+  ['missing object', r => { r.objects = [] }],
+  ['non-finite transform', r => { r.objects[0].worldMatrix[0][0] = NaN }],
+  ['incorrect unit conversion', r => { r.objects[0].worldAxisExtentMm[0] = .1 }],
+  ['reversed bounds', r => { r.objects[0].worldBoundsMeters.min[0] = 1 }],
+  ['invented hidden object dimensions', r => { r.objects[0].available = false; r.objects[0].unavailableReason = 'viewport-disabled' }],
+  ['unbounded payload', r => { r.padding = 'x'.repeat(65536) }],
+]) test(`geometry receipt refuses ${name}`, () => {
+  const report = inspectionReport(); edit(report)
+  assert.throws(() => verifyGeometryReport(report, inspectionRequest()), error => error.code === 'BLENDER_SCRIPT_ERROR')
+})
+
+test('geometry receipt distinguishes world-axis extents and unavailable viewport geometry', () => {
+  const report = inspectionReport()
+  assert.equal(verifyGeometryReport(report, inspectionRequest()), report)
+  report.objects = [{ entityId: 'body', type: 'MESH', available: false, unavailableReason: 'viewport-disabled' }]
+  assert.equal(verifyGeometryReport(report, inspectionRequest()), report)
+  assert.equal(Object.hasOwn(report.objects[0], 'worldAxisExtentMm'), false)
+})
+
+async function geometryRuntime(t) {
+  const scratch = mkdtempSync(join(tmpdir(), 'deepblend-geometry-contract-')), ctx = new Context()
+  const runtime = new LocalBlenderRuntime(ctx, ProviderConfig({ workspaceRoot: scratch }))
+  t.after(async () => { await ctx.fiber.dispose(); rmSync(scratch, { recursive: true, force: true }) })
+  const source = join(scratch, 'scene.blend'); writeFileSync(source, 'native checkpoint')
+  const request = { ...inspectionRequest(), checkpointPath: source }
+  let calls = 0
+  runtime._keptSession = async () => { throw Error('Must not enter a live Blender session') }
+  runtime.runBootstrap = async (call, options) => {
+    calls++
+    assert.equal(call.action, 'inspect_geometry'); assert.equal(options.session, false)
+    const snapshot = options.args[1]
+    assert.notEqual(snapshot, source); assert.equal(readFileSync(snapshot, 'utf8'), 'native checkpoint')
+    return { envelope: { result: inspectionReport() }, durationMs: 1, stdout: '', stderr: '' }
+  }
+  return { runtime, scratch, source, request, calls: () => calls }
+}
+
+test('geometry inspection uses a verified isolated snapshot and keeps original bytes', async t => {
+  const f = await geometryRuntime(t), result = await f.runtime.inspectGeometry(f.request)
+  assert.equal(result.report.frame, 24); assert.equal(f.calls(), 1)
+  assert.equal(readFileSync(f.source, 'utf8'), 'native checkpoint')
+  assert.deepEqual(readdirSync(join(f.scratch, 'tmp')), [])
+})
+
+for (const [name, edit] of [
+  ['duplicate entities', r => { r.entityIds = ['body','body'] }],
+  ['too many entities', r => { r.entityIds = Array.from({length:9}, (_,i) => `part${i}`) }],
+  ['omitted frame', r => { delete r.frame }],
+  ['fractional frame', r => { r.frame = 1.5 }],
+  ['wrong checkpoint hash', r => { r.checkpointSha256 = '0'.repeat(64) }],
+]) test(`geometry inspection refuses ${name} before Blender runs`, async t => {
+  const f = await geometryRuntime(t); edit(f.request)
+  await assert.rejects(f.runtime.inspectGeometry(f.request))
+  assert.equal(f.calls(), 0); assert.equal(readFileSync(f.source, 'utf8'), 'native checkpoint')
+})
+
+test('geometry inspection refuses symlinks outside the runtime workspace', async t => {
+  const f = await geometryRuntime(t), outside = mkdtempSync(join(tmpdir(), 'deepblend-geometry-outside-'))
+  t.after(() => rmSync(outside, { recursive: true, force: true }))
+  const foreign = join(outside, 'foreign.blend'); writeFileSync(foreign, 'native checkpoint')
+  const link = join(f.scratch, 'outside.blend'); symlinkSync(foreign, link)
+  await assert.rejects(f.runtime.inspectGeometry({ ...f.request, checkpointPath: link }), e => e.code === BlenderErrorCode.PATH_OUTSIDE_WORKSPACE)
+  assert.equal(f.calls(), 0)
+  f.runtime.workspaceRoot = join(f.scratch, 'missing-workspace')
+  await assert.rejects(f.runtime.inspectGeometry(f.request), e => e.code === BlenderErrorCode.PATH_OUTSIDE_WORKSPACE)
+})
+
+test('geometry inspection rejects a correct-looking report if the source changed during execution', async t => {
+  const f = await geometryRuntime(t), original = f.runtime.runBootstrap
+  f.runtime.runBootstrap = async (...args) => { const result = await original(...args); writeFileSync(f.source, 'changed checkpoint'); return result }
+  await assert.rejects(f.runtime.inspectGeometry(f.request), e => e.code === BlenderErrorCode.SCENE_VALIDATION_FAILED)
+  assert.deepEqual(readdirSync(join(f.scratch, 'tmp')), [])
+})
+
+test('geometry inspection cancellation preserves stable abort semantics and removes private snapshots', async t => {
+  const f = await geometryRuntime(t), controller = new AbortController(), original = f.runtime.runBootstrap
+  f.runtime.runBootstrap = async (...args) => { const result = await original(...args); controller.abort(); return result }
+  await assert.rejects(f.runtime.inspectGeometry({ ...f.request, signal: controller.signal }), e => e.code === 'BLENDER_ABORTED')
+  assert.equal(readFileSync(f.source, 'utf8'), 'native checkpoint'); assert.deepEqual(readdirSync(join(f.scratch, 'tmp')), [])
+  await assert.rejects(f.runtime.inspectGeometry({ ...f.request, signal: controller.signal }), e => e.code === 'BLENDER_ABORTED')
+  assert.equal(f.calls(), 1)
+})
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 for (const [method, action] of [['compileScene', 'compile_scene'], ['renderPreview', 'render_preview'], ['renderViews', 'render_views']]) {
@@ -65,7 +160,7 @@ for (const [method, action] of [['compileScene', 'compile_scene'], ['renderPrevi
   }
 }
 
-for (const scenario of ['evaluated-camera', 'per-view-capture', 'orthographic-no-focus']) {
+for (const scenario of ['evaluated-camera', 'per-view-capture', 'orthographic-no-focus', 'geometry-session']) {
   test(`multi-view facts: ${scenario} (production Python with a controlled scene)`, () => {
     const python = [process.env.DEEPBLEND_PYTHON, 'python3', 'python'].filter(Boolean).find(command =>
       spawnSync(command, ['-c', 'import sys; assert sys.version_info.major == 3'], { stdio: 'ignore' }).status === 0)
