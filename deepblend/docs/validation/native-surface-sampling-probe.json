@@ -1,0 +1,738 @@
+{
+  "blenderVersion": "5.2.1 LTS",
+  "sanity": {
+    "known2mm": {
+      "status": "sampled",
+      "entryMeters": [
+        -0.0010000001639127731,
+        0.0,
+        0.0
+      ],
+      "exitMeters": [
+        0.0010000000474974513,
+        0.0,
+        0.0
+      ],
+      "inwardUnitNormal": [
+        1.0,
+        0.0,
+        -0.0
+      ],
+      "normalSurfaceChordMm": 2.0000003385357275,
+      "gap": {
+        "status": "sampled",
+        "targetEntryMeters": [
+          0.003000000026077032,
+          0.0,
+          0.0
+        ],
+        "normalRaySeparationMm": 1.9999998837884014
+      }
+    },
+    "inside": {
+      "status": "entry-not-inward"
+    },
+    "miss": {
+      "status": "no-entry"
+    },
+    "obliqueSeed": {
+      "status": "sampled",
+      "entryMeters": [
+        -0.000999998301267624,
+        1.862645149230957e-09,
+        0.0
+      ],
+      "exitMeters": [
+        0.0010000000474974513,
+        1.862645149230957e-09,
+        0.0
+      ],
+      "inwardUnitNormal": [
+        1.0,
+        0.0,
+        -0.0
+      ],
+      "normalSurfaceChordMm": 1.999998519545804
+    },
+    "overlappingTarget": {
+      "status": "sampled",
+      "entryMeters": [
+        -0.0010000001639127731,
+        0.0,
+        0.0
+      ],
+      "exitMeters": [
+        0.0010000000474974513,
+        0.0,
+        0.0
+      ],
+      "inwardUnitNormal": [
+        1.0,
+        0.0,
+        -0.0
+      ],
+      "normalSurfaceChordMm": 2.0000003385357275,
+      "gap": {
+        "status": "target-not-inward"
+      }
+    },
+    "occludedTarget": {
+      "status": "sampled",
+      "entryMeters": [
+        -0.012000001035630703,
+        0.0,
+        0.0
+      ],
+      "exitMeters": [
+        -0.007998191751539707,
+        9.824249718803912e-05,
+        4.9120219046017155e-05
+      ],
+      "inwardUnitNormal": [
+        0.9996235966682434,
+        0.02454027719795704,
+        0.012269881553947926
+      ],
+      "normalSurfaceChordMm": 4.003316335265427,
+      "gap": {
+        "status": "source-surface-before-target"
+      }
+    },
+    "rotatedTranslated": {
+      "status": "sampled",
+      "entryMeters": [
+        0.04910843446850777,
+        -0.020452886819839478,
+        0.029999999329447746
+      ],
+      "exitMeters": [
+        0.05089157074689865,
+        -0.01954711601138115,
+        0.029999999329447746
+      ],
+      "inwardUnitNormal": [
+        0.8915683627128601,
+        0.45288628339767456,
+        -0.0
+      ],
+      "normalSurfaceChordMm": 1.9999989600825783
+    },
+    "reflectedWinding": {
+      "status": "unsupported-topology-or-winding"
+    },
+    "open": {
+      "status": "unsupported-topology-or-winding"
+    }
+  },
+  "records": [
+    {
+      "case": "lamp-r0004",
+      "checkpointSha256": "e489fc8a18e04bc362a9a81ce65cee074859a356429e34f77c9883dd4b98032b",
+      "checkpointUnchanged": true,
+      "frame": 24,
+      "elapsedMs": 103,
+      "geometry": {
+        "shade-shell": {
+          "vertices": 12416,
+          "faces": 12416,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 0.00014491560435267578
+        },
+        "shade-enamel-lining": {
+          "vertices": 9472,
+          "faces": 9472,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 1.1852466014366381e-05
+        }
+      },
+      "samples": [
+        {
+          "id": "height-0.34",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.34
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.054414451122283936,
+            0.0,
+            0.3400000035762787
+          ],
+          "exitMeters": [
+            -0.052500177174806595,
+            4.699402052210644e-05,
+            0.33940592408180237
+          ],
+          "inwardUnitNormal": [
+            0.9548019170761108,
+            0.023439697921276093,
+            -0.2963174283504486
+          ],
+          "normalSurfaceChordMm": 2.004889904270929,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.05235501378774643,
+              5.0557668146211654e-05,
+              0.3393608629703522
+            ],
+            "normalRaySeparationMm": 0.15203819567661922
+          }
+        },
+        {
+          "id": "height-0.37",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.37
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.04138056933879852,
+            0.0,
+            0.3700000047683716
+          ],
+          "exitMeters": [
+            -0.039475034922361374,
+            4.6776818635407835e-05,
+            0.3689550459384918
+          ],
+          "inwardUnitNormal": [
+            0.8766139149665833,
+            0.02151903510093689,
+            -0.480712890625
+          ],
+          "normalSurfaceChordMm": 2.1737498675071603,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.03935197368264198,
+              4.979767982149497e-05,
+              0.3688875436782837
+            ],
+            "normalRaySeparationMm": 0.1403914165654053
+          }
+        },
+        {
+          "id": "height-0.4",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.4
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.020043283700942993,
+            0.0,
+            0.4000000059604645
+          ],
+          "exitMeters": [
+            -0.01835993304848671,
+            4.1325718484586105e-05,
+            0.3984917998313904
+          ],
+          "inwardUnitNormal": [
+            0.7446661591529846,
+            0.018281305208802223,
+            -0.6671866774559021
+          ],
+          "normalSurfaceChordMm": 2.2605448609726215,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.018271194770932198,
+              4.350419476395473e-05,
+              0.3984123170375824
+            ],
+            "normalRaySeparationMm": 0.11915008091362712
+          }
+        }
+      ]
+    },
+    {
+      "case": "lamp-r0006",
+      "checkpointSha256": "706a9b4ac5fb0f25d394982e593daf2597e2f549511997a9e86f2ecfb063c940",
+      "checkpointUnchanged": true,
+      "frame": 24,
+      "elapsedMs": 101,
+      "geometry": {
+        "shade-shell": {
+          "vertices": 12416,
+          "faces": 12416,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 0.00017488030514661618
+        },
+        "shade-enamel-lining": {
+          "vertices": 9472,
+          "faces": 9472,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 1.459213846650184e-05
+        }
+      },
+      "samples": [
+        {
+          "id": "height-0.34",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.34
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.0724162608385086,
+            0.0,
+            0.3400000035762787
+          ],
+          "exitMeters": [
+            -0.07061732560396194,
+            4.41607553511858e-05,
+            0.33913537859916687
+          ],
+          "inwardUnitNormal": [
+            0.9010772109031677,
+            0.022119875997304916,
+            -0.43309441208839417
+          ],
+          "normalSurfaceChordMm": 1.9964204021902758,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.07047921419143677,
+              4.7551227908115834e-05,
+              0.3390690088272095
+            ],
+            "normalRaySeparationMm": 0.15326840847312465
+          }
+        },
+        {
+          "id": "height-0.37",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.37
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.052250951528549194,
+            0.0,
+            0.3700000047683716
+          ],
+          "exitMeters": [
+            -0.050570953637361526,
+            4.1240720747737214e-05,
+            0.3686203062534332
+          ],
+          "inwardUnitNormal": [
+            0.7726531028747559,
+            0.0189671628177166,
+            -0.6345450282096863
+          ],
+          "normalSurfaceChordMm": 2.174318656031076,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.050462573766708374,
+              4.390124377096072e-05,
+              0.36853131651878357
+            ],
+            "normalRaySeparationMm": 0.14025850160133208
+          }
+        },
+        {
+          "id": "height-0.4",
+          "entityId": "shade-shell",
+          "targetEntityId": "shade-enamel-lining",
+          "originMeters": [
+            -0.2,
+            0,
+            0.4
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.023287981748580933,
+            0.0,
+            0.4000000059604645
+          ],
+          "exitMeters": [
+            -0.021775713190436363,
+            3.712520992849022e-05,
+            0.3983195424079895
+          ],
+          "inwardUnitNormal": [
+            0.668836236000061,
+            0.016419490799307823,
+            -0.7432284951210022
+          ],
+          "normalSurfaceChordMm": 2.261037902840094,
+          "gap": {
+            "status": "sampled",
+            "targetEntryMeters": [
+              -0.021696439012885094,
+              3.90713285014499e-05,
+              0.39823147654533386
+            ],
+            "normalRaySeparationMm": 0.11850645032757434
+          }
+        }
+      ]
+    },
+    {
+      "case": "cup",
+      "checkpointSha256": "cf537da7dbb798da7563babd79adc6740b0104b49607e75fd503463fa55a4903",
+      "checkpointUnchanged": true,
+      "frame": 0,
+      "elapsedMs": 106,
+      "geometry": {
+        "cup": {
+          "vertices": 29454,
+          "faces": 37212,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 0.00010734124748023208
+        }
+      },
+      "samples": [
+        {
+          "id": "rear-0.04",
+          "entityId": "cup",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.15,
+            0,
+            0.04
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.03999999910593033,
+            0.0,
+            0.03999999910593033
+          ],
+          "exitMeters": [
+            -0.03699919581413269,
+            -4.910532516078092e-05,
+            0.03999999910593033
+          ],
+          "inwardUnitNormal": [
+            0.9998661279678345,
+            -0.01636187918484211,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 3.0012050868223277
+        },
+        {
+          "id": "rear-0.06",
+          "entityId": "cup",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.15,
+            0,
+            0.06
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.03999999165534973,
+            0.0,
+            0.05999999865889549
+          ],
+          "exitMeters": [
+            -0.03699919581413269,
+            -4.910520146950148e-05,
+            0.05999999865889549
+          ],
+          "inwardUnitNormal": [
+            0.9998661279678345,
+            -0.01636187918484211,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 3.001197660257888
+        },
+        {
+          "id": "rear-0.08",
+          "entityId": "cup",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.15,
+            0,
+            0.08
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.03999999910593033,
+            0.0,
+            0.07999999821186066
+          ],
+          "exitMeters": [
+            -0.03699919581413269,
+            -4.910532516078092e-05,
+            0.07999999821186066
+          ],
+          "inwardUnitNormal": [
+            0.9998661279678345,
+            -0.01636187918484211,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 3.0012050868223277
+        }
+      ]
+    },
+    {
+      "case": "speaker",
+      "checkpointSha256": "aa67fabd5aa5034ab2ee001259e9f63b0b9662918a21d3137af021ab18d82e21",
+      "checkpointUnchanged": true,
+      "frame": 0,
+      "elapsedMs": 114,
+      "geometry": {
+        "cabinet-shell": {
+          "vertices": 1932,
+          "faces": 1820,
+          "components": 1,
+          "nonManifoldEdges": 0,
+          "inconsistentEdges": 0,
+          "signedVolume": 0.0012590223622925575
+        }
+      },
+      "samples": [
+        {
+          "id": "side-0.04",
+          "entityId": "cabinet-shell",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.2,
+            0,
+            0.04
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.15000000596046448,
+            0.0,
+            0.03999999910593033
+          ],
+          "exitMeters": [
+            -0.14100000262260437,
+            0.0,
+            0.03999999910593033
+          ],
+          "inwardUnitNormal": [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 9.000003140289822
+        },
+        {
+          "id": "side-0.07",
+          "entityId": "cabinet-shell",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.2,
+            0,
+            0.07
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.15000000596046448,
+            0.0,
+            0.07000000029802322
+          ],
+          "exitMeters": [
+            -0.14100000262260437,
+            0.0,
+            0.07000000029802322
+          ],
+          "inwardUnitNormal": [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 9.000003140289822
+        },
+        {
+          "id": "side-0.1",
+          "entityId": "cabinet-shell",
+          "targetEntityId": null,
+          "originMeters": [
+            -0.2,
+            0,
+            0.1
+          ],
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "status": "sampled",
+          "entryMeters": [
+            -0.15000000596046448,
+            0.0,
+            0.10000000149011612
+          ],
+          "exitMeters": [
+            -0.14100000262260437,
+            0.0,
+            0.10000000149011612
+          ],
+          "inwardUnitNormal": [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          "normalSurfaceChordMm": 9.000003140289822
+        }
+      ]
+    }
+  ],
+  "elapsedMs": 880,
+  "scope": "Finite local rays on evaluated closed connected consistently wound positive-volume mesh; self-intersection absence is not certified. Surface chord and gap along the entry normal only; not global thickness, minimum clearance, collision absence, manufacturing or appearance approval. Manual sample selection, not model capability.",
+  "provenance": {
+    "testedProductCommit": "cc18a8816265273914cacf2db4bdf8a16c77125a",
+    "mainBeforeProbe": "9566f591992aa55f8ea4d57f27b511c9f15a1879",
+    "probeSha256": "647e196b4140955c350ec6116bfb9e7cb240f564e18410b2ce924857e6de830e",
+    "originalCheckpointsUnchanged": true,
+    "sourceFiles": [
+      {
+        "case": "lamp-r0004",
+        "sha256": "e489fc8a18e04bc362a9a81ce65cee074859a356429e34f77c9883dd4b98032b",
+        "bytes": 6296366
+      },
+      {
+        "case": "lamp-r0006",
+        "sha256": "706a9b4ac5fb0f25d394982e593daf2597e2f549511997a9e86f2ecfb063c940",
+        "bytes": 6296366
+      },
+      {
+        "case": "cup",
+        "sha256": "cf537da7dbb798da7563babd79adc6740b0104b49607e75fd503463fa55a4903",
+        "bytes": 4662241
+      },
+      {
+        "case": "speaker",
+        "sha256": "aa67fabd5aa5034ab2ee001259e9f63b0b9662918a21d3137af021ab18d82e21",
+        "bytes": 11713039
+      }
+    ]
+  },
+  "comparison": {
+    "lampWallMaximumSampleDriftMm": 0.008469502080653335,
+    "lampLinerMaximumSampleDriftMm": 0.0012302127965054255
+  },
+  "failuresRetained": [
+    {
+      "log": "probe.log",
+      "sha256": "7cb4121ea72372e56238ccfa0bd4798251bf71e0406fc349d84d6b67e3f428a6"
+    },
+    {
+      "log": "probe-v3.log",
+      "sha256": "288a686247d26e649c680dc5277468359fa7ad8a8cdb3428bbd44ee38d45a4aa"
+    },
+    {
+      "log": "probe-v4.log",
+      "sha256": "ef3216a4d8e22d3517f72de4b34f2f39e534baa4b90549bbe4d18e1e7e3ffcbe"
+    }
+  ],
+  "inputGuardChecks": [
+    {
+      "case": "wrong-checkpoint-hash",
+      "exitCode": 1,
+      "acceptedReportPresent": false,
+      "elapsedMs": 1070,
+      "logSha256": "f87863445775b2d00cd4cc4fd2f7e53b1e8aba3913219d2fe07fcba174a61c98"
+    },
+    {
+      "case": "zero-direction",
+      "exitCode": 1,
+      "acceptedReportPresent": false,
+      "elapsedMs": 1039,
+      "logSha256": "dd8f16830490d824084ab8ecbf94db6f3aff02dba1110bd65f9bc9bbb727e315"
+    },
+    {
+      "case": "selection-budget",
+      "exitCode": 1,
+      "acceptedReportPresent": false,
+      "elapsedMs": 1035,
+      "logSha256": "3193e2d26d28fc6bb85e9223b75021f4736fe645e7f2379ab6a9d2b25b1ff541"
+    }
+  ],
+  "verification": {
+    "unitContractFilesPassed": 133,
+    "unitContractExitCode": 0,
+    "unitContractLogSha256": "8fba405a95c5918857513d3af27a3bcd31abcd532bef03e594f584f94d719cf4",
+    "pythonCompilation": "passed",
+    "diffWhitespace": "passed",
+    "productPackagesChanged": false
+  }
+}
