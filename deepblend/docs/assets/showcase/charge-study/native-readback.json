@@ -1,0 +1,206 @@
+{
+  "passed": true,
+  "blenderVersion": "5.2.1 LTS",
+  "checkpointSha256": "040f92e334574e42bc68a8dc74041ace2e357f2d6cbab13aed3ae740d07d6a19",
+  "importedMeshParts": 79,
+  "polygons": 511595,
+  "packedImages": [
+    {
+      "name": "scratches_01.normal.tif",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "scratches_01.disp.tif",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "dents_01.normal.tif.001",
+      "size": [
+        256,
+        256
+      ],
+      "packed": true
+    },
+    {
+      "name": "dents_01.normal.tif.002",
+      "size": [
+        256,
+        256
+      ],
+      "packed": true
+    },
+    {
+      "name": "dents_01.normal.tif",
+      "size": [
+        256,
+        256
+      ],
+      "packed": true
+    },
+    {
+      "name": "qr_codes_atlas.png",
+      "size": [
+        150,
+        150
+      ],
+      "packed": true
+    },
+    {
+      "name": "carbon_fiber_02.normal.tif",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "noise_04.002",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "trim_sheet_01.normal.tif",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "carbon_fiber_02.disp.tif",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "noise_04.001",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "trim_sheet_01.curvature.tif",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "noise_04",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "noise_03.tif",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "smudges_01.001",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "noise_01.tif",
+      "size": [
+        512,
+        512
+      ],
+      "packed": true
+    },
+    {
+      "name": "smudges_01",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    },
+    {
+      "name": "scratches_02.exr",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "dents_01.normal.tif.003",
+      "size": [
+        256,
+        256
+      ],
+      "packed": true
+    }
+  ],
+  "heroFraming": [
+    {
+      "frame": 1,
+      "camera": "hero",
+      "normalizedBoundingBox": [
+        0.27672523260116577,
+        0.08810319006443024,
+        0.6397611498832703,
+        0.8769835233688354
+      ],
+      "inFrame": true,
+      "lowestWorldZ": 3.3527612686157227e-06
+    },
+    {
+      "frame": 72,
+      "camera": "hero",
+      "normalizedBoundingBox": [
+        0.270178884267807,
+        0.06206996366381645,
+        0.6323174834251404,
+        0.8919462561607361
+      ],
+      "inFrame": true,
+      "lowestWorldZ": 3.3527612686157227e-06
+    },
+    {
+      "frame": 144,
+      "camera": "hero",
+      "normalizedBoundingBox": [
+        0.28585198521614075,
+        0.04628634825348854,
+        0.6347082853317261,
+        0.9134082794189453
+      ],
+      "inFrame": true,
+      "lowestWorldZ": 3.3527612686157227e-06
+    }
+  ],
+  "sceneObjects": 192,
+  "cameraCount": 2,
+  "frameRange": [
+    1,
+    144
+  ],
+  "method": "Independent native reopening, actual instance members, retained polygon count, reachable packed images and projected world-space mesh bounds. This is verification only, not a scene-authoring or rendering path."
+}

@@ -170,6 +170,34 @@ test('source files exclude external binaries and published images have declared 
   assert.ok(tracked.includes(previewManifest.tool))
   const declared = new Set()
   for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
+  // CHARGE is a separately licensed real DSH case, not an original MIT model.
+  const chargeBase = 'deepblend/docs/assets/showcase/charge-study'
+  const charge = JSON.parse(readFileSync(join(ROOT, chargeBase, 'manifest.json'), 'utf8'))
+  assert.equal(charge.schemaVersion, 'deepblend.public-case/v1')
+  assert.equal(charge.casePluginVersion, '0.5.0')
+  assert.match(charge.license, /CC-BY.*Blender Studio.*MIT/)
+  for (const file of charge.files) {
+    assert.ok(!file.path.includes('..') && !file.path.startsWith('/'))
+    const path = `${chargeBase}/${file.path}`, bytes = readFileSync(join(ROOT, path))
+    assert.equal(hash(bytes), file.sha256, `${path}: CHARGE case digest differs`)
+    assert.equal(bytes.length, file.bytes)
+    declared.add(path)
+  }
+  const receipt = JSON.parse(readFileSync(join(ROOT, chargeBase, 'delivery.json'), 'utf8'))
+  assert.equal(receipt.pluginVersion, charge.casePluginVersion)
+  assert.equal(receipt.delivery.verified, true)
+  assert.equal(receipt.delivery.jobId, charge.jobId)
+  assert.equal(receipt.delivery.revision, charge.revision)
+  assert.equal(hash(readFileSync(join(ROOT, chargeBase, 'night-shift.mp4'))), receipt.sha256)
+  const frames = JSON.parse(readFileSync(join(ROOT, chargeBase, 'frame-sources.json'), 'utf8'))
+  const native = JSON.parse(readFileSync(join(ROOT, chargeBase, 'native-readback.json'), 'utf8'))
+  assert.equal(Object.keys(frames.frames).length, 144)
+  assert.equal(frames.jobId, charge.jobId)
+  for (const source of Object.values(frames.sources)) assert.equal(source.checkpointSha256, native.checkpointSha256)
+  assert.equal(native.passed, true)
+  const replay = JSON.parse(readFileSync(join(ROOT, chargeBase, 'replay-check.json'), 'utf8'))
+  assert.equal(replay.passed, true)
+  assert.equal(replay.pixelIdentical, false)
   for (const image of previewManifest.images) {
     assert.match(image.file, /^[a-z0-9-]+\.png$/)
     const path = `deepblend/benchmarks/previews/${image.file}`

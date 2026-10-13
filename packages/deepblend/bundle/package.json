@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Create Blender product scenes in DSH with editable recipes, model imports, previews and PNG/MP4 delivery; includes workbench and agent configuration.",
   "main": "lib/index.js",
   "bin": {
@@ -32,7 +32,8 @@
     "cordis.patch.yml",
     "screenshots.json",
     "README.zh.md",
-    "assets"
+    "assets",
+    "examples"
   ],
   "dsh": {
     "bundle": {

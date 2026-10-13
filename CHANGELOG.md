@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 — 2026-10-13
+
+- Publish Night Shift, a verified DSH/deep-blend 0.5.0 case using the official CHARGE Packbot under CC-BY.
+- Add the video, stills, tool evidence, native readback and independent replay comparison.
+- Ship lightweight replay inputs in the npm bundle; distribute the model, editable checkpoint and social kit as GitHub Release assets.
+- Pin the verified 0.5.0 reproduction environment; preserve the current 0.8.0 runtime behavior.
+
 ## 0.3.9
 
 - Retire earlier project images and download addresses on project or storage changes.

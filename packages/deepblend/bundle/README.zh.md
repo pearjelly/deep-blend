@@ -23,7 +23,18 @@
 
 [打开作品画廊](https://pearjelly.github.io/deep-blend/) · [场景源码与复现](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/README.md) · [渲染来源记录](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/showcase/manifest.json) · [Blender 官网视觉参考](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/REFERENCES.md)
 
-作品的造型、布景与输出来自公开 SceneSpec 和实际渲染；官网案例用于光影与材质的设计参考。没有使用官方案例的模型、纹理或成片。
+作品的造型、布景与输出来自公开 SceneSpec 和实际渲染；官网案例用于光影与材质的设计参考。以上三组原创产品场景没有使用官方案例的模型、纹理或成片。
+
+
+## 新案例：夜班 / Night Shift
+
+[![Night Shift / 夜班](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/charge-study/night-shift-loop.webp)](https://pearjelly.github.io/deep-blend/charge-study/)
+
+在 DeepSeek Harness 实际安装的 deep-blend **0.5.0** 中，导入 Blender 官方 CHARGE Packbot，制作工业布景、灯光和六秒相机运动。**79 个网格部件、511,595 个面、19 张嵌入图片；1080p / 24 fps / 144 个实际渲染帧。** 第二个实际 DSH 项目已验证相同场景摘要，第 72 帧预览最大通道差值为 1/255。
+
+[播放视频 / Watch](https://pearjelly.github.io/deep-blend/charge-study/) · [复现指南 / Replay guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/charge-study/README.md) · [完整复现素材 / Replay inputs](https://github.com/pearjelly/deep-blend/releases/download/v0.8.1/night-shift-replay.zip)
+
+机器人使用原资产第 1 帧的静态姿态，视频展示新布景与相机运动。**CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**；新增场景与脚本为 MIT。推广版只增加标题和署名。0.8.1 安装包包含 `examples/charge-study/` 的场景、提示词与复现工具；指南固定本次已验证的 0.5.0 环境。
 
 
 ## 可以怎样使用

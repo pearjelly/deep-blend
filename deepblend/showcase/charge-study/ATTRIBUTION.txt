@@ -1,0 +1,6 @@
+CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY.
+Source: https://www.blender.org/download/demo-files/
+Original archive: https://download.blender.org/demo/splash/blender-3.4-splash.zip
+Movie: https://studio.blender.org/projects/charge/
+Modified for this case: frame-1 evaluated static mesh geometry, frozen transforms and packed used textures. Rig, character animation and controllers excluded. New set, lighting and camera motion made with the deep-blend plugin in DeepSeek Harness.
+Official model/texture content retains CC-BY; do not relabel it MIT. New scene data and helper code are covered by the DeepBlend project's MIT license.

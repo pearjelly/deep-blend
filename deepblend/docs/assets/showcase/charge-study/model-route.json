@@ -1,0 +1,8 @@
+{
+  "source": "Existing user desktop configuration; no credential values copied into this evidence",
+  "endpointOrigin": "https://api.b.ai",
+  "modelIds": [
+    "deepseek-v4.1-flash"
+  ],
+  "logicalProviderRoute": "deepseek-official"
+}

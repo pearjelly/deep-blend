@@ -1,0 +1,4320 @@
+{
+  "animationTracks": [
+    {
+      "id": "camera-location-0",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 1.55
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.95
+        }
+      ],
+      "property": "location.x",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-location-1",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": -2.5
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": -2.5
+        }
+      ],
+      "property": "location.y",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-location-2",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 1.16
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 1.02
+        }
+      ],
+      "property": "location.z",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-0",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 1.3371442048713256
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 1.3646730693238407
+        }
+      ],
+      "property": "rotationEuler.x",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-1",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0
+        }
+      ],
+      "property": "rotationEuler.y",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    },
+    {
+      "id": "camera-rotationEuler-2",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "bezier",
+          "value": 0.5830765350191446
+        },
+        {
+          "frame": 144,
+          "interpolation": "bezier",
+          "value": 0.3841693643925995
+        }
+      ],
+      "property": "rotationEuler.z",
+      "targetEntityId": "hero",
+      "targetKind": "camera"
+    }
+  ],
+  "assets": [],
+  "cameras": [
+    {
+      "clipping": [
+        0.01,
+        100
+      ],
+      "fStop": 8,
+      "id": "hero",
+      "lens": 48,
+      "role": "active-camera",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0,
+        -0.15,
+        0.49
+      ],
+      "transform": {
+        "location": [
+          1.55,
+          -2.5,
+          1.16
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "clipping": [
+        0.01,
+        100
+      ],
+      "fStop": 11,
+      "id": "detail",
+      "lens": 62,
+      "role": "detail",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0,
+        -0.3,
+        0.7
+      ],
+      "transform": {
+        "location": [
+          0.82,
+          -1.48,
+          1.12
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  ],
+  "entities": [
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "back-wall",
+      "locked": false,
+      "materialId": "paint",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          2.2,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          9,
+          0.08,
+          2.8
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-0--1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.6280000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-0--1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.6280000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-0-1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.472,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-0-1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.472,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-1--1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.908,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-1--1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.908,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-1-1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.7520000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-1-1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.7520000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-2--1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.1880000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-2--1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.1880000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-2-1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.0320000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-2-1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.0320000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-3--1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.5320000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-3--1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.5320000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-3-1--1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.6880000000000001,
+          1.1219999999999999,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.02,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "bolt-3-1-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.6880000000000001,
+          1.278,
+          0.068
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-0-0.24",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.9,
+          1.6,
+          0.24
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-0-1.05",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.9,
+          1.6,
+          1.05
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-0-1.89",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.9,
+          1.6,
+          1.89
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-1-0.24",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.68,
+          1.6,
+          0.24
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-1-1.05",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.68,
+          1.6,
+          1.05
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-1-1.89",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.68,
+          1.6,
+          1.89
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-2-0.24",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.46,
+          1.6,
+          0.24
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-2-1.05",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.46,
+          1.6,
+          1.05
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-2-1.89",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.46,
+          1.6,
+          1.89
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-3-0.24",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2399999999999998,
+          1.6,
+          0.24
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-3-1.05",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2399999999999998,
+          1.6,
+          1.05
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.065,
+        "radius": 0.06,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "coupling-3-1.89",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2399999999999998,
+          1.6,
+          1.89
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-0",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.6,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-1",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0.9199999999999999,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-2",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          1.24,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-3",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          1.56,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-4",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          1.88,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-5",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          2.2,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cross-beam-6",
+      "locked": false,
+      "materialId": "pipe",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          2.52,
+          0.07
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.4,
+          0.035,
+          0.05
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "floor",
+      "locked": false,
+      "materialId": "floor",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.003
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.028
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          12,
+          12,
+          0.055
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "foreground-tile-0",
+      "locked": false,
+      "materialId": "brass",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.001
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.85,
+          -1.18,
+          0.002
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.085,
+          0.006
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "foreground-tile-1",
+      "locked": false,
+      "materialId": "brass",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.001
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.53,
+          -1.18,
+          0.002
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.085,
+          0.006
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "foreground-tile-2",
+      "locked": false,
+      "materialId": "brass",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.001
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.20999999999999996,
+          -1.18,
+          0.002
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.085,
+          0.006
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "foreground-tile-3",
+      "locked": false,
+      "materialId": "brass",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.001
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.10999999999999999,
+          -1.18,
+          0.002
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.085,
+          0.006
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "foreground-tile-4",
+      "locked": false,
+      "materialId": "brass",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.001
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.43000000000000005,
+          -1.18,
+          0.002
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.085,
+          0.006
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-crossbar",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          1.2,
+          2.82
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          3.55,
+          0.14,
+          0.18
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-foot-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.55,
+          1.2,
+          0.03
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.23,
+          0.06
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-foot-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.8300000000000001,
+          1.2,
+          0.03
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.23,
+          0.06
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-foot-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.1100000000000001,
+          1.2,
+          0.03
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.23,
+          0.06
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-foot-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.6100000000000001,
+          1.2,
+          0.03
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.23,
+          0.06
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-post-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.55,
+          1.2,
+          1.5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.095,
+          0.11,
+          3
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-post-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.8300000000000001,
+          1.2,
+          1.5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.095,
+          0.11,
+          3
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-post-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.1100000000000001,
+          1.2,
+          1.5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.095,
+          0.11,
+          3
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "gantry-post-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.6100000000000001,
+          1.2,
+          1.5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.095,
+          0.11,
+          3
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 2.25,
+        "radius": 0.045,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "pipe-0",
+      "locked": false,
+      "materialId": "pipe",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.9,
+          1.6,
+          1.12
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 2.25,
+        "radius": 0.045,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "pipe-1",
+      "locked": false,
+      "materialId": "pipe",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.68,
+          1.6,
+          1.12
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 2.25,
+        "radius": 0.045,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "pipe-2",
+      "locked": false,
+      "materialId": "pipe",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.46,
+          1.6,
+          1.12
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 2.25,
+        "radius": 0.045,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "pipe-3",
+      "locked": false,
+      "materialId": "pipe",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2399999999999998,
+          1.6,
+          1.12
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "practical-housing--1.5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2,
+          1.08,
+          0.72
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.16,
+          0.13,
+          1.16
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "practical-housing-1.5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.85,
+          1.08,
+          0.72
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.16,
+          0.13,
+          1.16
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "practical-lamp--1.5",
+      "locked": false,
+      "materialId": "amber",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.008
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.2,
+          1.006,
+          0.72
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.02,
+          1.03
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "practical-lamp-1.5",
+      "locked": false,
+      "materialId": "cyan",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.008
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.85,
+          1.006,
+          0.72
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.02,
+          1.03
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          0.6,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          0.9199999999999999,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          1.24,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          1.56,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-4",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          1.88,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          2.2,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-left-6",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.15,
+          2.52,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          0.6,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          0.9199999999999999,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          1.24,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          1.56,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-4",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          1.88,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          2.2,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "rail-right-6",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.15,
+          2.52,
+          0.14
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.075,
+          0.042,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "service-box",
+      "locked": false,
+      "materialId": "paint",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.015
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.14,
+          0.61
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.18,
+          0.33
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "service-face",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.009
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.036,
+          0.61
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.026,
+          0.28
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.015,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "status-led-0",
+      "locked": false,
+      "materialId": "amber",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.015,
+          0.7
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.015,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "status-led-1",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.015,
+          0.6449999999999999
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.015,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "status-led-2",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.015,
+          0.59
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "depth": 0.015,
+        "radius": 0.013,
+        "segments": 32,
+        "shape": "cylinder"
+      },
+      "id": "status-led-3",
+      "locked": false,
+      "materialId": "brass",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.17,
+          1.015,
+          0.5349999999999999
+        ],
+        "rotationEuler": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -3.8800000000000003,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -3.18,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-10",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          3.1199999999999997,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-11",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          3.819999999999999,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-12",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          4.519999999999999,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -2.4800000000000004,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.7800000000000005,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-4",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.0800000000000003,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.38000000000000017,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-6",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.3199999999999991,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-7",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.0199999999999994,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-8",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.7199999999999995,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-panel-9",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.01
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          2.4199999999999995,
+          2.12,
+          1.28
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.56,
+          0.025,
+          2.35
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-0",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -4.2,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-1",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -3.5,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-10",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          2.8,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-11",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          3.499999999999999,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-12",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          4.199999999999998,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-2",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -2.8000000000000003,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-3",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -2.1000000000000005,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-4",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -1.4000000000000004,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-5",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -0.7000000000000002,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-6",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          -8.881784197001252e-16,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-7",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0.6999999999999993,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-8",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          1.3999999999999995,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "wall-rib-9",
+      "locked": false,
+      "materialId": "steel",
+      "modifiers": [
+        {
+          "segments": 3,
+          "type": "bevel",
+          "width": 0.007
+        }
+      ],
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          2.0999999999999996,
+          2.13,
+          1.3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.052,
+          0.13,
+          2.7
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    }
+  ],
+  "lights": [
+    {
+      "color": [
+        0.83,
+        0.93,
+        1,
+        1
+      ],
+      "energy": 220,
+      "id": "key",
+      "size": 1.5,
+      "transform": {
+        "location": [
+          -1.1,
+          -1.6,
+          2.15
+        ],
+        "rotationEuler": [
+          0.8387278422028387,
+          0,
+          -0.6659692373791098
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        1,
+        0.53,
+        0.2,
+        1
+      ],
+      "energy": 370,
+      "id": "rim",
+      "size": 1,
+      "transform": {
+        "location": [
+          1.1,
+          0.7,
+          1.8
+        ],
+        "rotationEuler": [
+          0.8268468935095521,
+          0,
+          2.137525544318403
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        0.2,
+        0.65,
+        0.85,
+        1
+      ],
+      "energy": 75,
+      "id": "cool-fill",
+      "size": 1.5,
+      "transform": {
+        "location": [
+          1.5,
+          -0.9,
+          1.1
+        ],
+        "rotationEuler": [
+          1.2230529769821759,
+          0,
+          1.1341691669813554
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        1,
+        0.86,
+        0.67,
+        1
+      ],
+      "energy": 65,
+      "id": "top",
+      "size": 0.8,
+      "transform": {
+        "location": [
+          -0.25,
+          0.6,
+          2.5
+        ],
+        "rotationEuler": [
+          0.2872814533971341,
+          0,
+          -2.746801533890032
+        ]
+      },
+      "type": "area"
+    },
+    {
+      "color": [
+        1,
+        0.28,
+        0.06,
+        1
+      ],
+      "energy": 20,
+      "id": "wall-wash",
+      "size": 0.55,
+      "transform": {
+        "location": [
+          -1.5,
+          0.95,
+          1.6
+        ],
+        "rotationEuler": [
+          1.1309537439791604,
+          0,
+          0
+        ]
+      },
+      "type": "area"
+    }
+  ],
+  "materials": [
+    {
+      "id": "floor",
+      "parameters": {
+        "baseColor": [
+          0.045,
+          0.057,
+          0.063,
+          1
+        ],
+        "metallic": 0.55,
+        "roughness": 0.29
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0006,
+        "colorVariation": 0.04,
+        "detail": 3,
+        "roughnessVariation": 0.08,
+        "scale": 90,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "steel",
+      "parameters": {
+        "baseColor": [
+          0.055,
+          0.068,
+          0.08,
+          1
+        ],
+        "metallic": 0.72,
+        "roughness": 0.37
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0006,
+        "colorVariation": 0.04,
+        "detail": 3,
+        "roughnessVariation": 0.08,
+        "scale": 240,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "pipe",
+      "parameters": {
+        "baseColor": [
+          0.065,
+          0.09,
+          0.1,
+          1
+        ],
+        "metallic": 0.8,
+        "roughness": 0.28
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0006,
+        "colorVariation": 0.04,
+        "detail": 3,
+        "roughnessVariation": 0.08,
+        "scale": 240,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "paint",
+      "parameters": {
+        "baseColor": [
+          0.012,
+          0.025,
+          0.03,
+          1
+        ],
+        "metallic": 0.2,
+        "roughness": 0.4
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0006,
+        "colorVariation": 0.04,
+        "detail": 3,
+        "roughnessVariation": 0.08,
+        "scale": 240,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "brass",
+      "parameters": {
+        "baseColor": [
+          0.3,
+          0.145,
+          0.055,
+          1
+        ],
+        "metallic": 0.7,
+        "roughness": 0.32
+      },
+      "shader": "principled",
+      "texture": {
+        "bump": 0.0006,
+        "colorVariation": 0.04,
+        "detail": 3,
+        "roughnessVariation": 0.08,
+        "scale": 240,
+        "type": "noise"
+      }
+    },
+    {
+      "id": "cyan",
+      "parameters": {
+        "baseColor": [
+          0.04,
+          0.65,
+          0.73,
+          1
+        ],
+        "emissionColor": [
+          0.04,
+          0.65,
+          0.73,
+          1
+        ],
+        "emissionStrength": 8,
+        "roughness": 0.3
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "amber",
+      "parameters": {
+        "baseColor": [
+          1,
+          0.32,
+          0.06,
+          1
+        ],
+        "emissionColor": [
+          1,
+          0.32,
+          0.06,
+          1
+        ],
+        "emissionStrength": 8,
+        "roughness": 0.3
+      },
+      "shader": "principled"
+    }
+  ],
+  "project": {
+    "activeCamera": "hero",
+    "aspectRatio": "16:9",
+    "fps": 24,
+    "frameEnd": 144,
+    "frameStart": 1,
+    "goal": "夜班工业摄影棚。以导入的官方 CHARGE Packbot 静态模型为主体，暖色侧光与冷青环境光，镜头缓慢推进和侧移，完整保留官方模型材质。六秒，1920×1080，24fps，EEVEE128samples。",
+    "id": "charge-night-shift",
+    "title": "夜班 / Night Shift — CHARGE × DeepBlend",
+    "units": "metric"
+  },
+  "renderProfiles": {
+    "final": {
+      "colorManagement": {
+        "exposure": 0,
+        "look": "AgX - Medium High Contrast",
+        "viewTransform": "AgX"
+      },
+      "engine": "eevee",
+      "maxSamplesBudget": 256,
+      "raytracing": true,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "samples": 128
+    },
+    "preview": {
+      "colorManagement": {
+        "exposure": 0,
+        "look": "AgX - Medium High Contrast",
+        "viewTransform": "AgX"
+      },
+      "engine": "eevee",
+      "maxSamplesBudget": 256,
+      "raytracing": true,
+      "resolution": [
+        960,
+        540
+      ],
+      "samples": 64
+    }
+  },
+  "schemaVersion": "deepblend.scene/v1",
+  "world": {
+    "color": [
+      0.045,
+      0.09,
+      0.12,
+      1
+    ],
+    "strength": 0.12
+  }
+}
