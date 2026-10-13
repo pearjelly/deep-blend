@@ -67,6 +67,22 @@
 
 ## 1.2 M2 的三个工具
 
+### 开发分支：`blender_scene_get` 原生部件测量
+
+普通读取保持原有摘要。可选同时传入 `geometryEntityIds`（1–8 个不同实体 ID）和
+`geometryFrame`（0–1000000 的明确整数帧），获得 `geometryInspection`。Host 核对保存的
+revision、规范场景摘要、原生文件 SHA256 和依赖，复制后交给独立后台 Blender 评估；
+返回后再次核对来源，清理副本，不创建 revision 或渲染。
+
+结果含 `sourceRevision`、`sourceDigest`、`sourceSpecHash`、`sourceCheckpointSha256`、
+`sourceUnchanged`、帧、Blender 版本以及每个实体的世界包围盒、各轴毫米跨度、完整矩阵、
+缩放和评估网格数量。隐藏视口或非网格对象明确不可测，没有猜测数值。世界轴跨度包含
+旋转、把手和突出部件，不能当成杯身外径、法向壁厚、间隙、碰撞或成品认可。
+外部链接库及非 1 米原生单位比例目前拒绝检查。历史版本须有匹配的成功生产任务摘要；
+没有来源证据的版本须先保存新 checkpoint。旧 Host 忽略可选参数时，工具明确报错。
+
+此入口尚未稳定发布；新模型会话、工作台及完整当前来源验收另行记录。
+
 ### `blender_preview_views`
 
 一次 Blender 启动渲染「主相机 / 45 度 / 俯视 / 主体近景」四个视角，并对每个视角做

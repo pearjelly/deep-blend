@@ -815,6 +815,12 @@ export class RevisionTransaction {
           sourceMaterialSlots: sourceMaterialSlots ?? [], materialSlots: materialSlots ?? [],
         })),
       checkpoint: isFile(join(staging, 'scene.blend')) ? `revisions/${revision}/scene.blend` : null,
+      ...(isFile(join(staging, 'scene.blend')) ? { checkpointBinding: {
+        sha256: fileSha256(join(staging, 'scene.blend')),
+        bytes: fileSize(join(staging, 'scene.blend')),
+        sourceDigest: digest,
+        specHash: plan.specHashAfter ?? specHash(plan.spec),
+      } } : {}),
       previews: previews.map(entry => entry.artifact),
       jobId,
       runtime: {

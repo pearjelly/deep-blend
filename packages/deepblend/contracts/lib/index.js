@@ -879,3 +879,5 @@ export {
 
 export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock } from './recipe.js'
 export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'
+
+export { GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, validateGeometrySelection, verifyGeometryReport } from './geometry-inspection.js'

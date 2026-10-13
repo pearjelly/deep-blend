@@ -31,7 +31,15 @@ def inspect_geometry(request, options):
         raise ActionError('REVISION_CHECKPOINT_MISSING', 'Geometry inspection needs a native checkpoint.')
     if os.path.getsize(checkpoint) > 1024 ** 3 or file_digest(checkpoint) != expected:
         raise ActionError('SCENE_VALIDATION_FAILED', 'The inspected checkpoint differs from the expected source.')
-    bpy.ops.wm.open_mainfile(filepath=checkpoint, load_ui=False, use_scripts=False)
+    try:
+        bpy.ops.wm.open_mainfile(filepath=checkpoint, load_ui=False, use_scripts=False)
+    except Exception as exc:
+        raise ActionError('SCENE_VALIDATION_FAILED', 'The native checkpoint cannot be opened for inspection.') from exc
+    if bpy.data.libraries:
+        raise ActionError('BLENDER_UNSUPPORTED_ACTION', 'Inspection requires self-contained geometry; externally linked Blender libraries are not hash-bound by this checkpoint.')
+    unit_scale = float(bpy.context.scene.unit_settings.scale_length)
+    if not math.isfinite(unit_scale) or abs(unit_scale - 1.0) > 1e-8:
+        raise ActionError('BLENDER_UNSUPPORTED_ACTION', 'Inspection requires a native unit scale of 1 metre per Blender unit; rescaled display units cannot be reported as millimetres.')
     bpy.context.scene.frame_set(frame)
     measured_frame = int(bpy.context.scene.frame_current)
     if measured_frame != frame:
