@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.7.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.7.0) 提供带把手杯的高度、外径和壁厚三个毫米控制，把手、根部和默认取景联动，保留独立改动和旧版本；创建及保存时直接交付已保存预览。见[发布证据](deepblend/docs/releases/0.7.0.md)、[配方指南](deepblend/docs/recipes.md)和[真实任务边界](deepblend/docs/modeling-task-baselines.md)。
+最新稳定版 [0.8.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.0) 提供台灯灯罩直径控制，联动金属厚度、内衬间隙与固定颈部，并将已保存的多视图检查图交给支持图片的模型。杯尺寸控制和历史可编辑版本继续保留。见[发布证据](deepblend/docs/releases/0.8.0.md)、[配方指南](deepblend/docs/recipes.md)和[真实任务边界](deepblend/docs/modeling-task-baselines.md)。
 
 ## 安装并开始
 

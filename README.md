@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.7.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.7.0) adds millimeter controls for cup height, body diameter and wall thickness, with linked handle/root dimensions and default framing. Independent edits and old versions are preserved; create/save results deliver the committed preview. See the [release evidence](deepblend/docs/releases/0.7.0.md), [recipe guide](deepblend/docs/recipes.md) and [real-task boundaries](deepblend/docs/modeling-task-baselines.md).
+Latest stable [0.8.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.8.0) links lamp shade diameter with shell thickness, liner clearance and the fixed neck, and delivers saved multi-view inspection images to image-capable models. Cup dimensions and previous editable revisions remain available. See the [release evidence](deepblend/docs/releases/0.8.0.md), [recipe guide](deepblend/docs/recipes.md) and [real-task boundaries](deepblend/docs/modeling-task-baselines.md).
 
 ## Quick start
 
