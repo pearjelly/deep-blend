@@ -129,3 +129,9 @@ JS
 隔离已有部署依赖重做安装与解码；普通联网安装通过不等于离线通过。本轮完成 macOS arm64 解码及独立 sharp 矩阵下载/打包探针，
 并用全新空 pnpm store、`--offline` 与隔离 `node_modules` 安装该探针 tgz，在 macOS arm64 完成透明 PNG 与渐进 JPEG 的完整解码。
 尚未在其他 OS 执行原生库，也未构建或发布含最新业务代码的 DeepBlend 发布包。
+
+## 5. CHARGE 夜班案例的单独许可
+
+CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY，来自 [Blender 官方 demo 页面](https://www.blender.org/download/demo-files/)。它的静态几何、纹理、检查点和衍生画面保留官方署名；不纳入项目 MIT 原创模型声明。修改为第 1 帧静态姿态、嵌入贴图、新布景、灯光与相机运动。新增 SceneSpec、帮助器和脚本为 MIT。大型模型通过 Release 素材包提供，不进入 npm 插件。
+
+公开媒体清单位于 `docs/assets/showcase/charge-study/manifest.json`；契约核对精确文件摘要、插件交付视频、144 帧来源与检查点绑定，以及独立原生和复现结果。制作使用已安装的 0.5.0；0.8.1 发布案例，不改写制作版本。

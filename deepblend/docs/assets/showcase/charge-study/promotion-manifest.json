@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "deepblend.promotion/v1",
+  "createdAt": "2026-10-12T11:20:41.230Z",
+  "dshEvidence": {
+    "path": "dsh-tool-events.json",
+    "sha256": "58ddcb2af527c572b32fc15b5c8aed3402511fc8d69f898446a9f9199000260c",
+    "replayCheck": "replay-check.json",
+    "frameSources": "frame-sources.json"
+  },
+  "originalVideo": {
+    "path": "night-shift.mp4",
+    "sha256": "142755209638993e432350095ae3385fa5302b6c6c9e1e0521a76cfc3a183dbe",
+    "verified": true,
+    "revision": "r0002",
+    "jobId": "render-0001"
+  },
+  "shareVideo": {
+    "path": "night-shift-share.mp4",
+    "sha256": "469b891fcf6cd292409cafaede12892ae1985b96b02d1f3e709a9701f533c84e",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 1920,
+          "height": 1080,
+          "avg_frame_rate": "24/1",
+          "nb_read_frames": "144"
+        }
+      ],
+      "format": {
+        "duration": "6.000000"
+      }
+    },
+    "changes": "Only browser-rendered title and asset-credit overlay, plus H.264 re-encode. No interpolated frames, no substituted imagery.",
+    "encodedSamples": [
+      {
+        "frame": 1,
+        "path": "encoded-first.png",
+        "sha256": "6f37537c42820b103bc946da92de3a84e806e02af7e9cbe623252adaec40fb9c"
+      },
+      {
+        "frame": 72,
+        "path": "encoded-middle.png",
+        "sha256": "0753081d3cd5b2855f161e9eb20084f1069ee2f2290175ed6ce695f1f82babce"
+      },
+      {
+        "frame": 144,
+        "path": "encoded-last.png",
+        "sha256": "87fdabacbfad2c31a2dc5bed6569f8443335d9faa35b115093b333d6c37600c2"
+      }
+    ]
+  },
+  "sceneSha256": "e89dff674abb28aeade10f2f9e51e83deb128c1005beff78437a8104863cc73a",
+  "checkpointSha256": "040f92e334574e42bc68a8dc74041ace2e357f2d6cbab13aed3ae740d07d6a19",
+  "modelLicense": "CC-BY — Blender Studio / Blender Foundation",
+  "sceneLicense": "MIT",
+  "nativeReadback": "native-readback.json"
+}

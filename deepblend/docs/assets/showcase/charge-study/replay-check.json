@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "method": "Two independent actual DSH plugin projects, ingested and patched via real Studio model tool calls. Scene arrays and compiler digest matched; measured image differences are reported, not required to be zero.",
+  "sameFields": [
+    "assets",
+    "materials",
+    "entities",
+    "lights",
+    "cameras",
+    "animationTracks",
+    "renderProfiles"
+  ],
+  "compilerDigest": "b35117ed94446c4f28b979d65ab68491aa37f8d6b9db367d145bbaf212fe9e5b",
+  "width": 960,
+  "height": 540,
+  "meanAbsoluteChannelDifference255": [
+    3.6651234567901234e-05,
+    4.6296296296296294e-05,
+    5.015432098765432e-05
+  ],
+  "rmsChannelDifference255": [
+    0.006054026310473157,
+    0.006804138174397717,
+    0.007081971546656646
+  ],
+  "maxChannelDifference255": [
+    1,
+    1,
+    1
+  ],
+  "pixelIdentical": false,
+  "originalPreviewSha256": "5f0be664585a59e0b9a8ed434359404cb723d95441cae4c437e8a22f98c2a9e4",
+  "replayPreviewSha256": "ea8c4a78acee9c09162637c9ca50e921bee6113dca83d8ed6224a2e16463ded3",
+  "renderSettings": {
+    "cameraId": "hero",
+    "frame": 72,
+    "samples": 64,
+    "engine": "EEVEE"
+  }
+}
