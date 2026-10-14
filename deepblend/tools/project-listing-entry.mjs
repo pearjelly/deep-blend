@@ -169,7 +169,7 @@ function main() {
   const out = flag('--out')
   if (out !== undefined) {
     writeFileSync(out, projection)
-    console.log(`wrote: ${relative(out)} (${projection.length} bytes)`)
+    console.log(`wrote: ${relative(out)} (${Buffer.byteLength(projection, 'utf8')} bytes)`)
     return 0
   }
 
@@ -201,7 +201,7 @@ function main() {
       return 0
     }
     console.log(`${SUBMISSION_REPO} ${path}: DRIFTED from the projection of ${relative(SOURCE_PATH)}`)
-    console.log(`  submitted ${remote.length} bytes, projection ${projection.length} bytes`)
+    console.log(`  submitted ${Buffer.byteLength(remote, 'utf8')} bytes, projection ${Buffer.byteLength(projection, 'utf8')} bytes`)
     console.log(`fix: node deepblend/tools/project-listing-entry.mjs --out <the branch's copy>, then push to ${SUBMISSION_BRANCH}`)
     return 1
   }

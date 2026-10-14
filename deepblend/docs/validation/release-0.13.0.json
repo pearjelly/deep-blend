@@ -1,0 +1,856 @@
+{
+  "status": "published-public-cohorts-and-install-routes-verified-community-submitted",
+  "fullSuites": 42,
+  "fullExit": 0,
+  "unitFiles": [
+    135,
+    135
+  ],
+  "frozenSourceFiles": 790,
+  "frozenSourceUnchanged": true,
+  "workingRuntimeTestsAndPackagingExactFrozen": true,
+  "postFreezeOnlyDocumentationFiles": [
+    "deepblend/docs/cup-placement-candidate.md",
+    "deepblend/docs/daily-releases.md",
+    "deepblend/docs/listing-entry.yml",
+    "deepblend/docs/product-roadmap.md"
+  ],
+  "fullLogSha256": "8460b8b70b0b3036dde8354985170a7be2067d067dd092e9d538828e24ea0bc4",
+  "finalWorkingUnitLogSha256": "08e8aaf8f3dc2f3f3ec77de01c86e06c0509bcf93feb66622f748402dde7fd25",
+  "paidUI": [
+    10,
+    10
+  ],
+  "paidVisual": [
+    14,
+    14
+  ],
+  "actualPaidSource": "F2",
+  "paidActualModelCalls": 6,
+  "baiObservedTaskMs": 1114730,
+  "baiJournalTurnMs": 1113178,
+  "baiModellingTools": 19,
+  "baiModellingSteps": 13,
+  "humanModellingMessages": 1,
+  "humanCorrectionMessages": 1,
+  "baiObservedCorrectionMs": 162061,
+  "baiJournalCorrectionMs": 161611,
+  "currentRevision": "r0004",
+  "registeredFiles": 5,
+  "nativeOldProjectManualPreservationPassed": true,
+  "fixedCameraPairsMaximumActualDifference": 0.0,
+  "originalFullFailure": "Original default-browser41/42 updatercleanup, then English-shell full M4 locale assumption failure, retained. Default actualChromeUI72 andexplicitChinese independent-shellUI72/upload159 recovered; complete exactsource42 required. No product/assertion/personal browser/DSH edits.",
+  "scope": "Runtime/test/packaging source exactF2 plus4doc changes atsourcecommit. Latercloseout only docs and UTF8byte-count developerdiagnostics, products package tree unchanged. Arbitrary creation/manufacturing/artistic/externaladoption not certified.",
+  "releaseLabel": "0.13.0",
+  "publishedAt": "2026-10-14T19:27:06Z",
+  "buildCommit": "d24223a04d53b2c5798b1c4242cfe9155d09a3e4",
+  "mergeSource": "a7ce20e57eed6e69a166bb7821549ffaeb2594fd",
+  "packagesTree": "fdeee5a14118f1becb14db2e86c80234601238c8",
+  "bundle": {
+    "bytes": 72225016,
+    "sha256": "80b8d539c6c573748cf715ed5b314e3a5307492e0f163a11618bd12bec5599f2"
+  },
+  "github": {
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.13.0",
+    "assets": [
+      {
+        "name": "browser-recovery-scope.json",
+        "bytes": 1084,
+        "sha256": "4507c311fcee786ce7794c7baed7a8a0aa737eca1b971490c296dc2d0b7e8259",
+        "serverDigest": "sha256:4507c311fcee786ce7794c7baed7a8a0aa737eca1b971490c296dc2d0b7e8259",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "build-proof.json",
+        "bytes": 31950,
+        "sha256": "b1db70aff7c9649745bd8b1afa271adc282e15b9b445222a3e750cb3a1a24ee2",
+        "serverDigest": "sha256:b1db70aff7c9649745bd8b1afa271adc282e15b9b445222a3e750cb3a1a24ee2",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-after.blend",
+        "bytes": 4680744,
+        "sha256": "6d909e66e47d79a8d3fe80c4949e68a514a015d9ad2ee5bd8420abaf095dd16f",
+        "serverDigest": "sha256:6d909e66e47d79a8d3fe80c4949e68a514a015d9ad2ee5bd8420abaf095dd16f",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-before-default-hero-proof.json",
+        "bytes": 1778,
+        "sha256": "f888f8cbd2c07dc13becce719f9a2c5cb40ae84eb78bca47f613f56aae4dd3c8",
+        "serverDigest": "sha256:f888f8cbd2c07dc13becce719f9a2c5cb40ae84eb78bca47f613f56aae4dd3c8",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-before-default-hero.png",
+        "bytes": 278782,
+        "sha256": "a5d2193f31f4c5e517d3b176408eff6260af6dc2b03dc1a3fc803f34b1cb126f",
+        "serverDigest": "sha256:a5d2193f31f4c5e517d3b176408eff6260af6dc2b03dc1a3fc803f34b1cb126f",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-before.blend",
+        "bytes": 4676352,
+        "sha256": "0fe5dc89c93de8c90bfd9b01f7096f232d4ba935bda6e1e0c317d1d5915a368f",
+        "serverDigest": "sha256:0fe5dc89c93de8c90bfd9b01f7096f232d4ba935bda6e1e0c317d1d5915a368f",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-campaign-timing-and-rework.json",
+        "bytes": 5349,
+        "sha256": "a70be265d9f0d22161fd85a6c3e3a2f29344a14b5647da534b1e60efeab56662",
+        "serverDigest": "sha256:a70be265d9f0d22161fd85a6c3e3a2f29344a14b5647da534b1e60efeab56662",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-delivered-contact-sheet.png",
+        "bytes": 439844,
+        "sha256": "eded7a23f25d7051dca51eea500689fd4656ecf29649ff893533ddd594f4155a",
+        "serverDigest": "sha256:eded7a23f25d7051dca51eea500689fd4656ecf29649ff893533ddd594f4155a",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-delivered-hero.png",
+        "bytes": 267476,
+        "sha256": "397fb3b9d1248b50f96acb4f30ff93549ba3a0eb37f286ebc2e9b74cd9ccf10a",
+        "serverDigest": "sha256:397fb3b9d1248b50f96acb4f30ff93549ba3a0eb37f286ebc2e9b74cd9ccf10a",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-delivered-inside.png",
+        "bytes": 289801,
+        "sha256": "e1488f51f9969d91adfdb172bf331db5018fd95f473bd43b777f342ed7490a24",
+        "serverDigest": "sha256:e1488f51f9969d91adfdb172bf331db5018fd95f473bd43b777f342ed7490a24",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-delivered-roots.png",
+        "bytes": 277980,
+        "sha256": "3c67325373c01f8ebda1ca3ed2431e1a7fa2cfe2c41a391300558e5e09823abf",
+        "serverDigest": "sha256:3c67325373c01f8ebda1ca3ed2431e1a7fa2cfe2c41a391300558e5e09823abf",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-final-reply-correction.txt",
+        "bytes": 2603,
+        "sha256": "81fdc43f0a288a73466c3ee576e2f90afb8b32a6c7ba9109d37a44cb4ebcef00",
+        "serverDigest": "sha256:81fdc43f0a288a73466c3ee576e2f90afb8b32a6c7ba9109d37a44cb4ebcef00",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-final-reply-original.txt",
+        "bytes": 3148,
+        "sha256": "90bb803ebb177bc0c54a16eb466c9bd811383bed0e0d3a9829c70ace72c7cc7d",
+        "serverDigest": "sha256:90bb803ebb177bc0c54a16eb466c9bd811383bed0e0d3a9829c70ace72c7cc7d",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-fixed-after-hero.png",
+        "bytes": 377301,
+        "sha256": "9070b437fb77efe9a992003503f175830f676c167567b1ca398f58196d7db2cd",
+        "serverDigest": "sha256:9070b437fb77efe9a992003503f175830f676c167567b1ca398f58196d7db2cd",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-fixed-after-roots.png",
+        "bytes": 392554,
+        "sha256": "f6d72a594db232c50a6c79d96108fb419388869a4bb98082cdc7bd6646c08b09",
+        "serverDigest": "sha256:f6d72a594db232c50a6c79d96108fb419388869a4bb98082cdc7bd6646c08b09",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-fixed-before-hero.png",
+        "bytes": 375500,
+        "sha256": "da677a0e608a0e9b3b1c8051e803ff2940ae4c83229cdafb48ce6540913d1e91",
+        "serverDigest": "sha256:da677a0e608a0e9b3b1c8051e803ff2940ae4c83229cdafb48ce6540913d1e91",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-fixed-before-roots.png",
+        "bytes": 389091,
+        "sha256": "9d1fbf02c80c58030824b2c602bebb8c5ea46e3fb2dff3807370bb4cfced081c",
+        "serverDigest": "sha256:9d1fbf02c80c58030824b2c602bebb8c5ea46e3fb2dff3807370bb4cfced081c",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-native-audit.json",
+        "bytes": 1144,
+        "sha256": "30400df3ca9eb5c230b7902ce8e64f458480d76fb65587c76b325dbbc84985a7",
+        "serverDigest": "sha256:30400df3ca9eb5c230b7902ce8e64f458480d76fb65587c76b325dbbc84985a7",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-native-portability-proof.json",
+        "bytes": 1034,
+        "sha256": "d1088d3fa913b5abb6b25377118316f4d0b6d12cbae103ab1db2d06645d2857c",
+        "serverDigest": "sha256:d1088d3fa913b5abb6b25377118316f4d0b6d12cbae103ab1db2d06645d2857c",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "cup-real-task-evidence.json",
+        "bytes": 2804,
+        "sha256": "30301ecb5a2914d741909014cf6ae93ec00c65fa6929b21a9e67982ea88a53e3",
+        "serverDigest": "sha256:30301ecb5a2914d741909014cf6ae93ec00c65fa6929b21a9e67982ea88a53e3",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "bytes": 72225016,
+        "sha256": "80b8d539c6c573748cf715ed5b314e3a5307492e0f163a11618bd12bec5599f2",
+        "serverDigest": "sha256:80b8d539c6c573748cf715ed5b314e3a5307492e0f163a11618bd12bec5599f2",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "F2-frozen-source.json",
+        "bytes": 96520,
+        "sha256": "0470d171fc5c8694bdae114ae76c31b684cfb70b8f1d22f4e2be9eeb48767089",
+        "serverDigest": "sha256:0470d171fc5c8694bdae114ae76c31b684cfb70b8f1d22f4e2be9eeb48767089",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "F2-post-freeze-docs.json",
+        "bytes": 1148,
+        "sha256": "a0bcb6a5f6548b733adbfe7663e801187f4ac81ab72883b1de8d337c29ebf594",
+        "serverDigest": "sha256:a0bcb6a5f6548b733adbfe7663e801187f4ac81ab72883b1de8d337c29ebf594",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "local-acceptance-proof.json",
+        "bytes": 1892,
+        "sha256": "47c2a094f97498aa9fa0b1b0cc3fd386cdeb247d7237dfff6f0c0f9492b4546f",
+        "serverDigest": "sha256:47c2a094f97498aa9fa0b1b0cc3fd386cdeb247d7237dfff6f0c0f9492b4546f",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "paid-visual-proof.json",
+        "bytes": 997,
+        "sha256": "d695922f903c66a39361a69eb9433089346977b59c570ac00295d07e0ca7be4c",
+        "serverDigest": "sha256:d695922f903c66a39361a69eb9433089346977b59c570ac00295d07e0ca7be4c",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "public-ci-artifacts-proof.json",
+        "bytes": 1151,
+        "sha256": "29ec91239fa2f084ad6584f545b81adfeca077e8663aa2f1a99ccd0644fd2ee1",
+        "serverDigest": "sha256:29ec91239fa2f084ad6584f545b81adfeca077e8663aa2f1a99ccd0644fd2ee1",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "public-ci-proof.json",
+        "bytes": 25773,
+        "sha256": "1b67213d9397105034b28bf922b14fc36e13eb850d58c6852410274c2aef71bc",
+        "serverDigest": "sha256:1b67213d9397105034b28bf922b14fc36e13eb850d58c6852410274c2aef71bc",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "release-source-proof.json",
+        "bytes": 545,
+        "sha256": "197401a39da921aeaf654d466865b1a4f9ba67532c0de64730e90542fe690593",
+        "serverDigest": "sha256:197401a39da921aeaf654d466865b1a4f9ba67532c0de64730e90542fe690593",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 2574,
+        "sha256": "8a395f44b912a699520193c01ec579b3600e8214e34729798e117acdf2cff313",
+        "serverDigest": "sha256:8a395f44b912a699520193c01ec579b3600e8214e34729798e117acdf2cff313",
+        "anonymousExactReadback": true
+      }
+    ],
+    "allAnonymousExact": true
+  },
+  "npm": {
+    "at": "2026-10-14T19:43:10.048Z",
+    "registry": "https://registry.npmjs.org/",
+    "authentication": "none; direct fetch",
+    "version": "0.13.0",
+    "scope": "all",
+    "complete": true,
+    "records": [
+      {
+        "archiveSha256": "da6fd923db0c98635ef2e2774b22ed25e59e796ff463c0cbda3f6fd37fdf5f3e",
+        "archiveSha1": "3f074d5fbb450a3090f83fb568df5e8640183821",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 426335,
+        "integrity": "sha512-6TVX19i0Wg3W0kp9rfd0nErHlFHBaFKUy+19ZjO8SyrafwKYRsp0qQEGcsvS/D7q/JCjIb3y/eBS/kXbW0RToA==",
+        "exactSourceFiles": [
+          "lib/client.js",
+          "lib/doctor-cli.js",
+          "lib/doctor.js",
+          "lib/planes/host.js",
+          "lib/index.js",
+          "lib/planes/preset.js",
+          "lib/planes/provider-local.js",
+          "lib/planes/tool.js",
+          "lib/doctor-requirements.json",
+          "examples/charge-study/industrial-stage.json",
+          "assets/manifest.json",
+          "screenshots.json",
+          "examples/charge-study/README.md",
+          "README.md",
+          "README.zh.md",
+          "examples/charge-study/replay-dsh-case.mjs",
+          "assets/banner.png",
+          "assets/logo.png",
+          "assets/social-card.png",
+          "assets/banner.svg",
+          "assets/logo.svg",
+          "assets/social-card.svg",
+          "examples/charge-study/agent-prompt.zh.txt",
+          "examples/charge-study/ATTRIBUTION.txt",
+          "cordis.patch.yml"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-ui": "0.13.0",
+          "@deepblend/dsh-blender-host": "0.13.0",
+          "@deepblend/dsh-blender-tool": "0.13.0",
+          "@deepblend/dsh-blender-preset": "0.13.0",
+          "@deepblend/dsh-blender-contracts": "0.13.0",
+          "@deepblend/dsh-blender-provider-local": "0.13.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git",
+          "directory": "packages/deepblend/bundle"
+        }
+      },
+      {
+        "archiveSha256": "0387baf390fecf593476988454ba633fc076ab45d74f253f0cad5d9d9bd6fcc3",
+        "archiveSha1": "cb4b8e8c830b3fb40ef06f52d37eafb750593a25",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 164507,
+        "integrity": "sha512-qMoDvWt0S06M8jLS41PuSiJm9lhr8Pkb2TeVzUOW/mShSPRMI7CXpRI5PKFZdNCAZuyqGNWHAvGBL+3JbdLazg==",
+        "exactSourceFiles": [
+          "lib/artistic-review.js",
+          "lib/asset-content.js",
+          "lib/bitmap-font.js",
+          "lib/canonical.js",
+          "lib/config-surface.js",
+          "lib/contact-sheet.js",
+          "lib/cup-placement.js",
+          "lib/deployment-paths.js",
+          "lib/geometry-inspection.js",
+          "lib/handled-cup.js",
+          "lib/index.js",
+          "lib/json-schema.js",
+          "lib/lamp-assembly-repair.js",
+          "lib/lathe-shell.js",
+          "lib/png.js",
+          "lib/projections.js",
+          "lib/recipe-parameters.js",
+          "lib/recipe.js",
+          "lib/redact.js",
+          "lib/reference-images.js",
+          "lib/render-job.js",
+          "lib/scene-patch.js",
+          "lib/scene-spec.js",
+          "lib/sdk.js",
+          "lib/speaker-assembly.js",
+          "lib/ui-api.js",
+          "lib/visual-composition.js",
+          "lib/visual-issue.js",
+          "lib/visual-loop.js",
+          "lib/schemas/job-result.schema.json",
+          "lib/schemas/recipe.schema.json",
+          "lib/schemas/scene-patch.schema.json",
+          "lib/schemas/scene-spec.schema.json",
+          "lib/runtime-types.d.ts",
+          "lib/schema-types.d.ts",
+          "lib/sdk.d.ts"
+        ],
+        "dependencies": {},
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "ae6c0ace5453ec86901cde705197c37b8e4792cd40cbbac96b5ca2705e113fd7",
+        "archiveSha1": "6134ac5fd1e64affdabfbfcdc00c27682e4f7831",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 2978722,
+        "integrity": "sha512-hKb2dwkr+V8OjR+DwnKjWqloVDmM55LREY3Mbn+RabkbUCo8EPqWaic8/5gr54ZwqiYpY4tSS7l+iL+lXZYpSg==",
+        "exactSourceFiles": [
+          "recipes/glass-ceramic/LICENSE",
+          "recipes/glazed-cup/LICENSE",
+          "recipes/metal-lamp/LICENSE",
+          "recipes/modular-speaker/LICENSE",
+          "lib/artifact-writer.js",
+          "lib/assembly-changes.js",
+          "lib/asset-bundle.js",
+          "lib/asset-io.js",
+          "lib/asset-library.js",
+          "lib/asset-preview.js",
+          "lib/asset-uploads.js",
+          "lib/creation-request.js",
+          "lib/cup-hero-framing.js",
+          "lib/delivery-manifest.js",
+          "lib/diagnostic-preview.js",
+          "lib/frame-ledger.js",
+          "lib/frame-provenance.js",
+          "lib/geometry-inspection.js",
+          "lib/index.js",
+          "lib/obj-resources.js",
+          "lib/paths.js",
+          "lib/project-store.js",
+          "lib/project-writer.js",
+          "lib/recipe-catalog.js",
+          "lib/recipe-native-source.js",
+          "lib/recipe-state.js",
+          "lib/reference-image.js",
+          "lib/render-job-store.js",
+          "lib/render-journal.js",
+          "lib/render-reconciler.js",
+          "lib/revision-transaction.js",
+          "lib/runtime-scene-features.js",
+          "lib/video-encoder.js",
+          "recipes/glass-ceramic/recipe.json",
+          "recipes/glazed-cup/recipe.json",
+          "recipes/metal-lamp/recipe.json",
+          "recipes/modular-speaker/recipe.json",
+          "recipes/glass-ceramic/scene-spec.json",
+          "recipes/glazed-cup/scene-spec.json",
+          "recipes/metal-lamp/scene-spec.json",
+          "recipes/modular-speaker/scene-spec.json",
+          "recipes/glass-ceramic/preview.png",
+          "recipes/glazed-cup/preview.png",
+          "recipes/metal-lamp/preview.png",
+          "recipes/modular-speaker/preview.png"
+        ],
+        "dependencies": {
+          "sharp": "0.35.5",
+          "@deepblend/dsh-blender-contracts": "0.13.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "3dd4d7574257a7a5fbb5d61c94553c7e75315036e7693d22ae7dc5c884727876",
+        "archiveSha1": "684e4f3d20f0e53d404b7e11de7f66cf1da4db55",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 29187,
+        "integrity": "sha512-141qOgB9aE2J/CnLd7GajXvVoFm10kJaz2ipZ+1kCKSXHQ3XUSRFleLhv9VmtgIQIhW+2Bn8MZH3pIMhlBh8JQ==",
+        "exactSourceFiles": [
+          "lib/deploy.js",
+          "lib/index.js",
+          "presets/deepblend/skills/deepblend-studio/references/reference-images.md",
+          "presets/deepblend/skills/deepblend-studio/SKILL.md",
+          "presets/deepblend-dev/agent.cordis.yml",
+          "presets/deepblend/agent.cordis.yml",
+          "presets/deepblend-dev/preset.yml",
+          "presets/deepblend/preset.yml"
+        ],
+        "dependencies": {},
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "fc1aaa645209fe96ea045fd9562ca30663f85ac673d9dc02b9a1e5bc1afc9ed8",
+        "archiveSha1": "e53b201abbd9af013d3a89a78e308732ad5b107e",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 152756,
+        "integrity": "sha512-GON6VY4gx2Hy05YHtr/zItnKxHc6qAmt/rKpljCEqm8k7F1RTkI9LMfDzOepZ7VGmnNNz7+Xi9Q1ZpqPdzcw5w==",
+        "exactSourceFiles": [
+          "lib/geometry-inspection.js",
+          "lib/index.js",
+          "python/bootstrap.py",
+          "python/deepblend_anisotropy.py",
+          "python/deepblend_asset_bundle.py",
+          "python/deepblend_avif_headers.py",
+          "python/deepblend_bridge.py",
+          "python/deepblend_camera_framing.py",
+          "python/deepblend_capabilities.py",
+          "python/deepblend_features.py",
+          "python/deepblend_frames.py",
+          "python/deepblend_geometry.py",
+          "python/deepblend_gltf_images.py",
+          "python/deepblend_gltf_import.py",
+          "python/deepblend_gltf_roles.py",
+          "python/deepblend_image_headers.py",
+          "python/deepblend_image_roles.py",
+          "python/deepblend_images.py",
+          "python/deepblend_imported_image_headers.py",
+          "python/deepblend_inspect_geometry.py",
+          "python/deepblend_inspect_surface.py",
+          "python/deepblend_mesh_checks.py",
+          "python/deepblend_obj_images.py",
+          "python/deepblend_obj_import.py",
+          "python/deepblend_obj_resources.py",
+          "python/deepblend_parts.py",
+          "python/deepblend_render.py",
+          "python/deepblend_scene.py",
+          "python/deepblend_util.py",
+          "python/deepblend_validate.py",
+          "python/deepblend_vessel_math.py",
+          "python/deepblend_vessel_parameters.py",
+          "python/deepblend_vessel.py",
+          "python/deepblend_views.py"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.13.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "06e305ad7c6097f231c28583593d7d38f8d004a6bf8f41f256c5db69d0a2bd17",
+        "archiveSha1": "e5cfc785631b46f71b7a744c4488f1239f9f76e8",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 51675,
+        "integrity": "sha512-jVbZByQb0gy1Znqmih3L2uutm9hfjA0X8RdObmXCby1sANoxRqvdYf7RY8BITnejfYkv5twANHM+EcXXUbK+Jg==",
+        "exactSourceFiles": [
+          "lib/assembly-origins.js",
+          "lib/attachment-image.js",
+          "lib/committed-preview.js",
+          "lib/geometry-comparison.js",
+          "lib/image-delivery.js",
+          "lib/index.js",
+          "lib/inspection.js",
+          "lib/render-tools.js",
+          "lib/shared.js",
+          "lib/tools.js",
+          "lib/visual-tools.js"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.13.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "9629d2e8d38460b12b9311a04dc62f6019afbdeaa7e1fb894518acb3f0e3e614",
+        "archiveSha1": "4909a253f4fe8374cc50c33678d8847f79cf3130",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.13.0",
+        "public": true,
+        "bytes": 128001,
+        "integrity": "sha512-oIgrEW1J10Rir1V5PkBifez2ZcmCOCnzn6yZwUC+J9jn88tXDQQqGbvyLz7NJQDpHJtB+BCwx8klj+B3rRcCXA==",
+        "exactSourceFiles": [
+          "lib/client.js",
+          "lib/index.js"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.13.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        },
+        "uiClientSha256": "bce06941bd7859a2a4ef289179de5831bc1c33b3ae44e45813cfe1f233592075",
+        "exactTestedClient": true
+      }
+    ]
+  },
+  "routes": {
+    "version": "0.13.0",
+    "exit": 0,
+    "oneStandardCommand": true,
+    "routes": {
+      "source": {
+        "http": 200,
+        "fetched": 13
+      },
+      "npm": {
+        "http": 200,
+        "fetched": 13
+      },
+      "tarball": {
+        "http": 200,
+        "fetched": 1
+      }
+    },
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "problems": 0,
+    "logSha256": "ebe1a00e48fa362ee6abaf0f17092a59f6991a550d7639797ead67ac8e6b0fb1"
+  },
+  "community": {
+    "version": "0.13.0",
+    "submitted": true,
+    "commit": "abf7844fe703c96136132540e3cec369b741b95e",
+    "projectionBytes": 1766,
+    "projectionSha256": "450dafd9cb6bc2cf646f6cd7c72d3ee7b0839e0e970712d6dcb5deb384e565d8",
+    "exactCanonicalRemoteFile": true,
+    "onlyEntryFileChanged": true,
+    "prBodyExact": true,
+    "prUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6868",
+    "upstreamState": "OPEN",
+    "upstreamMergedAt": null,
+    "onlineRefresh": "not confirmed",
+    "utf8CountCorrection": "Projectiontool logged1498 UTF16codeunits asbytes; actualtransport1766UTF8 bytes validated. Originalerror retained; developerdiagnosticfix planned incloseout."
+  },
+  "baiCampaign": {
+    "status": "actual-journal-timing-and-rework-recorded",
+    "freshTasks": 4,
+    "continuationRequests": 2,
+    "factualCorrectionRequests": 1,
+    "humanRequestsTotal": 7,
+    "records": [
+      {
+        "label": "B1",
+        "source": "F1",
+        "kind": "fresh-model-task",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 1,
+        "journalElapsedMs": 569651,
+        "journalStartTimeMs": 1791979364818,
+        "journalEndTimeMs": 1791979934469,
+        "observedElapsedMs": 837128,
+        "terminalKind": "error",
+        "errorCode": "TIMEOUT",
+        "tools": 6,
+        "steps": 5,
+        "toolCounts": {
+          "skill": 1,
+          "blender_capabilities": 1,
+          "blender_project_get": 1,
+          "blender_recipe_parameters": 2,
+          "blender_recipe_list": 1
+        },
+        "presentCalls": 0
+      },
+      {
+        "label": "B2",
+        "source": "F1",
+        "kind": "fresh-model-task",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 1,
+        "journalElapsedMs": 1589590,
+        "journalStartTimeMs": 1791980988382,
+        "journalEndTimeMs": 1791982577972,
+        "observedElapsedMs": 1590994,
+        "terminalKind": "error",
+        "errorCode": "TIMEOUT",
+        "tools": 20,
+        "steps": 12,
+        "toolCounts": {
+          "skill": 1,
+          "blender_capabilities": 1,
+          "glob": 8,
+          "blender_project_get": 1,
+          "blender_recipe_list": 1,
+          "blender_recipe_parameters": 2,
+          "blender_scene_get": 3,
+          "blender_preview_render": 3
+        },
+        "presentCalls": 0
+      },
+      {
+        "label": "B2-recovery1",
+        "source": "F1",
+        "kind": "same-task-continuation",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 2,
+        "journalElapsedMs": 325373,
+        "journalStartTimeMs": 1791984651158,
+        "journalEndTimeMs": 1791984976531,
+        "observedElapsedMs": 326385,
+        "terminalKind": "error",
+        "errorCode": "TIMEOUT",
+        "tools": 1,
+        "steps": 2,
+        "toolCounts": {
+          "blender_preview_views": 1
+        },
+        "presentCalls": 0
+      },
+      {
+        "label": "B2-recovery2",
+        "source": "F1",
+        "kind": "same-task-continuation",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 3,
+        "journalElapsedMs": 300362,
+        "journalStartTimeMs": 1791985279412,
+        "journalEndTimeMs": 1791985579774,
+        "observedElapsedMs": 302357,
+        "terminalKind": "error",
+        "errorCode": "TIMEOUT",
+        "tools": 0,
+        "steps": 1,
+        "toolCounts": {},
+        "presentCalls": 0
+      },
+      {
+        "label": "B3",
+        "source": "F1",
+        "kind": "fresh-model-task",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 1,
+        "journalElapsedMs": 3898802,
+        "journalStartTimeMs": 1791987390984,
+        "journalEndTimeMs": 1791991289786,
+        "observedElapsedMs": 3900157,
+        "terminalKind": "error",
+        "errorCode": "TIMEOUT",
+        "tools": 26,
+        "steps": 17,
+        "toolCounts": {
+          "skill": 1,
+          "blender_project_get": 1,
+          "blender_recipe_parameters": 2,
+          "blender_capabilities": 1,
+          "blender_scene_get": 5,
+          "blender_preview_render": 7,
+          "blender_scene_validate": 4,
+          "blender_scene_patch": 3,
+          "blender_visual_review": 1,
+          "glob": 1
+        },
+        "presentCalls": 0
+      },
+      {
+        "label": "B4",
+        "source": "F2",
+        "kind": "fresh-model-task",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 1,
+        "journalElapsedMs": 1113178,
+        "journalStartTimeMs": 1791996179786,
+        "journalEndTimeMs": 1791997292964,
+        "observedElapsedMs": 1114730,
+        "terminalKind": "completed",
+        "errorCode": null,
+        "tools": 19,
+        "steps": 13,
+        "toolCounts": {
+          "skill": 1,
+          "blender_capabilities": 1,
+          "blender_project_get": 2,
+          "blender_recipe_list": 1,
+          "blender_recipe_parameters": 2,
+          "blender_scene_get": 4,
+          "blender_preview_render": 5,
+          "blender_scene_patch": 1,
+          "blender_visual_review": 1,
+          "present": 1
+        },
+        "presentCalls": 1
+      },
+      {
+        "label": "B4-correction",
+        "source": "F2",
+        "kind": "same-task-factual-correction",
+        "humanMessagesForThisTurn": 1,
+        "journalTurn": 2,
+        "journalElapsedMs": 161611,
+        "journalStartTimeMs": 1791998072985,
+        "journalEndTimeMs": 1791998234596,
+        "observedElapsedMs": 162061,
+        "terminalKind": "completed",
+        "errorCode": null,
+        "tools": 5,
+        "steps": 3,
+        "toolCounts": {
+          "blender_project_get": 1,
+          "blender_job_status": 1,
+          "glob": 2,
+          "grep": 1
+        },
+        "presentCalls": 0
+      }
+    ],
+    "scope": "Four fresh existing-cup-edit trials and two failed same-task continuations plus the successful-task factual correction. F1/F2 geometry fixtures and private transport/image/timeout conditions differ; not a repeated identical benchmark or a representative success-rate/latency estimate. Model turn times derive persisted turn/start/end; observed windows also include UI observation and may include cleanup. B1 observer elapsed837128 includes secondary stalled-observer cleanup and must not be presented as model turn duration. B4 observed task1114730 vs journal1113178 is explicit. Original failures/replies/models/journals retained privately; no private prompt/reasoning/headers/credentials included."
+  },
+  "nativeTaskAudit": {
+    "status": "native-existing-cup-task-preservation-pass",
+    "beforeRevision": "r0002",
+    "afterRevision": "r0004",
+    "oldFilesExact": 12,
+    "oldOriginLockExact": true,
+    "bodyHeightMm": 129.99999523162842,
+    "bodyDiameterMm": 83.99999886751175,
+    "threeRearRadialWallMm": [
+      4.0000006556510925,
+      4.0000006556510925,
+      4.000004380941391
+    ],
+    "nativeGeometry": {
+      "components": 1,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "positiveVolume": true,
+      "cornerNormals": true
+    },
+    "heroProjectedBounds": [
+      [
+        0.23741655051708221,
+        0.1937643587589264,
+        0.42939361929893494
+      ],
+      [
+        0.6925931572914124,
+        0.8978056907653809,
+        0.5444758534431458
+      ]
+    ],
+    "objectPoseExact": true,
+    "handRootTension": 2.3,
+    "appearanceFloorLightsWorldRenderProfilesExact": true,
+    "handCameras": [
+      "roots",
+      "inside"
+    ],
+    "actualCameraAnimationExact": true,
+    "scope": "Local body/wall checks plus topology and native hero containment on one existing-model edit. Not whole-surface minimum, self-intersection/manufacturing, arbitrary creation or external artistic/adoption acceptance."
+  },
+  "nativeDeliveryPortability": {
+    "status": "curated-native-delivery-opens-without-external-image-font-library-dependencies",
+    "blenderVersion": "5.2.1 LTS",
+    "records": [
+      {
+        "name": "cup-before.blend",
+        "sha256": "0fe5dc89c93de8c90bfd9b01f7096f232d4ba935bda6e1e0c317d1d5915a368f",
+        "cupVertices": 29514,
+        "cupFaces": 37332,
+        "activeCamera": "db_camera__hero",
+        "images": [],
+        "fonts": [],
+        "libraries": [],
+        "sourceBytesUnchanged": true
+      },
+      {
+        "name": "cup-after.blend",
+        "sha256": "6d909e66e47d79a8d3fe80c4949e68a514a015d9ad2ee5bd8420abaf095dd16f",
+        "cupVertices": 29538,
+        "cupFaces": 37380,
+        "activeCamera": "db_camera__hero",
+        "images": [],
+        "fonts": [],
+        "libraries": [],
+        "sourceBytesUnchanged": true
+      }
+    ],
+    "scope": "Actual curated before/after copies opened with factory startup/disabledautoexec; inspect frame1/actualeditablemesh and dependencies, no save. Same actual Blender build, not every platform/version or manufacturing certification."
+  },
+  "originalFailuresPreserved": true
+}

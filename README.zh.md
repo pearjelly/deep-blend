@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.12.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.12.0) 可对照保存模型的实际尺寸与装配原点变化；音箱尺寸修改保留旧版本、手工造型与动画。已摆放厚壁杯的进一步修复仍是未发布候选。
+最新稳定版 [0.13.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.13.0) 支持移动或倾斜后的厚壁杯继续改尺寸，保留摆放并按实际几何调整默认主镜头；旧版本、手工外观与把手参数、独立摄影及动画得到保护。
 
 ## 安装并开始
 
