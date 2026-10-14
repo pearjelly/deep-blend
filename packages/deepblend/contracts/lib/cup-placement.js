@@ -11,7 +11,7 @@ const rotation = ([x, y, z]) => {
 const multiply = (m, p) => m.map(row => row.reduce((s, v, i) => s + v*p[i], 0))
 const transpose = m => m[0].map((_, i) => m.map(row => row[i]))
 
-export function placedCupCameras(lock, current, before, after) {
+export function placedCupCameras(lock, current, before, after, parameterState) {
   if (lock.manifestSha256 !== source) return { before, after }
   current = compileSceneSpec(current).spec
   const anchor = before.spec.entities.find(e => e.id === 'cup'), actual = current.entities.find(e => e.id === 'cup')
@@ -34,13 +34,31 @@ export function placedCupCameras(lock, current, before, after) {
     }
     return canonicalStringify(stripPoints(expected)) === canonicalStringify(stripPoints(saved))
   }
-  const result = { before: structuredClone(before), after: structuredClone(after), protectedCameraIds: [] }
+  const result = { before: structuredClone(before), after: structuredClone(after), protectedCameraIds: [], recognizedCameraIds: [] }
   for (const camera of before.spec.cameras) {
     if (current.animationTracks.some(track => track.targetKind === 'camera' && track.targetEntityId === camera.id)) {
       result.protectedCameraIds.push(camera.id); continue
     }
     const saved = current.cameras.find(c => c.id === camera.id)
-    if (!sameRigCamera(move(camera), saved)) continue
+    const rig = parameterState?.cupCameraRig
+    let expected = move(camera)
+    if (camera.id === 'hero' && rig?.schemaVersion === 'deepblend.cup-camera-rig/v1'
+        && rig.camera?.id === 'hero' && rig.anchor?.location?.length === 3 && rig.anchor?.rotationEuler?.length === 3
+        && [...rig.anchor.location, ...rig.anchor.rotationEuler].every(Number.isFinite)) {
+      const previousRotation = rotation(rig.anchor.rotationEuler)
+      const previousPoint = p => multiply(currentRotation, multiply(transpose(previousRotation), p.map((v, i) => v-rig.anchor.location[i]))).map((v, i) => v+destination[i])
+      const fitted = structuredClone(rig.camera)
+      if (Array.isArray(fitted.transform?.location) && Array.isArray(fitted.targetPoint)) {
+        fitted.transform.location = previousPoint(fitted.transform.location)
+        fitted.targetPoint = previousPoint(fitted.targetPoint)
+        // The receipt may exempt only coordinates, never a lens/target style edit.
+        const defaultAtPose = move(camera)
+        const strip = value => { const copy = structuredClone(value); delete copy.transform.location; delete copy.targetPoint; return copy }
+        if (canonicalStringify(strip(fitted)) === canonicalStringify(strip(defaultAtPose))) expected = fitted
+      }
+    }
+    if (!sameRigCamera(move(camera), saved) && !sameRigCamera(expected, saved)) continue
+    result.recognizedCameraIds.push(camera.id)
     // Only coordinates in a recognized default rig may follow dimensions.
     // Keep every other authored camera field and all unrelated scene data intact.
     result.before.spec.cameras.find(c => c.id === camera.id).transform = structuredClone(saved.transform)

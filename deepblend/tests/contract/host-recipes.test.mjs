@@ -573,3 +573,71 @@ test('a relocated old project reports its active directory and root without rewr
  assert.deepEqual(readFileSync(join(target,'revisions','r0001','scene-spec.json')),specBefore)
  assert.equal(JSON.parse(recordBefore).projectsRoot,realpathSync(studio.projectsRoot))
 })
+
+// These controlled compiler bytes test transaction atomicity, not native geometry.
+function framingReportFixture(spec, backoffM = .03) {
+  const camera=spec.cameras.find(c=>c.id==='hero')
+  return {validation:{ok:true},sceneFingerprint:{totalPolygons:24},renderConfig:{resolution:[640,480],frameStart:1},
+    cameraFraming:{schemaVersion:'deepblend.camera-framing/v1',entityId:'cup',cameraId:'hero',margin:.03,
+      frame:1,resolution:[640,480],resolutionPercentage:100,pixelAspect:[1,1],cameraLocation:camera.transform.location,
+      cameraType:'PERSP',lens:camera.lens,sensorWidth:camera.sensorWidth??36,backoffM,vertices:24,
+      nearestDepthM:.3,farthestDepthM:.6,scope:'evaluated-cup-vertices-at-reported-frame-and-render-aspect'}}
+}
+
+test('missing or inconsistent native framing refuses publication and keeps the old native file, lock and pointer',async t=>{
+  for(const damage of [
+    r=>{delete r.cameraFraming},r=>{r.cameraFraming.frame=24},r=>{r.cameraFraming.cameraId='roots'},
+    r=>{r.cameraFraming.backoffM=NaN},r=>{r.cameraFraming.pixelAspect=[2,1]},r=>{r.cameraFraming.scope='whole-model-certified'},
+    r=>{r.cameraFraming.cameraLocation=[0,0,0]},r=>{r.cameraFraming.resolutionPercentage=50},
+  ]){
+    const {studio,request}=setup(t,'glazed-cup'),{requiredSceneFeatures}=await import('@deepblend/dsh-blender-contracts')
+    const made=await studio.createProject({title:'Framing refusal',recipe:request,saveCheckpoint:false}),id=made.projectId,origin=studio.store.revisionDirectory(id,'r0001')
+    const bytes=Buffer.from('controlled original native bytes; atomicity fixture only'),native=join(origin,'scene.blend'),manifestPath=join(origin,'revision-manifest.json')
+    writeFileSync(native,bytes);const manifest=JSON.parse(readFileSync(manifestPath));manifest.checkpoint='revisions/r0001/scene.blend';manifest.checkpointBinding={sha256:sha256(bytes),bytes:bytes.length};writeFileSync(manifestPath,JSON.stringify(manifest))
+    const pointer=readFileSync(join(studio.store.projectDirectory(id),'project.json')),lock=readFileSync(join(origin,'recipe-lock.json'));let calls=0
+    studio.transactions.runtime={getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(studio.store.readRevisionSpec(id,'r0001'))}),compileScene:async input=>{
+      calls++;assert.equal(input.session,false);assert.deepEqual(input.cameraFraming,{entityId:'cup',cameraId:'hero',margin:.03})
+      const report=framingReportFixture(JSON.parse(readFileSync(input.sceneSpecPath)));damage(report)
+      const directory=mkdtempSync(join(input.projectRoot,'controlled-framing-'));try{writeFileSync(join(directory,'result.blend'),'unpublished controlled candidate');await input.onWorkingDirectory({directory});return{report,envelope:{warnings:[],notices:[]}}}finally{rmSync(directory,{recursive:true,force:true})}
+    }}
+    await assert.rejects(studio.updateRecipeParameters({projectId:id,baseRevision:'r0001',parameters:{'cup-height-mm':130},saveCheckpoint:true}),{code:'PROTOCOL_VERSION_MISMATCH'})
+    assert.equal(calls,1);assert.deepEqual(readFileSync(native),bytes);assert.deepEqual(readFileSync(join(origin,'recipe-lock.json')),lock);assert.deepEqual(readFileSync(join(studio.store.projectDirectory(id),'project.json')),pointer)
+    assert.equal(existsSync(studio.store.revisionDirectory(id,'r0002')),false)
+  }
+})
+
+test('a failed second framing compile, residual crop or concurrent native edit cannot publish a partial revision',async t=>{
+  for(const failure of ['second-compile','remaining-crop','native-edit']){
+    const {studio,request}=setup(t,'glazed-cup'),{requiredSceneFeatures}=await import('@deepblend/dsh-blender-contracts')
+    const made=await studio.createProject({title:'Framing second stage',recipe:request,saveCheckpoint:false}),id=made.projectId,origin=studio.store.revisionDirectory(id,'r0001'),native=join(origin,'scene.blend'),bytes=Buffer.from('original controlled native bytes')
+    writeFileSync(native,bytes);const manifestPath=join(origin,'revision-manifest.json'),manifest=JSON.parse(readFileSync(manifestPath));manifest.checkpoint='revisions/r0001/scene.blend';manifest.checkpointBinding={sha256:sha256(bytes),bytes:bytes.length};writeFileSync(manifestPath,JSON.stringify(manifest))
+    const pointer=readFileSync(join(studio.store.projectDirectory(id),'project.json'));let calls=0
+    studio.transactions.runtime={getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(studio.store.readRevisionSpec(id,'r0001'))}),compileScene:async input=>{
+      calls++;assert.equal(input.session,false)
+      if(calls===2&&failure==='second-compile')throw Error('controlled second framing compile failure')
+      const spec=JSON.parse(readFileSync(input.sceneSpecPath)),report=framingReportFixture(spec,calls===1||failure==='remaining-crop'?.03:0)
+      if(calls===2&&failure==='native-edit')writeFileSync(native,'independent native edit during second compile')
+      const directory=mkdtempSync(join(input.projectRoot,'controlled-framing-'));try{writeFileSync(join(directory,'result.blend'),'controlled candidate bytes');await input.onWorkingDirectory({directory});return{report,envelope:{warnings:[],notices:[]}}}finally{rmSync(directory,{recursive:true,force:true})}
+    }}
+    await assert.rejects(studio.updateRecipeParameters({projectId:id,baseRevision:'r0001',parameters:{'cup-height-mm':130},saveCheckpoint:true}),failure==='second-compile'?/controlled second framing compile failure/:{code:failure==='remaining-crop'?'SCENE_VALIDATION_FAILED':'RECIPE_PARAMETER_CONFLICT'})
+    assert.equal(calls,2);assert.deepEqual(readFileSync(join(studio.store.projectDirectory(id),'project.json')),pointer);assert.equal(existsSync(studio.store.revisionDirectory(id,'r0002')),false)
+    assert.deepEqual(readFileSync(native),failure==='native-edit'?Buffer.from('independent native edit during second compile'):bytes)
+  }
+})
+
+test('a corrected hero returns its measured frame/aspect receipt, retains first-stage notices and replays without compiling twice again',async t=>{
+  const {studio,request}=setup(t,'glazed-cup'),{requiredSceneFeatures,sceneSpecDigest,specHash}=await import('@deepblend/dsh-blender-contracts')
+  const made=await studio.createProject({title:'Framing receipt',recipe:request,saveCheckpoint:false}),id=made.projectId;let calls=0
+  studio.transactions.runtime={getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(studio.store.readRevisionSpec(id,'r0001'))}),compileScene:async input=>{
+    calls++;assert.equal(input.session,false);const spec=JSON.parse(readFileSync(input.sceneSpecPath)),report=framingReportFixture(spec,calls===1?.03:0)
+    const directory=mkdtempSync(join(input.projectRoot,'controlled-framing-'));try{writeFileSync(join(directory,'result.blend'),'controlled framing receipt bytes; not real geometry');await input.onWorkingDirectory({directory});return{report,envelope:{warnings:[],notices:calls===1?[{code:'CONTROLLED_FIRST_STAGE_NOTICE',message:'Keep the first compile observation'}]:[]}}}finally{rmSync(directory,{recursive:true,force:true})}
+  }}
+  const intent={projectId:id,baseRevision:'r0001',parameters:{'cup-height-mm':130},saveCheckpoint:true},saved=await studio.updateRecipeParameters(intent)
+  assert.equal(calls,2);assert.equal(saved.cameraFraming.backoffM,0);assert.equal(saved.cameraFraming.appliedBackoffM,.03);assert.equal(saved.cameraFraming.frame,1);assert.deepEqual(saved.cameraFraming.resolution,[640,480])
+  assert.ok(studio.store.readJob(id,saved.job.jobId).warnings.some(w=>w.message==='Keep the first compile observation'))
+  const spec=studio.store.readRevisionSpec(id,saved.revision),manifest=studio.store.readRevisionManifest(id,saved.revision)
+  assert.equal(manifest.digestAfter,sceneSpecDigest(spec));assert.equal(manifest.specHashAfter,specHash(spec))
+  assert.deepEqual(saved.parameterState.cupCameraRig.camera,spec.cameras.find(c=>c.id==='hero'))
+  saved.cameraFraming.cameraLocation[0]=999;assert.notEqual(studio.store.readRevisionManifest(id,saved.revision).cameraFraming.cameraLocation[0],999)
+  const replay=await studio.updateRecipeParameters(intent);assert.equal(replay.idempotentReplay,true);assert.equal(calls,2);assert.equal(replay.cameraFraming.appliedBackoffM,.03)
+})

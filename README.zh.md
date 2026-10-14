@@ -19,7 +19,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.9.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.9.0) 正式修复 250 mm 灯罩的支撑与弯臂联动，保留旧项目、手工修改与历史；工作台可检查已保存部件的原生尺寸。
+最新稳定版 [0.12.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.12.0) 可对照保存模型的实际尺寸与装配原点变化；音箱尺寸修改保留旧版本、手工造型与动画。已摆放厚壁杯的进一步修复仍是未发布候选。
 
 ## 安装并开始
 
@@ -416,7 +416,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**42 个套件、176 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**135 个文件 = 1993 项自计断言（34 个文件打印计数）+ 1744 个 `node:test` 用例（101 个文件）**。
+**135 个文件 = 1993 项自计断言（34 个文件打印计数）+ 1751 个 `node:test` 用例（101 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

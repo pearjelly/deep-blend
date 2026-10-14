@@ -216,6 +216,11 @@ def action_compile_scene(request, options):
         "project_root": options.get("project_root"),
     }
     report = build_scene(spec, build_options, guard)
+    framing_selection = (request.get('payload') or {}).get('cameraFraming')
+    framing = None
+    if framing_selection is not None:
+        from deepblend_camera_framing import measure_cup_hero_framing
+        framing = measure_cup_hero_framing(spec, framing_selection)
 
     report_progress("validate", 92)
     validation = validate_scene(bpy.context.scene, spec, guard)
@@ -267,6 +272,9 @@ def action_compile_scene(request, options):
         "validation": validation,
         "sceneFingerprint": scene_fingerprint(spec, objects),
     }
+
+    if framing is not None:
+        payload['cameraFraming'] = framing
 
     # The checkpoint is written even when validation reported errors: the caller
     # decides whether to publish, and a diagnostic blend is far more useful than

@@ -42,6 +42,7 @@
  */
 
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
+import { fitCupHeroFromNative } from './cup-hero-framing.js'
 import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
@@ -325,7 +326,7 @@ export class RevisionTransaction {
       const checked = validateScenePatch(patch)
       if (!checked.ok) throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, checked.summary)
       const state = { ...planned.parameterState, originRevision: context.originRevision }
-      const outcome = await this._applyScenePatch(patch, { ...options, recipeParameters: state, verifyNativeSource })
+      const outcome = await this._applyScenePatch(patch, { ...options, recipeParameters: state, verifyNativeSource, cameraFraming: planned.cameraFraming })
       const committed = readRecipeContext(this.store, request.projectId, outcome.revision.revision)
       if (!committed?.state) throw new BlenderError('RECIPE_LOCK_INVALID', 'The recorded outcome has no recipe parameter state')
       return { ...outcome, parameterState: committed.state, preservedCameraIds: planned.preservedCameraIds }
@@ -481,6 +482,7 @@ export class RevisionTransaction {
       kind: 'scene_patch',
       recipeParameters: options.recipeParameters ?? null,
       verifyNativeSource: options.verifyNativeSource,
+      cameraFraming: options.cameraFraming,
       summary,
       actor: patch.actor ?? null,
       stage: patch.stage ?? null,
@@ -611,21 +613,51 @@ export class RevisionTransaction {
       try {
         const featureCheck = assertRuntimeSceneFeatures(this.runtime, plan.spec, { signal: plan.signal })
         if (featureCheck) await featureCheck
-        const run = await this.runtime.compileScene({
-          sceneSpecPath: specPath,
-          profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',
-          projectRoot: this.store.projectDirectory(projectId),
-          jobId,
-          signal: plan.signal,
-          onWorkingDirectory: info => {
-            const produced = join(info.directory, 'result.blend')
-            if (isFile(produced)) {
-              // Same filesystem (both are inside the project's staging tree), so
-              // this rename is atomic and cannot half-copy a large file.
-              renameSync(produced, checkpointStaging)
-            }
-          },
-        })
+        const compile = async () => {
+          writeFileAtomic(specPath, sceneSpecCanonicalText(plan.spec))
+          return this.runtime.compileScene({
+            sceneSpecPath: specPath,
+            cameraFraming: plan.cameraFraming,
+            // Automatic framing compiles in isolation, preserving any live editor scene.
+            session: plan.cameraFraming ? false : undefined,
+            profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',
+            projectRoot: this.store.projectDirectory(projectId),
+            jobId,
+            signal: plan.signal,
+            onWorkingDirectory: info => {
+              const produced = join(info.directory, 'result.blend')
+              if (isFile(produced)) {
+                // Same filesystem (both are inside the project's staging tree), so
+                // this rename is atomic and cannot half-copy a large file.
+                renameSync(produced, checkpointStaging)
+              }
+            },
+          })
+        }
+        let run = await compile()
+        if (plan.cameraFraming) {
+          const initialFit = fitCupHeroFromNative(plan.spec, run.report, plan.cameraFraming)
+          if (initialFit.backoffM > 0) {
+            for (const entry of run.envelope.warnings ?? []) warnings.push(entry)
+            for (const entry of run.envelope.notices ?? []) warnings.push(warning(BlenderWarningCode.SCENE_COMPILER_DECISION, entry.message, { code: entry.code, framingStage: 'before-correction' }))
+            const correction = { op: 'camera.update', cameraId: initialFit.cameraId, transform: { location: initialFit.location } }
+            const corrected = applyPatchToSpec(plan.spec, { projectId, baseRevision: plan.baseRevision, operations: [correction] })
+            plan.spec = compileSceneSpec(corrected.spec).spec
+            const validation = validateSceneSpec(plan.spec)
+            if (!validation.ok) throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID, validation.summary)
+            plan.operations = [...plan.operations, correction]
+            plan.operationRecords = [...plan.operationRecords, ...corrected.operations]
+            plan.digestAfter = sceneSpecDigest(plan.spec)
+            plan.specHashAfter = specHash(plan.spec)
+            run = await compile()
+          }
+          const finalFit = fitCupHeroFromNative(plan.spec, run.report, plan.cameraFraming)
+          if (finalFit.backoffM !== 0) throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The recompiled hero still needs a framing correction; no revision was published')
+          plan.cameraFramingReceipt = { ...finalFit, appliedBackoffM: initialFit.backoffM, beforeCameraLocation: initialFit.cameraLocation }
+          plan.recipeParameters.cupCameraRig = { schemaVersion: 'deepblend.cup-camera-rig/v1',
+            anchor: structuredClone(plan.spec.entities.find(entity => entity.id === 'cup').transform),
+            camera: structuredClone(plan.spec.cameras.find(camera => camera.id === 'hero')) }
+        }
         compileReport = run.report
         technical = run.report?.validation ?? null
         for (const entry of run.envelope.warnings ?? []) warnings.push(entry)
@@ -809,6 +841,7 @@ export class RevisionTransaction {
         animatedObjects: technical.animatedObjects ?? null,
         cameraParameters: technical.cameraParameters ?? null,
       },
+      ...(plan.cameraFramingReceipt ? { cameraFraming: plan.cameraFramingReceipt } : {}),
       renderConfig: compileReport?.renderConfig ?? null,
       sceneFingerprint: compileReport?.sceneFingerprint ?? null,
       assetParts: (compileReport?.objects ?? [])

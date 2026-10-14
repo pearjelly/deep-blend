@@ -41,7 +41,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   const resolvedBefore = assembly && parameterState?.assemblyRepair ? instantiateRecipeLock(assembly.currentLock(currentLock)) : savedBefore
   const resolvedAfter = instantiateRecipeLock(assembly ? assembly.currentLock(currentLock) : currentLock, changes)
   const speaker = translatedSpeakerAssembly(lock, currentSpec, resolvedBefore, resolvedAfter)
-  const cup = placedCupCameras(lock, currentSpec, speaker.before, speaker.after)
+  const cup = placedCupCameras(lock, currentSpec, speaker.before, speaker.after, parameterState)
   const { before, after } = cup
   const parameters = recipeGeometryParameters(assembly?.manifest ?? lock.manifest)
   for (const id of Object.keys(changes)) {
@@ -143,9 +143,14 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
     ...cameras.values(),
     ...[...tracks.values()].map(track => ({ op: 'animation.track.set', track })),
   ]
-  return { operations, changedParameters: changed.map(parameter => parameter.id),
+  return { operations,
+    ...(changed.length > 0 && cup.recognizedCameraIds?.includes('hero') && !protectedCameras.has('hero')
+      ? { cameraFraming: { entityId: 'cup', cameraId: 'hero', margin: 0.03 } } : {}),
+    changedParameters: changed.map(parameter => parameter.id),
     preservedCameraIds: [...protectedCameras], parameterState: {
       schemaVersion: 'deepblend.recipe-parameters/v1', manifestSha256: lock.manifestSha256,
+      ...(!cameras.has('hero') && cup.recognizedCameraIds?.includes('hero') && parameterState?.cupCameraRig
+        ? { cupCameraRig: structuredClone(parameterState.cupCameraRig) } : {}),
       ...(assembly ? { assemblyRepair: 'metal-lamp-clearance/v1' } : {}),
       values: after.values, valuesSha256: sha256Canonical(after.values),
     } }

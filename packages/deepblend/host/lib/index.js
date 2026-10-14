@@ -833,6 +833,7 @@ export default class BlenderStudio extends Service {
     return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
       unchanged: outcome.unchanged === true, idempotentReplay: outcome.idempotentReplay === true,
       parameterState: outcome.parameterState, preservedCameraIds: outcome.preservedCameraIds, placementChanges,
+      ...(outcome.revision.cameraFraming ? { cameraFraming: structuredClone(outcome.revision.cameraFraming) } : {}),
       parameters: await this.getRecipeParameters(input.projectId, { revision: outcome.revision.revision }),
       ...(outcome.job ? { job: toCanonicalJobRecord(outcome.job) } : {}) }
   }
