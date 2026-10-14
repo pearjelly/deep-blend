@@ -1,0 +1,284 @@
+{
+  "status": "local development candidate acceptance passed; not released",
+  "measurementVersion": "deepblend.geometry-inspection/v2",
+  "defaultVersion": "deepblend.geometry-inspection/v1",
+  "nativeSyntheticChecks": 21,
+  "surfaceContractNodeCases": 42,
+  "providerNodeCases": 45,
+  "hostNodeCases": 53,
+  "bai": {
+    "checks": {
+      "outerDiameter250mm": true,
+      "normalWallSampleDriftBelow003mm": true,
+      "normalGapSampleDriftBelow001mm": true,
+      "shellMastIntersectionsZero": true,
+      "closedPositiveShellAndLiner": true,
+      "neckBulbDialCableSpecExact": true,
+      "materialsCamerasLightsAnimationExact": true,
+      "lampArmHeadPointsExact": true,
+      "completedWithRealElapsed": true,
+      "candidateSourceAndPersonalCredentialsUnchanged": true
+    },
+    "independentFrame": 24,
+    "sourceBeforeSha256": "e489fc8a18e04bc362a9a81ce65cee074859a356429e34f77c9883dd4b98032b",
+    "sourceAfterSha256": "beb68ba104b92b49314762ed94efc4d5edee282d8d1f3897a5d7ca57b619af60",
+    "wallMaxSampleDriftMm": 0.008469502080653335,
+    "gapMaxSampleDriftMm": 0.0012302127965054255,
+    "elapsedMs": 284910,
+    "toolCalls": 21,
+    "steps": 15,
+    "toolCounts": {
+      "skill": 1,
+      "blender_project_get": 1,
+      "blender_recipe_parameters": 2,
+      "blender_capabilities": 1,
+      "blender_scene_get": 5,
+      "grep": 7,
+      "read": 1,
+      "glob": 1,
+      "blender_preview_views": 1,
+      "present": 1
+    },
+    "userTaskSubmissions": 1,
+    "modelSurfaceQueries": [
+      {
+        "callId": "call_00_3tbfy3wtctijkqbnq1immre2",
+        "arguments": {
+          "geometryEntityIds": [
+            "shade-shell",
+            "shade-enamel-lining",
+            "shade-neck-collar",
+            "shade-neck-rim",
+            "swept-upper-arm",
+            "hinge-body",
+            "opal-bulb",
+            "bulb-socket"
+          ],
+          "geometryFrame": 24,
+          "geometrySurfaceSamples": [
+            {
+              "sampleId": "A-z3274",
+              "entityId": "shade-shell",
+              "targetEntityId": "shade-enamel-lining",
+              "originMeters": [
+                0.045,
+                -0.15246,
+                0.3274
+              ],
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "searchDistanceMm": 100
+            },
+            {
+              "sampleId": "B-z3447",
+              "entityId": "shade-shell",
+              "targetEntityId": "shade-enamel-lining",
+              "originMeters": [
+                0.045,
+                -0.14661,
+                0.3447
+              ],
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "searchDistanceMm": 100
+            },
+            {
+              "sampleId": "C-z3560",
+              "entityId": "shade-shell",
+              "targetEntityId": "shade-enamel-lining",
+              "originMeters": [
+                0.045,
+                -0.14122,
+                0.356
+              ],
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "searchDistanceMm": 100
+            },
+            {
+              "sampleId": "D-z3790",
+              "entityId": "shade-shell",
+              "targetEntityId": "shade-enamel-lining",
+              "originMeters": [
+                0.045,
+                -0.12368,
+                0.379
+              ],
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "searchDistanceMm": 100
+            }
+          ],
+          "projectId": "champagne-metal-lamp",
+          "revision": "r0004"
+        }
+      },
+      {
+        "callId": "call_00_dbqe2868ruid8j01e5u47nsa",
+        "arguments": {
+          "geometryEntityIds": [
+            "shade-shell",
+            "shade-enamel-lining",
+            "shade-neck-collar",
+            "shade-neck-rim",
+            "swept-upper-arm",
+            "hinge-body",
+            "opal-bulb",
+            "bulb-socket"
+          ],
+          "geometryFrame": 24,
+          "geometrySurfaceSamples": [
+            {
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "entityId": "shade-shell",
+              "originMeters": [
+                0.045,
+                -0.15246,
+                0.3274
+              ],
+              "sampleId": "A-z3274",
+              "searchDistanceMm": 100,
+              "targetEntityId": "shade-enamel-lining"
+            },
+            {
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "entityId": "shade-shell",
+              "originMeters": [
+                0.045,
+                -0.14661,
+                0.3447
+              ],
+              "sampleId": "B-z3447",
+              "searchDistanceMm": 100,
+              "targetEntityId": "shade-enamel-lining"
+            },
+            {
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "entityId": "shade-shell",
+              "originMeters": [
+                0.045,
+                -0.14122,
+                0.356
+              ],
+              "sampleId": "C-z3560",
+              "searchDistanceMm": 100,
+              "targetEntityId": "shade-enamel-lining"
+            },
+            {
+              "direction": [
+                0,
+                1,
+                0
+              ],
+              "entityId": "shade-shell",
+              "originMeters": [
+                0.045,
+                -0.12368,
+                0.379
+              ],
+              "sampleId": "D-z3790",
+              "searchDistanceMm": 100,
+              "targetEntityId": "shade-enamel-lining"
+            }
+          ],
+          "projectId": "champagne-metal-lamp",
+          "revision": "r0006"
+        }
+      }
+    ],
+    "scope": "One actual bai edit of a bai-created old project. Three fixed independent normal samples, finite shell/mast triangle checks; model selected four explicit rays separately. No all-surface minima, arbitrary modeling, artist approval or adoption claim."
+  },
+  "paidVisual": "14/14, process exit0; conditional handover exercised",
+  "paidToolCards": "10/10 final canonical product-preset test, explicit bai route, process exit0",
+  "twoRejectedMutations": {
+    "mutations": [
+      {
+        "mutation": "accept-invented-distance",
+        "killed": true,
+        "exitCode": 1,
+        "logSha256": "1bac512209612a8f746ecf7ecf841a6693fb8ddd172c25881427612b14e031df"
+      },
+      {
+        "mutation": "allow-numeric-unavailable",
+        "killed": true,
+        "exitCode": 1,
+        "logSha256": "217ab839804138664ccdacf7502b006db6896b5ac6672f2c2b0b7ba62a0093f1"
+      }
+    ],
+    "originalRestored": true
+  },
+  "baiAndFullPackagesByteIdentical": true,
+  "fullValidation": {
+    "suites": 42,
+    "exitCode": 0,
+    "completeRun": "Freeze2 full-v2.log",
+    "logSha256": "af16ec9cd597440c3b1f91c55d2aae71b7c4af8726bf34669f6951b33ad5b5c4",
+    "files": 769,
+    "sourceUnchanged": true,
+    "allPackagesMatchWorkingTree": true,
+    "unitFiles": 134,
+    "nodeCases": 1716,
+    "selfAssertions": 1993,
+    "sourceManifestSha256": "a179c9d83324062568652c8886b5814a92fe2fc1f21c6512a746b6c8c4eb33d5"
+  },
+  "originalFailuresRetained": [
+    "runtime-product-v1.log",
+    "host-product-v1.log",
+    "model-query-replay-v1.log",
+    "full-v1.log",
+    "full-v1-stopped.json",
+    "paid-ui-v1.log",
+    "paid-ui-v2.log",
+    "paid-ui-v3.log",
+    "paid-ui-v4.log",
+    "paid-ui-v5.log",
+    "paid-ui-v7.log"
+  ],
+  "limitations": [
+    "Local source/target normal rays only; other scene objects and mesh self-intersection absence are not certified.",
+    "Model final table label 壳外→内衬入面 is imprecise: measured separation starts at source EXIT, excludes wall chord. Replayed exact values match.",
+    "Model assertion about studio-floor scoring is not independently established.",
+    "Model delivered project-relative paths but guessed an old store root; actual artifacts are in the private copied project.",
+    "No arbitrary generation success, external artistic approval or adoption evidence."
+  ],
+  "paidUIProductNamespaces": [
+    "bundle",
+    "contracts",
+    "host",
+    "preset",
+    "provider-local",
+    "tool",
+    "ui"
+  ],
+  "paidUIFinalScope": "Final canonical test body with explicit bai/model/web overrides; all7 namespaces from Freeze2. Only relative imports anchored to that snapshot.",
+  "sourceFilesSha256": {
+    "packages/deepblend/provider-local/python/deepblend_inspect_surface.py": "34d233e2894d6e96aab39d36c4c3505710f97e98c1e663fa204568d05ec356c1",
+    "packages/deepblend/contracts/lib/geometry-inspection.js": "ccabf53ee3e63534924dec1169850488c37090197f444727731accd3feac8bb3",
+    "packages/deepblend/host/lib/geometry-inspection.js": "a021568c760fe4e2da442644085103d6eac16a66c0bb5158c6a531fefc3f9f17",
+    "packages/deepblend/tool/lib/tools.js": "7cc4127eff727f851168f9b3ed10d19fe07130724c1bf3287683c8bd2159e35e"
+  }
+}

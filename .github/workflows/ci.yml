@@ -216,6 +216,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-browser
         run: xvfb-run -a node deepblend/tests/e2e/recipe-version-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-browser.log" 2>&1
+      - name: Native local surface sampling and refusal boundaries
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          DEEPBLEND_SURFACE_OUTPUT: ${{ runner.temp }}/deepblend-ci/surface-native
+        run: xvfb-run -a node deepblend/tests/blender-integration/surface-inspection.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/surface-native.log" 2>&1
       - name: Real paired lamp dimensions and liner inspection
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8

@@ -63,16 +63,29 @@ export async function inspectRevisionGeometry(host, projectId, revision, selecti
     if (fileSha256(snapshot) !== expected) refuse(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'the staged native input differs from the saved source.')
     const result = await host.runtime.inspectGeometry(request)
     cancelled(signal)
+    if (selection.surfaceSamples !== undefined && result?.report?.schemaVersion === 'deepblend.geometry-inspection/v1') {
+      refuse(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'the runtime does not support local surface samples; upgrade DeepBlend. Ordinary native geometry reads remain available.')
+    }
     const native = verifyGeometryReport(result?.report, request)
     verifySource()
-    return { schemaVersion: 'deepblend.scene-geometry/v1', projectId, sourceRevision: revision,
+    const hasSamples = selection.surfaceSamples !== undefined
+    return { schemaVersion: hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1', projectId, sourceRevision: revision,
       sourceDigest: digest, sourceSpecHash: manifest.specHashAfter, sourceCheckpointSha256: expected,
       sourceUnchanged: true, frame: native.frame, objects: native.objects, blenderVersion: native.blenderVersion,
-      excludedMeasurements: ['wallThickness', 'shellToLinerClearance', 'minimumClearance', 'collision'],
+      ...(hasSamples ? { surfaceSamples: native.surfaceSamples } : {}),
+      excludedMeasurements: hasSamples ? ['globalWallThickness', 'assemblyClearance', 'minimumClearance', 'collision', 'selfIntersection'] :
+        ['wallThickness', 'shellToLinerClearance', 'minimumClearance', 'collision'],
       execution: { transport: 'batch' }, limitations: [
         'World-axis spans include rotations, handles and protrusions; they are not intrinsic body dimensions.',
         'This evaluates saved native mesh geometry, not shader displacement or rendered pixels.',
-        'No wall thickness, clearance, collision, topology or artistic approval is established.',
+        ...(hasSamples ? [
+          'Surface samples are finite local chords along evaluated triangle-face normals, not shader or smoothed shading normals.',
+          'Target separations measure only the specified pair along the sampled normal. Other scene objects are not checked; this is not full assembly free clearance.',
+          'Closed connected consistently wound positive-volume geometry is required, but absence of self-intersections is not certified.',
+          'No global minimum wall thickness, minimum clearance, collision absence, manufacturing safety or artistic approval is established.',
+          'Unmeasured, missed, overlapping, occluded or unsupported samples must remain unavailable, never be replaced by zero or inferred from bounds.',
+          'Search distance is explicitly requested (0.01–500 mm); chord and target search limits are each 100 mm. Epsilon is 0.0001 mm; distances at or below twice epsilon are unavailable.',
+        ] : ['No wall thickness, clearance, collision, topology or artistic approval is established.']),
         'Do not subtract shell and liner extents or radii to report a gap: both bounds describe outer surfaces, and their difference includes wall material and depends on curvature and orientation.',
         'Unchanged height, position or scale does not prove that wall thickness or clearance was preserved. Report those conditions as unmeasured unless a separate surface measurement verifies them.',
       ] }

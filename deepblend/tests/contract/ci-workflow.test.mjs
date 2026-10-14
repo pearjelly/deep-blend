@@ -257,6 +257,16 @@ test('the install path is walked on every push, not when somebody remembers', ()
 })
 
 
+test('native local surface sampling is a bounded retained CI and complete-acceptance step', () => {
+  const path = 'deepblend/tests/blender-integration/surface-inspection.e2e.mjs'
+  assert.ok(workflow.includes(`xvfb-run -a node ${path} > "$DEEPBLEND_CI_EVIDENCE/surface-native.log" 2>&1`))
+  assert.ok(workflow.includes('DEEPBLEND_SURFACE_OUTPUT: ${{ runner.temp }}/deepblend-ci/surface-native'))
+  const step = workflow.split(/^      - /m).find(s => s.startsWith('name: Native local surface sampling'))
+  assert.match(step, /timeout-minutes: 3/)
+  assert.ok(step.includes("!cancelled() && steps.graphics.outcome == 'success'"))
+  assert.ok(readFileSync(join(ROOT, 'deepblend/tests/run-all.sh'), 'utf8').includes(`node ${path}`))
+})
+
 test('Linux inspections use fixed runtimes and preserve failure evidence', () => {
   const pins = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/ci-runtime-pins.json')))
   const blender = JSON.parse(readFileSync(join(ROOT, 'deepblend/tools/blender-release.json')))

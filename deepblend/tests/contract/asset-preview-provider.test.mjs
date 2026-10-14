@@ -69,6 +69,30 @@ test('geometry inspection uses a verified isolated snapshot and keeps original b
   assert.deepEqual(readdirSync(join(f.scratch, 'tmp')), [])
 })
 
+test('surface inspection forwards explicit local rays through the same isolated native source', async t => {
+  const f = await geometryRuntime(t), original = f.runtime.runBootstrap
+  const samples = [{ sampleId: 'wall-mid', entityId: 'body', originMeters: [-.01,0,0], direction: [1,0,0], searchDistanceMm: 50 }]
+  f.runtime.runBootstrap = async (call, options) => {
+    assert.deepEqual(call.payload.surfaceSamples, samples)
+    const run = await original(call, options)
+    run.envelope.result.schemaVersion = 'deepblend.geometry-inspection/v2'
+    run.envelope.result.surfaceSamples = [{ ...samples[0], status: 'sampled', entryMeters: [0,0,0], exitMeters: [.002,0,0], inwardUnitNormal: [1,0,0], normalSurfaceChordMm: 2 }]
+    return run
+  }
+  const result = await f.runtime.inspectGeometry({ ...f.request, surfaceSamples: samples })
+  assert.equal(result.report.surfaceSamples[0].normalSurfaceChordMm, 2)
+  assert.equal(readFileSync(f.source, 'utf8'), 'native checkpoint')
+  assert.deepEqual(readdirSync(join(f.scratch,'tmp')), [])
+})
+
+test('an old bootstrap gives an upgrade diagnosis for surface samples, while v1 reads still work', async t => {
+  const f = await geometryRuntime(t)
+  await assert.rejects(f.runtime.inspectGeometry({ ...f.request, surfaceSamples: [{ sampleId:'wall',entityId:'body',originMeters:[-.01,0,0],direction:[1,0,0],searchDistanceMm:50 }] }),
+    e=>e.code===BlenderErrorCode.RUNTIME_UNAVAILABLE && /Upgrade/.test(e.message))
+  assert.equal((await f.runtime.inspectGeometry(f.request)).report.schemaVersion,'deepblend.geometry-inspection/v1')
+  assert.deepEqual(readdirSync(join(f.scratch,'tmp')), [])
+})
+
 for (const [name, edit] of [
   ['duplicate entities', r => { r.entityIds = ['body','body'] }],
   ['too many entities', r => { r.entityIds = Array.from({length:9}, (_,i) => `part${i}`) }],

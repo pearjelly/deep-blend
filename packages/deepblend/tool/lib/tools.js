@@ -393,7 +393,10 @@ function sceneGet(ctx) {
       'To measure saved native parts, pass geometryEntityIds (1–8 IDs from this scene) and an explicit geometryFrame. ' +
       'This returns source-verified world-axis spans in millimeters and transforms without rendering or creating a revision. ' +
       'Spans include rotation, handles and protrusions; they are not body diameter, wall thickness, clearance or quality approval. ' +
-      'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. Those surface conditions remain unmeasured. ' +
+      'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. ' +
+      'Optional geometrySurfaceSamples measures 1–8 explicit local surface chords and pair separations on the same saved source. ' +
+      'Choose outside world seeds and directions from the actual scene/bounds; missed or unsupported samples remain unavailable. ' +
+      'Local samples do not prove full-surface minimum wall thickness, whole-assembly clearance, no collision or quality approval. ' +
       'ALWAYS use the revision this returns as `baseRevision` for your next blender_scene_patch.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
@@ -402,6 +405,15 @@ function sceneGet(ctx) {
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
+      geometrySurfaceSamples: { type: 'array', description: 'Optional 1–8 local surface samples. Requires geometryEntityIds including every source/target and geometryFrame. Numeric results are local evidence only.',
+        items: { type: 'object', additionalProperties: false, properties: {
+          sampleId: { type: 'string', required: true, description: 'Distinct short letters/numbers/underscore/hyphen identifier (1–64 characters).' },
+          entityId: { type: 'string', required: true, description: 'Source mesh ID in geometryEntityIds.' },
+          targetEntityId: { type: 'string', description: 'Optional distinct selected mesh for separation after the source exit.' },
+          originMeters: { type: 'array', items: { type: 'number' }, required: true, description: 'Three finite world metre coordinates outside the source. Do not use declared wall or gap values as measurements.' },
+          direction: { type: 'array', items: { type: 'number' }, required: true, description: 'Three finite non-zero direction components toward the source; normalized by the runtime.' },
+          searchDistanceMm: { type: 'number', required: true, description: 'Explicit seed search limit from 0.01 to 500 mm. Normal chord and target searches are separately limited to 100 mm.' },
+        } } },
       full: {
         type: 'boolean',
         description: 'Also return the complete SceneSpec and its compiled form. Costs a lot of context — ' +
@@ -416,14 +428,19 @@ function sceneGet(ctx) {
         if ((args.geometryEntityIds === undefined) !== (args.geometryFrame === undefined)) {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Native measurements require both geometryEntityIds and geometryFrame.')
         }
+        if (args.geometrySurfaceSamples !== undefined && args.geometryEntityIds === undefined) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Surface samples require geometryEntityIds and geometryFrame.')
+        }
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
-          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64) })
+          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
           ...definedFields({ revision: args.revision }),
           full: args.full === true,
-          ...(args.geometryEntityIds === undefined ? {} : { geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame }, signal: exec?.signal }),
+          ...(args.geometryEntityIds === undefined ? {} : { geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
+            ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
         }), warning)
-        if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== 'deepblend.scene-geometry/v1' ||
+        const hasSamples = args.geometrySurfaceSamples !== undefined
+        if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
             data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
             data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
             !Array.isArray(data.geometryInspection.limitations) ||
@@ -431,9 +448,10 @@ function sceneGet(ctx) {
           throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
         }
         if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
-          schemaVersion: 'deepblend.geometry-inspection/v1', checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
+          schemaVersion: hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+          ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
           checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-          checkpointSha256: data.geometryInspection.sourceCheckpointSha256 })
+          checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         const counts = data.counts ?? {}
         const notes = [
           `Revision ${data.revision}${data.isCurrent ? ' (current)' : ' (NOT current — patches against it will be refused)'}`,

@@ -400,6 +400,19 @@ revision、digest、帧范围与 fps、各类计数、每个实体（id/type/sha
 visible/locked）、相机参数、动画轨道、渲染 profile、已有的 preview 清单。
 `full:true` 才附带完整 `spec` 与 `compiledSpec`。
 
+开发中的局部表面检查沿用该工具：`geometryEntityIds`（1–8个保存实体）与显式
+`geometryFrame` 请求原生跨度；可选 `geometrySurfaceSamples`（1–8个）请求严格v2回执。
+每条采样有 `sampleId`、已选择的 `entityId`、世界米制 `originMeters`、非零 `direction`
+及0.01–500 mm的 `searchDistanceMm`；可选 `targetEntityId` 必须是另一个已选择实体。
+种子应位于关注区域的物体外，不能从声明壁厚或两个包围盒的差值伪造读数。
+
+`normalSurfaceChordMm` 是首个入面沿其三角面法线到首个退出面的局部弦长。
+`gap.normalRaySeparationMm` 从**该退出面**到目标首个入面的距离，**不包含前面的壁面弦长**。
+报告含种子、方向、命中点、法线、保存修订/帧和原生SHA。重叠、遮挡、未命中、开放/
+反向/多分量网格、预算超限等情况给出不适用状态，不返回假零。壁面和目标搜索各限100 mm。
+这些结果不是全表面最小壁厚、最小距离、整机自由间隙、无碰撞、无自交或制造/艺术认可。
+普通查询保持v1；旧Host/Provider/原生脚本给出升级提示而不伪造采样。尚未发布新稳定版本。
+
 **契约要点**：两者返回的 `revision` 必须被用作下一次 `blender_scene_patch` 的
 `baseRevision`。若该 revision 不是 current，`data.isCurrent === false`，且工具文本会
 明确提示「对其进行 patch 会被拒绝」。

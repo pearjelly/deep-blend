@@ -30,9 +30,11 @@
  * Run: node deepblend/tests/e2e/ui-live.e2e.mjs
  */
 
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, readFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { resolveDeploymentNodeModules } from '../lib/dsh-deployment.mjs'
 
 import { Browser } from '../../tools/browser-driver.mjs'
 import { REAL_HOME, REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
@@ -44,7 +46,7 @@ function check(name, ok, detail) {
 }
 
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH ?? join(REPO_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
-const PRESET_LABEL = 'DeepBlend 开发模式'
+const PRESET_LABEL = 'DeepBlend Studio'
 
 // Loud, not silent: each of these is a reason the suite cannot run, and a
 // "passed" that means "skipped" is the failure mode this repository refuses.
@@ -56,8 +58,8 @@ if (!existsSync(join(REAL_HOME, '.credentials.yaml'))) {
   console.error(`No credential store at ${join(REAL_HOME, '.credentials.yaml')}; the live tool-card pass needs a model route.`)
   process.exit(2)
 }
-if (!existsSync(join(REAL_HOME, '.agent-presets', 'deepblend-dev', 'preset.yml'))) {
-  console.error('The deepblend-dev preset is not installed; run: node deepblend/tools/install-presets.mjs')
+if (!existsSync(join(REAL_HOME, '.agent-presets', 'deepblend', 'preset.yml'))) {
+  console.error('The DeepBlend Studio product preset is not installed; run: node deepblend/tools/install-presets.mjs')
   process.exit(2)
 }
 
@@ -68,8 +70,34 @@ const projectId = `ui-live-${Math.random().toString(16).slice(2, 8)}`
 let server = null
 let browser = null
 
+// Choose an explicitly requested test route in the private profile, without changing
+// the operator's deployment or copying credentials into output. The bundle's store
+// override includes its default model, so inherited settings alone cannot select bai.
+async function modelPatch(store) {
+  const rows = JSON.parse(await storePatch(store))
+  const provider = process.env.DEEPBLEND_PROBE_PROVIDER, model = process.env.DEEPBLEND_PROBE_MODEL
+  if (!provider && !model) return JSON.stringify(rows)
+  if (!provider || !model) throw Error('Live probe requires both provider and model overrides.')
+  const profile = process.env.DEEPBLEND_PROBE_PROFILE ?? 'desktop'
+  if (!/^[a-z0-9-]+$/.test(profile)) throw Error('Invalid live probe profile name.')
+  const yaml = await import(pathToFileURL(join(resolveDeploymentNodeModules(), 'js-yaml', 'index.js')).href)
+  const source = yaml.load(readFileSync(join(REAL_HOME, 'profiles', profile, 'cordis.patch.yml'), 'utf8'))
+  if (!Array.isArray(source)) throw Error('Configured model profile is not a plugin array.')
+  const adapter = source.find(r => r.id === 'llm-pi-ai' && r.config?.providers?.[provider])
+  if (adapter) {
+    const index = rows.findIndex(r => r.id === adapter.id)
+    if (index >= 0) rows[index] = adapter
+    else rows.push(adapter)
+  } else if (provider !== 'deepseek-official') throw Error('Requested probe provider is not configured in the selected profile.')
+  const selected = rows.find(r => r.id === 'agent-default-model') ?? source.find(r => r.id === 'agent-default-model')
+  if (!selected) throw Error('Probe has no default model service.')
+  selected.config = { ...selected.config, provider, model }
+  if (!rows.some(r => r.id === selected.id)) rows.push(selected)
+  return JSON.stringify(rows)
+}
+
 try {
-  server = await startWeb({ workspacePath: REPO_ROOT, patch: await storePatch(store), keepHome: true, inheritUserConfig: true })
+  server = await startWeb({ workspacePath: REPO_ROOT, patch: await modelPatch(store), keepHome: true, inheritUserConfig: true })
   console.log(`── test server on ${server.url.split('?')[0]} ──`)
 
   // The project is made through the Host route, not through the UI: this suite is
@@ -108,23 +136,22 @@ try {
   await page.waitFor(`Array.from(document.querySelectorAll('button')).some(button => (button.textContent || '').trim() === ${JSON.stringify(PRESET_LABEL)})`, 20000)
   check('the console shows the DeepBlend preset as the session\'s preset',
     (await page.evaluate(`Array.from(document.querySelectorAll('button')).map(button => (button.textContent || '').trim()).includes(${JSON.stringify(PRESET_LABEL)})`)) === true)
+  if (process.env.DEEPBLEND_PROBE_MODEL) {
+    await page.waitFor(`document.querySelector('button[aria-label^="选择模型"]')?.getAttribute('aria-label').includes(${JSON.stringify(process.env.DEEPBLEND_PROBE_MODEL)})`, 20000)
+    console.log(`live route: ${process.env.DEEPBLEND_PROBE_PROVIDER}/${process.env.DEEPBLEND_PROBE_MODEL}`)
+  }
 
   // ── 2. the model is asked to call a DeepBlend tool ───────────────────────
   const message = `调用 blender_project_get，projectId 用 ${projectId}，然后只回一句话。`
-  await page.evaluate(`(() => {
-    const editor = document.querySelector('[contenteditable="true"]')
-    editor.focus()
-    document.execCommand('insertText', false, ${JSON.stringify(message)})
-    return editor.textContent.length
-  })()`)
-  await page.evaluate(`(() => {
-    const button = document.querySelector('button[aria-label="发送消息"]')
-    if (button) button.click()
-    return button !== null
-  })()`)
+  await page.evaluate(`document.querySelector('[contenteditable="true"]').focus()`)
+  await page.send('Input.insertText', { text: message })
+  await page.waitFor(`document.querySelector('button[aria-label="发送消息"]')?.disabled === false`, 30000)
+  check('the task is submitted once using a real enabled pointer control',
+    (await page.click('button[aria-label="发送消息"]')).via === 'pointer')
 
   // ── 3. the card for that call ────────────────────────────────────────────
   await page.waitFor(`document.querySelector('[data-tool-card]') !== null`, 300000)
+  await page.waitFor(`Array.from(document.querySelectorAll('[data-tool-card="blender_project_get"]')).some(card => ['ok','error','cancelled'].includes(card.getAttribute('data-tool-state')))`, 300000)
   const cards = await page.attributes('[data-tool-card]', 'data-tool-card')
   check('the call rendered through this package\'s card, keyed by the wire tool name',
     cards.includes('blender_project_get'), cards)
