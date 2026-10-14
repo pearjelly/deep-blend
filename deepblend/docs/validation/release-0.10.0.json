@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "deepblend.release-proof/v1",
+  "sourceCommit": "46da8dbfd5fa540fa223cd86decfe37e79878eb8",
+  "sourceTree": "6ee285c3c4cf6b18473f342a917401b03a079fe1",
+  "mainMerge": "782e8d76835d42c1c2403f55339edf52567dd3d2",
+  "mainTreeExact": true,
+  "github": {
+    "releaseId": 412261757,
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.10.0",
+    "publishedAt": "2026-10-14T01:52:32Z",
+    "initialAssetsVerified": 35,
+    "anonymousFullBundleReadVerified": true,
+    "bundleSha256": "e9179c10075199d1ba907ab4249af1502ac07a63a57316437fb2b2aab2f47145",
+    "bundleBytes": 72213161,
+    "finalProofAndChecksums": "Append-only new assets, same version code is never overwritten.",
+    "finalAssetsVerified": 44,
+    "proofAndChecksumsAppendedWithoutOverwrite": true
+  },
+  "installRoutes": {
+    "wholeRunExit": 0,
+    "versions": [
+      "0.10.0",
+      "0.10.0",
+      "0.10.0"
+    ],
+    "workbenchStatus": [
+      200,
+      200,
+      200
+    ],
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "fetchedPackages": [
+      13,
+      13,
+      1
+    ],
+    "problems": 0,
+    "scope": "Installs and workbench/preset loading. Agent tool plane is not invoked by route probes; all7 product namespaces ran in the separate actual bai task.",
+    "conditions": "parity-conditions.json"
+  },
+  "community": {
+    "submitted": true,
+    "commit": "5001a8568d7da0b8c606db2b8632e27f4170c1d4",
+    "entryBlob": "08e401e6dd55e69569b19e70441b04bf1c6a3b73",
+    "projectionBytesExact": true,
+    "pr": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6868",
+    "upstreamMerged": false,
+    "onlineRefreshConfirmed": false
+  },
+  "scope": "One actual bai editing acceptance; no arbitrary-modeling population success, global geometry minima, curve arc length, manufacturing certification, outside artistic approval or adoption claim. Actual lamp heuristic score82/open issues retained. All original failures preserved. Private homes/credentials/configuration excluded.",
+  "status": "standard release complete;44 public assets verified",
+  "npm": {
+    "packages": 7,
+    "allPublic": true,
+    "fullArchiveInventoriesAndSourceBytesVerified": true
+  },
+  "bai": {
+    "status": "final native, history, computed measurements and fixed-view acceptance passed",
+    "checks": {
+      "outerDiameter250mm": true,
+      "fixedNormalWallDriftUnder003mm": true,
+      "fixedNormalGapDriftUnder001mm": true,
+      "shellMastFiniteIntersectionsZero": true,
+      "closedPositiveShellAndLiner": true,
+      "neckBulbDialCableSpecExact": true,
+      "materialsCamerasLightsAnimationExact": true,
+      "armHeadPointsExact": true,
+      "oldHistoryAll72FilesExact": true,
+      "realTaskCompleteAndProtectedSourceUnchanged": true
+    },
+    "sourceBeforeSha256": "e489fc8a18e04bc362a9a81ce65cee074859a356429e34f77c9883dd4b98032b",
+    "sourceAfterSha256": "a5a9d9fbbed6ab53556c33c0772a89bc536275794519fe015e4be36f7b7296e6",
+    "wallMaxFixedSampleDriftMm": 0.008469502080653335,
+    "gapMaxFixedSampleDriftMm": 0.0012302127965054255,
+    "elapsedMs": 490550,
+    "toolCalls": 23,
+    "steps": 15,
+    "toolCounts": {
+      "skill": 1,
+      "blender_capabilities": 1,
+      "blender_project_get": 1,
+      "blender_recipe_parameters": 3,
+      "blender_scene_get": 9,
+      "blender_preview_views": 1,
+      "blender_preview_render": 1,
+      "glob": 5,
+      "present": 1
+    },
+    "humanTaskSubmissions": 1,
+    "scope": "One actual bai edit of a bai-created old lamp. Three fixed independent samples and finite shell/mast intersections, history and specification preservation. Not all-surface minima, arbitrary modeling, external artistry or adoption. Bounding spans do not certify curve arc length.",
+    "numericReply": {
+      "replay": 24,
+      "total": 24,
+      "displayedRowsMatched": 18,
+      "quotedMaximaMatched": 12,
+      "finalRequestedSamples": 18,
+      "finalComparableSamples": 17,
+      "unavailable": 1,
+      "preliminaryProbeSamples": 6,
+      "preliminaryMisses": 2
+    },
+    "fixedConditionPairs": 2,
+    "visualHeuristicScore": 82,
+    "visualMeasuredIssues": "4 retained, not explained or dismissed; no r0004 score comparison claimed"
+  },
+  "all42SuitesPassed": true,
+  "publicCIJobs": [
+    4,
+    4
+  ],
+  "releaseLabel": "0.10.0"
+}
