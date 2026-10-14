@@ -56,7 +56,7 @@ limit. Additional views still need to show the features required by the brief.
 
 For an existing assembly dimension edit, the final handoff must be a compact receipt:
 - project/current revision and the retained original;
-- only the requested overall dimensions, from the saved native span receipt;
+- requested dimensions as saved controls, and the measured native spans with their coordinate basis;
 - saved custom keyframe timing and protected cameras when requested;
 - the actual registered native file and primary/back images;
 - the remaining score findings and unmeasured global conditions.
@@ -330,9 +330,15 @@ the current revision and repeat the affected views with the same settings.
    describe all relative offsets as invariant. A world-coordinate endpoint is not an exposure
    or clearance distance. If no returned field defines a relationship measurement, leave it
    unmeasured instead of deriving an attachment distance or margin in the final answer.
-   Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation, including the
-   button rest anchor, while resizing. Partial moves and rotated dimension-controlled parts
-   remain conflicts. Keep custom photography; verify its framing after the size change.
+   Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation or XYZ rigid
+   pose while resizing when every original part and the button rest anchors agree. A rotated
+   button needs the corresponding saved world-axis curves; retain their actual timing/travel.
+   Partial moves, independently rotated parts, scaling and missing animation anchors remain
+   conflicts. Keep custom photography and verify framing; add a complete delivery view when
+   a protected camera clips the enlarged assembly, without replacing that authored camera.
+   Native world-axis spans change with rotation and cannot certify cabinet-local width/depth/
+   height. Distinguish saved size controls from those measured spans. Do not undo the user's
+   placement or scale the assembly to make world spans match the requested local dimensions.
    Controlled geometry conflicts require resolving the named parts before saving. Old recipes
    without geometry controls return available:false. Use a fresh idempotencyKey for each new
    intent, including edits after restoring history; reuse it only for the same retry.

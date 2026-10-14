@@ -665,3 +665,95 @@ test('ordinary canonical framing and unknown valid source rules still apply when
   const plan=planRecipeGeometryEdit(other,saved,otherState,{'cup-height-mm':115})
   assert.equal(plan.cameraFraming,undefined);assert.deepEqual(plan.preservedCameraIds,['hero','roots','inside'])
 })
+
+// Independent XYZ construction uses sequential axis rotations, rather than the
+// recognizer's matrix formula. This covers Blender-style intrinsic part poses.
+function rigidSpeaker(spec, angles = [-.2, .3, Math.PI / 3], shift = [.12, -.08, .25]) {
+  const result = structuredClone(spec), [x,y,z] = angles
+  const rotate = ([a,b,c]) => {
+    const ry = Math.cos(x)*b-Math.sin(x)*c, rz = Math.sin(x)*b+Math.cos(x)*c
+    const rx = Math.cos(y)*a+Math.sin(y)*rz, zz = -Math.sin(y)*a+Math.cos(y)*rz
+    return [Math.cos(z)*rx-Math.sin(z)*ry, Math.sin(z)*rx+Math.cos(z)*ry, zz]
+  }
+  const point = p => rotate(p).map((v,i)=>v+shift[i])
+  const euler = m => {
+    const y = Math.asin(Math.max(-1,Math.min(1,-m[2][0])))
+    return Math.abs(Math.cos(y)) > 1e-8 ? [Math.atan2(m[2][1],m[2][2]), y, Math.atan2(m[1][0],m[0][0])]
+      : [Math.atan2(-m[1][2],m[1][1]), y, 0]
+  }
+  for (const entity of result.entities) if (entity.id !== 'studio-floor') {
+    const [a,b,c] = entity.transform.rotationEuler
+    const intrinsic = p => { const [u,v,w]=p, yy=Math.cos(a)*v-Math.sin(a)*w, zz=Math.sin(a)*v+Math.cos(a)*w
+      const xx=Math.cos(b)*u+Math.sin(b)*zz; return [Math.cos(c)*xx-Math.sin(c)*yy,Math.sin(c)*xx+Math.cos(c)*yy,-Math.sin(b)*u+Math.cos(b)*zz] }
+    const columns = [[1,0,0],[0,1,0],[0,0,1]].map(v=>rotate(intrinsic(v)))
+    entity.transform.rotationEuler = euler([0,1,2].map(i=>columns.map(v=>v[i])))
+    entity.transform.location = point(entity.transform.location)
+  }
+  for (const camera of result.cameras) { camera.transform.location=point(camera.transform.location); camera.targetPoint=point(camera.targetPoint) }
+  result.animationTracks = spec.animationTracks.flatMap(track => {
+    if (!/^location\.[xyz]$/.test(track.property)) return [structuredClone(track)]
+    const axis = ['x','y','z'].indexOf(track.property.at(-1)), entity=spec.entities.find(e=>e.id===track.targetEntityId)
+    return ['x','y','z'].map((name,i)=>({...structuredClone(track),id:i===axis?track.id:`${track.id}-rigid-${name}`,property:`location.${name}`,
+      keyframes:track.keyframes.map(key=>{const p=[...entity.transform.location];p[axis]=key.value;return {...key,value:point(p)[i]} }) }))
+  })
+  return result
+}
+const speakerSize = {'cabinet-width-mm':320,'cabinet-depth-mm':160,'cabinet-height-mm':200}
+
+test('complete XYZ speaker pose resizes all parts and all press axes, then returns without cumulative drift', () => {
+  const value=speaker(), values={'cabinet-width-mm':300,'cabinet-depth-mm':150,'cabinet-height-mm':180}, lock=lockFor(value,values)
+  const initial=instantiateRecipe(value,values).spec, current=rigidSpeaker(initial), original=JSON.stringify({current,lock})
+  const plan=planRecipeGeometryEdit(lock,current,undefined,speakerSize), result=applyPlan(current,plan)
+  const expected=rigidSpeaker(instantiateRecipe(value,speakerSize).spec)
+  for(const part of result.entities){const target=expected.entities.find(e=>e.id===part.id)
+    assert.ok(part.transform.location.every((v,i)=>Math.abs(v-target.transform.location[i])<1e-12),part.id)
+    assert.deepEqual(part.transform.rotationEuler,current.entities.find(e=>e.id===part.id).transform.rotationEuler)
+    assert.deepEqual(part.generator,target.generator)
+  }
+  for(const track of result.animationTracks){const target=expected.animationTracks.find(t=>t.id===track.id)
+    assert.deepEqual(track.keyframes.map(k=>k.frame),target.keyframes.map(k=>k.frame))
+    assert.ok(track.keyframes.every((k,i)=>Math.abs(k.value-target.keyframes[i].value)<1e-12))
+  }
+  assert.deepEqual(result.cameras,current.cameras)
+  const back=applyPlan(result,planRecipeGeometryEdit(lock,result,plan.parameterState,values))
+  for(const part of current.entities)assert.ok(back.entities.find(e=>e.id===part.id).transform.location.every((v,i)=>Math.abs(v-part.transform.location[i])<1e-12))
+  assert.equal(JSON.stringify({current,lock}),original)
+})
+
+test('rigid speaker resizing preserves authored materials, details, cameras and actual coupled button timing', () => {
+  const value=speaker(), lock=lockFor(value), current=rigidSpeaker(instantiateRecipe(value).spec)
+  current.materials[0].parameters.roughness=.41;current.entities.find(e=>e.id==='cabinet-shell').generator.bevel.segments=7
+  current.cameras[0].lens+=5
+  for(const t of current.animationTracks) { t.keyframes[1].frame+=3;t.keyframes[1].value-=.0002 }
+  const original=structuredClone(current), result=applyPlan(current,planRecipeGeometryEdit(lock,current,undefined,speakerSize))
+  assert.deepEqual(result.materials,original.materials);assert.deepEqual(result.cameras,original.cameras)
+  assert.deepEqual(result.entities.find(e=>e.id==='cabinet-shell').generator.bevel,original.entities.find(e=>e.id==='cabinet-shell').generator.bevel)
+  for(const old of original.animationTracks){const next=result.animationTracks.find(t=>t.id===old.id),axis=['x','y','z'].indexOf(old.property.at(-1))
+    const delta=result.entities.find(e=>e.id===old.targetEntityId).transform.location[axis]-original.entities.find(e=>e.id===old.targetEntityId).transform.location[axis]
+    assert.deepEqual(next.keyframes.map(k=>k.frame),old.keyframes.map(k=>k.frame))
+    assert.ok(next.keyframes.every((k,i)=>Math.abs(k.value-old.keyframes[i].value-delta)<1e-12))
+  }
+  assert.deepEqual(current,original)
+})
+
+test('partial speaker poses, scaling and missing or inconsistent coupled animation anchors remain conflicts', () => {
+  const value=speaker(),lock=lockFor(value)
+  for(const change of [
+    s=>{s.entities.find(e=>e.id==='driver-cone').transform.location[0]+=.001},
+    s=>{s.entities.find(e=>e.id==='driver-cone').transform.rotationEuler[2]+=.01},
+    s=>{s.entities.find(e=>e.id==='cabinet-shell').transform.scale[0]=1.001},
+    s=>{s.entities=s.entities.filter(e=>e.id!=='rear-screw-l-t')},
+    s=>{s.animationTracks=s.animationTracks.filter(t=>t.property!=='location.x')},
+    s=>{s.animationTracks.find(t=>t.property==='location.y').keyframes[0].value+=.001},
+  ]) {const current=rigidSpeaker(instantiateRecipe(value).spec);change(current);const original=JSON.stringify(current)
+    assert.throws(()=>planRecipeGeometryEdit(lock,current,undefined,speakerSize),e=>e.code==='RECIPE_PARAMETER_CONFLICT')
+    assert.equal(JSON.stringify(current),original)
+  }
+})
+
+test('a different valid speaker source cannot acquire the pinned rigid-pose exemption',()=>{
+  const value=speaker();value.manifest.description+=' Independent authored source.'
+  const lock=lockFor(value),current=rigidSpeaker(instantiateRecipe(value).spec),original=JSON.stringify(current)
+  assert.throws(()=>planRecipeGeometryEdit(lock,current,undefined,speakerSize),e=>e.code==='RECIPE_PARAMETER_CONFLICT')
+  assert.equal(JSON.stringify(current),original)
+})
