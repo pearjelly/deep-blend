@@ -1,64 +1,1604 @@
 {
   "releaseLabel": "0.12.0",
-  "status": "finite-guard-F2-verification-pending-not-published",
-  "previousF1Acceptance": {
-    "releaseLabel": "0.12.0",
-    "status": "local-acceptance-complete-publication-pending",
-    "frozenFiles": 783,
-    "sourceUnchanged": true,
-    "source": "/Users/hxb/.codex/worktrees/first-output/deep-blend/.tmp-native-012-freeze-v1/source",
-    "fullSuites": 42,
-    "fullExit": 0,
-    "finalUnitFiles": [
-      135,
-      135
-    ],
-    "unitExit": 0,
-    "paidUI": [
-      10,
-      10
-    ],
-    "paidUIExit": 0,
-    "paidVisual": [
-      14,
-      14
-    ],
-    "paidVisualExit": 0,
-    "paidVisualBootScope": "Only actual configuredPiAi/bai adapter registration differs from canonical visual-live; assertions, prompts, renders and loop unchanged. Original NO_ADAPTER retained.",
-    "mutationsKilled": 10,
-    "bai": {
-      "status": "scoped-real-existing-model-task-accepted",
-      "model": "bai/deepseek-v4.1-flash",
-      "elapsedMs": 586357,
-      "humanTasks": 1,
-      "actualToolCalls": 13,
-      "steps": 10,
-      "nativeCompareRequests": 2,
-      "originPairsPerRequest": 6,
-      "savedRevisionsCompared": [
-        "r0001",
-        "r0002",
-        "r0003"
-      ],
-      "fileCount": 3,
-      "filesExist": true,
-      "fixedImagePairs": 2,
-      "fixedFrame": 24,
-      "fixedWidth": 768,
-      "fixedHeight": 576,
-      "fixedSamples": 64,
-      "imagesViewed": true,
-      "visualObservation": "Larger cabinet and front/rear panels with recognizable grille, knob, screws and connector; preserved photographic conditions. No claim of clearance or absence of inherited ground gap.",
-      "originalScore": 82,
-      "unresolvedOcclusionFindings": 6,
-      "inheritedGroundGapMm": 20.09999955043895,
-      "globalRestPartSpansClaim": "Independently all111 native spans compared; exactly8 structural IDs changed, other spans unchanged within0.001mm.",
-      "remainingAcceptance": [
-        "exact Git/publicCI and standard release cohorts"
-      ],
-      "scope": "Existing design edited by one actual model task. Source/hand/history/native/pairs/files/fixed images audited; no arbitrary natural-language modeling, contact/manufacturing, external artist approval or external adoption proof."
-    },
-    "scope": "Entire full42 from F1; final published-source docs may change but package/test/preset files must equal this snapshot. Existing-model task, not arbitrary modeling/clearance/artist/adoption proof."
+  "status": "published-public-cohorts-and-install-routes-verified-community-submitted",
+  "finalSource": "F2",
+  "frozenFiles": 785,
+  "sourceUnchanged": true,
+  "fullSuites": 42,
+  "fullExit": 0,
+  "unitFiles": [
+    135,
+    135
+  ],
+  "nodeCasesSnapshot": 1739,
+  "fullLogSha256": "1519e045cea2b244483fb95494de901bdc0ab4d50a72a39e533b38a0c92676f6",
+  "F2NativeReplay": {
+    "status": "passed",
+    "exactNativeReceipts": 2,
+    "exactBlocks": [
+      "geometryInspection",
+      "geometryAssemblyOrigins",
+      "geometryComparison"
+    ]
   },
-  "scope": "F1 actualmodel/full42/paid verification passed. F2 adds derived finite arithmetic rejection; new full42 and replay required before release."
+  "finiteGuard": {
+    "negativeMutantKilled": true,
+    "derivedOverflowIsCodedRefusal": true
+  },
+  "mutationsKilled": 11,
+  "paidSource": "F1",
+  "paidUI": [
+    10,
+    10
+  ],
+  "paidVisual": [
+    14,
+    14
+  ],
+  "paidScope": {
+    "F1toF2Changed": [
+      "README.zh.md",
+      "deepblend/docs/architecture-decisions.md",
+      "deepblend/docs/daily-releases.md",
+      "deepblend/docs/listing-entry.yml",
+      "deepblend/docs/native-assembly-candidate.md",
+      "deepblend/docs/product-roadmap.md",
+      "deepblend/docs/releases/0.12.0.md",
+      "deepblend/docs/validation/release-0.12.0.json",
+      "deepblend/tests/contract/assembly-origins.test.mjs",
+      "packages/deepblend/tool/lib/assembly-origins.js"
+    ],
+    "unchangedPaidTaskPromptReviewerRendererUIHostProviderPresetFiles": 195,
+    "paidSource": "F1",
+    "freshPaidF2": false,
+    "F2Bridge": "2 actual bai saved-request native receipts: exact three geometry blocks, readonly F2 replay passed",
+    "scope": "F2 full acceptance separately pending; no claim F1 paid execution loaded F2 numeric guard."
+  },
+  "bai": {
+    "status": "scoped-real-existing-model-task-accepted",
+    "model": "bai/deepseek-v4.1-flash",
+    "elapsedMs": 586357,
+    "humanTasks": 1,
+    "actualToolCalls": 13,
+    "steps": 10,
+    "nativeCompareRequests": 2,
+    "originPairsPerRequest": 6,
+    "savedRevisionsCompared": [
+      "r0001",
+      "r0002",
+      "r0003"
+    ],
+    "fileCount": 3,
+    "filesExist": true,
+    "fixedImagePairs": 2,
+    "fixedFrame": 24,
+    "fixedWidth": 768,
+    "fixedHeight": 576,
+    "fixedSamples": 64,
+    "imagesViewed": true,
+    "visualObservation": "Larger cabinet and front/rear panels with recognizable grille, knob, screws and connector; preserved photographic conditions. No claim of clearance or absence of inherited ground gap.",
+    "originalScore": 82,
+    "unresolvedOcclusionFindings": 6,
+    "inheritedGroundGapMm": 20.09999955043895,
+    "globalRestPartSpansClaim": "Independently all111 native spans compared; exactly8 structural IDs changed, other spans unchanged within0.001mm.",
+    "remainingAcceptance": [],
+    "scope": "Existing design edited by one actual model task. Source/hand/history/native/pairs/files/fixed images audited; no arbitrary natural-language modeling, contact/manufacturing, external artist approval or external adoption proof."
+  },
+  "scope": "F2 complete acceptance and normal receipt replay; actual paid task/UI/visual executed unchanged protected F1 code, source scope explicit. No arbitrary creation/contact/whole assembly/manufacturing/external artistic or adoption proof.",
+  "build": {
+    "version": "0.12.0",
+    "cleanPushedBuildCommit": "1166c6b6e8ca98d78793f49fe4b402e4553b7d7c",
+    "bundleBytes": 72220108,
+    "bundleSha256": "6c1ac816d164b3ee26c64b0974bb8086095b3eed8cae58ae301bb37b2a7f846d",
+    "allSevenVersionsVerified": true,
+    "finiteGuardToolAndPresetExactFrozenBytes": true,
+    "nativePayloadScope": "All declared platform packed bytes checked by standard builder, only actual local platform execution established."
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "1166c6b6e8ca98d78793f49fe4b402e4553b7d7c",
+    "jobs": [
+      {
+        "completedAt": "2026-10-14T11:01:26Z",
+        "conclusion": "success",
+        "databaseId": 115809103885,
+        "name": "Linux Blender + Agent + browser inspections",
+        "startedAt": "2026-10-14T10:39:53Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-14T10:39:56Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-14T10:39:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:01Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-14T10:39:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:02Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "startedAt": "2026-10-14T10:40:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:02Z",
+            "conclusion": "success",
+            "name": "Prepare evidence directory",
+            "number": 4,
+            "startedAt": "2026-10-14T10:40:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:10Z",
+            "conclusion": "success",
+            "name": "Install the locked development deployment and SDK tools",
+            "number": 5,
+            "startedAt": "2026-10-14T10:40:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Verify workspace links",
+            "number": 6,
+            "startedAt": "2026-10-14T10:40:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:16Z",
+            "conclusion": "success",
+            "name": "Cache pinned raw runtime archives",
+            "number": 7,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:50Z",
+            "conclusion": "success",
+            "name": "Download and verify fixed Linux runtimes",
+            "number": 8,
+            "startedAt": "2026-10-14T10:40:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:51Z",
+            "conclusion": "success",
+            "name": "Recheck installed executables without changes",
+            "number": 9,
+            "startedAt": "2026-10-14T10:40:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:23Z",
+            "conclusion": "success",
+            "name": "Prepare software graphics and Chrome sandbox",
+            "number": 10,
+            "startedAt": "2026-10-14T10:40:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:55Z",
+            "conclusion": "success",
+            "name": "Real Host beauty and clay inspections",
+            "number": 11,
+            "startedAt": "2026-10-14T10:41:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:42:33Z",
+            "conclusion": "success",
+            "name": "Real Agent inspection image attachments",
+            "number": 12,
+            "startedAt": "2026-10-14T10:41:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:03Z",
+            "conclusion": "success",
+            "name": "Real browser inspection workflow",
+            "number": 13,
+            "startedAt": "2026-10-14T10:42:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:46:34Z",
+            "conclusion": "success",
+            "name": "Real handled-cup construction and dimensional edits",
+            "number": 14,
+            "startedAt": "2026-10-14T10:43:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:48:10Z",
+            "conclusion": "success",
+            "name": "Real handled-cup editor in Chrome",
+            "number": 15,
+            "startedAt": "2026-10-14T10:46:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:48:33Z",
+            "conclusion": "success",
+            "name": "Public runtime conformance outside the checkout",
+            "number": 16,
+            "startedAt": "2026-10-14T10:48:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:34Z",
+            "conclusion": "success",
+            "name": "Real glTF/GLB/OBJ resource bundles and old revision rebuild",
+            "number": 17,
+            "startedAt": "2026-10-14T10:48:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:49Z",
+            "conclusion": "success",
+            "name": "Real procedural UV surface grain and saved pixels",
+            "number": 18,
+            "startedAt": "2026-10-14T10:52:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:53:11Z",
+            "conclusion": "success",
+            "name": "Real image materials and pre-decode budget refusals",
+            "number": 19,
+            "startedAt": "2026-10-14T10:52:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:53:44Z",
+            "conclusion": "success",
+            "name": "Real HDR and EXR environment lighting",
+            "number": 20,
+            "startedAt": "2026-10-14T10:53:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:54:08Z",
+            "conclusion": "success",
+            "name": "Real procedural surface editor in Chrome",
+            "number": 21,
+            "startedAt": "2026-10-14T10:53:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:54:49Z",
+            "conclusion": "success",
+            "name": "Real recipe versions and native gallery defaults in Chrome",
+            "number": 22,
+            "startedAt": "2026-10-14T10:54:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:54:53Z",
+            "conclusion": "success",
+            "name": "Native local surface sampling and refusal boundaries",
+            "number": 23,
+            "startedAt": "2026-10-14T10:54:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:55:37Z",
+            "conclusion": "success",
+            "name": "Real paired lamp dimensions and liner inspection",
+            "number": 24,
+            "startedAt": "2026-10-14T10:54:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:56:13Z",
+            "conclusion": "success",
+            "name": "Real paired lamp dimensions in Chrome",
+            "number": 25,
+            "startedAt": "2026-10-14T10:55:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:56:49Z",
+            "conclusion": "success",
+            "name": "Real linked speaker dimensions in Chrome",
+            "number": 26,
+            "startedAt": "2026-10-14T10:56:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:59:25Z",
+            "conclusion": "success",
+            "name": "Fullscreen workbench and native product edits in Chrome",
+            "number": 27,
+            "startedAt": "2026-10-14T10:56:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:00:55Z",
+            "conclusion": "success",
+            "name": "Real preview history and source revisions in Chrome",
+            "number": 28,
+            "startedAt": "2026-10-14T10:59:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:04Z",
+            "conclusion": "success",
+            "name": "Real independent Host preview publishers",
+            "number": 29,
+            "startedAt": "2026-10-14T11:00:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:14Z",
+            "conclusion": "success",
+            "name": "Real immutable review history across independent Hosts",
+            "number": 30,
+            "startedAt": "2026-10-14T11:01:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:23Z",
+            "conclusion": "success",
+            "name": "Preserve runtime facts, receipts, images and failures",
+            "number": 31,
+            "startedAt": "2026-10-14T11:01:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:23Z",
+            "conclusion": "success",
+            "name": "Post Cache pinned raw runtime archives",
+            "number": 60,
+            "startedAt": "2026-10-14T11:01:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:23Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 61,
+            "startedAt": "2026-10-14T11:01:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:23Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 62,
+            "startedAt": "2026-10-14T11:01:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T11:01:23Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 63,
+            "startedAt": "2026-10-14T11:01:23Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/pearjelly/deep-blend/actions/runs/38551139308/job/115809103885"
+      },
+      {
+        "completedAt": "2026-10-14T10:52:52Z",
+        "conclusion": "success",
+        "databaseId": 115809103900,
+        "name": "Linux delivery + editing + resource bundle upload",
+        "startedAt": "2026-10-14T10:39:53Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-14T10:39:55Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-14T10:39:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:39:57Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-14T10:39:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:00Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "startedAt": "2026-10-14T10:39:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:00Z",
+            "conclusion": "success",
+            "name": "Prepare evidence directory",
+            "number": 4,
+            "startedAt": "2026-10-14T10:40:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:12Z",
+            "conclusion": "success",
+            "name": "Install the locked development deployment and SDK tools",
+            "number": 5,
+            "startedAt": "2026-10-14T10:40:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:12Z",
+            "conclusion": "success",
+            "name": "Verify workspace links",
+            "number": 6,
+            "startedAt": "2026-10-14T10:40:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:16Z",
+            "conclusion": "success",
+            "name": "Cache pinned raw runtime archives",
+            "number": 7,
+            "startedAt": "2026-10-14T10:40:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:58Z",
+            "conclusion": "success",
+            "name": "Download and verify fixed Linux runtimes",
+            "number": 8,
+            "startedAt": "2026-10-14T10:40:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:59Z",
+            "conclusion": "success",
+            "name": "Recheck installed executables without changes",
+            "number": 9,
+            "startedAt": "2026-10-14T10:40:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:22Z",
+            "conclusion": "success",
+            "name": "Prepare software graphics and Chrome sandbox",
+            "number": 10,
+            "startedAt": "2026-10-14T10:40:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:40Z",
+            "conclusion": "success",
+            "name": "Install delivery video tools",
+            "number": 11,
+            "startedAt": "2026-10-14T10:41:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:40Z",
+            "conclusion": "success",
+            "name": "Verify ffmpeg and ffprobe and retain their versions",
+            "number": 12,
+            "startedAt": "2026-10-14T10:41:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:41Z",
+            "conclusion": "success",
+            "name": "Real completed-frame delivery and native encoder cancellation",
+            "number": 13,
+            "startedAt": "2026-10-14T10:41:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:42:00Z",
+            "conclusion": "success",
+            "name": "Real render profile selection and revision-pinned delivery",
+            "number": 14,
+            "startedAt": "2026-10-14T10:41:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:48:38Z",
+            "conclusion": "success",
+            "name": "Real camera and light edits with saved inspection sources",
+            "number": 15,
+            "startedAt": "2026-10-14T10:42:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:49:00Z",
+            "conclusion": "success",
+            "name": "Real preview PNG saving without encoders",
+            "number": 16,
+            "startedAt": "2026-10-14T10:48:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:50:04Z",
+            "conclusion": "success",
+            "name": "Real first creation recovery and original output protection",
+            "number": 17,
+            "startedAt": "2026-10-14T10:49:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:51:45Z",
+            "conclusion": "success",
+            "name": "Real existing assembly dimensions and protected history",
+            "number": 18,
+            "startedAt": "2026-10-14T10:50:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:45Z",
+            "conclusion": "success",
+            "name": "Real directory upload, cancellation recovery and native model application",
+            "number": 19,
+            "startedAt": "2026-10-14T10:51:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:50Z",
+            "conclusion": "success",
+            "name": "Preserve delivery and editing requests, native artifacts and shutdown evidence",
+            "number": 20,
+            "startedAt": "2026-10-14T10:52:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:50Z",
+            "conclusion": "success",
+            "name": "Post Cache pinned raw runtime archives",
+            "number": 38,
+            "startedAt": "2026-10-14T10:52:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:50Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 39,
+            "startedAt": "2026-10-14T10:52:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:50Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 40,
+            "startedAt": "2026-10-14T10:52:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:52:50Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 41,
+            "startedAt": "2026-10-14T10:52:50Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/pearjelly/deep-blend/actions/runs/38551139308/job/115809103900"
+      },
+      {
+        "completedAt": "2026-10-14T10:43:52Z",
+        "conclusion": "success",
+        "databaseId": 115809103903,
+        "name": "Linux cup parameter boundaries",
+        "startedAt": "2026-10-14T10:39:53Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-14T10:39:55Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-14T10:39:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:39:57Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-14T10:39:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:39:58Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "startedAt": "2026-10-14T10:39:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:39:58Z",
+            "conclusion": "success",
+            "name": "Prepare evidence directory",
+            "number": 4,
+            "startedAt": "2026-10-14T10:39:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:04Z",
+            "conclusion": "success",
+            "name": "Install the locked development deployment and SDK tools",
+            "number": 5,
+            "startedAt": "2026-10-14T10:39:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:04Z",
+            "conclusion": "success",
+            "name": "Verify workspace links",
+            "number": 6,
+            "startedAt": "2026-10-14T10:40:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:09Z",
+            "conclusion": "success",
+            "name": "Cache pinned raw runtime archives",
+            "number": 7,
+            "startedAt": "2026-10-14T10:40:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:39Z",
+            "conclusion": "success",
+            "name": "Download and verify fixed Linux runtimes",
+            "number": 8,
+            "startedAt": "2026-10-14T10:40:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:40Z",
+            "conclusion": "success",
+            "name": "Recheck installed executables without changes",
+            "number": 9,
+            "startedAt": "2026-10-14T10:40:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:41:01Z",
+            "conclusion": "success",
+            "name": "Prepare software graphics and Chrome sandbox",
+            "number": 10,
+            "startedAt": "2026-10-14T10:40:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:47Z",
+            "conclusion": "success",
+            "name": "Real handled-cup parameter boundaries",
+            "number": 11,
+            "startedAt": "2026-10-14T10:41:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:49Z",
+            "conclusion": "success",
+            "name": "Preserve cup dimensions, native files and failures",
+            "number": 12,
+            "startedAt": "2026-10-14T10:43:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:49Z",
+            "conclusion": "success",
+            "name": "Post Cache pinned raw runtime archives",
+            "number": 22,
+            "startedAt": "2026-10-14T10:43:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:49Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 23,
+            "startedAt": "2026-10-14T10:43:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:49Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 24,
+            "startedAt": "2026-10-14T10:43:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:43:49Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 25,
+            "startedAt": "2026-10-14T10:43:49Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/pearjelly/deep-blend/actions/runs/38551139308/job/115809103903"
+      },
+      {
+        "completedAt": "2026-10-14T10:50:49Z",
+        "conclusion": "success",
+        "databaseId": 115809104008,
+        "name": "Unit + contract (no Blender)",
+        "startedAt": "2026-10-14T10:39:53Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-14T10:39:55Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-14T10:39:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:39:59Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-14T10:39:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:02Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@v4",
+            "number": 3,
+            "startedAt": "2026-10-14T10:39:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:02Z",
+            "conclusion": "success",
+            "name": "Assert the Python 3 the contract layer needs",
+            "number": 4,
+            "startedAt": "2026-10-14T10:40:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Install the locked development deployment and SDK tools",
+            "number": 5,
+            "startedAt": "2026-10-14T10:40:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Assert the locked ecosystem package manager is executable",
+            "number": 6,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Link the workspace to that deployment",
+            "number": 7,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Assert the links are in place",
+            "number": 8,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Assert the preset source is installable",
+            "number": 9,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:40:11Z",
+            "conclusion": "success",
+            "name": "Assert the generated bundle client matches its source",
+            "number": 10,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:45:28Z",
+            "conclusion": "success",
+            "name": "Unit + contract suites",
+            "number": 11,
+            "startedAt": "2026-10-14T10:40:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:50:46Z",
+            "conclusion": "success",
+            "name": "The documented install path, from a clean clone",
+            "number": 12,
+            "startedAt": "2026-10-14T10:45:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:50:46Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@v4",
+            "number": 23,
+            "startedAt": "2026-10-14T10:50:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:50:47Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 24,
+            "startedAt": "2026-10-14T10:50:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-14T10:50:47Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 25,
+            "startedAt": "2026-10-14T10:50:47Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/pearjelly/deep-blend/actions/runs/38551139308/job/115809104008"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/38551139308"
+  },
+  "ciArtifacts": {
+    "runId": "38551139308",
+    "headSha": "1166c6b6e8ca98d78793f49fe4b402e4553b7d7c",
+    "records": [
+      {
+        "name": "linux-inspections-38551139308-1",
+        "id": 11887886486,
+        "sha256": "6a1542db217eb5e54318e90f2cd26d68f0e7cb4eb1408519946fee471a0a9ce4",
+        "bytes": 110985615,
+        "serverDigest": "sha256:6a1542db217eb5e54318e90f2cd26d68f0e7cb4eb1408519946fee471a0a9ce4",
+        "allZipCRCVerified": true,
+        "files": 2823
+      },
+      {
+        "name": "linux-render-photography-38551139308-1",
+        "id": 11887810422,
+        "sha256": "7131a04f99254ed1e34cfbd3b2b9bfa225c6d874fc296b0ac119e9e94fb78dd0",
+        "bytes": 50125253,
+        "serverDigest": "sha256:7131a04f99254ed1e34cfbd3b2b9bfa225c6d874fc296b0ac119e9e94fb78dd0",
+        "allZipCRCVerified": true,
+        "files": 504
+      },
+      {
+        "name": "linux-cup-parameters-38551139308-1",
+        "id": 11886249700,
+        "sha256": "7ad971ab42aad32de2e0a6a402295208c429e0bf6f1f530a1c1687700fa5653c",
+        "bytes": 10104917,
+        "serverDigest": "sha256:7ad971ab42aad32de2e0a6a402295208c429e0bf6f1f530a1c1687700fa5653c",
+        "allZipCRCVerified": true,
+        "files": 98
+      }
+    ]
+  },
+  "github": {
+    "tag": "v0.12.0",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.12.0",
+    "publishedAt": "2026-10-14T11:09:21Z",
+    "targetCommitish": "1166c6b6e8ca98d78793f49fe4b402e4553b7d7c",
+    "anonymousBundleSha256": "6c1ac816d164b3ee26c64b0974bb8086095b3eed8cae58ae301bb37b2a7f846d",
+    "assets": [
+      {
+        "name": "all-native-spans.json",
+        "bytes": 3717,
+        "sha256": "9ebd5a38e5345c74194b0d5cee95182e41cfdb483f9281e49798d87952d1d000",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "bai-final-console.txt",
+        "bytes": 4683,
+        "sha256": "8aed9ff824233d388363c683bf087bedf2928b97c038f599554b217c82931485",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "build-proof.json",
+        "bytes": 440,
+        "sha256": "b7eac7336b8355683b89bf0468954b2dc8c910ffe6797bbf8fbddb88c8524ed3",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "build.log",
+        "bytes": 652,
+        "sha256": "77bd614eb5e620e3c49033ea437f62daf2bc887129b4fea0501688b5eb89d144",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "ci-observation-scope.json",
+        "bytes": 421,
+        "sha256": "50080368c42acc70c3f21839ac96edf6b9c886a568067155e441e701ad76a5dc",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "community-proof.json",
+        "bytes": 397,
+        "sha256": "5092a5a5ca6aae8d77abf54f96531f350b6b0faa39f86ce98b6dcb2e77672021",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "bytes": 72220108,
+        "sha256": "6c1ac816d164b3ee26c64b0974bb8086095b3eed8cae58ae301bb37b2a7f846d",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "f1-f2-paid-scope.json",
+        "bytes": 817,
+        "sha256": "b1f7e54e4ff35065f1d9938f5a8ed66823d217e89411240d982605b95081b533",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F1-frozen-source.json",
+        "bytes": 95482,
+        "sha256": "59b85b52a6a80b75bb4261af1244637e0ef2c82e0351d042232c31d97956d7b8",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F1-local-acceptance-proof.json",
+        "bytes": 2226,
+        "sha256": "90acec8d5f068a4ed765df2457de59d0bca93289ba470f8ca1b5ddddaa1e7641",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F1-runtime-full.log",
+        "bytes": 723766,
+        "sha256": "0c312495570e4f46c0e09507e8a6885fe89467184190e067966a9ae3e4200f24",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F1-unit.log",
+        "bytes": 479517,
+        "sha256": "daf8f5179851373d1bfafd2946845867cf80b7674894cbbdffb2400f56b84da3",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F2-frozen-source.json",
+        "bytes": 95712,
+        "sha256": "c23bbb5633dfd4e0f1b0e0e80c51aebf8b40d7623892255787da28a2cb5a792e",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "F2-unit.log",
+        "bytes": 479673,
+        "sha256": "3811e4dc180c8da83ffb69ae75a402bd7aef9fa9045b9d464965363242ca8a8d",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "finite-contract.log",
+        "bytes": 3939,
+        "sha256": "85ca2db8c41e7646a100592a65495bf1b9f5fd6caeaffef680460dd8c1492de1",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "fixed-view-proof.json",
+        "bytes": 1191,
+        "sha256": "e6c03f08a0deb64dd6bd6786d882b7b2e7738ba680a7d33da0f91d7e5ec5f5b5",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "handover-audit.json",
+        "bytes": 1341,
+        "sha256": "98a7ec389ccaa6a3ae70645ef9c5bc21d17864701390637d12225391ba6b7027",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "local-acceptance-proof.json",
+        "bytes": 3238,
+        "sha256": "3a5d5042233ae2d3d2994ebed14a066cf701ef6cdbd809108b7ecbec01ebacce",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "main-package-proof.json",
+        "bytes": 201,
+        "sha256": "bdd7bf70890a3751980da3141802efd50db27ff924e13ffabbe9a93141e7257f",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "mutation-finite.json",
+        "bytes": 103,
+        "sha256": "48e7f408d9c37104127c5467f0c734a1afdb9ca61a65b3cc0b2b5b4b5681dbed",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "mutation-finite.log",
+        "bytes": 2341,
+        "sha256": "fe2f17f99599d0fda41f51b40e2606fe178192a1d982948e0e2a9cb3445d0120",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "mutations.json",
+        "bytes": 977,
+        "sha256": "785d96b38253c8a5551c75575d899a6a0eb0c20131c2efe53077137bc7026cb3",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "native-assembly.json",
+        "bytes": 413,
+        "sha256": "a12a2a2dcef81defd99b609c97872fb9e332b405cd556fea69b9b7b12cbabcd0",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "native-payload-verification.json",
+        "bytes": 8003,
+        "sha256": "77d72435b3439dd530590de0bba175ff361f2fccb8b15cb29cee75e684da8834",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "native-quality.json",
+        "bytes": 13014,
+        "sha256": "f91c322eb5e4ba81af758cdb894f4e4c7e9a546f07d38843c2ba3b4e1a40bfbf",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "native-tool-replay-F1.json",
+        "bytes": 108280,
+        "sha256": "6ac7593398825c352d02f0a83486a28e2b56c3fe9c96f4e9f72ca3b0c5f6ca0a",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "native-tool-replay-F2.json",
+        "bytes": 108280,
+        "sha256": "6ac7593398825c352d02f0a83486a28e2b56c3fe9c96f4e9f72ca3b0c5f6ca0a",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "npm-cohort-proof.json",
+        "bytes": 270,
+        "sha256": "2a1306e8eeed38d12c04e22693b2288818d968fd2d7097c40b32b24ebcb4ae52",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "npm-cohort.log",
+        "bytes": 4516,
+        "sha256": "0e0533cf60af3e51ba4064e0ce1d63dc16875ed9c196432da3d28ec00c223627",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "npm-public-readback.json",
+        "bytes": 11071,
+        "sha256": "78b065a801ab220723bf9c34fcc5b796ce9c517970566d47cf6d08ed21e8befa",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-failures-scope.json",
+        "bytes": 807,
+        "sha256": "6a54a628c707c616fb2650489f0109a90f918d6ae57fe5de7fae26923b70cafd",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-mocked-ordinary-read-failure.log",
+        "bytes": 1988,
+        "sha256": "1c54382906da1c528a05f0d581773b33a04add706cc1b70d385e31163a05e0f7",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-paid-ui-preset-failure.log",
+        "bytes": 100,
+        "sha256": "526da069a662a90c4f8fbc2c1fb7c06abf34e1ec94b8f8a7b8b7b67267554910",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-paid-ui-web-boot-failure.log",
+        "bytes": 663,
+        "sha256": "14db1d4534a9015a521c3d0c830a9d8fe245fd599848b3b393182147ee018c95",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-paid-visual-no-adapter.log",
+        "bytes": 1099,
+        "sha256": "9cae418c124d7dc3ad249603324ccf447fe8d30cc863c5555e7c3ae8e4d589a1",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "original-unit-count-failure.log",
+        "bytes": 480469,
+        "sha256": "2c744bb0618542e60f6b83a7c1e824cde28359627d3543b9e6311caf1019abe5",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "overflow-before.json",
+        "bytes": 326,
+        "sha256": "69dea2a796a04690e8d2f3a88ab2c3fc73054cd35c5df534ba558675caca202d",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "paid-ui.log",
+        "bytes": 955,
+        "sha256": "9a2db87e8f6b2447276ac5edf38bfba109ead189cd537ce634f8d8acb3763858",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "paid-ui.png",
+        "bytes": 88342,
+        "sha256": "a23aaa37a17a2fa567d00c82f9a5eb7449f4909b28991d691383025de0855eee",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "paid-visual-adapter-scope.json",
+        "bytes": 474,
+        "sha256": "4b0247c089143fc5155386f2d733d347f7faad0f63d671141a3ec5c373ec3b3b",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "paid-visual.log",
+        "bytes": 13259,
+        "sha256": "5f74ac09687c1e06e53205520531e1c84a3eea6563ec6c869992da050ba1a914",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "present-result.json",
+        "bytes": 794,
+        "sha256": "b05aad7738edc5897d8b66b4ec3fb81cad0b8b42d23cd6fa9a87383b95a851ef",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "preservation-audit.json",
+        "bytes": 1096,
+        "sha256": "eb41cc90f05e194cc0e9169a362bb7f40b2054341819e139ab904ad1d392d988",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "public-ci-artifacts-proof.json",
+        "bytes": 1151,
+        "sha256": "8d0fa20f8c450e5ac8b1104b79d372f154117aa38db8ea51adbbe17337ff5df5",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "public-ci-proof.json",
+        "bytes": 25773,
+        "sha256": "862207e7d830cc16224d983322e122df32ba74927541ec060e8efd2ac87517f7",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "public-cohort-proof.json",
+        "bytes": 1083,
+        "sha256": "603f7bf143187da76a8829eb1355a7a9a7f50d5c5c787315bc61c5351ad71875",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "public-route-parity.log",
+        "bytes": 2323,
+        "sha256": "d94b4a4d86171b2ba40940bd61851b41970a42aae9f5d06456b637b1b2ba9a87",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "registered-files-proof.json",
+        "bytes": 1345,
+        "sha256": "8c0e5da82b5faee8973bac27b46d78d1536115b1b6452ccb2e1089e75349d4a6",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "runtime-full.log",
+        "bytes": 724007,
+        "sha256": "1519e045cea2b244483fb95494de901bdc0ab4d50a72a39e533b38a0c92676f6",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 5080,
+        "sha256": "f976bb22bba474e00534e7a0c5765d36ce45bcbadbbe06cceaaff3547d0aa72f",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-after-hero.png",
+        "bytes": 453570,
+        "sha256": "353d343114f6e6e010469f2a0057346ec1e658b21cc31b2d43062b7491aaf33b",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-after-reverse.png",
+        "bytes": 408125,
+        "sha256": "1c61cf7e27878ad60caa98be39e008ebb4cfc087f1fd51bc21b22d55646634f0",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-after-scene.json",
+        "bytes": 121684,
+        "sha256": "df19f4323d94fd00df37ce3f038f2b39077cabde355b52f415c86bfe6997db59",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-after.blend",
+        "bytes": 13579377,
+        "sha256": "1c2f6bbd9305865f8baecf195bc56599a9c1db45d1169b9be635375d99148928",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-before-hero.png",
+        "bytes": 447628,
+        "sha256": "ea0e8d2bc5ccfc468e43497ca5c96621fc3aa4f8e3bc898a0c55eb090a6e6915",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-before-reverse.png",
+        "bytes": 403619,
+        "sha256": "c3b2845a56961cec5b4311b0825dec4f296d1f132fd78a5a2ba513043e3ab3da",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "speaker-before.blend",
+        "bytes": 13579377,
+        "sha256": "6e95ae4064881625c556a727a8df89e0ba6c8792c0834e9cb292fc61e82f7251",
+        "serverDigestVerified": true
+      },
+      {
+        "name": "task-counts.json",
+        "bytes": 489,
+        "sha256": "2febe4f1ed29e3c5ce122be089a53a395e39fada3d44cb2ea765ff865c65a0ee",
+        "serverDigestVerified": true
+      }
+    ]
+  },
+  "npm": {
+    "at": "2026-10-14T11:24:50.691Z",
+    "registry": "https://registry.npmjs.org/",
+    "authentication": "none; direct fetch",
+    "version": "0.12.0",
+    "scope": "all",
+    "complete": true,
+    "records": [
+      {
+        "archiveSha256": "fbf6a69eb01c52d4634e83a72cbf491f0b203925df60c999f2085745e363ffc3",
+        "archiveSha1": "407c34cb7a0d1a0193bf1c2a1ceb5812dc7c9408",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 426335,
+        "integrity": "sha512-WjRyNQS+D732VA2kPeXKwGOPmIx8ncYLoj6nTGZx8dSl9r0Vm+P1JdU8XjQ7TjwJFWu/Jzv8M7gA+OQ0DggzPQ==",
+        "exactSourceFiles": [
+          "lib/client.js",
+          "lib/doctor-cli.js",
+          "lib/doctor.js",
+          "lib/planes/host.js",
+          "lib/index.js",
+          "lib/planes/preset.js",
+          "lib/planes/provider-local.js",
+          "lib/planes/tool.js",
+          "lib/doctor-requirements.json",
+          "examples/charge-study/industrial-stage.json",
+          "assets/manifest.json",
+          "screenshots.json",
+          "examples/charge-study/README.md",
+          "README.md",
+          "README.zh.md",
+          "examples/charge-study/replay-dsh-case.mjs",
+          "assets/banner.png",
+          "assets/logo.png",
+          "assets/social-card.png",
+          "assets/banner.svg",
+          "assets/logo.svg",
+          "assets/social-card.svg",
+          "examples/charge-study/agent-prompt.zh.txt",
+          "examples/charge-study/ATTRIBUTION.txt",
+          "cordis.patch.yml"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-ui": "0.12.0",
+          "@deepblend/dsh-blender-host": "0.12.0",
+          "@deepblend/dsh-blender-tool": "0.12.0",
+          "@deepblend/dsh-blender-preset": "0.12.0",
+          "@deepblend/dsh-blender-contracts": "0.12.0",
+          "@deepblend/dsh-blender-provider-local": "0.12.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git",
+          "directory": "packages/deepblend/bundle"
+        }
+      },
+      {
+        "archiveSha256": "6dea1edaa2ec42ba01a3e3b29e8282645feaf81a92da24cfdde36190d8a31459",
+        "archiveSha1": "eae16bfd90cd2187a3c9a89c33d1e3278284bd00",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 162671,
+        "integrity": "sha512-G26y8iHbfycTfedHJPESytK8VlhC+OOvtyJtq5em0mLnwuaYlkDm/lfdm2e6D8XuojZSt/uHOkReq+fqpWY+ug==",
+        "exactSourceFiles": [
+          "lib/artistic-review.js",
+          "lib/asset-content.js",
+          "lib/bitmap-font.js",
+          "lib/canonical.js",
+          "lib/config-surface.js",
+          "lib/contact-sheet.js",
+          "lib/deployment-paths.js",
+          "lib/geometry-inspection.js",
+          "lib/handled-cup.js",
+          "lib/index.js",
+          "lib/json-schema.js",
+          "lib/lamp-assembly-repair.js",
+          "lib/lathe-shell.js",
+          "lib/png.js",
+          "lib/projections.js",
+          "lib/recipe-parameters.js",
+          "lib/recipe.js",
+          "lib/redact.js",
+          "lib/reference-images.js",
+          "lib/render-job.js",
+          "lib/scene-patch.js",
+          "lib/scene-spec.js",
+          "lib/sdk.js",
+          "lib/speaker-assembly.js",
+          "lib/ui-api.js",
+          "lib/visual-composition.js",
+          "lib/visual-issue.js",
+          "lib/visual-loop.js",
+          "lib/schemas/job-result.schema.json",
+          "lib/schemas/recipe.schema.json",
+          "lib/schemas/scene-patch.schema.json",
+          "lib/schemas/scene-spec.schema.json",
+          "lib/runtime-types.d.ts",
+          "lib/schema-types.d.ts",
+          "lib/sdk.d.ts"
+        ],
+        "dependencies": {},
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "49279d697340cc679f36d7c2ac0b835eec6394703481accf87db0e683a057e6d",
+        "archiveSha1": "35a9e8f00ddffff6ec35f87d930e46df44824938",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 2977293,
+        "integrity": "sha512-ej5kwmnSfHJY0fDdk6KrnC+5jmklo2T+GKtPuE0DMk4M+9QXofnlsLpwBPWKqeBVVycehC53tNvAG9iA0WgCmA==",
+        "exactSourceFiles": [
+          "recipes/glass-ceramic/LICENSE",
+          "recipes/glazed-cup/LICENSE",
+          "recipes/metal-lamp/LICENSE",
+          "recipes/modular-speaker/LICENSE",
+          "lib/artifact-writer.js",
+          "lib/assembly-changes.js",
+          "lib/asset-bundle.js",
+          "lib/asset-io.js",
+          "lib/asset-library.js",
+          "lib/asset-preview.js",
+          "lib/asset-uploads.js",
+          "lib/creation-request.js",
+          "lib/delivery-manifest.js",
+          "lib/diagnostic-preview.js",
+          "lib/frame-ledger.js",
+          "lib/frame-provenance.js",
+          "lib/geometry-inspection.js",
+          "lib/index.js",
+          "lib/obj-resources.js",
+          "lib/paths.js",
+          "lib/project-store.js",
+          "lib/project-writer.js",
+          "lib/recipe-catalog.js",
+          "lib/recipe-native-source.js",
+          "lib/recipe-state.js",
+          "lib/reference-image.js",
+          "lib/render-job-store.js",
+          "lib/render-journal.js",
+          "lib/render-reconciler.js",
+          "lib/revision-transaction.js",
+          "lib/runtime-scene-features.js",
+          "lib/video-encoder.js",
+          "recipes/glass-ceramic/recipe.json",
+          "recipes/glazed-cup/recipe.json",
+          "recipes/metal-lamp/recipe.json",
+          "recipes/modular-speaker/recipe.json",
+          "recipes/glass-ceramic/scene-spec.json",
+          "recipes/glazed-cup/scene-spec.json",
+          "recipes/metal-lamp/scene-spec.json",
+          "recipes/modular-speaker/scene-spec.json",
+          "recipes/glass-ceramic/preview.png",
+          "recipes/glazed-cup/preview.png",
+          "recipes/metal-lamp/preview.png",
+          "recipes/modular-speaker/preview.png"
+        ],
+        "dependencies": {
+          "sharp": "0.35.5",
+          "@deepblend/dsh-blender-contracts": "0.12.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "1bf8be7409d714109ef1f6b702aebd9f422e7583f89d16216974c70b22e43a68",
+        "archiveSha1": "d81adead60a1a9bda5754a47d65f02dbf2d0e0c9",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 29029,
+        "integrity": "sha512-g89i40tBh5xVWReR0tKpmV4lFLLRiLQ1qA86mHdpUJjOKsoWsCuVw0/q8+WZ3AYGobOD+9RvAa7TJlLTFuQr/Q==",
+        "exactSourceFiles": [
+          "lib/deploy.js",
+          "lib/index.js",
+          "presets/deepblend/skills/deepblend-studio/references/reference-images.md",
+          "presets/deepblend/skills/deepblend-studio/SKILL.md",
+          "presets/deepblend-dev/agent.cordis.yml",
+          "presets/deepblend/agent.cordis.yml",
+          "presets/deepblend-dev/preset.yml",
+          "presets/deepblend/preset.yml"
+        ],
+        "dependencies": {},
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "04b8eeb53125e86afd9c03358bdffb72d13d6c856406b44b540ccd93f8e2bef4",
+        "archiveSha1": "ad181ac1bcd939232c3881ce8a726d30bf7633c4",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 150975,
+        "integrity": "sha512-Ajy8liEP0f4n2ADdQqyWf2R499husWesss9/UdWNaqxTmHb9HHsTSZ1RsBiV4mZQM0YNoTT83G6QqEhu8aMQmw==",
+        "exactSourceFiles": [
+          "lib/geometry-inspection.js",
+          "lib/index.js",
+          "python/bootstrap.py",
+          "python/deepblend_anisotropy.py",
+          "python/deepblend_asset_bundle.py",
+          "python/deepblend_avif_headers.py",
+          "python/deepblend_bridge.py",
+          "python/deepblend_capabilities.py",
+          "python/deepblend_features.py",
+          "python/deepblend_frames.py",
+          "python/deepblend_geometry.py",
+          "python/deepblend_gltf_images.py",
+          "python/deepblend_gltf_import.py",
+          "python/deepblend_gltf_roles.py",
+          "python/deepblend_image_headers.py",
+          "python/deepblend_image_roles.py",
+          "python/deepblend_images.py",
+          "python/deepblend_imported_image_headers.py",
+          "python/deepblend_inspect_geometry.py",
+          "python/deepblend_inspect_surface.py",
+          "python/deepblend_mesh_checks.py",
+          "python/deepblend_obj_images.py",
+          "python/deepblend_obj_import.py",
+          "python/deepblend_obj_resources.py",
+          "python/deepblend_parts.py",
+          "python/deepblend_render.py",
+          "python/deepblend_scene.py",
+          "python/deepblend_util.py",
+          "python/deepblend_validate.py",
+          "python/deepblend_vessel_math.py",
+          "python/deepblend_vessel_parameters.py",
+          "python/deepblend_vessel.py",
+          "python/deepblend_views.py"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.12.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "e718c0164d344a53fcddd1420ccf49c1c49f80c24e5db8a4f21f71c5db4001e9",
+        "archiveSha1": "7d69e6ed7303968d4e4a4be6bf6371881fc64f7c",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 51675,
+        "integrity": "sha512-FdGuUt4IIy8khLWRioVfEQhkY+6ZnK4xPowsstYWmdz/VkC6caPmLYCVJFlMVrEDNj0NWSbJRKy++d2u8XHoEA==",
+        "exactSourceFiles": [
+          "lib/assembly-origins.js",
+          "lib/attachment-image.js",
+          "lib/committed-preview.js",
+          "lib/geometry-comparison.js",
+          "lib/image-delivery.js",
+          "lib/index.js",
+          "lib/inspection.js",
+          "lib/render-tools.js",
+          "lib/shared.js",
+          "lib/tools.js",
+          "lib/visual-tools.js"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.12.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        }
+      },
+      {
+        "archiveSha256": "ec34f4e7a1ecaacb5dffbc8ebc0928d44e0a0ca04bd5575a2b424c25b101bfb8",
+        "archiveSha1": "d456b2fb22135356b3b8e81ccb808345b46ff68e",
+        "completeArchiveInventory": true,
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.12.0",
+        "public": true,
+        "bytes": 128001,
+        "integrity": "sha512-6Rv2u50s+dTz1BkORTOu8Z9zfJtAV4FUn9T1M6yCP0v1x1jFc1QR560YlJfdppRKJ5UD5dIRRPbXFu9YLIP9ew==",
+        "exactSourceFiles": [
+          "lib/client.js",
+          "lib/index.js"
+        ],
+        "dependencies": {
+          "@deepblend/dsh-blender-contracts": "0.12.0"
+        },
+        "repository": {
+          "url": "git+https://github.com/pearjelly/deep-blend.git",
+          "type": "git"
+        },
+        "uiClientSha256": "bce06941bd7859a2a4ef289179de5831bc1c33b3ae44e45813cfe1f233592075",
+        "exactTestedClient": true
+      }
+    ]
+  },
+  "community": {
+    "projectionBytes": 1692,
+    "projectionSha256": "da248dcd4279a0168542d6c72868245dfe80ca6d6b3abfd169f4fbe3c654d0a5",
+    "byteExactReadback": true,
+    "commit": "f63914f4e4519228b806008932070ee364d3d58b",
+    "pullRequest": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6868",
+    "state": "OPEN",
+    "mergedAt": null,
+    "websiteRefresh": "not confirmed",
+    "bodyReadbackExact": true
+  },
+  "routes": {
+    "version": "0.12.0",
+    "workbenchHTTP": [
+      200,
+      200,
+      200
+    ],
+    "fetched": [
+      13,
+      13,
+      1
+    ],
+    "presetIds": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "problems": 0,
+    "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.12.0/public-route-parity.log"
+  },
+  "mergedPR": {
+    "mergeCommit": {
+      "oid": "3634994a18e99e5d54dd709eca780618719ea9c2"
+    },
+    "state": "MERGED",
+    "url": "https://github.com/pearjelly/deep-blend/pull/51"
+  },
+  "mergeSource": "3634994a18e99e5d54dd709eca780618719ea9c2",
+  "packagesTree": "4374bc97baaa8a2e2535150612dbaf5b6e8341f5"
 }
