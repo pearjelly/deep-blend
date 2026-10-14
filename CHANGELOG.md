@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 — 2026-10-15
+
+- Continue dimension edits of moved or tilted handled cups while preserving placement, manual parameters and independent photography.
+- Fit a recognized default hero camera using actual evaluated vertices, then recompile and verify in an isolated transaction.
+- Preserve old revisions, source locks and an open working scene; record bounded native framing receipts.
+- Publish the verified GitHub assets and seven npm packages, complete anonymous readback and all three installation routes; community submission remains separate from upstream merge and refresh.
+
 ## 0.8.1 — 2026-10-13
 
 - Publish Night Shift, a verified DSH/deep-blend 0.5.0 case using the official CHARGE Packbot under CC-BY.

@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.12.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.12.0) compares measured dimensions and assembly-origin changes in saved models. Speaker resizing preserves history, authored shape and animation. Further placed-cup framing improvements remain an unpublished candidate.
+Latest stable [0.13.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.13.0) keeps moved or tilted handled cups in place during dimension edits and fits the default hero camera to measured geometry. Saved versions, manual appearance, handle parameters, independent photography and animation stay protected.
 
 ## Quick start
 
