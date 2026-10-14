@@ -66,11 +66,18 @@ test('unrequested separation is refused and omitted target stays a chord-only sa
 })
 
 test('model tool returns explicit local evidence and refuses old or fabricated surface reports',async()=>{
-  let options,transform=x=>x
+  let options,transform=x=>x,comparisonFixture=false
+  const requests=[]
   const host={hostApiVersion:()=>HOST_API_VERSION,getScene:async(id,input)=>{
-    options=input;const r=report()
-    return transform({projectId:id,revision:'r0001',digest:'source-digest',geometryInspection:{
-      schemaVersion:'deepblend.scene-geometry/v2',projectId:id,sourceRevision:'r0001',sourceDigest:'source-digest',
+    options=input;requests.push(input);const r=report(),revision=input.revision??'r0001',digest='source-digest-'+revision
+    if(comparisonFixture) {
+      r.surfaceSamples=input.geometry.surfaceSamples.map(q=>({...sample(),...q,direction:[1,0,0]}))
+      if(revision==='r0002') {r.surfaceSamples[0].exitMeters=[0,0,0];r.surfaceSamples[0].normalSurfaceChordMm=1;r.surfaceSamples[0].gap.normalRaySeparationMm=3}
+      r.surfaceSamples[1].gap={status:'no-target-entry'}
+      if(revision==='r0003') {r.surfaceSamples[1].exitMeters=[.006,0,0];r.surfaceSamples[1].normalSurfaceChordMm=7}
+    }
+    return transform({projectId:id,revision,digest,isCurrent:false,entities:[{id:'catalogue',type:'mesh',location:[0,0,0]}],spec:{privateCatalogue:'x'.repeat(20000)},geometryInspection:{
+      schemaVersion:'deepblend.scene-geometry/v2',projectId:id,sourceRevision:revision,sourceDigest:digest,
       sourceCheckpointSha256:r.checkpointSha256,sourceUnchanged:true,frame:24,blenderVersion:r.blenderVersion,objects:r.objects,surfaceSamples:r.surfaceSamples,
       limitations:['Local normal chords; not global minimum wall thickness or whole-assembly clearance.']}})
   }}
@@ -80,9 +87,43 @@ test('model tool returns explicit local evidence and refuses old or fabricated s
   const result=await tool.execute(args,{signal});assert.equal(result.ok,true);assert.deepEqual(options.geometry.surfaceSamples,q.surfaceSamples);assert.equal(options.signal,signal)
   assert.equal(result.data.geometryInspection.surfaceSamples[0].normalSurfaceChordMm,2)
   assert.match(result.text,/not global minimum/)
+  const compact=await tool.execute({...args,geometryOnly:true},{signal})
+  assert.equal(compact.ok,true);assert.equal(compact.data.isCurrent,false)
+  assert.deepEqual(Object.keys(compact.data).sort(),['digest','geometryInspection','isCurrent','projectId','revision'])
+  assert.deepEqual(compact.data.geometryInspection,result.data.geometryInspection)
+  assert.ok(compact.text.length<3000);assert.ok(!compact.text.includes('privateCatalogue'))
+  assert.deepEqual(JSON.parse(compact.text.split('Canonical JSON:\n')[1]),compact.data)
+  const ordinary=await tool.execute({...args,geometryOnly:false},{})
+  assert.equal(ordinary.data.spec.privateCatalogue.length,20000)
+  await assert.rejects(()=>tool.execute({...args,geometryOnly:'true'},{}),e=>e.code==='INVALID_ARGS')
+  for (const invalid of [{projectId:'project',geometryOnly:true},{...args,geometryOnly:true,full:true}]) {
+    const bad=await tool.execute(invalid,{});assert.equal(bad.ok,false);assert.equal(bad.data.errorCode,'BLENDER_SCRIPT_ERROR')
+  }
+  comparisonFixture=true
+  const compareArgs={...args,revision:'r0003',geometryOnly:true,geometryCompareRevision:'r0002',geometrySurfaceSamples:[query(),{...query(),sampleId:'chord-only'}]}
+  const compared=await tool.execute(compareArgs,{signal});assert.equal(compared.ok,true)
+  const comparison=compared.data.geometryComparison
+  assert.equal(comparison.referenceInspection.sourceRevision,'r0002')
+  assert.deepEqual(comparison.summary,{requestedSamples:2,comparedChords:2,comparedSeparations:1,maxAbsoluteChordChangeMm:5,maxAbsoluteSeparationChangeMm:1})
+  assert.equal(comparison.samples[0].normalSurfaceChordChangeMm,1);assert.equal(comparison.samples[0].normalRaySeparationChangeMm,-1)
+  assert.equal(comparison.samples[1].normalSurfaceChordChangeMm,5);assert.equal(comparison.samples[1].after.targetStatus,'no-target-entry')
+  assert.equal('normalRaySeparationChangeMm' in comparison.samples[1],false)
+  assert.deepEqual(requests.slice(-2).map(r=>r.geometry.surfaceSamples),[compareArgs.geometrySurfaceSamples,compareArgs.geometrySurfaceSamples])
+  assert.ok(requests.slice(-2).every(r=>r.signal===signal))
+  transform=x=>{if(x.revision==='r0002')x.geometryInspection.surfaceSamples[0].gap.normalRaySeparationMm=0;return x}
+  const forgedReference=await tool.execute(compareArgs,{});assert.equal(forgedReference.ok,false);assert.equal(forgedReference.data.errorCode,'BLENDER_SCRIPT_ERROR')
+  transform=x=>{if(x.revision==='r0002'){x.revision='r0009';x.geometryInspection.sourceRevision='r0009'}return x}
+  const wrongReference=await tool.execute(compareArgs,{});assert.equal(wrongReference.ok,false);assert.equal(wrongReference.data.errorCode,'BLENDER_RUNTIME_UNAVAILABLE')
+  transform=x=>{x.geometryInspection.surfaceSamples=x.geometryInspection.surfaceSamples.map(s=>({...query(),sampleId:s.sampleId,direction:[1,0,0],status:'no-entry'}));return x}
+  const unavailable=await tool.execute(compareArgs,{});assert.equal(unavailable.ok,true)
+  assert.deepEqual(unavailable.data.geometryComparison.summary,{requestedSamples:2,comparedChords:0,comparedSeparations:0})
+  for(const badArgs of [{...args,geometryCompareRevision:'../r0002'},{projectId:'project',geometryCompareRevision:'r0002'}]) {
+    const invalid=await tool.execute(badArgs,{});assert.equal(invalid.ok,false);assert.equal(invalid.data.errorCode,'BLENDER_SCRIPT_ERROR')
+  }
+  comparisonFixture=false
   transform=x=>{x.geometryInspection.schemaVersion='deepblend.scene-geometry/v1';delete x.geometryInspection.surfaceSamples;return x}
-  const old=await tool.execute(args,{});assert.equal(old.ok,false);assert.match(old.text,/Upgrade/)
+  const old=await tool.execute({...args,geometryOnly:true},{});assert.equal(old.ok,false);assert.match(old.text,/Upgrade/)
   transform=x=>{x.geometryInspection.surfaceSamples[0].gap.normalRaySeparationMm=0;return x}
-  const fake=await tool.execute(args,{});assert.equal(fake.ok,false);assert.equal(fake.data.errorCode,'BLENDER_SCRIPT_ERROR')
+  const fake=await tool.execute({...args,geometryOnly:true},{});assert.equal(fake.ok,false);assert.equal(fake.data.errorCode,'BLENDER_SCRIPT_ERROR')
   const partial=await tool.execute({projectId:'project',geometrySurfaceSamples:q.surfaceSamples},{});assert.equal(partial.ok,false)
 })

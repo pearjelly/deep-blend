@@ -112,7 +112,7 @@ export async function persistImage(attachments, bytes, name) {
  *
  * @param {string} headline
  * @param {object} data
- * @param {{ notes?: string[], warnings?: object[] }} [options]
+ * @param {{ notes?: string[], warnings?: object[], compact?: boolean }} [options]
  * @returns {string}
  */
 export function renderSuccess(headline, data, options = {}) {
@@ -126,7 +126,7 @@ export function renderSuccess(headline, data, options = {}) {
     lines.push('')
   }
   lines.push('Canonical JSON:')
-  lines.push(JSON.stringify(data, null, 2))
+  lines.push(JSON.stringify(data, null, options.compact ? undefined : 2))
   return lines.join('\n')
 }
 

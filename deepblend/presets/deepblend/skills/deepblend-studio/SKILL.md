@@ -96,8 +96,26 @@ normal to its first exit and, if requested, the target's first entry. Keep seeds
 frame, part IDs and source SHA with the receipt; use the same explicit seeds to
 compare saved revisions. A failed sample is unavailable, never zero.
 
-`normalSurfaceChordMm` is that local evaluated-mesh chord, and
-`normalRaySeparationMm` is the specified pair's distance along the same ray.
+Use `geometryOnly:true` with the native selection for a compact measurement receipt;
+it keeps the complete verified objects, samples and source identity while omitting
+the scene catalogue. Read the scene separately when selecting parts or seeds.
+It cannot be combined with `full:true`.
+
+For before/after comparisons, supply `geometryCompareRevision` with the old saved
+revision and the same explicit samples on the current read. The tool verifies both
+sources and computes `geometryComparison.samples` changes (current minus reference)
+and maxima over **all** comparable requested samples. Chord-only samples still count
+in the chord maximum. Unavailable pairs are omitted from numeric changes, never zero.
+Use these computed summaries rather than mental arithmetic. Preserve sample IDs,
+coverage counts and unavailable rows; round only for display. Do not assert left/right
+symmetry or an explanation for a change from this summary. A world seed does not
+necessarily hit the same material point across revisions. If the comparison is
+unavailable, report the raw evidence and limit the claim instead of guessing maxima.
+
+`normalSurfaceChordMm` runs from source entry to source exit. Target
+`normalRaySeparationMm` runs from source **EXIT** to target entry along that
+inward normal, excluding the source chord. Describe those two surfaces explicitly;
+do not label it as source outer surface to target entry or as global free clearance.
 Triangle-face normals differ from shading normals. These samples do not prove
 global minimum wall thickness, whole-assembly free clearance, no collision,
 manufacturing safety or visual quality. Other scene objects and mesh
@@ -108,6 +126,11 @@ If no supported samples cover a requested condition, keep it unmeasured.
 Inspect the saved preview needed for the brief; add a targeted view if it does
 not show the requested features. Once the requested native file and preview
 are saved, conclude with the project, revision and actual delivery paths.
+Use the current operation's returned project-relative paths and identify the project
+and revision. A historical producer path does not establish the current store root.
+Do not guess absolute paths from old metadata. If a generic presentation tool cannot
+register a project-relative file, report its path and use the saved workbench preview;
+do not invent a successful attachment or search unrelated stores to fabricate one.
 Separate verified dimensions/topology from appearance observations. An
 unavailable vision reviewer is a limitation to report, not a reason to repeat
 unchanged renders or to claim artistic approval. Additional artistic review
@@ -337,6 +360,10 @@ hard to get wrong:
 - **The score and the issues are measured, not reported.** The host computes them
   deterministically from the rendered pixels — composition, exposure, occlusion. The
   same scene scores the same twice, and a contract test asserts that.
+  Keep measured open issues visible in the handover. An unexpected threshold or
+  plausible explanation does not establish a false positive. Distinguish a possible
+  limitation from a verified cause; dismiss an issue only with separate evidence
+  from the relevant view and object.
 - **You are the only one who can see meaning.** The measurements cannot tell a watch
   dial that is *supposed* to be bright from one that is blown out, or a screen that is
   *supposed* to be hidden from one that is occluded by mistake. When a scene measures

@@ -80,7 +80,7 @@ export async function inspectRevisionGeometry(host, projectId, revision, selecti
         'This evaluates saved native mesh geometry, not shader displacement or rendered pixels.',
         ...(hasSamples ? [
           'Surface samples are finite local chords along evaluated triangle-face normals, not shader or smoothed shading normals.',
-          'Target separations measure only the specified pair along the sampled normal. Other scene objects are not checked; this is not full assembly free clearance.',
+          'The normalSurfaceChordMm runs from source entry to source exit. Target normalRaySeparationMm runs from source EXIT to target entry along that inward normal and excludes the source chord. Other scene objects are not checked; this is not full assembly free clearance.',
           'Closed connected consistently wound positive-volume geometry is required, but absence of self-intersections is not certified.',
           'No global minimum wall thickness, minimum clearance, collision absence, manufacturing safety or artistic approval is established.',
           'Unmeasured, missed, overlapping, occluded or unsupported samples must remain unavailable, never be replaced by zero or inferred from bounds.',

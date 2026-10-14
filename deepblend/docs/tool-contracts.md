@@ -81,7 +81,7 @@ revision、规范场景摘要、原生文件 SHA256 和依赖，复制后交给�
 外部链接库及非 1 米原生单位比例目前拒绝检查。历史版本须有匹配的成功生产任务摘要；
 没有来源证据的版本须先保存新 checkpoint。旧 Host 忽略可选参数时，工具明确报错。
 
-此入口尚未稳定发布；新模型会话、工作台及完整当前来源验收另行记录。
+原生跨度检查已随0.9.0稳定发布；局部表面采样与紧凑回执的0.10.0候选验收另行记录。
 
 ### `blender_preview_views`
 
@@ -412,6 +412,17 @@ visible/locked）、相机参数、动画轨道、渲染 profile、已有的 pre
 反向/多分量网格、预算超限等情况给出不适用状态，不返回假零。壁面和目标搜索各限100 mm。
 这些结果不是全表面最小壁厚、最小距离、整机自由间隙、无碰撞、无自交或制造/艺术认可。
 普通查询保持v1；旧Host/Provider/原生脚本给出升级提示而不伪造采样。尚未发布新稳定版本。
+
+测量时可选 `geometryOnly:true`，只返回projectId、revision、digest、isCurrent及完整
+geometryInspection，不带场景目录。模型文本使用紧凑JSON，所有点、状态、限制和来源仍
+可核对；不裁剪不适用结果、不跳过验证。必须同时给原生实体和帧，不能与full:true合用。
+省略或false保留旧输出。旧修订仍明确isCurrent:false，不能拿历史回执绕过修改前置条件。
+
+可选geometryCompareRevision指明另一保存修订，要求同时给surfaceSamples。两份原生
+来源均通过同样检查，使用相同部件、世界种子和帧。geometryComparison保留完整参考
+回执，列出每处current-minus-reference差值及全部可比样本的最大绝对变化。只有壁面
+可测的样本仍计入壁面最大值；没有可比结果时省略数值，不写假零。该汇总不证明同一
+材质点、左右对称、变化原因、全表面最小值或无碰撞。任一来源失败均拒绝整个比较。
 
 **契约要点**：两者返回的 `revision` 必须被用作下一次 `blender_scene_patch` 的
 `baseRevision`。若该 revision 不是 current，`data.isCurrent === false`，且工具文本会
