@@ -1,0 +1,64 @@
+{
+  "releaseLabel": "0.12.0",
+  "status": "finite-guard-F2-verification-pending-not-published",
+  "previousF1Acceptance": {
+    "releaseLabel": "0.12.0",
+    "status": "local-acceptance-complete-publication-pending",
+    "frozenFiles": 783,
+    "sourceUnchanged": true,
+    "source": "/Users/hxb/.codex/worktrees/first-output/deep-blend/.tmp-native-012-freeze-v1/source",
+    "fullSuites": 42,
+    "fullExit": 0,
+    "finalUnitFiles": [
+      135,
+      135
+    ],
+    "unitExit": 0,
+    "paidUI": [
+      10,
+      10
+    ],
+    "paidUIExit": 0,
+    "paidVisual": [
+      14,
+      14
+    ],
+    "paidVisualExit": 0,
+    "paidVisualBootScope": "Only actual configuredPiAi/bai adapter registration differs from canonical visual-live; assertions, prompts, renders and loop unchanged. Original NO_ADAPTER retained.",
+    "mutationsKilled": 10,
+    "bai": {
+      "status": "scoped-real-existing-model-task-accepted",
+      "model": "bai/deepseek-v4.1-flash",
+      "elapsedMs": 586357,
+      "humanTasks": 1,
+      "actualToolCalls": 13,
+      "steps": 10,
+      "nativeCompareRequests": 2,
+      "originPairsPerRequest": 6,
+      "savedRevisionsCompared": [
+        "r0001",
+        "r0002",
+        "r0003"
+      ],
+      "fileCount": 3,
+      "filesExist": true,
+      "fixedImagePairs": 2,
+      "fixedFrame": 24,
+      "fixedWidth": 768,
+      "fixedHeight": 576,
+      "fixedSamples": 64,
+      "imagesViewed": true,
+      "visualObservation": "Larger cabinet and front/rear panels with recognizable grille, knob, screws and connector; preserved photographic conditions. No claim of clearance or absence of inherited ground gap.",
+      "originalScore": 82,
+      "unresolvedOcclusionFindings": 6,
+      "inheritedGroundGapMm": 20.09999955043895,
+      "globalRestPartSpansClaim": "Independently all111 native spans compared; exactly8 structural IDs changed, other spans unchanged within0.001mm.",
+      "remainingAcceptance": [
+        "exact Git/publicCI and standard release cohorts"
+      ],
+      "scope": "Existing design edited by one actual model task. Source/hand/history/native/pairs/files/fixed images audited; no arbitrary natural-language modeling, contact/manufacturing, external artist approval or external adoption proof."
+    },
+    "scope": "Entire full42 from F1; final published-source docs may change but package/test/preset files must equal this snapshot. Existing-model task, not arbitrary modeling/clearance/artist/adoption proof."
+  },
+  "scope": "F1 actualmodel/full42/paid verification passed. F2 adds derived finite arithmetic rejection; new full42 and replay required before release."
+}

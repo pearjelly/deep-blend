@@ -54,6 +54,7 @@ import {
   resolveStudio,
 } from './shared.js'
 import { compareSurfaceReports } from './geometry-comparison.js'
+import { validateAssemblyPairs, readAssemblyOrigins, compareAssemblyOrigins, compareGeometryReports } from './assembly-origins.js'
 
 /** A short parameter description of a SceneSpec engine key. */
 const ENGINE_KEY_DESCRIPTION =
@@ -398,7 +399,7 @@ function sceneGet(ctx) {
       'Optional geometrySurfaceSamples measures 1–8 explicit local surface chords and pair separations on the same saved source. ' +
       'The chord runs from source entry to exit; separation runs from source EXIT to target entry and excludes that chord. ' +
       'Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
-      'When comparing revisions, add geometryCompareRevision with identical surface samples; the tool computes per-sample changes and maxima, including chord-only samples. ' +
+      'Add geometryAssemblyPairs to measure explicit ordered object-origin offsets in world XYZ, not surface clearances. When comparing revisions, geometryCompareRevision computes current-minus-reference native spans and origin moves; if surface samples are supplied, their existing local comparison is used. ' +
       'Choose outside world seeds and directions from the actual scene/bounds; missed or unsupported samples remain unavailable. ' +
       'Local samples do not prove full-surface minimum wall thickness, whole-assembly clearance, no collision or quality approval. ' +
       'ALWAYS use the revision this returns as `baseRevision` for your next blender_scene_patch.',
@@ -410,7 +411,13 @@ function sceneGet(ctx) {
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
       geometryOnly: { type: 'boolean', description: 'Return only source identity and verified geometry evidence, without the scene catalogue. Requires geometryEntityIds and geometryFrame; cannot be combined with full:true. Ordinary reads keep their existing shape.' },
-      geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometrySurfaceSamples. Re-measures that saved source with identical parts, seeds and frame, and computes current-minus-reference changes and maxima for all comparable samples. Unavailable pairs remain unavailable. No global minima or change cause is established.' },
+      geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometryEntityIds and geometryFrame. Re-measures identical selected parts/frame and computes current-minus-reference native world-axis spans and origin moves. If geometrySurfaceSamples is supplied, compares those same local samples instead. Requested geometryAssemblyPairs also return origin-offset changes. Unavailable evidence stays unavailable; no clearance, global minima or change cause is established.' },
+      geometryAssemblyPairs: { type: 'array', description: 'Optional 1–8 ordered native object-origin pairs. Requires geometryEntityIds containing both ends and geometryFrame. Offsets use world XYZ in millimeters; they are not surface protrusion, contact, clearance or whole-assembly certification.',
+        items: { type: 'object', additionalProperties: false, properties: {
+          pairId: { type: 'string', required: true, description: 'Distinct letters/numbers/underscore/hyphen identifier (1–64 characters).' },
+          entityId: { type: 'string', required: true, description: 'Selected native mesh whose object origin is measured.' },
+          anchorEntityId: { type: 'string', required: true, description: 'Different selected mesh origin used as anchor; offset is entity minus anchor in world XYZ.' },
+        } } },
       geometrySurfaceSamples: { type: 'array', description: 'Optional 1–8 local surface samples. Requires geometryEntityIds including every source/target and geometryFrame. Numeric results are local evidence only.',
         items: { type: 'object', additionalProperties: false, properties: {
           sampleId: { type: 'string', required: true, description: 'Distinct short letters/numbers/underscore/hyphen identifier (1–64 characters).' },
@@ -444,9 +451,10 @@ function sceneGet(ctx) {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Surface samples require geometryEntityIds and geometryFrame.')
         }
         if (args.geometryCompareRevision !== undefined && (typeof args.geometryCompareRevision !== 'string' ||
-            !/^r\d{4,}$/.test(args.geometryCompareRevision) || args.geometrySurfaceSamples === undefined)) {
-          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryCompareRevision requires an explicit saved revision and surface samples.')
+            !/^r\d{4,}$/.test(args.geometryCompareRevision) || args.geometryEntityIds === undefined)) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryCompareRevision requires an explicit saved revision, geometryEntityIds and geometryFrame.')
         }
+        if (args.geometryAssemblyPairs !== undefined) validateAssemblyPairs(args.geometryAssemblyPairs, args.geometryEntityIds)
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
           frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
@@ -474,16 +482,20 @@ function sceneGet(ctx) {
             checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         }
         verifyScene(data, args.revision)
+        if (args.geometryAssemblyPairs !== undefined) data.geometryAssemblyOrigins = readAssemblyOrigins(data.geometryInspection, args.geometryAssemblyPairs)
         if (args.geometryCompareRevision !== undefined) {
           const reference = await canonicalCall(resolved.studio.getScene(args.projectId, { revision: args.geometryCompareRevision,
-            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, surfaceSamples: args.geometrySurfaceSamples }, signal: exec?.signal }), warning)
+            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
           verifyScene(reference.data, args.geometryCompareRevision)
           canonicalWarnings.push(...reference.canonicalWarnings)
-          data.geometryComparison = compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection)
+          data.geometryComparison = hasSamples ? compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection) : compareGeometryReports(reference.data.geometryInspection, data.geometryInspection)
+          if (args.geometryAssemblyPairs !== undefined) data.geometryComparison.assemblyOriginComparison = compareAssemblyOrigins(
+            readAssemblyOrigins(reference.data.geometryInspection, args.geometryAssemblyPairs), data.geometryAssemblyOrigins)
         }
         if (args.geometryOnly === true) {
           const receipt = { projectId: args.projectId, revision: data.revision, digest: data.digest,
             isCurrent: data.isCurrent, geometryInspection: data.geometryInspection,
+            ...(data.geometryAssemblyOrigins ? { geometryAssemblyOrigins: data.geometryAssemblyOrigins } : {}),
             ...(data.geometryComparison ? { geometryComparison: data.geometryComparison } : {}) }
           return { ok: true, text: renderSuccess(`Saved native measurement receipt for "${args.projectId}" at ${data.revision}.`, receipt,
             { warnings: canonicalWarnings, compact: true }), data: receipt }
