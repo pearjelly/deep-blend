@@ -54,6 +54,24 @@ checkpoint and preview together. When a result says its image was not attached,
 the model has not seen those pixels; retain the saved artifact and report that
 limit. Additional views still need to show the features required by the brief.
 
+For an existing assembly dimension edit, the final handoff must be a compact receipt:
+- project/current revision and the retained original;
+- only the requested overall dimensions, from the saved native span receipt;
+- saved custom keyframe timing and protected cameras when requested;
+- the actual registered native file and primary/back images;
+- the remaining score findings and unmeasured global conditions.
+Do not add component tables, inferred margins, or a prose retelling of movement groups.
+Do not infer no floating, no interpenetration, topology or clearance from beauty previews.
+Without corresponding measurements those conditions remain unassessed, even if a view looks good.
+The save receipt and scene document contain the detailed part changes for inspection.
+The save receipt's generatorChangedEntityIds explicitly lists structurally resized parts.
+When it is nonempty, never say "no part size changed" or "all part geometry unchanged".
+Preservation applies to the original revision and independent hand edits, not to the
+structural generator dimensions requested to change.
+Structural shells, openings, baffles and panels grow: the recipe's fixed-part wording is
+not a claim that those structural dimensions stay unchanged. If the user explicitly asks
+for a detailed component report, quote actual receipt fields individually and retain gaps.
+
 For a later dimensional change, read `blender_recipe_parameters`, then save
 only the changed parameter IDs with the current base revision and preview
 enabled. This preserves independent appearance, the original revision and
@@ -278,8 +296,22 @@ the current revision and repeat the affected views with the same settings.
    the first revision is `r0001`. If no recipe fits, use a supplied scene or the minimal scaffold route.
    For an existing assembly, use **`blender_recipe_parameters`** with `action:read` first.
    Use the returned revision, numeric parameter IDs and allowed ranges in `action:save`.
+   Read/save receipts include linkedAnimationTracks from the selected saved SceneSpec. Use its
+   actual keyframe frames and values to verify custom timing and travel; recipe defaults, shot
+   prose and the observation/render frame are not the current animation keyframe list.
    This creates one revision in the same project, using ordinary patches internally; it preserves
    independent materials, bevels, photography and history. Do not recreate the project to resize it.
+   Save receipts include placementChanges: groups of actual saved object-origin deltas in mm,
+   with entity IDs and from/to revision. Quote the group containing each named part; front
+   controls and rear connectors may move in opposite directions. These SceneSpec deltas
+   are not native surface distances or clearances.
+   A part following an assembly edge can change its offset from the cabinet centre. Do not
+   describe all relative offsets as invariant. A world-coordinate endpoint is not an exposure
+   or clearance distance. If no returned field defines a relationship measurement, leave it
+   unmeasured instead of deriving an attachment distance or margin in the final answer.
+   Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation, including the
+   button rest anchor, while resizing. Partial moves and rotated dimension-controlled parts
+   remain conflicts. Keep custom photography; verify its framing after the size change.
    Controlled geometry conflicts require resolving the named parts before saving. Old recipes
    without geometry controls return available:false. Use a fresh idempotencyKey for each new
    intent, including edits after restoring history; reuse it only for the same retry.
@@ -287,6 +319,9 @@ the current revision and repeat the affected views with the same settings.
    Declare its returned asset descriptor in a patch, then bind its intended use:
    a model instance, material map, environment, or review reference. See the model
    workflow below and the reference image guide above.
+   `blender_project_get.projectDirectory` is the active project directory, including after
+   relocation or restore. Combine it with returned project-relative artifact paths for file
+   registration. Do not guess a producer's old absolute directory from historical metadata.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form

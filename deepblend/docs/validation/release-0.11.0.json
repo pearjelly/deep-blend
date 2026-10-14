@@ -1,0 +1,62 @@
+{
+  "releaseLabel": "0.11.0",
+  "status": "local-acceptance-complete-publication-pending",
+  "bai": {
+    "status": "passed-scoped-existing-assembly-task",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "elapsedMs": 422463,
+    "humanTasks": 1,
+    "toolCalls": 13,
+    "steps": 9,
+    "newRevision": "r0003",
+    "oldRevisionsRetained": [
+      "r0001",
+      "r0002"
+    ],
+    "nativeDimensionsMm": [
+      319.9999928474426,
+      159.9999964237213,
+      199.99999552965164
+    ],
+    "nativePlacements": 111,
+    "attachmentVectors": 6,
+    "nativeFrames": [
+      1,
+      12,
+      24,
+      26,
+      48
+    ],
+    "protectedRootFiles": 12,
+    "originalSeedFiles": 24,
+    "fixedImagePairs": 2,
+    "acceptedNativeReplayCount": 2,
+    "automaticRejectedRequestCount": 1,
+    "registeredFiles": 3,
+    "openReviewScore": 82,
+    "openMeasuredIssues": 6,
+    "scope": "One existing shipped-design edit, not arbitrary modeling success or external artistic/adoption approval. Saved source and geometry inspected; inherited20.1mm foot/floor gap preserved, not certified absent. Original tool error and language failures retained."
+  },
+  "fullRuntime": {
+    "source": "F2",
+    "suites": 42,
+    "terminalExit": 0
+  },
+  "finalSource": "F8",
+  "unitFiles": [
+    134,
+    134
+  ],
+  "liveUI": [
+    10,
+    10
+  ],
+  "liveVisual": [
+    14,
+    14
+  ],
+  "visualHandoverBranch": true,
+  "mutationCountKilled": 20,
+  "scope": "Full runtime and later read-only metadata/persona tests have separate exact sources; public cohorts not yet complete"
+}

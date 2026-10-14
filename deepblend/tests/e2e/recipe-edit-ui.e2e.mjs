@@ -111,6 +111,48 @@ try {
     row.entities === 111 && row.dimensions.every((value, axis) => Math.abs(value - [[.264,.138,.162],[.3,.138,.162],[.34,.138,.2]][i][axis]) < 1e-6)
       && row.gap.every((value, axis) => Math.abs(value - [.009,.0115,.009][axis]) < 1e-6) && Math.abs(row.bottomZ - .014) < 1e-6, row))
   check('native resized checkpoint retains customized material, camera and bevel', Math.abs(native[2].roughness - .42) < 1e-6 && native[2].lens === 58 && native.every(row => row.independentBevelMeshMatches) && native[2].baseMeshFaces < native[1].baseMeshFaces)
+
+  // A user's complete model move is safe to retain; the floor and photography are independent.
+  const placed = read('revisions/r0001/scene-spec.json'), offset = [.15, -.09, .02]
+  const moveOps = placed.entities.filter(e => e.id !== 'studio-floor').map(e => ({op:'entity.transform.update',entityId:e.id,
+    location:e.transform.location.map((v,i)=>v+offset[i])}))
+  for (const input of placed.animationTracks) if (/^location\.[xyz]$/.test(input.property)) {
+    const track=structuredClone(input), axis=['x','y','z'].indexOf(track.property.at(-1))
+    for(const key of track.keyframes) key.value+=offset[axis]
+    track.keyframes[1].frame+=2;track.keyframes[1].value-=.001
+    moveOps.push({op:'animation.track.set',track})
+  }
+  for (const camera of placed.cameras) moveOps.push({op:'camera.update',cameraId:camera.id,
+    transform:{location:camera.transform.location.map((v,i)=>v+offset[i])},targetPoint:camera.targetPoint.map((v,i)=>v+offset[i])})
+  moveOps.push({op:'material.parameter.update',materialId:shell.materialId,parameter:'roughness',value:.43})
+  const moveResponse=await fetch(base+`/deepblend/projects/${id}/patch`,{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({patch:{baseRevision:'r0001',saveCheckpoint:true,operations:moveOps}})}).then(r=>r.json())
+  check('hand placement and animation fixture saves through the actual Host without replacing the recipe lock',moveResponse.ok&&moveResponse.revision.revision==='r0005')
+  const hand=read('revisions/r0005/scene-spec.json'),protectedPlaced=sha(readFileSync(file('revisions/r0005/scene.blend')))
+  await page.reload();await controls('r0005')
+  await page.fill('[data-field="assembly-cabinet-width-mm"]','340')
+  check('the translated complete assembly offers enabled size controls',await page.evaluate('!document.querySelector(\'[data-action="assembly-save"]\').disabled'))
+  await resize('r0005',{'cabinet-width-mm':340,'cabinet-depth-mm':180,'cabinet-height-mm':220});await saved('r0006')
+  const continued=read('revisions/r0006/scene-spec.json')
+  check('translated resize preserves hand photography and materials',JSON.stringify(continued.cameras)===JSON.stringify(hand.cameras)&&JSON.stringify(continued.materials)===JSON.stringify(hand.materials))
+  check('translated resize retains the floor, original lock and saved hand-placement checkpoint',JSON.stringify(continued.entities.find(e=>e.id==='studio-floor'))===JSON.stringify(hand.entities.find(e=>e.id==='studio-floor'))
+    &&sha(readFileSync(file('revisions/r0005/scene.blend')))===protectedPlaced&&Object.entries(protectedFiles).every(([path,digest])=>sha(readFileSync(file(path)))===digest))
+  const assemblyReceipt=join(output,'native-assembly.json')
+  writeFileSync(join(output,'native-assembly.log'),execFileSync(blender,['--background','--factory-startup','--disable-autoexec','--python-exit-code','1','--python',
+    join(REPO_ROOT,'deepblend/tests/lib/inspect-native-speaker-assembly.py'),'--',file('revisions/r0005/scene.blend'),file('revisions/r0006/scene.blend'),file('revisions/r0006/scene-spec.json'),assemblyReceipt],{timeout:120000,maxBuffer:8*1024*1024}))
+  const assembled=JSON.parse(readFileSync(assemblyReceipt))
+  check('native translated size and floor placement match the requested assembly',assembled.dimensionsMm.every((v,i)=>Math.abs(v-[340,180,220][i])<.001)
+    &&Math.abs(assembled.bottomMm-34)<.001&&assembled.entities===111)
+  check('native parts retain their requested placement, fixed attachment pairs and button travel at four frames',assembled.placementMismatches.length===0&&assembled.attachmentMismatches.length===0&&assembled.animationMismatches.length===0)
+  // Rotation must be visible as a conflict before any regeneration, retaining the user's source.
+  const rotatedResponse=await fetch(base+`/deepblend/projects/${id}/patch`,{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({patch:{baseRevision:'r0006',saveCheckpoint:true,operations:[{op:'entity.transform.update',entityId:'cabinet-shell',rotationEuler:[0,0,Math.PI/2]}]}})}).then(r=>r.json())
+  check('independent rotated checkpoint is saved as the user authored it',rotatedResponse.ok&&rotatedResponse.revision.revision==='r0007')
+  const rotatedHash=sha(readFileSync(file('revisions/r0007/scene.blend')))
+  await page.reload();await controls('r0007')
+  check('the actual size form blocks the rotated world-axis mismatch',await page.evaluate('document.querySelector(\'[data-action="assembly-save"]\').disabled&&document.body.innerText.includes("cabinet-shell")'))
+  const refused=await fetch(base+`/deepblend/projects/${id}/recipe-parameters`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({baseRevision:'r0007',parameters:{'cabinet-width-mm':300},saveCheckpoint:true,renderPreview:true})}).then(r=>r.json())
+  check('direct rotated resize refuses atomically and retains the exact native file and current revision',!refused.ok&&read('project.json').currentRevision==='r0007'&&sha(readFileSync(file('revisions/r0007/scene.blend')))===rotatedHash)
 } catch (error) {
   failure = error.stack || String(error); console.error(error)
   if (page) json('failure-ui.json', await page.evaluate(`({writes:window.__writes ?? [],
