@@ -104,7 +104,12 @@ test('model tool returns explicit local evidence and refuses old or fabricated s
   const compared=await tool.execute(compareArgs,{signal});assert.equal(compared.ok,true)
   const comparison=compared.data.geometryComparison
   assert.equal(comparison.referenceInspection.sourceRevision,'r0002')
-  assert.deepEqual(comparison.summary,{requestedSamples:2,comparedChords:2,comparedSeparations:1,maxAbsoluteChordChangeMm:5,maxAbsoluteSeparationChangeMm:1})
+  const {maxAbsoluteSeparationChangePercent,...totals}=comparison.summary
+  assert.deepEqual(totals,{requestedSamples:2,comparedChords:2,comparedSeparations:1,maxAbsoluteChordChangeMm:5,maxAbsoluteChordChangePercent:250,maxAbsoluteSeparationChangeMm:1})
+  assert.ok(Math.abs(maxAbsoluteSeparationChangePercent-100/3)<1e-10)
+  assert.equal(comparison.samples[0].normalSurfaceChordChangePercent,100)
+  assert.equal(comparison.samples[1].normalSurfaceChordChangePercent,250)
+  assert.ok(Math.abs(comparison.samples[0].normalRaySeparationChangePercent+100/3)<1e-10)
   assert.equal(comparison.samples[0].normalSurfaceChordChangeMm,1);assert.equal(comparison.samples[0].normalRaySeparationChangeMm,-1)
   assert.equal(comparison.samples[1].normalSurfaceChordChangeMm,5);assert.equal(comparison.samples[1].after.targetStatus,'no-target-entry')
   assert.equal('normalRaySeparationChangeMm' in comparison.samples[1],false)

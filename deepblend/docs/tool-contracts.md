@@ -423,6 +423,8 @@ geometryInspection，不带场景目录。模型文本使用紧凑JSON，所有�
 回执，列出每处current-minus-reference差值及全部可比样本的最大绝对变化。只有壁面
 可测的样本仍计入壁面最大值；没有可比结果时省略数值，不写假零。该汇总不证明同一
 材质点、左右对称、变化原因、全表面最小值或无碰撞。任一来源失败均拒绝整个比较。
+每处差值还带按参考值计算的百分比，汇总分别给壁面和间距最大绝对百分比；不得混用
+两者的上限，不能从四舍五入的展示数字反推百分比。
 
 **契约要点**：两者返回的 `revision` 必须被用作下一次 `blender_scene_patch` 的
 `baseRevision`。若该 revision 不是 current，`data.isCurrent === false`，且工具文本会

@@ -111,6 +111,12 @@ coverage counts and unavailable rows; round only for display. Do not assert left
 symmetry or an explanation for a change from this summary. A world seed does not
 necessarily hit the same material point across revisions. If the comparison is
 unavailable, report the raw evidence and limit the claim instead of guessing maxima.
+The comparison also computes percent changes against each reference value. Quote
+the separate chord and separation percentage maxima exactly (round only for display).
+Do not apply a chord percentage to the gap, derive percentages from rounded table
+values, or introduce a combined relative bound. If no percentage receipt exists,
+omit the percentage claim. Do not equate a measured change with user approval of
+its size; state the observed values and coverage, and leave unmeasured conditions open.
 
 `normalSurfaceChordMm` runs from source entry to source exit. Target
 `normalRaySeparationMm` runs from source **EXIT** to target entry along that
