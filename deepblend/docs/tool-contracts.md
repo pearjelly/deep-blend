@@ -429,13 +429,22 @@ geometryInspection，不带场景目录。模型文本使用紧凑JSON，所有�
 可核对；不裁剪不适用结果、不跳过验证。必须同时给原生实体和帧，不能与full:true合用。
 省略或false保留旧输出。旧修订仍明确isCurrent:false，不能拿历史回执绕过修改前置条件。
 
-可选geometryCompareRevision指明另一保存修订，要求同时给surfaceSamples。两份原生
+可选geometryCompareRevision指明另一保存修订，要求原生实体选择和帧。未给surfaceSamples
+时，geometryComparison.objects返回原生世界轴跨度及物体原点位置的current-minus-reference
+差值。不可用物体不返回假零。给出surfaceSamples时保留原局部表面比较：两份原生
 来源均通过同样检查，使用相同部件、世界种子和帧。geometryComparison保留完整参考
 回执，列出每处current-minus-reference差值及全部可比样本的最大绝对变化。只有壁面
 可测的样本仍计入壁面最大值；没有可比结果时省略数值，不写假零。该汇总不证明同一
 材质点、左右对称、变化原因、全表面最小值或无碰撞。任一来源失败均拒绝整个比较。
 每处差值还带按参考值计算的百分比，汇总分别给壁面和间距最大绝对百分比；不得混用
 两者的上限，不能从四舍五入的展示数字反推百分比。
+
+可选geometryAssemblyPairs指定1–8组有序物体原点关系；每组带唯一pairId、entityId、
+不同的anchorEntityId，两端均须在选中原生实体内。geometryAssemblyOrigins返回同帧已保存
+原生世界矩阵的物体原点差，单位毫米、世界XYZ；有参考修订时还返回
+geometryComparison.assemblyOriginComparison差值。原点差不是表面外露、插入深度、
+接触、间隙或装配正确认证；旋转后世界分量会变化，不作为局部或内禀尺寸。参考/当前
+来源与选中部件/帧均须通过验证，任一端不可用则不提供该组数值。
 
 **契约要点**：两者返回的 `revision` 必须被用作下一次 `blender_scene_patch` 的
 `baseRevision`。若该 revision 不是 current，`data.isCurrent === false`，且工具文本会

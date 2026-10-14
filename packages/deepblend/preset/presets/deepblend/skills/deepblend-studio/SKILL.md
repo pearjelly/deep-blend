@@ -119,8 +119,22 @@ it keeps the complete verified objects, samples and source identity while omitti
 the scene catalogue. Read the scene separately when selecting parts or seeds.
 It cannot be combined with `full:true`.
 
-For before/after comparisons, supply `geometryCompareRevision` with the old saved
-revision and the same explicit samples on the current read. The tool verifies both
+For saved native size/movement comparisons, use `geometryCompareRevision` with the
+old saved revision, the selected `geometryEntityIds`, and explicit `geometryFrame`.
+Without surface samples, `geometryComparison.objects` gives current-minus-reference
+world-axis span and object-origin changes. Use these computed values instead of
+subtracting rounded displays. This does not identify their cause or certify contact.
+
+For explicit attachment endpoint origins, add `geometryAssemblyPairs` (1–8 pairs),
+each with a distinct `pairId`, selected `entityId` and different selected
+`anchorEntityId`. `geometryAssemblyOrigins` joins native OBJECT ORIGINS in world XYZ:
+entity minus anchor. With a reference revision, `geometryComparison.assemblyOriginComparison`
+also returns the offset changes. These are not surface protrusion, seating depth,
+contact or clearance. World offsets change with rotation; do not call them intrinsic
+or anchor-local dimensions. Preserve unavailable endpoints without inventing zero.
+
+For local surface before/after comparisons, supply `geometryCompareRevision` with the
+old saved revision and the same explicit samples on the current read. The tool verifies both
 sources and computes `geometryComparison.samples` changes (current minus reference)
 and maxima over **all** comparable requested samples. Chord-only samples still count
 in the chord maximum. Unavailable pairs are omitted from numeric changes, never zero.

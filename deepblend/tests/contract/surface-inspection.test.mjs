@@ -115,6 +115,11 @@ test('model tool returns explicit local evidence and refuses old or fabricated s
   assert.equal('normalRaySeparationChangeMm' in comparison.samples[1],false)
   assert.deepEqual(requests.slice(-2).map(r=>r.geometry.surfaceSamples),[compareArgs.geometrySurfaceSamples,compareArgs.geometrySurfaceSamples])
   assert.ok(requests.slice(-2).every(r=>r.signal===signal))
+  const combined=await tool.execute({...compareArgs,geometryAssemblyPairs:[{pairId:'wall-liner-origin',entityId:'wall',anchorEntityId:'liner'}]},{signal})
+  assert.equal(combined.ok,true);assert.equal(combined.data.geometryComparison.schemaVersion,'deepblend.surface-comparison/v1')
+  assert.deepEqual(combined.data.geometryComparison.summary,comparison.summary)
+  assert.deepEqual(combined.data.geometryComparison.assemblyOriginComparison.pairs[0].worldOriginOffsetChangeMm,[0,0,0])
+  assert.equal(combined.data.geometryAssemblyOrigins.pairs[0].status,'measured')
   transform=x=>{if(x.revision==='r0002')x.geometryInspection.surfaceSamples[0].gap.normalRaySeparationMm=0;return x}
   const forgedReference=await tool.execute(compareArgs,{});assert.equal(forgedReference.ok,false);assert.equal(forgedReference.data.errorCode,'BLENDER_SCRIPT_ERROR')
   transform=x=>{if(x.revision==='r0002'){x.revision='r0009';x.geometryInspection.sourceRevision='r0009'}return x}
