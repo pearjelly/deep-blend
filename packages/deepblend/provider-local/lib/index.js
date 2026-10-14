@@ -1512,12 +1512,21 @@ export default class LocalBlenderRuntime extends Service {
         )
       }
 
+      if (request.cameraFraming !== undefined) {
+        const selection = request.cameraFraming
+        if (!selection || typeof selection !== 'object' || Array.isArray(selection)
+            || Object.keys(selection).length !== 3 || selection.entityId !== 'cup'
+            || selection.cameraId !== 'hero' || selection.margin !== 0.03) {
+          throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID, 'Expected the bounded cup/hero framing selection')
+        }
+      }
       const args = ['--scene-spec', request.sceneSpecPath, '--output-blend', outputBlend]
       if (request.profile !== undefined) args.push('--profile', String(request.profile))
       if (request.projectRoot !== undefined) args.push('--project-root', request.projectRoot)
 
       const run = await this.runBootstrap(
-        { action: 'compile_scene', jobId: request.jobId },
+        { action: 'compile_scene', jobId: request.jobId,
+          ...(request.cameraFraming === undefined ? {} : { payload: { cameraFraming: request.cameraFraming } }) },
         {
           signal: request.signal,
           session: request.session,

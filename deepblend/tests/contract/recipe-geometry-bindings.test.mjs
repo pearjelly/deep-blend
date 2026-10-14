@@ -552,3 +552,116 @@ test('rotating or replacing dimension-controlled geometry refuses a world-size m
     assert.equal(JSON.stringify(current),before)
   }
 })
+
+function placedCup(spec) {
+  const result=structuredClone(spec),delta=[.12,-.08,.02],yaw=Math.PI/3
+  const point=p=>[Math.cos(yaw)*p[0]-Math.sin(yaw)*p[1]+delta[0],Math.sin(yaw)*p[0]+Math.cos(yaw)*p[1]+delta[1],p[2]+delta[2]]
+  const cup=result.entities.find(e=>e.id==='cup');cup.transform.location=delta;cup.transform.rotationEuler=[0,0,yaw]
+  for(const camera of result.cameras){camera.transform.location=point(camera.transform.location);camera.targetPoint=point(camera.targetPoint)}
+  return {spec:result,point}
+}
+test('a placed and turned saved cup keeps its pose and authored details while its recognized default cameras follow all three dimensions',()=>{
+  const value=cupBundle(),lock=lockFor(value),origin=instantiateRecipeLock(lock),placed=placedCup(origin.spec)
+  placed.spec.materials.find(m=>m.id==='glaze').parameters.roughness=.37
+  placed.spec.entities.find(e=>e.id==='cup').generator.rootTension=2.3
+  const originals=JSON.stringify([lock,placed.spec]),changes={'cup-height-mm':130,'cup-outer-diameter-mm':84,'cup-wall-mm':4}
+  const plan=planRecipeGeometryEdit(lock,placed.spec,undefined,changes),actual=applyPlan(placed.spec,plan),expected=instantiateRecipeLock(lock,changes).spec
+  assert.deepEqual(actual.entities.find(e=>e.id==='cup').transform,placed.spec.entities.find(e=>e.id==='cup').transform)
+  assert.equal(actual.entities.find(e=>e.id==='cup').generator.rootTension,2.3)
+  assert.equal(actual.materials.find(m=>m.id==='glaze').parameters.roughness,.37)
+  assert.deepEqual(plan.preservedCameraIds,[])
+  for(const camera of actual.cameras){const local=expected.cameras.find(c=>c.id===camera.id);for(const [a,b]of [[camera.transform.location,placed.point(local.transform.location)],[camera.targetPoint,placed.point(local.targetPoint)]])assert.ok(a.every((v,i)=>Math.abs(v-b[i])<1e-12))}
+  assert.equal(JSON.stringify([lock,placed.spec]),originals)
+  assert.deepEqual(actual.lights,placed.spec.lights);assert.deepEqual(actual.entities.find(e=>e.id==='floor'),placed.spec.entities.find(e=>e.id==='floor'))
+  const continued=planRecipeGeometryEdit(lock,actual,plan.parameterState,{'cup-height-mm':125});assert.deepEqual(continued.preservedCameraIds,[])
+  assert.deepEqual(applyPlan(actual,continued).entities.find(e=>e.id==='cup').transform,placed.spec.entities.find(e=>e.id==='cup').transform)
+})
+test('independent cup photography, deleted cameras, changed generator bindings and scale stay protected',()=>{
+  const lock=lockFor(cupBundle()),origin=instantiateRecipeLock(lock),placed=placedCup(origin.spec).spec
+  placed.cameras.find(c=>c.id==='hero').lens+=7
+  placed.cameras.find(c=>c.id==='roots').targetPoint[0]+=.005
+  placed.cameras=placed.cameras.filter(c=>c.id!=='inside')
+  const plan=planRecipeGeometryEdit(lock,placed,undefined,{'cup-height-mm':130})
+  assert.deepEqual(plan.preservedCameraIds,['hero','roots','inside']);assert.deepEqual(applyPlan(placed,plan).cameras,placed.cameras)
+  for(const alter of [s=>s.entities.find(e=>e.id==='cup').generator.height+=.001,s=>s.entities.find(e=>e.id==='cup').transform.scale[2]=1.1]){
+    const changed=structuredClone(placed);alter(changed);assert.throws(()=>planRecipeGeometryEdit(lock,changed,undefined,{'cup-height-mm':130}),e=>e.code==='RECIPE_PARAMETER_CONFLICT')
+  }
+})
+
+test('authored camera animation protects cup photography even when the saved camera itself still equals the default',()=>{
+  const lock=lockFor(cupBundle()),spec=instantiateRecipeLock(lock).spec,camera=spec.cameras.find(c=>c.id==='hero')
+  spec.animationTracks.push({id:'manual-camera-pan',targetKind:'camera',targetEntityId:'hero',property:'location.x',keyframes:[{frame:1,value:camera.transform.location[0]},{frame:48,value:camera.transform.location[0]+.05}]})
+  const plan=planRecipeGeometryEdit(lock,spec,undefined,{'cup-height-mm':130}),after=applyPlan(spec,plan)
+  assert.deepEqual(plan.preservedCameraIds,['hero']);assert.deepEqual(after.cameras.find(c=>c.id==='hero'),camera)
+  assert.deepEqual(after.animationTracks,spec.animationTracks);assert.ok(plan.operations.some(o=>o.op==='camera.update'&&o.cameraId==='roots'))
+})
+
+test('saved cup placement maps all three Euler rotations and camera targets rather than assuming an upright yaw',()=>{
+  const lock=lockFor(cupBundle()),spec=instantiateRecipeLock(lock).spec,angles=[.12,-.18,.7],shift=[.13,.05,.01]
+  const rotate=p=>{const[x,y,z]=angles;const a=[p[0],Math.cos(x)*p[1]-Math.sin(x)*p[2],Math.sin(x)*p[1]+Math.cos(x)*p[2]];const b=[Math.cos(y)*a[0]+Math.sin(y)*a[2],a[1],-Math.sin(y)*a[0]+Math.cos(y)*a[2]];return[Math.cos(z)*b[0]-Math.sin(z)*b[1]+shift[0],Math.sin(z)*b[0]+Math.cos(z)*b[1]+shift[1],b[2]+shift[2]]}
+  Object.assign(spec.entities.find(e=>e.id==='cup').transform,{location:shift,rotationEuler:angles})
+  for(const camera of spec.cameras){camera.transform.location=rotate(camera.transform.location);camera.targetPoint=rotate(camera.targetPoint)}
+  const changes={'cup-height-mm':125},plan=planRecipeGeometryEdit(lock,spec,undefined,changes),after=applyPlan(spec,plan),local=instantiateRecipeLock(lock,changes).spec
+  assert.deepEqual(plan.preservedCameraIds,[])
+  for(const camera of after.cameras){const expected=local.cameras.find(c=>c.id===camera.id);for(const[a,b]of[[camera.transform.location,rotate(expected.transform.location)],[camera.targetPoint,rotate(expected.targetPoint)]])assert.ok(a.every((v,i)=>Math.abs(v-b[i])<1e-12))}
+  assert.deepEqual(after.entities.find(e=>e.id==='cup').transform,spec.entities.find(e=>e.id==='cup').transform)
+})
+test('a different valid cup source does not gain the pinned default-rig placement exemption',()=>{
+  const value=cupBundle();value.manifest.description+=' Custom author variant.';const lock=lockFor(value),spec=placedCup(instantiateRecipeLock(lock).spec).spec
+  const plan=planRecipeGeometryEdit(lock,spec,undefined,{'cup-height-mm':130});assert.deepEqual(plan.preservedCameraIds,['hero','roots','inside'])
+  assert.deepEqual(applyPlan(spec,plan).cameras,spec.cameras)
+})
+
+function fittedCupState() {
+  const lock=lockFor(cupBundle()),placed=placedCup(instantiateRecipeLock(lock).spec).spec
+  const plan=planRecipeGeometryEdit(lock,placed,undefined,{'cup-height-mm':130,'cup-wall-mm':4})
+  const spec=applyPlan(placed,plan),hero=spec.cameras.find(c=>c.id==='hero')
+  hero.transform.location=hero.transform.location.map((value,axis)=>hero.targetPoint[axis]+(value-hero.targetPoint[axis])*1.15)
+  const state={...plan.parameterState,cupCameraRig:{schemaVersion:'deepblend.cup-camera-rig/v1',anchor:structuredClone(spec.entities.find(e=>e.id==='cup').transform),camera:structuredClone(hero)}}
+  return {lock,spec,state}
+}
+
+test('a generated hero framing receipt continues later resizing without treating the corrected default camera as a hand edit',()=>{
+  const {lock,spec,state}=fittedCupState(),before=JSON.stringify([lock,spec,state])
+  const next=planRecipeGeometryEdit(lock,spec,state,{'cup-height-mm':115})
+  assert.deepEqual(next.cameraFraming,{entityId:'cup',cameraId:'hero',margin:.03})
+  assert.ok(!next.preservedCameraIds.includes('hero'))
+  assert.ok(next.operations.some(operation=>operation.op==='camera.update'&&operation.cameraId==='hero'))
+  assert.deepEqual(applyPlan(spec,next).entities.find(e=>e.id==='cup').transform,spec.entities.find(e=>e.id==='cup').transform)
+  assert.equal(JSON.stringify([lock,spec,state]),before)
+})
+
+test('wall-only changes retain controlled framing ownership, while a read-only unchanged request does not compile or reframe',()=>{
+  const {lock,spec,state}=fittedCupState(),wall=planRecipeGeometryEdit(lock,spec,state,{'cup-wall-mm':5})
+  assert.deepEqual(wall.cameraFraming,{entityId:'cup',cameraId:'hero',margin:.03})
+  assert.deepEqual(wall.parameterState.cupCameraRig,state.cupCameraRig)
+  assert.deepEqual(applyPlan(spec,wall).cameras,spec.cameras)
+  const unchanged=planRecipeGeometryEdit(lock,spec,state,{})
+  assert.deepEqual(unchanged.operations,[]);assert.equal(unchanged.cameraFraming,undefined)
+})
+
+test('a framing receipt cannot take over an independently changed lens, target, deleted hero or authored hero animation',()=>{
+  for(const edit of [
+    s=>{s.cameras.find(c=>c.id==='hero').lens+=7},
+    s=>{s.cameras.find(c=>c.id==='hero').targetPoint[0]+=.005},
+    s=>{s.cameras=s.cameras.filter(c=>c.id!=='hero');s.shots=s.shots.map(shot=>shot.cameraId==='hero'?{...shot,cameraId:'roots'}:shot)},
+    s=>{const c=s.cameras.find(c=>c.id==='hero');s.animationTracks.push({id:'hand-hero-pan',targetKind:'camera',targetEntityId:'hero',property:'location.x',keyframes:[{frame:1,value:c.transform.location[0]},{frame:48,value:c.transform.location[0]+.01}]})},
+  ]){
+    const {lock,spec,state}=fittedCupState();edit(spec);const before=JSON.stringify(spec)
+    const plan=planRecipeGeometryEdit(lock,spec,state,{'cup-height-mm':115})
+    assert.equal(plan.cameraFraming,undefined);assert.ok(plan.preservedCameraIds.includes('hero'))
+    assert.deepEqual(applyPlan(spec,plan).cameras.find(c=>c.id==='hero'),spec.cameras.find(c=>c.id==='hero'))
+    assert.deepEqual(applyPlan(spec,plan).animationTracks,spec.animationTracks);assert.equal(JSON.stringify(spec),before)
+  }
+})
+
+test('ordinary canonical framing and unknown valid source rules still apply when an old fitted-camera receipt is present',()=>{
+  const {lock,state}=fittedCupState(),canonical=placedCup(instantiateRecipeLock({...lock,values:state.values,valuesSha256:state.valuesSha256}).spec).spec
+  const restored=planRecipeGeometryEdit(lock,canonical,state,{'cup-height-mm':115})
+  assert.ok(!restored.preservedCameraIds.includes('hero'));assert.ok(restored.cameraFraming)
+  const value=cupBundle();value.manifest.description+=' Independent source.'
+  const other=lockFor(value),saved=placedCup(instantiateRecipeLock(other).spec).spec
+  const otherState={schemaVersion:'deepblend.recipe-parameters/v1',manifestSha256:other.manifestSha256,values:other.values,valuesSha256:other.valuesSha256,cupCameraRig:state.cupCameraRig}
+  const plan=planRecipeGeometryEdit(other,saved,otherState,{'cup-height-mm':115})
+  assert.equal(plan.cameraFraming,undefined);assert.deepEqual(plan.preservedCameraIds,['hero','roots','inside'])
+})

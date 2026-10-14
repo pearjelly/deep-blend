@@ -30,6 +30,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import { verifyCupFramingSession } from '../lib/cup-framing-session.mjs'
 import net from 'node:net'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { execFileSync, spawn } from 'node:child_process'
@@ -855,6 +856,7 @@ try {
   } finally {
     bridge.kill('SIGTERM')
   }
+  await verifyCupFramingSession({root:ROOT,out:join(workspace,'cup-framing-session'),blenderPath:BLENDER,check})
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }

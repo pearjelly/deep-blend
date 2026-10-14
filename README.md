@@ -19,7 +19,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.9.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.9.0) links the mast, joints and arm root for a 250 mm lamp shade, preserves legacy projects and independent edits, and adds source-bound native part dimensions to the workbench.
+Latest stable [0.12.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.12.0) compares measured dimensions and assembly-origin changes in saved models. Speaker resizing preserves history, authored shape and animation. Further placed-cup framing improvements remain an unpublished candidate.
 
 ## Quick start
 

@@ -57,7 +57,15 @@ export interface MeasuredRenderConfig {
   exposure?: number; viewTransform?: string; look?: string; gamma?: number;
   [key: string]: unknown;
 }
+export interface CupHeroFramingSelection { entityId: 'cup'; cameraId: 'hero'; margin: 0.03 }
+export interface CupHeroFramingReport extends CupHeroFramingSelection {
+  schemaVersion: 'deepblend.camera-framing/v1'; frame: number; resolution: number[];
+  resolutionPercentage: number; pixelAspect: number[]; cameraLocation: Vec3;
+  cameraType: 'PERSP'; lens: number; sensorWidth: number; backoffM: number;
+  vertices: number; nearestDepthM: number; farthestDepthM: number; scope: string;
+}
 export interface CompileReport {
+  cameraFraming?: CupHeroFramingReport;
   validation: { ok: boolean; errors: unknown[]; [key: string]: unknown };
   sceneFingerprint: { totalPolygons: number; [key: string]: unknown };
   objects?: CompiledObject[]; renderConfig?: MeasuredRenderConfig;
@@ -74,6 +82,8 @@ export interface RuntimeActionResult<Report> {
   report: Report; envelope: BlenderBootstrapEnvelope<Report>; durationMs: number; stdout: string; stderr: string;
 }
 export interface CompileSceneRequest extends RuntimeOptions {
+  /** Optional bounded native measurement; it does not modify a camera or source scene. */
+  cameraFraming?: CupHeroFramingSelection;
   sceneSpecPath: string; projectRoot?: string; profile?: string; jobId?: string;
   /** false runs a separate batch process, preserving a user's live Blender session. */
   session?: boolean;

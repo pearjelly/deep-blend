@@ -78,6 +78,13 @@ enabled. This preserves independent appearance, the original revision and
 the declared attachment/framing links. If a controlled field conflicts, resolve
 that actual conflict instead of silently replacing a hand-edited model.
 
+For a saved glazed cup, the dimensional entry preserves its placed object pose.
+A recognized default camera rig moved/turned with that cup can follow dimensions;
+independent lens/target edits, deleted cameras and authored camera animation stay
+protected. Render the saved result and check that the whole cup and joins fit.
+A protected camera is not a promise of an uncropped view; report it or use an
+explicitly requested photography edit. Preserve the user's lights and floor.
+
 A cup's body diameter excludes its handle. `cup-outer-diameter-mm` controls
 twice the body radius; the whole object's bounding box includes the handle.
 Declared wall thickness and sampled technical checks do not certify a global

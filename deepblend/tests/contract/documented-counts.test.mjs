@@ -157,6 +157,7 @@ test('the layout counts in the README are what the tree holds', () => {
   // module — the honest fix is to name the exception here, not to inflate the README's number, because
   // a reader who opened `deepblend_bridge.py` looking for actions would find none.
   const NOT_ACTION_MODULES = {
+    'deepblend_camera_framing.py': 'read-only evaluated vertex/frustum helper inside the existing compile_scene action; it implements no action',
     'deepblend_inspect_surface.py': 'bounded local surface helper called only by the existing inspect_geometry action',
     'bootstrap.py': 'the dispatcher: it routes to the actions and implements none of them',
     'deepblend_bridge.py': 'the transport: it serves the actions over a socket, inside a user\'s Blender',
