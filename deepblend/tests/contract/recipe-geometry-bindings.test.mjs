@@ -467,3 +467,88 @@ test('curve-point thresholds refuse undeclared support, unsafe indices, duplicat
  b=>{b.manifest.parameters[0].bindings.push({...b.manifest.parameters[0].bindings.at(-1)})},
  ]){const b=lampBundle();mutate(b);assert.equal(validateRecipePackage(b).ok,false);assert.throws(()=>instantiateRecipe(b))}
 })
+
+function assertTranslatedGeometry(actual, expected) {
+  const rounded = value => JSON.parse(JSON.stringify(value, (_, v) => typeof v === 'number' ? Math.round(v * 1e12) / 1e12 : v))
+  assert.deepEqual(rounded(actual), rounded(expected))
+}
+
+function moveSpeaker(spec, offset) {
+  const result = structuredClone(spec)
+  for (const e of result.entities) if (e.id !== 'studio-floor') e.transform.location = e.transform.location.map((v, i) => v + offset[i])
+  for (const t of result.animationTracks) if (/^location\.[xyz]$/.test(t.property)) {
+    const axis = ['x', 'y', 'z'].indexOf(t.property.at(-1))
+    for (const key of t.keyframes) key.value += offset[axis]
+  }
+  return result
+}
+
+test('a complete hand-translated speaker keeps placement, all 110 parts and animation through eight size corners and return', () => {
+  for (const folder of ['../fixtures/modular-speaker-v2/', '../../recipes/modular-speaker/']) {
+    const dir = new URL(folder, import.meta.url)
+    const value = {manifest: JSON.parse(readFileSync(new URL('recipe.json', dir))), sceneBytes: readFileSync(new URL('scene-spec.json', dir)), previewBytes: readFileSync(new URL('preview.png', dir))}
+    const lock = lockFor(value), offset = [.15, -.09, .02], current = moveSpeaker(instantiateRecipe(value).spec, offset)
+    const protectedInputs = JSON.stringify({lock, current})
+    for (const w of [264, 340]) for (const d of [138, 180]) for (const h of [162, 220]) {
+      const values = {'cabinet-width-mm':w, 'cabinet-depth-mm':d, 'cabinet-height-mm':h}
+      const plan = planRecipeGeometryEdit(lock, current, undefined, values), next = plan.operations.length ? applyPlan(current, plan) : current
+      const expected = moveSpeaker(instantiateRecipe(value, values).spec, offset)
+      assertTranslatedGeometry(next.entities, expected.entities)
+      assertTranslatedGeometry(next.animationTracks, expected.animationTracks)
+      const back = planRecipeGeometryEdit(lock, next, plan.parameterState, {'cabinet-width-mm':264,'cabinet-depth-mm':138,'cabinet-height-mm':162})
+      assertTranslatedGeometry((back.operations.length ? applyPlan(next, back) : next).entities, current.entities)
+      assertTranslatedGeometry((back.operations.length ? applyPlan(next, back) : next).animationTracks, current.animationTracks)
+      assert.equal(planRecipeGeometryEdit(lock, next, plan.parameterState, values).operations.length, 0)
+    }
+    assert.equal(JSON.stringify({lock,current}), protectedInputs)
+  }
+})
+
+test('translated speaker resizing preserves hand materials, bevel, weaving, camera, new entities and custom press timing', () => {
+  const value = speaker(), lock = lockFor(value), current = moveSpeaker(instantiateRecipe(value).spec, [.15,-.09,.02])
+  current.materials[0].parameters.roughness = .43
+  current.entities.find(e => e.id==='cabinet-shell').generator.bevel.segments = 7
+  current.entities.find(e => e.id==='grille-warp-0').generator.curveResolution = 6
+  current.cameras[0].lens += 8
+  const extra = structuredClone(current.entities.find(e=>e.id==='studio-floor')); extra.id='hand-display-plinth'; current.entities.push(extra)
+  const press = current.animationTracks.find(t=>t.id==='button-press'); press.keyframes[1].frame += 2; press.keyframes[1].value -= .001
+  const original = structuredClone(current), plan = planRecipeGeometryEdit(lock, current, undefined, {'cabinet-height-mm':220})
+  const next = applyPlan(current, plan)
+  assert.deepEqual(next.materials,current.materials)
+  assert.deepEqual(next.cameras[0],current.cameras[0])
+  for (const id of ['hand-display-plinth','studio-floor']) assert.deepEqual(next.entities.find(e=>e.id===id),current.entities.find(e=>e.id===id))
+  assert.deepEqual(next.entities.find(e=>e.id==='cabinet-shell').generator.bevel,current.entities.find(e=>e.id==='cabinet-shell').generator.bevel)
+  assert.equal(next.entities.find(e=>e.id==='grille-warp-0').generator.curveResolution,6)
+  const updated = next.animationTracks.find(t=>t.id==='button-press')
+  assert.deepEqual(updated.keyframes.map(k=>k.frame),press.keyframes.map(k=>k.frame))
+  updated.keyframes.forEach((k,i)=>assert.ok(Math.abs(k.value-press.keyframes[i].value-.058)<1e-12))
+  assert.deepEqual(current,original)
+})
+
+test('partial placement, detached unbound axes, missing animation shift and unknown sources cannot gain a translation exemption', () => {
+  const value = speaker(), lock = lockFor(value)
+  for (const mutate of [
+    s=>{s.entities.find(e=>e.id==='power-plug').transform.location[0]+=.001},
+    s=>{s.entities.find(e=>e.id==='cabinet-shell').transform.location[0]+=.001},
+    s=>{s.animationTracks.find(t=>t.id==='button-press').keyframes[0].value-=.02},
+    s=>{s.entities=s.entities.filter(e=>e.id!=='power-plug')},
+  ]) {
+    const current = moveSpeaker(instantiateRecipe(value).spec,[.15,-.09,.02]); mutate(current); const before=JSON.stringify(current)
+    assert.throws(()=>planRecipeGeometryEdit(lock,current,undefined,{'cabinet-width-mm':340}), e=>e.code==='RECIPE_PARAMETER_CONFLICT'||e.code==='RECIPE_SCENE_INVALID')
+    assert.equal(JSON.stringify(current),before)
+  }
+  const custom = {...value,manifest:structuredClone(value.manifest)}; custom.manifest.description += ' custom'; const customLock=lockFor(custom)
+  assert.throws(()=>planRecipeGeometryEdit(customLock,moveSpeaker(instantiateRecipe(custom).spec,[.15,-.09,.02]),undefined,{'cabinet-width-mm':340}),{code:'RECIPE_PARAMETER_CONFLICT'})
+})
+
+test('rotating or replacing dimension-controlled geometry refuses a world-size mismatch before any mutation', () => {
+  const value=speaker(),lock=lockFor(value)
+  for(const id of ['cabinet-shell','shell-cavity-tool','front-baffle','rear-service-panel']) for(const edit of [
+    e=>{e.transform.rotationEuler[2]=Math.PI/2},
+    e=>{e.generator.shape='cube';delete e.generator.bevel},
+  ]){
+    const current=instantiateRecipe(value).spec; edit(current.entities.find(e=>e.id===id));const before=JSON.stringify(current)
+    assert.throws(()=>planRecipeGeometryEdit(lock,current,undefined,{'cabinet-width-mm':340}),e=>e.code==='RECIPE_PARAMETER_CONFLICT'&&e.details.conflicts.some(c=>c.property==='dimension-alignment'))
+    assert.equal(JSON.stringify(current),before)
+  }
+})

@@ -1,5 +1,6 @@
 /** Plan existing-assembly edits as ordinary, bounded ScenePatch operations. */
 import { legacyLampAssembly } from './lamp-assembly-repair.js'
+import { translatedSpeakerAssembly } from './speaker-assembly.js'
 import { latheShellTargets } from './lathe-shell.js'
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { instantiateRecipeLock, RecipeError } from './recipe.js'
@@ -36,8 +37,9 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const savedBefore = parameterState === undefined ? origin : instantiateRecipeLock(currentLock)
   const assembly = legacyLampAssembly(lock, parameterState)
-  const before = assembly && parameterState?.assemblyRepair ? instantiateRecipeLock(assembly.currentLock(currentLock)) : savedBefore
-  const after = instantiateRecipeLock(assembly ? assembly.currentLock(currentLock) : currentLock, changes)
+  const resolvedBefore = assembly && parameterState?.assemblyRepair ? instantiateRecipeLock(assembly.currentLock(currentLock)) : savedBefore
+  const resolvedAfter = instantiateRecipeLock(assembly ? assembly.currentLock(currentLock) : currentLock, changes)
+  const { before, after } = translatedSpeakerAssembly(lock, currentSpec, resolvedBefore, resolvedAfter)
   const parameters = recipeGeometryParameters(assembly?.manifest ?? lock.manifest)
   for (const id of Object.keys(changes)) {
     if (!parameters.some(parameter => parameter.id === id)) {
@@ -69,6 +71,11 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
         property: 'shell-alignment', expected: oldEntity?.transform, actual: currentEntity?.transform })
     }
     if (binding.property === 'dimensions' || ['generator', 'curve-point'].includes(binding.kind)) {
+      if (binding.property === 'dimensions' && (currentEntity?.generator?.shape !== oldEntity?.generator?.shape
+        || !close(currentEntity?.transform?.rotationEuler ?? [0, 0, 0], oldEntity?.transform?.rotationEuler ?? [0, 0, 0]))) {
+        conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
+          property: 'dimension-alignment', expected: oldEntity?.transform?.rotationEuler, actual: currentEntity?.transform?.rotationEuler })
+      }
       const oldScale = oldEntity?.transform?.scale ?? [1, 1, 1]
       const scale = currentEntity?.transform?.scale ?? [1, 1, 1]
       if (!scale?.every((value, axis) => close(value, oldScale[axis]))) {

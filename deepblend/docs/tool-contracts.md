@@ -373,6 +373,17 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
 版本过期返回 `REVISION_CONFLICT`。恢复历史后重新读取参数，使用新的保存标识。
 参数状态和场景在同一事务提交；缺失本地配方包仍能读取项目保存的来源。
 
+尺寸保存还返回 `placementChanges`，按实际毫米位移列出实体组，并注明基准/保存版本与
+`entity.transform.location` 坐标字段。它来自保存的 SceneSpec，不是原生表面间隙。
+前控件与背面接线方向可能相反，不能把一组位移套到其他部件。
+`generatorChangedEntityIds` 列出保存前后生成器状态不同的实体；名单非空时，
+不能将保留旧版本或手工外观解释成所有部件尺寸未变。
+
+尺寸读取和保存回执中的 `linkedAnimationTracks` 来自所选保存版本的 SceneSpec，
+列出受尺寸联动影响的实际轨道、目标、属性和关键帧；`animationSource` 为
+`saved-scene-spec`，无关联轨道时为空数组。手工帧位和行程不能从配方默认或 shot 文案
+推断；回执不代替原生多帧重开验证。
+
 ### 3.2 `blender_project_create`
 
 | 参数 | 类型 | 必需 | 说明 |

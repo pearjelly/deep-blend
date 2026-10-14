@@ -1,7 +1,7 @@
 /** Real catalog, Host transactions and UI routes; no Blender needed for data-only commits. */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
@@ -513,4 +513,63 @@ test('a native edit arriving during compilation refuses publication and preserve
  studio.transactions.runtime={getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(studio.store.readRevisionSpec(made.projectId,'r0001'))}),compileScene:async()=>{calls++;writeFileSync(path,edited);return {report:{validation:{ok:true},sceneFingerprint:{totalPolygons:24}},envelope:{warnings:[],notices:[]}}}}
  await assert.rejects(studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0001',parameters:{'shade-diameter-mm':250},saveCheckpoint:true}),{code:'RECIPE_PARAMETER_CONFLICT'})
  assert.equal(calls,1);assert.equal(studio.store.readRecord(made.projectId).currentRevision,'r0001');assert.deepEqual(readFileSync(path),edited);assert.equal(existsSync(studio.store.revisionDirectory(made.projectId,'r0002')),false)
+})
+
+
+test('dimension receipts report actual custom button keys from the selected saved revision, including save and restore', async t => {
+  const {studio,request}=setup(t,'modular-speaker')
+  const {projectId}=await studio.createProject({title:'Custom button timing',recipe:request,saveCheckpoint:false})
+  const track=structuredClone(studio.store.readRevisionSpec(projectId,'r0001').animationTracks[0]);track.keyframes[1].frame=26;track.keyframes[1].value-=.001
+  await studio.applyScenePatch({projectId,baseRevision:'r0001',saveCheckpoint:false,operations:[{op:'animation.track.set',track}]})
+  const read=await studio.getRecipeParameters(projectId)
+  assert.equal(read.animationSource,'saved-scene-spec')
+  assert.deepEqual(read.linkedAnimationTracks,[{id:track.id,targetEntityId:track.targetEntityId,property:track.property,keyframes:track.keyframes}])
+  read.linkedAnimationTracks[0].keyframes[1].frame=99
+  assert.equal((await studio.getRecipeParameters(projectId)).linkedAnimationTracks[0].keyframes[1].frame,26)
+  const saved=await studio.updateRecipeParameters({projectId,baseRevision:'r0002',parameters:{'cabinet-height-mm':200},saveCheckpoint:false})
+  const keys=saved.parameters.linkedAnimationTracks[0].keyframes
+  assert.deepEqual(keys.map(k=>k.frame),[1,26,48])
+  keys.forEach((k,i)=>assert.ok(Math.abs(k.value-track.keyframes[i].value-.038)<1e-12))
+  await studio.restoreRevision({projectId,revision:'r0001',expectedCurrentRevision:'r0003'})
+  assert.deepEqual((await studio.getRecipeParameters(projectId)).linkedAnimationTracks[0].keyframes.map(k=>k.frame),[1,24,48])
+  assert.deepEqual((await studio.getRecipeParameters(projectId,{revision:'r0002'})).linkedAnimationTracks[0].keyframes,track.keyframes)
+  const cup=setup(t,'glazed-cup'),made=await cup.studio.createProject({title:'No linked button',recipe:cup.request,saveCheckpoint:false})
+  assert.deepEqual((await cup.studio.getRecipeParameters(made.projectId)).linkedAnimationTracks,[])
+})
+
+
+test('saved dimension receipts group actual front, rear, top and foot moves without treating origin deltas as clearances', async t => {
+ const {studio,request}=setup(t,'modular-speaker');const made=await studio.createProject({title:'Movement receipt',recipe:request,saveCheckpoint:false})
+ const intent={projectId:made.projectId,baseRevision:'r0001',parameters:{'cabinet-width-mm':300,'cabinet-depth-mm':150,'cabinet-height-mm':180},saveCheckpoint:false}
+ const saved=await studio.updateRecipeParameters(intent),change=saved.placementChanges,group=id=>change.groups.find(g=>g.entityIds.includes(id))
+ assert.deepEqual(change.generatorChangedEntityIds,['shell-cavity-tool','front-opening-tool','rear-service-tool','cabinet-shell','front-baffle','front-gasket','rear-panel-gasket','rear-service-panel']);assert.equal(change.source,'saved-scene-spec');assert.equal(change.coordinateField,'entity.transform.location');assert.equal(change.fromRevision,'r0001');assert.equal(change.toRevision,'r0002')
+ assert.ok(group('volume-knob'),'Saved receipt includes the actual front-control move');assert.deepEqual(group('volume-knob').deltaMm,[18,-6,9]);assert.deepEqual(group('driver-cone').deltaMm,[-18,-6,9]);assert.deepEqual(group('power-plug').deltaMm,[0,6,0]);assert.deepEqual(group('power-cable').deltaMm,[0,6,0]);assert.deepEqual(group('top-button').deltaMm,[18,0,18]);assert.deepEqual(group('cabinet-shell').deltaMm,[0,0,9]);assert.deepEqual(group('foot-l-f').deltaMm,[-18,-6,0])
+ const ids=change.groups.flatMap(g=>g.entityIds);assert.equal(new Set(ids).size,ids.length);assert.ok(!ids.includes('studio-floor'))
+ const original=structuredClone(change);change.groups[0].deltaMm[0]=999;assert.deepEqual((await studio.updateRecipeParameters(intent)).placementChanges,original)
+ const spec=studio.store.readRevisionSpec(made.projectId,'r0002'),knob=spec.entities.find(e=>e.id==='volume-knob')
+ await studio.applyScenePatch({projectId:made.projectId,baseRevision:'r0002',saveCheckpoint:false,operations:[{op:'entity.transform.update',entityId:knob.id,location:[knob.transform.location[0]+.001,...knob.transform.location.slice(1)]}]})
+ assert.deepEqual((await studio.updateRecipeParameters(intent)).placementChanges,original)
+ assert.equal(studio.store.readRecord(made.projectId).currentRevision,'r0003')
+})
+
+test('unchanged dimensions have no fictitious moves; historical no-op receipt identifies the selected revision', async t => {
+ const {studio,request}=setup(t,'modular-speaker');const made=await studio.createProject({title:'Same dimensions',recipe:request,saveCheckpoint:false})
+ const result=await studio.updateRecipeParameters({projectId:made.projectId,baseRevision:'r0001',parameters:{'cabinet-width-mm':264},saveCheckpoint:false})
+ assert.equal(result.unchanged,true);assert.deepEqual(result.placementChanges,{source:'saved-scene-spec',coordinateField:'entity.transform.location',fromRevision:'r0001',toRevision:'r0001',groups:[],generatorChangedEntityIds:[]})
+})
+
+
+test('a relocated old project reports its active directory and root without rewriting stored metadata or history', async t => {
+ const {studio,request,root}=setup(t,'modular-speaker'),made=await studio.createProject({title:'Relocated speaker',recipe:request,saveCheckpoint:false})
+ const original=studio.store.projectDirectory(made.projectId),targetRoot=join(root,'restored','projects'),target=join(targetRoot,made.projectId);mkdirSync(targetRoot,{recursive:true});cpSync(original,target,{recursive:true})
+ const recordBefore=readFileSync(join(target,'project.json')),specBefore=readFileSync(join(target,'revisions','r0001','scene-spec.json')),context=new Context();context.provide('blenderRuntime',{})
+ const restored=new BlenderStudio(context,StudioConfig({workspaceRoot:join(root,'restored'),projectsRoot:targetRoot,reconcileOnStart:false}))
+ const project=await restored.getProject(made.projectId)
+ assert.equal(project.projectsRoot,targetRoot);assert.equal(project.projectDirectory,realpathSync(target))
+ assert.ok(existsSync(join(project.projectDirectory,'revisions','r0001','scene-spec.json')))
+ assert.equal((await restored.listProjects()).projectsRoot,targetRoot)
+ assert.equal((await restored.getProject(made.projectId,{revision:'r0001'})).projectDirectory,realpathSync(target))
+ assert.deepEqual(readFileSync(join(target,'project.json')),recordBefore)
+ assert.deepEqual(readFileSync(join(target,'revisions','r0001','scene-spec.json')),specBefore)
+ assert.equal(JSON.parse(recordBefore).projectsRoot,realpathSync(studio.projectsRoot))
 })

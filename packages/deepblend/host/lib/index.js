@@ -27,6 +27,7 @@
 
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { readRecipeContext } from './recipe-state.js'
+import { assemblyPlacementChanges } from './assembly-changes.js'
 import { instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters } from '@deepblend/dsh-blender-contracts'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -671,7 +672,7 @@ export default class BlenderStudio extends Service {
     const digest = sceneSpecDigest(spec)
     return {
       ...toCanonicalProjectSummary({
-        record: { ...record, goal: spec.project.goal ?? null },
+        record: { ...record, projectsRoot: this.projectsRoot, goal: spec.project.goal ?? null },
         revisionCount: record.revisionCount ?? this.store.listRevisions(projectId).length,
         sceneSummary: summarizeSceneSpec(spec, {
           revision,
@@ -679,6 +680,7 @@ export default class BlenderStudio extends Service {
           digest,
         }),
       }),
+      projectDirectory: this.store.projectDirectory(projectId),
       revisions: this.store.listRevisions(projectId).map(id => {
         const manifest = this.store.readRevisionManifest(projectId, id)
         return {
@@ -792,8 +794,14 @@ export default class BlenderStudio extends Service {
     const locked = context.state ? { ...context.lock, values: context.state.values,
       valuesSha256: context.state.valuesSha256 } : context.lock
     const resolved = instantiateRecipeLock(locked)
+    const currentSpec = this.store.readRevisionSpec(projectId, revision)
+    const animatedBindings = definitions.flatMap(parameter => parameter.bindings).filter(binding => binding.offsetAnimation === true)
+    const linkedAnimationTracks = (currentSpec.animationTracks ?? []).filter(track => (track.targetKind ?? 'entity') === 'entity'
+      && animatedBindings.some(binding => binding.entityId === track.targetEntityId && track.property === `location.${binding.axis}`))
+      .map(track => ({ id: track.id, targetEntityId: track.targetEntityId, property: track.property,
+        keyframes: structuredClone(track.keyframes) }))
     let conflicts = []
-    try { planRecipeGeometryEdit(context.lock, this.store.readRevisionSpec(projectId, revision), context.state ?? undefined, {}) }
+    try { planRecipeGeometryEdit(context.lock, currentSpec, context.state ?? undefined, {}) }
     catch (error) {
       if (error.code !== 'RECIPE_PARAMETER_CONFLICT') throw error
       conflicts = error.details.conflicts
@@ -802,7 +810,7 @@ export default class BlenderStudio extends Service {
       recipe: { id: context.lock.id, version: context.lock.version }, valuesSha256: resolved.recipe.valuesSha256,
       parameters: definitions.map(parameter => ({ id: parameter.id, title: parameter.title, type: parameter.type,
         minimum: parameter.minimum, maximum: parameter.maximum, default: parameter.default, value: resolved.values[parameter.id] })),
-      conflicts }
+      conflicts, linkedAnimationTracks, animationSource: 'saved-scene-spec' }
   }
 
   async updateRecipeParameters(request) {
@@ -818,9 +826,13 @@ export default class BlenderStudio extends Service {
       throw new BlenderError('REVISION_CONFLICT', 'The active project store changed; read the selected work again')
     }
     const outcome = await this.transactions.applyRecipeParameters(input, { signal })
+    const placementChanges = assemblyPlacementChanges(
+      this.store.readRevisionSpec(input.projectId, input.baseRevision),
+      this.store.readRevisionSpec(input.projectId, outcome.revision.revision),
+      input.baseRevision, outcome.revision.revision)
     return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
       unchanged: outcome.unchanged === true, idempotentReplay: outcome.idempotentReplay === true,
-      parameterState: outcome.parameterState, preservedCameraIds: outcome.preservedCameraIds,
+      parameterState: outcome.parameterState, preservedCameraIds: outcome.preservedCameraIds, placementChanges,
       parameters: await this.getRecipeParameters(input.projectId, { revision: outcome.revision.revision }),
       ...(outcome.job ? { job: toCanonicalJobRecord(outcome.job) } : {}) }
   }
