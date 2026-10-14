@@ -53,6 +53,7 @@ import {
   requestApproval,
   resolveStudio,
 } from './shared.js'
+import { compareSurfaceReports } from './geometry-comparison.js'
 
 /** A short parameter description of a SceneSpec engine key. */
 const ENGINE_KEY_DESCRIPTION =
@@ -395,6 +396,9 @@ function sceneGet(ctx) {
       'Spans include rotation, handles and protrusions; they are not body diameter, wall thickness, clearance or quality approval. ' +
       'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. ' +
       'Optional geometrySurfaceSamples measures 1–8 explicit local surface chords and pair separations on the same saved source. ' +
+      'The chord runs from source entry to exit; separation runs from source EXIT to target entry and excludes that chord. ' +
+      'Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
+      'When comparing revisions, add geometryCompareRevision with identical surface samples; the tool computes per-sample changes and maxima, including chord-only samples. ' +
       'Choose outside world seeds and directions from the actual scene/bounds; missed or unsupported samples remain unavailable. ' +
       'Local samples do not prove full-surface minimum wall thickness, whole-assembly clearance, no collision or quality approval. ' +
       'ALWAYS use the revision this returns as `baseRevision` for your next blender_scene_patch.',
@@ -405,6 +409,8 @@ function sceneGet(ctx) {
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
+      geometryOnly: { type: 'boolean', description: 'Return only source identity and verified geometry evidence, without the scene catalogue. Requires geometryEntityIds and geometryFrame; cannot be combined with full:true. Ordinary reads keep their existing shape.' },
+      geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometrySurfaceSamples. Re-measures that saved source with identical parts, seeds and frame, and computes current-minus-reference changes and maxima for all comparable samples. Unavailable pairs remain unavailable. No global minima or change cause is established.' },
       geometrySurfaceSamples: { type: 'array', description: 'Optional 1–8 local surface samples. Requires geometryEntityIds including every source/target and geometryFrame. Numeric results are local evidence only.',
         items: { type: 'object', additionalProperties: false, properties: {
           sampleId: { type: 'string', required: true, description: 'Distinct short letters/numbers/underscore/hyphen identifier (1–64 characters).' },
@@ -425,11 +431,21 @@ function sceneGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.geometryOnly !== undefined && typeof args.geometryOnly !== 'boolean') {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryOnly must be boolean.')
+        }
+        if (args.geometryOnly === true && (args.geometryEntityIds === undefined || args.full === true)) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryOnly requires a native measurement selection and cannot be combined with full:true.')
+        }
         if ((args.geometryEntityIds === undefined) !== (args.geometryFrame === undefined)) {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Native measurements require both geometryEntityIds and geometryFrame.')
         }
         if (args.geometrySurfaceSamples !== undefined && args.geometryEntityIds === undefined) {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Surface samples require geometryEntityIds and geometryFrame.')
+        }
+        if (args.geometryCompareRevision !== undefined && (typeof args.geometryCompareRevision !== 'string' ||
+            !/^r\d{4,}$/.test(args.geometryCompareRevision) || args.geometrySurfaceSamples === undefined)) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryCompareRevision requires an explicit saved revision and surface samples.')
         }
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
           frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
@@ -440,18 +456,38 @@ function sceneGet(ctx) {
             ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
         }), warning)
         const hasSamples = args.geometrySurfaceSamples !== undefined
-        if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
-            data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
-            data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
-            !Array.isArray(data.geometryInspection.limitations) ||
-            JSON.stringify(data.geometryInspection.objects?.map(o => o.entityId)) !== JSON.stringify(args.geometryEntityIds))) {
-          throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
+        const verifyScene = (data, expectedRevision) => {
+          if (expectedRevision !== undefined && data.revision !== expectedRevision) {
+            throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host returned a different saved revision than requested.')
+          }
+          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
+              data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
+              data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
+              !Array.isArray(data.geometryInspection.limitations) ||
+              JSON.stringify(data.geometryInspection.objects?.map(o => o.entityId)) !== JSON.stringify(args.geometryEntityIds))) {
+            throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
+          }
+          if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
+            schemaVersion: hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
+            checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
+            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         }
-        if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
-          schemaVersion: hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
-          ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
-          checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-          checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
+        verifyScene(data, args.revision)
+        if (args.geometryCompareRevision !== undefined) {
+          const reference = await canonicalCall(resolved.studio.getScene(args.projectId, { revision: args.geometryCompareRevision,
+            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, surfaceSamples: args.geometrySurfaceSamples }, signal: exec?.signal }), warning)
+          verifyScene(reference.data, args.geometryCompareRevision)
+          canonicalWarnings.push(...reference.canonicalWarnings)
+          data.geometryComparison = compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection)
+        }
+        if (args.geometryOnly === true) {
+          const receipt = { projectId: args.projectId, revision: data.revision, digest: data.digest,
+            isCurrent: data.isCurrent, geometryInspection: data.geometryInspection,
+            ...(data.geometryComparison ? { geometryComparison: data.geometryComparison } : {}) }
+          return { ok: true, text: renderSuccess(`Saved native measurement receipt for "${args.projectId}" at ${data.revision}.`, receipt,
+            { warnings: canonicalWarnings, compact: true }), data: receipt }
+        }
         const counts = data.counts ?? {}
         const notes = [
           `Revision ${data.revision}${data.isCurrent ? ' (current)' : ' (NOT current — patches against it will be refused)'}`,
