@@ -174,6 +174,7 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_avif_headers.py': 'shared AVIF item and coded AV1 size metadata inspection without pixel decoding',
     'deepblend_obj_resources.py': 'shared OBJ/MTL reference inspection without bpy, called by resource validation',
     'deepblend_geometry.py': 'shared deterministic mesh builders, called by the scene compiler',
+    'deepblend_mesh.py': 'bounded declarative control-mesh construction, called by the scene compiler; it implements no action',
     'deepblend_images.py': 'shared image material node builder, called by the scene compiler',
     'deepblend_image_headers.py': 'bounded image metadata inspection before native pixel allocation',
     'deepblend_gltf_images.py': 'bounded texture URI and buffer-view inspection before native import',

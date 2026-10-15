@@ -400,6 +400,15 @@ window.__ModuleLoader__.load({
       'editor.boxHeight': '高（mm）',
       'editor.radius': '半径（mm）',
       'editor.handledCup': '带把手杯体',
+      'editor.mesh': '自定义曲面',
+      'editor.meshCounts': '控制网格：{vertices} 个顶点，{faces} 个面',
+      'editor.smoothSurface': '平滑表面',
+      'editor.subdivision': '曲面细分',
+      'editor.subdivisionLevels': '细分级别',
+      'editor.subdivisionScheme': '细分方式',
+      'editor.roundSurface': '圆滑曲面',
+      'editor.keepShape': '保留原形',
+      'editor.keepCorners': '保留边角',
       'editor.wallThickness': '杯壁厚度（mm）',
       'editor.baseThickness': '杯底厚度（mm）',
       'editor.footRound': '底部圆角（mm）',
@@ -1015,6 +1024,15 @@ window.__ModuleLoader__.load({
       'editor.boxHeight': 'Height (mm)',
       'editor.radius': 'Radius (mm)',
       'editor.handledCup': 'Handled cup',
+      'editor.mesh': 'Custom surface',
+      'editor.meshCounts': 'Control mesh: {vertices} vertices, {faces} faces',
+      'editor.smoothSurface': 'Smooth surface',
+      'editor.subdivision': 'Surface subdivision',
+      'editor.subdivisionLevels': 'Subdivision levels',
+      'editor.subdivisionScheme': 'Subdivision method',
+      'editor.roundSurface': 'Round surface',
+      'editor.keepShape': 'Keep shape',
+      'editor.keepCorners': 'Keep corners',
       'editor.wallThickness': 'Wall thickness (mm)',
       'editor.baseThickness': 'Base thickness (mm)',
       'editor.footRound': 'Foot rounding (mm)',
@@ -2026,7 +2044,7 @@ window.__ModuleLoader__.load({
       cone: ['radius', 'depth', 'segments'], torus: ['majorRadius', 'minorRadius', 'segments', 'ringCount'],
       handled_cup: ['radius', 'height', 'wallThickness', 'baseThickness', 'handleRadius', 'handleLower', 'handleUpper',
         'footRound', 'rootRadius', 'rootLength', 'rootTension', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows'],
-      lathe: ['segments'], curve: ['radius', 'curveResolution', 'bevelResolution'],
+      lathe: ['segments'], curve: ['radius', 'curveResolution', 'bevelResolution'], mesh: [],
     }
     const EDITOR_INTEGERS = { segments: [3, 512], ringCount: [3, 512], curveResolution: [1, 64], bevelResolution: [0, 16] }
     const CUP_ADVANCED_FIELDS = ['footRound', 'rootRadius', 'rootLength', 'rootTension', 'segments', 'sectionSegments', 'handleSegments', 'rootSegments', 'wallRows']
@@ -2155,6 +2173,10 @@ window.__ModuleLoader__.load({
           if (modifier.offset?.length !== 3 || modifier.offset.every(value => value === 0)) bad(`${at}.offset`)
         } else if (modifier.type === 'mirror') {
           if (!EDITOR_AXES.includes(modifier.axis)) bad(`${at}.axis`)
+        } else if (modifier.type === 'subdivision') {
+          scalar(modifier.levels, `${at}.levels`, 1, 3, true)
+          if (modifier.scheme !== undefined && !['catmull-clark', 'simple'].includes(modifier.scheme)) bad(`${at}.scheme`)
+          if (modifier.boundaryMode !== undefined && !['all', 'preserve-corners'].includes(modifier.boundaryMode)) bad(`${at}.boundaryMode`)
         } else if (modifier.type === 'boolean') {
           if (!['union', 'difference', 'intersect'].includes(modifier.operation)
             || !draft.entities.some(entity => entity.id === modifier.targetEntityId && entity.id !== draft.entityId && entity.kind !== 'empty')) bad(`${at}.targetEntityId`)
@@ -3901,6 +3923,7 @@ window.__ModuleLoader__.load({
             if (list.length >= (kind === 'modifiers' ? 8 : 128)) return
             if (kind === 'modifiers') {
               const defaults = { bevel: { type, width: 0.001, segments: 3, angle: 30 }, solidify: { type, thickness: 0.002, offset: -1 },
+                subdivision: { type, levels: 2, scheme: 'catmull-clark', boundaryMode: 'all' },
                 array: { type, count: 2, offset: [0.02, 0, 0] }, mirror: { type, axis: 'x', merge: true },
                 boolean: { type, operation: 'difference', targetEntityId: draft.entities.find(item => item.id !== draft.entityId && item.kind !== 'empty')?.id || '' } }
               if (!defaults[type]) return
@@ -4600,7 +4623,7 @@ window.__ModuleLoader__.load({
         height: t('editor.depth'), size: t('editor.size'), radius: t('editor.radius'), depth: t('editor.depth'), majorRadius: t('editor.majorRadius'), minorRadius: t('editor.minorRadius'),
         segments: t('editor.segments'), ringCount: t('editor.ringCount'), curveResolution: t('editor.curveResolution'), bevelResolution: t('editor.bevelResolution'),
       }
-      const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean') }
+      const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean'), subdivision: t('editor.subdivision') }
       const numeric = (label, field, value, update, options = {}) => {
         const factor = options.factor ?? 1
         const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
@@ -4691,7 +4714,9 @@ window.__ModuleLoader__.load({
             draft.tracks.some(track => track.targetKind === 'entity' && track.targetId === draft.entityId) ? el('p', { className: 'db-muted' }, t('editor.animated')) : null),
           draft.entity.kind === 'generator' ? el('div', { className: 'db-card' }, el('h4', null, t('editor.geometry')),
             geometry ? [
-              el('strong', { key: 'shape' }, geometry.shape === 'handled_cup' ? t('editor.handledCup') : geometry.shape),
+              el('strong', { key: 'shape' }, geometry.shape === 'handled_cup' ? t('editor.handledCup') : geometry.shape === 'mesh' ? t('editor.mesh') : geometry.shape),
+              geometry.shape === 'mesh' ? [el('p', { className: 'db-muted', key: 'mesh-counts' }, t('editor.meshCounts', { vertices: geometry.vertices?.length ?? 0, faces: geometry.faces?.length ?? 0 })),
+                toggle(t('editor.smoothSurface'), 'editor-generator-smooth', Boolean(geometry.smooth), value => actions.updateEditor('generator', ['smooth'], value))] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
@@ -4776,6 +4801,9 @@ window.__ModuleLoader__.load({
                 vector(t('editor.spacing'), `${prefix}-offset`, modifier.offset, (axis, value) => update(['offset', axis], value))] : null,
               modifier.type === 'mirror' ? [choose(t('editor.axis'), `${prefix}-axis`, modifier.axis, EDITOR_AXES.map(axis => [axis, axis.toUpperCase()]), value => update(['axis'], value)),
                 toggle(t('editor.merge'), `${prefix}-merge`, modifier.merge !== false, value => update(['merge'], value))] : null,
+              modifier.type === 'subdivision' ? [numeric(t('editor.subdivisionLevels'), `${prefix}-levels`, modifier.levels, value => update(['levels'], value), { integer: true, min: 1, max: 3 }),
+                choose(t('editor.subdivisionScheme'), `${prefix}-scheme`, modifier.scheme ?? 'catmull-clark', [['catmull-clark', t('editor.roundSurface')], ['simple', t('editor.keepShape')]], value => update(['scheme'], value)),
+                toggle(t('editor.keepCorners'), `${prefix}-boundaryMode`, modifier.boundaryMode === 'preserve-corners', value => update(['boundaryMode'], value ? 'preserve-corners' : 'all'))] : null,
               modifier.type === 'boolean' ? [choose(t('editor.boolean'), `${prefix}-operation`, modifier.operation, [['union', t('editor.union')], ['difference', t('editor.difference')], ['intersect', t('editor.intersect')]], value => update(['operation'], value)),
                 choose(t('editor.operand'), `${prefix}-targetEntityId`, modifier.targetEntityId, [['', '—'], ...draft.entities.filter(item => item.id !== draft.entityId && item.kind !== 'empty').map(item => [item.id, item.id])], value => update(['targetEntityId'], value))] : null,
               el('div', { className: 'db-inline' },

@@ -34,9 +34,16 @@ def apply_model_modifiers(entities, entity_meshes):
                 visit(target)
                 operand = single_mesh(target)
             estimate = len(obj.data.polygons) * (entry.get("count", 1) if kind == "array" else 1)
+            if kind == "subdivision":
+                levels = entry.get('levels')
+                if isinstance(levels, bool) or not isinstance(levels, int) or not 1 <= levels <= 3:
+                    raise ActionError('SCENE_SPEC_INVALID', 'subdivision needs 1 to 3 levels')
+                if entry.get('scheme', 'catmull-clark') not in ('catmull-clark', 'simple') or entry.get('boundaryMode', 'all') not in ('all', 'preserve-corners'):
+                    raise ActionError('SCENE_SPEC_INVALID', 'invalid subdivision scheme or boundary mode')
+                estimate = sum(len(polygon.vertices) for polygon in obj.data.polygons) * 4 ** (levels - 1)
             if estimate > 500_000:
                 raise ActionError("SCENE_SPEC_INVALID", "modifier exceeds the 500000 polygon per-entity budget")
-            modifier = obj.modifiers.new("db_model_" + kind, kind.upper())
+            modifier = obj.modifiers.new("db_model_" + kind, 'SUBSURF' if kind == 'subdivision' else kind.upper())
             if kind == "solidify":
                 modifier.thickness = float(entry["thickness"])
                 modifier.offset = float(entry.get("offset", -1))
@@ -49,6 +56,10 @@ def apply_model_modifiers(entities, entity_meshes):
                 modifier.use_relative_offset = False
                 modifier.use_constant_offset = True
                 modifier.constant_offset_displace = entry["offset"]
+            elif kind == 'subdivision':
+                modifier.subdivision_type = 'SIMPLE' if entry.get('scheme') == 'simple' else 'CATMULL_CLARK'
+                modifier.levels = modifier.render_levels = entry['levels']
+                modifier.boundary_smooth = 'PRESERVE_CORNERS' if entry.get('boundaryMode') == 'preserve-corners' else 'ALL'
             elif kind == "boolean":
                 modifier.operation = entry["operation"].upper()
                 modifier.solver = "EXACT"

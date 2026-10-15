@@ -69,7 +69,7 @@ const fixtureSpec = JSON.parse(readFileSync(join(FIXTURE_DIR, 'scene-spec.json')
 // ---------------------------------------------------------------------------
 
 const {
-  DEFAULT_WORLD, validateSceneSpec, compileSceneSpec, sceneSpecDigest, summarizeSceneSpec,
+  DEFAULT_WORLD, validateSceneSpec, compileSceneSpec, sceneSpecDigest, summarizeSceneSpec, canonicalStringify,
 } = await import('@deepblend/dsh-blender-contracts')
 
 const workspace = mkdtempSync(join(tmpdir(), 'deepblend-m1-'))
@@ -1603,6 +1603,44 @@ const modifiers = spawnSync(BLENDER, [
 check('modeling stacks preserve measured volume, manifold topology and dependency order',
   modifiers.status === 0 && modifiers.stdout.includes('MODIFIERS_PASSED'),
   modifiers.status === 0 ? undefined : { error: modifiers.error?.message, output: `${modifiers.stdout}\n${modifiers.stderr}`.slice(-6000) })
+
+// A real saved revision, not just the geometry helper, must preserve hand-authored
+// transforms/materials/UVs and protect its predecessor on rejected edits.
+{
+  const spec = structuredClone(fixtureSpec), entity = spec.entities.find(e => e.type === 'generator')
+  entity.generator = { shape: 'mesh', vertices: [[0, 0, 0], [.1, 0, 0], [0, .1, 0], [0, 0, .1]],
+    faces: [[0, 2, 1], [0, 1, 3], [1, 2, 3], [2, 0, 3]],
+    faceUvs: Array.from({ length: 4 }, () => [[0, 0], [1, 0], [0, 1]]), smooth: true }
+  const authored = await studio.createProject({ title: 'Authored surface preservation', sceneSpec: spec, saveCheckpoint: true, renderPreview: true })
+  const directory = studio.store.revisionDirectory(authored.projectId, 'r0001'), before = digestDirectory(directory)
+  const originalSpec = studio.store.readRevisionSpec(authored.projectId, 'r0001')
+  const edited = await studio.applyScenePatch({ projectId: authored.projectId, baseRevision: 'r0001', saveCheckpoint: true, renderPreview: false,
+    operations: [{ op: 'entity.modifiers.set', entityId: entity.id, modifiers: [{ type: 'subdivision', levels: 1 }] }] })
+  const saved = studio.store.readRevisionSpec(authored.projectId, 'r0002')
+  const expected = structuredClone(originalSpec), expectedEntity = expected.entities.find(e => e.id === entity.id)
+  expectedEntity.modifiers = [{ type: 'subdivision', levels: 1 }]
+  check('surface revision keeps all authored geometry, materials, transforms and unrelated edits',
+    canonicalStringify(saved) === canonicalStringify(expected) && digestDirectory(directory) === before && authored.revision.previews.length === 1,
+    { sameSource: canonicalStringify(saved) === canonicalStringify(expected), predecessorUnchanged: digestDirectory(directory) === before, previews: authored.revision.previews.length })
+  const native = inspectBlend(join(studio.store.revisionDirectory(authored.projectId, 'r0002'), 'scene.blend'), INVENTORY_SNIPPET)
+  check('reopened surface revision contains subdivided native faces', native.objects.find(o => o.deepblendId === entity.id)?.polygonCount === 12)
+  let refused = false
+  try {
+    await studio.applyScenePatch({ projectId: authored.projectId, baseRevision: 'r0002', saveCheckpoint: true, renderPreview: false,
+      operations: [{ op: 'entity.generator.set', entityId: entity.id, generator: { ...entity.generator, faces: [[0, 1, 9]] } }] })
+  } catch (error) { refused = error.code === 'SCENE_SPEC_INVALID' }
+  check('bad topology creates no revision and cannot alter a saved predecessor', refused &&
+    studio.store.currentRevision(authored.projectId) === 'r0002' && studio.store.listRevisions(authored.projectId).length === 2 && digestDirectory(directory) === before,
+    { refused, currentRevision: studio.store.currentRevision(authored.projectId), revisions: studio.store.listRevisions(authored.projectId) })
+}
+
+const controlledMesh = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--python-exit-code', '1',
+  '--python', join(HERE, 'controlled-mesh.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('authored mesh topology and UV seams survive bounded surface subdivision',
+  controlledMesh.status === 0 && controlledMesh.stdout.includes('CONTROLLED_MESH_PASSED'),
+  controlledMesh.status === 0 ? undefined : { error: controlledMesh.error?.message, output: `${controlledMesh.stdout}\n${controlledMesh.stderr}`.slice(-6000) })
 
 rmSync(workspace, { recursive: true, force: true })
 

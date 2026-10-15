@@ -385,11 +385,14 @@ def create_generator(name, spec):
     elif shape == "handled_cup":
         from deepblend_vessel import create_handled_cup
         create_handled_cup(name, spec)
+    elif shape == "mesh":
+        from deepblend_mesh import create_mesh
+        create_mesh(name, spec)
     else:
         raise ActionError(
             "BLENDER_SCRIPT_ERROR",
             'unknown generator shape "%s"' % (shape,),
-            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup"]},
+            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup", "mesh"]},
         )
 
     obj = bpy.context.active_object
@@ -2105,7 +2108,7 @@ def build_scene(spec, options, guard):
                 for polygon in getattr(obj.data, "polygons", []):
                     polygon.material_index = 0
             generator = entity.get("generator", {})
-            if generator.get("bevel") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
+            if (generator.get("bevel") and generator.get("shape") != "mesh") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
                 _shade_smooth(obj)
 
         if entity.get("materialBindings"):

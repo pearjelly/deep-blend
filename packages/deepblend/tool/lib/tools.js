@@ -75,7 +75,12 @@ const SCENE_SPEC_PARAMETER = {
     'shots[], animationTracks[], renderProfiles{preview,final}. project.reviewSubjectId optionally selects an existing non-empty main review entity without moving cameras. ' +
     'A generator entity is `{id,type:"generator",generator:{shape,size|radius|depth|majorRadius|minorRadius,bevel?},' +
     'materialId,transform:{location,rotationEuler,scale}}` where shape is one of ' +
-    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup. handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
+    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup, mesh. ' +
+    'Mesh builds authored control geometry from vertices:[[x,y,z],...] in object-local space and faces:[[vertexIndex,...],...] with 3-32 distinct in-range indices per face; winding is preserved. ' +
+    'Limits: 32768 vertices, 32768 faces, 131072 total face corners, coordinates within +/-1000000. ' +
+    'Optional faceUvs supplies one [u,v] pair per face corner; omitted uses planar UVs. smooth:true interpolates normals without changing geometry. ' +
+    'Use mesh for asymmetric surfaces; it accepts data only, no formulas/scripts. Validate and inspect actual geometry, normals and renders; valid indices do not certify appearance or manifold topology. ' +
+    'handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
     'Defaults are radius 0.04, height 0.105, wallThickness 0.003, baseThickness 0.005; optional handleRadius, handleLower, handleUpper, rootRadius, rootLength and mesh segments obey coupled constraints. Inspect root highlights; mesh checks do not certify aesthetic quality. Curve sweeps a round section ' +
     'of radius (default 0.01) along path:[[x,y,z],…]; pathInterpolation is poly or bezier, pathClosed closes ' +
     'the loop, and capEnds seals open endpoints. Lathe uses profile:[[radius,height],…] ' +
@@ -83,7 +88,11 @@ const SCENE_SPEC_PARAMETER = {
     'sections. Use enough profile points to describe smooth shoulders and rounded lips; points form straight segments. ' +
     'Entity modifiers[] apply in order: {type:"solidify",thickness,offset?}, {type:"mirror",axis:"x"|"y"|"z",merge?}, ' +
     '{type:"array",count,offset:[x,y,z]}, {type:"boolean",operation:"union"|"difference"|"intersect",targetEntityId}, ' +
-    'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
+    '{type:"subdivision",levels:1|2|3,scheme?:"catmull-clark"|"simple",boundaryMode?:"all"|"preserve-corners"}, ' +
+    'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Subdivision defaults to catmull-clark/all; simple refines without rounding. ' +
+    'All modifiers are bounded to 500000 output polygons per entity, with subdivision refused before allocating an excessive result. ' +
+    'Array offsets are object-local and are scaled/rotated with the object; a world displacement must use the full inverse transform, not just divide by scale. ' +
+    'Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
     'Boolean operands must be separate single-mesh entities; visible:false hides an operand while preserving its geometry for the operation. ' +
     'Material parameters use Blender 5 socket ' +
     'names: baseColor [r,g,b,a], metallic, roughness, ior, alpha, emissionColor, emissionStrength, ' +

@@ -24,17 +24,23 @@ import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { compileSchema, formatIssues } from './json-schema.js'
 import { referenceImageIssues } from './reference-images.js'
 import { HANDLED_CUP_FIELDS, handledCupIssues, resolveHandledCup } from './handled-cup.js'
+import { MESH_FIELDS, meshGeneratorIssues } from './mesh-geometry.js'
 import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'json' }
 
 /** The one schema version this module understands. */
 export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
 
 export const BOX_DIMENSIONS_FEATURE = 'geometry.primitive.dimensions'
+export const MESH_GEOMETRY_FEATURE = 'geometry.procedural.mesh'
+export const SUBDIVISION_FEATURE = 'geometry.modifier.subdivision'
 
 /** Features whose absence must refuse compilation rather than reinterpret the scene. */
 export function requiredSceneFeatures(spec) {
-  return spec.entities?.some(entity => entity.type === 'generator' && entity.generator?.dimensions !== undefined)
-    ? [BOX_DIMENSIONS_FEATURE] : []
+  const entities = spec.entities ?? [], features = []
+  if (entities.some(entity => entity.type === 'generator' && entity.generator?.dimensions !== undefined)) features.push(BOX_DIMENSIONS_FEATURE)
+  if (entities.some(entity => entity.type === 'generator' && entity.generator?.shape === 'mesh')) features.push(MESH_GEOMETRY_FEATURE)
+  if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'subdivision'))) features.push(SUBDIVISION_FEATURE)
+  return features
 }
 
 /**
@@ -406,6 +412,17 @@ export function validateSceneSpec(spec) {
         message: 'profile and closedProfile require lathe geometry; capEnds requires lathe or curve geometry' })
     }
     const generator = entity.generator
+    if (generator?.shape === 'mesh') {
+      for (const message of meshGeneratorIssues(generator)) errors.push({ severity: 'error',
+        code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`, message })
+      if (['size', 'radius', 'depth', 'segments', 'ringCount', 'majorRadius', 'minorRadius'].some(key => generator[key] !== undefined)) {
+        errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`,
+          message: 'mesh geometry uses vertices and faces, not primitive dimensions or radial segments' })
+      }
+    } else if (generator && MESH_FIELDS.some(key => generator[key] !== undefined)) {
+      errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PARAMETERS_INVALID', path: `${at}.generator`,
+        message: 'vertices, faces, faceUvs and smooth apply only to mesh geometry' })
+    }
     if (generator?.shape === 'curve') {
       const path = generator.path
       const invalid = message => errors.push({ severity: 'error', code: 'SCENE_GENERATOR_PATH_INVALID',
@@ -827,6 +844,8 @@ function resolveGenerator(generator) {
         bevelResolution: generator.bevelResolution ?? 8, capEnds: generator.capEnds ?? true }
     case 'handled_cup':
       return { ...base, ...resolveHandledCup(generator) }
+    case 'mesh':
+      return { ...base, ...generator, smooth: generator.smooth ?? false }
     default:
       return { ...generator }
   }
@@ -887,6 +906,7 @@ export function entityBoundingRadius(entity) {
       case 'lathe': radius = Math.max(...generator.profile.map(([r, z]) => Math.hypot(r, z))); break
       case 'curve': radius = Math.max(...generator.path.map(point => Math.hypot(...point))) *
         (generator.pathInterpolation === 'bezier' ? 2 : 1) + generator.radius; break
+      case 'mesh': radius = generator.vertices.reduce((bound, point) => Math.max(bound, Math.hypot(...point)), 0); break
       case 'handled_cup': {
         const p = resolveHandledCup(generator)
         radius = Math.hypot(p.radius + p.rootLength + (p.handleUpper - p.handleLower) / 2 + p.handleRadius, p.height)

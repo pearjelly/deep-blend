@@ -569,6 +569,25 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `entity.generator.set` | `entityId`, `generator`（完整替换，只适用于生成器实体） |
 | `entity.modifiers.set` | `entityId`, `modifiers`（完整替换，空数组清除；不适用于 empty） |
 
+生成器可用 `shape:"mesh"` 表达非对称曲面。`vertices` 为局部坐标，
+`faces` 为保留绕序的从零开始顶点索引；每面 3–32 个不重复索引。
+预算为 32768 个顶点、32768 个面、131072 个面角；坐标绝对值不超过 1000000。
+重复面、越界索引、退化面积和不匹配的 UV 在提交前拒绝。
+可选 `faceUvs` 为每个面的每个角提供二维 UV，保留接缝；省略时生成平面 UV。
+`smooth` 默认 false，只影响表面法线插值。这里接受数值数据，不接受脚本或表达式。
+
+修改器 `{type:"subdivision",levels:1|2|3}` 可选
+`scheme:"catmull-clark"|"simple"`（默认前者）、
+`boundaryMode:"all"|"preserve-corners"`（默认 all）。细分会应用到保存的真实网格，
+源控制网格仍保留在 SceneSpec，可通过新修订继续编辑。
+超过每实体 500000 个输出面的预计细分会在分配前拒绝。
+新网格与细分分别要求 Runtime 声明 `geometry.procedural.mesh`、
+`geometry.modifier.subdivision`；旧 Runtime 明确拒绝，新能力不改变旧工程的功能要求。
+校验通过仅代表可执行输入，开放边界、法线、装配、细节及成品观感仍须实际检查。
+
+阵列的 `offset` 采用对象局部坐标，随后一起经过对象缩放和旋转。
+按世界方向连接构件时，需要把目标位移转换回完整的局部基底，不能只除以缩放。
+
 ### 5.2 材质
 
 | 操作 | 参数 |

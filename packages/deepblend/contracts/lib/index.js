@@ -523,6 +523,7 @@ export function warning(code, message, detail) {
  * @property {BlenderRenderSmokeTest|null} cyclesSmokeTest
  * @property {boolean} textBlockApi
  * @property {boolean} frameApi
+ * @property {string[]} [sceneFeatures] - explicitly supported SceneSpec compiler features.
  * @property {string|null} hostPlatform
  * @property {{ code: string, message: string, detail?: unknown }[]} warnings
  * @property {number} probedAt - epoch ms.
@@ -617,6 +618,7 @@ export function toCanonicalCapabilities(capabilities) {
         : {}),
     },
     version: capabilities.blenderVersion,
+    ...(Array.isArray(capabilities.sceneFeatures) ? { sceneFeatures: [...capabilities.sceneFeatures] } : {}),
     versionTuple: capabilities.blenderVersionTuple,
     pythonVersion: capabilities.pythonVersion,
     buildHash: capabilities.buildHash,
@@ -698,6 +700,8 @@ export {
   validateSceneSpec,
   compileSceneSpec,
   BOX_DIMENSIONS_FEATURE,
+  MESH_GEOMETRY_FEATURE,
+  SUBDIVISION_FEATURE,
   requiredSceneFeatures,
   entityBoundingRadius,
   sceneProjection,

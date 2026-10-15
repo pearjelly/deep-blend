@@ -3,13 +3,14 @@ import { inflateSync } from 'node:zlib'
 import { sha256, sha256Canonical } from './canonical.js'
 import { compileSchema } from './json-schema.js'
 import { decodePng } from './png.js'
-import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, requiredSceneFeatures } from './scene-spec.js'
+import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, requiredSceneFeatures } from './scene-spec.js'
 import { deformLatheShell, latheShellTargets } from './lathe-shell.js'
 import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
   'geometry.primitive', BOX_DIMENSIONS_FEATURE, 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
+  MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE,
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
   'recipe.geometry-bindings',
@@ -45,8 +46,8 @@ export class RecipeError extends Error {
 export function recipeCapabilitiesForScene(spec) {
   const used = new Set()
   for (const entity of spec.entities ?? []) {
-    if (entity.type === 'generator') used.add(['lathe', 'curve', 'handled_cup'].includes(entity.generator.shape)
-      ? `geometry.${entity.generator.shape}` : 'geometry.primitive')
+    if (entity.type === 'generator') used.add(entity.generator.shape === 'mesh' ? MESH_GEOMETRY_FEATURE
+      : ['lathe', 'curve', 'handled_cup'].includes(entity.generator.shape) ? `geometry.${entity.generator.shape}` : 'geometry.primitive')
     if (entity.modifiers?.length || entity.generator?.bevel) used.add('geometry.modifiers')
     if (entity.generator?.shape === 'handled_cup' && (entity.generator.rootTension ?? 1) !== 1) used.add('geometry.handled_cup.tension')
     if (entity.generator?.shape === 'handled_cup' && (entity.generator.rootTension ?? 1) > 1.5) used.add('geometry.handled_cup.tension.extended')

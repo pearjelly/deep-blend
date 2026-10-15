@@ -1,18 +1,18 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-13T10:15:22.442034+00:00",
-  "sourceBase": "59f0ef96045d12ebf5735f468ac100e3b03dc67a",
-  "uiSha256": "bce06941bd7859a2a4ef289179de5831bc1c33b3ae44e45813cfe1f233592075",
-  "nativeSource": "/Users/hxb/.codex/worktrees/first-output/deep-blend/.tmp-lamp-assembly-photography-v1",
+  "at": "2026-10-15T12:26:49.871822+00:00",
+  "sourceBase": "1711f7d04ea11b40f79a2cbcca89948f604f586e",
+  "uiSha256": "b35abe04ae757a444b6d477003cf2daf8868953faf720146eb0892be31de7bca",
+  "nativeSource": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-controlled-mesh-feature/photography-native-v1",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Actual0.9.0 unpublished assembly/geometry UI candidate Chrome/DSH/Blender photography regression,36 checks. Desktop and390px captures inspected; no external artist approval.",
+  "scope": "Unpublished controlled mesh/subdivision candidate: actual Chrome/DSH/Blender photography regression,36 checks. Desktop and390px captures inspected. Photography source scene is the existing cup regression fixture; this is not pagoda acceptance. No external artist approval.",
   "images": [
     {
       "file": "draft.png",
       "original": "04-reused-photography-draft.png",
-      "sha256": "f291d08447d778fe31c652948b181ed55eb9bead4bd43553b4a704dead6cdd49",
-      "bytes": 181997,
+      "sha256": "21290dbb6f1916c14f1440b467ff7aadd6dc4c5b5697960ca238969b9de02fdf",
+      "bytes": 181661,
       "width": 1440,
       "height": 1013,
       "postProcessed": false
@@ -20,20 +20,20 @@
     {
       "file": "narrow.png",
       "original": "05-narrow-photography-reuse.png",
-      "sha256": "30e6a83384a1556450519fc348d94ae4244ad9b617d8954ae6c094c08a5ec1ef",
-      "bytes": 84567,
+      "sha256": "f981e73b8206fb1ad12d51813f354cd1e38017247bf443a85982987f6bf37f2b",
+      "bytes": 84248,
       "width": 390,
       "height": 844,
       "postProcessed": false
     }
   ],
-  "viewedAt": "2026-10-13T10:15:22.442229+00:00",
+  "viewedAt": "2026-10-15T12:26:49.871822+00:00",
   "license": "MIT",
   "author": "DeepBlend contributors",
   "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
   "toolSha256": "c9107135fbae6985a4d0b233f1f795a335efa3bbb99939c7e3e5022f93e2dc98",
-  "sourceReportSha256": "3486bfa4b76313ffc9caa1daf2a9888b757d3173a58208d1f98087acd4382d51",
-  "sourceRequestsSha256": "319797e4bb19d5b50d0c76029266957940e839690bb136b6726703db69375cf2",
+  "sourceReportSha256": "7d3f70f374d1c7962e31fe5416f06b1331d3c10aff307751e0223bdbf50b643a",
+  "sourceRequestsSha256": "a9bbafd238cd2ccb84b74ff03d57442f9557ffadae32291053fe37f75469e35c",
   "reproductionGuide": "../../photography-editor.md",
   "postProcessed": false
 }

@@ -33,6 +33,8 @@ export function validateSceneSpec(input: unknown): SceneSpecValidation;
 export function parseSceneSpec(input: unknown): SceneSpec;
 /** Does not validate first. Call parseSceneSpec or check validateSceneSpec before compiling. */
 export const BOX_DIMENSIONS_FEATURE: 'geometry.primitive.dimensions';
+export const MESH_GEOMETRY_FEATURE: 'geometry.procedural.mesh';
+export const SUBDIVISION_FEATURE: 'geometry.modifier.subdivision';
 export function requiredSceneFeatures(spec: SceneSpec): string[];
 export function compileSceneSpec(spec: SceneSpec): {
   spec: SceneSpec; notices: SceneSpecIssue[];
