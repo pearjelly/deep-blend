@@ -651,6 +651,24 @@ try {
       hiddenSpec.entities.find(entity => entity.id === 'coffee-table').visible === false,
       { checkpoint: hidden.checkpoint, reviewSubjectId: hiddenSpec.project.reviewSubjectId })
   }
+  // Body membership cannot depend on the caller's list of measured masks.
+  {
+    const spec = JSON.parse(readFileSync(join(FIXTURES, 'product-turntable', 'scene-spec.json'), 'utf8'))
+    const created = await studio.createProject({ title: 'Untracked fitted watch face', sceneSpec: spec, saveCheckpoint: true })
+    const selected = { projectId: created.projectId, revision: created.revision.revision,
+      subjectId: 'watch-body', roles: ['active-camera'], frame: 1, ...PREVIEW }
+    const onlyBody = await studio.renderViews({ ...selected, track: ['watch-body'] })
+    const withParts = await studio.renderViews({ ...selected, track: ['watch-body', 'watch-dial', 'watch-crown'] })
+    const first = onlyBody.views[0].metrics.objects.find(o => o.id === 'watch-body')
+    const second = withParts.views[0].metrics.objects.find(o => o.id === 'watch-body')
+    check('an authored fitted face counts as the same body even when it has no separately measured mask',
+      first.silhouettePixels > 0 && first.visibleFraction === second.visibleFraction && first.visibleFraction > 0 && first.visibleFraction < 1,
+      { onlyBody: first.visibleFraction, withParts: second.visibleFraction })
+    check('narrow tracking neither renders extra part masks nor reports the declared face as an obstruction',
+      onlyBody.views[0].metrics.objects.length === 1 &&
+      first.occludedBy.every(o => !['watch-dial', 'watch-crown'].includes(o.entityId)) &&
+      first.occludedBy.some(o => o.entityId === 'stage'), first.occludedBy)
+  }
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }

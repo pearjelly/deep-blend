@@ -447,8 +447,10 @@ def _visibility(scene, target, mask, tracked, index, parts):
     if silhouette == 0:
         return 0, 1.0, []
 
+    # Measured-mask selection must not change authored body membership: a
+    # fitted panel still belongs to this body when it is not measured separately.
     actors = [
-        candidate for candidate in (_tracked_objects(target, tracked, index))
+        candidate for candidate in (_tracked_objects(target, [*tracked, *parts], index))
         if candidate is not target and not candidate.hide_render
     ]
     if not actors:

@@ -1607,6 +1607,33 @@ check('modeling stacks preserve measured volume, manifold topology and dependenc
 rmSync(workspace, { recursive: true, force: true })
 
 console.log('')
+// Adding an alphabetically earlier delivery camera preserves the authored native
+// default, not merely the SceneSpec field. Legacy specs retain first-camera fallback.
+{
+  const spec = structuredClone(fixtureSpec)
+  const originalCamera = spec.project.activeCamera
+  const added = { ...structuredClone(spec.cameras[0]), id: 'a-delivery' }
+  delete added.role
+  spec.cameras.unshift(added)
+  const authored = await studio.createProject({ title: 'Protected native active camera', sceneSpec: spec, saveCheckpoint: true })
+  const path = join(studio.store.revisionDirectory(authored.projectId, authored.revision.revision), 'scene.blend')
+  const info = inspectBlend(path, INVENTORY_SNIPPET)
+  check('a delivery camera preceding the authored active camera cannot replace it in the saved native file',
+    info.activeCamera === 'db_camera__' + originalCamera, info.activeCamera)
+  delete spec.project.activeCamera
+  const legacy = await studio.createProject({ title: 'Legacy native camera fallback', sceneSpec: spec, saveCheckpoint: true })
+  const legacyInfo = inspectBlend(join(studio.store.revisionDirectory(legacy.projectId, legacy.revision.revision), 'scene.blend'), INVENTORY_SNIPPET)
+  check('a legacy project without an explicit active camera keeps its original first-camera fallback',
+    legacyInfo.activeCamera === 'db_camera__a-delivery', legacyInfo.activeCamera)
+  spec.project.activeCamera = 'legacy-missing-camera'
+  const stale = await studio.createProject({ title: 'Legacy stale native camera reference', sceneSpec: spec, saveCheckpoint: true })
+  const staleInfo = inspectBlend(join(studio.store.revisionDirectory(stale.projectId, stale.revision.revision), 'scene.blend'), INVENTORY_SNIPPET)
+  check('an accepted old project with a stale camera reference keeps its fallback and reports why',
+    staleInfo.activeCamera === 'db_camera__a-delivery' &&
+    stale.warnings.some(w => w.code === 'SCENE_COMPILER_DECISION' && w.message.includes('legacy-missing-camera') && w.message.includes('a-delivery')),
+    { camera: staleInfo.activeCamera, warnings: stale.warnings })
+}
+
 const failures = results.filter(entry => !entry.ok)
 console.log(`M1 Blender integration: ${results.length - failures.length}/${results.length} checks passed`)
 if (failures.length > 0) {

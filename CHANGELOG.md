@@ -4,6 +4,7 @@
 
 - 候选：多视图预览可指定本次主体和受测部件，并提示轮廓触边；保留作者相机，完整交付仍待真实任务验收。
 
+- Preserve the declared native active camera when adding delivery views, and retain authored body-part visibility semantics independently of measured-mask selection.
 - Continue width/depth/height edits of complete XYZ-posed speaker assemblies, including all coupled world-axis button curves.
 - Preserve old projects, source locks, manual details, camera work and animation timing; reject partial placements, scaling and inconsistent anchors.
 - Read physical object-axis extents directly from evaluated native vertices, including construction scale, with unavailable shear/degenerate bases explicit.

@@ -2173,7 +2173,18 @@ def build_scene(spec, options, guard):
     for camera in spec.get("cameras") or []:
         cameras[camera["id"]] = build_camera(camera, entity_positions)
     if cameras:
-        scene.camera = cameras[spec["cameras"][0]["id"]]
+        active_camera = (spec.get("project") or {}).get("activeCamera")
+        if active_camera is not None and active_camera not in cameras:
+            # Older accepted projects can contain a stale activeCamera reference.
+            # Preserve their first-camera fallback and make that limit explicit.
+            guard.note("SCENE_COMPILER_DECISION",
+                       'The declared active camera "%s" was not found; using first camera "%s"' %
+                       (active_camera, spec["cameras"][0]["id"]),
+                       {"requestedCameraId": active_camera, "cameraId": spec["cameras"][0]["id"]})
+            active_camera = None
+        # Camera arrays are canonically sorted after a patch. Adding a delivery
+        # camera must not replace the authored active camera in the saved file.
+        scene.camera = cameras[active_camera if active_camera is not None else spec["cameras"][0]["id"]]
 
     report_progress("build_animation", 75)
     actions = []
