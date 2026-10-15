@@ -415,6 +415,14 @@ revision、digest、帧范围与 fps、各类计数、每个实体（id/type/sha
 visible/locked）、相机参数、动画轨道、渲染 profile、已有的 preview 清单。
 `full:true` 才附带完整 `spec` 与 `compiledSpec`。
 
+大型场景的精确实体数据可用 `sourceEntityId` 单独读取，`sourceOffset` 默认0，
+`sourceLimit` 默认2048、范围1–2048。响应仅含紧凑 JSON 的 `sourceText` 片段、
+UTF-16 字符偏移、`sourceLength`、`totalChars`、`nextOffset`（结束时 null），以及
+保存 revision、digest、documentSha256 和 entityJsonSha256。转义开销大时实际片段
+可以更短。后续片必须指定首片返回的 revision，逐片核对实体哈希后按顺序串接再解析。
+这只读取保存的实体数据，不接受文件路径，也不提供通用 `read`；不得与 `full:true`
+或任何 geometry 参数混用。不存在的实体、越界偏移和不兼容的 Host 均明确失败。
+
 开发中的局部表面检查沿用该工具：`geometryEntityIds`（1–8个保存实体）与显式
 `geometryFrame` 请求原生跨度；可选 `geometrySurfaceSamples`（1–8个）请求严格v2回执。
 每条采样有 `sampleId`、已选择的 `entityId`、世界米制 `originMeters`、非零 `direction`

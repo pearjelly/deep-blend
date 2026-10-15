@@ -54,6 +54,7 @@ import {
   resolveStudio,
 } from './shared.js'
 import { compareSurfaceReports } from './geometry-comparison.js'
+import { readEntitySource } from './scene-source.js'
 import { validateAssemblyPairs, readAssemblyOrigins, compareAssemblyOrigins, compareGeometryReports } from './assembly-origins.js'
 
 /** A short parameter description of a SceneSpec engine key. */
@@ -401,6 +402,8 @@ function sceneGet(ctx) {
       'location and visibility, camera parameters, animation tracks and the render profiles. That is ' +
       'usually everything you need to decide what to change. Pass full:true to also get the complete ' +
       'SceneSpec document, which you should do only when you actually need exact field values. ' +
+      'For exact control vertices or other entity fields in a large scene, use sourceEntityId instead: bounded compact JSON chunks avoid output spill. ' +
+      'Continue with the returned revision and nextOffset, check entityJsonSha256 stays identical, concatenate sourceText in order, then parse JSON. The preset does not provide a generic read tool. ' +
       'To measure saved native parts, pass geometryEntityIds (1–8 IDs from this scene) and an explicit geometryFrame. ' +
       'This returns source-verified world-axis spans in millimeters and transforms without rendering or creating a revision. ' +
       'Spans include rotation, handles and protrusions; they are not body diameter, wall thickness, clearance or quality approval. ' +
@@ -415,6 +418,9 @@ function sceneGet(ctx) {
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
       revision: { type: 'string', description: 'Read a specific revision instead of the current one.' },
+      sourceEntityId: { type: 'string', description: 'Read exact saved JSON for one entity (1–64 character ID), without the scene catalogue. Cannot combine with full:true or geometry options.' },
+      sourceOffset: { type: 'integer', description: 'UTF-16 character offset in compact entity JSON, default 0. Requires sourceEntityId; offsets above zero require the revision returned by the first chunk.' },
+      sourceLimit: { type: 'integer', description: 'Maximum source characters in this chunk, 1–2048 (default 2048). Escaped text may return fewer. Requires sourceEntityId.' },
       geometryEntityIds: { type: 'array', items: { type: 'string' },
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
@@ -448,6 +454,10 @@ function sceneGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.sourceEntityId !== undefined || args.sourceOffset !== undefined || args.sourceLimit !== undefined) {
+          const receipt = await readEntitySource(resolved.studio, args)
+          return { ok: true, text: renderSuccess('Saved entity source chunk. Continue at nextOffset using this revision; verify entityJsonSha256 before concatenating.', receipt, { compact: true }), data: receipt }
+        }
         if (args.geometryObjectAxes !== undefined && typeof args.geometryObjectAxes !== 'boolean') throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryObjectAxes must be boolean.')
         if (args.geometryObjectAxes === true && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Object-local bounds require geometryEntityIds and geometryFrame.')
         if (args.geometryOnly !== undefined && typeof args.geometryOnly !== 'boolean') {
@@ -575,7 +585,7 @@ function sceneGet(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: args?.full === true ? `Read full scene of "${args?.projectId ?? ''}"` : `Read scene of "${args?.projectId ?? ''}"`,
+      title: args?.sourceEntityId !== undefined ? `Read saved entity "${args.sourceEntityId}"` : args?.full === true ? `Read full scene of "${args?.projectId ?? ''}"` : `Read scene of "${args?.projectId ?? ''}"`,
       kind: 'read',
     }),
   })

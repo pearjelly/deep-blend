@@ -399,6 +399,14 @@ the current revision and repeat the affected views with the same settings.
    registration. Do not guess a producer's old absolute directory from historical metadata.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
+   For exact fields of one saved entity in a large scene, use `sourceEntityId`.
+   It returns bounded compact JSON `sourceText`, `nextOffset`, revision and
+   `entityJsonSha256`. Continue with that explicit revision and `sourceOffset:nextOffset`,
+   verify the hash stays identical, concatenate the chunks in order, then parse JSON.
+   `nextOffset:null` ends the entity. `sourceLimit` is 1–2048 characters; escaped
+   text may return fewer. Do not combine this mode with full or geometry reads.
+   This preset has no generic `read` tool: do not spend repeated grep calls trying
+   to reconstruct multiline control vertices from spilled full-scene output.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`

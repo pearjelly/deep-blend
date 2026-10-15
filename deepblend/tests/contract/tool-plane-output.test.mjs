@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto'
 import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -1008,6 +1008,83 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
     try { const out = await tool.execute({ ...args, track }, {}); refused = !out.ok } catch (e) { refused = e.code === 'INVALID_ARGS' }
     check('invalid isolation selection refuses before a paid render ' + track.length, refused && calls === before)
   }
+}
+
+// Existing saved control meshes must be readable without a generic file-read
+// tool or a truncated whole-scene dump. Reads cannot create or alter a revision.
+{
+  const spec = JSON.parse(readFileSync(join(ROOT, 'deepblend/tests/fixtures/metal-lamp-v2/scene-spec.json'), 'utf8'))
+  const entity = spec.entities[0]
+  entity.tags = Array.from({ length: 1200 }, (_, i) => `叶片🌿-${i}-"\\\n\t\u0001`)
+  const original = JSON.stringify(spec)
+  const expected = JSON.stringify(entity)
+  const hash = createHash('sha256').update(expected).digest('hex')
+  const requests = []
+  let mode = 'normal'
+  const host = { hostApiVersion: () => HOST_API_VERSION, getScene: async (id, options) => {
+    requests.push(options)
+    if (mode === 'throw') throw new BlenderError(BlenderErrorCode.REVISION_NOT_FOUND, 'Missing saved revision.')
+    const data = { projectId: id, revision: options.revision ?? 'r0003', digest: sceneSpecDigest(spec),
+      isCurrent: options.revision === undefined, entities: [], cameras: [], lights: [], counts: {} }
+    if (options.full && mode !== 'legacy') data.spec = structuredClone(spec)
+    if (mode === 'mismatch') data.digest = '0'.repeat(64)
+    if (mode === 'wrong-revision') data.revision = 'r0099'
+    if (mode === 'wrong-project') data.projectId = 'another-project'
+    return data
+  } }
+  const plane = await composeToolPlane({ studio: host, label: 'bounded-entity-source', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_scene_get')
+  const base = { projectId: 'lamp', sourceEntityId: entity.id }
+  let combined = '', offset = 0, count = 0, allBounded = true, allBound = true
+  do {
+    const result = await tool.execute({ ...base, ...(offset ? { revision: 'r0003', sourceOffset: offset } : {}) }, {})
+    if (!result.ok) throw new Error(result.text)
+    const data = result.data
+    combined += data.sourceText; count++
+    allBounded &&= result.text.length < 8192 && data.sourceLength <= 2048 && data.sourceLength > 0
+    allBound &&= data.entityJsonSha256 === hash && data.revision === 'r0003' && data.digest === sceneSpecDigest(spec) &&
+      data.sourceOffset === offset && data.sourceLength === data.sourceText.length && data.totalChars === expected.length &&
+      !('spec' in data) && !('compiledSpec' in data) && !('entities' in data)
+    offset = data.nextOffset
+  } while (offset !== null)
+  check('large saved entity reassembles exactly including Unicode, quotes and control characters', count > 10 && combined === expected && JSON.stringify(JSON.parse(combined)) === expected)
+  check('every source chunk remains below spill threshold and advertises exact offsets', allBounded)
+  check('each chunk binds to the same explicit saved revision and entity hash without full-scene duplication', allBound)
+  check('source reads ask only for saved full data and never native geometry', requests.every(o => o.full === true && !('geometry' in o)))
+  check('source reads leave all saved values and manually authored fields untouched', JSON.stringify(spec) === original)
+  const end = await tool.execute({ ...base, revision: 'r0003', sourceOffset: expected.length, sourceLimit: 1 }, {})
+  check('exact end offset returns an empty terminal chunk', end.ok && end.data.sourceText === '' && end.data.nextOffset === null)
+  const small = await tool.execute({ ...base, sourceLimit: 1 }, {})
+  check('one-character limit is honored without skipping source data', small.ok && small.data.sourceText === expected[0] && small.data.nextOffset === 1)
+  for (const extra of [{ sourceOffset: -1 }, { sourceOffset: .5 }, { sourceOffset: null }, { sourceOffset: 1 },
+    { sourceLimit: 0 }, { sourceLimit: 2049 }, { sourceLimit: '5' }, { sourceLimit: null },
+    { sourceEntityId: '../leaf' }, { sourceEntityId: '' }, { sourceEntityId: 'a'.repeat(65) },
+    { full: true }, { geometryOnly: false }, { geometryFrame: 1 }, { geometryEntityIds: [entity.id] }]) {
+    const before = requests.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, ...extra }, {}); refused = !out.ok && out.data.errorCode === code('SCRIPT_ERROR') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('invalid or mixed source request refuses before Host read ' + JSON.stringify(extra), refused && requests.length === before)
+  }
+  for (const extra of [{ sourceOffset: 0 }, { sourceLimit: 32 }]) {
+    const before = requests.length
+    const out = await tool.execute({ projectId: 'lamp', ...extra }, {})
+    check('source range cannot silently become an ordinary scene read ' + JSON.stringify(extra), !out.ok && requests.length === before)
+  }
+  const missing = await tool.execute({ ...base, sourceEntityId: 'missing-entity' }, {})
+  const beyond = await tool.execute({ ...base, revision: 'r0003', sourceOffset: expected.length + 1 }, {})
+  check('unknown entity and out-of-range offset return stable failures', !missing.ok && !beyond.ok && missing.data.errorCode === code('SCRIPT_ERROR') && beyond.data.errorCode === code('SCRIPT_ERROR'))
+  for (mode of ['legacy', 'mismatch', 'wrong-revision', 'wrong-project']) {
+    const out = await tool.execute({ ...base, revision: 'r0003' }, {})
+    check('incompatible saved source cannot fabricate a chunk ' + mode, !out.ok && out.data.errorCode === code('RUNTIME_UNAVAILABLE'))
+  }
+  mode = 'throw'
+  const absent = await tool.execute({ ...base, revision: 'r0003' }, {})
+  check('missing revision retains the Host stable error code', !absent.ok && absent.data.errorCode === code('REVISION_NOT_FOUND'))
+  mode = 'normal'
+  const ordinary = await tool.execute({ projectId: 'lamp' }, {})
+  const full = await tool.execute({ projectId: 'lamp', full: true }, {})
+  check('ordinary and full reads retain their existing response shapes', ordinary.ok && !('sourceText' in ordinary.data) && full.ok && full.data.spec && !('sourceText' in full.data))
 }
 
 const passed = results.filter(entry => entry.ok).length

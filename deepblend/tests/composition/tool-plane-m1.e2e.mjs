@@ -275,6 +275,29 @@ try {
   check('blender_scene_patch text surfaces the compiler decisions',
     patched.value.text.includes('Warnings (') || patched.value.text.includes('Canonical JSON:'))
 
+  const studio = root.get('blenderStudio')
+  const beforeSourceRead = fileSnapshot(studio.store.revisionDirectory(projectId, revision1))
+  const savedEntity = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, revision1), 'scene-spec.json'), 'utf8'))
+    .entities.find(entity => entity.id === 'watch-body')
+  let entitySource = '', sourceOffset = 0, sourceHash, sourceBound = true
+  do {
+    const chunk = await call('blender_scene_get', { projectId, revision: revision1,
+      sourceEntityId: 'watch-body', sourceOffset, sourceLimit: 32 })
+    if (!chunk.value?.ok) throw new Error(chunk.value?.text ?? 'Entity source read failed.')
+    const data = chunk.value.data
+    sourceHash ??= data.entityJsonSha256
+    sourceBound &&= data.entityJsonSha256 === sourceHash && data.revision === revision1 && data.isCurrent === false &&
+      data.sourceOffset === sourceOffset && chunk.value.text.length < 8192
+    entitySource += data.sourceText
+    sourceOffset = data.nextOffset
+  } while (sourceOffset !== null)
+  check('bounded source chunks recover an exact old saved entity after a later manual edit', sourceBound &&
+    JSON.stringify(JSON.parse(entitySource)) === JSON.stringify(savedEntity) &&
+    sourceHash === sha(Buffer.from(entitySource)))
+  check('bounded source reads preserve saved files and leave the current revision on the later edit',
+    JSON.stringify(beforeSourceRead) === JSON.stringify(fileSnapshot(studio.store.revisionDirectory(projectId, revision1))) &&
+    (await call('blender_project_get', { projectId })).value.data.currentRevision === 'r0002')
+
   // The same patch again: the idempotency guard, seen from the model's side.
   const replayed = await call('blender_scene_patch', {
     projectId,
@@ -301,7 +324,6 @@ try {
     preview.value.text.includes('640') && preview.value.text.includes('CYCLES'))
 
   // Beauty and clay through the model-visible tool, bound to identical source/camera/frame.
-  const studio = root.get('blenderStudio')
   const sourceDirectory = studio.store.revisionDirectory(projectId, 'r0002')
   const protectedFiles = fileSnapshot(sourceDirectory)
   const protectedProject = sha(readFileSync(join(studio.store.projectDirectory(projectId), 'project.json')))
