@@ -943,6 +943,33 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   }
 }
 
+
+{
+  const host=stubStudio(), requests=[], hash='c'.repeat(64)
+  host.getScene=async(id,options)=>{ requests.push(options)
+    const old=options.revision==='r0001', x=old ? .1 : .12
+    return {revision:options.revision??'r0002',digest:'sha256:axes',isCurrent:!old,geometryInspection:{
+      schemaVersion:'deepblend.scene-geometry/v3',objectAxisBasis:'evaluated-object-axes-scaled',projectId:'watch-commercial',
+      sourceRevision:options.revision??'r0002',sourceDigest:'sha256:axes',sourceCheckpointSha256:hash,sourceUnchanged:true,frame:17,blenderVersion:'fixture',
+      limitations:['Physical object-axis dimensions include native scale; no wall or clearance measured.'],objects:[{entityId:'body',type:'MESH',available:true,
+        worldBoundsMeters:{min:[0,0,0],max:[.2,x,.3]},worldAxisExtentMm:[200,x*1000,300],scale:[1,1,1],
+        worldMatrix:[[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]],objectAxisWorldMatrix:[[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]],
+        objectAxisStatus:'measured',objectAxisBoundsMeters:{min:[0,0,0],max:[x,.2,.3]},objectAxisExtentMm:[x*1000,200,300],vertexCount:8,polygonCount:6}]}}
+  }
+  const plane=await composeToolPlane({studio:host,label:'object-axis-read',expectAtLeast:16}),tool=plane.registered.get('blender_scene_get')
+  const args={projectId:'watch-commercial',revision:'r0002',geometryEntityIds:['body'],geometryFrame:17,geometryOnly:true,geometryObjectAxes:true,geometryCompareRevision:'r0001'}
+  const result=await tool.execute(args,{})
+  check('physical object-axis request reaches both saved native revisions and returns a compact verified receipt',result.ok && requests.length===2 && requests.every(r=>r.geometry.objectAxes===true) && result.data.geometryInspection.objectAxisBasis==='evaluated-object-axes-scaled')
+  check('physical object-axis change stays distinct from a rotated world-axis change',result.ok && JSON.stringify(result.data.geometryComparison.objects[0].objectAxisExtentChangeMm)==='[20,0,0]' && JSON.stringify(result.data.geometryComparison.objects[0].worldAxisExtentChangeMm)==='[0,20,0]')
+  const count=requests.length
+  for(const value of [null,1,'true']){let refused=false;try{await tool.execute({...args,geometryObjectAxes:value},{})}catch(error){refused=error.code==='INVALID_ARGS'}check('invalid object-axis option refuses before invoking Host '+String(value),refused && requests.length===count)}
+  const partial=await tool.execute({projectId:args.projectId,geometryObjectAxes:true},{})
+  check('object-axis option cannot silently become an unmeasured scene read',!partial.ok && requests.length===count)
+  const original=host.getScene;host.getScene=async(...a)=>{const d=await original(...a);d.geometryInspection.schemaVersion='deepblend.scene-geometry/v1';return d}
+  const unsupported=await tool.execute(args,{})
+  check('old Host cannot silently omit physical object-axis evidence',!unsupported.ok && unsupported.data.errorCode===code('RUNTIME_UNAVAILABLE'))
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nM1 tool output contract: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {

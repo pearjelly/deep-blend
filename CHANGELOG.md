@@ -4,6 +4,7 @@
 
 - Continue width/depth/height edits of complete XYZ-posed speaker assemblies, including all coupled world-axis button curves.
 - Preserve old projects, source locks, manual details, camera work and animation timing; reject partial placements, scaling and inconsistent anchors.
+- Read physical object-axis extents directly from evaluated native vertices, including construction scale, with unavailable shear/degenerate bases explicit.
 - Distinguish declared dimensions from native world-axis spans and one-sided surface measurements; guide known enclosure-part declarations and preserve unresolved review findings.
 
 ## 0.13.0 — 2026-10-15

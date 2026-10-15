@@ -1,6 +1,8 @@
 import { BlenderError, BlenderErrorCode } from './index.js'
 
 export const GEOMETRY_INSPECTION_VERSION = 'deepblend.geometry-inspection/v1'
+export const OBJECT_AXES_INSPECTION_VERSION = 'deepblend.geometry-inspection/v3'
+export const OBJECT_AXES_BASIS = 'evaluated-object-axes-scaled'
 export const SURFACE_INSPECTION_VERSION = 'deepblend.geometry-inspection/v2'
 export const GEOMETRY_INSPECTION_LIMITS = Object.freeze({ entities: 8, checkpointBytes: 1024 ** 3, reportBytes: 64 * 1024 })
 export const SURFACE_INSPECTION_LIMITS = Object.freeze({ samples: 8, vertices: 250_000, polygons: 250_000,
@@ -16,6 +18,7 @@ export function validateGeometrySelection(request) {
       new Set(request.entityIds).size !== request.entityIds.length) refuse('select 1–8 distinct non-empty entity IDs.')
   if (!Number.isSafeInteger(request.frame) || request.frame < 0 || request.frame > 1_000_000) refuse('an explicit integer frame from 0 to 1000000 is required.')
   if (typeof request.checkpointSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(request.checkpointSha256)) refuse('the expected checkpoint SHA256 is required.')
+  if (request.objectAxes !== undefined && typeof request.objectAxes !== 'boolean') refuse('objectAxes must be boolean.')
   if (request.surfaceSamples !== undefined) validateSurfaceSelection(request)
 }
 
@@ -98,16 +101,17 @@ export function verifyGeometryReport(report, request) {
   validateGeometrySelection(request)
   const allowed = (value, keys) => value && typeof value === 'object' && Object.keys(value).every(key => keys.includes(key))
   if (!report || Buffer.byteLength(JSON.stringify(report)) > GEOMETRY_INSPECTION_LIMITS.reportBytes ||
-      report.schemaVersion !== (request.surfaceSamples === undefined ? GEOMETRY_INSPECTION_VERSION : SURFACE_INSPECTION_VERSION) || report.checkpointSha256 !== request.checkpointSha256 ||
+      report.schemaVersion !== (request.objectAxes === true ? OBJECT_AXES_INSPECTION_VERSION : request.surfaceSamples === undefined ? GEOMETRY_INSPECTION_VERSION : SURFACE_INSPECTION_VERSION) || report.checkpointSha256 !== request.checkpointSha256 ||
       report.frame !== request.frame || report.checkpointUnchanged !== true ||
       typeof report.blenderVersion !== 'string' || !report.blenderVersion ||
       !Array.isArray(report.objects) || report.objects.length !== request.entityIds.length ||
-      !allowed(report, ['schemaVersion', 'checkpointSha256', 'checkpointUnchanged', 'frame', 'blenderVersion', 'objects', ...(request.surfaceSamples === undefined ? [] : ['surfaceSamples'])])) refuse('the report does not match the requested source, frame or selection.')
+      !allowed(report, ['schemaVersion', 'checkpointSha256', 'checkpointUnchanged', 'frame', 'blenderVersion', 'objects', ...(request.objectAxes === true ? ['objectAxisBasis'] : []), ...(request.surfaceSamples === undefined ? [] : ['surfaceSamples'])])) refuse('the report does not match the requested source, frame or selection.')
+  if (request.objectAxes === true && report.objectAxisBasis !== OBJECT_AXES_BASIS) refuse('object-local basis differs from evaluated scaled object-axis coordinates.')
   const vector = (v, length) => Array.isArray(v) && v.length === length && v.every(Number.isFinite)
   for (const [index, object] of report.objects.entries()) {
     if (object?.entityId !== request.entityIds[index] || typeof object.type !== 'string' || !object.type) refuse('object identity differs from the selection.')
     const keys = object.available === false ? ['entityId', 'type', 'available', 'unavailableReason'] :
-      ['entityId', 'type', 'available', 'worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'scale', 'vertexCount', 'polygonCount']
+      ['entityId', 'type', 'available', 'worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'scale', 'vertexCount', 'polygonCount', ...(request.objectAxes === true ? ['objectAxisStatus', 'objectAxisBoundsMeters', 'objectAxisExtentMm', 'objectAxisWorldMatrix'] : [])]
     if (!allowed(object, keys)) refuse('unsupported measurement fields are not accepted; this protocol does not establish wall thickness or clearance.')
     if (object.available === false) {
       if (!['viewport-disabled', 'not-mesh', 'empty-or-invalid-geometry'].includes(object.unavailableReason) ||
@@ -119,9 +123,45 @@ export function verifyGeometryReport(report, request) {
         !Array.isArray(object.worldMatrix) || object.worldMatrix.length !== 4 || !object.worldMatrix.every(row => vector(row, 4)) ||
         !Number.isSafeInteger(object.vertexCount) || object.vertexCount <= 0 ||
         !Number.isSafeInteger(object.polygonCount) || object.polygonCount < 0) refuse('a measured object contains invalid or non-finite geometry facts.')
+    if (request.objectAxes === true && object.objectAxisStatus === 'unsupported-object-axis-basis') {
+      if (['objectAxisBoundsMeters','objectAxisExtentMm','objectAxisWorldMatrix'].some(k=>Object.hasOwn(object,k))) refuse('unavailable object-axis measurements must not contain numbers.')
+      const m=object.worldMatrix, lengths=[0,1,2].map(i=>Math.hypot(...m.slice(0,3).map(r=>r[i])))
+      const regular=lengths.every(v=>Number.isFinite(v)&&v>1e-12) && m[3].every((v,i)=>v===(i===3?1:0))
+        && [0,1,2].every(a=>[0,1,2].every(b=>a===b||Math.abs(m.slice(0,3).reduce((sum,r)=>sum+r[a]*r[b],0)/lengths[a]/lengths[b])<=1e-6))
+      if(regular) refuse('unavailable object-axis basis contradicts the regular native transform.')
+    } else if (request.objectAxes === true) {
+      if(object.objectAxisStatus!=='measured') refuse('object-axis status is missing or invalid.')
+      const bounds = object.objectAxisBoundsMeters
+      if (!allowed(bounds, ['min', 'max']) || !vector(bounds?.min, 3) || !vector(bounds?.max, 3)
+          || !vector(object.objectAxisExtentMm, 3) || object.worldMatrix[3].some((v, i) => v !== (i === 3 ? 1 : 0))) refuse('invalid object-local bounds, extents or affine matrix.')
+      const basis = object.objectAxisWorldMatrix
+      if (!Array.isArray(basis) || basis.length !== 4 || !basis.every(row => vector(row, 4)) || basis[3].some((v,i)=>v!==(i===3?1:0))) refuse('invalid physical object-axis matrix.')
+      const lengths = [0,1,2].map(axis=>Math.hypot(...object.worldMatrix.slice(0,3).map(row=>row[axis])))
+      if (lengths.some(v=>v<=1e-12 || !Number.isFinite(v))) refuse('object-axis basis is degenerate.')
+      for (let row=0;row<3;row++) {
+        if (Math.abs(basis[row][3]-object.worldMatrix[row][3])>1e-9*Math.max(1,Math.abs(object.worldMatrix[row][3]))) refuse('object-axis origin differs from native transform.')
+        for(let axis=0;axis<3;axis++) if(Math.abs(basis[row][axis]-object.worldMatrix[row][axis]/lengths[axis])>1e-6) refuse('object-axis directions differ from normalized native transform.')
+      }
+      for(let a=0;a<3;a++)for(let b=a+1;b<3;b++)if(Math.abs(basis.slice(0,3).reduce((sum,row)=>sum+row[a]*row[b],0))>1e-6) refuse('object-axis directions are not orthogonal.')
+      const envelopeMin = [Infinity, Infinity, Infinity], envelopeMax = [-Infinity, -Infinity, -Infinity]
+      for (let corner = 0; corner < 8; corner++) {
+        const point = [0, 1, 2].map(axis => bounds[(corner >> axis) & 1 ? 'max' : 'min'][axis])
+        for (let axis = 0; axis < 3; axis++) {
+          const value = basis[axis][3] + point.reduce((sum, v, i) => sum + v*basis[axis][i], 0)
+          if (!Number.isFinite(value)) refuse('transformed object-local envelope is not finite.')
+          envelopeMin[axis] = Math.min(envelopeMin[axis], value); envelopeMax[axis] = Math.max(envelopeMax[axis], value)
+        }
+      }
+      for (let axis = 0; axis < 3; axis++) {
+        const extent = (bounds.max[axis] - bounds.min[axis])*1000
+        if (!Number.isFinite(extent) || extent < 0 || Math.abs(extent-object.objectAxisExtentMm[axis]) > Math.max(1e-6, Math.abs(extent)*1e-9)) refuse('object-local extents disagree with measured local bounds.')
+        const epsilon = 1e-6*Math.max(1, Math.abs(envelopeMin[axis]), Math.abs(envelopeMax[axis]))
+        if (object.worldBoundsMeters.min[axis] < envelopeMin[axis]-epsilon || object.worldBoundsMeters.max[axis] > envelopeMax[axis]+epsilon) refuse('world bounds exceed the transformed object-local envelope.')
+      }
+    }
     for (let axis = 0; axis < 3; axis++) {
       const extent = (object.worldBoundsMeters.max[axis] - object.worldBoundsMeters.min[axis]) * 1000
-      if (extent < 0 || Math.abs(extent - object.worldAxisExtentMm[axis]) > Math.max(1e-6, Math.abs(extent) * 1e-9)) refuse('axis extents disagree with the measured world bounds.')
+      if (!Number.isFinite(extent) || extent < 0 || Math.abs(extent - object.worldAxisExtentMm[axis]) > Math.max(1e-6, Math.abs(extent) * 1e-9)) refuse('axis extents disagree with the measured world bounds.')
     }
   }
   if (request.surfaceSamples !== undefined) verifySurfaceSamples(report.surfaceSamples, request, report.objects)

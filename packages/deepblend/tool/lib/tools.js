@@ -398,7 +398,7 @@ function sceneGet(ctx) {
       'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. ' +
       'Optional geometrySurfaceSamples measures 1–8 explicit local surface chords and pair separations on the same saved source. ' +
       'The chord runs from source entry to exit; separation runs from source EXIT to target entry and excludes that chord. ' +
-      'Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
+      'Use geometryObjectAxes:true for measured scaled object-axis extents. Do not invert a world AABB into local dimensions. Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
       'Add geometryAssemblyPairs to measure explicit ordered object-origin offsets in world XYZ, not surface clearances. When comparing revisions, geometryCompareRevision computes current-minus-reference native spans and origin moves; if surface samples are supplied, their existing local comparison is used. ' +
       'Choose outside world seeds and directions from the actual scene/bounds; missed or unsupported samples remain unavailable. ' +
       'Local samples do not prove full-surface minimum wall thickness, whole-assembly clearance, no collision or quality approval. ' +
@@ -410,6 +410,7 @@ function sceneGet(ctx) {
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
+      geometryObjectAxes: { type: 'boolean', description: 'Optional true: also measure actual evaluated vertices in physical orthogonal axes of each selected object, including native scale. Requires geometryEntityIds and geometryFrame. Returns objectAxisBoundsMeters/objectAxisExtentMm/objectAxisWorldMatrix and an explicit basis, separate from world-axis spans. Sheared/degenerate bases are unavailable. Never invert a world AABB to recover local extents.' },
       geometryOnly: { type: 'boolean', description: 'Return only source identity and verified geometry evidence, without the scene catalogue. Requires geometryEntityIds and geometryFrame; cannot be combined with full:true. Ordinary reads keep their existing shape.' },
       geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometryEntityIds and geometryFrame. Re-measures identical selected parts/frame and computes current-minus-reference native world-axis spans and origin moves. If geometrySurfaceSamples is supplied, compares those same local samples instead. Requested geometryAssemblyPairs also return origin-offset changes. Unavailable evidence stays unavailable; no clearance, global minima or change cause is established.' },
       geometryAssemblyPairs: { type: 'array', description: 'Optional 1–8 ordered native object-origin pairs. Requires geometryEntityIds containing both ends and geometryFrame. Offsets use world XYZ in millimeters; they are not surface protrusion, contact, clearance or whole-assembly certification.',
@@ -438,6 +439,8 @@ function sceneGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.geometryObjectAxes !== undefined && typeof args.geometryObjectAxes !== 'boolean') throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryObjectAxes must be boolean.')
+        if (args.geometryObjectAxes === true && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Object-local bounds require geometryEntityIds and geometryFrame.')
         if (args.geometryOnly !== undefined && typeof args.geometryOnly !== 'boolean') {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryOnly must be boolean.')
         }
@@ -456,19 +459,19 @@ function sceneGet(ctx) {
         }
         if (args.geometryAssemblyPairs !== undefined) validateAssemblyPairs(args.geometryAssemblyPairs, args.geometryEntityIds)
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
-          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
+          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
           ...definedFields({ revision: args.revision }),
           full: args.full === true,
           ...(args.geometryEntityIds === undefined ? {} : { geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-            ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
+            ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
         }), warning)
-        const hasSamples = args.geometrySurfaceSamples !== undefined
+        const hasSamples = args.geometrySurfaceSamples !== undefined, hasObjectAxes = args.geometryObjectAxes === true
         const verifyScene = (data, expectedRevision) => {
           if (expectedRevision !== undefined && data.revision !== expectedRevision) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host returned a different saved revision than requested.')
           }
-          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
+          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasObjectAxes ? 'deepblend.scene-geometry/v3' : hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
               data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
               data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
               !Array.isArray(data.geometryInspection.limitations) ||
@@ -476,16 +479,17 @@ function sceneGet(ctx) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
           }
           if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
-            schemaVersion: hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            schemaVersion: hasObjectAxes ? 'deepblend.geometry-inspection/v3' : hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            ...(hasObjectAxes ? { objectAxisBasis: data.geometryInspection.objectAxisBasis } : {}),
             ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
             checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
+            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         }
         verifyScene(data, args.revision)
         if (args.geometryAssemblyPairs !== undefined) data.geometryAssemblyOrigins = readAssemblyOrigins(data.geometryInspection, args.geometryAssemblyPairs)
         if (args.geometryCompareRevision !== undefined) {
           const reference = await canonicalCall(resolved.studio.getScene(args.projectId, { revision: args.geometryCompareRevision,
-            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
+            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
           verifyScene(reference.data, args.geometryCompareRevision)
           canonicalWarnings.push(...reference.canonicalWarnings)
           data.geometryComparison = hasSamples ? compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection) : compareGeometryReports(reference.data.geometryInspection, data.geometryInspection)

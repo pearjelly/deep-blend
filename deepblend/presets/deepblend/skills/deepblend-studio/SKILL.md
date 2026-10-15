@@ -132,6 +132,21 @@ it keeps the complete verified objects, samples and source identity while omitti
 the scene catalogue. Read the scene separately when selecting parts or seeds.
 It cannot be combined with `full:true`.
 
+For a dimension edit, request `geometryObjectAxes:true` together with the selected
+native IDs and explicit frame. In a v3 receipt, `objectAxisExtentMm` directly measures
+full evaluated mesh extents along the object's own physical orthogonal axes, including
+native construction/world scale. `objectAxisWorldMatrix` states those normalized axes
+and the native origin; `objectAxisBasis` is `evaluated-object-axes-scaled`. Use this
+returned evidence instead of inverting a world bounding box or doubling one-sided rays.
+For the pinned cabinet-shell these axes correspond to shell width/depth/height. They
+are full per-object mesh extents; for a handled cup, for example, protrusions are included
+and they do not by themselves establish body diameter or wall thickness.
+`objectAxisStatus:unsupported-object-axis-basis` has no axis numbers: a sheared or
+degenerate basis must stay unavailable while world measurements can remain available.
+Do not apply native scale a second time. A non-unit native scale can come from a
+primitive's construction, even when the authored SceneSpec scale is [1,1,1]; it does not
+establish a manual scaling edit or a recipe-to-body mismatch.
+
 For saved native size/movement comparisons, use `geometryCompareRevision` with the
 old saved revision, the selected `geometryEntityIds`, and explicit `geometryFrame`.
 Without surface samples, `geometryComparison.objects` gives current-minus-reference
@@ -353,6 +368,11 @@ the current revision and repeat the affected views with the same settings.
    Retain the original review and all remaining findings. Do not tag the floor,
    unrelated objects or every scene entity as subject-part to raise a score, and
    do not delete, hide or move parts or protected cameras to make a review pass.
+   Keep the current measured findings even for the environment or a detail camera.
+   Their tags or intended purpose alone do not establish that a finding is a non-defect.
+   A verified enclosure-part declaration does not clear floor occlusion or framing issues.
+   Prefer the parameter/native tool receipts over filesystem searches for dimensions,
+   animation or registered files; do not reverse-engineer dimensions from world bounds.
    Controlled geometry conflicts require resolving the named parts before saving. Old recipes
    without geometry controls return available:false. Use a fresh idempotencyKey for each new
    intent, including edits after restoring history; reuse it only for the same retry.

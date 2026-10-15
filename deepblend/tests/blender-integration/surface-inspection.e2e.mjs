@@ -33,6 +33,24 @@ try{
   check(id+' target is unavailable without a fake gap',samples[id].gap.status===status&&!Object.hasOwn(samples[id].gap,'normalRaySeparationMm'))
  const old=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:24,entityIds:['wall']})
  check('ordinary v1 reads have no unsolicited samples',old.report.schemaVersion==='deepblend.geometry-inspection/v1'&&!Object.hasOwn(old.report,'surfaceSamples'))
+ const axes=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:24,
+  entityIds:['axis-physical','axis-reflected','axis-evaluated','axis-sheared','axis-degenerate','disabled'],objectAxes:true})
+ reports.push(axes.report)
+ check('physical object-axis protocol and coordinate basis are explicit',axes.report.schemaVersion==='deepblend.geometry-inspection/v3'&&axes.report.objectAxisBasis==='evaluated-object-axes-scaled')
+ for(const[id,expected]of [['axis-physical',[300,150,180]],['axis-reflected',[300,150,180]],['axis-evaluated',[400,100,50]]]){
+  const o=axes.report.objects.find(o=>o.entityId===id)
+  check(id+' measures evaluated physical axes including native scale',o.available&&o.objectAxisStatus==='measured'&&o.objectAxisExtentMm.every((v,i)=>Math.abs(v-expected[i])<.001))
+ }
+ check('rotated physical object axes differ from world-axis spans',axes.report.objects[0].worldAxisExtentMm.some((v,i)=>Math.abs(v-axes.report.objects[0].objectAxisExtentMm[i])>10))
+ for(const id of ['axis-sheared','axis-degenerate']){
+  const o=axes.report.objects.find(o=>o.entityId===id)
+  check(id+' retains world measurements and explicit unavailable object-axis evidence',o.available&&o.objectAxisStatus==='unsupported-object-axis-basis'&&!Object.hasOwn(o,'objectAxisExtentMm')&&!Object.hasOwn(o,'objectAxisWorldMatrix')&&o.worldAxisExtentMm.every(Number.isFinite))
+ }
+ check('hidden objects still have no unsolicited measurements',axes.report.objects.at(-1).available===false&&!Object.hasOwn(axes.report.objects.at(-1),'objectAxisStatus'))
+ const combined=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:24,entityIds:['wall','liner'],objectAxes:true,
+  surfaceSamples:[JSON.parse(readFileSync(join(workspace,'queries.json')))[0].samples[0]]})
+ reports.push(combined.report)
+ check('surface samples and physical object axes bind the same native frame/source',combined.report.schemaVersion==='deepblend.geometry-inspection/v3'&&combined.report.surfaceSamples[0].status==='sampled'&&Math.abs(combined.report.surfaceSamples[0].normalSurfaceChordMm-2)<.001&&Math.abs(combined.report.objects[0].objectAxisExtentMm[0]-2)<.001)
  check('original native bytes are unchanged',hash(checkpoint)===digest)
  check('all private inspection directories are removed',readdirSync(join(workspace,'tmp')).length===0)
 }finally{

@@ -880,5 +880,5 @@ export {
 export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock } from './recipe.js'
 export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'
 
-export { GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, SURFACE_INSPECTION_VERSION, SURFACE_INSPECTION_LIMITS,
+export { OBJECT_AXES_INSPECTION_VERSION, OBJECT_AXES_BASIS, GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, SURFACE_INSPECTION_VERSION, SURFACE_INSPECTION_LIMITS,
   validateGeometrySelection, validateSurfaceSelection, verifySurfaceSamples, verifyGeometryReport } from './geometry-inspection.js'

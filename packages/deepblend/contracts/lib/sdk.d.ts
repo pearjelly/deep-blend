@@ -119,3 +119,7 @@ export function instantiateRecipeLock(lock: RecipeLock, changes?: RecipeValues, 
 export function recipeGeometryParameters(manifest: RecipeManifest): RecipeManifest['parameters'];
 export function planRecipeGeometryEdit(lock: RecipeLock, currentSpec: SceneSpec,
   parameterState: RecipeParameterState | undefined, changes: Record<string, number>): RecipeGeometryPlan;
+
+/** Opt-in actual evaluated mesh bounds, including object/world scale, excluding placement rotation/translation. */
+export const OBJECT_AXES_INSPECTION_VERSION: "deepblend.geometry-inspection/v3";
+export const OBJECT_AXES_BASIS: "evaluated-object-axes-scaled";
