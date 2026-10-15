@@ -1,0 +1,5 @@
+{"type": "render_config", "attemptToken": "b0c23642-dff2-450c-a1af-dd3482c97995", "renderConfig": {"engine": "CYCLES", "resolution": [320, 180], "resolutionPercentage": 100, "samples": 64, "filmTransparent": false, "viewTransform": "AgX", "look": "None", "exposure": 0.0, "fps": 24, "fpsBase": 1, "frameStart": 1, "frameEnd": 24}}
+{"type": "frame", "frame": 1, "bytes": 51763, "ms": 690, "attemptToken": "b0c23642-dff2-450c-a1af-dd3482c97995", "sha256": "dec95d6d5d186f8e21a09a18ca8a178b7961264bdb5979b3f5a54970e3ec7de4"}
+{"type": "frame", "frame": 2, "bytes": 51833, "ms": 591, "attemptToken": "b0c23642-dff2-450c-a1af-dd3482c97995", "sha256": "fa631060ff66cd07b7627cbf01c87606f6ed090d328f1d56b5e098558412725e"}
+{"type": "frame", "frame": 3, "bytes": 52018, "ms": 593, "attemptToken": "b0c23642-dff2-450c-a1af-dd3482c97995", "sha256": "3269dc80431fc52cbda65dcefe56b333e3142633b3a0099f92452121c6dbfc9e"}
+{"type": "frame", "frame": 4, "bytes": 52121, "ms": 594, "attemptToken": "b0c23642-dff2-450c-a1af-dd3482c97995", "sha256": "9ab6314bf41ce5bd44a247c6ed674f6bd17a897f4a41136619e4a185d290b0fa"}

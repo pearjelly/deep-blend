@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "deepblend.frame-sources/v1",
+  "projectId": "rene-minimal-recovery",
+  "jobId": "render-0001",
+  "revisionId": "r0001",
+  "sources": {},
+  "frames": {},
+  "current": {
+    "id": "b0c23642-dff2-450c-a1af-dd3482c97995",
+    "attempt": 1,
+    "revisionId": "r0001",
+    "cameraId": "camera-main",
+    "checkpointSha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2",
+    "requestedSamples": 64,
+    "effectiveProfile": {
+      "colorManagement": {
+        "exposure": 0,
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 64,
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64
+    },
+    "plannedFrames": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ]
+  }
+}

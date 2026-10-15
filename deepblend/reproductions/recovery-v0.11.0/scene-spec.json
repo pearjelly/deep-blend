@@ -1,0 +1,243 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "rene-minimal",
+    "title": "Minimal recovery animation",
+    "goal": "One orange cuboid moves and rotates over 24 frames; no external assets.",
+    "units": "metric",
+    "fps": 24,
+    "frameStart": 1,
+    "frameEnd": 24,
+    "aspectRatio": "16:9",
+    "activeCamera": "camera-main"
+  },
+  "materials": [
+    {
+      "id": "orange",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.8,
+          0.12,
+          0.025,
+          1
+        ],
+        "roughness": 0.45
+      }
+    },
+    {
+      "id": "floor",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.12,
+          0.12,
+          0.12,
+          1
+        ],
+        "roughness": 0.8
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "cube",
+      "type": "generator",
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "materialId": "orange",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.55
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.55,
+          1
+        ]
+      },
+      "tags": [
+        "hero-product"
+      ]
+    },
+    {
+      "id": "ground",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 12
+      },
+      "materialId": "floor",
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "tags": [
+        "environment"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "key",
+      "type": "area",
+      "transform": {
+        "location": [
+          2,
+          -3,
+          5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "energy": 700,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "size": 4
+    }
+  ],
+  "cameras": [
+    {
+      "id": "camera-main",
+      "role": "active-camera",
+      "lens": 45,
+      "sensorWidth": 36,
+      "clipping": [
+        0.01,
+        100
+      ],
+      "transform": {
+        "location": [
+          3,
+          -5,
+          3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "targetPoint": [
+        0,
+        0,
+        0.5
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-main",
+      "cameraId": "camera-main",
+      "frameRange": [
+        1,
+        24
+      ]
+    }
+  ],
+  "animationTracks": [
+    {
+      "id": "move",
+      "targetEntityId": "cube",
+      "property": "location.x",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": -0.7,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 0.7,
+          "interpolation": "linear"
+        }
+      ]
+    },
+    {
+      "id": "rotate",
+      "targetEntityId": "cube",
+      "property": "rotationEuler.z",
+      "keyframes": [
+        {
+          "frame": 1,
+          "value": 0,
+          "interpolation": "linear"
+        },
+        {
+          "frame": 24,
+          "value": 1.57079632679,
+          "interpolation": "linear"
+        }
+      ]
+    }
+  ],
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 64
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64,
+      "filmTransparent": false,
+      "colorManagement": {
+        "viewTransform": "AgX",
+        "exposure": 0
+      },
+      "maxSamplesBudget": 64
+    }
+  }
+}

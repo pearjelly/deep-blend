@@ -1,0 +1,346 @@
+{
+  "newRevision": "r0002",
+  "oldRevision": "r0001",
+  "originalCheckpointUnchanged": true,
+  "result": {
+    "revision": "r0002",
+    "revisionNumber": 2,
+    "baseRevision": "r0001",
+    "createdAt": "2026-10-14T09:45:59.623Z",
+    "kind": "scene_patch",
+    "digest": "75c71938caf0efb0b05365de1404f067fa0a61cfefd7fcb84fd8cb4cd59f070d",
+    "specHash": "95a873cde5f2a821400ab532d286766fe1beb9381a5c13e270bbe029ac491357",
+    "summary": "material \"orange\" baseColor: [0.8,0.12,0.025,1] → [0.025,0.12,0.8,1]",
+    "actor": null,
+    "stage": null,
+    "idempotencyKey": "auto-83b923faa4489efe",
+    "sceneChanged": true,
+    "specChanged": true,
+    "checkpoint": "revisions/r0002/scene.blend",
+    "previews": [],
+    "validation": {
+      "ok": true,
+      "errorCount": 0,
+      "counts": {
+        "objects": 4,
+        "meshObjects": 2,
+        "lightObjects": 1,
+        "cameraObjects": 1,
+        "materials": 3,
+        "actions": 1,
+        "specEntities": 2,
+        "specLights": 1,
+        "specCameras": 1,
+        "specMaterials": 2,
+        "specShots": 1,
+        "specAnimationTracks": 2
+      },
+      "geometry": {
+        "totalVertices": 12,
+        "totalPolygons": 7,
+        "degenerateObjects": [],
+        "hiddenRenderableObjects": []
+      },
+      "frameRange": [
+        1,
+        24
+      ],
+      "fps": 24,
+      "engine": "CYCLES",
+      "activeCamera": "db_camera__camera-main",
+      "animatedObjects": [
+        "db_entity__cube"
+      ],
+      "cameraParameters": [
+        {
+          "id": "camera-main",
+          "name": "db_camera__camera-main",
+          "lens": 45,
+          "sensorWidth": 36,
+          "location": [
+            3,
+            -5,
+            3
+          ],
+          "rotationEuler": [
+            1.165757,
+            0,
+            0.54042
+          ]
+        }
+      ]
+    },
+    "isCurrent": true,
+    "idempotentReplay": false,
+    "replayOf": null,
+    "idempotencyKeyDerived": true,
+    "job": {
+      "jobId": "apply_scene_patch-20261014094558-23c0874a-0714-4a74-b123-16b7cdabc527",
+      "projectId": "rene-minimal-recovery",
+      "action": "apply_scene_patch",
+      "status": "succeeded",
+      "revision": "r0002",
+      "errorCode": null,
+      "message": null,
+      "startedAt": "2026-10-14T09:45:58.743Z",
+      "finishedAt": "2026-10-14T09:45:59.626Z",
+      "durationMs": 883,
+      "idempotencyKey": null,
+      "baseRevision": "r0001",
+      "artifacts": [
+        {
+          "kind": "blend",
+          "path": "revisions/r0002/scene.blend",
+          "cameraId": null,
+          "frame": null,
+          "width": null,
+          "height": null,
+          "engine": null,
+          "samples": null,
+          "bytes": 572916,
+          "sha256": "c78906cab0a2b4cc6d8667a432674e3ed2c5358dfc1730998f5728f3529c2baf",
+          "mime": "application/x-blender"
+        }
+      ]
+    },
+    "warnings": [
+      {
+        "code": "SCENE_COMPILER_DECISION",
+        "message": "camera \"camera-main\" declares both a target and an explicit rotationEuler; the derived aim wins because a target is the stronger statement of intent",
+        "detail": {
+          "code": "SCENE_CAMERA_ROTATION_IGNORED",
+          "path": "cameras[0].transform.rotationEuler"
+        }
+      },
+      {
+        "code": "SCENE_COMPILER_DECISION",
+        "message": "render profile preview: engine CYCLES, 64 samples, 320x180",
+        "detail": {
+          "code": "SCENE_COMPILER_DECISION"
+        }
+      }
+    ],
+    "scene": {
+      "revision": "r0002",
+      "revisionNumber": 2,
+      "digest": "75c71938caf0efb0b05365de1404f067fa0a61cfefd7fcb84fd8cb4cd59f070d",
+      "schemaVersion": "deepblend.scene/v1",
+      "project": {
+        "id": "rene-minimal-recovery",
+        "title": "René minimal recovery",
+        "goal": "One orange cuboid moves and rotates over 24 frames; no external assets.",
+        "referenceImages": [],
+        "reviewSubjectId": null,
+        "fps": 24,
+        "frameStart": 1,
+        "frameEnd": 24,
+        "aspectRatio": "16:9",
+        "units": "metric",
+        "activeCamera": "camera-main"
+      },
+      "counts": {
+        "assets": 0,
+        "entities": 2,
+        "materials": 2,
+        "lights": 1,
+        "cameras": 1,
+        "shots": 1,
+        "animationTracks": 2
+      },
+      "entities": [
+        {
+          "id": "cube",
+          "type": "generator",
+          "shape": "cube",
+          "materialId": "orange",
+          "location": [
+            0,
+            0,
+            0.55
+          ],
+          "visible": true,
+          "locked": false,
+          "tags": [
+            "hero-product"
+          ]
+        },
+        {
+          "id": "ground",
+          "type": "generator",
+          "shape": "plane",
+          "materialId": "floor",
+          "location": [
+            0,
+            0,
+            0
+          ],
+          "visible": true,
+          "locked": false,
+          "tags": [
+            "environment"
+          ]
+        }
+      ],
+      "materials": [
+        {
+          "id": "orange",
+          "shader": "principled",
+          "parameters": {
+            "baseColor": [
+              0.025,
+              0.12,
+              0.8,
+              1
+            ],
+            "roughness": 0.45
+          }
+        },
+        {
+          "id": "floor",
+          "shader": "principled",
+          "parameters": {
+            "baseColor": [
+              0.12,
+              0.12,
+              0.12,
+              1
+            ],
+            "roughness": 0.8
+          }
+        }
+      ],
+      "lights": [
+        {
+          "id": "key",
+          "type": "area",
+          "energy": 700,
+          "location": [
+            2,
+            -3,
+            5
+          ]
+        }
+      ],
+      "cameras": [
+        {
+          "id": "camera-main",
+          "role": "active-camera",
+          "lens": 45,
+          "location": [
+            3,
+            -5,
+            3
+          ],
+          "rotationEuler": [
+            0,
+            0,
+            0
+          ],
+          "targetEntityId": null,
+          "targetPoint": [
+            0,
+            0,
+            0.5
+          ]
+        }
+      ],
+      "shots": [
+        {
+          "id": "shot-main",
+          "cameraId": "camera-main",
+          "frameRange": [
+            1,
+            24
+          ],
+          "description": null
+        }
+      ],
+      "animationTracks": [
+        {
+          "id": "move",
+          "targetEntityId": "cube",
+          "property": "location.x",
+          "keyframeCount": 2,
+          "frameRange": [
+            1,
+            24
+          ]
+        },
+        {
+          "id": "rotate",
+          "targetEntityId": "cube",
+          "property": "rotationEuler.z",
+          "keyframeCount": 2,
+          "frameRange": [
+            1,
+            24
+          ]
+        }
+      ],
+      "renderProfiles": {
+        "final": {
+          "colorManagement": {
+            "exposure": 0,
+            "viewTransform": "AgX"
+          },
+          "engine": "cycles",
+          "filmTransparent": false,
+          "maxSamplesBudget": 64,
+          "resolution": [
+            320,
+            180
+          ],
+          "samples": 64
+        },
+        "preview": {
+          "colorManagement": {
+            "exposure": 0,
+            "viewTransform": "AgX"
+          },
+          "engine": "cycles",
+          "filmTransparent": false,
+          "maxSamplesBudget": 64,
+          "resolution": [
+            320,
+            180
+          ],
+          "samples": 64
+        }
+      },
+      "world": {
+        "declared": false,
+        "color": [
+          0.02,
+          0.021,
+          0.026,
+          1
+        ],
+        "strength": 0.6
+      },
+      "bounds": {
+        "min": [
+          -8.4853,
+          -8.4853,
+          -8.4853
+        ],
+        "max": [
+          8.4853,
+          8.4853,
+          8.4853
+        ]
+      },
+      "subjectBounds": {
+        "min": [
+          -0.866,
+          -0.866,
+          -0.316
+        ],
+        "max": [
+          0.866,
+          0.866,
+          1.416
+        ]
+      }
+    }
+  }
+}

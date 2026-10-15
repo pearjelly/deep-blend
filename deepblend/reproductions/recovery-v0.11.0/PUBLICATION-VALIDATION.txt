@@ -1,0 +1,13 @@
+Publication validation — 15 October 2026 (Asia/Shanghai)
+
+The published repro.mjs was run end-to-end again from this repository directory,
+using the same pinned v0.11.0 implementation and runtime versions as versions.json.
+The driver completed with verified/ok=true. It preserved frames 3, 4 and 5,
+re-rendered exactly 21 frames after the deletion/truncation injection, decoded
+all 24 PNGs, verified the 24 fps 320x180 1-second MP4, and confirmed delivery
+of r0001 while the project current revision was r0002.
+
+The original 14 October measurements in evidence/, frames/, scene-r0001.blend
+and final.mp4 remain unchanged; they are not replaced with this additional run.
+The no-Blender verifier also passed before publication. The checksum file covers
+the final public package layout, including this note and the verifier.

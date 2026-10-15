@@ -196,6 +196,8 @@ The contact sheet combines animation sample frames with additional inspection vi
 Browse the [documentation hub](deepblend/docs/README.md). Detailed operation manuals are primarily in Chinese;
 the quick-start guide and public authoring entry are available in English.
 
+For a public, pinned recovery experiment, see the [minimal animation reproduction](deepblend/reproductions/recovery-v0.11.0/README.md): scripts, expected and observed results, logs, frame checksums, and the exact tested source commit.
+
 ## Questions before you start
 
 <details>

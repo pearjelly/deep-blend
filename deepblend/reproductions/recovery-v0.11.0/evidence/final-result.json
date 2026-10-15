@@ -1,0 +1,268 @@
+{
+  "protocolVersion": "deepblend.blender/v1",
+  "jobId": "render-0001",
+  "action": "render_frames",
+  "status": "success",
+  "error": null,
+  "capabilities": null,
+  "result": {
+    "renderKind": "frame-sequence",
+    "profileName": "final",
+    "checkpoint": "<REPRO_STORE>/projects/rene-minimal-recovery/revisions/r0001/scene.blend",
+    "cameraId": "camera-main",
+    "cameraName": "db_camera__camera-main",
+    "outputDirectory": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames",
+    "filePrefix": "frame_",
+    "padding": 4,
+    "frames": [
+      {
+        "frame": 1,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0001.png",
+        "file": "frame_0001.png",
+        "bytes": 51763,
+        "width": 320,
+        "height": 180,
+        "ms": 679
+      },
+      {
+        "frame": 6,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0006.png",
+        "file": "frame_0006.png",
+        "bytes": 51648,
+        "width": 320,
+        "height": 180,
+        "ms": 593
+      },
+      {
+        "frame": 7,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0007.png",
+        "file": "frame_0007.png",
+        "bytes": 51709,
+        "width": 320,
+        "height": 180,
+        "ms": 601
+      },
+      {
+        "frame": 8,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0008.png",
+        "file": "frame_0008.png",
+        "bytes": 51306,
+        "width": 320,
+        "height": 180,
+        "ms": 593
+      },
+      {
+        "frame": 9,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0009.png",
+        "file": "frame_0009.png",
+        "bytes": 51091,
+        "width": 320,
+        "height": 180,
+        "ms": 605
+      },
+      {
+        "frame": 10,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0010.png",
+        "file": "frame_0010.png",
+        "bytes": 51216,
+        "width": 320,
+        "height": 180,
+        "ms": 594
+      },
+      {
+        "frame": 11,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0011.png",
+        "file": "frame_0011.png",
+        "bytes": 51549,
+        "width": 320,
+        "height": 180,
+        "ms": 592
+      },
+      {
+        "frame": 12,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0012.png",
+        "file": "frame_0012.png",
+        "bytes": 51909,
+        "width": 320,
+        "height": 180,
+        "ms": 595
+      },
+      {
+        "frame": 13,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0013.png",
+        "file": "frame_0013.png",
+        "bytes": 52006,
+        "width": 320,
+        "height": 180,
+        "ms": 595
+      },
+      {
+        "frame": 14,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0014.png",
+        "file": "frame_0014.png",
+        "bytes": 51984,
+        "width": 320,
+        "height": 180,
+        "ms": 597
+      },
+      {
+        "frame": 15,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0015.png",
+        "file": "frame_0015.png",
+        "bytes": 52161,
+        "width": 320,
+        "height": 180,
+        "ms": 598
+      },
+      {
+        "frame": 16,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0016.png",
+        "file": "frame_0016.png",
+        "bytes": 52210,
+        "width": 320,
+        "height": 180,
+        "ms": 596
+      },
+      {
+        "frame": 17,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0017.png",
+        "file": "frame_0017.png",
+        "bytes": 52315,
+        "width": 320,
+        "height": 180,
+        "ms": 602
+      },
+      {
+        "frame": 18,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0018.png",
+        "file": "frame_0018.png",
+        "bytes": 52381,
+        "width": 320,
+        "height": 180,
+        "ms": 604
+      },
+      {
+        "frame": 19,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0019.png",
+        "file": "frame_0019.png",
+        "bytes": 52436,
+        "width": 320,
+        "height": 180,
+        "ms": 601
+      },
+      {
+        "frame": 20,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0020.png",
+        "file": "frame_0020.png",
+        "bytes": 52368,
+        "width": 320,
+        "height": 180,
+        "ms": 600
+      },
+      {
+        "frame": 21,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0021.png",
+        "file": "frame_0021.png",
+        "bytes": 52444,
+        "width": 320,
+        "height": 180,
+        "ms": 607
+      },
+      {
+        "frame": 22,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0022.png",
+        "file": "frame_0022.png",
+        "bytes": 52505,
+        "width": 320,
+        "height": 180,
+        "ms": 595
+      },
+      {
+        "frame": 23,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0023.png",
+        "file": "frame_0023.png",
+        "bytes": 52445,
+        "width": 320,
+        "height": 180,
+        "ms": 606
+      },
+      {
+        "frame": 24,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0024.png",
+        "file": "frame_0024.png",
+        "bytes": 52466,
+        "width": 320,
+        "height": 180,
+        "ms": 609
+      },
+      {
+        "frame": 2,
+        "path": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_0002.png",
+        "file": "frame_0002.png",
+        "bytes": 51833,
+        "width": 320,
+        "height": 180,
+        "ms": 597
+      }
+    ],
+    "renderedFrames": [
+      1,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      2
+    ],
+    "renderedCount": 21,
+    "totalBytes": 1091745,
+    "sceneFrameRange": [
+      1,
+      24
+    ],
+    "renderConfig": {
+      "engine": "CYCLES",
+      "resolution": [
+        320,
+        180
+      ],
+      "resolutionPercentage": 100,
+      "samples": 64,
+      "filmTransparent": false,
+      "viewTransform": "AgX",
+      "look": "None",
+      "exposure": 0.0,
+      "fps": 24,
+      "fpsBase": 1,
+      "frameStart": 1,
+      "frameEnd": 24
+    },
+    "overrides": {
+      "samples": 64
+    },
+    "requestedProfile": {
+      "engine": "cycles",
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64
+    }
+  },
+  "warnings": [],
+  "notices": []
+}

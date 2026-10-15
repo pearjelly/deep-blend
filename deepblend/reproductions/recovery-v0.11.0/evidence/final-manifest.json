@@ -1,0 +1,458 @@
+{
+  "schemaVersion": "deepblend.delivery-manifest/v1",
+  "generatedAt": "2026-10-14T09:46:14.133Z",
+  "projectId": "rene-minimal-recovery",
+  "revisionId": "r0001",
+  "jobId": "render-0001",
+  "attempt": 2,
+  "source": {
+    "sceneSpec": {
+      "path": "revisions/r0001/scene-spec.json",
+      "bytes": 4190,
+      "sha256": "decc2ce372d268d676b9c59f69e770c8d291b4a2b9e1fd1d63fa1a2ec0ceb12e"
+    },
+    "checkpoint": {
+      "path": "revisions/r0001/scene.blend",
+      "bytes": 572916,
+      "sha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2"
+    },
+    "qa": {
+      "path": "revisions/r0001/validation.json",
+      "bytes": 2341,
+      "sha256": "712c3cab13b6df951843a39a7463fd5cb0548fb6b9cbf097d7851c6066cbc7e2"
+    },
+    "sceneSpecDigest": "d558f56da9984648480387eb6396856f9672be77d5afd4d3ed45e993a193da30"
+  },
+  "frames": {
+    "directory": "renders/render-0001/frames",
+    "prefix": "frame_",
+    "padding": 4,
+    "first": 1,
+    "last": 24,
+    "expected": 24,
+    "rendered": 24,
+    "renderedFrames": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ],
+    "corrupt": [],
+    "bytes": 1247887
+  },
+  "render": {
+    "profileName": "final",
+    "config": {
+      "engine": "CYCLES",
+      "resolution": [
+        320,
+        180
+      ],
+      "resolutionPercentage": 100,
+      "samples": 64,
+      "filmTransparent": false,
+      "viewTransform": "AgX",
+      "look": "None",
+      "exposure": 0,
+      "fps": 24,
+      "fpsBase": 1,
+      "frameStart": 1,
+      "frameEnd": 24
+    },
+    "defaultConfig": {
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64,
+      "engine": "cycles",
+      "viewTransform": "AgX",
+      "fps": 24
+    },
+    "provenance": {
+      "schemaVersion": "deepblend.frame-sources/v1",
+      "coverage": "complete",
+      "configuration": "uniform",
+      "groups": [
+        {
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              320,
+              180
+            ],
+            "resolutionPercentage": 100,
+            "samples": 64,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "None",
+            "exposure": 0,
+            "fps": 24,
+            "fpsBase": 1,
+            "frameStart": 1,
+            "frameEnd": 24
+          },
+          "frames": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ],
+          "sourceIds": [
+            "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+            "b0c23642-dff2-450c-a1af-dd3482c97995"
+          ]
+        }
+      ],
+      "unknownFrames": [],
+      "missingFrames": [],
+      "frames": [
+        {
+          "frame": 1,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "984ec1095115cc611d2d12fd1b7d610c023deb38ef90feefb5fe67299a9dccb4"
+        },
+        {
+          "frame": 2,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "07c119b801bb6189f67c914cbdb9ca1bcee9b1baec82a61640312a4ab1060851"
+        },
+        {
+          "frame": 3,
+          "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+          "sha256": "3269dc80431fc52cbda65dcefe56b333e3142633b3a0099f92452121c6dbfc9e"
+        },
+        {
+          "frame": 4,
+          "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+          "sha256": "9ab6314bf41ce5bd44a247c6ed674f6bd17a897f4a41136619e4a185d290b0fa"
+        },
+        {
+          "frame": 5,
+          "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+          "sha256": "9ea9047d72decec4db5090babc4b38ae6fb3cc006a9fd4bf7917a95b8bd1e26d"
+        },
+        {
+          "frame": 6,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "2e0a684a028e8a3d86b4ecc5ca2775b3fd9f357ddaab2ead9a5eba12d71f5bfb"
+        },
+        {
+          "frame": 7,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "5be0a8b9346c099bd1cb1a2a74852c41b5f9c7824cbc46198cf9f93510544416"
+        },
+        {
+          "frame": 8,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "7cc945d9d7c99a32c6b779a9dbc60fbbf957c277fdfc18ed427c8a1e6fa098c0"
+        },
+        {
+          "frame": 9,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "8c4ad1a7a8ba7a78996a6d80e9d47415830713141d956e70b84915f7c01df3ee"
+        },
+        {
+          "frame": 10,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "e57fc01d1243289370dccfb90e834dc76cd44c848d89de14f92b0372fc47c3ab"
+        },
+        {
+          "frame": 11,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "1f54ba1339a6839a8136f486bb8bc7527b59e58c3b84b654ac30b13c62b07f2f"
+        },
+        {
+          "frame": 12,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "39e4f06ceb08540c8b3b8a2564c4fd9bc11f93f79d1bc09425e47d2bb586fde4"
+        },
+        {
+          "frame": 13,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "6a5b96e20cfed3d5fb1173e7b1e09d1972387245c8e582e8f34b53c29f9774ae"
+        },
+        {
+          "frame": 14,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "52f0e22a4a005d62b6c714a3ab9f1fc98449498ee25940f37511c1a53976f0c9"
+        },
+        {
+          "frame": 15,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "3e733574f2d0454e17a35689367b66878bbbdbf697d4b24697814ef7688b81f0"
+        },
+        {
+          "frame": 16,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "98a8d18c2caa54aec170d8aa4720e821242e95f7d7750d730e831c1077bf196c"
+        },
+        {
+          "frame": 17,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "573275eb23c5eddc87fca56009c73cca9d8ed1332e04bb289351c2b0ef2f55c3"
+        },
+        {
+          "frame": 18,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "62fc9f52ef78b7779a7d38ef6ca6a7167950fd20dd6d900aa913b07f48d14ea2"
+        },
+        {
+          "frame": 19,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "eca66babc472c5042d15d8651717e74422a11cc972037bde26cb3f09a4fc1bdd"
+        },
+        {
+          "frame": 20,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "c5230624aa0b6c34336bb583f2b2c9126def1db837cbb3d6519e9bcd4745b5b6"
+        },
+        {
+          "frame": 21,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "8c89627a0439b5fa92e93e5bcc4fc5675fa69b511308830fa716a86877fc1c16"
+        },
+        {
+          "frame": 22,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "79a600ba7ec6aea2eb0c670b480ec026f621b68cd60d468f3151c027b8f101c8"
+        },
+        {
+          "frame": 23,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "7441c28e6d04a10071ae229b5b8d5a5eb69954c636dd581a76b43395df041640"
+        },
+        {
+          "frame": 24,
+          "sourceId": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "sha256": "0157aac43b88368634266ac71e1d98ee47c1f4956af471b95a0af9788fb71b88"
+        }
+      ],
+      "knownFrameCount": 24,
+      "unknownFrameCount": 0,
+      "missingFrameCount": 0,
+      "sources": [
+        {
+          "id": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+          "attempt": 2,
+          "revisionId": "r0001",
+          "cameraId": "camera-main",
+          "checkpointSha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2",
+          "requestedSamples": 64,
+          "effectiveProfile": {
+            "colorManagement": {
+              "exposure": 0,
+              "viewTransform": "AgX"
+            },
+            "engine": "cycles",
+            "filmTransparent": false,
+            "maxSamplesBudget": 64,
+            "resolution": [
+              320,
+              180
+            ],
+            "samples": 64
+          },
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              320,
+              180
+            ],
+            "resolutionPercentage": 100,
+            "samples": 64,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "None",
+            "exposure": 0,
+            "fps": 24,
+            "fpsBase": 1,
+            "frameStart": 1,
+            "frameEnd": 24
+          }
+        },
+        {
+          "id": "b0c23642-dff2-450c-a1af-dd3482c97995",
+          "attempt": 1,
+          "revisionId": "r0001",
+          "cameraId": "camera-main",
+          "checkpointSha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2",
+          "requestedSamples": 64,
+          "effectiveProfile": {
+            "colorManagement": {
+              "exposure": 0,
+              "viewTransform": "AgX"
+            },
+            "engine": "cycles",
+            "filmTransparent": false,
+            "maxSamplesBudget": 64,
+            "resolution": [
+              320,
+              180
+            ],
+            "samples": 64
+          },
+          "renderConfig": {
+            "engine": "CYCLES",
+            "resolution": [
+              320,
+              180
+            ],
+            "resolutionPercentage": 100,
+            "samples": 64,
+            "filmTransparent": false,
+            "viewTransform": "AgX",
+            "look": "None",
+            "exposure": 0,
+            "fps": 24,
+            "fpsBase": 1,
+            "frameStart": 1,
+            "frameEnd": 24
+          }
+        }
+      ]
+    },
+    "cameraId": "camera-main",
+    "meanMsPerFrame": 603,
+    "renderDurationMs": 13495,
+    "blender": {
+      "source": "revision-manifest",
+      "blenderVersion": null,
+      "engine": "CYCLES",
+      "requestedEngine": "cycles",
+      "protocolVersion": "deepblend.blender/v1"
+    }
+  },
+  "video": {
+    "path": "output/final.mp4",
+    "container": "mp4",
+    "bytes": 31431,
+    "sha256": "091b9562e27e59684b8c9a82512431f3a37e2bde44d3833523562ae5ef25f0d8",
+    "expected": {
+      "frameStart": 1,
+      "frameEnd": 24,
+      "frameCount": 24,
+      "fps": 24,
+      "width": 320,
+      "height": 180
+    },
+    "probed": {
+      "durationSeconds": 1,
+      "fps": 24,
+      "width": 320,
+      "height": 180,
+      "frameCount": 24,
+      "containerClaimedFrameCount": 24,
+      "codec": "h264"
+    },
+    "problems": [],
+    "verified": true,
+    "encode": {
+      "durationMs": 41,
+      "argv": [
+        "/opt/homebrew/bin/ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-framerate",
+        "24",
+        "-start_number",
+        "1",
+        "-i",
+        "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames/frame_%04d.png",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
+        "-frames:v",
+        "24",
+        "-movflags",
+        "+faststart",
+        "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/encoded/render-0001.mp4"
+      ]
+    }
+  },
+  "qa": {
+    "path": "revisions/r0001/validation.json",
+    "report": {
+      "schemaVersion": "deepblend.validation/v1",
+      "revision": "r0001",
+      "ok": true,
+      "technicalOk": true,
+      "semanticOk": true,
+      "errorCount": 0,
+      "counts": {
+        "objects": 4,
+        "meshObjects": 2,
+        "lightObjects": 1,
+        "cameraObjects": 1,
+        "materials": 3,
+        "actions": 1,
+        "specEntities": 2,
+        "specLights": 1,
+        "specCameras": 1,
+        "specMaterials": 2,
+        "specShots": 1,
+        "specAnimationTracks": 2
+      },
+      "frameRange": [
+        1,
+        24
+      ],
+      "fps": 24,
+      "engine": "CYCLES",
+      "activeCamera": "db_camera__camera-main",
+      "notices": 1
+    }
+  },
+  "completeness": {
+    "complete": true,
+    "missing": []
+  }
+}

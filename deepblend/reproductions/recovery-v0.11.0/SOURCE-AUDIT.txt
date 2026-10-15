@@ -1,0 +1,31 @@
+Source audit — public DeepBlend v0.11.0
+Commit: 210b039d7d216df08cd732db20759b4c4ce332c4
+
+Conclusion: this version does not use René's blender-cli project. "Blender CLI"
+in the generic sense of invoking Blender's executable must not be confused with
+the separate blender-cli project. This is a proposed comparison, not an integration.
+
+Evidence at the pinned commit:
+- packages/deepblend/provider-local/lib/index.js, startFrameSequence(), lines
+  1813–1855: constructs argv containing the Blender executable, --background,
+  --factory-startup, --python bootstrap.py, request/plan/result/event/process files,
+  then calls ctx.subprocess.spawn().
+- packages/deepblend/provider-local/python/bootstrap.py, action_render_frames(),
+  lines 365–403: dispatches to deepblend_frames.render_frames().
+- packages/deepblend/provider-local/python/deepblend_frames.py, lines 330–336:
+  scene.frame_set(frame), then bpy.ops.render.render(write_still=True).
+- packages/deepblend/host/lib/render-reconciler.js: identifies/stops orphan,
+  rebuilds frame ledger, leaves the job recovering without automatic resume.
+- packages/deepblend/host/lib/index.js, resumeRenderJob(): loads record.revisionId,
+  computes frames from the disk ledger, and launches that saved job/checkpoint.
+- packages/deepblend/host/lib/delivery-manifest.js: source SceneSpec/checkpoint
+  SHA-256 values, scene digest, revision ID, frame provenance and probed video facts.
+- No blender-cli / blender_cli / blender.cli references found in tracked package
+  source or the committed development runtime package-lock.json. Package manifests
+  declare DSH/Cordis/contracts and sharp dependencies, with no blender-cli dependency.
+
+Pinned source:
+https://github.com/pearjelly/deep-blend/tree/210b039d7d216df08cd732db20759b4c4ce332c4
+
+The complete sequence used a clean clone of this commit with locked dependencies.
+The user's older local 0.5.0 workspace and its existing project data were untouched.
