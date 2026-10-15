@@ -354,9 +354,23 @@ the current revision and repeat the affected views with the same settings.
    Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation or XYZ rigid
    pose while resizing when every original part and the button rest anchors agree. A rotated
    button needs the corresponding saved world-axis curves; retain their actual timing/travel.
+   For a tilted button, a world-Z change alone is not its total travel. Compare the measured
+   XYZ endpoints at the authored rest/press frames: report those components separately, or
+   use their Euclidean displacement magnitude for total travel; never label just Z as travel.
    Partial moves, independently rotated parts, scaling and missing animation anchors remain
    conflicts. Keep custom photography and verify framing; add a complete delivery view when
    a protected camera clips the enlarged assembly, without replacing that authored camera.
+   For whole-product delivery, select the cabinet shell explicitly with preview_views.subjectId
+   and track the shell and named end parts; automatic subject selection may choose a cable.
+   Inspect each full-resolution saved front/back PNG, not only the small contact sheet.
+   frameBoundaryContacts reports image-edge contact for tracked silhouettes even when they
+   are not the selected subject. A positive silhouette with inFrame:false or a bbox touching
+   0/1 cannot support a claim of complete framing. Pixel masks end at the image edge; a
+   high score, VALID scene or some projected corners inside is not proof of a complete view.
+   Keep authored cameras unchanged. If the requested full product touches an edge, add a
+   separate delivery camera with breathing room, render it and inspect the new saved image.
+   Contact-free selected parts still do not certify untracked geometry or occlusion.
+
    Native world-axis spans change with rotation and cannot certify cabinet-local width/depth/
    height. Distinguish saved size controls from those measured spans. Do not undo the user's
    placement or scale the assembly to make world spans match the requested local dimensions.

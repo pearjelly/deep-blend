@@ -970,6 +970,46 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   check('old Host cannot silently omit physical object-axis evidence',!unsupported.ok && unsupported.data.errorCode===code('RUNTIME_UNAVAILABLE'))
 }
 
+// A high score for an automatically chosen cable must not hide another tracked
+// silhouette reaching the image edge. No saved subject/tags are changed by selection.
+{
+  let request, calls = 0
+  const receipt = { revision: 'r0004', digest: 'a'.repeat(64), subjectId: 'cable', profile: { engine: 'cycles' },
+    views: [{ viewId: 'back', cameraId: 'reverse', frame: 24, width: 768, height: 576, metrics: { objects: [
+      { id: 'cable', silhouettePixels: 50, inFrame: true, bbox: [.3, .3, .4, .4] },
+      { id: 'shell', silhouettePixels: 400, inFrame: false, bbox: [.1, 0, 1, .9] },
+      { id: 'hidden', silhouettePixels: 0, inFrame: false, bbox: null },
+      { id: 'legacy', silhouettePixels: 20, bbox: [0, 0, 1, 1] },
+    ] } }], warnings: [] }
+  const host = { hostApiVersion: () => 6,
+    renderViews: async args => { calls++; request = args; return structuredClone(receipt) },
+    scoreVisualViews: () => ({ score: 100, issues: [] }) }
+  const plane = await composeToolPlane({ studio: host, label: 'preview-boundary', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_preview_views')
+  const args = { projectId: 'speaker', revision: 'r0004', subjectId: 'shell', track: ['shell', 'cable'], frame: 24 }
+  const result = await tool.execute(args, {})
+  check('preview selects an explicit subject and bounded tracked parts without editing project metadata',
+    result.ok && request.subjectId === 'shell' && JSON.stringify(request.track) === '["shell","cable"]')
+  const contacts = result.data.frameBoundaryContacts
+  check('a perfect cable score cannot hide a tracked shell touching top and right image edges',
+    result.data.score === 100 && contacts.length === 1 && contacts[0].entityId === 'shell' &&
+    contacts[0].frame === 24 && contacts[0].cameraId === 'reverse' && JSON.stringify(contacts[0].edges) === '["top","right"]' &&
+    result.text.includes('complete framing is unverified'))
+  check('missing legacy and empty silhouette data cannot fabricate edge contact', contacts.every(c => c.entityId === 'shell'))
+  receipt.views[0].metrics.objects[1].inFrame = true
+  receipt.views[0].metrics.objects[1].bbox = [.1, .1, .9, .9]
+  const complete = await tool.execute(args, {})
+  check('contact-free tracked parts do not become an assembly framing certificate',
+    complete.ok && complete.data.frameBoundaryContacts.length === 0 && complete.text.includes('not a complete assembly framing certificate') &&
+    complete.data.framingScope.includes('untracked parts'))
+  const before = calls
+  for (const track of [[], ['shell', 'shell'], Array.from({ length: 9 }, (_, i) => 'part-' + i)]) {
+    let refused = false
+    try { const out = await tool.execute({ ...args, track }, {}); refused = !out.ok } catch (e) { refused = e.code === 'INVALID_ARGS' }
+    check('invalid isolation selection refuses before a paid render ' + track.length, refused && calls === before)
+  }
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nM1 tool output contract: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {
