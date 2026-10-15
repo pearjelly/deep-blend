@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 — candidate (unreleased)
+
+- Continue width/depth/height edits of complete XYZ-posed speaker assemblies, including all coupled world-axis button curves.
+- Preserve old projects, source locks, manual details, camera work and animation timing; reject partial placements, scaling and inconsistent anchors.
+- Distinguish declared dimensions from native world-axis spans and one-sided surface measurements; guide known enclosure-part declarations and preserve unresolved review findings.
+
 ## 0.13.0 — 2026-10-15
 
 - Continue dimension edits of moved or tilted handled cups while preserving placement, manual parameters and independent photography.

@@ -61,6 +61,12 @@ For an existing assembly dimension edit, the final handoff must be a compact rec
 - the actual registered native file and primary/back images;
 - the remaining score findings and unmeasured global conditions.
 Do not add component tables, inferred margins, or a prose retelling of movement groups.
+A distance from the object origin to one sampled face is one-sided evidence, not a
+measured overall size. Do not double it into a measured width/depth/height without
+checking the opposite boundary. Give any interval its exact coordinate basis and
+whether it covers a half-span or full span; do not call a doubled full interval a
+half-depth. Saved controls and world-axis extents are sufficient when intrinsic
+overall geometry has not been measured; do not invent extra measurements.
 Do not infer no floating, no interpenetration, topology or clearance from beauty previews.
 Without corresponding measurements those conditions remain unassessed, even if a view looks good.
 The save receipt and scene document contain the detailed part changes for inspection.
@@ -339,6 +345,14 @@ the current revision and repeat the affected views with the same settings.
    Native world-axis spans change with rotation and cannot certify cabinet-local width/depth/
    height. Distinguish saved size controls from those measured spans. Do not undo the user's
    placement or scale the assembly to make world spans match the requested local dimensions.
+   If a multi-part speaker review reports the shell hidden behind its own fitted
+   front/rear enclosure panels, inspect the named entities and saved recipe first.
+   For the pinned speaker, front-baffle and rear-service-panel are authored enclosure
+   parts. Preserve their existing tags and add subject-part through ordinary
+   entity.tags.set when those declarations are missing, then rerun the same review.
+   Retain the original review and all remaining findings. Do not tag the floor,
+   unrelated objects or every scene entity as subject-part to raise a score, and
+   do not delete, hide or move parts or protected cameras to make a review pass.
    Controlled geometry conflicts require resolving the named parts before saving. Old recipes
    without geometry controls return available:false. Use a fresh idempotencyKey for each new
    intent, including edits after restoring history; reuse it only for the same retry.
