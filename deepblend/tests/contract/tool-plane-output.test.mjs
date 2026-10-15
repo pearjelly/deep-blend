@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto'
 import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest, sha256Canonical } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -1085,6 +1085,75 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   const ordinary = await tool.execute({ projectId: 'lamp' }, {})
   const full = await tool.execute({ projectId: 'lamp', full: true }, {})
   check('ordinary and full reads retain their existing response shapes', ordinary.ok && !('sourceText' in ordinary.data) && full.ok && full.data.spec && !('sourceText' in full.data))
+}
+
+// Saved-data copies avoid regenerating authored mesh arrays, while every write
+// still goes through the ordinary immutable, atomic Host patch protocol.
+{
+  const spec = JSON.parse(readFileSync(join(ROOT, 'deepblend/tests/fixtures/metal-lamp-v2/scene-spec.json'), 'utf8'))
+  const source = spec.entities[0]
+  source.generator = { shape: 'mesh', vertices: [[0,0,0],[1,0,0],[0,1,0]], faces: [[0,1,2]], faceUvs: [[[0,0],[1,0],[0,1]]], smooth: false }
+  source.modifiers = [{ type: 'solidify', thickness: .002, offset: 0 }]
+  source.tags = ['manual-detail']
+  const saved = JSON.stringify(spec), requests = [], patches = []
+  let mode = 'normal'
+  const host = { hostApiVersion: () => HOST_API_VERSION,
+    getScene: async (id, options) => {
+      requests.push(options)
+      const result = { projectId: id, revision: options.revision, digest: sceneSpecDigest(spec), spec }
+      if (mode === 'legacy') delete result.spec
+      if (mode === 'wrong-source') result.digest = '0'.repeat(64)
+      if (mode === 'wrong-revision') result.revision = 'r0099'
+      return result
+    },
+    applyScenePatch: async patch => { patches.push(patch); return { revision: 'r0004', digest: sceneSpecDigest(spec), checkpoint: null, previews: [], warnings: [] } } }
+  const plane = await composeToolPlane({ studio: host, label: 'bounded-entity-copies', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_scene_patch')
+  const copy = { sourceEntityId: source.id, newEntityId: 'leaf-copy' }
+  const base = { projectId: 'lamp', baseRevision: 'r0003', operations: [] }
+  const ordinary = { op: 'entity.tags.set', entityId: 'leaf-copy', tags: ['copied-manual-detail'] }
+  const result = await tool.execute({ ...base, entityCopies: [copy, { ...copy, newEntityId: 'second-copy', transform: { location: [2,3,4] } }], operations: [ordinary] }, {})
+  const additions = patches[0].operations.slice(0, 2)
+  check('copying exact saved geometry commits through ordinary entity.add before subsequent operations', result.ok &&
+    additions.every(o => o.op === 'entity.add') && patches[0].operations[2] === ordinary && patches[0].baseRevision === 'r0003')
+  check('copy retains authored control points, UVs, smooth flags, modifiers and manual tags',
+    JSON.stringify(additions[0].entity) === JSON.stringify({ ...source, id: 'leaf-copy' }))
+  check('copy transform replaces only supplied absolute components', JSON.stringify(additions[1].entity.transform) ===
+    JSON.stringify({ ...source.transform, location: [2,3,4] }))
+  check('copy receipt binds each destination to its exact saved source identity', result.data.entityCopies.length === 2 &&
+    result.data.entityCopies.every(c => c.sourceRevision === 'r0003' && c.sourceDigest === sceneSpecDigest(spec) && c.sourceEntitySha256 === sha256Canonical(source)))
+  check('copy reads the requested immutable base with no native side effects', requests.length === 1 && JSON.stringify(requests[0]) === '{"revision":"r0003","full":true}')
+  additions[0].entity.generator.vertices[0][0] = 42
+  check('each copy owns its control arrays and cannot mutate its source or sibling', source.generator.vertices[0][0] === 0 &&
+    additions[1].entity.generator.vertices[0][0] === 0 && JSON.stringify(spec) === saved)
+  for (const copies of [[], Array.from({length:17},(_,i)=>({...copy,newEntityId:'copy-'+i})), [copy,copy],
+    [{...copy,newEntityId:'../bad'}], [{...copy,sourceEntityId:''}], [{...copy,extra:true}],
+    [{...copy,transform:{location:[1,2]}}], [{...copy,transform:{position:[1,2,3]}}], [{...copy,transform:{scale:[1,null,1]}}],
+    [{...copy,transform:null}], [null]]) {
+    const reads = requests.length, writes = patches.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, entityCopies: copies }, {}); refused = !out.ok && out.data.errorCode === code('SCENE_PATCH_INVALID') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('malformed copy request refuses before any Host read/write ' + JSON.stringify(copies).slice(0,100), refused && requests.length === reads && patches.length === writes)
+  }
+  for (const copies of [[{...copy,sourceEntityId:'absent'}], [{...copy,newEntityId:source.id}],
+    [copy,{sourceEntityId:'leaf-copy',newEntityId:'copy-of-new-copy'}]]) {
+    const writes = patches.length
+    const out = await tool.execute({ ...base, entityCopies: copies }, {})
+    check('missing source, occupied target or same-batch source cannot partially commit ' + JSON.stringify(copies),
+      !out.ok && out.data.errorCode === code('SCENE_PATCH_REJECTED') && patches.length === writes)
+  }
+  const reads = requests.length, writes = patches.length
+  const oversized = await tool.execute({ ...base, operations: Array.from({length:500},()=>ordinary), entityCopies: [copy] }, {})
+  check('copy expansion respects the shared total operation budget before reading source', !oversized.ok && requests.length === reads && patches.length === writes)
+  for (mode of ['legacy','wrong-source','wrong-revision']) {
+    const out = await tool.execute({ ...base, entityCopies: [copy] }, {})
+    check('unverified saved source cannot become copied geometry ' + mode, !out.ok && out.data.errorCode === code('RUNTIME_UNAVAILABLE') && patches.length === writes)
+  }
+  mode = 'normal'
+  const oldReads = requests.length
+  const normal = await tool.execute({ ...base, operations: [ordinary] }, {})
+  check('ordinary patches retain their existing path without fetching a full scene', normal.ok && requests.length === oldReads && !('entityCopies' in normal.data))
 }
 
 const passed = results.filter(entry => entry.ok).length

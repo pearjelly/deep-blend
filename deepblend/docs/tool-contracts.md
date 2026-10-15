@@ -423,6 +423,14 @@ UTF-16 字符偏移、`sourceLength`、`totalChars`、`nextOffset`（结束时 n
 这只读取保存的实体数据，不接受文件路径，也不提供通用 `read`；不得与 `full:true`
 或任何 geometry 参数混用。不存在的实体、越界偏移和不兼容的 Host 均明确失败。
 
+`blender_scene_patch` 可选 `entityCopies`（1–16份）在普通 `operations` 前展开为
+`entity.add`，随后仍走原有原子提交/冲突/幂等/编译路径。每份为
+`{sourceEntityId,newEntityId,transform?}`；来源固定为 baseRevision 的单个现有实体，
+目标ID必须新建，不能从本批新副本继续复制。transform 只覆盖显式提供的绝对
+location/rotationEuler/scale 三元向量，其余字段和引用保持。动画轨道、子装配、
+材质与布尔引用重映射不在复制范围内。operations 可在提供副本时为[]；展开后仍受
+500项上限约束。回执 entityCopies 绑定来源版本、digest、源实体哈希与目标ID。
+
 开发中的局部表面检查沿用该工具：`geometryEntityIds`（1–8个保存实体）与显式
 `geometryFrame` 请求原生跨度；可选 `geometrySurfaceSamples`（1–8个）请求严格v2回执。
 每条采样有 `sampleId`、已选择的 `entityId`、世界米制 `originMeters`、非零 `direction`
@@ -468,7 +476,8 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 |---|---|---|---|
 | `projectId` | string | **是** | |
 | `baseRevision` | string | **是** | 写前读到的 revision |
-| `operations` | array | **是** | 至少 1 个操作 |
+| `operations` | array | **是** | 至少1项；提供entityCopies时可为[]，副本先展开 |
+| `entityCopies` | array | 否 | 1–16个保存实体副本：sourceEntityId、newEntityId、可选绝对transform覆盖；来源固定baseRevision，不覆盖已有ID |
 | `note` | string | 否 | 为什么做这次修改；写入 revision 历史 |
 | `actor` / `stage` | string | 否 | 审计字段 |
 | `idempotencyKey` | string | 否 | 省略则自动派生（见 §4） |

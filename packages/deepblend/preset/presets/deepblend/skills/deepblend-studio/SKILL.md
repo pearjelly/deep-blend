@@ -409,6 +409,14 @@ the current revision and repeat the affected views with the same settings.
    to reconstruct multiline control vertices from spilled full-scene output.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
+   To reuse exact saved geometry without repeating control arrays, supply up to16
+   `entityCopies:[{sourceEntityId,newEntityId,transform?}]` from `baseRevision`.
+   These become ordinary entity.add operations before `operations` (which may be []).
+   Transform components are absolute overrides; omitted components and other authored
+   entity fields remain exact. Each source must exist in that saved revision; target IDs
+   must be new and distinct. References are retained, not remapped; child assemblies and
+   animation tracks are not copied. Decide placement explicitly and inspect native
+   contact and actual renders. Copying does not create a natural layout automatically.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns contact sheet
    paths and measurements, and attaches the verified saved contact sheet for image-capable models.

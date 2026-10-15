@@ -55,6 +55,7 @@ import {
 } from './shared.js'
 import { compareSurfaceReports } from './geometry-comparison.js'
 import { readEntitySource } from './scene-source.js'
+import { expandEntityCopies } from './entity-copies.js'
 import { validateAssemblyPairs, readAssemblyOrigins, compareAssemblyOrigins, compareGeometryReports } from './assembly-origins.js'
 
 /** A short parameter description of a SceneSpec engine key. */
@@ -640,6 +641,10 @@ function scenePatch(ctx) {
       'fails, no revision is created and the current revision is untouched, so a failed patch is always safe ' +
       'to correct and retry. Retrying an identical patch is also safe — it returns the original outcome ' +
       'instead of committing twice.\n\n' +
+      'Optional entityCopies creates 1–16 explicit copies of single saved entities from baseRevision, before operations. ' +
+      'Use {sourceEntityId,newEntityId,transform?} to reuse exact geometry and manual details without repeating vertices; operations may then be []. ' +
+      'Transform components are absolute overrides. All other entity fields and external references are preserved; animation tracks, child assemblies and reference remapping are NOT copied. ' +
+      'New IDs must be absent from the saved scene; sources must exist in baseRevision (not earlier copies in this request). Inspect real placement/contact and renders.\n\n' +
       'saveCheckpoint (default true) compiles this revision now. If false, the first preview compiles ' +
       'the revision lazily before rendering.\n\n' +
       'Operations (each object needs an "op" key):\n  ' + OPERATION_SUMMARY,
@@ -660,8 +665,18 @@ function scenePatch(ctx) {
         description:
           'Ordered list of operations. Each needs an "op" key naming the operation (see the tool description). ' +
           'Later operations see the result of earlier ones: remove or retarget every shot that uses a camera ' +
-          'before removing that camera.',
+          'before removing that camera. May be [] only when entityCopies supplies additions first.',
       },
+      entityCopies: { type: 'array', description: 'Optional 1–16 copies from baseRevision, expanded to entity.add before operations. Existing IDs cannot be overwritten; all non-transform entity details and references are preserved. No automatic assembly/animation copying or placement.',
+        items: { type: 'object', additionalProperties: false, properties: {
+          sourceEntityId: { type: 'string', required: true, description: 'Existing single entity in baseRevision.' },
+          newEntityId: { type: 'string', required: true, description: 'Distinct new entity ID, 1–64 characters.' },
+          transform: { type: 'object', additionalProperties: false, description: 'Optional absolute overrides; omitted components retain source values.', properties: {
+            location: { type: 'array', items: { type: 'number' } },
+            rotationEuler: { type: 'array', items: { type: 'number' } },
+            scale: { type: 'array', items: { type: 'number' } },
+          } },
+        } } },
       note: {
         type: 'string',
         description:
@@ -695,7 +710,7 @@ function scenePatch(ctx) {
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
-      if (!Array.isArray(args.operations) || args.operations.length === 0) {
+      if (!Array.isArray(args.operations) || (args.operations.length === 0 && args.entityCopies === undefined)) {
         return {
           ok: false,
           text:
@@ -706,6 +721,7 @@ function scenePatch(ctx) {
         }
       }
       try {
+        const expanded = await expandEntityCopies(resolved.studio, args)
         // `definedFields` is load-bearing here, not tidiness: forwarding
         // `note: undefined` puts an own `note` key on the patch document, and the
         // host's schema validation rejects that as a wrong TYPE. A correct call
@@ -714,7 +730,7 @@ function scenePatch(ctx) {
           ...definedFields({
             projectId: args.projectId,
             baseRevision: args.baseRevision,
-            operations: args.operations,
+            operations: expanded.operations,
             note: args.note,
             actor: args.actor,
             stage: args.stage,
@@ -724,6 +740,7 @@ function scenePatch(ctx) {
           renderPreview: args.renderPreview === true,
           signal: exec.signal,
         }), warning)
+        if (expanded.copies.length) data.entityCopies = expanded.copies
         const notes = [
           `Revision: ${describeRevision(data)}`,
           `Digest:   ${data.revision ? data.revision : data.digest}`,
@@ -765,7 +782,7 @@ function scenePatch(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: `Patch scene of "${args?.projectId ?? ''}" (${Array.isArray(args?.operations) ? args.operations.length : 0} ops)`,
+      title: `Patch scene of "${args?.projectId ?? ''}" (${(Array.isArray(args?.operations) ? args.operations.length : 0) + (Array.isArray(args?.entityCopies) ? args.entityCopies.length : 0)} ops)`,
       kind: 'edit',
     }),
   })
