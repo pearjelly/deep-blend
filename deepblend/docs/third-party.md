@@ -135,3 +135,7 @@ JS
 CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY，来自 [Blender 官方 demo 页面](https://www.blender.org/download/demo-files/)。它的静态几何、纹理、检查点和衍生画面保留官方署名；不纳入项目 MIT 原创模型声明。修改为第 1 帧静态姿态、嵌入贴图、新布景、灯光与相机运动。新增 SceneSpec、帮助器和脚本为 MIT。大型模型通过 Release 素材包提供，不进入 npm 插件。
 
 公开媒体清单位于 `docs/assets/showcase/charge-study/manifest.json`；契约核对精确文件摘要、插件交付视频、144 帧来源与检查点绑定，以及独立原生和复现结果。制作使用已安装的 0.5.0；0.8.1 发布案例，不改写制作版本。
+
+## 6. 固定版本的恢复复现材料
+
+`deepblend/reproductions/recovery-v0.11.0/` 是 DeepBlend 贡献者制作、按 MIT 发布的简单生成器场景与真实恢复证据，不使用外部模型。保留它原有的版本、脚本、文件清单和原始证据。契约调用随附 `verify-package.py` 核对全部摘要、原生工程、视频和恢复记录，再把每张 PNG 的实际摘要、帧来源、修订和检查点关联起来；只有这些精确文件才进入图片来源清单，不按目录放行。修改画面或把来源指向另一原生工程都会失败。它验证已发表证据的一致性，重新实测仍需运行该目录的复现步骤。
