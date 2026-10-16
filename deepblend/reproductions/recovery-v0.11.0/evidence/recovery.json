@@ -1,0 +1,144 @@
+{
+  "findings": [
+    {
+      "schemaVersion": "deepblend.render-recovery/v1",
+      "jobId": "render-0001",
+      "projectId": "rene-minimal-recovery",
+      "reconciledAt": "2026-10-14T09:45:55.098Z",
+      "previousStatus": "running",
+      "status": "recovering",
+      "process": {
+        "pid": 55599,
+        "alive": true,
+        "identity": {
+          "matches": true,
+          "reason": "the command line names this job directory"
+        },
+        "stopped": {
+          "pid": 55599,
+          "term": "signalled-group",
+          "kill": null,
+          "gone": true
+        }
+      },
+      "ledger": {
+        "expected": 24,
+        "present": 5,
+        "corrupt": 0,
+        "missing": 19,
+        "toRender": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "toRenderCount": 19,
+        "corruptFrames": []
+      },
+      "notes": [
+        "an orphaned renderer (pid 55599) survived the previous Host and was stopped: signalled-group, gone=true"
+      ],
+      "resumable": true,
+      "record": {
+        "status": "recovering",
+        "completedFrames": 5
+      }
+    }
+  ],
+  "ledger": {
+    "present": [
+      {
+        "frame": 1,
+        "bytes": 51763
+      },
+      {
+        "frame": 2,
+        "bytes": 51833
+      },
+      {
+        "frame": 3,
+        "bytes": 52018
+      },
+      {
+        "frame": 4,
+        "bytes": 52121
+      },
+      {
+        "frame": 5,
+        "bytes": 52003
+      }
+    ],
+    "corrupt": [],
+    "missing": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ],
+    "toRender": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ],
+    "presentCount": 5,
+    "corruptCount": 0,
+    "missingCount": 19,
+    "toRenderCount": 19
+  },
+  "hashes": {
+    "1": "dec95d6d5d186f8e21a09a18ca8a178b7961264bdb5979b3f5a54970e3ec7de4",
+    "2": "fa631060ff66cd07b7627cbf01c87606f6ed090d328f1d56b5e098558412725e",
+    "3": "3269dc80431fc52cbda65dcefe56b333e3142633b3a0099f92452121c6dbfc9e",
+    "4": "9ab6314bf41ce5bd44a247c6ed674f6bd17a897f4a41136619e4a185d290b0fa",
+    "5": "9ea9047d72decec4db5090babc4b38ae6fb3cc006a9fd4bf7917a95b8bd1e26d"
+  },
+  "status": "recovering",
+  "rendererGone": true,
+  "noAutoResume": true
+}

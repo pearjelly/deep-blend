@@ -1,0 +1,247 @@
+{
+  "animationTracks": [
+    {
+      "id": "move",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "linear",
+          "value": -0.7
+        },
+        {
+          "frame": 24,
+          "interpolation": "linear",
+          "value": 0.7
+        }
+      ],
+      "property": "location.x",
+      "targetEntityId": "cube"
+    },
+    {
+      "id": "rotate",
+      "keyframes": [
+        {
+          "frame": 1,
+          "interpolation": "linear",
+          "value": 0
+        },
+        {
+          "frame": 24,
+          "interpolation": "linear",
+          "value": 1.57079632679
+        }
+      ],
+      "property": "rotationEuler.z",
+      "targetEntityId": "cube"
+    }
+  ],
+  "cameras": [
+    {
+      "clipping": [
+        0.01,
+        100
+      ],
+      "id": "camera-main",
+      "lens": 45,
+      "role": "active-camera",
+      "sensorWidth": 36,
+      "targetPoint": [
+        0,
+        0,
+        0.5
+      ],
+      "transform": {
+        "location": [
+          3,
+          -5,
+          3
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  ],
+  "entities": [
+    {
+      "generator": {
+        "shape": "cube",
+        "size": 1
+      },
+      "id": "cube",
+      "locked": false,
+      "materialId": "orange",
+      "tags": [
+        "hero-product"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0.55
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          0.55,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    },
+    {
+      "generator": {
+        "shape": "plane",
+        "size": 12
+      },
+      "id": "ground",
+      "locked": false,
+      "materialId": "floor",
+      "tags": [
+        "environment"
+      ],
+      "transform": {
+        "location": [
+          0,
+          0,
+          0
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "generator",
+      "visible": true
+    }
+  ],
+  "lights": [
+    {
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "energy": 700,
+      "id": "key",
+      "size": 4,
+      "transform": {
+        "location": [
+          2,
+          -3,
+          5
+        ],
+        "rotationEuler": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "type": "area"
+    }
+  ],
+  "materials": [
+    {
+      "id": "orange",
+      "parameters": {
+        "baseColor": [
+          0.8,
+          0.12,
+          0.025,
+          1
+        ],
+        "roughness": 0.45
+      },
+      "shader": "principled"
+    },
+    {
+      "id": "floor",
+      "parameters": {
+        "baseColor": [
+          0.12,
+          0.12,
+          0.12,
+          1
+        ],
+        "roughness": 0.8
+      },
+      "shader": "principled"
+    }
+  ],
+  "project": {
+    "activeCamera": "camera-main",
+    "aspectRatio": "16:9",
+    "fps": 24,
+    "frameEnd": 24,
+    "frameStart": 1,
+    "goal": "One orange cuboid moves and rotates over 24 frames; no external assets.",
+    "id": "rene-minimal-recovery",
+    "title": "René minimal recovery",
+    "units": "metric"
+  },
+  "renderProfiles": {
+    "final": {
+      "colorManagement": {
+        "exposure": 0,
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 64,
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64
+    },
+    "preview": {
+      "colorManagement": {
+        "exposure": 0,
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 64,
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64
+    }
+  },
+  "schemaVersion": "deepblend.scene/v1",
+  "shots": [
+    {
+      "cameraId": "camera-main",
+      "frameRange": [
+        1,
+        24
+      ],
+      "id": "shot-main"
+    }
+  ]
+}

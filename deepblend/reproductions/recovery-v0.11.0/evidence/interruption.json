@@ -1,0 +1,17 @@
+{
+  "hostSignal": "SIGKILL",
+  "hostPid": 55575,
+  "rendererPid": 55599,
+  "validFramesAtKill": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "orphan": {
+    "alive": true,
+    "groupAlive": true,
+    "leaderAlive": true,
+    "command": "<BLENDER> --background --factory-startup --python <DEEPBLEND_REPO>/packages/deepblend/provider-local/python/bootstrap.py -- --request <REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/request.json --result <REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/result.json --frames <REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/plan.json --events <REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/events.jsonl --proc <REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/process.json"
+  }
+}

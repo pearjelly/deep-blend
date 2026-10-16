@@ -1,0 +1,42 @@
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 523 packages in 3s
+SDK development tools: <DEEPBLEND_REPO>/.tools/dsh
+dsh scope(s): ["<DEEPBLEND_REPO>/.tools/dsh/node_modules/@deepseek-ai"]
+@deepblend/dsh-blender-bundle: missing (asked for by packages/deepblend/ui/lib/index.js)
+@deepblend/dsh-blender-contracts: missing (asked for by packages/deepblend/host/lib/artifact-writer.js)
+@deepblend/dsh-blender-host: missing (asked for by packages/deepblend/bundle/lib/planes/host.js)
+@deepblend/dsh-blender-preset: missing (asked for by packages/deepblend/bundle/lib/planes/preset.js)
+@deepblend/dsh-blender-provider-local: missing (asked for by packages/deepblend/bundle/lib/planes/provider-local.js)
+@deepblend/dsh-blender-tool: missing (asked for by packages/deepblend/bundle/lib/planes/tool.js)
+@deepblend/dsh-blender-ui: missing (asked for by packages/deepblend/bundle/lib/index.js)
+@deepseek-ai/cordis: missing (asked for by packages/deepblend/host/lib/index.js)
+@deepseek-ai/dsh-app-boot: missing (asked for by deepblend/tests/composition/activation.e2e.mjs)
+@deepseek-ai/dsh-subprocess: missing (asked for by packages/deepblend/provider-local/lib/index.js)
+@deepseek-ai/dsh-subprocess-local: missing (asked for by deepblend/examples/runtime-author/local-factory.mjs)
+@deepseek-ai/dsh-tools: missing (asked for by packages/deepblend/tool/lib/index.js)
+@deepseek-ai/schemastery: missing (asked for by packages/deepblend/host/lib/index.js)
+sharp: missing (asked for by packages/deepblend/host/lib/asset-library.js)
+linked: 14
+resolved: 14/14
+note: node_modules holds only absolute links into the deployment; it is git-ignored and costs no disk
+✓ the workspace resolves 14 package(s) from the DSH deployment
+  next: node deepblend/tests/run.mjs   (unit + contract, no Blender required)
+Development DSH: 0.1.5-rc.2 (<DEEPBLEND_REPO>/.tools/dsh)
+SDK development tools: <DEEPBLEND_REPO>/.tools/dsh
+dsh scope(s): ["<DEEPBLEND_REPO>/.tools/dsh/node_modules/@deepseek-ai","<DEEPBLEND_REPO>/node_modules/@deepseek-ai"]
+@deepblend/dsh-blender-bundle: in sync
+@deepblend/dsh-blender-contracts: in sync
+@deepblend/dsh-blender-host: in sync
+@deepblend/dsh-blender-preset: in sync
+@deepblend/dsh-blender-provider-local: in sync
+@deepblend/dsh-blender-tool: in sync
+@deepblend/dsh-blender-ui: in sync
+@deepseek-ai/cordis: in sync
+@deepseek-ai/dsh-app-boot: in sync
+@deepseek-ai/dsh-subprocess: in sync
+@deepseek-ai/dsh-subprocess-local: in sync
+@deepseek-ai/dsh-tools: in sync
+@deepseek-ai/schemastery: in sync
+sharp: in sync
+result: the workspace resolves all 14 package(s) from the deployment

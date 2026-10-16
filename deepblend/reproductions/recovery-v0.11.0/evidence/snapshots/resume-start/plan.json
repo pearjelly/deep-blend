@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "deepblend.frame-plan/v1",
+  "jobId": "render-0001",
+  "attemptToken": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+  "checkpoint": "<REPRO_STORE>/projects/rene-minimal-recovery/revisions/r0001/scene.blend",
+  "cameraId": "camera-main",
+  "profileName": "final",
+  "profile": {
+    "colorManagement": {
+      "exposure": 0,
+      "viewTransform": "AgX"
+    },
+    "engine": "cycles",
+    "filmTransparent": false,
+    "maxSamplesBudget": 64,
+    "resolution": [
+      320,
+      180
+    ],
+    "samples": 64
+  },
+  "frameRange": [
+    1,
+    24
+  ],
+  "frames": [
+    1,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    2
+  ],
+  "outputDirectory": "<REPRO_STORE>/projects/rene-minimal-recovery/renders/render-0001/frames",
+  "filePrefix": "frame_",
+  "padding": 4
+}

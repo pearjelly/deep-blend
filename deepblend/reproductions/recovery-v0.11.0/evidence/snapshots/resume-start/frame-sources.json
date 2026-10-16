@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "deepblend.frame-sources/v1",
+  "projectId": "rene-minimal-recovery",
+  "jobId": "render-0001",
+  "revisionId": "r0001",
+  "sources": {
+    "b0c23642-dff2-450c-a1af-dd3482c97995": {
+      "id": "b0c23642-dff2-450c-a1af-dd3482c97995",
+      "attempt": 1,
+      "revisionId": "r0001",
+      "cameraId": "camera-main",
+      "checkpointSha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2",
+      "requestedSamples": 64,
+      "effectiveProfile": {
+        "colorManagement": {
+          "exposure": 0,
+          "viewTransform": "AgX"
+        },
+        "engine": "cycles",
+        "filmTransparent": false,
+        "maxSamplesBudget": 64,
+        "resolution": [
+          320,
+          180
+        ],
+        "samples": 64
+      },
+      "renderConfig": {
+        "engine": "CYCLES",
+        "resolution": [
+          320,
+          180
+        ],
+        "resolutionPercentage": 100,
+        "samples": 64,
+        "filmTransparent": false,
+        "viewTransform": "AgX",
+        "look": "None",
+        "exposure": 0,
+        "fps": 24,
+        "fpsBase": 1,
+        "frameStart": 1,
+        "frameEnd": 24
+      }
+    }
+  },
+  "frames": {
+    "3": {
+      "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+      "sha256": "3269dc80431fc52cbda65dcefe56b333e3142633b3a0099f92452121c6dbfc9e",
+      "stat": {
+        "bytes": 52018,
+        "mtimeMs": 1791971153630.6663,
+        "ctimeMs": 1791971153630.6663
+      }
+    },
+    "4": {
+      "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+      "sha256": "9ab6314bf41ce5bd44a247c6ed674f6bd17a897f4a41136619e4a185d290b0fa",
+      "stat": {
+        "bytes": 52121,
+        "mtimeMs": 1791971154226.599,
+        "ctimeMs": 1791971154226.599
+      }
+    },
+    "5": {
+      "sourceId": "b0c23642-dff2-450c-a1af-dd3482c97995",
+      "sha256": "9ea9047d72decec4db5090babc4b38ae6fb3cc006a9fd4bf7917a95b8bd1e26d",
+      "stat": {
+        "bytes": 52003,
+        "mtimeMs": 1791971154883.2295,
+        "ctimeMs": 1791971154883.2295
+      }
+    }
+  },
+  "current": {
+    "id": "09659ffd-e9e9-425f-ad4a-47dee6d7bcd4",
+    "attempt": 2,
+    "revisionId": "r0001",
+    "cameraId": "camera-main",
+    "checkpointSha256": "0a23ddd990697d60f21821a992b4d4db6d13aaa83093cd888f68305d988c0ca2",
+    "requestedSamples": 64,
+    "effectiveProfile": {
+      "colorManagement": {
+        "exposure": 0,
+        "viewTransform": "AgX"
+      },
+      "engine": "cycles",
+      "filmTransparent": false,
+      "maxSamplesBudget": 64,
+      "resolution": [
+        320,
+        180
+      ],
+      "samples": 64
+    },
+    "plannedFrames": [
+      1,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      2
+    ]
+  }
+}

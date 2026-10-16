@@ -1,0 +1,13 @@
+{
+  "jobId": "render-0001",
+  "projectId": "rene-minimal-recovery",
+  "revision": "r0001",
+  "type": "final-render",
+  "dshJobId": "blender-render-1",
+  "status": "running",
+  "frameStart": 1,
+  "frameEnd": 24,
+  "frames": 24,
+  "warnings": [],
+  "message": "Delivery render of 24 frame(s) started for rene-minimal-recovery/r0001. It runs in the background; poll it with blender_job_status. If the harness or Blender is interrupted, the frames already rendered are kept and blender_final_render {resumeJobId} continues from the missing ones."
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "deepblend.render-recovery/v1",
+  "jobId": "render-0001",
+  "projectId": "rene-minimal-recovery",
+  "reconciledAt": "2026-10-14T09:46:00.224Z",
+  "previousStatus": "recovering",
+  "status": "recovering",
+  "process": {
+    "pid": 55599,
+    "alive": false,
+    "identity": {
+      "matches": false,
+      "reason": "the process is gone"
+    }
+  },
+  "ledger": {
+    "expected": 24,
+    "present": 3,
+    "corrupt": 1,
+    "missing": 20,
+    "toRender": [
+      1,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      2
+    ],
+    "toRenderCount": 21,
+    "corruptFrames": [
+      {
+        "frame": 2,
+        "reason": "unterminated",
+        "bytes": 25916
+      }
+    ]
+  },
+  "notes": [
+    "the renderer recorded for this job (pid 55599) is no longer running"
+  ],
+  "resumable": true,
+  "record": {
+    "status": "recovering",
+    "completedFrames": 3
+  }
+}
