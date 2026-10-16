@@ -1,14 +1,13 @@
 # Changelog
 
-## 0.14.0 — candidate (unreleased)
+## 0.14.0 — 2026-10-16
 
-- 候选：多视图预览可指定本次主体和受测部件，并提示轮廓触边；保留作者相机，完整交付仍待真实任务验收。
-
-- Preserve the declared native active camera when adding delivery views, and retain authored body-part visibility semantics independently of measured-mask selection.
-- Continue width/depth/height edits of complete XYZ-posed speaker assemblies, including all coupled world-axis button curves.
-- Preserve old projects, source locks, manual details, camera work and animation timing; reject partial placements, scaling and inconsistent anchors.
-- Read physical object-axis extents directly from evaluated native vertices, including construction scale, with unavailable shear/degenerate bases explicit.
-- Distinguish declared dimensions from native world-axis spans and one-sided surface measurements; guide known enclosure-part declarations and preserve unresolved review findings.
+- Continue dimension edits of complete XYZ-posed, animated speaker assemblies while preserving manual details, placement, authored cameras and existing timing.
+- Read actual object-axis dimensions from evaluated native geometry; distinguish them from world-axis spans and local surface samples.
+- Preview an explicit subject and measured parts, report silhouette-edge warnings, and preserve legacy camera fallback with an explicit warning.
+- Author bounded editable control meshes and subdivision; read large saved entities in exact chunks and copy them with explicit offsets.
+- Place repeated details deterministically on closed static meshes with checked attachment vertices, shared assembly offsets and geometry budgets; reject incomplete placement without replacing the source.
+- Retain the independently published recovery reproduction and verify its image checksums against native checkpoint and frame receipts.
 
 ## 0.13.0 — 2026-10-15
 
