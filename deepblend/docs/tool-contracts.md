@@ -478,6 +478,7 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 | `baseRevision` | string | **是** | 写前读到的 revision |
 | `operations` | array | **是** | 至少1项；提供entityCopies时可为[]，副本先展开 |
 | `entityCopies` | array | 否 | 1–16个保存实体副本：sourceEntityId、newEntityId、可选绝对transform覆盖；来源固定baseRevision，不覆盖已有ID |
+| `entityCopyOffset` | array | 否 | 依赖entityCopies；三个有限数，单位世界米；统一平移所选副本，不能与任一副本绝对location混用，不自动移动未选依赖 |
 | `note` | string | 否 | 为什么做这次修改；写入 revision 历史 |
 | `actor` / `stage` | string | 否 | 审计字段 |
 | `idempotencyKey` | string | 否 | 省略则自动派生（见 §4） |

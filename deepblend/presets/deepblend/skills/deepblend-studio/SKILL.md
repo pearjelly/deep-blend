@@ -417,6 +417,10 @@ the current revision and repeat the affected views with the same settings.
    must be new and distinct. References are retained, not remapped; child assemblies and
    animation tracks are not copied. Decide placement explicitly and inspect native
    contact and actual renders. Copying does not create a natural layout automatically.
+   `entityCopyOffset:[dx,dy,dz]` translates all selected copies by one common world-metre
+   displacement, preserving their relative placement. Omit every copy's transform.location
+   in this mode; per-entity rotation/scale overrides remain absolute. Select every required
+   part explicitly: unselected references/dependencies and animation are not moved/copied.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns contact sheet
    paths and measurements, and attaches the verified saved contact sheet for image-capable models.
@@ -547,3 +551,22 @@ sourceMaterialSlots 的原始 index。materialSlots 只表示当前结果，可�
 `{partId,materialId,slotIndex?}`。省略槽位表示这个网格的全部槽，指定槽覆盖优先。
 保持原几何、UV 和面的材质索引；部件父路径不隐式选择后代。空数组恢复原材质或现有
 entity.materialId 的整体覆盖。局部图片材质同样要求被使用网格有对应 UV；不要猜选择器。
+
+### Repeated details attached to static closed meshes
+
+Use a final `surface_scatter` modifier on a generated prototype instead of listing
+hundreds of repeated mesh payloads. Set `targetEntityIds` (1–8 closed generated
+meshes), `count` (1–512), and `anchorVertexIndices` (1–8 distinct indices in the
+actual mesh AFTER earlier modifiers). Local +Z is the outward growth direction.
+Optional `seed` defaults to 0, `embedDepthMm` to 5 (positive, at most 100),
+`scaleRange` to [1,1] (ordered, within 0.05–20), and `upwardBias` to 0 (0–1).
+All selected attachment vertices must lie inside the actual support for each
+instance; insufficient placements refuse the entire candidate. Start with a
+small count to verify anchor indices, support thickness and prototype size.
+The source, targets and any dependencies must remain static: no rigs, physics
+or entity transform animation; nested scatter targets are unavailable.
+The result is an editable native mesh with preserved UV/material assignments
+and deterministic placement metadata. Placement recalculates on rebuild; it
+does not certify whole-leaf clearance, self-intersection freedom or appearance.
+Preserve old entities and manual edits, and inspect fixed front/side renders
+before accepting density, repetition or silhouette.

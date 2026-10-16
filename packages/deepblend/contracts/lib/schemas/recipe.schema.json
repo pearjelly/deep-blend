@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 23,
+          "maxItems": 24,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -122,7 +122,8 @@
               "recipe.curve-point-bindings",
               "recipe.threshold-bindings",
               "geometry.procedural.mesh",
-              "geometry.modifier.subdivision"
+              "geometry.modifier.subdivision",
+              "geometry.modifier.surface_scatter"
             ]
           }
         }

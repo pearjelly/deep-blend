@@ -464,6 +464,30 @@ try {
     !(await call('blender_scene_get', { projectId, full: true })).value.data.spec.entities.some(entity => entity.id === 'failed-copy'))
   check('copy, native measurement, retry and failure preserve all previous saved bytes',
     JSON.stringify(sourceBeforeCopies) === JSON.stringify(fileSnapshot(copySourceDirectory)))
+
+  const groupSourceDirectory = studio.store.revisionDirectory(projectId, 'r0004')
+  const groupBefore = fileSnapshot(groupSourceDirectory), offset = [2, -1, .5]
+  const groupArgs = { projectId, baseRevision: 'r0004', operations: [], saveCheckpoint: true, entityCopyOffset: offset,
+    entityCopies: [{ sourceEntityId: 'watch-body', newEntityId: 'shifted-body' }, { sourceEntityId: 'watch-copy', newEntityId: 'shifted-copy' }] }
+  const shifted = await call('blender_scene_patch', groupArgs)
+  check('one explicit common displacement commits two real copied parts in one checkpoint', shifted.value?.ok === true &&
+    shifted.value.data.revision === 'r0005' && JSON.stringify(shifted.value.data.entityCopyOffset) === JSON.stringify(offset))
+  const groupMeasure = await call('blender_scene_get', { projectId, revision: 'r0005', geometryOnly: true,
+    geometryEntityIds: ['watch-body', 'watch-copy', 'shifted-body', 'shifted-copy'], geometryFrame: 1 })
+  const groupObjects = new Map((groupMeasure.value?.data?.geometryInspection?.objects ?? []).map(object => [object.entityId, object]))
+  const pairs = [['watch-body', 'shifted-body'], ['watch-copy', 'shifted-copy']]
+  check('actual native origins move by the same world-metre displacement for both selected parts', groupMeasure.value?.ok === true &&
+    pairs.every(([sourceId,copyId]) => offset.every((value,axis) => Math.abs(
+      groupObjects.get(copyId).worldMatrix[axis][3]-groupObjects.get(sourceId).worldMatrix[axis][3]-value) < 1e-6)))
+  check('translated native parts retain exact geometry counts and physical spans', pairs.every(([sourceId,copyId]) => {
+    const source=groupObjects.get(sourceId),copy=groupObjects.get(copyId)
+    return source.available && copy.available && source.vertexCount===copy.vertexCount && source.polygonCount===copy.polygonCount &&
+      source.worldAxisExtentMm.every((span,axis)=>Math.abs(span-copy.worldAxisExtentMm[axis])<.001)
+  }))
+  const groupReplay = await call('blender_scene_patch', groupArgs)
+  check('a repeated common-displacement intent reuses the original group revision', groupReplay.value?.ok === true && groupReplay.value.data.idempotentReplay===true && groupReplay.value.data.revision==='r0005')
+  check('group displacement leaves source parts, source checkpoint and manual placement untouched',
+    JSON.stringify(groupBefore)===JSON.stringify(fileSnapshot(groupSourceDirectory)))
 } catch (error) {
   check('the M1 tool plane completed without an unexpected throw', false, error?.stack ?? String(error))
 } finally {

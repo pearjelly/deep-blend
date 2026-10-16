@@ -1363,6 +1363,42 @@ for (const property of ['anisotropic', 'anisotropicRotation']) {
   check(`animation enabling ${property} requires direction before rendering`, !validateSceneSpec(noDirection).ok)
 }
 
+// Static surface placement is opt-in and refuses ambiguous or moving supports.
+const scatterSpec = fixtureWith(spec => {
+  spec.animationTracks = []
+  spec.entities[1].modifiers = [{ type: 'surface_scatter', targetEntityIds: ['stage'],
+    count: 16, seed: 42, anchorVertexIndices: [0, 1, 2], scaleRange: [.8, 1.2], embedDepthMm: 12, upwardBias: .6 }]
+})
+check('static surface placement compiles without changing source or unrelated entities', validateSceneSpec(scatterSpec).ok &&
+  JSON.stringify(compileSceneSpec(scatterSpec).spec.entities[1].modifiers) === JSON.stringify(scatterSpec.entities[1].modifiers) &&
+  JSON.stringify(scatterSpec.entities[0]) === JSON.stringify(fixture.entities[0]))
+for (const [label, change] of [
+  ['zero count', m => { m.count = 0 }], ['excess count', m => { m.count = 513 }],
+  ['fractional seed', m => { m.seed = 1.5 }], ['empty targets', m => { m.targetEntityIds = [] }],
+  ['duplicate targets', m => { m.targetEntityIds = ['stage', 'stage'] }],
+  ['missing support', m => { m.targetEntityIds = ['absent'] }], ['self support', m => { m.targetEntityIds = ['watch-body'] }],
+  ['empty anchors', m => { m.anchorVertexIndices = [] }], ['duplicate anchors', m => { m.anchorVertexIndices = [0, 0] }],
+  ['fractional anchor', m => { m.anchorVertexIndices = [1.5] }], ['negative anchor', m => { m.anchorVertexIndices = [-1] }],
+  ['reversed scale', m => { m.scaleRange = [2, 1] }], ['zero scale', m => { m.scaleRange = [0, 1] }],
+  ['zero depth', m => { m.embedDepthMm = 0 }], ['invalid upward bias', m => { m.upwardBias = 1.1 }],
+]) {
+  const bad = structuredClone(scatterSpec); change(bad.entities[1].modifiers[0])
+  check(`static placement rejects ${label}`, !validateSceneSpec(bad).ok)
+}
+for (const [label, change] of [
+  ['following operation', s => s.entities[1].modifiers.push({type:'bevel',width:.001})],
+  ['moving prototype', s => s.animationTracks.push(structuredClone(fixture.animationTracks[0]))],
+  ['moving support', s => s.animationTracks.push({...structuredClone(fixture.animationTracks[0]),targetEntityId:'stage'})],
+  ['physical support', s => {s.entities[0].rigidBody={type:'active'}}],
+  ['nested placement', s => {s.entities[0].modifiers=[{...s.entities[1].modifiers[0],targetEntityIds:['watch-dial']}]}],
+  ['moving boolean dependency', s => {s.entities[0].modifiers=[{type:'boolean',operation:'union',targetEntityId:'watch-crown'}];s.animationTracks.push({...structuredClone(fixture.animationTracks[0]),targetEntityId:'watch-crown'})}],
+  ['nested boolean dependency', s => {s.entities[0].modifiers=[{type:'boolean',operation:'union',targetEntityId:'watch-crown'}];s.entities[3].modifiers=[{...s.entities[1].modifiers[0],targetEntityIds:['watch-dial']}]}],
+  ['dependency cycle', s => {s.entities[0].modifiers=[{type:'boolean',operation:'union',targetEntityId:'watch-body'}]}],
+]) {
+ const bad=structuredClone(scatterSpec);change(bad)
+ check(`static placement rejects ${label}`, !validateSceneSpec(bad).ok)
+}
+
 console.log(`scene-spec contract: ${results.length - failures}/${results.length} check(s) passed`)
 if (failures > 0) {
   console.log('Failed checks:')

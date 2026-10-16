@@ -92,6 +92,10 @@ const SCENE_SPEC_PARAMETER = {
     '{type:"array",count,offset:[x,y,z]}, {type:"boolean",operation:"union"|"difference"|"intersect",targetEntityId}, ' +
     '{type:"subdivision",levels:1|2|3,scheme?:"catmull-clark"|"simple",boundaryMode?:"all"|"preserve-corners"}, ' +
     'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Subdivision defaults to catmull-clark/all; simple refines without rounding. ' +
+    'Static closed-surface placement: {type:"surface_scatter",targetEntityIds:[ids],count:1..512,anchorVertexIndices:[indices],seed?,embedDepthMm?,scaleRange?:[min,max],upwardBias?}. ' +
+    'This must be last. Prototype and 1–8 targets must be static generated single meshes without rigs/physics/transform animation. Targets must be closed solids. ' +
+    'Anchor indices select 1–8 actual prototype vertices AFTER preceding modifiers, not just generator control indices. Local +Z points out of the attachment. Every selected vertex of every instance must embed inside a target; insufficient placements fail atomically. ' +
+    'Defaults seed=0, embedDepthMm=5 (0..100 exclusive zero), scaleRange=[1,1] (0.05..20 ordered), upwardBias=0 (0..1). Placement is deterministic and recomputed on rebuild, not live binding; it does not certify whole-mesh clearance or appearance. ' +
     'All modifiers are bounded to 500000 output polygons per entity, with subdivision refused before allocating an excessive result. ' +
     'Array offsets are object-local and are scaled/rotated with the object; a world displacement must use the full inverse transform, not just divide by scale. ' +
     'Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
@@ -645,6 +649,8 @@ function scenePatch(ctx) {
       'Use {sourceEntityId,newEntityId,transform?} to reuse exact geometry and manual details without repeating vertices; operations may then be []. ' +
       'Transform components are absolute overrides. All other entity fields and external references are preserved; animation tracks, child assemblies and reference remapping are NOT copied. ' +
       'New IDs must be absent from the saved scene; sources must exist in baseRevision (not earlier copies in this request). Inspect real placement/contact and renders.\n\n' +
+      'entityCopyOffset:[dx,dy,dz] optionally translates all selected copies by the same world-metre offset, preserving their relative positions. ' +
+      'Do not combine it with any copy transform.location; rotation/scale overrides remain absolute per entity. References and unselected dependencies do not move automatically.\n\n' +
       'saveCheckpoint (default true) compiles this revision now. If false, the first preview compiles ' +
       'the revision lazily before rendering.\n\n' +
       'Operations (each object needs an "op" key):\n  ' + OPERATION_SUMMARY,
@@ -677,6 +683,7 @@ function scenePatch(ctx) {
             scale: { type: 'array', items: { type: 'number' } },
           } },
         } } },
+      entityCopyOffset: { type: 'array', items: { type: 'number' }, description: 'Optional common world translation [dx,dy,dz] in metres for entityCopies. Requires three finite numbers and entityCopies. Preserves selected source relative positions; cannot combine with any copy absolute transform.location. Does not move referenced/unselected objects or copy animations.' },
       note: {
         type: 'string',
         description:
@@ -741,6 +748,7 @@ function scenePatch(ctx) {
           signal: exec.signal,
         }), warning)
         if (expanded.copies.length) data.entityCopies = expanded.copies
+        if (args.entityCopyOffset !== undefined) data.entityCopyOffset = [...args.entityCopyOffset]
         const notes = [
           `Revision: ${describeRevision(data)}`,
           `Digest:   ${data.revision ? data.revision : data.digest}`,

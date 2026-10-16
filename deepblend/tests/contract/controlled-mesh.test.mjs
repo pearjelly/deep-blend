@@ -51,3 +51,14 @@ test('mesh and subdivision cannot silently run on an older provider', async () =
   }
   await assertRuntimeSceneFeatures({ getCapabilities: async () => ({ installed: true, sceneFeatures: requiredSceneFeatures(spec) }) }, spec)
 })
+
+
+test('static placement declares its own runtime feature and rejects an older provider', async () => {
+  const spec=scene(tetra,[{type:'surface_scatter',targetEntityIds:['watch-body'],count:1,anchorVertexIndices:[0]}])
+  spec.animationTracks=[]
+  assert.equal(validateSceneSpec(spec).ok,true)
+  assert.deepEqual(requiredSceneFeatures(spec),['geometry.procedural.mesh','geometry.modifier.surface_scatter'])
+  await assert.rejects(assertRuntimeSceneFeatures({getCapabilities:async()=>({installed:true,sceneFeatures:['geometry.procedural.mesh']})},spec),
+    error=>error.code==='BLENDER_SCENE_FEATURE_UNSUPPORTED')
+  await assertRuntimeSceneFeatures({getCapabilities:async()=>({installed:true,sceneFeatures:requiredSceneFeatures(spec)})},spec)
+})

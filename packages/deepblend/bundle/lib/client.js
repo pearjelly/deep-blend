@@ -404,6 +404,15 @@ window.__ModuleLoader__.load({
       'editor.meshCounts': '控制网格：{vertices} 个顶点，{faces} 个面',
       'editor.smoothSurface': '平滑表面',
       'editor.subdivision': '曲面细分',
+      'editor.surfaceScatter': '封闭表面布置',
+      'editor.scatterTargets': '依附物体（逗号分隔）',
+      'editor.scatterAnchors': '连接顶点序号（逗号分隔）',
+      'editor.scatterSeed': '随机种子',
+      'editor.scatterDepth': '嵌入深度（毫米）',
+      'editor.scatterScaleMin': '最小尺寸倍数',
+      'editor.scatterScaleMax': '最大尺寸倍数',
+      'editor.scatterUp': '朝上倾向',
+      'editor.scatterHelp': '仅限静态封闭网格；连接顶点采用前序操作完成后的序号。重新构建时计算依附，不保证整体无穿插。',
       'editor.subdivisionLevels': '细分级别',
       'editor.subdivisionScheme': '细分方式',
       'editor.roundSurface': '圆滑曲面',
@@ -1028,6 +1037,15 @@ window.__ModuleLoader__.load({
       'editor.meshCounts': 'Control mesh: {vertices} vertices, {faces} faces',
       'editor.smoothSurface': 'Smooth surface',
       'editor.subdivision': 'Surface subdivision',
+      'editor.surfaceScatter': 'Closed surface placement',
+      'editor.scatterTargets': 'Support objects (comma separated)',
+      'editor.scatterAnchors': 'Attachment vertex indices (comma separated)',
+      'editor.scatterSeed': 'Random seed',
+      'editor.scatterDepth': 'Embedding depth (mm)',
+      'editor.scatterScaleMin': 'Minimum size multiplier',
+      'editor.scatterScaleMax': 'Maximum size multiplier',
+      'editor.scatterUp': 'Upward bias',
+      'editor.scatterHelp': 'Static closed meshes only. Attachment indices refer to the mesh after preceding operations. Placement is recomputed on rebuild; whole-mesh clearance is not certified.',
       'editor.subdivisionLevels': 'Subdivision levels',
       'editor.subdivisionScheme': 'Subdivision method',
       'editor.roundSurface': 'Round surface',
@@ -2177,6 +2195,24 @@ window.__ModuleLoader__.load({
           scalar(modifier.levels, `${at}.levels`, 1, 3, true)
           if (modifier.scheme !== undefined && !['catmull-clark', 'simple'].includes(modifier.scheme)) bad(`${at}.scheme`)
           if (modifier.boundaryMode !== undefined && !['all', 'preserve-corners'].includes(modifier.boundaryMode)) bad(`${at}.boundaryMode`)
+        } else if (modifier.type === 'surface_scatter') {
+          scalar(modifier.count, `${at}.count`, 1, 512, true)
+          if (modifier.seed !== undefined) scalar(modifier.seed, `${at}.seed`, 0, 2147483647, true)
+          if (modifier.embedDepthMm !== undefined) scalar(modifier.embedDepthMm, `${at}.embedDepthMm`, Number.MIN_VALUE, 100)
+          if (modifier.upwardBias !== undefined) scalar(modifier.upwardBias, `${at}.upwardBias`, 0, 1)
+          const targets = modifier.targetEntityIds, anchors = modifier.anchorVertexIndices
+          const staticMesh = entity => entity && entity.kind === 'generator'
+            && !['armatureId', 'rigidBody', 'cloth', 'softBody', 'fluid'].some(key => entity[key] !== undefined)
+            && !(draft.tracks || []).some(track => track.targetKind === 'entity' && track.targetId === entity.id && /^(location|rotationEuler|scale)(\.|$)/.test(track.property))
+          if (!Array.isArray(targets) || !targets.length || targets.length > 8 || new Set(targets).size !== targets.length
+            || targets.some(id => id === draft.entityId || !staticMesh(draft.entities.find(entity => entity.id === id))
+              || draft.entities.find(entity => entity.id === id)?.modifiers?.some(value => value.type === 'surface_scatter'))) bad(`${at}.targetEntityIds`)
+          if (!Array.isArray(anchors) || !anchors.length || anchors.length > 8 || new Set(anchors).size !== anchors.length
+            || anchors.some(value => !Number.isInteger(value) || value < 0 || value > 999999)) bad(`${at}.anchorVertexIndices`)
+          if (index !== draft.entity.modifiers.length - 1 || !staticMesh(draft.entity)) bad(at)
+          if (modifier.scaleRange !== undefined && (!Array.isArray(modifier.scaleRange) || modifier.scaleRange.length !== 2
+            || modifier.scaleRange.some(value => !Number.isFinite(value) || value < .05 || value > 20)
+            || modifier.scaleRange[0] > modifier.scaleRange[1])) bad(`${at}.scaleRange`)
         } else if (modifier.type === 'boolean') {
           if (!['union', 'difference', 'intersect'].includes(modifier.operation)
             || !draft.entities.some(entity => entity.id === modifier.targetEntityId && entity.id !== draft.entityId && entity.kind !== 'empty')) bad(`${at}.targetEntityId`)
@@ -3924,6 +3960,7 @@ window.__ModuleLoader__.load({
             if (kind === 'modifiers') {
               const defaults = { bevel: { type, width: 0.001, segments: 3, angle: 30 }, solidify: { type, thickness: 0.002, offset: -1 },
                 subdivision: { type, levels: 2, scheme: 'catmull-clark', boundaryMode: 'all' },
+                surface_scatter: { type, targetEntityIds: [], count: 16, anchorVertexIndices: [], seed: 0, embedDepthMm: 5, scaleRange: [1, 1], upwardBias: 0 },
                 array: { type, count: 2, offset: [0.02, 0, 0] }, mirror: { type, axis: 'x', merge: true },
                 boolean: { type, operation: 'difference', targetEntityId: draft.entities.find(item => item.id !== draft.entityId && item.kind !== 'empty')?.id || '' } }
               if (!defaults[type]) return
@@ -4623,7 +4660,7 @@ window.__ModuleLoader__.load({
         height: t('editor.depth'), size: t('editor.size'), radius: t('editor.radius'), depth: t('editor.depth'), majorRadius: t('editor.majorRadius'), minorRadius: t('editor.minorRadius'),
         segments: t('editor.segments'), ringCount: t('editor.ringCount'), curveResolution: t('editor.curveResolution'), bevelResolution: t('editor.bevelResolution'),
       }
-      const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean'), subdivision: t('editor.subdivision') }
+      const modifierNames = { bevel: t('editor.bevel'), solidify: t('editor.solidify'), array: t('editor.array'), mirror: t('editor.mirror'), boolean: t('editor.boolean'), subdivision: t('editor.subdivision'), surface_scatter: t('editor.surfaceScatter') }
       const numeric = (label, field, value, update, options = {}) => {
         const factor = options.factor ?? 1
         const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
@@ -4806,6 +4843,18 @@ window.__ModuleLoader__.load({
                 toggle(t('editor.keepCorners'), `${prefix}-boundaryMode`, modifier.boundaryMode === 'preserve-corners', value => update(['boundaryMode'], value ? 'preserve-corners' : 'all'))] : null,
               modifier.type === 'boolean' ? [choose(t('editor.boolean'), `${prefix}-operation`, modifier.operation, [['union', t('editor.union')], ['difference', t('editor.difference')], ['intersect', t('editor.intersect')]], value => update(['operation'], value)),
                 choose(t('editor.operand'), `${prefix}-targetEntityId`, modifier.targetEntityId, [['', '—'], ...draft.entities.filter(item => item.id !== draft.entityId && item.kind !== 'empty').map(item => [item.id, item.id])], value => update(['targetEntityId'], value))] : null,
+              modifier.type === 'surface_scatter' ? [
+                ...[['targetEntityIds', t('editor.scatterTargets')], ['anchorVertexIndices', t('editor.scatterAnchors')]].map(([key, label]) => el('label', { className: 'db-row' }, el('span', null, label), el('input', {
+                  className: 'db-input', type: 'text', 'data-field': `${prefix}-${key}`, value: (modifier[key] || []).join(', '),
+                  onChange: event => update([key], event.target.value.trim() === '' ? [] : event.target.value.split(',').map(value => key === 'targetEntityIds' ? value.trim() : value.trim() === '' ? NaN : Number(value.trim()))),
+                }))),
+                numeric(t('editor.count'), `${prefix}-count`, modifier.count, value => update(['count'], value), { integer: true, min: 1, max: 512 }),
+                numeric(t('editor.scatterSeed'), `${prefix}-seed`, modifier.seed ?? 0, value => update(['seed'], value), { integer: true, min: 0, max: 2147483647 }),
+                numeric(t('editor.scatterDepth'), `${prefix}-embedDepthMm`, modifier.embedDepthMm ?? 5, value => update(['embedDepthMm'], value), { min: Number.MIN_VALUE, max: 100 }),
+                ...[t('editor.scatterScaleMin'), t('editor.scatterScaleMax')].map((label, axis) => numeric(label, `${prefix}-scaleRange-${axis}`, modifier.scaleRange?.[axis] ?? 1,
+                  value => { const range = [...(modifier.scaleRange || [1, 1])]; range[axis] = value; update(['scaleRange'], range) }, { min: .05, max: 20 })),
+                numeric(t('editor.scatterUp'), `${prefix}-upwardBias`, modifier.upwardBias ?? 0, value => update(['upwardBias'], value), { min: 0, max: 1 }),
+                el('p', { className: 'db-muted', 'data-scatter-help': true }, t('editor.scatterHelp'))] : null,
               el('div', { className: 'db-inline' },
                 Button({ action: `${prefix}-up`, disabled: disabled || !canModify || index === 0, children: t('editor.up'), onClick: () => actions.editEditorList('modifiers', index, 'up') }),
                 Button({ action: `${prefix}-down`, disabled: disabled || !canModify || index === draft.entity.modifiers.length - 1, children: t('editor.down'), onClick: () => actions.editEditorList('modifiers', index, 'down') }),

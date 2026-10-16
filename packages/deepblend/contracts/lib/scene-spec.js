@@ -33,6 +33,7 @@ export const SCENE_SCHEMA_VERSION = 'deepblend.scene/v1'
 export const BOX_DIMENSIONS_FEATURE = 'geometry.primitive.dimensions'
 export const MESH_GEOMETRY_FEATURE = 'geometry.procedural.mesh'
 export const SUBDIVISION_FEATURE = 'geometry.modifier.subdivision'
+export const SURFACE_SCATTER_FEATURE = 'geometry.modifier.surface_scatter'
 
 /** Features whose absence must refuse compilation rather than reinterpret the scene. */
 export function requiredSceneFeatures(spec) {
@@ -40,6 +41,7 @@ export function requiredSceneFeatures(spec) {
   if (entities.some(entity => entity.type === 'generator' && entity.generator?.dimensions !== undefined)) features.push(BOX_DIMENSIONS_FEATURE)
   if (entities.some(entity => entity.type === 'generator' && entity.generator?.shape === 'mesh')) features.push(MESH_GEOMETRY_FEATURE)
   if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'subdivision'))) features.push(SUBDIVISION_FEATURE)
+  if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'surface_scatter'))) features.push(SURFACE_SCATTER_FEATURE)
   return features
 }
 
@@ -470,6 +472,28 @@ export function validateSceneSpec(spec) {
           message: 'mesh modifiers need geometry, nonzero thickness and nonzero array offset' })
       }
       if (modifier.type === 'boolean') requiresId('entities', modifier.targetEntityId, `${path}.targetEntityId`, 'boolean operand')
+      if (modifier.type === 'surface_scatter') {
+        const targets = modifier.targetEntityIds.map(id => document.entities.find(item => item.id === id))
+        for (const [targetIndex, id] of modifier.targetEntityIds.entries()) requiresId('entities', id, `${path}.targetEntityIds[${targetIndex}]`, 'surface scatter target')
+        const dependencyParts = new Map()
+        const collect = part => {
+          if (!part || dependencyParts.has(part.id)) return
+          dependencyParts.set(part.id, part)
+          for (const value of part.modifiers ?? []) if (value.type === 'boolean') collect(document.entities.find(item => item.id === value.targetEntityId))
+        }
+        collect(entity); targets.forEach(collect)
+        const parts = [...dependencyParts.values()], animated = new Set((document.animationTracks ?? [])
+          .filter(track => /^(location|rotationEuler|scale)(\.|$)/.test(track.property)).map(track => track.targetEntityId))
+        if (new Set(modifier.targetEntityIds).size !== modifier.targetEntityIds.length ||
+            new Set(modifier.anchorVertexIndices).size !== modifier.anchorVertexIndices.length ||
+            i !== entity.modifiers.length - 1 || parts.some(part => part.type !== 'generator' || animated.has(part.id) ||
+            ['armatureId', 'rigidBody', 'cloth', 'softBody', 'fluid'].some(key => part[key] !== undefined)) ||
+            modifier.targetEntityIds.includes(entity.id) || parts.some(part => part.id !== entity.id && part.modifiers?.some(value => value.type === 'surface_scatter')) ||
+            (modifier.scaleRange && modifier.scaleRange[0] > modifier.scaleRange[1])) {
+          errors.push({ severity: 'error', code: 'SCENE_MODIFIER_INVALID', path,
+            message: 'surface scatter must be last, use static generated mesh prototypes/targets without rigs or physics, omit self/nested scatter and use an ordered scale range' })
+        }
+      }
     }
   })
 
@@ -478,13 +502,14 @@ export function validateSceneSpec(spec) {
   const visitModifiers = id => {
     if (activeModifiers.has(id)) {
       errors.push({ severity: 'error', code: 'SCENE_MODIFIER_CYCLE', path: 'entities',
-        message: `boolean dependency cycle includes entity "${id}"` })
+        message: `modifier dependency cycle includes entity "${id}"` })
       return
     }
     if (visitedModifiers.has(id)) return
     activeModifiers.add(id)
     for (const modifier of modifierEntities.get(id)?.modifiers ?? []) {
       if (modifier.type === 'boolean') visitModifiers(modifier.targetEntityId)
+      if (modifier.type === 'surface_scatter') for (const target of modifier.targetEntityIds) visitModifiers(target)
     }
     activeModifiers.delete(id)
     visitedModifiers.add(id)
@@ -723,6 +748,16 @@ export function compileSceneSpec(spec) {
       const scale = Math.max(...entity.transform.scale.map(Math.abs))
       if (modifier.type === 'solidify') entityBounds[entity.id].radius += Math.abs(modifier.thickness) * scale
       if (modifier.type === 'array') entityBounds[entity.id].radius += Math.hypot(...modifier.offset) * (modifier.count - 1) * scale
+      if (modifier.type === 'surface_scatter') {
+        const prototypeRadius = entityBounds[entity.id].radius * 2 * (modifier.scaleRange?.[1] ?? 1)
+        for (const id of modifier.targetEntityIds) {
+          const target = entities.find(candidate => candidate.id === id)
+          if (!target) continue
+          expandBooleanBounds(target)
+          const own = entityBounds[entity.id], other = entityBounds[id]
+          own.radius = Math.max(own.radius, Math.hypot(...own.location.map((value, axis) => value - other.location[axis])) + other.radius + prototypeRadius)
+        }
+      }
       if (modifier.type !== 'boolean' || modifier.operation !== 'union') continue
       const operand = entities.find(candidate => candidate.id === modifier.targetEntityId)
       if (!operand) continue

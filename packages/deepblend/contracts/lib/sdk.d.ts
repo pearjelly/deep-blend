@@ -35,6 +35,7 @@ export function parseSceneSpec(input: unknown): SceneSpec;
 export const BOX_DIMENSIONS_FEATURE: 'geometry.primitive.dimensions';
 export const MESH_GEOMETRY_FEATURE: 'geometry.procedural.mesh';
 export const SUBDIVISION_FEATURE: 'geometry.modifier.subdivision';
+export const SURFACE_SCATTER_FEATURE: 'geometry.modifier.surface_scatter';
 export function requiredSceneFeatures(spec: SceneSpec): string[];
 export function compileSceneSpec(spec: SceneSpec): {
   spec: SceneSpec; notices: SceneSpecIssue[];

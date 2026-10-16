@@ -3,14 +3,14 @@ import { inflateSync } from 'node:zlib'
 import { sha256, sha256Canonical } from './canonical.js'
 import { compileSchema } from './json-schema.js'
 import { decodePng } from './png.js'
-import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, requiredSceneFeatures } from './scene-spec.js'
+import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, requiredSceneFeatures } from './scene-spec.js'
 import { deformLatheShell, latheShellTargets } from './lathe-shell.js'
 import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
   'geometry.primitive', BOX_DIMENSIONS_FEATURE, 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
-  MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE,
+  MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE,
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
   'recipe.geometry-bindings',

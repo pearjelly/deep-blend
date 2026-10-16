@@ -1154,6 +1154,44 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
   const oldReads = requests.length
   const normal = await tool.execute({ ...base, operations: [ordinary] }, {})
   check('ordinary patches retain their existing path without fetching a full scene', normal.ok && requests.length === oldReads && !('entityCopies' in normal.data))
+
+  const secondSource = spec.entities[1], offset = [2, -1, .5]
+  const shifted = await tool.execute({ ...base, entityCopyOffset: offset, entityCopies: [
+    { ...copy, newEntityId: 'shift-a', transform: { rotationEuler: [.1,.2,.3] } },
+    { sourceEntityId: secondSource.id, newEntityId: 'shift-b' },
+  ] }, {})
+  const shiftedEntities = patches.at(-1).operations.map(op => op.entity)
+  const sources = [source, secondSource]
+  check('one world offset translates every selected saved entity by the requested metres', shifted.ok && shiftedEntities.every((e,i) =>
+    e.transform.location.every((value,axis) => Math.abs(value - ((sources[i].transform?.location ?? [0,0,0])[axis] + offset[axis])) < 1e-12)))
+  check('common offset preserves relative positions of differently placed source parts', shiftedEntities[0].transform.location.every((value,axis) =>
+    Math.abs((value-shiftedEntities[1].transform.location[axis])-((source.transform?.location??[0,0,0])[axis]-(secondSource.transform?.location??[0,0,0])[axis])) < 1e-12))
+  check('translation preserves source geometry and scale while honoring explicit absolute rotation', shiftedEntities[0].generator.vertices[0][0] === 0 &&
+    JSON.stringify(shiftedEntities[0].transform.rotationEuler) === '[0.1,0.2,0.3]' &&
+    JSON.stringify(shiftedEntities[0].transform.scale) === JSON.stringify(source.transform?.scale) && JSON.stringify(spec) === saved)
+  check('copy translation receipt records the common displacement and original source hashes',
+    JSON.stringify(shifted.data.entityCopyOffset) === JSON.stringify(offset) && shifted.data.entityCopies[0].sourceEntitySha256 === sha256Canonical(source))
+  for (const extra of [{ entityCopyOffset: null }, { entityCopyOffset: [1,2] }, { entityCopyOffset: [1,NaN,0] },
+    { entityCopyOffset: [Infinity,0,0] }, { entityCopyOffset: offset, entityCopies: undefined, operations: [ordinary] },
+    { entityCopyOffset: offset, entityCopies: [{...copy,transform:{location:[0,0,0]}}] }]) {
+    const reads = requests.length, writes = patches.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, entityCopies:[copy], ...extra }, {}); refused = !out.ok && out.data.errorCode === code('SCENE_PATCH_INVALID') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('invalid or ambiguous common copy offset refuses before Host IO ' + JSON.stringify(extra), refused && requests.length === reads && patches.length === writes)
+  }
+  const zero = await tool.execute({ ...base, entityCopies:[copy],entityCopyOffset:[0,0,0] }, {})
+  check('zero common displacement preserves exact saved source placement', zero.ok && JSON.stringify(patches.at(-1).operations[0].entity) === JSON.stringify({...source,id:copy.newEntityId}))
+  const noTransform = {...structuredClone(source),id:'source-without-transform'}
+  delete noTransform.transform;spec.entities.push(noTransform)
+  const implicit = await tool.execute({...base,entityCopies:[{sourceEntityId:noTransform.id,newEntityId:'implicit-origin'}],entityCopyOffset:offset},{})
+  check('an omitted saved transform uses the SceneSpec zero origin for translation',implicit.ok && JSON.stringify(patches.at(-1).operations[0].entity.transform.location)===JSON.stringify(offset))
+  spec.entities.pop()
+  const previousX=source.transform.location[0], beforeOverflow=patches.length
+  source.transform.location[0]=Number.MAX_VALUE
+  const overflow=await tool.execute({...base,entityCopies:[copy],entityCopyOffset:[Number.MAX_VALUE,0,0]}, {})
+  source.transform.location[0]=previousX
+  check('overflowing finite inputs cannot write a non-finite translated position',!overflow.ok && overflow.data.errorCode===code('SCENE_PATCH_INVALID') && patches.length===beforeOverflow && JSON.stringify(spec)===saved)
 }
 
 const passed = results.filter(entry => entry.ok).length

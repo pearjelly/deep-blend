@@ -702,6 +702,7 @@ export {
   BOX_DIMENSIONS_FEATURE,
   MESH_GEOMETRY_FEATURE,
   SUBDIVISION_FEATURE,
+  SURFACE_SCATTER_FEATURE,
   requiredSceneFeatures,
   entityBoundingRadius,
   sceneProjection,

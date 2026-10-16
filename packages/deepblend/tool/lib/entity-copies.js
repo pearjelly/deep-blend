@@ -5,8 +5,13 @@ const plain = value => value !== null && typeof value === 'object' && !Array.isA
 
 /** Expand bounded saved-data references into the ordinary atomic patch protocol. */
 export async function expandEntityCopies(studio, args) {
-  if (args.entityCopies === undefined) return { operations: args.operations, copies: [] }
   const invalid = message => { throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, message) }
+  const offset = args.entityCopyOffset
+  if (offset !== undefined && (args.entityCopies === undefined || !Array.isArray(offset) || offset.length !== 3 ||
+      !offset.every(value => typeof value === 'number' && Number.isFinite(value)))) {
+    invalid('entityCopyOffset requires entityCopies and three finite world-metre translation components.')
+  }
+  if (args.entityCopies === undefined) return { operations: args.operations, copies: [] }
   if (!Array.isArray(args.entityCopies) || args.entityCopies.length < 1 || args.entityCopies.length > 16) {
     invalid('entityCopies must contain 1–16 explicit saved entity copies.')
   }
@@ -18,6 +23,7 @@ export async function expandEntityCopies(studio, args) {
       invalid('Each copy requires a saved sourceEntityId and distinct newEntityId; only transform may also be supplied.')
     }
     ids.add(copy.newEntityId)
+    if (offset !== undefined && copy.transform?.location !== undefined) invalid('entityCopyOffset cannot be combined with a copy absolute location override.')
     if (copy.transform !== undefined && (!plain(copy.transform) || Object.keys(copy.transform).some(k =>
       !['location', 'rotationEuler', 'scale'].includes(k) || !Array.isArray(copy.transform[k]) ||
       copy.transform[k].length !== 3 || !copy.transform[k].every(v => typeof v === 'number' && Number.isFinite(v))))) {
@@ -39,6 +45,11 @@ export async function expandEntityCopies(studio, args) {
     const entity = structuredClone(source)
     entity.id = copy.newEntityId
     if (copy.transform !== undefined) entity.transform = { ...entity.transform, ...structuredClone(copy.transform) }
+    if (offset !== undefined) {
+      const location = (source.transform?.location ?? [0, 0, 0]).map((value, index) => value + offset[index])
+      if (!location.every(Number.isFinite)) invalid('entityCopyOffset produced a non-finite position.')
+      entity.transform = { ...entity.transform, location }
+    }
     additions.push({ op: 'entity.add', entity })
     copies.push({ sourceRevision: data.revision, sourceDigest: data.digest, sourceEntityId: source.id,
       sourceEntitySha256: sha256Canonical(source), newEntityId: entity.id })
