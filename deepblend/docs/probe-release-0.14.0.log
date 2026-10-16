@@ -1,0 +1,53 @@
+# DeepBlend 0.14.0 public installation route parity
+# Taken 2026-10-16T15:02:05.092Z; completed before community update at15:11UTC.
+# Command: npm run release:parity
+# Environment: Node24.19.0, isolated DSH0.1.5-rc.2 outside any DeepBlend checkout, pnpm9.15.0.
+# Process-only flags: ignore-workspace-root-check=true, auto-install-peers=false;
+# pnpm network-concurrency1/fetch-retries1/fetch-timeout180000, GitHubSSH-to-HTTPS rewrite and HTTP1.1.
+# Public registry explicit; no personal DSH deployment changes. Each route uses scratch DSH_HOME.
+# The body below is unchanged standard-command stdout; that command prints selected child-probe readings.
+
+
+> deepblend-studio@0.14.0 release:parity
+> node deepblend/tools/release-route-parity.mjs
+
+date: 2026-10-16T15:02:05.092Z
+repository version: 0.14.0
+note: each route is installed once, in its own scratch DSH_HOME, and read back
+
+── source: github:pearjelly/deep-blend#path:/packages/deepblend/bundle ──
+   packages pnpm fetched: 13
+   installed version: @deepblend/dsh-blender-bundle@0.14.0
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle
+
+── npm: @deepblend/dsh-blender-bundle ──
+   packages pnpm fetched: 13
+   installed version: @deepblend/dsh-blender-bundle@0.14.0
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle
+
+── tarball: https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz ──
+   packages pnpm fetched: 1
+   installed version: @deepblend/dsh-blender-bundle@0.14.0
+   workbench route: HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true
+   presets deployed: ["deepblend","deepblend-dev"]
+   result: the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+
+── do the three routes agree? ──
+source installed: @deepblend/dsh-blender-bundle@0.14.0
+npm installed: @deepblend/dsh-blender-bundle@0.14.0
+tarball installed: @deepblend/dsh-blender-bundle@0.14.0
+all three serve: @deepblend/dsh-blender-bundle@0.14.0
+and the repository says: 0.14.0
+source workbench route: HTTP 200
+npm workbench route: HTTP 200
+tarball workbench route: HTTP 200
+all three deployed presets: ["deepblend","deepblend-dev"]
+source packages pnpm fetched: 13
+npm packages pnpm fetched: 13
+tarball packages pnpm fetched: 1
+problems: 0
+result: the three install routes serve the same product, and it is the one this repository is
