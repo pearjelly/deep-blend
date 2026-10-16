@@ -54,6 +54,8 @@ import {
   resolveStudio,
 } from './shared.js'
 import { compareSurfaceReports } from './geometry-comparison.js'
+import { readEntitySource } from './scene-source.js'
+import { expandEntityCopies } from './entity-copies.js'
 import { validateAssemblyPairs, readAssemblyOrigins, compareAssemblyOrigins, compareGeometryReports } from './assembly-origins.js'
 
 /** A short parameter description of a SceneSpec engine key. */
@@ -75,7 +77,12 @@ const SCENE_SPEC_PARAMETER = {
     'shots[], animationTracks[], renderProfiles{preview,final}. project.reviewSubjectId optionally selects an existing non-empty main review entity without moving cameras. ' +
     'A generator entity is `{id,type:"generator",generator:{shape,size|radius|depth|majorRadius|minorRadius,bevel?},' +
     'materialId,transform:{location,rotationEuler,scale}}` where shape is one of ' +
-    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup. handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
+    'cube, rounded_box, uv_sphere, cylinder, cone, plane, torus, lathe, curve, handled_cup, mesh. ' +
+    'Mesh builds authored control geometry from vertices:[[x,y,z],...] in object-local space and faces:[[vertexIndex,...],...] with 3-32 distinct in-range indices per face; winding is preserved. ' +
+    'Limits: 32768 vertices, 32768 faces, 131072 total face corners, coordinates within +/-1000000. ' +
+    'Optional faceUvs supplies one [u,v] pair per face corner; omitted uses planar UVs. smooth:true interpolates normals without changing geometry. ' +
+    'Use mesh for asymmetric surfaces; it accepts data only, no formulas/scripts. Validate and inspect actual geometry, normals and renders; valid indices do not certify appearance or manifold topology. ' +
+    'handled_cup builds one closed cup/handle mesh with flared shared-boundary roots. ' +
     'Defaults are radius 0.04, height 0.105, wallThickness 0.003, baseThickness 0.005; optional handleRadius, handleLower, handleUpper, rootRadius, rootLength and mesh segments obey coupled constraints. Inspect root highlights; mesh checks do not certify aesthetic quality. Curve sweeps a round section ' +
     'of radius (default 0.01) along path:[[x,y,z],…]; pathInterpolation is poly or bezier, pathClosed closes ' +
     'the loop, and capEnds seals open endpoints. Lathe uses profile:[[radius,height],…] ' +
@@ -83,7 +90,15 @@ const SCENE_SPEC_PARAMETER = {
     'sections. Use enough profile points to describe smooth shoulders and rounded lips; points form straight segments. ' +
     'Entity modifiers[] apply in order: {type:"solidify",thickness,offset?}, {type:"mirror",axis:"x"|"y"|"z",merge?}, ' +
     '{type:"array",count,offset:[x,y,z]}, {type:"boolean",operation:"union"|"difference"|"intersect",targetEntityId}, ' +
-    'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
+    '{type:"subdivision",levels:1|2|3,scheme?:"catmull-clark"|"simple",boundaryMode?:"all"|"preserve-corners"}, ' +
+    'or {type:"bevel",width,segments?,angle?,miterInner?:"arc"|"sharp"}. Subdivision defaults to catmull-clark/all; simple refines without rounding. ' +
+    'Static closed-surface placement: {type:"surface_scatter",targetEntityIds:[ids],count:1..512,anchorVertexIndices:[indices],seed?,embedDepthMm?,scaleRange?:[min,max],upwardBias?}. ' +
+    'This must be last. Prototype and 1–8 targets must be static generated single meshes without rigs/physics/transform animation. Targets must be closed solids. ' +
+    'Anchor indices select 1–8 actual prototype vertices AFTER preceding modifiers, not just generator control indices. Local +Z points out of the attachment. Every selected vertex of every instance must embed inside a target; insufficient placements fail atomically. ' +
+    'Defaults seed=0, embedDepthMm=5 (0..100 exclusive zero), scaleRange=[1,1] (0.05..20 ordered), upwardBias=0 (0..1). Placement is deterministic and recomputed on rebuild, not live binding; it does not certify whole-mesh clearance or appearance. ' +
+    'All modifiers are bounded to 500000 output polygons per entity, with subdivision refused before allocating an excessive result. ' +
+    'Array offsets are object-local and are scaled/rotated with the object; a world displacement must use the full inverse transform, not just divide by scale. ' +
+    'Place bevel after boolean to round its new edges; segments default 4, angle defaults 30 degrees, miterInner defaults arc for compatibility; sharp can avoid inner-corner artifacts around curved bores. ' +
     'Boolean operands must be separate single-mesh entities; visible:false hides an operand while preserving its geometry for the operation. ' +
     'Material parameters use Blender 5 socket ' +
     'names: baseColor [r,g,b,a], metallic, roughness, ior, alpha, emissionColor, emissionStrength, ' +
@@ -392,13 +407,15 @@ function sceneGet(ctx) {
       'location and visibility, camera parameters, animation tracks and the render profiles. That is ' +
       'usually everything you need to decide what to change. Pass full:true to also get the complete ' +
       'SceneSpec document, which you should do only when you actually need exact field values. ' +
+      'For exact control vertices or other entity fields in a large scene, use sourceEntityId instead: bounded compact JSON chunks avoid output spill. ' +
+      'Continue with the returned revision and nextOffset, check entityJsonSha256 stays identical, concatenate sourceText in order, then parse JSON. The preset does not provide a generic read tool. ' +
       'To measure saved native parts, pass geometryEntityIds (1–8 IDs from this scene) and an explicit geometryFrame. ' +
       'This returns source-verified world-axis spans in millimeters and transforms without rendering or creating a revision. ' +
       'Spans include rotation, handles and protrusions; they are not body diameter, wall thickness, clearance or quality approval. ' +
       'Do not subtract shell/liner spans or radii to claim a gap, or use unchanged height/scale to certify wall thickness. ' +
       'Optional geometrySurfaceSamples measures 1–8 explicit local surface chords and pair separations on the same saved source. ' +
       'The chord runs from source entry to exit; separation runs from source EXIT to target entry and excludes that chord. ' +
-      'Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
+      'Use geometryObjectAxes:true for measured scaled object-axis extents. Do not invert a world AABB into local dimensions. Use geometryOnly:true for a compact verified measurement receipt without the scene catalogue. ' +
       'Add geometryAssemblyPairs to measure explicit ordered object-origin offsets in world XYZ, not surface clearances. When comparing revisions, geometryCompareRevision computes current-minus-reference native spans and origin moves; if surface samples are supplied, their existing local comparison is used. ' +
       'Choose outside world seeds and directions from the actual scene/bounds; missed or unsupported samples remain unavailable. ' +
       'Local samples do not prove full-surface minimum wall thickness, whole-assembly clearance, no collision or quality approval. ' +
@@ -406,10 +423,14 @@ function sceneGet(ctx) {
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
       revision: { type: 'string', description: 'Read a specific revision instead of the current one.' },
+      sourceEntityId: { type: 'string', description: 'Read exact saved JSON for one entity (1–64 character ID), without the scene catalogue. Cannot combine with full:true or geometry options.' },
+      sourceOffset: { type: 'integer', description: 'UTF-16 character offset in compact entity JSON, default 0. Requires sourceEntityId; offsets above zero require the revision returned by the first chunk.' },
+      sourceLimit: { type: 'integer', description: 'Maximum source characters in this chunk, 1–2048 (default 2048). Escaped text may return fewer. Requires sourceEntityId.' },
       geometryEntityIds: { type: 'array', items: { type: 'string' },
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
+      geometryObjectAxes: { type: 'boolean', description: 'Optional true: also measure actual evaluated vertices in physical orthogonal axes of each selected object, including native scale. Requires geometryEntityIds and geometryFrame. Returns objectAxisBoundsMeters/objectAxisExtentMm/objectAxisWorldMatrix and an explicit basis, separate from world-axis spans. Sheared/degenerate bases are unavailable. Never invert a world AABB to recover local extents.' },
       geometryOnly: { type: 'boolean', description: 'Return only source identity and verified geometry evidence, without the scene catalogue. Requires geometryEntityIds and geometryFrame; cannot be combined with full:true. Ordinary reads keep their existing shape.' },
       geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometryEntityIds and geometryFrame. Re-measures identical selected parts/frame and computes current-minus-reference native world-axis spans and origin moves. If geometrySurfaceSamples is supplied, compares those same local samples instead. Requested geometryAssemblyPairs also return origin-offset changes. Unavailable evidence stays unavailable; no clearance, global minima or change cause is established.' },
       geometryAssemblyPairs: { type: 'array', description: 'Optional 1–8 ordered native object-origin pairs. Requires geometryEntityIds containing both ends and geometryFrame. Offsets use world XYZ in millimeters; they are not surface protrusion, contact, clearance or whole-assembly certification.',
@@ -438,6 +459,12 @@ function sceneGet(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.sourceEntityId !== undefined || args.sourceOffset !== undefined || args.sourceLimit !== undefined) {
+          const receipt = await readEntitySource(resolved.studio, args)
+          return { ok: true, text: renderSuccess('Saved entity source chunk. Continue at nextOffset using this revision; verify entityJsonSha256 before concatenating.', receipt, { compact: true }), data: receipt }
+        }
+        if (args.geometryObjectAxes !== undefined && typeof args.geometryObjectAxes !== 'boolean') throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryObjectAxes must be boolean.')
+        if (args.geometryObjectAxes === true && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Object-local bounds require geometryEntityIds and geometryFrame.')
         if (args.geometryOnly !== undefined && typeof args.geometryOnly !== 'boolean') {
           throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryOnly must be boolean.')
         }
@@ -456,19 +483,19 @@ function sceneGet(ctx) {
         }
         if (args.geometryAssemblyPairs !== undefined) validateAssemblyPairs(args.geometryAssemblyPairs, args.geometryEntityIds)
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
-          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
+          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
           ...definedFields({ revision: args.revision }),
           full: args.full === true,
           ...(args.geometryEntityIds === undefined ? {} : { geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-            ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
+            ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
         }), warning)
-        const hasSamples = args.geometrySurfaceSamples !== undefined
+        const hasSamples = args.geometrySurfaceSamples !== undefined, hasObjectAxes = args.geometryObjectAxes === true
         const verifyScene = (data, expectedRevision) => {
           if (expectedRevision !== undefined && data.revision !== expectedRevision) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host returned a different saved revision than requested.')
           }
-          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
+          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasObjectAxes ? 'deepblend.scene-geometry/v3' : hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
               data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
               data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
               !Array.isArray(data.geometryInspection.limitations) ||
@@ -476,16 +503,17 @@ function sceneGet(ctx) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
           }
           if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
-            schemaVersion: hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            schemaVersion: hasObjectAxes ? 'deepblend.geometry-inspection/v3' : hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            ...(hasObjectAxes ? { objectAxisBasis: data.geometryInspection.objectAxisBasis } : {}),
             ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
             checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
+            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         }
         verifyScene(data, args.revision)
         if (args.geometryAssemblyPairs !== undefined) data.geometryAssemblyOrigins = readAssemblyOrigins(data.geometryInspection, args.geometryAssemblyPairs)
         if (args.geometryCompareRevision !== undefined) {
           const reference = await canonicalCall(resolved.studio.getScene(args.projectId, { revision: args.geometryCompareRevision,
-            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
+            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
           verifyScene(reference.data, args.geometryCompareRevision)
           canonicalWarnings.push(...reference.canonicalWarnings)
           data.geometryComparison = hasSamples ? compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection) : compareGeometryReports(reference.data.geometryInspection, data.geometryInspection)
@@ -562,7 +590,7 @@ function sceneGet(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: args?.full === true ? `Read full scene of "${args?.projectId ?? ''}"` : `Read scene of "${args?.projectId ?? ''}"`,
+      title: args?.sourceEntityId !== undefined ? `Read saved entity "${args.sourceEntityId}"` : args?.full === true ? `Read full scene of "${args?.projectId ?? ''}"` : `Read scene of "${args?.projectId ?? ''}"`,
       kind: 'read',
     }),
   })
@@ -617,6 +645,12 @@ function scenePatch(ctx) {
       'fails, no revision is created and the current revision is untouched, so a failed patch is always safe ' +
       'to correct and retry. Retrying an identical patch is also safe — it returns the original outcome ' +
       'instead of committing twice.\n\n' +
+      'Optional entityCopies creates 1–16 explicit copies of single saved entities from baseRevision, before operations. ' +
+      'Use {sourceEntityId,newEntityId,transform?} to reuse exact geometry and manual details without repeating vertices; operations may then be []. ' +
+      'Transform components are absolute overrides. All other entity fields and external references are preserved; animation tracks, child assemblies and reference remapping are NOT copied. ' +
+      'New IDs must be absent from the saved scene; sources must exist in baseRevision (not earlier copies in this request). Inspect real placement/contact and renders.\n\n' +
+      'entityCopyOffset:[dx,dy,dz] optionally translates all selected copies by the same world-metre offset, preserving their relative positions. ' +
+      'Do not combine it with any copy transform.location; rotation/scale overrides remain absolute per entity. References and unselected dependencies do not move automatically.\n\n' +
       'saveCheckpoint (default true) compiles this revision now. If false, the first preview compiles ' +
       'the revision lazily before rendering.\n\n' +
       'Operations (each object needs an "op" key):\n  ' + OPERATION_SUMMARY,
@@ -637,8 +671,19 @@ function scenePatch(ctx) {
         description:
           'Ordered list of operations. Each needs an "op" key naming the operation (see the tool description). ' +
           'Later operations see the result of earlier ones: remove or retarget every shot that uses a camera ' +
-          'before removing that camera.',
+          'before removing that camera. May be [] only when entityCopies supplies additions first.',
       },
+      entityCopies: { type: 'array', description: 'Optional 1–16 copies from baseRevision, expanded to entity.add before operations. Existing IDs cannot be overwritten; all non-transform entity details and references are preserved. No automatic assembly/animation copying or placement.',
+        items: { type: 'object', additionalProperties: false, properties: {
+          sourceEntityId: { type: 'string', required: true, description: 'Existing single entity in baseRevision.' },
+          newEntityId: { type: 'string', required: true, description: 'Distinct new entity ID, 1–64 characters.' },
+          transform: { type: 'object', additionalProperties: false, description: 'Optional absolute overrides; omitted components retain source values.', properties: {
+            location: { type: 'array', items: { type: 'number' } },
+            rotationEuler: { type: 'array', items: { type: 'number' } },
+            scale: { type: 'array', items: { type: 'number' } },
+          } },
+        } } },
+      entityCopyOffset: { type: 'array', items: { type: 'number' }, description: 'Optional common world translation [dx,dy,dz] in metres for entityCopies. Requires three finite numbers and entityCopies. Preserves selected source relative positions; cannot combine with any copy absolute transform.location. Does not move referenced/unselected objects or copy animations.' },
       note: {
         type: 'string',
         description:
@@ -672,7 +717,7 @@ function scenePatch(ctx) {
     async execute(args, exec) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
-      if (!Array.isArray(args.operations) || args.operations.length === 0) {
+      if (!Array.isArray(args.operations) || (args.operations.length === 0 && args.entityCopies === undefined)) {
         return {
           ok: false,
           text:
@@ -683,6 +728,7 @@ function scenePatch(ctx) {
         }
       }
       try {
+        const expanded = await expandEntityCopies(resolved.studio, args)
         // `definedFields` is load-bearing here, not tidiness: forwarding
         // `note: undefined` puts an own `note` key on the patch document, and the
         // host's schema validation rejects that as a wrong TYPE. A correct call
@@ -691,7 +737,7 @@ function scenePatch(ctx) {
           ...definedFields({
             projectId: args.projectId,
             baseRevision: args.baseRevision,
-            operations: args.operations,
+            operations: expanded.operations,
             note: args.note,
             actor: args.actor,
             stage: args.stage,
@@ -701,6 +747,8 @@ function scenePatch(ctx) {
           renderPreview: args.renderPreview === true,
           signal: exec.signal,
         }), warning)
+        if (expanded.copies.length) data.entityCopies = expanded.copies
+        if (args.entityCopyOffset !== undefined) data.entityCopyOffset = [...args.entityCopyOffset]
         const notes = [
           `Revision: ${describeRevision(data)}`,
           `Digest:   ${data.revision ? data.revision : data.digest}`,
@@ -742,7 +790,7 @@ function scenePatch(ctx) {
     },
     presentCall: args => ({
       card: 'generic',
-      title: `Patch scene of "${args?.projectId ?? ''}" (${Array.isArray(args?.operations) ? args.operations.length : 0} ops)`,
+      title: `Patch scene of "${args?.projectId ?? ''}" (${(Array.isArray(args?.operations) ? args.operations.length : 0) + (Array.isArray(args?.entityCopies) ? args.entityCopies.length : 0)} ops)`,
       kind: 'edit',
     }),
   })

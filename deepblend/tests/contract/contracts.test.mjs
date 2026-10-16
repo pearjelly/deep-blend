@@ -261,6 +261,16 @@ test('toCanonicalCapabilities() round-trips the captured fixture exactly', () =>
   assert.equal(JSON.stringify(canonical, null, 2), JSON.stringify(fixture, null, 2))
 })
 
+test('model-facing capabilities retain explicit compiler features without rewriting legacy probes', () => {
+  const probe = providerProbeFromCanonical(JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')))
+  assert.equal(Object.hasOwn(toCanonicalCapabilities(probe), 'sceneFeatures'), false)
+  probe.sceneFeatures = ['geometry.procedural.mesh', 'geometry.modifier.subdivision']
+  const canonical = toCanonicalCapabilities(probe)
+  assert.deepEqual(canonical.sceneFeatures, probe.sceneFeatures)
+  canonical.sceneFeatures.push('local-only')
+  assert.equal(probe.sceneFeatures.length, 2)
+})
+
 test('toCanonicalCapabilities() returns the declared keys in the declared order', () => {
   const canonical = toCanonicalCapabilities(providerProbeFromCanonical(loadFixture()))
   assert.deepEqual(Object.keys(canonical), CANONICAL_KEYS)

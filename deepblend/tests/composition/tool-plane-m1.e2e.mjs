@@ -129,7 +129,9 @@ try {
   root.plugin((await import('@deepblend/dsh-blender-provider-local')).default, {
     blenderPath: BLENDER_PATH,
     bootstrapPath: join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local', 'python', 'bootstrap.py'),
-    workspaceRoot: join(workspace, 'runtime'),
+    // Native inspection must read saved checkpoints under projects/ as well as
+    // runtime scratch. Production uses the same enclosing workspace boundary.
+    workspaceRoot: workspace,
     timeoutMs: 300_000,
     capabilitiesCacheMs: 60_000,
   })
@@ -275,6 +277,29 @@ try {
   check('blender_scene_patch text surfaces the compiler decisions',
     patched.value.text.includes('Warnings (') || patched.value.text.includes('Canonical JSON:'))
 
+  const studio = root.get('blenderStudio')
+  const beforeSourceRead = fileSnapshot(studio.store.revisionDirectory(projectId, revision1))
+  const savedEntity = JSON.parse(readFileSync(join(studio.store.revisionDirectory(projectId, revision1), 'scene-spec.json'), 'utf8'))
+    .entities.find(entity => entity.id === 'watch-body')
+  let entitySource = '', sourceOffset = 0, sourceHash, sourceBound = true
+  do {
+    const chunk = await call('blender_scene_get', { projectId, revision: revision1,
+      sourceEntityId: 'watch-body', sourceOffset, sourceLimit: 32 })
+    if (!chunk.value?.ok) throw new Error(chunk.value?.text ?? 'Entity source read failed.')
+    const data = chunk.value.data
+    sourceHash ??= data.entityJsonSha256
+    sourceBound &&= data.entityJsonSha256 === sourceHash && data.revision === revision1 && data.isCurrent === false &&
+      data.sourceOffset === sourceOffset && chunk.value.text.length < 8192
+    entitySource += data.sourceText
+    sourceOffset = data.nextOffset
+  } while (sourceOffset !== null)
+  check('bounded source chunks recover an exact old saved entity after a later manual edit', sourceBound &&
+    JSON.stringify(JSON.parse(entitySource)) === JSON.stringify(savedEntity) &&
+    sourceHash === sha(Buffer.from(entitySource)))
+  check('bounded source reads preserve saved files and leave the current revision on the later edit',
+    JSON.stringify(beforeSourceRead) === JSON.stringify(fileSnapshot(studio.store.revisionDirectory(projectId, revision1))) &&
+    (await call('blender_project_get', { projectId })).value.data.currentRevision === 'r0002')
+
   // The same patch again: the idempotency guard, seen from the model's side.
   const replayed = await call('blender_scene_patch', {
     projectId,
@@ -301,7 +326,6 @@ try {
     preview.value.text.includes('640') && preview.value.text.includes('CYCLES'))
 
   // Beauty and clay through the model-visible tool, bound to identical source/camera/frame.
-  const studio = root.get('blenderStudio')
   const sourceDirectory = studio.store.revisionDirectory(projectId, 'r0002')
   const protectedFiles = fileSnapshot(sourceDirectory)
   const protectedProject = sha(readFileSync(join(studio.store.projectDirectory(projectId), 'project.json')))
@@ -404,6 +428,66 @@ try {
     stale.value?.data?.errorCode)
   check('the conflict text tells the model exactly what to do next',
     stale.value.text.includes('blender_scene_get'), stale.value.text.slice(-200))
+
+  // Copying uses saved authored data, not a regenerated approximation. Native
+  // compilation, stale writes, failed atomic edits and retries keep their gates.
+  const copySourceDirectory = studio.store.revisionDirectory(projectId, 'r0003')
+  const sourceBeforeCopies = fileSnapshot(copySourceDirectory)
+  const copySource = JSON.parse(readFileSync(join(copySourceDirectory, 'scene-spec.json'), 'utf8'))
+    .entities.find(entity => entity.id === 'watch-body')
+  const copyArgs = { projectId, baseRevision: 'r0003', operations: [], saveCheckpoint: true,
+    entityCopies: [{ sourceEntityId: 'watch-body', newEntityId: 'watch-copy', transform: { location: [.3, 0, .024] } }] }
+  const copied = await call('blender_scene_patch', copyArgs)
+  check('a saved entity copy compiles a real new checkpoint through the formal tool', copied.value?.ok === true && copied.value.data.revision === 'r0004' &&
+    copied.value.data.checkpoint === 'revisions/r0004/scene.blend')
+  const copiedSpec = (await call('blender_scene_get', { projectId, full: true })).value.data.spec
+  const cloneEntity = copiedSpec.entities.find(entity => entity.id === 'watch-copy')
+  check('saved copy preserves every source detail except the requested identity and absolute location',
+    JSON.stringify(cloneEntity) === JSON.stringify({ ...copySource, id: 'watch-copy', transform: { ...copySource.transform, location: [.3, 0, .024] } }) &&
+    JSON.stringify(copiedSpec.entities.find(entity => entity.id === 'watch-body')) === JSON.stringify(copySource))
+  const measuredCopy = await call('blender_scene_get', { projectId, revision: 'r0004', geometryOnly: true,
+    geometryEntityIds: ['watch-body', 'watch-copy'], geometryFrame: 1 })
+  const objects = measuredCopy.value?.data?.geometryInspection?.objects ?? []
+  check('source and copy have matching measured native geometry at the unanimated first frame',
+    measuredCopy.value?.ok === true && objects.length === 2 && objects.every(o => o.available) &&
+    objects[0].vertexCount === objects[1].vertexCount && objects[0].polygonCount === objects[1].polygonCount &&
+    objects[0].worldAxisExtentMm.every((span, i) => Math.abs(span - objects[1].worldAxisExtentMm[i]) < .001),
+    { ok: measuredCopy.value?.ok, error: measuredCopy.value?.data?.errorCode, objects })
+  const retryCopy = await call('blender_scene_patch', copyArgs)
+  check('identical copy retry reuses its saved revision rather than duplicating again', retryCopy.value?.ok === true && retryCopy.value.data.idempotentReplay === true && retryCopy.value.data.revision === 'r0004')
+  const staleCopy = await call('blender_scene_patch', { ...copyArgs, entityCopies: [{ sourceEntityId: 'watch-body', newEntityId: 'stale-copy' }] })
+  check('a stale copy intent cannot bypass ordinary revision conflicts', staleCopy.value?.ok === false && staleCopy.value.data.errorCode === 'REVISION_CONFLICT')
+  const failedCopy = await call('blender_scene_patch', { ...copyArgs, baseRevision: 'r0004',
+    entityCopies: [{ sourceEntityId: 'watch-body', newEntityId: 'failed-copy' }], operations: [{ op: 'entity.remove', entityId: 'missing-copy-target' }] })
+  check('an invalid later operation rejects the whole copy and leaves current project unchanged', failedCopy.value?.ok === false &&
+    (await call('blender_project_get', { projectId })).value.data.currentRevision === 'r0004' &&
+    !(await call('blender_scene_get', { projectId, full: true })).value.data.spec.entities.some(entity => entity.id === 'failed-copy'))
+  check('copy, native measurement, retry and failure preserve all previous saved bytes',
+    JSON.stringify(sourceBeforeCopies) === JSON.stringify(fileSnapshot(copySourceDirectory)))
+
+  const groupSourceDirectory = studio.store.revisionDirectory(projectId, 'r0004')
+  const groupBefore = fileSnapshot(groupSourceDirectory), offset = [2, -1, .5]
+  const groupArgs = { projectId, baseRevision: 'r0004', operations: [], saveCheckpoint: true, entityCopyOffset: offset,
+    entityCopies: [{ sourceEntityId: 'watch-body', newEntityId: 'shifted-body' }, { sourceEntityId: 'watch-copy', newEntityId: 'shifted-copy' }] }
+  const shifted = await call('blender_scene_patch', groupArgs)
+  check('one explicit common displacement commits two real copied parts in one checkpoint', shifted.value?.ok === true &&
+    shifted.value.data.revision === 'r0005' && JSON.stringify(shifted.value.data.entityCopyOffset) === JSON.stringify(offset))
+  const groupMeasure = await call('blender_scene_get', { projectId, revision: 'r0005', geometryOnly: true,
+    geometryEntityIds: ['watch-body', 'watch-copy', 'shifted-body', 'shifted-copy'], geometryFrame: 1 })
+  const groupObjects = new Map((groupMeasure.value?.data?.geometryInspection?.objects ?? []).map(object => [object.entityId, object]))
+  const pairs = [['watch-body', 'shifted-body'], ['watch-copy', 'shifted-copy']]
+  check('actual native origins move by the same world-metre displacement for both selected parts', groupMeasure.value?.ok === true &&
+    pairs.every(([sourceId,copyId]) => offset.every((value,axis) => Math.abs(
+      groupObjects.get(copyId).worldMatrix[axis][3]-groupObjects.get(sourceId).worldMatrix[axis][3]-value) < 1e-6)))
+  check('translated native parts retain exact geometry counts and physical spans', pairs.every(([sourceId,copyId]) => {
+    const source=groupObjects.get(sourceId),copy=groupObjects.get(copyId)
+    return source.available && copy.available && source.vertexCount===copy.vertexCount && source.polygonCount===copy.polygonCount &&
+      source.worldAxisExtentMm.every((span,axis)=>Math.abs(span-copy.worldAxisExtentMm[axis])<.001)
+  }))
+  const groupReplay = await call('blender_scene_patch', groupArgs)
+  check('a repeated common-displacement intent reuses the original group revision', groupReplay.value?.ok === true && groupReplay.value.data.idempotentReplay===true && groupReplay.value.data.revision==='r0005')
+  check('group displacement leaves source parts, source checkpoint and manual placement untouched',
+    JSON.stringify(groupBefore)===JSON.stringify(fileSnapshot(groupSourceDirectory)))
 } catch (error) {
   check('the M1 tool plane completed without an unexpected throw', false, error?.stack ?? String(error))
 } finally {

@@ -1,0 +1,79 @@
+{
+  "at": "2026-10-16T12:18:24.865335+00:00",
+  "sourceHead": "610c5180e8ef6f8bea9b22656635696fb4e19c94",
+  "sourceFiles": 892,
+  "allTrackedFilesUnchanged": true,
+  "fullSuites": 42,
+  "fullExitCode": 0,
+  "fullLogSha256": "9089b7250c080e38f88223d2bb9f6db8919fe61ef6cb91a6e5ff24510935709a",
+  "unitFiles": "136/136",
+  "nodeTestCases": 1779,
+  "nodeTestFiles": 102,
+  "paidFinalAcceptedImplementationVisual": "14/14",
+  "paidFinalAcceptedImplementationUi": "10/10 retry, original timeout retained",
+  "productionPackagesAndPresetsAndSchemasExactToPaid7a79": true,
+  "finalFilmDelivery128StillRenderingSeparately": true,
+  "publicReleaseNotYetPublished": true,
+  "status": "software-acceptance-passed-publication-pending",
+  "paidSource": "7a79a4bbec4ac06175b19bdb93956ba849b77cc7",
+  "ci": "https://github.com/pearjelly/deep-blend/actions/runs/38892161333",
+  "baiSpeaker": {
+    "status": "accepted-for-existing-design-dimension-edit",
+    "sourceHead": "7a79a4bbec4ac06175b19bdb93956ba849b77cc7",
+    "frozenProductionBytes": "surface-scatter-freeze-v2/source",
+    "model": "bai/deepseek-v4.1-flash",
+    "elapsedMs": 474700,
+    "humanTaskCount": 1,
+    "toolCalls": 22,
+    "nativeProof": "native-proof.json",
+    "actualNativeMm": [
+      319.9999928474426,
+      160.0000262260437,
+      200.00001043081284
+    ],
+    "all111PartsAndSixFramesPreservedByExpectedRigidAssemblyDeltas": true,
+    "manualDetailsMaterialsOldCamerasActiveCameraAndHistoryPreserved": true,
+    "nativeSourceAndPrivateCredentialChecksPassed": true,
+    "oldAllSourceHashesUnchanged": true,
+    "actualPhysicalObjectAxisMeasurementReadByModel": true,
+    "modelReplyCheckedAgainstActualMeasurements": true,
+    "actualNativeFrame26OriginOffsetMm": [
+      0.023826956748962402,
+      -0.3063902258872986,
+      -0.8192658424377441
+    ],
+    "imageReview": {
+      "front": "r0005 hero1024x768; actual native preview viewed, full contour in frame",
+      "back": "r0005 delivery-back1024x768; actual native preview viewed, full contour+cable in frame",
+      "allVisiblePartVertexProjectionMarginsPassed": true,
+      "nativeCameraDefaultPreserved": true,
+      "artisticOrManufacturingCertification": false
+    },
+    "retainedKnownLimitations": [
+      "Initial maintainer rigid-pose fixture, not arbitrary model creation; same one-task prompt, earlier campaign failures retained.",
+      "Two existing automatic SUBJECT_OCCLUDED major findings and inherited staged floating pose disclosed; no scorer retagging or geometry cleanup.",
+      "World origin offsets are not contact/clearance; no whole-scene collision/wall-thickness/manufacturing certification.",
+      "Old reverse camera slightly crops resized object; preserved it and added delivery-back instead."
+    ],
+    "priorV6": "optional missing historical observer caused UI setup failure before submission, not a bai turn; preserved. v7 uses byte-identical product preset with no optional observer.",
+    "releaseReady": false,
+    "releaseRemaining": "Full actual pagoda movie source/decode/art review plus standard clean main/Release/npm/parity/community流程; no publication yet."
+  },
+  "fullPreview": {
+    "revision": "r0084",
+    "jobId": "render-0007",
+    "frames": 900,
+    "fps": 24,
+    "durationSeconds": 37.5,
+    "resolution": [
+      640,
+      360
+    ],
+    "samples": 32,
+    "sha256": "44c2b20d84d532baa91813621a9b81d558b62cbfb9dca45495b5828dcb5237a8",
+    "allFramesDecodedAndVisuallyReviewed": true
+  },
+  "finalHighQualityMovie": "render-0008 running; independent full video delivery gate, not certified complete",
+  "publication": "pending GitHub/npm/publicthree-route/community",
+  "scope": "Historical speaker receipt releaseReady=false retained as originally written. Actual complete900 preview now satisfies the earlier full-video product check; higher-quality user deliverable remains independent and pending. No arbitrary oneprompt/manufacturing/allmeshintersections/Google-equivalence/externaladoption certification."
+}

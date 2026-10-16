@@ -385,11 +385,14 @@ def create_generator(name, spec):
     elif shape == "handled_cup":
         from deepblend_vessel import create_handled_cup
         create_handled_cup(name, spec)
+    elif shape == "mesh":
+        from deepblend_mesh import create_mesh
+        create_mesh(name, spec)
     else:
         raise ActionError(
             "BLENDER_SCRIPT_ERROR",
             'unknown generator shape "%s"' % (shape,),
-            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup"]},
+            {"supported": ["cube", "rounded_box", "uv_sphere", "cylinder", "cone", "plane", "torus", "lathe", "curve", "handled_cup", "mesh"]},
         )
 
     obj = bpy.context.active_object
@@ -2105,7 +2108,7 @@ def build_scene(spec, options, guard):
                 for polygon in getattr(obj.data, "polygons", []):
                     polygon.material_index = 0
             generator = entity.get("generator", {})
-            if generator.get("bevel") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
+            if (generator.get("bevel") and generator.get("shape") != "mesh") or generator.get("shape") in ("uv_sphere", "cylinder", "cone", "torus", "lathe", "curve", "handled_cup"):
                 _shade_smooth(obj)
 
         if entity.get("materialBindings"):
@@ -2128,7 +2131,7 @@ def build_scene(spec, options, guard):
             simulation_objects[entity_id] = meshes[0]
         entity_positions[entity_id] = [float(root.location[0]), float(root.location[1]), float(root.location[2])]
 
-    apply_model_modifiers(spec.get("entities") or [], entity_meshes)
+    apply_model_modifiers(spec.get("entities") or [], entity_meshes, spec.get('animationTracks') or [])
     scene['deepblend_requires_cycles'] = False
     for entry in spec.get('materials') or []:
         for surface in native_material_surfaces:
@@ -2173,7 +2176,18 @@ def build_scene(spec, options, guard):
     for camera in spec.get("cameras") or []:
         cameras[camera["id"]] = build_camera(camera, entity_positions)
     if cameras:
-        scene.camera = cameras[spec["cameras"][0]["id"]]
+        active_camera = (spec.get("project") or {}).get("activeCamera")
+        if active_camera is not None and active_camera not in cameras:
+            # Older accepted projects can contain a stale activeCamera reference.
+            # Preserve their first-camera fallback and make that limit explicit.
+            guard.note("SCENE_COMPILER_DECISION",
+                       'The declared active camera "%s" was not found; using first camera "%s"' %
+                       (active_camera, spec["cameras"][0]["id"]),
+                       {"requestedCameraId": active_camera, "cameraId": spec["cameras"][0]["id"]})
+            active_camera = None
+        # Camera arrays are canonically sorted after a patch. Adding a delivery
+        # camera must not replace the authored active camera in the saved file.
+        scene.camera = cameras[active_camera if active_camera is not None else spec["cameras"][0]["id"]]
 
     report_progress("build_animation", 75)
     actions = []

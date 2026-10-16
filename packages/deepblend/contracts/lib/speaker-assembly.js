@@ -5,7 +5,7 @@ const sources = new Set([
 ])
 const close = (a, b) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-9
 
-export function translatedSpeakerAssembly(lock, current, before, after) {
+function translatedOnly(lock, current, before, after) {
   if (!sources.has(lock.manifestSha256)) return { before, after }
   const parts = before.spec.entities.filter(entity => entity.id !== 'studio-floor')
   const anchor = parts.find(entity => entity.id === 'cabinet-shell')
@@ -38,4 +38,62 @@ export function translatedSpeakerAssembly(lock, current, before, after) {
     return result
   }
   return { before: translate(before), after: translate(after) }
+}
+
+// XYZ Euler matrices match Blender's intrinsic object rotations (Rz * Ry * Rx).
+const rotation = ([x, y, z]) => {
+  const cx = Math.cos(x), sx = Math.sin(x), cy = Math.cos(y), sy = Math.sin(y), cz = Math.cos(z), sz = Math.sin(z)
+  return [[cz*cy, cz*sy*sx-sz*cx, cz*sy*cx+sz*sx], [sz*cy, sz*sy*sx+cz*cx, sz*sy*cx-cz*sx], [-sy, cy*sx, cy*cx]]
+}
+const mul = (m, p) => m.map(row => row.reduce((sum, value, i) => sum + value*p[i], 0))
+const transpose = m => m[0].map((_, i) => m.map(row => row[i]))
+const product = (a, b) => a.map(row => transpose(b).map(column => row.reduce((s, v, i) => s + v*column[i], 0)))
+const near = (a, b) => Array.isArray(a) && Array.isArray(b) ? a.length === b.length && a.every((v, i) => near(v, b[i]))
+  : Number.isFinite(a) && Number.isFinite(b) && Math.abs(a-b) <= 1e-6
+
+/** Recognize a complete pinned rigid pose; partial and scaled placements remain conflicts. */
+export function translatedSpeakerAssembly(lock, current, before, after) {
+  if (!sources.has(lock.manifestSha256)) return { before, after }
+  const parts = before.spec.entities.filter(e => e.id !== 'studio-floor')
+  const anchor = parts.find(e => e.id === 'cabinet-shell'), saved = current.entities.find(e => e.id === anchor?.id)
+  if (!saved?.transform?.rotationEuler) return translatedOnly(lock, current, before, after)
+  const matrix = product(rotation(saved.transform.rotationEuler), transpose(rotation(anchor.transform.rotationEuler)))
+  // Retain the existing exact translation checks for identity orientation.
+  if (near(matrix, [[1,0,0],[0,1,0],[0,0,1]])) return translatedOnly(lock, current, before, after)
+  const point = p => mul(matrix, p.map((v, i) => v-anchor.transform.location[i])).map((v, i) => v+saved.transform.location[i])
+  const actualParts = new Map(current.entities.map(e => [e.id, e]))
+  if (!parts.every(original => {
+    const actual = actualParts.get(original.id)
+    return actual?.type === original.type && near(actual.transform?.location, point(original.transform.location))
+      && near(rotation(actual.transform.rotationEuler), product(matrix, rotation(original.transform.rotationEuler)))
+      && original.transform.scale.every((v, i) => close(v, actual.transform.scale[i]))
+  })) return { before, after }
+  // A rotated translation curve needs a world-space rest anchor on every moved axis.
+  // Authored later keys/travel are preserved; absence of a coupled curve is unsafe.
+  for (const original of before.spec.animationTracks ?? []) {
+    if ((original.targetKind ?? 'entity') !== 'entity' || !actualParts.has(original.targetEntityId)
+      || !parts.some(e => e.id === original.targetEntityId) || !/^location\.[xyz]$/.test(original.property)) continue
+    const axis = ['x','y','z'].indexOf(original.property.at(-1))
+    const originalPart = parts.find(e => e.id === original.targetEntityId)
+    const rest = [...originalPart.transform.location]; rest[axis] = original.keyframes[0].value
+    const expected = point(rest)
+    for (let worldAxis = 0; worldAxis < 3; worldAxis++) {
+      if (Math.abs(matrix[worldAxis][axis]) <= 1e-9) continue
+      const candidates = (current.animationTracks ?? []).filter(t => (t.targetKind ?? 'entity') === 'entity'
+        && t.targetEntityId === original.targetEntityId && t.property === `location.${['x','y','z'][worldAxis]}`)
+      if (candidates.length !== 1 || candidates[0].keyframes[0]?.frame !== original.keyframes[0].frame
+        || !near(candidates[0].keyframes[0]?.value, expected[worldAxis])) return { before, after }
+    }
+  }
+  const posedBefore = structuredClone(before), posedAfter = structuredClone(after)
+  for (const original of parts) {
+    const actual = actualParts.get(original.id), next = posedAfter.spec.entities.find(e => e.id === original.id)
+    const old = posedBefore.spec.entities.find(e => e.id === original.id)
+    old.transform.location = [...actual.transform.location]
+    old.transform.rotationEuler = [...actual.transform.rotationEuler]
+    next.transform.location = mul(matrix, next.transform.location.map((v, i) => v-original.transform.location[i]))
+      .map((v, i) => v+actual.transform.location[i])
+    next.transform.rotationEuler = [...actual.transform.rotationEuler]
+  }
+  return { before: posedBefore, after: posedAfter, rigidPose: true }
 }

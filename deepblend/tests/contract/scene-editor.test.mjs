@@ -166,6 +166,27 @@ test('curve path editing retains smooth interpolation, cap policy and tube resol
   assert.deepEqual(next.entities.find(e => e.id === draft.entityId).generator, expected)
 })
 
+test('surface controls preserve authored mesh data and hand edits when changing subdivision', async t => {
+  const spec = source('metal-lamp'), target = spec.entities.find(entity => entity.id === 'shade-shell')
+  target.generator = { shape: 'mesh', vertices: [[0, 0, 0], [.1, 0, 0], [0, .1, .02]], faces: [[0, 1, 2]],
+    faceUvs: [[[0, 0], [1, 0], [0, 1]]], smooth: false }
+  target.modifiers = [{ type: 'subdivision', levels: 1 }]
+  const before = plain(spec), { store, field } = await client(t, spec)
+  assert.deepEqual(plain(editor.buildPatch(editor.draftFor(store.getState())).operations), [])
+  assert.equal(field('editor-generator-size'), undefined)
+  field('editor-generator-smooth').props.onChange({ target: { checked: true } })
+  field('editor-modifier-0-levels').props.onChange({ target: { value: '2' } })
+  field('editor-modifier-0-scheme').props.onChange({ target: { value: 'simple' } })
+  const { next } = apply(spec, editor.draftFor(store.getState()))
+  const expected = plain(before), changed = expected.entities.find(e => e.id === target.id)
+  changed.generator.smooth = true
+  changed.modifiers[0] = { type: 'subdivision', levels: 2, scheme: 'simple' }
+  assert.deepEqual(next, expected)
+  assert.deepEqual(spec, before)
+  field('editor-modifier-0-levels').props.onChange({ target: { value: '4' } })
+  assert.ok(editor.errors(editor.draftFor(store.getState())).length > 0)
+})
+
 test('box dimension controls edit one local axis without inventing size or changing the rest of the scene', async t => {
   const spec = source('metal-lamp'), target = spec.entities.find(entity => entity.id === 'shade-shell')
   target.generator = { shape: 'rounded_box', dimensions: [.3, .138, .162], bevel: { width: .002, segments: 3 } }
@@ -828,4 +849,29 @@ test('automatic edit previews retire the prior store on a same-ID store change',
   const images = f.nodes().filter(node => node.tag === 'img')
   assert.equal(images.length, 2); assert.ok(images.every(node => node.props.src.includes('new-store.png')))
   assert.equal(f.store.getState().forms.patch, 'unsubmitted advanced edit'); assert.equal(f.calls.length, writes)
+})
+
+
+test('surface placement editor preserves geometry and exposes bounded typed controls', async t => {
+  const {store,field,calls}=await client(t)
+  store.actions.editEditorList('modifiers',0,'add','surface_scatter')
+  const draft=editor.draftFor(store.getState()), i=draft.entity.modifiers.length-1, prefix=`editor-modifier-${i}`
+  assert.throws(()=>editor.buildPatch(draft),/targetEntityIds|anchorVertexIndices/)
+  const support=draft.entities.find(entity=>entity.kind==='generator'&&entity.id!==draft.entityId&&!entity.modifiers?.some(m=>m.type==='surface_scatter'))
+  field(`${prefix}-targetEntityIds`).props.onChange({target:{value:support.id}})
+  field(`${prefix}-anchorVertexIndices`).props.onChange({target:{value:'0, 1, 2'}})
+  field(`${prefix}-count`).props.onChange({target:{value:'64'}})
+  field(`${prefix}-seed`).props.onChange({target:{value:'73'}})
+  field(`${prefix}-embedDepthMm`).props.onChange({target:{value:'8'}})
+  field(`${prefix}-scaleRange-0`).props.onChange({target:{value:'.8'}})
+  field(`${prefix}-scaleRange-1`).props.onChange({target:{value:'1.3'}})
+  field(`${prefix}-upwardBias`).props.onChange({target:{value:'.6'}})
+  const changed=editor.draftFor(store.getState()), modifier=changed.entity.modifiers.at(-1)
+  assert.deepEqual(plain(modifier),{type:'surface_scatter',targetEntityIds:[support.id],count:64,anchorVertexIndices:[0,1,2],seed:73,embedDepthMm:8,scaleRange:[.8,1.3],upwardBias:.6})
+  assert.deepEqual(plain(changed.entity.generator),plain(changed.original.generator));assert.equal(calls.length,0)
+  assert.doesNotThrow(()=>editor.buildPatch(changed))
+  changed.tracks.push({targetKind:'entity',targetId:support.id,property:'location.x'})
+  assert.throws(()=>editor.buildPatch(changed),/targetEntityIds/)
+  changed.tracks.pop();changed.entity.modifiers.at(-1).anchorVertexIndices=[0,0]
+  assert.throws(()=>editor.buildPatch(changed),/anchorVertexIndices/)
 })

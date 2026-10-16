@@ -56,11 +56,17 @@ limit. Additional views still need to show the features required by the brief.
 
 For an existing assembly dimension edit, the final handoff must be a compact receipt:
 - project/current revision and the retained original;
-- only the requested overall dimensions, from the saved native span receipt;
+- requested dimensions as saved controls, and the measured native spans with their coordinate basis;
 - saved custom keyframe timing and protected cameras when requested;
 - the actual registered native file and primary/back images;
 - the remaining score findings and unmeasured global conditions.
 Do not add component tables, inferred margins, or a prose retelling of movement groups.
+A distance from the object origin to one sampled face is one-sided evidence, not a
+measured overall size. Do not double it into a measured width/depth/height without
+checking the opposite boundary. Give any interval its exact coordinate basis and
+whether it covers a half-span or full span; do not call a doubled full interval a
+half-depth. Saved controls and world-axis extents are sufficient when intrinsic
+overall geometry has not been measured; do not invent extra measurements.
 Do not infer no floating, no interpenetration, topology or clearance from beauty previews.
 Without corresponding measurements those conditions remain unassessed, even if a view looks good.
 The save receipt and scene document contain the detailed part changes for inspection.
@@ -125,6 +131,21 @@ Use `geometryOnly:true` with the native selection for a compact measurement rece
 it keeps the complete verified objects, samples and source identity while omitting
 the scene catalogue. Read the scene separately when selecting parts or seeds.
 It cannot be combined with `full:true`.
+
+For a dimension edit, request `geometryObjectAxes:true` together with the selected
+native IDs and explicit frame. In a v3 receipt, `objectAxisExtentMm` directly measures
+full evaluated mesh extents along the object's own physical orthogonal axes, including
+native construction/world scale. `objectAxisWorldMatrix` states those normalized axes
+and the native origin; `objectAxisBasis` is `evaluated-object-axes-scaled`. Use this
+returned evidence instead of inverting a world bounding box or doubling one-sided rays.
+For the pinned cabinet-shell these axes correspond to shell width/depth/height. They
+are full per-object mesh extents; for a handled cup, for example, protrusions are included
+and they do not by themselves establish body diameter or wall thickness.
+`objectAxisStatus:unsupported-object-axis-basis` has no axis numbers: a sheared or
+degenerate basis must stay unavailable while world measurements can remain available.
+Do not apply native scale a second time. A non-unit native scale can come from a
+primitive's construction, even when the authored SceneSpec scale is [1,1,1]; it does not
+establish a manual scaling edit or a recipe-to-body mismatch.
 
 For saved native size/movement comparisons, use `geometryCompareRevision` with the
 old saved revision, the selected `geometryEntityIds`, and explicit `geometryFrame`.
@@ -330,9 +351,42 @@ the current revision and repeat the affected views with the same settings.
    describe all relative offsets as invariant. A world-coordinate endpoint is not an exposure
    or clearance distance. If no returned field defines a relationship measurement, leave it
    unmeasured instead of deriving an attachment distance or margin in the final answer.
-   Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation, including the
-   button rest anchor, while resizing. Partial moves and rotated dimension-controlled parts
-   remain conflicts. Keep custom photography; verify its framing after the size change.
+   Pinned speaker 2.0/2.1 assemblies can retain a complete manual translation or XYZ rigid
+   pose while resizing when every original part and the button rest anchors agree. A rotated
+   button needs the corresponding saved world-axis curves; retain their actual timing/travel.
+   For a tilted button, a world-Z change alone is not its total travel. Compare the measured
+   XYZ endpoints at the authored rest/press frames: report those components separately, or
+   use their Euclidean displacement magnitude for total travel; never label just Z as travel.
+   Partial moves, independently rotated parts, scaling and missing animation anchors remain
+   conflicts. Keep custom photography and verify framing; add a complete delivery view when
+   a protected camera clips the enlarged assembly, without replacing that authored camera.
+   For whole-product delivery, select the cabinet shell explicitly with preview_views.subjectId
+   and track the shell and named end parts; automatic subject selection may choose a cable.
+   Inspect each full-resolution saved front/back PNG, not only the small contact sheet.
+   frameBoundaryContacts reports image-edge contact for tracked silhouettes even when they
+   are not the selected subject. A positive silhouette with inFrame:false or a bbox touching
+   0/1 cannot support a claim of complete framing. Pixel masks end at the image edge; a
+   high score, VALID scene or some projected corners inside is not proof of a complete view.
+   Keep authored cameras unchanged. If the requested full product touches an edge, add a
+   separate delivery camera with breathing room, render it and inspect the new saved image.
+   Contact-free selected parts still do not certify untracked geometry or occlusion.
+
+   Native world-axis spans change with rotation and cannot certify cabinet-local width/depth/
+   height. Distinguish saved size controls from those measured spans. Do not undo the user's
+   placement or scale the assembly to make world spans match the requested local dimensions.
+   If a multi-part speaker review reports the shell hidden behind its own fitted
+   front/rear enclosure panels, inspect the named entities and saved recipe first.
+   For the pinned speaker, front-baffle and rear-service-panel are authored enclosure
+   parts. Preserve their existing tags and add subject-part through ordinary
+   entity.tags.set when those declarations are missing, then rerun the same review.
+   Retain the original review and all remaining findings. Do not tag the floor,
+   unrelated objects or every scene entity as subject-part to raise a score, and
+   do not delete, hide or move parts or protected cameras to make a review pass.
+   Keep the current measured findings even for the environment or a detail camera.
+   Their tags or intended purpose alone do not establish that a finding is a non-defect.
+   A verified enclosure-part declaration does not clear floor occlusion or framing issues.
+   Prefer the parameter/native tool receipts over filesystem searches for dimensions,
+   animation or registered files; do not reverse-engineer dimensions from world bounds.
    Controlled geometry conflicts require resolving the named parts before saving. Old recipes
    without geometry controls return available:false. Use a fresh idempotencyKey for each new
    intent, including edits after restoring history; reuse it only for the same retry.
@@ -345,8 +399,28 @@ the current revision and repeat the affected views with the same settings.
    registration. Do not guess a producer's old absolute directory from historical metadata.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
+   For exact fields of one saved entity in a large scene, use `sourceEntityId`.
+   It returns bounded compact JSON `sourceText`, `nextOffset`, revision and
+   `entityJsonSha256`. Continue with that explicit revision and `sourceOffset:nextOffset`,
+   verify the hash stays identical, concatenate the chunks in order, then parse JSON.
+   `nextOffset:null` ends the entity. `sourceLimit` is 1–2048 characters; escaped
+   text may return fewer. Do not combine this mode with full or geometry reads.
+   This preset has no generic `read` tool: do not spend repeated grep calls trying
+   to reconstruct multiline control vertices from spilled full-scene output.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
+   To reuse exact saved geometry without repeating control arrays, supply up to16
+   `entityCopies:[{sourceEntityId,newEntityId,transform?}]` from `baseRevision`.
+   These become ordinary entity.add operations before `operations` (which may be []).
+   Transform components are absolute overrides; omitted components and other authored
+   entity fields remain exact. Each source must exist in that saved revision; target IDs
+   must be new and distinct. References are retained, not remapped; child assemblies and
+   animation tracks are not copied. Decide placement explicitly and inspect native
+   contact and actual renders. Copying does not create a natural layout automatically.
+   `entityCopyOffset:[dx,dy,dz]` translates all selected copies by one common world-metre
+   displacement, preserving their relative placement. Omit every copy's transform.location
+   in this mode; per-entity rotation/scale overrides remain absolute. Select every required
+   part explicitly: unselected references/dependencies and animation are not moved/copied.
 6. **`blender_preview_render` / `blender_preview_views`** — look at it. `preview_views`
    renders several declared views in one Blender launch and returns contact sheet
    paths and measurements, and attaches the verified saved contact sheet for image-capable models.
@@ -477,3 +551,22 @@ sourceMaterialSlots 的原始 index。materialSlots 只表示当前结果，可�
 `{partId,materialId,slotIndex?}`。省略槽位表示这个网格的全部槽，指定槽覆盖优先。
 保持原几何、UV 和面的材质索引；部件父路径不隐式选择后代。空数组恢复原材质或现有
 entity.materialId 的整体覆盖。局部图片材质同样要求被使用网格有对应 UV；不要猜选择器。
+
+### Repeated details attached to static closed meshes
+
+Use a final `surface_scatter` modifier on a generated prototype instead of listing
+hundreds of repeated mesh payloads. Set `targetEntityIds` (1–8 closed generated
+meshes), `count` (1–512), and `anchorVertexIndices` (1–8 distinct indices in the
+actual mesh AFTER earlier modifiers). Local +Z is the outward growth direction.
+Optional `seed` defaults to 0, `embedDepthMm` to 5 (positive, at most 100),
+`scaleRange` to [1,1] (ordered, within 0.05–20), and `upwardBias` to 0 (0–1).
+All selected attachment vertices must lie inside the actual support for each
+instance; insufficient placements refuse the entire candidate. Start with a
+small count to verify anchor indices, support thickness and prototype size.
+The source, targets and any dependencies must remain static: no rigs, physics
+or entity transform animation; nested scatter targets are unavailable.
+The result is an editable native mesh with preserved UV/material assignments
+and deterministic placement metadata. Placement recalculates on rebuild; it
+does not certify whole-leaf clearance, self-intersection freedom or appearance.
+Preserve old entities and manual edits, and inspect fixed front/side renders
+before accepting density, repetition or silhouette.

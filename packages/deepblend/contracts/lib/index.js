@@ -523,6 +523,7 @@ export function warning(code, message, detail) {
  * @property {BlenderRenderSmokeTest|null} cyclesSmokeTest
  * @property {boolean} textBlockApi
  * @property {boolean} frameApi
+ * @property {string[]} [sceneFeatures] - explicitly supported SceneSpec compiler features.
  * @property {string|null} hostPlatform
  * @property {{ code: string, message: string, detail?: unknown }[]} warnings
  * @property {number} probedAt - epoch ms.
@@ -617,6 +618,7 @@ export function toCanonicalCapabilities(capabilities) {
         : {}),
     },
     version: capabilities.blenderVersion,
+    ...(Array.isArray(capabilities.sceneFeatures) ? { sceneFeatures: [...capabilities.sceneFeatures] } : {}),
     versionTuple: capabilities.blenderVersionTuple,
     pythonVersion: capabilities.pythonVersion,
     buildHash: capabilities.buildHash,
@@ -698,6 +700,9 @@ export {
   validateSceneSpec,
   compileSceneSpec,
   BOX_DIMENSIONS_FEATURE,
+  MESH_GEOMETRY_FEATURE,
+  SUBDIVISION_FEATURE,
+  SURFACE_SCATTER_FEATURE,
   requiredSceneFeatures,
   entityBoundingRadius,
   sceneProjection,
@@ -880,5 +885,5 @@ export {
 export { RECIPE_SCHEMA_VERSION, RECIPE_CAPABILITIES, RECIPE_LIMITS, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock } from './recipe.js'
 export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'
 
-export { GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, SURFACE_INSPECTION_VERSION, SURFACE_INSPECTION_LIMITS,
+export { OBJECT_AXES_INSPECTION_VERSION, OBJECT_AXES_BASIS, GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, SURFACE_INSPECTION_VERSION, SURFACE_INSPECTION_LIMITS,
   validateGeometrySelection, validateSurfaceSelection, verifySurfaceSamples, verifyGeometryReport } from './geometry-inspection.js'

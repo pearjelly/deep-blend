@@ -33,6 +33,9 @@ export function validateSceneSpec(input: unknown): SceneSpecValidation;
 export function parseSceneSpec(input: unknown): SceneSpec;
 /** Does not validate first. Call parseSceneSpec or check validateSceneSpec before compiling. */
 export const BOX_DIMENSIONS_FEATURE: 'geometry.primitive.dimensions';
+export const MESH_GEOMETRY_FEATURE: 'geometry.procedural.mesh';
+export const SUBDIVISION_FEATURE: 'geometry.modifier.subdivision';
+export const SURFACE_SCATTER_FEATURE: 'geometry.modifier.surface_scatter';
 export function requiredSceneFeatures(spec: SceneSpec): string[];
 export function compileSceneSpec(spec: SceneSpec): {
   spec: SceneSpec; notices: SceneSpecIssue[];
@@ -119,3 +122,7 @@ export function instantiateRecipeLock(lock: RecipeLock, changes?: RecipeValues, 
 export function recipeGeometryParameters(manifest: RecipeManifest): RecipeManifest['parameters'];
 export function planRecipeGeometryEdit(lock: RecipeLock, currentSpec: SceneSpec,
   parameterState: RecipeParameterState | undefined, changes: Record<string, number>): RecipeGeometryPlan;
+
+/** Opt-in actual evaluated mesh bounds, including object/world scale, excluding placement rotation/translation. */
+export const OBJECT_AXES_INSPECTION_VERSION: "deepblend.geometry-inspection/v3";
+export const OBJECT_AXES_BASIS: "evaluated-object-axes-scaled";

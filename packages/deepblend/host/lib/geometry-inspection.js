@@ -66,17 +66,20 @@ export async function inspectRevisionGeometry(host, projectId, revision, selecti
     if (selection.surfaceSamples !== undefined && result?.report?.schemaVersion === 'deepblend.geometry-inspection/v1') {
       refuse(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'the runtime does not support local surface samples; upgrade DeepBlend. Ordinary native geometry reads remain available.')
     }
+    if (selection.objectAxes === true && result?.report?.schemaVersion !== 'deepblend.geometry-inspection/v3') refuse(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The runtime does not support object-local native bounds; upgrade DeepBlend. Ordinary reads remain available.')
     const native = verifyGeometryReport(result?.report, request)
     verifySource()
     const hasSamples = selection.surfaceSamples !== undefined
-    return { schemaVersion: hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1', projectId, sourceRevision: revision,
+    return { schemaVersion: selection.objectAxes === true ? 'deepblend.scene-geometry/v3' : hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1', projectId, sourceRevision: revision,
       sourceDigest: digest, sourceSpecHash: manifest.specHashAfter, sourceCheckpointSha256: expected,
+      ...(selection.objectAxes === true ? { objectAxisBasis: native.objectAxisBasis } : {}),
       sourceUnchanged: true, frame: native.frame, objects: native.objects, blenderVersion: native.blenderVersion,
       ...(hasSamples ? { surfaceSamples: native.surfaceSamples } : {}),
       excludedMeasurements: hasSamples ? ['globalWallThickness', 'assemblyClearance', 'minimumClearance', 'collision', 'selfIntersection'] :
         ['wallThickness', 'shellToLinerClearance', 'minimumClearance', 'collision'],
       execution: { transport: 'batch' }, limitations: [
-        'World-axis spans include rotations, handles and protrusions; they are not intrinsic body dimensions.',
+        'World-axis spans include rotations, handles and protrusions; they are not intrinsic body dimensions. Never invert a world-axis bounding box to recover local bounds.',
+        ...(selection.objectAxes === true ? ['objectAxisBoundsMeters and objectAxisExtentMm bound actual evaluated mesh vertices in physical orthogonal axes of the selected object. They include evaluated modifiers, protrusions and native object/world scale, exclude placement rotation/translation, and are not semantic body dimensions or assembly extents. objectAxisWorldMatrix supplies the normalized axes and native origin. Sheared or degenerate object-axis bases have explicit unavailable objectAxisStatus while world bounds remain measured; these dimensions are not inferred from world bounds. Native scale can include generator construction transforms; it is not itself proof of a manual scaling edit. These extents already include that scale; do not apply it again.'] : []),
         'This evaluates saved native mesh geometry, not shader displacement or rendered pixels.',
         ...(hasSamples ? [
           'Surface samples are finite local chords along evaluated triangle-face normals, not shader or smoothed shading normals.',

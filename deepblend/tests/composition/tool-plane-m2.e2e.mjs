@@ -375,6 +375,20 @@ try {
     scene.value.data.cameras.every(camera => typeof camera.role === 'string'),
     scene.value.data.cameras.map(camera => `${camera.id}:${camera.role}`))
 
+  const selected = await call('blender_preview_views', {
+    projectId: roomId, subjectId: 'coffee-table', track: ['coffee-table'],
+    roles: ['active-camera'], width: 400, height: 225, samples: 16,
+  })
+  check('an explicit per-call subject reaches the real Host and native isolation measurements',
+    selected.value?.ok === true && selected.value.data.subjectId === 'coffee-table' &&
+    selected.value.data.track.includes('coffee-table') &&
+    selected.value.data.views[0].metrics.objects.some(o => o.id === 'coffee-table' && o.silhouettePixels > 0))
+  const afterSelection = await call('blender_scene_get', { projectId: roomId })
+  check('per-call subject selection preserves the saved revision, digest and cameras',
+    afterSelection.value.data.revision === scene.value.data.revision &&
+    afterSelection.value.data.digest === scene.value.data.digest &&
+    JSON.stringify(afterSelection.value.data.cameras) === JSON.stringify(scene.value.data.cameras))
+
   // ---- failure paths -----------------------------------------------------
 
   const missing = await call('blender_preview_views', { projectId: 'no-such-project' })

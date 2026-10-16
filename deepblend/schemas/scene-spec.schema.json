@@ -541,7 +541,7 @@
       "required": [
         "shape"
       ],
-      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile; handled_cup constructs a closed cup with shared-boundary flared handle roots. Coupled parameter constraints are checked before generation and the discrete output is validated.",
+      "description": "Deterministic procedural geometry. Lathe revolves a radius/height profile; handled_cup constructs a closed cup with shared-boundary flared handle roots. Coupled parameter constraints are checked before generation and the discrete output is validated. Mesh accepts bounded local vertices and indexed faces, optional per-corner UVs and smooth shading; it never accepts expressions or scripts.",
       "properties": {
         "shape": {
           "type": "string",
@@ -555,7 +555,8 @@
             "rounded_box",
             "lathe",
             "curve",
-            "handled_cup"
+            "handled_cup",
+            "mesh"
           ]
         },
         "size": {
@@ -711,6 +712,60 @@
             "$ref": "#/$defs/positiveNumber"
           },
           "description": "Explicit local width, depth and height for cube or rounded_box, in scene units, before object transform and bevel. Mutually exclusive with scalar size."
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 32768,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number",
+              "minimum": -1000000,
+              "maximum": 1000000
+            }
+          },
+          "description": "Mesh-only local-space control points. Object transform is applied separately."
+        },
+        "faces": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32768,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 32,
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "Mesh-only ordered vertex indices; winding is preserved. Total face corners must not exceed 131072."
+        },
+        "faceUvs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32768,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 32,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "description": "Optional mesh-only UV coordinates per face corner, including seams without splitting geometry. Omitted uses planar UVs."
+        },
+        "smooth": {
+          "type": "boolean",
+          "description": "Mesh-only smooth polygon shading; default false. Does not move or subdivide vertices."
         }
       }
     },
@@ -1400,6 +1455,103 @@
               ],
               "default": "arc",
               "description": "Inner corner join for this bevel modifier. Omitted values preserve the existing arc behavior."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "levels"
+          ],
+          "properties": {
+            "type": {
+              "const": "subdivision"
+            },
+            "levels": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "scheme": {
+              "type": "string",
+              "enum": [
+                "catmull-clark",
+                "simple"
+              ],
+              "description": "Default catmull-clark smooths the control surface; simple refines without rounding it."
+            },
+            "boundaryMode": {
+              "type": "string",
+              "enum": [
+                "all",
+                "preserve-corners"
+              ],
+              "description": "Default all. Preserve-corners keeps corners of an open boundary while smoothing the remaining surface."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "targetEntityIds",
+            "count",
+            "anchorVertexIndices"
+          ],
+          "properties": {
+            "type": {
+              "const": "surface_scatter"
+            },
+            "targetEntityIds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 512
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "anchorVertexIndices": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 999999
+              }
+            },
+            "embedDepthMm": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 100
+            },
+            "scaleRange": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number",
+                "minimum": 0.05,
+                "maximum": 20
+              }
+            },
+            "upwardBias": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             }
           }
         }

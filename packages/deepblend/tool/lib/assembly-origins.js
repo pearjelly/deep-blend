@@ -63,7 +63,7 @@ export function compareAssemblyOrigins(before, after) {
   })
   return { schemaVersion: 'deepblend.assembly-origin-comparison/v1', referenceSource: before.source, currentSource: after.source,
     pairs, comparedPairs: pairs.filter(pair => pair.worldOriginOffsetChangeMm !== undefined).length,
-    limitations: ['Changes are current minus reference; offset preservation does not establish surface contact or attachment correctness.', ...limitations] }
+    limitations: ['Object-local changes compare each object own scaled evaluated mesh axes. Changed local geometry orientation can change these spans. They are not world distances or semantic body dimensions.', 'Changes are current minus reference; offset preservation does not establish surface contact or attachment correctness.', ...limitations] }
 }
 
 /** Inputs have already passed source/selection/frame and native report verification. */
@@ -72,10 +72,13 @@ export function compareGeometryReports(reference, current) {
   const objects = current.objects.map((after, index) => {
     const before = reference.objects[index]
     if (before.entityId !== after.entityId) refuse('comparison entity identities differ.')
-    const values = object => object.available ? { status: 'measured', worldAxisExtentMm: object.worldAxisExtentMm, worldOriginMeters: origin(object) } :
+    const values = object => object.available ? { status: 'measured', worldAxisExtentMm: object.worldAxisExtentMm, worldOriginMeters: origin(object),
+      ...(object.objectAxisStatus ? { objectAxisStatus: object.objectAxisStatus } : {}),
+      ...(object.objectAxisExtentMm ? { objectAxisExtentMm: object.objectAxisExtentMm } : {}) } :
       { status: 'unavailable', reason: object.unavailableReason }
     const row = { entityId: after.entityId, before: values(before), after: values(after) }
     if (before.available && after.available) {
+      if (before.objectAxisExtentMm && after.objectAxisExtentMm) row.objectAxisExtentChangeMm = subtract(after.objectAxisExtentMm, before.objectAxisExtentMm)
       row.worldAxisExtentChangeMm = subtract(after.worldAxisExtentMm, before.worldAxisExtentMm)
       row.worldOriginChangeMm = subtractMm(row.after.worldOriginMeters, row.before.worldOriginMeters)
     }
@@ -83,5 +86,5 @@ export function compareGeometryReports(reference, current) {
   })
   return { schemaVersion: 'deepblend.geometry-comparison/v1', referenceInspection: reference, currentSource: identity(current), objects,
     summary: { requestedEntities: objects.length, comparedEntities: objects.filter(object => object.worldAxisExtentChangeMm !== undefined).length },
-    limitations: ['Changes are current minus reference for the same selected native parts and frame; their cause is not established.', ...limitations] }
+    limitations: ['Object-local changes compare each object own scaled evaluated mesh axes. Changed local geometry orientation can change these spans. They are not world distances or semantic body dimensions.', 'Changes are current minus reference for the same selected native parts and frame; their cause is not established.', ...limitations] }
 }

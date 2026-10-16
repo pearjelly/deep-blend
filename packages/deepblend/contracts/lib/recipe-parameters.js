@@ -122,13 +122,17 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id).dimensions[axis] = target.generator.dimensions[axis]
     } else {
-      if (close(actual.transform.location[axis], target.transform.location[axis])) continue
-      if (!locations.has(actual.id)) locations.set(actual.id, structuredClone(actual.transform.location))
-      const delta = target.transform.location[axis] - entity(before.spec, actual.id).transform.location[axis]
-      locations.get(actual.id)[axis] = target.transform.location[axis]
-      if (binding.offsetAnimation === true) animationOffsets.set(`${actual.id}:${binding.axis}`, {
-        entityId: actual.id, property: `location.${binding.axis}`, delta,
-      })
+      const axes = speaker.rigidPose ? [0, 1, 2] : [axis]
+      for (const movedAxis of axes) {
+        if (close(actual.transform.location[movedAxis], target.transform.location[movedAxis])) continue
+        if (!locations.has(actual.id)) locations.set(actual.id, structuredClone(actual.transform.location))
+        const delta = target.transform.location[movedAxis] - entity(before.spec, actual.id).transform.location[movedAxis]
+        locations.get(actual.id)[movedAxis] = target.transform.location[movedAxis]
+        const movedName = ['x', 'y', 'z'][movedAxis]
+        if (binding.offsetAnimation === true) animationOffsets.set(`${actual.id}:${movedName}`, {
+          entityId: actual.id, property: `location.${movedName}`, delta,
+        })
+      }
     }
   }
   for (const offset of animationOffsets.values()) for (const track of currentSpec.animationTracks ?? []) {

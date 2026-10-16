@@ -37,11 +37,13 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { StudioConfig } from '@deepblend/dsh-blender-host'
 
 import {
   importDsh,
   resolveDshHome,
+  resolveDeploymentNodeModules,
 } from '../lib/dsh-deployment.mjs'
 
 const HERE = import.meta.dirname
@@ -107,6 +109,19 @@ try {
   // must be handed over as the { apply, inject } pair (measured: wrapping it in a
   // closure silently registers nothing and only fails later with NO_ADAPTER).
   ctx.plugin({ apply: deepSeek.apply, inject: deepSeek.inject }, { apiKeyEnv: 'DEEPSEEK_API_KEY' })
+
+  // Explicit custom probe routes use the operator's declared adapter, read-only,
+  // just as ui-live does. Never relabel a text-only fallback as a vision model.
+  if (PROVIDER !== 'deepseek-official') {
+    const profile = process.env.DEEPBLEND_PROBE_PROFILE ?? 'desktop'
+    if (!/^[a-z0-9-]+$/.test(profile)) throw Error('Invalid live probe profile name.')
+    const yaml = await import(pathToFileURL(join(resolveDeploymentNodeModules(), 'js-yaml', 'index.js')).href)
+    const rows = yaml.load(readFileSync(join(DSH_HOME, 'profiles', profile, 'cordis.patch.yml'), 'utf8'))
+    const adapter = Array.isArray(rows) && rows.find(row => row.id === 'llm-pi-ai' && row.config?.providers?.[PROVIDER])
+    if (!adapter) throw Error('Requested probe provider has no configured pi-ai adapter in the selected private profile.')
+    const pi = await importDsh('dsh-llm-pi-ai')
+    ctx.plugin({ apply: pi.apply, inject: pi.inject }, adapter.config)
+  }
 
   const { default: Provider, ProviderConfig } = await import('@deepblend/dsh-blender-provider-local')
   const { default: Studio } = await import('@deepblend/dsh-blender-host')

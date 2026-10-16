@@ -186,6 +186,9 @@ test('a valid recipe can combine every supported capability', () => {
     )
     spec.entities.push({id:'combined-handled-cup',type:'generator',generator:{shape:'handled_cup',rootTension:2.5,height:.105},materialId:spec.materials[0].id})
     spec.entities.push({ id: 'combined-box', type: 'generator', generator: { shape: 'cube', dimensions: [.2, .1, .1] }, materialId: spec.materials[0].id })
+    spec.entities.push({ id: 'combined-surface', type: 'generator', generator: { shape: 'mesh',
+      vertices: [[0, 0, 0], [.1, 0, 0], [0, .1, .02]], faces: [[0, 1, 2]] },
+      modifiers: [{ type: 'subdivision', levels: 1 }, {type:'surface_scatter',targetEntityIds:['combined-box'],count:1,anchorVertexIndices:[0]}], materialId: spec.materials[0].id })
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })

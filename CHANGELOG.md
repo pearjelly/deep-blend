@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0 — 2026-10-16
+
+- Continue dimension edits of complete XYZ-posed, animated speaker assemblies while preserving manual details, placement, authored cameras and existing timing.
+- Read actual object-axis dimensions from evaluated native geometry; distinguish them from world-axis spans and local surface samples.
+- Preview an explicit subject and measured parts, report silhouette-edge warnings, and preserve legacy camera fallback with an explicit warning.
+- Author bounded editable control meshes and subdivision; read large saved entities in exact chunks and copy them with explicit offsets.
+- Place repeated details deterministically on closed static meshes with checked attachment vertices, shared assembly offsets and geometry budgets; reject incomplete placement without replacing the source.
+- Retain the independently published recovery reproduction and verify its image checksums against native checkpoint and frame receipts.
+
 ## 0.13.0 — 2026-10-15
 
 - Continue dimension edits of moved or tilted handled cups while preserving placement, manual parameters and independent photography.

@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto'
 import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest, sha256Canonical } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -941,6 +941,257 @@ check('a cancel that throws an unclassified error becomes BLENDER_SCRIPT_ERROR w
     const bad = await tool.execute(args, {})
     check(`native scene read refuses ${label} without returning a successful measurement`, !bad.ok && typeof bad.data?.errorCode === 'string')
   }
+}
+
+
+{
+  const host=stubStudio(), requests=[], hash='c'.repeat(64)
+  host.getScene=async(id,options)=>{ requests.push(options)
+    const old=options.revision==='r0001', x=old ? .1 : .12
+    return {revision:options.revision??'r0002',digest:'sha256:axes',isCurrent:!old,geometryInspection:{
+      schemaVersion:'deepblend.scene-geometry/v3',objectAxisBasis:'evaluated-object-axes-scaled',projectId:'watch-commercial',
+      sourceRevision:options.revision??'r0002',sourceDigest:'sha256:axes',sourceCheckpointSha256:hash,sourceUnchanged:true,frame:17,blenderVersion:'fixture',
+      limitations:['Physical object-axis dimensions include native scale; no wall or clearance measured.'],objects:[{entityId:'body',type:'MESH',available:true,
+        worldBoundsMeters:{min:[0,0,0],max:[.2,x,.3]},worldAxisExtentMm:[200,x*1000,300],scale:[1,1,1],
+        worldMatrix:[[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]],objectAxisWorldMatrix:[[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]],
+        objectAxisStatus:'measured',objectAxisBoundsMeters:{min:[0,0,0],max:[x,.2,.3]},objectAxisExtentMm:[x*1000,200,300],vertexCount:8,polygonCount:6}]}}
+  }
+  const plane=await composeToolPlane({studio:host,label:'object-axis-read',expectAtLeast:16}),tool=plane.registered.get('blender_scene_get')
+  const args={projectId:'watch-commercial',revision:'r0002',geometryEntityIds:['body'],geometryFrame:17,geometryOnly:true,geometryObjectAxes:true,geometryCompareRevision:'r0001'}
+  const result=await tool.execute(args,{})
+  check('physical object-axis request reaches both saved native revisions and returns a compact verified receipt',result.ok && requests.length===2 && requests.every(r=>r.geometry.objectAxes===true) && result.data.geometryInspection.objectAxisBasis==='evaluated-object-axes-scaled')
+  check('physical object-axis change stays distinct from a rotated world-axis change',result.ok && JSON.stringify(result.data.geometryComparison.objects[0].objectAxisExtentChangeMm)==='[20,0,0]' && JSON.stringify(result.data.geometryComparison.objects[0].worldAxisExtentChangeMm)==='[0,20,0]')
+  const count=requests.length
+  for(const value of [null,1,'true']){let refused=false;try{await tool.execute({...args,geometryObjectAxes:value},{})}catch(error){refused=error.code==='INVALID_ARGS'}check('invalid object-axis option refuses before invoking Host '+String(value),refused && requests.length===count)}
+  const partial=await tool.execute({projectId:args.projectId,geometryObjectAxes:true},{})
+  check('object-axis option cannot silently become an unmeasured scene read',!partial.ok && requests.length===count)
+  const original=host.getScene;host.getScene=async(...a)=>{const d=await original(...a);d.geometryInspection.schemaVersion='deepblend.scene-geometry/v1';return d}
+  const unsupported=await tool.execute(args,{})
+  check('old Host cannot silently omit physical object-axis evidence',!unsupported.ok && unsupported.data.errorCode===code('RUNTIME_UNAVAILABLE'))
+}
+
+// A high score for an automatically chosen cable must not hide another tracked
+// silhouette reaching the image edge. No saved subject/tags are changed by selection.
+{
+  let request, calls = 0
+  const receipt = { revision: 'r0004', digest: 'a'.repeat(64), subjectId: 'cable', profile: { engine: 'cycles' },
+    views: [{ viewId: 'back', cameraId: 'reverse', frame: 24, width: 768, height: 576, metrics: { objects: [
+      { id: 'cable', silhouettePixels: 50, inFrame: true, bbox: [.3, .3, .4, .4] },
+      { id: 'shell', silhouettePixels: 400, inFrame: false, bbox: [.1, 0, 1, .9] },
+      { id: 'hidden', silhouettePixels: 0, inFrame: false, bbox: null },
+      { id: 'legacy', silhouettePixels: 20, bbox: [0, 0, 1, 1] },
+    ] } }], warnings: [] }
+  const host = { hostApiVersion: () => 6,
+    renderViews: async args => { calls++; request = args; return structuredClone(receipt) },
+    scoreVisualViews: () => ({ score: 100, issues: [] }) }
+  const plane = await composeToolPlane({ studio: host, label: 'preview-boundary', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_preview_views')
+  const args = { projectId: 'speaker', revision: 'r0004', subjectId: 'shell', track: ['shell', 'cable'], frame: 24 }
+  const result = await tool.execute(args, {})
+  check('preview selects an explicit subject and bounded tracked parts without editing project metadata',
+    result.ok && request.subjectId === 'shell' && JSON.stringify(request.track) === '["shell","cable"]')
+  const contacts = result.data.frameBoundaryContacts
+  check('a perfect cable score cannot hide a tracked shell touching top and right image edges',
+    result.data.score === 100 && contacts.length === 1 && contacts[0].entityId === 'shell' &&
+    contacts[0].frame === 24 && contacts[0].cameraId === 'reverse' && JSON.stringify(contacts[0].edges) === '["top","right"]' &&
+    result.text.includes('complete framing is unverified'))
+  check('missing legacy and empty silhouette data cannot fabricate edge contact', contacts.every(c => c.entityId === 'shell'))
+  receipt.views[0].metrics.objects[1].inFrame = true
+  receipt.views[0].metrics.objects[1].bbox = [.1, .1, .9, .9]
+  const complete = await tool.execute(args, {})
+  check('contact-free tracked parts do not become an assembly framing certificate',
+    complete.ok && complete.data.frameBoundaryContacts.length === 0 && complete.text.includes('not a complete assembly framing certificate') &&
+    complete.data.framingScope.includes('untracked parts'))
+  const before = calls
+  for (const track of [[], ['shell', 'shell'], Array.from({ length: 9 }, (_, i) => 'part-' + i)]) {
+    let refused = false
+    try { const out = await tool.execute({ ...args, track }, {}); refused = !out.ok } catch (e) { refused = e.code === 'INVALID_ARGS' }
+    check('invalid isolation selection refuses before a paid render ' + track.length, refused && calls === before)
+  }
+}
+
+// Existing saved control meshes must be readable without a generic file-read
+// tool or a truncated whole-scene dump. Reads cannot create or alter a revision.
+{
+  const spec = JSON.parse(readFileSync(join(ROOT, 'deepblend/tests/fixtures/metal-lamp-v2/scene-spec.json'), 'utf8'))
+  const entity = spec.entities[0]
+  entity.tags = Array.from({ length: 1200 }, (_, i) => `叶片🌿-${i}-"\\\n\t\u0001`)
+  const original = JSON.stringify(spec)
+  const expected = JSON.stringify(entity)
+  const hash = createHash('sha256').update(expected).digest('hex')
+  const requests = []
+  let mode = 'normal'
+  const host = { hostApiVersion: () => HOST_API_VERSION, getScene: async (id, options) => {
+    requests.push(options)
+    if (mode === 'throw') throw new BlenderError(BlenderErrorCode.REVISION_NOT_FOUND, 'Missing saved revision.')
+    const data = { projectId: id, revision: options.revision ?? 'r0003', digest: sceneSpecDigest(spec),
+      isCurrent: options.revision === undefined, entities: [], cameras: [], lights: [], counts: {} }
+    if (options.full && mode !== 'legacy') data.spec = structuredClone(spec)
+    if (mode === 'mismatch') data.digest = '0'.repeat(64)
+    if (mode === 'wrong-revision') data.revision = 'r0099'
+    if (mode === 'wrong-project') data.projectId = 'another-project'
+    return data
+  } }
+  const plane = await composeToolPlane({ studio: host, label: 'bounded-entity-source', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_scene_get')
+  const base = { projectId: 'lamp', sourceEntityId: entity.id }
+  let combined = '', offset = 0, count = 0, allBounded = true, allBound = true
+  do {
+    const result = await tool.execute({ ...base, ...(offset ? { revision: 'r0003', sourceOffset: offset } : {}) }, {})
+    if (!result.ok) throw new Error(result.text)
+    const data = result.data
+    combined += data.sourceText; count++
+    allBounded &&= result.text.length < 8192 && data.sourceLength <= 2048 && data.sourceLength > 0
+    allBound &&= data.entityJsonSha256 === hash && data.revision === 'r0003' && data.digest === sceneSpecDigest(spec) &&
+      data.sourceOffset === offset && data.sourceLength === data.sourceText.length && data.totalChars === expected.length &&
+      !('spec' in data) && !('compiledSpec' in data) && !('entities' in data)
+    offset = data.nextOffset
+  } while (offset !== null)
+  check('large saved entity reassembles exactly including Unicode, quotes and control characters', count > 10 && combined === expected && JSON.stringify(JSON.parse(combined)) === expected)
+  check('every source chunk remains below spill threshold and advertises exact offsets', allBounded)
+  check('each chunk binds to the same explicit saved revision and entity hash without full-scene duplication', allBound)
+  check('source reads ask only for saved full data and never native geometry', requests.every(o => o.full === true && !('geometry' in o)))
+  check('source reads leave all saved values and manually authored fields untouched', JSON.stringify(spec) === original)
+  const end = await tool.execute({ ...base, revision: 'r0003', sourceOffset: expected.length, sourceLimit: 1 }, {})
+  check('exact end offset returns an empty terminal chunk', end.ok && end.data.sourceText === '' && end.data.nextOffset === null)
+  const small = await tool.execute({ ...base, sourceLimit: 1 }, {})
+  check('one-character limit is honored without skipping source data', small.ok && small.data.sourceText === expected[0] && small.data.nextOffset === 1)
+  for (const extra of [{ sourceOffset: -1 }, { sourceOffset: .5 }, { sourceOffset: null }, { sourceOffset: 1 },
+    { sourceLimit: 0 }, { sourceLimit: 2049 }, { sourceLimit: '5' }, { sourceLimit: null },
+    { sourceEntityId: '../leaf' }, { sourceEntityId: '' }, { sourceEntityId: 'a'.repeat(65) },
+    { full: true }, { geometryOnly: false }, { geometryFrame: 1 }, { geometryEntityIds: [entity.id] }]) {
+    const before = requests.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, ...extra }, {}); refused = !out.ok && out.data.errorCode === code('SCRIPT_ERROR') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('invalid or mixed source request refuses before Host read ' + JSON.stringify(extra), refused && requests.length === before)
+  }
+  for (const extra of [{ sourceOffset: 0 }, { sourceLimit: 32 }]) {
+    const before = requests.length
+    const out = await tool.execute({ projectId: 'lamp', ...extra }, {})
+    check('source range cannot silently become an ordinary scene read ' + JSON.stringify(extra), !out.ok && requests.length === before)
+  }
+  const missing = await tool.execute({ ...base, sourceEntityId: 'missing-entity' }, {})
+  const beyond = await tool.execute({ ...base, revision: 'r0003', sourceOffset: expected.length + 1 }, {})
+  check('unknown entity and out-of-range offset return stable failures', !missing.ok && !beyond.ok && missing.data.errorCode === code('SCRIPT_ERROR') && beyond.data.errorCode === code('SCRIPT_ERROR'))
+  for (mode of ['legacy', 'mismatch', 'wrong-revision', 'wrong-project']) {
+    const out = await tool.execute({ ...base, revision: 'r0003' }, {})
+    check('incompatible saved source cannot fabricate a chunk ' + mode, !out.ok && out.data.errorCode === code('RUNTIME_UNAVAILABLE'))
+  }
+  mode = 'throw'
+  const absent = await tool.execute({ ...base, revision: 'r0003' }, {})
+  check('missing revision retains the Host stable error code', !absent.ok && absent.data.errorCode === code('REVISION_NOT_FOUND'))
+  mode = 'normal'
+  const ordinary = await tool.execute({ projectId: 'lamp' }, {})
+  const full = await tool.execute({ projectId: 'lamp', full: true }, {})
+  check('ordinary and full reads retain their existing response shapes', ordinary.ok && !('sourceText' in ordinary.data) && full.ok && full.data.spec && !('sourceText' in full.data))
+}
+
+// Saved-data copies avoid regenerating authored mesh arrays, while every write
+// still goes through the ordinary immutable, atomic Host patch protocol.
+{
+  const spec = JSON.parse(readFileSync(join(ROOT, 'deepblend/tests/fixtures/metal-lamp-v2/scene-spec.json'), 'utf8'))
+  const source = spec.entities[0]
+  source.generator = { shape: 'mesh', vertices: [[0,0,0],[1,0,0],[0,1,0]], faces: [[0,1,2]], faceUvs: [[[0,0],[1,0],[0,1]]], smooth: false }
+  source.modifiers = [{ type: 'solidify', thickness: .002, offset: 0 }]
+  source.tags = ['manual-detail']
+  const saved = JSON.stringify(spec), requests = [], patches = []
+  let mode = 'normal'
+  const host = { hostApiVersion: () => HOST_API_VERSION,
+    getScene: async (id, options) => {
+      requests.push(options)
+      const result = { projectId: id, revision: options.revision, digest: sceneSpecDigest(spec), spec }
+      if (mode === 'legacy') delete result.spec
+      if (mode === 'wrong-source') result.digest = '0'.repeat(64)
+      if (mode === 'wrong-revision') result.revision = 'r0099'
+      return result
+    },
+    applyScenePatch: async patch => { patches.push(patch); return { revision: 'r0004', digest: sceneSpecDigest(spec), checkpoint: null, previews: [], warnings: [] } } }
+  const plane = await composeToolPlane({ studio: host, label: 'bounded-entity-copies', expectAtLeast: 16 })
+  const tool = plane.registered.get('blender_scene_patch')
+  const copy = { sourceEntityId: source.id, newEntityId: 'leaf-copy' }
+  const base = { projectId: 'lamp', baseRevision: 'r0003', operations: [] }
+  const ordinary = { op: 'entity.tags.set', entityId: 'leaf-copy', tags: ['copied-manual-detail'] }
+  const result = await tool.execute({ ...base, entityCopies: [copy, { ...copy, newEntityId: 'second-copy', transform: { location: [2,3,4] } }], operations: [ordinary] }, {})
+  const additions = patches[0].operations.slice(0, 2)
+  check('copying exact saved geometry commits through ordinary entity.add before subsequent operations', result.ok &&
+    additions.every(o => o.op === 'entity.add') && patches[0].operations[2] === ordinary && patches[0].baseRevision === 'r0003')
+  check('copy retains authored control points, UVs, smooth flags, modifiers and manual tags',
+    JSON.stringify(additions[0].entity) === JSON.stringify({ ...source, id: 'leaf-copy' }))
+  check('copy transform replaces only supplied absolute components', JSON.stringify(additions[1].entity.transform) ===
+    JSON.stringify({ ...source.transform, location: [2,3,4] }))
+  check('copy receipt binds each destination to its exact saved source identity', result.data.entityCopies.length === 2 &&
+    result.data.entityCopies.every(c => c.sourceRevision === 'r0003' && c.sourceDigest === sceneSpecDigest(spec) && c.sourceEntitySha256 === sha256Canonical(source)))
+  check('copy reads the requested immutable base with no native side effects', requests.length === 1 && JSON.stringify(requests[0]) === '{"revision":"r0003","full":true}')
+  additions[0].entity.generator.vertices[0][0] = 42
+  check('each copy owns its control arrays and cannot mutate its source or sibling', source.generator.vertices[0][0] === 0 &&
+    additions[1].entity.generator.vertices[0][0] === 0 && JSON.stringify(spec) === saved)
+  for (const copies of [[], Array.from({length:17},(_,i)=>({...copy,newEntityId:'copy-'+i})), [copy,copy],
+    [{...copy,newEntityId:'../bad'}], [{...copy,sourceEntityId:''}], [{...copy,extra:true}],
+    [{...copy,transform:{location:[1,2]}}], [{...copy,transform:{position:[1,2,3]}}], [{...copy,transform:{scale:[1,null,1]}}],
+    [{...copy,transform:null}], [null]]) {
+    const reads = requests.length, writes = patches.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, entityCopies: copies }, {}); refused = !out.ok && out.data.errorCode === code('SCENE_PATCH_INVALID') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('malformed copy request refuses before any Host read/write ' + JSON.stringify(copies).slice(0,100), refused && requests.length === reads && patches.length === writes)
+  }
+  for (const copies of [[{...copy,sourceEntityId:'absent'}], [{...copy,newEntityId:source.id}],
+    [copy,{sourceEntityId:'leaf-copy',newEntityId:'copy-of-new-copy'}]]) {
+    const writes = patches.length
+    const out = await tool.execute({ ...base, entityCopies: copies }, {})
+    check('missing source, occupied target or same-batch source cannot partially commit ' + JSON.stringify(copies),
+      !out.ok && out.data.errorCode === code('SCENE_PATCH_REJECTED') && patches.length === writes)
+  }
+  const reads = requests.length, writes = patches.length
+  const oversized = await tool.execute({ ...base, operations: Array.from({length:500},()=>ordinary), entityCopies: [copy] }, {})
+  check('copy expansion respects the shared total operation budget before reading source', !oversized.ok && requests.length === reads && patches.length === writes)
+  for (mode of ['legacy','wrong-source','wrong-revision']) {
+    const out = await tool.execute({ ...base, entityCopies: [copy] }, {})
+    check('unverified saved source cannot become copied geometry ' + mode, !out.ok && out.data.errorCode === code('RUNTIME_UNAVAILABLE') && patches.length === writes)
+  }
+  mode = 'normal'
+  const oldReads = requests.length
+  const normal = await tool.execute({ ...base, operations: [ordinary] }, {})
+  check('ordinary patches retain their existing path without fetching a full scene', normal.ok && requests.length === oldReads && !('entityCopies' in normal.data))
+
+  const secondSource = spec.entities[1], offset = [2, -1, .5]
+  const shifted = await tool.execute({ ...base, entityCopyOffset: offset, entityCopies: [
+    { ...copy, newEntityId: 'shift-a', transform: { rotationEuler: [.1,.2,.3] } },
+    { sourceEntityId: secondSource.id, newEntityId: 'shift-b' },
+  ] }, {})
+  const shiftedEntities = patches.at(-1).operations.map(op => op.entity)
+  const sources = [source, secondSource]
+  check('one world offset translates every selected saved entity by the requested metres', shifted.ok && shiftedEntities.every((e,i) =>
+    e.transform.location.every((value,axis) => Math.abs(value - ((sources[i].transform?.location ?? [0,0,0])[axis] + offset[axis])) < 1e-12)))
+  check('common offset preserves relative positions of differently placed source parts', shiftedEntities[0].transform.location.every((value,axis) =>
+    Math.abs((value-shiftedEntities[1].transform.location[axis])-((source.transform?.location??[0,0,0])[axis]-(secondSource.transform?.location??[0,0,0])[axis])) < 1e-12))
+  check('translation preserves source geometry and scale while honoring explicit absolute rotation', shiftedEntities[0].generator.vertices[0][0] === 0 &&
+    JSON.stringify(shiftedEntities[0].transform.rotationEuler) === '[0.1,0.2,0.3]' &&
+    JSON.stringify(shiftedEntities[0].transform.scale) === JSON.stringify(source.transform?.scale) && JSON.stringify(spec) === saved)
+  check('copy translation receipt records the common displacement and original source hashes',
+    JSON.stringify(shifted.data.entityCopyOffset) === JSON.stringify(offset) && shifted.data.entityCopies[0].sourceEntitySha256 === sha256Canonical(source))
+  for (const extra of [{ entityCopyOffset: null }, { entityCopyOffset: [1,2] }, { entityCopyOffset: [1,NaN,0] },
+    { entityCopyOffset: [Infinity,0,0] }, { entityCopyOffset: offset, entityCopies: undefined, operations: [ordinary] },
+    { entityCopyOffset: offset, entityCopies: [{...copy,transform:{location:[0,0,0]}}] }]) {
+    const reads = requests.length, writes = patches.length
+    let refused = false
+    try { const out = await tool.execute({ ...base, entityCopies:[copy], ...extra }, {}); refused = !out.ok && out.data.errorCode === code('SCENE_PATCH_INVALID') }
+    catch (error) { refused = error.code === 'INVALID_ARGS' }
+    check('invalid or ambiguous common copy offset refuses before Host IO ' + JSON.stringify(extra), refused && requests.length === reads && patches.length === writes)
+  }
+  const zero = await tool.execute({ ...base, entityCopies:[copy],entityCopyOffset:[0,0,0] }, {})
+  check('zero common displacement preserves exact saved source placement', zero.ok && JSON.stringify(patches.at(-1).operations[0].entity) === JSON.stringify({...source,id:copy.newEntityId}))
+  const noTransform = {...structuredClone(source),id:'source-without-transform'}
+  delete noTransform.transform;spec.entities.push(noTransform)
+  const implicit = await tool.execute({...base,entityCopies:[{sourceEntityId:noTransform.id,newEntityId:'implicit-origin'}],entityCopyOffset:offset},{})
+  check('an omitted saved transform uses the SceneSpec zero origin for translation',implicit.ok && JSON.stringify(patches.at(-1).operations[0].entity.transform.location)===JSON.stringify(offset))
+  spec.entities.pop()
+  const previousX=source.transform.location[0], beforeOverflow=patches.length
+  source.transform.location[0]=Number.MAX_VALUE
+  const overflow=await tool.execute({...base,entityCopies:[copy],entityCopyOffset:[Number.MAX_VALUE,0,0]}, {})
+  source.transform.location[0]=previousX
+  check('overflowing finite inputs cannot write a non-finite translated position',!overflow.ok && overflow.data.errorCode===code('SCENE_PATCH_INVALID') && patches.length===beforeOverflow && JSON.stringify(spec)===saved)
 }
 
 const passed = results.filter(entry => entry.ok).length

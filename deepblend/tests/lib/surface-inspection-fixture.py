@@ -35,5 +35,13 @@ groups=[
  {'entities':['wall','disabled','budget','curve','far'],'samples':[q('disabled','disabled'),q('budget','budget'),q('curve','curve'),q('far',target='far')]},
  {'entities':['torus','beyond'],'samples':[q('occluded','torus',(-.025,0,0),target='beyond')]},
 ]
+# Physical object-axis witnesses: construction scale, reflection, evaluation and shear.
+axis_cube=cube('axis-physical',(.3,.15,.18),(3,3,3));axis_cube.rotation_euler=(-.2,.3,1.0471975511965976)
+axis_reflect=cube('axis-reflected',(-.3,.15,.18),(5,3,3));axis_reflect.rotation_euler=(-.2,.3,1.0471975511965976)
+axis_array=cube('axis-evaluated',(.2,.1,.05),(7,3,3));modifier=axis_array.modifiers.new('evaluated-array','ARRAY');modifier.count=2;modifier.relative_offset_displace=(1,0,0)
+parent=bpy.data.objects.new('axis-shear-parent',None);bpy.context.collection.objects.link(parent);parent.scale=(2,1,1)
+sheared=cube('axis-sheared',(.1,.2,.3),(9,3,3));sheared.parent=parent;sheared.rotation_euler[2]=.7853981633974483
+cube('axis-degenerate',(0,.2,.3),(11,3,3))
+bpy.context.view_layer.update()
 bpy.ops.wm.save_as_mainfile(filepath=str(output/'fixture.blend'))
 (output/'queries.json').write_text(json.dumps(groups,indent=2)+'\n')

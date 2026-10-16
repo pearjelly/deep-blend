@@ -24,6 +24,7 @@ for (const [name, edit] of [
   ['missing object', r => { r.objects = [] }],
   ['non-finite transform', r => { r.objects[0].worldMatrix[0][0] = NaN }],
   ['incorrect unit conversion', r => { r.objects[0].worldAxisExtentMm[0] = .1 }],
+  ['overflowing world span', r => { r.objects[0].worldBoundsMeters.min[0]=-1e308;r.objects[0].worldBoundsMeters.max[0]=1e308 }],
   ['reversed bounds', r => { r.objects[0].worldBoundsMeters.min[0] = 1 }],
   ['invented hidden object dimensions', r => { r.objects[0].available = false; r.objects[0].unavailableReason = 'viewport-disabled' }],
   ['unbounded payload', r => { r.padding = 'x'.repeat(65536) }],
@@ -237,3 +238,67 @@ for (const keepWorkingDirectory of [false, true]) {
     })
   }
 }
+
+const objectAxesReport = () => {
+  const report = inspectionReport(), object = report.objects[0]
+  Object.assign(report, { schemaVersion: 'deepblend.geometry-inspection/v3', objectAxisBasis: 'evaluated-object-axes-scaled' })
+  Object.assign(object, { objectAxisStatus: 'measured', objectAxisBoundsMeters: { min: [0,0,0], max: [.1,.2,.3] }, objectAxisExtentMm: [100,200,300], objectAxisWorldMatrix: [[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]],
+    worldBoundsMeters: { min: [0,0,0], max: [.2,.1,.3] }, worldAxisExtentMm: [200,100,300],
+    worldMatrix: [[0,-1,0,.2],[1,0,0,0],[0,0,1,0],[0,0,0,1]] })
+  return report
+}
+
+test('opt-in physical object-axis bounds exclude rotation and include native scale', () => {
+  const request = { ...inspectionRequest(), objectAxes: true }, report = objectAxesReport()
+  assert.equal(verifyGeometryReport(report, request), report)
+  const object = report.objects[0]
+  object.scale = [2,3,4]; object.worldMatrix = [[0,-3,0,.6],[2,0,0,0],[0,0,4,0],[0,0,0,1]]
+  object.worldBoundsMeters.max = [.6,.2,1.2]; object.worldAxisExtentMm = [600,200,1200]
+  object.objectAxisWorldMatrix[0][3]=.6;object.objectAxisBoundsMeters.max=[.2,.6,1.2];object.objectAxisExtentMm=[200,600,1200]
+  assert.equal(verifyGeometryReport(report, request), report)
+  assert.deepEqual(object.objectAxisExtentMm,[200,600,1200])
+  assert.throws(() => verifyGeometryReport(report, inspectionRequest()))
+  assert.throws(() => verifyGeometryReport(inspectionReport(), request))
+})
+
+for (const [name, mutate] of [
+  ['wrong basis', r=>{r.objectAxisBasis='world'}],
+  ['missing bounds', r=>{delete r.objects[0].objectAxisBoundsMeters}],
+  ['invented object-axis frame', r=>{r.objects[0].objectAxisWorldMatrix[0][0]=.5}],
+  ['missing extents', r=>{delete r.objects[0].objectAxisExtentMm}],
+  ['non-finite local coordinates', r=>{r.objects[0].objectAxisBoundsMeters.min[0]=NaN}],
+  ['reversed local bounds', r=>{r.objects[0].objectAxisBoundsMeters.min[0]=1}],
+  ['false unit conversion', r=>{r.objects[0].objectAxisExtentMm[0]=.1}],
+  ['invented local thickness', r=>{r.objects[0].objectAxisBoundsMeters.wallThicknessMm=2}],
+  ['non-affine matrix', r=>{r.objects[0].worldMatrix[3][0]=1}],
+  ['local envelope smaller than actual world geometry', r=>{r.objects[0].objectAxisBoundsMeters.max[0]=.09;r.objects[0].objectAxisExtentMm[0]=90}],
+  ['hidden geometry carrying local measurements', r=>{r.objects[0].available=false;r.objects[0].unavailableReason='viewport-disabled'}],
+]) test(`object-local receipt refuses ${name}`,()=>{
+  const report=objectAxesReport();mutate(report)
+  assert.throws(()=>verifyGeometryReport(report,{...inspectionRequest(),objectAxes:true}),e=>e.code==='BLENDER_SCRIPT_ERROR')
+})
+
+test('object-local provider forwards only requested measurements, preserves snapshots, and refuses an old bootstrap',async t=>{
+  const f=await geometryRuntime(t)
+  await assert.rejects(()=>f.runtime.inspectGeometry({...f.request,objectAxes:true}),e=>e.code==='BLENDER_RUNTIME_UNAVAILABLE')
+  f.runtime.runBootstrap=async(call,options)=>{
+    assert.equal(call.payload.objectAxes,true);assert.equal(options.session,false)
+    return {envelope:{result:objectAxesReport()},durationMs:1,stdout:'',stderr:''}
+  }
+  assert.equal((await f.runtime.inspectGeometry({...f.request,objectAxes:true})).report.objectAxisBasis,'evaluated-object-axes-scaled')
+  assert.equal(readFileSync(f.source,'utf8'),'native checkpoint')
+  for(const objectAxes of [null,1,'true',{},[]]) await assert.rejects(()=>f.runtime.inspectGeometry({...f.request,objectAxes}),e=>e.code==='BLENDER_SCRIPT_ERROR')
+  assert.deepEqual(readdirSync(join(f.scratch,'tmp')),[])
+})
+
+test('unavailable physical axes retain world facts and cannot silently replace regular basis measurements',()=>{
+ const request={...inspectionRequest(),objectAxes:true},report=objectAxesReport(),object=report.objects[0]
+ object.objectAxisStatus='unsupported-object-axis-basis'
+ for(const k of ['objectAxisBoundsMeters','objectAxisExtentMm','objectAxisWorldMatrix'])delete object[k]
+ assert.throws(()=>verifyGeometryReport(report,request))
+ object.worldMatrix=[[1,.5,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+ assert.equal(verifyGeometryReport(report,request),report)
+ assert.deepEqual(object.worldAxisExtentMm,[200,100,300])
+ object.objectAxisExtentMm=[0,0,0]
+ assert.throws(()=>verifyGeometryReport(report,request))
+})

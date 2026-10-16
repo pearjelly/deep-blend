@@ -43,7 +43,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { attachVerifiedRenderedImage } from './committed-preview.js'
 import { imageForCallingModel } from './image-delivery.js'
 
-import { BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, BlenderWarningCode, warning } from '@deepblend/dsh-blender-contracts'
 
 import {
   TOOL_OUTPUT,
@@ -63,6 +63,10 @@ const MEASUREMENT_GLOSSARY =
   'fractions, and per tracked object its silhouette pixel count (how large it would be with nothing in ' +
   'the way), its visible pixel count, the visible fraction (occlusion), its frame coverage, its bounding ' +
   'box and its centroid. These come from the rendered pixels, not from the SceneSpec.'
+
+const PREVIEW_FRAMING_GLOSSARY =
+  'frameBoundaryContacts names tracked silhouettes touching an image edge; that is a framing warning, ' +
+  'not proof of how much geometry lies outside. No contacts proves nothing about untracked parts.'
 
 /**
  * Register the M2 visual tools for the calling agent scope.
@@ -91,10 +95,12 @@ function previewViews(ctx) {
       'the saved images, a verified contact sheet attached for the calling model, and per-view measurements. Rendering does NOT create a ' +
       'revision — a preview observes a scene rather than changing it — so this is always safe to call and ' +
       'never needs a baseRevision. Use it to look at a scene; use blender_visual_review when you also want a ' +
-      'score and a judgment.\n\n' + MEASUREMENT_GLOSSARY,
+      'score and a judgment.\n\n' + MEASUREMENT_GLOSSARY + '\n\n' + PREVIEW_FRAMING_GLOSSARY,
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
       revision: { type: 'string', description: 'Revision to render. Defaults to the current one.' },
+      subjectId: { type: 'string', description: 'Optional explicit entity to measure as the subject of this call (for example the cabinet shell instead of an automatically selected cable). Does not edit saved tags or the project subject.' },
+      track: { type: 'array', items: { type: 'string' }, description: 'Optional 1–8 distinct entity IDs to measure by pixel isolation; the selected subject is always included. These selected silhouettes are not whole-assembly framing certification.' },
       roles: {
         type: 'array',
         items: { type: 'string' },
@@ -120,10 +126,19 @@ function previewViews(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
       try {
+        if (args.subjectId !== undefined && (typeof args.subjectId !== 'string' || !args.subjectId.trim())) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'subjectId must be a non-empty entity ID.')
+        }
+        if (args.track !== undefined && (!Array.isArray(args.track) || args.track.length < 1 || args.track.length > 8 ||
+            new Set(args.track).size !== args.track.length || args.track.some(id => typeof id !== 'string' || !id.trim()))) {
+          throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'track must contain 1–8 distinct non-empty entity IDs.')
+        }
         const { data, canonicalWarnings } = await canonicalCall(Promise.resolve(resolved.studio.renderViews({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
+            subjectId: args.subjectId,
+            track: args.track,
             roles: args.roles,
             frame: args.frame,
             width: args.width,
@@ -133,6 +148,20 @@ function previewViews(ctx) {
           signal: exec.signal,
         })).then(({ pngs, ...metadata }) => metadata), warning)
         const scored = resolved.studio.scoreVisualViews({ views: data.views, subjectId: data.subjectId })
+        // Isolation masks are clipped to the image. Edge contact cannot establish how
+        // much is missing, but must not disappear behind the primary subject's score.
+        const frameBoundaryContacts = []
+        for (const view of data.views ?? []) for (const object of view.metrics?.objects ?? []) {
+          const box = object.bbox
+          if (object.inFrame !== false || !(object.silhouettePixels > 0) || !Array.isArray(box) || box.length !== 4 ||
+              !box.every(n => Number.isFinite(n) && n >= 0 && n <= 1) || box[0] > box[2] || box[1] > box[3]) continue
+          const edges = [['left', box[0] === 0], ['top', box[1] === 0], ['right', box[2] === 1], ['bottom', box[3] === 1]]
+            .filter(([, touches]) => touches).map(([edge]) => edge)
+          if (edges.length) frameBoundaryContacts.push(definedFields({ viewId: view.viewId, cameraId: view.cameraId,
+            frame: view.frame, entityId: object.id, bbox: box, edges }))
+        }
+        const framingScope = 'Tracked isolated silhouettes at each returned camera/frame/resolution only. Edge contact means complete framing is unverified; no contacts cannot certify untracked parts, depth clipping, occlusion or aesthetic quality.'
+
         const notes = [
           `Revision: ${data.revision}`,
           `Subject:  ${data.subjectId ?? '(none tagged)'}`,
@@ -147,6 +176,11 @@ function previewViews(ctx) {
               `${view.width}x${view.height}) — ${view.purpose ?? ''}`,
           )
         }
+        notes.push('', 'Frame boundary contacts (including tracked objects other than the selected subject):')
+        for (const contact of frameBoundaryContacts) notes.push(
+          `  ${contact.viewId}: ${contact.entityId} touches ${contact.edges.join(', ')} — complete framing is unverified.`)
+        if (!frameBoundaryContacts.length) notes.push('  No reported edge contacts; this is not a complete assembly framing certificate.')
+        notes.push(framingScope)
         const sheet = (data.revisionPreviews ?? data.contactSheets ?? [])
         notes.push('')
         notes.push('The paths are relative to the project directory. The measured score is what the automated')
@@ -154,8 +188,8 @@ function previewViews(ctx) {
         notes.push('when you need a separate vision reviewer judgement, not just to obtain these images.')
         return await attachVerifiedRenderedImage(ctx, exec, resolved, {
           ok: true,
-          text: renderSuccess(`Rendered ${data.views.length} view(s) of ${data.revision}.`, { ...data, score: scored.score, issues: scored.issues }, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
-          data: { ...data, score: scored.score, issues: scored.issues, sheet },
+          text: renderSuccess(`Rendered ${data.views.length} view(s) of ${data.revision}.`, { ...data, score: scored.score, issues: scored.issues, frameBoundaryContacts, framingScope }, { notes, warnings: [...(data.warnings ?? []), ...canonicalWarnings] }),
+          data: { ...data, score: scored.score, issues: scored.issues, frameBoundaryContacts, framingScope, sheet },
         }, { projectId: args.projectId, revision: data.revision, digest: data.digest,
           artifact: data.previewSheets?.current, kind: 'contact-sheet' })
 

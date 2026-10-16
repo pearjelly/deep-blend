@@ -38,12 +38,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, cpSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
 import { verifyShowcaseProvenance } from '../../tools/showcase-provenance.mjs'
+import { verifyRecoveryReproductionProvenance } from '../../tools/recovery-reproduction-provenance.mjs'
 
 const INVENTORY = join(ROOT, 'deepblend', 'docs', 'third-party.md')
 const inventory = readFileSync(INVENTORY, 'utf8')
@@ -170,6 +171,7 @@ test('source files exclude external binaries and published images have declared 
   assert.ok(tracked.includes(previewManifest.tool))
   const declared = new Set()
   for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
+  for (const file of verifyRecoveryReproductionProvenance(ROOT)) declared.add(file)
   // CHARGE is a separately licensed real DSH case, not an original MIT model.
   const chargeBase = 'deepblend/docs/assets/showcase/charge-study'
   const charge = JSON.parse(readFileSync(join(ROOT, chargeBase, 'manifest.json'), 'utf8'))
@@ -327,10 +329,36 @@ test('source files exclude external binaries and published images have declared 
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand, showcase or native fixture provenance`)
+      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand, showcase, recovery reproduction or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')
+})
+
+test('recovery reproduction rejects changed frames and detached native source receipts', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-recovery-integrity-'))
+  const base = 'deepblend/reproductions/recovery-v0.11.0'
+  try {
+    writeFileSync(join(fixture, 'package.json'), readFileSync(join(ROOT, 'package.json')))
+    cpSync(join(ROOT, base), join(fixture, base), { recursive: true })
+    assert.equal(verifyRecoveryReproductionProvenance(fixture).length, 24)
+    const frame = join(fixture, base, 'frames/frame_0001.png')
+    const original = readFileSync(frame)
+    writeFileSync(frame, Buffer.concat([original, Buffer.from('changed')]))
+    assert.throws(() => verifyRecoveryReproductionProvenance(fixture), /checksum mismatch/)
+    writeFileSync(frame, original)
+    const ledgerPath = join(fixture, base, 'evidence/final-frame-sources.json')
+    const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'))
+    Object.values(ledger.sources)[0].checkpointSha256 = '0'.repeat(64)
+    writeFileSync(ledgerPath, JSON.stringify(ledger))
+    // Updating the public file inventory must not hide a detached source claim.
+    const checksums = join(fixture, base, 'SHA256SUMS')
+    const digest = createHash('sha256').update(readFileSync(ledgerPath)).digest('hex')
+    writeFileSync(checksums, readFileSync(checksums, 'utf8').replace(/^[a-f0-9]{64}(  evidence\/final-frame-sources\.json)$/m, `${digest}$1`))
+    assert.throws(() => verifyRecoveryReproductionProvenance(fixture), /detached from the published native project/)
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
 })
 
 test('showcase rejects changed images, scenes, dimensions and detached clay provenance', () => {

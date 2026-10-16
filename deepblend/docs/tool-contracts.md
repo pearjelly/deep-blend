@@ -92,10 +92,14 @@ revision、规范场景摘要、原生文件 SHA256 和依赖，复制后交给�
   一个项目没声明的视角既无法被报告，也无法跨轮比较，更无法在 restore 后复现。
 * 测量项：每视角的 mean/p05/p95 显示亮度与裁剪比例；每个被跟踪对象的
   silhouette 像素数、可见像素数、可见比例（遮挡）、画面占比、bbox、centroid。
-* 被跟踪对象 = **主体 + 体积最大的非 `environment` 实体**（最多 4 个）。
+* 可选 `subjectId` 逐调用指定主体，`track` 指定1–8个不同受测实体；主体始终加入。
+  不写保存主体、标签或相机。省略时，被跟踪对象 = **主体 + 体积最大的非 `environment` 实体**（最多 4 个）。
   `environment` 被排除是测量决定而不是整洁习惯：房间的地板在主体背后覆盖同样的
   屏幕像素，把它当遮挡物会让「椅子被它自己站的地板挡住」成立。
-* 返回 `score`（0–100），但没有判定，也没有模型意见。
+* 返回 `frameBoundaryContacts`（viewId/cameraId/frame/entityId/bbox/edges）列出受测隔离轮廓触边，
+  即使它不是计分主体；`framingScope` 明确证据范围。正像素且inFrame:false、bbox触0/1表示
+  完整取景未证实，不能由小接触表或分数判定整机完整。无接触也不证明未受测部件、深度裁切、遮挡或观感。
+* 返回 `score`（0–100），但没有判定，也没有模型意见；触边回执不修改评分阈值。
 
 ### `blender_visual_review`
 
@@ -411,6 +415,22 @@ revision、digest、帧范围与 fps、各类计数、每个实体（id/type/sha
 visible/locked）、相机参数、动画轨道、渲染 profile、已有的 preview 清单。
 `full:true` 才附带完整 `spec` 与 `compiledSpec`。
 
+大型场景的精确实体数据可用 `sourceEntityId` 单独读取，`sourceOffset` 默认0，
+`sourceLimit` 默认2048、范围1–2048。响应仅含紧凑 JSON 的 `sourceText` 片段、
+UTF-16 字符偏移、`sourceLength`、`totalChars`、`nextOffset`（结束时 null），以及
+保存 revision、digest、documentSha256 和 entityJsonSha256。转义开销大时实际片段
+可以更短。后续片必须指定首片返回的 revision，逐片核对实体哈希后按顺序串接再解析。
+这只读取保存的实体数据，不接受文件路径，也不提供通用 `read`；不得与 `full:true`
+或任何 geometry 参数混用。不存在的实体、越界偏移和不兼容的 Host 均明确失败。
+
+`blender_scene_patch` 可选 `entityCopies`（1–16份）在普通 `operations` 前展开为
+`entity.add`，随后仍走原有原子提交/冲突/幂等/编译路径。每份为
+`{sourceEntityId,newEntityId,transform?}`；来源固定为 baseRevision 的单个现有实体，
+目标ID必须新建，不能从本批新副本继续复制。transform 只覆盖显式提供的绝对
+location/rotationEuler/scale 三元向量，其余字段和引用保持。动画轨道、子装配、
+材质与布尔引用重映射不在复制范围内。operations 可在提供副本时为[]；展开后仍受
+500项上限约束。回执 entityCopies 绑定来源版本、digest、源实体哈希与目标ID。
+
 开发中的局部表面检查沿用该工具：`geometryEntityIds`（1–8个保存实体）与显式
 `geometryFrame` 请求原生跨度；可选 `geometrySurfaceSamples`（1–8个）请求严格v2回执。
 每条采样有 `sampleId`、已选择的 `entityId`、世界米制 `originMeters`、非零 `direction`
@@ -456,7 +476,9 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 |---|---|---|---|
 | `projectId` | string | **是** | |
 | `baseRevision` | string | **是** | 写前读到的 revision |
-| `operations` | array | **是** | 至少 1 个操作 |
+| `operations` | array | **是** | 至少1项；提供entityCopies时可为[]，副本先展开 |
+| `entityCopies` | array | 否 | 1–16个保存实体副本：sourceEntityId、newEntityId、可选绝对transform覆盖；来源固定baseRevision，不覆盖已有ID |
+| `entityCopyOffset` | array | 否 | 依赖entityCopies；三个有限数，单位世界米；统一平移所选副本，不能与任一副本绝对location混用，不自动移动未选依赖 |
 | `note` | string | 否 | 为什么做这次修改；写入 revision 历史 |
 | `actor` / `stage` | string | 否 | 审计字段 |
 | `idempotencyKey` | string | 否 | 省略则自动派生（见 §4） |
@@ -564,6 +586,25 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `entity.material.set` | `entityId`, `materialId`（`null` 表示恢复默认材质） |
 | `entity.generator.set` | `entityId`, `generator`（完整替换，只适用于生成器实体） |
 | `entity.modifiers.set` | `entityId`, `modifiers`（完整替换，空数组清除；不适用于 empty） |
+
+生成器可用 `shape:"mesh"` 表达非对称曲面。`vertices` 为局部坐标，
+`faces` 为保留绕序的从零开始顶点索引；每面 3–32 个不重复索引。
+预算为 32768 个顶点、32768 个面、131072 个面角；坐标绝对值不超过 1000000。
+重复面、越界索引、退化面积和不匹配的 UV 在提交前拒绝。
+可选 `faceUvs` 为每个面的每个角提供二维 UV，保留接缝；省略时生成平面 UV。
+`smooth` 默认 false，只影响表面法线插值。这里接受数值数据，不接受脚本或表达式。
+
+修改器 `{type:"subdivision",levels:1|2|3}` 可选
+`scheme:"catmull-clark"|"simple"`（默认前者）、
+`boundaryMode:"all"|"preserve-corners"`（默认 all）。细分会应用到保存的真实网格，
+源控制网格仍保留在 SceneSpec，可通过新修订继续编辑。
+超过每实体 500000 个输出面的预计细分会在分配前拒绝。
+新网格与细分分别要求 Runtime 声明 `geometry.procedural.mesh`、
+`geometry.modifier.subdivision`；旧 Runtime 明确拒绝，新能力不改变旧工程的功能要求。
+校验通过仅代表可执行输入，开放边界、法线、装配、细节及成品观感仍须实际检查。
+
+阵列的 `offset` 采用对象局部坐标，随后一起经过对象缩放和旋转。
+按世界方向连接构件时，需要把目标位移转换回完整的局部基底，不能只除以缩放。
 
 ### 5.2 材质
 

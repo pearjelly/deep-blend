@@ -225,3 +225,103 @@ with tempfile.TemporaryDirectory(prefix='deepblend-modifiers-') as temporary:
     bpy.ops.render.render(write_still=True)
     assert (output / 'fused-vessel.png').stat().st_size > 2000
     print('MODIFIERS_PASSED: volume, manifold topology, dependency order, hidden operands, fused vessel, save/reopen/render')
+
+
+# Generic, non-case fixture: actual attachment vertices inside rotated/scaled
+# supports, with UV/material preservation, deterministic bytes and atomic refusal.
+from copy import deepcopy
+from deepblend_scatter import apply_surface_scatter
+
+def scatter_fixture(seed=42):
+    reset_scene()
+    bpy.ops.mesh.primitive_cube_add(size=2)
+    target=bpy.context.object; target.name='support'
+    target.location=(1,2,3);target.rotation_euler=(.2,.3,.4);target.scale=(.8,1.3,.7)
+    bpy.ops.mesh.primitive_cone_add(vertices=8,radius1=.01,radius2=.004,depth=.12)
+    proto=bpy.context.object;proto.name='prototype'
+    proto.location=(4,-2,1);proto.rotation_euler=(.3,.5,.2);proto.scale=(1.2,.8,1.1)
+    base_z=min(v.co.z for v in proto.data.vertices)
+    anchors=[v.index for v in proto.data.vertices if abs(v.co.z-base_z)<1e-6][:4]
+    material=bpy.data.materials.new('source-mat');proto.data.materials.append(material)
+    proto.data.polygons[1].material_index=0;proto.data.polygons[1].use_smooth=True
+    entry={'type':'surface_scatter','targetEntityIds':['support'],'count':16,'seed':seed,
+           'anchorVertexIndices':anchors,'embedDepthMm':12,'scaleRange':[.8,1.2],'upwardBias':.6}
+    entities=[{'id':'prototype','type':'generator','modifiers':[entry]},{'id':'support','type':'generator'}]
+    return proto,target,entry,entities
+
+def geometry_facts(obj):
+    mesh=obj.data
+    return {'vertices':[list(v.co)for v in mesh.vertices],'faces':[list(f.vertices)for f in mesh.polygons],
+            'smooth':[f.use_smooth for f in mesh.polygons],'slots':[f.material_index for f in mesh.polygons],
+            'materials':[m.name for m in mesh.materials],
+            'uv':{layer.name:[list(value.uv)for value in layer.data]for layer in mesh.uv_layers}}
+
+stable=None
+for seed in (42,42,43):
+    proto,target,entry,entities=scatter_fixture(seed)
+    before,source=geometry_facts(target),geometry_facts(proto)
+    apply_model_modifiers(entities,{'prototype':[proto],'support':[target]})
+    metadata=json.loads(proto['deepblend_surface_scatter']);facts=geometry_facts(proto)
+    assert geometry_facts(target)==before,'support mesh changed'
+    assert len(proto.data.vertices)==len(source['vertices'])*16
+    assert len(proto.data.polygons)==len(source['faces'])*16
+    assert facts['materials']==source['materials']
+    assert facts['smooth']==source['smooth']*16 and facts['slots']==source['slots']*16
+    for name,uv in source['uv'].items():assert facts['uv'][name]==uv*16,'UV seams changed'
+    inv=target.matrix_world.inverted()
+    for i in range(16):
+        for k in metadata['anchorVertexIndices']:
+            point=inv@(proto.matrix_world@proto.data.vertices[i*len(source['vertices'])+k].co)
+            assert all(abs(value)<1 for value in point),'actual attachment vertex escaped support'
+    if stable is None:stable=facts
+    elif seed==42:assert facts==stable,'same seed did not reproduce exact mesh/UVs'
+    else:assert facts!=stable,'different seed did not change placements'
+    with tempfile.TemporaryDirectory(prefix='deepblend-scatter-')as temporary:
+        path=Path(temporary)/'scatter.blend'
+        bpy.ops.wm.save_as_mainfile(filepath=str(path))
+        saved=hashlib.sha256(path.read_bytes()).hexdigest()
+        bpy.ops.wm.open_mainfile(filepath=str(path))
+        proto=bpy.data.objects['prototype'];target=bpy.data.objects['support']
+        assert geometry_facts(proto)==facts and json.loads(proto['deepblend_surface_scatter'])==metadata
+        assert geometry_facts(target)==before and hashlib.sha256(path.read_bytes()).hexdigest()==saved
+        if seed==43:
+            # A native render of this fixture (not of the actual pagoda case).
+            bpy.ops.object.camera_add(location=(5,-4,6));camera=bpy.context.object
+            camera.rotation_euler=(target.location-camera.location).to_track_quat('-Z','Y').to_euler()
+            bpy.context.scene.camera=camera;bpy.context.scene.render.engine='CYCLES'
+            bpy.context.scene.cycles.samples=4;bpy.context.scene.cycles.device='CPU'
+            bpy.context.scene.world=bpy.data.worlds.new('scatter-world')
+            bpy.context.scene.world.color=(.4,.4,.4)
+            bpy.context.scene.render.resolution_x=128;bpy.context.scene.render.resolution_y=96
+            bpy.context.scene.render.resolution_percentage=100
+            bpy.context.scene.render.filepath=str(Path(temporary)/'scatter.png')
+            bpy.ops.render.render(write_still=True)
+            assert (Path(temporary)/'scatter.png').stat().st_size>100
+            assert hashlib.sha256(path.read_bytes()).hexdigest()==saved
+
+for mode in ('open','bad-anchor','insufficient','budget','animated','self','not-last','moving-dependency'):
+    proto,target,entry,entities=scatter_fixture()
+    if mode=='open':
+        bm=bmesh.new();bm.from_mesh(target.data);bm.faces.ensure_lookup_table();bm.faces.remove(bm.faces[0]);bm.to_mesh(target.data);bm.free()
+    elif mode=='bad-anchor':entry['anchorVertexIndices']=[99999]
+    elif mode=='insufficient':entry['anchorVertexIndices']=[0,1,2,3];proto.scale=(1000,1000,1000)
+    elif mode=='budget':
+        from unittest.mock import patch
+        budget=patch('deepblend_scatter.MAX_POLYGONS',1);budget.start()
+    elif mode=='self':entry['targetEntityIds']=['prototype']
+    elif mode=='not-last':entities[0]['modifiers'].append({'type':'bevel','width':.001})
+    elif mode=='moving-dependency':
+        entities.append({'id':'operand','type':'generator'});entities[1]['modifiers']=[{'type':'boolean','operation':'union','targetEntityId':'operand'}]
+    bpy.context.view_layer.update()
+    original=geometry_facts(proto);original_target=geometry_facts(target);mesh_count=len(bpy.data.meshes)
+    tracks=[{'targetEntityId':'support'if mode=='animated'else 'operand','property':'location.x'}]if mode in ('animated','moving-dependency')else []
+    try:
+        apply_model_modifiers(entities,{'prototype':[proto],'support':[target]},tracks)
+        raise AssertionError('surface scatter accepted '+mode)
+    except ActionError as error:
+        assert 'surface_scatter' in str(error),str(error)
+        assert geometry_facts(proto)==original and geometry_facts(target)==original_target,'refusal changed original geometry'
+        assert len(bpy.data.meshes)==mesh_count,'refusal leaked mesh data'
+    finally:
+        if mode=='budget':budget.stop()
+print('SURFACE_SCATTER_PASSED: actual anchors, static dependencies, exact seeds, UV/materials, budgets, atomic refusal, save/reopen/render')
