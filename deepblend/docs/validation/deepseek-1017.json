@@ -1,7 +1,7 @@
 {
-  "releaseLabel": "0.15.0-candidate",
-  "recordedAt": "2026-10-18T02:09:59.468988+00:00",
-  "status": "modern-host-validated-legacy-and-publication-pending",
+  "releaseLabel": "0.15.0",
+  "recordedAt": "2026-10-18T03:35:33.013421+00:00",
+  "status": "published-with-explicit-backend-and-network-limits",
   "sources": [
     "https://api-docs.deepseek.com/zh-cn/news/news261017/",
     "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.1"
@@ -232,7 +232,8 @@
     "inheritedScore": 82,
     "scope": "Authored-recipe modeling/editing and host compatibility; not arbitrary from-scratch modeling, topology, clearance, manufacturing, art acceptance or performance comparison. UI workspace-change summary includes concurrent maintainer docs/tests and is not model work.",
     "camerasRetained": false,
-    "cameraScope": "The dimension task changed camera definitions as well as entities; this is not a fixed-camera before/after image comparison. Materials and actual animationTracks (one track) are byte-equivalent as JSON values."
+    "cameraScope": "The dimension task changed camera definitions as well as entities; this is not a fixed-camera before/after image comparison. Materials and actual animationTracks (one track) are byte-equivalent as JSON values.",
+    "dimensionScope": "The measured native dimensions are cabinet-shell object axes, not the complete external assembly envelope."
   },
   "checks": {
     "newHostToolPlaneAndLifecycle": "passed activation, M0, M1, M2, M3 and UI composition",
@@ -243,10 +244,15 @@
     "presetContract": "9/9",
     "doctorContract": "14/14; actual new-host version accepted",
     "newHostInspectionUI": "31/31; both shipped presets selectable; actual browser/native dimensions, immutable source and cancellation",
-    "legacyInspectionUI": "31/31 before base correction; final full regression reruns the exact correction",
+    "legacyInspectionUI": "31/31 in the final full run",
     "workbenchBaseContract": "74/74; deleting rendered base failed the new assertion; old/new browser validation recorded separately",
-    "ciWorkflowContract": "20/20; actual GitHub jobs pending",
-    "legacyUnitContract": "136/136 final full-v3 unit stage; complete native/browser stage still running"
+    "ciWorkflowContract": "20/20; final exact-head five GitHub jobs success",
+    "legacyUnitContract": "136/136 final full-v3 unit stage; complete native/browser stage still running",
+    "legacyCompleteAcceptance": "42/42 suites,136/136 unit/contract files; local final run exit0",
+    "exactHeadLinuxCI": "39090741218: five jobs success; checkout fee4621 full tree matches467a839",
+    "modernLinux": "M0 tools14/14, M2 images34/34, M3 lifecycle78/78, preset/browser31/31",
+    "publicArtifacts": "16 GitHub assets and seven full npm archives/manifests/source inventories anonymously read back; all three installation routes0.15.0,15/15/1 fetched,HTTP200,presets equal",
+    "allPublicInstalledOwnCopies": "All seven actual own-package copies match frozen source on every public route using an isolated pnpm store"
   },
   "rawLocalEvidence": [
     ".tmp-dsh021-before.log",
@@ -278,12 +284,16 @@
     "First exact-head Linux modern-host job installed and checked the lock, then failed before product tests: an explicit nonexistent SDK root intentionally prevented managed installation. Removed that premature environment selection; protected external-root behavior retained.",
     "First clean pushed source build rejected its unshipped root pnpm-lock.yaml as an own source file. Exclude only this root install metadata; actual npm pack dry-run verifies exclusion. Original failed stage retained.",
     "Modern Linux activation selection initially reused a macOS managed .tools/Blender.app default-path test; PATH alone could not satisfy its platform-specific managed-path and allowlist assumptions. Linux job now uses the cross-platform native Host/tool capability suite with the documented explicit verified binary. Original default activation stays in the local full suite.",
-    "Initial packaged install probes accidentally selected ancestor checkout bundles; isolated deployments outside every checkout removed shadowing. Private browser receipt helper setup errors retained; actual final modern packed browser and both selectable modes passed."
+    "Initial packaged install probes accidentally selected ancestor checkout bundles; isolated deployments outside every checkout removed shadowing. Private browser receipt helper setup errors retained; actual final modern packed browser and both selectable modes passed.",
+    "Shared pnpm10 mutable-URL cache installed0.1.0 from latest URL; direct anonymous latest response matched0.15 SHA256, and an isolated store installed all own0.15 files. User cache unchanged.",
+    "npm accepted each publish before read-side metadata caught up; bounded standard-command continuation finished all7, then anonymous full-byte verification passed."
   ],
   "publication": {
-    "githubRelease": "not-created",
-    "npm": "not-published",
-    "community": "not-submitted"
+    "githubRelease": "https://github.com/pearjelly/deep-blend/releases/tag/v0.15.0",
+    "npm": "all-seven0.15.0-anonymous-byte-readback-passed",
+    "community": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/7828",
+    "communityState": "submitted-open; upstream merge and online refresh unconfirmed",
+    "ledger": "release-0.15.0.json"
   },
   "webIntegration": {
     "status": "registered-and-failures-retained; live search success not proven",

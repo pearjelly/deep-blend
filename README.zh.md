@@ -1,5 +1,7 @@
 # DeepBlend Studio
 
+[0.15.0：DeepSeek 1017 / DSH 0.2.1 适配、升级与验收](deepblend/docs/deepseek-1017.md)
+
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)

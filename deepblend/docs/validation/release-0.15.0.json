@@ -1,0 +1,434 @@
+{
+  "releaseLabel": "0.15.0",
+  "status": "published-and-publicly-verified-community-submitted",
+  "standardCompletedAt": "2026-10-18T03:35:33.013421+00:00",
+  "publishedAt": "2026-10-18T03:13:40Z",
+  "sourceBuildCommit": "467a83991d8353ffcc3db9446e3a9d22f65cb236",
+  "mainMerge": "71fb68be629d312895ccf7d30f3cb52a6c2dfe17",
+  "packagesTree": "61a0c9698d600698c7b3f4a05cf997094ff011eb",
+  "bundle": {
+    "sha256": "b67542e9cd6108a5c3a1182672e3cde05bd7e40b3b4e9316b24fd72515cff05a",
+    "bytes": 72526439
+  },
+  "github": {
+    "version": "0.15.0",
+    "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.15.0",
+    "publishedAt": "2026-10-18T03:13:40Z",
+    "tagCommit": "467a83991d8353ffcc3db9446e3a9d22f65cb236",
+    "authentication": "none for asset downloads; GitHubmetadata viaauthenticatedCLI",
+    "allAssetBytesAndChecksumReadbackExact": true,
+    "assets": [
+      {
+        "name": "ACCEPTANCE-SCOPE.txt",
+        "bytes": 915,
+        "sha256": "f0919ef6f67713f528cc1fb0a4243c373c5c6d4378c5f6a6c47d39f88e7af060",
+        "serverDigest": "sha256:f0919ef6f67713f528cc1fb0a4243c373c5c6d4378c5f6a6c47d39f88e7af060",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "all-own-package-copies-proof.json",
+        "bytes": 1660,
+        "sha256": "1986c6683e05bdb54ea87f4323b5c57a1b1c2c4e3b81240af9760bce76b96943",
+        "serverDigest": "sha256:1986c6683e05bdb54ea87f4323b5c57a1b1c2c4e3b81240af9760bce76b96943",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "build-proof.json",
+        "bytes": 1627,
+        "sha256": "32b7a482fbab772420a04986c955a2ce03dc8a2b0d704ff56f36e6208929ac23",
+        "serverDigest": "sha256:32b7a482fbab772420a04986c955a2ce03dc8a2b0d704ff56f36e6208929ac23",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "ci-source-tree-proof.json",
+        "bytes": 368,
+        "sha256": "1ce632e422726a60bb3a2d192886af36c9be83f960eedcf22ef881606194c716",
+        "serverDigest": "sha256:1ce632e422726a60bb3a2d192886af36c9be83f960eedcf22ef881606194c716",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "compatibility-acceptance.json",
+        "bytes": 12548,
+        "sha256": "11c3b84cf53b9ea4d10bf8223d622316719a6969af4a7e6c947ecd12b456ac51",
+        "serverDigest": "sha256:11c3b84cf53b9ea4d10bf8223d622316719a6969af4a7e6c947ecd12b456ac51",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "bytes": 72526439,
+        "sha256": "b67542e9cd6108a5c3a1182672e3cde05bd7e40b3b4e9316b24fd72515cff05a",
+        "serverDigest": "sha256:b67542e9cd6108a5c3a1182672e3cde05bd7e40b3b4e9316b24fd72515cff05a",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "final-ci-artifacts-proof.json",
+        "bytes": 2613,
+        "sha256": "cd36e4252a76954c71a6ce24fd0865a99a875f8b80da6281f225a76cf7919830",
+        "serverDigest": "sha256:cd36e4252a76954c71a6ce24fd0865a99a875f8b80da6281f225a76cf7919830",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "full-acceptance-proof.json",
+        "bytes": 4439,
+        "sha256": "162c6097eca2fb88debbd1b30b7aae0b363f3ac62c798a7297324e76772c97cf",
+        "serverDigest": "sha256:162c6097eca2fb88debbd1b30b7aae0b363f3ac62c798a7297324e76772c97cf",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "local-installed-all-own-copies.json",
+        "bytes": 1765,
+        "sha256": "1882e1784dff030616446a30600016772945c79ce065e9748f281fb2e157d706",
+        "serverDigest": "sha256:1882e1784dff030616446a30600016772945c79ce065e9748f281fb2e157d706",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "local-native-decode-proof.json",
+        "bytes": 961,
+        "sha256": "dfa6d0f60404f99411c758a87948b5472dcba891efa84e2dae460792c87f39e0",
+        "serverDigest": "sha256:dfa6d0f60404f99411c758a87948b5472dcba891efa84e2dae460792c87f39e0",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "modern-packed-browser-proof.json",
+        "bytes": 917,
+        "sha256": "323f94a14e0c4072df4ff35b1a9ab2731f5ca32680f874540695a4f93fdc200e",
+        "serverDigest": "sha256:323f94a14e0c4072df4ff35b1a9ab2731f5ca32680f874540695a4f93fdc200e",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "modern-packed-workbench.png",
+        "bytes": 355266,
+        "sha256": "99b2f3c17ff1fef843dfb3ccb5e1af1d7827b390065d5262722aa3fa77595183",
+        "serverDigest": "sha256:99b2f3c17ff1fef843dfb3ccb5e1af1d7827b390065d5262722aa3fa77595183",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "native-payload-verification.json",
+        "bytes": 8003,
+        "sha256": "b2f1d2ce4098e19b8192553154eddd086f763ef327403b438df71dce041e40cb",
+        "serverDigest": "sha256:b2f1d2ce4098e19b8192553154eddd086f763ef327403b438df71dce041e40cb",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "packed-doctor-final.json",
+        "bytes": 1545,
+        "sha256": "358185e8587a6a6992eb13fd4b9baa120c5ee53947cf4b54ad43254dc1a421d8",
+        "serverDigest": "sha256:358185e8587a6a6992eb13fd4b9baa120c5ee53947cf4b54ad43254dc1a421d8",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "release-asset-manifest.json",
+        "bytes": 2449,
+        "sha256": "2fd2a6d8d33a875ef8d61cc77e207beed5ba9a4d4d02634e7f658b5b3e944ccf",
+        "serverDigest": "sha256:2fd2a6d8d33a875ef8d61cc77e207beed5ba9a4d4d02634e7f658b5b3e944ccf",
+        "anonymousExactReadback": true
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 1410,
+        "sha256": "321464a48625e0963f935ab9b75b3ecc90cc99634e9059efd37553b53be0586e",
+        "serverDigest": "sha256:321464a48625e0963f935ab9b75b3ecc90cc99634e9059efd37553b53be0586e",
+        "anonymousExactReadback": true
+      }
+    ],
+    "scope": "Actual publicGitHubtag andeveryimmutable asset, not onlyreportedupload success. npm/route/community cohort acceptance remains separate."
+  },
+  "npm": {
+    "releaseLabel": "0.15.0",
+    "status": "all-seven-public-archives-byteexact",
+    "authentication": "none for metadata and tarballs",
+    "recordedAt": "2026-10-18T03:26:52.492988+00:00",
+    "packages": [
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.15.0.tgz",
+        "bytes": 428424,
+        "sha256": "a32c74ed598732c09c6fe312055b8e741443ac57feeaeb3f625ea2130bd2fd32",
+        "shasum": "d0f0a7d92b40a84e273688577af8294eb957d522",
+        "integrity": "sha512-teJZOfWaoQJqMkZ0YY6dfGHXzMlVOuGuoQqNOdzvoJDSFE+LAH5vtdZCGu0yq2GCkMo1w2/P0+KdDj10Eme6AQ==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 26
+      },
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.15.0.tgz",
+        "bytes": 170960,
+        "sha256": "8e0c9556cc16086b2caab1fd44ced5ba99d161f9bf9708691aaf0252767386df",
+        "shasum": "08183280d7819ecc4d2bb67535138dd45fc1c86a",
+        "integrity": "sha512-o6dq5nRJl7i56A5MBfg5Hykmk4kxofQ2dlWVBd2LQAQwwSDJbrjbZ4h7/DZHOO3ToIRC72bNBCrn/X2y4PbdpA==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 38
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.15.0.tgz",
+        "bytes": 2979115,
+        "sha256": "252c96b7f6d913ef040552e845e0d819d4f3f39e369af001563ac7ddceeec22b",
+        "shasum": "edb885cdc61d979265f509fa2602f9220c32c5fc",
+        "integrity": "sha512-BZAHrTEfTh4z76lvRzwM2g+6vfZvPMyrLsh7tzdR+vHtSAACWOF4alqBCO1xAeSamrLiyXNXq/hUZclPYGLSCg==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 46
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.15.0.tgz",
+        "bytes": 33307,
+        "sha256": "442e23049b3e5e819c67fabb7997dd21fccc5b607a951cf96ed720c77ddc767c",
+        "shasum": "840ca32bd87c07793844669a805ae4f2c123813b",
+        "integrity": "sha512-38NxvxK/iL0XMdcE0mJ01GOccbazwUgO620Kw4GE3vUf1BzA1eR8aoZjDPeI1ebF4Vm63aycY1wi60mBUFdqBQ==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 9
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.15.0.tgz",
+        "bytes": 159082,
+        "sha256": "25a9cb7295d794922d5351ba65a9a70e57d4878383400c5185fb3e450ad49e3e",
+        "shasum": "af1c98d1287b271fdae141634794a75e08ee9e38",
+        "integrity": "sha512-0TpPiG60cfU1hQr8J9mOd1G+d0WmNSZFRdZYuiccN12ywZDm8uOP2+cxHXlPXxWFMUSPFXPWG5FLj4S3x13xzQ==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 37
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.15.0.tgz",
+        "bytes": 57866,
+        "sha256": "a06a8dd9eb4b5776ecc5e989d0a72c09f0509dc11083c061d3dfe06b9e16845f",
+        "shasum": "1aa62d4d2fe7a7254b7a4660cbb2dc2449ec7a42",
+        "integrity": "sha512-dSn15xIWFtu2aC3TRDuXnXiyCvOQhEsOYVGFEUHoVhQKVflriMSPLJBDUXcgigHBvM6y7DalIgPJwvcqQEQv3A==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 14
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "publishedVersion": "0.15.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.15.0.tgz",
+        "bytes": 130052,
+        "sha256": "b77a5a7623d28b5803c8288b218008658227bf3706ce29a457b06e4da52941f4",
+        "shasum": "3dbbf77fce8cebfc20eb38e497a9b5b447bcdfcc",
+        "integrity": "sha512-/OWJP06AxZwh+BYL1plmfxkFNuAjWZKgE3Nb7h2UjhkFCSahzwd0jPxngdHr86QVWzQMSjPbeQzAJftLsesMmQ==",
+        "allOwnSourceFilesExact": true,
+        "manifestExactAfterStandardRewrite": true,
+        "ownFiles": 3
+      }
+    ]
+  },
+  "routes": {
+    "releaseLabel": "0.15.0",
+    "canonicalParity": "0 problems; source/npm/tarball HTTP200, both presets, versions0.15.0; fetched15/15/1",
+    "allInstalledOwnCopies": [
+      {
+        "proof": "public-source-all-own-copies.json",
+        "sha256": "e64d28a6a23ffe68a6f1e0fcaf2eb300862d002e46a86c5aaae81f1ae7a1d724",
+        "observedOwnCopies": 7,
+        "allOwnCodeExact": true
+      },
+      {
+        "proof": "public-npm-all-own-copies.json",
+        "sha256": "5d0fdb415bdf85c6a984b53ce69c4ed5da3bcf8a8a68b3e4a539cd6ead6d5309",
+        "observedOwnCopies": 7,
+        "allOwnCodeExact": true
+      },
+      {
+        "proof": "public-tarball-all-own-copies-fresh.json",
+        "sha256": "740ac2954edc0a3c691878fc5724464811b9d2026480ffae6a7ab8badf1bbd52",
+        "observedOwnCopies": 7,
+        "allOwnCodeExact": true
+      }
+    ],
+    "tarballCacheObservation": "Original shared pnpm10 URL cache served0.1.0. Direct anonymous latest URL matched exact0.15 bytes, and isolated per-process store installed all own0.15 files. Original cache unchanged and failed raw log retained.",
+    "sharedCacheFailureLog": "public-tarball-strict-install.log",
+    "actualNetworkLatestProof": "public-latest-direct-proof.json"
+  },
+  "community": {
+    "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/7828",
+    "headCommit": "4556bfb2d684f9f37a090a3027763e11a5b0e085",
+    "branch": "codex/deepblend-flash1017-015",
+    "state": "submitted-open",
+    "upstreamMerged": false,
+    "onlineRefresh": "not-confirmed",
+    "onlyOwnEntry": true,
+    "canonicalProjectionBytes": 2016,
+    "observedAt": "2026-10-18T03:32:31.634760+00:00"
+  },
+  "fullAcceptance": {
+    "status": "all-full-acceptance-suites-passed",
+    "exitCode": 0,
+    "recordedAt": "2026-10-18T03:00:45.505189+00:00",
+    "unitContractFiles": "136/136",
+    "passedSuites": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all eighteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "suiteCount": 42,
+    "logSha256": "6d13f6841ab588b77ad4a1f994b231d402a2d38e68588564d69cfc5b266e3bf6",
+    "logBytes": 744232,
+    "productPackageTree": "61a0c9698d600698c7b3f4a05cf997094ff011eb",
+    "sourceScope": "The run started on the uncommitted 0.15 candidate. Its production package tree stayed identical to the final 467a839 build. Subsequent changes affected CI, packaging checks and docs; final-head Linux CI separately exercises those exact changes. Do not label the entire local run as executed at the frozen final Git commit.",
+    "retainedEarlierFailures": [
+      ".tmp-dsh015-full-acceptance.log: initial unit134/136, other41 suites passed",
+      ".tmp-dsh015-final-full-acceptance.log: setup helper unit failure; superseded own run stopped with original output retained"
+    ]
+  },
+  "exactBuildCommitPublicCI": {
+    "runId": 39090741218,
+    "head": "467a83991d8353ffcc3db9446e3a9d22f65cb236",
+    "allFiveJobs": "success",
+    "actualCheckout": "fee462109f316abdff098aba9f3096bfd6f6ccb3",
+    "headAndCheckoutRootTree": "99bf8d1ffbbac2d30d7db9a86f4019140054b86c",
+    "allFourEvidenceArchivesVerified": true,
+    "archives": [
+      {
+        "name": "linux-inspections-39090741218-1",
+        "id": 12123396193,
+        "bytes": 110999355,
+        "sha256": "7e74cf337e20ff539b45ebb1f72c3a67dc0f9f9e6498cd0633685d0017e8c28f",
+        "zipCrcVerified": true,
+        "contexts": [
+          {
+            "sourceCommit": "fee462109f316abdff098aba9f3096bfd6f6ccb3",
+            "runId": "39090741218",
+            "attempt": "1",
+            "imageVersion": "20261012.334.1",
+            "platform": "linux",
+            "arch": "x64",
+            "release": "6.17.0-1022-azure",
+            "node": "v22.23.3"
+          }
+        ]
+      },
+      {
+        "name": "linux-render-photography-39090741218-1",
+        "id": 12123360056,
+        "bytes": 50137582,
+        "sha256": "bbfc7cd6223aed91d72ba3c380074d2fe25cb77f6f6abb215fa10e0cf8d29cc2",
+        "zipCrcVerified": true,
+        "contexts": [
+          {
+            "sourceCommit": "fee462109f316abdff098aba9f3096bfd6f6ccb3",
+            "runId": "39090741218",
+            "attempt": "1",
+            "imageVersion": "20261012.334.1",
+            "platform": "linux",
+            "arch": "x64",
+            "release": "6.17.0-1022-azure",
+            "node": "v22.23.3"
+          }
+        ]
+      },
+      {
+        "name": "linux-cup-parameters-39090741218-1",
+        "id": 12122882213,
+        "bytes": 10106733,
+        "sha256": "cd4bdc5f2738f0156fddcd69b25dbdf38b694255e13a50576006ad443382e0fe",
+        "zipCrcVerified": true,
+        "contexts": [
+          {
+            "sourceCommit": "fee462109f316abdff098aba9f3096bfd6f6ccb3",
+            "runId": "39090741218",
+            "attempt": "1",
+            "imageVersion": "20261012.334.1",
+            "platform": "linux",
+            "arch": "x64",
+            "release": "6.17.0-1022-azure",
+            "node": "v22.23.3"
+          }
+        ]
+      },
+      {
+        "name": "harness-021-39090741218-1",
+        "id": 12122453329,
+        "bytes": 3460547,
+        "sha256": "f849ff158faeff1856c3f66a7a1d0910f665bf9269152fe1929b0e024104fa7a",
+        "zipCrcVerified": true,
+        "contexts": [
+          {
+            "sourceCommit": "fee462109f316abdff098aba9f3096bfd6f6ccb3",
+            "runId": "39090741218",
+            "attempt": "1",
+            "imageVersion": "20261012.334.1",
+            "platform": "linux",
+            "arch": "x64",
+            "release": "6.17.0-1022-azure",
+            "node": "v22.23.3"
+          }
+        ]
+      }
+    ]
+  },
+  "paidBai": {
+    "provider": "bai",
+    "alias": "deepseek-v4.1-flash",
+    "backend1017Revision": "unattested",
+    "actualTaskElapsedMs": 129068,
+    "observationElapsedMs": 161310,
+    "formalCalls": 9,
+    "humanTaskSubmissions": 1,
+    "cabinetWidthMm": [
+      300.00001192092896,
+      319.9999928474426
+    ],
+    "realImageReview": "14/14",
+    "realToolCard": "10/10",
+    "limits": "Authored recipe, camera definitions changed, inherited82/100 finding retained. No arbitrary modeling, fixed-camera art or manufacturing claim."
+  },
+  "networkLimits": "Both web tools advertised; two real Fetch calls refused nonpublic DNS and search-only bai task made no Search call. Successful live Search not established; protection and independent provider credentials preserved.",
+  "originalFailuresRetained": true,
+  "publicVersionsOverwritten": false,
+  "personalDshChanged": false,
+  "privateProjectsPreserved": true,
+  "rawEvidenceDirectory": ".tmp-release-015-publish-v1",
+  "scope": "Core host compatibility, actual model task, native/image feedback, frozen artifacts and public installation acceptance; external adoption and community live refresh are separate."
+}
