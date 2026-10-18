@@ -439,13 +439,12 @@ test('paired lamp geometry and saved liner pixels are covered by full acceptance
 test('modern Harness has a separate locked runtime and exercises real preset selection and delivery', () => {
   const modern = workflow.split('  harness-021-compatibility:')[1]
   assert.ok(modern, 'missing independent modern-host job')
-  assert.ok(modern.includes('env PATH="${DEEPBLEND_BLENDER_PATH%/*}:$PATH" xvfb-run -a node deepblend/tests/composition/activation.e2e.mjs'), 'default Blender discovery must see the verified Linux executable on PATH')
   assert.doesNotMatch(modern.split('    steps:')[0], /DEEPBLEND_SDK_TOOLCHAIN_ROOT:/, 'a nonexistent explicit SDK root prevents the managed installer from creating it')
   assert.match(modern, /node deepblend\/tools\/install-modern-compatibility\.mjs/)
   const installer = readFileSync(join(ROOT, 'deepblend/tools/install-modern-compatibility.mjs'), 'utf8')
   assert.ok(installer.includes('deepblend/development/compatibility/dsh-0.2.1-rc.1'))
   assert.ok(installer.includes("['ci', '--prefix'"))
-  for (const suite of ['composition/activation.e2e.mjs', 'composition/tool-plane-m2.e2e.mjs', 'composition/tool-plane-m3.e2e.mjs', 'e2e/inspection-ui.e2e.mjs']) assert.ok(modern.includes(suite), `missing actual modern-host exercise ${suite}`)
+  for (const suite of ['composition/tool-plane.e2e.mjs', 'composition/tool-plane-m2.e2e.mjs', 'composition/tool-plane-m3.e2e.mjs', 'e2e/inspection-ui.e2e.mjs']) assert.ok(modern.includes(suite), `missing actual modern-host exercise ${suite}`)
   assert.match(modern, /if: always\(\)/)
   assert.match(modern, /harness-021-\$\{\{ github.run_id/)
 })

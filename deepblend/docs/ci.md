@@ -9,7 +9,7 @@
 | 测试入口 | 检查范围 |
 | --- | --- |
 | `deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs` | 实际 Cycles / EEVEE、固定摄影与帧、GLB 多材质、独立重开 checkpoint、源文件保护与失败不发布 |
-| `deepblend/tests/composition/activation.e2e.mjs` | 新宿主真实 Host 服务与路由激活 |
+| `deepblend/tests/composition/tool-plane.e2e.mjs` | 新宿主真实 Host、能力工具与降级路径；按 Linux 文档显式设置固定 Blender 路径 |
 | `deepblend/tests/composition/tool-plane-m2.e2e.mjs` | 新宿主真实预览与图像附件 |
 | `deepblend/tests/composition/tool-plane-m3.e2e.mjs` | 新宿主渲染、交付生命周期与工具清单 |
 | `deepblend/tests/composition/tool-plane-m1.e2e.mjs` | 实际 Agent 工具、灰模/材质图片附件、PNG 摘要、相同摄影设置与旧预览保护 |
@@ -161,3 +161,5 @@ run `38290709648` 的八分钟杯步骤仍超时。完整 ZIP 的 CRC 已验证�
 
 
 新版宿主另有 harness-021-compatibility job：按 compatibility/dsh-0.2.1-rc.1 的独立锁安装，不覆盖旧基线；运行实际 Host、预览图像回执、渲染/交付生命周期与两种模式选择、浏览器检查。产物名 harness-021-<run>-<attempt>。本 job 不调用线上模型；是否已执行成功以具体提交的 Actions 与产物为准。
+
+macOS 托管安装的零配置发现由本机完整 `composition/activation.e2e.mjs` 验证；它依赖 `.tools/Blender.app`，不作为 Linux 托管安装的证据。新版 Linux job 使用真实已固定的 Blender 绝对路径，保持执行路径白名单。

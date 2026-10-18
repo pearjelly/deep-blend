@@ -276,7 +276,9 @@
     "Fetch rejected nonpublic DNS; explicit live bai search probe completed without a search call; successful networking remains unproven.",
     "Final full-v2 unit gate caught a newly introduced setup helper missing public script/check/documentation/tracking; corrected and targeted setup contract 32/32. Original failure retained; exact final full-v3 is running.",
     "First exact-head Linux modern-host job installed and checked the lock, then failed before product tests: an explicit nonexistent SDK root intentionally prevented managed installation. Removed that premature environment selection; protected external-root behavior retained.",
-    "First clean pushed source build rejected its unshipped root pnpm-lock.yaml as an own source file. Exclude only this root install metadata; actual npm pack dry-run verifies exclusion. Original failed stage retained."
+    "First clean pushed source build rejected its unshipped root pnpm-lock.yaml as an own source file. Exclude only this root install metadata; actual npm pack dry-run verifies exclusion. Original failed stage retained.",
+    "Modern Linux activation selection initially reused a macOS managed .tools/Blender.app default-path test; PATH alone could not satisfy its platform-specific managed-path and allowlist assumptions. Linux job now uses the cross-platform native Host/tool capability suite with the documented explicit verified binary. Original default activation stays in the local full suite.",
+    "Initial packaged install probes accidentally selected ancestor checkout bundles; isolated deployments outside every checkout removed shadowing. Private browser receipt helper setup errors retained; actual final modern packed browser and both selectable modes passed."
   ],
   "publication": {
     "githubRelease": "not-created",

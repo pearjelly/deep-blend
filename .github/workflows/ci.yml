@@ -453,8 +453,8 @@ jobs:
         run: sudo apt-get install -y --no-install-recommends ffmpeg > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-install.log" 2>&1
       - name: Record encoder versions
         run: ffmpeg -version > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-version.log" 2>&1 && ffprobe -version > "$DEEPBLEND_CI_EVIDENCE/ffprobe-version.log" 2>&1
-      - name: Modern Host composition
-        run: env PATH="${DEEPBLEND_BLENDER_PATH%/*}:$PATH" xvfb-run -a node deepblend/tests/composition/activation.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/activation.log" 2>&1
+      - name: Modern native Host and model-visible capability tool
+        run: xvfb-run -a node deepblend/tests/composition/tool-plane.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/activation-tools.log" 2>&1
       - name: Modern Agent previews and image return
         run: xvfb-run -a node deepblend/tests/composition/tool-plane-m2.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/tools-preview.log" 2>&1
       - name: Modern Agent render and delivery lifecycle
