@@ -124,7 +124,7 @@ test('every published manifest declares the licence the repository root does', (
   assert.ok(inventory.includes(root), `third-party.md does not state this project's own licence (${root})`)
 })
 
-test('third-party runtime dependencies are limited to Host sharp 0.35.5 and DSH stays a peer', () => {
+test('third-party runtime dependencies are limited to reviewed image and preset parsers; DSH stays a peer', () => {
   const local = new Set(packages.map(({ manifest }) => manifest.name))
   const ordinary = []
   for (const { name, manifest } of packages) {
@@ -144,7 +144,7 @@ test('third-party runtime dependencies are limited to Host sharp 0.35.5 and DSH 
       assert.match(String(range), /^[\^~><=*]|^\d/, `the peer range for ${peer} is not a version range: ${range}`)
     }
   }
-  assert.deepEqual(ordinary, [{ package: 'host', field: 'dependencies', dependency: 'sharp', version: '0.35.5' }],
+  assert.deepEqual(ordinary, [{ package: 'host', field: 'dependencies', dependency: 'sharp', version: '0.35.5' }, { package: 'preset', field: 'dependencies', dependency: 'js-yaml', version: '4.3.2' }],
     'adding or moving an external dependency requires an explicit inventory and contract review')
   for (const token of ['sharp', '0.35.5', '@img/sharp-', 'libvips', 'Apache-2.0', 'LGPL-3.0-or-later']) {
     assert.ok(inventory.includes(token), `third-party inventory omits the reviewed codec detail ${token}`)

@@ -31,8 +31,13 @@ bash deepblend/tests/run-all.sh   # 完整验收；需要 Blender，耗时取决
 `ERR_MODULE_NOT_FOUND`——2026-09-14 profile 重装后就发生过一次，16 个绿色套件变成了
 16 个 import 错误。详见 `deepblend/docs/milestone-status.md` §14。
 
-需要 DSH `0.1.5-rc.2`（`deepblend/docs/dsh-baseline.md` §1 的兼容性锚点）。
+已验收的 DSH 锚点为 `0.1.5-rc.2` 与 `0.2.1-rc.1`；旧开发锁保留前者，新宿主使用 `deepblend/development/compatibility/dsh-0.2.1-rc.1/` 独立锁。适配和隔离实测说明见 `deepblend/docs/deepseek-1017.md`。
 `npm install -g @deepseek-ai/dsh@0.1.5-rc.2`。
+
+新版隔离运行时使用 `deepblend/tools/install-modern-compatibility.mjs`：设定
+`DEEPBLEND_DSH_ROOT="$PWD/.tools/dsh-021"` 后运行 `npm run compatibility:setup`，
+或以 `npm run compatibility:check` 只读核对锁与已安装版本。脚本只接受该隔离目录，
+不修改个人 DSH；SDK 与工作区链接继续按上方命令准备。CI 使用同一个入口。
 
 ---
 

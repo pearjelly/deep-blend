@@ -168,3 +168,18 @@ test('npm pack ships the executable and its requirements together', () => {
     assert.match(help.stdout, /Read-only environment checks/)
   } finally { rmSync(directory, { recursive: true, force: true }) }
 })
+
+
+test('new Harness is supported without falsely demanding a downgrade; untested candidates stay explicit', () => {
+  const report = inspect({ ...valid, dsh: '0.2.1-rc.1' })
+  const check = report.checks.find(check => check.id === 'dsh')
+  assert.equal(check.status, 'pass'); assert.equal(check.action, null)
+  assert.match(check.expected, /0\.1\.5-rc\.2 or 0\.2\.1-rc\.1/)
+  assert.equal(inspect({ ...valid, dsh: '0.2.1-rc.99' }).checks.find(check => check.id === 'dsh').status, 'fail')
+  const manifest = JSON.parse(readFileSync(join(root, 'packages/deepblend/bundle/package.json'), 'utf8'))
+  assert.equal(manifest.engines.dsh, [REQUIREMENTS.dsh, ...REQUIREMENTS.dshAdditional].join(' || '))
+  for (const version of REQUIREMENTS.dshAdditional) {
+    const runtime = JSON.parse(readFileSync(join(root, 'deepblend/development/compatibility', `dsh-${version}`, 'package.json'), 'utf8'))
+    assert.equal(runtime.dependencies['@deepseek-ai/dsh'], version)
+  }
+})

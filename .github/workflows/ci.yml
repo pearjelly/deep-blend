@@ -413,3 +413,62 @@ jobs:
           retention-days: 7
           include-hidden-files: true
           if-no-files-found: error
+
+
+  harness-021-compatibility:
+    name: DSH 0.2.1-rc.1 preset and native delivery compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      DEEPBLEND_DSH_ROOT: ${{ github.workspace }}/.tools/dsh-021
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - name: Prepare evidence directory
+        run: node deepblend/tools/ci-evidence.mjs
+      - name: Install the locked modern Harness separately from the baseline
+        run: node deepblend/tools/install-modern-compatibility.mjs
+      - name: Check the independently installed modern runtime
+        run: node deepblend/tools/install-modern-compatibility.mjs --check
+      - name: Prepare the locked SDK toolchain
+        run: node deepblend/tools/development.mjs sdk
+      - name: Link the modern host dependencies
+        run: node deepblend/tools/link-workspace.mjs
+      - name: Cache pinned raw runtime archives
+        uses: actions/cache@v4
+        with:
+          path: .tools/ci/archives
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+      - name: Download and verify fixed Linux runtimes
+        run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
+      - name: Prepare software graphics and Chrome sandbox
+        run: node deepblend/tools/prepare-ci-linux.mjs > "$DEEPBLEND_CI_EVIDENCE/graphics.log" 2>&1
+      - name: Install actual delivery encoders
+        run: sudo apt-get install -y --no-install-recommends ffmpeg > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-install.log" 2>&1
+      - name: Record encoder versions
+        run: ffmpeg -version > "$DEEPBLEND_CI_EVIDENCE/ffmpeg-version.log" 2>&1 && ffprobe -version > "$DEEPBLEND_CI_EVIDENCE/ffprobe-version.log" 2>&1
+      - name: Modern native Host and model-visible capability tool
+        run: xvfb-run -a node deepblend/tests/composition/tool-plane.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/activation-tools.log" 2>&1
+      - name: Modern Agent previews and image return
+        run: xvfb-run -a node deepblend/tests/composition/tool-plane-m2.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/tools-preview.log" 2>&1
+      - name: Modern Agent render and delivery lifecycle
+        run: xvfb-run -a node deepblend/tests/composition/tool-plane-m3.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/tools-delivery.log" 2>&1
+      - name: Modern preset selection and browser inspection
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/modern-browser
+        run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
+      - name: Preserve modern-host evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-021-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/deepblend-ci
+          retention-days: 7
+          include-hidden-files: true
+          if-no-files-found: error

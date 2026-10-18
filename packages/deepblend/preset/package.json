@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-preset",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "type": "module",
   "description": "DeepBlend Agent-preset plane: ships the DeepBlend Studio agent presets and the deployer row that installs them into the DSH home.",
   "main": "lib/index.js",
@@ -24,6 +24,11 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0 <5",
-    "@deepseek-ai/schemastery": ">=3.18.0 <4"
+    "@deepseek-ai/schemastery": ">=3.18.0 <4",
+    "@deepseek-ai/cordis-plugin-include": ">=1.0.7 <2",
+    "@deepseek-ai/dsh-app-boot": "0.1.5-rc.2 || 0.2.1-rc.1"
+  },
+  "dependencies": {
+    "js-yaml": "4.3.2"
   }
 }

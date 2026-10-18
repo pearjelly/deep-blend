@@ -89,8 +89,7 @@ async function modelPatch(store) {
     if (index >= 0) rows[index] = adapter
     else rows.push(adapter)
   } else if (provider !== 'deepseek-official') throw Error('Requested probe provider is not configured in the selected profile.')
-  const selected = rows.find(r => r.id === 'agent-default-model') ?? source.find(r => r.id === 'agent-default-model')
-  if (!selected) throw Error('Probe has no default model service.')
+  const selected = rows.find(r => r.id === 'agent-default-model') ?? source.find(r => r.id === 'agent-default-model') ?? { id: 'agent-default-model' }
   selected.config = { ...selected.config, provider, model }
   if (!rows.some(r => r.id === selected.id)) rows.push(selected)
   return JSON.stringify(rows)

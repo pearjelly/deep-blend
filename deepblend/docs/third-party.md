@@ -139,3 +139,8 @@ CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY，来自 [Blende
 ## 6. 固定版本的恢复复现材料
 
 `deepblend/reproductions/recovery-v0.11.0/` 是 DeepBlend 贡献者制作、按 MIT 发布的简单生成器场景与真实恢复证据，不使用外部模型。保留它原有的版本、脚本、文件清单和原始证据。契约调用随附 `verify-package.py` 核对全部摘要、原生工程、视频和恢复记录，再把每张 PNG 的实际摘要、帧来源、修订和检查点关联起来；只有这些精确文件才进入图片来源清单，不按目录放行。修改画面或把来源指向另一原生工程都会失败。它验证已发表证据的一致性，重新实测仍需运行该目录的复现步骤。
+
+
+## 2026-10-18：新版宿主预设声明解析
+
+Preset 包新增固定版本 `js-yaml@4.3.2`（MIT），仅解析随包的预设元数据与组合；组合使用宿主 cordis-plugin-include 的 entryListSchema 保留表达式，不执行远端文档。传递依赖 argparse（Python-2.0）；许可与版权保留在 npm 包中。来源：https://github.com/nodeca/js-yaml 。DSH 与 cordis-plugin-include 仍为宿主 peer。

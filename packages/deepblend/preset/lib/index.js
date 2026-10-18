@@ -44,6 +44,11 @@
  */
 
 import z from '@deepseek-ai/schemastery'
+import { Service } from '@deepseek-ai/cordis'
+import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 
 import { PRESET_SOURCE, defaultTarget, deployPresets, presetIds } from './deploy.js'
 
@@ -133,6 +138,52 @@ export function apply(ctx, config) {
     ctx.logger?.info?.(`${LOG_SCOPE}: deployment is switched off for this row; the preset root is left as it is`)
     return
   }
+  // DSH 0.2 uses declarations, whereas 0.1 discovers the deployed directories.
+  // Resolve shipped skills independently of the profile base URL. The registry
+  // retains active revisions; each declaration owns only its registration.
+  ctx.inject(['agentPresets'], async (registryCtx) => {
+    if (typeof registryCtx.agentPresets.register !== 'function') return
+    const { entryListSchema } = await import('@deepseek-ai/cordis-plugin-include')
+    const { load } = await import('js-yaml')
+    const ids = config.presets.length ? config.presets : presetIds()
+    for (const id of ids) {
+      if (!SHIPPED_PRESETS.includes(id)) continue
+      const path = join(PRESET_SOURCE, id, 'agent.cordis.yml')
+      const metadata = load(readFileSync(join(PRESET_SOURCE, id, 'preset.yml'), 'utf8'))
+      const plugins = load(readFileSync(path, 'utf8'), { schema: entryListSchema })
+      // New Harness scopes web tools per preset. Reference discovery must not
+      // disappear just because the product mode omits generic filesystem writes.
+      if (!plugins.some(row => row.id === 'tool-web')) plugins.push({
+        id: 'tool-web', name: '@deepseek-ai/dsh-tool-web',
+        config: { search: true, fetch: true, searchTimeoutMs: 60000 },
+      })
+      const resolveHost = createRequire(import.meta.resolve('@deepseek-ai/dsh-app-boot'))
+      const resolveRows = rows => {
+        for (const row of rows) {
+          if (row.name === '@deepseek-ai/dsh-workflow-worker-thread') row.name = '@deepseek-ai/dsh-workflow-ptc'
+          if (row.name?.startsWith('@deepseek-ai/')) row.name = pathToFileURL(resolveHost.resolve(row.name)).href
+          if (Array.isArray(row.config)) resolveRows(row.config)
+        }
+      }
+      resolveRows(plugins)
+      // Current DSH supplies cwd through its runtime context, not a persona variable.
+      const persona = plugins.find(row => row.id === 'persona')
+      if (persona?.config?.suffix?.includes('{{cwd}}')) delete persona.config.suffix
+      const skills = plugins.find(row => row.id === 'skill-filesystem')
+      skills.config ??= {}
+      skills.config.customSkillDirs = [join(PRESET_SOURCE, id, 'skills')]
+      const definition = {
+        id,
+        ...metadata,
+        plugins,
+      }
+      registryCtx.plugin(class DeepBlendDeclaration {
+        static inject = ['agentPresets']
+        constructor(ctx) { this.ctx = ctx }
+        async *[Service.init]() { yield await this.ctx.agentPresets.register(definition) }
+      })
+    }
+  })
   const { deployed, failed } = deployShippedPresets(config, ctx.logger)
   if (deployed.length === 0 && failed.length === 0) return
   const summary = deployed

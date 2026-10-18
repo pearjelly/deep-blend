@@ -3,6 +3,14 @@
 Install the published plugin, open the Blender workbench, and create a scene from a recipe.
 安装正式插件，打开 Blender 工作台，从一个配方开始创作。普通用户可以直接安装 npm 包。
 
+新版模型用户可使用固定版本 **DSH 0.2.1-rc.1**；旧锚点仍为 0.1.5-rc.2。模型与宿主的区别、bai 图像能力声明及验收范围见[1017 适配说明](deepseek-1017.md)。在独立环境中安装新版：
+
+```sh
+npm install -g @deepseek-ai/dsh@0.2.1-rc.1 @deepseek-ai/dsh-subprocess-local@0.2.1-rc.1 @deepseek-ai/dsh-attachment-local@0.2.1-rc.1
+```
+
+Web/桌面优先读取已保存凭据；新版 headless 默认使用环境变量或 .env，不能把旧会话的登录状态视为 headless 已登录。插件不替换个人模型或推理等级。
+
 ## 1. Prepare your environment / 准备环境
 
 - **Node.js 22.23.3+** for the pinned DSH CLI; the DeepBlend development packages themselves declare Node.js ≥ 22.

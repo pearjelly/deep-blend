@@ -142,6 +142,7 @@ export function dshLocale(env) {
   }
   const ctx = { effect(callback) { const cleanup = callback(); if (typeof cleanup === 'function') cleanups.push(cleanup) },
     provide(key, service) { this[key] = service }, emit: (...event) => changes.push(event),
+    configForms: { get: () => host },
     settingsScope: { bind: () => host }, slots: { installLocale() {}, inject: (_name, callback) => callback(), register() { return () => {} } },
   }
   plugin.apply(ctx)

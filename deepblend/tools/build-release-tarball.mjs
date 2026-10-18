@@ -215,7 +215,11 @@ export function stagingManifest(manifest, packages, commit) {
   return {
     ...manifest,
     dependencies,
-    pnpm: { ...manifest.pnpm, supportedArchitectures: structuredClone(RELEASE_ARCHITECTURES) },
+    pnpm: { ...manifest.pnpm, supportedArchitectures: structuredClone(RELEASE_ARCHITECTURES),
+      // Override transitive sibling requests too: direct pins alone can leave
+      // an older contracts package nested under a consumer.
+      overrides: { ...manifest.pnpm?.overrides,
+        ...Object.fromEntries(packages.map(({ name }) => [name, dependencies[name]])) } },
     // Every sibling the profile needs, not only the bundle's direct dependencies: the rows
     // the patch names are resolved by the Loader, not by Node, so a package that is nobody's
     // `dependencies` entry is still required at runtime.
@@ -412,6 +416,68 @@ export function packVerifiedRelease(stage, output, { sharpVersion }) {
   }
 }
 
+/** Check every installed own-package copy, including nested dependency shadows. */
+export function verifyOwnedPackageCopies(stage, sources) {
+  const known = new Map(sources.map(source => [source.name, source]))
+  const copies = []
+  const sameFile = (actual, source) => {
+    if (!existsSync(source) || !lstatSync(source).isFile() || !lstatSync(actual).isFile() ||
+        !readFileSync(actual).equals(readFileSync(source))) throw new Error(`Own-package source mismatch: ${actual}`)
+  }
+  const inspectFiles = (actual, source, top = true) => {
+    let files = 0
+    for (const entry of readdirSync(actual, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === 'package.json') continue
+      // The installer lock is staging metadata; npm never ships this root file.
+      if (actual === stage && entry.name === 'pnpm-lock.yaml') continue
+      const path = join(actual, entry.name)
+      let expected = join(source, entry.name)
+      // npm includes the repository license in workspace package archives.
+      if (top && entry.name === 'LICENSE' && !existsSync(expected)) expected = join(ROOT, 'LICENSE')
+      if (entry.isDirectory()) files += inspectFiles(path, expected, false)
+      else { sameFile(path, expected); files++ }
+    }
+    return files
+  }
+  const requireSourceTree = (source, actual) => {
+    for (const entry of readdirSync(source, { withFileTypes: true })) {
+      if (entry.name === '__pycache__' || entry.name.endsWith('.pyc') || entry.name === '.DS_Store') continue
+      const path = join(source, entry.name), target = join(actual, entry.name)
+      if (entry.isDirectory()) {
+        if (!existsSync(target) || !lstatSync(target).isDirectory()) throw new Error(`Missing own-package source directory: ${target}`)
+        requireSourceTree(path, target)
+      } else {
+        if (!existsSync(target)) throw new Error(`Missing own-package source file: ${target}`)
+        sameFile(target, path)
+      }
+    }
+  }
+  const walk = directory => {
+    const manifest = join(directory, 'package.json')
+    if (existsSync(manifest)) {
+      const actual = JSON.parse(readFileSync(manifest, 'utf8')), source = known.get(actual.name)
+      if (source) {
+        if (actual.version !== source.version) throw new Error(`Own-package version mismatch: ${actual.name}@${actual.version}, expected ${source.version}`)
+        for (const core of ['lib', 'python', 'presets', 'recipes']) {
+          if (existsSync(join(source.source, core))) {
+            if (!existsSync(join(directory, core))) throw new Error(`Missing own-package source directory: ${join(directory, core)}`)
+            requireSourceTree(join(source.source, core), join(directory, core))
+          }
+        }
+        const files = inspectFiles(directory, source.source)
+        if (!files) throw new Error(`Own-package copy has no source files: ${directory}`)
+        copies.push({ name: actual.name, version: actual.version, path: directory.slice(stage.length + 1) || '.', files })
+      }
+    }
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name !== '.git') walk(join(directory, entry.name))
+    }
+  }
+  walk(stage)
+  for (const name of known.keys()) if (!copies.some(copy => copy.name === name)) throw new Error(`Missing own-package copy: ${name}`)
+  return { status: 'all-observed-own-package-copies-match-source', copies }
+}
+
 /** Native dependencies requiring installed-artifact validation on each target. */
 export function nativeDependencyRequirements() {
   const requirements = []
@@ -557,6 +623,11 @@ function build(allowDirty) {
       process.exit(1)
     }
   }
+
+  const ownCopies = verifyOwnedPackageCopies(stage, localPackages().map(entry => ({
+    ...entry, source: join(PACKAGES_DIRECTORY, entry.directory),
+  })))
+  writeFileSync(join(OUT_DIRECTORY, 'own-package-copy-verification.json'), JSON.stringify(ownCopies, null, 2) + '\n')
 
   // 4. The shipped manifest declares the versions it carries, so nothing is left to resolve.
   writeFileSync(join(stage, 'package.json'), `${JSON.stringify(shippedManifest(pinned, packages), null, 2)}\n`)

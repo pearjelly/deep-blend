@@ -434,3 +434,17 @@ test('paired lamp geometry and saved liner pixels are covered by full acceptance
   assert.ok(readFileSync(join(ROOT, 'deepblend/docs/ci.md'), 'utf8').includes(path))
   assert.ok(existsSync(join(ROOT, 'deepblend/tests/lib/inspect-native-lamp.py')))
 })
+
+
+test('modern Harness has a separate locked runtime and exercises real preset selection and delivery', () => {
+  const modern = workflow.split('  harness-021-compatibility:')[1]
+  assert.ok(modern, 'missing independent modern-host job')
+  assert.doesNotMatch(modern.split('    steps:')[0], /DEEPBLEND_SDK_TOOLCHAIN_ROOT:/, 'a nonexistent explicit SDK root prevents the managed installer from creating it')
+  assert.match(modern, /node deepblend\/tools\/install-modern-compatibility\.mjs/)
+  const installer = readFileSync(join(ROOT, 'deepblend/tools/install-modern-compatibility.mjs'), 'utf8')
+  assert.ok(installer.includes('deepblend/development/compatibility/dsh-0.2.1-rc.1'))
+  assert.ok(installer.includes("['ci', '--prefix'"))
+  for (const suite of ['composition/tool-plane.e2e.mjs', 'composition/tool-plane-m2.e2e.mjs', 'composition/tool-plane-m3.e2e.mjs', 'e2e/inspection-ui.e2e.mjs']) assert.ok(modern.includes(suite), `missing actual modern-host exercise ${suite}`)
+  assert.match(modern, /if: always\(\)/)
+  assert.match(modern, /harness-021-\$\{\{ github.run_id/)
+})

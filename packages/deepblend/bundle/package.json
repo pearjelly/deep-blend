@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-bundle",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Create Blender product scenes in DSH with editable recipes, model imports, previews and PNG/MP4 delivery; includes workbench and agent configuration.",
   "main": "lib/index.js",
   "bin": {
@@ -70,5 +70,9 @@
   ],
   "bugs": {
     "url": "https://github.com/pearjelly/deep-blend/issues"
+  },
+  "engines": {
+    "node": ">=22.23.3",
+    "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
   }
 }

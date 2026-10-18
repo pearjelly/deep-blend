@@ -96,19 +96,22 @@ try {
   // here would test the stub.
   const llmModule = await importDsh('dsh-llm')
   const LocalCredentialProvider = (await importDsh('dsh-credentials-local')).default
-  const FileSettingsProvider = (await importDsh('dsh-settings-file')).default
   const LocalAttachmentStore = (await importDsh('dsh-attachment-local')).default
-  const deepSeek = await importDsh('dsh-llm-deepseek')
+  let deepSeek = await importDsh('dsh-llm-deepseek')
+  // Newer DSH separates the Messages protocol from credential-gated registration.
+  const legacySettings = typeof deepSeek.apply === 'function'
+  if (!legacySettings) deepSeek = await importDsh('dsh-llm-deepseek-api-key')
+  const FileSettingsProvider = legacySettings ? (await importDsh('dsh-settings-file')).default : null
 
   ctx.plugin(LocalSubprocess)
-  ctx.plugin(FileSettingsProvider, { path: join(DSH_HOME, 'settings.yaml'), dshHome: DSH_HOME })
+  if (FileSettingsProvider) ctx.plugin(FileSettingsProvider, { path: join(DSH_HOME, 'settings.yaml'), dshHome: DSH_HOME })
   ctx.plugin(LocalCredentialProvider, { path: join(DSH_HOME, '.credentials.yaml'), dshHome: DSH_HOME })
   ctx.plugin(LocalAttachmentStore, { dshHome: DSH_HOME })
   ctx.plugin(llmModule.default)
   // The adapter's `inject` lives on the module namespace, not on the function, so it
   // must be handed over as the { apply, inject } pair (measured: wrapping it in a
   // closure silently registers nothing and only fails later with NO_ADAPTER).
-  ctx.plugin({ apply: deepSeek.apply, inject: deepSeek.inject }, { apiKeyEnv: 'DEEPSEEK_API_KEY' })
+  ctx.plugin({ apply: deepSeek.apply, inject: deepSeek.inject, Config: deepSeek.Config }, { apiKeyEnv: 'DEEPSEEK_API_KEY' })
 
   // Explicit custom probe routes use the operator's declared adapter, read-only,
   // just as ui-live does. Never relabel a text-only fallback as a vision model.
@@ -120,7 +123,7 @@ try {
     const adapter = Array.isArray(rows) && rows.find(row => row.id === 'llm-pi-ai' && row.config?.providers?.[PROVIDER])
     if (!adapter) throw Error('Requested probe provider has no configured pi-ai adapter in the selected private profile.')
     const pi = await importDsh('dsh-llm-pi-ai')
-    ctx.plugin({ apply: pi.apply, inject: pi.inject }, adapter.config)
+    ctx.plugin({ apply: pi.apply, inject: pi.inject, Config: pi.Config }, adapter.config)
   }
 
   const { default: Provider, ProviderConfig } = await import('@deepblend/dsh-blender-provider-local')

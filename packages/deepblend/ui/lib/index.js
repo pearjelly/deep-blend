@@ -369,9 +369,12 @@ export default class BlenderUiHost extends Service {
   _sendWorkbenchPage(request, response) {
     const document = workbenchPageDocument(WORKBENCH_PAGE_ROOT_ID)
     const server = this._webServer
-    const html = server !== null && typeof server.renderIndex === 'function'
+    const rendered = server !== null && typeof server.renderIndex === 'function'
       ? server.renderIndex(document)
       : document
+    // The host's module graph now uses relative URLs. Set the base before its
+    // injected scripts execute, including when this route is proxy-prefixed.
+    const html = rendered.replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="../">`)
     const bytes = Buffer.from(html, 'utf8')
     response.setHeader('content-type', 'text/html; charset=utf-8')
     // Never cached, for the same reason the JSON routes are not: this document

@@ -115,3 +115,6 @@ macOS arm64 可使用受管 Blender 安装器，其他平台需自行安装并�
 · [反馈问题或需求](https://github.com/pearjelly/deep-blend/issues)
 
 预览读取绑定所选作品，失败后可明确刷新并保留编辑；见[预览恢复](../../../deepblend/docs/preview-recovery.md)。
+
+
+DSH 0.2.1-rc.1 与旧锚点 0.1.5-rc.2 均受支持。新版模式注册、模型图像输入与实测边界见[1017 适配记录](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/deepseek-1017.md)。
