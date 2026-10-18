@@ -428,6 +428,8 @@ export function verifyOwnedPackageCopies(stage, sources) {
     let files = 0
     for (const entry of readdirSync(actual, { withFileTypes: true })) {
       if (entry.name === 'node_modules' || entry.name === 'package.json') continue
+      // The installer lock is staging metadata; npm never ships this root file.
+      if (actual === stage && entry.name === 'pnpm-lock.yaml') continue
       const path = join(actual, entry.name)
       let expected = join(source, entry.name)
       // npm includes the repository license in workspace package archives.

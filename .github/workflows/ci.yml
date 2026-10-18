@@ -425,7 +425,6 @@ jobs:
     env:
       LIBGL_ALWAYS_SOFTWARE: '1'
       DEEPBLEND_DSH_ROOT: ${{ github.workspace }}/.tools/dsh-021
-      DEEPBLEND_SDK_TOOLCHAIN_ROOT: ${{ github.workspace }}/.tools/sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

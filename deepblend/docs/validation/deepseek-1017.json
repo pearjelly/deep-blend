@@ -239,13 +239,14 @@
     "newHostUI": "72/72",
     "realToolCard": "10/10",
     "realImageReview": "14/14; planted occlusion repaired; measured score 82 to 100",
-    "releaseGuard": "51/51",
+    "releaseGuard": "51/51, including actual npm exclusion of the staging install lock",
     "presetContract": "9/9",
     "doctorContract": "14/14; actual new-host version accepted",
     "newHostInspectionUI": "31/31; both shipped presets selectable; actual browser/native dimensions, immutable source and cancellation",
     "legacyInspectionUI": "31/31 before base correction; final full regression reruns the exact correction",
     "workbenchBaseContract": "74/74; deleting rendered base failed the new assertion; old/new browser validation recorded separately",
-    "ciWorkflowContract": "20/20; actual GitHub jobs pending"
+    "ciWorkflowContract": "20/20; actual GitHub jobs pending",
+    "legacyUnitContract": "136/136 final full-v3 unit stage; complete native/browser stage still running"
   },
   "rawLocalEvidence": [
     ".tmp-dsh021-before.log",
@@ -273,7 +274,9 @@
     "visual probe setup migrated protocol/auth separation and retained schema config; original setup failures retained",
     "Modern standalone workbench failed to preload the host module loader because host script URLs became relative; fixed by placing deployment base before rendered injections.",
     "Fetch rejected nonpublic DNS; explicit live bai search probe completed without a search call; successful networking remains unproven.",
-    "Final full-v2 unit gate caught a newly introduced setup helper missing public script/check/documentation/tracking; corrected and targeted setup contract 32/32. Original failure retained; exact final full-v3 is running."
+    "Final full-v2 unit gate caught a newly introduced setup helper missing public script/check/documentation/tracking; corrected and targeted setup contract 32/32. Original failure retained; exact final full-v3 is running.",
+    "First exact-head Linux modern-host job installed and checked the lock, then failed before product tests: an explicit nonexistent SDK root intentionally prevented managed installation. Removed that premature environment selection; protected external-root behavior retained.",
+    "First clean pushed source build rejected its unshipped root pnpm-lock.yaml as an own source file. Exclude only this root install metadata; actual npm pack dry-run verifies exclusion. Original failed stage retained."
   ],
   "publication": {
     "githubRelease": "not-created",

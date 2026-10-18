@@ -296,6 +296,9 @@ test('a nested older or same-version altered sibling is refused, as is a missing
     writeFileSync(join(directory, 'lib/index.js'), 'export const retained = true\n')
   }
   const sources = [{ name, version, source }]
+  writeFileSync(join(stage, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n')
+  const packed = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--ignore-scripts', '--json'], { cwd: stage, encoding: 'utf8' }))[0].files.map(file => file.path)
+  assert.ok(packed.includes('lib/index.js') && !packed.includes('pnpm-lock.yaml'), 'the root install lock really is excluded from published contents')
   assert.equal(verifyOwnedPackageCopies(stage, sources).copies.length, 2)
   const license = readFileSync(new URL('../../../LICENSE', import.meta.url))
   writeFileSync(join(nested, 'LICENSE'), license)

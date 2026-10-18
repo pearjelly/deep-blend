@@ -439,6 +439,7 @@ test('paired lamp geometry and saved liner pixels are covered by full acceptance
 test('modern Harness has a separate locked runtime and exercises real preset selection and delivery', () => {
   const modern = workflow.split('  harness-021-compatibility:')[1]
   assert.ok(modern, 'missing independent modern-host job')
+  assert.doesNotMatch(modern.split('    steps:')[0], /DEEPBLEND_SDK_TOOLCHAIN_ROOT:/, 'a nonexistent explicit SDK root prevents the managed installer from creating it')
   assert.match(modern, /node deepblend\/tools\/install-modern-compatibility\.mjs/)
   const installer = readFileSync(join(ROOT, 'deepblend/tools/install-modern-compatibility.mjs'), 'utf8')
   assert.ok(installer.includes('deepblend/development/compatibility/dsh-0.2.1-rc.1'))
