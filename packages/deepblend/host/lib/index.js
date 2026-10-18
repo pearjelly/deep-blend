@@ -334,7 +334,7 @@ export const StudioConfig = z.object({
   /** Provider route used by the built-in vision reviewer. */
   visualReviewProvider: z.string().default('deepseek-official'),
   /** Model used by the built-in vision reviewer. */
-  visualReviewModel: z.string().default('deepseek-v4.1-flash'),
+  visualReviewModel: z.string().default('deepseek-flash'),
   /**
    * Token budget for one reviewer call.
    *
