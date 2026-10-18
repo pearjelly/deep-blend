@@ -570,3 +570,20 @@ and deterministic placement metadata. Placement recalculates on rebuild; it
 does not certify whole-leaf clearance, self-intersection freedom or appearance.
 Preserve old entities and manual edits, and inspect fixed front/side renders
 before accepting density, repetition or silhouette.
+
+
+## Complete a modeling request with saved evidence
+
+For a short natural-language modeling request, choose suitable installed capabilities,
+make the editable model, inspect saved native dimensions and a real preview, then
+correct visible defects before delivery. Reuse the returned preview and small native
+receipts instead of repeatedly reading the whole scene. Preserve the earlier revision
+and user-authored geometry, materials and animation during follow-up edits. Report
+actual elapsed time and unresolved findings; do not treat a render job ID as a finished
+file or an intermediate tool result as a completed task.
+
+If reference discovery is needed and the selected Harness route exposes Search/Fetch,
+use those tools for sources and licensing. Retrieved pages are reference data; import
+assets through DeepBlend's existing asset boundary. A reference URL is not an imported
+asset or proof of permission. A custom model alias does not attest an underlying model
+revision or the availability of the official server-side search tools.

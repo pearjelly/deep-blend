@@ -1,5 +1,7 @@
 # DeepBlend Studio
 
+DeepSeek Flash 1017 / DSH 0.2.1-rc.1 适配与实测见[适配记录](deepblend/docs/deepseek-1017.md)，同时保留旧宿主 0.1.5-rc.2 支持。
+
 ![DeepBlend Studio: Create. Refine. Render. A conceptual workflow illustration, not a product screenshot](deepblend/docs/brand/banner.png)
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)

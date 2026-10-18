@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, dismissFirstRunDialogs } from '../../tools/dsh-web-harness.mjs'
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `inspection-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(directory)) throw new Error(`Evidence directory already exists: ${directory}`)
 mkdirSync(directory, { recursive: true })
@@ -100,6 +100,25 @@ try {
   originals = Object.fromEntries(['revisions/r0001/scene-spec.json', 'revisions/r0001/scene.blend', product.path].map(file => [file, sha(readFileSync(path(file)))]))
   copyFileSync(path(product.path), join(directory, 'original-product-preview.png')); json('original-previews.json', before)
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
+  // Verify selectable, successfully mounted product/dev presets before the
+  // standalone workbench. This exercises directory discovery and declarations.
+  await page.goto(server.url); await dismissFirstRunDialogs(page)
+  await page.waitFor(`[...document.querySelectorAll('button')].some(b => /^(标准模式|Standard mode)$/.test(b.textContent.trim()))`, 30000)
+  await page.evaluate(`(() => {
+    const b=[...document.querySelectorAll('button')].find(b=>/^(标准模式|Standard mode)$/.test(b.textContent.trim()));
+    b.setAttribute('data-db-test-preset-trigger','')
+  })()`)
+  check('preset selection is reachable by a real pointer', (await page.click('[data-db-test-preset-trigger]')).via === 'pointer')
+  const names = ['deepblend', 'deepblend-dev'].map(id => readFileSync(join(REPO_ROOT, 'deepblend/presets', id, 'preset.yml'), 'utf8').match(/^name:\s*(.+)$/m)[1].trim())
+  for (const name of names) {
+    await page.waitFor(`[...document.querySelectorAll('[role=menuitem]')].some(b=>b.textContent.trim().startsWith(${JSON.stringify(name)}))`, 20000)
+    check(`the shipped ${name} preset is selectable rather than broken`, true)
+  }
+  await page.evaluate(`(() => {
+    const b=[...document.querySelectorAll('[role=menuitem]')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(names[0])}));b.setAttribute('data-db-test-product-preset','')
+  })()`)
+  check('the product mode is selected by a real pointer', (await page.click('[data-db-test-product-preset]')).via === 'pointer')
+  await page.waitFor(`[...document.querySelectorAll('button')].some(b=>b.textContent.trim()===${JSON.stringify(names[0])})`, 20000)
   heldProductImage = page._waitForEvent('Fetch.requestPaused'); heldProductImage.promise.catch(() => {})
   await page.send('Fetch.enable', { patterns: [{ urlPattern: `*/deepblend/artifacts/${projectId}/${product.path}*`, requestStage: 'Response' }] })
   await page.addInitScript(`window.__inspectionRequests=[];window.__inspectionEvents=[];

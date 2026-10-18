@@ -38,7 +38,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
@@ -47,6 +47,7 @@ import { join, relative } from 'node:path'
 import { PRESET_SOURCE, REQUIRED_FILES, deployPresets, filesUnder, planPreset } from '@deepblend/dsh-blender-preset/deploy'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
+import { apply, Config } from '@deepblend/dsh-blender-preset'
 import { createHome } from '../../tools/dsh-web-harness.mjs'
 
 test('boot-time deployment into a test home cannot change the checkout preset source', () => {
@@ -240,4 +241,32 @@ test('the preset the deployer installs is the preset the roster can read', () =>
   // The relative path the roster would see, for the record: `deepblend/presets`
   // is SPEC §5.2's path and stays the source; the package copy is generated.
   assert.ok(relative(ROOT, REPOSITORY_PRESETS) === 'deepblend/presets')
+})
+
+
+test('deployment disabled does not register modes or touch a caller-managed preset root', () => {
+  const target = mkdtempSync(join(tmpdir(), 'deepblend-disabled-presets-'))
+  try {
+    const marker = join(target, 'custom.txt'); writeFileSync(marker, 'user-authored')
+    apply({ inject() { assert.fail('disabled deployment must not register a callback') } }, Config({ deploy: false, target }))
+    assert.equal(readFileSync(marker, 'utf8'), 'user-authored')
+    assert.deepEqual(readdirSync(target), ['custom.txt'])
+  } finally { rmSync(target, { recursive: true, force: true }) }
+})
+
+test('legacy directory discovery survives a registry without the declarative register API', async () => {
+  const target = mkdtempSync(join(tmpdir(), 'deepblend-legacy-registry-'))
+  const callbacks = []
+  try {
+    const marker = join(target, 'custom.txt'); writeFileSync(marker, 'keep this mode')
+    apply({ inject(names, callback) {
+      assert.deepEqual(names, ['agentPresets'])
+      callbacks.push(callback({ agentPresets: { list() {} } }))
+    } }, Config({ target }))
+    await Promise.all(callbacks)
+    assert.equal(readFileSync(marker, 'utf8'), 'keep this mode')
+    for (const id of ['deepblend', 'deepblend-dev']) {
+      assert.equal(readFileSync(join(target, id, 'agent.cordis.yml'), 'utf8'), readFileSync(join(PRESET_SOURCE, id, 'agent.cordis.yml'), 'utf8'))
+    }
+  } finally { rmSync(target, { recursive: true, force: true }) }
 })

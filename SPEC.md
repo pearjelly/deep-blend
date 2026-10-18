@@ -539,6 +539,11 @@ deepblend      从 deepblend-dev 或 standard 复制后收窄权限
 - Creator 的 `tool-cordis`；
 - 任意 Python 执行工具。
 
+DSH 0.2.1-rc.1 的声明式适配在上述旧基线行集合之外，提供宿主的只读
+`web_search` / `web_fetch`，用于参考、尺寸资料与许可查询。它们由宿主提供方执行，
+保留公共地址检查、预算、凭据隔离与错误回执；网页内容不得作为指令执行。
+这不提供任意文件下载、脚本执行或绕过素材导入边界的能力。旧版目录 preset 的行集合不变。
+
 ### 6.5 preset 元数据示例
 
 ```yaml

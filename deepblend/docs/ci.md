@@ -9,6 +9,9 @@
 | 测试入口 | 检查范围 |
 | --- | --- |
 | `deepblend/tests/blender-integration/diagnostic-preview.e2e.mjs` | 实际 Cycles / EEVEE、固定摄影与帧、GLB 多材质、独立重开 checkpoint、源文件保护与失败不发布 |
+| `deepblend/tests/composition/activation.e2e.mjs` | 新宿主真实 Host 服务与路由激活 |
+| `deepblend/tests/composition/tool-plane-m2.e2e.mjs` | 新宿主真实预览与图像附件 |
+| `deepblend/tests/composition/tool-plane-m3.e2e.mjs` | 新宿主渲染、交付生命周期与工具清单 |
 | `deepblend/tests/composition/tool-plane-m1.e2e.mjs` | 实际 Agent 工具、灰模/材质图片附件、PNG 摘要、相同摄影设置与旧预览保护 |
 | `deepblend/tests/e2e/inspection-ui.e2e.mjs` | 实际浏览器生成图、刷新与历史版本、草稿保护和取消 |
 | `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片、过渡参数实际几何及旧文件保护 |
@@ -155,3 +158,6 @@ run `38290709648` 的八分钟杯步骤仍超时。完整 ZIP 的 CRC 已验证�
 
 
 本机分组验证已完成：默认完整组65/65，构造38/38，尺寸28/28，名称并集恰好为原65项，只重复环境激活检查。实际耗时分别367576/180976/185240 ms，不能当作Linux耗时或受控提速。未知组在创建项目之前拒绝；故意将构造组选成参数组、将参数组选成构造组、移除完整入口的all覆盖，三项均使具体契约失败，恢复后通过。源产品175文件与已验收冻结字节相同，分组报告另标明自己的范围。当前新四作业CI仍未执行，不计稳定发布。
+
+
+新版宿主另有 harness-021-compatibility job：按 compatibility/dsh-0.2.1-rc.1 的独立锁安装，不覆盖旧基线；运行实际 Host、预览图像回执、渲染/交付生命周期与两种模式选择、浏览器检查。产物名 harness-021-<run>-<attempt>。本 job 不调用线上模型；是否已执行成功以具体提交的 Actions 与产物为准。

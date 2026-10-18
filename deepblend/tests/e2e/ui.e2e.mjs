@@ -51,6 +51,25 @@ function check(name, ok, detail) {
   console.log(`[${ok ? 'PASS' : 'FAIL'}] ${name}${detail === undefined ? '' : ` — ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`}`)
 }
 
+async function openSettings(page) {
+  const direct = await page.evaluate(`Boolean(document.querySelector('button[aria-label="设置"]'))`)
+  if (!direct) {
+    await page.evaluate(`(() => {
+      const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '更多')
+      if (!button) throw Error('Settings menu trigger not found')
+      button.setAttribute('data-db-test-more', '')
+    })()`)
+    await page.click('[data-db-test-more]')
+    await page.waitFor(`[...document.querySelectorAll('[role=menuitem]')].some(b => b.textContent.trim().startsWith('设置'))`, 15000)
+  }
+  await page.evaluate(`(() => {
+    const button = document.querySelector('button[aria-label="设置"]') || [...document.querySelectorAll('[role=menuitem]')].find(b => b.textContent.trim().startsWith('设置'))
+    if (!button) throw Error('Settings action not found')
+    button.click()
+  })()`)
+  await page.waitFor(`[...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Blender').length >= 2`, 15000)
+}
+
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH ?? join(REPO_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
 if (!existsSync(BLENDER_PATH)) {
   console.error(`Blender not found at ${BLENDER_PATH}; the M4 UI acceptance cannot run.`)
@@ -546,7 +565,7 @@ try {
   check('the refreshed page made requests of its own (so the log is really per document)',
     Array.isArray(requests) && requests.length > 0, Array.isArray(requests) ? requests.length : requests)
   check('every request the page made was same-origin',
-    requests.every(entry => entry.url.startsWith('/') || entry.url.startsWith('http://127.0.0.1')))
+    requests.every(entry => new URL(entry.url, server.url).origin === new URL(server.url).origin))
 
   // The DeepBlend traffic, which is the browser-side statement of
   // 「所有写操作经过 Host」: whatever the panel wanted, it went through these URLs.
@@ -594,12 +613,7 @@ try {
   // -------------------------------------------------------------------------
   // 7. Settings — the M0 card, now with a seat in the console
   // -------------------------------------------------------------------------
-  await page.evaluate(`(() => {
-    const button = document.querySelector('button[aria-label="设置"]')
-      || Array.from(document.querySelectorAll('button')).find(candidate => (candidate.textContent || '').trim() === '设置')
-    if (button) button.click()
-    return true
-  })()`)
+  await openSettings(page)
   // The settings panel lists one nav row per registered section; ours is the
   // entry this package adds, and it is rendered by the shipped settings shell.
   await page.waitFor(`Array.from(document.querySelectorAll('button')).some(candidate => (candidate.textContent || '').trim() === 'Blender')`, 20000)
@@ -665,12 +679,7 @@ try {
   // The other shape: a 200 whose body belongs to another route. The settings page
   // fetches /deepblend/capabilities, which a stale Host answers with the M0 card —
   // so the card must NOT be shown as if it were current.
-  await page.evaluate(`(() => {
-    const button = document.querySelector('button[aria-label="设置"]')
-      || Array.from(document.querySelectorAll('button')).find(candidate => (candidate.textContent || '').trim() === '设置')
-    if (button) button.click()
-    return true
-  })()`)
+  await openSettings(page)
   await page.waitFor(`Array.from(document.querySelectorAll('button')).some(candidate => (candidate.textContent || '').trim() === 'Blender')`, 20000)
   await page.evaluate(`(() => {
     const rows = Array.from(document.querySelectorAll('button')).filter(candidate => (candidate.textContent || '').trim() === 'Blender')

@@ -749,6 +749,23 @@ if (core !== undefined) {
     && attrsNamed(page, 'aria-live').includes('polite'))
 }
 
+// A nested workbench must resolve the host's relative boot resources from the
+// deployment root, before the first injected script is parsed.
+{
+  let rendered
+  const response = { setHeader() {}, end(bytes) { rendered = bytes.toString() } }
+  hostModule.default.prototype._sendWorkbenchPage.call({ _webServer: { renderIndex(document) {
+    return document.replace('<head>', '<head><script src="plugins/bootstrap.js"></script>')
+  } } }, { method: 'GET' }, response)
+  check('the rendered page establishes the deployment base before injected host scripts',
+    rendered.indexOf('<base href="../">') >= 0 && rendered.indexOf('<base href="../">') < rendered.indexOf('<script src="plugins/bootstrap.js">'))
+  for (const pathname of ['/deepblend/workbench', '/harness/deepblend/workbench']) {
+    const base = new URL(rendered.match(/<base href="([^"]+)">/)[1], `https://example.com${pathname}`)
+    check(`${pathname}: relative host bundles retain the deployment prefix`,
+      new URL('plugins/bootstrap.js', base).pathname === pathname.replace('deepblend/workbench', 'plugins/bootstrap.js'))
+  }
+}
+
 // Execute the actual bootstrap against both supported module graphs. An
 // independent UI install must not depend on the full bundle being present.
 {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0 — 2026-10-18
+
+- Load both DeepBlend modes through DSH 0.2.1-rc.1's declarative preset registry while retaining the 0.1.5-rc.2 directory installation.
+- Use the host's current working-directory context and PTC workflow runtime in modern presets, preserving existing projects and legacy preset source.
+- Declare compatible host/tool versions and verify the actual modeling, image feedback, tool-card and render lifecycle on the new host.
+- Pin transitive sibling dependencies during release builds and reject nested copies whose version or source differs from the candidate.
+- Fix the standalone full-screen workbench bootstrap when the new host serves relative script URLs; preserve historical projects and manual edits.
+
 ## 0.14.0 — 2026-10-16
 
 - Continue dimension edits of complete XYZ-posed, animated speaker assemblies while preserving manual details, placement, authored cameras and existing timing.

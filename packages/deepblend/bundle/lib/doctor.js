@@ -19,7 +19,9 @@ export function probeExecutable(executable, args, { timeout = 8000 } = {}) {
 const SEMVER = '(\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?)'
 const definitions = [
   { id: 'dsh', label: 'DSH', args: ['--version'], pattern: new RegExp(`^(?:v|(?:DSH|dsh|@deepseek-ai/dsh)(?: CLI)?[ :v]*)?${SEMVER}(?:\\s|$)`, 'im'),
-    expected: REQUIREMENTS.dsh, action: `Install the supported DSH ${REQUIREMENTS.dsh}; see the quick start.` },
+    expected: [REQUIREMENTS.dsh, ...(REQUIREMENTS.dshAdditional ?? [])].join(' or '),
+    acceptedVersions: [REQUIREMENTS.dsh, ...(REQUIREMENTS.dshAdditional ?? [])],
+    action: `Install a supported DSH: ${[REQUIREMENTS.dsh, ...(REQUIREMENTS.dshAdditional ?? [])].join(' or ')}; see the quick start.` },
   { id: 'pnpm', label: 'pnpm', args: ['--version'], pattern: new RegExp(`^v?${SEMVER}(?:\\s|$)`, 'm'),
     expected: REQUIREMENTS.pnpm, action: `Use the verified pnpm ${REQUIREMENTS.pnpm} for DSH profile installation; pnpm 9 can refuse the profile workspace root.` },
   { id: 'blender', label: 'Blender', args: ['--version'], pattern: new RegExp(`^Blender ${SEMVER}(?:\\s|$)`, 'm'),
@@ -51,7 +53,7 @@ export function inspectEnvironment({ nodeVersion = process.versions.node, comman
   for (const definition of definitions) {
     const result = probe(commands[definition.id] ?? definition.id, definition.args)
     const version = result.ok ? result.output.match(definition.pattern)?.[1] ?? null : null
-    const reason = !result.ok ? result.reason : !version ? 'unrecognized' : definition.expected && version !== definition.expected ? 'version' : null
+    const reason = !result.ok ? result.reason : !version ? 'unrecognized' : definition.acceptedVersions ? (definition.acceptedVersions.includes(version) ? null : 'version') : definition.expected && version !== definition.expected ? 'version' : null
     checks.push({
       id: definition.id, label: definition.label, required: !definition.optional,
       status: reason ? definition.optional ? 'warning' : 'fail' : 'pass',

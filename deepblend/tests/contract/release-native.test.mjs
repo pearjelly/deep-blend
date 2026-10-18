@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import {
   ASSET_NAME, NATIVE_RELEASE_TARGETS, RELEASE_ARCHITECTURES, inspectNativePayload,
-  packVerifiedRelease, stagingManifest, stageBundleFiles, verifyNativeDirectory, verifyNativeTarball,
+  packVerifiedRelease, stagingManifest, stageBundleFiles, verifyNativeDirectory, verifyNativeTarball, verifyOwnedPackageCopies,
 } from '../../tools/build-release-tarball.mjs'
 
 const sharpVersion = '0.35.5'
@@ -274,4 +274,40 @@ test('post-pack failure deletes the candidate instead of leaving a publishable t
     assert.equal(existsSync(join(output, ASSET_NAME)), false)
     assert.deepEqual(readdirSync(output), [])
   } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+
+test('transitive sibling overrides use the same frozen source as every direct request', () => {
+  const name = '@deepblend/dsh-blender-contracts', commit = 'b'.repeat(40)
+  const spec = 'github:pearjelly/deep-blend#path:/packages/deepblend/contracts'
+  const actual = stagingManifest({ dependencies: { [name]: spec }, pnpm: { overrides: { other: '1.0.0' } } }, [{ name }], commit)
+  assert.equal(actual.pnpm.overrides[name], actual.dependencies[name])
+  assert.equal(actual.pnpm.overrides[name], spec.replace('#', `#${commit}&`))
+  assert.equal(actual.pnpm.overrides.other, '1.0.0')
+})
+
+test('a nested older or same-version altered sibling is refused, as is a missing source file', t => {
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-own-copies-')); t.after(() => rmSync(root, { recursive: true, force: true }))
+  const source = join(root, 'source'), stage = join(root, 'stage'), nested = join(stage, 'node_modules/consumer/node_modules/own')
+  const name = '@deepblend/fixture', version = '0.15.0'
+  for (const directory of [source, stage, nested]) {
+    mkdirSync(join(directory, 'lib'), { recursive: true })
+    writeFileSync(join(directory, 'package.json'), JSON.stringify({ name, version }))
+    writeFileSync(join(directory, 'lib/index.js'), 'export const retained = true\n')
+  }
+  const sources = [{ name, version, source }]
+  assert.equal(verifyOwnedPackageCopies(stage, sources).copies.length, 2)
+  const license = readFileSync(new URL('../../../LICENSE', import.meta.url))
+  writeFileSync(join(nested, 'LICENSE'), license)
+  assert.equal(verifyOwnedPackageCopies(stage, sources).copies.length, 2, 'npm-inherited repository license is checked against the actual repository bytes')
+  writeFileSync(join(nested, 'LICENSE'), 'different license')
+  assert.throws(() => verifyOwnedPackageCopies(stage, sources), /source mismatch/)
+  writeFileSync(join(nested, 'LICENSE'), license)
+  writeFileSync(join(nested, 'package.json'), JSON.stringify({ name, version: '0.14.0' }))
+  assert.throws(() => verifyOwnedPackageCopies(stage, sources), /version mismatch/)
+  writeFileSync(join(nested, 'package.json'), JSON.stringify({ name, version }))
+  writeFileSync(join(nested, 'lib/index.js'), 'export const retained = false\n')
+  assert.throws(() => verifyOwnedPackageCopies(stage, sources), /source mismatch/)
+  rmSync(join(nested, 'lib/index.js'))
+  assert.throws(() => verifyOwnedPackageCopies(stage, sources), /Missing own-package source file/)
 })

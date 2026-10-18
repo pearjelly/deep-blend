@@ -165,3 +165,6 @@ of truth, and `.blend` is a compiled artifact.
 · [Request a feature](https://github.com/pearjelly/deep-blend/issues/new?template=feature.yml)
 
 Preview reads belong to the selected work. Failed reads offer an explicit refresh while preserving edits; see [preview recovery](../../../deepblend/docs/preview-recovery.md).
+
+
+DSH 0.2.1-rc.1 与旧锚点 0.1.5-rc.2 均受支持。新版模式注册、模型图像输入与实测边界见[1017 适配记录](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/deepseek-1017.md)。

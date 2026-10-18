@@ -1,0 +1,300 @@
+{
+  "releaseLabel": "0.15.0-candidate",
+  "recordedAt": "2026-10-18T02:09:59.468988+00:00",
+  "status": "modern-host-validated-legacy-and-publication-pending",
+  "sources": [
+    "https://api-docs.deepseek.com/zh-cn/news/news261017/",
+    "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.1"
+  ],
+  "hostVersion": "0.2.1-rc.1",
+  "node": "24.19.0",
+  "legacyHostAnchor": "0.1.5-rc.2",
+  "model": {
+    "provider": "bai",
+    "alias": "deepseek-v4.1-flash",
+    "backendRevision": "unattested",
+    "declaredInputs": [
+      "text",
+      "image"
+    ]
+  },
+  "realTask": {
+    "description": "Create a multipart 300x160x200 mm speaker using an installed recipe, preview, widen to 320 mm while preserving weave/knob/button animation and save both revisions.",
+    "humanSubmissions": 1,
+    "turnReason": {
+      "kind": "completed"
+    },
+    "actualTurnElapsedMs": 129068,
+    "observationElapsedMs": 161310,
+    "observedToolCalls": [
+      {
+        "name": "skill",
+        "callId": "call_00_frkh93rjdeiw1yka23evrypy",
+        "step": 1,
+        "time": 1792286960968,
+        "argumentsSha256": "62c515cd5cb8eb0349fe6b3edde31eb1a5a160eef02149a54af4982402df3b1c"
+      },
+      {
+        "name": "blender_recipe_list",
+        "callId": "call_01_amlpwov188tolpg4xqmtvn1a",
+        "step": 1,
+        "time": 1792286961169,
+        "argumentsSha256": "c89a148be40e6752261e3038609a4b68de22fa3bfdaf32f884edffb8480b9bbe"
+      },
+      {
+        "name": "blender_capabilities",
+        "callId": "call_00_02wk9mdsxbr0p56vavppxog5",
+        "step": 2,
+        "time": 1792286966163,
+        "argumentsSha256": "c89a148be40e6752261e3038609a4b68de22fa3bfdaf32f884edffb8480b9bbe"
+      },
+      {
+        "name": "blender_project_create",
+        "callId": "call_00_coa4tw7g0mhsbyi493bvz73p",
+        "step": 3,
+        "time": 1792286971753,
+        "argumentsSha256": "f646379eb0ebd24c9de63bbe2fe57ecefdedfce30c84460b5606e1debb993473"
+      },
+      {
+        "name": "blender_recipe_parameters",
+        "callId": "call_00_jz2os9lmc6ffn6chrfwfiqbj",
+        "step": 4,
+        "time": 1792286994211,
+        "argumentsSha256": "7d8ea0b7701a5bd3f2c38c987b3583ad2cb29929c203848bdcad65072620e0f0"
+      },
+      {
+        "name": "blender_scene_get",
+        "callId": "call_01_p1hkvuvmxe1ldwhrvstzl8op",
+        "step": 4,
+        "time": 1792286994525,
+        "argumentsSha256": "ab1df7e74d9c6c7734623afdcb21ef47d211315ee6b1070b7810f391edf0285e"
+      },
+      {
+        "name": "blender_recipe_parameters",
+        "callId": "call_00_ux42gc1x7phb1ctmfvluhlx7",
+        "step": 5,
+        "time": 1792287000559,
+        "argumentsSha256": "9ffcdb9e95292d8a47e39c0fd25766efa63e1b3fc762cdc1384883ab18503cf8"
+      },
+      {
+        "name": "blender_scene_get",
+        "callId": "call_00_gfwpj9mktj6gaafa8ifw7aha",
+        "step": 6,
+        "time": 1792287020647,
+        "argumentsSha256": "8b4bfa06c73d81ae0bd198570770d7276e6be28846b846063609a9ebc01d15e9"
+      },
+      {
+        "name": "blender_preview_views",
+        "callId": "call_01_hnu463ew5tsz0ywwht3qt3a6",
+        "step": 6,
+        "time": 1792287023110,
+        "argumentsSha256": "0a7c744d13eb9ee89e0e14dc9bb16f162dfa78de153e6a3fa88e65c7cb09f635"
+      },
+      {
+        "name": "blender_project_get",
+        "callId": "call_00_gvxj7n83cjve3m2vmgzb0qnd",
+        "step": 7,
+        "time": 1792287065274,
+        "argumentsSha256": "a9633025890fbaaee21f09865400fd894b252d2210e8724b7b123f6ee8105c8c"
+      },
+      {
+        "name": "glob",
+        "callId": "call_00_gnomism4ppi05151wxtt8gux",
+        "step": 8,
+        "time": 1792287072286,
+        "argumentsSha256": "d2821e09269d0f9e5c44b60f263fe7acae3a645990e1e488afa5430ce325b760"
+      }
+    ],
+    "formalDeepBlendCalls": 9,
+    "toolResults": [
+      {
+        "callId": "call_00_frkh93rjdeiw1yka23evrypy",
+        "isError": false,
+        "time": 1792286961169,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_01_amlpwov188tolpg4xqmtvn1a",
+        "isError": false,
+        "time": 1792286961185,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_00_02wk9mdsxbr0p56vavppxog5",
+        "isError": false,
+        "time": 1792286966170,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_00_coa4tw7g0mhsbyi493bvz73p",
+        "isError": false,
+        "time": 1792286988686,
+        "contentTypes": [
+          "text",
+          "image"
+        ]
+      },
+      {
+        "callId": "call_00_jz2os9lmc6ffn6chrfwfiqbj",
+        "isError": false,
+        "time": 1792286994525,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_01_p1hkvuvmxe1ldwhrvstzl8op",
+        "isError": false,
+        "time": 1792286995739,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_00_ux42gc1x7phb1ctmfvluhlx7",
+        "isError": false,
+        "time": 1792287013696,
+        "contentTypes": [
+          "text",
+          "image"
+        ]
+      },
+      {
+        "callId": "call_00_gfwpj9mktj6gaafa8ifw7aha",
+        "isError": false,
+        "time": 1792287023110,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_01_hnu463ew5tsz0ywwht3qt3a6",
+        "isError": false,
+        "time": 1792287055267,
+        "contentTypes": [
+          "text",
+          "image"
+        ]
+      },
+      {
+        "callId": "call_00_gvxj7n83cjve3m2vmgzb0qnd",
+        "isError": false,
+        "time": 1792287065618,
+        "contentTypes": [
+          "text"
+        ]
+      },
+      {
+        "callId": "call_00_gnomism4ppi05151wxtt8gux",
+        "isError": false,
+        "time": 1792287073244,
+        "contentTypes": [
+          "text"
+        ]
+      }
+    ],
+    "nativeReadback": [
+      {
+        "revision": "r0001",
+        "object": "db_entity__cabinet-shell",
+        "dimensionsMm": [
+          300.00001192092896,
+          159.9999964237213,
+          200.00000298023224
+        ],
+        "nativeSha256": "8babcb1ca06ab1e0463a574e01ed80904e1047a5d5ef8bf5ebc076f87445450c",
+        "nativeBytes": 11713007,
+        "unchangedByInspection": true,
+        "imagesPacked": []
+      },
+      {
+        "revision": "r0002",
+        "object": "db_entity__cabinet-shell",
+        "dimensionsMm": [
+          319.9999928474426,
+          159.9999964237213,
+          200.00000298023224
+        ],
+        "nativeSha256": "acd7f8369ba89edf9f7a1bd1c0460e234c5792ad3da8487ba399107d869bfa76",
+        "nativeBytes": 11713007,
+        "unchangedByInspection": true,
+        "imagesPacked": []
+      }
+    ],
+    "materialsRetained": true,
+    "animationTracksRetained": true,
+    "inheritedScore": 82,
+    "scope": "Authored-recipe modeling/editing and host compatibility; not arbitrary from-scratch modeling, topology, clearance, manufacturing, art acceptance or performance comparison. UI workspace-change summary includes concurrent maintainer docs/tests and is not model work.",
+    "camerasRetained": false,
+    "cameraScope": "The dimension task changed camera definitions as well as entities; this is not a fixed-camera before/after image comparison. Materials and actual animationTracks (one track) are byte-equivalent as JSON values."
+  },
+  "checks": {
+    "newHostToolPlaneAndLifecycle": "passed activation, M0, M1, M2, M3 and UI composition",
+    "newHostUI": "72/72",
+    "realToolCard": "10/10",
+    "realImageReview": "14/14; planted occlusion repaired; measured score 82 to 100",
+    "releaseGuard": "51/51",
+    "presetContract": "9/9",
+    "doctorContract": "14/14; actual new-host version accepted",
+    "newHostInspectionUI": "31/31; both shipped presets selectable; actual browser/native dimensions, immutable source and cancellation",
+    "legacyInspectionUI": "31/31 before base correction; final full regression reruns the exact correction",
+    "workbenchBaseContract": "74/74; deleting rendered base failed the new assertion; old/new browser validation recorded separately",
+    "ciWorkflowContract": "20/20; actual GitHub jobs pending"
+  },
+  "rawLocalEvidence": [
+    ".tmp-dsh021-before.log",
+    ".tmp-dsh021-ui-retry-v2.log",
+    ".tmp-dsh021-ui-live-v2.log",
+    ".tmp-dsh021-visual-live-v3.log",
+    ".tmp-dsh021-actual-tools.json",
+    ".tmp-dsh021-native-vision-proof.json",
+    ".tmp-dsh015-full-acceptance.log",
+    ".tmp-dsh021-web-actual-tools.json",
+    ".tmp-dsh021-web-session-observation.json",
+    ".tmp-dsh021-search-only-metadata.json",
+    ".tmp-dsh021-workbench-base-mutant.log",
+    ".tmp-dsh021-inspection-base-v2.log",
+    ".tmp-dsh015-final-full-acceptance.log",
+    ".tmp-dsh021-final-setup-contract.log",
+    ".tmp-dsh015-final-full-v3.log"
+  ],
+  "retainedFailures": [
+    "initial new-host unit run used legacy-specific harness tests and did not pass as a whole",
+    "old cwd variable rejected real task before any model work",
+    "initial custom route lacked image declaration; modeling completed without pixel review",
+    "UI notice/account-overlay and delayed settings navigation tests were migrated without weakening pointer/route assertions",
+    "second prose copy of workspace link count initially remained stale; corrected from 14 to 16",
+    "visual probe setup migrated protocol/auth separation and retained schema config; original setup failures retained",
+    "Modern standalone workbench failed to preload the host module loader because host script URLs became relative; fixed by placing deployment base before rendered injections.",
+    "Fetch rejected nonpublic DNS; explicit live bai search probe completed without a search call; successful networking remains unproven.",
+    "Final full-v2 unit gate caught a newly introduced setup helper missing public script/check/documentation/tracking; corrected and targeted setup contract 32/32. Original failure retained; exact final full-v3 is running."
+  ],
+  "publication": {
+    "githubRelease": "not-created",
+    "npm": "not-published",
+    "community": "not-submitted"
+  },
+  "webIntegration": {
+    "status": "registered-and-failures-retained; live search success not proven",
+    "advertisedTools": [
+      "web_fetch",
+      "web_search"
+    ],
+    "fetchActualCalls": 2,
+    "fetchResult": "host rejected nonpublic DNS resolution; protection retained",
+    "searchOnlyProbe": {
+      "actualElapsedMs": 144684,
+      "turnReason": "completed",
+      "actualSearchCalls": 0,
+      "observationElapsedMs": 179093,
+      "scope": "Request header includes search but model did not invoke it; no successful network result inferred."
+    },
+    "credentials": "Independent host search provider; bai chat credentials not copied to it"
+  }
+}

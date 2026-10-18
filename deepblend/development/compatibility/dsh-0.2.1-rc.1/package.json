@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-attachment-local": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-subprocess-local": "0.2.1-rc.1",
+    "sharp": "0.35.5",
+    "js-yaml": "4.3.2"
+  },
+  "name": "deepblend-harness-021-compatibility",
+  "private": true
+}
