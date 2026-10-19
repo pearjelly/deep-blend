@@ -44,6 +44,7 @@ import {
   BlenderWarningCode,
   assertKnownConfigKeys,
   managedBlenderCandidates,
+  normalizeShotCameraSelection,
   resolveWorkspaceRoot,
   warning,
 } from '@deepblend/dsh-blender-contracts'
@@ -623,7 +624,7 @@ export default class LocalBlenderRuntime extends Service {
       throw new Error(
         `sessionActions names ${unroutable.map(action => `"${action}"`).join(', ')}, and this provider can only ` +
         `serve ${SESSION_ROUTABLE_ACTIONS.join(', ')} from a kept session. The renders that must be cancellable ` +
-        '(`render_frames`) spawn their own process on purpose: cancelling one kills exactly that render, and a ' +
+        '(`render_frames`, `render_shot_frames`) spawn their own process on purpose: cancelling one kills exactly that render, and a ' +
         'request inside a kept session cannot be killed without ending the session — which, attached, is the ' +
         'user\'s own Blender.',
       )
@@ -1733,6 +1734,18 @@ export default class LocalBlenderRuntime extends Service {
    *   processPath: string, argv: string[], startedAt: number, executable: string}>}
    */
   async startFrameSequence(request) {
+    return LocalBlenderRuntime.prototype._startFrameSequence.call(this, request, { action: 'render_frames' })
+  }
+
+  /** Explicit opt-in; an older bootstrap refuses the distinct action before rendering. */
+  async startShotFrameSequence(request) {
+    if (request?.cameraId != null) throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID,
+      'A shot-camera sequence cannot also select one camera.')
+    const cameraSelection = normalizeShotCameraSelection(request?.cameraSelection, request?.frames)
+    return LocalBlenderRuntime.prototype._startFrameSequence.call(this, request, { action: 'render_shot_frames', cameraSelection })
+  }
+
+  async _startFrameSequence(request, selection) {
     if (typeof request?.checkpointPath !== 'string' || request.checkpointPath.length === 0) {
       throw new BlenderError(
         BlenderErrorCode.REVISION_CHECKPOINT_MISSING,
@@ -1811,6 +1824,7 @@ export default class LocalBlenderRuntime extends Service {
       attemptToken: request.attemptToken ?? null,
       checkpoint: request.checkpointPath,
       cameraId: request.cameraId ?? null,
+      ...(selection.cameraSelection === undefined ? {} : { cameraSelection: selection.cameraSelection }),
       profileName: request.profileName ?? null,
       profile: request.profile ?? {},
       frameRange: request.frameRange ?? null,
@@ -1823,7 +1837,7 @@ export default class LocalBlenderRuntime extends Service {
     writeFileSync(requestPath, JSON.stringify({
       protocolVersion: BLENDER_PROTOCOL_VERSION,
       jobId: request.jobId ?? null,
-      action: 'render_frames',
+      action: selection.action,
     }, null, 2), 'utf8')
 
     const argv = [

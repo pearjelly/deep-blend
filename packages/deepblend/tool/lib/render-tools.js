@@ -62,7 +62,7 @@ export function describeRenderCost(frames) {
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { BlenderErrorCode, HOST_API_VERSION, warning } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, HOST_API_VERSION, warning } from '@deepblend/dsh-blender-contracts'
 
 import {
   TOOL_OUTPUT,
@@ -171,6 +171,7 @@ export function describeJobLines(job) {
     `status:   ${job.status}`,
     `frames:   ${job.completedFrames}/${job.expectedFrames} complete (${job.percent}%) in range ${job.frameStart}..${job.frameEnd}`,
   ]
+  if (job.cameraSelection?.mode === 'shots') lines.push(`cameras:  saved shot sequence (${job.cameraSelection.shots.length} shots)`)
   if (job.pid !== null && job.pid !== undefined) lines.push(`pid:      ${job.pid}`)
   if (job.meanMsPerFrame !== null && job.meanMsPerFrame !== undefined) {
     const remaining = job.estimatedRemainingMs === null || job.estimatedRemainingMs === undefined
@@ -216,6 +217,7 @@ function finalRender(ctx) {
     description:
       'Start a DELIVERY render: every frame of the project\'s range (or a sub-range you name) at the ' +
       'SceneSpec\'s "final" render profile, then encode it to MP4 and publish the delivery package. ' +
+      'The default still renders one camera; saved shots alone do not switch it. Set useShotCameras:true to follow the saved shots, with exactly one shot covering each rendered frame. This freezes the camera/range selection for restart and records actual per-frame camera evidence. Never combine it with cameraId; on resume omit it and use the existing job selection. ' +
       'This is the expensive operation — measured on this machine at 19.6-41.4 s PER FRAME for a ' +
       '1920x1080 / Cycles / 256-sample delivery, so a 450-frame animation is about 3.4 hours. ' +
       '\n\nIt RETURNS IMMEDIATELY with a jobId; the render continues in the background while you keep ' +
@@ -244,10 +246,10 @@ function finalRender(ctx) {
         type: 'array',
         items: { type: 'number' },
         description:
-          'An explicit list of frames instead of a contiguous range — useful for a spot check of a few ' +
-          'expensive frames. Frames outside the project\'s own range are dropped with a warning.',
+          'An explicit list of frames forming a contiguous interval. Frames outside the project\'s own range are dropped with a warning; remaining gaps are refused before rendering because the MP4 encoder requires consecutive frames. Use blender_preview_render for separated spot checks.',
       },
       cameraId: { type: 'string', description: 'Camera to render from. Defaults to the camera with role "active-camera".' },
+      useShotCameras: { type: 'boolean', description: 'Explicit true: follow the saved shots and their frameRange/cameraId. Requires supported Host/runtime, at most64 nonoverlapping ranged shots and complete coverage of requested frames. Cannot combine with cameraId or resumeJobId. Omit on resume to keep the job’s frozen selection. Default single-camera behavior is unchanged.' },
       profileName: { type: 'string', description: 'SceneSpec render profile name. Defaults to "final".' },
       samples: {
         type: 'number',
@@ -263,6 +265,10 @@ function finalRender(ctx) {
         return { ok: false, text: `Delivery render unavailable.\n${resolved.unavailable.text}`, data: resolved.unavailable.data }
       }
       try {
+        if (args.useShotCameras !== undefined && typeof args.useShotCameras !== 'boolean') throw new BlenderError(
+          BlenderErrorCode.SCENE_SPEC_INVALID, 'useShotCameras must be boolean.')
+        if (args.useShotCameras === true && (args.cameraId !== undefined || args.resumeJobId !== undefined)) throw new BlenderError(
+          BlenderErrorCode.SCENE_SPEC_INVALID, 'Saved-shot rendering cannot also select cameraId or resumeJobId; resume with the recorded selection instead.')
         if (typeof args?.resumeJobId === 'string' && args.resumeJobId.length > 0) {
           const stale = hostPlaneIsCurrent(resolved.studio, ['resumeRenderJob', 'getJob'])
           if (stale !== null) return { ok: false, ...stale }
@@ -296,8 +302,13 @@ function finalRender(ctx) {
           }
         }
 
-        const stale = hostPlaneIsCurrent(resolved.studio, ['startFinalRender', 'listJobs', 'getJob'])
+        const startMethod = args.useShotCameras === true ? 'startShotSequenceRender' : 'startFinalRender'
+        const stale = hostPlaneIsCurrent(resolved.studio, [startMethod, 'listJobs', 'getJob'])
         if (stale !== null) return { ok: false, ...stale }
+        if (typeof resolved.studio[startMethod] !== 'function') throw new BlenderError(
+          BlenderErrorCode.RUNTIME_UNAVAILABLE,
+          'The running Host does not support explicit shot-camera rendering. Upgrade/restart the profile; no single-camera fallback was started.')
+        const start = request => resolved.studio[startMethod](request)
 
         const startRequest = {
           projectId: args.projectId,
@@ -312,7 +323,7 @@ function finalRender(ctx) {
 
         let started
         try {
-          started = await canonicalCall(resolved.studio.startFinalRender(definedFields(startRequest)), warning)
+          started = await canonicalCall(start(definedFields(startRequest)), warning)
         } catch (cause) {
           // ── the approval gate (SPEC §15.1, architecture-decisions Q7) ────────
           //
@@ -367,7 +378,7 @@ function finalRender(ctx) {
           // between is enough. The refusal names the revision it measured, and that is the one this renders.
           const approvedRevision = cause.detail?.revision ?? startRequest.revision
           started = await canonicalCall(
-            resolved.studio.startFinalRender(definedFields({
+            start(definedFields({
               ...startRequest,
               ...approvedRevision === undefined ? {} : { revision: approvedRevision },
               approved: true,

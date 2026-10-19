@@ -12,7 +12,7 @@ const blender=process.env.DEEPBLEND_BLENDER_PATH??join(root,'.tools/Blender.app/
 const result=spawnSync(blender,['--background','--factory-startup','--disable-autoexec','--python-exit-code','1','--python',join(root,'deepblend/tests/lib/surface-inspection-fixture.py'),'--',workspace],{encoding:'utf8',timeout:30000})
 writeFileSync(join(output,'fixture.log'),(result.stdout??'')+(result.stderr??''));if(result.status!==0)throw Error('Fixture construction failed')
 const hash=p=>createHash('sha256').update(readFileSync(p)).digest('hex'),checkpoint=join(workspace,'fixture.blend'),digest=hash(checkpoint)
-const ctx=new Context();ctx.plugin(LocalSubprocess);ctx.plugin(Provider,{workspaceRoot:workspace,blenderPath:blender,bootstrapPath:join(root,'packages/deepblend/provider-local/python/bootstrap.py'),timeoutMs:30000})
+const ctx=new Context();ctx.plugin(LocalSubprocess);ctx.plugin(Provider,{workspaceRoot:workspace,blenderPath:blender,bootstrapPath:process.env.DEEPBLEND_SURFACE_BOOTSTRAP??join(root,'packages/deepblend/provider-local/python/bootstrap.py'),timeoutMs:30000})
 const checks=[],reports=[]
 function check(name,ok){checks.push({name,ok});console.log(`[${ok?'PASS':'FAIL'}] ${name}`);if(!ok)throw Error(name)}
 try{
@@ -64,6 +64,12 @@ try{
   check('aggregate refuses partial bounds: '+reason,assets.report.objects[i].available===false&&assets.report.objects[i].unavailableReason===reason&&!Object.hasOwn(assets.report.objects[i],'worldBoundsMeters'))
  const oldAsset=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:24,entityIds:['asset-whole']})
  check('old v1 measurement remains compatible and never silently expands a container',oldAsset.report.schemaVersion==='deepblend.geometry-inspection/v1'&&oldAsset.report.objects[0].unavailableReason==='not-mesh')
+ const reused=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:24,
+  entityIds:['asset-owned','asset-owned-foreign','asset-owned-unmarked'],assetInstanceIds:['asset-owned','asset-owned-foreign','asset-owned-unmarked']})
+ reports.push(reused.report)
+ check('a reused asset can measure its own compiler-prefixed mesh parts',reused.report.objects[0].available&&reused.report.objects[0].meshObjectCount===1)
+ check('owned prefixed parts retain actual geometry rather than a container-origin substitute',reused.report.objects[0].available&&reused.report.objects[0].worldAxisExtentMm.every((v,i)=>Math.abs(v-[100,200,300][i])<.001)&&Math.abs(reused.report.objects[0].worldBoundsMeters.min[0]-1.95)<.00001)
+ for(const object of reused.report.objects.slice(1))check('prefixed '+object.entityId+' cannot masquerade as an owned imported part',object.available===false&&object.unavailableReason==='unsupported-hierarchy')
  const expectedFraming=JSON.parse(readFileSync(join(workspace,'framing-expected.json')))
  for(const frame of [1,24]){
   const framed=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame,
@@ -80,6 +86,15 @@ try{
  }
  const cameraOnly=await runtime.inspectGeometry({checkpointPath:checkpoint,checkpointSha256:digest,frame:1,entityIds:['framing-small'],cameraId:'framing',cameraMargin:.25})
  check('ordinary mesh framing does not require asset selection and uses the explicit border margin',cameraOnly.report.schemaVersion==='deepblend.geometry-inspection/v4'&&cameraOnly.report.camera.margin===.25)
+ check('manual crop witness excludes the subject despite full-camera containment',expectedFraming[1].max[0]<.8||expectedFraming[1].max[1]<.8)
+ for(const suffix of ['border-masked','border-cropped','multiview']){
+  const manual=join(workspace,'framing-'+suffix+'.blend'),before=hash(manual)
+  let refused
+  try{await runtime.inspectGeometry({checkpointPath:manual,checkpointSha256:before,frame:1,entityIds:['framing-small'],cameraId:'framing'})}catch(error){refused=error}
+  check(suffix+' refuses to label a full-frustum projection as a rendered image measurement',refused?.code==='BLENDER_UNSUPPORTED_ACTION')
+  const bounds=await runtime.inspectGeometry({checkpointPath:manual,checkpointSha256:before,frame:1,entityIds:['framing-small']})
+  check(suffix+' preserves manual native bytes and ordinary geometry access',bounds.report.schemaVersion==='deepblend.geometry-inspection/v1'&&bounds.report.objects[0].available&&hash(manual)===before)
+ }
  check('original native bytes are unchanged',hash(checkpoint)===digest)
  check('all private inspection directories are removed',readdirSync(join(workspace,'tmp')).length===0)
 }finally{

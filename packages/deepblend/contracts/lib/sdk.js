@@ -3,6 +3,8 @@ import { validateSceneSpec } from './scene-spec.js'
 import { validateScenePatch } from './scene-patch.js'
 import { BlenderError, BlenderErrorCode } from './index.js'
 import { validateRecipeManifest, RecipeError } from './recipe.js'
+export { SHOT_CAMERA_SELECTION_VERSION, SHOT_CAMERA_SELECTION_LIMITS, buildShotCameraSelection,
+  normalizeShotCameraSelection, shotCameraForFrame } from './shot-render-selection.js'
 
 export {
   BLENDER_PROTOCOL_VERSION, SCENE_SCHEMA_VERSION, SCENE_PATCH_VERSION, HOST_API_VERSION,

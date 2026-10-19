@@ -400,6 +400,9 @@ the current revision and repeat the affected views with the same settings.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
    For exact fields of one saved entity in a large scene, use `sourceEntityId`.
+   This selects an entity, not an animation-track, camera or asset-descriptor ID.
+   Read camera/track fields from the scene catalogue or `full:true`, without
+   `sourceEntityId`; do not combine the two read modes.
    It returns bounded compact JSON `sourceText`, `nextOffset`, revision and
    `entityJsonSha256`. Continue with that explicit revision and `sourceOffset:nextOffset`,
    verify the hash stays identical, concatenate the chunks in order, then parse JSON.
@@ -410,6 +413,8 @@ the current revision and repeat the affected views with the same settings.
    Imported models commonly have an empty container with nested mesh children. For the
    complete instance, request `geometryEntityIds:[assetId,supportId]`,
    `geometryAssetInstanceIds:[assetId]`, `geometryFrame` and `geometryOnly:true`.
+   Do not combine aggregate instance bounds with `geometryObjectAxes` or
+   `geometrySurfaceSamples`. A multi-part hierarchy has no single physical part axis.
    ASSET_MESH_SET reports actual evaluated world bounds and mesh counts. The ID is the
    scene entity ID, not the source asset descriptor ID. Missing/hidden/unsupported or
    over-budget children make the entire instance unavailable: never substitute its
@@ -464,6 +469,15 @@ the current revision and repeat the affected views with the same settings.
    as well as technical measurements; it cannot rewrite the target to obtain a pass.
 9. **`blender_final_render`** — only once the preview is right. It returns as soon as
    the job is durable, not when it finishes.
+   The default renders one camera. Saved `shots` metadata does not switch cameras.
+   For an authored multi-shot film, explicitly set `useShotCameras:true`; every
+   requested frame must belong to exactly one saved shot with its `cameraId` and
+   `frameRange`. Do not also select `cameraId`. A missing capability/camera or an
+   uncovered/overlapping range is a refusal, never permission to use one fallback
+   camera for the whole film. The job freezes this selection and binds actual
+   per-frame camera IDs to the output PNGs. A delivery needs consecutive frames;
+   use named-camera previews for separated spot checks, never a final render to
+   discover whether the composition is right.
 10. **`blender_job_status`** — poll it, or come back to it in a later turn. A render
     that outlives the process is still there: the store is on disk.
 11. **`blender_export`** — publish the delivery package when you want it verified and
@@ -515,6 +529,10 @@ oversized images refuse compilation. Self-contained GLB keeps its single content
   `resumeJobId` renders only the frames that are missing or corrupt. The frames on disk
   are the authority, not the job record, so a render killed mid-frame resumes correctly.
   Never start a fresh render of a job that already has frames.
+  For a shot job, omit `useShotCameras` and `cameraId` on resume: its recorded
+  revision and camera ranges remain authoritative even if the current storyboard
+  changed. A complete PNG without verified camera evidence is re-rendered; replaced
+  derived PNGs are retained under the job rather than silently treated as valid.
 - **A render you no longer want is cancelled, not abandoned.** `blender_job_cancel` takes
   the job id, stops the renderer and reports whether the process is actually gone.
 

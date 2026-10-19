@@ -368,6 +368,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/complete-frame-delivery
         run: node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/complete-frame-delivery.log" 2>&1
+      - name: Real saved-shot cuts and frozen camera selection on resume
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
+        timeout-minutes: 6
+        env:
+          DEEPBLEND_SHOT_RENDER_OUTPUT: ${{ runner.temp }}/deepblend-ci/shot-render
+        run: xvfb-run -a node deepblend/tests/blender-integration/shot-render.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/shot-render.log" 2>&1
       - name: Real render profile selection and revision-pinned delivery
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' && steps.codecs.outcome == 'success' }}
         timeout-minutes: 5

@@ -162,6 +162,13 @@ export interface FrameSequenceRequest extends RuntimeOptions {
   profile?: RenderProfile; frameRange?: [number, number]; jobId?: string; attemptToken?: string;
   filePrefix?: string; padding?: number;
 }
+export interface ShotCameraSelection {
+  schemaVersion: 'deepblend.shot-camera-selection/v1'; mode: 'shots';
+  shots: Array<{ id: string; cameraId: string; frameRange: [number, number] }>;
+}
+export interface ShotFrameSequenceRequest extends Omit<FrameSequenceRequest, 'cameraId'> {
+  cameraSelection: ShotCameraSelection;
+}
 export interface FrameSequenceRun {
   handle: FrameSequenceHandle; jobDirectory: string; framesDirectory: string; requestPath: string; planPath: string;
   resultPath: string; eventsPath: string; processPath: string; argv: string[]; startedAt: number;
@@ -177,14 +184,17 @@ export interface FrameWrittenEvent {
   attemptToken: string;
   /** SHA256 of the complete PNG bytes after structural verification. */
   sha256: string;
+  /** Actual camera read back for the explicit shot action; absent stays unknown. */
+  cameraId?: string; shotId?: string;
 }
 export type FrameProvenanceEvent = FrameConfiguredEvent | FrameWrittenEvent;
 /** Configuration read back by the renderer, with the launch identity that requested it. */
 export interface FrameRenderSource {
   id: string; attempt: number; revisionId: string; cameraId: string | null; checkpointSha256: string | null;
   requestedSamples: number | null; effectiveProfile: RenderProfile; renderConfig: MeasuredRenderConfig;
+  cameraSelection?: ShotCameraSelection;
 }
-export interface FrameSourceBinding { frame: number; sourceId: string; sha256: string }
+export interface FrameSourceBinding { frame: number; sourceId: string; sha256: string; cameraId?: string; shotId?: string }
 /** Shared by canonical jobs and delivery manifests; known means configuration/PNG evidence, not per-pixel samples. */
 export interface FrameProvenanceSummary {
   schemaVersion: 'deepblend.frame-sources/v1';
@@ -213,6 +223,8 @@ export interface BlenderRuntime {
   renderPreview(request: RenderPreviewRequest): Promise<RuntimeActionResult<PreviewReport>>;
   renderViews(request: RenderViewsRequest): Promise<RenderViewsResult>;
   startFrameSequence(request: FrameSequenceRequest): Promise<FrameSequenceRun>;
+  /** Optional explicit capability; the Host must refuse, never silently fall back. */
+  startShotFrameSequence?(request: ShotFrameSequenceRequest): Promise<FrameSequenceRun>;
   awaitFrameSequence(run: FrameSequenceRun): Promise<FrameSequenceOutcome>;
   dispose(): void;
 }

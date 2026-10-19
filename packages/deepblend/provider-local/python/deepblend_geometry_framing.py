@@ -5,6 +5,10 @@ from deepblend_util import ActionError
 
 
 def framing_camera(scene, graph, camera_id, margin):
+    # A full-camera frustum cannot certify a masked/cropped render region or
+    # multiple eye views. Keep manual settings intact and refuse that claim.
+    if scene.render.use_border or scene.render.use_multiview:
+        raise ActionError('BLENDER_UNSUPPORTED_ACTION', 'Native camera framing does not support render borders or multiview; manual settings are unchanged. Geometry inspection without a camera remains available.')
     obj = bpy.data.objects.get('db_camera__' + camera_id)
     if obj is None or obj.type != 'CAMERA':
         raise ActionError('SCENE_SPEC_INVALID', 'Selected native framing camera does not exist.')

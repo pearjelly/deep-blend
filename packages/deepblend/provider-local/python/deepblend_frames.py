@@ -48,6 +48,7 @@ Runs inside Blender's embedded interpreter.
 import hashlib
 import json
 import os
+import re
 import time
 
 import bpy
@@ -258,7 +259,55 @@ def verify_frame(path, expected_width, expected_height):
     return {"ok": True, "bytes": size, "width": width, "height": height}
 
 
-def render_frames(plan, guard):
+def shot_camera_selection(scene, plan, requested, required):
+    value = plan.get("cameraSelection")
+    if not required:
+        if value is not None:
+            raise ActionError("SCENE_SPEC_INVALID", "Shot camera selection requires render_shot_frames; the legacy render action never guesses cuts.")
+        return None, {}
+    fail = lambda message: ActionError("SCENE_SPEC_INVALID", "Shot camera selection: " + message)
+    if (not isinstance(value, dict) or set(value) != {"schemaVersion", "mode", "shots"}
+            or value.get("schemaVersion") != "deepblend.shot-camera-selection/v1" or value.get("mode") != "shots"
+            or not isinstance(value.get("shots"), list) or not 1 <= len(value["shots"]) <= 64
+            or plan.get("cameraId") is not None):
+        raise fail("an explicit bounded saved-shot selection without a single-camera override is required.")
+    if any(isinstance(frame, bool) or not isinstance(frame, int) or abs(frame) > 9007199254740991 for frame in plan.get("frames", [])):
+        raise fail("requested frames must be safe integers.")
+    shots, seen = [], set()
+    for shot in value["shots"]:
+        if not isinstance(shot, dict) or set(shot) != {"id", "cameraId", "frameRange"}:
+            raise fail("each shot needs exactly id, cameraId and frameRange.")
+        for key in ("id", "cameraId"):
+            if not isinstance(shot[key], str) or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9._-]{0,127}", shot[key]):
+                raise fail("shot and camera IDs must be saved identifiers.")
+        bounds = shot["frameRange"]
+        if (shot["id"] in seen or not isinstance(bounds, list) or len(bounds) != 2
+                or any(isinstance(v, bool) or not isinstance(v, int) or abs(v) > 9007199254740991 for v in bounds)
+                or bounds[0] > bounds[1]):
+            raise fail("distinct shots need ordered integer frame ranges.")
+        seen.add(shot["id"])
+        shots.append({"id": shot["id"], "cameraId": shot["cameraId"], "frameRange": list(bounds)})
+    shots.sort(key=lambda shot: (shot["frameRange"][0], shot["id"]))
+    for before, after in zip(shots, shots[1:]):
+        if after["frameRange"][0] <= before["frameRange"][1]:
+            raise fail("saved shot ranges overlap.")
+    selection = {"schemaVersion": "deepblend.shot-camera-selection/v1", "mode": "shots", "shots": shots}
+    if len(json.dumps(selection, separators=(",", ":")).encode("utf-8")) > 8192:
+        raise fail("selection exceeds its 8192-byte metadata budget.")
+    # Resolve every named native camera before writing any frame. An absent
+    # camera is a refusal, never a fallback to the checkpoint's active camera.
+    cameras = {shot["cameraId"]: find_camera(scene, shot["cameraId"])[0] for shot in shots}
+    selected = {}
+    for frame in requested:
+        matches = [shot for shot in shots if shot["frameRange"][0] <= frame <= shot["frameRange"][1]]
+        if len(matches) != 1:
+            raise fail("frame %d must belong to exactly one saved shot." % frame)
+        shot = matches[0]
+        selected[frame] = (cameras[shot["cameraId"]], shot["id"], shot["cameraId"])
+    return selection, selected
+
+
+def render_frames(plan, guard, require_camera_selection=False):
     """Render every frame in ``plan`` and return the per-frame artifact report.
 
     ``plan`` is a document (not a flag list) for the same reason the view plan is:
@@ -293,9 +342,11 @@ def render_frames(plan, guard):
     report_progress("open_checkpoint", 2)
     scene = open_checkpoint(checkpoint)
 
-    camera_id = plan.get("cameraId")
-    camera, _ = find_camera(scene, camera_id)
-    scene.camera = camera
+    camera_selection, selected_cameras = shot_camera_selection(scene, plan, requested, require_camera_selection)
+    camera = None
+    if camera_selection is None:
+        camera, _ = find_camera(scene, plan.get("cameraId"))
+        scene.camera = camera
 
     profile = plan.get("profile") or {}
     report_progress("configure_render", 4)
@@ -328,6 +379,11 @@ def render_frames(plan, guard):
         percent = 5 + int(90 * index / total)
         report_progress("frame", percent, {"frame": frame, "index": index, "total": total})
         scene.frame_set(frame)
+        if camera_selection is not None:
+            camera, shot_id, selected_id = selected_cameras[frame]
+            # Apply AFTER native animation/marker evaluation; no native file is
+            # saved and the legacy single-camera route remains unchanged.
+            scene.camera = camera
         path = frame_path(output_directory, frame, prefix, padding)
         # Explicit, absolute, WITH the extension — see the naming trap above.
         scene.render.filepath = path
@@ -342,6 +398,13 @@ def render_frames(plan, guard):
                 {"frame": frame, "engine": scene.render.engine},
             )
         elapsed_ms = int((time.time() - started) * 1000)
+        camera_evidence = {}
+        if camera_selection is not None:
+            actual_id = scene.camera.get("deepblend_id") if scene.camera is not None else None
+            if actual_id != selected_id:
+                append_event(events_path, {"type": "frame_failed", "frame": frame, "expectedCameraId": selected_id, "actualCameraId": actual_id})
+                raise ActionError("RENDER_NO_OUTPUT", "Frame %d did not retain its selected shot camera; no camera attribution was accepted." % frame)
+            camera_evidence = {"cameraId": actual_id, "shotId": shot_id}
         verdict = verify_frame(path, expected_width, expected_height)
         if not verdict.get("ok"):
             append_event(events_path, {"type": "frame_failed", "frame": frame, "verify": verdict})
@@ -359,6 +422,7 @@ def render_frames(plan, guard):
             "width": verdict["width"],
             "height": verdict["height"],
             "ms": elapsed_ms,
+            **camera_evidence,
         }
         entries.append(entry)
         written.append(frame)
@@ -370,7 +434,7 @@ def render_frames(plan, guard):
             for chunk in iter(lambda: stream.read(256 * 1024), b""):
                 digest.update(chunk)
         append_event(events_path, {"type": "frame", "frame": frame, "bytes": verdict["bytes"], "ms": elapsed_ms,
-                                   "attemptToken": attempt_token, "sha256": digest.hexdigest()})
+                                   "attemptToken": attempt_token, "sha256": digest.hexdigest(), **camera_evidence})
 
     report_progress("frames_done", 97, {"rendered": len(written)})
     append_event(events_path, {"type": "frames_done", "rendered": written})
@@ -379,8 +443,9 @@ def render_frames(plan, guard):
         "renderKind": "frame-sequence",
         "profileName": plan.get("profileName"),
         "checkpoint": checkpoint,
-        "cameraId": camera.get("deepblend_id") or camera.name,
-        "cameraName": camera.name,
+        "cameraId": (camera.get("deepblend_id") or camera.name) if camera_selection is None else None,
+        "cameraName": camera.name if camera_selection is None else None,
+        **({"cameraSelection": camera_selection} if camera_selection is not None else {}),
         "outputDirectory": output_directory,
         "filePrefix": prefix,
         "padding": padding,

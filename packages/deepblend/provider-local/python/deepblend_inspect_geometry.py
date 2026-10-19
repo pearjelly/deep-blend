@@ -42,7 +42,18 @@ def measure_asset_bounds(obj, graph):
             return unavailable('unsupported-hierarchy')
         visited.add(part.as_pointer())
         if part != obj and part.name.startswith(('db_entity__', 'db_camera__', 'db_light__')):
-            return unavailable('unsupported-hierarchy')
+            # Reused imports carry the owning entity prefix on their parts.
+            # Only that explicit ownership/part marker is exempt; another
+            # entity root or an unmarked manual object remains unsupported.
+            owner = obj.get('deepblend_id')
+            own_part = (isinstance(owner, str) and bool(owner)
+                        and part.name.startswith(obj.name + '_')
+                        and part.get('deepblend_id') == owner
+                        and part.get('deepblend_kind') == 'entity'
+                        and isinstance(part.get('deepblend_part_id'), str)
+                        and bool(part.get('deepblend_part_id')))
+            if not own_part:
+                return unavailable('unsupported-hierarchy')
         if part.type not in ('EMPTY', 'MESH') or part.instance_type != 'NONE':
             return unavailable('unsupported-hierarchy')
         if not part.visible_get(view_layer=bpy.context.view_layer):

@@ -887,3 +887,5 @@ export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-param
 
 export { ASSET_BOUNDS_INSPECTION_VERSION, ASSET_BOUNDS_LIMITS, OBJECT_AXES_INSPECTION_VERSION, OBJECT_AXES_BASIS, GEOMETRY_INSPECTION_VERSION, GEOMETRY_INSPECTION_LIMITS, SURFACE_INSPECTION_VERSION, SURFACE_INSPECTION_LIMITS,
   validateGeometrySelection, validateSurfaceSelection, verifySurfaceSamples, verifyGeometryReport } from './geometry-inspection.js'
+export { SHOT_CAMERA_SELECTION_VERSION, SHOT_CAMERA_SELECTION_LIMITS, buildShotCameraSelection,
+  normalizeShotCameraSelection, shotCameraForFrame } from './shot-render-selection.js'

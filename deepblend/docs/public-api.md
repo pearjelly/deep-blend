@@ -158,8 +158,25 @@ yet exposed by the Host, model tools or workbench, and is not part of stable 0.8
 | `renderPreview(request)` | Render the given checkpoint to the caller's output path. Return actual image dimensions, frame, camera and engine. Report only measured configuration; absent facts must not be invented from the request. |
 | `renderViews(request)` | Render the ordered view plan from one checkpoint and return PNG `Buffer` values keyed by `viewId`, plus per-view measurements for requested tracked objects. Scratch output paths are not durable assets. |
 | `startFrameSequence(request)` | Return a live run/handle promptly. Write artifacts into the caller-owned persistent job directory. Preserve completed frames for cancellation/resume. |
+| `startShotFrameSequence(request)` (optional capability) | Explicit saved-shot rendering using `ShotFrameSequenceRequest.cameraSelection`. Keep the checkpoint unchanged; resolve every named native camera, select it after evaluating each frame, and journal the actual camera/shot IDs with the verified PNG SHA256. The local provider uses the distinct `render_shot_frames` action so an older bootstrap cannot ignore the selection. Never silently delegate to a single-camera render. |
 | `awaitFrameSequence(run)` | Wait for that handle and return exit facts, captured output, possible result envelope, duration and `spawnFailure`. Failure is returned as data so the Host can persist partial progress. The envelope still needs Host validation. |
 | `dispose()` | Release runtime-owned lightweight state. The current local implementation clears capability caches; it is not a blanket process-kill operation. |
+
+The Host exposes `startShotSequenceRender(request)` separately from the unchanged
+`startFinalRender(request)`. The former requires the optional runtime capability,
+freezes a bounded `ShotCameraSelection` from the saved revision, and rejects a
+single-camera override, gaps, overlaps or missing cameras. The model tool opts in
+with `useShotCameras:true`; a resumed job uses its original snapshot instead of
+reinterpreting current project metadata. No native camera bindings are written.
+Legacy single-camera jobs and runtimes remain usable without this optional method.
+
+`buildShotCameraSelection`, `normalizeShotCameraSelection` and
+`shotCameraForFrame` are available from the SDK. They validate camera selection
+metadata, not arbitrary SceneSpec contents or encoder support. A Host delivery
+requires a consecutive frame interval; separated diagnostic frames use previews.
+The snapshot holds at most64 shots and8192 UTF-8 bytes and contains only IDs and
+ranges. A shot job requires actual per-frame camera evidence before encoding and
+publication; unknown complete PNGs are not accepted merely because they decode.
 
 Report types retain forward-compatible fields. Optional object facts include
 world-space bounds at `boundsFrame`, effective render visibility, source and

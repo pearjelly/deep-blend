@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { RUNTIME_METHODS } from '../../examples/runtime-author/conformance.mjs'
+import { RUNTIME_METHODS, OPTIONAL_RUNTIME_METHODS } from '../../examples/runtime-author/conformance.mjs'
 import * as sdk from '../../../packages/deepblend/contracts/lib/sdk.js'
 import { RecipeCatalog } from '../../../packages/deepblend/host/lib/recipe-catalog.js'
 import { resolveSdkToolchain, verifySdkToolchain } from '../../tools/sdk-toolchain.mjs'
@@ -48,7 +48,8 @@ test('generated SDK declarations match authoritative schemas and current error v
   const ast = ts.createSourceFile(declaration, readFileSync(declaration, 'utf8'), ts.ScriptTarget.Latest, true)
   const runtime = ast.statements.find(node => ts.isInterfaceDeclaration(node) && node.name.text === 'BlenderRuntime')
   assert(runtime, 'Public runtime interface must exist')
-  assert.deepEqual([...RUNTIME_METHODS].sort(), runtime.members.map(member => member.name.getText(ast)).sort(), 'Conformance runner must cover the public runtime methods')
+  assert.deepEqual([...RUNTIME_METHODS].sort(), runtime.members.filter(member => !member.questionToken).map(member => member.name.getText(ast)).sort(), 'Conformance runner must cover the required runtime methods')
+  assert.deepEqual([...OPTIONAL_RUNTIME_METHODS].sort(), runtime.members.filter(member => member.questionToken).map(member => member.name.getText(ast)).sort(), 'Conformance runner must conditionally cover the optional runtime methods without requiring old adapters to implement them')
   const manifest = load(join(root,'packages/deepblend/contracts/package.json'))
   assert.equal(manifest.dependencies, undefined)
   assert.equal(manifest.exports['./sdk'].types, './lib/sdk.d.ts')

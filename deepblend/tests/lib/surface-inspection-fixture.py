@@ -56,6 +56,11 @@ second=cube('asset-part-two',(.5,.5,1),(-1,0,1));second.name='imported-two';seco
 mod=second.modifiers.new('native-extra-detail','ARRAY');mod.count=2;mod.relative_offset_displace=(1,0,0)
 hidden_root=asset_root('asset-hidden');hidden=cube('asset-hidden-part',(1,1,1));hidden.name='imported-hidden';hidden.parent=hidden_root;hidden.hide_viewport=True
 foreign_root=asset_root('asset-foreign');foreign=cube('foreign-owner',(1,1,1));foreign.parent=foreign_root
+for id,owner,part_marker in [('asset-owned','asset-owned',True),('asset-owned-foreign','another-entity',True),('asset-owned-unmarked','asset-owned-unmarked',False)]:
+    owned=asset_root(id);owned['deepblend_id']=id;owned['deepblend_kind']='entity'
+    part=cube(id+'_part',(.1,.2,.3),(2,0,0));part.parent=owned
+    part['deepblend_id']=owner;part['deepblend_kind']='entity'
+    if part_marker:part['deepblend_part_id']='/reused-mesh'
 asset_root('asset-empty')
 budget_root=asset_root('asset-budget')
 for i in range(129):
@@ -82,3 +87,12 @@ for frame in (1,24):
 bpy.context.scene.frame_set(24);bpy.context.view_layer.update()
 bpy.ops.wm.save_as_mainfile(filepath=str(output/'fixture.blend'))
 (output/'queries.json').write_text(json.dumps(groups,indent=2)+'\n')
+
+# Manual render regions/stereo are preserved; a full-camera projection is not
+# evidence about a cropped/black-masked or per-eye rendered image.
+scene=bpy.context.scene
+for suffix,border,crop,multiview in [('border-masked',True,False,False),('border-cropped',True,True,False),('multiview',False,False,True)]:
+    scene.render.use_border=border;scene.render.use_crop_to_border=crop;scene.render.use_multiview=multiview
+    scene.render.border_min_x=.8;scene.render.border_max_x=1
+    scene.render.border_min_y=.8;scene.render.border_max_y=1
+    bpy.ops.wm.save_as_mainfile(filepath=str(output/('framing-'+suffix+'.blend')))

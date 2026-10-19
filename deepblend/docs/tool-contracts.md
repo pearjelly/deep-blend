@@ -238,15 +238,24 @@ M3 与前面三个里程碑的区别是**时间**。M0–M2 的每个工具都�
   套到交付上会悄悄改写交付自己的 profile。交付的上限是 profile 的 `maxSamplesBudget`
   与 operator 的 `maxFinalSamples`。
 * 帧的来源有三条：`frameStart`/`frameEnd`、显式 `frames` 列表、或省略两者＝项目自己的范围。
-  落在项目范围之外的帧被**丢弃并报告**，而不是静默渲染。
+  落在项目范围之外的帧被**丢弃并报告**，而不是静默渲染。保留下来的帧必须构成连续区间；
+  编码器不支持稀疏编号序列，存在缺口时在分配任务/编译/渲染前拒绝。离散抽查使用预览入口。
+* 默认仍选一台相机；`shots` 元数据不会自动切镜。显式 `useShotCameras:true` 通过专用Host/运行时能力
+  冻结保存分镜的 `id/cameraId/frameRange`（最多64段、8192字节），要求每个请求帧恰好有一个分镜。
+  拒绝缺段、重叠、缺相机，以及同时传入 `cameraId` 或 `resumeJobId`。旧Host/运行时不支持时拒绝，
+  不回退单镜头。实际渲染后的相机ID和分镜ID与PNG摘要一并写入逐帧归属；清单的单相机字段为null，
+  另列 `render.cameraSelection`。原生工程、相机动作、手工设置不保存或覆盖。
 * 一个项目同时**只有一个**交付渲染。第二个 `start` 得到 `RENDER_JOB_CONFLICT`，
   消息里点名那个活跃 job 以及「续渲还是取消」。
-* 超过 `requireApprovalAboveFrames`（默认 900）时，**要求**以 warning 形式写进记录
-  （审批本身属于 harness 的 approval 平面，M5 接线）。
+* 超过 `requireApprovalAboveFrames`（默认 900）时，未获授权的请求先拒绝；Agent通过Harness审批平面
+  取得授权后绑定原修订重发，获批事实写入记录。恰好900帧不超过默认阈值。
 
 **`resumeJobId`**：续渲一个被打断的渲染。要渲的集合来自**帧账本**
 （`missing + corrupt`），不是记录里的缓存计数。实测：60 帧的渲染在第 6 帧被
 `kill -9` 打断后，续渲只渲了 54 帧，已存在的 6 帧**字节未变**。
+分镜任务恢复时省略 `useShotCameras/cameraId`，使用原任务冻结的修订和镜头选择，即使当前工程分镜已修改。
+完整PNG但无有效相机归属的帧也需要重渲；被替换的派生PNG保存在该任务 `retained/` 下。
+分镜影片在编码前和发布前均要求完整逐帧相机证据；不把未知归属按默认相机或计划意图补齐。
 
 ### `blender_export`
 
@@ -892,3 +901,10 @@ M3 新增的：
 
 `conversation.approval.detail` 是 **single** 且**已被随附审批 UI 占用**，注册它等于顶掉
 随附行为（并连带其子树）——与 brief §2.3 的规则冲突，因此 M4 不动它，见 D64。
+
+
+手工渲染区域与立体输出：原生相机投影目前只支持单视图完整画幅。
+若旧检查点启用了 render border（包括保留画幅的黑色遮罩区域）或 multiview，
+显式 cameraId 请求返回 BLENDER_UNSUPPORTED_ACTION；不会清除边框或改写手工设置。
+不带 cameraId 的旧几何/整实例边界读取仍可用。完整相机视锥中有物体，不代表手工裁切
+输出区域或某一眼图像包含它；此边界不得靠默认坐标或伪造containedInFrame绕过。

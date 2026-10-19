@@ -36,6 +36,7 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 
 import { importDsh } from '../lib/dsh-deployment.mjs'
 import { SPEC_11_TOOLS } from '../lib/spec-tools.mjs'
@@ -260,6 +261,12 @@ spec.animationTracks = [{
     { frame: 60, value: 0.6, interpolation: 'linear' },
   ],
 }]
+// The default route must stay single-camera even with saved cuts. The opt-in
+// path below crosses this cut through the real preset/service context.
+spec.shots = [
+  { id: 'tool-wide', cameraId: 'camera-main', frameRange: [1, 30] },
+  { id: 'tool-detail', cameraId: 'camera-detail', frameRange: [31, 60] },
+]
 
 const created = await call('blender_project_create', { title: 'M3 Tool Plane', sceneSpec: spec, saveCheckpoint: true })
 check('the M1 create path still works', created.value?.ok === true, created.value?.data?.projectId)
@@ -617,6 +624,37 @@ check('and the video the manifest describes is really on disk — and the manife
   existsSync(join(workspace, 'projects', projectId, 'output', 'final.mp4')) &&
   recoveredManifest.jobId === brokenJobId,
   { manifestJob: recoveredManifest.jobId, brokenJobId })
+
+const nativePath = join(workspace, 'projects', projectId, 'revisions', revision, 'scene.blend')
+const nativeHash = () => createHash('sha256').update(readFileSync(nativePath)).digest('hex')
+const nativeBeforeShots = nativeHash()
+const shotStarted = await callOn(fixedRoot, 'blender_final_render', {
+  projectId, revision, frameStart: 30, frameEnd: 31, useShotCameras: true,
+})
+check('explicit saved shots start through the real preset context with subprocess injection',
+  shotStarted.isError === false && shotStarted.value?.ok === true && typeof shotStarted.value?.data?.jobId === 'string',
+  shotStarted.value?.data ?? shotStarted.error)
+if (shotStarted.value?.ok && shotStarted.value?.data?.jobId) {
+  const shotJobId = shotStarted.value.data.jobId
+  let shotJob
+  await waitFor('the preset shot sequence to reach a terminal state', async () => {
+    shotJob = (await callOn(fixedRoot, 'blender_job_status', { projectId, jobId: shotJobId })).value?.data?.renderJob
+    return ['completed', 'failed', 'cancelled'].includes(shotJob?.status)
+  }, 120_000, 200)
+  check('the real preset shot job completes its native frames and MP4',
+    shotJob.status === 'completed' && shotJob.delivery?.status === 'published',
+    { status: shotJob.status, delivery: shotJob.delivery?.status, errorCode: shotJob.errorCode })
+  check('the tool-created job freezes the two saved camera ranges',
+    shotJob.cameraSelection?.shots?.length === 2 &&
+    shotJob.cameraSelection.shots[0].cameraId === 'camera-main' &&
+    shotJob.cameraSelection.shots[1].cameraId === 'camera-detail', shotJob.cameraSelection)
+  const bindings = shotJob.provenance?.frames ?? []
+  check('actual camera evidence crosses the saved cut through the tool and Host contexts',
+    shotJob.provenance?.coverage === 'complete' && bindings.length === 2 &&
+    bindings.find(frame => frame.frame === 30)?.cameraId === 'camera-main' &&
+    bindings.find(frame => frame.frame === 31)?.cameraId === 'camera-detail', bindings)
+  check('the preset shot render preserves the original native checkpoint bytes', nativeHash() === nativeBeforeShots)
+}
 
 // ---------------------------------------------------------------------------
 // Summary
