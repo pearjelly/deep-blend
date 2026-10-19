@@ -358,3 +358,39 @@ test('fixed diagnostics stage complete glTF/GLB bundles once for repeated aliase
     assert(!readdirSync(join(f.project,'staging')).some(n=>n.startsWith('.diagnostic-')))
   }
 })
+
+test('whole asset bounds cannot expand an ordinary entity and missing framing cameras are refused before runtime', async t => {
+  const f = await setup(t, { saveCheckpoint: true }), entityId = base().entities[0].id
+  let calls = 0
+  f.runtime.inspectGeometry = async request => { calls++; return geometryReport(request) }
+  const before = snapshot(f.project)
+  for (const geometry of [
+    { entityIds: [entityId], frame: 1, assetInstanceIds: [entityId] },
+    { entityIds: [entityId], frame: 1, cameraId: 'missing-camera' },
+  ]) await assert.rejects(f.studio.getScene(f.projectId, { geometry }), { code: BlenderErrorCode.SCENE_SPEC_INVALID })
+  assert.equal(calls, 0)
+  assert.deepEqual(snapshot(f.project), before)
+})
+
+test('explicit native framing refuses an old runtime, keeps revision bytes and returns only the requested frame', async t => {
+  const f = await setup(t, { saveCheckpoint: true }), entityId = base().entities[0].id
+  const geometry = { entityIds: [entityId], frame: 17, cameraId: 'camera-main', cameraMargin: .1 }
+  const before = snapshot(f.project)
+  f.runtime.inspectGeometry = async request => geometryReport(request)
+  await assert.rejects(f.studio.getScene(f.projectId, { geometry }), { code: BlenderErrorCode.RUNTIME_UNAVAILABLE })
+  f.runtime.inspectGeometry = async request => {
+    assert.equal(request.cameraId, geometry.cameraId); assert.equal(request.cameraMargin, .1)
+    const result = geometryReport(request)
+    result.report.schemaVersion = 'deepblend.geometry-inspection/v4'
+    result.report.camera = { id: 'camera-main', type: 'PERSP', margin: .1, clipStartMeters: .1, clipEndMeters: 100 }
+    result.report.objects[0].cameraProjection = { status: 'measured', nearestDepthMeters: 4, farthestDepthMeters: 5,
+      containedInClip: true, normalizedBounds: { min: [.2,.2], max: [.8,.8] }, containedInFrame: true }
+    return result
+  }
+  const result = await f.studio.getScene(f.projectId, { geometry })
+  assert.equal(result.geometryInspection.schemaVersion, 'deepblend.scene-geometry/v4')
+  assert.equal(result.geometryInspection.frame, 17)
+  assert.equal(result.geometryInspection.camera.margin, .1)
+  assert.ok(result.geometryInspection.limitations.some(text => text.includes('ONE reported frame')))
+  assert.deepEqual(snapshot(f.project), before)
+})

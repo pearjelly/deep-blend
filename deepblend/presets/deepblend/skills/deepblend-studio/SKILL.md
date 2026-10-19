@@ -407,8 +407,38 @@ the current revision and repeat the affected views with the same settings.
    text may return fewer. Do not combine this mode with full or geometry reads.
    This preset has no generic `read` tool: do not spend repeated grep calls trying
    to reconstruct multiline control vertices from spilled full-scene output.
+   Imported models commonly have an empty container with nested mesh children. For the
+   complete instance, request `geometryEntityIds:[assetId,supportId]`,
+   `geometryAssetInstanceIds:[assetId]`, `geometryFrame` and `geometryOnly:true`.
+   ASSET_MESH_SET reports actual evaluated world bounds and mesh counts. The ID is the
+   scene entity ID, not the source asset descriptor ID. Missing/hidden/unsupported or
+   over-budget children make the entire instance unavailable: never substitute its
+   origin, a declared dimension, a partial child or zero for the measured bottom.
+   For a deliberately horizontal flat pedestal, compare the measured instance min Z
+   to support max Z, preserve the old revision, change only the intended instance
+   transform through a patch, remeasure and inspect the base in an actual close view.
+   Bounds separation is not a surface contact or collision certificate.
+
+   For framing, select the required complete subjects and `geometryCameraId` at an
+   explicit `geometryFrame`; use `geometryAssetInstanceIds` for imported subjects.
+   `geometryCameraMargin` defaults to 0.03. Read cameraProjection.normalizedBounds,
+   containedInFrame and containedInClip, rather than guessing from object origins.
+   Intended detail crops are different from an establishing shot that loses its finial.
+   Test shot endpoints, interior extrema and transition-adjacent frames; verify every
+   rendered frame before final delivery. Projection does not detect an intervening
+   column, tree, wall, camera collision, or later motion. Inspect actual pixels too.
+   Never automatically replace an old project's manually authored cameras or geometry.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
+   For complex custom geometry, prefer 1–6 coherent operations per call. Reuse exact
+   saved entities with entityCopies to avoid resending long arrays. This is not a hard
+   limit or permission to split dependent atomic edits. Send complete strict JSON;
+   after refusal, inspect the error paths and dryRun validation before retrying.
+   Harness MALFORMED_RESPONSE occurs before this tool and does not mean an edit was
+   accepted. Never silently repair/execute truncated JSON or claim the tool fixed it.
+   `blender_asset_ingest.license` is a string, but `asset.add.asset.license` is an object
+   with source, commercialUse and attribution. Keep the returned asset descriptor.
+   `cube.size` is one scalar; do not pass a vector as its size.
    To reuse exact saved geometry without repeating control arrays, supply up to16
    `entityCopies:[{sourceEntityId,newEntityId,transform?}]` from `baseRevision`.
    These become ordinary entity.add operations before `operations` (which may be []).

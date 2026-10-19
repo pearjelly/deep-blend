@@ -56,6 +56,13 @@ const FIXTURES = join(ROOT, 'deepblend', 'fixtures')
 const PROVIDER = process.env.DEEPBLEND_PROBE_PROVIDER ?? 'deepseek-official'
 const MODEL = process.env.DEEPBLEND_PROBE_MODEL ?? StudioConfig({ workspaceRoot: ROOT }).visualReviewModel
 const PREVIEW = { width: 400, height: 225, samples: 16 }
+// Match an explicitly configured reasoning route without changing the product default.
+const REVIEW_MAX_TOKENS = process.env.DEEPBLEND_PROBE_REVIEW_MAX_TOKENS === undefined
+  ? undefined : Number(process.env.DEEPBLEND_PROBE_REVIEW_MAX_TOKENS)
+if (REVIEW_MAX_TOKENS !== undefined && (!Number.isSafeInteger(REVIEW_MAX_TOKENS) || REVIEW_MAX_TOKENS < 1 || REVIEW_MAX_TOKENS > 393216)) {
+  throw Error('DEEPBLEND_PROBE_REVIEW_MAX_TOKENS must be an explicit integer from 1 to 393216.')
+}
+
 
 const results = []
 function check(name, ok, detail) {
@@ -140,7 +147,9 @@ try {
     maxPreviewSamples: 64,
     visualReviewProvider: PROVIDER,
     visualReviewModel: MODEL,
+    ...(REVIEW_MAX_TOKENS === undefined ? {} : { visualReviewMaxTokens: REVIEW_MAX_TOKENS }),
   })
+  console.log(`review output budget: ${REVIEW_MAX_TOKENS ?? StudioConfig({ workspaceRoot: ROOT }).visualReviewMaxTokens} (includes reasoning; explicit override=${REVIEW_MAX_TOKENS !== undefined})`)
   await new Promise(settle => setTimeout(settle, 400))
 
   const studio = ctx.get('blenderStudio')

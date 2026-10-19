@@ -1,6 +1,8 @@
 import { BlenderError, BlenderErrorCode } from './index.js'
 
 export const GEOMETRY_INSPECTION_VERSION = 'deepblend.geometry-inspection/v1'
+export const ASSET_BOUNDS_INSPECTION_VERSION = 'deepblend.geometry-inspection/v4'
+export const ASSET_BOUNDS_LIMITS = Object.freeze({ meshes: 128, vertices: 2_000_000, polygons: 2_000_000 })
 export const OBJECT_AXES_INSPECTION_VERSION = 'deepblend.geometry-inspection/v3'
 export const OBJECT_AXES_BASIS = 'evaluated-object-axes-scaled'
 export const SURFACE_INSPECTION_VERSION = 'deepblend.geometry-inspection/v2'
@@ -19,6 +21,16 @@ export function validateGeometrySelection(request) {
   if (!Number.isSafeInteger(request.frame) || request.frame < 0 || request.frame > 1_000_000) refuse('an explicit integer frame from 0 to 1000000 is required.')
   if (typeof request.checkpointSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(request.checkpointSha256)) refuse('the expected checkpoint SHA256 is required.')
   if (request.objectAxes !== undefined && typeof request.objectAxes !== 'boolean') refuse('objectAxes must be boolean.')
+  if (request.cameraId !== undefined && (typeof request.cameraId !== 'string' || !/^[a-zA-Z][a-zA-Z0-9._-]{0,127}$/.test(request.cameraId) || request.objectAxes === true || request.surfaceSamples !== undefined)) refuse('cameraId requires one explicit camera without object axes or surface samples.')
+  if (request.cameraMargin !== undefined && (request.cameraId === undefined || !Number.isFinite(request.cameraMargin) || request.cameraMargin < 0 || request.cameraMargin > .25)) refuse('cameraMargin requires cameraId and a finite margin from 0 to 0.25.')
+  if (request.assetInstanceIds !== undefined) {
+    if (!Array.isArray(request.assetInstanceIds) || request.assetInstanceIds.length < 1 ||
+        new Set(request.assetInstanceIds).size !== request.assetInstanceIds.length ||
+        request.assetInstanceIds.some(id => !request.entityIds.includes(id)) ||
+        request.objectAxes === true || request.surfaceSamples !== undefined) {
+      refuse('assetInstanceIds must select distinct requested asset roots; aggregate bounds cannot be combined with object axes or surface samples.')
+    }
+  }
   if (request.surfaceSamples !== undefined) validateSurfaceSelection(request)
 }
 
@@ -101,28 +113,38 @@ export function verifyGeometryReport(report, request) {
   validateGeometrySelection(request)
   const allowed = (value, keys) => value && typeof value === 'object' && Object.keys(value).every(key => keys.includes(key))
   if (!report || Buffer.byteLength(JSON.stringify(report)) > GEOMETRY_INSPECTION_LIMITS.reportBytes ||
-      report.schemaVersion !== (request.objectAxes === true ? OBJECT_AXES_INSPECTION_VERSION : request.surfaceSamples === undefined ? GEOMETRY_INSPECTION_VERSION : SURFACE_INSPECTION_VERSION) || report.checkpointSha256 !== request.checkpointSha256 ||
+      report.schemaVersion !== (request.assetInstanceIds !== undefined || request.cameraId !== undefined ? ASSET_BOUNDS_INSPECTION_VERSION : request.objectAxes === true ? OBJECT_AXES_INSPECTION_VERSION : request.surfaceSamples === undefined ? GEOMETRY_INSPECTION_VERSION : SURFACE_INSPECTION_VERSION) || report.checkpointSha256 !== request.checkpointSha256 ||
       report.frame !== request.frame || report.checkpointUnchanged !== true ||
       typeof report.blenderVersion !== 'string' || !report.blenderVersion ||
       !Array.isArray(report.objects) || report.objects.length !== request.entityIds.length ||
-      !allowed(report, ['schemaVersion', 'checkpointSha256', 'checkpointUnchanged', 'frame', 'blenderVersion', 'objects', ...(request.objectAxes === true ? ['objectAxisBasis'] : []), ...(request.surfaceSamples === undefined ? [] : ['surfaceSamples'])])) refuse('the report does not match the requested source, frame or selection.')
+      !allowed(report, ['schemaVersion', 'checkpointSha256', 'checkpointUnchanged', 'frame', 'blenderVersion', 'objects', ...(request.cameraId === undefined ? [] : ['camera']), ...(request.objectAxes === true ? ['objectAxisBasis'] : []), ...(request.surfaceSamples === undefined ? [] : ['surfaceSamples'])])) refuse('the report does not match the requested source, frame or selection.')
+  if (request.cameraId !== undefined) {
+    const camera = report.camera
+    if (!allowed(camera, ['id', 'type', 'margin', 'clipStartMeters', 'clipEndMeters']) || camera?.id !== request.cameraId || camera.type !== 'PERSP' ||
+        camera.margin !== (request.cameraMargin ?? .03) || !Number.isFinite(camera.clipStartMeters) || camera.clipStartMeters <= 0 ||
+        !Number.isFinite(camera.clipEndMeters) || camera.clipEndMeters <= camera.clipStartMeters) refuse('camera calibration differs from the requested framing selection.')
+  }
   if (request.objectAxes === true && report.objectAxisBasis !== OBJECT_AXES_BASIS) refuse('object-local basis differs from evaluated scaled object-axis coordinates.')
   const vector = (v, length) => Array.isArray(v) && v.length === length && v.every(Number.isFinite)
   for (const [index, object] of report.objects.entries()) {
+    const aggregate = request.assetInstanceIds?.includes(request.entityIds[index]) === true
     if (object?.entityId !== request.entityIds[index] || typeof object.type !== 'string' || !object.type) refuse('object identity differs from the selection.')
     const keys = object.available === false ? ['entityId', 'type', 'available', 'unavailableReason'] :
-      ['entityId', 'type', 'available', 'worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'scale', 'vertexCount', 'polygonCount', ...(request.objectAxes === true ? ['objectAxisStatus', 'objectAxisBoundsMeters', 'objectAxisExtentMm', 'objectAxisWorldMatrix'] : [])]
+      ['entityId', 'type', 'available', 'worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'scale', 'vertexCount', 'polygonCount', ...(request.cameraId === undefined ? [] : ['cameraProjection']), ...(aggregate ? ['meshObjectCount'] : []), ...(request.objectAxes === true ? ['objectAxisStatus', 'objectAxisBoundsMeters', 'objectAxisExtentMm', 'objectAxisWorldMatrix'] : [])]
     if (!allowed(object, keys)) refuse('unsupported measurement fields are not accepted; this protocol does not establish wall thickness or clearance.')
     if (object.available === false) {
-      if (!['viewport-disabled', 'not-mesh', 'empty-or-invalid-geometry'].includes(object.unavailableReason) ||
+      if (![...['viewport-disabled', 'not-mesh', 'empty-or-invalid-geometry'], ...(aggregate ? ['geometry-budget-exceeded', 'unsupported-hierarchy'] : [])].includes(object.unavailableReason) ||
           ['worldBoundsMeters', 'worldAxisExtentMm', 'worldMatrix', 'vertexCount', 'polygonCount', 'scale'].some(k => Object.hasOwn(object, k))) refuse('an unavailable object must not contain measurements.')
       continue
     }
-    if (object.available !== true || object.type !== 'MESH' || !allowed(object.worldBoundsMeters, ['min', 'max']) || !vector(object.worldBoundsMeters?.min, 3) ||
+    if (object.available !== true || object.type !== (aggregate ? 'ASSET_MESH_SET' : 'MESH') ||
+        (aggregate && (!Number.isSafeInteger(object.meshObjectCount) || object.meshObjectCount < 1 || object.meshObjectCount > ASSET_BOUNDS_LIMITS.meshes ||
+          object.vertexCount > ASSET_BOUNDS_LIMITS.vertices || object.polygonCount > ASSET_BOUNDS_LIMITS.polygons)) || !allowed(object.worldBoundsMeters, ['min', 'max']) || !vector(object.worldBoundsMeters?.min, 3) ||
         !vector(object.worldBoundsMeters?.max, 3) || !vector(object.worldAxisExtentMm, 3) || !vector(object.scale, 3) ||
         !Array.isArray(object.worldMatrix) || object.worldMatrix.length !== 4 || !object.worldMatrix.every(row => vector(row, 4)) ||
         !Number.isSafeInteger(object.vertexCount) || object.vertexCount <= 0 ||
         !Number.isSafeInteger(object.polygonCount) || object.polygonCount < 0) refuse('a measured object contains invalid or non-finite geometry facts.')
+    if (request.cameraId !== undefined) verifyCameraProjection(object.cameraProjection, report.camera)
     if (request.objectAxes === true && object.objectAxisStatus === 'unsupported-object-axis-basis') {
       if (['objectAxisBoundsMeters','objectAxisExtentMm','objectAxisWorldMatrix'].some(k=>Object.hasOwn(object,k))) refuse('unavailable object-axis measurements must not contain numbers.')
       const m=object.worldMatrix, lengths=[0,1,2].map(i=>Math.hypot(...m.slice(0,3).map(r=>r[i])))
@@ -166,4 +188,24 @@ export function verifyGeometryReport(report, request) {
   }
   if (request.surfaceSamples !== undefined) verifySurfaceSamples(report.surfaceSamples, request, report.objects)
   return report
+}
+
+function verifyCameraProjection(projection, camera) {
+  const base = ['status', 'nearestDepthMeters', 'farthestDepthMeters', 'containedInClip']
+  if (['unavailable-render-hidden', 'geometry-budget-exceeded'].includes(projection?.status)) {
+    if (!only(projection, ['status'])) refuse('hidden framing must not contain fabricated measurements.')
+    return
+  }
+  if (!['measured', 'not-fully-in-front'].includes(projection?.status) ||
+      !Number.isFinite(projection.nearestDepthMeters) || !Number.isFinite(projection.farthestDepthMeters) || projection.nearestDepthMeters > projection.farthestDepthMeters ||
+      projection.containedInClip !== (projection.nearestDepthMeters >= camera.clipStartMeters && projection.farthestDepthMeters <= camera.clipEndMeters)) refuse('camera depth or clip evidence is invalid.')
+  if (projection.status === 'not-fully-in-front') {
+    if (!only(projection, base) || projection.nearestDepthMeters > 1e-8) refuse('camera-plane crossing must not contain a partial projection.')
+    return
+  }
+  const bounds = projection.normalizedBounds
+  if (!only(projection, [...base, 'normalizedBounds', 'containedInFrame']) || projection.nearestDepthMeters <= 1e-8 || !only(bounds, ['min', 'max']) ||
+      !Array.isArray(bounds?.min) || !Array.isArray(bounds?.max) || bounds.min.length !== 2 || bounds.max.length !== 2 ||
+      ![...bounds.min, ...bounds.max].every(Number.isFinite) || bounds.min.some((v, i) => v > bounds.max[i]) ||
+      projection.containedInFrame !== bounds.min.every((v, i) => v >= camera.margin && bounds.max[i] <= 1-camera.margin)) refuse('camera frame containment disagrees with measured vertex projections.')
 }

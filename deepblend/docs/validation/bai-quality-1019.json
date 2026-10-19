@@ -1,0 +1,268 @@
+{
+  "date": "2026-10-19",
+  "status": "in-progress-not-accepted-not-released",
+  "baselinePlugin": "0.15.0",
+  "host": "0.2.1-rc.1",
+  "route": "bai/deepseek-v4.1-flash",
+  "routingProvenance": "User confirmed bai forwards this model to official DeepSeek; outgoing request measurements cannot independently attest upstream forwarding.",
+  "beforeImplementation": {
+    "baiBareProfile": {
+      "declaredModelFields": [
+        "id",
+        "name"
+      ],
+      "requestedEffort": "max",
+      "result": "UNSUPPORTED_REASONING_EFFORT",
+      "outboundRequests": 0,
+      "elapsedMs": 380
+    },
+    "assetMeasurement": {
+      "formalProtocol": "v1/v2/v3 measure only one native MESH; imported EMPTY asset roots are unavailable as not-mesh",
+      "historicalNativeReadOnlyInspection": {
+        "project": "official-comparison-pagoda",
+        "revision": "r0023",
+        "entityId": "buddha-statue",
+        "supportEntityId": "hall-altar",
+        "assetBottomMeters": 1.589927077293396,
+        "supportTopMeters": 1.2999999523162842,
+        "positiveVerticalBoundsSeparationMeters": 0.2899271249771118,
+        "scope": "World bounds separation, not a contact, collision or surface clearance certificate. Source bytes unchanged."
+      }
+    },
+    "toolArguments": {
+      "modernMaxInitial": "Two malformed JSON tool arguments failed in Harness parsing before a DeepBlend handler ran.",
+      "guidedRecovery": "A separate <=6-operation guidance phase produced 53 formal DeepBlend calls. N=1, extra guidance/context; not a controlled proof of repair.",
+      "constraint": "Do not silently repair or execute malformed arguments, split atomic patches, or hard-cap legacy transactions."
+    },
+    "framing": {
+      "historicalFailures": [
+        "main camera frame 260 crops pagoda finial",
+        "yard frame 701 foreground trunk occludes view"
+      ],
+      "constraint": "First/middle/last images and moving native actions do not certify an entire camera path or absence of occlusion."
+    }
+  },
+  "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
+  "releaseGate": "Pending actual bai max/image/history proof, source and native acceptance, same-case model-through-plugin retest, full video inspection and standard publication.",
+  "transportProof": {
+    "mainRequests": 8,
+    "allMainRequestsMax": true,
+    "allMainRequestsContainExactReferenceBytes": true,
+    "initialUserMessageUnchanged": true,
+    "initialHistoryPrefixesRetained": true,
+    "resumedContainsEntirePriorOutboundHistory": true,
+    "resumedWithoutReattachingImage": true,
+    "toolResultMessagesRetained": 17,
+    "phraseRecalled": true,
+    "referenceSha256": "68639e7f4cffa5078113edefd94795c7beb5b9e442d7bd8b8ff8bda740d6e6c8",
+    "personalDeploymentModified": false,
+    "upstreamRoutingProvenance": "User confirmation; this audit observes client-to-bai requests only.",
+    "scope": "Finite measured conversation with no compaction. Exact retained serialized text/image history and tool results are verified. This is not an unlimited-context or gateway-to-upstream attestation.",
+    "reasoningReplay": {
+      "priorAssistantReasoningMessages": 8,
+      "outboundReasoningMessages": 8,
+      "allPriorReasoningBytesMatch": true,
+      "rawReasoningPublished": false
+    }
+  },
+  "newNativeChecks": {
+    "passed": 54,
+    "sourceUnchanged": true,
+    "independentFramingReference": "Blender world_to_camera_view",
+    "mutations": [
+      {
+        "mutation": "drop-imported-child",
+        "killed": true,
+        "exitCode": 1
+      },
+      {
+        "mutation": "false-camera-contained",
+        "killed": true,
+        "exitCode": 1
+      }
+    ]
+  },
+  "sourceChecks": {
+    "firstRun": "135/137, two documentation count expectations stale after adding one suite; retained raw failure",
+    "countRecheck": "21/21 after correcting source structural counts",
+    "fullAcceptance": {
+      "passedSuites": 42,
+      "unitContractFiles": "137/137",
+      "validatedProductTestToolPresetFilesUnchanged": 519,
+      "logSha256": "4818054ef759f186726d725246065fddb8bc5dbd1aece6aed63607fd61eacd2d",
+      "scope": "Current product and tests before final version/listing/release documentation changes; final candidate checks still required."
+    },
+    "hostGuardMutations": [
+      {
+        "mutation": "expand-nonasset",
+        "killed": true,
+        "exitCode": 1
+      },
+      {
+        "mutation": "missing-camera",
+        "killed": true,
+        "exitCode": 1
+      }
+    ],
+    "uiLive": {
+      "firstAttempt": "0/1, incorrect probe-home selector; no model call; original retained",
+      "configuredRetry": "10/10, actual bai main requests max; personal DSH not modified"
+    },
+    "visualLive": {
+      "canonicalExplicitDeepSeekCompat": "13/13 full suite passed at max, explicit256000 operator budget",
+      "defaultBudgetSuccess": false,
+      "logSha256": "150b6626eea1bef6a5c67ca34c4ab7d9b1893b4a072695695f77cdcd0d8cada5",
+      "productDefaultUnchanged": 24000,
+      "earlierFailuresRetained": true
+    },
+    "candidateUnitFirstRun": "136/137; DSH_HOME omitted in invocation, preset comparison read existing personal preset drift. No personal files changed. Isolated home with correctly installed presets now used for full rerun.",
+    "candidateUnitRerun": {
+      "passedFiles": 137,
+      "totalFiles": 137,
+      "isolatedDshHome": true,
+      "logSha256": "14e203dba14fa1732ae1a590a44df492ebe51df1fc5fdef56e09e7049a0e0b6d"
+    },
+    "postFullProductEquivalence": {
+      "runtimeTestAndPresetBytesUnchanged": true,
+      "deltas": "Seven package version manifests and community submission branch constant only; root version manifest and release docs separately updated.",
+      "fullNativeSuiteRepeatedForMetadataOnly": false
+    }
+  },
+  "caseSetupFailures": [
+    {
+      "attempt": "candidate-source/repair-initial",
+      "status": "invalid setup",
+      "reason": "Missing intended reference due attempt-name condition; correction raced with a newly dispatched patch and helper targeted same private directory; preserved and stopped. Not a model quality result."
+    },
+    {
+      "attempt": "candidate-source-v2/initial",
+      "status": "invalid setup stopped before any patch",
+      "reason": "Preparation helper still targeted previous private directory. Never use this attempt as acceptance."
+    }
+  ],
+  "currentCaseAttempt": "candidate-source-v3/initial; explicit new directory and required reference SHA256 guard",
+  "originalHistoricalProjectFilesVerifiedUnchanged": 350,
+  "liveVisualDefaultBudget": {
+    "route": "bai/deepseek-v4.1-flash",
+    "effort": "max",
+    "maxTokens": 24000,
+    "firstReview": "finish=max-tokens with reasoning only, no usable answer; correctly refused as a review",
+    "suite": "not accepted; raw original retained",
+    "nextProbe": "Explicit 256000 operator budget matching actual isolated case Host; product default not changed, not counted as a default-budget success",
+    "explicit256kFirstRun": "10/14; first review connection error; later checks passed. A second generic-compat attempt also lost a response stream. Raw failures retained. Canonical explicit-DeepSeek-compat full run in progress; no full acceptance yet."
+  },
+  "manualCameraScaleRegression": {
+    "beforeFix": "Independent Blender world_to_camera_view witness failed for nonuniform camera scale (1.4, 0.7, 2.2).",
+    "fix": "Normalize evaluated camera matrix as Blender projection does; do not change native camera or scale.",
+    "afterFix": "54/54 native checks passed, including shifted/scaled animated camera with portrait and pixel aspect. Original bytes unchanged.",
+    "fullAcceptance": "Full v2 passed all 42 suites with fixed source and unchanged validated files."
+  },
+  "currentCaseProgress": {
+    "validAttempt": "candidate-source-v3/quality-continuation",
+    "referencePreflight": true,
+    "currentObservedRevision": "r0034",
+    "status": "phase 1 completed but visually rejected; formal plugin phase 2 in progress",
+    "formalPluginActions": "Asset aggregate read, explicit camera projections, previews, atomic scene patches and entityCopies. Maintainer did not write case geometry.",
+    "observedImages": "Buddha on pedestal and main-frame finial now visible; close foliage still a large coarse canopy, not accepted as finished quality.",
+    "transportProof": "actual outgoing requests so far max; original reference + represented preview attachment bytes + complete prior message hashes all retained",
+    "originalFilesVerified": 350,
+    "scope": "Guided repair of an existing project with licensed source assets, not arbitrary one-prompt modeling from blank."
+  },
+  "initialValidCaseSummary": {
+    "elapsedMs": 2013374,
+    "toolCalls": 43,
+    "formalBlenderCalls": 42,
+    "otherCalls": {
+      "skill": 1
+    },
+    "toolFailures": [],
+    "maximumReportedInputIncludingCacheTokens": 473177,
+    "usageProvenance": "DSH pi-ai inputTokens excludes cacheReadTokens/cacheWriteTokens; sum reports prompt context. Not an independent upstream tokenization audit.",
+    "rawReasoningPublished": false,
+    "status": "completed-model-turn; visual quality rejected for coarse close foliage and zero-thickness new soffits; no final render or release"
+  },
+  "explicitDeepSeekWireProbe": {
+    "requests": 2,
+    "thinking": "enabled",
+    "reasoning_effort": "max",
+    "max_tokens": 256000,
+    "referenceBytesExact": true,
+    "elapsedMs": 15586,
+    "formalTool": "blender_capabilities_get",
+    "scope": "Private bai compatibility metadata only; no personal DSH changes; short finite probe does not establish case quality."
+  },
+  "candidateVersion": "0.16.0",
+  "phase2": {
+    "attempt": "candidate-source-v3/quality-continuation",
+    "elapsedMs": 2451165,
+    "toolCalls": 21,
+    "completed": false,
+    "failure": "HTTP400 INVALID_REQUEST: Invalid request body after r0034 saved; upstream message did not identify cause.",
+    "lastSuccessfulReportedInputIncludingCacheTokens": 571482,
+    "failedBodyBytes": 13462819,
+    "referenceAndAllRepresentedToolImageBytesRetained": true,
+    "priorSerializedMessagePrefixesRetained": true,
+    "scope": "API failure retained; not a completed quality pass."
+  },
+  "canonicalResume": {
+    "status": "partial transport success, then connection failure; not quality accepted",
+    "previousSessionResumed": true,
+    "firstResponseStatus": 200,
+    "firstResponsePromptTokens": 573098,
+    "thinking": "enabled",
+    "reasoning_effort": "max",
+    "max_tokens": 256000,
+    "allPriorContentHashesRetained": true,
+    "allPriorNonemptyReasoningHashesRetained": true,
+    "serializedChanges": [
+      "developer role adapted to system",
+      "empty reasoning_content explicitly supplied on two assistant messages"
+    ],
+    "causeProven": false,
+    "elapsedMs": 416710,
+    "toolCalls": 3,
+    "generatedBeautyFrames": [
+      831,
+      865
+    ],
+    "endError": "TRANSPORT: Connection error."
+  },
+  "intermediateNativeAudit": {
+    "revision": "r0034",
+    "frames": 900,
+    "sourceNativeAndSpecUnchanged": true,
+    "subjectEnvelopeFailures": 0,
+    "nearSurfaceFrames": 0,
+    "surfaceCrossingConsecutiveFrameChords": 0,
+    "buddhaSupportBoundsSeparationMm": -0.07283687591552734,
+    "buddhaBoundsInsideSupportXY": true,
+    "closedPositiveVolumeSoffits": 5,
+    "actualCameraInterpolation": "BEZIER",
+    "scope": "Explicit all-frame native geometry checks and bounded ray grids, not rendered full-video inspection, subframe-path certification, exact contact or artistic approval."
+  },
+  "qualityRemaining": [
+    "Remaining coarse sphere canopies visible in foreground; current phase images rejected for that quality gap.",
+    "Complete six close/yard images, final frozen-candidate acceptance and full900-frame video inspection still required."
+  ],
+  "publicationStatus": "0.16 source candidate only; no new GitHub Release, npm package or community submission",
+  "networkObservation": {
+    "githubApi": "Repeated TLS EOF; TLS1.2 probe also fails",
+    "polyHavenApi": "TLS EOF",
+    "npmRegistry": "HTTP200",
+    "bai": "Same-session573098 and589134 prompt-token requests succeeded, then connection errors after two new previews; failed turn retained.",
+    "git": "One ls-remote read succeeded; subsequent fetch failed SSL_ERROR_SYSCALL. Unstable, not an authentication finding.",
+    "nextAction": "Resume actual plugin quality repair and frozen artifact verification after network recovery; no stable publication before complete case/movie acceptance."
+  },
+  "preservationChecked": {
+    "originalHistoricalProjectFiles": 350,
+    "originalFilesChanged": 0,
+    "copiedOldNativeSpecBytesChanged": 0,
+    "copiedRevision23ManifestDelta": [
+      "formal previews",
+      "contactSheets"
+    ],
+    "oldDeliveredSceneAndVideoHashesMatch": true,
+    "oldEntityIdsRetained": 98,
+    "oldMaterialsAndLightsUnchanged": true
+  }
+}

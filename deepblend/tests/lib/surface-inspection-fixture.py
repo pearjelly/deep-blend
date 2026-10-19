@@ -43,5 +43,42 @@ parent=bpy.data.objects.new('axis-shear-parent',None);bpy.context.collection.obj
 sheared=cube('axis-sheared',(.1,.2,.3),(9,3,3));sheared.parent=parent;sheared.rotation_euler[2]=.7853981633974483
 cube('axis-degenerate',(0,.2,.3),(11,3,3))
 bpy.context.view_layer.update()
+# Aggregate imported-container witnesses: nested transforms, evaluated modifiers,
+# hidden children, another entity's ownership and no partial over-budget result.
+def asset_root(id):
+    root=bpy.data.objects.new('db_entity__'+id,None)
+    bpy.context.collection.objects.link(root)
+    return root
+root=asset_root('asset-whole');root.location=(3,4,5);root.scale=(2,2,2);root.rotation_euler[2]=1.5707963267948966
+first=cube('asset-part-one',(1,2,1),(1,0,.25));first.name='imported-one';first.parent=root
+nested=bpy.data.objects.new('imported-nested',None);bpy.context.collection.objects.link(nested);nested.parent=root
+second=cube('asset-part-two',(.5,.5,1),(-1,0,1));second.name='imported-two';second.parent=nested
+mod=second.modifiers.new('native-extra-detail','ARRAY');mod.count=2;mod.relative_offset_displace=(1,0,0)
+hidden_root=asset_root('asset-hidden');hidden=cube('asset-hidden-part',(1,1,1));hidden.name='imported-hidden';hidden.parent=hidden_root;hidden.hide_viewport=True
+foreign_root=asset_root('asset-foreign');foreign=cube('foreign-owner',(1,1,1));foreign.parent=foreign_root
+asset_root('asset-empty')
+budget_root=asset_root('asset-budget')
+for i in range(129):
+    part=bpy.data.objects.new('imported-budget-'+str(i),first.data);bpy.context.collection.objects.link(part);part.parent=budget_root
+bpy.context.view_layer.update()
+# Native perspective, camera shift, portrait aspect and actual animated path.
+small=cube('framing-small',(1,1,1),(0,0,-5))
+cube('framing-crossing',(1,1,20),(0,0,-5))
+cube('framing-far',(1,1,1),(0,0,-200))
+render_hidden=cube('framing-hidden',(1,1,1),(0,0,-5));render_hidden.hide_render=True
+cam_data=bpy.data.cameras.new('framing-camera-data');cam_data.lens=35;cam_data.shift_x=.1;cam_data.shift_y=-.05;cam_data.clip_start=.1;cam_data.clip_end=100
+camera=bpy.data.objects.new('db_camera__framing',cam_data);bpy.context.collection.objects.link(camera);camera.scale=(1.4,.7,2.2)
+camera.location=(0,0,0);camera.keyframe_insert(data_path='location',frame=1)
+camera.location=(10,0,0);camera.keyframe_insert(data_path='location',frame=24)
+bpy.context.scene.render.resolution_x=900;bpy.context.scene.render.resolution_y=1600
+bpy.context.scene.render.pixel_aspect_x=1.1;bpy.context.scene.render.pixel_aspect_y=1
+from bpy_extras.object_utils import world_to_camera_view
+expected={}
+for frame in (1,24):
+    bpy.context.scene.frame_set(frame);bpy.context.view_layer.update()
+    points=[world_to_camera_view(bpy.context.scene,camera,small.matrix_world@v.co) for v in small.data.vertices]
+    expected[str(frame)]={'min':[min(p[a] for p in points) for a in range(2)],'max':[max(p[a] for p in points) for a in range(2)]}
+(output/'framing-expected.json').write_text(json.dumps(expected))
+bpy.context.scene.frame_set(24);bpy.context.view_layer.update()
 bpy.ops.wm.save_as_mainfile(filepath=str(output/'fixture.blend'))
 (output/'queries.json').write_text(json.dumps(groups,indent=2)+'\n')

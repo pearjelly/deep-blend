@@ -94,15 +94,21 @@ export interface RenderOverrides { engine?: EngineKey; width?: number; height?: 
 /** Default world-axis bounds; optional physical object axes include native scale. Neither certifies semantic body dimensions or wall thickness. */
 export interface GeometryInspectionRequest extends RuntimeOptions {
   checkpointPath: string; checkpointSha256: string; entityIds: string[]; frame: number; jobId?: string; objectAxes?: boolean; surfaceSamples?: unknown[];
+  assetInstanceIds?: string[]; cameraId?: string; cameraMargin?: number;
 }
+export type CameraProjection = { status: 'unavailable-render-hidden' | 'geometry-budget-exceeded' } |
+  { status: 'not-fully-in-front'; nearestDepthMeters: number; farthestDepthMeters: number; containedInClip: boolean } |
+  { status: 'measured'; nearestDepthMeters: number; farthestDepthMeters: number; containedInClip: boolean;
+    normalizedBounds: { min: [number, number]; max: [number, number] }; containedInFrame: boolean };
 export type GeometryInspectionObject = { entityId: string; type: string } & (
-  { available: false; unavailableReason: 'viewport-disabled' | 'not-mesh' | 'empty-or-invalid-geometry' } |
+  { available: false; unavailableReason: 'viewport-disabled' | 'not-mesh' | 'empty-or-invalid-geometry' | 'unsupported-hierarchy' | 'geometry-budget-exceeded' } |
   { available: true; worldBoundsMeters: { min: Vec3; max: Vec3 }; worldAxisExtentMm: Vec3;
     objectAxisStatus?: 'measured' | 'unsupported-object-axis-basis'; objectAxisBoundsMeters?: { min: Vec3; max: Vec3 }; objectAxisExtentMm?: Vec3; objectAxisWorldMatrix?: number[][];
-    worldMatrix: number[][]; scale: Vec3; vertexCount: number; polygonCount: number }
+    worldMatrix: number[][]; scale: Vec3; vertexCount: number; polygonCount: number; meshObjectCount?: number; cameraProjection?: CameraProjection }
 );
 export interface GeometryInspectionReport {
-  schemaVersion: 'deepblend.geometry-inspection/v1' | 'deepblend.geometry-inspection/v2' | 'deepblend.geometry-inspection/v3';
+  schemaVersion: 'deepblend.geometry-inspection/v1' | 'deepblend.geometry-inspection/v2' | 'deepblend.geometry-inspection/v3' | 'deepblend.geometry-inspection/v4';
+  camera?: { id: string; type: 'PERSP'; margin: number; clipStartMeters: number; clipEndMeters: number };
   objectAxisBasis?: 'evaluated-object-axes-scaled'; surfaceSamples?: unknown[]; checkpointSha256: string; checkpointUnchanged: true;
   frame: number; blenderVersion: string; objects: GeometryInspectionObject[];
 }

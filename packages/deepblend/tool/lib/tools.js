@@ -430,6 +430,9 @@ function sceneGet(ctx) {
         description: 'Optional: measure 1–8 distinct saved native entity IDs. Requires geometryFrame. Hidden viewport objects and non-mesh roots are explicitly unavailable.' },
       geometryFrame: { type: 'integer',
         description: 'Explicit integer frame from 0 to 1000000 for native geometry measurement. Use the frame of the preview being checked. Requires geometryEntityIds.' },
+      geometryCameraId: { type: 'string', description: 'Optional saved perspective camera ID: project selected actual vertices into its frame using native camera shift and render aspect. Returns normalized image bounds, containedInFrame (default 3% margin) and depth/clip evidence at geometryFrame only. Combine with geometryAssetInstanceIds for entire imported subjects. Does not certify occlusion, collision or an animation path; inspect pixels and every shot. Cannot combine with geometryObjectAxes or geometrySurfaceSamples. No camera is changed.' },
+      geometryCameraMargin: { type: 'number', description: 'Optional normalized border margin 0..0.25 (default 0.03); requires geometryCameraId.' },
+      geometryAssetInstanceIds: { type: 'array', items: { type: 'string' }, description: 'Optional distinct imported asset-instance IDs, also in geometryEntityIds. Measures the WHOLE evaluated mesh hierarchy as ASSET_MESH_SET, not the empty container origin. Requires geometryFrame. Up to 128 meshes and 2M vertices/polygons per instance; hidden/unsupported/empty hierarchies are unavailable as a whole. Cannot combine with geometryObjectAxes or geometrySurfaceSamples. Use world min Z/max Z to check a horizontal pedestal, then inspect pixels; bounds do not certify contact or clearance. Does not modify assets or transforms.' },
       geometryObjectAxes: { type: 'boolean', description: 'Optional true: also measure actual evaluated vertices in physical orthogonal axes of each selected object, including native scale. Requires geometryEntityIds and geometryFrame. Returns objectAxisBoundsMeters/objectAxisExtentMm/objectAxisWorldMatrix and an explicit basis, separate from world-axis spans. Sheared/degenerate bases are unavailable. Never invert a world AABB to recover local extents.' },
       geometryOnly: { type: 'boolean', description: 'Return only source identity and verified geometry evidence, without the scene catalogue. Requires geometryEntityIds and geometryFrame; cannot be combined with full:true. Ordinary reads keep their existing shape.' },
       geometryCompareRevision: { type: 'string', description: 'Optional explicit reference revision (e.g. r0004). Requires geometryEntityIds and geometryFrame. Re-measures identical selected parts/frame and computes current-minus-reference native world-axis spans and origin moves. If geometrySurfaceSamples is supplied, compares those same local samples instead. Requested geometryAssemblyPairs also return origin-offset changes. Unavailable evidence stays unavailable; no clearance, global minima or change cause is established.' },
@@ -463,6 +466,8 @@ function sceneGet(ctx) {
           const receipt = await readEntitySource(resolved.studio, args)
           return { ok: true, text: renderSuccess('Saved entity source chunk. Continue at nextOffset using this revision; verify entityJsonSha256 before concatenating.', receipt, { compact: true }), data: receipt }
         }
+        if ((args.geometryCameraId !== undefined || args.geometryCameraMargin !== undefined) && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Camera framing requires geometryEntityIds and geometryFrame.')
+        if (args.geometryAssetInstanceIds !== undefined && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Asset bounds require geometryEntityIds and geometryFrame.')
         if (args.geometryObjectAxes !== undefined && typeof args.geometryObjectAxes !== 'boolean') throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'geometryObjectAxes must be boolean.')
         if (args.geometryObjectAxes === true && args.geometryEntityIds === undefined) throw new BlenderError(BlenderErrorCode.SCRIPT_ERROR, 'Object-local bounds require geometryEntityIds and geometryFrame.')
         if (args.geometryOnly !== undefined && typeof args.geometryOnly !== 'boolean') {
@@ -483,19 +488,20 @@ function sceneGet(ctx) {
         }
         if (args.geometryAssemblyPairs !== undefined) validateAssemblyPairs(args.geometryAssemblyPairs, args.geometryEntityIds)
         if (args.geometryEntityIds !== undefined) validateGeometrySelection({ entityIds: args.geometryEntityIds,
-          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
+          frame: args.geometryFrame, checkpointSha256: '0'.repeat(64), ...(args.geometryAssetInstanceIds === undefined ? {} : { assetInstanceIds: args.geometryAssetInstanceIds }), ...(args.geometryCameraId === undefined ? {} : { cameraId: args.geometryCameraId }), ...(args.geometryCameraMargin === undefined ? {} : { cameraMargin: args.geometryCameraMargin }), ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) })
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.getScene(args.projectId, {
           ...definedFields({ revision: args.revision }),
           full: args.full === true,
           ...(args.geometryEntityIds === undefined ? {} : { geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
+            ...(args.geometryAssetInstanceIds === undefined ? {} : { assetInstanceIds: args.geometryAssetInstanceIds }), ...(args.geometryCameraId === undefined ? {} : { cameraId: args.geometryCameraId }), ...(args.geometryCameraMargin === undefined ? {} : { cameraMargin: args.geometryCameraMargin }),
             ...(args.geometryObjectAxes === true ? { objectAxes: true } : {}), ...(args.geometrySurfaceSamples === undefined ? {} : { surfaceSamples: args.geometrySurfaceSamples }) }, signal: exec?.signal }),
         }), warning)
-        const hasSamples = args.geometrySurfaceSamples !== undefined, hasObjectAxes = args.geometryObjectAxes === true
+        const hasSamples = args.geometrySurfaceSamples !== undefined, hasObjectAxes = args.geometryObjectAxes === true, hasV4Evidence = args.geometryAssetInstanceIds !== undefined || args.geometryCameraId !== undefined
         const verifyScene = (data, expectedRevision) => {
           if (expectedRevision !== undefined && data.revision !== expectedRevision) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host returned a different saved revision than requested.')
           }
-          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasObjectAxes ? 'deepblend.scene-geometry/v3' : hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
+          if (args.geometryEntityIds !== undefined && (!data.geometryInspection || data.geometryInspection.schemaVersion !== (hasV4Evidence ? 'deepblend.scene-geometry/v4' : hasObjectAxes ? 'deepblend.scene-geometry/v3' : hasSamples ? 'deepblend.scene-geometry/v2' : 'deepblend.scene-geometry/v1') ||
               data.geometryInspection.projectId !== args.projectId || data.geometryInspection.sourceRevision !== data.revision ||
               data.geometryInspection.sourceDigest !== data.digest || data.geometryInspection.sourceUnchanged !== true || data.geometryInspection.frame !== args.geometryFrame ||
               !Array.isArray(data.geometryInspection.limitations) ||
@@ -503,17 +509,19 @@ function sceneGet(ctx) {
             throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Host did not return measurements for the requested source and frame. Upgrade DeepBlend before measuring; ordinary scene reads remain available.')
           }
           if (data.geometryInspection) verifyGeometryReport({ frame: data.geometryInspection.frame, blenderVersion: data.geometryInspection.blenderVersion, objects: data.geometryInspection.objects,
-            schemaVersion: hasObjectAxes ? 'deepblend.geometry-inspection/v3' : hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            schemaVersion: hasV4Evidence ? 'deepblend.geometry-inspection/v4' : hasObjectAxes ? 'deepblend.geometry-inspection/v3' : hasSamples ? 'deepblend.geometry-inspection/v2' : 'deepblend.geometry-inspection/v1',
+            ...(args.geometryCameraId === undefined ? {} : { camera: data.geometryInspection.camera }),
             ...(hasObjectAxes ? { objectAxisBasis: data.geometryInspection.objectAxisBasis } : {}),
             ...(hasSamples ? { surfaceSamples: data.geometryInspection.surfaceSamples } : {}), checkpointSha256: data.geometryInspection.sourceCheckpointSha256,
             checkpointUnchanged: data.geometryInspection.sourceUnchanged }, { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
-            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
+            checkpointSha256: data.geometryInspection.sourceCheckpointSha256, ...(args.geometryAssetInstanceIds === undefined ? {} : { assetInstanceIds: args.geometryAssetInstanceIds }), ...(args.geometryCameraId === undefined ? {} : { cameraId: args.geometryCameraId }), ...(args.geometryCameraMargin === undefined ? {} : { cameraMargin: args.geometryCameraMargin }), ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) })
         }
         verifyScene(data, args.revision)
         if (args.geometryAssemblyPairs !== undefined) data.geometryAssemblyOrigins = readAssemblyOrigins(data.geometryInspection, args.geometryAssemblyPairs)
         if (args.geometryCompareRevision !== undefined) {
           const reference = await canonicalCall(resolved.studio.getScene(args.projectId, { revision: args.geometryCompareRevision,
-            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame, ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
+            full: false, geometry: { entityIds: args.geometryEntityIds, frame: args.geometryFrame,
+            ...(args.geometryAssetInstanceIds === undefined ? {} : { assetInstanceIds: args.geometryAssetInstanceIds }), ...(args.geometryCameraId === undefined ? {} : { cameraId: args.geometryCameraId }), ...(args.geometryCameraMargin === undefined ? {} : { cameraMargin: args.geometryCameraMargin }), ...(hasObjectAxes ? { objectAxes: true } : {}), ...(hasSamples ? { surfaceSamples: args.geometrySurfaceSamples } : {}) }, signal: exec?.signal }), warning)
           verifyScene(reference.data, args.geometryCompareRevision)
           canonicalWarnings.push(...reference.canonicalWarnings)
           data.geometryComparison = hasSamples ? compareSurfaceReports(reference.data.geometryInspection, data.geometryInspection) : compareGeometryReports(reference.data.geometryInspection, data.geometryInspection)
@@ -645,6 +653,8 @@ function scenePatch(ctx) {
       'fails, no revision is created and the current revision is untouched, so a failed patch is always safe ' +
       'to correct and retry. Retrying an identical patch is also safe — it returns the original outcome ' +
       'instead of committing twice.\n\n' +
+      'For complex authored geometry, prefer 1–6 coherent operations per call and reuse entityCopies instead of repeating long vertex arrays. This is guidance, not a transaction limit: keep dependent changes atomic. Send strict JSON with complete arrays/objects; never execute a truncated or repaired argument. Read returned validation paths before retrying. ' +
+      'asset.add.asset.license is an object {source,commercialUse,attribution}, unlike the ingestion tool license string. A cube generator size is one scalar, not a three-component vector; use dimensions/transform according to its declared schema.\n\n' +
       'Optional entityCopies creates 1–16 explicit copies of single saved entities from baseRevision, before operations. ' +
       'Use {sourceEntityId,newEntityId,transform?} to reuse exact geometry and manual details without repeating vertices; operations may then be []. ' +
       'Transform components are absolute overrides. All other entity fields and external references are preserved; animation tracks, child assemblies and reference remapping are NOT copied. ' +
@@ -1192,7 +1202,7 @@ function assetIngest(ctx) {
       },
       license: {
         type: 'string',
-        description: 'Licence string recorded with the asset. Worth setting for anything downloaded: an ' +
+        description: 'Ingestion licence string (for example CC0). In a later asset.add patch, asset.license must instead be an object with source/commercialUse/attribution; retain the returned descriptor. Worth setting for anything downloaded: an ' +
           'asset whose provenance is unrecorded is one nobody can safely ship.',
       },
     },

@@ -83,6 +83,24 @@ revision、规范场景摘要、原生文件 SHA256 和依赖，复制后交给�
 
 原生跨度检查已随0.9.0稳定发布；局部表面采样与紧凑回执的0.10.0候选验收另行记录。
 
+### 开发候选：导入实例整体边界与指定相机取景
+
+`blender_scene_get` 的 `geometryAssetInstanceIds` 显式选择同在
+`geometryEntityIds` 中的导入实体 ID（不是源素材 assetId）。v4 将其整个评估网格子树
+作为 `ASSET_MESH_SET` 返回，包含世界边界、顶点/面数及 `meshObjectCount`。
+每实例最多128个网格、200万顶点/面；隐藏、空、不支持的层级、包含其他场景实体或
+超预算时整体不可测，不用局部边界冒充完整边界。Host先核对这些实体确属保存的
+asset-instance，再沿用 checkpoint/依赖摘要保护。旧v1/v2/v3默认行为保持不变。
+
+可同时指定 `geometryCameraId` 与可选 `geometryCameraMargin`（0–0.25，默认0.03）。
+指定帧内，使用实际透视相机、镜头偏移、画面及像素比例投影所选评估顶点；返回
+`cameraProjection.normalizedBounds`（X向右、Y向上）、`containedInFrame`、深度与
+`containedInClip`。不在相机前方、渲染隐藏或预算不足时明确报告，不能伪造完整取景。
+这里只检查一个明确帧；不检测其他物体遮挡、相机碰撞、运动模糊或整条路径。
+实例整体边界与相机检查不能与局部正交轴/表面射线请求混用，分次读取即可。
+不会自动移动佛像、修改旧项目相机或重建手工几何。水平平面支撑可用底/顶Z边界
+发现悬浮，但接触与穿插仍需对应表面证据和像素检查。
+
 ### `blender_preview_views`
 
 一次 Blender 启动渲染「主相机 / 45 度 / 俯视 / 主体近景」四个视角，并对每个视角做

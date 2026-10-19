@@ -302,3 +302,25 @@ test('unavailable physical axes retain world facts and cannot silently replace r
  object.objectAxisExtentMm=[0,0,0]
  assert.throws(()=>verifyGeometryReport(report,request))
 })
+
+test('aggregate/framing provider refuses an old bootstrap and forwards explicit v4 selections without touching source', async t => {
+  const f = await geometryRuntime(t)
+  const request = { ...f.request, assetInstanceIds: ['body'], cameraId: 'front', cameraMargin: .07 }
+  await assert.rejects(f.runtime.inspectGeometry(request), { code: BlenderErrorCode.RUNTIME_UNAVAILABLE })
+  const original = f.runtime.runBootstrap
+  f.runtime.runBootstrap = async (call, options) => {
+    assert.deepEqual(call.payload.assetInstanceIds, ['body'])
+    assert.equal(call.payload.cameraId, 'front'); assert.equal(call.payload.cameraMargin, .07)
+    const run = await original(call, options), report = run.envelope.result
+    report.schemaVersion = 'deepblend.geometry-inspection/v4'
+    report.camera = { id: 'front', type: 'PERSP', margin: .07, clipStartMeters: .1, clipEndMeters: 100 }
+    report.objects[0].type = 'ASSET_MESH_SET'; report.objects[0].meshObjectCount = 2
+    report.objects[0].cameraProjection = { status: 'measured', nearestDepthMeters: 4, farthestDepthMeters: 5,
+      containedInClip: true, normalizedBounds: { min: [.1,.1], max: [.9,.9] }, containedInFrame: true }
+    return run
+  }
+  const result = await f.runtime.inspectGeometry(request)
+  assert.equal(result.report.objects[0].meshObjectCount, 2)
+  assert.equal(readFileSync(f.source, 'utf8'), 'native checkpoint')
+  assert.deepEqual(readdirSync(join(f.scratch, 'tmp')), [])
+})

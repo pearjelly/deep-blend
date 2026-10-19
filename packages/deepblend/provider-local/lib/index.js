@@ -1587,6 +1587,8 @@ export default class LocalBlenderRuntime extends Service {
       assertDigest(await digest(snapshot))
       const run = await this.runBootstrap({ action: 'inspect_geometry', jobId: request.jobId,
         payload: { entityIds: request.entityIds, frame: request.frame, checkpointSha256: expected,
+          ...(request.assetInstanceIds === undefined ? {} : { assetInstanceIds: request.assetInstanceIds }),
+          ...(request.cameraId === undefined ? {} : { cameraId: request.cameraId, cameraMargin: request.cameraMargin ?? .03 }),
           ...(request.objectAxes === true ? { objectAxes: true } : {}),
           ...(request.surfaceSamples === undefined ? {} : { surfaceSamples: request.surfaceSamples }) } },
       { signal: request.signal, session: false, args: ['--blend', snapshot] })
@@ -1597,6 +1599,7 @@ export default class LocalBlenderRuntime extends Service {
       if (request.objectAxes === true && run.envelope?.result?.schemaVersion !== 'deepblend.geometry-inspection/v3') {
         throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Blender bootstrap does not support object-local native bounds. Upgrade DeepBlend; ordinary reads remain available.')
       }
+      if ((request.assetInstanceIds !== undefined || request.cameraId !== undefined) && run.envelope?.result?.schemaVersion !== 'deepblend.geometry-inspection/v4') throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Blender bootstrap does not support aggregate asset bounds; upgrade DeepBlend.')
       const report = verifyGeometryReport(run.envelope?.result, request)
       assertDigest(await digest(source))
       aborted()
