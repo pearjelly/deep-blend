@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "Fresh fullv6 passed43/43 with909 source files byte-identical. Actual preset-context83/83, paid visual14/14 and UI10/10. Current case r0042 native900 path audit passes bounded geometric checks, but new beauty previews, exact pushed CI/frozen artifact and actual bai full900 movie remain required. No merge, stable release or npm.",
+  "releaseGate": "Fullv6 43/43 and138/138 contracts passed; exact bda source CI all5 success and4 archives read back; clean frozen0.16 package actually installed. Art rejected throughr0046. Fresh bounded bai PBR handoff running; final15 previews, current native900, actual formal900-frame movie and full-film inspection remain required. No merge, stable release or npm.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -810,5 +810,99 @@
     "linkedLibraries": 0,
     "scope": "Scheduled integerframes, conservative world mesh envelopes, static triangle ray/chord checks; eave is intentional detail framing. Not subframe/general collision certificate, pixel/movie or frozen artifact acceptance.",
     "buddhaVerticalBoundsSeparationMm": -0.0728368759
+  },
+  "frozenCandidate": {
+    "sourceCommit": "bda0499369c6a923d195599b79c59a40a30347a0",
+    "tarballBytes": 72536198,
+    "tarballSha256": "607905237e39eb563cf188fb355da8cef466642fd35706aa2aa9510edac39ab5",
+    "cleanPushedBuild": true,
+    "actualPluginAddInstall": true,
+    "resolvedOwnPackages": "7/7 at0.16.0, installed source/skill verified",
+    "nativeImageReadback": "Darwin-arm64 Sharp actual1280x720 reference decode",
+    "otherNativePayloads": "Packed bytes verified for linux-x64/linuxmusl-x64/win32-x64; not execution on those platforms",
+    "sourceSessionTransfer": "56 session/storage/attachment files byte-exact after source Host exited; same case store, old project retained",
+    "personalDeploymentChanged": false
+  },
+  "exactCandidateCi": {
+    "runId": "39231703639",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/39231703639",
+    "head": "bda0499369c6a923d195599b79c59a40a30347a0",
+    "allFiveJobs": "success",
+    "fourEvidenceArchives": "server SHA256, byte count and all ZIP CRC verified",
+    "actualCheckout": "7a5212e5c24ba741382e87cdc5fa4a8ffcae313a",
+    "rootTreeEqualsCandidate": "53c734c33288c74257dbbe0310b533627bbdde1d",
+    "nativeChecks": {
+      "shots": "20/20",
+      "surface": "65/65",
+      "externalRuntime": "33/33"
+    }
+  },
+  "frozenCaseArtPhases": [
+    {
+      "revision": "r0042",
+      "phase": "pilot",
+      "elapsedMs": 601638,
+      "calls": 10,
+      "actualPreviews": 5,
+      "artAccepted": false,
+      "finding": "Stretched ground UV, low trees, simple roof and gold highlights."
+    },
+    {
+      "revisions": [
+        "r0043",
+        "r0044",
+        "r0045"
+      ],
+      "phase": "ground-and-garden",
+      "elapsedMs": 2149366,
+      "calls": 26,
+      "actualPreviews": 4,
+      "artAccepted": false,
+      "changes": "Editable UV-bound pavement, former mountains hidden, existing fir transforms revised; all123 former entity IDs preserved.",
+      "refusals": "UV schema, three malformed incoming JSON documents normalized to empty by SDK, mutually exclusive read flags; all retained."
+    },
+    {
+      "revision": "r0046",
+      "phase": "surface",
+      "elapsedMs": 1588007,
+      "calls": 14,
+      "actualPreviews": 4,
+      "artAccepted": false,
+      "changes": "Roof/wood procedural microvariation, gold roughness/base color; geometry, UV, transforms, lights, cameras, shots and tracks retained.",
+      "network": "Three peer socket closures with eventual retries."
+    }
+  ],
+  "longHistoryAudit": {
+    "currentSnapshotPruneEvents": 60,
+    "originalToolResultsRecoverable": true,
+    "textBytesBefore": 1584232,
+    "textBytesAfter": 338538,
+    "nonTextImageBlocksPreserved": true,
+    "allOldHistoryInline": false,
+    "cause": "Harness automatic compaction prunes tool-result text middles; original events retained. Prior finite transport probe remains limited to its measured requests.",
+    "decision": "Explicit fresh finite handoff for same project, old session/history retained; no SDK/personal configuration edits and no silent whole-history replay claim."
+  },
+  "boundedHandoff": {
+    "status": "running-not-accepted",
+    "session": "session-bd6ab828-4830-4c46-8bc2-db51a23a6bf9",
+    "task": "Original reference, four actualr0046 before images, finite constraints and formal current-project reads; does not replay old entire chat.",
+    "model": "bai/deepseek-v4.1-flash",
+    "effort": "max",
+    "thinking": "enabled",
+    "explicitMaxTokens": 256000,
+    "images": "Original JPEG byte-exact1280x720; four PNG previews SDK-normalized to full-frame JPEG960x540, aligned RGB MAE1.10..1.41/255. No lossless PNG claim. Actual outbound attachment hashes checked.",
+    "work": "Seven original CC0 texture images registered through formal tools; PBR/UV application and new previews pending.",
+    "assets": "Poly Haven Grey Roof01 (8m), Dark Wood (2m); original Buddha GLB normal PNG byte-exact buffer extraction. Maintainer downloaded/unpacked only; model must apply through DeepBlend.",
+    "setupFailures": "Two pre-request helper failures retained: too-strict PNG hash assertion, then incorrect Sharp resolution; no model request or case mutation."
+  },
+  "syntheticFixtureArchival": {
+    "scope": "Only owned synthetic acceptance fixtures; actual case history, old projects and deliveries untouched. Private archives retained.",
+    "method": "Archive all original files and link metadata, verify every SHA and archive integrity before removing duplicate uncompressed fixture copies.",
+    "passedRecipeFixtures": 9,
+    "passedReportFixtures": 91,
+    "additionalSourceIdentifiedSyntheticFixtures": 21,
+    "unclassifiedFixturesNotClaimedPassed": true,
+    "freeAfterBytes": 4394622976,
+    "movieCapacityStillToCheck": true
   }
 }
