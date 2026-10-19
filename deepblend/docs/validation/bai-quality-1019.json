@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "Fullv6 43/43 and138/138 contracts passed; exact bda source CI all5 success and4 archives read back; clean frozen0.16 package actually installed. Art rejected throughr0046. Fresh bounded bai PBR handoff running; final15 previews, current native900, actual formal900-frame movie and full-film inspection remain required. No merge, stable release or npm.",
+  "releaseGate": "Fullv6 43/43 and138/138 contracts passed; exact bda runtime and docs-only fe24 each have five successful CI jobs and four verified archives; clean frozen0.16 package actually installed. Art rejected throughr0046. Two later real bai tasks ended without applying the validated transaction after repeated peer closures. Final fixed15 images, current native900 audit, actual formal900-frame five-shot movie and full-film inspection remain required. This candidate has not been merged, released or published to npm.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -883,7 +883,7 @@
     "decision": "Explicit fresh finite handoff for same project, old session/history retained; no SDK/personal configuration edits and no silent whole-history replay claim."
   },
   "boundedHandoff": {
-    "status": "running-not-accepted",
+    "status": "interrupted-after-network-failures-not-accepted",
     "session": "session-bd6ab828-4830-4c46-8bc2-db51a23a6bf9",
     "task": "Original reference, four actualr0046 before images, finite constraints and formal current-project reads; does not replay old entire chat.",
     "model": "bai/deepseek-v4.1-flash",
@@ -891,9 +891,18 @@
     "thinking": "enabled",
     "explicitMaxTokens": 256000,
     "images": "Original JPEG byte-exact1280x720; four PNG previews SDK-normalized to full-frame JPEG960x540, aligned RGB MAE1.10..1.41/255. No lossless PNG claim. Actual outbound attachment hashes checked.",
-    "work": "Seven original CC0 texture images registered through formal tools; PBR/UV application and new previews pending.",
+    "work": "Seven original CC0 texture images registered. Bai constructed and formally validated one21-operation transaction; five roof generators retain every old vertex/face/field and add only per-face UVs. No scene_patch or new preview; current revision remainsr0046.",
     "assets": "Poly Haven Grey Roof01 (8m), Dark Wood (2m); original Buddha GLB normal PNG byte-exact buffer extraction. Maintainer downloaded/unpacked only; model must apply through DeepBlend.",
-    "setupFailures": "Two pre-request helper failures retained: too-strict PNG hash assertion, then incorrect Sharp resolution; no model request or case mutation."
+    "setupFailures": "Two pre-request helper failures retained: too-strict PNG hash assertion, then incorrect Sharp resolution; no model request or case mutation.",
+    "actualWholeElapsedMs": 3260086,
+    "actualToolCalls": 21,
+    "peerSocketFailures": 6,
+    "actualMainRequests": 15,
+    "allDeclaredImagesContextMaxAndThinkingChecksPassed": true,
+    "observedPruneEvents": 0,
+    "incomingDocuments": "21/21 valid JSON, semantically identical through API/SDK, complete outer SSE audit",
+    "stopScope": "Owned isolated Host gracefully stopped during repeated unanswered model request, all21 tool calls (15 DeepBlend calls) had results; native/spec source bytes unchanged. Exit0 does not mean task completion.",
+    "actualDeepBlendToolCalls": 15
   },
   "syntheticFixtureArchival": {
     "scope": "Only owned synthetic acceptance fixtures; actual case history, old projects and deliveries untouched. Private archives retained.",
@@ -904,5 +913,56 @@
     "unclassifiedFixturesNotClaimedPassed": true,
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
-  }
+  },
+  "updatedAt": "2026-10-19T13:41:40.745317+00:00",
+  "currentBlocker": "Actual bai long requests still close at approximately345s. GitHub and PolyHaven HTTP200, unauthenticated bai models401 in1.34s proves endpoint reachability only. Two finite handoff attempts retained; no new scene_patch or current-revision change. Await provider long-request service status, not credentials.",
+  "documentationFollowupCi": {
+    "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
+    "runId": "39255339239",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/39255339239",
+    "allFiveJobs": "success",
+    "allFourArchivesVerified": true,
+    "rootTree": "9c0ccc1c975126c68789a6b6408e5382c76d162e",
+    "actualCheckoutTrees": {
+      "a8cd2733cdf4e9503ee1a009db3c7dfcef735cab": "9c0ccc1c975126c68789a6b6408e5382c76d162e"
+    },
+    "allActualCheckoutTreesMatch": true,
+    "runtimeDifferenceFromFrozenBda": "none; four public evidence documentation files only"
+  },
+  "validatedApplyHandoff": {
+    "session": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+    "status": "interrupted-after-network-failures-not-accepted",
+    "actualWholeElapsedMs": 2586261,
+    "actualToolCalls": 6,
+    "peerSocketFailures": 5,
+    "sameStepConsecutivePeerFailuresBeforeStop": 3,
+    "actualMainRequests": 9,
+    "allFiniteContextMaxThinking256000AndFiveProvidedImageChecksPassed": true,
+    "observedPruneEvents": 0,
+    "validIncomingDocuments": 6,
+    "allValidIncomingDocumentsFullyAudited": true,
+    "declaredContext": "Full finite constraints, original reference and fourr0046 before images; exact20,369-byte previous bai-authored validated scene_validate data copied as explicit handoff data. Root did not alter operation data, apply patches or render. Not replay of prior entire session or one-prompt success.",
+    "actualProgress": "Skill/project/capabilities and local source reads only; no scene_validate, scene_patch or new pixels in this attempt.",
+    "sourceUnchanged": true,
+    "wholeAttemptTotals": "Two interrupted attempts97m26.347s,27 tool calls including19 DeepBlend calls,11 observed peer closures; not a completed modeling-task time.",
+    "actualDeepBlendToolCalls": 4
+  },
+  "rawOptionalTreeBackup": {
+    "sourcePage": "https://polyhaven.com/a/tree_small_02",
+    "licensePage": "https://polyhaven.com/license",
+    "license": "CC0",
+    "author": "Rico Cilliers",
+    "originalFilesVerified": 11,
+    "bytes": 100974143,
+    "exactGltfAccessorTriangleCount": 2062487,
+    "pageReportedTriangleCount": "5M",
+    "gltfMetadataNativeExecutionVerified": false,
+    "ingestedOrApplied": false,
+    "caseBudgetUnchanged": 4000000,
+    "scope": "Unmodified raw backup only. One tree would bring present case to about5.5M triangles; no silent resource expansion. Actual future use requires explicit isolated configuration and fresh native/pixel acceptance."
+  },
+  "futureObservations": [
+    "After the frozen release, consider UV-only mesh patching to preserve geometry without repeating every vertex/face.",
+    "Consider immutable validated transaction references bound to project/base revision/digest; no silent malformed-JSON repair. Not implemented in0.16 and not a substitute for fixing observed transport failures."
+  ]
 }
