@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "No0.16publication. CF fullv9/CI/install/F3 actual case are retained source-specific evidence. Current camera-description/diagnostic edits need fresh checks and frozen source; overall art/film still pending.",
+  "releaseGate": "No0.16publication. Current810/F4 fullv10 software, CI, paid probes and formal install verified; outer-controller bookkeeping failure retained. Five same-r0073 midpoint stills and read-only900-frame native checks passed. Final15 blocked by actual long-request disconnects; formal900-frame film/full-film review/editable delivery, adequate disk headroom and standard public release workflow remain.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -914,8 +914,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-20T02:28:02.557542+00:00",
-  "currentBlocker": "F3 same case completed r0060 with original128 fields intact and four standardized views; tree component improves but whole art still rejected. New camera recovery guidance focused checks and4faults pass; need fresh live/model-card/full/current-source verification and new frozen install before architectural/landscape continuation, then final15/current900/full900film and standard release.",
+  "updatedAt": "2026-10-20T13:06:01.994538+00:00",
+  "currentBlocker": "bai quota restored, but explicit new bounded assessment had three real SocketError disconnects after340405/342220/349610ms despite1200000ms client waits. Stopped repeated retries, operator long-request service status pending. About3.8GiB disk; extra5GiB headroom question pending. Same-r0073 five stills/native900 checks passed within stated scope; final15/full formal film/editable delivery/release remain.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -1865,5 +1865,241 @@
     "requiresFreshPaidVisualAndUi": true,
     "freshFullAndCiBuildInstall": "pending",
     "caseNext": "Same saved case: architecture/eave finish and credible foreground/background planting depth, preserve original source and hand details; final15/current900/formal900film gates remain."
+  },
+  "frozenF4CurrentCase20261020": {
+    "sourceCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896",
+    "candidateVersion": "0.16.0",
+    "candidateArchiveSha256": "271129c9137cbf4b6cb059e31c0a1d87cfef3a58acae18f48edd9232b2143466",
+    "installation": "Unmodified DSH formal plugin add in isolated F4; all seven actual own payloads/manifests and image decoder verified, personal DSH and SDK unchanged.",
+    "softwareAcceptance": {
+      "canonicalSuitesPassed": 43,
+      "unitContractFilesPassed": 138,
+      "sourceFilesByteUnchangedDuringRun": 911,
+      "logSha256": "63dc8b36d456bae6cfd4a287d90c6d03e8ba67ff57ce8819658ff5963f315e8f",
+      "outerControllerExit": 1,
+      "outerControllerFailure": "After canonical terminal success, zsh rejected assignment to readonly status variable; no fabricated exit-zero sidecar. Original failure retained. Unique canonical success branch and all 43 suite markers independently verified.",
+      "freshPaidVisual": "14/14",
+      "freshPaidUi": "10/10; last post-tool reply aborted by canonical test shutdown, not a complete user-task reply",
+      "ciRun": "https://github.com/pearjelly/deep-blend/actions/runs/39395283532",
+      "ciJobsPassed": 5,
+      "ciArchivesReadBack": 4
+    },
+    "caseRevision": "r0073",
+    "caseSourceSpecSha256": "7878c7764f56530c55e3e7c811f848b55793777b225f88b5e642caa442398815",
+    "caseNativeSha256": "08555e16d2a633e899ba8e4c0b53a6460e138660e3d835a5a2ff1a2d72d5e3ec",
+    "currentSavedEntities": 236,
+    "finiteRecovery": {
+      "elapsedMs": 2798094,
+      "toolCalls": 8,
+      "semanticRefusals": 0,
+      "normalCompletion": true
+    },
+    "priorFernPhase": {
+      "elapsedMs": 1924684,
+      "toolCalls": 34,
+      "semanticRefusals": {
+        "SCENE_PATCH_INVALID": 1
+      },
+      "terminal": "TRANSPORT; all source and raw failure retained, recovered in same session"
+    },
+    "priorArchitectureLandscape": "Green cone/blob prototypes retained in source/history but rejected and hidden through formal plugin; old architectural ornaments retained and five visible wind-bell groups explicitly replace hidden groups.",
+    "wireScope": {
+      "sameFiniteSessionObservedRequests": 45,
+      "maxAndThinkingEnabled": true,
+      "declaredOutputTokens": 256000,
+      "providedAndRepresentedToolImagesVerified": true,
+      "allPreviousRequestPrefixesExact": true,
+      "observedPrunes": 0,
+      "scope": "Includes failed requests and interrupted boundary retry, not 45 successful responses or gateway upstream attestation. Large tool replies may be summary plus retained full-text file, not all inline."
+    },
+    "boundaryReplay": {
+      "toolCalls": 1,
+      "elapsedMs": 1090007,
+      "observedConsecutiveFetchErrors": 2,
+      "terminal": "Maintainer superseded while third retry pending, not normal model success or goal pause. Frozen source unchanged.",
+      "nextAssessment": "Explicit new finite frozen-r0073 task with original reference and five SHA-pinned current photos; all old full chats/raw requests remain separately retained, not claimed inline."
+    },
+    "nativeAudit": {
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-yard": 0.9469026548672567,
+          "camera-foliage": 0.9727272727272728,
+          "camera-buddha": 1.0,
+          "camera-main": 0.9622641509433962,
+          "camera-eave": 1.0
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-yard": 0.0,
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-main": 0.0,
+          "camera-eave": 0.0
+        }
+      },
+      "triangleCount": 7701763,
+      "meshCount": 166,
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "sourceUnchanged": true,
+      "scope": "900 integer frames and within-shot consecutive position chords; conservative explicit subject envelopes and bounded geometric rays, not rendered pixels, subframe motion, alpha-aware occlusion or precision contact certification."
+    },
+    "originalFernNativeVerification": {
+      "instances": 3,
+      "meshesPerInstance": 4,
+      "trianglesPerInstance": 6232,
+      "allOriginalPackedImageBytesAndNondegenerateUvsVerified": true
+    },
+    "groundNativeVerification": {
+      "beds": 5,
+      "sharedMaterialCount": 1,
+      "originalPackedMaps": 3,
+      "correctColorspacesAndNodeReachability": true,
+      "nondegenerateUvs": true,
+      "worldXYMetersPerUvUnit": 2,
+      "tolerance": 0.002
+    },
+    "imagePolicy": {
+      "bindings": 13,
+      "importedImages": 79,
+      "decodedBytes": 1577058304,
+      "limitBytes": 1610612736
+    },
+    "imagePolicyScope": "Explicit isolated operator1536MiB and 8000000 mesh ceiling; 1504MiB is decoded-header policy estimate, not process RSS. No cap increase in this phase.",
+    "preservation": {
+      "originalFilesChecked": 350,
+      "originalFilesChanged": 0,
+      "oldOctober16NativeAndVideoHashUnchanged": true,
+      "primaryStatusUnchanged": true,
+      "r0060EntitiesRetained": 174,
+      "oldMaterialsAssetsCamerasLightsWorldShotsTracksProfilesUnchanged": true,
+      "allowedOldEntityChanges": [
+        "cc0-tree-court-w transform",
+        "pagoda-ornament-1..5 visible=false with explicit visible replacement mapping"
+      ]
+    },
+    "fiveMidpointImages": [
+      {
+        "cameraId": "camera-main",
+        "frame": 130,
+        "sha256": "3feb816f59310a0b18bdb7ce2230254279c189973bf2d0a191257e7ee2ed31dd"
+      },
+      {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "sha256": "5d082cb2956e3ced0421e53c2af24b0602d161682166adbe86c35f30a4fff6a1"
+      },
+      {
+        "cameraId": "camera-yard",
+        "frame": 765,
+        "sha256": "92e2fe4e6f56a9adff8c6f2abd13870b6316216e725fbdbac3852564ac3b0e88"
+      },
+      {
+        "cameraId": "camera-foliage",
+        "frame": 900,
+        "sha256": "c87bf65ebaabe2537b141224b0598286eebbfda9fe47baa8834805549a9433f0"
+      },
+      {
+        "cameraId": "camera-buddha",
+        "frame": 610,
+        "sha256": "2f43e4ed7a289d3ab3415ee46bb9932cfde026269b4228ae457cf007ca0525b2"
+      }
+    ],
+    "visualReview": "All five actual original-size midpoint PNGs independently viewed. Wind-bell/eave detail and original Buddha surface detail improve against r0046 under byte-identical camera/render controls and unchanged lighting/world. Landscape remains sparser and architectural ornament more regular than reference. Proceed to boundary checks; not final-film or reference parity acceptance.",
+    "causality": "Maintainer-guided, CC0-asset-assisted continuation with repeated rework; not arbitrary natural-language one-shot success, isolated model-upgrade effect or external adoption.",
+    "currentGates": {
+      "final15": "not complete; only five midpoint stills present, no new boundary image produced in either stopped assessment",
+      "formal900FrameFilm": "not started",
+      "fullFilmAccepted": false,
+      "editableNewDelivery": "pending",
+      "publicRelease": "not merged or published; public remains0.15.0"
+    },
+    "disk": "Approximately3.6GiB free; user asked to free at least5GiB for full render/export/release headroom; no answer yet. Only disposable finished build staging copies removed after archive/symlink checks; original sources/native/failures/archives retained.",
+    "boundaryFiniteAssessment": {
+      "session": "explicit-new-finite-r0073",
+      "providedInputs": "Original reference plus five pinned current r0073 photos; prior full chats retained separately, not inlined.",
+      "observedRequests": 5,
+      "maxThinkingAnd256000": true,
+      "providedAndRepresentedImagesAndPreviousPrefixesVerified": true,
+      "observedPrunes": 0,
+      "actualToolCalls": {
+        "skill": 1
+      },
+      "incomingJsonAndSseBoundaryVerified": true,
+      "actualBlenderCalls": 0,
+      "transportFailures": [
+        {
+          "elapsedMs": 340405,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        },
+        {
+          "elapsedMs": 342220,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        },
+        {
+          "elapsedMs": 349610,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        }
+      ],
+      "clientResponseWaitMs": 1200000,
+      "terminal": "Maintainer stopped fourth pending repeat after three real socket disconnects; not normal model completion or final render cancellation. Host/workers gone, frozenr0073 unchanged.",
+      "currentServiceStatus": "Needs operator confirmation of long-request service/possible gateway limit; quota works and first request returned200, not an AUTH/QUOTA error."
+    },
+    "allF4CaseMetrics": {
+      "phasesInitiated": 6,
+      "allSdkCallsSoFar": 72,
+      "formalDeepBlendCallsSoFar": 60,
+      "terminalPhaseElapsedMsIncludingFailedAndSuperseded": 12385524,
+      "allPhasesNormalCompletion": false,
+      "actualRefusalCodes": {
+        "BLENDER_SCRIPT_ERROR": 1,
+        "SCENE_PATCH_INVALID": 2,
+        "SCENE_SPEC_INVALID": 1
+      }
+    },
+    "allF4CaseMetricsScope": "All six maintainer-initiated F4 task phases, including failed/prototype rework/calibration/SDK reads and superseded phases. Recorded terminal run time 12385524ms is not complete-case completion latency, user one-shot time or all historical F1/F2/F3 work."
   }
 }
