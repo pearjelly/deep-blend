@@ -518,6 +518,36 @@ check('the argv is an array that runs Blender headless with the factory startup 
   lastRequest.argv[lastRequest.argv.indexOf('--result') + 1].endsWith('result.json'),
   lastRequest?.argv)
 
+// Operator limits are independent of process inheritance and model payloads.
+check('the operator scene-image default remains 1024 MiB', ProviderConfig({}).maxSceneImageMiB === 1024)
+for (const value of [15, 8193, 16.5, NaN, '1536']) {
+  let refused = false
+  try { ProviderConfig({ maxSceneImageMiB: value }) } catch { refused = true }
+  check(`invalid operator scene-image limit ${String(value)} is refused at configuration`, refused)
+}
+const previousImageBudget = process.env.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB
+process.env.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB = '8192'
+try {
+  const custom = await runCase(handleFor(), {
+    config: { maxSceneImageMiB: 1536 },
+    request: { action: 'compile_scene', payload: { maxSceneImageMiB: 8192 } },
+    onSpawn: handle => handle.writeResult({ protocolVersion: BLENDER_PROTOCOL_VERSION, status: 'ok' }),
+  })
+  check('batch Blender receives the operator budget while inherited environment and caller payload cannot raise it',
+    custom.outcome?.exitCode === 0 && lastRequest?.env?.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB === '1536')
+  let sessionEnvironment
+  await makeProvider({ spawn: request => { sessionEnvironment = request.env; throw new Error('planned session-spawn refusal') } },
+    { maxSceneImageMiB: 32 }).openSession().catch(() => {})
+  check('a managed kept process receives the same explicit operator budget',
+    sessionEnvironment?.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB === '32')
+  const attached = await makeProvider({}, { maxSceneImageMiB: 1536 }).attachSession('/not-contacted-image-budget.sock').catch(error => error)
+  check('a nondefault budget refuses an attached user Blender before contacting or modifying it',
+    attached instanceof BlenderError && attached.code === code('UNSUPPORTED_ACTION') && /managed Blender/.test(attached.message))
+} finally {
+  if (previousImageBudget === undefined) delete process.env.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB
+  else process.env.DEEPBLEND_SCENE_IMAGE_BUDGET_MIB = previousImageBudget
+}
+
 rmSync(workspaceRoot, { recursive: true, force: true })
 
 // ---------------------------------------------------------------------------

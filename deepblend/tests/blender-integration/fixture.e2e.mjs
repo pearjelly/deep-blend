@@ -1612,6 +1612,14 @@ check('hidden scatter guides retain authored poses, seeded geometry and visibili
   hiddenScatter.status === 0 && hiddenScatter.stdout.includes('HIDDEN_SCATTER_POSE_PASSED'),
   hiddenScatter.status === 0 ? undefined : { error: hiddenScatter.error?.message, output: `${hiddenScatter.stdout}\n${hiddenScatter.stderr}`.slice(-6000) })
 
+const imageBudget = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
+  '--python', join(HERE, 'image-scene-budget.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('operator image budgets preserve default limits, refuse before reset and pack separate color/data images at the inclusive boundary',
+  imageBudget.status === 0 && imageBudget.stdout.includes('SCENE_IMAGE_BUDGET_PASSED'),
+  imageBudget.status === 0 ? undefined : { error: imageBudget.error?.message, output: `${imageBudget.stdout}\n${imageBudget.stderr}`.slice(-6000) })
+
 // A real saved revision, not just the geometry helper, must preserve hand-authored
 // transforms/materials/UVs and protect its predecessor on rejected edits.
 {

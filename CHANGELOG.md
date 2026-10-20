@@ -2,6 +2,9 @@
 
 ## 0.16.0 — Unreleased candidate
 
+- Respect authored hidden scatter-guide transforms and restore their viewport visibility after evaluation.
+- Configure a bounded cumulative scene-image budget for managed Blender processes; retain individual-image guards, defaults and explicit refusal for custom budgets on attached Blender.
+
 - Measure bounded imported asset instances as a whole and inspect their actual camera framing, including reused owned mesh parts.
 - Preserve manual border and multiview settings and refuse unsupported framing claims instead of reporting a false pass.
 - Explicitly render saved storyboard shots with `useShotCameras: true`, freezing camera selection per job and verifying actual per-frame camera identity against PNG checksums.

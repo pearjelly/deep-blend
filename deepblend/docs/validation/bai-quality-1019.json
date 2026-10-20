@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "Hidden scatter repair fullv7 passed43/43 and138/138 with910unchanged source files. Need new pushed exactsource CI, clean build/actualinstall, bai same-case retest and final art/film acceptance. Prior F1/bda rejected and retained. No0.16 publication.",
+  "releaseGate": "No0.16publication. Newbudgetfullv9 passes currentproduct/tests; historicalF2/57CI/install certifyonly57. Need newCI/cleanbuild/F3 and actualcase/film gates beforemergeandstandardrelease.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -915,7 +915,7 @@
     "movieCapacityStillToCheck": true
   },
   "updatedAt": "2026-10-20T02:28:02.557542+00:00",
-  "currentBlocker": "r0054 gold PBR is visibly restored; broadleaf crowns remain too regular/large. Real-case hidden scatter transform bug fixed with focused native red/green and three killed mutants. Fresh fullv7 passed43/43 plus138/138; clean new source build, actual installation, bai same-case retest and final film/art gates pending. No present quota error or0.16 publication.",
+  "currentBlocker": "New operator resource candidate fullv9 passed43/43 and138/138 with911sourcefiles unchanged. Requires fresh pushed source CI/build/F3 actual installation, finite CC0 tree case, fixed15/currentnative900/formal900film/art/fullfilm acceptance. r0058 still art rejected; no0.16publication.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -1581,5 +1581,203 @@
     "currentRevision": "r0054",
     "currentNativeSha256": "b182e1f152bb68960e65138101950697617f43c0c9c9157c70ec37803c0530aa",
     "currentSpecSha256": "347908fb3b23829c45a70d405011f1fc1ea6edd2bbb3e941f82ecbe25f46713a"
+  },
+  "frozenF2RealCase20261020": {
+    "sourceCommit": "57aa8c1113005e1cf1613960c93c70ec0037be6b",
+    "artifactSha256": "e8696e5d6d12a54f8e0b165a22d538c6211848aa1d9f98999c03f16a0670a2a3",
+    "actualInstallation": "Formal dsh plugin add;7resolvedownpackagefiles/manifests byte-exact,100savedcontextfilescopiedexact,actualDarwinSharpdecode1280x720",
+    "ci": {
+      "runId": "39367084809",
+      "allFiveJobsSuccess": true,
+      "allFourEvidenceArchivesVerified": true,
+      "rootTree": "065044403234f2f5f7f081085ffe62c29dc0f189",
+      "actualCheckoutTreeMatches": true
+    },
+    "wholePhaseElapsedMs": 1465769,
+    "actualToolCalls": 14,
+    "scenePatches": 5,
+    "successfulNewRevisions": [
+      "r0055",
+      "r0056",
+      "r0057",
+      "r0058"
+    ],
+    "formalRefusals": {
+      "SCENE_PATCH_INVALID": 1
+    },
+    "malformedIncomingJsonArguments": 0,
+    "all14IncomingCanonicalArgumentsPreserved": true,
+    "mainRequests": 12,
+    "allMaxThinkingAnd256000AndProvidedImages": true,
+    "context": {
+      "firstCrossHomePrefixExactAfterOnlyObserverDirectoryAlias": true,
+      "oldMessages": 102,
+      "initialNewMessages": 105,
+      "initialWireImages": 24,
+      "rawByteExactCrossHome": false,
+      "laterPruneEvents": 41,
+      "originalToolEventsRetainedByteExact": 41,
+      "shadowedTokenCount": 297973,
+      "retainedOriginalEventBytes": 1397493,
+      "allNonTextAndReasoningDigestsRetainedAcrossPrune": true,
+      "fullContextClaimAccepted": false,
+      "nextStep": "Explicit new finite handoff with current case, reference and four current images; retain old conversation/source originals."
+    },
+    "privateFormatterSpillsRetained": {
+      "files": 15,
+      "bytes": 1313007
+    },
+    "actualNativeScatter": {
+      "r0056": {
+        "bakedAnchors": 3400,
+        "groups": 8,
+        "hiddenLocalTargets": 6,
+        "allInside": true
+      },
+      "r0058": {
+        "bakedAnchors": 3928,
+        "groups": 8,
+        "hiddenLocalTargets": 2,
+        "rotatedIrregularMeshTarget": true,
+        "independentMethod": "Closed oriented target solid-angle winding; actual stored anchors vs authored poses",
+        "allInside": true
+      },
+      "sourceUnchangedDuringReadOnlyAudits": true
+    },
+    "finalScene": {
+      "revision": "r0058",
+      "nativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+      "specSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+      "entities": 172,
+      "polygons": 3513387,
+      "vertices": 3931637,
+      "conservativeDecodedImageBytes": 1073741824,
+      "original128EntitySourceFieldsPreserved": true,
+      "oldCameraLightWorldTrackShotProfileAssetFieldsPreserved": true
+    },
+    "nativePreservationScope": {
+      "rawEqualOriginalEntities": 103,
+      "rawMeshDifferences": 25,
+      "coordinateCornerUvSetsEquivalentRounded1e5AndEqualBounds": 18,
+      "correctedHistoricalHiddenGeneratedLeafGroups": 7,
+      "allOriginalLocalPosesAndHideFlagsExact": true,
+      "allOldSourceNativeFilesUntouched": true,
+      "constraint": "Do not claim all regenerated native geometry byte-identical or universal hand-edit preservation."
+    },
+    "fixedFourViews": [
+      {
+        "cameraId": "camera-main",
+        "frame": 130,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 645684,
+        "pngSha256": "9f6e488cbf6e6a448bf4424aa6c51175fcf99ca8002cdfc0f49735c68403a5a7"
+      },
+      {
+        "cameraId": "camera-foliage",
+        "frame": 900,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 661455,
+        "pngSha256": "467cfad07a9cbd56d55823b85744b12a7d3d7de8ea398f0c780d1692a36a45d2"
+      },
+      {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 610818,
+        "pngSha256": "c1ec8d2a46f52fc836f581c5809c2cabebc0bfb80acb53f6f1c5e18a43475e70"
+      },
+      {
+        "cameraId": "camera-buddha",
+        "frame": 610,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 529942,
+        "pngSha256": "4f6b760bd0c6fac57090ca4b94173afd27b432a46737bc5f28df91812374a99a"
+      }
+    ],
+    "artAccepted": false,
+    "artRejectionReasons": [
+      "Crowns still read as solid single ball-shaped masses; bare branch tips protrude beyond leaf masses.",
+      "Landscaping lacks natural canopy gaps and background/foreground depth.",
+      "Existing eave/roof architectural finish remains simple."
+    ],
+    "finalFilmStarted": false,
+    "published": false
+  },
+  "operatorSceneImageBudget20261020": {
+    "trigger": "Currentcase1GiB conservative allocation alreadyfull; rawCC0TreeSmall02 requires144MiB/instance and2062487triangles. Twoinstances estimate1312MiB and7638361totalpolygons; alloriginal11rawfilesunchanged.",
+    "setting": "Local provider maxSceneImageMiB",
+    "defaultMiB": 1024,
+    "allowedIntegerRangeMiB": [
+      16,
+      8192
+    ],
+    "scope": "Operator-only cumulative scene budget in managed batch/kept/render processes; payload/SceneSpec/inherited environment cannot raise it. Nondefault setting refuses an attached user Blender before contact. Individualimage/header/format/per-import limits unchanged; importallocation remains conservative perinstance.",
+    "focusedTests": {
+      "redOldImplementation": "19/21; explicitinclusiveoperatorbudget and invalidvalue refusal fail",
+      "greenAllocationContracts": "21/21",
+      "providerBootstrap": "42/42",
+      "configSurface": "22/22",
+      "existingImageHeaderAndRoleGates": "58/58",
+      "syntheticNativeInclusiveRefusalPackedReopen": true,
+      "fivePrivateMutantsAllKilled": true
+    },
+    "fullAcceptance": {
+      "suites": "43/43",
+      "unitContractFiles": "138/138",
+      "validatedSourceFiles": 911,
+      "sourceBytesUnchangedThroughoutRun": true,
+      "rawLogSha256": "da3a8c3e6d3f11e2f073e46ecc85a946bcb498c67667f406ec7add842c2b08a7",
+      "includesNewNativeImageBudgetAndPackedReopen": true,
+      "supersedesFailedFullV8WithoutErasingIt": true,
+      "proof": "full-acceptance-v9-proof.json"
+    },
+    "isolatedCaseConfigurationApplied": false,
+    "plannedCaseConfig": {
+      "maxSceneImageMiB": 1536,
+      "maxMeshPolygons": 8000000
+    },
+    "publicDefaultsUnchanged": true,
+    "sdkOrPersonalDeploymentChanged": false,
+    "freshBuildAndActualInstallRequired": true,
+    "fullV8Failure": {
+      "stoppedAt": "2026-10-20T05:22:30.882370+00:00",
+      "unitContractFiles": "135/138",
+      "failedFiles": [
+        "contract/frame-provenance.test.mjs",
+        "contract/security-controls.test.mjs",
+        "contract/readme-fresh-clone.test.mjs"
+      ],
+      "causes": [
+        "Borrowed frame-method receiver lacks newly introduced private environment method.",
+        "Security source check expects two inline environment objects; shared factory has none.",
+        "The import-free security failure changes README no-dependency snapshot28/138 to27/138; fix security check, not snapshot."
+      ],
+      "completedNativeEvidence": [
+        "M0probe",
+        "M1withnewimagebudgetregression",
+        "runtimeconformance33",
+        "nativeinspection65",
+        "handledcup65"
+      ],
+      "fullAccepted": false,
+      "sourceFilesVerified": 911,
+      "allSourceUnchangedUntilStop": true,
+      "controllerStoppedAfterActiveSyntheticSuiteFinished": true,
+      "caseTouched": false,
+      "logSha256": "9723a7b54c11258745f3eabc3f9b9712c376d33a60e88654b9d38c3e7a6bbe14",
+      "next": "Use module-local pure environment builder; retain exact shared whitelist/operator control across allthree managed spawns, thennewfullv9."
+    },
+    "couplingFix": "Module-local pure bootstrapEnvironment(config,jobId) avoids requiring a new private method on reused frame-method receivers. Static security check retains exact7-key whitelist, no spreads, all3managed paths and operator-derived limit. README import-free28/138 unchanged and restored.",
+    "targetedFailingFilesAfterFix": "47/47passed",
+    "postFixFivePrivateMutantsKilled": true,
+    "threeWhitelistSecurityMutantsKilled": true
   }
 }

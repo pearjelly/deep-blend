@@ -56,6 +56,26 @@ export const BLENDER_RUNTIME_SERVICE = 'blenderRuntime'
 const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024
 /** Default cap for the spill file that holds the complete stream. */
 const DEFAULT_MAX_SPILL_BYTES = 64 * 1024 * 1024
+/** Cumulative decoded scene images; individual image limits remain separate. */
+const DEFAULT_SCENE_IMAGE_MIB = 1024
+
+/**
+ * Build one scrubbed environment without requiring private receiver methods.
+ * @param {{ maxSceneImageMiB?: number }} config
+ * @param {unknown} jobId
+ * @returns {Record<string, string>}
+ */
+function bootstrapEnvironment(config, jobId) {
+  return {
+    PATH: process.env.PATH ?? '',
+    HOME: process.env.HOME ?? '',
+    TMPDIR: process.env.TMPDIR ?? '',
+    PYTHONUNBUFFERED: '1',
+    PYTHONDONTWRITEBYTECODE: '1',
+    DEEPBLEND_JOB_ID: String(jobId ?? ''),
+    DEEPBLEND_SCENE_IMAGE_BUDGET_MIB: String(config.maxSceneImageMiB ?? DEFAULT_SCENE_IMAGE_MIB),
+  }
+}
 
 /** Grace period between SIGTERM and SIGKILL when terminating Blender. */
 const TERMINATE_GRACE_MS = 10_000
@@ -141,6 +161,8 @@ export const ProviderConfig = z.object({
   maxOutputBytes: z.number().default(DEFAULT_MAX_OUTPUT_BYTES),
   /** Cap on the spill file holding the complete stream. */
   maxSpillBytes: z.number().default(DEFAULT_MAX_SPILL_BYTES),
+  /** Pre-build decoded-image estimate in MiB; scene/tool arguments cannot raise it. */
+  maxSceneImageMiB: z.number().min(16).max(8192).step(1).default(DEFAULT_SCENE_IMAGE_MIB),
   /** Extra directories added to the executable allowlist. */
   executableAllowlist: z.array(z.string()).default([]),
   /** How long a capabilities result may be reused before re-probing. */
@@ -615,6 +637,10 @@ export default class LocalBlenderRuntime extends Service {
     // See the host's constructor: a key this row does not read is a startup error, because the schema
     // accepts it silently (SPEC §17's nested groups versus this package's flat keys).
     assertKnownConfigKeys(ProviderConfig, config, 'deepblend-blender-runtime')
+    const imageMiB = config.maxSceneImageMiB ?? DEFAULT_SCENE_IMAGE_MIB
+    if (!Number.isInteger(imageMiB) || imageMiB < 16 || imageMiB > 8192) {
+      throw new Error('maxSceneImageMiB must be an integer from 16 through 8192 MiB.')
+    }
     // A CONFIGURED ACTION THAT CANNOT BE ROUTED IS REFUSED AT STARTUP, not ignored. Naming a render
     // here would leave the operator believing their renders now run in their own Blender, while the
     // render quietly kept its own process — the same shape as a key this row does not read, which the
@@ -860,6 +886,7 @@ export default class LocalBlenderRuntime extends Service {
     }
   }
 
+
   /**
    * Run one bootstrap action end-to-end.
    *
@@ -903,6 +930,7 @@ export default class LocalBlenderRuntime extends Service {
    * @param {{ cwd?: string, args?: string[], signal?: AbortSignal }} [options]
    * @returns {Promise<{ pid: number|null, run: (request: object, options?: object) => Promise<object>, close: () => Promise<void> }>}
    */
+
   async openSession(options = {}) {
     if (!existsSync(this.bootstrapPath)) {
       throw new BlenderError(
@@ -946,6 +974,7 @@ export default class LocalBlenderRuntime extends Service {
       },
       graceMs: TERMINATE_GRACE_MS,
       signal: options.signal,
+      env: bootstrapEnvironment(this.config, jobId),
     })
 
     const session = new BlenderSession({
@@ -976,6 +1005,11 @@ export default class LocalBlenderRuntime extends Service {
    * @returns {Promise<{ pid: number|null, run: Function, close: Function }>}
    */
   async attachSession(socketPath, options = {}) {
+    if ((this.config.maxSceneImageMiB ?? DEFAULT_SCENE_IMAGE_MIB) !== DEFAULT_SCENE_IMAGE_MIB) {
+      throw new BlenderError(BlenderErrorCode.UNSUPPORTED_ACTION,
+        'A custom maxSceneImageMiB requires a managed Blender process. Clear sessionSocket, ' +
+        'or use the default 1024 MiB when attaching to an existing Blender.')
+    }
     if (typeof socketPath !== 'string' || socketPath.length === 0) {
       throw new BlenderError(
         BlenderErrorCode.RUNTIME_UNAVAILABLE,
@@ -1208,17 +1242,9 @@ export default class LocalBlenderRuntime extends Service {
         },
         graceMs: TERMINATE_GRACE_MS,
         signal: composedSignal,
-        env: {
-          // Scrub anything that could carry a secret into the child (SPEC §15.5:
-          // the DeepSeek API key must never reach the Blender subprocess).
-          PATH: process.env.PATH ?? '',
-          HOME: process.env.HOME ?? '',
-          TMPDIR: process.env.TMPDIR ?? '',
-          // Deterministic, unbuffered Python so partial output is never lost.
-          PYTHONUNBUFFERED: '1',
-          PYTHONDONTWRITEBYTECODE: '1',
-          DEEPBLEND_JOB_ID: correlationId,
-        },
+        // The operator budget and scrubbed environment apply to every owned
+        // process; caller payloads and inherited environment cannot raise it.
+        env: bootstrapEnvironment(this.config, correlationId),
       })
     } catch (cause) {
       clearTimeout(timer)
@@ -1876,14 +1902,7 @@ export default class LocalBlenderRuntime extends Service {
         // timeout indistinguishable from a caller's cancellation in the record.
         // Cancellation goes through `handle.terminate()`, which the host calls
         // from `cancelJob`.
-        env: {
-          PATH: process.env.PATH ?? '',
-          HOME: process.env.HOME ?? '',
-          TMPDIR: process.env.TMPDIR ?? '',
-          PYTHONUNBUFFERED: '1',
-          PYTHONDONTWRITEBYTECODE: '1',
-          DEEPBLEND_JOB_ID: String(request.jobId ?? ''),
-        },
+        env: bootstrapEnvironment(this.config, request.jobId),
       })
     } catch (cause) {
       throw new BlenderError(

@@ -15,7 +15,7 @@
         ├── DeepBlend Host 半（bundle）   ← 读写在 $DSH_HOME 与 workspaceRoot 之内
         ├── Agent preset（模型可见工具）   ← 无 shell、无文件写、无网络、无任意 Python
         └── Blender 子进程                ← --background --factory-startup，argv 数组
-              环境只有 PATH/HOME/TMPDIR/PYTHONUNBUFFERED/PYTHONDONTWRITEBYTECODE/DEEPBLEND_JOB_ID
+              环境只有 PATH/HOME/TMPDIR/PYTHONUNBUFFERED/PYTHONDONTWRITEBYTECODE/DEEPBLEND_JOB_ID/DEEPBLEND_SCENE_IMAGE_BUDGET_MIB
 ```
 
 四条不变式，后面每一条要求都落在其中一条上：
@@ -100,3 +100,6 @@ the graph declares for it」是它在网络上的证据。
 ## 5. 报告漏洞
 
 见仓库根目录的 `SECURITY.md`。
+
+
+受管批处理、保留进程和逐帧进程共用同一显式环境白名单。场景图片预算变量只来自已验证的runtime operator配置，不继承同名外部环境或场景/工具参数；默认1024MiB，单图与格式检查保持。它是创建/重建前的保守资源预检，不是进程驻留内存配额，CPU/内存/GPU实际配额的既有偏差记录仍适用。

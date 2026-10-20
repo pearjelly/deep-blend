@@ -442,3 +442,10 @@ rm -rf .deepblend   # 生成状态；重建方式是提交在仓库里的 fixtur
 ### 0.9.0 公开安装验证条件
 
 一个整轮源码/npm/latest-tarball读回通过0.9.0、工作台200、双预设、取包13/13/1。使用配对DSH0.1.5-rc.2/pnpm9.15；临时profile通过 `npm_config_ignore_workspace_root_check=true` 明确允许其工作区根安装，并用 `npm_config_auto_install_peers=false` 使用已安装DSH提供的核心peer，避免自动补装较新peer时的dsh-type-meta获取失败。设置只作用于命令环境，不写个人部署配置。预构建包已独立安装、完整匿名下载及macOS arm64 PNG/JPEG解码验证；其他原生目标的文件/摘要已核验，不代表四平台执行过。原失败完整保留。
+
+
+### 复杂场景的贴图预算
+
+本地受管 Blender 进程可在 `deepblend-blender-runtime` 的 operator 配置中显式设置 `maxSceneImageMiB`（默认1024，整数16–8192，单位MiB）。它用于创建或重建场景前的累计解码图像预检；单张图像、元数据、格式和每次模型导入的原有检查继续生效，重复导入仍保守计数。配置写入实际编译回执，超限在重置现有场景前拒绝。工具参数和SceneSpec不能调高此值，继承的同名进程环境也不能覆盖operator配置。
+
+受管批处理、保留进程及需要重建场景的预览均使用此设置。它不是实际进程内存上限；直接渲染已保存检查点沿用该工程编译时的资源量，降低配置不会自动简化旧工程。使用非默认值连接用户已有Blender会明确拒绝；改用受管进程（`sessionSocket` 留空），或连接时保留默认1024。面数上限仍是 `deepblend-blender-host` 的独立 `maxMeshPolygons` 配置，默认200万面；两项按各自实际回执核对。修改后的候选必须完成新验收和正式发布，源码能力不代表旧已发布包具备此选项。

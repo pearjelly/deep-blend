@@ -284,39 +284,20 @@ test('the provider never reaches a shell, and hands the child no secret', () => 
   }
   // The managed runs go through the service, which is what makes the argv array a guarantee
   // rather than a habit: the service takes an array by type.
-  const spawnCalls = [...provider.matchAll(/\.spawn\(\{([\s\S]*?)\n {6}\}\)/g)].length
-  assert.ok(spawnCalls >= 2, `the provider calls ctx.subprocess.spawn ${spawnCalls} times, fewer than the two managed paths`)
-
-  // The child's environment is a literal, so it can be read off the source. Every key that is
-  // not on this list is a value that does not reach Blender — which is how the DeepSeek API
-  // key stays out of it (SPEC §15.5).
-  const ALLOWED = ['PATH', 'HOME', 'TMPDIR', 'PYTHONUNBUFFERED', 'PYTHONDONTWRITEBYTECODE', 'DEEPBLEND_JOB_ID']
-  const envBlocks = [...provider.matchAll(/env: \{([\s\S]*?)\n {8}\},/g)].map(match => match[1])
-  assert.ok(envBlocks.length >= 2, `the provider composes ${envBlocks.length} child environments, not the two this test describes`)
-
-  const parsed = envBlocks.map((block) => {
-    const keys = [...block.matchAll(/^\s*([A-Z_][A-Z0-9_]*)\s*:/gm)].map(match => match[1])
-    assert.ok(keys.length > 0, 'a child environment parsed no keys, so this assertion would be vacuous')
-    const extra = keys.filter(key => !ALLOWED.includes(key))
-    assert.deepEqual(
-      extra,
-      [],
-      `the child environment carries ${extra.join(', ')}, which is not on the whitelist — ` +
-        'anything not listed there is a value that reaches Blender, and SPEC §15.5 says secrets must not',
-    )
-    return keys.slice().sort()
-  })
-
-  // BOTH SPAWN PATHS MUST WHITELIST THE SAME NAMES. The subset check above lets one path carry fewer keys than
-  // the other without a word, and a child that is missing `DEEPBLEND_JOB_ID` is a child whose correlation id is
-  // absent — a behavioural difference between "start a render" and "resume one" that nothing else would notice.
-  for (const keys of parsed.slice(1)) {
-    assert.deepEqual(
-      keys,
-      parsed[0],
-      'the two spawn paths whitelist different environments; a value that reaches one Blender does not reach the other',
-    )
-  }
+  const spawnCalls = [...provider.matchAll(/this\.ctx\.subprocess\.spawn\(\{/g)].length
+  assert.equal(spawnCalls, 3, 'Batch, kept-process and frame-sequence spawns must all be accounted for')
+  const envCalls = [...provider.matchAll(/env:\s*bootstrapEnvironment\(this\.config,\s*[^)\n]+\)/g)].length
+  assert.equal(envCalls, spawnCalls, 'Every managed spawn must use the same operator-controlled scrubbed environment')
+  assert.equal([...provider.matchAll(/env:\s*\{/g)].length, 0, 'An inline environment bypasses the shared whitelist')
+  const envBlock = /function bootstrapEnvironment\(config, jobId\) \{[\s\S]*?return \{([\s\S]*?)\n {2}\}\n\}/.exec(provider)?.[1]
+  assert.ok(envBlock, 'The shared environment builder must have an inspectable literal whitelist')
+  assert.ok(!/\.\.\./.test(envBlock), 'A spread inside the shared environment bypasses its literal whitelist')
+  const ALLOWED = ['PATH', 'HOME', 'TMPDIR', 'PYTHONUNBUFFERED', 'PYTHONDONTWRITEBYTECODE', 'DEEPBLEND_JOB_ID', 'DEEPBLEND_SCENE_IMAGE_BUDGET_MIB']
+  const keys = [...envBlock.matchAll(/^\s*([A-Z_][A-Z0-9_]*)\s*:/gm)].map(match => match[1]).sort()
+  assert.deepEqual(keys, ALLOWED.slice().sort(), 'The child environment must contain exactly the documented non-secret keys')
+  assert.match(envBlock, /DEEPBLEND_SCENE_IMAGE_BUDGET_MIB:\s*String\(config\.maxSceneImageMiB \?\? DEFAULT_SCENE_IMAGE_MIB\)/,
+    'The allocation budget must come from validated operator configuration, not inherited environment or scene data')
+  const parsed = [keys]
 
   // AND THE DOCUMENTED LIST IS THE SAME LIST. `docs/security.md` names the variables (the canonical copy), and
   // `SECURITY.md` used to state a COUNT — "a five-variable whitelist" — while the code whitelisted six. A count
