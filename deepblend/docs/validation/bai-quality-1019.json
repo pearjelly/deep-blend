@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "Fullv6 43/43 and138/138 contracts passed. Frozenbda runtime and docs-onlyfe24/6a5 each have five successful CI jobs and four verified archives; clean0.16 package actually installed. Art rejected throughr0046. Recovery attempt formally validated and attempted the original21-operation transaction but native compilation refused image budget, preservingr0046. Fixed15 final images, final source native900 audit, formal900-frame five-shot movie and full-film inspection remain required. Not merged or released; npm/community0.16 not published.",
+  "releaseGate": "Hidden scatter repair fullv7 passed43/43 and138/138 with910unchanged source files. Need new pushed exactsource CI, clean build/actualinstall, bai same-case retest and final art/film acceptance. Prior F1/bda rejected and retained. No0.16 publication.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -914,8 +914,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-20T01:49:13.482013+00:00",
-  "currentBlocker": "User confirmed disk and long-request recovery. Actual same-session max run then hit native ASSET_CONTENT_MISMATCH for 16MiB excess over unchanged1GiB image budget, followed by bai QUOTA/insufficient_user_quota. Current remainsr0046 with no new previews or movie; await bai quota and let model revise material bindings through formal tools.",
+  "updatedAt": "2026-10-20T02:28:02.557542+00:00",
+  "currentBlocker": "r0054 gold PBR is visibly restored; broadleaf crowns remain too regular/large. Real-case hidden scatter transform bug fixed with focused native red/green and three killed mutants. Fresh fullv7 passed43/43 plus138/138; clean new source build, actual installation, bai same-case retest and final film/art gates pending. No present quota error or0.16 publication.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -1150,5 +1150,436 @@
         "scope": "Finite d318 session;256000 in prior phases and196608 in final retry explicitly measured, not all14 at256000 and not an unlimited old-history claim."
       }
     }
+  },
+  "quotaRecoverySavedPbrPhase": {
+    "date": "2026-10-20",
+    "session": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+    "elapsedMs": 513889,
+    "actualDeepBlendToolCalls": 7,
+    "incomingArgumentDocuments": 7,
+    "malformedArgumentDocuments": 0,
+    "allIncomingFullyAuditedAndSemanticallyPreserved": true,
+    "formalPatchOperations": 19,
+    "revision": "r0047",
+    "sourceSpecSha256": "468b3d065d1d8ae800297b559c24cb4ee3421797b5c831dfece9371279e8eb44",
+    "sourceNativeSha256": "2da5929db7548149ab6573a78a6e3dd007685eaaf169ef07718f08cc8f90cd60",
+    "savedRevisionNativeBytes": 394595740,
+    "oldEntitiesRetained": 123,
+    "allOldEntityFieldsOutsideFiveRoofUvsUnchanged": true,
+    "allOldVerticesFacesTransformsUnchanged": true,
+    "oldCamerasLightsWorldShotsTracksProfilesUnchanged": true,
+    "oldAssetIdsRetained": true,
+    "assetCounts": [
+      8,
+      13
+    ],
+    "newImageBindings": 5,
+    "imageBudgetBytes": 1056964608,
+    "imageBudgetLimitBytes": 1073741824,
+    "remainingBytes": 16777216,
+    "imageBudgetPolicyUnchanged": true,
+    "sourceReadonlyNative900": {
+      "sourceUnchanged": true,
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-yard": 0.9459459459459459,
+          "camera-main": 0.9615384615384616,
+          "camera-foliage": 0.9724770642201835,
+          "camera-buddha": 1.0,
+          "camera-eave": 1.0
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-yard": 0.0,
+          "camera-main": 0.0,
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-eave": 0.0
+        }
+      },
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "all26FileImagesPacked": true,
+      "scope": "Static evaluated geometry,900 integer camera frames and within-shot chords;32x32 visibility grid, not pixel/subframe/full-film acceptance."
+    },
+    "fixedConditions": {
+      "allFourBeforeAfterRenderAndCameraFactsExactlyEqual": true,
+      "width": 960,
+      "height": 540,
+      "samples": 48,
+      "engine": "CYCLES",
+      "mode": "beauty",
+      "views": [
+        {
+          "cameraId": "camera-buddha",
+          "frame": 610,
+          "beforeSha256": "3ae6cdce66746b92fd88d5a5b1bcf69ceed56f6e75b0f32f83b0a2bdd8d6ac1b",
+          "afterSha256": "63b0bb9870561adaa1d0c2661f236d6937a70d7a86d0f1067002174d60cdacb6",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015808-3cebbc4b-86ae-4207-bbf2-6c4dceb042fa-f902ad68-24c0-403e-a263-a7b520803737/inspection.png"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 390,
+          "beforeSha256": "ebf28c8fe794171011f53dad800c59aac42a6f06f7f1a79f64cb5b75a99850b1",
+          "afterSha256": "1f45b3071288c19ef52f2655872ce91226313f35663aa6872189fd6d745773fc",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015647-b94dc655-7f11-4992-b03a-8ac90e74003f-0636af9d-6a47-4f6a-8d61-cf80912a3ef8/inspection.png"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 130,
+          "beforeSha256": "55562208568f6fc1c61ed6dabf3e04b846dc2814d4324be825a3adb6c56c9163",
+          "afterSha256": "fbc9cbc3523ffd0446dd124c23f22f0df52c90c9b5f0d10c822268a5db44e5bf",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015547-557c859d-3cf1-47d0-a59f-4cf797108f44-3bd2848f-dc68-44f3-b18b-06f04e70e2cc/inspection.png"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 900,
+          "beforeSha256": "f9eab4d7171e904b71a82a45fb26a08c7b6abda77eae0d3ddfee7ae37f87d715",
+          "afterSha256": "33c1257f9d952eebc5211a9bd929866ca552997b43c17f04d4468cf0ee1ecade",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015917-7242a0c8-c626-4283-abd0-028d574840c0-9cbbbae9-0fe2-43f4-a0ad-e98359ae7802/inspection.png"
+        }
+      ]
+    },
+    "artAccepted": false,
+    "artRejectionReasons": [
+      "Eave solidify rim has visible texture stretching (16 evaluated zero-UV-area triangles per roof).",
+      "Imported Buddha constant gold override loses original authored gold texture/facial contrast; original diffuse resource is gold, not stone.",
+      "Roof tone too light and wood tone too close to red columns; thin trees and weak final framing remain."
+    ],
+    "evaluatedRoofUvFact": {
+      "zeroUvAreaTrianglesPerRoof": 16,
+      "firstRoofAffectedWorldAreaMeters2": 13.82913776080834,
+      "sourceUnchanged": true,
+      "scope": "Solidify rim actual UV area degeneracy diagnosis; not automatically fixed by structural validation."
+    },
+    "finiteContinuationTransport": {
+      "requestsAcrossFourPhases": 19,
+      "allReasoningMaxThinking": true,
+      "allExplicitPerPhaseOutputBudgetsMatch": true,
+      "allImagesCapturedBytesAndEntirePreviousPrefixesVerified": true,
+      "pruneEvents": 0,
+      "earlier196608QuotaRetryRetainedSeparately": true
+    },
+    "helperFailureRetained": "Private PBR preservation helperv1 assumed generator on asset-instance and failedKeyError;v2 uses optional field and verifies all old entity fields. No case/source edit.",
+    "nextStage": "Same model formally clears Buddha overall material override to recover original authored gold appearance and designs additive editable eave/hip finishes; original meshes/transforms/cameras/lights retained. No final film or publish."
+  },
+  "originalBuddhaDiffuseCorrection": {
+    "sourceGlbSha256": "db486427f36441deb3b1fdc2e972df78a826405e70ea47f4ec8b6e12042a212c",
+    "sourceRole": "KHR_materials_pbrSpecularGlossiness.diffuseTexture0/image0/bufferView4",
+    "mime": "image/jpeg",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "bytes": 901963,
+    "sha256": "f7d844b78083ef8d016dbd330375cd0d5bff77dba149ca91f605989c09cd0984",
+    "license": "CC0-1.0",
+    "author": "Minneapolis Institute of Art",
+    "source": "https://sketchfab.com/3d-models/seated-buddha-date-unknown-c1c3d5a4878c42778eceded83673dea7",
+    "actualVisualObservation": "Original unmodified diffuse is aged gold leaf with face/base detailing and some red underpaint, not stone. Earlier model statement calling it stone was unsupported and is corrected. Constant overall gold override obscures authored source detail.",
+    "extractedRawBytesOnly": true,
+    "rootIngestedAppliedRenderedOrEditedImage": false
+  },
+  "goldEaveFinishPhase": {
+    "elapsedMs": 801462,
+    "actualDeepBlendToolCalls": 9,
+    "incomingArguments": {
+      "documents": 9,
+      "jsonValid": 9,
+      "allFullyAuditedAndSemanticExact": true
+    },
+    "savedRevisions": [
+      "r0048",
+      "r0049"
+    ],
+    "currentAtPhaseEnd": "r0049",
+    "formalRefusal": {
+      "code": "SCENE_SPEC_INVALID",
+      "reason": "Five proposed new eave meshes repeated faces24..31; no revision created.",
+      "recoveredBy": "bai corrected geometry through a second formal patch; root did not repair or apply arguments."
+    },
+    "newEditableParts": [
+      "eave-coping-1",
+      "eave-coping-2",
+      "eave-coping-3",
+      "eave-coping-4",
+      "eave-coping-5"
+    ],
+    "old123EntityChanges": [
+      {
+        "entityId": "buddha-statue",
+        "field": "materialId",
+        "before": "mat-gold-buddha",
+        "after": null
+      }
+    ],
+    "oldGeometryTransformsModifiersVisibilityUnchanged": true,
+    "oldCamerasLightsWorldTracksShotsProfilesAssetsUnchanged": true,
+    "nativeNewParts": {
+      "sourceSha256": "1bd9912e0e54bbf90e93beb854c4ce9adc371102eae897155b7e63ce8ebfb629",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "eave-coping-1",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 1.5514001846313485,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-2",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.98684724171956,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-3",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.6275981267293285,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-4",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.39928468068440937,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-5",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.25397237141927265,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        }
+      ],
+      "scope": "Read-only evaluated new eave topology/UV/volume. Does not certify all inter-part clearances or full-film quality."
+    },
+    "actualPhotos": "One intermediateBuddha610 atr0048 plus four standardcamera/frame beauty960x540/48samples atr0049, all retained and independently viewed.",
+    "acceptedLimitedImprovement": "New five closed wooden eave coping parts cover the original solidify-side texture stretch; roof/wood tones revised. This is additive finish, not elimination of old zero-UV triangles.",
+    "artAccepted": false,
+    "remaining": "Buddha still white; sparse saplings/weak closing frame, no hip ridges, heavy/simple coping and hall roof texture-scale differences remain.",
+    "modelExposureDiagnosis": "Model attributed white statue mainly to exposure without isolating material. Root native node readback shows actual originaldiffuse connected and very highIOR; causality not yet established.",
+    "actualOriginalBuddhaShader": {
+      "sourceSha256": "af2892911c7b70d43fb9efb3a527c3437ff7269ab448533d91d19ff24e1942c7",
+      "sourceUnchanged": true,
+      "material": "Mia_012487_SeatedBuddha_64k_OBJ",
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Image_0",
+          "packed": true,
+          "colorSpace": "sRGB"
+        },
+        {
+          "node": "Image Texture.001",
+          "image": "Image_2",
+          "packed": true,
+          "colorSpace": "Non-Color"
+        },
+        {
+          "node": "Image Texture.002",
+          "image": "Image_3",
+          "packed": true,
+          "colorSpace": "Non-Color"
+        },
+        {
+          "node": "Image Texture.003",
+          "image": "Image_1",
+          "packed": true,
+          "colorSpace": "sRGB"
+        },
+        {
+          "node": "Image Texture.004",
+          "image": "Image_1.001",
+          "packed": true,
+          "colorSpace": "sRGB"
+        }
+      ],
+      "principled": [
+        {
+          "node": "Principled BSDF",
+          "inputs": {
+            "Base Color": {
+              "linked": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            "Metallic": {
+              "linked": false,
+              "value": 0.0
+            },
+            "Roughness": {
+              "linked": true,
+              "value": 0.5
+            },
+            "IOR": {
+              "linked": false,
+              "value": 1000.0
+            },
+            "Specular IOR Level": {
+              "linked": false,
+              "value": 0.5
+            }
+          }
+        }
+      ],
+      "diffuseLinkedToBaseColor": true,
+      "scope": "Actualr0048 native material, not a claim of unsupported legacyextension, missingdiffuse or all Blender/importer versions."
+    },
+    "newStage": "Formal originaldiffuse-image PBR overlay plus new editable procedural broadleaf vegetation; active, no acceptedfilm/publication."
+  },
+  "boundedToolResultFormatterScope": {
+    "spilledToolMessages": 4,
+    "fullBodyBytesRetained": 318411,
+    "scope": "SDK tool formatter can replace long result text with a bounded excerpt and readable original-file pointer at message creation, separately from later context pruning. Exact outbound history prefix checks attest all assembled messages/images are transmitted, not that every full raw/formatted tool body was inline. Original spill bodies retained private without SDK/profile edits.",
+    "reasoningPublished": false
+  },
+  "hiddenScatterPoseRecovery20261020": {
+    "observedRevision": "r0051",
+    "observedBug": "Hidden crown local location [-27,-4.4,10.2] but native matrix_world translation [0,0,0]; scattered leaves around origin. Read-only original unchanged.",
+    "modelPhase": {
+      "elapsedMs": 1691913,
+      "actualDeepBlendCalls": 20,
+      "savedRevisions": [
+        "r0050",
+        "r0051",
+        "r0052",
+        "r0053",
+        "r0054"
+      ],
+      "outcome": "Original gold diffuse successfully restored with explicit PBR material; bai diagnosed hidden-guide pose and authored world-coordinate guide workaround. Crowns remain visually coarse; art rejected.",
+      "incomingArgumentDocuments": 20,
+      "allValidFullyAuditedAndSemanticExact": true,
+      "privateFormatterSpillFilesRetained": 6,
+      "privateFormatterSpillBytesRetained": 504546
+    },
+    "goldMaterial": {
+      "source": "Raw byte-exact original CC0 GLB diffuse",
+      "ior": 1.5,
+      "metallic": 0.15,
+      "roughness": 0.45,
+      "imageBudgetBytes": 1073741824,
+      "budgetRaised": false
+    },
+    "fix": "Evaluate reference and ancestor transforms with temporary viewport visibility, snapshot world matrices, restore all visibility flags. Keep render visibility, geometry, authored poses and legacy behavior.",
+    "focusedRegression": {
+      "oldCodeFails": true,
+      "fixedCodePasses": true,
+      "nativeMutantsKilled": 3,
+      "scope": "Synthetic visible/hidden target and prototype parity, actual attachments vs independent authored poses, ancestor/local visibility, refusal, save/reopen; no user case mutation."
+    },
+    "fullAcceptance": {
+      "finishedAt": "2026-10-20T03:52:22.634089+00:00",
+      "sourceBaseCommit": "447f79ff5414449a94f624e0daf70ee0edb73346",
+      "passedSuites": 43,
+      "allPassed": true,
+      "unitContractFiles": "138/138",
+      "nativeInspectionChecks": "65/65",
+      "nativeShotRenderChecks": "20/20",
+      "validatedSourceUnchanged": true,
+      "validatedFiles": 910,
+      "sourceManifest": "source-before-full-v7.json",
+      "logSha256": "629bdfa749cf3a3fe071199cd885cb27565860728c4f03f6c7a7ac79076d66eb",
+      "scope": "Fresh complete run includes explicit shot rendering, actual camera provenance, safe resume, reused-part owner validation, manual render-border and multiview refusals, public external optional runtime conformance and native fixtures including hidden scatter authored world poses, visible/hidden seed parity, visibility restoration and save/reopen. Every source-manifest file remained byte-identical throughout the measured run; no model case/artifact/publication acceptance implied."
+    },
+    "newFrozenInstall": "pending",
+    "sameCaseBaiRetest": "pending",
+    "finalArtAccepted": false,
+    "finalFilmAccepted": false,
+    "published": false,
+    "finiteContinuationTransport": {
+      "requests": 40,
+      "allMaxThinkingDeclaredOutputBudgetsAndImagesPassed": true,
+      "entireAssembledPriorPrefixesExact": true,
+      "observedPrunes": 0,
+      "scope": "Finite d318 conversation only; one historical196608 output reservation explicitly separate, current256000. SDK formatter spills are not all inline; private originals retained. No gateway upstream attestation."
+    },
+    "currentRevision": "r0054",
+    "currentNativeSha256": "b182e1f152bb68960e65138101950697617f43c0c9c9157c70ec37803c0530aa",
+    "currentSpecSha256": "347908fb3b23829c45a70d405011f1fc1ea6edd2bbb3e941f82ecbe25f46713a"
   }
 }

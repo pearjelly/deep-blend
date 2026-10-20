@@ -1604,6 +1604,14 @@ check('modeling stacks preserve measured volume, manifold topology and dependenc
   modifiers.status === 0 && modifiers.stdout.includes('MODIFIERS_PASSED'),
   modifiers.status === 0 ? undefined : { error: modifiers.error?.message, output: `${modifiers.stdout}\n${modifiers.stderr}`.slice(-6000) })
 
+const hiddenScatter = spawnSync(BLENDER, [
+  '--background', '--factory-startup', '--disable-autoexec', '--python-exit-code', '1',
+  '--python', join(HERE, 'hidden-scatter-poses.py'),
+], { encoding: 'utf8', timeout: 120_000, maxBuffer: 8 * 1024 * 1024 })
+check('hidden scatter guides retain authored poses, seeded geometry and visibility through save/reopen and refusal',
+  hiddenScatter.status === 0 && hiddenScatter.stdout.includes('HIDDEN_SCATTER_POSE_PASSED'),
+  hiddenScatter.status === 0 ? undefined : { error: hiddenScatter.error?.message, output: `${hiddenScatter.stdout}\n${hiddenScatter.stderr}`.slice(-6000) })
+
 // A real saved revision, not just the geometry helper, must preserve hand-authored
 // transforms/materials/UVs and protect its predecessor on rejected edits.
 {
