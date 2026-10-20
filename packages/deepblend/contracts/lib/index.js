@@ -719,6 +719,7 @@ export { assertKnownConfigKeys, declaredConfigKeys, describeUnknownConfigKeys } 
 
 export {
   CAMERA_UPDATE_FIELDS,
+  CAMERA_TARGET_UPDATE_HINT,
   SCENE_OPERATION_NAMES,
   validateScenePatch,
   applyPatchToSpec,

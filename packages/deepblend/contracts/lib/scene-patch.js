@@ -105,6 +105,14 @@ export function validateScenePatch(patch) {
     }
   }
   for (const issue of structural) {
+    // Read projections use null for an absent target; write operations do not.
+    // Explain the valid alternatives without coercing the caller's intent.
+    const target = /^operations\[(\d+)\]\.(targetEntityId|targetPoint|clearTarget)$/.exec(issue.path)
+    const operation = target ? patch?.operations?.[Number(target[1])] : null
+    if (target && operation?.op === 'camera.update' && operation[target[2]] === null
+        && ['type', 'const'].includes(issue.keyword)) {
+      issue.message += `. ${CAMERA_TARGET_UPDATE_HINT}`
+    }
     errors.push({ code: 'PATCH_SCHEMA_INVALID', path: issue.path, message: `${issue.message} [${issue.keyword}]` })
   }
   if (errors.length > 0) {
@@ -177,7 +185,7 @@ export function validateScenePatch(patch) {
         errors.push({
           code: 'PATCH_CAMERA_TARGET_AMBIGUOUS',
           path: at,
-          message: 'camera.update must choose one of targetEntityId, targetPoint or clearTarget',
+          message: 'camera.update must choose one of targetEntityId, targetPoint or clearTarget. ' + CAMERA_TARGET_UPDATE_HINT,
         })
       }
     }
@@ -208,6 +216,13 @@ export function validateScenePatch(patch) {
  * copies of one vocabulary is two too many, and the failure mode when they disagree is
  * not a crash — it is a rejection that names the wrong problem.
  */
+/** Shared model-facing recovery: invalid aim combinations stay refused. */
+export const CAMERA_TARGET_UPDATE_HINT =
+  'Choose exactly one of targetEntityId, targetPoint or clearTarget when changing aim. ' +
+  'Set targetPoint alone for a world point, or targetEntityId alone for an entity; either replaces the previous target. ' +
+  'Use clearTarget: true only to remove targeting; do not pass null. ' +
+  'Retarget or clear cameras before removing their target entities.'
+
 export const CAMERA_UPDATE_FIELDS = Object.freeze([
   'lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'clearTarget', 'fStop', 'role',
 ])

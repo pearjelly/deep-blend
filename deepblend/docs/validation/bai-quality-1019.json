@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "No0.16publication. Newbudgetfullv9 passes currentproduct/tests; historicalF2/57CI/install certifyonly57. Need newCI/cleanbuild/F3 and actualcase/film gates beforemergeandstandardrelease.",
+  "releaseGate": "No0.16publication. CF fullv9/CI/install/F3 actual case are retained source-specific evidence. Current camera-description/diagnostic edits need fresh checks and frozen source; overall art/film still pending.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -915,7 +915,7 @@
     "movieCapacityStillToCheck": true
   },
   "updatedAt": "2026-10-20T02:28:02.557542+00:00",
-  "currentBlocker": "New operator resource candidate fullv9 passed43/43 and138/138 with911sourcefiles unchanged. Requires fresh pushed source CI/build/F3 actual installation, finite CC0 tree case, fixed15/currentnative900/formal900film/art/fullfilm acceptance. r0058 still art rejected; no0.16publication.",
+  "currentBlocker": "F3 same case completed r0060 with original128 fields intact and four standardized views; tree component improves but whole art still rejected. New camera recovery guidance focused checks and4faults pass; need fresh live/model-card/full/current-source verification and new frozen install before architectural/landscape continuation, then final15/current900/full900film and standard release.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -1779,5 +1779,91 @@
     "targetedFailingFilesAfterFix": "47/47passed",
     "postFixFivePrivateMutantsKilled": true,
     "threeWhitelistSecurityMutantsKilled": true
+  },
+  "frozenF3TreeCase20261020": {
+    "sourceCommit": "cf7d8d406cd99dd9062c01a23379e03056429495",
+    "archiveSha256": "d25f44b1c967545477c2d5c6b6d201adce97652b1222f905fe147f1a7a7fd33a",
+    "localFullSuites": "43/43",
+    "contractsAndPostDocumentContracts": "138/138 each",
+    "ciRunId": "39380166729",
+    "fiveJobsPassed": true,
+    "fourArchivesServerShaSizeZipCrcAndActualSourceTreeVerified": true,
+    "actualInstalledSevenOwnSourceAndManifestCopiesExact": true,
+    "nativeSharpDecode": [
+      1280,
+      720,
+      3
+    ],
+    "phaseElapsedMs": 3996866,
+    "totalToolCalls": 37,
+    "deepBlendToolCalls": 23,
+    "sdkToolCalls": 14,
+    "successfulMainRevisions": [
+      "r0059",
+      "r0060"
+    ],
+    "calibrationProjectRevision": "cc0-tree-small-02-calib/r0002",
+    "semanticRefusals": {
+      "SCENE_PATCH_INVALID": 2,
+      "PATCH_TARGET_IN_USE": 1
+    },
+    "all37IncomingJsonDocumentsCompleteAndCanonicalSemanticsPreserved": true,
+    "mainApiRequests": 28,
+    "allMaxThinkingAnd256000": true,
+    "noPrunesInThisExplicitFiniteSession": true,
+    "allProvidedImagesAndAlreadySentMessagePrefixesPreserved": true,
+    "longToolBodies": "5 byte-exact retained files,3937456 bytes; summaries plus readable full files, not all bodies inline",
+    "explicitCaseResources": {
+      "maxMeshPolygons": 8000000,
+      "maxSceneImageMiB": 1536
+    },
+    "actualOwnedBlenderFrozenBootstrapAnd1536EnvironmentCaptured": true,
+    "actualSavedGeometry": {
+      "vertices": 7486193,
+      "polygons": 7638361
+    },
+    "imageAllocationPolicyEstimateMiB": 1312,
+    "imageEstimateIsNotActualProcessRss": true,
+    "allOriginal128EntitySourceFieldsUnchangedFromR58": true,
+    "all172OldEntitiesKept": true,
+    "only30NewBroadleafVisibilityFlagsChanged": true,
+    "oldAssetsAndOtherTopLevelFieldsExact": true,
+    "standardBeautyViews": [
+      "main130",
+      "eave390",
+      "buddha610",
+      "foliage900"
+    ],
+    "sameFourCameraAndRenderFactsExactToR58": true,
+    "extraPreviews": "2 ordinary main/eave plus1 yard760, not counted as final15",
+    "reviewer": "Codex assistant",
+    "naturalTreeComponentImproved": true,
+    "overallArtAccepted": false,
+    "remainingArtIssues": [
+      "coarse eave/roof/bracket/bell details",
+      "sparse courtyard/foreground/background depth and bare ground horizon"
+    ],
+    "originalRawAssets": "11 original CC0 Poly Haven TreeSmall02 files retained and ingested through actual formal tools; no maintainer geometry prep",
+    "sourceSpecSha256": "29a9276abdfc9a5eaa5f87be77990cfa610d5c2dbff28da93bd3a5c559333219",
+    "nativeSha256": "a7d3b223a95176b3943213855dff0c59ed36047bb4a030dab779230a9ef6d74c",
+    "full900NativeAndFilmAccepted": false,
+    "published": false,
+    "scope": "Explicit finite guided asset-assisted continuation with higher resource conditions, not arbitrary one-shot/default-capacity/model-upgrade causal proof."
+  },
+  "cameraTargetRecovery20261020": {
+    "trigger": "F3 actual two null/ambiguous camera parameter refusals plus one target-entity deletion order refusal; all actual incoming JSON valid and preserved, no pruning.",
+    "sourceFinding": "Model camera.update signature omitted sensorWidth,clearTarget,role and omitted mutually-exclusive aim/null-read/automatic replacement guidance.",
+    "change": "Derive complete camera field signature from existing CAMERA_UPDATE_FIELDS; one shared model/error recovery hint; append it to null-target diagnostics and ambiguous-target refusal. No invalid input coercion or schema/write/native/render/UI/SDK change.",
+    "oldProbe": "1/8; new behavior assertions red in existing scene-patch/tool-output files",
+    "focusedAfterFix": {
+      "scenePatch": "327/327",
+      "toolOutput": "225/225",
+      "independentGuidanceProbe": "8/8"
+    },
+    "fourPrivateFaultsKilled": true,
+    "oldSourceCouplingFailure": "First focused run327check file was326/327 because operation-name static reader only recognized single-quoted rows; now recognizes derived template rows and still compares all31 names exactly. Raw retained.",
+    "requiresFreshPaidVisualAndUi": true,
+    "freshFullAndCiBuildInstall": "pending",
+    "caseNext": "Same saved case: architecture/eave finish and credible foreground/background planting depth, preserve original source and hand details; final15/current900/formal900film gates remain."
   }
 }

@@ -33,6 +33,8 @@ import { attachCommittedPreview } from './committed-preview.js'
 
 import {
   SCENE_OPERATION_NAMES,
+  CAMERA_UPDATE_FIELDS,
+  CAMERA_TARGET_UPDATE_HINT,
   BlenderError,
   BlenderErrorCode,
   CREATION_REQUEST_VERSION,
@@ -621,7 +623,7 @@ const OPERATION_SUMMARY = [
   'light.update                 {lightId, energy?, color?, size?, transform?, spotSize?, spotBlend?, angle?}',
   'light.remove                 {lightId}',
   'camera.add                   {camera}',
-  'camera.update                {cameraId, lens?, transform?, targetEntityId?, targetPoint?, clipping?, fStop?}',
+  `camera.update                {cameraId, ${CAMERA_UPDATE_FIELDS.map(field => `${field}?`).join(', ')}}`,
   'camera.remove                {cameraId}',
   'animation.track.set          {track}                                        — {id, targetEntityId, targetKind?, property, keyframes[]}',
   'animation.track.remove       {trackId}',
@@ -655,6 +657,7 @@ function scenePatch(ctx) {
       'instead of committing twice.\n\n' +
       'For complex authored geometry, prefer 1–6 coherent operations per call and reuse entityCopies instead of repeating long vertex arrays. This is guidance, not a transaction limit: keep dependent changes atomic. Send strict JSON with complete arrays/objects; never execute a truncated or repaired argument. Read returned validation paths before retrying. ' +
       'asset.add.asset.license is an object {source,commercialUse,attribution}, unlike the ingestion tool license string. A cube generator size is one scalar, not a three-component vector; use dimensions/transform according to its declared schema.\n\n' +
+      CAMERA_TARGET_UPDATE_HINT + '\n\n' +
       'Optional entityCopies creates 1–16 explicit copies of single saved entities from baseRevision, before operations. ' +
       'Use {sourceEntityId,newEntityId,transform?} to reuse exact geometry and manual details without repeating vertices; operations may then be []. ' +
       'Transform components are absolute overrides. All other entity fields and external references are preserved; animation tracks, child assemblies and reference remapping are NOT copied. ' +

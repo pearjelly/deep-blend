@@ -2,6 +2,8 @@
 
 ## 0.16.0 — Unreleased candidate
 
+- Document complete camera aim alternatives and return actionable recovery for nullable reads or conflicting targets, preserving strict validation and authored camera fields.
+
 - Respect authored hidden scatter-guide transforms and restore their viewport visibility after evaluation.
 - Configure a bounded cumulative scene-image budget for managed Blender processes; retain individual-image guards, defaults and explicit refusal for custom budgets on attached Blender.
 
