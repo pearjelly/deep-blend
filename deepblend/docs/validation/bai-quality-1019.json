@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "Fullv6 43/43 and138/138 contracts passed; exact bda runtime and docs-only fe24 each have five successful CI jobs and four verified archives; clean frozen0.16 package actually installed. Art rejected throughr0046. Two later real bai tasks ended without applying the validated transaction after repeated peer closures. Final fixed15 images, current native900 audit, actual formal900-frame five-shot movie and full-film inspection remain required. This candidate has not been merged, released or published to npm.",
+  "releaseGate": "Fullv6 43/43 and138/138 contracts passed. Frozenbda runtime and docs-onlyfe24/6a5 each have five successful CI jobs and four verified archives; clean0.16 package actually installed. Art rejected throughr0046. Recovery attempt formally validated and attempted the original21-operation transaction but native compilation refused image budget, preservingr0046. Fixed15 final images, final source native900 audit, formal900-frame five-shot movie and full-film inspection remain required. Not merged or released; npm/community0.16 not published.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -914,8 +914,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-19T13:41:40.745317+00:00",
-  "currentBlocker": "Actual bai long requests still close at approximately345s. GitHub and PolyHaven HTTP200, unauthenticated bai models401 in1.34s proves endpoint reachability only. Two finite handoff attempts retained; no new scene_patch or current-revision change. Await provider long-request service status, not credentials.",
+  "updatedAt": "2026-10-20T01:49:13.482013+00:00",
+  "currentBlocker": "User confirmed disk and long-request recovery. Actual same-session max run then hit native ASSET_CONTENT_MISMATCH for 16MiB excess over unchanged1GiB image budget, followed by bai QUOTA/insufficient_user_quota. Current remainsr0046 with no new previews or movie; await bai quota and let model revise material bindings through formal tools.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -964,5 +964,191 @@
   "futureObservations": [
     "After the frozen release, consider UV-only mesh patching to preserve geometry without repeating every vertex/face.",
     "Consider immutable validated transaction references bound to project/base revision/digest; no silent malformed-JSON repair. Not implemented in0.16 and not a substitute for fixing observed transport failures."
-  ]
+  ],
+  "recovery20261020": {
+    "userConfirmed": {
+      "diskSpaceFreedGiBApprox": 23,
+      "preflightAvailableGiBApprox": 28,
+      "baiLongRequestService": "restored per user"
+    },
+    "frozenRuntimeChanges": "none",
+    "actualAttempt": {
+      "sameFiniteSession": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+      "elapsedMs": 139258,
+      "tools": {
+        "blender_scene_get": 1,
+        "blender_scene_validate": 2,
+        "blender_scene_patch": 1
+      },
+      "mainRequests": 4,
+      "observedPeerSocketClosures": 0,
+      "completed": false,
+      "scenePatchResult": "ASSET_CONTENT_MISMATCH; candidate r0047 compilation refused, currentr0046 unchanged",
+      "followingModelRequest": "HTTP400 insufficient_user_quota / QUOTA",
+      "newPreviews": 0,
+      "newFinalMovie": false
+    },
+    "transactionAudit": {
+      "originalBaiOperations": 21,
+      "formalValidateAndPatchDataExactlyOriginal": true,
+      "rootAppliedOrRepairedTransaction": false,
+      "auditCorrection": "v1 incorrectly counted the separate read-only scene_validate as a transaction mismatch; retained, v2 excludes no-patch validation and verifies both actual21-operation calls."
+    },
+    "incomingArguments": {
+      "documents": 4,
+      "malformedDocuments": 0,
+      "completeIncomingBoundaryAudited": true,
+      "allSdkArgumentsSemanticallyPreserved": true,
+      "scope": "JSON semantics preserved; whitespace serialization differs. No silent repair."
+    },
+    "finiteContinuationTransport": {
+      "requestsAcrossPriorAndCurrentPhases": 13,
+      "allMaxThinking256000": true,
+      "allFiveProvidedAttachmentsAndRepresentedToolImagesPresent": true,
+      "capturedWireImageBytesVerified": true,
+      "everyPreviousRequestPrefixExactIncludingSessionBoundary": true,
+      "observedPruneEvents": 0,
+      "scope": "Explicit finite d318 session only, not the earlier long session or upstream gateway internals. SDK PNG to full-frame JPEG normalization remains separately documented."
+    },
+    "readOnlyImageBudget": {
+      "limitBytes": 1073741824,
+      "currentSceneBytes": 973078528,
+      "newMapCount": 7,
+      "eachNewMapBytes": 16777216,
+      "proposedBytes": 1090519040,
+      "excessBytes": 16777216,
+      "nativeGuardUnchanged": true,
+      "perImportConservativeAccountingUnchanged": true,
+      "sourceUnchanged": true,
+      "recoveryPlan": "After quota recovery, bai must choose a material binding design within the existing budget; preserve geometry, manual edits and all existing entities/assets. No root case editing or budget bypass."
+    },
+    "latestCiReadback": {
+      "runId": "39263431094",
+      "head": "6a5add354ec7f0f5c39261403757acbc4fde597b",
+      "expectedRootTree": "2f88a3c5f0602af859b75edb255e40153b863a90",
+      "allFiveJobs": "success",
+      "actualCheckoutTrees": {
+        "213e482ecebff22b52aa89a93858c8ceef823341": "2f88a3c5f0602af859b75edb255e40153b863a90"
+      },
+      "actualCheckoutTreesMatchHead": true,
+      "allFourEvidenceArchivesVerified": true,
+      "scope": "Server SHA256/byte count and every ZIP CRC verified; context.json binds actual Linux checkout; GitHub commit tree readback proves checkout root tree equals candidate. Does not certify case artistic quality or replace paid live acceptance."
+    },
+    "preservation": {
+      "originalFilesCheckedUnchanged": 350,
+      "oldDeliveryVideoAndNativeHashesMatch": true,
+      "primaryTrackedChanges": 0,
+      "old015ArtifactAndFrozen016ArtifactHashesMatch": true
+    },
+    "releasePerformed": false,
+    "currentNativeReadOnly": {
+      "revision": "r0046",
+      "sourceSha256": {
+        "native": "72bad8360d429f6556a5b5c306c14714151ce9a304b262a2b10ddd6c4225d614",
+        "spec": "c71ae41f231f1cb81af43959fd010a0b795880d7e05a55725a525dfa7f4a0dc9"
+      },
+      "sourceUnchanged": true,
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-foliage": 0.9724770642201835,
+          "camera-buddha": 1.0,
+          "camera-yard": 0.9459459459459459,
+          "camera-eave": 1.0,
+          "camera-main": 0.9615384615384616
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-yard": 0.0,
+          "camera-eave": 0.0,
+          "camera-main": 0.0
+        }
+      },
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "allFileImagesPacked": true,
+      "fileImageCount": 21,
+      "scope": "Actual900 integer camera frames and within-shot straight chords against static evaluated geometry;32x32 geometric visibility sampling. Native checkpoint640x360 and final1280x720 share16:9 aspect, this is no render/pixel, all-subframe, general collision or full-film certificate. Recheck final saved source after modifications."
+    },
+    "localEnvironmentRecheck": {
+      "initialRun": "DeepBlend tests: 133/138 file(s) passed",
+      "initialFailedFiles": [
+        "✗ contract/development-toolchain.test.mjs: exited with status 1",
+        "✗ contract/host-recipes.test.mjs: exited with status 1",
+        "✗ contract/install-plugin-modes.test.mjs: exited with status 1",
+        "✗ contract/readme-fresh-clone.test.mjs: exited with status 1",
+        "✗ contract/uninstall-residue.test.mjs: exited with status 1"
+      ],
+      "initialNode": "24.13.0",
+      "causes": [
+        "Offline locked SDK cache missing after local cache cleanup (ENOTCACHED).",
+        "LocalNode24.13 macOS rmSync of directory symlinks fails with ERR_FS_EISDIR; minimal standalone witness reproduces, Node24.22 succeeds. This affects link cleanup and fresh-clone expected counts."
+      ],
+      "recovery": "Locked SDK npm-ci inputs reinstalled with integrity verification into private helper directory, repopulating cache. IsolatedNode24.22 installed; related64 tests and fresh full138/138 file rerun passed. No product/test source change.",
+      "productOrTestSourceChanged": false,
+      "originalLogSha256": "b2c6224d6f5453af808ba87bc09d5b0e5eb597fb02d540dcbb4e4a3d4c039045",
+      "finalRun": "138/138",
+      "finalNode": "24.22.0",
+      "finalLogSha256": "53dcad4520eb985acb85ae7946f39aae8b0a0defd632b47d124082aa09433217"
+    },
+    "explicitOutputReservationRetry": {
+      "elapsedMs": 3018,
+      "reasoningEffort": "max",
+      "thinking": "enabled",
+      "outputTokens": 196608,
+      "previousOutputTokens": 256000,
+      "reasonForChange": "One explicit isolated output-reservation retry afterQUOTA. No claim of identical-setting comparison. Model, input context, images, plugin and personal configuration unchanged.",
+      "mainRequests": 1,
+      "toolCalls": 0,
+      "result": "HTTP400 insufficient_user_quota / QUOTA",
+      "sourceChanged": false,
+      "furtherPaidRetriesStopped": true,
+      "continuationTransportAudit": {
+        "requestsAcrossAllThreeFinitePhases": 14,
+        "allMaxThinkingAndExplicitDeclaredOutputBudgetMatch": true,
+        "allProvidedImagesAndEntirePriorRequestPrefixesPresent": true,
+        "capturedWireImageBytesVerified": true,
+        "observedPruneEvents": 0,
+        "scope": "Finite d318 session;256000 in prior phases and196608 in final retry explicitly measured, not all14 at256000 and not an unlimited old-history claim."
+      }
+    }
+  }
 }
