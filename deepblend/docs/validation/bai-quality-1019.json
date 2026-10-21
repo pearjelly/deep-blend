@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "status": "formal-film-rendering-not-accepted-not-released",
+  "status": "formal-r73-film-complete-finishing-rejected-pond-repair-pending-not-released",
   "baselinePlugin": "0.15.0",
   "host": "0.2.1-rc.1",
   "route": "bai/deepseek-v4.1-flash",
@@ -295,10 +295,10 @@
     "allPagodaNativeAudit": "900/900 integer frames, 0 selected subject envelope failures; no case scene changes during QA"
   },
   "qualityRemaining": [
-    "Complete actual formal900-frame movie, verify all frame bytes/camera provenance and full MP4 decode, then inspect complete-film framing/occlusion/motion.",
-    "Prepare byte-exact plugin-native editable delivery, SceneSpec/assets/credits and checksums; native playback has no automatic shot-cut markers.",
-    "Document remaining reference gaps: sparse background/planting, regular architectural detail, simple bright stone fixtures; no reference parity or isolated model-upgrade claim.",
-    "After all case gates: final documentation/contracts/CI/source-bound build, GitHub/npm/seven-package readback/three real install routes/community projection update."
+    "Finish formal-plugin-only pond-water bounded repair, prove only intended field changed and inspect actual same-camera before/after previews.",
+    "New revision native/source/geometry and15-image review, then complete formal900-frame film and full technical/visual acceptance.",
+    "Finish byte-exact plugin-native editable delivery/assets/credits/checksums; retain failed r73 and all old sources.",
+    "After complete case gates: final documentation/contracts/CI/source-bound clean-main build, GitHub/seven npm/archive readback/three actual install routes/community projection."
   ],
   "publicationStatus": "0.16 source candidate only; no new GitHub Release, npm package or community submission",
   "networkObservation": {
@@ -918,8 +918,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-21T01:35:49.307891+00:00",
-  "currentBlocker": "User confirmed bai normal and disk freed; observed8GiB free at preflight. Ten boundary renders completed normally. Formal r0073 render-0001 now running1..900 under saved five-shot cameras, final1280x720/128/Cycles/24fps. Completion, complete-frame/provenance/decode/visual review, editable delivery and standard release still pending.",
+  "updatedAt": "2026-10-21T11:21:07.791239+00:00",
+  "currentBlocker": "All900 native final frames and MP4 completed and technically verified; complete visual review found black strips at front pond rim. Water volume overlaps front/back stone rim and shares outer end planes, consistent with coplanar fighting. Same-session bai/max formal bounded repair pending; r0073 and its completed film retained, no release.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -2315,5 +2315,61 @@
     "editableNewDeliveryComplete": false,
     "mergedOrPublished": false,
     "scope": "Maintainer-guided CC0-assisted task continuation and independent QA. No arbitrary one-shot success, isolated model-upgrade causality, reference parity or external adoption proof."
+  },
+  "frozenF4FullFilmReview20261021": {
+    "revision": "r0073",
+    "jobId": "render-0001",
+    "renderComplete": true,
+    "frames": 900,
+    "seconds": 37.5,
+    "resolution": [
+      1280,
+      720
+    ],
+    "samples": 128,
+    "fps": 24,
+    "jobElapsedMs": 34058132,
+    "videoBytes": 10610229,
+    "videoSha256": "6255a1fa6038ee06ec85beca5dbbcd49b3adc750b8f6fef1b7b2f6b90a8d1c47",
+    "all900PngCrcPixelStreamsAndFrameProvenance": true,
+    "completeMp4Decode": true,
+    "all900DecodedVsOriginalPngMeanRgb8bitMae": 1.3772944802115485,
+    "maxFrameMae": 1.7690990306712964,
+    "all900DisplayPtsAt24Fps": true,
+    "all30ConsecutiveContactSheetsReviewed": true,
+    "fullSizeFramesReviewed": [
+      1,
+      130,
+      259,
+      260,
+      261,
+      262,
+      390,
+      519,
+      520,
+      521,
+      522,
+      610,
+      699,
+      700,
+      701,
+      702,
+      765,
+      771,
+      772,
+      829,
+      830,
+      831,
+      832,
+      865,
+      899,
+      900
+    ],
+    "visualResult": "FAIL_FINISHING",
+    "issue": "Black rectangular strips at pond front; water Y[-35,-17] overlaps rim front[-35,-34.4]/back[-17.6,-17], Z overlap[0,.12], outer end planes shared. Formal repair to inner water span pending.",
+    "cameraScope": "No observed primary subject crop/blockage or within-shot surface entry; intended eave closeup and four hard cuts. No literal realtime playback claimed.",
+    "filmPreserved": true,
+    "formalRepairPhase": "r74-pond-repair-1021-v1",
+    "releaseAllowed": false
   }
 }
