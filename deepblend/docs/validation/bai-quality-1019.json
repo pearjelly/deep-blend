@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "status": "in-progress-not-accepted-not-released",
+  "status": "formal-film-rendering-not-accepted-not-released",
   "baselinePlugin": "0.15.0",
   "host": "0.2.1-rc.1",
   "route": "bai/deepseek-v4.1-flash",
@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "No0.16publication. Current810/F4 fullv10 software, CI, paid probes and formal install verified; outer-controller bookkeeping failure retained. Five same-r0073 midpoint stills and read-only900-frame native checks passed. Final15 blocked by actual long-request disconnects; formal900-frame film/full-film review/editable delivery, adequate disk headroom and standard public release workflow remain.",
+  "releaseGate": "No0.16publication.810/F4 fullv10 software, paid checks, formal install and source CI accepted within recorded scope. All15same-r0073 stills independently viewed and native900 read-only gate passed; actual formal900-frame film is running, not yet accepted. Finish full film, byte/camera/decode/visual verification and editable handover before merge/publication.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -295,8 +295,10 @@
     "allPagodaNativeAudit": "900/900 integer frames, 0 selected subject envelope failures; no case scene changes during QA"
   },
   "qualityRemaining": [
-    "Remaining coarse sphere canopies visible in foreground; current phase images rejected for that quality gap.",
-    "Complete six close/yard images, final frozen-candidate acceptance and full900-frame video inspection still required."
+    "Complete actual formal900-frame movie, verify all frame bytes/camera provenance and full MP4 decode, then inspect complete-film framing/occlusion/motion.",
+    "Prepare byte-exact plugin-native editable delivery, SceneSpec/assets/credits and checksums; native playback has no automatic shot-cut markers.",
+    "Document remaining reference gaps: sparse background/planting, regular architectural detail, simple bright stone fixtures; no reference parity or isolated model-upgrade claim.",
+    "After all case gates: final documentation/contracts/CI/source-bound build, GitHub/npm/seven-package readback/three real install routes/community projection update."
   ],
   "publicationStatus": "0.16 source candidate only; no new GitHub Release, npm package or community submission",
   "networkObservation": {
@@ -522,7 +524,9 @@
         "r0035": "70100a87ace5c26e6705967e638fae1193d78818d8fbd2937dfe9e20239fc7aa"
       },
       "scope": "Read-only saved JSON comparison, not native mesh/framing/pixel or full movie acceptance. Native old source and asset bytes checked separately."
-    }
+    },
+    "historical": true,
+    "supersededBy": "frozenF4RenderProgress20261021"
   },
   "manualRenderRegionRegression": {
     "beforeFix": "Native crop region independently excludes otherwise contained framing-small; old reader still returned a full-camera measurement instead of refusing. Raw failing suite retained.",
@@ -914,8 +918,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-20T13:06:01.994538+00:00",
-  "currentBlocker": "bai quota restored, but explicit new bounded assessment had three real SocketError disconnects after340405/342220/349610ms despite1200000ms client waits. Stopped repeated retries, operator long-request service status pending. About3.8GiB disk; extra5GiB headroom question pending. Same-r0073 five stills/native900 checks passed within stated scope; final15/full formal film/editable delivery/release remain.",
+  "updatedAt": "2026-10-21T01:35:49.307891+00:00",
+  "currentBlocker": "User confirmed bai normal and disk freed; observed8GiB free at preflight. Ten boundary renders completed normally. Formal r0073 render-0001 now running1..900 under saved five-shot cameras, final1280x720/128/Cycles/24fps. Completion, complete-frame/provenance/decode/visual review, editable delivery and standard release still pending.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -2101,5 +2105,215 @@
       }
     },
     "allF4CaseMetricsScope": "All six maintainer-initiated F4 task phases, including failed/prototype rework/calibration/SDK reads and superseded phases. Recorded terminal run time 12385524ms is not complete-case completion latency, user one-shot time or all historical F1/F2/F3 work."
+  },
+  "frozenF4RenderProgress20261021": {
+    "at": "2026-10-21T01:35:49.307891+00:00",
+    "candidateVersion": "0.16.0",
+    "runtimeSourceCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896",
+    "documentationSourceCommitBeforeThisUpdate": "6e7c5360ca0c70752019c10035413bb889f46555",
+    "documentationOnlyCi": {
+      "runId": "39428554501",
+      "jobsPassed": 5,
+      "fourServerShaSizeCrcAndExactCheckoutTreeArchivesVerified": true
+    },
+    "caseRevision": "r0073",
+    "sourceSpecSha256": "7878c7764f56530c55e3e7c811f848b55793777b225f88b5e642caa442398815",
+    "nativeSha256": "08555e16d2a633e899ba8e4c0b53a6460e138660e3d835a5a2ff1a2d72d5e3ec",
+    "boundaryRecovery": {
+      "elapsedMs": 2013037,
+      "normalCompletion": true,
+      "sdkCalls": 19,
+      "formalCalls": 11,
+      "actualNewPreviewRenders": 10,
+      "semanticRefusals": 0,
+      "transportErrors": 0,
+      "sceneChanges": 0
+    },
+    "sameRevision15StillGate": {
+      "passed": true,
+      "conditions": [
+        960,
+        540,
+        48
+      ],
+      "allPngBytesAndSourcePinsVerified": true,
+      "independentFullSizeReview": true,
+      "views": [
+        {
+          "cameraId": "camera-main",
+          "frame": 130,
+          "sha256": "3feb816f59310a0b18bdb7ce2230254279c189973bf2d0a191257e7ee2ed31dd"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 390,
+          "sha256": "5d082cb2956e3ced0421e53c2af24b0602d161682166adbe86c35f30a4fff6a1"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 765,
+          "sha256": "92e2fe4e6f56a9adff8c6f2abd13870b6316216e725fbdbac3852564ac3b0e88"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 900,
+          "sha256": "c87bf65ebaabe2537b141224b0598286eebbfda9fe47baa8834805549a9433f0"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 610,
+          "sha256": "2f43e4ed7a289d3ab3415ee46bb9932cfde026269b4228ae457cf007ca0525b2"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 1,
+          "sha256": "d7f5fc817c6ce373776911b2623a9cb21c51320e9d42d0b08dea2bfaf4eb9099"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 260,
+          "sha256": "f2c2abb799c0ce5fd1e16916a6ccdf868fa9cf34cf614fdcdc2604d830b2ab80"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 261,
+          "sha256": "dca8193bc83ce3f71dfa10f1b338964b8e042ba850ce73231c92ea818d48d6ce"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 520,
+          "sha256": "ea02b62b08746cb3ec8e146d6db2b9edc631b948e956a215dcb890925648c0fd"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 521,
+          "sha256": "0e7cd600cf42f4f151a5190e1892d4e4c3f0dccd27de7ff5456d3adcc81c6d06"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 700,
+          "sha256": "93e26e16dfb07dc3380b0dd245cb6d8735c32f867f15f96f21e9221ce6ce80aa"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 701,
+          "sha256": "b412b334a0af7f5c7501247a9b8ba282439e09f48d0295d58a8a8c93b0cb9e45"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 830,
+          "sha256": "5d75550d5889dbdd400f15addd06f2f97424a51bd9397473387fbd9f76298d0a"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 831,
+          "sha256": "4962d6254ad17a5eb66f694c8bd783827dc1c31708e5725a091d2210da3dd147"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 865,
+          "sha256": "54886986af2bf4ee8adb817900377072ba850cb6fd1fdd4251c7b4cdae6b7edf"
+        }
+      ],
+      "reviewSha256": "25c8e9cf1b3042c00e77b941544e13f3da805d6ed3d83f0214d81625f7e00094",
+      "referenceGapsRetained": true
+    },
+    "finiteContextAudit": {
+      "phases": 3,
+      "requestsIncludingPreviousFailedAttempts": 27,
+      "allMaxThinking256000": true,
+      "allProvidedAndRepresentedImagesByteVerified": true,
+      "entirePreviousRequestPrefixExact": true,
+      "observedPrunes": 0,
+      "scope": "Explicit finite same-session continuation; earlier long full chats remain separate, not all inline.27 outbound checks include previous failures, not27 successful responses."
+    },
+    "formalRenderStart": {
+      "jobId": "render-0001",
+      "modelTurnCompleted": true,
+      "modelTurnElapsedMs": 77099,
+      "sdkCalls": 9,
+      "formalCalls": 4,
+      "semanticRefusals": 0,
+      "incomingNineJsonAndSseCanonicalSemanticsVerified": true,
+      "profileName": "final",
+      "renderConfig": {
+        "resolution": [
+          1280,
+          720
+        ],
+        "samples": 128,
+        "engine": "cycles",
+        "viewTransform": "AgX",
+        "fps": 24
+      },
+      "cameraSelection": {
+        "schemaVersion": "deepblend.shot-camera-selection/v1",
+        "mode": "shots",
+        "shots": [
+          {
+            "id": "shot-01",
+            "cameraId": "camera-main",
+            "frameRange": [
+              1,
+              260
+            ]
+          },
+          {
+            "id": "shot-02",
+            "cameraId": "camera-eave",
+            "frameRange": [
+              261,
+              520
+            ]
+          },
+          {
+            "id": "shot-03",
+            "cameraId": "camera-buddha",
+            "frameRange": [
+              521,
+              700
+            ]
+          },
+          {
+            "id": "shot-04",
+            "cameraId": "camera-yard",
+            "frameRange": [
+              701,
+              830
+            ]
+          },
+          {
+            "id": "shot-05",
+            "cameraId": "camera-foliage",
+            "frameRange": [
+              831,
+              900
+            ]
+          }
+        ]
+      },
+      "frameRange": [
+        1,
+        900
+      ],
+      "frameCount": 900,
+      "snapshotStatus": "running",
+      "completedFramesAtSnapshot": 12,
+      "meanMsPerFrameAtSnapshot": 21786,
+      "firstActual720p128sppFrameIndependentlyViewed": true,
+      "firstFrameSha256": "612403ad8af029e83b98895d94e0903ac3cd50dde27ddcb87a8b96d0bac8fda2",
+      "readOnlySupervisorKeepsFormalHostAlive": true
+    },
+    "preservation": {
+      "r0060All174EntitiesRetained": true,
+      "sourceNativePinsUnchanged": true,
+      "originalOctober16NativeAndVideoShaUnchanged": true,
+      "personalDshOrSdkChanged": false,
+      "automationRemainsPaused": true
+    },
+    "fullFilmAccepted": false,
+    "editableNewDeliveryComplete": false,
+    "mergedOrPublished": false,
+    "scope": "Maintainer-guided CC0-assisted task continuation and independent QA. No arbitrary one-shot success, isolated model-upgrade causality, reference parity or external adoption proof."
   }
 }
