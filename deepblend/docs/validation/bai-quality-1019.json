@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "status": "formal-r73-film-complete-finishing-rejected-pond-repair-pending-not-released",
+  "status": "r75-pond-bridge-repair-accepted-formal900-render-running-not-released",
   "baselinePlugin": "0.15.0",
   "host": "0.2.1-rc.1",
   "route": "bai/deepseek-v4.1-flash",
@@ -295,10 +295,10 @@
     "allPagodaNativeAudit": "900/900 integer frames, 0 selected subject envelope failures; no case scene changes during QA"
   },
   "qualityRemaining": [
-    "Finish formal-plugin-only pond-water bounded repair, prove only intended field changed and inspect actual same-camera before/after previews.",
-    "New revision native/source/geometry and15-image review, then complete formal900-frame film and full technical/visual acceptance.",
-    "Finish byte-exact plugin-native editable delivery/assets/credits/checksums; retain failed r73 and all old sources.",
-    "After complete case gates: final documentation/contracts/CI/source-bound clean-main build, GitHub/seven npm/archive readback/three actual install routes/community projection."
+    "Completeactualr75render-0002all900frames; verifyPNGintegrity/native/source/shotbindings, MP4decode/cadence/fullpixelcorrespondence.",
+    "Inspectall900consecutivefinalframes,cut/critical/motionflagframesand15saved-shotnativefinalkeyframes plus repairedyard772. R75has3repairbeauty960x540/48and1extra1920x1080/48, not15fresh960diagnostics; fullnativefilmprovidesstrongercoverage.",
+    "Finishbyte-exactnative/SceneSpec/rawassets/licenses/output/manifests/checksumsdelivery; originalhistoryandfailedr73filmremainretained. Nativestillhaspreviewdefaultsandnoauto-cutmarkers.",
+    "Afterallcasegates:finaldocumentation/contracts/CI,cleanpushedmainbuild,GitHub/assets/SHA,7npmarchives/readback,3realinstallroutes,communityprojection/updatePR; noemptyorunverifiedrelease."
   ],
   "publicationStatus": "0.16 source candidate only; no new GitHub Release, npm package or community submission",
   "networkObservation": {
@@ -918,8 +918,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-21T11:21:07.791239+00:00",
-  "currentBlocker": "All900 native final frames and MP4 completed and technically verified; complete visual review found black strips at front pond rim. Water volume overlaps front/back stone rim and shares outer end planes, consistent with coplanar fighting. Same-session bai/max formal bounded repair pending; r0073 and its completed film retained, no release.",
+  "updatedAt": "2026-10-21T15:04:21.715132+00:00",
+  "currentBlocker": "r73completefilmwasvisuallyrejectedforpond/bridgeblackstrips. Formalr74/r75boundedrepairsandactualmatchedpreviewsnowpass; r75render-0002isrunning900continuousnativeframes1280x720/128/24fps/savedfivecameras. Needcompletefilmtechnical/all900visual/15nativekeyframeacceptanceandeditablehandoverbefore0.16standardrelease.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -2371,5 +2371,205 @@
     "filmPreserved": true,
     "formalRepairPhase": "r74-pond-repair-1021-v1",
     "releaseAllowed": false
+  },
+  "frozenF4PondBridgeRepair20261021": {
+    "fromRevision": "r0073",
+    "waterRevision": "r0074",
+    "currentRevision": "r0075",
+    "onlyChangesFromR73": [
+      {
+        "entity": "pond-water",
+        "field": "transform.scale[1]",
+        "before": 18,
+        "after": 16.8
+      },
+      {
+        "entity": "bridge-deck",
+        "field": "transform.scale[1]",
+        "before": 18,
+        "after": 18.1
+      }
+    ],
+    "allOtherSceneSpecFieldsExact": true,
+    "r75SceneSpecSha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7",
+    "r75NativeSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "repairMechanism": "WaterfitsinnerpondY[-34.4,-17.6]; bridgeendsseat5cmbeyondouterrimYplanes[-35.05,-16.95], removingformerlysharedouterendplanes. Intentionalbridge-to-bankassemblyoverlapremains, notuniversalintersectioncertification.",
+    "matchedActualRepairViews": [
+      [
+        "camera-yard",
+        772
+      ],
+      [
+        "camera-main",
+        130
+      ],
+      [
+        "camera-foliage",
+        900
+      ]
+    ],
+    "actualBeforeAfterCameraFactsAndRenderConfigIdentical": true,
+    "repairBeautyConditions": [
+      960,
+      540,
+      48
+    ],
+    "allThreeViewedFullSize": true,
+    "blackStripsRemoved": true,
+    "modelExtraDetailView": {
+      "camera": "camera-yard",
+      "frame": 772,
+      "conditions": [
+        1920,
+        1080,
+        48
+      ],
+      "viewedOriginalSize": true,
+      "passed": true,
+      "notSamePixelConditionsAs960Comparison": true
+    },
+    "currentNativeAudit": {
+      "sampledUniqueFrames": 900,
+      "surfaceNearFrames": 0,
+      "surfaceCrossingChords": 0,
+      "subjectEnvelopeFailures": 0,
+      "nativeCameraCurveLensScaleAndAll900PositionsExactToR73": true,
+      "cameras": 5,
+      "curves": 8,
+      "keys": 16,
+      "interpolation": "defaultBEZIER/AUTO_CLAMPED, noexplicitlinearrequest",
+      "visibleMeshes": 166,
+      "triangles": 7701763,
+      "fileImages": 42,
+      "allFileImagesPacked": true,
+      "buddhaBoundsSeparationMm": -0.07283687591552734,
+      "notContactOrShaderPixelCertificate": true
+    },
+    "preservation": {
+      "original350FilesUnchanged": true,
+      "october16DeliveredNativeAndMovieUnchanged": true,
+      "primaryHead": "c6642ff717809414013fd61658125d4d9d905f47",
+      "primaryStatusEntries": 15,
+      "primaryStatusSha256": "dfd9c4c0db781c2e592f162f0a40acd3ae8861d8d0edfe87292a51cabfc04be2",
+      "failedR73MovieAndManifestsSeparateByteExactCopies": true,
+      "oldR73All900PngAndNativeRetained": true,
+      "agentModifiedPersonalDshOrSdk": false
+    },
+    "f4TaskMetrics": {
+      "phasesInitiated": 13,
+      "allSdkCallsSoFar": 132,
+      "formalDeepBlendCallsSoFar": 103,
+      "terminalPhaseElapsedMsIncludingFailedAndSuperseded": 25932755,
+      "allPhasesNormalCompletion": false,
+      "actualRefusalCodes": {
+        "BLENDER_SCRIPT_ERROR": 1,
+        "SCENE_PATCH_INVALID": 2,
+        "SCENE_SPEC_INVALID": 1
+      }
+    },
+    "metricsScope": "13explicitmaintainertaskphasesonly,includescalibration/failure/rework/stops. Terminalphaseelapsed25,932,755msexcludesfullr73/r75renderruntimesandisnotwholecase/useroneshotlatency; allphasesnotnormal.",
+    "r74Phase": {
+      "sdkTools": 13,
+      "formalTools": 12,
+      "elapsedMs": 2188214,
+      "ended": "TRANSPORTaftercommitand3previews",
+      "normalCompleted": false
+    },
+    "r75FiniteRepairPhase": {
+      "sdkTools": 13,
+      "formalTools": 11,
+      "elapsedMs": 6722855,
+      "modelExtraPreview": true,
+      "semanticRefusals": 0,
+      "ended": "qualifiedstopafter3SocketErrorsandzeroawaitedtoolresults",
+      "normalCompleted": false
+    },
+    "sameFiniteRepairAndFailedRenderStartContext": {
+      "mainRequests": 23,
+      "allMaxThinking256000": true,
+      "imagesAndPreviousMessagePrefixesVerified": true,
+      "prunes": 0,
+      "notAllOldGlobalHistoryInline": true
+    },
+    "latestTechnicalRenderStart": {
+      "scope": "Explicitfrozenr75technicalhandoff,noaddeduserimagesorartdecisions; priorimage/historyrecordsretainedseparately.",
+      "sdkTools": 6,
+      "formalTools": 5,
+      "elapsedMs": 875256,
+      "normalCompleted": true,
+      "formalSceneValidateOk": true,
+      "semanticRefusals": 0,
+      "mainRequests": 5,
+      "allMainMaxThinking256000": true,
+      "automaticTitleRequests": 1,
+      "automaticTitleEffort": "low",
+      "automaticTitleMaxTokens": 4096,
+      "titleIdentifiedFromExplicitSdkEventAndWireTimestamp": true,
+      "allSixHttpResponses200": true,
+      "fetchErrors": 0,
+      "all6IncomingArgumentDocumentsSemanticallyPreserved": true,
+      "prunes": 0,
+      "longToolReceiptFullTextRetainedBytes": 238663
+    },
+    "fullFilmAccepted": false,
+    "noReferenceParityModelUpgradeCausalityArbitraryOneShotOrAdoptionClaim": true
+  },
+  "frozenF4R75RenderProgress20261021": {
+    "jobId": "render-0002",
+    "revision": "r0075",
+    "statusAtCapture": "running",
+    "frameRange": [
+      1,
+      900
+    ],
+    "expectedFrames": 900,
+    "renderConfig": {
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 128,
+      "engine": "cycles",
+      "viewTransform": "AgX",
+      "fps": 24
+    },
+    "cameraSelectionMode": "shots",
+    "shots": [
+      [
+        "camera-main",
+        1,
+        260
+      ],
+      [
+        "camera-eave",
+        261,
+        520
+      ],
+      [
+        "camera-buddha",
+        521,
+        700
+      ],
+      [
+        "camera-yard",
+        701,
+        830
+      ],
+      [
+        "camera-foliage",
+        831,
+        900
+      ]
+    ],
+    "startedAt": 1792593159835,
+    "managedHostKeptByReadOnlySupervisor": true,
+    "modelTurnNormalCompleted": true,
+    "nativeCheckpointSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "firstActualFinal1280x720FrameViewed": 1,
+    "firstFrameArtPassIsNotWholeFilmAcceptance": true,
+    "readOnlyByteContactAndPixelWatchersPrepared": true,
+    "r75NativeAssetsSnapshotFilesStaged": 56,
+    "stagedSnapshotNotFinalDelivery": true,
+    "notMergedReleasedOrCommunitySubmitted": true
   }
 }
