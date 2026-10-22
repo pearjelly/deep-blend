@@ -153,3 +153,36 @@ were removed. Its archive module SHA256 was
 `88db01dd4b8e7c504a6e2ad3641f802bd6e93ab0dab890e520e0e8f337eed393`.
 This does not establish Windows extractor, network-filesystem or power-loss
 behavior. Relocation/reopen checks are separate acceptance work.
+
+## Actual pagoda acceptance, 2026-10-22
+
+The integrated candidate at `d68f6d452b476c8c0b4c8fb6739b13c7ef59112f`
+was exercised through the real workbench with an isolated copy of the pagoda
+project. Selecting `r0075` and `render-0002`, cancelling during planning, retrying
+the same request, reloading and using the download button all passed. The first
+planning response returned in 122 ms. The downloaded ZIP was 1,120,937,071 bytes;
+independent Python verification checked its whole-file SHA256, every member CRC
+and hash, and all 58 original members against the pre-export baseline. The other
+four members were generated metadata. All 28 relative references in four glTF
+models resolved, and the standalone GLB had no external URI.
+
+Blender 5.2.1 LTS on macOS arm64 opened the extracted native file from a new
+directory with factory startup and autoexec disabled. Its 42 packed FILE images
+were readable; five cameras and frames 1–900 were preserved; there were no linked
+libraries or unpacked resource paths. This check did not edit, save or render.
+The native defaults remained 640×360/48 samples; recreating the existing film
+still requires the plugin's saved shot orchestration.
+
+Twelve real HTTP checks covered repeated requests, conflicting inputs, store and
+local-origin guards, Range rejection, late cancellation and two deliberately
+interrupted downloads. The second transfer checked a prefix; the complete ZIP
+proof came from the separate browser download. Every one of the 2,169 original
+files in both the canonical project and acceptance copy retained its baseline
+SHA256. Owned browser and Host processes were closed afterwards.
+
+See the [sanitized acceptance record](../validation/editable-snapshot-1022.json)
+for source, archive and evidence digests. This proves one revision's relocation
+in the tested environment. It is not a full 75-revision import, generic resource
+self-containment, license clearance, Windows/network-filesystem acceptance or a
+new stable release. Only the observation-only external file was excluded; native
+bytes and their embedded contents were retained unchanged.
