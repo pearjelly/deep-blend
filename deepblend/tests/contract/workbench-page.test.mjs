@@ -407,8 +407,8 @@ if (core === undefined) {
   check('mountStandalone renders the whole workbench with no React in the process',
     drawn !== null && drawn.tag === 'div' && drawn.attrs['data-deepblend-panel'] === 'deepblend',
     drawn === null ? null : { tag: drawn.tag, attrs: drawn.attrs })
-  check('and it renders all six tabs, from the one view list',
-    JSON.stringify(attrsNamed(drawn, 'data-view-tab')) === JSON.stringify(core.VIEWS.map(view => view.id)),
+  check('and it renders all six destinations, derived from the one view list',
+    JSON.stringify([...attrsNamed(drawn, 'data-view-tab')].sort()) === JSON.stringify(core.VIEWS.map(view => view.id).sort()),
     attrsNamed(drawn, 'data-view-tab'))
   check('it installed the workbench stylesheet and the standalone theme fallback',
     doc.head.children.length === 2, doc.head.children.map(tag => tag.dataset.pluginCss))
@@ -648,8 +648,10 @@ if (core !== undefined) {
     roots.length === 1 && roots[0].props['data-deepblend-panel'] === 'deepblend',
     roots.map(node => node.props['data-deepblend-panel']))
   const tabs = findNodes(tree, node => node.props['data-view-tab'] !== undefined).map(node => node.props['data-view-tab'])
-  check('and it renders all six tabs',
-    JSON.stringify(tabs) === JSON.stringify(exports.workbench.VIEWS.map(view => view.id)), tabs)
+  check('and it renders all six destinations',
+    JSON.stringify([...tabs].sort()) === JSON.stringify(exports.workbench.VIEWS.map(view => view.id).sort()), tabs)
+  check('the creation journey leads, with versions and QA available as secondary destinations',
+    JSON.stringify(tabs) === JSON.stringify(['projects', 'preview', 'scene', 'jobs', 'revisions', 'qa']), tabs)
   // `buildWorkbenchView` is called from exactly three places, and the count is the
   // claim: the definition, the console seat, and the standalone mount. A fourth
   // call site would be a second panel; a missing one would mean a face that kept

@@ -1,33 +1,51 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-22T03:17:29.960374+00:00",
+  "at": "2026-10-22T09:02:43.022265+00:00",
   "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
-  "uiSha256": "afc529941628e9363e8e6edc6510618cd1e4f5a29d794ee3b17987d071377387",
+  "uiSha256": "dae953a235b0c256d2a25ba17402b9710d10b95d48cc984048c79299a73bc9ae",
   "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Unpublished editable-export candidate: actual Chrome/DSH/Blender photography regression, 36 checks using the cup fixture; desktop and 390px original captures viewed. No model calls. This is not pagoda artistic acceptance.",
+  "scope": "Current Lighttable UI desktop and narrow photography saved-source draft captures. The earlier 36-check native regression is retained separately in nativeRegression; this screenshot refresh did not rerun that suite.",
   "images": [
     {
       "file": "draft.png",
-      "original": "04-reused-photography-draft.png",
-      "sha256": "62f04dbd2cc2c791658139edb26fa2659c6010ac682383b68df6782202c40ccd",
-      "bytes": 181608,
+      "original": "draft.png",
+      "sha256": "c67d5b25c0964ab1b6d73d43c101adf8ca81a0673708888f4c1c2296ee9da978",
+      "bytes": 357654,
       "width": 1440,
       "height": 1013,
-      "postProcessed": false
+      "postProcessed": false,
+      "encodingConversion": {
+        "sourceFormat": "JPEG",
+        "sourceSha256": "cd583cd57468e0d4e9dd7bad76d321e514970d0f5b0630b76160dd9c4d2eabd6",
+        "pngSha256": "c67d5b25c0964ab1b6d73d43c101adf8ca81a0673708888f4c1c2296ee9da978",
+        "decodedPixelsIdentical": true,
+        "cropped": false,
+        "resized": false,
+        "colorAdjusted": false
+      }
     },
     {
       "file": "narrow.png",
-      "original": "05-narrow-photography-reuse.png",
-      "sha256": "cb08eaad242bfd6aabe0e3f7a8cd895010550f56173558616438f0236b43ff24",
-      "bytes": 84197,
+      "original": "narrow.png",
+      "sha256": "452cfbe1d3bd4a9eaa51e2906700e60452cb8a184b5cc579383a1ffc23124f84",
+      "bytes": 211896,
       "width": 390,
       "height": 844,
-      "postProcessed": false
+      "postProcessed": false,
+      "encodingConversion": {
+        "sourceFormat": "JPEG",
+        "sourceSha256": "94d263db22b4d3d8d05322ec9ca9c4c535b62821ccb411ebaf5bf98007c1087f",
+        "pngSha256": "452cfbe1d3bd4a9eaa51e2906700e60452cb8a184b5cc579383a1ffc23124f84",
+        "decodedPixelsIdentical": true,
+        "cropped": false,
+        "resized": false,
+        "colorAdjusted": false
+      }
     }
   ],
-  "viewedAt": "2026-10-22T03:17:29.960374+00:00",
+  "viewedAt": "2026-10-22T09:02:43.022265+00:00",
   "license": "MIT",
   "author": "DeepBlend contributors",
   "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
@@ -35,5 +53,26 @@
   "sourceReportSha256": "12dabc89d79a5b23fe9ccb077820561e83c31964ff6a6b1b1c34aa732e95513d",
   "sourceRequestsSha256": "267923b62d1f9db1995a8c254c17a616d8ef19a35289c5e41789b3c87b739e40",
   "reproductionGuide": "../../photography-editor.md",
-  "postProcessed": false
+  "postProcessed": false,
+  "nativeRegression": {
+    "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
+    "at": "2026-10-22T03:17:29.960374+00:00",
+    "uiSha256": "afc529941628e9363e8e6edc6510618cd1e4f5a29d794ee3b17987d071377387",
+    "nativeChecks": 36,
+    "sourceReportSha256": "12dabc89d79a5b23fe9ccb077820561e83c31964ff6a6b1b1c34aa732e95513d",
+    "sourceRequestsSha256": "267923b62d1f9db1995a8c254c17a616d8ef19a35289c5e41789b3c87b739e40",
+    "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
+    "toolSha256": "c9107135fbae6985a4d0b233f1f795a335efa3bbb99939c7e3e5022f93e2dc98",
+    "scope": "Unpublished editable-export candidate: actual Chrome/DSH/Blender photography regression, 36 checks using the cup fixture; desktop and 390px original captures viewed. No model calls. This is not pagoda artistic acceptance."
+  },
+  "capture": {
+    "interaction": "cua-browser-ui",
+    "source": ".tmp-design-review/photo-docs-refresh",
+    "report": "capture-report.json",
+    "reportSha256": "90d57a04b0ee6b5dffc2541b19b547ab3547bbb5307dfd0b149fb114e7b5cc41",
+    "uiSha256": "dae953a235b0c256d2a25ba17402b9710d10b95d48cc984048c79299a73bc9ae",
+    "nativeRegressionRerun": false,
+    "scope": "Current Lighttable UI photography saved-source draft interaction and actual desktop/narrow captures. No native photography suite rerun and no save, render, model call or source change in this refresh. Earlier 36-check native regression remains separate historical evidence.",
+    "encodingNote": "Browser returned JPEG bytes; files were normalized to PNG with identical decoded pixels. No crop, resize, recolor or overlay."
+  }
 }

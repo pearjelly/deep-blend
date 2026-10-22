@@ -112,6 +112,47 @@ window.__ModuleLoader__.load({
       'workbench.system': '跟随系统',
       'workbench.light': '浅色',
       'workbench.dark': '深色',
+      'lighttable.start': '开始',
+      'lighttable.brief': '需求',
+      'lighttable.briefHint': '保存目标与参考，再查看结果。需要新的建模操作时，在 DSH 对话中继续描述。',
+      'lighttable.historyTitle': '已保存的结果',
+      'lighttable.overview': '场景信息',
+      'recipes.about': '说明与许可',
+      'assembly.saving': '正在保存并生成预览…',
+      'lighttable.result': '看结果',
+      'lighttable.adjust': '调整',
+      'lighttable.deliver': '导出',
+      'lighttable.new': '新作品',
+      'lighttable.project': '当前作品',
+      'lighttable.settings': '工作台设置',
+      'lighttable.beginTitle': '从一个想法，开始一件作品',
+      'lighttable.beginHint': '选择一个起点，看到结果后继续调整。也可以在 DSH 对话中描述需求，让 DeepBlend 工具完成建模。',
+      'lighttable.goalHint': '记录这件作品的目标；自动建模请在 DSH 对话中描述需求。',
+      'lighttable.recent': '最近结果',
+      'lighttable.allVersions': '全部版本',
+      'lighttable.noImage': '这个版本还没有预览',
+      'lighttable.noImageHint': '保存的工程仍在。回到当前版本生成预览，或从版本页保存可编辑副本。',
+      'lighttable.saved': '已保存 · {revision}',
+      'lighttable.imageSource': '图片来源 · {revision}',
+      'lighttable.sourceUnknown': '来源暂无法确认',
+      'lighttable.history': '正在查看历史版本 {revision}；当前保存的是 {current}。',
+      'lighttable.backCurrent': '回到当前版本',
+      'lighttable.compareCurrent': '与当前版本比较',
+      'lighttable.historyExport': '到版本页保存这份副本',
+      'lighttable.details': '图片与来源详情',
+      'lighttable.tools': '调整作品',
+      'lighttable.toolsHint': '修改尺寸、外观与摄影，保存后查看真实结果。',
+      'lighttable.previewTools': '查看与检查',
+      'lighttable.previewHint': '生成新预览，或比较已保存的结果。',
+      'lighttable.deliveryTitle': '交付作品',
+      'lighttable.deliveryHint': '渲染影片，或保存一个可以继续编辑的版本。',
+      'lighttable.editable': '保存可编辑副本',
+      'lighttable.outline': '选择对象与查看场景',
+      'lighttable.photography': '摄影与灯光',
+      'lighttable.assets': '素材与参考',
+      'lighttable.guide': '创作提示',
+      'lighttable.projectList': '继续已有作品',
+      'lighttable.loading': '正在打开你的工作台',
       'workbench.navigation': '工作台页面',
       'workbench.unsaved': '有未保存的修改',
       'projects.name': '作品名称',
@@ -615,7 +656,7 @@ window.__ModuleLoader__.load({
       'preview.latest': '最新预览',
       'preview.compare': '查看：',
       'preview.lastVsThis': '上一次 vs 本次渲染',
-      'preview.twoRevisions': '两个 revision',
+      'preview.twoRevisions': '版本对比',
       'preview.structuralDiff': '看结构差异',
       'preview.identical': '结构完全相同',
       'jobs.empty': '还没有渲染任务。',
@@ -708,7 +749,6 @@ window.__ModuleLoader__.load({
       "snapshot.progress": "{done} / {total}",
       "snapshot.noRevision": "暂无可保存的版本。",
       "snapshot.interrupted": "准备被中断，可重试同一份副本。",
-      'host.reading': '读取 Host 状态…',
       'diagnostics.exportHint': '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
       'diagnostics.export': '导出诊断',
       'common.refresh': '刷新',
@@ -763,7 +803,6 @@ window.__ModuleLoader__.load({
       'jobs.approval': '需审批：{frames} 帧 > 阈值 {threshold}',
       'jobs.approvalShort': '需审批：{frames} 帧 > {threshold}',
       'qa.noticeCount': '{count} 条 notices',
-      'workbench.title': '{panel} 工作台',
       'jobs.unfinished': '{count} 个任务在跑',
       'blender.probedAt': '探测于 {when}',
       'visual.operationCount': '{count} 个操作',
@@ -780,6 +819,47 @@ window.__ModuleLoader__.load({
       'workbench.system': 'System',
       'workbench.light': 'Light',
       'workbench.dark': 'Dark',
+      'lighttable.start': 'Start',
+      'lighttable.brief': 'Brief',
+      'lighttable.briefHint': 'Save the goal and references, then inspect the result. Describe further modeling work in DSH chat.',
+      'lighttable.historyTitle': 'Saved result',
+      'lighttable.overview': 'Scene information',
+      'recipes.about': 'About and license',
+      'assembly.saving': 'Saving and rendering…',
+      'lighttable.result': 'See results',
+      'lighttable.adjust': 'Adjust',
+      'lighttable.deliver': 'Export',
+      'lighttable.new': 'New work',
+      'lighttable.project': 'Current work',
+      'lighttable.settings': 'Workbench settings',
+      'lighttable.beginTitle': 'Start with an idea',
+      'lighttable.beginHint': 'Choose a starting point, see the result, then refine it. You can also describe the work in DSH chat and use the DeepBlend tools to model it.',
+      'lighttable.goalHint': 'Record the goal for this work. Describe modeling instructions in DSH chat to run the tools.',
+      'lighttable.recent': 'Recent results',
+      'lighttable.allVersions': 'All versions',
+      'lighttable.noImage': 'No preview for this version yet',
+      'lighttable.noImageHint': 'The saved project is still available. Return to the current version to render a preview, or save an editable copy from Versions.',
+      'lighttable.saved': 'Saved · {revision}',
+      'lighttable.imageSource': 'Image source · {revision}',
+      'lighttable.sourceUnknown': 'Source not yet confirmed',
+      'lighttable.history': 'Viewing saved version {revision}; the current saved version is {current}.',
+      'lighttable.backCurrent': 'Return to current version',
+      'lighttable.compareCurrent': 'Compare with current',
+      'lighttable.historyExport': 'Save this version from Versions',
+      'lighttable.details': 'Image and source details',
+      'lighttable.tools': 'Adjust your work',
+      'lighttable.toolsHint': 'Change dimensions, appearance and photography, then save to see the real result.',
+      'lighttable.previewTools': 'View and inspect',
+      'lighttable.previewHint': 'Render a new preview or compare saved results.',
+      'lighttable.deliveryTitle': 'Deliver your work',
+      'lighttable.deliveryHint': 'Render a film or save a version you can keep editing.',
+      'lighttable.editable': 'Save an editable copy',
+      'lighttable.outline': 'Choose an object and explore the scene',
+      'lighttable.photography': 'Photography and lighting',
+      'lighttable.assets': 'Assets and references',
+      'lighttable.guide': 'Creative guidance',
+      'lighttable.projectList': 'Continue an existing work',
+      'lighttable.loading': 'Opening your workbench',
       'workbench.navigation': 'Workbench pages',
       'workbench.unsaved': 'Unsaved changes',
       'projects.name': 'Project name',
@@ -1376,7 +1456,6 @@ window.__ModuleLoader__.load({
       "snapshot.progress": "{done} / {total}",
       "snapshot.noRevision": "There is no saved version yet.",
       "snapshot.interrupted": "Preparation was interrupted. You can retry the same copy.",
-      'host.reading': 'Reading Host state…',
       'diagnostics.exportHint': 'Export diagnostics you can attach to a bug report (versions, config, a summary of projects and jobs)',
       'diagnostics.export': 'Export diagnostics',
       'common.refresh': 'Refresh',
@@ -1431,7 +1510,6 @@ window.__ModuleLoader__.load({
       'jobs.approval': 'approval needed: {frames} frames > threshold {threshold}',
       'jobs.approvalShort': 'approval needed: {frames} frames > {threshold}',
       'qa.noticeCount': '{count} notice(s)',
-      'workbench.title': '{panel} workbench',
       'jobs.unfinished': '{count} job(s) running',
       'blender.probedAt': 'probed {when}',
       'visual.operationCount': '{count} operation(s)',
@@ -1536,12 +1614,12 @@ window.__ModuleLoader__.load({
     const POLL_IDLE_MS = 8000
 
     const VIEWS = [
-      { id: 'projects', get label() { return t('tab.projects') } },
-      { id: 'scene', get label() { return t('tab.scene') } },
-      { id: 'preview', get label() { return t('tab.preview') } },
-      { id: 'jobs', get label() { return t('tab.jobs') } },
-      { id: 'qa', label: 'QA' },
-      { id: 'revisions', get label() { return t('tab.revisions') } },
+      { id: 'projects', stage: 0, get label() { return t('lighttable.start') } },
+      { id: 'scene', stage: 2, get label() { return t('lighttable.adjust') } },
+      { id: 'preview', stage: 1, get label() { return t('lighttable.result') } },
+      { id: 'jobs', stage: 3, get label() { return t('lighttable.deliver') } },
+      { id: 'qa', secondaryOrder: 1, label: 'QA' },
+      { id: 'revisions', secondaryOrder: 0, get label() { return t('tab.revisions') } },
     ]
 
     /** Every DeepBlend wire tool name this package draws a card for. */
@@ -1846,9 +1924,9 @@ window.__ModuleLoader__.load({
     const BRAND_MARK = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20512%20512%22%20role%3D%22img%22%20aria-label%3D%22DeepBlend%20Studio%20logo%22%3E%0A%20%20%3Ctitle%3EDeepBlend%20Studio%3C%2Ftitle%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22mark%22%20x1%3D%220.1%22%20y1%3D%220%22%20x2%3D%220.85%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23FFC078%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.45%22%20stop-color%3D%22%23F2802A%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23C85C08%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22url%28%23mark%29%22%2F%3E%0A%20%20%3Cg%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%2211%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L386%20331%20L256%20406%20L126%20331%20L126%20181%20Z%22%20fill%3D%22%23FFFFFF%22%20fill-opacity%3D%220.14%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L256%20256%20L126%20181%20Z%22%20fill%3D%22%23FFFFFF%22%20fill-opacity%3D%220.34%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L126%20181%20L126%20331%20L256%20406%20Z%22%20fill%3D%22%237A3200%22%20fill-opacity%3D%220.16%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L386%20181%20L386%20331%20L256%20406%20Z%22%20fill%3D%22%235C2400%22%20fill-opacity%3D%220.22%22%20stroke%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20106%20L386%20181%20L386%20331%20L256%20406%20L126%20331%20L126%20181%20Z%22%20fill%3D%22none%22%20opacity%3D%220.93%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M256%20256%20L256%20106%20M256%20256%20L386%20331%20M256%20256%20L126%20331%22%20fill%3D%22none%22%20opacity%3D%220.93%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A'
 
     const CSS = `
-.db-root{container-type:inline-size;container-name:deepblend;--db-good:#23704e;--db-warn:#946109;--db-bad:#b0303c;--db-input-border:#8492a5;--db-accent:#b95516;--db-accent-soft:#f8e9de;--db-canvas:var(--dsw-alias-bg-layer-1);--db-surface:var(--dsw-alias-bg-layer-1);--db-border:var(--dsw-alias-border-l1);--db-fill:var(--dsw-alias-fill-l2);--db-text:var(--dsw-alias-label-primary);--db-subtle:var(--dsw-alias-label-secondary);--db-muted:var(--dsw-alias-label-secondary);display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;background:var(--db-canvas);color:var(--db-text);font:13px/1.55 var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
-.db-root[data-theme=light],.db-root[data-theme=system]{color-scheme:light;--db-canvas:#f1f3f6;--db-surface:#fff;--db-border:#dce1e8;--db-fill:#f0f3f7;--db-text:#202b3c;--db-subtle:#4e5d70;--db-muted:#637186}
-.db-root[data-theme=dark]{color-scheme:dark;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692;--db-accent:#f3a365;--db-accent-soft:#3c2d23}
+.db-root{container-type:inline-size;container-name:deepblend;--db-good:#23704e;--db-warn:#946109;--db-bad:#b0303c;--db-input-border:#8492a5;--db-accent:#295bc8;--db-accent-soft:#e8eefc;--db-canvas:var(--dsw-alias-bg-layer-1);--db-surface:var(--dsw-alias-bg-layer-1);--db-border:var(--dsw-alias-border-l1);--db-fill:var(--dsw-alias-fill-l2);--db-text:var(--dsw-alias-label-primary);--db-subtle:var(--dsw-alias-label-secondary);--db-muted:var(--dsw-alias-label-secondary);display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;background:var(--db-canvas);color:var(--db-text);font:14px/1.55 var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)}
+.db-root[data-theme=light],.db-root[data-theme=system]{color-scheme:light;--db-canvas:#f4f6fa;--db-surface:#fff;--db-border:#d8dee8;--db-fill:#edf1f7;--db-text:#20252e;--db-subtle:#47566a;--db-muted:#58677c}
+.db-root[data-theme=dark]{color-scheme:dark;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692;--db-accent:#96b6ff;--db-accent-soft:#263b62}
 .db-root *{box-sizing:border-box}
 .db-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--db-border,var(--dsw-alias-border-l1));background:var(--db-surface,var(--dsw-alias-bg-layer-1));flex:none;flex-wrap:wrap}
 .db-brand{display:flex;align-items:center;gap:10px;flex:none}
@@ -1876,11 +1954,11 @@ window.__ModuleLoader__.load({
 .db-row>span:first-child{color:var(--db-muted,var(--dsw-alias-label-tertiary));flex:none;min-width:90px}
 .db-row>span:last-child{min-width:0;overflow-wrap:anywhere;font-family:var(--dsw-font-mono);font-size:12px}
 .db-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--db-fill,var(--dsw-alias-fill-l2));border:1px solid var(--db-border,var(--dsw-alias-border-l1));border-radius:7px;color:var(--db-text,var(--dsw-alias-label-primary));cursor:pointer;font:inherit;font-size:12px;min-height:34px;padding:6px 12px;text-decoration:none;line-height:1.4}
-.db-btn:hover:not(:disabled){border-color:var(--db-accent,var(--dsw-alias-brand-primary));background:var(--db-accent-soft,var(--dsw-alias-fill-l2))}
+.db-btn:hover:not(:disabled):not([data-tone=primary]){border-color:var(--db-accent,var(--dsw-alias-brand-primary));background:var(--db-accent-soft,var(--dsw-alias-fill-l2))}
 .db-btn:active:not(:disabled){filter:brightness(.95)}
 .db-btn:disabled{opacity:.48;cursor:not-allowed}
 .db-btn[data-tone=primary]{background:var(--db-accent,var(--dsw-alias-brand-primary,#3b6ef5));border-color:transparent;color:#fff;font-weight:650}
-.db-root[data-theme=dark] .db-btn[data-tone=primary]{color:#20170f}
+.db-root[data-theme=dark] .db-btn[data-tone=primary]{color:#14213b}
 .db-btn[data-tone=danger]{color:var(--db-bad,var(--dsw-alias-label-error,#d13438))}
 .db-btn[aria-pressed=true]{border-color:var(--db-accent);background:var(--db-accent-soft);color:var(--db-accent)}
 .db-root :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--db-accent);outline-offset:3px}
@@ -1955,9 +2033,9 @@ window.__ModuleLoader__.load({
 .db-scene-outline .db-kind{min-width:0;display:inline;margin:0 6px}
 .db-scene-outline .db-list>li>div{overflow-wrap:anywhere;font-size:12px}
 .db-scene-inspector{min-width:0}
-.db-notice{border-left:3px solid var(--db-good,var(--dsw-alias-label-success,#2f9e44));background:var(--db-fill,var(--dsw-alias-fill-l2));border-radius:6px;padding:9px 12px;color:var(--db-text,var(--dsw-alias-label-primary))}
+.db-notice{border:1px solid var(--db-border);background:var(--db-fill,var(--dsw-alias-fill-l2));border-radius:6px;padding:9px 12px;color:var(--db-text,var(--dsw-alias-label-primary))}
 .db-editor-actions{position:sticky;bottom:0;z-index:2;background:var(--db-surface);border-top:1px solid var(--db-border);margin:16px -18px -16px;padding:12px 18px;border-radius:0 0 12px 12px;box-shadow:0 -5px 18px #00000008}
-@media(prefers-color-scheme:dark){.db-root[data-theme=system]{color-scheme:dark;--db-accent:#f3a365;--db-accent-soft:#3c2d23;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692}.db-root[data-theme=system] .db-btn[data-tone=primary]{color:#20170f}}
+@media(prefers-color-scheme:dark){.db-root[data-theme=system]{color-scheme:dark;--db-accent:#96b6ff;--db-accent-soft:#263b62;--db-canvas:#10151d;--db-surface:#19212d;--db-border:#334155;--db-fill:#253142;--db-text:#edf2f8;--db-subtle:#c2ccda;--db-muted:#a2afc1;--db-good:#77c9a0;--db-warn:#efbc73;--db-bad:#ff979c;--db-input-border:#657692}.db-root[data-theme=system] .db-btn[data-tone=primary]{color:#14213b}}
 @media(max-width:1000px){.db-recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.db-head{padding:12px 16px}.db-body{padding:16px}.db-project-context{max-width:45%}.db-scene-layout{grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:14px}}
 @media(max-width:700px){.db-scene-layout{grid-template-columns:minmax(0,1fr)}.db-scene-outline{position:static;max-height:none;overflow:visible}.db-scene-outline>.db-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.db-project-context{max-width:100%;border-left:0;padding-left:0}.db-head-actions{margin-left:0;width:100%}.db-head-actions .db-theme{margin-left:auto}.db-head{gap:8px}.db-nav{padding:8px 12px}.db-create-footer{grid-template-columns:1fr 1fr}.db-create-footer .db-btn{grid-column:1/-1}.db-card{padding:14px}.db-body{padding:12px}.db-create-footer{margin:14px -14px -14px;padding:12px 14px}}
 @media(max-width:440px){.db-recipe-grid{grid-template-columns:minmax(0,1fr)}.db-create-footer{position:static;grid-template-columns:minmax(0,1fr)}.db-scene-outline>.db-grid{grid-template-columns:minmax(0,1fr)}.db-badge[data-badge=unsaved]{white-space:normal}.db-nav button{padding:6px 10px}.db-head{padding:10px 12px}.db-body{padding-top:8px}.db-tabs{gap:6px;padding:0 0 6px}}
@@ -1966,6 +2044,113 @@ window.__ModuleLoader__.load({
 @container deepblend (max-width:440px){.db-recipe-grid{grid-template-columns:minmax(0,1fr)}.db-create-footer{position:static;grid-template-columns:minmax(0,1fr)}.db-scene-outline>.db-grid{grid-template-columns:minmax(0,1fr)}.db-badge[data-badge=unsaved]{white-space:normal}.db-nav button{padding:6px 10px}.db-head{padding:10px 12px}.db-body{padding-top:8px}.db-tabs{gap:6px;padding:0 0 6px}}
 @media(pointer:coarse){.db-root .db-btn,.db-root .db-input,.db-nav button{min-height:42px}}
 @media(prefers-reduced-motion:reduce){.db-root *{scroll-behavior:auto!important;transition:none!important}}
+.db-root{--db-radius:8px;--db-space:16px;--db-motion:180ms;caret-color:var(--db-accent);font-variant-numeric:tabular-nums}
+.db-root ::selection{background:var(--db-accent-soft);color:var(--db-text)}
+.db-root a{text-underline-offset:.2em}
+.db-head{padding:12px 24px;gap:16px;flex-wrap:nowrap}
+.db-logo{width:28px;height:28px;border-radius:6px}
+.db-title{font-size:15px;letter-spacing:-.02em;white-space:nowrap}
+.db-head-actions{gap:6px;flex-wrap:nowrap}
+.db-project-switch{min-width:100px;max-width:280px;flex:1}
+.db-project-switch .db-input{background:transparent;border-color:transparent;font-weight:600}
+.db-nav{padding:0 24px;gap:24px;align-items:center;justify-content:space-between;overflow:visible}
+.db-journey,.db-secondary-nav{display:flex;gap:4px;min-width:0}
+.db-nav button{border-radius:0;border:0;border-bottom:2px solid transparent;min-height:46px;padding:10px 18px;font-size:13px}
+.db-nav button[data-active=true]{background:transparent;border-color:var(--db-accent);color:var(--db-accent)}
+.db-secondary-nav button{color:var(--db-muted);font-size:12px;padding:10px}
+.db-nav button:disabled{opacity:.42;cursor:not-allowed}
+.db-body{padding:24px;scroll-padding:24px}
+.db-body>[data-view],.db-body>.db-lighttable{max-width:1680px;margin-inline:auto}
+.db-card{border-radius:var(--db-radius);box-shadow:none}
+.db-card .db-card{border:0;border-top:1px solid var(--db-border);border-radius:0;padding-inline:0;background:transparent}
+.db-btn{min-height:36px;border-radius:6px;font-size:13px;transition:background var(--db-motion) ease-out,border-color var(--db-motion) ease-out}
+.db-input,.db-area{border-radius:6px;font-size:14px;min-height:38px}
+.db-btn[data-tone=primary]{box-shadow:none}
+.db-notice{border-left-width:1px;border-radius:6px}
+.db-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.db-utility-menu{position:relative;flex:none}
+.db-utility-menu>summary{font-size:12px;min-height:36px!important;padding:8px!important;white-space:nowrap}
+.db-utility-content{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:240px;background:var(--db-surface);border:1px solid var(--db-border);border-radius:8px;padding:16px;display:grid;gap:14px}
+.db-host-warning{margin:0;padding:8px 24px;color:var(--db-warn);background:var(--db-surface);font-size:12px}
+.db-lighttable{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,360px);gap:28px;align-items:start}
+.db-lighttable-stage{min-width:0;position:sticky;top:0}
+.db-result-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;min-height:45px}
+.db-result-heading h2{font-size:20px;line-height:1.3;letter-spacing:-.02em;margin:0 0 3px;font-weight:650;overflow-wrap:anywhere}
+.db-result-source{font-size:12px;color:var(--db-muted)}
+.db-result-mat{display:flex;align-items:center;justify-content:center;background:var(--db-fill);min-height:240px;height:clamp(220px,calc(100dvh - 550px),560px);overflow:hidden;border-radius:6px}
+.db-result-image{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+.db-result-empty{max-width:40ch;text-align:center;padding:32px;color:var(--db-muted)}
+.db-result-empty h3{font-size:17px;color:var(--db-text);margin:0 0 12px;font-weight:600}
+.db-result-empty p{margin:0;font-size:13px}
+.db-result-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;font-size:12px;flex-wrap:wrap}
+.db-image-details{font-size:12px;margin-top:8px;overflow-wrap:anywhere}
+.db-image-details>summary{font-size:12px;font-weight:400!important;min-height:28px!important}
+.db-image-details code{font-size:11px;overflow-wrap:anywhere}
+.db-filmstrip-heading{display:flex;align-items:center;justify-content:space-between;margin:12px 0 8px;gap:12px}
+.db-filmstrip-heading h3{font-size:13px;margin:0;font-weight:600}
+.db-filmstrip-heading .db-btn{border-color:transparent;background:transparent;font-size:12px;min-height:28px;padding:4px 0}
+.db-filmstrip{display:grid;grid-template-columns:repeat(6,minmax(0,110px));gap:10px}
+.db-film-frame{display:flex;flex-direction:column;min-width:0;background:transparent;border:1px solid transparent;border-radius:5px;padding:4px;cursor:pointer;color:var(--db-muted);font:inherit;text-align:left;transition:border-color 180ms ease-out,background-color 180ms ease-out}
+.db-film-frame img,.db-film-empty{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;background:var(--db-fill)}
+.db-film-frame img{display:block}
+.db-film-empty{display:flex;align-items:center;justify-content:center;font-size:10px;text-align:center;padding:6px}
+.db-film-frame:hover{background:var(--db-surface)}
+.db-film-frame[aria-pressed=true]{border-color:var(--db-accent);color:var(--db-accent);background:var(--db-surface)}
+.db-film-caption{display:flex;gap:4px;justify-content:space-between;font-size:11px;padding-top:5px;flex-wrap:wrap}
+.db-context-pane{min-width:0;max-height:calc(100dvh - 165px);overflow:auto;scrollbar-width:thin;scrollbar-color:var(--db-border) transparent;padding:0 4px 24px 0;scroll-padding:16px}
+.db-context-heading{margin-bottom:20px}
+.db-context-heading h2{font-size:17px;line-height:1.3;margin:0 0 8px;font-weight:650}
+.db-context-heading p{color:var(--db-muted);font-size:12px;max-width:44ch;margin:0}
+.db-context-pane .db-card{border:0;border-bottom:1px solid var(--db-border);border-radius:0;background:transparent;padding:0 0 20px;margin-bottom:20px}
+.db-context-pane .db-card h4{font-size:14px}
+.db-context-pane .db-inline{gap:8px}
+.db-context-pane .db-tabs{gap:8px}
+.db-context-pane .db-scene-layout{display:block}
+.db-context-pane .db-scene-outline{position:static;max-height:none;overflow:visible;border-block:1px solid var(--db-border);margin-bottom:16px}
+.db-context-pane .db-scene-outline>.db-grid{display:block;max-height:320px;overflow:auto;scrollbar-width:thin}
+.db-context-pane .db-scene-inspector{display:block}
+.db-context-pane .db-grid{grid-template-columns:minmax(0,1fr)}
+.db-context-pane .db-editor-actions{position:static;margin:16px 0 0;padding:12px 0;border-radius:0;box-shadow:none}
+.db-context-pane .db-area{min-height:180px}
+.db-context-pane .db-row{flex-wrap:wrap;gap:4px 12px}
+.db-context-pane .db-kv{grid-template-columns:minmax(80px,auto) minmax(0,1fr)}
+.db-tool-disclosure{border-top:1px solid var(--db-border);padding-top:8px;margin-top:16px}
+.db-guide{margin-top:20px;border-top:1px solid var(--db-border);padding:10px 0;font-size:12px}
+.db-guide-top{display:block;padding-top:8px}
+.db-guide-top>.db-inline{margin-top:10px}
+.db-guide .db-guide-notes{border:0}
+.db-history-context{display:grid;gap:12px;font-size:13px}
+.db-history-context p{margin:0 0 8px;color:var(--db-muted)}
+.db-lighttable--comparison{grid-template-columns:minmax(0,1fr)}
+.db-lighttable--comparison .db-lighttable-stage{position:static}
+.db-lighttable--comparison .db-context-pane{max-height:none;overflow:visible}
+.db-lighttable--comparison .db-context-pane .db-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.db-lighttable-stage--compact .db-filmstrip{display:flex;overflow:auto}
+.db-lighttable-stage--compact .db-film-frame{width:110px;flex:none}
+.db-project-create{max-width:1120px;margin-inline:auto;padding:30px;border:0;background:transparent}
+.db-start-title{margin:0 0 12px;font-size:28px;line-height:1.25;letter-spacing:-.025em;font-weight:650;text-wrap:balance}
+.db-start-intro{max-width:65ch;color:var(--db-muted);margin:0 0 28px!important;font-size:14px}
+.db-project-create>.db-muted{display:none}
+.db-project-create .db-recipes{margin-top:24px}
+.db-recipe-grid{gap:16px}
+.db-recipe{padding:0 0 14px;border-radius:8px;overflow:hidden;border:0;background:var(--db-surface)}
+.db-recipe img{border-radius:0;aspect-ratio:4/3}
+.db-recipe h5,.db-recipe p,.db-recipe>.db-btn{margin-inline:14px}
+.db-recipe .db-btn{margin-top:auto}
+.db-recipe[data-selected=true]{box-shadow:none;outline:2px solid var(--db-accent);outline-offset:2px;background:var(--db-surface)}
+.db-create-footer{position:static;border-radius:8px;margin:24px 0 0;padding:20px;background:var(--db-surface);border:0;box-shadow:none}
+.db-project-list{max-width:1060px;margin:36px auto 0;border:0;border-top:1px solid var(--db-border);border-radius:0;background:transparent;padding:24px 0}
+.db-project-list .db-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.db-loading{max-width:1200px;margin-inline:auto;width:100%}
+.db-loading-stage{height:48dvh;min-height:240px;background:var(--db-fill);border-radius:6px}
+.db-loading-line{height:36px;background:var(--db-fill);max-width:360px;margin-top:16px;border-radius:6px}
+@media(max-width:1000px){.db-lighttable{grid-template-columns:minmax(0,1fr) 320px;gap:20px}.db-head{padding:12px 16px}.db-nav{padding-inline:16px}.db-project-create{padding:20px}.db-journey button{padding-inline:12px}.db-result-mat{min-height:240px}.db-filmstrip{grid-template-columns:repeat(3,minmax(0,110px))}}
+@container deepblend (max-width:1000px){.db-lighttable{grid-template-columns:minmax(0,1fr) 320px;gap:20px}.db-head{padding:12px 16px}.db-nav{padding-inline:16px}.db-project-create{padding:20px}.db-journey button{padding-inline:12px}.db-result-mat{min-height:240px}.db-filmstrip{grid-template-columns:repeat(3,minmax(0,110px))}}
+@media(max-width:760px){.db-head{flex-wrap:wrap;gap:10px}.db-project-switch{max-width:none}.db-head-actions{margin-left:0;width:100%;justify-content:flex-end}.db-head-actions>.db-btn:first-child{margin-right:auto}.db-nav{gap:8px;overflow-x:auto}.db-journey{flex:none}.db-nav button{padding:9px 12px;min-height:42px}.db-secondary-nav{margin-left:auto}.db-secondary-nav button{padding-inline:8px}.db-body{padding:16px}.db-lighttable{grid-template-columns:minmax(0,1fr);gap:28px}.db-lighttable-stage{position:static}.db-result-heading h2{font-size:19px}.db-result-mat{min-height:220px;height:auto;aspect-ratio:4/3}.db-result-image{max-height:none;min-height:0}.db-context-pane{max-height:none;overflow:visible;padding-right:0}.db-filmstrip{display:flex;overflow-x:auto;padding-bottom:6px}.db-film-frame{width:100px;flex:none}.db-project-create{padding:12px 0}.db-start-title{font-size:25px}.db-create-footer{grid-template-columns:minmax(0,1fr);padding:16px}.db-start-intro{font-size:13px}.db-project-list .db-list{grid-template-columns:minmax(0,1fr)}.db-lighttable--comparison .db-context-pane .db-grid{grid-template-columns:minmax(0,1fr)}}
+@container deepblend (max-width:760px){.db-head{flex-wrap:wrap;gap:10px}.db-project-switch{max-width:none}.db-head-actions{margin-left:0;width:100%;justify-content:flex-end}.db-head-actions>.db-btn:first-child{margin-right:auto}.db-nav{gap:8px;overflow-x:auto}.db-journey{flex:none}.db-nav button{padding:9px 12px;min-height:42px}.db-secondary-nav{margin-left:auto}.db-secondary-nav button{padding-inline:8px}.db-body{padding:16px}.db-lighttable{grid-template-columns:minmax(0,1fr);gap:28px}.db-lighttable-stage{position:static}.db-result-heading h2{font-size:19px}.db-result-mat{min-height:220px;height:auto;aspect-ratio:4/3}.db-result-image{max-height:none;min-height:0}.db-context-pane{max-height:none;overflow:visible;padding-right:0}.db-filmstrip{display:flex;overflow-x:auto;padding-bottom:6px}.db-film-frame{width:100px;flex:none}.db-project-create{padding:12px 0}.db-start-title{font-size:25px}.db-create-footer{grid-template-columns:minmax(0,1fr);padding:16px}.db-start-intro{font-size:13px}.db-project-list .db-list{grid-template-columns:minmax(0,1fr)}.db-lighttable--comparison .db-context-pane .db-grid{grid-template-columns:minmax(0,1fr)}}
+@media(pointer:coarse){.db-root .db-btn,.db-root .db-input,.db-nav button,.db-root summary{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.db-root *{transition:none!important}}
+
 `
 
     /**
@@ -2043,6 +2228,17 @@ window.__ModuleLoader__.load({
      * so a typo is a missing call, not a blank cell. `toReact`/`toDom` refuse a
      * function tag loudly for the same reason.
      */
+
+    const disclosureKey = (state, id) => JSON.stringify([state.projectsRoot, state.storeIdentity,
+      id.startsWith('new:') ? 'new' : id.startsWith('global:') ? 'global' : state.activeProjectId || 'new', id])
+
+    function Disclosure({ state, actions }, id, title, props, ...children) {
+      const key = disclosureKey(state, id), { defaultOpen = false, ...rest } = props || {}
+      return el('details', { ...rest, key, 'data-disclosure': key,
+        open: state.disclosures?.[key] ?? defaultOpen,
+        onToggle: event => actions.setDisclosure(key, event.currentTarget.open) },
+        el('summary', { 'data-field': `disclosure-${encodeURIComponent(key)}` }, title), ...children)
+    }
 
     function Badge(props) {
       return el('span', { className: 'db-badge', 'data-tone': props.tone || 'muted', 'data-badge': props.name || undefined }, props.children)
@@ -2919,11 +3115,13 @@ window.__ModuleLoader__.load({
         previewContext: null,
         previewReadStatus: 'idle',
         view: 'projects',
+        projectTask: 'brief',
         projectId: null,
         activeProjectId: null,
         compareLeft: null,
         compareRight: null,
         compareMode: 'result',
+        lighttableSelection: null,
         diff: null,
         diffError: null,
         previewBusy: false,
@@ -3084,6 +3282,7 @@ window.__ModuleLoader__.load({
       }
       /** Change the snapshot and tell everyone. @param {object} patch */
       const set = (patch) => {
+        if (Object.hasOwn(patch, 'view') && patch.view !== 'projects') patch = { ...patch, projectTask: 'brief' }
         if (['projectId', 'projectsRoot', 'activeProjectId']
           .some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) previewSourceGeneration += 1
         // Automatic edit images are source snapshots too. They cannot override
@@ -3107,6 +3306,8 @@ window.__ModuleLoader__.load({
           patch = { ...patch, diff: null, diffError: null }
         }
         if (['projectsRoot', 'storeIdentity', 'activeProjectId'].some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) retireSnapshotContext()
+        if (['projectsRoot', 'storeIdentity', 'activeProjectId', 'currentRevision'].some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])
+          || Object.hasOwn(patch, 'view') && patch.view !== 'preview') patch = { ...patch, lighttableSelection: null }
         data = { ...data, ...patch }; notify()
       }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
@@ -3608,7 +3809,9 @@ window.__ModuleLoader__.load({
          * you just made. Clicking the tab you are already on is not a re-entry, so
          * it clears nothing.
          */
-        setView: (view) => (view === data.view ? undefined : set({ view, notices: { ...data.notices, [view]: null } })),
+        setView: (view) => (view === data.view ? undefined
+          : set({ view, ...(view === 'projects' ? { projectTask: 'brief' } : {}), notices: { ...data.notices, [view]: null } })),
+        beginNewWork: () => set({ view: 'projects', projectTask: 'new' }),
         selectProject: (projectId) => {
           if (projectId === data.activeProjectId) { reload(); return }
           const operation = bundleOperations.get(data.activeProjectId)
@@ -3862,7 +4065,7 @@ window.__ModuleLoader__.load({
           if (recipe && data.forms.recipe && recipeChoiceIdentity(recipe) === recipeChoiceIdentity(data.forms.recipe)) return
           const saved = recipe ? data.recipeChoices.find(choice => recipeChoiceIdentity(choice.recipe) === recipeChoiceIdentity(recipe)) : null
           if (saved && !recipeChoiceFits(recipe, saved.parameters)) { set({ creationDraftStorageStatus: 'invalid' }); return }
-          set({ creationDraftMissingRecipe: null, forms: { ...data.forms, recipe,
+          set({ creationDraftMissingRecipe: null, disclosures: { ...data.disclosures, [disclosureKey(data, 'new:recipe-gallery')]: false }, forms: { ...data.forms, recipe,
             recipeParameters: recipe ? saved ? copyRecipeParameters(saved.parameters)
               : Object.fromEntries(recipe.parameters.map(parameter => [parameter.id, Array.isArray(parameter.default) ? [...parameter.default] : parameter.default])) : {},
             title: !data.forms.title || data.forms.title === data.forms.recipe?.title ? recipe?.title || '' : data.forms.title,
@@ -3874,6 +4077,15 @@ window.__ModuleLoader__.load({
             [parameter.id, Array.isArray(parameter.default) ? [...parameter.default] : parameter.default])) } })
         },
         setRecipeParameter: (id, value) => setIn('forms', 'recipeParameters', { ...data.forms.recipeParameters, [id]: value }),
+        selectLighttableResult: revision => {
+          const saved = data.selected?.revisions?.some(entry => entry.revision === revision)
+          const available = data.previews?.revisions?.some(entry => entry.revision === revision)
+          if (!data.activeProjectId || !saved || !available) return
+          set({ view: 'preview', compareMode: 'result', lighttableSelection: {
+            projectId: data.activeProjectId, projectsRoot: data.projectsRoot, storeIdentity: data.storeIdentity, anchorRevision: data.currentRevision, revision,
+          } })
+        },
+        returnToCurrentResult: () => set({ view: 'preview', compareMode: 'result', lighttableSelection: null }),
         setCompareMode: (compareMode) => set({ compareMode }),
         pickCompare: (side, revision) => set(side === 'left'
           ? { compareLeft: revision, diff: null, diffError: null }
@@ -4343,7 +4555,7 @@ window.__ModuleLoader__.load({
           const recipe = ref ? data.recipeCatalog.recipes.find(recipe => recipe.id === ref.id && recipe.version === ref.version && recipe.digest === ref.digest) : null
           creationDraftId = newCreationKey(); restoredCreationSource = { id, raw: source.raw }; persistedCreationSignature = null
           creationAttempt = saved.attempt ? editorClone(saved.attempt) : null
-          set({ view: 'projects', recipeChoices: editorClone(saved.recipeChoices || []), forms: { ...data.forms, ...editorClone(saved.forms), recipe: recipe || null },
+          set({ view: 'projects', projectTask: 'new', recipeChoices: editorClone(saved.recipeChoices || []), forms: { ...data.forms, ...editorClone(saved.forms), recipe: recipe || null },
             creationDraftMissingRecipe: ref && !recipe ? ref : null,
             creationWork: creationAttempt ? { status: 'error', title: creationAttempt.body.title, code: 'UI_FETCH_FAILED' } : null,
             notices: { ...data.notices, projects: { kind: 'creation', ok: true, message: t('projects.draftRestored') } } })
@@ -4411,7 +4623,7 @@ window.__ModuleLoader__.load({
           const projectId = data.activeProjectId, destination = { goal: 'projects', route: 'projects', parts: 'scene', form: 'preview', detail: 'preview', appearance: 'scene', delivery: 'jobs' }[step]
           if (!destination) return
           if (projectId && ['form', 'detail'].includes(step)) actions.setInspection('mode', step === 'form' ? 'clay' : 'beauty')
-          set({ view: destination, guideFocus: { ...data.guideFocus, [projectId || 'new']: step } })
+          set({ view: destination, ...(destination === 'projects' ? { projectTask: step === 'route' ? 'new' : 'brief' } : {}), guideFocus: { ...data.guideFocus, [projectId || 'new']: step } })
         },
         cancelInspection: () => inspectionControllers.get(data.activeProjectId)?.abort(),
         renderInspection: async () => {
@@ -4609,37 +4821,8 @@ window.__ModuleLoader__.load({
     function ProjectsView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
-      return el('div', { 'data-view': 'projects' },
-        ErrorBox({ error: state.error }),
-        state.projects.length ? el('div', { className: 'db-card db-project-list' },
-          el('h4', null, t('tab.projects')),
-          state.projects.length === 0
-            ? el('div', { className: 'db-muted' }, t('projects.empty'))
-            : el('ul', { className: 'db-list' }, state.projects.map(project => el('li', { key: project.projectId, 'data-project': project.projectId },
-              el('div', { className: 'db-inline' },
-                Button({
-                  tone: project.projectId === state.activeProjectId ? 'primary' : undefined,
-                  action: `select-project:${project.projectId}`,
-                  disabled: project.creationPending,
-                  onClick: () => actions.selectProject(project.projectId),
-                  children: project.title || project.projectId,
-                }),
-                el('span', { className: 'db-muted db-mono' }, project.projectId),
-                project.creationPending ? Badge({ tone: 'live', name: 'creation-pending', children: t('projects.incomplete') }) : null,
-                project.unfinishedJobs > 0 ? Badge({ tone: 'live', name: 'unfinished', children: t('projects.unfinishedJobs', { count: project.unfinishedJobs }) }) : null,
-                el('span', { className: 'db-muted' }, t('projects.revisionCount', { count: project.revisionCount })),
-              ),
-              el('div', { className: 'db-muted db-mono' }, t('projects.updated', { revision: project.currentRevision || '—', when: formatTime(project.updatedAt) })),
-              project.goal ? el('div', { className: 'db-muted' }, project.goal) : null,
-            ))),
-        ) : null,
-
-        el('div', { className: 'db-card db-project-create' },
-          el('h4', null, t('projects.create')),
-          CreationDraftsView(ctx),
-          !state.projects.length ? el('p', { className: 'db-muted' }, t('projects.startHint')) : null,
-          RecipesView(ctx),
-          el('div', { className: 'db-create-footer' },
+      const setup = state.disclosures?.[disclosureKey(state, 'new:recipe-gallery')] === false
+      const createFields = el('div', { className: 'db-create-footer' },
             el('label', { className: 'db-field' }, t('projects.name'),
             el('input', {
               className: 'db-input',
@@ -4654,6 +4837,7 @@ window.__ModuleLoader__.load({
               'data-field': 'project-goal',
               'aria-label': t('projects.goal'),
               placeholder: t('projects.goal'),
+              title: t('lighttable.goalHint'),
               value: state.forms.goal,
               onChange: event => actions.setForm('goal', event.target.value),
             })),
@@ -4664,7 +4848,17 @@ window.__ModuleLoader__.load({
               onClick: actions.createProject,
               children: state.busy.create ? (state.forms.recipe ? t('recipes.creatingPreview') : t('projects.creating')) : (state.forms.recipe ? t('recipes.createPreview') : t('projects.createButton')),
             }),
-          ),
+          )
+      return el('div', { 'data-view': 'projects' },
+        ErrorBox({ error: state.error }),
+        el('section', { className: 'db-card db-project-create', 'aria-label': t('projects.create') },
+          el('h2', { className: 'db-start-title' }, t('lighttable.beginTitle')),
+          el('p', { className: 'db-start-intro' }, t('lighttable.beginHint')),
+          CreationDraftsView(ctx),
+          !state.projects.length ? el('p', { className: 'db-muted' }, t('projects.startHint')) : null,
+          setup ? createFields : null,
+          RecipesView(ctx),
+          setup ? null : createFields,
           state.notices.projects ? Notice(state.notices.projects, { marginTop: '8px' }) : null,
           state.status === 'ok' && state.creationRequestProtocol !== CREATION_REQUEST_PROTOCOL
             ? el('p', { className: 'db-muted', 'data-creation-host-stale': true }, t('projects.hostNeedsRestart')) : null,
@@ -4679,11 +4873,11 @@ window.__ModuleLoader__.load({
               el('summary', null, t('projects.creationDetails')), el('pre', { className: 'db-pre' }, state.notices.projects.technicalDetails)) : null,
           ) : null,
         ),
-        el('details', { className: 'db-storage' }, el('summary', null, t('projects.storage')),
+        Disclosure(ctx, 'global:storage', t('projects.storage'), { className: 'db-storage' },
           el('span', { className: 'db-muted db-mono' }, `projectsRoot: ${state.projectsRoot || '—'}`)),
 
-        BriefEditor({ state, actions }),
-        state.selected ? el('div', { className: 'db-card' },
+        ctx.newWork ? null : BriefEditor({ state, actions }),
+        state.selected && !ctx.newWork ? el('div', { className: 'db-card' },
           el('h4', null, t('projects.currentProject', { title: state.selected.project.title })),
           KeyValues({ entries: [
             { label: 'projectId', value: state.selected.project.projectId },
@@ -4699,6 +4893,29 @@ window.__ModuleLoader__.load({
           ] }),
           el('div', { className: 'db-muted', style: { marginTop: '6px' } }, state.selected.qa.summary),
         ) : null,
+        state.projects.length ? el('div', { className: 'db-card db-project-list' },
+          el('h4', null, t('lighttable.projectList')),
+          state.projects.length === 0
+            ? el('div', { className: 'db-muted' }, t('projects.empty'))
+            : el('ul', { className: 'db-list' }, state.projects.map(project => el('li', { key: project.projectId, 'data-project': project.projectId },
+              el('div', { className: 'db-inline' },
+                Button({
+                  tone: project.projectId === state.activeProjectId ? 'primary' : undefined,
+                  action: `select-project:${project.projectId}`,
+                  disabled: project.creationPending,
+                  onClick: () => { actions.selectProject(project.projectId); actions.setView('preview') },
+                  children: project.title || project.projectId,
+                }),
+                el('span', { className: 'db-muted db-mono' }, project.projectId),
+                project.creationPending ? Badge({ tone: 'live', name: 'creation-pending', children: t('projects.incomplete') }) : null,
+                project.unfinishedJobs > 0 ? Badge({ tone: 'live', name: 'unfinished', children: t('projects.unfinishedJobs', { count: project.unfinishedJobs }) }) : null,
+                el('span', { className: 'db-muted' }, t('projects.revisionCount', { count: project.revisionCount })),
+              ),
+              el('div', { className: 'db-muted db-mono' }, t('projects.updated', { revision: project.currentRevision || '—', when: formatTime(project.updatedAt) })),
+              project.goal ? el('div', { className: 'db-muted' }, project.goal) : null,
+            ))),
+        ) : null,
+
       )
     }
 
@@ -4735,6 +4952,7 @@ window.__ModuleLoader__.load({
         el('p', { className: 'db-muted' }, t('recipes.previewNote')),
         !recipeSelectionCurrent(state) ? el('p', { role: 'alert', className: 'db-error' }, t('recipes.stale')) : null,
         catalog.errors.length ? el('p', { className: 'db-error' }, t('recipes.unavailable')) : null,
+        Disclosure({ state, actions }, 'new:recipe-gallery', selected?.title || t('recipes.heading'), { className: 'db-recipe-picker', defaultOpen: true },
         Button({ action: 'recipe-blank',
           onClick: () => actions.selectRecipe(null), children: t('recipes.blank') }),
         el('div', { className: 'db-recipe-grid' },
@@ -4742,12 +4960,14 @@ window.__ModuleLoader__.load({
             const chosen = selected?.id === recipe.id && selected?.version === recipe.version && selected?.digest === recipe.digest
             return el('article', { key: `${recipe.id}@${recipe.version}`, 'data-recipe': recipe.id, className: 'db-recipe', 'data-selected': String(chosen) },
               el('img', { src: recipe.previewUrl, alt: recipe.title, loading: 'lazy' }),
-              el('h5', null, recipe.title), el('p', { className: 'db-muted db-recipe-description' }, recipe.description),
-              el('p', { className: 'db-muted db-recipe-license' }, `${t('recipes.license')}: ${recipe.author.name} · ${recipe.license} · v${recipe.version}`),
+              el('h5', null, recipe.title),
+              Disclosure({ state, actions }, `new:recipe-about:${recipe.id}@${recipe.version}`, t('recipes.about'), { className: 'db-recipe-about' },
+                el('p', { className: 'db-muted db-recipe-description' }, recipe.description),
+                el('p', { className: 'db-muted db-recipe-license' }, `${t('recipes.license')}: ${recipe.author.name} · ${recipe.license} · v${recipe.version}`)),
               Button({ action: `select-recipe:${recipe.id}@${recipe.version}`, tone: chosen ? 'primary' : undefined,
                 onClick: () => actions.selectRecipe(recipe), children: chosen ? t('recipes.selected') : t('recipes.select') }),
             )
-          })),
+          }))),
         selected ? el('fieldset', { className: 'db-recipe-parameters' },
           el('legend', null, t('recipes.parameters')),
           Button({ action: 'reset-recipe', onClick: actions.resetRecipe, children: t('recipes.reset') }),
@@ -4875,7 +5095,7 @@ window.__ModuleLoader__.load({
             min: parameter.minimum, max: parameter.maximum, step: 'any', value: draft.values[parameter.id],
             disabled: state.busy.assembly || Boolean(draft.attempt), onInput: event => actions.setAssemblyValue(parameter.id, event.currentTarget.value) })))),
         el('div', { className: 'db-inline' }, Button({ action: 'assembly-save', disabled: Boolean(blocked) || assemblyInvalid(draft) || !assemblyDirty(draft),
-          onClick: actions.saveAssembly, children: draft.attempt ? t('assembly.retry') : t('assembly.save') }),
+          onClick: actions.saveAssembly, children: state.busy.assembly ? t('assembly.saving') : draft.attempt ? t('assembly.retry') : t('assembly.save') }),
           Button({ action: 'assembly-reset', disabled: state.busy.assembly, onClick: actions.resetAssembly, children: t('editor.reset') })))
     }
 
@@ -5356,9 +5576,9 @@ window.__ModuleLoader__.load({
           ? el('div', { className: 'db-muted' }, t('common.empty'))
           : el('ul', { className: 'db-list' }, items.map(item => el('li', { key: item.id }, render(item)))))
 
-      return el('div', { 'data-view': 'scene' },
+      return el('div', { 'data-view': 'scene', role: 'region', 'aria-label': t('tab.scene') },
         ErrorBox({ error: state.error }),
-        el('div', { className: 'db-card' },
+        Disclosure(ctx, 'scene-overview', t('lighttable.overview'), { className: 'db-scene-overview' },
           el('div', { className: 'db-inline' },
             el('strong', null, String(scene.project.title || scene.project.id || '')),
             Badge({ children: scene.revision }),
@@ -5367,7 +5587,7 @@ window.__ModuleLoader__.load({
           ),
         ),
         el('div', { className: 'db-scene-layout' },
-        el('aside', { className: 'db-scene-outline', 'data-scroll-key': JSON.stringify([state.activeProjectId, 'scene-outline']), 'aria-label': t('scene.outline') },
+        Disclosure(ctx, 'scene-outline', t('lighttable.outline'), { className: 'db-scene-outline', 'data-scroll-key': JSON.stringify([state.activeProjectId, 'scene-outline']), 'aria-label': t('scene.outline') },
         el('div', { className: 'db-grid' },
           section(t('scene.entities'), scene.nodes.entities, entity => el('div', null,
             el('button', { type: 'button', className: 'db-btn', 'data-action': `select-entity:${entity.id}`, 'data-entity-id': entity.id,
@@ -5407,8 +5627,8 @@ window.__ModuleLoader__.load({
         )),
         el('section', { className: 'db-scene-inspector', 'aria-label': t('scene.inspector') },
         AssemblyEditor(ctx), SceneEditor(ctx),
-        PhotographyEditor(ctx),
-        AssetsView(ctx),
+        Disclosure(ctx, 'photography', t('lighttable.photography'), { className: 'db-tool-disclosure' }, PhotographyEditor(ctx)),
+        Disclosure(ctx, 'assets', t('lighttable.assets'), { className: 'db-tool-disclosure' }, AssetsView(ctx)),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
           onToggle: event => actions.setDisclosure(advancedDisclosure, event.currentTarget.open), className: 'db-card' }, el('summary', null, t('editor.advanced')),
           el('h4', null, t('scene.patch')),
@@ -5593,7 +5813,7 @@ window.__ModuleLoader__.load({
         { id: 'delivery', label: t('guide.delivery'), hint: t('guide.deliveryHint') },
       ]
       const disclosure = JSON.stringify([projectId || 'new', 'guide-notes'])
-      return el('section', { className: 'db-card db-guide', 'data-creation-guide': projectId || 'new' },
+      return Disclosure({ state, actions }, 'creation-guide', t('lighttable.guide'), { className: 'db-guide', 'data-creation-guide': projectId || 'new' },
         el('div', { className: 'db-guide-top' }, el('strong', null, t('guide.title')),
         el('div', { className: 'db-inline' }, steps.map(step =>
           Button({ action: `guide-${step.id}`, disabled: !projectId && !['goal', 'route'].includes(step.id), onClick: () => actions.openCreationStep(step.id), children: step.label })))),
@@ -5662,11 +5882,11 @@ window.__ModuleLoader__.load({
       const actions = ctx.actions
       const previews = state.previews
       if (previews === null) {
-        if (state.previewReadStatus === 'error') return el('div', { 'data-view': 'preview', 'data-preview-state': 'error', className: 'db-card' },
+        if (state.previewReadStatus === 'error') return el('div', { 'data-view': ctx.lighttable ? undefined : 'preview', 'data-preview-state': 'error', className: 'db-card' },
           el('div', { className: 'db-muted' }, t('preview.readFailed')),
           Button({ action: 'preview-reload', onClick: actions.reload, children: t('common.refresh') }))
-        if (state.previewReadStatus === 'loading') return el('div', { 'data-view': 'preview', 'data-preview-state': 'loading', className: 'db-muted' }, t('preview.reading'))
-        return el('div', { 'data-view': 'preview', className: 'db-muted' }, t('common.noProject'))
+        if (state.previewReadStatus === 'loading') return el('div', { 'data-view': ctx.lighttable ? undefined : 'preview', 'data-preview-state': 'loading', className: 'db-muted' }, t('preview.reading'))
+        return el('div', { 'data-view': ctx.lighttable ? undefined : 'preview', className: 'db-muted' }, t('common.noProject'))
       }
       const revisions = previews.revisions
       const { left, right } = previewRevisionPair(state)
@@ -5777,7 +5997,7 @@ window.__ModuleLoader__.load({
           t('preview.notRenderedHere')),
       ]
 
-      return el('div', { 'data-view': 'preview' },
+      return el('div', { 'data-view': ctx.lighttable ? undefined : 'preview' },
         ErrorBox({ error: state.error }),
         el('div', { className: 'db-tabs' },
           Button({
@@ -5831,7 +6051,7 @@ window.__ModuleLoader__.load({
           resultMode ? null : rendersMode ? PreviewConditions(pair.previous, pair.current)
             : editPair ? PreviewConditions(editPair.beforeArtifact, editPair.afterArtifact) : PreviewConditions(sheetOf(entryOf(left)), sheetOf(entryOf(right))),
           resultMode
-            ? el('div', { style: { maxWidth: '960px', margin: '0 auto' } }, imagePane('current', t('preview.latest'), sheetOf(entryOf(state.currentRevision)), t('preview.noneForRevision')))
+            ? ctx.lighttable ? null : el('div', { style: { maxWidth: '960px', margin: '0 auto' } }, imagePane('current', t('preview.latest'), sheetOf(entryOf(state.currentRevision)), t('preview.noneForRevision')))
             : el('div', { className: 'db-grid' }, rendersMode ? renderPairPanes : editorPanes || [revisionPane(entryOf(left), 'left'), revisionPane(entryOf(right), 'right')]),
           state.diff ? el('div', { className: 'db-card', 'data-diff': state.diff.identical ? 'identical' : 'changed' },
             el('h4', null, `${state.diff.fromRevision} → ${state.diff.toRevision}：${state.diff.identical ? t('preview.identical') : t('preview.changeCount', { count: state.diff.totalChanges })}`),
@@ -5850,7 +6070,7 @@ window.__ModuleLoader__.load({
           ) : null,
           state.diffError ? ErrorBox({ error: state.diffError }) : null,
         ),
-        InspectionPanel(ctx),
+        ctx.lighttable ? Disclosure(ctx, 'inspection', t('inspection.title'), { className: 'db-tool-disclosure' }, InspectionPanel(ctx)) : InspectionPanel(ctx),
       )
     }
 
@@ -6016,7 +6236,7 @@ window.__ModuleLoader__.load({
       return el('section', { className: 'db-card', 'data-editable-snapshot': result?.state || 'idle', 'aria-label': t('snapshot.title') },
         el('h4', null, t('snapshot.title')),
         el('p', { className: 'db-muted' }, t('snapshot.scope')),
-        el('details', null, el('summary', null, t('snapshot.details')), el('p', { className: 'db-muted', style: { maxWidth: '72ch' } }, t('snapshot.detailText'))),
+        Disclosure({ state, actions }, 'snapshot-scope', t('snapshot.details'), {}, el('p', { className: 'db-muted', style: { maxWidth: '72ch' } }, t('snapshot.detailText'))),
         !enabled ? el('p', { className: 'db-muted', 'data-snapshot-unavailable': true }, state.editableSnapshotAvailability?.reason === 'local-only' ? t('snapshot.local') : t('snapshot.upgrade')) : null,
         el('div', { className: 'db-inline', style: { marginTop: '12px', alignItems: 'end' } },
           el('label', { className: 'db-field', style: { flex: '1 1 180px', maxWidth: '360px' } }, t('snapshot.revision'), el('select', { className: 'db-input', 'data-field': 'snapshot-revision', value: entry?.revision || '', disabled: !enabled || working || preparing,
@@ -6058,7 +6278,7 @@ window.__ModuleLoader__.load({
         el('div', { className: 'db-card' },
           el('h4', null, t('revisions.title', { count: revisions.length })),
           el('p', { className: 'db-muted' }, t('revisions.compareHint')),
-          el('ul', { className: 'db-list' }, revisions.map(entry => el('li', { key: entry.revision, 'data-revision': entry.revision },
+          el('ul', { className: 'db-list' }, [...revisions].reverse().map(entry => el('li', { key: entry.revision, 'data-revision': entry.revision },
             el('div', { className: 'db-inline' },
               el('span', { className: 'db-mono' }, entry.revision),
               entry.isCurrent ? Badge({ tone: 'ok', children: t('revisions.current') }) : null,
@@ -6103,61 +6323,124 @@ window.__ModuleLoader__.load({
      * @param {object} state - the store's snapshot
      * @param {object} actions - the store's action table
      */
-    function buildWorkbenchView(state, actions) {
-      const ctx = { state, actions }
-      const stale = state.status === 'stale'
-      const body = stale
-        ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
-        : state.status === 'loading'
-          ? el('div', { className: 'db-body db-muted' }, t('host.reading'))
-          : el('div', { className: 'db-body', 'data-scroll-key': JSON.stringify([state.activeProjectId, state.view]) },
-            state.view === 'preview' || !state.activeProjectId ? renderView(ctx) : CreationGuide(ctx),
-            state.view === 'preview' || !state.activeProjectId ? CreationGuide(ctx) : renderView(ctx))
+    function lighttableResult(state) {
+      const selection = state.lighttableSelection
+      const selected = state.view === 'preview' && selection?.projectId === state.activeProjectId
+        && selection.projectsRoot === state.projectsRoot && selection.storeIdentity === state.storeIdentity
+        && selection.anchorRevision === state.currentRevision ? selection.revision : state.view === 'revisions' ? snapshotEntry(state)?.revision || state.currentRevision : state.currentRevision
+      const entry = state.previews?.revisions?.find(item => item.revision === selected) || null
+      return { revision: selected, entry, artifact: sheetOf(entry), historical: Boolean(selected && selected !== state.currentRevision) }
+    }
 
+    function LighttableStage({ state, actions }, { compact = false } = {}) {
+      const result = lighttableResult(state), artifact = result.artifact
+      const recent = [...(state.previews?.revisions || [])].reverse().slice(0, 6)
+      return el('section', { className: `db-lighttable-stage${compact ? ' db-lighttable-stage--compact' : ''}`, 'aria-label': t('tab.preview'), 'data-lighttable-revision': result.revision || '' },
+        el('div', { className: 'db-result-heading' },
+          el('div', null, el('h2', null, state.selected?.project?.title || t('lighttable.result')),
+            el('span', { className: 'db-result-source' }, t('lighttable.saved', { revision: result.revision || '—' }))),
+          result.historical ? Button({ action: 'lighttable-current', onClick: actions.returnToCurrentResult, children: t('lighttable.backCurrent') }) : null),
+        compact ? null : el('div', { className: 'db-result-mat', 'data-compare': 'current', 'data-compare-kind': artifact ? 'image' : 'empty' },
+          artifact ? el('img', {
+            className: 'db-result-image', key: artifact.path,
+            'data-artifact': artifact.path, 'data-artifact-digest': artifact.sha256 || '',
+            'data-artifact-source-digest': artifact.sourceDigest || '', 'data-artifact-slot': artifact.slot || '',
+            'data-artifact-revision': artifact.sourceRevision || '', 'data-artifact-at': artifact.at || '',
+            width: Number.isSafeInteger(artifact.width) && artifact.width > 0 && Number.isSafeInteger(artifact.height) && artifact.height > 0 ? artifact.width : undefined,
+            height: Number.isSafeInteger(artifact.width) && artifact.width > 0 && Number.isSafeInteger(artifact.height) && artifact.height > 0 ? artifact.height : undefined,
+            alt: `${state.selected?.project?.title || t('lighttable.result')} · ${artifact.sourceRevision || t('lighttable.sourceUnknown')}`,
+            src: artifactUrl(state.artifactBase, artifact),
+          }) : el('div', { className: 'db-result-empty' }, el('h3', null, state.previewReadStatus === 'error' ? t('preview.readFailed') : state.previewReadStatus === 'loading' ? t('preview.reading') : t('lighttable.noImage')),
+            state.previewReadStatus === 'loading' ? null : el('p', null, t('lighttable.noImageHint')))),
+        compact ? null : el('div', { className: 'db-result-caption' },
+          el('span', { className: 'db-muted' }, artifact?.sourceRevision ? t('lighttable.imageSource', { revision: artifact.sourceRevision }) : t('lighttable.sourceUnknown')),
+          ImageDownload({ state, actions, artifact })),
+        artifact && !compact ? Disclosure({ state, actions }, `image-details:${result.revision}`, t('lighttable.details'), { className: 'db-image-details' }, PreviewSettings(artifact),
+          el('code', null, artifact.sha256 || '—')) : null,
+        compact ? null : el('div', { className: 'db-filmstrip-heading' }, el('h3', null, t('lighttable.recent')),
+          Button({ action: 'lighttable-versions', onClick: () => actions.setView('revisions'), children: t('lighttable.allVersions') })),
+        compact ? null : el('div', { className: 'db-filmstrip', 'aria-label': t('lighttable.recent') }, recent.map(entry => {
+          const image = sheetOf(entry)
+          return el('button', { type: 'button', key: entry.revision, className: 'db-film-frame',
+            'data-action': `lighttable-result:${entry.revision}`, 'data-lighttable-thumb': entry.revision,
+            'aria-pressed': String(result.revision === entry.revision), onClick: () => actions.selectLighttableResult(entry.revision) },
+            image ? el('img', { src: artifactUrl(state.artifactBase, image), alt: '', loading: 'lazy' }) : el('span', { className: 'db-film-empty' }, t('lighttable.noImage')),
+            el('span', { className: 'db-film-caption' }, entry.revision, entry.revision === state.currentRevision ? el('span', null, t('revisions.current')) : null))
+        })))
+    }
+
+    function LighttableWorkspace(ctx) {
+      const { state, actions } = ctx, result = lighttableResult(state)
+      const comparison = state.view === 'preview' && state.compareMode !== 'result'
+      const title = state.view === 'projects' ? t('lighttable.brief') : state.view === 'scene' ? t('lighttable.tools') : state.view === 'jobs' ? t('lighttable.deliveryTitle')
+        : state.view === 'revisions' ? t('tab.revisions') : state.view === 'qa' ? 'QA' : result.historical && !comparison ? t('lighttable.historyTitle') : t('lighttable.previewTools')
+      const hint = state.view === 'projects' ? t('lighttable.briefHint') : state.view === 'scene' ? t('lighttable.toolsHint') : state.view === 'jobs' ? t('lighttable.deliveryHint')
+        : state.view === 'preview' && !result.historical ? t('lighttable.previewHint') : null
+      let tools
+      if (state.view === 'preview' && result.historical && !comparison) {
+        const target = revisionComparisonTarget(state, result.revision)
+        const snapshot = snapshotEntry(state), snapshotBusy = !snapshot || snapshot.result?.state === 'preparing' || Object.values(snapshot.busy || {}).some(Boolean)
+        tools = el('div', { className: 'db-history-context' },
+          el('p', { role: 'status' }, t('lighttable.history', { revision: result.revision, current: state.currentRevision })),
+          target ? Button({ action: 'lighttable-compare-current', tone: 'primary', onClick: () => actions.compareFrom(result.revision), children: t('lighttable.compareCurrent') }) : null,
+          Button({ action: 'lighttable-history-export', disabled: snapshotBusy, onClick: () => { actions.setSnapshotRevision(result.revision); actions.setView('revisions') }, children: t('lighttable.historyExport') }))
+      } else tools = state.view === 'projects' ? BriefEditor(ctx) : state.view === 'preview' ? PreviewView({ ...ctx, lighttable: true }) : renderView(ctx)
+      return el('div', { className: `db-lighttable${comparison ? ' db-lighttable--comparison' : ''}`, ...(state.view === 'preview' ? { 'data-view': 'preview' } : { 'data-view': state.view }) },
+        LighttableStage(ctx, { compact: comparison }),
+        el('section', { className: 'db-context-pane', 'data-scroll-key': JSON.stringify([state.activeProjectId, 'tools', state.view]), 'aria-label': title },
+          el('div', { className: 'db-context-heading' }, el('h2', null, title), hint ? el('p', null, hint) : null),
+          state.view === 'jobs' ? Button({ action: 'lighttable-editable', onClick: () => actions.setView('revisions'), children: t('lighttable.editable') }) : null,
+          tools,
+          CreationGuide(ctx)))
+    }
+
+    function buildWorkbenchView(state, actions) {
+      const ctx = { state, actions }, stale = state.status === 'stale'
+      const creationSetup = state.view === 'projects' && state.projectTask === 'new'
+        && state.disclosures?.[disclosureKey(state, 'new:recipe-gallery')] === false
+      const bodyKey = JSON.stringify([state.activeProjectId, state.view, creationSetup])
+      const active = Boolean(state.activeProjectId)
+      const primary = VIEWS.filter(entry => Number.isInteger(entry.stage)).sort((a, b) => a.stage - b.stage)
+      const secondary = VIEWS.filter(entry => !Number.isInteger(entry.stage)).sort((a, b) => a.secondaryOrder - b.secondaryOrder)
+      const nav = (id, label) => el('button', { key: id, type: 'button',
+        'data-view-tab': id, 'data-active': String(state.view === id),
+        'aria-current': state.view === id ? 'page' : undefined, 'data-field': `nav-${id}`,
+        disabled: id !== 'projects' && !active, onClick: () => actions.setView(id),
+      }, label)
+      const body = stale ? el('div', { className: 'db-body' }, ErrorBox({ error: state.error }))
+        : state.status === 'loading' ? el('div', { className: 'db-body db-loading', 'aria-busy': 'true' },
+          el('p', null, t('lighttable.loading')), el('div', { className: 'db-loading-stage' }), el('div', { className: 'db-loading-line' }))
+          : el('div', { className: 'db-body', key: bodyKey, 'data-scroll-key': bodyKey },
+            active && (state.view !== 'projects' || state.projectTask !== 'new') ? LighttableWorkspace(ctx) : [
+              state.view === 'preview' && state.notices.preview?.kind === 'creation' ? Notice(state.notices.preview) : null,
+              ProjectsView({ ...ctx, newWork: true }), CreationGuide(ctx)])
       return el('div', { className: 'db-root', 'data-theme': state.appearance || 'system', 'data-deepblend-panel': PANEL_ID },
-        el('div', { className: 'db-head' },
-          el('div', { className: 'db-brand' },
-            el('img', { className: 'db-logo', src: BRAND_MARK, alt: '', width: 34, height: 34 }),
-            el('div', null, el('h1', { className: 'db-title' }, 'DeepBlend Studio'), el('small', null, t('workbench.title', { panel: PANEL_LABEL })))),
-          state.selected ? el('div', { className: 'db-project-context' },
-            el('span', { className: 'db-project-name', title: state.selected.project.title }, state.selected.project.title),
-            Badge({ children: state.selected.currentRevision || '—' })) : null,
+        el('header', { className: 'db-head' },
+          el('div', { className: 'db-brand' }, el('img', { className: 'db-logo', src: BRAND_MARK, alt: '', width: 28, height: 28 }),
+            el('h1', { className: 'db-title' }, 'DeepBlend Studio')),
+          state.projects.length ? el('label', { className: 'db-project-switch' }, el('span', { className: 'db-sr-only' }, t('lighttable.project')),
+            el('select', { className: 'db-input', 'data-field': 'lighttable-project', 'aria-label': t('tab.projects'), value: state.activeProjectId || '',
+              onChange: event => { actions.selectProject(event.target.value); actions.setView('preview') } },
+              !state.activeProjectId ? el('option', { value: '' }, t('lighttable.project')) : null,
+              state.projects.map(project => el('option', { value: project.projectId, disabled: project.creationPending, key: project.projectId }, project.title || project.projectId)))) : null,
           projectHasUnsavedDrafts(state) ? Badge({ tone: 'warn', name: 'unsaved', children: t('workbench.unsaved') }) : null,
-          state.unfinishedJobs.length > 0
-            ? Badge({ tone: 'live', name: 'unfinished', children: t('jobs.unfinished', { count: state.unfinishedJobs.length }) })
-            : null,
-          typeof state.hostApiVersion === 'number' && state.hostApiVersion < EXPECTED_HOST_API
-            ? Badge({ tone: 'warn', name: 'api', children: `hostApiVersion ${state.hostApiVersion} < ${EXPECTED_HOST_API}` })
-            : null,
+          state.unfinishedJobs.length ? Badge({ tone: 'live', name: 'unfinished', children: t('jobs.unfinished', { count: state.unfinishedJobs.length }) }) : null,
           el('div', { className: 'db-head-actions' },
-          el('select', { className: 'db-input db-theme', 'data-field': 'workbench-appearance', 'aria-label': t('workbench.appearance'), value: state.appearance || 'system',
-            onChange: event => actions.setAppearance(event.target.value) },
-            [['system', t('workbench.system')], ['light', t('workbench.light')], ['dark', t('workbench.dark')]].map(([theme, label]) => el('option', { value: theme }, label))),
-          // AN ANCHOR, NOT A BUTTON. The export is a download, and a download is what an anchor with
-          // `download` does: the browser fetches the route and writes the file itself, in both faces
-          // (React passes `href`/`download` through, the DOM binding sets them as attributes). A button
-          // would need imperative blob plumbing in a renderer that has no place to put it.
-          el('a', {
-            className: 'db-btn',
-            href: ROUTES.diagnostics,
-            download: 'deepblend-diagnostics.json',
-            'data-action': 'export-diagnostics',
-            title: t('diagnostics.exportHint'),
-          }, t('diagnostics.export')),
-          Button({ action: 'reload', onClick: actions.reload, children: t('common.refresh') })),
-        ),
-        el('nav', { className: 'db-nav', 'aria-label': t('workbench.navigation') }, VIEWS.map(entry => el('button', {
-          key: entry.id,
-          type: 'button',
-          'data-view-tab': entry.id,
-          'data-active': String(state.view === entry.id),
-          'aria-current': state.view === entry.id ? 'page' : undefined,
-          'data-field': `nav-${entry.id}`,
-          onClick: () => actions.setView(entry.id),
-        }, entry.label))),
-        state.error !== null && state.error !== undefined && !stale ? el('div', { style: { padding: '8px 14px 0' } }, ErrorBox({ error: state.error })) : null,
-        body,
-      )
+            Button({ action: 'new-work', onClick: actions.beginNewWork, children: t('lighttable.new') }),
+            Button({ action: 'reload', onClick: actions.reload, children: t('common.refresh') }),
+            Disclosure(ctx, 'global:settings', t('lighttable.settings'), { className: 'db-utility-menu' },
+              el('div', { className: 'db-utility-content' },
+                el('label', { className: 'db-field' }, t('workbench.appearance'),
+                  el('select', { className: 'db-input db-theme', 'data-field': 'workbench-appearance', value: state.appearance || 'system', onChange: event => actions.setAppearance(event.target.value) },
+                    [['system', t('workbench.system')], ['light', t('workbench.light')], ['dark', t('workbench.dark')]].map(([theme, label]) => el('option', { value: theme }, label)))),
+                el('a', { className: 'db-btn', href: ROUTES.diagnostics, download: 'deepblend-diagnostics.json', 'data-action': 'export-diagnostics', title: t('diagnostics.exportHint') }, t('diagnostics.export')))))),
+        el('nav', { className: 'db-nav', 'aria-label': t('workbench.navigation') },
+          el('div', { className: 'db-journey' }, primary.map(entry => nav(entry.id, entry.id === 'projects' && active && (state.view !== 'projects' || state.projectTask !== 'new') ? t('lighttable.brief') : entry.label))),
+          el('div', { className: 'db-secondary-nav' }, secondary.map(entry => nav(entry.id, entry.label)))),
+        typeof state.hostApiVersion === 'number' && state.hostApiVersion < EXPECTED_HOST_API
+          ? el('p', { className: 'db-host-warning' }, t('projects.hostNeedsRestart')) : null,
+        state.error && !stale ? ErrorBox({ error: state.error }) : null,
+        body)
     }
 
     // =========================================================================

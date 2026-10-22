@@ -169,7 +169,7 @@ test('editor matching refuses a declared different source even when render setti
 // controlled Host allows delayed replies and changes to the current project.
 async function comparisonClient(t, ids = ['r0001', 'r0002', 'r0003']) {
   const scene = compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/metal-lamp/scene-spec.json', import.meta.url)))).spec
-  const host = { root: '/comparison-store/a', current: ids.at(-1), ids: [...ids], queue: [] }, reads = [], writes = []
+  const host = { root: '/comparison-store/a', current: ids.at(-1), ids: [...ids], queue: [], previews: {} }, reads = [], writes = []
   const response = (payload, status = 200) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(payload), json: async () => payload })
   const settings = { pollIdleMs: 999999, pollLiveMs: 999999, fetch: async (input, init = {}) => {
     const u = new URL(String(input), 'http://controlled.test'), projectId = u.searchParams.get('projectId') || u.pathname.split('/')[3] || 'project-a'
@@ -179,7 +179,7 @@ async function comparisonClient(t, ids = ['r0001', 'r0002', 'r0003']) {
       const queued = host.queue.shift(); if (queued) return await queued
       return response({ ok: true, diff: { fromRevision: u.searchParams.get('from'), toRevision: u.searchParams.get('to'), identical: false, totalChanges: 1, collections: {}, project: [], world: [] } })
     }
-    const rows = host.ids.map(revision => ({ revision, isCurrent: revision === host.current, previews: [], contactSheets: [], reviews: [] }))
+    const rows = host.ids.map(revision => ({ revision, isCurrent: revision === host.current, previews: host.previews[revision] || [], contactSheets: [], reviews: [] }))
     const payload = u.pathname.endsWith('/jobs') ? { route: 'project.jobs', jobs: [], unfinished: [] }
       : u.pathname.endsWith('/previews') ? { route: 'project.previews', artifactBase: '/deepblend/artifacts/'+projectId+'/', previews: { projectId, revisions: rows } }
       : { route: 'state', projectsRoot: host.root, projects: [{ projectId: 'project-a' }, { projectId: 'project-b' }], selected: { project: { projectId, title: projectId, revisionCount: rows.length }, currentRevision: host.current, revisions: rows, scene: buildSceneTree(scene, { revision: host.current }), jobs: [], unfinishedJobs: [] } }
@@ -277,4 +277,78 @@ for (const field of ['fromRevision', 'toRevision']) test(`version comparison: mi
 })
 test('version comparison: HTTP failure cannot be presented as a successful structural difference', async t => {
   const f = await comparisonClient(t); f.select(); const p = f.pending(), work = f.store.actions.diff('r0001', 'r0003'); p.payload({ ok: true, diff: difference() }, 503); await work; assert.equal(f.store.getState().diff, null); assert.equal(f.store.getState().diffError.code, 'HTTP_503')
+})
+
+
+test('light table selection binds the displayed image to a saved revision and keeps current edit actions out of history', async t => {
+  const f = await comparisonClient(t)
+  f.host.previews = Object.fromEntries(f.host.ids.map(revision => [revision, [single(revision, 'hero', '2026-10-22T01:00:00Z')]]))
+  f.store.actions.reload(); await f.wait(s => s.previews?.revisions[0]?.previews.length === 1)
+  const nodes = () => flatten(core.buildWorkbenchView(f.store.getState(), f.store.actions))
+  f.store.actions.selectLighttableResult('r0001')
+  assert.equal(f.store.getState().view, 'preview')
+  const image = nodes().find(n => n.props.className === 'db-result-image')
+  assert.equal(image.props['data-artifact-revision'], 'r0001')
+  assert.match(image.props.src, /r0001/)
+  assert.equal(nodes().some(n => n.props['data-action'] === 'render-preview'), false)
+  assert.equal(nodes().find(n => n.props['data-action'] === 'download-image:revisions/r0001/previews/hero.png') !== undefined, true)
+  assert.equal(f.store.getState().currentRevision, 'r0003')
+  f.store.actions.returnToCurrentResult()
+  assert.equal(nodes().find(n => n.props.className === 'db-result-image').props['data-artifact-revision'], 'r0003')
+  assert.equal(f.writes.length, 0)
+})
+
+for (const change of ['current', 'root', 'project', 'task']) test(`light table history selection retires after a ${change} change`, async t => {
+  const f = await comparisonClient(t)
+  f.store.actions.selectLighttableResult('r0001')
+  assert.equal(f.store.getState().lighttableSelection.revision, 'r0001')
+  if (change === 'current') { f.host.current = 'r0002'; f.store.actions.reload(); await f.wait(s => s.currentRevision === 'r0002') }
+  if (change === 'root') { f.host.root = '/comparison-store/b'; f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root) }
+  if (change === 'project') { f.store.actions.selectProject('project-b'); await f.wait(s => s.activeProjectId === 'project-b') }
+  if (change === 'task') f.store.actions.setView('scene')
+  assert.equal(f.store.getState().lighttableSelection, null)
+  assert.equal(f.writes.length, 0)
+})
+
+test('light table refuses an unavailable version and does not invent a preview for an unrendered saved version', async t => {
+  const f = await comparisonClient(t)
+  f.store.actions.selectLighttableResult('r0999')
+  assert.equal(f.store.getState().lighttableSelection, null)
+  f.store.actions.selectLighttableResult('r0001')
+  const nodes = flatten(core.buildWorkbenchView(f.store.getState(), f.store.actions))
+  assert.equal(nodes.some(n => n.props.className === 'db-result-image'), false)
+  assert.equal(nodes.find(n => n.props['data-lighttable-revision'] === 'r0001') !== undefined, true)
+  assert.equal(f.writes.length, 0)
+})
+
+
+test('contextual disclosures survive unrelated redraws and polling but stay scoped to the project store', async t => {
+  const f = await comparisonClient(t)
+  f.store.actions.setView('scene')
+  const panel = () => flatten(core.buildWorkbenchView(f.store.getState(), f.store.actions)).find(n => n.tag === 'details' && JSON.parse(n.props['data-disclosure'] || '[]').at(-1) === 'photography')
+  assert.equal(panel().props.open, false)
+  panel().props.onToggle({ currentTarget: { open: true } })
+  f.store.actions.setForm('title', 'unsubmitted draft')
+  assert.equal(panel().props.open, true)
+  f.store.actions.reload(); await f.wait(s => s.status === 'ok')
+  assert.equal(panel().props.open, true)
+  f.host.root = '/comparison-store/other'; f.store.actions.reload(); await f.wait(s => s.projectsRoot === f.host.root)
+  assert.equal(panel().props.open, false, 'a similarly named project in another store cannot inherit the disclosure context')
+  assert.equal(f.writes.length, 0)
+})
+
+test('new work and returning brief keep distinct navigation names without losing the creation draft', async t => {
+  const f = await comparisonClient(t)
+  const label = () => flatten(core.buildWorkbenchView(f.store.getState(), f.store.actions)).find(n => n.props['data-view-tab'] === 'projects').children.join('')
+  f.store.actions.beginNewWork(); f.store.actions.setForm('title', 'draft cup')
+  assert.equal(label(), 'Start')
+  f.store.actions.setView('projects')
+  assert.equal(f.store.getState().projectTask, 'new', 'clicking the active Start tab is idempotent')
+  f.store.actions.setView('preview')
+  assert.equal(f.store.getState().projectTask, 'brief')
+  assert.equal(label(), 'Brief')
+  f.store.actions.setView('projects')
+  assert.equal(f.store.getState().projectTask, 'brief')
+  assert.equal(f.store.getState().forms.title, 'draft cup')
+  assert.equal(f.writes.length, 0)
 })
