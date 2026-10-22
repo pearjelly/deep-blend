@@ -6,7 +6,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CI_PINS, checkCiRuntimes, ensureCiArchive, installCiRuntimes, verifyArchiveEntries, verifyCiArchive } from '../../tools/install-ci-runtimes.mjs'
-import { installCiLinuxLibraries, parseChromeDependencies, resolveChromeDependencies } from '../../tools/prepare-ci-linux.mjs'
+import { installCiLinuxLibraries, parseChromeDependencies, resolveChromeDependencies, verifyChromeDependencies } from '../../tools/prepare-ci-linux.mjs'
 import { Browser } from '../../tools/browser-driver.mjs'
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
@@ -125,32 +125,39 @@ test('Chrome early exit captures bounded stderr and cleans its profile', async t
 
 test('Chrome deb.deps preserves alternatives and resolves Ubuntu time64 libraries', () => {
   const groups = parseChromeDependencies(' # comment\nlibasound2 (>= 1.0)\nlibcurl3-gnutls | libcurl4\n')
-  assert.deepEqual(groups, [['libasound2'], ['libcurl3-gnutls', 'libcurl4']])
+  assert.deepEqual(groups, [
+    [{ name: 'libasound2', minimumVersion: '1.0' }],
+    [{ name: 'libcurl3-gnutls', minimumVersion: null }, { name: 'libcurl4', minimumVersion: null }],
+  ])
   const available = new Set(['libasound2t64', 'libcurl4'])
   const selected = resolveChromeDependencies(groups, (command, args) => {
     assert.equal(command, 'apt-cache')
     return available.has(args[2]) ? `Package: ${args[2]}\nVersion: 1\n` : ''
   })
-  assert.deepEqual(selected, ['libasound2t64', 'libcurl4'])
-  assert.throws(() => parseChromeDependencies('$(secret)'), /Unexpected Chrome/)
-  assert.throws(() => resolveChromeDependencies([['missing']], () => ''), /No actual Ubuntu package/)
+  assert.deepEqual(selected, [{ name: 'libasound2t64', minimumVersion: '1.0' }, { name: 'libcurl4', minimumVersion: null }])
+  for (const invalid of ['', '$(secret)', 'libnss3 (<= 2:3.35)', 'libnss3 (>=)', 'libnss3 (>= 2:3.35) extra', 'libnss3 |']) {
+    assert.throws(() => parseChromeDependencies(invalid), /Unexpected Chrome/)
+  }
+  assert.throws(() => resolveChromeDependencies(parseChromeDependencies('missing'), () => ''), /No actual Ubuntu package/)
 })
 
 test('CI library preparation bounds acquisition for both apt commands and requires a complete index update', () => {
   const calls = [], logs = []
-  installCiLinuxLibraries([['libfixture']], (command, args) => {
+  installCiLinuxLibraries(parseChromeDependencies('libfixture'), (command, args) => {
     calls.push([command, args])
     if (command === 'apt-cache') return 'Package: libfixture\nVersion: 1\n'
+    if (command === 'dpkg-query') return 'installed\tok\t1\n'
     return args.includes('update') ? 'original index output\n' : 'original install output\n'
   }, text => logs.push(text))
   const acquisition = ['-o', 'Acquire::Retries=2', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
   assert.deepEqual(calls, [
     ['sudo', ['apt-get', ...acquisition, 'update', '--error-on=any']],
     ['apt-cache', ['show', '--no-all-versions', 'libfixture']],
-    ['sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends',
+    ['sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
       'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', 'libfixture']],
+    ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'libfixture']],
   ])
-  assert.deepEqual(logs, ['original index output\n', 'Selected Chrome libraries: libfixture', 'original install output\n'])
+  assert.deepEqual(logs, ['original index output\n', 'Selected Chrome libraries: libfixture', 'original install output\n', 'Checking installed Chrome library: libfixture 1'])
 })
 
 test('CI library preparation stops on apt failures and preserves the original diagnostics without command reruns', () => {
@@ -159,7 +166,7 @@ test('CI library preparation stops on apt failures and preserves the original di
       const calls = [], failure = Object.assign(new Error(`apt ${stage} failed`), {
         ...details, stdout: 'partial download output\n', stderr: 'original apt failure\n',
       })
-      assert.throws(() => installCiLinuxLibraries([['libfixture']], (command, args) => {
+      assert.throws(() => installCiLinuxLibraries(parseChromeDependencies('libfixture'), (command, args) => {
         calls.push([command, args])
         if (args.includes(stage)) throw failure
         return command === 'apt-cache' ? 'Package: libfixture\n' : 'index updated\n'
@@ -168,6 +175,47 @@ test('CI library preparation stops on apt failures and preserves the original di
       assert.equal(failure.stdout, 'partial download output\n')
       assert.equal(failure.stderr, 'original apt failure\n')
     }
+  }
+})
+
+test('installed Chrome dependency versions retain the selected alternative and time64 minimum', () => {
+  const groups = parseChromeDependencies('libglib2.0-0 (>= 2.39.4)\nlibgtk-3-0 (>= 3.9.10) | libgtk-4-1 (>= 4.0)\nlibnss3 (>= 2:3.35)\nlibexpat1 (>= 2.1~beta3)')
+  const versions = new Map([['libglib2.0-0t64', '2.80.0-6ubuntu3.10'], ['libgtk-4-1', '4.14.2'], ['libnss3', '2:3.98-1'], ['libexpat1', '2.6.1-2']])
+  const calls = []
+  installCiLinuxLibraries(groups, (command, args) => {
+    if (command === 'apt-cache') return versions.has(args[2]) ? `Package: ${args[2]}\n` : ''
+    if (command === 'sudo') return ''
+    calls.push([command, args])
+    if (command === 'dpkg-query') return `installed\tok\t${versions.get(args.at(-1))}\n`
+    return ''
+  }, () => {})
+  assert.deepEqual(calls.filter(([command]) => command === 'dpkg-query').map(([, args]) => args.at(-1)), [...versions.keys()])
+  assert.deepEqual(calls.filter(([command]) => command === 'dpkg').map(([, args]) => args), [
+    ['--compare-versions', '2.80.0-6ubuntu3.10', 'ge', '2.39.4'],
+    ['--compare-versions', '4.14.2', 'ge', '4.0'],
+    ['--compare-versions', '2:3.98-1', 'ge', '2:3.35'],
+    ['--compare-versions', '2.6.1-2', 'ge', '2.1~beta3'],
+  ])
+})
+
+test('Chrome dependency verification rejects incomplete installations and propagates query or version failures', () => {
+  const dependencies = parseChromeDependencies('libnss3 (>= 2:3.35)\nlibfixture').flat()
+  for (const metadata of ['config-files\tok\t2:3.98\n', 'installed\treinstreq\t2:3.98\n', 'installed\tok\t\n', 'installed\tok\t2:3.98\textra\n']) {
+    const calls = []
+    assert.throws(() => verifyChromeDependencies(dependencies, (command, args) => {
+      calls.push([command, args]); return metadata
+    }, () => {}), /not fully installed: libnss3/)
+    assert.equal(calls.length, 1)
+  }
+  for (const stage of ['dpkg-query', 'dpkg']) {
+    const failure = Object.assign(new Error(stage === 'dpkg' ? 'installed version below minimum' : 'package missing'), { status: 1 })
+    const calls = []
+    assert.throws(() => verifyChromeDependencies(dependencies, (command, args) => {
+      calls.push([command, args])
+      if (command === stage) throw failure
+      return 'installed\tok\t2:3.34\n'
+    }, () => {}), error => error === failure)
+    assert.equal(calls.length, stage === 'dpkg-query' ? 1 : 2)
   }
 })
 
