@@ -1,6 +1,6 @@
 # DeepBlend Studio
 
-[0.16.0 发布说明](deepblend/docs/releases/0.16.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
+[0.18.0 发布说明](deepblend/docs/releases/0.18.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
 
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
@@ -21,9 +21,9 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) 增加导入实例边界及指定相机/帧的真实几何检查，支持按保存分镜渲染并安全恢复，附有经过验收的五镜宝塔成片；已有项目继续受到保护。详见[发布说明与验收范围](deepblend/docs/releases/0.16.0.md)。
+**0.18.0** 带来光台工作台：从项目开始，看大图判断结果，调整对象与摄影，再导出作品。最近结果保留来源版本，可以与当前版本比较。详见[发布说明与验收范围](deepblend/docs/releases/0.18.0.md)。
 
-下一候选（尚未发布）：在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
+在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
 ## 安装并开始
 

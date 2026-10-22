@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "deepblend.release-software-acceptance/v1",
+  "releaseLabel": "0.18.0",
+  "recordedAt": "2026-10-22T13:28:10.115223+00:00",
+  "acceptedSourceCommit": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+  "mergedSourceCommit": "b130d53b9062cf12bf2962e1703f20c752173e39",
+  "sourceTree": "20481f06ae055936cbd0453d05f194b866f1ecef",
+  "fullAcceptance": {
+    "startedAt": "2026-10-22T12:17:40.675429+00:00",
+    "finishedAt": "2026-10-22T13:05:21.094986+00:00",
+    "sourceCommit": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+    "versions": {
+      "node": "v24.22.0",
+      "npm": "11.20.0",
+      "pnpm": "10.28.2",
+      "dsh": "0.1.5-rc.2",
+      "python3": "Python 3.14.2",
+      "ffmpeg": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobe": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+    },
+    "sourceFiles": 956,
+    "allSourceBytesUnchanged": true,
+    "runtimeExecutableSha256": "0ff7f1d72c4e0cbe14001709c81e20a04b70464118a7f78568952988e28f2ac5",
+    "runtimeExecutableUnchanged": true,
+    "changedPaths": [],
+    "exitCode": 0,
+    "passed": true,
+    "logSha256": "4e487ec2f710c4fe8e80a43c137cfb8f38b230708fb2d1c1d02e269cc07646e0",
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all eighteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "failureLines": [],
+    "scope": "Unmodified canonical 43-suite run-all entry. No optional paid visual-live suite requested. The exact source and all tracked bytes are checked before/after.",
+    "runtimeExecutableIdentity": "@deepseek-ai/dsh/lib/bin.js",
+    "privateRuntimePathsOmitted": true
+  },
+  "ci": {
+    "runId": 39777102326,
+    "prHead": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+    "checkoutCommit": "bafcea3d396d1145a87594158feccfc52d0f3812",
+    "sourceTreesIdentical": true,
+    "checks": [
+      {
+        "id": 119826395041,
+        "name": "Linux cup parameter boundaries",
+        "head_sha": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/pearjelly/deep-blend/actions/runs/39777102326/job/119826395041"
+      },
+      {
+        "id": 119826320555,
+        "name": "Linux delivery + editing + resource bundle upload",
+        "head_sha": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/pearjelly/deep-blend/actions/runs/39777102326/job/119826320555"
+      },
+      {
+        "id": 119826319085,
+        "name": "Unit + contract (no Blender)",
+        "head_sha": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/pearjelly/deep-blend/actions/runs/39777102326/job/119826319085"
+      },
+      {
+        "id": 119826317778,
+        "name": "DSH 0.2.1-rc.1 preset and native delivery compatibility",
+        "head_sha": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/pearjelly/deep-blend/actions/runs/39777102326/job/119826317778"
+      },
+      {
+        "id": 119826317460,
+        "name": "Linux Blender + Agent + browser inspections",
+        "head_sha": "c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/pearjelly/deep-blend/actions/runs/39777102326/job/119826317460"
+      }
+    ],
+    "archives": [
+      {
+        "artifactId": 12427516440,
+        "name": "linux-inspections-39777102326-2",
+        "bytes": 113278080,
+        "sha256": "7b9ee0ca9e2ec4699e7b46749306bb816143699f342a9b28347aee5306f061af"
+      },
+      {
+        "artifactId": 12425990928,
+        "name": "linux-cup-parameters-39777102326-1",
+        "bytes": 10107993,
+        "sha256": "4d3f515d78b223a282b8a75f8ffa5ed7c256ec305f6d1ac39b00c197e40a2495"
+      },
+      {
+        "artifactId": 12425473847,
+        "name": "harness-021-39777102326-2",
+        "bytes": 3283660,
+        "sha256": "3e47852a41fbc912a240b0874d9b80d2ed75d5202e5c4c7c6fead2458e7b7c0a"
+      },
+      {
+        "artifactId": 12425264554,
+        "name": "linux-render-photography-39777102326-1",
+        "bytes": 51429575,
+        "sha256": "d59a75229210afe48c295790677599e79d51306b6cfc7497da700bb6ead01aef"
+      }
+    ]
+  },
+  "originalEvidence": {
+    "fullResult": {
+      "bytes": 4749,
+      "sha256": "a93a0878ddc194bb1529cbd7c055f030413449895fd38500f3862f3fb77e28e0"
+    },
+    "ciAudit": {
+      "bytes": 864977,
+      "sha256": "96d7769ea22dceb7b41a18adb7a3ac36a2ac8483520a6b9049fa59fda287ca02"
+    }
+  },
+  "publicationEvidence": "https://github.com/pearjelly/deep-blend/releases/tag/v0.18.0",
+  "scope": "This permanent record covers completed software acceptance. Build, publication and public installation outcomes are recorded separately in the release assets; they are not asserted here."
+}

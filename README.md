@@ -21,9 +21,9 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) adds imported-instance bounds and camera/frame geometry checks, rendering from saved shots with safe resume, and a verified five-shot pagoda film. Saved projects remain protected. See the [release notes and acceptance scope](deepblend/docs/releases/0.16.0.md).
+Version **0.18.0** introduces the Lighttable workbench: start a project, inspect a large saved result, adjust its objects and photography, then export. Recent results retain their source revisions and can be compared with the current version. See the [release notes and validation scope](deepblend/docs/releases/0.18.0.md).
 
-Next candidate (unreleased): **Save an editable copy** on the Revisions page downloads one saved version as a ZIP, with an optional verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
+Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 
 ## Quick start
 
