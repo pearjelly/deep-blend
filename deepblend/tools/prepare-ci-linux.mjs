@@ -23,6 +23,17 @@ export function resolveChromeDependencies(groups, execute) {
     throw new Error(`No actual Ubuntu package provides Chrome dependency: ${choices.join(' | ')}`)
   })
 }
+export function installCiLinuxLibraries(groups, execute, log = console.log) {
+  // apt.conf(5): retries are per failed file; apt-transport-http(1): timeout covers connection and data waits.
+  // Keep these below the existing five-minute command budget, which also bounds multiple stalled files.
+  const acquisition = ['-o', 'Acquire::Retries=2', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
+  // apt-get(8): transient index failures must fail preparation instead of accepting stale package lists.
+  log(execute('sudo', ['apt-get', ...acquisition, 'update', '--error-on=any']))
+  const dependencies = resolveChromeDependencies(groups, execute)
+  log(`Selected Chrome libraries: ${dependencies.join(' ')}`)
+  log(execute('sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends',
+    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', ...dependencies]))
+}
 function prepare() {
   const evidence = process.env.DEEPBLEND_CI_EVIDENCE
   if (process.platform !== 'linux' || process.arch !== 'x64' || !evidence) throw new Error('This helper requires Linux x64 and DEEPBLEND_CI_EVIDENCE')
@@ -31,11 +42,7 @@ function prepare() {
   if (chrome !== report.environment.DEEPBLEND_CHROME || /["\n\r]/.test(chrome)) throw new Error('Chrome must match the verified runtime installation')
   const execute = (command, args) => execFileSync(command, args, { encoding: 'utf8', timeout: 300000, maxBuffer: 8 * 1024 * 1024 })
   const groups = parseChromeDependencies(readFileSync(join(resolve(chrome, '..'), 'deb.deps'), 'utf8'))
-  console.log(execute('sudo', ['apt-get', 'update']))
-  const dependencies = resolveChromeDependencies(groups, execute)
-  console.log(`Selected Chrome libraries: ${dependencies.join(' ')}`)
-  console.log(execute('sudo', ['apt-get', 'install', '-y', '--no-install-recommends',
-    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', ...dependencies]))
+  installCiLinuxLibraries(groups, execute)
   for (const executable of [process.env.DEEPBLEND_BLENDER_PATH, chrome]) {
     const libraries = execute('ldd', [executable])
     console.log(libraries)

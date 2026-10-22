@@ -6,7 +6,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CI_PINS, checkCiRuntimes, ensureCiArchive, installCiRuntimes, verifyArchiveEntries, verifyCiArchive } from '../../tools/install-ci-runtimes.mjs'
-import { parseChromeDependencies, resolveChromeDependencies } from '../../tools/prepare-ci-linux.mjs'
+import { installCiLinuxLibraries, parseChromeDependencies, resolveChromeDependencies } from '../../tools/prepare-ci-linux.mjs'
 import { Browser } from '../../tools/browser-driver.mjs'
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
@@ -134,6 +134,41 @@ test('Chrome deb.deps preserves alternatives and resolves Ubuntu time64 librarie
   assert.deepEqual(selected, ['libasound2t64', 'libcurl4'])
   assert.throws(() => parseChromeDependencies('$(secret)'), /Unexpected Chrome/)
   assert.throws(() => resolveChromeDependencies([['missing']], () => ''), /No actual Ubuntu package/)
+})
+
+test('CI library preparation bounds acquisition for both apt commands and requires a complete index update', () => {
+  const calls = [], logs = []
+  installCiLinuxLibraries([['libfixture']], (command, args) => {
+    calls.push([command, args])
+    if (command === 'apt-cache') return 'Package: libfixture\nVersion: 1\n'
+    return args.includes('update') ? 'original index output\n' : 'original install output\n'
+  }, text => logs.push(text))
+  const acquisition = ['-o', 'Acquire::Retries=2', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
+  assert.deepEqual(calls, [
+    ['sudo', ['apt-get', ...acquisition, 'update', '--error-on=any']],
+    ['apt-cache', ['show', '--no-all-versions', 'libfixture']],
+    ['sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends',
+      'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', 'libfixture']],
+  ])
+  assert.deepEqual(logs, ['original index output\n', 'Selected Chrome libraries: libfixture', 'original install output\n'])
+})
+
+test('CI library preparation stops on apt failures and preserves the original diagnostics without command reruns', () => {
+  for (const stage of ['update', 'install']) {
+    for (const details of [{ status: 100 }, { code: 'ETIMEDOUT', signal: 'SIGTERM', status: null }]) {
+      const calls = [], failure = Object.assign(new Error(`apt ${stage} failed`), {
+        ...details, stdout: 'partial download output\n', stderr: 'original apt failure\n',
+      })
+      assert.throws(() => installCiLinuxLibraries([['libfixture']], (command, args) => {
+        calls.push([command, args])
+        if (args.includes(stage)) throw failure
+        return command === 'apt-cache' ? 'Package: libfixture\n' : 'index updated\n'
+      }, () => {}), error => error === failure)
+      assert.equal(calls.length, stage === 'update' ? 1 : 3)
+      assert.equal(failure.stdout, 'partial download output\n')
+      assert.equal(failure.stderr, 'original apt failure\n')
+    }
+  }
 })
 
 test('read-only check verifies installed binaries without downloading or changing metadata', async t => {
