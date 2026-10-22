@@ -24,6 +24,8 @@
  */
 
 import { homedir } from 'node:os'
+import { pipeline } from 'node:stream/promises'
+import { isIP } from 'node:net'
 
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -65,6 +67,30 @@ export const WORKBENCH_PAGE_ROUTE = '/deepblend/workbench'
  * the same string on both sides.
  */
 export const WORKBENCH_PAGE_ROOT_ID = 'deepblend-workbench'
+
+function loopbackAddress(value) {
+  const address = String(value ?? '').toLowerCase().replace(/^\[|\]$/g, '')
+  if (isIP(address) === 4) return address.split('.')[0] === '127'
+  if (isIP(address) !== 6) return false
+  const canonical = new URL(`http://[${address}]`).hostname
+  return canonical === '[::1]' || /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(canonical)
+}
+/** This first snapshot surface is local-only: the existing carrier has no auth. */
+export function assertSnapshotHttpRequest(request) {
+  const reject = () => { throw new BlenderError('SNAPSHOT_LOCAL_ONLY', 'Editable snapshots require a direct same-origin connection to the local Host. Remote proxies are not supported.') }
+  if (!loopbackAddress(request.socket?.remoteAddress)) reject()
+  const host = request.headers?.host
+  if (typeof host !== 'string' || /[\s\\/@?#]/.test(host)) reject()
+  let target
+  try { target = new URL(`${request.socket?.encrypted ? 'https' : 'http'}://${host}`) } catch { reject() }
+  if (target.hostname !== 'localhost' && !loopbackAddress(target.hostname)) reject()
+  const origin = request.headers?.origin, site = request.headers?.['sec-fetch-site']
+  if (site !== undefined && !['same-origin', 'none'].includes(site)) reject()
+  if (origin !== undefined) {
+    try { if (new URL(origin).origin !== target.origin) reject() } catch { reject() }
+  }
+  if (request.method === 'POST' && !/^application\/json(?:\s*;|\s*$)/i.test(request.headers?.['content-type'] ?? '')) reject()
+}
 
 /**
  * The bootstrap the standalone page runs.
@@ -261,6 +287,31 @@ export default class BlenderUiHost extends Service {
 
     let releaseSignal = () => {}
     try {
+      if (matched.route.id.startsWith('project.editableSnapshots.')) assertSnapshotHttpRequest(request)
+      if (matched.route.id === 'project.editableSnapshots.download') {
+        if (request.headers?.range) {
+          response.setHeader('accept-ranges', 'none')
+          this._sendJson(response, 416, { ok: false, error: { code: 'SNAPSHOT_RANGE_UNSUPPORTED', message: 'Snapshot downloads require a complete transfer.' } })
+          return
+        }
+        const controller = new AbortController()
+        const abort = () => controller.abort()
+        const closed = () => { if (!response.writableEnded) abort() }
+        request.once?.('aborted', abort); response.once?.('close', closed)
+        releaseSignal = () => { request.off?.('aborted', abort); response.off?.('close', closed) }
+        if (request.aborted) abort()
+        const download = await this._handlers[matched.route.id]({ params: matched.params, query: Object.fromEntries(url.searchParams.entries()), signal: controller.signal })
+        try {
+          response.setHeader('content-type', download.contentType)
+          response.setHeader('content-length', String(download.bytes))
+          response.setHeader('content-disposition', `attachment; filename="${download.filename}"`)
+          response.setHeader('x-content-type-options', 'nosniff')
+          response.setHeader('cache-control', 'no-store')
+          response.setHeader('accept-ranges', 'none')
+          await pipeline(download.stream, response, { signal: controller.signal })
+        } finally { download.stream.destroy(); await download.close() }
+        return
+      }
       if (matched.route.id === 'recipes.preview') {
         const preview = await this.ctx.blenderStudio.readRecipePreview({ id: matched.params.recipeId, version: matched.params.version, digest: url.searchParams.get('digest') })
         response.setHeader('content-type', preview.contentType)
@@ -304,6 +355,7 @@ export default class BlenderUiHost extends Service {
       })
       this._sendJson(response, 200, { ok: true, route: matched.route.id, hostApiVersion: HOST_API_VERSION, ...result })
     } catch (cause) {
+      if (response.headersSent || response.destroyed) { response.destroy?.(cause); return }
       const error = cause instanceof BlenderError
         ? cause
         : new BlenderError(
@@ -427,6 +479,12 @@ export default class BlenderUiHost extends Service {
  */
 export function statusForError(error) {
   if (error?.code === 'UI_HOST_API_STALE') return 503
+  if (error?.code === 'SNAPSHOT_LOCAL_ONLY') return 403
+  if (['SNAPSHOT_NOT_FOUND', 'SNAPSHOT_SOURCE_MISSING'].includes(error?.code)) return 404
+  if (['SNAPSHOT_REQUEST_INVALID', 'SNAPSHOT_PATH_INVALID', 'SNAPSHOT_PATH_CONFLICT', 'SNAPSHOT_IDENTITY_INVALID'].includes(error?.code)) return 400
+  if (error?.code === 'SNAPSHOT_LIMIT') return 413
+  if (error?.code === 'SNAPSHOT_SPACE') return 507
+  if (error?.code?.startsWith('SNAPSHOT_') && error.code !== 'SNAPSHOT_IO') return 409
   const referenceStatuses = { ASSET_REQUEST_INVALID: 400, ASSET_CONTENT_MISMATCH: 415, ASSET_TOO_LARGE: 413,
     CREATION_REQUEST_INVALID: 400, CREATION_REQUEST_CONFLICT: 409, PROJECT_ID_INVALID: 400,
     ASSET_FORMAT_UNAVAILABLE: 415, SCENE_VALIDATION_FAILED: 422, SCENE_SPEC_INVALID: 422,
@@ -506,6 +564,10 @@ async function readRequestBody(request) {
  */
 export function createHandlers(ctx) {
   const studio = () => ctx.blenderStudio
+  const snapshotStudio = method => {
+    if (typeof studio()?.[method] !== 'function') throw new BlenderError('UI_HOST_API_STALE', 'The running Blender Host does not support editable snapshots. Restart the Host.')
+    return studio()
+  }
   const assetStudio = method => {
     const service = studio(), version = service?.hostApiVersion?.()
     if (typeof service?.[method] !== 'function' || typeof version === 'number' && version < 5) {
@@ -516,6 +578,15 @@ export function createHandlers(ctx) {
   const approvalThreshold = () => studio().config?.requireApprovalAboveFrames ?? Number.POSITIVE_INFINITY
 
   return {
+    'project.editableSnapshots.create': async ({ params, body }) => ({ snapshot: await snapshotStudio('exportEditableSnapshot').exportEditableSnapshot({
+      projectId: params.projectId, requestId: body.requestId, revision: body.revision, ...(body.videoJobId == null ? {} : { videoJobId: body.videoJobId }),
+      ...(body.expectedStoreIdentity === undefined ? {} : { expectedStoreIdentity: body.expectedStoreIdentity }),
+    }) }),
+    'project.editableSnapshots.get': async ({ params }) => ({ snapshot: await snapshotStudio('getEditableSnapshot').getEditableSnapshot(params) }),
+    'project.editableSnapshots.cancel': async ({ params, body }) => ({ snapshot: await snapshotStudio('cancelEditableSnapshot').cancelEditableSnapshot({ ...params,
+      ...(body.expectedStoreIdentity === undefined ? {} : { expectedStoreIdentity: body.expectedStoreIdentity }) }) }),
+    'project.editableSnapshots.download': async ({ params, query, signal }) => snapshotStudio('openEditableSnapshot').openEditableSnapshot({ ...params, signal,
+      ...(query?.storeIdentity === undefined ? {} : { expectedStoreIdentity: query.storeIdentity }) }),
     /** SPEC §14.4 `blenderSettings.getCapabilities`; M0's route, unchanged in shape. */
     capabilities: async ({ query }) => {
       const refresh = query.refresh === '1'
@@ -633,8 +704,10 @@ export function createHandlers(ctx) {
     },
 
     /** Everything the panel needs to render itself from scratch, in one request. */
-    state: async ({ query }) => {
+    state: async ({ query, request }) => {
       const listed = await studio().listProjects()
+      let editableSnapshotAvailability = { available: true }
+      try { assertSnapshotHttpRequest(request ?? {}) } catch { editableSnapshotAvailability = { available: false, reason: 'local-only' } }
       const projectId = query.projectId ?? listed.projects.find(project => !project.creationPending)?.projectId ?? null
       const creationPending = listed.projects.some(project => project.projectId === projectId && project.creationPending)
       return {
@@ -642,6 +715,11 @@ export function createHandlers(ctx) {
         recipeCatalog: studio().listRecipes?.() ?? { recipes: [], errors: [] },
         projects: listed.projects.map(record => buildProjectView(record)),
         projectsRoot: listed.projectsRoot,
+        storeIdentity: listed.storeIdentity ?? null,
+        editableSnapshotProtocol: studio().editableSnapshotProtocol === 1 && typeof studio().exportEditableSnapshot === 'function'
+          && typeof studio().getEditableSnapshot === 'function' && typeof studio().cancelEditableSnapshot === 'function'
+          && typeof studio().openEditableSnapshot === 'function' ? 1 : null,
+        editableSnapshotAvailability,
         creationRequestProtocol: studio().creationRequestProtocol ?? null,
         cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
         selected: projectId === null || creationPending
@@ -655,7 +733,7 @@ export function createHandlers(ctx) {
 
     'projects.list': async () => {
       const listed = await studio().listProjects()
-      return { projects: listed.projects.map(record => buildProjectView(record)), projectsRoot: listed.projectsRoot }
+      return { projects: listed.projects.map(record => buildProjectView(record)), projectsRoot: listed.projectsRoot, storeIdentity: listed.storeIdentity ?? null }
     },
 
     'projects.create': async ({ body }) => {

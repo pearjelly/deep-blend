@@ -852,13 +852,17 @@ M3 新增的：
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |
 | `POST /deepblend/projects/:projectId/jobs/:jobId/cancel` | **写** | Cancel a running job and verify the process is gone. |
 | `POST /deepblend/projects/:projectId/render` | **写** | Start a delivery render (or resume one). |
+| `POST /deepblend/projects/:projectId/editable-snapshots` | **写** | 固定明确版本和可选已完成影片，立即返回 planning handle；后台准备或恢复可编辑副本。 |
+| `GET /deepblend/projects/:projectId/editable-snapshots/:exportId` | 读 | 读取请求、文件清单是否冻结、准备进度与就绪下载地址。 |
+| `POST /deepblend/projects/:projectId/editable-snapshots/:exportId/cancel` | **写** | 取消未完成的规划或归档，已就绪副本保持可用。 |
+| `GET /deepblend/projects/:projectId/editable-snapshots/:exportId/download` | 读 | 本机同源下载已核验副本；同一 FD 校验并流式传输，不支持 Range。 |
 | `GET /deepblend/artifacts/:projectId/*` | 读 | Serve one project-relative artifact (a preview PNG). |
 
 ### 2.2 契约要点
 
-* **写操作共有 11 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
+* **写操作以路由表为准**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
   `applyScenePatch` / `restoreRevision` / `startFinalRender`+`resumeRenderJob` /
-  `cancelJob`）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
+  `cancelJob`，以及素材会话、尺寸修改和可编辑副本各方法）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
   那一个方法，且没有任何 handler 在表外存在（闭集，两个方向都断言）。
 * **响应永远带 `route` 与 `hostApiVersion`**。这不是装饰：M0 的 prefix 路由注册在
   `/deepblend/capabilities` 上，所以一个更旧的宿主对该路径返回 **200 + 设置卡（没有

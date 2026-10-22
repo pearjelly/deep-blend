@@ -105,6 +105,7 @@ import { buildDeliveryManifest } from './delivery-manifest.js'
 import { beginFrameAttempt, createFrameProvenanceReadBudget, readFrameProvenance, syncFrameProvenance } from './frame-provenance.js'
 import { streamAsset } from './asset-io.js'
 import { AssetUploadSessions, ASSET_UPLOAD_LIMITS } from './asset-uploads.js'
+import { EditableSnapshots } from './editable-snapshots.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
@@ -457,6 +458,9 @@ export default class BlenderStudio extends Service {
     this.recipes = new RecipeCatalog({ directories: config.recipeDirectories ?? [] })
 
     this.store = new ProjectStore({ projectsRoot, workspaceRoot })
+    this.editableSnapshots = new EditableSnapshots(this.store)
+    this.editableSnapshotProtocol = 1
+    this.ctx.effect(() => () => this.editableSnapshots.dispose())
     this.transactions = new RevisionTransaction({ store: this.store, runtime: this.runtime, config })
     this.ctx.effect(() => () => this._bundleUploads?.dispose())
 
@@ -3475,7 +3479,7 @@ export default class BlenderStudio extends Service {
     projects.sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))
     // The RESOLVED root, not the row's possibly-empty value: the workbench shows
     // this string to a user who is looking for their projects on disk.
-    return { projects, count: projects.length, projectsRoot: this.projectsRoot }
+    return { projects, count: projects.length, projectsRoot: this.projectsRoot, storeIdentity: this.editableSnapshots.storeIdentity }
   }
 
   /**
@@ -4243,6 +4247,11 @@ export default class BlenderStudio extends Service {
    * @param {{ projectId: string, jobId?: string, revision?: string }} request
    * @returns {Promise<object>}
    */
+  async exportEditableSnapshot(request) { return this.editableSnapshots.create(request) }
+  async getEditableSnapshot(request) { return this.editableSnapshots.get(request) }
+  async cancelEditableSnapshot(request) { return this.editableSnapshots.cancel(request) }
+  async openEditableSnapshot(request) { return this.editableSnapshots.open(request) }
+
   async exportProject(request) {
     const projectId = request?.projectId
     const record = request?.jobId !== undefined

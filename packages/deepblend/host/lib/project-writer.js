@@ -11,7 +11,7 @@
  * This coordinates cooperating processes on one local filesystem. It is not a
  * distributed lock for network filesystems or protection against external edits.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { basename, join } from 'node:path'
@@ -28,6 +28,19 @@ function gone(owner) {
   if (owner?.hostname !== hostname() || !Number.isSafeInteger(owner.pid) || owner.pid <= 0
       || typeof owner.token !== 'string' || owner.token.length === 0) return false
   try { process.kill(owner.pid, 0); return false } catch (cause) { return cause.code === 'ESRCH' }
+}
+
+/** Read-only ownership evidence for a request-scoped writer, never a timeout lease. */
+export function projectWriterState(directory, workspaceRoot) {
+  const root = resolveInside(workspaceRoot, join(workspaceRoot, '.revision-writers'), 'revision writer locks')
+  const lockPath = resolveInside(root, join(root, sha256(directory)), 'project writer lock')
+  if (existsSync(`${lockPath}.recovery`)) return 'unknown'
+  if (!existsSync(lockPath)) return 'none'
+  const owner = ownerAt(lockPath)
+  if (gone(owner)) return 'recoverable'
+  if (owner?.hostname !== hostname() || !Number.isSafeInteger(owner.pid) || owner.pid < 1
+    || typeof owner.token !== 'string' || !owner.token) return 'unknown'
+  try { process.kill(owner.pid, 0); return 'held' } catch { return 'unknown' }
 }
 
 function conflict(directory, lockPath, owner, reason = 'another revision write is in progress') {

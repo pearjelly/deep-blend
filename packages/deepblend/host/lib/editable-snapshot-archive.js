@@ -113,6 +113,78 @@ export async function pinSnapshotSource(projectRoot, sourcePath, expected) {
   } finally { await handle.close() }
 }
 
+/** Read bounded metadata, or hash a large source, through one guarded FD. */
+export async function readSnapshotSource(projectRoot, sourcePath, { collect = false, maxBytes = SNAPSHOT_ARCHIVE_LIMITS.fileBytes, expected, signal } = {}) {
+  checkAbort(signal)
+  const context = await trustedRoot(projectRoot), source = await inspectPath(context, sourcePath)
+  const handle = await open(source.path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0))
+  try {
+    const before = await handle.stat({ bigint: true }), identity = fileIdentity(before), bytes = Number(before.size)
+    if (!before.isFile() || !Number.isSafeInteger(bytes) || bytes > maxBytes) fail('SNAPSHOT_LIMIT', `Source ${sourcePath} exceeds its size limit.`)
+    const hash = createHash('sha256'), chunks = []
+    let offset = 0
+    while (offset < bytes) {
+      checkAbort(signal)
+      const buffer = Buffer.allocUnsafe(Math.min(SNAPSHOT_ARCHIVE_LIMITS.chunkBytes, bytes - offset))
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset)
+      if (!bytesRead) fail('SNAPSHOT_SOURCE_CHANGED', `Source ${sourcePath} became truncated.`)
+      const chunk = buffer.subarray(0, bytesRead)
+      hash.update(chunk)
+      if (collect) chunks.push(chunk)
+      offset += bytesRead
+    }
+    const sha256 = hash.digest('hex'), after = await inspectPath(context, sourcePath, { parents: source.parents })
+    checkAbort(signal)
+    if (!sameIdentity(await handle.stat({ bigint: true }), identity) || !sameIdentity(after.stats, identity)
+      || expected && (expected.bytes !== bytes || expected.sha256 !== sha256))
+      fail('SNAPSHOT_SOURCE_CHANGED', `Source ${sourcePath} differs from its fixed identity.`)
+    return { sourcePath, bytes, sha256, identity, ...(collect ? { contents: Buffer.concat(chunks, bytes) } : {}) }
+  } finally { await handle.close() }
+}
+
+/** Verify before headers and deliver from the SAME FD, with bounded memory. */
+export async function openSnapshotFile(projectRoot, sourcePath, expected, { signal } = {}) {
+  if (!Number.isSafeInteger(expected?.bytes) || expected.bytes < 0 || expected.bytes > SNAPSHOT_ARCHIVE_LIMITS.archiveBytes
+    || !/^[a-f0-9]{64}$/.test(expected?.sha256 ?? '')) fail('SNAPSHOT_IDENTITY_INVALID', 'A download needs a fixed archive byte size and SHA256.')
+  checkAbort(signal)
+  const context = await trustedRoot(projectRoot), source = await inspectPath(context, sourcePath)
+  const handle = await open(source.path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0))
+  let closed = false
+  const close = async () => { if (!closed) { closed = true; await handle.close() } }
+  const assertIdentity = async identity => {
+    const after = await inspectPath(context, sourcePath, { parents: source.parents })
+    if (!sameIdentity(await handle.stat({ bigint: true }), identity) || !sameIdentity(after.stats, identity))
+      fail('SNAPSHOT_ARCHIVE_MISMATCH', 'The snapshot archive changed during download.')
+  }
+  const scan = async function* (identity) {
+    let offset = 0, lastChunk
+    const hash = createHash('sha256')
+    while (offset < expected.bytes) {
+      checkAbort(signal)
+      const buffer = Buffer.allocUnsafe(Math.min(SNAPSHOT_ARCHIVE_LIMITS.chunkBytes, expected.bytes - offset))
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset)
+      if (!bytesRead) fail('SNAPSHOT_ARCHIVE_MISMATCH', 'The snapshot archive became truncated.')
+      const chunk = buffer.subarray(0, bytesRead)
+      hash.update(chunk); offset += bytesRead
+      // Withhold the final chunk until verification succeeds. With an HTTP
+      // Content-Length, a corrupt transfer must end short of the promised size.
+      if (offset < expected.bytes) yield chunk
+      else lastChunk = chunk
+    }
+    checkAbort(signal)
+    await assertIdentity(identity)
+    if (hash.digest('hex') !== expected.sha256) fail('SNAPSHOT_ARCHIVE_MISMATCH', 'The snapshot archive failed SHA256 verification.')
+    if (lastChunk) yield lastChunk
+  }
+  try {
+    const before = await handle.stat({ bigint: true }), identity = fileIdentity(before)
+    if (!before.isFile() || Number(before.size) !== expected.bytes) fail('SNAPSHOT_ARCHIVE_MISMATCH', 'The snapshot archive size changed.')
+    for await (const _chunk of scan(identity)) { /* Verify without buffering the archive. */ }
+    return { bytes: expected.bytes, sha256: expected.sha256, close,
+      stream: Readable.from((async function* () { try { yield* scan(identity) } finally { await close() } })(), { objectMode: false }) }
+  } catch (error) { await close(); throw error }
+}
+
 function freezePlan(files) {
   if (!Array.isArray(files) || !files.length || files.length > SNAPSHOT_ARCHIVE_LIMITS.files)
     fail('SNAPSHOT_LIMIT', 'A snapshot needs between 1 and 10000 allowlisted files.')
@@ -418,6 +490,8 @@ export async function createEditableSnapshotArchive({ projectRoot, exportId, fil
     if (published) throw cause
     const error = cause instanceof SnapshotArchiveError ? cause : new SnapshotArchiveError('SNAPSHOT_IO', `Snapshot preparation failed during ${phase}: ${cause.message}`, { cause })
     error.failureDirectory = `exports/${stagingName}`
+    error.failureIdentity = { dev: String(stagingStats.dev), ino: String(stagingStats.ino) }
+    error.failureRootIdentity = { dev: String(context.stats.dev), ino: String(context.stats.ino) }
     // Retention is best effort (ENOSPC may also prevent diagnostic metadata).
     // Never follow a changed destination merely to write a failure receipt.
     await assertDestination().then(async () => {
