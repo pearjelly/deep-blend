@@ -114,7 +114,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | --- | --- |
 | [Cycles 实际渲染的金属台灯](deepblend/benchmarks/previews/metal-lamp-hero.png) | [Cycles 实际渲染的空心玻璃瓶与陶瓷托盘](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
 | **桌面音箱** | **青釉带把手杯** |
-| [Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+| [Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | [青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 在[作品配方](deepblend/docs/recipes.md)中选起点，调整颜色、粗糙度和曝光，创建后直接看实际预览。
 创建失败时保留输入，按提示修复后可重试原请求；已保存但回执丢失的项目会直接恢复，避免重复创建。[浏览器创建草稿](deepblend/docs/creation-drafts.md)可在重载或重新打开后明确选择继续，多个页面各自保留输入。

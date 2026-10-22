@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "deepblend.showcase/v1",
+  "schemaVersion": "deepblend.public-case/v1",
   "case": "Courtyard Pagoda",
   "projectId": "official-comparison-pagoda",
   "revisionId": "r0075",
@@ -11,7 +11,10 @@
     "durationSeconds": 37.5,
     "frameCount": 900,
     "fps": 24,
-    "resolution": [1280, 720],
+    "resolution": [
+      1280,
+      720
+    ],
     "codec": "h264",
     "engine": "Cycles",
     "samples": 128,
@@ -19,9 +22,69 @@
   },
   "source": {
     "sceneSpec": "scene-spec.json",
-    "sha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7"
+    "sha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7",
+    "bytes": 983912,
+    "scope": "structural-source-only",
+    "externalAssetsIncluded": false,
+    "nativeProjectIncluded": false
   },
   "review": {
     "publicSummary": "deepblend/showcase/pagoda/README.md"
-  }
+  },
+  "license": "CC0-1.0 third-party assets; MIT scene structure and documentation",
+  "deliveryReceipt": {
+    "file": "delivery.json",
+    "sha256": "be8af8f3fcea5c332946eaa97ae5615f190afce5fd0ee6f3f36888fdacd8058c",
+    "bytes": 268861,
+    "originalSha256": "07e09df56833d2aa8d03a28ed3ceaf4c44c4ce4bdebaf94f3225cc56ca379f19",
+    "redactions": [
+      "video.encode.argv (absolute local command paths)"
+    ]
+  },
+  "images": [
+    {
+      "file": "poster.png",
+      "sha256": "0a221793d3e50d4f8a45f4c22f22026c6a7acf75da7f9f1a3d6c5c05ca72141e",
+      "bytes": 1124114,
+      "width": 1280,
+      "height": 720,
+      "frame": 1,
+      "cameraId": "camera-main",
+      "shotId": "shot-01",
+      "postProcessed": false
+    },
+    {
+      "file": "buddha-court.png",
+      "sha256": "c48ec807c0d72c521245bf5bcd1065308f93d661af1bddaefd4d43735bf96225",
+      "bytes": 894110,
+      "width": 1280,
+      "height": 720,
+      "frame": 521,
+      "cameraId": "camera-buddha",
+      "shotId": "shot-03",
+      "postProcessed": false
+    },
+    {
+      "file": "buddha-detail.png",
+      "sha256": "7dc1c1adff7c6552b46e593e06cdd231c8d8c5fa7556a17c46e1e9ebc20a21ff",
+      "bytes": 918292,
+      "width": 1280,
+      "height": 720,
+      "frame": 610,
+      "cameraId": "camera-buddha",
+      "shotId": "shot-03",
+      "postProcessed": false
+    },
+    {
+      "file": "final-courtyard.png",
+      "sha256": "e9e4144467f3c412c03fa8d9f6b22a87a8967ebf45da21456b90582bf1e1ef79",
+      "bytes": 1142133,
+      "width": 1280,
+      "height": 720,
+      "frame": 900,
+      "cameraId": "camera-foliage",
+      "shotId": "shot-05",
+      "postProcessed": false
+    }
+  ]
 }

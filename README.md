@@ -109,7 +109,7 @@ The cup image comes from the [recorded tutorial](deepblend/docs/assets/creator-t
 | --- | --- |
 | [Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | [Cycles render of a hollow glass vessel and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
 | **Desktop speaker** | **Glazed handled cup** |
-| [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+| [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | [Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness and exposure, and create a project with a rendered preview.
 Creation errors keep your inputs and offer repair guidance and explicit retry. If a saved project's reply was lost, retry recovers it without creating another project. [Browser creation drafts](deepblend/docs/creation-drafts.md) can be explicitly continued after reload or reopening, with separate drafts for each page.
