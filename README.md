@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Latest stable [0.13.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.13.0) keeps moved or tilted handled cups in place during dimension edits and fits the default hero camera to measured geometry. Saved versions, manual appearance, handle parameters, independent photography and animation stay protected.
+Latest stable [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) adds imported-instance bounds and camera/frame geometry checks, rendering from saved shots with safe resume, and a verified five-shot pagoda film. Saved projects remain protected. See the [release notes and acceptance scope](deepblend/docs/releases/0.16.0.md).
 
 ## Quick start
 

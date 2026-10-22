@@ -919,3 +919,8 @@ bai通过正式DeepBlend完成的新r75任务render-0002已结束：900帧、37.
 发现并明确记录一个旧历史元数据限度：前一完整源摘要缺失时，operation-manifest的specChanged为false，而revision-manifest为true；sceneChanged和修改路径都正确。冻结候选未声称修复该分支，保留原记录，实际修改以独立源字节/原生/路径核验为准，后续用真实旧状态样本统一unknown语义。它不被用来掩盖源变化或替代当前影片来源验证。
 
 软件仍绑定运行期810/F4的完整v10和新付费验收；前一文档头8be的[五项CI](https://github.com/pearjelly/deep-blend/actions/runs/39624435612)及四份归档摘要/字节/CRC/根树均通过。下一步完成本次文档契约/CI，再合并、从干净已推送main重建、GitHub Release/资产/校验和、七npm包依赖顺序发布与匿名归档读回、三条实际安装路线互比及社区规范投影提交。此刻0.16尚未公开发布；社区提交、上游合并和线上刷新分别记录。自动任务保持暂停。稀疏远景植被、重复装饰和简化配景仍低于参考细节；这是维护者指导、CC0辅助续作，不证明任意一句话空白建模、模型升级单因果或外部采用。
+
+
+### 2026-10-22：0.16 发布与验收完成，社区 CI 通过
+
+冻结源码 `778c4e98` 的 [0.16 GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) 初始24资产匿名读回通过，七npm包最新版本与175文件完整验收通过；源码/npm/tarball一次实际比较均安装0.16.0、工作台HTTP 200、两个preset到达，获取的软件包数15/15/1，各七组件副本的精确文件集合、完整manifest和源码字节均通过。补充8份证据已上传并匿名全量读回，原24资产保持不变；发布正文已更新，正文及全部32资产元数据匿名读回一致。社区两行规范描述已提交[PR #8599](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8599)，精确一文件+2/−2及正文读回通过；精确提交 `95648902` 的[社区 CI](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/39721437557)两项检查均通过，0.16 发布与验收完成。上游审阅/合并与站点刷新仍待确认。首次构建、验证helper、npm未知结果及旧元数据限制均保留，见[发布说明](releases/0.16.0.md)与[验收记录](validation/release-0.16.0.json)。原历史保持。
