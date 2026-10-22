@@ -74,6 +74,10 @@ import sys
 import time
 import traceback
 
+# Blender's isolated Python ignores PYTHONDONTWRITEBYTECODE. Keep installed
+# runtime files unchanged when importing the sibling modules below.
+sys.dont_write_bytecode = True
+
 # --------------------------------------------------------------------------------------
 # Make the sibling modules importable
 # --------------------------------------------------------------------------------------

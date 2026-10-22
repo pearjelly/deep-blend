@@ -17470,3 +17470,44 @@ FETCH_ERROR 形状、实际 CLI 的默认认证闸门及最终三态汇总。七
 摘要、保存版本和原文件保护。原失败日志 SHA-256：`98c12d9b274694ef282e9a9141b07507f2024aea6170b8b8a829d4807a7dd8a0`。
 这条记录不把 42 项通过与单独复验拼成完整通过；新冻结来源仍需重新执行完整 43 套、
 对应 CI 和发布安装流程，最终结果在 0.18.0 发布验收记录中单独给出。
+
+
+### 2026-10-22 D295：0.18.0 安装后字节码缓存修复候选
+
+干净提交 `4dfaef4849bc93bbf10a0f68776172dea12d40e6` 构建的发布候选 tarball，SHA-256 为
+`edaf0233b3a008f999f5a70f8bb840031c5ea93166af07c9ce31d2ec3461422d`，在现代
+DSH 0.2.1-rc.1 隔离环境的首次安装验收 v1 未通过。浏览器辅助脚本在保存 r0002 后等待
+current 图片区，实际界面已进入版本比较，r0002 正确显示在右侧；辅助脚本已单独修正为
+等待明确的比较侧，真实指针操作、保存产物摘要和原生检查保持，产品 UI 未因此修改。
+这项纠正不把原 v1 改记为通过。
+
+安装后的严格清单另发现 25 个运行时新增的 `cpython-313.pyc` 文件。压缩包、来源 Python
+目录和安装前清单均无缓存，七包原有 182 个文件逐字节不变，957 个来源文件亦全程不变。
+本轮拥有的服务已确认关闭，关闭命令和服务进程均正常 exit 0。诊断记录
+`v1-diagnosis-and-browser-correction.json` 的 SHA-256 为
+`69c4dbb297e345bfd9125c3384fc1b63aaf8defaa4ea7066bb720a8749a6df52`；原失败结果与文件清单保留。
+
+独立原生标志探针沿用工厂启动且未导入安装产品：环境中有 `PYTHONDONTWRITEBYTECODE=1`，
+嵌入式 Python 的 `sys.dont_write_bytecode` 仍为 false，`sys.flags.ignore_environment` 为 1。新候选在
+`bootstrap.py` 第一次本地模块导入前显式禁止写入字节码，保留工厂启动与环境隔离；
+不采用会放开更广 Python 环境输入的 `--python-use-system-env`。
+
+新增断言进入既有 M0 原生探针，完整入口仍为 43 套。真实 provider 在无缓存的临时
+Python 目录副本执行能力探测和不支持动作的拒绝，专项 **16/16**、正常 exit 0；35 个
+原 Python 文件的完整集合及字节保持，新增缓存为零。原始日志 SHA-256 为
+`2ccab3786a73444a1b1631a9f86302a5947d52bc2f3fa0206b2fd1abde31e6b4`。这是能力探测和拒绝
+路径的专项，不能当作完整编译、浏览器安装或新冻结来源的完整验收。
+
+隔离完整副本仅移除 `sys.dont_write_bytecode = True` 后，同一探针实际 **15/16**、exit 1；
+唯一失败是 `native bootstrap leaves the clean installed runtime file set and bytes unchanged`。
+目录项由 35 增至 40，增加一个 `__pycache__` 目录及 capabilities、features、inspect_geometry、
+util 四个模块的 `.pyc`，原有 15 条断言仍通过。该变体被检出，产品工作树未被负控改写。
+失败日志 SHA-256 为 `d4dcad1bbd830a67b9066936918342e37bfb00f05bbd68cb1291524a774ad954`。
+被测 bootstrap 与探针源码 SHA-256 分别为
+`d63ed1ea54e0c8a27a85f30e76e917339dcb009f34e0b23ca49ad77febf6d9ea`、
+`5522bf87963da189badabaaf39bb5de1d379739fcca8e699192250d191479bf2`。
+
+此前冻结提交 `c8d1e2e5e04b8a4e96367e00e3c3369a4b25be19` 的完整 43 套原生验收和五项
+CI 已通过，[原验收记录](validation/release-0.18.0.json) 保持原样。本条记录时，此次修复的
+单元/契约、冻结后的完整验收、对应 CI、干净构建及重新安装验证均待完成，随后仍须 GitHub/npm 与三路
+公开读回；当前未宣称最终候选或 0.18.0 发布通过，最终证据随 Release 资产提供。
