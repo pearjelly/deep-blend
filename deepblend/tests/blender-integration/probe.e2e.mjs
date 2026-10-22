@@ -15,14 +15,36 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
+import { createHash } from 'node:crypto'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 
 const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const BLENDER_PATH = process.env.DEEPBLEND_BLENDER_PATH
   ?? join(PROJECT_ROOT, '.tools', 'Blender.app', 'Contents', 'MacOS', 'Blender')
 const PROVIDER = join(PROJECT_ROOT, 'packages', 'deepblend', 'provider-local')
+const output = join(PROJECT_ROOT, '.deepblend', 'quality', `runtime-bytecode-${new Date().toISOString().replaceAll(':', '-')}`)
+const runtimeCopy = join(output, 'installed-python')
+const workspace = join(output, 'workspace')
+mkdirSync(output, { recursive: true })
+// Start from installed source files, never a checkout's pre-existing Python cache.
+cpSync(join(PROVIDER, 'python'), runtimeCopy, {
+  recursive: true, filter: path => basename(path) !== '__pycache__' && !path.endsWith('.pyc'),
+})
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
+function inventory(directory, prefix = '') {
+  return readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)).flatMap(entry => {
+    const path = join(directory, entry.name), relative = prefix + entry.name
+    if (entry.isDirectory()) return [{ path: relative, kind: 'directory' }, ...inventory(path, relative + '/')]
+    if (!entry.isFile()) throw new Error(`Unexpected runtime entry: ${path}`)
+    const bytes = readFileSync(path)
+    return [{ path: relative, kind: 'file', bytes: bytes.length, sha256: sha256(bytes) }]
+  })
+}
+const runtimeBefore = inventory(runtimeCopy)
+writeFileSync(join(output, 'runtime-before.json'), JSON.stringify(runtimeBefore, null, 2) + '\n')
 
 /** @type {{ name: string, ok: boolean, detail?: unknown }[]} */
 const results = []
@@ -48,8 +70,8 @@ try {
 
   const config = {
     blenderPath: BLENDER_PATH,
-    bootstrapPath: join(PROVIDER, 'python', 'bootstrap.py'),
-    workspaceRoot: join(PROJECT_ROOT, '.deepblend'),
+    bootstrapPath: join(runtimeCopy, 'bootstrap.py'),
+    workspaceRoot: workspace,
     timeoutMs: 180_000,
     maxOutputBytes: 1024 * 1024,
     maxSpillBytes: 64 * 1024 * 1024,
@@ -126,8 +148,7 @@ try {
   check('cached probe returns without re-launching', cached.probedAt === capabilities.probedAt)
 
   // --- working-directory hygiene --------------------------------------------
-  const { existsSync, readdirSync } = await import('node:fs')
-  const tmpRoot = join(PROJECT_ROOT, '.deepblend', 'tmp')
+  const tmpRoot = join(workspace, 'tmp')
   const leftovers = existsSync(tmpRoot) ? readdirSync(tmpRoot) : []
   check('no per-invocation temp directories left behind', leftovers.length === 0, leftovers)
 } catch (cause) {
@@ -136,8 +157,22 @@ try {
   await root.stop?.()
 }
 
+// A real native action must leave the complete installed runtime unchanged,
+// including its file set. Hashing only the original files would miss new .pyc files.
+const runtimeAfter = inventory(runtimeCopy)
+writeFileSync(join(output, 'runtime-after.json'), JSON.stringify(runtimeAfter, null, 2) + '\n')
+check('native bootstrap leaves the clean installed runtime file set and bytes unchanged',
+  JSON.stringify(runtimeAfter) === JSON.stringify(runtimeBefore),
+  { before: runtimeBefore.length, after: runtimeAfter.length, output })
+
 // ---------------------------------------------------------------------------
 const failed = results.filter(entry => !entry.ok)
+writeFileSync(join(output, 'report.json'), JSON.stringify({
+  passed: failed.length === 0, results, runtimeCopy,
+  sourceBootstrapSha256: sha256(readFileSync(join(PROVIDER, 'python', 'bootstrap.py'))),
+  runtimeBefore, runtimeAfter,
+  scope: 'Real provider capability and refusal actions using a fresh copy of shipped Python files; exact file-set and byte preservation. No system Python environment opt-in.',
+}, null, 2) + '\n')
 console.log('')
 console.log(`M0 Blender probe: ${results.length - failed.length}/${results.length} checks passed`)
 if (failed.length > 0) {
