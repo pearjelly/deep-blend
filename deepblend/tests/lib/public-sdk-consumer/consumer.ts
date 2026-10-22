@@ -5,9 +5,11 @@ import {
   parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters, buildOperationManifest,
   sceneSpecDigest, specHash, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
   BOX_DIMENSIONS_FEATURE, requiredSceneFeatures,
+  normalizeShotCameraSelection, shotCameraForFrame,
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
   type RecipeLock, type RecipeParameterState, type RecipeGeometryPlan, type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
+  type ShotCameraSelection, type ShotFrameSequenceRequest,
   type CompiledObject, type SceneSpecSchema, type RecipeSchema, type FrameProvenanceEvent, type FrameProvenanceSummary,
 } from '@deepblend/dsh-blender-contracts/sdk';
 import specSchema from '@deepblend/dsh-blender-contracts/schemas/scene-spec.json' with { type: 'json' };
@@ -60,6 +62,13 @@ assert.equal(provenance.unknownFrameCount, 1);
 const deferred: FrameProvenanceSummary = {...provenance,limited:true,limitation:'status-budget',
   unknownFrames:[],unknownFrameCount:0,uncheckedFrameCount:100001};
 assert.equal(deferred.uncheckedFrameCount, 100001);
+const shotSelection: ShotCameraSelection = normalizeShotCameraSelection({
+  schemaVersion:'deepblend.shot-camera-selection/v1',mode:'shots',
+  shots:[{id:'sdk-shot',cameraId:'hero',frameRange:[1,2]}],
+},[1,2]);
+assert.deepEqual(shotCameraForFrame(shotSelection,2),{shotId:'sdk-shot',cameraId:'hero'});
+const shotRequest: ShotFrameSequenceRequest = {checkpointPath:'/absolute/scene.blend',
+  jobDirectory:'/absolute/shot-job',frames:[1,2],cameraSelection:shotSelection};
 
 // JSON stays untrusted until the public package validator has checked it.
 const recipe: RecipeManifest = parseRecipeManifest(JSON.parse(readFileSync('recipe/recipe.json', 'utf8')));
@@ -107,6 +116,11 @@ async function useRuntime(runtime: BlenderRuntime, local: LocalBlenderRuntime, s
   const views = await runtime.renderViews({checkpointPath:'/absolute/scene.blend', views:[{id:'hero',cameraId:'hero',frame:1}],track:['body'],parts:[]});
   const png: Buffer | undefined = views.pngs['hero'];
   const run = await runtime.startFrameSequence({checkpointPath:'/absolute/scene.blend', jobDirectory:'/absolute/job', frames:[1,2], signal});
+  if (runtime.startShotFrameSequence) {
+    const shotRun = await runtime.startShotFrameSequence({...shotRequest,signal});
+    shotRun.handle.terminate();
+    await runtime.awaitFrameSequence(shotRun);
+  }
   const handle: FrameSequenceHandle = run.handle;
   handle.terminate();
   const outcome = await runtime.awaitFrameSequence(run);

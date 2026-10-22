@@ -47,6 +47,7 @@
 | 测试入口 | 检查范围 |
 | --- | --- |
 | `deepblend/tests/e2e/complete-frame-delivery.e2e.mjs` | 两张 256×192 已完整 PNG 帧直接经 Host 交给真实 FFmpeg/ffprobe；不要求 checkpoint、采样预算或 Blender；核对帧与交付历史，取消本次创建的编码器并等待其进程范围退出，保留旧正式视频与清单 |
+| `deepblend/tests/blender-integration/shot-render.e2e.mjs` | 真实相机红/蓝像素切镜与MP4；旧单镜默认保留；取消后换独立宿主，沿用冻结旧分镜并保留已知PNG；未归属相机的完整PNG重新渲染且原字节留存；不代表案例成品质量 |
 | `deepblend/tests/e2e/render-selection-ui.e2e.mjs` | 实际浏览器选择 preview/final 与帧范围；点击后、HTTP 请求发出前另一编辑者提交新版本，原请求仍绑定点击时的版本；核对 Host、Blender 实际采样/尺寸、PNG、MP4 和交付清单，并保护旧源文件与帧 |
 | `deepblend/tests/e2e/photography-ui.e2e.mjs` | 摄影草稿、轮询焦点与跨项目保留；灯光/相机修改保存及固定版本预览；独立重开核对网格、材质、相机和灯光；固定 CPU/种子/采样的重复像素对照、条件恢复、刷新、窄屏与旧文件保护 |
 | `deepblend/tests/e2e/png-download-ui.e2e.mjs` | 真实配方创建与 Chrome 文件下载；原始 PNG 字节/尺寸/摘要和源文件名，真实 HTTP 图片被替换时拒绝、恢复后重试、无 SubtleCrypto 时校验、360px 操作和场景/任务保护；编码器路径明确不可用 |
@@ -135,6 +136,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 
 - `${{ runner.temp }}/deepblend-ci/render-selection-browser/` 与 `render-selection-browser.log`：浏览器请求、实际任务/计划/Blender 结果、PNG/MP4/清单、截图及取消与停机记录。
 - `${{ runner.temp }}/deepblend-ci/complete-frame-delivery/` 与 `complete-frame-delivery.log`：隔离 store、两张原始 PNG、前后任务记录、Host/编码器源摘要、FFmpeg 请求、编码器 PID、取消和退出结果及失败；此目录不能复用，重新运行须使用新的证据目录。
+- `${{ runner.temp }}/deepblend-ci/shot-render/` 与 `shot-render.log`：双相机原生工程、实际PNG与MP4、逐帧相机/摘要回执、取消与独立宿主恢复、冻结分镜及保留的未归属帧。仅验证受控功能，不作成品观感或外部采用证据。
 - `${{ runner.temp }}/deepblend-ci/photography-browser/` 与 `photography-browser.log`：摄影请求和回执、前后图片、独立重开结果、固定像素对照、截图及停机结果。
 
 - `${{ runner.temp }}/deepblend-ci/asset-bundle-upload-browser/` 与 `asset-bundle-upload-browser.log`：FileList、原始文件/请求摘要、真实回包丢失记录、进度与错误截图、三格式源文件/PNG/场景和独立重开结果、隔离 DSH home 普通文件及链接清单、自有进程退出及前后源码摘要；失败证据不覆盖，重新运行需新目录。

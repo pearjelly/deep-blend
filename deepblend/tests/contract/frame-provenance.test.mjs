@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import LocalBlenderRuntime from '@deepblend/dsh-blender-provider-local'
-import { buildJobView, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
+import { buildJobView, createImage, encodePng, buildShotCameraSelection, shotCameraForFrame } from '@deepblend/dsh-blender-contracts'
 import { beginFrameAttempt, readFrameProvenance, syncFrameProvenance } from '../../../packages/deepblend/host/lib/frame-provenance.js'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -25,6 +25,7 @@ async function world(t, options = {}) {
   const workspaceRoot = mkdtempSync(join(tmpdir(), 'deepblend-frame-sources-'))
   t.after(() => rmSync(workspaceRoot, { recursive: true, force: true }))
   const calls = []
+  const encodes = []
   let attempt = 0
   const ctx = new Context()
   const subprocess = {
@@ -53,7 +54,7 @@ async function world(t, options = {}) {
         return handle(success ? 0 : 1)
       }
       if (request.argv[0].includes('ffprobe')) return handle(0, JSON.stringify({ streams: [{ codec_name: 'h264', width: 256, height: 256, avg_frame_rate: '30/1', nb_read_frames: String(options.frameCount ?? 3) }], format: { duration: String((options.frameCount ?? 3) / 30) } }))
-      assert(request.argv[0].includes('ffmpeg')); writeFileSync(request.argv.at(-1), 'controlled encoded bytes'); return handle(0)
+      assert(request.argv[0].includes('ffmpeg')); encodes.push(request.argv); options.onEncode?.(); writeFileSync(request.argv.at(-1), 'controlled encoded bytes'); return handle(0)
     },
   }
   const seam = { ctx: { subprocess }, config: { maxOutputBytes: 4096, maxSpillBytes: 4096 }, bootstrapPath: join(ROOT, 'packages/deepblend/provider-local/python/bootstrap.py'),
@@ -65,6 +66,12 @@ async function world(t, options = {}) {
   })
   const studio = new BlenderStudio(ctx, StudioConfig({ workspaceRoot, projectsRoot: join(workspaceRoot, 'projects'), reconcileOnStart: false }))
   const spec = read(join(ROOT, 'deepblend/fixtures/product-turntable/scene-spec.json'))
+  if (options.shots) {
+    const second = { ...structuredClone(spec.cameras[0]), id: 'camera-shot-second' }; delete second.role
+    spec.cameras.push(second)
+    spec.shots = [{ id: 'opening', cameraId: second.id, frameRange: [1, 2] },
+      { id: 'closing', cameraId: spec.cameras[0].id, frameRange: [3, 4] }]
+  }
   spec.renderProfiles.final = { engine: 'cycles', resolution: [256, 256], samples: 12 }
   const project = await studio.transactions.createProject({ title: 'frame-provenance', sceneSpec: spec, saveCheckpoint: false })
   const request = { projectId: project.projectId, jobId: 'render-0001' }
@@ -72,7 +79,9 @@ async function world(t, options = {}) {
   studio.renderJobs.write({ ...request, type: 'final-render', status: 'failed', revisionId: project.revision.revision,
     frameStart: 1, frameEnd: 3, expectedFrames: 3, completedFrames: [], missingFrames: [1, 2, 3], corruptFrames: [], fps: 30,
     attempt: 0, createdAt: Date.now(), finishedAt: null, pid: null, dshJobId: null, delivery: { status: 'failed', attempt: 0 }, warnings: [], filePrefix: 'frame_', filePadding: 4,
-    profileName: 'final', cameraId: 'camera-main', sceneFrameRange: [1, 90], renderConfig: { engine: 'cycles', resolution: [256, 256], samples: 12 }, checkpointPath })
+    profileName: 'final', cameraId: options.shots ? null : 'camera-main',
+    ...(options.shots ? { cameraSelection: buildShotCameraSelection(spec, [1, 2, 3]) } : {}),
+    sceneFrameRange: [1, 90], renderConfig: { engine: 'cycles', resolution: [256, 256], samples: 12 }, checkpointPath })
   const directory = studio.renderJobs.jobDirectory(request.projectId, request.jobId)
   const frames = studio.renderJobs.framesDirectory(request.projectId, request.jobId)
   mkdirSync(frames, { recursive: true })
@@ -83,8 +92,85 @@ async function world(t, options = {}) {
     assert.equal(studio._liveRenders.size, 0)
     return result
   }
-  return { studio, request, directory, frames, record, resume, calls, workspaceRoot }
+  return { studio, request, directory, frames, record, resume, calls, encodes, workspaceRoot }
 }
+
+function completeShotFrames(w, adjust = events => events) {
+  const record = w.record(), id = randomUUID()
+  beginFrameAttempt(record, w.directory, { id, frames: [1, 2, 3], profile: { engine: 'cycles', samples: 12, resolution: [256, 256] }, cameraId: null, checkpointPath: record.checkpointPath })
+  const events = [{ type: 'render_config', attemptToken: id, renderConfig: actual(12) }]
+  for (const frame of [1, 2, 3]) {
+    const bytes = png(frame); writeFileSync(join(w.frames, `frame_000${frame}.png`), bytes)
+    events.push({ type: 'frame', frame, attemptToken: id, sha256: sha(bytes), ...shotCameraForFrame(record.cameraSelection, frame) })
+  }
+  writeFileSync(join(w.directory, 'events.jsonl'), adjust(events).map(event => JSON.stringify(event)).join('\n') + '\n')
+}
+
+for (const kind of ['missing camera', 'wrong camera', 'wrong shot', 'contradictory completion', 'changed source selection']) {
+  test(`complete shot PNGs cannot be encoded with ${kind}`, async t => {
+    const w = await world(t, { shots: true })
+    completeShotFrames(w, events => {
+      if (kind === 'missing camera') for (const event of events.slice(1)) { delete event.cameraId; delete event.shotId }
+      if (kind === 'wrong camera') events[1].cameraId = 'camera-not-selected'
+      if (kind === 'wrong shot') events[1].shotId = 'shot-not-selected'
+      if (kind === 'contradictory completion') events.push({ ...events[1], cameraId: 'camera-not-selected' }, { ...events[1] })
+      return events
+    })
+    if (kind === 'changed source selection') {
+      const path = join(w.directory, 'frame-sources.json'), data = read(path)
+      data.current.cameraSelection.shots[0].cameraId = 'camera-not-selected'; writeFileSync(path, JSON.stringify(data))
+    }
+    const video = join(w.workspaceRoot, 'projects', w.request.projectId, 'output', 'final.mp4')
+    mkdirSync(join(w.workspaceRoot, 'projects', w.request.projectId, 'output'), { recursive: true }); writeFileSync(video, 'previous movie')
+    await assert.rejects(w.studio.exportProject(w.request), error => error.code === 'RENDER_FRAMES_INCOMPLETE')
+    assert.equal(w.encodes.length, 0, 'camera evidence is required before an encoder is started')
+    assert.equal(readFileSync(video, 'utf8'), 'previous movie')
+    assert.equal(w.calls.length, 0)
+  })
+}
+
+test('complete camera-bound PNGs export without a Blender process and preserve exact per-frame camera IDs', async t => {
+  const w = await world(t, { shots: true }); completeShotFrames(w)
+  await w.studio.exportProject(w.request)
+  assert.equal(w.encodes.length, 1); assert.equal(w.calls.length, 0)
+  const manifest = read(join(w.directory, 'manifest.json'))
+  assert.equal(manifest.render.cameraId, null)
+  assert.equal(manifest.render.provenance.coverage, 'complete')
+  assert.deepEqual(manifest.render.provenance.frames.map(binding => [binding.shotId, binding.cameraId]),
+    [1, 2, 3].map(frame => { const selected = shotCameraForFrame(w.record().cameraSelection, frame); return [selected.shotId, selected.cameraId] }))
+})
+
+test('changing camera-bound PNG bytes blocks re-export and preserves the previous video', async t => {
+  const w = await world(t, { shots: true }); completeShotFrames(w)
+  await w.studio.exportProject(w.request)
+  const video = join(w.workspaceRoot, 'projects', w.request.projectId, 'output', 'final.mp4'), before = readFileSync(video)
+  writeFileSync(join(w.frames, 'frame_0002.png'), png(9))
+  await assert.rejects(w.studio.exportProject(w.request), error => error.code === 'RENDER_FRAMES_INCOMPLETE')
+  assert.equal(w.encodes.length, 1); assert.deepEqual(readFileSync(video), before)
+})
+
+test('a different source camera snapshot cannot attribute frames even when its own claims agree', async t => {
+  const w = await world(t, { shots: true }); completeShotFrames(w)
+  const path = join(w.directory, 'frame-sources.json'), data = read(path)
+  const changedCamera = data.current.cameraSelection.shots[1].cameraId
+  data.current.cameraSelection.shots[0].cameraId = changedCamera
+  writeFileSync(path, JSON.stringify(data))
+  const events = readFileSync(join(w.directory, 'events.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+  for (const event of events) if (event.type === 'frame' && event.shotId === 'opening') event.cameraId = changedCamera
+  writeFileSync(join(w.directory, 'events.jsonl'), events.map(event => JSON.stringify(event)).join('\n') + '\n')
+  await assert.rejects(w.studio.exportProject(w.request), error => error.code === 'RENDER_FRAMES_INCOMPLETE')
+  assert.equal(w.encodes.length, 0)
+})
+
+test('camera-bound source changes during encoding cannot replace the previous delivery', async t => {
+  const options = { shots: true }, w = await world(t, options); completeShotFrames(w)
+  const video = join(w.workspaceRoot, 'projects', w.request.projectId, 'output', 'final.mp4')
+  mkdirSync(join(w.workspaceRoot, 'projects', w.request.projectId, 'output'), { recursive: true }); writeFileSync(video, 'previous movie')
+  options.onEncode = () => writeFileSync(join(w.frames, 'frame_0002.png'), png(9))
+  await assert.rejects(w.studio.exportProject(w.request), error => error.code === 'RENDER_FRAMES_INCOMPLETE')
+  assert.equal(w.encodes.length, 1)
+  assert.equal(readFileSync(video, 'utf8'), 'previous movie')
+})
 
 test('mixed resumed frames keep their actual samples through publication and the UI', async t => {
   const w = await world(t)

@@ -257,6 +257,16 @@ check('the finding shape is the one the job surface publishes, in both direction
     'previousStatus' in finding && 'process' in finding && 'ledger' in finding),
   Object.keys(afterFailure[0] ?? {}))
 
+let unexpectedFallback = 0, unsupportedShotError
+try {
+  await BlenderStudio.prototype.startShotSequenceRender.call({
+    runtime: { startFrameSequence() { unexpectedFallback++ } },
+    _startFinalRender() { unexpectedFallback++ },
+  }, { projectId: 'not-even-read' })
+} catch (error) { unsupportedShotError = error }
+check('explicit shots refuse an older runtime before reading a project or using its single-camera renderer',
+  unsupportedShotError?.code === code('RUNTIME_UNAVAILABLE') && unexpectedFallback === 0)
+
 rmSync(workspaceRoot, { recursive: true, force: true })
 
 // ---------------------------------------------------------------------------

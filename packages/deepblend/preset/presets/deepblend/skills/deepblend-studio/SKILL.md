@@ -400,6 +400,9 @@ the current revision and repeat the affected views with the same settings.
 4. **`blender_scene_get`** — read before writing. Patching without reading is how a
    stale `baseRevision` produces a refusal you then have to diagnose.
    For exact fields of one saved entity in a large scene, use `sourceEntityId`.
+   This selects an entity, not an animation-track, camera or asset-descriptor ID.
+   Read camera/track fields from the scene catalogue or `full:true`, without
+   `sourceEntityId`; do not combine the two read modes.
    It returns bounded compact JSON `sourceText`, `nextOffset`, revision and
    `entityJsonSha256`. Continue with that explicit revision and `sourceOffset:nextOffset`,
    verify the hash stays identical, concatenate the chunks in order, then parse JSON.
@@ -407,8 +410,40 @@ the current revision and repeat the affected views with the same settings.
    text may return fewer. Do not combine this mode with full or geometry reads.
    This preset has no generic `read` tool: do not spend repeated grep calls trying
    to reconstruct multiline control vertices from spilled full-scene output.
+   Imported models commonly have an empty container with nested mesh children. For the
+   complete instance, request `geometryEntityIds:[assetId,supportId]`,
+   `geometryAssetInstanceIds:[assetId]`, `geometryFrame` and `geometryOnly:true`.
+   Do not combine aggregate instance bounds with `geometryObjectAxes` or
+   `geometrySurfaceSamples`. A multi-part hierarchy has no single physical part axis.
+   ASSET_MESH_SET reports actual evaluated world bounds and mesh counts. The ID is the
+   scene entity ID, not the source asset descriptor ID. Missing/hidden/unsupported or
+   over-budget children make the entire instance unavailable: never substitute its
+   origin, a declared dimension, a partial child or zero for the measured bottom.
+   For a deliberately horizontal flat pedestal, compare the measured instance min Z
+   to support max Z, preserve the old revision, change only the intended instance
+   transform through a patch, remeasure and inspect the base in an actual close view.
+   Bounds separation is not a surface contact or collision certificate.
+
+   For framing, select the required complete subjects and `geometryCameraId` at an
+   explicit `geometryFrame`; use `geometryAssetInstanceIds` for imported subjects.
+   `geometryCameraMargin` defaults to 0.03. Read cameraProjection.normalizedBounds,
+   containedInFrame and containedInClip, rather than guessing from object origins.
+   Intended detail crops are different from an establishing shot that loses its finial.
+   Test shot endpoints, interior extrema and transition-adjacent frames; verify every
+   rendered frame before final delivery. Projection does not detect an intervening
+   column, tree, wall, camera collision, or later motion. Inspect actual pixels too.
+   Never automatically replace an old project's manually authored cameras or geometry.
 5. **`blender_scene_patch`** — submit ordinary scene edits as bounded operations. There is no free-form
    edit and no script. See "Revision discipline" below.
+   For complex custom geometry, prefer 1–6 coherent operations per call. Reuse exact
+   saved entities with entityCopies to avoid resending long arrays. This is not a hard
+   limit or permission to split dependent atomic edits. Send complete strict JSON;
+   after refusal, inspect the error paths and dryRun validation before retrying.
+   Harness MALFORMED_RESPONSE occurs before this tool and does not mean an edit was
+   accepted. Never silently repair/execute truncated JSON or claim the tool fixed it.
+   `blender_asset_ingest.license` is a string, but `asset.add.asset.license` is an object
+   with source, commercialUse and attribution. Keep the returned asset descriptor.
+   `cube.size` is one scalar; do not pass a vector as its size.
    To reuse exact saved geometry without repeating control arrays, supply up to16
    `entityCopies:[{sourceEntityId,newEntityId,transform?}]` from `baseRevision`.
    These become ordinary entity.add operations before `operations` (which may be []).
@@ -434,6 +469,15 @@ the current revision and repeat the affected views with the same settings.
    as well as technical measurements; it cannot rewrite the target to obtain a pass.
 9. **`blender_final_render`** — only once the preview is right. It returns as soon as
    the job is durable, not when it finishes.
+   The default renders one camera. Saved `shots` metadata does not switch cameras.
+   For an authored multi-shot film, explicitly set `useShotCameras:true`; every
+   requested frame must belong to exactly one saved shot with its `cameraId` and
+   `frameRange`. Do not also select `cameraId`. A missing capability/camera or an
+   uncovered/overlapping range is a refusal, never permission to use one fallback
+   camera for the whole film. The job freezes this selection and binds actual
+   per-frame camera IDs to the output PNGs. A delivery needs consecutive frames;
+   use named-camera previews for separated spot checks, never a final render to
+   discover whether the composition is right.
 10. **`blender_job_status`** — poll it, or come back to it in a later turn. A render
     that outlives the process is still there: the store is on disk.
 11. **`blender_export`** — publish the delivery package when you want it verified and
@@ -485,6 +529,10 @@ oversized images refuse compilation. Self-contained GLB keeps its single content
   `resumeJobId` renders only the frames that are missing or corrupt. The frames on disk
   are the authority, not the job record, so a render killed mid-frame resumes correctly.
   Never start a fresh render of a job that already has frames.
+  For a shot job, omit `useShotCameras` and `cameraId` on resume: its recorded
+  revision and camera ranges remain authoritative even if the current storyboard
+  changed. A complete PNG without verified camera evidence is re-rendered; replaced
+  derived PNGs are retained under the job rather than silently treated as valid.
 - **A render you no longer want is cancelled, not abandoned.** `blender_job_cancel` takes
   the job id, stops the renderer and reports whether the process is actually gone.
 

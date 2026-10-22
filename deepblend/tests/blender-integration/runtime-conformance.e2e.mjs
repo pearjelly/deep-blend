@@ -45,12 +45,14 @@ try {
     const report = JSON.parse(readFileSync(join(evidence, 'report.json')));
     assert.equal(report.status, 'passed');
     assert(report.checks.every(check => check.ok));
+    assert(report.calls.some(call => call.method === 'startShotFrameSequence'),
+        'The maintained local connector must execute its optional shot capability, not silently skip it');
     assert.equal(report.sdk.version, JSON.parse(readFileSync(join(ROOT, 'packages/deepblend/contracts/package.json'))).version);
     for (const file of ['conformance.mjs', 'run-conformance.mjs', 'scene-spec.json', 'verify-checkpoint.py'])
         assert.equal(sha(readFileSync(join(consumer, file))), sha(readFileSync(join(ROOT, 'deepblend/examples/runtime-author', file))));
     writeFileSync(join(out, 'consumer.json'), JSON.stringify({ consumer, blender, archiveSha256: sha(readFileSync(archive)), connectorSha256: sha(readFileSync(connector)), checks: report.checks.length, profileRefusal: refusal,
         scope: 'Actual packed checker outside checkout; maintained connector uses public DSH/provider packages. No independent implementation/adoption claim.' }, null, 2));
-    console.log(`Runtime conformance: ${report.checks.length + 1}/${report.checks.length + 1} checks passed`);
+    console.log(`Runtime conformance: ${report.checks.length + 2}/${report.checks.length + 2} checks passed`);
 }
 catch (error) {
     writeFileSync(join(out, 'failure.json'), JSON.stringify({ message: error.message }, null, 2));

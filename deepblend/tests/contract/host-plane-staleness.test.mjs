@@ -168,6 +168,28 @@ for (const version of [undefined, 5, Number.NaN, '6']) {
     result.value.data.detail.requiredHostApiVersion === 6 && /restart the profile/.test(result.value.text))
 }
 
+{
+  let legacyCalls = 0, shotCalls = 0, seen
+  const host = { ...olderStudio(), hostApiVersion: () => HOST_API_VERSION,
+    startFinalRender: async request => { legacyCalls++; return { jobId: 'render-0001', projectId: request.projectId, frames: 4, frameStart: 1, frameEnd: 4, warnings: [] } } }
+  const plane = await composeToolPlane({ studio: host, label: 'shot-feature-presence', expectAtLeast: 16 })
+  const execute = arguments_ => plane.tools.execute({ name: 'blender_final_render', arguments: arguments_ })
+  const unsupported = await execute({ projectId: 'p', useShotCameras: true })
+  check('current-version Host without shot capability refuses before single-camera fallback',
+    unsupported.value?.data?.errorCode === 'BLENDER_RUNTIME_UNAVAILABLE' && legacyCalls === 0)
+  host.startShotSequenceRender = async request => { shotCalls++; seen = request; return { jobId: 'render-0002', projectId: request.projectId, frames: 4, frameStart: 1, frameEnd: 4, warnings: [] } }
+  const selected = await execute({ projectId: 'p', revision: 'r0003', frameStart: 1, frameEnd: 4, useShotCameras: true })
+  check('explicit flag calls the dedicated Host capability with the pinned revision',
+    selected.value?.ok === true && shotCalls === 1 && legacyCalls === 0 && seen.revision === 'r0003' && seen.cameraId === undefined)
+  for (const conflict of [{ cameraId: 'camera-main' }, { resumeJobId: 'render-0002' }]) {
+    const refused = await execute({ projectId: 'p', useShotCameras: true, ...conflict })
+    check('conflicting shot selection is refused before a Host call: ' + Object.keys(conflict)[0],
+      refused.value?.data?.errorCode === 'SCENE_SPEC_INVALID' && shotCalls === 1 && legacyCalls === 0)
+  }
+  const legacy = await execute({ projectId: 'p', useShotCameras: false })
+  check('false preserves the established single-camera tool route', legacy.value?.ok === true && legacyCalls === 1 && shotCalls === 1)
+}
+
 const passed = results.filter(entry => entry.ok).length
 console.log(`\nHost-plane staleness diagnosis: ${passed}/${results.length} check(s) passed`)
 if (passed !== results.length) {

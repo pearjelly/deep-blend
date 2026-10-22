@@ -11,6 +11,7 @@ import { decodePng } from '@deepblend/dsh-blender-contracts';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 export const RUNTIME_METHODS = ['getCapabilities', 'invalidateCapabilities', 'resolveEngineKey', 'compileScene', 'renderPreview', 'renderViews', 'startFrameSequence', 'awaitFrameSequence', 'dispose'];
+export const OPTIONAL_RUNTIME_METHODS = ['startShotFrameSequence'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const finite = n => typeof n === 'number' && Number.isFinite(n);
@@ -258,6 +259,41 @@ export async function runConformance({ createRuntime, outputDirectory, blenderPa
         assert.deepEqual(readdirSync(join(job, 'frames')).sort(), ['test_001.png', 'test_003.png']);
         writeFileSync(join(out, 'sequence-outcome.json'), JSON.stringify(outcome, null, 2));
         record('noncontiguous frame plan writes exact durable frames and reaches terminal success');
+        if (runtime.startShotFrameSequence !== undefined) {
+            assert.equal(typeof runtime.startShotFrameSequence, 'function');
+            const shotJob = join(out, 'shot-sequence');
+            const cameraSelection = { schemaVersion: 'deepblend.shot-camera-selection/v1', mode: 'shots',
+                shots: [{ id: 'early', cameraId: 'hero', frameRange: [1, 1] }, { id: 'late', cameraId: 'hero', frameRange: [3, 3] }] };
+            activeRun = await call(runtime, 'startShotFrameSequence', { checkpointPath: checkpoint, jobDirectory: shotJob,
+                frames, frameRange: [1, 3], cameraSelection, profileName: 'final', profile: spec.renderProfiles.final,
+                attemptToken: '11111111-1111-4111-8111-111111111111', filePrefix: 'shot_', padding: 3, jobId: 'conformance-shots' });
+            assert(activeRun.handle?.done && typeof activeRun.handle.terminate === 'function');
+            const shotOutcome = await bounded('complete optional shot sequence', () => runtime.awaitFrameSequence(activeRun));
+            const eventsPath = activeRun.eventsPath;
+            await activeRun.handle.done;
+            activeRun = null;
+            assert.equal(shotOutcome.exitCode, 0);
+            envelope(shotOutcome.envelope, 'render_shot_frames');
+            const receipt = shotOutcome.envelope.result;
+            assert.deepEqual(receipt.renderedFrames, frames);
+            assert.equal(receipt.cameraId, null);
+            assert.deepEqual(receipt.cameraSelection, cameraSelection);
+            const journal = readFileSync(eventsPath, 'utf8').trim().split('\n').map(JSON.parse).filter(event => event.type === 'frame');
+            assert.equal(journal.length, frames.length);
+            for (const [n, frame] of frames.entries()) {
+                const path = join(shotJob, 'frames', `shot_${String(frame).padStart(3, '0')}.png`), bytes = readFileSync(path);
+                png(path, bytes);
+                assert.equal(journal[n].frame, frame);
+                assert.equal(journal[n].cameraId, 'hero');
+                assert.equal(journal[n].shotId, cameraSelection.shots[n].id);
+                assert.equal(journal[n].sha256, hash(bytes));
+                assert.equal(receipt.frames[n].cameraId, 'hero');
+                assert.equal(receipt.frames[n].shotId, cameraSelection.shots[n].id);
+            }
+            assert.equal(hash(readFileSync(checkpoint)), checkpointHash);
+            writeFileSync(join(out, 'shot-sequence-outcome.json'), JSON.stringify(shotOutcome, null, 2));
+            record('optional shot action binds actual camera and shot IDs to durable PNG bytes without changing the checkpoint');
+        }
         const partialJob = join(out, 'partial-sequence'), partialFrames = Array.from({ length: 12 }, (_, i) => i + 1), profile = { ...spec.renderProfiles.final, resolution: [320, 240], samples: 16 };
         activeRun = await call(runtime, 'startFrameSequence', { checkpointPath: checkpoint, jobDirectory: partialJob, frames: partialFrames, frameRange: [1, 12], cameraId: 'hero', profileName: 'final', profile, filePrefix: 'resume_', padding: 3, jobId: 'conformance-cancel' });
         let settled = false;

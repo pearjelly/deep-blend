@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto'
 import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 import { join } from 'node:path'
 
-import { BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest, sha256Canonical } from '@deepblend/dsh-blender-contracts'
+import { CAMERA_UPDATE_FIELDS, BlenderError, BlenderErrorCode, HOST_API_VERSION, UI_TOOL_CARD_KEYS, sceneSpecDigest, sha256Canonical } from '@deepblend/dsh-blender-contracts'
 
 import { composeToolPlane } from '../lib/tool-plane-harness.mjs'
 import { ROOT } from '../../tools/workspace-layout.mjs'
@@ -154,6 +154,20 @@ function stubStudio() {
 
 const studio = stubStudio()
 const { registered } = await composeToolPlane({ studio, label: 'm1-tool-output', expectAtLeast: 16 })
+// A real max-mode caller copied a nullable read target into a camera write, then
+// tried both aim fields. The model must see every supported field and recovery.
+const cameraPatchDescription = registered.get('blender_scene_patch').description
+const cameraSignature = cameraPatchDescription.match(/camera\.update\s+\{([^}]+)\}/)?.[1] ?? ''
+const cameraDocumentedFields = cameraSignature.split(',').map(field => field.trim().replace(/\?$/, ''))
+check('the model sees every supported camera update field, including the clear option',
+  CAMERA_UPDATE_FIELDS.every(field => cameraDocumentedFields.includes(field)),
+  CAMERA_UPDATE_FIELDS.filter(field => !cameraDocumentedFields.includes(field)))
+check('camera target instructions distinguish one aim choice, nullable reads and automatic replacement',
+  /exactly one of targetEntityId, targetPoint or clearTarget/.test(cameraPatchDescription)
+    && /do not pass null/.test(cameraPatchDescription)
+    && /replaces the previous target/.test(cameraPatchDescription))
+check('the model is told to detach camera aim before deleting its entity target',
+  /before removing their target entit/.test(cameraPatchDescription))
 const execute = async (name, args) => {
   const definition = registered.get(name)
   if (definition === undefined) return { ok: false, text: '', error: `${name} is not registered` }

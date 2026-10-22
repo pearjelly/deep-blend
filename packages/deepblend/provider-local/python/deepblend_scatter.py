@@ -51,7 +51,44 @@ def _inside(target, point):
     return votes >= 2
 
 
-def _target(entity_id, obj):
+def _world_matrices(objects):
+    """Evaluate reference poses without retaining any visibility changes.
+
+    Viewport-disabled objects can keep an identity/stale matrix_world after
+    their local transform is authored. Scatter has no native modifier
+    dependency to make Blender evaluate those hidden reference objects.
+    Snapshot their current poses while references and ancestors are enabled;
+    keep render visibility untouched and restore every viewport flag.
+    """
+    objects = list(dict.fromkeys(objects))
+    references = set(objects)
+    for obj in objects:
+        parent = obj.parent
+        while parent is not None and parent not in references:
+            references.add(parent)
+            parent = parent.parent
+    layer = bpy.context.view_layer
+    if any(obj.name not in layer.objects for obj in references):
+        _refuse('reference transform is outside the active view layer')
+    states = [(obj, obj.hide_viewport, obj.hide_get(view_layer=layer)) for obj in references]
+    try:
+        for obj, hidden, local_hidden in states:
+            if hidden:
+                obj.hide_viewport = False
+            if local_hidden:
+                obj.hide_set(False, view_layer=layer)
+        layer.update()
+        return {obj: obj.matrix_world.copy() for obj in objects}
+    finally:
+        for obj, hidden, local_hidden in states:
+            if obj.hide_get(view_layer=layer) != local_hidden:
+                obj.hide_set(local_hidden, view_layer=layer)
+            if obj.hide_viewport != hidden:
+                obj.hide_viewport = hidden
+        layer.update()
+
+
+def _target(entity_id, obj, matrix):
     mesh = obj.data
     bm = bmesh.new()
     try:
@@ -60,7 +97,7 @@ def _target(entity_id, obj):
             _refuse('target "%s" needs a closed, non-degenerate solid mesh' % entity_id)
     finally:
         bm.free()
-    points = [obj.matrix_world @ vertex.co for vertex in mesh.vertices]
+    points = [matrix @ vertex.co for vertex in mesh.vertices]
     if any(not all(math.isfinite(value) for value in point) for point in points):
         _refuse('target has non-finite world coordinates')
     mesh.calc_loop_triangles()
@@ -104,7 +141,8 @@ def apply_surface_scatter(obj, targets, entry):
         _refuse('targets exceed the 131072-polygon surface budget')
     if sum(max(0, len(polygon.vertices) - 2) for _, target in targets for polygon in target.data.polygons) > MAX_TARGET_TRIANGLES:
         _refuse('targets exceed the 262144-triangle surface budget before triangulation')
-    target_records = [_target(key, target) for key, target in targets]
+    matrices = _world_matrices([obj] + [target for _, target in targets])
+    target_records = [_target(key, target, matrices[target]) for key, target in targets]
     if sum(len(target['triangles']) for target in target_records) > MAX_TARGET_TRIANGLES:
         _refuse('targets exceed the 262144-triangle surface budget')
     weighted, areas, total = [], [], 0.0
@@ -131,7 +169,7 @@ def apply_surface_scatter(obj, targets, entry):
     material_indices = [polygon.material_index for polygon in source.polygons]
     materials = list(source.materials)
     uv_maps = [(layer.name, [(item.uv.x, item.uv.y) for item in layer.data]) for layer in source.uv_layers]
-    matrix = obj.matrix_world.copy()
+    matrix = matrices[obj]
     try:
         inverse = matrix.inverted()
     except ValueError:

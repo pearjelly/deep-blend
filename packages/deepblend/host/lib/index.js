@@ -41,6 +41,8 @@ import {
   CREATION_REQUEST_VERSION,
   CAMERA_UPDATE_FIELDS,
   BlenderWarningCode,
+  buildShotCameraSelection,
+  normalizeShotCameraSelection,
   SCENE_PATCH_VERSION,
   buildViewPlan,
   buildVisualReview,
@@ -334,7 +336,7 @@ export const StudioConfig = z.object({
   /** Provider route used by the built-in vision reviewer. */
   visualReviewProvider: z.string().default('deepseek-official'),
   /** Model used by the built-in vision reviewer. */
-  visualReviewModel: z.string().default('deepseek-v4.1-flash'),
+  visualReviewModel: z.string().default('deepseek-flash'),
   /**
    * Token budget for one reviewer call.
    *
@@ -712,7 +714,7 @@ export default class BlenderStudio extends Service {
    * whole spec on every turn spends its context on fields it is not changing.
    *
    * @param {string} projectId
-   * @param {{ revision?: string, full?: boolean, geometry?: { entityIds: string[], frame: number, objectAxes?: boolean, surfaceSamples?: object[] }, signal?: AbortSignal }} [options]
+   * @param {{ revision?: string, full?: boolean, geometry?: { entityIds: string[], frame: number, assetInstanceIds?: string[], cameraId?: string, cameraMargin?: number, objectAxes?: boolean, surfaceSamples?: object[] }, signal?: AbortSignal }} [options]
    * @returns {Promise<Record<string, unknown>>}
    */
   async getScene(projectId, options = {}) {
@@ -3890,6 +3892,19 @@ export default class BlenderStudio extends Service {
    * @returns {Promise<object>}
    */
   async startFinalRender(request) {
+    return this._startFinalRender(request, false)
+  }
+
+  /** Explicit capability: older Hosts/runtimes must not silently render one camera. */
+  async startShotSequenceRender(request) {
+    if (request?.cameraId != null) throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID,
+      'Saved-shot rendering cannot also select one camera.')
+    if (typeof this.runtime.startShotFrameSequence !== 'function') throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
+      'This runtime does not support explicit shot-camera rendering. Upgrade DeepBlend; nothing was started.')
+    return this._startFinalRender(request, true)
+  }
+
+  async _startFinalRender(request, useShots) {
     const projectId = request?.projectId
     const record = this.store.readRecord(projectId)
     const revision = request?.revision ?? record.currentRevision
@@ -3899,6 +3914,12 @@ export default class BlenderStudio extends Service {
 
     const range = this._resolveDeliveryRange({ spec, request })
     const frames = range.frames
+    // The numbered-frame encoder consumes an interval, not an arbitrary sparse
+    // list. Refuse before spending hours on frames it cannot encode correctly.
+    if (frames[frames.length - 1] - frames[0] + 1 !== frames.length) throw new BlenderError(
+      BlenderErrorCode.RENDER_RANGE_INVALID,
+      'A delivery MP4 requires a contiguous frame interval. Use blender_preview_render for separated diagnostic frames; nothing was started.')
+    const cameraSelection = useShots ? buildShotCameraSelection(spec, frames) : undefined
 
     // An open project may hold only one delivery render at a time, and the check
     // comes before everything below for the same reason as the approval gate: a
@@ -3956,7 +3977,7 @@ export default class BlenderStudio extends Service {
     const checkpoint = await this._resolveCheckpointForRender({
       projectId, revision, spec, jobId, warnings, signal: request.signal,
     })
-    const cameraId = request?.cameraId ?? this._deliveryCameraId(spec)
+    const cameraId = cameraSelection === undefined ? request?.cameraId ?? this._deliveryCameraId(spec) : null
     const requestedSamples = request?.samples ?? profile.samples
     const effective = this._deliverySamples(profile, requestedSamples, revision)
 
@@ -4012,6 +4033,7 @@ export default class BlenderStudio extends Service {
       profileName,
       renderConfig: null,
       cameraId,
+      ...(cameraSelection === undefined ? {} : { cameraSelection }),
       checkpointPath: checkpoint.path,
       sceneSpecDigest: sceneSpecDigest(spec),
       dshJobId: null,
@@ -4112,7 +4134,7 @@ export default class BlenderStudio extends Service {
     }
 
     const expected = this.renderJobs.expectedFrames(record)
-    const ledger = this._readJobLedger(record, expected)
+    const ledger = this._cameraVerifiedLedger(record, this._readJobLedger(record, expected))
     if (ledger.toRender.length === 0 && ledger.presentCount === expected.length) {
       this._launchDelivery({ record, ledger })
       return {
@@ -4179,7 +4201,7 @@ export default class BlenderStudio extends Service {
       requestedSamples: samples,
       profileName,
       checkpoint,
-      cameraId: record.cameraId ?? this._deliveryCameraId(spec),
+      cameraId: record.cameraSelection === undefined ? record.cameraId ?? this._deliveryCameraId(spec) : null,
       frames: ledger.toRender,
       reason: 'resume',
       expectedFrames: expected,
@@ -4418,6 +4440,36 @@ export default class BlenderStudio extends Service {
     return cameras[0].id
   }
 
+  /** A complete PNG alone cannot prove which camera produced a shot frame. */
+  _cameraVerifiedLedger(record, ledger) {
+    if (record.cameraSelection === undefined) return ledger
+    normalizeShotCameraSelection(record.cameraSelection, this.renderJobs.expectedFrames(record))
+    const provenance = syncFrameProvenance(record, this.renderJobs.jobDirectory(record.projectId, record.jobId))
+    const known = new Set(provenance.frames.map(binding => binding.frame))
+    const unverified = ledger.present.filter(entry => !known.has(entry.frame))
+    if (!unverified.length) return ledger
+    const rejected = new Set(unverified.map(entry => entry.frame))
+    const present = ledger.present.filter(entry => !rejected.has(entry.frame))
+    const corrupt = [...ledger.corrupt, ...unverified.map(entry => ({ frame: entry.frame, reason: 'camera-provenance-unverified' }))]
+    return { ...ledger, present, presentCount: present.length, corrupt, corruptCount: corrupt.length,
+      toRender: [...new Set([...ledger.toRender, ...rejected])].sort((a, b) => a - b) }
+  }
+
+  /** Keep replaced derived frames from failed/interrupted shot attempts. */
+  _retainReplacedShotFrames(record, frames, attemptToken) {
+    if (record.cameraSelection === undefined) return
+    if (record.filePrefix !== 'frame_' || record.filePadding !== 4) throw new BlenderError(
+      BlenderErrorCode.RENDER_JOB_STATE_INVALID, 'The saved shot job has unsupported frame naming; its files were preserved.')
+    const directory = this.renderJobs.framesDirectory(record.projectId, record.jobId)
+    const retained = join(this.renderJobs.jobDirectory(record.projectId, record.jobId), 'retained', attemptToken)
+    for (const frame of frames) {
+      const name = frameFileName(frame, 'frame_', 4), source = join(directory, name)
+      if (!existsSync(source)) continue
+      mkdirSync(retained, { recursive: true })
+      renameSync(source, join(retained, name))
+    }
+  }
+
   /** Wait, bounded, for a render loop to release its handle on a job. */
   async _awaitLiveGone(projectId, jobId, timeoutMs) {
     const deadline = Date.now() + timeoutMs
@@ -4610,6 +4662,10 @@ export default class BlenderStudio extends Service {
     const projectId = record.projectId
     const jobId = record.jobId
     const frames = input.frames
+    const runtime = this.runtime
+    const startMethod = record.cameraSelection === undefined ? 'startFrameSequence' : 'startShotFrameSequence'
+    if (typeof runtime[startMethod] !== 'function') throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
+      'This runtime cannot render the job’s frozen camera selection; no single-camera fallback is permitted.')
     const jobs = this._attachJobController()
 
     /** @type {object} */
@@ -4639,6 +4695,7 @@ export default class BlenderStudio extends Service {
     const expected = input.expectedFrames ?? this.renderJobs.expectedFrames(record)
     const attemptToken = randomUUID()
     try {
+      this._retainReplacedShotFrames(record, frames, attemptToken)
       beginFrameAttempt(record, this.renderJobs.jobDirectory(projectId, jobId), {
         id: attemptToken, frames, profile, requestedSamples: input.requestedSamples,
         cameraId: input.cameraId, checkpointPath: record.checkpointPath ?? checkpoint.path,
@@ -4691,11 +4748,15 @@ export default class BlenderStudio extends Service {
     // only await here: it resolves once the child exists, which is what makes the
     // returned job id true rather than optimistic.
     live.attemptToken = attemptToken
-    const run = await this.runtime.startFrameSequence({
+    // Keep the same service receiver: Cordis shadows its injected context at
+    // property invocation. Detaching the method and reading this.runtime again
+    // loses subprocess injection when called from a tool or browser context.
+    const run = await runtime[startMethod]({
       checkpointPath: record.checkpointPath ?? checkpoint.path,
       frames,
       jobDirectory: this.renderJobs.jobDirectory(projectId, jobId),
-      cameraId: input.cameraId,
+      ...(record.cameraSelection === undefined ? { cameraId: input.cameraId }
+        : { cameraSelection: normalizeShotCameraSelection(record.cameraSelection, frames) }),
       profileName,
       profile,
       frameRange: record.sceneFrameRange,
@@ -5161,7 +5222,7 @@ export default class BlenderStudio extends Service {
     const projectId = record.projectId
     const jobId = record.jobId
     const expected = this.renderJobs.expectedFrames(record)
-    const ledger = this._readJobLedger(record, expected)
+    const ledger = this._cameraVerifiedLedger(record, this._readJobLedger(record, expected))
     const total = expected.length
 
     if (ledger.presentCount !== total) {
@@ -5292,7 +5353,9 @@ export default class BlenderStudio extends Service {
     // The commit below is synchronous: cancellation can win before this guard,
     // or observe the completed publication after it, never interleave its files.
     this._checkDeliveryCancelled(input)
-    const provenance = syncFrameProvenance(record, jobDirectory, { allowLimited: true })
+    const provenance = syncFrameProvenance(record, jobDirectory, { allowLimited: record.cameraSelection === undefined })
+    if (record.cameraSelection !== undefined && provenance.coverage !== 'complete') throw new BlenderError(
+      BlenderErrorCode.RENDER_FRAMES_INCOMPLETE, 'Shot camera evidence changed during encoding; the previous delivery was preserved.')
     copyFileSync(encode.outputPath, `${videoPath}.tmp`)
     renameSync(`${videoPath}.tmp`, videoPath)
 
@@ -5453,6 +5516,7 @@ export default class BlenderStudio extends Service {
       fps: record.fps,
       profileName: record.profileName ?? null,
       renderConfig: record.renderConfig ?? null,
+      ...(record.cameraSelection === undefined ? {} : { cameraSelection: structuredClone(record.cameraSelection) }),
       provenance: readFrameProvenance(record, this.renderJobs.jobDirectory(record.projectId, record.jobId), provenanceBudget),
       framesDirectory: record.framesDirectory ?? null,
       delivery: record.delivery ?? null,

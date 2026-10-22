@@ -1,0 +1,612 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-18",
+  "status": "official-api-retest-finished-bai-restored-complex-case-quality-rejected",
+  "product": {
+    "installedVersion": "0.15.0",
+    "host": "0.2.1-rc.1",
+    "artifactSha256": "b67542e9cd6108a5c3a1182672e3cde05bd7e40b3b4e9316b24fd72515cff05a",
+    "candidateSourceFixReleased": false
+  },
+  "officialRoute": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "baseURL": "https://api.deepseek.com/anthropic",
+    "modelsEndpoint": "https://api.deepseek.com/models",
+    "httpStatus": 200,
+    "returnedModelIds": [
+      "deepseek-flash",
+      "deepseek-v4-pro"
+    ],
+    "baiGatewayUsedForTheseCalls": false,
+    "serviceBuildIdReturned": false
+  },
+  "speaker": {
+    "status": "native-dimension-and-preservation-passed",
+    "projectId": "official1017-speaker",
+    "completed": true,
+    "elapsedMs": 146733,
+    "reason": {
+      "kind": "completed"
+    },
+    "totalToolCalls": 12,
+    "deepBlendToolCalls": 10,
+    "actualReturnedImages": 4,
+    "nativeReadback": [
+      {
+        "revision": "r0001",
+        "frame": 24,
+        "object": "db_entity__cabinet-shell",
+        "dimensionsMm": [
+          300.00001192092896,
+          159.9999964237213,
+          200.00000298023224
+        ],
+        "dimensionsBasis": "Blender object local axes, includes object scale; cabinet-shell only, excludes other parts",
+        "vertices": 1932,
+        "nativeAnimationActions": 1
+      },
+      {
+        "revision": "r0002",
+        "frame": 24,
+        "object": "db_entity__cabinet-shell",
+        "dimensionsMm": [
+          319.9999928474426,
+          159.9999964237213,
+          200.00000298023224
+        ],
+        "dimensionsBasis": "Blender object local axes, includes object scale; cabinet-shell only, excludes other parts",
+        "vertices": 1932,
+        "nativeAnimationActions": 1
+      }
+    ],
+    "materialsPreserved": true,
+    "animationTracksPreserved": true,
+    "camerasChangedByRecipeLink": true,
+    "scope": "Authored recipe task; local cabinet-shell axes. No arbitrary modeling, fixed-camera art comparison or manufacturing certification."
+  },
+  "visualReview": {
+    "officialDefaultHighAttempt": "First review exhausted maxTokens=24000 with reasoning only and no answer; failure retained. Suite stopped during later work, not reported as a completed failing 14-check run.",
+    "lowAdapterConfiguration": {
+      "reasoningEffort": "low",
+      "maxTokens": 24000
+    },
+    "lowSuiteChecks": "14/14",
+    "measuredOcclusionScoreBefore": 82,
+    "measuredOcclusionScoreAfter": 100,
+    "scope": "Explicit host-adapter setting in private acceptance. No automatic plugin reasoning fallback was added."
+  },
+  "temple": {
+    "status": "technical-progress-artistic-rejected-no-final-video",
+    "projectId": "official1017-pagoda",
+    "revision": "r0020",
+    "phases": [
+      {
+        "phase": "high-initial",
+        "completed": false,
+        "elapsedMs": 136457,
+        "reason": {
+          "kind": "error",
+          "error": {
+            "message": "DeepSeek Messages stream: tool input is invalid JSON",
+            "code": "MALFORMED_RESPONSE"
+          }
+        },
+        "totalToolCalls": 8,
+        "deepBlendToolCalls": 6,
+        "actualReturnedImages": 1
+      },
+      {
+        "phase": "low-modeling",
+        "completed": true,
+        "elapsedMs": 643273,
+        "reason": {
+          "kind": "completed"
+        },
+        "totalToolCalls": 36,
+        "deepBlendToolCalls": 36,
+        "actualReturnedImages": 10
+      },
+      {
+        "phase": "low-guided-repair",
+        "completed": true,
+        "elapsedMs": 137596,
+        "reason": {
+          "kind": "completed"
+        },
+        "totalToolCalls": 8,
+        "deepBlendToolCalls": 8,
+        "actualReturnedImages": 4
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "completed": true,
+        "elapsedMs": 184626,
+        "reason": {
+          "kind": "completed"
+        },
+        "totalToolCalls": 13,
+        "deepBlendToolCalls": 13,
+        "actualReturnedImages": 12
+      }
+    ],
+    "totalPhaseElapsedMs": 1101952,
+    "initialPromptCount": 1,
+    "additionalMaintainerPrompts": 3,
+    "independentReadOnlyAssetMeasurementProvided": true,
+    "copiedPriorScene": false,
+    "asset": "CC0 Minneapolis Institute of Art Buddha, db486427f36441deb3b1fdc2e972df78a826405e70ea47f4ec8b6e12042a212c",
+    "entityCount": 185,
+    "cameraCount": 6,
+    "animationTrackCount": 18,
+    "nativeActions": 4,
+    "nativeCameraMovementConfirmed": true,
+    "previewFrames": [
+      [
+        "camera-a",
+        1
+      ],
+      [
+        "camera-a",
+        131
+      ],
+      [
+        "camera-a",
+        260
+      ],
+      [
+        "camera-b",
+        261
+      ],
+      [
+        "camera-b",
+        351
+      ],
+      [
+        "camera-b",
+        440
+      ],
+      [
+        "camera-c",
+        441
+      ],
+      [
+        "camera-c",
+        551
+      ],
+      [
+        "camera-c",
+        660
+      ],
+      [
+        "camera-d",
+        661
+      ],
+      [
+        "camera-d",
+        781
+      ],
+      [
+        "camera-d",
+        900
+      ]
+    ],
+    "all12PreviewHashesVerified": true,
+    "nativeSha256": "d452bfa020c9fe9dead2a8c6b11ac4231ec7c5633f84c1a450bde3f0302e2b30",
+    "sceneSpecSha256": "27d5793278d27f9d83ea8e65bc7b79e53b50fd85084400b677cf3c6c094ac1d6",
+    "animationWarnings": [
+      "SCENE_ANIMATION_KEYFRAMES_ADJUSTED: addressable fcurve absent; interpolation left at Blender default. Movement confirmed, intended interpolation/continuous path not certified."
+    ],
+    "falseCapabilityClaimCorrected": "Camera animation is supported using targetKind:camera. Initial model omitted it and wrongly claimed unsupported.",
+    "qaExportAttempt": {
+      "tool": "blender_export",
+      "errorCode": "RENDER_JOB_NOT_FOUND",
+      "classification": "Maintainer QA task mistakenly requested native export through video publication tool. Actual native checkpoint already exists; not evidence of a native export defect."
+    },
+    "visualReview": {
+      "status": "rejected",
+      "reviewer": "maintainer inspected all 12 original plugin PNGs; no video playback or all-frame claim",
+      "findings": [
+        {
+          "camera": "camera-a",
+          "frame": 260,
+          "finding": "Pagoda finial crosses the top frame edge; base/courtyard crop during push-in."
+        },
+        {
+          "camera": "camera-b",
+          "frames": [
+            261,
+            351,
+            440
+          ],
+          "finding": "Eaves undersides are dark and simple; structural detail remains largely unreadable."
+        },
+        {
+          "camera": "camera-c",
+          "frames": [
+            551,
+            660
+          ],
+          "finding": "Lotus base is cropped at 551; most of lower seated figure/base is outside frame at 660. Model report understated this crop."
+        },
+        {
+          "camera": "camera-d",
+          "frames": [
+            661,
+            781,
+            900
+          ],
+          "finding": "Large smooth spherical carrier and sparse flat leaf plates remain obvious; crown crops at 781/900. Model report claiming no crown crop at 900 is not accepted."
+        },
+        {
+          "camera": "all-exterior",
+          "finding": "Tower proportions, woodwork, roof surface, floating-looking distant terrain and foliage visibly fall short of the reference."
+        }
+      ],
+      "full900VideoRendered": false,
+      "fullPathCollisionOrNearClipCertified": false,
+      "referenceEquivalence": false
+    },
+    "observedToolCalls": [
+      {
+        "phase": "high-initial",
+        "name": "skill",
+        "argumentsSha256": "722befa811206def61d67fefe031f3c2af1e1017735451dd2778a7664067061f"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_capabilities",
+        "argumentsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_project_create",
+        "argumentsSha256": "615759ddd1c49a9a738271104618aad82b87b9f45d8b43f9a9b0e445571ea424"
+      },
+      {
+        "phase": "high-initial",
+        "name": "glob",
+        "argumentsSha256": "2961ebdd70ee5c48d23d1f4bf6a03ee7413023fa8a74992923bdfa61a6bc042a"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_scene_get",
+        "argumentsSha256": "bc58737ab9f4d7f2ca14c0f3a95fefe8ce42ca6007fdecbae6bbd19ef17609f4"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_asset_ingest",
+        "argumentsSha256": "61e666c1988566e897454c2fe0b85bfbda8b35e4d6ef9346a498de0439c15d63"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_scene_validate",
+        "argumentsSha256": "bb7d2b221914d96951be63888c51e86f167e4f6aa9dcca88456d1238a65763fb"
+      },
+      {
+        "phase": "high-initial",
+        "name": "blender_scene_validate",
+        "argumentsSha256": "e3def2ad8cf0ae3a2dc9b16cac40dde9f0883a30a0c71941ac55c82155e076e6"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "e2c831aa9a71bb32fd11ad7b8b5f63b5cbaf7fadf571d0ad38e412974b765058"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "0fc4981aa5fe75faf39e9d0751dfd7707630f7ac021cf0967635606fe8267910"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "110deb68850ab66e28f8d0e2b186fdc563b1ae1c17f25de72d44f88aee4bef13"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "8d7ad3e5e4013fede1b4af5dd064c6397ab330c593929ff42f9e1edf47c21766"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_render",
+        "argumentsSha256": "97bdd3e748be05849b1f5326d5fb467c2773ef03cae483205ca3f3b2a84abfe1"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "a5bb656dd5014fae5dd2a7a6b404e2fe73ea6a111ca6eee63e61ff6bfb0f656a"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "9bc458f98e305b20cd41077f237db6417e508d1acbfe7e8c23be6d1e6f940e43"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "56af5f00a08bdfd151b90f34359feaab4b340f4b067c27d9cbe50dd3e452892b"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_get",
+        "argumentsSha256": "c75f999022093bc11493da503342e952259ec1e27bb6c28d7384f57c29f0f659"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "f82522e7077089ab4a6b18be7b10e1fa8867321681fff2efb7f61a723ffce992"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "82af86f3a4de26cacce667f1c8bca4774583a6cb7cba371d2442a21a0e2ad3ad"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "3d12d6a4fe751e1b7d2497cd7a26dd509d79db26a7e56901c353688282adca16"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "9d7282a623544ffbdd4522cb78a33a7ff9b362cb87cd621bd98f1d781864be95"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "9fb615e6c2b76efe1fb2a60b4c9dc72fb1a2f06e6000240e3df792efb632f232"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_get",
+        "argumentsSha256": "cf14b72de5af682b907292c50f9e3987ee5d7167a358968937770e72ed212252"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "d038f934c86390628edd2129b1a1d272d25dafbf583002ffa379c8a31033f838"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "b28d74146f3a2d17bbe014c13e2c069a902e06366a1ad2983785e6b39028c2f6"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "380cf5e657865c31a512a92675c2562f45b81036c2af9607f80bbbf1a5886954"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "da1f0cf06ba4b93a350c166b1df0e04f5c9fb6aea766dbeca8b98e7a0c23474d"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "02cfef2fda66d3014bedf7acd335fa8d249c1b267fdf5561079bdf12ab5b02e6"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "07dd55fdac0b44c9f610ddad9c98e4462b66d2c06ae4e114ccf1851c6644d9d7"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "5b6a03ec4f9bc546fa16793ca4c644a31933f1bffd9e65c4ec842c4e7f9083f0"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "220f8c8b23148fe636b9dcac4130a0c1897577c6d57513d29ae717e3787bee5c"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "d9b9421780c5d747e8b5823bd740a7ac31aae08f2f61847985f5d76fee0d88fc"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "c70e2a5954eb15ec74d05a6074c75c2108698ac2329c2641fc1f0ac56a091e8d"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "9bef366a4a98379a333e76b0d8d15995919cac97975f235893fa1a958813edb6"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_validate",
+        "argumentsSha256": "b27ed4af0f3afce6077295faaeffce7a2087677556dd664f18ae3994888da8b3"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "9d2da7bde7b7e223d135c35e33a421720bd22eabe750cdfff15d1bae210bb1a8"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "526e4ec10b08a2986408211371c0c8406e18c9768e64ad65d8611dd30f682ccc"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "df22f3e31d796ad12dcc52e9e21e9d44e8d4248927b821ba29f68e4dd43c9b45"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_views",
+        "argumentsSha256": "f5c55fce27e7284d72e493e8ec46525d59322347554dd9eb7fd766f31af111af"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_render",
+        "argumentsSha256": "8a0830244b9bf093d399c78ffe15e4256f2353071d5810c37b1862a9920102d9"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_get",
+        "argumentsSha256": "b295943b2adaa8b393ff76ec17a69ed81731ce96b0245434aedb024ea8b50460"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "7ce8f47bf7a68d14c09b97da85a1d21d577bf9fa81b0c38673baaa015d7a96fe"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_render",
+        "argumentsSha256": "d93883a09f8df3de68d06e180a94f7ca6cc6f00c6780b840f9cb5777f7745018"
+      },
+      {
+        "phase": "low-modeling",
+        "name": "blender_preview_render",
+        "argumentsSha256": "9eaa531beba2f37830bfe0ac5762e482c979a7da79c887647703110f25fdfe5e"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_scene_validate",
+        "argumentsSha256": "a1ef109e4a252d84ab9799e51c6b379eb256d5e428e57bd48b9d725473b12bc2"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "3812c25983c506471b0e5f3183763300889e69d0085cc3b489033f1e02925759"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_preview_render",
+        "argumentsSha256": "74f0007a9a322d064904b0553545d2d1a58e0470ee7769c1653db7acfd5717f5"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_preview_render",
+        "argumentsSha256": "7424f4f9312f6f13681dea208f7a65cfeebd16572cb9cbf6400d1c1188995458"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "eb363dbcf0dfec4372c7e3cec2d1f2619716e2f43fc246d3d1d7d95a20656e33"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_preview_render",
+        "argumentsSha256": "34f25987b01a24d6624e9e2256cb91117cf3e0c0f56a2df22e978aaf392e2ff3"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_scene_patch",
+        "argumentsSha256": "47ec5e707d3ceaba012937e75df2304a5271343d095b86314ef775cc5b0d8892"
+      },
+      {
+        "phase": "low-guided-repair",
+        "name": "blender_preview_render",
+        "argumentsSha256": "c4a40cd6ac3c747235048d0a0f4b74e686af29d318f8b64ae420684bbf390487"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "e548f92700d9de7b1dd084015a68120639aa1072ba59f4c485330c9b8a7dfd5c"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "a0eb2f934c5d17556ec1c2e60c45ee327d9cff9b7e9b2ffff6474753d0d01b7b"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "a5775ea73c10ee1852026bb977e538b4da52a7587dcb557c44bb95a6c7ae02d1"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "1bcdc50df9928e0582249dbafc5c1f1a502cc58d4ccccfb0c336513326afe91c"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "5a10d5afb47553a685808a3dcd2743ba252bef7dca551ef763979a038b81139a"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "a78970722a681823e0aaaa60f654689cb6ca1407712f48176060b0d4dcf28882"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "3510b09c13836044c54fcc70b5634dfa7ce37e98e5e6073fb752187c44490b21"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "cf813fca4d3748678ab6e0399f8f1baebd1418286df7159b0bf2da899189870d"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "5414d9904dafd63ade0bd4217cb087cfbaa9395e6f9ef131fe2e655da396b640"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "b8220c16a854602712cb0e77cea7fa04630ec5f83fbbfb703afbfce0337b0cac"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "79a4ea720650f4752d0f5569d2d56a05c42fc809422ae99cdefc3d5d3b359fd6"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_preview_render",
+        "argumentsSha256": "4abdc3a0926f5c6b8db00c366419f87c79832bdaf8a2a803b28c4a7430aef182"
+      },
+      {
+        "phase": "low-frozen-preview-qa",
+        "name": "blender_export",
+        "argumentsSha256": "c2dc8b5b3883c2b047133650f280fac11b633c2518c6bcc86976e1583d66ce50"
+      }
+    ]
+  },
+  "sourceCandidate": {
+    "changes": [
+      "StudioConfig official visual reviewer model ID -> deepseek-flash",
+      "Bundle operator default official visual reviewer model ID -> deepseek-flash"
+    ],
+    "officialOldAliasProbe": {
+      "endpoint": "https://api.deepseek.com/anthropic/v1/messages",
+      "model": "deepseek-v4.1-flash",
+      "purpose": "Test shipped visual-review alias against official API",
+      "httpStatus": 400,
+      "errorType": "invalid_request_error",
+      "errorMessage": "The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed deepseek-v4.1-flash. (request_id: bf9dfe64-e651-4f96-9e44-5eee891145fd)"
+    },
+    "unitAndContractFiles": "136/136",
+    "newReleaseCreated": false
+  },
+  "preservation": {
+    "originalDeliveryAndSpeakerFilesUnchanged": 5,
+    "newTempleNativeAndSpecFilesFrozenUnchanged": 40,
+    "personalDshModified": false
+  },
+  "restoration": {
+    "at": "2026-10-18T11:47:16.470Z",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "personalDeploymentModified": false,
+    "officialTestStopped": true,
+    "temporaryOfficialCredentialRemoved": true
+  },
+  "limits": [
+    "Single sample; settings/calls differ from prior bai run, so no speed superiority claim.",
+    "Technical interface checks and image repair do not establish finished complex modeling quality.",
+    "No new video, arbitrary one-prompt success, full geometric collision or external adoption claim."
+  ]
+}

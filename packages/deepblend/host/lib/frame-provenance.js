@@ -4,7 +4,7 @@
 import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
-import { BlenderError, BlenderErrorCode, frameFileName } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, frameFileName, normalizeShotCameraSelection, shotCameraForFrame } from '@deepblend/dsh-blender-contracts'
 import { writeJsonAtomic } from './paths.js'
 import { inspectFrameSample, sampleFrame } from './frame-ledger.js'
 
@@ -67,6 +67,18 @@ function actualConfig(value) {
   }
   return config
 }
+function sameCameraSelection(left, right) {
+  if (left === undefined || right === undefined) return left === right
+  try { return JSON.stringify(normalizeShotCameraSelection(left)) === JSON.stringify(normalizeShotCameraSelection(right)) }
+  catch { return false }
+}
+function cameraEvidenceMatches(source, evidence, frame) {
+  if (source.cameraSelection === undefined) return true
+  try {
+    const selected = shotCameraForFrame(source.cameraSelection, frame)
+    return evidence.cameraId === selected.cameraId && evidence.shotId === selected.shotId
+  } catch { return false }
+}
 function readSource(path, budget) {
   if (budget) budget.documents -= 1
   const fd = openSync(path, 'r')
@@ -96,14 +108,17 @@ function load(record, directory, budget) {
         !data.sources || !data.frames || typeof data.sources !== 'object' || typeof data.frames !== 'object') return fresh
     const expected = new Set(range(record))
     for (const [id, source] of Object.entries(data.sources)) {
-      if (TOKEN.test(id) && source?.id === id && source.revisionId === record.revisionId && actualConfig(source.renderConfig) && Buffer.byteLength(JSON.stringify(source)) <= MAX_CONFIG_BYTES * 3) fresh.sources[id] = source
+      if (TOKEN.test(id) && source?.id === id && source.revisionId === record.revisionId && actualConfig(source.renderConfig) &&
+          sameCameraSelection(source.cameraSelection, record.cameraSelection) && Buffer.byteLength(JSON.stringify(source)) <= MAX_CONFIG_BYTES * 3) fresh.sources[id] = source
     }
     for (const [frame, binding] of Object.entries(data.frames)) {
-      if (expected.has(Number(frame)) && String(Number(frame)) === frame && fresh.sources[binding?.sourceId] && HASH.test(binding.sha256 ?? '')) fresh.frames[frame] = binding
+      if (expected.has(Number(frame)) && String(Number(frame)) === frame && fresh.sources[binding?.sourceId] && HASH.test(binding.sha256 ?? '') &&
+          cameraEvidenceMatches(fresh.sources[binding.sourceId], binding, Number(frame))) fresh.frames[frame] = binding
     }
     const c = data.current
     if (TOKEN.test(c?.id ?? '') && c.revisionId === record.revisionId && Array.isArray(c.plannedFrames) && c.plannedFrames.length <= MAX_FRAMES &&
-        c.plannedFrames.every(frame => expected.has(frame)) && Buffer.byteLength(JSON.stringify(c)) <= MAX_BYTES / 2) fresh.current = c
+        c.plannedFrames.every(frame => expected.has(frame)) && sameCameraSelection(c.cameraSelection, record.cameraSelection) &&
+        Buffer.byteLength(JSON.stringify(c)) <= MAX_BYTES / 2) fresh.current = c
   } catch (cause) {
     if (cause?.detail?.frameProvenanceLimit) throw cause
     // Legacy, missing or corrupt source data remains unknown.
@@ -130,6 +145,7 @@ function foldJournal(data, record, directory) {
   const planned = new Set(current.plannedFrames)
   let config = null, invalid = false
   const claims = new Map()
+  const invalidCameras = new Set()
   for (const line of lines) {
     let event
     try { event = JSON.parse(line) } catch { continue }
@@ -139,7 +155,12 @@ function foldJournal(data, record, directory) {
       if (!next || config && JSON.stringify(next) !== JSON.stringify(config)) invalid = true
       else config = next
     } else if (event.type === 'frame' && config && planned.has(event.frame) && HASH.test(event.sha256 ?? '')) {
-      claims.set(event.frame, event.sha256)
+      if (!cameraEvidenceMatches(current, event, event.frame)) {
+        claims.delete(event.frame); invalidCameras.add(event.frame)
+      } else if (!invalidCameras.has(event.frame)) {
+        claims.set(event.frame, { sha256: event.sha256,
+          ...(current.cameraSelection === undefined ? {} : { cameraId: event.cameraId, shotId: event.shotId }) })
+      }
     }
   }
   if (invalid) {
@@ -149,9 +170,10 @@ function foldJournal(data, record, directory) {
   if (!config) return
   const { plannedFrames, ...source } = current
   data.sources[current.id] = { ...source, renderConfig: config }
-  for (const [frame, sha256] of claims) {
+  for (const frame of invalidCameras) if (data.frames[frame]?.sourceId === current.id) delete data.frames[frame]
+  for (const [frame, claim] of claims) {
     // inspect() verifies this claimed digest once, after all journal records.
-    data.frames[frame] = { sourceId: current.id, sha256, stat: null }
+    data.frames[frame] = { sourceId: current.id, ...claim, stat: null }
   }
 }
 function inspect(data, record, directory, verify) {
@@ -161,12 +183,13 @@ function inspect(data, record, directory, verify) {
     if (stat === null) { missingFrames.push(frame); if (verify) delete data.frames[frame]; continue }
     const binding = data.frames[frame], source = data.sources[binding?.sourceId]
     const measured = verify && binding ? digest(path) : null
-    const valid = source && (verify ? measured?.sha256 === binding.sha256 && inspectFrameSample(sampleFrame(path), {
+    const valid = source && cameraEvidenceMatches(source, binding, frame) && (verify ? measured?.sha256 === binding.sha256 && inspectFrameSample(sampleFrame(path), {
       width: record.renderConfig?.resolution?.[0], height: record.renderConfig?.resolution?.[1],
     }).ok : same(stat, binding.stat))
     if (!valid) { unknownFrames.push(frame); if (verify) delete data.frames[frame]; continue }
     if (verify) binding.stat = measured.stat
-    bindings.push({ frame, sourceId: binding.sourceId, sha256: binding.sha256 })
+    bindings.push({ frame, sourceId: binding.sourceId, sha256: binding.sha256,
+      ...(source.cameraSelection === undefined ? {} : { cameraId: binding.cameraId, shotId: binding.shotId }) })
     const key = JSON.stringify([source.renderConfig, source.cameraId, source.checkpointSha256])
     if (!groups.has(key)) groups.set(key, { renderConfig: source.renderConfig, frames: [], sourceIds: [] })
     const group = groups.get(key); group.frames.push(frame)
@@ -223,6 +246,7 @@ export function beginFrameAttempt(record, directory, input) {
     cameraId: input.cameraId ?? null, checkpointSha256: checkpoint?.sha256 ?? null,
     requestedSamples: input.requestedSamples ?? input.profile.samples ?? null,
     effectiveProfile: input.profile, plannedFrames: input.frames,
+    ...(record.cameraSelection === undefined ? {} : { cameraSelection: normalizeShotCameraSelection(record.cameraSelection, input.frames) }),
   }
   // A replacement is unknown until its new completion event binds its bytes.
   for (const frame of input.frames) delete data.frames[frame]

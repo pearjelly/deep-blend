@@ -1,0 +1,2693 @@
+{
+  "date": "2026-10-19",
+  "status": "r75-full900-film-and-editable-handover-accepted-standard016release-pending",
+  "baselinePlugin": "0.15.0",
+  "host": "0.2.1-rc.1",
+  "route": "bai/deepseek-v4.1-flash",
+  "routingProvenance": "User confirmed bai forwards this model to official DeepSeek; outgoing request measurements cannot independently attest upstream forwarding.",
+  "beforeImplementation": {
+    "baiBareProfile": {
+      "declaredModelFields": [
+        "id",
+        "name"
+      ],
+      "requestedEffort": "max",
+      "result": "UNSUPPORTED_REASONING_EFFORT",
+      "outboundRequests": 0,
+      "elapsedMs": 380
+    },
+    "assetMeasurement": {
+      "formalProtocol": "v1/v2/v3 measure only one native MESH; imported EMPTY asset roots are unavailable as not-mesh",
+      "historicalNativeReadOnlyInspection": {
+        "project": "official-comparison-pagoda",
+        "revision": "r0023",
+        "entityId": "buddha-statue",
+        "supportEntityId": "hall-altar",
+        "assetBottomMeters": 1.589927077293396,
+        "supportTopMeters": 1.2999999523162842,
+        "positiveVerticalBoundsSeparationMeters": 0.2899271249771118,
+        "scope": "World bounds separation, not a contact, collision or surface clearance certificate. Source bytes unchanged."
+      }
+    },
+    "toolArguments": {
+      "modernMaxInitial": "Two malformed JSON tool arguments failed in Harness parsing before a DeepBlend handler ran.",
+      "guidedRecovery": "A separate <=6-operation guidance phase produced 53 formal DeepBlend calls. N=1, extra guidance/context; not a controlled proof of repair.",
+      "constraint": "Do not silently repair or execute malformed arguments, split atomic patches, or hard-cap legacy transactions."
+    },
+    "framing": {
+      "historicalFailures": [
+        "main camera frame 260 crops pagoda finial",
+        "yard frame 701 foreground trunk occludes view"
+      ],
+      "constraint": "First/middle/last images and moving native actions do not certify an entire camera path or absence of occlusion."
+    }
+  },
+  "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
+  "releaseGate": "810/F4 software fullv10, paid probes and formal installation remain accepted within recorded scope. Newr75final900PNG/native/source/5shotbindings/completeMP4decode/24fps/correspondingpixels and bounded full-film art accepted; actual staged native reopened with42packedFILEimagesreadable; private editable/video/assets/1058checksummedfiles delivered. Standard final-doccontracts/CI,merge,cleanpushedmainbuild,GitHub/assets/SHA,7npm/anonymoustargz/readback,3routeparity andcanonicalcommunityPR remain before0.16publication.",
+  "transportProof": {
+    "mainRequests": 8,
+    "allMainRequestsMax": true,
+    "allMainRequestsContainExactReferenceBytes": true,
+    "initialUserMessageUnchanged": true,
+    "initialHistoryPrefixesRetained": true,
+    "resumedContainsEntirePriorOutboundHistory": true,
+    "resumedWithoutReattachingImage": true,
+    "toolResultMessagesRetained": 17,
+    "phraseRecalled": true,
+    "referenceSha256": "68639e7f4cffa5078113edefd94795c7beb5b9e442d7bd8b8ff8bda740d6e6c8",
+    "personalDeploymentModified": false,
+    "upstreamRoutingProvenance": "User confirmation; this audit observes client-to-bai requests only.",
+    "scope": "Finite measured conversation with no compaction. Exact retained serialized text/image history and tool results are verified. This is not an unlimited-context or gateway-to-upstream attestation.",
+    "reasoningReplay": {
+      "priorAssistantReasoningMessages": 8,
+      "outboundReasoningMessages": 8,
+      "allPriorReasoningBytesMatch": true,
+      "rawReasoningPublished": false
+    }
+  },
+  "newNativeChecks": {
+    "passed": 54,
+    "sourceUnchanged": true,
+    "independentFramingReference": "Blender world_to_camera_view",
+    "mutations": [
+      {
+        "mutation": "drop-imported-child",
+        "killed": true,
+        "exitCode": 1
+      },
+      {
+        "mutation": "false-camera-contained",
+        "killed": true,
+        "exitCode": 1
+      }
+    ]
+  },
+  "sourceChecks": {
+    "firstRun": "135/137, two documentation count expectations stale after adding one suite; retained raw failure",
+    "countRecheck": "21/21 after correcting source structural counts",
+    "fullAcceptance": {
+      "passedSuites": 42,
+      "unitContractFiles": "137/137",
+      "validatedProductTestToolPresetFilesUnchanged": 519,
+      "logSha256": "4818054ef759f186726d725246065fddb8bc5dbd1aece6aed63607fd61eacd2d",
+      "scope": "Current product and tests before final version/listing/release documentation changes; final candidate checks still required."
+    },
+    "hostGuardMutations": [
+      {
+        "mutation": "expand-nonasset",
+        "killed": true,
+        "exitCode": 1
+      },
+      {
+        "mutation": "missing-camera",
+        "killed": true,
+        "exitCode": 1
+      }
+    ],
+    "uiLive": {
+      "firstAttempt": "0/1, incorrect probe-home selector; no model call; original retained",
+      "configuredRetry": "10/10, actual bai main requests max; personal DSH not modified"
+    },
+    "visualLive": {
+      "canonicalExplicitDeepSeekCompat": "13/13 full suite passed at max, explicit256000 operator budget",
+      "defaultBudgetSuccess": false,
+      "logSha256": "150b6626eea1bef6a5c67ca34c4ab7d9b1893b4a072695695f77cdcd0d8cada5",
+      "productDefaultUnchanged": 24000,
+      "earlierFailuresRetained": true
+    },
+    "candidateUnitFirstRun": "136/137; DSH_HOME omitted in invocation, preset comparison read existing personal preset drift. No personal files changed. Isolated home with correctly installed presets now used for full rerun.",
+    "candidateUnitRerun": {
+      "passedFiles": 137,
+      "totalFiles": 137,
+      "isolatedDshHome": true,
+      "logSha256": "14e203dba14fa1732ae1a590a44df492ebe51df1fc5fdef56e09e7049a0e0b6d"
+    },
+    "postFullProductEquivalence": {
+      "previousStage": "After original42-suite run, only version and submission metadata differed.",
+      "currentStage": "Fullv6 exact909-file inventory passed; subsequent documentation-only evidence updates are separately checked before commit. No product/test/tool/preset/CI changes after fullv6."
+    },
+    "ciAtE67": {
+      "commit": "e67b6893d9d2997dff1c40c3f6743d290187b3a3",
+      "runId": 39195341193,
+      "url": "https://github.com/pearjelly/deep-blend/actions/runs/39195341193",
+      "jobs": 5,
+      "successful": 5,
+      "artifactMetadata": 4,
+      "artifactZipDigestAndCrcReadback": "pending network",
+      "scope": "Before the newly found manual render-region guard. Not CI acceptance of that later fix."
+    },
+    "fullV3": {
+      "at": "2026-10-19T05:39:40.126886+00:00",
+      "result": "failed-not-accepted",
+      "passedSuites": 26,
+      "unitContractFiles": "137/137",
+      "nativeInspectionChecks": "61/61",
+      "sourceUnchanged": true,
+      "sourceFileCount": 906,
+      "logSha256": "a28b00bf9b9438002334496c2f6ea3939e14d3cd9b995c7a8aff3e32cb78183d",
+      "cause": "Invocation omitted pinned DSH CLI bin directory from PATH; browser suites launched unrelated global CLI and failed before plugin activation. Product SDK was pinned; no personal deployment modified.",
+      "next": "Fresh complete v4 using explicit Node24 and pinned DSH0.1.5-rc.2 CLI PATH; retain v3 evidence.",
+      "failedSuites": 16
+    },
+    "fullV4": {
+      "finishedAt": "2026-10-19T06:25:52.363135+00:00",
+      "headBeforeUncommittedGuard": "e67b6893d9d2997dff1c40c3f6743d290187b3a3",
+      "passedSuites": 42,
+      "allPassed": true,
+      "unitContractFiles": "137/137",
+      "nativeInspectionChecks": "61/61",
+      "validatedSourceUnchanged": true,
+      "validatedFiles": 906,
+      "sourceManifest": "source-before-full-v4.json",
+      "logSha256": "d4ca6490f2c43dbcbfae4028c0fc11f241b3d15d9619e271cc82fffd888f74a1",
+      "scope": "Fresh complete run includes manual render-border and multiview refusal guard and native fixtures. Every source-manifest file remained byte-identical throughout the measured run; no model case/artifact/publication acceptance implied."
+    },
+    "fullV6": {
+      "finishedAt": "2026-10-19T09:31:55.292310+00:00",
+      "sourceBaseCommit": "e67b6893d9d2997dff1c40c3f6743d290187b3a3",
+      "passedSuites": 43,
+      "allPassed": true,
+      "unitContractFiles": "138/138",
+      "nativeInspectionChecks": "65/65",
+      "nativeShotRenderChecks": "20/20",
+      "validatedSourceUnchanged": true,
+      "validatedFiles": 909,
+      "sourceManifest": "source-before-full-v6.json",
+      "logSha256": "c5642031b2411a83f3dee67e1f16e3af8241139f39f07bb2d68b0de60cc0a094",
+      "scope": "Fresh complete run includes explicit shot rendering, actual camera provenance, safe resume, reused-part owner validation, manual render-border and multiview refusals, public external optional runtime conformance and native fixtures. Every source-manifest file remained byte-identical throughout the measured run; no model case/artifact/publication acceptance implied."
+    }
+  },
+  "caseSetupFailures": [
+    {
+      "attempt": "candidate-source/repair-initial",
+      "status": "invalid setup",
+      "reason": "Missing intended reference due attempt-name condition; correction raced with a newly dispatched patch and helper targeted same private directory; preserved and stopped. Not a model quality result."
+    },
+    {
+      "attempt": "candidate-source-v2/initial",
+      "status": "invalid setup stopped before any patch",
+      "reason": "Preparation helper still targeted previous private directory. Never use this attempt as acceptance."
+    }
+  ],
+  "currentCaseAttempt": "candidate-source-v3/initial; explicit new directory and required reference SHA256 guard",
+  "originalHistoricalProjectFilesVerifiedUnchanged": 350,
+  "liveVisualDefaultBudget": {
+    "route": "bai/deepseek-v4.1-flash",
+    "effort": "max",
+    "maxTokens": 24000,
+    "firstReview": "finish=max-tokens with reasoning only, no usable answer; correctly refused as a review",
+    "suite": "not accepted; raw original retained",
+    "nextProbe": "Explicit 256000 operator budget matching actual isolated case Host; product default not changed, not counted as a default-budget success",
+    "explicit256kFirstRun": "10/14; first review connection error; later checks passed. A second generic-compat attempt also lost a response stream. Raw failures retained. Canonical explicit-DeepSeek-compat full run in progress; no full acceptance yet."
+  },
+  "manualCameraScaleRegression": {
+    "beforeFix": "Independent Blender world_to_camera_view witness failed for nonuniform camera scale (1.4, 0.7, 2.2).",
+    "fix": "Normalize evaluated camera matrix as Blender projection does; do not change native camera or scale.",
+    "afterFix": "54/54 native checks passed, including shifted/scaled animated camera with portrait and pixel aspect. Original bytes unchanged.",
+    "fullAcceptance": "Full v2 passed all 42 suites with fixed source and unchanged validated files."
+  },
+  "currentCaseProgress": {
+    "validAttempt": "candidate-source-v3/quality-continuation",
+    "referencePreflight": true,
+    "currentObservedRevision": "r0034",
+    "status": "phase 1 completed but visually rejected; formal plugin phase 2 in progress",
+    "formalPluginActions": "Asset aggregate read, explicit camera projections, previews, atomic scene patches and entityCopies. Maintainer did not write case geometry.",
+    "observedImages": "Buddha on pedestal and main-frame finial now visible; close foliage still a large coarse canopy, not accepted as finished quality.",
+    "transportProof": "actual outgoing requests so far max; original reference + represented preview attachment bytes + complete prior message hashes all retained",
+    "originalFilesVerified": 350,
+    "scope": "Guided repair of an existing project with licensed source assets, not arbitrary one-prompt modeling from blank."
+  },
+  "initialValidCaseSummary": {
+    "elapsedMs": 2013374,
+    "toolCalls": 43,
+    "formalBlenderCalls": 42,
+    "otherCalls": {
+      "skill": 1
+    },
+    "toolFailures": [],
+    "maximumReportedInputIncludingCacheTokens": 473177,
+    "usageProvenance": "DSH pi-ai inputTokens excludes cacheReadTokens/cacheWriteTokens; sum reports prompt context. Not an independent upstream tokenization audit.",
+    "rawReasoningPublished": false,
+    "status": "completed-model-turn; visual quality rejected for coarse close foliage and zero-thickness new soffits; no final render or release"
+  },
+  "explicitDeepSeekWireProbe": {
+    "requests": 2,
+    "thinking": "enabled",
+    "reasoning_effort": "max",
+    "max_tokens": 256000,
+    "referenceBytesExact": true,
+    "elapsedMs": 15586,
+    "formalTool": "blender_capabilities",
+    "scope": "Private bai compatibility metadata only; no personal DSH changes; short finite probe does not establish case quality."
+  },
+  "candidateVersion": "0.16.0",
+  "phase2": {
+    "attempt": "candidate-source-v3/quality-continuation",
+    "elapsedMs": 2451165,
+    "toolCalls": 21,
+    "completed": false,
+    "failure": "HTTP400 INVALID_REQUEST: Invalid request body after r0034 saved; upstream message did not identify cause.",
+    "lastSuccessfulReportedInputIncludingCacheTokens": 571482,
+    "failedBodyBytes": 13462819,
+    "referenceAndAllRepresentedToolImageBytesRetained": true,
+    "priorSerializedMessagePrefixesRetained": true,
+    "scope": "API failure retained; not a completed quality pass."
+  },
+  "canonicalResume": {
+    "status": "partial transport success, then connection failure; not quality accepted",
+    "previousSessionResumed": true,
+    "firstResponseStatus": 200,
+    "firstResponsePromptTokens": 573098,
+    "thinking": "enabled",
+    "reasoning_effort": "max",
+    "max_tokens": 256000,
+    "allPriorContentHashesRetained": true,
+    "allPriorNonemptyReasoningHashesRetained": true,
+    "serializedChanges": [
+      "developer role adapted to system",
+      "empty reasoning_content explicitly supplied on two assistant messages"
+    ],
+    "causeProven": false,
+    "elapsedMs": 416710,
+    "toolCalls": 3,
+    "generatedBeautyFrames": [
+      831,
+      865
+    ],
+    "endError": "TRANSPORT: Connection error."
+  },
+  "intermediateNativeAudit": {
+    "revision": "r0034",
+    "frames": 900,
+    "sourceNativeAndSpecUnchanged": true,
+    "subjectEnvelopeFailures": 0,
+    "nearSurfaceFrames": 0,
+    "surfaceCrossingConsecutiveFrameChords": 0,
+    "buddhaSupportBoundsSeparationMm": -0.07283687591552734,
+    "buddhaBoundsInsideSupportXY": true,
+    "closedPositiveVolumeSoffits": 5,
+    "actualCameraInterpolation": "BEZIER",
+    "scope": "Explicit all-frame native geometry checks and bounded ray grids, not rendered full-video inspection, subframe-path certification, exact contact or artistic approval.",
+    "explicitPagodaPartsInEveryMainFrame": 61,
+    "allPagodaSourceUnchanged": true,
+    "fileTextureCount": 11,
+    "allFileTexturesPacked": true,
+    "allPagodaNativeAudit": "900/900 integer frames, 0 selected subject envelope failures; no case scene changes during QA"
+  },
+  "qualityRemaining": [
+    "Complete final documentation contract/CI and exact source binding; merge only after these case/delivery gates.",
+    "Build from a fresh clean pushed main checkout; verify seven own payloads and all native target payloads against the accepted frozen candidate.",
+    "Publish new GitHubRelease/assets/checksum and seven npm packages in dependency order, read public archives back anonymously, then verify three actual install routes agree.",
+    "Project the canonical community entry and submit/update its PR; distinguish submitted/upstream merged/live refreshed.",
+    "Follow-up metadata task: copied legacy state with a null prior full source hash gives operation-level specChanged:false but revision-level true; raw flags retained, never use false as no-source-change proof. Independent source/native bytes and changedPaths verify this case."
+  ],
+  "publicationStatus": "0.16 candidate case and private user handover accepted; standard public release/npm/community submission not yet completed.",
+  "networkObservation": {
+    "githubApi": "Repeated TLS EOF; TLS1.2 probe also fails",
+    "polyHavenApi": "TLS EOF",
+    "npmRegistry": "HTTP200",
+    "bai": "Same-session573098 and589134 prompt-token requests succeeded, then connection errors after two new previews; failed turn retained.",
+    "git": "One ls-remote read succeeded; subsequent fetch failed SSL_ERROR_SYSCALL. Unstable, not an authentication finding.",
+    "nextAction": "Resume actual plugin quality repair and frozen artifact verification after network recovery; no stable publication before complete case/movie acceptance."
+  },
+  "preservationChecked": {
+    "originalHistoricalProjectFiles": 350,
+    "originalFilesChanged": 0,
+    "copiedOldNativeSpecBytesChanged": 0,
+    "copiedRevision23ManifestDelta": [
+      "formal previews",
+      "contactSheets"
+    ],
+    "oldDeliveredSceneAndVideoHashesMatch": true,
+    "oldEntityIdsRetained": 98,
+    "oldMaterialsAndLightsUnchanged": true
+  },
+  "experimentRecordLimitations": [
+    "Earlier private request.json files inherited an old controlled-comparison boilerplate scope. Actual records are guided repairs of an existing project using a private source-copy plugin; not a fresh published-artifact single-prompt comparison. Original records retained, current stage writes explicit scope.",
+    "The new quality stage starts a separate session with explicit artifact/intent handoff and exact reference attachment. Old complete chat remains stored; this stage does not claim all old chat was reloaded."
+  ],
+  "currentQualityStage": {
+    "attempt": "candidate-source-v3/quality-stage-new-session",
+    "session": "session-4be09849-67fb-4d31-be65-1d60a4f0f269",
+    "route": "bai/deepseek-v4.1-flash",
+    "protocol": "explicit thinking=enabled, reasoning_effort=max, max_tokens=256000",
+    "sourceCandidate": "e67b689 package source, development copy with0.15 manifest labels; frozen artifact still pending",
+    "firstResponse": 200,
+    "status": "ended TRANSPORT terminated, not quality accepted",
+    "elapsedMs": 1351275,
+    "scenePatches": 0,
+    "toolCalls": {
+      "skill": 1,
+      "blender_capabilities": 1,
+      "blender_project_get": 1,
+      "grep": 5,
+      "blender_scene_get": 15,
+      "blender_preview_render": 1
+    },
+    "referenceAndRepresentedToolImageBytesRetained": true,
+    "priorSerializedMessagePrefixesRetained": true,
+    "spillHandling": "Two large Harness tool-result spill files read by this case still exist after Host exit and were archived byte-exact locally. Their whole raw bodies are not asserted to be inline in every API request.",
+    "codedToolRefusalsAudit": "Prior new-session stage had2 coded refusals; resumed live stage has at least4. Outer isError:false is not a success predicate; stable tool text audited. Initial/phase2/canonical-resume zero refusals independently confirmed.",
+    "savedR0035Snapshot": {
+      "at": "2026-10-19T06:12:34.109561+00:00",
+      "from": "r0034",
+      "to": "r0035",
+      "all116EntityIdsRetained": true,
+      "changedEntities": [
+        {
+          "id": "pine-fg-1",
+          "fields": [
+            "transform"
+          ]
+        },
+        {
+          "id": "pine-yard-e",
+          "fields": [
+            "transform"
+          ]
+        },
+        {
+          "id": "pine-yard-w",
+          "fields": [
+            "transform"
+          ]
+        },
+        {
+          "id": "tree-1-canopy",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-1-leaves",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-1-lobe-a",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-1-lobe-b",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-1-trunk",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-4-canopy",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-4-leaves",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-4-lobe-a",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-4-lobe-b",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-4-trunk",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-5-canopy",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-5-leaves",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-5-lobe-a",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-5-lobe-b",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-5-trunk",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-6-canopy",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-6-leaves",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-6-trunk",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-7-canopy",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-7-leaves",
+          "fields": [
+            "visible"
+          ]
+        },
+        {
+          "id": "tree-7-trunk",
+          "fields": [
+            "visible"
+          ]
+        }
+      ],
+      "visibilityOnlyEntities": 21,
+      "transformOnlyEntities": 3,
+      "uniformPineScales": {
+        "pine-fg-1": [
+          4.6,
+          4.6,
+          4.6
+        ],
+        "pine-yard-w": [
+          4.2,
+          4.2,
+          4.2
+        ],
+        "pine-yard-e": [
+          3.6,
+          3.6,
+          3.6
+        ]
+      },
+      "otherTopLevelChanges": [],
+      "buddhaUnchanged": true,
+      "sourceBeforeAndAfterSha256": {
+        "r0034": "25906474e7e42407ed337ffc6d60178f41e777cd262be4ab2670118a14b2a728",
+        "r0035": "70100a87ace5c26e6705967e638fae1193d78818d8fbd2937dfe9e20239fc7aa"
+      },
+      "scope": "Read-only saved JSON comparison, not native mesh/framing/pixel or full movie acceptance. Native old source and asset bytes checked separately."
+    },
+    "historical": true,
+    "supersededBy": "frozenF4RenderProgress20261021"
+  },
+  "manualRenderRegionRegression": {
+    "beforeFix": "Native crop region independently excludes otherwise contained framing-small; old reader still returned a full-camera measurement instead of refusing. Raw failing suite retained.",
+    "fix": "Refuse camera framing when render.use_border or render.use_multiview, preserving those native settings and ordinary geometry reads.",
+    "afterFix": "61/61 native checks passed for unmasked baseline, border masked, border cropped and multiview; checkpoint bytes unchanged.",
+    "newFullAcceptance": "Fresh fullv4 passed42/42,unit137/137,native61/61;906 source files unchanged. This predates the newly identified shot-delivery feature work.",
+    "mutations": {
+      "sourceRestored": true,
+      "sourceSha256": "859ada44cea8244801371d66f39cf98d755daa79d67581d0a3cf064fd82f77a5",
+      "results": [
+        {
+          "mutation": "drop-border-refusal",
+          "killed": true,
+          "exitCode": 1
+        },
+        {
+          "mutation": "drop-multiview-refusal",
+          "killed": true,
+          "exitCode": 1
+        }
+      ]
+    }
+  },
+  "candidateBuild": {
+    "sourceCommit": "e67b6893d9d2997dff1c40c3f6743d290187b3a3",
+    "cleanPushedClone": true,
+    "usableArtifactExists": false,
+    "attempts": [
+      "Pre-clone-completion invocation failed MODULE_NOT_FOUND; no package created.",
+      "Unmodified standard builder dependency install failed; original silent output retained.",
+      "Direct append-only diagnostic: Git SSH port22 closed.",
+      "Process-only HTTPS mapping diagnostic: GitHub443 SSL_ERROR_SYSCALL.",
+      "Local immutable source Git cache attempted, standard builder still failed.",
+      "Offline diagnostic identifies missing codeload source tarball.",
+      "Direct codeload GET timed out after40s with576171 bytes, retry timed out with0 bytes; no valid archive."
+    ],
+    "personalOrGlobalSettingsChanged": false,
+    "publicReleasePerformed": false
+  },
+  "networkRestoration": {
+    "serviceProbes": [
+      {
+        "url": "https://api.github.com/repos/pearjelly/deep-blend",
+        "status": 200,
+        "seconds": 0.88
+      },
+      {
+        "url": "https://registry.npmjs.org/@deepblend%2fdsh-blender-bundle/latest",
+        "status": 200,
+        "seconds": 1.06
+      },
+      {
+        "url": "https://api.polyhaven.com/info/pine_sapling_small",
+        "status": 200,
+        "seconds": 1.18
+      }
+    ],
+    "codeloadHead": {
+      "url": "https://codeload.github.com/pearjelly/deep-blend/tar.gz/e67b6893d9d2997dff1c40c3f6743d290187b3a3",
+      "status": 200,
+      "contentType": "application/x-gzip",
+      "seconds": 0.867
+    },
+    "githubAndNpmLoginReadOnly": "available",
+    "bai": "Saved session resumed; successful200 streaming responses interleaved with two300s fetch failures; retries retained. No new case revision saved yet.",
+    "privateWaitTuning": "Local delayed-header witness passed without changing body bytes; not used by current live case, and does not identify earlier remote cause."
+  },
+  "renderShotSelectionGap": {
+    "observedRevision": "r0035",
+    "savedShots": 5,
+    "cameraRoles": "None of the five saved cameras has active-camera role; legacy delivery picks first camera-buddha.",
+    "nativeCheck": {
+      "checkpointSha256": "3e33342e4d27790039d6fd667e98604ebb163a4d48b71ec8c29a2786c216beb2",
+      "fifteenSampleFrames": "All native active camera-buddha",
+      "timelineCameraMarkers": 0,
+      "sourceUnchanged": true
+    },
+    "sourceObservation": "Host startFinalRender selects one camera; runtime frame loop sets it once and never selects saved shots. No long movie has been started.",
+    "decision": "Implement explicit opt-in saved-shot rendering with durable per-frame camera evidence and safe resume; keep old single-camera default and native files unchanged.",
+    "state": "implemented-targeted-native-20-pass-full-acceptance-pending"
+  },
+  "preservationAfterR0035": {
+    "at": "2026-10-19T06:15:22.206315+00:00",
+    "originalFilesChecked": 350,
+    "originalChanged": [],
+    "caseCopyChangedOldPaths": [
+      "project.json",
+      "assets/manifest.json",
+      "revisions/r0023/revision-manifest.json"
+    ],
+    "caseCopyOldImmutableSourcesUnchanged": true,
+    "previousR0034NativeAndSpecMatchIndependentAudit": true,
+    "oldDeliveryHashesMatch": {
+      "scene.blend": true,
+      "final.mp4": true
+    },
+    "scope": "Old source350 files, old r0034 native/spec and original delivered media match known hashes. Experimental project/asset registry may advance and r0023 manifest may append formal previews; no broad immutability claim for those indices."
+  },
+  "explicitShotCandidate": {
+    "feature": "Opt-in useShotCameras; saved selection freezes per job; actual native camera and shot IDs bound to PNG SHA; pre/post encode checks and safe resume; old default preserved.",
+    "native": "20/20 real two-camera pixel and independent Host resume checks",
+    "mutationProof": {
+      "allEightKilled": true,
+      "sourceFilesUnchanged": 909,
+      "witnesses": [
+        "native selection",
+        "actual pixels despite forged camera claim",
+        "part owner",
+        "part marker",
+        "frame camera evidence",
+        "source shot snapshot",
+        "pre-encode camera verification",
+        "post-encode previous delivery protection"
+      ]
+    },
+    "initialUnitRun": {
+      "passed": 135,
+      "files": 138,
+      "retainedFailures": [
+        "public-sdk optional method inventory",
+        "readme fresh clone denominator",
+        "session routing common isolated implementation"
+      ],
+      "status": "All three fixes passed targeted10/10; public packed runtime native conformance32/32 also passed. Fresh complete run pending."
+    },
+    "fullRequired": true,
+    "paidRequired": false,
+    "newCiAndArtifactRequired": true,
+    "fullV5": {
+      "state": "FAILED",
+      "passedSuites": 38,
+      "totalSuites": 43,
+      "unitContractFiles": "138/138",
+      "nativeInspectionChecks": "65/65",
+      "nativeShotChecks": "20/20",
+      "nativeExternalRuntimeChecks": "33/33",
+      "sourceFilesUnchanged": 909,
+      "failures": "Five tool/browser delivery suites; tracked runtime method detached and called with a different getter-produced service proxy lost subprocess injection.",
+      "originalLogSha256": "a02dcc61917fc20d3adac210a2014f5dcfece8953e360fecf92f1d712be77ea6",
+      "isolatedDispatchFixWitness": "OriginalM3 tool suite78/78 via private hook, source unchanged; product fix and explicit-shot preset-context regression now implemented, fresh acceptance pending."
+    },
+    "state": "fullv6-passed-artifact-and-case-pending",
+    "actualPresetToolChecks": "83/83 including explicit shot switch30/31, actual source frame identity and MP4 published",
+    "fullV6": "43/43;138/138;65 native inspection;20 native shot;33 actual external runtime checks;909-file source unchanged",
+    "mutationsAfterDispatchFix": {
+      "eightRerun": "8/8 killed on latest source,909-file unchanged",
+      "explicitOnlyReceiver": "78 legacy passed, newly added explicit preset assertion failed as intended",
+      "additionalOptionalCoupling": "3/3 killed; no source edits"
+    }
+  },
+  "reusedAssetPartInspection": {
+    "nativeChecks": "65/65",
+    "actualSavedThreeInstancesAvailable": true,
+    "meshesEach": 3,
+    "sourceBytesUnchanged": true,
+    "scope": "Independent read-only development probe; actual bai frozen-artifact acceptance remains required."
+  },
+  "sourcePreviewPhase": {
+    "revision": "r0036",
+    "elapsedMs": 940282,
+    "actualPluginPreviewCalls": 14,
+    "completed": false,
+    "failure": "TRANSPORT Connection error; sanitized cause ECONNRESET",
+    "preservation": "Original images and failed turn retained; remaining frame900 requested in same saved session.",
+    "wireAudit": {
+      "allMax": true,
+      "allReferenceBytesRetained": true,
+      "allRepresentedToolImageBytesExact": true,
+      "allPriorSerializedMessagesByteIdentical": true
+    },
+    "artGate": "Rejected: sparse garden, bright gold highlights and reference detail gap. No final movie.",
+    "remainingPreviewFollowup": {
+      "elapsedMs": 406394,
+      "actualPluginCalls": 1,
+      "completed": true,
+      "result": "F900 completes all15 requested previews; model and independent review reject art gate. No final movie or scene edits.",
+      "remainingDefects": [
+        "empty landscape",
+        "bright statue highlights",
+        "unsupported bridge rails",
+        "reference architectural and material detail gap"
+      ]
+    }
+  },
+  "latestPaidProbes": {
+    "visual": {
+      "checks": "14/14",
+      "mainRequests": 6,
+      "allMax": true,
+      "explicitMaxTokens": 256000,
+      "wireWindowMs": 1986199,
+      "reportedCompletionTokens": 216810,
+      "reportedReasoningTokens": 212502,
+      "transportErrors": 0,
+      "scope": "Planted-occlusion fixture and loop/handover; no temple art claim. Default24000 unchanged, prior failure retained."
+    },
+    "ui": {
+      "checks": "10/10",
+      "actualRequests": 3,
+      "allMax": true,
+      "scope": "Actual tool card in model session, not full task or movie completion.",
+      "priorFailure": "Private test profile initially omitted bundle manifest; no DeepBlend route or model requests, retained; complete isolated profile fixed."
+    },
+    "continuity": "These paid probes cover unchanged current prompts/tool/SKILL source. Later dispatch-only fix requires new native/tool/full checks and actual frozen bai case."
+  },
+  "caseGardenStructure": {
+    "revision": "r0039",
+    "elapsedMs": 1762982,
+    "actualCalls": 33,
+    "committedRevisions": [
+      "r0037",
+      "r0038",
+      "r0039"
+    ],
+    "changes": [
+      "CC0 Fir Sapling source registered and one cluster measured/placed",
+      "editable bridge balusters added with former rails/deck preserved",
+      "independent warm statue material; original gold parts and statue transform retained"
+    ],
+    "refusals": "Three empty scene_patch calls, one four-number vertex, one aggregate+objectAxes misuse; resource guards refused8cluster image load and4cluster scene above2M. Raw refusals and earlier failure evidence retained; not zero errors.",
+    "artAcceptance": false,
+    "newPixelPreviews": 0
+  },
+  "caseResourceOverride": {
+    "defaultScenePolygons": 2000000,
+    "isolatedCaseScenePolygons": 4000000,
+    "imageLimitGiB": 1,
+    "personalDeploymentChanged": false,
+    "why": "Old hidden geometry still counts; preserve old entities instead of deleting them to expand garden. Explicit nondefault controlled-case configuration, not default/from-blank success."
+  },
+  "preservationAfterR0042": {
+    "at": "2026-10-19T09:33:11.555409+00:00",
+    "originalFilesChecked": 350,
+    "originalChanged": [],
+    "caseCopyChangedOldPaths": [
+      "project.json",
+      "assets/manifest.json",
+      "revisions/r0023/revision-manifest.json"
+    ],
+    "caseCopyOldImmutableSourcesUnchanged": true,
+    "oldDeliveryHashesMatch": {
+      "scene.blend": true,
+      "final.mp4": true
+    },
+    "scope": "Read-only byte audit; mutable project/asset indices and old revision23 formal preview index may advance."
+  },
+  "caseGardenLightFraming": {
+    "revision": "r0042",
+    "elapsedMs": 1705780,
+    "actualCalls": 27,
+    "committedRevisions": [
+      "r0040",
+      "r0041",
+      "r0042"
+    ],
+    "changes": [
+      "four additional CC0 fir clusters",
+      "CC0 sky and UV-bound ground PBR",
+      "only foliage camera/vertical track reframed to include plinth at900"
+    ],
+    "preservation": "All old entity IDs retained; other four cameras/seven tracks and Buddha pose/size retained. Old native/spec and delivery bytes unchanged.",
+    "incomingAudit": {
+      "capturedCalls": 27,
+      "validCapturedJsonDocuments": 25,
+      "validCapturedDocumentsSemanticallyPreserved": true,
+      "invalidCollectedArgumentStrings": 2,
+      "sdkMalformedNormalization": "Both rejected empty patch calls preserved; collected4035B/2600B strings failJSON. This older observer has no outerSSE parsing counters, so complete boundary origin is not established.",
+      "futureObserver": "Byte-preserving local witnesses verify outerSSE counters and private retention of malformed tool argument bytes; no silent repair."
+    },
+    "newBeautyPreviews": 0,
+    "artAcceptance": false,
+    "configuration": "Explicit4M case budget, not default2M/from-blank success"
+  },
+  "caseR0042NativeReadOnly": {
+    "source": {
+      "native": "64961b099e239fd0970f1be1ad8e0afe09a1b25c2badb4fda4cb6ade5ea312c7",
+      "spec": "8bf81b3c295b31dfedef931818f48248ab6c20453a6860a36eec759225b483f6"
+    },
+    "sourceUnchanged": true,
+    "sampledFrames": 900,
+    "envelopeFailures": 0,
+    "surfaceNearFrames": 0,
+    "surfaceCrossingChords": 0,
+    "packedImages": 21,
+    "linkedLibraries": 0,
+    "scope": "Scheduled integerframes, conservative world mesh envelopes, static triangle ray/chord checks; eave is intentional detail framing. Not subframe/general collision certificate, pixel/movie or frozen artifact acceptance.",
+    "buddhaVerticalBoundsSeparationMm": -0.0728368759
+  },
+  "frozenCandidate": {
+    "sourceCommit": "bda0499369c6a923d195599b79c59a40a30347a0",
+    "tarballBytes": 72536198,
+    "tarballSha256": "607905237e39eb563cf188fb355da8cef466642fd35706aa2aa9510edac39ab5",
+    "cleanPushedBuild": true,
+    "actualPluginAddInstall": true,
+    "resolvedOwnPackages": "7/7 at0.16.0, installed source/skill verified",
+    "nativeImageReadback": "Darwin-arm64 Sharp actual1280x720 reference decode",
+    "otherNativePayloads": "Packed bytes verified for linux-x64/linuxmusl-x64/win32-x64; not execution on those platforms",
+    "sourceSessionTransfer": "56 session/storage/attachment files byte-exact after source Host exited; same case store, old project retained",
+    "personalDeploymentChanged": false
+  },
+  "exactCandidateCi": {
+    "runId": "39231703639",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/39231703639",
+    "head": "bda0499369c6a923d195599b79c59a40a30347a0",
+    "allFiveJobs": "success",
+    "fourEvidenceArchives": "server SHA256, byte count and all ZIP CRC verified",
+    "actualCheckout": "7a5212e5c24ba741382e87cdc5fa4a8ffcae313a",
+    "rootTreeEqualsCandidate": "53c734c33288c74257dbbe0310b533627bbdde1d",
+    "nativeChecks": {
+      "shots": "20/20",
+      "surface": "65/65",
+      "externalRuntime": "33/33"
+    }
+  },
+  "frozenCaseArtPhases": [
+    {
+      "revision": "r0042",
+      "phase": "pilot",
+      "elapsedMs": 601638,
+      "calls": 10,
+      "actualPreviews": 5,
+      "artAccepted": false,
+      "finding": "Stretched ground UV, low trees, simple roof and gold highlights."
+    },
+    {
+      "revisions": [
+        "r0043",
+        "r0044",
+        "r0045"
+      ],
+      "phase": "ground-and-garden",
+      "elapsedMs": 2149366,
+      "calls": 26,
+      "actualPreviews": 4,
+      "artAccepted": false,
+      "changes": "Editable UV-bound pavement, former mountains hidden, existing fir transforms revised; all123 former entity IDs preserved.",
+      "refusals": "UV schema, three malformed incoming JSON documents normalized to empty by SDK, mutually exclusive read flags; all retained."
+    },
+    {
+      "revision": "r0046",
+      "phase": "surface",
+      "elapsedMs": 1588007,
+      "calls": 14,
+      "actualPreviews": 4,
+      "artAccepted": false,
+      "changes": "Roof/wood procedural microvariation, gold roughness/base color; geometry, UV, transforms, lights, cameras, shots and tracks retained.",
+      "network": "Three peer socket closures with eventual retries."
+    }
+  ],
+  "longHistoryAudit": {
+    "currentSnapshotPruneEvents": 60,
+    "originalToolResultsRecoverable": true,
+    "textBytesBefore": 1584232,
+    "textBytesAfter": 338538,
+    "nonTextImageBlocksPreserved": true,
+    "allOldHistoryInline": false,
+    "cause": "Harness automatic compaction prunes tool-result text middles; original events retained. Prior finite transport probe remains limited to its measured requests.",
+    "decision": "Explicit fresh finite handoff for same project, old session/history retained; no SDK/personal configuration edits and no silent whole-history replay claim."
+  },
+  "boundedHandoff": {
+    "status": "interrupted-after-network-failures-not-accepted",
+    "session": "session-bd6ab828-4830-4c46-8bc2-db51a23a6bf9",
+    "task": "Original reference, four actualr0046 before images, finite constraints and formal current-project reads; does not replay old entire chat.",
+    "model": "bai/deepseek-v4.1-flash",
+    "effort": "max",
+    "thinking": "enabled",
+    "explicitMaxTokens": 256000,
+    "images": "Original JPEG byte-exact1280x720; four PNG previews SDK-normalized to full-frame JPEG960x540, aligned RGB MAE1.10..1.41/255. No lossless PNG claim. Actual outbound attachment hashes checked.",
+    "work": "Seven original CC0 texture images registered. Bai constructed and formally validated one21-operation transaction; five roof generators retain every old vertex/face/field and add only per-face UVs. No scene_patch or new preview; current revision remainsr0046.",
+    "assets": "Poly Haven Grey Roof01 (8m), Dark Wood (2m); original Buddha GLB normal PNG byte-exact buffer extraction. Maintainer downloaded/unpacked only; model must apply through DeepBlend.",
+    "setupFailures": "Two pre-request helper failures retained: too-strict PNG hash assertion, then incorrect Sharp resolution; no model request or case mutation.",
+    "actualWholeElapsedMs": 3260086,
+    "actualToolCalls": 21,
+    "peerSocketFailures": 6,
+    "actualMainRequests": 15,
+    "allDeclaredImagesContextMaxAndThinkingChecksPassed": true,
+    "observedPruneEvents": 0,
+    "incomingDocuments": "21/21 valid JSON, semantically identical through API/SDK, complete outer SSE audit",
+    "stopScope": "Owned isolated Host gracefully stopped during repeated unanswered model request, all21 tool calls (15 DeepBlend calls) had results; native/spec source bytes unchanged. Exit0 does not mean task completion.",
+    "actualDeepBlendToolCalls": 15
+  },
+  "syntheticFixtureArchival": {
+    "scope": "Only owned synthetic acceptance fixtures; actual case history, old projects and deliveries untouched. Private archives retained.",
+    "method": "Archive all original files and link metadata, verify every SHA and archive integrity before removing duplicate uncompressed fixture copies.",
+    "passedRecipeFixtures": 9,
+    "passedReportFixtures": 91,
+    "additionalSourceIdentifiedSyntheticFixtures": 21,
+    "unclassifiedFixturesNotClaimedPassed": true,
+    "freeAfterBytes": 4394622976,
+    "movieCapacityStillToCheck": true
+  },
+  "updatedAt": "2026-10-22T00:26:43.613874+00:00",
+  "currentBlocker": "No current render/disk/bai blocker for this completed case; standard0.16publication chain pending. Automation remains paused.",
+  "documentationFollowupCi": {
+    "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
+    "runId": "39255339239",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/39255339239",
+    "allFiveJobs": "success",
+    "allFourArchivesVerified": true,
+    "rootTree": "9c0ccc1c975126c68789a6b6408e5382c76d162e",
+    "actualCheckoutTrees": {
+      "a8cd2733cdf4e9503ee1a009db3c7dfcef735cab": "9c0ccc1c975126c68789a6b6408e5382c76d162e"
+    },
+    "allActualCheckoutTreesMatch": true,
+    "runtimeDifferenceFromFrozenBda": "none; four public evidence documentation files only"
+  },
+  "validatedApplyHandoff": {
+    "session": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+    "status": "interrupted-after-network-failures-not-accepted",
+    "actualWholeElapsedMs": 2586261,
+    "actualToolCalls": 6,
+    "peerSocketFailures": 5,
+    "sameStepConsecutivePeerFailuresBeforeStop": 3,
+    "actualMainRequests": 9,
+    "allFiniteContextMaxThinking256000AndFiveProvidedImageChecksPassed": true,
+    "observedPruneEvents": 0,
+    "validIncomingDocuments": 6,
+    "allValidIncomingDocumentsFullyAudited": true,
+    "declaredContext": "Full finite constraints, original reference and fourr0046 before images; exact20,369-byte previous bai-authored validated scene_validate data copied as explicit handoff data. Root did not alter operation data, apply patches or render. Not replay of prior entire session or one-prompt success.",
+    "actualProgress": "Skill/project/capabilities and local source reads only; no scene_validate, scene_patch or new pixels in this attempt.",
+    "sourceUnchanged": true,
+    "wholeAttemptTotals": "Two interrupted attempts97m26.347s,27 tool calls including19 DeepBlend calls,11 observed peer closures; not a completed modeling-task time.",
+    "actualDeepBlendToolCalls": 4
+  },
+  "rawOptionalTreeBackup": {
+    "sourcePage": "https://polyhaven.com/a/tree_small_02",
+    "licensePage": "https://polyhaven.com/license",
+    "license": "CC0",
+    "author": "Rico Cilliers",
+    "originalFilesVerified": 11,
+    "bytes": 100974143,
+    "exactGltfAccessorTriangleCount": 2062487,
+    "pageReportedTriangleCount": "5M",
+    "gltfMetadataNativeExecutionVerified": false,
+    "ingestedOrApplied": false,
+    "caseBudgetUnchanged": 4000000,
+    "scope": "Unmodified raw backup only. One tree would bring present case to about5.5M triangles; no silent resource expansion. Actual future use requires explicit isolated configuration and fresh native/pixel acceptance."
+  },
+  "futureObservations": [
+    "After the frozen release, consider UV-only mesh patching to preserve geometry without repeating every vertex/face.",
+    "Consider immutable validated transaction references bound to project/base revision/digest; no silent malformed-JSON repair. Not implemented in0.16 and not a substitute for fixing observed transport failures."
+  ],
+  "recovery20261020": {
+    "userConfirmed": {
+      "diskSpaceFreedGiBApprox": 23,
+      "preflightAvailableGiBApprox": 28,
+      "baiLongRequestService": "restored per user"
+    },
+    "frozenRuntimeChanges": "none",
+    "actualAttempt": {
+      "sameFiniteSession": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+      "elapsedMs": 139258,
+      "tools": {
+        "blender_scene_get": 1,
+        "blender_scene_validate": 2,
+        "blender_scene_patch": 1
+      },
+      "mainRequests": 4,
+      "observedPeerSocketClosures": 0,
+      "completed": false,
+      "scenePatchResult": "ASSET_CONTENT_MISMATCH; candidate r0047 compilation refused, currentr0046 unchanged",
+      "followingModelRequest": "HTTP400 insufficient_user_quota / QUOTA",
+      "newPreviews": 0,
+      "newFinalMovie": false
+    },
+    "transactionAudit": {
+      "originalBaiOperations": 21,
+      "formalValidateAndPatchDataExactlyOriginal": true,
+      "rootAppliedOrRepairedTransaction": false,
+      "auditCorrection": "v1 incorrectly counted the separate read-only scene_validate as a transaction mismatch; retained, v2 excludes no-patch validation and verifies both actual21-operation calls."
+    },
+    "incomingArguments": {
+      "documents": 4,
+      "malformedDocuments": 0,
+      "completeIncomingBoundaryAudited": true,
+      "allSdkArgumentsSemanticallyPreserved": true,
+      "scope": "JSON semantics preserved; whitespace serialization differs. No silent repair."
+    },
+    "finiteContinuationTransport": {
+      "requestsAcrossPriorAndCurrentPhases": 13,
+      "allMaxThinking256000": true,
+      "allFiveProvidedAttachmentsAndRepresentedToolImagesPresent": true,
+      "capturedWireImageBytesVerified": true,
+      "everyPreviousRequestPrefixExactIncludingSessionBoundary": true,
+      "observedPruneEvents": 0,
+      "scope": "Explicit finite d318 session only, not the earlier long session or upstream gateway internals. SDK PNG to full-frame JPEG normalization remains separately documented."
+    },
+    "readOnlyImageBudget": {
+      "limitBytes": 1073741824,
+      "currentSceneBytes": 973078528,
+      "newMapCount": 7,
+      "eachNewMapBytes": 16777216,
+      "proposedBytes": 1090519040,
+      "excessBytes": 16777216,
+      "nativeGuardUnchanged": true,
+      "perImportConservativeAccountingUnchanged": true,
+      "sourceUnchanged": true,
+      "recoveryPlan": "After quota recovery, bai must choose a material binding design within the existing budget; preserve geometry, manual edits and all existing entities/assets. No root case editing or budget bypass."
+    },
+    "latestCiReadback": {
+      "runId": "39263431094",
+      "head": "6a5add354ec7f0f5c39261403757acbc4fde597b",
+      "expectedRootTree": "2f88a3c5f0602af859b75edb255e40153b863a90",
+      "allFiveJobs": "success",
+      "actualCheckoutTrees": {
+        "213e482ecebff22b52aa89a93858c8ceef823341": "2f88a3c5f0602af859b75edb255e40153b863a90"
+      },
+      "actualCheckoutTreesMatchHead": true,
+      "allFourEvidenceArchivesVerified": true,
+      "scope": "Server SHA256/byte count and every ZIP CRC verified; context.json binds actual Linux checkout; GitHub commit tree readback proves checkout root tree equals candidate. Does not certify case artistic quality or replace paid live acceptance."
+    },
+    "preservation": {
+      "originalFilesCheckedUnchanged": 350,
+      "oldDeliveryVideoAndNativeHashesMatch": true,
+      "primaryTrackedChanges": 0,
+      "old015ArtifactAndFrozen016ArtifactHashesMatch": true
+    },
+    "releasePerformed": false,
+    "currentNativeReadOnly": {
+      "revision": "r0046",
+      "sourceSha256": {
+        "native": "72bad8360d429f6556a5b5c306c14714151ce9a304b262a2b10ddd6c4225d614",
+        "spec": "c71ae41f231f1cb81af43959fd010a0b795880d7e05a55725a525dfa7f4a0dc9"
+      },
+      "sourceUnchanged": true,
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-foliage": 0.9724770642201835,
+          "camera-buddha": 1.0,
+          "camera-yard": 0.9459459459459459,
+          "camera-eave": 1.0,
+          "camera-main": 0.9615384615384616
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-yard": 0.0,
+          "camera-eave": 0.0,
+          "camera-main": 0.0
+        }
+      },
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "allFileImagesPacked": true,
+      "fileImageCount": 21,
+      "scope": "Actual900 integer camera frames and within-shot straight chords against static evaluated geometry;32x32 geometric visibility sampling. Native checkpoint640x360 and final1280x720 share16:9 aspect, this is no render/pixel, all-subframe, general collision or full-film certificate. Recheck final saved source after modifications."
+    },
+    "localEnvironmentRecheck": {
+      "initialRun": "DeepBlend tests: 133/138 file(s) passed",
+      "initialFailedFiles": [
+        "✗ contract/development-toolchain.test.mjs: exited with status 1",
+        "✗ contract/host-recipes.test.mjs: exited with status 1",
+        "✗ contract/install-plugin-modes.test.mjs: exited with status 1",
+        "✗ contract/readme-fresh-clone.test.mjs: exited with status 1",
+        "✗ contract/uninstall-residue.test.mjs: exited with status 1"
+      ],
+      "initialNode": "24.13.0",
+      "causes": [
+        "Offline locked SDK cache missing after local cache cleanup (ENOTCACHED).",
+        "LocalNode24.13 macOS rmSync of directory symlinks fails with ERR_FS_EISDIR; minimal standalone witness reproduces, Node24.22 succeeds. This affects link cleanup and fresh-clone expected counts."
+      ],
+      "recovery": "Locked SDK npm-ci inputs reinstalled with integrity verification into private helper directory, repopulating cache. IsolatedNode24.22 installed; related64 tests and fresh full138/138 file rerun passed. No product/test source change.",
+      "productOrTestSourceChanged": false,
+      "originalLogSha256": "b2c6224d6f5453af808ba87bc09d5b0e5eb597fb02d540dcbb4e4a3d4c039045",
+      "finalRun": "138/138",
+      "finalNode": "24.22.0",
+      "finalLogSha256": "53dcad4520eb985acb85ae7946f39aae8b0a0defd632b47d124082aa09433217"
+    },
+    "explicitOutputReservationRetry": {
+      "elapsedMs": 3018,
+      "reasoningEffort": "max",
+      "thinking": "enabled",
+      "outputTokens": 196608,
+      "previousOutputTokens": 256000,
+      "reasonForChange": "One explicit isolated output-reservation retry afterQUOTA. No claim of identical-setting comparison. Model, input context, images, plugin and personal configuration unchanged.",
+      "mainRequests": 1,
+      "toolCalls": 0,
+      "result": "HTTP400 insufficient_user_quota / QUOTA",
+      "sourceChanged": false,
+      "furtherPaidRetriesStopped": true,
+      "continuationTransportAudit": {
+        "requestsAcrossAllThreeFinitePhases": 14,
+        "allMaxThinkingAndExplicitDeclaredOutputBudgetMatch": true,
+        "allProvidedImagesAndEntirePriorRequestPrefixesPresent": true,
+        "capturedWireImageBytesVerified": true,
+        "observedPruneEvents": 0,
+        "scope": "Finite d318 session;256000 in prior phases and196608 in final retry explicitly measured, not all14 at256000 and not an unlimited old-history claim."
+      }
+    }
+  },
+  "quotaRecoverySavedPbrPhase": {
+    "date": "2026-10-20",
+    "session": "session-d318cf5c-ba5d-414a-a86a-90ff152f94d9",
+    "elapsedMs": 513889,
+    "actualDeepBlendToolCalls": 7,
+    "incomingArgumentDocuments": 7,
+    "malformedArgumentDocuments": 0,
+    "allIncomingFullyAuditedAndSemanticallyPreserved": true,
+    "formalPatchOperations": 19,
+    "revision": "r0047",
+    "sourceSpecSha256": "468b3d065d1d8ae800297b559c24cb4ee3421797b5c831dfece9371279e8eb44",
+    "sourceNativeSha256": "2da5929db7548149ab6573a78a6e3dd007685eaaf169ef07718f08cc8f90cd60",
+    "savedRevisionNativeBytes": 394595740,
+    "oldEntitiesRetained": 123,
+    "allOldEntityFieldsOutsideFiveRoofUvsUnchanged": true,
+    "allOldVerticesFacesTransformsUnchanged": true,
+    "oldCamerasLightsWorldShotsTracksProfilesUnchanged": true,
+    "oldAssetIdsRetained": true,
+    "assetCounts": [
+      8,
+      13
+    ],
+    "newImageBindings": 5,
+    "imageBudgetBytes": 1056964608,
+    "imageBudgetLimitBytes": 1073741824,
+    "remainingBytes": 16777216,
+    "imageBudgetPolicyUnchanged": true,
+    "sourceReadonlyNative900": {
+      "sourceUnchanged": true,
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-yard": 0.9459459459459459,
+          "camera-main": 0.9615384615384616,
+          "camera-foliage": 0.9724770642201835,
+          "camera-buddha": 1.0,
+          "camera-eave": 1.0
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-yard": 0.0,
+          "camera-main": 0.0,
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-eave": 0.0
+        }
+      },
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "all26FileImagesPacked": true,
+      "scope": "Static evaluated geometry,900 integer camera frames and within-shot chords;32x32 visibility grid, not pixel/subframe/full-film acceptance."
+    },
+    "fixedConditions": {
+      "allFourBeforeAfterRenderAndCameraFactsExactlyEqual": true,
+      "width": 960,
+      "height": 540,
+      "samples": 48,
+      "engine": "CYCLES",
+      "mode": "beauty",
+      "views": [
+        {
+          "cameraId": "camera-buddha",
+          "frame": 610,
+          "beforeSha256": "3ae6cdce66746b92fd88d5a5b1bcf69ceed56f6e75b0f32f83b0a2bdd8d6ac1b",
+          "afterSha256": "63b0bb9870561adaa1d0c2661f236d6937a70d7a86d0f1067002174d60cdacb6",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015808-3cebbc4b-86ae-4207-bbf2-6c4dceb042fa-f902ad68-24c0-403e-a263-a7b520803737/inspection.png"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 390,
+          "beforeSha256": "ebf28c8fe794171011f53dad800c59aac42a6f06f7f1a79f64cb5b75a99850b1",
+          "afterSha256": "1f45b3071288c19ef52f2655872ce91226313f35663aa6872189fd6d745773fc",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015647-b94dc655-7f11-4992-b03a-8ac90e74003f-0636af9d-6a47-4f6a-8d61-cf80912a3ef8/inspection.png"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 130,
+          "beforeSha256": "55562208568f6fc1c61ed6dabf3e04b846dc2814d4324be825a3adb6c56c9163",
+          "afterSha256": "fbc9cbc3523ffd0446dd124c23f22f0df52c90c9b5f0d10c822268a5db44e5bf",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015547-557c859d-3cf1-47d0-a59f-4cf797108f44-3bd2848f-dc68-44f3-b18b-06f04e70e2cc/inspection.png"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 900,
+          "beforeSha256": "f9eab4d7171e904b71a82a45fb26a08c7b6abda77eae0d3ddfee7ae37f87d715",
+          "afterSha256": "33c1257f9d952eebc5211a9bd929866ca552997b43c17f04d4468cf0ee1ecade",
+          "afterPath": "revisions/r0047/diagnostics/diagnostic-20261020015917-7242a0c8-c626-4283-abd0-028d574840c0-9cbbbae9-0fe2-43f4-a0ad-e98359ae7802/inspection.png"
+        }
+      ]
+    },
+    "artAccepted": false,
+    "artRejectionReasons": [
+      "Eave solidify rim has visible texture stretching (16 evaluated zero-UV-area triangles per roof).",
+      "Imported Buddha constant gold override loses original authored gold texture/facial contrast; original diffuse resource is gold, not stone.",
+      "Roof tone too light and wood tone too close to red columns; thin trees and weak final framing remain."
+    ],
+    "evaluatedRoofUvFact": {
+      "zeroUvAreaTrianglesPerRoof": 16,
+      "firstRoofAffectedWorldAreaMeters2": 13.82913776080834,
+      "sourceUnchanged": true,
+      "scope": "Solidify rim actual UV area degeneracy diagnosis; not automatically fixed by structural validation."
+    },
+    "finiteContinuationTransport": {
+      "requestsAcrossFourPhases": 19,
+      "allReasoningMaxThinking": true,
+      "allExplicitPerPhaseOutputBudgetsMatch": true,
+      "allImagesCapturedBytesAndEntirePreviousPrefixesVerified": true,
+      "pruneEvents": 0,
+      "earlier196608QuotaRetryRetainedSeparately": true
+    },
+    "helperFailureRetained": "Private PBR preservation helperv1 assumed generator on asset-instance and failedKeyError;v2 uses optional field and verifies all old entity fields. No case/source edit.",
+    "nextStage": "Same model formally clears Buddha overall material override to recover original authored gold appearance and designs additive editable eave/hip finishes; original meshes/transforms/cameras/lights retained. No final film or publish."
+  },
+  "originalBuddhaDiffuseCorrection": {
+    "sourceGlbSha256": "db486427f36441deb3b1fdc2e972df78a826405e70ea47f4ec8b6e12042a212c",
+    "sourceRole": "KHR_materials_pbrSpecularGlossiness.diffuseTexture0/image0/bufferView4",
+    "mime": "image/jpeg",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "bytes": 901963,
+    "sha256": "f7d844b78083ef8d016dbd330375cd0d5bff77dba149ca91f605989c09cd0984",
+    "license": "CC0-1.0",
+    "author": "Minneapolis Institute of Art",
+    "source": "https://sketchfab.com/3d-models/seated-buddha-date-unknown-c1c3d5a4878c42778eceded83673dea7",
+    "actualVisualObservation": "Original unmodified diffuse is aged gold leaf with face/base detailing and some red underpaint, not stone. Earlier model statement calling it stone was unsupported and is corrected. Constant overall gold override obscures authored source detail.",
+    "extractedRawBytesOnly": true,
+    "rootIngestedAppliedRenderedOrEditedImage": false
+  },
+  "goldEaveFinishPhase": {
+    "elapsedMs": 801462,
+    "actualDeepBlendToolCalls": 9,
+    "incomingArguments": {
+      "documents": 9,
+      "jsonValid": 9,
+      "allFullyAuditedAndSemanticExact": true
+    },
+    "savedRevisions": [
+      "r0048",
+      "r0049"
+    ],
+    "currentAtPhaseEnd": "r0049",
+    "formalRefusal": {
+      "code": "SCENE_SPEC_INVALID",
+      "reason": "Five proposed new eave meshes repeated faces24..31; no revision created.",
+      "recoveredBy": "bai corrected geometry through a second formal patch; root did not repair or apply arguments."
+    },
+    "newEditableParts": [
+      "eave-coping-1",
+      "eave-coping-2",
+      "eave-coping-3",
+      "eave-coping-4",
+      "eave-coping-5"
+    ],
+    "old123EntityChanges": [
+      {
+        "entityId": "buddha-statue",
+        "field": "materialId",
+        "before": "mat-gold-buddha",
+        "after": null
+      }
+    ],
+    "oldGeometryTransformsModifiersVisibilityUnchanged": true,
+    "oldCamerasLightsWorldTracksShotsProfilesAssetsUnchanged": true,
+    "nativeNewParts": {
+      "sourceSha256": "1bd9912e0e54bbf90e93beb854c4ce9adc371102eae897155b7e63ce8ebfb629",
+      "sourceUnchanged": true,
+      "parts": [
+        {
+          "entityId": "eave-coping-1",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 1.5514001846313485,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-2",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.98684724171956,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-3",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.6275981267293285,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-4",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.39928468068440937,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        },
+        {
+          "entityId": "eave-coping-5",
+          "vertices": 32,
+          "polygons": 32,
+          "triangles": 64,
+          "boundaryEdges": 0,
+          "nonManifoldEdges": 0,
+          "inconsistentTwoFaceEdgeWindings": 0,
+          "signedVolumeMeters3": 0.25397237141927265,
+          "zeroUvAreaNonzeroWorldTriangles": 0,
+          "hasUvs": true,
+          "materials": [
+            "db_mat__mat-wood-dark"
+          ]
+        }
+      ],
+      "scope": "Read-only evaluated new eave topology/UV/volume. Does not certify all inter-part clearances or full-film quality."
+    },
+    "actualPhotos": "One intermediateBuddha610 atr0048 plus four standardcamera/frame beauty960x540/48samples atr0049, all retained and independently viewed.",
+    "acceptedLimitedImprovement": "New five closed wooden eave coping parts cover the original solidify-side texture stretch; roof/wood tones revised. This is additive finish, not elimination of old zero-UV triangles.",
+    "artAccepted": false,
+    "remaining": "Buddha still white; sparse saplings/weak closing frame, no hip ridges, heavy/simple coping and hall roof texture-scale differences remain.",
+    "modelExposureDiagnosis": "Model attributed white statue mainly to exposure without isolating material. Root native node readback shows actual originaldiffuse connected and very highIOR; causality not yet established.",
+    "actualOriginalBuddhaShader": {
+      "sourceSha256": "af2892911c7b70d43fb9efb3a527c3437ff7269ab448533d91d19ff24e1942c7",
+      "sourceUnchanged": true,
+      "material": "Mia_012487_SeatedBuddha_64k_OBJ",
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Image_0",
+          "packed": true,
+          "colorSpace": "sRGB"
+        },
+        {
+          "node": "Image Texture.001",
+          "image": "Image_2",
+          "packed": true,
+          "colorSpace": "Non-Color"
+        },
+        {
+          "node": "Image Texture.002",
+          "image": "Image_3",
+          "packed": true,
+          "colorSpace": "Non-Color"
+        },
+        {
+          "node": "Image Texture.003",
+          "image": "Image_1",
+          "packed": true,
+          "colorSpace": "sRGB"
+        },
+        {
+          "node": "Image Texture.004",
+          "image": "Image_1.001",
+          "packed": true,
+          "colorSpace": "sRGB"
+        }
+      ],
+      "principled": [
+        {
+          "node": "Principled BSDF",
+          "inputs": {
+            "Base Color": {
+              "linked": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            "Metallic": {
+              "linked": false,
+              "value": 0.0
+            },
+            "Roughness": {
+              "linked": true,
+              "value": 0.5
+            },
+            "IOR": {
+              "linked": false,
+              "value": 1000.0
+            },
+            "Specular IOR Level": {
+              "linked": false,
+              "value": 0.5
+            }
+          }
+        }
+      ],
+      "diffuseLinkedToBaseColor": true,
+      "scope": "Actualr0048 native material, not a claim of unsupported legacyextension, missingdiffuse or all Blender/importer versions."
+    },
+    "newStage": "Formal originaldiffuse-image PBR overlay plus new editable procedural broadleaf vegetation; active, no acceptedfilm/publication."
+  },
+  "boundedToolResultFormatterScope": {
+    "spilledToolMessages": 4,
+    "fullBodyBytesRetained": 318411,
+    "scope": "SDK tool formatter can replace long result text with a bounded excerpt and readable original-file pointer at message creation, separately from later context pruning. Exact outbound history prefix checks attest all assembled messages/images are transmitted, not that every full raw/formatted tool body was inline. Original spill bodies retained private without SDK/profile edits.",
+    "reasoningPublished": false
+  },
+  "hiddenScatterPoseRecovery20261020": {
+    "observedRevision": "r0051",
+    "observedBug": "Hidden crown local location [-27,-4.4,10.2] but native matrix_world translation [0,0,0]; scattered leaves around origin. Read-only original unchanged.",
+    "modelPhase": {
+      "elapsedMs": 1691913,
+      "actualDeepBlendCalls": 20,
+      "savedRevisions": [
+        "r0050",
+        "r0051",
+        "r0052",
+        "r0053",
+        "r0054"
+      ],
+      "outcome": "Original gold diffuse successfully restored with explicit PBR material; bai diagnosed hidden-guide pose and authored world-coordinate guide workaround. Crowns remain visually coarse; art rejected.",
+      "incomingArgumentDocuments": 20,
+      "allValidFullyAuditedAndSemanticExact": true,
+      "privateFormatterSpillFilesRetained": 6,
+      "privateFormatterSpillBytesRetained": 504546
+    },
+    "goldMaterial": {
+      "source": "Raw byte-exact original CC0 GLB diffuse",
+      "ior": 1.5,
+      "metallic": 0.15,
+      "roughness": 0.45,
+      "imageBudgetBytes": 1073741824,
+      "budgetRaised": false
+    },
+    "fix": "Evaluate reference and ancestor transforms with temporary viewport visibility, snapshot world matrices, restore all visibility flags. Keep render visibility, geometry, authored poses and legacy behavior.",
+    "focusedRegression": {
+      "oldCodeFails": true,
+      "fixedCodePasses": true,
+      "nativeMutantsKilled": 3,
+      "scope": "Synthetic visible/hidden target and prototype parity, actual attachments vs independent authored poses, ancestor/local visibility, refusal, save/reopen; no user case mutation."
+    },
+    "fullAcceptance": {
+      "finishedAt": "2026-10-20T03:52:22.634089+00:00",
+      "sourceBaseCommit": "447f79ff5414449a94f624e0daf70ee0edb73346",
+      "passedSuites": 43,
+      "allPassed": true,
+      "unitContractFiles": "138/138",
+      "nativeInspectionChecks": "65/65",
+      "nativeShotRenderChecks": "20/20",
+      "validatedSourceUnchanged": true,
+      "validatedFiles": 910,
+      "sourceManifest": "source-before-full-v7.json",
+      "logSha256": "629bdfa749cf3a3fe071199cd885cb27565860728c4f03f6c7a7ac79076d66eb",
+      "scope": "Fresh complete run includes explicit shot rendering, actual camera provenance, safe resume, reused-part owner validation, manual render-border and multiview refusals, public external optional runtime conformance and native fixtures including hidden scatter authored world poses, visible/hidden seed parity, visibility restoration and save/reopen. Every source-manifest file remained byte-identical throughout the measured run; no model case/artifact/publication acceptance implied."
+    },
+    "newFrozenInstall": "pending",
+    "sameCaseBaiRetest": "pending",
+    "finalArtAccepted": false,
+    "finalFilmAccepted": false,
+    "published": false,
+    "finiteContinuationTransport": {
+      "requests": 40,
+      "allMaxThinkingDeclaredOutputBudgetsAndImagesPassed": true,
+      "entireAssembledPriorPrefixesExact": true,
+      "observedPrunes": 0,
+      "scope": "Finite d318 conversation only; one historical196608 output reservation explicitly separate, current256000. SDK formatter spills are not all inline; private originals retained. No gateway upstream attestation."
+    },
+    "currentRevision": "r0054",
+    "currentNativeSha256": "b182e1f152bb68960e65138101950697617f43c0c9c9157c70ec37803c0530aa",
+    "currentSpecSha256": "347908fb3b23829c45a70d405011f1fc1ea6edd2bbb3e941f82ecbe25f46713a"
+  },
+  "frozenF2RealCase20261020": {
+    "sourceCommit": "57aa8c1113005e1cf1613960c93c70ec0037be6b",
+    "artifactSha256": "e8696e5d6d12a54f8e0b165a22d538c6211848aa1d9f98999c03f16a0670a2a3",
+    "actualInstallation": "Formal dsh plugin add;7resolvedownpackagefiles/manifests byte-exact,100savedcontextfilescopiedexact,actualDarwinSharpdecode1280x720",
+    "ci": {
+      "runId": "39367084809",
+      "allFiveJobsSuccess": true,
+      "allFourEvidenceArchivesVerified": true,
+      "rootTree": "065044403234f2f5f7f081085ffe62c29dc0f189",
+      "actualCheckoutTreeMatches": true
+    },
+    "wholePhaseElapsedMs": 1465769,
+    "actualToolCalls": 14,
+    "scenePatches": 5,
+    "successfulNewRevisions": [
+      "r0055",
+      "r0056",
+      "r0057",
+      "r0058"
+    ],
+    "formalRefusals": {
+      "SCENE_PATCH_INVALID": 1
+    },
+    "malformedIncomingJsonArguments": 0,
+    "all14IncomingCanonicalArgumentsPreserved": true,
+    "mainRequests": 12,
+    "allMaxThinkingAnd256000AndProvidedImages": true,
+    "context": {
+      "firstCrossHomePrefixExactAfterOnlyObserverDirectoryAlias": true,
+      "oldMessages": 102,
+      "initialNewMessages": 105,
+      "initialWireImages": 24,
+      "rawByteExactCrossHome": false,
+      "laterPruneEvents": 41,
+      "originalToolEventsRetainedByteExact": 41,
+      "shadowedTokenCount": 297973,
+      "retainedOriginalEventBytes": 1397493,
+      "allNonTextAndReasoningDigestsRetainedAcrossPrune": true,
+      "fullContextClaimAccepted": false,
+      "nextStep": "Explicit new finite handoff with current case, reference and four current images; retain old conversation/source originals."
+    },
+    "privateFormatterSpillsRetained": {
+      "files": 15,
+      "bytes": 1313007
+    },
+    "actualNativeScatter": {
+      "r0056": {
+        "bakedAnchors": 3400,
+        "groups": 8,
+        "hiddenLocalTargets": 6,
+        "allInside": true
+      },
+      "r0058": {
+        "bakedAnchors": 3928,
+        "groups": 8,
+        "hiddenLocalTargets": 2,
+        "rotatedIrregularMeshTarget": true,
+        "independentMethod": "Closed oriented target solid-angle winding; actual stored anchors vs authored poses",
+        "allInside": true
+      },
+      "sourceUnchangedDuringReadOnlyAudits": true
+    },
+    "finalScene": {
+      "revision": "r0058",
+      "nativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+      "specSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+      "entities": 172,
+      "polygons": 3513387,
+      "vertices": 3931637,
+      "conservativeDecodedImageBytes": 1073741824,
+      "original128EntitySourceFieldsPreserved": true,
+      "oldCameraLightWorldTrackShotProfileAssetFieldsPreserved": true
+    },
+    "nativePreservationScope": {
+      "rawEqualOriginalEntities": 103,
+      "rawMeshDifferences": 25,
+      "coordinateCornerUvSetsEquivalentRounded1e5AndEqualBounds": 18,
+      "correctedHistoricalHiddenGeneratedLeafGroups": 7,
+      "allOriginalLocalPosesAndHideFlagsExact": true,
+      "allOldSourceNativeFilesUntouched": true,
+      "constraint": "Do not claim all regenerated native geometry byte-identical or universal hand-edit preservation."
+    },
+    "fixedFourViews": [
+      {
+        "cameraId": "camera-main",
+        "frame": 130,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 645684,
+        "pngSha256": "9f6e488cbf6e6a448bf4424aa6c51175fcf99ca8002cdfc0f49735c68403a5a7"
+      },
+      {
+        "cameraId": "camera-foliage",
+        "frame": 900,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 661455,
+        "pngSha256": "467cfad07a9cbd56d55823b85744b12a7d3d7de8ea398f0c780d1692a36a45d2"
+      },
+      {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 610818,
+        "pngSha256": "c1ec8d2a46f52fc836f581c5809c2cabebc0bfb80acb53f6f1c5e18a43475e70"
+      },
+      {
+        "cameraId": "camera-buddha",
+        "frame": 610,
+        "mode": "beauty",
+        "sourceSpecSha256": "0f9499af48b786d08ca05f3dd441b59c55f0cde6578313e8ac8b86ddf1e087c8",
+        "sourceNativeSha256": "919b730142bd6927ff28c20ba998f492781629c6d9652d23433df0848ed04d44",
+        "pngBytes": 529942,
+        "pngSha256": "4f6b760bd0c6fac57090ca4b94173afd27b432a46737bc5f28df91812374a99a"
+      }
+    ],
+    "artAccepted": false,
+    "artRejectionReasons": [
+      "Crowns still read as solid single ball-shaped masses; bare branch tips protrude beyond leaf masses.",
+      "Landscaping lacks natural canopy gaps and background/foreground depth.",
+      "Existing eave/roof architectural finish remains simple."
+    ],
+    "finalFilmStarted": false,
+    "published": false
+  },
+  "operatorSceneImageBudget20261020": {
+    "trigger": "Currentcase1GiB conservative allocation alreadyfull; rawCC0TreeSmall02 requires144MiB/instance and2062487triangles. Twoinstances estimate1312MiB and7638361totalpolygons; alloriginal11rawfilesunchanged.",
+    "setting": "Local provider maxSceneImageMiB",
+    "defaultMiB": 1024,
+    "allowedIntegerRangeMiB": [
+      16,
+      8192
+    ],
+    "scope": "Operator-only cumulative scene budget in managed batch/kept/render processes; payload/SceneSpec/inherited environment cannot raise it. Nondefault setting refuses an attached user Blender before contact. Individualimage/header/format/per-import limits unchanged; importallocation remains conservative perinstance.",
+    "focusedTests": {
+      "redOldImplementation": "19/21; explicitinclusiveoperatorbudget and invalidvalue refusal fail",
+      "greenAllocationContracts": "21/21",
+      "providerBootstrap": "42/42",
+      "configSurface": "22/22",
+      "existingImageHeaderAndRoleGates": "58/58",
+      "syntheticNativeInclusiveRefusalPackedReopen": true,
+      "fivePrivateMutantsAllKilled": true
+    },
+    "fullAcceptance": {
+      "suites": "43/43",
+      "unitContractFiles": "138/138",
+      "validatedSourceFiles": 911,
+      "sourceBytesUnchangedThroughoutRun": true,
+      "rawLogSha256": "da3a8c3e6d3f11e2f073e46ecc85a946bcb498c67667f406ec7add842c2b08a7",
+      "includesNewNativeImageBudgetAndPackedReopen": true,
+      "supersedesFailedFullV8WithoutErasingIt": true,
+      "proof": "full-acceptance-v9-proof.json"
+    },
+    "isolatedCaseConfigurationApplied": false,
+    "plannedCaseConfig": {
+      "maxSceneImageMiB": 1536,
+      "maxMeshPolygons": 8000000
+    },
+    "publicDefaultsUnchanged": true,
+    "sdkOrPersonalDeploymentChanged": false,
+    "freshBuildAndActualInstallRequired": true,
+    "fullV8Failure": {
+      "stoppedAt": "2026-10-20T05:22:30.882370+00:00",
+      "unitContractFiles": "135/138",
+      "failedFiles": [
+        "contract/frame-provenance.test.mjs",
+        "contract/security-controls.test.mjs",
+        "contract/readme-fresh-clone.test.mjs"
+      ],
+      "causes": [
+        "Borrowed frame-method receiver lacks newly introduced private environment method.",
+        "Security source check expects two inline environment objects; shared factory has none.",
+        "The import-free security failure changes README no-dependency snapshot28/138 to27/138; fix security check, not snapshot."
+      ],
+      "completedNativeEvidence": [
+        "M0probe",
+        "M1withnewimagebudgetregression",
+        "runtimeconformance33",
+        "nativeinspection65",
+        "handledcup65"
+      ],
+      "fullAccepted": false,
+      "sourceFilesVerified": 911,
+      "allSourceUnchangedUntilStop": true,
+      "controllerStoppedAfterActiveSyntheticSuiteFinished": true,
+      "caseTouched": false,
+      "logSha256": "9723a7b54c11258745f3eabc3f9b9712c376d33a60e88654b9d38c3e7a6bbe14",
+      "next": "Use module-local pure environment builder; retain exact shared whitelist/operator control across allthree managed spawns, thennewfullv9."
+    },
+    "couplingFix": "Module-local pure bootstrapEnvironment(config,jobId) avoids requiring a new private method on reused frame-method receivers. Static security check retains exact7-key whitelist, no spreads, all3managed paths and operator-derived limit. README import-free28/138 unchanged and restored.",
+    "targetedFailingFilesAfterFix": "47/47passed",
+    "postFixFivePrivateMutantsKilled": true,
+    "threeWhitelistSecurityMutantsKilled": true
+  },
+  "frozenF3TreeCase20261020": {
+    "sourceCommit": "cf7d8d406cd99dd9062c01a23379e03056429495",
+    "archiveSha256": "d25f44b1c967545477c2d5c6b6d201adce97652b1222f905fe147f1a7a7fd33a",
+    "localFullSuites": "43/43",
+    "contractsAndPostDocumentContracts": "138/138 each",
+    "ciRunId": "39380166729",
+    "fiveJobsPassed": true,
+    "fourArchivesServerShaSizeZipCrcAndActualSourceTreeVerified": true,
+    "actualInstalledSevenOwnSourceAndManifestCopiesExact": true,
+    "nativeSharpDecode": [
+      1280,
+      720,
+      3
+    ],
+    "phaseElapsedMs": 3996866,
+    "totalToolCalls": 37,
+    "deepBlendToolCalls": 23,
+    "sdkToolCalls": 14,
+    "successfulMainRevisions": [
+      "r0059",
+      "r0060"
+    ],
+    "calibrationProjectRevision": "cc0-tree-small-02-calib/r0002",
+    "semanticRefusals": {
+      "SCENE_PATCH_INVALID": 2,
+      "PATCH_TARGET_IN_USE": 1
+    },
+    "all37IncomingJsonDocumentsCompleteAndCanonicalSemanticsPreserved": true,
+    "mainApiRequests": 28,
+    "allMaxThinkingAnd256000": true,
+    "noPrunesInThisExplicitFiniteSession": true,
+    "allProvidedImagesAndAlreadySentMessagePrefixesPreserved": true,
+    "longToolBodies": "5 byte-exact retained files,3937456 bytes; summaries plus readable full files, not all bodies inline",
+    "explicitCaseResources": {
+      "maxMeshPolygons": 8000000,
+      "maxSceneImageMiB": 1536
+    },
+    "actualOwnedBlenderFrozenBootstrapAnd1536EnvironmentCaptured": true,
+    "actualSavedGeometry": {
+      "vertices": 7486193,
+      "polygons": 7638361
+    },
+    "imageAllocationPolicyEstimateMiB": 1312,
+    "imageEstimateIsNotActualProcessRss": true,
+    "allOriginal128EntitySourceFieldsUnchangedFromR58": true,
+    "all172OldEntitiesKept": true,
+    "only30NewBroadleafVisibilityFlagsChanged": true,
+    "oldAssetsAndOtherTopLevelFieldsExact": true,
+    "standardBeautyViews": [
+      "main130",
+      "eave390",
+      "buddha610",
+      "foliage900"
+    ],
+    "sameFourCameraAndRenderFactsExactToR58": true,
+    "extraPreviews": "2 ordinary main/eave plus1 yard760, not counted as final15",
+    "reviewer": "Codex assistant",
+    "naturalTreeComponentImproved": true,
+    "overallArtAccepted": false,
+    "remainingArtIssues": [
+      "coarse eave/roof/bracket/bell details",
+      "sparse courtyard/foreground/background depth and bare ground horizon"
+    ],
+    "originalRawAssets": "11 original CC0 Poly Haven TreeSmall02 files retained and ingested through actual formal tools; no maintainer geometry prep",
+    "sourceSpecSha256": "29a9276abdfc9a5eaa5f87be77990cfa610d5c2dbff28da93bd3a5c559333219",
+    "nativeSha256": "a7d3b223a95176b3943213855dff0c59ed36047bb4a030dab779230a9ef6d74c",
+    "full900NativeAndFilmAccepted": false,
+    "published": false,
+    "scope": "Explicit finite guided asset-assisted continuation with higher resource conditions, not arbitrary one-shot/default-capacity/model-upgrade causal proof."
+  },
+  "cameraTargetRecovery20261020": {
+    "trigger": "F3 actual two null/ambiguous camera parameter refusals plus one target-entity deletion order refusal; all actual incoming JSON valid and preserved, no pruning.",
+    "sourceFinding": "Model camera.update signature omitted sensorWidth,clearTarget,role and omitted mutually-exclusive aim/null-read/automatic replacement guidance.",
+    "change": "Derive complete camera field signature from existing CAMERA_UPDATE_FIELDS; one shared model/error recovery hint; append it to null-target diagnostics and ambiguous-target refusal. No invalid input coercion or schema/write/native/render/UI/SDK change.",
+    "oldProbe": "1/8; new behavior assertions red in existing scene-patch/tool-output files",
+    "focusedAfterFix": {
+      "scenePatch": "327/327",
+      "toolOutput": "225/225",
+      "independentGuidanceProbe": "8/8"
+    },
+    "fourPrivateFaultsKilled": true,
+    "oldSourceCouplingFailure": "First focused run327check file was326/327 because operation-name static reader only recognized single-quoted rows; now recognizes derived template rows and still compares all31 names exactly. Raw retained.",
+    "requiresFreshPaidVisualAndUi": true,
+    "freshFullAndCiBuildInstall": "pending",
+    "caseNext": "Same saved case: architecture/eave finish and credible foreground/background planting depth, preserve original source and hand details; final15/current900/formal900film gates remain."
+  },
+  "frozenF4CurrentCase20261020": {
+    "sourceCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896",
+    "candidateVersion": "0.16.0",
+    "candidateArchiveSha256": "271129c9137cbf4b6cb059e31c0a1d87cfef3a58acae18f48edd9232b2143466",
+    "installation": "Unmodified DSH formal plugin add in isolated F4; all seven actual own payloads/manifests and image decoder verified, personal DSH and SDK unchanged.",
+    "softwareAcceptance": {
+      "canonicalSuitesPassed": 43,
+      "unitContractFilesPassed": 138,
+      "sourceFilesByteUnchangedDuringRun": 911,
+      "logSha256": "63dc8b36d456bae6cfd4a287d90c6d03e8ba67ff57ce8819658ff5963f315e8f",
+      "outerControllerExit": 1,
+      "outerControllerFailure": "After canonical terminal success, zsh rejected assignment to readonly status variable; no fabricated exit-zero sidecar. Original failure retained. Unique canonical success branch and all 43 suite markers independently verified.",
+      "freshPaidVisual": "14/14",
+      "freshPaidUi": "10/10; last post-tool reply aborted by canonical test shutdown, not a complete user-task reply",
+      "ciRun": "https://github.com/pearjelly/deep-blend/actions/runs/39395283532",
+      "ciJobsPassed": 5,
+      "ciArchivesReadBack": 4
+    },
+    "caseRevision": "r0073",
+    "caseSourceSpecSha256": "7878c7764f56530c55e3e7c811f848b55793777b225f88b5e642caa442398815",
+    "caseNativeSha256": "08555e16d2a633e899ba8e4c0b53a6460e138660e3d835a5a2ff1a2d72d5e3ec",
+    "currentSavedEntities": 236,
+    "finiteRecovery": {
+      "elapsedMs": 2798094,
+      "toolCalls": 8,
+      "semanticRefusals": 0,
+      "normalCompletion": true
+    },
+    "priorFernPhase": {
+      "elapsedMs": 1924684,
+      "toolCalls": 34,
+      "semanticRefusals": {
+        "SCENE_PATCH_INVALID": 1
+      },
+      "terminal": "TRANSPORT; all source and raw failure retained, recovered in same session"
+    },
+    "priorArchitectureLandscape": "Green cone/blob prototypes retained in source/history but rejected and hidden through formal plugin; old architectural ornaments retained and five visible wind-bell groups explicitly replace hidden groups.",
+    "wireScope": {
+      "sameFiniteSessionObservedRequests": 45,
+      "maxAndThinkingEnabled": true,
+      "declaredOutputTokens": 256000,
+      "providedAndRepresentedToolImagesVerified": true,
+      "allPreviousRequestPrefixesExact": true,
+      "observedPrunes": 0,
+      "scope": "Includes failed requests and interrupted boundary retry, not 45 successful responses or gateway upstream attestation. Large tool replies may be summary plus retained full-text file, not all inline."
+    },
+    "boundaryReplay": {
+      "toolCalls": 1,
+      "elapsedMs": 1090007,
+      "observedConsecutiveFetchErrors": 2,
+      "terminal": "Maintainer superseded while third retry pending, not normal model success or goal pause. Frozen source unchanged.",
+      "nextAssessment": "Explicit new finite frozen-r0073 task with original reference and five SHA-pinned current photos; all old full chats/raw requests remain separately retained, not claimed inline."
+    },
+    "nativeAudit": {
+      "summary": {
+        "sampledFrames": 900,
+        "uniqueFrames": 900,
+        "surfaceNearFrames": [],
+        "surfaceCrossingChords": [],
+        "subjectEnvelopeFailures": [],
+        "minimumGeometricVisibilityByCamera": {
+          "camera-yard": 0.9469026548672567,
+          "camera-foliage": 0.9727272727272728,
+          "camera-buddha": 1.0,
+          "camera-main": 0.9622641509433962,
+          "camera-eave": 1.0
+        },
+        "maximumNearfieldNonSubjectCoverageByCamera": {
+          "camera-yard": 0.0,
+          "camera-foliage": 0.0,
+          "camera-buddha": 0.12109375,
+          "camera-main": 0.0,
+          "camera-eave": 0.0
+        }
+      },
+      "triangleCount": 7701763,
+      "meshCount": 166,
+      "supportBounds": [
+        {
+          "entityId": "buddha-statue",
+          "supportEntityId": "hall-altar",
+          "worldBounds": [
+            {
+              "min": [
+                -24.704442977905273,
+                5.106932640075684,
+                1.2999271154403687
+              ],
+              "max": [
+                -23.695119857788086,
+                6.894500732421875,
+                3.3258793354034424
+              ]
+            },
+            {
+              "min": [
+                -24.799999237060547,
+                4.199999809265137,
+                0.10000000149011612
+              ],
+              "max": [
+                -23.599998474121094,
+                7.800000190734863,
+                1.2999999523162842
+              ]
+            }
+          ],
+          "verticalBoundsSeparationMm": -0.07283687591552734,
+          "subjectBoundsInsideSupportXY": true,
+          "scope": "Static world evaluated mesh bounds, not a contact/clearance certificate."
+        }
+      ],
+      "sourceUnchanged": true,
+      "scope": "900 integer frames and within-shot consecutive position chords; conservative explicit subject envelopes and bounded geometric rays, not rendered pixels, subframe motion, alpha-aware occlusion or precision contact certification."
+    },
+    "originalFernNativeVerification": {
+      "instances": 3,
+      "meshesPerInstance": 4,
+      "trianglesPerInstance": 6232,
+      "allOriginalPackedImageBytesAndNondegenerateUvsVerified": true
+    },
+    "groundNativeVerification": {
+      "beds": 5,
+      "sharedMaterialCount": 1,
+      "originalPackedMaps": 3,
+      "correctColorspacesAndNodeReachability": true,
+      "nondegenerateUvs": true,
+      "worldXYMetersPerUvUnit": 2,
+      "tolerance": 0.002
+    },
+    "imagePolicy": {
+      "bindings": 13,
+      "importedImages": 79,
+      "decodedBytes": 1577058304,
+      "limitBytes": 1610612736
+    },
+    "imagePolicyScope": "Explicit isolated operator1536MiB and 8000000 mesh ceiling; 1504MiB is decoded-header policy estimate, not process RSS. No cap increase in this phase.",
+    "preservation": {
+      "originalFilesChecked": 350,
+      "originalFilesChanged": 0,
+      "oldOctober16NativeAndVideoHashUnchanged": true,
+      "primaryStatusUnchanged": true,
+      "r0060EntitiesRetained": 174,
+      "oldMaterialsAssetsCamerasLightsWorldShotsTracksProfilesUnchanged": true,
+      "allowedOldEntityChanges": [
+        "cc0-tree-court-w transform",
+        "pagoda-ornament-1..5 visible=false with explicit visible replacement mapping"
+      ]
+    },
+    "fiveMidpointImages": [
+      {
+        "cameraId": "camera-main",
+        "frame": 130,
+        "sha256": "3feb816f59310a0b18bdb7ce2230254279c189973bf2d0a191257e7ee2ed31dd"
+      },
+      {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "sha256": "5d082cb2956e3ced0421e53c2af24b0602d161682166adbe86c35f30a4fff6a1"
+      },
+      {
+        "cameraId": "camera-yard",
+        "frame": 765,
+        "sha256": "92e2fe4e6f56a9adff8c6f2abd13870b6316216e725fbdbac3852564ac3b0e88"
+      },
+      {
+        "cameraId": "camera-foliage",
+        "frame": 900,
+        "sha256": "c87bf65ebaabe2537b141224b0598286eebbfda9fe47baa8834805549a9433f0"
+      },
+      {
+        "cameraId": "camera-buddha",
+        "frame": 610,
+        "sha256": "2f43e4ed7a289d3ab3415ee46bb9932cfde026269b4228ae457cf007ca0525b2"
+      }
+    ],
+    "visualReview": "All five actual original-size midpoint PNGs independently viewed. Wind-bell/eave detail and original Buddha surface detail improve against r0046 under byte-identical camera/render controls and unchanged lighting/world. Landscape remains sparser and architectural ornament more regular than reference. Proceed to boundary checks; not final-film or reference parity acceptance.",
+    "causality": "Maintainer-guided, CC0-asset-assisted continuation with repeated rework; not arbitrary natural-language one-shot success, isolated model-upgrade effect or external adoption.",
+    "currentGates": {
+      "final15": "not complete; only five midpoint stills present, no new boundary image produced in either stopped assessment",
+      "formal900FrameFilm": "not started",
+      "fullFilmAccepted": false,
+      "editableNewDelivery": "pending",
+      "publicRelease": "not merged or published; public remains0.15.0"
+    },
+    "disk": "Approximately3.6GiB free; user asked to free at least5GiB for full render/export/release headroom; no answer yet. Only disposable finished build staging copies removed after archive/symlink checks; original sources/native/failures/archives retained.",
+    "boundaryFiniteAssessment": {
+      "session": "explicit-new-finite-r0073",
+      "providedInputs": "Original reference plus five pinned current r0073 photos; prior full chats retained separately, not inlined.",
+      "observedRequests": 5,
+      "maxThinkingAnd256000": true,
+      "providedAndRepresentedImagesAndPreviousPrefixesVerified": true,
+      "observedPrunes": 0,
+      "actualToolCalls": {
+        "skill": 1
+      },
+      "incomingJsonAndSseBoundaryVerified": true,
+      "actualBlenderCalls": 0,
+      "transportFailures": [
+        {
+          "elapsedMs": 340405,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        },
+        {
+          "elapsedMs": 342220,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        },
+        {
+          "elapsedMs": 349610,
+          "bodyBytes": 855531,
+          "bodySha256": "4fbfd02c6e81fc58ecdc5394d4d32041d3594bb29df25b89872d0ca774259284",
+          "causeCode": "UND_ERR_SOCKET"
+        }
+      ],
+      "clientResponseWaitMs": 1200000,
+      "terminal": "Maintainer stopped fourth pending repeat after three real socket disconnects; not normal model completion or final render cancellation. Host/workers gone, frozenr0073 unchanged.",
+      "currentServiceStatus": "Needs operator confirmation of long-request service/possible gateway limit; quota works and first request returned200, not an AUTH/QUOTA error."
+    },
+    "allF4CaseMetrics": {
+      "phasesInitiated": 6,
+      "allSdkCallsSoFar": 72,
+      "formalDeepBlendCallsSoFar": 60,
+      "terminalPhaseElapsedMsIncludingFailedAndSuperseded": 12385524,
+      "allPhasesNormalCompletion": false,
+      "actualRefusalCodes": {
+        "BLENDER_SCRIPT_ERROR": 1,
+        "SCENE_PATCH_INVALID": 2,
+        "SCENE_SPEC_INVALID": 1
+      }
+    },
+    "allF4CaseMetricsScope": "All six maintainer-initiated F4 task phases, including failed/prototype rework/calibration/SDK reads and superseded phases. Recorded terminal run time 12385524ms is not complete-case completion latency, user one-shot time or all historical F1/F2/F3 work."
+  },
+  "frozenF4RenderProgress20261021": {
+    "at": "2026-10-21T01:35:49.307891+00:00",
+    "candidateVersion": "0.16.0",
+    "runtimeSourceCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896",
+    "documentationSourceCommitBeforeThisUpdate": "6e7c5360ca0c70752019c10035413bb889f46555",
+    "documentationOnlyCi": {
+      "runId": "39428554501",
+      "jobsPassed": 5,
+      "fourServerShaSizeCrcAndExactCheckoutTreeArchivesVerified": true
+    },
+    "caseRevision": "r0073",
+    "sourceSpecSha256": "7878c7764f56530c55e3e7c811f848b55793777b225f88b5e642caa442398815",
+    "nativeSha256": "08555e16d2a633e899ba8e4c0b53a6460e138660e3d835a5a2ff1a2d72d5e3ec",
+    "boundaryRecovery": {
+      "elapsedMs": 2013037,
+      "normalCompletion": true,
+      "sdkCalls": 19,
+      "formalCalls": 11,
+      "actualNewPreviewRenders": 10,
+      "semanticRefusals": 0,
+      "transportErrors": 0,
+      "sceneChanges": 0
+    },
+    "sameRevision15StillGate": {
+      "passed": true,
+      "conditions": [
+        960,
+        540,
+        48
+      ],
+      "allPngBytesAndSourcePinsVerified": true,
+      "independentFullSizeReview": true,
+      "views": [
+        {
+          "cameraId": "camera-main",
+          "frame": 130,
+          "sha256": "3feb816f59310a0b18bdb7ce2230254279c189973bf2d0a191257e7ee2ed31dd"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 390,
+          "sha256": "5d082cb2956e3ced0421e53c2af24b0602d161682166adbe86c35f30a4fff6a1"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 765,
+          "sha256": "92e2fe4e6f56a9adff8c6f2abd13870b6316216e725fbdbac3852564ac3b0e88"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 900,
+          "sha256": "c87bf65ebaabe2537b141224b0598286eebbfda9fe47baa8834805549a9433f0"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 610,
+          "sha256": "2f43e4ed7a289d3ab3415ee46bb9932cfde026269b4228ae457cf007ca0525b2"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 1,
+          "sha256": "d7f5fc817c6ce373776911b2623a9cb21c51320e9d42d0b08dea2bfaf4eb9099"
+        },
+        {
+          "cameraId": "camera-main",
+          "frame": 260,
+          "sha256": "f2c2abb799c0ce5fd1e16916a6ccdf868fa9cf34cf614fdcdc2604d830b2ab80"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 261,
+          "sha256": "dca8193bc83ce3f71dfa10f1b338964b8e042ba850ce73231c92ea818d48d6ce"
+        },
+        {
+          "cameraId": "camera-eave",
+          "frame": 520,
+          "sha256": "ea02b62b08746cb3ec8e146d6db2b9edc631b948e956a215dcb890925648c0fd"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 521,
+          "sha256": "0e7cd600cf42f4f151a5190e1892d4e4c3f0dccd27de7ff5456d3adcc81c6d06"
+        },
+        {
+          "cameraId": "camera-buddha",
+          "frame": 700,
+          "sha256": "93e26e16dfb07dc3380b0dd245cb6d8735c32f867f15f96f21e9221ce6ce80aa"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 701,
+          "sha256": "b412b334a0af7f5c7501247a9b8ba282439e09f48d0295d58a8a8c93b0cb9e45"
+        },
+        {
+          "cameraId": "camera-yard",
+          "frame": 830,
+          "sha256": "5d75550d5889dbdd400f15addd06f2f97424a51bd9397473387fbd9f76298d0a"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 831,
+          "sha256": "4962d6254ad17a5eb66f694c8bd783827dc1c31708e5725a091d2210da3dd147"
+        },
+        {
+          "cameraId": "camera-foliage",
+          "frame": 865,
+          "sha256": "54886986af2bf4ee8adb817900377072ba850cb6fd1fdd4251c7b4cdae6b7edf"
+        }
+      ],
+      "reviewSha256": "25c8e9cf1b3042c00e77b941544e13f3da805d6ed3d83f0214d81625f7e00094",
+      "referenceGapsRetained": true
+    },
+    "finiteContextAudit": {
+      "phases": 3,
+      "requestsIncludingPreviousFailedAttempts": 27,
+      "allMaxThinking256000": true,
+      "allProvidedAndRepresentedImagesByteVerified": true,
+      "entirePreviousRequestPrefixExact": true,
+      "observedPrunes": 0,
+      "scope": "Explicit finite same-session continuation; earlier long full chats remain separate, not all inline.27 outbound checks include previous failures, not27 successful responses."
+    },
+    "formalRenderStart": {
+      "jobId": "render-0001",
+      "modelTurnCompleted": true,
+      "modelTurnElapsedMs": 77099,
+      "sdkCalls": 9,
+      "formalCalls": 4,
+      "semanticRefusals": 0,
+      "incomingNineJsonAndSseCanonicalSemanticsVerified": true,
+      "profileName": "final",
+      "renderConfig": {
+        "resolution": [
+          1280,
+          720
+        ],
+        "samples": 128,
+        "engine": "cycles",
+        "viewTransform": "AgX",
+        "fps": 24
+      },
+      "cameraSelection": {
+        "schemaVersion": "deepblend.shot-camera-selection/v1",
+        "mode": "shots",
+        "shots": [
+          {
+            "id": "shot-01",
+            "cameraId": "camera-main",
+            "frameRange": [
+              1,
+              260
+            ]
+          },
+          {
+            "id": "shot-02",
+            "cameraId": "camera-eave",
+            "frameRange": [
+              261,
+              520
+            ]
+          },
+          {
+            "id": "shot-03",
+            "cameraId": "camera-buddha",
+            "frameRange": [
+              521,
+              700
+            ]
+          },
+          {
+            "id": "shot-04",
+            "cameraId": "camera-yard",
+            "frameRange": [
+              701,
+              830
+            ]
+          },
+          {
+            "id": "shot-05",
+            "cameraId": "camera-foliage",
+            "frameRange": [
+              831,
+              900
+            ]
+          }
+        ]
+      },
+      "frameRange": [
+        1,
+        900
+      ],
+      "frameCount": 900,
+      "snapshotStatus": "running",
+      "completedFramesAtSnapshot": 12,
+      "meanMsPerFrameAtSnapshot": 21786,
+      "firstActual720p128sppFrameIndependentlyViewed": true,
+      "firstFrameSha256": "612403ad8af029e83b98895d94e0903ac3cd50dde27ddcb87a8b96d0bac8fda2",
+      "readOnlySupervisorKeepsFormalHostAlive": true
+    },
+    "preservation": {
+      "r0060All174EntitiesRetained": true,
+      "sourceNativePinsUnchanged": true,
+      "originalOctober16NativeAndVideoShaUnchanged": true,
+      "personalDshOrSdkChanged": false,
+      "automationRemainsPaused": true
+    },
+    "fullFilmAccepted": false,
+    "editableNewDeliveryComplete": false,
+    "mergedOrPublished": false,
+    "scope": "Maintainer-guided CC0-assisted task continuation and independent QA. No arbitrary one-shot success, isolated model-upgrade causality, reference parity or external adoption proof."
+  },
+  "frozenF4FullFilmReview20261021": {
+    "revision": "r0073",
+    "jobId": "render-0001",
+    "renderComplete": true,
+    "frames": 900,
+    "seconds": 37.5,
+    "resolution": [
+      1280,
+      720
+    ],
+    "samples": 128,
+    "fps": 24,
+    "jobElapsedMs": 34058132,
+    "videoBytes": 10610229,
+    "videoSha256": "6255a1fa6038ee06ec85beca5dbbcd49b3adc750b8f6fef1b7b2f6b90a8d1c47",
+    "all900PngCrcPixelStreamsAndFrameProvenance": true,
+    "completeMp4Decode": true,
+    "all900DecodedVsOriginalPngMeanRgb8bitMae": 1.3772944802115485,
+    "maxFrameMae": 1.7690990306712964,
+    "all900DisplayPtsAt24Fps": true,
+    "all30ConsecutiveContactSheetsReviewed": true,
+    "fullSizeFramesReviewed": [
+      1,
+      130,
+      259,
+      260,
+      261,
+      262,
+      390,
+      519,
+      520,
+      521,
+      522,
+      610,
+      699,
+      700,
+      701,
+      702,
+      765,
+      771,
+      772,
+      829,
+      830,
+      831,
+      832,
+      865,
+      899,
+      900
+    ],
+    "visualResult": "FAIL_FINISHING",
+    "issue": "Black rectangular strips at pond front; water Y[-35,-17] overlaps rim front[-35,-34.4]/back[-17.6,-17], Z overlap[0,.12], outer end planes shared. Formal repair to inner water span pending.",
+    "cameraScope": "No observed primary subject crop/blockage or within-shot surface entry; intended eave closeup and four hard cuts. No literal realtime playback claimed.",
+    "filmPreserved": true,
+    "formalRepairPhase": "r74-pond-repair-1021-v1",
+    "releaseAllowed": false
+  },
+  "frozenF4PondBridgeRepair20261021": {
+    "fromRevision": "r0073",
+    "waterRevision": "r0074",
+    "currentRevision": "r0075",
+    "onlyChangesFromR73": [
+      {
+        "entity": "pond-water",
+        "field": "transform.scale[1]",
+        "before": 18,
+        "after": 16.8
+      },
+      {
+        "entity": "bridge-deck",
+        "field": "transform.scale[1]",
+        "before": 18,
+        "after": 18.1
+      }
+    ],
+    "allOtherSceneSpecFieldsExact": true,
+    "r75SceneSpecSha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7",
+    "r75NativeSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "repairMechanism": "WaterfitsinnerpondY[-34.4,-17.6]; bridgeendsseat5cmbeyondouterrimYplanes[-35.05,-16.95], removingformerlysharedouterendplanes. Intentionalbridge-to-bankassemblyoverlapremains, notuniversalintersectioncertification.",
+    "matchedActualRepairViews": [
+      [
+        "camera-yard",
+        772
+      ],
+      [
+        "camera-main",
+        130
+      ],
+      [
+        "camera-foliage",
+        900
+      ]
+    ],
+    "actualBeforeAfterCameraFactsAndRenderConfigIdentical": true,
+    "repairBeautyConditions": [
+      960,
+      540,
+      48
+    ],
+    "allThreeViewedFullSize": true,
+    "blackStripsRemoved": true,
+    "modelExtraDetailView": {
+      "camera": "camera-yard",
+      "frame": 772,
+      "conditions": [
+        1920,
+        1080,
+        48
+      ],
+      "viewedOriginalSize": true,
+      "passed": true,
+      "notSamePixelConditionsAs960Comparison": true
+    },
+    "currentNativeAudit": {
+      "sampledUniqueFrames": 900,
+      "surfaceNearFrames": 0,
+      "surfaceCrossingChords": 0,
+      "subjectEnvelopeFailures": 0,
+      "nativeCameraCurveLensScaleAndAll900PositionsExactToR73": true,
+      "cameras": 5,
+      "curves": 8,
+      "keys": 16,
+      "interpolation": "defaultBEZIER/AUTO_CLAMPED, noexplicitlinearrequest",
+      "visibleMeshes": 166,
+      "triangles": 7701763,
+      "fileImages": 42,
+      "allFileImagesPacked": true,
+      "buddhaBoundsSeparationMm": -0.07283687591552734,
+      "notContactOrShaderPixelCertificate": true
+    },
+    "preservation": {
+      "original350FilesUnchanged": true,
+      "october16DeliveredNativeAndMovieUnchanged": true,
+      "primaryHead": "c6642ff717809414013fd61658125d4d9d905f47",
+      "primaryStatusEntries": 15,
+      "primaryStatusSha256": "dfd9c4c0db781c2e592f162f0a40acd3ae8861d8d0edfe87292a51cabfc04be2",
+      "failedR73MovieAndManifestsSeparateByteExactCopies": true,
+      "oldR73All900PngAndNativeRetained": true,
+      "agentModifiedPersonalDshOrSdk": false
+    },
+    "f4TaskMetrics": {
+      "phasesInitiated": 13,
+      "allSdkCallsSoFar": 132,
+      "formalDeepBlendCallsSoFar": 103,
+      "terminalPhaseElapsedMsIncludingFailedAndSuperseded": 25932755,
+      "allPhasesNormalCompletion": false,
+      "actualRefusalCodes": {
+        "BLENDER_SCRIPT_ERROR": 1,
+        "SCENE_PATCH_INVALID": 2,
+        "SCENE_SPEC_INVALID": 1
+      }
+    },
+    "metricsScope": "13explicitmaintainertaskphasesonly,includescalibration/failure/rework/stops. Terminalphaseelapsed25,932,755msexcludesfullr73/r75renderruntimesandisnotwholecase/useroneshotlatency; allphasesnotnormal.",
+    "r74Phase": {
+      "sdkTools": 13,
+      "formalTools": 12,
+      "elapsedMs": 2188214,
+      "ended": "TRANSPORTaftercommitand3previews",
+      "normalCompleted": false
+    },
+    "r75FiniteRepairPhase": {
+      "sdkTools": 13,
+      "formalTools": 11,
+      "elapsedMs": 6722855,
+      "modelExtraPreview": true,
+      "semanticRefusals": 0,
+      "ended": "qualifiedstopafter3SocketErrorsandzeroawaitedtoolresults",
+      "normalCompleted": false
+    },
+    "sameFiniteRepairAndFailedRenderStartContext": {
+      "mainRequests": 23,
+      "allMaxThinking256000": true,
+      "imagesAndPreviousMessagePrefixesVerified": true,
+      "prunes": 0,
+      "notAllOldGlobalHistoryInline": true
+    },
+    "latestTechnicalRenderStart": {
+      "scope": "Explicitfrozenr75technicalhandoff,noaddeduserimagesorartdecisions; priorimage/historyrecordsretainedseparately.",
+      "sdkTools": 6,
+      "formalTools": 5,
+      "elapsedMs": 875256,
+      "normalCompleted": true,
+      "formalSceneValidateOk": true,
+      "semanticRefusals": 0,
+      "mainRequests": 5,
+      "allMainMaxThinking256000": true,
+      "automaticTitleRequests": 1,
+      "automaticTitleEffort": "low",
+      "automaticTitleMaxTokens": 4096,
+      "titleIdentifiedFromExplicitSdkEventAndWireTimestamp": true,
+      "allSixHttpResponses200": true,
+      "fetchErrors": 0,
+      "all6IncomingArgumentDocumentsSemanticallyPreserved": true,
+      "prunes": 0,
+      "longToolReceiptFullTextRetainedBytes": 238663
+    },
+    "fullFilmAccepted": false,
+    "noReferenceParityModelUpgradeCausalityArbitraryOneShotOrAdoptionClaim": true
+  },
+  "frozenF4R75RenderProgress20261021": {
+    "jobId": "render-0002",
+    "revision": "r0075",
+    "statusAtCapture": "running",
+    "frameRange": [
+      1,
+      900
+    ],
+    "expectedFrames": 900,
+    "renderConfig": {
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 128,
+      "engine": "cycles",
+      "viewTransform": "AgX",
+      "fps": 24
+    },
+    "cameraSelectionMode": "shots",
+    "shots": [
+      [
+        "camera-main",
+        1,
+        260
+      ],
+      [
+        "camera-eave",
+        261,
+        520
+      ],
+      [
+        "camera-buddha",
+        521,
+        700
+      ],
+      [
+        "camera-yard",
+        701,
+        830
+      ],
+      [
+        "camera-foliage",
+        831,
+        900
+      ]
+    ],
+    "startedAt": 1792593159835,
+    "managedHostKeptByReadOnlySupervisor": true,
+    "modelTurnNormalCompleted": true,
+    "nativeCheckpointSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "firstActualFinal1280x720FrameViewed": 1,
+    "firstFrameArtPassIsNotWholeFilmAcceptance": true,
+    "readOnlyByteContactAndPixelWatchersPrepared": true,
+    "r75NativeAssetsSnapshotFilesStaged": 56,
+    "stagedSnapshotNotFinalDelivery": true,
+    "notMergedReleasedOrCommunitySubmitted": true
+  },
+  "frozenF4R75FinalAcceptance20261022": {
+    "revision": "r0075",
+    "jobId": "render-0002",
+    "finishedAtUtc": "2026-10-22T00:01:20.855Z",
+    "jobElapsedMs": 34121020,
+    "encodeDurationMs": 4714,
+    "video": {
+      "frames": 900,
+      "durationSeconds": 37.5,
+      "fps": 24,
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 128,
+      "bytes": 10600045,
+      "sha256": "1ac9c97c4dba6765bc03d79a5857921dafa6764ce42b8eda762a61c2ea4f6717"
+    },
+    "source": {
+      "sceneSpecSha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7",
+      "nativeSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+      "runtimeCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896"
+    },
+    "all900PngCrcDeflateSourceAndCameraBindings": true,
+    "all900Mp4FramesDecodedAndMatchedToPng": true,
+    "all900DisplayTimestamps24fps": true,
+    "meanFrameRgb8BitError": 1.3753153609664353,
+    "maximumFrameRgb8BitError": 1.7638154658564815,
+    "perFrameMaeLimit": 6,
+    "art": {
+      "consecutiveContactSheetsActuallyViewedIndividually": 30,
+      "framesRepresented": 900,
+      "contactFrameResolution": [
+        320,
+        180
+      ],
+      "actualFullsizeCriticalFrames": 26,
+      "all15SavedShotLandmarksViewedFullsize": true,
+      "allFourCutBoundaryPairsViewedFullsize": true,
+      "maximumWithinShotThumbnailDeltaPair": [
+        771,
+        772
+      ],
+      "maximumWithinShotThumbnailDelta": 2.120445601851852,
+      "pairActuallyViewedFullsize": true,
+      "actualOldAndNewFrame772ComparedSame720p128Conditions": true,
+      "formerRimAndBridgeBandsAbsent": true,
+      "scope": "All900consecutiveframesrepresentedandviewedon30contactsheets,26fullsizecriticalPNGimages;completeMP4pixel/cadence/sourcebinding. Notliteralreal-timeplaybackorfullsizeinspectionofeverypixel,arbitrarysubframecollision,precisioncontact,referenceparityorupgrademodelsinglecausation."
+    },
+    "editableHandover": {
+      "nativeIndependentlyOpenedFromStaging": true,
+      "all42FileImagesPackedAndReadable": true,
+      "gltfBundles": 4,
+      "localGltfUrisResolve": 28,
+      "filesIndependentlyChecksumVerified": 1058,
+      "logicalBytes": 2190998662,
+      "sha256SumsSha256": "ba70246f80bae06bd4f43dd9f4f3ea6cb3a647256d594f114136e4a2cce56ebd",
+      "atomicRenameWithoutOverwritingOldDelivery": true,
+      "nativeDefaultPreview": [
+        640,
+        360,
+        48
+      ],
+      "nativeCameraAutoCutMarkers": false,
+      "cameraCurves": 8,
+      "keyframes": 16,
+      "interpolation": "defaultBEZIER",
+      "full75RevisionHistoryInSnapshot": false,
+      "rawHistoricalProjectStillRetained": true,
+      "rawApiProfilesKeysReasoningCopied": false
+    },
+    "preservation": {
+      "all350OriginalHistoricalFilesUnchanged": true,
+      "oldOctober16NativeAndFilmUnchanged": true,
+      "failedR73NativeAndFilmRetained": true,
+      "primaryCheckoutWritten": false,
+      "primaryHead": "c6642ff717809414013fd61658125d4d9d905f47",
+      "primaryNoTrackedDiff": true,
+      "currentUntrackedEntries": 15,
+      "exactPriorStatusHashMatch": false,
+      "scope": "Current primary user state retained without staging/reset/writes. Prior status-hash mismatch recorded; do not claim independent byte comparison of all untracked user files."
+    },
+    "proofs": {
+      "bytes": "r75-complete-film-bytes-1021-v1.json",
+      "pixels": "r75-complete-film-pixels-1021-v1.json",
+      "art": "r75-full-film-visual-review-1022-v1.json",
+      "artSha256": "18ef2d311af3b7aa881676801a23a7c271e6d77f82fc641a9130054b625e6ade",
+      "handover": "r75-final-user-delivery-1022-v1.json",
+      "nativeReopen": "r75-delivery-native-reopen-1022-v1.json",
+      "preservation": "r75-final-originals-and-native-preservation-1022-v1.json"
+    },
+    "preFinalDocCi": {
+      "head": "8be11c959c2a555fc98e357ef02d901d468adc0c",
+      "runId": 39624435612,
+      "all5JobsSuccess": true,
+      "all4ArchivesServerDigestBytesCrcAndCheckoutRootTreeVerified": true,
+      "rootTree": "96c7f48734193b98086131fa3ab9d5d1fc12fb48"
+    },
+    "publicReleaseCompleted": false,
+    "automationPaused": true
+  },
+  "legacyNullHashAuditMetadata20261022": {
+    "operationManifest": {
+      "specHashBefore": null,
+      "specChanged": false,
+      "sceneChanged": true
+    },
+    "revisionManifest": {
+      "specHashBefore": null,
+      "specChanged": true,
+      "sceneChanged": true
+    },
+    "currentDeliveryRule": "Keep original raw fields; full byte/source/native/changedPaths audit determines actual edit. Do not infer unchanged source from operation-level false when old source hash is unknown.",
+    "frozenCandidateFixClaimed": false,
+    "next": "Targeted follow-up to unify unknown prior-hash semantics with a real legacy-state reproduction.",
+    "proof": "r75-legacy-null-source-hash-metadata-observation-1022-v1.json"
+  }
+}

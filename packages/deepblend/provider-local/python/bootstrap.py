@@ -33,6 +33,8 @@ ACTIONS (M3)
                       at a named SceneSpec render profile, into a persistent
                       directory. Long-running and resumable: the host passes only
                       the frames the frame ledger says are missing.
+``render_shot_frames`` the same isolated process boundary, with a strict saved-shot
+                      selection and actual per-frame camera/PNG attribution.
 
 ACTIONS (M2)
 ------------
@@ -103,6 +105,7 @@ SUPPORTED_ACTIONS = (
     "render_preview",
     "render_views",
     "render_frames",
+    "render_shot_frames",
 )
 
 # Process exit codes. 0 is reserved for a successfully written success envelope.
@@ -370,7 +373,7 @@ def action_render_views(request, options):
     return payload, guard.warnings, guard.notices
 
 
-def action_render_frames(request, options):
+def action_render_frames(request, options, require_camera_selection=False):
     """Render an explicit frame list at a named render profile (M3).
 
     The plan travels as a FILE for the same reason the view plan does, and the
@@ -408,8 +411,12 @@ def action_render_frames(request, options):
     plan["events"] = options.get("events") or plan.get("events")
 
     guard = Guard()
-    payload = render_frames(plan, guard)
+    payload = render_frames(plan, guard, require_camera_selection=require_camera_selection)
     return payload, guard.warnings, guard.notices
+
+
+def action_render_shot_frames(request, options):
+    return action_render_frames(request, options, require_camera_selection=True)
 
 
 def write_process_identity(path, job_id, action, attempt_token=None):
@@ -449,11 +456,11 @@ def write_process_identity(path, job_id, action, attempt_token=None):
 def _attempt_token_from_plan(action, options):
     """The attempt token, when the action's input document carries one.
 
-    Only `render_frames` has a plan file; every other action answers None, and the
+    Both frame actions have a plan file; every other action answers None, and the
     identity document simply records no token. Read here rather than threaded
     through every action because the token belongs to the PROCESS, not to the work.
     """
-    if action != "render_frames":
+    if action not in ("render_frames", "render_shot_frames"):
         return None
     plan_path = options.get("frames")
     if not plan_path or not os.path.isfile(plan_path):
@@ -492,6 +499,7 @@ ACTIONS = {
     "render_preview": action_render_preview,
     "render_views": action_render_views,
     "render_frames": action_render_frames,
+    "render_shot_frames": action_render_shot_frames,
 }
 
 

@@ -29,6 +29,72 @@ def object_axis_frame(matrix):
     return lengths, basis
 
 
+def measure_asset_bounds(obj, graph):
+    """Whole imported instance, never a partial/declared or transformed AABB guess."""
+    import bpy
+    entry = {'type': 'ASSET_MESH_SET', 'available': False}
+    def unavailable(reason):
+        return {**entry, 'unavailableReason': reason}
+    pending, parts, visited = [obj], [], set()
+    while pending:
+        part = pending.pop()
+        if part.as_pointer() in visited or len(visited) >= 4096:
+            return unavailable('unsupported-hierarchy')
+        visited.add(part.as_pointer())
+        if part != obj and part.name.startswith(('db_entity__', 'db_camera__', 'db_light__')):
+            # Reused imports carry the owning entity prefix on their parts.
+            # Only that explicit ownership/part marker is exempt; another
+            # entity root or an unmarked manual object remains unsupported.
+            owner = obj.get('deepblend_id')
+            own_part = (isinstance(owner, str) and bool(owner)
+                        and part.name.startswith(obj.name + '_')
+                        and part.get('deepblend_id') == owner
+                        and part.get('deepblend_kind') == 'entity'
+                        and isinstance(part.get('deepblend_part_id'), str)
+                        and bool(part.get('deepblend_part_id')))
+            if not own_part:
+                return unavailable('unsupported-hierarchy')
+        if part.type not in ('EMPTY', 'MESH') or part.instance_type != 'NONE':
+            return unavailable('unsupported-hierarchy')
+        if not part.visible_get(view_layer=bpy.context.view_layer):
+            return unavailable('viewport-disabled')
+        if part.type == 'MESH':
+            parts.append(part)
+        if len(parts) > 128:
+            return unavailable('geometry-budget-exceeded')
+        pending.extend(part.children)
+    if not parts:
+        return unavailable('empty-or-invalid-geometry')
+    low, high, vertices, polygons = [math.inf]*3, [-math.inf]*3, 0, 0
+    for part in parts:
+        evaluated = part.evaluated_get(graph)
+        mesh = evaluated.to_mesh()
+        try:
+            if mesh is None or not mesh.vertices:
+                return unavailable('empty-or-invalid-geometry')
+            vertices += len(mesh.vertices)
+            polygons += len(mesh.polygons)
+            if vertices > 2000000 or polygons > 2000000:
+                return unavailable('geometry-budget-exceeded')
+            for vertex in mesh.vertices:
+                point = evaluated.matrix_world @ vertex.co
+                if not all(math.isfinite(x) for x in point):
+                    return unavailable('empty-or-invalid-geometry')
+                for axis in range(3):
+                    low[axis] = min(low[axis], float(point[axis]))
+                    high[axis] = max(high[axis], float(point[axis]))
+        finally:
+            evaluated.to_mesh_clear()
+    matrix = [[float(x) for x in row] for row in obj.evaluated_get(graph).matrix_world]
+    scale = [float(x) for x in obj.scale]
+    if not all(math.isfinite(x) for row in matrix for x in row) or not all(math.isfinite(x) for x in scale):
+        return unavailable('empty-or-invalid-geometry')
+    return {**entry, 'available': True, 'worldBoundsMeters': {'min': low, 'max': high},
+            'worldAxisExtentMm': [(high[i]-low[i])*1000 for i in range(3)],
+            'worldMatrix': matrix, 'scale': scale, 'vertexCount': vertices,
+            'polygonCount': polygons, 'meshObjectCount': len(parts)}
+
+
 def inspect_geometry(request, options):
     import bpy
     payload = request.get('payload')
@@ -43,6 +109,17 @@ def inspect_geometry(request, options):
     object_axes = payload.get('objectAxes', False)
     if type(object_axes) is not bool:
         raise ActionError('BLENDER_SCRIPT_ERROR', 'objectAxes must be boolean.')
+    camera_id = payload.get('cameraId')
+    camera_margin = payload.get('cameraMargin', .03)
+    if camera_id is not None and (not isinstance(camera_id, str) or re.fullmatch(r'[a-zA-Z][a-zA-Z0-9._-]{0,127}', camera_id) is None or object_axes or 'surfaceSamples' in payload):
+        raise ActionError('BLENDER_SCRIPT_ERROR', 'Framing requires one explicit camera without axes or samples.')
+    if 'cameraMargin' in payload and camera_id is None or type(camera_margin) not in (int, float) or not math.isfinite(camera_margin) or not 0 <= camera_margin <= .25:
+        raise ActionError('BLENDER_SCRIPT_ERROR', 'Framing margin must be finite from 0 to 0.25 and requires cameraId.')
+    asset_ids = payload.get('assetInstanceIds')
+    if asset_ids is not None and (not isinstance(asset_ids, list) or not asset_ids or
+            any(not isinstance(x, str) or x not in ids for x in asset_ids) or len(set(asset_ids)) != len(asset_ids) or
+            object_axes or 'surfaceSamples' in payload):
+        raise ActionError('BLENDER_SCRIPT_ERROR', 'Asset bounds require distinct selected asset roots without object axes or surface samples.')
     samples = payload.get('surfaceSamples')
     if 'surfaceSamples' in payload:
         from deepblend_inspect_surface import validate_surface_selection
@@ -66,13 +143,19 @@ def inspect_geometry(request, options):
     if measured_frame != frame:
         raise ActionError('SCENE_VALIDATION_FAILED', 'Blender did not evaluate the requested inspection frame.')
     graph = bpy.context.evaluated_depsgraph_get()
+    calibration = None
+    if camera_id is not None:
+        from deepblend_geometry_framing import framing_camera, project_geometry
+        calibration = framing_camera(bpy.context.scene, graph, camera_id, camera_margin)
     objects = []
     for entity_id in ids:
         obj = bpy.data.objects.get('db_entity__' + entity_id)
         if obj is None:
             raise ActionError('SCENE_SPEC_INVALID', 'The selected native entity does not exist: ' + entity_id)
         entry = {'entityId': entity_id, 'type': obj.type, 'available': False}
-        if obj.type != 'MESH':
+        if asset_ids is not None and entity_id in asset_ids:
+            entry = {'entityId': entity_id, **measure_asset_bounds(obj, graph)}
+        elif obj.type != 'MESH':
             entry['unavailableReason'] = 'not-mesh'
         elif not obj.visible_get(view_layer=bpy.context.view_layer):
             entry['unavailableReason'] = 'viewport-disabled'
@@ -114,6 +197,8 @@ def inspect_geometry(request, options):
                                          objectAxisExtentMm=[(local_high[i] - local_low[i]) * 1000 for i in range(3)])
             finally:
                 evaluated.to_mesh_clear()
+        if calibration is not None and entry['available']:
+            entry['cameraProjection'] = project_geometry(obj, asset_ids is not None and entity_id in asset_ids, graph, calibration)
         objects.append(entry)
     report = {'schemaVersion': 'deepblend.geometry-inspection/v1', 'checkpointSha256': expected,
               'checkpointUnchanged': True, 'frame': measured_frame, 'blenderVersion': bpy.app.version_string,
@@ -125,6 +210,10 @@ def inspect_geometry(request, options):
     if object_axes:
         report['schemaVersion'] = 'deepblend.geometry-inspection/v3'
         report['objectAxisBasis'] = 'evaluated-object-axes-scaled'
+    if calibration is not None:
+        report['camera'] = calibration[2]
+    if asset_ids is not None or calibration is not None:
+        report['schemaVersion'] = 'deepblend.geometry-inspection/v4'
     if file_digest(checkpoint) != expected:
         raise ActionError('SCENE_VALIDATION_FAILED', 'The checkpoint changed during geometry inspection.')
     return report, [], []

@@ -1,0 +1,1297 @@
+{
+  "schemaVersion": 1,
+  "finishedAt": "2026-10-18T14:33:19.596Z",
+  "status": "experiment-complete-artistic-quality-rejected-bai-restored",
+  "conclusion": "本轮没有证明官方新版 Flash max 与新版 Harness 让当前 DeepBlend 的整案生成效果显著提升。额外小批次引导使 max 完成建模与五个运动镜头，但仍未通过成品门槛。",
+  "pluginVersion": "0.15.0",
+  "artifactSha256": "b67542e9cd6108a5c3a1182672e3cde05bd7e40b3b4e9316b24fd72515cff05a",
+  "modelsCatalogue": {
+    "at": "2026-10-18T14:08:02.434Z",
+    "url": "https://api.deepseek.com/models",
+    "status": 200,
+    "data": [
+      {
+        "id": "deepseek-flash",
+        "name": "DeepSeek-V4.1-Flash",
+        "context_window": 1048576,
+        "max_output_tokens": 393216,
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "effort": {
+          "supported_levels": [
+            "low",
+            "high",
+            "max"
+          ],
+          "default_level": "high"
+        },
+        "api_capabilities": {
+          "anthropic_messages": {
+            "system_prompt_update": "in-history"
+          }
+        }
+      },
+      {
+        "id": "deepseek-v4-pro",
+        "name": "DeepSeek-V4-Pro",
+        "context_window": 1048576,
+        "max_output_tokens": 393216,
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "effort": {
+          "supported_levels": [
+            "low",
+            "high",
+            "max"
+          ],
+          "default_level": "high"
+        },
+        "api_capabilities": {
+          "anthropic_messages": {
+            "system_prompt_update": "leading-only"
+          }
+        }
+      }
+    ],
+    "scope": "Official model catalogue metadata; no immutable backend build identifier claimed."
+  },
+  "controls": [
+    {
+      "arm": "modern-max",
+      "host": "0.2.1-rc.1",
+      "effort": "max",
+      "phases": [
+        {
+          "phase": "initial",
+          "elapsedMs": 175071,
+          "completed": false,
+          "reason": {
+            "kind": "error",
+            "error": {
+              "message": "DeepSeek Messages stream: tool input is invalid JSON",
+              "code": "MALFORMED_RESPONSE"
+            }
+          },
+          "toolCalls": 12,
+          "deepBlendToolCalls": 6,
+          "failedAttemptToolArguments": [
+            {
+              "name": "blender_scene_patch",
+              "bytes": 7595,
+              "sha256": "012c64199911543d18b56a07d74636b4e8eb1b2dc095360c7fce890feabe2611",
+              "validJson": false,
+              "parseError": "Expecting ',' delimiter: line 1 column 7041 (char 7040)"
+            }
+          ]
+        },
+        {
+          "phase": "continuation",
+          "elapsedMs": 80507,
+          "completed": false,
+          "reason": {
+            "kind": "error",
+            "error": {
+              "message": "DeepSeek Messages stream: tool input is invalid JSON",
+              "code": "MALFORMED_RESPONSE"
+            }
+          },
+          "toolCalls": 1,
+          "deepBlendToolCalls": 1,
+          "failedAttemptToolArguments": [
+            {
+              "name": "blender_scene_patch",
+              "bytes": 7788,
+              "sha256": "aaf03042d46e0a3db23663f22763080e02e37b144623982b49ddad9242ae7b65",
+              "validJson": false,
+              "parseError": "Expecting ',' delimiter: line 1 column 2222 (char 2221)"
+            }
+          ]
+        }
+      ],
+      "totalModelingPhaseElapsedMs": 255578,
+      "toolCalls": 13,
+      "extraModelingPrompts": 1,
+      "initialOutputFreeze": {
+        "arm": "modern-max",
+        "revision": "r0001",
+        "at": "2026-10-18",
+        "frozenBeforeExtraGuidance": true,
+        "files": {
+          "scene.blend": "afe10d256642b8dbcbf13e3a6a4fa85ec46dd212331d16eb4b23c615cb85f460",
+          "scene-spec.json": "c822e765d0b2b69dd49872c1ba353fb82a266ca87c4f9a096580743d7b3bafbf"
+        }
+      },
+      "nativeReadback": {
+        "nativeSha256Before": "afe10d256642b8dbcbf13e3a6a4fa85ec46dd212331d16eb4b23c615cb85f460",
+        "nativeSha256After": "afe10d256642b8dbcbf13e3a6a4fa85ec46dd212331d16eb4b23c615cb85f460",
+        "nativeUnchanged": true,
+        "entityCount": 1,
+        "meshObjects": 1,
+        "actualVertices": 8,
+        "actualPolygons": 6,
+        "specTracks": 0,
+        "nativeActions": 0,
+        "shots": [
+          {
+            "shotId": "shot-01",
+            "cameraId": "camera-main",
+            "frameRange": [
+              1,
+              48
+            ],
+            "poses": [
+              {
+                "frame": 1,
+                "worldLocation": [
+                  4.199999809265137,
+                  -4.199999809265137,
+                  3.4000000953674316
+                ],
+                "worldRotationEuler": [
+                  1.1867939233779907,
+                  -1.4379342161419117e-08,
+                  0.7853981852531433
+                ]
+              },
+              {
+                "frame": 24,
+                "worldLocation": [
+                  4.199999809265137,
+                  -4.199999809265137,
+                  3.4000000953674316
+                ],
+                "worldRotationEuler": [
+                  1.1867939233779907,
+                  -1.4379342161419117e-08,
+                  0.7853981852531433
+                ]
+              },
+              {
+                "frame": 48,
+                "worldLocation": [
+                  4.199999809265137,
+                  -4.199999809265137,
+                  3.4000000953674316
+                ],
+                "worldRotationEuler": [
+                  1.1867939233779907,
+                  -1.4379342161419117e-08,
+                  0.7853981852531433
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": false,
+            "actualNativePoseChanges": false
+          }
+        ],
+        "assets": [],
+        "frameStart": 1,
+        "frameEnd": 48,
+        "fps": 24,
+        "packedImages": 0,
+        "scope": "Read-only native geometry counts, aggregate imported mesh bounds and shot endpoint/midpoint camera poses. No full-path collision, all-frame quality or manufacturing certification."
+      },
+      "quality": "no-model-generated",
+      "qaImages": 3,
+      "qaElapsedMs": 41481
+    },
+    {
+      "arm": "modern-low",
+      "host": "0.2.1-rc.1",
+      "effort": "low",
+      "phases": [
+        {
+          "phase": "initial",
+          "elapsedMs": 602649,
+          "completed": true,
+          "reason": {
+            "kind": "completed"
+          },
+          "toolCalls": 43,
+          "deepBlendToolCalls": 38,
+          "failedAttemptToolArguments": []
+        },
+        {
+          "phase": "continuation",
+          "elapsedMs": 164998,
+          "completed": true,
+          "reason": {
+            "kind": "completed"
+          },
+          "toolCalls": 12,
+          "deepBlendToolCalls": 11,
+          "failedAttemptToolArguments": []
+        }
+      ],
+      "totalModelingPhaseElapsedMs": 767647,
+      "toolCalls": 55,
+      "extraModelingPrompts": 1,
+      "initialOutputFreeze": {
+        "arm": "modern-low",
+        "revision": "r0017",
+        "at": "2026-10-18",
+        "frozenBeforeExtraGuidance": true,
+        "files": {
+          "scene.blend": "ea1186ad379a559cb3a71fbfbe17a387a45943013f27df60c7f74548aceee13d",
+          "scene-spec.json": "34cc7ae48d6d1b4d9d671278fb58ae1674a5ca28f61126be9c83d365f3c7dd79"
+        }
+      },
+      "nativeReadback": {
+        "nativeSha256Before": "ea1186ad379a559cb3a71fbfbe17a387a45943013f27df60c7f74548aceee13d",
+        "nativeSha256After": "ea1186ad379a559cb3a71fbfbe17a387a45943013f27df60c7f74548aceee13d",
+        "nativeUnchanged": true,
+        "entityCount": 144,
+        "meshObjects": 144,
+        "actualVertices": 69486,
+        "actualPolygons": 97278,
+        "specTracks": 18,
+        "nativeActions": 4,
+        "shots": [
+          {
+            "shotId": "shot-buddha",
+            "cameraId": "cam-buddha",
+            "frameRange": [
+              441,
+              700
+            ],
+            "poses": [
+              {
+                "frame": 441,
+                "worldLocation": [
+                  5.0,
+                  3.0,
+                  1.75
+                ],
+                "worldRotationEuler": [
+                  1.6262999773025513,
+                  -0.0,
+                  -1.5707999467849731
+                ]
+              },
+              {
+                "frame": 570,
+                "worldLocation": [
+                  6.391891956329346,
+                  3.0,
+                  1.8494209051132202
+                ],
+                "worldRotationEuler": [
+                  1.6440962553024292,
+                  -0.0,
+                  -1.5707999467849731
+                ]
+              },
+              {
+                "frame": 700,
+                "worldLocation": [
+                  7.800000190734863,
+                  3.0,
+                  1.9500000476837158
+                ],
+                "worldRotationEuler": [
+                  1.6620999574661255,
+                  -0.0,
+                  -1.5707999467849731
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-court",
+            "cameraId": "cam-court",
+            "frameRange": [
+              701,
+              900
+            ],
+            "poses": [
+              {
+                "frame": 701,
+                "worldLocation": [
+                  9.5,
+                  -13.5,
+                  1.600000023841858
+                ],
+                "worldRotationEuler": [
+                  2.0172998905181885,
+                  -0.0,
+                  0.6132000088691711
+                ]
+              },
+              {
+                "frame": 800,
+                "worldLocation": [
+                  11.48492431640625,
+                  -11.266960144042969,
+                  2.9894473552703857
+                ],
+                "worldRotationEuler": [
+                  2.013131618499756,
+                  -0.0,
+                  0.7966566681861877
+                ]
+              },
+              {
+                "frame": 900,
+                "worldLocation": [
+                  13.5,
+                  -9.0,
+                  4.400000095367432
+                ],
+                "worldRotationEuler": [
+                  2.0088999271392822,
+                  -0.0,
+                  0.9829000234603882
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-eave",
+            "cameraId": "cam-eave",
+            "frameRange": [
+              261,
+              440
+            ],
+            "poses": [
+              {
+                "frame": 261,
+                "worldLocation": [
+                  8.5,
+                  -9.5,
+                  6.199999809265137
+                ],
+                "worldRotationEuler": [
+                  1.8737000226974487,
+                  -0.0,
+                  0.6935999989509583
+                ]
+              },
+              {
+                "frame": 350,
+                "worldLocation": [
+                  7.508379936218262,
+                  -9.995810508728027,
+                  6.398324012756348
+                ],
+                "worldRotationEuler": [
+                  1.8501490354537964,
+                  -0.0,
+                  0.5769854784011841
+                ]
+              },
+              {
+                "frame": 440,
+                "worldLocation": [
+                  6.5,
+                  -10.5,
+                  6.599999904632568
+                ],
+                "worldRotationEuler": [
+                  1.826200008392334,
+                  -0.0,
+                  0.45840001106262207
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-whole",
+            "cameraId": "cam-whole",
+            "frameRange": [
+              1,
+              260
+            ],
+            "poses": [
+              {
+                "frame": 1,
+                "worldLocation": [
+                  24.0,
+                  -28.0,
+                  1.600000023841858
+                ],
+                "worldRotationEuler": [
+                  1.8071999549865723,
+                  -0.0,
+                  0.7084000110626221
+                ]
+              },
+              {
+                "frame": 130,
+                "worldLocation": [
+                  19.277509689331055,
+                  -22.53185272216797,
+                  4.38378381729126
+                ],
+                "worldRotationEuler": [
+                  1.8366782665252686,
+                  -0.0,
+                  0.7073560953140259
+                ]
+              },
+              {
+                "frame": 260,
+                "worldLocation": [
+                  14.5,
+                  -17.0,
+                  7.199999809265137
+                ],
+                "worldRotationEuler": [
+                  1.8665000200271606,
+                  -0.0,
+                  0.7063000202178955
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          }
+        ],
+        "assets": [
+          {
+            "entityId": "buddha-seated",
+            "meshObjects": 1,
+            "boundsMinMetres": [
+              13.493675231933594,
+              2.7188944816589355,
+              1.2424089908599854
+            ],
+            "boundsMaxMetres": [
+              15.728135108947754,
+              3.980550527572632,
+              3.7748494148254395
+            ],
+            "spansMetres": [
+              2.23445987701416,
+              1.2616560459136963,
+              2.532440423965454
+            ]
+          }
+        ],
+        "frameStart": 1,
+        "frameEnd": 900,
+        "fps": 24,
+        "packedImages": 5,
+        "scope": "Read-only native geometry counts, aggregate imported mesh bounds and shot endpoint/midpoint camera poses. No full-path collision, all-frame quality or manufacturing certification."
+      },
+      "quality": "rejected",
+      "qaImages": 12,
+      "qaElapsedMs": 123742
+    },
+    {
+      "arm": "legacy-max",
+      "host": "0.1.5-rc.2",
+      "effort": "max",
+      "phases": [
+        {
+          "phase": "initial",
+          "elapsedMs": 659182,
+          "completed": false,
+          "reason": {
+            "kind": "error",
+            "error": {
+              "message": "DeepSeek API stream from https://api.deepseek.com failed",
+              "code": "TRANSPORT"
+            }
+          },
+          "toolCalls": 27,
+          "deepBlendToolCalls": 25,
+          "failedAttemptToolArguments": []
+        },
+        {
+          "phase": "continuation",
+          "elapsedMs": 368575,
+          "completed": true,
+          "reason": {
+            "kind": "completed"
+          },
+          "toolCalls": 26,
+          "deepBlendToolCalls": 25,
+          "failedAttemptToolArguments": []
+        }
+      ],
+      "totalModelingPhaseElapsedMs": 1027757,
+      "toolCalls": 53,
+      "extraModelingPrompts": 1,
+      "initialOutputFreeze": {
+        "arm": "legacy-max",
+        "revision": "r0018",
+        "at": "2026-10-18T14:11:19.327Z",
+        "files": {
+          "scene.blend": "db76d0f7f64d1731dbfeb8e697d875dd6ddffb7807a5bbba36522363d2a6fd30",
+          "scene-spec.json": "c097cc70c0fa1b6a0eea2120f34f6d6b114b579c0687ebc7d746ebe777a309ef"
+        }
+      },
+      "nativeReadback": {
+        "nativeSha256Before": "db76d0f7f64d1731dbfeb8e697d875dd6ddffb7807a5bbba36522363d2a6fd30",
+        "nativeSha256After": "db76d0f7f64d1731dbfeb8e697d875dd6ddffb7807a5bbba36522363d2a6fd30",
+        "nativeUnchanged": true,
+        "entityCount": 130,
+        "meshObjects": 130,
+        "actualVertices": 211185,
+        "actualPolygons": 243022,
+        "specTracks": 20,
+        "nativeActions": 4,
+        "shots": [
+          {
+            "shotId": "shot-buddha",
+            "cameraId": "cam-buddha",
+            "frameRange": [
+              461,
+              680
+            ],
+            "poses": [
+              {
+                "frame": 461,
+                "worldLocation": [
+                  7.5,
+                  -3.799999952316284,
+                  3.4000000953674316
+                ],
+                "worldRotationEuler": [
+                  1.541100025177002,
+                  -0.0,
+                  -1.284600019454956
+                ]
+              },
+              {
+                "frame": 570,
+                "worldLocation": [
+                  9.0,
+                  -3.5999999046325684,
+                  3.200000047683716
+                ],
+                "worldRotationEuler": [
+                  1.545699954032898,
+                  -0.0,
+                  -1.2644000053405762
+                ]
+              },
+              {
+                "frame": 680,
+                "worldLocation": [
+                  10.5,
+                  -3.4000000953674316,
+                  3.0999999046325684
+                ],
+                "worldRotationEuler": [
+                  1.542099952697754,
+                  -0.0,
+                  -1.2410000562667847
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-eave",
+            "cameraId": "cam-eave",
+            "frameRange": [
+              251,
+              460
+            ],
+            "poses": [
+              {
+                "frame": 251,
+                "worldLocation": [
+                  9.5,
+                  -9.5,
+                  10.5
+                ],
+                "worldRotationEuler": [
+                  1.7747999429702759,
+                  -0.0,
+                  0.7853999733924866
+                ]
+              },
+              {
+                "frame": 355,
+                "worldLocation": [
+                  9.053653717041016,
+                  -10.52469253540039,
+                  10.586860656738281
+                ],
+                "worldRotationEuler": [
+                  1.7701095342636108,
+                  -0.0,
+                  0.7451230883598328
+                ]
+              },
+              {
+                "frame": 460,
+                "worldLocation": [
+                  8.0,
+                  -11.600000381469727,
+                  10.899999618530273
+                ],
+                "worldRotationEuler": [
+                  1.749500036239624,
+                  -0.0,
+                  0.6646000146865845
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-garden",
+            "cameraId": "cam-garden",
+            "frameRange": [
+              681,
+              900
+            ],
+            "poses": [
+              {
+                "frame": 681,
+                "worldLocation": [
+                  -11.0,
+                  -24.0,
+                  2.5999999046325684
+                ],
+                "worldRotationEuler": [
+                  1.912600040435791,
+                  -0.0,
+                  -0.42970001697540283
+                ]
+              },
+              {
+                "frame": 790,
+                "worldLocation": [
+                  -8.5,
+                  -23.0,
+                  2.9000000953674316
+                ],
+                "worldRotationEuler": [
+                  1.9395999908447266,
+                  -0.0,
+                  -0.3723999857902527
+                ]
+              },
+              {
+                "frame": 900,
+                "worldLocation": [
+                  -2.200000047683716,
+                  -21.5,
+                  3.200000047683716
+                ],
+                "worldRotationEuler": [
+                  1.9853999614715576,
+                  -0.0,
+                  -0.14779998362064362
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          },
+          {
+            "shotId": "shot-wide",
+            "cameraId": "cam-wide",
+            "frameRange": [
+              1,
+              250
+            ],
+            "poses": [
+              {
+                "frame": 1,
+                "worldLocation": [
+                  -27.0,
+                  -34.0,
+                  6.0
+                ],
+                "worldRotationEuler": [
+                  1.792199969291687,
+                  -0.0,
+                  -0.6570000052452087
+                ]
+              },
+              {
+                "frame": 125,
+                "worldLocation": [
+                  -11.0,
+                  -40.0,
+                  10.0
+                ],
+                "worldRotationEuler": [
+                  1.7143000364303589,
+                  -0.0,
+                  -0.26840001344680786
+                ]
+              },
+              {
+                "frame": 250,
+                "worldLocation": [
+                  14.0,
+                  -38.0,
+                  14.0
+                ],
+                "worldRotationEuler": [
+                  1.6201000213623047,
+                  -0.0,
+                  0.35339999198913574
+                ]
+              }
+            ],
+            "nativeCameraPresent": true,
+            "nativeAnimationDataPresent": true,
+            "actualNativePoseChanges": true
+          }
+        ],
+        "assets": [
+          {
+            "entityId": "buddha",
+            "meshObjects": 1,
+            "boundsMinMetres": [
+              21.392410278320312,
+              -0.9273263812065125,
+              1.0848907232284546
+            ],
+            "boundsMaxMetres": [
+              24.073762893676758,
+              0.5866602063179016,
+              4.123819351196289
+            ],
+            "spansMetres": [
+              2.6813526153564453,
+              1.513986587524414,
+              3.0389286279678345
+            ]
+          }
+        ],
+        "frameStart": 1,
+        "frameEnd": 900,
+        "fps": 24,
+        "packedImages": 5,
+        "scope": "Read-only native geometry counts, aggregate imported mesh bounds and shot endpoint/midpoint camera poses. No full-path collision, all-frame quality or manufacturing certification."
+      },
+      "quality": "rejected",
+      "qaImages": 12,
+      "qaElapsedMs": 196055
+    }
+  ],
+  "extraGuidedMax": {
+    "phaseElapsedMs": 702793,
+    "toolCalls": 53,
+    "formalDeepBlendCalls": 53,
+    "additionalOperationalGuidance": "At most six operations per patch. No geometry, dimension, pose or camera coordinates supplied. A read-only QA prompt preceded this extra guided phase.",
+    "initialTaskFailuresRetained": true,
+    "defaultPresetUnchanged": true,
+    "automaticallyDowngraded": false,
+    "rootAuthoredGeometry": false,
+    "nativeReadback": {
+      "nativeSha256Before": "b84b21b339a155f2eed93fcc26e0e426183ebf76a5fbe80dbb08fdef871ce5ff",
+      "nativeSha256After": "b84b21b339a155f2eed93fcc26e0e426183ebf76a5fbe80dbb08fdef871ce5ff",
+      "nativeUnchanged": true,
+      "entityCount": 98,
+      "meshObjects": 98,
+      "actualVertices": 56230,
+      "actualPolygons": 77057,
+      "specTracks": 8,
+      "nativeActions": 5,
+      "shots": [
+        {
+          "shotId": "shot-01",
+          "cameraId": "camera-main",
+          "frameRange": [
+            1,
+            260
+          ],
+          "poses": [
+            {
+              "frame": 1,
+              "worldLocation": [
+                0.0,
+                -62.0,
+                6.5
+              ],
+              "worldRotationEuler": [
+                1.7070437669754028,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "frame": 130,
+              "worldLocation": [
+                0.0,
+                -53.0521240234375,
+                5.853764057159424
+              ],
+              "worldRotationEuler": [
+                1.7070437669754028,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "frame": 260,
+              "worldLocation": [
+                0.0,
+                -44.0,
+                5.199999809265137
+              ],
+              "worldRotationEuler": [
+                1.7070437669754028,
+                -0.0,
+                0.0
+              ]
+            }
+          ],
+          "nativeCameraPresent": true,
+          "nativeAnimationDataPresent": true,
+          "actualNativePoseChanges": true
+        },
+        {
+          "shotId": "shot-02",
+          "cameraId": "camera-eave",
+          "frameRange": [
+            261,
+            520
+          ],
+          "poses": [
+            {
+              "frame": 261,
+              "worldLocation": [
+                11.5,
+                -12.5,
+                5.400000095367432
+              ],
+              "worldRotationEuler": [
+                1.7649991512298584,
+                5.338191400028336e-08,
+                0.704181969165802
+              ]
+            },
+            {
+              "frame": 390,
+              "worldLocation": [
+                9.859556198120117,
+                -12.5,
+                6.095946311950684
+              ],
+              "worldRotationEuler": [
+                1.7649991512298584,
+                5.338191400028336e-08,
+                0.704181969165802
+              ]
+            },
+            {
+              "frame": 520,
+              "worldLocation": [
+                8.199999809265137,
+                -12.5,
+                6.800000190734863
+              ],
+              "worldRotationEuler": [
+                1.7649991512298584,
+                5.338191400028336e-08,
+                0.704181969165802
+              ]
+            }
+          ],
+          "nativeCameraPresent": true,
+          "nativeAnimationDataPresent": true,
+          "actualNativePoseChanges": true
+        },
+        {
+          "shotId": "shot-03",
+          "cameraId": "camera-buddha",
+          "frameRange": [
+            521,
+            700
+          ],
+          "poses": [
+            {
+              "frame": 521,
+              "worldLocation": [
+                -18.600000381469727,
+                6.0,
+                2.700000047683716
+              ],
+              "worldRotationEuler": [
+                1.500735878944397,
+                4.175081169677242e-09,
+                1.5707966089248657
+              ]
+            },
+            {
+              "frame": 610,
+              "worldLocation": [
+                -19.244552612304688,
+                6.0,
+                2.700000047683716
+              ],
+              "worldRotationEuler": [
+                1.500735878944397,
+                4.175081169677242e-09,
+                1.5707966089248657
+              ]
+            },
+            {
+              "frame": 700,
+              "worldLocation": [
+                -19.899999618530273,
+                6.0,
+                2.700000047683716
+              ],
+              "worldRotationEuler": [
+                1.500735878944397,
+                4.175081169677242e-09,
+                1.5707966089248657
+              ]
+            }
+          ],
+          "nativeCameraPresent": true,
+          "nativeAnimationDataPresent": true,
+          "actualNativePoseChanges": true
+        },
+        {
+          "shotId": "shot-04",
+          "cameraId": "camera-yard",
+          "frameRange": [
+            701,
+            830
+          ],
+          "poses": [
+            {
+              "frame": 701,
+              "worldLocation": [
+                20.0,
+                -40.0,
+                3.5999999046325684
+              ],
+              "worldRotationEuler": [
+                1.7644387483596802,
+                1.5067422864945e-08,
+                0.5585993528366089
+              ]
+            },
+            {
+              "frame": 765,
+              "worldLocation": [
+                17.776161193847656,
+                -37.52906799316406,
+                3.5999999046325684
+              ],
+              "worldRotationEuler": [
+                1.7644387483596802,
+                1.5067422864945e-08,
+                0.5585993528366089
+              ]
+            },
+            {
+              "frame": 830,
+              "worldLocation": [
+                15.5,
+                -35.0,
+                3.5999999046325684
+              ],
+              "worldRotationEuler": [
+                1.7644387483596802,
+                1.5067422864945e-08,
+                0.5585993528366089
+              ]
+            }
+          ],
+          "nativeCameraPresent": true,
+          "nativeAnimationDataPresent": true,
+          "actualNativePoseChanges": true
+        },
+        {
+          "shotId": "shot-05",
+          "cameraId": "camera-foliage",
+          "frameRange": [
+            831,
+            900
+          ],
+          "poses": [
+            {
+              "frame": 831,
+              "worldLocation": [
+                14.0,
+                -42.0,
+                4.5
+              ],
+              "worldRotationEuler": [
+                1.9666143655776978,
+                1.8090148046212562e-08,
+                0.3217505216598511
+              ]
+            },
+            {
+              "frame": 865,
+              "worldLocation": [
+                14.0,
+                -42.0,
+                5.135870933532715
+              ],
+              "worldRotationEuler": [
+                1.9666143655776978,
+                1.8090148046212562e-08,
+                0.3217505216598511
+              ]
+            },
+            {
+              "frame": 900,
+              "worldLocation": [
+                14.0,
+                -42.0,
+                5.800000190734863
+              ],
+              "worldRotationEuler": [
+                1.9666143655776978,
+                1.8090148046212562e-08,
+                0.3217505216598511
+              ]
+            }
+          ],
+          "nativeCameraPresent": true,
+          "nativeAnimationDataPresent": true,
+          "actualNativePoseChanges": true
+        }
+      ],
+      "assets": [
+        {
+          "entityId": "buddha-statue",
+          "meshObjects": 1,
+          "boundsMinMetres": [
+            -24.24444580078125,
+            5.794929504394531,
+            1.589927077293396
+          ],
+          "boundsMaxMetres": [
+            -23.23511505126953,
+            7.58250093460083,
+            3.615879535675049
+          ],
+          "spansMetres": [
+            1.0093307495117188,
+            1.7875714302062988,
+            2.025952458381653
+          ]
+        }
+      ],
+      "frameStart": 1,
+      "frameEnd": 900,
+      "fps": 24,
+      "packedImages": 5,
+      "scope": "Read-only native geometry counts, aggregate imported mesh bounds and shot endpoint/midpoint camera poses. No full-path collision, all-frame quality or manufacturing certification."
+    },
+    "freeze": {
+      "arm": "modern-max",
+      "revision": "r0023",
+      "at": "2026-10-18T14:23:48.524Z",
+      "files": {
+        "scene.blend": "b84b21b339a155f2eed93fcc26e0e426183ebf76a5fbe80dbb08fdef871ce5ff",
+        "scene-spec.json": "7e5fc33c2b4bd5189466bbf68e4281afcd40b5441f4348ae873b9fa44da9e418"
+      }
+    },
+    "qaImages": 15,
+    "qaElapsedMs": 147191,
+    "quality": "rejected",
+    "nativeSupportReadback": {
+      "status": "read-only-native-evaluated-vertex-bounds",
+      "nativeSha256": "b84b21b339a155f2eed93fcc26e0e426183ebf76a5fbe80dbb08fdef871ce5ff",
+      "nativeUnchanged": true,
+      "buddha": {
+        "min": [
+          -24.244441986083984,
+          5.794932842254639,
+          1.589927077293396
+        ],
+        "max": [
+          -23.235118865966797,
+          7.58250093460083,
+          3.6158792972564697
+        ],
+        "evaluatedVertices": 35643
+      },
+      "altar": {
+        "min": [
+          -24.799999237060547,
+          4.199999809265137,
+          0.10000000149011612
+        ],
+        "max": [
+          -23.599998474121094,
+          7.800000190734863,
+          1.2999999523162842
+        ],
+        "evaluatedVertices": 104
+      },
+      "positiveVerticalSeparationMetres": 0.2899271249771118,
+      "scope": "Aggregate evaluated mesh world-axis bounds at frame 610. A positive vertical separation confirms the Buddha geometry is wholly above the altar top; no general all-mesh contact, collision or manufacturing certification."
+    }
+  },
+  "visualFindings": {
+    "modern-max-initial": [
+      "两轮工具参数 JSON 独立解析失败，r0001 仅默认立方体。"
+    ],
+    "modern-max-guided": [
+      "camera-main f260 塔身上部/塔刹出画。",
+      "camera-eave f261/390/520 木构条悬空伸出、转角未收口；左右立面细节缺失。",
+      "camera-buddha f521/610/700 可见悬浮；原生评估网格边界的底部高出台面 289.927 mm。",
+      "camera-yard f701 前景树干大幅遮挡。",
+      "camera-foliage f831/865/900 为扁球冠加平片，缺少可读分枝；远山简化。"
+    ],
+    "modern-low": [
+      "cam-whole f1/130/260 塔刹出画，塔身与瓦顶简化。",
+      "cam-buddha f441/570/700 佛像侧对镜头。",
+      "cam-court f701/800/900 主要是塔楼近景，庭院池桥与枝叶收束任务表现不足。"
+    ],
+    "legacy-max": [
+      "瓦垄和木构近景比本轮 low 更丰富，但不能据此证明新版宿主提升。",
+      "cam-buddha f461/570/680 佛像侧对镜头，前景柱明显占画。",
+      "cam-garden f681/790 被球冠大幅遮挡，f900 塔身上部出画。",
+      "树冠仍是球体加散布片叶，缺少分枝。"
+    ]
+  },
+  "acceptance": {
+    "allFormalPreviewImages": 42,
+    "imageDigestsVerified": 42,
+    "all42ImagesViewedByMaintainer": true,
+    "initialFailedNativePreserved": true,
+    "guidedAndControlsNativeOpenedReadOnly": true,
+    "cameraPoseChangesConfirmed": {
+      "modern-max-guided": 5,
+      "modern-low": 4,
+      "legacy-max": 4
+    },
+    "newVideoRendered": false,
+    "allFrameVideoAccepted": false,
+    "allMeshCollisionCertified": false,
+    "externalAdoptionMeasured": false,
+    "sourceProductCodeChangedForExperiment": false,
+    "newReleasePublished": false
+  },
+  "restoration": {
+    "at": "2026-10-18T14:33:19.596Z",
+    "baiRestored": true,
+    "officialCredentialRemoved": true,
+    "personalFilesUnchanged": true,
+    "originalDeliveryFilesUnchanged": true,
+    "restorations": [
+      {
+        "arm": "modern-max",
+        "at": "2026-10-18T14:32:18.997Z",
+        "provider": "bai",
+        "model": "deepseek-v4.1-flash",
+        "personalDeploymentModified": false,
+        "temporaryOfficialCredentialRemoved": true,
+        "officialCredentialReferenceAbsent": true
+      },
+      {
+        "arm": "modern-low",
+        "at": "2026-10-18T14:32:21.653Z",
+        "provider": "bai",
+        "model": "deepseek-v4.1-flash",
+        "personalDeploymentModified": false,
+        "temporaryOfficialCredentialRemoved": true,
+        "officialCredentialReferenceAbsent": true
+      },
+      {
+        "arm": "legacy-max",
+        "at": "2026-10-18T14:32:27.931Z",
+        "provider": "bai",
+        "model": "deepseek-v4.1-flash",
+        "personalDeploymentModified": false,
+        "temporaryOfficialCredentialRemoved": true,
+        "officialCredentialReferenceAbsent": true
+      }
+    ],
+    "preservationFiles": [
+      {
+        "path": "/Users/hxb/.dsh/profiles/desktop/cordis.patch.yml",
+        "sha256": "25b8950c53c9fd9757b2bdc0438ba1cf0766953e7889664e01d9c34d61ded2ee",
+        "unchanged": true
+      },
+      {
+        "path": "/Users/hxb/workspace/deep-blend-deliveries/argon-pagoda-deepblend-final-2026-10-16/final.mp4",
+        "sha256": "6eafac3d689ca65287a0851c83af1c399fd5d6c869be8f642c92cb39e0493956",
+        "unchanged": true
+      },
+      {
+        "path": "/Users/hxb/workspace/deep-blend-deliveries/argon-pagoda-deepblend-final-2026-10-16/scene.blend",
+        "sha256": "609fe838a2b3cf8bdb795790fd9dc5312070fcf56cfec60d6fb7a57ffa7366cd",
+        "unchanged": true
+      }
+    ]
+  },
+  "limitations": [
+    "用户2026-10-19确认bai转接官方DeepSeek；bai与官方直连属于接入路线差异，不作为新旧模型分组。切换路线本身不是模型升级证据。",
+    "一个案例、每组一次首轮加一次相同通用续跑，是探索性结果，没有总体统计显著性。",
+    "modern-max 与 modern-low 对照档位；同一后端不同随机生成与执行路线仍有波动。",
+    "modern-max 与 legacy-max 的宿主、协议、系统提示和工具表共同变化，属于端到端组合对照；不是孤立的模型或协议消融。",
+    "历史模型后端无法回退固定，没有不可变服务构建号；不能单独证明 1017 历史模型升级收益。",
+    "历史成片经过多轮人工指导并正式渲染，本轮是新建场景预览，指导量、机位、灯光和采样不同；对照拼图不单独作因果证据。",
+    "统一QA为每镜头首中末的640×360/Cycles48 beauty，从冻结SceneSpec重建，不是保存的原生文件直渲。",
+    "旧协议可用上传file图片；最初记录器的imageCount仅数内联图片，不能把零内联图片解释成没有图像输入。续跑记录确认五个file图片部件。",
+    "用时是各模型轮次观测之和，包含工具运行，失败阶段不是成功完成耗时；不含阶段间维护者检查、安装和最终视频渲染。",
+    "费用usage仅完整返回步骤的计数，失败流可能缺失，不能当成完整账单。",
+    "保留相机fcurve插值警告；位移存在不能推导预期插值或连续路径安全。"
+  ],
+  "sourceChecks": {
+    "fullRun": "stopped-invalid-sdk-discovery-environment",
+    "cause": "DEEPBLEND_DSH_ROOT was omitted; tests searched unrelated global Node26 DSH and could not locate client-locale. No full-pass claim and no source fix inferred.",
+    "stoppedOwnRunner": [
+      32784
+    ],
+    "docsOnlyChanges": true,
+    "commitCreated": false,
+    "correctedSdkRoot": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-dsh015-compat",
+    "focusedChecks": [
+      {
+        "log": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-official-max-comparison-v1/docs-check.log",
+        "passed": 26,
+        "total": 26,
+        "sha256": "70a36b3d727ca34e999e856dbb852791b4a63a9565d3748b9d5f11e1395de46b"
+      },
+      {
+        "log": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-official-max-comparison-v1/counts-check.log",
+        "passed": 21,
+        "total": 21,
+        "sha256": "5cd120f44cb97bbbdf455d53935a8e2b40fd3097e80e6b0af4d98b5885365c5c"
+      },
+      {
+        "log": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-official-max-comparison-v1/environment-recheck.log",
+        "passed": 28,
+        "total": 28,
+        "sha256": "4a0a708b3d606c4668da307124f45b708e72c61715ede276fd1dc9add96b579b"
+      }
+    ],
+    "fullRegressionCompleted": false
+  },
+  "baiRoutingConfirmation": {
+    "reportedDateLocal": "2026-10-19",
+    "timezone": "Asia/Shanghai",
+    "source": "user-confirmation",
+    "route": "bai/deepseek-v4.1-flash forwards directly to the official DeepSeek API",
+    "independentlyProbedInThisUpdate": false,
+    "interpretation": "Treat bai and direct official access as two access routes to official DeepSeek, not as old-versus-new model groups. Route choice alone does not establish a model-version difference.",
+    "historicalLimit": "This confirmation does not reconstruct historical immutable backend builds or prove every past request forwarded identical effort, images and context."
+  }
+}

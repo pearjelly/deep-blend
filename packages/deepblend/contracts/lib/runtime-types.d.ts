@@ -94,15 +94,21 @@ export interface RenderOverrides { engine?: EngineKey; width?: number; height?: 
 /** Default world-axis bounds; optional physical object axes include native scale. Neither certifies semantic body dimensions or wall thickness. */
 export interface GeometryInspectionRequest extends RuntimeOptions {
   checkpointPath: string; checkpointSha256: string; entityIds: string[]; frame: number; jobId?: string; objectAxes?: boolean; surfaceSamples?: unknown[];
+  assetInstanceIds?: string[]; cameraId?: string; cameraMargin?: number;
 }
+export type CameraProjection = { status: 'unavailable-render-hidden' | 'geometry-budget-exceeded' } |
+  { status: 'not-fully-in-front'; nearestDepthMeters: number; farthestDepthMeters: number; containedInClip: boolean } |
+  { status: 'measured'; nearestDepthMeters: number; farthestDepthMeters: number; containedInClip: boolean;
+    normalizedBounds: { min: [number, number]; max: [number, number] }; containedInFrame: boolean };
 export type GeometryInspectionObject = { entityId: string; type: string } & (
-  { available: false; unavailableReason: 'viewport-disabled' | 'not-mesh' | 'empty-or-invalid-geometry' } |
+  { available: false; unavailableReason: 'viewport-disabled' | 'not-mesh' | 'empty-or-invalid-geometry' | 'unsupported-hierarchy' | 'geometry-budget-exceeded' } |
   { available: true; worldBoundsMeters: { min: Vec3; max: Vec3 }; worldAxisExtentMm: Vec3;
     objectAxisStatus?: 'measured' | 'unsupported-object-axis-basis'; objectAxisBoundsMeters?: { min: Vec3; max: Vec3 }; objectAxisExtentMm?: Vec3; objectAxisWorldMatrix?: number[][];
-    worldMatrix: number[][]; scale: Vec3; vertexCount: number; polygonCount: number }
+    worldMatrix: number[][]; scale: Vec3; vertexCount: number; polygonCount: number; meshObjectCount?: number; cameraProjection?: CameraProjection }
 );
 export interface GeometryInspectionReport {
-  schemaVersion: 'deepblend.geometry-inspection/v1' | 'deepblend.geometry-inspection/v2' | 'deepblend.geometry-inspection/v3';
+  schemaVersion: 'deepblend.geometry-inspection/v1' | 'deepblend.geometry-inspection/v2' | 'deepblend.geometry-inspection/v3' | 'deepblend.geometry-inspection/v4';
+  camera?: { id: string; type: 'PERSP'; margin: number; clipStartMeters: number; clipEndMeters: number };
   objectAxisBasis?: 'evaluated-object-axes-scaled'; surfaceSamples?: unknown[]; checkpointSha256: string; checkpointUnchanged: true;
   frame: number; blenderVersion: string; objects: GeometryInspectionObject[];
 }
@@ -156,6 +162,13 @@ export interface FrameSequenceRequest extends RuntimeOptions {
   profile?: RenderProfile; frameRange?: [number, number]; jobId?: string; attemptToken?: string;
   filePrefix?: string; padding?: number;
 }
+export interface ShotCameraSelection {
+  schemaVersion: 'deepblend.shot-camera-selection/v1'; mode: 'shots';
+  shots: Array<{ id: string; cameraId: string; frameRange: [number, number] }>;
+}
+export interface ShotFrameSequenceRequest extends Omit<FrameSequenceRequest, 'cameraId'> {
+  cameraSelection: ShotCameraSelection;
+}
 export interface FrameSequenceRun {
   handle: FrameSequenceHandle; jobDirectory: string; framesDirectory: string; requestPath: string; planPath: string;
   resultPath: string; eventsPath: string; processPath: string; argv: string[]; startedAt: number;
@@ -171,14 +184,17 @@ export interface FrameWrittenEvent {
   attemptToken: string;
   /** SHA256 of the complete PNG bytes after structural verification. */
   sha256: string;
+  /** Actual camera read back for the explicit shot action; absent stays unknown. */
+  cameraId?: string; shotId?: string;
 }
 export type FrameProvenanceEvent = FrameConfiguredEvent | FrameWrittenEvent;
 /** Configuration read back by the renderer, with the launch identity that requested it. */
 export interface FrameRenderSource {
   id: string; attempt: number; revisionId: string; cameraId: string | null; checkpointSha256: string | null;
   requestedSamples: number | null; effectiveProfile: RenderProfile; renderConfig: MeasuredRenderConfig;
+  cameraSelection?: ShotCameraSelection;
 }
-export interface FrameSourceBinding { frame: number; sourceId: string; sha256: string }
+export interface FrameSourceBinding { frame: number; sourceId: string; sha256: string; cameraId?: string; shotId?: string }
 /** Shared by canonical jobs and delivery manifests; known means configuration/PNG evidence, not per-pixel samples. */
 export interface FrameProvenanceSummary {
   schemaVersion: 'deepblend.frame-sources/v1';
@@ -207,6 +223,8 @@ export interface BlenderRuntime {
   renderPreview(request: RenderPreviewRequest): Promise<RuntimeActionResult<PreviewReport>>;
   renderViews(request: RenderViewsRequest): Promise<RenderViewsResult>;
   startFrameSequence(request: FrameSequenceRequest): Promise<FrameSequenceRun>;
+  /** Optional explicit capability; the Host must refuse, never silently fall back. */
+  startShotFrameSequence?(request: ShotFrameSequenceRequest): Promise<FrameSequenceRun>;
   awaitFrameSequence(run: FrameSequenceRun): Promise<FrameSequenceOutcome>;
   dispose(): void;
 }

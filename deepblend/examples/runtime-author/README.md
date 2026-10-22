@@ -43,10 +43,17 @@ after each completed check; interrupted `running` records are incomplete.
 ## Profile and evidence
 
 `cycles-fixture/v1` uses a small animated cylinder, two measured frames, a
-noncontiguous frame plan and a cancelled/resumed sequence. It executes all nine
-current methods, checks executable absence and engine resolution, asynchronous
+noncontiguous frame plan and a cancelled/resumed sequence. It executes the required
+runtime methods, checks executable absence and engine resolution, asynchronous
 checkpoint handoff, callback failure cleanup, real PNG dimensions/bytes,
 measured camera/render facts, invalid requests and pre-aborted requests.
+
+If the adapter exposes the optional `startShotFrameSequence` capability, the checker
+also runs its distinct native action, checks shot/camera IDs in the receipt and
+journal against actual PNG hashes, and verifies the original checkpoint is unchanged.
+Adapters without this capability still run the required profile. This one-camera
+fixture does not certify camera switching; the maintained local connector has a
+separate two-camera pixel and restart test in `shot-render.e2e.mjs`.
 
 The independent Blender script reads actual geometry, volume, UVs, material,
 exposure and three saved animation poses. Camera matrices must match the adapter's

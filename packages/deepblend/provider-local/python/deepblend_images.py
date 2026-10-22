@@ -11,6 +11,18 @@ SOCKETS = {'baseColor': 'Base Color', 'roughness': 'Roughness', 'metallic': 'Met
            'normal': 'Normal', 'alpha': 'Alpha', 'emissionColor': 'Emission Color'}
 
 
+def scene_image_budget_bytes():
+    """Read the managed process's operator limit; scene data cannot raise it.
+
+    This changes only the cumulative scene allocation. Individual image, header,
+    format and per-import limits retain their existing resource boundaries.
+    """
+    value = os.environ.get('DEEPBLEND_SCENE_IMAGE_BUDGET_MIB', str(MAX_IMAGE_DECODE_BYTES // (1024 * 1024)))
+    if not 1 <= len(value) <= 4 or not value.isascii() or not value.isdecimal() or not 16 <= int(value) <= 8192:
+        raise ActionError('SCENE_SPEC_INVALID', 'operator scene image budget must be an integer from 16 through 8192 MiB')
+    return int(value) * 1024 * 1024
+
+
 def image_asset_path(asset, project_root):
     root = os.path.realpath(project_root or '.')
     path = os.path.realpath(os.path.join(root, asset['path']))
@@ -26,6 +38,8 @@ def check_scene_image_budget(spec, project_root):
     cache of header facts must not collapse their allocation costs. glTF/GLB/OBJ
     image declarations are conservatively counted per imported instance.
     """
+    limit = scene_image_budget_bytes()
+    label = '1 GiB' if limit == MAX_IMAGE_DECODE_BYTES else '%d MiB' % (limit // (1024 * 1024))
     assets = {asset['id']: asset for asset in spec.get('assets') or []}
     bindings = []
     environment = (spec.get('world') or {}).get('environment')
@@ -43,8 +57,8 @@ def check_scene_image_budget(spec, project_root):
         if path not in facts:
             facts[path] = check_image_header(path)
         total += facts[path]['decodedBytes']
-        if total > MAX_IMAGE_DECODE_BYTES:
-            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared scene images exceed the 1 GiB decoded pixel budget')
+        if total > limit:
+            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared scene images exceed the %s decoded pixel budget' % label)
     imported_images, imported_facts = 0, {}
     for entity in spec.get('entities') or []:
         if entity.get('type') != 'asset-instance':
@@ -58,9 +72,9 @@ def check_scene_image_budget(spec, project_root):
             imported_facts[key] = inspect(project_root, asset)
         total += imported_facts[key]['decodedBytes']
         imported_images += imported_facts[key]['images']
-        if total > MAX_IMAGE_DECODE_BYTES:
-            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared and imported scene images exceed the 1 GiB decoded pixel budget')
-    return {'bindings': len(bindings), 'importedImages': imported_images, 'decodedBytes': total}
+        if total > limit:
+            raise ActionError('ASSET_CONTENT_MISMATCH', 'declared and imported scene images exceed the %s decoded pixel budget' % label)
+    return {'bindings': len(bindings), 'importedImages': imported_images, 'decodedBytes': total, 'limitBytes': limit}
 
 
 def pack_imported_material_images(objects):

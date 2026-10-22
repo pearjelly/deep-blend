@@ -5,6 +5,12 @@ import type {
 } from './schema-types.js';
 export type * from './schema-types.js';
 export type * from './runtime-types.js';
+import type { ShotCameraSelection } from './runtime-types.js';
+export const SHOT_CAMERA_SELECTION_VERSION: 'deepblend.shot-camera-selection/v1';
+export const SHOT_CAMERA_SELECTION_LIMITS: { readonly shots: 64; readonly bytes: 8192 };
+export function buildShotCameraSelection(spec: Pick<SceneSpec, 'cameras' | 'shots'>, frames: number[]): ShotCameraSelection;
+export function normalizeShotCameraSelection(value: unknown, frames?: number[]): ShotCameraSelection;
+export function shotCameraForFrame(selection: ShotCameraSelection, frame: number): { shotId: string; cameraId: string };
 
 export const BLENDER_PROTOCOL_VERSION: 'deepblend.blender/v1';
 export const SCENE_SCHEMA_VERSION: 'deepblend.scene/v1';

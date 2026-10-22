@@ -65,10 +65,10 @@ test('every bootstrap call is accounted for by permitted session routing or expl
 
 test('naming an action the provider cannot route is refused, with the reason', () => {
   // THE SILENT-NOTHING CASE, which is what this whole file is about.
-  assert.throws(
-    () => provider({ sessionActions: ['render_frames'] }),
+  for (const action of ['render_frames', 'render_shot_frames']) assert.throws(
+    () => provider({ sessionActions: [action] }),
     error => {
-      assert.match(error.message, /render_frames/, 'the refusal does not name the action')
+      assert.ok(error.message.includes(action), 'the refusal does not name the action')
       assert.match(error.message, /cancell/i, 'the refusal does not say why a render is excluded')
       assert.match(error.message, /own Blender/, 'the refusal does not say what killing the session would end')
       return true
@@ -105,20 +105,24 @@ test('an action that can be cancelled is never routable, and that is derived too
       return /return \{[^}]*\bhandle\b/s.test(source.slice(match.index, end))
     })
     .map(match => match[1])
-  assert.deepEqual(returnsHandle, ['startFrameSequence'],
+  assert.deepEqual(returnsHandle, ['_startFrameSequence'],
     'the set of methods that hand back a killable handle changed, and that set IS the cancellable surface')
 
   // The cancellable action, named where it is actually served, must not be in the routable list.
   // THE METHOD'S REAL EXTENT, not a fixed window. MEASURED: a 2000-character window missed the action
   // name, which sits past it in a long method — a check that looks at the wrong slice reports the wrong
   // thing about the right code.
-  const frameStart = source.indexOf('async startFrameSequence')
-  const nextMethod = source.indexOf('\n  async ', frameStart + 10)
-  const frameSequence = source.slice(frameStart, nextMethod === -1 ? source.length : nextMethod)
-  assert.match(frameSequence, /action: 'render_frames'/,
-    'startFrameSequence no longer serves render_frames, so this check is looking at the wrong action')
-  assert.ok(!SESSION_ROUTABLE_ACTIONS.includes('render_frames'),
-    'a cancellable action became routable, so cancelling it would now end the whole session')
+  for (const [method, action] of [['startFrameSequence','render_frames'],['startShotFrameSequence','render_shot_frames']]) {
+    const start = source.indexOf(`async ${method}(`), end = source.indexOf('\n  async ', start + 10);
+    const wrapper = source.slice(start, end === -1 ? source.length : end);
+    assert.ok(wrapper.includes(`LocalBlenderRuntime.prototype._startFrameSequence.call(this, request, { action: '${action}'`),
+      `${method} must explicitly select its isolated action through the common cancellable implementation`);
+    assert.ok(!SESSION_ROUTABLE_ACTIONS.includes(action), `${action} must keep its independent cancel boundary`);
+  }
+  const frameStart = source.indexOf('async _startFrameSequence('), nextMethod = source.indexOf('\n  async ', frameStart + 10);
+  const frameSequence = source.slice(frameStart, nextMethod === -1 ? source.length : nextMethod);
+  assert.match(frameSequence, /action: selection.action/);
+  assert.doesNotMatch(frameSequence, /this\.runBootstrap\(/);
 
   // AND THE OTHER SIDE OF THE CLAIM: the routable renders are routable because nothing can cancel
   // them. `render_preview` and `render_views` await their process and return a result; if either ever

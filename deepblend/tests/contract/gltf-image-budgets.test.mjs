@@ -7,9 +7,11 @@ import { encodePng } from '@deepblend/dsh-blender-contracts';
 
 const pythonRoot = resolve(import.meta.dirname, '../../../packages/deepblend/provider-local/python');
 const script = String.raw`
-import sys,json,tempfile,base64,builtins,types,io
+import sys,json,tempfile,base64,builtins,types,io,os
 from pathlib import Path
 sys.path.insert(0,sys.argv[1]);request=json.load(sys.stdin)
+os.environ.pop('DEEPBLEND_SCENE_IMAGE_BUDGET_MIB',None)
+if 'operatorImageMiB'in request:os.environ['DEEPBLEND_SCENE_IMAGE_BUDGET_MIB']=str(request['operatorImageMiB'])
 from deepblend_gltf_images import inspect_gltf_images,DataSlice
 from deepblend_image_headers import inspect_image_header
 from deepblend_util import ActionError
@@ -118,6 +120,29 @@ test('scene estimates count repeated imports independently while caching header 
 });
 test('repeated embedded imports enforce the inclusive 1 GiB scene allocation boundary', () => {
   const f = fixture('image-data', png(8192, 8192)); assert.equal(python(scene(f)).ok, true); const result = python(scene(f, 2)); assert.equal(result.code, 'ASSET_CONTENT_MISMATCH'); assert.match(result.error, /scene images exceed/);
+});
+test('an explicit operator scene budget admits its inclusive allocation boundary without changing defaults', () => {
+  const f = fixture('image-data', png(8192, 8192)), input = scene(f, 2);
+  assert.equal(python(input).code, 'ASSET_CONTENT_MISMATCH');
+  const raised = python({ ...input, operatorImageMiB: 2048 });
+  assert.equal(raised.ok, true, JSON.stringify(raised));
+  assert.equal(raised.facts.decodedBytes, 2048 * 1024 * 1024);
+  assert.equal(python({ ...input, operatorImageMiB: 2047 }).code, 'ASSET_CONTENT_MISMATCH');
+  assert.equal(python(input).code, 'ASSET_CONTENT_MISMATCH', 'Default limit must remain one GiB');
+});
+test('scene data cannot raise the operator budget and a raised scene budget retains per-image limits', () => {
+  const f = fixture('image-data', png(8192, 8192)), input = scene(f, 2);
+  input.spec.maxSceneImageMiB = 8192;
+  assert.equal(python(input).code, 'ASSET_CONTENT_MISMATCH');
+  const oversized = scene(fixture('image-data', png(9000, 1)));
+  assert.equal(python({ ...oversized, operatorImageMiB: 8192 }).code, 'ASSET_CONTENT_MISMATCH');
+});
+test('invalid operator image budgets are refused rather than clamped or ignored', () => {
+  for (const value of [0, 15, 8193, 16.5, 'invalid', '']) {
+    const result = python({ ...scene(fixture()), operatorImageMiB: value });
+    assert.equal(result.ok, false, JSON.stringify({value,result}));
+    assert.match(result.error, /scene image budget|operator image budget/i);
+  }
 });
 test('imported and explicit environment allocations share the same scene budget', () => {
   const f = fixture('image-data', png(8192, 8192)); f.request.files['environment.png'] = b64(png()); const input = scene(f); input.spec.assets.push({ id: 'environment', type: 'png', path: 'environment.png' }); input.spec.world = { environment: { assetId: 'environment' } }; const result = python(input); assert.equal(result.code, 'ASSET_CONTENT_MISMATCH'); assert.match(result.error, /scene images exceed/);

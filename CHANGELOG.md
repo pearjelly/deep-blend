@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.0 — 2026-10-22
+
+- Document complete camera aim alternatives and return actionable recovery for nullable reads or conflicting targets, preserving strict validation and authored camera fields.
+
+- Respect authored hidden scatter-guide transforms and restore their viewport visibility after evaluation.
+- Configure a bounded cumulative scene-image budget for managed Blender processes; retain individual-image guards, defaults and explicit refusal for custom budgets on attached Blender.
+
+- Measure bounded imported asset instances as a whole and inspect their actual camera framing, including reused owned mesh parts.
+- Preserve manual border and multiview settings and refuse unsupported framing claims instead of reporting a false pass.
+- Explicitly render saved storyboard shots with `useShotCameras: true`, freezing camera selection per job and verifying actual per-frame camera identity against PNG checksums.
+- Resume shot renders safely, retain unverified frames before replacement, and preserve existing deliveries if camera evidence changes during encoding.
+- Keep legacy single-camera rendering and saved projects compatible; fix render invocation through real Harness tool and browser service contexts.
+
 ## 0.15.0 — 2026-10-18
 
 - Load both DeepBlend modes through DSH 0.2.1-rc.1's declarative preset registry while retaining the 0.1.5-rc.2 directory installation.

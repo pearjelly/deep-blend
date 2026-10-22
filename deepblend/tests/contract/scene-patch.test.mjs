@@ -309,6 +309,68 @@ checkPatchRejection(
   patchWith([{ op: 'camera.update', cameraId: 'camera-main', targetEntityId: 'watch-body', targetPoint: [0, 0, 0] }]),
   'PATCH_CAMERA_TARGET_AMBIGUOUS', 'operations[0]',
 )
+// Real case recovery: reject nullable reads and competing aim fields, but tell
+// the caller which single-field update replaces the old target without clearing
+// manual lens/pose values. No invalid input is silently normalized.
+const nullableCameraPatch = patchWith([{ op: 'camera.update', cameraId: 'camera-main',
+  targetEntityId: null, targetPoint: [2, 3, 4] }])
+const nullableCameraBefore = JSON.stringify(nullableCameraPatch)
+const nullableCameraResult = validateScenePatch(nullableCameraPatch)
+check('a nullable read target remains refused with actionable target-only recovery',
+  !nullableCameraResult.ok && nullableCameraResult.errors.some(error => error.code === 'PATCH_SCHEMA_INVALID')
+    && nullableCameraResult.summary.includes('targetPoint alone')
+    && nullableCameraResult.summary.includes('clearTarget: true')
+    && JSON.stringify(nullableCameraPatch) === nullableCameraBefore,
+  nullableCameraResult.summary)
+const competingCameraResult = validateScenePatch(patchWith([{ op: 'camera.update', cameraId: 'camera-main',
+  targetEntityId: 'watch-body', targetPoint: [2, 3, 4] }]))
+check('competing camera targets stay refused and explain automatic replacement',
+  !competingCameraResult.ok
+    && competingCameraResult.errors.some(error => error.code === 'PATCH_CAMERA_TARGET_AMBIGUOUS')
+    && competingCameraResult.summary.includes('targetPoint alone')
+    && competingCameraResult.summary.includes('replaces the previous target'), competingCameraResult.summary)
+const aimingBase = compiledFixture()
+const manualCamera = aimingBase.cameras.find(camera => camera.id === 'camera-main')
+const pointAim = runPatch([{ op: 'camera.update', cameraId: 'camera-main', targetPoint: [2, 3, 4] }], { spec: aimingBase })
+const pointCamera = pointAim.next?.cameras.find(camera => camera.id === 'camera-main')
+check('a target point alone replaces entity aim while retaining manual lens and pose',
+  !pointAim.error && pointAim.specUnchanged && pointAim.patchUnchanged
+    && pointCamera.targetEntityId === undefined
+    && JSON.stringify(pointCamera.targetPoint) === '[2,3,4]'
+    && pointCamera.lens === manualCamera.lens
+    && JSON.stringify(pointCamera.transform) === JSON.stringify(manualCamera.transform))
+const entityAim = runPatch([{ op: 'camera.update', cameraId: 'camera-main', targetEntityId: 'watch-dial' }], { spec: pointAim.next })
+const entityCamera = entityAim.next?.cameras.find(camera => camera.id === 'camera-main')
+check('an entity target alone replaces point aim without clearing other camera fields',
+  !entityAim.error && entityAim.specUnchanged && entityAim.patchUnchanged
+    && entityCamera.targetPoint === undefined && entityCamera.targetEntityId === 'watch-dial'
+    && entityCamera.lens === manualCamera.lens
+    && JSON.stringify(entityCamera.transform) === JSON.stringify(manualCamera.transform))
+const freeAim = runPatch([{ op: 'camera.update', cameraId: 'camera-main', clearTarget: true }], { spec: pointAim.next })
+const freeCamera = freeAim.next?.cameras.find(camera => camera.id === 'camera-main')
+check('clearTarget true alone removes aim while keeping authored pose and lens',
+  !freeAim.error && freeAim.specUnchanged && freeAim.patchUnchanged
+    && freeCamera.targetPoint === undefined && freeCamera.targetEntityId === undefined
+    && freeCamera.lens === manualCamera.lens
+    && JSON.stringify(freeCamera.transform) === JSON.stringify(manualCamera.transform))
+const temporaryAim = runPatch([
+  { op: 'entity.add', entity: { id: 'temporary-aim', type: 'generator', generator: { shape: 'cube', size: .1 } } },
+  { op: 'camera.update', cameraId: 'camera-main', targetEntityId: 'temporary-aim' },
+])
+const earlyRemoval = runPatch([
+  { op: 'entity.remove', entityId: 'temporary-aim' },
+  { op: 'camera.update', cameraId: 'camera-main', targetPoint: [2, 3, 4] },
+], { spec: temporaryAim.next })
+check('deleting an entity before detaching its camera is still an atomic refusal',
+  earlyRemoval.errorCode === 'PATCH_TARGET_IN_USE' && earlyRemoval.specUnchanged && earlyRemoval.patchUnchanged)
+const orderedRemoval = runPatch([
+  { op: 'camera.update', cameraId: 'camera-main', targetPoint: [2, 3, 4] },
+  { op: 'entity.remove', entityId: 'temporary-aim' },
+], { spec: temporaryAim.next })
+check('retargeting before entity deletion succeeds without mutating the old scene',
+  !orderedRemoval.error && orderedRemoval.specUnchanged && orderedRemoval.patchUnchanged
+    && !orderedRemoval.next.entities.some(entity => entity.id === 'temporary-aim'))
+
 checkPatchRejection(
   'an operation carrying an id that breaks the id grammar',
   patchWith([{ op: 'entity.visibility.set', entityId: '9bad id', visible: true }]),
@@ -1134,7 +1196,7 @@ check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
     resolve(import.meta.dirname, '..', '..', '..', 'packages', 'deepblend', 'tool', 'lib', 'tools.js'), 'utf8',
   )
   const summaryBlock = /const OPERATION_SUMMARY = \[([\s\S]*?)\]\.join/.exec(toolSource)?.[1] ?? ''
-  const summarised = [...summaryBlock.matchAll(/^\s*'([a-z][a-zA-Z.]*\.[a-zA-Z.]+)\s/gm)].map(match => match[1])
+  const summarised = [...summaryBlock.matchAll(/^\s*['"`]([a-z][a-zA-Z.]*\.[a-zA-Z.]+)\s/gm)].map(match => match[1])
   check('the tool description summarises EVERY operation in the vocabulary, and invents none',
     summarised.length > 0 &&
     JSON.stringify([...summarised].sort()) === JSON.stringify([...SCENE_OPERATION_NAMES].sort()),

@@ -110,6 +110,7 @@ export function buildDeliveryManifest(input) {
       defaultConfig: record.renderConfig ?? null,
       provenance: input.provenance ?? null,
       cameraId: record.cameraId ?? null,
+      ...(record.cameraSelection === undefined ? {} : { cameraSelection: structuredClone(record.cameraSelection) }),
       meanMsPerFrame: record.meanMsPerFrame ?? null,
       renderDurationMs: record.renderDurationMs ?? null,
       blender: input.runtimeIdentity ?? null,
