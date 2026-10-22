@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T10:34:04.867726+00:00",
+  "title": "Design System: DeepBlend Studio",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Studio Cobalt",
+        "tonalRamp": [
+          "oklch(15.0% 0.1785 263.01)",
+          "oklch(26.4% 0.1785 263.01)",
+          "oklch(37.9% 0.1785 263.01)",
+          "oklch(49.3% 0.1785 263.01)",
+          "oklch(60.7% 0.1785 263.01)",
+          "oklch(72.1% 0.1785 263.01)",
+          "oklch(83.6% 0.1785 263.01)",
+          "oklch(95.0% 0.1785 263.01)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Cobalt Wash",
+        "tonalRamp": [
+          "oklch(15.0% 0.0199 267.29)",
+          "oklch(26.4% 0.0199 267.29)",
+          "oklch(37.9% 0.0199 267.29)",
+          "oklch(49.3% 0.0199 267.29)",
+          "oklch(60.7% 0.0199 267.29)",
+          "oklch(72.1% 0.0199 267.29)",
+          "oklch(83.6% 0.0199 267.29)",
+          "oklch(95.0% 0.0199 267.29)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Studio Canvas",
+        "tonalRamp": [
+          "oklch(15.0% 0.0057 264.53)",
+          "oklch(26.4% 0.0057 264.53)",
+          "oklch(37.9% 0.0057 264.53)",
+          "oklch(49.3% 0.0057 264.53)",
+          "oklch(60.7% 0.0057 264.53)",
+          "oklch(72.1% 0.0057 264.53)",
+          "oklch(83.6% 0.0057 264.53)",
+          "oklch(95.0% 0.0057 264.53)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper Surface",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.00)",
+          "oklch(26.4% 0.0000 0.00)",
+          "oklch(37.9% 0.0000 0.00)",
+          "oklch(49.3% 0.0000 0.00)",
+          "oklch(60.7% 0.0000 0.00)",
+          "oklch(72.1% 0.0000 0.00)",
+          "oklch(83.6% 0.0000 0.00)",
+          "oklch(95.0% 0.0000 0.00)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Plane Edge",
+        "tonalRamp": [
+          "oklch(15.0% 0.0151 260.73)",
+          "oklch(26.4% 0.0151 260.73)",
+          "oklch(37.9% 0.0151 260.73)",
+          "oklch(49.3% 0.0151 260.73)",
+          "oklch(60.7% 0.0151 260.73)",
+          "oklch(72.1% 0.0151 260.73)",
+          "oklch(83.6% 0.0151 260.73)",
+          "oklch(95.0% 0.0151 260.73)"
+        ]
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Image Mat",
+        "tonalRamp": [
+          "oklch(15.0% 0.0091 258.34)",
+          "oklch(26.4% 0.0091 258.34)",
+          "oklch(37.9% 0.0091 258.34)",
+          "oklch(49.3% 0.0091 258.34)",
+          "oklch(60.7% 0.0091 258.34)",
+          "oklch(72.1% 0.0091 258.34)",
+          "oklch(83.6% 0.0091 258.34)",
+          "oklch(95.0% 0.0091 258.34)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "tonalRamp": [
+          "oklch(15.0% 0.0184 262.18)",
+          "oklch(26.4% 0.0184 262.18)",
+          "oklch(37.9% 0.0184 262.18)",
+          "oklch(49.3% 0.0184 262.18)",
+          "oklch(60.7% 0.0184 262.18)",
+          "oklch(72.1% 0.0184 262.18)",
+          "oklch(83.6% 0.0184 262.18)",
+          "oklch(95.0% 0.0184 262.18)"
+        ]
+      },
+      "subtle": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "tonalRamp": [
+          "oklch(15.0% 0.0380 255.72)",
+          "oklch(26.4% 0.0380 255.72)",
+          "oklch(37.9% 0.0380 255.72)",
+          "oklch(49.3% 0.0380 255.72)",
+          "oklch(60.7% 0.0380 255.72)",
+          "oklch(72.1% 0.0380 255.72)",
+          "oklch(83.6% 0.0380 255.72)",
+          "oklch(95.0% 0.0380 255.72)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Source Slate",
+        "tonalRamp": [
+          "oklch(15.0% 0.0382 256.82)",
+          "oklch(26.4% 0.0382 256.82)",
+          "oklch(37.9% 0.0382 256.82)",
+          "oklch(49.3% 0.0382 256.82)",
+          "oklch(60.7% 0.0382 256.82)",
+          "oklch(72.1% 0.0382 256.82)",
+          "oklch(83.6% 0.0382 256.82)",
+          "oklch(95.0% 0.0382 256.82)"
+        ]
+      },
+      "input-border": {
+        "role": "neutral",
+        "displayName": "Field Edge",
+        "tonalRamp": [
+          "oklch(15.0% 0.0327 256.06)",
+          "oklch(26.4% 0.0327 256.06)",
+          "oklch(37.9% 0.0327 256.06)",
+          "oklch(49.3% 0.0327 256.06)",
+          "oklch(60.7% 0.0327 256.06)",
+          "oklch(72.1% 0.0327 256.06)",
+          "oklch(83.6% 0.0327 256.06)",
+          "oklch(95.0% 0.0327 256.06)"
+        ]
+      },
+      "good": {
+        "role": "neutral",
+        "displayName": "Success Green",
+        "tonalRamp": [
+          "oklch(15.0% 0.0931 160.52)",
+          "oklch(26.4% 0.0931 160.52)",
+          "oklch(37.9% 0.0931 160.52)",
+          "oklch(49.3% 0.0931 160.52)",
+          "oklch(60.7% 0.0931 160.52)",
+          "oklch(72.1% 0.0931 160.52)",
+          "oklch(83.6% 0.0931 160.52)",
+          "oklch(95.0% 0.0931 160.52)"
+        ]
+      },
+      "warn": {
+        "role": "neutral",
+        "displayName": "Caution Ochre",
+        "tonalRamp": [
+          "oklch(15.0% 0.1114 72.49)",
+          "oklch(26.4% 0.1114 72.49)",
+          "oklch(37.9% 0.1114 72.49)",
+          "oklch(49.3% 0.1114 72.49)",
+          "oklch(60.7% 0.1114 72.49)",
+          "oklch(72.1% 0.1114 72.49)",
+          "oklch(83.6% 0.1114 72.49)",
+          "oklch(95.0% 0.1114 72.49)"
+        ]
+      },
+      "bad": {
+        "role": "neutral",
+        "displayName": "Error Rose",
+        "tonalRamp": [
+          "oklch(15.0% 0.1637 20.25)",
+          "oklch(26.4% 0.1637 20.25)",
+          "oklch(37.9% 0.1637 20.25)",
+          "oklch(49.3% 0.1637 20.25)",
+          "oklch(60.7% 0.1637 20.25)",
+          "oklch(72.1% 0.1637 20.25)",
+          "oklch(83.6% 0.1637 20.25)",
+          "oklch(95.0% 0.1637 20.25)"
+        ]
+      },
+      "primary-text": {
+        "role": "primary",
+        "displayName": "Primary Action Ink",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.00)",
+          "oklch(26.4% 0.0000 0.00)",
+          "oklch(37.9% 0.0000 0.00)",
+          "oklch(49.3% 0.0000 0.00)",
+          "oklch(60.7% 0.0000 0.00)",
+          "oklch(72.1% 0.0000 0.00)",
+          "oklch(83.6% 0.0000 0.00)",
+          "oklch(95.0% 0.0000 0.00)"
+        ]
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Dark Studio Cobalt",
+        "tonalRamp": [
+          "oklch(15.0% 0.1106 265.75)",
+          "oklch(26.4% 0.1106 265.75)",
+          "oklch(37.9% 0.1106 265.75)",
+          "oklch(49.3% 0.1106 265.75)",
+          "oklch(60.7% 0.1106 265.75)",
+          "oklch(72.1% 0.1106 265.75)",
+          "oklch(83.6% 0.1106 265.75)",
+          "oklch(95.0% 0.1106 265.75)"
+        ]
+      },
+      "dark-accent-soft": {
+        "role": "primary",
+        "displayName": "Dark Cobalt Wash",
+        "tonalRamp": [
+          "oklch(15.0% 0.0733 261.90)",
+          "oklch(26.4% 0.0733 261.90)",
+          "oklch(37.9% 0.0733 261.90)",
+          "oklch(49.3% 0.0733 261.90)",
+          "oklch(60.7% 0.0733 261.90)",
+          "oklch(72.1% 0.0733 261.90)",
+          "oklch(83.6% 0.0733 261.90)",
+          "oklch(95.0% 0.0733 261.90)"
+        ]
+      },
+      "dark-canvas": {
+        "role": "neutral",
+        "displayName": "Dark Studio Canvas",
+        "tonalRamp": [
+          "oklch(15.0% 0.0180 259.71)",
+          "oklch(26.4% 0.0180 259.71)",
+          "oklch(37.9% 0.0180 259.71)",
+          "oklch(49.3% 0.0180 259.71)",
+          "oklch(60.7% 0.0180 259.71)",
+          "oklch(72.1% 0.0180 259.71)",
+          "oklch(83.6% 0.0180 259.71)",
+          "oklch(95.0% 0.0180 259.71)"
+        ]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Dark Paper Surface",
+        "tonalRamp": [
+          "oklch(15.0% 0.0258 258.33)",
+          "oklch(26.4% 0.0258 258.33)",
+          "oklch(37.9% 0.0258 258.33)",
+          "oklch(49.3% 0.0258 258.33)",
+          "oklch(60.7% 0.0258 258.33)",
+          "oklch(72.1% 0.0258 258.33)",
+          "oklch(83.6% 0.0258 258.33)",
+          "oklch(95.0% 0.0258 258.33)"
+        ]
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Dark Plane Edge",
+        "tonalRamp": [
+          "oklch(15.0% 0.0392 257.29)",
+          "oklch(26.4% 0.0392 257.29)",
+          "oklch(37.9% 0.0392 257.29)",
+          "oklch(49.3% 0.0392 257.29)",
+          "oklch(60.7% 0.0392 257.29)",
+          "oklch(72.1% 0.0392 257.29)",
+          "oklch(83.6% 0.0392 257.29)",
+          "oklch(95.0% 0.0392 257.29)"
+        ]
+      },
+      "dark-fill": {
+        "role": "neutral",
+        "displayName": "Dark Image Mat",
+        "tonalRamp": [
+          "oklch(15.0% 0.0349 257.11)",
+          "oklch(26.4% 0.0349 257.11)",
+          "oklch(37.9% 0.0349 257.11)",
+          "oklch(49.3% 0.0349 257.11)",
+          "oklch(60.7% 0.0349 257.11)",
+          "oklch(72.1% 0.0349 257.11)",
+          "oklch(83.6% 0.0349 257.11)",
+          "oklch(95.0% 0.0349 257.11)"
+        ]
+      },
+      "dark-text": {
+        "role": "neutral",
+        "displayName": "Dark Graphite",
+        "tonalRamp": [
+          "oklch(15.0% 0.0097 252.81)",
+          "oklch(26.4% 0.0097 252.81)",
+          "oklch(37.9% 0.0097 252.81)",
+          "oklch(49.3% 0.0097 252.81)",
+          "oklch(60.7% 0.0097 252.81)",
+          "oklch(72.1% 0.0097 252.81)",
+          "oklch(83.6% 0.0097 252.81)",
+          "oklch(95.0% 0.0097 252.81)"
+        ]
+      },
+      "dark-subtle": {
+        "role": "neutral",
+        "displayName": "Dark Slate",
+        "tonalRamp": [
+          "oklch(15.0% 0.0224 256.74)",
+          "oklch(26.4% 0.0224 256.74)",
+          "oklch(37.9% 0.0224 256.74)",
+          "oklch(49.3% 0.0224 256.74)",
+          "oklch(60.7% 0.0224 256.74)",
+          "oklch(72.1% 0.0224 256.74)",
+          "oklch(83.6% 0.0224 256.74)",
+          "oklch(95.0% 0.0224 256.74)"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Source Slate",
+        "tonalRamp": [
+          "oklch(15.0% 0.0298 256.51)",
+          "oklch(26.4% 0.0298 256.51)",
+          "oklch(37.9% 0.0298 256.51)",
+          "oklch(49.3% 0.0298 256.51)",
+          "oklch(60.7% 0.0298 256.51)",
+          "oklch(72.1% 0.0298 256.51)",
+          "oklch(83.6% 0.0298 256.51)",
+          "oklch(95.0% 0.0298 256.51)"
+        ]
+      },
+      "dark-input-border": {
+        "role": "neutral",
+        "displayName": "Dark Field Edge",
+        "tonalRamp": [
+          "oklch(15.0% 0.0481 260.32)",
+          "oklch(26.4% 0.0481 260.32)",
+          "oklch(37.9% 0.0481 260.32)",
+          "oklch(49.3% 0.0481 260.32)",
+          "oklch(60.7% 0.0481 260.32)",
+          "oklch(72.1% 0.0481 260.32)",
+          "oklch(83.6% 0.0481 260.32)",
+          "oklch(95.0% 0.0481 260.32)"
+        ]
+      },
+      "dark-good": {
+        "role": "neutral",
+        "displayName": "Dark Success Green",
+        "tonalRamp": [
+          "oklch(15.0% 0.1007 161.02)",
+          "oklch(26.4% 0.1007 161.02)",
+          "oklch(37.9% 0.1007 161.02)",
+          "oklch(49.3% 0.1007 161.02)",
+          "oklch(60.7% 0.1007 161.02)",
+          "oklch(72.1% 0.1007 161.02)",
+          "oklch(83.6% 0.1007 161.02)",
+          "oklch(95.0% 0.1007 161.02)"
+        ]
+      },
+      "dark-warn": {
+        "role": "neutral",
+        "displayName": "Dark Caution Ochre",
+        "tonalRamp": [
+          "oklch(15.0% 0.1082 75.25)",
+          "oklch(26.4% 0.1082 75.25)",
+          "oklch(37.9% 0.1082 75.25)",
+          "oklch(49.3% 0.1082 75.25)",
+          "oklch(60.7% 0.1082 75.25)",
+          "oklch(72.1% 0.1082 75.25)",
+          "oklch(83.6% 0.1082 75.25)",
+          "oklch(95.0% 0.1082 75.25)"
+        ]
+      },
+      "dark-bad": {
+        "role": "neutral",
+        "displayName": "Dark Error Rose",
+        "tonalRamp": [
+          "oklch(15.0% 0.1250 17.24)",
+          "oklch(26.4% 0.1250 17.24)",
+          "oklch(37.9% 0.1250 17.24)",
+          "oklch(49.3% 0.1250 17.24)",
+          "oklch(60.7% 0.1250 17.24)",
+          "oklch(72.1% 0.1250 17.24)",
+          "oklch(83.6% 0.1250 17.24)",
+          "oklch(95.0% 0.1250 17.24)"
+        ]
+      },
+      "dark-primary-text": {
+        "role": "primary",
+        "displayName": "Dark Primary Action Ink",
+        "tonalRamp": [
+          "oklch(15.0% 0.0528 263.02)",
+          "oklch(26.4% 0.0528 263.02)",
+          "oklch(37.9% 0.0528 263.02)",
+          "oklch(49.3% 0.0528 263.02)",
+          "oklch(60.7% 0.0528 263.02)",
+          "oklch(72.1% 0.0528 263.02)",
+          "oklch(83.6% 0.0528 263.02)",
+          "oklch(95.0% 0.0528 263.02)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "New-work heading; 25px on narrow surfaces."
+      },
+      "result-title": {
+        "displayName": "Result Title",
+        "purpose": "Current project title; 19px on narrow surfaces."
+      },
+      "context-title": {
+        "displayName": "Context Title",
+        "purpose": "Contextual tools heading."
+      },
+      "brand-title": {
+        "displayName": "Brand Title",
+        "purpose": "Compact product identity."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Interface prose and ordinary fields."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Action controls, with primary weight supplied by the component."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Source captions and supporting controls."
+      },
+      "badge": {
+        "displayName": "Badge",
+        "purpose": "Compact status and filmstrip captions."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Technical blocks and artifact details."
+      }
+    },
+    "shadows": [
+      {
+        "name": "legacy-editor-upward",
+        "value": "0 -5px 18px #00000008",
+        "purpose": "Existing non-contextual editor action bar only; overridden to none in the lighttable context. Not a new elevation scale."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "180ms ease-out",
+        "purpose": "Button background/border and filmstrip border/background; removed by reduced-motion preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1000px"
+      },
+      {
+        "name": "single-column-lighttable",
+        "value": "760px"
+      },
+      {
+        "name": "legacy-scene-stack",
+        "value": "700px"
+      },
+      {
+        "name": "single-recipe",
+        "value": "440px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Filled action retains its resting accent background and theme-specific action ink on hover.",
+      "html": "<button class=\"ds-button-primary\">创建并预览</button>",
+      "css": ".ds-button-primary{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--db-fill,#edf1f7);border:1px solid var(--db-border,#d8dee8);border-radius:6px;color:var(--db-text,#20252e);font-size:13px;line-height:1.4;min-height:36px;padding:6px 12px;cursor:pointer;transition:background 180ms ease-out,border-color 180ms ease-out;background:var(--db-accent,#295bc8);border-color:transparent;color:#fff;color:light-dark(#fff,#14213b);font-weight:650;}.ds-button-primary:hover:not(:disabled){border-color:transparent;background:var(--db-accent,#295bc8)}.ds-button-primary:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-button-primary:active:not(:disabled){filter:brightness(.95)}.ds-button-primary:disabled{opacity:.48;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}}@media(pointer:coarse){.ds-button-primary{min-height:44px}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Compact action using the shipped surface and semantic state.",
+      "html": "<button class=\"ds-button-secondary\">刷新</button>",
+      "css": ".ds-button-secondary{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--db-fill,#edf1f7);border:1px solid var(--db-border,#d8dee8);border-radius:6px;color:var(--db-text,#20252e);font-size:13px;line-height:1.4;min-height:36px;padding:6px 12px;cursor:pointer;transition:background 180ms ease-out,border-color 180ms ease-out;}.ds-button-secondary:hover:not(:disabled){border-color:var(--db-accent,#295bc8);background:var(--db-accent-soft,#e8eefc)}.ds-button-secondary:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-button-secondary:active:not(:disabled){filter:brightness(.95)}.ds-button-secondary:disabled{opacity:.48;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none}}@media(pointer:coarse){.ds-button-secondary{min-height:44px}}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Compact action using the shipped surface and semantic state.",
+      "html": "<button class=\"ds-button-danger\">取消任务</button>",
+      "css": ".ds-button-danger{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--db-fill,#edf1f7);border:1px solid var(--db-border,#d8dee8);border-radius:6px;color:var(--db-text,#20252e);font-size:13px;line-height:1.4;min-height:36px;padding:6px 12px;cursor:pointer;transition:background 180ms ease-out,border-color 180ms ease-out;color:var(--db-bad,#b0303c);}.ds-button-danger:hover:not(:disabled){border-color:var(--db-accent,#295bc8);background:var(--db-accent-soft,#e8eefc)}.ds-button-danger:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-button-danger:active:not(:disabled){filter:brightness(.95)}.ds-button-danger:disabled{opacity:.48;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-danger{transition:none}}@media(pointer:coarse){.ds-button-danger{min-height:44px}}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "An ordinary named field, with hover, invalid, disabled and focus treatments.",
+      "html": "<label class=\"ds-field\">作品名称<input class=\"ds-input\" value=\"陶瓷杯\" /></label>",
+      "css": ".ds-field{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:550;color:var(--db-text,#20252e)}.ds-input{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);background:var(--db-surface,#fff);border:1px solid var(--db-input-border,#8492a5);border-radius:6px;color:inherit;font-size:14px;font-weight:400;min-height:38px;padding:7px 10px;width:100%}.ds-input:hover{border-color:var(--db-muted,#58677c)}.ds-input:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-input[aria-invalid=true]{border-color:var(--db-bad,#b0303c)}.ds-input:disabled{opacity:.55;background:var(--db-fill,#edf1f7);cursor:not-allowed}@media(pointer:coarse){.ds-input{min-height:44px}}"
+    },
+    {
+      "name": "Task Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "Underline destinations with a secondary versions/QA group.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"工作导航\"><div class=\"ds-journey\"><button class=\"ds-nav-item\">需求</button><button class=\"ds-nav-item\" aria-current=\"page\">结果</button><button class=\"ds-nav-item\">调整</button><button class=\"ds-nav-item\">导出</button></div><div class=\"ds-secondary\"><button class=\"ds-nav-item\">版本</button><button class=\"ds-nav-item\">QA</button></div></nav>",
+      "css": ".ds-nav{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:flex;gap:24px;align-items:center;justify-content:space-between;overflow:auto;background:var(--db-surface,#fff);border-bottom:1px solid var(--db-border,#d8dee8);padding:0 24px}.ds-journey,.ds-secondary{display:flex;gap:4px}.ds-nav-item{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--db-subtle,#47566a);cursor:pointer;min-height:46px;padding:10px 18px;font-size:13px;white-space:nowrap}.ds-secondary .ds-nav-item{color:var(--db-muted,#58677c);font-size:12px;padding:10px}.ds-nav-item:hover{background:var(--db-fill,#edf1f7);color:var(--db-text,#20252e)}.ds-nav-item[aria-current=page]{background:transparent;border-color:var(--db-accent,#295bc8);color:var(--db-accent,#295bc8);font-weight:650}.ds-nav-item:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-nav-item:disabled{opacity:.42;cursor:not-allowed}@media(max-width:760px){.ds-nav{gap:8px;padding-inline:16px}.ds-nav-item{padding:9px 12px;min-height:42px}}@media(pointer:coarse){.ds-nav-item{min-height:44px}}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "A semantic outlined status, not an interactive destination.",
+      "html": "<span class=\"ds-badge\" data-tone=\"warn\">有未保存的修改</span>",
+      "css": ".ds-badge{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:inline-flex;align-items:center;border-radius:5px;font-size:11px;line-height:18px;padding:2px 7px;border:1px solid var(--db-border,#d8dee8);color:var(--db-subtle,#47566a);white-space:nowrap}.ds-badge[data-tone=warn]{color:var(--db-warn,#946109);border-color:currentColor}.ds-badge[data-tone=ok]{color:var(--db-good,#23704e);border-color:currentColor}.ds-badge[data-tone=bad]{color:var(--db-bad,#b0303c);border-color:currentColor}"
+    },
+    {
+      "name": "Standalone Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A flat bordered container; contextual sections use the divider variant.",
+      "html": "<section class=\"ds-card\"><h4 class=\"ds-card-title\">预览设置</h4><p class=\"ds-card-copy\">保存的结果保留来源版本。</p></section>",
+      "css": ".ds-card{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);background:var(--db-surface,#fff);color:var(--db-text,#20252e);border:1px solid var(--db-border,#d8dee8);border-radius:8px;padding:16px 18px;box-shadow:none}.ds-card-title{margin:0 0 12px;font-size:14px;font-weight:650}.ds-card-copy{margin:8px 0 12px;font-size:14px;line-height:1.55}"
+    },
+    {
+      "name": "Saved-Result Frame",
+      "kind": "custom",
+      "refersTo": "film-frame",
+      "description": "The actual missing-preview variant of the source-bound filmstrip frame.",
+      "html": "<button class=\"ds-frame\" aria-pressed=\"true\"><span class=\"ds-frame-empty\">暂无图像</span><span class=\"ds-frame-caption\"><span>r0002</span><span>当前</span></span></button>",
+      "css": ".ds-frame{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:flex;flex-direction:column;width:110px;min-width:0;background:transparent;border:1px solid transparent;border-radius:5px;padding:4px;cursor:pointer;color:var(--db-muted,#58677c);text-align:left;transition:border-color 180ms ease-out,background-color 180ms ease-out}.ds-frame-empty{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;border-radius:3px;background:var(--db-fill,#edf1f7);font-size:10px;text-align:center;padding:6px}.ds-frame-caption{display:flex;gap:4px;justify-content:space-between;font-size:11px;padding-top:5px;flex-wrap:wrap}.ds-frame:hover{background:var(--db-surface,#fff)}.ds-frame[aria-pressed=true]{border-color:var(--db-accent,#295bc8);color:var(--db-accent,#295bc8);background:var(--db-surface,#fff)}.ds-frame:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-frame{transition:none}}"
+    },
+    {
+      "name": "Tool Disclosure",
+      "kind": "custom",
+      "refersTo": "disclosure",
+      "description": "Native in-place disclosure; application code supplies scoped persistent state.",
+      "html": "<details class=\"ds-disclosure\"><summary class=\"ds-summary\">摄影设置</summary><p class=\"ds-disclosure-copy\">相机与来源版本</p></details>",
+      "css": ".ds-disclosure{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);border-top:1px solid var(--db-border,#d8dee8);padding-top:8px;margin-top:16px;color:var(--db-text,#20252e);font-size:14px;line-height:1.55}.ds-summary{cursor:pointer;min-height:34px;padding:6px 0;font-weight:550;color:var(--db-subtle,#47566a)}.ds-disclosure[open]>.ds-summary{margin-bottom:8px;color:var(--db-text,#20252e)}.ds-summary:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}.ds-disclosure-copy{font-size:12px;color:var(--db-muted,#58677c)}@media(pointer:coarse){.ds-summary{min-height:44px}}"
+    },
+    {
+      "name": "Text Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Borderless compact action used within tools.",
+      "html": "<button class=\"ds-chip\">查看详情</button>",
+      "css": ".ds-chip{font-family:var(--dsw-font-sans,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;border-radius:7px;color:var(--db-subtle,#47566a);cursor:pointer;font-size:12px;padding:6px 8px}.ds-chip:hover{background:var(--db-fill,#edf1f7);color:var(--db-text,#20252e)}.ds-chip:focus-visible{outline:2px solid var(--db-accent,#295bc8);outline-offset:3px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "光台 / The Lighttable",
+    "overview": "光台 places real work on a quiet studio surface. Cool neutral planes, graphite text and cobalt selection keep model imagery legible; the existing orange DeepBlend mark remains a small identity asset rather than becoming the interface accent.\n\nThis is an operational workbench with compact controls and readable source captions. Borders, tonal mats and restrained rounding provide order. System, light and dark preferences remain authoritative, and the same composition responds to the available app or embedded-panel width.",
+    "keyCharacteristics": [
+      "Real imagery and visible source identity.",
+      "Flat planes with precise cobalt selection.",
+      "Compact system typography and tabular numerals.",
+      "Contextual controls with persistent disclosure."
+    ],
+    "rules": [
+      {
+        "name": "The Source-Bound Frame Rule",
+        "body": "Keep the selected image, saved revision caption and valid actions bound to the same result; distinguish the selected revision from the current revision.",
+        "section": "colors"
+      },
+      {
+        "name": "The Operational Type Rule",
+        "body": "Use the system sans stack for controls and task headings; reserve the mono stack for technical values and code.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Lighttable Rule",
+        "body": "Keep the primary stage and contextual tool sections flat; use tonal fills, thin borders and explicit selection outlines to establish hierarchy.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the theme-specific accent for selection, focus and primary action.",
+      "Do retain source captions, selected/current distinction and explicit empty or unsupported states.",
+      "Do keep the current result contained within its mat and use cropped thumbnails only in the filmstrip.",
+      "Do preserve keyboard focus, scoped disclosure state, reduced motion and larger coarse-pointer targets.",
+      "Do keep creation controls reachable after choosing a recipe or blank start, while preserving per-recipe drafts.",
+      "Do reveal the actual destination when following a creation guide or selecting a camera or light.",
+      "Do keep save feedback visible and show the requested project as loading until its source is ready."
+    ],
+    "donts": [
+      "Don't replace user-selected light, dark or system appearance with a fixed palette.",
+      "Don't introduce decorative entrance choreography into the lighttable.",
+      "Don't present an optional project goal as an executable model-generation endpoint.",
+      "Don't detach download or export controls from their actual image, project and saved revision."
+    ]
+  }
+}

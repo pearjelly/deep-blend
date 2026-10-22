@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-transaction.js'
 import { Browser } from '../../tools/browser-driver.mjs'
+import { revealWorkbenchControl } from './workbench-navigation.mjs'
 import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
 import { writeAssetUploadFixtures } from '../lib/asset-upload-fixtures.mjs'
 
@@ -54,6 +55,7 @@ async function api(route) {
 const inventory = async () => (await api(`/deepblend/projects/${projectId}/assets`)).assets
 const idle = () => page.waitFor('!document.querySelector("[data-field=asset-bundle-files]")?.disabled&&!document.querySelector("[data-asset-bundle-progress]")', 30000)
 async function pointer(selector) {
+  await revealWorkbenchControl(page, selector)
   await page.waitFor(`(()=>{const n=document.querySelector(${JSON.stringify(selector)});return n&&!n.disabled})()`)
   const click = await page.click(selector); record('actions.jsonl', { stage, selector, ...click })
   check(`${stage}: ${selector} receives a real pointer`, click.via === 'pointer')
@@ -222,8 +224,8 @@ async function verifyPickerContexts() {
   stage = 'picker-cross-project-late'
   const old = await openFilePicker('asset-bundle-directory')
   const mark = await page.evaluate('window.__uploadAudit.requests.length')
-  await pointer('[data-view-tab=projects]'); await pointer(`[data-action="select-project:${pickerProjectId}"]`)
-  await page.waitFor(`Boolean(document.querySelector('[data-brief-project="${pickerProjectId}"]'))`)
+  await pointer('[data-action=new-work]'); await pointer(`[data-action="select-project:${pickerProjectId}"]`)
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value===${JSON.stringify(pickerProjectId)}`)
   await pointer('[data-view-tab=scene]'); await pointer('[data-action=assets-open]')
   await page.waitFor(`Boolean(document.querySelector('[data-assets-library="${pickerProjectId}"] [data-asset-bundle-picker]'))`)
   await page.send('DOM.setFileInputFiles', { objectId: old.objectId, files: [join(sources, 'obj')] })
@@ -231,8 +233,8 @@ async function verifyPickerContexts() {
   const late = await page.evaluate(`window.__uploadAudit.fileEvents.find(e=>e.kind==='target-event'&&e.type==='input'&&e.node.uid===${old.identity.uid})`)
   check('a trusted late FileList from the detached old input cannot become the new project selection', late.trusted && !late.node.connected && !await page.count('[data-field=asset-bundle-entrypoint]'), late)
   await capture('00-other-project-rejects-late-selection', '[data-asset-bundle-picker]')
-  await pointer('[data-view-tab=projects]'); await pointer(`[data-action="select-project:${projectId}"]`)
-  await page.waitFor(`Boolean(document.querySelector('[data-brief-project="${projectId}"]'))`); await pointer('[data-view-tab=scene]')
+  await pointer('[data-action=new-work]'); await pointer(`[data-action="select-project:${projectId}"]`)
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value===${JSON.stringify(projectId)}`); await pointer('[data-view-tab=scene]')
   await page.waitFor('Boolean(document.querySelector("[data-asset-bundle-picker]"))')
   const events = await page.evaluate('window.__uploadAudit.fileEvents.length')
   await page.send('DOM.setFileInputFiles', { objectId: old.objectId, files: [join(sources, 'glb')] })
@@ -492,7 +494,7 @@ try {
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000)
   await verifyServedClient()
-  stage = 'open-library'; await pointer('[data-view-tab=projects]'); await pointer(`[data-action="select-project:${projectId}"]`); await page.waitFor(`Boolean(document.querySelector('[data-brief-project="${projectId}"]'))`); await pointer('[data-view-tab=scene]'); await pointer('[data-action=assets-open]')
+  stage = 'open-library'; await pointer('[data-action=new-work]'); await pointer(`[data-action="select-project:${projectId}"]`); await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value===${JSON.stringify(projectId)}`); await pointer('[data-view-tab=scene]'); await pointer('[data-action=assets-open]')
   await page.waitFor('document.querySelector("[data-asset-bundle-picker]")!==null')
   await verifyPickerContexts()
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })

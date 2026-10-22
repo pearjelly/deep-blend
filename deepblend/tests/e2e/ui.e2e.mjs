@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { revealWorkbenchControl } from './workbench-navigation.mjs'
 /**
  * M4 acceptance, in a real browser, against a real `dsh web` and a real Blender.
  *
@@ -210,7 +211,7 @@ try {
   await page.waitFor('document.querySelector("[data-deepblend-panel=deepblend]") !== null', 15000)
   check('the workbench panel opens in the main column', await page.count('[data-deepblend-panel=deepblend]') === 1)
   check('the panel offers the six M4 views',
-    (await page.attributes('[data-view-tab]', 'data-view-tab')).join(',') === 'projects,scene,preview,jobs,qa,revisions',
+    (await page.attributes('[data-view-tab]', 'data-view-tab')).join(',') === 'projects,preview,scene,jobs,revisions,qa',
     await page.attributes('[data-view-tab]', 'data-view-tab'))
   await page.waitFor(`document.querySelector('[data-view="projects"]') !== null`, 20000)
   await page.waitFor(`document.querySelector('[data-action="create-project"]') !== null`, 20000)
@@ -240,14 +241,15 @@ try {
   check('and the scene spec on disk is a compiled scene, not a stub',
     (readStoreJson(projectId, 'revisions', 'r0001', 'scene-spec.json')?.entities ?? []).length > 0)
 
-  await page.waitFor(`document.querySelector('[data-project="${projectId}"]') !== null`, 20000)
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value === ${JSON.stringify(projectId)}`, 20000)
   check('the project appears in the panel list',
-    ((await page.text('[data-project="' + projectId + '"]')) ?? '').includes(PROJECT_TITLE))
+    ((await page.text('.db-result-heading')) ?? '').includes(PROJECT_TITLE))
 
   // -------------------------------------------------------------------------
   // 2. Scene Tree — read the seeded scene, then change it through the UI
   // -------------------------------------------------------------------------
   await openView(page, 'scene')
+  await revealWorkbenchControl(page, '[data-node]')
   await page.waitFor('document.querySelector("[data-node]") !== null', 20000)
   const nodes = await page.attributes('[data-node]', 'data-node')
   check('the Scene Tree shows the entities the spec really declares',
@@ -518,7 +520,7 @@ try {
   await page.waitFor('document.querySelector("button[aria-label=\\"Blender\\"]") !== null', 30000)
   await page.click('button[aria-label="Blender"]')
   await page.waitFor('document.querySelector("[data-deepblend-panel=deepblend]") !== null', 15000)
-  await page.waitFor(`document.querySelector('[data-project="${projectId}"]') !== null`, 30000)
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value === ${JSON.stringify(projectId)}`, 30000)
 
   const afterReload = await page.text('[data-deepblend-panel=deepblend]')
   check('after a refresh the panel still shows the project', (afterReload ?? '').includes(PROJECT_TITLE))
@@ -527,8 +529,8 @@ try {
   // fails later for the wrong reason.
   const hostRevision = readStoreJson(projectId, 'project.json')?.currentRevision
   check('after a refresh the panel shows the revision the Host has, not a cached one',
-    typeof hostRevision === 'string' && (await page.text('.db-head'))?.includes(hostRevision),
-    { hostRevision, header: await page.text('.db-head') })
+    typeof hostRevision === 'string' && (await page.text('.db-result-heading'))?.includes(hostRevision),
+    { hostRevision, header: await page.text('.db-result-heading') })
 
   await openView(page, 'jobs')
   await page.waitFor('document.querySelector("[data-job]") !== null', 30000)

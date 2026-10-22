@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { clickWorkbenchControl } from './workbench-navigation.mjs'
 /** Real gallery dimensions, native assembly output and immutable historical source. */
 import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, copyFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -34,14 +35,14 @@ try {
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__writes=[];const original=window.fetch;window.fetch=(url,init)=>{if(init?.method==='POST')window.__writes.push({url:String(url),body:JSON.parse(init.body)});return original(url,init)}`)
   await page.goto(base + '/deepblend/workbench'); await page.waitFor(`document.querySelector(${JSON.stringify(choice('1.0.0'))})!==null`, 45000)
-  await page.click(choice('1.0.0'))
+  await clickWorkbenchControl(page, choice('1.0.0'))
   check('original version keeps its original appearance controls', await page.count(field('cabinet-width-mm')) === 0 && await page.count(field('surface-roughness')) === 1)
   await page.fill('[data-field="project-title"]', 'legacy-speaker')
   await page.click('[data-action="create-project"]')
   await page.waitFor('document.querySelector("[data-view=preview] img[data-artifact]")?.src.includes("/legacy-speaker/")===true', 180000)
   const old = read('legacy-speaker', 'revisions/r0001/revision-manifest.json')
   original = Object.fromEntries(['revisions/r0001/scene-spec.json', 'revisions/r0001/scene.blend', `revisions/r0001/${old.recipe.lockPath}`, old.previews.at(-1).path].map(file => [file, sha(readFileSync(path('legacy-speaker', file)))]))
-  await page.click('[data-view-tab="projects"]'); await page.click(choice('2.1.0'))
+  await page.click('[data-action="new-work"]'); await clickWorkbenchControl(page, choice('2.1.0'))
   check('linked version shows three authored millimetre defaults', await page.evaluate(`['cabinet-width-mm','cabinet-depth-mm','cabinet-height-mm'].every((id,i)=>Number(document.querySelector('[data-field="recipe-'+id+'"]').value)===[264,138,162][i])`))
   await page.fill(field('cabinet-depth-mm'), '100')
   check('unsupported dimensions disable creation before any new request', await page.evaluate(`document.querySelector('[data-action="create-project"]').disabled&&window.__writes.filter(r=>r.url==='/deepblend/projects').length===1`))

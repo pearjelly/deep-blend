@@ -14,6 +14,12 @@ recipe or import your own model, then compare real renders as you work.
 · [Try the cup walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md)
 · [Quick start](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md)
 
+## See the workbench
+
+![Actual Lighttable workbench showing the saved cup preview and revision history](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png)
+
+Captured from a running DSH workbench in a real browser. [Desktop and narrow capture details](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/lighttable/README.md) record the loaded UI and exact image hashes. The earlier comparison and contact sheet retain their separate `capture-docs-images.mjs` provenance in the [documentation image manifest](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/images/manifest.json).
+
 ## Real work: light and material
 
 Starting with 0.3.3, `deepblend-doctor` checks supported executable versions and reports

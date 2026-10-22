@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
+import { revealWorkbenchControl } from './workbench-navigation.mjs'
 import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `photography-ui-${Date.now()}`))
@@ -45,11 +46,15 @@ try {
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__photoRequests=[];const original=window.fetch;window.fetch=async(input,init)=>{const entry={url:String(input),method:init?.method||'GET'};if(init?.body)entry.body=JSON.parse(init.body);window.__photoRequests.push(entry);const response=await original(input,init);if(response.headers.get('content-type')?.includes('application/json'))entry.result=await response.clone().json();entry.finished=true;return response}`)
   await page.goto(`${base}/deepblend/workbench`)
-  await page.waitFor(`document.querySelector('[data-action="select-project:${projectId}"]')!==null`, 45000)
+  await page.waitFor('document.querySelector("[data-lighttable-revision]")!==null', 45000)
   const selectProject = async id => {
-    await page.click('[data-view-tab="projects"]'); await page.click(`[data-action="select-project:${id}"]`)
+    await page.click('[data-action="new-work"]')
+    await page.waitFor(`document.querySelector('[data-action="select-project:${id}"]')!==null`, 45000)
+    await page.click(`[data-action="select-project:${id}"]`)
+    await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value===${JSON.stringify(id)}&&!document.querySelector('[data-view-tab="scene"]')?.disabled`, 45000)
     await page.click('[data-view-tab="scene"]')
     await page.waitFor(`document.querySelector('[data-photography-editor="${id}"]')!==null`, 45000)
+    await revealWorkbenchControl(page, field('camera-lens'))
   }
   await selectProject(projectId)
   const fill = async (key, value) => { await page.fill(field(key), String(value)); await page.waitFor(`document.querySelector(${JSON.stringify(field(key))}).value===${JSON.stringify(String(value))}`) }
@@ -208,7 +213,7 @@ json.dump(settings,open(${JSON.stringify(lightingSettingsFile)},'w'),indent=2)
   await page.waitFor(`document.querySelector('[data-photography-base="r0002"]')!==null&&!document.querySelector('[data-photography-saved]')`, 45000)
   const restored = (await writes()).at(-1)
   check('restore uses the saved revision condition and returns the actual previous scene', restored.url.endsWith('/restore') && restored.body.revision === 'r0002' && restored.body.expectedCurrentRevision === 'r0003' && read('project.json').currentRevision === 'r0002' && await page.evaluate(`document.querySelector(${JSON.stringify(field('camera-lens'))}).value==='60'&&!Array.from(document.querySelector(${JSON.stringify(field('light'))}).options).some(option=>option.value===${JSON.stringify(addedId)})`))
-  await page.reload(); await page.waitFor(`document.querySelector('[data-action="select-project:${projectId}"]')!==null`, 45000); await selectProject(projectId)
+  await page.reload(); await page.waitFor('document.querySelector("[data-lighttable-revision]")!==null', 45000); await selectProject(projectId)
   check('refresh reads saved lighting and camera values with no hidden write', await page.evaluate(`document.querySelector(${JSON.stringify(field('light-energy'))}).value==='0.9'&&document.querySelector(${JSON.stringify(field('camera-lens'))}).value==='60'&&document.querySelector('[data-action="photo-save"]').disabled`) && (await writes()).length === 0)
   const otherPath = (...parts) => join(root, 'projects', 'photography-other', ...parts)
   const otherInitial = JSON.parse(readFileSync(otherPath('revisions/r0001/scene-spec.json')))

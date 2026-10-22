@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { revealWorkbenchControl, clickWorkbenchControl } from './workbench-navigation.mjs'
 /**
  * M6 acceptance: the standalone fullscreen workbench, in a real browser.
  *
@@ -168,7 +169,7 @@ function compareRenderedChange(before, after) {
 async function selectEntity(editorPage, id, expectedRevision) {
   await editorPage.click('[data-view-tab="scene"]')
   await editorPage.waitFor(`document.querySelector('[data-action="select-entity:${id}"]') !== null`, 30000)
-  const clicked = await editorPage.click(`[data-action="select-entity:${id}"]`)
+  const clicked = await clickWorkbenchControl(editorPage, `[data-action="select-entity:${id}"]`)
   check(`${id}: object selection is reachable by pointer`, clicked.via === 'pointer', clicked)
   await editorPage.waitFor(`document.querySelector('[data-editor-entity="${id}"][data-editor-base-revision="${expectedRevision}"]') !== null`, 30000)
 }
@@ -386,7 +387,7 @@ try {
     await page.evaluate('document.getElementById("deepblend-workbench").getBoundingClientRect().height'))
 
   check('the page offers the six M4 views, in order',
-    (await page.attributes('[data-view-tab]', 'data-view-tab')).join(',') === 'projects,scene,preview,jobs,qa,revisions',
+    (await page.attributes('[data-view-tab]', 'data-view-tab')).join(',') === 'projects,preview,scene,jobs,revisions,qa',
     await page.attributes('[data-view-tab]', 'data-view-tab'))
   await page.waitFor('document.querySelector(\'[data-view="projects"]\') !== null', 20000)
   await page.waitFor('document.querySelector(\'[data-action="create-project"]\') !== null', 20000)
@@ -475,6 +476,7 @@ try {
     readStoreJson(projectId, 'project.json')?.projectId)
 
   await page.click('[data-view-tab="scene"]')
+  await revealWorkbenchControl(page, '[data-node]')
   await page.waitFor('document.querySelector("[data-node]") !== null', 20000)
   const nodes = await page.attributes('[data-node]', 'data-node')
   check('the Scene Tree shows the entities the spec really declares',
@@ -542,7 +544,7 @@ try {
   try {
     await page.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDirectory })
 
-    const exportClick = await page.click('[data-action="export-diagnostics"]')
+    const exportClick = await clickWorkbenchControl(page, '[data-action="export-diagnostics"]')
     check('the export control is reachable by a pointer, like every other control on this page',
       exportClick.via === 'pointer', exportClick)
 
@@ -605,14 +607,14 @@ try {
   const requestsBeforeReload = await page.evaluate('window.__wbreqs')
   await page.reload()
   await page.waitFor('document.querySelector("[data-deepblend-panel=deepblend]") !== null', 30000)
-  await page.waitFor(`document.querySelector('[data-project="${projectId}"]') !== null`, 30000)
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value === ${JSON.stringify(projectId)}`, 30000)
 
   const hostRevision = readStoreJson(projectId, 'project.json')?.currentRevision
   check('after a refresh the page still shows the project, read back from the Host',
     ((await page.text('[data-deepblend-panel=deepblend]')) ?? '').includes(PROJECT_TITLE))
   check('after a refresh the header shows the revision the Host has, not a cached one',
-    typeof hostRevision === 'string' && ((await page.text('.db-head')) ?? '').includes(hostRevision),
-    { hostRevision, header: await page.text('.db-head') })
+    typeof hostRevision === 'string' && ((await page.text('.db-result-heading')) ?? '').includes(hostRevision),
+    { hostRevision, header: await page.text('.db-result-heading') })
 
   await page.click('[data-view-tab="jobs"]')
   await page.waitFor('document.querySelector("[data-job]") !== null', 30000)
@@ -685,9 +687,9 @@ try {
   const recipeProjectIds = {}
   for (const recipeId of ['glass-ceramic', 'modular-speaker', 'metal-lamp']) {
     const version = JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes', recipeId, 'recipe.json'), 'utf8')).version
-    await page.click('[data-view-tab="projects"]')
+    await page.click('[data-action="new-work"]')
     await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.${recipeId}@${version}"]') !== null`, 30000)
-    await page.click(`[data-action="select-recipe:deepblend.${recipeId}@${version}"]`)
+    await clickWorkbenchControl(page, `[data-action="select-recipe:deepblend.${recipeId}@${version}"]`)
     const id = `${PROJECT_TITLE}-${recipeId}`
     recipeProjectIds[recipeId] = id
     await page.fill('[data-field="project-title"]', id)
@@ -788,8 +790,9 @@ try {
         if (type === 'error' || type === 'exception') pageErrors.push(`peer ${type}: ${text}`)
       },
     })
-    await peerPage.waitFor(`document.querySelector('[data-project="${concurrentId}"]') !== null`, 30000)
-    await peerPage.click(`[data-project="${concurrentId}"] button`)
+    await peerPage.waitFor('document.querySelector(\'[data-action="new-work"]\') !== null', 30000)
+    await peerPage.click('[data-action="new-work"]')
+    await clickWorkbenchControl(peerPage, `[data-action="select-project:${concurrentId}"]`)
     await peerPage.click('[data-action="reload"]')
     await selectEntity(peerPage, 'shade-shell', 'r0001')
     const peerRevision = await commitEntity(peerPage, concurrentId, 'shade-shell', { 'material-roughness': 0.33 })

@@ -19,9 +19,9 @@
  *   2. each image is byte-for-byte what the manifest recorded, at the size it recorded;
  *   3. each image decodes, is fully opaque, and carries far more distinct colours than a
  *      blank or half-rendered page can;
- *   4. every image is referenced from README.zh.md with non-empty alt text, and every image
- *      README.zh.md references exists — a 300 KiB PNG nobody links to is dead weight in a
- *      clone, which is the one cost this repository cannot test away.
+ *   4. both READMEs show the current Lighttable workbench and retained comparison/contact
+ *      images with non-empty alt text. The earlier workbench remains verifiable in its
+ *      historical manifest; the current capture has independent provenance.
  *
  * WHAT IT CANNOT CHECK
  * --------------------
@@ -167,7 +167,9 @@ test('every image is a picture rather than a blank or half-rendered page', () =>
   }
 })
 
-test('every image is referenced from both READMEs, with alt text', () => {
+test('both READMEs show the current workbench and retained comparison images, with alt text', () => {
+  const currentWorkbench = 'deepblend/docs/assets/lighttable/workbench.png'
+  const displayedHistorical = manifest.images.filter(image => image.kind !== 'workbench-scene').map(image => image.file).sort()
   for (const [name, text] of READMES) {
     const referenced = new Set()
     for (const match of text.matchAll(/!\[([^\]]*)\]\((deepblend\/docs\/images\/[\w.-]+\.png)\)/g)) {
@@ -176,9 +178,13 @@ test('every image is referenced from both READMEs, with alt text', () => {
     }
     assert.deepEqual(
       [...referenced].sort(),
-      files,
-      `${name} and the images directory disagree: an image nobody links to is dead weight in every clone`,
+      displayedHistorical,
+      `${name} must retain the comparison and contact sheet; the earlier workbench stays in its historical manifest`,
     )
+    const current = [...text.matchAll(/!\[([^\]]*)\]\((deepblend\/docs\/assets\/lighttable\/[\w.-]+\.png)\)/g)]
+    assert.deepEqual(current.map(match => match[2]), [currentWorkbench], `${name}: show the current Lighttable workbench`)
+    assert.ok(current[0][1].trim().length > 0, `${name}: the Lighttable screenshot needs alt text`)
+    assert.ok(existsSync(join(ROOT, currentWorkbench)))
   }
 })
 
@@ -188,8 +194,10 @@ test('both READMEs say where the pictures came from', () => {
   for (const [name, text] of READMES) {
     assert.ok(
       /capture-docs-images\.mjs/.test(text),
-      `${name} shows pictures without naming the tool that produces them, so a reader cannot tell a screenshot from a mockup`,
+      `${name} must identify the tool that produced the historical comparison and contact sheet`,
     )
+    assert.ok(text.includes('deepblend/docs/assets/lighttable/README.md'), `${name}: the current screenshot needs its independent capture source`)
+    assert.ok(text.includes('deepblend/docs/images/manifest.json'), `${name}: the historical images need their retained provenance`)
   }
 })
 

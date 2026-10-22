@@ -1,3 +1,4 @@
+import { clickWorkbenchControl } from './workbench-navigation.mjs'
 /** Real browser + Host + Blender: shipped cup recipe creation, dimensions, edits, refusals and reload. */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -16,6 +17,14 @@ const sha=file=>createHash('sha256').update(readFileSync(file)).digest('hex')
 const field=key=>`[data-field="editor-generator-${key}"]`
 function check(name,ok,detail){checks.push({name,ok,detail});console.log(`[${ok?'PASS':'FAIL'}] ${name}`);if(!ok)throw Error(name)}
 let server,browser,page,base,failure=null,shutdown
+async function openCupAdvanced() {
+  const selector = '[data-editor-entity="cup"] details:has([data-field="editor-generator-rootTension"])'
+  if (!await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).open`)) {
+    const clicked = await page.click(`${selector} > summary`)
+    if (clicked.via !== 'pointer') throw Error('Advanced cup controls are not reachable by pointer')
+    await page.waitFor(`document.querySelector(${JSON.stringify(selector)}).open`)
+  }
+}
 try {
   const rows=JSON.parse(await storePatch(root))
   rows.find(r=>r.id==='deepblend-blender-runtime').config.blenderPath=process.env.DEEPBLEND_BLENDER_PATH??join(REPO_ROOT,'.tools/Blender.app/Contents/MacOS/Blender')
@@ -28,7 +37,7 @@ try {
   const card='[data-recipe="deepblend.glazed-cup"]'
   await page.waitFor(`(() => {const img=document.querySelector(${JSON.stringify(card+' img')});return img?.complete && img.naturalWidth===960 && img.naturalHeight===720})()`)
   check('gallery shows the shipped cup render and author/license', (await page.text(card)).includes('MIT') && (await page.text(card)).includes('青釉带把手杯'))
-  await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]')
+  await clickWorkbenchControl(page, '[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]')
   await page.fill('[data-field="project-title"]',projectId)
   await page.fill('[data-field="recipe-cup-height-mm"]','115')
   await page.fill('[data-field="recipe-cup-outer-diameter-mm"]','84')
@@ -71,32 +80,32 @@ try {
   await page.screenshot(join(output,'cup-height-continued.png'))
   await page.evaluate('window.__cupRequests=[]')
   await page.click('[data-view-tab="scene"]')
-  await page.click('[data-action="select-entity:cup"]')
+  await clickWorkbenchControl(page, '[data-action="select-entity:cup"]')
   await page.waitFor('document.querySelector("[data-editor-entity=cup]")!==null')
   check('recipe dimensions and compact attachments display in millimetres with no accidental write',await page.evaluate(`document.querySelector(${JSON.stringify(field('height'))}).value==='125' && document.querySelector(${JSON.stringify(field('wallThickness'))}).value==='4' && document.querySelector(${JSON.stringify(field('rootRadius'))}).value==='9.45' && document.querySelector(${JSON.stringify(field('rootLength'))}).value==='6.3' && window.__cupRequests.every(x=>x.method!=='POST')`))
   check('v3 transition control is dimensionless and bounded without a write',lock.version==='3.1.0'&&initial.entities.find(e=>e.id==='cup').generator.rootTension===2.5&&await page.evaluate(`(() => {const input=document.querySelector(${JSON.stringify(field('rootTension'))});return input.value==='2.5'&&input.min==='1'&&input.max==='2.5'&&input.step==='0.05'&&window.__cupRequests.every(x=>x.method!=='POST')})()`))
   check('cup editor labels and attachment guidance are visible',(await page.text('[data-editor-entity=cup]')).includes('带把手杯体')&&(await page.text('[data-editor-entity=cup]')).includes('检查实际网格')&&(await page.text('[data-editor-entity=cup]')).includes('最大 2.5'))
   await page.fill(field('height'),'110')
-  await page.evaluate('document.querySelector("[data-editor-entity=cup] details").open=true')
+  await openCupAdvanced()
   await page.fill(field('rootTension'),'2')
   check('typing a dimension keeps the saved revision',read('project.json').currentRevision==='r0002')
   await page.click('[data-action="editor-apply"]')
   await page.waitFor('document.querySelector("[data-field=compare-right]")?.value==="r0003"',180_000)
   await page.click('[data-view-tab="scene"]')
-  await page.click('[data-action="select-entity:cup"]')
+  await clickWorkbenchControl(page, '[data-action="select-entity:cup"]')
   await page.waitFor('document.querySelector("[data-editor-base-revision=r0003]")!==null',180_000)
   check('millimetre edit creates a real saved cup revision',read('revisions/r0003/scene-spec.json').entities.find(e=>e.id==='cup').generator.height===.11 && existsSync(path('revisions/r0003/scene.blend')))
   check('dimensionless transition edit is saved as 2 rather than a millimetre value',read('revisions/r0003/scene-spec.json').entities.find(e=>e.id==='cup').generator.rootTension===2)
   await page.waitFor(`document.querySelector('[data-action="assembly-conflict:cup"]')!==null`)
   check('manual dimension edits protect the current cup from stale parameter saves',await page.evaluate('document.querySelector("[data-action=assembly-save]").disabled'))
   for(const invalid of ['0.99','2.51']){
-    await page.evaluate('document.querySelector("[data-editor-entity=cup] details").open=true')
+    await openCupAdvanced()
     await page.fill(field('rootTension'),invalid)
     if(!await page.evaluate('document.querySelector("[data-action=editor-apply]").disabled && document.querySelector("[data-editor-errors]")!==null'))throw Error(`Invalid transition ${invalid} was enabled`)
   }
   check('out-of-range transition drafts disable apply and preserve the saved revision',read('project.json').currentRevision==='r0003')
   await page.fill(field('rootTension'),'2')
-  await page.evaluate('document.querySelector("[data-editor-entity=cup] details").open=true')
+  await openCupAdvanced()
   await page.fill(field('segments'),'65')
   check('invalid segment multiples disable apply',await page.evaluate('document.querySelector("[data-action=editor-apply]").disabled && document.querySelector("[data-editor-errors]")!==null'))
   await page.fill(field('segments'),'192');await page.fill(field('rootLength'),'0.1')
@@ -104,8 +113,8 @@ try {
   await page.waitFor('document.body.textContent.includes("SCENE_SPEC_INVALID")',180_000)
   check('unsupported coupled dimensions retain revision and editable draft',read('project.json').currentRevision==='r0003' && await page.evaluate(`document.querySelector(${JSON.stringify(field('rootLength'))}).value==='0.1'`))
   await page.screenshot(join(output,'rejected-dimension.png'))
-  await page.reload();await page.waitFor('document.querySelector("[data-brief-base-revision=r0003]")!==null',45_000)
-  await page.click('[data-view-tab="scene"]');await page.click('[data-action="select-entity:cup"]')
+  await page.reload();await page.waitFor('document.querySelector("[data-lighttable-revision=r0003]")!==null',45_000)
+  await page.click('[data-view-tab="scene"]');await clickWorkbenchControl(page, '[data-action="select-entity:cup"]')
   await page.waitFor('document.querySelector("[data-editor-entity=cup]")!==null')
   check('reload restores the authoritative saved dimensions',await page.evaluate(`document.querySelector(${JSON.stringify(field('height'))}).value==='110'`))
   check('old scene, checkpoint and preview remain unchanged',Object.entries(original).every(([file,hash])=>sha(path('revisions/r0001',file))===hash))

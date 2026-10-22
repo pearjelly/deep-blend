@@ -78,6 +78,8 @@ try {
     }
   `)
   await page.goto(info.url)
+  await page.waitFor('document.querySelector("[data-view-tab=projects]")?.disabled === false', 45000)
+  await page.click('[data-view-tab=projects]')
   await page.waitFor(`document.querySelector('[data-brief-project="${projectId}"][data-brief-base-revision="${before}"]') !== null`, 45000)
   check('the browser opens a real revision-backed brief editor', true, { url: info.url, before })
   check('the goal comes from the saved SceneSpec', await page.evaluate(`document.querySelector('[data-field="brief-goal"]').value`) === (beforeSpec.project.goal || ''))
@@ -121,6 +123,8 @@ try {
     && JSON.stringify(patch.operations.map(operation => operation.op)) === JSON.stringify(['asset.add', 'project.brief.set']))
   check('original revision spec, checkpoint and manifest remain byte-identical', originalPaths.every(path => sha256(readFileSync(path)) === originals[path]))
   await page.reload()
+  await page.waitFor('document.querySelector("[data-view-tab=projects]")?.disabled === false', 45000)
+  await page.click('[data-view-tab=projects]')
   await page.waitFor(`document.querySelector('[data-brief-base-revision="${after}"]') !== null`, 45000)
   await page.waitFor('document.querySelector("[data-reference-id] img")?.naturalWidth > 0')
   check('refresh restores the saved goal and annotation from Host', await page.evaluate(`document.querySelector('[data-field="brief-goal"]').value === ${JSON.stringify(goal)} && document.querySelector('[data-field="reference-${referenceId}-notes"]').value === ${JSON.stringify(notes)}`))

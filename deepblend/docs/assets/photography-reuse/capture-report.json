@@ -1,0 +1,63 @@
+{
+  "at": "2026-10-22T10:32:31.315190+00:00",
+  "passed": true,
+  "scope": "Current Lighttable UI photography saved-source draft interaction and actual desktop/narrow captures. No native photography suite rerun and no save, render, model call or source change in this refresh. Earlier 36-check native regression remains separate historical evidence.",
+  "protectedHostFiles": 30,
+  "allHostBytesUnchanged": true,
+  "interaction": "cua-browser-ui",
+  "dom": {
+    "applied": true,
+    "controls": [
+      {
+        "field": "photo-source-project",
+        "left": 16,
+        "right": 374
+      },
+      {
+        "field": "photo-source-revision",
+        "left": 16,
+        "right": 374
+      },
+      {
+        "field": "photo-source-camera",
+        "left": 16,
+        "right": 374
+      },
+      {
+        "field": "photo-source-replace",
+        "left": 20,
+        "right": 33
+      }
+    ],
+    "draftBase": "r0002",
+    "height": 844,
+    "lens": "60",
+    "photographyOpen": true,
+    "scrollWidth": 390,
+    "source": "project:r0001",
+    "width": 390
+  },
+  "browserActionsSha256": "d91607f0a0350e973f82559bbe4db12161ba3be0cb59c8bdb1a6a07cead914ac",
+  "uiSha256": "c86e210a21dbbcb3d626d6a97abddd2d20b2dfdda6f90911ef96de352194331a",
+  "nativeRegressionRerun": false,
+  "encodingConversion": {
+    "draft.png": {
+      "sourceFormat": "JPEG",
+      "sourceSha256": "5f8a8a7384036b8f4c70d04f80543be2dee6f3d834357372791d277b5741e0f1",
+      "pngSha256": "6fea53e51b4bb9eff95fbef01d08eff70b1c9d958106ca2d8a45fa6618fb663b",
+      "decodedPixelsIdentical": true,
+      "cropped": false,
+      "resized": false,
+      "colorAdjusted": false
+    },
+    "narrow.png": {
+      "sourceFormat": "JPEG",
+      "sourceSha256": "fcc4747ec0c2908f465cf015d6f35107f4f10a7cb83a7dcb415a3e07f2eb5f47",
+      "pngSha256": "c566219ff901f145bf3c389d398e3307c9e857980ac2b60274108965a3f71a7b",
+      "decodedPixelsIdentical": true,
+      "cropped": false,
+      "resized": false,
+      "colorAdjusted": false
+    }
+  }
+}

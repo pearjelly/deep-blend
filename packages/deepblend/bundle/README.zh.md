@@ -10,6 +10,12 @@
 工作台负责具体编辑，DeepBlend Studio 智能体预设提供场景操作、预览、视觉评审和交付工具。
 每次保存保留独立版本，可以对照真实图片继续修改。
 
+## 看看工作台
+
+![实际光台工作台中的青釉杯预览、已保存版本与最近结果](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png)
+
+画面来自运行中的 DSH 工作台与真实浏览器。[桌面与窄屏拍摄说明](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/lighttable/README.md)记录拍摄时加载的客户端和图片摘要。较早的版本对比与渲染拼图保留独立的 `capture-docs-images.mjs` [来源清单](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/images/manifest.json)。
+
 ## 真实作品：光与材质
 
 用本机安装的 DeepBlend 制作三组产品场景：琥珀玻璃、香槟金属灯具、编织格栅音箱。每组包含高清主图、材质近景和一段 **6 秒 / 1080p / 24 fps** 的真实镜头动画。

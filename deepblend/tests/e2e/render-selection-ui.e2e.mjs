@@ -193,7 +193,7 @@ try {
       && Object.entries(protectedSources).every(([name, hash]) => sha(readFileSync(file('revisions', 'r0001', name))) === hash))
 
   await page.click('[data-action="reload"]')
-  await page.waitFor('document.querySelector(".db-head")?.textContent.includes("r0002")')
+  await page.waitFor("document.querySelector('[data-lighttable-revision=r0002]') !== null")
   await selectProfile('final'); await page.fill('[data-field="frame-start"]', '3'); await page.fill('[data-field="frame-end"]', '3')
   check('final is submitted by the visible native button', (await page.click('[data-action="start-render"]')).via === 'pointer')
   await verifyJob(await receipt(1), 'final', 'r0002', [3])

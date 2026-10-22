@@ -14,6 +14,7 @@ import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-transaction.js'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { revealWorkbenchControl } from './workbench-navigation.mjs'
 
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `asset-library-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(directory)) throw new Error(`Evidence directory already exists: ${directory}`)
@@ -81,7 +82,7 @@ scene.renderProfiles.preview = { engine: 'cycles', resolution: [256, 192], sampl
 let server, browser, page, base, url, outcome = 'failed', shutdown, originals = {}, captures = [], previews = []
 const field = name => `[data-field="${name}"]`
 async function select(name, value) { await page.evaluate(`(() => {const el=document.querySelector(${JSON.stringify(field(name))});if(!el)throw Error('missing select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));})()`) }
-async function sceneView() { await page.click('[data-view-tab="scene"]'); await page.waitFor('document.querySelector("[data-assets-library]")!==null', 30000) }
+async function sceneView() { await page.click('[data-view-tab="scene"]'); await revealWorkbenchControl(page, '[data-action="assets-open"]') }
 async function upload(name) {
   const before = current(), file = join(sources, name)
   const { root: dom } = await page.send('DOM.getDocument'); const selected = await page.send('DOM.querySelector', { nodeId: dom.nodeId, selector: field('asset-upload') })

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.0 — Unreleased
+
+- Organize the workbench around Start, See result, Adjust and Export, with a large saved-result image and its source revision beside the relevant tools.
+- Browse recent saved results, compare a historical result with the current version, and reach its editable-copy action from the same workspace.
+- Reveal the target controls when following creation guidance or selecting cameras and lights; return to the current revision when opening an inspection from a historical result.
+- Reserve image space before decoding, retain creation feedback when no preview was requested, and improve narrow layouts, appearance controls and keyboard focus.
+- Release acceptance is pending: the final 43-suite run, exact-source CI, clean build and installation, seven-package npm readback, and one complete source/npm/GitHub-tarball comparison.
+
 ## 0.17.0 — 2026-10-22
 
 - Download one saved revision as an editable ZIP from the Revisions page, preserving the original Blender file, SceneSpec and supported external assets with opening instructions and source checksums.

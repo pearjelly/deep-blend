@@ -55,7 +55,7 @@ function fixture(options = {}) {
     }
     if (url.startsWith('/deepblend/state')) { const query = new URL(url, 'http://localhost').searchParams; project = query.get('projectId') || project; return response(state()) }
     if (url.includes('/jobs')) return response({ ok: true, route: 'project.jobs', jobs, unfinished: [] })
-    if (url.includes('/previews')) return response({ ok: true, route: 'project.previews', artifactBase: `/deepblend/artifacts/${project}/`, previews: { projectId: project, revisions: [] } })
+    if (url.includes('/previews')) return response({ ok: true, route: 'project.previews', artifactBase: `/deepblend/artifacts/${project}/`, previews: { projectId: project, revisions: options.previewRows || [] } })
     throw new Error(`Unexpected route ${url}`)
   }
   const store = core.createWorkbenchStore({ fetch, editableSnapshotStorage: storage, preferenceStorage: storage, creationDraftStorage: storage,
@@ -256,4 +256,25 @@ test('an uncertain recheck of a remembered ready copy can retry the same request
   assert.equal(action(store, 'snapshot-download'), undefined); assert.equal(action(store, 'snapshot-prepare').props.disabled, false)
   await store.actions.prepareEditableSnapshot()
   assert.deepEqual(snapshotCalls(f).at(-1).body, first); assert.equal(entry(store).result.state, 'preparing')
+})
+
+
+test('historical export keeps the stage, PNG and ZIP selection on one saved revision while current authoring remains unchanged', async t => {
+  const previewRows = ['r0001', 'r0002'].map(revision => ({ revision, previews: [{ kind: 'preview', path: `revisions/${revision}/previews/hero.png`, sha256: 'e'.repeat(64), sourceRevision: revision, slot: 'hero', width: 640, height: 480 }], contactSheets: [], reviews: [] }))
+  const f = fixture({ previewRows }), store = await f.start(); t.after(() => store.stop())
+  await until(() => store.getState().previews?.revisions.length === 2)
+  store.actions.selectLighttableResult('r0001')
+  const build = () => nodes(core.buildWorkbenchView(store.getState(), store.actions))
+  build().find(node => node.props?.['data-action'] === 'lighttable-history-export').props.onClick()
+  assert.equal(store.getState().view, 'revisions')
+  assert.equal(store.getState().currentRevision, 'r0002')
+  assert.equal(selectedEntry(store).revision, 'r0001')
+  assert.equal(build().find(node => node.props?.['data-lighttable-revision'])?.props['data-lighttable-revision'], 'r0001')
+  assert.equal(build().find(node => node.props?.className === 'db-result-image')?.props['data-artifact-revision'], 'r0001')
+  await store.actions.prepareEditableSnapshot()
+  assert.equal(snapshotCalls(f)[0].body.revision, 'r0001')
+  store.actions.selectLighttableResult('r0002')
+  assert.equal(build().find(node => node.props?.['data-action'] === 'lighttable-history-export'), undefined)
+  store.actions.selectLighttableResult('r0001')
+  assert.equal(build().find(node => node.props?.['data-action'] === 'lighttable-history-export').props.disabled, true, 'an active preparation cannot silently change the export selection')
 })

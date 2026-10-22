@@ -164,6 +164,68 @@ test('navigation observes a load event sent before the navigate response', async
   await f.connect(); assert.equal(await f.page.goto('http://example.invalid'), f.page); clean(f.page)
 })
 
+test('reload stays pending after its command reply while the old document is complete', { timeout: 3000 }, async t => {
+  let load
+  const f = await fixture(t, (command, peer) => {
+    if (command.method === 'Page.reload') { load = () => peer.event('Page.loadEventFired'); peer.reply(command); return true }
+    // Before navigation commits, the old document can truthfully answer complete.
+    if (command.method === 'Runtime.evaluate') { peer.reply(command, { result: { value: true } }); return true }
+  }, { timeouts: { commandTimeoutMs: 500 } })
+  await f.connect()
+  let settled = false
+  const reloaded = f.page.reload()
+  void reloaded.then(() => { settled = true }, () => { settled = true })
+  // Two ordered CDP round trips also settle any readyState read queued by the
+  // reload response. No elapsed-time guess stands in for the withheld load.
+  await f.page.send('Page.getFrameTree'); await f.page.send('Page.getFrameTree')
+  assert.equal(settled, false, 'the old document must not satisfy the new load')
+  load(); assert.equal(await reloaded, f.page)
+  assert.deepEqual(f.commands.filter(command => command.method === 'Page.reload').map(command => command.params), [{ ignoreCache: true }])
+  clean(f.page)
+})
+
+test('reload retains a load event before the command reply and still waits for that reply', { timeout: 3000 }, async t => {
+  let reply
+  const f = await fixture(t, (command, peer) => {
+    if (command.method === 'Page.reload') { reply = () => peer.reply(command); peer.event('Page.loadEventFired'); return true }
+  }, { timeouts: { commandTimeoutMs: 500 } })
+  await f.connect()
+  let settled = false
+  const reloaded = f.page.reload()
+  void reloaded.then(() => { settled = true }, () => { settled = true })
+  await f.page.send('Page.getFrameTree')
+  assert.equal(settled, false, 'load alone must not hide a missing command reply')
+  reply(); assert.equal(await reloaded, f.page)
+  assert.equal(f.commands.filter(command => command.method === 'Page.reload').length, 1); clean(f.page)
+})
+
+test('reload protocol failure cancels its load waiter and is not retried', async t => {
+  const f = await fixture(t, (command, peer) => {
+    if (command.method === 'Page.reload') { peer.reject(command, 'injected reload refusal'); return true }
+  })
+  await f.connect()
+  await assert.rejects(f.page.reload(), error => error.code === 'CDP_PROTOCOL_ERROR'
+    && error.method === 'Page.reload' && /injected reload refusal/.test(error.message))
+  assert.equal(f.commands.filter(command => command.method === 'Page.reload').length, 1); clean(f.page)
+})
+
+test('reload missing load expires with the event timeout and releases its waiter', { timeout: 3000 }, async t => {
+  const f = await fixture(t); await f.connect()
+  await assert.rejects(f.page.reload(), error => error.code === 'CDP_EVENT_TIMEOUT'
+    && error.method === 'Page.loadEventFired' && error.timeoutMs === 100)
+  assert.equal(f.commands.filter(command => command.method === 'Page.reload').length, 1); clean(f.page)
+})
+
+test('reload missing command reply after load expires without leaving pending work', { timeout: 3000 }, async t => {
+  const f = await fixture(t, (command, peer) => {
+    if (command.method === 'Page.reload') { peer.event('Page.loadEventFired'); return true }
+  })
+  await f.connect()
+  await assert.rejects(f.page.reload(), error => error.code === 'CDP_COMMAND_TIMEOUT'
+    && error.method === 'Page.reload' && error.timeoutMs === 100 && /not retried/.test(error.message))
+  assert.equal(f.commands.filter(command => command.method === 'Page.reload').length, 1); clean(f.page)
+})
+
 test('waitFor propagates a lost evaluation response immediately and does not retry it as a false condition', { timeout: 3000 }, async t => {
   const f = await fixture(t, command => command.method === 'Runtime.evaluate'); await f.connect()
   await assert.rejects(f.page.waitFor('true', 180000), error => error.code === 'CDP_COMMAND_TIMEOUT' && error.method === 'Runtime.evaluate')

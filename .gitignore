@@ -42,3 +42,12 @@ node_modules/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local design calibration, browser captures and decision-server state.
+# The durable product context, surface brief and design tokens remain versioned.
+/.impeccable/quality-bar/
+/.impeccable/review/
+/.impeccable/mocks/
+/.impeccable/questions/
+/.impeccable/discovery.md
+/.impeccable/direction-options.json

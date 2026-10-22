@@ -162,15 +162,15 @@ The prebuilt tarball was independently installed. Keep DSH's explicit source-bui
 
 ## See the workbench
 
-The following images were captured from a running DSH workbench, Chrome and Blender by
-`deepblend/tools/capture-docs-images.mjs`. They are **product screenshots and render output**, separate from the illustrated brand banner above.
+The Lighttable workbench below was captured from a running DSH session in a real browser.
+[Capture details and source hashes](deepblend/docs/assets/lighttable/README.md) include the desktop and narrow views. These are **product screenshots and render output**; the banner above is an illustration.
 
-![Actual Blender workbench showing a project, revision and scene controls](deepblend/docs/images/workbench-scene.png)
+![Actual Lighttable workbench showing the saved cup preview and revision history](deepblend/docs/assets/lighttable/workbench.png)
 
 <details>
 <summary><strong>Preview comparison and the rendered contact sheet</strong></summary>
 
-The comparison displays actual saved previews from two revisions; image and source hashes are retained in the capture manifest.
+The comparison and contact sheet were produced by `deepblend/tools/capture-docs-images.mjs`. The comparison displays actual saved previews from two revisions; image and source hashes are retained in the [capture manifest](deepblend/docs/images/manifest.json), alongside the earlier workbench screenshot.
 
 ![Actual before/after revision previews with their own image digests and timestamps](deepblend/docs/images/preview-compare.png)
 

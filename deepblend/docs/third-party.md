@@ -4,9 +4,10 @@
 仓库自有代码采用 MIT；这不改变第三方组件自己的许可。`third-party.test.mjs` 检查外部程序清单、
 自有包许可字段、第三方依赖白名单和源码树中的二进制文件；它不替代对发布成品的许可与平台验收。
 
-仓库图片包括工作台截图、原创产品基准和配方预览。截图由 `capture-docs-images.mjs` 生成；
+仓库图片包括工作台截图、原创产品基准和配方预览。`docs/images` 中的历史截图由 `capture-docs-images.mjs` 生成；
 产品图由 `quality-benchmark.mjs` 渲染，预览清单记录原始运行、输入快照和图片摘要。
-摄影复用指南的两张截图由 `photography-ui.e2e.mjs` 在真实 Chrome/DSH/Blender 专项中生成；`docs/assets/photography-reuse/manifest.json` 登记自有 MIT 许可、作者、生成程序/报告/请求摘要和逐图尺寸/SHA，不允许按整个目录放行。
+光台主图和窄屏图来自真实浏览器操作；`docs/assets/lighttable/manifest.json` 记录原创 MIT 许可、作者、拍摄时的客户端摘要、原始编码与逐图 SHA、字节数和尺寸。JPEG 转 PNG 前后解码像素一致，图片逐张核验，不按目录放行。
+摄影复用指南的两张现行截图来自光台候选的真实浏览器操作；`docs/assets/photography-reuse/manifest.json` 登记自有 MIT 许可、作者、当前 UI/截图报告及逐图尺寸/SHA，并以 `nativeRegression` 单独保留 `photography-ui.e2e.mjs` 较早 36 项原生回归的来源。截图刷新不声称重跑了原生专项，不允许按整个目录放行。
 配方清单另存来源、许可及输入/图片摘要，Host 包携带相同图片。检查同时覆盖尚未提交的
 新文件，未经这些清单声明的图片不会因放入某个目录而自动获准。历史桌灯 1.0.0 的完整测试包保留原清单、MIT 文本和精确图片摘要，供版本兼容回归使用。
 
