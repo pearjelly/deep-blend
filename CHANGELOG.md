@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.0 — 2026-10-22
+
+- Download one saved revision as an editable ZIP from the Revisions page, preserving the original Blender file, SceneSpec and supported external assets with opening instructions and source checksums.
+- Optionally include a verified completed video from the same revision; prepare large copies in the background with cancellation, fixed-request retry and reload recovery.
+- Stream and verify archive members, bind downloads to the project store and selected request, and preserve completed copies after cancellation or interrupted downloads.
+- Report legacy source changes as unknown when complete before/after hashes are unavailable, while retaining historical records.
+- Bound npm identity and registry reads and distinguish network uncertainty from authentication refusal and verified publication.
+
+
 ## 0.16.0 — 2026-10-22
 
 - Document complete camera aim alternatives and return actionable recovery for nullable reads or conflicting targets, preserving strict validation and authored camera fields.

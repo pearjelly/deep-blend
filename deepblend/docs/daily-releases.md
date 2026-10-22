@@ -933,3 +933,12 @@ bai通过正式DeepBlend完成的新r75任务render-0002已结束：900帧、37.
 ### 2026-10-22：0.16 发布与验收完成，社区 CI 通过
 
 冻结源码 `778c4e98` 的 [0.16 GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) 初始24资产匿名读回通过，七npm包最新版本与175文件完整验收通过；源码/npm/tarball一次实际比较均安装0.16.0、工作台HTTP 200、两个preset到达，获取的软件包数15/15/1，各七组件副本的精确文件集合、完整manifest和源码字节均通过。补充8份证据已上传并匿名全量读回，原24资产保持不变；发布正文已更新，正文及全部32资产元数据匿名读回一致。社区两行规范描述已提交[PR #8599](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8599)，精确一文件+2/−2及正文读回通过；精确提交 `95648902` 的[社区 CI](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/39721437557)两项检查均通过，0.16 发布与验收完成。上游审阅/合并与站点刷新仍待确认。首次构建、验证helper、npm未知结果及旧元数据限制均保留，见[发布说明](releases/0.16.0.md)与[验收记录](validation/release-0.16.0.json)。原历史保持。
+
+
+### 2026-10-22：0.17 可编辑副本候选，尚未发布
+
+新增版本页可编辑 ZIP、同版本可选影片、取消/同请求重试/刷新恢复，以及旧历史源变化未知状态。大 ZIP 浏览器/HTTP/迁移重开证据保留原提交 `d68f6d4`，整个 packages 树与 `97b2e678` 相同；这不等于任意工程资源自包含或许可清理。
+
+原始候选 `97b2e678` 的完整 43/43 套 canonical 验收通过（结束于 2026-10-22T04:54:23.296739+00:00，exit 0，940 个受控源文件字节保持不变）。首次 canonical 尝试因隔离环境缺少默认受管 Blender 入口，Host composition activation 15/18 后中止（exit -15）；保留失败结果，仅修正被忽略的工具链入口后从头重跑，没有改产品或测试源码。
+
+0.17.0 尚未公开发布；最终提交源等价与 CI、正式构建和原生/安装核验、已安装版本的小 ZIP 浏览器下载和迁移重开、公开七包与三路安装仍待各自实际证据。最新稳定版继续记录为 0.16.0。详见[候选说明](releases/0.17.0.md)与[候选记录](validation/release-0.17.0.json)。
