@@ -1,6 +1,6 @@
 # DeepBlend Studio
 
-[0.18.0 发布说明](deepblend/docs/releases/0.18.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
+[0.20.0 候选与验收范围](deepblend/docs/releases/0.20.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
 
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.18.0** 带来光台工作台：从项目开始，看大图判断结果，调整对象与摄影，再导出作品。最近结果保留来源版本，可以与当前版本比较。详见[发布说明与验收范围](deepblend/docs/releases/0.18.0.md)。
+**0.20.0 候选**支持完整金属台灯平移或绕竖轴转向后继续改灯罩直径，沿用现有尺寸控件，保留摆放、材质、相机和历史版本。详见[验收范围与发布状态](deepblend/docs/releases/0.20.0.md)。最近已发布版本为 [0.19.0](deepblend/docs/releases/0.19.0.md)，可把模型放到实际网格表面上。
 
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
@@ -427,7 +427,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**44 个套件、189 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**146 个文件 = 2130 项自计断言（34 个文件打印计数）+ 1986 个 `node:test` 用例（112 个文件）**。
+**146 个文件 = 2130 项自计断言（34 个文件打印计数）+ 2011 个 `node:test` 用例（112 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -438,8 +438,8 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **2026-10-23 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-`node:test` 用例数按本轮完整契约输出及后续新增用例的单文件复核输出统计。首次完整运行的
-文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
+`node:test` 用例数与自计断言均来自 0.20 候选同一次完整契约输出，146/146 文件正常通过。
+此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
