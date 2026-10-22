@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deepblend.showcase/v1",
+  "case": "Courtyard Pagoda",
+  "projectId": "official-comparison-pagoda",
+  "revisionId": "r0075",
+  "renderJobId": "render-0002",
+  "video": {
+    "file": "final.mp4",
+    "sha256": "1ac9c97c4dba6765bc03d79a5857921dafa6764ce42b8eda762a61c2ea4f6717",
+    "bytes": 10600045,
+    "durationSeconds": 37.5,
+    "frameCount": 900,
+    "fps": 24,
+    "resolution": [1280, 720],
+    "codec": "h264",
+    "engine": "Cycles",
+    "samples": 128,
+    "verified": true
+  },
+  "source": {
+    "sceneSpec": "scene-spec.json",
+    "sha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7"
+  },
+  "review": {
+    "publicSummary": "deepblend/showcase/pagoda/README.md"
+  }
+}

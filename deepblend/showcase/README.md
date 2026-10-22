@@ -43,3 +43,11 @@ Original procedural scenes and delivered renders: MIT, following the repository'
 [播放视频 / Watch](https://pearjelly.github.io/deep-blend/charge-study/) · [复现指南 / Replay guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/showcase/charge-study/README.md) · [完整复现素材 / Replay inputs](https://github.com/pearjelly/deep-blend/releases/download/v0.8.1/night-shift-replay.zip)
 
 机器人使用原资产第 1 帧的静态姿态，视频展示新布景与相机运动。**CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**；新增场景与脚本为 MIT。推广版只增加标题和署名。0.8.1 安装包包含 `examples/charge-study/` 的场景、提示词与复现工具；指南固定本次已验证的 0.5.0 环境。
+
+## 古塔庭院 / Courtyard Pagoda
+
+The latest case is a five-shot courtyard film based on DeepBlend project revision r0075. The verified video contains 900 frames at 24 fps, 1280 × 720, rendered with Cycles at 128 samples. The case page includes the MP4 and selected key frames; the SceneSpec and asset credits are published alongside it.
+
+[Watch the film](https://pearjelly.github.io/deep-blend/pagoda/) · [Case notes and SceneSpec](pagoda/README.md) · [Asset credits](../docs/assets/showcase/pagoda/CREDITS.md)
+
+The seated Buddha and source textures use the Minneapolis Institute of Art CC0 model. Supporting assets are CC0 from Poly Haven. The operator-supplied visual reference is not redistributed. See the case credits for scope and sources.

@@ -79,6 +79,12 @@ Created through DeepSeek Harness with the installed deep-blend **0.5.0** plugin:
 The robot uses the source asset’s static frame-1 pose; the film demonstrates the new set and camera motion. **CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**; new scene code is MIT. The promotional edit only adds titles and attribution. Release 0.8.1 includes replay inputs under `examples/charge-study/`; the guide pins the verified 0.5.0 environment.
 
 
+## New case: Courtyard Pagoda
+
+[![Courtyard pagoda key frame](deepblend/docs/assets/showcase/pagoda/poster.png)](https://pearjelly.github.io/deep-blend/pagoda/)
+
+The latest case film is a five-shot courtyard pagoda sequence: 37.5 seconds, 900 frames, 24 fps, 1280 × 720, rendered with Cycles at 128 samples. [Watch the film and view key frames](https://pearjelly.github.io/deep-blend/pagoda/) · [Case notes](deepblend/showcase/pagoda/README.md) · [Asset credits](deepblend/docs/assets/showcase/pagoda/CREDITS.md).
+
 ## Real work: light and material
 
 Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
