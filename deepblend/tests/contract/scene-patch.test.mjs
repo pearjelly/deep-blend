@@ -1485,7 +1485,7 @@ check(
   'the manifest key set is exactly the documented one',
   JSON.stringify(Object.keys(manifest)) === JSON.stringify([
     'schemaVersion', 'revision', 'baseRevision', 'digestBefore', 'digestAfter',
-    'specHashBefore', 'specHashAfter', 'sceneChanged', 'specChanged',
+    'specHashBefore', 'specHashAfter', 'sceneChanged', 'specChanged', 'specChangeStatus',
     'idempotencyKey', 'actor', 'stage', 'note', 'savedCheckpoint', 'renderedPreview',
     'operationCount', 'operations', 'notices',
   ]),

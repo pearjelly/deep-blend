@@ -50,6 +50,14 @@ export function compileSceneSpec(spec: SceneSpec): {
 export function sceneSpecCanonicalText(spec: SceneSpec): string;
 export function sceneSpecDigest(spec: SceneSpec): string;
 export function specHash(spec: SceneSpec): string;
+export type SpecChangeStatus = 'changed' | 'unchanged' | 'unknown';
+export interface SpecChangeAudit {
+  /** Conservative compatibility flag: true means not proven unchanged. Use specChangeStatus for display. */
+  specChanged: boolean;
+  specChangeStatus: SpecChangeStatus;
+}
+/** Derives evidence from canonical full-document hashes, ignoring stored booleans/statuses. */
+export function specChangeAudit(hashes?: { specHashBefore?: string | null; specHashAfter?: string | null }): SpecChangeAudit;
 export function reviewInputsDigest(spec: SceneSpec): string;
 export interface SceneSummary {
   revision: string | null; revisionNumber: number | null; digest: string; schemaVersion: SceneSpec['schemaVersion'];
@@ -85,13 +93,15 @@ export interface OperationManifest {
   schemaVersion: 'deepblend.operation-manifest/v1'; revision: string; baseRevision: string;
   digestBefore: string; digestAfter: string; specHashBefore: string | null; specHashAfter: string | null;
   sceneChanged: boolean; specChanged: boolean; idempotencyKey: string | undefined;
+  /** Absent in historical v1 records. Derive with specChangeAudit before displaying them. */
+  specChangeStatus?: SpecChangeStatus;
   actor: string | null; stage: string | null; note: string | null; savedCheckpoint: boolean; renderedPreview: boolean;
   operationCount: number; operations: AppliedOperation[]; notices: SceneSpecIssue[];
 }
 export function buildOperationManifest(input: {
   operations: AppliedOperation[]; notices: SceneSpecIssue[]; request: ScenePatch;
-  revision: { revision: string; baseRevision: string; digestBefore: string; digestAfter: string; specHashBefore?: string; specHashAfter?: string };
-}): OperationManifest;
+  revision: { revision: string; baseRevision: string; digestBefore: string; digestAfter: string; specHashBefore?: string | null; specHashAfter?: string | null };
+}): OperationManifest & SpecChangeAudit;
 export const RECIPE_SCHEMA_VERSION: 'deepblend.recipe/v1';
 export const RECIPE_CAPABILITIES: ReadonlyArray<RecipeCapability>;
 export const RECIPE_LIMITS: Readonly<{ sceneBytes: number; previewBytes: number; previewPixels: number }>;

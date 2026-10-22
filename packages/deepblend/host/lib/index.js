@@ -50,6 +50,7 @@ import {
   resolveSubject,
   resolveSubjectId,
   sceneSpecDigest,
+  specChangeAudit,
   sha256,
   reviewInputsDigest,
   scoreReview,
@@ -692,6 +693,7 @@ export default class BlenderStudio extends Service {
           kind: manifest?.kind ?? null,
           summary: manifest?.summary ?? null,
           digest: manifest?.digest ?? null,
+          ...specChangeAudit(manifest ?? {}),
           checkpoint: this.store.checkpointPath(projectId, id) === null
             ? null
             : `revisions/${id}/scene.blend`,
@@ -3508,6 +3510,8 @@ export default class BlenderStudio extends Service {
       revision,
       isCurrent: revision === record.currentRevision,
       manifest,
+      // Keep historical documents verbatim; expose their derived audit separately.
+      ...specChangeAudit(manifest),
       scene: summarizeSceneSpec(spec, {
         revision,
         revisionNumber: parseRevisionId(revision),

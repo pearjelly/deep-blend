@@ -11,6 +11,7 @@ export {
   BlenderError, BlenderErrorCode, BlenderWarningCode, isBlenderError,
 } from './index.js'
 export { canonicalStringify, canonicalPretty, sha256, sha256Canonical } from './canonical.js'
+export { specChangeAudit } from './spec-change-audit.js'
 export {
   validateSceneSpec, compileSceneSpec, sceneSpecCanonicalText, sceneSpecDigest, specHash,
   reviewInputsDigest, summarizeSceneSpec,

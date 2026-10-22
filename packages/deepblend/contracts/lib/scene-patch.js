@@ -19,6 +19,7 @@
 import { compileSchema, formatIssues } from './json-schema.js'
 import { collectionForKind, sceneSpecDigest, specHash } from './scene-spec.js'
 import { referenceImageIssues } from './reference-images.js'
+import { specChangeAudit } from './spec-change-audit.js'
 import scenePatchSchema from './schemas/scene-patch.schema.json' with { type: 'json' }
 
 const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patch.schema.json' })
@@ -1082,7 +1083,7 @@ export function applyPatchToSpec(spec, patch) {
  * @param {AppliedOperation[]} input.operations
  * @param {object} input.request - the accepted patch, recorded verbatim.
  * @param {{ revision: string, baseRevision: string, digestBefore: string, digestAfter: string,
- *           specHashBefore?: string, specHashAfter?: string }} input.revision
+ *           specHashBefore?: string|null, specHashAfter?: string|null }} input.revision
  * @param {import('./scene-spec.js').SceneSpecIssue[]} input.notices
  * @returns {Record<string, unknown>}
  */
@@ -1096,11 +1097,10 @@ export function buildOperationManifest({ operations, request, revision, notices 
     specHashBefore: revision.specHashBefore ?? null,
     specHashAfter: revision.specHashAfter ?? null,
     // Two different questions, two different answers. `sceneChanged` excludes
-    // project metadata and brief by design (see sceneSpecDigest); `specChanged` covers the
-    // whole document, so the frame range counts.
+    // project metadata and brief by design (see sceneSpecDigest). The full-source
+    // audit includes these fields and reports missing historical hashes as unknown.
     sceneChanged: revision.digestBefore !== revision.digestAfter,
-    specChanged: (revision.specHashBefore ?? null) !== null
-      && revision.specHashBefore !== revision.specHashAfter,
+    ...specChangeAudit(revision),
     idempotencyKey: request.idempotencyKey,
     actor: request.actor ?? null,
     stage: request.stage ?? null,

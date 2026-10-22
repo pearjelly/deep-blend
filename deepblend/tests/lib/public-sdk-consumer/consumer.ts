@@ -3,10 +3,10 @@ import { readFileSync } from 'node:fs';
 import {
   parseSceneSpec, parseScenePatch, compileSceneSpec, applyPatchToSpec, summarizeSceneSpec,
   parseRecipeManifest, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters, buildOperationManifest,
-  sceneSpecDigest, specHash, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
+  sceneSpecDigest, specHash, specChangeAudit, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
   BOX_DIMENSIONS_FEATURE, requiredSceneFeatures,
   normalizeShotCameraSelection, shotCameraForFrame,
-  type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier,
+  type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier, type OperationManifest, type SpecChangeStatus,
   type RecipeLock, type RecipeParameterState, type RecipeGeometryPlan, type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
   type ShotCameraSelection, type ShotFrameSequenceRequest,
@@ -30,6 +30,12 @@ assert.equal(reviewInputsDigest(compiled.spec), reviewInputsDigest(applied.spec)
 const manifest = buildOperationManifest({operations: applied.operations, notices: [], request: patch,
   revision: { revision: 'r0002', baseRevision: 'r0001', ...applied }});
 assert.equal(manifest.operationCount, 1);
+const sourceStatus: SpecChangeStatus = manifest.specChangeStatus;
+assert.equal(sourceStatus, 'changed');
+const legacyManifest: OperationManifest = {...manifest, specHashBefore: null, specChanged: false};
+delete legacyManifest.specChangeStatus;
+assert.deepEqual(specChangeAudit(legacyManifest), {specChanged: true, specChangeStatus: 'unknown'});
+assert.equal(specChangeAudit({specHashBefore: null}).specChangeStatus, 'unknown');
 // This reset instruction is typed by the packed public schema and never becomes saved camera data.
 const camera = compiled.spec.cameras[0]!;
 const resetAim: ScenePatchOperation = { op: 'camera.update', cameraId: camera.id, clearTarget: true, transform: { rotationEuler: [.1, .2, .3] } };
