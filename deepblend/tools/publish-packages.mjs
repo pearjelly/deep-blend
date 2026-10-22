@@ -40,8 +40,9 @@
  *   node deepblend/tools/publish-packages.mjs --dry-run  # npm's own dry run, in order
  *   node deepblend/tools/publish-packages.mjs            # publish
  *
- * Exit codes: 0 done, 1 a package failed, 2 a precondition is missing (not logged in, dirty
- * tree, a cycle) — three states, because "cannot publish yet" and "publishing broke" are
+ * Exit codes: 0 done and verified, 1 a package failed or publication remains unverified,
+ * 2 a precondition is missing or unknown (identity, dirty tree, a cycle) — "cannot publish
+ * yet" and "publishing broke" are
  * different things for whoever reads the result.
  *
  * Owner: DeepBlend Studio — M6 (plugin-market packaging)
@@ -61,6 +62,8 @@ import { ROOT } from './workspace-layout.mjs'
  * actually a routing one.
  */
 const REGISTRY = 'https://registry.npmjs.org/'
+const NPM_READ_TIMEOUT_MS = 15_000
+const REGISTRY_READ_TIMEOUT_MS = 10_000
 
 const PACKAGES_DIRECTORY = join(ROOT, 'packages', 'deepblend')
 
@@ -102,8 +105,29 @@ function run(command, args, options = {}) {
   const outcome = spawnSync(command, args, { encoding: 'utf8', env: environment, ...options })
   return {
     status: outcome.status,
+    stdout: outcome.stdout ?? '',
+    errorCode: outcome.error?.code ?? null,
+    signal: outcome.signal ?? null,
     output: `${outcome.stdout ?? ''}${outcome.stderr ?? ''}`.trim(),
   }
+}
+
+/** Read-only npm calls get one bounded attempt; publishing keeps its existing behavior. */
+function npmRead(args, { timeoutMs = NPM_READ_TIMEOUT_MS } = {}) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new RangeError('npm read timeout must be a positive integer')
+  return run('npm', [...args, '--registry', REGISTRY, '--fetch-retries=0',
+    `--fetch-timeout=${Math.min(timeoutMs, REGISTRY_READ_TIMEOUT_MS)}`], {
+    timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 64 * 1024,
+  })
+}
+
+/** Redact recognizable credential forms without reading npm configuration or credentials. */
+function redactNpmCredentials(output) {
+  return output
+    .replace(/\bnpm_[a-zA-Z0-9]{8,}\b/g, '[redacted]')
+    .replace(/(\bauthorization\s*[:=]\s*)(?:bearer|basic)\s+[^\s,;]+/gi, '$1[redacted]')
+    .replace(/((?:_authToken|_auth|_password|access_token|token|password|--otp)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1[redacted]')
+    .replace(/\b(https?:\/\/)[^/\s@]+@/gi, '$1[redacted]@')
 }
 
 /**
@@ -135,7 +159,7 @@ export function npmError(output) {
     // `npm error code E403` on its own line, which names the code and not the cause.
     /^code [A-Z0-9_]+$/,
   ]
-  const cleaned = output
+  const cleaned = redactNpmCredentials(output)
     .split('\n')
     .map(line => line.trim())
     .filter(line => line.length > 0)
@@ -173,11 +197,11 @@ export function npmError(output) {
  *
  * @returns {boolean|null} true, false, or null when it could not be determined.
  */
-export function twoFactorEnabled() {
-  const profile = run('npm', ['profile', 'get', '--json', '--registry', REGISTRY])
+export function twoFactorEnabled(options = {}) {
+  const profile = npmRead(['profile', 'get', '--json'], options)
   if (profile.status !== 0) return null
   try {
-    const parsed = JSON.parse(profile.output)
+    const parsed = JSON.parse(profile.stdout)
     return typeof parsed.tfa === 'boolean' ? parsed.tfa : null
   } catch {
     return null
@@ -235,7 +259,7 @@ export function alreadyPublished(output) {
  *
  * @param {string} name
  * @param {string} version
- * @param {{ timeoutMs?: number, intervalMs?: number }} [options]
+ * @param {{ timeoutMs?: number, intervalMs?: number, requestTimeoutMs?: number }} [options]
  * @returns {Promise<boolean|null>} true when served, false when it never appeared, null when the
  *   registry could not be reached at all.
  */
@@ -245,21 +269,24 @@ export async function waitForRegistry(name, version, options = {}) {
   const deadline = Date.now() + timeoutMs
   let unreachable = false
   for (;;) {
-    const served = await servedByRegistry(name, version)
+    const served = await servedByRegistry(name, version, { timeoutMs: options.requestTimeoutMs ?? REGISTRY_READ_TIMEOUT_MS })
     if (served === true) return true
     if (served === null) unreachable = true
     if (Date.now() >= deadline) return unreachable && served === null ? null : false
-    await new Promise(settle => setTimeout(settle, intervalMs))
+    await new Promise(settle => setTimeout(settle, Math.min(intervalMs, Math.max(0, deadline - Date.now()))))
   }
 }
 
-export async function servedByRegistry(name, version) {
+export async function servedByRegistry(name, version, { timeoutMs = REGISTRY_READ_TIMEOUT_MS } = {}) {
   try {
     const response = await fetch(`${REGISTRY}/${name.replace('/', '%2F')}`, {
       headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(timeoutMs),
     })
-    if (!response.ok) return false
+    if (response.status === 404) return false
+    if (!response.ok) return null
     const packument = await response.json()
+    if (!packument?.versions || typeof packument.versions !== 'object' || Array.isArray(packument.versions)) return null
     return Object.prototype.hasOwnProperty.call(packument.versions ?? {}, version)
   } catch {
     // A network failure is "cannot check", not "not published": the caller reports it as unverified
@@ -368,10 +395,43 @@ export function publishOrder(all = packages()) {
   return ordered
 }
 
-/** Is this machine able to publish at all? A branchable answer, not a stack. */
-function whoami() {
-  const result = run('npm', ['whoami', '--registry', REGISTRY])
-  return result.status === 0 ? result.output.split('\n').pop().trim() : null
+/** Identity evidence only: raw npm output (which may include credentials) is never returned. */
+export function npmIdentity(options = {}) {
+  const result = npmRead(['whoami', '--json'], options)
+  if (result.errorCode === 'ETIMEDOUT') return { status: 'unknown', reason: 'timeout' }
+  if (result.errorCode !== null || result.signal !== null) return { status: 'unknown', reason: 'command' }
+  if (result.status === 0) {
+    try {
+      const username = JSON.parse(result.stdout)
+      if (typeof username === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,213}$/.test(username)
+        && !/^npm_[a-zA-Z0-9]{8,}$/.test(username)) return { status: 'verified', username }
+    } catch {}
+    return { status: 'unknown', reason: 'response' }
+  }
+  let code = null
+  try { code = JSON.parse(result.stdout)?.error?.code ?? null } catch {}
+  code ??= /^npm (?:error|ERR!) code (E[A-Z0-9_]+)\s*$/m.exec(result.output)?.[1] ?? null
+  if (['ENEEDAUTH', 'E401', 'E403'].includes(code)) return { status: 'rejected', code }
+  if (/^E5\d\d$/.test(code ?? '')) return { status: 'unknown', reason: 'registry' }
+  if (['ETIMEDOUT', 'ESOCKETTIMEDOUT'].includes(code)) return { status: 'unknown', reason: 'timeout' }
+  if (['FETCH_ERROR', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH'].includes(code)) {
+    return { status: 'unknown', reason: 'network' }
+  }
+  return { status: 'unknown', reason: 'response' }
+}
+
+function reportIdentityFailure(identity) {
+  if (identity.status === 'rejected') {
+    console.error(`npm rejected the identity check (${identity.code}) at ${REGISTRY}`)
+    console.error(`fix: verify npm authentication and account access; npm login --registry ${REGISTRY} if needed`)
+  } else {
+    const reasons = { timeout: 'the read timed out', registry: 'the registry returned a server error',
+      network: 'the registry could not be reached', command: 'the npm read could not complete',
+      response: 'the response did not confirm an identity' }
+    console.error(`npm identity could not be verified: ${reasons[identity.reason] ?? reasons.response}`)
+    console.error('No packages were published by this run. Check registry availability and retry the identity check later.')
+  }
+  return 2
 }
 
 /**
@@ -483,20 +543,14 @@ function check() {
     return 1
   }
 
-  const user = whoami()
   if (published === order.length) {
     console.log(`result: all ${order.length} packages are already on the registry at these versions`)
     console.log(`next:   to publish a change, bump the version in each manifest — a published version cannot be replaced`)
     return 0
   }
-  if (user === null) {
-    // THE OPERATOR'S STEP, said in one line. Everything above this point is already known to
-    // be right; what is missing is an account.
-    console.log(`result: ${order.length} packages are ready to publish, and this machine is not logged in`)
-    console.log(`fix:    npm login --registry ${REGISTRY}   (then: npm org create ${SCOPE.replace('@', '')} or be added to it)`)
-    return 2
-  }
-  console.log(`result: ${order.length} packages are ready to publish as ${user}`)
+  const identity = npmIdentity()
+  if (identity.status !== 'verified') return reportIdentityFailure(identity)
+  console.log(`result: ${order.length} packages are ready to publish as ${identity.username}`)
   return 0
 }
 
@@ -514,13 +568,9 @@ async function publish(dryRun) {
   const order = publishOrder()
   const byName = new Map(order.map(entry => [entry.name, entry]))
   if (!dryRun) {
-    const user = whoami()
-    if (user === null) {
-      console.error(`not logged in to ${REGISTRY}`)
-      console.error(`fix: npm login --registry ${REGISTRY}`)
-      return 2
-    }
-    console.log(`publishing ${order.length} packages as ${user}`)
+    const identity = npmIdentity()
+    if (identity.status !== 'verified') return reportIdentityFailure(identity)
+    console.log(`publishing ${order.length} packages as ${identity.username}`)
   }
 
   try {
@@ -592,11 +642,20 @@ async function publish(dryRun) {
     // sentence was printed while one package was missing, and the Release asset and the npm route then
     // disagreed with the source route for anyone who looked.
     const missing = []
+    const unverified = []
     for (const entry of order) {
-      if ((await waitForRegistry(entry.name, entry.version)) === false) missing.push(`${entry.name}@${entry.version}`)
+      const served = await waitForRegistry(entry.name, entry.version)
+      if (served === false) missing.push(`${entry.name}@${entry.version}`)
+      if (served === null) unverified.push(`${entry.name}@${entry.version}`)
     }
     if (missing.length > 0) {
       console.error(`result: ${missing.length} package(s) are NOT on the registry: ${missing.join(', ')}`)
+    }
+    if (unverified.length > 0) {
+      console.error(`result: ${unverified.length} package(s) remain UNVERIFIED: ${unverified.join(', ')}`)
+      console.error('The writes may have succeeded. Check registry availability and read these versions again before retrying any publish.')
+    }
+    if (missing.length > 0 || unverified.length > 0) {
       return 1
     }
   }
