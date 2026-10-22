@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-22T09:02:43.022265+00:00",
+  "at": "2026-10-22T10:32:31.315190+00:00",
   "passed": true,
   "scope": "Current Lighttable UI photography saved-source draft interaction and actual desktop/narrow captures. No native photography suite rerun and no save, render, model call or source change in this refresh. Earlier 36-check native regression remains separate historical evidence.",
   "protectedHostFiles": 30,
@@ -37,14 +37,14 @@
     "source": "project:r0001",
     "width": 390
   },
-  "browserActionsSha256": "c0a1da511a22b7800a92418aef2a3813bebe454dfb6dccc353ba48f84f374f36",
-  "uiSha256": "dae953a235b0c256d2a25ba17402b9710d10b95d48cc984048c79299a73bc9ae",
+  "browserActionsSha256": "d91607f0a0350e973f82559bbe4db12161ba3be0cb59c8bdb1a6a07cead914ac",
+  "uiSha256": "c86e210a21dbbcb3d626d6a97abddd2d20b2dfdda6f90911ef96de352194331a",
   "nativeRegressionRerun": false,
   "encodingConversion": {
     "draft.png": {
       "sourceFormat": "JPEG",
-      "sourceSha256": "cd583cd57468e0d4e9dd7bad76d321e514970d0f5b0630b76160dd9c4d2eabd6",
-      "pngSha256": "c67d5b25c0964ab1b6d73d43c101adf8ca81a0673708888f4c1c2296ee9da978",
+      "sourceSha256": "5f8a8a7384036b8f4c70d04f80543be2dee6f3d834357372791d277b5741e0f1",
+      "pngSha256": "6fea53e51b4bb9eff95fbef01d08eff70b1c9d958106ca2d8a45fa6618fb663b",
       "decodedPixelsIdentical": true,
       "cropped": false,
       "resized": false,
@@ -52,8 +52,8 @@
     },
     "narrow.png": {
       "sourceFormat": "JPEG",
-      "sourceSha256": "94d263db22b4d3d8d05322ec9ca9c4c535b62821ccb411ebaf5bf98007c1087f",
-      "pngSha256": "452cfbe1d3bd4a9eaa51e2906700e60452cb8a184b5cc579383a1ffc23124f84",
+      "sourceSha256": "fcc4747ec0c2908f465cf015d6f35107f4f10a7cb83a7dcb415a3e07f2eb5f47",
+      "pngSha256": "c566219ff901f145bf3c389d398e3307c9e857980ac2b60274108965a3f71a7b",
       "decodedPixelsIdentical": true,
       "cropped": false,
       "resized": false,

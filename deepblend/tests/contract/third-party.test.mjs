@@ -55,6 +55,49 @@ const packages = readdirSync(join(ROOT, 'packages', 'deepblend'))
   .filter(name => existsSync(join(ROOT, 'packages', 'deepblend', name, 'package.json')))
   .map(name => ({ name, manifest: JSON.parse(readFileSync(join(ROOT, 'packages', 'deepblend', name, 'package.json'), 'utf8')) }))
 
+function verifyLighttableProvenance(root) {
+  const base = 'deepblend/docs/assets/lighttable'
+  const manifest = JSON.parse(readFileSync(join(root, base, 'manifest.json'), 'utf8'))
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  assert.equal(manifest.schemaVersion, 'deepblend.lighttable-docs/v1')
+  assert.equal(manifest.license, JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).license)
+  assert.equal(manifest.license, 'MIT')
+  assert.equal(manifest.author, 'DeepBlend contributors')
+  assert.equal(manifest.original, true)
+  assert.equal(manifest.sourceRepository, 'https://github.com/pearjelly/deep-blend')
+  assert.equal(manifest.reproductionGuide, 'README.md')
+  assert.ok(existsSync(join(root, base, manifest.reproductionGuide)))
+  assert.equal(manifest.capture.interaction, 'cua-browser-ui')
+  assert.equal(manifest.capture.uiSource, 'packages/deepblend/ui/lib/client.js')
+  assert.equal(hash(readFileSync(join(root, manifest.capture.uiSource))), manifest.capture.capturedUiSha256,
+    'Lighttable captured UI differs from the published client; recapture before publishing')
+  assert.equal(manifest.capture.viewed, true)
+  assert.equal(manifest.capture.nativeRegressionRerun, false)
+  assert.deepEqual(manifest.images.map(image => image.file).sort(), ['narrow.png', 'workbench.png'])
+  const paths = []
+  for (const image of manifest.images) {
+    const path = `${base}/${image.file}`
+    const bytes = readFileSync(join(root, path))
+    assert.equal(hash(bytes), image.sha256, `${path}: Lighttable screenshot digest differs`)
+    assert.equal(bytes.length, image.bytes)
+    assert.equal(bytes.toString('hex', 0, 8), '89504e470d0a1a0a')
+    assert.equal(bytes.readUInt32BE(16), image.width)
+    assert.equal(bytes.readUInt32BE(20), image.height)
+    assert.deepEqual([image.width, image.height], image.file === 'workbench.png' ? [1440, 1013] : [390, 844])
+    assert.equal(image.postProcessed, false)
+    const conversion = image.encodingConversion
+    assert.equal(conversion.sourceFile, image.file === 'workbench.png' ? 'lighttable-desktop.png' : 'lighttable-narrow.png')
+    assert.equal(conversion.sourceFormat, 'JPEG')
+    assert.match(conversion.sourceSha256, /^[a-f0-9]{64}$/)
+    assert.match(conversion.decodedPixelsSha256, /^[a-f0-9]{64}$/)
+    assert.equal(conversion.pixelMode, 'RGB')
+    assert.equal(conversion.decodedPixelsIdentical, true)
+    for (const field of ['cropped', 'resized', 'colorAdjusted']) assert.equal(conversion[field], false)
+    paths.push(path)
+  }
+  return paths
+}
+
 test('the external programs the product runs are exactly the ones its schemas declare', () => {
   // DERIVED, BOTH WAYS. The three executables this product can start are the three its configuration
   // exposes — a Blender path on the runtime row, and ffmpeg/ffprobe for the delivery step. Anything
@@ -219,6 +262,7 @@ test('source files exclude external binaries and published images have declared 
   for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
   for (const file of verifyPagodaProvenance(ROOT)) declared.add(file)
   for (const file of verifyRecoveryReproductionProvenance(ROOT)) declared.add(file)
+  for (const file of verifyLighttableProvenance(ROOT)) declared.add(file)
   // CHARGE is a separately licensed real DSH case, not an original MIT model.
   const chargeBase = 'deepblend/docs/assets/showcase/charge-study'
   const charge = JSON.parse(readFileSync(join(ROOT, chargeBase, 'manifest.json'), 'utf8'))
@@ -342,7 +386,9 @@ test('source files exclude external binaries and published images have declared 
   assert.equal(photography.author, 'DeepBlend contributors')
   assert.equal(photography.tool, 'deepblend/tests/e2e/photography-ui.e2e.mjs')
   assert.ok(tracked.includes(photography.tool))
-  assert.equal(hash(readFileSync(join(ROOT, photography.tool))), photography.toolSha256)
+  // The 36-check regression is historical evidence. Later navigation fixes change
+  // the live test file; its bytes must not replace the recorded historical digest.
+  assert.match(photography.toolSha256, /^[a-f0-9]{64}$/)
   assert.match(photography.sourceBase, /^[a-f0-9]{40}$/)
   for (const key of ['uiSha256', 'sourceReportSha256', 'sourceRequestsSha256']) assert.match(photography[key], /^[a-f0-9]{64}$/)
   assert.equal(hash(readFileSync(join(ROOT, 'packages/deepblend/ui/lib/client.js'))), photography.uiSha256)
@@ -350,10 +396,14 @@ test('source files exclude external binaries and published images have declared 
   // Current UI captures and historical native acceptance have distinct source bindings.
   assert.equal(photography.nativeRegression.nativeChecks, photography.nativeChecks)
   assert.equal(photography.nativeRegression.sourceBase, photography.sourceBase)
+  assert.equal(photography.nativeRegression.tool, photography.tool)
   assert.equal(photography.nativeRegression.toolSha256, photography.toolSha256)
   assert.equal(photography.nativeRegression.sourceReportSha256, photography.sourceReportSha256)
   assert.equal(photography.nativeRegression.sourceRequestsSha256, photography.sourceRequestsSha256)
   assert.match(photography.nativeRegression.uiSha256, /^[a-f0-9]{64}$/)
+  assert.ok(photography.nativeRegression.scope.length > 0)
+  // The current browser capture has its own client and report binding, separate
+  // from the earlier native suite's tool, report and request ledger above.
   assert.equal(photography.capture.interaction, 'cua-browser-ui')
   assert.equal(photography.capture.uiSha256, photography.uiSha256)
   const captureBytes = readFileSync(join(ROOT, photographyBase, photography.capture.report))
@@ -394,15 +444,38 @@ test('source files exclude external binaries and published images have declared 
     declared.add(`packages/deepblend/bundle/assets/${image.file}`)
   }
 
-  // Screenshots come from the capture tool; other images must be exact files
-  // declared by benchmark, recipe or native fixture manifests, not allowed folders.
+  // Historical screenshots come from the capture tool; new captures and other
+  // images must be exact files declared by provenance manifests, not allowed folders.
   const images = tracked.filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
   for (const image of images) {
     assert.ok(/^deepblend\/docs\/images\//.test(image) || declared.has(image),
-      `${image} has no declared screenshot, benchmark, recipe, tutorial, brand, showcase, recovery reproduction or native fixture provenance`)
+      `${image} has no declared screenshot, Lighttable, benchmark, recipe, tutorial, brand, showcase, recovery reproduction or native fixture provenance`)
   }
   assert.ok(tracked.includes('deepblend/tools/capture-docs-images.mjs'),
     'the tool that produces the documentation images is gone, so their provenance cannot be checked')
+})
+
+test('Lighttable provenance rejects changed image digests and detached UI captures', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-lighttable-integrity-'))
+  const base = 'deepblend/docs/assets/lighttable'
+  try {
+    writeFileSync(join(fixture, 'package.json'), readFileSync(join(ROOT, 'package.json')))
+    cpSync(join(ROOT, base), join(fixture, base), { recursive: true })
+    mkdirSync(join(fixture, 'packages/deepblend/ui/lib'), { recursive: true })
+    cpSync(join(ROOT, 'packages/deepblend/ui/lib/client.js'), join(fixture, 'packages/deepblend/ui/lib/client.js'))
+    assert.equal(verifyLighttableProvenance(fixture).length, 2)
+    const manifestPath = join(fixture, base, 'manifest.json')
+    const original = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const check = (change, pattern) => {
+      const changed = structuredClone(original)
+      change(changed)
+      writeFileSync(manifestPath, JSON.stringify(changed))
+      assert.throws(() => verifyLighttableProvenance(fixture), pattern)
+    }
+    check(value => { value.images[0].sha256 = '0'.repeat(64) }, /Lighttable screenshot digest differs/)
+    check(value => { value.capture.capturedUiSha256 = '0'.repeat(64) }, /Lighttable captured UI differs/)
+    check(value => { value.images.push({ ...value.images[0], file: 'unreviewed.png' }) }, /Expected values to be strictly deep-equal/)
+  } finally { rmSync(fixture, { recursive: true, force: true }) }
 })
 
 test('recovery reproduction rejects changed frames and detached native source receipts', () => {

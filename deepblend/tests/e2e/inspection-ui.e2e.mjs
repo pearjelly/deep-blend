@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
+import { revealWorkbenchControl, clickWorkbenchControl } from './workbench-navigation.mjs'
 import { REPO_ROOT, startWeb, storePatch, dismissFirstRunDialogs } from '../../tools/dsh-web-harness.mjs'
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `inspection-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(directory)) throw new Error(`Evidence directory already exists: ${directory}`)
@@ -63,13 +64,13 @@ async function checkPreviewScaling() {
       measurements.push(await page.evaluate(`(async()=>{
         await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         const image=document.querySelector('[data-compare="current"] img'),rect=image.getBoundingClientRect(),parent=image.parentElement,style=getComputedStyle(parent);
-        return {viewport:[innerWidth,innerHeight],natural:[image.naturalWidth,image.naturalHeight],actual:[rect.width,rect.height],availableWidth:parent.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)};
+        return {viewport:[innerWidth,innerHeight],natural:[image.naturalWidth,image.naturalHeight],actual:[rect.width,rect.height],availableWidth:parent.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),availableHeight:parent.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)};
       })()`))
     }
   } finally { await page.send('Emulation.clearDeviceMetricsOverride') }
   json('product-preview-scaling.json', measurements)
   check('current preview keeps its original size or scales proportionally to narrow and short viewports', measurements.every(row => {
-    const scale = Math.min(1, row.availableWidth / row.natural[0], (row.viewport[1] - 300) / row.natural[1])
+    const scale = Math.min(1, row.availableWidth / row.natural[0], row.availableHeight / row.natural[1], (row.viewport[1] - 300) / row.natural[1])
     return row.actual.every((value, index) => Math.abs(value - row.natural[index] * scale) < .1)
   }), measurements)
 }
@@ -126,8 +127,8 @@ try {
     const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=typeof init?.body==='string'?JSON.parse(init.body):undefined}catch{};
       const row={url:String(input),method:init?.method||'GET',body,startedAt:Date.now()};window.__inspectionRequests.push(row);
       return original(input,init).then(response=>{row.status=response.status;row.finishedAt=Date.now();return response},error=>{row.error=String(error);row.finishedAt=Date.now();throw error})}`)
-  await page.goto(url); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000)
-  await page.click('[data-action="guide-form"]'); await page.waitFor('document.querySelector("[data-inspection-panel]")!==null')
+  await page.goto(url); await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null', 45000)
+  await clickWorkbenchControl(page, '[data-action="guide-form"]'); await page.waitFor('document.querySelector("[data-inspection-panel]")!==null')
   check('the creation guide opens clay controls with correct native selection and no write', await page.evaluate('document.querySelector("[data-field=inspection-mode]").value==="clay" && window.__inspectionRequests.every(request=>request.method!=="POST")'))
   check('the guide and gray-mode note do not claim quality approval', (await page.text('[data-creation-guide]')).includes('不会自动提交') && (await page.text('[data-inspection-panel]')).includes('不证明壁厚'))
   const beauty = await inspect('beauty', 'hero', 24), clay = await inspect('clay', 'hero', 24)
@@ -142,12 +143,12 @@ try {
   check('saved SceneSpec, source checkpoint and original product PNG remain byte-identical', Object.entries(originals).every(([file, hash]) => sha(readFileSync(path(file))) === hash))
   await page.evaluate('document.querySelector("[data-inspection-artifact]").scrollIntoView({block:"start"})'); await page.screenshot(join(directory, '01-independent-inspections.png'))
   json('requests-before-refresh.json', await page.evaluate('window.__inspectionRequests'))
-  await page.reload(); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000); await page.click('[data-view-tab="preview"]'); await page.waitFor('document.querySelectorAll("[data-inspection-artifact]").length===3 && Array.from(document.querySelectorAll("[data-inspection-image]")).every(image=>image.naturalWidth>0)', 30000)
+  await page.reload(); await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null', 45000); await page.click('[data-view-tab="preview"]'); await revealWorkbenchControl(page, '[data-action="inspection-render"]'); await page.waitFor('document.querySelectorAll("[data-inspection-artifact]").length===3 && Array.from(document.querySelectorAll("[data-inspection-image]")).every(image=>image.naturalWidth>0)', 30000)
   check('refresh restores all actual diagnostic artifacts without a new render', await page.evaluate('window.__inspectionRequests.every(request=>request.method!=="POST")'))
-  await page.click('[data-action="guide-goal"]'); await page.fill('[data-field="brief-goal"]', 'Unsaved inspection guard')
-  await page.click('[data-action="guide-form"]')
+  await clickWorkbenchControl(page, '[data-action="guide-goal"]'); await page.fill('[data-field="brief-goal"]', 'Unsaved inspection guard')
+  await clickWorkbenchControl(page, '[data-action="guide-form"]')
   check('unsaved goal blocks inspection instead of silently ignoring the draft', await page.evaluate('document.querySelector("[data-action=inspection-render]").disabled'))
-  await page.click('[data-action="guide-goal"]'); await page.click('[data-action="brief-reset"]'); await page.click('[data-action="guide-detail"]')
+  await clickWorkbenchControl(page, '[data-action="guide-goal"]'); await page.click('[data-action="brief-reset"]'); await clickWorkbenchControl(page, '[data-action="guide-detail"]')
   await select('cameraId', 'detail'); await page.fill(field('frame'), '48')
   check('the details guide keeps the chosen camera/frame and leaves execution explicit', await page.evaluate('document.querySelector("[data-field=inspection-mode]").value==="beauty" && document.querySelector("[data-field=inspection-cameraId]").value==="detail" && document.querySelector("[data-field=inspection-frame]").value==="48"'))
   const peer = await fetch(`${base}/deepblend/projects/${projectId}/patch`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ patch: { projectId, baseRevision: 'r0001', saveCheckpoint: true, renderPreview: false, operations: [{ op: 'project.brief.set', goal: 'An explicit newer goal.', referenceImages: [] }] } }), signal: AbortSignal.timeout(180000) })
@@ -164,7 +165,7 @@ try {
   check('all inspection writes pin revision/mode/camera/frame, without patches, final renders or model calls', requests.filter(request => request.method === 'POST').every(request => request.url.endsWith('/preview') && request.body.revision && ['beauty', 'clay'].includes(request.body.mode) && request.body.views.length === 1 && Number.isInteger(request.body.views[0].frame)))
   const nativeFiles = Object.fromEntries(['scene-spec.json', 'scene.blend', 'revision-manifest.json'].map(name =>
     [`revisions/r0002/${name}`, sha(readFileSync(path('revisions/r0002', name)))]))
-  await page.click('[data-view-tab="scene"]'); await page.click('[data-action="select-entity:bottle"]')
+  await page.click('[data-view-tab="scene"]'); await revealWorkbenchControl(page, '[data-action="select-entity:bottle"]'); await page.click('[data-action="select-entity:bottle"]')
   await page.waitFor('document.querySelector("[data-action=geometry-measure]")!==null')
   const nativeStart = Date.now()
   check('native dimensions start only through an explicit pointer click', (await page.click('[data-action="geometry-measure"]')).via === 'pointer')

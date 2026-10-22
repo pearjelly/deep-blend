@@ -17,7 +17,7 @@ const files=()=>readdirSync(downloads).filter(name=>name.endsWith('.png'))
 const archived=[]
 function archiveImage(label){const file=files()[0],path=join(out,label+'-'+file);renameSync(join(downloads,file),path);archived.push({path,sha256:hash(readFileSync(path))})}
 async function waitDownloads(count){const deadline=Date.now()+15000;while(files().length<count&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));check('browser completed PNG file '+count,files().length===count);return files()}
-const selector='[data-compare=current] [data-action^="download-image:"]'
+const selector='.db-result-caption [data-action^="download-image:"]'
 let server,browser,page,failure,original,imagePath
 try{
  const rows=JSON.parse(await storePatch(root)),host=rows.find(r=>r.id==='deepblend-blender-host').config
@@ -45,13 +45,13 @@ try{
  check('downloaded PNG is byte-for-byte the displayed native image',saved.equals(original)&&decodePng(saved).height===artifact.height,{sha256:hash(saved),artifact})
  check('filename identifies the actual revision, camera, frame and image digest',filename.includes('r0001')&&filename.includes(artifact.cameraId)&&filename.includes(`f${artifact.frame}`)&&filename.includes(artifact.sha256.slice(0,12)))
  check('PNG saving needs neither encoder nor probe',!existsSync(host.ffmpegPath)&&!existsSync(host.ffprobePath))
- await page.waitFor(`document.querySelector('[data-compare=current] [data-image-download-status=ready]')!==null`)
+ await page.waitFor(`document.querySelector('.db-result-caption [data-image-download-status=ready]')!==null`)
  await page.screenshot(join(out,'02-saved.png'))
  // Serve altered bytes from the same real artifact route without refreshing its
  // displayed source. The client must reject the image, not start another save.
  const altered=Buffer.from(original);altered[altered.length-20]^=1;writeFileSync(imagePath,altered)
- await page.click(selector);await page.waitFor(`document.querySelector('[data-compare=current] [data-image-download-status=error]')!==null`)
- check('a changed real HTTP artifact is rejected without another saved file',files().length===1&&await page.evaluate(`document.querySelector('[data-compare=current] [role=status]').textContent.includes('不一致')`))
+ await page.click(selector);await page.waitFor(`document.querySelector('.db-result-caption [data-image-download-status=error]')!==null`)
+ check('a changed real HTTP artifact is rejected without another saved file',files().length===1&&await page.evaluate(`document.querySelector('.db-result-caption [role=status]').textContent.includes('不一致')`))
  archiveImage('first');writeFileSync(imagePath,original);await page.click(selector);await waitDownloads(1)
  check('retry after restoring the exact image succeeds',files().every(f=>readFileSync(join(downloads,f)).equals(original)))
  await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.disabled===false`)
@@ -59,6 +59,8 @@ try{
  // nonsecure context, while all requests still reach our local test server.
  const secureRequests=await page.evaluate('window.__pngRequests')
  archiveImage('retry');await page.goto(`http://deepblend.test:${server.port}/deepblend/workbench`)
+ await page.waitFor('document.querySelector("[data-lighttable-revision]")!==null',45000)
+ await page.click('[data-action="new-work"]')
  await page.waitFor(`document.querySelector('[data-action="select-project:${projectId}"]')!==null`,45000)
  await page.click(`[data-action="select-project:${projectId}"]`);await page.click('[data-view-tab="preview"]')
  await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.disabled===false&&document.querySelector('[data-compare=current] img')?.naturalWidth>0`,45000)

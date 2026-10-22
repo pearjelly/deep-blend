@@ -158,15 +158,15 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 
 ## 看看工作台
 
-以下图片来自运行中的 DSH 工作台、Chrome 与 Blender，由 `deepblend/tools/capture-docs-images.mjs` 捕获。
+下方光台截图来自运行中的 DSH 工作台与真实浏览器；[拍摄说明和来源摘要](deepblend/docs/assets/lighttable/README.md)记录桌面与窄屏画面。
 它们是**产品截图与真实渲染**；首屏横幅是品牌流程示意。
 
-![实际 Blender 工作台中的项目、版本与场景控件](deepblend/docs/images/workbench-scene.png)
+![实际光台工作台中的青釉杯预览、已保存版本与最近结果](deepblend/docs/assets/lighttable/workbench.png)
 
 <details>
 <summary><strong>查看版本预览对照与渲染拼图</strong></summary>
 
-对照的是两个保存版本的实际预览，来源场景与图片摘要记录在截图清单中。
+对比图与渲染拼图由 `deepblend/tools/capture-docs-images.mjs` 生成。对照的是两个保存版本的实际预览，来源场景与图片摘要记录在[截图清单](deepblend/docs/images/manifest.json)中；较早的工作台截图也保留在该清单内。
 
 ![带各自图片摘要与时间戳的实际修改前后预览](deepblend/docs/images/preview-compare.png)
 
@@ -278,7 +278,8 @@ deepblend/
                       版本号是产物对自己的声明，而那条路由只有当前版本才有
                       / probe-disk-full.log（卷写满时会发生什么：一帧不丢、可续渲）
                       / probe-coverage.log（整套验收执行了产品的哪些行，以及量具看不见什么）
-  docs/images/        README 里的三张图 + manifest.json（由 tools/capture-docs-images.mjs 生成）
+  docs/images/        版本对比、渲染拼图、历史工作台截图 + manifest.json
+  docs/assets/lighttable/  当前光台桌面与窄屏截图、独立来源清单与复拍说明
   tools/              link-workspace.mjs —— 把 node_modules 链接到已安装的 DSH 部署（全新 clone 的第一步）
                       workspace-layout.mjs —— 从源码里读出「要链接哪些包」，链接器与契约测试共用
                       dsh-baseline.json —— DSH 兼容性锚点（版本号）的机器可读来源
@@ -296,7 +297,7 @@ deepblend/
                       browser-driver.mjs —— 无依赖的 CDP 驱动（M4 的浏览器验收用它开真实 Chrome）
                       dsh-web-harness.mjs —— 自带 DSH home 与项目 store 地启动一个 dsh web
                       ui-loop-probe.mjs —— M4 的第一个任务：量「改一行客户端代码怎样才能看见」
-                      capture-docs-images.mjs —— 从真实产品里截出上面那三张图（改 UI 后重跑它）
+                      capture-docs-images.mjs —— 生成 docs/images 的截图与渲染拼图
                       dsh-plugin-install-probe.mjs —— 在临时 DSH_HOME 上量「DSH 自己的装法」到底做了什么
                       disk-full-probe.mjs —— 在一个真的 24 MiB 卷上把磁盘写满，看宿主怎么收场
                       coverage-probe.mjs —— 跑整套并列出产品里从没被执行过的行（含它自己的盲区）

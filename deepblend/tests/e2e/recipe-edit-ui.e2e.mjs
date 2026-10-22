@@ -33,6 +33,7 @@ async function saved(revision) {
   return manifest
 }
 async function controls(revision) {
+  await page.waitFor(`document.querySelector('[data-lighttable-revision="${revision}"]')!==null&&document.querySelector('[data-view-tab="scene"]')?.disabled===false`, 45000)
   await page.click('[data-view-tab="scene"]')
   await page.waitFor(`document.querySelector('[data-assembly-base-revision="${revision}"]') !== null`, 30000)
 }
@@ -50,7 +51,7 @@ try {
   server = await startWeb({ workspacePath: REPO_ROOT, patch: JSON.stringify(rows) })
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
-  await page.addInitScript(`window.__writes=JSON.parse(sessionStorage.getItem('deepblend-test-writes')||'[]');const original=window.fetch;window.fetch=(url,init)=>{if(init?.method==='POST'){window.__writes.push({url:String(url),body:JSON.parse(init.body)});sessionStorage.setItem('deepblend-test-writes',JSON.stringify(window.__writes))}return original(url,init)}`)
+  await page.addInitScript(`window.__writes=JSON.parse(sessionStorage.getItem('deepblend-test-writes')||'[]');const original=window.fetch;window.fetch=async(url,init)=>{if(init?.method==='POST'){window.__writes.push({url:String(url),body:JSON.parse(init.body)});sessionStorage.setItem('deepblend-test-writes',JSON.stringify(window.__writes))}if(window.__holdRecipeSave&&String(url).endsWith('/recipe-parameters')){window.__holdRecipeSave=false;await new Promise(resolve=>{window.__releaseRecipeSave=resolve})}return original(url,init)}`)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.modular-speaker@2.1.0"]\')!==null', 45000)
   await page.click('[data-action="select-recipe:deepblend.modular-speaker@2.1.0"]')
@@ -70,6 +71,14 @@ try {
     && state.originRevision === 'r0001' && second.baseRevision === 'r0001' && Boolean(second.recipeParameters))
   check('every original project artifact stays byte-identical', Object.entries(protectedFiles).every(([path, digest]) => sha(readFileSync(file(path))) === digest))
 
+  // Hold this actual UI request before transport while another editor commits.
+  // Its unchanged body must be rejected visibly, without publishing a revision.
+  await controls('r0002')
+  await page.fill('[data-field="assembly-cabinet-width-mm"]', '301')
+  await page.evaluate('window.__holdRecipeSave = true')
+  check('the stale-save attempt starts with a real pointer', (await page.click('[data-action="assembly-save"]')).via === 'pointer')
+  await page.waitFor('typeof window.__releaseRecipeSave === "function"')
+
   // Independent customizations are fixture preparation through real Host HTTP,
   // not a claim that these preparation operations were made with GUI controls.
   const spec = read('revisions/r0002/scene-spec.json'), shell = spec.entities.find(entity => entity.id === 'cabinet-shell')
@@ -81,6 +90,17 @@ try {
     ] } }) }).then(response => response.json())
   check('real Host customization fixture creates a separate revision', edited.ok && edited.revision.revision === 'r0003')
   const custom = read('revisions/r0003/scene-spec.json')
+  const customCheckpoint = sha(readFileSync(file('revisions/r0003/scene.blend')))
+  const customScene = sha(readFileSync(file('revisions/r0003/scene-spec.json')))
+  await page.evaluate('(() => { window.__releaseRecipeSave(); delete window.__releaseRecipeSave })()')
+  await page.waitFor(`Array.from(document.querySelectorAll('[data-view="scene"] [data-result="error"]')).some(node => node.textContent.includes('REVISION_CONFLICT'))`, 30000)
+  const feedback = await page.evaluate(`Array.from(document.querySelectorAll('[data-view="scene"] [data-result="error"]')).filter(node => node.textContent.includes('REVISION_CONFLICT')).map(node => { const rect=node.getBoundingClientRect(); return { text:node.textContent, visible:rect.width>0&&rect.height>0&&rect.top>=0&&rect.bottom<=innerHeight&&!node.closest('details:not([open])')&&getComputedStyle(node).visibility!=='hidden' } })`)
+  check('a refused size save shows one visible error while object and advanced editors stay closed', feedback.length === 1 && feedback[0].visible
+    && await page.evaluate(`document.querySelector('[data-action="editor-apply"]')===null&&!Array.from(document.querySelectorAll('[data-view="scene"] details')).some(node=>node.open)`), feedback)
+  check('the rejected stale request cannot publish a size revision or alter the other editor checkpoint', read('project.json').currentRevision === 'r0003'
+    && read('project.json').revisionCount === 3 && sha(readFileSync(file('revisions/r0003/scene.blend'))) === customCheckpoint
+    && sha(readFileSync(file('revisions/r0003/scene-spec.json'))) === customScene)
+  await page.screenshot(join(output, 'visible-size-save-conflict.png'))
   await page.reload(); await controls('r0003')
   check('ordinary edits inherit the prior assembly dimensions', Number(await page.evaluate('document.querySelector(\'[data-field="assembly-cabinet-width-mm"]\').value')) === 300)
   await resize('r0003', { 'cabinet-width-mm': 340, 'cabinet-height-mm': 200 })
@@ -98,8 +118,10 @@ try {
   check('restoration also restores the original controls', Number(await page.evaluate('document.querySelector(\'[data-field="assembly-cabinet-width-mm"]\').value')) === 264)
   check('restoration still protects all original bytes', Object.entries(protectedFiles).every(([path, digest]) => sha(readFileSync(file(path))) === digest))
   const writes = await page.evaluate('window.__writes'); json('ui-requests.json', writes)
-  check('only one project was created; two edits used the semantic save route', writes.filter(row => row.url === '/deepblend/projects').length === 1
-    && writes.filter(row => row.url.endsWith('/recipe-parameters')).length === 2)
+  check('one project and two successful size edits accompany exactly one rejected stale save', writes.filter(row => row.url === '/deepblend/projects').length === 1
+    && JSON.stringify(writes.filter(row => row.url.endsWith('/recipe-parameters')).map(row => row.body.baseRevision)) === JSON.stringify(['r0001', 'r0002', 'r0003'])
+    && read('revisions/r0002/recipe-parameters.json').values['cabinet-width-mm'] === 300
+    && read('revisions/r0004/recipe-parameters.json').values['cabinet-width-mm'] === 340)
   await page.screenshot(join(output, 'restored-controls.png'))
 
   const script = join(output, 'readback.py'), receipt = join(output, 'native-readback.json')

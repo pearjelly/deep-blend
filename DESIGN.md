@@ -209,7 +209,7 @@ The workbench is a full-height flex shell with a project bar, task navigation an
 
 Desktop body padding is (24px). At an available viewport or named-container width of (1000px) and below, the tool pane becomes (320px), the column gap (20px), and the filmstrip uses three columns up to (110px) wide. At (760px) and below, the result and tools become one column, body padding becomes (16px), sticky/independent scrolling is removed, and the filmstrip becomes a horizontal rail with (100px) frames. Task navigation may scroll horizontally. Both viewport and `deepblend` container queries support the standalone page and narrower embedded panels.
 
-The result mat contains the full image rather than cropping it. On desktop it uses a height clamp of `clamp(220px, calc(100dvh - 550px), 560px)` with a minimum height of (240px). Narrow mats use a (4:3) aspect ratio and a minimum height of (220px). Filmstrip and recipe imagery also use (4:3); filmstrip images crop to cover, recipe images contain.
+The result mat contains the full image rather than cropping it. When the artifact supplies valid measured width and height, the image reserves that aspect ratio and a container-bounded display width before decoding; legacy artifacts without those dimensions keep their dimensions unknown. On desktop it uses a height clamp of `clamp(240px, calc(100dvh - 550px), 560px)` with a minimum height of (240px). Narrow mats use a (4:3) aspect ratio and a minimum height of (220px). Filmstrip and recipe imagery also use (4:3); filmstrip images crop to cover, recipe images contain.
 
 Creation has a centered maximum width of (1120px), with recipe columns changing from four to two at (1000px), then one at (440px). Its footer is static. Choosing a recipe or blank start collapses the chooser and brings the title, optional goal and creation action forward; the gallery can reopen without losing per-recipe drafts. Comparison mode uses a full-width column and a compact stage. Legacy scene structures also retain the (700px) breakpoint.
 
@@ -254,6 +254,16 @@ A maximum of six recent results use a compact (4:3) contact sheet. Each frame in
 ### Disclosure and Utility Menu
 
 Native details/summary controls reveal technical evidence, photography, assets, inspection and advanced tools in place. The shared component stores state under stable store/project/new-work/global scopes, adding result or recipe identity as appropriate. Summary identity preserves focus across refreshes. The utility menu is an anchored (240px) bordered surface with internal padding of (16px). Reduced-motion preference removes transitions and smooth scrolling throughout the workbench; there is no entrance choreography.
+
+### Explicit Destinations and Feedback
+
+Following a creation-guide action opens its target disclosure. Choosing Parts opens the scene outline; Materials and Lighting opens the outline, photography and assets; choosing a new starting point reopens the recipe gallery. Selecting a scene camera or light opens photography. Opening form or detail inspection from a historical result returns to the current revision's inspection context without submitting edits or starting a render. Other scoped disclosure choices remain intact.
+
+Selecting an existing project keeps that project's identity visible while its saved source and preview load. The project selector reflects the pending choice, the body exposes a busy loading state, and editing remains disabled until the complete source is adopted. The waiting state displays neither the previous project's image nor a new-work form.
+
+A creation confirmation on the Brief view belongs only to the selected project, including creation without an automatic preview. Scene save feedback sits outside the object editor and advanced patch disclosure, so one visible message remains available even when no object is selected and every tool section is closed. A collapsed tool must not hide the outcome of an explicit action.
+
+These interaction rules follow [D294](deepblend/docs/architecture-decisions.md); separate browser and release verification is recorded in [the milestone register](deepblend/docs/milestone-status.md).
 
 ## Do's and Don'ts
 

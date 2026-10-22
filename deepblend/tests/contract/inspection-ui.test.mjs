@@ -28,6 +28,7 @@ async function client(t, options = {}) {
   const projects = { one: { revision: 'r0001', scene: tree(), diagnostics: [] }, two: { revision: 'r0001', scene: tree(), diagnostics: [] } }, calls = []
   const fetch = async (url, init = {}) => {
     const parsed = new URL(url, 'http://localhost'), id = parsed.pathname.match(/projects\/([^/]+)/)?.[1] || parsed.searchParams.get('projectId') || 'one', project = projects[id]
+    if (init.method !== 'POST') await options.beforeGet?.({ id, path: parsed.pathname })
     let payload
     if (init.method === 'POST') {
       const body = JSON.parse(init.body); calls.push({ id, path: parsed.pathname, body, signal: init.signal }); await options.beforePost?.({ id, body, signal: init.signal })
@@ -270,6 +271,103 @@ test('creation guide jumps to existing controls without writes, automatic render
   for (const [step, expected] of [['goal', 'projects'], ['route', 'projects'], ['parts', 'scene'], ['form', 'preview'], ['detail', 'preview'], ['appearance', 'scene'], ['delivery', 'jobs']]) { action(`guide-${step}`).props.onClick(); assert.equal(store.getState().view, expected) }
   assert.equal(calls.length, 0); assert.equal(store.getState().inspectionForms.one.mode, 'beauty'); assert.equal(Object.hasOwn(store.getState(), 'completedSteps'), false)
   assert.match(JSON.stringify(nodes()), /不会自动提交|do not submit/)
+})
+
+test('guide destinations reveal their actual tools and return from a historical image without writing', async t => {
+  const { store, calls, action, nodes } = await client(t, { alterPayload: payload => {
+    if (payload.previews) payload.previews.revisions.unshift({ revision: 'r0000', previews: [], contactSheets: [], diagnostics: [] })
+    if (payload.selected) payload.selected.revisions = [{ revision: 'r0000' }, { revision: 'r0001' }]
+    return payload
+  } })
+  const disclosure = id => nodes().find(node => node.props['data-disclosure'] && JSON.parse(node.props['data-disclosure']).at(-1) === id)
+  const targets = { route: ['new:recipe-gallery'], parts: ['scene-outline'], form: ['inspection'], detail: ['inspection'], appearance: ['scene-outline', 'photography', 'assets'] }
+  for (const [step, ids] of Object.entries(targets)) {
+    action(`guide-${step}`).props.onClick()
+    for (const id of ids) store.actions.setDisclosure(disclosure(id).props['data-disclosure'], false)
+    action(`guide-${step}`).props.onClick()
+    for (const id of ids) assert.equal(disclosure(id).props.open, true, `${step} opens ${id}`)
+  }
+  for (const step of ['form', 'detail']) {
+    store.actions.selectLighttableResult('r0000')
+    assert.equal(nodes().some(node => node.props['data-inspection-panel']), false, 'historical context has no current inspection tool')
+    action(`guide-${step}`).props.onClick()
+    assert.equal(store.getState().lighttableSelection, null)
+    assert.equal(store.getState().currentRevision, 'r0001')
+    assert.equal(disclosure('inspection').props.open, true)
+    assert.ok(action('inspection-render'))
+    assert.equal(store.getState().inspectionForms.one.mode, step === 'form' ? 'clay' : 'beauty')
+  }
+  store.actions.setView('scene')
+  for (const [kind, id] of [['camera', source.cameras[0].id], ['light', source.lights[0].id]]) {
+    store.actions.setDisclosure(disclosure('photography').props['data-disclosure'], false)
+    store.actions.selectPhotography(kind, id)
+    assert.equal(disclosure('photography').props.open, true, `${kind} selection opens the editor`)
+  }
+  assert.equal(calls.length, 0)
+})
+
+test('the shipped lighttable reserves measured image dimensions before decoding without inventing legacy pixels', async t => {
+  for (const dimensions of [{ width: 256, height: 192 }, { width: 1200, height: 1800 }, {}, { width: 256 }, { width: 0, height: 192 }]) {
+    const { nodes } = await client(t, { alterPayload: payload => {
+      if (payload.previews) Object.assign(payload.previews.revisions[0].previews[0], dimensions)
+      return payload
+    } })
+    const image = nodes().find(node => node.props.className === 'db-result-image')
+    const measured = dimensions.width > 0 && dimensions.height > 0
+    assert.equal(image.props.width, measured ? dimensions.width : undefined)
+    assert.equal(image.props.height, measured ? dimensions.height : undefined)
+    assert.equal(image.props.style.aspectRatio, measured ? `${dimensions.width} / ${dimensions.height}` : undefined)
+    assert.equal(image.props.style.width === 'auto', !measured)
+    assert.equal(image.props.style.height, 'auto')
+    assert.equal(image.props.style.maxWidth, '100%')
+  }
+})
+
+test('a creation without an automatic render retains its confirmation on the selected project brief', async t => {
+  const { store } = await client(t)
+  const state = store.getState(), message = 'Created the saved project without rendering'
+  for (const projectId of ['one', 'two']) {
+    const view = core.buildWorkbenchView({ ...state, view: 'projects', projectTask: 'brief',
+      notices: { ...state.notices, projects: { kind: 'creation', projectId, ok: true, message } } }, store.actions)
+    assert.equal(JSON.stringify(view).includes(message), projectId === state.activeProjectId)
+  }
+})
+
+test('scene save feedback remains visible with no object selected and all tool disclosures closed', async t => {
+  const { store } = await client(t), message = 'REVISION_CONFLICT: Saved source changed'
+  const state = { ...store.getState(), view: 'scene', editorEntityId: null, disclosures: {},
+    notices: { ...store.getState().notices, scene: { ok: false, message } } }
+  const visible = node => !node || typeof node !== 'object' ? []
+    : [node, ...(node.tag === 'details' && !node.props.open ? [] : (node.children || []).flatMap(visible))]
+  const root = core.buildWorkbenchView(state, store.actions)
+  assert.equal(nodesOf(root).filter(node => node.props['data-result'] === 'error').length, 1)
+  assert.equal(visible(root).filter(node => node.props['data-result'] === 'error').length, 1)
+  assert.match(JSON.stringify(visible(root).find(node => node.props['data-result'] === 'error')), /REVISION_CONFLICT/)
+})
+
+test('selecting an existing project shows its loading state until the new source arrives', async t => {
+  let release, entered
+  const waiting = new Promise(resolve => { entered = resolve }), held = new Promise(resolve => { release = resolve })
+  const { store, nodes, field, calls } = await client(t, { beforeGet: async ({ id, path }) => {
+    if (id === 'two' && path.endsWith('/previews')) { entered(); await held }
+  } })
+  store.actions.beginNewWork()
+  const select = nodes().find(node => node.props['data-action'] === 'select-project:two')
+  select.props.onClick(); await waiting
+  assert.equal(store.getState().activeProjectId, null, 'a pending source cannot authorize edits')
+  assert.equal(store.getState().view, 'preview')
+  assert.equal(field('lighttable-project').props.value, 'two')
+  const loading = nodes().find(node => node.props['data-preview-state'] === 'loading')
+  assert.equal(loading.props['aria-busy'], 'true')
+  assert.ok(JSON.stringify(loading).includes('two'))
+  assert.equal(nodes().some(node => node.props.className === 'db-result-image'), false)
+  assert.equal(nodes().some(node => node.props['data-action'] === 'create-project'), false)
+  assert.equal(field('nav-scene').props.disabled, true)
+  release(); await settle(store, state => state.activeProjectId === 'two')
+  assert.equal(nodes().some(node => node.props['data-preview-state'] === 'loading'), false)
+  assert.ok(nodes().some(node => node.props.className === 'db-result-image'))
+  assert.equal(field('nav-scene').props.disabled, false)
+  assert.equal(calls.length, 0)
 })
 
 

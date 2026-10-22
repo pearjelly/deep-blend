@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { revealWorkbenchControl, clickWorkbenchControl } from './workbench-navigation.mjs'
 /** Real preview settings, render history, editor comparison, restore and legacy reads. */
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
@@ -48,8 +49,9 @@ try {
   check('new creation displays and records the actual source revision and digest', initial.sourceRevision === 'r0001' && initial.sourceDigest === sceneSpecDigest(read('revisions', 'r0001', 'scene-spec.json'))
     && await page.evaluate(`document.querySelector('[data-compare=current] img').dataset.artifactSourceDigest===${JSON.stringify(initial.sourceDigest)}`))
   check('initial budget is measured independently of the authored profile', initial.width === 768 && initial.height === 576 && initial.samples === 8 && initial.renderConfig.samples === 8 && read('revisions', 'r0001', 'scene-spec.json').renderProfiles.preview.samples === 64)
+  await revealWorkbenchControl(page, '.db-lighttable-stage [data-preview-settings]')
   check('creation records evaluated camera facts and visibly shows the actual budget', initial.cameraFacts.frame === initial.frame && initial.cameraFacts.lens > 0
-    && await page.evaluate('document.querySelector("[data-compare=current] [data-render-settings-known=true]")?.textContent.includes("768×576")===true'))
+    && await page.evaluate('document.querySelector(".db-lighttable-stage [data-render-settings-known=true]")?.textContent.includes("768×576")===true'))
   await page.screenshot(join(output, '01-created.png'))
   await page.click('[data-view-tab=revisions]')
   check('a single saved version has a disabled comparison entry and a visible explanation', await page.evaluate(`document.querySelector('[data-action=\"compare-from:r0001\"]').disabled===true&&document.querySelector('[data-view=revisions]').textContent.includes('至少两版')`))
@@ -94,10 +96,10 @@ try {
     && currentSheet.viewSettings.every(item => item.samples === 8 && item.renderConfig.samples === 8) && currentSheet.viewSettings[1].cameraFacts.frame === 36)
   await page.click('[data-action="reload"]')
   await page.waitFor('window.__previewHeld.length>0')
-  check('a reused sheet path cannot identify the refreshed image or its settings', await page.evaluate(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(firstSheet.sha256)}&&document.querySelectorAll('[data-compare=current] [data-render-view-id]').length===1`))
+  check('a reused sheet path cannot identify the refreshed image or its settings', await page.evaluate(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(firstSheet.sha256)}&&document.querySelectorAll('.db-lighttable-stage [data-render-view-id]').length===1`))
   await page.evaluate('(()=>{window.__previewHoldRefresh=false;for(const release of window.__previewReleases)release();return true})()')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(currentSheet.path)}&&document.querySelector('[data-compare=current] img')?.dataset.artifactDigest===${JSON.stringify(currentSheet.sha256)}`)
-  check('sheet display distinguishes composed pixels from both constituent render settings', await page.evaluate(`document.querySelector('[data-compare=current]').textContent.includes(${JSON.stringify(`${currentSheet.width}×${currentSheet.height}`)})&&document.querySelector('[data-compare=current]').textContent.includes('192×144')&&document.querySelectorAll('[data-compare=current] [data-render-view-id]').length===2&&document.querySelector('[data-render-view-id=later]').textContent.includes('36')`))
+  check('sheet display distinguishes composed pixels from both constituent render settings', await page.evaluate(`document.querySelector('.db-lighttable-stage').textContent.includes(${JSON.stringify(`${currentSheet.width}×${currentSheet.height}`)})&&document.querySelector('.db-lighttable-stage').textContent.includes('192×144')&&document.querySelectorAll('.db-lighttable-stage [data-render-view-id]').length===2&&document.querySelector('[data-render-view-id=later]').textContent.includes('36')`))
   await page.screenshot(join(output, '02-sheet-settings.png'))
   const third = await render(256, 192, 8)
   await page.click('[data-action="reload"]'); await page.click('[data-compare-mode="result"]')
@@ -125,10 +127,10 @@ try {
   const projection = await (await fetch(`${base}/deepblend/projects/${projectId}/previews`)).json()
   check('actual Host legacy read derives only the source and preserves unknown time and manifest bytes', projection.previews.revisions[0].previews[0].sourceRevision === 'r0001' && projection.previews.revisions[0].previews[0].sourceDigest === initial.sourceDigest
     && projection.previews.revisions[0].previews[0].at === undefined && readFileSync(legacyPath).equals(legacyBytes))
-  await page.click('[data-view-tab="scene"]'); await page.click('[data-action="select-entity:shade-shell"]')
+  await page.click('[data-view-tab="scene"]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]')
   await page.waitFor('document.querySelector("[data-field=editor-material-roughness]")!==null')
   await page.fill('[data-field="editor-material-roughness"]', '0.31')
-  const scrollRefresh = await page.evaluate('(()=>{document.querySelector("[data-action=editor-apply]").scrollIntoView({block:"center"});const before=document.querySelector(".db-body").scrollTop;document.querySelector("[data-field=editor-material-roughness]").dispatchEvent(new Event("input",{bubbles:true}));return{before,after:document.querySelector(".db-body").scrollTop}})()')
+  const scrollRefresh = await page.evaluate('(()=>{document.querySelector("[data-action=editor-apply]").scrollIntoView({block:"center"});const pane=document.querySelector(".db-context-pane"),before=pane.scrollTop;document.querySelector("[data-field=editor-material-roughness]").dispatchEvent(new Event("input",{bubbles:true}));return{before,after:document.querySelector(".db-context-pane").scrollTop}})()')
   check('an idle state refresh preserves the actual scrolled main surface', scrollRefresh.before > 0 && scrollRefresh.after === scrollRefresh.before, scrollRefresh)
   const heldTab = await page.evaluate('(()=>{const el=document.querySelector("[data-view-tab=preview]");el.scrollIntoView();window.__heldPreviewTab=el;const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()')
   await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...heldTab, button: 'left', buttons: 1, clickCount: 1 })
@@ -152,16 +154,16 @@ try {
   let changed = 0; for (let i = 0; i < beforePixels.data.length; i += 4) if ([0, 1, 2].some(channel => beforePixels.data[i + channel] !== afterPixels.data[i + channel])) changed++
   check('same-settings material edit changes actual native RGB pixels', changed > 0, { changedPixels: changed, before: sha(beforePixels.data), after: sha(afterPixels.data) })
   manifests = ['r0001', 'r0002'].map(revision => ({ revision, sha256: sha(readFileSync(file('revisions', revision, 'revision-manifest.json'))) }))
-  await page.click('[data-view-tab="scene"]'); await page.click('[data-action="select-entity:shade-shell"]')
+  await page.click('[data-view-tab="scene"]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]')
   await page.waitFor('document.querySelector("[data-action=editor-restore]")?.disabled===false')
   check('restore uses a real pointer on the conditional editor control', (await page.click('[data-action="editor-restore"]')).via === 'pointer')
-  await page.waitFor('document.querySelector(".db-head")?.textContent.includes("r0001")===true')
+  await page.waitFor('document.querySelector(".db-result-heading")?.textContent.includes("r0001")===true')
   check('restore changes only the pointer while retaining both versions and every single PNG', read('project.json').currentRevision === 'r0001' && readdirSync(file('revisions')).sort().join(',') === 'r0001,r0002' && kept()
     && manifests.every(item => sha(readFileSync(file('revisions', item.revision, 'revision-manifest.json'))) === item.sha256))
   await page.click('[data-view-tab="preview"]'); await page.click('[data-compare-mode="result"]')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(third.path)}`)
   check('restored latest view displays r0001 pixels and source instead of the edited version', await page.evaluate(`document.querySelector('[data-compare=current] img').dataset.artifactRevision==='r0001'&&document.querySelector('[data-compare=current] img').dataset.artifactSourceDigest===${JSON.stringify(initial.sourceDigest)}`))
-  await page.reload(); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null')
+  await page.reload(); await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null')
   await page.click('[data-view-tab="preview"]'); await page.click('[data-compare-mode="result"]')
   await page.waitFor(`document.querySelector('[data-compare=current] img')?.dataset.artifact===${JSON.stringify(third.path)}`)
   check('reload retains the restored source, history and unmodified legacy manifest', kept() && manifests.every(item => sha(readFileSync(file('revisions', item.revision, 'revision-manifest.json'))) === item.sha256)
@@ -169,11 +171,12 @@ try {
   await page.waitFor('document.querySelector("[data-compare=current] img").complete&&document.querySelector("[data-compare=current] img").naturalWidth>0')
   await page.screenshot(join(output, '03-restored.png'))
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })
-  const narrow = await page.evaluate('(()=>{const panel=document.querySelector("[data-compare=current]").getBoundingClientRect();return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,left:panel.left,right:panel.right,budgetVisible:document.querySelector("[data-compare=current]").textContent.includes("256×192")}})()')
-  check('actual render settings remain visible without horizontal overflow at 390 pixels', narrow.viewport === 390 && narrow.scrollWidth <= 390 && narrow.left >= 0 && narrow.right <= 390 && narrow.budgetVisible, narrow)
+  await revealWorkbenchControl(page, '.db-lighttable-stage [data-preview-settings]')
+  const narrow = await page.evaluate('(()=>{const panel=document.querySelector("[data-compare=current]").getBoundingClientRect(),settings=document.querySelector(".db-lighttable-stage [data-preview-settings]"),rect=settings.getBoundingClientRect();return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,left:panel.left,right:panel.right,settingsLeft:rect.left,settingsRight:rect.right,budgetVisible:rect.width>0&&rect.height>0&&settings.textContent.includes("256×192")}})()')
+  check('actual render settings remain visible without horizontal overflow at 390 pixels', narrow.viewport === 390 && narrow.scrollWidth <= 390 && narrow.left >= 0 && narrow.right <= 390 && narrow.settingsLeft >= 0 && narrow.settingsRight <= 390 && narrow.budgetVisible, narrow)
   await page.screenshot(join(output, '04-narrow-settings.png')); await page.send('Emulation.clearDeviceMetricsOverride')
   // Start from the real restored r0001, then branch a third saved version.
-  await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]')
+  await page.click('[data-view-tab=scene]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]')
   await page.waitFor('document.querySelector("[data-field=editor-material-roughness]")!==null')
   await page.fill('[data-field=editor-material-roughness]', '.47'); await page.waitFor('document.querySelector("[data-action=editor-apply]")?.disabled===false')
   check('third version is saved by a real pointer', (await page.click('[data-action=editor-apply]')).via === 'pointer')
@@ -200,7 +203,7 @@ try {
   check('entry from render history switches to the chosen/current version comparison', await displayedPair('r0001','r0003'))
   await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0003"]')
   check('current-version entry chooses the nearest other saved version', await displayedPair('r0002','r0003'))
-  await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]'); await page.fill('[data-field=editor-material-roughness]','.53')
+  await page.click('[data-view-tab=scene]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]'); await page.fill('[data-field=editor-material-roughness]','.53')
   await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]'); await page.click('[data-view-tab=scene]')
   check('viewing comparisons retains the later unsaved material value and does not submit it', await page.evaluate('document.querySelector("[data-field=editor-material-roughness]").value==="0.53"&&document.querySelector("[data-action=editor-apply]").disabled===false') && await page.evaluate('window.__versionWrites.length') === readOnlyWrites)
   await page.click('[data-view-tab=revisions]'); await page.click('[data-action="compare-from:r0001"]')
@@ -217,7 +220,7 @@ try {
   check('all comparison navigation and diff reads leave native files and previews unchanged', await page.evaluate('window.__versionWrites.length') === readOnlyWrites && kept()
     && Object.entries(allSaved).every(([name,h]) => sha(readFileSync(file('revisions',name))) === h))
   await page.click('[data-view-tab=revisions]'); check('explicit restore still uses a real pointer', (await page.click('[data-action="restore:r0001"]')).via === 'pointer')
-  await page.waitFor('document.querySelector(".db-head")?.textContent.includes("r0001")===true'); await page.click('[data-action="compare-from:r0003"]')
+  await page.waitFor('document.querySelector("[data-revision=r0001] .db-badge[data-tone=ok]")!==null&&document.querySelector(\'[data-action="restore:r0001"]\')===null'); await page.click('[data-action="compare-from:r0003"]')
   check('after explicit restore the requested saved version compares against the actual restored current', await displayedPair('r0003','r0001') && read('project.json').currentRevision === 'r0001')
   check('restoring and viewing retain every saved scene, manifest and native PNG', kept() && Object.entries(allSaved).every(([name,h]) => sha(readFileSync(file('revisions',name))) === h)
     && readdirSync(file('revisions')).sort().join(',') === 'r0001,r0002,r0003')
@@ -232,7 +235,7 @@ try {
   // Two real works with different geometry exercise project ownership. Network
   // failures and delayed HTTP replies affect reads only, never their saved bytes.
   const cupId = 'preview-owner-cup', cupFile = (...parts) => join(root, 'projects', cupId, ...parts)
-  await page.click('[data-view-tab=projects]'); await page.click('[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]'); await page.fill('[data-field=project-title]', cupId)
+  await page.click('[data-action=new-work]'); await clickWorkbenchControl(page, '[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]'); await page.fill('[data-field=project-title]', cupId)
   check('the second work is created only through the explicit pointer control', (await page.click('[data-action=create-project]')).via === 'pointer')
   const ownerImage = id => `document.querySelector('[data-compare=current] img')?.src.includes('/artifacts/${id}/')===true&&document.querySelector('[data-compare=current] img')?.complete===true&&document.querySelector('[data-compare=current] img')?.naturalWidth>0`
   await page.waitFor(ownerImage(cupId), 180000)
@@ -240,12 +243,12 @@ try {
   const cupProtected = Object.fromEntries(['scene-spec.json', 'scene.blend', 'revision-manifest.json', cupArtifact.path].map(name => { const path = name.startsWith('revisions/') ? name : 'revisions/r0001/' + name; return [path, sha(readFileSync(cupFile(path)))] }))
   check('the cup PNG is an actual independent Blender output with its own source digest', sha(readFileSync(cupFile(cupArtifact.path))) === cupArtifact.sha256 && cupArtifact.sourceRevision === 'r0001' && cupArtifact.sourceDigest === sceneSpecDigest(JSON.parse(readFileSync(cupFile('revisions', 'r0001', 'scene-spec.json')))))
   const ownerWrites = await page.evaluate('window.__versionWrites.length')
-  const selectOwner = async id => { await page.click('[data-view-tab=projects]'); await page.click(`[data-action="select-project:${id}"]`); await page.click('[data-view-tab=preview]'); await page.waitFor('document.querySelector("[data-compare-mode=result]")!==null'); await page.click('[data-compare-mode=result]') }
-  await selectOwner(projectId); await page.waitFor(ownerImage(projectId)); await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]'); await page.click('[data-action=editor-reset]'); await page.fill('[data-field=editor-material-roughness]', '.47');
+  const selectOwner = async id => { await page.click('[data-action=new-work]'); await clickWorkbenchControl(page, `[data-action="select-project:${id}"]`); await page.click('[data-view-tab=preview]'); await page.waitFor('document.querySelector("[data-compare-mode=result]")!==null'); await page.click('[data-compare-mode=result]') }
+  await selectOwner(projectId); await page.waitFor(ownerImage(projectId)); await page.click('[data-view-tab=scene]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]'); await page.click('[data-action=editor-reset]'); await page.fill('[data-field=editor-material-roughness]', '.47');
   check('the ownership scenario starts with an editable draft from the restored current version', await page.evaluate('document.querySelector("[data-field=editor-material-roughness]").value==="0.47"&&document.querySelector("[data-action=editor-apply]").disabled===false')); await page.click('[data-view-tab=preview]');
   check('the valid lamp preview has a real original-PNG download control before the failure', await page.count('[data-image-download]') > 0)
-  await page.evaluate(`window.__ownerFailProject=${JSON.stringify(cupId)}`); await page.click('[data-view-tab=projects]'); await page.click(`[data-action="select-project:${cupId}"]`); await page.click('[data-view-tab=preview]')
-  await page.waitFor(`window.__ownerFailures.length===1&&document.querySelector('.db-head')?.textContent.includes(${JSON.stringify(cupId)})===true`)
+  await page.evaluate(`window.__ownerFailProject=${JSON.stringify(cupId)}`); await page.click('[data-action=new-work]'); await clickWorkbenchControl(page, `[data-action="select-project:${cupId}"]`); await page.click('[data-view-tab=preview]')
+  await page.waitFor(`window.__ownerFailures.length===1&&document.querySelector('.db-result-heading')?.textContent.includes(${JSON.stringify(cupId)})===true`)
   check('failed cup read cannot show the lamp under the cup heading or offer its download', await page.count('[data-compare] img') === 0 && await page.count('[data-image-download]') === 0 && await page.count('[data-preview-state=error]') === 1)
   check('preview failure is visible and supplies a read-only explicit refresh', await page.evaluate('document.body.textContent.includes("UI_FETCH_FAILED")&&document.querySelector("[data-action=preview-reload]")?.disabled===false') && await page.evaluate('window.__versionWrites.length') === ownerWrites)
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })
@@ -256,16 +259,16 @@ try {
   check('narrow recovery is an explicit real pointer action', (await page.click('[data-action=preview-reload]')).via === 'pointer'); await page.waitFor(ownerImage(cupId))
   check('refresh recovers only the cup and does not create or render', await page.count('[data-preview-state=error]') === 0 && await page.evaluate('window.__versionWrites.length') === ownerWrites)
   await page.send('Emulation.clearDeviceMetricsOverride'); await page.screenshot(join(output, '09-cup-preview-recovered.png'))
-  await selectOwner(projectId); await page.waitFor(ownerImage(projectId)); await page.click('[data-view-tab=scene]'); await page.click('[data-action="select-entity:shade-shell"]')
+  await selectOwner(projectId); await page.waitFor(ownerImage(projectId)); await page.click('[data-view-tab=scene]'); await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]')
   check('returning to the lamp restores its unsubmitted material value without writing', await page.evaluate('document.querySelector("[data-field=editor-material-roughness]").value==="0.47"&&document.querySelector("[data-action=editor-apply]").disabled===false') && await page.evaluate('window.__versionWrites.length') === ownerWrites)
-  await page.click('[data-view-tab=preview]'); await page.evaluate(`window.__ownerHoldProject=${JSON.stringify(cupId)}`); await page.click('[data-view-tab=projects]'); await page.click(`[data-action="select-project:${cupId}"]`); await page.click('[data-view-tab=preview]'); await page.waitFor('window.__ownerReleases.length===1')
+  await page.click('[data-view-tab=preview]'); await page.evaluate(`window.__ownerHoldProject=${JSON.stringify(cupId)}`); await page.click('[data-action=new-work]'); await clickWorkbenchControl(page, `[data-action="select-project:${cupId}"]`); await page.click('[data-view-tab=preview]'); await page.waitFor('window.__ownerReleases.length===1')
   check('pending cup selection retires the lamp image before its new reply arrives', await page.count('[data-compare] img') === 0 && await page.count('[data-preview-state=loading]') === 1)
   await page.evaluate('(()=>{window.__ownerHoldProject=null;window.__ownerReleases.shift()();})()'); await page.waitFor(ownerImage(cupId))
   await selectOwner(projectId); await page.waitFor(ownerImage(projectId)); const repliesBefore = await page.evaluate('window.__ownerResponses.length')
   await page.evaluate(`window.__ownerHoldProject=${JSON.stringify(projectId)}`); await page.click('[data-action=reload]'); await page.waitFor('window.__ownerReleases.length===1')
   await selectOwner(cupId); await page.waitFor(ownerImage(cupId)); const repliesWithCup = await page.evaluate('window.__ownerResponses.length'); check('the newer cup reply actually arrives before the held lamp reply', repliesWithCup > repliesBefore)
   await page.evaluate('(()=>{window.__ownerHoldProject=null;window.__ownerReleases.shift()();})()'); await page.waitFor(`window.__ownerResponses.length===${repliesWithCup + 1}`)
-  check('a consumed late lamp HTTP reply cannot replace the current cup', await page.evaluate(ownerImage(cupId)) && await page.evaluate(`document.querySelector('.db-head').textContent.includes(${JSON.stringify(cupId)})`))
+  check('a consumed late lamp HTTP reply cannot replace the current cup', await page.evaluate(ownerImage(cupId)) && await page.evaluate(`document.querySelector('.db-result-heading').textContent.includes(${JSON.stringify(cupId)})`))
   await page.evaluate(`window.__ownerFailProject=${JSON.stringify(cupId)}`); await page.click('[data-action=reload]'); await page.waitFor('window.__ownerFailures.length===2'); await page.evaluate('new Promise(resolve=>setTimeout(resolve,0))')
   check('a same-project failed refresh retires its cached PNG and offers recovery', await page.count('[data-compare] img') === 0 && await page.count('[data-preview-state=error]') === 1 && await page.count('[data-action=preview-reload]') === 1)
   await page.evaluate('window.__ownerFailProject=null'); await page.click('[data-action=preview-reload]'); await page.waitFor(ownerImage(cupId)); await page.evaluate(`window.__ownerCorruptProject=${JSON.stringify(cupId)}`); const corruptBefore = await page.evaluate('window.__ownerResponses.length'); await page.click('[data-action=reload]'); await page.waitFor(`window.__ownerResponses.length===${corruptBefore + 1}`)

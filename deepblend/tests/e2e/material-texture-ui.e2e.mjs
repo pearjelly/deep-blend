@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { clickWorkbenchControl } from './workbench-navigation.mjs'
 /** Native material editor: real draft, refusal/recovery, checkpoint and changed pixels. */
 import {existsSync,mkdirSync,readFileSync,writeFileSync,copyFileSync} from 'node:fs'
 import {join,resolve} from 'node:path'
@@ -35,8 +36,8 @@ try{
   copyFileSync(path(beforePreview.path),join(output,'before.png'))
   browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage()
   await page.addInitScript(`window.__surfaceWrites=[];const originalFetch=window.fetch;window.fetch=(input,init)=>{if(init?.method==='POST')window.__surfaceWrites.push({url:String(input),body:JSON.parse(init.body)});return originalFetch(input,init)}`)
-  await page.goto(url);await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null',45000)
-  const selectEntity=async()=>{await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector(${JSON.stringify('[data-action="select-entity:shade-shell"]')})!==null`,30000);await page.click('[data-action="select-entity:shade-shell"]');await page.waitFor(`document.querySelector(${JSON.stringify(field('type'))})!==null`,30000)}
+  await page.goto(url);await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null',45000)
+  const selectEntity=async()=>{await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector(${JSON.stringify('[data-action="select-entity:shade-shell"]')})!==null`,30000);await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]');await page.waitFor(`document.querySelector(${JSON.stringify(field('type'))})!==null`,30000)}
   const select=async(key,value)=>page.evaluate(`(()=>{const node=document.querySelector(${JSON.stringify(field(key))});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(node,${JSON.stringify(value)});node.dispatchEvent(new Event('input',{bubbles:true}));})()`)
   const captureSurface=async(name)=>{
     await page.evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(field('coordinates'))});input.focus();input.scrollIntoView({block:'center'})})()`)
@@ -80,7 +81,7 @@ try{
   writeFileSync(join(output,'native-pixels.log'),execFileSync(blenderPath,['--background','--factory-startup','--disable-autoexec','--python-exit-code','1','--python',pixelScript],{timeout:90000,maxBuffer:8*1024*1024}))
   const pixels=JSON.parse(readFileSync(pixelReceipt))
   check('independent CPU renders reproduce the control and retain the texture pixel contribution',pixels.controlIdentical&&pixels.changedPixels>0,pixels)
-  await page.reload();await page.waitFor('document.querySelector("[data-brief-base-revision=r0002]")!==null',45000);await selectEntity()
+  await page.reload();await page.waitFor('document.querySelector("[data-lighttable-revision=r0002]")!==null',45000);await selectEntity()
   check('refresh restores saved surface controls as a clean draft',await page.evaluate(`document.querySelector(${JSON.stringify(field('coordinates'))}).value==='uv' && document.querySelector(${JSON.stringify(field('uvMap'))}).value==='UVMap' && document.querySelector(${JSON.stringify(field('bump'))}).value==='0.006' && document.querySelector('[data-scene-editor]').dataset.editorDirty==='false' && window.__surfaceWrites.length===0`))
   await captureSurface('02-saved-surface.png')
   await page.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});await page.evaluate(`document.querySelector(${JSON.stringify(field('coordinates'))}).scrollIntoView({block:'center'})`)

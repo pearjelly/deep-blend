@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "deepblend.lighttable-docs/v1",
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "original": true,
+  "sourceRepository": "https://github.com/pearjelly/deep-blend",
+  "reproductionGuide": "README.md",
+  "capture": {
+    "date": "2026-10-22",
+    "interaction": "cua-browser-ui",
+    "sourceDirectory": ".tmp-design-review/photo-docs-refresh",
+    "uiSource": "packages/deepblend/ui/lib/client.js",
+    "capturedUiSha256": "c86e210a21dbbcb3d626d6a97abddd2d20b2dfdda6f90911ef96de352194331a",
+    "viewed": true,
+    "nativeRegressionRerun": false,
+    "scope": "Actual desktop and narrow browser screenshots after reloading the Lighttable client. The saved glazed-cup work, r0002 preview and revision strip are shown. This capture records the UI only and does not claim a new native render or acceptance run."
+  },
+  "images": [
+    {
+      "file": "workbench.png",
+      "sha256": "dc78822021dce9d33910773182c6697960a82b700981c92c89bedaf90a2884dc",
+      "bytes": 218186,
+      "width": 1440,
+      "height": 1013,
+      "postProcessed": false,
+      "encodingConversion": {
+        "sourceFile": "lighttable-desktop.png",
+        "sourceFormat": "JPEG",
+        "sourceSha256": "fbdcc5ad51c47c9d0e76d43730f25ac2bcfe10e9e53d3c5b4f8a3cbb9cf033e0",
+        "decodedPixelsSha256": "fd274e4c59fae5858e90764b16a64d317482954f57a1089e639aeea8af924f89",
+        "pixelMode": "RGB",
+        "decodedPixelsIdentical": true,
+        "cropped": false,
+        "resized": false,
+        "colorAdjusted": false
+      }
+    },
+    {
+      "file": "narrow.png",
+      "sha256": "1b40ac11605647b5fe7c624dea0010cde5f4e76cc31c819d47228331169616da",
+      "bytes": 137731,
+      "width": 390,
+      "height": 844,
+      "postProcessed": false,
+      "encodingConversion": {
+        "sourceFile": "lighttable-narrow.png",
+        "sourceFormat": "JPEG",
+        "sourceSha256": "c843b40d1540fcfef2dcfd0a976750471aa881597ebe988cd035eff62373b5d5",
+        "decodedPixelsSha256": "fd175ccbc0fef0ce76242ad384a5fd3d644d673c64e87b0baa9680c6a127772d",
+        "pixelMode": "RGB",
+        "decodedPixelsIdentical": true,
+        "cropped": false,
+        "resized": false,
+        "colorAdjusted": false
+      }
+    }
+  ]
+}

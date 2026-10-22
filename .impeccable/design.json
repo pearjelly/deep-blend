@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T08:56:21.372715+00:00",
+  "generatedAt": "2026-10-22T10:34:04.867726+00:00",
   "title": "Design System: DeepBlend Studio",
   "extensions": {
     "colorMeta": {
@@ -581,7 +581,9 @@
       "Do retain source captions, selected/current distinction and explicit empty or unsupported states.",
       "Do keep the current result contained within its mat and use cropped thumbnails only in the filmstrip.",
       "Do preserve keyboard focus, scoped disclosure state, reduced motion and larger coarse-pointer targets.",
-      "Do keep creation controls reachable after choosing a recipe or blank start, while preserving per-recipe drafts."
+      "Do keep creation controls reachable after choosing a recipe or blank start, while preserving per-recipe drafts.",
+      "Do reveal the actual destination when following a creation guide or selecting a camera or light.",
+      "Do keep save feedback visible and show the requested project as loading until its source is ready."
     ],
     "donts": [
       "Don't replace user-selected light, dark or system appearance with a fixed palette.",

@@ -263,11 +263,13 @@ export class BrowserPage {
 
   /** Reload the current page and wait for load. */
   async reload() {
-    await this.send('Page.reload', { ignoreCache: true })
-    // `Page.loadEventFired` fires after the command resolves; wait for the
-    // document to be interactive instead of racing the event registration.
-    await this.waitFor('document.readyState === "complete"', 15000)
-    return this
+    const loaded = this._waitForEvent('Page.loadEventFired')
+    try {
+      // The command reply can precede navigation, while the old document is
+      // still complete; load can also arrive before that reply.
+      await Promise.all([this.send('Page.reload', { ignoreCache: true }), loaded.promise])
+      return this
+    } finally { loaded.cancel() }
   }
 
   /**
