@@ -1,6 +1,6 @@
 # DeepBlend Studio
 
-[0.15.0：DeepSeek 1017 / DSH 0.2.1 适配、升级与验收](deepblend/docs/deepseek-1017.md)
+[0.16.0 发布说明](deepblend/docs/releases/0.16.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
 
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-最新稳定版 [0.13.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.13.0) 支持移动或倾斜后的厚壁杯继续改尺寸，保留摆放并按实际几何调整默认主镜头；旧版本、手工外观与把手参数、独立摄影及动画得到保护。
+最新稳定版 [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) 增加导入实例边界及指定相机/帧的真实几何检查，支持按保存分镜渲染并安全恢复，附有经过验收的五镜宝塔成片；已有项目继续受到保护。详见[发布说明与验收范围](deepblend/docs/releases/0.16.0.md)。
 
 ## 安装并开始
 

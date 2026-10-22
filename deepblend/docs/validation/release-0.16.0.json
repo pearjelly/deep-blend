@@ -1,0 +1,692 @@
+{
+  "schemaVersion": "deepblend.release-closeout/v1",
+  "releaseLabel": "0.16.0",
+  "status": "standard-publication-complete",
+  "recordState": "final",
+  "observedThrough": "2026-10-22T04:30:14.936719+00:00",
+  "standardPublicationComplete": true,
+  "standardCompletedAt": "2026-10-22T04:30:14.936719+00:00",
+  "sourceBuildCommit": "778c4e98dec253ea146dea1162ded79ffa75e2f0",
+  "publicSource": "https://github.com/pearjelly/deep-blend/tree/778c4e98dec253ea146dea1162ded79ffa75e2f0",
+  "sourceRootTree": "904dc9aee58969a67aa8943880ef073bb7a8c3c2",
+  "sourcePackageTree": "9be95dcd7d3515de4ae98f7712119e6a71166fa1",
+  "acceptedRuntimeCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896",
+  "runtimeSourceUnchanged": true,
+  "ownPackageDifferenceFromAcceptedRuntime": [
+    "packages/deepblend/bundle/screenshots.json"
+  ],
+  "bundle": {
+    "bytes": 72537755,
+    "sha256": "61e3d1001c975d6c9d5c979f655addb24142d6031e5cfa3ef7a4ed4003dc39d8",
+    "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/deepblend-bundle.tgz"
+  },
+  "github": {
+    "status": "initial-and-supplemental-assets-published-and-anonymously-verified",
+    "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0",
+    "tagCommit": "778c4e98dec253ea146dea1162ded79ffa75e2f0",
+    "verifiedAt": "2026-10-22T02:11:06.118097+00:00",
+    "initialAssetCount": 24,
+    "anonymous": true,
+    "authorizationHeadersSent": false,
+    "initialManifestAndChecksumsVerified": true,
+    "initialAssets": [
+      {
+        "name": "ACCEPTANCE-SCOPE.txt",
+        "bytes": 3706,
+        "sha256": "a1442a6ebd2380bf66275ec0275e9383a3c54a7ed141a505229f3d4742b4eac9",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/ACCEPTANCE-SCOPE.txt"
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 2134,
+        "sha256": "6f87a39da38aaa7a259a30be659b48ea5b3eae30525f4ca999fbdacc43f2991f",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/SHA256SUMS"
+      },
+      {
+        "name": "acceptance-evidence-index.json",
+        "bytes": 1654,
+        "sha256": "e65f61691e3ba0dc38372251c5d026eaca00ab3c986d911cb211063d25a31f3a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/acceptance-evidence-index.json"
+      },
+      {
+        "name": "activation-attempts.json",
+        "bytes": 1031,
+        "sha256": "6285bf46386ecbc9ee75f89ec3b7198604b2e277fcdcb3c6a9b1280ef257dd3e",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/activation-attempts.json"
+      },
+      {
+        "name": "all-own-package-copies-proof.json",
+        "bytes": 1199,
+        "sha256": "1ed5caab9725d7ddcb650a09d5fe00bdbf9b5ff64d9bb6de17010352b8e45a3a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/all-own-package-copies-proof.json"
+      },
+      {
+        "name": "build-attempts.json",
+        "bytes": 934,
+        "sha256": "99f42c2c197c3401d4fbc3d2404a0746a1ba97e9096ce7c775b69aef0e1f8186",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/build-attempts.json"
+      },
+      {
+        "name": "build-proof.json",
+        "bytes": 1295,
+        "sha256": "f89ebe641f621a4c024aa935056e3edc320f47d94b59c5c6d27a2d9ba1bb2d8d",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/build-proof.json"
+      },
+      {
+        "name": "candidate-ci-archives.json",
+        "bytes": 3720,
+        "sha256": "b314a65d175d008d69f3bf45b44dda0c70c3d259790cfeaaff52052dce27543a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/candidate-ci-archives.json"
+      },
+      {
+        "name": "candidate-source-binding.json",
+        "bytes": 1961,
+        "sha256": "c334664b3a8806d17e5c79dfe502ffa8511ce33b57044f72e5707c3596f75ccd",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/candidate-source-binding.json"
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "bytes": 72537755,
+        "sha256": "61e3d1001c975d6c9d5c979f655addb24142d6031e5cfa3ef7a4ed4003dc39d8",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/deepblend-bundle.tgz"
+      },
+      {
+        "name": "live-model-acceptance.json",
+        "bytes": 2817,
+        "sha256": "45e3debc9139926f10ed37a06bb463141f50992ce434c5cec8605aaa7d477d9a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/live-model-acceptance.json"
+      },
+      {
+        "name": "local-installed-all-own-copies.json",
+        "bytes": 3212,
+        "sha256": "8dc8ee83974ded6a7b588d53cdbad7ccc479ed008a1677041423145d3332698a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/local-installed-all-own-copies.json"
+      },
+      {
+        "name": "local-native-decode-proof.json",
+        "bytes": 1372,
+        "sha256": "38ef82a225b066de7149aa24b413672ede3a776b067aa1c6b7dbff8d39409a22",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/local-native-decode-proof.json"
+      },
+      {
+        "name": "modern-activation-proof.json",
+        "bytes": 607,
+        "sha256": "f28ba1f1d74f5d3682d00933dd62f5f2213628c5f9a63f0a54e898bb7b9a9227",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/modern-activation-proof.json"
+      },
+      {
+        "name": "native-payload-verification.json",
+        "bytes": 7965,
+        "sha256": "39ce53d83b1e60e1e4009e09c079ac23107c21e3498205d5d818fd5c100cc7ec",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/native-payload-verification.json"
+      },
+      {
+        "name": "packed-doctor.json",
+        "bytes": 1545,
+        "sha256": "3cc732983825560c6c86923de199ff5ceddc1f5411c448af661384ca3d884793",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/packed-doctor.json"
+      },
+      {
+        "name": "pagoda-editable-handover.json",
+        "bytes": 2837,
+        "sha256": "1e75064249aa6ad71a35139d813548874325a5f2f11859213e8ce16ad9259789",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-editable-handover.json"
+      },
+      {
+        "name": "pagoda-film-technical.json",
+        "bytes": 3552,
+        "sha256": "a2fa7475be593dcfb303852eff2ac99894ae0a6f97834f2dc77471a6223d7fc2",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-film-technical.json"
+      },
+      {
+        "name": "pagoda-film-visual.json",
+        "bytes": 7409,
+        "sha256": "9b968dd6663c89241a287e108da3dd10c31518491599310fb39b298316114863",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-film-visual.json"
+      },
+      {
+        "name": "release-asset-manifest.json",
+        "bytes": 3767,
+        "sha256": "fbb592d3e85a363ed5bb42f091816e5d9b05c6b28379c9af066798d3a3f05816",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/release-asset-manifest.json"
+      },
+      {
+        "name": "root-manifest-proof.json",
+        "bytes": 737,
+        "sha256": "32269a29e1398e59b1493e7306d53d30a1e07aacb949d928e2acac3c3c0751fe",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/root-manifest-proof.json"
+      },
+      {
+        "name": "showcase-ci-archives.json",
+        "bytes": 3196,
+        "sha256": "4ebcc7bb12ce6eb1cd7747f00817c11b78d2016ad6d40cb03d752ac125b5a2ca",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/showcase-ci-archives.json"
+      },
+      {
+        "name": "showcase-public-readback.json",
+        "bytes": 4984,
+        "sha256": "b7154e652b2de813ca2256e791307f7b31dce0d8e9108c4f189c32127fc5b875",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/showcase-public-readback.json"
+      },
+      {
+        "name": "software-acceptance.json",
+        "bytes": 2459,
+        "sha256": "437187d7ed1558ada4e763c6003cb9471b0ebca3d76ef2686bbe703878099141",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/software-acceptance.json"
+      }
+    ],
+    "supplementalEvidencePublished": true,
+    "scope": "The 24 initial assets are the verified cohort. Later supplemental evidence must have its own manifest, checksums and anonymous readback.",
+    "supplementalEvidence": {
+      "status": "published-and-anonymously-verified",
+      "verifiedAt": "2026-10-22T04:15:16.956979+00:00",
+      "assetCount": 8,
+      "initial24AssetsPreserved": true,
+      "frozenCohortUnchanged": true,
+      "allAnonymousReadbacksVerified": true,
+      "authorizationHeadersSent": false,
+      "manifestUrl": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/release-public-readback-manifest.json",
+      "checksumsUrl": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/SHA256SUMS-public-readback",
+      "manifestSha256": "a133261a92221a9e9ebdca812d3544f8e207529e7ea316b739439d8a85b62a0b",
+      "assets": [
+        {
+          "name": "SHA256SUMS-public-readback",
+          "bytes": 677,
+          "sha256": "32282f59c11fb9bc7d695f0160655eb74fdeb8dd28cbf7f88760d886b7d02507",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/SHA256SUMS-public-readback"
+        },
+        {
+          "name": "npm-public-readback.json",
+          "bytes": 38121,
+          "sha256": "e759bc9e9678573d93a758fe6e008e97df9fbc2113829e77d80fb66011349052",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/npm-public-readback.json"
+        },
+        {
+          "name": "npm-publication-attempts.json",
+          "bytes": 26096,
+          "sha256": "8e3559c72b55b2024b77f0e29e97752dd535c9edcabf861a3d75b546f199adb3",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/npm-publication-attempts.json"
+        },
+        {
+          "name": "public-route-parity.json",
+          "bytes": 3798,
+          "sha256": "81dc405f2ffc36a43a81c5f025739f4007503f246eaf790739f855390bb3a73a",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/public-route-parity.json"
+        },
+        {
+          "name": "release-public-readback-manifest.json",
+          "bytes": 4998,
+          "sha256": "a133261a92221a9e9ebdca812d3544f8e207529e7ea316b739439d8a85b62a0b",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/release-public-readback-manifest.json"
+        },
+        {
+          "name": "route-npm-full-inventory.json",
+          "bytes": 34992,
+          "sha256": "c4a4c4e9290ac173dd24b904ae649f4ec7d0de2394edfff58382be560731e14d",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-npm-full-inventory.json"
+        },
+        {
+          "name": "route-source-full-inventory.json",
+          "bytes": 35013,
+          "sha256": "dbe06f436d6bbe0b0270f30b8f428a03a33484c14da9402468655b21c067abf4",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-source-full-inventory.json"
+        },
+        {
+          "name": "route-tarball-full-inventory.json",
+          "bytes": 35401,
+          "sha256": "28ab8fcbbeb9841ed2418dda30bffe2ee1ec6d74df842c71b0cc2b34eaef914a",
+          "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-tarball-full-inventory.json"
+        }
+      ],
+      "scope": "A separately named eight-file evidence cohort was uploaded and every complete file anonymously read back against the frozen local bytes. The initial 24 assets and their original manifest/checksums were preserved."
+    },
+    "assetCount": 32,
+    "bodyPublication": {
+      "status": "public-body-and-32-asset-metadata-readback-verified",
+      "verifiedAt": "2026-10-22T04:30:14.936719+00:00",
+      "bodySha256": "a14c1687ff28549b373b528cfa69e41618e4b9f51150d2d24cbfdaca36fda0b1",
+      "anonymousBodyReadback": true,
+      "authorizationHeadersSent": false,
+      "preservedExistingArchiveInstallCommand": true,
+      "communityBothChecksSuccessReflected": true,
+      "communityCIReadbackSha256": "3160b79b7e8693a7d3b81ae02ccf7734428eb07d3535771a3f94ab3010a9ff60",
+      "assetCount": 32,
+      "allAssetMetadataMatch": true,
+      "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0",
+      "upstreamMergeClaimed": false,
+      "publicSiteRefreshClaimed": false
+    },
+    "bodyPublicationHistory": [
+      {
+        "status": "public-body-and-32-asset-metadata-readback-verified",
+        "verifiedAt": "2026-10-22T04:18:08.317991+00:00",
+        "bodySha256": "fcb28d71aa6665ce92a970369a02ed7bb9644efe4f9e5e65135fa9b1b62da168",
+        "anonymousBodyReadback": true,
+        "authorizationHeadersSent": false,
+        "preservedExistingArchiveInstallCommand": true,
+        "obsoleteRegistryPendingParagraphReplacedAfterAllSevenVerified": true,
+        "assetCount": 32,
+        "allAssetMetadataMatch": true,
+        "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0"
+      }
+    ]
+  },
+  "buildAndInstallation": {
+    "finalBuildExit": 0,
+    "buildNodeVersion": "24.22.0",
+    "actualInstalledOwnCopies": 7,
+    "installedOwnSourceBytesAndArchiveManifestsExact": true,
+    "dshActivationVersion": "0.2.1-rc.1",
+    "capabilitiesHttp": 200,
+    "workbenchHttp": 200,
+    "isolatedFreshProjectStore": true,
+    "environmentChecks": {
+      "installation": true,
+      "images": true,
+      "video": true
+    },
+    "nativeDecodeExecutedOn": "darwin-arm64",
+    "nativePayloadTargets": [
+      "darwin-arm64",
+      "linux-x64",
+      "linuxmusl-x64",
+      "win32-x64"
+    ],
+    "otherPlatformExecutionClaimed": false,
+    "evidence": [
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/build-proof.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/local-installed-all-own-copies.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/modern-activation-proof.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/packed-doctor.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/local-native-decode-proof.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/root-manifest-proof.json"
+    ]
+  },
+  "softwareAcceptance": {
+    "completeSuites": 43,
+    "unitContractFiles": "138/138",
+    "frozenSourceFilesUnchanged": 911,
+    "canonicalTerminalSuccessBranchVerified": true,
+    "outerControllerExit": 1,
+    "outerControllerIssue": "After the canonical suite completed all 43 suites, the outer zsh controller assigned its read-only status variable and exited 1. No missing exit sidecar or successful outer exit is fabricated.",
+    "finalDocumentationContractExit": 0,
+    "nativeInspectionChecks": "65/65",
+    "nativeShotRenderChecks": "20/20",
+    "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/software-acceptance.json"
+  },
+  "paidAcceptance": {
+    "visualChecks": "14/14",
+    "toolCardChecks": "10/10",
+    "scope": "Fresh paid checks of the accepted runtime. The UI suite stopped its owned server after the successful tool card; the final assistant reply was aborted at shutdown. This is not a whole-user-task completion claim.",
+    "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/live-model-acceptance.json"
+  },
+  "ci": {
+    "candidate": {
+      "head": "33edf593903201bb4644d9ba1a5eb3f88ca72bc3",
+      "runUrl": "https://github.com/pearjelly/deep-blend/actions/runs/39701413620",
+      "allFiveJobs": "success",
+      "originalEvidenceArchivesVerified": 4
+    },
+    "finalShowcase": {
+      "head": "e39446974a6f9300627435fd2cb91881be7fd5aa",
+      "runUrl": "https://github.com/pearjelly/deep-blend/actions/runs/39705944829",
+      "allFiveJobs": "success",
+      "originalEvidenceArchivesVerified": 4,
+      "actualCheckoutRootTreeMatchesRelease": true
+    },
+    "evidence": [
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/candidate-ci-archives.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/showcase-ci-archives.json"
+    ]
+  },
+  "pagoda": {
+    "page": "https://pearjelly.github.io/deep-blend/pagoda/",
+    "revision": "r0075",
+    "shots": 5,
+    "video": {
+      "frames": 900,
+      "durationSeconds": 37.5,
+      "fps": 24,
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 128,
+      "bytes": 10600045,
+      "sha256": "1ac9c97c4dba6765bc03d79a5857921dafa6764ce42b8eda762a61c2ea4f6717"
+    },
+    "all900PngBytesAndCameraBindingsVerified": true,
+    "all900DecodedFramesAndTimestampsVerified": true,
+    "pixelConsistency": {
+      "meanFrameRgb8BitError": 1.3753153609664353,
+      "maximumFrameRgb8BitError": 1.7638154658564815,
+      "declaredPerFrameMaeLimit": 6,
+      "lossyPixelConsistencyAccepted": true
+    },
+    "visualReview": {
+      "consecutiveContactSheets": 30,
+      "fullsizeCriticalFrames": 26,
+      "scope": "All 900 consecutive frames were represented and viewed in contact sheets; 26 critical frames were viewed at full resolution. This is not real-time playback or full-resolution examination of every frame."
+    },
+    "historicalEditableHandover": {
+      "nativeIndependentlyReopened": true,
+      "packedReadableFileImages": 42,
+      "localGltfReferencesResolved": 28,
+      "checksumVerifiedFiles": 1058,
+      "full75RevisionHistoryIncluded": false,
+      "scope": "Historical snapshot acceptance before later user-requested cleanup of duplicate local deliveries. Does not promise duplicate paths still exist."
+    },
+    "publicPageIncludesExternalAssets": false,
+    "publicPageIncludesNativeProject": false,
+    "caseLimits": [
+      "Maintainer-guided continuation with CC0 assets and repeated rework; no arbitrary one-prompt-from-blank, isolated model-upgrade causality or external adoption claim.",
+      "Sparse distant planting, repeated decoration and simplified fixtures remain below reference detail.",
+      "No universal subframe collision or precision contact certificate."
+    ],
+    "evidence": [
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-film-technical.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-film-visual.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-editable-handover.json",
+      "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/showcase-public-readback.json"
+    ]
+  },
+  "npm": {
+    "status": "all-seven-anonymous-archives-latest-and-complete-inventories-accepted",
+    "verifiedAt": "2026-10-22T04:08:39.539728+00:00",
+    "allSevenAccepted": true,
+    "allLatestVersions": "0.16.0",
+    "anonymous": true,
+    "authorizationHeadersSent": false,
+    "totalOwnFiles": 175,
+    "packages": [
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.16.0.tgz",
+        "bytes": 428318,
+        "sha256": "e533d60c3ed50131bed1a83ada0b3c2cbbaebf9a6f2e1399588ad76392738b81",
+        "files": 26,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.16.0.tgz",
+        "bytes": 174154,
+        "sha256": "ea4cc8b887edd193529b021747c963b52a61ab2c143a9068595063bebac251d8",
+        "files": 39,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.16.0.tgz",
+        "bytes": 2981092,
+        "sha256": "4a2bd1323f19702ae5827c11507fbaa5c8af6be3209a595ce3662f3949d196fc",
+        "files": 46,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.16.0.tgz",
+        "bytes": 34695,
+        "sha256": "a72e457305c6c5b79d962967f4f8e737793c0998f4aaba9302798761073f7128",
+        "files": 9,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.16.0.tgz",
+        "bytes": 164728,
+        "sha256": "141c5470d23eecbdadc39d8c93a8436db2e1ca2cb08cb31fd47c50d4b35f1eb2",
+        "files": 38,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.16.0.tgz",
+        "bytes": 59520,
+        "sha256": "29fc7d056825e01f140fdf9eb65fd44d7644e2a8c20c02d42c7799d5a063a17f",
+        "files": 14,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.16.0",
+        "latestVersion": "0.16.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.16.0.tgz",
+        "bytes": 130052,
+        "sha256": "7e3d297709e24e3a958c106c31e1a4e2afe8afe94e3e5cfc2bab85996fd8a0ca",
+        "files": 3,
+        "sha512IntegrityVerified": true,
+        "sha1ShasumVerified": true,
+        "inventoryAndAllOwnSourceBytesVerified": true,
+        "fullManifestMatchesOnlyCanonicalOwnDependencyRewrite": true
+      }
+    ],
+    "publicEvidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/npm-public-readback.json",
+    "publicationAttemptsEvidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/npm-publication-attempts.json",
+    "publicEvidenceStatus": "published-and-anonymously-verified",
+    "history": {
+      "originalV2WriteOutcome": "unknown-or-refused",
+      "v4CommandExit": 0,
+      "v4ArchiveReadback": "unknown-http-404-stop",
+      "v5ContractsNewWrites": 0,
+      "v5OtherPackagesNewWrites": 6,
+      "v5FinishedAt": "2026-10-22T04:07:57.371Z"
+    },
+    "scope": "All seven version/latest records and anonymous archives were independently verified. Complete packed inventories, non-manifest source bytes and the canonical own-dependency manifest rewrite match the frozen source. Earlier unknown writes and propagation failures remain preserved.",
+    "publicEvidenceVerifiedAt": "2026-10-22T04:15:16.956979+00:00"
+  },
+  "routeParity": {
+    "status": "one-complete-canonical-three-route-run-accepted",
+    "allThreeRoutesAccepted": true,
+    "exitCode": 0,
+    "startedAt": "2026-10-22T04:09:08.441503+00:00",
+    "finishedAt": "2026-10-22T04:12:09.114473+00:00",
+    "sourceCommit": "778c4e98dec253ea146dea1162ded79ffa75e2f0",
+    "sourceUnchanged": true,
+    "trackedSourceFilesByteVerified": 923,
+    "canonicalAssertionsPreserved": true,
+    "priorAdditiveAssertionPreserved": true,
+    "toolchain": {
+      "node": "v24.22.0",
+      "pnpm": "10.28.2",
+      "dsh": "0.1.5-rc.2",
+      "npm": "10.8.1"
+    },
+    "commandScopedInstallConditions": {
+      "ignoreWorkspaceRootCheck": true,
+      "autoInstallPeers": false,
+      "reason": "Use installed DSH core peers without fetching incompatible newer peer packages; allow the temporary DSH profile workspace root. No personal configuration modified."
+    },
+    "independentFreshProfiles": true,
+    "initiallyEmptySharedStore": true,
+    "routes": [
+      {
+        "id": "source",
+        "spec": "github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "installedVersion": "0.16.0",
+        "workbenchHttpStatus": 200,
+        "presetsDeployed": [
+          "deepblend",
+          "deepblend-dev"
+        ],
+        "packagesFetched": 15,
+        "physicalOwnPackageCopies": 7,
+        "declaredOwnFiles": 175,
+        "nonManifestFilesByteExact": 168,
+        "exactDeclaredFileSet": true,
+        "fullRouteManifestsMatchWithoutIgnoredFields": true,
+        "manifestRule": "original source manifests, no fields ignored",
+        "inventoryEvidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-source-full-inventory.json"
+      },
+      {
+        "id": "npm",
+        "spec": "@deepblend/dsh-blender-bundle",
+        "installedVersion": "0.16.0",
+        "workbenchHttpStatus": 200,
+        "presetsDeployed": [
+          "deepblend",
+          "deepblend-dev"
+        ],
+        "packagesFetched": 15,
+        "physicalOwnPackageCopies": 7,
+        "declaredOwnFiles": 175,
+        "nonManifestFilesByteExact": 168,
+        "exactDeclaredFileSet": true,
+        "fullRouteManifestsMatchWithoutIgnoredFields": true,
+        "manifestRule": "canonical npmManifest rewrite, no additional fields ignored",
+        "inventoryEvidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-npm-full-inventory.json"
+      },
+      {
+        "id": "tarball",
+        "spec": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "installedVersion": "0.16.0",
+        "workbenchHttpStatus": 200,
+        "presetsDeployed": [
+          "deepblend",
+          "deepblend-dev"
+        ],
+        "packagesFetched": 1,
+        "physicalOwnPackageCopies": 7,
+        "declaredOwnFiles": 175,
+        "nonManifestFilesByteExact": 168,
+        "exactDeclaredFileSet": true,
+        "fullRouteManifestsMatchWithoutIgnoredFields": true,
+        "manifestRule": "complete final archive manifests, no fields ignored",
+        "inventoryEvidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/route-tarball-full-inventory.json"
+      }
+    ],
+    "proof": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/public-route-parity.json",
+    "publicEvidenceStatus": "published-and-anonymously-verified",
+    "fixtureOrStaticReviewIsInstallProof": false,
+    "scope": "One actual source/npm/tarball comparison on the stated legacy DSH baseline. Every route installed 0.16.0, served its workbench and both presets, and passed the exact file-set, source-byte and complete route-manifest comparison for all seven physical own-package copies.",
+    "publicEvidenceVerifiedAt": "2026-10-22T04:15:16.956979+00:00"
+  },
+  "community": {
+    "status": "submitted-awaiting-maintainer-review",
+    "canonicalProjectionBytes": 2121,
+    "canonicalProjectionSha256": "9b913b440b5a76aec328d2da8b52625539b937ed2af81038ce9cdb8b0ef9811e",
+    "changedFields": [
+      "description.en",
+      "description.zh"
+    ],
+    "newPullRequestUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8599",
+    "upstreamAdopted016Description": false,
+    "previousPR": {
+      "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/7828",
+      "state": "closed",
+      "merged": false,
+      "yamlAdoptedThroughCommit": "3f3ba5c375da595af3b6f04bbb6ed99f54aeacce"
+    },
+    "publicIndexObservation": {
+      "observedAt": "2026-10-22T03:42:42.230081+00:00",
+      "pluginsUrl": "https://awesome-dsh-plugin.com/plugins.json",
+      "marketIndexUrl": "https://awesome-dsh-plugin.com/index.json",
+      "version": "0.15.0",
+      "pagodaScreenshotPresent": false,
+      "priorCupScreenshotPresent": true
+    },
+    "scope": "The canonical two-line description update was submitted once; its exact head, complete body, one-file diff and both successful official checks were read back. Maintainer adoption, merging and public website/npm-catalog refresh remain unconfirmed external outcomes.",
+    "submittedAt": "2026-10-22T04:16:12Z",
+    "submissionReadbackAt": "2026-10-22T04:16:15.926396+00:00",
+    "newPullRequestNumber": 8599,
+    "head": "95648902e9ca9477f35a3d1566319908c22ca9ae",
+    "upstreamBase": "779a0a5a03e3055a5f7bfc14026aeead601e3a45",
+    "changedFile": "data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml",
+    "changedFiles": 1,
+    "additions": 2,
+    "deletions": 2,
+    "canonicalProjectionVerified": true,
+    "exactHeadAndOneFileDiffReadback": true,
+    "bodyReadbackSha256": "72f6546fc960715d71686dac22e1c357f66d4e1d5e17f59f3797656e74b91cd4",
+    "upstreamMerged": false,
+    "publicSiteRefreshClaimed": false,
+    "checksStatus": "success",
+    "checksScope": "Both official checks completed successfully on the submitted exact head. This confirms CI only; upstream merge, adoption and index refresh remain external pending outcomes.",
+    "checksReadback": {
+      "observedAt": "2026-10-22T04:28:55+00:00",
+      "complete": true,
+      "allChecksPassed": true,
+      "headCommit": "95648902e9ca9477f35a3d1566319908c22ca9ae",
+      "runId": 39721437557,
+      "runUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/39721437557",
+      "checks": [
+        {
+          "id": 119639235133,
+          "name": "Submission gate",
+          "headCommit": "95648902e9ca9477f35a3d1566319908c22ca9ae",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/runs/119639235133"
+        },
+        {
+          "id": 119635556218,
+          "name": "check",
+          "headCommit": "95648902e9ca9477f35a3d1566319908c22ca9ae",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/39721437557/job/119635556218"
+        }
+      ],
+      "readbackRecordSha256": "3160b79b7e8693a7d3b81ae02ccf7734428eb07d3535771a3f94ab3010a9ff60"
+    }
+  },
+  "retainedFailuresAndLimits": [
+    {
+      "area": "build",
+      "fact": "First build produced the archive but stalled during V8 background compiler shutdown and was terminated with SIGTERM, exit -15. A fresh canonical build with a build-only Node flag exited 0 and produced identical archive bytes.",
+      "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/build-attempts.json"
+    },
+    {
+      "area": "activation-helper",
+      "fact": "Initial helper placed unsupported projectsRoot on runtime, so capabilities returned 404. Corrected verification configuration used workspaceRoot for runtime/host and projectsRoot only on host; isolated capabilities/workbench returned 200. Product and DSH source unchanged.",
+      "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/activation-attempts.json"
+    },
+    {
+      "area": "npm-publication",
+      "fact": "Initial contracts publish timed out with FETCH_ERROR; outcome remained unknown during read-only reconciliation. Later successful commands and version metadata preceded tarball availability, including HTTP 404 propagation. Retain each attempt and accept only complete anonymous archive readback; do not equate a temporary 404 with failed publication."
+    },
+    {
+      "area": "legacy-metadata",
+      "fact": "When the prior source hash is unknown, operation-manifest specChanged=false and revision-manifest specChanged=true can disagree. This release does not claim to fix that branch. Independent source/native bytes and changed paths establish actual edits.",
+      "evidence": "https://github.com/pearjelly/deep-blend/releases/download/v0.16.0/pagoda-editable-handover.json"
+    }
+  ],
+  "pendingCompletion": [],
+  "controlledPublicationStepsComplete": true,
+  "standardPublicationCompletionScope": "GitHub assets and anonymous readback, all seven npm packages, one complete three-route comparison, and the required canonical community description submission with exact readback. Upstream review, merge and index refresh are recorded separately.",
+  "standardPublicationPendingReason": null,
+  "externalPending": [
+    "Community maintainer review and upstream adoption/merge.",
+    "Public community website and npm catalog refresh; submission does not establish refreshed indexes."
+  ]
+}
