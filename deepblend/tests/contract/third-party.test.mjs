@@ -44,6 +44,7 @@ import { tmpdir } from 'node:os'
 
 import { ROOT } from '../../tools/workspace-layout.mjs'
 import { verifyShowcaseProvenance } from '../../tools/showcase-provenance.mjs'
+import { verifyPagodaProvenance } from '../../tools/pagoda-provenance.mjs'
 import { verifyRecoveryReproductionProvenance } from '../../tools/recovery-reproduction-provenance.mjs'
 
 const INVENTORY = join(ROOT, 'deepblend', 'docs', 'third-party.md')
@@ -171,6 +172,7 @@ test('source files exclude external binaries and published images have declared 
   assert.ok(tracked.includes(previewManifest.tool))
   const declared = new Set()
   for (const file of verifyShowcaseProvenance(ROOT)) declared.add(file)
+  for (const file of verifyPagodaProvenance(ROOT)) declared.add(file)
   for (const file of verifyRecoveryReproductionProvenance(ROOT)) declared.add(file)
   // CHARGE is a separately licensed real DSH case, not an original MIT model.
   const chargeBase = 'deepblend/docs/assets/showcase/charge-study'
@@ -384,6 +386,38 @@ test('showcase rejects changed images, scenes, dimensions and detached clay prov
     check(entry => { entry.inspections[0].revision = 'r9999' }, /Expected values to be strictly equal/)
     check(entry => { entry.images[0].webDerivative.sha256 = '0'.repeat(64) }, /digest differs/)
     check(entry => { entry.inspections = [] }, /missing clay provenance/)
+  } finally { rmSync(fixture, { recursive: true, force: true }) }
+})
+
+test('pagoda provenance rejects altered media and detached production frame records', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-pagoda-integrity-'))
+  const base = 'deepblend/docs/assets/showcase/pagoda'
+  try {
+    cpSync(join(ROOT, base), join(fixture, base), { recursive: true })
+    assert.equal(verifyPagodaProvenance(fixture).size, 7)
+    const manifestPath = join(fixture, base, 'manifest.json')
+    const manifest = JSON.parse(readFileSync(manifestPath))
+    const check = (change, pattern) => {
+      const changed = structuredClone(manifest)
+      change(changed)
+      writeFileSync(manifestPath, JSON.stringify(changed))
+      assert.throws(() => verifyPagodaProvenance(fixture), pattern)
+    }
+    check(value => { value.images[0].sha256 = '0'.repeat(64) }, /pagoda digest differs/)
+    check(value => { value.images[0].frame = 2 }, /source frame digest differs/)
+    check(value => { value.source.sha256 = '0'.repeat(64) }, /pagoda digest differs/)
+    check(value => { value.video.sha256 = '0'.repeat(64) }, /pagoda digest differs/)
+    check(value => { value.license = 'MIT' }, /Expected values to be strictly equal/)
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+    const receiptPath = join(fixture, base, 'delivery.json')
+    const receipt = JSON.parse(readFileSync(receiptPath))
+    receipt.render.provenance.sources[0].checkpointSha256 = '0'.repeat(64)
+    const bytes = Buffer.from(JSON.stringify(receipt))
+    writeFileSync(receiptPath, bytes)
+    manifest.deliveryReceipt.sha256 = createHash('sha256').update(bytes).digest('hex')
+    manifest.deliveryReceipt.bytes = bytes.length
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+    assert.throws(() => verifyPagodaProvenance(fixture), /Expected values to be strictly equal/)
   } finally { rmSync(fixture, { recursive: true, force: true }) }
 })
 

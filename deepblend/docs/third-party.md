@@ -144,3 +144,10 @@ CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY，来自 [Blende
 ## 2026-10-18：新版宿主预设声明解析
 
 Preset 包新增固定版本 `js-yaml@4.3.2`（MIT），仅解析随包的预设元数据与组合；组合使用宿主 cordis-plugin-include 的 entryListSchema 保留表达式，不执行远端文档。传递依赖 argparse（Python-2.0）；许可与版权保留在 npm 包中。来源：https://github.com/nodeca/js-yaml 。DSH 与 cordis-plugin-include 仍为宿主 peer。
+
+
+## 古塔庭院案例的素材与公开范围
+
+佛像及其原始贴图来自明尼阿波利斯艺术博物馆的 [CC0 模型记录](https://zenodo.org/records/10337923)，树木、地面、瓦顶、木材与天空素材来自 [Poly Haven（CC0）](https://polyhaven.com/license)。逐项来源保留在公开 SceneSpec 的 assets 中；新增场景结构与文档为 MIT。操作者提供的参考图不随案例分发。
+
+`deepblend/docs/assets/showcase/pagoda/manifest.json` 逐项登记 MP4、四张原始渲染帧、SceneSpec 及公开交付回执的字节数与摘要。回执来自 r0075 / render-0002，仅移除了含本地绝对路径的编码命令参数，并记录原始回执摘要；核验将公开图像与原渲染帧、镜头、修订和原生检查点摘要绑定。公开内容包含作品与结构源码，不含外部素材文件或原生 Blender 工程，因此不是完整复现包。

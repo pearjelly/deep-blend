@@ -84,6 +84,12 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 机器人使用原资产第 1 帧的静态姿态，视频展示新布景与相机运动。**CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**；新增场景与脚本为 MIT。推广版只增加标题和署名。0.8.1 安装包包含 `examples/charge-study/` 的场景、提示词与复现工具；指南固定本次已验证的 0.5.0 环境。
 
 
+## 新案例：古塔庭院 / Courtyard Pagoda
+
+[![古塔庭院首帧](deepblend/docs/assets/showcase/pagoda/poster.png)](https://pearjelly.github.io/deep-blend/pagoda/)
+
+最新案例视频围绕佛塔庭院展开，共五段镜头：37.5 秒、900 帧、24 fps、1280 × 720，Cycles / 128 samples。[播放完整视频并查看关键帧](https://pearjelly.github.io/deep-blend/pagoda/) · [案例记录](deepblend/showcase/pagoda/README.md) · [素材来源与许可](deepblend/docs/assets/showcase/pagoda/CREDITS.md)。
+
 ## 真实作品：光与材质
 
 用本机安装的 DeepBlend 制作三组产品场景：琥珀玻璃、香槟金属灯具、编织格栅音箱。每组包含高清主图、材质近景和一段 **6 秒 / 1080p / 24 fps** 的真实镜头动画。
@@ -108,7 +114,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | --- | --- |
 | [Cycles 实际渲染的金属台灯](deepblend/benchmarks/previews/metal-lamp-hero.png) | [Cycles 实际渲染的空心玻璃瓶与陶瓷托盘](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
 | **桌面音箱** | **青釉带把手杯** |
-| [Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+| [Cycles 实际渲染的桌面音箱](deepblend/benchmarks/previews/modular-speaker-hero.png) | [青釉杯教程交付的原始 PNG](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 在[作品配方](deepblend/docs/recipes.md)中选起点，调整颜色、粗糙度和曝光，创建后直接看实际预览。
 创建失败时保留输入，按提示修复后可重试原请求；已保存但回执丢失的项目会直接恢复，避免重复创建。[浏览器创建草稿](deepblend/docs/creation-drafts.md)可在重载或重新打开后明确选择继续，多个页面各自保留输入。

@@ -79,6 +79,12 @@ Created through DeepSeek Harness with the installed deep-blend **0.5.0** plugin:
 The robot uses the source asset’s static frame-1 pose; the film demonstrates the new set and camera motion. **CHARGE Packbot © Blender Studio / Blender Foundation — CC-BY**; new scene code is MIT. The promotional edit only adds titles and attribution. Release 0.8.1 includes replay inputs under `examples/charge-study/`; the guide pins the verified 0.5.0 environment.
 
 
+## New case: Courtyard Pagoda
+
+[![Courtyard pagoda key frame](deepblend/docs/assets/showcase/pagoda/poster.png)](https://pearjelly.github.io/deep-blend/pagoda/)
+
+The latest case film is a five-shot courtyard pagoda sequence: 37.5 seconds, 900 frames, 24 fps, 1280 × 720, rendered with Cycles at 128 samples. [Watch the film and view key frames](https://pearjelly.github.io/deep-blend/pagoda/) · [Case notes](deepblend/showcase/pagoda/README.md) · [Asset credits](deepblend/docs/assets/showcase/pagoda/CREDITS.md).
+
 ## Real work: light and material
 
 Three product studies made with the locally installed DeepBlend plugin: amber glass, a champagne-metal lamp and a speaker with a physical woven grille. Each includes a high-resolution hero, a material close-up and a **6-second / 1080p / 24 fps** camera animation.
@@ -103,7 +109,7 @@ The cup image comes from the [recorded tutorial](deepblend/docs/assets/creator-t
 | --- | --- |
 | [Cycles render of a metal task lamp](deepblend/benchmarks/previews/metal-lamp-hero.png) | [Cycles render of a hollow glass vessel and ceramic tray](deepblend/benchmarks/previews/glass-ceramic-hero.png) |
 | **Desktop speaker** | **Glazed handled cup** |
-| [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | ![Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
+| [Cycles render of a desktop speaker](deepblend/benchmarks/previews/modular-speaker-hero.png) | [Original PNG from the glazed cup walkthrough](deepblend/docs/assets/creator-tutorial/cup-final-frame.png) |
 
 Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness and exposure, and create a project with a rendered preview.
 Creation errors keep your inputs and offer repair guidance and explicit retry. If a saved project's reply was lost, retry recovers it without creating another project. [Browser creation drafts](deepblend/docs/creation-drafts.md) can be explicitly continued after reload or reopening, with separate drafts for each page.
