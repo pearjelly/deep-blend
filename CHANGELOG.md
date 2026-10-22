@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.0 — Unreleased candidate
+## 0.16.0 — 2026-10-22
 
 - Document complete camera aim alternatives and return actionable recovery for nullable reads or conflicting targets, preserving strict validation and authored camera fields.
 

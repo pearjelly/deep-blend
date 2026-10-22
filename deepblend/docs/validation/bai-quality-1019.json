@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "status": "r75-pond-bridge-repair-accepted-formal900-render-running-not-released",
+  "status": "r75-full900-film-and-editable-handover-accepted-standard016release-pending",
   "baselinePlugin": "0.15.0",
   "host": "0.2.1-rc.1",
   "route": "bai/deepseek-v4.1-flash",
@@ -43,7 +43,7 @@
     }
   },
   "preservation": "Primary checkout, old projects, delivered media and personal DSH are not edited. Changes and new tests use the existing implementation worktree and new isolated stores.",
-  "releaseGate": "No0.16publication.810/F4 fullv10 software, paid checks, formal install and source CI accepted within recorded scope. All15same-r0073 stills independently viewed and native900 read-only gate passed; actual formal900-frame film is running, not yet accepted. Finish full film, byte/camera/decode/visual verification and editable handover before merge/publication.",
+  "releaseGate": "810/F4 software fullv10, paid probes and formal installation remain accepted within recorded scope. Newr75final900PNG/native/source/5shotbindings/completeMP4decode/24fps/correspondingpixels and bounded full-film art accepted; actual staged native reopened with42packedFILEimagesreadable; private editable/video/assets/1058checksummedfiles delivered. Standard final-doccontracts/CI,merge,cleanpushedmainbuild,GitHub/assets/SHA,7npm/anonymoustargz/readback,3routeparity andcanonicalcommunityPR remain before0.16publication.",
   "transportProof": {
     "mainRequests": 8,
     "allMainRequestsMax": true,
@@ -295,12 +295,13 @@
     "allPagodaNativeAudit": "900/900 integer frames, 0 selected subject envelope failures; no case scene changes during QA"
   },
   "qualityRemaining": [
-    "Completeactualr75render-0002all900frames; verifyPNGintegrity/native/source/shotbindings, MP4decode/cadence/fullpixelcorrespondence.",
-    "Inspectall900consecutivefinalframes,cut/critical/motionflagframesand15saved-shotnativefinalkeyframes plus repairedyard772. R75has3repairbeauty960x540/48and1extra1920x1080/48, not15fresh960diagnostics; fullnativefilmprovidesstrongercoverage.",
-    "Finishbyte-exactnative/SceneSpec/rawassets/licenses/output/manifests/checksumsdelivery; originalhistoryandfailedr73filmremainretained. Nativestillhaspreviewdefaultsandnoauto-cutmarkers.",
-    "Afterallcasegates:finaldocumentation/contracts/CI,cleanpushedmainbuild,GitHub/assets/SHA,7npmarchives/readback,3realinstallroutes,communityprojection/updatePR; noemptyorunverifiedrelease."
+    "Complete final documentation contract/CI and exact source binding; merge only after these case/delivery gates.",
+    "Build from a fresh clean pushed main checkout; verify seven own payloads and all native target payloads against the accepted frozen candidate.",
+    "Publish new GitHubRelease/assets/checksum and seven npm packages in dependency order, read public archives back anonymously, then verify three actual install routes agree.",
+    "Project the canonical community entry and submit/update its PR; distinguish submitted/upstream merged/live refreshed.",
+    "Follow-up metadata task: copied legacy state with a null prior full source hash gives operation-level specChanged:false but revision-level true; raw flags retained, never use false as no-source-change proof. Independent source/native bytes and changedPaths verify this case."
   ],
-  "publicationStatus": "0.16 source candidate only; no new GitHub Release, npm package or community submission",
+  "publicationStatus": "0.16 candidate case and private user handover accepted; standard public release/npm/community submission not yet completed.",
   "networkObservation": {
     "githubApi": "Repeated TLS EOF; TLS1.2 probe also fails",
     "polyHavenApi": "TLS EOF",
@@ -918,8 +919,8 @@
     "freeAfterBytes": 4394622976,
     "movieCapacityStillToCheck": true
   },
-  "updatedAt": "2026-10-21T15:04:21.715132+00:00",
-  "currentBlocker": "r73completefilmwasvisuallyrejectedforpond/bridgeblackstrips. Formalr74/r75boundedrepairsandactualmatchedpreviewsnowpass; r75render-0002isrunning900continuousnativeframes1280x720/128/24fps/savedfivecameras. Needcompletefilmtechnical/all900visual/15nativekeyframeacceptanceandeditablehandoverbefore0.16standardrelease.",
+  "updatedAt": "2026-10-22T00:26:43.613874+00:00",
+  "currentBlocker": "No current render/disk/bai blocker for this completed case; standard0.16publication chain pending. Automation remains paused.",
   "documentationFollowupCi": {
     "head": "fe24ba57bfa172d5bfcf1ef1f0afa485bbda0113",
     "runId": "39255339239",
@@ -2571,5 +2572,122 @@
     "r75NativeAssetsSnapshotFilesStaged": 56,
     "stagedSnapshotNotFinalDelivery": true,
     "notMergedReleasedOrCommunitySubmitted": true
+  },
+  "frozenF4R75FinalAcceptance20261022": {
+    "revision": "r0075",
+    "jobId": "render-0002",
+    "finishedAtUtc": "2026-10-22T00:01:20.855Z",
+    "jobElapsedMs": 34121020,
+    "encodeDurationMs": 4714,
+    "video": {
+      "frames": 900,
+      "durationSeconds": 37.5,
+      "fps": 24,
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 128,
+      "bytes": 10600045,
+      "sha256": "1ac9c97c4dba6765bc03d79a5857921dafa6764ce42b8eda762a61c2ea4f6717"
+    },
+    "source": {
+      "sceneSpecSha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7",
+      "nativeSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+      "runtimeCommit": "810076291fe9388a8ef20ac91e6dd8762c05d896"
+    },
+    "all900PngCrcDeflateSourceAndCameraBindings": true,
+    "all900Mp4FramesDecodedAndMatchedToPng": true,
+    "all900DisplayTimestamps24fps": true,
+    "meanFrameRgb8BitError": 1.3753153609664353,
+    "maximumFrameRgb8BitError": 1.7638154658564815,
+    "perFrameMaeLimit": 6,
+    "art": {
+      "consecutiveContactSheetsActuallyViewedIndividually": 30,
+      "framesRepresented": 900,
+      "contactFrameResolution": [
+        320,
+        180
+      ],
+      "actualFullsizeCriticalFrames": 26,
+      "all15SavedShotLandmarksViewedFullsize": true,
+      "allFourCutBoundaryPairsViewedFullsize": true,
+      "maximumWithinShotThumbnailDeltaPair": [
+        771,
+        772
+      ],
+      "maximumWithinShotThumbnailDelta": 2.120445601851852,
+      "pairActuallyViewedFullsize": true,
+      "actualOldAndNewFrame772ComparedSame720p128Conditions": true,
+      "formerRimAndBridgeBandsAbsent": true,
+      "scope": "All900consecutiveframesrepresentedandviewedon30contactsheets,26fullsizecriticalPNGimages;completeMP4pixel/cadence/sourcebinding. Notliteralreal-timeplaybackorfullsizeinspectionofeverypixel,arbitrarysubframecollision,precisioncontact,referenceparityorupgrademodelsinglecausation."
+    },
+    "editableHandover": {
+      "nativeIndependentlyOpenedFromStaging": true,
+      "all42FileImagesPackedAndReadable": true,
+      "gltfBundles": 4,
+      "localGltfUrisResolve": 28,
+      "filesIndependentlyChecksumVerified": 1058,
+      "logicalBytes": 2190998662,
+      "sha256SumsSha256": "ba70246f80bae06bd4f43dd9f4f3ea6cb3a647256d594f114136e4a2cce56ebd",
+      "atomicRenameWithoutOverwritingOldDelivery": true,
+      "nativeDefaultPreview": [
+        640,
+        360,
+        48
+      ],
+      "nativeCameraAutoCutMarkers": false,
+      "cameraCurves": 8,
+      "keyframes": 16,
+      "interpolation": "defaultBEZIER",
+      "full75RevisionHistoryInSnapshot": false,
+      "rawHistoricalProjectStillRetained": true,
+      "rawApiProfilesKeysReasoningCopied": false
+    },
+    "preservation": {
+      "all350OriginalHistoricalFilesUnchanged": true,
+      "oldOctober16NativeAndFilmUnchanged": true,
+      "failedR73NativeAndFilmRetained": true,
+      "primaryCheckoutWritten": false,
+      "primaryHead": "c6642ff717809414013fd61658125d4d9d905f47",
+      "primaryNoTrackedDiff": true,
+      "currentUntrackedEntries": 15,
+      "exactPriorStatusHashMatch": false,
+      "scope": "Current primary user state retained without staging/reset/writes. Prior status-hash mismatch recorded; do not claim independent byte comparison of all untracked user files."
+    },
+    "proofs": {
+      "bytes": "r75-complete-film-bytes-1021-v1.json",
+      "pixels": "r75-complete-film-pixels-1021-v1.json",
+      "art": "r75-full-film-visual-review-1022-v1.json",
+      "artSha256": "18ef2d311af3b7aa881676801a23a7c271e6d77f82fc641a9130054b625e6ade",
+      "handover": "r75-final-user-delivery-1022-v1.json",
+      "nativeReopen": "r75-delivery-native-reopen-1022-v1.json",
+      "preservation": "r75-final-originals-and-native-preservation-1022-v1.json"
+    },
+    "preFinalDocCi": {
+      "head": "8be11c959c2a555fc98e357ef02d901d468adc0c",
+      "runId": 39624435612,
+      "all5JobsSuccess": true,
+      "all4ArchivesServerDigestBytesCrcAndCheckoutRootTreeVerified": true,
+      "rootTree": "96c7f48734193b98086131fa3ab9d5d1fc12fb48"
+    },
+    "publicReleaseCompleted": false,
+    "automationPaused": true
+  },
+  "legacyNullHashAuditMetadata20261022": {
+    "operationManifest": {
+      "specHashBefore": null,
+      "specChanged": false,
+      "sceneChanged": true
+    },
+    "revisionManifest": {
+      "specHashBefore": null,
+      "specChanged": true,
+      "sceneChanged": true
+    },
+    "currentDeliveryRule": "Keep original raw fields; full byte/source/native/changedPaths audit determines actual edit. Do not infer unchanged source from operation-level false when old source hash is unknown.",
+    "frozenCandidateFixClaimed": false,
+    "next": "Targeted follow-up to unify unknown prior-hash semantics with a real legacy-state reproduction.",
+    "proof": "r75-legacy-null-source-hash-metadata-observation-1022-v1.json"
   }
 }
