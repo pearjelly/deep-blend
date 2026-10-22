@@ -69,7 +69,7 @@ The robot uses the source asset’s static frame-1 pose; the film demonstrates t
   or resume missing frames. Completed frames can continue straight to encoding; delivery records
   retain frame sources and actual render settings.
 
-The agent preset exposes **18 tools** for scene editing, previews, visual review and delivery.
+The agent preset exposes **19 tools** for scene editing, previews, visual review and delivery.
 Immutable revisions keep earlier scene states available, and expensive operations use an approval gate.
 
 ## Install

@@ -222,6 +222,12 @@ jobs:
         env:
           DEEPBLEND_SURFACE_OUTPUT: ${{ runner.temp }}/deepblend-ci/surface-native
         run: xvfb-run -a node deepblend/tests/blender-integration/surface-inspection.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/surface-native.log" 2>&1
+      - name: Saved surface placement and independent native contact verification
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 4
+        env:
+          DEEPBLEND_PLACEMENT_OUTPUT: ${{ runner.temp }}/deepblend-ci/surface-placement
+        run: xvfb-run -a node deepblend/tests/blender-integration/surface-placement.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/surface-placement.log" 2>&1
       - name: Real paired lamp dimensions and liner inspection
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8

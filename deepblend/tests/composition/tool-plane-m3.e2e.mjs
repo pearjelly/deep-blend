@@ -199,6 +199,7 @@ const EXPECTED = [
   'blender_final_render',
   'blender_job_cancel',
   'blender_job_status',
+  'blender_place_on_surface',
   'blender_preview_render',
   'blender_preview_views',
   'blender_project_create',
@@ -212,7 +213,7 @@ const EXPECTED = [
   'blender_visual_autofix',
   'blender_visual_review',
 ]
-check('the preset plane registers exactly the eighteen tools that exist',
+check('the preset plane registers exactly the nineteen tools that exist',
   JSON.stringify(names) === JSON.stringify(EXPECTED), names)
 check('every tool SPEC §11 names is registered, so that inventory is complete',
   SPEC_11_TOOLS.every(name => names.includes(name)),

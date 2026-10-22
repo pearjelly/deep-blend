@@ -28,6 +28,7 @@
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { readRecipeContext } from './recipe-state.js'
 import { assemblyPlacementChanges } from './assembly-changes.js'
+import { normalizeSurfacePlacementRequest } from './surface-placement.js'
 import { instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters } from '@deepblend/dsh-blender-contracts'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -641,6 +642,7 @@ export default class BlenderStudio extends Service {
   get creationRequestProtocol() { return CREATION_REQUEST_VERSION }
   get cameraTargetResetSupported() { return CAMERA_UPDATE_FIELDS.includes('clearTarget') }
   get recipeParameterEditingSupported() { return true }
+  get surfacePlacementSupported() { return true }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
@@ -819,6 +821,17 @@ export default class BlenderStudio extends Service {
       parameters: definitions.map(parameter => ({ id: parameter.id, title: parameter.title, type: parameter.type,
         minimum: parameter.minimum, maximum: parameter.maximum, default: parameter.default, value: resolved.values[parameter.id] })),
       conflicts, linkedAnimationTracks, animationSource: 'saved-scene-spec' }
+  }
+
+  async placeOnSurface(request) {
+    const input = normalizeSurfacePlacementRequest(request, this.store.projectsRoot)
+    const outcome = await this.transactions.placeOnSurface(input, { signal: request.signal })
+    return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
+      projectDirectory: this.store.projectDirectory(input.projectId),
+      surfacePlacementReceipt: structuredClone(outcome.revision.surfacePlacementReceipt),
+      idempotentReplay: outcome.idempotentReplay === true, replayOf: outcome.replayOf ?? null,
+      idempotencyKey: outcome.idempotencyKey, idempotencyKeyDerived: outcome.idempotencyKeyDerived === true,
+      job: toCanonicalJobRecord(outcome.job), warnings: outcome.warnings, scene: outcome.sceneSummary }
   }
 
   async updateRecipeParameters(request) {

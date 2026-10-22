@@ -307,7 +307,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         143 个 *.test.mjs（当前源码）
+    contract/         146 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -324,10 +324,10 @@ packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
-    python/           bootstrap.py 分派器 + 7 个动作模块（另有 deepblend_util.py 这一份工具）
+    python/           bootstrap.py 分派器 + 8 个动作模块（另有 deepblend_util.py 这一份工具）
                       deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               18 个模型可见工具（Agent preset 平面，不发布服务）
+  tool/               19 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
                       手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
@@ -366,7 +366,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 30/143 file(s) passed
+DeepBlend tests: 30/146 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -426,8 +426,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**43 个套件、185 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**143 个文件 = 2126 项自计断言（34 个文件打印计数）+ 1905 个 `node:test` 用例（109 个文件）**。
+预期：**44 个套件、189 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**146 个文件 = 2130 项自计断言（34 个文件打印计数）+ 1986 个 `node:test` 用例（112 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -437,9 +437,10 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
-**2026-10-22 计数快照**：完整契约运行是 142/143，唯一失败来自本机已安装的旧 preset。
-上述计数保留其余文件的完整输出，仅将 `preset-source.test.mjs` 替换为未安装 preset 的隔离
-`DSH_HOME` 复核输出（19/19）；没有修改个人配置，也没有把原整轮失败记为通过。
+**2026-10-23 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
+`node:test` 用例数按本轮完整契约输出及后续新增用例的单文件复核输出统计。首次完整运行的
+文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
+最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
 因为它的规则写错过一次：`\(s\)?` 让「）」可选而「（」仍是必需的，
@@ -448,8 +449,8 @@ D143）。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
 ——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的
-总数直接相减，会凭空多出或少掉两项。**上面那个总数是「未安装」preset 的隔离环境读数**；同一份快照在已安装
-且与源码一致的 preset 环境下，会多出 `preset-source.test.mjs` 的那两项。
+总数直接相减，会凭空多出或少掉两项。**上面那个总数是「已安装且与源码一致」preset 的隔离环境读数**；同一份快照在未安装
+preset 的环境下，`preset-source.test.mjs` 会少两项。
 单跑某一层：
 
 ```bash
@@ -463,7 +464,7 @@ node deepblend/tests/composition/activation.e2e.mjs             # Host compositi
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 的 7 个工具 + 无 checkpoint 的 revision 仍然可预览
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
-node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 18 个工具 + 真实交付
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 19 个工具 + 真实交付
 node deepblend/tests/composition/hardening.e2e.mjs              # M5 安全加固：白名单/截止时间/输出上限/采样预算/工作区边界
 node deepblend/tests/composition/concurrency.e2e.mjs            # M5 并发：两个会话打同一个 store，以及把它们隔开的 realm
 node deepblend/tests/composition/approval.e2e.mjs               # M5 审批：阈值以上没有授权就一帧都不渲
@@ -574,7 +575,7 @@ dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合�
 dsh web                                                 # 重启后生效
 ```
 
-**DeepBlend 开发模式** 与 **DeepBlend Studio** 的 DeepBlend 工具清单为 **18 个**。
+**DeepBlend 开发模式** 与 **DeepBlend Studio** 的 DeepBlend 工具清单为 **19 个**。
 正式 preset 不包含通用 Shell、文件写入、Web 和 Creator Tool；开发模式另带调试工具。
 
 ---
@@ -745,7 +746,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 43 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 44 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

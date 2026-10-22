@@ -24,6 +24,7 @@
 | `blender_project_get` | M1 | 自动 | 读 |
 | `blender_scene_get` | M1 | 自动 | 读 |
 | `blender_scene_patch` | M1 | 自动，受策略约束 | **写**（提交新 revision） |
+| `blender_place_on_surface` | 实际表面放置 | 自动，受策略约束 | **写**（测量、沿 Z 放置并保存新 revision） |
 | `blender_preview_render` | M1 | 自动 | 读（写产物，不改场景） |
 | `blender_scene_validate` | M1 | 自动 | 读（可 dry-run patch） |
 | `blender_preview_views` | M2 | 自动 | 读（写产物，不改场景） |
@@ -58,8 +59,8 @@
 `REVISION_RESTORE_CONFIRMATION_REQUIRED`，且不会调用 Host。
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **18** 个
-（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个 + 已有装配参数 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **19** 个
+（M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个 + 已有装配参数 1 个 + 实际表面放置 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
 那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
 每加一个里程碑都要改前面所有套件。
 
@@ -523,6 +524,36 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 `saveCheckpoint:false` 时 revision 只有 spec，**没有 `.blend`**——此时无法直接预览，
 工具文本会说明这一点。
 
+### 3.4.1 `blender_place_on_surface`
+
+| 参数 | 类型 | 必需 | 说明 |
+|---|---|---|---|
+| `projectId` | string | **是** | 已有项目 |
+| `baseRevision` | string | **是** | 刚读取的当前版本，过期时拒绝 |
+| `subjectEntityId` | string | **是** | 沿世界 Z 移动的实体；导入模型使用整个实例的实体 ID |
+| `supportEntityId` | string | **是** | 承托主体的另一实体 |
+| `frame` | integer | **是** | 明确测量与复验的帧，0–1000000 |
+| `clearanceMm` | number | 否 | 竖直间距，默认 0 mm，允许 0–1000 mm |
+| `renderPreview` | boolean | 否 | 默认 true，生成并附上保存版本的预览；false 仍保存原生工程 |
+| `cameraId` | string | 否 | 预览使用的已保存相机；省略使用项目默认相机 |
+| `idempotencyKey` | string | 否 | 每次放置的新标识；相同请求重试时复用 |
+
+一次调用读取双方实际求值网格，保持主体 XY、旋转与缩放，仅沿世界 Z 调整到目标上方，
+保存可编辑原生工程并返回新版本摘要。支持普通生成网格与整个导入实例；斜面按主体投影
+覆盖到的实际表面求放置位置，不把目标整体包围盒最高点当作接触面。
+
+当前支持静态、没有相关跨实体几何依赖的双方。`clearanceMm` 是竖直间距，
+不是沿斜面法线的距离。结果只说明所选双方在指定帧的最终关系，不证明物理稳定、
+与其它物体没有碰撞或移动路径安全。范围、几何预算或来源检查不通过时拒绝保存；
+不要改用猜测的 Z 位移掩盖拒绝。
+
+返回 `data` 为标准保存修订摘要，并保留 `surfacePlacementReceipt`。
+默认预览通过已有的保存图片回执核验、读取与附件流程回传，不为附图再渲染一次。
+无法附图时仍保留已保存版本并明确说明模型未看到图片；不能因此重复创建项目。
+该工具没有 `saveCheckpoint:false`。未知字段交给 Host 严格拒绝，不会被静默丢弃。
+旧 Host 必须同时具有 `surfacePlacementSupported:true` 和 `placeOnSurface` 方法；
+否则返回 `BLENDER_RUNTIME_UNAVAILABLE`，提示升级 Host bundle 并重启 profile，且不发起写操作。
+
 ### 3.5 `blender_preview_render`
 
 | 参数 | 类型 | 说明 |
@@ -740,7 +771,7 @@ M3 新增的：
 | 输入输出必须有 Schema | 每个工具 `parameters` + 统一的 `output.schema` |
 | 返回 Canonical JSON | `data` 字段，键序稳定 |
 | 不让模型解析终端文本获取 ID | 所有 id 都在 `data` 里结构化返回 |
-| 每个写工具需要 `projectId` 与 `baseRevision` | `blender_scene_patch` 两者皆必需 |
+| 编辑保存需要 `projectId` 与 `baseRevision` | `blender_scene_patch`、`blender_place_on_surface` 两者皆必需；装配参数保存也需当前版本 |
 | 每个长任务返回 `jobId` | M1 的 Blender 动作写 `jobs/<id>.json`；M3 的交付渲染写 `renders/<id>/job.json` 并额外返回 `dshJobId`，两者在 `blender_job_status` 里用同一个 `jobId` 查询 |
 | 长任务不阻塞 | `blender_final_render` 实测 4–5 ms 返回（集成套件断言 < 20 s），工作在后台并经 `ctx.jobs` 投影 |
 | 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |

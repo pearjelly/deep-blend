@@ -131,7 +131,7 @@ bulges; the tutorial preserves that limitation. The recipe has no animation trac
 | **Work with an agent** | Describe a scene, inspect previews and make bounded changes with the DeepBlend Studio preset | [Agent creation guide](deepblend/docs/quick-start.md#work-with-an-agent) |
 | **Build your own recipes or tools** | Validate scene documents and content through the typed public SDK | [Authoring SDK](deepblend/docs/public-api.md) |
 
-The agent preset provides **18 model-visible tools** for scenes, assets, previews, visual review and delivery.
+The agent preset provides **19 model-visible tools** for scenes, assets, previews, visual review and delivery.
 You can use the gallery and manual workbench controls for your first creation before asking an agent to edit it.
 
 Try this in a session using the DeepBlend Studio preset:
@@ -262,7 +262,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 43 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 44 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)

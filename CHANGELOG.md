@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 — 2026-10-23
+
+- Place a saved static mesh or complete imported model on a chosen surface in one operation, preserving XY, rotation and scale while saving an editable revision and a preview at the requested frame.
+- Measure full evaluated mesh surfaces, including slopes and holes, and verify the actual compiled translation and requested vertical gap before publication.
+- Preserve source revisions and asset bytes, reject unsupported or incomplete geometry, and refuse changed scene descriptions, mismatched native responses, cancellation or failed verification.
+
 ## 0.18.0 — 2026-10-22
 
 - Organize the workbench around Start, See result, Adjust and Export, with a large saved-result image and its source revision beside the relevant tools.
