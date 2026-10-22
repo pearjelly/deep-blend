@@ -16,7 +16,7 @@ Only a validated ready response produces a download link. The link must match th
 - A real browser rendered the shipped client against explicit fixture responses in Chinese and English at 390 px and 1440 px, for preparing, ready and failed states. The 12 cases had no page overflow or clipped card descendants. The measured secondary text contrast exceeded 4.5:1; normal controls, disabled selectors and the keyboard focus ring use the existing workbench styling. One inspection batch and one confirmation batch were used. This is UI rendering evidence, not real Host export evidence.
 - The design detector found one existing side-border warning in the older workbench styling; this slice introduces no CSS rule and leaves that unrelated styling unchanged. Bundle synchronization and whitespace checks pass.
 
-Local run evidence is retained in the worktree’s ignored `.tmp-editable-ui/` directory, including `scoped-test.log`, `page-test.log`, `mutations.json`, `browser-facts.json` and `browser-screenshots/`. The browser session and fixture server were closed after inspection.
+Local run evidence is retained in the worktree’s ignored `.tmp-editable-ui/` directory, including `scoped-test.log`, `page-test.log`, `mutations.json`, `browser-facts.json` and `browser-screenshots/`. A final copy correction distinguishes external images used only as visual references from files also used for rendering; both expanded explanations were checked at 390 px without clipping. The browser session and fixture server were closed after inspection.
 
 ## Integrated handoff
 
