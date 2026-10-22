@@ -1,8 +1,8 @@
 {
-  "at": "2026-10-22T10:32:31.315190+00:00",
+  "at": "2026-10-22T18:20:39.646808+00:00",
   "passed": true,
-  "scope": "Current Lighttable UI photography saved-source draft interaction and actual desktop/narrow captures. No native photography suite rerun and no save, render, model call or source change in this refresh. Earlier 36-check native regression remains separate historical evidence.",
-  "protectedHostFiles": 30,
+  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CUA captures. Project r0001 hero camera (60 mm) applied to a browser draft based on r0002. All copied Host bytes remained unchanged. This refresh makes no new native regression claim; the earlier 36 checks remain historical evidence.",
+  "protectedHostFiles": 31,
   "allHostBytesUnchanged": true,
   "interaction": "cua-browser-ui",
   "dom": {
@@ -29,35 +29,52 @@
         "right": 33
       }
     ],
+    "currentSavedRevision": "r0002",
     "draftBase": "r0002",
     "height": 844,
     "lens": "60",
     "photographyOpen": true,
     "scrollWidth": 390,
     "source": "project:r0001",
+    "sourceCamera": "hero",
     "width": 390
   },
-  "browserActionsSha256": "d91607f0a0350e973f82559bbe4db12161ba3be0cb59c8bdb1a6a07cead914ac",
-  "uiSha256": "c86e210a21dbbcb3d626d6a97abddd2d20b2dfdda6f90911ef96de352194331a",
+  "browserObservationSha256": "43ef9b5309cd375c722f8352bedf3fe019f1f1968e07965981a6b31d5951d853",
+  "browserActionsSha256": "f5461bc7bc26dc84f9e6202e0452624b6d4a2b090dec0d7eca602921216d80bd",
+  "uiSha256": "2ee3ce3d50a950b1fadfecdd9158b70c242e8e5a8958fb7ec16993439fc3625d",
   "nativeRegressionRerun": false,
   "encodingConversion": {
     "draft.png": {
+      "sourceFile": "photography-desktop.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "5f8a8a7384036b8f4c70d04f80543be2dee6f3d834357372791d277b5741e0f1",
-      "pngSha256": "6fea53e51b4bb9eff95fbef01d08eff70b1c9d958106ca2d8a45fa6618fb663b",
+      "sourceSha256": "07060d13a5e919b8ef3c1772e691755503bb521ba72c607ab921b857d04f1eec",
+      "pngSha256": "4c54894ca01a090360da98ff6c8be6c2fbb9085d996f4758a03d9b9b57c1268f",
+      "decodedPixelsSha256": "64c2dec279ba97605e65c8a3af6e6e94e11a5ce09108276d10cbfce4cffd7614",
+      "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
       "resized": false,
       "colorAdjusted": false
     },
     "narrow.png": {
+      "sourceFile": "photography-narrow.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "fcc4747ec0c2908f465cf015d6f35107f4f10a7cb83a7dcb415a3e07f2eb5f47",
-      "pngSha256": "c566219ff901f145bf3c389d398e3307c9e857980ac2b60274108965a3f71a7b",
+      "sourceSha256": "2b20351f690908a32948ad86fbbafe24bf84f2afaa384c345d44a28a68d9644b",
+      "pngSha256": "249ae0065e68c62332860e154928cc351187bd076e69e3767a5122cfe4a02a85",
+      "decodedPixelsSha256": "89aa90109dc455c36a970660bbe6832b70894cd4ee329d98243d640921404693",
+      "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
       "resized": false,
       "colorAdjusted": false
     }
-  }
+  },
+  "viewed": true,
+  "browserProvenanceMethod": "Rendered DOM boot graph and applied draft state, corroborated with exact whole HTTP client response bytes.",
+  "bundleClientSourceSha256": "d4bee8d70220c8e48971db5a5575a8ec7d0478dc5d13f048f650a033606df274",
+  "servedClientSha256": "c4b4dd1872706ab1e3f5b89b268a6a932c264e18fc88f3aaeef0d3ce69b86537",
+  "servedClientBytes": 529319,
+  "wholeServedResponseIdentical": true,
+  "performanceReadAvailable": false,
+  "resourceTimingVerified": false
 }

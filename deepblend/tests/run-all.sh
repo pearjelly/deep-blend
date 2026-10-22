@@ -77,6 +77,9 @@ run_suite "Public runtime conformance: packed checker, native evidence, cancella
 run_suite "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals" \
   node deepblend/tests/blender-integration/surface-inspection.e2e.mjs
 
+run_suite "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews" \
+  node deepblend/tests/blender-integration/surface-placement.e2e.mjs
+
 run_suite "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections" \
   env DEEPBLEND_CUP_GROUP=all node deepblend/tests/blender-integration/handled-cup.e2e.mjs
 
@@ -116,7 +119,7 @@ run_suite "Saved-shot delivery: native camera cuts, per-frame evidence and froze
 run_suite "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)" \
   node deepblend/tests/e2e/complete-frame-delivery.e2e.mjs
 
-run_suite "Agent preset M3 tool plane (all eighteen tools, real delivery)" \
+run_suite "Agent preset M3 tool plane (all nineteen tools, real delivery)" \
   node deepblend/tests/composition/tool-plane-m3.e2e.mjs
 
 run_suite "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary" \

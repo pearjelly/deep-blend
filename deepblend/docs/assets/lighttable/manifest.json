@@ -6,14 +6,21 @@
   "sourceRepository": "https://github.com/pearjelly/deep-blend",
   "reproductionGuide": "README.md",
   "capture": {
-    "date": "2026-10-22",
+    "date": "2026-10-23",
     "interaction": "cua-browser-ui",
-    "sourceDirectory": ".tmp-design-review/photo-docs-refresh",
+    "sourceDirectory": ".tmp-placement-lighttable-capture-v1",
     "uiSource": "packages/deepblend/ui/lib/client.js",
-    "capturedUiSha256": "c86e210a21dbbcb3d626d6a97abddd2d20b2dfdda6f90911ef96de352194331a",
+    "capturedUiSha256": "2ee3ce3d50a950b1fadfecdd9158b70c242e8e5a8958fb7ec16993439fc3625d",
     "viewed": true,
     "nativeRegressionRerun": false,
-    "scope": "Actual desktop and narrow browser screenshots after reloading the Lighttable client. The saved glazed-cup work, r0002 preview and revision strip are shown. This capture records the UI only and does not claim a new native render or acceptance run."
+    "scope": "Actual desktop and narrow browser screenshots after loading the current Lighttable client in isolated DSH 0.2.1. The reused saved glazed-cup work, r0002 preview and revision strip are shown. This captures the UI only; no new native render or acceptance run is claimed.",
+    "bundleClientSourceSha256": "d4bee8d70220c8e48971db5a5575a8ec7d0478dc5d13f048f650a033606df274",
+    "servedClientSha256": "c4b4dd1872706ab1e3f5b89b268a6a932c264e18fc88f3aaeef0d3ce69b86537",
+    "servedClientBytes": 529319,
+    "wholeServedResponseIdentical": true,
+    "browserProvenanceMethod": "Rendered DOM boot graph and completed saved preview, corroborated with an exact whole HTTP client response.",
+    "performanceReadAvailable": false,
+    "resourceTimingVerified": false
   },
   "images": [
     {

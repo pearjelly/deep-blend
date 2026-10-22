@@ -891,3 +891,5 @@ export { ASSET_BOUNDS_INSPECTION_VERSION, ASSET_BOUNDS_LIMITS, OBJECT_AXES_INSPE
   validateGeometrySelection, validateSurfaceSelection, verifySurfaceSamples, verifyGeometryReport } from './geometry-inspection.js'
 export { SHOT_CAMERA_SELECTION_VERSION, SHOT_CAMERA_SELECTION_LIMITS, buildShotCameraSelection,
   normalizeShotCameraSelection, shotCameraForFrame } from './shot-render-selection.js'
+export { SURFACE_PLACEMENT_VERSION, SURFACE_PLACEMENT_LIMITS,
+  validateSurfacePlacementSelection, verifySurfacePlacementReport } from './surface-placement.js'

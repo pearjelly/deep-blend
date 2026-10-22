@@ -179,7 +179,7 @@ test('packed package works in a real external strict TS and JS consumer without 
     }
     const types = readFileSync(join(consumer,'consumer.ts'),'utf8')
     const negativeCases = [...types.matchAll(/@ts-expect-error/g)].length
-    assert.equal(negativeCases,18)
+    assert.equal(negativeCases,19)
     writeFileSync(join(consumer,'consumer.ts'),types.replaceAll('@ts-expect-error','rejected input:'))
     const rejected = run(process.execPath,[compiler,'--project','tsconfig.json','--noEmit'],consumer,1)
     assert.equal([...rejected.matchAll(/error TS\d+:/g)].length,negativeCases,rejected)

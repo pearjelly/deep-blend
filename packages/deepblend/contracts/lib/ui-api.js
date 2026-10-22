@@ -925,6 +925,7 @@ export const UI_TOOL_CARD_KEYS = Object.freeze([
   'blender_project_get',
   'blender_scene_get',
   'blender_scene_patch',
+  'blender_place_on_surface',
   'blender_preview_render',
   'blender_scene_validate',
   'blender_revision_restore',

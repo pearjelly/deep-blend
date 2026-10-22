@@ -36,6 +36,9 @@ import {
   BLENDER_ENGINE_BY_KEY,
   BLENDER_PROTOCOL_VERSION,
   FRAME_PLAN_VERSION,
+  SURFACE_PLACEMENT_LIMITS,
+  validateSurfacePlacementSelection,
+  verifySurfacePlacementReport,
   BlenderError,
   BlenderErrorCode,
   CANDIDATE_RENDER_ENGINES,
@@ -273,7 +276,7 @@ export const SESSION_ROUTABLE_ACTIONS = Object.freeze([
   'render_preview',
   'render_views',
 ])
-export const ISOLATED_BOOTSTRAP_ACTIONS = Object.freeze(['inspect_geometry'])
+export const ISOLATED_BOOTSTRAP_ACTIONS = Object.freeze(['inspect_geometry', 'inspect_surface_placement'])
 
 /**
  * A live Blender, presented as one shape whatever carries the bytes.
@@ -1629,6 +1632,72 @@ export default class LocalBlenderRuntime extends Service {
       if ((request.assetInstanceIds !== undefined || request.cameraId !== undefined) && run.envelope?.result?.schemaVersion !== 'deepblend.geometry-inspection/v4') throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'The Blender bootstrap does not support aggregate asset bounds; upgrade DeepBlend.')
       const report = verifyGeometryReport(run.envelope?.result, request)
       assertDigest(await digest(source))
+      aborted()
+      return { report, envelope: run.envelope, durationMs: run.durationMs, stdout: run.stdout, stderr: run.stderr }
+    } catch (cause) {
+      aborted()
+      throw cause
+    } finally {
+      this._cleanup(directory)
+    }
+  }
+
+  /** Measure both actual meshes in a private batch; candidate verification also pins its baseline. */
+  async inspectSurfacePlacement(request) {
+    validateSurfacePlacementSelection(request)
+    const aborted = () => {
+      if (request.signal?.aborted) throw new BlenderError(BlenderErrorCode.ABORTED, 'Surface placement cancelled.')
+    }
+    aborted()
+    if (!existsSync(this.workspaceRoot)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The placement workspace does not exist.')
+    const root = realpathSync(this.workspaceRoot)
+    const boundedSource = path => {
+      if (typeof path !== 'string' || !isAbsolute(path) || !existsSync(path)) throw new BlenderError(BlenderErrorCode.REVISION_CHECKPOINT_MISSING, 'Surface placement needs an absolute native checkpoint path.')
+      const source = realpathSync(path), local = relative(root, source)
+      if (!local || local === '..' || local.startsWith('..' + sep) || isAbsolute(local)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The placement checkpoint is outside the runtime workspace.')
+      const info = statSync(source)
+      if (!info.isFile() || info.size > SURFACE_PLACEMENT_LIMITS.checkpointBytes) throw new BlenderError(BlenderErrorCode.SCENE_TOO_HEAVY, 'The placement checkpoint is not a bounded native file.')
+      return source
+    }
+    const sources = [{ path: boundedSource(request.checkpointPath), sha256: request.checkpointSha256, name: 'placement-source.blend' }]
+    if (request.baselineCheckpointPath !== undefined) sources.push({ path: boundedSource(request.baselineCheckpointPath), sha256: request.baselineCheckpointSha256, name: 'placement-baseline.blend' })
+    const digest = async path => {
+      const hash = createHash('sha256')
+      for await (const bytes of createReadStream(path, { signal: request.signal })) hash.update(bytes)
+      return hash.digest('hex')
+    }
+    const verify = async (path, expected) => {
+      if (await digest(path) !== expected) throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'A placement checkpoint differs from its pinned native source.')
+    }
+    const { directory, jobId } = this._createWorkingDirectory()
+    const correlationId = typeof request.jobId === 'string' && request.jobId.length > 0 ? request.jobId : jobId
+    try {
+      for (const source of sources) {
+        await verify(source.path, source.sha256)
+        source.snapshot = join(directory, source.name)
+        await copyFile(source.path, source.snapshot)
+        aborted()
+        await verify(source.snapshot, source.sha256)
+      }
+      const run = await this.runBootstrap({ action: 'inspect_surface_placement', jobId: correlationId,
+        payload: { subjectEntityId: request.subjectEntityId, supportEntityId: request.supportEntityId,
+          frame: request.frame, clearanceMm: request.clearanceMm ?? 0, checkpointSha256: request.checkpointSha256,
+          ...(sources.length === 1 ? {} : { baselineCheckpointPath: sources[1].snapshot,
+            baselineCheckpointSha256: request.baselineCheckpointSha256, expectedTranslationMeters: request.expectedTranslationMeters }) } },
+      { signal: request.signal, session: false, args: ['--blend', sources[0].snapshot] })
+      aborted()
+      if (run.exitCode !== 0) throw new BlenderError(BlenderErrorCode.NONZERO_EXIT,
+        'Native placement inspection did not exit successfully; its result was refused.')
+      if (run.envelope?.protocolVersion !== BLENDER_PROTOCOL_VERSION || run.envelope.status !== 'success' ||
+          run.envelope.action !== 'inspect_surface_placement' || run.envelope.jobId !== correlationId || run.envelope.error !== null) {
+        throw new BlenderError(BlenderErrorCode.PROTOCOL_VERSION_MISMATCH,
+          'Native placement inspection did not return a successful response for this request.')
+      }
+      const report = verifySurfacePlacementReport(run.envelope?.result, request)
+      for (const source of sources) {
+        await verify(source.path, source.sha256)
+        await verify(source.snapshot, source.sha256)
+      }
       aborted()
       return { report, envelope: run.envelope, durationMs: run.durationMs, stdout: run.stdout, stderr: run.stderr }
     } catch (cause) {

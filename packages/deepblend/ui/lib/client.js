@@ -1625,7 +1625,7 @@ window.__ModuleLoader__.load({
     /** Every DeepBlend wire tool name this package draws a card for. */
     const TOOL_CARD_KEYS = [
       'blender_capabilities', 'blender_recipe_list', 'blender_recipe_parameters', 'blender_project_create', 'blender_project_get',
-      'blender_scene_get', 'blender_scene_patch', 'blender_preview_render',
+      'blender_scene_get', 'blender_scene_patch', 'blender_place_on_surface', 'blender_preview_render',
       'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
       'blender_preview_views', 'blender_visual_review',
       'blender_visual_autofix', 'blender_final_render', 'blender_export',

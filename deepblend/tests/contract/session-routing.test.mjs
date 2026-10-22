@@ -55,12 +55,13 @@ test('every bootstrap call is accounted for by permitted session routing or expl
 
   assert.deepEqual([...SESSION_ROUTABLE_ACTIONS, ...ISOLATED_BOOTSTRAP_ACTIONS].sort(), [...new Set(derived)].sort(),
     'the routable list and the call sites disagree: one of them was changed without the other')
-  assert.deepEqual(ISOLATED_BOOTSTRAP_ACTIONS, ['inspect_geometry'])
+  assert.deepEqual(ISOLATED_BOOTSTRAP_ACTIONS, ['inspect_geometry', 'inspect_surface_placement'])
   assert.ok(ISOLATED_BOOTSTRAP_ACTIONS.every(action => !SESSION_ROUTABLE_ACTIONS.includes(action)))
   const inspect = source.slice(source.indexOf('async inspectGeometry('), source.indexOf('async renderPreview('))
   assert.match(inspect, /action: 'inspect_geometry'/)
   assert.match(inspect, /session: false/)
   assert.throws(() => provider({ sessionActions: ['inspect_geometry'] }), /inspect_geometry/)
+  assert.throws(() => provider({ sessionActions: ['inspect_surface_placement'] }), /inspect_surface_placement/)
 })
 
 test('naming an action the provider cannot route is refused, with the reason', () => {

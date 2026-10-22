@@ -112,6 +112,27 @@ export interface GeometryInspectionReport {
   objectAxisBasis?: 'evaluated-object-axes-scaled'; surfaceSamples?: unknown[]; checkpointSha256: string; checkpointUnchanged: true;
   frame: number; blenderVersion: string; objects: GeometryInspectionObject[];
 }
+/** Read-only world-Z placement over complete evaluated meshes at one explicit frame. */
+export type SurfacePlacementRequest = RuntimeOptions & {
+  checkpointPath: string; checkpointSha256: string; subjectEntityId: string; supportEntityId: string;
+  frame: number; clearanceMm?: number; jobId?: string;
+} & ({ baselineCheckpointPath: string; baselineCheckpointSha256: string; expectedTranslationMeters: [0, 0, number] }
+  | { baselineCheckpointPath?: never; baselineCheckpointSha256?: never; expectedTranslationMeters?: never });
+export interface SurfacePlacementObject {
+  meshObjectCount: number; vertexCount: number; triangleCount: number;
+  rootWorldMatrix: number[][]; worldBoundsMeters: { min: Vec3; max: Vec3 };
+}
+export interface SurfacePlacementReport {
+  schemaVersion: 'deepblend.surface-placement/v1'; axis: 'world-z';
+  checkpointSha256: string; checkpointUnchanged: true; frame: number; blenderVersion: string;
+  subjectEntityId: string; supportEntityId: string; clearanceMm: number; translationMeters: [0, 0, number];
+  subjectContactMeters: Vec3; supportContactMeters: Vec3; placedSubjectContactMeters: Vec3;
+  subjectTriangleIndex: number; supportTriangleIndex: number; statistics: { candidatePairs: number };
+  subject: SurfacePlacementObject; support: SurfacePlacementObject;
+  baselineVerification?: { checkpointSha256: string; checkpointUnchanged: true; translationMeters: [0, 0, number];
+    subjectRigidTranslation: true; supportUnchanged: true; subjectMaxErrorMeters: number; supportMaxErrorMeters: number;
+    toleranceMeters: number };
+}
 export interface RenderPreviewRequest extends RuntimeOptions, RenderOverrides {
   checkpointPath: string; outputPath: string; cameraId?: string; frame?: number; jobId?: string;
   session?: boolean;
@@ -247,6 +268,8 @@ export interface BlenderSession {
 export interface LocalBlenderRuntime extends BlenderRuntime {
   /** Optional native inspection extension; absent on older providers. Always uses an isolated batch. */
   inspectGeometry?(request: GeometryInspectionRequest): Promise<RuntimeActionResult<GeometryInspectionReport>>;
+  /** Optional isolated measurement; baseline verification proves the saved rigid move before Host publication. */
+  inspectSurfacePlacement?(request: SurfacePlacementRequest): Promise<RuntimeActionResult<SurfacePlacementReport>>;
   runBootstrap(request: BlenderBootstrapRequest, options?: BootstrapOptions): Promise<BootstrapRunOutcome>;
   openSession(options?: RuntimeOptions & { cwd?: string; args?: string[] }): Promise<BlenderSession>;
   attachSession(socketPath: string, options?: { timeoutMs?: number }): Promise<BlenderSession>;

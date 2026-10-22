@@ -58,7 +58,8 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `blender_project_create` | **写** | 建项目并提交 r0001 |
 | `blender_project_get` | 读 | 当前 revision、场景摘要、完整版本历史 |
 | `blender_scene_get` | 读 | 场景摘要，或 `full:true` 拿整份 SceneSpec |
-| `blender_scene_patch` | **写** | **唯一**改场景的途径。一次成功 = 一个不可变 revision |
+| `blender_scene_patch` | **写** | 按明确操作修改场景，成功后保存一个不可变 revision |
+| `blender_place_on_surface` | **写** | 按实际表面把模型放到指定承托对象上，保留朝向并保存预览 |
 | `blender_asset_ingest` | 写文件 | 把素材收进项目。本地路径直接收，网络地址要你批准；**它不提交 revision**，收完还要用 `asset.add` 声明 |
 | `blender_scene_validate` | 读 | 校验当前场景，或 `dryRun` 校验一个还没提交的 patch |
 | `blender_preview_render` | 读 | 渲一张预览；显式 beauty/clay 模式生成独立检查图并附图 |
@@ -73,7 +74,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 
 三条值得记住的性质：
 
-* **改场景只有一条路。** 没有自由编辑、没有脚本。`blender_scene_patch` 失败时
+* **修改通过版本事务保存。** 可以用场景操作、装配尺寸或实际表面放置完成编辑。`blender_scene_patch` 失败时
   **什么都没变**——当前 revision 的目录从未被打开写入，所以一次拒绝的代价是一条消息，
   不是你的工作。
 * **重试是安全的。** 没给幂等键时它由 patch 自身派生，所以一次无意的重发返回第一次的
@@ -129,6 +130,25 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 参数化轮廓、内壁和圆角的用法见[建模指南](modeling.md)。
 
 同名素材更新、旧版本重建、摘要校验和下载限制见[素材指南](assets.md)。
+
+### 2.2 把模型放到台座或斜面上
+
+可以直接告诉智能体：“把佛像放到这个台座上，保持当前位置的左右方向和朝向，保存并给我侧面预览。”
+智能体先读取当前版本和双方实体，再调用 `blender_place_on_surface`。例如，若当前项目、
+版本、实体与相机分别是下面这些 ID：
+
+```json
+{"projectId":"courtyard","baseRevision":"r0002","subjectEntityId":"statue","supportEntityId":"plinth","frame":1,"clearanceMm":0,"cameraId":"side"}
+```
+
+插件检查实际模型，只上下移动主体，保留 XY 位置、旋转、缩放和材质；成功后保存新版本及
+可继续编辑的 Blender 工程，并返回该版本的预览。它按主体下方的实际表面处理斜面，
+无需你手算包围盒差值。需要留缝时设置 `clearanceMm`，这里的毫米数是竖直方向的间距。
+
+该操作适用于静态模型和导入实例。所选对象之间有相关几何依赖、没有可用的投影交集或
+超出检查预算时会明确拒绝。摆放结果不代表模型在物理上稳定，也没有检查其它物体或
+移动过程；保存后仍应查看整体与接触处。请求中必须给明确的 `frame`，并使用刚读到的
+`baseRevision`。回复丢失时重试同一请求和保存标识，可取回原结果。
 
 ## 3. 成本：唯一必须先懂的一件事
 

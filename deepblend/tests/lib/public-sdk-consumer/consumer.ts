@@ -133,6 +133,14 @@ async function useRuntime(runtime: BlenderRuntime, local: LocalBlenderRuntime, s
   const exit: number | null = outcome.exitCode;
   runtime.dispose();
   const batch = await local.runBootstrap({action:'get_capabilities'}, {session:false, signal});
+  if (local.inspectSurfacePlacement) {
+    const placement = await local.inspectSurfacePlacement({checkpointPath:'/absolute/scene.blend',checkpointSha256:'a'.repeat(64),
+      subjectEntityId:'body',supportEntityId:'base',frame:1,clearanceMm:0,signal});
+    const verticalMove: [0,0,number] = placement.report.translationMeters;
+    assert.equal(verticalMove[0],0);
+    // @ts-expect-error baseline verification must include its hash and expected translation
+    await local.inspectSurfacePlacement({checkpointPath:'/absolute/scene.blend',checkpointSha256:'a'.repeat(64),subjectEntityId:'body',supportEntityId:'base',frame:1,baselineCheckpointPath:'/absolute/before.blend'});
+  }
   const session = await local.openSession({signal});
   await session.run({action:'get_capabilities'}, {signal});
   await session.close(); await local.closeSession();

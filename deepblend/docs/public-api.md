@@ -149,6 +149,15 @@ results. World extents are not intrinsic dimensions, wall thickness, clearance o
 quality approval. Kept/live sessions refuse this action. This extension is not
 yet exposed by the Host, model tools or workbench, and is not part of stable 0.8.0.
 
+`LocalBlenderRuntime.inspectSurfacePlacement` is an optional isolated native measurement.
+`SurfacePlacementRequest` pins a checkpoint hash, two entity IDs and an explicit frame;
+its optional baseline group requires a second checkpoint/hash and the expected world-Z
+translation together. `SurfacePlacementReport` contains actual surface witnesses,
+complete mesh counts and the verified baseline comparison. The Host refuses this
+operation when the runtime lacks the method, and publishes a saved placement only
+after independently reopening and verifying the candidate. See
+[surface placement](surface-placement.md) for its selected-pair scope and limits.
+
 | Method | Required behavior and ownership |
 | --- | --- |
 | `getCapabilities({refresh?, signal?})` | Return measured capabilities. Missing Blender is `installed:false` with advice/warnings. Engine availability comes from behavioral probe results, not a static enum. |

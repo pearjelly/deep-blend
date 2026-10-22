@@ -157,7 +157,8 @@ test('every parameter table in tool-contracts.md is the tool\u2019s real paramet
   // read only the FIRST table in each section and reported two tools as missing parameters, which is how a
   // measurement error looks from the inside.
   const contracts = readFileSync(join(ROOT, 'deepblend', 'docs', 'tool-contracts.md'), 'utf8')
-  const sections = [...contracts.matchAll(/^### [\d.]+ `(blender_[a-z_]+)`[^\n]*\n([\s\S]*?)(?=^### |^## |\Z)/gm)]
+  // JavaScript treats \Z as a literal Z, so a world-Z description must not end its parameter table.
+  const sections = [...contracts.matchAll(/^### [\d.]+ `(blender_[a-z_]+)`[^\n]*\n([\s\S]*?)(?=^### |^## |(?![\s\S]))/gm)]
   assert.ok(sections.length >= 5, `tool-contracts.md parsed ${sections.length} tool sections, too few to check`)
 
   const declared = new Map(declaredTools(ROOT).map(tool => [tool.name, tool.declared]))

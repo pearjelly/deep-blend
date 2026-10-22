@@ -124,10 +124,71 @@ export function apply(ctx) {
   ctx.tools.register(projectGet(ctx))
   ctx.tools.register(sceneGet(ctx))
   ctx.tools.register(scenePatch(ctx))
+  ctx.tools.register(placeOnSurface(ctx))
   ctx.tools.register(previewRender(ctx))
   ctx.tools.register(sceneValidate(ctx))
   ctx.tools.register(revisionRestore(ctx))
   ctx.tools.register(assetIngest(ctx))
+}
+
+/** A measured placement is committed by the Host, not guessed as a transform patch. */
+function placeOnSurface(ctx) {
+  return defineTool({
+    name: 'blender_place_on_surface',
+    description: 'Place a saved entity above a chosen support using their actual evaluated meshes, then save an editable Blender revision and preview. ' +
+      'Moves only the subject’s world Z; keeps its XY, rotation and scale. Supports generated meshes and whole imported asset instances, including sloped supports. ' +
+      'Read blender_scene_get first and pass its current baseRevision, both entity IDs and an explicit frame. ' +
+      'clearanceMm is a vertical gap, not distance along a surface normal. Requires static geometry without related cross-entity geometry dependencies. ' +
+      'The receipt describes this selected pair at that frame; it does not certify physical stability, collisions with other objects or the movement path. ' +
+      'For file delivery, resolve returned checkpoint and preview paths against the returned absolute projectDirectory. ' +
+      'Always saves a checkpoint; renderPreview defaults to true. Use one idempotencyKey for an intent and reuse it only for an identical retry.',
+    parameters: {
+      projectId: { type: 'string', required: true, description: 'The existing project.' },
+      baseRevision: { type: 'string', required: true, description: 'Current revision returned by blender_scene_get. Stale revisions are refused.' },
+      subjectEntityId: { type: 'string', required: true, description: 'Entity to move vertically; use the whole entity ID for an imported asset instance.' },
+      supportEntityId: { type: 'string', required: true, description: 'Different entity whose evaluated surface should support the subject.' },
+      frame: { type: 'integer', required: true, description: 'Explicit frame to measure and verify, from 0 to 1000000. The Host enforces this range.' },
+      clearanceMm: { type: 'number', description: 'Required vertical gap in millimetres, 0–1000; defaults to 0. The Host enforces this range.' },
+      renderPreview: { type: 'boolean', description: 'Render and attach the saved revision’s preview (default true). False still saves the Blender checkpoint.' },
+      cameraId: { type: 'string', description: 'Optional saved camera for the preview; omitted uses the project’s default camera.' },
+      idempotencyKey: { type: 'string', description: 'Unique placement intent; reuse only when retrying this exact request.' },
+    },
+    output: TOOL_OUTPUT_WITH_IMAGE,
+    async execute(args, exec) {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+      try {
+        if (resolved.studio.surfacePlacementSupported !== true || typeof resolved.studio.placeOnSurface !== 'function') {
+          throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
+            'This Host cannot perform measured surface placement. Update the DeepBlend Host bundle and restart the profile before retrying.')
+        }
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.placeOnSurface({
+          // Preserve unknown fields so the Host can reject them rather than silently changing the intent.
+          ...args,
+          projectId: args.projectId, baseRevision: args.baseRevision,
+          subjectEntityId: args.subjectEntityId, supportEntityId: args.supportEntityId, frame: args.frame,
+          clearanceMm: args.clearanceMm ?? 0, renderPreview: args.renderPreview ?? true,
+          cameraId: args.cameraId, idempotencyKey: args.idempotencyKey, signal: exec?.signal,
+        }), warning)
+        const value = { ok: true,
+          text: renderSuccess(`${data.idempotentReplay === true ? 'Reused' : 'Saved'} surface placement in revision ${data.revision}.`, data,
+            { warnings: [...(data.warnings ?? []), ...canonicalWarnings] }), data }
+        return args.renderPreview !== false
+          ? await attachCommittedPreview(ctx, exec, resolved, value, { projectId: args.projectId, summary: data }) : value
+      } catch (cause) {
+        const failure = renderFailure(cause, 'SURFACE_PLACEMENT_FAILED')
+        if (failure.data.errorCode === BlenderErrorCode.REVISION_CONFLICT) {
+          failure.text = ['DeepBlend placement refused.', `errorCode: ${failure.data.errorCode}`,
+            `message:   ${failure.data.message}`,
+            ...(failure.data.detail == null ? [] : [`detail:    ${JSON.stringify(failure.data.detail)}`]),
+            '', 'Read blender_scene_get again, then retry blender_place_on_surface with the new baseRevision.'].join('\n')
+        }
+        return { ok: false, ...failure }
+      }
+    },
+    presentCall: args => ({ card: 'generic', title: `Place "${args?.subjectEntityId ?? ''}" on "${args?.supportEntityId ?? ''}"`,
+      kind: 'move', projectId: args?.projectId }),
+  })
 }
 
 /** Read verified local package metadata through the Host; never load a package in the tool plane. */
@@ -648,8 +709,9 @@ function scenePatch(ctx) {
   return defineTool({
     name: 'blender_scene_patch',
     description:
-      'Modify a scene and commit the result as one new immutable revision. This is the ONLY way to change a ' +
-      'scene — there is no free-form edit. Read the scene first with blender_scene_get and pass the revision ' +
+      'Modify a scene with explicit operations and commit the result as one new immutable revision. ' +
+      'For measured vertical placement use blender_place_on_surface; for saved assembly dimensions use blender_recipe_parameters. ' +
+      'Read the scene first with blender_scene_get and pass the revision ' +
       'it returned as `baseRevision`; if the project has moved on since, the patch is REFUSED rather than ' +
       'merged, and you should re-read and re-apply. Operations apply in order and all-or-nothing: if any one ' +
       'fails, no revision is created and the current revision is untouched, so a failed patch is always safe ' +

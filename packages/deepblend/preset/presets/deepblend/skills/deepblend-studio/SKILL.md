@@ -419,10 +419,20 @@ the current revision and repeat the affected views with the same settings.
    scene entity ID, not the source asset descriptor ID. Missing/hidden/unsupported or
    over-budget children make the entire instance unavailable: never substitute its
    origin, a declared dimension, a partial child or zero for the measured bottom.
-   For a deliberately horizontal flat pedestal, compare the measured instance min Z
-   to support max Z, preserve the old revision, change only the intended instance
-   transform through a patch, remeasure and inspect the base in an actual close view.
-   Bounds separation is not a surface contact or collision certificate.
+   For placing a saved static mesh or complete imported instance on a chosen support,
+   use `blender_place_on_surface` with projectId, baseRevision, subjectEntityId,
+   supportEntityId and the explicit frame being checked. Optional clearanceMm is a
+   vertical gap (default 0); the operation preserves XY, rotation and scale, moves
+   only world Z, saves a new checkpoint and returns its same-frame preview by default.
+   It measures the selected actual mesh surfaces, including slopes and holes, then
+   verifies the compiled rigid translation and support before publishing. Read the
+   saved receipt and inspect the returned preview. For file registration, combine
+   its absolute projectDirectory with the returned relative artifact paths.
+   It does not certify physical
+   stability, other objects, Euclidean clearance or an animation range. A refusal
+   leaves the earlier revision intact; do not replace refused surface evidence with
+   bounding-box separation. A separate ordinary patch remains available when the
+   user specifically requests an authored transform rather than surface placement.
 
    For framing, select the required complete subjects and `geometryCameraId` at an
    explicit `geometryFrame`; use `geometryAssetInstanceIds` for imported subjects.
