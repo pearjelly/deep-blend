@@ -672,7 +672,42 @@ window.__ModuleLoader__.load({
       'revisions.compare': '与当前版对比',
       'revisions.compareCurrent': '与另一版对比',
       'revisions.compareHint': '选择已保存版本与当前版对比；选择当前版会对比相邻的另一版。需要至少两版，查看不会改动作品。',
+      'revisions.sourceChanged': '工程内容有变化',
+      'revisions.sourceUnchanged': '工程内容未变化',
+      'revisions.sourceUnknown': '暂无法确认工程内容变化',
       'revisions.restore': '恢复',
+      "snapshot.title": "保存可编辑副本",
+      "snapshot.scope": "包含 Blender 工程、源文件与相关外部素材。",
+      "snapshot.details": "副本范围",
+      "snapshot.detailText": "仅包含选定的已保存版本。仅用于观察的外部参考图不另行附带；工程内嵌内容未另行检查。可附带同版本的已完成影片。未保存的编辑不会进入副本。",
+      "snapshot.revision": "已保存版本",
+      "snapshot.video": "附带影片",
+      "snapshot.noVideo": "不附带影片",
+      "snapshot.prepare": "准备下载",
+      "snapshot.preparing": "正在准备副本…",
+      "snapshot.checking": "正在检查已有副本…",
+      "snapshot.cancel": "取消准备",
+      "snapshot.cancelling": "正在取消…",
+      "snapshot.retry": "重试准备",
+      "snapshot.check": "重新检查",
+      "snapshot.download": "下载 ZIP",
+      "snapshot.ready": "{revision} 的副本已准备好 · {bytes}",
+      "snapshot.failed": "准备未完成，可重试同一份副本。",
+      "snapshot.cancelled": "准备已取消，可重试同一份副本。",
+      "snapshot.uncertain": "暂时无法确认准备状态。请重新检查，或重试同一请求。",
+      "snapshot.invalid": "副本信息与所选工程不一致，已停止提供下载。请重新检查。",
+      "snapshot.saved": "正在处理已固定的 {revision}。",
+      "snapshot.newSelection": "已选择不同的版本或影片；点击“准备下载”创建新的副本。",
+      "snapshot.storage": "浏览器未能记住这次请求。请保留此页面，关闭后可能无法自动恢复。",
+      "snapshot.upgrade": "请更新并重启 Host，以使用可编辑副本。",
+      "snapshot.local": "请在运行 Host 的电脑上打开工作台来保存副本。",
+      "snapshot.copying": "正在复制文件",
+      "snapshot.verifying": "正在验证副本",
+      "snapshot.verifiedBytes": "已校验 {bytes}",
+      "snapshot.publishing": "正在完成副本",
+      "snapshot.progress": "{done} / {total}",
+      "snapshot.noRevision": "暂无可保存的版本。",
+      "snapshot.interrupted": "准备被中断，可重试同一份副本。",
       'host.reading': '读取 Host 状态…',
       'diagnostics.exportHint': '导出一份可以附在问题里的诊断信息（版本、配置、项目与任务的摘要）',
       'diagnostics.export': '导出诊断',
@@ -1305,7 +1340,42 @@ window.__ModuleLoader__.load({
       'revisions.compare': 'Compare with current',
       'revisions.compareCurrent': 'Compare with another version',
       'revisions.compareHint': 'Compare a saved version with the current one. The current version uses its nearest other version. At least two versions are needed; viewing does not change the project.',
+      'revisions.sourceChanged': 'Project content changed',
+      'revisions.sourceUnchanged': 'Project content unchanged',
+      'revisions.sourceUnknown': 'Project content change could not be confirmed',
       'revisions.restore': 'restore',
+      "snapshot.title": "Save an editable copy",
+      "snapshot.scope": "Includes the Blender project, source files and relevant external assets.",
+      "snapshot.details": "What the copy includes",
+      "snapshot.detailText": "Includes only the selected saved version. External images used only as visual references are omitted; embedded content is not separately inspected. You can include a completed video from the same version. Unsaved edits are not included.",
+      "snapshot.revision": "Saved version",
+      "snapshot.video": "Include a video",
+      "snapshot.noVideo": "No video",
+      "snapshot.prepare": "Prepare download",
+      "snapshot.preparing": "Preparing the copy…",
+      "snapshot.checking": "Checking the existing copy…",
+      "snapshot.cancel": "Cancel preparation",
+      "snapshot.cancelling": "Cancelling…",
+      "snapshot.retry": "Retry preparation",
+      "snapshot.check": "Check again",
+      "snapshot.download": "Download ZIP",
+      "snapshot.ready": "Copy of {revision} is ready · {bytes}",
+      "snapshot.failed": "Preparation did not finish. You can retry the same copy.",
+      "snapshot.cancelled": "Preparation was cancelled. You can retry the same copy.",
+      "snapshot.uncertain": "The preparation status could not be confirmed. Check again or retry the same request.",
+      "snapshot.invalid": "The copy information does not match this project. Download is unavailable. Check again.",
+      "snapshot.saved": "Working on the fixed version {revision}.",
+      "snapshot.newSelection": "You selected a different version or video. Choose Prepare download to create a new copy.",
+      "snapshot.storage": "The browser could not remember this request. Keep this page open; recovery after closing it may be unavailable.",
+      "snapshot.upgrade": "Update and restart the Host to save editable copies.",
+      "snapshot.local": "Open the workbench on the computer running the Host to save a copy.",
+      "snapshot.copying": "Copying files",
+      "snapshot.verifying": "Verifying the copy",
+      "snapshot.verifiedBytes": "Verified {bytes}",
+      "snapshot.publishing": "Finalizing the copy",
+      "snapshot.progress": "{done} / {total}",
+      "snapshot.noRevision": "There is no saved version yet.",
+      "snapshot.interrupted": "Preparation was interrupted. You can retry the same copy.",
       'host.reading': 'Reading Host state…',
       'diagnostics.exportHint': 'Export diagnostics you can attach to a bug report (versions, config, a summary of projects and jobs)',
       'diagnostics.export': 'Export diagnostics',
@@ -2798,6 +2868,34 @@ window.__ModuleLoader__.load({
         } }
     }
 
+    const SNAPSHOT_STORAGE_KEY = 'deepblend.editable-snapshots/v1'
+    const snapshotContextKey = state => state.projectsRoot && state.storeIdentity && state.activeProjectId
+      ? JSON.stringify([state.projectsRoot, state.storeIdentity, state.activeProjectId]) : null
+    const snapshotEntry = state => state.editableSnapshots?.[snapshotContextKey(state)] || null
+    const snapshotVideos = (state, revision) => (state.jobs || []).filter(job => job.status === 'completed'
+      && job.revisionId === revision && typeof job.delivery?.videoPath === 'string' && job.delivery.videoPath.length > 0)
+    const snapshotSupported = state => state.editableSnapshotProtocol === 1 && /^[a-f0-9]{64}$/.test(state.storeIdentity || '')
+      && state.editableSnapshotAvailability?.available === true
+    const snapshotSameSelection = entry => entry?.handle && entry.revision === entry.handle.revision && entry.videoJobId === entry.handle.videoJobId
+    const snapshotBytes = value => value >= 1048576 ? `${(value / 1048576).toFixed(1)} MiB` : value >= 1024 ? `${(value / 1024).toFixed(1)} KiB` : `${value} B`
+    const snapshotExportId = async requestId => `snapshot-${(await imageByteHash(Uint8Array.from(requestId, char => char.charCodeAt(0)), undefined, true)).slice(0, 40)}`
+    function validSnapshotHandle(handle) {
+      return handle && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(handle.requestId || '')
+        && /^snapshot-[a-f0-9]{40}$/.test(handle.exportId || '') && /^[a-f0-9]{64}$/.test(handle.storeIdentity || '')
+        && typeof handle.projectId === 'string' && handle.projectId.length > 0 && handle.projectId.length <= 200
+        && /^r[0-9]+$/.test(handle.revision || '') && (handle.videoJobId === null || typeof handle.videoJobId === 'string' && handle.videoJobId.length > 0 && handle.videoJobId.length <= 200)
+    }
+    function validSnapshotReply(value, handle) {
+      if (!value || !['preparing', 'ready', 'failed', 'cancelled'].includes(value.state)
+        || ['requestId', 'exportId', 'storeIdentity', 'projectId', 'revision', 'videoJobId'].some(key => value[key] !== handle[key])) return false
+      if (value.state === 'ready') {
+        const expected = projectRoute(handle.projectId, `/editable-snapshots/${handle.exportId}/download?storeIdentity=${handle.storeIdentity}`)
+        if (value.downloadUrl !== expected || !Number.isSafeInteger(value.archive?.bytes) || value.archive.bytes <= 0
+          || !/^[a-f0-9]{64}$/.test(value.archive?.sha256 || '')) return false
+      }
+      return true
+    }
+
     /** A blank snapshot, so `getState()` always answers the same shape. */
     function emptySnapshot() {
       return {
@@ -2807,6 +2905,10 @@ window.__ModuleLoader__.load({
         hostApiVersion: null,
         projects: [],
         projectsRoot: null,
+        storeIdentity: null,
+        editableSnapshotProtocol: null,
+        editableSnapshotAvailability: null,
+        editableSnapshots: {},
         recipeCatalog: { recipes: [], errors: [] },
         selected: null,
         currentRevision: null,
@@ -2904,6 +3006,9 @@ window.__ModuleLoader__.load({
       const imageDownloadTimeoutMs = settings.imageDownloadTimeoutMs ?? 30000
       if (!Number.isSafeInteger(imageDownloadTimeoutMs) || imageDownloadTimeoutMs <= 0 || imageDownloadTimeoutMs > 2147483647) throw new Error('Image download timeout must be a positive timer-safe integer')
 
+      const snapshotTimeoutMs = settings.editableSnapshotTimeoutMs ?? 30000
+      const snapshotPollMs = settings.editableSnapshotPollMs ?? 2000
+      if (![snapshotTimeoutMs, snapshotPollMs].every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) throw new Error('Snapshot timers must be positive timer-safe integers')
       const preferenceStorage = appearanceStorage(settings)
       let data = { ...emptySnapshot(), appearance: savedAppearance(preferenceStorage) }
       let snapshot = { ...data }
@@ -2921,6 +3026,9 @@ window.__ModuleLoader__.load({
       let creationDraftClosed = false
       const draftLifecycle = settings.creationDraftLifecycle ?? globalThis.window
       let fileChoiceSignature = null, fileChoicesStopped = false
+      const snapshotStorage = settings.editableSnapshotStorage ?? preferenceStorage
+      const snapshotControllers = new Set()
+      let snapshotTimer = null, snapshotGeneration = 0, activeSnapshotContext = null
       const photographyControllers = new Map()
       const photographySourceControllers = new Map()
       let photographySourceSequence = 0
@@ -2998,6 +3106,7 @@ window.__ModuleLoader__.load({
           diffSequence += 1
           patch = { ...patch, diff: null, diffError: null }
         }
+        if (['projectsRoot', 'storeIdentity', 'activeProjectId'].some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) retireSnapshotContext()
         data = { ...data, ...patch }; notify()
       }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
@@ -3079,6 +3188,9 @@ window.__ModuleLoader__.load({
           projects: payload.projects || [],
           recipeCatalog: payload.recipeCatalog ?? { recipes: [], errors: [] },
           projectsRoot: payload.projectsRoot ?? null,
+          storeIdentity: payload.storeIdentity ?? null,
+          editableSnapshotProtocol: payload.editableSnapshotProtocol ?? null,
+          editableSnapshotAvailability: payload.editableSnapshotAvailability ?? null,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
           cameraTargetResetSupported: payload.cameraTargetResetSupported === true,
           selected: payload.selected ?? null,
@@ -3161,6 +3273,7 @@ window.__ModuleLoader__.load({
         }
         refreshCreationDrafts()
         set(patch)
+        syncSnapshotContext()
         arm()
       }
 
@@ -3175,6 +3288,133 @@ window.__ModuleLoader__.load({
 
       /** A write just happened: re-run every read, including the view-specific ones. */
       const reload = () => { tick += 1; void load() }
+
+      // A handle fixes the revision/video request while the Host plans its files.
+      // The browser stores no scene content or archive bytes; download is a link.
+      function retireSnapshotContext() {
+        snapshotGeneration += 1; activeSnapshotContext = null
+        if (snapshotTimer !== null) { clearTimeout(snapshotTimer); snapshotTimer = null }
+        for (const controller of snapshotControllers) controller.abort()
+        snapshotControllers.clear()
+      }
+      function changeSnapshot(key, patch) {
+        const entries = { ...data.editableSnapshots, [key]: { ...data.editableSnapshots[key], ...patch } }
+        const keys = Object.keys(entries)
+        for (const old of keys.slice(0, Math.max(0, keys.length - 20))) if (old !== key) delete entries[old]
+        set({ editableSnapshots: entries })
+      }
+      function storedSnapshots() {
+        if (!snapshotStorage) throw new Error('Storage is unavailable')
+        const raw = snapshotStorage.getItem(SNAPSHOT_STORAGE_KEY)
+        if (!raw) return []
+        if (raw.length > 81920) throw new Error('Snapshot handles exceed their storage bound')
+        const records = JSON.parse(raw)
+        if (!Array.isArray(records) || records.length > 20) throw new Error('Invalid snapshot handle storage')
+        return records.filter(record => typeof record.key === 'string' && record.key.length <= 4096 && validSnapshotHandle(record.handle))
+      }
+      function rememberSnapshot(key, handle) {
+        try {
+          const records = storedSnapshots().filter(record => record.key !== key).slice(-19)
+          records.push({ key, handle, savedAt: new Date().toISOString() })
+          const raw = JSON.stringify(records)
+          if (raw.length > 81920) throw new Error('Snapshot handles exceed their storage bound')
+          snapshotStorage.setItem(SNAPSHOT_STORAGE_KEY, raw)
+          if (snapshotStorage.getItem(SNAPSHOT_STORAGE_KEY) !== raw) throw new Error('Snapshot handle did not persist')
+          changeSnapshot(key, { storageUnavailable: false })
+        } catch { changeSnapshot(key, { storageUnavailable: true }) }
+      }
+      function syncSnapshotContext() {
+        const key = snapshotContextKey(data)
+        if (!key || key === activeSnapshotContext) return
+        activeSnapshotContext = key
+        let entry = data.editableSnapshots[key]
+        if (!entry) {
+          let handle = null, storageUnavailable = false
+          try { handle = storedSnapshots().find(record => record.key === key)?.handle || null } catch { storageUnavailable = true }
+          if (handle && (handle.storeIdentity !== data.storeIdentity || handle.projectId !== data.activeProjectId)) handle = null
+          entry = { revision: handle?.revision || data.currentRevision, videoJobId: handle?.videoJobId || null, handle, result: null, issue: null, busy: {}, attempt: 0, storageUnavailable }
+        }
+        changeSnapshot(key, { ...entry, busy: {} })
+        if (entry.handle && running && snapshotSupported(data)) void snapshotRequest('check')
+      }
+      function armSnapshot(key) {
+        if (snapshotTimer !== null) { clearTimeout(snapshotTimer); snapshotTimer = null }
+        const entry = data.editableSnapshots[key]
+        if (!running || key !== snapshotContextKey(data) || !snapshotSupported(data) || entry?.result?.state !== 'preparing' || entry.issue) return
+        snapshotTimer = setTimeout(() => { snapshotTimer = null; void snapshotRequest('check') }, snapshotPollMs)
+      }
+      async function snapshotControl(handle, kind, signal) {
+        const suffix = kind === 'prepare' ? '' : `/${handle.exportId}${kind === 'cancel' ? '/cancel' : ''}`
+        const body = kind === 'prepare' ? { requestId: handle.requestId, revision: handle.revision, ...(handle.videoJobId ? { videoJobId: handle.videoJobId } : {}), expectedStoreIdentity: handle.storeIdentity }
+          : kind === 'cancel' ? { expectedStoreIdentity: handle.storeIdentity } : null
+        const response = await fetchImpl(projectRoute(handle.projectId, `/editable-snapshots${suffix}`), {
+          method: body ? 'POST' : 'GET', cache: 'no-store', headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
+          ...(body ? { body: JSON.stringify(body) } : {}), signal,
+        })
+        const result = await response.json()
+        if (!response.ok || result?.ok !== true) throw Object.assign(new Error(result?.error?.message || 'Snapshot request failed'), { code: result?.error?.code || 'UI_SNAPSHOT_NETWORK' })
+        if (!validSnapshotReply(result.snapshot, handle)) throw Object.assign(new Error('Snapshot identity mismatch'), { code: 'UI_SNAPSHOT_MISMATCH' })
+        return result.snapshot
+      }
+      async function snapshotRequest(kind) {
+        const key = snapshotContextKey(data), entry = data.editableSnapshots[key]
+        if (!key || !entry || !snapshotSupported(data)) return
+        if (entry.busy?.[kind] || kind === 'prepare' && Object.values(entry.busy || {}).some(Boolean)) return
+        if (kind !== 'prepare' && !entry.handle) return
+        if (kind === 'cancel' && entry.result?.state !== 'preparing') return
+        if (kind === 'prepare' && snapshotSameSelection(entry) && ['preparing', 'ready'].includes(entry.result?.state) && !entry.issue) return
+        if (kind === 'prepare' && !entry.handle && !(data.selected?.revisions || []).some(item => item.revision === entry.revision)) return
+        const generation = snapshotGeneration
+        const attempt = (entry.attempt || 0) + (kind === 'prepare' ? 1 : 0)
+        changeSnapshot(key, { busy: { ...entry.busy, [kind]: true }, issue: null, attempt, ...(kind === 'prepare' ? { result: null } : {}) })
+        const stillCurrent = () => generation === snapshotGeneration && key === snapshotContextKey(data) && data.editableSnapshots[key]?.attempt === attempt
+        const controller = new AbortController(); snapshotControllers.add(controller)
+        let deadline = null, abortListener = null
+        try {
+          let handle = entry.handle
+          if (kind === 'prepare' && !snapshotSameSelection(entry)) {
+            if (!(data.selected?.revisions || []).some(item => item.revision === entry.revision)
+              || entry.videoJobId && !snapshotVideos(data, entry.revision).some(job => job.jobId === entry.videoJobId)) throw Object.assign(new Error('Saved source unavailable'), { code: 'UI_SNAPSHOT_MISMATCH' })
+            const requestId = newCreationKey().replace(/^create-/, 'copy-')
+            handle = { requestId, exportId: await snapshotExportId(requestId), projectId: data.activeProjectId,
+              revision: entry.revision, videoJobId: entry.videoJobId, storeIdentity: data.storeIdentity }
+            if (!stillCurrent()) return
+            changeSnapshot(key, { handle, result: null })
+            rememberSnapshot(key, handle)
+          }
+          if (!handle || await snapshotExportId(handle.requestId) !== handle.exportId) throw Object.assign(new Error('Invalid remembered request'), { code: 'UI_SNAPSHOT_MISMATCH' })
+          if (!stillCurrent()) return
+          const aborted = new Promise((_, reject) => {
+            abortListener = () => reject(Object.assign(new Error('Snapshot request interrupted'), { code: 'UI_SNAPSHOT_NETWORK' }))
+            controller.signal.addEventListener('abort', abortListener, { once: true })
+            deadline = setTimeout(() => controller.abort(), snapshotTimeoutMs)
+          })
+          const result = await Promise.race([snapshotControl(handle, kind, controller.signal), aborted])
+          if (!stillCurrent()) return
+          const current = data.editableSnapshots[key]
+          // An attachment already finalized on the Host survives a late cancel.
+          // A stale in-flight status read cannot undo any terminal response.
+          if (current.result?.state === 'ready' || kind === 'check' && current.result && current.result.state !== 'preparing' && result.state === 'preparing') return
+          changeSnapshot(key, { result, issue: null })
+        } catch (error) {
+          if (stillCurrent() && !(kind === 'cancel' && data.editableSnapshots[key]?.result?.state === 'ready')) changeSnapshot(key, { issue: { code: error.code || 'UI_SNAPSHOT_NETWORK' } })
+        } finally {
+          if (deadline !== null) clearTimeout(deadline)
+          if (abortListener) controller.signal.removeEventListener('abort', abortListener)
+          snapshotControllers.delete(controller)
+          if (stillCurrent()) {
+            changeSnapshot(key, { busy: { ...data.editableSnapshots[key].busy, [kind]: false } })
+            armSnapshot(key)
+          }
+        }
+      }
+      function setSnapshotSelection(field, value) {
+        const key = snapshotContextKey(data), entry = data.editableSnapshots[key]
+        if (!entry || entry.result?.state === 'preparing' || Object.values(entry.busy || {}).some(Boolean)) return
+        if (field === 'revision' && !(data.selected?.revisions || []).some(item => item.revision === value)) return
+        if (field === 'videoJobId' && value && !snapshotVideos(data, entry.revision).some(job => job.jobId === value)) return
+        changeSnapshot(key, { [field]: value || null, ...(field === 'revision' ? { videoJobId: null } : {}) })
+      }
 
       const creationBody = () => creationRequestBody(data.forms)
 
@@ -3303,6 +3543,11 @@ window.__ModuleLoader__.load({
         }
       }
       const actions = {
+        setSnapshotRevision: value => setSnapshotSelection('revision', value),
+        setSnapshotVideo: value => setSnapshotSelection('videoJobId', value),
+        prepareEditableSnapshot: () => snapshotRequest('prepare'),
+        checkEditableSnapshot: () => snapshotRequest('check'),
+        cancelEditableSnapshot: () => snapshotRequest('cancel'),
         setAssemblyValue: (id, value) => {
           const draft = assemblyDraftFor(data)
           if (!draft || data.busy.assembly || draft.attempt || !draft.parameters.some(parameter => parameter.id === id)) return
@@ -4292,6 +4537,7 @@ window.__ModuleLoader__.load({
           void load()
         },
         stop() {
+          retireSnapshotContext()
           previewSourceGeneration += 1
           loadSequence += 1
           diffSequence += 1
@@ -5759,6 +6005,46 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function EditableSnapshotView({ state, actions }) {
+      const entry = snapshotEntry(state), result = entry?.result, busy = entry?.busy || {}
+      const enabled = snapshotSupported(state), working = Object.values(busy).some(Boolean), preparing = result?.state === 'preparing'
+      const same = snapshotSameSelection(entry), videos = snapshotVideos(state, entry?.revision)
+      const revisions = state.selected?.revisions || []
+      const phases = { writing: t('snapshot.copying'), verifying: t('snapshot.verifying'), publishing: t('snapshot.publishing') }
+      const done = result?.phase === 'verifying' ? result.verifiedBytes : result?.writtenBytes
+      const measured = result?.phase === 'writing' && Number.isSafeInteger(done) && done >= 0 && Number.isSafeInteger(result?.totalBytes) && result.totalBytes > 0
+      return el('section', { className: 'db-card', 'data-editable-snapshot': result?.state || 'idle', 'aria-label': t('snapshot.title') },
+        el('h4', null, t('snapshot.title')),
+        el('p', { className: 'db-muted' }, t('snapshot.scope')),
+        el('details', null, el('summary', null, t('snapshot.details')), el('p', { className: 'db-muted', style: { maxWidth: '72ch' } }, t('snapshot.detailText'))),
+        !enabled ? el('p', { className: 'db-muted', 'data-snapshot-unavailable': true }, state.editableSnapshotAvailability?.reason === 'local-only' ? t('snapshot.local') : t('snapshot.upgrade')) : null,
+        el('div', { className: 'db-inline', style: { marginTop: '12px', alignItems: 'end' } },
+          el('label', { className: 'db-field', style: { flex: '1 1 180px', maxWidth: '360px' } }, t('snapshot.revision'), el('select', { className: 'db-input', 'data-field': 'snapshot-revision', value: entry?.revision || '', disabled: !enabled || working || preparing,
+            onChange: event => actions.setSnapshotRevision(event.target.value) }, revisions.map(item => el('option', { key: item.revision, value: item.revision }, item.revision + (item.isCurrent ? ` · ${t('revisions.current')}` : ''))))),
+          el('label', { className: 'db-field', style: { flex: '1 1 180px', maxWidth: '360px' } }, t('snapshot.video'), el('select', { className: 'db-input', 'data-field': 'snapshot-video', value: entry?.videoJobId || '', disabled: !enabled || working || preparing,
+            onChange: event => actions.setSnapshotVideo(event.target.value) }, el('option', { value: '' }, t('snapshot.noVideo')),
+            entry?.videoJobId && !videos.some(job => job.jobId === entry.videoJobId) ? el('option', { value: entry.videoJobId }, entry.videoJobId) : null,
+            videos.map(job => el('option', { key: job.jobId, value: job.jobId }, job.jobId))))),
+        revisions.length === 0 ? el('p', { className: 'db-muted' }, t('snapshot.noRevision')) : null,
+        el('div', { 'aria-live': 'polite', role: 'status', style: { marginTop: '12px' } },
+          busy.cancel ? el('p', null, t('snapshot.cancelling')) : busy.check && !result ? el('p', null, t('snapshot.checking')) : busy.prepare || preparing ? el('p', null, phases[result?.phase] || t('snapshot.preparing')) : null,
+          result?.state === 'ready' ? el('p', null, t('snapshot.ready', { revision: result.revision, bytes: snapshotBytes(result.archive.bytes) })) : null,
+          ['failed', 'cancelled'].includes(result?.state) ? el('p', { className: 'db-muted' }, result.error?.code === 'SNAPSHOT_INTERRUPTED' ? t('snapshot.interrupted') : result.state === 'failed' ? t('snapshot.failed') : t('snapshot.cancelled')) : null,
+          result?.state === 'failed' && result.error?.message ? el('p', { className: 'db-error' }, result.error.message) : null,
+          (preparing || busy.prepare) && entry?.handle ? el('p', { className: 'db-muted' }, t('snapshot.saved', entry.handle)) : null,
+          preparing && result.phase === 'verifying' && Number.isSafeInteger(result.verifiedBytes) && result.verifiedBytes >= 0 ? el('p', { className: 'db-muted' }, t('snapshot.verifiedBytes', { bytes: snapshotBytes(result.verifiedBytes) })) : null,
+          preparing && measured ? el('div', null, ProgressBar({ percent: done / result.totalBytes * 100 }), el('p', { className: 'db-muted' }, t('snapshot.progress', { done: snapshotBytes(done), total: snapshotBytes(result.totalBytes) }))) : null,
+          entry?.issue ? el('p', { className: 'db-error', 'data-snapshot-issue': entry.issue.code }, entry.issue.code === 'UI_SNAPSHOT_MISMATCH' ? t('snapshot.invalid') : t('snapshot.uncertain')) : null),
+        entry?.handle && !same ? el('p', { className: 'db-muted' }, t('snapshot.newSelection')) : null,
+        entry?.storageUnavailable && entry.handle ? el('p', { className: 'db-muted' }, t('snapshot.storage')) : null,
+        el('div', { className: 'db-inline', style: { marginTop: '12px' } },
+          enabled && result?.state === 'ready' && !entry.issue ? el('a', { className: 'db-btn', 'data-tone': 'primary', href: result.downloadUrl, download: true, 'data-action': 'snapshot-download' }, t('snapshot.download')) : null,
+          preparing ? Button({ action: 'snapshot-cancel', disabled: !enabled || busy.cancel || busy.prepare, onClick: actions.cancelEditableSnapshot, children: t('snapshot.cancel') }) : null,
+          entry?.issue || entry?.handle && !result ? Button({ action: 'snapshot-check', disabled: !enabled || working, onClick: actions.checkEditableSnapshot, children: t('snapshot.check') }) : null,
+          (!preparing || entry?.issue) && !(same && result?.state === 'ready' && !entry.issue) ? Button({ action: 'snapshot-prepare', tone: 'primary', disabled: !enabled || !entry?.revision || working,
+            onClick: actions.prepareEditableSnapshot, children: entry?.handle && same ? t('snapshot.retry') : t('snapshot.prepare') }) : null))
+    }
+
     /** 版本: the revision list, restore, and the hand-off to Preview Compare. */
     function RevisionsView(ctx) {
       const state = ctx.state
@@ -5768,6 +6054,7 @@ window.__ModuleLoader__.load({
 
       return el('div', { 'data-view': 'revisions' },
         ErrorBox({ error: state.error }),
+        EditableSnapshotView(ctx),
         el('div', { className: 'db-card' },
           el('h4', null, t('revisions.title', { count: revisions.length })),
           el('p', { className: 'db-muted' }, t('revisions.compareHint')),
@@ -5783,6 +6070,10 @@ window.__ModuleLoader__.load({
               entry.isCurrent ? null : Button({ action: `restore:${entry.revision}`, disabled: state.busy.restore, onClick: () => actions.restoreRevision(entry.revision), children: t('revisions.restore') }),
             ),
             el('div', { className: 'db-muted' }, entry.summary || t('common.noNote')),
+            el('div', { className: 'db-muted', 'data-spec-change-status':
+              ['changed', 'unchanged'].includes(entry.specChangeStatus) ? entry.specChangeStatus : 'unknown' },
+            entry.specChangeStatus === 'changed' ? t('revisions.sourceChanged')
+              : entry.specChangeStatus === 'unchanged' ? t('revisions.sourceUnchanged') : t('revisions.sourceUnknown')),
             el('div', { className: 'db-muted db-mono' }, `previews ${(entry.previews || []).length} · validation ${entry.validation ? (entry.validation.ok ? 'ok' : `${entry.validation.errorCount} errors`) : '—'}`),
           ))),
           Notice(state.notices.revisions, { marginTop: '8px' }),

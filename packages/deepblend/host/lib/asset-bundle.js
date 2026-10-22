@@ -6,6 +6,7 @@ import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts
 import { streamAsset } from './asset-io.js';
 import { fileSha256, removeTree, resolveInside } from './paths.js';
 import { objLibraries, mtlImages } from './obj-resources.js';
+import { openAssetMetadata, verifyAssetMetadata } from './asset-metadata-identity.js';
 export const BUNDLE_LOCK = '.deepblend-lock.json';
 export const BUNDLE_LIMITS = Object.freeze({ files: 256, lockBytes: 1024 * 1024, jsonBytes: 16 * 1024 * 1024, chunks: 1024 });
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -83,8 +84,8 @@ export function gltfResources(document, entrypoint, binBytes = null) {
     }
     return [...paths].sort();
 }
-function readBounded(file, limit) {
-    const fd = openSync(file, 'r'), chunks = [];
+function readBounded(file, limit, expected) {
+    const { fd, before } = openAssetMetadata(file, limit), chunks = [];
     let bytes = 0;
     try {
         const buffer = Buffer.alloc(64 * 1024);
@@ -97,6 +98,7 @@ function readBounded(file, limit) {
                 reject('Asset bundle metadata exceeds its byte limit.', BlenderErrorCode.ASSET_TOO_LARGE);
             chunks.push(Buffer.from(buffer.subarray(0, size)));
         }
+        verifyAssetMetadata(fd, before, expected);
         return Buffer.concat(chunks, bytes);
     }
     finally {
@@ -112,11 +114,11 @@ function objReference(entrypoint, name) {
     return path;
 }
 /** Includes Blender's same-basename MTL lookup as well as explicit libraries. */
-export function objResources(root, entrypoint, { mainFile, signal, missingCode = BlenderErrorCode.ASSET_MISSING, implicit = true } = {}) {
+export function objResources(root, entrypoint, { mainFile, signal, missingCode = BlenderErrorCode.ASSET_MISSING, implicit = true, expectedFiles } = {}) {
     const main = mainFile ?? resolveInside(root, entrypoint, 'OBJ entrypoint');
-    const libraries = new Set(objLibraries(main, { signal }).map(name => objReference(entrypoint, name)));
+    const libraries = new Set(objLibraries(main, { signal, expected: expectedFiles?.get(entrypoint) }).map(name => objReference(entrypoint, name)));
     const fallback = entrypoint.replace(/\.[^/.]+$/, '.mtl');
-    if (implicit && existsSync(resolveInside(root, fallback, 'OBJ implicit library'))) libraries.add(fallback);
+    if (implicit && (expectedFiles?.has(fallback) || existsSync(resolveInside(root, fallback, 'OBJ implicit library')))) libraries.add(fallback);
     const paths = new Set(libraries), folded = new Map([[entrypoint.toLowerCase(), entrypoint]]);
     const check = path => {
         const previous = folded.get(path.toLowerCase());
@@ -127,21 +129,22 @@ export function objResources(root, entrypoint, { mainFile, signal, missingCode =
     for (const library of libraries) {
         signal?.throwIfAborted(); check(library);
         const file = resolveInside(root, library, 'OBJ material library');
+        if (expectedFiles && !expectedFiles.has(library)) reject(`The OBJ material library ${library} is not locked.`);
         if (!existsSync(file) || !statSync(file).isFile()) reject(`The OBJ material library ${library} is missing.`, missingCode);
-        for (const name of mtlImages(file, { signal })) { const path = objReference(library, name); paths.add(path); check(path); }
+        for (const name of mtlImages(file, { signal, expected: expectedFiles?.get(library) })) { const path = objReference(library, name); paths.add(path); check(path); }
     }
     for (const path of paths) check(path);
     return [...paths].sort();
 }
 /** Read only JSON and chunk headers. Large GLB binary payloads stay on disk. */
-export function readGltfDocument(file, { format = 'gltf', signal } = {}) {
+export function readGltfDocument(file, { format = 'gltf', signal, expected } = {}) {
     try {
         signal?.throwIfAborted();
         if (format === 'gltf')
-            return { document: parseJson(readBounded(file, BUNDLE_LIMITS.jsonBytes)), binBytes: null };
+            return { document: parseJson(readBounded(file, BUNDLE_LIMITS.jsonBytes, expected)), binBytes: null };
         if (format !== 'glb')
             reject('Unsupported asset bundle format.');
-        const fd = openSync(file, 'r');
+        const { fd, before } = openAssetMetadata(file, Number.MAX_SAFE_INTEGER);
         try {
             const size = fstatSync(fd).size;
             const read = (offset, length) => {
@@ -190,6 +193,7 @@ export function readGltfDocument(file, { format = 'gltf', signal } = {}) {
             }
             if (!document || Array.isArray(document) || document.asset?.version !== '2.0')
                 reject('The GLB JSON must declare glTF 2.0.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
+            verifyAssetMetadata(fd, before, expected);
             return { document, binBytes };
         }
         finally {
@@ -203,7 +207,7 @@ export function readGltfDocument(file, { format = 'gltf', signal } = {}) {
         reject('The glTF metadata cannot be parsed.', BlenderErrorCode.ASSET_CONTENT_MISMATCH);
     }
 }
-export function verifyAssetBundle(projectRoot, asset) {
+export function verifyAssetBundle(projectRoot, asset, { verifyGraphBytes = false } = {}) {
     const match = /^assets\/bundles\/([a-f0-9]{64})\/(.+)$/.exec(asset.path ?? '');
     if (!match)
         return null;
@@ -247,26 +251,26 @@ export function verifyAssetBundle(projectRoot, asset) {
     if (!Number.isSafeInteger(total) || total !== manifest.totalBytes || !members.has(manifest.entrypoint)
         || (asset.sha256 && asset.sha256 !== members.get(manifest.entrypoint).sha256))
         reject('The asset bundle identity does not agree with its declaration.', BlenderErrorCode.ASSET_HASH_MISMATCH);
-    const content = format === 'obj' ? null : readGltfDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint'), { format });
-    const resources = format === 'obj' ? objResources(root, manifest.entrypoint) : gltfResources(content.document, manifest.entrypoint, content.binBytes);
+    const content = format === 'obj' ? null : readGltfDocument(resolveInside(root, manifest.entrypoint, 'glTF entrypoint'), { format, expected: verifyGraphBytes ? members.get(manifest.entrypoint) : undefined });
+    const resources = format === 'obj' ? objResources(root, manifest.entrypoint, { expectedFiles: verifyGraphBytes ? members : undefined }) : gltfResources(content.document, manifest.entrypoint, content.binBytes);
     for (const path of resources)
         if (!members.has(path))
             reject(`The glTF resource ${path} is not locked.`);
     return manifest;
 }
-export function verifyUnbundledObjAsset(projectRoot, asset) {
+export function verifyUnbundledObjAsset(projectRoot, asset, { verifyGraphBytes = false } = {}) {
     if (asset.type !== 'obj' || /^assets\/bundles\/[a-f0-9]{64}\//.test(asset.path ?? '')) return;
     const file = resolveInside(projectRoot, asset.path, 'OBJ asset');
     const fallback = asset.path.replace(/\.[^/.]+$/, '.mtl');
-    if (objLibraries(file).length || existsSync(resolveInside(projectRoot, fallback, 'OBJ implicit library')))
+    if (objLibraries(file, { expected: verifyGraphBytes ? { sha256: asset.sha256 } : undefined }).length || existsSync(resolveInside(projectRoot, fallback, 'OBJ implicit library')))
         reject('This OBJ has unlocked material resources. Reimport the complete local source with a containing sourceRoot.');
 }
 /** Legacy files can rebuild only when the main file contains all core resources. */
-export function verifyUnbundledGltfAsset(projectRoot, asset) {
+export function verifyUnbundledGltfAsset(projectRoot, asset, { verifyGraphBytes = false } = {}) {
     if (!['gltf', 'glb'].includes(asset.type) || /^assets\/bundles\/[a-f0-9]{64}\//.test(asset.path ?? ''))
         return;
     const file = resolveInside(projectRoot, asset.path, 'glTF asset');
-    const content = readGltfDocument(file, { format: asset.type });
+    const content = readGltfDocument(file, { format: asset.type, expected: verifyGraphBytes ? { sha256: asset.sha256 } : undefined });
     if (gltfResources(content.document, posix.basename(asset.path), content.binBytes).length)
         reject('This glTF/GLB has unlocked external resources. Reimport its local source with a containing sourceRoot to create a resource snapshot.');
 }

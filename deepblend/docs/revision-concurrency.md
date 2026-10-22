@@ -44,6 +44,22 @@
 原子事务：内容发布后、清单落盘前被杀可能留下未引用的内容文件；重试会复用这些字节，
 不会覆盖已有内容，也不会把尚未成功写入的来源记录描述为已完成。
 
+## 源内容变化记录
+
+新 revision/operation manifest 和 API 摘要使用 `specChangeStatus` 区分 `changed`、
+`unchanged`、`unknown`。只有前后两个有效完整源摘要都存在时才能比较；缺失或无效摘要为
+`unknown`。界面按这个状态显示，不把旧布尔值当成确定结论。
+
+`specChanged` 继续保持 boolean 类型以兼容旧调用方：`false` 表示已证实源内容相同，
+`true` 表示尚不能证明相同，包含已变化和未知两种状态。旧 v1 文件可能没有新字段，甚至
+operation 与 revision 的旧布尔值矛盾；`specChangeAudit` 及 Host 读取摘要只根据现有前后摘要
+推导状态，不修改历史文件。修订详情保留原始 `manifest`/`operations`，顶层字段提供派生结论。
+
+普通补丁保存当前磁盘 SceneSpec 的 `specHashBefore` 和最终提交文档的 `specHashAfter`。
+旧源经编译补默认值时，前者仍指向原始保存文档。这些是 canonical JSON 的完整文档摘要，
+不是文件原字节的 SHA256，也不是排除项目元数据的 `sceneSpecDigest`；`sceneChanged` 的
+渲染相关语义保持。未知不能作为跳过源核验或复用影片的依据。
+
 ## 验证
 
 `deepblend/tests/contract/revision-concurrency.test.mjs` 使用真实 Host、ProjectStore、事务代码和
@@ -53,6 +69,9 @@
 跨进程用例启动两个真实 Node Host 进程，验证第二写者和恢复操作被拒绝；另将持锁进程
 `SIGKILL` 后启动新进程，验证死写者恢复和未发布 staging 清理。这里没有启动真实 Blender；
 编译器替身的目的是准确控制竞争窗口，不能代替 Blender 编译与渲染验收。
+
+`source-change-audit.test.mjs` 覆盖真实事务的无变化/仅元数据/场景变化、缺失摘要的直接提交、
+旧式矛盾清单的只读摘要与原字节保持、合法旧源补默认值，以及版本页对未知状态的显示。
 
 素材用例使用两个真实 Node 进程，分别验证不同别名以及同一别名的不同内容。竞争者被拒后
 清理自己的临时文件，重试成功后两个版本的摘要和字节都在，当前别名指向最后发布的版本。

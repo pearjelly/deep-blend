@@ -61,6 +61,7 @@ import {
   sceneSpecDigest,
   shortDigest,
   specHash,
+  specChangeAudit,
   planRecipeGeometryEdit,
   sha256Canonical,
   summarizeSceneSpec,
@@ -405,7 +406,9 @@ export class RevisionTransaction {
       operationRecords = applied.operations
       digestBefore = applied.digestBefore
       digestAfter = applied.digestAfter
-      specHashBefore = applied.specHashBefore
+      // A legal old saved source may acquire defaults during compilation. Audit
+      // the original stored document, not that resolved in-memory projection.
+      specHashBefore = specHash(baseSpec)
       specHashAfter = applied.specHashAfter
     } catch (cause) {
       const failure = toCanonicalFailure(cause, { isBlenderError: value => value instanceof BlenderError, fallbackCode: 'SCENE_PATCH_REJECTED' })
@@ -491,6 +494,8 @@ export class RevisionTransaction {
       renderPreview: patch.renderPreview === true,
       digestBefore,
       digestAfter,
+      specHashBefore,
+      specHashAfter,
       operationRecords,
       notices: [...validation.notices, ...compiled.notices, ...resolved.notices],
       derivedIdempotencyKey: derived,
@@ -795,6 +800,7 @@ export class RevisionTransaction {
     // ---- write the revision's own documents --------------------------------
     const digest = digestAfter(plan, warnings)
     const sceneSummary = summarizeSceneSpec(plan.spec, { revision, revisionNumber, digest })
+    const sourceHashes = { specHashBefore: plan.specHashBefore ?? null, specHashAfter: plan.specHashAfter ?? specHash(plan.spec) }
     const manifest = {
       schemaVersion: REVISION_MANIFEST_VERSION,
       revision,
@@ -807,17 +813,13 @@ export class RevisionTransaction {
       digest,
       digestBefore: plan.digestBefore ?? digest,
       digestAfter: digest,
-      specHashBefore: plan.specHashBefore ?? null,
-      specHashAfter: plan.specHashAfter ?? specHash(plan.spec),
+      ...sourceHashes,
       // `sceneChanged` answers "did the geometry, lighting and animation change?"
-      // — the question a render cache must ask. `specChanged` answers "did the
-      // stored document change at all?", which is also true for a frame-range or
-      // render-profile edit. Both are in the manifest because they are different
-      // questions and a caller may need either.
+      // — the question a render cache must ask. Full-source changes also include
+      // frame ranges and profiles. Unknown history stays explicit; the old boolean
+      // remains conservative for callers that have not adopted the status yet.
       sceneChanged: (plan.digestBefore ?? digest) !== digest,
-      specChanged: plan.specHashBefore === null || plan.specHashBefore === undefined
-        ? true
-        : plan.specHashBefore !== (plan.specHashAfter ?? specHash(plan.spec)),
+      ...specChangeAudit(sourceHashes),
       summary: plan.summary,
       actor: plan.actor ?? null,
       stage: plan.stage ?? null,

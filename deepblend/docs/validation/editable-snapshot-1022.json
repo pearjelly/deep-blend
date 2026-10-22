@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "deepblend.editable-snapshot-acceptance/v1",
+  "at": "2026-10-22T03:22:09.150741+00:00",
+  "status": "candidate-local-acceptance-passed",
+  "sourceCommit": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
+  "platform": "darwin-arm64",
+  "node": "24.22.0",
+  "dsh": "0.2.1-rc.1",
+  "blender": "5.2.1 LTS",
+  "archiveModuleSha256": "88db01dd4b8e7c504a6e2ad3641f802bd6e93ab0dab890e520e0e8f337eed393",
+  "project": "official-comparison-pagoda",
+  "revision": "r0075",
+  "videoJob": "render-0002",
+  "archive": {
+    "bytes": 1120937071,
+    "sha256": "fbe6687d37a9b6f69a02709998cfd9710ad1bea1b24fe9b673d919ee85bebfb9"
+  },
+  "archiveMembers": 62,
+  "originalSourceMembers": 58,
+  "derivedMetadataMembers": 4,
+  "native": {
+    "path": "revisions/r0075/scene.blend",
+    "bytes": 924664641,
+    "sha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa"
+  },
+  "sceneSpec": {
+    "path": "revisions/r0075/scene-spec.json",
+    "bytes": 983912,
+    "sha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7"
+  },
+  "video": {
+    "path": "renders/render-0002/encoded/render-0002.mp4",
+    "bytes": 10600045,
+    "sha256": "1ac9c97c4dba6765bc03d79a5857921dafa6764ce42b8eda762a61c2ea4f6717"
+  },
+  "browser": {
+    "initialPlanningResponseMs": 122,
+    "cancelledDuringPlanning": true,
+    "sameRequestRetry": true,
+    "reloadRetainedHandle": true,
+    "actualDownloadButtonCompleted": true,
+    "narrowViewportWidth": 390,
+    "narrowHorizontalOverflow": false,
+    "captures": [
+      {
+        "capture": "ready-1440.png",
+        "sha256": "b3e7de215fda8d423b549c196280d20e8bab9dceb0bf250835f3c0c6d9956f18",
+        "bytes": 152131,
+        "width": 1440,
+        "height": 1000,
+        "viewed": true,
+        "postProcessed": false
+      },
+      {
+        "capture": "ready-390.png",
+        "sha256": "fc9f9cb850984d493cd1d0702d892bda58f2a31b50f0c6db380ae98707cd5ed8",
+        "bytes": 65169,
+        "width": 390,
+        "height": 844,
+        "viewed": true,
+        "postProcessed": false
+      }
+    ]
+  },
+  "archiveVerification": {
+    "independentWholeZipHash": true,
+    "allMemberCrcAndHashes": true,
+    "all58OriginalMembersMatchPreExportBaseline": true,
+    "originalNativeSceneSpecAndVideoBytesPreserved": true,
+    "gltfModels": 4,
+    "gltfExternalRelativeReferences": 28,
+    "standaloneGlbModelsWithNoExternalUris": 1,
+    "excludedObservationOnlyExternalFiles": 1
+  },
+  "relocatedNative": {
+    "openedInNewDirectory": true,
+    "factoryStartup": true,
+    "autoexecDisabled": true,
+    "packedFileImagesReadable": 42,
+    "cameras": 5,
+    "linkedLibraries": 0,
+    "unpackedResourcePaths": [],
+    "frameRange": [
+      1,
+      900
+    ],
+    "nativeDefaultResolution": [
+      640,
+      360
+    ],
+    "nativeDefaultSamples": 48,
+    "savedOrRendered": false
+  },
+  "http": {
+    "checks": 12,
+    "allPassed": true,
+    "readyPreservedAfterDisconnect": true,
+    "subsequentDownloadPrefixVerified": true,
+    "fullBrowserDownloadVerifiedSeparately": true
+  },
+  "sourcePreservation": {
+    "locationsVerified": [
+      "canonical project",
+      "isolated acceptance copy"
+    ],
+    "originalFilesPerLocation": 2169,
+    "originalBytesPerLocation": 2326227817,
+    "allOriginalHashesUnchanged": true,
+    "newCopyFilesOnlyInExportDirectories": true
+  },
+  "shutdown": {
+    "isolatedHostStopped": true,
+    "browserClosed": true
+  },
+  "privateEvidenceDigests": [
+    {
+      "record": "server-v1.json",
+      "bytes": 760,
+      "sha256": "36be9fc229443b49472ce7fd7b7932afe5ecd697a4421a20fdd4aff3780df33e"
+    },
+    {
+      "record": "browser-cancel-v1.json",
+      "bytes": 2288,
+      "sha256": "d98b934e6aba035688fb7f9d0bce921059ec3343a4b5bbacb0bf8717689a1836"
+    },
+    {
+      "record": "browser-retry-reload-v1.json",
+      "bytes": 3033,
+      "sha256": "e9cb10a12a313ec4cc285dfd71d75c3d7e79392f04d72e0d5a55fd8aadbaf3b2"
+    },
+    {
+      "record": "browser-download-v1.json",
+      "bytes": 889,
+      "sha256": "c3acb9e6b2b098a34f5f1faade088d7aaf919d5e55de7f4cc125b6f51a3ae7a6"
+    },
+    {
+      "record": "http-ready-v1.json",
+      "bytes": 1003,
+      "sha256": "514636bf422a43b8a78637fb03df9fbc12e897d7b46f4c3e879fe18fb54de827"
+    },
+    {
+      "record": "archive-check-v1/archive-proof.json",
+      "bytes": 23885,
+      "sha256": "c46d97bf65059c0d3f8c411f590f46289246a80f219877412c670f1207cbd5ef"
+    },
+    {
+      "record": "relocated-native-v1.json",
+      "bytes": 8557,
+      "sha256": "dc2dd2506253efa0a3d58559cefed7b63100a6f665e63e9f03d03f0967d0ea0f"
+    },
+    {
+      "record": "http-guard-checks-v1/result.json",
+      "bytes": 6103,
+      "sha256": "568ba565daaf2de46a68e9dcfb37ee64f05e8d8654d848c1be56b7ae239570a3"
+    },
+    {
+      "record": "source-preservation-v1.json",
+      "bytes": 1999,
+      "sha256": "fb90666361abe5e77ad95d7b0cc02608e5b87a03ff8f1dead269aa7557739ab6"
+    },
+    {
+      "record": "shutdown-v1.json",
+      "bytes": 141,
+      "sha256": "096de4d02701e613bcb57ef404e0e9716fbd235e4d0c65e0e047f2d74e9152c2"
+    }
+  ],
+  "scope": [
+    "One selected revision, not a full project-history import; 62 members are not the 2169-file project inventory.",
+    "Only the observation-only external file was excluded. Native bytes were retained; embedded-image removal or presence of the reference image was not established.",
+    "Actual relocation/reopen was verified for this case and platform. The exporter itself does not claim generic full self-containment or license clearance.",
+    "No edit/save, render, encoding, paid model call, original-film reproduction, Windows extractor, network-filesystem or power-loss acceptance was performed.",
+    "Native camera defaults and animation were preserved. The original multi-shot film uses plugin shot orchestration.",
+    "This is candidate feature acceptance, not a new stable release or complete release-route parity."
+  ]
+}

@@ -16,7 +16,7 @@
 |---|---|---|
 | 外部程序调用 | Blender、ffmpeg / ffprobe | 以独立进程调用；受管 Blender 从上游下载，ffmpeg 由用户安装，DeepBlend 当前不打包这些可执行程序 |
 | 同行依赖（peer） | `@deepseek-ai/*` | 保持 `peerDependencies`，由用户的 DSH 部署提供 |
-| 普通依赖与再分发 | Host 的 `sharp@0.35.5` 及其传递依赖 | Git/npm 路线由包管理器安装；Release tarball 会包含已打包的传递依赖及原生库，必须检查实际成品 |
+| 普通依赖与再分发 | Host 的 `sharp@0.35.5`、`yazl@3.3.1`、`yauzl@3.4.0`，Preset 的 `js-yaml@4.3.2` 及其传递依赖 | Git/npm 路线由包管理器安装；Release tarball 会包含已打包的传递依赖及原生库，必须检查实际成品 |
 
 ## 2. 逐项
 
@@ -32,6 +32,10 @@
 | **@img/colour 1.1.0** | MIT | sharp 的传递 JavaScript 依赖 | npm registry；[lovell/colour](https://github.com/lovell/colour) | `package.json`、`LICENSE.md` |
 | **detect-libc 2.1.2** | Apache-2.0 | sharp 的平台检测依赖 | npm registry；[lovell/detect-libc](https://github.com/lovell/detect-libc) | `package.json`、`LICENSE` |
 | **semver 7.8.5** | ISC | sharp 的版本判断依赖 | npm registry；[npm/node-semver](https://github.com/npm/node-semver) | `package.json`、`LICENSE` |
+| **yazl 3.3.1** | MIT | Host 流式写入可编辑快照 ZIP / ZIP64 | Host 显式 `dependencies`；[thejoshwolfe/yazl](https://github.com/thejoshwolfe/yazl) | `yazl/package.json`、`yazl/LICENSE` |
+| **yauzl 3.4.0** | MIT | Host 独立读取 ZIP 目录并逐项回读校验 | Host 显式 `dependencies`；[thejoshwolfe/yauzl](https://github.com/thejoshwolfe/yauzl) | `yauzl/package.json`、`yauzl/LICENSE` |
+| **buffer-crc32 1.0.0** | MIT | yazl 的 CRC32 计算依赖 | yazl 声明 `^1.0.0`，两套开发运行时锁定 1.0.0；[brianloveswords/buffer-crc32](https://github.com/brianloveswords/buffer-crc32) | `buffer-crc32/package.json`、`buffer-crc32/LICENSE` |
+| **pend 1.2.0** | MIT | yauzl 的异步任务协调依赖 | yauzl 声明 `~1.2.0`，两套开发运行时锁定 1.2.0；[andrewrk/node-pend](https://github.com/andrewrk/node-pend) | `pend/package.json`、`pend/LICENSE` |
 | **本产品自己的七个包** | MIT | DeepBlend 的实现 | 本仓库，按安装路线分发 | 仓库 `LICENSE` 与每个自有包的 `license` 字段 |
 
 上表的 sharp 依赖版本来自本轮已安装的 `.tools/dsh/node_modules` 与开发运行时锁文件，并用 npm 官方元数据复核。
@@ -40,10 +44,23 @@
 libwebp（BSD）等组件。完整版本和许可表以对应安装包及上游
 [第三方声明](https://github.com/lovell/sharp-libvips/blob/main/THIRD-PARTY-NOTICES.md) 为准；此处没有声称已审核所有平台成品。
 
+ZIP 组件的版本、依赖边和许可来自 2026-10-22 实际安装的 `.tools/dsh-021/node_modules`：
+四个包的 `package.json` 均声明 MIT，并各自随附完整 `LICENSE`，未另带 `NOTICE`。
+其中 yazl / yauzl 的版权为 © 2014 Josh Wolfe，buffer-crc32 为 © 2013–2024 Brian J. Brennan，
+pend 为 © 2014 Andrew Kelley。MIT 文本要求保留原版权及许可声明；仓库自己的 `LICENSE` 不能替代它们。
+这四个包只使用 JavaScript 与 Node 内置功能，不新增外部可执行程序或原生扩展。
+
+Host 和两套运行时清单固定 yazl / yauzl 的直接版本；
+`deepblend/development/runtime/package-lock.json` 与
+`deepblend/development/compatibility/dsh-0.2.1-rc.1/package-lock.json` 记录上述四个包的精确版本、来源和完整性摘要。
+第三方契约核对这条依赖图及逐项许可清单。Git/npm 安装仍按上游声明解析传递版本，
+Release tarball 的暂存安装也会重新解析，因此开发锁文件不能代替对最终安装或归档中实际版本与许可文件的检查。
+
 ## 3. 为什么不冲突：按实际分发物核验
 
 Blender 和 ffmpeg 是独立程序，当前产物不携带它们；DSH 仍由用户的部署提供。
 sharp 则是进程内调用的第三方库，Release tarball 可能携带其原生扩展、libvips 和内嵌组件。
+ZIP 库同样在 Host 进程内运行；离线 tarball 应完整保留四个包的原始 `LICENSE`。
 因此“发布物只有本仓库自己的文件”“全部外部依赖都是 peer”已不适用于当前项目。
 
 构建与分发时应保留随包的版权、许可、第三方声明，并针对实际包含的 LGPL 等组件核对对应源码、替换或重新链接等适用条件。
@@ -69,6 +86,12 @@ cat .tools/dsh/node_modules/@img/sharp-darwin-arm64/LICENSE
 cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/package.json
 cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/README.md
 cat .tools/dsh/node_modules/@img/sharp-libvips-darwin-arm64/versions.json
+
+# ZIP 组件的实装版本、依赖与原始版权/许可（复核时使用实际安装目录）
+for package in yazl yauzl buffer-crc32 pend; do
+  cat ".tools/dsh-021/node_modules/$package/package.json"
+  cat ".tools/dsh-021/node_modules/$package/LICENSE"
+done
 
 # 外部程序本身提供的许可与构建信息
 head -30 .tools/Blender.app/Contents/Resources/text/license/license.md

@@ -23,6 +23,8 @@
 
 最新稳定版 [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) 增加导入实例边界及指定相机/帧的真实几何检查，支持按保存分镜渲染并安全恢复，附有经过验收的五镜宝塔成片；已有项目继续受到保护。详见[发布说明与验收范围](deepblend/docs/releases/0.16.0.md)。
 
+下一候选（尚未发布）：在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
+
 ## 安装并开始
 
 准备好 **Node.js 22.23.3 或更新版本**、**DSH 0.1.5-rc.2**、**pnpm** 和 **Blender 5.2.1** 后：
@@ -304,7 +306,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         138 个 *.test.mjs（当前源码）
+    contract/         143 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -355,15 +357,15 @@ packages/deepblend/
 
 ### 1. 装配工作区（全新 clone 的第一步）
 
-本仓库的 `node_modules/` **不在版本控制里**：它没有任何内容，只有 13 个指向
-**已安装的 DSH 部署**与本仓库 `packages/` 的绝对符号链接（见 `.gitignore`）。
+本仓库的 `node_modules/` **不在版本控制里**：它没有任何内容，只有 18 个指向
+**已安装的 DSH 部署**、普通运行依赖与本仓库 `packages/` 的绝对符号链接（见 `.gitignore`）。
 所以刚 clone 下来的仓库**解析不了自己写的任何一句 import**：**需要 import 的那些契约文件**
 会在跑第一条断言之前死于 `ERR_MODULE_NOT_FOUND`，只有纯读文件的那几个照跑：
 
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 28/138 file(s) passed
+DeepBlend tests: 30/143 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -423,8 +425,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**43 个套件、180 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**138 个文件 = 2109 项自计断言（34 个文件打印计数）+ 1842 个 `node:test` 用例（104 个文件）**。
+预期：**43 个套件、185 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
+**143 个文件 = 2126 项自计断言（34 个文件打印计数）+ 1905 个 `node:test` 用例（109 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -434,6 +436,9 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
+**2026-10-22 计数快照**：完整契约运行是 142/143，唯一失败来自本机已安装的旧 preset。
+上述计数保留其余文件的完整输出，仅将 `preset-source.test.mjs` 替换为未安装 preset 的隔离
+`DSH_HOME` 复核输出（19/19）；没有修改个人配置，也没有把原整轮失败记为通过。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
 跑那些会打印计数的，再把每份摘要加起来——**它自己有一条测试**（`contract/assertion-counter.test.mjs`），
 因为它的规则写错过一次：`\(s\)?` 让「）」可选而「（」仍是必需的，
@@ -442,8 +447,8 @@ D143）。
 
 **一个会咬人的计数口径**：`preset-source.test.mjs` 的断言数取决于**本机装没装 preset**
 ——没装时它报 19 项，装了之后报 21 项。所以拿两个不同机器（或同一台机器装 preset 前后）的
-总数直接相减，会凭空多出或少掉两项。**上面那个总数是「装了」preset 的读数**；同一份快照在没有装
-preset 的机器上会少掉 `preset-source.test.mjs` 的那两项。
+总数直接相减，会凭空多出或少掉两项。**上面那个总数是「未安装」preset 的隔离环境读数**；同一份快照在已安装
+且与源码一致的 preset 环境下，会多出 `preset-source.test.mjs` 的那两项。
 单跑某一层：
 
 ```bash

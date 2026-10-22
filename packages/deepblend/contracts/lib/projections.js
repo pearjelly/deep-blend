@@ -13,6 +13,8 @@
  * Owner: DeepBlend Studio — M1
  */
 
+import { specChangeAudit } from './spec-change-audit.js'
+
 /**
  * @typedef {object} JobReference
  * @property {string} jobId
@@ -69,7 +71,7 @@ export function toCanonicalRevisionSummary({ manifest, checkpointPath = null }) 
     stage: manifest.stage ?? null,
     idempotencyKey: manifest.idempotencyKey ?? null,
     sceneChanged: manifest.digestBefore !== manifest.digestAfter,
-    specChanged: manifest.specChanged === true,
+    ...specChangeAudit(manifest),
     checkpoint: checkpointPath,
     previews: manifest.previews ?? [],
     validation: manifest.validation ?? null,

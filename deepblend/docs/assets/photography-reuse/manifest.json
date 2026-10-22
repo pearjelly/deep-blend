@@ -1,18 +1,18 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-15T17:22:20.348064+00:00",
-  "sourceBase": "5d21698fa3d9e38547144c5d5bcd3443612cc463",
-  "uiSha256": "0931f44c2d4c64268139cb79c6f9ef17d1f6eb9cd53585d8d7556081136823f5",
-  "nativeSource": "/Users/hxb/.codex/worktrees/assembly-parameters/deep-blend/.tmp-surface-scatter/photography-native-v2",
+  "at": "2026-10-22T03:17:29.960374+00:00",
+  "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
+  "uiSha256": "afc529941628e9363e8e6edc6510618cd1e4f5a29d794ee3b17987d071377387",
+  "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Unpublished static surface placement candidate: actual Chrome/DSH/Blender photography regression,36 checks; desktop/390px captures viewed. This uses the cup regression fixture, not pagoda artistic acceptance.",
+  "scope": "Unpublished editable-export candidate: actual Chrome/DSH/Blender photography regression, 36 checks using the cup fixture; desktop and 390px original captures viewed. No model calls. This is not pagoda artistic acceptance.",
   "images": [
     {
       "file": "draft.png",
       "original": "04-reused-photography-draft.png",
-      "sha256": "228cd648a1054da873723bcfcf938c9b810a9825000034ebbd8e57350867e684",
-      "bytes": 181909,
+      "sha256": "62f04dbd2cc2c791658139edb26fa2659c6010ac682383b68df6782202c40ccd",
+      "bytes": 181608,
       "width": 1440,
       "height": 1013,
       "postProcessed": false
@@ -20,20 +20,20 @@
     {
       "file": "narrow.png",
       "original": "05-narrow-photography-reuse.png",
-      "sha256": "2798d76f2f5a4b578d2fd64615dcf8f4831248a5f50879d3fad61f2098e688f6",
-      "bytes": 84429,
+      "sha256": "cb08eaad242bfd6aabe0e3f7a8cd895010550f56173558616438f0236b43ff24",
+      "bytes": 84197,
       "width": 390,
       "height": 844,
       "postProcessed": false
     }
   ],
-  "viewedAt": "2026-10-15T17:22:20.348064+00:00",
+  "viewedAt": "2026-10-22T03:17:29.960374+00:00",
   "license": "MIT",
   "author": "DeepBlend contributors",
   "tool": "deepblend/tests/e2e/photography-ui.e2e.mjs",
   "toolSha256": "c9107135fbae6985a4d0b233f1f795a335efa3bbb99939c7e3e5022f93e2dc98",
-  "sourceReportSha256": "4742783bf84e2677a2da9118b94f0cb06ac97ee2ee8eef68bbc27981e45b389f",
-  "sourceRequestsSha256": "c42afe4ec22adbd9aa8ccb77e97a1ece8b10bcebb0687b048ebb9eafef1c9601",
+  "sourceReportSha256": "12dabc89d79a5b23fe9ccb077820561e83c31964ff6a6b1b1c34aa732e95513d",
+  "sourceRequestsSha256": "267923b62d1f9db1995a8c254c17a616d8ef19a35289c5e41789b3c87b739e40",
   "reproductionGuide": "../../photography-editor.md",
   "postProcessed": false
 }

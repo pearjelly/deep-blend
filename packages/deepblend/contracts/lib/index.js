@@ -715,6 +715,7 @@ export {
 
 export { ASSET_HEAD_BYTES, assetContentVerdict, describeAssetContent } from './asset-content.js'
 export { redactHome, redactUrl } from './redact.js'
+export { specChangeAudit } from './spec-change-audit.js'
 export { assertKnownConfigKeys, declaredConfigKeys, describeUnknownConfigKeys } from './config-surface.js'
 
 export {

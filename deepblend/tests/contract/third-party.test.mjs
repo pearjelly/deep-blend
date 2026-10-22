@@ -17,8 +17,8 @@
  *      schemas declare — derived in both directions, so the inventory cannot list a program nothing
  *      spawns and cannot miss one that is spawned;
  *   2. every published manifest declares the same licence as the repository root;
- *   3. DSH remains a peer dependency; the only ordinary third-party runtime dependency
- *      is the Host's explicitly reviewed and pinned sharp codec;
+ *   3. DSH remains a peer dependency; ordinary third-party runtime dependencies are the
+ *      explicitly reviewed image, preset and ZIP libraries;
  *   4. no tracked file is a binary somebody else built.
  *
  * WHAT IT DELIBERATELY DOES NOT CHECK
@@ -125,7 +125,7 @@ test('every published manifest declares the licence the repository root does', (
   assert.ok(inventory.includes(root), `third-party.md does not state this project's own licence (${root})`)
 })
 
-test('third-party runtime dependencies are limited to reviewed image and preset parsers; DSH stays a peer', () => {
+test('third-party runtime dependencies are limited to reviewed image, preset and ZIP libraries; DSH stays a peer', () => {
   const local = new Set(packages.map(({ manifest }) => manifest.name))
   const ordinary = []
   for (const { name, manifest } of packages) {
@@ -145,11 +145,56 @@ test('third-party runtime dependencies are limited to reviewed image and preset 
       assert.match(String(range), /^[\^~><=*]|^\d/, `the peer range for ${peer} is not a version range: ${range}`)
     }
   }
-  assert.deepEqual(ordinary, [{ package: 'host', field: 'dependencies', dependency: 'sharp', version: '0.35.5' }, { package: 'preset', field: 'dependencies', dependency: 'js-yaml', version: '4.3.2' }],
+  assert.deepEqual(ordinary, [
+    { package: 'host', field: 'dependencies', dependency: 'sharp', version: '0.35.5' },
+    { package: 'host', field: 'dependencies', dependency: 'yauzl', version: '3.4.0' },
+    { package: 'host', field: 'dependencies', dependency: 'yazl', version: '3.3.1' },
+    { package: 'preset', field: 'dependencies', dependency: 'js-yaml', version: '4.3.2' },
+  ],
     'adding or moving an external dependency requires an explicit inventory and contract review')
   for (const token of ['sharp', '0.35.5', '@img/sharp-', 'libvips', 'Apache-2.0', 'LGPL-3.0-or-later']) {
     assert.ok(inventory.includes(token), `third-party inventory omits the reviewed codec detail ${token}`)
   }
+})
+
+test('both runtime locks preserve the reviewed ZIP dependency graph and its licence inventory', () => {
+  const reviewed = {
+    yazl: { version: '3.3.1', dependencies: { 'buffer-crc32': '^1.0.0' } },
+    yauzl: { version: '3.4.0', dependencies: { pend: '~1.2.0' } },
+    'buffer-crc32': { version: '1.0.0', dependencies: {} },
+    pend: { version: '1.2.0', dependencies: {} },
+  }
+  const section = inventory.slice(inventory.indexOf('## 2. 逐项'), inventory.indexOf('## 3. 为什么不冲突'))
+  for (const [name, expected] of Object.entries(reviewed)) {
+    const rows = section.split('\n').filter(line => line.startsWith(`| **${name} ${expected.version}** |`))
+    assert.equal(rows.length, 1, `the licence inventory must name ${name}@${expected.version} exactly once`)
+    const cells = rows[0].split('|').map(cell => cell.trim())
+    assert.equal(cells[2], 'MIT', `${name}: review the actual package licence before changing the inventory`)
+    assert.ok(cells[5].includes(`${name}/package.json`) && cells[5].includes(`${name}/LICENSE`),
+      `${name}: the inventory must identify the original manifest and licence`)
+  }
+  const graphs = []
+  for (const directory of ['deepblend/development/runtime', 'deepblend/development/compatibility/dsh-0.2.1-rc.1']) {
+    const manifest = JSON.parse(readFileSync(join(ROOT, directory, 'package.json'), 'utf8'))
+    const lock = JSON.parse(readFileSync(join(ROOT, directory, 'package-lock.json'), 'utf8'))
+    for (const name of ['yazl', 'yauzl']) {
+      assert.equal(manifest.dependencies[name], reviewed[name].version, `${directory}: direct ZIP dependency changed`)
+      assert.equal(lock.packages[''].dependencies[name], reviewed[name].version, `${directory}: root lock differs`)
+    }
+    const graph = {}
+    for (const [name, expected] of Object.entries(reviewed)) {
+      const entry = lock.packages[`node_modules/${name}`]
+      assert.ok(entry, `${directory}: missing ${name}`)
+      assert.equal(entry.version, expected.version, `${directory}: ${name} version needs review`)
+      assert.deepEqual(entry.dependencies ?? {}, expected.dependencies, `${directory}: ${name} dependency graph needs review`)
+      assert.deepEqual(entry.optionalDependencies ?? {}, {}, `${directory}: ${name} has an unreviewed optional dependency`)
+      assert.equal(entry.resolved, `https://registry.npmjs.org/${name}/-/${name}-${expected.version}.tgz`)
+      assert.match(entry.integrity, /^sha512-[A-Za-z0-9+/]+={0,2}$/)
+      graph[name] = { version: entry.version, dependencies: entry.dependencies ?? {}, resolved: entry.resolved, integrity: entry.integrity }
+    }
+    graphs.push(graph)
+  }
+  assert.deepEqual(graphs[0], graphs[1], 'the two runtime locks must resolve the same reviewed ZIP package bytes')
 })
 
 test('source files exclude external binaries and published images have declared provenance', () => {

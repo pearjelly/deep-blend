@@ -33,6 +33,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { Readable, Writable } from 'node:stream'
 
 import {
   UI_PANEL_ID,
@@ -86,6 +87,7 @@ const READ_METHODS = new Set([
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
   'listRecipes', 'readRecipePreview', 'getRecipeParameters', 'listAssets', 'getAssetUpload',
+  'getEditableSnapshot', 'openEditableSnapshot',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
@@ -105,6 +107,8 @@ const WRITE_METHOD = {
   'project.restore': 'restoreRevision',
   'project.job.cancel': 'cancelJob',
   'project.render': 'startFinalRender',
+  'project.editableSnapshots.create': 'exportEditableSnapshot',
+  'project.editableSnapshots.cancel': 'cancelEditableSnapshot',
 }
 /**
  * Every method that writes.
@@ -136,6 +140,11 @@ function createStudioStub() {
   }
   return {
     calls,
+    editableSnapshotProtocol: 1,
+    async exportEditableSnapshot(request) { record('exportEditableSnapshot', request); return { ...request, exportId: `snapshot-${'a'.repeat(40)}`, state: 'preparing' } },
+    async getEditableSnapshot(request) { record('getEditableSnapshot', request); return { ...request, revision: 'r0001', state: 'preparing' } },
+    async cancelEditableSnapshot(request) { record('cancelEditableSnapshot', request); return { ...request, revision: 'r0001', state: 'cancelled' } },
+    async openEditableSnapshot(request) { record('openEditableSnapshot', request); return { bytes: 4, filename: 'snapshot.zip', contentType: 'application/zip', stream: Readable.from([Buffer.from('PK00')]), close: async () => {} } },
     recipeParameterEditingSupported: true,
     getRecipeParameters(projectId, options) { record('getRecipeParameters', { projectId, options }); return { projectId, revision: options?.revision ?? 'r0002', available: false, parameters: [] } },
     updateRecipeParameters(request) { record('updateRecipeParameters', request); return { revision: 'r0003', unchanged: false, parameters: { available: false } } },
@@ -361,6 +370,8 @@ function makeRequest({ method = 'GET', url, body }) {
   return {
     method,
     url,
+    headers: { host: '127.0.0.1:3210', 'content-type': 'application/json' },
+    socket: { remoteAddress: '127.0.0.1' },
     async *[Symbol.asyncIterator]() {
       for (const chunk of chunks) yield chunk
     },
@@ -369,17 +380,12 @@ function makeRequest({ method = 'GET', url, body }) {
 
 /** A Node-shaped response that records what was sent. */
 function makeResponse() {
-  return {
-    statusCode: 200,
-    headers: {},
-    body: null,
-    setHeader(name, value) {
-      this.headers[name.toLowerCase()] = value
-    },
-    end(body) {
-      this.body = body === undefined ? null : body
-    },
-  }
+  const response = new Writable({ write(chunk, _encoding, callback) {
+    response.body = response.body === null ? Buffer.from(chunk) : Buffer.concat([response.body, chunk]); callback()
+  } })
+  response.statusCode = 200; response.headers = {}; response.body = null
+  response.setHeader = (name, value) => { response.headers[name.toLowerCase()] = value }
+  return response
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +433,7 @@ const routeIds = UI_ROUTES.map(route => route.id).sort()
 // previews do have a registered handler, but HTTP dispatch sends their bytes
 // directly; that binary exception is asserted independently below.
 const ROUTES_WITHOUT_TABLE_HANDLERS = ['artifacts.open', 'workbench.page']
-const BINARY_RESPONSE_ROUTES = ['artifacts.open', 'recipes.preview']
+const BINARY_RESPONSE_ROUTES = ['artifacts.open', 'recipes.preview', 'project.editableSnapshots.download']
 const expectedHandlerIds = routeIds.filter(id => !ROUTES_WITHOUT_TABLE_HANDLERS.includes(id))
 const handlerIds = Object.keys(ui.handlers).sort()
 check('the handler table is exactly the route table, minus the two dedicated dispatch methods',
@@ -456,6 +462,7 @@ function sampleUrl(route) {
     .replace(':projectId', 'demo')
     .replace(':revision', 'r0002')
     .replace(':jobId', 'render-0001')
+    .replace(':exportId', `snapshot-${'a'.repeat(40)}`)
     .replace(':assetId', 'asset-upload')
     .replace(':uploadId', 'upload-example')
     .replace(':fileId', 'file-0')
@@ -481,10 +488,11 @@ for (const route of UI_ROUTES) {
   }
 
   if (BINARY_RESPONSE_ROUTES.includes(route.id)) {
-    const expectedMethod = route.id === 'recipes.preview' ? 'readRecipePreview' : 'readArtifact'
-    const expectedBytes = route.id === 'recipes.preview' ? RECIPE_PREVIEW_BYTES : Buffer.from([0x89, 0x50, 0x4e, 0x47])
+    const snapshot = route.id === 'project.editableSnapshots.download'
+    const expectedMethod = snapshot ? 'openEditableSnapshot' : route.id === 'recipes.preview' ? 'readRecipePreview' : 'readArtifact'
+    const expectedBytes = snapshot ? Buffer.from('PK00') : route.id === 'recipes.preview' ? RECIPE_PREVIEW_BYTES : Buffer.from([0x89, 0x50, 0x4e, 0x47])
     check(`${route.id} serves bytes, not JSON`,
-      response.statusCode === 200 && response.headers['content-type'] === 'image/png' && response.headers['cache-control'] === 'no-store'
+      response.statusCode === 200 && response.headers['content-type'] === (snapshot ? 'application/zip' : 'image/png') && response.headers['cache-control'] === 'no-store'
       && Buffer.isBuffer(response.body) && response.body.equals(expectedBytes) && json === null,
       { status: response.statusCode, type: response.headers['content-type'] })
     check(`${route.id} reads exactly once through its facade method and performs no write`,

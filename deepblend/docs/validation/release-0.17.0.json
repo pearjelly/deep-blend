@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "deepblend.release-candidate-record/v1",
+  "releaseLabel": "0.17.0",
+  "status": "candidate-not-published",
+  "preparedFromHead": "7412aef55151ed1de6b962a5520c62112008cb19",
+  "latestStableRelease": "0.16.0",
+  "standardPublicationComplete": false,
+  "completeAcceptance": {
+    "status": "accepted-original-baseline",
+    "sourceCommit": "97b2e678ecfdd9a19ffbebbdb588258e5e0a6ac8",
+    "startedAt": "2026-10-22T04:06:10.406365+00:00",
+    "finishedAt": "2026-10-22T04:54:23.296739+00:00",
+    "suiteCount": 43,
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all eighteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "sourceFiles": 940,
+    "exitCode": 0,
+    "allSourceBytesUnchanged": true,
+    "versions": {
+      "node": "v24.22.0",
+      "npm": "11.20.0",
+      "pnpm": "9.15.0",
+      "dsh": "0.1.5-rc.2",
+      "python3": "Python 3.14.2",
+      "ffmpeg": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobe": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+    },
+    "originalEvidence": {
+      "source-before.json": {
+        "bytes": 159488,
+        "sha256": "59223f8d5029331e2098269dbdb3778a0b43caf06ddfd7261879383b12396cd2"
+      },
+      "running.json": {
+        "bytes": 522,
+        "sha256": "ce019dbe850be2b07e0ab41a082cd05430b6f1d433cad6cd5e0360dde45f6fa4"
+      },
+      "result.json": {
+        "bytes": 4471,
+        "sha256": "b03d6f956e8c2f075c05d96b1d048a69d96e85d7529ae75dcfe85a9a53f8536d"
+      },
+      "run-all.log": {
+        "bytes": 770350,
+        "sha256": "8b71ab9a2cbec0ea395f95447bf885498cd26df8acf5897b6efa357d550840c7"
+      }
+    },
+    "scope": "One real complete canonical run on the original baseline. Final-head rerun, source equivalence, build, CI, installation and publication are separate claims."
+  },
+  "retainedFailedAttempt": {
+    "sourceCommit": "97b2e678ecfdd9a19ffbebbdb588258e5e0a6ac8",
+    "startedAt": "2026-10-22T03:38:40.180530+00:00",
+    "finishedAt": "2026-10-22T04:05:35.396236+00:00",
+    "exitCode": -15,
+    "passed": false,
+    "completedSuites": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)"
+    ],
+    "failureLines": [
+      "✗ Host composition activation"
+    ],
+    "sourceFiles": 940,
+    "allSourceBytesUnchanged": true,
+    "reason": "Default managed Blender entry absent in the isolated checkout; Host composition activation passed 15/18 before termination. Only the ignored toolchain entry was corrected before restarting the canonical suite.",
+    "resultSha256": "4ad61d3993ea0754eca276003d2b379803ab0be824117bd34dad1cfa797b020c",
+    "logSha256": "3e35ccab1d17dbe234a303bd3fea9fc5622606ec9cce4e11c92e2b96014e6659",
+    "stopRecordSha256": "31ea3a064fc273fa9750197e45c1c689439e6e0284283733d91a1f80de65f537"
+  },
+  "featureAcceptance": {
+    "status": "candidate-local-acceptance-passed",
+    "sourceCommit": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
+    "record": "editable-snapshot-1022.json",
+    "recordSha256": "ee9a7d1a8bca919a52696201421c311c3f214d0075dd3f593073118a7f64ec24",
+    "d68To97PackageBinding": {
+      "schemaVersion": "deepblend.feature-candidate-source-binding/v1",
+      "at": "2026-10-22T04:34:18.345660+00:00",
+      "featureAcceptedCommit": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
+      "completeSuiteCandidateCommit": "97b2e678ecfdd9a19ffbebbdb588258e5e0a6ac8",
+      "packageTree": "4c858a89d11d8b8bc065da7b653dcedb6cc91013",
+      "allPackageBlobPathsModesAndBytesEqual": true,
+      "featureAcceptanceRecordSha256": "ee9a7d1a8bca919a52696201421c311c3f214d0075dd3f593073118a7f64ec24",
+      "featureArchiveModuleSha256": "88db01dd4b8e7c504a6e2ad3641f802bd6e93ab0dab890e520e0e8f337eed393",
+      "completeSuiteResultClaimed": false,
+      "scope": "Real large-project/browser/HTTP/relocation acceptance retains its original commit. Between that commit and the later complete-suite candidate, the entire packages tree is identical and only the explicitly listed documentation and screenshot assets changed. This record alone does not claim full-suite completion, a version bump, final release equivalence or publication.",
+      "changedDocumentationPaths": [
+        "README.zh.md",
+        "deepblend/docs/assets/photography-reuse/draft.png",
+        "deepblend/docs/assets/photography-reuse/manifest.json",
+        "deepblend/docs/assets/photography-reuse/narrow.png",
+        "deepblend/docs/daily-releases.md",
+        "deepblend/docs/development/editable-snapshots.md",
+        "deepblend/docs/install.md",
+        "deepblend/docs/photography-editor.md",
+        "deepblend/docs/product-roadmap.md",
+        "deepblend/docs/tool-contracts.md",
+        "deepblend/docs/validation/editable-snapshot-1022.json"
+      ]
+    },
+    "bindingRecordSha256": "0b6619cccba085eed7906783490ce0e1b83a74c9682829848214041693685cef",
+    "scope": [
+      "One selected revision, not a full project-history import; 62 members are not the 2169-file project inventory.",
+      "Only the observation-only external file was excluded. Native bytes were retained; embedded-image removal or presence of the reference image was not established.",
+      "Actual relocation/reopen was verified for this case and platform. The exporter itself does not claim generic full self-containment or license clearance.",
+      "No edit/save, render, encoding, paid model call, original-film reproduction, Windows extractor, network-filesystem or power-loss acceptance was performed.",
+      "Native camera defaults and animation were preserved. The original multi-shot film uses plugin shot orchestration.",
+      "This is candidate feature acceptance, not a new stable release or complete release-route parity."
+    ]
+  },
+  "finalSourceEquivalence": {
+    "status": "not-yet-recorded"
+  },
+  "finalCI": {
+    "status": "not-yet-recorded"
+  },
+  "finalBuildNativeInstallation": {
+    "status": "not-yet-recorded"
+  },
+  "installedSmallSnapshotAcceptance": {
+    "status": "not-yet-recorded"
+  },
+  "publication": {
+    "status": "not-published",
+    "githubRelease": null,
+    "allSevenNpmPackagesAccepted": false,
+    "threeRouteParityAccepted": false
+  },
+  "pendingCompletion": [
+    "Bind the final commit to the original full-suite baseline through an exact documentation/version-only scope proof.",
+    "Verify final-head CI and its four original runtime evidence archives.",
+    "Build and inspect the final 0.17.0 bundle; verify native payloads, real installation and activation.",
+    "Complete real browser small-ZIP download and relocation/reopen on the final installed package.",
+    "Publish and anonymously read back the release assets and all seven npm packages, then complete three-route parity."
+  ]
+}

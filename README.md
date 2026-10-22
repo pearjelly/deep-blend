@@ -23,6 +23,8 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 Latest stable [0.16.0](https://github.com/pearjelly/deep-blend/releases/tag/v0.16.0) adds imported-instance bounds and camera/frame geometry checks, rendering from saved shots with safe resume, and a verified five-shot pagoda film. Saved projects remain protected. See the [release notes and acceptance scope](deepblend/docs/releases/0.16.0.md).
 
+Next candidate (unreleased): **Save an editable copy** on the Revisions page downloads one saved version as a ZIP, with an optional verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
+
 ## Quick start
 
 With **Node.js 22.23.3 or newer**, **DSH 0.1.5-rc.2**, **pnpm** and **Blender 5.2.1** ready:

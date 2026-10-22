@@ -90,6 +90,10 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.job', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId', write: false, summary: 'One job with its live progress.' },
   { id: 'project.job.cancel', method: 'POST', path: '/deepblend/projects/:projectId/jobs/:jobId/cancel', write: true, summary: 'Cancel a running job and verify the process is gone.' },
   { id: 'project.render', method: 'POST', path: '/deepblend/projects/:projectId/render', write: true, summary: 'Start a delivery render (or resume one).' },
+  { id: 'project.editableSnapshots.create', method: 'POST', path: '/deepblend/projects/:projectId/editable-snapshots', write: true, summary: 'Prepare or resume an immutable editable snapshot of one explicit revision.' },
+  { id: 'project.editableSnapshots.get', method: 'GET', path: '/deepblend/projects/:projectId/editable-snapshots/:exportId', write: false, summary: 'Read the fixed snapshot request and preparation state.' },
+  { id: 'project.editableSnapshots.cancel', method: 'POST', path: '/deepblend/projects/:projectId/editable-snapshots/:exportId/cancel', write: true, summary: 'Cancel unfinished snapshot preparation without removing a ready export.' },
+  { id: 'project.editableSnapshots.download', method: 'GET', path: '/deepblend/projects/:projectId/editable-snapshots/:exportId/download', write: false, summary: 'Download a verified ready snapshot through a bounded stream.' },
   { id: 'artifacts.open', method: 'GET', path: '/deepblend/artifacts/:projectId/*', write: false, summary: 'Serve one project-relative artifact (a preview PNG).' },
 ])
 

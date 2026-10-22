@@ -1,6 +1,7 @@
 /** Inspect OBJ/MTL file references without loading a mesh or rewriting source bytes. */
-import { openSync, closeSync, readSync, statSync } from 'node:fs'
+import { closeSync, readSync } from 'node:fs'
 import { BlenderError, BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
+import { openAssetMetadata, verifyAssetMetadata } from './asset-metadata-identity.js'
 
 export const OBJ_LIMITS = Object.freeze({ modelBytes: 1024 * 1024 * 1024, materialBytes: 16 * 1024 * 1024, lineBytes: 1024 * 1024 })
 const invalid = (message, code = BlenderErrorCode.ASSET_REQUEST_INVALID) => { throw new BlenderError(code, message) }
@@ -9,10 +10,10 @@ const mapKeys = new Set(['map_Kd', 'map_Ks', 'map_Ns', 'map_d', 'refl', 'map_ref
 const counts = { '-bm': 1, '-type': 1, '-blendu': 1, '-blendv': 1, '-boost': 1, '-cc': 1, '-clamp': 1, '-imfchan': 1, '-mm': 2, '-t': 3, '-texres': 1 }
 
 /** Physical lines are bounded; only OBJ has backslash/newline continuation. */
-function lines(file, limit, callback, { continuation = false, signal } = {}) {
+function lines(file, limit, callback, { continuation = false, signal, expected } = {}) {
   signal?.throwIfAborted()
-  if (statSync(file).size > limit) invalid('OBJ/MTL text exceeds its byte limit.', BlenderErrorCode.ASSET_TOO_LARGE)
-  const fd = openSync(file, 'r'), decoder = new TextDecoder('utf-8', { fatal: true }), chunk = Buffer.alloc(64 * 1024)
+  const { fd, before } = openAssetMetadata(file, limit)
+  const decoder = new TextDecoder('utf-8', { fatal: true }), chunk = Buffer.alloc(64 * 1024)
   let pending = '', logical = '', bytes = 0
   const emit = physical => {
     if (Buffer.byteLength(physical) > OBJ_LIMITS.lineBytes) invalid('OBJ/MTL lines exceed 1 MiB.', BlenderErrorCode.ASSET_TOO_LARGE)
@@ -34,6 +35,7 @@ function lines(file, limit, callback, { continuation = false, signal } = {}) {
       if (Buffer.byteLength(pending) > OBJ_LIMITS.lineBytes) invalid('OBJ/MTL lines exceed 1 MiB.', BlenderErrorCode.ASSET_TOO_LARGE)
       if (!n) { if (pending || logical) emit(pending); if (logical) callback(logical); break }
     }
+    verifyAssetMetadata(fd, before, expected)
   } catch (error) {
     signal?.throwIfAborted()
     if (error instanceof BlenderError) throw error

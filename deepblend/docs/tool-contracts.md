@@ -852,15 +852,19 @@ M3 新增的：
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |
 | `POST /deepblend/projects/:projectId/jobs/:jobId/cancel` | **写** | Cancel a running job and verify the process is gone. |
 | `POST /deepblend/projects/:projectId/render` | **写** | Start a delivery render (or resume one). |
+| `POST /deepblend/projects/:projectId/editable-snapshots` | **写** | 固定明确版本和可选已完成影片，立即返回 planning handle；后台准备或恢复可编辑副本。 |
+| `GET /deepblend/projects/:projectId/editable-snapshots/:exportId` | 读 | 读取请求、文件清单是否冻结、准备进度与就绪下载地址。 |
+| `POST /deepblend/projects/:projectId/editable-snapshots/:exportId/cancel` | **写** | 取消未完成的规划或归档，已就绪副本保持可用。 |
+| `GET /deepblend/projects/:projectId/editable-snapshots/:exportId/download` | 读 | 本机同源下载已核验副本；同一 FD 校验并流式传输，不支持 Range。 |
 | `GET /deepblend/artifacts/:projectId/*` | 读 | Serve one project-relative artifact (a preview PNG). |
 
 ### 2.2 契约要点
 
-* **写操作共有 11 条**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
+* **写操作以路由表为准**，全部调用 `blenderStudio`（`createProject` / `renderViews` / `uploadReferenceImage` / `uploadAsset` / `previewAsset` / `visualReview` / `visualLoop` /
   `applyScenePatch` / `restoreRevision` / `startFinalRender`+`resumeRenderJob` /
-  `cancelJob`）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
+  `cancelJob`，以及素材会话、尺寸修改和可编辑副本各方法）。`composition/ui-plane.e2e.mjs` 用一个记录桩断言每条路由**只**调用它
   那一个方法，且没有任何 handler 在表外存在（闭集，两个方向都断言）。
-* **响应永远带 `route` 与 `hostApiVersion`**。这不是装饰：M0 的 prefix 路由注册在
+* **普通 JSON 成功响应带 `route` 与 `hostApiVersion`**。工作台页面返回 HTML；工件、配方预览和可编辑副本下载直接返回文件字节，不套 JSON。旧宿主识别使用 JSON 接口的这两个字段：M0 的 prefix 路由注册在
   `/deepblend/capabilities` 上，所以一个更旧的宿主对该路径返回 **200 + 设置卡（没有
   `route`）**，而对 `/deepblend/state` 返回 **404 + 0 字节**——「宿主比 UI 旧」因此有
   两种形状：一个成功的错答案，和一个不是 JSON 的响应。客户端把两种都归到
@@ -886,9 +890,8 @@ M3 新增的：
 * **评审历史**：每次 `visualReview` 返回自己的 `reviewId`、`sheetArtifact` 和 `reviewArtifact`。同一版本、迭代号重复评审也使用独立路径；评分记录及单个视角图保留当次真实像素。`getQaRecord` 按索引中的完成顺序返回最新记录，旧 round-N 记录继续可读。模型等待不占用发布租约，取消发生在发布前时不新增评审记录；已有完成图片保持可读。
 * **产物 URL 由内容决定**：客户端给工件 URL 加上 `?v=<sha256 前 12 位>`。预览是**产物**：
   当前/上一张预览拼图轮换时仍使用固定路径，摘要确保浏览器获取对应字节；单图、多视角图和评审图片各自保留独立路径。早期同路径缓存缺陷的回归断言在 `e2e/ui.e2e.mjs`。
-* **`artifacts` 是唯一碰文件系统的路由**，路径交给 `blenderStudio.readArtifact`，由它
-  用 `resolveInside` 把项目目录当作边界（SPEC §15.2）。路由器会**先解码** `*` 捕获的
-  尾部：一个收到 `%2e%2e%2f` 的路径守卫无法把它认成 `..`。
+* **文件响应由 Host 读取**：工件路由调用 `blenderStudio.readArtifact`，配方预览调用 `readRecipePreview`，可编辑副本下载调用 `openEditableSnapshot`。工件读取仍用 `resolveInside` 把项目目录当作边界（SPEC §15.2）；路由器会**先解码** `*` 捕获的尾部，使路径守卫能识别 `%2e%2e%2f` 这样的编码穿越。
+* **可编辑副本下载只在本机直连访问中可用**：四条副本路由要求 loopback socket 与 Host，并核对 Origin/Fetch Metadata；POST 要求 JSON，不信任代理转发头。状态接口返回 `ready` 后，浏览器还会核对项目、固定请求、保存版本、可选影片和 store identity，并只使用与该身份精确匹配的下载 URL。下载请求带 store identity，Host 校验就绪回执、冻结清单及完整 ZIP 摘要后，从同一 FD 流式发送；响应为 `application/zip`，含 `Content-Disposition: attachment`、精确 `Content-Length`、`Cache-Control: no-store`、`X-Content-Type-Options: nosniff` 和 `Accept-Ranges: none`。Range 请求返回 416；开始发送后的错误终止传输，不在 ZIP 后追加 JSON。下载中断保留就绪副本。详见[可编辑副本机制](development/editable-snapshots.md)。
 * **`resumeJobId` → `jobId` 的映射在 UI 半边的 handler 里**（工具半边同样映射）。
   两个名字不同是有意的：调用方表达的是意图（续渲哪个 job），Host 读的是参数
   （`jobId`）。映射写在一处，并由套件断言。

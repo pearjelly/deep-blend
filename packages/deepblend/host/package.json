@@ -1,6 +1,6 @@
 {
   "name": "@deepblend/dsh-blender-host",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "type": "module",
   "description": "DeepBlend Host service: the blenderStudio business facade over the BlenderRuntime seam.",
   "main": "lib/index.js",
@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@deepblend/dsh-blender-contracts": "github:pearjelly/deep-blend#path:/packages/deepblend/contracts",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "yauzl": "3.4.0",
+    "yazl": "3.3.1"
   },
   "license": "MIT",
   "repository": {
