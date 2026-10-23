@@ -2,6 +2,8 @@ import { clickWorkbenchControl } from './workbench-navigation.mjs'
 import {existsSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs'
 import {join,resolve} from 'node:path'
 import {createHash} from 'node:crypto'
+import {isDeepStrictEqual} from 'node:util'
+import {instantiateRecipeLock} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
 import {REPO_ROOT,startWeb,storePatch} from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend/quality','lamp-ui-'+Date.now()));if(existsSync(output))throw Error('Evidence exists');mkdirSync(output)
@@ -15,7 +17,7 @@ try{
  check('typing creation parameters sends no write',await page.evaluate(`window.__lampRequests.every(r=>r.method!=='POST')`));check('one pointer creates the selected lamp',(await page.click('[data-action="create-project"]')).via==='pointer')
  await page.waitFor(`document.querySelector('[data-compare="current"] img')?.complete&&document.querySelector('[data-compare="current"] img')?.naturalWidth>0`,180000)
  await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector('[data-field="assembly-shade-diameter-mm"]')?.value==='230'`,45000)
- const initial=read('revisions/r0001/scene-spec.json'),lock=read('revisions/r0001/recipe-lock.json');check('created native project records2.1 and230mm with selected finish',read('project.json').currentRevision==='r0001'&&lock.version==='2.2.0'&&lock.values['shade-diameter-mm']===230&&initial.materials.find(m=>m.id==='champagne-spun').parameters.roughness===.31&&existsSync(join(root,'projects',id,'revisions/r0001/scene.blend')))
+ const initial=read('revisions/r0001/scene-spec.json'),lock=read('revisions/r0001/recipe-lock.json');check('created native project records2.2 and230mm with selected finish',read('project.json').currentRevision==='r0001'&&lock.version==='2.2.0'&&lock.values['shade-diameter-mm']===230&&initial.materials.find(m=>m.id==='champagne-spun').parameters.roughness===.31&&existsSync(join(root,'projects',id,'revisions/r0001/scene.blend')))
  const initialPreview=read('revisions/r0001/revision-manifest.json').previews.find(p=>p.sourceRevision==='r0001');check('creation presents its actual saved preview',Boolean(initialPreview&&existsSync(join(root,'projects',id,initialPreview.path))));
  const files=['scene-spec.json','scene.blend','recipe-lock.json'].map(n=>join(root,'projects',id,'revisions/r0001',n));files.push(join(root,'projects',id,initialPreview.path));
  const original=Object.fromEntries(files.map(p=>[p,hash(p)]));save('original-source-before-edits.json',original);await page.screenshot(join(output,'created.png'))
@@ -29,7 +31,57 @@ try{
  check('manual shell alignment disables stale semantic resize',await page.evaluate(`document.querySelector('[data-action="assembly-save"]').disabled`));await page.screenshot(join(output,'conflict.png'))
  await page.click('[data-action="editor-restore"]');await page.waitFor(`document.querySelector('[data-assembly-base-revision="r0002"]')!==null&&document.querySelector('[data-field="assembly-shade-diameter-mm"]')?.value==='220'`,180000)
  await page.fill('[data-field="assembly-shade-diameter-mm"]','221');check('restored alignment permits a new draft without saving it',await page.evaluate(`document.querySelector('[data-action="assembly-save"]').disabled===false`))
- check('restore returns to saved220mm revision without changing original files',read('project.json').currentRevision==='r0002'&&Object.entries(original).every(([p,h])=>hash(p)===h));save('requests.json',await page.evaluate(`window.__lampRequests`));save('original-source-protection.json',original)
+ check('restore returns to saved220mm revision without changing original files',read('project.json').currentRevision==='r0002'&&Object.entries(original).every(([p,h])=>hash(p)===h))
+
+ // Prepare a saved scene through the public HTTP patch route. The two subsequent
+ // diameter changes are pointer-driven workbench operations, with no per-part edits.
+ await page.fill('[data-field="assembly-shade-diameter-mm"]','220')
+ const yaw=35*Math.PI/180,cosine=Math.cos(yaw),sine=Math.sin(yaw),pivot=[.08,-.03,0],offset=[.2,-.1,0]
+ const placedPoint=([x,y,z])=>[pivot[0]+cosine*(x-pivot[0])-sine*(y-pivot[1])+offset[0],pivot[1]+sine*(x-pivot[0])+cosine*(y-pivot[1])+offset[1],z+offset[2]]
+ const preparedFrom=read('revisions/r0002/scene-spec.json'),members=preparedFrom.entities.filter(e=>e.id!=='studio-floor')
+ check('posed UI fixture contains the complete23-part recipe',members.length===23)
+ const hero=preparedFrom.cameras.find(c=>c.id==='hero')
+ const preparedOperations=members.map(e=>({op:'entity.transform.update',entityId:e.id,location:placedPoint(e.transform.location),rotationEuler:[e.transform.rotationEuler[0],e.transform.rotationEuler[1],e.transform.rotationEuler[2]+yaw]}))
+ // Set a fixed hero before the test starts; saved parameter edits must retain it.
+ preparedOperations.push(...preparedFrom.animationTracks.filter(t=>t.targetKind==='camera'&&t.targetEntityId==='hero').map(t=>({op:'animation.track.remove',trackId:t.id})),
+  {op:'camera.update',cameraId:'hero',transform:{location:placedPoint(hero.transform.location)},targetPoint:placedPoint(hero.targetPoint)})
+ const setupResponse=await fetch(`http://127.0.0.1:${server.port}/deepblend/projects/${id}/patch`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({baseRevision:'r0002',operations:preparedOperations,saveCheckpoint:true,renderPreview:true})})
+ const setupPayload=await setupResponse.json();save('placement-setup.json',{pose:{yaw,pivot,offset},operations:preparedOperations,status:setupResponse.status,response:setupPayload})
+ check('public patch saves the prepared lamp pose',setupResponse.ok&&Boolean(setupPayload.revision?.revision))
+ const posedRevision=setupPayload.revision.revision,posed=read(`revisions/${posedRevision}/scene-spec.json`)
+ const baselinePreview=read(`revisions/${posedRevision}/revision-manifest.json`).previews.find(p=>p.sourceRevision===posedRevision)
+ check('prepared posed revision has native bytes and a fixed hero preview',existsSync(join(root,'projects',id,'revisions',posedRevision,'scene.blend'))&&baselinePreview?.cameraId==='hero'&&Number.isInteger(baselinePreview.frame)&&Boolean(baselinePreview.cameraFacts))
+ const protectedPosed=Object.fromEntries(['scene-spec.json','scene.blend'].map(n=>{const p=join(root,'projects',id,'revisions',posedRevision,n);return[p,hash(p)]}))
+ protectedPosed[join(root,'projects',id,baselinePreview.path)]=hash(join(root,'projects',id,baselinePreview.path))
+ await page.reload();await page.waitFor(`document.querySelector('[data-lighttable-revision="${posedRevision}"]')!==null`,45000);await page.click('[data-view-tab="scene"]')
+ await page.waitFor(`document.querySelector('[data-field="assembly-shade-diameter-mm"]')?.value==='220'`,45000)
+ const beforeWrites=await page.evaluate(`window.__lampRequests.filter(r=>r.method==='POST'&&r.url.endsWith('/recipe-parameters')).length`)
+ let previousRevision=posedRevision
+ const placedResults=[]
+ for(const diameter of [250,230]){
+  await page.fill('[data-field="assembly-shade-diameter-mm"]',String(diameter))
+  check(`posed${diameter} permits a parameter save`,await page.evaluate(`document.querySelector('[data-action="assembly-save"]').disabled===false`))
+  check(`one pointer saves posed${diameter}`,(await page.click('[data-action="assembly-save"]')).via==='pointer')
+  await page.waitFor(`document.querySelector('[data-field="compare-right"]')?.value&&document.querySelector('[data-field="compare-right"]').value!==${JSON.stringify(previousRevision)}`,180000)
+  const revision=read('project.json').currentRevision,current=read(`revisions/${revision}/scene-spec.json`),expected=instantiateRecipeLock(lock,{'shade-diameter-mm':diameter}).spec
+  check(`posed${diameter} saves all23 absolute member positions and retained rotations`,members.every(member=>{
+   const entity=current.entities.find(e=>e.id===member.id),reference=expected.entities.find(e=>e.id===member.id),before=posed.entities.find(e=>e.id===member.id)
+   return entity.transform.location.every((v,axis)=>Math.abs(v-placedPoint(reference.transform.location)[axis])<=1e-12)&&JSON.stringify(entity.transform.rotationEuler)===JSON.stringify(before.transform.rotationEuler)&&JSON.stringify(entity.transform.scale)===JSON.stringify(before.transform.scale)
+  }))
+  check(`posed${diameter} has the locked shell liner and local arm geometry`,['shade-shell','shade-enamel-lining','swept-upper-arm'].every(entityId=>isDeepStrictEqual(current.entities.find(e=>e.id===entityId).generator,expected.entities.find(e=>e.id===entityId).generator)))
+  check(`posed${diameter} retains prepared photography appearance and ground`,['cameras','materials','lights','world','animationTracks'].every(field=>JSON.stringify(current[field])===JSON.stringify(posed[field]))&&JSON.stringify(current.entities.find(e=>e.id==='studio-floor'))===JSON.stringify(posed.entities.find(e=>e.id==='studio-floor')))
+  const preview=read(`revisions/${revision}/revision-manifest.json`).previews.find(p=>p.sourceRevision===revision),path=preview&&join(root,'projects',id,preview.path)
+  check(`posed${diameter} presents the saved native revision and same measured camera frame`,Boolean(preview&&existsSync(path)&&existsSync(join(root,'projects',id,'revisions',revision,'scene.blend'))&&preview.frame===baselinePreview.frame&&preview.cameraId===baselinePreview.cameraId&&preview.sourceDigest===read(`revisions/${revision}/revision-manifest.json`).digest&&JSON.stringify(preview.cameraFacts)===JSON.stringify(baselinePreview.cameraFacts)&&hash(path)===preview.sha256))
+  await page.waitFor(`(()=>{const img=document.querySelector('[data-compare="right"] img[data-artifact-revision="${revision}"]');return img?.complete&&img.naturalWidth>0&&img.dataset.artifactDigest===${JSON.stringify(preview.sha256)}})()`,45000)
+  await page.screenshot(join(output,`placed-${diameter}.png`));placedResults.push({diameter,revision,preview});previousRevision=revision
+  await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector('[data-field="assembly-shade-diameter-mm"]')?.value==='${diameter}'`,45000)
+ }
+ const afterWrites=await page.evaluate(`window.__lampRequests.filter(r=>r.method==='POST'&&r.url.endsWith('/recipe-parameters')).length`)
+ check('two posed diameter saves use exactly two semantic writes',afterWrites-beforeWrites===2)
+ await page.reload();await page.waitFor(`document.querySelector('[data-lighttable-revision="${previousRevision}"]')!==null`,45000);await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector('[data-field="assembly-shade-diameter-mm"]')?.value==='230'`,45000)
+ check('placed edits and reload preserve original and posed history bytes',Object.entries({...original,...protectedPosed}).every(([p,h])=>hash(p)===h))
+ save('posed-results.json',{setupRevision:posedRevision,frame:baselinePreview.frame,cameraId:baselinePreview.cameraId,results:placedResults,protectedPosed})
+ save('requests.json',await page.evaluate(`window.__lampRequests`));save('original-source-protection.json',original)
 }catch(e){failure=e.stack||String(e);console.error(e);await page?.screenshot(join(output,'failure.png')).catch(()=>{})}
-finally{for(const[name,close]of[['browser',()=>browser?.close()],['server',()=>server?.stop()]])try{const v=await close();if(name==='server')shutdown=v}catch(e){failure??=String(e)};console.log(`Lamp browser dimensions: ${checks.filter(c=>c.ok).length}/${checks.length} check(s) passed`);save('report.json',{status:failure?'failed':'passed',failure,checks,shutdown,scope:'Actual Chrome+Host+Blender creation/edit/refusal/reload/alignment conflict/restore on candidate. Eight-sample UI gate, not artist judgement or a real model task.'})}
+finally{for(const[name,close]of[['browser',()=>browser?.close()],['server',()=>server?.stop()]])try{const v=await close();if(name==='server')shutdown=v}catch(e){failure??=String(e)};console.log(`Lamp browser dimensions: ${checks.filter(c=>c.ok).length}/${checks.length} check(s) passed`);save('report.json',{status:failure?'failed':'passed',failure,checks,shutdown,scope:'Actual Chrome+Host+Blender creation/edit/refusal/reload/alignment conflict/restore, plus two pointer-driven parameter saves from a public-API-prepared complete posed lamp. Eight-sample UI gate, not artist judgement, independent native geometry inspection or a real model task.'})}
 if(failure)process.exitCode=1

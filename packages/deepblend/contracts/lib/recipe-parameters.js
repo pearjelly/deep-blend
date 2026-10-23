@@ -1,6 +1,7 @@
 /** Plan existing-assembly edits as ordinary, bounded ScenePatch operations. */
 import { legacyLampAssembly } from './lamp-assembly-repair.js'
 import { translatedSpeakerAssembly } from './speaker-assembly.js'
+import { placedLampAssembly } from './lamp-placement.js'
 import { placedCupCameras } from './cup-placement.js'
 import { latheShellTargets } from './lathe-shell.js'
 import { canonicalStringify, sha256Canonical } from './canonical.js'
@@ -41,7 +42,9 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   const resolvedBefore = assembly && parameterState?.assemblyRepair ? instantiateRecipeLock(assembly.currentLock(currentLock)) : savedBefore
   const resolvedAfter = instantiateRecipeLock(assembly ? assembly.currentLock(currentLock) : currentLock, changes)
   const speaker = translatedSpeakerAssembly(lock, currentSpec, resolvedBefore, resolvedAfter)
-  const cup = placedCupCameras(lock, currentSpec, speaker.before, speaker.after, parameterState)
+  const lamp = placedLampAssembly(lock, currentSpec, speaker.before, speaker.after)
+  currentSpec = lamp.current ?? currentSpec
+  const cup = placedCupCameras(lock, currentSpec, lamp.before, lamp.after, parameterState)
   const { before, after } = cup
   const parameters = recipeGeometryParameters(assembly?.manifest ?? lock.manifest)
   for (const id of Object.keys(changes)) {
@@ -122,9 +125,13 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id).dimensions[axis] = target.generator.dimensions[axis]
     } else {
-      const axes = speaker.rigidPose ? [0, 1, 2] : [axis]
+      const axes = speaker.rigidPose || lamp.rigidPose ? [0, 1, 2] : [axis]
       for (const movedAxis of axes) {
-        if (close(actual.transform.location[movedAxis], target.transform.location[movedAxis])) continue
+        // Match the lamp recognizer's absolute tolerance, independent of world position.
+        const unchanged = lamp.rigidPose
+          ? Math.abs(actual.transform.location[movedAxis] - target.transform.location[movedAxis]) <= 1e-9
+          : close(actual.transform.location[movedAxis], target.transform.location[movedAxis])
+        if (unchanged) continue
         if (!locations.has(actual.id)) locations.set(actual.id, structuredClone(actual.transform.location))
         const delta = target.transform.location[movedAxis] - entity(before.spec, actual.id).transform.location[movedAxis]
         locations.get(actual.id)[movedAxis] = target.transform.location[movedAxis]
