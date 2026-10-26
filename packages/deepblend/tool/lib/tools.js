@@ -180,7 +180,8 @@ function placeOnSurface(ctx) {
           // Preserve unknown fields so the Host can reject them rather than silently changing the intent.
           ...args,
           projectId: args.projectId, baseRevision: args.baseRevision,
-          scope: args.scope, pose: args.pose,
+          ...(args.scope === undefined ? {} : { scope: args.scope }),
+          ...(args.pose === undefined ? {} : { pose: args.pose }),
           subjectEntityId: args.subjectEntityId, supportEntityId: args.supportEntityId, frame: args.frame,
           clearanceMm: args.clearanceMm ?? 0, renderPreview: args.renderPreview ?? true,
           cameraId: args.cameraId, idempotencyKey: args.idempotencyKey, signal: exec?.signal,

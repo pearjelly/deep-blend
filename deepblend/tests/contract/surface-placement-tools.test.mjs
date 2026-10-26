@@ -46,6 +46,12 @@ test('surface placement forwards one semantic request and preserves the canonica
   assert.deepEqual(calls[1], { ...args, signal })
   assert.equal(replay.data.idempotentReplay, true)
   assert.match(replay.text, /Reused surface placement/)
+  studio.assemblyPlacementSupported = true
+  const whole = { ...request, scope: 'recipe-assembly',
+    pose: { translationMm: [200, -100, 150], yawDegrees: 35, pivotMm: [80, -30, 0] }, renderPreview: false }
+  const placed = await plane.registered.get('blender_place_on_surface').execute(whole, { signal })
+  assert.equal(placed.ok, true)
+  assert.deepEqual(calls[2], { ...whole, clearanceMm: 0, cameraId: undefined, idempotencyKey: undefined, signal })
 })
 
 test('surface placement refuses missing or mismatched Host capabilities before any mutation', async () => {
@@ -61,6 +67,14 @@ test('surface placement refuses missing or mismatched Host capabilities before a
     } finally { await plane.ctx.fiber.dispose() }
   }
   assert.equal(writes, 0)
+  const legacy = await composeToolPlane({ studio: { surfacePlacementSupported: true,
+    placeOnSurface() { writes++ } }, expectAtLeast: 19 })
+  try {
+    const result = await legacy.registered.get('blender_place_on_surface').execute({ ...request, scope: 'recipe-assembly' }, {})
+    assert.equal(result.ok, false)
+    assert.equal(result.data.errorCode, BlenderErrorCode.RUNTIME_UNAVAILABLE)
+    assert.equal(writes, 0, 'a legacy Host must not receive a complete-assembly intent')
+  } finally { await legacy.ctx.fiber.dispose() }
 })
 
 test('surface placement keeps Host refusals and unknown input intact rather than guessing a patch', async t => {
