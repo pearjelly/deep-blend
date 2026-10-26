@@ -1,0 +1,1060 @@
+{
+  "schemaVersion": "deepblend.mesh-uv-implementation/v1",
+  "recordedAt": "2026-10-26T18:22:17.117068+00:00",
+  "status": "implemented-targeted-validation-passed-not-released",
+  "operation": {
+    "name": "entity.uv.project",
+    "target": "mesh generator",
+    "quarterTurns": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "scaleRange": [
+      0.0001,
+      10000
+    ],
+    "defaults": {
+      "quarterTurns": 0,
+      "scale": 1
+    },
+    "storedField": "generator.faceUvs",
+    "rejects": [
+      "nonplanar faces",
+      "other generator shapes",
+      "imported assets",
+      "missing entities",
+      "invalid options"
+    ],
+    "keepsLegacyDefaults": true,
+    "doesNotPromise": [
+      "packed UV atlas",
+      "no UV island overlap",
+      "seamless texture",
+      "geometric joint repair",
+      "artistic approval"
+    ]
+  },
+  "nativeBrowser": {
+    "status": "passed",
+    "startedAt": "2026-10-26T18:06:59.024Z",
+    "completedAt": "2026-10-26T18:07:14.452Z",
+    "passed": 23,
+    "total": 23,
+    "fixture": "synthetic six beams from one8-vertex6-face controlbox, array3 and mirrorY",
+    "facts": {
+      "before": {
+        "geometryDigest": "9ccc8fce33a3ddf1be4ded3206b1fb7f5c1329b97f2cd6437c854370617e24c1",
+        "objectsDigest": "a5bf7bc3de6bd7309585eebc9f240abc12307b83db544d68a4379e284ae9d24b",
+        "uvMaps": {
+          "stage": [
+            {
+              "name": "UVMap",
+              "finite": true,
+              "triangleCount": 2,
+              "zeroAreaTriangleCount": 0,
+              "minimumTriangleArea": 0.5,
+              "uvDigest": "7f0936ec056bb8b3d58011c2b210a99c3062190530931f8049c479e2f7d80944"
+            }
+          ],
+          "beam": [
+            {
+              "name": "UVMap",
+              "finite": true,
+              "triangleCount": 72,
+              "zeroAreaTriangleCount": 48,
+              "minimumTriangleArea": 0.0,
+              "uvDigest": "4afe50eb3dfdbdd302007ca91499cb2c597bd8353ffda0a898c330674d3ed26b"
+            }
+          ]
+        },
+        "targetVertices": 48,
+        "targetFaces": 36
+      },
+      "after": {
+        "geometryDigest": "9ccc8fce33a3ddf1be4ded3206b1fb7f5c1329b97f2cd6437c854370617e24c1",
+        "objectsDigest": "a5bf7bc3de6bd7309585eebc9f240abc12307b83db544d68a4379e284ae9d24b",
+        "uvMaps": {
+          "stage": [
+            {
+              "name": "UVMap",
+              "finite": true,
+              "triangleCount": 2,
+              "zeroAreaTriangleCount": 0,
+              "minimumTriangleArea": 0.5,
+              "uvDigest": "7f0936ec056bb8b3d58011c2b210a99c3062190530931f8049c479e2f7d80944"
+            }
+          ],
+          "beam": [
+            {
+              "name": "UVMap",
+              "finite": true,
+              "triangleCount": 72,
+              "zeroAreaTriangleCount": 0,
+              "minimumTriangleArea": 0.0013461538791083374,
+              "uvDigest": "ba71d1558dd260dc442b56bcea72fe8e79c49a60d918039f6f0c13a8c2de98de"
+            }
+          ]
+        },
+        "targetVertices": 48,
+        "targetFaces": 36
+      }
+    },
+    "checks": [
+      {
+        "name": "opening existing mesh UV controls makes no write and leaves the saved UV choice intact",
+        "ok": true
+      },
+      {
+        "name": "a real pointer stages UV projection",
+        "ok": true
+      },
+      {
+        "name": "invalid repetitions keep the save button disabled and publish nothing",
+        "ok": true
+      },
+      {
+        "name": "desktop.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 1056,
+          "right": 1412,
+          "width": 1440,
+          "scrollWidth": 1440,
+          "ready": true
+        }
+      },
+      {
+        "name": "mobile.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 16,
+          "right": 374,
+          "width": 390,
+          "scrollWidth": 390,
+          "ready": true
+        }
+      },
+      {
+        "name": "desktop-dark.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 1056,
+          "right": 1412,
+          "width": 1440,
+          "scrollWidth": 1440,
+          "ready": true
+        }
+      },
+      {
+        "name": "mobile-dark.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 16,
+          "right": 374,
+          "width": 390,
+          "scrollWidth": 390,
+          "ready": true
+        }
+      },
+      {
+        "name": "invalid repeats link adjacent range feedback and keep Save disabled",
+        "ok": true
+      },
+      {
+        "name": "desktop-error.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 1056,
+          "right": 1412,
+          "width": 1440,
+          "scrollWidth": 1440,
+          "ready": true
+        }
+      },
+      {
+        "name": "mobile-error.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 16,
+          "right": 374,
+          "width": 390,
+          "scrollWidth": 390,
+          "ready": true
+        }
+      },
+      {
+        "name": "desktop-dark-error.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 1056,
+          "right": 1412,
+          "width": 1440,
+          "scrollWidth": 1440,
+          "ready": true
+        }
+      },
+      {
+        "name": "mobile-dark-error.png controls fit the viewport and preview is loaded",
+        "ok": true,
+        "detail": {
+          "left": 16,
+          "right": 374,
+          "width": 390,
+          "scrollWidth": 390,
+          "ready": true
+        }
+      },
+      {
+        "name": "draft changes wait for Save",
+        "ok": true
+      },
+      {
+        "name": "Save is reachable with a real pointer",
+        "ok": true
+      },
+      {
+        "name": "one save sends only the semantic UV request against its original revision",
+        "ok": true
+      },
+      {
+        "name": "the saved spec changes only explicit UVs",
+        "ok": true
+      },
+      {
+        "name": "actual before and after previews have equal render settings",
+        "ok": true
+      },
+      {
+        "name": "the UV save reaches actual rendered pixels",
+        "ok": true,
+        "detail": {
+          "changedPixels": 2809,
+          "beforePixels": "01746d0383e147443c7a06b1d70f5f7d37130047d5cba9eab4e64c8f1a659d3b",
+          "afterPixels": "7b997f7648dc5ff5d24cee3d1a3a2c46ec17560178b7b292a04c7fa21fa3f6b4"
+        }
+      },
+      {
+        "name": "independent reopening finds 48 collapsed UV triangles repaired and identical native geometry",
+        "ok": true,
+        "detail": {
+          "before": {
+            "geometryDigest": "9ccc8fce33a3ddf1be4ded3206b1fb7f5c1329b97f2cd6437c854370617e24c1",
+            "objectsDigest": "a5bf7bc3de6bd7309585eebc9f240abc12307b83db544d68a4379e284ae9d24b",
+            "uvMaps": {
+              "stage": [
+                {
+                  "name": "UVMap",
+                  "finite": true,
+                  "triangleCount": 2,
+                  "zeroAreaTriangleCount": 0,
+                  "minimumTriangleArea": 0.5,
+                  "uvDigest": "7f0936ec056bb8b3d58011c2b210a99c3062190530931f8049c479e2f7d80944"
+                }
+              ],
+              "beam": [
+                {
+                  "name": "UVMap",
+                  "finite": true,
+                  "triangleCount": 72,
+                  "zeroAreaTriangleCount": 48,
+                  "minimumTriangleArea": 0,
+                  "uvDigest": "4afe50eb3dfdbdd302007ca91499cb2c597bd8353ffda0a898c330674d3ed26b"
+                }
+              ]
+            },
+            "targetVertices": 48,
+            "targetFaces": 36
+          },
+          "after": {
+            "geometryDigest": "9ccc8fce33a3ddf1be4ded3206b1fb7f5c1329b97f2cd6437c854370617e24c1",
+            "objectsDigest": "a5bf7bc3de6bd7309585eebc9f240abc12307b83db544d68a4379e284ae9d24b",
+            "uvMaps": {
+              "stage": [
+                {
+                  "name": "UVMap",
+                  "finite": true,
+                  "triangleCount": 2,
+                  "zeroAreaTriangleCount": 0,
+                  "minimumTriangleArea": 0.5,
+                  "uvDigest": "7f0936ec056bb8b3d58011c2b210a99c3062190530931f8049c479e2f7d80944"
+                }
+              ],
+              "beam": [
+                {
+                  "name": "UVMap",
+                  "finite": true,
+                  "triangleCount": 72,
+                  "zeroAreaTriangleCount": 0,
+                  "minimumTriangleArea": 0.0013461538791083374,
+                  "uvDigest": "ba71d1558dd260dc442b56bcea72fe8e79c49a60d918039f6f0c13a8c2de98de"
+                }
+              ]
+            },
+            "targetVertices": 48,
+            "targetFaces": 36
+          }
+        }
+      },
+      {
+        "name": "replaying the same saved request returns the original revision without another checkpoint",
+        "ok": true
+      },
+      {
+        "name": "refresh shows saved UVs without staging a second rebuild",
+        "ok": true
+      },
+      {
+        "name": "the original spec, checkpoint and preview remain byte-identical",
+        "ok": true
+      },
+      {
+        "name": "the workflow made no hidden review or model request",
+        "ok": true
+      }
+    ],
+    "sourceBeforeProtected": {
+      "revisions/r0001/scene-spec.json": "049b343f84e1cfd973adc946d0ac234fad0c9be1200521c22c288e70d6b24fd0",
+      "revisions/r0001/scene.blend": "3ed391b185955b1a9f29caab89de8d9224c9ecf1332176e6a3604df01f4165d1",
+      "revisions/r0001/previews/camera-main.png": "7bbb95b6e07cdd3934ce3dba06003676e27127c4fbd9b9a0929cb39d25ec4a91"
+    },
+    "replay": "same request returned r0002 with idempotentReplay true; no r0003",
+    "rawProofs": [
+      {
+        "file": "report.json",
+        "bytes": 6720,
+        "sha256": "d8f6e3cfd089a569397aafa295c7144045a2dbcc66202511c0ca2b259dd4d242"
+      },
+      {
+        "file": "requests.json",
+        "bytes": 451,
+        "sha256": "2381b8833aa3d09435a5fd8fa824a4c2164eb86fd95ff0860acb92bf7fa200c3"
+      },
+      {
+        "file": "replay.json",
+        "bytes": 9937,
+        "sha256": "871e68dc2acfc7b3c2f245c27c91f769a3d1e84e4fdd053dc5791ba3e3d492a2"
+      },
+      {
+        "file": "native-readback.json",
+        "bytes": 1732,
+        "sha256": "5dff7cdadef6539aee9abefe3b6d5f67e7d960107d2fa499e66223e7cb929c4f"
+      },
+      {
+        "file": "native-readback.log",
+        "bytes": 446,
+        "sha256": "8c50c23bc9b7537b04171d2cdd6e763e04c3b527ca1f1c5cc75877847ed56a51"
+      }
+    ],
+    "scope": "Synthetic six-beam fixture, real browser/Host/Blender, independent reopening, exact UV triangle area and equal-setting pixel change; no model calls, atlas packing, seam or artistic approval."
+  },
+  "design": {
+    "mode": "Operate",
+    "world": "existing user-approved 光台",
+    "contextRuns": 1,
+    "detectorRuns": 1,
+    "detectorFindings": [],
+    "initialReviewDisposition": "fix",
+    "fix": "UV repetitions finite bounds need adjacent translated range feedback, aria-invalid and aria-describedby",
+    "verdictPassDisposition": "ship",
+    "verdictPassScope": "The one listed material fix was scored resolved; this is not whole-surface reapproval.",
+    "documentation": "Ordinary extension preserves incumbent PRODUCT/DESIGN/sidecar/surface files byte-for-byte; pre-existing DESIGN-sidecar drift reported and not repaired.",
+    "requiredCaptureFiles": [
+      "desktop.png",
+      "mobile.png",
+      "desktop-dark.png",
+      "mobile-dark.png",
+      "desktop-error.png",
+      "mobile-error.png",
+      "desktop-dark-error.png",
+      "mobile-dark-error.png"
+    ],
+    "sourceReviews": "fresh shipped Impeccable reviewer and documenter",
+    "rawDocumentationProof": {
+      "file": "documentation-check.json",
+      "bytes": 7812,
+      "sha256": "d104057d2eedcf75f419228f4503d1cea39e935d473be0c6b3cb2f5acf930cf5"
+    },
+    "finalEquivalentTranslationRefactor": {
+      "reason": "Expose both literal t() keys to the existing static key contract; text, state, validation and layout unchanged.",
+      "canonicalClientSha256": "1b5625048e51a9910d09e5cdd47b3f2ba5f524c9a2dfa0f8985582cb8f80f60b",
+      "reviewerConfirmation": "Does not reopen the sole resolved fix; ship remains scoped to that fix.",
+      "documenterRecheck": {
+        "file": "documentation-recheck.json",
+        "sha256": "678a26611ed2ae854bf169055a5b9275d088a2b70982f8352ab20fcc8ab4e0d9"
+      }
+    }
+  },
+  "mutations": {
+    "coreAndDraft": {
+      "results": [
+        {
+          "name": "common-density",
+          "file": "packages/deepblend/contracts/lib/mesh-uv.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ every beam face has usable UV area with common density and intact aspect ratio (1.33175ms)",
+            "✖ failing tests:",
+            "✖ every beam face has usable UV area with common density and intact aspect ratio (1.33175ms)"
+          ]
+        },
+        {
+          "name": "quarter-turn",
+          "file": "packages/deepblend/contracts/lib/mesh-uv.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.713125ms)",
+            "✖ failing tests:",
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.713125ms)"
+          ]
+        },
+        {
+          "name": "repetition-scale",
+          "file": "packages/deepblend/contracts/lib/mesh-uv.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.725375ms)",
+            "✖ failing tests:",
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.725375ms)"
+          ]
+        },
+        {
+          "name": "nonplanar-refusal",
+          "file": "packages/deepblend/contracts/lib/mesh-uv.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ nonplanar, missing and wrong targets refuse atomically without changing earlier operations (1.611791ms)",
+            "✖ failing tests:",
+            "✖ nonplanar, missing and wrong targets refuse atomically without changing earlier operations (1.611791ms)"
+          ]
+        },
+        {
+          "name": "finite-area",
+          "file": "packages/deepblend/contracts/lib/mesh-uv.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.975125ms)",
+            "✖ failing tests:",
+            "✖ every beam face has usable UV area with common density and intact aspect ratio (3.310625ms)",
+            "✖ explicit quarter turns rotate each island and scale controls repetitions (0.975125ms)"
+          ]
+        },
+        {
+          "name": "no-op-audit",
+          "file": "packages/deepblend/contracts/lib/scene-patch.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ projection replaces only UVs, retains old runtime compatibility and repeats as a no-op (4.611458ms)",
+            "✖ failing tests:",
+            "✖ projection replaces only UVs, retains old runtime compatibility and repeats as a no-op (4.611458ms)"
+          ]
+        },
+        {
+          "name": "geometry-preservation",
+          "file": "packages/deepblend/contracts/lib/scene-patch.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ projection replaces only UVs, retains old runtime compatibility and repeats as a no-op (5.010041ms)",
+            "✖ failing tests:",
+            "✖ projection replaces only UVs, retains old runtime compatibility and repeats as a no-op (5.010041ms)"
+          ]
+        },
+        {
+          "name": "ui-projection-staged",
+          "file": "packages/deepblend/ui/lib/client.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ surface placement editor preserves geometry and exposes bounded typed controls (51.084791ms)",
+            "✖ mesh UV controls preserve existing UVs until explicitly staged and save one semantic operation (3.626875ms)",
+            "✖ UV projection is ordered after geometry changes and is unavailable on other shapes (16.132416ms)",
+            "✖ a refused UV request retains settings for correction and reset returns to the saved UVs (6.812ms)"
+          ]
+        },
+        {
+          "name": "ui-no-save-op",
+          "file": "packages/deepblend/ui/lib/client.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ failing tests:",
+            "✖ mesh UV controls preserve existing UVs until explicitly staged and save one semantic operation (9.060125ms)",
+            "✖ UV projection is ordered after geometry changes and is unavailable on other shapes (3.56325ms)",
+            "✖ a refused UV request retains settings for correction and reset returns to the saved UVs (5.365542ms)"
+          ]
+        },
+        {
+          "name": "ui-input-bounds",
+          "file": "packages/deepblend/ui/lib/client.js",
+          "status": 1,
+          "killed": true,
+          "failedTests": [
+            "✖ invalid UV repeats disable saving and canceling projection leaves no pending change (4.407458ms)",
+            "✖ failing tests:",
+            "✖ invalid UV repeats disable saving and canceling projection leaves no pending change (4.407458ms)"
+          ]
+        }
+      ],
+      "sourceRestored": true,
+      "sourceHashes": {
+        "packages/deepblend/contracts/lib/mesh-uv.js": "749511994a50c9789ea55f9090702ea640275c8546cd33591b80aa4ca3105da3",
+        "packages/deepblend/contracts/lib/scene-patch.js": "a5a7ed089eba0468fe2cceaa884c2cb7c3319a7578950ae7a880890829abab34",
+        "packages/deepblend/ui/lib/client.js": "28fb299347d59621f2171a0f12e4ef2baf091692ecbc973f3309d59c3800f219"
+      }
+    },
+    "rangeFeedback": {
+      "results": [
+        {
+          "name": "finite-bounds",
+          "status": 1,
+          "killed": true
+        },
+        {
+          "name": "linked-feedback",
+          "status": 1,
+          "killed": true
+        },
+        {
+          "name": "range-message",
+          "status": 1,
+          "killed": true
+        }
+      ],
+      "sourceRestored": true,
+      "sourceSha": "d7abc42720287e8d82c876a5ce67f9468d52776ff94a46e37c38fbac023ce682"
+    },
+    "a11yFirstControllerFailure": "An unanchored duplicate aria-describedby selector was rejected before that mutation; sources restored; exact-context replacement was used in v2.",
+    "documentationProvenance": {
+      "results": [
+        {
+          "name": "source-binding",
+          "status": 1,
+          "killed": true
+        },
+        {
+          "name": "image-binding",
+          "status": 1,
+          "killed": true
+        }
+      ],
+      "sourceRestored": true
+    }
+  },
+  "retainedHarnessFailures": [
+    {
+      "attempt": "editor-baseline-v1",
+      "reason": "Used unrelated global DSH26; startup failed before preview."
+    },
+    {
+      "attempt": "editor-baseline-v2",
+      "reason": "Browser predicate quoting was invalid; no product UV editor yet."
+    },
+    {
+      "attempt": "mesh-uv-ui-v1",
+      "reason": "Fixture had forbidden frameStart/frameEnd fields in render profile; rejected."
+    },
+    {
+      "attempt": "mesh-uv-ui-v2",
+      "reason": "Fixture frameEnd equaled frameStart; rejected."
+    },
+    {
+      "attempt": "mesh-uv-ui-v3",
+      "reason": "Multi-statement browser expression needed an IIFE;3checks passed then harness failed before planned captures."
+    }
+  ],
+  "pending": [
+    "fresh real model comparison",
+    "final frozen full49 acceptance",
+    "exact-commit GitHub CI",
+    "clean build/install validation",
+    "GitHub Release/npm/community standard publication"
+  ],
+  "exploratoryContractRuns": [
+    {
+      "attempt": "unit-v1",
+      "passed": 149,
+      "total": 155,
+      "scope": "Not frozen, not final acceptance. Missing isolated home/cache plus stale counts/current-client media and literal translation key discovery."
+    },
+    {
+      "attempt": "unit-v2",
+      "passed": 154,
+      "total": 155,
+      "scope": "Same feature; only no-dependency clone README quote mismatched actual30/155; corrected before next run."
+    }
+  ],
+  "readinessContracts": {
+    "observedAt": "2026-10-26T19:13:04.278131+00:00",
+    "status": "readiness-contract-run-passed",
+    "exitCode": 0,
+    "sourceHead": "9e2b9be4d8ee7e37e3f92467039e9ec1b7c4b59b",
+    "sourceIndexTree": "4d349c91f79969d538b4d5965e4e41ff5059d3ae",
+    "worktreeMatchesStagedFiles": true,
+    "files": 155,
+    "selfPrintingFiles": 34,
+    "selfPrintingAssertions": 2132,
+    "nodeTestFiles": 121,
+    "nodeTestCases": 2149,
+    "rawLog": {
+      "file": "run.log",
+      "bytes": 537572,
+      "sha256": "5d10ecf388aeabb59c27fc0c4df4502ac5ffd276ed1b66243dbac61222acee3d"
+    },
+    "scope": "Readiness run from staged candidate bytes; final clean-commit frozen49-suite acceptance remains pending."
+  },
+  "modelAttemptsV1": {
+    "sourceCommit": "168bc7699c0e0ff21b1da40b152277f3d3fb3f7f",
+    "eachArmFreshSession": true,
+    "sameTaskAndSourceImage": true,
+    "maximumModelRequestsPerArm": 10,
+    "automaticRetries": 0,
+    "baseline022": {
+      "status": "incomplete",
+      "requests": 4,
+      "toolCalls": 5,
+      "reason": "Fourth model stream terminated; no UV edit. This is a transport failure, not a comparative plugin-quality result."
+    },
+    "candidate023": {
+      "status": "incomplete-final-answer",
+      "requests": 10,
+      "toolCalls": 12,
+      "revision": "r0003",
+      "operations": [
+        {
+          "op": "entity.uv.project",
+          "entityId": "pagoda-rafters-1",
+          "quarterTurns": 0,
+          "scale": 4
+        },
+        {
+          "op": "entity.uv.project",
+          "entityId": "pagoda-rafters-1-ew",
+          "quarterTurns": 0,
+          "scale": 4
+        }
+      ],
+      "nativeFacts": "Both arrays400collapsedUVtriangles to0; vertices,faces,normals,objects and five source-camera samples unchanged; only faceUvs changed in saved spec.",
+      "image": {
+        "kind": "beauty diagnostic",
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "width": 1920,
+        "height": 1080,
+        "requestedSamples": 32,
+        "actualSamples": 16,
+        "sha256": "37be20f3c4aca3b4f8a1bee89c07564819e5bd85d6a5cd67cc9a63415a3fdde5"
+      },
+      "reason": "Six source greps preceded the save; request limit reached after the actual image and before a final answer."
+    },
+    "methodologyCorrection": "The original oracle demanded normal preview history with768x432settings. A source-bound beauty inspection also satisfies the natural-language image request. Preserve the original predicate failure; it does not mean no image was rendered. Differing render settings must be reported separately, not used to fabricate a speed or pixel comparison.",
+    "nextChanges": "Public contract now states local U/V orientation, UV-coordinate rotation, pre-modifier projection and preview-kind distinction. New protocol will accept both properly bound material image kinds with an explicit12request limit and fresh sessions."
+  },
+  "interruptedFullAcceptanceV1": {
+    "sourceCommit": "168bc7699c0e0ff21b1da40b152277f3d3fb3f7f",
+    "sourceFiles": 1036,
+    "exitCode": -15,
+    "passed": false,
+    "allSourceBytesUnchanged": true,
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections"
+    ],
+    "failureLines": [],
+    "logSha256": "ced3574dc513a5cf736d0b3deb3b16ca73a59452a84874c55a71834a55a78dfe",
+    "reason": "Stopped the owned suite before editing model-facing semantics after the real-task finding; seven suites passed, no suite failed before interruption. This is not a full49pass."
+  },
+  "naturalLanguageV2": {
+    "status": "candidate-task-completed-comparison-inconclusive",
+    "candidateSourceCommit": "ee93381571e8ba1da9446ee11923ac0bd4f04b7d",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "reasoningEffort": "max",
+    "requestMaxOutputTokens": 256000,
+    "attemptsPerArm": 1,
+    "limits": {
+      "modelRequests": 12,
+      "toolCalls": 40,
+      "wallMs": 480000
+    },
+    "candidate": {
+      "completed": true,
+      "modelRequests": 11,
+      "toolCalls": 16,
+      "independentChecksPassed": 16,
+      "savedRevision": "r0003",
+      "operations": 2,
+      "quarterTurns": 0,
+      "scale": 2,
+      "presentedPreview": {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "dimensions": [
+          768,
+          432
+        ],
+        "samples": 16
+      },
+      "sourceOnlyUvChanged": true,
+      "nativeGeometryAndObjectFactsUnchanged": true,
+      "cameraSamples": [
+        1,
+        261,
+        390,
+        520,
+        900
+      ],
+      "collapsedUvTrianglesBeforePerArray": 400,
+      "collapsedUvTrianglesAfterPerArray": 0,
+      "rootViewedActualImages": 3
+    },
+    "baseline": {
+      "completed": false,
+      "modelRequests": 1,
+      "toolCalls": 0,
+      "failure": "model-network-failure-no-retry"
+    },
+    "comparisonConclusion": "inconclusive; no superiority, speed or aggregate success-rate claim",
+    "totalModelRequestsAcrossBothCohorts": 26,
+    "imageOracleCalibrationCases": 12,
+    "automaticRetries": 0,
+    "continuationUserMessages": 0,
+    "narrationLimitation": "Final answer rounded exposure to0.180 before comparing with0.18; raw unrounded values retained.",
+    "sourceBindingScope": "Final checks compare the complete202-file shipped package/canonical preset/root manifest inventory and every actual frozen model byte; model origin remains ee933815. Later changes are restricted to explicitly declared CI preparation, contracts, README and evidence/community documentation. Product paths and modes may not change."
+  },
+  "additionalCanonicalLiveChecks": {
+    "toolCard": {
+      "passed": 10,
+      "total": 10,
+      "exitCode": 0
+    },
+    "visualReviewer": {
+      "passed": 10,
+      "total": 14,
+      "exitCode": 1,
+      "firstCallFailure": "terminated response stream",
+      "laterRoundsAnswered": true,
+      "notRetriedOrRelabeledAsPass": true
+    }
+  },
+  "secondFrozenReadinessRun": {
+    "sourceCommit": "ee93381571e8ba1da9446ee11923ac0bd4f04b7d",
+    "completed": false,
+    "exitCode": -15,
+    "sourceBytesUnchanged": true,
+    "completedSuites": 39,
+    "failureLines": [],
+    "reasonStopped": "Freeze actual model evidence and canonical community description before the final uninterrupted49-suite acceptance. Never stitch these partial results into a full pass."
+  },
+  "completedFrozenFullV3": {
+    "startedAt": "2026-10-26T21:22:43.818684+00:00",
+    "finishedAt": "2026-10-26T22:18:29.308411+00:00",
+    "sourceCommit": "4e03b884c9c24b5a636f5c051c038bcbc4289dcc",
+    "versions": {
+      "node": "v24.22.0",
+      "npm": "11.20.0",
+      "pnpm": "10.28.2",
+      "dsh": "0.1.5-rc.2",
+      "python3": "Python 3.14.2",
+      "ffmpeg": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobe": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+    },
+    "sourceFiles": 1036,
+    "allSourceBytesUnchanged": true,
+    "runtimeExecutable": "/Users/hxb/.codex/worktrees/assembly-parameters/deepblend-isolated-dsh-061/node_modules/@deepseek-ai/dsh/lib/bin.js",
+    "runtimeExecutableSha256": "0ff7f1d72c4e0cbe14001709c81e20a04b70464118a7f78568952988e28f2ac5",
+    "runtimeExecutableUnchanged": true,
+    "changedPaths": [],
+    "exitCode": 0,
+    "passed": true,
+    "logSha256": "e4dece95a09be8f85ed79fe573969bed4b50e72cd22d9dd5306bc538b93ff9b6",
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all nineteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Mesh UV projection: real editor save, native area and revision protection",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection",
+      "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls",
+      "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal",
+      "Complete view workbench: native23-member fit, preserved animation and exact refresh replay",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "failureLines": [],
+    "scope": "Unmodified canonical 49-suite run-all entry. Paid live suites are excluded from this canonical entry; their separate actual outcomes are retained. The exact source and all tracked bytes are checked before/after."
+  },
+  "ciFontPreparationFix": {
+    "status": "readiness-passed-final-source-ci-and-full49-pending",
+    "failedWorkflow": 40403858406,
+    "failedCupJobs": [
+      121856437648,
+      121879196133
+    ],
+    "attempts": 2,
+    "nativeCupSteps": "not-started",
+    "failuresPreserved": true,
+    "rootCause": "Large fonts-noto-cjk download via Ubuntu Azure HTTP mirror exceeded outer300000ms command limit twice before native tests.",
+    "strategy": "Authenticated current APT metadata; bounded official HTTPS primary then one transport-only official mirror fallback; ordinary-file size/SHA256/dpkg-deb identity, rehashed cache, installed version and actual CJK family.",
+    "mutationFirstPass": {
+      "count": 29,
+      "caught": 22,
+      "notCaught": 7,
+      "cause": "Six production-path assertions excluded by name filter; one size check masked by general hash rejection.",
+      "retained": true
+    },
+    "mutationFinal": {
+      "passed": true,
+      "sourceRestored": true,
+      "results": [
+        {
+          "name": "duplicate-metadata",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "5190fdf3d8672337ef76a547aa1c2356798424665041f8cf70b6a60c428640d8"
+        },
+        {
+          "name": "package-name",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "24df35d3d72eb4ac1255c4c2edaecc53fd5ac91f718709b5619db7c66f27fa4e"
+        },
+        {
+          "name": "metadata-version",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "b728267a198ca39eed1a50288627bda76687ee054ba3763f3cde6346189b9616"
+        },
+        {
+          "name": "metadata-architecture",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c085653b3f612d44039013b5b2a273ce85cca875b39db06666dd29eb58fe951c"
+        },
+        {
+          "name": "metadata-path",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "308fb72cfb8d9267c0e570fd605a0869b7df4958ee1bf8aeeefb817faaaee33f"
+        },
+        {
+          "name": "metadata-size",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "36fd684d909440b5650702f0304e568e0eb963ec614ca0d74ad3d613056f8704"
+        },
+        {
+          "name": "metadata-safe-integer",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "347b6f28a07c2d0f0aa3ae026767c879a5344b717dcea70d624378833856e5b5"
+        },
+        {
+          "name": "metadata-digest",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e5f7837d6728c651246461856c74bf59b3304b21b9524b3707f1238aadf889b8"
+        },
+        {
+          "name": "archive-size",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "b7aca1920db2f19acfeea973423760a963641d063b052c49c0c8f7d9174c3cc3"
+        },
+        {
+          "name": "archive-hash",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "77f63891e076dc2b74ada296e108a99e78de72aae3e205a6e59c0e877e679203"
+        },
+        {
+          "name": "archive-identity",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "138660cafd6b89edc07294b8a7df3eca2a4a6968d69e5eaab50dfc063ca0f64f"
+        },
+        {
+          "name": "cache-symlink",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "2e504f5d6df5f70187104afcb26e890f27d325ab156e0a0bd44e76b1009ce9aa"
+        },
+        {
+          "name": "cache-rehash",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c347bd7a01093285e4a70889f30df59cc0ead431081fa75b620ecc9783c2906b"
+        },
+        {
+          "name": "connect-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "ba14447b98c06d2c61cf0aecb869684b5518e0d43808567592436d02f7f186ab"
+        },
+        {
+          "name": "wall-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "351ae0af1c706e75e398d95b1f8a72ba7a849ae9745c829312bea0b2440a9b28"
+        },
+        {
+          "name": "speed-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "8907105f3f3fd48d912a02fe7cb237bb6de7ca509bcdb0b33560de5372b5e32f"
+        },
+        {
+          "name": "idle-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c4b63597e298eced335bf23811f62059c9b886b62fcbbfed45489a71e48e4bbf"
+        },
+        {
+          "name": "https-only",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "ccf72fc08953b1a1ea6b2264060d83a1571714ff0a252bfd7c1fe0a5034ff89a"
+        },
+        {
+          "name": "local-package-argument",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "db0062ce7d968593f803e232acf0876ad8136a96a8b3b0c3b5adcce088020b9e"
+        },
+        {
+          "name": "transport-fallback",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "840d3512313047849a02b2978f673b69da27b2ee59e7a857e4cbbec0f2ba92ed"
+        },
+        {
+          "name": "http-not-transport",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "7725c72301ff09aecc6aa53b751cb71ecb3d202a4a8adf92831363548f7428db"
+        },
+        {
+          "name": "partial-cleanup",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "8801f3aef2dba9a8f0340e9235a5c5ab46dd098ef0b14504389a353ac2d13322"
+        },
+        {
+          "name": "installed-version",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "681613fe5644dd263bd6b5f51888dfb7b655708f5b2a055fe3d1b3f94f549941"
+        },
+        {
+          "name": "font-family",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "22afb14649d86c02f40a2dd517bc3518ac7fcea6ebde936c4c00626677863468"
+        },
+        {
+          "name": "report-success",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "eefdbf2783834a4e410a74ac9f742bff7bef684333218179f74bb78c0e84f683"
+        },
+        {
+          "name": "report-failure",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e04bd462c71122c38c2c2b3414440203fb696de0c7ac9e861cc0005e898ba8ab"
+        },
+        {
+          "name": "report-attempt",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e949432df7403ebc81ec42e3e4deb193c3ec7ecae3d09b09a2b857ddbaf484f9"
+        },
+        {
+          "name": "fontconfig-install",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "861dfd734acfa23fd486a8feb62e8f77b47674993c926b2a1236549cfca73bca"
+        },
+        {
+          "name": "cache-namespace",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "90dfcc5544f621a2fecd6f5ab6ec474542104e534a6416a1c68606f1113a6e29"
+        }
+      ]
+    },
+    "readinessContract": {
+      "exitCode": 0,
+      "fileSuitesPassed": 155,
+      "fileSuitesTotal": 155,
+      "logSha256": "8169c77ba55378945b308ba830ecbc8a005f37adf084c28c00edaeb519935c1b",
+      "scope": "Actual precommit CI font fix working-tree readiness; final frozen canonical49 acceptance is separate."
+    },
+    "countSnapshot": {
+      "files": 155,
+      "selfPrintingFiles": 34,
+      "selfPrintingAssertions": 2132,
+      "nodeTestFiles": 121,
+      "nodeTestCases": 2156,
+      "rawLog": {
+        "file": "unit-run.log",
+        "bytes": 538373,
+        "sha256": "8169c77ba55378945b308ba830ecbc8a005f37adf084c28c00edaeb519935c1b"
+      }
+    },
+    "newFontHelperShippedInPlugin": false,
+    "runtimePinsChanged": false,
+    "sourceProductFileCount": 202,
+    "modelCallsAdded": 0
+  }
+}

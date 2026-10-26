@@ -490,6 +490,15 @@ window.__ModuleLoader__.load({
       'editor.mesh': '自定义曲面',
       'editor.meshCounts': '控制网格：{vertices} 个顶点，{faces} 个面',
       'editor.smoothSurface': '平滑表面',
+      'editor.uv.title': '纹理坐标',
+      'editor.uv.saved': '当前使用已保存的逐面 UV。',
+      'editor.uv.automatic': '当前使用默认平面 UV；部分朝向可能出现纹理拉伸。',
+      'editor.uv.project': '保存时逐面重建 UV',
+      'editor.uv.help': '适合木纹等重复纹理。保存会替换当前 UV；各面可重叠，不用于烘焙贴图，也不保证跨面无缝。',
+      'editor.uv.direction': '纹理方向',
+      'editor.uv.scale': '纹理重复',
+      'editor.uv.scaleInvalid': '请输入 0.0001 到 10000 之间的重复次数。',
+      'editor.uv.scaleHelp': '最长局部网格边界跨度内的重复次数。只改变纹理坐标，保存后查看实际预览。',
       'editor.subdivision': '曲面细分',
       'editor.surfaceScatter': '封闭表面布置',
       'editor.scatterTargets': '依附物体（逗号分隔）',
@@ -1243,6 +1252,15 @@ window.__ModuleLoader__.load({
       'editor.mesh': 'Custom surface',
       'editor.meshCounts': 'Control mesh: {vertices} vertices, {faces} faces',
       'editor.smoothSurface': 'Smooth surface',
+      'editor.uv.title': 'Texture coordinates',
+      'editor.uv.saved': 'Using saved per-face UVs.',
+      'editor.uv.automatic': 'Using default planar UVs; some face directions may stretch the texture.',
+      'editor.uv.project': 'Rebuild UVs per face on save',
+      'editor.uv.help': 'For repeating textures such as wood grain. Saving replaces current UVs; faces can overlap. Not a bake atlas or a seamless unwrap.',
+      'editor.uv.direction': 'Texture direction',
+      'editor.uv.scale': 'Texture repetitions',
+      'editor.uv.scaleInvalid': 'Enter repetitions from 0.0001 to 10000.',
+      'editor.uv.scaleHelp': 'Repetitions across the longest local mesh extent. Only texture coordinates change; check the saved preview.',
       'editor.subdivision': 'Surface subdivision',
       'editor.surfaceScatter': 'Closed surface placement',
       'editor.scatterTargets': 'Support objects (comma separated)',
@@ -2448,6 +2466,7 @@ window.__ModuleLoader__.load({
       do { cloneId = `ui-material-${Date.now().toString(36)}-${++editorSequence}` }
       while (scene.nodes.materials.some(item => item.id === cloneId))
       return { projectId, entityId, baseRevision: scene.revision, original, entity: editorClone(original),
+        uvProjection: null,
         materials: editorClone(scene.nodes.materials), entities: editorClone(scene.nodes.entities),
         tracks: editorClone(scene.nodes.animationTracks || []), cloneId,
         material: { id: material?.id || '', definition: editorClone(material?.definition || null),
@@ -2504,6 +2523,11 @@ window.__ModuleLoader__.load({
           && editorTrackLocked(draft, 'entity', draft.entityId, `${key}.${EDITOR_AXES[axis]}`)) bad(`${key}.${EDITOR_AXES[axis]}`)
       }
       const generator = draft.entity.generator
+      if (draft.uvProjection != null) {
+        if (draft.entity.kind !== 'generator' || generator?.shape !== 'mesh') bad(t('editor.uv.title'))
+        scalar(draft.uvProjection.quarterTurns, t('editor.uv.direction'), 0, 3, true)
+        scalar(draft.uvProjection.scale, t('editor.uv.scale'), 0.0001, 10000)
+      }
       if (generator) {
         if (generator.dimensions !== undefined) {
           if (!['cube', 'rounded_box'].includes(generator.shape) || generator.size !== undefined
@@ -2627,6 +2651,7 @@ window.__ModuleLoader__.load({
       for (const key of ['location', 'rotationEuler']) if (!editorEqual(entity.transform[key], original.transform[key])) transform[key] = editorClone(entity.transform[key])
       if (Object.keys(transform).length > 2) operations.push(transform)
       if (!editorEqual(entity.generator, original.generator)) operations.push({ op: 'entity.generator.set', entityId: draft.entityId, generator: editorClone(entity.generator) })
+      if (draft.uvProjection != null) operations.push({ op: 'entity.uv.project', entityId: draft.entityId, ...editorClone(draft.uvProjection) })
       if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
       const material = draft.material.definition, baseMaterial = editorMaterialOriginal(draft)
       const changedProperties = material && baseMaterial ? ['baseColor', 'roughness'].filter(key => !editorEqual(material.parameters?.[key], baseMaterial.parameters?.[key])) : []
@@ -4683,7 +4708,8 @@ window.__ModuleLoader__.load({
         },
         updateEditor: (section, path, value) => {
           const current = editorDraftFor(data)
-          if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material'].includes(section)) return
+          if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material', 'uvProjection'].includes(section)) return
+          if (section === 'uvProjection' && (current.entity.kind !== 'generator' || current.entity.generator?.shape !== 'mesh')) return
           if (!Array.isArray(path) || path.some(key => ['__proto__', 'constructor', 'prototype'].includes(String(key)))) return
           if (section === 'generator' && path[0] === 'bevel' && path.length === 1 && value === undefined && current.entity.generator?.shape === 'rounded_box') return
           if (section === 'transform' && editorTrackLocked(current, 'entity', current.entityId, `${path[0]}.${EDITOR_AXES[path[1]]}`)) return
@@ -4692,7 +4718,7 @@ window.__ModuleLoader__.load({
           const draft = editorClone(current)
           if (section === 'material' && path.length === 1 && path[0] === 'id') editorSelectMaterial(draft, value)
           else {
-            const parent = section === 'material' ? draft : draft.entity
+            const parent = ['material', 'uvProjection'].includes(section) ? draft : draft.entity
             if (path.length === 0) parent[section] = editorClone(value)
             else {
               let object = parent[section]
@@ -5491,7 +5517,7 @@ window.__ModuleLoader__.load({
       const numeric = (label, field, value, update, options = {}) => {
         const factor = options.factor ?? 1
         const displayed = Number.isFinite(value) ? Math.round(value * factor * 1e9) / 1e9 : ''
-        const invalid = !Number.isFinite(value) && !disabled && options.disabled !== true
+        const invalid = (options.invalid === true || !Number.isFinite(value)) && !disabled && options.disabled !== true
         const errorId = `${draft.projectId}-${draft.entityId}-${field}-error`
         return el('label', { className: 'db-row', key: field }, el('span', null, label), el('span', { className: 'db-number-control' }, el('input', {
           className: 'db-input', type: 'number', 'data-field': field, 'aria-label': label,
@@ -5499,7 +5525,7 @@ window.__ModuleLoader__.load({
           value: displayed, step: options.step ?? (options.integer ? 1 : 'any'),
           min: options.min, max: options.max, disabled: disabled || options.disabled === true,
           style: { width: '125px' }, onChange: event => update(event.target.value === '' ? null : Number(event.target.value) / factor),
-        }), invalid ? el('span', { className: 'db-field-feedback', id: errorId }, t('editor.invalid', { field: label })) : null))
+        }), invalid ? el('span', { className: 'db-field-feedback', id: errorId }, options.error || t('editor.invalid', { field: label })) : null))
       }
       const choose = (label, field, value, items, update, off = false) => el('label', { className: 'db-row', key: field }, el('span', null, label), el('select', {
         className: 'db-input', 'data-field': field, value, disabled: disabled || off, style: { maxWidth: '65%' }, onChange: event => update(event.target.value),
@@ -5580,7 +5606,22 @@ window.__ModuleLoader__.load({
             geometry ? [
               el('strong', { key: 'shape' }, geometry.shape === 'handled_cup' ? t('editor.handledCup') : geometry.shape === 'mesh' ? t('editor.mesh') : geometry.shape),
               geometry.shape === 'mesh' ? [el('p', { className: 'db-muted', key: 'mesh-counts' }, t('editor.meshCounts', { vertices: geometry.vertices?.length ?? 0, faces: geometry.faces?.length ?? 0 })),
-                toggle(t('editor.smoothSurface'), 'editor-generator-smooth', Boolean(geometry.smooth), value => actions.updateEditor('generator', ['smooth'], value))] : null,
+                toggle(t('editor.smoothSurface'), 'editor-generator-smooth', Boolean(geometry.smooth), value => actions.updateEditor('generator', ['smooth'], value)),
+                el('fieldset', { key: 'uv', 'data-uv-editor': true, disabled, style: { border: 0, padding: 0, margin: '16px 0' } },
+                  el('legend', null, t('editor.uv.title')),
+                  el('p', { className: 'db-muted' }, geometry.faceUvs ? t('editor.uv.saved') : t('editor.uv.automatic')),
+                  toggle(t('editor.uv.project'), 'editor-uv-project', draft.uvProjection != null,
+                    value => actions.updateEditor('uvProjection', [], value ? { quarterTurns: 0, scale: 1 } : null)),
+                  draft.uvProjection ? [
+                    el('p', { className: 'db-muted', key: 'uv-help' }, t('editor.uv.help')),
+                    choose(t('editor.uv.direction'), 'editor-uv-quarterTurns', String(draft.uvProjection.quarterTurns),
+                      [0, 1, 2, 3].map(turn => [String(turn), `${turn * 90}°`]), value => actions.updateEditor('uvProjection', ['quarterTurns'], Number(value))),
+                    numeric(t('editor.uv.scale'), 'editor-uv-scale', draft.uvProjection.scale,
+                      value => actions.updateEditor('uvProjection', ['scale'], value), { min: 0.0001, max: 10000, step: 0.1,
+                        invalid: draft.uvProjection.scale < 0.0001 || draft.uvProjection.scale > 10000,
+                        error: t('editor.uv.scaleInvalid') }),
+                    el('p', { className: 'db-muted', key: 'uv-scale-help' }, t('editor.uv.scaleHelp')),
+                  ] : null)] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,

@@ -1,10 +1,14 @@
 {
-  "at": "2026-10-26T10:35:06.834561+00:00",
   "passed": true,
-  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
-  "protectedHostFiles": 30,
-  "allHostBytesUnchanged": true,
   "interaction": "cdp-browser-ui",
+  "uiSha256": "1b5625048e51a9910d09e5cdd47b3f2ba5f524c9a2dfa0f8985582cb8f80f60b",
+  "bundleUiSha256": "2b8b4ccbd1bffe576ce64307bde9532633049998a29c4d77f8f398b480608bfa",
+  "servedClientSha256": "7c676c0a618cf56d27824dff46b8f0d51d78b589b87842c45c36cc435fe52fb6",
+  "wholeServedResponseIdentical": true,
+  "browserLoadedBatchSha256": "2c83f0bbd8d28fc205fb39866e417a259d5cd11b98854cd5b8dd25a0324174a0",
+  "browserLoadedBatchIdentical": true,
+  "allHostBytesUnchanged": true,
+  "protectedHostFiles": 30,
   "dom": {
     "applied": true,
     "photographyOpen": true,
@@ -112,40 +116,9 @@
       "writes": []
     }
   ],
-  "uiSha256": "e2a309ef23457ed37653ed22bf870e3676218e4ed7158d81c8b87aad0cad2fb6",
   "nativeRegressionRerun": false,
-  "browserActionsSha256": "164d2cc025c25482ca840ae22cbb8e80ef6f97b18e846f37a9e58e1d5a496330",
-  "browserObservationSha256": "d4fa5b0bc0ddfc5062e34d422ca755fc41a6d37b74542bfd8829525b09780578",
-  "wholeServedResponseIdentical": true,
-  "servedClientSha256": "867058300332109e4314ca38b0d6a871a9122d48cbe04d6d8222b43e4610be7a",
-  "browserLoadedBatchSha256": "a27fe4c9ae95ccd70ebc08bfce477820947cd521c9586c77334850cd36daac87",
-  "browserLoadedBatchIdentical": true,
-  "encodingConversion": {
-    "draft.png": {
-      "sourceFile": "photography-desktop.png",
-      "sourceFormat": "JPEG",
-      "sourceSha256": "c95b557e8762988f22709ac1a812b986f77694f00659dc00f68c95d4ee87bb28",
-      "pngSha256": "a80182e934666a6a0dd5690dbef0fd61b93887eed81343870748c23b0de9b9c0",
-      "decodedPixelsSha256": "ac074a0ff816d564953872fbd2dc781b3500a3b0673176890a4cf4ad7df9d607",
-      "pixelMode": "RGB",
-      "decodedPixelsIdentical": true,
-      "cropped": false,
-      "resized": false,
-      "colorAdjusted": false
-    },
-    "narrow.png": {
-      "sourceFile": "photography-narrow-final.png",
-      "sourceFormat": "JPEG",
-      "sourceSha256": "c0c4fe30b0263c828fec420a50befc31e4308290d19669bc12e8003ea1f77898",
-      "pngSha256": "09721951838a7caa44649d0d58c1b8437833f00827628e0da059a70d055f59e1",
-      "decodedPixelsSha256": "55c8ca1934a5f1b70a7e4429aa46d09e7661e7b99a985c409d6df2d649c5821e",
-      "pixelMode": "RGB",
-      "decodedPixelsIdentical": true,
-      "cropped": false,
-      "resized": false,
-      "colorAdjusted": false
-    }
-  },
+  "sceneWrites": 0,
+  "modelRequests": 0,
   "viewed": true,
-  "rootViewingEvidence": "Root opened both final published photography PNGs and verified actual source project:r0001, hero60mm, applied-but-unsaved draft based onr0002, valid desktop/mobile content."
+  "scope": "Current source-bound photography reuse draft in the same documentation refresh round. Complete browser application batch verified byte-for-byte. No save or render; historical native regression remains separate."
 }

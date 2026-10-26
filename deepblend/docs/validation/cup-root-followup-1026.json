@@ -1,0 +1,2417 @@
+{
+  "schemaVersion": "deepblend.cup-root-shape-followup/v1",
+  "recordedAt": "2026-10-26T14:51:59.275430+00:00",
+  "sourceProductVersion": "0.22.0",
+  "sourceProductCodeEquivalentTo": "5fdc440ca0da561e27f22d129a3d7310842c8479",
+  "researchSourceCommit": "bb36ff2b5ecc0c9b618f9792d89a42f20cdda883",
+  "initialThreeCases": "cup-root-transition-1026.json",
+  "followupStages": [
+    {
+      "mechanism": "coupled axial/radial",
+      "sourceCommit": "bb36ff2b5ecc0c9b618f9792d89a42f20cdda883",
+      "sourceFiles": 1015,
+      "formula": "Add L*t^3*(1-t)^3*(axial,radial*cos(theta),radial*sin(theta)) to the original root point. Add exact t and theta derivatives for native stored normals. All added endpoint t jets through order2 vanish.",
+      "selectionCriteria": [
+        "Read actual paired upper/lower images: reject worse or merely technically-passing shape; do not hide with lighting/material changes.",
+        "Preserve actual non-root body/handle geometry, UV, overall dimensions and source-scene contents.",
+        "Original constructor output checks must run, including shared boundaries, stored normals and triangle intersections.",
+        "Independent finite radial rays must be measured from actual new mesh, not the analytic formula.",
+        "Retain all declared cases and failures; do not treat this as a model task or continuous-domain/artistic certification."
+      ],
+      "protectionSelection": "All original body and entire original handle non-root faces, exact canonical oriented geometry/UV.",
+      "cases": [
+        {
+          "id": "axial-ten-radial-two",
+          "coefficientInRootLengths": 10,
+          "radialCoefficientInRootLengths": 2,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025022.3295228,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.00048824635308788143,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.0006845201229466,
+            "minimumExamples": [
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0006845201229466,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990655019879341,
+                      -0.002721159951761365,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.997823178768158,
+                      -0.06576468050479889,
+                      0.004884201101958752
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0006881572696487,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990655392408371,
+                      0.002721159951761365,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978231191635132,
+                      0.06576656550168991,
+                      -0.004884341266006231
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0007480156412107,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906613528728485,
+                      -0.0027211643755435944,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9977554678916931,
+                      -0.06654901057481766,
+                      0.0074371350929141045
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      -0.004058401100337505,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0007516527109517,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906617254018784,
+                      0.0027211643755435944,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9977552890777588,
+                      0.06655053049325943,
+                      -0.007437305059283972
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "3e3d1c6fe7da63495d71d4135cb0d79fec129035699213645a55b4d370900dee",
+          "finishedAt": 1793025094.761239
+        },
+        {
+          "id": "axial-ten-radial-four",
+          "coefficientInRootLengths": 10,
+          "radialCoefficientInRootLengths": 4,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025094.76184,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.0004926012340751712,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.0006881572696487,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0006881572696487,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990655392408371,
+                      0.002721159951761365,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978222846984863,
+                      0.06577671319246292,
+                      -0.004912439733743668
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0006881572696487,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990655392408371,
+                      -0.002721159951761365,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978222250938416,
+                      -0.06577746570110321,
+                      0.004912496078759432
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0007516527109517,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906617254018784,
+                      -0.0027211643755435944,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9977547526359558,
+                      -0.06655686348676682,
+                      0.007468334399163723
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.059517547488212585,
+                      -0.004058400169014931,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0007516527109517,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906617254018784,
+                      0.0027211643755435944,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9977545738220215,
+                      0.06655818969011307,
+                      -0.007468160707503557
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "cc703edd8b15e3ef4d14943ae326c405f1ab000707a38327336052fa9da3bcdb",
+          "finishedAt": 1793025167.71677
+        },
+        {
+          "id": "axial-eight-radial-four",
+          "coefficientInRootLengths": 8,
+          "radialCoefficientInRootLengths": 4,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025167.717452,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.0004865858111294857,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.000658327090248,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000658327090248,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990652412176132,
+                      0.0027211580891162157,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978507161140442,
+                      0.06542228162288666,
+                      -0.003742240136489272
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000658327090248,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990652412176132,
+                      -0.0027211580891162157,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978501796722412,
+                      -0.06542874872684479,
+                      0.003742281114682555
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000721823162759,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906587451696396,
+                      -0.002721162512898445,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.997785747051239,
+                      -0.06621094793081284,
+                      0.0062991245649755
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      -0.004058401100337505,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000721823162759,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906587451696396,
+                      0.002721162512898445,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9977859854698181,
+                      0.06620655953884125,
+                      -0.006298980675637722
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "29e7aa535b3d8aade834bdc41a63620062c4d26132f1cec1b39b5ea4446b3db4",
+          "finishedAt": 1793025239.707461
+        }
+      ],
+      "review": {
+        "recordedAt": "2026-10-26T14:35:05.151849+00:00",
+        "allSixActualPngsOpenedByRoot": true,
+        "cases": [
+          "axial-ten-radial-two",
+          "axial-ten-radial-four",
+          "axial-eight-radial-four"
+        ],
+        "selectedCases": [],
+        "decision": "No product selection. Coupled axial/radial mechanisms reduce sampled meridian curvature but the same-glaze fixed-camera images still show a pronounced bright patch/collar. Visual benefit is insufficient to add a product control or replace the shipped recipe. These are maintainer observations, not outside art approval.",
+        "scope": "All3 native cases and their original images, native files, rays and failures retained. No paid calls or product implementation edits.",
+        "nextDiagnostic": "Investigate the existing coupling of body-side and torus-side endpoint speeds. All tried interior sixth-degree offsets preserve the original coupled endpoint jets, which may retain the handle-side curvature shoulder."
+      },
+      "actualImageRecords": [
+        {
+          "case": "axial-ten-radial-two",
+          "view": "upper-root-inspection",
+          "bytes": 942266,
+          "sha256": "1cc4438b1105dced5a82afaa5a038354b3f32093a765672943a2c3acc9158d75",
+          "publishedInRepository": false
+        },
+        {
+          "case": "axial-ten-radial-two",
+          "view": "lower-root-inspection",
+          "bytes": 1023153,
+          "sha256": "3613854f1da9b1ee243c235bf8a5d0c8959cd1f6e5505ba0fb1186909b427edc",
+          "publishedInRepository": false
+        },
+        {
+          "case": "axial-ten-radial-four",
+          "view": "upper-root-inspection",
+          "bytes": 942130,
+          "sha256": "42f1d67cee45cdfbfa1eeff1b05ac90900caa5c8a52eef9d5ed510b789eb5224",
+          "publishedInRepository": true,
+          "repositoryFile": "axial-ten-radial-four-upper-root-inspection.png"
+        },
+        {
+          "case": "axial-ten-radial-four",
+          "view": "lower-root-inspection",
+          "bytes": 1023790,
+          "sha256": "6e99281d700f465b6a2fb781df82df48234da9d7ed6bed2c4bf0bdd64f6a5f03",
+          "publishedInRepository": true,
+          "repositoryFile": "axial-ten-radial-four-lower-root-inspection.png"
+        },
+        {
+          "case": "axial-eight-radial-four",
+          "view": "upper-root-inspection",
+          "bytes": 942049,
+          "sha256": "20bdeb0d248a7ae77e82d4a570a1c127a5a07952036f9efe693f9234e28e478e",
+          "publishedInRepository": false
+        },
+        {
+          "case": "axial-eight-radial-four",
+          "view": "lower-root-inspection",
+          "bytes": 1023817,
+          "sha256": "61af480a3510a00d04a40e384c3a5daa30aec7674bbea048d68c33ae3e7793e4",
+          "publishedInRepository": false
+        }
+      ],
+      "sourceAndOriginalInputsUnchanged": true
+    },
+    {
+      "mechanism": "independent endpoint speeds",
+      "sourceCommit": "bb36ff2b5ecc0c9b618f9792d89a42f20cdda883",
+      "sourceFiles": 1015,
+      "formula": "Use the original quintic endpoint-Hermite construction; separate wall endpoint speed=(rootRadius-handleRadius)*wallEndpointTension from torus alpha speed=rootLength/halfGap*handleEndpointTension. Each associated second endpoint jet still scales with its own speed squared. Exact theta derivative uses the same independent scales. Original endpoint positions and adjacent surfaces retained; no degree6 interior offsets.",
+      "selectionCriteria": [
+        "Read actual paired upper/lower images: reject worse or merely technically-passing shape; do not hide with lighting/material changes.",
+        "Preserve actual non-root body/handle geometry, UV, overall dimensions and source-scene contents.",
+        "Original constructor output checks must run, including shared boundaries, stored normals and triangle intersections.",
+        "Independent finite radial rays must be measured from actual new mesh, not the analytic formula.",
+        "Retain all declared cases and failures; do not treat this as a model task or continuous-domain/artistic certification."
+      ],
+      "protectionSelection": "All original body and entire original handle non-root faces, exact canonical oriented geometry/UV.",
+      "cases": [
+        {
+          "id": "wall-2p5-handle-1",
+          "wallEndpointTension": 2.5,
+          "handleEndpointTension": 1.0,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025347.85612,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.0004842378995013587,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.0006508692030662,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0006508692030662,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906516671180725,
+                      0.0027211576234549284,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978574514389038,
+                      0.06533614546060562,
+                      -0.0034298552200198174
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0006508692030662,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906516671180725,
+                      -0.0027211576234549284,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.997857391834259,
+                      -0.06533576548099518,
+                      0.0034298354294151068
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000677046317261,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906542748212814,
+                      -0.002721159253269434,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978331923484802,
+                      -0.06564435362815857,
+                      0.004445565864443779
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.059517551213502884,
+                      -0.004058400634676218,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000677046317261,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906542748212814,
+                      0.002721159253269434,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978329539299011,
+                      0.06564871221780777,
+                      -0.004445667378604412
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755866408348,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "35836a3e196c137b41542c921a004ceeb193dd684cda667d6a54e0dece898732",
+          "finishedAt": 1793025419.19031
+        },
+        {
+          "id": "wall-2p5-handle-1p5",
+          "wallEndpointTension": 2.5,
+          "handleEndpointTension": 1.5,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025419.190867,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.0004806163584277024,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.000613565281168,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000613565281168,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990647941827774,
+                      0.002721155062317848,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978902339935303,
+                      0.06489527225494385,
+                      -0.0019617967773228884
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000613565281168,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990647941827774,
+                      -0.002721155062317848,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978902339935303,
+                      -0.06489451974630356,
+                      0.001961774192750454
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000654657939941,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906520396471024,
+                      0.0027211576234549284,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.997856080532074,
+                      0.06535357236862183,
+                      -0.0034939961042255163
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755866408348,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0006546739236644,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906520396471024,
+                      -0.002721157856285572,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.997856080532074,
+                      -0.06535357236862183,
+                      0.0034939961042255163
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      -0.004058401100337505,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "3d21f53d4f20cb5e352c59ebdda69e15e106af9fbefb6be6dd7a0b72f06a2a07",
+          "finishedAt": 1793025490.8032482
+        },
+        {
+          "id": "wall-2-handle-1p5",
+          "wallEndpointTension": 2.0,
+          "handleEndpointTension": 1.5,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025490.803873,
+          "protectedBodyAndHandleFaces": 31188,
+          "protectedBodyAndHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.00048681214378687616,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 29514,
+          "faces": 37332,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1680,
+            "minimumSampledMm": 3.000628480630433,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000628480630433,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906494319438934,
+                      0.002721155993640423,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978689551353455,
+                      0.06520584225654602,
+                      -0.0023950717877596617
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000628480630433,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906494319438934,
+                      -0.002721155993640423,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978689551353455,
+                      -0.0652049109339714,
+                      0.002395037794485688
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000673257608655,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906539022922516,
+                      -0.002721159253269434,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978238344192505,
+                      -0.06579611450433731,
+                      0.004299867898225784
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      -0.004058401100337505,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000673257608655,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906539022922516,
+                      0.002721159253269434,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978237748146057,
+                      0.0657959133386612,
+                      -0.0042996215634047985
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755866408348,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "e6910ab40628065c94606ad3a3eac4b7bc6148384fdab89385d432b6a13b80d1",
+          "finishedAt": 1793025562.3416908
+        }
+      ],
+      "review": {
+        "recordedAt": "2026-10-26T14:40:45.260549+00:00",
+        "allSixActualPngsOpenedByRoot": true,
+        "cases": [
+          "wall-2p5-handle-1",
+          "wall-2p5-handle-1p5",
+          "wall-2-handle-1p5"
+        ],
+        "selectedCases": [],
+        "decision": "No product selection. Independent endpoint speeds retain a visible collar/cap under the exact source glaze and fixed cameras. The change is insufficient to replace the shipped recipe or expose a control. Three cases run and all results retained.",
+        "nextDiagnostic": "Extend the root transition into a finite trimmed portion of the original torus, while preserving the complete cup body, untrimmed middle handle, original torus UV values, overall dimensions and source scene. A new predeclared3-case span experiment has separate protection selection; trimmed handle rows are not claimed unchanged."
+      },
+      "actualImageRecords": [
+        {
+          "case": "wall-2p5-handle-1",
+          "view": "upper-root-inspection",
+          "bytes": 942147,
+          "sha256": "0da772e480b3b252e085ae5443f00afdca856f05efa5e69afe6b1abc9e77aa04",
+          "publishedInRepository": false
+        },
+        {
+          "case": "wall-2p5-handle-1",
+          "view": "lower-root-inspection",
+          "bytes": 1023428,
+          "sha256": "080791ee84f09fadc440c20d3f2dfe7deca14e11430fde9c76a4add06d027904",
+          "publishedInRepository": false
+        },
+        {
+          "case": "wall-2p5-handle-1p5",
+          "view": "upper-root-inspection",
+          "bytes": 942033,
+          "sha256": "b822542a7b47faceec503de3a29b6b4e7826e08c73c5cfc56c591c8453c038ab",
+          "publishedInRepository": true,
+          "repositoryFile": "wall-2p5-handle-1p5-upper-root-inspection.png"
+        },
+        {
+          "case": "wall-2p5-handle-1p5",
+          "view": "lower-root-inspection",
+          "bytes": 1022842,
+          "sha256": "e54cb8448770f919afd6d314e7103e107ff3a88dd8fff3c8f4a2c63407187905",
+          "publishedInRepository": true,
+          "repositoryFile": "wall-2p5-handle-1p5-lower-root-inspection.png"
+        },
+        {
+          "case": "wall-2-handle-1p5",
+          "view": "upper-root-inspection",
+          "bytes": 941923,
+          "sha256": "2b9e45bc4c13b8b87938f5fa90bfd2bfa66bbe88c121a62d2c82ff653a89805e",
+          "publishedInRepository": false
+        },
+        {
+          "case": "wall-2-handle-1p5",
+          "view": "lower-root-inspection",
+          "bytes": 1023571,
+          "sha256": "1bcd9b2a920b589ddc529d3ff426d5544f91a12202df0a6926e9e058780693f2",
+          "publishedInRepository": false
+        }
+      ],
+      "sourceAndOriginalInputsUnchanged": true
+    },
+    {
+      "mechanism": "extended transition span",
+      "sourceCommit": "bb36ff2b5ecc0c9b618f9792d89a42f20cdda883",
+      "sourceFiles": 1015,
+      "formula": "Extend each root to an existing torus ring alpha=pi*trimRows/handleSegments, trim exactly that many original handle rows at both ends. Root wall endpoint and its2jets unchanged. Torus endpoint, first and second jets use exact torus position/derivatives at alpha with the original positive alpha speed; exact theta partial is updated. No added interior offsets. Middle torus vertex geometry and original absolute torus UV values are retained.",
+      "selectionCriteria": [
+        "Read actual paired upper/lower images: reject worse or merely technically-passing shape; do not hide with lighting/material changes.",
+        "Preserve ALL body geometry/UV and exact original middle torus geometry/UV outside the explicitly predeclared trimmed rows. The swept connector replaces only those end rows. Retain overall original bounds and all other scene facts; do not describe trimmed handle end rows as unchanged.",
+        "Original constructor output checks must run, including shared boundaries, stored normals and triangle intersections.",
+        "Independent finite radial rays must be measured from actual new mesh, not the analytic formula.",
+        "Retain all declared cases and failures; do not treat this as a model task or continuous-domain/artistic certification."
+      ],
+      "protectionSelection": "Region0/1 every face; region4 only faces whose stored float32 UV v range lies within float32(trimRows/96)..float32(1-trimRows/96). Compare original and rebuilt canonical oriented face/UV multisets exactly; no coordinate tolerance.",
+      "cases": [
+        {
+          "id": "span-seven-point-five",
+          "trimRows": 4,
+          "joinAngleDegrees": 7.5,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025891.6773708,
+          "protectedBodyAndUntrimmedHandleFaces": 30420,
+          "protectedBodyAndUntrimmedHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.0004842063684683271,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 28746,
+          "faces": 36564,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1758,
+            "minimumSampledMm": 3.000643395905558,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000643395905558,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990650922060013,
+                      0.0027211569249629974,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978668093681335,
+                      0.065211221575737,
+                      -0.00304498802870512
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000643395905558,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990650922060013,
+                      -0.0027211569249629974,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.997866690158844,
+                      -0.06521371006965637,
+                      0.0030449701007455587
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0006696050522352,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990653529763222,
+                      -0.0027211590204387903,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9978388547897339,
+                      -0.06557469815015793,
+                      0.004197222646325827
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      -0.004058401100337505,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0006696050522352,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990653529763222,
+                      0.0027211590204387903,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9978392720222473,
+                      0.0655682310461998,
+                      -0.004197176080197096
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755866408348,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "67fb3735662cf850489a40a56d881866cfcf780f1385a21a09ebdb4cc8904531",
+          "finishedAt": 1793025962.461486
+        },
+        {
+          "id": "span-fifteen",
+          "trimRows": 8,
+          "joinAngleDegrees": 15,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793025962.4620302,
+          "protectedBodyAndUntrimmedHandleFaces": 29652,
+          "protectedBodyAndUntrimmedHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.00048531550168624306,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 27978,
+          "faces": 35796,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1842,
+            "minimumSampledMm": 3.0007367379739214,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0007367379739214,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990660235285759,
+                      -0.0027211634442210197,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9977721571922302,
+                      -0.06636139750480652,
+                      0.0068505797535181046
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.059517551213502884,
+                      -0.004058400634676218,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0007367379739214,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990660235285759,
+                      0.0027211634442210197,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9977717995643616,
+                      0.06636634469032288,
+                      -0.006850498262792826
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.000740542585644,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990660607814789,
+                      0.0027211636770516634,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9977647662162781,
+                      0.06644363701343536,
+                      -0.007114913780242205
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.000740542585644,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990660607814789,
+                      -0.0027211636770516634,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9977647662162781,
+                      -0.0664440169930458,
+                      0.007114955224096775
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "86673dd3143c5b89d9de0291298760922b0b5cfd769a2926556990c7dcae511c",
+          "finishedAt": 1793026032.689353
+        },
+        {
+          "id": "span-twenty-two-point-five",
+          "trimRows": 12,
+          "joinAngleDegrees": 22.5,
+          "status": "technical-experiment-complete",
+          "startedAt": 1793026032.6901271,
+          "protectedBodyAndUntrimmedHandleFaces": 28884,
+          "protectedBodyAndUntrimmedHandleGeometryUvIdentical": true,
+          "maximumNonRootCornerNormalVectorDelta": 0.00047231075172246675,
+          "boundsM": [
+            [
+              -0.03999999910593033,
+              -0.03999999910593033,
+              0.0
+            ],
+            [
+              0.07649999856948853,
+              0.03999999910593033,
+              0.10499999672174454
+            ]
+          ],
+          "otherSceneFactsUnchanged": true,
+          "constructorFullNativeOutputValidationPassed": true,
+          "vertices": 27210,
+          "faces": 35028,
+          "radialSummary": {
+            "rays": 3362,
+            "bodyToRootRays": 1944,
+            "minimumSampledMm": 3.0008002169962933,
+            "minimumExamples": [
+              {
+                "upper": false,
+                "zM": 0.03655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0008002169962933,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.03655000030994415
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906665682792664,
+                      -0.0027211676351726055,
+                      0.03655000030994415
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9976970553398132,
+                      -0.06715952605009079,
+                      0.009505964815616608
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.059517551213502884,
+                      -0.004058400634676218,
+                      0.03655000030994415
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.44228506088256836,
+                      -0.7298209071159363,
+                      0.5212920904159546
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.06945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0008002169962933,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.0694499984383583
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.039906665682792664,
+                      0.0027211676351726055,
+                      0.0694499984383583
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9976963996887207,
+                      0.0671667605638504,
+                      -0.00950617715716362
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.05951755493879318,
+                      0.004058401100337505,
+                      0.0694499984383583
+                    ],
+                    "region": 4,
+                    "normal": [
+                      -0.4422943890094757,
+                      0.7298133373260498,
+                      -0.5212947130203247
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": false,
+                "zM": 0.01945,
+                "phiRad": 0.06808291085355597,
+                "thicknessMm": 3.0008413230818407,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      0.0025170224253088236,
+                      0.019449999555945396
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      -0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990670666098595,
+                      0.0027211704291403294,
+                      0.019449999555945396
+                    ],
+                    "region": 3,
+                    "normal": [
+                      0.9976446628570557,
+                      0.06767819076776505,
+                      -0.011171664111316204
+                    ]
+                  }
+                ]
+              },
+              {
+                "upper": true,
+                "zM": 0.08655,
+                "phiRad": -0.06808291085355597,
+                "thicknessMm": 3.0008413230818407,
+                "hits": [
+                  {
+                    "point": [
+                      0.036912817507982254,
+                      -0.0025170224253088236,
+                      0.08654999732971191
+                    ],
+                    "region": 1,
+                    "normal": [
+                      -0.996655285358429,
+                      0.08172043412923813,
+                      0.0
+                    ]
+                  },
+                  {
+                    "point": [
+                      0.03990670666098595,
+                      -0.0027211704291403294,
+                      0.08654999732971191
+                    ],
+                    "region": 2,
+                    "normal": [
+                      0.9976449608802795,
+                      -0.06767325103282928,
+                      0.0111717963591218
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "nativeSha256": "85c6dec66a037501fea63a2838fd800fdd75e435b86fefc057b427347b9ede6f",
+          "finishedAt": 1793026102.206893
+        }
+      ],
+      "review": {
+        "recordedAt": "2026-10-26T14:51:59.008958+00:00",
+        "allSixActualPngsOpenedByRoot": true,
+        "cases": [
+          "span-seven-point-five",
+          "span-fifteen",
+          "span-twenty-two-point-five"
+        ],
+        "selectedCases": [],
+        "decision": "No product selection. Longer torus coverage changes the connector silhouette but does not clearly improve both upper and lower same-glaze fixed-camera views. The larger spans make the root flare longer/more prominent; the bright cap remains. This does not justify replacing the shipped recipe or adding a product control.",
+        "retainedFailure": "First3span cases refused exact untrimmed-handle preservation; a1case diagnostic found4faces with1.347111474771163e-18m coordinate delta and identical UV keys. Source constructor order was corrected only in the temporary experiment so original torus coordinates win welding. All3original cases then passed the same unchanged exact comparison.",
+        "next": "Stop sampling variants of the same quintic-root family without a better geometric target. Diagnose the actual curvature/section shape and establish a justified fillet construction or measurable reference before another native set. Preserve body dimensions and source glaze; do not publish a numerical-only wall improvement as an artistic win."
+      },
+      "actualImageRecords": [
+        {
+          "case": "span-seven-point-five",
+          "view": "upper-root-inspection",
+          "bytes": 941319,
+          "sha256": "c6357ec4d2924af5821ff0477b2c47dfaee2c9b6abf7fe456f3c3fa945fc662e",
+          "publishedInRepository": false
+        },
+        {
+          "case": "span-seven-point-five",
+          "view": "lower-root-inspection",
+          "bytes": 1023040,
+          "sha256": "443f8572a56f7f2c45cb97d88b5e301825dc7d5bfb0b7673dfa043d33e210b16",
+          "publishedInRepository": false
+        },
+        {
+          "case": "span-fifteen",
+          "view": "upper-root-inspection",
+          "bytes": 939994,
+          "sha256": "b9858d6cd7d2531f7c24b7d8de8748120f602ebc46294203f1279ad2d6ef1cba",
+          "publishedInRepository": false
+        },
+        {
+          "case": "span-fifteen",
+          "view": "lower-root-inspection",
+          "bytes": 1023315,
+          "sha256": "3d5208a83173e5b8d1019bdf42406286e861f210ecec8a68f41cb4f426ebc215",
+          "publishedInRepository": false
+        },
+        {
+          "case": "span-twenty-two-point-five",
+          "view": "upper-root-inspection",
+          "bytes": 938643,
+          "sha256": "ccda3d6c4a66cfb553d1af487e7075b1398bf44e79a5a5fba6b5e8360fc3dda1",
+          "publishedInRepository": true,
+          "repositoryFile": "span-twenty-two-point-five-upper-root-inspection.png"
+        },
+        {
+          "case": "span-twenty-two-point-five",
+          "view": "lower-root-inspection",
+          "bytes": 1023788,
+          "sha256": "fc4498fff6397fc7a34ecd537d7a3ef34bd465250d1794ae3ef77ae9dc65b10a",
+          "publishedInRepository": true,
+          "repositoryFile": "span-twenty-two-point-five-lower-root-inspection.png"
+        }
+      ],
+      "sourceAndOriginalInputsUnchanged": true
+    }
+  ],
+  "attemptAccounting": {
+    "completedRenderedMechanisms": 4,
+    "completedRenderedCases": 12,
+    "comparisonImagesActuallyViewed": 26,
+    "initialSourceOverviewImagesAdditionallyViewed": 2,
+    "failedSpanCasesBeforeCorrection": 3,
+    "diagnosticNativeCases": 1,
+    "successfulCorrectedSpanCases": 3,
+    "nativeConstructorExecutionsIncludingRetainedFailuresAndDiagnostic": 16,
+    "analyticOnlyGridCases": 247,
+    "paidModelCalls": 0,
+    "productImplementationEdits": 0,
+    "selectedProductCases": 0
+  },
+  "retainedSpanFailureAndCorrection": {
+    "cases": [
+      {
+        "id": "span-seven-point-five",
+        "status": "experiment-failed",
+        "errorType": "AssertionError",
+        "error": "Original body or untrimmed torus geometry/UV differs"
+      },
+      {
+        "id": "span-fifteen",
+        "status": "experiment-failed",
+        "errorType": "AssertionError",
+        "error": "Original body or untrimmed torus geometry/UV differs"
+      },
+      {
+        "id": "span-twenty-two-point-five",
+        "status": "experiment-failed",
+        "errorType": "AssertionError",
+        "error": "Original body or untrimmed torus geometry/UV differs"
+      }
+    ],
+    "fullRawCases": {
+      "file": "cases.json",
+      "bytes": 2626,
+      "sha256": "fbb91ac818b2284a46720f4ca428853cbabdab60643002fe0fa141d4a458b584"
+    },
+    "guard": {
+      "file": "result.json",
+      "bytes": 762,
+      "sha256": "0a9d41e7196b452cb17998ca3edbbca922c4afda26e81d5f7f9f213bf3216e6c"
+    },
+    "diagnosticCase": {
+      "file": "result.json",
+      "bytes": 7340,
+      "sha256": "37ac52a9a847cf135e13cc4763706d191994a4a54810dabc7688d2f715669648"
+    },
+    "diagnosticPublicRecord": "cup-root-span-protection-diagnostic-1026.json",
+    "correction": "Copy the original frozen create_handled_cup construction and full validation, changing ONLY add_cup->add_roots->add_handle to add_cup->add_handle->add_roots. This gives existing untrimmed torus coordinates first priority when welding the moved lower-root boundary; no comparison or tolerance relaxed. Cup body remains first. All formulas, declared3angles, preservation criteria and images unchanged.",
+    "comparisonRelaxed": false
+  },
+  "analyticGridRecord": "cup-root-curve-sampling-1026.json",
+  "spanDerivativeRecord": "cup-root-span-derivatives-1026.json",
+  "retainedProofs": {
+    "axial-ten-radial-two/result.json": {
+      "file": "result.json",
+      "bytes": 4931,
+      "sha256": "0d34594980d39f87f601c855100bf04282ed9081ca3505f14b091abd1774922c"
+    },
+    "axial-ten-radial-two/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "fa0c9252724cc5fc5867102186bf93430a34feeed2e54be5a9cd7452944fd86c"
+    },
+    "axial-ten-radial-two/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2417892,
+      "sha256": "a6914f5f3531c9428cc7f5411e96a688ca657b420209d13e3da88e765d833e10"
+    },
+    "axial-ten-radial-two/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3785,
+      "sha256": "30ea0ffa97f61c1bd2f17d0db02d253b606cc6e3b9bf3ffab60667ca42d29484"
+    },
+    "axial-ten-radial-two/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539290,
+      "sha256": "3e3d1c6fe7da63495d71d4135cb0d79fec129035699213645a55b4d370900dee"
+    },
+    "axial-ten-radial-four/result.json": {
+      "file": "result.json",
+      "bytes": 4929,
+      "sha256": "4333c226447f9b6b81febff8aaa9da9d8651c59f216e23f071e20cefafb9e65f"
+    },
+    "axial-ten-radial-four/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "a96390c85b4d8b27cd3b0b2c05e82d9e374a38e39439885b7724c5255eed746b"
+    },
+    "axial-ten-radial-four/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2417946,
+      "sha256": "e01571f4f96b3b7617f4fcf78c6a6a3135607061d2d7f1276d82d4017b6d4250"
+    },
+    "axial-ten-radial-four/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3786,
+      "sha256": "88ab85a743a91e952e7f715aea9d4910a58d471cb00b362f0e3ddc1ef8625518"
+    },
+    "axial-ten-radial-four/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539291,
+      "sha256": "cc703edd8b15e3ef4d14943ae326c405f1ab000707a38327336052fa9da3bcdb"
+    },
+    "axial-eight-radial-four/result.json": {
+      "file": "result.json",
+      "bytes": 4923,
+      "sha256": "6ddee20f678e5210b45c0da0b4b113882dfadef44333bfce8f09630295c82971"
+    },
+    "axial-eight-radial-four/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "6f9c88ff7bc79ed003731063c4d9855c5f3ed8bca68d39bdd39e80ba667a37a6"
+    },
+    "axial-eight-radial-four/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2418015,
+      "sha256": "a882f5231cac7d6bbf829d5c13d3c928ba4943fef72886296e8f3597efc39b18"
+    },
+    "axial-eight-radial-four/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3777,
+      "sha256": "899665a5a6d746ba435866705320de499eed657351728b3ec03d61c4b4bf0df2"
+    },
+    "axial-eight-radial-four/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539293,
+      "sha256": "29e7aa535b3d8aade834bdc41a63620062c4d26132f1cec1b39b5ea4446b3db4"
+    },
+    "coupled axial/radial/declared-plan.json": {
+      "file": "declared-plan.json",
+      "bytes": 6365,
+      "sha256": "ac4226a257ee80f30c81cf369d1cf6bdfb8a414201bcb399bc6d3e0877b1a023"
+    },
+    "coupled axial/radial/run.py": {
+      "file": "run.py",
+      "bytes": 3717,
+      "sha256": "521ec968970aad6d75dcaf04a6561280c11eb1c9b832449655f7c8fdf53efce7"
+    },
+    "coupled axial/radial/probe.py": {
+      "file": "probe.py",
+      "bytes": 9098,
+      "sha256": "83c0efabde5a10cc0795c13ea5a9e54e7337eb3a26e7a60220808c4074221073"
+    },
+    "coupled axial/radial/facts.py": {
+      "file": "facts.py",
+      "bytes": 2138,
+      "sha256": "28c78264d8228daec948a307fcc3939206ef01085da020e4aad31b4ad834d65f"
+    },
+    "coupled axial/radial/native-v1.log": {
+      "file": "native-v1.log",
+      "bytes": 2158,
+      "sha256": "6cdad12dc6060e2645a513776e7b880acdf89206cecfd070679a48517099ce2e"
+    },
+    "coupled axial/radial/result.json": {
+      "file": "result.json",
+      "bytes": 803,
+      "sha256": "5b64e3551ae4f7e3395557e54ba30cc8e7a892487326e3daa38d776fb794d6fa"
+    },
+    "coupled axial/radial/root-review-v1.json": {
+      "file": "root-review-v1.json",
+      "bytes": 948,
+      "sha256": "7a4c20242733f011ebe85684f2bad6e99b6486985517f67326ce414b4579776e"
+    },
+    "wall-2p5-handle-1/result.json": {
+      "file": "result.json",
+      "bytes": 4915,
+      "sha256": "9a52cb8e6b6511d4a18a54e1691cfa22080dd2b5253238c9a992b4d4aa069d3a"
+    },
+    "wall-2p5-handle-1/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "0b4f1ca769a1e42a6137d0877585d2e633ee40684cdc8a1a95cba531c9b5d33e"
+    },
+    "wall-2p5-handle-1/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2418083,
+      "sha256": "ecffc7a1a81d7154b96b1986cccfbf3609f95b2779c0ab9f2cdcd524308c057e"
+    },
+    "wall-2p5-handle-1/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3787,
+      "sha256": "041dc75cc7c966bc8cfc4c25d808ad3f409f91341720a279d5e7a2cdbdd21b0b"
+    },
+    "wall-2p5-handle-1/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539287,
+      "sha256": "35836a3e196c137b41542c921a004ceeb193dd684cda667d6a54e0dece898732"
+    },
+    "wall-2p5-handle-1p5/result.json": {
+      "file": "result.json",
+      "bytes": 4914,
+      "sha256": "0afc5748f9a4c92f93598243deadfc61ac15d2417dcfabe3b3e68fe2482eeb1a"
+    },
+    "wall-2p5-handle-1p5/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "8a02c88f0a93e7f1b54223e413658863691716a41d6036965258b38adc14454f"
+    },
+    "wall-2p5-handle-1p5/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2418266,
+      "sha256": "eaeacd986ed362e4d787a8445870688811b72504d5969fa96559e8902d22a300"
+    },
+    "wall-2p5-handle-1p5/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3781,
+      "sha256": "4090cc93c2c1e98e5abef784a9d5f1535ec26fedef83ca17780c660c27dfceb5"
+    },
+    "wall-2p5-handle-1p5/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539289,
+      "sha256": "3d21f53d4f20cb5e352c59ebdda69e15e106af9fbefb6be6dd7a0b72f06a2a07"
+    },
+    "wall-2-handle-1p5/result.json": {
+      "file": "result.json",
+      "bytes": 4912,
+      "sha256": "f36b78cd3e441548b4433f9b44cbd6cd492d943c75c41af636b3c1a2b6f69c78"
+    },
+    "wall-2-handle-1p5/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "1a4db58cc634d5300d9ac1a86249506dcb70bc716bfbe1860959da755d300c06"
+    },
+    "wall-2-handle-1p5/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2417973,
+      "sha256": "da9eaae9a717d03c045528cb0522642225d2051439c3bbd9c0f6b0da3f572c84"
+    },
+    "wall-2-handle-1p5/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3780,
+      "sha256": "bcc2a938a0199266bb3f6c3ac8a4ac3a2ba400857c7be3ea52b2eb8222531333"
+    },
+    "wall-2-handle-1p5/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4539287,
+      "sha256": "e6910ab40628065c94606ad3a3eac4b7bc6148384fdab89385d432b6a13b80d1"
+    },
+    "independent endpoint speeds/declared-plan.json": {
+      "file": "declared-plan.json",
+      "bytes": 6568,
+      "sha256": "b5a650b2ae545fbbdfe173c860195f002376b696d645891dbd07ad30093ab87b"
+    },
+    "independent endpoint speeds/run.py": {
+      "file": "run.py",
+      "bytes": 3717,
+      "sha256": "521ec968970aad6d75dcaf04a6561280c11eb1c9b832449655f7c8fdf53efce7"
+    },
+    "independent endpoint speeds/probe.py": {
+      "file": "probe.py",
+      "bytes": 10619,
+      "sha256": "9c0ff470d3e24363df82ff77a810545df5d4193b502e4bbba834425cb97798da"
+    },
+    "independent endpoint speeds/facts.py": {
+      "file": "facts.py",
+      "bytes": 2138,
+      "sha256": "28c78264d8228daec948a307fcc3939206ef01085da020e4aad31b4ad834d65f"
+    },
+    "independent endpoint speeds/native-v1.log": {
+      "file": "native-v1.log",
+      "bytes": 2120,
+      "sha256": "93bbd42119a4fdca3121e45c155d73d45cce6fa0c64ad779cfd3cd3c46df0d05"
+    },
+    "independent endpoint speeds/result.json": {
+      "file": "result.json",
+      "bytes": 792,
+      "sha256": "43a8d70836fb36b5e36b3b27f27bcdda5f95ec93fdd32cdd9e549fc634d13f7e"
+    },
+    "independent endpoint speeds/root-review-v1.json": {
+      "file": "root-review-v1.json",
+      "bytes": 828,
+      "sha256": "a281431cc69ce1d1c23c9cebc97eebe6bf7a60a45de57dbf96f7dad7160c66a8"
+    },
+    "span-seven-point-five/result.json": {
+      "file": "result.json",
+      "bytes": 4913,
+      "sha256": "401af4b86e134ce6ade77051185c9bb0496d9debb85aeaf412ccb86915c76e9d"
+    },
+    "span-seven-point-five/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "5ed4643836f070c5653e5211a44a5b363c8248282d464282200414316a133621"
+    },
+    "span-seven-point-five/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2418187,
+      "sha256": "3c44a70c2361b0ef46edd3b7e77a5eadfe1484ded5a2fd93923c1ceb81d44dce"
+    },
+    "span-seven-point-five/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3778,
+      "sha256": "352ae0c2681b2dd20cfe2232a6a6e1ac41782cf985aa26ff1a7e267ed4234ae7"
+    },
+    "span-seven-point-five/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4448667,
+      "sha256": "67fb3735662cf850489a40a56d881866cfcf780f1385a21a09ebdb4cc8904531"
+    },
+    "span-fifteen/result.json": {
+      "file": "result.json",
+      "bytes": 4910,
+      "sha256": "dad045df271e8d2525f1ed82412d4962a5a9477afa2f87af4a4e537a2156dd87"
+    },
+    "span-fifteen/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "51fde915fb55555c31cd67fd712b08d86fa534548941584d68218f92a7c11199"
+    },
+    "span-fifteen/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2414207,
+      "sha256": "5c24d02b36a31f55a91f9e25f8b3936c382d4cb03758deb28230bd6cafbb7163"
+    },
+    "span-fifteen/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3784,
+      "sha256": "55284ef0e40a4d81184aed425993a062baa448b5d6589dad69087df216ca65b1"
+    },
+    "span-fifteen/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4358034,
+      "sha256": "86673dd3143c5b89d9de0291298760922b0b5cfd769a2926556990c7dcae511c"
+    },
+    "span-twenty-two-point-five/result.json": {
+      "file": "result.json",
+      "bytes": 4927,
+      "sha256": "5dfd5a50fb23f79297e823b6d49769738565303847c8680243d4ed472f6d21ce"
+    },
+    "span-twenty-two-point-five/renders.json": {
+      "file": "renders.json",
+      "bytes": 2516,
+      "sha256": "9db80da53a6179e6923c7ca818af7d9ff88e9cba2e4c229d4048761b37821a2a"
+    },
+    "span-twenty-two-point-five/radial-rays.json": {
+      "file": "radial-rays.json",
+      "bytes": 2407631,
+      "sha256": "502fdb5e70a005bea617383de1f8ac30f30bcfa33d47c22968c078c52836e0ac"
+    },
+    "span-twenty-two-point-five/radial-summary.json": {
+      "file": "radial-summary.json",
+      "bytes": 3784,
+      "sha256": "0e8e91a1668dd2c2706bafb7a292ef232b024eb93e46ce6a86b6296f2e52399b"
+    },
+    "span-twenty-two-point-five/experimental-native.blend": {
+      "file": "experimental-native.blend",
+      "bytes": 4267424,
+      "sha256": "85c6dec66a037501fea63a2838fd800fdd75e435b86fefc057b427347b9ede6f"
+    },
+    "extended transition span/declared-plan.json": {
+      "file": "declared-plan.json",
+      "bytes": 7713,
+      "sha256": "29a7cb64c7739a1fd486c5a75e27b28aebcd973c1333f4055ff462121c61af4a"
+    },
+    "extended transition span/run.py": {
+      "file": "run.py",
+      "bytes": 3717,
+      "sha256": "521ec968970aad6d75dcaf04a6561280c11eb1c9b832449655f7c8fdf53efce7"
+    },
+    "extended transition span/probe.py": {
+      "file": "probe.py",
+      "bytes": 13361,
+      "sha256": "20f64ab3de5ee66c1493f6c240fef28ad00a2c6fbacd789a13bb068bcf343155"
+    },
+    "extended transition span/facts.py": {
+      "file": "facts.py",
+      "bytes": 2138,
+      "sha256": "28c78264d8228daec948a307fcc3939206ef01085da020e4aad31b4ad834d65f"
+    },
+    "extended transition span/native-v1.log": {
+      "file": "native-v1.log",
+      "bytes": 2120,
+      "sha256": "6af79c0bca4ebcba0c7fa13fdbad825f49099a57691a53e5e5997a6429423454"
+    },
+    "extended transition span/result.json": {
+      "file": "result.json",
+      "bytes": 798,
+      "sha256": "723d1e7a7ca470e0578549ef906c0fe4d23b9deabf015f4ece03b857fe9ccbc2"
+    },
+    "extended transition span/root-review-v1.json": {
+      "file": "root-review-v1.json",
+      "bytes": 1279,
+      "sha256": "b4b61961ce7e04164d6bd8e59d6b6513e9708a28b6da27951536ae123e54fe54"
+    },
+    "cup-root-span-protection-diagnostic-1026.json": {
+      "file": "protected-mismatch.json",
+      "bytes": 5904,
+      "sha256": "59d8148fddcd1caefa013d0776c537a8fa54897782956ef37a923a6f640cb977"
+    },
+    "cup-root-span-derivatives-1026.json": {
+      "file": "derivative-readback.json",
+      "bytes": 2143,
+      "sha256": "99a1b2767feb84737a9ed296c319c160e54218eac5d4ab5033a1f36bfbd3346e"
+    },
+    "cup-root-curve-sampling-1026.json": {
+      "file": "result.json",
+      "bytes": 81366,
+      "sha256": "31f2b52183c45dae976f1568bd3b6a78b5cac8ebbc439da9b075bd7cb80e80b0"
+    }
+  },
+  "allSourcesAndOriginalsUnchangedDuringNativeRuns": true,
+  "currentProductDecision": "No shipped geometry change or new UI/recipe/version. All12rendered cases lacked sufficiently clear shape benefit in both fixed source-glaze views. Native pass, finite thickness improvement and lower sampled curvature are not artistic acceptance.",
+  "nextAction": "Use section/curvature diagnosis and a justified geometric target before another fillet construction. Do not continue unbounded coefficient sampling of the same quintic family or relabel the existing rootTension as new. The cup-root shape goal and broader complex-modeling objective remain open.",
+  "scope": "Finite maintainer experiments on one saved cup. No external artistic verdict, global minimum-wall guarantee, continuous-parameter proof, real-model-agent success, published0.23 or overall goal completion. Full raw native files, all images and failures remain retained locally; the repository contains14selected original images and all26comparison-image digests."
+}

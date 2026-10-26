@@ -20,6 +20,7 @@ import { compileSchema, formatIssues } from './json-schema.js'
 import { collectionForKind, sceneSpecDigest, specHash } from './scene-spec.js'
 import { referenceImageIssues } from './reference-images.js'
 import { specChangeAudit } from './spec-change-audit.js'
+import { projectMeshFaceUvs } from './mesh-uv.js'
 import scenePatchSchema from './schemas/scene-patch.schema.json' with { type: 'json' }
 
 const validatePatchStructure = compileSchema(scenePatchSchema, { id: 'scene-patch.schema.json' })
@@ -69,6 +70,7 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'material.tangent.set',
   'project.brief.set',
   'project.reviewSubject.set',
+  'entity.uv.project',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
@@ -475,6 +477,24 @@ export function applyPatchToSpec(spec, patch) {
         }
         applied.push({ op, target: entity.id, summary: `set material bindings on entity "${entity.id}"`,
           changedPaths: changed ? [`entities.${entity.id}.materialBindings`] : [] })
+        break
+      }
+
+      case 'entity.uv.project': {
+        const at = indexOfId(next.entities, operation.entityId)
+        if (at < 0) fail('PATCH_TARGET_MISSING', `no entity "${operation.entityId}" exists in this scene`)
+        const entity = next.entities[at]
+        if (entity.type !== 'generator' || entity.generator?.shape !== 'mesh') {
+          fail('PATCH_OPERATION_INVALID', `${op} requires a mesh generator; imported assets and other shapes retain their UVs`)
+        }
+        let faceUvs
+        try { faceUvs = projectMeshFaceUvs(entity.generator, operation) }
+        catch (error) { fail('PATCH_OPERATION_INVALID', error.message) }
+        const changed = JSON.stringify(entity.generator.faceUvs) !== JSON.stringify(faceUvs)
+        if (changed) next.entities[at] = { ...entity, generator: { ...entity.generator, faceUvs } }
+        applied.push({ op, target: entity.id,
+          summary: changed ? `projected repeating texture UVs per face on entity "${entity.id}"` : `entity "${entity.id}" face UVs already match this projection`,
+          changedPaths: changed ? [`entities.${entity.id}.generator.faceUvs`] : [] })
         break
       }
 

@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tools/ci/archives
-          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json', 'deepblend/tools/ci-fonts.mjs', 'deepblend/tools/prepare-ci-linux.mjs') }}
       - name: Download and verify fixed Linux runtimes
         id: runtimes
         run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
@@ -210,6 +210,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/material-browser
         run: xvfb-run -a node deepblend/tests/e2e/material-texture-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/material-browser.log" 2>&1
+      - name: Real per-face mesh UV editor, saved area and revision replay
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/mesh-uv-browser
+        run: xvfb-run -a node deepblend/tests/e2e/mesh-uv-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/mesh-uv-browser.log" 2>&1
       - name: Real recipe versions and native gallery defaults in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5
@@ -328,7 +334,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tools/ci/archives
-          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json', 'deepblend/tools/ci-fonts.mjs', 'deepblend/tools/prepare-ci-linux.mjs') }}
       - name: Download and verify fixed Linux runtimes
         id: runtimes
         run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
@@ -378,7 +384,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tools/ci/archives
-          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json', 'deepblend/tools/ci-fonts.mjs', 'deepblend/tools/prepare-ci-linux.mjs') }}
       - name: Download and verify fixed Linux runtimes
         id: runtimes
         run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
@@ -480,7 +486,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tools/ci/archives
-          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json') }}
+          key: runtimes-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deepblend/tools/ci-runtime-pins.json', 'deepblend/tools/ci-fonts.mjs', 'deepblend/tools/prepare-ci-linux.mjs') }}
       - name: Download and verify fixed Linux runtimes
         run: node deepblend/tools/install-ci-runtimes.mjs > "$DEEPBLEND_CI_EVIDENCE/install.log" 2>&1
       - name: Prepare software graphics and Chrome sandbox

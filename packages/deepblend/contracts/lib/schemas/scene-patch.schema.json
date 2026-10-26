@@ -1827,6 +1827,34 @@
               ]
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "entityId"
+          ],
+          "properties": {
+            "op": {
+              "const": "entity.uv.project"
+            },
+            "entityId": {
+              "$ref": "#/$defs/id"
+            },
+            "quarterTurns": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3,
+              "description": "Quarter turns after per-face projection; default 0."
+            },
+            "scale": {
+              "type": "number",
+              "minimum": 0.0001,
+              "maximum": 10000,
+              "description": "UV repetitions per longest local mesh extent; default 1. Larger values repeat the texture more often. Islands overlap and are not packed."
+            }
+          }
         }
       ]
     },

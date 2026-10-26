@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-26T18:22:17.081Z",
+  "scope": "Actual Blender renders and actual browser capture. Raw evidence originals preserved; documentation copies differ only in added provenance metadata. No AI-generated imagery.",
+  "images": [
+    {
+      "file": "deepblend/docs/assets/mesh-uv/rafter-before.png",
+      "originalPngSha256": "b28d8972cd93ab5adafffd79bd736557ddeab776bdf4752c289f01cd3dbb24f7",
+      "origin": "Source: actual Blender Cycles CPU render, original saved pagoda r0075 faithful selected two-rafter subset, frame390, fixed corner-inspection camera,960x540,48 samples,seed0,no denoise or adaptive sampling, original wood material/images/world/lighting. Existing default planar UVs; 400 collapsed UV triangles per array. No compositing, crop, generated imagery or geometry changes. Source native SHA256 b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa.",
+      "width": 960,
+      "height": 540,
+      "originalPixelsSha256": "da5fd2c516b3c70c586520c5cb87a60b436193e854213deb880e36e664c517b5",
+      "documentationPixelsSha256": "da5fd2c516b3c70c586520c5cb87a60b436193e854213deb880e36e664c517b5",
+      "documentationPngSha256": "737551f0f180a4c462bbdc6afef69c6150db2d1b90239b4b97ee4c8bfa40f779",
+      "documentationBytes": 749921,
+      "provenanceMetadataOnly": true
+    },
+    {
+      "file": "deepblend/docs/assets/mesh-uv/rafter-after.png",
+      "originalPngSha256": "e423a646e69f35f3fb3530cae1439bd413742d66239195229a3e01baea2b9bfc",
+      "origin": "Source: actual Blender Cycles CPU render from exactly the same original r0075 selected two-rafter subset as rafter-before.png, frame390, fixed corner-inspection camera,960x540,48 samples,seed0,no denoise or adaptive sampling, original wood material/images/world/lighting. Only explicit per-face UVs projected at0quarterTurns,scale1; collapsed UV triangles400to0perarray. Geometry,pose,material,lighting and camera unchanged;100volumetric overlaps remain. No compositing,crop or generated imagery.",
+      "width": 960,
+      "height": 540,
+      "originalPixelsSha256": "cd84433bc02691f60e266a2b0f74c6888a01316c50f39c76415d50437e13555c",
+      "documentationPixelsSha256": "cd84433bc02691f60e266a2b0f74c6888a01316c50f39c76415d50437e13555c",
+      "documentationPngSha256": "59e5153a1d8f8fb35bf52a80ca24089cf2b2377b59fba80e1367312b495fc094",
+      "documentationBytes": 756987,
+      "provenanceMetadataOnly": true
+    },
+    {
+      "file": "deepblend/docs/assets/mesh-uv/workbench.png",
+      "originalPngSha256": "49205d99537533c9cbb086a0d51ae8cc71fc25ec06a9110ef03c32aba80f3bdc",
+      "origin": "Source: actual Chrome capture of DeepBlend workbench UI in a private DSH Host+Blender acceptance run.1440x1100 light-theme desktop, UV draft controls inside existing lighttable object editor. Synthetic six-beam regression scene rendered by Blender. One natural pointer save later verified native48collapsedUVtriangles to0and protected priorrevision. This capture shows the pre-save draft and its real saved baseline preview; not a mockup or AI-generated image.",
+      "width": 1440,
+      "height": 1100,
+      "originalPixelsSha256": "16d25b17f931bb013245344516d56af9c54e1b3b43888760ac83d45173a620e6",
+      "documentationPixelsSha256": "16d25b17f931bb013245344516d56af9c54e1b3b43888760ac83d45173a620e6",
+      "documentationPngSha256": "fd24b1ddfe4953a7864523c337b726bea07b61fb269328b4b9b687197e905f6a",
+      "documentationBytes": 293330,
+      "provenanceMetadataOnly": true
+    }
+  ],
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "nativeSource": {
+    "sourceSpec": "deepblend/docs/assets/showcase/pagoda/scene-spec.json",
+    "sourceRevision": "r0075",
+    "checkpointSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "includedSourceEntityIds": [
+      "pagoda-rafters-1",
+      "pagoda-rafters-1-ew"
+    ],
+    "externalMaterials": [
+      {
+        "source": "https://polyhaven.com/a/dark_wood",
+        "license": "CC0-1.0",
+        "authors": "Dario Barresi, Dimitrios Savva, Rico Cilliers"
+      },
+      {
+        "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+        "license": "CC0-1.0",
+        "authors": "Greg Zaal, Jarod Guest"
+      }
+    ],
+    "externalAssetFilesDistributed": false,
+    "sourceSpecSha256": "19c24e594412a7f2a920bcbf92183a8e4d7946b1dd54b75a8eca28c3610ce4d7"
+  }
+}

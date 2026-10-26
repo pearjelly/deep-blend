@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { withCiFont } from './ci-fonts.mjs'
 
 export function parseChromeDependencies(text) {
   const groups = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'))
@@ -40,7 +41,7 @@ export function verifyChromeDependencies(dependencies, execute, log = console.lo
     if (minimumVersion) execute('dpkg', ['--compare-versions', version, 'ge', minimumVersion])
   }
 }
-export function installCiLinuxLibraries(groups, execute, log = console.log) {
+export function installCiLinuxLibraries(groups, execute, log = console.log, fontOptions) {
   // apt.conf(5): retries are per failed file; apt-transport-http(1): timeout covers connection and data waits.
   // Keep these below the existing five-minute command budget, which also bounds multiple stalled files.
   const acquisition = ['-o', 'Acquire::Retries=2', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
@@ -49,8 +50,8 @@ export function installCiLinuxLibraries(groups, execute, log = console.log) {
   const dependencies = resolveChromeDependencies(groups, execute)
   log(`Selected Chrome libraries: ${dependencies.map(dependency => dependency.name).join(' ')}`)
   // Skip optional upgrades of explicit installed packages; APT still resolves dependencies of missing packages.
-  log(execute('sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
-    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', ...dependencies.map(dependency => dependency.name)]))
+  withCiFont(execute, fontOptions, font => log(execute('sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
+    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', font, ...dependencies.map(dependency => dependency.name)])))
   verifyChromeDependencies(dependencies, execute, log)
 }
 function prepare() {
@@ -61,7 +62,7 @@ function prepare() {
   if (chrome !== report.environment.DEEPBLEND_CHROME || /["\n\r]/.test(chrome)) throw new Error('Chrome must match the verified runtime installation')
   const execute = (command, args) => execFileSync(command, args, { encoding: 'utf8', timeout: 300000, maxBuffer: 8 * 1024 * 1024 })
   const groups = parseChromeDependencies(readFileSync(join(resolve(chrome, '..'), 'deb.deps'), 'utf8'))
-  installCiLinuxLibraries(groups, execute)
+  installCiLinuxLibraries(groups, execute, console.log, { cacheDirectory: resolve('.tools/ci/archives'), reportDirectory: evidence })
   for (const executable of [process.env.DEEPBLEND_BLENDER_PATH, chrome]) {
     const libraries = execute('ldd', [executable])
     console.log(libraries)

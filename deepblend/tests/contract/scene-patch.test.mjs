@@ -408,6 +408,13 @@ check(
 
 /** Records which operation names a real patch exercised successfully. */
 const exercisedOperations = new Set()
+const uvEdit = runPatch([
+  { op: 'entity.generator.set', entityId: 'watch-body', generator: { shape: 'mesh', vertices: [[0,0,0],[1,0,0],[0,1,0]], faces: [[0,1,2]] } },
+  { op: 'entity.uv.project', entityId: 'watch-body' },
+])
+check('UV projection saves face coordinates on the existing entity and preserves the input',
+  !uvEdit.error && uvEdit.specUnchanged && uvEdit.patchUnchanged && entity(uvEdit.next, 'watch-body').generator.faceUvs.length === 1)
+for (const operation of uvEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
 const briefEdit = runPatch([{ op: 'project.brief.set', goal: 'A rounded product silhouette', referenceImages: [] }])
 check('project.brief.set preserves unrelated project fields and records both authored input paths',
   briefEdit.next?.project.goal === 'A rounded product silhouette' && briefEdit.specUnchanged && briefEdit.patchUnchanged
@@ -1205,8 +1212,8 @@ check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 }
 
 check(
-  'SCENE_OPERATION_NAMES lists the 31 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 31 && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
+  'SCENE_OPERATION_NAMES lists the 32 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 32 && SCENE_OPERATION_NAMES[31] === 'entity.uv.project' && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
     && SCENE_OPERATION_NAMES[29] === 'project.brief.set'
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'

@@ -86,7 +86,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 ### 2.1 `blender_scene_patch` 的操作表
 
 一个 patch 是**一组操作**，要么全部生效、要么什么都不改（失败时当前 revision 一个字节都没动）。
-下面 31 个操作名就是全部词汇——工具 schema 里有同样的表，这里写的是**它做什么**：
+下面 32 个操作名就是全部词汇——工具 schema 里有同样的表，这里写的是**它做什么**：
 
 | 操作 | 必填 | 一句话 |
 |---|---|---|
@@ -111,6 +111,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `shot.remove` | `shotId` | 删一个镜头 |
 | `project.brief.set` | `goal`、`referenceImages` | 整份替换目标与最多 4 张参考图绑定；引用已导入 PNG/JPEG 的 assetId 和 sha256，按 geometry/materials/lighting/goalFit 标记用途 |
 | `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`） | 保存主要评审对象；实体须存在且非 empty；null 恢复自动选择，不移动相机 |
+| `entity.uv.project` | `entityId`, `quarterTurns?`, `scale?` | 为 mesh 生成器逐面重建重复纹理 UV；默认 0 圈、1 次重复；保留几何与材质，拒绝非平面面片，不打包 UV 岛 |
 | `project.frameRange.set` | `frameStart`、`frameEnd` | 改项目帧范围。**它不改场景**，所以「要不要重渲」的判定不受影响 |
 | `render.profile.set` | `profileName`、`profile` | 写一个渲染 profile；分辨率是**整份替换**，省略则保留原来的 |
 | `world.set` | `world` | 完整替换世界：纯色或环境图；`environment:{assetId,rotation?}` 使用已声明图片，rotation 为绕 Z 轴弧度 |

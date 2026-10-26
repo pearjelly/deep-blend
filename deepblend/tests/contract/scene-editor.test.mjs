@@ -875,3 +875,82 @@ test('surface placement editor preserves geometry and exposes bounded typed cont
   changed.tracks.pop();changed.entity.modifiers.at(-1).anchorVertexIndices=[0,0]
   assert.throws(()=>editor.buildPatch(changed),/anchorVertexIndices/)
 })
+
+const uvBeam = { shape: 'mesh', vertices: [[0,0,0],[.13,0,0],[.13,2.6,0],[0,2.6,0],[0,0,.14],[.13,0,.14],[.13,2.6,.14],[0,2.6,.14]],
+  faces: [[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]] }
+function uvScene(withUvs = false) {
+  const spec = source('metal-lamp')
+  const generator = plain(uvBeam)
+  if (withUvs) generator.faceUvs = generator.faces.map(() => [[9,8],[7,6],[5,4],[3,2]])
+  spec.entities.find(entity => entity.id === 'shade-shell').generator = generator
+  return spec
+}
+test('mesh UV controls preserve existing UVs until explicitly staged and save one semantic operation', async t => {
+  const spec = uvScene(true), before = plain(spec), {store, field, nodes, calls, projects} = await client(t, spec)
+  const save = () => nodes().find(node => node.props['data-action'] === 'editor-apply')
+  assert.equal(field('editor-uv-project').props.checked, false)
+  assert.equal(field('editor-uv-scale'), undefined)
+  assert.equal(save().props.disabled, true)
+  assert.equal(calls.length, 0)
+  field('editor-uv-project').props.onChange({target:{checked:true}})
+  field('editor-uv-quarterTurns').props.onChange({target:{value:'1'}})
+  field('editor-uv-scale').props.onChange({target:{value:'2'}})
+  assert.equal(calls.length,0)
+  assert.equal(save().props.disabled,false)
+  const request = plain(editor.buildPatch(editor.draftFor(store.getState())))
+  assert.deepEqual(request.operations,[{op:'entity.uv.project',entityId:'shade-shell',quarterTurns:1,scale:2}])
+  await store.actions.applyEditor()
+  assert.deepEqual(calls[0].body.patch.operations, request.operations)
+  const after = projects['project-a'].spec, restored = plain(after)
+  restored.entities.find(entity => entity.id === 'shade-shell').generator.faceUvs = before.entities.find(entity => entity.id === 'shade-shell').generator.faceUvs
+  assert.deepEqual(restored,before)
+  store.actions.setView('scene'); store.actions.selectEditorEntity('shade-shell')
+  assert.equal(field('editor-uv-project').props.checked,false)
+  assert.equal(save().props.disabled,true)
+  assert.deepEqual(spec,before)
+})
+test('invalid UV repeats disable saving and canceling projection leaves no pending change', async t => {
+  const {store, field, nodes, calls} = await client(t,uvScene())
+  const save = () => nodes().find(node => node.props['data-action'] === 'editor-apply')
+  field('editor-uv-project').props.onChange({target:{checked:true}})
+  for(const value of ['', '0', '10001']) {
+    field('editor-uv-scale').props.onChange({target:{value}})
+    assert.equal(save().props.disabled,true)
+    assert.ok(editor.errors(editor.draftFor(store.getState())).length>0)
+    const input = field('editor-uv-scale'), feedback = nodes().find(node => node.props.id === input.props['aria-describedby'])
+    assert.equal(input.props['aria-invalid'],'true')
+    assert.ok(feedback?.children.join('').includes('0.0001'))
+    assert.ok(feedback?.children.join('').includes('10000'))
+  }
+  field('editor-uv-scale').props.onChange({target:{value:'1'}})
+  assert.equal(field('editor-uv-scale').props['aria-invalid'],undefined)
+  assert.equal(field('editor-uv-scale').props['aria-describedby'],undefined)
+  field('editor-uv-project').props.onChange({target:{checked:false}})
+  assert.equal(save().props.disabled,true);assert.equal(editor.dirty(editor.draftFor(store.getState())),false)
+  assert.equal(calls.length,0)
+})
+test('UV projection is ordered after geometry changes and is unavailable on other shapes', async t => {
+  const spec=uvScene(),draft=editor.createDraft(tree(spec),'project-a','shade-shell')
+  draft.entity.generator.smooth=true;draft.uvProjection={quarterTurns:0,scale:1}
+  const {patch,next}=apply(spec,draft)
+  assert.deepEqual(patch.operations.map(operation=>operation.op),['entity.generator.set','entity.uv.project'])
+  assert.equal(next.entities.find(entity=>entity.id==='shade-shell').generator.smooth,true)
+  assert.equal(next.entities.find(entity=>entity.id==='shade-shell').generator.faceUvs.length,6)
+  const {store,field}=await client(t)
+  assert.equal(field('editor-uv-project'),undefined)
+  store.actions.updateEditor('uvProjection',[],{quarterTurns:0,scale:1})
+  assert.equal(editor.draftFor(store.getState()).uvProjection,null)
+})
+test('a refused UV request retains settings for correction and reset returns to the saved UVs', async t => {
+  const {store,field,fail,calls}=await client(t,uvScene(true))
+  field('editor-uv-project').props.onChange({target:{checked:true}})
+  field('editor-uv-quarterTurns').props.onChange({target:{value:'3'}})
+  field('editor-uv-scale').props.onChange({target:{value:'4'}})
+  fail({code:'PATCH_OPERATION_INVALID',message:'mesh face 3 is not planar; split it into planar faces before UV projection'})
+  await store.actions.applyEditor()
+  assert.equal(field('editor-uv-quarterTurns').props.value,'3');assert.equal(field('editor-uv-scale').props.value,4)
+  assert.equal(calls.length,1)
+  store.actions.resetEditor()
+  assert.equal(field('editor-uv-project').props.checked,false)
+  assert.equal(editor.dirty(editor.draftFor(store.getState())),false)
+})
