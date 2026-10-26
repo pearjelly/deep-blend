@@ -2,12 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CI_PINS, checkCiRuntimes, ensureCiArchive, installCiRuntimes, verifyArchiveEntries, verifyCiArchive } from '../../tools/install-ci-runtimes.mjs'
 import { installCiLinuxLibraries, parseChromeDependencies, resolveChromeDependencies, verifyChromeDependencies } from '../../tools/prepare-ci-linux.mjs'
 import { Browser } from '../../tools/browser-driver.mjs'
+import { parseCiFontMetadata, withCiFont } from '../../tools/ci-fonts.mjs'
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 function fixture(t, { wrongChromeVersion = false } = {}) {
@@ -147,14 +148,18 @@ test('CI library preparation bounds acquisition for both apt commands and requir
     calls.push([command, args])
     if (command === 'apt-cache') return 'Package: libfixture\nVersion: 1\n'
     if (command === 'dpkg-query') return 'installed\tok\t1\n'
+    if (command === 'fc-match') return 'Noto Sans CJK SC\n'
     return args.includes('update') ? 'original index output\n' : 'original install output\n'
   }, text => logs.push(text))
   const acquisition = ['-o', 'Acquire::Retries=2', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
   assert.deepEqual(calls, [
     ['sudo', ['apt-get', ...acquisition, 'update', '--error-on=any']],
     ['apt-cache', ['show', '--no-all-versions', 'libfixture']],
+    ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'fonts-noto-cjk']],
     ['sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
-      'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fonts-noto-cjk', 'libfixture']],
+      'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', 'fonts-noto-cjk', 'libfixture']],
+    ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'fonts-noto-cjk']],
+    ['fc-match', ['--format=%{family}\n', 'Noto Sans CJK SC:lang=zh-cn']],
     ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'libfixture']],
   ])
   assert.deepEqual(logs, ['original index output\n', 'Selected Chrome libraries: libfixture', 'original install output\n', 'Checking installed Chrome library: libfixture 1'])
@@ -169,9 +174,10 @@ test('CI library preparation stops on apt failures and preserves the original di
       assert.throws(() => installCiLinuxLibraries(parseChromeDependencies('libfixture'), (command, args) => {
         calls.push([command, args])
         if (args.includes(stage)) throw failure
+        if (command === 'dpkg-query') return 'installed\tok\t1\n'
         return command === 'apt-cache' ? 'Package: libfixture\n' : 'index updated\n'
       }, () => {}), error => error === failure)
-      assert.equal(calls.length, stage === 'update' ? 1 : 3)
+      assert.equal(calls.length, stage === 'update' ? 1 : 4)
       assert.equal(failure.stdout, 'partial download output\n')
       assert.equal(failure.stderr, 'original apt failure\n')
     }
@@ -185,6 +191,8 @@ test('installed Chrome dependency versions retain the selected alternative and t
   installCiLinuxLibraries(groups, (command, args) => {
     if (command === 'apt-cache') return versions.has(args[2]) ? `Package: ${args[2]}\n` : ''
     if (command === 'sudo') return ''
+    if (command === 'dpkg-query' && args.at(-1) === 'fonts-noto-cjk') return 'installed\tok\t1\n'
+    if (command === 'fc-match') return 'Noto Sans CJK SC\n'
     calls.push([command, args])
     if (command === 'dpkg-query') return `installed\tok\t${versions.get(args.at(-1))}\n`
     return ''
@@ -234,4 +242,113 @@ test('read-only check refuses a changed executable before executing it', async t
   let executions = 0
   await assert.rejects(checkCiRuntimes({ ...options, runCommand: () => { executions++; return 'Blender 5.2.1' } }), /installed executable differs/)
   assert.equal(executions, 1) // Blender was verified; the changed Chrome was refused.
+})
+
+function fontFixture(t, options = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'deepblend-ci-font-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const bytes = Buffer.from('verified tiny font package fixture'), version = '1:20230817+repack1-3'
+  const metadata = `Package: fonts-noto-cjk\nVersion: ${version}\nArchitecture: all\nFilename: pool/main/f/fonts-noto-cjk/fonts-noto-cjk_20230817+repack1-3_all.deb\nSize: ${bytes.length}\nSHA256: ${sha(bytes)}\n`
+  const cacheDirectory = join(root, 'archives'), reportDirectory = join(root, 'evidence'), calls = []
+  let installed = Boolean(options.installed)
+  const execute = (command, args) => {
+    calls.push([command, args])
+    if (command === 'dpkg-query') {
+      if (args.at(-1) === 'libfixture') return 'installed\tok\t1\n'
+      if (!installed) throw Object.assign(new Error('not installed'), { status: 1 })
+      return `installed\tok\t${options.installedVersion ?? version}\n`
+    }
+    if (command === 'apt-cache') return args.at(-1) === 'libfixture' ? 'Package: libfixture\n' : metadata
+    if (command === 'curl') {
+      const count = calls.filter(([name]) => name === 'curl').length
+      const status = options.failures?.[count - 1]
+      writeFileSync(args[args.indexOf('--output') + 1], status ? 'partial' : options.downloadBytes ?? bytes)
+      if (status) throw Object.assign(new Error('download failure'), { status })
+      return ''
+    }
+    if (command === 'dpkg-deb') return options.identity ?? `fonts-noto-cjk\t${version}\tall\n`
+    if (command === 'sudo' && args.includes('install')) installed = true
+    if (command === 'fc-match') return options.family ?? 'Noto Sans CJK SC\n'
+    return ''
+  }
+  return { bytes, metadata, version, cacheDirectory, reportDirectory, calls, execute,
+    cache: join(cacheDirectory, `${sha(bytes)}.deb`), report: () => JSON.parse(readFileSync(join(reportDirectory, 'font-preparation.json'))) }
+}
+test('CJK metadata rejects ambiguity, traversal, wrong identity and unverifiable size or digest', t => {
+  const f = fontFixture(t), pin = parseCiFontMetadata(f.metadata)
+  assert.equal(pin.Version, f.version); assert.equal(pin.SHA256, sha(f.bytes))
+  for (const text of [f.metadata + 'Package: fonts-noto-cjk\n',
+    f.metadata.replace('Package: fonts-noto-cjk', 'Package: other'), f.metadata.replace('Architecture: all', 'Architecture: amd64'),
+    f.metadata.replace('Version: 1:', 'Version: invalid:'), f.metadata.replace('pool/main/', '../pool/main/'),
+    f.metadata.replace(/Size: \d+/, 'Size: 0'), f.metadata.replace(/Size: \d+/, 'Size: 9007199254740992'),
+    f.metadata.replace(/SHA256: .+/, 'SHA256: unverified'), f.metadata.replace(/Filename: .+\n/, '')]) {
+    assert.throws(() => parseCiFontMetadata(text), /CJK font metadata/)
+  }
+})
+test('production CI font preparation installs only verified local bytes and retains actual family evidence', t => {
+  const f = fontFixture(t)
+  installCiLinuxLibraries(parseChromeDependencies('libfixture'), f.execute, () => {}, f)
+  const download = f.calls.find(([name]) => name === 'curl')[1]
+  assert.deepEqual(download.slice(0, -1), ['--fail', '--silent', '--show-error', '--proto', '=https',
+    '--connect-timeout', '15', '--max-time', '120', '--speed-limit', '1024', '--speed-time', '30', '--output', `${f.cache}.partial-${process.pid}`])
+  assert.equal(download.at(-1), 'https://archive.ubuntu.com/ubuntu/' + parseCiFontMetadata(f.metadata).Filename)
+  const install = f.calls.find(([name, args]) => name === 'sudo' && args.includes('install'))[1]
+  assert.ok(install.includes(f.cache) && !install.includes('fonts-noto-cjk') && install.includes('fontconfig'))
+  assert.ok(f.calls.findIndex(([name]) => name === 'dpkg-deb') < f.calls.findIndex(([name, args]) => name === 'sudo' && args.includes('install')))
+  assert.deepEqual(readFileSync(f.cache), f.bytes)
+  const report = f.report()
+  assert.equal(report.passed, true); assert.equal(report.cacheHit, false); assert.equal(report.installedVersion, f.version)
+  assert.equal(report.matchedFamily, 'Noto Sans CJK SC'); assert.equal(report.attempts.length, 1)
+})
+test('verified CJK cache is rehashed and inspected without a download; installed font needs no metadata fetch', t => {
+  for (const installed of [false, true]) {
+    const f = fontFixture(t, { installed }); mkdirSync(f.cacheDirectory)
+    writeFileSync(f.cache, f.bytes)
+    const result = withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument]))
+    assert.equal(result.passed, true); assert.equal(f.calls.some(([name]) => name === 'curl'), false)
+    assert.equal(f.calls.some(([name]) => name === 'dpkg-deb'), !installed)
+    assert.equal(f.calls.some(([name]) => name === 'apt-cache'), !installed)
+  }
+})
+test('CJK corrupt bytes, wrong package identity and cache symlinks fail before installation without fallback', t => {
+  const wrongHash = Buffer.from('verified tiny font package fixturX')
+  assert.equal(wrongHash.length, Buffer.byteLength('verified tiny font package fixture'))
+  for (const mode of ['size', 'hash', 'identity', 'cache-hash', 'symlink']) {
+    const f = fontFixture(t, { downloadBytes: mode === 'size' ? Buffer.from('short') : mode === 'hash' ? wrongHash : undefined,
+      identity: mode === 'identity' ? 'other\t1\tall\n' : undefined })
+    if (mode === 'cache-hash' || mode === 'symlink') {
+      mkdirSync(f.cacheDirectory)
+      if (mode === 'symlink') symlinkSync(join(f.cacheDirectory, 'absent'), f.cache)
+      else writeFileSync(f.cache, wrongHash)
+    }
+    const expected = { size: /CJK font archive size\/type differs/, hash: /CJK font archive SHA-256 differs/,
+      identity: /CJK font archive identity differs/, 'cache-hash': /CJK font archive SHA-256 differs/, symlink: /CJK font archive size\/type differs/ }
+    assert.throws(() => withCiFont(f.execute, f, () => assert.fail('unverified package reached install')), expected[mode])
+    assert.equal(f.report().passed, false)
+    assert.equal(f.calls.filter(([name]) => name === 'curl').length, ['cache-hash', 'symlink'].includes(mode) ? 0 : 1)
+    assert.ok(readdirSync(f.cacheDirectory).every(name => !name.includes('.partial-')))
+  }
+})
+test('CJK transport failure makes one bounded official fallback and preserves both attempts', t => {
+  const f = fontFixture(t, { failures: [28] })
+  const report = withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument]))
+  assert.equal(report.passed, true); assert.deepEqual(report.attempts.map(row => row.downloaded), [false, true])
+  assert.equal(report.attempts[0].exitCode, 28)
+  assert.equal(report.attempts[1].url, 'https://azure.archive.ubuntu.com/ubuntu/' + parseCiFontMetadata(f.metadata).Filename)
+})
+test('CJK exhausted transport and HTTP errors preserve failure and clean partial bytes', t => {
+  for (const failures of [[28, 28], [22]]) {
+    const f = fontFixture(t, { failures })
+    assert.throws(() => withCiFont(f.execute, f, () => assert.fail('failed download reached install')), /download failure/)
+    const report = f.report()
+    assert.equal(report.passed, false); assert.equal(report.attempts.length, failures.length)
+    assert.equal(report.failure.exitCode, failures.at(-1)); assert.deepEqual(readdirSync(f.cacheDirectory), [])
+  }
+})
+test('CJK post-install version and actual font substitution failures refuse preparation', t => {
+  for (const options of [{ installedVersion: '2' }, { family: 'DejaVu Sans\n' }]) {
+    const f = fontFixture(t, options)
+    assert.throws(() => withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument])), /CJK font installation differs|CJK font family unavailable/)
+    assert.equal(f.report().passed, false)
+  }
 })

@@ -427,7 +427,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**49 个套件、203 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
-**155 个文件 = 2132 项自计断言（34 个文件打印计数）+ 2149 个 `node:test` 用例（121 个文件）**。
+**155 个文件 = 2132 项自计断言（34 个文件打印计数）+ 2156 个 `node:test` 用例（121 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -438,7 +438,7 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **2026-10-27 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-断言和用例数从 0.23 候选准备阶段同一次完整 155/155 成功日志逐文件提取，未为计数额外重跑；来源与原始日志摘要见[逐面 UV 实现记录](deepblend/docs/validation/mesh-uv-implementation-1027.json)。当前完整 49 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
+断言和用例数从 0.23 候选 CI 字体修复后同一次完整 155/155 成功日志逐文件提取，未为计数额外重跑；来源与原始日志摘要见[逐面 UV 实现记录](deepblend/docs/validation/mesh-uv-implementation-1027.json)。当前完整 49 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
 此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、

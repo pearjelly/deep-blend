@@ -172,3 +172,24 @@ run `38290709648` 的八分钟杯步骤仍超时。完整 ZIP 的 CRC 已验证�
 新版宿主另有 harness-021-compatibility job：按 compatibility/dsh-0.2.1-rc.1 的独立锁安装，不覆盖旧基线；运行实际 Host、预览图像回执、渲染/交付生命周期与两种模式选择、浏览器检查。产物名 harness-021-<run>-<attempt>。本 job 不调用线上模型；是否已执行成功以具体提交的 Actions 与产物为准。
 
 macOS 托管安装的零配置发现由本机完整 `composition/activation.e2e.mjs` 验证；它依赖 `.tools/Blender.app`，不作为 Linux 托管安装的证据。新版 Linux job 使用真实已固定的 Blender 绝对路径，保持执行路径白名单。
+
+
+## 中文字体下载与安装核验
+
+0.23 候选的 run `40403858406` 有四项成功，杯尺寸作业先后两次在下载约 61 MB 的
+`fonts-noto-cjk` 时触发五分钟外层命令超时，原生杯尺寸步骤均未启动。两次失败及各自 ZIP 保留，
+不将本机杯尺寸通过或未运行的 CI 步骤计为成功。更早候选 run `40395315330` 的同类准备失败也保留。
+
+完整索引更新仍要求 `--error-on=any`。已完整安装的字体保留原版本；否则从更新后的 APT 元数据取得
+包名、版本、架构、文件名、大小和 SHA-256，向 Ubuntu 官方 `archive.ubuntu.com` HTTPS 下载。
+连接限时 15 秒、单次总限时 120 秒，持续 30 秒低于 1024 字节/秒也退出；仅已列明的网络传输错误
+允许转向官方 Azure 镜像一次。HTTP 错误、校验失败与包身份错误直接停止，失败的部分文件移除。
+
+文件必须为普通文件，并通过大小、SHA-256 和 `dpkg-deb` 身份检查后才作为本地包交给原有 APT 安装；
+安装后再次核对版本及 `fc-match` 实际得到的 `Noto Sans CJK SC`。每次下载与缓存恢复均重核字节，
+不使用损坏缓存。四个 Linux 作业的缓存键同时绑定运行时 pin、字体下载器与图形准备器，
+成功后可缓存已验证字体包。`font-preparation.json` 与既有日志一同始终上传，记录实际尝试、
+缓存命中、元数据、字体族和失败；该记录须与新确切提交的真实 CI 及原生报告一起核验。
+
+APT 的连接/数据超时语义见 [Debian 官方手册](https://manpages.debian.org/unstable/apt/apt-transport-http.1.en.html)；
+它与外层命令的总时限分别生效。此修复没有改变 Blender/Chrome 固定版本、测试范围或几何判据。

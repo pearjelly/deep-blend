@@ -732,7 +732,7 @@
     "automaticRetries": 0,
     "continuationUserMessages": 0,
     "narrationLimitation": "Final answer rounded exposure to0.180 before comparing with0.18; raw unrounded values retained.",
-    "sourceBindingScope": "Final source checks compare every shipped package and canonical preset byte against the actual frozen model installation. Candidate source commit is recorded separately from later evidence-only document edits."
+    "sourceBindingScope": "Final checks compare the complete202-file shipped package/canonical preset/root manifest inventory and every actual frozen model byte; model origin remains ee933815. Later changes are restricted to explicitly declared CI preparation, contracts, README and evidence/community documentation. Product paths and modes may not change."
   },
   "additionalCanonicalLiveChecks": {
     "toolCard": {
@@ -757,5 +757,304 @@
     "completedSuites": 39,
     "failureLines": [],
     "reasonStopped": "Freeze actual model evidence and canonical community description before the final uninterrupted49-suite acceptance. Never stitch these partial results into a full pass."
+  },
+  "completedFrozenFullV3": {
+    "startedAt": "2026-10-26T21:22:43.818684+00:00",
+    "finishedAt": "2026-10-26T22:18:29.308411+00:00",
+    "sourceCommit": "4e03b884c9c24b5a636f5c051c038bcbc4289dcc",
+    "versions": {
+      "node": "v24.22.0",
+      "npm": "11.20.0",
+      "pnpm": "10.28.2",
+      "dsh": "0.1.5-rc.2",
+      "python3": "Python 3.14.2",
+      "ffmpeg": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobe": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+    },
+    "sourceFiles": 1036,
+    "allSourceBytesUnchanged": true,
+    "runtimeExecutable": "/Users/hxb/.codex/worktrees/assembly-parameters/deepblend-isolated-dsh-061/node_modules/@deepseek-ai/dsh/lib/bin.js",
+    "runtimeExecutableSha256": "0ff7f1d72c4e0cbe14001709c81e20a04b70464118a7f78568952988e28f2ac5",
+    "runtimeExecutableUnchanged": true,
+    "changedPaths": [],
+    "exitCode": 0,
+    "passed": true,
+    "logSha256": "e4dece95a09be8f85ed79fe573969bed4b50e72cd22d9dd5306bc538b93ff9b6",
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all nineteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Mesh UV projection: real editor save, native area and revision protection",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection",
+      "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls",
+      "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal",
+      "Complete view workbench: native23-member fit, preserved animation and exact refresh replay",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "failureLines": [],
+    "scope": "Unmodified canonical 49-suite run-all entry. Paid live suites are excluded from this canonical entry; their separate actual outcomes are retained. The exact source and all tracked bytes are checked before/after."
+  },
+  "ciFontPreparationFix": {
+    "status": "readiness-passed-final-source-ci-and-full49-pending",
+    "failedWorkflow": 40403858406,
+    "failedCupJobs": [
+      121856437648,
+      121879196133
+    ],
+    "attempts": 2,
+    "nativeCupSteps": "not-started",
+    "failuresPreserved": true,
+    "rootCause": "Large fonts-noto-cjk download via Ubuntu Azure HTTP mirror exceeded outer300000ms command limit twice before native tests.",
+    "strategy": "Authenticated current APT metadata; bounded official HTTPS primary then one transport-only official mirror fallback; ordinary-file size/SHA256/dpkg-deb identity, rehashed cache, installed version and actual CJK family.",
+    "mutationFirstPass": {
+      "count": 29,
+      "caught": 22,
+      "notCaught": 7,
+      "cause": "Six production-path assertions excluded by name filter; one size check masked by general hash rejection.",
+      "retained": true
+    },
+    "mutationFinal": {
+      "passed": true,
+      "sourceRestored": true,
+      "results": [
+        {
+          "name": "duplicate-metadata",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "5190fdf3d8672337ef76a547aa1c2356798424665041f8cf70b6a60c428640d8"
+        },
+        {
+          "name": "package-name",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "24df35d3d72eb4ac1255c4c2edaecc53fd5ac91f718709b5619db7c66f27fa4e"
+        },
+        {
+          "name": "metadata-version",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "b728267a198ca39eed1a50288627bda76687ee054ba3763f3cde6346189b9616"
+        },
+        {
+          "name": "metadata-architecture",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c085653b3f612d44039013b5b2a273ce85cca875b39db06666dd29eb58fe951c"
+        },
+        {
+          "name": "metadata-path",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "308fb72cfb8d9267c0e570fd605a0869b7df4958ee1bf8aeeefb817faaaee33f"
+        },
+        {
+          "name": "metadata-size",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "36fd684d909440b5650702f0304e568e0eb963ec614ca0d74ad3d613056f8704"
+        },
+        {
+          "name": "metadata-safe-integer",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "347b6f28a07c2d0f0aa3ae026767c879a5344b717dcea70d624378833856e5b5"
+        },
+        {
+          "name": "metadata-digest",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e5f7837d6728c651246461856c74bf59b3304b21b9524b3707f1238aadf889b8"
+        },
+        {
+          "name": "archive-size",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "b7aca1920db2f19acfeea973423760a963641d063b052c49c0c8f7d9174c3cc3"
+        },
+        {
+          "name": "archive-hash",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "77f63891e076dc2b74ada296e108a99e78de72aae3e205a6e59c0e877e679203"
+        },
+        {
+          "name": "archive-identity",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "138660cafd6b89edc07294b8a7df3eca2a4a6968d69e5eaab50dfc063ca0f64f"
+        },
+        {
+          "name": "cache-symlink",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "2e504f5d6df5f70187104afcb26e890f27d325ab156e0a0bd44e76b1009ce9aa"
+        },
+        {
+          "name": "cache-rehash",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c347bd7a01093285e4a70889f30df59cc0ead431081fa75b620ecc9783c2906b"
+        },
+        {
+          "name": "connect-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "ba14447b98c06d2c61cf0aecb869684b5518e0d43808567592436d02f7f186ab"
+        },
+        {
+          "name": "wall-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "351ae0af1c706e75e398d95b1f8a72ba7a849ae9745c829312bea0b2440a9b28"
+        },
+        {
+          "name": "speed-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "8907105f3f3fd48d912a02fe7cb237bb6de7ca509bcdb0b33560de5372b5e32f"
+        },
+        {
+          "name": "idle-budget",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "c4b63597e298eced335bf23811f62059c9b886b62fcbbfed45489a71e48e4bbf"
+        },
+        {
+          "name": "https-only",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "ccf72fc08953b1a1ea6b2264060d83a1571714ff0a252bfd7c1fe0a5034ff89a"
+        },
+        {
+          "name": "local-package-argument",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "db0062ce7d968593f803e232acf0876ad8136a96a8b3b0c3b5adcce088020b9e"
+        },
+        {
+          "name": "transport-fallback",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "840d3512313047849a02b2978f673b69da27b2ee59e7a857e4cbbec0f2ba92ed"
+        },
+        {
+          "name": "http-not-transport",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "7725c72301ff09aecc6aa53b751cb71ecb3d202a4a8adf92831363548f7428db"
+        },
+        {
+          "name": "partial-cleanup",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "8801f3aef2dba9a8f0340e9235a5c5ab46dd098ef0b14504389a353ac2d13322"
+        },
+        {
+          "name": "installed-version",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "681613fe5644dd263bd6b5f51888dfb7b655708f5b2a055fe3d1b3f94f549941"
+        },
+        {
+          "name": "font-family",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "22afb14649d86c02f40a2dd517bc3518ac7fcea6ebde936c4c00626677863468"
+        },
+        {
+          "name": "report-success",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "eefdbf2783834a4e410a74ac9f742bff7bef684333218179f74bb78c0e84f683"
+        },
+        {
+          "name": "report-failure",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e04bd462c71122c38c2c2b3414440203fb696de0c7ac9e861cc0005e898ba8ab"
+        },
+        {
+          "name": "report-attempt",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e949432df7403ebc81ec42e3e4deb193c3ec7ecae3d09b09a2b857ddbaf484f9"
+        },
+        {
+          "name": "fontconfig-install",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "861dfd734acfa23fd486a8feb62e8f77b47674993c926b2a1236549cfca73bca"
+        },
+        {
+          "name": "cache-namespace",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "90dfcc5544f621a2fecd6f5ab6ec474542104e534a6416a1c68606f1113a6e29"
+        }
+      ]
+    },
+    "readinessContract": {
+      "exitCode": 0,
+      "fileSuitesPassed": 155,
+      "fileSuitesTotal": 155,
+      "logSha256": "8169c77ba55378945b308ba830ecbc8a005f37adf084c28c00edaeb519935c1b",
+      "scope": "Actual precommit CI font fix working-tree readiness; final frozen canonical49 acceptance is separate."
+    },
+    "countSnapshot": {
+      "files": 155,
+      "selfPrintingFiles": 34,
+      "selfPrintingAssertions": 2132,
+      "nodeTestFiles": 121,
+      "nodeTestCases": 2156,
+      "rawLog": {
+        "file": "unit-run.log",
+        "bytes": 538373,
+        "sha256": "8169c77ba55378945b308ba830ecbc8a005f37adf084c28c00edaeb519935c1b"
+      }
+    },
+    "newFontHelperShippedInPlugin": false,
+    "runtimePinsChanged": false,
+    "sourceProductFileCount": 202,
+    "modelCallsAdded": 0
   }
 }

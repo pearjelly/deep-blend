@@ -375,7 +375,10 @@ test('delivery, editing and upload share a separate runtime with bounded steps',
   const codecs = job.split(/^      - /m).find(step => step.includes('id: codecs'))
   assert.ok(codecs?.includes('ffmpeg -version') && codecs.includes('ffprobe -version'), 'codec readiness must verify both executables')
   assert.match(job, /uses: actions\/cache@v4/)
-  assert.match(job, /hashFiles\('deepblend\/tools\/ci-runtime-pins\.json'\)/)
+  const cacheKey = "hashFiles('deepblend/tools/ci-runtime-pins.json', 'deepblend/tools/ci-fonts.mjs', 'deepblend/tools/prepare-ci-linux.mjs')"
+  for (const name of ['linux-render-browser-smoke', 'linux-cup-parameter-smoke', 'harness-021-compatibility', 'linux-render-photography-browser']) {
+    assert.ok(workflowJob(name).includes(cacheKey), `${name} must invalidate the font cache when its preparation changes`)
+  }
   assert.ok(!job.includes('continue-on-error:'), 'native failures must fail their job')
 })
 
