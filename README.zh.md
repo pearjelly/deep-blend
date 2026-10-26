@@ -1,6 +1,6 @@
 # DeepBlend Studio
 
-[0.20.0 发布与验收范围](deepblend/docs/releases/0.20.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
+[0.21.0 发布与验收范围](deepblend/docs/releases/0.21.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
 
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.20.0 已在 GitHub 和 npm 发布**，支持完整金属台灯平移或绕竖轴转向后继续改灯罩直径，保留摆放、材质、相机和历史版本。完整验收、全新安装、公开三路安装和社区两份目录的0.20.0版本均已核验。详见[验收与发布记录](deepblend/docs/releases/0.20.0.md)。当前开发中的[整灯摆放候选](deepblend/docs/lamp-assembly-placement.md)把移动、转向和落到实际表面合并为一次保存，尚未发布。
+**0.21.0 已在 GitHub 和 npm 发布**，支持完整金属台灯移动、转向并落到实际支承表面，一次保存后继续改尺寸。完整验收、全新安装和公开三路安装均已核验；10月26日观察到的社区两份公开目录仍为0.20.0。详见[验收与发布记录](deepblend/docs/releases/0.21.0.md)。当前开发中的[完整取景候选](deepblend/docs/complete-view.md)在移动后另存静态机位，保留原相机和动画，尚未发布。
 
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
@@ -426,8 +426,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**48 个套件、201 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与下述 0.21 断言快照分别记录为
-**154 个文件 = 2130 项自计断言（34 个文件打印计数）+ 2066 个 `node:test` 用例（120 个文件）**。
+预期：**48 个套件、201 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
+**154 个文件 = 2131 项自计断言（34 个文件打印计数）+ 2137 个 `node:test` 用例（120 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -438,7 +438,7 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **2026-10-26 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-断言和用例数是 0.21 冻结来源的实际快照；当前源码新增完整取景，文件、套件与工具结构已更新，0.22 的完整断言和用例总数待冻结后重测。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
+断言和用例数从 0.22 候选冻结来源 `c4f17bf` 的同一次完整 154/154 成功日志逐文件提取，未为计数额外重跑。当前完整 48 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
 此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、

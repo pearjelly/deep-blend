@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "deepblend.complete-view-validation/v1",
+  "recordedAt": "2026-10-26T11:01:00.416833+00:00",
+  "status": "candidate; full48, exact-commit CI and release gates remain pending",
+  "candidateVersion": "0.22.0",
+  "candidateSourceCommit": "c4f17bff624a97b3d428b9b241218168db037367",
+  "sharedTaskSha256": "3da4310a0f062f9ae4d16799ec0d2c9232330abb197be42bb8a5b3dfe8a6aa5c",
+  "unitContract": {
+    "passed": true,
+    "files": 154,
+    "sourceFiles": 995,
+    "allSourceBytesAndModesUnchanged": true,
+    "resultSha256": "2050364e6cb3e34fd675b921d8ca9ba4e642f513fd557cd5b7f6447c8dbb850d",
+    "logSha256": "72597503f6499e8eabe5306cad8ca7444b20d97959eec20ba24259b4fa7f723b",
+    "measuredCounts": {
+      "self-counted": {
+        "files": 34,
+        "passed": 2131
+      },
+      "node:test": {
+        "files": 120,
+        "passed": 2137
+      }
+    }
+  },
+  "nativeTargeted": {
+    "passed": true,
+    "checks": 22,
+    "summarySha256": "e4c5cf07d56e70afe1df23959393dc993ca46362c494c7f30d12ea674cfed97f",
+    "scope": "Portrait and landscape, vertical/horizontal sensor fit, shifted lenses, roll animation, nested imported hierarchy, generated mesh, native hidden/far-clip refusal, actual corrupted compiled camera refusal."
+  },
+  "browserTargeted": {
+    "passed": true,
+    "checks": 18,
+    "summarySha256": "2cc7c5b9b98abc9be7124b5c4c0bda0f513c2c8736cd9d37eb54a67eb21594ef",
+    "scope": "Actual23-member lamp with all4 hero tracks; desktop/mobile controls, response loss, reload, exact replay, native saved-file proof and protected history."
+  },
+  "modelExperiment": {
+    "runtime": "DSH0.2.1",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "reasoningEffort": "max",
+    "requestMaxOutputTokens": 256000,
+    "maximumRequestsPerArm": 12,
+    "maximumAttemptsPerArm": 1,
+    "actualTotalRequests": 19,
+    "noRetries": true,
+    "noCompactionOrPruning": true,
+    "sameExactTaskAndFullFrameImage": true,
+    "sessionsOverlap": true,
+    "speedComparison": false,
+    "billedCurrencyCost": "unavailable; actual reported usage retained",
+    "arms": {
+      "baseline021": {
+        "version": "0.21.0",
+        "success": false,
+        "completed": false,
+        "boundaryFailure": "model-request-budget",
+        "actualModelRequests": 12,
+        "actualToolCalls": 18,
+        "turns": 1,
+        "independentChecks": 16,
+        "independentPassed": 15,
+        "failedIndependentChecks": [
+          "native-source-direction-roll-and-optics-preserved"
+        ],
+        "previewSha256": "dd6d4a4597a56b6a64e682404939ca22515261ed07daa7f5d9175794279df362",
+        "nativeCheckpointSha256": "5a0547260a00e2820e4d1c3e3adf7a2ac70ad6d76319260a23da3531b1c18ed6",
+        "armResultSha256": "31b3d1aa665e0279b2895a61a12b855f49dc6b43ae9e73c7a28c57db02ac55e2",
+        "independentReportSha256": "eab89398f0ea1c7e9155a2623a047c3f8819bbf8ad7899e924064dc47d2abb79",
+        "completeSessionLogSha256": "caa78167bfea53007fa7aad42de64268eadd1b6d53bd27351bb29dd80c803cd2",
+        "completeSessionArchiveSha256": "55deb70fdf8df2bf5c9d10bb6ceb7c3f8e1f3a46433d2eba0489217e0896317a",
+        "reportedProviderUsage": {
+          "prompt_tokens": 842104,
+          "completion_tokens": 41408,
+          "total_tokens": 883512,
+          "cached_prompt_tokens": 735232
+        },
+        "native": {
+          "label": "baseline021",
+          "memberCount": 23,
+          "meshCount": 23,
+          "vertexCount": 51786,
+          "allVerticesInside": true,
+          "projectionBounds": {
+            "min": [
+              0.2919588088989258,
+              0.06333522498607635,
+              1.3754935264587402
+            ],
+            "max": [
+              0.7480303645133972,
+              0.8554302453994751,
+              1.8214471340179443
+            ]
+          },
+          "selectedWorldGeometryUnchanged": true,
+          "allOriginalObjectsUnchanged": true,
+          "sourceOpticsAndRollPreserved": false,
+          "allOriginalCameraFramesUnchanged": true,
+          "originalCameraFramesChecked": 48,
+          "activeCameraUnchanged": true,
+          "newCameraStatic": true,
+          "view": [
+            768,
+            576,
+            100
+          ],
+          "newFocusDistance": 1.559998869895935
+        }
+      },
+      "candidate022": {
+        "version": "0.22.0",
+        "success": true,
+        "completed": true,
+        "boundaryFailure": null,
+        "actualModelRequests": 7,
+        "actualToolCalls": 8,
+        "turns": 1,
+        "independentChecks": 16,
+        "independentPassed": 16,
+        "failedIndependentChecks": [],
+        "previewSha256": "24fb6ba87d62624982f619d9584985122856d2a6fdf34811a109849d0086749c",
+        "nativeCheckpointSha256": "c2ab7c326a6cd8c854d0680f3a6e4aad3d4d50d830bdc04b5090e95c04ba35e5",
+        "armResultSha256": "7ca312423347da6085f1f5d77ae86b304243be655d9dd56e91230325abdfb1fd",
+        "independentReportSha256": "87eae83f8f7b110bff119c9dd00e6e02ed4851f89eb599e830144575d7cda92f",
+        "completeSessionLogSha256": "d502eac3cd39d83103c3cc3a71cc1445d23a5a231ac07753a842f43c37424946",
+        "completeSessionArchiveSha256": "032e8bbb14eecefdbe79093747a6e97682f9700db4b42c4584af966aee81a3a4",
+        "reportedProviderUsage": {
+          "prompt_tokens": 385095,
+          "completion_tokens": 7466,
+          "total_tokens": 392561,
+          "cached_prompt_tokens": 316288
+        },
+        "native": {
+          "label": "candidate022",
+          "memberCount": 23,
+          "meshCount": 23,
+          "vertexCount": 51786,
+          "allVerticesInside": true,
+          "projectionBounds": {
+            "min": [
+              0.28404179215431213,
+              0.030039126053452492,
+              1.122236967086792
+            ],
+            "max": [
+              0.7018970847129822,
+              0.969143807888031,
+              1.5597809553146362
+            ]
+          },
+          "selectedWorldGeometryUnchanged": true,
+          "allOriginalObjectsUnchanged": true,
+          "sourceOpticsAndRollPreserved": true,
+          "allOriginalCameraFramesUnchanged": true,
+          "originalCameraFramesChecked": 48,
+          "activeCameraUnchanged": true,
+          "newCameraStatic": true,
+          "view": [
+            768,
+            576,
+            100
+          ],
+          "newFocusDistance": 1.3410093784332275
+        }
+      }
+    },
+    "rootCameraFacts": [
+      {
+        "label": "source",
+        "cameraId": "hero",
+        "rotation": [
+          [
+            0.8829476833343506,
+            -0.10288701206445694,
+            0.45805874466896057
+          ],
+          [
+            0.46947163343429565,
+            0.19350235164165497,
+            -0.8614832162857056
+          ],
+          [
+            -1.613899236474481e-08,
+            0.9756900668144226,
+            0.2191549688577652
+          ]
+        ],
+        "lens": 65.0,
+        "fStop": 11.0,
+        "focusDistance": 1.332390308380127,
+        "clip": [
+          0.004999999888241291,
+          250.0
+        ],
+        "rotationDeltaDegrees": 0.0
+      },
+      {
+        "label": "baseline021",
+        "cameraId": "hero-complete-frame",
+        "rotation": [
+          [
+            0.974172055721283,
+            0.03195571526885033,
+            -0.22353453934192657
+          ],
+          [
+            -0.22580711543560028,
+            0.13786277174949646,
+            -0.964367687702179
+          ],
+          [
+            3.139120607897894e-08,
+            0.9899358153343201,
+            0.14151787757873535
+          ]
+        ],
+        "lens": 65.0,
+        "fStop": 11.0,
+        "focusDistance": 1.559998869895935,
+        "clip": [
+          0.10000000149011612,
+          1000.0
+        ],
+        "rotationDeltaDegrees": 41.288143851468426
+      },
+      {
+        "label": "candidate022",
+        "cameraId": "hero-complete-view",
+        "rotation": [
+          [
+            0.882947564125061,
+            -0.10288701206445694,
+            0.45805883407592773
+          ],
+          [
+            0.46947160363197327,
+            0.19350235164165497,
+            -0.8614832758903503
+          ],
+          [
+            -1.613899058838797e-08,
+            0.9756900668144226,
+            0.21915499866008759
+          ]
+        ],
+        "lens": 65.0,
+        "fStop": 11.0,
+        "focusDistance": 1.3410093784332275,
+        "clip": [
+          0.004999999888241291,
+          250.0
+        ],
+        "rotationDeltaDegrees": 0.0
+      }
+    ],
+    "candidateNarrationAudit": [
+      "Original final prose inaccurately calls the new focus distance inherited and implies an angular change. Actual source focus is1.332390m; new focus is1.341009m at selected bounds depth, with source rotation preserved. Raw text is retained without repair."
+    ],
+    "scope": "One maintainer task per arm, not a success-rate, speed, occlusion, artistic-quality or adoption study."
+  },
+  "evidencePublication": "Private complete requests, streams, session exports, inputs, saved files and original failures are retained; sanitized evidence assets will be bound at release."
+}

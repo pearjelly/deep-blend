@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "deepblend.complete-view-case-images/v1",
+  "license": "MIT",
+  "author": "DeepBlend contributors",
+  "original": true,
+  "sourceRepository": "https://github.com/pearjelly/deep-blend",
+  "method": "Exact bytes copied from actual saved native previews. No resize, crop, recolor, annotation or compositing.",
+  "sourceFrame": 24,
+  "sourcePreview": [
+    768,
+    576
+  ],
+  "baselinePublishedCommit": "569c210bf56a86ab11cb9473f889f26fd02ae94c",
+  "candidateCommit": "c4f17bff624a97b3d428b9b241218168db037367",
+  "taskSha256": "3da4310a0f062f9ae4d16799ec0d2c9232330abb197be42bb8a5b3dfe8a6aa5c",
+  "images": [
+    {
+      "file": "before.png",
+      "sha256": "0ffdb06ccccca5f532f61b60217cc0954225697ded3357527105b9afe403a125",
+      "bytes": 346353,
+      "width": 768,
+      "height": 576,
+      "sourceSha256": "0ffdb06ccccca5f532f61b60217cc0954225697ded3357527105b9afe403a125",
+      "meaning": "Shared saved r0003 hero frame24 before either model task",
+      "postProcessed": false,
+      "viewed": true
+    },
+    {
+      "file": "baseline021.png",
+      "sha256": "dd6d4a4597a56b6a64e682404939ca22515261ed07daa7f5d9175794279df362",
+      "bytes": 380415,
+      "width": 768,
+      "height": 576,
+      "sourceSha256": "dd6d4a4597a56b6a64e682404939ca22515261ed07daa7f5d9175794279df362",
+      "meaning": "Published0.21.0 one-attempt model result; fits geometry but changes source viewing direction and clipping",
+      "postProcessed": false,
+      "viewed": true
+    },
+    {
+      "file": "candidate022.png",
+      "sha256": "24fb6ba87d62624982f619d9584985122856d2a6fdf34811a109849d0086749c",
+      "bytes": 389845,
+      "width": 768,
+      "height": 576,
+      "sourceSha256": "24fb6ba87d62624982f619d9584985122856d2a6fdf34811a109849d0086749c",
+      "meaning": "Candidate0.22.0 one-attempt model result;16 independent gates passed",
+      "postProcessed": false,
+      "viewed": true
+    }
+  ],
+  "limitations": [
+    "One maintainer-provided task; no user-adoption, success-rate, speed or artistic-quality claim.",
+    "Baseline did save and present the complete lamp; its frozen source-direction-and-optics gate failed.",
+    "The bulb remains enclosed by the original shade; all selected vertices in frame does not imply absence of occlusion."
+  ]
+}

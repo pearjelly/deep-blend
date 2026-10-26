@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.20.0 — candidate
+## 0.22.0 — candidate
+
+- Save a new static complete-product view at an explicit frame, retaining the evaluated source-camera direction and optics, original cameras, animation and shots.
+- Fit full generated meshes and imported hierarchies, verify the compiled native frame margin and clipping before publication, and preserve the source on unsupported geometry or failed verification.
+- Expose complete-view selection in the workbench and agent tools, with exact retry and reload recovery after a lost save response.
+
+## 0.21.0 — 2026-10-26
+
+- Move, turn and place a complete supported metal-lamp assembly on a measured surface in one save, including all23 members, then continue diameter edits.
+- Reopen the compiled candidate to verify one rigid world transform, protected local geometry and the requested vertical gap; reject incomplete changes atomically.
+- Provide whole-lamp placement controls with desktop and narrow-layout feedback, cancellation and same-request retry.
+
+## 0.20.0 — 2026-10-26
 
 - Continue diameter edits of complete static metal lamps after translation and rotation around the vertical axis, preserving their placement, finish, cameras and history.
 - Check all 23 lamp parts before editing; reject missing, independently moved, scaled or animated members without publishing a partial revision.
