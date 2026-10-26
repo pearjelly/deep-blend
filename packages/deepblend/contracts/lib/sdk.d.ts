@@ -5,7 +5,12 @@ import type {
 } from './schema-types.js';
 export type * from './schema-types.js';
 export type * from './runtime-types.js';
-import type { ShotCameraSelection, AssemblyPlacementPose, AssemblyPlacementRequest, AssemblyPlacementReport } from './runtime-types.js';
+import type { ShotCameraSelection, AssemblyPlacementPose, AssemblyPlacementRequest, AssemblyPlacementReport, CameraFitRequest, CameraFitReport } from './runtime-types.js';
+export const CAMERA_FIT_VERSION: 'deepblend.camera-fit/v1';
+export const CAMERA_FIT_LIMITS: Readonly<{ entities: 64; meshes: 128; vertices: 2000000;
+  checkpointBytes: number; reportBytes: number; toleranceMeters: 0.00002 }>;
+export function validateCameraFitSelection(request: CameraFitRequest): void;
+export function verifyCameraFitReport(report: unknown, request: CameraFitRequest): CameraFitReport;
 export const SHOT_CAMERA_SELECTION_VERSION: 'deepblend.shot-camera-selection/v1';
 export const SHOT_CAMERA_SELECTION_LIMITS: { readonly shots: 64; readonly bytes: 8192 };
 export function buildShotCameraSelection(spec: Pick<SceneSpec, 'cameras' | 'shots'>, frames: number[]): ShotCameraSelection;

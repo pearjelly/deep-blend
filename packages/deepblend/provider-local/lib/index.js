@@ -41,6 +41,9 @@ import {
   verifySurfacePlacementReport,
   validateAssemblyPlacementSelection,
   verifyAssemblyPlacementReport,
+  CAMERA_FIT_LIMITS,
+  validateCameraFitSelection,
+  verifyCameraFitReport,
   BlenderError,
   BlenderErrorCode,
   CANDIDATE_RENDER_ENGINES,
@@ -278,7 +281,7 @@ export const SESSION_ROUTABLE_ACTIONS = Object.freeze([
   'render_preview',
   'render_views',
 ])
-export const ISOLATED_BOOTSTRAP_ACTIONS = Object.freeze(['inspect_geometry', 'inspect_surface_placement'])
+export const ISOLATED_BOOTSTRAP_ACTIONS = Object.freeze(['inspect_geometry', 'inspect_surface_placement', 'inspect_camera_fit'])
 
 /**
  * A live Blender, presented as one shape whatever carries the bytes.
@@ -1709,6 +1712,73 @@ export default class LocalBlenderRuntime extends Service {
           'Native placement inspection did not return a successful response for this request.')
       }
       const report = verifyReport(run.envelope?.result, request)
+      for (const source of sources) {
+        await verify(source.path, source.sha256)
+        await verify(source.snapshot, source.sha256)
+      }
+      aborted()
+      return { report, envelope: run.envelope, durationMs: run.durationMs, stdout: run.stdout, stderr: run.stderr }
+    } catch (cause) {
+      aborted()
+      throw cause
+    } finally {
+      this._cleanup(directory)
+    }
+  }
+
+  /** Read-only full-selection proposal or candidate check in a hash-pinned private batch. */
+  async inspectCameraFit(request) {
+    validateCameraFitSelection(request)
+    const aborted = () => {
+      if (request.signal?.aborted) throw new BlenderError(BlenderErrorCode.ABORTED, 'Camera fit cancelled.')
+    }
+    aborted()
+    if (!existsSync(this.workspaceRoot)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The camera-fit workspace does not exist.')
+    const root = realpathSync(this.workspaceRoot)
+    const boundedSource = path => {
+      if (typeof path !== 'string' || !isAbsolute(path) || !existsSync(path)) throw new BlenderError(BlenderErrorCode.REVISION_CHECKPOINT_MISSING, 'Camera fit needs an absolute native checkpoint path.')
+      const source = realpathSync(path), local = relative(root, source)
+      if (!local || local === '..' || local.startsWith('..' + sep) || isAbsolute(local)) throw new BlenderError(BlenderErrorCode.PATH_OUTSIDE_WORKSPACE, 'The camera-fit checkpoint is outside the runtime workspace.')
+      const info = statSync(source)
+      if (!info.isFile() || info.size > CAMERA_FIT_LIMITS.checkpointBytes) throw new BlenderError(BlenderErrorCode.SCENE_TOO_HEAVY, 'The camera-fit checkpoint is not a bounded native file.')
+      return source
+    }
+    const sources = [{ path: boundedSource(request.checkpointPath), sha256: request.checkpointSha256, name: 'camera-fit-source.blend' }]
+    if (request.baselineCheckpointPath !== undefined) sources.push({ path: boundedSource(request.baselineCheckpointPath), sha256: request.baselineCheckpointSha256, name: 'camera-fit-baseline.blend' })
+    const digest = async path => {
+      const hash = createHash('sha256')
+      for await (const bytes of createReadStream(path, { signal: request.signal })) hash.update(bytes)
+      return hash.digest('hex')
+    }
+    const verify = async (path, expected) => {
+      if (await digest(path) !== expected) throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'A camera-fit checkpoint differs from its pinned native source.')
+    }
+    const { directory, jobId } = this._createWorkingDirectory()
+    const correlationId = typeof request.jobId === 'string' && request.jobId.length > 0 ? request.jobId : jobId
+    try {
+      for (const source of sources) {
+        await verify(source.path, source.sha256)
+        source.snapshot = join(directory, source.name)
+        await copyFile(source.path, source.snapshot)
+        aborted()
+        await verify(source.snapshot, source.sha256)
+      }
+      const run = await this.runBootstrap({ action: 'inspect_camera_fit', jobId: correlationId,
+        payload: { entityIds: request.entityIds, assetInstanceIds: request.assetInstanceIds,
+          frame: request.frame, cameraId: request.cameraId, fittedCameraId: request.fittedCameraId,
+          margin: request.margin, checkpointSha256: request.checkpointSha256,
+          ...(sources.length === 1 ? {} : { baselineCheckpointPath: sources[1].snapshot,
+            baselineCheckpointSha256: request.baselineCheckpointSha256 }) } },
+      { signal: request.signal, session: false, args: ['--blend', sources[0].snapshot] })
+      aborted()
+      if (run.exitCode !== 0) throw new BlenderError(BlenderErrorCode.NONZERO_EXIT,
+        'Native camera-fit inspection did not exit successfully; its result was refused.')
+      if (run.envelope?.protocolVersion !== BLENDER_PROTOCOL_VERSION || run.envelope.status !== 'success' ||
+          run.envelope.action !== 'inspect_camera_fit' || run.envelope.jobId !== correlationId || run.envelope.error !== null) {
+        throw new BlenderError(BlenderErrorCode.PROTOCOL_VERSION_MISMATCH,
+          'Native camera-fit inspection did not return a successful response for this request.')
+      }
+      const report = verifyCameraFitReport(run.envelope?.result, request)
       for (const source of sources) {
         await verify(source.path, source.sha256)
         await verify(source.snapshot, source.sha256)

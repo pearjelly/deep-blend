@@ -225,7 +225,7 @@ export const CAMERA_TARGET_UPDATE_HINT =
   'Retarget or clear cameras before removing their target entities.'
 
 export const CAMERA_UPDATE_FIELDS = Object.freeze([
-  'lens', 'sensorWidth', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'clearTarget', 'fStop', 'role',
+  'lens', 'sensorWidth', 'sensorHeight', 'sensorFit', 'shift', 'clipping', 'transform', 'targetEntityId', 'targetPoint', 'clearTarget', 'fStop', 'focusDistance', 'role',
 ])
 
 /** Build an anchored error for a failed operation. */

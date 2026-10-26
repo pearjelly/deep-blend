@@ -6,6 +6,7 @@ import {
   sceneSpecDigest, specHash, specChangeAudit, reviewInputsDigest, SCENE_OPERATION_NAMES, RECIPE_CAPABILITIES,
   BOX_DIMENSIONS_FEATURE, requiredSceneFeatures,
   normalizeShotCameraSelection, shotCameraForFrame,
+  CAMERA_FIT_VERSION, validateCameraFitSelection, type CameraFitRequest,
   type SceneSpec, type ScenePatch, type ScenePatchOperation, type ModelModifier, type OperationManifest, type SpecChangeStatus,
   type RecipeLock, type RecipeParameterState, type RecipeGeometryPlan, type RecipeManifest, type RecipeBundle, type RecipeCapability, type BlenderRuntime, type LocalBlenderRuntime,
   type FrameSequenceHandle, type RuntimeActionResult, type CompileReport,
@@ -46,6 +47,14 @@ assert.equal(Object.hasOwn(resetScene.cameras[0]!, 'clearTarget'), false);
 // @ts-expect-error Only an explicit true reset instruction is supported.
 const invalidReset: ScenePatchOperation = { op: 'camera.update', cameraId: camera.id, clearTarget: false };
 assert.equal(invalidReset.op, 'camera.update');
+const fittedOptics: SceneSpecSchema.Camera = { ...camera, id: 'sdk-static-view', sensorHeight: 32,
+  sensorFit: 'VERTICAL', shift: [.2, -.1], focusDistance: .8, fStop: 8 };
+const fitSelection: CameraFitRequest = { checkpointPath: '/saved/source.blend', checkpointSha256: '0'.repeat(64),
+  entityIds: ['body'], assetInstanceIds: [], frame: 24, cameraId: camera.id,
+  fittedCameraId: fittedOptics.id, margin: .03 };
+validateCameraFitSelection(fitSelection);
+assert.equal(CAMERA_FIT_VERSION, 'deepblend.camera-fit/v1');
+assert.equal(parseSceneSpec({ ...compiled.spec, cameras: [...compiled.spec.cameras, fittedOptics] }).cameras.at(-1)?.focusDistance, .8);
 
 assert.equal(specSchema.properties.schemaVersion.const, 'deepblend.scene/v1');
 assert.ok(patchSchema.$defs.operation.oneOf.length === SCENE_OPERATION_NAMES.length);

@@ -43,6 +43,7 @@
 
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { fitCupHeroFromNative } from './cup-hero-framing.js'
+import { applyCameraFit } from './camera-fit.js'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
@@ -341,11 +342,15 @@ export class RevisionTransaction {
       ? applyAssemblySurfacePlacement(this, request, options) : applySurfacePlacement(this, request, options))
   }
 
+  async fitCamera(request, options = {}) {
+    return this.store.withProjectWrite(request.projectId, () => applyCameraFit(this, request, options))
+  }
+
   async _applyScenePatch(patch, options) {
     const projectId = patch.projectId
     const record = this.store.readRecord(projectId)
     const { key, derived: patchDerived } = resolveIdempotencyKey(patch)
-    const derived = options.surfacePlacement?.keyDerived ?? patchDerived
+    const derived = options.cameraFit?.keyDerived ?? options.surfacePlacement?.keyDerived ?? patchDerived
 
     // ---------------------------------------------------------------------
     // ORDER MATTERS HERE: idempotency is checked BEFORE the conflict check.
@@ -363,6 +368,9 @@ export class RevisionTransaction {
     // ---------------------------------------------------------------------
     const recorded = this.store.readIdempotencyRecord(projectId, key)
     if (recorded !== null) {
+      if (recorded.kind === 'camera_fit' || options.cameraFit) {
+        throw new BlenderError(BlenderErrorCode.SCENE_PATCH_REJECTED, 'This idempotency key belongs to a fitted-view request; use that operation to replay its exact intent.')
+      }
       if (recorded.kind === 'surface_placement' || options.surfacePlacement) {
         throw new BlenderError(BlenderErrorCode.SCENE_PATCH_REJECTED, 'This idempotency key belongs to a surface-placement request; use that operation to replay its exact intent.')
       }
@@ -473,12 +481,22 @@ export class RevisionTransaction {
     // Compilation materialises DOCUMENTED defaults only, and is idempotent, so a
     // patch that adds nothing new is unaffected — the digest of an unrelated change
     // does not move.
+    // A fitted view adds one camera while retaining the source camera order.
+    // Generic camera.add sorts its array; on old scenes without activeCamera
+    // that could silently replace the saved first-camera fallback.
+    if (options.cameraFit) {
+      const order = options.cameraFit.cameraOrder
+      nextSpec.cameras.sort((a, b) => order.indexOf(a.id)-order.indexOf(b.id))
+    }
     const resolved = compileSceneSpec(nextSpec)
     nextSpec = resolved.spec
     digestAfter = sceneSpecDigest(nextSpec)
     specHashAfter = specHash(nextSpec)
     if (options.surfacePlacement && specHashAfter !== options.surfacePlacement.expectedSpecHash) {
       throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'Surface placement would change source fields beyond the requested placement; no revision was published.')
+    }
+    if (options.cameraFit && specHashAfter !== options.cameraFit.expectedSpecHash) {
+      throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The fitted view would change fields beyond adding the requested camera; no revision was published.')
     }
 
     const validation = validateSceneSpec(nextSpec)
@@ -501,6 +519,7 @@ export class RevisionTransaction {
       verifyNativeSource: options.verifyNativeSource,
       cameraFraming: options.cameraFraming,
       surfacePlacement: options.surfacePlacement,
+      cameraFit: options.cameraFit,
       previewFrame: options.previewFrame,
       cameraId: options.cameraId,
       summary,
@@ -535,8 +554,8 @@ export class RevisionTransaction {
         warnings: outcome.warnings,
         sceneSummary: outcome.sceneSummary,
       },
-      kind: options.surfacePlacement ? 'surface_placement' : 'scene_patch',
-      ...(options.surfacePlacement ? { intentSha256: options.surfacePlacement.intentSha256 } : {}),
+      kind: options.cameraFit ? 'camera_fit' : options.surfacePlacement ? 'surface_placement' : 'scene_patch',
+      ...(options.cameraFit || options.surfacePlacement ? { intentSha256: (options.cameraFit ?? options.surfacePlacement).intentSha256 } : {}),
     })
 
     return { ...outcome, idempotentReplay: false, idempotencyKey: key, idempotencyKeyDerived: derived }
@@ -642,7 +661,7 @@ export class RevisionTransaction {
             sceneSpecPath: specPath,
             cameraFraming: plan.cameraFraming,
             // Automatic framing compiles in isolation, preserving any live editor scene.
-            session: plan.cameraFraming || plan.surfacePlacement ? false : undefined,
+            session: plan.cameraFraming || plan.surfacePlacement || plan.cameraFit ? false : undefined,
             profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',
             projectRoot: this.store.projectDirectory(projectId),
             jobId,
@@ -724,6 +743,7 @@ export class RevisionTransaction {
           )
         }
         if (plan.surfacePlacement) await plan.surfacePlacement.verifyCandidate(checkpointStaging)
+        if (plan.cameraFit) await plan.cameraFit.verifyCandidate(checkpointStaging)
       } catch (cause) {
         const failure = toCanonicalFailure(cause, {
           isBlenderError: value => value instanceof BlenderError,
@@ -794,7 +814,7 @@ export class RevisionTransaction {
           checkpointPath: checkpointStaging,
           cameraId: plan.cameraId,
           ...(plan.previewFrame === undefined ? {} : { frame: plan.previewFrame }),
-          ...(plan.surfacePlacement ? { session: false } : {}),
+          ...(plan.surfacePlacement || plan.cameraFit ? { session: false } : {}),
           signal: plan.signal,
           warnings,
         }))
@@ -866,6 +886,7 @@ export class RevisionTransaction {
       },
       ...(plan.cameraFramingReceipt ? { cameraFraming: plan.cameraFramingReceipt } : {}),
       ...(plan.surfacePlacement ? { surfacePlacementReceipt: plan.surfacePlacement.receipt } : {}),
+      ...(plan.cameraFit ? { cameraFitReceipt: plan.cameraFit.receipt } : {}),
       renderConfig: compileReport?.renderConfig ?? null,
       sceneFingerprint: compileReport?.sceneFingerprint ?? null,
       assetParts: (compileReport?.objects ?? [])
@@ -953,11 +974,11 @@ export class RevisionTransaction {
     try {
       this.store.assertProjectWrite(projectId)
       plan.verifyNativeSource?.()
-      if (plan.surfacePlacement && (!isFile(join(staging, 'scene-spec.json')) ||
+      if ((plan.surfacePlacement || plan.cameraFit) && (!isFile(join(staging, 'scene-spec.json')) ||
           readFileSync(join(staging, 'scene-spec.json'), 'utf8') !== sceneSpecCanonicalText(plan.spec) ||
-          specHash(plan.spec) !== plan.surfacePlacement.expectedSpecHash)) {
+          specHash(plan.spec) !== (plan.cameraFit ?? plan.surfacePlacement).expectedSpecHash)) {
         throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED,
-          'The candidate scene description changed after placement was planned; no revision was published.')
+          'The candidate scene description changed after native planning; no revision was published.')
       }
       const current = this.store.readRecord(projectId)
       if (JSON.stringify(current) !== JSON.stringify(record)) {
