@@ -1,7 +1,7 @@
 /** Continue the complete pinned 2.2 lamp after a static translation and upright yaw. */
 import { RecipeError } from './recipe.js'
 
-const source = '0d59d5340acc9334fbc9787a51fe1dc66fae39631534d581281770013e59c0b5'
+export const LAMP_ASSEMBLY_MANIFEST_SHA256 = '0d59d5340acc9334fbc9787a51fe1dc66fae39631534d581281770013e59c0b5'
 const near = (a, b) => Array.isArray(a) && Array.isArray(b)
   ? a.length === b.length && a.every((value, index) => near(value, b[index]))
   : Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-9
@@ -21,7 +21,7 @@ const refuse = conflicts => {
 }
 
 export function placedLampAssembly(lock, current, before, after) {
-  if (lock.manifestSha256 !== source) return { before, after }
+  if (lock.manifestSha256 !== LAMP_ASSEMBLY_MANIFEST_SHA256) return { before, after }
   current = structuredClone(current)
   const parts = before.spec.entities.filter(entity => entity.id !== 'studio-floor')
   const actualParts = new Map(current.entities.map(entity => [entity.id, entity]))

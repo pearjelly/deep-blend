@@ -39,6 +39,8 @@ import {
   SURFACE_PLACEMENT_LIMITS,
   validateSurfacePlacementSelection,
   verifySurfacePlacementReport,
+  validateAssemblyPlacementSelection,
+  verifyAssemblyPlacementReport,
   BlenderError,
   BlenderErrorCode,
   CANDIDATE_RENDER_ENGINES,
@@ -1644,7 +1646,17 @@ export default class LocalBlenderRuntime extends Service {
 
   /** Measure both actual meshes in a private batch; candidate verification also pins its baseline. */
   async inspectSurfacePlacement(request) {
-    validateSurfacePlacementSelection(request)
+    return this._inspectSurfacePlacement(request, false)
+  }
+
+  async inspectAssemblyPlacement(request) {
+    return this._inspectSurfacePlacement(request, true)
+  }
+
+  async _inspectSurfacePlacement(request, assembly) {
+    const validate = assembly ? validateAssemblyPlacementSelection : validateSurfacePlacementSelection
+    const verifyReport = assembly ? verifyAssemblyPlacementReport : verifySurfacePlacementReport
+    validate(request)
     const aborted = () => {
       if (request.signal?.aborted) throw new BlenderError(BlenderErrorCode.ABORTED, 'Surface placement cancelled.')
     }
@@ -1682,8 +1694,11 @@ export default class LocalBlenderRuntime extends Service {
       const run = await this.runBootstrap({ action: 'inspect_surface_placement', jobId: correlationId,
         payload: { subjectEntityId: request.subjectEntityId, supportEntityId: request.supportEntityId,
           frame: request.frame, clearanceMm: request.clearanceMm ?? 0, checkpointSha256: request.checkpointSha256,
+          ...(assembly ? { scope: 'recipe-assembly', memberEntityIds: request.memberEntityIds, pose: request.pose } : {}),
           ...(sources.length === 1 ? {} : { baselineCheckpointPath: sources[1].snapshot,
-            baselineCheckpointSha256: request.baselineCheckpointSha256, expectedTranslationMeters: request.expectedTranslationMeters }) } },
+            baselineCheckpointSha256: request.baselineCheckpointSha256,
+            ...(assembly ? { expectedWorldMatrixMeters: request.expectedWorldMatrixMeters }
+              : { expectedTranslationMeters: request.expectedTranslationMeters }) }) } },
       { signal: request.signal, session: false, args: ['--blend', sources[0].snapshot] })
       aborted()
       if (run.exitCode !== 0) throw new BlenderError(BlenderErrorCode.NONZERO_EXIT,
@@ -1693,7 +1708,7 @@ export default class LocalBlenderRuntime extends Service {
         throw new BlenderError(BlenderErrorCode.PROTOCOL_VERSION_MISMATCH,
           'Native placement inspection did not return a successful response for this request.')
       }
-      const report = verifySurfacePlacementReport(run.envelope?.result, request)
+      const report = verifyReport(run.envelope?.result, request)
       for (const source of sources) {
         await verify(source.path, source.sha256)
         await verify(source.snapshot, source.sha256)

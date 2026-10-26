@@ -75,6 +75,7 @@ import { GENESIS_REVISION, parseRevisionId } from './project-store.js'
 import { readRecipeContext } from './recipe-state.js'
 import { protectRecipeNativeSource } from './recipe-native-source.js'
 import { applySurfacePlacement } from './surface-placement.js'
+import { applyAssemblySurfacePlacement } from './assembly-surface-placement.js'
 import {
   fileSha256,
   fileSize,
@@ -336,7 +337,8 @@ export class RevisionTransaction {
   }
 
   async placeOnSurface(request, options = {}) {
-    return this.store.withProjectWrite(request.projectId, () => applySurfacePlacement(this, request, options))
+    return this.store.withProjectWrite(request.projectId, () => request.scope === 'recipe-assembly'
+      ? applyAssemblySurfacePlacement(this, request, options) : applySurfacePlacement(this, request, options))
   }
 
   async _applyScenePatch(patch, options) {
@@ -476,7 +478,7 @@ export class RevisionTransaction {
     digestAfter = sceneSpecDigest(nextSpec)
     specHashAfter = specHash(nextSpec)
     if (options.surfacePlacement && specHashAfter !== options.surfacePlacement.expectedSpecHash) {
-      throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'Surface placement would change source fields beyond the subject Z location; no revision was published.')
+      throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'Surface placement would change source fields beyond the requested placement; no revision was published.')
     }
 
     const validation = validateSceneSpec(nextSpec)

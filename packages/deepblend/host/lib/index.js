@@ -29,6 +29,7 @@ import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { readRecipeContext } from './recipe-state.js'
 import { assemblyPlacementChanges } from './assembly-changes.js'
 import { normalizeSurfacePlacementRequest } from './surface-placement.js'
+import { describeLampAssemblyPlacement } from './assembly-surface-placement.js'
 import { instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters } from '@deepblend/dsh-blender-contracts'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -643,6 +644,7 @@ export default class BlenderStudio extends Service {
   get cameraTargetResetSupported() { return CAMERA_UPDATE_FIELDS.includes('clearTarget') }
   get recipeParameterEditingSupported() { return true }
   get surfacePlacementSupported() { return true }
+  get assemblyPlacementSupported() { return true }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
@@ -736,11 +738,15 @@ export default class BlenderStudio extends Service {
       digest,
     })
     const manifest = this.store.readRevisionManifest(projectId, revision)
+    let assemblyPlacement = null
+    try { assemblyPlacement = describeLampAssemblyPlacement(readRecipeContext(this.store, projectId, revision), spec) }
+    catch (error) { assemblyPlacement = { available: false, error: { code: error.code ?? 'RECIPE_LOCK_INVALID', message: error.message } } }
     const geometry = options.geometry === undefined ? undefined : await inspectRevisionGeometry(this, projectId, revision, options.geometry, options.signal)
     return {
       ...summary,
       projectId,
       isCurrent: revision === (geometry ? this.store.readRecord(projectId).currentRevision : record.currentRevision),
+      ...(assemblyPlacement ? { assemblyPlacement } : {}),
       ...(geometry ? { geometryInspection: geometry } : {}),
       assetParts: (manifest?.assetParts ?? []).map(part => {
         const entity = spec.entities.find(entry => entry.id === part.entityId)
@@ -816,7 +822,9 @@ export default class BlenderStudio extends Service {
       if (error.code !== 'RECIPE_PARAMETER_CONFLICT') throw error
       conflicts = error.details.conflicts
     }
+    const placement = describeLampAssemblyPlacement(context, currentSpec)
     return { projectId, revision, available: true, originRevision: context.originRevision,
+      ...(placement ? { placement } : {}),
       recipe: { id: context.lock.id, version: context.lock.version }, valuesSha256: resolved.recipe.valuesSha256,
       parameters: definitions.map(parameter => ({ id: parameter.id, title: parameter.title, type: parameter.type,
         minimum: parameter.minimum, maximum: parameter.maximum, default: parameter.default, value: resolved.values[parameter.id] })),

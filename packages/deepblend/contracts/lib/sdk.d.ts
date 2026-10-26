@@ -5,7 +5,7 @@ import type {
 } from './schema-types.js';
 export type * from './schema-types.js';
 export type * from './runtime-types.js';
-import type { ShotCameraSelection } from './runtime-types.js';
+import type { ShotCameraSelection, AssemblyPlacementPose, AssemblyPlacementRequest, AssemblyPlacementReport } from './runtime-types.js';
 export const SHOT_CAMERA_SELECTION_VERSION: 'deepblend.shot-camera-selection/v1';
 export const SHOT_CAMERA_SELECTION_LIMITS: { readonly shots: 64; readonly bytes: 8192 };
 export function buildShotCameraSelection(spec: Pick<SceneSpec, 'cameras' | 'shots'>, frames: number[]): ShotCameraSelection;
@@ -138,6 +138,18 @@ export function instantiateRecipeLock(lock: RecipeLock, changes?: RecipeValues, 
 export function recipeGeometryParameters(manifest: RecipeManifest): RecipeManifest['parameters'];
 export function planRecipeGeometryEdit(lock: RecipeLock, currentSpec: SceneSpec,
   parameterState: RecipeParameterState | undefined, changes: Record<string, number>): RecipeGeometryPlan;
+export const ASSEMBLY_PLACEMENT_VERSION: 'deepblend.assembly-placement/v1';
+export const ASSEMBLY_PLACEMENT_BASIS_TOLERANCE: 0.000001;
+export const ASSEMBLY_PLACEMENT_UV_TOLERANCE: 0.000001;
+export function normalizeAssemblyPose(input?: Partial<AssemblyPlacementPose>, defaultPivotMm?: [number, number, number]): AssemblyPlacementPose;
+export function assemblyPoseMatrixMeters(pose: AssemblyPlacementPose): number[][];
+export function planLampAssemblyPlacement(lock: RecipeLock, currentSpec: SceneSpec,
+  parameterState: RecipeParameterState | undefined, inputPose?: Partial<AssemblyPlacementPose>): {
+    subjectEntityId: string; memberEntityIds: string[]; pose: AssemblyPlacementPose; poseMatrixMeters: number[][];
+    operations: Array<Extract<ScenePatchOperation, { op: 'entity.transform.update' }>>;
+  };
+export function validateAssemblyPlacementSelection(request: AssemblyPlacementRequest): void;
+export function verifyAssemblyPlacementReport(report: unknown, request: AssemblyPlacementRequest): AssemblyPlacementReport;
 
 /** Opt-in actual evaluated mesh bounds, including object/world scale, excluding placement rotation/translation. */
 export const OBJECT_AXES_INSPECTION_VERSION: "deepblend.geometry-inspection/v3";

@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-The **0.20.0 candidate** lets you resize a complete metal lamp after moving or turning it around its vertical axis. Edit its diameter in the existing controls while retaining placement, finish, cameras and saved history. See the [validation scope and release status](deepblend/docs/releases/0.20.0.md). The latest published version is [0.19.0](deepblend/docs/releases/0.19.0.md), which adds placement on actual mesh surfaces.
+**0.20.0 is published on GitHub and npm.** Resize a complete metal lamp after moving or turning it around its vertical axis, retaining placement, finish, cameras and saved history. Full acceptance, fresh installation, the three public installation routes and the community index/catalog at 0.20.0 have been verified. See the [release record](deepblend/docs/releases/0.20.0.md). The current [whole-lamp placement candidate](deepblend/docs/lamp-assembly-placement.md) combines movement, turning and placement on a measured surface in one save; it is not yet released.
 
 Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 
@@ -262,7 +262,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 44 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 46 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)

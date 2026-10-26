@@ -160,6 +160,7 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_geometry_framing.py': 'read-only perspective vertex projection helper called by the existing inspect_geometry action; it implements no action',
     'deepblend_camera_framing.py': 'read-only evaluated vertex/frustum helper inside the existing compile_scene action; it implements no action',
     'deepblend_inspect_surface.py': 'bounded local surface helper called only by the existing inspect_geometry action',
+    'deepblend_assembly_placement.py': 'complete assembly scope helper called only by the existing inspect_surface_placement action; it adds no action',
     'bootstrap.py': 'the dispatcher: it routes to the actions and implements none of them',
     'deepblend_bridge.py': 'the transport: it serves the actions over a socket, inside a user\'s Blender',
     'deepblend_features.py': 'shared compiler vocabulary, consumed by capability reporting; it implements no action',

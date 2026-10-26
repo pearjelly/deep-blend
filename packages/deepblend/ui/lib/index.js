@@ -722,6 +722,7 @@ export function createHandlers(ctx) {
         editableSnapshotAvailability,
         creationRequestProtocol: studio().creationRequestProtocol ?? null,
         cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
+        assemblyPlacementSupported: studio().assemblyPlacementSupported === true,
         selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
@@ -943,6 +944,10 @@ export function createHandlers(ctx) {
       if (studio().recipeParameterEditingSupported !== true) throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to edit assembly dimensions')
       return { revision: await studio().updateRecipeParameters({ ...body, projectId: params.projectId,
         saveCheckpoint: true, renderPreview: true }) }
+    },
+    'project.surfacePlacement': async ({ params, body, signal }) => {
+      if (studio().assemblyPlacementSupported !== true || typeof studio().placeOnSurface !== 'function') throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to place the complete lamp')
+      return { revision: await studio().placeOnSurface({ ...body, projectId: params.projectId, renderPreview: true, signal }) }
     },
 
     'project.restore': async ({ params, body }) => {

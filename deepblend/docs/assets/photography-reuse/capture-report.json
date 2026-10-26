@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-22T18:20:39.646808+00:00",
+  "at": "2026-10-26T04:43:46.627312+00:00",
   "passed": true,
   "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CUA captures. Project r0001 hero camera (60 mm) applied to a browser draft based on r0002. All copied Host bytes remained unchanged. This refresh makes no new native regression claim; the earlier 36 checks remain historical evidence.",
   "protectedHostFiles": 31,
@@ -29,27 +29,35 @@
         "right": 33
       }
     ],
-    "currentSavedRevision": "r0002",
     "draftBase": "r0002",
     "height": 844,
-    "lens": "60",
     "photographyOpen": true,
     "scrollWidth": 390,
     "source": "project:r0001",
     "sourceCamera": "hero",
-    "width": 390
+    "width": 390,
+    "currentSavedRevision": "r0002",
+    "lens": "60"
   },
-  "browserObservationSha256": "43ef9b5309cd375c722f8352bedf3fe019f1f1968e07965981a6b31d5951d853",
-  "browserActionsSha256": "f5461bc7bc26dc84f9e6202e0452624b6d4a2b090dec0d7eca602921216d80bd",
-  "uiSha256": "2ee3ce3d50a950b1fadfecdd9158b70c242e8e5a8958fb7ec16993439fc3625d",
+  "browserObservationSha256": "119453c734293251042b641ff28f588a098504e53aedc37dde8452058074ac87",
+  "browserActionsSha256": "4fd874cbe8e929ea08d58cd4106271b2f9afc0bb60c53ffdfeac8d0c2caf027a",
+  "separateDomReadbackSha256": "ee25e9dccaf72e555c50c2373d84d6e68f3fcd1c37ee1f6083850262c417520e",
+  "separateDomReadback": {
+    "applied": true,
+    "currentSavedRevision": "r0002",
+    "draftBase": "r0002",
+    "lens": "60",
+    "source": "project:r0001"
+  },
+  "uiSha256": "9a066f81cfd65a3d51c2c9726191cbd11856fd99c3c02fa0eea0ce70b7e7a9b6",
   "nativeRegressionRerun": false,
   "encodingConversion": {
     "draft.png": {
       "sourceFile": "photography-desktop.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "07060d13a5e919b8ef3c1772e691755503bb521ba72c607ab921b857d04f1eec",
-      "pngSha256": "4c54894ca01a090360da98ff6c8be6c2fbb9085d996f4758a03d9b9b57c1268f",
-      "decodedPixelsSha256": "64c2dec279ba97605e65c8a3af6e6e94e11a5ce09108276d10cbfce4cffd7614",
+      "sourceSha256": "2f7bbcc257f7491c7c6f571e89386efa0fa0cdaca335aa2ee32bc607e25cdd0b",
+      "pngSha256": "7adc8d8523ad80535a9296872110e43c49964ae42588466fe7249b1d27cb78f5",
+      "decodedPixelsSha256": "8ebe65c7b4f6a957206d10fe1bfaf723d31746fc7628ebbf18d0a596250d46f5",
       "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
@@ -57,11 +65,11 @@
       "colorAdjusted": false
     },
     "narrow.png": {
-      "sourceFile": "photography-narrow.png",
+      "sourceFile": "photography-narrow-final.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "2b20351f690908a32948ad86fbbafe24bf84f2afaa384c345d44a28a68d9644b",
-      "pngSha256": "249ae0065e68c62332860e154928cc351187bd076e69e3767a5122cfe4a02a85",
-      "decodedPixelsSha256": "89aa90109dc455c36a970660bbe6832b70894cd4ee329d98243d640921404693",
+      "sourceSha256": "ee4726a3404616cb8ec99d0197ec898b3f33ba38935b325c51cf2e6a156cbc30",
+      "pngSha256": "779c824c6f9cf68c508b91062e6eaa452fe0c182a84ff2a7afd108345b37c157",
+      "decodedPixelsSha256": "cc415333507ed235a93d2cae2e2efd78dda1ae2e895aa716a3c9d0b36a642caf",
       "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
@@ -71,9 +79,9 @@
   },
   "viewed": true,
   "browserProvenanceMethod": "Rendered DOM boot graph and applied draft state, corroborated with exact whole HTTP client response bytes.",
-  "bundleClientSourceSha256": "d4bee8d70220c8e48971db5a5575a8ec7d0478dc5d13f048f650a033606df274",
-  "servedClientSha256": "c4b4dd1872706ab1e3f5b89b268a6a932c264e18fc88f3aaeef0d3ce69b86537",
-  "servedClientBytes": 529319,
+  "bundleClientSourceSha256": "72c765a4f549362d4109d9392b0f608ea1e79720457085eafb7d132527a3c7b8",
+  "servedClientSha256": "bf8ffe1ebeef8268bea9d6b4cba1e9c7c6ca89424fc662d9db494c646af62098",
+  "servedClientBytes": 545041,
   "wholeServedResponseIdentical": true,
   "performanceReadAvailable": false,
   "resourceTimingVerified": false

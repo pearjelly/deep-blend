@@ -23,6 +23,9 @@ export {
   recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe, instantiateRecipeLock,
 } from './recipe.js'
 export { planRecipeGeometryEdit, recipeGeometryParameters } from './recipe-parameters.js'
+export { ASSEMBLY_PLACEMENT_VERSION, ASSEMBLY_PLACEMENT_BASIS_TOLERANCE, ASSEMBLY_PLACEMENT_UV_TOLERANCE,
+  normalizeAssemblyPose, assemblyPoseMatrixMeters, planLampAssemblyPlacement,
+  validateAssemblyPlacementSelection, verifyAssemblyPlacementReport } from './assembly-placement.js'
 
 /** Validate untrusted JSON and return a separate document; never assert a type without checking it. */
 export function parseSceneSpec(input) {

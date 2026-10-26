@@ -176,6 +176,12 @@ run_suite "Paired lamp dimensions: native walls, liner gap, neck, history and in
 run_suite "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history" \
   node deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs
 
+run_suite "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection" \
+  node deepblend/tests/e2e/lamp-assembly-placement-native.e2e.mjs
+
+run_suite "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls" \
+  node deepblend/tests/e2e/lamp-assembly-placement-ui.e2e.mjs
+
 run_suite "Linked speaker dimensions: native assembly creation and historical project protection" \
   node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs
 

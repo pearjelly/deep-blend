@@ -240,6 +240,18 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-browser
         run: xvfb-run -a node deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-browser.log" 2>&1
+      - name: Complete lamp native placement and atomic candidate verification
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 12
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-placement-native
+        run: xvfb-run -a node deepblend/tests/e2e/lamp-assembly-placement-native.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-placement-native.log" 2>&1
+      - name: Complete lamp placement and continued dimensions in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 12
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-placement-browser
+        run: xvfb-run -a node deepblend/tests/e2e/lamp-assembly-placement-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-placement-browser.log" 2>&1
       - name: Real linked speaker dimensions in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8
