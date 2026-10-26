@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "deepblend.cup-root-images/v1",
+  "recordedAt": "2026-10-26T14:22:21.109986+00:00",
+  "images": [
+    {
+      "case": "baseline",
+      "view": "upper-root-inspection",
+      "file": "baseline-upper-root-inspection.png",
+      "bytes": 941974,
+      "sha256": "96c9958df931aa34b072c29683fbe640aa2c216cde52c95eab3f43c301148647",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "baseline",
+      "view": "lower-root-inspection",
+      "file": "baseline-lower-root-inspection.png",
+      "bytes": 1023341,
+      "sha256": "cef4a2ab723ce154ad215c5dda5c9dae18136cb8d2fcfb212ed1278d5e1cb682",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-eight",
+      "view": "upper-root-inspection",
+      "file": "outward-eight-upper-root-inspection.png",
+      "bytes": 942111,
+      "sha256": "ed01b37a84b815801c5742da712df93d79243f110344b2e3ea19f333962ef10f",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-eight",
+      "view": "lower-root-inspection",
+      "file": "outward-eight-lower-root-inspection.png",
+      "bytes": 1022901,
+      "sha256": "9f38de794c38bd281fdd58e5d1a38b88964e2df97e7067c4b5befb29c533dce8",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-sixteen",
+      "view": "upper-root-inspection",
+      "file": "outward-sixteen-upper-root-inspection.png",
+      "bytes": 942473,
+      "sha256": "490b0ef888f6003c71ffc25ed1c6ca5e08a0e839f60af555b796f791647c5b44",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-sixteen",
+      "view": "lower-root-inspection",
+      "file": "outward-sixteen-lower-root-inspection.png",
+      "bytes": 1023690,
+      "sha256": "b3a69ec0c6e65173846085a705593e5b8c3ca7da2051b27b82f75a74c17ab32f",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-twenty-four",
+      "view": "upper-root-inspection",
+      "file": "outward-twenty-four-upper-root-inspection.png",
+      "bytes": 943451,
+      "sha256": "7ae6986c216c611f4bf3a60418fc32b9d059a1d329138da1ae07ec1d8b84a441",
+      "originalPngBytesCopiedExactly": true
+    },
+    {
+      "case": "outward-twenty-four",
+      "view": "lower-root-inspection",
+      "file": "outward-twenty-four-lower-root-inspection.png",
+      "bytes": 1025551,
+      "sha256": "4d6916e7cb1c71f0278d6bedde405be0579e59b08eed1395c750682faa2a99f5",
+      "originalPngBytesCopiedExactly": true
+    }
+  ],
+  "imageEdits": 0,
+  "rootReviewedAllEightActualImages": true
+}

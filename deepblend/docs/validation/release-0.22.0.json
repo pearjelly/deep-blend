@@ -1,0 +1,324 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.22.0",
+  "recordedAt": "2026-10-26T14:22:21.109986+00:00",
+  "publishedAt": "2026-10-26T12:42:56Z",
+  "mergedSourceCommit": "5fdc440ca0da561e27f22d129a3d7310842c8479",
+  "acceptedSourceCommit": "293d3cf942a0295b546ccad44ec1ef1de4cfc1c6",
+  "sourceTree": "4db556aa1a6e0bc31f091832fdbde6454e84ff4c",
+  "status": "GitHub/npm published and three installation routes verified; community PR checks passed, upstream merge and catalogs pending",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.22.0",
+  "fullAcceptanceSuitesPassed": 48,
+  "sourceCIChecksPassed": 5,
+  "sourceCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40312784605",
+  "mainCIChecksPassed": 5,
+  "mainCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40321537631",
+  "github": {
+    "assets": 19,
+    "authenticatedDownloadsVerified": true,
+    "anonymousDownloadsVerified": true,
+    "finalNotesVerified": true
+  },
+  "npm": {
+    "packages": 7,
+    "exactVersionAndLatestVerified": true,
+    "anonymousArchiveFilesVerified": 192
+  },
+  "installed": {
+    "stages": 9,
+    "gates": 16,
+    "nativeCompleteViewChecks": 22,
+    "browserCompleteViewChecks": 18
+  },
+  "installationComparison": {
+    "routes": [
+      "source",
+      "npm",
+      "tarball"
+    ],
+    "oneCanonicalRun": true,
+    "version": "0.22.0",
+    "eachRoutePhysicalPackageCopies": 7,
+    "workbenchHttp": 200,
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "filesModesAndFullManifestsVerified": true
+  },
+  "bundle": {
+    "bytes": 72701303,
+    "sha256": "2adbb4765945329a7ecaea481213cc840704991cff373669f1e627e69fa1909c"
+  },
+  "community": {
+    "prUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/9621",
+    "head": "508ac53a9b5554b6581998d19d9757a009d1acb7",
+    "state": "open",
+    "merged": false,
+    "checksPassed": 2,
+    "checksRunUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/40329166742",
+    "catalogObservation": {
+      "schemaVersion": "deepblend.community-catalog-observation/v1",
+      "version": "0.22.0",
+      "sourceCommit": "5fdc440ca0da561e27f22d129a3d7310842c8479",
+      "anonymous": true,
+      "normalPublicUrlsWithoutQueryOrCacheBypassRoute": true,
+      "current022InBothCatalogs": false,
+      "externalMutations": 0,
+      "observations": [
+        {
+          "url": "https://awesome-dsh-plugin.com/index.json",
+          "status": 200,
+          "bytes": 2816763,
+          "sha256": "fcf3d521bdf906cba8ead505db3e29983ab0d9bafc65a43c622beb994d920a1f",
+          "checkedAt": "2026-10-26T14:21:14.744742+00:00",
+          "versions": [
+            "0.20.0"
+          ]
+        },
+        {
+          "url": "https://awesome-dsh-plugin.com/plugins.json",
+          "status": 200,
+          "bytes": 8756561,
+          "sha256": "a4a53a9ca6b6f0707d93fd42ef9699b348f8b2481d24eadea846c59067f8fec4",
+          "checkedAt": "2026-10-26T14:21:19.170865+00:00",
+          "versions": [
+            "0.20.0"
+          ]
+        }
+      ]
+    }
+  },
+  "source1003BytesAndModesUnchangedAtRelease": true,
+  "publicationAttemptsReplayed": false,
+  "retainedProofs": {
+    "full": {
+      "file": "result.json",
+      "bytes": 5264,
+      "sha256": "68d446add52f8ce491f63205a9d43e6fdb0a4e27887508e25a406eecf0979c8d"
+    },
+    "ciArchiveAudit": {
+      "file": "proof.json",
+      "bytes": 1064284,
+      "sha256": "7e99d231d2e225f1c907bc545eef5f23d6a6c20a73ff8ad4dd371e3fa9340a76"
+    },
+    "sourceEquivalence": {
+      "file": "release022-source-equivalence.json",
+      "bytes": 1287,
+      "sha256": "5e1f667689b1becf4d253883407c4c0b80c61442709ee8ecdb4fdda58829e9da"
+    },
+    "build": {
+      "file": "proof.json",
+      "bytes": 1111,
+      "sha256": "91cdca10bf5e5e4550a497d9a5dc50df83c7db3356bb33d57c22f6b3c62d6a30"
+    },
+    "installed": {
+      "file": "summary.json",
+      "bytes": 349629,
+      "sha256": "1babbea72d14c6060903d5ea0bc14af4eea6a3d428f4c9d559a9299ed3ec09d8"
+    },
+    "installedRootReview": {
+      "file": "root-installed-review-v1.json",
+      "bytes": 1990,
+      "sha256": "4e5928098b69a6e4d069d6e96de3a85c0afe10fbbb0282c9f0f3307707f10cbe"
+    },
+    "githubInitial": {
+      "file": "proof.json",
+      "bytes": 8542,
+      "sha256": "d00883fb880aa351f3e07cd4286b7d23e8cba63339bbb8ae455596020b48a699"
+    },
+    "githubSupplemental": {
+      "file": "proof.json",
+      "bytes": 12731,
+      "sha256": "7e7cc82eb46fa2771f5279fc14ee9ec9bfaf8b070a2261e8700144296d90a6da"
+    },
+    "githubCloseout": {
+      "file": "proof.json",
+      "bytes": 11909,
+      "sha256": "3e163549df5efe96cd3fddcf1b03b20d0cccb7a32d3819b626a19eb0151cde57"
+    },
+    "githubAnonymousFinalMetadata": {
+      "file": "proof.json",
+      "bytes": 1790,
+      "sha256": "d0a7acde79567ce272ebc66813fc55da86975fbe2fb2cd16167b362a37f0a48b"
+    },
+    "githubLedger": {
+      "file": "github-v0.22.0.json",
+      "bytes": 14556,
+      "sha256": "a8930b758b909ee1052cf895df6d9a6c4de723e7509a09b1fdd0b8bbcb7d472b"
+    },
+    "npmPreparation": {
+      "file": "preparation.json",
+      "bytes": 4979,
+      "sha256": "ccb37d7890cd663db3117b830d74b92940a29179c19d63072ee414dc4946e2c3"
+    },
+    "npmPublisher": {
+      "file": "proof.json",
+      "bytes": 9768,
+      "sha256": "69f059a9ec6bd6d00e1e110340b33a8540d194b56395f227393d6a4c0f3e4738"
+    },
+    "npmLedger": {
+      "file": "npm-0.22.0.json",
+      "bytes": 7239,
+      "sha256": "32ffab04ac1bc0cfabbe78286f876f59e7f12a5b69f06f3f832c0200d39cfd81"
+    },
+    "npmAnonymous": {
+      "file": "proof.json",
+      "bytes": 5469,
+      "sha256": "3edbf2bca6e05a3405dd8c75d3614ac02885a937de72921a0f808b0190cdf5a0"
+    },
+    "singleCanonicalParity": {
+      "file": "proof.json",
+      "bytes": 7566,
+      "sha256": "5e7b5d4262bed010ce67f759aaab0b0d8aec57b1f7360d9a382235de94594ed7"
+    },
+    "mainCiRun": {
+      "file": "release022-main-ci-observation-v1.json",
+      "bytes": 15260,
+      "sha256": "b9c0a9d8c0ae9eba002f43eab77a1a2d5ae3644b1fe1ff4ea551e927db49a1fa"
+    },
+    "mainCiJobs": {
+      "file": "release022-main-ci-jobs-v1.json",
+      "bytes": 23152,
+      "sha256": "e771e4007a686f5c9801dedd9587bad5b8f63f065bb2e8109297397607ebad2c"
+    },
+    "predecessorImmutability": {
+      "file": "release022-upstream-immutability-final-v1.json",
+      "bytes": 353,
+      "sha256": "19a49b37768ac5b3c98104dae965caebfc5ae2f11ca861d1e8b0f10d3e61d159"
+    },
+    "communitySubmission": {
+      "file": "submission-v1.json",
+      "bytes": 707,
+      "sha256": "7721b219f977a5472d6266aacd983c2185e3cd83a570bcf0e036c8e139713092"
+    },
+    "communityLastJob": {
+      "file": "checks-job-observed-v5.json",
+      "bytes": 426,
+      "sha256": "a7ea2c287c2c28529726e42690fe0f7c489fdd0082cd987e1dd4d7fd3ac93a92"
+    },
+    "communityCatalogs": {
+      "file": "proof.json",
+      "bytes": 921,
+      "sha256": "496e3448022f9ebc3890d541c1715b8368b3d732beb48c5fffe59af136695a7b"
+    },
+    "coreCloseout": {
+      "file": "release022-core-closeout-v1.json",
+      "bytes": 7755,
+      "sha256": "ad27a5b8168ba794ceedd9ddcddacf3191838e9c8821c9173c4cbfd8463beff3"
+    },
+    "communityCloseout": {
+      "file": "release022-community-closeout-v2.json",
+      "bytes": 2711,
+      "sha256": "fce1255e974424e1e6c1ad545da832d15122ef50f71ca6c0b299f827bdd541d8"
+    },
+    "currentCatalogObservation": {
+      "file": "proof.json",
+      "bytes": 921,
+      "sha256": "e383bc7e07e084d10d1ea436982bddc4af1dec61cf1f4e51c9ca7534408ac439"
+    },
+    "currentPrObservation": {
+      "file": "community-pr-1420.json",
+      "bytes": 3908,
+      "sha256": "db105b629be72533817006b67dfa0f4d047335d89bc4405ff1a87ab9bc93a21a"
+    }
+  },
+  "publicEvidence": {
+    "build-native-installation.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/build-native-installation.json",
+      "bytes": 318929,
+      "providerDigest": "sha256:d6223585f51b01518ae794501c3f6177fd8d647afe748bf7715a42e6f79a3e2c"
+    },
+    "complete-view-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/complete-view-acceptance.json",
+      "bytes": 5735260,
+      "providerDigest": "sha256:9792bbeaba3c04ee1e320a6c00eacd951cf6fc867ee9cc6ead361be0ae7ceef3"
+    },
+    "deepblend-bundle.tgz": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/deepblend-bundle.tgz",
+      "bytes": 72701303,
+      "providerDigest": "sha256:2adbb4765945329a7ecaea481213cc840704991cff373669f1e627e69fa1909c"
+    },
+    "feature-source-binding.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/feature-source-binding.json",
+      "bytes": 41627,
+      "providerDigest": "sha256:f2a75f470f14ec19f3ab9dea5ac3436aa451702b647141266690a207df5b5afa"
+    },
+    "final-ci-archives.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/final-ci-archives.json",
+      "bytes": 1242681,
+      "providerDigest": "sha256:7cda72b8fc700c07a84d89886ddbdd85bd9ac93c684f734f4ed84f5d9a571211"
+    },
+    "final-source-equivalence.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/final-source-equivalence.json",
+      "bytes": 2024,
+      "providerDigest": "sha256:8e2fd20bc0c78f1aa0fed8260c00c3658fa8c0edd791667c5369321d8b77e6bc"
+    },
+    "installed-complete-view-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/installed-complete-view-acceptance.json",
+      "bytes": 3894803,
+      "providerDigest": "sha256:9065b52b1ec821c65ad958bf60d44e857e462c1aaab10cfb1b45d25b93dd4dfc"
+    },
+    "npm-public-readback.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/npm-public-readback.json",
+      "bytes": 253752,
+      "providerDigest": "sha256:cd67bc7e8a781fc1a9a1393ec904288bc4fc3490d3c4a0c9cc369edaf33ea270"
+    },
+    "npm-publication-attempts.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/npm-publication-attempts.json",
+      "bytes": 21083,
+      "providerDigest": "sha256:097df61149229f344e60aead4511bc0bf2cdcea3899ec9b679ccaae2c8d65b06"
+    },
+    "public-route-parity.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/public-route-parity.json",
+      "bytes": 16417,
+      "providerDigest": "sha256:ae4c9c5a6b0e76db71dd30eb7b2ea320c63414efdd7d6881598722d22eae1815"
+    },
+    "release-asset-manifest.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/release-asset-manifest.json",
+      "bytes": 2018,
+      "providerDigest": "sha256:384692c901640b597a61a4c688f0ab2a499cf8f10ed8609e4c641cdd36963130"
+    },
+    "release-public-readback-manifest.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/release-public-readback-manifest.json",
+      "bytes": 1529,
+      "providerDigest": "sha256:fab3983a0046cf3b020f251937d5ca54444127f92f26796175140637e9851f9e"
+    },
+    "route-npm-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/route-npm-full-inventory.json",
+      "bytes": 168107,
+      "providerDigest": "sha256:4832a422ff809eb838a86bca0755a9dc88c25cf43e970f1193ab8c0d3d6ecb87"
+    },
+    "route-source-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/route-source-full-inventory.json",
+      "bytes": 168165,
+      "providerDigest": "sha256:21082f8b603b09faf34921894252d4014cc7879dd9015371beb78ce9c76885b1"
+    },
+    "route-tarball-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/route-tarball-full-inventory.json",
+      "bytes": 168933,
+      "providerDigest": "sha256:b5dd25c147653755dbd03a9685db52367eb9385bf28ccfe1478c2561cfb438b5"
+    },
+    "SHA256SUMS": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/SHA256SUMS",
+      "bytes": 941,
+      "providerDigest": "sha256:49899b56665548b898412ff395f5f21e7e26694fa8a64640fe5f9846e5eb32f5"
+    },
+    "SHA256SUMS-public-readback": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/SHA256SUMS-public-readback",
+      "bytes": 677,
+      "providerDigest": "sha256:3ac1af61a29d338c2edbed3857c8d82988661a32dec96d323fd8ef4046a1f0c6"
+    },
+    "software-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/software-acceptance.json",
+      "bytes": 201968,
+      "providerDigest": "sha256:db1eee683b46b88fa4a246ecf2741ebc34b926793cd645a17b369b84b8d70b52"
+    },
+    "validation-attempts.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.22.0/validation-attempts.json",
+      "bytes": 7712345,
+      "providerDigest": "sha256:6a79856e0243bc4e61adff0fd0f40ab9f690e4752e261ec56c3078558f8ac372"
+    }
+  },
+  "scope": "Historical0.22 source and public receipts are preserved. This next-source document records the completed release without changing accepted release bytes or claiming community propagation. No new release or model run."
+}
