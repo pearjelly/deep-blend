@@ -307,7 +307,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         154 个 *.test.mjs（当前源码）
+    contract/         155 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -366,7 +366,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 30/154 file(s) passed
+DeepBlend tests: 30/155 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -426,8 +426,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**48 个套件、201 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
-**154 个文件 = 2131 项自计断言（34 个文件打印计数）+ 2137 个 `node:test` 用例（120 个文件）**。
+预期：**49 个套件、203 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
+**155 个文件 = 2132 项自计断言（34 个文件打印计数）+ 2149 个 `node:test` 用例（121 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -437,8 +437,8 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 里读出来比对——**改了代码不改文档，它会红**。而**断言总数没有这层保护**：只有真跑一遍才知道
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
-**2026-10-26 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-断言和用例数从 0.22 候选冻结来源 `c4f17bf` 的同一次完整 154/154 成功日志逐文件提取，未为计数额外重跑。当前完整 48 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
+**2026-10-27 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
+断言和用例数从 0.23 候选准备阶段同一次完整 155/155 成功日志逐文件提取，未为计数额外重跑；来源与原始日志摘要见[逐面 UV 实现记录](deepblend/docs/validation/mesh-uv-implementation-1027.json)。当前完整 49 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
 此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
@@ -746,7 +746,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 48 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 49 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

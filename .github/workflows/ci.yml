@@ -210,6 +210,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/material-browser
         run: xvfb-run -a node deepblend/tests/e2e/material-texture-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/material-browser.log" 2>&1
+      - name: Real per-face mesh UV editor, saved area and revision replay
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/mesh-uv-browser
+        run: xvfb-run -a node deepblend/tests/e2e/mesh-uv-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/mesh-uv-browser.log" 2>&1
       - name: Real recipe versions and native gallery defaults in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5

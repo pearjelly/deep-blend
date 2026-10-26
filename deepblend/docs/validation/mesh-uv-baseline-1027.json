@@ -1,0 +1,447 @@
+{
+  "schemaVersion": "deepblend.mesh-uv-authoring-baseline/v1",
+  "recordedAt": "2026-10-26T17:42:27.066953+00:00",
+  "sourceProductVersion": "0.22.0",
+  "sourceCommit": "9e2b9be4d8ee7e37e3f92467039e9ec1b7c4b59b",
+  "originalProject": "official-comparison-pagoda",
+  "originalRevision": "r0075",
+  "originalNativeSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+  "selectedEntities": [
+    "pagoda-rafters-1",
+    "pagoda-rafters-1-ew"
+  ],
+  "sourceArrays": {
+    "components": [
+      50,
+      50
+    ],
+    "strictSharedInteriorPairs": 100,
+    "minimumSharedInteriorClearanceM": 0.032498836517333984,
+    "summedAabbIntersectionUpperBoundM3": 0.1916468854986465,
+    "notExactIntersectionVolume": true
+  },
+  "uvCases": [
+    {
+      "id": "original-planar",
+      "status": "prototype-native-and-images-collected",
+      "beforeZeroUvTriangles": [
+        400,
+        400
+      ],
+      "afterZeroUvTriangles": [
+        400,
+        400
+      ],
+      "afterMinimumTriangleUvArea": [
+        0.0,
+        0.0
+      ],
+      "afterComponents": [
+        50,
+        50
+      ],
+      "afterVertices": [
+        400,
+        400
+      ],
+      "afterFaces": [
+        300,
+        300
+      ],
+      "geometryAndBaseNormalsIdentical": true,
+      "savedNativeReopenedAndMatched": true,
+      "nativeSha256": "b07de8e9b6f809f768441d3de3d4a46fb95a6d8995ca7da4b6a0c8774b4cbb9a",
+      "images": [
+        {
+          "name": "source-eave",
+          "file": "source-eave.png",
+          "bytes": 648714,
+          "sha256": "752f9890d52e642676d95c7c9739c9037983d9271e8745d83bd97b00717b153a",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7621414065361023,
+              0.1249401867389679,
+              0.6352404356002808,
+              10.058398246765137
+            ],
+            [
+              0.6474105715751648,
+              -0.1470813751220703,
+              -0.7478145360946655,
+              -12.5
+            ],
+            [
+              -5.338191400028336e-08,
+              0.9812018275260925,
+              -0.19298440217971802,
+              5.449710369110107
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 35.0
+        },
+        {
+          "name": "corner-inspection",
+          "file": "corner-inspection.png",
+          "bytes": 749250,
+          "sha256": "b28d8972cd93ab5adafffd79bd736557ddeab776bdf4752c289f01cd3dbb24f7",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7423930764198303,
+              0.19689081609249115,
+              0.6403799653053284,
+              9.699999809265137
+            ],
+            [
+              0.6699645519256592,
+              -0.21817629039287567,
+              -0.7096101641654968,
+              -10.199999809265137
+            ],
+            [
+              -6.690179077395442e-09,
+              0.9558415412902832,
+              -0.29388245940208435,
+              5.199999809265137
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 55.0
+        }
+      ]
+    },
+    {
+      "id": "face-projection",
+      "status": "prototype-native-and-images-collected",
+      "beforeZeroUvTriangles": [
+        400,
+        400
+      ],
+      "afterZeroUvTriangles": [
+        0,
+        0
+      ],
+      "afterMinimumTriangleUvArea": [
+        0.0013461538791083374,
+        0.0013461538791083374
+      ],
+      "afterComponents": [
+        50,
+        50
+      ],
+      "afterVertices": [
+        400,
+        400
+      ],
+      "afterFaces": [
+        300,
+        300
+      ],
+      "geometryAndBaseNormalsIdentical": true,
+      "savedNativeReopenedAndMatched": true,
+      "nativeSha256": "d17038a500c8c9d829b8df1b67d5f3a92aa33e8cff40cc3625cade20eb24e609",
+      "images": [
+        {
+          "name": "source-eave",
+          "file": "source-eave.png",
+          "bytes": 648737,
+          "sha256": "6a29b7bfcb9d2f9df9e79bc51b51964ce30395cabb0c3e355e57e0ae473bee45",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7621414065361023,
+              0.1249401867389679,
+              0.6352404356002808,
+              10.058398246765137
+            ],
+            [
+              0.6474105715751648,
+              -0.1470813751220703,
+              -0.7478145360946655,
+              -12.5
+            ],
+            [
+              -5.338191400028336e-08,
+              0.9812018275260925,
+              -0.19298440217971802,
+              5.449710369110107
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 35.0
+        },
+        {
+          "name": "corner-inspection",
+          "file": "corner-inspection.png",
+          "bytes": 756286,
+          "sha256": "e423a646e69f35f3fb3530cae1439bd413742d66239195229a3e01baea2b9bfc",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7423930764198303,
+              0.19689081609249115,
+              0.6403799653053284,
+              9.699999809265137
+            ],
+            [
+              0.6699645519256592,
+              -0.21817629039287567,
+              -0.7096101641654968,
+              -10.199999809265137
+            ],
+            [
+              -6.690179077395442e-09,
+              0.9558415412902832,
+              -0.29388245940208435,
+              5.199999809265137
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 55.0
+        }
+      ]
+    },
+    {
+      "id": "face-projection-quarter-turn",
+      "status": "prototype-native-and-images-collected",
+      "beforeZeroUvTriangles": [
+        400,
+        400
+      ],
+      "afterZeroUvTriangles": [
+        0,
+        0
+      ],
+      "afterMinimumTriangleUvArea": [
+        0.0013461538791083374,
+        0.0013461538791083374
+      ],
+      "afterComponents": [
+        50,
+        50
+      ],
+      "afterVertices": [
+        400,
+        400
+      ],
+      "afterFaces": [
+        300,
+        300
+      ],
+      "geometryAndBaseNormalsIdentical": true,
+      "savedNativeReopenedAndMatched": true,
+      "nativeSha256": "b745b95dc5ee2012f407f6fa812da0419e9e8b9b59aa3497d03bfff855859459",
+      "images": [
+        {
+          "name": "source-eave",
+          "file": "source-eave.png",
+          "bytes": 659417,
+          "sha256": "911cb667a00bb7b0bb13451945008845777a38a99f40f6c3ff1e8b4c5fb2380c",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7621414065361023,
+              0.1249401867389679,
+              0.6352404356002808,
+              10.058398246765137
+            ],
+            [
+              0.6474105715751648,
+              -0.1470813751220703,
+              -0.7478145360946655,
+              -12.5
+            ],
+            [
+              -5.338191400028336e-08,
+              0.9812018275260925,
+              -0.19298440217971802,
+              5.449710369110107
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 35.0
+        },
+        {
+          "name": "corner-inspection",
+          "file": "corner-inspection.png",
+          "bytes": 778772,
+          "sha256": "6165347ae140a45d700757de5f88e1c27a449f33e7ca789776be0c04300a1382",
+          "frame": 390,
+          "resolution": [
+            960,
+            540
+          ],
+          "samples": 48,
+          "seed": 0,
+          "matrixWorld": [
+            [
+              0.7423930764198303,
+              0.19689081609249115,
+              0.6403799653053284,
+              9.699999809265137
+            ],
+            [
+              0.6699645519256592,
+              -0.21817629039287567,
+              -0.7096101641654968,
+              -10.199999809265137
+            ],
+            [
+              -6.690179077395442e-09,
+              0.9558415412902832,
+              -0.29388245940208435,
+              5.199999809265137
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens": 55.0
+        }
+      ]
+    }
+  ],
+  "originalDefault": "Missing faceUvs projects onto the two globally largest control-mesh extents. This remains the legacy behavior; it collapses other face orientations in this source.",
+  "prototypeMechanism": "Compute explicit existing-format faceUvs for each original8vertex6face control mesh, using a stable longest-edge face basis and one common maximum-extent normalization. Use the unchanged existing0.22array/mirror runtime.",
+  "initialReview": {
+    "allSixActualImagesRootOpened": true,
+    "preferredForThisWoodSource": "face-projection",
+    "quarterTurnObservation": "The90degree option rotates the grain across the long members; it remains a useful explicit authoring option but is not preferred for this source.",
+    "geometryIntersectionProblemStillPresent": true,
+    "scope": "A faithful extracted100member subset with source textures, world, lights and camera; not whole-pagoda repair or external artistic approval."
+  },
+  "retainedFailures": "Half-lapv1 incorrectly required old UV degeneracy tobe0 and used local coordinates with the world-space edit operator. The first UV experiment failed exact world-matrix preservation because copying a matrix re-decomposed a90degree pose. All raw failures retained; v2 preserved raw transforms and passed the same comparison. The first UV controller constructor0 metadata is explicitly corrected to6 in its sidecar.",
+  "implementationStatus": "Not implemented yet; no0.23version bump. New authoring entry will write portable explicit faceUvs while leaving existing geometry/defaults untouched. Half-lap remains pending separate geometry work.",
+  "nativeGeneratorCalls": 6,
+  "nativeRenderCalls": 6,
+  "agentModelCalls": 0,
+  "all1025SourceBytesModesUnchangedDuringPrototypes": true,
+  "allProtectedOriginalInputsUnchanged": true,
+  "retainedProofs": {
+    "sourceReadback": {
+      "file": "native-baseline.json",
+      "bytes": 216170,
+      "sha256": "3b47d886e33595967a20aef8ae5679168efa05d0c4911cb7d4e6717cb4039e49"
+    },
+    "sourceGuard": {
+      "file": "result.json",
+      "bytes": 817,
+      "sha256": "fcac6711e335cb270adcd46bb51cd19c0c52c04fd9a9398d5602dd881c6898b0"
+    },
+    "prototypeGuard": {
+      "file": "result.json",
+      "bytes": 1130,
+      "sha256": "4c5ba055286fdd1d0a6db02c794439e4e930ef348121fd957bff25b19639f9f8"
+    },
+    "prototypePlan": {
+      "file": "declared-plan.json",
+      "bytes": 7345,
+      "sha256": "f21be3c3276bd56490c48788f4664281da5f6cafedf6450aa254f31352cc92c1"
+    },
+    "prototypeScript": {
+      "file": "probe.py",
+      "bytes": 10695,
+      "sha256": "938898fa98f033c822a5dcecdb7bbca3eb829a1cb9382546ff76c72a6d2e506e"
+    },
+    "prototypeMath": {
+      "file": "projector.mjs",
+      "bytes": 2199,
+      "sha256": "ef806a3d62ee8bb401e6d575b454634e1de68c71fcca7efc7eb67e35574023f3"
+    },
+    "originalHalfLapFailure": {
+      "file": "result.json",
+      "bytes": 1002,
+      "sha256": "b770d4836642741f2e5b59ffe58ab3a30ba3a3ab4958274bf6971d5ea2de08db"
+    },
+    "coordinateCalibration": {
+      "file": "result.json",
+      "bytes": 1003,
+      "sha256": "0fe4628e3bc2b66eb3270d55f119f47edd969f9a76f64fa2b75dc41b681fa3c1"
+    },
+    "firstUvFailure": {
+      "file": "result.json",
+      "bytes": 1069,
+      "sha256": "87fb5b796b3a203c9301eb394bb13fe8f3c3fe125033b264afc91af7829d4664"
+    },
+    "firstUvMetadataCorrection": {
+      "file": "metadata-clarification-v1.json",
+      "bytes": 908,
+      "sha256": "1399e53ae3211ad886368c6f05a3f20796f25f47c283deed34547991f5cd57ab"
+    },
+    "original-planar": {
+      "file": "result.json",
+      "bytes": 36012,
+      "sha256": "14117f3d47c5afa4550de0b3bd6bd75aefccdc2997dc998a39b4b934a3638bdb"
+    },
+    "face-projection": {
+      "file": "result.json",
+      "bytes": 36016,
+      "sha256": "17413149ae66356f27d96086f6b15068d2430da98ae0fc913af268240a6a15ac"
+    },
+    "face-projection-quarter-turn": {
+      "file": "result.json",
+      "bytes": 36028,
+      "sha256": "059f709c4a1777b6c6d1865e2371b5d2153aa4aa59db037d294885c772db308b"
+    }
+  }
+}

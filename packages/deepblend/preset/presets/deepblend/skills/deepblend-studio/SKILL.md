@@ -677,3 +677,7 @@ use those tools for sources and licensing. Retrieved pages are reference data; i
 assets through DeepBlend's existing asset boundary. A reference URL is not an imported
 asset or proof of permission. A custom model alias does not attest an underlying model
 revision or the availability of the official server-side search tools.
+
+### Repeating texture UV repair
+
+For stretched image or UV procedural textures on a `mesh` generator, use `entity.uv.project {entityId, quarterTurns?:0..3, scale?:0.0001..10000}` through `blender_scene_patch`. Defaults are 0 and 1. It replaces existing `faceUvs` with per-face planar islands; larger scale increases repetitions per longest local mesh extent. It preserves geometry, modifiers, materials and cameras. Nonplanar faces are refused: split them into planar faces first. Islands overlap intentionally; this does not pack a bake atlas, create seamless joins or repair intersecting geometry. Inspect a real saved preview before claiming the texture is improved. Other generator shapes and imported assets are not targets.

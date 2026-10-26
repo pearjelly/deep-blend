@@ -782,6 +782,7 @@ const OPERATION_SUMMARY = [
   'material.tangent.set         {materialId, tangent}                          — {mode:uv,uvMap:UVMap} uses named mesh UVs; {mode:radial,axis:x|y|z} uses object-local cylindrical tangent; null clears after disabling anisotropy and rotation/animation',
   'project.brief.set            {goal, referenceImages}                         — replace written goal and up to four reference bindings; each {id,assetId,sha256,label,purposes,notes?}, purposes geometry/materials/lighting/goalFit; bind immutable ingested PNG/JPEG assets; empty goal and [] clear',
   'project.reviewSubject.set    {entityId}                                     — save the main review entity; null restores automatic selection; entity must exist and be non-empty; does not move any camera',
+  'entity.uv.project            {entityId, quarterTurns?, scale?}               — replace mesh faceUvs with per-face planar islands for repeating textures; defaults 0 turns and 1 repeat per longest local extent, scale 0.0001–10000; preserves geometry and materials; refuses nonplanar faces; islands overlap, no atlas packing',
 ].join('\n  ')
 
 function scenePatch(ctx) {

@@ -175,3 +175,7 @@ Preset 包新增固定版本 `js-yaml@4.3.2`（MIT），仅解析随包的预设
 佛像及其原始贴图来自明尼阿波利斯艺术博物馆的 [CC0 模型记录](https://zenodo.org/records/10337923)，树木、地面、瓦顶、木材与天空素材来自 [Poly Haven（CC0）](https://polyhaven.com/license)。逐项来源保留在公开 SceneSpec 的 assets 中；新增场景结构与文档为 MIT。操作者提供的参考图不随案例分发。
 
 `deepblend/docs/assets/showcase/pagoda/manifest.json` 逐项登记 MP4、四张原始渲染帧、SceneSpec 及公开交付回执的字节数与摘要。回执来自 r0075 / render-0002，仅移除了含本地绝对路径的编码命令参数，并记录原始回执摘要；核验将公开图像与原渲染帧、镜头、修订和原生检查点摘要绑定。公开内容包含作品与结构源码，不含外部素材文件或原生 Blender 工程，因此不是完整复现包。
+
+## 逐面 UV 说明图片
+
+`docs/assets/mesh-uv/provenance.json` 登记两张实际椽条渲染和一张浏览器草稿截图的精确字节与像素摘要。椽条来自同一 r0075 原生来源的忠实子集，沿用原 Poly Haven CC0 木材和天空；作者与源链接保留在清单中，不分发外部素材文件。图片及新增说明由 DeepBlend contributors 按 MIT 发布。文档副本只增加来源元数据，解码像素与原图保持一致；来源 SceneSpec 或图片摘要变化会被契约拒绝。

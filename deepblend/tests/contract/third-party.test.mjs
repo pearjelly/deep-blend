@@ -99,6 +99,34 @@ function verifyLighttableProvenance(root) {
   return paths
 }
 
+function verifyMeshUvProvenance(root) {
+  const base = 'deepblend/docs/assets/mesh-uv'
+  const manifest = JSON.parse(readFileSync(join(root, base, 'provenance.json'), 'utf8'))
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  assert.equal(manifest.schemaVersion, 1)
+  assert.equal(manifest.license, 'MIT')
+  assert.equal(manifest.author, 'DeepBlend contributors')
+  assert.equal(manifest.nativeSource.sourceSpec, 'deepblend/docs/assets/showcase/pagoda/scene-spec.json')
+  assert.equal(hash(readFileSync(join(root, manifest.nativeSource.sourceSpec))), manifest.nativeSource.sourceSpecSha256, 'mesh UV source spec differs')
+  assert.equal(manifest.nativeSource.externalAssetFilesDistributed, false)
+  assert.ok(manifest.nativeSource.externalMaterials.every(asset => asset.license === 'CC0-1.0' && asset.source.startsWith('https://polyhaven.com/a/')))
+  const expected = ['rafter-after.png', 'rafter-before.png', 'workbench.png'].map(file => `${base}/${file}`)
+  assert.deepEqual(manifest.images.map(image => image.file).sort(), expected)
+  for (const image of manifest.images) {
+    const bytes = readFileSync(join(root, image.file))
+    assert.equal(hash(bytes), image.documentationPngSha256, 'mesh UV image digest differs')
+    assert.equal(bytes.length, image.documentationBytes)
+    assert.equal(bytes.toString('hex', 0, 8), '89504e470d0a1a0a')
+    assert.equal(bytes.readUInt32BE(16), image.width)
+    assert.equal(bytes.readUInt32BE(20), image.height)
+    assert.match(image.originalPngSha256, /^[a-f0-9]{64}$/)
+    assert.match(image.originalPixelsSha256, /^[a-f0-9]{64}$/)
+    assert.equal(image.originalPixelsSha256, image.documentationPixelsSha256)
+    assert.equal(image.provenanceMetadataOnly, true)
+  }
+  return expected
+}
+
 test('the external programs the product runs are exactly the ones its schemas declare', () => {
   // DERIVED, BOTH WAYS. The three executables this product can start are the three its configuration
   // exposes — a Blender path on the runtime row, and ffmpeg/ffprobe for the delivery step. Anything
@@ -264,6 +292,7 @@ test('source files exclude external binaries and published images have declared 
   for (const file of verifyPagodaProvenance(ROOT)) declared.add(file)
   for (const file of verifyRecoveryReproductionProvenance(ROOT)) declared.add(file)
   for (const file of verifyLighttableProvenance(ROOT)) declared.add(file)
+  for (const file of verifyMeshUvProvenance(ROOT)) declared.add(file)
   // CHARGE is a separately licensed real DSH case, not an original MIT model.
   const chargeBase = 'deepblend/docs/assets/showcase/charge-study'
   const charge = JSON.parse(readFileSync(join(ROOT, chargeBase, 'manifest.json'), 'utf8'))
@@ -477,6 +506,24 @@ test('Lighttable provenance rejects changed image digests and detached UI captur
     check(value => { value.images[0].sha256 = '0'.repeat(64) }, /Lighttable screenshot digest differs/)
     check(value => { value.capture.capturedUiSha256 = '0'.repeat(64) }, /Lighttable captured UI differs/)
     check(value => { value.images.push({ ...value.images[0], file: 'unreviewed.png' }) }, /Expected values to be strictly deep-equal/)
+  } finally { rmSync(fixture, { recursive: true, force: true }) }
+})
+
+test('mesh UV documentation rejects changed PNGs and a detached source spec', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'deepblend-mesh-uv-integrity-'))
+  const base = 'deepblend/docs/assets/mesh-uv'
+  try {
+    cpSync(join(ROOT, base), join(fixture, base), { recursive: true })
+    const source = 'deepblend/docs/assets/showcase/pagoda/scene-spec.json'
+    mkdirSync(join(fixture, 'deepblend/docs/assets/showcase/pagoda'), { recursive: true })
+    cpSync(join(ROOT, source), join(fixture, source))
+    assert.equal(verifyMeshUvProvenance(fixture).length, 3)
+    const manifestPath = join(fixture, base, 'provenance.json'), original = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const broken = structuredClone(original); broken.images[0].documentationPngSha256 = '0'.repeat(64)
+    writeFileSync(manifestPath, JSON.stringify(broken))
+    assert.throws(() => verifyMeshUvProvenance(fixture), /mesh UV image digest differs/)
+    writeFileSync(manifestPath, JSON.stringify(original)); writeFileSync(join(fixture, source), '{}')
+    assert.throws(() => verifyMeshUvProvenance(fixture), /mesh UV source spec differs/)
   } finally { rmSync(fixture, { recursive: true, force: true }) }
 })
 
