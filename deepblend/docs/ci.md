@@ -20,6 +20,7 @@
 | `deepblend/tests/e2e/lamp-dimensions-ui.e2e.mjs` | 灯具尺寸入口真实浏览器创建、一次语义保存、越界不提交、重载、手工位置冲突及恢复后可继续编辑；八采样界面门槛，不算美术审查 |
 | `deepblend/tests/e2e/lamp-assembly-placement-native.e2e.mjs` | 水平与倾斜支承上的完整23件原生移动/转向/接触、同尺寸独立顶点对照、250→230续改与真实候选漏动末件时原子拒绝 |
 | `deepblend/tests/e2e/lamp-assembly-placement-ui.e2e.mjs` | 真实浏览器一次整灯放置和两次尺寸修改、越界拦截、保存反馈、桌面/窄屏、重载、全部成员原生结果与源文件保护 |
+| `deepblend/tests/e2e/camera-fit-ui.e2e.mjs` | 保留原动画的整灯取景：真实浏览器显式保存、提交后丢失回复、刷新恢复及完全相同重试；仅新增一版/一个静态相机，独立 Blender 重开核对全部 23 件投影、几何与原摄影及历史文件 |
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算；OBJ 数值/法线/颜色/Alpha、实际着色器输出与既有图片用户保护 |
 | `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/surface-inspection.e2e.mjs` | 实际提供方的局部法线采样，解析2 mm壁面/间隔、旋转与斜种子、内部种子、未命中、开放/反向网格、重叠、遮挡、预算与原文件保护 |

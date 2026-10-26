@@ -194,6 +194,7 @@ async function waitFor(label, predicate, timeoutMs, intervalMs = 250) {
 const names = root.get('tools').schemas().map(entry => entry.name).sort()
 const EXPECTED = [
   'blender_asset_ingest',
+  'blender_camera_fit',
   'blender_capabilities',
   'blender_export',
   'blender_final_render',
@@ -213,7 +214,7 @@ const EXPECTED = [
   'blender_visual_autofix',
   'blender_visual_review',
 ]
-check('the preset plane registers exactly the nineteen tools that exist',
+check('the preset plane registers exactly the twenty tools that exist',
   JSON.stringify(names) === JSON.stringify(EXPECTED), names)
 check('every tool SPEC §11 names is registered, so that inventory is complete',
   SPEC_11_TOOLS.every(name => names.includes(name)),

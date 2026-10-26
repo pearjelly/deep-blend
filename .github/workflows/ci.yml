@@ -252,6 +252,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/lamp-placement-browser
         run: xvfb-run -a node deepblend/tests/e2e/lamp-assembly-placement-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/lamp-placement-browser.log" 2>&1
+      - name: Complete fitted view with native verification and refresh recovery in Chrome
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 12
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/camera-fit-browser
+        run: xvfb-run -a node deepblend/tests/e2e/camera-fit-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/camera-fit-browser.log" 2>&1
       - name: Real linked speaker dimensions in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8

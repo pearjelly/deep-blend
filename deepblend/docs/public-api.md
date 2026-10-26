@@ -158,6 +158,18 @@ operation when the runtime lacks the method, and publishes a saved placement onl
 after independently reopening and verifying the candidate. See
 [surface placement](surface-placement.md) for its selected-pair scope and limits.
 
+`LocalBlenderRuntime.inspectCameraFit` is an optional isolated native extension with
+`CameraFitRequest`, `CameraFitMember` and `CameraFitReport` types. It pins a checkpoint,
+1–64 explicit complete mesh entities or imported asset roots, a source/new camera pair,
+frame and margin. Candidate verification additionally pins the baseline checkpoint and
+independently checks every projected vertex, topology, original objects, optics and
+camera rotation. The aggregate limits are 128 meshes and 2 million vertices/polygons;
+the ordinary geometry inspection limit remains eight entities per request. Host
+`fitCamera` publishes only the verified new static camera and preserves original cameras,
+array order, shots and animation. The model tool is `blender_camera_fit`; the workbench
+exposes the same operation under Photography → Complete view. See its
+[tool contract](tool-contracts.md#342-blender_camera_fit) for exact scope and exclusions.
+
 | Method | Required behavior and ownership |
 | --- | --- |
 | `getCapabilities({refresh?, signal?})` | Return measured capabilities. Missing Blender is `installed:false` with advice/warnings. Engine availability comes from behavioral probe results, not a static enum. |
