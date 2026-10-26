@@ -675,5 +675,87 @@
     "failureLines": [],
     "logSha256": "ced3574dc513a5cf736d0b3deb3b16ca73a59452a84874c55a71834a55a78dfe",
     "reason": "Stopped the owned suite before editing model-facing semantics after the real-task finding; seven suites passed, no suite failed before interruption. This is not a full49pass."
+  },
+  "naturalLanguageV2": {
+    "status": "candidate-task-completed-comparison-inconclusive",
+    "candidateSourceCommit": "ee93381571e8ba1da9446ee11923ac0bd4f04b7d",
+    "provider": "bai",
+    "model": "deepseek-v4.1-flash",
+    "reasoningEffort": "max",
+    "requestMaxOutputTokens": 256000,
+    "attemptsPerArm": 1,
+    "limits": {
+      "modelRequests": 12,
+      "toolCalls": 40,
+      "wallMs": 480000
+    },
+    "candidate": {
+      "completed": true,
+      "modelRequests": 11,
+      "toolCalls": 16,
+      "independentChecksPassed": 16,
+      "savedRevision": "r0003",
+      "operations": 2,
+      "quarterTurns": 0,
+      "scale": 2,
+      "presentedPreview": {
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "dimensions": [
+          768,
+          432
+        ],
+        "samples": 16
+      },
+      "sourceOnlyUvChanged": true,
+      "nativeGeometryAndObjectFactsUnchanged": true,
+      "cameraSamples": [
+        1,
+        261,
+        390,
+        520,
+        900
+      ],
+      "collapsedUvTrianglesBeforePerArray": 400,
+      "collapsedUvTrianglesAfterPerArray": 0,
+      "rootViewedActualImages": 3
+    },
+    "baseline": {
+      "completed": false,
+      "modelRequests": 1,
+      "toolCalls": 0,
+      "failure": "model-network-failure-no-retry"
+    },
+    "comparisonConclusion": "inconclusive; no superiority, speed or aggregate success-rate claim",
+    "totalModelRequestsAcrossBothCohorts": 26,
+    "imageOracleCalibrationCases": 12,
+    "automaticRetries": 0,
+    "continuationUserMessages": 0,
+    "narrationLimitation": "Final answer rounded exposure to0.180 before comparing with0.18; raw unrounded values retained.",
+    "sourceBindingScope": "Final source checks compare every shipped package and canonical preset byte against the actual frozen model installation. Candidate source commit is recorded separately from later evidence-only document edits."
+  },
+  "additionalCanonicalLiveChecks": {
+    "toolCard": {
+      "passed": 10,
+      "total": 10,
+      "exitCode": 0
+    },
+    "visualReviewer": {
+      "passed": 10,
+      "total": 14,
+      "exitCode": 1,
+      "firstCallFailure": "terminated response stream",
+      "laterRoundsAnswered": true,
+      "notRetriedOrRelabeledAsPass": true
+    }
+  },
+  "secondFrozenReadinessRun": {
+    "sourceCommit": "ee93381571e8ba1da9446ee11923ac0bd4f04b7d",
+    "completed": false,
+    "exitCode": -15,
+    "sourceBytesUnchanged": true,
+    "completedSuites": 39,
+    "failureLines": [],
+    "reasonStopped": "Freeze actual model evidence and canonical community description before the final uninterrupted49-suite acceptance. Never stitch these partial results into a full pass."
   }
 }
