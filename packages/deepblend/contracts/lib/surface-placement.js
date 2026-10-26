@@ -28,7 +28,7 @@ export function validateSurfacePlacementSelection(request) {
       !hash(request.baselineCheckpointSha256) || !translation(request.expectedTranslationMeters))) invalid('baseline verification requires a checkpoint path, SHA256 and a world-Z translation together.')
 }
 
-function verifyObject(value) {
+export function verifyPlacementObject(value) {
   if (!only(value, ['meshObjectCount', 'vertexCount', 'triangleCount', 'rootWorldMatrix', 'worldBoundsMeters']) ||
       !integer(value.meshObjectCount, 1, SURFACE_PLACEMENT_LIMITS.meshes) ||
       !integer(value.vertexCount, 3, SURFACE_PLACEMENT_LIMITS.vertices) ||
@@ -57,7 +57,7 @@ export function verifySurfacePlacementReport(report, request) {
       report.clearanceMm !== (request.clearanceMm ?? 0) || typeof report.blenderVersion !== 'string' || !report.blenderVersion ||
       !translation(report.translationMeters) || !vector(report.subjectContactMeters) || !vector(report.supportContactMeters) || !vector(report.placedSubjectContactMeters) ||
       !only(report.statistics, ['candidatePairs']) || !integer(report.statistics.candidatePairs, 1, SURFACE_PLACEMENT_LIMITS.candidatePairs)) refuse('the report differs from the requested source, frame, selection or bounded protocol.')
-  verifyObject(report.subject); verifyObject(report.support)
+  verifyPlacementObject(report.subject); verifyPlacementObject(report.support)
   if (!integer(report.subjectTriangleIndex, 0, report.subject.triangleCount - 1) ||
       !integer(report.supportTriangleIndex, 0, report.support.triangleCount - 1)) refuse('the contact triangle is outside the measured geometry.')
   const s = report.subjectContactMeters, t = report.supportContactMeters, p = report.placedSubjectContactMeters

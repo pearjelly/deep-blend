@@ -135,8 +135,11 @@ export function apply(ctx) {
 function placeOnSurface(ctx) {
   return defineTool({
     name: 'blender_place_on_surface',
-    description: 'Place a saved entity above a chosen support using their actual evaluated meshes, then save an editable Blender revision and preview. ' +
-      'Moves only the subject’s world Z; keeps its XY, rotation and scale. Supports generated meshes and whole imported asset instances, including sloped supports. ' +
+    description: 'Place a saved entity or a complete saved lamp above a chosen support using actual evaluated meshes, then save one editable Blender revision and preview. ' +
+      'Default entity scope moves only the selected subject’s world Z and keeps its XY, rotation and scale; supports generated meshes and whole imported asset instances. ' +
+      'For the complete pinned metal-lamp2.2 assembly, use scope="recipe-assembly" and the subjectEntityId returned in scene.assemblyPlacement. ' +
+      'This moves every lamp member, including the cable: optional pose applies relative world translation in mm and upright yaw in degrees, then the complete native mesh union settles vertically onto the selected support. ' +
+      'pose.pivotMm defaults to the saved base origin; translation is applied after rotation. All camera/light settings are retained, so inspect framing after a large move and explicitly edit photography if needed. ' +
       'Read blender_scene_get first and pass its current baseRevision, both entity IDs and an explicit frame. ' +
       'clearanceMm is a vertical gap, not distance along a surface normal. Requires static geometry without related cross-entity geometry dependencies. ' +
       'The receipt describes this selected pair at that frame; it does not certify physical stability, collisions with other objects or the movement path. ' +
@@ -146,6 +149,13 @@ function placeOnSurface(ctx) {
       projectId: { type: 'string', required: true, description: 'The existing project.' },
       baseRevision: { type: 'string', required: true, description: 'Current revision returned by blender_scene_get. Stale revisions are refused.' },
       subjectEntityId: { type: 'string', required: true, description: 'Entity to move vertically; use the whole entity ID for an imported asset instance.' },
+      scope: { type: 'string', enum: ['entity', 'recipe-assembly'], description: 'Default entity preserves existing single-entity semantics. recipe-assembly explicitly selects every member of the supported saved complete metal lamp2.2.' },
+      pose: { type: 'object', additionalProperties: false, description: 'For recipe-assembly only. Apply a relative world pose first, then settle the complete lamp in world Z; no scale or tilt.',
+        properties: {
+          translationMm: { type: 'array', items: { type: 'number' }, description: 'Relative world [dx,dy,dz] in mm, exactly3 finite numbers within ±1000000. Default[0,0,0]. The provisional Z is adjusted by surface settling.' },
+          yawDegrees: { type: 'number', description: 'Relative rotation about world Z in degrees, ±360; default0. Positive is counter-clockwise viewed from above.' },
+          pivotMm: { type: 'array', items: { type: 'number' }, description: 'World [x,y,z] rotation pivot in mm, exactly3 finite numbers within ±1000000. Default is the current saved base origin. Rotate first, then translate.' },
+        } },
       supportEntityId: { type: 'string', required: true, description: 'Different entity whose evaluated surface should support the subject.' },
       frame: { type: 'integer', required: true, description: 'Explicit frame to measure and verify, from 0 to 1000000. The Host enforces this range.' },
       clearanceMm: { type: 'number', description: 'Required vertical gap in millimetres, 0–1000; defaults to 0. The Host enforces this range.' },
@@ -162,10 +172,16 @@ function placeOnSurface(ctx) {
           throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
             'This Host cannot perform measured surface placement. Update the DeepBlend Host bundle and restart the profile before retrying.')
         }
+        if (args.scope === 'recipe-assembly' && resolved.studio.assemblyPlacementSupported !== true) {
+          throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
+            'This Host cannot place the complete lamp assembly. Update the DeepBlend Host bundle and restart the profile before retrying.')
+        }
         const { data, canonicalWarnings } = await canonicalCall(resolved.studio.placeOnSurface({
           // Preserve unknown fields so the Host can reject them rather than silently changing the intent.
           ...args,
           projectId: args.projectId, baseRevision: args.baseRevision,
+          ...(args.scope === undefined ? {} : { scope: args.scope }),
+          ...(args.pose === undefined ? {} : { pose: args.pose }),
           subjectEntityId: args.subjectEntityId, supportEntityId: args.supportEntityId, frame: args.frame,
           clearanceMm: args.clearanceMm ?? 0, renderPreview: args.renderPreview ?? true,
           cameraId: args.cameraId, idempotencyKey: args.idempotencyKey, signal: exec?.signal,
@@ -186,7 +202,9 @@ function placeOnSurface(ctx) {
         return { ok: false, ...failure }
       }
     },
-    presentCall: args => ({ card: 'generic', title: `Place "${args?.subjectEntityId ?? ''}" on "${args?.supportEntityId ?? ''}"`,
+    presentCall: args => ({ card: 'generic', title: args?.scope === 'recipe-assembly'
+      ? `Place the complete lamp on "${args?.supportEntityId ?? ''}"`
+      : `Place "${args?.subjectEntityId ?? ''}" on "${args?.supportEntityId ?? ''}"`,
       kind: 'move', projectId: args?.projectId }),
   })
 }

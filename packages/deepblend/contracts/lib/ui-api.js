@@ -85,6 +85,7 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.patch', method: 'POST', path: '/deepblend/projects/:projectId/patch', write: true, summary: 'Apply a ScenePatch as one atomic revision.' },
   { id: 'project.recipeParameters', method: 'GET', path: '/deepblend/projects/:projectId/recipe-parameters', write: false, summary: 'Read saved assembly controls at one revision.' },
   { id: 'project.recipeParameters.update', method: 'POST', path: '/deepblend/projects/:projectId/recipe-parameters', write: true, summary: 'Save bounded assembly dimensions as an atomic revision.' },
+  { id: 'project.surfacePlacement', method: 'POST', path: '/deepblend/projects/:projectId/surface-placement', write: true, summary: 'Measure and save an explicit entity or complete supported lamp placement.' },
   { id: 'project.restore', method: 'POST', path: '/deepblend/projects/:projectId/restore', write: true, summary: 'Move the current revision pointer to a saved revision, preserving history without creating a new revision.' },
   { id: 'project.jobs', method: 'GET', path: '/deepblend/projects/:projectId/jobs', write: false, summary: 'Render/export jobs of a project.' },
   { id: 'project.job', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId', write: false, summary: 'One job with its live progress.' },

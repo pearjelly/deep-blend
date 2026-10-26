@@ -404,6 +404,29 @@ window.__ModuleLoader__.load({
       'assembly.stale': '当前作品已有新版本。草稿已保留，请重新载入后再修改。',
       'assembly.otherDraft': '请先保存或放弃其他未提交的编辑。',
       'assembly.photoKept': '已保留自定义摄影，请确认新尺寸下的构图。',
+      'placement.title': '摆放整盏灯',
+      'placement.help': '一起移动包含电线的 {count} 个部件：先转向、再按世界坐标位移，最后竖直落到所选表面。',
+      'placement.support': '放到哪个表面',
+      'placement.chooseSupport': '选择支承对象',
+      'placement.x': '世界 X 位移（mm）',
+      'placement.y': '世界 Y 位移（mm）',
+      'placement.z': '落下前的上下位移 Z（mm）',
+      'placement.yaw': '转向变化（°）',
+      'placement.clearance': '竖直间隙（mm）',
+      'placement.more': '旋转中心与检查帧',
+      'placement.pivot': '旋转中心：世界 {axis}（mm）',
+      'placement.frame': '测量与预览帧',
+      'placement.pivotHelp': '默认绕当前底座中心转向。转向后再位移；最终高度由实际支承面决定，整灯保持直立。',
+      'placement.photo': '摄影设置保留。大幅移动后，请检查构图；需要时在摄影设置中调整。',
+      'placement.save': '摆放整灯并预览',
+      'placement.saving': '正在摆放并生成预览…',
+      'placement.cancel': '停止并核对结果',
+      'placement.retry': '重试同一次放置',
+      'placement.invalid': '请输入范围内的数值。',
+      'placement.unconfirmed': '这次放置的结果尚未确认。正在读取保存状态；重试会沿用同一次请求。',
+      'placement.conflict': '整灯部件已被单独修改，暂时不能整体摆放。请先恢复对应部件。',
+      'placement.saved': '整灯 {count} 个部件已保存为 {revision}。请检查新位置下的构图。',
+      'placement.failed': '整灯尚未完成放置。请检查支承对象与部件状态后重试。',
       'editor.position': '位置（mm）',
       'editor.rotation': '旋转（°）',
       'editor.geometry': '形状与轮廓',
@@ -1111,6 +1134,29 @@ window.__ModuleLoader__.load({
       'assembly.stale': 'The work has a newer revision. Your draft is retained; reload it before editing.',
       'assembly.otherDraft': 'Save or discard other unsaved edits first.',
       'assembly.photoKept': 'Custom photography was preserved. Check framing at the new dimensions.',
+      'placement.title': 'Place the whole lamp',
+      'placement.help': 'Move all {count} parts, including the cable: turn first, translate in world coordinates, then settle vertically on the selected surface.',
+      'placement.support': 'Support surface',
+      'placement.chooseSupport': 'Choose a support object',
+      'placement.x': 'World X offset (mm)',
+      'placement.y': 'World Y offset (mm)',
+      'placement.z': 'World Z offset before settling (mm)',
+      'placement.yaw': 'Change in heading (°)',
+      'placement.clearance': 'Vertical clearance (mm)',
+      'placement.more': 'Rotation pivot and frame',
+      'placement.pivot': 'World {axis} pivot (mm)',
+      'placement.frame': 'Measurement and preview frame',
+      'placement.pivotHelp': 'Turns around the current base origin by default. Translation follows rotation; the measured support sets the final height. The lamp stays upright.',
+      'placement.photo': 'Photography is retained. Check framing after a large move and adjust photography when needed.',
+      'placement.save': 'Place the whole lamp and preview',
+      'placement.saving': 'Placing and rendering…',
+      'placement.cancel': 'Stop and check the result',
+      'placement.retry': 'Retry this placement',
+      'placement.invalid': 'Enter a number within the allowed range.',
+      'placement.unconfirmed': 'This placement is unconfirmed. Reading the saved state; a retry will reuse this exact request.',
+      'placement.conflict': 'Lamp parts were edited separately. Restore the affected parts before placing the complete lamp.',
+      'placement.saved': 'Saved all {count} lamp parts as {revision}. Check framing at the new position.',
+      'placement.failed': 'The complete lamp could not be placed. Check the support and member state, then retry.',
       'editor.position': 'Position (mm)',
       'editor.rotation': 'Rotation (°)',
       'editor.geometry': 'Shape and profile',
@@ -2025,6 +2071,9 @@ window.__ModuleLoader__.load({
 .db-recipe-parameters .db-inline{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:12px}
 .db-recipe-parameters label{padding:8px;background:var(--db-fill);border-radius:7px}
 .db-recipe-parameters input[type=color]{height:34px;width:64px;border:1px solid var(--db-border);border-radius:6px;padding:3px;background:var(--db-surface)}
+.db-placement-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-block:12px}
+.db-placement-grid .db-field{display:grid;gap:6px;align-content:start;min-width:0}
+.db-placement-grid input{min-width:0}
 .db-storage{margin-top:8px;font-size:11px;overflow-wrap:anywhere}
 .db-scene-layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:20px;align-items:start}
 .db-scene-outline{min-width:0;position:sticky;top:0;max-height:calc(100dvh - 180px);overflow:auto;scrollbar-width:thin;scrollbar-color:var(--db-border) transparent}
@@ -2863,6 +2912,7 @@ window.__ModuleLoader__.load({
         || Boolean(state.assetDrafts?.[state.activeProjectId])
         || state.forms.patch !== null
         || assemblyDirty(assemblyDraftFor(state))
+        || placementDirty(placementDraftFor(state))
     }
     const assemblyKey = state => JSON.stringify([state.projectsRoot, state.activeProjectId])
     const assemblyDraftFor = state => state.assemblyDrafts?.[assemblyKey(state)] || null
@@ -2875,6 +2925,26 @@ window.__ModuleLoader__.load({
       const values = Object.fromEntries(source.parameters.map(parameter => [parameter.id, parameter.value]))
       return { projectId: source.projectId, projectsRoot, baseRevision: source.revision,
         parameters: editorClone(source.parameters), values, original: { ...values }, idempotencyKey: newCreationKey(), attempt: null }
+    }
+    const placementDraftFor = state => state.placementDrafts?.[assemblyKey(state)] || null
+    const placementDirty = draft => Boolean(draft && (draft.attempt || draft.supportEntityId
+      || Object.entries(draft.values).some(([id, value]) => value === '' || Number(value) !== draft.original[id])))
+    const placementLimits = { x: [-1e6, 1e6], y: [-1e6, 1e6], z: [-1e6, 1e6], yaw: [-360, 360],
+      pivotX: [-1e6, 1e6], pivotY: [-1e6, 1e6], pivotZ: [-1e6, 1e6], clearance: [0, 1000], frame: [0, 1e6] }
+    const placementFieldInvalid = (draft, id) => {
+      const value = Number(draft.values[id]), [min, max] = placementLimits[id]
+      return draft.values[id] === '' || !Number.isFinite(value) || value < min || value > max || id === 'frame' && !Number.isSafeInteger(value)
+    }
+    const placementInvalid = draft => !draft || !draft.supportEntityId || !draft.supports.some(entity => entity.id === draft.supportEntityId)
+      || Object.keys(placementLimits).some(id => placementFieldInvalid(draft, id))
+    function createPlacementDraft(source, scene, projectsRoot) {
+      const placement = source.placement, pivot = placement.defaultPose.pivotMm
+      const values = { x: 0, y: 0, z: 0, yaw: 0, pivotX: pivot[0], pivotY: pivot[1], pivotZ: pivot[2], clearance: 0,
+        frame: Math.min(scene.project.frameEnd ?? 24, Math.max(scene.project.frameStart ?? 1, 24)) }
+      return { projectId: source.projectId, projectsRoot, baseRevision: source.revision, subjectEntityId: placement.subjectEntityId,
+        memberEntityIds: editorClone(placement.memberEntityIds), supports: editorClone(scene.nodes.entities.filter(entity =>
+          ['generator', 'asset-instance'].includes(entity.kind) && !placement.memberEntityIds.includes(entity.id))), supportEntityId: '',
+        values, original: { ...values }, idempotencyKey: newCreationKey(), attempt: null }
     }
     function briefValid(draft) {
       return Boolean(draft && typeof draft.goal === 'string' && draft.goal.length <= 2000 && draft.referenceImages.length <= 4
@@ -3157,10 +3227,11 @@ window.__ModuleLoader__.load({
         editorLastEdits: {},
         editorComparison: null,
         assemblyDrafts: {},
+        placementDrafts: {},
         patchDrafts: {},
         recipeChoices: [],
         forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
-        busy: { create: false, patch: false, editor: false, assembly: false, render: false, restore: false },
+        busy: { create: false, patch: false, editor: false, assembly: false, placement: false, render: false, restore: false },
         notices: { projects: null, scene: null, preview: null, jobs: null, revisions: null },
       }
     }
@@ -3228,6 +3299,7 @@ window.__ModuleLoader__.load({
       const snapshotControllers = new Set()
       let snapshotTimer = null, snapshotGeneration = 0, activeSnapshotContext = null
       const photographyControllers = new Map()
+      const placementControllers = new Map()
       const photographySourceControllers = new Map()
       let photographySourceSequence = 0
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
@@ -3394,6 +3466,7 @@ window.__ModuleLoader__.load({
           editableSnapshotAvailability: payload.editableSnapshotAvailability ?? null,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
           cameraTargetResetSupported: payload.cameraTargetResetSupported === true,
+          assemblyPlacementSupported: payload.assemblyPlacementSupported === true,
           selected: payload.selected ?? null,
           activeProjectId: active,
           currentRevision: payload.selected ? payload.selected.currentRevision : null,
@@ -3444,6 +3517,10 @@ window.__ModuleLoader__.load({
             const key = JSON.stringify([patch.projectsRoot, active]), draft = data.assemblyDrafts[key]
             if ((!draft || !assemblyDirty(draft)) && !data.busy.assembly) {
               patch.assemblyDrafts = { ...data.assemblyDrafts, [key]: createAssemblyDraft(source, patch.projectsRoot) }
+            }
+            const placement = data.placementDrafts[key]
+            if (source.placement?.available === true && (!placement || !placementDirty(placement)) && !data.busy.placement) {
+              patch.placementDrafts = { ...data.placementDrafts, [key]: createPlacementDraft(source, patch.selected.scene, patch.projectsRoot) }
             }
           }
           const photography = data.photographyDrafts[active]
@@ -3744,6 +3821,64 @@ window.__ModuleLoader__.load({
         }
       }
       const actions = {
+        setPlacementValue: (id, value) => {
+          const draft = placementDraftFor(data)
+          if (!draft || data.busy.placement || draft.attempt || !Object.hasOwn(placementLimits, id)) return
+          set({ placementDrafts: { ...data.placementDrafts, [assemblyKey(data)]: { ...draft, values: { ...draft.values, [id]: value } } } })
+        },
+        setPlacementSupport: value => {
+          const draft = placementDraftFor(data)
+          if (!draft || data.busy.placement || draft.attempt || value && !draft.supports.some(entity => entity.id === value)) return
+          set({ placementDrafts: { ...data.placementDrafts, [assemblyKey(data)]: { ...draft, supportEntityId: value } } })
+        },
+        resetPlacement: () => {
+          const source = data.selected?.recipeParameters
+          if (!source?.placement?.available || data.busy.placement) return
+          set({ placementDrafts: { ...data.placementDrafts, [assemblyKey(data)]: createPlacementDraft(source, data.selected.scene, data.projectsRoot) } })
+          reload()
+        },
+        cancelPlacement: () => placementControllers.get(assemblyKey(data))?.abort(),
+        savePlacement: async () => {
+          const draft = placementDraftFor(data), source = data.selected?.recipeParameters
+          if (!draft || data.busy.placement || placementInvalid(draft) || !placementDirty(draft) || !data.assemblyPlacementSupported) return
+          if (!draft.attempt && (draft.baseRevision !== source?.revision || draft.baseRevision !== data.currentRevision || !source?.placement?.available
+              || projectHasUnsavedDrafts({ ...data, placementDrafts: {} }))) return
+          const key = assemblyKey(data), v = Object.fromEntries(Object.entries(draft.values).map(([id, value]) => [id, Number(value)]))
+          const body = draft.attempt || { projectsRoot: draft.projectsRoot, baseRevision: draft.baseRevision, scope: 'recipe-assembly',
+            subjectEntityId: draft.subjectEntityId, supportEntityId: draft.supportEntityId, frame: v.frame, clearanceMm: v.clearance,
+            pose: { translationMm: [v.x, v.y, v.z], yawDegrees: v.yaw, pivotMm: [v.pivotX, v.pivotY, v.pivotZ] }, idempotencyKey: draft.idempotencyKey }
+          const controller = new AbortController(); placementControllers.set(key, controller)
+          set({ placementDrafts: { ...data.placementDrafts, [key]: { ...draft, attempt: body } } })
+          setIn('busy', 'placement', true)
+          let outcome = await postJson((url, options) => fetchImpl(url, { ...options, signal: controller.signal }),
+            projectRoute(draft.projectId, '/surface-placement'), body)
+          placementControllers.delete(key); setIn('busy', 'placement', false)
+          const result = outcome.payload?.revision, receipt = result?.surfacePlacementReceipt
+          if (outcome.ok && (!/^r[0-9]{4,}$/.test(result?.revision ?? '') || receipt?.schemaVersion !== 'deepblend.assembly-placement-receipt/v1'
+              || receipt.sourceRevision !== body.baseRevision || receipt.subjectEntityId !== body.subjectEntityId
+              || receipt.supportEntityId !== body.supportEntityId || receipt.frame !== body.frame || receipt.clearanceMm !== body.clearanceMm
+              || !editorEqual(receipt.memberEntityIds, draft.memberEntityIds) || !editorEqual(receipt.pose, body.pose))) {
+            outcome = { ok: false, error: { code: 'UI_PLACEMENT_MISMATCH', message: 'The placement response does not match the captured request.' } }
+          }
+          const sameProject = target() === draft.projectId && data.projectsRoot === draft.projectsRoot
+          if (outcome.ok) {
+            const drafts = { ...data.placementDrafts }; delete drafts[key]; set({ placementDrafts: drafts })
+            if (sameProject) {
+              const notice = { ok: true, kind: 'assembly-placement', projectId: draft.projectId, projectsRoot: draft.projectsRoot,
+                message: t('placement.saved', { count: draft.memberEntityIds.length, revision: result.revision }) }
+              set({ view: 'preview', compareMode: 'revisions', compareLeft: draft.baseRevision, compareRight: result.revision,
+                notices: { ...data.notices, scene: notice, preview: notice } })
+            }
+          } else {
+            const uncertain = ['UI_FETCH_FAILED', 'UI_PLACEMENT_MISMATCH'].includes(outcome.error.code) || /^HTTP_5/.test(outcome.error.code)
+            set({ placementDrafts: { ...data.placementDrafts, [key]: { ...draft, attempt: uncertain ? body : null } } })
+            if (sameProject) setIn('notices', 'scene', { ok: false,
+              message: uncertain ? t('placement.unconfirmed') : outcome.error.code === 'REVISION_CONFLICT' ? t('assembly.stale')
+                : outcome.error.code === 'RECIPE_PARAMETER_CONFLICT' ? t('placement.conflict') : t('placement.failed'),
+              technicalDetails: `${outcome.error.code}: ${outcome.error.message}` })
+          }
+          reload()
+        },
         setSnapshotRevision: value => setSnapshotSelection('revision', value),
         setSnapshotVideo: value => setSnapshotSelection('videoJobId', value),
         prepareEditableSnapshot: () => snapshotRequest('prepare'),
@@ -4768,6 +4903,8 @@ window.__ModuleLoader__.load({
           if (timer !== null) { clearInterval(timer); timer = null }
           for (const controller of photographyControllers.values()) controller.abort()
           photographyControllers.clear()
+          for (const controller of placementControllers.values()) controller.abort()
+          placementControllers.clear()
           for (const controller of photographySourceControllers.values()) controller.abort()
           photographySourceControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
@@ -5066,6 +5203,12 @@ window.__ModuleLoader__.load({
     }
 
     /** A result line, in the two shapes the panel already used. */
+    function placementPreviewNotice(state) {
+      const notice = state.notices?.preview
+      return notice?.kind === 'assembly-placement' && notice.projectId === state.activeProjectId
+        && notice.projectsRoot === state.projectsRoot ? notice : null
+    }
+
     function Notice(result, style) {
       if (result === null || result === undefined) return null
       return el('div', {
@@ -5103,6 +5246,51 @@ window.__ModuleLoader__.load({
         el('div', { className: 'db-inline' }, Button({ action: 'assembly-save', disabled: Boolean(blocked) || assemblyInvalid(draft) || !assemblyDirty(draft),
           onClick: actions.saveAssembly, children: state.busy.assembly ? t('assembly.saving') : draft.attempt ? t('assembly.retry') : t('assembly.save') }),
           Button({ action: 'assembly-reset', disabled: state.busy.assembly, onClick: actions.resetAssembly, children: t('editor.reset') })))
+    }
+
+    function AssemblyPlacementEditor(ctx) {
+      const { state, actions } = ctx, source = state.selected?.recipeParameters?.placement, draft = placementDraftFor(state)
+      if (!source || !state.assemblyPlacementSupported) return null
+      if (!source.available) return el('section', { className: 'db-card', 'data-placement-editor': true },
+        el('h4', null, t('placement.title')), el('p', { className: 'db-muted' }, t('placement.conflict')))
+      if (!draft) return null
+      const stale = draft.baseRevision !== state.selected.scene.revision || draft.baseRevision !== state.currentRevision
+      const otherDirty = projectHasUnsavedDrafts({ ...state, placementDrafts: {} })
+      const busy = state.busy.placement, locked = busy || Boolean(draft.attempt)
+      const blocked = busy || !draft.attempt && (stale || otherDirty)
+      const number = (id, label, integer = false) => {
+        const invalid = placementFieldInvalid(draft, id), errorId = `placement-${draft.projectId}-${id}-error`
+        return el('label', { className: 'db-field', key: id }, label,
+          el('input', { type: 'number', className: 'db-input', 'data-field': `placement-${id}`, 'aria-label': label,
+            value: draft.values[id], min: placementLimits[id][0], max: placementLimits[id][1], step: integer ? 1 : 'any',
+            disabled: locked, 'aria-invalid': invalid ? 'true' : undefined, 'aria-describedby': invalid ? errorId : undefined,
+            onInput: event => actions.setPlacementValue(id, event.currentTarget.value) }),
+          invalid ? el('span', { className: 'db-field-feedback', id: errorId }, t('placement.invalid')) : null)
+      }
+      return el('section', { className: 'db-card db-placement-editor', 'data-placement-editor': true, 'data-placement-base-revision': draft.baseRevision,
+        'aria-busy': busy ? 'true' : undefined },
+        el('h4', null, t('placement.title')),
+        el('p', { className: 'db-muted' }, t('placement.help', { count: draft.memberEntityIds.length })),
+        stale ? el('p', { className: 'db-error' }, t('assembly.stale')) : null,
+        otherDirty ? el('p', { className: 'db-muted' }, t('assembly.otherDraft')) : null,
+        draft.attempt && !busy ? el('p', { className: 'db-muted', role: 'status' }, t('placement.unconfirmed')) : null,
+        el('label', { className: 'db-field' }, t('placement.support'),
+          el('select', { className: 'db-input', 'data-field': 'placement-support', 'aria-label': t('placement.support'),
+            value: draft.supportEntityId, disabled: locked, onChange: event => actions.setPlacementSupport(event.currentTarget.value) },
+            el('option', { value: '' }, t('placement.chooseSupport')), draft.supports.map(entity =>
+              el('option', { key: entity.id, value: entity.id }, entity.id)))),
+        el('div', { className: 'db-placement-grid' }, number('x', t('placement.x')), number('y', t('placement.y')),
+          number('yaw', t('placement.yaw')), number('clearance', t('placement.clearance'))),
+        Disclosure(ctx, 'placement-pivot', t('placement.more'), {},
+          el('p', { className: 'db-muted' }, t('placement.pivotHelp')),
+          el('div', { className: 'db-placement-grid' }, number('z', t('placement.z')),
+            ...['X', 'Y', 'Z'].map(axis => number(`pivot${axis}`, t('placement.pivot', { axis }))), number('frame', t('placement.frame'), true))),
+        el('p', { className: 'db-muted' }, t('placement.photo')),
+        el('div', { className: 'db-inline' },
+          Button({ tone: 'primary', action: 'placement-save', disabled: Boolean(blocked) || placementInvalid(draft) || !placementDirty(draft),
+            onClick: actions.savePlacement, children: busy ? t('placement.saving') : draft.attempt ? t('placement.retry') : t('placement.save') }),
+          busy ? Button({ action: 'placement-cancel', onClick: actions.cancelPlacement, children: t('placement.cancel') })
+            : Button({ action: 'placement-reset', onClick: actions.resetPlacement, children: t('editor.reset') })))
     }
 
     function SceneEditor(ctx) {
@@ -5632,7 +5820,7 @@ window.__ModuleLoader__.load({
             el('span', { className: 'db-muted db-mono' }, String(asset.path || '')))),
         )),
         el('section', { className: 'db-scene-inspector', 'aria-label': t('scene.inspector') },
-        AssemblyEditor(ctx), SceneEditor(ctx),
+        AssemblyEditor(ctx), AssemblyPlacementEditor(ctx), SceneEditor(ctx),
         Disclosure(ctx, 'photography', t('lighttable.photography'), { className: 'db-tool-disclosure' }, PhotographyEditor(ctx)),
         Disclosure(ctx, 'assets', t('lighttable.assets'), { className: 'db-tool-disclosure' }, AssetsView(ctx)),
         el('details', { key: advancedDisclosure, 'data-disclosure': advancedDisclosure, open: state.disclosures?.[advancedDisclosure] ?? false,
@@ -6014,7 +6202,8 @@ window.__ModuleLoader__.load({
           }),
           Notice(state.previewResult, { border: 0, padding: '0 6px', marginBottom: 0 }),
           state.notices.preview?.kind === 'creation' && state.notices.preview.projectId === state.activeProjectId
-            ? Notice(state.notices.preview, { border: 0, padding: '0 6px', marginBottom: 0 }) : null,
+            ? Notice(state.notices.preview, { border: 0, padding: '0 6px', marginBottom: 0 })
+            : Notice(placementPreviewNotice(state), { border: 0, padding: '0 6px', marginBottom: 0 }),
         ),
         el('div', { className: 'db-tabs' },
           el('span', { className: 'db-muted' }, t('preview.compare')),
@@ -6427,7 +6616,7 @@ window.__ModuleLoader__.load({
           el('p', null, t('lighttable.loading')), el('div', { className: 'db-loading-stage' }), el('div', { className: 'db-loading-line' }))
           : el('div', { className: 'db-body', key: bodyKey, 'data-scroll-key': bodyKey },
             active && (state.view !== 'projects' || state.projectTask !== 'new') ? LighttableWorkspace(ctx) : [
-              state.view === 'preview' && state.notices.preview?.kind === 'creation' ? Notice(state.notices.preview) : null,
+              state.view === 'preview' ? Notice(state.notices.preview?.kind === 'creation' ? state.notices.preview : placementPreviewNotice(state)) : null,
               ProjectsView({ ...ctx, newWork: true }), CreationGuide(ctx)])
       return el('div', { className: 'db-root', 'data-theme': state.appearance || 'system', 'data-deepblend-panel': PANEL_ID },
         el('header', { className: 'db-head' },

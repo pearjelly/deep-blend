@@ -893,3 +893,6 @@ export { SHOT_CAMERA_SELECTION_VERSION, SHOT_CAMERA_SELECTION_LIMITS, buildShotC
   normalizeShotCameraSelection, shotCameraForFrame } from './shot-render-selection.js'
 export { SURFACE_PLACEMENT_VERSION, SURFACE_PLACEMENT_LIMITS,
   validateSurfacePlacementSelection, verifySurfacePlacementReport } from './surface-placement.js'
+export { ASSEMBLY_PLACEMENT_VERSION, ASSEMBLY_PLACEMENT_BASIS_TOLERANCE, ASSEMBLY_PLACEMENT_UV_TOLERANCE, normalizeAssemblyPose,
+  assemblyPoseMatrixMeters, planLampAssemblyPlacement, validateAssemblyPlacementSelection,
+  verifyAssemblyPlacementReport } from './assembly-placement.js'

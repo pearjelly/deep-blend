@@ -24,7 +24,7 @@
 | `blender_project_get` | M1 | 自动 | 读 |
 | `blender_scene_get` | M1 | 自动 | 读 |
 | `blender_scene_patch` | M1 | 自动，受策略约束 | **写**（提交新 revision） |
-| `blender_place_on_surface` | 实际表面放置 | 自动，受策略约束 | **写**（测量、沿 Z 放置并保存新 revision） |
+| `blender_place_on_surface` | 实际表面放置 | 自动，受策略约束 | **写**（单实体放置或明确的完整台灯摆放，保存新 revision） |
 | `blender_preview_render` | M1 | 自动 | 读（写产物，不改场景） |
 | `blender_scene_validate` | M1 | 自动 | 读（可 dry-run patch） |
 | `blender_preview_views` | M2 | 自动 | 读（写产物，不改场景） |
@@ -534,11 +534,13 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 | `supportEntityId` | string | **是** | 承托主体的另一实体 |
 | `frame` | integer | **是** | 明确测量与复验的帧，0–1000000 |
 | `clearanceMm` | number | 否 | 竖直间距，默认 0 mm，允许 0–1000 mm |
+| `scope` | string | 否 | 默认 `entity`；`recipe-assembly` 显式选择有完整来源的台灯 2.2.0 全 23 件 |
+| `pose` | object | 否 | 仅用于整灯；相对世界 `translationMm`、竖轴 `yawDegrees`、世界枢轴 `pivotMm`；先转向、再平移、再竖直落到表面 |
 | `renderPreview` | boolean | 否 | 默认 true，生成并附上保存版本的预览；false 仍保存原生工程 |
 | `cameraId` | string | 否 | 预览使用的已保存相机；省略使用项目默认相机 |
 | `idempotencyKey` | string | 否 | 每次放置的新标识；相同请求重试时复用 |
 
-一次调用读取双方实际求值网格，保持主体 XY、旋转与缩放，仅沿世界 Z 调整到目标上方，
+默认单实体调用读取双方实际求值网格，保持主体 XY、旋转与缩放，仅沿世界 Z 调整到目标上方，
 保存可编辑原生工程并返回新版本摘要。支持普通生成网格与整个导入实例；斜面按主体投影
 覆盖到的实际表面求放置位置，不把目标整体包围盒最高点当作接触面。
 
@@ -546,6 +548,12 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 不是沿斜面法线的距离。结果只说明所选双方在指定帧的最终关系，不证明物理稳定、
 与其它物体没有碰撞或移动路径安全。范围、几何预算或来源检查不通过时拒绝保存；
 不要改用猜测的 Z 位移掩盖拒绝。
+
+整灯作用域从已保存的原始配方锁解析完整 23 件；使用 `blender_scene_get` 返回的
+`assemblyPlacement` 选择锚点。可在一次保存中共同平移、绕世界竖轴转向，再用全部成员的实际
+网格集合求竖直接触。省略枢轴时使用当前底座原点；位移单位为 mm、转角单位为度，Z 位移
+是落下前的暂定高度。相机与灯光保持，随后可继续使用原尺寸入口。缺件、单件错位、
+动画或相关几何依赖等会拒绝整次操作。此候选的完整契约与验证边界见[整灯摆放](lamp-assembly-placement.md)。
 
 返回 `data` 为标准保存修订摘要，并保留 `surfacePlacementReceipt`。
 默认预览通过已有的保存图片回执核验、读取与附件流程回传，不为附图再渲染一次。
@@ -878,6 +886,7 @@ M3 新增的：
 | `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
 | `GET /deepblend/projects/:projectId/recipe-parameters` | 读 | 读取指定版本的整套尺寸控制与受控几何冲突。 |
 | `POST /deepblend/projects/:projectId/recipe-parameters` | **写** | 检查 `baseRevision`，保存受约束的整套尺寸为原子版本；保留独立样式和历史。 |
+| `POST /deepblend/projects/:projectId/surface-placement` | **写** | 使用明确的主体/完整台灯作用域、支承、位姿与帧，经过原生测量和候选核验后保存一个版本及预览。 |
 | `POST /deepblend/projects/:projectId/restore` | **写** | Move the current pointer to a saved revision; preserve history. Optional `expectedCurrentRevision` rejects intervening edits. |
 | `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |

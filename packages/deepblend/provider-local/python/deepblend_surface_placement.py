@@ -520,7 +520,8 @@ def _capture_checkpoint(path, expected, frame, subject_id, support_id):
         render_visible.update(item.as_pointer() for item in collection.objects)
         pending_collections.extend(collection.children)
     result = []
-    for entity_id in (subject_id, support_id):
+    entity_ids = [*subject_id, support_id] if isinstance(subject_id, list) else [subject_id, support_id]
+    for entity_id in entity_ids:
         obj = bpy.data.objects.get('db_entity__' + entity_id)
         if obj is None:
             raise ActionError('SCENE_SPEC_INVALID', 'The selected native entity does not exist: ' + entity_id)
@@ -559,6 +560,9 @@ def inspect_surface_placement(request, options):
     """Inspect a hash-bound checkpoint, optionally proving a saved rigid move."""
     import bpy
     payload = request.get('payload')
+    if isinstance(payload, dict) and payload.get('scope') == 'recipe-assembly':
+        from deepblend_assembly_placement import inspect_assembly_placement
+        return inspect_assembly_placement(request, options)
     allowed = {'subjectEntityId', 'supportEntityId', 'frame', 'clearanceMm', 'checkpointSha256',
                'baselineCheckpointPath', 'baselineCheckpointSha256', 'expectedTranslationMeters'}
     if not isinstance(payload, dict) or set(payload) - allowed:

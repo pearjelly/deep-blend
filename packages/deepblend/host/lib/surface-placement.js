@@ -2,7 +2,8 @@ import { copyFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { BlenderError, BlenderErrorCode, compileSceneSpec, sceneSpecDigest, specHash, sha256Canonical,
-  validateSurfacePlacementSelection, verifySurfacePlacementReport, SURFACE_PLACEMENT_LIMITS } from '@deepblend/dsh-blender-contracts'
+  validateSurfacePlacementSelection, verifySurfacePlacementReport, SURFACE_PLACEMENT_LIMITS,
+  normalizeAssemblyPose } from '@deepblend/dsh-blender-contracts'
 import { fileSha256, fileSize, isFile, resolveInside, removeTree } from './paths.js'
 import { verifyAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 
@@ -16,7 +17,9 @@ export function normalizeSurfacePlacementRequest(request, projectsRoot) {
       request.cameraId !== undefined && (typeof request.cameraId !== 'string' || !request.cameraId || request.cameraId.length > 128) ||
       request.idempotencyKey !== undefined && (typeof request.idempotencyKey !== 'string' || !request.idempotencyKey.trim() || request.idempotencyKey.length > 128) ||
       Object.keys(request).some(key => !['projectId', 'baseRevision', 'subjectEntityId', 'supportEntityId', 'frame', 'clearanceMm',
-        'renderPreview', 'cameraId', 'idempotencyKey', 'signal', 'projectsRoot'].includes(key))) {
+        'renderPreview', 'cameraId', 'idempotencyKey', 'signal', 'projectsRoot', 'scope', 'pose'].includes(key)) ||
+      request.scope !== undefined && !['entity', 'recipe-assembly'].includes(request.scope) ||
+      request.pose !== undefined && request.scope !== 'recipe-assembly') {
     refuse(BlenderErrorCode.SCENE_PATCH_INVALID, 'expected an explicit bounded surface-placement request.')
   }
   if (request.projectsRoot !== undefined && request.projectsRoot !== projectsRoot) refuse(BlenderErrorCode.REVISION_CONFLICT, 'the active project store changed; read the selected work again.')
@@ -26,10 +29,16 @@ export function normalizeSurfacePlacementRequest(request, projectsRoot) {
     ...(request.cameraId === undefined ? {} : { cameraId: request.cameraId }),
     ...(request.idempotencyKey === undefined ? {} : { idempotencyKey: request.idempotencyKey }) }
   validateSurfacePlacementSelection({ ...normalized, checkpointSha256: '0'.repeat(64) })
+  if (request.scope === 'recipe-assembly') {
+    const pose = normalizeAssemblyPose(request.pose)
+    normalized.scope = 'recipe-assembly'
+    normalized.pose = { translationMm: pose.translationMm, yawDegrees: pose.yawDegrees,
+      ...(request.pose?.pivotMm === undefined ? {} : { pivotMm: pose.pivotMm }) }
+  }
   return normalized
 }
 
-function protectSource(store, projectId, revision, spec, signal) {
+export function protectPlacementSource(store, projectId, revision, spec, signal) {
   const project = store.projectDirectory(projectId), directory = store.revisionDirectory(projectId, revision)
   const checkpoint = resolveInside(project, `revisions/${revision}/scene.blend`, 'placement checkpoint')
   const manifest = store.readRevisionManifest(projectId, revision), digest = sceneSpecDigest(spec)
@@ -70,7 +79,7 @@ function protectSource(store, projectId, revision, spec, signal) {
   return { checkpoint, expected, verify }
 }
 
-function validateStaticSelection(spec, request) {
+export function validateStaticPlacementSelection(spec, request) {
   const selected = [request.subjectEntityId, request.supportEntityId]
   const entities = selected.map(id => spec.entities.find(entity => entity.id === id))
   if (entities.some(entity => !entity || !['generator', 'asset-instance'].includes(entity.type))) refuse(BlenderErrorCode.SCENE_SPEC_INVALID, 'select two saved mesh entities or asset instances.')
@@ -105,8 +114,8 @@ export async function applySurfacePlacement(transaction, request, { signal } = {
   if (store.readRecord(request.projectId).currentRevision !== request.baseRevision) refuse(BlenderErrorCode.REVISION_CONFLICT, 'the current revision changed; read the scene again before placing.')
   if (typeof runtime?.inspectSurfacePlacement !== 'function') refuse(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'the configured runtime does not support native surface placement.')
   const spec = store.readRevisionSpec(request.projectId, request.baseRevision)
-  const subject = validateStaticSelection(spec, request)
-  const source = protectSource(store, request.projectId, request.baseRevision, spec, signal)
+  const subject = validateStaticPlacementSelection(spec, request)
+  const source = protectPlacementSource(store, request.projectId, request.baseRevision, spec, signal)
   const scratch = resolveInside(store.projectDirectory(request.projectId), `.surface-placement-${randomUUID()}`, 'placement workspace')
   mkdirSync(scratch, { recursive: true })
   try {

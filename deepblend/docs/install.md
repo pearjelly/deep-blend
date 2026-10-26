@@ -257,7 +257,7 @@ npm run verify:clone -- --with-blender   # 连 Blender 一起（346 MB）
 ```bash
 node deepblend/tools/development.mjs sdk  # 开发验收需要；产品安装本身不需要编译器
 node deepblend/tests/run.mjs        # 契约层，不需要 Blender
-bash deepblend/tests/run-all.sh     # 完整验收，需要 Blender，约 10 分钟
+bash deepblend/tests/run-all.sh     # 完整验收，需要 Blender；耗时取决于渲染与本机条件
 ```
 
 完整验收里 M3 与 M4 的两个套件会**真的渲 1080p、真的编码、真的开一个 Chrome**，

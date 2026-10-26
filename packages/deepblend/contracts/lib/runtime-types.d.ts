@@ -133,6 +133,31 @@ export interface SurfacePlacementReport {
     subjectRigidTranslation: true; supportUnchanged: true; subjectMaxErrorMeters: number; supportMaxErrorMeters: number;
     toleranceMeters: number };
 }
+export interface AssemblyPlacementPose {
+  /** Relative world translation after rotation, in millimetres; Z is provisional before settling. */
+  translationMm: Vec3;
+  /** Relative upright yaw in degrees, positive counter-clockwise viewed from above. */
+  yawDegrees: number;
+  /** World pivot in millimetres. The Host defaults it to the current saved base origin. */
+  pivotMm: Vec3;
+}
+export type AssemblyPlacementRequest = RuntimeOptions & {
+  checkpointPath: string; checkpointSha256: string; subjectEntityId: string; memberEntityIds: string[];
+  supportEntityId: string; frame: number; clearanceMm?: number; pose: AssemblyPlacementPose; jobId?: string;
+} & ({ baselineCheckpointPath: string; baselineCheckpointSha256: string; expectedWorldMatrixMeters: number[][] }
+  | { baselineCheckpointPath?: never; baselineCheckpointSha256?: never; expectedWorldMatrixMeters?: never });
+export interface AssemblyPlacementMemberProof {
+  entityId: string; rigidTransform: true; maxVertexErrorMeters: number; maxRootPositionErrorMeters: number;
+  maxRootBasisError: number; maxUvError: number;
+}
+export interface AssemblyPlacementReport extends Omit<SurfacePlacementReport, 'schemaVersion' | 'baselineVerification'> {
+  schemaVersion: 'deepblend.assembly-placement/v1'; memberEntityIds: string[];
+  members: Array<{ entityId: string; geometry: SurfacePlacementObject }>;
+  pose: AssemblyPlacementPose; poseMatrixMeters: number[][]; resultWorldMatrixMeters: number[][]; subjectContactEntityId: string;
+  baselineVerification?: { checkpointSha256: string; checkpointUnchanged: true; worldMatrixMeters: number[][];
+    members: AssemblyPlacementMemberProof[]; supportUnchanged: true; supportMaxErrorMeters: number;
+    toleranceMeters: number; basisTolerance: number; uvTolerance: number };
+}
 export interface RenderPreviewRequest extends RuntimeOptions, RenderOverrides {
   checkpointPath: string; outputPath: string; cameraId?: string; frame?: number; jobId?: string;
   session?: boolean;
@@ -270,6 +295,8 @@ export interface LocalBlenderRuntime extends BlenderRuntime {
   inspectGeometry?(request: GeometryInspectionRequest): Promise<RuntimeActionResult<GeometryInspectionReport>>;
   /** Optional isolated measurement; baseline verification proves the saved rigid move before Host publication. */
   inspectSurfacePlacement?(request: SurfacePlacementRequest): Promise<RuntimeActionResult<SurfacePlacementReport>>;
+  /** Complete explicit member union and optional rigid candidate proof, always in an isolated batch. */
+  inspectAssemblyPlacement?(request: AssemblyPlacementRequest): Promise<RuntimeActionResult<AssemblyPlacementReport>>;
   runBootstrap(request: BlenderBootstrapRequest, options?: BootstrapOptions): Promise<BootstrapRunOutcome>;
   openSession(options?: RuntimeOptions & { cwd?: string; args?: string[] }): Promise<BlenderSession>;
   attachSession(socketPath: string, options?: { timeoutMs?: number }): Promise<BlenderSession>;

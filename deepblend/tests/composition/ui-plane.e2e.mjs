@@ -95,6 +95,7 @@ const WRITE_METHOD = {
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
   'project.recipeParameters.update': 'updateRecipeParameters',
+  'project.surfacePlacement': 'placeOnSurface',
   'project.referenceImage.upload': 'uploadReferenceImage',
   'project.assets.upload': 'uploadAsset',
   'project.assetUploads.create': 'createAssetUpload',
@@ -146,6 +147,8 @@ function createStudioStub() {
     async cancelEditableSnapshot(request) { record('cancelEditableSnapshot', request); return { ...request, revision: 'r0001', state: 'cancelled' } },
     async openEditableSnapshot(request) { record('openEditableSnapshot', request); return { bytes: 4, filename: 'snapshot.zip', contentType: 'application/zip', stream: Readable.from([Buffer.from('PK00')]), close: async () => {} } },
     recipeParameterEditingSupported: true,
+    assemblyPlacementSupported: true,
+    placeOnSurface(request) { record('placeOnSurface', request); return { revision: 'r0003', unchanged: false } },
     getRecipeParameters(projectId, options) { record('getRecipeParameters', { projectId, options }); return { projectId, revision: options?.revision ?? 'r0002', available: false, parameters: [] } },
     updateRecipeParameters(request) { record('updateRecipeParameters', request); return { revision: 'r0003', unchanged: false, parameters: { available: false } } },
     config: { requireApprovalAboveFrames: 900 },
@@ -476,7 +479,10 @@ function sampleUrl(route) {
 
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
-  const { response, json } = await request(route.method, sampleUrl(route), route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined)
+  const placement = route.id === 'project.surfacePlacement' ? { baseRevision: 'r0002', scope: 'recipe-assembly',
+    subjectEntityId: 'weighted-base', supportEntityId: 'task-ramp', frame: 24, clearanceMm: 1.5,
+    pose: { translationMm: [200, -100, 150], yawDegrees: 35, pivotMm: [80, -30, 0] } } : null
+  const { response, json } = await request(route.method, sampleUrl(route), placement ?? (route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined))
   if (route.id === 'project.preview') {
     // The pair reaches the browser; the PNG buffers do not (a JSON body of image
     // bytes is not lossless, and the panel displays images through the artifact
@@ -544,6 +550,12 @@ for (const route of UI_ROUTES) {
   check(`${route.id} answers with lossless JSON`, isJsonValue(json), route.id)
 
   const called = studio.methodsCalled()
+  if (placement) {
+    const forwarded = studio.calls[0]?.args
+    check('whole-placement forwards the complete intent through the guarded Host writer',
+      forwarded?.projectId === 'demo' && forwarded.renderPreview === true
+      && Object.entries(placement).every(([key, value]) => JSON.stringify(forwarded[key]) === JSON.stringify(value)), forwarded)
+  }
   if (route.write === true) {
     check(`${route.id} is a write, and calls exactly ${WRITE_METHOD[route.id]} once`,
       called.length === 1 && called[0] === WRITE_METHOD[route.id], called)

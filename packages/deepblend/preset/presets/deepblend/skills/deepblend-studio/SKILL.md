@@ -422,7 +422,7 @@ the current revision and repeat the affected views with the same settings.
    For placing a saved static mesh or complete imported instance on a chosen support,
    use `blender_place_on_surface` with projectId, baseRevision, subjectEntityId,
    supportEntityId and the explicit frame being checked. Optional clearanceMm is a
-   vertical gap (default 0); the operation preserves XY, rotation and scale, moves
+   vertical gap (default 0); the default entity scope preserves XY, rotation and scale, moves
    only world Z, saves a new checkpoint and returns its same-frame preview by default.
    It measures the selected actual mesh surfaces, including slopes and holes, then
    verifies the compiled rigid translation and support before publishing. Read the
@@ -433,6 +433,18 @@ the current revision and repeat the affected views with the same settings.
    leaves the earlier revision intact; do not replace refused surface evidence with
    bounding-box separation. A separate ordinary patch remains available when the
    user specifically requests an authored transform rather than surface placement.
+   For a complete saved metal-lamp2.2, first read scene.assemblyPlacement. When it is
+   available, use the same tool with scope="recipe-assembly" and its returned
+   subjectEntityId to move all23 members, including the cable and lamp bulb, in one
+   verified save. Optional pose.translationMm is a relative world XYZ offset in mm;
+   pose.yawDegrees is a relative upright turn in degrees; pose.pivotMm is its world
+   rotation pivot in mm, defaulting to the current saved base origin. Rotate first,
+   translate next, then settle the complete native mesh union vertically on the
+   selected external support. Provisional Z is adjusted by this measured settling.
+   Keep the user's cameras/lights and inspect framing after a large move. Continue
+   controlled dimensions with blender_recipe_parameters. If the complete assembly
+   is unavailable, explain the saved conflict; a single base placement does not
+   establish the other members' placement or the complete lamp's clearance.
 
    For framing, select the required complete subjects and `geometryCameraId` at an
    explicit `geometryFrame`; use `geometryAssetInstanceIds` for imported subjects.

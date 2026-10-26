@@ -6,17 +6,17 @@
   "sourceRepository": "https://github.com/pearjelly/deep-blend",
   "reproductionGuide": "README.md",
   "capture": {
-    "date": "2026-10-23",
+    "date": "2026-10-26",
     "interaction": "cua-browser-ui",
-    "sourceDirectory": ".tmp-placement-lighttable-capture-v1",
+    "sourceDirectory": ".tmp-assembly-docs-lighttable-v1",
     "uiSource": "packages/deepblend/ui/lib/client.js",
-    "capturedUiSha256": "2ee3ce3d50a950b1fadfecdd9158b70c242e8e5a8958fb7ec16993439fc3625d",
+    "capturedUiSha256": "9a066f81cfd65a3d51c2c9726191cbd11856fd99c3c02fa0eea0ce70b7e7a9b6",
     "viewed": true,
     "nativeRegressionRerun": false,
     "scope": "Actual desktop and narrow browser screenshots after loading the current Lighttable client in isolated DSH 0.2.1. The reused saved glazed-cup work, r0002 preview and revision strip are shown. This captures the UI only; no new native render or acceptance run is claimed.",
-    "bundleClientSourceSha256": "d4bee8d70220c8e48971db5a5575a8ec7d0478dc5d13f048f650a033606df274",
-    "servedClientSha256": "c4b4dd1872706ab1e3f5b89b268a6a932c264e18fc88f3aaeef0d3ce69b86537",
-    "servedClientBytes": 529319,
+    "bundleClientSourceSha256": "72c765a4f549362d4109d9392b0f608ea1e79720457085eafb7d132527a3c7b8",
+    "servedClientSha256": "bf8ffe1ebeef8268bea9d6b4cba1e9c7c6ca89424fc662d9db494c646af62098",
+    "servedClientBytes": 545041,
     "wholeServedResponseIdentical": true,
     "browserProvenanceMethod": "Rendered DOM boot graph and completed saved preview, corroborated with an exact whole HTTP client response.",
     "performanceReadAvailable": false,
@@ -25,8 +25,8 @@
   "images": [
     {
       "file": "workbench.png",
-      "sha256": "dc78822021dce9d33910773182c6697960a82b700981c92c89bedaf90a2884dc",
-      "bytes": 218186,
+      "sha256": "1b176adfcbd0a899d9a5205189e8f2586d2e8edbf32c832f0761ec597e8eddbd",
+      "bytes": 218504,
       "width": 1440,
       "height": 1013,
       "postProcessed": false,
@@ -40,26 +40,28 @@
         "cropped": false,
         "resized": false,
         "colorAdjusted": false
-      }
+      },
+      "metadataOnlyOriginEmbedded": true
     },
     {
       "file": "narrow.png",
-      "sha256": "1b40ac11605647b5fe7c624dea0010cde5f4e76cc31c819d47228331169616da",
-      "bytes": 137731,
+      "sha256": "ddb6b7b51a253899cbb33975a0bb4ae469c3f096ae891f7a854614d8a6123a6e",
+      "bytes": 138093,
       "width": 390,
       "height": 844,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "lighttable-narrow.png",
         "sourceFormat": "JPEG",
-        "sourceSha256": "c843b40d1540fcfef2dcfd0a976750471aa881597ebe988cd035eff62373b5d5",
-        "decodedPixelsSha256": "fd175ccbc0fef0ce76242ad384a5fd3d644d673c64e87b0baa9680c6a127772d",
+        "sourceSha256": "ba11ba48cecf1fdc0ab7b5fb28147ee471a0164d60d50f8982235d181cff9f26",
+        "decodedPixelsSha256": "da3379ccdf4a00180f9193f898fdcde793e5432993922e9ec6a5ddb28b6d079c",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false
-      }
+      },
+      "metadataOnlyOriginEmbedded": true
     }
   ]
 }
