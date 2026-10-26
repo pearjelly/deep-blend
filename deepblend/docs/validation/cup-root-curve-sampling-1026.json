@@ -1,0 +1,2324 @@
+{
+  "schemaVersion": "deepblend.cup-root-coupled-fairness/v1",
+  "planSha256": "dc2317d72e830ca35f3917db8231e1b1c2a725384e1a604eb70ac51a4137004a",
+  "probeSha256": "b1b416f5dbe3f6a79a73fa6fe4447e47a943a3422982f0cd6309d2d5889d05b5",
+  "elapsedSeconds": 1.4353196620941162,
+  "gridCases": 247,
+  "samplesPerCase": 4160,
+  "allGridResults": [
+    {
+      "axial": 0,
+      "radial": -12,
+      "sampledFairnessScore": 11.524180073362347,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2653.248239691306,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": -10,
+      "sampledFairnessScore": 10.290049248784639,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2419.291211803566,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": -8,
+      "sampledFairnessScore": 9.164955698096946,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2195.0819859499966,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": -6,
+      "sampledFairnessScore": 8.160460181898696,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2010.692403328475,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": -4,
+      "sampledFairnessScore": 7.288502204367132,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1847.4076868487668,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": -2,
+      "sampledFairnessScore": 6.562455919664158,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1692.1567979824174,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 0,
+      "sampledFairnessScore": 5.999527550901574,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1581.4819537383073,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 2,
+      "sampledFairnessScore": 5.62554010717922,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1503.7876765911847,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 4,
+      "sampledFairnessScore": 5.484126567953007,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1473.85382470445,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 6,
+      "sampledFairnessScore": 5.654530661234188,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1517.7623281965502,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 8,
+      "sampledFairnessScore": 6.287254338060452,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 1690.1629711603148,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 10,
+      "sampledFairnessScore": 7.679381523040072,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2055.956349911932,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 12,
+      "sampledFairnessScore": 10.44925816897123,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 2824.3096752259116,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 14,
+      "sampledFairnessScore": 16.035211014467347,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 4670.149425946265,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 16,
+      "sampledFairnessScore": 28.99913910645515,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 10838.232640266944,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 18,
+      "sampledFairnessScore": 88.56890127832469,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 63788.7135273754,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 20,
+      "sampledFairnessScore": 747.4325009886572,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 388776.5118681752,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 22,
+      "sampledFairnessScore": 689.0358382446012,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 385741.10458091233,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 0,
+      "radial": 24,
+      "sampledFairnessScore": 836.5099326885941,
+      "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+      "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+      "maximumSampledMeridianCurvaturePerM": 351625.9010802433,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -12,
+      "sampledFairnessScore": 11.003907160880468,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 2594.0358275356257,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -10,
+      "sampledFairnessScore": 9.66588800364067,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 2353.1859521414585,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -8,
+      "sampledFairnessScore": 8.44491850157074,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 2122.75161927305,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -6,
+      "sampledFairnessScore": 7.354799472049837,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1902.544374288823,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -4,
+      "sampledFairnessScore": 6.40903256861889,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1692.4917053562672,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": -2,
+      "sampledFairnessScore": 5.62148556651545,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1529.2069888765593,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 0,
+      "sampledFairnessScore": 5.008322416644685,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1372.4516096807968,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 2,
+      "sampledFairnessScore": 4.592015535828812,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1248.917405898669,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 4,
+      "sampledFairnessScore": 4.408798038696467,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1169.1120740302606,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 6,
+      "sampledFairnessScore": 4.522050295968501,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1138.2478240295977,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 8,
+      "sampledFairnessScore": 5.046559532725893,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1201.4634512920202,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 10,
+      "sampledFairnessScore": 6.194352000224221,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 1532.984684972432,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 12,
+      "sampledFairnessScore": 8.370024985652186,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 2037.8911989353821,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 14,
+      "sampledFairnessScore": 12.4168691951087,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 3073.9407165445737,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 16,
+      "sampledFairnessScore": 20.56593721560752,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 6518.541726255866,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 18,
+      "sampledFairnessScore": 42.872383165000414,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 22768.195028558566,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 20,
+      "sampledFairnessScore": 156.1743841381365,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 132451.20990019626,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 22,
+      "sampledFairnessScore": 590.1306174818932,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 647072.3590818169,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 2,
+      "radial": 24,
+      "sampledFairnessScore": 547.0053751734249,
+      "minimumSampledOuterRadiusClearanceMm": -0.0020047429832650843,
+      "minimumSampledAxialDerivativeM": -2.1166992187500542e-05,
+      "maximumSampledMeridianCurvaturePerM": 349879.71948906867,
+      "sampleFiltersPass": false
+    },
+    {
+      "axial": 4,
+      "radial": -12,
+      "sampledFairnessScore": 10.697779229300227,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2607.671269200061,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": -10,
+      "sampledFairnessScore": 9.251246583456116,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2325.674975785417,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": -8,
+      "sampledFairnessScore": 7.9337728406630434,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2058.367169523891,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": -6,
+      "sampledFairnessScore": 6.763236174070364,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1816.0131850924258,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": -4,
+      "sampledFairnessScore": 5.756587533669155,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1600.883265486872,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": -2,
+      "sampledFairnessScore": 4.930037686747758,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1396.1314185042957,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 0,
+      "sampledFairnessScore": 4.300562007683774,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1211.0062909043515,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 2,
+      "sampledFairnessScore": 3.8894399424942874,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1047.721574424644,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 4,
+      "sampledFairnessScore": 3.7287888979701482,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 915.6469333492029,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 6,
+      "sampledFairnessScore": 3.872642999447913,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 819.4680348038262,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 8,
+      "sampledFairnessScore": 4.41554853414993,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1034.0039626466619,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 10,
+      "sampledFairnessScore": 5.525252537550196,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1332.486166487704,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 12,
+      "sampledFairnessScore": 7.506811961297722,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1722.3159735112404,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 14,
+      "sampledFairnessScore": 10.953241463073113,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2275.5549382075983,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 16,
+      "sampledFairnessScore": 17.17543881327594,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4288.743189141527,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 18,
+      "sampledFairnessScore": 29.41384284898016,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 9471.296949703266,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 20,
+      "sampledFairnessScore": 53.704881041452666,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 20857.99638767689,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 22,
+      "sampledFairnessScore": 91.57833441951325,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 40690.424803846705,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 4,
+      "radial": 24,
+      "sampledFairnessScore": 137.66812446896324,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 68266.1432181469,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -12,
+      "sampledFairnessScore": 10.621021492903418,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2662.1464400961895,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -10,
+      "sampledFairnessScore": 9.052731296728854,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2355.1666311422196,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -8,
+      "sampledFairnessScore": 7.628522732223423,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2065.687737020755,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -6,
+      "sampledFairnessScore": 6.372445065676712,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1794.3961683532648,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -4,
+      "sampledFairnessScore": 5.3068362209184325,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1541.5979731381017,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": -2,
+      "sampledFairnessScore": 4.451712303597805,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1307.2740247318739,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 0,
+      "sampledFairnessScore": 3.825655033695214,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1092.942312816726,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 2,
+      "sampledFairnessScore": 3.4489374045848002,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 904.9737377747925,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 4,
+      "sampledFairnessScore": 3.3495741626221376,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 729.520876452436,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 6,
+      "sampledFairnessScore": 3.573147232050984,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 763.1880342569531,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 8,
+      "sampledFairnessScore": 4.19802889129239,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 952.6999367603809,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 10,
+      "sampledFairnessScore": 5.359706504672459,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1198.2945750662036,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 12,
+      "sampledFairnessScore": 7.292845982085154,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1511.72694910506,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 14,
+      "sampledFairnessScore": 10.40965771526251,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1927.8909305781797,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 16,
+      "sampledFairnessScore": 15.437794556039504,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3167.3677150120084,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 18,
+      "sampledFairnessScore": 23.54042333711539,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5441.331524270106,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 20,
+      "sampledFairnessScore": 35.91671856116341,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 9143.3905661807,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 22,
+      "sampledFairnessScore": 52.596521901696704,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 14330.597418302184,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 6,
+      "radial": 24,
+      "sampledFairnessScore": 72.40644297451908,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 20910.05180443184,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -12,
+      "sampledFairnessScore": 10.801365853406018,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2760.411013943706,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -10,
+      "sampledFairnessScore": 9.08737271017991,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2430.235315496724,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -8,
+      "sampledFairnessScore": 7.534275045156151,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2111.3386894861005,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -6,
+      "sampledFairnessScore": 6.175128337608261,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1808.9392412164652,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -4,
+      "sampledFairnessScore": 5.040219370070637,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1526.813550429398,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": -2,
+      "sampledFairnessScore": 4.155003280719421,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1267.3739391932695,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 0,
+      "sampledFairnessScore": 3.5399070166437077,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1031.830955404475,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 2,
+      "sampledFairnessScore": 3.21296525073356,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 820.4019719002055,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 4,
+      "sampledFairnessScore": 3.195747338613116,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 632.5331891500806,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 6,
+      "sampledFairnessScore": 3.5226350154399513,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 736.8436414657302,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 8,
+      "sampledFairnessScore": 4.253634730658529,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 901.1161558245841,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 10,
+      "sampledFairnessScore": 5.491699235729996,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1108.887783369761,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 12,
+      "sampledFairnessScore": 7.406523544506971,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1369.1630278776738,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 14,
+      "sampledFairnessScore": 10.265364690351634,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1690.3160687277893,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 16,
+      "sampledFairnessScore": 14.457813684396513,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2460.2546898099154,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 18,
+      "sampledFairnessScore": 20.45795692924635,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3719.028738975541,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 20,
+      "sampledFairnessScore": 28.633103431275018,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5512.119461212593,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 22,
+      "sampledFairnessScore": 38.98348844551263,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 7929.320971989646,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 24,
+      "sampledFairnessScore": 51.16669314752401,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 10763.123538803124,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -12,
+      "sampledFairnessScore": 11.286784235565777,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2973.5904187810374,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -10,
+      "sampledFairnessScore": 9.389551522644624,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2586.66246814212,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -8,
+      "sampledFairnessScore": 7.669939738134359,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2216.422578734466,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -6,
+      "sampledFairnessScore": 6.174371647911566,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1870.6881243738012,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -4,
+      "sampledFairnessScore": 4.945227374524182,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1564.5675127857314,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": -2,
+      "sampledFairnessScore": 4.0160560342350395,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1279.7704045727796,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 0,
+      "sampledFairnessScore": 3.409354987085643,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1021.8953383211547,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 2,
+      "sampledFairnessScore": 3.138577483641051,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 795.6673845439597,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 4,
+      "sampledFairnessScore": 3.2146407462902555,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 614.4737888557171,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 6,
+      "sampledFairnessScore": 3.655851149339462,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 726.0032540989951,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 8,
+      "sampledFairnessScore": 4.499688606672385,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 870.9409810480929,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 10,
+      "sampledFairnessScore": 5.815249047998952,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1050.5053916193997,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 12,
+      "sampledFairnessScore": 7.715233777905819,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1271.8811115990925,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 14,
+      "sampledFairnessScore": 10.36419851112114,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1541.5403191918786,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 16,
+      "sampledFairnessScore": 13.973052810121146,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2017.1162730076703,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 18,
+      "sampledFairnessScore": 18.76135779654518,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2818.162280963733,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 20,
+      "sampledFairnessScore": 24.87984536448953,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3892.7893671673646,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 22,
+      "sampledFairnessScore": 32.338487011989486,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5221.895231767002,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 24,
+      "sampledFairnessScore": 41.01742080229776,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 6812.77717330725,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -12,
+      "sampledFairnessScore": 12.158370421198846,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3223.980838309269,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -10,
+      "sampledFairnessScore": 10.022705961924633,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2836.2428670837394,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -8,
+      "sampledFairnessScore": 8.077755394831751,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2434.8885961502856,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -6,
+      "sampledFairnessScore": 6.390488498382307,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2039.6061884494522,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -4,
+      "sampledFairnessScore": 5.022838961529008,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1666.1109027340303,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": -2,
+      "sampledFairnessScore": 4.021607312170191,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1351.0532047627087,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 0,
+      "sampledFairnessScore": 3.4122058933649897,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1064.6626470432304,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 2,
+      "sampledFairnessScore": 3.1998228018016217,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 832.1090552130966,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 4,
+      "sampledFairnessScore": 3.3781728410856444,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 656.3354440484021,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 6,
+      "sampledFairnessScore": 3.9426089353132956,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 726.7996188465464,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 8,
+      "sampledFairnessScore": 4.903364309382211,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 856.148325426556,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 10,
+      "sampledFairnessScore": 6.295917122731382,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1013.4642512161038,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 12,
+      "sampledFairnessScore": 8.186850087884492,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1204.5370877165403,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 14,
+      "sampledFairnessScore": 10.673356145863645,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1435.4124229256693,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 16,
+      "sampledFairnessScore": 13.872818080078265,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1733.207418357777,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 18,
+      "sampledFairnessScore": 17.898873214304075,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2293.0472626157757,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 20,
+      "sampledFairnessScore": 22.827888949781215,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3022.5196751095846,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 22,
+      "sampledFairnessScore": 28.673936017818942,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3857.2854507235675,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 24,
+      "sampledFairnessScore": 35.39247564758989,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4969.436473727384,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -12,
+      "sampledFairnessScore": 13.552934746766125,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3726.3615990197436,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -10,
+      "sampledFairnessScore": 11.100580235379912,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3226.627650199114,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -8,
+      "sampledFairnessScore": 8.84087245618937,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2726.4310871567777,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -6,
+      "sampledFairnessScore": 6.873468443925404,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2303.777035059806,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -4,
+      "sampledFairnessScore": 5.2940598570675155,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1875.018812891148,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": -2,
+      "sampledFairnessScore": 4.173393452779029,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1494.1422522536209,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 0,
+      "sampledFairnessScore": 3.542224327555141,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1171.3180501043803,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 2,
+      "sampledFairnessScore": 3.3911565056034774,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 921.9037788422742,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 4,
+      "sampledFairnessScore": 3.6856080146572694,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 744.0273147929673,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 6,
+      "sampledFairnessScore": 4.387481504640618,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 735.7464814921146,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 8,
+      "sampledFairnessScore": 5.473824202305803,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 851.5439479867798,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 10,
+      "sampledFairnessScore": 6.947479105283774,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 989.9159116322791,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 12,
+      "sampledFairnessScore": 8.839475380276403,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1155.4388688524034,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 14,
+      "sampledFairnessScore": 11.20451417654023,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1353.2817521960717,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 16,
+      "sampledFairnessScore": 14.11041605185345,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1588.9362042249609,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 18,
+      "sampledFairnessScore": 17.622556774253077,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1961.6360076075525,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 20,
+      "sampledFairnessScore": 21.78696486123548,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2496.260785945141,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 22,
+      "sampledFairnessScore": 26.619170731175693,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3134.2582564163004,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 14,
+      "radial": 24,
+      "sampledFairnessScore": 32.10484197655292,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3826.098923491178,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -12,
+      "sampledFairnessScore": 15.704610418585894,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4352.171192074357,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -10,
+      "sampledFairnessScore": 12.828427789906167,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3811.9258940662053,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -8,
+      "sampledFairnessScore": 10.118792816163213,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3280.6860857623847,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -6,
+      "sampledFairnessScore": 7.728458876918398,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2693.0077773124694,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -4,
+      "sampledFairnessScore": 5.81513034874467,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2211.6191306295736,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": -2,
+      "sampledFairnessScore": 4.496886243473606,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1730.8065388087862,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 0,
+      "sampledFairnessScore": 3.815864208824105,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1365.094669297266,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 2,
+      "sampledFairnessScore": 3.7354138731355517,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1082.8805011891845,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 4,
+      "sampledFairnessScore": 4.171492078107606,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 891.4775376088078,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 6,
+      "sampledFairnessScore": 5.03484936488456,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 769.222961930907,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 8,
+      "sampledFairnessScore": 6.2611022660342295,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 851.728847858599,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 10,
+      "sampledFairnessScore": 7.822025552076082,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 974.3732349004458,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 12,
+      "sampledFairnessScore": 9.723132550216256,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1123.889970220766,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 14,
+      "sampledFairnessScore": 11.994439143352462,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1298.7583187371606,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 16,
+      "sampledFairnessScore": 14.678664717805777,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1502.0048358101399,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 18,
+      "sampledFairnessScore": 17.819050270880282,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1753.7997248698784,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 20,
+      "sampledFairnessScore": 21.448811050292694,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2147.511212374995,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 22,
+      "sampledFairnessScore": 25.584733874245604,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2644.7179007689247,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 24,
+      "sampledFairnessScore": 30.22662079589803,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3223.110482895824,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -12,
+      "sampledFairnessScore": 19.025177032410404,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5379.274803782066,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -10,
+      "sampledFairnessScore": 15.588338880399538,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4789.190745894884,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -8,
+      "sampledFairnessScore": 12.225207045743606,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4035.031037426185,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -6,
+      "sampledFairnessScore": 9.173739809858077,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3427.2704702977285,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -4,
+      "sampledFairnessScore": 6.712325724131564,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2727.429708779632,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": -2,
+      "sampledFairnessScore": 5.061496345606849,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2160.769026175732,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 0,
+      "sampledFairnessScore": 4.289804017756664,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1688.5438095654176,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 2,
+      "sampledFairnessScore": 4.303934672403611,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1345.7515425191264,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 4,
+      "sampledFairnessScore": 4.926059478249821,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1119.2535289996395,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 6,
+      "sampledFairnessScore": 5.984992283548839,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 968.7054807074571,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 8,
+      "sampledFairnessScore": 7.365041749658527,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 860.8176285147057,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 10,
+      "sampledFairnessScore": 9.011768526653677,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 975.2264025460371,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 12,
+      "sampledFairnessScore": 10.917295103846962,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1108.6065185778332,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 14,
+      "sampledFairnessScore": 13.102090594667189,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1263.4863456633366,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 16,
+      "sampledFairnessScore": 15.59966820453066,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1443.110562862802,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 18,
+      "sampledFairnessScore": 18.445168945559494,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1650.823067187795,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 20,
+      "sampledFairnessScore": 21.66755884188019,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1940.2289058311633,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 22,
+      "sampledFairnessScore": 25.285397395201617,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2314.3779207606294,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 18,
+      "radial": 24,
+      "sampledFairnessScore": 29.30610686904454,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2748.9694022156227,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -12,
+      "sampledFairnessScore": 24.266701597307303,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 7083.61854301919,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -10,
+      "sampledFairnessScore": 20.12876979322896,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 6193.591520233022,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -8,
+      "sampledFairnessScore": 15.816009239661323,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5527.396947211129,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -6,
+      "sampledFairnessScore": 11.688834718161864,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4514.6936934654605,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -4,
+      "sampledFairnessScore": 8.272078274052463,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3710.1531096962367,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": -2,
+      "sampledFairnessScore": 6.0330520464920765,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2879.680250949112,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 0,
+      "sampledFairnessScore": 5.1077433998989825,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2215.2519435336326,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 2,
+      "sampledFairnessScore": 5.268032540572205,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1757.6302711192482,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 4,
+      "sampledFairnessScore": 6.143068516995858,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1452.0877981542437,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 6,
+      "sampledFairnessScore": 7.429529428987201,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1242.5836852665348,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 8,
+      "sampledFairnessScore": 8.956552249950038,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1091.621578049808,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 10,
+      "sampledFairnessScore": 10.659334335540514,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 972.2403275369825,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 12,
+      "sampledFairnessScore": 12.53497889908556,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1091.3878456100813,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 14,
+      "sampledFairnessScore": 14.609683664920967,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1233.014584107974,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 16,
+      "sampledFairnessScore": 16.919374586571685,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1394.7088571739557,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 18,
+      "sampledFairnessScore": 19.49918344652197,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1578.4742047939208,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 20,
+      "sampledFairnessScore": 22.377998997456267,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1786.732498110129,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 22,
+      "sampledFairnessScore": 25.576133495846314,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2107.1707321896874,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 20,
+      "radial": 24,
+      "sampledFairnessScore": 29.105176340639062,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2475.4679317532164,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -12,
+      "sampledFairnessScore": 32.86772239230991,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 9744.84688177304,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -10,
+      "sampledFairnessScore": 28.019699287703812,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 8966.669039624767,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -8,
+      "sampledFairnessScore": 22.398376972776465,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 8029.720633499204,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -6,
+      "sampledFairnessScore": 16.45291328283438,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 6915.855191856257,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -4,
+      "sampledFairnessScore": 11.214376298576308,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5446.690198849167,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": -2,
+      "sampledFairnessScore": 7.831205829099183,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 4145.535931895182,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 0,
+      "sampledFairnessScore": 6.639592638323776,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3166.1412090406307,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 2,
+      "sampledFairnessScore": 7.036494007710787,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2477.0149486398764,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 4,
+      "sampledFairnessScore": 8.228083217157502,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2005.5841944867527,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 6,
+      "sampledFairnessScore": 9.719029512008904,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1663.6928745451833,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 8,
+      "sampledFairnessScore": 11.312478670150858,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1403.1136999888145,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 10,
+      "sampledFairnessScore": 12.972767888460945,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1214.3146708878883,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 12,
+      "sampledFairnessScore": 14.727891444170243,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1184.2871625052637,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 14,
+      "sampledFairnessScore": 16.62320045820227,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1326.2305578861015,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 16,
+      "sampledFairnessScore": 18.703249029004187,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1489.5152743658093,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 18,
+      "sampledFairnessScore": 21.005591855235153,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1652.7999908455172,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 20,
+      "sampledFairnessScore": 23.559106446359984,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1861.2153734037463,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 22,
+      "sampledFairnessScore": 26.38406812621868,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2081.8798227506745,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 22,
+      "radial": 24,
+      "sampledFairnessScore": 29.49307464644584,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2312.9056098314522,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -12,
+      "sampledFairnessScore": 47.73340493908651,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 14236.825653783419,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -10,
+      "sampledFairnessScore": 42.84926004815084,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 14413.808130263329,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -8,
+      "sampledFairnessScore": 35.9219773045988,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 12948.86496470044,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -6,
+      "sampledFairnessScore": 26.93574078940724,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 11890.67451155688,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -4,
+      "sampledFairnessScore": 17.738092828913807,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 9692.557116718375,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": -2,
+      "sampledFairnessScore": 11.71316997593562,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 7128.570235389315,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 0,
+      "sampledFairnessScore": 9.965768192648884,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5101.479286570877,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 2,
+      "sampledFairnessScore": 10.645673565666435,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 3741.294542129039,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 4,
+      "sampledFairnessScore": 12.035105140484855,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2832.370573630092,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 6,
+      "sampledFairnessScore": 13.47583812520337,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2256.49717964789,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 8,
+      "sampledFairnessScore": 14.859076836596696,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1846.5783242430662,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 10,
+      "sampledFairnessScore": 16.237807535646738,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1536.2188725938925,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 12,
+      "sampledFairnessScore": 17.68700493033148,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1393.8485602767169,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 14,
+      "sampledFairnessScore": 19.269149715918182,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1516.6625685446907,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 16,
+      "sampledFairnessScore": 21.030664935468412,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1644.4312558583094,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 18,
+      "sampledFairnessScore": 23.004800313106134,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1807.715972338017,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 20,
+      "sampledFairnessScore": 25.214708889948557,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1971.0006888177247,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 22,
+      "sampledFairnessScore": 27.675732133179512,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2156.7073417425418,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 24,
+      "sampledFairnessScore": 30.397106159256,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 2381.5526933173837,
+      "sampleFiltersPass": true
+    }
+  ],
+  "baseline": {
+    "axial": 0,
+    "radial": 0,
+    "sampledFairnessScore": 5.999527550901574,
+    "minimumSampledOuterRadiusClearanceMm": -0.09656267026439402,
+    "minimumSampledAxialDerivativeM": -0.0005175128996372233,
+    "maximumSampledMeridianCurvaturePerM": 1581.4819537383073,
+    "sampleFiltersPass": false
+  },
+  "priorOutwardCases": [
+    {
+      "axial": 8,
+      "radial": 0,
+      "sampledFairnessScore": 3.5399070166437077,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1031.830955404475,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 16,
+      "radial": 0,
+      "sampledFairnessScore": 3.815864208824105,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 1365.094669297266,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 24,
+      "radial": 0,
+      "sampledFairnessScore": 9.965768192648884,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 5101.479286570877,
+      "sampleFiltersPass": true
+    }
+  ],
+  "passingSampleFilters": 209,
+  "topFiveAnalyticOnly": [
+    {
+      "axial": 10,
+      "radial": 2,
+      "sampledFairnessScore": 3.138577483641051,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 795.6673845439597,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 4,
+      "sampledFairnessScore": 3.195747338613116,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 632.5331891500806,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 12,
+      "radial": 2,
+      "sampledFairnessScore": 3.1998228018016217,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 832.1090552130966,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 8,
+      "radial": 2,
+      "sampledFairnessScore": 3.21296525073356,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 820.4019719002055,
+      "sampleFiltersPass": true
+    },
+    {
+      "axial": 10,
+      "radial": 4,
+      "sampledFairnessScore": 3.2146407462902555,
+      "minimumSampledOuterRadiusClearanceMm": -6.938893903907228e-15,
+      "minimumSampledAxialDerivativeM": 0.0,
+      "maximumSampledMeridianCurvaturePerM": 614.4737888557171,
+      "sampleFiltersPass": true
+    }
+  ],
+  "nativeCalls": 0,
+  "modelCalls": 0,
+  "productEdits": 0,
+  "productSelection": null,
+  "scope": "Finite analytic samples and quadrature only, no actual mesh or visual judgment. Rank is a mechanism-search aid, not a correctness or artistic certificate."
+}

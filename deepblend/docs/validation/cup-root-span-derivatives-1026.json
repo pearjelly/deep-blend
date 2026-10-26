@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "deepblend.cup-root-span-derivative-readback/v1",
+  "planSha256": "29a7cb64c7739a1fd486c5a75e27b28aebcd973c1333f4055ff462121c61af4a",
+  "probeSha256": "20f64ab3de5ee66c1493f6c240fef28ad00a2c6fbacd789a13bb068bcf343155",
+  "rows": [
+    {
+      "case": "span-seven-point-five",
+      "independentTorusEndpointPositionMaxErrorM": 0.0,
+      "independentEndpointFirstJetMaxErrorM": 3.716774086605685e-17,
+      "independentEndpointSecondJetMaxErrorM": 4.2549955935643326e-16,
+      "finiteDifferenceThetaPartialMaxErrorMPerRad": 1.3649195616238713e-12,
+      "wrongOldThetaPartialMaxErrorMPerRad": 0.0007188157019466989,
+      "thetaStepRadians": 1e-05,
+      "thetaPositionsPerAttachment": 31,
+      "interiorTPositions": 5
+    },
+    {
+      "case": "span-fifteen",
+      "independentTorusEndpointPositionMaxErrorM": 9.813077866773595e-18,
+      "independentEndpointFirstJetMaxErrorM": 3.422508744630747e-17,
+      "independentEndpointSecondJetMaxErrorM": 4.110235460266406e-16,
+      "finiteDifferenceThetaPartialMaxErrorMPerRad": 1.2338690498074078e-12,
+      "wrongOldThetaPartialMaxErrorMPerRad": 0.0014345533241797378,
+      "thetaStepRadians": 1e-05,
+      "thetaPositionsPerAttachment": 31,
+      "interiorTPositions": 5
+    },
+    {
+      "case": "span-twenty-two-point-five",
+      "independentTorusEndpointPositionMaxErrorM": 6.938893903907228e-18,
+      "independentEndpointFirstJetMaxErrorM": 3.5381555418772973e-17,
+      "independentEndpointSecondJetMaxErrorM": 3.7467818456025687e-16,
+      "finiteDifferenceThetaPartialMaxErrorMPerRad": 1.261296448042364e-12,
+      "wrongOldThetaPartialMaxErrorMPerRad": 0.00214414796918653,
+      "thetaStepRadians": 1e-05,
+      "thetaPositionsPerAttachment": 31,
+      "interiorTPositions": 5
+    }
+  ],
+  "nativeCalls": 0,
+  "productEdits": 0,
+  "scope": "Independent direct torus parameterization at each endpoint plus finite centered theta differences at31off-grid angles x5interior positions x2attachments x3declared spans. This numerical check is not a continuous-domain proof. The deliberately stale original theta derivative fails the same1e-10m/rad criterion."
+}
