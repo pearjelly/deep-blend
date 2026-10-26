@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 — candidate
+
+- Continue diameter edits of complete static metal lamps after translation and rotation around the vertical axis, preserving their placement, finish, cameras and history.
+- Check all 23 lamp parts before editing; reject missing, independently moved, scaled or animated members without publishing a partial revision.
+- Apply the existing shade, lining, arm and support linkage in the lamp's own coordinates while retaining independent mesh detail settings.
+
 ## 0.19.0 — 2026-10-23
 
 - Place a saved static mesh or complete imported model on a chosen surface in one operation, preserving XY, rotation and scale while saving an editable revision and a preview at the requested frame.

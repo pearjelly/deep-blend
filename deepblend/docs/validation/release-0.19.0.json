@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.19.0",
+  "recordedAt": "2026-10-22T23:33:51.838413+00:00",
+  "mergedSourceCommit": "b341c2dcb589a8ffc6c230858b3ace352d3a1aa8",
+  "sourceTree": "7a641252fdaa179934c6806344a3e8af5504f0bf",
+  "status": "published-and-community-submitted-ci-verified",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.19.0",
+  "fullAcceptanceSuitesPassed": 44,
+  "sourceCIChecksPassed": 5,
+  "github": {
+    "assets": 19,
+    "authenticatedDownloadsVerified": true,
+    "anonymousDownloadsVerified": true,
+    "finalNotesVerified": true
+  },
+  "npm": {
+    "packages": 7,
+    "exactVersionAndLatestVerified": true,
+    "anonymousArchiveFilesVerified": 185
+  },
+  "installationComparison": {
+    "routes": [
+      "source",
+      "npm",
+      "tarball"
+    ],
+    "oneCanonicalRun": true,
+    "version": "0.19.0",
+    "eachRoutePhysicalPackageCopies": 7,
+    "eachRouteInventoryFiles": 185,
+    "workbenchHttpStatus": 200,
+    "bothPresetsVerified": true
+  },
+  "community": {
+    "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8803",
+    "headRevision": "828a6f83a74205d9815e4388756d0dee2fd3d23b",
+    "checks": [
+      {
+        "id": 120138977319,
+        "name": "check",
+        "conclusion": "success",
+        "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/39869181412"
+      },
+      {
+        "id": 120143685094,
+        "name": "Submission gate",
+        "conclusion": "success"
+      }
+    ],
+    "state": "open",
+    "merged": false,
+    "mergeable": true,
+    "reviewSubmissions": 0,
+    "reviewThreads": 0,
+    "upstreamReviewAndMerge": "pending",
+    "siteRefresh": "not-verified"
+  },
+  "scope": [
+    "Installed native and three-route verification ran on one macOS host; not a cross-platform native guarantee.",
+    "Model task evidence remains a single maintainer-directed comparison, including failures and source-equivalence proof; no universal speed or success claim.",
+    "Community submission and passing CI do not imply upstream merge or public-site refresh."
+  ],
+  "publicEvidence": [
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/software-acceptance.json",
+      "bytes": 194749,
+      "sha256": "cc51f97c2b511863f28f7f42e5a0aa14afc3fd009543e0d09a6796f4fc288771"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/final-ci-archives.json",
+      "bytes": 1002836,
+      "sha256": "2dfdfffd700b3917ae23ffeea37dc200ece0cea05fc8d9af17f1dfb7d7022d4c"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/build-native-installation.json",
+      "bytes": 356776,
+      "sha256": "b9223c55b174ca2fd74ebdb766f05a205c18c30cfae26eabafe032fabb8d673a"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/installed-surface-placement-acceptance.json",
+      "bytes": 3173696,
+      "sha256": "5a3601e9f3dd81346f00d71437f2f192dc54a2250f13d287e2422927a7fed613"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/final-source-equivalence.json",
+      "bytes": 2023,
+      "sha256": "1b38b357d6a00cb4fe7d7f59accaba526c8afdfe4caadd78dd9698c20e7c6ccd"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/release-asset-manifest.json",
+      "bytes": 2028,
+      "sha256": "1c63f928fcfb17b951aecf937aa5af13984e245e2fddd81c5b978e4aa2eca4b5"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/npm-public-readback.json",
+      "bytes": 247008,
+      "sha256": "99a15998f42e5ffbfaa4819b54dda2a74801cf358aef1f75be69572bf463f37a"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/npm-publication-attempts.json",
+      "bytes": 29338,
+      "sha256": "f657864392edd899d8d1697f6397f8c8392c98e1a0751d6feb7bdfaf3971179f"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/public-route-parity.json",
+      "bytes": 16415,
+      "sha256": "dae719a60fc4468faca3689e4875d856a5663ca02c45cf8287d2dc10a0f90dc2"
+    },
+    {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.19.0/release-public-readback-manifest.json",
+      "bytes": 1529,
+      "sha256": "bfc009ee0667d8770ffffa4874f0f8d7aca98e674bdd9194d2ea00118bff6131"
+    }
+  ]
+}

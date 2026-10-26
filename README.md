@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-Version **0.18.0** introduces the Lighttable workbench: start a project, inspect a large saved result, adjust its objects and photography, then export. Recent results retain their source revisions and can be compared with the current version. See the [release notes and validation scope](deepblend/docs/releases/0.18.0.md).
+The **0.20.0 candidate** lets you resize a complete metal lamp after moving or turning it around its vertical axis. Edit its diameter in the existing controls while retaining placement, finish, cameras and saved history. See the [validation scope and release status](deepblend/docs/releases/0.20.0.md). The latest published version is [0.19.0](deepblend/docs/releases/0.19.0.md), which adds placement on actual mesh surfaces.
 
 Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 

@@ -494,6 +494,104 @@ test('legacy250mm repair persists across hand edits, retry and restore without c
  assert.deepEqual(readFileSync(join(origin,'recipe-lock.json')),before)
 })
 
+function savedLampPlacement(spec) {
+  const angle = 35*Math.PI/180, cosine = Math.cos(angle), sine = Math.sin(angle)
+  const pivot = [.12, -.08, 0], offset = [.21, -.11, .02]
+  return spec.entities.filter(entity => entity.id !== 'studio-floor').map(entity => {
+    const [x, y, z] = entity.transform.location, [rx, ry, rz] = entity.transform.rotationEuler
+    return { op: 'entity.transform.update', entityId: entity.id,
+      location: [pivot[0] + cosine*(x-pivot[0]) - sine*(y-pivot[1]) + offset[0],
+        pivot[1] + sine*(x-pivot[0]) + cosine*(y-pivot[1]) + offset[1], z + offset[2]],
+      rotationEuler: [rx, ry, rz + angle] }
+  })
+}
+
+test('a saved placed lamp continues250 then230, retries and restores with its pose, style and origin lock intact', async t => {
+  const { studio, request, recipes } = setup(t)
+  const { projectId } = await studio.createProject({ title: 'Placed lamp', recipe: request, saveCheckpoint: false })
+  const origin = studio.store.revisionDirectory(projectId, 'r0001')
+  const original = Object.fromEntries(['scene-spec.json', 'recipe-lock.json', 'revision-manifest.json']
+    .map(name => [name, readFileSync(join(origin, name))]))
+  const lock = JSON.parse(original['recipe-lock.json']), spec = studio.store.readRevisionSpec(projectId, 'r0001')
+  const shade = structuredClone(spec.entities.find(entity => entity.id === 'shade-shell').generator); shade.segments = 160
+  const operations = [...savedLampPlacement(spec),
+    { op: 'material.parameter.update', materialId: spec.materials[0].id, parameter: 'roughness', value: .517 },
+    { op: 'entity.generator.set', entityId: 'shade-shell', generator: shade },
+    { op: 'camera.update', cameraId: 'hero', lens: 61 }]
+  const placed = await studio.applyScenePatch({ projectId, baseRevision: 'r0001', operations, saveCheckpoint: false })
+  assert.equal(placed.revision, 'r0002')
+  const start = studio.store.readRevisionSpec(projectId, 'r0002'), placedDirectory = studio.store.revisionDirectory(projectId, 'r0002')
+  const placedBytes = readFileSync(join(placedDirectory, 'scene-spec.json'))
+  const controls = await studio.getRecipeParameters(projectId)
+  assert.equal(controls.available, true); assert.deepEqual(controls.conflicts, [])
+  assert.equal(controls.originRevision, 'r0001')
+  // Continuation is from the saved lock even when the installed catalog is unavailable.
+  rmSync(recipes, { recursive: true })
+  let baseRevision = 'r0002'
+  for (const diameter of [250, 230]) {
+    const intent = { projectId, baseRevision, parameters: { 'shade-diameter-mm': diameter },
+      saveCheckpoint: false, idempotencyKey: 'placed-lamp-' + diameter }
+    const saved = await studio.updateRecipeParameters(intent)
+    const expectedRevision = diameter === 250 ? 'r0003' : 'r0004'
+    assert.equal(saved.revision, expectedRevision)
+    const replay = await studio.updateRecipeParameters(intent)
+    assert.equal(replay.idempotentReplay, true); assert.equal(replay.revision, expectedRevision)
+    const current = studio.store.readRevisionSpec(projectId, expectedRevision)
+    const expected = instantiateRecipeLock(lock, { 'shade-diameter-mm': diameter }).spec
+    const targetLocations = new Map(savedLampPlacement(expected).map(operation => [operation.entityId, operation.location]))
+    for (const entity of current.entities) {
+      const prior = start.entities.find(item => item.id === entity.id)
+      if (entity.id === 'studio-floor') { assert.deepEqual(entity, prior); continue }
+      entity.transform.location.forEach((value, axis) => assert.ok(Math.abs(value - targetLocations.get(entity.id)[axis]) < 1e-12))
+      assert.deepEqual(entity.transform.rotationEuler, prior.transform.rotationEuler)
+      assert.deepEqual(entity.transform.scale, prior.transform.scale)
+    }
+    for (const id of ['shade-shell', 'shade-enamel-lining']) {
+      assert.deepEqual(current.entities.find(entity => entity.id === id).generator.profile,
+        expected.entities.find(entity => entity.id === id).generator.profile)
+    }
+    assert.deepEqual(current.entities.find(entity => entity.id === 'swept-upper-arm').generator.path,
+      expected.entities.find(entity => entity.id === 'swept-upper-arm').generator.path)
+    assert.equal(current.entities.find(entity => entity.id === 'shade-shell').generator.segments, 160)
+    for (const field of ['materials', 'cameras', 'lights', 'world', 'animationTracks']) assert.deepEqual(current[field], start[field])
+    assert.equal(saved.parameterState.values['shade-diameter-mm'], diameter)
+    const read = await studio.getRecipeParameters(projectId)
+    assert.equal(read.parameters.find(parameter => parameter.id === 'shade-diameter-mm').value, diameter)
+    assert.equal(read.originRevision, 'r0001'); assert.deepEqual(read.conflicts, [])
+    baseRevision = expectedRevision
+  }
+  await studio.restoreRevision({ projectId, revision: 'r0002', expectedCurrentRevision: 'r0004' })
+  const restored = await studio.getRecipeParameters(projectId)
+  assert.equal(restored.parameters.find(parameter => parameter.id === 'shade-diameter-mm').value, 209.8)
+  assert.deepEqual(restored.conflicts, [])
+  const again = await studio.updateRecipeParameters({ projectId, baseRevision: 'r0002',
+    parameters: { 'shade-diameter-mm': 250 }, saveCheckpoint: false, idempotencyKey: 'placed-lamp-after-restore' })
+  assert.equal(again.parameterState.values['shade-diameter-mm'], 250)
+  for (const [name, bytes] of Object.entries(original)) assert.deepEqual(readFileSync(join(origin, name)), bytes)
+  assert.deepEqual(readFileSync(join(placedDirectory, 'scene-spec.json')), placedBytes)
+})
+
+test('an independently moved unbound lamp part reports a conflict and cannot publish a parameter revision', async t => {
+  const { studio, request } = setup(t)
+  const { projectId } = await studio.createProject({ title: 'Detached bulb', recipe: request, saveCheckpoint: false })
+  const spec = studio.store.readRevisionSpec(projectId, 'r0001')
+  await studio.applyScenePatch({ projectId, baseRevision: 'r0001', saveCheckpoint: false, operations: savedLampPlacement(spec) })
+  const bulb = studio.store.readRevisionSpec(projectId, 'r0002').entities.find(entity => entity.id === 'opal-bulb')
+  const location = [...bulb.transform.location]; location[1] += .001
+  await studio.applyScenePatch({ projectId, baseRevision: 'r0002', saveCheckpoint: false,
+    operations: [{ op: 'entity.transform.update', entityId: bulb.id, location }] })
+  const directory = studio.store.revisionDirectory(projectId, 'r0003'), source = readFileSync(join(directory, 'scene-spec.json'))
+  const read = await studio.getRecipeParameters(projectId)
+  assert.ok(read.conflicts.some(conflict => conflict.entityId === bulb.id && conflict.property === 'location'))
+  for (const parameters of [{}, { 'shade-diameter-mm': 209.8 }, { 'shade-diameter-mm': 250 }]) {
+    await assert.rejects(studio.updateRecipeParameters({ projectId, baseRevision: 'r0003', parameters, saveCheckpoint: false }),
+      { code: 'RECIPE_PARAMETER_CONFLICT' })
+    assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0003')
+    assert.equal(existsSync(studio.store.revisionDirectory(projectId, 'r0004')), false)
+    assert.deepEqual(readFileSync(join(directory, 'scene-spec.json')), source)
+  }
+})
+
 test('independently edited native checkpoint refuses resizing and preserves native bytes and revision pointer', async t => {
  const {studio,request}=setup(t)
  const made=await studio.createProject({title:'Native hand edits',saveCheckpoint:false,recipe:request})

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { sha256, sha256Canonical } from '../../../packages/deepblend/contracts/lib/canonical.js'
-import { compileSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
+import { compileSceneSpec, validateSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
 import { instantiateRecipe, instantiateRecipeLock, validateRecipePackage, RECIPE_CAPABILITIES } from '../../../packages/deepblend/contracts/lib/recipe.js'
 import { planRecipeGeometryEdit } from '../../../packages/deepblend/contracts/lib/recipe-parameters.js'
 import { applyPatchToSpec, validateScenePatch } from '../../../packages/deepblend/contracts/lib/scene-patch.js'
@@ -756,4 +756,287 @@ test('a different valid speaker source cannot acquire the pinned rigid-pose exem
   const lock=lockFor(value),current=rigidSpeaker(instantiateRecipe(value).spec),original=JSON.stringify(current)
   assert.throws(()=>planRecipeGeometryEdit(lock,current,undefined,speakerSize),e=>e.code==='RECIPE_PARAMETER_CONFLICT')
   assert.equal(JSON.stringify(current),original)
+})
+
+const lampPartIds = [
+  'shade-shell', 'shade-enamel-lining', 'weighted-base', 'base-felt-foot', 'base-lower-reveal',
+  'mast-socket', 'mast-socket-collar', 'upright-mast', 'hinge-body', 'hinge-front-cap',
+  'hinge-rear-cap', 'hinge-fine-ring', 'hinge-centre-pin', 'swept-upper-arm',
+  'shade-neck-collar', 'shade-neck-rim', 'bulb-socket', 'opal-bulb', 'control-recess',
+  'dimmer-dial', 'dimmer-position-mark', 'rear-cable-grommet', 'fabric-power-cable',
+]
+const lampSupportIds = ['mast-socket', 'mast-socket-collar', 'upright-mast', 'hinge-body',
+  'hinge-front-cap', 'hinge-rear-cap', 'hinge-fine-ring', 'hinge-centre-pin']
+const lampPose = { yaw: 35 * Math.PI / 180, pivot: [.07, -.04, .02], shift: [.2, -.1, .03] }
+const lampEntity = (spec, id) => spec.entities.find(entity => entity.id === id)
+
+// This fixture applies the user's yaw about an arbitrary pivot explicitly. It
+// neither imports the placement recognizer nor derives expected poses from it.
+function yawLamp(spec, { yaw = 0, pivot = [0, 0, 0], shift = [0, 0, 0] } = {}) {
+  const result = structuredClone(spec), cosine = Math.cos(yaw), sine = Math.sin(yaw)
+  for (const id of lampPartIds) {
+    const part = lampEntity(result, id), [x, y, z] = part.transform.location
+    part.transform.location = [
+      pivot[0] + cosine * (x - pivot[0]) - sine * (y - pivot[1]) + shift[0],
+      pivot[1] + sine * (x - pivot[0]) + cosine * (y - pivot[1]) + shift[1],
+      z + shift[2],
+    ]
+    part.transform.rotationEuler[2] += yaw
+  }
+  return result
+}
+
+function assertLampResult(actual, expected, previous) {
+  for (const id of lampPartIds) {
+    const part = lampEntity(actual, id), target = lampEntity(expected, id), old = lampEntity(previous, id)
+    assert.ok(part, `${id} must remain in the assembly`)
+    assert.deepEqual(part.generator, target.generator, `${id} local geometry`)
+    for (let axis = 0; axis < 3; axis++) assert.ok(
+      Math.abs(part.transform.location[axis] - target.transform.location[axis]) <= 1e-12,
+      `${id} world ${'xyz'[axis]} must match a fresh target-size placement`)
+    assert.deepEqual(part.transform.rotationEuler, old.transform.rotationEuler, `${id} authored Euler representation`)
+    assert.deepEqual(part.transform.scale, old.transform.scale, `${id} scale`)
+  }
+}
+
+function assertLampConflict(lock, current, changes = { 'shade-diameter-mm': 250 }) {
+  const validation = validateSceneSpec(current)
+  assert.equal(validation.ok, true, validation.summary)
+  const untouched = JSON.stringify({ lock, current })
+  assert.throws(() => planRecipeGeometryEdit(lock, current, undefined, changes), { code: 'RECIPE_PARAMETER_CONFLICT' })
+  assert.equal(JSON.stringify({ lock, current }), untouched)
+}
+
+test('a complete pinned lamp placed about a nonzero pivot keeps its world pose through repeated diameter changes', () => {
+  const value = lampBundle(), lock = lockFor(value)
+  assert.equal(lock.manifestSha256, '0d59d5340acc9334fbc9787a51fe1dc66fae39631534d581281770013e59c0b5')
+  assert.deepEqual(instantiateRecipeLock(lock).spec.entities.filter(e => e.id !== 'studio-floor').map(e => e.id).sort(), [...lampPartIds].sort())
+  const initial = yawLamp(instantiateRecipeLock(lock).spec, lampPose), protectedInputs = JSON.stringify({ lock, initial })
+  let current = initial, state
+  for (let repetition = 0; repetition < 10; repetition++) for (const diameter of [250, 230, 180, 230.1, 209.8]) {
+    const before = JSON.stringify({ current, state })
+    const plan = planRecipeGeometryEdit(lock, current, state, { 'shade-diameter-mm': diameter })
+    const next = applyPlan(current, plan)
+    const expected = yawLamp(instantiateRecipeLock(lock, { 'shade-diameter-mm': diameter }).spec, lampPose)
+    assertLampResult(next, expected, current)
+    assert.deepEqual(next.cameras, initial.cameras)
+    assert.deepEqual(next.animationTracks, initial.animationTracks)
+    assert.equal(plan.parameterState.values['shade-diameter-mm'], diameter)
+    assert.equal(JSON.stringify({ current, state }), before, 'planning and patching must not mutate historical inputs')
+    current = next; state = plan.parameterState
+    for (const unchanged of [{}, { 'shade-diameter-mm': diameter }]) {
+      const noChange = planRecipeGeometryEdit(lock, current, state, unchanged)
+      assert.deepEqual(noChange.operations, [])
+      assert.deepEqual(noChange.changedParameters, [])
+    }
+  }
+  assertLampResult(current, initial, initial)
+  assert.equal(JSON.stringify({ lock, initial }), protectedInputs)
+})
+
+test('yawed lamp supports move in world XY while the swept arm changes only its local path X', () => {
+  const value = lampBundle(), lock = lockFor(value), source = yawLamp(instantiateRecipeLock(lock).spec, lampPose)
+  const next = applyPlan(source, planRecipeGeometryEdit(lock, source, undefined, { 'shade-diameter-mm': 250 }))
+  for (const id of lampSupportIds) {
+    const old = lampEntity(source, id), part = lampEntity(next, id)
+    assert.ok(Math.abs(part.transform.location[0] - old.transform.location[0] + .011 * Math.cos(lampPose.yaw)) < 1e-12, `${id} world X`)
+    assert.ok(Math.abs(part.transform.location[1] - old.transform.location[1] + .011 * Math.sin(lampPose.yaw)) < 1e-12, `${id} world Y`)
+    assert.equal(part.transform.location[2], old.transform.location[2])
+  }
+  const arm = lampEntity(next, 'swept-upper-arm'), previous = lampEntity(source, 'swept-upper-arm')
+  assert.deepEqual(arm.transform, previous.transform)
+  for (const [index, point] of arm.generator.path.entries()) {
+    const retreat = index < 2 ? .011 : index === 2 ? .0055 : 0
+    assert.ok(Math.abs(point[0] - previous.generator.path[index][0] + retreat) < 1e-12, `arm local X at ${index}`)
+    assert.deepEqual(point.slice(1), previous.generator.path[index].slice(1), `arm local Y/Z at ${index}`)
+  }
+})
+
+test('the complete lamp check rejects missing or displaced unbound bulbs even for unchanged requests', () => {
+  const lock = lockFor(lampBundle())
+  for (const mutate of [
+    spec => { spec.entities = spec.entities.filter(e => e.id !== 'opal-bulb') },
+    spec => { lampEntity(spec, 'opal-bulb').transform.location[1] += .001 },
+  ]) for (const changes of [{}, { 'shade-diameter-mm': 209.8 }, { 'shade-diameter-mm': 250 }]) {
+    const current = instantiateRecipeLock(lock).spec; mutate(current)
+    assertLampConflict(lock, current, changes)
+  }
+})
+
+test('upright lamp placements accept translation, negative yaw and equivalent full-turn Euler representations', () => {
+  const lock = lockFor(lampBundle())
+  for (const pose of [{}, { shift: [.17, -.09, .08] }, { yaw: -Math.PI / 2, pivot: [-.11, .06, 0] }]) {
+    const current = yawLamp(instantiateRecipeLock(lock).spec, pose)
+    // These rotations have the same physical orientation, but their saved arrays
+    // deliberately differ from the canonical Euler representation.
+    lampEntity(current, 'weighted-base').transform.rotationEuler[2] -= 2 * Math.PI
+    lampEntity(current, 'opal-bulb').transform.rotationEuler[2] += 2 * Math.PI
+    lampEntity(current, 'hinge-body').transform.rotationEuler[0] += 2 * Math.PI
+    const protectedInput = JSON.stringify(current)
+    assert.deepEqual(planRecipeGeometryEdit(lock, current, undefined, {}).operations, [])
+    const plan = planRecipeGeometryEdit(lock, current, undefined, { 'shade-diameter-mm': 250 })
+    const next = applyPlan(current, plan)
+    assertLampResult(next, yawLamp(instantiateRecipeLock(lock, { 'shade-diameter-mm': 250 }).spec, pose), current)
+    assert.equal(JSON.stringify(current), protectedInput)
+  }
+})
+
+test('lamp placement is recognized from the saved diameter before resizing, and old inputs remain usable', () => {
+  const value = lampBundle(), originalLock = lockFor(value), original = instantiateRecipeLock(originalLock).spec
+  const first = planRecipeGeometryEdit(originalLock, original, undefined, { 'shade-diameter-mm': 250 })
+  const wide = applyPlan(original, first), placedWide = yawLamp(wide, lampPose)
+  const createdWideLock = lockFor(value, { 'shade-diameter-mm': 250 })
+  const protectedInputs = JSON.stringify({ originalLock, original, wide, placedWide, first, createdWideLock })
+  for (const [lock, current, state] of [
+    [originalLock, placedWide, first.parameterState],
+    [createdWideLock, yawLamp(instantiateRecipeLock(createdWideLock).spec, lampPose), undefined],
+  ]) {
+    const plan = planRecipeGeometryEdit(lock, current, state, { 'shade-diameter-mm': 180 })
+    assertLampResult(applyPlan(current, plan), yawLamp(instantiateRecipeLock(originalLock, { 'shade-diameter-mm': 180 }).spec, lampPose), current)
+    assert.deepEqual(planRecipeGeometryEdit(lock, current, state, { 'shade-diameter-mm': 250 }).operations, [])
+  }
+  // Selecting the old revision also selects its old parameter state. It must not
+  // inherit either the later diameter or the later world placement.
+  const restored = planRecipeGeometryEdit(originalLock, original, undefined, { 'shade-diameter-mm': 230 })
+  assertLampResult(applyPlan(original, restored), instantiateRecipeLock(originalLock, { 'shade-diameter-mm': 230 }).spec, original)
+  assert.equal(JSON.stringify({ originalLock, original, wide, placedWide, first, createdWideLock }), protectedInputs)
+})
+
+function handFinishedLamp(spec) {
+  const result = structuredClone(spec)
+  result.materials[0].parameters.roughness = .517
+  result.cameras.find(camera => camera.id === 'hero').lens = 61
+  lampEntity(result, 'shade-shell').generator.segments = 160
+  lampEntity(result, 'shade-enamel-lining').generator.segments = 144
+  lampEntity(result, 'swept-upper-arm').generator.segments = 36
+  lampEntity(result, 'weighted-base').modifiers = [{ type: 'bevel', width: .0005, segments: 3, angle: 30 }]
+  // This unbound shape detail is an allowed independent edit. Completeness checks
+  // protect its placement and type, not every author's geometry choice.
+  lampEntity(result, 'opal-bulb').generator.radius += .001
+  result.entities.push({ id: 'hand-display-plinth', type: 'generator', generator: { shape: 'cube', dimensions: [.8, .5, .03] },
+    materialId: result.materials[0].id, transform: { location: [.1, -.1, -.02], rotationEuler: [0, 0, .2], scale: [1, 1, 1] } })
+  // A saved revision contains canonical defaults for newly added entities.
+  return compileSceneSpec(result).spec
+}
+
+test('posed lamp edits preserve hand finishes, tessellation, modifiers, photography, extra objects and history', () => {
+  const lock = lockFor(lampBundle()), current = handFinishedLamp(yawLamp(instantiateRecipeLock(lock).spec, lampPose))
+  const before = JSON.stringify({ lock, current })
+  const plan = planRecipeGeometryEdit(lock, current, undefined, { 'shade-diameter-mm': 250 })
+  const next = applyPlan(current, plan), expected = handFinishedLamp(yawLamp(instantiateRecipeLock(lock, { 'shade-diameter-mm': 250 }).spec, lampPose))
+  assertLampResult(next, expected, current)
+  for (const field of ['materials', 'cameras', 'lights', 'world', 'animationTracks', 'shots', 'renderProfiles']) {
+    assert.deepEqual(next[field], current[field], field)
+  }
+  for (const id of ['studio-floor', 'hand-display-plinth']) assert.deepEqual(lampEntity(next, id), lampEntity(current, id), id)
+  for (const id of lampPartIds) {
+    assert.deepEqual(lampEntity(next, id).modifiers, lampEntity(current, id).modifiers, `${id} modifiers`)
+    assert.equal(lampEntity(next, id).materialId, lampEntity(current, id).materialId, `${id} material binding`)
+  }
+  assert.equal(JSON.stringify({ lock, current }), before)
+})
+
+test('a posed lamp rejects wrong liner pose, member shape, scale, whole-assembly tilt and baked arm paths', () => {
+  const lock = lockFor(lampBundle())
+  for (const mutate of [
+    spec => { lampEntity(spec, 'shade-enamel-lining').transform.location[1] += .001 },
+    spec => { lampEntity(spec, 'shade-enamel-lining').transform.rotationEuler[2] += .01 },
+    spec => { lampEntity(spec, 'opal-bulb').generator = { shape: 'cube', size: .03 } },
+    spec => { lampEntity(spec, 'opal-bulb').transform.scale[0] = 1.001 },
+    spec => { for (const id of lampPartIds) {
+      const part = lampEntity(spec, id)
+      part.transform.location = part.transform.location.map(value => value * 1.1)
+      part.transform.scale = [1.1, 1.1, 1.1]
+    } },
+    spec => { for (const id of lampPartIds) lampEntity(spec, id).transform.scale[2] = -1 },
+    spec => { const part = lampEntity(spec, 'swept-upper-arm'), cosine = Math.cos(lampPose.yaw), sine = Math.sin(lampPose.yaw)
+      part.generator.path = part.generator.path.map(([x, y, z]) => [cosine * x - sine * y, sine * x + cosine * y, z]) },
+  ]) {
+    const current = yawLamp(instantiateRecipeLock(lock).spec, lampPose); mutate(current)
+    assertLampConflict(lock, current)
+  }
+  // All 23 parts really share the same tilt: rejecting it must not depend on
+  // creating an accidentally detached part in the fixture.
+  const original = instantiateRecipeLock(lock).spec
+  const tilted = rigidSpeaker({ ...original, animationTracks: [] }, [.12, 0, 0], [0, 0, 0])
+  tilted.cameras = structuredClone(original.cameras)
+  tilted.animationTracks = structuredClone(original.animationTracks)
+  assertLampConflict(lock, tilted)
+})
+
+test('lamp support edits use absolute tolerances even far from the world origin', () => {
+  const lock = lockFor(lampBundle()), pose = { shift: [2e7, -3e7, .03] }
+  let current = yawLamp(instantiateRecipeLock(lock).spec, pose), state
+  // A contract-level numerical case, not a Blender precision guarantee at this distance.
+  for (const diameter of [250, 230]) {
+    const plan = planRecipeGeometryEdit(lock, current, state, { 'shade-diameter-mm': diameter })
+    const next = applyPlan(current, plan)
+    const expected = yawLamp(instantiateRecipeLock(lock, { 'shade-diameter-mm': diameter }).spec, pose)
+    for (const id of lampSupportIds) assert.deepEqual(lampEntity(next, id).transform.location,
+      lampEntity(expected, id).transform.location, `${id} actual support movement cannot be skipped`)
+    assert.deepEqual(planRecipeGeometryEdit(lock, next, plan.parameterState, {}).operations, [])
+    current = next; state = plan.parameterState
+  }
+})
+
+test('lamp parameter planning honors legal omitted transform defaults without mutating the supplied SceneSpec', () => {
+  const lock = lockFor(lampBundle()), pose = { shift: [.075, -.025, -.0298] }
+  const current = yawLamp(instantiateRecipeLock(lock).spec, pose)
+  assert.deepEqual(lampEntity(current, 'mast-socket').transform.location, [0, 0, 0])
+  delete lampEntity(current, 'mast-socket').transform.location
+  delete lampEntity(current, 'weighted-base').transform.rotationEuler
+  delete lampEntity(current, 'opal-bulb').transform.scale
+  assert.equal(validateSceneSpec(current).ok, true)
+  const before = JSON.stringify(current)
+  const plan = planRecipeGeometryEdit(lock, current, undefined, { 'shade-diameter-mm': 250 })
+  // Host stores canonical transforms before its low-level patch application.
+  const saved = compileSceneSpec(current).spec
+  const next = applyPlan(saved, plan)
+  const expected = yawLamp(instantiateRecipeLock(lock, { 'shade-diameter-mm': 250 }).spec, pose)
+  assertLampResult(next, expected, saved)
+  assert.equal(JSON.stringify(current), before)
+})
+
+for (const property of ['location.x', 'rotationEuler.z', 'scale.y']) {
+  test(`a lamp member's ${property} animation cannot acquire a static assembly exemption`, () => {
+    const lock = lockFor(lampBundle())
+    for (const explicitKind of [false, true]) {
+      const current = instantiateRecipeLock(lock).spec, part = lampEntity(current, 'opal-bulb')
+      const [field, axis] = property.split('.'), initial = part.transform[field]['xyz'.indexOf(axis)]
+      current.animationTracks.push({ id: 'hand-bulb-motion', ...(explicitKind ? { targetKind: 'entity' } : {}),
+        targetEntityId: part.id, property, keyframes: [{ frame: 1, value: initial }, { frame: 48, value: initial + .01 }] })
+      assertLampConflict(lock, current, {})
+    }
+  })
+}
+
+for (const [field, value] of [['armatureId', 'hand-lamp-rig'], ['rigidBody', { kind: 'passive' }],
+  ['cloth', {}], ['softBody', {}], ['fluid', { role: 'domain', resolution: 16 }]]) {
+  test(`a lamp member carrying ${field} is rejected even when its saved transforms are still canonical`, () => {
+    const lock = lockFor(lampBundle()), current = instantiateRecipeLock(lock).spec
+    if (field === 'armatureId') current.armatures = [...(current.armatures ?? []),
+      { id: value, bones: [{ name: 'root', head: [0, 0, 0], tail: [0, 0, .2] }] }]
+    lampEntity(current, 'opal-bulb')[field] = structuredClone(value)
+    assertLampConflict(lock, current, { 'shade-diameter-mm': 209.8 })
+  })
+}
+
+test('unrelated entity animation and physics do not disable a complete static lamp edit', () => {
+  const lock = lockFor(lampBundle()), current = handFinishedLamp(yawLamp(instantiateRecipeLock(lock).spec, lampPose))
+  lampEntity(current, 'hand-display-plinth').rigidBody = { kind: 'passive' }
+  current.animationTracks.push({ id: 'hand-plinth-motion', targetKind: 'entity', targetEntityId: 'hand-display-plinth',
+    property: 'location.z', keyframes: [{ frame: 1, value: -.02 }, { frame: 48, value: -.01 }] })
+  const original = JSON.stringify(current), plan = planRecipeGeometryEdit(lock, current, undefined, { 'shade-diameter-mm': 250 })
+  const next = applyPlan(current, plan)
+  assert.deepEqual(lampEntity(next, 'hand-display-plinth'), lampEntity(current, 'hand-display-plinth'))
+  assert.deepEqual(next.animationTracks, current.animationTracks)
+  assert.equal(JSON.stringify(current), original)
+})
+
+test('a different valid lamp package cannot borrow the pinned placement exemption', () => {
+  const value = lampBundle(); value.manifest.description += ' Independent authored variant.'
+  const lock = lockFor(value), local = instantiateRecipeLock(lock).spec
+  assert.notEqual(lock.manifestSha256, '0d59d5340acc9334fbc9787a51fe1dc66fae39631534d581281770013e59c0b5')
+  assert.ok(planRecipeGeometryEdit(lock, local, undefined, { 'shade-diameter-mm': 250 }).operations.length > 0)
+  assertLampConflict(lock, yawLamp(local, lampPose))
 })

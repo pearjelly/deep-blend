@@ -475,6 +475,8 @@ try {
     readStoreJson(projectId, 'project.json')?.projectId === projectId,
     readStoreJson(projectId, 'project.json')?.projectId)
 
+  await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')?.value === ${JSON.stringify(projectId)}
+    && document.querySelector('[data-view-tab="scene"]')?.disabled === false`, 30000)
   await page.click('[data-view-tab="scene"]')
   await revealWorkbenchControl(page, '[data-node]')
   await page.waitFor('document.querySelector("[data-node]") !== null', 20000)
