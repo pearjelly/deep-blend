@@ -748,6 +748,8 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `project.brief.set` | `goal`（≤2000 字符）、`referenceImages`（≤4，完整替换；每项 `{id,assetId,sha256,label,purposes,notes?}`；PNG/JPEG 内容寻址资产） |
 | `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`）；保存主要评审对象，null 恢复自动选择；实体须存在且非 empty，不移动相机 |
 | `entity.uv.project` | `entityId`（仅 mesh 生成器），`quarterTurns?`（0–3，缺省 0），`scale?`（0.0001–10000，缺省 1）；逐面重建 `faceUvs`，最长局部网格跨度对应 scale 次重复。仅用于平面面片，拒绝非平面面片；UV 岛重叠，不打包。保留几何、变换、材质与摄影 |
+
+逐面投影的 U 沿各面最长局部边，V 在面内与其垂直；`quarterTurns` 将投影后的 UV 坐标逆时针转动。缺省 0 将长边保留在 U 方向。统一按控制网格最长局部边界跨度归一化，保留各面比例与相对密度；修改器和物体变换在此后生效，因此旋转的副本可用同样选项。图片本身的木纹方向不自动识别，仍需实际材质预览。
 | `project.frameRange.set` | `frameStart`, `frameEnd`, `fps?` |
 | `render.profile.set` | `profileName`（`preview`\|`final`）, `profile` |
 

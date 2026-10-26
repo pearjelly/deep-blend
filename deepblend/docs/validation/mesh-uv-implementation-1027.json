@@ -609,5 +609,71 @@
       "sha256": "5d10ecf388aeabb59c27fc0c4df4502ac5ffd276ed1b66243dbac61222acee3d"
     },
     "scope": "Readiness run from staged candidate bytes; final clean-commit frozen49-suite acceptance remains pending."
+  },
+  "modelAttemptsV1": {
+    "sourceCommit": "168bc7699c0e0ff21b1da40b152277f3d3fb3f7f",
+    "eachArmFreshSession": true,
+    "sameTaskAndSourceImage": true,
+    "maximumModelRequestsPerArm": 10,
+    "automaticRetries": 0,
+    "baseline022": {
+      "status": "incomplete",
+      "requests": 4,
+      "toolCalls": 5,
+      "reason": "Fourth model stream terminated; no UV edit. This is a transport failure, not a comparative plugin-quality result."
+    },
+    "candidate023": {
+      "status": "incomplete-final-answer",
+      "requests": 10,
+      "toolCalls": 12,
+      "revision": "r0003",
+      "operations": [
+        {
+          "op": "entity.uv.project",
+          "entityId": "pagoda-rafters-1",
+          "quarterTurns": 0,
+          "scale": 4
+        },
+        {
+          "op": "entity.uv.project",
+          "entityId": "pagoda-rafters-1-ew",
+          "quarterTurns": 0,
+          "scale": 4
+        }
+      ],
+      "nativeFacts": "Both arrays400collapsedUVtriangles to0; vertices,faces,normals,objects and five source-camera samples unchanged; only faceUvs changed in saved spec.",
+      "image": {
+        "kind": "beauty diagnostic",
+        "cameraId": "camera-eave",
+        "frame": 390,
+        "width": 1920,
+        "height": 1080,
+        "requestedSamples": 32,
+        "actualSamples": 16,
+        "sha256": "37be20f3c4aca3b4f8a1bee89c07564819e5bd85d6a5cd67cc9a63415a3fdde5"
+      },
+      "reason": "Six source greps preceded the save; request limit reached after the actual image and before a final answer."
+    },
+    "methodologyCorrection": "The original oracle demanded normal preview history with768x432settings. A source-bound beauty inspection also satisfies the natural-language image request. Preserve the original predicate failure; it does not mean no image was rendered. Differing render settings must be reported separately, not used to fabricate a speed or pixel comparison.",
+    "nextChanges": "Public contract now states local U/V orientation, UV-coordinate rotation, pre-modifier projection and preview-kind distinction. New protocol will accept both properly bound material image kinds with an explicit12request limit and fresh sessions."
+  },
+  "interruptedFullAcceptanceV1": {
+    "sourceCommit": "168bc7699c0e0ff21b1da40b152277f3d3fb3f7f",
+    "sourceFiles": 1036,
+    "exitCode": -15,
+    "passed": false,
+    "allSourceBytesUnchanged": true,
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections"
+    ],
+    "failureLines": [],
+    "logSha256": "ced3574dc513a5cf736d0b3deb3b16ca73a59452a84874c55a71834a55a78dfe",
+    "reason": "Stopped the owned suite before editing model-facing semantics after the real-task finding; seven suites passed, no suite failed before interruption. This is not a full49pass."
   }
 }

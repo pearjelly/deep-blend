@@ -27,6 +27,10 @@ test('every beam face has usable UV area with common density and intact aspect r
     for (let corner = 0; corner < 4; corner++) {
       const next = (corner + 1) % 4, a = beam.vertices[indices[corner]], b = beam.vertices[indices[next]]
       near(Math.hypot(...uv[face][corner].map((value, axis) => value-uv[face][next][axis])), Math.hypot(...a.map((value,axis) => value-b[axis])) / 2.6)
+      if (Math.hypot(...a.map((value,axis) => value-b[axis])) > 2.5) {
+        near(Math.abs(uv[face][corner][0]-uv[face][next][0]), 1)
+        near(uv[face][corner][1], uv[face][next][1])
+      }
     }
   }
 })
