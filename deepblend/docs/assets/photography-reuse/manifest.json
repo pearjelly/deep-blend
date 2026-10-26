@@ -1,27 +1,27 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-26T04:43:46.627312+00:00",
+  "at": "2026-10-26T10:35:06.834561+00:00",
   "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
-  "uiSha256": "9a066f81cfd65a3d51c2c9726191cbd11856fd99c3c02fa0eea0ce70b7e7a9b6",
+  "uiSha256": "e2a309ef23457ed37653ed22bf870e3676218e4ed7158d81c8b87aad0cad2fb6",
   "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CUA captures. Project r0001 hero camera (60 mm) applied to a browser draft based on r0002. All copied Host bytes remained unchanged. This refresh makes no new native regression claim; the earlier 36 checks remain historical evidence.",
+  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
   "images": [
     {
       "file": "draft.png",
       "original": "photography-desktop.png",
-      "sha256": "3925eacf89a8f4b25e850718624eda30f5976bc081228ab8008ebd566c5c87e8",
-      "bytes": 364058,
+      "sha256": "a80182e934666a6a0dd5690dbef0fd61b93887eed81343870748c23b0de9b9c0",
+      "bytes": 387751,
       "width": 1440,
       "height": 1013,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "photography-desktop.png",
         "sourceFormat": "JPEG",
-        "sourceSha256": "2f7bbcc257f7491c7c6f571e89386efa0fa0cdaca335aa2ee32bc607e25cdd0b",
-        "pngSha256": "3925eacf89a8f4b25e850718624eda30f5976bc081228ab8008ebd566c5c87e8",
-        "decodedPixelsSha256": "8ebe65c7b4f6a957206d10fe1bfaf723d31746fc7628ebbf18d0a596250d46f5",
+        "sourceSha256": "c95b557e8762988f22709ac1a812b986f77694f00659dc00f68c95d4ee87bb28",
+        "pngSha256": "a80182e934666a6a0dd5690dbef0fd61b93887eed81343870748c23b0de9b9c0",
+        "decodedPixelsSha256": "ac074a0ff816d564953872fbd2dc781b3500a3b0673176890a4cf4ad7df9d607",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
@@ -33,17 +33,17 @@
     {
       "file": "narrow.png",
       "original": "photography-narrow-final.png",
-      "sha256": "f2b47fbeea6b03b7df015b8996b4623cb7e815070e95a7aaa4dd3f78e1efb69f",
-      "bytes": 193741,
+      "sha256": "09721951838a7caa44649d0d58c1b8437833f00827628e0da059a70d055f59e1",
+      "bytes": 180983,
       "width": 390,
       "height": 844,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "photography-narrow-final.png",
         "sourceFormat": "JPEG",
-        "sourceSha256": "ee4726a3404616cb8ec99d0197ec898b3f33ba38935b325c51cf2e6a156cbc30",
-        "pngSha256": "f2b47fbeea6b03b7df015b8996b4623cb7e815070e95a7aaa4dd3f78e1efb69f",
-        "decodedPixelsSha256": "cc415333507ed235a93d2cae2e2efd78dda1ae2e895aa716a3c9d0b36a642caf",
+        "sourceSha256": "c0c4fe30b0263c828fec420a50befc31e4308290d19669bc12e8003ea1f77898",
+        "pngSha256": "09721951838a7caa44649d0d58c1b8437833f00827628e0da059a70d055f59e1",
+        "decodedPixelsSha256": "55c8ca1934a5f1b70a7e4429aa46d09e7661e7b99a985c409d6df2d649c5821e",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
@@ -74,13 +74,13 @@
     "scope": "Unpublished editable-export candidate: actual Chrome/DSH/Blender photography regression, 36 checks using the cup fixture; desktop and 390px original captures viewed. No model calls. This is not pagoda artistic acceptance."
   },
   "capture": {
-    "interaction": "cua-browser-ui",
-    "source": ".tmp-assembly-docs-lighttable-v1",
+    "interaction": "cdp-browser-ui",
+    "source": ".tmp-framing-docs-lighttable-v2",
     "report": "capture-report.json",
-    "reportSha256": "201b3e8560ddefdbab3d2e3fdd02e16d10458d70133f475525ce8e8eb577f898",
-    "uiSha256": "9a066f81cfd65a3d51c2c9726191cbd11856fd99c3c02fa0eea0ce70b7e7a9b6",
+    "reportSha256": "36776fe309050265a53647ffe4a427363d51cd292f0019dd25a5731022e554ca",
+    "uiSha256": "e2a309ef23457ed37653ed22bf870e3676218e4ed7158d81c8b87aad0cad2fb6",
     "nativeRegressionRerun": false,
-    "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CUA captures. Project r0001 hero camera (60 mm) applied to a browser draft based on r0002. All copied Host bytes remained unchanged. This refresh makes no new native regression claim; the earlier 36 checks remain historical evidence.",
-    "encodingNote": "Browser returned JPEG bytes; PNG conversion retained the same dimensions, RGB mode and every decoded pixel. No crop, resize, color adjustment or overlay."
+    "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
+    "encodingNote": "Actual CDP JPEG screenshots converted at the same dimensions and RGB mode with every decoded pixel identical; source metadata embedded separately."
   }
 }

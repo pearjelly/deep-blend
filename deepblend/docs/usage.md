@@ -60,6 +60,7 @@ blender_export                发布交付包（编码 + 校验 + 写清单）
 | `blender_scene_get` | 读 | 场景摘要，或 `full:true` 拿整份 SceneSpec |
 | `blender_scene_patch` | **写** | 按明确操作修改场景，成功后保存一个不可变 revision |
 | `blender_place_on_surface` | **写** | 按实际表面把模型放到指定承托对象上，保留朝向并保存预览 |
+| `blender_camera_fit` | **写** | 保留原相机和动画，另存完整部件在明确帧入镜的静态机位及预览 |
 | `blender_asset_ingest` | 写文件 | 把素材收进项目。本地路径直接收，网络地址要你批准；**它不提交 revision**，收完还要用 `asset.add` 声明 |
 | `blender_scene_validate` | 读 | 校验当前场景，或 `dryRun` 校验一个还没提交的 patch |
 | `blender_preview_render` | 读 | 渲一张预览；显式 beauty/clay 模式生成独立检查图并附图 |

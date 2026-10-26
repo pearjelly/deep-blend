@@ -166,7 +166,14 @@ function cameraFit(ctx) {
           throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
             'This Host cannot save verified fitted views. Update the DeepBlend Host bundle and restart the profile before retrying.')
         }
-        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.fitCamera({ ...args, signal: exec?.signal }), warning)
+        const { projectId, baseRevision, entityIds, cameraId, fittedCameraId, frame, margin, renderPreview, idempotencyKey, ...extra } = args
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.fitCamera({
+          ...extra, projectId, baseRevision, entityIds, cameraId, fittedCameraId, frame,
+          ...(margin === undefined ? {} : { margin }),
+          ...(renderPreview === undefined ? {} : { renderPreview }),
+          ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
+          signal: exec?.signal,
+        }), warning)
         const value = { ok: true,
           text: renderSuccess(`${data.idempotentReplay === true ? 'Reused' : 'Saved'} fitted view "${data.cameraFitReceipt?.fittedCameraId ?? args.fittedCameraId}" in revision ${data.revision}.`, data,
             { warnings: [...(data.warnings ?? []), ...canonicalWarnings] }), data }

@@ -1,12 +1,21 @@
 {
-  "at": "2026-10-26T04:43:46.627312+00:00",
+  "at": "2026-10-26T10:35:06.834561+00:00",
   "passed": true,
-  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CUA captures. Project r0001 hero camera (60 mm) applied to a browser draft based on r0002. All copied Host bytes remained unchanged. This refresh makes no new native regression claim; the earlier 36 checks remain historical evidence.",
-  "protectedHostFiles": 31,
+  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
+  "protectedHostFiles": 30,
   "allHostBytesUnchanged": true,
-  "interaction": "cua-browser-ui",
+  "interaction": "cdp-browser-ui",
   "dom": {
     "applied": true,
+    "photographyOpen": true,
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "source": "project:r0001",
+    "sourceCamera": "hero",
+    "draftBase": "r0002",
+    "currentSavedRevision": "r0002",
+    "lens": "60",
     "controls": [
       {
         "field": "photo-source-project",
@@ -29,35 +38,95 @@
         "right": 33
       }
     ],
-    "draftBase": "r0002",
-    "height": 844,
-    "photographyOpen": true,
-    "scrollWidth": 390,
-    "source": "project:r0001",
-    "sourceCamera": "hero",
-    "width": 390,
-    "currentSavedRevision": "r0002",
-    "lens": "60"
+    "writes": []
   },
-  "browserObservationSha256": "119453c734293251042b641ff28f588a098504e53aedc37dde8452058074ac87",
-  "browserActionsSha256": "4fd874cbe8e929ea08d58cd4106271b2f9afc0bb60c53ffdfeac8d0c2caf027a",
-  "separateDomReadbackSha256": "ee25e9dccaf72e555c50c2373d84d6e68f3fcd1c37ee1f6083850262c417520e",
-  "separateDomReadback": {
-    "applied": true,
-    "currentSavedRevision": "r0002",
-    "draftBase": "r0002",
-    "lens": "60",
-    "source": "project:r0001"
-  },
-  "uiSha256": "9a066f81cfd65a3d51c2c9726191cbd11856fd99c3c02fa0eea0ce70b7e7a9b6",
+  "viewports": [
+    {
+      "applied": true,
+      "photographyOpen": true,
+      "width": 1440,
+      "height": 1013,
+      "scrollWidth": 1440,
+      "source": "project:r0001",
+      "sourceCamera": "hero",
+      "draftBase": "r0002",
+      "currentSavedRevision": "r0002",
+      "lens": "60",
+      "controls": [
+        {
+          "field": "photo-source-project",
+          "left": 1056,
+          "right": 1412
+        },
+        {
+          "field": "photo-source-revision",
+          "left": 1056,
+          "right": 1412
+        },
+        {
+          "field": "photo-source-camera",
+          "left": 1056,
+          "right": 1412
+        },
+        {
+          "field": "photo-source-replace",
+          "left": 1060,
+          "right": 1073
+        }
+      ],
+      "writes": []
+    },
+    {
+      "applied": true,
+      "photographyOpen": true,
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "source": "project:r0001",
+      "sourceCamera": "hero",
+      "draftBase": "r0002",
+      "currentSavedRevision": "r0002",
+      "lens": "60",
+      "controls": [
+        {
+          "field": "photo-source-project",
+          "left": 16,
+          "right": 374
+        },
+        {
+          "field": "photo-source-revision",
+          "left": 16,
+          "right": 374
+        },
+        {
+          "field": "photo-source-camera",
+          "left": 16,
+          "right": 374
+        },
+        {
+          "field": "photo-source-replace",
+          "left": 20,
+          "right": 33
+        }
+      ],
+      "writes": []
+    }
+  ],
+  "uiSha256": "e2a309ef23457ed37653ed22bf870e3676218e4ed7158d81c8b87aad0cad2fb6",
   "nativeRegressionRerun": false,
+  "browserActionsSha256": "164d2cc025c25482ca840ae22cbb8e80ef6f97b18e846f37a9e58e1d5a496330",
+  "browserObservationSha256": "d4fa5b0bc0ddfc5062e34d422ca755fc41a6d37b74542bfd8829525b09780578",
+  "wholeServedResponseIdentical": true,
+  "servedClientSha256": "867058300332109e4314ca38b0d6a871a9122d48cbe04d6d8222b43e4610be7a",
+  "browserLoadedBatchSha256": "a27fe4c9ae95ccd70ebc08bfce477820947cd521c9586c77334850cd36daac87",
+  "browserLoadedBatchIdentical": true,
   "encodingConversion": {
     "draft.png": {
       "sourceFile": "photography-desktop.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "2f7bbcc257f7491c7c6f571e89386efa0fa0cdaca335aa2ee32bc607e25cdd0b",
-      "pngSha256": "7adc8d8523ad80535a9296872110e43c49964ae42588466fe7249b1d27cb78f5",
-      "decodedPixelsSha256": "8ebe65c7b4f6a957206d10fe1bfaf723d31746fc7628ebbf18d0a596250d46f5",
+      "sourceSha256": "c95b557e8762988f22709ac1a812b986f77694f00659dc00f68c95d4ee87bb28",
+      "pngSha256": "a80182e934666a6a0dd5690dbef0fd61b93887eed81343870748c23b0de9b9c0",
+      "decodedPixelsSha256": "ac074a0ff816d564953872fbd2dc781b3500a3b0673176890a4cf4ad7df9d607",
       "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
@@ -67,9 +136,9 @@
     "narrow.png": {
       "sourceFile": "photography-narrow-final.png",
       "sourceFormat": "JPEG",
-      "sourceSha256": "ee4726a3404616cb8ec99d0197ec898b3f33ba38935b325c51cf2e6a156cbc30",
-      "pngSha256": "779c824c6f9cf68c508b91062e6eaa452fe0c182a84ff2a7afd108345b37c157",
-      "decodedPixelsSha256": "cc415333507ed235a93d2cae2e2efd78dda1ae2e895aa716a3c9d0b36a642caf",
+      "sourceSha256": "c0c4fe30b0263c828fec420a50befc31e4308290d19669bc12e8003ea1f77898",
+      "pngSha256": "09721951838a7caa44649d0d58c1b8437833f00827628e0da059a70d055f59e1",
+      "decodedPixelsSha256": "55c8ca1934a5f1b70a7e4429aa46d09e7661e7b99a985c409d6df2d649c5821e",
       "pixelMode": "RGB",
       "decodedPixelsIdentical": true,
       "cropped": false,
@@ -78,11 +147,5 @@
     }
   },
   "viewed": true,
-  "browserProvenanceMethod": "Rendered DOM boot graph and applied draft state, corroborated with exact whole HTTP client response bytes.",
-  "bundleClientSourceSha256": "72c765a4f549362d4109d9392b0f608ea1e79720457085eafb7d132527a3c7b8",
-  "servedClientSha256": "bf8ffe1ebeef8268bea9d6b4cba1e9c7c6ca89424fc662d9db494c646af62098",
-  "servedClientBytes": 545041,
-  "wholeServedResponseIdentical": true,
-  "performanceReadAvailable": false,
-  "resourceTimingVerified": false
+  "rootViewingEvidence": "Root opened both final published photography PNGs and verified actual source project:r0001, hero60mm, applied-but-unsaved draft based onr0002, valid desktop/mobile content."
 }

@@ -67,7 +67,8 @@ function verifyLighttableProvenance(root) {
   assert.equal(manifest.sourceRepository, 'https://github.com/pearjelly/deep-blend')
   assert.equal(manifest.reproductionGuide, 'README.md')
   assert.ok(existsSync(join(root, base, manifest.reproductionGuide)))
-  assert.equal(manifest.capture.interaction, 'cua-browser-ui')
+  assert.ok(['cua-browser-ui', 'cdp-browser-ui'].includes(manifest.capture.interaction),
+    'Lighttable captures must name an actual browser interaction method')
   assert.equal(manifest.capture.uiSource, 'packages/deepblend/ui/lib/client.js')
   assert.equal(hash(readFileSync(join(root, manifest.capture.uiSource))), manifest.capture.capturedUiSha256,
     'Lighttable captured UI differs from the published client; recapture before publishing')
@@ -404,7 +405,8 @@ test('source files exclude external binaries and published images have declared 
   assert.ok(photography.nativeRegression.scope.length > 0)
   // The current browser capture has its own client and report binding, separate
   // from the earlier native suite's tool, report and request ledger above.
-  assert.equal(photography.capture.interaction, 'cua-browser-ui')
+  assert.ok(['cua-browser-ui', 'cdp-browser-ui'].includes(photography.capture.interaction),
+    'Photography captures must name an actual browser interaction method')
   assert.equal(photography.capture.uiSha256, photography.uiSha256)
   const captureBytes = readFileSync(join(ROOT, photographyBase, photography.capture.report))
   assert.equal(hash(captureBytes), photography.capture.reportSha256)
