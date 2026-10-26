@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.21.0",
+  "recordedAt": "2026-10-26T11:05:09.797805+00:00",
+  "mergedSourceCommit": "569c210bf56a86ab11cb9473f889f26fd02ae94c",
+  "sourceTree": "466ea6e5a130c117b95b6b93409d41d5c49a9de5",
+  "status": "GitHub/npm published and three installation routes verified; community catalogs pending",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.21.0",
+  "fullAcceptanceSuitesPassed": 46,
+  "sourceCIChecksPassed": 5,
+  "sourceCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40275380114",
+  "github": {
+    "assets": 19,
+    "authenticatedDownloadsVerified": true,
+    "anonymousDownloadsVerified": true,
+    "finalNotesVerified": true
+  },
+  "npm": {
+    "packages": 7,
+    "exactVersionAndLatestVerified": true,
+    "anonymousArchiveFilesVerified": 189
+  },
+  "installationComparison": {
+    "routes": [
+      "source",
+      "npm",
+      "tarball"
+    ],
+    "oneCanonicalRun": true,
+    "version": "0.21.0",
+    "eachRoutePhysicalPackageCopies": 7,
+    "workbenchHttp": 200,
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "filesModesAndFullManifestsVerified": true
+  },
+  "bundle": {
+    "bytes": 72681573,
+    "sha256": "c7c5693594c9015bfc73c7e88fa149094def68142e5f1da21f622aaf67b40215"
+  },
+  "community": {
+    "schemaVersion": "deepblend.community-catalog-observation/v1",
+    "version": "0.21.0",
+    "sourceCommit": "569c210bf56a86ab11cb9473f889f26fd02ae94c",
+    "anonymous": true,
+    "normalPublicUrlsWithoutQueryOrCacheBypassRoute": true,
+    "current021InBothCatalogs": false,
+    "externalMutations": 0,
+    "observations": [
+      {
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "status": 200,
+        "bytes": 2816763,
+        "sha256": "fcf3d521bdf906cba8ead505db3e29983ab0d9bafc65a43c622beb994d920a1f",
+        "checkedAt": "2026-10-26T10:55:05.599983+00:00",
+        "versions": [
+          "0.20.0"
+        ]
+      },
+      {
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "status": 200,
+        "bytes": 8756561,
+        "sha256": "a4a53a9ca6b6f0707d93fd42ef9699b348f8b2481d24eadea846c59067f8fec4",
+        "checkedAt": "2026-10-26T10:55:08.992455+00:00",
+        "versions": [
+          "0.20.0"
+        ]
+      }
+    ]
+  },
+  "source983BytesAndModesUnchanged": true,
+  "publicationAttemptsReplayed": false,
+  "rootCloseoutSha256": "a4f2883ced20e889cddaf86e6567536abd127e8595feeca6f492257569467417",
+  "retainedProofs": {
+    "githubInitialInterruptedRead": {
+      "file": "proof.json",
+      "bytes": 3459,
+      "sha256": "0b8cdab6bc88ed54e1ddc006d2d6d62ae10fb7aabfe40991199621743961f252"
+    },
+    "githubInitialComplete": {
+      "file": "proof.json",
+      "bytes": 7697,
+      "sha256": "ca228d2d633a6e2d8ca0486cf10f4ad7c85c0dbfc0f1ce84a6963f7be03f7f51"
+    },
+    "githubSupplemental": {
+      "file": "proof.json",
+      "bytes": 12739,
+      "sha256": "b86d7129030dec79ad046a61fc61df14aeb3ec1483b6fcfdd2f195024dc95643"
+    },
+    "githubCloseout": {
+      "file": "proof.json",
+      "bytes": 11917,
+      "sha256": "b306319f60ef50c39e4176169a7e4de1c3bc9316e106620c70defaf0c8a4dca3"
+    },
+    "anonymousNotesAndMetadata": {
+      "file": "proof.json",
+      "bytes": 1210,
+      "sha256": "48826ec4c62658363eeb4b08bf4318435b0e80df88e62a6587d5b5fdfea23141"
+    },
+    "npmPublication": {
+      "file": "proof.json",
+      "bytes": 9778,
+      "sha256": "85031c0600216edb87a27a689f36d2ac4a295e8e41f6e45ee00b05d14471c27f"
+    },
+    "npmAnonymous": {
+      "file": "proof.json",
+      "bytes": 5468,
+      "sha256": "0bf39aab35311691da797d5e30687238eeefbd742d93aa77163f1b0924349109"
+    },
+    "publicParity": {
+      "file": "proof.json",
+      "bytes": 7661,
+      "sha256": "5415d16b66da3e0c9b8b3fae703e3ce716690481d2886f521254d95fe301abe9"
+    },
+    "communityObservation": {
+      "file": "proof.json",
+      "bytes": 921,
+      "sha256": "f64cb7755cb92eb0de97c3521c0a8e8e07b0176bc93deff7dab24a5f179983c0"
+    },
+    "pnpmCachePruneLog": {
+      "file": "pnpm-unreferenced-cache-prune-v1.log",
+      "bytes": 75,
+      "sha256": "d2570132f17c4a3fbbdef0b4100b8766870a973d0e5d1d681221634426ba7622"
+    }
+  },
+  "scope": "Historical0.21 source and public receipts are preserved. This document updates current status without rewriting original failure logs or claiming community refresh."
+}

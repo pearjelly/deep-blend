@@ -20,6 +20,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | Import models, textures and environments / 导入模型、贴图与环境光 | [Assets · 素材库](assets.md) |
 | Change shape and materials / 修改造型和材质 | [Modeling · 对象编辑](modeling.md) |
 | Compose and light a shot / 调整构图与灯光 | [Photography · 摄影编辑](photography-editor.md) |
+| Frame a moved product and keep the animation / 移动后完整取景并保留动画 | [Complete view · 完整取景](complete-view.md) |
 | Compare beauty, clay and references / 对照材质、灰模和参考图 | [Inspection · 视觉检查](inspection.md) |
 | Recover a render or continue delivery / 恢复渲染与交付 | [Recovery · 故障与恢复](recovery.md) |
 

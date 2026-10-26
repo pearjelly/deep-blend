@@ -335,6 +335,29 @@ window.__ModuleLoader__.load({
       'brief.referenceUnknown': "没有已记录的参考使用证据。",
       'brief.referenceStatus': "参考证据状态",
       "photo.title": "摄影：相机与灯光",
+      'fit.title': '完整取景',
+      'fit.help': '保留原相机和动画，另存当前帧的静态机位，让选中部件完整入镜。',
+      'fit.camera': '沿用取景方向',
+      'fit.frame': '取景帧',
+      'fit.parts': '选择部件与留白',
+      'fit.scope': '已选 {count} 个部件 · 来源 {revision}',
+      'fit.wholeLamp': '选择整盏灯',
+      'fit.margin': '画面边缘留白（%）',
+      'fit.save': '保存完整取景',
+      'fit.saving': '正在测量、保存并预览…',
+      'fit.retry': '重试同一次保存',
+      'fit.reset': '重新读取当前版本',
+      'fit.cancel': '取消保存',
+      'fit.saved': '已保存完整取景：{revision} · 第 {frame} 帧 · {count} 个部件。请查看预览。',
+      'fit.unconfirmed': '保存结果尚未确认。重试会沿用同一请求和机位；刷新页面后仍可继续。',
+      'fit.stale': '当前版本已变化。重新读取当前版本后再保存。',
+      'fit.failed': '未能保存完整取景。查看详情后调整部件、相机或留白，再试一次。',
+      'fit.invalid': '请选择 1–64 个部件、有效相机、整数帧和 0–25% 的留白。',
+      'fit.unsaved': '请先保存或放弃其他修改，再保存完整取景。',
+      'fit.storage': '浏览器无法保存重试信息，尚未发送请求。允许本站存储后，重新读取当前版本再试。',
+      'fit.upgrade': '更新 Host 后可保存完整取景。',
+      'fit.limit': '核验所选帧及当前预览画幅的完整几何边界。遮挡与美术效果请看预览；更换交付画幅后需重新检查。',
+      'fit.details': '保存详情',
       "photo.help": "修改作为本项目当前修订的草稿保存。点击“保存并预览”先保存整个修订，再渲染选定相机和帧的材质检查图。",
       "photo.camera": "编辑与检查相机",
       "photo.light": "编辑灯光",
@@ -1065,6 +1088,29 @@ window.__ModuleLoader__.load({
       'brief.referenceUnknown': "No reference-use evidence was recorded.",
       'brief.referenceStatus': "Reference evidence status",
       "photo.title": "Photography: cameras and lights",
+      'fit.title': 'Complete view',
+      'fit.help': 'Keep the original cameras and animation. Save a static camera that includes every selected part at this frame.',
+      'fit.camera': 'Keep viewing direction from',
+      'fit.frame': 'View frame',
+      'fit.parts': 'Choose parts and margin',
+      'fit.scope': '{count} parts selected · source {revision}',
+      'fit.wholeLamp': 'Select the whole lamp',
+      'fit.margin': 'Frame margin (%)',
+      'fit.save': 'Save complete view',
+      'fit.saving': 'Measuring, saving and previewing…',
+      'fit.retry': 'Retry the same save',
+      'fit.reset': 'Read current revision again',
+      'fit.cancel': 'Cancel save',
+      'fit.saved': 'Complete view saved: {revision} · frame {frame} · {count} parts. Review the preview.',
+      'fit.unconfirmed': 'The save is unconfirmed. Retry reuses this request and camera, including after a page refresh.',
+      'fit.stale': 'The current revision changed. Read it again before saving.',
+      'fit.failed': 'The complete view could not be saved. Check the details, adjust the parts, camera or margin, and retry.',
+      'fit.invalid': 'Choose 1–64 parts, a valid camera, an integer frame and a margin from 0–25%.',
+      'fit.unsaved': 'Save or discard other edits before saving a complete view.',
+      'fit.storage': 'The browser could not retain retry information; no request was sent. Allow storage for this site, then read the current revision again.',
+      'fit.upgrade': 'Update the Host to save a complete view.',
+      'fit.limit': 'Verifies complete geometry bounds at this frame and preview aspect. Review occlusion and artistic quality in the preview; check again after changing the delivery aspect.',
+      'fit.details': 'Save details',
       "photo.help": "Edits are drafts for this project and revision. Save and preview first saves the revision, then renders the selected camera and frame in beauty mode.",
       "photo.camera": "Camera to edit and inspect",
       "photo.light": "Light to edit",
@@ -1671,7 +1717,7 @@ window.__ModuleLoader__.load({
     /** Every DeepBlend wire tool name this package draws a card for. */
     const TOOL_CARD_KEYS = [
       'blender_capabilities', 'blender_recipe_list', 'blender_recipe_parameters', 'blender_project_create', 'blender_project_get',
-      'blender_scene_get', 'blender_scene_patch', 'blender_place_on_surface', 'blender_preview_render',
+      'blender_scene_get', 'blender_scene_patch', 'blender_place_on_surface', 'blender_camera_fit', 'blender_preview_render',
       'blender_scene_validate', 'blender_revision_restore', 'blender_asset_ingest',
       'blender_preview_views', 'blender_visual_review',
       'blender_visual_autofix', 'blender_final_render', 'blender_export',
@@ -2913,8 +2959,44 @@ window.__ModuleLoader__.load({
         || state.forms.patch !== null
         || assemblyDirty(assemblyDraftFor(state))
         || placementDirty(placementDraftFor(state))
+        || cameraFitDirty(cameraFitDraftFor(state))
     }
     const assemblyKey = state => JSON.stringify([state.projectsRoot, state.activeProjectId])
+    const cameraFitDraftFor = state => state.cameraFitDrafts?.[assemblyKey(state)] || null
+    const cameraFitDirty = draft => Boolean(draft?.attempt || draft?.touched)
+    function createCameraFitDraft(scene, projectId, projectsRoot, source) {
+      const entities = (scene.nodes.entities || []).filter(entity => ['generator', 'asset-instance'].includes(entity.kind))
+      const complete = source?.placement?.available === true ? source.placement.memberEntityIds : null
+      const entityIds = complete?.length && complete.length <= 64 && complete.every(id => entities.some(entity => entity.id === id))
+        ? [...complete].sort() : scene.reviewSubject?.available && entities.some(entity => entity.id === scene.reviewSubject.id) ? [scene.reviewSubject.id] : []
+      const key = newCreationKey()
+      return { projectId, projectsRoot, baseRevision: scene.revision, entities: editorClone(entities),
+        cameras: (scene.nodes.cameras || []).map(camera => camera.id), entityIds,
+        cameraId: scene.project.activeCamera || scene.nodes.cameras?.[0]?.id || '',
+        fittedCameraId: key.replace(/^create-/, 'complete-'), idempotencyKey: key,
+        frame: Math.min(scene.project.frameEnd ?? 24, Math.max(scene.project.frameStart ?? 1, 24)), marginPercent: 3,
+        completeEntityIds: complete ? [...complete].sort() : null, touched: false, attempt: null, storageError: false }
+    }
+    const cameraFitInvalid = draft => !draft || !draft.cameras.includes(draft.cameraId)
+      || draft.entityIds.length < 1 || draft.entityIds.length > 64 || new Set(draft.entityIds).size !== draft.entityIds.length
+      || draft.entityIds.some(id => !draft.entities.some(entity => entity.id === id))
+      || draft.frame === '' || !Number.isSafeInteger(Number(draft.frame)) || Number(draft.frame) < 0 || Number(draft.frame) > 1e6
+      || draft.marginPercent === '' || !Number.isFinite(Number(draft.marginPercent)) || Number(draft.marginPercent) < 0 || Number(draft.marginPercent) > 25
+    const cameraFitStorageKey = (root, id) => `deepblend.workbench.camera-fit.v1:${JSON.stringify([root, id])}`
+    function readCameraFitAttempt(storage, root, id) {
+      const raw = storage?.getItem(cameraFitStorageKey(root, id))
+      if (raw === undefined || raw === null) return null
+      if (raw.length > 16384) throw Error('Invalid saved complete-view request')
+      const body = JSON.parse(raw)
+      if (!body || body.projectsRoot !== root || !/^r[0-9]{4,}$/.test(body.baseRevision || '')
+        || !Array.isArray(body.entityIds) || body.entityIds.length < 1 || body.entityIds.length > 64
+        || body.entityIds.some(value => typeof value !== 'string' || !value || value.length > 128) || new Set(body.entityIds).size !== body.entityIds.length
+        || !['cameraId', 'fittedCameraId', 'idempotencyKey'].every(key => typeof body[key] === 'string' && body[key].length > 0 && body[key].length <= 128)
+        || body.cameraId === body.fittedCameraId || !Number.isSafeInteger(body.frame) || body.frame < 0 || body.frame > 1e6
+        || !Number.isFinite(body.margin) || body.margin < 0 || body.margin > .25
+        || Object.keys(body).some(key => !['projectsRoot', 'baseRevision', 'entityIds', 'cameraId', 'fittedCameraId', 'frame', 'margin', 'idempotencyKey'].includes(key))) throw Error('Invalid saved complete-view request')
+      return body
+    }
     const assemblyDraftFor = state => state.assemblyDrafts?.[assemblyKey(state)] || null
     const assemblyDirty = draft => Boolean(draft && Object.entries(draft.values).some(([id, value]) => value === '' || Number(value) !== draft.original[id]))
     const assemblyInvalid = draft => !draft || draft.parameters.some(parameter => {
@@ -3228,6 +3310,9 @@ window.__ModuleLoader__.load({
         editorComparison: null,
         assemblyDrafts: {},
         placementDrafts: {},
+        cameraFitDrafts: {},
+        cameraFitWork: {},
+        cameraFitSupported: false,
         patchDrafts: {},
         recipeChoices: [],
         forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
@@ -3300,6 +3385,8 @@ window.__ModuleLoader__.load({
       let snapshotTimer = null, snapshotGeneration = 0, activeSnapshotContext = null
       const photographyControllers = new Map()
       const placementControllers = new Map()
+      const cameraFitControllers = new Map()
+      const cameraFitStorage = settings.cameraFitStorage ?? preferenceStorage
       const photographySourceControllers = new Map()
       let photographySourceSequence = 0
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
@@ -3467,6 +3554,7 @@ window.__ModuleLoader__.load({
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
           cameraTargetResetSupported: payload.cameraTargetResetSupported === true,
           assemblyPlacementSupported: payload.assemblyPlacementSupported === true,
+          cameraFitSupported: payload.cameraFitSupported === true,
           selected: payload.selected ?? null,
           activeProjectId: active,
           currentRevision: payload.selected ? payload.selected.currentRevision : null,
@@ -3513,6 +3601,15 @@ window.__ModuleLoader__.load({
         if (active !== data.activeProjectId) patch.forms = { ...data.forms, patch: data.patchDrafts[active] ?? null }
         if (patch.selected?.scene && active) {
           const source = patch.selected.recipeParameters
+          const fitKey = JSON.stringify([patch.projectsRoot, active]), fitted = data.cameraFitDrafts[fitKey]
+          if ((!fitted || !cameraFitDirty(fitted)) && !cameraFitControllers.has(fitKey)) {
+            const next = createCameraFitDraft(patch.selected.scene, active, patch.projectsRoot, source)
+            try {
+              const attempt = readCameraFitAttempt(cameraFitStorage, patch.projectsRoot, active)
+              if (attempt) Object.assign(next, { ...editorClone(attempt), marginPercent: attempt.margin * 100, attempt, touched: true })
+            } catch { next.storageError = true }
+            patch.cameraFitDrafts = { ...data.cameraFitDrafts, [fitKey]: next }
+          }
           if (source?.available === true && source.projectId === active && source.revision === patch.selected.scene.revision) {
             const key = JSON.stringify([patch.projectsRoot, active]), draft = data.assemblyDrafts[key]
             if ((!draft || !assemblyDirty(draft)) && !data.busy.assembly) {
@@ -3821,6 +3918,74 @@ window.__ModuleLoader__.load({
         }
       }
       const actions = {
+        setCameraFitValue: (field, value) => {
+          const draft = cameraFitDraftFor(data), key = assemblyKey(data)
+          if (!draft || draft.attempt || cameraFitControllers.has(key) || !['cameraId', 'frame', 'marginPercent', 'entityIds'].includes(field)) return
+          if (field === 'entityIds' && (!Array.isArray(value) || value.length > 64 || new Set(value).size !== value.length || value.some(id => !draft.entities.some(entity => entity.id === id)))) return
+          if (field === 'cameraId' && !draft.cameras.includes(value)) return
+          set({ cameraFitDrafts: { ...data.cameraFitDrafts, [key]: { ...draft, [field]: field === 'entityIds' ? [...value].sort() : value, touched: true } } })
+        },
+        resetCameraFit: () => {
+          const draft = cameraFitDraftFor(data), key = assemblyKey(data)
+          if (!draft || draft.attempt || cameraFitControllers.has(key) || !data.selected?.scene) return
+          try { cameraFitStorage?.removeItem(cameraFitStorageKey(draft.projectsRoot, draft.projectId)) } catch { return }
+          set({ cameraFitDrafts: { ...data.cameraFitDrafts, [key]: createCameraFitDraft(data.selected.scene, data.activeProjectId, data.projectsRoot, data.selected.recipeParameters) },
+            cameraFitWork: { ...data.cameraFitWork, [key]: {} } })
+        },
+        cancelCameraFit: () => cameraFitControllers.get(assemblyKey(data))?.abort(),
+        saveCameraFit: async () => {
+          const draft = cameraFitDraftFor(data), key = assemblyKey(data)
+          if (!draft || !data.cameraFitSupported || cameraFitControllers.has(key) || draft.storageError || Object.values(data.busy).some(Boolean)) return
+          if (!draft.attempt && (cameraFitInvalid(draft) || draft.baseRevision !== data.currentRevision || draft.baseRevision !== data.selected?.scene?.revision
+              || projectHasUnsavedDrafts({ ...data, cameraFitDrafts: {} }))) return
+          const body = draft.attempt || { projectsRoot: draft.projectsRoot, baseRevision: draft.baseRevision, entityIds: [...draft.entityIds].sort(),
+            cameraId: draft.cameraId, fittedCameraId: draft.fittedCameraId, frame: Number(draft.frame), margin: Number(draft.marginPercent) / 100, idempotencyKey: draft.idempotencyKey }
+          // Persist before sending: a page refresh must recover the same new camera and request key.
+          try {
+            if (!cameraFitStorage?.setItem) throw Error('Complete-view recovery storage is unavailable')
+            cameraFitStorage.setItem(cameraFitStorageKey(draft.projectsRoot, draft.projectId), JSON.stringify(body))
+            if (!editorEqual(readCameraFitAttempt(cameraFitStorage, draft.projectsRoot, draft.projectId), body)) throw Error('Complete-view recovery storage did not retain the request')
+          } catch {
+            set({ cameraFitDrafts: { ...data.cameraFitDrafts, [key]: { ...draft, storageError: true } } }); return
+          }
+          const controller = new AbortController(); cameraFitControllers.set(key, controller)
+          set({ cameraFitDrafts: { ...data.cameraFitDrafts, [key]: { ...draft, attempt: body } },
+            cameraFitWork: { ...data.cameraFitWork, [key]: { busy: true } } })
+          setIn('busy', 'editor', true)
+          let outcome = await postJson((url, options) => fetchImpl(url, { ...options, signal: controller.signal }), projectRoute(draft.projectId, '/camera-fit'), body)
+          const result = outcome.payload?.revision, receipt = result?.cameraFitReceipt, baseline = receipt?.baselineVerification
+          if (outcome.ok && (!/^r[0-9]{4,}$/.test(result?.revision ?? '') || receipt?.schemaVersion !== 'deepblend.camera-fit-receipt/v1'
+              || receipt.sourceRevision !== body.baseRevision || receipt.cameraId !== body.cameraId || receipt.fittedCameraId !== body.fittedCameraId
+              || receipt.camera?.id !== body.fittedCameraId || receipt.frame !== body.frame || receipt.margin !== body.margin || !editorEqual(receipt.entityIds, body.entityIds)
+              || !/^[a-f0-9]{64}$/.test(receipt.sourceCheckpointSha256 || '') || !/^[a-f0-9]{64}$/.test(receipt.resultCheckpointSha256 || '')
+              || baseline?.checkpointSha256 !== receipt.sourceCheckpointSha256 || baseline?.checkpointUnchanged !== true
+              || baseline?.selectedGeometryUnchanged !== true || baseline?.originalObjectsUnchanged !== true || baseline?.opticsAndRotationPreserved !== true
+              || !Array.isArray(receipt.members) || !editorEqual(receipt.members.map(member => member.entityId), body.entityIds)
+              || receipt.members.some(member => member.projection?.containedInFrame !== true || member.projection?.containedInClip !== true))) {
+            outcome = { ok: false, error: { code: 'UI_CAMERA_FIT_MISMATCH', message: 'The complete-view response does not match the captured request.' } }
+          }
+          cameraFitControllers.delete(key); setIn('busy', 'editor', cameraFitControllers.size > 0)
+          const sameProject = target() === draft.projectId && data.projectsRoot === draft.projectsRoot
+          const uncertain = !outcome.ok && (['UI_FETCH_FAILED', 'UI_CAMERA_FIT_MISMATCH'].includes(outcome.error.code) || /^HTTP_5/.test(outcome.error.code))
+          if (!uncertain) { try { cameraFitStorage.removeItem(cameraFitStorageKey(draft.projectsRoot, draft.projectId)) } catch {} }
+          if (outcome.ok) {
+            const drafts = { ...data.cameraFitDrafts }; delete drafts[key]
+            set({ cameraFitDrafts: drafts, cameraFitWork: { ...data.cameraFitWork, [key]: { result } } })
+            if (sameProject) {
+              const photography = data.photographyDrafts[draft.projectId]
+              if (photography && photography.projectsRoot === draft.projectsRoot && !photographyDirty(photography)) set({ photographyDrafts: {
+                ...data.photographyDrafts, [draft.projectId]: { ...photography, cameraId: body.fittedCameraId, frame: body.frame } } })
+              const notice = { ok: true, kind: 'camera-fit', projectId: draft.projectId, projectsRoot: draft.projectsRoot,
+                message: t('fit.saved', { count: body.entityIds.length, revision: result.revision, frame: body.frame }) }
+              set({ view: 'preview', compareMode: 'result', notices: { ...data.notices, scene: notice, preview: notice } })
+            }
+          } else {
+            set({ cameraFitDrafts: { ...data.cameraFitDrafts, [key]: { ...draft, attempt: uncertain ? body : null } },
+              cameraFitWork: { ...data.cameraFitWork, [key]: { error: uncertain ? t('fit.unconfirmed')
+                : outcome.error.code === 'REVISION_CONFLICT' ? t('fit.stale') : t('fit.failed'), technicalDetails: `${outcome.error.code}: ${outcome.error.message}` } } })
+          }
+          reload()
+        },
         setPlacementValue: (id, value) => {
           const draft = placementDraftFor(data)
           if (!draft || data.busy.placement || draft.attempt || !Object.hasOwn(placementLimits, id)) return
@@ -4905,6 +5070,8 @@ window.__ModuleLoader__.load({
           photographyControllers.clear()
           for (const controller of placementControllers.values()) controller.abort()
           placementControllers.clear()
+          for (const controller of cameraFitControllers.values()) controller.abort()
+          cameraFitControllers.clear()
           for (const controller of photographySourceControllers.values()) controller.abort()
           photographySourceControllers.clear()
           for (const controller of inspectionControllers.values()) controller.abort()
@@ -5205,7 +5372,7 @@ window.__ModuleLoader__.load({
     /** A result line, in the two shapes the panel already used. */
     function placementPreviewNotice(state) {
       const notice = state.notices?.preview
-      return notice?.kind === 'assembly-placement' && notice.projectId === state.activeProjectId
+      return ['assembly-placement', 'camera-fit'].includes(notice?.kind) && notice.projectId === state.activeProjectId
         && notice.projectsRoot === state.projectsRoot ? notice : null
     }
 
@@ -5652,6 +5819,46 @@ window.__ModuleLoader__.load({
             onClick: actions.applyAsset, children: t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
     }
 
+    function CameraFitEditor(ctx) {
+      const { state, actions } = ctx, draft = cameraFitDraftFor(state), work = state.cameraFitWork?.[assemblyKey(state)] || {}
+      if (!draft) return null
+      if (!state.cameraFitSupported) return el('p', { className: 'db-muted', 'data-camera-fit-unsupported': true }, t('fit.upgrade'))
+      const busy = Boolean(work.busy), frozen = busy || Boolean(draft.attempt), stale = draft.baseRevision !== state.currentRevision
+      const otherDirty = projectHasUnsavedDrafts({ ...state, cameraFitDrafts: {} })
+      const invalid = cameraFitInvalid(draft), blocked = busy || draft.storageError || Object.values(state.busy).some(Boolean) || !draft.attempt && (stale || invalid || otherDirty)
+      const number = (field, label, value, min, max, step) => el('label', { className: 'db-row' }, label, el('input', {
+        className: 'db-input', type: 'number', 'data-field': `fit-${field}`, value, min, max, step, disabled: frozen,
+        'aria-invalid': String(value === '' || !Number.isFinite(Number(value)) || Number(value) < min || Number(value) > max || step === 1 && !Number.isSafeInteger(Number(value))),
+        onChange: event => actions.setCameraFitValue(field, event.target.value), style: { width: '125px' },
+      }))
+      return el('section', { 'data-camera-fit-editor': true },
+        el('h4', null, t('fit.title')), el('p', { className: 'db-muted' }, t('fit.help')),
+        el('p', { className: 'db-muted', 'data-camera-fit-base': draft.baseRevision }, t('fit.scope', { count: draft.entityIds.length, revision: draft.baseRevision })),
+        el('label', { className: 'db-row' }, t('fit.camera'), el('select', { className: 'db-input', 'data-field': 'fit-cameraId', value: draft.cameraId, disabled: frozen,
+          onChange: event => actions.setCameraFitValue('cameraId', event.target.value) }, draft.cameras.map(id => el('option', { value: id, key: id }, id)))),
+        number('frame', t('fit.frame'), draft.frame, 0, 1e6, 1),
+        Disclosure(ctx, 'camera-fit-parts', t('fit.parts'), {},
+          draft.completeEntityIds?.length ? Button({ action: 'fit-whole-lamp', disabled: frozen, onClick: () => actions.setCameraFitValue('entityIds', draft.completeEntityIds), children: t('fit.wholeLamp') }) : null,
+          el('div', { style: { maxHeight: '240px', overflowY: 'auto' } }, draft.entities.map(entity => el('label', { className: 'db-row', key: entity.id },
+            el('input', { type: 'checkbox', 'data-field': 'fit-part', 'data-entity-id': entity.id, checked: draft.entityIds.includes(entity.id),
+              disabled: frozen || !draft.entityIds.includes(entity.id) && draft.entityIds.length >= 64,
+              onChange: event => actions.setCameraFitValue('entityIds', event.target.checked ? [...draft.entityIds, entity.id] : draft.entityIds.filter(id => id !== entity.id)) }), entity.label || entity.id))),
+          number('marginPercent', t('fit.margin'), draft.marginPercent, 0, 25, .5)),
+        draft.storageError ? el('p', { className: 'db-error', role: 'alert' }, t('fit.storage'))
+          : draft.attempt && !busy ? el('p', { role: 'status' }, t('fit.unconfirmed'))
+          : stale ? el('p', { className: 'db-error', role: 'status' }, t('fit.stale'))
+          : otherDirty ? el('p', { className: 'db-muted' }, t('fit.unsaved'))
+          : invalid ? el('p', { className: 'db-error', role: 'status' }, t('fit.invalid')) : null,
+        el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } },
+          Button({ action: 'fit-save', tone: 'primary', disabled: blocked, onClick: actions.saveCameraFit, children: busy ? t('fit.saving') : draft.attempt ? t('fit.retry') : t('fit.save') }),
+          busy ? Button({ action: 'fit-cancel', onClick: actions.cancelCameraFit, children: t('fit.cancel') })
+            : !draft.attempt ? Button({ action: 'fit-reset', onClick: actions.resetCameraFit, children: t('fit.reset') }) : null),
+        work.error ? el('p', { className: 'db-error', role: 'alert', 'data-camera-fit-error': true }, work.error) : null,
+        el('p', { className: 'db-muted' }, t('fit.limit')),
+        work.technicalDetails || work.result ? Disclosure(ctx, 'camera-fit-details', t('fit.details'), {},
+          el('pre', { className: 'db-code' }, work.technicalDetails || JSON.stringify(work.result.cameraFitReceipt, null, 2))) : null)
+    }
+
     function PhotographyEditor({ state, actions }) {
       const draft = photographyDraftFor(state), projectId = state.activeProjectId, work = state.photographyWork?.[projectId] || {}, edit = state.photographyEdits?.[projectId]
       const busy = photographyBusy(work)
@@ -5676,6 +5883,7 @@ window.__ModuleLoader__.load({
       const reuse = state.photographyReuse?.[projectId] || {}, sourceCamera = reuse.source?.nodes.cameras.find(item => item.id === reuse.cameraId)?.definition
       const reuseStale = reuse.source && (reuse.projectsRoot !== state.projectsRoot || reuse.baseRevision !== draft?.baseRevision || draft?.projectsRoot !== state.projectsRoot)
       return el('section', { className: 'db-card', 'data-photography-editor': projectId },
+        CameraFitEditor({ state, actions }),
         el('h4', null, t('photo.title')), el('p', { className: 'db-muted' }, t('photo.help')),
         draft ? el('div', null,
           el('p', { className: 'db-muted', 'data-photography-base': draft.baseRevision }, t('photo.base', { revision: draft.baseRevision })),

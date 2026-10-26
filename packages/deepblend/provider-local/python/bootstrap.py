@@ -107,6 +107,7 @@ SUPPORTED_ACTIONS = (
     "compile_scene",
     "inspect_geometry",
     "inspect_surface_placement",
+    "inspect_camera_fit",
     "render_preview",
     "render_views",
     "render_frames",
@@ -497,10 +498,12 @@ KNOWN_SESSION_OPTIONS = (
 
 from deepblend_inspect_geometry import inspect_geometry
 from deepblend_surface_placement import inspect_surface_placement
+from deepblend_product_framing import inspect_camera_fit
 
 ACTIONS = {
     "inspect_geometry": inspect_geometry,
     "inspect_surface_placement": inspect_surface_placement,
+    "inspect_camera_fit": inspect_camera_fit,
     "get_capabilities": action_get_capabilities,
     "compile_scene": action_compile_scene,
     "render_preview": action_render_preview,
@@ -615,7 +618,7 @@ def _session_dispatch(request, options):
             % (request.get("protocolVersion"), PROTOCOL_VERSION),
         }, [], [])
 
-    if action in ('inspect_geometry', 'inspect_surface_placement'):
+    if action in ('inspect_geometry', 'inspect_surface_placement', 'inspect_camera_fit'):
         return build_envelope(job_id, action, None, {
             'code': 'BLENDER_UNSUPPORTED_ACTION',
             'message': 'Native geometry inspection requires an isolated batch and cannot open a checkpoint in a kept or live Blender session.',

@@ -125,10 +125,71 @@ export function apply(ctx) {
   ctx.tools.register(sceneGet(ctx))
   ctx.tools.register(scenePatch(ctx))
   ctx.tools.register(placeOnSurface(ctx))
+  ctx.tools.register(cameraFit(ctx))
   ctx.tools.register(previewRender(ctx))
   ctx.tools.register(sceneValidate(ctx))
   ctx.tools.register(revisionRestore(ctx))
   ctx.tools.register(assetIngest(ctx))
+}
+
+/** Fit complete evaluated meshes through the Host, keeping original photography. */
+function cameraFit(ctx) {
+  return defineTool({
+    name: 'blender_camera_fit',
+    description: 'Save a new static camera that frames all explicitly selected product meshes at one frame, with an editable Blender checkpoint and preview. ' +
+      'Read blender_scene_get first for the current baseRevision, entity IDs and source camera; for a supported complete recipe use every scene.assemblyPlacement.memberEntityIds entry, including the cable. ' +
+      'Pass an unused fittedCameraId. The source camera may be animated: its evaluated viewing direction and roll at frame are preserved in the static copy, together with its measured optics. ' +
+      'Original cameras, camera order, animation tracks, shots, entities, materials and lights are retained. Depth of field focuses the new view at the selected product’s bounds center depth. ' +
+      'The Host measures actual whole evaluated mesh sets and independently checks the compiled candidate’s frame margin and clipping before publication. ' +
+      'Select 1–64 distinct generated entities or whole asset instances, within 128 mesh objects, two million evaluated vertices and two million polygons in total. Supports perspective cameras and matching viewport/render geometry; unsupported or hidden geometry is refused. ' +
+      'margin is a fraction of each image edge (default 0.03). Evidence applies to this frame and the saved checkpoint’s preview render aspect; a different delivery aspect needs its own check. ' +
+      'This proves framing and clipping of the selected vertices, not visibility through other objects, artistic quality, shader displacement, transparency or an animation range. ' +
+      'Always saves one checkpoint; renderPreview defaults to true. Resolve returned relative artifact paths against projectDirectory. ' +
+      'Reuse one idempotencyKey only for an identical request; a successful retry returns its earlier fitted view without creating another camera.',
+    parameters: {
+      projectId: { type: 'string', required: true, description: 'The existing project.' },
+      baseRevision: { type: 'string', required: true, description: 'Current revision from blender_scene_get. A new stale request is refused.' },
+      entityIds: { type: 'array', items: { type: 'string' }, required: true, description: '1–64 distinct complete mesh entity or asset-instance IDs. Include every part of the product; do not include an unrelated floor or support.' },
+      cameraId: { type: 'string', required: true, description: 'Existing perspective camera whose evaluated viewing direction, roll and optics should be retained.' },
+      fittedCameraId: { type: 'string', required: true, description: 'Unused ID for the new static fitted camera. Existing cameras are preserved.' },
+      frame: { type: 'integer', required: true, description: 'Explicit integer frame from 0 to 1000000 to evaluate, fit, verify and preview.' },
+      margin: { type: 'number', description: 'Fractional margin at each image edge, 0–0.25; default 0.03. The Host validates this range.' },
+      renderPreview: { type: 'boolean', description: 'Attach the committed fitted view’s preview, default true. False still saves the checkpoint.' },
+      idempotencyKey: { type: 'string', description: 'Unique logical fit request. Reuse only for an identical retry, including its original baseRevision.' },
+    },
+    output: TOOL_OUTPUT_WITH_IMAGE,
+    async execute(args, exec) {
+      const resolved = resolveStudio(ctx)
+      if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable }
+      try {
+        if (resolved.studio.cameraFitSupported !== true || typeof resolved.studio.fitCamera !== 'function') {
+          throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE,
+            'This Host cannot save verified fitted views. Update the DeepBlend Host bundle and restart the profile before retrying.')
+        }
+        const { projectId, baseRevision, entityIds, cameraId, fittedCameraId, frame, margin, renderPreview, idempotencyKey, ...extra } = args
+        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.fitCamera({
+          ...extra, projectId, baseRevision, entityIds, cameraId, fittedCameraId, frame,
+          ...(margin === undefined ? {} : { margin }),
+          ...(renderPreview === undefined ? {} : { renderPreview }),
+          ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
+          signal: exec?.signal,
+        }), warning)
+        const value = { ok: true,
+          text: renderSuccess(`${data.idempotentReplay === true ? 'Reused' : 'Saved'} fitted view "${data.cameraFitReceipt?.fittedCameraId ?? args.fittedCameraId}" in revision ${data.revision}.`, data,
+            { warnings: [...(data.warnings ?? []), ...canonicalWarnings] }), data }
+        return args.renderPreview !== false
+          ? await attachCommittedPreview(ctx, exec, resolved, value, { projectId: args.projectId, summary: data }) : value
+      } catch (cause) {
+        const failure = renderFailure(cause, 'CAMERA_FIT_FAILED')
+        if (failure.data.errorCode === BlenderErrorCode.REVISION_CONFLICT) {
+          failure.text += '\n\nRead blender_scene_get again, then retry blender_camera_fit with the new baseRevision and an unused fittedCameraId.'
+        }
+        return { ok: false, ...failure }
+      }
+    },
+    presentCall: args => ({ card: 'generic', title: `Save complete view "${args?.fittedCameraId ?? ''}"`,
+      kind: 'edit', projectId: args?.projectId }),
+  })
 }
 
 /** A measured placement is committed by the Host, not guessed as a transform patch. */
@@ -139,7 +200,7 @@ function placeOnSurface(ctx) {
       'Default entity scope moves only the selected subject’s world Z and keeps its XY, rotation and scale; supports generated meshes and whole imported asset instances. ' +
       'For the complete pinned metal-lamp2.2 assembly, use scope="recipe-assembly" and the subjectEntityId returned in scene.assemblyPlacement. ' +
       'This moves every lamp member, including the cable: optional pose applies relative world translation in mm and upright yaw in degrees, then the complete native mesh union settles vertically onto the selected support. ' +
-      'pose.pivotMm defaults to the saved base origin; translation is applied after rotation. All camera/light settings are retained, so inspect framing after a large move and explicitly edit photography if needed. ' +
+      'pose.pivotMm defaults to the saved base origin; translation is applied after rotation. All camera/light settings are retained; after a large move use blender_camera_fit to save a complete fitted view or explicitly edit photography. ' +
       'Read blender_scene_get first and pass its current baseRevision, both entity IDs and an explicit frame. ' +
       'clearanceMm is a vertical gap, not distance along a surface normal. Requires static geometry without related cross-entity geometry dependencies. ' +
       'The receipt describes this selected pair at that frame; it does not certify physical stability, collisions with other objects or the movement path. ' +

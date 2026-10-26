@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.20.0 is published on GitHub and npm.** Resize a complete metal lamp after moving or turning it around its vertical axis, retaining placement, finish, cameras and saved history. Full acceptance, fresh installation, the three public installation routes and the community index/catalog at 0.20.0 have been verified. See the [release record](deepblend/docs/releases/0.20.0.md). The current [whole-lamp placement candidate](deepblend/docs/lamp-assembly-placement.md) combines movement, turning and placement on a measured surface in one save; it is not yet released.
+**0.21.0 is published on GitHub and npm.** Move, turn and place a complete metal lamp on a measured surface in one save, then continue editing its dimensions. Full acceptance, fresh installation and the three public installation routes have been verified. The community catalogs still serve 0.20.0 as of October26; see the [release record](deepblend/docs/releases/0.21.0.md). The current [complete-view candidate](deepblend/docs/complete-view.md) saves a new static product view after a move, preserving the original cameras and animation; it is not yet released.
 
 Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 
@@ -131,7 +131,7 @@ bulges; the tutorial preserves that limitation. The recipe has no animation trac
 | **Work with an agent** | Describe a scene, inspect previews and make bounded changes with the DeepBlend Studio preset | [Agent creation guide](deepblend/docs/quick-start.md#work-with-an-agent) |
 | **Build your own recipes or tools** | Validate scene documents and content through the typed public SDK | [Authoring SDK](deepblend/docs/public-api.md) |
 
-The agent preset provides **19 model-visible tools** for scenes, assets, previews, visual review and delivery.
+The agent preset provides **20 model-visible tools** for scenes, assets, complete fitted views, previews, visual review and delivery.
 You can use the gallery and manual workbench controls for your first creation before asking an agent to edit it.
 
 Try this in a session using the DeepBlend Studio preset:
@@ -262,7 +262,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 46 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 48 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)

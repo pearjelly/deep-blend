@@ -892,6 +892,9 @@ def build_camera(spec, entity_positions):
     data = bpy.data.cameras.new(name="%s%s" % (CAMERA_PREFIX, camera_id))
     data.lens = float(spec.get("lens", 50.0))
     data.sensor_width = float(spec.get("sensorWidth", 36.0))
+    data.sensor_height = float(spec.get("sensorHeight", 24.0))
+    data.sensor_fit = spec.get("sensorFit", "AUTO")
+    data.shift_x, data.shift_y = spec.get("shift", [0.0, 0.0])
     clipping = spec.get("clipping")
     if clipping:
         data.clip_start = float(clipping[0])
@@ -947,7 +950,9 @@ def build_camera(spec, entity_positions):
         focus_object = None
         if target_entity is not None:
             focus_object = bpy.data.objects.get("%s%s" % (ENTITY_PREFIX, target_entity))
-        if focus_object is not None:
+        if spec.get("focusDistance") is not None:
+            data.dof.focus_distance = float(spec["focusDistance"])
+        elif focus_object is not None:
             # Focusing the object rather than a distance keeps a MOVING subject
             # sharp for the whole shot instead of only at the frame it was
             # measured on.

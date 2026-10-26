@@ -112,6 +112,31 @@ export interface GeometryInspectionReport {
   objectAxisBasis?: 'evaluated-object-axes-scaled'; surfaceSamples?: unknown[]; checkpointSha256: string; checkpointUnchanged: true;
   frame: number; blenderVersion: string; objects: GeometryInspectionObject[];
 }
+/** Read-only proposal or verification of a new static camera over complete selected mesh sets. */
+export type CameraFitRequest = RuntimeOptions & {
+  checkpointPath: string; checkpointSha256: string; entityIds: string[]; assetInstanceIds: string[];
+  frame: number; cameraId: string; fittedCameraId: string; margin: number; jobId?: string;
+} & ({ baselineCheckpointPath: string; baselineCheckpointSha256: string }
+  | { baselineCheckpointPath?: never; baselineCheckpointSha256?: never });
+export interface CameraFitMember {
+  entityId: string; meshObjectCount: number; vertexCount: number; geometrySha256: string;
+  worldBoundsMeters: { min: Vec3; max: Vec3 };
+  projection: { containedInClip: boolean; nearestDepthMeters: number; farthestDepthMeters: number;
+    containedInFrame: boolean; normalizedBounds?: { min: [number, number]; max: [number, number] } };
+}
+export interface CameraFitReport {
+  schemaVersion: 'deepblend.camera-fit/v1'; entityIds: string[]; assetInstanceIds: string[];
+  frame: number; cameraId: string; fittedCameraId: string; margin: number;
+  checkpointSha256: string; checkpointUnchanged: true; blenderVersion: string; members: CameraFitMember[];
+  view: { resolution: [number, number]; percentage: number; pixelAspect: [number, number]; activeCamera: string | null };
+  camera: { id: string; lens: number; sensorWidth: number; sensorHeight: number; sensorFit: 'AUTO' | 'HORIZONTAL' | 'VERTICAL';
+    shift: [number, number]; clipping: [number, number]; fStop?: number; matrixWorld: number[][];
+    focusDistance: number; focusObject: string | null };
+  proposal?: import('./schema-types.js').Camera;
+  baselineVerification?: { checkpointSha256: string; checkpointUnchanged: true; selectedGeometryUnchanged: true;
+    originalObjectsUnchanged: true; opticsAndRotationPreserved: true; maxVertexErrorMeters: number;
+    toleranceMeters: number; originalObjectCount: number };
+}
 /** Read-only world-Z placement over complete evaluated meshes at one explicit frame. */
 export type SurfacePlacementRequest = RuntimeOptions & {
   checkpointPath: string; checkpointSha256: string; subjectEntityId: string; supportEntityId: string;
@@ -297,6 +322,8 @@ export interface LocalBlenderRuntime extends BlenderRuntime {
   inspectSurfacePlacement?(request: SurfacePlacementRequest): Promise<RuntimeActionResult<SurfacePlacementReport>>;
   /** Complete explicit member union and optional rigid candidate proof, always in an isolated batch. */
   inspectAssemblyPlacement?(request: AssemblyPlacementRequest): Promise<RuntimeActionResult<AssemblyPlacementReport>>;
+  /** Read-only proposal or independent full-mesh verification of one static fitted view. */
+  inspectCameraFit?(request: CameraFitRequest): Promise<RuntimeActionResult<CameraFitReport>>;
   runBootstrap(request: BlenderBootstrapRequest, options?: BootstrapOptions): Promise<BootstrapRunOutcome>;
   openSession(options?: RuntimeOptions & { cwd?: string; args?: string[] }): Promise<BlenderSession>;
   attachSession(socketPath: string, options?: { timeoutMs?: number }): Promise<BlenderSession>;

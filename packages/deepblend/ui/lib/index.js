@@ -723,6 +723,7 @@ export function createHandlers(ctx) {
         creationRequestProtocol: studio().creationRequestProtocol ?? null,
         cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
         assemblyPlacementSupported: studio().assemblyPlacementSupported === true,
+        cameraFitSupported: studio().cameraFitSupported === true && typeof studio().fitCamera === 'function',
         selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
@@ -948,6 +949,10 @@ export function createHandlers(ctx) {
     'project.surfacePlacement': async ({ params, body, signal }) => {
       if (studio().assemblyPlacementSupported !== true || typeof studio().placeOnSurface !== 'function') throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to place the complete lamp')
       return { revision: await studio().placeOnSurface({ ...body, projectId: params.projectId, renderPreview: true, signal }) }
+    },
+    'project.cameraFit': async ({ params, body, signal }) => {
+      if (studio().cameraFitSupported !== true || typeof studio().fitCamera !== 'function') throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to save a complete view')
+      return { revision: await studio().fitCamera({ ...body, projectId: params.projectId, renderPreview: true, signal }) }
     },
 
     'project.restore': async ({ params, body }) => {

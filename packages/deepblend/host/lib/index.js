@@ -29,6 +29,7 @@ import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
 import { readRecipeContext } from './recipe-state.js'
 import { assemblyPlacementChanges } from './assembly-changes.js'
 import { normalizeSurfacePlacementRequest } from './surface-placement.js'
+import { normalizeCameraFitRequest } from './camera-fit.js'
 import { describeLampAssemblyPlacement } from './assembly-surface-placement.js'
 import { instantiateRecipeLock, planRecipeGeometryEdit, recipeGeometryParameters } from '@deepblend/dsh-blender-contracts'
 import { Service } from '@deepseek-ai/cordis'
@@ -645,6 +646,7 @@ export default class BlenderStudio extends Service {
   get recipeParameterEditingSupported() { return true }
   get surfacePlacementSupported() { return true }
   get assemblyPlacementSupported() { return true }
+  get cameraFitSupported() { return true }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
@@ -837,6 +839,16 @@ export default class BlenderStudio extends Service {
     return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
       projectDirectory: this.store.projectDirectory(input.projectId),
       surfacePlacementReceipt: structuredClone(outcome.revision.surfacePlacementReceipt),
+      idempotentReplay: outcome.idempotentReplay === true, replayOf: outcome.replayOf ?? null,
+      idempotencyKey: outcome.idempotencyKey, idempotencyKeyDerived: outcome.idempotencyKeyDerived === true,
+      job: toCanonicalJobRecord(outcome.job), warnings: outcome.warnings, scene: outcome.sceneSummary }
+  }
+
+  async fitCamera(request) {
+    const input = normalizeCameraFitRequest(request, this.store.projectsRoot)
+    const outcome = await this.transactions.fitCamera(input, { signal: request.signal })
+    return { ...toCanonicalRevisionSummary({ manifest: outcome.revision, checkpointPath: outcome.revision.checkpoint }),
+      projectDirectory: this.store.projectDirectory(input.projectId), cameraFitReceipt: structuredClone(outcome.revision.cameraFitReceipt),
       idempotentReplay: outcome.idempotentReplay === true, replayOf: outcome.replayOf ?? null,
       idempotencyKey: outcome.idempotencyKey, idempotencyKeyDerived: outcome.idempotencyKeyDerived === true,
       job: toCanonicalJobRecord(outcome.job), warnings: outcome.warnings, scene: outcome.sceneSummary }

@@ -446,6 +446,26 @@ the current revision and repeat the affected views with the same settings.
    is unavailable, explain the saved conflict; a single base placement does not
    establish the other members' placement or the complete lamp's clearance.
 
+   To save a complete view after placement, use `blender_camera_fit` with projectId,
+   the current baseRevision, explicit entityIds, source cameraId, a distinct unused
+   fittedCameraId and explicit frame. For the whole supported lamp, pass all IDs from
+   scene.assemblyPlacement.memberEntityIds (23), not only its base or review subject.
+   It supports 1–64 whole mesh entities or complete imported asset roots, subject to
+   aggregate native budgets. The default margin is 0.03 on every frame edge. It keeps
+   the evaluated source camera direction, roll and optics, adds one static camera,
+   and independently verifies every selected evaluated vertex against the saved
+   baseline before publishing the checkpoint and same-frame preview. Original cameras,
+   order, shots and animation remain intact; the new view does not become an animated
+   shot. Inspect the saved cameraFitReceipt and actual returned image. A retry must
+   reuse the exact logical request and idempotencyKey, even after later revisions.
+   If a refusal requests a fresh baseRevision, reread the scene and choose a new unused
+   camera ID for that new intent. Do not replace refused evidence with a guessed
+   distance, cropped screenshot or partial selection. Framing proves complete geometry
+   bounds at this frame and native preview aspect; it does not prove occlusion-free
+   visibility, artistic quality, shader displacement or a whole animation range.
+   Changing the delivery aspect requires its own projection check. File paths remain
+   relative to the returned projectDirectory; failed attachment does not undo the save.
+
    For framing, select the required complete subjects and `geometryCameraId` at an
    explicit `geometryFrame`; use `geometryAssetInstanceIds` for imported subjects.
    `geometryCameraMargin` defaults to 0.03. Read cameraProjection.normalizedBounds,

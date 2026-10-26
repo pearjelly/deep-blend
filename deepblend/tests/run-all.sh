@@ -182,6 +182,12 @@ run_suite "Complete lamp placement: native23-member pose, actual support, contin
 run_suite "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls" \
   node deepblend/tests/e2e/lamp-assembly-placement-ui.e2e.mjs
 
+run_suite "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal" \
+  node deepblend/tests/blender-integration/camera-fit.e2e.mjs
+
+run_suite "Complete view workbench: native23-member fit, preserved animation and exact refresh replay" \
+  node deepblend/tests/e2e/camera-fit-ui.e2e.mjs
+
 run_suite "Linked speaker dimensions: native assembly creation and historical project protection" \
   node deepblend/tests/e2e/linked-speaker-ui.e2e.mjs
 

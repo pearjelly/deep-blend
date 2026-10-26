@@ -25,6 +25,7 @@
 | `blender_scene_get` | M1 | 自动 | 读 |
 | `blender_scene_patch` | M1 | 自动，受策略约束 | **写**（提交新 revision） |
 | `blender_place_on_surface` | 实际表面放置 | 自动，受策略约束 | **写**（单实体放置或明确的完整台灯摆放，保存新 revision） |
+| `blender_camera_fit` | 完整取景 | 自动，受策略约束 | **写**（为明确部件及帧新增静态相机，经原生核验后保存 revision） |
 | `blender_preview_render` | M1 | 自动 | 读（写产物，不改场景） |
 | `blender_scene_validate` | M1 | 自动 | 读（可 dry-run patch） |
 | `blender_preview_views` | M2 | 自动 | 读（写产物，不改场景） |
@@ -59,7 +60,7 @@
 `REVISION_RESTORE_CONFIRMATION_REQUIRED`，且不会调用 Host。
 
 **规则**：模型能看到的工具就是运行时要兑现的承诺（SPEC §11.1）。因此未实现的能力
-**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **19** 个
+**不注册**，而不是注册后抛错。`tool-plane-m3.e2e.mjs` 断言目录里恰好是上面这 **20** 个
 （M0/M1 的 7 个 + M2 的 3 个 + M3 的 4 个 + M5 的 2 个 + 配方发现 1 个 + 已有装配参数 1 个 + 实际表面放置 1 个）；`tool-plane-m1.e2e.mjs` 与 `tool-plane-m2.e2e.mjs` 继续断言**它们各自
 那一批**的可兑现性——每个里程碑的套件断言自己那批工具，而不是断言当时的总数，否则
 每加一个里程碑都要改前面所有套件。
@@ -562,6 +563,34 @@ geometryComparison.assemblyOriginComparison差值。原点差不是表面外露�
 旧 Host 必须同时具有 `surfacePlacementSupported:true` 和 `placeOnSurface` 方法；
 否则返回 `BLENDER_RUNTIME_UNAVAILABLE`，提示升级 Host bundle 并重启 profile，且不发起写操作。
 
+### 3.4.2 `blender_camera_fit`
+
+| 参数 | 类型 | 必需 | 说明 |
+|---|---|---|---|
+| `projectId` / `baseRevision` | string | **是** | 已有项目及刚读取的当前版本 |
+| `entityIds` | string[] | **是** | 1–64 个明确的完整网格实体或导入资产根；整盏灯用 `scene.assemblyPlacement.memberEntityIds` 的全部 23 个 ID |
+| `cameraId` | string | **是** | 已保存的来源透视相机，使用指定帧的实际方向、滚转及光学设置 |
+| `fittedCameraId` | string | **是** | 不同且尚未使用的新相机 ID |
+| `frame` | integer | **是** | 明确检查帧，0–1,000,000 |
+| `margin` | number | 否 | 每侧画幅比例，0–0.25，默认 0.03 |
+| `renderPreview` | boolean | 否 | 默认 true；UI 始终请求实际预览 |
+| `idempotencyKey` | string | 否 | 同一逻辑请求重放；换参数需使用新意图及新键 |
+
+实际 Blender 读取受保护的旧 checkpoint，测量全部选中评估顶点，计算机位，
+仅新增一个静态相机。候选编译后再次独立投影，逐顶点及拓扑对照源几何，并核对原物体、
+摄影和渲染画幅。保留原相机顺序、镜头、动画、灯光、材质和全部实体，不自动切换原镜头。
+景深启用时，新相机的焦点距离对准所选边界中心深度。
+
+返回标准保存修订摘要及 `cameraFitReceipt`，其中保留明确选择、来源/结果 checkpoint
+摘要、原生投影范围和完整性核验。总预算另计：最多 128 个网格、200 万顶点及 200 万面；
+普通几何检查每次 8 个实体的上限不变。隐藏部件、实例、模拟或不受支持的几何依赖将明确拒绝。
+默认预览只读取和附加本次已保存的图，不为附图再渲染。旧 Host 缺少 `cameraFitSupported`
+或 `fitCamera` 时提示升级及重启，不发起写入。
+
+核验范围为指定帧和当前预览画幅的全部几何边界。遮挡、透明材质、着色器位移、美术质量及
+动画范围不在证明内；改变交付画幅后需要另行核验。保存失败、取消或来源变化时不发布候选版本。
+同一请求的重试先查已保存结果，即使当前版本已经向前推进，也返回原结果而不创建重复相机。
+
 ### 3.5 `blender_preview_render`
 
 | 参数 | 类型 | 说明 |
@@ -887,6 +916,7 @@ M3 新增的：
 | `GET /deepblend/projects/:projectId/recipe-parameters` | 读 | 读取指定版本的整套尺寸控制与受控几何冲突。 |
 | `POST /deepblend/projects/:projectId/recipe-parameters` | **写** | 检查 `baseRevision`，保存受约束的整套尺寸为原子版本；保留独立样式和历史。 |
 | `POST /deepblend/projects/:projectId/surface-placement` | **写** | 使用明确的主体/完整台灯作用域、支承、位姿与帧，经过原生测量和候选核验后保存一个版本及预览。 |
+| `POST /deepblend/projects/:projectId/camera-fit` | **写** | 为明确部件、来源相机及帧另存静态机位，独立核验完整几何入镜后保存一个版本及预览。 |
 | `POST /deepblend/projects/:projectId/restore` | **写** | Move the current pointer to a saved revision; preserve history. Optional `expectedCurrentRevision` rejects intervening edits. |
 | `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |

@@ -1,6 +1,6 @@
 # DeepBlend Studio
 
-[0.20.0 发布与验收范围](deepblend/docs/releases/0.20.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
+[0.21.0 发布与验收范围](deepblend/docs/releases/0.21.0.md) · [DeepSeek 1017 / DSH 0.2.1 适配记录](deepblend/docs/deepseek-1017.md)
 
 ![DeepBlend Studio：创建、调整、渲染。图中为流程示意，不是产品截图](deepblend/docs/brand/banner.png)
 
@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.20.0 已在 GitHub 和 npm 发布**，支持完整金属台灯平移或绕竖轴转向后继续改灯罩直径，保留摆放、材质、相机和历史版本。完整验收、全新安装、公开三路安装和社区两份目录的0.20.0版本均已核验。详见[验收与发布记录](deepblend/docs/releases/0.20.0.md)。当前开发中的[整灯摆放候选](deepblend/docs/lamp-assembly-placement.md)把移动、转向和落到实际表面合并为一次保存，尚未发布。
+**0.21.0 已在 GitHub 和 npm 发布**，支持完整金属台灯移动、转向并落到实际支承表面，一次保存后继续改尺寸。完整验收、全新安装和公开三路安装均已核验；10月26日观察到的社区两份公开目录仍为0.20.0。详见[验收与发布记录](deepblend/docs/releases/0.21.0.md)。当前开发中的[完整取景候选](deepblend/docs/complete-view.md)在移动后另存静态机位，保留原相机和动画，尚未发布。
 
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
@@ -307,7 +307,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         149 个 *.test.mjs（当前源码）
+    contract/         154 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -324,10 +324,10 @@ packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
-    python/           bootstrap.py 分派器 + 8 个动作模块（另有 deepblend_util.py 这一份工具）
+    python/           bootstrap.py 分派器 + 9 个动作模块（另有 deepblend_util.py 这一份工具）
                       deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
-  tool/               19 个模型可见工具（Agent preset 平面，不发布服务）
+  tool/               20 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
                       手写的 CJS 工厂，无打包步骤 —— 改一行存盘即可在打开的页面里看到）
   bundle/             Host Bundle：cordis.patch.yml + dsh.bundle 声明
@@ -366,7 +366,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 30/149 file(s) passed
+DeepBlend tests: 30/154 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -426,8 +426,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**46 个套件、194 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）是
-**149 个文件 = 2130 项自计断言（34 个文件打印计数）+ 2066 个 `node:test` 用例（115 个文件）**。
+预期：**48 个套件、201 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
+**154 个文件 = 2131 项自计断言（34 个文件打印计数）+ 2137 个 `node:test` 用例（120 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -438,7 +438,7 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **2026-10-26 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-当前源码新增整灯摆放与浏览器检查，以上结构、断言与用例数均已实际复测；冻结来源的完整 149 文件与 46 套发布验收另行记录。0.20 发布来源的完整契约为 146/146。
+断言和用例数从 0.22 候选冻结来源 `c4f17bf` 的同一次完整 154/154 成功日志逐文件提取，未为计数额外重跑。当前完整 48 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
 此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
@@ -464,7 +464,7 @@ node deepblend/tests/composition/activation.e2e.mjs             # Host compositi
 node deepblend/tests/composition/tool-plane.e2e.mjs             # M0 preset 工具面 + 降级
 node deepblend/tests/composition/tool-plane-m1.e2e.mjs          # M1 的 7 个工具 + 无 checkpoint 的 revision 仍然可预览
 node deepblend/tests/composition/tool-plane-m2.e2e.mjs          # M2 全部 10 个工具 + 图片回传
-node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 19 个工具 + 真实交付
+node deepblend/tests/composition/tool-plane-m3.e2e.mjs          # 全部 20 个工具 + 真实交付
 node deepblend/tests/composition/hardening.e2e.mjs              # M5 安全加固：白名单/截止时间/输出上限/采样预算/工作区边界
 node deepblend/tests/composition/concurrency.e2e.mjs            # M5 并发：两个会话打同一个 store，以及把它们隔开的 realm
 node deepblend/tests/composition/approval.e2e.mjs               # M5 审批：阈值以上没有授权就一帧都不渲
@@ -575,7 +575,7 @@ dsh --profile web --dump-config | grep -A6 deepblend    # 确认三行已组合�
 dsh web                                                 # 重启后生效
 ```
 
-**DeepBlend 开发模式** 与 **DeepBlend Studio** 的 DeepBlend 工具清单为 **19 个**。
+**DeepBlend 开发模式** 与 **DeepBlend Studio** 的 DeepBlend 工具清单为 **20 个**。
 正式 preset 不包含通用 Shell、文件写入、Web 和 Creator Tool；开发模式另带调试工具。
 
 ---
@@ -746,7 +746,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 46 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 48 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

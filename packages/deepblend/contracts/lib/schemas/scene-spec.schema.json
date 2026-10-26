@@ -946,6 +946,29 @@
         },
         "fStop": {
           "$ref": "#/$defs/positiveNumber"
+        },
+        "sensorHeight": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sensorFit": {
+          "type": "string",
+          "enum": [
+            "AUTO",
+            "HORIZONTAL",
+            "VERTICAL"
+          ]
+        },
+        "shift": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "focusDistance": {
+          "$ref": "#/$defs/positiveNumber",
+          "description": "Explicit focus distance in metres. With fStop, overrides automatic target focus without changing camera aim."
         }
       }
     },
