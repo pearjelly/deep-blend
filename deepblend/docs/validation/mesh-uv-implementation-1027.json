@@ -571,11 +571,9 @@
     }
   ],
   "pending": [
-    "fresh real model comparison",
-    "final frozen full49 acceptance",
-    "exact-commit GitHub CI",
-    "clean build/install validation",
-    "GitHub Release/npm/community standard publication"
+    "New frozen source complete49 and exact-source Linux CI after direct dpkg correction",
+    "Fresh final merged-source build and full installed acceptance",
+    "GitHub/npm/public-route/community publication and readback"
   ],
   "exploratoryContractRuns": [
     {
@@ -835,7 +833,7 @@
     "scope": "Unmodified canonical 49-suite run-all entry. Paid live suites are excluded from this canonical entry; their separate actual outcomes are retained. The exact source and all tracked bytes are checked before/after."
   },
   "ciFontPreparationFix": {
-    "status": "readiness-passed-final-source-ci-and-full49-pending",
+    "status": "historical-complete49-and-ci332-passed-main-reacquisition-gap-found",
     "failedWorkflow": 40403858406,
     "failedCupJobs": [
       121856437648,
@@ -845,7 +843,7 @@
     "nativeCupSteps": "not-started",
     "failuresPreserved": true,
     "rootCause": "Large fonts-noto-cjk download via Ubuntu Azure HTTP mirror exceeded outer300000ms command limit twice before native tests.",
-    "strategy": "Authenticated current APT metadata; bounded official HTTPS primary then one transport-only official mirror fallback; ordinary-file size/SHA256/dpkg-deb identity, rehashed cache, installed version and actual CJK family.",
+    "strategy": "Authenticated current APT metadata; bounded official HTTPS primary then one transport-only official mirror fallback; ordinary-file size/SHA256/dpkg-deb identity, rehashed cache, installed version and actual CJK family. This first strategy still passed the verified path to APT; the later main run exposed remote reacquisition and requires the separate direct-install correction.",
     "mutationFirstPass": {
       "count": 29,
       "caught": 22,
@@ -1038,7 +1036,7 @@
       "fileSuitesPassed": 155,
       "fileSuitesTotal": 155,
       "logSha256": "8169c77ba55378945b308ba830ecbc8a005f37adf084c28c00edaeb519935c1b",
-      "scope": "Actual precommit CI font fix working-tree readiness; final frozen canonical49 acceptance is separate."
+      "scope": "Historical actual precommit first-font-fix readiness; source41eedff subsequently completed49 and CI332. Later direct-install correction has separate acceptance."
     },
     "countSnapshot": {
       "files": 155,
@@ -1056,5 +1054,197 @@
     "runtimePinsChanged": false,
     "sourceProductFileCount": 202,
     "modelCallsAdded": 0
+  },
+  "completedFrozenFullV4": {
+    "startedAt": "2026-10-26T22:50:59.196315+00:00",
+    "finishedAt": "2026-10-26T23:46:37.253204+00:00",
+    "sourceCommit": "41eedff7959eaf3ac16ef88570924b7db26801ae",
+    "versions": {
+      "node": "v24.22.0",
+      "npm": "11.20.0",
+      "pnpm": "10.28.2",
+      "dsh": "0.1.5-rc.2",
+      "python3": "Python 3.14.2",
+      "ffmpeg": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobe": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+    },
+    "sourceFiles": 1037,
+    "allSourceBytesUnchanged": true,
+    "runtimeExecutableSha256": "0ff7f1d72c4e0cbe14001709c81e20a04b70464118a7f78568952988e28f2ac5",
+    "runtimeExecutableUnchanged": true,
+    "changedPaths": [],
+    "exitCode": 0,
+    "passed": true,
+    "logSha256": "0bbd1d1798926053b592d2ba62cbe168b9c41d4aff494d204e473b3f7c71e022",
+    "suiteSuccessLines": [
+      "unit + contract (no Blender required)",
+      "Blender capability probe (M0)",
+      "Blender batch SceneSpec + revision loop (M1)",
+      "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+      "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+      "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+      "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+      "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+      "Asset library: real uploads, isolated previews and source fidelity",
+      "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+      "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+      "Host composition activation",
+      "Agent preset tool plane + degradation path (M0)",
+      "Agent preset M1 tool plane (all seven tools)",
+      "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+      "Agent preset M2 tool plane (all ten tools, image return)",
+      "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+      "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+      "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+      "Agent preset M3 tool plane (all nineteen tools, real delivery)",
+      "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+      "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+      "M5 approval: the threshold refuses an unapproved expensive render",
+      "M5 assets: local automatic, network approved, and the caps in between",
+      "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+      "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+      "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+      "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+      "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+      "First creation recovery: actual failures, lost reply, retry and immutable native output",
+      "Photography editor: native camera and light edits, saved inspections and conditional restore",
+      "Asset library in a real browser: upload, preview, apply and revision conflicts",
+      "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+      "Handled cup editor: real dimensions, refusals and revision reload",
+      "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+      "Mesh UV projection: real editor save, native area and revision protection",
+      "Recipe versions: native UV defaults, gallery selection and historical project locks",
+      "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+      "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+      "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection",
+      "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls",
+      "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal",
+      "Complete view workbench: native23-member fit, preserved animation and exact refresh replay",
+      "Linked speaker dimensions: native assembly creation and historical project protection",
+      "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+      "Preview history: native attempts, source labels, editor comparison and restore",
+      "Independent Host processes: native previews, protected indices and sheet rotation",
+      "Review history: independent native Hosts, immutable image pairs and latest QA",
+      "Fixed-view inspection workbench: real images, revision history and cancellation"
+    ],
+    "failureLines": [],
+    "scope": "Unmodified canonical 49-suite run-all entry. Paid live suites are excluded from this canonical entry; their separate actual outcomes are retained. The exact source and all tracked bytes are checked before/after.",
+    "runtimeExecutableRecordedByDigest": true
+  },
+  "completedCi332": {
+    "runId": 40415524267,
+    "sourceCommit": "41eedff7959eaf3ac16ef88570924b7db26801ae",
+    "passed": true,
+    "sourceTree": "2b5220f292ee9ae3f057fcba0dd9cb1d44215276",
+    "checks": 5,
+    "archives": 4,
+    "proofSha256": "673d3924dbeca4f45be6ea6cdd4ada1bd5b6a1d872ae7ff472e74cce798a4f14"
+  },
+  "ciFontDirectInstallCorrection": {
+    "status": "targeted-controls-passed-new-frozen-full49-and-ci-pending",
+    "failedMainRun": 40422738434,
+    "failedModernJob": 121920888803,
+    "sourceCommit": "01598c4c753e5b13833117a796b935365a9be74b",
+    "failure": "Verified HTTPS download succeeded; APT reacquired the same version remotely and timed out before modern native steps.",
+    "originalFailureRetained": true,
+    "strategy": "APT prepares other dependencies without the font; reverify local archive, install only those bytes with dpkg, preserve stdout/SHA256, then recheck installed version and CJK family.",
+    "targeted": {
+      "passed": true,
+      "cases": 48,
+      "logSha256": "1124b7d246ff59d5d527d62cf2f9f672ca8bc6ef3029b9406b6b3ff4f77d6f13"
+    },
+    "productBytesChanged": false,
+    "modelRequestsAdded": 0,
+    "mutationFinal": {
+      "schemaVersion": "deepblend.ci-font-local-install-mutations/v1",
+      "passed": true,
+      "syntheticControlsOnly": true,
+      "actualLinuxCiStillRequired": true,
+      "sourceRestored": true,
+      "mutations": [
+        {
+          "name": "skip-immediate-reverification",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "1c195e9e265c812bd54fd9b7158de05aac14523699f7752513e4b59971c0a14a"
+        },
+        {
+          "name": "apt-reacquires-local-font",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "3eae142abdeaf532f17029ef890f6570c7834258d6e91812ff4aaa1dfc7dadce"
+        },
+        {
+          "name": "skip-local-installation",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "52366fb44464b8b4636b01a5e76ddef8466cd67047ef508c9cbf98697a2110e4"
+        },
+        {
+          "name": "only-unpack-without-configuring",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "6ef2c9de5b876feeccd1b05989f7fbdd04a3fd490c8c48c47b6834397196e4d6"
+        },
+        {
+          "name": "omit-installation-provenance",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "e9149345646ab869692026f62956f896837cb71a0114afe25cbcd191254f8cca"
+        },
+        {
+          "name": "wrong-installation-digest",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "877020747329e6fbe463c32b05731c25c448e6b43ffe8a742a135abb45ed0127"
+        },
+        {
+          "name": "silence-dpkg-error",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "615fb90f5f1e823d95298717b58aa1b58b7b8c2689ee5e82bd466cf124344d41"
+        },
+        {
+          "name": "omit-dpkg-stdout",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "ba24b7b742bba9d6d003e3a41e62ed4c7aa1a5c5d01d2f5e2aedcd85baaecbdb"
+        },
+        {
+          "name": "wrong-dpkg-stdout-digest",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "7f5891314e598b84dc24dcc1fe3ef95d105168205a92fdb9a8c5b2e070173b78"
+        },
+        {
+          "name": "include-font-in-general-apt-install",
+          "exitCode": 1,
+          "caught": true,
+          "logSha256": "5ce36197641693875a35f84290581a30138704f3e67e230b2ae746c836d18e3f"
+        }
+      ],
+      "finishedAt": "2026-10-27T00:13:26.780271+00:00"
+    },
+    "mutationAttempts": [
+      {
+        "controller": "v1",
+        "caught": 8,
+        "count": 8,
+        "scope": "Before retaining dpkg stdout"
+      },
+      {
+        "controller": "v2",
+        "status": "precondition-failed-before-first-injection",
+        "cause": "Statement gained stdout assignment; original mutation pattern no longer matched.",
+        "sourceRestored": true,
+        "failureRetained": true
+      },
+      {
+        "controller": "v3",
+        "caught": 10,
+        "count": 10,
+        "scope": "Final stdout-bearing source; complete original sources restored"
+      }
+    ]
   }
 }
