@@ -38,7 +38,7 @@ function installedVersion(execute) {
   return null
 }
 export function withCiFont(execute, { cacheDirectory, reportDirectory } = {}, install) {
-  const report = { schemaVersion: 'deepblend.ci-font/v1', package: PACKAGE, attempts: [], passed: false }
+  const report = { schemaVersion: 'deepblend.ci-font/v2', package: PACKAGE, attempts: [], passed: false }
   try {
     const previous = installedVersion(execute)
     let argument = PACKAGE, pin
@@ -75,7 +75,16 @@ export function withCiFont(execute, { cacheDirectory, reportDirectory } = {}, in
         } finally { rmSync(partial, { force: true }) }
       }
     }
-    install(argument)
+    // Prepare fontconfig and the other runner libraries without passing the font
+    // to APT: APT can reacquire the same version from its remote index even when
+    // given a local .deb. dpkg consumes only the archive verified immediately here.
+    install()
+    if (!previous) {
+      verifyArchive(argument, pin, execute)
+      const output = execute('sudo', ['dpkg', '--install', argument])
+      report.installation = { method: 'verified-local-dpkg', archiveSha256: pin.SHA256,
+        output, outputSha256: createHash('sha256').update(output).digest('hex') }
+    } else report.installation = { method: 'already-installed' }
     report.installedVersion = installedVersion(execute)
     if (!report.installedVersion || report.installedVersion !== (pin?.Version ?? previous)) throw new Error('CJK font installation differs')
     report.matchedFamily = execute('fc-match', ['--format=%{family}\n', 'Noto Sans CJK SC:lang=zh-cn']).trim()

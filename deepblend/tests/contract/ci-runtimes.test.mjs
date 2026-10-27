@@ -157,7 +157,7 @@ test('CI library preparation bounds acquisition for both apt commands and requir
     ['apt-cache', ['show', '--no-all-versions', 'libfixture']],
     ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'fonts-noto-cjk']],
     ['sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
-      'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', 'fonts-noto-cjk', 'libfixture']],
+      'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', 'libfixture']],
     ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'fonts-noto-cjk']],
     ['fc-match', ['--format=%{family}\n', 'Noto Sans CJK SC:lang=zh-cn']],
     ['dpkg-query', ['--show', '--showformat=${db:Status-Status}\t${db:Status-Eflag}\t${Version}\n', 'libfixture']],
@@ -267,7 +267,7 @@ function fontFixture(t, options = {}) {
       return ''
     }
     if (command === 'dpkg-deb') return options.identity ?? `fonts-noto-cjk\t${version}\tall\n`
-    if (command === 'sudo' && args.includes('install')) installed = true
+    if (command === 'sudo' && args[0] === 'dpkg' && args[1] === '--install') { installed = true; return 'original dpkg output\n' }
     if (command === 'fc-match') return options.family ?? 'Noto Sans CJK SC\n'
     return ''
   }
@@ -293,21 +293,33 @@ test('production CI font preparation installs only verified local bytes and reta
     '--connect-timeout', '15', '--max-time', '120', '--speed-limit', '1024', '--speed-time', '30', '--output', `${f.cache}.partial-${process.pid}`])
   assert.equal(download.at(-1), 'https://archive.ubuntu.com/ubuntu/' + parseCiFontMetadata(f.metadata).Filename)
   const install = f.calls.find(([name, args]) => name === 'sudo' && args.includes('install'))[1]
-  assert.ok(install.includes(f.cache) && !install.includes('fonts-noto-cjk') && install.includes('fontconfig'))
+  assert.ok(!install.includes(f.cache) && !install.includes('fonts-noto-cjk') && install.includes('fontconfig'))
+  const localInstall = f.calls.find(([name, args]) => name === 'sudo' && args[0] === 'dpkg')[1]
+  assert.deepEqual(localInstall, ['dpkg', '--install', f.cache])
+  const indices = f.calls.flatMap(([name], index) => name === 'dpkg-deb' ? [index] : [])
+  assert.equal(indices.length, 2)
+  assert.ok(indices[0] < f.calls.indexOf(f.calls.find(([, args]) => args === install)))
+  assert.ok(indices[1] > f.calls.indexOf(f.calls.find(([, args]) => args === install)))
+  assert.ok(indices[1] < f.calls.indexOf(f.calls.find(([, args]) => args === localInstall)))
   assert.ok(f.calls.findIndex(([name]) => name === 'dpkg-deb') < f.calls.findIndex(([name, args]) => name === 'sudo' && args.includes('install')))
   assert.deepEqual(readFileSync(f.cache), f.bytes)
   const report = f.report()
   assert.equal(report.passed, true); assert.equal(report.cacheHit, false); assert.equal(report.installedVersion, f.version)
+  assert.equal(report.schemaVersion, 'deepblend.ci-font/v2')
+  assert.deepEqual(report.installation, { method: 'verified-local-dpkg', archiveSha256: sha(f.bytes),
+    output: 'original dpkg output\n', outputSha256: sha(Buffer.from('original dpkg output\n')) })
   assert.equal(report.matchedFamily, 'Noto Sans CJK SC'); assert.equal(report.attempts.length, 1)
 })
 test('verified CJK cache is rehashed and inspected without a download; installed font needs no metadata fetch', t => {
   for (const installed of [false, true]) {
     const f = fontFixture(t, { installed }); mkdirSync(f.cacheDirectory)
     writeFileSync(f.cache, f.bytes)
-    const result = withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument]))
+    const result = withCiFont(f.execute, f, () => '')
     assert.equal(result.passed, true); assert.equal(f.calls.some(([name]) => name === 'curl'), false)
     assert.equal(f.calls.some(([name]) => name === 'dpkg-deb'), !installed)
     assert.equal(f.calls.some(([name]) => name === 'apt-cache'), !installed)
+    assert.equal(f.calls.some(([name, args]) => name === 'sudo' && args[0] === 'dpkg'), !installed)
+    assert.equal(result.installation.method, installed ? 'already-installed' : 'verified-local-dpkg')
   }
 })
 test('CJK corrupt bytes, wrong package identity and cache symlinks fail before installation without fallback', t => {
@@ -331,7 +343,7 @@ test('CJK corrupt bytes, wrong package identity and cache symlinks fail before i
 })
 test('CJK transport failure makes one bounded official fallback and preserves both attempts', t => {
   const f = fontFixture(t, { failures: [28] })
-  const report = withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument]))
+  const report = withCiFont(f.execute, f, () => '')
   assert.equal(report.passed, true); assert.deepEqual(report.attempts.map(row => row.downloaded), [false, true])
   assert.equal(report.attempts[0].exitCode, 28)
   assert.equal(report.attempts[1].url, 'https://azure.archive.ubuntu.com/ubuntu/' + parseCiFontMetadata(f.metadata).Filename)
@@ -348,7 +360,27 @@ test('CJK exhausted transport and HTTP errors preserve failure and clean partial
 test('CJK post-install version and actual font substitution failures refuse preparation', t => {
   for (const options of [{ installedVersion: '2' }, { family: 'DejaVu Sans\n' }]) {
     const f = fontFixture(t, options)
-    assert.throws(() => withCiFont(f.execute, f, argument => f.execute('sudo', ['apt-get', 'install', argument])), /CJK font installation differs|CJK font family unavailable/)
+    assert.throws(() => withCiFont(f.execute, f, () => ''), /CJK font installation differs|CJK font family unavailable/)
     assert.equal(f.report().passed, false)
   }
+})
+
+test('CJK local archive is reverified after runner preparation, before dpkg can consume it', t => {
+  const f = fontFixture(t)
+  assert.throws(() => withCiFont(f.execute, f, () => writeFileSync(f.cache, Buffer.alloc(f.bytes.length))), /CJK font archive SHA-256 differs/)
+  assert.equal(f.calls.some(([name, args]) => name === 'sudo' && args[0] === 'dpkg'), false)
+  assert.equal(f.report().passed, false)
+})
+test('CJK local dpkg failure is preserved without APT reacquisition or installation retries', t => {
+  const f = fontFixture(t), failure = Object.assign(new Error('original dpkg failure'), { status: 2 })
+  const execute = (command, args) => {
+    if (command === 'sudo' && args[0] === 'dpkg') { f.calls.push([command, args]); throw failure }
+    return f.execute(command, args)
+  }
+  assert.throws(() => withCiFont(execute, f, () => ''), error => error === failure)
+  assert.equal(f.calls.filter(([name, args]) => name === 'sudo' && args[0] === 'dpkg').length, 1)
+  assert.equal(f.calls.some(([name, args]) => name === 'sudo' && args[0] === 'apt-get'), false)
+  assert.equal(f.calls.some(([name]) => name === 'fc-match'), false)
+  assert.equal(f.report().failure.exitCode, 2)
+  assert.equal(f.report().passed, false)
 })

@@ -50,8 +50,8 @@ export function installCiLinuxLibraries(groups, execute, log = console.log, font
   const dependencies = resolveChromeDependencies(groups, execute)
   log(`Selected Chrome libraries: ${dependencies.map(dependency => dependency.name).join(' ')}`)
   // Skip optional upgrades of explicit installed packages; APT still resolves dependencies of missing packages.
-  withCiFont(execute, fontOptions, font => log(execute('sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
-    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', font, ...dependencies.map(dependency => dependency.name)])))
+  withCiFont(execute, fontOptions, () => log(execute('sudo', ['apt-get', ...acquisition, 'install', '-y', '--no-install-recommends', '--no-upgrade',
+    'xz-utils', 'unzip', 'xvfb', 'xauth', 'libegl1', 'libgl1', 'libgl1-mesa-dri', 'mesa-utils', 'fontconfig', ...dependencies.map(dependency => dependency.name)])))
   verifyChromeDependencies(dependencies, execute, log)
 }
 function prepare() {
