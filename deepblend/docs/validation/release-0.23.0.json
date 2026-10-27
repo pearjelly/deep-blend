@@ -1,0 +1,397 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.23.0",
+  "recordedAt": "2026-10-27T03:56:48.190575+00:00",
+  "publishedAt": "2026-10-27T02:27:58Z",
+  "mergedSourceCommit": "ef584e6caca11ff223a9e05b4048b8bf7df8f96a",
+  "acceptedSourceCommit": "4bc34c8b428ad85149a5e5ec7132f0e71207ccc2",
+  "sourceTree": "150e3ceae4248d72fc4e61fa7110911ef8bf30d1",
+  "status": "GitHub/npm published and three installation routes verified; both community checks passed, upstream merge and catalog refresh pending",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.23.0",
+  "fullAcceptanceSuitesPassed": 49,
+  "unitAndContractFilesPassed": 155,
+  "sourceCIChecksPassed": 5,
+  "sourceCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40425302696",
+  "mainCIChecksPassed": 5,
+  "mainCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40433931103",
+  "github": {
+    "assets": 19,
+    "authenticatedDownloadsVerified": true,
+    "anonymousDownloadsVerified": true,
+    "finalNotesVerified": true,
+    "allProviderDigestsAndSizesVerifiedAnonymously": true
+  },
+  "npm": {
+    "packages": 7,
+    "exactVersionAndLatestVerified": true,
+    "anonymousArchiveFilesVerified": 193,
+    "writeAttemptsPerPackage": 1
+  },
+  "installed": {
+    "stages": 6,
+    "gates": 11,
+    "actualUvBrowserHostAndNativeChecks": 23,
+    "collapsedNativeUvTrianglesBefore": 48,
+    "collapsedNativeUvTrianglesAfter": 0
+  },
+  "installationComparison": {
+    "routes": [
+      "source",
+      "npm",
+      "tarball"
+    ],
+    "oneCanonicalRun": true,
+    "version": "0.23.0",
+    "eachRoutePhysicalPackageCopies": 7,
+    "workbenchHttp": 200,
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "packagesFetched": {
+      "source": 19,
+      "npm": 19,
+      "tarball": 1
+    },
+    "filesModesAndFullManifestsVerified": true,
+    "initiallyEmptySharedStore": true,
+    "independentProfiles": true
+  },
+  "bundle": {
+    "bytes": 72706020,
+    "sha256": "aa33f6901820de075ead827f33bf6a0dc98424e498db672d9f2120cbf1682a8b"
+  },
+  "community": {
+    "prUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/9737",
+    "head": "b09524020e3dba7135b0a89271973e59765040d8",
+    "state": "open",
+    "merged": false,
+    "checksPassed": 2,
+    "checksRunUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/40443652038",
+    "submissionGateRunUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/40444458095",
+    "connectorCreationDenied403": true,
+    "authorizedCliCreationSucceededOnce": true,
+    "catalogObservation": {
+      "schemaVersion": "deepblend.community-catalog-observation/v1",
+      "version": "0.23.0",
+      "sourceCommit": "ef584e6caca11ff223a9e05b4048b8bf7df8f96a",
+      "anonymous": true,
+      "normalPublicUrlsWithoutQueryOrCacheBypassRoute": true,
+      "current023InBothCatalogs": false,
+      "observations": [
+        {
+          "url": "https://awesome-dsh-plugin.com/index.json",
+          "at": "2026-10-27T03:41:48.467216+00:00",
+          "anonymous": true,
+          "query": "",
+          "cacheBypassRequested": false,
+          "status": 200,
+          "responseUrl": "https://awesome-dsh-plugin.com/index.json",
+          "bytes": 2817826,
+          "sha256": "8aca200d554a19de6228b79c08f09dd0a68274d7e79a0de201e46261ec77e4a3",
+          "versions": [
+            "0.20.0"
+          ],
+          "entry": {
+            "name": "@deepblend/dsh-blender-bundle",
+            "title": "pearjelly/deep-blend#bundle",
+            "description": {
+              "en": "Create editable Blender product scenes in DSH. Start from speaker, cup and lamp recipes or imported models; view saved results on the Lighttable, compare…",
+              "zh": "在 DSH 中创建可编辑的 Blender 产品场景。从音箱、杯与灯具配方或导入模型开始，在光台查看保存结果、比较版本，调整尺寸、材质、相机与灯光。一次操作将静态模型放到实际网格表面并保存，再另存完整静态取景，保留原相机和动画。渲染图片或分镜影片，也可将一个版本连同素材导出为可编辑副本。原生几何检查、不可变历史和审批闸…"
+            },
+            "homepage": "https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/",
+            "repository": {
+              "url": "https://github.com/pearjelly/deep-blend",
+              "directory": "packages/deepblend/bundle"
+            },
+            "metadata": {
+              "category": "tools",
+              "keywords": [],
+              "labels": [],
+              "sortKeys": {}
+            },
+            "versions": [
+              {
+                "version": "0.20.0",
+                "publishTimestamp": 1792979050,
+                "source": {
+                  "type": "npm"
+                },
+                "engines": {
+                  "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": "ordinary-public-plugin-catalog-read-verified",
+          "at": "2026-10-27T03:47:33.891086+00:00",
+          "url": "https://awesome-dsh-plugin.com/plugins.json",
+          "responseUrl": "https://awesome-dsh-plugin.com/plugins.json",
+          "httpStatus": 200,
+          "anonymous": true,
+          "authorizationHeadersSent": false,
+          "query": "",
+          "cacheBypassRequested": false,
+          "repairOnlyAfterPriorLocalCaptureFailedWithErrno28": true,
+          "bytes": 9211684,
+          "sha256": "e798c8d493ee7041547a47f0a4cd58a473ebd68309e5425dc7c692118b8bd0e1",
+          "versions": [
+            "0.20.0"
+          ],
+          "selectedEntry": {
+            "name": "deep-blend#bundle",
+            "owner": "pearjelly",
+            "url": "https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle",
+            "page": "https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/",
+            "category": "tools",
+            "description": {
+              "en": "Create editable Blender product scenes in DSH. Start from speaker, cup and lamp recipes or imported models; view saved results on the Lighttable, compare revisions, and adjust dimensions, materials, cameras and lights. Place static models on actual mesh surfaces in one saved operation, then save a complete static view while preserving existing cameras and animation. Render images or saved-shot videos and export an editable revision with its assets. Native geometry inspections, immutable revisions and an approval gate help preserve existing work. Supports DSH 0.2.1-rc.1 and the legacy host, with 20 tools for modeling, review and delivery.",
+              "zh": "在 DSH 中创建可编辑的 Blender 产品场景。从音箱、杯与灯具配方或导入模型开始，在光台查看保存结果、比较版本，调整尺寸、材质、相机与灯光。一次操作将静态模型放到实际网格表面并保存，再另存完整静态取景，保留原相机和动画。渲染图片或分镜影片，也可将一个版本连同素材导出为可编辑副本。原生几何检查、不可变历史和审批闸门帮助保留已有作品。适配 DSH 0.2.1-rc.1 并保留旧宿主入口，提供 20 个建模、评审与交付工具。"
+            },
+            "npm": "@deepblend/dsh-blender-bundle",
+            "tarball": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+            "version": "0.20.0",
+            "stars": 101,
+            "downloads": 6760,
+            "downloadsStart": "2026-09-26",
+            "downloadsEnd": "2026-10-25",
+            "downloadsCheckedAt": "2026-10-26",
+            "capabilities": [],
+            "capabilityRedLines": [],
+            "capabilityCheckedAt": "2026-09-24T17:02:46.730Z",
+            "install": "dsh plugin --profile web add @deepblend/dsh-blender-bundle",
+            "added": "2026-09-21",
+            "screenshots": [
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/brand/banner.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/solstice-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/amber-atlas-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/nocturne-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/pagoda/poster.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/render-contact-sheet.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/preview-compare.png"
+            ]
+          },
+          "fullCatalogNotResavedDueToLowDisk": true,
+          "externalWrites": 0,
+          "entry": {
+            "name": "deep-blend#bundle",
+            "owner": "pearjelly",
+            "url": "https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle",
+            "page": "https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/",
+            "category": "tools",
+            "description": {
+              "en": "Create editable Blender product scenes in DSH. Start from speaker, cup and lamp recipes or imported models; view saved results on the Lighttable, compare revisions, and adjust dimensions, materials, cameras and lights. Place static models on actual mesh surfaces in one saved operation, then save a complete static view while preserving existing cameras and animation. Render images or saved-shot videos and export an editable revision with its assets. Native geometry inspections, immutable revisions and an approval gate help preserve existing work. Supports DSH 0.2.1-rc.1 and the legacy host, with 20 tools for modeling, review and delivery.",
+              "zh": "在 DSH 中创建可编辑的 Blender 产品场景。从音箱、杯与灯具配方或导入模型开始，在光台查看保存结果、比较版本，调整尺寸、材质、相机与灯光。一次操作将静态模型放到实际网格表面并保存，再另存完整静态取景，保留原相机和动画。渲染图片或分镜影片，也可将一个版本连同素材导出为可编辑副本。原生几何检查、不可变历史和审批闸门帮助保留已有作品。适配 DSH 0.2.1-rc.1 并保留旧宿主入口，提供 20 个建模、评审与交付工具。"
+            },
+            "npm": "@deepblend/dsh-blender-bundle",
+            "tarball": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+            "version": "0.20.0",
+            "stars": 101,
+            "downloads": 6760,
+            "downloadsStart": "2026-09-26",
+            "downloadsEnd": "2026-10-25",
+            "downloadsCheckedAt": "2026-10-26",
+            "capabilities": [],
+            "capabilityRedLines": [],
+            "capabilityCheckedAt": "2026-09-24T17:02:46.730Z",
+            "install": "dsh plugin --profile web add @deepblend/dsh-blender-bundle",
+            "added": "2026-09-21",
+            "screenshots": [
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/brand/banner.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/solstice-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/amber-atlas-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/nocturne-loop.webp",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/pagoda/poster.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/render-contact-sheet.png",
+              "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/preview-compare.png"
+            ]
+          }
+        }
+      ],
+      "originalLocalCaptureFailureRetained": true,
+      "externalMutations": 0
+    }
+  },
+  "trackedSourceFilesAtRelease": 1037,
+  "allTrackedSourceBytesAndModesUnchangedAtRelease": true,
+  "publicationAttemptsReplayed": false,
+  "retainedProofs": {
+    "full": {
+      "file": "result.json",
+      "bytes": 5401,
+      "sha256": "08a5a904469f2c3cec36405ddbc009d739c33bb23cde03be2a9ca941792dffb1"
+    },
+    "ciArchiveAudit": {
+      "file": "proof.json",
+      "bytes": 1051500,
+      "sha256": "59b1a518277a9cc47755b9f476d41cb1b19e47a2053af112ea1ddf36e81d3f5e"
+    },
+    "finalMainCI": {
+      "file": "release023-final-main-ci-success-v1.json",
+      "bytes": 2806,
+      "sha256": "f08696735cdad790233281dc82f924a67fbe9d43bab8e890e43df23db0615eb3"
+    },
+    "sourceEquivalence": {
+      "file": "release023-source-equivalence-v2.json",
+      "bytes": 1287,
+      "sha256": "8a7156046c24b4c444ddb9c8321f5f6c1685f62e644c1aabe4928ab0934cdaa1"
+    },
+    "build": {
+      "file": "proof.json",
+      "bytes": 1170,
+      "sha256": "a6a9f3a7155a3429f6f313b86d05df6aeb2936e9404eae9ca48cd77e85e7ffba"
+    },
+    "installed": {
+      "file": "summary.json",
+      "bytes": 25464,
+      "sha256": "c9d01b462d863b18c66478764f514e94534a1559fd0c521efaef29dfaeb15acc"
+    },
+    "npmPublication": {
+      "file": "proof.json",
+      "bytes": 10575,
+      "sha256": "dcff3d388eeb1267567d0148a9dd18142b0ddea30f16eaaf057c085ce567c609"
+    },
+    "npmAnonymous": {
+      "file": "proof.json",
+      "bytes": 5469,
+      "sha256": "53a1b2e6b4ab6f470b6b3af11b46632ddb1bf95d8877f6d7ed1729861b663cb0"
+    },
+    "parity": {
+      "file": "proof.json",
+      "bytes": 7647,
+      "sha256": "347dfd3d6fa1afe42d541a9fe32d5e1f528a6a76ffbdb61e59eb0333ba6504db"
+    },
+    "githubInitial": {
+      "file": "proof.json",
+      "bytes": 8492,
+      "sha256": "cb96d08b42360329aeb9bdad7beedbf3f43cfd1d266464ff0dbca38421af3017"
+    },
+    "githubSupplementalInterrupted": {
+      "file": "release023-github-supplemental-controller-interruption-v1.json",
+      "bytes": 751,
+      "sha256": "e91db89481d22e183c04c6dd10d437d750c93eeedede23cb934ae46a58720cdd"
+    },
+    "githubSupplemental": {
+      "file": "proof.json",
+      "bytes": 12475,
+      "sha256": "e1cfdd96e233f40a74e041e772c429ae3b059c5c4dd941f16f170c76ab7104c8"
+    },
+    "githubCloseout": {
+      "file": "proof.json",
+      "bytes": 11871,
+      "sha256": "0ecaaf37550c264ff055bfd8efce218f65445ba34166aad4242f146ee2f11992"
+    },
+    "finalAnonymousMetadata": {
+      "file": "proof.json",
+      "bytes": 695,
+      "sha256": "399974ead4b59f293cacb0bc56d57a41f4d7df18b39ae0573aa19700cebfd5bb"
+    },
+    "communityChecks": {
+      "file": "release023-community-pr9737-ci-proof-v1.json",
+      "bytes": 1213,
+      "sha256": "b6d71f5b2e49c19da0c6a8cce95eec4792dc0684a973eb343a82a03a26597803"
+    }
+  },
+  "assetMetadata": {
+    "build-native-installation.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/build-native-installation.json",
+      "bytes": 84350,
+      "providerDigest": "sha256:aa8d944b864a1dcf049c9345554a6a6b3ec28d12aa13a7b733a9c8d2238f681d"
+    },
+    "deepblend-bundle.tgz": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/deepblend-bundle.tgz",
+      "bytes": 72706020,
+      "providerDigest": "sha256:aa33f6901820de075ead827f33bf6a0dc98424e498db672d9f2120cbf1682a8b"
+    },
+    "feature-source-binding.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/feature-source-binding.json",
+      "bytes": 203232,
+      "providerDigest": "sha256:6be1138154a3a27f56a4e21db94755f63eece9d1f7dc45bb9860617f3dee1056"
+    },
+    "final-ci-archives.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/final-ci-archives.json",
+      "bytes": 1209204,
+      "providerDigest": "sha256:5e7b96d6d0a46d098cbacb7b1f23f5b51d0f2a30df965bda3712094d8b00a6f8"
+    },
+    "final-source-equivalence.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/final-source-equivalence.json",
+      "bytes": 2024,
+      "providerDigest": "sha256:6bde690136502074ad1e049a4dd0e348ef41137d34cf85443bb5f9323803ec44"
+    },
+    "installed-mesh-uv-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/installed-mesh-uv-acceptance.json",
+      "bytes": 803543,
+      "providerDigest": "sha256:f2605440f6c0dc1999d75253ba7c31539e98583ca448cd6e8acf9fbcba620b16"
+    },
+    "mesh-uv-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/mesh-uv-acceptance.json",
+      "bytes": 726539,
+      "providerDigest": "sha256:4e406a14e355b65861cfbbcbc6c9eda940bc1dc5e1a9bea8123bce3a16f411ca"
+    },
+    "npm-public-readback.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/npm-public-readback.json",
+      "bytes": 254737,
+      "providerDigest": "sha256:a5ae76c302c26d120d86def102b09fb22b12320e6a3a6a7da516bb1dc6d7b442"
+    },
+    "npm-publication-attempts.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/npm-publication-attempts.json",
+      "bytes": 22105,
+      "providerDigest": "sha256:04f4bcd8cfd35bdc7042861a2a9b38800a14b243f8f030bb0ca154df84dc6f61"
+    },
+    "public-route-parity.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/public-route-parity.json",
+      "bytes": 16582,
+      "providerDigest": "sha256:15953391a9c6262212ec82dc63868c46608226671259fdab096ee9c6e708e4de"
+    },
+    "release-asset-manifest.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/release-asset-manifest.json",
+      "bytes": 2000,
+      "providerDigest": "sha256:29b5f14f377447befeaef3ebdf4448c8ec16d2d6546bc314bfe59c916c01eb7b"
+    },
+    "release-public-readback-manifest.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/release-public-readback-manifest.json",
+      "bytes": 1529,
+      "providerDigest": "sha256:5b32cbcc64f04154766689dc07f83de2b42ef1188d6ef44074f80d4c2d5a116b"
+    },
+    "route-npm-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/route-npm-full-inventory.json",
+      "bytes": 168923,
+      "providerDigest": "sha256:ad9159a5d7d1ecf22377363edb9bb2feabd5b2f7545bd9b2c3cd39e402d19362"
+    },
+    "route-source-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/route-source-full-inventory.json",
+      "bytes": 168981,
+      "providerDigest": "sha256:6ccea38be0d0bfcde7e6917272ef89297b3ab0a7b8f8f81afa86fb9b677def0a"
+    },
+    "route-tarball-full-inventory.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/route-tarball-full-inventory.json",
+      "bytes": 169749,
+      "providerDigest": "sha256:51b5e9d77939ffbe7cf40e9b258d43a575f8e9a017603620d1b793c4afb2d8ba"
+    },
+    "SHA256SUMS": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/SHA256SUMS",
+      "bytes": 929,
+      "providerDigest": "sha256:d4914f2d2eaa05ec06bb3f5452089a9a7add798861f1e073d9a67909c4807350"
+    },
+    "SHA256SUMS-public-readback": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/SHA256SUMS-public-readback",
+      "bytes": 677,
+      "providerDigest": "sha256:36310f15cd38d533dd3ea3b7ff6b4720be4dfd504c9071b0a6f58af1373fcbc0"
+    },
+    "software-acceptance.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/software-acceptance.json",
+      "bytes": 209347,
+      "providerDigest": "sha256:8ddeec49a09464f8a67b9575e55479511be394965e558faacece10d72b5b3ccf"
+    },
+    "validation-attempts.json": {
+      "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.23.0/validation-attempts.json",
+      "bytes": 62644852,
+      "providerDigest": "sha256:6a9b0b67b686d2ba4b60cb4891b1b7482348f324b5aaac39f806741870374beb"
+    }
+  },
+  "scope": "This post-release document records the completed M2 release without changing its accepted source or artifact bytes. The later documentation commit is distinct from the1037-file accepted release tree. Model task, failures, storage handling and external review/propagation remain separate; no new model run or artistic/adoption claim."
+}
