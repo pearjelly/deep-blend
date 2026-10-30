@@ -37,6 +37,10 @@ dsh web
 Restart an already running `dsh web` after installation. In a new session, choose the **DeepBlend Studio**
 preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
 
+A first creation run is minutes of model work across several turns, not a one-shot response; the recipe and
+own-model start points are the validated ones. Each [release record](deepblend/docs/releases/) lists the times
+measured for that version.
+
 **First time setting up Blender or DSH?** Follow the [English / Chinese quick-start guide](deepblend/docs/quick-start.md).
 FFmpeg and ffprobe are needed when encoding an MP4. Install them with `brew install ffmpeg` on macOS,
 `sudo apt install ffmpeg` on Debian/Ubuntu, or `winget install ffmpeg` on Windows. You can create and render scenes before adding them.

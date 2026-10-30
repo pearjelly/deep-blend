@@ -37,6 +37,9 @@ dsh web
 已运行的 `dsh web` 需要重启。在新会话中选择 **DeepBlend Studio** 预设，从侧栏打开 **Blender** 工作台。
 安装会同时加入工作台与智能体预设。
 
+一次创建是数分钟的模型工作、跨若干轮对话，不是一次问答就出结果；已验证的起点是配方和自有模型。每个版本的
+实际用时记录在对应的[发布记录](deepblend/docs/releases/)里。
+
 **第一次配置环境？** 先看[中英文快速上手](deepblend/docs/quick-start.md)。
 输出 MP4 另需 FFmpeg 和 ffprobe；创建场景和渲染图片可以先做。
 

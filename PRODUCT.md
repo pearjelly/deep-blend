@@ -8,7 +8,7 @@ web
 
 ## Users
 
-People who want complex, high quality Blender models through simple instructions and approachable controls. The user confirmed on 2026-10-22 that the primary journey is: describe the need → see the result → adjust → export. Expert controls remain available within that journey.
+People who want complex, high quality Blender models through simple instructions and approachable controls. A creation run is minutes of model work across several turns, not a one-shot response; the recipe and own-model start points are the validated ones, and arbitrary natural-language modelling is not yet demonstrated. The user confirmed on 2026-10-22 that the primary journey is: describe the need → see the result → adjust → export. Expert controls remain available within that journey.
 
 ## Product Purpose
 
