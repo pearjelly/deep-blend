@@ -20,7 +20,7 @@ Natural language work runs through DSH conversation and the plugin's Blender too
 
 ## Operating Context
 
-The same workbench is available inside the DSH console and at its standalone full screen route. A native Host owns project storage and Blender operations; the browser presents controls and results. Existing projects may have many revisions, imported assets, saved shots and interrupted jobs. Chinese and English are supported, as are system, light and dark appearance preferences.
+The same workbench is available inside the DSH console and at its standalone full screen route. A native Host owns project storage and Blender operations; the browser presents controls and results. Existing projects may have many revisions, imported assets, saved shots and interrupted jobs. The workbench chrome is Chinese today and the model-facing tool descriptions are English; an English message catalog is tracked in issue #45 and is not shipped. System, light and dark appearance preferences are supported.
 
 ## Capabilities and Constraints
 
