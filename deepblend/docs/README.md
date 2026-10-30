@@ -22,7 +22,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | Compose and light a shot / 调整构图与灯光 | [Photography · 摄影编辑](photography-editor.md) |
 | Frame a moved product and keep the animation / 移动后完整取景并保留动画 | [Complete view · 完整取景](complete-view.md) |
 | Compare beauty, clay and references / 对照材质、灰模和参考图 | [Inspection · 视觉检查](inspection.md) |
-| Recover a render or continue delivery / 恢复渲染与交付 | [Recovery · 故障与恢复](recovery.md) |
+| Recover a render or continue delivery / 恢复渲染与交付 | [Recovery · 故障与恢复](recovery.md) · [English](recovery.en.md) |
 
 Most detailed guides are written in Chinese, with commands and API names kept in English.
 首次使用推荐先完成青釉杯教程；安装错误、空面板和中断任务的下一步都在恢复指南中。
