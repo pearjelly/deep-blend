@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.21.0 已在 GitHub 和 npm 发布**，支持完整金属台灯移动、转向并落到实际支承表面，一次保存后继续改尺寸。完整验收、全新安装和公开三路安装均已核验；10月26日观察到的社区两份公开目录仍为0.20.0。详见[验收与发布记录](deepblend/docs/releases/0.21.0.md)。当前开发中的[完整取景候选](deepblend/docs/complete-view.md)在移动后另存静态机位，保留原相机和动画，尚未发布。
+**0.23.0 已在 GitHub 和 npm 发布**，可在平面控制网格上按面保存 UV，修复重复纹理拉伸，并在同一次保存中保留几何、材质与摄影设置。完整验收、全新安装和公开三路安装均已核验，详见[发布记录](deepblend/docs/releases/0.23.0.md)。「另存完整取景」——移动后保存一个保留原相机与动画的静态机位——[已在 0.22.0 发布](deepblend/docs/complete-view.md)。社区目录条目由独立 PR 更新，不随发布自动跟进；`npm run listing:check --check-remote` 可打印当前差异。
 
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
@@ -36,6 +36,9 @@ dsh web
 
 已运行的 `dsh web` 需要重启。在新会话中选择 **DeepBlend Studio** 预设，从侧栏打开 **Blender** 工作台。
 安装会同时加入工作台与智能体预设。
+
+一次创建是数分钟的模型工作、跨若干轮对话，不是一次问答就出结果；已验证的起点是配方和自有模型。每个版本的
+实际用时记录在对应的[发布记录](deepblend/docs/releases/)里。
 
 **第一次配置环境？** 先看[中英文快速上手](deepblend/docs/quick-start.md)。
 输出 MP4 另需 FFmpeg 和 ffprobe；创建场景和渲染图片可以先做。

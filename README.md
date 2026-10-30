@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.21.0 is published on GitHub and npm.** Move, turn and place a complete metal lamp on a measured surface in one save, then continue editing its dimensions. Full acceptance, fresh installation and the three public installation routes have been verified. The community catalogs still serve 0.20.0 as of October26; see the [release record](deepblend/docs/releases/0.21.0.md). The current [complete-view candidate](deepblend/docs/complete-view.md) saves a new static product view after a move, preserving the original cameras and animation; it is not yet released.
+**0.23.0 is published on GitHub and npm.** Repair repeating textures on flat control meshes by saving explicit per-face UVs, then keep geometry, materials and photography in the same save. Full acceptance, fresh installation and the three public installation routes have been verified; see the [release record](deepblend/docs/releases/0.23.0.md). Saving a complete product view — a new static camera after a move, preserving the original cameras and animation — [shipped in 0.22.0](deepblend/docs/complete-view.md). The community directory entry is updated by a separate pull request and does not follow a release automatically; `npm run listing:check --check-remote` prints the current difference.
 
 Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 
@@ -36,6 +36,10 @@ dsh web
 
 Restart an already running `dsh web` after installation. In a new session, choose the **DeepBlend Studio**
 preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
+
+A first creation run is minutes of model work across several turns, not a one-shot response; the recipe and
+own-model start points are the validated ones. Each [release record](deepblend/docs/releases/) lists the times
+measured for that version.
 
 **First time setting up Blender or DSH?** Follow the [English / Chinese quick-start guide](deepblend/docs/quick-start.md).
 FFmpeg and ffprobe are needed when encoding an MP4. Install them with `brew install ffmpeg` on macOS,
