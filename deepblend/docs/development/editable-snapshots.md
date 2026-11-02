@@ -8,7 +8,7 @@ produce a project-history import package.
 ## Request and response
 
 `POST /deepblend/projects/:projectId/editable-snapshots` accepts
-`{requestId, revision, videoJobId?, expectedStoreIdentity?}`. A request id is 1–96
+`{requestId, revision, videoJobId?, imageJobIds?, expectedStoreIdentity?}`. A request id is 1–96
 ASCII letters/digits/underscores/hyphens, beginning with a letter or digit. Revision
 is explicit (`r0001`, for example); “current” is never resolved implicitly.
 
@@ -26,7 +26,7 @@ and a Host-generated `downloadUrl` with a `storeIdentity` query guard.
 `POST .../:exportId/cancel` accepts `{expectedStoreIdentity?}`. A ready export
 remains ready. Repeating the original create request resumes preparation: an
 existing frozen plan is reused; a request cancelled before freezing is replanned
-from its original explicit revision. Different revision/video selections under
+from its original explicit revision. Different revision/video/image selections under
 the same request id fail with `SNAPSHOT_REQUEST_CONFLICT`.
 
 `writtenBytes` and `totalBytes` count source bytes, not compressed output.
@@ -75,7 +75,19 @@ A selected video requires a completed, verified job for the same revision. Its
 job and delivery metadata must agree, including exact original SceneSpec/native
 byte identities. The payload comes only from
 `renders/<jobId>/encoded/<jobId>.mp4`, never `output/final.mp4`. The README records
-that relative path, or states that no video was selected.
+that relative path, or states that no video was selected. For selected media it
+also lists the available job-recorded camera and output settings. These are
+task records, not a claim that every frame has the same provenance. It explains
+that the native scene's active camera and render settings can differ, and directs
+the reader to the included job and delivery manifest for mixed, resumed or
+multi-shot renders. A rerender is not promised to reproduce the delivered media.
+
+The optional `imageJobIds` list contains up to 16 distinct completed still jobs.
+Each must identify the selected project, revision, frame and original native
+checkpoint, and its stored image receipt must match the PNG bytes. The planner
+pins the PNG and preserves its job and delivery metadata. It does not implicitly
+include preview artifacts or frames from video jobs. The returned request status
+binds the sorted selection, so retrying the same request cannot change its images.
 
 Native packed images, external links, fonts and materials are not inspected or
 removed. Full self-containment, license clearance and reopening after relocation

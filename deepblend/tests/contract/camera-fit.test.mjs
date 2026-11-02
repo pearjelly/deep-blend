@@ -73,3 +73,33 @@ test('analytic fit is checked by an independent projection over shifted, deep an
   assert.equal(run.status,0,run.stdout+'\n'+run.stderr)
   assert.match(run.stderr,/Ran 10 tests/)
 })
+
+
+test('optional photography evidence refuses missing static proof and misbound light identities', () => {
+  const q = { ...selection(), photography: { lightIds: ['key'], cameraMustBeStatic: true } }
+  const r = nativeFitReport(q)
+  assert.throws(() => verifyCameraFitReport(r, q), { code: 'SCENE_VALIDATION_FAILED' })
+  r.photography = { schemaVersion: 'deepblend.photography-snapshot/v1', staticGeometry: true, staticLights: true,
+    cameraStatic: true, cameraRotationEuler: [0, 0, 0], lights: [{ id: 'key', type: 'area', energy: 10, color: [1, .8, .6], size: .5,
+      transform: { location: [1, 2, 3], rotationEuler: [0, 0, 0], scale: [1, 1, 1] } }] }
+  assert.equal(verifyCameraFitReport(r, q), r)
+  for (const mutate of [p => p.staticGeometry = false, p => p.staticLights = false, p => p.cameraStatic = false,
+    p => p.lights[0].id = 'foreign', p => p.lights[0].energy = Infinity, p => p.lights[0].transform.scale[0] = 0,
+    p => p.cameraRotationEuler = [0, 0], p => p.lights.push(p.lights[0])]) {
+    const bad = structuredClone(r); mutate(bad.photography)
+    assert.throws(() => verifyCameraFitReport(bad, q), { code: 'SCENE_VALIDATION_FAILED' })
+  }
+  const sampled = { ...q, photography: { ...q.photography, cameraMustBeStatic: false } }
+  const movingSource = structuredClone(r); movingSource.photography.cameraStatic = false
+  assert.equal(verifyCameraFitReport(movingSource, sampled), movingSource)
+})
+
+test('photography accepts 128 explicit members without raising the ordinary fit limit or accepting candidates', () => {
+  const q = { ...selection(), assetInstanceIds: [], entityIds: Array.from({length:128}, (_,i) => 'member'+i),
+    photography: { lightIds: [], cameraMustBeStatic: true } }
+  assert.doesNotThrow(() => validateCameraFitSelection(q))
+  assert.throws(() => validateCameraFitSelection({...q,entityIds:[...q.entityIds,'overflow']}), /1–128/)
+  const ordinary = {...q}; delete ordinary.photography
+  assert.throws(() => validateCameraFitSelection(ordinary), /1–64/)
+  assert.throws(() => validateCameraFitSelection({...q,baselineCheckpointPath:'/old.blend',baselineCheckpointSha256:sha256('old')}), {code:'SCENE_PATCH_INVALID'})
+})

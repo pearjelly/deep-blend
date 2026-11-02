@@ -1,4 +1,5 @@
 import { BlenderError, BlenderErrorCode } from './index.js'
+import { PHOTOGRAPHY_SNAPSHOT_LIMITS, validatePhotographySnapshot, verifyPhotographySnapshot } from './photography-snapshot.js'
 
 export const CAMERA_FIT_VERSION = 'deepblend.camera-fit/v1'
 export const CAMERA_FIT_LIMITS = Object.freeze({ entities: 64, meshes: 128, vertices: 2_000_000,
@@ -13,15 +14,18 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const fail = (message, code = BlenderErrorCode.SCENE_VALIDATION_FAILED) => { throw new BlenderError(code, `Camera fit: ${message}`) }
 
 export function validateCameraFitSelection(request) {
+  if (request?.photography !== undefined) validatePhotographySnapshot(request.photography)
   const invalid = message => fail(message, BlenderErrorCode.SCENE_PATCH_INVALID)
-  if (!Array.isArray(request?.entityIds) || !integer(request.entityIds.length, 1, CAMERA_FIT_LIMITS.entities) ||
-      !request.entityIds.every(id) || new Set(request.entityIds).size !== request.entityIds.length) invalid('select 1–64 distinct mesh entities or complete asset instances.')
+  const entityLimit = request?.photography === undefined ? CAMERA_FIT_LIMITS.entities : PHOTOGRAPHY_SNAPSHOT_LIMITS.entities
+  if (!Array.isArray(request?.entityIds) || !integer(request.entityIds.length, 1, entityLimit) ||
+      !request.entityIds.every(id) || new Set(request.entityIds).size !== request.entityIds.length) invalid(`select 1–${entityLimit} distinct mesh entities or complete asset instances.`)
   if (!Array.isArray(request.assetInstanceIds) || request.assetInstanceIds.some(x => !request.entityIds.includes(x)) ||
       new Set(request.assetInstanceIds).size !== request.assetInstanceIds.length) invalid('assetInstanceIds must name distinct selected asset roots.')
   if (!id(request.cameraId) || !id(request.fittedCameraId) || request.cameraId === request.fittedCameraId) invalid('select a source camera and a distinct new camera ID.')
   if (!integer(request.frame, 0, 1_000_000) || !Number.isFinite(request.margin) || request.margin < 0 || request.margin > .25 || !hash(request.checkpointSha256)) invalid('an explicit frame, margin from 0 to 0.25 and pinned checkpoint are required.')
   const baseline = request.baselineCheckpointPath !== undefined || request.baselineCheckpointSha256 !== undefined
   if (baseline && (typeof request.baselineCheckpointPath !== 'string' || !request.baselineCheckpointPath || !hash(request.baselineCheckpointSha256))) invalid('candidate verification requires both the baseline checkpoint path and SHA256.')
+  if (baseline && request.photography !== undefined) invalid('photography sampling requires a saved source, not a fitted candidate.')
 }
 
 function optics(v) {
@@ -36,12 +40,13 @@ export function verifyCameraFitReport(report, request) {
   validateCameraFitSelection(request)
   const candidate = request.baselineCheckpointPath !== undefined
   if (!only(report, ['schemaVersion', 'entityIds', 'assetInstanceIds', 'frame', 'cameraId', 'fittedCameraId', 'margin',
-    'checkpointSha256', 'checkpointUnchanged', 'blenderVersion', 'members', 'view', 'camera', candidate ? 'baselineVerification' : 'proposal']) ||
+    'checkpointSha256', 'checkpointUnchanged', 'blenderVersion', 'members', 'view', 'camera', candidate ? 'baselineVerification' : 'proposal', ...(request.photography === undefined ? [] : ['photography'])]) ||
       Buffer.byteLength(JSON.stringify(report)) > CAMERA_FIT_LIMITS.reportBytes || report.schemaVersion !== CAMERA_FIT_VERSION ||
       !same(report.entityIds, request.entityIds) || !same(report.assetInstanceIds, request.assetInstanceIds) ||
       report.frame !== request.frame || report.cameraId !== request.cameraId || report.fittedCameraId !== request.fittedCameraId ||
       report.margin !== request.margin || report.checkpointSha256 !== request.checkpointSha256 || report.checkpointUnchanged !== true ||
       typeof report.blenderVersion !== 'string' || !report.blenderVersion || !Array.isArray(report.members) || report.members.length !== request.entityIds.length) fail('the native report differs from the selected frame, source or complete selection.')
+  if (request.photography !== undefined) verifyPhotographySnapshot(report.photography, request.photography)
   const view = report.view, camera = report.camera
   if (!only(view, ['resolution', 'percentage', 'pixelAspect', 'activeCamera']) ||
       !(view.activeCamera === null || typeof view.activeCamera === 'string') || !vector(view.resolution, 2) ||

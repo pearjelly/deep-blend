@@ -1,26 +1,30 @@
 {
   "passed": true,
   "interaction": "cdp-browser-ui",
-  "uiSha256": "1b5625048e51a9910d09e5cdd47b3f2ba5f524c9a2dfa0f8985582cb8f80f60b",
-  "bundleUiSha256": "2b8b4ccbd1bffe576ce64307bde9532633049998a29c4d77f8f398b480608bfa",
-  "servedClientSha256": "7c676c0a618cf56d27824dff46b8f0d51d78b589b87842c45c36cc435fe52fb6",
-  "wholeServedResponseIdentical": true,
-  "browserLoadedBatchSha256": "2c83f0bbd8d28fc205fb39866e417a259d5cd11b98854cd5b8dd25a0324174a0",
+  "uiSha256": "7f42aa96a4cb4bd7f7323ecc532bd4a8ab50bfd7371597b9cd22ea444b79c400",
+  "bundleUiSha256": "9bdbda1be50f08e11db96f9cd1114cd14b093dfb82edaa68ccb318df63ceb70a",
+  "browserLoadedBatchSha256": "643f3ad59e4715cac2293c73f1afe7feea97afff3c39de25705133fd0da85619",
+  "servedBatchSha256": "643f3ad59e4715cac2293c73f1afe7feea97afff3c39de25705133fd0da85619",
   "browserLoadedBatchIdentical": true,
   "allHostBytesUnchanged": true,
-  "protectedHostFiles": 30,
+  "protectedHostFiles": 131,
+  "nativeRegressionRerun": false,
   "dom": {
     "applied": true,
     "photographyOpen": true,
     "width": 390,
     "height": 844,
     "scrollWidth": 390,
-    "source": "project:r0001",
+    "source": "photography-other:r0003",
     "sourceCamera": "hero",
     "draftBase": "r0002",
-    "currentSavedRevision": "r0002",
-    "lens": "60",
+    "lens": "55",
     "controls": [
+      {
+        "field": "photo-source-mode",
+        "left": 16,
+        "right": 374
+      },
       {
         "field": "photo-source-project",
         "left": 16,
@@ -51,12 +55,16 @@
       "width": 1440,
       "height": 1013,
       "scrollWidth": 1440,
-      "source": "project:r0001",
+      "source": "photography-other:r0003",
       "sourceCamera": "hero",
       "draftBase": "r0002",
-      "currentSavedRevision": "r0002",
-      "lens": "60",
+      "lens": "55",
       "controls": [
+        {
+          "field": "photo-source-mode",
+          "left": 1056,
+          "right": 1412
+        },
         {
           "field": "photo-source-project",
           "left": 1056,
@@ -86,12 +94,16 @@
       "width": 390,
       "height": 844,
       "scrollWidth": 390,
-      "source": "project:r0001",
+      "source": "photography-other:r0003",
       "sourceCamera": "hero",
       "draftBase": "r0002",
-      "currentSavedRevision": "r0002",
-      "lens": "60",
+      "lens": "55",
       "controls": [
+        {
+          "field": "photo-source-mode",
+          "left": 16,
+          "right": 374
+        },
         {
           "field": "photo-source-project",
           "left": 16,
@@ -115,10 +127,5 @@
       ],
       "writes": []
     }
-  ],
-  "nativeRegressionRerun": false,
-  "sceneWrites": 0,
-  "modelRequests": 0,
-  "viewed": true,
-  "scope": "Current source-bound photography reuse draft in the same documentation refresh round. Complete browser application batch verified byte-for-byte. No save or render; historical native regression remains separate."
+  ]
 }

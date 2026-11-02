@@ -368,6 +368,11 @@ export class RevisionTransaction {
     // ---------------------------------------------------------------------
     const recorded = this.store.readIdempotencyRecord(projectId, key)
     if (recorded !== null) {
+      if (recorded.kind === 'motion_candidate' || options.motionCandidate) {
+        if (recorded.kind !== 'motion_candidate' || !options.motionCandidate || recorded.intentSha256 !== options.motionCandidate.intentSha256)
+          throw new BlenderError(BlenderErrorCode.SCENE_PATCH_REJECTED, 'This key belongs to a different motion candidate.')
+        return { ...recorded.outcome, idempotentReplay: true, idempotencyKey: key, idempotencyKeyDerived: false }
+      }
       if (recorded.kind === 'camera_fit' || options.cameraFit) {
         throw new BlenderError(BlenderErrorCode.SCENE_PATCH_REJECTED, 'This idempotency key belongs to a fitted-view request; use that operation to replay its exact intent.')
       }
@@ -484,8 +489,8 @@ export class RevisionTransaction {
     // A fitted view adds one camera while retaining the source camera order.
     // Generic camera.add sorts its array; on old scenes without activeCamera
     // that could silently replace the saved first-camera fallback.
-    if (options.cameraFit) {
-      const order = options.cameraFit.cameraOrder
+    if (options.cameraFit || options.motionCandidate) {
+      const order = (options.cameraFit ?? options.motionCandidate).cameraOrder
       nextSpec.cameras.sort((a, b) => order.indexOf(a.id)-order.indexOf(b.id))
     }
     const resolved = compileSceneSpec(nextSpec)
@@ -497,6 +502,9 @@ export class RevisionTransaction {
     }
     if (options.cameraFit && specHashAfter !== options.cameraFit.expectedSpecHash) {
       throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The fitted view would change fields beyond adding the requested camera; no revision was published.')
+    }
+    if (options.motionCandidate && specHashAfter !== options.motionCandidate.expectedSpecHash) {
+      throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'The candidate motion differs from the previewed scene; no revision was published.')
     }
 
     const validation = validateSceneSpec(nextSpec)
@@ -520,6 +528,7 @@ export class RevisionTransaction {
       cameraFraming: options.cameraFraming,
       surfacePlacement: options.surfacePlacement,
       cameraFit: options.cameraFit,
+      motionCandidate: options.motionCandidate,
       previewFrame: options.previewFrame,
       cameraId: options.cameraId,
       summary,
@@ -554,8 +563,8 @@ export class RevisionTransaction {
         warnings: outcome.warnings,
         sceneSummary: outcome.sceneSummary,
       },
-      kind: options.cameraFit ? 'camera_fit' : options.surfacePlacement ? 'surface_placement' : 'scene_patch',
-      ...(options.cameraFit || options.surfacePlacement ? { intentSha256: (options.cameraFit ?? options.surfacePlacement).intentSha256 } : {}),
+      kind: options.cameraFit ? 'camera_fit' : options.surfacePlacement ? 'surface_placement' : options.motionCandidate ? 'motion_candidate' : 'scene_patch',
+      ...(options.cameraFit || options.surfacePlacement || options.motionCandidate ? { intentSha256: (options.cameraFit ?? options.surfacePlacement ?? options.motionCandidate).intentSha256 } : {}),
     })
 
     return { ...outcome, idempotentReplay: false, idempotencyKey: key, idempotencyKeyDerived: derived }
@@ -661,7 +670,7 @@ export class RevisionTransaction {
             sceneSpecPath: specPath,
             cameraFraming: plan.cameraFraming,
             // Automatic framing compiles in isolation, preserving any live editor scene.
-            session: plan.cameraFraming || plan.surfacePlacement || plan.cameraFit ? false : undefined,
+            session: plan.cameraFraming || plan.surfacePlacement || plan.cameraFit || plan.motionCandidate ? false : undefined,
             profile: plan.spec.renderProfiles?.preview === undefined ? undefined : 'preview',
             projectRoot: this.store.projectDirectory(projectId),
             jobId,
@@ -744,6 +753,7 @@ export class RevisionTransaction {
         }
         if (plan.surfacePlacement) await plan.surfacePlacement.verifyCandidate(checkpointStaging)
         if (plan.cameraFit) await plan.cameraFit.verifyCandidate(checkpointStaging)
+        if (plan.motionCandidate) await plan.motionCandidate.verifyCandidate(checkpointStaging)
       } catch (cause) {
         const failure = toCanonicalFailure(cause, {
           isBlenderError: value => value instanceof BlenderError,
@@ -887,6 +897,7 @@ export class RevisionTransaction {
       ...(plan.cameraFramingReceipt ? { cameraFraming: plan.cameraFramingReceipt } : {}),
       ...(plan.surfacePlacement ? { surfacePlacementReceipt: plan.surfacePlacement.receipt } : {}),
       ...(plan.cameraFit ? { cameraFitReceipt: plan.cameraFit.receipt } : {}),
+      ...(plan.motionCandidate ? { motionCandidateReceipt: plan.motionCandidate.receipt } : {}),
       renderConfig: compileReport?.renderConfig ?? null,
       sceneFingerprint: compileReport?.sceneFingerprint ?? null,
       assetParts: (compileReport?.objects ?? [])
@@ -974,9 +985,9 @@ export class RevisionTransaction {
     try {
       this.store.assertProjectWrite(projectId)
       plan.verifyNativeSource?.()
-      if ((plan.surfacePlacement || plan.cameraFit) && (!isFile(join(staging, 'scene-spec.json')) ||
+      if ((plan.surfacePlacement || plan.cameraFit || plan.motionCandidate) && (!isFile(join(staging, 'scene-spec.json')) ||
           readFileSync(join(staging, 'scene-spec.json'), 'utf8') !== sceneSpecCanonicalText(plan.spec) ||
-          specHash(plan.spec) !== (plan.cameraFit ?? plan.surfacePlacement).expectedSpecHash)) {
+          specHash(plan.spec) !== (plan.cameraFit ?? plan.surfacePlacement ?? plan.motionCandidate).expectedSpecHash)) {
         throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED,
           'The candidate scene description changed after native planning; no revision was published.')
       }

@@ -79,6 +79,15 @@ export function formatEnvironmentReport(report) {
     lines.push(`[${check.status.toUpperCase()}] ${check.label}: ${check.version ?? check.reason}${check.expected ? ` (requires ${check.expected})` : ''}`)
     if (check.action) lines.push(`  Next: ${check.action}`)
   }
+  if (report.functional) {
+    lines.push('', 'Functional probes / 实际运行检查:')
+    const labels = { blenderPreview: 'Blender preview / Blender 预览', videoEncoding: 'MP4 encode and decode / 视频编码与解码',
+      pluginActivation: 'Plugin activation / 插件启用', agent: 'Agent / 智能体', imageInput: 'Model image input / 模型看图', visualReview: 'Visual review / 视觉评审' }
+    for (const [id, result] of Object.entries(report.functional)) lines.push(`  ${labels[id] ?? id}: ${result.status}${result.reason ? ` (${result.reason})` : ''}`)
+    if (report.functional.blenderPreview.status !== 'pass') lines.push('  Next / 下一步: verify the Blender path and run a preview in DSH. 请检查 Blender 路径并在 DSH 中重试预览。')
+    if (report.functional.videoEncoding.status === 'fail') lines.push('  Next / 下一步: check FFmpeg, ffprobe and H.264 encoding; PNG work can continue. 请检查编码器与 H.264 支持，仍可继续制作图片。')
+    lines.push('  Small Workbench and MP4 probes do not prove product quality. Check unverified items in the current DSH profile. 小图和编码探针不代表作品质量；未验证项需在当前 DSH 配置中另行检查。')
+  }
   lines.push('', `Installation / 安装: ${report.ready.installation ? 'ready' : 'needs attention'}`,
     `PNG tools / 图片工具: ${report.ready.images ? 'ready' : 'needs attention'}`,
     `MP4 tools / 视频工具: ${report.ready.video ? 'ready' : 'needs attention'}`,

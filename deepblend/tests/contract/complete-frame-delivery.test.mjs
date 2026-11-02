@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import LocalBlenderRuntime from '@deepblend/dsh-blender-provider-local'
-import { BlenderError, BlenderErrorCode, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, BlenderErrorCode, buildJobView, createImage, encodePng } from '@deepblend/dsh-blender-contracts'
 import { ROOT } from '../../tools/workspace-layout.mjs'
 
 const defer = () => { let resolve; const promise = new Promise(r => { resolve = r }); return { promise, resolve } }
@@ -309,6 +309,61 @@ test('publication bookkeeping failure is durable and retryable without an unhand
   await waitFor(() => !w.studio._liveRenders.has(`${w.request.projectId}/${w.request.jobId}`))
   assert.equal(w.read().status, 'completed')
   assert.equal(w.read().delivery.attempt, 4)
+})
+
+test('a delivery failure remains visible when its failure record cannot be written, and resumes once saved', async t => {
+  const options = { failure: 'encode' }
+  const w = await fixture(t, options)
+  const write = w.studio.renderJobs.write.bind(w.studio.renderJobs)
+  write({ ...w.read(), createdAt: Date.now(), finishedAt: null }, { previous: w.read() })
+  let diskFull = true
+  w.studio.renderJobs.write = (record, input) => {
+    if (diskFull && record.status === 'failed') throw Object.assign(Error('controlled ENOSPC'), { code: 'ENOSPC' })
+    return write(record, input)
+  }
+  await w.studio.resumeRenderJob(w.request)
+  await waitFor(() => !w.studio._liveRenders.has(`${w.request.projectId}/${w.request.jobId}`))
+  assert.equal(w.read().status, 'running', 'the persisted record is still the last successful write')
+  const listed = await w.studio.listJobs({ projectId: w.request.projectId })
+  assert.equal(listed.jobs[0].status, 'failed')
+  assert.equal(listed.jobs[0].persistencePending, true)
+  assert.match(listed.jobs[0].message, /could not be saved.*check disk space/i)
+  const view = buildJobView(listed.jobs[0], { threshold: 999 })
+  assert.equal(view.resumable, false)
+  assert.match(view.detail, /检查磁盘空间及写入权限后刷新/)
+  const detail = await w.studio.getJob(w.request)
+  assert.equal(detail.status, 'failed')
+  assert.equal(detail.renderJob.persistencePending, true)
+  await assert.rejects(w.studio.resumeRenderJob(w.request), { code: BlenderErrorCode.DISK_FULL })
+  assert.deepEqual(w.calls, ['encode'], 'no second encoder starts while failure state is volatile')
+  diskFull = false
+  options.failure = null
+  const recovered = await w.studio.getJob(w.request)
+  assert.equal(recovered.status, 'failed')
+  assert.equal(recovered.renderJob.persistencePending, undefined)
+  assert.equal(w.read().delivery.status, 'failed')
+  await w.studio.resumeRenderJob(w.request)
+  await waitFor(() => w.read().status === 'completed')
+  assert.deepEqual(w.calls, ['encode', 'encode', 'probe'])
+  assert.equal(w.read().attempt, 4, 'the complete frames were not rendered again')
+})
+
+test('a volatile failure never overwrites a separately changed job record', async t => {
+  const w = await fixture(t, { failure: 'encode' })
+  const write = w.studio.renderJobs.write.bind(w.studio.renderJobs)
+  write({ ...w.read(), createdAt: Date.now(), finishedAt: null }, { previous: w.read() })
+  w.studio.renderJobs.write = (record, input) => {
+    if (record.status === 'failed') throw Object.assign(Error('controlled ENOSPC'), { code: 'ENOSPC' })
+    return write(record, input)
+  }
+  await w.studio.resumeRenderJob(w.request)
+  await waitFor(() => !w.studio._liveRenders.has(`${w.request.projectId}/${w.request.jobId}`))
+  const prior = w.read()
+  write({ ...prior, status: 'cancelled', message: 'changed by another operation' }, { previous: prior })
+  const detail = await w.studio.getJob(w.request)
+  assert.equal(detail.status, 'cancelled')
+  assert.equal(detail.message, 'changed by another operation')
+  assert.equal(w.studio._unrecordedDeliveryFailures.size, 0)
 })
 
 test('inconclusive process cleanup cannot claim successful cancellation or free the encoder lock', async t => {

@@ -501,9 +501,12 @@ const processTable = (() => {
 check('the process table was readable, so "nothing left behind" is a measurement and not an assumption',
   processTable.ok, processTable.ok ? 'ps -Ao pid=,args= ran' : processTable.reason)
 
+// Job IDs are only unique within a project. Another project may legitimately
+// render its own render-0002 at the same time; match this job's full store path.
+const cancelledJobDirectory = join(scratch, 'projects', projectId, 'renders', long.jobId)
 check('no Blender of this project is left anywhere in the process table',
-  processTable.ok && !processTable.listing.split('\n').some(line => line.includes(long.jobId)),
-  processTable.ok ? long.jobId : `NOT CHECKED — the process table could not be read (${processTable.reason})`)
+  processTable.ok && !processTable.listing.split('\n').some(line => line.includes(cancelledJobDirectory)),
+  processTable.ok ? cancelledJobDirectory : `NOT CHECKED — the process table could not be read (${processTable.reason})`)
 check('the cancelled job is recorded as cancelled, with the frames it did render kept',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status === 'cancelled',
   (await studio.getJob({ projectId, jobId: long.jobId })).renderJob.status)

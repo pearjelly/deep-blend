@@ -21,18 +21,20 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.21.0 is published on GitHub and npm.** Move, turn and place a complete metal lamp on a measured surface in one save, then continue editing its dimensions. Full acceptance, fresh installation and the three public installation routes have been verified. The community catalogs still serve 0.20.0 as of October26; see the [release record](deepblend/docs/releases/0.21.0.md). The current [complete-view candidate](deepblend/docs/complete-view.md) saves a new static product view after a move, preserving the original cameras and animation; it is not yet released.
+**Published 0.23.0 is the baseline for this worktree.** It includes complete product framing, editable snapshots and the mesh UV planner; see the [release record](deepblend/docs/releases/0.23.0.md). The [independent-creation candidate](deepblend/docs/first-product-creation.md) adds motion preview, direct image/video delivery and explicit review inputs. Those candidate changes are not a public release or a claim of independent artistic acceptance.
 
 Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
 
 ## Quick start
 
-With **Node.js 22.23.3 or newer**, **DSH 0.1.5-rc.2**, **pnpm** and **Blender 5.2.1** ready:
+With **Node.js 22.23.3 or newer**, **DSH 0.1.5-rc.2**, **pnpm 10.28.2** and **Blender 5.2.1** ready:
 
 ```sh
-dsh plugin --profile web add @deepblend/dsh-blender-bundle
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
 dsh web
 ```
+
+The two environment options apply only to the install command: they allow pnpm to add the plugin at the profile workspace root and use peers supplied by DSH. They do not change global pnpm settings.
 
 Restart an already running `dsh web` after installation. In a new session, choose the **DeepBlend Studio**
 preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
@@ -47,13 +49,13 @@ FFmpeg and ffprobe are needed when encoding an MP4. Install them with `brew inst
 Prebuilt bundle:
 
 ```sh
-dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
 ```
 
 Current source tree:
 
 ```sh
-dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
 ```
 
 The quoted `#path:` form keeps the shell from treating `#` as a comment. Source installs may need the build approval
@@ -63,7 +65,7 @@ Already installed? Replace the existing registration before adding the new packa
 
 ```sh
 dsh plugin --profile web remove @deepblend/dsh-blender-bundle
-dsh plugin --profile web add @deepblend/dsh-blender-bundle
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
 ```
 
 See the [installation and upgrade guide](deepblend/docs/install.md) for configuration and storage details.
@@ -119,9 +121,8 @@ Or start with your own glTF, GLB or OBJ model and its external textures.
 
 **Keep a setup you like:** [reuse photography from a saved work and version](deepblend/docs/photography-editor.md#复用已保存摄影设置), apply its camera settings and lights to a draft, then inspect and save. Models and materials stay with the destination work.
 
-**Follow a complete creation:** the [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) changes height,
-compares clay views, adjusts the glaze and key light, and delivers a frame. Its handle roots still show visible
-bulges; the tutorial preserves that limitation. The recipe has no animation tracks, so adding frames does not create turntable motion.
+**Start with a product:** create the champagne metal lamp, then continue editing the same saved work.
+The [candidate lamp walkthrough](deepblend/docs/first-product-creation.md) covers three images, a real six-second film and an editable ZIP; it identifies controls that are not yet published. The [cup walkthrough](deepblend/docs/creator-tutorial.md) remains a geometry exercise with a known handle-root bulge, rather than the recommended first creation.
 
 ## Choose how you work
 
@@ -195,7 +196,7 @@ The contact sheet combines animation sample frames with additional inspection vi
 | I want to… | Start here |
 | --- | --- |
 | Install, configure Blender, or update the plugin | [Quick start](deepblend/docs/quick-start.md) · [Installation](deepblend/docs/install.md) |
-| Complete my first creation | [Cup walkthrough](deepblend/docs/creator-tutorial.md) |
+| Complete my first creation | [Lamp walkthrough (candidate)](deepblend/docs/first-product-creation.md) |
 | Import my own model, textures or environment | [Asset library](deepblend/docs/assets.md) |
 | Tune the shape or photography | [Modeling](deepblend/docs/modeling.md) · [Camera and light editing](deepblend/docs/photography-editor.md) |
 | Compare versions and investigate a rough result | [Fixed-view inspections](deepblend/docs/inspection.md) · [References](deepblend/docs/reference-images.md) |
@@ -262,7 +263,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 49 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 56 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)

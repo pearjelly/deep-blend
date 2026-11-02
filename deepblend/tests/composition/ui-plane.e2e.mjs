@@ -87,16 +87,21 @@ const READ_METHODS = new Set([
   // UI half may do neither (asserted further down this file, and by `config-surface.test.mjs`).
   'productVersion', 'describeConfiguration',
   'listRecipes', 'readRecipePreview', 'getRecipeParameters', 'listAssets', 'getAssetUpload',
-  'getEditableSnapshot', 'openEditableSnapshot',
+  'getEditableSnapshot', 'openEditableSnapshot', 'openRenderVideo', 'openRenderFrame', 'openMotionPreview',
 ])
 /** The method each write route must call, and no other. */
 const WRITE_METHOD = {
+  'readiness.imageInput': 'probeImageInput',
   'projects.create': 'createProject',
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
   'project.recipeParameters.update': 'updateRecipeParameters',
   'project.surfacePlacement': 'placeOnSurface',
   'project.cameraFit': 'fitCamera',
+  'project.photographyReuse': 'planPhotographyReuse',
+  'project.motionPreview.create': 'previewMotion',
+  'project.motionPreview.save': 'saveMotionPreview',
+  'project.motionPreview.discard': 'discardMotionPreview',
   'project.referenceImage.upload': 'uploadReferenceImage',
   'project.assets.upload': 'uploadAsset',
   'project.assetUploads.create': 'createAssetUpload',
@@ -119,7 +124,7 @@ const WRITE_METHOD = {
  * decides between starting and resuming), so it is allowed but is not any
  * route's single expected call — the resume case is asserted on its own below.
  */
-const ALLOWED_WRITES = new Set([...Object.values(WRITE_METHOD), 'resumeRenderJob'])
+const ALLOWED_WRITES = new Set([...Object.values(WRITE_METHOD), 'resumeRenderJob', 'visualReviewSelectedViews'])
 
 /**
  * The facade stub: every call is recorded, and every answer looks like the real
@@ -147,10 +152,18 @@ function createStudioStub() {
     async getEditableSnapshot(request) { record('getEditableSnapshot', request); return { ...request, revision: 'r0001', state: 'preparing' } },
     async cancelEditableSnapshot(request) { record('cancelEditableSnapshot', request); return { ...request, revision: 'r0001', state: 'cancelled' } },
     async openEditableSnapshot(request) { record('openEditableSnapshot', request); return { bytes: 4, filename: 'snapshot.zip', contentType: 'application/zip', stream: Readable.from([Buffer.from('PK00')]), close: async () => {} } },
+    async openRenderVideo(request) { record('openRenderVideo', request); return { bytes: 4, filename: 'video.mp4', contentType: 'video/mp4', stream: Readable.from([Buffer.from('MP40')]), close: async () => {} } },
+    async openRenderFrame(request) { record('openRenderFrame', request); return { bytes: 4, filename: 'frame.png', contentType: 'image/png', stream: Readable.from([Buffer.from([0x89, 0x50, 0x4e, 0x47])]), close: async () => {} } },
+    async openMotionPreview(request) { record('openMotionPreview', request); return { bytes: 4, filename: 'preview.mp4', contentType: 'video/mp4', stream: Readable.from([Buffer.from('MP40')]), close: async () => {} } },
+    async previewMotion(request) { record('previewMotion', request); return { id: 'candidate' } },
+    async probeImageInput(request) { record('probeImageInput', request); return { status: 'unavailable', reason: 'authentication' } },
+    async saveMotionPreview(request) { record('saveMotionPreview', request); return { revision: 'r0003' } },
+    async discardMotionPreview(request) { record('discardMotionPreview', request); return { discarded: true } },
     recipeParameterEditingSupported: true,
     assemblyPlacementSupported: true,
     cameraFitSupported: true,
     fitCamera(request) { record('fitCamera', request); return { revision: 'r0003' } },
+    planPhotographyReuse(request) { record('planPhotographyReuse', request); return { scale: 2 } },
     placeOnSurface(request) { record('placeOnSurface', request); return { revision: 'r0003', unchanged: false } },
     getRecipeParameters(projectId, options) { record('getRecipeParameters', { projectId, options }); return { projectId, revision: options?.revision ?? 'r0002', available: false, parameters: [] } },
     updateRecipeParameters(request) { record('updateRecipeParameters', request); return { revision: 'r0003', unchanged: false, parameters: { available: false } } },
@@ -291,6 +304,12 @@ function createStudioStub() {
       record('visualReview', request)
       return { revision: request.revision, technicalPass: true, score: 100, pass: true,
         issues: [], perView: [], referenceImages: [], reviewInputsDigest: 'brief-digest', artistic: { status: 'unassessable' } }
+    },
+    async visualReviewSelectedViews(request) {
+      record('visualReviewSelectedViews', request)
+      return { revision: request.revision, score: 100, pass: true, issues: [], perView: [],
+        inputScope: { mode: 'selected-views', sourceRevision: request.revision, sourceDigest: request.expectedDigest,
+          views: request.views.map(view => ({ ...view, resolution: [640, 360], samples: 16 })) } }
     },
     async visualLoop(request) {
       record('visualLoop', request)
@@ -439,7 +458,7 @@ const routeIds = UI_ROUTES.map(route => route.id).sort()
 // previews do have a registered handler, but HTTP dispatch sends their bytes
 // directly; that binary exception is asserted independently below.
 const ROUTES_WITHOUT_TABLE_HANDLERS = ['artifacts.open', 'workbench.page']
-const BINARY_RESPONSE_ROUTES = ['artifacts.open', 'recipes.preview', 'project.editableSnapshots.download']
+const BINARY_RESPONSE_ROUTES = ['artifacts.open', 'recipes.preview', 'project.editableSnapshots.download', 'project.job.video', 'project.job.frame', 'project.motionPreview.video']
 const expectedHandlerIds = routeIds.filter(id => !ROUTES_WITHOUT_TABLE_HANDLERS.includes(id))
 const handlerIds = Object.keys(ui.handlers).sort()
 check('the handler table is exactly the route table, minus the two dedicated dispatch methods',
@@ -468,6 +487,8 @@ function sampleUrl(route) {
     .replace(':projectId', 'demo')
     .replace(':revision', 'r0002')
     .replace(':jobId', 'render-0001')
+    .replace(':frame', '72')
+    .replace(':candidateId', '12345678-1234-4234-8234-123456789abc')
     .replace(':exportId', `snapshot-${'a'.repeat(40)}`)
     .replace(':assetId', 'asset-upload')
     .replace(':uploadId', 'upload-example')
@@ -476,6 +497,7 @@ function sampleUrl(route) {
     .replace(':version', RECIPE.version)
     .replace(/\/\*$/, '/revisions/r0002/contact-sheets/round-0.png')
   return route.id === 'recipes.preview' ? `${path}?digest=${RECIPE_DIGEST}`
+    : ['project.job.video', 'project.job.frame'].includes(route.id) ? `${path}?revision=r0002&sha256=${'c'.repeat(64)}&storeIdentity=${'a'.repeat(64)}`
     : route.id === 'project.referenceImage.upload' ? `${path}?name=study.png`
     : route.id === 'project.assets.upload' ? `${path}?name=model.glb&license=MIT` : path
 }
@@ -498,14 +520,25 @@ for (const route of UI_ROUTES) {
 
   if (BINARY_RESPONSE_ROUTES.includes(route.id)) {
     const snapshot = route.id === 'project.editableSnapshots.download'
-    const expectedMethod = snapshot ? 'openEditableSnapshot' : route.id === 'recipes.preview' ? 'readRecipePreview' : 'readArtifact'
-    const expectedBytes = snapshot ? Buffer.from('PK00') : route.id === 'recipes.preview' ? RECIPE_PREVIEW_BYTES : Buffer.from([0x89, 0x50, 0x4e, 0x47])
+    const motionVideo = route.id === 'project.motionPreview.video'
+    const video = route.id === 'project.job.video' || motionVideo
+    const frame = route.id === 'project.job.frame'
+    const expectedMethod = snapshot ? 'openEditableSnapshot' : motionVideo ? 'openMotionPreview' : video ? 'openRenderVideo' : frame ? 'openRenderFrame' : route.id === 'recipes.preview' ? 'readRecipePreview' : 'readArtifact'
+    const expectedBytes = snapshot ? Buffer.from('PK00') : video ? Buffer.from('MP40') : route.id === 'recipes.preview' ? RECIPE_PREVIEW_BYTES : Buffer.from([0x89, 0x50, 0x4e, 0x47])
     check(`${route.id} serves bytes, not JSON`,
-      response.statusCode === 200 && response.headers['content-type'] === (snapshot ? 'application/zip' : 'image/png') && response.headers['cache-control'] === 'no-store'
+      response.statusCode === 200 && response.headers['content-type'] === (snapshot ? 'application/zip' : video ? 'video/mp4' : 'image/png') && response.headers['cache-control'] === 'no-store'
       && Buffer.isBuffer(response.body) && response.body.equals(expectedBytes) && json === null,
       { status: response.statusCode, type: response.headers['content-type'] })
     check(`${route.id} reads exactly once through its facade method and performs no write`,
       studio.calls.length === 1 && studio.calls[0].name === expectedMethod && READ_METHODS.has(expectedMethod), studio.methodsCalled())
+    if (route.id === 'project.job.video') check('video download forwards its exact job, revision, store and content identity',
+      studio.calls[0]?.args?.projectId === 'demo' && studio.calls[0]?.args?.jobId === 'render-0001'
+      && studio.calls[0]?.args?.revision === 'r0002' && studio.calls[0]?.args?.sha256 === 'c'.repeat(64)
+      && studio.calls[0]?.args?.expectedStoreIdentity === 'a'.repeat(64), studio.calls[0]?.args)
+    if (frame) check('image download forwards its exact frame, job, revision, store and content identity',
+      studio.calls[0]?.args?.projectId === 'demo' && studio.calls[0]?.args?.jobId === 'render-0001'
+      && String(studio.calls[0]?.args?.frame) === '72' && studio.calls[0]?.args?.revision === 'r0002'
+      && studio.calls[0]?.args?.sha256 === 'c'.repeat(64) && studio.calls[0]?.args?.expectedStoreIdentity === 'a'.repeat(64), studio.calls[0]?.args)
     if (route.id === 'recipes.preview') {
       check('recipe preview forwards the exact id, version and digest from the URL',
         JSON.stringify(studio.calls[0].args) === JSON.stringify({ id: RECIPE.id, version: RECIPE.version, digest: RECIPE_DIGEST }), studio.calls[0].args)
@@ -566,6 +599,32 @@ for (const route of UI_ROUTES) {
     check(`${route.id} reads through the facade only`, called.every(name => READ_METHODS.has(name)), called)
     check(`${route.id} performs no write`, called.every(name => !ALLOWED_WRITES.has(name)), called)
   }
+}
+
+// --- selected review cannot silently fall back to the standard camera roles
+{
+  const views = [{ id: 'delivered', cameraId: 'camera-main', frame: 24 }]
+  const body = { revision: 'r0002', views, expectedStoreIdentity: 'a'.repeat(64), expectedDigest: 'd'.repeat(64) }
+  studio.calls.length = 0
+  const answer = await request('POST', '/deepblend/projects/demo/review', body)
+  check('selected review forwards saved camera/frame and source identity through its dedicated Host method',
+    answer.response.statusCode === 200 && studio.calls.length === 1 && studio.calls[0].name === 'visualReviewSelectedViews'
+    && JSON.stringify(studio.calls[0].args.views) === JSON.stringify(views)
+    && studio.calls[0].args.expectedStoreIdentity === body.expectedStoreIdentity && studio.calls[0].args.expectedDigest === body.expectedDigest)
+  check('the returned QA projection retains the actual selected view sources',
+    answer.json?.review?.inputScope?.mode === 'selected-views'
+    && answer.json.review.inputScope.views[0].cameraId === 'camera-main' && answer.json.review.inputScope.views[0].frame === 24)
+  const original = studio.visualReviewSelectedViews
+  delete studio.visualReviewSelectedViews; studio.calls.length = 0
+  try {
+    const stale = await request('POST', '/deepblend/projects/demo/review', body)
+    check('an older Host refuses selected review without starting an unrelated default review',
+      stale.response.statusCode === 503 && stale.json?.error?.code === 'UI_HOST_API_STALE' && studio.calls.length === 0)
+  } finally { studio.visualReviewSelectedViews = original }
+  studio.calls.length = 0
+  const unbound = await request('POST', '/deepblend/projects/demo/review', { revision: 'r0002', views })
+  check('selected HTTP review requires a saved source identity before any facade call',
+    unbound.json?.error?.code === 'REVISION_CONFLICT' && studio.calls.length === 0)
 }
 
 // --- edit controls receive compiled selectors and guarded restore semantics

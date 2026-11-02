@@ -223,10 +223,19 @@ function visualReview(ctx) {
       'control the score; its findings are validated against the review (an unknown view or a missing ' +
       'evidence string is discarded and listed under "rejected").\n' +
       'If the model proposed a ScenePatch, it comes back as `suggestedOperations` for you to review and ' +
-      'apply with blender_scene_patch. Nothing is committed by this call.',
+      'apply with blender_scene_patch. Nothing is committed by this call. To inspect delivery cameras, provide ' +
+      '`views` and an explicit saved revision: 1–4 camera/frame pairs use the saved project aspect, a 640-pixel ' +
+      'long-edge budget and at most 16 samples. This preview inspection is not final-media acceptance. ' +
+      'Without views, the standard role-based cameras are used and need not match the delivery cameras.',
     parameters: {
       projectId: { type: 'string', required: true, description: 'The project id.' },
       revision: { type: 'string', description: 'Revision to review. Defaults to the current one.' },
+      views: { type: 'array', description: 'Explicit 1–4 saved camera/frame pairs, bounded by the Host. Requires revision; do not combine with roles, frame, width or height.',
+        items: { type: 'object', additionalProperties: false, properties: {
+          id: { type: 'string', required: true }, cameraId: { type: 'string', required: true }, frame: { type: 'integer', required: true },
+        } } },
+      expectedStoreIdentity: { type: 'string', description: 'For selected views, optional project-store identity returned by project listing; refuse if that store changed.' },
+      expectedDigest: { type: 'string', description: 'For selected views, optional saved scene digest returned by the scene read; refuse if that source changed.' },
       roles: {
         type: 'array',
         items: { type: 'string' },
@@ -241,7 +250,18 @@ function visualReview(ctx) {
       const resolved = resolveStudio(ctx)
       if (resolved.unavailable !== undefined) return { ok: false, ...resolved.unavailable, image: null }
       try {
-        const { data, canonicalWarnings } = await canonicalCall(resolved.studio.visualReview({
+        const selected = args.views !== undefined
+        if (!selected && (args.expectedStoreIdentity !== undefined || args.expectedDigest !== undefined)) {
+          throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Source identity guards require an explicit selected-view review.')
+        }
+        if (selected && (args.revision === undefined || ['roles', 'frame', 'width', 'height'].some(key => args[key] !== undefined))) {
+          throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Selected review needs an explicit revision and camera/frame pairs; do not mix standard view overrides.')
+        }
+        if (selected && typeof resolved.studio.visualReviewSelectedViews !== 'function') {
+          throw new BlenderError(BlenderErrorCode.RUNTIME_UNAVAILABLE, 'This Host cannot review selected camera/frame pairs. Update or restart the Host; no default-camera review was started.')
+        }
+        const call = selected ? resolved.studio.visualReviewSelectedViews({ ...definedFields({ projectId: args.projectId, revision: args.revision,
+          views: args.views, expectedStoreIdentity: args.expectedStoreIdentity, expectedDigest: args.expectedDigest }), consultReviewer: true, signal: exec.signal }) : resolved.studio.visualReview({
           ...definedFields({
             projectId: args.projectId,
             revision: args.revision,
@@ -252,7 +272,8 @@ function visualReview(ctx) {
           }),
           consultReviewer: true,
           signal: exec.signal,
-        }), warning)
+        })
+        const { data, canonicalWarnings } = await canonicalCall(call, warning)
 
         const sheetPath = data.sheetArtifact?.path
         const bytes = await resolved.studio.readSheetPng(args.projectId, data)
@@ -321,6 +342,8 @@ export function describeReviewNotes(data) {
     `Artistic: ${data.artistic?.status ?? 'unassessable'} — geometry, materials, lighting and goal fit`,
     `Subject:  ${data.subjectId ?? '(none tagged)'}`,
     `Parts:    ${(data.parts ?? []).length > 0 ? data.parts.join(', ') + '  (declared subject-part: they ARE the subject, so they cannot be in its way)' : '(none declared; only the subject is judged for occlusion)'}`,
+    ...(data.inputScope?.views?.length ? [`Review input scope: ${data.inputScope.mode}; preview images, not final-media acceptance.`,
+      ...data.inputScope.views.map(view => `  camera ${view.cameraId}, frame ${view.frame}, ${(view.resolution || []).join('x')}, samples ${view.samples ?? 'unrecorded'}`)] : []),
     '',
     'Measured issues:',
   ]

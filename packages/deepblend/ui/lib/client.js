@@ -252,9 +252,17 @@ window.__ModuleLoader__.load({
       "assets.reset": "放弃素材草稿",
       "assets.saved": "素材已应用到 {revision}。",
       "assets.model": "放入场景（保留原材质）",
+      'assets.hideExisting': '导入时隐藏现有对象（可选）',
+      'assets.hideNone': '不隐藏任何对象',
+      'assets.hideHelp': '新模型可能与现有对象重叠。只隐藏你明确选择的对象；原版本保留，可用于移开默认立方体。',
+      'assets.makeSubject': '将新模型设为创作主体',
+      'assets.hideSubjectError': '要隐藏当前明确指定的主体，请先勾选将新模型设为创作主体。',
       "assets.image": "绑定图片材质",
       "assets.environment": "用作环境照明",
-      "assets.dimensions": "素材尺寸（米）",
+      "assets.dimensions": "首帧导入包围尺寸（场景米）",
+      "assets.unitsObj": "OBJ 不记录物理单位。请与实物尺寸核对；缩放倍数 = 实际尺寸 ÷ 上面的对应尺寸。",
+      "assets.unitsGltf": "glTF 约定以米为单位；请核对模型与实物尺寸。缩放倍数 = 实际尺寸 ÷ 上面的对应尺寸。",
+      "assets.scaledDimensions": "缩放后首帧包围尺寸（米，未计本次旋转）",
       "assets.toneMapped": "这是环境照明效果示例，经过色调映射；应用使用原始 HDR / EXR 数据。",
       "assets.modelHelp": "位置为素材原点，缩放相对原素材。保留原材质、层级与源对象，不改相机。",
       "assets.entityId": "新对象标识",
@@ -326,6 +334,21 @@ window.__ModuleLoader__.load({
       'brief.review': "评审已保存版本",
       'brief.autofix': "按参考自动修正",
       'brief.reviewCost': "点击后会渲染 640 × 480 / 16 采样预览并调用视觉模型；自动修正可能创建或回退版本。",
+      'reviewView.title': '评审画面',
+      'reviewView.selected': '指定保存机位',
+      'reviewView.standard': '标准检查视图组',
+      'reviewView.help': '按保存的项目画幅生成最大边不超过 640 像素、最多 16 采样的检查图，并调用模型。请核对机位和帧；这不是对正式图片或完整影片的验收。',
+      'reviewView.standardHelp': '标准视图组按角色选择机位，不会自动匹配交付图片。',
+      'reviewView.fromImages': '使用最近最多 4 张已完成图片的机位',
+      'reviewView.add': '增加机位',
+      'reviewView.remove': '移除机位',
+      'reviewView.invalid': '请选择当前版本中 1–4 组不同的机位和帧，帧须位于工程范围内；来源未就绪时请刷新。',
+      'reviewView.stale': '机位选择来自旧版本，请重置为当前保存版本后再评审。',
+      'reviewView.reset': '重置为当前版本',
+      'reviewView.noAutofix': '指定机位评审仅提供反馈。自动修正使用标准检查视图组。',
+      'reviewView.scope': '实际检查画面 · {revision}',
+      'reviewView.scopeItem': '{camera} · 第 {frame} 帧 · {resolution} · {samples} 采样',
+      'reviewView.mismatch': '评审返回的画面来源与本次选择不一致，请刷新后重新核对。',
       'brief.iterations': "最多修正轮数",
       'brief.reviewing': "正在渲染并评审…",
       'brief.fixing': "正在进行有限轮次修正…",
@@ -349,6 +372,7 @@ window.__ModuleLoader__.load({
       'fit.reset': '重新读取当前版本',
       'fit.cancel': '取消保存',
       'fit.saved': '已保存完整取景：{revision} · 第 {frame} 帧 · {count} 个部件。请查看预览。',
+      'fit.savedOtherPreview': '已保存完整取景：{revision}。当前显示的不是该版本预览，请核对图片来源；如果未更新，请点击刷新。',
       'fit.unconfirmed': '保存结果尚未确认。重试会沿用同一请求和机位；刷新页面后仍可继续。',
       'fit.stale': '当前版本已变化。重新读取当前版本后再保存。',
       'fit.failed': '未能保存完整取景。查看详情后调整部件、相机或留白，再试一次。',
@@ -399,6 +423,23 @@ window.__ModuleLoader__.load({
       "photo.restoreFailed": "恢复失败，已保留摄影记录：{message}",
       "photo.reuseUnavailable": "无法读取完整摄影设置，请重新选择来源。",
       "photo.reuseTitle": "复用已保存作品的摄影设置",
+      "photo.reuseMode": "复用方式",
+      "photo.reuseAbsolute": "原坐标",
+      "photo.reuseBounds": "按产品边界适配",
+      "photo.boundsHelp": "根据两边所选静态部件的实际边界缩放摄影位置。非太阳灯尺寸乘比例、功率乘比例平方；目标传感器、画幅与光圈保留，对焦距离重新计算。套用后查看预览，必要时另存完整取景；不保证相同曝光或构图。",
+      "photo.boundsAll": "选择非环境可见部件",
+      "photo.boundsClear": "清空选择",
+      "photo.boundsUnavailable": "当前 Host 不支持边界适配，未改动草稿。可更新插件，或明确改用原坐标。",
+      "photo.boundsPick": "两边都应选完整产品，排除环境与支承。未选部件不参与比例计算；动态、隐藏或无法可靠测量的几何会拒绝。",
+      "photo.boundsSource": "来源产品部件（{count}）",
+      "photo.boundsDestination": "目标产品部件（{count}）",
+      "photo.boundsFrame": "来源检查帧",
+      "photo.boundsPlanning": "正在读取两个保存工程的实际边界…",
+      "photo.boundsCancel": "取消适配",
+      "photo.boundsApplied": "已按 {scale} 倍套用到草稿：来源 {sourceCount} 件，目标 {destinationCount} 件，来源第 {frame} 帧。相机只取该帧，不复制动画。",
+      "photo.boundsInvalid": "请选择有效检查帧，以及来源和目标的完整产品部件。",
+      "photo.boundsMismatch": "适配结果与本次保存来源不一致，未改动摄影草稿。",
+      "photo.boundsChanged": "适配期间选择或草稿已变化，已保留当前输入；请重新适配。",
       "photo.reuseHelp": "原坐标以米复用，不自动缩放或取景。替换本作品全部灯光和所选相机的可编辑设置；模型、材质、世界、动画、其他相机与交付设置保留。套用后检查构图，再明确保存。",
       "photo.reuseProject": "来源作品",
       "photo.reuseRevision": "来源保存版本",
@@ -651,6 +692,7 @@ window.__ModuleLoader__.load({
       'projects.recovered': '已打开之前创建的 {id}，未重复创建或渲染',
       'projects.replyMissing': '未能收到创建结果。输入已保留；重试上次创建会检查同一次请求。',
       'projects.environmentFailed': 'Blender 环境尚未就绪。输入已保留；请先检查安装和路径，修复后再重试。',
+      'projects.environmentAllowlist': 'Blender 路径未获许可。输入已保留；请在 DSH 配置中指定 Blender 的绝对路径，或授权该程序所在目录，然后重试。',
       'projects.creationFailed': '未能确认创建结果。输入已保留；可重试上次创建，或刷新列表检查已保存的项目。',
       'projects.retryCreation': '重试上次创建',
       'projects.originalTitle': '上次创建：{title}',
@@ -716,6 +758,83 @@ window.__ModuleLoader__.load({
       'preview.identical': '结构完全相同',
       'jobs.empty': '还没有渲染任务。',
       'jobs.deliveryVerified': '交付已校验',
+      'jobs.downloadVideo': '下载 MP4 · 版本 {revision}',
+      'jobs.downloadFrame': '下载 PNG · 版本 {revision} · 第 {frame} 帧',
+      'jobs.camera': '渲染相机',
+      'jobs.cameraDefault': '场景默认相机',
+      'jobs.cameraMissing': '所选相机在当前版本中不存在，请重新选择。',
+      'motion.title': '制作相机推进',
+      'readiness.imageTitle': '模型图片输入检查',
+      'readiness.imageHelp': '主动发送一张随机测试图到当前视觉评审模型，可能产生模型费用；不会修改作品。切换模型或服务后请重新检查。',
+      'readiness.imageRun': '检查模型是否能看图',
+      'readiness.imageRunning': '正在检查…',
+      'readiness.imagePass': '本次测试图识别正确。该检查不评价作品质量，也不能保证所有图片都能识别。',
+      'readiness.imageAuth': '模型鉴权失败。请在 DSH 中检查当前服务的凭据，再重新检查。',
+      'readiness.imageCredentials': '当前模型服务尚未配置可用凭据。请在当前工作台使用的 DSH 配置中完成服务凭据设置，再重新检查。',
+      'readiness.imageUnsupported': '当前评审模型未声明支持图片输入。请在 DSH 中检查视觉评审模型配置。',
+      'readiness.imageModel': '当前服务的模型目录中找不到所选模型。请核对当前工作台使用的 DSH 配置，并选择目录中的模型标识；模型显示名可能与标识不同。保存后重新检查。',
+      'readiness.imageRoute': '评审模型或服务不可用。请检查当前 DSH 配置和服务状态。',
+      'readiness.imageRate': '模型服务暂时限流，请稍后重试。',
+      'readiness.imageTimeout': '本次检查超时或被取消，无法确认模型能否看图。',
+      'readiness.imageBusy': '上一次检查仍未结束；请稍后重试，若持续不结束，请重启 DSH。',
+      'readiness.imageInconclusive': '本次无法确认模型是否识别了测试图，请检查模型服务后重试。',
+      'readiness.imageLocal': '请在本机工作台检查；旧版 Host 需要重启或更新。',
+      'storage.low': '项目磁盘本次测得可用 {space}，低于 2 GiB；多帧渲染可能中断。请先释放空间并刷新。',
+      'storage.observed': '项目磁盘本次测得可用 {space}。渲染可能需要更多空间。',
+      'storage.unknown': '暂时无法测量项目磁盘空间。请在渲染前检查项目所在磁盘。',
+      'storage.limit': '这是最近一次刷新时的估计，不是空间预留；系统保留、配额、临时目录和其他任务可能影响实际可写空间。',
+      'aspect.title': '为 16:9 交付准备画幅',
+      'aspect.help': '切换会创建新版本，并调整预览与正式配置的画幅；已保存相机和模型保持，但构图可能改变。请重新完整取景并检查画面。',
+      'aspect.change': '{profile}：{before} → {after}',
+      'aspect.apply': '保存 16:9 画幅',
+      'aspect.done': '预览和正式配置已是 16:9。仍需检查实际取景和影片。',
+      'aspect.unavailable': '当前配置无法安全计算 16:9 尺寸，或宿主需要更新；请检查项目配置。',
+      'aspect.pending': '请先保存或放弃其他草稿，并保存或重置运动草稿。',
+      'aspect.saved': '已保存新的画幅版本；请重新取景并检查。',
+      'aspect.outputMismatch': '所选交付是 16:9，但工程预览或正式画幅不是 16:9，画面可能裁切。请先准备 16:9 画幅并重新取景，或明确检查裁切结果。',
+      'aspect.outputUnknown': '无法确认工程预览和正式画幅；请先检查 16:9 交付的实际构图。',
+      'motion.help': '先从已完整取景的静态相机生成低质量运动预览，确认后保存新相机和运动；原作品与原相机保留。',
+      'motion.camera': '起始相机',
+      'motion.cameraAnimated': '这个相机已有动画，请选择静态相机；也可以先用「完整取景」生成新机位。',
+      'motion.cameraTargeted': '这个相机跟踪场景中的对象，请先用「完整取景」生成静态机位。',
+      'motion.cameraAnimatedOption': '{camera}（已有动画）',
+      'motion.cameraTargetedOption': '{camera}（跟踪对象）',
+      'motion.subject': '检查哪些产品部件',
+      'motion.wholeLamp': '选择完整台灯',
+      'motion.tagged': '选择标记为产品的可见部件',
+      'motion.taggedHint': '请核对是否包括整件可见产品；标签不保证完整，隐藏部件不参与入镜检查。',
+      'motion.hidden': '（已隐藏，不参与入镜检查）',
+      'motion.tooMany': '标记为产品的可见部件超过 128 个，无法一次检查全部部件；请调整场景或自行检查未选部分。',
+      'motion.duration': '时长（秒）',
+      'motion.amount': '推进幅度（%）',
+      'motion.direction': '方向',
+      'motion.forward': '向前推进',
+      'motion.backward': '向后拉远',
+      'motion.extend': '如有需要，允许延长项目时间范围；已有动画需要重新检查',
+      'motion.preview': '生成运动预览',
+      'motion.generating': '正在生成预览…',
+      'motion.cancel': '取消预览',
+      'motion.save': '确认并保存运动',
+      'motion.retry': '重试并找回保存结果',
+      'motion.abandon': '停止找回并重新选择',
+      'motion.abandonHelp': '如果无法找回，可以停止找回并重新选择。先检查版本记录：之前的保存仍可能完成。',
+      'motion.saving': '正在保存…',
+      'motion.discard': '放弃候选',
+      'motion.reset': '重新选择',
+      'motion.stale': '作品版本已改变，请重新选择并生成预览。',
+      'motion.invalid': '请选择静态相机和至少一个完整部件，并检查时长与幅度。',
+      'motion.outOfFrame': '所选部件在运动中超出画面。可减少推进幅度、选择向后拉远，或先调整静态取景后重试；没有保存新版本。',
+      'motion.unverifiable': '无法逐帧核验所选部件。请检查是否含隐藏部件、实例或模拟几何，并选择受支持的可见网格；没有保存新版本。',
+      'motion.limit': '预览为低采样画面；请看完整视频并检查遮挡、位移贴图、闪烁和最终画幅。',
+      'motion.fullCheck': '已逐帧核对预览中所选部件的求值网格。',
+      'motion.savedCheck': '确认保存时，将对重新编译的工程再逐帧检查，未通过则保留原版本。',
+      'motion.savedOutOfFrame': '保存前的逐帧检查发现所选部件出画，未保存新版本。可停止找回并重新选择，调整取景或幅度后再次预览。',
+      'motion.savedUnverifiable': '保存前无法逐帧核验所选部件，未保存新版本。可停止找回并重新选择，检查可见网格和取景后再次预览。',
+      'motion.local': '运动预览需要本机工作台和支持此功能的 Host。',
+      'motion.storage': '无法安全保存恢复信息；请启用浏览器存储后重试。',
+      'motion.uncertain': '未能确认保存结果；请使用同一候选重试，系统会查找已保存的版本。',
+      'motion.saved': '运动已保存到 {revision}；请在渲染相机中选择 {camera}。',
+      'motion.failed': '未完成：{message}',
       'jobs.provenanceUnknown': '帧来源未知',
       'jobs.provenanceUnchecked': '{count} 帧未在本次状态读取中复核；交付时的记录见交付清单',
       'jobs.provenanceMixed': '混合配置：{details}',
@@ -727,9 +846,23 @@ window.__ModuleLoader__.load({
       'jobs.cancel': '取消',
       'jobs.resume': '继续渲染',
       'jobs.startDelivery': '启动交付渲染',
+      'jobs.noDeclaredMotion': '当前场景没有声明动画轨道。增加帧数不会自动产生运动；导入素材可能自带动画，请先预览并确认。',
       'jobs.frameStart': '起始帧',
       'jobs.frameEnd': '结束帧',
       'jobs.profile': '渲染配置',
+      'jobs.stillPreset': '交付尺寸',
+      'jobs.stillProfileSize': '使用渲染配置尺寸',
+      'jobs.still2560': '正式静帧 2560×1440（单帧）',
+      'jobs.stillRange': '图片交付或 2560×1440 静帧规格需要起始帧与结束帧相同；引擎与采样沿用所选渲染配置，采样受预算限制。',
+      'jobs.stillUnsupported': '当前 Host 不支持此静帧规格，请更新后重试。',
+      'jobs.video1080': '视频 1920×1080',
+      'jobs.videoPresetHelp': '视频使用项目帧率 {fps} fps；1–144 帧在 24 fps 时为 6 秒。采样、引擎受所选配置及预算控制。',
+      'jobs.videoPresetInvalid': '1080p 视频尺寸只用于视频交付；请切换交付类型或选择其他尺寸。',
+      'jobs.videoPresetUnsupported': '当前 Host 不支持此视频规格，请更新后重试。',
+      'jobs.deliveryKind': '交付类型',
+      'jobs.deliveryVideo': '视频 MP4',
+      'jobs.deliveryStill': '图片 PNG（单帧，无需视频编码）',
+      'jobs.stillKindUnsupported': '当前 Host 不支持独立图片交付，请更新后重试。',
       'jobs.start': '启动',
       'qa.passed': '技术校验通过',
       'qa.none': '无技术校验记录',
@@ -775,10 +908,13 @@ window.__ModuleLoader__.load({
       "snapshot.title": "保存可编辑副本",
       "snapshot.scope": "包含 Blender 工程、源文件与相关外部素材。",
       "snapshot.details": "副本范围",
-      "snapshot.detailText": "仅包含选定的已保存版本。仅用于观察的外部参考图不另行附带；工程内嵌内容未另行检查。可附带同版本的已完成影片。未保存的编辑不会进入副本。",
+      "snapshot.detailText": "仅包含选定的已保存版本。仅用于观察的外部参考图不另行附带；工程内嵌内容未另行检查。可附带同版本的已完成影片和图片。未保存的编辑不会进入副本。",
       "snapshot.revision": "已保存版本",
       "snapshot.video": "附带影片",
       "snapshot.noVideo": "不附带影片",
+      "snapshot.images": "附带已完成图片（最多 16 张）",
+      "snapshot.noImages": "该版本没有可附带的图片任务。",
+      "snapshot.missingImage": "{jobId} 不再可用；取消勾选或刷新后重试。",
       "snapshot.prepare": "准备下载",
       "snapshot.preparing": "正在准备副本…",
       "snapshot.checking": "正在检查已有副本…",
@@ -1014,9 +1150,17 @@ window.__ModuleLoader__.load({
       "assets.reset": "Discard asset draft",
       "assets.saved": "Asset applied in {revision}.",
       "assets.model": "Place in scene (preserve materials)",
+      'assets.hideExisting': 'Hide an existing object when importing (optional)',
+      'assets.hideNone': 'Keep every object visible',
+      'assets.hideHelp': 'The new model may overlap existing objects. Only the object you choose is hidden; the original revision is kept. This can move the default cube out of view.',
+      'assets.makeSubject': 'Make the new model the creative subject',
+      'assets.hideSubjectError': 'To hide the explicitly selected subject, first choose the new model as the creative subject.',
       "assets.image": "Bind image material",
       "assets.environment": "Use for environment lighting",
-      "assets.dimensions": "Asset dimensions (metres)",
+      "assets.dimensions": "Imported first-frame bounds (scene metres)",
+      "assets.unitsObj": "OBJ does not record physical units. Compare with the real object; scale = real size ÷ the corresponding size above.",
+      "assets.unitsGltf": "glTF uses metres by convention. Check the model against the real object; scale = real size ÷ the corresponding size above.",
+      "assets.scaledDimensions": "Scaled first-frame bounds (metres, before this rotation)",
       "assets.toneMapped": "This tone-mapped preview shows environment lighting; applying uses original HDR / EXR data.",
       "assets.modelHelp": "Position refers to the source origin and scale is relative to the source. Preserve its materials, hierarchy and objects; keep the camera.",
       "assets.entityId": "New object ID",
@@ -1088,6 +1232,21 @@ window.__ModuleLoader__.load({
       'brief.review': "Review saved revision",
       'brief.autofix': "Correct using references",
       'brief.reviewCost': "Clicking renders 640 × 480 previews at 16 samples and calls the vision model. Corrections may create or restore revisions.",
+      'reviewView.title': 'Review images',
+      'reviewView.selected': 'Selected saved cameras',
+      'reviewView.standard': 'Standard view group',
+      'reviewView.help': 'Render inspection images using the saved project aspect, at most 640 pixels on the long edge and 16 samples, then call the model. Check the cameras and frames. This does not accept the final images or full movie.',
+      'reviewView.standardHelp': 'Standard views choose cameras by role and do not automatically match delivered images.',
+      'reviewView.fromImages': 'Use cameras from up to 4 recent completed images',
+      'reviewView.add': 'Add camera',
+      'reviewView.remove': 'Remove camera',
+      'reviewView.invalid': 'Choose 1–4 distinct saved camera/frame pairs within the project range. Refresh if the saved source is unavailable.',
+      'reviewView.stale': 'This selection belongs to an older revision. Reset it to the current saved revision before reviewing.',
+      'reviewView.reset': 'Reset to current revision',
+      'reviewView.noAutofix': 'Selected-camera review returns feedback only. Automatic correction uses standard views.',
+      'reviewView.scope': 'Actual inspected images · {revision}',
+      'reviewView.scopeItem': '{camera} · frame {frame} · {resolution} · {samples} samples',
+      'reviewView.mismatch': 'The returned review image sources do not match this selection. Refresh and check again.',
       'brief.iterations': "Maximum correction rounds",
       'brief.reviewing': "Rendering and reviewing…",
       'brief.fixing': "Running bounded corrections…",
@@ -1111,6 +1270,7 @@ window.__ModuleLoader__.load({
       'fit.reset': 'Read current revision again',
       'fit.cancel': 'Cancel save',
       'fit.saved': 'Complete view saved: {revision} · frame {frame} · {count} parts. Review the preview.',
+      'fit.savedOtherPreview': 'Complete view saved: {revision}. Its preview is not currently displayed. Check the image source; refresh if it has not updated.',
       'fit.unconfirmed': 'The save is unconfirmed. Retry reuses this request and camera, including after a page refresh.',
       'fit.stale': 'The current revision changed. Read it again before saving.',
       'fit.failed': 'The complete view could not be saved. Check the details, adjust the parts, camera or margin, and retry.',
@@ -1161,6 +1321,23 @@ window.__ModuleLoader__.load({
       "photo.restoreFailed": "Restore failed; the photography record is retained: {message}",
       "photo.reuseUnavailable": "Complete photography settings are unavailable. Select the source again.",
       "photo.reuseTitle": "Reuse photography from saved work",
+      "photo.reuseMode": "Reuse coordinates",
+      "photo.reuseAbsolute": "Original coordinates",
+      "photo.reuseBounds": "Adapt to product bounds",
+      "photo.boundsHelp": "Scale the setup from the measured bounds of both selected static products. Non-sun light size scales by the ratio and power by its square. Keep the destination sensor, aspect and aperture; recalculate focus distance. Preview and reframe as needed; exposure and composition can differ.",
+      "photo.boundsAll": "Select visible non-environment parts",
+      "photo.boundsClear": "Clear selection",
+      "photo.boundsUnavailable": "This Host does not support boundary adaptation. The draft was kept. Update the plugin or explicitly choose original coordinates.",
+      "photo.boundsPick": "Select the complete product on both sides, excluding the environment and supports. Unselected parts do not affect the ratio. Dynamic, hidden or unmeasurable geometry is refused.",
+      "photo.boundsSource": "Source product parts ({count})",
+      "photo.boundsDestination": "Destination product parts ({count})",
+      "photo.boundsFrame": "Source inspection frame",
+      "photo.boundsPlanning": "Reading native bounds from both saved works…",
+      "photo.boundsCancel": "Cancel adaptation",
+      "photo.boundsApplied": "Applied ratio {scale} to the draft: {sourceCount} source parts, {destinationCount} destination parts, source frame {frame}. The camera is sampled at this frame; its animation is not copied.",
+      "photo.boundsInvalid": "Select a valid inspection frame and complete source and destination product parts.",
+      "photo.boundsMismatch": "The adaptation does not match these saved inputs. The photography draft was kept.",
+      "photo.boundsChanged": "The selection or draft changed while inspecting. Current inputs were kept; adapt again.",
       "photo.reuseHelp": "Reuse absolute coordinates in metres, without automatic scaling or framing. Replace all lights and the selected camera’s editable settings. Keep models, materials, world, animation, other cameras and delivery settings. Check the framing before explicitly saving.",
       "photo.reuseProject": "Source work",
       "photo.reuseRevision": "Saved source version",
@@ -1413,6 +1590,7 @@ window.__ModuleLoader__.load({
       'projects.recovered': 'Opened the previously created {id}; no duplicate creation or render',
       'projects.replyMissing': 'The creation result could not be received. Your inputs are kept; retry the previous creation to check the same request.',
       'projects.environmentFailed': 'Blender is not ready. Your inputs are kept; check its installation and path, then retry.',
+      'projects.environmentAllowlist': 'The Blender path is not permitted. Your inputs are kept; set an absolute Blender path in DSH or allow its directory, then retry.',
       'projects.creationFailed': 'The creation result could not be confirmed. Your inputs are kept; retry the previous creation, or refresh the list to check saved projects.',
       'projects.retryCreation': 'Retry previous creation',
       'projects.originalTitle': 'Previous creation: {title}',
@@ -1478,6 +1656,83 @@ window.__ModuleLoader__.load({
       'preview.identical': 'structurally identical',
       'jobs.empty': 'No render jobs yet.',
       'jobs.deliveryVerified': 'delivery verified',
+      'jobs.downloadVideo': 'Download MP4 · revision {revision}',
+      'jobs.downloadFrame': 'Download PNG · revision {revision} · frame {frame}',
+      'jobs.camera': 'Render camera',
+      'jobs.cameraDefault': 'Scene default camera',
+      'jobs.cameraMissing': 'The selected camera is not in this revision. Choose a camera again.',
+      'motion.title': 'Create a camera push',
+      'readiness.imageTitle': 'Model image-input check',
+      'readiness.imageHelp': 'Send one random test image to the configured review model. This may incur model charges and does not change your work. Check again after changing the model or service.',
+      'readiness.imageRun': 'Check model image input',
+      'readiness.imageRunning': 'Checking…',
+      'readiness.imagePass': 'The test image was identified correctly. This does not review artwork or guarantee recognition of every image.',
+      'readiness.imageAuth': 'Model authentication failed. Check the current service credentials in DSH, then retry.',
+      'readiness.imageCredentials': 'No usable credentials are configured for the current model service. Set up its credentials in this workbench’s DSH configuration, then check again.',
+      'readiness.imageUnsupported': 'The configured review model does not declare image input. Check its DSH configuration.',
+      'readiness.imageModel': 'The selected model is absent from the current service catalog. Check this workbench’s DSH configuration and choose the model’s catalog identifier; its display name may differ. Save, then check again.',
+      'readiness.imageRoute': 'The configured review model or service is unavailable. Check DSH configuration and service status.',
+      'readiness.imageRate': 'The model service is rate limited. Try again later.',
+      'readiness.imageTimeout': 'The check timed out or was cancelled; image input is not verified.',
+      'readiness.imageBusy': 'The previous check has not finished. Try again later; restart DSH if it remains stuck.',
+      'readiness.imageInconclusive': 'This check could not confirm the test image was recognized. Check the model service and try again.',
+      'readiness.imageLocal': 'Run the check in the local workbench; older Hosts need a restart or update.',
+      'storage.low': 'The project disk reported {space} available, below 2 GiB; a multi-frame render may stop. Free space and refresh.',
+      'storage.observed': 'The project disk reported {space} available. Rendering may need more.',
+      'storage.unknown': 'Project disk space could not be measured. Check the project disk before rendering.',
+      'storage.limit': 'This is a snapshot from the last refresh, not reserved space; system reserves, quotas, temporary directories and other work can affect what is actually writable.',
+      'aspect.title': 'Prepare a 16:9 delivery frame',
+      'aspect.help': 'Saving creates a new version and adjusts preview and final frame shapes. Cameras and models stay intact, but composition can change. Refit and inspect the images.',
+      'aspect.change': '{profile}: {before} → {after}',
+      'aspect.apply': 'Save 16:9 frame',
+      'aspect.done': 'Preview and final profiles are already 16:9. Inspect the framing and video.',
+      'aspect.unavailable': 'A safe 16:9 size cannot be calculated, or the Host needs an update; check the project configuration.',
+      'aspect.pending': 'Save or discard other drafts and save or reset the motion draft first.',
+      'aspect.saved': 'Saved a new frame version; refit and inspect the result.',
+      'aspect.outputMismatch': 'The selected delivery is 16:9, but the project preview or final frame is not; the image may be cropped. Prepare a 16:9 frame and refit, or explicitly check the crop.',
+      'aspect.outputUnknown': 'The project preview and final frame shapes could not be verified. Check the actual 16:9 composition first.',
+      'motion.help': 'Preview a low-quality move from a static, fully framed camera; save a new camera and motion after review. The original work and camera are kept.',
+      'motion.camera': 'Starting camera',
+      'motion.cameraAnimated': 'This camera already has animation. Choose a static camera, or create one with Complete view first.',
+      'motion.cameraTargeted': 'This camera tracks an object. Create a static camera with Complete view first.',
+      'motion.cameraAnimatedOption': '{camera} (animated)',
+      'motion.cameraTargetedOption': '{camera} (tracks an object)',
+      'motion.subject': 'Product parts to check',
+      'motion.wholeLamp': 'Select complete lamp',
+      'motion.tagged': 'Select visible parts marked as product',
+      'motion.taggedHint': 'Check the visible product is complete; tags do not guarantee completeness and hidden parts are not inspected.',
+      'motion.hidden': ' (hidden, not checked for framing)',
+      'motion.tooMany': 'More than 128 visible parts are marked as product, so one check cannot cover them all. Adjust the scene or inspect the unselected parts yourself.',
+      'motion.duration': 'Duration (seconds)',
+      'motion.amount': 'Move amount (%)',
+      'motion.direction': 'Direction',
+      'motion.forward': 'Push forward',
+      'motion.backward': 'Pull back',
+      'motion.extend': 'Allow extending the project timeline if needed; review existing animation',
+      'motion.preview': 'Generate motion preview',
+      'motion.generating': 'Generating preview…',
+      'motion.cancel': 'Cancel preview',
+      'motion.save': 'Accept and save motion',
+      'motion.retry': 'Retry and recover saved result',
+      'motion.abandon': 'Stop recovery and choose again',
+      'motion.abandonHelp': 'If recovery is unavailable, you can stop trying and choose again. Check revision history first: the earlier save may still complete.',
+      'motion.saving': 'Saving…',
+      'motion.discard': 'Discard candidate',
+      'motion.reset': 'Choose again',
+      'motion.stale': 'The saved work changed. Choose again and generate a new preview.',
+      'motion.invalid': 'Choose a static camera and at least one complete part; check duration and amount.',
+      'motion.outOfFrame': 'Selected parts leave the frame. Reduce the move, pull back, or adjust the static view and retry; no revision was saved.',
+      'motion.unverifiable': 'The selected parts could not be checked in every frame. Check for hidden parts, instances or simulated geometry and select supported visible meshes; no revision was saved.',
+      'motion.limit': 'This is a low-sample preview. Watch the full video and inspect occlusion, displacement, flicker and delivery framing.',
+      'motion.fullCheck': 'Selected evaluated meshes were checked throughout the preview.',
+      'motion.savedCheck': 'Saving checks every frame of the recompiled project; the original revision is kept if it fails.',
+      'motion.savedOutOfFrame': 'The pre-save check found selected geometry outside the frame; no revision was saved. Stop recovery, adjust the framing or amount, and preview again.',
+      'motion.savedUnverifiable': 'The pre-save frame check could not verify the selection; no revision was saved. Stop recovery, check the visible meshes and framing, and preview again.',
+      'motion.local': 'Motion preview requires a local workbench and a compatible Host.',
+      'motion.storage': 'Recovery information could not be stored safely. Enable browser storage and retry.',
+      'motion.uncertain': 'Save could not be confirmed. Retry the same candidate to recover any saved version.',
+      'motion.saved': 'Motion saved to {revision}; choose {camera} as the render camera.',
+      'motion.failed': 'Not completed: {message}',
       'jobs.provenanceUnknown': 'Frame provenance unknown',
       'jobs.provenanceUnchecked': '{count} frames not rechecked in this status read; see the delivery manifest for publication-time evidence',
       'jobs.provenanceMixed': 'Mixed configurations: {details}',
@@ -1489,9 +1744,23 @@ window.__ModuleLoader__.load({
       'jobs.cancel': 'Cancel',
       'jobs.resume': 'Resume render',
       'jobs.startDelivery': 'Start a delivery render',
+      'jobs.noDeclaredMotion': 'This scene has no declared animation tracks. More frames do not create motion automatically; imported assets may contain animation, so preview and check first.',
       'jobs.frameStart': 'from frame',
       'jobs.frameEnd': 'to frame',
       'jobs.profile': 'Render profile',
+      'jobs.stillPreset': 'Delivery size',
+      'jobs.stillProfileSize': 'Use render profile size',
+      'jobs.still2560': 'Delivery still 2560×1440 (one frame)',
+      'jobs.stillRange': 'Image delivery or the 2560×1440 still preset requires the same start and end frame; engine and samples come from the selected profile, subject to the sample budget.',
+      'jobs.stillUnsupported': 'This Host does not support the still preset. Update it and retry.',
+      'jobs.video1080': 'Video 1920×1080',
+      'jobs.videoPresetHelp': 'Video uses the project frame rate of {fps} fps; frames 1–144 last 6 seconds at 24 fps. Engine and samples depend on the selected profile and budget.',
+      'jobs.videoPresetInvalid': 'The 1080p video size requires video delivery. Change the delivery type or size.',
+      'jobs.videoPresetUnsupported': 'This Host does not support the video size preset. Update it and retry.',
+      'jobs.deliveryKind': 'Delivery type',
+      'jobs.deliveryVideo': 'Video MP4',
+      'jobs.deliveryStill': 'Image PNG (single frame; no video encoding)',
+      'jobs.stillKindUnsupported': 'This Host does not support image delivery. Update it and retry.',
       'jobs.start': 'Start',
       'qa.passed': 'technical checks passed',
       'qa.none': 'no technical check recorded',
@@ -1537,10 +1806,13 @@ window.__ModuleLoader__.load({
       "snapshot.title": "Save an editable copy",
       "snapshot.scope": "Includes the Blender project, source files and relevant external assets.",
       "snapshot.details": "What the copy includes",
-      "snapshot.detailText": "Includes only the selected saved version. External images used only as visual references are omitted; embedded content is not separately inspected. You can include a completed video from the same version. Unsaved edits are not included.",
+      "snapshot.detailText": "Includes only the selected saved version. External images used only as visual references are omitted; embedded content is not separately inspected. You can include completed videos and stills from the same version. Unsaved edits are not included.",
       "snapshot.revision": "Saved version",
       "snapshot.video": "Include a video",
       "snapshot.noVideo": "No video",
+      "snapshot.images": "Include completed images (up to 16)",
+      "snapshot.noImages": "No completed image jobs for this revision.",
+      "snapshot.missingImage": "{jobId} is no longer available; deselect it or refresh and retry.",
       "snapshot.prepare": "Prepare download",
       "snapshot.preparing": "Preparing the copy…",
       "snapshot.checking": "Checking the existing copy…",
@@ -1750,6 +2022,7 @@ window.__ModuleLoader__.load({
       // the header, so the BROWSER makes the request and writes the file. `contract/diagnostics.test.mjs`
       // holds these four paths to the route table the Host actually matches.
       diagnostics: '/deepblend/diagnostics',
+      imageInputProbe: '/deepblend/readiness/image-input',
     }
 
     /** Route for one project's own surfaces. */
@@ -1887,9 +2160,12 @@ window.__ModuleLoader__.load({
         return { entries, available: true }
       } catch { return { entries: [], available: false } }
     }
+    const creationEnvironmentError = code => ['BLENDER_NOT_FOUND', 'RUNTIME_UNAVAILABLE', 'BLENDER_RUNTIME_UNAVAILABLE',
+      'BLENDER_EXECUTABLE_NOT_EXECUTABLE', 'BLENDER_EXECUTABLE_OUTSIDE_ALLOWLIST'].includes(code)
     function creationErrorMessage(code) {
       if (code === 'UI_FETCH_FAILED' || /^HTTP_/.test(code)) return t('projects.replyMissing')
-      if (code === 'BLENDER_NOT_FOUND' || code === 'RUNTIME_UNAVAILABLE') return t('projects.environmentFailed')
+      if (code === 'BLENDER_EXECUTABLE_OUTSIDE_ALLOWLIST') return t('projects.environmentAllowlist')
+      if (creationEnvironmentError(code)) return t('projects.environmentFailed')
       if (code === 'CREATION_REQUEST_CONFLICT') return t('projects.creationConflict')
       if (code === 'UI_HOST_API_STALE') return t('projects.hostNeedsRestart')
       return t('projects.creationFailed')
@@ -2719,6 +2995,7 @@ window.__ModuleLoader__.load({
         }
         if (kind === 'camera') {
           if (!number(editorNumberDefault(item.lens, 50), 0, false)) bad(`${item.id}.lens`)
+          if (!editorEqual(item.focusDistance, original?.focusDistance) && !number(item.focusDistance, 0, false)) bad(`${item.id}.focusDistance`)
           if (item.targetEntityId !== undefined && !draft.entities.some(entity => entity.id === item.targetEntityId)) bad(`${item.id}.targetEntityId`)
           if (item.targetPoint !== undefined && !vector(item.targetPoint)) bad(`${item.id}.targetPoint`)
           if (item.targetEntityId !== undefined && item.targetPoint !== undefined) bad(`${item.id}.target`)
@@ -2743,7 +3020,7 @@ window.__ModuleLoader__.load({
       if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
       const operations = []
       const replaceLights = draft.reusedLights && !photographySameLights(draft.lights, draft.original.lights)
-      for (const [kind, items, fields] of [['camera', draft.cameras, ['lens', 'targetEntityId', 'targetPoint']], ['light', draft.lights, ['energy', 'color', 'size']]]) {
+      for (const [kind, items, fields] of [['camera', draft.cameras, ['lens', 'targetEntityId', 'targetPoint', 'focusDistance']], ['light', draft.lights, ['energy', 'color', 'size']]]) {
         if (kind === 'light' && replaceLights) {
           for (const light of draft.original.lights) operations.push({ op: 'light.remove', lightId: light.id })
           for (const light of items) operations.push({ op: 'light.add', light: editorClone(light) })
@@ -2761,7 +3038,8 @@ window.__ModuleLoader__.load({
           if (Object.keys(changes).length) operations.push({ op: `${kind}.update`, [`${kind}Id`]: item.id, ...changes })
         }
       }
-      const note = draft.reuseSource ? t('photo.reuseNote', draft.reuseSource) : null
+      const note = draft.reuseSource ? t('photo.reuseNote', draft.reuseSource)
+        + (draft.reuseSource.normalization ? `\n${JSON.stringify(draft.reuseSource.normalization)}` : '') : null
       return { projectId: draft.projectId, baseRevision: draft.baseRevision, actor: 'ui', saveCheckpoint: true, renderPreview: false, operations, ...(note ? { note } : {}) }
     }
     function photographyDirty(draft) {
@@ -2791,7 +3069,59 @@ window.__ModuleLoader__.load({
       if (next.lights.some(item => !item)) throw new Error(t('photo.reuseUnavailable'))
       next.lightId = next.lights.some(item => item.id === next.lightId) ? next.lightId : next.lights[0]?.id || ''
       next.reusedLights = true
+      delete next.boundaryReuse
       next.reuseSource = { project: source.project.id, revision: source.revision, digest: source.digest, camera: cameraId, target: targetEntityId || '—' }
+      const errors = photographyErrors(next)
+      if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
+      return next
+    }
+    const photographyProductEntities = scene => (scene?.nodes?.entities || []).filter(e => ['generator', 'asset-instance'].includes(e.kind) && e.visible !== false)
+    function photographyProductDefaults(scene, complete) {
+      const choices = photographyProductEntities(scene), ids = choices.map(e => e.id)
+      if (complete?.length && complete.length <= 128 && complete.every(id => ids.includes(id))) return [...complete].sort()
+      const tagged = choices.filter(e => e.tags?.some(tag => ['hero-product', 'subject', 'subject-part'].includes(tag))).map(e => e.id)
+      if (tagged.length && tagged.length <= 128) return tagged.sort()
+      return choices.length === 1 ? [choices[0].id] : []
+    }
+    function photographyBoundaryRequest(state, selection, draft) {
+      const source = selection?.source, scene = state.selected?.scene
+      const valid = (values, nodes) => Array.isArray(values) && values.length >= 1 && values.length <= 128
+        && new Set(values).size === values.length && values.every(id => photographyProductEntities(nodes).some(e => e.id === id))
+      if (!state.photographyBoundaryReuseSupported || !draft || selection?.mode !== 'bounds'
+        || !/^[a-f0-9]{64}$/.test(state.storeIdentity || '') || selection.storeIdentity !== state.storeIdentity || !/^[a-f0-9]{64}$/.test(scene?.digest || '')
+        || !/^[a-f0-9]{64}$/.test(source?.digest || '') || source.project?.id !== selection.sourceProjectId
+        || source.revision !== selection.revision || draft.baseRevision !== scene.revision
+        || !source.nodes.cameras.some(c => c.id === selection.cameraId) || !draft.cameras.some(c => c.id === draft.cameraId)
+        || !valid(selection.sourceEntityIds, source) || !valid(selection.destinationEntityIds, scene)
+        || !Number.isSafeInteger(selection.sourceFrame) || selection.sourceFrame < source.project.frameStart || selection.sourceFrame > source.project.frameEnd
+        || !Number.isSafeInteger(draft.frame) || draft.frame < draft.frameStart || draft.frame > draft.frameEnd) return null
+      return { projectId: draft.projectId, baseRevision: draft.baseRevision, expectedDigest: scene.digest, expectedStoreIdentity: state.storeIdentity,
+        cameraId: draft.cameraId, frame: draft.frame, entityIds: [...selection.destinationEntityIds].sort(),
+        source: { projectId: source.project.id, revision: source.revision, digest: source.digest, cameraId: selection.cameraId,
+          frame: selection.sourceFrame, entityIds: [...selection.sourceEntityIds].sort() } }
+    }
+    function applyBoundaryPhotography(draft, source, plan, request) {
+      if (!plan || plan.schemaVersion !== 'deepblend.photography-reuse/v1' || creationSignature(plan.request) !== creationSignature(request)
+        || plan.camera?.id !== draft.cameraId || !Number.isFinite(plan.scale) || plan.scale < .001 || plan.scale > 1000
+        || plan.provenance?.mode !== 'product-bounds-v1' || plan.provenance.sourceDigest !== request.source.digest
+        || plan.provenance.destinationDigest !== request.expectedDigest || plan.provenance.scale !== plan.scale
+        || plan.provenance.sourceProject !== request.source.projectId || plan.provenance.sourceRevision !== request.source.revision
+        || plan.provenance.sourceCamera !== request.source.cameraId || plan.provenance.sourceFrame !== request.source.frame
+        || plan.provenance.destinationFrame !== request.frame || plan.provenance.storeIdentity !== request.expectedStoreIdentity || !Array.isArray(plan.lights)
+        || creationSignature(plan.lights.map(l => l.id).sort()) !== creationSignature(source.nodes.lights.map(l => l.id).sort())) throw new Error(t('photo.boundsMismatch'))
+      const next = editorClone(draft), camera = next.cameras.find(c => c.id === next.cameraId)
+      camera.lens = plan.camera.lens
+      camera.transform ||= {}
+      camera.transform.location = editorClone(plan.camera.transform?.location)
+      camera.transform.rotationEuler = editorClone(plan.camera.transform?.rotationEuler)
+      if (camera.fStop !== undefined) camera.focusDistance = plan.camera.focusDistance
+      delete camera.targetEntityId; delete camera.targetPoint
+      next.lights = editorClone(plan.lights); next.reusedLights = true
+      next.lightId = next.lights.some(l => l.id === next.lightId) ? next.lightId : next.lights[0]?.id || ''
+      next.reuseSource = { project: request.source.projectId, revision: request.source.revision, digest: request.source.digest,
+        camera: request.source.cameraId, target: '—', normalization: editorClone(plan.provenance) }
+      next.boundaryReuse = { scale: plan.scale, sourceFrame: request.source.frame, sourceCameraStatic: plan.sourceStaticCamera,
+        sourceCount: request.source.entityIds.length, destinationCount: request.entityIds.length }
       const errors = photographyErrors(next)
       if (errors.length) throw new Error(t('photo.invalid', { fields: errors.join(', ') }))
       return next
@@ -2869,7 +3199,7 @@ window.__ModuleLoader__.load({
       const id = `ui-asset-${Date.now().toString(36)}-${++editorSequence}`
       const draft = { projectId, baseRevision: scene.revision, scene: editorClone(scene), entry: editorClone(entry),
         inspection: editorClone(inspection), kind: assetKind(entry.asset), newEntityId: id, newMaterialId: `${id}-material`,
-        location: [0, 0, 0], rotationEuler: [0, 0, 0], scale: 1,
+        location: [0, 0, 0], rotationEuler: [0, 0, 0], scale: 1, hideEntityId: '', makeSubject: false,
         entityId: entityId || scene.nodes.entities.find(item => item.kind !== 'empty')?.id || '',
         target: 'entity', partId: '', slotIndex: '', scope: 'local', newMaterial: false,
         channel: 'baseColor', binding: {}, replaceTexture: false,
@@ -2900,6 +3230,14 @@ window.__ModuleLoader__.load({
         if (!Number.isFinite(draft.scale) || draft.scale <= 0) fail('scale')
         operations.push({ op: 'entity.add', entity: { id: draft.newEntityId, type: 'asset-instance', assetId: asset.id,
           transform: { location: [...draft.location], rotationEuler: [...draft.rotationEuler], scale: [draft.scale, draft.scale, draft.scale] } } })
+        if (typeof draft.hideEntityId !== 'string' || typeof draft.makeSubject !== 'boolean') fail('model options')
+        if (draft.hideEntityId) {
+          const hidden = draft.scene.nodes.entities.find(entity => entity.id === draft.hideEntityId)
+          if (!hidden || hidden.visible === false || hidden.locked || hidden.kind === 'empty') fail('existing object')
+          if (draft.scene.project.reviewSubjectId === hidden.id && !draft.makeSubject) throw new Error(t('assets.hideSubjectError'))
+          operations.push({ op: 'entity.visibility.set', entityId: hidden.id, visible: false })
+        }
+        if (draft.makeSubject) operations.push({ op: 'project.reviewSubject.set', entityId: draft.newEntityId })
       } else if (draft.kind === 'environment') {
         if (!Number.isFinite(draft.strength) || draft.strength < 0 || draft.strength > 1000 || !Number.isFinite(draft.rotation)) fail('environment')
         operations.push({ op: 'world.set', world: { ...editorClone(draft.world), strength: draft.strength,
@@ -2963,6 +3301,39 @@ window.__ModuleLoader__.load({
         && Number.isInteger(form.samples) && form.samples >= 1 && form.samples <= 512)
     }
 
+    const reviewSelectionKey = state => JSON.stringify([state.projectsRoot, state.storeIdentity, state.activeProjectId])
+    function reviewSelectionFor(state) {
+      const scene = state.selected?.scene
+      if (!scene) return null
+      return state.reviewSelections?.[reviewSelectionKey(state)] || { baseRevision: scene.revision,
+        mode: state.selectedReviewViewsSupported ? 'selected' : 'standard', views: [{ id: 'review-1',
+          cameraId: scene.project.activeCamera || scene.nodes.cameras?.[0]?.id || '', frame: scene.project.frameStart ?? 1 }] }
+    }
+    function reviewSelectionValid(state, selection = reviewSelectionFor(state)) {
+      const scene = state.selected?.scene
+      if (!scene || scene.project?.id !== state.activeProjectId || !selection || !state.selectedReviewViewsSupported || selection.baseRevision !== scene.revision
+        || !/^[a-f0-9]{64}$/.test(state.storeIdentity || '') || !/^[a-f0-9]{64}$/.test(scene.digest || '')
+        || !Array.isArray(selection.views) || selection.views.length < 1 || selection.views.length > 4) return false
+      const pairs = new Set()
+      return selection.views.every(view => {
+        const pair = JSON.stringify([view.cameraId, view.frame])
+        if (!scene.nodes.cameras.some(camera => camera.id === view.cameraId) || !Number.isSafeInteger(view.frame)
+          || view.frame < scene.project.frameStart || view.frame > scene.project.frameEnd || pairs.has(pair)) return false
+        pairs.add(pair); return true
+      })
+    }
+    function completedReviewViews(state) {
+      const scene = state.selected?.scene
+      if (!scene) return []
+      const pairs = new Map()
+      for (const job of snapshotImages(state, scene.revision).slice().sort((a, b) => String(a.jobId).localeCompare(String(b.jobId)))) {
+        const cameraId = job.cameraId, frame = job.delivery.image.frame
+        if (!scene.nodes.cameras.some(camera => camera.id === cameraId) || frame < scene.project.frameStart || frame > scene.project.frameEnd) continue
+        const pair = JSON.stringify([cameraId, frame]); pairs.delete(pair); pairs.set(pair, { cameraId, frame })
+      }
+      return [...pairs.values()].slice(-4).map((view, i) => ({ id: `review-${i + 1}`, ...view }))
+    }
+
     const REFERENCE_PURPOSES = ['geometry', 'materials', 'lighting', 'goalFit']
     const REFERENCE_MAX_BYTES = 8 * 1024 * 1024
     function createBriefDraft(scene, projectId) {
@@ -3001,6 +3372,51 @@ window.__ModuleLoader__.load({
         fittedCameraId: key.replace(/^create-/, 'complete-'), idempotencyKey: key,
         frame: Math.min(scene.project.frameEnd ?? 24, Math.max(scene.project.frameStart ?? 1, 24)), marginPercent: 3,
         completeEntityIds: complete ? [...complete].sort() : null, touched: false, attempt: null, storageError: false }
+    }
+    const motionKey = state => JSON.stringify([state.projectsRoot, state.storeIdentity, state.activeProjectId])
+    function wideFramePlan(scene) {
+      if (!scene?.renderProfiles || !scene?.project) return null
+      const profiles = []
+      for (const name of ['preview', 'final']) {
+        const resolution = scene.renderProfiles[name]?.resolution
+        if (!Array.isArray(resolution) || resolution.length !== 2 || !resolution.every(value => Number.isSafeInteger(value) && value >= 16 && value <= 16384)) return null
+        const [width, height] = resolution
+        const wide = width * 9 === height * 16
+        const newWidth = wide ? width : Math.floor(Math.min(width, Math.sqrt(width * height * 16 / 9)) / 16) * 16
+        if (newWidth < 32 || newWidth > 16384) return null
+        const after = wide ? [...resolution] : [newWidth, newWidth * 9 / 16]
+        if (after[1] < 16 || after[0] * after[1] > width * height) return null
+        profiles.push({ name, before: [...resolution], after })
+      }
+      return { profiles, changed: scene.project.aspectRatio !== '16:9' || profiles.some(item => !editorEqual(item.before, item.after)) }
+    }
+    const motionDraftFor = state => state.motionDrafts?.[motionKey(state)] || null
+    function createMotionDraft(scene, projectId, projectsRoot, storeIdentity, source) {
+      const fit = createCameraFitDraft(scene, projectId, projectsRoot, source)
+      const tagged = fit.entities.filter(entity => entity.visible !== false && entity.tags?.includes('hero-product')).map(entity => entity.id).sort()
+      const animated = new Set((scene.nodes.animationTracks || []).filter(track => track.targetKind === 'camera').map(track => track.targetId))
+      const cameraRestrictions = Object.fromEntries((scene.nodes.cameras || []).flatMap(camera => animated.has(camera.id) ? [[camera.id, 'animated']]
+        : camera.targetEntityId ? [[camera.id, 'targeted']] : []))
+      return { projectId, projectsRoot, storeIdentity, baseRevision: scene.revision, entities: fit.entities,
+        cameras: fit.cameras, cameraRestrictions, completeEntityIds: fit.completeEntityIds, taggedEntityIds: tagged.length <= 128 ? tagged : [], taggedOverflow: tagged.length > 128, entityIds: fit.entityIds, cameraId: fit.cameraId,
+        seconds: '6', amount: '8', direction: 'forward', allowRangeExtension: false, result: null, storageError: false, touched: false }
+    }
+    function validMotionDraft(draft) {
+      return Boolean(draft && draft.cameras.includes(draft.cameraId) && !draft.cameraRestrictions?.[draft.cameraId] && draft.entityIds.length > 0 && draft.entityIds.length <= 128
+        && new Set(draft.entityIds).size === draft.entityIds.length && draft.entityIds.every(id => draft.entities.some(entity => entity.id === id && entity.visible !== false))
+        && Number.isFinite(Number(draft.seconds)) && Number(draft.seconds) >= 1 && Number(draft.seconds) <= 10
+        && Number.isFinite(Number(draft.amount)) && Number(draft.amount) >= 1 && Number(draft.amount) <= 20
+        && ['forward', 'backward'].includes(draft.direction))
+    }
+    const motionStorageKey = (root, identity, id) => `deepblend.motion-preview/v1:${JSON.stringify([root, identity, id])}`
+    function validMotionReceipt(receipt, draft) {
+      return Boolean(receipt && /^[a-f0-9-]{36}$/.test(receipt.id || '') && /^[a-f0-9]{64}$/.test(receipt.intentSha256 || '')
+        && receipt.projectId === draft.projectId && receipt.baseRevision === draft.baseRevision
+        && /^[a-zA-Z][a-zA-Z0-9._-]{0,127}$/.test(receipt.cameraId || '') && receipt.sourceCameraId === draft.cameraId
+        && Number.isSafeInteger(receipt.expiresAt) && Number.isSafeInteger(receipt.frameStart) && Number.isSafeInteger(receipt.frameEnd)
+        && Number.isSafeInteger(receipt.fps) && receipt.video && /^[a-f0-9]{64}$/.test(receipt.video.sha256 || '')
+        && Number.isSafeInteger(receipt.video.bytes) && receipt.video.bytes > 0 && receipt.video.bytes <= 32 * 1024 * 1024
+        && Number.isSafeInteger(receipt.video.frames) && receipt.video.frames === receipt.frameEnd - receipt.frameStart + 1)
     }
     const cameraFitInvalid = draft => !draft || !draft.cameras.includes(draft.cameraId)
       || draft.entityIds.length < 1 || draft.entityIds.length > 64 || new Set(draft.entityIds).size !== draft.entityIds.length
@@ -3189,12 +3605,13 @@ window.__ModuleLoader__.load({
     }
 
     /** POST a JSON body and return the parsed payload. Errors come back as data. */
-    async function postJson(fetchImpl, path, body) {
+    async function postJson(fetchImpl, path, body, signal) {
       try {
         const response = await fetchImpl(path, {
           method: 'POST',
           headers: { 'content-type': 'application/json', accept: 'application/json' },
           body: JSON.stringify(body || {}),
+          ...(signal ? { signal } : {}),
         })
         const payload = await response.json()
         if (payload && payload.ok) return { ok: true, payload }
@@ -3247,9 +3664,13 @@ window.__ModuleLoader__.load({
     const snapshotEntry = state => state.editableSnapshots?.[snapshotContextKey(state)] || null
     const snapshotVideos = (state, revision) => (state.jobs || []).filter(job => job.status === 'completed'
       && job.revisionId === revision && typeof job.delivery?.videoPath === 'string' && job.delivery.videoPath.length > 0)
+    const snapshotImages = (state, revision) => (state.jobs || []).filter(job => job.status === 'completed' && job.revisionId === revision
+      && job.delivery?.kind === 'still' && job.delivery.verified === true && Number.isSafeInteger(job.delivery.image?.frame)
+      && /^[a-f0-9]{64}$/.test(job.delivery.image?.sha256 || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || ''))
     const snapshotSupported = state => state.editableSnapshotProtocol === 1 && /^[a-f0-9]{64}$/.test(state.storeIdentity || '')
       && state.editableSnapshotAvailability?.available === true
     const snapshotSameSelection = entry => entry?.handle && entry.revision === entry.handle.revision && entry.videoJobId === entry.handle.videoJobId
+      && JSON.stringify(entry.imageJobIds || []) === JSON.stringify(entry.handle.imageJobIds || [])
     const snapshotBytes = value => value >= 1048576 ? `${(value / 1048576).toFixed(1)} MiB` : value >= 1024 ? `${(value / 1024).toFixed(1)} KiB` : `${value} B`
     const snapshotExportId = async requestId => `snapshot-${(await imageByteHash(Uint8Array.from(requestId, char => char.charCodeAt(0)), undefined, true)).slice(0, 40)}`
     function validSnapshotHandle(handle) {
@@ -3257,10 +3678,14 @@ window.__ModuleLoader__.load({
         && /^snapshot-[a-f0-9]{40}$/.test(handle.exportId || '') && /^[a-f0-9]{64}$/.test(handle.storeIdentity || '')
         && typeof handle.projectId === 'string' && handle.projectId.length > 0 && handle.projectId.length <= 200
         && /^r[0-9]+$/.test(handle.revision || '') && (handle.videoJobId === null || typeof handle.videoJobId === 'string' && handle.videoJobId.length > 0 && handle.videoJobId.length <= 200)
+        && (handle.imageJobIds === undefined || Array.isArray(handle.imageJobIds) && handle.imageJobIds.length > 0 && handle.imageJobIds.length <= 16
+          && handle.imageJobIds.every(id => typeof id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(id))
+          && JSON.stringify([...new Set(handle.imageJobIds)].sort()) === JSON.stringify(handle.imageJobIds))
     }
     function validSnapshotReply(value, handle) {
       if (!value || !['preparing', 'ready', 'failed', 'cancelled'].includes(value.state)
-        || ['requestId', 'exportId', 'storeIdentity', 'projectId', 'revision', 'videoJobId'].some(key => value[key] !== handle[key])) return false
+        || ['requestId', 'exportId', 'storeIdentity', 'projectId', 'revision', 'videoJobId'].some(key => value[key] !== handle[key])
+        || JSON.stringify(value.imageJobIds || []) !== JSON.stringify(handle.imageJobIds || [])) return false
       if (value.state === 'ready') {
         const expected = projectRoute(handle.projectId, `/editable-snapshots/${handle.exportId}/download?storeIdentity=${handle.storeIdentity}`)
         if (value.downloadUrl !== expected || !Number.isSafeInteger(value.archive?.bytes) || value.archive.bytes <= 0
@@ -3279,8 +3704,16 @@ window.__ModuleLoader__.load({
         projects: [],
         projectsRoot: null,
         storeIdentity: null,
+        projectStorage: null,
         editableSnapshotProtocol: null,
         editableSnapshotAvailability: null,
+        snapshotImagesSupported: false,
+        renderVideoDownloadSupported: false,
+        renderFrameDownloadSupported: false,
+        stillDeliveryPresetSupported: false,
+        videoDeliveryPresetSupported: false,
+        deliveryAspectPresetSupported: false,
+        stillImageDeliverySupported: false,
         editableSnapshots: {},
         recipeCatalog: { recipes: [], errors: [] },
         selected: null,
@@ -3306,6 +3739,7 @@ window.__ModuleLoader__.load({
         creationWork: null,
         creationRequestProtocol: null,
         cameraTargetResetSupported: false,
+        photographyBoundaryReuseSupported: false,
         creationDrafts: [],
         creationDraftStorageStatus: null,
         creationDraftMissingRecipe: null,
@@ -3324,6 +3758,8 @@ window.__ModuleLoader__.load({
         briefWork: {},
         visualRuns: {},
         visualIterations: {},
+        reviewSelections: {},
+        selectedReviewViewsSupported: false,
         photographyDrafts: {},
         photographyWork: {},
         photographyEdits: {},
@@ -3338,9 +3774,14 @@ window.__ModuleLoader__.load({
         cameraFitDrafts: {},
         cameraFitWork: {},
         cameraFitSupported: false,
+        motionDrafts: {},
+        motionWork: {},
+        motionPreviewSupported: false,
+        imageInputProbeSupported: false,
+        imageInputProbe: { busy: false, result: null },
         patchDrafts: {},
         recipeChoices: [],
-        forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview' },
+        forms: { title: '', goal: '', recipe: null, recipeParameters: {}, patch: null, frameStart: '', frameEnd: '', profile: 'preview', renderCamera: '', stillPreset: '', deliveryKind: '' },
         busy: { create: false, patch: false, editor: false, assembly: false, placement: false, render: false, restore: false },
         notices: { projects: null, scene: null, preview: null, jobs: null, revisions: null },
       }
@@ -3412,6 +3853,10 @@ window.__ModuleLoader__.load({
       const placementControllers = new Map()
       const cameraFitControllers = new Map()
       const cameraFitStorage = settings.cameraFitStorage ?? preferenceStorage
+      const motionControllers = new Map()
+      let imageProbeController = null
+      const motionStorage = settings.motionStorage ?? preferenceStorage
+      const motionWork = (key, changes) => set({ motionWork: { ...data.motionWork, [key]: { ...data.motionWork[key], ...changes } } })
       const photographySourceControllers = new Map()
       let photographySourceSequence = 0
       const photographyWork = (projectId, changes) => set({ photographyWork: { ...data.photographyWork, [projectId]: { ...data.photographyWork[projectId], ...changes } } })
@@ -3574,10 +4019,22 @@ window.__ModuleLoader__.load({
           recipeCatalog: payload.recipeCatalog ?? { recipes: [], errors: [] },
           projectsRoot: payload.projectsRoot ?? null,
           storeIdentity: payload.storeIdentity ?? null,
+          projectStorage: payload.projectStorage ?? null,
           editableSnapshotProtocol: payload.editableSnapshotProtocol ?? null,
           editableSnapshotAvailability: payload.editableSnapshotAvailability ?? null,
+          snapshotImagesSupported: payload.snapshotImagesSupported === true,
+          renderVideoDownloadSupported: payload.renderVideoDownloadSupported === true,
+          renderFrameDownloadSupported: payload.renderFrameDownloadSupported === true,
+          stillDeliveryPresetSupported: payload.stillDeliveryPresetSupported === true,
+          videoDeliveryPresetSupported: payload.videoDeliveryPresetSupported === true,
+          deliveryAspectPresetSupported: payload.deliveryAspectPresetSupported === true,
+          stillImageDeliverySupported: payload.stillImageDeliverySupported === true,
+          motionPreviewSupported: payload.motionPreviewSupported === true,
+          imageInputProbeSupported: payload.imageInputProbeSupported === true,
+          selectedReviewViewsSupported: payload.selectedReviewViewsSupported === true,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
           cameraTargetResetSupported: payload.cameraTargetResetSupported === true,
+          photographyBoundaryReuseSupported: payload.photographyBoundaryReuseSupported === true,
           assemblyPlacementSupported: payload.assemblyPlacementSupported === true,
           cameraFitSupported: payload.cameraFitSupported === true,
           selected: payload.selected ?? null,
@@ -3624,8 +4081,23 @@ window.__ModuleLoader__.load({
         }
         if (sequence !== loadSequence || projectId !== target()) return
         if (active !== data.activeProjectId) patch.forms = { ...data.forms, patch: data.patchDrafts[active] ?? null }
+        if (active !== data.activeProjectId || patch.projectsRoot !== data.projectsRoot || patch.storeIdentity !== data.storeIdentity)
+          patch.forms = { ...(patch.forms || data.forms), renderCamera: '' }
         if (patch.selected?.scene && active) {
           const source = patch.selected.recipeParameters
+          const motionContext = JSON.stringify([patch.projectsRoot, patch.storeIdentity, active])
+          if (!data.motionDrafts[motionContext] && patch.storeIdentity) {
+            const draft = createMotionDraft(patch.selected.scene, active, patch.projectsRoot, patch.storeIdentity, source)
+            try {
+              const raw = motionStorage?.getItem(motionStorageKey(patch.projectsRoot, patch.storeIdentity, active))
+              if (raw && raw.length <= 8192) {
+                const saved = JSON.parse(raw)
+                const candidate = { ...draft, baseRevision: saved.baseRevision, cameraId: saved.sourceCameraId }
+                if (validMotionReceipt(saved, candidate) && (saved.expiresAt > Date.now() || saved.saveAttempted === true)) Object.assign(draft, candidate, { result: saved })
+              }
+            } catch { draft.storageError = true }
+            patch.motionDrafts = { ...data.motionDrafts, [motionContext]: draft }
+          }
           const fitKey = JSON.stringify([patch.projectsRoot, active]), fitted = data.cameraFitDrafts[fitKey]
           if ((!fitted || !cameraFitDirty(fitted)) && !cameraFitControllers.has(fitKey)) {
             const next = createCameraFitDraft(patch.selected.scene, active, patch.projectsRoot, source)
@@ -3666,7 +4138,7 @@ window.__ModuleLoader__.load({
           if (creationDraftRoot !== null) {
             creationAttempt = null; restoredCreationSource = null; creationDraftId = newCreationKey()
             patch.creationWork = null; patch.creationDraftMissingRecipe = null; patch.recipeChoices = []
-            patch.forms = { ...data.forms, title: '', goal: '', recipe: null, recipeParameters: {} }
+            patch.forms = { ...(patch.forms || data.forms), title: '', goal: '', recipe: null, recipeParameters: {} }
           }
           creationDraftRoot = typeof patch.projectsRoot === 'string' && patch.projectsRoot ? patch.projectsRoot : null
           persistedCreationSignature = null
@@ -3732,7 +4204,7 @@ window.__ModuleLoader__.load({
           let handle = null, storageUnavailable = false
           try { handle = storedSnapshots().find(record => record.key === key)?.handle || null } catch { storageUnavailable = true }
           if (handle && (handle.storeIdentity !== data.storeIdentity || handle.projectId !== data.activeProjectId)) handle = null
-          entry = { revision: handle?.revision || data.currentRevision, videoJobId: handle?.videoJobId || null, handle, result: null, issue: null, busy: {}, attempt: 0, storageUnavailable }
+          entry = { revision: handle?.revision || data.currentRevision, videoJobId: handle?.videoJobId || null, imageJobIds: handle?.imageJobIds || [], handle, result: null, issue: null, busy: {}, attempt: 0, storageUnavailable }
         }
         changeSnapshot(key, { ...entry, busy: {} })
         if (entry.handle && running && snapshotSupported(data)) void snapshotRequest('check')
@@ -3745,7 +4217,8 @@ window.__ModuleLoader__.load({
       }
       async function snapshotControl(handle, kind, signal) {
         const suffix = kind === 'prepare' ? '' : `/${handle.exportId}${kind === 'cancel' ? '/cancel' : ''}`
-        const body = kind === 'prepare' ? { requestId: handle.requestId, revision: handle.revision, ...(handle.videoJobId ? { videoJobId: handle.videoJobId } : {}), expectedStoreIdentity: handle.storeIdentity }
+        const body = kind === 'prepare' ? { requestId: handle.requestId, revision: handle.revision, ...(handle.videoJobId ? { videoJobId: handle.videoJobId } : {}),
+          ...(handle.imageJobIds?.length ? { imageJobIds: handle.imageJobIds } : {}), expectedStoreIdentity: handle.storeIdentity }
           : kind === 'cancel' ? { expectedStoreIdentity: handle.storeIdentity } : null
         const response = await fetchImpl(projectRoute(handle.projectId, `/editable-snapshots${suffix}`), {
           method: body ? 'POST' : 'GET', cache: 'no-store', headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
@@ -3774,10 +4247,11 @@ window.__ModuleLoader__.load({
           let handle = entry.handle
           if (kind === 'prepare' && !snapshotSameSelection(entry)) {
             if (!(data.selected?.revisions || []).some(item => item.revision === entry.revision)
-              || entry.videoJobId && !snapshotVideos(data, entry.revision).some(job => job.jobId === entry.videoJobId)) throw Object.assign(new Error('Saved source unavailable'), { code: 'UI_SNAPSHOT_MISMATCH' })
+              || entry.videoJobId && !snapshotVideos(data, entry.revision).some(job => job.jobId === entry.videoJobId)
+              || entry.imageJobIds?.length && (!data.snapshotImagesSupported || entry.imageJobIds.some(id => !snapshotImages(data, entry.revision).some(job => job.jobId === id)))) throw Object.assign(new Error('Saved source unavailable'), { code: 'UI_SNAPSHOT_MISMATCH' })
             const requestId = newCreationKey().replace(/^create-/, 'copy-')
             handle = { requestId, exportId: await snapshotExportId(requestId), projectId: data.activeProjectId,
-              revision: entry.revision, videoJobId: entry.videoJobId, storeIdentity: data.storeIdentity }
+              revision: entry.revision, videoJobId: entry.videoJobId, ...(entry.imageJobIds?.length ? { imageJobIds: [...entry.imageJobIds] } : {}), storeIdentity: data.storeIdentity }
             if (!stillCurrent()) return
             changeSnapshot(key, { handle, result: null })
             rememberSnapshot(key, handle)
@@ -3813,7 +4287,16 @@ window.__ModuleLoader__.load({
         if (!entry || entry.result?.state === 'preparing' || Object.values(entry.busy || {}).some(Boolean)) return
         if (field === 'revision' && !(data.selected?.revisions || []).some(item => item.revision === value)) return
         if (field === 'videoJobId' && value && !snapshotVideos(data, entry.revision).some(job => job.jobId === value)) return
-        changeSnapshot(key, { [field]: value || null, ...(field === 'revision' ? { videoJobId: null } : {}) })
+        changeSnapshot(key, { [field]: value || null, ...(field === 'revision' ? { videoJobId: null, imageJobIds: [] } : {}) })
+      }
+      function setSnapshotImage(id, selected) {
+        const key = snapshotContextKey(data), entry = data.editableSnapshots[key]
+        if (!entry || !data.snapshotImagesSupported || entry.result?.state === 'preparing' || Object.values(entry.busy || {}).some(Boolean)) return
+        const ids = new Set(entry.imageJobIds || [])
+        if (selected && !snapshotImages(data, entry.revision).some(job => job.jobId === id) || !selected && !ids.has(id)) return
+        if (selected && ids.size >= 16 && !ids.has(id)) return
+        if (selected) ids.add(id); else ids.delete(id)
+        changeSnapshot(key, { imageJobIds: [...ids].sort() })
       }
 
       const creationBody = () => creationRequestBody(data.forms)
@@ -3909,10 +4392,11 @@ window.__ModuleLoader__.load({
         photographySourceControllers.get(projectId)?.abort()
         const controller = new AbortController(), sequence = ++photographySourceSequence
         photographySourceControllers.set(projectId, controller)
-        const root = data.projectsRoot, baseRevision = draft.baseRevision, sourceProjectId = selection.sourceProjectId
+        const root = data.projectsRoot, baseRevision = draft.baseRevision, sourceProjectId = selection.sourceProjectId, storeIdentity = data.storeIdentity
+        const destinationEntityIds = photographyProductDefaults(data.selected?.scene, data.selected?.recipeParameters?.placement?.available ? data.selected.recipeParameters.placement.memberEntityIds : null)
         const alive = () => running && !controller.signal.aborted && photographySourceControllers.get(projectId) === controller && data.projectsRoot === root
         const update = changes => set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], ...changes } } })
-        update({ source: null, loading: true, error: null, applied: false, unchanged: false, replaceDraft: false, projectsRoot: root, baseRevision, sequence })
+        update({ source: null, loading: true, error: null, applied: false, unchanged: false, replaceDraft: false, projectsRoot: root, storeIdentity, baseRevision, sequence })
         const deadline = setTimeout(() => controller.abort(), 30000)
         const read = (path, route) => readRoute((url, options) => fetchImpl(url, { ...options, signal: controller.signal }), path, route)
         try {
@@ -3931,7 +4415,7 @@ window.__ModuleLoader__.load({
             || scene?.revision !== revision || scene?.project?.id !== sourceProjectId || scene.digest !== payload.digest
             || !/^[a-f0-9]{64}$/.test(payload.digest || '') || (saved.digest && saved.digest !== payload.digest)
             || !Array.isArray(scene.nodes?.cameras) || !Array.isArray(scene.nodes?.lights)) throw new Error(result.error?.message || t('photo.reuseUnavailable'))
-          update({ source: editorClone(scene), cameraId: scene.nodes.cameras.find(item => item.id === scene.project.activeCamera)?.id || scene.nodes.cameras[0]?.id || '', targetEntityId: '', error: null })
+          update({ source: editorClone(scene), cameraId: scene.nodes.cameras.find(item => item.id === scene.project.activeCamera)?.id || scene.nodes.cameras[0]?.id || '', targetEntityId: '', error: null, sourceFrame: scene.project.frameStart, sourceEntityIds: photographyProductDefaults(scene, payload.assemblyPlacement?.available ? payload.assemblyPlacement.memberEntityIds : null), destinationEntityIds })
         } catch (error) {
           if (alive()) update({ source: null, error: error.message || String(error) })
         } finally {
@@ -3943,6 +4427,114 @@ window.__ModuleLoader__.load({
         }
       }
       const actions = {
+        saveWideFrame: async () => {
+          const projectId = data.activeProjectId, scene = data.selected?.scene, plan = wideFramePlan(scene)
+          const key = motionKey(data), motion = motionDraftFor(data), motionBusy = data.motionWork[key]?.busy
+          if (!projectId || !scene || scene.project?.id !== projectId || scene.revision !== data.currentRevision
+            || !data.deliveryAspectPresetSupported || !/^[a-f0-9]{64}$/.test(data.storeIdentity || '')
+            || !plan?.changed || projectHasUnsavedDrafts(data) || motion?.result || motion?.touched || motionBusy || Object.values(data.busy).some(Boolean)) return
+          const root = data.projectsRoot, identity = data.storeIdentity, revision = scene.revision
+          const operations = plan.profiles.filter(item => !editorEqual(item.before, item.after)).map(item => ({ op: 'render.profile.set', profileName: item.name, profile: { resolution: item.after } }))
+          if (scene.project.aspectRatio !== '16:9') operations.push({ op: 'project.aspectRatio.set', aspectRatio: '16:9' })
+          const patch = { projectId, baseRevision: revision, actor: 'ui', saveCheckpoint: true, renderPreview: true, operations }
+          setIn('busy', 'patch', true)
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch, expectedStoreIdentity: identity })
+          setIn('busy', 'patch', false)
+          if (outcome.ok && motion && data.motionDrafts[key] === motion) {
+            const drafts = { ...data.motionDrafts }; delete drafts[key]; set({ motionDrafts: drafts })
+          }
+          if (data.activeProjectId === projectId && data.projectsRoot === root && data.storeIdentity === identity)
+            setIn('notices', 'jobs', outcome.ok ? { ok: true, message: t('aspect.saved') } : { ok: false, message: `${outcome.error.code}: ${outcome.error.message}` })
+          reload()
+        },
+        probeImageInput: async () => {
+          if (imageProbeController || !data.imageInputProbeSupported || data.editableSnapshotAvailability?.available !== true) return
+          const controller = new AbortController(); imageProbeController = controller
+          const deadline = setTimeout(() => controller.abort(), 50000)
+          set({ imageInputProbe: { busy: true, result: null } })
+          try {
+            const outcome = await postJson(fetchImpl, ROUTES.imageInputProbe, {}, controller.signal)
+            const result = outcome.payload?.imageInput
+            const statuses = ['pass', 'unavailable', 'unverified']
+            const reasons = [null, 'authentication', 'credentials_missing', 'image_unsupported', 'provider_unavailable', 'model_unavailable', 'services_missing', 'route_missing', 'rate_limit', 'timeout', 'cancelled', 'busy', 'incorrect_response', 'incomplete_response', 'unreadable_response', 'response_limit', 'provider_error']
+            if (!outcome.ok || !result || !statuses.includes(result.status) || !reasons.includes(result.reason)
+              || result.status === 'pass' && result.reason !== null || result.status !== 'pass' && result.reason === null) throw Error('Invalid readiness result')
+            if (running && imageProbeController === controller) set({ imageInputProbe: { busy: false, result: { status: result.status, reason: result.reason } } })
+          } catch {
+            if (running && imageProbeController === controller) set({ imageInputProbe: { busy: false, result: { status: 'unverified', reason: controller.signal.aborted ? 'timeout' : 'provider_error' } } })
+          } finally { clearTimeout(deadline); if (imageProbeController === controller) imageProbeController = null }
+        },
+        setMotionValue: (field, value) => {
+          const key = motionKey(data), draft = motionDraftFor(data), work = data.motionWork[key]
+          if (!draft || draft.result || work?.busy || data.busy.patch || !['cameraId', 'entityIds', 'seconds', 'amount', 'direction', 'allowRangeExtension'].includes(field)) return
+          if (field === 'cameraId' && (!draft.cameras.includes(value) || draft.cameraRestrictions?.[value])) return
+          if (field === 'entityIds' && (!Array.isArray(value) || value.length > 128 || new Set(value).size !== value.length || value.some(id => !draft.entities.some(entity => entity.id === id && entity.visible !== false)))) return
+          set({ motionDrafts: { ...data.motionDrafts, [key]: { ...draft, touched: true, [field]: field === 'entityIds' ? [...value].sort() : value } } })
+        },
+        cancelMotion: () => motionControllers.get(motionKey(data))?.abort(),
+        previewMotion: async () => {
+          const key = motionKey(data), draft = motionDraftFor(data), scene = data.selected?.scene
+          if (!draft || draft.result || motionControllers.has(key) || !data.motionPreviewSupported || !data.editableSnapshotAvailability?.available
+            || !validMotionDraft(draft) || draft.baseRevision !== data.currentRevision || draft.baseRevision !== scene?.revision || Object.values(data.busy).some(Boolean)) return
+          const controller = new AbortController(); motionControllers.set(key, controller); motionWork(key, { busy: 'preview', error: null, message: null })
+          const body = { baseRevision: draft.baseRevision, projectsRoot: draft.projectsRoot, sourceCameraId: draft.cameraId,
+            seconds: Number(draft.seconds), fraction: Number(draft.amount) / 100, direction: draft.direction,
+            entityIds: [...draft.entityIds].sort(), allowRangeExtension: draft.allowRangeExtension === true }
+          try {
+            const response = await fetchImpl(projectRoute(draft.projectId, '/motion-previews'), { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body), signal: controller.signal })
+            const payload = await response.json()
+            if (!response.ok || !payload.ok) {
+              if (payload.error?.code === 'MOTION_OUT_OF_FRAME') throw Object.assign(Error('MOTION_OUT_OF_FRAME'), { userMessage: t('motion.outOfFrame') })
+              if (payload.error?.code === 'MOTION_FRAME_UNVERIFIABLE') throw Object.assign(Error('MOTION_FRAME_UNVERIFIABLE'), { userMessage: t('motion.unverifiable') })
+              throw Error(`${payload.error?.code || 'MOTION_FAILED'}: ${payload.error?.message || response.status}`)
+            }
+            if (controller.signal.aborted || !validMotionReceipt(payload.preview, draft)) throw Error('MOTION_RECEIPT_MISMATCH')
+            const receipt = { ...editorClone(payload.preview), saveAttempted: false }
+            let storageError = false
+            try { motionStorage.setItem(motionStorageKey(draft.projectsRoot, draft.storeIdentity, draft.projectId), JSON.stringify(receipt))
+              if (motionStorage.getItem(motionStorageKey(draft.projectsRoot, draft.storeIdentity, draft.projectId)) !== JSON.stringify(receipt)) throw Error('storage mismatch')
+            } catch { storageError = true }
+            set({ motionDrafts: { ...data.motionDrafts, [key]: { ...draft, result: receipt, storageError } } })
+            motionWork(key, { busy: null, error: storageError ? t('motion.storage') : null })
+          } catch (error) { motionWork(key, { busy: null, error: controller.signal.aborted ? t('inspection.cancelled') : error.userMessage || t('motion.failed', { message: error.message || String(error) }) }) }
+          finally { motionControllers.delete(key) }
+        },
+        discardMotion: async () => {
+          const key = motionKey(data), draft = motionDraftFor(data), work = data.motionWork[key]
+          if (!draft || work?.busy) return
+          // An uncertain save may still be running; forget only the local handle.
+          // Never ask the Host to remove a candidate while its commit is uncertain.
+          if (draft.result && !draft.result.saveAttempted) {
+            const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, `/motion-previews/${draft.result.id}/discard`), {})
+            if (!outcome.ok) { motionWork(key, { error: t('motion.failed', { message: outcome.error.message }) }); return }
+          }
+          try { motionStorage?.removeItem(motionStorageKey(draft.projectsRoot, draft.storeIdentity, draft.projectId)) } catch { motionWork(key, { error: t('motion.storage') }); return }
+          const drafts = { ...data.motionDrafts }; delete drafts[key]; set({ motionDrafts: drafts, motionWork: { ...data.motionWork, [key]: {} } }); reload()
+        },
+        saveMotion: async () => {
+          const key = motionKey(data), draft = motionDraftFor(data), result = draft?.result, work = data.motionWork[key]
+          if (!draft || !result || work?.busy || draft.storageError || !validMotionReceipt(result, draft)
+            || !result.saveAttempted && (draft.baseRevision !== data.currentRevision || result.expiresAt <= Date.now())) return
+          const attempted = { ...result, saveAttempted: true }, storageKey = motionStorageKey(draft.projectsRoot, draft.storeIdentity, draft.projectId)
+          try { motionStorage.setItem(storageKey, JSON.stringify(attempted)); if (motionStorage.getItem(storageKey) !== JSON.stringify(attempted)) throw Error('storage mismatch') }
+          catch { motionWork(key, { error: t('motion.storage') }); return }
+          set({ motionDrafts: { ...data.motionDrafts, [key]: { ...draft, result: attempted } } }); motionWork(key, { busy: 'save', error: null })
+          const controller = new AbortController()
+          const deadline = setTimeout(() => controller.abort(), 120000)
+          let outcome
+          try {
+            outcome = await postJson(fetchImpl, projectRoute(draft.projectId, `/motion-previews/${result.id}/save`), { projectsRoot: draft.projectsRoot, intentSha256: result.intentSha256 }, controller.signal)
+          } finally { clearTimeout(deadline) }
+          const saved = outcome.payload?.saved
+          if (outcome.ok && saved?.projectId === draft.projectId && saved?.sourceRevision === draft.baseRevision
+            && saved?.cameraId === result.cameraId && /^r[0-9]{4,}$/.test(saved?.revision || '')) {
+            try { motionStorage.removeItem(storageKey) } catch {}
+            const drafts = { ...data.motionDrafts }; delete drafts[key]
+            set({ motionDrafts: drafts, motionWork: { ...data.motionWork, [key]: { busy: null, message: t('motion.saved', { revision: saved.revision, camera: saved.cameraId }) } },
+              ...(motionKey(data) === key ? { forms: { ...data.forms, renderCamera: saved.cameraId } } : {}) }); reload()
+          } else motionWork(key, { busy: null, error: outcome.error?.code === 'MOTION_OUT_OF_FRAME' ? t('motion.savedOutOfFrame')
+            : outcome.error?.code === 'MOTION_FRAME_UNVERIFIABLE' ? t('motion.savedUnverifiable') : t('motion.uncertain') })
+        },
         setCameraFitValue: (field, value) => {
           const draft = cameraFitDraftFor(data), key = assemblyKey(data)
           if (!draft || draft.attempt || cameraFitControllers.has(key) || !['cameraId', 'frame', 'marginPercent', 'entityIds'].includes(field)) return
@@ -3959,7 +4551,7 @@ window.__ModuleLoader__.load({
         },
         cancelCameraFit: () => cameraFitControllers.get(assemblyKey(data))?.abort(),
         saveCameraFit: async () => {
-          const draft = cameraFitDraftFor(data), key = assemblyKey(data)
+          const draft = cameraFitDraftFor(data), key = assemblyKey(data), identity = data.storeIdentity, sourceMotionKey = motionKey(data), sourceMotion = motionDraftFor(data)
           if (!draft || !data.cameraFitSupported || cameraFitControllers.has(key) || draft.storageError || Object.values(data.busy).some(Boolean)) return
           if (!draft.attempt && (cameraFitInvalid(draft) || draft.baseRevision !== data.currentRevision || draft.baseRevision !== data.selected?.scene?.revision
               || projectHasUnsavedDrafts({ ...data, cameraFitDrafts: {} }))) return
@@ -3997,10 +4589,20 @@ window.__ModuleLoader__.load({
             const drafts = { ...data.cameraFitDrafts }; delete drafts[key]
             set({ cameraFitDrafts: drafts, cameraFitWork: { ...data.cameraFitWork, [key]: { result } } })
             if (sameProject) {
+              // Preserve a creator's edited motion intent. Only an untouched draft
+              // bound to this exact source may follow the newly fitted camera.
+              if (identity && data.storeIdentity === identity && data.motionDrafts[sourceMotionKey] === sourceMotion
+                && sourceMotion && sourceMotion.baseRevision === body.baseRevision && !sourceMotion.touched && !sourceMotion.result
+                && !data.motionWork[sourceMotionKey]?.busy && !motionControllers.has(sourceMotionKey)) {
+                const entityIds = body.entityIds.every(id => sourceMotion.entities.some(entity => entity.id === id && entity.visible !== false))
+                  ? [...body.entityIds] : sourceMotion.entityIds
+                set({ motionDrafts: { ...data.motionDrafts, [sourceMotionKey]: { ...sourceMotion, baseRevision: result.revision,
+                  cameras: [...new Set([...sourceMotion.cameras, body.fittedCameraId])], cameraId: body.fittedCameraId, entityIds } } })
+              }
               const photography = data.photographyDrafts[draft.projectId]
               if (photography && photography.projectsRoot === draft.projectsRoot && !photographyDirty(photography)) set({ photographyDrafts: {
                 ...data.photographyDrafts, [draft.projectId]: { ...photography, cameraId: body.fittedCameraId, frame: body.frame } } })
-              const notice = { ok: true, kind: 'camera-fit', projectId: draft.projectId, projectsRoot: draft.projectsRoot,
+              const notice = { ok: true, kind: 'camera-fit', projectId: draft.projectId, projectsRoot: draft.projectsRoot, revision: result.revision,
                 message: t('fit.saved', { count: body.entityIds.length, revision: result.revision, frame: body.frame }) }
               set({ view: 'preview', compareMode: 'result', notices: { ...data.notices, scene: notice, preview: notice } })
             }
@@ -4071,6 +4673,7 @@ window.__ModuleLoader__.load({
         },
         setSnapshotRevision: value => setSnapshotSelection('revision', value),
         setSnapshotVideo: value => setSnapshotSelection('videoJobId', value),
+        setSnapshotImage,
         prepareEditableSnapshot: () => snapshotRequest('prepare'),
         checkEditableSnapshot: () => snapshotRequest('check'),
         cancelEditableSnapshot: () => snapshotRequest('cancel'),
@@ -4139,9 +4742,11 @@ window.__ModuleLoader__.load({
         beginNewWork: () => set({ view: 'projects', projectTask: 'new' }),
         selectProject: (projectId) => {
           if (projectId === data.activeProjectId) { reload(); return }
+          motionControllers.get(motionKey(data))?.abort()
           const operation = bundleOperations.get(data.activeProjectId)
           if (operation && projectId !== data.activeProjectId) void cancelBundle(operation).catch(() => {})
-          set({ projectId, selected: null, activeProjectId: null, editorEntityId: null, editorComparison: null, diff: null, diffError: null, compareLeft: null, compareRight: null })
+          set({ projectId, selected: null, activeProjectId: null, editorEntityId: null, editorComparison: null, diff: null, diffError: null, compareLeft: null, compareRight: null,
+            forms: { ...data.forms, renderCamera: '' } })
           reload()
         },
         reload,
@@ -4351,7 +4956,7 @@ window.__ModuleLoader__.load({
         updateAsset: (field, value) => {
           const projectId = data.activeProjectId, current = data.assetDrafts[projectId]
           if (!current || data.assetWork[projectId]?.busy) return
-          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'strength', 'rotation']
+          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'hideEntityId', 'makeSubject', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'strength', 'rotation']
           if (!allowed.includes(field)) return
           const draft = editorClone(current); draft[field] = editorClone(value)
           if (['entityId', 'target'].includes(field)) { draft.partId = ''; draft.slotIndex = '' }
@@ -4505,15 +5110,58 @@ window.__ModuleLoader__.load({
         setVisualIterations: value => {
           if (Number.isInteger(value) && value >= 1 && value <= 3) set({ visualIterations: { ...data.visualIterations, [data.activeProjectId]: value } })
         },
+        setReviewMode: mode => {
+          const choice = reviewSelectionFor(data)
+          if (!choice || data.visualRuns[data.activeProjectId]?.busy || !['selected', 'standard'].includes(mode)
+            || mode === 'selected' && !data.selectedReviewViewsSupported) return
+          set({ reviewSelections: { ...data.reviewSelections, [reviewSelectionKey(data)]: { ...editorClone(choice), mode } } })
+        },
+        resetReviewSelection: () => {
+          if (data.visualRuns[data.activeProjectId]?.busy) return
+          const choices = { ...data.reviewSelections }; delete choices[reviewSelectionKey(data)]; set({ reviewSelections: choices })
+        },
+        updateReviewView: (index, field, value) => {
+          const choice = reviewSelectionFor(data)
+          if (!choice || choice.baseRevision !== data.selected?.scene?.revision || data.visualRuns[data.activeProjectId]?.busy
+            || !['cameraId', 'frame'].includes(field) || !choice.views[index]) return
+          const next = editorClone(choice); next.views[index][field] = value
+          set({ reviewSelections: { ...data.reviewSelections, [reviewSelectionKey(data)]: next } })
+        },
+        addReviewView: () => {
+          const choice = reviewSelectionFor(data), scene = data.selected?.scene
+          if (!choice || choice.baseRevision !== scene?.revision || choice.views.length >= 4 || data.visualRuns[data.activeProjectId]?.busy) return
+          const next = editorClone(choice), camera = scene.nodes.cameras.find(camera => !choice.views.some(view => view.cameraId === camera.id)) || scene.nodes.cameras[0]
+          next.views.push({ id: `review-${next.views.length + 1}`, cameraId: camera?.id || '', frame: scene.project.frameStart })
+          next.views = next.views.map((view, i) => ({ ...view, id: `review-${i + 1}` }))
+          set({ reviewSelections: { ...data.reviewSelections, [reviewSelectionKey(data)]: next } })
+        },
+        removeReviewView: index => {
+          const choice = reviewSelectionFor(data)
+          if (!choice || choice.views.length <= 1 || !choice.views[index] || data.visualRuns[data.activeProjectId]?.busy) return
+          const next = editorClone(choice); next.views.splice(index, 1); next.views = next.views.map((view, i) => ({ ...view, id: `review-${i + 1}` }))
+          set({ reviewSelections: { ...data.reviewSelections, [reviewSelectionKey(data)]: next } })
+        },
+        useCompletedReviewViews: () => {
+          const scene = data.selected?.scene, views = completedReviewViews(data)
+          if (!scene || !views.length || !data.selectedReviewViewsSupported || data.visualRuns[data.activeProjectId]?.busy) return
+          set({ reviewSelections: { ...data.reviewSelections, [reviewSelectionKey(data)]: { mode: 'selected', baseRevision: scene.revision, views } } })
+        },
         runVisual: async mode => {
           const projectId = data.activeProjectId, revision = data.selected?.scene?.revision
           if (!projectId || !revision || !data.briefDrafts[projectId] || !['review', 'autofix'].includes(mode) || data.visualRuns[projectId]?.busy
             || data.briefWork[projectId]?.saving || data.briefWork[projectId]?.uploading || projectHasUnsavedDrafts(data)
             || data.busy.editor || data.busy.patch || data.busy.restore) return
+          const choice = reviewSelectionFor(data), selected = choice?.mode === 'selected'
+          if (selected && (mode !== 'review' || !reviewSelectionValid(data, choice))) return
+          const views = selected ? editorClone(choice.views) : null, expectedDigest = data.selected.scene.digest
           set({ visualRuns: { ...data.visualRuns, [projectId]: { busy: true, mode, revision } } })
           const outcome = await postJson(fetchImpl, projectRoute(projectId, `/${mode}`), { revision,
+            ...(selected ? { views, expectedStoreIdentity: data.storeIdentity, expectedDigest } : {}),
             ...(mode === 'autofix' ? { maxIterations: data.visualIterations[projectId] || 1 } : {}) })
-          const reviewerError = outcome.payload?.review?.reviewerError || outcome.payload?.review?.referenceInputError?.message
+          const scope = outcome.payload?.review?.inputScope
+          const sourceMismatch = selected && outcome.ok && (scope?.mode !== 'selected-views' || scope.sourceRevision !== revision || scope.sourceDigest !== expectedDigest
+            || JSON.stringify(scope.views?.map(({ id, cameraId, frame }) => ({ id, cameraId, frame }))) !== JSON.stringify(views))
+          const reviewerError = sourceMismatch ? t('reviewView.mismatch') : outcome.payload?.review?.reviewerError || outcome.payload?.review?.referenceInputError?.message
           const result = outcome.ok ? outcome.payload : null
           set({ visualRuns: { ...data.visualRuns, [projectId]: { busy: false, mode, revision, result,
             error: !outcome.ok ? `${outcome.error.code}: ${outcome.error.message}` : reviewerError || null } } })
@@ -4536,36 +5184,69 @@ window.__ModuleLoader__.load({
         setPhotographySource: (field, value) => {
           const projectId = data.activeProjectId, selection = data.photographyReuse[projectId] || {}
           if (!data.cameraTargetResetSupported || !photographyDraftFor(data) || photographyBusy(data.photographyWork[projectId])) return
+          let changes, load = false, revision
           if (field === 'project') {
             if (value && !data.projects.some(item => item.projectId === value && !item.creationPending)) return
-            photographySourceControllers.get(projectId)?.abort(); photographySourceControllers.delete(projectId)
-            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { sourceProjectId: value, source: null, revisions: [], revision: '', cameraId: '', targetEntityId: '', replaceDraft: false } } })
-            if (value) return loadPhotographySource()
-          } else if (field === 'revision') {
-            if (!selection.revisions?.some(item => item.revision === value)) return
-            return loadPhotographySource(value)
-          } else if (field === 'camera' && selection.source?.nodes.cameras.some(item => item.id === value)) {
-            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, cameraId: value, targetEntityId: '', applied: false, unchanged: false } } })
-          } else if (field === 'target' && (!value || photographyDraftFor(data).entities.some(item => item.id === value))) {
-            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, targetEntityId: value, applied: false, unchanged: false } } })
-          } else if (field === 'replace' && typeof value === 'boolean') {
-            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, replaceDraft: value } } })
+            changes = { sourceProjectId: value, source: null, revisions: [], revision: '', cameraId: '', targetEntityId: '', replaceDraft: false }; load = Boolean(value)
+          } else if (field === 'revision' && selection.revisions?.some(item => item.revision === value)) {
+            changes = {}; load = true; revision = value
+          } else if (field === 'camera' && selection.source?.nodes.cameras.some(item => item.id === value)) changes = { cameraId: value, targetEntityId: '', applied: false, unchanged: false }
+          else if (field === 'target' && (!value || photographyDraftFor(data).entities.some(item => item.id === value))) changes = { targetEntityId: value, applied: false, unchanged: false }
+          else if (field === 'replace' && typeof value === 'boolean') changes = { replaceDraft: value }
+          else if (field === 'mode' && ['absolute', 'bounds'].includes(value) && (value !== 'bounds' || data.photographyBoundaryReuseSupported)) changes = { mode: value, applied: false, unchanged: false }
+          else if (field === 'sourceFrame') changes = { sourceFrame: value, applied: false, unchanged: false }
+          else if (['sourceEntityIds', 'destinationEntityIds'].includes(field) && Array.isArray(value) && value.length <= 128 && new Set(value).size === value.length) {
+            const scene = field === 'sourceEntityIds' ? selection.source : data.selected?.scene
+            if (value.every(id => photographyProductEntities(scene).some(e => e.id === id))) changes = { [field]: [...value].sort(), applied: false, unchanged: false }
           }
+          if (!changes) return
+          photographySourceControllers.get(projectId)?.abort(); photographySourceControllers.delete(projectId)
+          set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, planning: false, loading: false, error: null, ...changes } } })
+          if (load) return loadPhotographySource(revision)
         },
         reloadPhotographySource: () => loadPhotographySource(data.photographyReuse[data.activeProjectId]?.revision),
-        reusePhotography: () => {
+        cancelPhotographyReuse: () => {
+          const projectId = data.activeProjectId
+          photographySourceControllers.get(projectId)?.abort(); photographySourceControllers.delete(projectId)
+          set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], planning: false } } })
+        },
+        reusePhotography: async () => {
           const projectId = data.activeProjectId, selection = data.photographyReuse[projectId], draft = photographyDraftFor(data)
-          if (!data.cameraTargetResetSupported || !draft || !selection?.source || selection.loading || photographyBusy(data.photographyWork[projectId])
+          if (!data.cameraTargetResetSupported || !draft || !selection?.source || selection.loading || selection.planning || photographyBusy(data.photographyWork[projectId])
             || selection.projectsRoot !== data.projectsRoot || draft.projectsRoot !== data.projectsRoot
             || selection.baseRevision !== draft.baseRevision || draft.baseRevision !== data.selected?.scene?.revision
             || (photographyDirty(draft) && !selection.replaceDraft)) return
+          let controller
           try {
-            const next = reusePhotography(draft, selection.source, selection.cameraId, selection.targetEntityId)
+            let next
+            if (selection.mode === 'bounds') {
+              const request = photographyBoundaryRequest(data, selection, draft)
+              if (!request) throw new Error(t('photo.boundsInvalid'))
+              const signature = creationSignature(draft), root = data.projectsRoot
+              controller = new AbortController(); photographySourceControllers.set(projectId, controller)
+              set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, planning: true, error: null } } })
+              const outcome = await postJson(fetchImpl, projectRoute(projectId, '/photography-reuse'), request, controller.signal)
+              if (!running || controller.signal.aborted || photographySourceControllers.get(projectId) !== controller) return
+              const current = data.photographyReuse[projectId], currentDraft = photographyDraftFor(data)
+              if (data.activeProjectId !== projectId || data.projectsRoot !== root
+                || creationSignature(currentDraft) !== signature
+                || creationSignature(photographyBoundaryRequest(data, current, currentDraft)) !== creationSignature(request)) {
+                if (data.activeProjectId === projectId && data.projectsRoot === root) throw new Error(t('photo.boundsChanged'))
+                return
+              }
+              if (!outcome.ok) throw new Error(`${outcome.error.code}: ${outcome.error.message}`)
+              next = applyBoundaryPhotography(draft, selection.source, outcome.payload.plan, request)
+            } else next = reusePhotography(draft, selection.source, selection.cameraId, selection.targetEntityId)
             set({ photographyDrafts: { ...data.photographyDrafts, [projectId]: next }, photographyReuse: {
-              ...data.photographyReuse, [projectId]: { ...selection, replaceDraft: false, error: null, applied: photographyDirty(next), unchanged: !photographyDirty(next) },
+              ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], replaceDraft: false, error: null, planning: false, applied: photographyDirty(next), unchanged: !photographyDirty(next) },
             } })
           } catch (error) {
-            set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...selection, applied: false, error: error.message || String(error) } } })
+            if (!controller || !controller.signal.aborted) set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], applied: false, planning: false, error: error.message || String(error) } } })
+          } finally {
+            if (controller && photographySourceControllers.get(projectId) === controller) {
+              photographySourceControllers.delete(projectId)
+              if (running) set({ photographyReuse: { ...data.photographyReuse, [projectId]: { ...data.photographyReuse[projectId], planning: false } } })
+            }
           }
         },
         updatePhotography: (kind, path, value) => {
@@ -5018,6 +5699,31 @@ window.__ModuleLoader__.load({
         startRender: async (resumeJobId) => {
           const projectId = data.activeProjectId, scene = data.selected?.scene
           if (!projectId || !scene?.revision || data.busy.render) return
+          const cameraId = data.forms.renderCamera || ''
+          if (resumeJobId === undefined && cameraId && !scene.nodes?.cameras?.some(camera => camera.id === cameraId)) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.cameraMissing') }); return
+          }
+          const selectedSize = data.forms.stillPreset || ''
+          const videoPreset = selectedSize === 'video-1920x1080' ? selectedSize : ''
+          const stillPreset = videoPreset ? '' : selectedSize
+          if (resumeJobId === undefined && stillPreset && !data.stillDeliveryPresetSupported) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.stillUnsupported') }); return
+          }
+          const deliveryKind = data.forms.deliveryKind || ''
+          if (resumeJobId === undefined && deliveryKind && !data.stillImageDeliverySupported) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.stillKindUnsupported') }); return
+          }
+          if (resumeJobId === undefined && videoPreset && !data.videoDeliveryPresetSupported) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.videoPresetUnsupported') }); return
+          }
+          if (resumeJobId === undefined && videoPreset && deliveryKind) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.videoPresetInvalid') }); return
+          }
+          const start = data.forms.frameStart === '' ? scene.project.frameStart : Number(data.forms.frameStart)
+          const end = data.forms.frameEnd === '' ? scene.project.frameEnd : Number(data.forms.frameEnd)
+          if (resumeJobId === undefined && (stillPreset || deliveryKind) && (!Number.isSafeInteger(start) || start !== end)) {
+            setIn('notices', 'jobs', { ok: false, message: t('jobs.stillRange') }); return
+          }
           // Snapshot before notifying subscribers: a project switch or a concurrent
           // save must not change the scene or settings this click asked to render.
           const request = resumeJobId === undefined ? {
@@ -5025,6 +5731,10 @@ window.__ModuleLoader__.load({
             frameStart: data.forms.frameStart === '' ? undefined : Number(data.forms.frameStart),
             frameEnd: data.forms.frameEnd === '' ? undefined : Number(data.forms.frameEnd),
             profile: data.forms.profile,
+            ...(stillPreset ? { stillPreset } : {}),
+            ...(videoPreset ? { videoPreset } : {}),
+            ...(deliveryKind ? { deliveryKind } : {}),
+            ...(cameraId ? { cameraId } : {}),
           } : { resumeJobId }
           setIn('busy', 'render', true)
           const outcome = await postJson(fetchImpl, projectRoute(projectId, '/render'), request)
@@ -5091,8 +5801,15 @@ window.__ModuleLoader__.load({
           fileChoicesStopped = true
           data = { ...data, fileChoiceGeneration: data.fileChoiceGeneration + 1 }
           running = false
+          imageProbeController?.abort(); imageProbeController = null
+          data = { ...data, imageInputProbe: { busy: false, result: null } }
+          snapshot = { ...snapshot, imageInputProbe: data.imageInputProbe }
           if (timer !== null) { clearInterval(timer); timer = null }
+          for (const controller of photographySourceControllers.values()) controller.abort()
+          photographySourceControllers.clear()
           for (const controller of photographyControllers.values()) controller.abort()
+          for (const controller of motionControllers.values()) controller.abort()
+          motionControllers.clear()
           photographyControllers.clear()
           for (const controller of placementControllers.values()) controller.abort()
           placementControllers.clear()
@@ -5187,6 +5904,7 @@ window.__ModuleLoader__.load({
           )
       return el('div', { 'data-view': 'projects' },
         ErrorBox({ error: state.error }),
+        ProjectStorageNotice(state),
         el('section', { className: 'db-card db-project-create', 'aria-label': t('projects.create') },
           el('h2', { className: 'db-start-title' }, t('lighttable.beginTitle')),
           el('p', { className: 'db-start-intro' }, t('lighttable.beginHint')),
@@ -5203,7 +5921,7 @@ window.__ModuleLoader__.load({
             el('div', { className: 'db-inline' },
               Button({ action: 'retry-creation', disabled: state.busy.create, onClick: actions.retryCreation, children: t('projects.retryCreation') }),
               Button({ action: 'refresh-creation-projects', onClick: actions.reload, children: t('projects.refreshList') }),
-              ['BLENDER_NOT_FOUND', 'RUNTIME_UNAVAILABLE'].includes(state.creationWork.code)
+              creationEnvironmentError(state.creationWork.code)
                 ? el('a', { href: 'https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/environment-check.md', target: '_blank', rel: 'noreferrer' }, t('projects.environmentGuide')) : null),
             state.notices.projects?.technicalDetails ? el('details', { 'data-creation-diagnostics': true },
               el('summary', null, t('projects.creationDetails')), el('pre', { className: 'db-pre' }, state.notices.projects.technicalDetails)) : null,
@@ -5327,14 +6045,38 @@ window.__ModuleLoader__.load({
       const projectId = state.activeProjectId, run = state.visualRuns[projectId], work = state.briefWork[projectId]
       const dirty = projectHasUnsavedDrafts(state), disabled = !projectId || !state.briefDrafts[projectId] || run?.busy || work?.saving || work?.uploading || dirty
         || state.busy.editor || state.busy.patch || state.busy.restore
+      const choice = reviewSelectionFor(state), scene = state.selected?.scene, selected = choice?.mode === 'selected'
+      const stale = choice && choice.baseRevision !== scene?.revision, invalid = selected && !reviewSelectionValid(state, choice)
       return el('div', { className: 'db-card', 'data-visual-actions': true, 'data-review-busy': String(Boolean(run?.busy)) },
-        el('p', { className: 'db-muted' }, t('brief.reviewCost')),
+        choice ? el('label', { className: 'db-row' }, t('reviewView.title'), el('select', { className: 'db-input', 'data-field': 'review-view-mode', value: choice.mode,
+          disabled, onChange: event => actions.setReviewMode(event.target.value) },
+          el('option', { value: 'selected', disabled: !state.selectedReviewViewsSupported }, t('reviewView.selected')),
+          el('option', { value: 'standard' }, t('reviewView.standard')))) : null,
+        selected ? el('div', { 'data-review-selection': choice.baseRevision },
+          el('p', { className: 'db-muted' }, t('reviewView.help')),
+          Button({ action: 'review-use-images', disabled: disabled || !completedReviewViews(state).length, onClick: actions.useCompletedReviewViews, children: t('reviewView.fromImages') }),
+          choice.views.map((view, index) => el('div', { key: view.id, className: 'db-inline', style: { marginTop: '8px', flexWrap: 'wrap' } },
+            el('label', { style: { minWidth: 0, flex: '1 1 220px', maxWidth: '100%' } }, t('inspection.camera'), el('select', { className: 'db-input', style: { width: '100%', maxWidth: '100%' }, 'data-field': `review-camera-${index}`, value: view.cameraId, disabled: disabled || stale,
+              onChange: event => actions.updateReviewView(index, 'cameraId', event.target.value) },
+              !scene.nodes.cameras.some(camera => camera.id === view.cameraId) ? el('option', { value: view.cameraId, disabled: true }, t('inspection.cameraUnavailable', { camera: view.cameraId })) : null,
+              scene.nodes.cameras.map(camera => el('option', { key: camera.id, value: camera.id }, camera.id)))),
+            el('label', null, t('inspection.frame'), el('input', { type: 'number', className: 'db-input', style: { width: '100px' }, 'data-field': `review-frame-${index}`,
+              min: scene.project.frameStart, max: scene.project.frameEnd, step: 1, value: view.frame, disabled: disabled || stale,
+              onChange: event => actions.updateReviewView(index, 'frame', event.target.value === '' ? '' : Number(event.target.value)) })),
+            Button({ action: `review-remove-${index}`, disabled: disabled || choice.views.length <= 1 || stale, onClick: () => actions.removeReviewView(index), children: t('reviewView.remove') }))),
+          el('div', { className: 'db-inline', style: { marginTop: '8px' } },
+            Button({ action: 'review-add-view', disabled: disabled || choice.views.length >= 4 || stale, onClick: actions.addReviewView, children: t('reviewView.add') }),
+            Button({ action: 'review-reset-views', disabled: Boolean(run?.busy), onClick: actions.resetReviewSelection, children: t('reviewView.reset') })),
+          stale ? el('p', { className: 'db-error', role: 'status' }, t('reviewView.stale'))
+            : invalid ? el('p', { className: 'db-error', role: 'status' }, t('reviewView.invalid')) : null,
+          el('p', { className: 'db-muted' }, t('reviewView.noAutofix'))) : el('div', null,
+            el('p', { className: 'db-muted' }, t('brief.reviewCost')), el('p', { className: 'db-muted' }, t('reviewView.standardHelp'))),
         dirty ? el('p', { className: 'db-muted' }, t('brief.pending')) : null,
         el('div', { className: 'db-inline' },
-          Button({ action: 'project-review', disabled, onClick: () => actions.runVisual('review'), children: t('brief.review') }),
+          Button({ action: 'project-review', disabled: disabled || invalid, onClick: () => actions.runVisual('review'), children: t('brief.review') }),
           el('label', null, t('brief.iterations'), el('select', { className: 'db-input', 'data-field': 'review-iterations', value: state.visualIterations[projectId] || 1,
-            disabled, onChange: event => actions.setVisualIterations(Number(event.target.value)) }, [1, 2, 3].map(value => el('option', { key: value, value }, String(value))))),
-          Button({ action: 'project-autofix', disabled, onClick: () => actions.runVisual('autofix'), children: t('brief.autofix') })),
+            disabled: disabled || selected, onChange: event => actions.setVisualIterations(Number(event.target.value)) }, [1, 2, 3].map(value => el('option', { key: value, value }, String(value))))),
+          Button({ action: 'project-autofix', disabled: disabled || selected, onClick: () => actions.runVisual('autofix'), children: t('brief.autofix') })),
         run?.busy ? el('p', { role: 'status' }, run.mode === 'review' ? t('brief.reviewing') : t('brief.fixing')) : null,
         run?.error ? el('p', { className: 'db-error', role: 'alert', 'data-review-error': true }, run.error) : null,
         run?.result && !run.error ? el('p', { 'data-review-result': run.mode, className: 'db-muted' }, run.mode === 'review'
@@ -5398,8 +6140,11 @@ window.__ModuleLoader__.load({
     /** A result line, in the two shapes the panel already used. */
     function placementPreviewNotice(state) {
       const notice = state.notices?.preview
-      return ['assembly-placement', 'camera-fit'].includes(notice?.kind) && notice.projectId === state.activeProjectId
-        && notice.projectsRoot === state.projectsRoot ? notice : null
+      if (!['assembly-placement', 'camera-fit'].includes(notice?.kind) || notice.projectId !== state.activeProjectId
+        || notice.projectsRoot !== state.projectsRoot) return null
+      if (notice.kind === 'camera-fit' && notice.revision && lighttableResult(state).artifact?.sourceRevision !== notice.revision)
+        return { ...notice, message: t('fit.savedOtherPreview', { revision: notice.revision }) }
+      return notice
     }
 
     function Notice(result, style) {
@@ -5743,6 +6488,9 @@ window.__ModuleLoader__.load({
       const projectId = state.activeProjectId, library = state.assetLibraries?.[projectId], work = state.assetWork?.[projectId] || {}
       const draft = state.assetDrafts?.[projectId], busy = Boolean(work.busy), limits = library?.limits, bundle = state.assetBundleSelections?.[projectId]
       const conflict = Boolean(draft && draft.baseRevision !== state.selected?.scene?.revision)
+      const sizeText = (dimensions, scale = 1) => Array.isArray(dimensions) && dimensions.length === 3 && Number.isFinite(scale) && scale > 0
+        && dimensions.every(value => Number.isFinite(value) && value >= 0 && Number.isFinite(value * scale))
+        ? dimensions.map(value => Number((value * scale).toPrecision(6))).join(' × ') : null
       const update = (field, value) => actions.updateAsset(field, value)
       const text = (label, field, value, change, extra = {}) => el('label', { className: 'db-row' }, label,
         el('input', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value), ...extra }))
@@ -5810,7 +6558,8 @@ window.__ModuleLoader__.load({
               result ? el('div', null, el('img', { 'data-asset-preview': entry.asset.id, alt: entry.originalName || entry.asset.id,
                 ...dimensions, src: artifactUrl(`/deepblend/artifacts/${encodeURIComponent(projectId)}/`, result.preview), style: { width: '100%', height: 'auto', maxHeight: '240px', objectFit: 'contain' } }),
                 result.inspection.kind === 'environment' && result.preview.toneMapped ? el('p', { className: 'db-muted' }, t('assets.toneMapped')) : null,
-                result.inspection.dimensions ? el('p', null, `${t('assets.dimensions')}: ${result.inspection.dimensions.map(value => Number.isFinite(value) ? Number(value.toFixed(4)) : '—').join(' × ')}`) : null,
+                sizeText(result.inspection.dimensions) !== null ? el('p', { 'data-asset-dimensions': true }, `${t('assets.dimensions')}: ${sizeText(result.inspection.dimensions)}`) : null,
+                result.inspection.kind === 'model' ? el('p', { className: 'db-muted', 'data-asset-units': entry.asset.type }, entry.asset.type === 'obj' ? t('assets.unitsObj') : t('assets.unitsGltf')) : null,
                 result.inspection.image ? el('p', null, `${result.inspection.image.width} × ${result.inspection.image.height}`) : null,
                 result.inspection.warnings?.length ? el('h5', null, t('assets.inspectionWarnings')) : null,
                 (result.inspection.warnings || []).map((warning, index) => el('p', { className: 'db-muted', key: index }, typeof warning === 'string' ? warning : warning.message || warning.code || '')),
@@ -5828,7 +6577,12 @@ window.__ModuleLoader__.load({
             el('p', { className: 'db-muted' }, t('assets.modelHelp')),
             text(t('assets.entityId'), 'asset-entity-id', draft.newEntityId, value => update('newEntityId', value)),
             vector(t('editor.position'), 'location', draft.location, 1000), vector(t('editor.rotation'), 'rotationEuler', draft.rotationEuler, 180 / Math.PI),
-            number(t('assets.scale'), 'asset-scale', draft.scale ?? '', value => update('scale', value), { min: 0.000001 })) : null,
+            number(t('assets.scale'), 'asset-scale', draft.scale ?? '', value => update('scale', value), { min: 0.000001 }),
+            sizeText(draft.inspection?.dimensions, draft.scale) !== null ? el('p', { 'data-asset-scaled-dimensions': true }, `${t('assets.scaledDimensions')}: ${sizeText(draft.inspection.dimensions, draft.scale)}`) : null,
+            el('p', { className: 'db-muted' }, t('assets.hideHelp')),
+            choose(t('assets.hideExisting'), 'asset-hide-existing', draft.hideEntityId, [['', t('assets.hideNone')],
+              ...draft.scene.nodes.entities.filter(entity => entity.visible !== false && !entity.locked && entity.kind !== 'empty').map(entity => [entity.id, entity.id])], value => update('hideEntityId', value)),
+            check(t('assets.makeSubject'), 'asset-make-subject', draft.makeSubject, value => update('makeSubject', value))) : null,
           draft.kind === 'environment' ? el('div', null,
             el('p', { className: 'db-muted' }, t('assets.environmentHelp')),
             number(t('assets.strength'), 'asset-world-strength', draft.strength ?? '', value => update('strength', value), { min: 0, max: 1000 }),
@@ -5904,7 +6658,7 @@ window.__ModuleLoader__.load({
       const draft = photographyDraftFor(state), projectId = state.activeProjectId, work = state.photographyWork?.[projectId] || {}, edit = state.photographyEdits?.[projectId]
       const busy = photographyBusy(work)
       const conflict = draft && draft.baseRevision !== state.selected?.scene?.revision
-      const disabled = busy || conflict, errors = draft ? photographyErrors(draft) : []
+      const disabled = busy || conflict || state.photographyReuse?.[projectId]?.planning, errors = draft ? photographyErrors(draft) : []
       const camera = draft?.cameras.find(item => item.id === draft.cameraId), light = draft?.lights.find(item => item.id === draft.lightId)
       const update = (kind, path) => value => actions.updatePhotography(kind, path, value)
       const numeric = (label, field, value, change, options = {}) => el('label', { className: 'db-row' }, label, el('input', {
@@ -5923,6 +6677,20 @@ window.__ModuleLoader__.load({
       const aimLocked = camera && photographyAimLocked(draft, camera)
       const reuse = state.photographyReuse?.[projectId] || {}, sourceCamera = reuse.source?.nodes.cameras.find(item => item.id === reuse.cameraId)?.definition
       const reuseStale = reuse.source && (reuse.projectsRoot !== state.projectsRoot || reuse.baseRevision !== draft?.baseRevision || draft?.projectsRoot !== state.projectsRoot)
+      const boundaryMode = reuse.mode === 'bounds', boundaryRequest = boundaryMode ? photographyBoundaryRequest(state, reuse, draft) : null
+      const productMembers = (title, scene, field) => {
+        const selected = reuse[field] || [], choices = photographyProductEntities(scene)
+        const all = choices.filter(e => !e.tags?.includes('environment')).map(e => e.id)
+        return Disclosure({ state, actions }, `photo-boundary:${field}`, title, { 'data-photography-members': field, style: { minWidth: 0 } },
+          el('div', { className: 'db-inline' },
+            Button({ action: `photo-members-all:${field}`, disabled: disabled || all.length > 128, onClick: () => actions.setPhotographySource(field, all), children: t('photo.boundsAll') }),
+            Button({ action: `photo-members-clear:${field}`, disabled, onClick: () => actions.setPhotographySource(field, []), children: t('photo.boundsClear') })),
+          el('div', { style: { maxHeight: '220px', overflowY: 'auto', minWidth: 0 } }, choices.map(e => el('label', { key: e.id, style: { display: 'flex', gap: '8px', margin: '6px 0', minWidth: 0 } },
+            el('input', { type: 'checkbox', 'data-field': `photo-${field}:${e.id}`, checked: selected.includes(e.id), disabled: disabled || selected.length >= 128 && !selected.includes(e.id), style: { flex: 'none' },
+              onChange: event => actions.setPhotographySource(field, event.target.checked ? [...selected, e.id] : selected.filter(id => id !== e.id)) }),
+            el('span', { style: { overflowWrap: 'anywhere', minWidth: 0 } }, e.label || e.id)))))
+      }
+
       return el('section', { className: 'db-card', 'data-photography-editor': projectId },
         CameraFitEditor({ state, actions }),
         el('h4', null, t('photo.title')), el('p', { className: 'db-muted' }, t('photo.help')),
@@ -5930,23 +6698,34 @@ window.__ModuleLoader__.load({
           el('p', { className: 'db-muted', 'data-photography-base': draft.baseRevision }, t('photo.base', { revision: draft.baseRevision })),
           conflict ? el('p', { className: 'db-error', 'data-photography-conflict': true }, t('photo.conflict', { before: draft.baseRevision, current: state.selected?.scene?.revision })) : null,
           state.cameraTargetResetSupported ? el('div', { 'data-photography-reuse': true },
-            el('h4', null, t('photo.reuseTitle')), el('p', { className: 'db-muted' }, t('photo.reuseHelp')),
+            el('h4', null, t('photo.reuseTitle')), el('p', { className: 'db-muted' }, boundaryMode ? t('photo.boundsHelp') : t('photo.reuseHelp')),
+            state.photographyBoundaryReuseSupported ? choose(t('photo.reuseMode'), 'source-mode', reuse.mode || 'absolute', [['absolute', t('photo.reuseAbsolute')], ['bounds', t('photo.reuseBounds')]], value => actions.setPhotographySource('mode', value))
+              : boundaryMode ? el('div', null, el('p', { className: 'db-error' }, t('photo.boundsUnavailable')), Button({ action: 'photo-use-absolute', onClick: () => actions.setPhotographySource('mode', 'absolute'), children: t('photo.reuseAbsolute') })) : null,
             choose(t('photo.reuseProject'), 'source-project', reuse.sourceProjectId || '', [['', '—'], ...state.projects.filter(item => !item.creationPending).map(item => [item.projectId, item.title || item.projectId])], value => actions.setPhotographySource('project', value)),
             choose(t('photo.reuseRevision'), 'source-revision', reuse.revision || '', [['', '—'], ...(reuse.revisions || []).map(item => [item.revision, item.revision])], value => actions.setPhotographySource('revision', value), reuse.loading || !reuse.revisions?.length),
             reuse.loading ? el('p', { role: 'status' }, t('photo.reuseReading')) : null,
             reuse.source ? el('div', { 'data-photography-source': `${reuse.sourceProjectId}:${reuse.revision}` },
               el('p', { className: 'db-muted' }, t('photo.reuseSource', { project: reuse.sourceProjectId, revision: reuse.revision, digest: shortDigest(reuse.source.digest), count: reuse.source.nodes.lights.length })),
               choose(t('photo.reuseCamera'), 'source-camera', reuse.cameraId, reuse.source.nodes.cameras.map(item => [item.id, item.id]), value => actions.setPhotographySource('camera', value)),
-              photographyAim(sourceCamera) === 'entity' ? choose(t('photo.reuseTarget'), 'source-target', reuse.targetEntityId || '', [['', '—'], ...draft.entities.map(item => [item.id, item.id])], value => actions.setPhotographySource('target', value)) : null,
+              !boundaryMode && photographyAim(sourceCamera) === 'entity' ? choose(t('photo.reuseTarget'), 'source-target', reuse.targetEntityId || '', [['', '—'], ...draft.entities.map(item => [item.id, item.id])], value => actions.setPhotographySource('target', value)) : null,
+              boundaryMode ? el('div', null,
+                numeric(t('photo.boundsFrame'), 'source-frame', reuse.sourceFrame, value => actions.setPhotographySource('sourceFrame', value), { min: reuse.source.project.frameStart, max: reuse.source.project.frameEnd, step: 1 }),
+                el('p', { className: 'db-muted' }, t('photo.boundsPick')),
+                productMembers(t('photo.boundsSource', { count: (reuse.sourceEntityIds || []).length }), reuse.source, 'sourceEntityIds'),
+                productMembers(t('photo.boundsDestination', { count: (reuse.destinationEntityIds || []).length }), state.selected?.scene, 'destinationEntityIds'),
+                !boundaryRequest ? el('p', { className: 'db-muted' }, t('photo.boundsInvalid')) : null) : null,
               photographyDirty(draft) ? el('label', { className: 'db-row' }, el('input', { type: 'checkbox', 'data-field': 'photo-source-replace', checked: Boolean(reuse.replaceDraft), disabled: disabled || reuse.loading,
                 onChange: event => actions.setPhotographySource('replace', Boolean(event.target.checked)) }), t('photo.reuseReplace')) : null,
               reuseStale ? el('p', { className: 'db-error' }, t('photo.reuseStale')) : null,
-              reuse.applied ? el('p', { role: 'status', 'data-photography-reused': true }, t('photo.reuseApplied')) : null,
+              reuse.applied ? el('p', { role: 'status', 'data-photography-reused': true }, draft.boundaryReuse
+                ? t('photo.boundsApplied', { scale: Number(draft.boundaryReuse.scale.toPrecision(5)), sourceCount: draft.boundaryReuse.sourceCount, destinationCount: draft.boundaryReuse.destinationCount, frame: draft.boundaryReuse.sourceFrame }) : t('photo.reuseApplied')) : null,
+
               reuse.unchanged ? el('p', { role: 'status', 'data-photography-reuse-unchanged': true }, t('photo.reuseSame')) : null) : null,
+            reuse.planning ? el('div', { role: 'status' }, t('photo.boundsPlanning'), Button({ action: 'photo-cancel-adaptation', onClick: actions.cancelPhotographyReuse, children: t('photo.boundsCancel') })) : null,
             reuse.error ? el('p', { className: 'db-error', role: 'status', 'data-photography-source-error': true }, reuse.error) : null,
             el('div', { className: 'db-inline' },
               Button({ action: 'photo-source-reload', disabled: disabled || !reuse.sourceProjectId || reuse.loading, onClick: actions.reloadPhotographySource, children: t('photo.reuseReload') }),
-              Button({ action: 'photo-reuse', disabled: disabled || reuse.loading || !reuse.source || reuseStale || (photographyDirty(draft) && !reuse.replaceDraft) || (photographyAim(sourceCamera) === 'entity' && !reuse.targetEntityId), onClick: actions.reusePhotography, children: t('photo.reuseApply') }))) : el('p', { className: 'db-muted' }, t('photo.reuseUpgrade')),
+              Button({ action: 'photo-reuse', disabled: disabled || reuse.loading || !reuse.source || reuseStale || (photographyDirty(draft) && !reuse.replaceDraft) || (boundaryMode ? !boundaryRequest : photographyAim(sourceCamera) === 'entity' && !reuse.targetEntityId), onClick: actions.reusePhotography, children: t('photo.reuseApply') }))) : el('p', { className: 'db-muted' }, t('photo.reuseUpgrade')),
           el('div', { className: 'db-grid' },
             el('div', null,
               choose(t('photo.camera'), 'camera', draft.cameraId, draft.cameras.map(item => [item.id, item.id]), id => actions.selectPhotography('camera', id)),
@@ -6517,15 +7296,115 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function MotionEditor(ctx) {
+      const { state, actions } = ctx, draft = motionDraftFor(state), work = state.motionWork?.[motionKey(state)] || {}
+      if (!draft) return null
+      const available = state.motionPreviewSupported && state.editableSnapshotAvailability?.available === true
+      const busy = Boolean(work.busy), frozen = busy || Boolean(draft.result) || state.busy.patch, stale = draft.baseRevision !== state.currentRevision
+      const invalid = !validMotionDraft(draft), result = draft.result
+      const fullFrameChecked = result?.frameAudit?.schemaVersion === 'deepblend.motion-frame-audit-summary/v1' && result.frameAudit.scope === 'evaluated-mesh-vertices'
+        && result.frameAudit.frameStart === result.frameStart && result.frameAudit.frameEnd === result.frameEnd
+        && result.frameAudit.frameCount === result.video?.frames && result.frameAudit.cameraId === result.cameraId
+        && Array.isArray(result.frameAudit.entityIds) && editorEqual(result.frameAudit.entityIds, [...draft.entityIds].sort())
+        && /^[a-f0-9]{64}$/.test(result.frameAudit.checkpointSha256 || '')
+      const value = (field, label, min, max, step) => el('label', { className: 'db-row' }, label, el('input', {
+        className: 'db-input', type: 'number', 'data-field': `motion-${field}`, value: draft[field], min, max, step, disabled: frozen,
+        onChange: event => actions.setMotionValue(field, event.target.value), style: { width: '100px' } }))
+      return el('section', { className: 'db-card', 'data-motion-editor': true },
+        el('h4', null, t('motion.title')), el('p', { className: 'db-muted' }, t('motion.help')),
+        !available ? el('p', { role: 'status', className: 'db-muted' }, t('motion.local')) : null,
+        el('label', { className: 'db-row' }, t('motion.camera'), el('select', { className: 'db-input', 'data-field': 'motion-camera', value: draft.cameraId, disabled: frozen,
+          onChange: event => actions.setMotionValue('cameraId', event.target.value) }, draft.cameras.map(id => el('option', { key: id, value: id, disabled: Boolean(draft.cameraRestrictions?.[id]) },
+            draft.cameraRestrictions?.[id] === 'animated' ? t('motion.cameraAnimatedOption', { camera: id })
+              : draft.cameraRestrictions?.[id] === 'targeted' ? t('motion.cameraTargetedOption', { camera: id }) : id)))),
+        draft.cameraRestrictions?.[draft.cameraId] ? el('p', { className: 'db-muted', role: 'status', 'data-motion-camera-restriction': draft.cameraRestrictions[draft.cameraId] },
+          draft.cameraRestrictions[draft.cameraId] === 'animated' ? t('motion.cameraAnimated') : t('motion.cameraTargeted')) : null,
+        draft.taggedOverflow ? el('p', { className: 'db-error', role: 'status' }, t('motion.tooMany')) : null,
+        Disclosure(ctx, 'motion-parts', t('motion.subject'), {},
+          draft.completeEntityIds?.length ? Button({ action: 'motion-whole-lamp', disabled: frozen, onClick: () => actions.setMotionValue('entityIds', draft.completeEntityIds), children: t('motion.wholeLamp') }) : null,
+          draft.taggedEntityIds?.length ? Button({ action: 'motion-tagged', disabled: frozen, onClick: () => actions.setMotionValue('entityIds', draft.taggedEntityIds), children: t('motion.tagged') }) : null,
+          draft.taggedEntityIds?.length ? el('p', { className: 'db-muted' }, t('motion.taggedHint')) : null,
+          el('div', { style: { maxHeight: '200px', overflowY: 'auto' } }, draft.entities.map(entity => el('label', { className: 'db-row', key: entity.id },
+            el('input', { type: 'checkbox', 'data-field': 'motion-part', 'data-entity-id': entity.id, checked: draft.entityIds.includes(entity.id),
+              disabled: frozen || entity.visible === false || !draft.entityIds.includes(entity.id) && draft.entityIds.length >= 128,
+              onChange: event => actions.setMotionValue('entityIds', event.target.checked ? [...draft.entityIds, entity.id] : draft.entityIds.filter(id => id !== entity.id)) }), entity.id, entity.visible === false ? t('motion.hidden') : '')))),
+        value('seconds', t('motion.duration'), 1, 10, 1), value('amount', t('motion.amount'), 1, 20, 1),
+        el('label', { className: 'db-row' }, t('motion.direction'), el('select', { className: 'db-input', 'data-field': 'motion-direction', value: draft.direction, disabled: frozen,
+          onChange: event => actions.setMotionValue('direction', event.target.value) },
+          el('option', { value: 'forward' }, t('motion.forward')), el('option', { value: 'backward' }, t('motion.backward')))),
+        el('label', { className: 'db-row' }, el('input', { type: 'checkbox', 'data-field': 'motion-extend', checked: draft.allowRangeExtension, disabled: frozen,
+          onChange: event => actions.setMotionValue('allowRangeExtension', event.target.checked) }), t('motion.extend')),
+        result?.saveAttempted && !work.error && !busy ? el('p', { role: 'status', className: 'db-muted' }, t('motion.uncertain'))
+          : stale && !result?.saveAttempted ? el('p', { className: 'db-error', role: 'status' }, t('motion.stale'))
+            : invalid && !result ? el('p', { className: 'db-muted' }, t('motion.invalid')) : null,
+        el('p', { className: 'db-muted' }, t('motion.limit')),
+        fullFrameChecked ? el('p', { className: 'db-muted', 'data-motion-full-frame-check': true }, t('motion.fullCheck')) : null,
+        fullFrameChecked && result.frameAudit.savedAuditSupported === true ? el('p', { className: 'db-muted', 'data-motion-saved-frame-check': true }, t('motion.savedCheck')) : null,
+        result?.saveAttempted && !busy ? el('p', { className: 'db-muted' }, t('motion.abandonHelp')) : null,
+        result ? el('video', { controls: true, preload: 'metadata', 'data-motion-video': result.id, style: { display: 'block', width: '100%', maxWidth: '480px' },
+          src: projectRoute(draft.projectId, `/motion-previews/${result.id}/video`) }) : null,
+        el('div', { className: 'db-inline', style: { flexWrap: 'wrap' } },
+          !result ? Button({ action: 'motion-preview', tone: 'primary', disabled: !available || busy || stale || invalid || Object.values(state.busy).some(Boolean), onClick: actions.previewMotion, children: work.busy === 'preview' ? t('motion.generating') : t('motion.preview') }) : null,
+          work.busy === 'preview' ? Button({ action: 'motion-cancel', onClick: actions.cancelMotion, children: t('motion.cancel') }) : null,
+          result ? Button({ action: 'motion-save', tone: 'primary', disabled: !available || busy || draft.storageError || stale && !result.saveAttempted || result.expiresAt <= Date.now() && !result.saveAttempted,
+            onClick: actions.saveMotion, children: work.busy === 'save' ? t('motion.saving') : result.saveAttempted ? t('motion.retry') : t('motion.save') }) : null,
+          !busy ? Button({ action: 'motion-discard', onClick: actions.discardMotion, children: result?.saveAttempted ? t('motion.abandon') : result ? t('motion.discard') : t('motion.reset') }) : null),
+        work.error ? el('p', { className: 'db-error', role: 'alert', 'data-motion-error': true }, work.error) : null,
+        work.message ? el('p', { role: 'status', 'data-motion-message': true }, work.message) : null)
+    }
+
+    function renderSingleFrameLink(state, job) {
+      if (!state.renderFrameDownloadSupported || state.editableSnapshotAvailability?.available !== true
+        || !/^[a-f0-9]{64}$/.test(state.storeIdentity || '') || job.status !== 'completed' || job.delivery?.verified !== true
+        || !/^r[0-9]{4,}$/.test(job.revisionId || '') || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
+        || !Number.isSafeInteger(job.frameStart) || job.frameStart < 1 || job.frameStart > 999999 || job.frameStart !== job.frameEnd) return null
+      // A published still receipt already pins its frame and digest. Polling may
+      // skip provenance for a busy project; do not hide a valid still in that case.
+      const frames = job.delivery?.kind === 'still' ? [job.delivery.image].filter(frame => frame?.frame === job.frameStart)
+        : Array.isArray(job.provenance?.frames) ? job.provenance.frames.filter(frame => frame?.frame === job.frameStart) : []
+      if (frames.length !== 1 || !/^[a-f0-9]{64}$/.test(frames[0].sha256 || '')) return null
+      const sha256 = frames[0].sha256
+      return el('a', { className: 'db-btn', 'data-action': `download-frame:${job.jobId}`,
+        href: projectRoute(state.activeProjectId, `/jobs/${encodeURIComponent(job.jobId)}/frames/${job.frameStart}?revision=${encodeURIComponent(job.revisionId)}&sha256=${sha256}&storeIdentity=${state.storeIdentity}`),
+        download: true }, t('jobs.downloadFrame', { revision: job.revisionId, frame: job.frameStart }))
+    }
+
+    function WideFramePreparation({ state, actions }) {
+      const plan = wideFramePlan(state.selected?.scene), motion = motionDraftFor(state)
+      const available = state.deliveryAspectPresetSupported && /^[a-f0-9]{64}$/.test(state.storeIdentity || '') && plan
+      const pending = available && (projectHasUnsavedDrafts(state) || Boolean(motion?.result || motion?.touched || state.motionWork[motionKey(state)]?.busy))
+      return el('section', { className: 'db-card', 'data-wide-frame': available ? plan.changed ? 'change' : 'ready' : 'unavailable' },
+        el('h4', null, t('aspect.title')),
+        !available ? el('p', { className: 'db-muted' }, t('aspect.unavailable'))
+          : !plan.changed ? el('p', { className: 'db-muted' }, t('aspect.done'))
+            : el('div', null, el('p', { className: 'db-muted' }, t('aspect.help')),
+              plan.profiles.map(item => el('p', { key: item.name, 'data-wide-profile': item.name }, t('aspect.change', { profile: item.name, before: item.before.join('×'), after: item.after.join('×') }))),
+              pending ? el('p', { className: 'db-muted' }, t('aspect.pending')) : null,
+              Button({ action: 'save-wide-frame', tone: 'primary', disabled: pending || Object.values(state.busy).some(Boolean), onClick: actions.saveWideFrame, children: t('aspect.apply') })))
+    }
+
     /** 任务: live progress, cancel, resume, and the approval threshold. */
     function JobsView(ctx) {
       const state = ctx.state
       const actions = ctx.actions
       if (state.activeProjectId === null) return el('div', { 'data-view': 'jobs', className: 'db-muted' }, t('common.noProject'))
       const jobs = state.jobs || []
+      const scene = state.selected?.scene
+      const frame = (value, fallback) => value === '' || value === undefined || value === null ? fallback : Number(value)
+      const start = frame(state.forms.frameStart, scene?.project?.frameStart)
+      const end = frame(state.forms.frameEnd, scene?.project?.frameEnd)
+      const noDeclaredMotion = Array.isArray(scene?.nodes?.animationTracks) && scene.nodes.animationTracks.length === 0
+        && Number.isSafeInteger(start) && Number.isSafeInteger(end) && end > start
+      const wideOutput = ['still-2560x1440', 'video-1920x1080'].includes(state.forms.stillPreset)
+      const profileSizes = ['preview', 'final'].map(name => scene?.renderProfiles?.[name]?.resolution)
+      const sizeKnown = profileSizes.every(size => Array.isArray(size) && size.length === 2 && size.every(n => Number.isSafeInteger(n) && n > 0))
+      const aspectWarning = !wideOutput ? null : !sizeKnown ? 'unknown' : profileSizes.some(([width, height]) => width * 9 !== height * 16) ? 'mismatch' : null
 
       return el('div', { 'data-view': 'jobs' },
         ErrorBox({ error: state.error }),
+        ProjectStorageNotice(state),
+        WideFramePreparation(ctx),
+        MotionEditor(ctx),
         el('div', { className: 'db-card' },
           el('h4', null, t('tab.jobs')),
           jobs.length === 0
@@ -6535,6 +7414,7 @@ window.__ModuleLoader__.load({
                 el('span', { className: 'db-mono' }, job.jobId),
                 Badge({ tone: statusTone(job.status), children: job.status }),
                 el('span', { className: 'db-muted' }, job.type),
+                job.cameraId ? el('span', { className: 'db-muted', 'data-job-camera': job.cameraId }, `${t('jobs.camera')}: ${job.cameraId}`) : null,
                 el('span', { className: 'db-muted db-mono' }, t('jobs.frameRange', { start: job.frameStart, end: job.frameEnd })),
                 job.approval && job.approval.required ? Badge({ tone: 'warn', name: 'approval', children: t('jobs.approval', { frames: job.approval.frames, threshold: job.approval.threshold }) }) : null,
                 job.deliverable ? Badge({ tone: 'ok', children: t('jobs.deliveryVerified') }) : null,
@@ -6545,13 +7425,29 @@ window.__ModuleLoader__.load({
               el('div', { className: 'db-muted', 'data-job-detail': job.jobId }, `${job.detail} · ${job.progress.percent}% · 缺失 ${job.progress.missing} · 损坏 ${job.progress.corrupt}`),
               el('div', { className: 'db-muted', 'data-job-provenance': job.jobId }, jobProvenanceText(job)),
               job.errorCode ? el('div', { className: 'db-error', style: { marginTop: '4px' } }, `${job.errorCode}: ${job.message || ''}`) : null,
-              job.delivery ? el('div', { className: 'db-muted db-mono' }, `video ${job.delivery.videoPath || ''}`) : null,
+              renderSingleFrameLink(state, job),
+              state.renderVideoDownloadSupported && state.editableSnapshotAvailability?.available === true
+                && /^[a-f0-9]{64}$/.test(state.storeIdentity || '') && job.status === 'completed' && job.delivery?.verified === true
+                && /^r[0-9]{4,}$/.test(job.revisionId || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
+                && /^[a-f0-9]{64}$/.test(job.delivery.sha256 || '')
+                ? el('a', { className: 'db-btn', 'data-action': `download-video:${job.jobId}`,
+                  href: projectRoute(state.activeProjectId, `/jobs/${encodeURIComponent(job.jobId)}/video?revision=${encodeURIComponent(job.revisionId)}&sha256=${job.delivery.sha256}&storeIdentity=${state.storeIdentity}`),
+                  download: true }, t('jobs.downloadVideo', { revision: job.revisionId }))
+                : job.delivery ? el('div', { className: 'db-muted db-mono' }, `video ${job.delivery.videoPath || ''}`) : null,
             ))),
         ),
 
         el('div', { className: 'db-card' },
           el('h4', null, t('jobs.startDelivery')),
+          noDeclaredMotion ? el('p', { className: 'db-muted', role: 'status', 'data-motion-warning': 'no-declared-tracks' }, t('jobs.noDeclaredMotion')) : null,
           el('div', { className: 'db-inline' },
+            el('label', { className: 'db-muted' }, t('jobs.camera')),
+            el('select', { className: 'db-input', 'data-field': 'render-camera', 'aria-label': t('jobs.camera'), style: { width: 'auto' }, value: state.forms.renderCamera || '',
+              onChange: event => actions.setForm('renderCamera', event.target.value) },
+              el('option', { value: '' }, t('jobs.cameraDefault')),
+              state.forms.renderCamera && !scene?.nodes?.cameras?.some(camera => camera.id === state.forms.renderCamera)
+                ? el('option', { value: state.forms.renderCamera }, state.forms.renderCamera) : null,
+              (scene?.nodes?.cameras || []).map(camera => el('option', { key: camera.id, value: camera.id }, camera.id))),
             el('label', { className: 'db-muted' }, t('jobs.frameStart')),
             el('input', { className: 'db-input', 'data-field': 'frame-start', 'aria-label': t('jobs.frameStart'), style: { width: '90px' }, value: state.forms.frameStart, onChange: event => actions.setForm('frameStart', event.target.value) }),
             el('label', { className: 'db-muted' }, t('jobs.frameEnd')),
@@ -6563,8 +7459,19 @@ window.__ModuleLoader__.load({
             },
               el('option', { value: 'preview' }, 'preview'),
               el('option', { value: 'final' }, 'final')),
+            state.stillImageDeliverySupported ? el('label', { className: 'db-muted' }, t('jobs.deliveryKind')) : null,
+            state.stillImageDeliverySupported ? el('select', { className: 'db-input', 'data-field': 'render-delivery-kind', 'aria-label': t('jobs.deliveryKind'), style: { width: 'auto' }, value: state.forms.deliveryKind || '', onChange: event => actions.setForm('deliveryKind', event.target.value) },
+              el('option', { value: '' }, t('jobs.deliveryVideo')), el('option', { value: 'still' }, t('jobs.deliveryStill'))) : null,
+            state.stillDeliveryPresetSupported || state.videoDeliveryPresetSupported ? el('label', { className: 'db-muted' }, t('jobs.stillPreset')) : null,
+            state.stillDeliveryPresetSupported || state.videoDeliveryPresetSupported ? el('select', { className: 'db-input', 'data-field': 'render-still-preset', 'aria-label': t('jobs.stillPreset'), style: { width: 'auto' }, value: state.forms.stillPreset || '', onChange: event => actions.setForm('stillPreset', event.target.value) },
+              el('option', { value: '' }, t('jobs.stillProfileSize')),
+              state.stillDeliveryPresetSupported ? el('option', { value: 'still-2560x1440' }, t('jobs.still2560')) : null,
+              state.videoDeliveryPresetSupported ? el('option', { value: 'video-1920x1080' }, t('jobs.video1080')) : null) : null,
             Button({ tone: 'primary', action: 'start-render', disabled: state.busy.render, onClick: () => actions.startRender(undefined), children: state.busy.render ? t('scene.submitting') : t('jobs.start') }),
           ),
+          state.forms.stillPreset === 'video-1920x1080' ? el('p', { className: 'db-muted', role: 'status' }, t('jobs.videoPresetHelp', { fps: scene?.project?.fps ?? '—' }))
+            : state.forms.stillPreset || state.forms.deliveryKind ? el('p', { className: 'db-muted', role: 'status' }, t('jobs.stillRange')) : null,
+          aspectWarning ? el('p', { className: 'db-error', role: 'status', 'data-render-aspect-warning': aspectWarning }, aspectWarning === 'mismatch' ? t('aspect.outputMismatch') : t('aspect.outputUnknown')) : null,
           Notice(state.notices.jobs, { marginTop: '8px' }),
         ),
       )
@@ -6643,6 +7550,11 @@ window.__ModuleLoader__.load({
 
         el('div', { className: 'db-card' },
           el('h4', null, t('visual.title')),
+          qa.visual.inputScope?.views?.length ? el('div', { 'data-review-input-scope': qa.visual.inputScope.mode },
+            el('strong', null, t('reviewView.scope', { revision: qa.visual.inputScope.sourceRevision })),
+            qa.visual.inputScope.views.map(view => el('p', { key: view.id, className: 'db-muted', style: { overflowWrap: 'anywhere' },
+              'data-reviewed-camera': view.cameraId, 'data-reviewed-frame': view.frame }, t('reviewView.scopeItem', {
+                camera: view.cameraId, frame: view.frame, resolution: (view.resolution || []).join('×'), samples: view.samples ?? '—' })))) : null,
           qa.visual.available
             ? el('div', null,
               KeyValues({ entries: [
@@ -6671,7 +7583,8 @@ window.__ModuleLoader__.load({
     function EditableSnapshotView({ state, actions }) {
       const entry = snapshotEntry(state), result = entry?.result, busy = entry?.busy || {}
       const enabled = snapshotSupported(state), working = Object.values(busy).some(Boolean), preparing = result?.state === 'preparing'
-      const same = snapshotSameSelection(entry), videos = snapshotVideos(state, entry?.revision)
+      const same = snapshotSameSelection(entry), videos = snapshotVideos(state, entry?.revision), images = snapshotImages(state, entry?.revision)
+      const missingImages = (entry?.imageJobIds || []).filter(id => !images.some(job => job.jobId === id))
       const revisions = state.selected?.revisions || []
       const phases = { writing: t('snapshot.copying'), verifying: t('snapshot.verifying'), publishing: t('snapshot.publishing') }
       const done = result?.phase === 'verifying' ? result.verifiedBytes : result?.writtenBytes
@@ -6689,9 +7602,19 @@ window.__ModuleLoader__.load({
             entry?.videoJobId && !videos.some(job => job.jobId === entry.videoJobId) ? el('option', { value: entry.videoJobId }, entry.videoJobId) : null,
             videos.map(job => el('option', { key: job.jobId, value: job.jobId }, job.jobId))))),
         revisions.length === 0 ? el('p', { className: 'db-muted' }, t('snapshot.noRevision')) : null,
+        state.snapshotImagesSupported ? el('fieldset', { className: 'db-field', style: { marginTop: '12px' }, 'data-snapshot-images': true, disabled: !enabled || working || preparing },
+          el('legend', null, t('snapshot.images')),
+          images.map(job => el('label', { className: 'db-inline', key: job.jobId },
+            el('input', { type: 'checkbox', 'data-field': 'snapshot-image', 'data-job-id': job.jobId, checked: (entry?.imageJobIds || []).includes(job.jobId),
+              disabled: !(entry?.imageJobIds || []).includes(job.jobId) && (entry?.imageJobIds || []).length >= 16,
+              onChange: event => actions.setSnapshotImage(job.jobId, event.target.checked) }),
+            el('span', null, `${job.jobId} · ${job.cameraId || '—'} · ${job.delivery.image.frame} · ${job.delivery.image.width}×${job.delivery.image.height}`))),
+          missingImages.map(id => el('label', { className: 'db-inline db-error', key: id }, el('input', { type: 'checkbox', 'data-field': 'snapshot-image', 'data-job-id': id, checked: true,
+            onChange: event => actions.setSnapshotImage(id, event.target.checked) }), el('span', null, t('snapshot.missingImage', { jobId: id })))),
+          !images.length && !missingImages.length ? el('p', { className: 'db-muted' }, t('snapshot.noImages')) : null) : null,
         el('div', { 'aria-live': 'polite', role: 'status', style: { marginTop: '12px' } },
           busy.cancel ? el('p', null, t('snapshot.cancelling')) : busy.check && !result ? el('p', null, t('snapshot.checking')) : busy.prepare || preparing ? el('p', null, phases[result?.phase] || t('snapshot.preparing')) : null,
-          result?.state === 'ready' ? el('p', null, t('snapshot.ready', { revision: result.revision, bytes: snapshotBytes(result.archive.bytes) })) : null,
+          same && result?.state === 'ready' ? el('p', null, t('snapshot.ready', { revision: result.revision, bytes: snapshotBytes(result.archive.bytes) })) : null,
           ['failed', 'cancelled'].includes(result?.state) ? el('p', { className: 'db-muted' }, result.error?.code === 'SNAPSHOT_INTERRUPTED' ? t('snapshot.interrupted') : result.state === 'failed' ? t('snapshot.failed') : t('snapshot.cancelled')) : null,
           result?.state === 'failed' && result.error?.message ? el('p', { className: 'db-error' }, result.error.message) : null,
           (preparing || busy.prepare) && entry?.handle ? el('p', { className: 'db-muted' }, t('snapshot.saved', entry.handle)) : null,
@@ -6701,7 +7624,7 @@ window.__ModuleLoader__.load({
         entry?.handle && !same ? el('p', { className: 'db-muted' }, t('snapshot.newSelection')) : null,
         entry?.storageUnavailable && entry.handle ? el('p', { className: 'db-muted' }, t('snapshot.storage')) : null,
         el('div', { className: 'db-inline', style: { marginTop: '12px' } },
-          enabled && result?.state === 'ready' && !entry.issue ? el('a', { className: 'db-btn', 'data-tone': 'primary', href: result.downloadUrl, download: true, 'data-action': 'snapshot-download' }, t('snapshot.download')) : null,
+          enabled && same && result?.state === 'ready' && !entry.issue ? el('a', { className: 'db-btn', 'data-tone': 'primary', href: result.downloadUrl, download: true, 'data-action': 'snapshot-download' }, t('snapshot.download')) : null,
           preparing ? Button({ action: 'snapshot-cancel', disabled: !enabled || busy.cancel || busy.prepare, onClick: actions.cancelEditableSnapshot, children: t('snapshot.cancel') }) : null,
           entry?.issue || entry?.handle && !result ? Button({ action: 'snapshot-check', disabled: !enabled || working, onClick: actions.checkEditableSnapshot, children: t('snapshot.check') }) : null,
           (!preparing || entry?.issue) && !(same && result?.state === 'ready' && !entry.issue) ? Button({ action: 'snapshot-prepare', tone: 'primary', disabled: !enabled || !entry?.revision || working,
@@ -6818,6 +7741,37 @@ window.__ModuleLoader__.load({
         })))
     }
 
+    function ProjectStorageNotice(state) {
+      const storage = state.projectStorage
+      const status = ['low', 'observed'].includes(storage?.status) && Number.isSafeInteger(storage.availableBytes) && storage.availableBytes >= 0
+        ? storage.status : 'unknown'
+      const space = status === 'unknown' ? null : assetBytes(storage.availableBytes)
+      return el('section', { className: status === 'low' ? 'db-error' : 'db-muted', 'data-project-storage': status, role: 'status' },
+        el('p', null, status === 'low' ? t('storage.low', { space }) : status === 'observed' ? t('storage.observed', { space }) : t('storage.unknown')), el('p', null, t('storage.limit')))
+    }
+
+    function ImageInputReadiness({ state, actions }) {
+      const probe = state.imageInputProbe || { busy: false, result: null }
+      const available = state.imageInputProbeSupported && state.editableSnapshotAvailability?.available === true
+      const result = available ? probe.result : null
+      const message = result?.status === 'pass' ? t('readiness.imagePass')
+        : result?.reason === 'authentication' ? t('readiness.imageAuth')
+          : result?.reason === 'credentials_missing' ? t('readiness.imageCredentials')
+          : result?.reason === 'image_unsupported' ? t('readiness.imageUnsupported')
+            : result?.reason === 'model_unavailable' ? t('readiness.imageModel')
+              : ['provider_unavailable', 'services_missing', 'route_missing'].includes(result?.reason) ? t('readiness.imageRoute')
+              : result?.reason === 'rate_limit' ? t('readiness.imageRate')
+                : ['timeout', 'cancelled'].includes(result?.reason) ? t('readiness.imageTimeout')
+                  : result?.reason === 'busy' ? t('readiness.imageBusy') : t('readiness.imageInconclusive')
+      return el('section', { 'data-image-readiness': true },
+        el('h4', null, t('readiness.imageTitle')),
+        el('p', { className: 'db-muted' }, t('readiness.imageHelp')),
+        !available ? el('p', { className: 'db-muted' }, t('readiness.imageLocal')) : null,
+        Button({ action: 'probe-image-input', disabled: !available || probe.busy, onClick: actions.probeImageInput,
+          children: probe.busy ? t('readiness.imageRunning') : t('readiness.imageRun') }),
+        result ? el('p', { role: 'status', 'data-image-readiness-result': result.status, className: result.status === 'pass' ? 'db-muted' : 'db-error' }, message) : null)
+    }
+
     function LighttableWorkspace(ctx) {
       const { state, actions } = ctx, result = lighttableResult(state)
       const comparison = state.view === 'preview' && state.compareMode !== 'result'
@@ -6886,7 +7840,8 @@ window.__ModuleLoader__.load({
                 el('label', { className: 'db-field' }, t('workbench.appearance'),
                   el('select', { className: 'db-input db-theme', 'data-field': 'workbench-appearance', value: state.appearance || 'system', onChange: event => actions.setAppearance(event.target.value) },
                     [['system', t('workbench.system')], ['light', t('workbench.light')], ['dark', t('workbench.dark')]].map(([theme, label]) => el('option', { value: theme }, label)))),
-                el('a', { className: 'db-btn', href: ROUTES.diagnostics, download: 'deepblend-diagnostics.json', 'data-action': 'export-diagnostics', title: t('diagnostics.exportHint') }, t('diagnostics.export')))))),
+                el('a', { className: 'db-btn', href: ROUTES.diagnostics, download: 'deepblend-diagnostics.json', 'data-action': 'export-diagnostics', title: t('diagnostics.exportHint') }, t('diagnostics.export')),
+                ImageInputReadiness(ctx))))),
         el('nav', { className: 'db-nav', 'aria-label': t('workbench.navigation') },
           el('div', { className: 'db-journey' }, primary.map(entry => nav(entry.id, entry.id === 'projects' && active && (state.view !== 'projects' || state.projectTask !== 'new') ? t('lighttable.brief') : entry.label))),
           el('div', { className: 'db-secondary-nav' }, secondary.map(entry => nav(entry.id, entry.label)))),
@@ -7486,7 +8441,7 @@ window.__ModuleLoader__.load({
       inspection: { form: inspectionForm, valid: inspectionFormValid },
       assetLibrary: { selection: assetBundleSelection, createDraft: createAssetDraft, buildPatch: buildAssetPatch, error: assetDraftError, key: assetKey },
       referenceBrief: { createDraft: createBriefDraft, buildPatch: buildBriefPatch, dirty: briefDirty, valid: briefValid },
-      photographyEditor: { createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor, reuse: reusePhotography },
+      photographyEditor: { boundaryRequest: photographyBoundaryRequest, applyBoundary: applyBoundaryPhotography, createDraft: createPhotographyDraft, buildPatch: buildPhotographyPatch, errors: photographyErrors, dirty: photographyDirty, draftFor: photographyDraftFor, reuse: reusePhotography },
       sceneEditor: { createDraft: createEditorDraft, buildPatch: buildEditorPatch, errors: editorErrors, dirty: editorDirty, previewPair: editorPreviewPair, draftFor: editorDraftFor },
       renderView,
       mountStandalone,

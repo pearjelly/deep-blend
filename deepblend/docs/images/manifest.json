@@ -36,16 +36,16 @@
         "path": "revisions/r0002/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "04dbc19f32182f403f6daef67e2d8734bc3314a6b960f0f827553135247468f0",
-        "bytes": 2244706
+        "sha256": "c2853bd7c01a663f555a3dfa9e423d0eec1c8ef1af8376958dd6dbf8eac3f14a",
+        "bytes": 2244693
       },
       {
         "revision": "r0003",
         "path": "revisions/r0003/contact-sheets/preview-current.png",
         "width": 2952,
         "height": 1812,
-        "sha256": "b236e44364c58f1a810ec9f1ac55eb0b1d4c3c213048bc1387b0d920701aa34d",
-        "bytes": 2115238
+        "sha256": "d6dde50e8f13c49d95ec36702d0d1b1b23218b7405d6ea46df8b7a1b8bf8fa0d",
+        "bytes": 2115247
       }
     ]
   },
@@ -61,8 +61,8 @@
         "centerUnobstructed": true,
         "visibleDialogs": 0
       },
-      "bytes": 1170527,
-      "sha256": "e57ca5884b4f08cb2fe244486ad035f5830dd334203453f79d1099c7181663bd"
+      "bytes": 1029852,
+      "sha256": "9d99f316ab38335e13803f96125871469df753c4e933dbdb566984b110264ac6"
     },
     {
       "file": "workbench-scene.png",
@@ -75,8 +75,8 @@
         "centerUnobstructed": true,
         "visibleDialogs": 0
       },
-      "bytes": 397116,
-      "sha256": "c40e3d1765e4b41062d69c2c0ce9727b4ae196e390e4a3565c77039ca250f8e2"
+      "bytes": 727262,
+      "sha256": "43c20f835ccdef7295c4522739205b0714f30de52a19ad3cd12d9ffc4be46abe"
     },
     {
       "file": "render-contact-sheet.png",
@@ -84,8 +84,8 @@
       "note": "the artifact itself: the contact sheet Blender composed for r0003, box-averaged 2x from the 2952x1812 file in the project store",
       "width": 1476,
       "height": 906,
-      "bytes": 625201,
-      "sha256": "5873b11a8a2727df340b1286ef3e669a3b339a9d1f12a4c484c1a39acb16f9ff"
+      "bytes": 625199,
+      "sha256": "2e7981092fe39cdcd77ba57f9c0ed35e137478da88c0bb6bee8421438a2c9c61"
     }
   ]
 }

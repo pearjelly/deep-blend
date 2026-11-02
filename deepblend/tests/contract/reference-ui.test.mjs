@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderUiHost, { createHandlers, statusForError } from '@deepblend/dsh-blender-ui'
-import { BlenderError, buildSceneTree, buildQaView, compileSceneSpec, validateScenePatch, validateSceneSpec, applyPatchToSpec, HOST_API_VERSION, UI_ROUTES, matchUiRoute } from '@deepblend/dsh-blender-contracts'
+import { BlenderError, buildSceneTree, buildQaView, compileSceneSpec, sceneSpecDigest, validateScenePatch, validateSceneSpec, applyPatchToSpec, HOST_API_VERSION, UI_ROUTES, matchUiRoute } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
 
 const core = loadClientBundle().exports.workbench, brief = core.referenceBrief
@@ -15,7 +15,7 @@ const asset = { id: 'reference-asset', type: 'png', path: `assets/raw/${sha}.png
 const reference = { id: 'front-reference', assetId: asset.id, sha256: sha, label: 'Product front', purposes: ['geometry', 'goalFit'], notes: 'Keep the curved shoulder' }
 const image = { mime: 'image/png', width: 20, height: 10, bytes: 100, sha256: sha }
 const source = () => compileSceneSpec(JSON.parse(readFileSync(new URL('../../recipes/glass-ceramic/scene-spec.json', import.meta.url)))).spec
-const scene = (spec, revision = 'r0001') => buildSceneTree(spec, { revision })
+const scene = (spec, revision = 'r0001') => buildSceneTree(spec, { revision, digest: sceneSpecDigest(spec) })
 const nodesOf = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(nodesOf)] : []
 const validPatch = patch => assert.equal(validateScenePatch(patch).ok, true, validateScenePatch(patch).summary)
 const chooseFiles = (store, files) => nodesOf(core.renderView({ state: store.getState(), actions: store.actions })).find(node => node.props['data-field'] === 'brief-upload').props.onChange({ target: { files } })
@@ -30,6 +30,7 @@ async function waitFor(store, predicate) {
 async function client(t, options = {}) {
   const projects = { one: { spec: source(), revision: 'r0001' }, two: { spec: source(), revision: 'r0001' } }
   projects.one.spec.project.goal = 'Saved goal one'; projects.two.spec.project.goal = 'Saved goal two'
+  projects.one.spec.project.id = 'one'; projects.two.spec.project.id = 'two'
   options.prepare?.(projects)
   const calls = []
   let failure = null
@@ -49,11 +50,14 @@ async function client(t, options = {}) {
         project.spec = applyPatchToSpec(project.spec, body.patch).spec
         assert.equal(validateSceneSpec(project.spec).ok, true, validateSceneSpec(project.spec).summary)
         project.revision = `r${String(Number(project.revision.slice(1)) + 1).padStart(4, '0')}`; payload = { ok: true, revision: { revision: project.revision } }
-      } else if (parsed.pathname.endsWith('/review')) payload = { ok: true, revision: project.revision, review: options.review || { reviewerError: null, referenceImages: [] } }
+      } else if (parsed.pathname.endsWith('/review')) payload = { ok: true, revision: project.revision, review: options.review || { reviewerError: null, referenceImages: [],
+        ...(body.views ? { inputScope: { mode: 'selected-views', sourceRevision: body.revision, sourceDigest: body.expectedDigest,
+          views: body.views.map(view => ({ ...view, resolution: [640, 360], samples: 16 })) } } : {}) } }
       else payload = { ok: true, run: { finalRevision: project.revision, stopReason: 'ITERATION_CAP', artistic: { status: 'unassessable' } } }
-    } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', hostApiVersion: HOST_API_VERSION, jobs: [], unfinished: [] }
+    } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', hostApiVersion: HOST_API_VERSION, jobs: options.jobs || [], unfinished: [] }
     else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', hostApiVersion: HOST_API_VERSION, artifactBase: `/deepblend/artifacts/${id}/`, previews: { projectId: id, revisions: [] } }
-    else payload = { ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, projects: Object.keys(projects).map(projectId => ({ projectId })), selected: {
+    else payload = { ok: true, route: 'state', hostApiVersion: HOST_API_VERSION, selectedReviewViewsSupported: options.selectedReview === true,
+      projectsRoot: '/test-store', storeIdentity: sha, projects: Object.keys(projects).map(projectId => ({ projectId })), selected: {
       project: { projectId: id, title: id }, scene: scene(project.spec, project.revision), currentRevision: project.revision,
       qa: buildQaView({ projectId: id, revision: project.revision, review: options.qaReview || null }), jobs: [], unfinishedJobs: [],
     } }
@@ -348,6 +352,38 @@ test('review and correction only run on explicit clicks against saved revisions 
   store.actions.setVisualIterations(2); await store.actions.runVisual('autofix')
   assert.deepEqual(calls[1].body, { revision: 'r0001', maxIterations: 2 })
   store.actions.setVisualIterations(99); assert.equal(store.getState().visualIterations.one, 2)
+})
+
+test('selected review carries saved camera/frame pairs and source identity without calling correction', async t => {
+  const { store, calls, action, field } = await client(t, { selectedReview: true })
+  assert.equal(field('review-view-mode').props.value, 'selected'); assert.equal(action('project-autofix').props.disabled, true)
+  store.actions.updateReviewView(0, 'cameraId', 'detail'); store.actions.updateReviewView(0, 'frame', 24)
+  await store.actions.runVisual('autofix'); assert.equal(calls.length, 0)
+  await store.actions.runVisual('review')
+  assert.deepEqual(calls[0].body, { revision: 'r0001', views: [{ id: 'review-1', cameraId: 'detail', frame: 24 }],
+    expectedStoreIdentity: sha, expectedDigest: store.getState().selected.scene.digest })
+  assert.equal(store.getState().visualRuns.one.error, null)
+})
+
+test('completed image selection includes this revision only and rejects invalid/stale camera inputs', async t => {
+  const jobs = ['hero', 'detail', 'reverse'].map((cameraId, i) => ({ jobId: `render-000${i + 1}`, revisionId: 'r0001', status: 'completed', cameraId,
+    delivery: { kind: 'still', verified: true, image: { frame: 24, sha256: sha } } }))
+  jobs.push({ ...jobs[0], jobId: 'render-old', revisionId: 'r0000' })
+  const { store, calls, projects, action } = await client(t, { selectedReview: true, jobs })
+  store.actions.useCompletedReviewViews(); await store.actions.runVisual('review')
+  assert.deepEqual(calls[0].body.views.map(v => v.cameraId), ['hero', 'detail', 'reverse'])
+  store.actions.updateReviewView(0, 'frame', 99999); assert.equal(action('project-review').props.disabled, true)
+  await store.actions.runVisual('review'); assert.equal(calls.length, 1)
+  projects.one.revision = 'r0002'; store.actions.reload(); await waitFor(store, s => s.currentRevision === 'r0002')
+  assert.equal(action('project-review').props.disabled, true); await store.actions.runVisual('review'); assert.equal(calls.length, 1)
+  store.actions.resetReviewSelection(); assert.equal(Boolean(action('project-review').props.disabled), false)
+})
+
+test('selected review refuses a reply for different cameras instead of presenting success', async t => {
+  const { store, calls } = await client(t, { selectedReview: true, review: { reviewerError: null,
+    inputScope: { mode: 'selected-views', sourceRevision: 'r0001', sourceDigest: otherSha, views: [] } } })
+  await store.actions.runVisual('review'); assert.equal(calls.length, 1)
+  assert.match(store.getState().visualRuns.one.error, /do not match this selection/i)
 })
 
 test('actual reference IDs and preparation failure are visible without inventing a reference pass', async t => {

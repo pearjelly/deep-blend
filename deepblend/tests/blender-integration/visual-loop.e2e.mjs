@@ -45,6 +45,7 @@ import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const HERE = import.meta.dirname
 const ROOT = resolve(HERE, '..', '..', '..')
@@ -124,6 +125,17 @@ const objectById = (view, objectId) => (view?.objects ?? []).find(entry => entry
 const issueCodes = review => review.issues.map(issue => `${issue.viewId}:${issue.objectId ?? '-'}:${issue.code}`)
 
 try {
+  const projectionFile = join(workspace, 'visibility-projection.json')
+  const projectionProbe = spawnSync(BLENDER, ['--background', '--factory-startup', '--disable-autoexec', '--threads', '2',
+    '--python-exit-code', '1', '--python', join(HERE, 'visibility-projection-fixture.py'), '--',
+    join(ROOT, 'packages/deepblend/provider-local/python/deepblend_views.py'), projectionFile],
+  { cwd: ROOT, encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 })
+  check('native off-centre visibility calibration completes', projectionProbe.status === 0,
+    projectionProbe.status === 0 ? undefined : `${projectionProbe.error?.message ?? ''}${projectionProbe.stderr}${projectionProbe.stdout}`.slice(-3000))
+  if (existsSync(projectionFile)) {
+    const projection = JSON.parse(readFileSync(projectionFile, 'utf8'))
+    for (const result of projection.checks) check(result.name, result.ok)
+  }
   // =========================================================================
   // 1. Multi-view rendering and the contact sheet
   // =========================================================================
@@ -209,8 +221,11 @@ try {
   check('a centred subject measures near the centre of the frame',
     Math.abs(subject.centroid[0] - 0.5) < 0.06 && Math.abs(subject.centroid[1] - 0.5) < 0.10,
     subject.centroid)
-  check('an unobstructed subject measures as fully visible',
-    subject.visibleFraction === 1 && subject.occludedFraction === 0, subject.visibleFraction)
+  // The authored vase stands on this tabletop; its silhouette really covers a
+  // small portion of the table. A short ray used to miss both objects entirely.
+  check('the largely exposed tabletop reports its actual partial occlusion by the vase',
+    subject.visibleFraction > 0.85 && subject.visibleFraction < 0.98
+      && subject.occludedBy.some(entry => entry.entityId === 'vase' && entry.fraction > 0.02), subject)
   check('the subject occupies a sane share of a well-framed shot',
     subject.frameCoverage > 0.04 && subject.frameCoverage < 0.6, subject.frameCoverage)
   check('a subject fully inside the frame is reported as such', subject.inFrame === true)
@@ -661,13 +676,12 @@ try {
     const withParts = await studio.renderViews({ ...selected, track: ['watch-body', 'watch-dial', 'watch-crown'] })
     const first = onlyBody.views[0].metrics.objects.find(o => o.id === 'watch-body')
     const second = withParts.views[0].metrics.objects.find(o => o.id === 'watch-body')
-    check('an authored fitted face counts as the same body even when it has no separately measured mask',
-      first.silhouettePixels > 0 && first.visibleFraction === second.visibleFraction && first.visibleFraction > 0 && first.visibleFraction < 1,
+    check('the exposed watch and its authored fitted face remain visible without a separate part mask',
+      first.silhouettePixels > 0 && first.visibleFraction === second.visibleFraction && first.visibleFraction > 0.99,
       { onlyBody: first.visibleFraction, withParts: second.visibleFraction })
-    check('narrow tracking neither renders extra part masks nor reports the declared face as an obstruction',
+    check('narrow tracking neither renders extra part masks nor invents an obstruction from the stage below',
       onlyBody.views[0].metrics.objects.length === 1 &&
-      first.occludedBy.every(o => !['watch-dial', 'watch-crown'].includes(o.entityId)) &&
-      first.occludedBy.some(o => o.entityId === 'stage'), first.occludedBy)
+      first.occludedBy.length === 0 && second.occludedBy.length === 0, first.occludedBy)
   }
 } finally {
   rmSync(workspace, { recursive: true, force: true })
